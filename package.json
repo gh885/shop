@@ -1,0 +1,36 @@
+{
+    "name": "shop",
+    "version": "1.0.0",
+    "description": "",
+    "keywords": [],
+    "license": "ISC",
+    "author": "",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "dev": "pnpm dev:web && pnpm dev:server",
+        "dev:web": "pnpm --filter web dev",
+        "dev:server": "mvn -f apps/server/pom.xml spring-boot:run",
+        "build": "pnpm build:web && pnpm build:server",
+        "build:web": "pnpm --filter web build",
+        "build:server": "mvn -f apps/server/pom.xml compile",
+        "lint": "pnpm lint:web && pnpm lint:server",
+        "lint:web": "oxlint --config packages/config/oxlint.config.ts --fix .",
+        "lint:server": "mvn -f apps/server/pom.xml compile",
+        "format": "pnpm format:web && pnpm format:server",
+        "format:web": "oxfmt --config packages/config/oxfmt.config.ts --write .",
+        "format:server": "mvn -f apps/server/pom.xml spotless:apply",
+        "typecheck": "pnpm --filter web exec tsc --noEmit"
+    },
+    "devDependencies": {
+        "oxfmt": "^0.60.0",
+        "oxlint": "^1.75.0"
+    },
+    "devEngines": {
+        "packageManager": {
+            "name": "pnpm",
+            "version": "^11.17.0",
+            "onFail": "download"
+        }
+    }
+}

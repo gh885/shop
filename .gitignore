@@ -1,0 +1,39 @@
+# Java (apps/server)
+target/
+*.class
+*.jar
+*.war
+*.log
+**/mvnw
+**/mvnw.cmd
+**/.mvn
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+dist/
+.next/
+*.tsbuildinfo
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Generated proto
+packages/api-client/generated/
+
+# Mobile
+apps/mobile-*/android/.gradle/
+apps/mobile-*/ios/Pods/
+apps/mobile-*/build/

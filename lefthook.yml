@@ -1,0 +1,30 @@
+assert_lefthook_installed: true
+colors: true
+
+# ── pre-commit：轻量检查，只跑暂存文件 ──
+pre-commit:
+    jobs:
+        - name: Format
+          glob: '**/*.{ts,tsx,js,jsx,json,yml,yaml,md}'
+          run: pnpm oxfmt --config packages/config/oxfmt.config.ts --write {staged_files}
+          stage_fixed: true
+
+        - name: Lint
+          glob: '**/*.{ts,tsx,js,jsx}'
+          run: pnpm oxlint --config packages/config/oxlint.config.ts {staged_files}
+
+# ── commit-msg：Conventional Commits 校验 ──
+commit-msg:
+    jobs:
+        - name: Commit message validation
+          run: pnpm commitlint --edit {1}
+          fail_text: '提交信息格式不符合规范，请参考 Conventional Commits 规范'
+
+# ── pre-push：重量检查，全量跑 ──
+pre-push:
+    jobs:
+        - name: Lint check
+          run: pnpm lint
+
+        - name: Type check
+          run: pnpm typecheck

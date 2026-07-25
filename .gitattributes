@@ -1,0 +1,46 @@
+# Normalize line endings to LF
+* text=auto eol=lf
+
+# Java sources
+*.java text diff=java
+*.xml text
+
+# Web / JS
+*.ts text diff=typescript
+*.tsx text
+*.js text diff=javascript
+*.jsx text
+*.css text
+*.json text
+*.html text
+
+# Config
+*.yml text
+*.yaml text
+*.properties text
+*.toml text
+
+# Protobuf
+*.proto text diff=proto
+
+# SQL
+*.sql text
+
+# Shell scripts
+*.sh text eol=lf
+
+# Images (binary)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg text
+*.ico binary
+
+# Archives
+*.zip binary
+*.tar.gz binary
+*.jar binary
+
+# Generated / runtime
+.class binary

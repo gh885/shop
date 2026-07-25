@@ -1,0 +1,26 @@
+server:
+    port: 8080
+
+spring:
+    application:
+        name: shop-server
+
+    datasource:
+        url: jdbc:postgresql://localhost:5432/shop
+        username: shop
+        password: shop_dev
+
+    sql:
+        init:
+            mode: always
+            schema-locations: classpath:schema.sql
+            continue-on-error: true
+
+    autoconfigure:
+        exclude:
+            - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+            - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+grpc:
+    server:
+        port: 9090
