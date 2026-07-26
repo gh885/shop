@@ -3,7 +3,7 @@
 ## 技术栈
 
 - 前端：TanStack Start (React 19), TypeScript 7, Vite 8, Tailwind v4, TanStack Query/Router
-- 后端：Spring Boot 4.1, Spring Modulith 2.1, gRPC, MyBatis-Plus 3.5, PostgreSQL 18, Redis 7
+- 后端：Spring Boot 4.1, Spring Modulith 2.1, REST (OpenAPI), MyBatis-Plus 3.5, PostgreSQL 18, Redis 7
 - 工具：Maven, pnpm, Docker Compose, Lefthook, Oxlint/Oxfmt, Spotless (Google Java Format)
 
 ## 项目结构
@@ -15,7 +15,7 @@ apps/web/                ← 买家端 SSR
 apps/seller/             ← 卖家工作台 SPA
 apps/admin/              ← 平台管理端 SPA
 packages/                ← 共享包（api-client / domain / ui-web / i18n / config）
-proto/                   ← protobuf 契约, 唯一 API 事实来源
+openapi/                 ← OpenAPI 契约, 唯一 API 事实来源
 ```
 
 ## 关键架构规则
@@ -35,7 +35,7 @@ server/src/main/java/com/shop/platform/
 ├── auth/                         ← 模块 = 顶层包 = PG schema
 │   ├── AuthModuleConfig.java     ← @ConditionalOnProperty 开关
 │   ├── package-info.java         ← @ApplicationModule
-│   ├── controller/               ← gRPC 入口（gRPC）或 REST
+│   ├── controller/               ← REST 入口
 │   ├── service/                  ← 业务逻辑
 │   └── mapper/                   ← Entity + Mapper
 ├── product/

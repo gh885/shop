@@ -7,7 +7,7 @@
 | 层     | 技术                                                            |
 | ------ | --------------------------------------------------------------- |
 | 前端   | TanStack Start (React 19, TypeScript 7, Vite 8, Tailwind v4)    |
-| 后端   | Spring Boot 4.1 + Spring Modulith 2.1 + gRPC + MyBatis-Plus 3.5 |
+| 后端   | Spring Boot 4.1 + Spring Modulith 2.1 + REST (OpenAPI) + MyBatis-Plus 3.5 |
 | 数据库 | PostgreSQL 18 (Schema 隔离) + Redis 7                           |
 | 工具   | Maven + pnpm + Docker Compose + Lefthook + Oxlint/Oxfmt         |
 
@@ -52,12 +52,12 @@ shop/
 │           ├── product/
 │           └── …               # 22 个业务模块
 ├── packages/
-│   ├── api-client/             # proto 生成的 TS client
+│   ├── api-client/             # OpenAPI 生成的 TS client
 │   ├── domain/                 # 纯 TS 业务逻辑
 │   ├── ui-web/                 # shadcn 组件库
 │   ├── i18n/                   # 翻译资源
 │   └── config/                 # 共享配置（tsconfig / oxlint / oxfmt）
-├── proto/                      # protobuf 契约
+├── openapi/                    # OpenAPI 契约（唯一 API 事实来源）
 ├── deploy/                     # Docker Compose / K8s
 ├── docs/                       # PRD / ADR / 架构文档
 └── scripts/                    # 工具脚本
@@ -94,4 +94,4 @@ scope 可选，填具体模块名。
 - **模块化单体**：模块之间不 import 对方的 service/repo，只靠 Event Bus 通信
 - **Schema 隔离**：每个模块拥有自己的 PG schema，可只读跨 schema 查，不许跨 schema JOIN
 - **共享内核极小**：只放跨模块类型（UserId、Money 等）和 Event Bus 基础设施
-- **内核层统一错误处理**：gRPC 拦截器自动映射业务异常到标准状态码
+- **内核层统一错误处理**：全局异常处理（`@RestControllerAdvice`）自动映射业务异常到标准错误码
