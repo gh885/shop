@@ -53,7 +53,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             </head>
             <body>
                 {children}
-                <TanStackDevtools config={devtoolsConfig} plugins={devtoolsPlugins} />
+                <TanStackDevtools
+                    config={devtoolsConfig}
+                    plugins={devtoolsPlugins}
+                />
                 <Scripts />
             </body>
         </html>

@@ -2,12 +2,14 @@ package com.shop.platform.auth.infra;
 
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.RequestIdFilter;
-
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -15,10 +17,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
@@ -42,7 +40,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         try {
             String header = request.getHeader("Authorization");
@@ -65,7 +64,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             // VERIFY-01: 校验 audience（手动兜底，配合 JwtProvider 的 requireIssuer）
-            if (claims.getAudience() == null || !claims.getAudience().contains(jwtProvider.getExpectedAudience())) {
+            if (claims.getAudience() == null
+                    || !claims.getAudience().contains(jwtProvider.getExpectedAudience())) {
                 writeUnauthorized(request, response, "auth.invalid_token", "Token 受众无效");
                 return;
             }
@@ -82,8 +82,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
     }
 
-    private void writeUnauthorized(HttpServletRequest request, HttpServletResponse response,
-                                    String code, String detail) throws IOException {
+    private void writeUnauthorized(
+            HttpServletRequest request, HttpServletResponse response, String code, String detail)
+            throws IOException {
         String requestId = RequestIdFilter.getRequestId(request);
 
         Map<String, Object> body = new LinkedHashMap<>();

@@ -2,9 +2,7 @@ package com.shop.platform.common;
 
 import lombok.Getter;
 
-/**
- * 业务异常，由 GlobalExceptionHandler 自动转为 RFC 9457 ProblemDetail。
- */
+/** 业务异常，由 GlobalExceptionHandler 自动转为 RFC 9457 ProblemDetail。 */
 @Getter
 public class BusinessException extends RuntimeException {
 

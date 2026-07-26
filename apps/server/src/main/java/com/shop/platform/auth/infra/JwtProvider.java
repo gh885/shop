@@ -6,11 +6,6 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
-
-import javax.crypto.SecretKey;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -22,6 +17,10 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HexFormat;
 import java.util.UUID;
+import javax.crypto.SecretKey;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 @Slf4j
@@ -45,7 +44,8 @@ public class JwtProvider {
         this.audience = props.getAudience();
 
         // ES256 优先；HS256 仅限原型/玩具项目（冲突裁决 #6）
-        if (StringUtils.hasText(props.getPrivateKey()) && StringUtils.hasText(props.getPublicKey())) {
+        if (StringUtils.hasText(props.getPrivateKey())
+                && StringUtils.hasText(props.getPublicKey())) {
             this.hmacKey = null;
             this.ecPrivateKey = parseEcPrivateKey(props.getPrivateKey());
             this.ecPublicKey = parseEcPublicKey(props.getPublicKey());
@@ -55,7 +55,8 @@ public class JwtProvider {
             this.ecPrivateKey = null;
             this.ecPublicKey = null;
             this.isHs256 = true;
-            log.warn("Using HS256 — only suitable for prototypes; configure ES256 keys for production");
+            log.warn(
+                    "Using HS256 — only suitable for prototypes; configure ES256 keys for production");
         } else {
             // 开发环境：启动时自动生成临时密钥对
             KeyPair kp = Jwts.SIG.ES256.keyPair().build();
@@ -69,14 +70,17 @@ public class JwtProvider {
 
     /** 签发 Access Token（JWT，带 jti/iss/aud/type） */
     public String createAccessToken(Long userId) {
-        var builder = Jwts.builder()
-                .subject(userId.toString())
-                .claim(CLAIM_TYPE, TYPE_ACCESS)
-                .issuer(issuer)
-                .audience().add(audience).and()
-                .id(UUID.randomUUID().toString())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + accessExp));
+        var builder =
+                Jwts.builder()
+                        .subject(userId.toString())
+                        .claim(CLAIM_TYPE, TYPE_ACCESS)
+                        .issuer(issuer)
+                        .audience()
+                        .add(audience)
+                        .and()
+                        .id(UUID.randomUUID().toString())
+                        .issuedAt(new Date())
+                        .expiration(new Date(System.currentTimeMillis() + accessExp));
 
         if (isHs256) {
             builder.signWith(hmacKey);
@@ -93,10 +97,7 @@ public class JwtProvider {
         return "rt:" + HexFormat.of().formatHex(bytes);
     }
 
-    /**
-     * 验签并解析 claims。
-     * 自动校验签名、issuer、过期时间；过期 token 仍返回 claims 供调用方判断。
-     */
+    /** 验签并解析 claims。 自动校验签名、issuer、过期时间；过期 token 仍返回 claims 供调用方判断。 */
     public Claims parse(String token) {
         try {
             var parserBuilder = Jwts.parser().requireIssuer(issuer);
@@ -105,9 +106,7 @@ public class JwtProvider {
             } else {
                 parserBuilder.verifyWith(ecPublicKey);
             }
-            return parserBuilder.build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+            return parserBuilder.build().parseSignedClaims(token).getPayload();
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         } catch (JwtException e) {
@@ -152,5 +151,4 @@ public class JwtProvider {
             throw new IllegalArgumentException("Invalid ES256 public key (base64 X.509)", e);
         }
     }
-
 }

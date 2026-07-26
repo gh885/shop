@@ -1,10 +1,8 @@
 package com.shop.platform.auth.infra;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Data
 @ConfigurationProperties(prefix = "shop.jwt")
@@ -32,12 +30,12 @@ public class JwtProperties {
     private String audience = "shop-api";
 
     /** 不需要认证的路径 */
-    private List<String> skipPaths = List.of(
-            "/auth/sms-code",
-            "/auth/login/sms",
-            "/auth/login/password",
-            "/auth/refresh",
-            "/auth/forgot-password",
-            "/auth/reset-password"
-    );
+    private List<String> skipPaths =
+            List.of(
+                    "/auth/sms-code",
+                    "/auth/login/sms",
+                    "/auth/login/password",
+                    "/auth/refresh",
+                    "/auth/forgot-password",
+                    "/auth/reset-password");
 }

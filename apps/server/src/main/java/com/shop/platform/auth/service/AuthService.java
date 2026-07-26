@@ -1,20 +1,13 @@
 package com.shop.platform.auth.service;
 
+import static com.shop.platform.auth.service.AuthHashes.sha256Hex;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.auth.infra.JwtProvider;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import static com.shop.platform.auth.service.AuthHashes.sha256Hex;
-
-
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -22,6 +15,12 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -31,19 +30,21 @@ public class AuthService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     // Opaque refresh token storage
-    private static final String KEY_REFRESH = "refresh:";                   // refresh:<sha256> → userId
-    private static final String KEY_USER_DEVICE = "refresh:user:";          // refresh:user:<userId>:<deviceId> → sha256
-    private static final String KEY_CONSUMED = "refresh:consumed:";         // refresh:consumed:<sha256> → userId (replay detection)
+    private static final String KEY_REFRESH = "refresh:"; // refresh:<sha256> → userId
+    private static final String KEY_USER_DEVICE =
+            "refresh:user:"; // refresh:user:<userId>:<deviceId> → sha256
+    private static final String KEY_CONSUMED =
+            "refresh:consumed:"; // refresh:consumed:<sha256> → userId (replay detection)
 
-    private static final long REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000L;   // 7 天
+    private static final long REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000L; // 7 天
 
     // Rate limiting (LOGIN-05)
     private static final String RATE_IP_PWD = "rl:ip:pwd:";
     private static final String RATE_USER_PWD = "rl:user:pwd:";
     private static final int RATE_IP_MAX = 10;
-    private static final int RATE_IP_WINDOW = 60;      // 秒
+    private static final int RATE_IP_WINDOW = 60; // 秒
     private static final int RATE_USER_MAX = 5;
-    private static final int RATE_USER_WINDOW = 600;    // 秒
+    private static final int RATE_USER_WINDOW = 600; // 秒
 
     // Password reset
     private static final String KEY_RESET = "reset:";
@@ -51,11 +52,22 @@ public class AuthService {
     private static final long RESET_TTL_MINUTES = 30;
 
     // Common password blacklist (REG-03)
-    private static final Set<String> COMMON_PASSWORDS = Set.of(
-            "123456", "12345678", "123456789", "password", "qwerty123",
-            "111111", "000000", "admin123", "abc123", "password1",
-            "1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm"
-    );
+    private static final Set<String> COMMON_PASSWORDS =
+            Set.of(
+                    "123456",
+                    "12345678",
+                    "123456789",
+                    "password",
+                    "qwerty123",
+                    "111111",
+                    "000000",
+                    "admin123",
+                    "abc123",
+                    "password1",
+                    "1234567890",
+                    "qwertyuiop",
+                    "asdfghjkl",
+                    "zxcvbnm");
 
     // Dummy hash for timing-consistent login (LOGIN-01)
     private static final String DUMMY_PASSWORD_HASH =
@@ -88,7 +100,8 @@ public class AuthService {
 
     // ========== 密码登录 ==========
 
-    public TokenResult loginByPassword(String phone, String password, String deviceId, String clientIp) {
+    public TokenResult loginByPassword(
+            String phone, String password, String deviceId, String clientIp) {
         // LOGIN-05: 双维度限流（IP + 账号），限流时走 dummy hash 掩码
         if (isPasswordRateLimited(phone, clientIp)) {
             passwordEncoder.matches(password, DUMMY_PASSWORD_HASH);
@@ -97,20 +110,30 @@ public class AuthService {
 
         // LOGIN-01/02: 查用户与比密码之间不做分支，走到底
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
-        String storedHash = user != null && user.getPasswordHash() != null
-                ? user.getPasswordHash()
-                : DUMMY_PASSWORD_HASH;
+        String storedHash =
+                user != null && user.getPasswordHash() != null
+                        ? user.getPasswordHash()
+                        : DUMMY_PASSWORD_HASH;
 
         boolean matched = passwordEncoder.matches(password, storedHash);
 
         if (user == null || !matched) {
             // UX-05: 日志精确记录
             if (user == null) {
-                log.warn("[AUTH] Login failed: user not found, phone={}, ip={}", maskPhone(phone), clientIp);
+                log.warn(
+                        "[AUTH] Login failed: user not found, phone={}, ip={}",
+                        maskPhone(phone),
+                        clientIp);
             } else if (user.getPasswordHash() == null) {
-                log.warn("[AUTH] Login failed: password not set, userId={}, ip={}", user.getId(), clientIp);
+                log.warn(
+                        "[AUTH] Login failed: password not set, userId={}, ip={}",
+                        user.getId(),
+                        clientIp);
             } else {
-                log.warn("[AUTH] Login failed: wrong password, userId={}, ip={}", user.getId(), clientIp);
+                log.warn(
+                        "[AUTH] Login failed: wrong password, userId={}, ip={}",
+                        user.getId(),
+                        clientIp);
             }
             throw BusinessException.unauthorized("手机号或密码错误");
         }
@@ -138,7 +161,8 @@ public class AuthService {
 
         // RESET-05: 已有密码时必须验证当前密码
         if (user.getPasswordHash() != null) {
-            if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            if (currentPassword == null
+                    || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
                 throw BusinessException.unauthorized("当前密码错误");
             }
         }
@@ -219,8 +243,8 @@ public class AuthService {
                 // 重放攻击！吊销该用户所有设备
                 log.warn("[AUTH] Refresh token replay detected, userId={}", replayedUserId);
                 deleteAllRefreshTokens(Long.valueOf(replayedUserId));
-                throw new BusinessException(410, "auth.refresh_token_reused",
-                        "Refresh Token 已被重复使用，所有设备已下线");
+                throw new BusinessException(
+                        410, "auth.refresh_token_reused", "Refresh Token 已被重复使用，所有设备已下线");
             }
             throw BusinessException.unauthorized("Refresh Token 无效或已过期");
         }
@@ -261,16 +285,18 @@ public class AuthService {
         String hash = sha256Hex(refreshToken);
 
         // MAINT-01/02: 存 SHA-256 哈希，不落明文
-        redis.opsForValue().set(
-                KEY_REFRESH + hash,
-                user.getId().toString(),
-                Duration.ofMillis(REFRESH_TTL_MS));
+        redis.opsForValue()
+                .set(
+                        KEY_REFRESH + hash,
+                        user.getId().toString(),
+                        Duration.ofMillis(REFRESH_TTL_MS));
 
         // 设备索引（按 deviceId 管理）
-        redis.opsForValue().set(
-                KEY_USER_DEVICE + user.getId() + ":" + deviceId,
-                hash,
-                Duration.ofMillis(REFRESH_TTL_MS));
+        redis.opsForValue()
+                .set(
+                        KEY_USER_DEVICE + user.getId() + ":" + deviceId,
+                        hash,
+                        Duration.ofMillis(REFRESH_TTL_MS));
 
         // 更新最后登录时间
         user.setLastLoginAt(OffsetDateTime.now());
@@ -289,10 +315,8 @@ public class AuthService {
 
         List<String> hashes = redis.opsForValue().multiGet(keys);
         redis.delete(keys);
-        List<String> refreshKeys = hashes.stream()
-                .filter(Objects::nonNull)
-                .map(h -> KEY_REFRESH + h)
-                .toList();
+        List<String> refreshKeys =
+                hashes.stream().filter(Objects::nonNull).map(h -> KEY_REFRESH + h).toList();
         if (!refreshKeys.isEmpty()) {
             redis.delete(refreshKeys);
         }

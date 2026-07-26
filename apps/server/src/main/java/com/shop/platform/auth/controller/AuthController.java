@@ -12,6 +12,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.time.Duration;
+import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -19,9 +21,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.Duration;
-import java.util.Arrays;
 
 @RestController
 @RequestMapping("/auth")
@@ -36,28 +35,33 @@ public class AuthController {
 
     /** 发送短信验证码 */
     @PostMapping("/sms-code")
-    public void sendSmsCode(@Valid @RequestBody SmsCodeRequest req, HttpServletRequest servletRequest) {
+    public void sendSmsCode(
+            @Valid @RequestBody SmsCodeRequest req, HttpServletRequest servletRequest) {
         smsCodeService.sendCode(req.phone(), getClientIp(servletRequest));
     }
 
     /** 短信验证码登录/注册 */
     @PostMapping("/login/sms")
-    public TokenResult loginBySms(@Valid @RequestBody SmsLoginRequest req,
-                                   HttpServletRequest servletRequest,
-                                   HttpServletResponse servletResponse) {
-        TokenResult result = authService.loginBySms(
-                req.phone(), req.code(), req.deviceId(), getClientIp(servletRequest));
+    public TokenResult loginBySms(
+            @Valid @RequestBody SmsLoginRequest req,
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
+        TokenResult result =
+                authService.loginBySms(
+                        req.phone(), req.code(), req.deviceId(), getClientIp(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
 
     /** 密码登录 */
     @PostMapping("/login/password")
-    public TokenResult loginByPassword(@Valid @RequestBody PasswordLoginRequest req,
-                                        HttpServletRequest servletRequest,
-                                        HttpServletResponse servletResponse) {
-        TokenResult result = authService.loginByPassword(
-                req.phone(), req.password(), req.deviceId(), getClientIp(servletRequest));
+    public TokenResult loginByPassword(
+            @Valid @RequestBody PasswordLoginRequest req,
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
+        TokenResult result =
+                authService.loginByPassword(
+                        req.phone(), req.password(), req.deviceId(), getClientIp(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -71,8 +75,8 @@ public class AuthController {
 
     /** 发送重置密码验证码 */
     @PostMapping("/forgot-password")
-    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest req,
-                                HttpServletRequest servletRequest) {
+    public void forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest req, HttpServletRequest servletRequest) {
         authService.forgotPassword(req.phone(), getClientIp(servletRequest));
     }
 
@@ -84,8 +88,10 @@ public class AuthController {
 
     /** 刷新双 token（STORE-02: Cookie + Body 双来源） */
     @PostMapping("/refresh")
-    public TokenResult refresh(HttpServletRequest request, HttpServletResponse response,
-                                @RequestBody(required = false) RefreshRequest req) {
+    public TokenResult refresh(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            @RequestBody(required = false) RefreshRequest req) {
         String refreshToken = resolveRefreshToken(request, req);
         if (refreshToken == null) {
             throw new BusinessException(401, ErrorCodes.AUTH_INVALID_TOKEN, "Refresh Token 未提供");
@@ -99,8 +105,10 @@ public class AuthController {
 
     /** 登出（STORE-02: 清除 Cookie） */
     @PostMapping("/logout")
-    public void logout(HttpServletRequest request, HttpServletResponse response,
-                        @Valid @RequestBody LogoutRequest req) {
+    public void logout(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            @Valid @RequestBody LogoutRequest req) {
         Long userId = UserIdHolder.get();
         authService.logout(userId, req.deviceId());
         clearRefreshCookie(response);
@@ -109,18 +117,20 @@ public class AuthController {
     // ---- Cookie 处理 ----
 
     private void setRefreshCookie(HttpServletResponse response, String refreshToken) {
-        response.addHeader(HttpHeaders.SET_COOKIE,
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
                 buildRefreshCookie(refreshToken, REFRESH_COOKIE_MAX_AGE).toString());
     }
 
     private void clearRefreshCookie(HttpServletResponse response) {
-        response.addHeader(HttpHeaders.SET_COOKIE,
-                buildRefreshCookie("", 0).toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, buildRefreshCookie("", 0).toString());
     }
 
     private ResponseCookie buildRefreshCookie(String value, long maxAgeSec) {
         return ResponseCookie.from(REFRESH_COOKIE, value)
-                .httpOnly(true).secure(true).sameSite("Lax")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Lax")
                 .path("/auth/refresh")
                 .maxAge(Duration.ofSeconds(maxAgeSec))
                 .build();
@@ -129,11 +139,12 @@ public class AuthController {
     /** Cookie → Body 依次尝试获取 refresh token */
     private String resolveRefreshToken(HttpServletRequest request, RefreshRequest req) {
         if (request.getCookies() != null) {
-            String fromCookie = Arrays.stream(request.getCookies())
-                    .filter(c -> REFRESH_COOKIE.equals(c.getName()))
-                    .map(Cookie::getValue)
-                    .findFirst()
-                    .orElse(null);
+            String fromCookie =
+                    Arrays.stream(request.getCookies())
+                            .filter(c -> REFRESH_COOKIE.equals(c.getName()))
+                            .map(Cookie::getValue)
+                            .findFirst()
+                            .orElse(null);
             if (fromCookie != null) return fromCookie;
         }
         return req != null ? req.refreshToken() : null;
@@ -152,36 +163,50 @@ public class AuthController {
     // ---- Request DTOs ----
 
     public record SmsCodeRequest(@NotBlank @Size(min = 7, max = 20) String phone) {
-        public SmsCodeRequest { if (phone != null) phone = phone.trim(); }
+        public SmsCodeRequest {
+            if (phone != null) phone = phone.trim();
+        }
     }
 
-    public record SmsLoginRequest(@NotBlank @Size(min = 7, max = 20) String phone,
-                                   @NotBlank @Size(min = 6, max = 6) String code,
-                                   @NotBlank @Size(max = 100) String deviceId) {
-        public SmsLoginRequest { if (phone != null) phone = phone.trim(); }
+    public record SmsLoginRequest(
+            @NotBlank @Size(min = 7, max = 20) String phone,
+            @NotBlank @Size(min = 6, max = 6) String code,
+            @NotBlank @Size(max = 100) String deviceId) {
+        public SmsLoginRequest {
+            if (phone != null) phone = phone.trim();
+        }
     }
 
-    public record PasswordLoginRequest(@NotBlank @Size(min = 7, max = 20) String phone,
-                                        @NotBlank @Size(min = 8, max = 72) String password,
-                                        @NotBlank @Size(max = 100) String deviceId) {
-        public PasswordLoginRequest { if (phone != null) phone = phone.trim(); }
+    public record PasswordLoginRequest(
+            @NotBlank @Size(min = 7, max = 20) String phone,
+            @NotBlank @Size(min = 8, max = 72) String password,
+            @NotBlank @Size(max = 100) String deviceId) {
+        public PasswordLoginRequest {
+            if (phone != null) phone = phone.trim();
+        }
     }
 
-    public record SetPasswordRequest(@Size(max = 72) String currentPassword,
-                                      @NotBlank @Size(min = 8, max = 72) String newPassword) {}
+    public record SetPasswordRequest(
+            @Size(max = 72) String currentPassword,
+            @NotBlank @Size(min = 8, max = 72) String newPassword) {}
 
     public record ForgotPasswordRequest(@NotBlank @Size(min = 7, max = 20) String phone) {
-        public ForgotPasswordRequest { if (phone != null) phone = phone.trim(); }
+        public ForgotPasswordRequest {
+            if (phone != null) phone = phone.trim();
+        }
     }
 
-    public record ResetPasswordRequest(@NotBlank @Size(min = 7, max = 20) String phone,
-                                        @NotBlank @Size(min = 1, max = 200) String token,
-                                        @NotBlank @Size(min = 8, max = 72) String newPassword) {
-        public ResetPasswordRequest { if (phone != null) phone = phone.trim(); }
+    public record ResetPasswordRequest(
+            @NotBlank @Size(min = 7, max = 20) String phone,
+            @NotBlank @Size(min = 1, max = 200) String token,
+            @NotBlank @Size(min = 8, max = 72) String newPassword) {
+        public ResetPasswordRequest {
+            if (phone != null) phone = phone.trim();
+        }
     }
 
-    public record RefreshRequest(@Size(max = 200) String refreshToken,
-                                  @Size(max = 100) String deviceId) {}
+    public record RefreshRequest(
+            @Size(max = 200) String refreshToken, @Size(max = 100) String deviceId) {}
 
     public record LogoutRequest(@NotBlank @Size(max = 100) String deviceId) {}
 }

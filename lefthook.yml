@@ -4,12 +4,20 @@ colors: true
 # ── pre-commit：轻量检查，只跑暂存文件 ──
 pre-commit:
     jobs:
-        - name: Format
+        # 前端／通用文件格式化
+        - name: Format (TS/JS/MD)
           glob: '**/*.{ts,tsx,js,jsx,json,yml,yaml,md}'
           run: pnpm oxfmt --config packages/config/oxfmt.config.ts --write {staged_files}
           stage_fixed: true
 
-        - name: Lint
+        # 后端 Java 格式化（只当有 .java 文件变更时触发）
+        - name: Format (Java)
+          glob: '**/*.java'
+          run: mvn -f apps/server/pom.xml spotless:apply
+          stage_fixed: true
+
+        # 前端 lint
+        - name: Lint (TS/JS)
           glob: '**/*.{ts,tsx,js,jsx}'
           run: pnpm oxlint --config packages/config/oxlint.config.ts {staged_files}
 
@@ -28,3 +36,6 @@ pre-push:
 
         - name: Type check
           run: pnpm typecheck
+
+        - name: Java compile
+          run: mvn -f apps/server/pom.xml compile -q

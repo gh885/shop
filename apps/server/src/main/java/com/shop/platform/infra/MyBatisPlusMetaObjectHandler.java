@@ -1,10 +1,9 @@
 package com.shop.platform.infra;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import java.time.OffsetDateTime;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.stereotype.Component;
-
-import java.time.OffsetDateTime;
 
 @Component
 public class MyBatisPlusMetaObjectHandler implements MetaObjectHandler {

@@ -1,7 +1,6 @@
 package com.shop.platform.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import lombok.Getter;
 
 @Getter
@@ -21,5 +20,4 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> ok(T data, String requestId) {
         return new ApiResponse<>(data, new ApiMeta(requestId, OffsetDateTimeProvider.now()));
     }
-
 }

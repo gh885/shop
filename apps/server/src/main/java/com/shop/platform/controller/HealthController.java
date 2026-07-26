@@ -27,8 +27,7 @@ public class HealthController {
         checks.put("database", checkDatabase());
         checks.put("redis", checkRedis());
 
-        var status =
-                checks.values().stream().anyMatch(v -> v.equals("DOWN")) ? "DEGRADED" : "UP";
+        var status = checks.values().stream().anyMatch(v -> v.equals("DOWN")) ? "DEGRADED" : "UP";
 
         return ResponseEntity.ok(
                 Map.of(

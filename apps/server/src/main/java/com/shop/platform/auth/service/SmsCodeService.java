@@ -6,13 +6,12 @@ import com.shop.platform.auth.infra.DevSmsChannel;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import java.security.SecureRandom;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.security.SecureRandom;
-import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
@@ -26,11 +25,11 @@ public class SmsCodeService {
     private static final String KEY_ATTEMPT = "sms:attempt:";
     private static final String KEY_IP_RATE = "sms:ip:";
 
-    private static final long CODE_TTL = 5;          // 验证码有效 5 分钟
-    private static final long RATE_TTL = 60;         // 重发间隔 60 秒
-    private static final int DAILY_LIMIT = 20;        // 每手机号每日上限
-    private static final int IP_RATE_MAX = 10;        // 每 IP 每分钟上限
-    private static final int MAX_ATTEMPTS = 5;        // 最大尝试次数
+    private static final long CODE_TTL = 5; // 验证码有效 5 分钟
+    private static final long RATE_TTL = 60; // 重发间隔 60 秒
+    private static final int DAILY_LIMIT = 20; // 每手机号每日上限
+    private static final int IP_RATE_MAX = 10; // 每 IP 每分钟上限
+    private static final int MAX_ATTEMPTS = 5; // 最大尝试次数
 
     private final StringRedisTemplate redis;
     private final SmsChannel smsChannel;

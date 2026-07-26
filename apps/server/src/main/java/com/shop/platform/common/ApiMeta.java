@@ -1,9 +1,8 @@
 package com.shop.platform.common;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Getter;
-
 import java.time.OffsetDateTime;
+import lombok.Getter;
 
 @Getter
 public class ApiMeta {
@@ -19,5 +18,4 @@ public class ApiMeta {
         this.requestId = requestId;
         this.requestedAt = requestedAt;
     }
-
 }

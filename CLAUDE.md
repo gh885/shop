@@ -101,18 +101,19 @@ docker compose -f deploy/docker-compose.yml up -d   # PostgreSQL 18 + Redis 7
 
 能用就用，不手写模板代码：
 
-| 场景 | 注解 |
-|------|------|
-| POJO / DTO 全部字段可读写 | `@Data` |
-| POJO 部分字段不可变 | `@Getter` + `@Setter`（按需） |
-| 无参构造（MyBatis-Plus 需要） | `@NoArgsConstructor` |
-| 全部参数构造 | `@AllArgsConstructor` |
-| 仅 `final` 字段构造（配合 `@Data` 或 `@Getter`） | `@RequiredArgsConstructor` |
-| 日志 | `@Slf4j` |
+| 场景                                             | 注解                          |
+| ------------------------------------------------ | ----------------------------- |
+| POJO / DTO 全部字段可读写                        | `@Data`                       |
+| POJO 部分字段不可变                              | `@Getter` + `@Setter`（按需） |
+| 无参构造（MyBatis-Plus 需要）                    | `@NoArgsConstructor`          |
+| 全部参数构造                                     | `@AllArgsConstructor`         |
+| 仅 `final` 字段构造（配合 `@Data` 或 `@Getter`） | `@RequiredArgsConstructor`    |
+| 日志                                             | `@Slf4j`                      |
 
 ### Record
 
 能用 `record` 的场景就用 `record`：
+
 - 请求/响应 DTO（配合 `jakarta.validation` 注解）
 - 不可变值对象
 - 业务方法的返回值（如 `TokenResult`）
