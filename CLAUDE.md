@@ -23,15 +23,15 @@ openapi/                 ← OpenAPI 契约, 唯一 API 事实来源
 1. **模块隔离**：模块之间不 import 对方的 service/repo，只靠 Spring Modulith Event Bus 通信
 2. **Schema 隔离**：每个模块拥有自己的 PG schema（`product.products`），可只读跨 schema 按 ID 查字段
 3. **不许跨 schema JOIN**
-4. **共享内核极小**：只放 UserId、Money、Address 等跨模块类型和 Event Bus 基础设施
+4. **`common/` 属于纯包**，不属于任何 Modulith 模块，无`@ApplicationModule`
 5. **@Modulithic 强制校验模块边界**，测试期跨模块 import 直接报错
 
 ## 后端模块组织
 
 ```
 server/src/main/java/com/shop/platform/
-├── ShopServerApplication.java    ← @Modulithic
-├── kernel/                       ← 共享内核
+├── ShopServerApplication.java    ← @Modulithic（无 sharedModules）
+├── common/                       ← 跨模块共享（响应封装、异常体系、UserIdHolder）
 ├── auth/                         ← 模块 = 顶层包 = PG schema
 │   ├── AuthModuleConfig.java     ← @ConditionalOnProperty 开关
 │   ├── package-info.java         ← @ApplicationModule
@@ -94,3 +94,31 @@ docker compose -f deploy/docker-compose.yml up -d   # PostgreSQL 18 + Redis 7
 ```
 
 数据库：`shop:shop_dev@localhost:5432/shop`
+
+## 编码风格 — Java
+
+### Lombok 注解
+
+能用就用，不手写模板代码：
+
+| 场景 | 注解 |
+|------|------|
+| POJO / DTO 全部字段可读写 | `@Data` |
+| POJO 部分字段不可变 | `@Getter` + `@Setter`（按需） |
+| 无参构造（MyBatis-Plus 需要） | `@NoArgsConstructor` |
+| 全部参数构造 | `@AllArgsConstructor` |
+| 仅 `final` 字段构造（配合 `@Data` 或 `@Getter`） | `@RequiredArgsConstructor` |
+| 日志 | `@Slf4j` |
+
+### Record
+
+能用 `record` 的场景就用 `record`：
+- 请求/响应 DTO（配合 `jakarta.validation` 注解）
+- 不可变值对象
+- 业务方法的返回值（如 `TokenResult`）
+
+（Spring 4.x 已完全支持 `record`，MyBatis-Plus 3.5.x 也兼容。）
+
+### @Builder
+
+构造器参数 **≥ 3 个** 时加 `@Builder`（配合 `@AllArgsConstructor(access = AccessLevel.PRIVATE)` 或 `@Data`）。

@@ -1,4 +1,4 @@
-package com.shop.platform.kernel;
+package com.shop.platform.common;
 
 /**
  * 业务错误码常量，遵循 {@code domain.subkey} 蛇形命名。

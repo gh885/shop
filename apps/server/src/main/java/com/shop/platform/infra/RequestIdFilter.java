@@ -1,4 +1,4 @@
-package com.shop.platform.config;
+package com.shop.platform.infra;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

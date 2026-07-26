@@ -1,4 +1,4 @@
-package com.shop.platform.kernel;
+package com.shop.platform.common;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;

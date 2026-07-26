@@ -1,8 +1,10 @@
-package com.shop.platform.config;
+package com.shop.platform.infra;
 
-import com.shop.platform.kernel.BusinessException;
-import com.shop.platform.kernel.ErrorCodes;
+import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
+
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
@@ -35,6 +38,15 @@ public class GlobalExceptionHandler {
         List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> Map.of("field", fe.getField(), "message", fe.getDefaultMessage()))
                 .toList();
+
+        // ERR-05: 日志精确到字段，不含实际值
+        String clientIp = request.getRemoteAddr();
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader != null && !xfHeader.isEmpty() && !"unknown".equalsIgnoreCase(xfHeader)) {
+            clientIp = xfHeader.split(",")[0].trim();
+        }
+        log.warn("Validation failed: {} errors, path={}, ip={}",
+                errors.size(), request.getRequestURI(), clientIp);
 
         ProblemDetail pd = ProblemDetail.forStatus(422);
         pd.setTitle("Unprocessable Entity");

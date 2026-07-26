@@ -47,7 +47,8 @@ shop/
 │   ├── mobile-seller/
 │   └── server/                 # Spring Boot 模块化单体
 │       └── src/main/java/com/shop/platform/
-│           ├── kernel/         # 共享内核
+│           ├── common/         # 跨模块共享（响应封装、异常体系、UserIdHolder）
+│           ├── config/         # 全局基础设施（Filter、Advice、ExceptionHandler）
 │           ├── auth/           # 模块 = 顶层包 = PG schema
 │           ├── product/
 │           └── …               # 22 个业务模块
@@ -93,5 +94,5 @@ scope 可选，填具体模块名。
 
 - **模块化单体**：模块之间不 import 对方的 service/repo，只靠 Event Bus 通信
 - **Schema 隔离**：每个模块拥有自己的 PG schema，可只读跨 schema 查，不许跨 schema JOIN
-- **共享内核极小**：只放跨模块类型（UserId、Money 等）和 Event Bus 基础设施
-- **内核层统一错误处理**：全局异常处理（`@RestControllerAdvice`）自动映射业务异常到标准错误码
+- **`common/` 纯包**：跨模块共享类型，不属于任何 Modulith 模块，无 `@ApplicationModule`
+- **`config/` 全局基础设施**：Filter、Advice、ExceptionHandler 等 Spring 组件

@@ -1,4 +1,4 @@
-package com.shop.platform.kernel;
+package com.shop.platform.common;
 
 import lombok.Getter;
 

@@ -1,5 +1,5 @@
--- 初始化数据库 Schema
--- 开发阶段自动执行，后续生产环境切换为 Flyway
+-- V1: 初始化基础 Schema
+-- 规则：脚本一旦合入不允许修改，变更一律新增下一个版本文件
 
 CREATE SCHEMA IF NOT EXISTS kernel;
 

@@ -1,6 +1,7 @@
-package com.shop.platform.kernel;
+package com.shop.platform.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.Getter;
 
 @Getter

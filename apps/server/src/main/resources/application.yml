@@ -6,21 +6,36 @@ spring:
         name: shop-server
 
     datasource:
-        url: jdbc:postgresql://localhost:5432/shop
+        url: jdbc:postgresql://127.0.0.1:5432/shop
         username: shop
         password: shop_dev
 
-    sql:
-        init:
-            mode: always
-            schema-locations: classpath:schema.sql
-            continue-on-error: true
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+        baseline-on-migrate: true
+
+    jackson:
+        deserialization:
+            fail-on-unknown-properties: true
 
     autoconfigure:
         exclude:
-            - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
             - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
-grpc:
-    server:
-        port: 9090
+mybatis-plus:
+    configuration:
+        map-underscore-to-camel-case: true
+    global-config:
+        db-config:
+            id-type: AUTO
+
+shop:
+    auth:
+        enabled: true
+    jwt:
+        # ES256 密钥对（PKCS#8 / X.509 base64），不配置则启动时自动生成临时密钥对
+        # private-key: "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg..."
+        # public-key: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE..."
+        access-token-expiration: 600000
+        refresh-token-expiration: 604800000

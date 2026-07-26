@@ -1,8 +1,9 @@
-package com.shop.platform.config;
+package com.shop.platform.infra;
 
-import com.shop.platform.kernel.ApiMeta;
-import com.shop.platform.kernel.ApiResponse;
-import com.shop.platform.kernel.OffsetDateTimeProvider;
+import com.shop.platform.common.ApiMeta;
+import com.shop.platform.common.ApiResponse;
+import com.shop.platform.common.OffsetDateTimeProvider;
+
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;

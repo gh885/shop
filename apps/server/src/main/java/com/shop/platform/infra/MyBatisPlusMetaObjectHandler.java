@@ -1,4 +1,4 @@
-package com.shop.platform.config;
+package com.shop.platform.infra;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;
