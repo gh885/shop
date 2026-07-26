@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -64,6 +65,18 @@ public class GlobalExceptionHandler {
         pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
         pd.setProperty("errors", errors);
         return ResponseEntity.status(422).header(HttpHeaders.CACHE_CONTROL, "no-store").body(pd);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetail> handleMessageNotReadable(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+        // ERR-03: JSON 格式非法、未知字段等解析失败 → 400
+        ProblemDetail pd = ProblemDetail.forStatus(400);
+        pd.setTitle("Bad Request");
+        pd.setDetail("请求体格式错误");
+        pd.setProperty("code", "request.invalid_body");
+        pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
+        return ResponseEntity.status(400).header(HttpHeaders.CACHE_CONTROL, "no-store").body(pd);
     }
 
     @ExceptionHandler(Exception.class)
