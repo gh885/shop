@@ -26,10 +26,10 @@ function Home() {
     const health = Route.useLoaderData();
 
     return (
-        <div className="p-8 max-w-2xl mx-auto">
-            <h1 className="text-4xl font-bold mb-2">
+        <div className="mx-auto max-w-2xl p-8">
+            <h1 className="mb-2 text-4xl font-bold">
                 Shop
-                <span className="text-sm font-normal text-gray-500 ml-3">多店铺电商平台</span>
+                <span className="ms-3 text-sm font-normal text-gray-500">多店铺电商平台</span>
             </h1>
 
             <div className="mt-8 space-y-4">
@@ -61,7 +61,7 @@ function StatusItem({ label, status }: { label: string; status: string }) {
     const ok = status === 'UP';
     return (
         <div className="flex items-center gap-3">
-            <span className={`w-2 h-2 rounded-full ${ok ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className={`size-2 rounded-full ${ok ? 'bg-green-500' : 'bg-red-500'}`} />
             <span className="w-20 text-gray-600">{label}</span>
             <span className={ok ? 'text-green-700' : 'text-red-700'}>{status}</span>
         </div>

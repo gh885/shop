@@ -68,11 +68,11 @@ export function createApiClient(baseUrl: string, tokens?: TokenStore): ApiClient
 
             // ---- 重试前：确保 token 是最新的（auto-refresh 场景） ----
             beforeRetry: [
-                ({ request }) => {
+                ({ request: req }) => {
                     if (tokens) {
                         const token = tokens.get();
                         if (token) {
-                            request.headers.set('Authorization', `Bearer ${token}`);
+                            req.headers.set('Authorization', `Bearer ${token}`);
                         }
                     }
                 },
@@ -80,14 +80,14 @@ export function createApiClient(baseUrl: string, tokens?: TokenStore): ApiClient
 
             // ---- 响应后：日志 + 401 自动 refresh ----
             afterResponse: [
-                async ({ request, response }) => {
-                    const path = new URL(request.url).pathname;
-                    const start = startTimes.get(request);
+                async ({ request: req, response }) => {
+                    const path = new URL(req.url).pathname;
+                    const start = startTimes.get(req);
                     const ms = start ? Math.round(performance.now() - start) : 0;
 
                     // 日志
                     console.log(
-                        `[API] ${request.method} ${path} ${response.status} ${ms}ms`,
+                        `[API] ${req.method} ${path} ${response.status} ${ms}ms`,
                         response.ok ? '' : response.statusText,
                     );
 

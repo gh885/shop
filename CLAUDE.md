@@ -14,7 +14,7 @@ apps/server/             ← Spring Boot 模块化单体, 不参与 pnpm workspa
 apps/web/                ← 买家端 SSR
 apps/seller/             ← 卖家工作台 SPA
 apps/admin/              ← 平台管理端 SPA
-packages/                ← 共享包（api / common / config）
+packages/                ← 共享包（api / ui-web / common / config）
 openapi/                  ← （预留）OpenAPI 契约 —— 当前未启用，前端 API 类型手动维护于 packages/api
 ```
 
@@ -68,6 +68,30 @@ cd apps/server && mvn spotless:apply   # 格式化 Java
 cd apps/server && mvn compile          # 编译检查
 cd apps/server && mvn spring-boot:run  # 启动后端
 ```
+
+## UI 组件库
+
+组件库用 **shadcn/ui + BaseUI + Tailwind v4**，所有组件由 CLI 生成到 `packages/ui-web`，不手写。
+
+### 添加组件
+
+```bash
+# 必须用 npx（pnpm dlx 会因 store 里 zod v4 冲突而报错）
+"yes" | npx -y shadcn@latest add <component-name> --cwd packages/ui-web
+```
+
+示例：
+
+```bash
+"yes" | npx -y shadcn@latest add button input dialog --cwd packages/ui-web
+```
+
+### 设计约定
+
+- 底层无样式组件：`@base-ui/react`（BaseUI），WAI-ARIA 合规
+- 样式系统：Tailwind v4 + CSS 变量（`packages/ui-web/src/styles.css`）
+- 图标库：`lucide-react`
+- 组件导出：`packages/ui-web/src/index.ts` → 各 app 直接 import
 
 ## 开发规范
 
