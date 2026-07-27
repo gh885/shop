@@ -1,11 +1,12 @@
 package com.shop.platform.common;
 
+import lombok.NoArgsConstructor;
+
 /** 当前请求用户 ID，Auth 模块的 JwtAuthFilter 设值，各模块统一取用。 */
+@NoArgsConstructor
 public final class UserIdHolder {
 
     private static final ThreadLocal<Long> HOLDER = new ThreadLocal<>();
-
-    private UserIdHolder() {}
 
     public static void set(Long userId) {
         HOLDER.set(userId);

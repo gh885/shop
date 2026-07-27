@@ -23,6 +23,12 @@ public final class ErrorCodes {
     public static final String AUTH_FORBIDDEN = "auth.forbidden";
     public static final String AUTH_INVALID_CREDENTIALS = "auth.invalid_credentials";
     public static final String AUTH_EMAIL_TAKEN = "auth.email_taken";
+    public static final String AUTH_PASSWORD_TOO_SHORT = "auth.password_too_short";
+    public static final String AUTH_PASSWORD_TOO_LONG = "auth.password_too_long";
+    public static final String AUTH_PASSWORD_INVALID = "auth.password_invalid";
+    public static final String AUTH_PASSWORD_WEAK = "auth.password_weak";
+    public static final String AUTH_RESET_TOKEN_INVALID = "auth.reset_token_invalid";
+    public static final String AUTH_REFRESH_TOKEN_REUSED = "auth.refresh_token_reused";
     public static final String USER_NOT_FOUND = "user.not_found";
     public static final String USER_DISABLED = "user.disabled";
 

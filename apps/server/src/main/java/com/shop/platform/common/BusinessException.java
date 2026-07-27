@@ -35,6 +35,10 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(403, ErrorCodes.AUTH_FORBIDDEN, detail);
     }
 
+    public static BusinessException badRequest(String code, String detail) {
+        return new BusinessException(400, code, detail);
+    }
+
     public static BusinessException rateLimited(String detail) {
         return new BusinessException(429, ErrorCodes.RATE_LIMIT_EXCEEDED, detail);
     }

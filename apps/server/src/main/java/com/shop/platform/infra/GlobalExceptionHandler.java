@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
             clientIp = xfHeader.split(",")[0].trim();
         }
         log.warn(
-                "Validation failed: {} errors, path={}, ip={}",
+                "参数校验失败: {} 个字段错误, path={}, ip={}",
                 errors.size(),
                 request.getRequestURI(),
                 clientIp);

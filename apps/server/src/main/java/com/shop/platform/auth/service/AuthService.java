@@ -8,6 +8,8 @@ import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.common.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -51,6 +53,9 @@ public class AuthService {
     private static final String KEY_RESET_RATE = "rl:reset:";
     private static final long RESET_TTL_MINUTES = 30;
 
+    private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String RESET_TOKEN_PREFIX = "rst:";
+
     // Common password blacklist (REG-03)
     private static final Set<String> COMMON_PASSWORDS =
             Set.of(
@@ -84,17 +89,19 @@ public class AuthService {
 
     @Transactional
     public TokenResult loginBySms(String phone, String code, String deviceId, String clientIp) {
+        // 1. 校验短信验证码
         smsCodeService.verifyCode(phone, code);
 
-        // 自动注册：手机号不存在则创建
+        // 2. 查找或自动注册（手机号不存在则创建）
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
         if (user == null) {
             user = new User();
             user.setPhone(phone);
-            user.setStatus("ACTIVE");
+            user.setStatus(STATUS_ACTIVE);
             userMapper.insert(user);
         }
 
+        // 3. 签发 Token
         return issueTokens(user, deviceId);
     }
 
@@ -102,49 +109,20 @@ public class AuthService {
 
     public TokenResult loginByPassword(
             String phone, String password, String deviceId, String clientIp) {
-        // LOGIN-05: 双维度限流（IP + 账号），限流时走 dummy hash 掩码
-        if (isPasswordRateLimited(phone, clientIp)) {
-            passwordEncoder.matches(password, DUMMY_PASSWORD_HASH);
-            throw BusinessException.unauthorized("手机号或密码错误");
-        }
 
-        // LOGIN-01/02: 查用户与比密码之间不做分支，走到底
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
-        String storedHash =
-                user != null && user.getPasswordHash() != null
-                        ? user.getPasswordHash()
-                        : DUMMY_PASSWORD_HASH;
+        // 1. 限流检查（被限流时走 dummy hash 防时序探测）
+        rejectIfRateLimited(phone, password, clientIp);
 
-        boolean matched = passwordEncoder.matches(password, storedHash);
+        // 2. 验证凭证
+        User user = authenticate(phone, password, clientIp);
 
-        if (user == null || !matched) {
-            // UX-05: 日志精确记录
-            if (user == null) {
-                log.warn(
-                        "[AUTH] Login failed: user not found, phone={}, ip={}",
-                        maskPhone(phone),
-                        clientIp);
-            } else if (user.getPasswordHash() == null) {
-                log.warn(
-                        "[AUTH] Login failed: password not set, userId={}, ip={}",
-                        user.getId(),
-                        clientIp);
-            } else {
-                log.warn(
-                        "[AUTH] Login failed: wrong password, userId={}, ip={}",
-                        user.getId(),
-                        clientIp);
-            }
-            throw BusinessException.unauthorized("手机号或密码错误");
-        }
+        // 3. 检查账号状态
+        ensureUserActive(user);
 
-        if (!"ACTIVE".equals(user.getStatus())) {
-            throw BusinessException.forbidden("账号已被禁用");
-        }
-
-        // LOGIN-08: 登录成功清除失败计数
+        // 4. 登录成功清除失败计数（LOGIN-08）
         clearPasswordRateLimit(phone, clientIp);
 
+        // 5. 签发 Token
         return issueTokens(user, deviceId);
     }
 
@@ -152,14 +130,14 @@ public class AuthService {
 
     /** 首次设置密码（无旧密码校验）或修改密码（需当前密码） */
     public void setPassword(Long userId, String currentPassword, String newPassword) {
+        // 1. 检查用户存在
         User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw BusinessException.notFound("用户不存在");
-        }
+        if (user == null) throw BusinessException.notFound("用户不存在");
 
+        // 2. 校验新密码强度
         validatePassword(newPassword, user.getPhone());
 
-        // RESET-05: 已有密码时必须验证当前密码
+        // 3. 已有密码时必须验证当前密码（RESET-05）
         if (user.getPasswordHash() != null) {
             if (currentPassword == null
                     || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
@@ -167,53 +145,56 @@ public class AuthService {
             }
         }
 
+        // 4. 更新密码
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userMapper.updateById(user);
 
-        // REVOKE-02: 改密后吊销该用户所有 device 的 refresh token
+        // 5. 改密后吊销该用户所有 device 的 refresh token（REVOKE-02）
         deleteAllRefreshTokens(userId);
 
-        log.info("[AUTH] Password changed, userId={}", userId);
+        log.info("[AUTH] 密码修改成功, userId={}", userId);
     }
 
     // ========== 密码重置 ==========
 
     /** 发送重置密码验证码（RESET-01/02） */
     public void forgotPassword(String phone, String clientIp) {
-        // RESET-01: 无论是否存在都返回相同提示（不暴露账号存在性）
+        // 1. 限流检查（RESET-01: 不暴露账号存在性，静默返回）
         String rateKey = KEY_RESET_RATE + phone;
         if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
-            return; // 限流中静默返回
+            return;
         }
 
-        // 生成重置 token
+        // 2. 生成重置 Token（存 SHA-256 哈希，不落明文）
         byte[] bytes = new byte[32];
         SECURE_RANDOM.nextBytes(bytes);
-        String token = "rst:" + HexFormat.of().formatHex(bytes);
+        String token = RESET_TOKEN_PREFIX + HexFormat.of().formatHex(bytes);
         String hash = sha256Hex(token);
 
-        // RESET-02: 存储哈希，30 分钟有效期
+        // 3. 存储哈希，30 分钟有效期（RESET-02）
         redis.opsForValue().set(KEY_RESET + hash, phone, Duration.ofMinutes(RESET_TTL_MINUTES));
         redis.opsForValue().set(rateKey, "1", Duration.ofSeconds(60));
 
-        // 通过短信发送
+        // 4. 通过短信发送
         smsChannel.sendCode(phone, "重置密码验证码: " + token);
-        log.info("[AUTH] Password reset token sent, phone={}", maskPhone(phone));
+        log.info("[AUTH] 重置密码验证码已发送, phone={}", maskPhone(phone));
     }
 
     /** 使用重置 token 设置新密码（RESET-02/03） */
     @Transactional
     public void resetPassword(String phone, String token, String newPassword) {
+        // 1. 校验新密码强度
         validatePassword(newPassword, phone);
 
+        // 2. 验证重置 Token（单次使用 getAndDelete）
         String hash = sha256Hex(token);
         String storedPhone = redis.opsForValue().getAndDelete(KEY_RESET + hash);
 
         if (storedPhone == null || !storedPhone.equals(phone)) {
-            throw new BusinessException(400, "auth.reset_token_invalid", "重置链接已过期或无效");
+            throw BusinessException.badRequest(ErrorCodes.AUTH_RESET_TOKEN_INVALID, "重置链接已过期或无效");
         }
 
-        // 更新密码
+        // 3. 更新密码（用户不存在也静默成功，不暴露账号存在性）
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
         if (user != null) {
             user.setPasswordHash(passwordEncoder.encode(newPassword));
@@ -222,7 +203,6 @@ public class AuthService {
             // RESET-03: 重置后吊销该用户所有 session
             deleteAllRefreshTokens(user.getId());
         }
-        // 用户不存在也静默成功（不暴露账号存在性）
     }
 
     // ========== Token 刷新（Rotation） ==========
@@ -232,37 +212,33 @@ public class AuthService {
         String hash = sha256Hex(refreshToken);
         String key = KEY_REFRESH + hash;
 
-        // 查 token
+        // 1. 消费旧 Refresh Token（getAndDelete = 一次性）
         String storedUserId = redis.opsForValue().getAndDelete(key);
 
         if (storedUserId == null) {
-            // MAINT-04: 已被消费 → 检查是否为重放
+            // 2. 重放检测：检查是否已被消费（MAINT-04）
             String consumedKey = KEY_CONSUMED + hash;
             String replayedUserId = redis.opsForValue().get(consumedKey);
             if (replayedUserId != null) {
-                // 重放攻击！吊销该用户所有设备
-                log.warn("[AUTH] Refresh token replay detected, userId={}", replayedUserId);
+                log.warn("[AUTH] Refresh Token 重放攻击已检测, userId={}", replayedUserId);
                 deleteAllRefreshTokens(Long.valueOf(replayedUserId));
                 throw new BusinessException(
-                        410, "auth.refresh_token_reused", "Refresh Token 已被重复使用，所有设备已下线");
+                        410, ErrorCodes.AUTH_REFRESH_TOKEN_REUSED, "Refresh Token 已被重复使用，所有设备已下线");
             }
             throw BusinessException.unauthorized("Refresh Token 无效或已过期");
         }
 
         Long userId = Long.valueOf(storedUserId);
 
-        // 标记已消费（短 TTL 用于重放检测窗口）
+        // 3. 标记已消费（短 TTL 窗口）
         redis.opsForValue().set(KEY_CONSUMED + hash, storedUserId, Duration.ofMinutes(30));
 
-        // 清除旧设备索引
-        String idxKey = KEY_USER_DEVICE + userId + ":" + deviceId;
-        redis.delete(idxKey);
+        // 4. 清除旧设备索引
+        redis.delete(KEY_USER_DEVICE + userId + ":" + deviceId);
 
+        // 5. 查用户并签发全新 Token
         User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw BusinessException.notFound("用户不存在");
-        }
-
+        if (user == null) throw BusinessException.notFound("用户不存在");
         return issueTokens(user, deviceId);
     }
 
@@ -274,6 +250,65 @@ public class AuthService {
         String storedHash = redis.opsForValue().getAndDelete(idxKey);
         if (storedHash != null) {
             redis.delete(KEY_REFRESH + storedHash);
+        }
+    }
+
+    // ========== 限流 ==========
+
+    /** 双维度限流（IP + 账号），被限流时走 dummy hash 保持时序一致（LOGIN-05, LOGIN-01） */
+    private void rejectIfRateLimited(String phone, String password, String ip) {
+        boolean ipLimited =
+                RateLimiter.exceeded(
+                        redis, RATE_IP_PWD + ip, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW));
+        boolean userLimited =
+                RateLimiter.exceeded(
+                        redis,
+                        RATE_USER_PWD + phone,
+                        RATE_USER_MAX,
+                        Duration.ofSeconds(RATE_USER_WINDOW));
+
+        if (ipLimited || userLimited) {
+            // 限流时仍执行 BCrypt 对比，防止通过返回时长探测账号是否存在（LOGIN-01）
+            passwordEncoder.matches(password, DUMMY_PASSWORD_HASH);
+            throw BusinessException.unauthorized("手机号或密码错误");
+        }
+    }
+
+    private void clearPasswordRateLimit(String phone, String ip) {
+        redis.delete(RATE_IP_PWD + ip);
+        redis.delete(RATE_USER_PWD + phone);
+    }
+
+    // ========== 凭证验证 ==========
+
+    /** 查询用户并比对密码（查用户与比密码之间不做分支，走到底） */
+    private User authenticate(String phone, String password, String clientIp) {
+        // LOGIN-01/02: 查用户与比密码之间不做分支，走到底
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+        String storedHash =
+                user != null && user.getPasswordHash() != null
+                        ? user.getPasswordHash()
+                        : DUMMY_PASSWORD_HASH;
+
+        boolean matched = passwordEncoder.matches(password, storedHash);
+
+        if (user == null || !matched) {
+            // UX-05: 日志精确记录失败原因
+            if (user == null) {
+                log.warn("[AUTH] 登录失败：用户不存在, phone={}, ip={}", maskPhone(phone), clientIp);
+            } else if (user.getPasswordHash() == null) {
+                log.warn("[AUTH] 登录失败：未设置密码, userId={}, ip={}", user.getId(), clientIp);
+            } else {
+                log.warn("[AUTH] 登录失败：密码错误, userId={}, ip={}", user.getId(), clientIp);
+            }
+            throw BusinessException.unauthorized("手机号或密码错误");
+        }
+        return user;
+    }
+
+    private void ensureUserActive(User user) {
+        if (!STATUS_ACTIVE.equals(user.getStatus())) {
+            throw BusinessException.forbidden("账号已被禁用");
         }
     }
 
@@ -327,44 +362,20 @@ public class AuthService {
     private void validatePassword(String password, String phone) {
         // REG-01: 最小长度 8 位
         if (password == null || password.length() < 8) {
-            throw new BusinessException(400, "auth.password_too_short", "密码长度至少 8 位");
+            throw BusinessException.badRequest(ErrorCodes.AUTH_PASSWORD_TOO_SHORT, "密码长度至少 8 位");
         }
         // REG-06: BCrypt 72 字节限制
         if (password.length() > 72) {
-            throw new BusinessException(400, "auth.password_too_long", "密码长度不能超过 72 位");
+            throw BusinessException.badRequest(ErrorCodes.AUTH_PASSWORD_TOO_LONG, "密码长度不能超过 72 位");
         }
         // REG-05: 不与手机号相同
         if (password.equals(phone)) {
-            throw new BusinessException(400, "auth.password_invalid", "密码不能与手机号相同");
+            throw BusinessException.badRequest(ErrorCodes.AUTH_PASSWORD_INVALID, "密码不能与手机号相同");
         }
         // REG-03: 常见密码黑名单
         if (COMMON_PASSWORDS.contains(password.toLowerCase())) {
-            throw new BusinessException(400, "auth.password_weak", "密码过于常见，请更换");
+            throw BusinessException.badRequest(ErrorCodes.AUTH_PASSWORD_WEAK, "密码过于常见，请更换");
         }
-    }
-
-    // ========== 登录限流 ==========
-
-    private boolean isPasswordRateLimited(String phone, String ip) {
-        String ipKey = RATE_IP_PWD + ip;
-        Long ipCount = redis.opsForValue().increment(ipKey);
-        if (ipCount == 1) {
-            redis.expire(ipKey, Duration.ofSeconds(RATE_IP_WINDOW));
-        }
-
-        String userKey = RATE_USER_PWD + phone;
-        Long userCount = redis.opsForValue().increment(userKey);
-        if (userCount == 1) {
-            redis.expire(userKey, Duration.ofSeconds(RATE_USER_WINDOW));
-        }
-
-        return ipCount != null && ipCount > RATE_IP_MAX
-                || userCount != null && userCount > RATE_USER_MAX;
-    }
-
-    private void clearPasswordRateLimit(String phone, String ip) {
-        redis.delete(RATE_IP_PWD + ip);
-        redis.delete(RATE_USER_PWD + phone);
     }
 
     // ========== 工具方法 ==========

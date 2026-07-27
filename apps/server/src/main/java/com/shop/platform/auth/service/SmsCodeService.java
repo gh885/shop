@@ -6,6 +6,7 @@ import com.shop.platform.auth.infra.DevSmsChannel;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.common.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
@@ -38,12 +39,8 @@ public class SmsCodeService {
     /** 发送验证码 */
     public void sendCode(String phone, String clientIp) {
         // IP 维度限流（OTP-06）
-        String ipRateKey = KEY_IP_RATE + clientIp;
-        Long ipCount = redis.opsForValue().increment(ipRateKey);
-        if (ipCount == 1) {
-            redis.expire(ipRateKey, Duration.ofSeconds(60));
-        }
-        if (ipCount > IP_RATE_MAX) {
+        if (RateLimiter.exceeded(
+                redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
             throw new BusinessException(429, ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
         }
 
@@ -53,13 +50,8 @@ public class SmsCodeService {
             throw new BusinessException(429, ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
         }
 
-        // 每日上限检查：用 increment 原子操作，消除 TOCTOU 竞争
-        String dailyKey = KEY_DAILY + phone;
-        Long dailyCount = redis.opsForValue().increment(dailyKey);
-        if (dailyCount == 1) {
-            redis.expire(dailyKey, Duration.ofDays(1));
-        }
-        if (dailyCount > DAILY_LIMIT) {
+        // 每日上限检查（用 INCR 原子操作消除 TOCTOU 竞争）
+        if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
             throw new BusinessException(429, ErrorCodes.SMS_DAILY_LIMIT, "今日验证码已达上限");
         }
 
