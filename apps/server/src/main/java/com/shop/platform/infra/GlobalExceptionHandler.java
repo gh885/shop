@@ -1,7 +1,6 @@
 package com.shop.platform.infra;
 
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.ErrorCodes;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,13 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatus(ex.getHttpStatus());
         pd.setTitle(HttpStatus.valueOf(ex.getHttpStatus()).getReasonPhrase());
         pd.setDetail(ex.getDetail());
-        pd.setProperty("code", ex.getCode());
+        if (ex.getCode() != null) {
+            pd.setProperty("code", ex.getCode());
+        }
+        List<Map<String, String>> errors = ex.getErrors();
+        if (errors != null && !errors.isEmpty()) {
+            pd.setProperty("errors", errors);
+        }
         pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
         return ResponseEntity.status(ex.getHttpStatus())
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
@@ -61,7 +66,6 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatus(422);
         pd.setTitle("Unprocessable Entity");
         pd.setDetail("输入校验失败（" + errors.size() + " 个字段错误）");
-        pd.setProperty("code", ErrorCodes.VALIDATION_ERROR);
         pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
         pd.setProperty("errors", errors);
         return ResponseEntity.status(422).header(HttpHeaders.CACHE_CONTROL, "no-store").body(pd);
@@ -74,17 +78,16 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatus(400);
         pd.setTitle("Bad Request");
         pd.setDetail("请求体格式错误");
-        pd.setProperty("code", "request.invalid_body");
         pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
         return ResponseEntity.status(400).header(HttpHeaders.CACHE_CONTROL, "no-store").body(pd);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneral(Exception ex, HttpServletRequest request) {
+        log.error("未捕获异常", ex);
         ProblemDetail pd = ProblemDetail.forStatus(500);
         pd.setTitle("Internal Server Error");
         pd.setDetail("服务器内部错误");
-        pd.setProperty("code", ErrorCodes.INTERNAL_ERROR);
         pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
         return ResponseEntity.status(500).header(HttpHeaders.CACHE_CONTROL, "no-store").body(pd);
     }

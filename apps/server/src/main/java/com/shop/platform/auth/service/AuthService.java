@@ -8,7 +8,6 @@ import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -191,7 +190,7 @@ public class AuthService {
         String storedPhone = redis.opsForValue().getAndDelete(KEY_RESET + hash);
 
         if (storedPhone == null || !storedPhone.equals(phone)) {
-            throw BusinessException.badRequest(ErrorCodes.AUTH_RESET_TOKEN_INVALID, "重置链接已过期或无效");
+            throw BusinessException.badRequest("重置链接已过期或无效");
         }
 
         // 3. 更新密码（用户不存在也静默成功，不暴露账号存在性）
@@ -223,7 +222,7 @@ public class AuthService {
                 log.warn("[AUTH] Refresh Token 重放攻击已检测, userId={}", replayedUserId);
                 deleteAllRefreshTokens(Long.valueOf(replayedUserId));
                 throw new BusinessException(
-                        410, ErrorCodes.AUTH_REFRESH_TOKEN_REUSED, "Refresh Token 已被重复使用，所有设备已下线");
+                        410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
             }
             throw BusinessException.unauthorized("Refresh Token 无效或已过期");
         }
@@ -308,7 +307,7 @@ public class AuthService {
 
     private void ensureUserActive(User user) {
         if (!STATUS_ACTIVE.equals(user.getStatus())) {
-            throw BusinessException.forbidden("账号已被禁用");
+            throw new BusinessException(403, "USER_DISABLED", "账号已被禁用");
         }
     }
 
@@ -362,19 +361,19 @@ public class AuthService {
     private void validatePassword(String password, String phone) {
         // REG-01: 最小长度 8 位
         if (password == null || password.length() < 8) {
-            throw BusinessException.badRequest(ErrorCodes.AUTH_PASSWORD_TOO_SHORT, "密码长度至少 8 位");
+            throw BusinessException.badRequest("密码长度至少 8 位");
         }
         // REG-06: BCrypt 72 字节限制
         if (password.length() > 72) {
-            throw BusinessException.badRequest(ErrorCodes.AUTH_PASSWORD_TOO_LONG, "密码长度不能超过 72 位");
+            throw BusinessException.badRequest("密码长度不能超过 72 位");
         }
         // REG-05: 不与手机号相同
         if (password.equals(phone)) {
-            throw BusinessException.badRequest(ErrorCodes.AUTH_PASSWORD_INVALID, "密码不能与手机号相同");
+            throw BusinessException.badRequest("密码不能与手机号相同");
         }
         // REG-03: 常见密码黑名单
         if (COMMON_PASSWORDS.contains(password.toLowerCase())) {
-            throw BusinessException.badRequest(ErrorCodes.AUTH_PASSWORD_WEAK, "密码过于常见，请更换");
+            throw BusinessException.badRequest("密码过于常见，请更换");
         }
     }
 

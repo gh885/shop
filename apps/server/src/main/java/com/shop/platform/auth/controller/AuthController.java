@@ -4,7 +4,6 @@ import com.shop.platform.auth.service.AuthService;
 import com.shop.platform.auth.service.AuthService.TokenResult;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.UserIdHolder;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -94,7 +93,7 @@ public class AuthController {
             @RequestBody(required = false) RefreshRequest req) {
         String refreshToken = resolveRefreshToken(request, req);
         if (refreshToken == null) {
-            throw new BusinessException(401, ErrorCodes.AUTH_INVALID_TOKEN, "Refresh Token 未提供");
+            throw new BusinessException(401, "INVALID_TOKEN", "Refresh Token 未提供");
         }
         String deviceId = req != null && req.deviceId() != null ? req.deviceId() : "default";
 

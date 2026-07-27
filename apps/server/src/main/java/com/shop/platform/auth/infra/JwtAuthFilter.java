@@ -46,7 +46,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             String header = request.getHeader("Authorization");
             if (header == null || !header.startsWith(BEARER_PREFIX)) {
-                writeUnauthorized(request, response, "auth.unauthorized", "请先登录");
+                writeUnauthorized(request, response, null, "请先登录");
                 return;
             }
 
@@ -54,24 +54,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             Claims claims = jwtProvider.parse(token);
 
             if (claims == null) {
-                writeUnauthorized(request, response, "auth.invalid_token", "Token 格式无效");
+                writeUnauthorized(request, response, "INVALID_TOKEN", "Token 格式无效");
                 return;
             }
 
             if (!jwtProvider.isAccessToken(claims)) {
-                writeUnauthorized(request, response, "auth.invalid_token", "Token 类型错误");
+                writeUnauthorized(request, response, "INVALID_TOKEN", "Token 类型错误");
                 return;
             }
 
             // VERIFY-01: 校验 audience（手动兜底，配合 JwtProvider 的 requireIssuer）
             if (claims.getAudience() == null
                     || !claims.getAudience().contains(jwtProvider.getExpectedAudience())) {
-                writeUnauthorized(request, response, "auth.invalid_token", "Token 受众无效");
+                writeUnauthorized(request, response, "INVALID_TOKEN", "Token 受众无效");
                 return;
             }
 
             if (jwtProvider.isExpired(claims)) {
-                writeUnauthorized(request, response, "auth.token_expired", "Token 已过期");
+                writeUnauthorized(request, response, "TOKEN_EXPIRED", "Token 已过期");
                 return;
             }
 
@@ -91,7 +91,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         body.put("title", "Unauthorized");
         body.put("status", 401);
         body.put("detail", detail);
-        body.put("code", code);
+        if (code != null) {
+            body.put("code", code);
+        }
         body.put("requestId", requestId);
 
         response.setStatus(401);

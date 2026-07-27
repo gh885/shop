@@ -14,8 +14,8 @@ apps/server/             ← Spring Boot 模块化单体, 不参与 pnpm workspa
 apps/web/                ← 买家端 SSR
 apps/seller/             ← 卖家工作台 SPA
 apps/admin/              ← 平台管理端 SPA
-packages/                ← 共享包（api-client / domain / ui-web / i18n / config）
-openapi/                 ← OpenAPI 契约, 唯一 API 事实来源
+packages/                ← 共享包（api / common / config）
+openapi/                  ← （预留）OpenAPI 契约 —— 当前未启用，前端 API 类型手动维护于 packages/api
 ```
 
 ## 关键架构规则
@@ -74,15 +74,33 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - 提交遵循 Conventional Commits：`<type>(<scope>): <subject>`（scope 可选）
 - TypeScript 4 空格缩进，Java 遵循 Google Java Format AOSP 风格
 - 所有金额用 `Money` 类型（amount + currency），不裸传 int64
-- 错误码格式：`MODULE_ERROR_NAME_STATUS`
 - `pnpm dev:server` / `pnpm dev:web` 分别启动前后端
 - `pnpm format` 同时格式化 TS 和 Java
+
+## 错误码规范
+
+**定义原则：只有当 HTTP status 不足以让前端区分处理逻辑时，才定义 error code。**
+
+```
+SSR（Spring Boot）：throw 时直接硬编码字符串，不维护常量类
+TS（packages/api）：从 docs/error-codes.md 同步到 error-codes.ts
+
+唯一真相源：docs/error-codes.md
+```
+
+**操作规则：**
+1. 新建 code 必须先在 `docs/error-codes.md` 写清「前端行为」和「后端触发场景」
+2. Java 侧直接写字符串：`throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期")`
+3. TS 侧同步到 `packages/api/src/schemas/error-codes.ts`
+4. code 用 `SCREAMING_SNAKE_CASE`
+5. 前端能用 status 区分的场景（401/403/404）不加 code
+6. 会被前端 Zod 拦截的校验错误不加 code
 
 ## 包名
 
 ```
 com.shop.platform       ← 后端主包
-com.shop.platform.kernel
+com.shop.platform.infra
 com.shop.platform.auth
 …
 ```
@@ -94,3 +112,4 @@ docker compose -f deploy/docker-compose.yml up -d   # PostgreSQL 18 + Redis 7
 ```
 
 数据库：`shop:shop_dev@localhost:5432/shop`
+

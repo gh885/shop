@@ -5,7 +5,6 @@ import static com.shop.platform.auth.service.AuthHashes.sha256Hex;
 import com.shop.platform.auth.infra.DevSmsChannel;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -41,18 +40,18 @@ public class SmsCodeService {
         // IP 维度限流（OTP-06）
         if (RateLimiter.exceeded(
                 redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
-            throw new BusinessException(429, ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
+            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
         }
 
         // 60s 重发间隔检查
         String rateKey = KEY_RATE + phone;
         if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
-            throw new BusinessException(429, ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
+            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
         }
 
         // 每日上限检查（用 INCR 原子操作消除 TOCTOU 竞争）
         if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
-            throw new BusinessException(429, ErrorCodes.SMS_DAILY_LIMIT, "今日验证码已达上限");
+            throw new BusinessException(429, "SMS_DAILY_LIMIT", "今日验证码已达上限");
         }
 
         // 生成 6 位验证码
@@ -82,7 +81,7 @@ public class SmsCodeService {
         if (attempts >= MAX_ATTEMPTS) {
             // 超过最大尝试次数，删除当前验证码，要求重新发送
             redis.delete(KEY_CODE + phone);
-            throw new BusinessException(400, ErrorCodes.SMS_CODE_EXPIRED, "验证码已过期，请重新发送");
+            throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期，请重新发送");
         }
 
         // OTP-04: 比对哈希
@@ -95,7 +94,7 @@ public class SmsCodeService {
                 redis.delete(attemptKey);
                 return;
             }
-            throw new BusinessException(400, ErrorCodes.SMS_CODE_EXPIRED, "验证码已过期");
+            throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期");
         }
 
         String computedHash = sha256Hex(phone + ":" + code);
@@ -103,7 +102,7 @@ public class SmsCodeService {
             // 失败计数递增
             redis.opsForValue().increment(attemptKey);
             redis.expire(attemptKey, Duration.ofMinutes(CODE_TTL));
-            throw new BusinessException(400, ErrorCodes.SMS_CODE_INVALID, "验证码错误");
+            throw new BusinessException(400, "SMS_CODE_INVALID", "验证码错误");
         }
 
         // 校验通过，清除尝试计数
