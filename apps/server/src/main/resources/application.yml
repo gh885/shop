@@ -4,6 +4,11 @@ server:
 spring:
     application:
         name: shop-server
+        version: 0.0.1-SNAPSHOT
+        env: dev
+
+    profiles:
+        active: ${SPRING_PROFILES_ACTIVE:dev}
 
     datasource:
         url: jdbc:postgresql://127.0.0.1:5432/shop
@@ -22,6 +27,10 @@ spring:
     autoconfigure:
         exclude:
             - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+logging:
+    structured:
+        format: ecs
 
 mybatis-plus:
     configuration:

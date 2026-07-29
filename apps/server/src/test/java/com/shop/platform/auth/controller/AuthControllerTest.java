@@ -63,7 +63,6 @@ class AuthControllerTest {
     }
 
     // ========== 请求体校验 (BODY-01) ==========
-    // 注：Spring Modulith 自动包装响应为 { data: ..., meta: ... }，校验错误在 data 内
 
     @Test
     void sendSmsCode_blankPhone_returns422() throws Exception {
@@ -75,8 +74,7 @@ class AuthControllerTest {
                                     {"phone": ""}
                                     """))
                 .andExpect(status().is(422))
-                .andExpect(jsonPath("$.data.code").value("validation.error"))
-                .andExpect(jsonPath("$.data.errors[0].field").value("phone"));
+                .andExpect(jsonPath("$.errors[0].field").value("phone"));
     }
 
     @Test
@@ -89,7 +87,7 @@ class AuthControllerTest {
                                     {"phone": "123"}
                                     """))
                 .andExpect(status().is(422))
-                .andExpect(jsonPath("$.data.errors[0].field").value("phone"));
+                .andExpect(jsonPath("$.errors[0].field").value("phone"));
     }
 
     @Test
@@ -103,7 +101,7 @@ class AuthControllerTest {
                                     {"phone": "13800138000", "extra": "field"}
                                     """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.data.code").value("request.invalid_body"));
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -117,11 +115,11 @@ class AuthControllerTest {
                                     """))
                 .andExpect(status().is(422))
                 // 每个字段触发 @NotBlank + @Size → phone(2) + password(2) + deviceId(1) = 5
-                .andExpect(jsonPath("$.data.errors.length()").value(5));
+                .andExpect(jsonPath("$.errors.length()").value(5));
     }
 
     // ========== JwtAuthFilter 校验 ==========
-    // 注意：JwtAuthFilter 直接写响应（不走 @ControllerAdvice），所以不走 Modulith 包装
+    // 注意：JwtAuthFilter 直接写响应（不走 @ControllerAdvice）
 
     @Test
     void setPassword_withoutToken_returns401() throws Exception {
@@ -133,7 +131,6 @@ class AuthControllerTest {
                                     {"newPassword": "newPass123"}
                                     """))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("auth.unauthorized"))
                 .andExpect(jsonPath("$.detail").value("请先登录"));
     }
 
@@ -146,8 +143,8 @@ class AuthControllerTest {
                                         """
                                     {"deviceId": "dev1"}
                                     """))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("auth.unauthorized"));
+                .andExpect(status().isUnauthorized());
+        // 注：code=null 时响应 body 不含 code 字段
     }
 
     @Test
@@ -216,8 +213,8 @@ class AuthControllerTest {
                                     {}
                                     """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.accessToken").value("new-at"))
-                .andExpect(jsonPath("$.data.refreshToken").value("rt:new"))
+                .andExpect(jsonPath("$.accessToken").value("new-at"))
+                .andExpect(jsonPath("$.refreshToken").value("rt:new"))
                 .andExpect(cookie().exists("refresh_token"));
     }
 
@@ -234,7 +231,7 @@ class AuthControllerTest {
                                     {"refreshToken": "rt:body", "deviceId": "dev1"}
                                     """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.accessToken").value("new-at"))
+                .andExpect(jsonPath("$.accessToken").value("new-at"))
                 .andExpect(cookie().exists("refresh_token"));
     }
 
@@ -248,7 +245,7 @@ class AuthControllerTest {
                                     {}
                                     """))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.data.code").value("auth.invalid_token"));
+                .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
     }
 
     @Test
@@ -297,8 +294,8 @@ class AuthControllerTest {
                                     {"phone": "13800138000", "password": "password123", "deviceId": "dev1"}
                                     """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.accessToken").value("at1"))
-                .andExpect(jsonPath("$.data.refreshToken").value("rt1"))
+                .andExpect(jsonPath("$.accessToken").value("at1"))
+                .andExpect(jsonPath("$.refreshToken").value("rt1"))
                 .andExpect(cookie().exists("refresh_token"));
     }
 

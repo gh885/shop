@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -293,12 +294,30 @@ public class AuthService {
 
         if (user == null || !matched) {
             // UX-05: 日志精确记录失败原因
+            String reason;
             if (user == null) {
+                reason = "user_not_found";
                 log.warn("[AUTH] 登录失败：用户不存在, phone={}, ip={}", maskPhone(phone), clientIp);
             } else if (user.getPasswordHash() == null) {
+                reason = "no_password";
                 log.warn("[AUTH] 登录失败：未设置密码, userId={}, ip={}", user.getId(), clientIp);
             } else {
+                reason = "wrong_password";
                 log.warn("[AUTH] 登录失败：密码错误, userId={}, ip={}", user.getId(), clientIp);
+            }
+            MDC.put("event", "auth.login.failed");
+            MDC.put("reason", reason);
+            MDC.put("client_ip", clientIp);
+            if (user != null) {
+                MDC.put("user_id", user.getId().toString());
+            }
+            try {
+                log.warn("");
+            } finally {
+                MDC.remove("event");
+                MDC.remove("reason");
+                MDC.remove("client_ip");
+                if (user != null) MDC.remove("user_id");
             }
             throw BusinessException.unauthorized("手机号或密码错误");
         }
@@ -335,6 +354,16 @@ public class AuthService {
         // 更新最后登录时间
         user.setLastLoginAt(OffsetDateTime.now());
         userMapper.updateById(user);
+
+        // EVT-12: 登录成功事件
+        MDC.put("event", "auth.login.succeeded");
+        MDC.put("user_id", user.getId().toString());
+        try {
+            log.info("");
+        } finally {
+            MDC.remove("event");
+            MDC.remove("user_id");
+        }
 
         return new TokenResult(accessToken, refreshToken);
     }

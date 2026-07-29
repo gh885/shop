@@ -1,7 +1,6 @@
 package com.shop.platform.auth.infra;
 
 import com.shop.platform.common.UserIdHolder;
-import com.shop.platform.infra.RequestIdFilter;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,6 +10,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
@@ -46,7 +46,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             String header = request.getHeader("Authorization");
             if (header == null || !header.startsWith(BEARER_PREFIX)) {
-                writeUnauthorized(request, response, null, "请先登录");
+                writeUnauthorized(response, null, "请先登录");
                 return;
             }
 
@@ -54,24 +54,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             Claims claims = jwtProvider.parse(token);
 
             if (claims == null) {
-                writeUnauthorized(request, response, "INVALID_TOKEN", "Token 格式无效");
+                writeUnauthorized(response, "INVALID_TOKEN", "Token 格式无效");
                 return;
             }
 
             if (!jwtProvider.isAccessToken(claims)) {
-                writeUnauthorized(request, response, "INVALID_TOKEN", "Token 类型错误");
+                writeUnauthorized(response, "INVALID_TOKEN", "Token 类型错误");
                 return;
             }
 
             // VERIFY-01: 校验 audience（手动兜底，配合 JwtProvider 的 requireIssuer）
             if (claims.getAudience() == null
                     || !claims.getAudience().contains(jwtProvider.getExpectedAudience())) {
-                writeUnauthorized(request, response, "INVALID_TOKEN", "Token 受众无效");
+                writeUnauthorized(response, "INVALID_TOKEN", "Token 受众无效");
                 return;
             }
 
             if (jwtProvider.isExpired(claims)) {
-                writeUnauthorized(request, response, "TOKEN_EXPIRED", "Token 已过期");
+                writeUnauthorized(response, "TOKEN_EXPIRED", "Token 已过期");
                 return;
             }
 
@@ -82,11 +82,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
     }
 
-    private void writeUnauthorized(
-            HttpServletRequest request, HttpServletResponse response, String code, String detail)
+    private void writeUnauthorized(HttpServletResponse response, String code, String detail)
             throws IOException {
-        String requestId = RequestIdFilter.getRequestId(request);
-
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("title", "Unauthorized");
         body.put("status", 401);
@@ -94,7 +91,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (code != null) {
             body.put("code", code);
         }
-        body.put("requestId", requestId);
+        body.put("requestId", MDC.get("trace_id"));
 
         response.setStatus(401);
         response.setContentType("application/problem+json");

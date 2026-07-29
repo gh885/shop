@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -19,8 +20,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ProblemDetail> handleBusiness(
-            BusinessException ex, HttpServletRequest request) {
+    public ResponseEntity<ProblemDetail> handleBusiness(BusinessException ex) {
         ProblemDetail pd = ProblemDetail.forStatus(ex.getHttpStatus());
         pd.setTitle(HttpStatus.valueOf(ex.getHttpStatus()).getReasonPhrase());
         pd.setDetail(ex.getDetail());
@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
         if (errors != null && !errors.isEmpty()) {
             pd.setProperty("errors", errors);
         }
-        pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
+        pd.setProperty("requestId", MDC.get("trace_id"));
         return ResponseEntity.status(ex.getHttpStatus())
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(pd);
@@ -66,29 +66,29 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatus(422);
         pd.setTitle("Unprocessable Entity");
         pd.setDetail("输入校验失败（" + errors.size() + " 个字段错误）");
-        pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
+        pd.setProperty("requestId", MDC.get("trace_id"));
         pd.setProperty("errors", errors);
         return ResponseEntity.status(422).header(HttpHeaders.CACHE_CONTROL, "no-store").body(pd);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ProblemDetail> handleMessageNotReadable(
-            HttpMessageNotReadableException ex, HttpServletRequest request) {
+            HttpMessageNotReadableException ex) {
         // ERR-03: JSON 格式非法、未知字段等解析失败 → 400
         ProblemDetail pd = ProblemDetail.forStatus(400);
         pd.setTitle("Bad Request");
         pd.setDetail("请求体格式错误");
-        pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
+        pd.setProperty("requestId", MDC.get("trace_id"));
         return ResponseEntity.status(400).header(HttpHeaders.CACHE_CONTROL, "no-store").body(pd);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ProblemDetail> handleGeneral(Exception ex, HttpServletRequest request) {
+    public ResponseEntity<ProblemDetail> handleGeneral(Exception ex) {
         log.error("未捕获异常", ex);
         ProblemDetail pd = ProblemDetail.forStatus(500);
         pd.setTitle("Internal Server Error");
         pd.setDetail("服务器内部错误");
-        pd.setProperty("requestId", RequestIdFilter.getRequestId(request));
+        pd.setProperty("requestId", MDC.get("trace_id"));
         return ResponseEntity.status(500).header(HttpHeaders.CACHE_CONTROL, "no-store").body(pd);
     }
 }
