@@ -57,3 +57,11 @@ export const TokenResultSchema = z.object({
     refreshToken: z.string(),
 });
 export type TokenResult = z.infer<typeof TokenResultSchema>;
+
+export const MeResponseSchema = z.object({
+    id: z.number(),
+    phone: z.string(),
+    nickname: z.string().nullable(),
+    avatarKey: z.string().nullable(),
+});
+export type MeResponse = z.infer<typeof MeResponseSchema>;

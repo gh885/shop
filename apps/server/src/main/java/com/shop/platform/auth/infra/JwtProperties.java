@@ -32,6 +32,7 @@ public class JwtProperties {
     /** 不需要认证的路径 */
     private List<String> skipPaths =
             List.of(
+                    "/api/health",
                     "/auth/sms-code",
                     "/auth/login/sms",
                     "/auth/login/password",

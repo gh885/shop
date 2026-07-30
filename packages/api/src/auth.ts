@@ -1,7 +1,9 @@
 import type { KyInstance } from 'ky';
 
 import {
+    MeResponseSchema,
     TokenResultSchema,
+    type MeResponse,
     type PasswordLoginRequest,
     type SmsCodeRequest,
     type SmsLoginRequest,
@@ -50,6 +52,11 @@ export function createAuthApi(api: KyInstance) {
         /** 刷新双 Token */
         async refresh(data: RefreshRequest): Promise<TokenResult> {
             return TokenResultSchema.parse(await api.post('auth/refresh', { json: data }).json());
+        },
+
+        /** 当前登录用户信息 */
+        async me(): Promise<MeResponse> {
+            return MeResponseSchema.parse(await api.get('auth/me').json());
         },
 
         /** 登出 */

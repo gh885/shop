@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
 import lombok.Data;
 
 @Data
-@TableName(value = "auth.users", schema = "auth")
+@TableName("auth.users")
 public class User {
 
     @TableId(type = IdType.AUTO)

@@ -1,48 +1,237 @@
 @import 'tailwindcss';
 
-@theme {
-	--color-background: hsl(0 0% 100%);
-	--color-foreground: hsl(0 0% 3.9%);
-	--color-card: hsl(0 0% 100%);
-	--color-card-foreground: hsl(0 0% 3.9%);
-	--color-popover: hsl(0 0% 100%);
-	--color-popover-foreground: hsl(0 0% 3.9%);
-	--color-primary: hsl(0 0% 9%);
-	--color-primary-foreground: hsl(0 0% 98%);
-	--color-secondary: hsl(0 0% 96.1%);
-	--color-secondary-foreground: hsl(0 0% 9%);
-	--color-muted: hsl(0 0% 96.1%);
-	--color-muted-foreground: hsl(0 0% 45.1%);
-	--color-accent: hsl(0 0% 96.1%);
-	--color-accent-foreground: hsl(0 0% 9%);
-	--color-destructive: hsl(0 84.2% 60.2%);
-	--color-destructive-foreground: hsl(0 0% 98%);
-	--color-border: hsl(0 0% 89.8%);
-	--color-input: hsl(0 0% 89.8%);
-	--color-ring: hsl(0 0% 3.9%);
-	--radius: 0.5rem;
+/* ==========================================================================
+   主题系统（分层 token）
+
+   Layer 1 Primitive  — 原始色板，只定义色相/明度色阶，不含语义。
+                        组件禁止直接使用，不出现在 class 里。
+   Layer 2 Semantic   — 语义 token（@theme 内，生成 bg-* text-* 工具类），
+                        值引用 primitive；明暗模式只重写这一层的映射。
+   Layer 3 Component  — 暂不抽取；组件直接消费语义层，
+                        同一模式出现第二个消费方时再下沉为组件 token。
+
+   风格定位：消费级电商转化风 —— 中性灰撑全场（不抢商品内容风头），
+   品牌暖红只用于转化引导（登录/购买等 CTA），偏大圆角，暗色一等公民。
+   seller/admin 端复用时保持 primitive 不动，只换 semantic 的 brand 映射。
+   ========================================================================== */
+
+/* ---------- Layer 1: Primitive ---------- */
+
+:root {
+    /* 中性灰（无彩色相，暖冷中性） */
+    --neutral-0: hsl(0 0% 100%);
+    --neutral-50: hsl(0 0% 98%);
+    --neutral-100: hsl(0 0% 96.1%);
+    --neutral-200: hsl(0 0% 89.8%);
+    --neutral-300: hsl(0 0% 83.1%);
+    --neutral-400: hsl(0 0% 63.9%);
+    --neutral-500: hsl(0 0% 45.1%);
+    --neutral-800: hsl(0 0% 14.9%);
+    --neutral-900: hsl(0 0% 9%);
+    --neutral-950: hsl(0 0% 3.9%);
+
+    /* 品牌暖红（350° hue），仅用于转化引导 */
+    --brand-50: hsl(350 100% 97%);
+    --brand-100: hsl(350 90% 93%);
+    --brand-200: hsl(350 85% 86%);
+    --brand-300: hsl(350 82% 74%);
+    --brand-400: hsl(350 80% 64%);
+    --brand-500: hsl(350 78% 56%);
+    --brand-600: hsl(350 75% 48%);
+    --brand-700: hsl(350 72% 40%);
+    --brand-800: hsl(350 70% 32%);
+    --brand-900: hsl(350 68% 25%);
+
+    /* 反馈色（success / warning / info / danger） */
+    --green-100: hsl(150 60% 94%);
+    --green-500: hsl(152 55% 42%);
+    --green-700: hsl(152 55% 30%);
+    --green-900: hsl(152 40% 14%);
+    --amber-100: hsl(45 95% 92%);
+    --amber-500: hsl(38 92% 45%);
+    --amber-700: hsl(32 90% 32%);
+    --amber-900: hsl(38 50% 14%);
+    --blue-100: hsl(214 90% 94%);
+    --blue-500: hsl(217 85% 55%);
+    --blue-700: hsl(217 80% 40%);
+    --blue-900: hsl(217 50% 15%);
+    --red-100: hsl(0 85% 95%);
+    --red-500: hsl(0 84.2% 60.2%);
+    --red-700: hsl(0 70% 45%);
+    --red-800: hsl(0 62.8% 30.6%);
+    --red-900: hsl(0 50% 14%);
 }
 
+/* ---------- Layer 2: Semantic（light 默认） ---------- */
+
+@theme {
+    /* 表面 */
+    --color-background: var(--neutral-0);
+    --color-card: var(--neutral-0);
+    --color-popover: var(--neutral-0);
+    --color-sunken: var(--neutral-100);
+    --color-scrim: hsl(0 0% 0% / 0.4);
+
+    /* 内容 */
+    --color-foreground: var(--neutral-950);
+    --color-card-foreground: var(--neutral-950);
+    --color-popover-foreground: var(--neutral-950);
+    --color-foreground-subtle: var(--neutral-400);
+    --color-foreground-disabled: var(--neutral-300);
+    --color-link: var(--brand-600);
+
+    /* 主操作（中性黑白） */
+    --color-primary: var(--neutral-900);
+    --color-primary-foreground: var(--neutral-50);
+    --color-primary-hover: var(--neutral-800);
+
+    /* 次级/弱化表面 */
+    --color-secondary: var(--neutral-100);
+    --color-secondary-foreground: var(--neutral-900);
+    --color-muted: var(--neutral-100);
+    --color-muted-foreground: var(--neutral-500);
+    --color-accent: var(--neutral-100);
+    --color-accent-foreground: var(--neutral-900);
+
+    /* 品牌转化色（登录/购买等 CTA 专用） */
+    --color-brand: var(--brand-500);
+    --color-brand-foreground: var(--neutral-0);
+    --color-brand-hover: var(--brand-600);
+    --color-brand-active: var(--brand-700);
+    --color-brand-subtle: var(--brand-50);
+    --color-brand-subtle-foreground: var(--brand-700);
+
+    /* 反馈 */
+    --color-destructive: var(--red-500);
+    --color-destructive-foreground: var(--neutral-50);
+    --color-destructive-subtle: var(--red-100);
+    --color-destructive-subtle-foreground: var(--red-700);
+    --color-success: var(--green-500);
+    --color-success-foreground: var(--neutral-0);
+    --color-success-subtle: var(--green-100);
+    --color-success-subtle-foreground: var(--green-700);
+    --color-warning: var(--amber-500);
+    --color-warning-foreground: var(--neutral-900);
+    --color-warning-subtle: var(--amber-100);
+    --color-warning-subtle-foreground: var(--amber-700);
+    --color-info: var(--blue-500);
+    --color-info-foreground: var(--neutral-0);
+    --color-info-subtle: var(--blue-100);
+    --color-info-subtle-foreground: var(--blue-700);
+
+    /* 禁用 */
+    --color-disabled: var(--neutral-100);
+    --color-disabled-foreground: var(--neutral-400);
+
+    /* 结构与焦点 */
+    --color-border: var(--neutral-200);
+    --color-border-strong: var(--neutral-300);
+    --color-input: var(--neutral-200);
+    --color-ring: var(--neutral-950);
+
+    /* 圆角阶梯（友好感，消费级偏大） */
+    --radius: 0.5rem;
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    /* 阴影/海拔（染中性色，不用纯黑低透明度） */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 9% / 0.06);
+    --shadow-md:
+        0 4px 6px -1px hsl(0 0% 9% / 0.08), 0 2px 4px -2px hsl(0 0% 9% / 0.06);
+    --shadow-lg:
+        0 10px 15px -3px hsl(0 0% 9% / 0.1), 0 4px 6px -4px hsl(0 0% 9% / 0.08);
+
+    /* 动效 */
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --animate-shake: shake 0.4s ease-in-out;
+    @keyframes shake {
+        10%,
+        90% {
+            transform: translateX(-1px);
+        }
+        20%,
+        80% {
+            transform: translateX(2px);
+        }
+        30%,
+        50%,
+        70% {
+            transform: translateX(-3px);
+        }
+        40%,
+        60% {
+            transform: translateX(3px);
+        }
+    }
+}
+
+/* ---------- Layer 2: Semantic（dark 映射重写） ---------- */
+
 @media (prefers-color-scheme: dark) {
-	:root {
-		--color-background: hsl(0 0% 3.9%);
-		--color-foreground: hsl(0 0% 98%);
-		--color-card: hsl(0 0% 3.9%);
-		--color-card-foreground: hsl(0 0% 98%);
-		--color-popover: hsl(0 0% 3.9%);
-		--color-popover-foreground: hsl(0 0% 98%);
-		--color-primary: hsl(0 0% 98%);
-		--color-primary-foreground: hsl(0 0% 9%);
-		--color-secondary: hsl(0 0% 14.9%);
-		--color-secondary-foreground: hsl(0 0% 98%);
-		--color-muted: hsl(0 0% 14.9%);
-		--color-muted-foreground: hsl(0 0% 63.9%);
-		--color-accent: hsl(0 0% 14.9%);
-		--color-accent-foreground: hsl(0 0% 98%);
-		--color-destructive: hsl(0 62.8% 30.6%);
-		--color-destructive-foreground: hsl(0 0% 98%);
-		--color-border: hsl(0 0% 14.9%);
-		--color-input: hsl(0 0% 14.9%);
-		--color-ring: hsl(0 0% 83.1%);
-	}
+    :root {
+        --color-background: var(--neutral-950);
+        --color-card: var(--neutral-950);
+        --color-popover: var(--neutral-950);
+        --color-sunken: var(--neutral-900);
+        --color-scrim: hsl(0 0% 0% / 0.6);
+
+        --color-foreground: var(--neutral-50);
+        --color-card-foreground: var(--neutral-50);
+        --color-popover-foreground: var(--neutral-50);
+        --color-foreground-subtle: var(--neutral-500);
+        --color-foreground-disabled: var(--neutral-800);
+        --color-link: var(--brand-400);
+
+        --color-primary: var(--neutral-50);
+        --color-primary-foreground: var(--neutral-900);
+        --color-primary-hover: var(--neutral-200);
+
+        --color-secondary: var(--neutral-800);
+        --color-secondary-foreground: var(--neutral-50);
+        --color-muted: var(--neutral-800);
+        --color-muted-foreground: var(--neutral-400);
+        --color-accent: var(--neutral-800);
+        --color-accent-foreground: var(--neutral-50);
+
+        --color-brand: var(--brand-400);
+        --color-brand-foreground: var(--neutral-0);
+        --color-brand-hover: var(--brand-300);
+        --color-brand-active: var(--brand-200);
+        --color-brand-subtle: var(--brand-900);
+        --color-brand-subtle-foreground: var(--brand-200);
+
+        --color-destructive: var(--red-800);
+        --color-destructive-foreground: var(--neutral-50);
+        --color-destructive-subtle: var(--red-900);
+        --color-destructive-subtle-foreground: var(--red-500);
+        --color-success: var(--green-500);
+        --color-success-foreground: var(--neutral-0);
+        --color-success-subtle: var(--green-900);
+        --color-success-subtle-foreground: var(--green-500);
+        --color-warning: var(--amber-500);
+        --color-warning-foreground: var(--neutral-900);
+        --color-warning-subtle: var(--amber-900);
+        --color-warning-subtle-foreground: var(--amber-500);
+        --color-info: var(--blue-500);
+        --color-info-foreground: var(--neutral-0);
+        --color-info-subtle: var(--blue-900);
+        --color-info-subtle-foreground: var(--blue-500);
+
+        --color-disabled: var(--neutral-800);
+        --color-disabled-foreground: var(--neutral-500);
+
+        --color-border: var(--neutral-800);
+        --color-border-strong: var(--neutral-400);
+        --color-input: var(--neutral-800);
+        --color-ring: var(--neutral-300);
+
+        --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+        --shadow-md:
+            0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
+        --shadow-lg:
+            0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.5);
+    }
 }

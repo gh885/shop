@@ -1,6 +1,7 @@
 package com.shop.platform.auth.controller;
 
 import com.shop.platform.auth.service.AuthService;
+import com.shop.platform.auth.service.AuthService.MeResponse;
 import com.shop.platform.auth.service.AuthService.TokenResult;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -100,6 +102,13 @@ public class AuthController {
         TokenResult result = authService.refresh(refreshToken, deviceId);
         setRefreshCookie(response, result.refreshToken());
         return result;
+    }
+
+    /** 当前登录用户信息 */
+    @GetMapping("/me")
+    public MeResponse me() {
+        Long userId = UserIdHolder.get();
+        return authService.getMe(userId);
     }
 
     /** 登出（STORE-02: 清除 Cookie） */

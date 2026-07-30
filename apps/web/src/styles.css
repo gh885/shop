@@ -1,4 +1,7 @@
-@import 'tailwindcss';
+@import '@shop/ui-web/src/styles.css';
+
+/* ui-web 在 apps/web 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明 */
+@source '../../../packages/ui-web/src';
 
 * {
     box-sizing: border-box;
@@ -12,4 +15,6 @@ body,
 
 body {
     margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
 }

@@ -4,7 +4,8 @@
         "jsx": "react-jsx",
         "paths": {
             "#/*": ["./src/*"],
-            "@/*": ["./src/*"]
+            "@/*": ["./src/*"],
+            "src/*": ["../../packages/ui-web/src/*"]
         },
         "types": ["vite/client"],
         "allowImportingTsExtensions": true

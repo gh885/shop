@@ -9,6 +9,13 @@ import tailwindcss from '@tailwindcss/vite';
 
 const config = defineConfig({
     resolve: { tsconfigPaths: true },
+    server: {
+        proxy: {
+            // 同源代理到后端，规避 CORS / refresh cookie（Secure + httpOnly）跨域问题
+            '/auth': { target: 'http://localhost:8080', changeOrigin: true },
+            '/api': { target: 'http://localhost:8080', changeOrigin: true },
+        },
+    },
     plugins: [
         devtools(),
         tailwindcss(),

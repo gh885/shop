@@ -4,12 +4,14 @@
     "private": true,
     "type": "module",
     "exports": {
+        ".": "./src/index.ts",
         "./src/styles.css": "./src/styles.css",
         "./src/lib/utils": "./src/lib/utils.ts",
         "./src/components/ui/*": "./src/components/ui/*.tsx"
     },
     "dependencies": {
         "@base-ui/react": "^1.6.0",
+        "@tanstack/react-form": "^1.33.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-react": "^1.27.0",

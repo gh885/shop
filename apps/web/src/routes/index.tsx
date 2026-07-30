@@ -7,7 +7,9 @@ interface HealthResponse {
 }
 
 async function getHealth(): Promise<HealthResponse> {
-    const res = await fetch('http://localhost:8080/api/health');
+    // SSR 期 fetch 在服务端执行，相对 URL 不可用，需要绝对地址
+    const url = import.meta.env.SSR ? 'http://localhost:8080/api/health' : '/api/health';
+    const res = await fetch(url);
     return res.json();
 }
 
@@ -26,13 +28,8 @@ function Home() {
     const health = Route.useLoaderData();
 
     return (
-        <div className="mx-auto max-w-2xl p-8">
-            <h1 className="mb-2 text-4xl font-bold">
-                Shop
-                <span className="ms-3 text-sm font-normal text-gray-500">多店铺电商平台</span>
-            </h1>
-
-            <div className="mt-8 space-y-4">
+        <div className="mx-auto max-w-6xl p-8">
+            <div className="space-y-4">
                 <h2 className="text-lg font-semibold">系统状态</h2>
                 {health ? (
                     <div className="space-y-2">
@@ -62,7 +59,7 @@ function StatusItem({ label, status }: { label: string; status: string }) {
     return (
         <div className="flex items-center gap-3">
             <span className={`size-2 rounded-full ${ok ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="w-20 text-gray-600">{label}</span>
+            <span className="w-20 text-muted-foreground">{label}</span>
             <span className={ok ? 'text-green-700' : 'text-red-700'}>{status}</span>
         </div>
     );

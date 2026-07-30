@@ -242,6 +242,16 @@ public class AuthService {
         return issueTokens(user, deviceId);
     }
 
+    // ========== 当前用户 ==========
+
+    /** 获取当前登录用户信息（手机号脱敏返回） */
+    public MeResponse getMe(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) throw BusinessException.notFound("用户不存在");
+        return new MeResponse(
+                user.getId(), maskPhone(user.getPhone()), user.getNickname(), user.getAvatarKey());
+    }
+
     // ========== 登出 ==========
 
     /** 登出：删除当前设备 refresh token */
@@ -318,6 +328,9 @@ public class AuthService {
                 MDC.remove("reason");
                 MDC.remove("client_ip");
                 if (user != null) MDC.remove("user_id");
+            }
+            if ("no_password".equals(reason)) {
+                throw new BusinessException(401, "PASSWORD_NOT_SET", "该手机号还未设置密码，请用验证码登录");
             }
             throw BusinessException.unauthorized("手机号或密码错误");
         }
@@ -416,4 +429,6 @@ public class AuthService {
     // ========== DTO ==========
 
     public record TokenResult(String accessToken, String refreshToken) {}
+
+    public record MeResponse(Long id, String phone, String nickname, String avatarKey) {}
 }

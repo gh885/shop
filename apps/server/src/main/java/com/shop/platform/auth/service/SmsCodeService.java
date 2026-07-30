@@ -87,13 +87,15 @@ public class SmsCodeService {
         // OTP-04: 比对哈希
         String codeKey = KEY_CODE + phone;
         String storedHash = redis.opsForValue().getAndDelete(codeKey);
+
+        // 开发环境固定码优先放行（DevSmsChannel 不存在时跳过）
+        DevSmsChannel dev = devSmsChannelProvider.getIfAvailable();
+        if (dev != null && dev.getDevCode().equals(code)) {
+            redis.delete(attemptKey);
+            return;
+        }
+
         if (storedHash == null) {
-            // 开发环境用固定码兜底（DevSmsChannel 不存在时跳过）
-            DevSmsChannel dev = devSmsChannelProvider.getIfAvailable();
-            if (dev != null && dev.getDevCode().equals(code)) {
-                redis.delete(attemptKey);
-                return;
-            }
             throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期");
         }
 
