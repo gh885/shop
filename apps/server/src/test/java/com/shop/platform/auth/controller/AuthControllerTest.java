@@ -14,6 +14,7 @@ import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.RequestBodySizeFilter;
 import com.shop.platform.infra.RequestIdFilter;
 import jakarta.servlet.http.Cookie;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,8 @@ import org.springframework.web.context.WebApplicationContext;
                     + "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
         })
 class AuthControllerTest {
+
+    private static final UUID USER_ID = UUID.randomUUID();
 
     private MockMvc mockMvc;
 
@@ -162,7 +165,7 @@ class AuthControllerTest {
 
     @Test
     void setPassword_withValidToken_callsService() throws Exception {
-        String token = jwtProvider.createAccessToken(42L);
+        String token = jwtProvider.createAccessToken(USER_ID);
 
         mockMvc.perform(
                         post("/auth/password")
@@ -174,7 +177,7 @@ class AuthControllerTest {
                                     """))
                 .andExpect(status().isOk());
 
-        verify(authService).setPassword(eq(42L), eq("oldPass"), eq("newPass123"));
+        verify(authService).setPassword(eq(USER_ID), eq("oldPass"), eq("newPass123"));
     }
 
     // ========== Cookie 行为 ==========
@@ -250,7 +253,7 @@ class AuthControllerTest {
 
     @Test
     void logout_clearsCookie() throws Exception {
-        String token = jwtProvider.createAccessToken(7L);
+        String token = jwtProvider.createAccessToken(USER_ID);
 
         mockMvc.perform(
                         post("/auth/logout")

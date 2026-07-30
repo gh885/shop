@@ -69,7 +69,7 @@ public class JwtProvider {
     }
 
     /** 签发 Access Token（JWT，带 jti/iss/aud/type） */
-    public String createAccessToken(Long userId) {
+    public String createAccessToken(UUID userId) {
         var builder =
                 Jwts.builder()
                         .subject(userId.toString())
@@ -124,8 +124,8 @@ public class JwtProvider {
         return TYPE_ACCESS.equals(claims.get(CLAIM_TYPE));
     }
 
-    public Long getUserId(Claims claims) {
-        return Long.valueOf(claims.getSubject());
+    public UUID getUserId(Claims claims) {
+        return UUID.fromString(claims.getSubject());
     }
 
     public String getExpectedAudience() {

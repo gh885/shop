@@ -1,5 +1,12 @@
 ## 编码风格 — Java
 
+### 主键 ID 策略（全库强制）
+
+- 主键统一 **uuidv7**，列定义 `id UUID PRIMARY KEY DEFAULT uuidv7()`（PG 18 原生）
+- Entity 用 `java.util.UUID` + `@TableId(type = IdType.INPUT)`，insert 时由 `MyBatisPlusMetaObjectHandler` 应用层生成
+- 禁止自增 / 雪花 / uuidv4；给用户看的业务编号（订单号等）是独立业务字段，不是主键
+- 详见 `docs/product-architecture.md`
+
 ### 能用就用
 
 | 注解                       | 使用场景                                                                                                           |

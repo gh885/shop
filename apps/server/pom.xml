@@ -20,7 +20,8 @@
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<spotless.version>2.44.4</spotless.version>
 		<jjwt.version>0.12.6</jjwt.version>
-		<testcontainers.version>1.20.6</testcontainers.version>
+		<uuid-creator.version>6.1.1</uuid-creator.version>
+		<testcontainers.version>1.21.3</testcontainers.version>
 	</properties>
 
 	<dependencies>
@@ -68,6 +69,12 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.github.f4b6a3</groupId>
+			<artifactId>uuid-creator</artifactId>
+			<version>${uuid-creator.version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
@@ -155,6 +162,22 @@
 				<version>${testcontainers.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			<!-- docker-java 覆盖到 3.5.x：旧版本默认 API <1.44，会被 Docker Desktop 29 拒绝 -->
+			<dependency>
+				<groupId>com.github.docker-java</groupId>
+				<artifactId>docker-java</artifactId>
+				<version>3.5.2</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.docker-java</groupId>
+				<artifactId>docker-java-api</artifactId>
+				<version>3.5.2</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.docker-java</groupId>
+				<artifactId>docker-java-transport-zerodep</artifactId>
+				<version>3.5.2</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

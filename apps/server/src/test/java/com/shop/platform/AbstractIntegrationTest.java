@@ -15,7 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public abstract class AbstractIntegrationTest {
 
-    private static final String POSTGRES_IMAGE = "postgres:16-alpine";
+    private static final String POSTGRES_IMAGE = "postgres:18-alpine";
     private static final String REDIS_IMAGE = "redis:7-alpine";
 
     @SuppressWarnings("resource")

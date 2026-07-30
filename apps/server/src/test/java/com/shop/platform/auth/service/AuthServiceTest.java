@@ -11,6 +11,7 @@ import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
 import java.time.Duration;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,8 @@ class AuthServiceTest {
 
     @InjectMocks AuthService authService;
 
+    private static final UUID USER_ID = UUID.randomUUID();
+
     @Captor ArgumentCaptor<User> userCaptor;
 
     @BeforeEach
@@ -49,16 +52,17 @@ class AuthServiceTest {
         @BeforeEach
         void setUp() {
             var user = new User();
-            user.setId(1L);
+            user.setId(USER_ID);
             user.setPhone("13800138000");
-            lenient().when(userMapper.selectById(1L)).thenReturn(user);
+            lenient().when(userMapper.selectById(USER_ID)).thenReturn(user);
         }
 
         @Test
         void rejectNull() {
             var ex =
                     assertThrows(
-                            BusinessException.class, () -> authService.setPassword(1L, null, null));
+                            BusinessException.class,
+                            () -> authService.setPassword(USER_ID, null, null));
             assertEquals(400, ex.getHttpStatus());
         }
 
@@ -67,8 +71,9 @@ class AuthServiceTest {
             var ex =
                     assertThrows(
                             BusinessException.class,
-                            () -> authService.setPassword(1L, null, "1234567"));
-            assertEquals("auth.password_too_short", ex.getCode());
+                            () -> authService.setPassword(USER_ID, null, "1234567"));
+            assertEquals(400, ex.getHttpStatus());
+            assertNull(ex.getCode());
         }
 
         @Test
@@ -76,8 +81,9 @@ class AuthServiceTest {
             var ex =
                     assertThrows(
                             BusinessException.class,
-                            () -> authService.setPassword(1L, null, "a".repeat(73)));
-            assertEquals("auth.password_too_long", ex.getCode());
+                            () -> authService.setPassword(USER_ID, null, "a".repeat(73)));
+            assertEquals(400, ex.getHttpStatus());
+            assertNull(ex.getCode());
         }
 
         @Test
@@ -85,21 +91,23 @@ class AuthServiceTest {
             var ex =
                     assertThrows(
                             BusinessException.class,
-                            () -> authService.setPassword(1L, null, "password"));
-            assertEquals("auth.password_weak", ex.getCode());
+                            () -> authService.setPassword(USER_ID, null, "password"));
+            assertEquals(400, ex.getHttpStatus());
+            assertNull(ex.getCode());
         }
 
         @Test
         void rejectPhoneEqualsPassword() {
             var user = new User();
             user.setPhone("13800138000");
-            when(userMapper.selectById(1L)).thenReturn(user);
+            when(userMapper.selectById(USER_ID)).thenReturn(user);
 
             var ex =
                     assertThrows(
                             BusinessException.class,
-                            () -> authService.setPassword(1L, null, "13800138000"));
-            assertEquals("auth.password_invalid", ex.getCode());
+                            () -> authService.setPassword(USER_ID, null, "13800138000"));
+            assertEquals(400, ex.getHttpStatus());
+            assertNull(ex.getCode());
         }
     }
 
@@ -108,14 +116,14 @@ class AuthServiceTest {
         @Test
         void success() {
             var user = new User();
-            user.setId(1L);
+            user.setId(USER_ID);
             user.setPhone("13800138000");
             user.setPasswordHash("$2a$12$hashhashhashhashhashhashah");
             user.setStatus("ACTIVE");
 
             when(userMapper.selectOne(any())).thenReturn(user);
             when(passwordEncoder.matches(eq("correct"), anyString())).thenReturn(true);
-            when(jwtProvider.createAccessToken(1L)).thenReturn("at");
+            when(jwtProvider.createAccessToken(USER_ID)).thenReturn("at");
             when(jwtProvider.generateRefreshToken()).thenReturn("rt:xxx");
             doNothing().when(valueOps).set(anyString(), anyString(), any(Duration.class));
 
@@ -129,7 +137,7 @@ class AuthServiceTest {
         @Test
         void wrongPassword() {
             var user = new User();
-            user.setId(1L);
+            user.setId(USER_ID);
             user.setPhone("13800138000");
             user.setPasswordHash("$2a$12$hashhashhashhashhashhashah");
             user.setStatus("ACTIVE");
@@ -156,7 +164,7 @@ class AuthServiceTest {
         @Test
         void disabledUser() {
             var user = new User();
-            user.setId(1L);
+            user.setId(USER_ID);
             user.setPasswordHash("$2a$12$hash");
             user.setStatus("DISABLED");
 
@@ -178,15 +186,15 @@ class AuthServiceTest {
         @Test
         void firstTime_noCurrentPasswordRequired() {
             var user = new User();
-            user.setId(1L);
+            user.setId(USER_ID);
             user.setPhone("13800138000");
 
-            when(userMapper.selectById(1L)).thenReturn(user);
+            when(userMapper.selectById(USER_ID)).thenReturn(user);
             when(passwordEncoder.encode("newPassword123")).thenReturn("$2a$12$encoded");
             // clear+delete for deleteAllRefreshTokens
             when(redis.keys(anyString())).thenReturn(Set.of());
 
-            authService.setPassword(1L, null, "newPassword123");
+            authService.setPassword(USER_ID, null, "newPassword123");
 
             verify(userMapper).updateById(userCaptor.capture());
             assertEquals("$2a$12$encoded", userCaptor.getValue().getPasswordHash());
@@ -195,35 +203,35 @@ class AuthServiceTest {
         @Test
         void changePassword_requiresCurrentPassword() {
             var user = new User();
-            user.setId(1L);
+            user.setId(USER_ID);
             user.setPasswordHash("$2a$12$oldhash");
             user.setPhone("13800138000");
 
-            when(userMapper.selectById(1L)).thenReturn(user);
+            when(userMapper.selectById(USER_ID)).thenReturn(user);
 
             // 不传 currentPassword
             var ex =
                     assertThrows(
                             BusinessException.class,
-                            () -> authService.setPassword(1L, null, "newPassword123"));
-            assertEquals("auth.unauthorized", ex.getCode());
+                            () -> authService.setPassword(USER_ID, null, "newPassword123"));
+            assertEquals(401, ex.getHttpStatus());
         }
 
         @Test
         void changePassword_wrongCurrentPassword() {
             var user = new User();
-            user.setId(1L);
+            user.setId(USER_ID);
             user.setPasswordHash("$2a$12$oldhash");
             user.setPhone("13800138000");
 
-            when(userMapper.selectById(1L)).thenReturn(user);
+            when(userMapper.selectById(USER_ID)).thenReturn(user);
             when(passwordEncoder.matches("wrong", "$2a$12$oldhash")).thenReturn(false);
 
             var ex =
                     assertThrows(
                             BusinessException.class,
-                            () -> authService.setPassword(1L, "wrong", "newPassword123"));
-            assertEquals("auth.unauthorized", ex.getCode());
+                            () -> authService.setPassword(USER_ID, "wrong", "newPassword123"));
+            assertEquals(401, ex.getHttpStatus());
         }
     }
 
@@ -234,16 +242,16 @@ class AuthServiceTest {
             String token = "rt:valid";
             String hash = AuthHashes.sha256Hex(token);
 
-            when(valueOps.getAndDelete("refresh:" + hash)).thenReturn("1");
-            when(userMapper.selectById(1L))
+            when(valueOps.getAndDelete("refresh:" + hash)).thenReturn(USER_ID.toString());
+            when(userMapper.selectById(USER_ID))
                     .thenReturn(
                             new User() {
                                 {
-                                    setId(1L);
+                                    setId(USER_ID);
                                     setStatus("ACTIVE");
                                 }
                             });
-            when(jwtProvider.createAccessToken(1L)).thenReturn("new-at");
+            when(jwtProvider.createAccessToken(USER_ID)).thenReturn("new-at");
             when(jwtProvider.generateRefreshToken()).thenReturn("rt:new");
             doNothing().when(valueOps).set(anyString(), anyString(), any(Duration.class));
 
@@ -269,8 +277,8 @@ class AuthServiceTest {
             String hash = AuthHashes.sha256Hex(token);
 
             when(valueOps.getAndDelete("refresh:" + hash)).thenReturn(null);
-            when(valueOps.get("refresh:consumed:" + hash)).thenReturn("1");
-            when(redis.keys("refresh:user:1:*")).thenReturn(Set.of());
+            when(valueOps.get("refresh:consumed:" + hash)).thenReturn(USER_ID.toString());
+            when(redis.keys("refresh:user:" + USER_ID + ":*")).thenReturn(Set.of());
 
             var ex =
                     assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));

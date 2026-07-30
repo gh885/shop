@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
 import org.slf4j.event.Level;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -31,7 +30,7 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
             HttpServletRequest request,
             HttpServletResponse response,
             Object handler,
-            @Nullable Exception ex) {
+            Exception ex) {
         long startNanos = (long) request.getAttribute(START_ATTR);
         long latencyMs = (System.nanoTime() - startNanos) / 1_000_000;
 

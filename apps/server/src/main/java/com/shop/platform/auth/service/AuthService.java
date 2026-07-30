@@ -16,6 +16,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -129,7 +130,7 @@ public class AuthService {
     // ========== 设置/修改密码 ==========
 
     /** 首次设置密码（无旧密码校验）或修改密码（需当前密码） */
-    public void setPassword(Long userId, String currentPassword, String newPassword) {
+    public void setPassword(UUID userId, String currentPassword, String newPassword) {
         // 1. 检查用户存在
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
@@ -221,14 +222,14 @@ public class AuthService {
             String replayedUserId = redis.opsForValue().get(consumedKey);
             if (replayedUserId != null) {
                 log.warn("[AUTH] Refresh Token 重放攻击已检测, userId={}", replayedUserId);
-                deleteAllRefreshTokens(Long.valueOf(replayedUserId));
+                deleteAllRefreshTokens(UUID.fromString(replayedUserId));
                 throw new BusinessException(
                         410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
             }
             throw BusinessException.unauthorized("Refresh Token 无效或已过期");
         }
 
-        Long userId = Long.valueOf(storedUserId);
+        UUID userId = UUID.fromString(storedUserId);
 
         // 3. 标记已消费（短 TTL 窗口）
         redis.opsForValue().set(KEY_CONSUMED + hash, storedUserId, Duration.ofMinutes(30));
@@ -245,7 +246,7 @@ public class AuthService {
     // ========== 当前用户 ==========
 
     /** 获取当前登录用户信息（手机号脱敏返回） */
-    public MeResponse getMe(Long userId) {
+    public MeResponse getMe(UUID userId) {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
         return new MeResponse(
@@ -255,7 +256,7 @@ public class AuthService {
     // ========== 登出 ==========
 
     /** 登出：删除当前设备 refresh token */
-    public void logout(Long userId, String deviceId) {
+    public void logout(UUID userId, String deviceId) {
         String idxKey = KEY_USER_DEVICE + userId + ":" + deviceId;
         String storedHash = redis.opsForValue().getAndDelete(idxKey);
         if (storedHash != null) {
@@ -384,7 +385,7 @@ public class AuthService {
     // ========== Token 吊销 ==========
 
     /** 清除用户所有设备的 refresh token */
-    public void deleteAllRefreshTokens(Long userId) {
+    public void deleteAllRefreshTokens(UUID userId) {
         String pattern = KEY_USER_DEVICE + userId + ":*";
         Set<String> keys = redis.keys(pattern);
         if (keys == null || keys.isEmpty()) return;
@@ -430,5 +431,5 @@ public class AuthService {
 
     public record TokenResult(String accessToken, String refreshToken) {}
 
-    public record MeResponse(Long id, String phone, String nickname, String avatarKey) {}
+    public record MeResponse(UUID id, String phone, String nickname, String avatarKey) {}
 }

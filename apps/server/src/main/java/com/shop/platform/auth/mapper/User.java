@@ -6,14 +6,15 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.Data;
 
 @Data
 @TableName("auth.users")
 public class User {
 
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.INPUT)
+    private UUID id;
 
     private String phone;
 

@@ -35,9 +35,6 @@ logging:
 mybatis-plus:
     configuration:
         map-underscore-to-camel-case: true
-    global-config:
-        db-config:
-            id-type: AUTO
 
 shop:
     auth:

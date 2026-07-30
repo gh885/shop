@@ -14,6 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -70,7 +71,7 @@ public class AuthController {
     /** 首次设置密码（无旧密码）或修改密码（需当前密码，RESET-05） */
     @PostMapping("/password")
     public void setPassword(@Valid @RequestBody SetPasswordRequest req) {
-        Long userId = UserIdHolder.get();
+        UUID userId = UserIdHolder.get();
         authService.setPassword(userId, req.currentPassword(), req.newPassword());
     }
 
@@ -107,7 +108,7 @@ public class AuthController {
     /** 当前登录用户信息 */
     @GetMapping("/me")
     public MeResponse me() {
-        Long userId = UserIdHolder.get();
+        UUID userId = UserIdHolder.get();
         return authService.getMe(userId);
     }
 
@@ -117,7 +118,7 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response,
             @Valid @RequestBody LogoutRequest req) {
-        Long userId = UserIdHolder.get();
+        UUID userId = UserIdHolder.get();
         authService.logout(userId, req.deviceId());
         clearRefreshCookie(response);
     }
