@@ -15,13 +15,12 @@
 
 - Java 25 + Maven
 - Node.js 22+ + pnpm 11+
-- Docker + Docker Compose
+- WSL2 上运行的 PostgreSQL 18 + Redis 7（localhost 直连）
 
 ## 快速开始
 
 ```bash
-# 1. 启动数据库
-docker compose -f deploy/docker-compose.yml up -d
+# 1. 数据库与 Redis 已在 WSL2 上运行（localhost 直连即可，无需启动）
 
 # 2. 启动后端（http://localhost:8080）
 pnpm dev:server
@@ -59,7 +58,6 @@ shop/
 │   ├── i18n/                   # 翻译资源
 │   └── config/                 # 共享配置（tsconfig / oxlint / oxfmt）
 ├── openapi/                    # OpenAPI 契约（唯一 API 事实来源）
-├── deploy/                     # Docker Compose / K8s
 ├── docs/                       # PRD / ADR / 架构文档
 └── scripts/                    # 工具脚本
 ```

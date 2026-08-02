@@ -143,10 +143,9 @@ com.shop.platform.auth
 …
 ```
 
-## Docker
+## 数据库与 Redis（WSL2）
 
-```bash
-docker compose -f deploy/docker-compose.yml up -d   # PostgreSQL 18 + Redis 7
-```
+PostgreSQL 18 与 Redis 7 运行在 WSL2 上，不再用 Docker。Windows 侧通过 localhost 直连即转发到 WSL2。
 
 数据库：`shop:shop_dev@localhost:5432/shop`
+Redis：`localhost:6379`

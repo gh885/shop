@@ -1,0 +1,91 @@
+package com.shop.platform.product.mapper;
+
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.JsonbTypeHandler;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * 商品 SKU —— 具体卖法，存"卖多少钱、有多少货"。
+ *
+ * <p>一个 SPU 挂 0..N 个 SKU，靠 productId 连线。买家下单扣的是 SKU 的 price/stock， 永远不直接对 SPU 交易。
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@TableName("product.skus")
+public class Sku {
+
+    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
+    @TableId(type = IdType.INPUT)
+    private UUID id;
+
+    /** 归属的 SPU ID，1:N 关系的落点。查"某商品的所有 SKU"靠它，uk_skus_product_attrs 左前缀已覆盖索引 */
+    private UUID productId;
+
+    /**
+     * 业务编码（如 IP15-256-BLK），全局唯一。
+     *
+     * <p>id 是给数据库用的 UUID，人记不住；skUCode 是给仓管/物流面单/外部 ERP 对账用的短码。 允许为 NULL：没有编号的 SKU 也能存在，多个 NULL 不冲突。
+     */
+    private String skuCode;
+
+    /**
+     * SPU 名 + 规格值拼接的显示名（如「iPhone 15 Pro 256G 黑色」），刻意冗余。
+     *
+     * <p>三个原因：① 历史订单要快照下单那一刻的名称，之后 SPU 改名不影响旧订单； ② 列表/搜索/购物车直接取值，免 join 回 SPU 现拼； ③
+     * 规格名可定制（显示"曜石黑"而非"黑色"）。
+     */
+    private String name;
+
+    /**
+     * 规格取值（JSONB），必须是 Product.specs 模板里存在的值。
+     *
+     * <p>SPU 管"可选哪些值"（values），SKU 管"这行选了哪个值"（value）：
+     * [{"name":"颜色","value":"黑"},{"name":"尺码","value":"L"}] 校验（值必须来自模板、组合不重复）在 service 层做，JSONB
+     * 列本身不约束。
+     */
+    @TableField(typeHandler = JsonbTypeHandler.class)
+    private String attributes;
+
+    /** 该规格自己的图（如黑色款单独一张图），与 SPU 的 mainImage 区分，可空 */
+    private String image;
+
+    /** 成交价（分）。唯一真价，Product.minPrice/maxPrice 是它的冗余副本；存分避免浮点误差 */
+    private Long price;
+
+    /** 划线价（分），展示「¥399 划掉、现价 ¥299」用，可空 */
+    private Long originalPrice;
+
+    /** 币种（如 CNY），与 price 一起组成代码里的 Money 类型 */
+    private String currency;
+
+    /**
+     * 可售库存，全表最"活"的字段。
+     *
+     * <p>扣减必须带条件防超卖：UPDATE ... WHERE id=? AND stock>=n，影响行数=0 即库存不足。
+     * 后续做订单时还会演化出"冻结库存"（下单冻结、支付成功扣实、超时释放）。
+     */
+    private Integer stock;
+
+    /** 1 在售 / 0 停用。注意与 0 库存区分：缺货可补可恢复，停用是"这个卖法不卖了" */
+    private Integer status;
+
+    /** 创建时间，MyBatis-Plus 插入时自动填充 */
+    @TableField(fill = FieldFill.INSERT)
+    private OffsetDateTime createdAt;
+
+    /** 更新时间，插入/更新时自动填充 */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private OffsetDateTime updatedAt;
+}

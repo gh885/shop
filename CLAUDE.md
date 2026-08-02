@@ -4,7 +4,7 @@
 
 - 前端：TanStack Start (React 19), TypeScript 7, Vite 8, Tailwind v4, TanStack Query/Router
 - 后端：Spring Boot 4.1, Spring Modulith 2.1, REST (OpenAPI), MyBatis-Plus 3.5, PostgreSQL 18, Redis 7
-- 工具：Maven, pnpm, Docker Compose, Lefthook, Oxlint/Oxfmt, Spotless (Google Java Format)
+- 工具：Maven, pnpm, Lefthook, Oxlint/Oxfmt, Spotless (Google Java Format)
 
 ## 项目结构
 
@@ -114,6 +114,18 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - `pnpm dev:server` / `pnpm dev:web` 分别启动前后端
 - `pnpm format` 同时格式化 TS 和 Java
 
+## 命名规范（Java 三层契约）
+
+后缀只标方向，不标层次；出参能复用就复用，变形才新建。
+
+- **数据库对象（mapper 包）**：裸名词，无后缀 —— `Product` / `Sku` / `Category` / `User`；Mapper 接口以 `Mapper` 结尾
+- **HTTP 入参（controller 包）**：`<动作>Request` —— `CreateProductRequest` / `SmsLoginRequest`；`Request` 后缀只允许出现在 controller 包
+- **业务入参聚合（service 包）**：`<动作>Command`，仅当入参字段多到无法拆包传基本类型时使用 —— `CreateProductCommand`
+- **出参**：能直接返回实体/已有类型就不新建；必须变形时按形状命名（`CategoryNode`、`TokenResult`），不贴统一的 `XxxResponse` 标签
+- **子组件**：Request/Command 内部的嵌套小组件（如 `ParamItem`）按语义命名，不受方向后缀约束
+
+由 `apps/server/src/test/java/com/shop/platform/NamingRulesTest.java`（ArchUnit）强制校验。
+
 ## 错误码规范
 
 **定义原则：只有当 HTTP status 不足以让前端区分处理逻辑时，才定义 error code。**
@@ -143,10 +155,9 @@ com.shop.platform.auth
 …
 ```
 
-## Docker
+## 数据库与 Redis（WSL2）
 
-```bash
-docker compose -f deploy/docker-compose.yml up -d   # PostgreSQL 18 + Redis 7
-```
+PostgreSQL 18 与 Redis 7 运行在 WSL2 上，不再用 Docker。Windows 侧通过 localhost 直连即转发到 WSL2。
 
 数据库：`shop:shop_dev@localhost:5432/shop`
+Redis：`localhost:6379`

@@ -2,7 +2,6 @@ package com.shop.platform.product;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.shop.platform.AbstractIntegrationTest;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.service.CategoryService;
@@ -15,7 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 /** 基于种子数据（V5）验证类目树与 service 校验规则。 */
 @SpringBootTest
-class CategoryServiceIntegrationTest extends AbstractIntegrationTest {
+class CategoryServiceIntegrationTest {
 
     private static final UUID L1_DIGITAL = UUID.fromString("01900000-0000-7000-8000-000000000101");
     private static final UUID L3_PHONE = UUID.fromString("01900000-0000-7000-8000-000000000301");
@@ -53,7 +52,9 @@ class CategoryServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void disabledNode_prunedFromPublicTree() {
-        Category created = categoryService.create(null, "临时类目", 99, null);
+        // 名字带随机后缀：uk_categories_parent_name 唯一索引要求根类目名唯一，直连持久库时重复跑测试不会撞索引
+        String uniqueName = "临时类目" + UUID.randomUUID().toString().substring(0, 8);
+        Category created = categoryService.create(null, uniqueName, 99, null);
         categoryService.create(created.getId(), "临时子类目", null, null);
 
         categoryService.updateStatus(created.getId(), CategoryService.STATUS_DISABLED);
