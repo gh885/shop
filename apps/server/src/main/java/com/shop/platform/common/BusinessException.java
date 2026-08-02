@@ -31,8 +31,7 @@ public class BusinessException extends RuntimeException {
         this(httpStatus, null, detail, null);
     }
 
-    public BusinessException(
-            int httpStatus, String code, String detail, List<Map<String, String>> errors) {
+    public BusinessException(int httpStatus, String code, String detail, List<Map<String, String>> errors) {
         super(detail);
         this.httpStatus = httpStatus;
         this.code = code;

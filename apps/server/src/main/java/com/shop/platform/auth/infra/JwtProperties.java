@@ -30,13 +30,12 @@ public class JwtProperties {
     private String audience = "shop-api";
 
     /** 不需要认证的路径 */
-    private List<String> skipPaths =
-            List.of(
-                    "/api/health",
-                    "/auth/sms-code",
-                    "/auth/login/sms",
-                    "/auth/login/password",
-                    "/auth/refresh",
-                    "/auth/forgot-password",
-                    "/auth/reset-password");
+    private List<String> skipPaths = List.of(
+            "/api/health",
+            "/auth/sms-code",
+            "/auth/login/sms",
+            "/auth/login/password",
+            "/auth/refresh",
+            "/auth/forgot-password",
+            "/auth/reset-password");
 }

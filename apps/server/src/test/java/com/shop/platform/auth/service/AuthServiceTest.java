@@ -28,19 +28,34 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock UserMapper userMapper;
-    @Mock JwtProvider jwtProvider;
-    @Mock PasswordEncoder passwordEncoder;
-    @Mock SmsCodeService smsCodeService;
-    @Mock SmsChannel smsChannel;
-    @Mock StringRedisTemplate redis;
-    @Mock ValueOperations<String, String> valueOps;
+    @Mock
+    UserMapper userMapper;
 
-    @InjectMocks AuthService authService;
+    @Mock
+    JwtProvider jwtProvider;
+
+    @Mock
+    PasswordEncoder passwordEncoder;
+
+    @Mock
+    SmsCodeService smsCodeService;
+
+    @Mock
+    SmsChannel smsChannel;
+
+    @Mock
+    StringRedisTemplate redis;
+
+    @Mock
+    ValueOperations<String, String> valueOps;
+
+    @InjectMocks
+    AuthService authService;
 
     private static final UUID USER_ID = UUID.randomUUID();
 
-    @Captor ArgumentCaptor<User> userCaptor;
+    @Captor
+    ArgumentCaptor<User> userCaptor;
 
     @BeforeEach
     void setUp() {
@@ -59,19 +74,13 @@ class AuthServiceTest {
 
         @Test
         void rejectNull() {
-            var ex =
-                    assertThrows(
-                            BusinessException.class,
-                            () -> authService.setPassword(USER_ID, null, null));
+            var ex = assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, null));
             assertEquals(400, ex.getHttpStatus());
         }
 
         @Test
         void rejectShortPassword() {
-            var ex =
-                    assertThrows(
-                            BusinessException.class,
-                            () -> authService.setPassword(USER_ID, null, "1234567"));
+            var ex = assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, "1234567"));
             assertEquals(400, ex.getHttpStatus());
             assertNull(ex.getCode());
         }
@@ -79,19 +88,14 @@ class AuthServiceTest {
         @Test
         void rejectLongPassword() {
             var ex =
-                    assertThrows(
-                            BusinessException.class,
-                            () -> authService.setPassword(USER_ID, null, "a".repeat(73)));
+                    assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, "a".repeat(73)));
             assertEquals(400, ex.getHttpStatus());
             assertNull(ex.getCode());
         }
 
         @Test
         void rejectCommonPassword() {
-            var ex =
-                    assertThrows(
-                            BusinessException.class,
-                            () -> authService.setPassword(USER_ID, null, "password"));
+            var ex = assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, "password"));
             assertEquals(400, ex.getHttpStatus());
             assertNull(ex.getCode());
         }
@@ -102,10 +106,7 @@ class AuthServiceTest {
             user.setPhone("13800138000");
             when(userMapper.selectById(USER_ID)).thenReturn(user);
 
-            var ex =
-                    assertThrows(
-                            BusinessException.class,
-                            () -> authService.setPassword(USER_ID, null, "13800138000"));
+            var ex = assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, "13800138000"));
             assertEquals(400, ex.getHttpStatus());
             assertNull(ex.getCode());
         }
@@ -171,12 +172,9 @@ class AuthServiceTest {
             when(userMapper.selectOne(any())).thenReturn(user);
             when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
-            var ex =
-                    assertThrows(
-                            BusinessException.class,
-                            () ->
-                                    authService.loginByPassword(
-                                            "13800138000", "pwd", "dev1", "127.0.0.1"));
+            var ex = assertThrows(
+                    BusinessException.class,
+                    () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1"));
             assertEquals(403, ex.getHttpStatus());
         }
     }
@@ -210,10 +208,8 @@ class AuthServiceTest {
             when(userMapper.selectById(USER_ID)).thenReturn(user);
 
             // 不传 currentPassword
-            var ex =
-                    assertThrows(
-                            BusinessException.class,
-                            () -> authService.setPassword(USER_ID, null, "newPassword123"));
+            var ex = assertThrows(
+                    BusinessException.class, () -> authService.setPassword(USER_ID, null, "newPassword123"));
             assertEquals(401, ex.getHttpStatus());
         }
 
@@ -227,10 +223,8 @@ class AuthServiceTest {
             when(userMapper.selectById(USER_ID)).thenReturn(user);
             when(passwordEncoder.matches("wrong", "$2a$12$oldhash")).thenReturn(false);
 
-            var ex =
-                    assertThrows(
-                            BusinessException.class,
-                            () -> authService.setPassword(USER_ID, "wrong", "newPassword123"));
+            var ex = assertThrows(
+                    BusinessException.class, () -> authService.setPassword(USER_ID, "wrong", "newPassword123"));
             assertEquals(401, ex.getHttpStatus());
         }
     }
@@ -243,14 +237,12 @@ class AuthServiceTest {
             String hash = AuthHashes.sha256Hex(token);
 
             when(valueOps.getAndDelete("refresh:" + hash)).thenReturn(USER_ID.toString());
-            when(userMapper.selectById(USER_ID))
-                    .thenReturn(
-                            new User() {
-                                {
-                                    setId(USER_ID);
-                                    setStatus("ACTIVE");
-                                }
-                            });
+            when(userMapper.selectById(USER_ID)).thenReturn(new User() {
+                {
+                    setId(USER_ID);
+                    setStatus("ACTIVE");
+                }
+            });
             when(jwtProvider.createAccessToken(USER_ID)).thenReturn("new-at");
             when(jwtProvider.generateRefreshToken()).thenReturn("rt:new");
             doNothing().when(valueOps).set(anyString(), anyString(), any(Duration.class));
@@ -280,8 +272,7 @@ class AuthServiceTest {
             when(valueOps.get("refresh:consumed:" + hash)).thenReturn(USER_ID.toString());
             when(redis.keys("refresh:user:" + USER_ID + ":*")).thenReturn(Set.of());
 
-            var ex =
-                    assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
+            var ex = assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
             assertEquals(410, ex.getHttpStatus());
         }
     }
@@ -293,7 +284,6 @@ class AuthServiceTest {
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         assertThrows(
-                BusinessException.class,
-                () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1"));
+                BusinessException.class, () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1"));
     }
 }

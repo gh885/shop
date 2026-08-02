@@ -52,10 +52,7 @@ public class CategoryAdminController {
     // ---- Request DTOs ----
 
     public record CreateCategoryRequest(
-            UUID parentId,
-            @NotBlank @Size(max = 64) String name,
-            Integer sort,
-            @Size(max = 255) String iconUrl) {
+            UUID parentId, @NotBlank @Size(max = 64) String name, Integer sort, @Size(max = 255) String iconUrl) {
         public CreateCategoryRequest {
             if (name != null) name = name.trim();
         }

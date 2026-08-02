@@ -37,8 +37,7 @@ public class AuthController {
 
     /** 发送短信验证码 */
     @PostMapping("/sms-code")
-    public void sendSmsCode(
-            @Valid @RequestBody SmsCodeRequest req, HttpServletRequest servletRequest) {
+    public void sendSmsCode(@Valid @RequestBody SmsCodeRequest req, HttpServletRequest servletRequest) {
         smsCodeService.sendCode(req.phone(), getClientIp(servletRequest));
     }
 
@@ -49,8 +48,7 @@ public class AuthController {
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
         TokenResult result =
-                authService.loginBySms(
-                        req.phone(), req.code(), req.deviceId(), getClientIp(servletRequest));
+                authService.loginBySms(req.phone(), req.code(), req.deviceId(), getClientIp(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -62,8 +60,7 @@ public class AuthController {
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
         TokenResult result =
-                authService.loginByPassword(
-                        req.phone(), req.password(), req.deviceId(), getClientIp(servletRequest));
+                authService.loginByPassword(req.phone(), req.password(), req.deviceId(), getClientIp(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -77,8 +74,7 @@ public class AuthController {
 
     /** 发送重置密码验证码 */
     @PostMapping("/forgot-password")
-    public void forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequest req, HttpServletRequest servletRequest) {
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest req, HttpServletRequest servletRequest) {
         authService.forgotPassword(req.phone(), getClientIp(servletRequest));
     }
 
@@ -115,9 +111,7 @@ public class AuthController {
     /** 登出（STORE-02: 清除 Cookie） */
     @PostMapping("/logout")
     public void logout(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            @Valid @RequestBody LogoutRequest req) {
+            HttpServletRequest request, HttpServletResponse response, @Valid @RequestBody LogoutRequest req) {
         UUID userId = UserIdHolder.get();
         authService.logout(userId, req.deviceId());
         clearRefreshCookie(response);
@@ -148,12 +142,11 @@ public class AuthController {
     /** Cookie → Body 依次尝试获取 refresh token */
     private String resolveRefreshToken(HttpServletRequest request, RefreshRequest req) {
         if (request.getCookies() != null) {
-            String fromCookie =
-                    Arrays.stream(request.getCookies())
-                            .filter(c -> REFRESH_COOKIE.equals(c.getName()))
-                            .map(Cookie::getValue)
-                            .findFirst()
-                            .orElse(null);
+            String fromCookie = Arrays.stream(request.getCookies())
+                    .filter(c -> REFRESH_COOKIE.equals(c.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(null);
             if (fromCookie != null) return fromCookie;
         }
         return req != null ? req.refreshToken() : null;
@@ -196,8 +189,7 @@ public class AuthController {
     }
 
     public record SetPasswordRequest(
-            @Size(max = 72) String currentPassword,
-            @NotBlank @Size(min = 8, max = 72) String newPassword) {}
+            @Size(max = 72) String currentPassword, @NotBlank @Size(min = 8, max = 72) String newPassword) {}
 
     public record ForgotPasswordRequest(@NotBlank @Size(min = 7, max = 20) String phone) {
         public ForgotPasswordRequest {
@@ -214,8 +206,7 @@ public class AuthController {
         }
     }
 
-    public record RefreshRequest(
-            @Size(max = 200) String refreshToken, @Size(max = 100) String deviceId) {}
+    public record RefreshRequest(@Size(max = 200) String refreshToken, @Size(max = 100) String deviceId) {}
 
     public record LogoutRequest(@NotBlank @Size(max = 100) String deviceId) {}
 }

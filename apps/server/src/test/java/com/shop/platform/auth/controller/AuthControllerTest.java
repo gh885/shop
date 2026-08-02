@@ -44,25 +44,28 @@ class AuthControllerTest {
 
     private MockMvc mockMvc;
 
-    @Autowired WebApplicationContext context;
+    @Autowired
+    WebApplicationContext context;
 
-    @MockitoBean AuthService authService;
+    @MockitoBean
+    AuthService authService;
 
-    @MockitoBean SmsCodeService smsCodeService;
+    @MockitoBean
+    SmsCodeService smsCodeService;
 
-    @Autowired JwtProvider jwtProvider;
+    @Autowired
+    JwtProvider jwtProvider;
 
     @BeforeEach
     void setUp() {
         UserIdHolder.clear();
         // webAppContextSetup 不会自动注册 Filter Bean，手动把所有 Filter 加进去
-        mockMvc =
-                MockMvcBuilders.webAppContextSetup(context)
-                        .addFilters(
-                                context.getBean(RequestIdFilter.class),
-                                context.getBean(RequestBodySizeFilter.class),
-                                context.getBean(JwtAuthFilter.class))
-                        .build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .addFilters(
+                        context.getBean(RequestIdFilter.class),
+                        context.getBean(RequestBodySizeFilter.class),
+                        context.getBean(JwtAuthFilter.class))
+                .build();
     }
 
     // ========== 请求体校验 (BODY-01) ==========
@@ -204,15 +207,12 @@ class AuthControllerTest {
 
     @Test
     void refresh_fromCookie_succeeds() throws Exception {
-        when(authService.refresh(eq("rt:cookie"), anyString()))
-                .thenReturn(new TokenResult("new-at", "rt:new"));
+        when(authService.refresh(eq("rt:cookie"), anyString())).thenReturn(new TokenResult("new-at", "rt:new"));
 
-        mockMvc.perform(
-                        post("/auth/refresh")
-                                .cookie(new Cookie("refresh_token", "rt:cookie"))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
+        mockMvc.perform(post("/auth/refresh")
+                        .cookie(new Cookie("refresh_token", "rt:cookie"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                                     {}
                                     """))
                 .andExpect(status().isOk())
@@ -223,8 +223,7 @@ class AuthControllerTest {
 
     @Test
     void refresh_fromBody_fallsBack() throws Exception {
-        when(authService.refresh(eq("rt:body"), anyString()))
-                .thenReturn(new TokenResult("new-at", "rt:new"));
+        when(authService.refresh(eq("rt:body"), anyString())).thenReturn(new TokenResult("new-at", "rt:new"));
 
         mockMvc.perform(
                         post("/auth/refresh")
@@ -240,11 +239,9 @@ class AuthControllerTest {
 
     @Test
     void refresh_noToken_returns401() throws Exception {
-        mockMvc.perform(
-                        post("/auth/refresh")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                                     {}
                                     """))
                 .andExpect(status().isUnauthorized())
@@ -309,10 +306,9 @@ class AuthControllerTest {
         // 超过 1MB 限制 → 413，filter 在 JSON 解析前拦截
         String largeBody = "x".repeat(1_048_577);
 
-        mockMvc.perform(
-                        post("/auth/sms-code")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(largeBody))
+        mockMvc.perform(post("/auth/sms-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(largeBody))
                 .andExpect(status().is(413))
                 .andExpect(jsonPath("$.code").value("request.too_large"));
     }

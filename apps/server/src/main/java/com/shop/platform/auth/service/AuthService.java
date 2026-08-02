@@ -34,8 +34,7 @@ public class AuthService {
 
     // Opaque refresh token storage
     private static final String KEY_REFRESH = "refresh:"; // refresh:<sha256> → userId
-    private static final String KEY_USER_DEVICE =
-            "refresh:user:"; // refresh:user:<userId>:<deviceId> → sha256
+    private static final String KEY_USER_DEVICE = "refresh:user:"; // refresh:user:<userId>:<deviceId> → sha256
     private static final String KEY_CONSUMED =
             "refresh:consumed:"; // refresh:consumed:<sha256> → userId (replay detection)
 
@@ -58,26 +57,24 @@ public class AuthService {
     private static final String RESET_TOKEN_PREFIX = "rst:";
 
     // Common password blacklist (REG-03)
-    private static final Set<String> COMMON_PASSWORDS =
-            Set.of(
-                    "123456",
-                    "12345678",
-                    "123456789",
-                    "password",
-                    "qwerty123",
-                    "111111",
-                    "000000",
-                    "admin123",
-                    "abc123",
-                    "password1",
-                    "1234567890",
-                    "qwertyuiop",
-                    "asdfghjkl",
-                    "zxcvbnm");
+    private static final Set<String> COMMON_PASSWORDS = Set.of(
+            "123456",
+            "12345678",
+            "123456789",
+            "password",
+            "qwerty123",
+            "111111",
+            "000000",
+            "admin123",
+            "abc123",
+            "password1",
+            "1234567890",
+            "qwertyuiop",
+            "asdfghjkl",
+            "zxcvbnm");
 
     // Dummy hash for timing-consistent login (LOGIN-01)
-    private static final String DUMMY_PASSWORD_HASH =
-            "$2a$12$0000000000000000000000000000000000000000000000";
+    private static final String DUMMY_PASSWORD_HASH = "$2a$12$0000000000000000000000000000000000000000000000";
 
     private final UserMapper userMapper;
     private final JwtProvider jwtProvider;
@@ -108,8 +105,7 @@ public class AuthService {
 
     // ========== 密码登录 ==========
 
-    public TokenResult loginByPassword(
-            String phone, String password, String deviceId, String clientIp) {
+    public TokenResult loginByPassword(String phone, String password, String deviceId, String clientIp) {
 
         // 1. 限流检查（被限流时走 dummy hash 防时序探测）
         rejectIfRateLimited(phone, password, clientIp);
@@ -140,8 +136,7 @@ public class AuthService {
 
         // 3. 已有密码时必须验证当前密码（RESET-05）
         if (user.getPasswordHash() != null) {
-            if (currentPassword == null
-                    || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
                 throw BusinessException.unauthorized("当前密码错误");
             }
         }
@@ -223,8 +218,7 @@ public class AuthService {
             if (replayedUserId != null) {
                 log.warn("[AUTH] Refresh Token 重放攻击已检测, userId={}", replayedUserId);
                 deleteAllRefreshTokens(UUID.fromString(replayedUserId));
-                throw new BusinessException(
-                        410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
+                throw new BusinessException(410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
             }
             throw BusinessException.unauthorized("Refresh Token 无效或已过期");
         }
@@ -249,8 +243,7 @@ public class AuthService {
     public MeResponse getMe(UUID userId) {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
-        return new MeResponse(
-                user.getId(), maskPhone(user.getPhone()), user.getNickname(), user.getAvatarKey());
+        return new MeResponse(user.getId(), maskPhone(user.getPhone()), user.getNickname(), user.getAvatarKey());
     }
 
     // ========== 登出 ==========
@@ -269,14 +262,9 @@ public class AuthService {
     /** 双维度限流（IP + 账号），被限流时走 dummy hash 保持时序一致（LOGIN-05, LOGIN-01） */
     private void rejectIfRateLimited(String phone, String password, String ip) {
         boolean ipLimited =
-                RateLimiter.exceeded(
-                        redis, RATE_IP_PWD + ip, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW));
+                RateLimiter.exceeded(redis, RATE_IP_PWD + ip, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW));
         boolean userLimited =
-                RateLimiter.exceeded(
-                        redis,
-                        RATE_USER_PWD + phone,
-                        RATE_USER_MAX,
-                        Duration.ofSeconds(RATE_USER_WINDOW));
+                RateLimiter.exceeded(redis, RATE_USER_PWD + phone, RATE_USER_MAX, Duration.ofSeconds(RATE_USER_WINDOW));
 
         if (ipLimited || userLimited) {
             // 限流时仍执行 BCrypt 对比，防止通过返回时长探测账号是否存在（LOGIN-01）
@@ -297,9 +285,7 @@ public class AuthService {
         // LOGIN-01/02: 查用户与比密码之间不做分支，走到底
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
         String storedHash =
-                user != null && user.getPasswordHash() != null
-                        ? user.getPasswordHash()
-                        : DUMMY_PASSWORD_HASH;
+                user != null && user.getPasswordHash() != null ? user.getPasswordHash() : DUMMY_PASSWORD_HASH;
 
         boolean matched = passwordEncoder.matches(password, storedHash);
 
@@ -352,18 +338,11 @@ public class AuthService {
         String hash = sha256Hex(refreshToken);
 
         // MAINT-01/02: 存 SHA-256 哈希，不落明文
-        redis.opsForValue()
-                .set(
-                        KEY_REFRESH + hash,
-                        user.getId().toString(),
-                        Duration.ofMillis(REFRESH_TTL_MS));
+        redis.opsForValue().set(KEY_REFRESH + hash, user.getId().toString(), Duration.ofMillis(REFRESH_TTL_MS));
 
         // 设备索引（按 deviceId 管理）
         redis.opsForValue()
-                .set(
-                        KEY_USER_DEVICE + user.getId() + ":" + deviceId,
-                        hash,
-                        Duration.ofMillis(REFRESH_TTL_MS));
+                .set(KEY_USER_DEVICE + user.getId() + ":" + deviceId, hash, Duration.ofMillis(REFRESH_TTL_MS));
 
         // 更新最后登录时间
         user.setLastLoginAt(OffsetDateTime.now());
@@ -392,8 +371,10 @@ public class AuthService {
 
         List<String> hashes = redis.opsForValue().multiGet(keys);
         redis.delete(keys);
-        List<String> refreshKeys =
-                hashes.stream().filter(Objects::nonNull).map(h -> KEY_REFRESH + h).toList();
+        List<String> refreshKeys = hashes.stream()
+                .filter(Objects::nonNull)
+                .map(h -> KEY_REFRESH + h)
+                .toList();
         if (!refreshKeys.isEmpty()) {
             redis.delete(refreshKeys);
         }

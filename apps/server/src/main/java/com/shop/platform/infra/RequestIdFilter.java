@@ -35,8 +35,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
     private static final Pattern UUID_HEX_PATTERN = Pattern.compile("^[0-9a-fA-F]{32}$");
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String requestId = resolveRequestId(request);
         request.setAttribute(REQUEST_ID_ATTR, requestId);

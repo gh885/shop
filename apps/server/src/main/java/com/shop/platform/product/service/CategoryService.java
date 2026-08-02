@@ -2,6 +2,7 @@ package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Validate;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.mapper.CategoryMapper;
 import java.util.ArrayList;
@@ -41,29 +42,24 @@ public class CategoryService {
     /** 创建类目，level 由父级推导，最多三级 */
     @Transactional
     public Category create(UUID parentId, String name, Integer sort, String iconUrl) {
+        // 1. 推导层级：根节点 level=1；有父则校验父存在、启用且不超三级
         int level = 1;
         if (parentId != null && !Category.ROOT_PARENT_ID.equals(parentId)) {
-            Category parent = categoryMapper.selectById(parentId);
-            if (parent == null) {
-                throw BusinessException.notFound("父类目不存在");
-            }
-            if (parent.getStatus() != STATUS_ENABLED) {
-                throw BusinessException.badRequest("父类目已禁用，不能在其下创建");
-            }
+            Category parent = Validate.notNull(categoryMapper.selectById(parentId), "父类目不存在");
+            Validate.isTrue(parent.getStatus() == STATUS_ENABLED, "父类目已禁用，不能在其下创建");
             level = parent.getLevel() + 1;
-            if (level > MAX_LEVEL) {
-                throw BusinessException.badRequest("最多支持三级类目");
-            }
+            Validate.isTrue(level <= MAX_LEVEL, "最多支持三级类目");
         }
-        Category category =
-                Category.builder()
-                        .parentId(parentId != null ? parentId : Category.ROOT_PARENT_ID)
-                        .name(name)
-                        .level(level)
-                        .sort(sort != null ? sort : 0)
-                        .status(STATUS_ENABLED)
-                        .iconUrl(iconUrl)
-                        .build();
+        // 2. 组装节点：根用 ROOT_PARENT_ID 占位，默认启用、排序 0
+        Category category = Category.builder()
+                .parentId(parentId != null ? parentId : Category.ROOT_PARENT_ID)
+                .name(name)
+                .level(level)
+                .sort(sort != null ? sort : 0)
+                .status(STATUS_ENABLED)
+                .iconUrl(iconUrl)
+                .build();
+        // 3. 落库：唯一索引兜底并发下的同级重名
         try {
             categoryMapper.insert(category);
         } catch (DuplicateKeyException e) {
@@ -98,14 +94,11 @@ public class CategoryService {
     }
 
     private Category getOrThrow(UUID id) {
-        Category category = categoryMapper.selectById(id);
-        if (category == null) {
-            throw BusinessException.notFound("类目不存在");
-        }
-        return category;
+        return Validate.notNull(categoryMapper.selectById(id), "类目不存在");
     }
 
     private List<CategoryNode> buildTree(boolean includeDisabled) {
+        // 1. 全量加载，按「是否含禁用」过滤出可见节点
         List<Category> all = categoryMapper.selectList(Wrappers.emptyWrapper());
         Map<UUID, Category> visible = new HashMap<>();
         for (Category c : all) {
@@ -113,36 +106,31 @@ public class CategoryService {
                 visible.put(c.getId(), c);
             }
         }
-        // 父级不可见则整支剪掉（禁用级联的实现方式，见 docs/product-architecture.md）
+        // 2. 父级不可见则整支剪掉（禁用级联的实现方式，见 docs/product-architecture.md）
         List<Category> attachable = new ArrayList<>();
         for (Category c : visible.values()) {
-            if (Category.ROOT_PARENT_ID.equals(c.getParentId())
-                    || visible.containsKey(c.getParentId())) {
+            if (Category.ROOT_PARENT_ID.equals(c.getParentId()) || visible.containsKey(c.getParentId())) {
                 attachable.add(c);
             }
         }
-        Map<UUID, List<Category>> grouped =
-                attachable.stream().collect(Collectors.groupingBy(Category::getParentId));
+        // 3. 按 parentId 分组，从根递归组装成树
+        Map<UUID, List<Category>> grouped = attachable.stream().collect(Collectors.groupingBy(Category::getParentId));
         return toNodes(grouped, Category.ROOT_PARENT_ID);
     }
 
     private List<CategoryNode> toNodes(Map<UUID, List<Category>> grouped, UUID parentId) {
         return grouped.getOrDefault(parentId, List.of()).stream()
-                .sorted(
-                        Comparator.comparing(Category::getSort)
-                                .thenComparing(Category::getCreatedAt))
-                .map(
-                        c ->
-                                CategoryNode.builder()
-                                        .id(c.getId())
-                                        .parentId(c.getParentId())
-                                        .name(c.getName())
-                                        .level(c.getLevel())
-                                        .sort(c.getSort())
-                                        .status(c.getStatus())
-                                        .iconUrl(c.getIconUrl())
-                                        .children(toNodes(grouped, c.getId()))
-                                        .build())
+                .sorted(Comparator.comparing(Category::getSort).thenComparing(Category::getCreatedAt))
+                .map(c -> CategoryNode.builder()
+                        .id(c.getId())
+                        .parentId(c.getParentId())
+                        .name(c.getName())
+                        .level(c.getLevel())
+                        .sort(c.getSort())
+                        .status(c.getStatus())
+                        .iconUrl(c.getIconUrl())
+                        .children(toNodes(grouped, c.getId()))
+                        .build())
                 .toList();
     }
 

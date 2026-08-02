@@ -40,8 +40,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         try {
             String header = request.getHeader("Authorization");
@@ -64,8 +63,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             // VERIFY-01: 校验 audience（手动兜底，配合 JwtProvider 的 requireIssuer）
-            if (claims.getAudience() == null
-                    || !claims.getAudience().contains(jwtProvider.getExpectedAudience())) {
+            if (claims.getAudience() == null || !claims.getAudience().contains(jwtProvider.getExpectedAudience())) {
                 writeUnauthorized(response, "INVALID_TOKEN", "Token 受众无效");
                 return;
             }
@@ -82,8 +80,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
     }
 
-    private void writeUnauthorized(HttpServletResponse response, String code, String detail)
-            throws IOException {
+    private void writeUnauthorized(HttpServletResponse response, String code, String detail) throws IOException {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("title", "Unauthorized");
         body.put("status", 401);

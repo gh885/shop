@@ -1,12 +1,5 @@
 ## 编码风格 — Java
 
-### 主键 ID 策略（全库强制）
-
-- 主键统一 **uuidv7**，列定义 `id UUID PRIMARY KEY DEFAULT uuidv7()`（PG 18 原生）
-- Entity 用 `java.util.UUID` + `@TableId(type = IdType.INPUT)`，insert 时由 `MyBatisPlusMetaObjectHandler` 应用层生成
-- 禁止自增 / 雪花 / uuidv4；给用户看的业务编号（订单号等）是独立业务字段，不是主键
-- 详见 `docs/product-architecture.md`
-
 ### 能用就用
 
 | 注解                       | 使用场景                                                                                                           |
@@ -47,3 +40,14 @@ public class Product {
     private String name;
 }
 ```
+
+### service 层方法注释（编号脉络）
+
+**业务方法内部用 `// 1.` `// 2.` `// 3.` 编号注释写出流程脉络** —— 只读注释骨架就能看懂编排（校验 → 变更 → 对账…）。既是自文档，也是验收介质。范本见 `AuthService.loginBySms` / `ProductService.updateSpecs`。
+
+规则：
+
+- 每步是「业务条款」，不是代码复述：`// 4. 对账：组合没变的保留，新增的补 SKU`；不要写 `// 4. 调用 updateById`
+- 只在有真实阶段的方法里用；琐碎方法（2~3 行无阶段）别硬编号，会变成噪音
+- 某一步超过 ~10 行 → 抽成私有方法，注释升级成方法名（编号是重构温度计）
+- 落实在 service 层；controller/mapper 是样板代码，不强制

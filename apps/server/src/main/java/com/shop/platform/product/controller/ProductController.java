@@ -36,15 +36,13 @@ public class ProductController {
 
     /** 更新规格并按新模板对账 SKU，返回当前全部 SKU（含新 id，供 updateSku 定位） */
     @PutMapping("/{id}/specs")
-    public List<Sku> updateSpecs(
-            @PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
+    public List<Sku> updateSpecs(@PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
         return productService.updateSpecs(id, request.specs());
     }
 
     /** 批量更新 SKU 价格/库存，返回更新后的 SKU 列表 */
     @PutMapping("/{id}/skus")
-    public List<Sku> updateSkus(
-            @PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
+    public List<Sku> updateSkus(@PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
         return productService.updateSkus(id, request.items());
     }
 
@@ -77,8 +75,7 @@ public class ProductController {
 
         /** 映射为 service 入参。两契约字段一致，直接对齐 */
         CreateProductCommand toCommand() {
-            return new CreateProductCommand(
-                    shopId, categoryId, name, subtitle, description, mainImage, images, params);
+            return new CreateProductCommand(shopId, categoryId, name, subtitle, description, mainImage, images, params);
         }
     }
 

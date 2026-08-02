@@ -29,11 +29,10 @@ public class HealthController {
 
         var status = checks.values().stream().anyMatch(v -> v.equals("DOWN")) ? "DEGRADED" : "UP";
 
-        return ResponseEntity.ok(
-                Map.of(
-                        "status", status,
-                        "checks", checks,
-                        "timestamp", Instant.now().toString()));
+        return ResponseEntity.ok(Map.of(
+                "status", status,
+                "checks", checks,
+                "timestamp", Instant.now().toString()));
     }
 
     private String checkDatabase() {

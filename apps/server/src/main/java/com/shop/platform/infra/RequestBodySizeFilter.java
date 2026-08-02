@@ -21,15 +21,13 @@ public class RequestBodySizeFilter extends OncePerRequestFilter {
     private static final long MAX_BODY_BYTES = 1_048_576; // 1MB
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         long len = request.getContentLengthLong();
         if (len > MAX_BODY_BYTES) {
             response.setStatus(413);
             response.setContentType("application/problem+json");
-            response.getWriter()
-                    .write("{\"status\":413,\"code\":\"request.too_large\",\"detail\":\"请求体过大\"}");
+            response.getWriter().write("{\"status\":413,\"code\":\"request.too_large\",\"detail\":\"请求体过大\"}");
             return;
         }
         chain.doFilter(request, response);

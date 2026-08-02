@@ -12,9 +12,7 @@ final class AuthHashes {
 
     static String sha256Hex(String input) {
         try {
-            byte[] digest =
-                    MessageDigest.getInstance("SHA-256")
-                            .digest(input.getBytes(StandardCharsets.UTF_8));
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);

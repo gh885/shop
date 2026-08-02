@@ -37,77 +37,68 @@ public class SmsCodeService {
 
     /** 发送验证码 */
     public void sendCode(String phone, String clientIp) {
-        // IP 维度限流（OTP-06）
-        if (RateLimiter.exceeded(
-                redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
+        // 1. 限流检查：IP 维度（OTP-06）
+        if (RateLimiter.exceeded(redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
             throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
         }
 
-        // 60s 重发间隔检查
+        // 2. 限流检查：60s 重发间隔 + 每日上限（INCR 原子操作消除 TOCTOU 竞争）
         String rateKey = KEY_RATE + phone;
         if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
             throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
         }
-
-        // 每日上限检查（用 INCR 原子操作消除 TOCTOU 竞争）
         if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
             throw new BusinessException(429, "SMS_DAILY_LIMIT", "今日验证码已达上限");
         }
 
-        // 生成 6 位验证码
+        // 3. 生成 6 位验证码，存 SHA-256(手机号 + ":" + code) 哈希（OTP-04）
         String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
-
-        // OTP-04: 存 SHA-256(手机号 + ":" + code) 而非明文
         String codeHash = sha256Hex(phone + ":" + code);
         String codeKey = KEY_CODE + phone;
         redis.opsForValue().set(codeKey, codeHash, Duration.ofMinutes(CODE_TTL));
 
-        // 频率控制
+        // 4. 写频控标记，重发后清旧尝试计数（UX-03）
         redis.opsForValue().set(rateKey, "1", Duration.ofSeconds(RATE_TTL));
-
-        // UX-03: 重发后清除旧尝试计数
         redis.delete(KEY_ATTEMPT + phone);
 
-        // 发送
+        // 5. 发送
         smsChannel.sendCode(phone, code);
     }
 
     /** 校验验证码 */
     public void verifyCode(String phone, String code) {
-        // OTP-07: 尝试次数检查
+        // 1. 尝试次数检查：超上限则作废验证码、要求重发（OTP-07）
         String attemptKey = KEY_ATTEMPT + phone;
         String attemptStr = redis.opsForValue().get(attemptKey);
         int attempts = attemptStr != null ? Integer.parseInt(attemptStr) : 0;
         if (attempts >= MAX_ATTEMPTS) {
-            // 超过最大尝试次数，删除当前验证码，要求重新发送
             redis.delete(KEY_CODE + phone);
             throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期，请重新发送");
         }
 
-        // OTP-04: 比对哈希
+        // 2. 取走存储的验证码哈希（getAndDelete = 一次性消费，OTP-04）
         String codeKey = KEY_CODE + phone;
         String storedHash = redis.opsForValue().getAndDelete(codeKey);
 
-        // 开发环境固定码优先放行（DevSmsChannel 不存在时跳过）
+        // 3. 开发环境固定码优先放行（DevSmsChannel 不存在时跳过）
         DevSmsChannel dev = devSmsChannelProvider.getIfAvailable();
         if (dev != null && dev.getDevCode().equals(code)) {
             redis.delete(attemptKey);
             return;
         }
 
+        // 4. 比对哈希：过期或错误（错误时失败计数递增）
         if (storedHash == null) {
             throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期");
         }
-
         String computedHash = sha256Hex(phone + ":" + code);
         if (!computedHash.equals(storedHash)) {
-            // 失败计数递增
             redis.opsForValue().increment(attemptKey);
             redis.expire(attemptKey, Duration.ofMinutes(CODE_TTL));
             throw new BusinessException(400, "SMS_CODE_INVALID", "验证码错误");
         }
 
-        // 校验通过，清除尝试计数
+        // 5. 校验通过，清除尝试计数
         redis.delete(attemptKey);
     }
 }

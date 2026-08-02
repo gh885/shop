@@ -19,26 +19,20 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
     private static final String START_ATTR = "__httpRequestStart__";
 
     @Override
-    public boolean preHandle(
-            HttpServletRequest request, HttpServletResponse response, Object handler) {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         request.setAttribute(START_ATTR, System.nanoTime());
         return true;
     }
 
     @Override
     public void afterCompletion(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Object handler,
-            Exception ex) {
+            HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         long startNanos = (long) request.getAttribute(START_ATTR);
         long latencyMs = (System.nanoTime() - startNanos) / 1_000_000;
 
         // 路由模板：由 Spring 的 HandlerMapping 解析后挂到 attribute 上
         String bestMatchPattern =
-                (String)
-                        request.getAttribute(
-                                "org.springframework.web.servlet.HandlerMapping.bestMatchingPattern");
+                (String) request.getAttribute("org.springframework.web.servlet.HandlerMapping.bestMatchingPattern");
         if (bestMatchPattern == null) {
             bestMatchPattern = request.getRequestURI();
         }

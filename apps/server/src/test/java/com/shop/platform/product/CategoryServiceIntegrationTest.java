@@ -19,7 +19,8 @@ class CategoryServiceIntegrationTest {
     private static final UUID L1_DIGITAL = UUID.fromString("01900000-0000-7000-8000-000000000101");
     private static final UUID L3_PHONE = UUID.fromString("01900000-0000-7000-8000-000000000301");
 
-    @Autowired private CategoryService categoryService;
+    @Autowired
+    private CategoryService categoryService;
 
     @Test
     void publicTree_loadsSeedData() {
@@ -27,26 +28,20 @@ class CategoryServiceIntegrationTest {
         assertEquals(6, roots.size());
         assertEquals("手机数码", roots.getFirst().name());
         assertFalse(roots.getFirst().children().isEmpty());
-        assertTrue(
-                roots.getFirst().children().getFirst().children().stream()
-                        .allMatch(n -> n.level() == 3));
+        assertTrue(roots.getFirst().children().getFirst().children().stream().allMatch(n -> n.level() == 3));
     }
 
     @Test
     void create_underLevel3_rejected() {
         BusinessException ex =
-                assertThrows(
-                        BusinessException.class,
-                        () -> categoryService.create(L3_PHONE, "四级类目", null, null));
+                assertThrows(BusinessException.class, () -> categoryService.create(L3_PHONE, "四级类目", null, null));
         assertEquals(400, ex.getHttpStatus());
     }
 
     @Test
     void create_duplicateName_conflict() {
         BusinessException ex =
-                assertThrows(
-                        BusinessException.class,
-                        () -> categoryService.create(L1_DIGITAL, "手机通讯", null, null));
+                assertThrows(BusinessException.class, () -> categoryService.create(L1_DIGITAL, "手机通讯", null, null));
         assertEquals(409, ex.getHttpStatus());
     }
 
@@ -62,7 +57,6 @@ class CategoryServiceIntegrationTest {
         List<CategoryNode> roots = categoryService.publicTree();
         assertTrue(roots.stream().noneMatch(n -> n.id().equals(created.getId())));
         // 管理端树仍可见（含禁用子树）
-        assertTrue(
-                categoryService.adminTree().stream().anyMatch(n -> n.id().equals(created.getId())));
+        assertTrue(categoryService.adminTree().stream().anyMatch(n -> n.id().equals(created.getId())));
     }
 }

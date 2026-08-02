@@ -12,8 +12,8 @@ import org.postgresql.util.PGobject;
 public class JsonbTypeHandler extends BaseTypeHandler<String> {
 
     @Override
-    public void setNonNullParameter(
-            PreparedStatement ps, int i, String parameter, JdbcType jdbcType) throws SQLException {
+    public void setNonNullParameter(PreparedStatement ps, int i, String parameter, JdbcType jdbcType)
+            throws SQLException {
         PGobject json = new PGobject();
         json.setType("jsonb");
         json.setValue(parameter);
