@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.shop.platform.infra.JsonbTypeHandler;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -23,8 +23,13 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@TableName("product.skus")
+@TableName(value = "product.skus", autoResultMap = true)
 public class Sku {
+
+    /** SKU 状态，见 status 字段 javadoc：1 在售 / 0 停用，与 SPU 状态无关 */
+    public static final int STATUS_ON_SALE = 1;
+
+    public static final int STATUS_DISABLED = 0;
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
@@ -55,8 +60,8 @@ public class Sku {
      * [{"name":"颜色","value":"黑"},{"name":"尺码","value":"L"}] 校验（值必须来自模板、组合不重复）在 service 层做，JSONB
      * 列本身不约束。
      */
-    @TableField(typeHandler = JsonbTypeHandler.class)
-    private String attributes;
+    @TableField(typeHandler = JsonbParamItemsHandler.class)
+    private List<ParamItem> attributes;
 
     /** 该规格自己的图（如黑色款单独一张图），与 SPU 的 mainImage 区分，可空 */
     private String image;

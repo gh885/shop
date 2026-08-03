@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.shop.platform.infra.JsonbTypeHandler;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -23,8 +23,15 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@TableName("product.products")
+@TableName(value = "product.products", autoResultMap = true)
 public class Product {
+
+    /** 商品状态，见 status 字段 javadoc：1 上架 / 0 下架 / 2 草稿 */
+    public static final int STATUS_PUBLISHED = 1;
+
+    public static final int STATUS_OFF = 0;
+
+    public static final int STATUS_DRAFT = 2;
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
@@ -52,8 +59,8 @@ public class Product {
      * 轮播图 URL 数组（JSONB），如 ["/img/1.jpg","/img/2.jpg"]。 选择 JSONB 而不是独立表：这些图只是"摆给买家看"，不参与查询/筛选。
      * 等需要单独管理图片（上传进度、裁剪、审核）时再拆成表。
      */
-    @TableField(typeHandler = JsonbTypeHandler.class)
-    private String images;
+    @TableField(typeHandler = JsonbStringListHandler.class)
+    private List<String> images;
 
     /**
      * 销售属性模板（JSONB）—— SKU 的生成公式。
@@ -64,8 +71,8 @@ public class Product {
      * <p>判断一个维度是不是销售属性的标准：换一个值价格/库存会不会变，会，就是销售属性。 单规格商品为 []，此时恰好生成 1 个 SKU（价格库存仍需放 Sku 表）。 与 params
      * 分开存，防止参数被误当规格生成出无意义的 SKU。
      */
-    @TableField(typeHandler = JsonbTypeHandler.class)
-    private String specs;
+    @TableField(typeHandler = JsonbSpecItemsHandler.class)
+    private List<SpecItem> specs;
 
     /**
      * 非销售参数（JSONB）—— 只展示、不参与 SKU 生成。
@@ -73,8 +80,8 @@ public class Product {
      * <p>判断标准：换一个值价格/库存不变，就是参数，如： [{"name":"产地","value":"广东"},{"name":"上市年份","value":"2026"}]
      * 买家不"选"它，只是看详情页的一行文字。SKU 行里没有它的副本。
      */
-    @TableField(typeHandler = JsonbTypeHandler.class)
-    private String params;
+    @TableField(typeHandler = JsonbParamItemsHandler.class)
+    private List<ParamItem> params;
 
     /**
      * SKU 聚合最低售价（分），冗余副本，刻意为之。

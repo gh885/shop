@@ -1,6 +1,6 @@
 package com.shop.platform.product.service;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import com.shop.platform.product.mapper.Category;
@@ -21,9 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
-
-    public static final int STATUS_ENABLED = 1;
-    public static final int STATUS_DISABLED = 0;
 
     private static final int MAX_LEVEL = 3;
 
@@ -46,7 +43,7 @@ public class CategoryService {
         int level = 1;
         if (parentId != null && !Category.ROOT_PARENT_ID.equals(parentId)) {
             Category parent = Validate.notNull(categoryMapper.selectById(parentId), "父类目不存在");
-            Validate.isTrue(parent.getStatus() == STATUS_ENABLED, "父类目已禁用，不能在其下创建");
+            Validate.isTrue(parent.getStatus() == Category.STATUS_ENABLED, "父类目已禁用，不能在其下创建");
             level = parent.getLevel() + 1;
             Validate.isTrue(level <= MAX_LEVEL, "最多支持三级类目");
         }
@@ -56,7 +53,7 @@ public class CategoryService {
                 .name(name)
                 .level(level)
                 .sort(sort != null ? sort : 0)
-                .status(STATUS_ENABLED)
+                .status(Category.STATUS_ENABLED)
                 .iconUrl(iconUrl)
                 .build();
         // 3. 落库：唯一索引兜底并发下的同级重名
@@ -99,10 +96,10 @@ public class CategoryService {
 
     private List<CategoryNode> buildTree(boolean includeDisabled) {
         // 1. 全量加载，按「是否含禁用」过滤出可见节点
-        List<Category> all = categoryMapper.selectList(Wrappers.emptyWrapper());
+        List<Category> all = categoryMapper.selectList(new LambdaQueryWrapper<Category>());
         Map<UUID, Category> visible = new HashMap<>();
         for (Category c : all) {
-            if (includeDisabled || c.getStatus() == STATUS_ENABLED) {
+            if (includeDisabled || c.getStatus() == Category.STATUS_ENABLED) {
                 visible.put(c.getId(), c);
             }
         }
@@ -121,16 +118,7 @@ public class CategoryService {
     private List<CategoryNode> toNodes(Map<UUID, List<Category>> grouped, UUID parentId) {
         return grouped.getOrDefault(parentId, List.of()).stream()
                 .sorted(Comparator.comparing(Category::getSort).thenComparing(Category::getCreatedAt))
-                .map(c -> CategoryNode.builder()
-                        .id(c.getId())
-                        .parentId(c.getParentId())
-                        .name(c.getName())
-                        .level(c.getLevel())
-                        .sort(c.getSort())
-                        .status(c.getStatus())
-                        .iconUrl(c.getIconUrl())
-                        .children(toNodes(grouped, c.getId()))
-                        .build())
+                .map(c -> CategoryNode.from(c, toNodes(grouped, c.getId())))
                 .toList();
     }
 
@@ -143,5 +131,20 @@ public class CategoryService {
             Integer sort,
             Integer status,
             String iconUrl,
-            List<CategoryNode> children) {}
+            List<CategoryNode> children) {
+
+        /** 从类目实体组装节点，children 由调用方递归传入。转换规则收在此处，防散落 */
+        public static CategoryNode from(Category c, List<CategoryNode> children) {
+            return CategoryNode.builder()
+                    .id(c.getId())
+                    .parentId(c.getParentId())
+                    .name(c.getName())
+                    .level(c.getLevel())
+                    .sort(c.getSort())
+                    .status(c.getStatus())
+                    .iconUrl(c.getIconUrl())
+                    .children(children)
+                    .build();
+        }
+    }
 }

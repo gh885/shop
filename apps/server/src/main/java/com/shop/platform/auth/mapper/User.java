@@ -7,7 +7,11 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 平台用户 —— 买家/卖家的统一账号，auth schema。
@@ -15,8 +19,14 @@ import lombok.Data;
  * <p>手机号为登录账号，全局唯一；注册走短信验证码自动注册，密码为预留字段可后补。
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @TableName("auth.users")
 public class User {
+
+    /** 账号状态：ACTIVE 正常（与 status 字段 javadoc 同步）。提升为常量，工厂与业务层共享，防硬编码 */
+    public static final String STATUS_ACTIVE = "ACTIVE";
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
@@ -47,4 +57,11 @@ public class User {
 
     /** 最近一次登录时间，用于安全提醒/活跃度统计，可空 */
     private OffsetDateTime lastLoginAt;
+
+    // ---- 工厂 ----
+
+    /** 短信验证码自动注册的新用户：状态固定 ACTIVE，密码后补。phone 为唯一必填，由构造签名编译期强制 */
+    public static User autoRegister(String phone) {
+        return User.builder().phone(phone).status(STATUS_ACTIVE).build();
+    }
 }

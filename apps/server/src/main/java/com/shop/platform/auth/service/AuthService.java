@@ -53,7 +53,6 @@ public class AuthService {
     private static final String KEY_RESET_RATE = "rl:reset:";
     private static final long RESET_TTL_MINUTES = 30;
 
-    private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String RESET_TOKEN_PREFIX = "rst:";
 
     // Common password blacklist (REG-03)
@@ -93,9 +92,7 @@ public class AuthService {
         // 2. 查找或自动注册（手机号不存在则创建）
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
         if (user == null) {
-            user = new User();
-            user.setPhone(phone);
-            user.setStatus(STATUS_ACTIVE);
+            user = User.autoRegister(phone);
             userMapper.insert(user);
         }
 
@@ -325,7 +322,7 @@ public class AuthService {
     }
 
     private void ensureUserActive(User user) {
-        if (!STATUS_ACTIVE.equals(user.getStatus())) {
+        if (!User.STATUS_ACTIVE.equals(user.getStatus())) {
             throw new BusinessException(403, "USER_DISABLED", "账号已被禁用");
         }
     }

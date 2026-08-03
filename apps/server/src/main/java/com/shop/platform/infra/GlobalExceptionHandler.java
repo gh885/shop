@@ -2,6 +2,7 @@ package com.shop.platform.infra;
 
 import com.shop.platform.common.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -58,6 +60,34 @@ public class GlobalExceptionHandler {
         pd.setProperty("requestId", MDC.get("trace_id"));
         pd.setProperty("errors", errors);
         return ResponseEntity.status(422)
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(pd);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolation(ConstraintViolationException ex) {
+        // @RequestParam 上的 jakarta 约束（@Validated 触发），与 @RequestBody 的 422 + errors 同一契约
+        List<Map<String, String>> errors = ex.getConstraintViolations().stream()
+                .map(cv -> Map.of("field", cv.getPropertyPath().toString(), "message", cv.getMessage()))
+                .toList();
+        ProblemDetail pd = ProblemDetail.forStatus(422);
+        pd.setTitle("Unprocessable Entity");
+        pd.setDetail("输入校验失败（" + errors.size() + " 个字段错误）");
+        pd.setProperty("requestId", MDC.get("trace_id"));
+        pd.setProperty("errors", errors);
+        return ResponseEntity.status(422)
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(pd);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ProblemDetail> handleMissingParam(MissingServletRequestParameterException ex) {
+        // 必填查询参数缺失 → 400，不能落进兜底的 500
+        ProblemDetail pd = ProblemDetail.forStatus(400);
+        pd.setTitle("Bad Request");
+        pd.setDetail("缺少请求参数: " + ex.getParameterName());
+        pd.setProperty("requestId", MDC.get("trace_id"));
+        return ResponseEntity.status(400)
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(pd);
     }

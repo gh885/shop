@@ -1,13 +1,18 @@
 package com.shop.platform.product.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductService;
 import com.shop.platform.product.service.ProductService.CreateProductCommand;
-import com.shop.platform.product.service.ProductService.ParamItem;
+import com.shop.platform.product.service.ProductService.ProductDetail;
 import com.shop.platform.product.service.ProductService.SkuUpdateItem;
-import com.shop.platform.product.service.ProductService.SpecItem;
+import com.shop.platform.product.service.ProductService.UpdateBasicCommand;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -15,17 +20,21 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/products")
+@RequestMapping("/admin/products")
+@Validated
 @RequiredArgsConstructor
-public class ProductController {
+public class ProductAdminController {
     private final ProductService productService;
 
     /** 创建商品草稿，返回含 id/createdAt 的实体 */
@@ -52,6 +61,41 @@ public class ProductController {
         return productService.publish(id);
     }
 
+    /** 商家后台商品列表：按店铺分页，可按状态/名称筛选 */
+    @GetMapping
+    public Page<Product> list(
+            @RequestParam @NotNull UUID shopId,
+            @RequestParam(required = false) @Min(0) @Max(2) Integer status,
+            @RequestParam(required = false) @Size(max = 128) String keyword,
+            @RequestParam(defaultValue = "1") @Min(1) long page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) long size) {
+        return productService.pageList(shopId, status, keyword, page, size);
+    }
+
+    /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查 */
+    @GetMapping("/{id}")
+    public ProductDetail detail(@PathVariable UUID id) {
+        return productService.detail(id);
+    }
+
+    /** 编辑基本信息（specs/SKU 之外的字段）；改规格走 PUT /{id}/specs */
+    @PutMapping("/{id}")
+    public Product update(@PathVariable UUID id, @Valid @RequestBody UpdateProductRequest request) {
+        return productService.updateBasic(id, request.toCommand());
+    }
+
+    /** 下架：仅上架商品可下架。不做物理删除，下架即"删除"语义 */
+    @PostMapping("/{id}/off")
+    public Product off(@PathVariable UUID id) {
+        return productService.off(id);
+    }
+
+    /** 重新上架：仅下架商品可上架，复检发布门槛（全部 SKU 已设价） */
+    @PostMapping("/{id}/on")
+    public Product on(@PathVariable UUID id) {
+        return productService.on(id);
+    }
+
     // ---- Request DTOs ----
 
     /** 创建商品草稿：只存基本信息，specs/SKU 由后续接口单独处理 */
@@ -76,6 +120,27 @@ public class ProductController {
         /** 映射为 service 入参。两契约字段一致，直接对齐 */
         CreateProductCommand toCommand() {
             return new CreateProductCommand(shopId, categoryId, name, subtitle, description, mainImage, images, params);
+        }
+    }
+
+    /** 编辑商品基本信息：与创建同字段，去掉 shopId（店铺归属创建后不可改） */
+    public record UpdateProductRequest(
+            /** 主分类 ID */
+            @NotNull UUID categoryId,
+            @NotBlank @Size(max = 128) String name,
+            @Size(max = 255) String subtitle,
+            String description,
+            @Size(max = 255) String mainImage,
+            List<@Size(max = 255) String> images,
+            List<@Valid ParamItem> params) {
+        public UpdateProductRequest {
+            if (name != null) name = name.trim();
+            if (subtitle != null) subtitle = subtitle.trim();
+        }
+
+        /** 映射为 service 入参 */
+        UpdateBasicCommand toCommand() {
+            return new UpdateBasicCommand(categoryId, name, subtitle, description, mainImage, images, params);
         }
     }
 

@@ -52,7 +52,7 @@ class CategoryServiceIntegrationTest {
         Category created = categoryService.create(null, uniqueName, 99, null);
         categoryService.create(created.getId(), "临时子类目", null, null);
 
-        categoryService.updateStatus(created.getId(), CategoryService.STATUS_DISABLED);
+        categoryService.updateStatus(created.getId(), Category.STATUS_DISABLED);
 
         List<CategoryNode> roots = categoryService.publicTree();
         assertTrue(roots.stream().noneMatch(n -> n.id().equals(created.getId())));

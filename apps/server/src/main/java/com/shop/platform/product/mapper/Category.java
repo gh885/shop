@@ -29,6 +29,11 @@ public class Category {
     /** 根节点的 parent_id 占位值 */
     public static final UUID ROOT_PARENT_ID = new UUID(0L, 0L);
 
+    /** 类目状态，见 status 字段 javadoc：1 启用 / 0 禁用 */
+    public static final int STATUS_ENABLED = 1;
+
+    public static final int STATUS_DISABLED = 0;
+
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;

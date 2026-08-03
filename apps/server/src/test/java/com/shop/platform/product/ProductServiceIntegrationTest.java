@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductService;
 import com.shop.platform.product.service.ProductService.CreateProductCommand;
 import com.shop.platform.product.service.ProductService.SkuUpdateItem;
-import com.shop.platform.product.service.ProductService.SpecItem;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -50,7 +50,7 @@ class ProductServiceIntegrationTest {
 
         // 2. 给 6 个 SKU 填价 100
         List<SkuUpdateItem> priceAll = six.stream()
-                .map(s -> new SkuUpdateItem(s.getId(), null, null, 100L, null, 10))
+                .map(s -> new SkuUpdateItem(s.getId(), null, null, 100L, null, 10, null, null))
                 .toList();
         productService.updateSkus(draft.getId(), priceAll);
 
@@ -65,7 +65,7 @@ class ProductServiceIntegrationTest {
         // 4. 给新增 3 个填价 300
         List<SkuUpdateItem> priceNew = nine.stream()
                 .filter(s -> s.getPrice() == null)
-                .map(s -> new SkuUpdateItem(s.getId(), null, null, 300L, null, 5))
+                .map(s -> new SkuUpdateItem(s.getId(), null, null, 300L, null, 5, null, null))
                 .toList();
         assertEquals(3, priceNew.size());
         productService.updateSkus(draft.getId(), priceNew);
@@ -91,12 +91,36 @@ class ProductServiceIntegrationTest {
         Product draft = createDraft("已上架草稿");
         List<Sku> skus = productService.updateSpecs(draft.getId(), List.of(new SpecItem("颜色", List.of("黑"))));
         productService.updateSkus(
-                draft.getId(), List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, 100L, null, 1)));
+                draft.getId(),
+                List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, 100L, null, 1, null, null)));
         productService.publish(draft.getId());
 
         BusinessException ex = assertThrows(
                 BusinessException.class,
                 () -> productService.updateSpecs(draft.getId(), List.of(new SpecItem("颜色", List.of("白")))));
         assertEquals(409, ex.getHttpStatus());
+    }
+
+    @Test
+    void offThenEditSpecs_thenOn_rechecksPublishGate() {
+        Product draft = createDraft("上下架状态机");
+        List<Sku> skus = productService.updateSpecs(draft.getId(), List.of(new SpecItem("颜色", List.of("黑"))));
+        productService.updateSkus(
+                draft.getId(),
+                List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, 100L, null, 1, null, null)));
+        productService.publish(draft.getId());
+
+        // 1. 下架：上架 → 下架
+        Product off = productService.off(draft.getId());
+        assertEquals(0, off.getStatus());
+
+        // 2. 下架态可改规格（决策 G：仅上架拒绝改规格），新 SKU 未设价
+        List<Sku> next = productService.updateSpecs(draft.getId(), List.of(new SpecItem("颜色", List.of("白"))));
+        assertEquals(1, next.size());
+        assertEquals(null, next.getFirst().getPrice());
+
+        // 3. 重新上架复检发布门槛：新 SKU 没价 → 400 拦截
+        BusinessException ex = assertThrows(BusinessException.class, () -> productService.on(draft.getId()));
+        assertEquals(400, ex.getHttpStatus());
     }
 }
