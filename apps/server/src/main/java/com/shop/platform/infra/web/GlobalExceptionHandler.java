@@ -1,4 +1,4 @@
-package com.shop.platform.infra;
+package com.shop.platform.infra.web;
 
 import com.shop.platform.common.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;

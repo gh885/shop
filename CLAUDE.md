@@ -23,15 +23,16 @@ openapi/                  ← （预留）OpenAPI 契约 —— 当前未启用�
 1. **模块隔离**：模块之间不 import 对方的 service/repo，只靠 Spring Modulith Event Bus 通信
 2. **Schema 隔离**：每个模块拥有自己的 PG schema（`product.products`），可只读跨 schema 按 ID 查字段
 3. **不许跨 schema JOIN**
-4. **`common/` 属于纯包**，不属于任何 Modulith 模块，无`@ApplicationModule`
+4. **`common/` 与 `infra/` 属于共享纯包**，不属于任何业务模块，无`@ApplicationModule`，经 `@Modulithic(sharedModules = {"common","infra"})` 显式登记为共享模块，任何模块可引用
 5. **@Modulithic 强制校验模块边界**，测试期跨模块 import 直接报错
 
 ## 后端模块组织
 
 ```
 server/src/main/java/com/shop/platform/
-├── ShopServerApplication.java    ← @Modulithic（无 sharedModules）
-├── common/                       ← 跨模块共享（响应封装、异常体系、UserIdHolder）
+├── ShopServerApplication.java    ← @Modulithic(sharedModules = {"common","infra"})
+├── common/                       ← 共享纯包：框架无关契约（异常体系、校验、UserIdHolder）
+├── infra/                        ← 共享纯包：跨模块技术适配（JWT、限流、Filter、MyBatis 配置）
 ├── auth/                         ← 模块 = 顶层包 = PG schema
 │   ├── AuthModuleConfig.java     ← @ConditionalOnProperty 开关
 │   ├── package-info.java         ← @ApplicationModule

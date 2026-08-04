@@ -4,7 +4,7 @@
 
 - 前端：TanStack Start (React 19), TypeScript 7, Vite 8, Tailwind v4, TanStack Query/Router
 - 后端：Spring Boot 4.1, Spring Modulith 2.1, REST (OpenAPI), MyBatis-Plus 3.5, PostgreSQL 18, Redis 7
-- 工具：Maven, pnpm, Docker Compose, Lefthook, Oxlint/Oxfmt, Spotless (Google Java Format)
+- 工具：Maven, pnpm, Lefthook, Oxlint/Oxfmt, Spotless (Google Java Format)
 
 ## 项目结构
 
@@ -23,15 +23,16 @@ openapi/                  ← （预留）OpenAPI 契约 —— 当前未启用�
 1. **模块隔离**：模块之间不 import 对方的 service/repo，只靠 Spring Modulith Event Bus 通信
 2. **Schema 隔离**：每个模块拥有自己的 PG schema（`product.products`），可只读跨 schema 按 ID 查字段
 3. **不许跨 schema JOIN**
-4. **`common/` 属于纯包**，不属于任何 Modulith 模块，无`@ApplicationModule`
+4. **`common/` 与 `infra/` 属于共享纯包**，不属于任何业务模块，无`@ApplicationModule`，经 `@Modulithic(sharedModules = {"common","infra"})` 显式登记为共享模块，任何模块可引用
 5. **@Modulithic 强制校验模块边界**，测试期跨模块 import 直接报错
 
 ## 后端模块组织
 
 ```
 server/src/main/java/com/shop/platform/
-├── ShopServerApplication.java    ← @Modulithic（无 sharedModules）
-├── common/                       ← 跨模块共享（响应封装、异常体系、UserIdHolder）
+├── ShopServerApplication.java    ← @Modulithic(sharedModules = {"common","infra"})
+├── common/                       ← 共享纯包：框架无关契约（异常体系、校验、UserIdHolder）
+├── infra/                        ← 共享纯包：跨模块技术适配（JWT、限流、Filter、MyBatis 配置）
 ├── auth/                         ← 模块 = 顶层包 = PG schema
 │   ├── AuthModuleConfig.java     ← @ConditionalOnProperty 开关
 │   ├── package-info.java         ← @ApplicationModule
@@ -113,6 +114,18 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - 所有金额用 `Money` 类型（amount + currency），不裸传 int64
 - `pnpm dev:server` / `pnpm dev:web` 分别启动前后端
 - `pnpm format` 同时格式化 TS 和 Java
+
+## 命名规范（Java 三层契约）
+
+后缀只标方向，不标层次；出参能复用就复用，变形才新建。
+
+- **数据库对象（mapper 包）**：裸名词，无后缀 —— `Product` / `Sku` / `Category` / `User`；Mapper 接口以 `Mapper` 结尾
+- **HTTP 入参（controller 包）**：`<动作>Request` —— `CreateProductRequest` / `SmsLoginRequest`；`Request` 后缀只允许出现在 controller 包
+- **业务入参聚合（service 包）**：`<动作>Command`，仅当入参字段多到无法拆包传基本类型时使用 —— `CreateProductCommand`
+- **出参**：能直接返回实体/已有类型就不新建；必须变形时按形状命名（`CategoryNode`、`TokenResult`），不贴统一的 `XxxResponse` 标签
+- **子组件**：Request/Command 内部的嵌套小组件（如 `ParamItem`）按语义命名，不受方向后缀约束
+
+由 `apps/server/src/test/java/com/shop/platform/NamingRulesTest.java`（ArchUnit）强制校验。
 
 ## 错误码规范
 

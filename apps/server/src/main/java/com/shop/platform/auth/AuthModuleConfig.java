@@ -1,6 +1,6 @@
 package com.shop.platform.auth;
 
-import com.shop.platform.auth.infra.JwtProperties;
+import com.shop.platform.infra.security.JwtProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

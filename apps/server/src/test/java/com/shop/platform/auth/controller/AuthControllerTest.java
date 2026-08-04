@@ -6,19 +6,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.shop.platform.auth.infra.JwtAuthFilter;
-import com.shop.platform.auth.infra.JwtProvider;
 import com.shop.platform.auth.service.AuthService;
 import com.shop.platform.auth.service.AuthService.TokenResult;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.UserIdHolder;
-import com.shop.platform.infra.RequestBodySizeFilter;
-import com.shop.platform.infra.RequestIdFilter;
+import com.shop.platform.infra.security.JwtProvider;
+import com.shop.platform.infra.web.RequestBodySizeFilter;
+import com.shop.platform.infra.web.RequestIdFilter;
 import jakarta.servlet.http.Cookie;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -55,6 +56,10 @@ class AuthControllerTest {
 
     @Autowired
     JwtProvider jwtProvider;
+
+    // RefreshTokenStore 依赖 StringRedisTemplate，本测试排除了 Redis 自动配置，补一个 mock bean 供上下文加载
+    @MockitoBean
+    StringRedisTemplate stringRedisTemplate;
 
     @BeforeEach
     void setUp() {

@@ -3,18 +3,17 @@ package com.shop.platform.auth.service;
 import static com.shop.platform.auth.service.AuthHashes.sha256Hex;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.shop.platform.auth.infra.JwtProvider;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.RateLimiter;
+import com.shop.platform.infra.security.JwtProvider;
+import com.shop.platform.infra.security.RefreshTokenStore;
+import com.shop.platform.infra.util.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.HexFormat;
-import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,14 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
-    // Opaque refresh token storage
-    private static final String KEY_REFRESH = "refresh:"; // refresh:<sha256> → userId
-    private static final String KEY_USER_DEVICE = "refresh:user:"; // refresh:user:<userId>:<deviceId> → sha256
-    private static final String KEY_CONSUMED =
-            "refresh:consumed:"; // refresh:consumed:<sha256> → userId (replay detection)
-
-    private static final long REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000L; // 7 天
 
     // Rate limiting (LOGIN-05)
     private static final String RATE_IP_PWD = "rl:ip:pwd:";
@@ -81,6 +72,7 @@ public class AuthService {
     private final SmsCodeService smsCodeService;
     private final SmsChannel smsChannel;
     private final StringRedisTemplate redis;
+    private final RefreshTokenStore refreshTokenStore;
 
     // ========== 短信登录/注册 ==========
 
@@ -200,18 +192,16 @@ public class AuthService {
 
     // ========== Token 刷新（Rotation） ==========
 
-    /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测） */
+    /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测）。Redis 机制见 RefreshTokenStore */
     public TokenResult refresh(String refreshToken, String deviceId) {
-        String hash = sha256Hex(refreshToken);
-        String key = KEY_REFRESH + hash;
+        String hash = RefreshTokenStore.sha256Hex(refreshToken);
 
         // 1. 消费旧 Refresh Token（getAndDelete = 一次性）
-        String storedUserId = redis.opsForValue().getAndDelete(key);
+        String storedUserId = refreshTokenStore.consume(hash);
 
         if (storedUserId == null) {
             // 2. 重放检测：检查是否已被消费（MAINT-04）
-            String consumedKey = KEY_CONSUMED + hash;
-            String replayedUserId = redis.opsForValue().get(consumedKey);
+            String replayedUserId = refreshTokenStore.consumedSubject(hash);
             if (replayedUserId != null) {
                 log.warn("[AUTH] Refresh Token 重放攻击已检测, userId={}", replayedUserId);
                 deleteAllRefreshTokens(UUID.fromString(replayedUserId));
@@ -223,10 +213,10 @@ public class AuthService {
         UUID userId = UUID.fromString(storedUserId);
 
         // 3. 标记已消费（短 TTL 窗口）
-        redis.opsForValue().set(KEY_CONSUMED + hash, storedUserId, Duration.ofMinutes(30));
+        refreshTokenStore.markConsumed(hash, storedUserId);
 
         // 4. 清除旧设备索引
-        redis.delete(KEY_USER_DEVICE + userId + ":" + deviceId);
+        refreshTokenStore.revokeDevice(storedUserId, deviceId);
 
         // 5. 查用户并签发全新 Token
         User user = userMapper.selectById(userId);
@@ -247,11 +237,7 @@ public class AuthService {
 
     /** 登出：删除当前设备 refresh token */
     public void logout(UUID userId, String deviceId) {
-        String idxKey = KEY_USER_DEVICE + userId + ":" + deviceId;
-        String storedHash = redis.opsForValue().getAndDelete(idxKey);
-        if (storedHash != null) {
-            redis.delete(KEY_REFRESH + storedHash);
-        }
+        refreshTokenStore.revokeDevice(userId.toString(), deviceId);
     }
 
     // ========== 限流 ==========
@@ -332,14 +318,10 @@ public class AuthService {
     private TokenResult issueTokens(User user, String deviceId) {
         String accessToken = jwtProvider.createAccessToken(user.getId());
         String refreshToken = jwtProvider.generateRefreshToken();
-        String hash = sha256Hex(refreshToken);
+        String hash = RefreshTokenStore.sha256Hex(refreshToken);
 
-        // MAINT-01/02: 存 SHA-256 哈希，不落明文
-        redis.opsForValue().set(KEY_REFRESH + hash, user.getId().toString(), Duration.ofMillis(REFRESH_TTL_MS));
-
-        // 设备索引（按 deviceId 管理）
-        redis.opsForValue()
-                .set(KEY_USER_DEVICE + user.getId() + ":" + deviceId, hash, Duration.ofMillis(REFRESH_TTL_MS));
+        // MAINT-01/02: 存 SHA-256 哈希，不落明文；签发 + 设备索引见 RefreshTokenStore
+        refreshTokenStore.issue(user.getId().toString(), deviceId, hash);
 
         // 更新最后登录时间
         user.setLastLoginAt(OffsetDateTime.now());
@@ -362,19 +344,7 @@ public class AuthService {
 
     /** 清除用户所有设备的 refresh token */
     public void deleteAllRefreshTokens(UUID userId) {
-        String pattern = KEY_USER_DEVICE + userId + ":*";
-        Set<String> keys = redis.keys(pattern);
-        if (keys == null || keys.isEmpty()) return;
-
-        List<String> hashes = redis.opsForValue().multiGet(keys);
-        redis.delete(keys);
-        List<String> refreshKeys = hashes.stream()
-                .filter(Objects::nonNull)
-                .map(h -> KEY_REFRESH + h)
-                .toList();
-        if (!refreshKeys.isEmpty()) {
-            redis.delete(refreshKeys);
-        }
+        refreshTokenStore.revokeAll(userId.toString());
     }
 
     // ========== 密码校验 ==========

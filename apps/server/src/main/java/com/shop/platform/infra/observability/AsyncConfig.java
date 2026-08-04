@@ -1,4 +1,4 @@
-package com.shop.platform.infra;
+package com.shop.platform.infra.observability;
 
 import java.util.concurrent.Executor;
 import org.springframework.context.annotation.Configuration;

@@ -1,10 +1,10 @@
-package com.shop.platform.common;
+package com.shop.platform.infra.util;
 
 import java.time.Duration;
 import lombok.NoArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-/** 基于 Redis INCR + EXPIRE 的滑动窗口限流。 */
+/** 基于 Redis INCR + EXPIRE 的滑动窗口限流。Redis 适配，跨模块共享 → 根 infra。 */
 @NoArgsConstructor
 public final class RateLimiter {
 

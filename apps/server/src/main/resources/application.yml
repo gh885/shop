@@ -44,4 +44,5 @@ shop:
         # private-key: "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg..."
         # public-key: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE..."
         access-token-expiration: 600000
+        staff-access-token-expiration: 28800000
         refresh-token-expiration: 604800000

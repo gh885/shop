@@ -4,13 +4,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.shop.platform.auth.infra.JwtProvider;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
-import java.time.Duration;
-import java.util.Set;
+import com.shop.platform.infra.security.JwtProvider;
+import com.shop.platform.infra.security.RefreshTokenStore;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -48,6 +47,9 @@ class AuthServiceTest {
 
     @Mock
     ValueOperations<String, String> valueOps;
+
+    @Mock
+    RefreshTokenStore refreshTokenStore;
 
     @InjectMocks
     AuthService authService;
@@ -126,7 +128,6 @@ class AuthServiceTest {
             when(passwordEncoder.matches(eq("correct"), anyString())).thenReturn(true);
             when(jwtProvider.createAccessToken(USER_ID)).thenReturn("at");
             when(jwtProvider.generateRefreshToken()).thenReturn("rt:xxx");
-            doNothing().when(valueOps).set(anyString(), anyString(), any(Duration.class));
 
             var result = authService.loginByPassword("13800138000", "correct", "dev1", "127.0.0.1");
 
@@ -189,8 +190,6 @@ class AuthServiceTest {
 
             when(userMapper.selectById(USER_ID)).thenReturn(user);
             when(passwordEncoder.encode("newPassword123")).thenReturn("$2a$12$encoded");
-            // clear+delete for deleteAllRefreshTokens
-            when(redis.keys(anyString())).thenReturn(Set.of());
 
             authService.setPassword(USER_ID, null, "newPassword123");
 
@@ -236,7 +235,7 @@ class AuthServiceTest {
             String token = "rt:valid";
             String hash = AuthHashes.sha256Hex(token);
 
-            when(valueOps.getAndDelete("refresh:" + hash)).thenReturn(USER_ID.toString());
+            when(refreshTokenStore.consume(hash)).thenReturn(USER_ID.toString());
             when(userMapper.selectById(USER_ID)).thenReturn(new User() {
                 {
                     setId(USER_ID);
@@ -245,7 +244,6 @@ class AuthServiceTest {
             });
             when(jwtProvider.createAccessToken(USER_ID)).thenReturn("new-at");
             when(jwtProvider.generateRefreshToken()).thenReturn("rt:new");
-            doNothing().when(valueOps).set(anyString(), anyString(), any(Duration.class));
 
             var result = authService.refresh(token, "dev1");
             assertEquals("new-at", result.accessToken());
@@ -257,8 +255,8 @@ class AuthServiceTest {
             String token = "rt:expired";
             String hash = AuthHashes.sha256Hex(token);
 
-            when(valueOps.getAndDelete("refresh:" + hash)).thenReturn(null);
-            when(valueOps.get("refresh:consumed:" + hash)).thenReturn(null);
+            when(refreshTokenStore.consume(hash)).thenReturn(null);
+            when(refreshTokenStore.consumedSubject(hash)).thenReturn(null);
 
             assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
         }
@@ -268,9 +266,8 @@ class AuthServiceTest {
             String token = "rt:replay";
             String hash = AuthHashes.sha256Hex(token);
 
-            when(valueOps.getAndDelete("refresh:" + hash)).thenReturn(null);
-            when(valueOps.get("refresh:consumed:" + hash)).thenReturn(USER_ID.toString());
-            when(redis.keys("refresh:user:" + USER_ID + ":*")).thenReturn(Set.of());
+            when(refreshTokenStore.consume(hash)).thenReturn(null);
+            when(refreshTokenStore.consumedSubject(hash)).thenReturn(USER_ID.toString());
 
             var ex = assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
             assertEquals(410, ex.getHttpStatus());

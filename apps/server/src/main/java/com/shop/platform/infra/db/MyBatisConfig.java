@@ -1,4 +1,4 @@
-package com.shop.platform.infra;
+package com.shop.platform.infra.db;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;

@@ -1,4 +1,4 @@
-package com.shop.platform.infra;
+package com.shop.platform.infra.observability;
 
 import java.util.Map;
 import java.util.UUID;

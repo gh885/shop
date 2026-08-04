@@ -1,4 +1,4 @@
-package com.shop.platform.infra;
+package com.shop.platform.infra.db;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.github.f4b6a3.uuid.UuidCreator;

@@ -1,4 +1,4 @@
-package com.shop.platform.infra;
+package com.shop.platform.infra.db;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;

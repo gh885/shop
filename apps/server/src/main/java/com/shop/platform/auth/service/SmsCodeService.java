@@ -5,7 +5,7 @@ import static com.shop.platform.auth.service.AuthHashes.sha256Hex;
 import com.shop.platform.auth.infra.DevSmsChannel;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.RateLimiter;
+import com.shop.platform.infra.util.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;

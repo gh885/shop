@@ -1,4 +1,4 @@
-package com.shop.platform.auth.infra;
+package com.shop.platform.infra.security;
 
 import java.util.List;
 import lombok.Data;
@@ -14,11 +14,11 @@ public class JwtProperties {
     /** ES256 公钥（X.509 base64），privateKey 配置时必填 */
     private String publicKey;
 
-    /** 向下兼容的 HMAC 密钥（仅限原型/玩具项目，冲突裁决 #6） */
-    private String secret;
-
     /** access_token 过期毫秒数，默认 10 分钟（5-15 分钟推荐范围） */
     private long accessTokenExpiration = 600_000;
+
+    /** 平台员工（admin.staff）access_token 过期毫秒数，默认 8 小时（后台工作台，比 C 端长） */
+    private long staffAccessTokenExpiration = 28_800_000;
 
     /** refresh_token 过期毫秒数，默认 7 天 */
     private long refreshTokenExpiration = 604_800_000;
@@ -37,5 +37,6 @@ public class JwtProperties {
             "/auth/login/password",
             "/auth/refresh",
             "/auth/forgot-password",
-            "/auth/reset-password");
+            "/auth/reset-password",
+            "/admin");
 }

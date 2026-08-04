@@ -1,4 +1,4 @@
-package com.shop.platform.infra;
+package com.shop.platform.infra.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
