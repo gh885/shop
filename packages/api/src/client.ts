@@ -29,7 +29,16 @@ export interface ApiClient {
  * @param baseUrl - 后端基础 URL（浏览器端用空串走 Vite proxy，SSR 端传后端地址）
  * @param tokens  - Token 存储（传了后自动注入 Authorization header + 401 自动 refresh）
  */
-export function createApiClient(baseUrl: string, tokens?: TokenStore): ApiClient {
+export interface ApiClientOptions {
+    /** 401 自动刷新的端点（相对路径，经 Vite proxy 同源；默认 C 端 auth/refresh） */
+    refreshPath?: string;
+}
+
+export function createApiClient(
+    baseUrl: string,
+    tokens?: TokenStore,
+    options?: ApiClientOptions,
+): ApiClient {
     const raw: KyInstance = ky.create({
         prefix: baseUrl,
         credentials: 'include',
@@ -92,9 +101,10 @@ export function createApiClient(baseUrl: string, tokens?: TokenStore): ApiClient
                     );
 
                     // 401 自动刷新（跳过 refresh 端点本身，防止死循环）
-                    if (response.status === 401 && path !== '/auth/refresh' && tokens) {
+                    const refreshPath = options?.refreshPath ?? 'auth/refresh';
+                    if (response.status === 401 && path !== `/${refreshPath}` && tokens) {
                         try {
-                            const res = (await raw('auth/refresh', {
+                            const res = (await raw(refreshPath, {
                                 method: 'POST',
                             }).json()) as { accessToken: string };
 

@@ -14,11 +14,14 @@ import { cn } from 'src/lib/utils';
  *     onSubmit: async ({ value }) => { ... },
  * });
  *
- * <form.AppField name="phone" validators={{ onChange: PhoneSchema }}>
- *     {(field) => <field.TextField label="手机号" placeholder="请输入手机号" />}
- * </form.AppField>
+ * // AppForm 只是 Context.Provider（不渲染 <form>），需自行提供 <form> 元素
  * <form.AppForm>
- *     <form.SubmitButton>登录</form.SubmitButton>
+ *     <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
+ *         <form.AppField name="phone" validators={{ onChange: PhoneSchema }}>
+ *             {(field) => <field.TextField label="手机号" placeholder="请输入手机号" />}
+ *         </form.AppField>
+ *         <form.SubmitButton>登录</form.SubmitButton>
+ *     </form>
  * </form.AppForm>
  * ```
  *

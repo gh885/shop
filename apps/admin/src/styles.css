@@ -1,0 +1,92 @@
+@import "@shop/ui-web/src/styles.css";
+
+/* ui-web 在 apps/admin 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明 */
+@source '../../../packages/ui-web/src';
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        "PingFang SC",
+        "Microsoft YaHei",
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+::selection {
+    background-color: var(--color-brand-subtle);
+    color: var(--color-brand-subtle-foreground);
+}
+
+/* ==========================================================================
+   admin 覆盖 Layer 2 语义（Linear 质感的平台后台，primitive 不动）
+   - 浅色为主、跟随系统明暗：电商运营日常使用，不做工具向强制暗色
+   - 层级靠灰度与发丝边框，不靠色块：表面近白、边框低对比
+   - 品牌 indigo 冷色相：平台身份，与 C 端暖红区分，只做点睛
+   - 收紧圆角、压低文本尺寸：密度优先的工具感
+   ========================================================================== */
+
+@theme {
+    /* 表面：近白层级 */
+    --color-background: var(--neutral-0);
+    --color-sunken: var(--neutral-50);
+    --color-card: var(--neutral-0);
+    --color-popover: var(--neutral-0);
+
+    /* 内容：偏冷的灰阶文本 */
+    --color-foreground: hsl(240 6% 10%);
+    --color-card-foreground: var(--color-foreground);
+    --color-popover-foreground: var(--color-foreground);
+    --color-muted-foreground: hsl(228 6% 46%);
+    --color-foreground-subtle: var(--neutral-400);
+
+    /* 结构：发丝边框 */
+    --color-border: var(--neutral-200);
+    --color-border-strong: var(--neutral-300);
+
+    /* 工具感：收紧圆角 */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.625rem;
+
+    /* 平台身份色：indigo（Linear 紫蓝方向），审核状态用 success/warning/danger */
+    --color-brand: hsl(232 56% 56%);
+    --color-brand-foreground: var(--neutral-0);
+    --color-brand-hover: hsl(232 56% 50%);
+    --color-brand-active: var(--indigo-700);
+    --color-brand-subtle: var(--indigo-50);
+    --color-brand-subtle-foreground: hsl(232 56% 44%);
+    --color-link: hsl(232 56% 50%);
+}
+
+/* 暗色：共享层把 brand 映射回暖红，admin 需重映射到 indigo */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-brand: hsl(232 56% 66%);
+        --color-brand-hover: hsl(232 56% 72%);
+        --color-brand-active: hsl(232 56% 78%);
+        --color-brand-subtle: hsl(232 40% 18%);
+        --color-brand-subtle-foreground: hsl(232 60% 80%);
+        --color-link: hsl(232 60% 72%);
+    }
+}

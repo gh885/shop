@@ -19,6 +19,8 @@ spring:
         enabled: true
         locations: classpath:db/migration
         baseline-on-migrate: true
+        # 库结构已到 V10 但历史表丢失时，按当前版本基线，避免重放旧迁移失败（V4 DROP IDENTITY）
+        baseline-version: 10
 
     jackson:
         deserialization:

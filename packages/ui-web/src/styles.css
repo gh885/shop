@@ -12,7 +12,8 @@
 
    风格定位：消费级电商转化风 —— 中性灰撑全场（不抢商品内容风头），
    品牌暖红只用于转化引导（登录/购买等 CTA），偏大圆角，暗色一等公民。
-   seller/admin 端复用时保持 primitive 不动，只换 semantic 的 brand 映射。
+   seller/admin 端复用时保持 primitive 不动，只换 semantic 的 brand 映射；
+   平台端（admin）身份色用 indigo 冷色相，与 C 端暖红区分。
    ========================================================================== */
 
 /* ---------- Layer 1: Primitive ---------- */
@@ -26,6 +27,8 @@
     --neutral-300: hsl(0 0% 83.1%);
     --neutral-400: hsl(0 0% 63.9%);
     --neutral-500: hsl(0 0% 45.1%);
+    --neutral-600: hsl(0 0% 32%);
+    --neutral-700: hsl(0 0% 21%);
     --neutral-800: hsl(0 0% 14.9%);
     --neutral-900: hsl(0 0% 9%);
     --neutral-950: hsl(0 0% 3.9%);
@@ -41,6 +44,19 @@
     --brand-700: hsl(350 72% 40%);
     --brand-800: hsl(350 70% 32%);
     --brand-900: hsl(350 68% 25%);
+
+    /* 平台冷色相（靛蓝）—— admin/seller 端身份色，供语义层映射。
+       与 info 蓝（hue 217）拉开距离，品牌与信息反馈不撞车。 */
+    --indigo-50: hsl(235 100% 97%);
+    --indigo-100: hsl(235 90% 93%);
+    --indigo-200: hsl(235 85% 86%);
+    --indigo-300: hsl(235 82% 74%);
+    --indigo-400: hsl(235 80% 64%);
+    --indigo-500: hsl(235 78% 56%);
+    --indigo-600: hsl(235 75% 48%);
+    --indigo-700: hsl(235 72% 40%);
+    --indigo-800: hsl(235 70% 32%);
+    --indigo-900: hsl(235 68% 25%);
 
     /* 反馈色（success / warning / info / danger） */
     --green-100: hsl(150 60% 94%);

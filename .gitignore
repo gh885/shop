@@ -38,3 +38,6 @@ packages/api-client/generated/
 apps/mobile-*/android/.gradle/
 apps/mobile-*/ios/Pods/
 apps/mobile-*/build/
+
+# Temp / tooling
+.tmp-shots/

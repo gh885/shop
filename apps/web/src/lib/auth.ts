@@ -2,17 +2,15 @@ import { useSyncExternalStore } from 'react';
 
 import type { TokenStore } from '@shop/api';
 
-const TOKEN_KEY = 'shop_access_token';
+// access token 只存内存：短效（10 分钟），页面加载由 bootstrap 用 refresh cookie 换新
 const DEVICE_KEY = 'shop_device_id';
-
-const isBrowser = typeof window !== 'undefined';
 
 // ---------- 认证状态（模块级 store，useSyncExternalStore 驱动 UI） ----------
 
 export type AuthStatus = 'unknown' | 'authed' | 'guest';
 
-let accessToken: string | null = isBrowser ? localStorage.getItem(TOKEN_KEY) : null;
-// 有残留 token 也不能直接当真（可能已过期），一律先 unknown，待 bootstrap 裁决
+// 启动时一律 unknown，待 bootstrap 用 refresh cookie 换新 access token 后裁决
+let accessToken: string | null = null;
 let status: AuthStatus = 'unknown';
 let loginDialogOpen = false;
 
@@ -27,13 +25,11 @@ export const tokenStore: TokenStore & { clear: () => void } = {
     set: (token: string) => {
         accessToken = token;
         status = 'authed';
-        localStorage.setItem(TOKEN_KEY, token);
         emit();
     },
     clear: () => {
         accessToken = null;
         status = 'guest';
-        localStorage.removeItem(TOKEN_KEY);
         emit();
     },
 };

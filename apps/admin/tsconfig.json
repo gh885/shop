@@ -1,0 +1,14 @@
+{
+    "extends": "../../packages/config/tsconfig.base.json",
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "paths": {
+            "#/*": ["./src/*"],
+            "@/*": ["./src/*"],
+            "src/*": ["../../packages/ui-web/src/*"]
+        },
+        "types": ["vite/client"],
+        "allowImportingTsExtensions": true
+    },
+    "include": ["**/*.ts", "**/*.tsx"]
+}

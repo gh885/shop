@@ -14,7 +14,18 @@ export {
 } from './components/ui/dialog';
 export { Toast } from './components/ui/toast';
 export { Select } from './components/ui/select';
-export { Table } from './components/ui/table';
+export {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableFooter,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from './components/ui/table';
+export { Badge, badgeVariants } from './components/ui/badge';
+export { Textarea } from './components/ui/textarea';
 
 export { useAppForm, withForm } from './components/form';
 
