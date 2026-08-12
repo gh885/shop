@@ -4,7 +4,7 @@
         "jsx": "react-jsx",
         "paths": {
             "#/*": ["./src/*"],
-            "@/*": ["./src/*"],
+            "@/*": ["../../packages/ui-web/src/*"],
             "src/*": ["../../packages/ui-web/src/*"]
         },
         "types": ["vite/client"],

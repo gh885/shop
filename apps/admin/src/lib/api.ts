@@ -157,6 +157,6 @@ export async function requireAuth(): Promise<void> {
 export async function requireGuest(): Promise<void> {
     await bootstrapAuth();
     if (authState.getStatus() === 'authed') {
-        throw redirect({ to: '/', search: { page: 1 } });
+        throw redirect({ to: '/', search: { page: 1, size: 20 } });
     }
 }

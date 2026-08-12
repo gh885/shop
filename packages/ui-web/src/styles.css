@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /* ==========================================================================
    主题系统（分层 token）
@@ -6,7 +6,8 @@
    Layer 1 Primitive  — 原始色板，只定义色相/明度色阶，不含语义。
                         组件禁止直接使用，不出现在 class 里。
    Layer 2 Semantic   — 语义 token（@theme 内，生成 bg-* text-* 工具类），
-                        值引用 primitive；明暗模式只重写这一层的映射。
+                        值引用 primitive；明暗用 light-dark() 单份定义，
+                        由 color-scheme: light dark 决定取浅还是取深。
    Layer 3 Component  — 暂不抽取；组件直接消费语义层，
                         同一模式出现第二个消费方时再下沉为组件 token。
 
@@ -16,9 +17,15 @@
    平台端（admin）身份色用 indigo 冷色相，与 C 端暖红区分。
    ========================================================================== */
 
-/* ---------- Layer 1: Primitive ---------- */
+/* ---------- Layer 1: Primitive ----------
+   注意：primitive 名（--neutral-* 等）与 Tailwind 内置 --color-* 色板命名
+   接近但值不同。组件里裸写 bg-neutral-500 会命中 Tailwind 默认值而非这里的
+   primitive。约束：primitive 只能被本文件语义层用 var() 引用，
+   禁止出现在组件 class 里（admin/styles.css 亦按此引用）。 */
 
 :root {
+    color-scheme: light dark;
+
     /* 中性灰（无彩色相，暖冷中性） */
     --neutral-0: hsl(0 0% 100%);
     --neutral-50: hsl(0 0% 98%);
@@ -76,88 +83,133 @@
     --red-700: hsl(0 70% 45%);
     --red-800: hsl(0 62.8% 30.6%);
     --red-900: hsl(0 50% 14%);
+
+    /* 阴影（染中性色，不用纯黑低透明度）；浅深两套值，供语义层 light-dark()
+       映射。拆两个变量是因为多图层 box-shadow 含顶层逗号，无法直接写进
+       light-dark() 参数。 */
+    --shadow-sm-light: 0 1px 2px 0 hsl(0 0% 9% / 0.06);
+    --shadow-sm-dark: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-md-light: 0 4px 6px -1px hsl(0 0% 9% / 0.08), 0 2px 4px -2px hsl(0 0% 9% / 0.06);
+    --shadow-md-dark: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
+    --shadow-lg-light: 0 10px 15px -3px hsl(0 0% 9% / 0.1), 0 4px 6px -4px hsl(0 0% 9% / 0.08);
+    --shadow-lg-dark: 0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.5);
 }
 
-/* ---------- Layer 2: Semantic（light 默认） ---------- */
+/* ---------- Layer 2: Semantic（light-dark() 单份定义，深浅随系统偏好） ---------- */
 
 @theme {
     /* 表面 */
-    --color-background: var(--neutral-0);
-    --color-card: var(--neutral-0);
-    --color-popover: var(--neutral-0);
-    --color-sunken: var(--neutral-100);
-    --color-scrim: hsl(0 0% 0% / 0.4);
+    --color-background: light-dark(var(--neutral-0), var(--neutral-950));
+    --color-card: light-dark(var(--neutral-0), var(--neutral-950));
+    --color-popover: light-dark(var(--neutral-0), var(--neutral-950));
+    --color-sunken: light-dark(var(--neutral-100), var(--neutral-900));
+    /* scrim 为 shop 扩展（shadcn 无遮罩 token，其 Dialog 硬编码 bg-black/xx） */
+    --color-scrim: light-dark(hsl(0 0% 0% / 0.4), hsl(0 0% 0% / 0.6));
 
-    /* 内容 */
-    --color-foreground: var(--neutral-950);
-    --color-card-foreground: var(--neutral-950);
-    --color-popover-foreground: var(--neutral-950);
-    --color-foreground-subtle: var(--neutral-400);
-    --color-foreground-disabled: var(--neutral-300);
-    --color-link: var(--brand-600);
+    /* 内容（文字阶梯：foreground 主文字 → muted-foreground 次要 → disabled-foreground
+       禁用。次要文字统一走 muted-foreground；原 foreground-subtle / foreground-disabled
+       与 muted-foreground / disabled-foreground 语义重叠，已合并移除） */
+    --color-foreground: light-dark(var(--neutral-950), var(--neutral-50));
+    --color-card-foreground: light-dark(var(--neutral-950), var(--neutral-50));
+    --color-popover-foreground: light-dark(var(--neutral-950), var(--neutral-50));
+    --color-link: light-dark(var(--brand-600), var(--brand-400));
 
-    /* 主操作（中性黑白） */
-    --color-primary: var(--neutral-900);
-    --color-primary-foreground: var(--neutral-50);
-    --color-primary-hover: var(--neutral-800);
+    /* 主操作（中性黑白）。
+       primary-hover 为独立色阶 token（hover 要换色阶时用）；
+       shadcn 组件自带 hover:bg-primary/80 是透明度体系，二者并存不互斥，
+       同一组件内二选一，别混用。 */
+    --color-primary: light-dark(var(--neutral-900), var(--neutral-50));
+    --color-primary-foreground: light-dark(var(--neutral-50), var(--neutral-900));
+    --color-primary-hover: light-dark(var(--neutral-800), var(--neutral-200));
 
-    /* 次级/弱化表面 */
-    --color-secondary: var(--neutral-100);
-    --color-secondary-foreground: var(--neutral-900);
-    --color-muted: var(--neutral-100);
-    --color-muted-foreground: var(--neutral-500);
-    --color-accent: var(--neutral-100);
-    --color-accent-foreground: var(--neutral-900);
+    /* 次级/弱化表面（secondary / muted / accent 深浅两模式值相同，
+       保留三个语义名是为将来视觉分化预留，勿合并） */
+    --color-secondary: light-dark(var(--neutral-100), var(--neutral-800));
+    --color-secondary-foreground: light-dark(var(--neutral-900), var(--neutral-50));
+    --color-muted: light-dark(var(--neutral-100), var(--neutral-800));
+    --color-muted-foreground: light-dark(var(--neutral-500), var(--neutral-400));
+    --color-accent: light-dark(var(--neutral-100), var(--neutral-800));
+    --color-accent-foreground: light-dark(var(--neutral-900), var(--neutral-50));
 
-    /* 品牌转化色（登录/购买等 CTA 专用） */
-    --color-brand: var(--brand-500);
+    /* 品牌转化色（登录/购买等 CTA 专用）。
+       实色按钮底从 brand-500 提到 brand-600：白字对比度 4.1:1 → 5.1:1，
+       深浅模式都过 AA（原深色 brand-400 白字仅 3.3:1，不达标）。
+       若想保留 500 的明度，把前景改成深色字即可。
+       brand-hover / brand-active 为色阶递进体系（与 primary-hover 同源），
+       shadcn 组件的 hover:bg-brand/80 透明度体系不吃这俩，组件内二选一。 */
+    --color-brand: var(--brand-600);
     --color-brand-foreground: var(--neutral-0);
-    --color-brand-hover: var(--brand-600);
-    --color-brand-active: var(--brand-700);
-    --color-brand-subtle: var(--brand-50);
-    --color-brand-subtle-foreground: var(--brand-700);
+    --color-brand-hover: light-dark(var(--brand-700), var(--brand-500));
+    --color-brand-active: light-dark(var(--brand-800), var(--brand-400));
+    --color-brand-subtle: light-dark(var(--brand-50), var(--brand-900));
+    --color-brand-subtle-foreground: light-dark(var(--brand-700), var(--brand-200));
 
-    /* 反馈 */
-    --color-destructive: var(--red-500);
+    /* 反馈（每色三件套：实色 base+foreground / 弱底 subtle+subtle-foreground）。
+       弱底是 shop 的色阶对写法（浅底深字）；shadcn 新版用 bg-x/10 + text-x 透明度
+       表达同角色，二选一保持一致即可。
+       destructive-foreground 沿用旧版 shadcn 命名（新版已删、改 /10 风格），保留兼容。 */
+    --color-destructive: light-dark(var(--red-500), var(--red-800));
     --color-destructive-foreground: var(--neutral-50);
-    --color-destructive-subtle: var(--red-100);
-    --color-destructive-subtle-foreground: var(--red-700);
+    --color-destructive-subtle: light-dark(var(--red-100), var(--red-900));
+    --color-destructive-subtle-foreground: light-dark(var(--red-700), var(--red-500));
     --color-success: var(--green-500);
     --color-success-foreground: var(--neutral-0);
-    --color-success-subtle: var(--green-100);
-    --color-success-subtle-foreground: var(--green-700);
+    --color-success-subtle: light-dark(var(--green-100), var(--green-900));
+    --color-success-subtle-foreground: light-dark(var(--green-700), var(--green-500));
     --color-warning: var(--amber-500);
     --color-warning-foreground: var(--neutral-900);
-    --color-warning-subtle: var(--amber-100);
-    --color-warning-subtle-foreground: var(--amber-700);
+    --color-warning-subtle: light-dark(var(--amber-100), var(--amber-900));
+    --color-warning-subtle-foreground: light-dark(var(--amber-700), var(--amber-500));
     --color-info: var(--blue-500);
     --color-info-foreground: var(--neutral-0);
-    --color-info-subtle: var(--blue-100);
-    --color-info-subtle-foreground: var(--blue-700);
+    --color-info-subtle: light-dark(var(--blue-100), var(--blue-900));
+    --color-info-subtle-foreground: light-dark(var(--blue-700), var(--blue-500));
 
     /* 禁用 */
-    --color-disabled: var(--neutral-100);
-    --color-disabled-foreground: var(--neutral-400);
+    --color-disabled: light-dark(var(--neutral-100), var(--neutral-800));
+    --color-disabled-foreground: light-dark(var(--neutral-400), var(--neutral-500));
 
     /* 结构与焦点 */
-    --color-border: var(--neutral-200);
-    --color-border-strong: var(--neutral-300);
-    --color-input: var(--neutral-200);
-    --color-ring: var(--neutral-950);
+    --color-border: light-dark(var(--neutral-200), var(--neutral-800));
+    --color-border-strong: light-dark(var(--neutral-300), var(--neutral-400));
+    --color-input: light-dark(var(--neutral-200), var(--neutral-800));
+    --color-ring: light-dark(var(--neutral-950), var(--neutral-300));
 
-    /* 圆角阶梯（友好感，消费级偏大） */
+    /* Sidebar（shadcn sidebar 组件族消费；默认与全局语义一致，app 可按需覆盖） */
+    --color-sidebar: light-dark(var(--neutral-50), var(--neutral-900));
+    --color-sidebar-foreground: light-dark(var(--neutral-950), var(--neutral-50));
+    --color-sidebar-primary: light-dark(var(--neutral-900), var(--neutral-50));
+    --color-sidebar-primary-foreground: light-dark(var(--neutral-50), var(--neutral-900));
+    --color-sidebar-accent: light-dark(var(--neutral-100), var(--neutral-800));
+    --color-sidebar-accent-foreground: light-dark(var(--neutral-900), var(--neutral-50));
+    --color-sidebar-border: light-dark(var(--neutral-200), var(--neutral-800));
+    --color-sidebar-ring: light-dark(var(--neutral-400), var(--neutral-500));
+
+    /* 图表分类色（shadcn Chart 组件消费；复用现有色相做 5 分类。
+       当前无图表组件引用，按需保留/替换色相） */
+    --color-chart-1: var(--indigo-500);
+    --color-chart-2: var(--brand-500);
+    --color-chart-3: var(--green-500);
+    --color-chart-4: var(--amber-500);
+    --color-chart-5: var(--blue-500);
+
+    /* 字体：shop 未引入外部字体，heading 与正文同栈；接品牌字体时改 --font-sans */
+    --font-heading: var(--font-sans);
+
+    /* 圆角阶梯（友好感，消费级偏大；全部由 --radius 推导，改一个全站联动） */
     --radius: 0.5rem;
-    --radius-sm: 0.375rem;
-    --radius-md: 0.5rem;
-    --radius-lg: 0.75rem;
-    --radius-xl: 1rem;
+    --radius-sm: calc(var(--radius) * 0.75);
+    --radius-md: var(--radius);
+    --radius-lg: calc(var(--radius) * 1.5);
+    --radius-xl: calc(var(--radius) * 2);
+    --radius-2xl: calc(var(--radius) * 2.5);
+    --radius-3xl: calc(var(--radius) * 3);
+    --radius-4xl: calc(var(--radius) * 4);
 
-    /* 阴影/海拔（染中性色，不用纯黑低透明度） */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 9% / 0.06);
-    --shadow-md:
-        0 4px 6px -1px hsl(0 0% 9% / 0.08), 0 2px 4px -2px hsl(0 0% 9% / 0.06);
-    --shadow-lg:
-        0 10px 15px -3px hsl(0 0% 9% / 0.1), 0 4px 6px -4px hsl(0 0% 9% / 0.08);
+    /* 阴影/海拔（染中性色，不用纯黑低透明度；深浅经 light-dark() 切换） */
+    --shadow-sm: light-dark(var(--shadow-sm-light), var(--shadow-sm-dark));
+    --shadow-md: light-dark(var(--shadow-md-light), var(--shadow-md-dark));
+    --shadow-lg: light-dark(var(--shadow-lg-light), var(--shadow-lg-dark));
 
     /* 动效 */
     --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -181,73 +233,5 @@
         60% {
             transform: translateX(3px);
         }
-    }
-}
-
-/* ---------- Layer 2: Semantic（dark 映射重写） ---------- */
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --color-background: var(--neutral-950);
-        --color-card: var(--neutral-950);
-        --color-popover: var(--neutral-950);
-        --color-sunken: var(--neutral-900);
-        --color-scrim: hsl(0 0% 0% / 0.6);
-
-        --color-foreground: var(--neutral-50);
-        --color-card-foreground: var(--neutral-50);
-        --color-popover-foreground: var(--neutral-50);
-        --color-foreground-subtle: var(--neutral-500);
-        --color-foreground-disabled: var(--neutral-800);
-        --color-link: var(--brand-400);
-
-        --color-primary: var(--neutral-50);
-        --color-primary-foreground: var(--neutral-900);
-        --color-primary-hover: var(--neutral-200);
-
-        --color-secondary: var(--neutral-800);
-        --color-secondary-foreground: var(--neutral-50);
-        --color-muted: var(--neutral-800);
-        --color-muted-foreground: var(--neutral-400);
-        --color-accent: var(--neutral-800);
-        --color-accent-foreground: var(--neutral-50);
-
-        --color-brand: var(--brand-400);
-        --color-brand-foreground: var(--neutral-0);
-        --color-brand-hover: var(--brand-300);
-        --color-brand-active: var(--brand-200);
-        --color-brand-subtle: var(--brand-900);
-        --color-brand-subtle-foreground: var(--brand-200);
-
-        --color-destructive: var(--red-800);
-        --color-destructive-foreground: var(--neutral-50);
-        --color-destructive-subtle: var(--red-900);
-        --color-destructive-subtle-foreground: var(--red-500);
-        --color-success: var(--green-500);
-        --color-success-foreground: var(--neutral-0);
-        --color-success-subtle: var(--green-900);
-        --color-success-subtle-foreground: var(--green-500);
-        --color-warning: var(--amber-500);
-        --color-warning-foreground: var(--neutral-900);
-        --color-warning-subtle: var(--amber-900);
-        --color-warning-subtle-foreground: var(--amber-500);
-        --color-info: var(--blue-500);
-        --color-info-foreground: var(--neutral-0);
-        --color-info-subtle: var(--blue-900);
-        --color-info-subtle-foreground: var(--blue-500);
-
-        --color-disabled: var(--neutral-800);
-        --color-disabled-foreground: var(--neutral-500);
-
-        --color-border: var(--neutral-800);
-        --color-border-strong: var(--neutral-400);
-        --color-input: var(--neutral-800);
-        --color-ring: var(--neutral-300);
-
-        --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
-        --shadow-md:
-            0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
-        --shadow-lg:
-            0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.5);
     }
 }

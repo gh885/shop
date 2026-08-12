@@ -3,90 +3,104 @@
 /* ui-web 在 apps/admin 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明 */
 @source '../../../packages/ui-web/src';
 
-* {
-    box-sizing: border-box;
+/* ==========================================================================
+   Admin 主题覆盖（Layer 2 Semantic 重写，primitive 不动）
+
+   调性：面向客服/运营的工具型后台 —— 暖白底 + 卡片纯白，柔和 pastel 状态色，
+   靛蓝为平台身份色，暖红只留给危险操作。密度高于 C 端，圆角 8px 档。
+   ========================================================================== */
+
+:root {
+    /* 固定浅色：ui-web 声明了 color-scheme: light dark，这里钉回 light，
+       否则系统深色下原生控件（滚动条/表单）会跟着变暗，与浅色设计脱节 */
+    color-scheme: light;
+
+    /* 暖白画布（#F7F6F3 一档），卡片保持纯白浮起 */
+    --color-background: hsl(60 4.8% 95.9%);
+    --color-sunken: hsl(60 5% 92.5%);
+
+    /* 分割线压淡：结构靠底色差，线只是辅助 */
+    --color-border: hsl(40 5% 90%);
+    --color-border-strong: hsl(40 4% 82%);
+
+    /* 侧栏：纯白浮于暖白画布之上 */
+    --color-sidebar: var(--neutral-0);
+    --color-sidebar-border: hsl(40 5% 90%);
+
+    /* 链接/主交互用平台身份色（靛蓝），与 C 端暖红区分 */
+    --color-link: var(--indigo-600);
+
+    /* 品牌语义槽位整体改映射到靛蓝色阶 */
+    --color-brand: var(--indigo-500);
+    --color-brand-foreground: var(--neutral-0);
+    --color-brand-hover: var(--indigo-600);
+    --color-brand-active: var(--indigo-700);
+    --color-brand-subtle: var(--indigo-50);
+    --color-brand-subtle-foreground: var(--indigo-700);
+
+    /* 焦点环用身份色，后台表单密集，焦点可见性优先 */
+    --color-ring: var(--indigo-500);
+
+    /* 阴影再压平：层级靠 1px 边框与底色差，不靠投影 */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 9% / 0.04);
+    --shadow-md:
+        0 4px 6px -1px hsl(0 0% 9% / 0.05), 0 2px 4px -2px hsl(0 0% 9% / 0.04);
+    --shadow-lg:
+        0 10px 15px -3px hsl(0 0% 9% / 0.06), 0 4px 6px -4px hsl(0 0% 9% / 0.05);
 }
 
-html,
-body,
-#root {
-    min-height: 100%;
+/* 暗色：ui-web 语义层经 light-dark() 自动切深色，这里只覆盖 admin 为
+   浅色身份定制的 token（暖白底 → 暖炭、靛蓝提亮一档保证深底对比）。
+   由 <html data-theme="dark"> 驱动（index.html 首屏脚本 + 顶栏 ThemeToggle），
+   未设置时走上方 :root 浅色兜底。原生控件随 color-scheme: dark 自动变暗。 */
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    /* 暖炭画布：卡面浮于其上，wells 沉于其下 */
+    --color-background: hsl(40 5% 8%);
+    --color-sunken: hsl(40 5% 5%);
+    --color-card: hsl(40 5% 12%);
+
+    /* 分割线随底色压暗 */
+    --color-border: hsl(40 4% 16%);
+    --color-border-strong: hsl(40 4% 24%);
+
+    /* 侧栏：与卡面同档，浮于画布之上 */
+    --color-sidebar: hsl(40 5% 12%);
+    --color-sidebar-border: hsl(40 4% 16%);
+
+    /* 链接/主交互：靛蓝 400，深底可读 */
+    --color-link: var(--indigo-400);
+
+    /* 品牌语义槽映射到靛蓝 400 档：实色按钮底提亮，前景改深色字 */
+    --color-brand: var(--indigo-400);
+    --color-brand-foreground: var(--indigo-900);
+    --color-brand-hover: var(--indigo-300);
+    --color-brand-active: var(--indigo-200);
+    --color-brand-subtle: var(--indigo-900);
+    --color-brand-subtle-foreground: var(--indigo-200);
+
+    /* 焦点环 */
+    --color-ring: var(--indigo-400);
+
+    /* 阴影：深底用黑底染色暗影 */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.5);
 }
 
 body {
-    margin: 0;
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        -apple-system,
-        "Segoe UI",
-        Roboto,
-        "Helvetica Neue",
-        "PingFang SC",
-        "Microsoft YaHei",
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
+    /* 后台密度：13-14px 档，中文屏显优先 */
+    font-size: 14px;
 }
 
-::selection {
-    background-color: var(--color-brand-subtle);
-    color: var(--color-brand-subtle-foreground);
-}
+/* 拖拽侧栏宽度时禁用宽度过渡，避免跟手感延迟；同时锁光标与文本选择 */
+[data-sidebar-resizing='true'] {
+    cursor: col-resize;
+    user-select: none;
 
-/* ==========================================================================
-   admin 覆盖 Layer 2 语义（Linear 质感的平台后台，primitive 不动）
-   - 浅色为主、跟随系统明暗：电商运营日常使用，不做工具向强制暗色
-   - 层级靠灰度与发丝边框，不靠色块：表面近白、边框低对比
-   - 品牌 indigo 冷色相：平台身份，与 C 端暖红区分，只做点睛
-   - 收紧圆角、压低文本尺寸：密度优先的工具感
-   ========================================================================== */
-
-@theme {
-    /* 表面：近白层级 */
-    --color-background: var(--neutral-0);
-    --color-sunken: var(--neutral-50);
-    --color-card: var(--neutral-0);
-    --color-popover: var(--neutral-0);
-
-    /* 内容：偏冷的灰阶文本 */
-    --color-foreground: hsl(240 6% 10%);
-    --color-card-foreground: var(--color-foreground);
-    --color-popover-foreground: var(--color-foreground);
-    --color-muted-foreground: hsl(228 6% 46%);
-    --color-foreground-subtle: var(--neutral-400);
-
-    /* 结构：发丝边框 */
-    --color-border: var(--neutral-200);
-    --color-border-strong: var(--neutral-300);
-
-    /* 工具感：收紧圆角 */
-    --radius-sm: 0.25rem;
-    --radius-md: 0.375rem;
-    --radius-lg: 0.5rem;
-    --radius-xl: 0.625rem;
-
-    /* 平台身份色：indigo（Linear 紫蓝方向），审核状态用 success/warning/danger */
-    --color-brand: hsl(232 56% 56%);
-    --color-brand-foreground: var(--neutral-0);
-    --color-brand-hover: hsl(232 56% 50%);
-    --color-brand-active: var(--indigo-700);
-    --color-brand-subtle: var(--indigo-50);
-    --color-brand-subtle-foreground: hsl(232 56% 44%);
-    --color-link: hsl(232 56% 50%);
-}
-
-/* 暗色：共享层把 brand 映射回暖红，admin 需重映射到 indigo */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --color-brand: hsl(232 56% 66%);
-        --color-brand-hover: hsl(232 56% 72%);
-        --color-brand-active: hsl(232 56% 78%);
-        --color-brand-subtle: hsl(232 40% 18%);
-        --color-brand-subtle-foreground: hsl(232 60% 80%);
-        --color-link: hsl(232 60% 72%);
+    [data-slot='sidebar-gap'],
+    [data-slot='sidebar-container'] {
+        transition: none;
     }
 }
