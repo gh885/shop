@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PageResult;
+import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.Validate;
+import com.shop.platform.product.dto.SkuUpdateItem;
 import com.shop.platform.product.mapper.CategoryMapper;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
@@ -12,10 +15,6 @@ import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SkuMapper;
 import com.shop.platform.product.mapper.SpecItem;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -37,7 +36,7 @@ public class ProductService {
     private final CategoryMapper categoryMapper;
     private final SkuMapper skuMapper;
 
-    /** 创建商品草稿：只落基本信息，specs/SKU 由后续接口补充 */
+    /** 创建商品草稿：只落基本信息，specs/SKU 由后续接口补充。shopId 由 controller 从店铺上下文（X-Shop-Id）注入 */
     public Product create(CreateProductCommand command) {
         Validate.isTrue(categoryMapper.selectById(command.categoryId()) != null, "分类不存在");
         Product draft = toDraftEntity(command);
@@ -53,7 +52,7 @@ public class ProductService {
      */
     @Transactional
     public List<Sku> updateSpecs(UUID productId, List<SpecItem> specs) {
-        Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        Product product = requireShopOwned(productId);
         // 1. 校验：上架商品不能改规格（草稿/下架态可改）；规格名不能重复（重复会产生语义混淆的组合）
         Validate.isTrue(product.getStatus() != Product.STATUS_PUBLISHED, 409, "上架商品不能修改规格，请先下架");
         long distinctNames = specs.stream().map(SpecItem::name).distinct().count();
@@ -105,8 +104,8 @@ public class ProductService {
     /** 批量更新 SKU。任何状态都允许：上架后补货/改价/停用是日常运营操作。price/stock 必填，其余只 set 非空字段 */
     @Transactional
     public List<Sku> updateSkus(UUID productId, List<SkuUpdateItem> items) {
-        // 1. 商品必须存在（任何状态都允许改价/补货，是日常运营操作）
-        Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        // 1. 商品必须存在且属于当前店铺（任何状态都允许改价/补货，是日常运营操作）
+        requireShopOwned(productId);
 
         // 2. 逐条更新：WHERE 同时校验 SKU 归属，只 set 非空字段（skuCode/status 传 null 即不改）
         try {
@@ -138,7 +137,7 @@ public class ProductService {
     /** 发布：门槛是每个 SKU 都已设价（库存允许 0，可售罄上架），通过后置上架并回填聚合价格区间 */
     @Transactional
     public Product publish(UUID productId) {
-        Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        Product product = requireShopOwned(productId);
         // 1. 校验：仅草稿可发布
         Validate.isTrue(product.getStatus() == Product.STATUS_DRAFT, 409, "只有草稿可以发布");
 
@@ -154,8 +153,8 @@ public class ProductService {
     }
 
     /** 商家后台商品列表：按店铺分页，可按状态/名称筛选，创建时间倒序。管理端要看全量状态，含草稿/下架 */
-    public Page<Product> pageList(UUID shopId, Integer status, String keyword, long page, long size) {
-        return productMapper.selectPage(
+    public PageResult<Product> pageList(UUID shopId, Integer status, String keyword, long page, long size) {
+        Page<Product> result = productMapper.selectPage(
                 new Page<>(page, size),
                 new LambdaQueryWrapper<Product>()
                         .eq(Product::getShopId, shopId)
@@ -163,19 +162,20 @@ public class ProductService {
                         .like(keyword != null && !keyword.isBlank(), Product::getName, keyword.trim())
                         .orderByDesc(Product::getCreatedAt)
                         .orderByDesc(Product::getId));
+        return new PageResult<>(result.getRecords(), result.getTotal());
     }
 
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查（管理端要能看草稿） */
     public ProductDetail detail(UUID productId) {
-        Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        Product product = requireShopOwned(productId);
         List<Sku> skus = skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
         return new ProductDetail(product, skus);
     }
 
     /** 编辑基本信息（specs/SKU 之外的字段）。任何状态可改：上架后改展示字段/分类是日常运营，改规格走 updateSpecs */
     public Product updateBasic(UUID productId, UpdateBasicCommand command) {
-        // 1. 校验：商品存在、分类存在（同创建）
-        Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        // 1. 校验：商品存在且属于当前店铺、分类存在（同创建）
+        requireShopOwned(productId);
         Validate.isTrue(categoryMapper.selectById(command.categoryId()) != null, "分类不存在");
         // 2. 局部更新：传 null 的字段不写（全库统一 PATCH 语义，见 apps/server/CLAUDE.md），WHERE 只有主键也走 wrapper——与 updateSkus 同形态
         productMapper.update(
@@ -196,7 +196,7 @@ public class ProductService {
     /** 下架：仅上架商品可下架。不做物理删除，下架即"删除"语义，可无损恢复 */
     @Transactional
     public Product off(UUID productId) {
-        Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        Product product = requireShopOwned(productId);
         // 1. 状态校验：只有上架能下架
         Validate.isTrue(product.getStatus() == Product.STATUS_PUBLISHED, 409, "只有上架商品可以下架");
         // 2. 置下架并落库
@@ -208,7 +208,7 @@ public class ProductService {
     /** 重新上架：仅下架商品可上架，复检发布门槛（下架期间 SKU 可能被改） */
     @Transactional
     public Product on(UUID productId) {
-        Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        Product product = requireShopOwned(productId);
         // 1. 状态校验：只有下架能重新上架
         Validate.isTrue(product.getStatus() == Product.STATUS_OFF, 409, "只有下架商品可以重新上架");
         // 2. 复检发布门槛：有 SKU 且全部设价
@@ -220,6 +220,18 @@ public class ProductService {
     }
 
     // ========== 私有辅助 ==========
+
+    /**
+     * 归属校验：商品存在（404）且属于当前店铺上下文（X-Shop-Id 对应的 shopId，否则 403）。
+     * 所有按 ID 操作商品的入口统一走这里，防止跨店读写。
+     */
+    private Product requireShopOwned(UUID productId) {
+        Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        if (!product.getShopId().equals(ShopIdHolder.get())) {
+            throw BusinessException.forbidden("商品不属于当前店铺");
+        }
+        return product;
+    }
 
     /** 笛卡尔积：specs 为空时返回 [[]]，恰好对应单规格商品的 1 个隐藏 SKU；取值用 LinkedHashSet 去重 */
     private List<List<String>> cartesian(List<SpecItem> specs) {
@@ -304,11 +316,6 @@ public class ProductService {
                 .build();
     }
 
-    // ========== 出参 ==========
-
-    /** 商品详情出参：SPU 全字段 + 全部 SKU（管理端任何状态可查） */
-    public record ProductDetail(Product product, List<Sku> skus) {}
-
     // ========== 入参 ==========
 
     /** 创建商品草稿的业务入参聚合 */
@@ -331,17 +338,4 @@ public class ProductService {
             String mainImage,
             List<String> images,
             List<ParamItem> params) {}
-
-    /** 单个 SKU 的更新项，批量提交。price/stock 必填；其余只 set 非空字段，传 null 不改 */
-    public record SkuUpdateItem(
-            @NotNull UUID skuId,
-            @Size(max = 160) String name,
-            @Size(max = 255) String image,
-            @NotNull @Min(0) Long price,
-            @Min(0) Long originalPrice,
-            @NotNull @Min(0) Integer stock,
-            /** 业务编码（仓管/ERP 对账用），全局唯一；传 null 不改，重复会 409 */
-            @Size(max = 64) String skuCode,
-            /** 1 在售 / 0 停用；传 null 不改 */
-            @Min(0) @Max(1) Integer status) {}
 }

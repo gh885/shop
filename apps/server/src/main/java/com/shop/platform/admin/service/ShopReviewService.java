@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.admin.mapper.ShopReview;
 import com.shop.platform.admin.mapper.ShopReviewMapper;
+import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
 import com.shop.platform.shop.events.ShopCreatedEvent;
 import com.shop.platform.shop.events.ShopReviewDecidedEvent;
@@ -34,7 +35,7 @@ public class ShopReviewService {
     // ========== 审核队列 ==========
 
     /** 审核列表（按 status 筛选分页，含店名/店主手机号） */
-    public Page<ShopReviewItem> pageList(String status, long page, long size) {
+    public PageResult<ShopReviewItem> pageList(String status, long page, long size) {
         // 1. 分页查审核记录，PENDING 优先、新店在前
         Page<ShopReview> rows = shopReviewMapper.selectPage(
                 new Page<>(page, size),
@@ -45,7 +46,7 @@ public class ShopReviewService {
 
         // 2. 空页直接返回（避免拼空 IN 列表）
         if (rows.getRecords().isEmpty()) {
-            return new Page<ShopReviewItem>(page, size).setRecords(List.of()).setTotal(rows.getTotal());
+            return new PageResult<>(List.of(), rows.getTotal());
         }
 
         // 3. 跨 schema 只读拼装：店名 + 店主手机号
@@ -66,7 +67,7 @@ public class ShopReviewService {
                         r.getDecidedAt(),
                         r.getCreatedAt()))
                 .toList();
-        return new Page<ShopReviewItem>(page, size).setRecords(items).setTotal(rows.getTotal());
+        return new PageResult<>(items, rows.getTotal());
     }
 
     // ========== 审批 ==========
@@ -161,16 +162,4 @@ public class ShopReviewService {
     private static String placeholders(List<UUID> ids) {
         return String.join(",", Collections.nCopies(ids.size(), "?"));
     }
-
-    // ========== DTO ==========
-
-    public record ShopReviewItem(
-            UUID id,
-            UUID shopId,
-            String shopName,
-            String ownerPhone,
-            String status,
-            String reason,
-            OffsetDateTime decidedAt,
-            OffsetDateTime createdAt) {}
 }
