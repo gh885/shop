@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import {
     ArrowRight,
     CheckCircle2,
@@ -14,6 +14,7 @@ import { AnimatePresence, motion, useReducedMotion, type Variants } from 'motion
 import { Button, buttonVariants } from '@shop/ui-web';
 
 import { useAuthStatus, useLoginDialogOpen } from '../../lib/auth';
+import { SELLER_URL } from '../../lib/external';
 
 export const Route = createFileRoute('/sell/')({
     component: SellLanding,
@@ -35,15 +36,15 @@ function SellLanding() {
     );
 }
 
-/** 开店 CTA：未登录拉起全局登录框，已登录进入开店表单 */
+/** 开店 CTA：未登录拉起全局登录框，已登录进入卖家中心 */
 function OpenShopCta({ size = 'default' }: { size?: 'default' | 'lg' }) {
     const status = useAuthStatus();
     const [, setLoginOpen] = useLoginDialogOpen();
-    const navigate = useNavigate();
 
     function handleClick() {
         if (status === 'authed') {
-            void navigate({ to: '/shops/new' });
+            // 店铺管理已迁到卖家中心（apps/seller 独立 SPA），跨应用跳转
+            window.location.href = SELLER_URL;
         } else {
             setLoginOpen(true);
         }

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { redirect, useNavigate } from '@tanstack/react-router';
 
-import { createApiClient, createAuthApi, createShopApi } from '@shop/api';
+import { createApiClient, createAuthApi } from '@shop/api';
 import type { ApiError } from '@shop/api';
 
 import { authState, getDeviceId, tokenStore } from './auth';
@@ -9,7 +9,6 @@ import { authState, getDeviceId, tokenStore } from './auth';
 // 浏览器端走 Vite proxy（同源相对路径），见 vite.config.ts
 export const api = createApiClient('', tokenStore);
 export const authApi = createAuthApi(api.raw);
-export const shopApi = createShopApi(api.raw);
 
 // ---------- 登录态引导 ----------
 

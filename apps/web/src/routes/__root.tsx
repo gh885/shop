@@ -3,10 +3,12 @@ import { HeadContent, Link, Scripts, createRootRouteWithContext } from '@tanstac
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { TanStackDevtools } from '@tanstack/react-devtools';
 
-import { Button } from '@shop/ui-web';
+import { Button, buttonVariants } from '@shop/ui-web';
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 import { LoginDialog } from '../components/login-dialog';
+import { SiteFooter } from '../components/site-footer';
+import { SiteNav } from '../components/site-nav';
 import { bootstrapAuth, logout } from '../lib/api';
 import { useAuthStatus, useLoginDialogOpen } from '../lib/auth';
 import { useClearMe, useMe } from '../lib/me';
@@ -32,6 +34,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
             {
                 title: 'Shop - 多店铺电商平台',
             },
+            {
+                name: 'description',
+                content: 'Shop 多店铺电商平台：免费开店，上架好货，让好生意被更多人看见。',
+            },
         ],
         links: [
             {
@@ -40,8 +46,26 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
             },
         ],
     }),
+    notFoundComponent: NotFound,
     shellComponent: RootDocument,
 });
+
+/** 品牌化的 404：给出回首页的出口，不做死胡同 */
+function NotFound() {
+    return (
+        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-24">
+            <p className="text-sm font-medium text-muted-foreground">404</p>
+            <h1 className="text-3xl font-bold tracking-tight">页面不存在或已下线</h1>
+            <p className="text-muted-foreground">你找的页面不在这里，回首页继续逛吧。</p>
+            <Link
+                to="/"
+                className={buttonVariants()}
+            >
+                回到首页
+            </Link>
+        </div>
+    );
+}
 
 const devtoolsConfig = { position: 'bottom-right' as const };
 const devtoolsPlugins = [
@@ -58,9 +82,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <head>
                 <HeadContent />
             </head>
-            <body>
+            <body className="flex min-h-dvh flex-col">
                 <Header />
-                <main>{children}</main>
+                <main className="flex-1">{children}</main>
+                <SiteFooter />
                 <GlobalLoginDialog />
                 <TanStackDevtools
                     config={devtoolsConfig}
@@ -84,8 +109,8 @@ function Header() {
     }
 
     return (
-        <header className="border-b">
-            <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+        <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
+            <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
                 <Link
                     to="/"
                     className="text-lg font-bold tracking-tight"
@@ -96,23 +121,13 @@ function Header() {
                     </span>
                 </Link>
 
-                <div className="flex items-center gap-3">
-                    <Link
-                        to="/sell"
-                        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                        我要开店
-                    </Link>
+                <SiteNav />
+
+                <div className="ml-auto flex items-center gap-3">
                     {status === 'unknown' ? (
                         <span className="h-8 w-16 animate-pulse rounded-lg bg-muted" />
                     ) : status === 'authed' ? (
                         <>
-                            <Link
-                                to="/shops/mine"
-                                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                            >
-                                我的店铺
-                            </Link>
                             <span className="text-sm text-muted-foreground">
                                 {me.data?.nickname ?? me.data?.phone ?? '…'}
                             </span>

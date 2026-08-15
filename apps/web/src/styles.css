@@ -7,6 +7,10 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 html,
 body,
 #app {
@@ -17,4 +21,10 @@ body {
     margin: 0;
     background-color: var(--color-background);
     color: var(--color-foreground);
+}
+
+/* 选中文本着色，跟随品牌暖红 */
+::selection {
+    background-color: var(--brand-200);
+    color: var(--brand-900);
 }
