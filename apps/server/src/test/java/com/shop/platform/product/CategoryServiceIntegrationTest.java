@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.product.mapper.Category;
+import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
-import com.shop.platform.product.service.CategoryService.CategoryNode;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

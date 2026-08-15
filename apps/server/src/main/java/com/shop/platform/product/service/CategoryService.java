@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -120,31 +119,5 @@ public class CategoryService {
                 .sorted(Comparator.comparing(Category::getSort).thenComparing(Category::getCreatedAt))
                 .map(c -> CategoryNode.from(c, toNodes(grouped, c.getId())))
                 .toList();
-    }
-
-    @Builder
-    public record CategoryNode(
-            UUID id,
-            UUID parentId,
-            String name,
-            Integer level,
-            Integer sort,
-            Integer status,
-            String iconUrl,
-            List<CategoryNode> children) {
-
-        /** 从类目实体组装节点，children 由调用方递归传入。转换规则收在此处，防散落 */
-        public static CategoryNode from(Category c, List<CategoryNode> children) {
-            return CategoryNode.builder()
-                    .id(c.getId())
-                    .parentId(c.getParentId())
-                    .name(c.getName())
-                    .level(c.getLevel())
-                    .sort(c.getSort())
-                    .status(c.getStatus())
-                    .iconUrl(c.getIconUrl())
-                    .children(children)
-                    .build();
-        }
     }
 }

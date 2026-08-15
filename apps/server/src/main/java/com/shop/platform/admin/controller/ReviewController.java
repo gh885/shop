@@ -31,7 +31,7 @@ public class ReviewController {
     @GetMapping
     public PageResult<ShopReviewItem> list(
             @Valid PageParams pageParams, @RequestParam(required = false) String status) {
-        return shopReviewService.pageList(status, pageParams.page(), pageParams.size());
+        return shopReviewService.pageList(pageParams, status);
     }
 
     /** 审核通过：店铺状态 → ACTIVE */

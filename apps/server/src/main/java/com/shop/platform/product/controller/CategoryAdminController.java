@@ -1,14 +1,12 @@
 package com.shop.platform.product.controller;
 
+import com.shop.platform.product.dto.CreateCategoryRequest;
+import com.shop.platform.product.dto.UpdateCategoryRequest;
+import com.shop.platform.product.dto.UpdateStatusRequest;
 import com.shop.platform.product.mapper.Category;
+import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
-import com.shop.platform.product.service.CategoryService.CategoryNode;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -48,22 +46,4 @@ public class CategoryAdminController {
     public void updateStatus(@PathVariable UUID id, @Valid @RequestBody UpdateStatusRequest req) {
         categoryService.updateStatus(id, req.status());
     }
-
-    // ---- Request DTOs ----
-
-    public record CreateCategoryRequest(
-            UUID parentId, @NotBlank @Size(max = 64) String name, Integer sort, @Size(max = 255) String iconUrl) {
-        public CreateCategoryRequest {
-            if (name != null) name = name.trim();
-        }
-    }
-
-    public record UpdateCategoryRequest(
-            @NotBlank @Size(max = 64) String name, Integer sort, @Size(max = 255) String iconUrl) {
-        public UpdateCategoryRequest {
-            if (name != null) name = name.trim();
-        }
-    }
-
-    public record UpdateStatusRequest(@NotNull @Min(0) @Max(1) Integer status) {}
 }

@@ -1,16 +1,17 @@
 package com.shop.platform.admin.controller;
 
+import com.shop.platform.admin.dto.LoginRequest;
+import com.shop.platform.admin.dto.LogoutRequest;
+import com.shop.platform.admin.dto.RefreshRequest;
 import com.shop.platform.admin.infra.StaffContext;
+import com.shop.platform.admin.service.StaffInfo;
 import com.shop.platform.admin.service.StaffService;
-import com.shop.platform.admin.service.StaffService.StaffInfo;
-import com.shop.platform.admin.service.StaffService.TokenResult;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.infra.security.TokenPair;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
@@ -34,15 +35,15 @@ public class StaffAuthController {
 
     /** 工号 + 密码登录，返回独立于 C 端的 token（kind=staff），refresh 落 httpOnly cookie */
     @PostMapping("/login")
-    public TokenResult login(@Valid @RequestBody LoginRequest req, HttpServletResponse response) {
-        TokenResult result = staffService.login(req.employeeNo(), req.password(), req.deviceId());
+    public TokenPair login(@Valid @RequestBody LoginRequest req, HttpServletResponse response) {
+        TokenPair result = staffService.login(req.employeeNo(), req.password(), req.deviceId());
         setRefreshCookie(response, result.refreshToken());
         return result;
     }
 
     /** 刷新双 token（admin 纯 web：refresh 只认 httpOnly cookie，不做 body 双来源） */
     @PostMapping("/refresh")
-    public TokenResult refresh(
+    public TokenPair refresh(
             HttpServletRequest request,
             HttpServletResponse response,
             @RequestBody(required = false) RefreshRequest req) {
@@ -51,7 +52,7 @@ public class StaffAuthController {
             throw new BusinessException(401, "INVALID_TOKEN", "Refresh Token 未提供");
         }
         String deviceId = req != null && req.deviceId() != null ? req.deviceId() : "default";
-        TokenResult result = staffService.refresh(refreshToken, deviceId);
+        TokenPair result = staffService.refresh(refreshToken, deviceId);
         setRefreshCookie(response, result.refreshToken());
         return result;
     }
@@ -102,19 +103,4 @@ public class StaffAuthController {
         }
         return null;
     }
-
-    // ---- Request DTOs ----
-
-    public record LoginRequest(
-            @NotBlank @Size(max = 50) String employeeNo,
-            @NotBlank @Size(min = 8, max = 72) String password,
-            @NotBlank @Size(max = 100) String deviceId) {
-        public LoginRequest {
-            if (employeeNo != null) employeeNo = employeeNo.trim();
-        }
-    }
-
-    public record RefreshRequest(@Size(max = 100) String deviceId) {}
-
-    public record LogoutRequest(@NotBlank @Size(max = 100) String deviceId) {}
 }

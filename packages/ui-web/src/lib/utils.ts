@@ -11,7 +11,7 @@ export function getPageNumbers(current: number, total: number): (number | '...')
         return Array.from({ length: total }, (_, i) => i + 1);
     }
     const nums = new Set<number>([1, total, current - 1, current, current + 1]);
-    const sorted = [...nums].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+    const sorted = [...nums].filter((n) => n >= 1 && n <= total).toSorted((a, b) => a - b);
     const result: (number | '...')[] = [];
     let prev = 0;
     for (const n of sorted) {

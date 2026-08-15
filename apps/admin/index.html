@@ -2,19 +2,24 @@
 <html lang="zh-CN">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        />
         <title>Shop 平台管理</title>
         <script>
             // 首屏前定主题，避免 FOUC：默认浅色，localStorage 记 dark 则深色
             (function () {
                 var theme = localStorage.getItem('shop_admin_theme');
-                document.documentElement.dataset.theme =
-                    theme === 'dark' ? 'dark' : 'light';
+                document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
             })();
         </script>
     </head>
     <body>
         <div id="root"></div>
-        <script type="module" src="/src/main.tsx"></script>
+        <script
+            type="module"
+            src="/src/main.tsx"
+        ></script>
     </body>
 </html>

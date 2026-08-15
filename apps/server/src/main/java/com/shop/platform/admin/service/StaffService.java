@@ -6,6 +6,7 @@ import com.shop.platform.admin.mapper.StaffMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
+import com.shop.platform.infra.security.TokenPair;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,7 @@ public class StaffService {
     // ========== 登录 ==========
 
     /** 工号 + 密码登录（平台员工独立账号体系，不走手机验证码） */
-    public TokenResult login(String employeeNo, String password, String deviceId) {
+    public TokenPair login(String employeeNo, String password, String deviceId) {
         // 1. 查员工并比对密码（不存在与密码错误统一提示，不暴露账号存在性）
         Staff staff = staffMapper.selectOne(new LambdaQueryWrapper<Staff>().eq(Staff::getEmployeeNo, employeeNo));
         if (staff == null || !passwordEncoder.matches(password, staff.getPasswordHash())) {
@@ -46,7 +47,7 @@ public class StaffService {
     // ========== Token 刷新（复用 RefreshTokenStore 轮换机制） ==========
 
     /** 刷新双 token（一次一换 + 重放检测，与 C 端同一套凭证逻辑） */
-    public TokenResult refresh(String refreshToken, String deviceId) {
+    public TokenPair refresh(String refreshToken, String deviceId) {
         String hash = RefreshTokenStore.sha256Hex(refreshToken);
 
         // 1. 消费旧 Refresh Token（getAndDelete = 一次性）
@@ -91,19 +92,13 @@ public class StaffService {
 
     // ========== Token 签发 ==========
 
-    private TokenResult issueTokens(Staff staff, String deviceId) {
+    private TokenPair issueTokens(Staff staff, String deviceId) {
         String accessToken = jwtProvider.createStaffAccessToken(staff.getId());
         String refreshToken = jwtProvider.generateRefreshToken();
         String hash = RefreshTokenStore.sha256Hex(refreshToken);
 
         // 存 SHA-256 哈希，不落明文；签发 + 设备索引见 RefreshTokenStore
         refreshTokenStore.issue(staff.getId().toString(), deviceId, hash);
-        return new TokenResult(accessToken, refreshToken);
+        return new TokenPair(accessToken, refreshToken);
     }
-
-    // ========== DTO ==========
-
-    public record TokenResult(String accessToken, String refreshToken) {}
-
-    public record StaffInfo(UUID id, String employeeNo, String displayName) {}
 }

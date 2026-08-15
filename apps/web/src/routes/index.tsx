@@ -1,4 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { Link, createFileRoute } from '@tanstack/react-router';
+import { ArrowRight } from 'lucide-react';
+
+import { buttonVariants, cn } from '@shop/ui-web';
 
 interface HealthResponse {
     status: string;
@@ -29,7 +32,26 @@ function Home() {
 
     return (
         <div className="mx-auto max-w-6xl p-8">
-            <div className="space-y-4">
+            <div className="flex flex-col items-start gap-4 rounded-2xl bg-brand-subtle p-8">
+                <h2 className="text-2xl font-bold tracking-tight text-brand-subtle-foreground">
+                    0 元开店，让好生意被更多人看见
+                </h2>
+                <p className="text-brand-subtle-foreground/80">
+                    免费创建店铺，审核通过即可上架商品，开始经营。
+                </p>
+                <Link
+                    to="/sell"
+                    className={cn(
+                        buttonVariants(),
+                        'bg-brand text-brand-foreground hover:bg-brand-hover active:translate-y-px',
+                    )}
+                >
+                    免费开店
+                    <ArrowRight className="size-4" />
+                </Link>
+            </div>
+
+            <div className="mt-8 space-y-4">
                 <h2 className="text-lg font-semibold">系统状态</h2>
                 {health ? (
                     <div className="space-y-2">

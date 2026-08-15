@@ -37,6 +37,7 @@ server/src/main/java/com/shop/platform/
 │   ├── AuthModuleConfig.java     ← @ConditionalOnProperty 开关
 │   ├── package-info.java         ← @ApplicationModule
 │   ├── controller/               ← REST 入口
+│   ├── dto/                      ← HTTP 入参（XxxRequest / XxxQuery）
 │   ├── service/                  ← 业务逻辑
 │   └── mapper/                   ← Entity + Mapper
 ├── product/
@@ -45,6 +46,7 @@ server/src/main/java/com/shop/platform/
 ```
 
 - 模块内部结构：controller → service → mapper，三层到底
+- 命名规范（三层契约）见 `apps/server/AGENTS.md`，由 ArchUnit 强制校验
 - BO/Model 可选，不预创建空目录
 - events/ 目录只在需要跨模块事件时创建
 
@@ -115,18 +117,6 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - 所有金额用 `Money` 类型（amount + currency），不裸传 int64
 - `pnpm dev:server` / `pnpm dev:web` 分别启动前后端
 - `pnpm format` 同时格式化 TS 和 Java
-
-## 命名规范（Java 三层契约）
-
-后缀只标方向，不标层次；出参能复用就复用，变形才新建。
-
-- **数据库对象（mapper 包）**：裸名词，无后缀 —— `Product` / `Sku` / `Category` / `User`；Mapper 接口以 `Mapper` 结尾
-- **HTTP 入参（controller 包）**：`<动作>Request` —— `CreateProductRequest` / `SmsLoginRequest`；`Request` 后缀只允许出现在 controller 包
-- **业务入参聚合（service 包）**：`<动作>Command`，仅当入参字段多到无法拆包传基本类型时使用 —— `CreateProductCommand`
-- **出参**：能直接返回实体/已有类型就不新建；必须变形时按形状命名（`CategoryNode`、`TokenResult`），不贴统一的 `XxxResponse` 标签
-- **子组件**：Request/Command 内部的嵌套小组件（如 `ParamItem`）按语义命名，不受方向后缀约束
-
-由 `apps/server/src/test/java/com/shop/platform/NamingRulesTest.java`（ArchUnit）强制校验。
 
 ## 错误码规范
 

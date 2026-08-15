@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.admin.mapper.ShopReview;
 import com.shop.platform.admin.mapper.ShopReviewMapper;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
 import com.shop.platform.shop.events.ShopCreatedEvent;
@@ -35,10 +36,10 @@ public class ShopReviewService {
     // ========== 审核队列 ==========
 
     /** 审核列表（按 status 筛选分页，含店名/店主手机号） */
-    public PageResult<ShopReviewItem> pageList(String status, long page, long size) {
+    public PageResult<ShopReviewItem> pageList(PageParams pageParams, String status) {
         // 1. 分页查审核记录，PENDING 优先、新店在前
         Page<ShopReview> rows = shopReviewMapper.selectPage(
-                new Page<>(page, size),
+                new Page<>(pageParams.page(), pageParams.size()),
                 new LambdaQueryWrapper<ShopReview>()
                         .eq(status != null && !status.isBlank(), ShopReview::getStatus, status)
                         .orderByAsc(ShopReview::getStatus)

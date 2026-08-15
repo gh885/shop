@@ -9,6 +9,7 @@ import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
+import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.util.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -77,7 +78,7 @@ public class AuthService {
     // ========== 短信登录/注册 ==========
 
     @Transactional
-    public TokenResult loginBySms(String phone, String code, String deviceId, String clientIp) {
+    public TokenPair loginBySms(String phone, String code, String deviceId, String clientIp) {
         // 1. 校验短信验证码
         smsCodeService.verifyCode(phone, code);
 
@@ -94,7 +95,7 @@ public class AuthService {
 
     // ========== 密码登录 ==========
 
-    public TokenResult loginByPassword(String phone, String password, String deviceId, String clientIp) {
+    public TokenPair loginByPassword(String phone, String password, String deviceId, String clientIp) {
 
         // 1. 限流检查（被限流时走 dummy hash 防时序探测）
         rejectIfRateLimited(phone, password, clientIp);
@@ -193,7 +194,7 @@ public class AuthService {
     // ========== Token 刷新（Rotation） ==========
 
     /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测）。Redis 机制见 RefreshTokenStore */
-    public TokenResult refresh(String refreshToken, String deviceId) {
+    public TokenPair refresh(String refreshToken, String deviceId) {
         String hash = RefreshTokenStore.sha256Hex(refreshToken);
 
         // 1. 消费旧 Refresh Token（getAndDelete = 一次性）
@@ -226,11 +227,11 @@ public class AuthService {
 
     // ========== 当前用户 ==========
 
-    /** 获取当前登录用户信息（手机号脱敏返回） */
-    public MeResponse getMe(UUID userId) {
+    /** 获取当前登录用户实体；手机号脱敏等展示变形由 controller 组装 MeResponse 时完成 */
+    public User getMe(UUID userId) {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
-        return new MeResponse(user.getId(), maskPhone(user.getPhone()), user.getNickname(), user.getAvatarKey());
+        return user;
     }
 
     // ========== 登出 ==========
@@ -315,7 +316,7 @@ public class AuthService {
 
     // ========== Token 签发 ==========
 
-    private TokenResult issueTokens(User user, String deviceId) {
+    private TokenPair issueTokens(User user, String deviceId) {
         String accessToken = jwtProvider.createAccessToken(user.getId());
         String refreshToken = jwtProvider.generateRefreshToken();
         String hash = RefreshTokenStore.sha256Hex(refreshToken);
@@ -337,7 +338,7 @@ public class AuthService {
             MDC.remove("user_id");
         }
 
-        return new TokenResult(accessToken, refreshToken);
+        return new TokenPair(accessToken, refreshToken);
     }
 
     // ========== Token 吊销 ==========
@@ -374,10 +375,4 @@ public class AuthService {
         if (phone == null || phone.length() < 7) return "****";
         return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
-
-    // ========== DTO ==========
-
-    public record TokenResult(String accessToken, String refreshToken) {}
-
-    public record MeResponse(UUID id, String phone, String nickname, String avatarKey) {}
 }

@@ -1,17 +1,23 @@
 package com.shop.platform.auth.controller;
 
+import com.shop.platform.auth.dto.ForgotPasswordRequest;
+import com.shop.platform.auth.dto.LogoutRequest;
+import com.shop.platform.auth.dto.PasswordLoginRequest;
+import com.shop.platform.auth.dto.RefreshRequest;
+import com.shop.platform.auth.dto.ResetPasswordRequest;
+import com.shop.platform.auth.dto.SetPasswordRequest;
+import com.shop.platform.auth.dto.SmsCodeRequest;
+import com.shop.platform.auth.dto.SmsLoginRequest;
+import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.service.AuthService;
-import com.shop.platform.auth.service.AuthService.MeResponse;
-import com.shop.platform.auth.service.AuthService.TokenResult;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.infra.security.TokenPair;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
@@ -43,23 +49,22 @@ public class AuthController {
 
     /** 短信验证码登录/注册 */
     @PostMapping("/login/sms")
-    public TokenResult loginBySms(
+    public TokenPair loginBySms(
             @Valid @RequestBody SmsLoginRequest req,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
-        TokenResult result =
-                authService.loginBySms(req.phone(), req.code(), req.deviceId(), getClientIp(servletRequest));
+        TokenPair result = authService.loginBySms(req.phone(), req.code(), req.deviceId(), getClientIp(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
 
     /** 密码登录 */
     @PostMapping("/login/password")
-    public TokenResult loginByPassword(
+    public TokenPair loginByPassword(
             @Valid @RequestBody PasswordLoginRequest req,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
-        TokenResult result =
+        TokenPair result =
                 authService.loginByPassword(req.phone(), req.password(), req.deviceId(), getClientIp(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
@@ -86,7 +91,7 @@ public class AuthController {
 
     /** 刷新双 token（STORE-02: Cookie + Body 双来源） */
     @PostMapping("/refresh")
-    public TokenResult refresh(
+    public TokenPair refresh(
             HttpServletRequest request,
             HttpServletResponse response,
             @RequestBody(required = false) RefreshRequest req) {
@@ -96,7 +101,7 @@ public class AuthController {
         }
         String deviceId = req != null && req.deviceId() != null ? req.deviceId() : "default";
 
-        TokenResult result = authService.refresh(refreshToken, deviceId);
+        TokenPair result = authService.refresh(refreshToken, deviceId);
         setRefreshCookie(response, result.refreshToken());
         return result;
     }
@@ -105,7 +110,8 @@ public class AuthController {
     @GetMapping("/me")
     public MeResponse me() {
         UUID userId = UserIdHolder.get();
-        return authService.getMe(userId);
+        User user = authService.getMe(userId);
+        return new MeResponse(user.getId(), maskPhone(user.getPhone()), user.getNickname(), user.getAvatarKey());
     }
 
     /** 登出（STORE-02: 清除 Cookie） */
@@ -162,51 +168,14 @@ public class AuthController {
         return request.getRemoteAddr();
     }
 
-    // ---- Request DTOs ----
-
-    public record SmsCodeRequest(@NotBlank @Size(min = 7, max = 20) String phone) {
-        public SmsCodeRequest {
-            if (phone != null) phone = phone.trim();
-        }
+    /** 手机号脱敏（展示层变形，与 AuthService 日志脱敏同规则） */
+    private static String maskPhone(String phone) {
+        if (phone == null || phone.length() < 7) return "****";
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 
-    public record SmsLoginRequest(
-            @NotBlank @Size(min = 7, max = 20) String phone,
-            @NotBlank @Size(min = 6, max = 6) String code,
-            @NotBlank @Size(max = 100) String deviceId) {
-        public SmsLoginRequest {
-            if (phone != null) phone = phone.trim();
-        }
-    }
+    // ---- Response DTOs ----
 
-    public record PasswordLoginRequest(
-            @NotBlank @Size(min = 7, max = 20) String phone,
-            @NotBlank @Size(min = 8, max = 72) String password,
-            @NotBlank @Size(max = 100) String deviceId) {
-        public PasswordLoginRequest {
-            if (phone != null) phone = phone.trim();
-        }
-    }
-
-    public record SetPasswordRequest(
-            @Size(max = 72) String currentPassword, @NotBlank @Size(min = 8, max = 72) String newPassword) {}
-
-    public record ForgotPasswordRequest(@NotBlank @Size(min = 7, max = 20) String phone) {
-        public ForgotPasswordRequest {
-            if (phone != null) phone = phone.trim();
-        }
-    }
-
-    public record ResetPasswordRequest(
-            @NotBlank @Size(min = 7, max = 20) String phone,
-            @NotBlank @Size(min = 1, max = 200) String token,
-            @NotBlank @Size(min = 8, max = 72) String newPassword) {
-        public ResetPasswordRequest {
-            if (phone != null) phone = phone.trim();
-        }
-    }
-
-    public record RefreshRequest(@Size(max = 200) String refreshToken, @Size(max = 100) String deviceId) {}
-
-    public record LogoutRequest(@NotBlank @Size(max = 100) String deviceId) {}
+    /** 当前登录用户信息（手机号已脱敏） */
+    public record MeResponse(UUID id, String phone, String nickname, String avatarKey) {}
 }

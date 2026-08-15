@@ -97,10 +97,22 @@ function Header() {
                 </Link>
 
                 <div className="flex items-center gap-3">
+                    <Link
+                        to="/sell"
+                        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        我要开店
+                    </Link>
                     {status === 'unknown' ? (
                         <span className="h-8 w-16 animate-pulse rounded-lg bg-muted" />
                     ) : status === 'authed' ? (
                         <>
+                            <Link
+                                to="/shops/mine"
+                                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                我的店铺
+                            </Link>
                             <span className="text-sm text-muted-foreground">
                                 {me.data?.nickname ?? me.data?.phone ?? '…'}
                             </span>

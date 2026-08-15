@@ -1,15 +1,22 @@
 package com.shop.platform.shop.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import com.shop.platform.shop.events.ShopCreatedEvent;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +28,7 @@ public class ShopService {
     private final ShopMapper shopMapper;
     private final ShopMemberMapper shopMemberMapper;
     private final ApplicationEventPublisher events;
+    private final JdbcTemplate jdbc;
 
     /** 开店：建店（PENDING_REVIEW）+ 店主成为 OWNER 成员 + 发布审核事件 */
     @Transactional
@@ -50,5 +58,171 @@ public class ShopService {
         events.publishEvent(new ShopCreatedEvent(shop.getId(), ownerId));
         log.info("[SHOP] 开店成功, shopId={}, ownerId={}", shop.getId(), ownerId);
         return shop;
+    }
+
+    // ========== 我的店铺与邀请 ==========
+
+    /** 我的店铺列表：当前用户 ACTIVE 成员身份对应的全部店铺，新店在前 */
+    public List<Shop> myShops(UUID userId) {
+        List<UUID> shopIds = shopMemberMapper
+                .selectList(new LambdaQueryWrapper<ShopMember>()
+                        .eq(ShopMember::getUserId, userId)
+                        .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE))
+                .stream()
+                .map(ShopMember::getShopId)
+                .toList();
+        if (shopIds.isEmpty()) return List.of();
+        return shopMapper.selectList(
+                new LambdaQueryWrapper<Shop>().in(Shop::getId, shopIds).orderByDesc(Shop::getCreatedAt));
+    }
+
+    /** 我的待确认邀请：别人邀我、等我同意的成员记录，拼上店名 */
+    public List<ShopInviteItem> myInvites(UUID userId) {
+        List<ShopMember> pending = shopMemberMapper.selectList(new LambdaQueryWrapper<ShopMember>()
+                .eq(ShopMember::getUserId, userId)
+                .eq(ShopMember::getStatus, ShopMember.STATUS_PENDING)
+                .orderByDesc(ShopMember::getCreatedAt));
+        if (pending.isEmpty()) return List.of();
+
+        Map<UUID, Shop> shops = shopMapper
+                .selectList(new LambdaQueryWrapper<Shop>()
+                        .in(
+                                Shop::getId,
+                                pending.stream().map(ShopMember::getShopId).toList()))
+                .stream()
+                .collect(Collectors.toMap(Shop::getId, Function.identity()));
+        return pending.stream()
+                .map(m -> new ShopInviteItem(
+                        m.getId(),
+                        m.getShopId(),
+                        shops.containsKey(m.getShopId())
+                                ? shops.get(m.getShopId()).getName()
+                                : null,
+                        m.getCreatedAt()))
+                .toList();
+    }
+
+    /** 同意邀请：只能确认发给自己的 PENDING 邀请，确认后 ACTIVE 生效 */
+    @Transactional
+    public ShopMember acceptInvite(UUID memberId, UUID userId) {
+        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "邀请不存在或已失效");
+        Validate.isTrue(member.getUserId().equals(userId), "不能确认发给别人的邀请");
+        Validate.isTrue(ShopMember.STATUS_PENDING.equals(member.getStatus()), "该邀请已处理");
+        member.setStatus(ShopMember.STATUS_ACTIVE);
+        shopMemberMapper.updateById(member);
+        log.info("[SHOP] 成员确认加入, shopId={}, userId={}", member.getShopId(), userId);
+        return member;
+    }
+
+    // ========== 成员管理（店主操作） ==========
+
+    /** 店铺成员列表：仅本店 ACTIVE 成员可见，拼上成员手机号（跨 schema 只读按 ID 查，禁止 JOIN） */
+    public List<ShopMemberItem> members(UUID shopId, UUID operatorId) {
+        requireActiveMember(shopId, operatorId);
+        List<ShopMember> members = shopMemberMapper.selectList(new LambdaQueryWrapper<ShopMember>()
+                .eq(ShopMember::getShopId, shopId)
+                .orderByAsc(ShopMember::getCreatedAt));
+        Map<UUID, String> phones = loadPhones(
+                members.stream().map(ShopMember::getUserId).distinct().toList());
+        return members.stream()
+                .map(m -> new ShopMemberItem(
+                        m.getId(), m.getUserId(), phones.get(m.getUserId()), m.getRole(), m.getStatus()))
+                .toList();
+    }
+
+    /** 店主邀请成员：按手机号找人，落 PENDING 等对方登录后确认 */
+    @Transactional
+    public ShopMember invite(UUID shopId, UUID ownerId, String phone) {
+        // 1. 校验操作者是店主
+        requireOwner(shopId, ownerId);
+
+        // 2. 按手机号找人（跨 schema 只读，auth.users 全局唯一手机号）
+        UUID inviteeId = findUserIdByPhone(phone);
+        if (inviteeId == null) {
+            throw BusinessException.badRequest("该手机号还未注册");
+        }
+        if (inviteeId.equals(ownerId)) {
+            throw BusinessException.badRequest("不能邀请自己");
+        }
+
+        // 3. 防重：同店同人只能有一条成员记录（唯一索引 uk_shop_members_shop_user 兜底并发）
+        Long exists = shopMemberMapper.selectCount(new LambdaQueryWrapper<ShopMember>()
+                .eq(ShopMember::getShopId, shopId)
+                .eq(ShopMember::getUserId, inviteeId));
+        if (exists > 0) {
+            throw BusinessException.conflict(null, "对方已是店铺成员或已有待确认邀请");
+        }
+
+        // 4. 落 PENDING 邀请，等对方确认
+        ShopMember member = ShopMember.builder()
+                .shopId(shopId)
+                .userId(inviteeId)
+                .role(ShopMember.ROLE_MEMBER)
+                .status(ShopMember.STATUS_PENDING)
+                .build();
+        shopMemberMapper.insert(member);
+        log.info("[SHOP] 邀请成员, shopId={}, invitee={}", shopId, inviteeId);
+        return member;
+    }
+
+    /** 店主移除成员：不能移除自己（店主身份随店铺存续） */
+    @Transactional
+    public void removeMember(UUID shopId, UUID memberId, UUID ownerId) {
+        requireOwner(shopId, ownerId);
+        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "成员不存在");
+        Validate.isTrue(member.getShopId().equals(shopId), "成员不属于该店铺");
+        if (ShopMember.ROLE_OWNER.equals(member.getRole())) {
+            throw BusinessException.badRequest("不能移除店主");
+        }
+        shopMemberMapper.deleteById(memberId);
+        log.info("[SHOP] 移除成员, shopId={}, memberId={}", shopId, memberId);
+    }
+
+    // ========== 内部 ==========
+
+    /** 当前用户是否为该店店主，不是则 403 */
+    private void requireOwner(UUID shopId, UUID userId) {
+        Long count = shopMemberMapper.selectCount(new LambdaQueryWrapper<ShopMember>()
+                .eq(ShopMember::getShopId, shopId)
+                .eq(ShopMember::getUserId, userId)
+                .eq(ShopMember::getRole, ShopMember.ROLE_OWNER)
+                .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
+        if (count == 0) {
+            throw BusinessException.forbidden("只有店主可以执行该操作");
+        }
+    }
+
+    /** 当前用户是否为该店 ACTIVE 成员，不是则 403 */
+    private void requireActiveMember(UUID shopId, UUID userId) {
+        Long count = shopMemberMapper.selectCount(new LambdaQueryWrapper<ShopMember>()
+                .eq(ShopMember::getShopId, shopId)
+                .eq(ShopMember::getUserId, userId)
+                .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
+        if (count == 0) {
+            throw BusinessException.forbidden("你不是该店铺成员");
+        }
+    }
+
+    /** 跨 schema 只读：按手机号查 auth.users.id（全局唯一），未注册返回 null */
+    private UUID findUserIdByPhone(String phone) {
+        List<UUID> ids = jdbc.query(
+                "SELECT id FROM auth.users WHERE phone = ?", (rs, i) -> rs.getObject("id", UUID.class), phone);
+        return ids.isEmpty() ? null : ids.getFirst();
+    }
+
+    /** 跨 schema 只读：按 ID 批量查 auth.users 手机号 */
+    private Map<UUID, String> loadPhones(List<UUID> userIds) {
+        if (userIds.isEmpty()) return Map.of();
+        String in = userIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        return jdbc.query(
+                "SELECT id, phone FROM auth.users WHERE id IN (" + in + ")",
+                rs -> {
+                    Map<UUID, String> map = new java.util.HashMap<>();
+                    while (rs.next()) {
+                        map.put(rs.getObject("id", UUID.class), rs.getString("phone"));
+                    }
+                    return map;
+                },
+                userIds.toArray());
     }
 }

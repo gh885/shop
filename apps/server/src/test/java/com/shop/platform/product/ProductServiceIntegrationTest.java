@@ -4,14 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ShopIdHolder;
+import com.shop.platform.product.dto.SkuUpdateItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductService;
 import com.shop.platform.product.service.ProductService.CreateProductCommand;
-import com.shop.platform.product.service.ProductService.SkuUpdateItem;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,16 +28,17 @@ class ProductServiceIntegrationTest {
     @Autowired
     private ProductService productService;
 
+    /** 接口变更后 shopId 不再由调用方传入，而是来自店铺上下文（X-Shop-Id）。测试直接操作 service，手动落上下文 */
     private Product createDraft(String name) {
-        return productService.create(new CreateProductCommand(
-                UUID.randomUUID(), // shopId，暂无店铺模块，前端传入
-                SEED_CATEGORY,
-                name,
-                null,
-                null,
-                null,
-                List.of(),
-                List.of()));
+        UUID shopId = UUID.randomUUID();
+        ShopIdHolder.set(shopId);
+        return productService.create(
+                new CreateProductCommand(shopId, SEED_CATEGORY, name, null, null, null, List.of(), List.of()));
+    }
+
+    @AfterEach
+    void clearShopContext() {
+        ShopIdHolder.clear();
     }
 
     @Test

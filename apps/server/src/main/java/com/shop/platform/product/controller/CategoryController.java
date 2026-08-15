@@ -1,7 +1,7 @@
 package com.shop.platform.product.controller;
 
+import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
-import com.shop.platform.product.service.CategoryService.CategoryNode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

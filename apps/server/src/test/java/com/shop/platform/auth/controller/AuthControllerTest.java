@@ -7,10 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.auth.infra.JwtAuthFilter;
 import com.shop.platform.auth.service.AuthService;
-import com.shop.platform.auth.service.AuthService.TokenResult;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.security.JwtProvider;
+import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.RequestBodySizeFilter;
 import com.shop.platform.infra.web.RequestIdFilter;
 import jakarta.servlet.http.Cookie;
@@ -193,7 +193,7 @@ class AuthControllerTest {
     @Test
     void loginByPassword_success_setsRefreshCookie() throws Exception {
         when(authService.loginByPassword(anyString(), anyString(), anyString(), anyString()))
-                .thenReturn(new TokenResult("access-token", "rt:test-value"));
+                .thenReturn(new TokenPair("access-token", "rt:test-value"));
 
         mockMvc.perform(
                         post("/auth/login/password")
@@ -212,7 +212,7 @@ class AuthControllerTest {
 
     @Test
     void refresh_fromCookie_succeeds() throws Exception {
-        when(authService.refresh(eq("rt:cookie"), anyString())).thenReturn(new TokenResult("new-at", "rt:new"));
+        when(authService.refresh(eq("rt:cookie"), anyString())).thenReturn(new TokenPair("new-at", "rt:new"));
 
         mockMvc.perform(post("/auth/refresh")
                         .cookie(new Cookie("refresh_token", "rt:cookie"))
@@ -228,7 +228,7 @@ class AuthControllerTest {
 
     @Test
     void refresh_fromBody_fallsBack() throws Exception {
-        when(authService.refresh(eq("rt:body"), anyString())).thenReturn(new TokenResult("new-at", "rt:new"));
+        when(authService.refresh(eq("rt:body"), anyString())).thenReturn(new TokenPair("new-at", "rt:new"));
 
         mockMvc.perform(
                         post("/auth/refresh")
@@ -289,7 +289,7 @@ class AuthControllerTest {
     @Test
     void loginByPassword_success_returnsTokenResult() throws Exception {
         when(authService.loginByPassword(anyString(), anyString(), anyString(), anyString()))
-                .thenReturn(new TokenResult("at1", "rt1"));
+                .thenReturn(new TokenPair("at1", "rt1"));
 
         mockMvc.perform(
                         post("/auth/login/password")
