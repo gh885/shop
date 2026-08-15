@@ -1,0 +1,29 @@
+@import '@shop/ui-web/src/styles.css';
+
+/* ui-web 在 apps/seller 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明 */
+@source '../../../packages/ui-web/src';
+
+/* ==========================================================================
+   Seller 主题覆盖（Layer 2 Semantic 重写，primitive 不动）
+
+   调性：商家经营工具 —— 中性灰画布 + 卡片纯白，品牌暖红保留给转化动作
+  （发布/开店等主 CTA），危险操作走 destructive。密度高于 C 端。
+   ========================================================================== */
+
+:root {
+    /* 固定浅色：ui-web 声明了 color-scheme: light dark，这里钉回 light */
+    color-scheme: light;
+
+    /* 灰白画布，卡片纯白浮起 */
+    --color-background: var(--neutral-50);
+    --color-sunken: var(--neutral-100);
+
+    /* 侧栏：纯白浮于画布之上 */
+    --color-sidebar: var(--neutral-0);
+    --color-sidebar-border: var(--neutral-200);
+}
+
+body {
+    /* 后台密度：14px 档，中文屏显优先 */
+    font-size: 14px;
+}

@@ -56,7 +56,9 @@ server/src/main/java/com/shop/platform/
 # 开发
 pnpm dev              # 前后端同时启动
 pnpm dev:server       # 后端（Spring Boot）
-pnpm dev:web          # 前端（Vite 开发服务器）
+pnpm dev:web          # 买家端（Vite 开发服务器，3000 端口）
+pnpm dev:seller       # 卖家工作台（独立 SPA，5000 端口）
+pnpm dev:admin        # 平台管理端（独立 SPA，4000 端口）
 
 # 检查
 pnpm lint             # oxlint + mvn compile
@@ -94,9 +96,9 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 
 - 底层无样式组件：`@base-ui/react`（BaseUI），WAI-ARIA 合规
 - 样式系统：Tailwind v4 + 分层主题 token（`packages/ui-web/src/styles.css`）
-  - Layer 1 Primitive（`--neutral/--brand/--green…` 色阶）：禁止组件直接使用
-  - Layer 2 Semantic（`--color-*`）：组件只用这层；明暗模式只重写这层映射
-  - 风格定位：消费级电商转化风——中性灰撑全场，品牌暖红只做转化引导（CTA）
+    - Layer 1 Primitive（`--neutral/--brand/--green…` 色阶）：禁止组件直接使用
+    - Layer 2 Semantic（`--color-*`）：组件只用这层；明暗模式只重写这层映射
+    - 风格定位：消费级电商转化风——中性灰撑全场，品牌暖红只做转化引导（CTA）
 - 图标库：`lucide-react`
 - 组件导出：`packages/ui-web/src/index.ts` → 各 app 直接 import
 
