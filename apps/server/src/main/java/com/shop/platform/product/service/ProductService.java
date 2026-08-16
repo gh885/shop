@@ -7,6 +7,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.Validate;
+import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.dto.SkuUpdateItem;
 import com.shop.platform.product.mapper.CategoryMapper;
 import com.shop.platform.product.mapper.ParamItem;
@@ -169,6 +170,42 @@ public class ProductService {
     public ProductDetail detail(UUID productId) {
         Product product = requireShopOwned(productId);
         List<Sku> skus = skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
+        return new ProductDetail(product, skus);
+    }
+
+    // ========== 买家侧公开读 ==========
+
+    /**
+     * 买家侧商品列表：可按类目/店铺/关键词筛选并排序。
+     *
+     * <p>与 pageList 的关键差别：status 写死上架，不接受前端指定，草稿/下架商品对买家不存在。 价格排序直接吃 minPrice/maxPrice 冗余副本，免查 SKU
+     * 表——这两个字段的存在意义就在此。
+     */
+    public PageResult<Product> pagePublic(ProductQuery query, long page, long size) {
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
+                .eq(Product::getStatus, Product.STATUS_PUBLISHED)
+                .eq(query.categoryId() != null, Product::getCategoryId, query.categoryId())
+                .eq(query.shopId() != null, Product::getShopId, query.shopId())
+                .like(
+                        query.keyword() != null && !query.keyword().isBlank(),
+                        Product::getName,
+                        query.keyword() == null ? null : query.keyword().trim());
+        // 每种排序都补 id 兜底，保证翻页时同值记录顺序稳定（否则第 2 页可能重复第 1 页的行）
+        switch (query.sort() == null ? "newest" : query.sort()) {
+            case "price_asc" -> wrapper.orderByAsc(Product::getMinPrice).orderByDesc(Product::getId);
+            case "price_desc" -> wrapper.orderByDesc(Product::getMaxPrice).orderByDesc(Product::getId);
+            default -> wrapper.orderByDesc(Product::getCreatedAt).orderByDesc(Product::getId);
+        }
+        Page<Product> result = productMapper.selectPage(new Page<>(page, size), wrapper);
+        return new PageResult<>(result.getRecords(), result.getTotal());
+    }
+
+    /** 买家侧商品详情：非上架商品一律 404（不泄露"存在但没上架"），SKU 只返在售 */
+    public ProductDetail publicDetail(UUID productId) {
+        Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
+        Validate.isTrue(product.getStatus() == Product.STATUS_PUBLISHED, 404, "商品不存在");
+        List<Sku> skus = skuMapper.selectList(
+                new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId).eq(Sku::getStatus, Sku.STATUS_ON_SALE));
         return new ProductDetail(product, skus);
     }
 

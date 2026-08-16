@@ -114,6 +114,15 @@ public class ShopService {
         return member;
     }
 
+    // ========== 买家侧公开读 ==========
+
+    /** 店铺公开信息：仅 ACTIVE 可见。待审核/被拒/封禁的店对买家一律 404，不泄露"存在但不可用" */
+    public Shop publicShop(UUID shopId) {
+        Shop shop = Validate.notNull(shopMapper.selectById(shopId), "店铺不存在");
+        Validate.isTrue(Shop.STATUS_ACTIVE.equals(shop.getStatus()), 404, "店铺不存在");
+        return shop;
+    }
+
     // ========== 成员管理（店主操作） ==========
 
     /** 店铺成员列表：仅本店 ACTIVE 成员可见，拼上成员手机号（跨 schema 只读按 ID 查，禁止 JOIN） */

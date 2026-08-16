@@ -29,9 +29,16 @@ public class JwtProperties {
     /** JWT 受众 */
     private String audience = "shop-api";
 
-    /** 不需要认证的路径 */
+    /**
+     * 不需要认证的路径（前缀匹配）。
+     *
+     * <p>买家侧的浏览接口（商品/类目/店铺）必须匿名可访问：未登录也要能逛。 注意只放开只读浏览，购物车/下单等 /api 下的写接口不在此列，逐个新增时不要图省事写 "/api"。
+     */
     private List<String> skipPaths = List.of(
             "/api/health",
+            "/api/products",
+            "/api/categories",
+            "/api/shops",
             "/auth/sms-code",
             "/auth/login/sms",
             "/auth/login/password",
