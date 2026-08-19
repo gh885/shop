@@ -1,18 +1,18 @@
-'use client';
+"use client"
 
-import * as React from 'react';
-import { type Table } from '@tanstack/react-table';
-import { XIcon } from 'lucide-react';
+import * as React from "react"
+import { type Table } from "@tanstack/react-table"
+import { XIcon } from "lucide-react"
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Badge } from "src/components/ui/badge"
+import { Button } from "src/components/ui/button"
+import { Separator } from "src/components/ui/separator"
 
 type DataTableBulkActionsProps<TData> = {
-    table: Table<TData>;
-    entityName: string;
-    children: React.ReactNode;
-};
+    table: Table<TData>
+    entityName: string
+    children: React.ReactNode
+}
 
 /** 选中行后底部浮出的批量操作条；无选中不渲染 */
 export function DataTableBulkActions<TData>({
@@ -20,10 +20,10 @@ export function DataTableBulkActions<TData>({
     entityName,
     children,
 }: DataTableBulkActionsProps<TData>) {
-    const selectedCount = table.getFilteredSelectedRowModel().rows.length;
+    const selectedCount = table.getFilteredSelectedRowModel().rows.length
 
     if (selectedCount === 0) {
-        return null;
+        return null
     }
 
     return (
@@ -54,5 +54,5 @@ export function DataTableBulkActions<TData>({
                 {children}
             </div>
         </div>
-    );
+    )
 }

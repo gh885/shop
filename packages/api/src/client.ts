@@ -1,26 +1,26 @@
-import ky, { HTTPError, type BeforeRequestState, type KyInstance, type Options } from 'ky';
-import type { z } from 'zod';
+import ky, { HTTPError, type BeforeRequestState, type KyInstance, type Options } from "ky"
+import type { z } from "zod"
 
-import { ApiErrorSchema, type ApiError } from './schemas/common';
+import { ApiErrorSchema, type ApiError } from "./schemas/common"
 
 // ---------- Token 存储抽象 ----------
 
 export interface TokenStore {
-    get: () => string | null;
-    set: (token: string) => void;
+    get: () => string | null
+    set: (token: string) => void
 }
 
 // ---------- 可观测性 ----------
 
-const startTimes = new WeakMap<Request, number>();
+const startTimes = new WeakMap<Request, number>()
 
 // ---------- API Client ----------
 
 export interface ApiClient {
     /** 原始 ky 实例（底层访问用） */
-    raw: KyInstance;
+    raw: KyInstance
     /** 带 Zod 校验的请求函数 */
-    request: <T>(schema: z.ZodType<T>, path: string, options?: Options) => Promise<T>;
+    request: <T>(schema: z.ZodType<T>, path: string, options?: Options) => Promise<T>
 }
 
 /**
@@ -31,7 +31,7 @@ export interface ApiClient {
  */
 export interface ApiClientOptions {
     /** 401 自动刷新的端点（相对路径，经 Vite proxy 同源；默认 C 端 auth/refresh） */
-    refreshPath?: string;
+    refreshPath?: string
 }
 
 export function createApiClient(
@@ -41,7 +41,7 @@ export function createApiClient(
 ): ApiClient {
     const raw: KyInstance = ky.create({
         prefix: baseUrl,
-        credentials: 'include',
+        credentials: "include",
 
         // 请求超时 10s
         timeout: 10_000,
@@ -49,7 +49,7 @@ export function createApiClient(
         // 网络抖动 / 5xx 自动重试（仅 GET）
         retry: {
             limit: 2,
-            methods: ['get'],
+            methods: ["get"],
             statusCodes: [408, 429, 502, 503, 504],
         },
 
@@ -59,19 +59,19 @@ export function createApiClient(
                 (state: BeforeRequestState) => {
                     // 认证
                     if (tokens) {
-                        const token = tokens.get();
+                        const token = tokens.get()
                         if (token) {
-                            state.request.headers.set('Authorization', `Bearer ${token}`);
+                            state.request.headers.set("Authorization", `Bearer ${token}`)
                         }
                     }
 
                     // 全链路 Correlation ID（重试时复用已生成的）
-                    if (!state.request.headers.has('X-Correlation-Id')) {
-                        state.request.headers.set('X-Correlation-Id', crypto.randomUUID());
+                    if (!state.request.headers.has("X-Correlation-Id")) {
+                        state.request.headers.set("X-Correlation-Id", crypto.randomUUID())
                     }
 
                     // 计时
-                    startTimes.set(state.request, performance.now());
+                    startTimes.set(state.request, performance.now())
                 },
             ],
 
@@ -79,9 +79,9 @@ export function createApiClient(
             beforeRetry: [
                 ({ request: req }) => {
                     if (tokens) {
-                        const token = tokens.get();
+                        const token = tokens.get()
                         if (token) {
-                            req.headers.set('Authorization', `Bearer ${token}`);
+                            req.headers.set("Authorization", `Bearer ${token}`)
                         }
                     }
                 },
@@ -90,28 +90,28 @@ export function createApiClient(
             // ---- 响应后：日志 + 401 自动 refresh ----
             afterResponse: [
                 async ({ request: req, response }) => {
-                    const path = new URL(req.url).pathname;
-                    const start = startTimes.get(req);
-                    const ms = start ? Math.round(performance.now() - start) : 0;
+                    const path = new URL(req.url).pathname
+                    const start = startTimes.get(req)
+                    const ms = start ? Math.round(performance.now() - start) : 0
 
                     // 日志
                     console.log(
                         `[API] ${req.method} ${path} ${response.status} ${ms}ms`,
-                        response.ok ? '' : response.statusText,
-                    );
+                        response.ok ? "" : response.statusText,
+                    )
 
                     // 401 自动刷新（跳过 refresh 端点本身，防止死循环）
-                    const refreshPath = options?.refreshPath ?? 'auth/refresh';
+                    const refreshPath = options?.refreshPath ?? "auth/refresh"
                     if (response.status === 401 && path !== `/${refreshPath}` && tokens) {
                         try {
                             const res = (await raw(refreshPath, {
-                                method: 'POST',
-                            }).json()) as { accessToken: string };
+                                method: "POST",
+                            }).json()) as { accessToken: string }
 
-                            tokens.set(res.accessToken);
+                            tokens.set(res.accessToken)
 
                             // 强制重试原始请求
-                            return ky.retry();
+                            return ky.retry()
                         } catch {
                             // refresh 失败 → 原始 401 正常冒泡
                         }
@@ -119,37 +119,37 @@ export function createApiClient(
                 },
             ],
         },
-    });
+    })
 
     async function request<T>(schema: z.ZodType<T>, path: string, options?: Options): Promise<T> {
         try {
-            const data = (await raw(path, options).json()) as unknown;
-            return schema.parse(data);
+            const data = (await raw(path, options).json()) as unknown
+            return schema.parse(data)
         } catch (error) {
-            throw normalizeError(error);
+            throw normalizeError(error)
         }
     }
 
-    return { raw, request };
+    return { raw, request }
 }
 
 // ---------- 错误归一化 ----------
 
 function normalizeError(error: unknown): ApiError {
     if (error instanceof HTTPError) {
-        if (error.data && typeof error.data === 'object') {
-            const result = ApiErrorSchema.safeParse(error.data);
-            if (result.success) return result.data;
+        if (error.data && typeof error.data === "object") {
+            const result = ApiErrorSchema.safeParse(error.data)
+            if (result.success) return result.data
         }
         return {
             status: error.response.status,
             detail: error.message,
-        };
+        }
     }
 
     if (error instanceof TypeError) {
-        return { status: 0, detail: '网络错误，请检查连接' };
+        return { status: 0, detail: "网络错误，请检查连接" }
     }
 
-    throw error;
+    throw error
 }

@@ -1,9 +1,9 @@
-'use client';
+"use client"
 
-import { type Table } from '@tanstack/react-table';
-import { SlidersHorizontalIcon } from 'lucide-react';
+import { type Table } from "@tanstack/react-table"
+import { SlidersHorizontalIcon } from "lucide-react"
 
-import { Button } from '@/components/ui/button';
+import { Button } from "src/components/ui/button"
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -11,11 +11,11 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "src/components/ui/dropdown-menu"
 
 type DataTableViewOptionsProps<TData> = {
-    table: Table<TData>;
-};
+    table: Table<TData>
+}
 
 /** 列显隐：下拉勾选（accessor 列可隐藏，隐藏态列与 action 列不出现） */
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
@@ -53,5 +53,5 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                     ))}
             </DropdownMenuContent>
         </DropdownMenu>
-    );
+    )
 }

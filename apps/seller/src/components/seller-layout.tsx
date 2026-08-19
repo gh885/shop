@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from '@tanstack/react-router';
+import { Link, Outlet, useLocation } from "@tanstack/react-router"
 import {
     Sidebar,
     SidebarContent,
@@ -17,26 +17,26 @@ import {
     TopBar,
     TopBarActions,
     TopBarBrand,
-} from '@shop/ui-web';
-import { PackageIcon, StoreIcon, UsersIcon } from 'lucide-react';
+} from "@shop/ui-web"
+import { PackageIcon, StoreIcon, UsersIcon } from "lucide-react"
 
-import { Account, AccountAvatar } from './account';
-import { ShopSwitcher } from './shop-switcher';
+import { Account, AccountAvatar } from "./account"
+import { ShopSwitcher } from "./shop-switcher"
 
 // 导航数据源：加页面只改这里
 const NAV_GROUPS = [
     {
-        label: '经营',
-        items: [{ label: '商品管理', to: '/products', icon: PackageIcon }],
+        label: "经营",
+        items: [{ label: "商品管理", to: "/products", icon: PackageIcon }],
     },
     {
-        label: '店铺',
+        label: "店铺",
         items: [
-            { label: '店铺管理', to: '/shops', icon: StoreIcon },
-            { label: '店员管理', to: '/members', icon: UsersIcon },
+            { label: "店铺管理", to: "/shops", icon: StoreIcon },
+            { label: "店员管理", to: "/members", icon: UsersIcon },
         ],
     },
-] as const;
+] as const
 
 /** 工作台壳：侧栏（品牌 + 菜单 + 账号）+ 顶栏（折叠/店铺切换/头像）+ 内容区 */
 export function SellerLayout() {
@@ -50,11 +50,11 @@ export function SellerLayout() {
                 </main>
             </SidebarInset>
         </SidebarProvider>
-    );
+    )
 }
 
 function AppSidebar() {
-    const { pathname } = useLocation();
+    const { pathname } = useLocation()
 
     return (
         <Sidebar collapsible="icon">
@@ -95,7 +95,7 @@ function AppSidebar() {
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>
-    );
+    )
 }
 
 function AppTopBar() {
@@ -111,5 +111,5 @@ function AppTopBar() {
                 <AccountAvatar />
             </TopBarActions>
         </TopBar>
-    );
+    )
 }

@@ -1,9 +1,9 @@
 {
-    "extends": "../config/tsconfig.base.json",
+    "extends": "@shop/config/tsconfig.app.json",
     "compilerOptions": {
-        "jsx": "react-jsx",
+        "lib": ["ES2023", "DOM"],
         "paths": {
-            "@/*": ["./src/*"],
+            "#/*": ["./src/*"],
             "src/*": ["./src/*"]
         }
     },

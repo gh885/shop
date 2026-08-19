@@ -1,21 +1,21 @@
-import { Link } from '@tanstack/react-router';
+import { Link } from "@tanstack/react-router"
 
-import { SELLER_URL } from '../lib/external';
+import { SELLER_URL } from "../lib/external"
 
 const FOOTER_GROUPS = [
     {
-        title: '购物',
-        links: [{ label: '首页', to: '/' }],
+        title: "购物",
+        links: [{ label: "首页", to: "/" }],
     },
     {
-        title: '开店',
+        title: "开店",
         links: [
-            { label: '我要开店', to: '/sell' },
+            { label: "我要开店", to: "/sell" },
             // 店铺/店员/商品管理已迁到卖家中心（apps/seller 独立 SPA）
-            { label: '卖家中心', to: SELLER_URL },
+            { label: "卖家中心", to: SELLER_URL },
         ],
     },
-] as const;
+] as const
 
 /** 站点页脚：品牌 + 真实导航路径，不放死链 */
 export function SiteFooter() {
@@ -37,7 +37,7 @@ export function SiteFooter() {
                             <ul className="space-y-2">
                                 {group.links.map((link) => (
                                     <li key={link.label}>
-                                        {link.to.startsWith('http') ? (
+                                        {link.to.startsWith("http") ? (
                                             <a
                                                 href={link.to}
                                                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -66,5 +66,5 @@ export function SiteFooter() {
                 </p>
             </div>
         </footer>
-    );
+    )
 }

@@ -1,24 +1,18 @@
 {
     "compilerOptions": {
-        "strict": true,
         "target": "ES2023",
-        "lib": ["ES2023", "DOM", "DOM.Iterable"],
-
-        "module": "ESNext",
-        "moduleResolution": "bundler",
+        "strict": true,
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "noEmit": true,
-
-        "esModuleInterop": true,
-        "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
-        "isolatedModules": true,
-        "verbatimModuleSyntax": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
+        "erasableSyntaxOnly": true,
         "noFallthroughCasesInSwitch": true,
-        "allowUnreachableCode": false,
-        "allowUnusedLabels": false
-    },
-    "exclude": ["node_modules", "dist", "build"]
+        "moduleDetection": "force",
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": true
+    }
 }

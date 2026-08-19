@@ -1,54 +1,54 @@
-import { useEffect } from 'react';
-import { HeadContent, Link, Scripts, createRootRouteWithContext } from '@tanstack/react-router';
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
-import { TanStackDevtools } from '@tanstack/react-devtools';
+import { useEffect } from "react"
+import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstack/react-router"
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
+import { TanStackDevtools } from "@tanstack/react-devtools"
 
-import { Button, buttonVariants } from '@shop/ui-web';
+import { Button, buttonVariants } from "@shop/ui-web"
 
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
-import { LoginDialog } from '../components/login-dialog';
-import { SiteFooter } from '../components/site-footer';
-import { SiteNav } from '../components/site-nav';
-import { bootstrapAuth, logout } from '../lib/api';
-import { useAuthStatus, useLoginDialogOpen } from '../lib/auth';
-import { useClearMe, useMe } from '../lib/me';
+import TanStackQueryDevtools from "../integrations/tanstack-query/devtools"
+import { LoginDialog } from "../components/login-dialog"
+import { SiteFooter } from "../components/site-footer"
+import { SiteNav } from "../components/site-nav"
+import { bootstrapAuth, logout } from "../lib/api"
+import { useAuthStatus, useLoginDialogOpen } from "../lib/auth"
+import { useClearMe, useMe } from "../lib/me"
 
-import appCss from '../styles.css?url';
+import appCss from "../styles.css?url"
 
-import type { QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from "@tanstack/react-query"
 
 interface MyRouterContext {
-    queryClient: QueryClient;
+    queryClient: QueryClient
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
     head: () => ({
         meta: [
             {
-                charSet: 'utf-8',
+                charSet: "utf-8",
             },
             {
-                name: 'viewport',
-                content: 'width=device-width, initial-scale=1',
+                name: "viewport",
+                content: "width=device-width, initial-scale=1",
             },
             {
-                title: 'Shop - 多店铺电商平台',
+                title: "Shop - 多店铺电商平台",
             },
             {
-                name: 'description',
-                content: 'Shop 多店铺电商平台：免费开店，上架好货，让好生意被更多人看见。',
+                name: "description",
+                content: "Shop 多店铺电商平台：免费开店，上架好货，让好生意被更多人看见。",
             },
         ],
         links: [
             {
-                rel: 'stylesheet',
+                rel: "stylesheet",
                 href: appCss,
             },
         ],
     }),
     notFoundComponent: NotFound,
     shellComponent: RootDocument,
-});
+})
 
 /** 品牌化的 404：给出回首页的出口，不做死胡同 */
 function NotFound() {
@@ -64,17 +64,17 @@ function NotFound() {
                 回到首页
             </Link>
         </div>
-    );
+    )
 }
 
-const devtoolsConfig = { position: 'bottom-right' as const };
+const devtoolsConfig = { position: "bottom-right" as const }
 const devtoolsPlugins = [
     {
-        name: 'Tanstack Router',
+        name: "Tanstack Router",
         render: <TanStackRouterDevtoolsPanel />,
     },
     TanStackQueryDevtools,
-];
+]
 
 function RootDocument({ children }: { children: React.ReactNode }) {
     return (
@@ -94,18 +94,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 <Scripts />
             </body>
         </html>
-    );
+    )
 }
 
 function Header() {
-    const status = useAuthStatus();
-    const [, setLoginOpen] = useLoginDialogOpen();
-    const me = useMe();
-    const clearMe = useClearMe();
+    const status = useAuthStatus()
+    const [, setLoginOpen] = useLoginDialogOpen()
+    const me = useMe()
+    const clearMe = useClearMe()
 
     async function handleLogout() {
-        await logout();
-        clearMe();
+        await logout()
+        clearMe()
     }
 
     return (
@@ -124,12 +124,12 @@ function Header() {
                 <SiteNav />
 
                 <div className="ml-auto flex items-center gap-3">
-                    {status === 'unknown' ? (
+                    {status === "unknown" ? (
                         <span className="h-8 w-16 animate-pulse rounded-lg bg-muted" />
-                    ) : status === 'authed' ? (
+                    ) : status === "authed" ? (
                         <>
                             <span className="text-sm text-muted-foreground">
-                                {me.data?.nickname ?? me.data?.phone ?? '…'}
+                                {me.data?.nickname ?? me.data?.phone ?? "…"}
                             </span>
                             <Button
                                 variant="outline"
@@ -144,22 +144,22 @@ function Header() {
                 </div>
             </div>
         </header>
-    );
+    )
 }
 
 /** 全局登录 Dialog（路由守卫也会拉起它） */
 function GlobalLoginDialog() {
-    const [open, setOpen] = useLoginDialogOpen();
+    const [open, setOpen] = useLoginDialogOpen()
 
     // 启动时静默刷新登录态（refresh cookie 有效则免登录）
     useEffect(() => {
-        void bootstrapAuth();
-    }, []);
+        void bootstrapAuth()
+    }, [])
 
     return (
         <LoginDialog
             open={open}
             onOpenChange={setOpen}
         />
-    );
+    )
 }

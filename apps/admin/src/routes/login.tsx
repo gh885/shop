@@ -1,41 +1,41 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { createFileRoute } from "@tanstack/react-router"
+import { useState } from "react"
 
-import { Button, Input } from '@shop/ui-web';
+import { Button, Input } from "@shop/ui-web"
 
-import { adminApi, requireGuest } from '../lib/api';
-import { getDeviceId, tokenStore } from '../lib/auth';
+import { adminApi, requireGuest } from "../lib/api"
+import { getDeviceId, tokenStore } from "../lib/auth"
 
-export const Route = createFileRoute('/login')({
+export const Route = createFileRoute("/login")({
     beforeLoad: requireGuest,
     component: LoginPage,
-});
+})
 
 function LoginPage() {
-    const navigate = Route.useNavigate();
-    const [employeeNo, setEmployeeNo] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState<string | null>(null);
-    const [pending, setPending] = useState(false);
+    const navigate = Route.useNavigate()
+    const [employeeNo, setEmployeeNo] = useState("")
+    const [password, setPassword] = useState("")
+    const [error, setError] = useState<string | null>(null)
+    const [pending, setPending] = useState(false)
 
     const submit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setPending(true);
-        setError(null);
+        e.preventDefault()
+        setPending(true)
+        setError(null)
         try {
             const result = await adminApi.login({
                 employeeNo: employeeNo.trim(),
                 password,
                 deviceId: getDeviceId(),
-            });
-            tokenStore.set(result.accessToken);
-            void navigate({ to: '/', search: { page: 1, size: 20 } });
+            })
+            tokenStore.set(result.accessToken)
+            void navigate({ to: "/", search: { page: 1, size: 20 } })
         } catch {
-            setError('工号或密码不正确');
+            setError("工号或密码不正确")
         } finally {
-            setPending(false);
+            setPending(false)
         }
-    };
+    }
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background">
@@ -90,10 +90,10 @@ function LoginPage() {
                         className="w-full"
                         disabled={pending}
                     >
-                        {pending ? '登录中…' : '登录'}
+                        {pending ? "登录中…" : "登录"}
                     </Button>
                 </form>
             </div>
         </div>
-    );
+    )
 }

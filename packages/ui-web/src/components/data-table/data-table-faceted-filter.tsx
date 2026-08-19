@@ -1,32 +1,32 @@
-'use client';
+"use client"
 
-import * as React from 'react';
-import { type Column } from '@tanstack/react-table';
-import { CheckIcon, PlusIcon } from 'lucide-react';
+import * as React from "react"
+import { type Column } from "@tanstack/react-table"
+import { CheckIcon, PlusIcon } from "lucide-react"
 
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
+import { cn } from "src/lib/utils"
+import { Badge } from "src/components/ui/badge"
+import { Button } from "src/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "src/components/ui/popover"
+import { Separator } from "src/components/ui/separator"
 
 export type DataTableFilterOption = {
-    label: string;
-    value: string;
-    icon?: React.ComponentType<{ className?: string }>;
-};
+    label: string
+    value: string
+    icon?: React.ComponentType<{ className?: string }>
+}
 
 export type DataTableFilterConfig = {
-    columnId: string;
-    title: string;
-    options: DataTableFilterOption[];
-};
+    columnId: string
+    title: string
+    options: DataTableFilterOption[]
+}
 
 type DataTableFacetedFilterProps<TData, TValue> = {
-    column?: Column<TData, TValue>;
-    title?: string;
-    options: DataTableFilterOption[];
-};
+    column?: Column<TData, TValue>
+    title?: string
+    options: DataTableFilterOption[]
+}
 
 /** 多选筛选：Popover 勾选列表 + 触发钮上的已选 Badge（BaseUI 无 Command，故自绘列表） */
 export function DataTableFacetedFilter<TData, TValue>({
@@ -34,8 +34,8 @@ export function DataTableFacetedFilter<TData, TValue>({
     title,
     options,
 }: DataTableFacetedFilterProps<TData, TValue>) {
-    const facets = column?.getFacetedUniqueValues();
-    const selectedValues = new Set(column?.getFilterValue() as string[]);
+    const facets = column?.getFacetedUniqueValues()
+    const selectedValues = new Set(column?.getFilterValue() as string[])
 
     return (
         <Popover>
@@ -93,30 +93,30 @@ export function DataTableFacetedFilter<TData, TValue>({
             >
                 <div className="flex flex-col gap-0.5">
                     {options.map((option) => {
-                        const isSelected = selectedValues.has(option.value);
+                        const isSelected = selectedValues.has(option.value)
                         return (
                             <button
                                 key={option.value}
                                 type="button"
                                 onClick={() => {
                                     if (isSelected) {
-                                        selectedValues.delete(option.value);
+                                        selectedValues.delete(option.value)
                                     } else {
-                                        selectedValues.add(option.value);
+                                        selectedValues.add(option.value)
                                     }
-                                    const filterValues = [...selectedValues];
+                                    const filterValues = [...selectedValues]
                                     column?.setFilterValue(
                                         filterValues.length > 0 ? filterValues : undefined,
-                                    );
+                                    )
                                 }}
                                 className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                             >
                                 <div
                                     className={cn(
-                                        'flex size-4 shrink-0 items-center justify-center rounded-sm border',
+                                        "flex size-4 shrink-0 items-center justify-center rounded-sm border",
                                         isSelected
-                                            ? 'border-primary bg-primary text-primary-foreground'
-                                            : 'border-muted-foreground/30 [&_svg]:invisible',
+                                            ? "border-primary bg-primary text-primary-foreground"
+                                            : "border-muted-foreground/30 [&_svg]:invisible",
                                     )}
                                 >
                                     <CheckIcon className="size-3" />
@@ -131,7 +131,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                                     </span>
                                 )}
                             </button>
-                        );
+                        )
                     })}
                     {selectedValues.size > 0 && (
                         <>
@@ -149,5 +149,5 @@ export function DataTableFacetedFilter<TData, TValue>({
                 </div>
             </PopoverContent>
         </Popover>
-    );
+    )
 }

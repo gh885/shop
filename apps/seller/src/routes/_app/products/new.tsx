@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CircleAlert, Store } from 'lucide-react';
+import { useState } from "react"
+import { useMutation } from "@tanstack/react-query"
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
+import { ArrowLeft, CircleAlert, Store } from "lucide-react"
 
-import { BasicForm, type BasicFormValues } from '#/components/basic-form';
-import { productApi, toApiError } from '#/lib/api';
-import { useCurrentShop } from '#/lib/shop';
+import { BasicForm, type BasicFormValues } from "#/components/basic-form"
+import { productApi, toApiError } from "#/lib/api"
+import { useCurrentShop } from "#/lib/shop"
 
-export const Route = createFileRoute('/_app/products/new')({
+export const Route = createFileRoute("/_app/products/new")({
     component: NewProductPage,
-});
+})
 
 /** 新建商品：先建草稿（基本信息），保存后进入编辑页补规格/SKU/定价 */
 function NewProductPage() {
-    const shop = useCurrentShop();
-    const navigate = useNavigate();
-    const [serverError, setServerError] = useState<string | null>(null);
+    const shop = useCurrentShop()
+    const navigate = useNavigate()
+    const [serverError, setServerError] = useState<string | null>(null)
 
     const create = useMutation({
         mutationFn: (values: BasicFormValues) =>
@@ -29,12 +29,12 @@ function NewProductPage() {
                 params: values.params.filter((p) => p.name.trim() && p.value.trim()),
             }),
         onSuccess: (product) => {
-            void navigate({ to: '/products/$productId', params: { productId: product.id } });
+            void navigate({ to: "/products/$productId", params: { productId: product.id } })
         },
         onError: async (e) => {
-            setServerError((await toApiError(e)).detail);
+            setServerError((await toApiError(e)).detail)
         },
-    });
+    })
 
     if (!shop) {
         return (
@@ -44,7 +44,7 @@ function NewProductPage() {
                     还没有正常营业的店铺，先到「店铺管理」创建或等待审核
                 </p>
             </div>
-        );
+        )
     }
 
     return (
@@ -70,8 +70,8 @@ function NewProductPage() {
                     submitting={create.isPending}
                     submitText="保存草稿"
                     onSubmit={(values) => {
-                        setServerError(null);
-                        create.mutate(values);
+                        setServerError(null)
+                        create.mutate(values)
                     }}
                 />
                 {serverError ? (
@@ -82,13 +82,13 @@ function NewProductPage() {
                 ) : null}
             </div>
         </div>
-    );
+    )
 }
 
 function splitLines(text: string): string[] | undefined {
     const lines = text
-        .split('\n')
+        .split("\n")
         .map((l) => l.trim())
-        .filter(Boolean);
-    return lines.length > 0 ? lines : undefined;
+        .filter(Boolean)
+    return lines.length > 0 ? lines : undefined
 }

@@ -1,42 +1,42 @@
-'use client';
+"use client"
 
-import { type Table } from '@tanstack/react-table';
+import { type Table } from "@tanstack/react-table"
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
     ChevronsLeftIcon,
     ChevronsRightIcon,
-} from 'lucide-react';
+} from "lucide-react"
 
-import { cn, getPageNumbers } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { cn, getPageNumbers } from "src/lib/utils"
+import { Button } from "src/components/ui/button"
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select';
+} from "src/components/ui/select"
 
 type DataTablePaginationProps<TData> = {
-    table: Table<TData>;
-    className?: string;
-};
+    table: Table<TData>
+    className?: string
+}
 
 /** 分页：页大小 Select + 首/上/页码/下/末 */
 export function DataTablePagination<TData>({ table, className }: DataTablePaginationProps<TData>) {
-    const currentPage = table.getState().pagination.pageIndex + 1;
-    const totalPages = table.getPageCount();
-    const pageNumbers = getPageNumbers(currentPage, totalPages);
+    const currentPage = table.getState().pagination.pageIndex + 1
+    const totalPages = table.getPageCount()
+    const pageNumbers = getPageNumbers(currentPage, totalPages)
 
     return (
-        <div className={cn('flex flex-wrap items-center justify-between gap-3 px-2', className)}>
+        <div className={cn("flex flex-wrap items-center justify-between gap-3 px-2", className)}>
             <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">每页</span>
                 <Select
                     value={`${table.getState().pagination.pageSize}`}
                     onValueChange={(value) => {
-                        table.setPageSize(Number(value));
+                        table.setPageSize(Number(value))
                     }}
                 >
                     <SelectTrigger className="h-8 w-17">
@@ -81,14 +81,16 @@ export function DataTablePagination<TData>({ table, className }: DataTablePagina
 
                 {pageNumbers.map((pageNumber, index) => (
                     <div
+                        // 分页页码固定序列：数字页码唯一，index 仅用于区分重复的省略号分隔符
+                        // eslint-disable-next-line react/no-array-index-key
                         key={`${pageNumber}-${index}`}
                         className="flex items-center"
                     >
-                        {pageNumber === '...' ? (
+                        {pageNumber === "..." ? (
                             <span className="px-1 text-sm text-muted-foreground">…</span>
                         ) : (
                             <Button
-                                variant={currentPage === pageNumber ? 'default' : 'outline'}
+                                variant={currentPage === pageNumber ? "default" : "outline"}
                                 className="h-8 min-w-8 px-2"
                                 onClick={() => table.setPageIndex((pageNumber as number) - 1)}
                             >
@@ -118,5 +120,5 @@ export function DataTablePagination<TData>({ table, className }: DataTablePagina
                 </Button>
             </div>
         </div>
-    );
+    )
 }

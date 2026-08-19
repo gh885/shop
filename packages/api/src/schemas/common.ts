@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod"
 
 /** 后端统一错误响应 */
 export const ApiErrorSchema = z.object({
@@ -15,5 +15,5 @@ export const ApiErrorSchema = z.object({
             }),
         )
         .optional(),
-});
-export type ApiError = z.infer<typeof ApiErrorSchema>;
+})
+export type ApiError = z.infer<typeof ApiErrorSchema>

@@ -1,6 +1,6 @@
-'use client';
+"use client"
 
-import * as React from 'react';
+import * as React from "react"
 import {
     flexRender,
     getCoreRowModel,
@@ -15,9 +15,9 @@ import {
     type OnChangeFn,
     type PaginationState,
     type SortingState,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table"
 
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from "src/components/ui/skeleton"
 import {
     Table,
     TableBody,
@@ -25,40 +25,40 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from '@/components/ui/table';
+} from "src/components/ui/table"
 
-import type { DataTableFilterConfig } from './data-table-faceted-filter';
-import { DataTableBulkActions } from './data-table-bulk-actions';
-import { DataTablePagination } from './data-table-pagination';
-import { DataTableToolbar } from './data-table-toolbar';
+import type { DataTableFilterConfig } from "./data-table-faceted-filter"
+import { DataTableBulkActions } from "./data-table-bulk-actions"
+import { DataTablePagination } from "./data-table-pagination"
+import { DataTableToolbar } from "./data-table-toolbar"
 
-export type { DataTableFilterConfig } from './data-table-faceted-filter';
+export type { DataTableFilterConfig } from "./data-table-faceted-filter"
 
 export type DataTableProps<TData, TValue> = {
-    columns: ColumnDef<TData, TValue>[];
-    data: TData[];
+    columns: ColumnDef<TData, TValue>[]
+    data: TData[]
     /** 总条数；提供后走服务端分页（getPageCount/getRowCount 用它） */
-    rowCount?: number;
-    isLoading?: boolean;
+    rowCount?: number
+    isLoading?: boolean
     /** 不传则不渲染搜索框 */
-    searchPlaceholder?: string;
+    searchPlaceholder?: string
     /** 传则列过滤，否则全局过滤 */
-    searchKey?: string;
-    filters?: DataTableFilterConfig[];
+    searchKey?: string
+    filters?: DataTableFilterConfig[]
     /** 选中行后浮出的批量操作；不传则禁用行选择 */
-    bulkActions?: React.ReactNode;
+    bulkActions?: React.ReactNode
     /** 批量操作栏的实体名文案（如「店铺」），随 bulkActions 使用 */
-    bulkEntityName?: string;
+    bulkEntityName?: string
     /** 批量操作与行选择的稳定行 id */
-    getRowId?: (originalRow: TData, index: number, parent?: unknown) => string;
+    getRowId?: (originalRow: TData, index: number, parent?: unknown) => string
     // 受控状态：传对应 onXxxChange 则外部接管（服务端模式），否则表内自管（客户端模式）
-    pagination?: PaginationState;
-    onPaginationChange?: OnChangeFn<PaginationState>;
-    sorting?: SortingState;
-    onSortingChange?: OnChangeFn<SortingState>;
-    columnFilters?: ColumnFiltersState;
-    onColumnFiltersChange?: OnChangeFn<ColumnFiltersState>;
-};
+    pagination?: PaginationState
+    onPaginationChange?: OnChangeFn<PaginationState>
+    sorting?: SortingState
+    onSortingChange?: OnChangeFn<SortingState>
+    columnFilters?: ColumnFiltersState
+    onColumnFiltersChange?: OnChangeFn<ColumnFiltersState>
+}
 
 /** 通用数据表：客户端分页/排序/筛选默认自管；传受控回调即切服务端模式 */
 export function DataTable<TData, TValue>({
@@ -79,9 +79,9 @@ export function DataTable<TData, TValue>({
     columnFilters,
     onColumnFiltersChange,
 }: DataTableProps<TData, TValue>) {
-    const manualPagination = Boolean(onPaginationChange);
-    const manualSorting = Boolean(onSortingChange);
-    const manualFiltering = Boolean(onColumnFiltersChange);
+    const manualPagination = Boolean(onPaginationChange)
+    const manualSorting = Boolean(onSortingChange)
+    const manualFiltering = Boolean(onColumnFiltersChange)
 
     const table = useReactTable({
         data,
@@ -107,10 +107,10 @@ export function DataTable<TData, TValue>({
             ...(onSortingChange && sorting !== undefined ? { sorting } : {}),
             ...(onColumnFiltersChange && columnFilters !== undefined ? { columnFilters } : {}),
         },
-    });
+    })
 
-    const rows = table.getRowModel().rows;
-    const colSpan = columns.length;
+    const rows = table.getRowModel().rows
+    const colSpan = columns.length
 
     return (
         <div className="w-full space-y-4">
@@ -155,7 +155,7 @@ export function DataTable<TData, TValue>({
                             rows.map((row) => (
                                 <TableRow
                                     key={row.id}
-                                    data-state={row.getIsSelected() ? 'selected' : undefined}
+                                    data-state={row.getIsSelected() ? "selected" : undefined}
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>
@@ -176,13 +176,13 @@ export function DataTable<TData, TValue>({
             {bulkActions && (
                 <DataTableBulkActions
                     table={table}
-                    entityName={bulkEntityName ?? ''}
+                    entityName={bulkEntityName ?? ""}
                 >
                     {bulkActions}
                 </DataTableBulkActions>
             )}
         </div>
-    );
+    )
 }
 
 function SkeletonRows({ colSpan }: { colSpan: number }) {
@@ -196,5 +196,5 @@ function SkeletonRows({ colSpan }: { colSpan: number }) {
                 </TableRow>
             ))}
         </>
-    );
+    )
 }

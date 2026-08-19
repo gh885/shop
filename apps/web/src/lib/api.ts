@@ -1,18 +1,18 @@
-import { useEffect } from 'react';
-import { redirect, useNavigate } from '@tanstack/react-router';
+import { useEffect } from "react"
+import { redirect, useNavigate } from "@tanstack/react-router"
 
-import { createApiClient, createAuthApi } from '@shop/api';
-import type { ApiError } from '@shop/api';
+import { createApiClient, createAuthApi } from "@shop/api"
+import type { ApiError } from "@shop/api"
 
-import { authState, getDeviceId, tokenStore } from './auth';
+import { authState, getDeviceId, tokenStore } from "./auth"
 
 // 浏览器端走 Vite proxy（同源相对路径），见 vite.config.ts
-export const api = createApiClient('', tokenStore);
-export const authApi = createAuthApi(api.raw);
+export const api = createApiClient("", tokenStore)
+export const authApi = createAuthApi(api.raw)
 
 // ---------- 登录态引导 ----------
 
-let bootstrapPromise: Promise<void> | null = null;
+let bootstrapPromise: Promise<void> | null = null
 
 /**
  * 启动时静默刷新：refresh cookie 有效则换新 access token，否则按未登录处理。
@@ -22,26 +22,26 @@ export function bootstrapAuth(): Promise<void> {
     bootstrapPromise ??= authApi
         .refresh({ deviceId: getDeviceId() })
         .then((result) => {
-            tokenStore.set(result.accessToken);
+            tokenStore.set(result.accessToken)
         })
         .catch(() => {
-            tokenStore.clear();
+            tokenStore.clear()
         })
         .finally(() => {
-            if (authState.getStatus() === 'unknown') authState.markGuest();
-        });
-    return bootstrapPromise;
+            if (authState.getStatus() === "unknown") authState.markGuest()
+        })
+    return bootstrapPromise
 }
 
 // ---------- 登出 ----------
 
 export async function logout(): Promise<void> {
     try {
-        await authApi.logout({ deviceId: getDeviceId() });
+        await authApi.logout({ deviceId: getDeviceId() })
     } catch {
         // 登出接口失败也强制清本地状态
     } finally {
-        tokenStore.clear();
+        tokenStore.clear()
     }
 }
 
@@ -55,11 +55,11 @@ export async function logout(): Promise<void> {
  * 用法：createFileRoute('/x')({ beforeLoad: () => requireAuth(), ... })
  */
 export async function requireAuth(): Promise<void> {
-    if (import.meta.env.SSR) return;
-    await bootstrapAuth();
-    if (authState.getStatus() !== 'authed') {
-        authState.openLoginDialog();
-        throw redirect({ to: '/' });
+    if (import.meta.env.SSR) return
+    await bootstrapAuth()
+    if (authState.getStatus() !== "authed") {
+        authState.openLoginDialog()
+        throw redirect({ to: "/" })
     }
 }
 
@@ -68,32 +68,32 @@ export async function requireAuth(): Promise<void> {
  * 与 beforeLoad 的 requireAuth 配合（客户端导航走 beforeLoad，SSR 直访走这里）。
  */
 export function useAuthGuard(): void {
-    const navigate = useNavigate();
+    const navigate = useNavigate()
     useEffect(() => {
         void bootstrapAuth().then(() => {
-            if (authState.getStatus() !== 'authed') {
-                authState.openLoginDialog();
-                void navigate({ to: '/' });
+            if (authState.getStatus() !== "authed") {
+                authState.openLoginDialog()
+                void navigate({ to: "/" })
             }
-        });
-    }, [navigate]);
+        })
+    }, [navigate])
 }
 
 // ---------- 错误归一化 ----------
 
 interface HttpErrorLike {
-    response: Response;
+    response: Response
     /** ky v2 预解析的错误响应体（JSON 自动 parse，此时 response.body 已消耗） */
-    data?: unknown;
+    data?: unknown
 }
 
 function isHttpErrorLike(error: unknown): error is HttpErrorLike {
     return (
-        typeof error === 'object' &&
+        typeof error === "object" &&
         error !== null &&
-        'response' in error &&
+        "response" in error &&
         (error as HttpErrorLike).response instanceof Response
-    );
+    )
 }
 
 /**
@@ -102,16 +102,16 @@ function isHttpErrorLike(error: unknown): error is HttpErrorLike {
 export async function toApiError(error: unknown): Promise<ApiError> {
     if (isHttpErrorLike(error)) {
         // ky v2 已预解析 body 到 error.data（response.body 此时已被消耗，不能再 .json()）
-        const body = error.data as Partial<ApiError> | undefined;
-        if (body && typeof body.detail === 'string') {
+        const body = error.data as Partial<ApiError> | undefined
+        if (body && typeof body.detail === "string") {
             return {
                 status: error.response.status,
                 detail: body.detail,
                 code: body.code,
                 requestId: body.requestId,
-            };
+            }
         }
-        return { status: error.response.status, detail: '请求失败，请稍后重试' };
+        return { status: error.response.status, detail: "请求失败，请稍后重试" }
     }
-    return { status: 0, detail: '网络错误，请检查连接' };
+    return { status: 0, detail: "网络错误，请检查连接" }
 }

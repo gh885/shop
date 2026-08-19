@@ -1,36 +1,36 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
-import { Badge, Button, Input, Skeleton } from '@shop/ui-web';
-import { CheckCircle2, CircleAlert, MailPlus, Store } from 'lucide-react';
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+import { Badge, Button, Input, Skeleton } from "@shop/ui-web"
+import { CheckCircle2, CircleAlert, MailPlus, Store } from "lucide-react"
 
-import type { Shop, ShopStatus } from '@shop/api';
-import { CreateShopRequestSchema } from '@shop/api';
+import type { Shop, ShopStatus } from "@shop/api"
+import { CreateShopRequestSchema } from "@shop/api"
 
-import { shopApi, toApiError } from '#/lib/api';
-import { setCurrentShopId, useCurrentShop, useMyShops } from '#/lib/shop';
+import { shopApi, toApiError } from "#/lib/api"
+import { setCurrentShopId, useCurrentShop, useMyShops } from "#/lib/shop"
 
-export const Route = createFileRoute('/_app/shops')({
+export const Route = createFileRoute("/_app/shops")({
     component: ShopsPage,
-});
+})
 
 const STATUS_TEXT: Record<ShopStatus, string> = {
-    PENDING_REVIEW: '审核中',
-    ACTIVE: '正常营业',
-    REJECTED: '审核未通过',
-    DISABLED: '已封禁',
-};
+    PENDING_REVIEW: "审核中",
+    ACTIVE: "正常营业",
+    REJECTED: "审核未通过",
+    DISABLED: "已封禁",
+}
 
-const STATUS_VARIANT: Record<ShopStatus, 'secondary' | 'default' | 'destructive' | 'outline'> = {
-    PENDING_REVIEW: 'secondary',
-    ACTIVE: 'default',
-    REJECTED: 'destructive',
-    DISABLED: 'outline',
-};
+const STATUS_VARIANT: Record<ShopStatus, "secondary" | "default" | "destructive" | "outline"> = {
+    PENDING_REVIEW: "secondary",
+    ACTIVE: "default",
+    REJECTED: "destructive",
+    DISABLED: "outline",
+}
 
 function ShopsPage() {
-    const shops = useMyShops();
-    const current = useCurrentShop();
+    const shops = useMyShops()
+    const current = useCurrentShop()
 
     return (
         <div className="mx-auto w-full max-w-3xl space-y-8">
@@ -73,7 +73,7 @@ function ShopsPage() {
 
             <CreateShopForm />
         </div>
-    );
+    )
 }
 
 function ShopCard({ shop, isCurrent }: { shop: Shop; isCurrent: boolean }) {
@@ -86,10 +86,10 @@ function ShopCard({ shop, isCurrent }: { shop: Shop; isCurrent: boolean }) {
                     {isCurrent ? <Badge variant="outline">当前经营</Badge> : null}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                    创建于 {new Date(shop.createdAt).toLocaleDateString('zh-CN')}
+                    创建于 {new Date(shop.createdAt).toLocaleDateString("zh-CN")}
                 </p>
             </div>
-            {shop.status === 'ACTIVE' && !isCurrent ? (
+            {shop.status === "ACTIVE" && !isCurrent ? (
                 <Button
                     variant="outline"
                     size="sm"
@@ -99,25 +99,25 @@ function ShopCard({ shop, isCurrent }: { shop: Shop; isCurrent: boolean }) {
                 </Button>
             ) : null}
         </div>
-    );
+    )
 }
 
 /** 待确认邀请：别人邀请我加入的店铺 */
 function PendingInvites() {
-    const queryClient = useQueryClient();
+    const queryClient = useQueryClient()
     const invites = useQuery({
-        queryKey: ['shops', 'invites'],
+        queryKey: ["shops", "invites"],
         queryFn: () => shopApi.myInvites(),
-    });
+    })
 
     const accept = useMutation({
         mutationFn: (memberId: string) => shopApi.acceptInvite(memberId),
         onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ['shops'] });
+            void queryClient.invalidateQueries({ queryKey: ["shops"] })
         },
-    });
+    })
 
-    if (!invites.data || invites.data.length === 0) return null;
+    if (!invites.data || invites.data.length === 0) return null
 
     return (
         <section className="space-y-3">
@@ -131,7 +131,7 @@ function PendingInvites() {
                         <div className="flex items-center gap-3">
                             <MailPlus className="size-5 text-brand" />
                             <span className="text-sm">
-                                「{invite.shopName ?? '未知店铺'}」邀请你成为店铺成员
+                                「{invite.shopName ?? "未知店铺"}」邀请你成为店铺成员
                             </span>
                         </div>
                         <Button
@@ -146,40 +146,40 @@ function PendingInvites() {
                 ))}
             </ul>
         </section>
-    );
+    )
 }
 
 /** 开店表单：提交后落 PENDING_REVIEW，等平台和核 */
 function CreateShopForm() {
-    const queryClient = useQueryClient();
-    const [name, setName] = useState('');
-    const [error, setError] = useState<string | null>(null);
-    const [done, setDone] = useState(false);
+    const queryClient = useQueryClient()
+    const [name, setName] = useState("")
+    const [error, setError] = useState<string | null>(null)
+    const [done, setDone] = useState(false)
 
     const create = useMutation({
         mutationFn: (value: string) => shopApi.createShop({ name: value }),
         onSuccess: () => {
-            setName('');
-            setError(null);
-            setDone(true);
-            void queryClient.invalidateQueries({ queryKey: ['shops'] });
+            setName("")
+            setError(null)
+            setDone(true)
+            void queryClient.invalidateQueries({ queryKey: ["shops"] })
         },
         onError: async (e) => {
-            const err = await toApiError(e);
-            setError(err.detail);
+            const err = await toApiError(e)
+            setError(err.detail)
         },
-    });
+    })
 
     function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setError(null);
-        setDone(false);
-        const result = CreateShopRequestSchema.shape.name.safeParse(name);
+        e.preventDefault()
+        setError(null)
+        setDone(false)
+        const result = CreateShopRequestSchema.shape.name.safeParse(name)
         if (!result.success) {
-            setError(result.error.issues[0]?.message ?? '请输入店铺名称');
-            return;
+            setError(result.error.issues[0]?.message ?? "请输入店铺名称")
+            return
         }
-        create.mutate(result.data);
+        create.mutate(result.data)
     }
 
     return (
@@ -217,9 +217,9 @@ function CreateShopForm() {
                     disabled={create.isPending || !name.trim()}
                     className="bg-brand text-brand-foreground hover:bg-brand-hover"
                 >
-                    {create.isPending ? '提交中…' : '提交申请'}
+                    {create.isPending ? "提交中…" : "提交申请"}
                 </Button>
             </form>
         </section>
-    );
+    )
 }

@@ -9,10 +9,10 @@
         <title>Shop 平台管理</title>
         <script>
             // 首屏前定主题，避免 FOUC：默认浅色，localStorage 记 dark 则深色
-            (function () {
-                var theme = localStorage.getItem('shop_admin_theme');
-                document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
-            })();
+            ;(function () {
+                var theme = localStorage.getItem("shop_admin_theme")
+                document.documentElement.dataset.theme = theme === "dark" ? "dark" : "light"
+            })()
         </script>
     </head>
     <body>

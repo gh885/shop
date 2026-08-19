@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react"
 import {
     Button,
     Input,
@@ -13,39 +13,39 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from '@shop/ui-web';
-import { CircleAlert } from 'lucide-react';
+} from "@shop/ui-web"
+import { CircleAlert } from "lucide-react"
 
-import type { Sku, SkuUpdateItem } from '@shop/api';
+import type { Sku, SkuUpdateItem } from "@shop/api"
 
-import { fenToYuan, yuanToFen } from '#/lib/money';
+import { fenToYuan, yuanToFen } from "#/lib/money"
 
 interface SkuDraft {
-    skuId: string;
+    skuId: string
     /** 规格取值展示（如 黑色 / L） */
-    label: string;
-    name: string;
-    skuCode: string;
-    priceText: string;
-    originalPriceText: string;
-    stockText: string;
-    status: 0 | 1;
+    label: string
+    name: string
+    skuCode: string
+    priceText: string
+    originalPriceText: string
+    stockText: string
+    status: 0 | 1
 }
 
 function toDrafts(skus: Sku[]): SkuDraft[] {
     return skus.map((s) => ({
         skuId: s.id,
-        label: (s.attributes ?? []).map((a) => a.value).join(' / ') || '单规格',
+        label: (s.attributes ?? []).map((a) => a.value).join(" / ") || "单规格",
         name: s.name,
-        skuCode: s.skuCode ?? '',
-        priceText: s.price === null || s.price === undefined ? '' : fenToYuan(s.price),
+        skuCode: s.skuCode ?? "",
+        priceText: s.price === null || s.price === undefined ? "" : fenToYuan(s.price),
         originalPriceText:
             s.originalPrice === null || s.originalPrice === undefined
-                ? ''
+                ? ""
                 : fenToYuan(s.originalPrice),
-        stockText: s.stock === null || s.stock === undefined ? '' : String(s.stock),
+        stockText: s.stock === null || s.stock === undefined ? "" : String(s.stock),
         status: s.status === 0 ? 0 : 1,
-    }));
+    }))
 }
 
 /**
@@ -57,42 +57,40 @@ export function SkusTable({
     submitting,
     onSave,
 }: {
-    skus: Sku[];
-    submitting: boolean;
-    onSave: (items: SkuUpdateItem[]) => void;
+    skus: Sku[]
+    submitting: boolean
+    onSave: (items: SkuUpdateItem[]) => void
 }) {
-    const [drafts, setDrafts] = useState<SkuDraft[]>(() => toDrafts(skus));
-    const [error, setError] = useState<string | null>(null);
+    const [drafts, setDrafts] = useState<SkuDraft[]>(() => toDrafts(skus))
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        setDrafts(toDrafts(skus));
-        setError(null);
-    }, [skus]);
+        setDrafts(toDrafts(skus))
+        setError(null)
+    }, [skus])
 
     function update(index: number, patch: Partial<SkuDraft>) {
-        setDrafts((ds) => ds.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+        setDrafts((ds) => ds.map((d, i) => (i === index ? { ...d, ...patch } : d)))
     }
 
     function handleSave() {
-        setError(null);
-        const items: SkuUpdateItem[] = [];
+        setError(null)
+        const items: SkuUpdateItem[] = []
         for (const d of drafts) {
-            const price = yuanToFen(d.priceText);
+            const price = yuanToFen(d.priceText)
             if (price === null) {
-                setError(`「${d.label}」的价格无效，请输入不小于 0 的金额`);
-                return;
+                setError(`「${d.label}」的价格无效，请输入不小于 0 的金额`)
+                return
             }
-            const stock = Number(d.stockText);
+            const stock = Number(d.stockText)
             if (!d.stockText.trim() || !Number.isInteger(stock) || stock < 0) {
-                setError(`「${d.label}」的库存无效，请输入不小于 0 的整数`);
-                return;
+                setError(`「${d.label}」的库存无效，请输入不小于 0 的整数`)
+                return
             }
-            const originalPrice = d.originalPriceText.trim()
-                ? yuanToFen(d.originalPriceText)
-                : null;
+            const originalPrice = d.originalPriceText.trim() ? yuanToFen(d.originalPriceText) : null
             if (d.originalPriceText.trim() && originalPrice === null) {
-                setError(`「${d.label}」的划线价无效`);
-                return;
+                setError(`「${d.label}」的划线价无效`)
+                return
             }
             items.push({
                 skuId: d.skuId,
@@ -102,9 +100,9 @@ export function SkusTable({
                 originalPrice,
                 stock,
                 status: d.status,
-            });
+            })
         }
-        onSave(items);
+        onSave(items)
     }
 
     if (skus.length === 0) {
@@ -112,7 +110,7 @@ export function SkusTable({
             <p className="text-sm text-muted-foreground">
                 暂无 SKU。保存规格后会按模板生成 SKU，再来这里设置价格和库存。
             </p>
-        );
+        )
     }
 
     return (
@@ -160,7 +158,7 @@ export function SkusTable({
                                     value={d.stockText}
                                     onChange={(e) =>
                                         update(i, {
-                                            stockText: e.target.value.replaceAll(/\D/g, ''),
+                                            stockText: e.target.value.replaceAll(/\D/g, ""),
                                         })
                                     }
                                 />
@@ -203,7 +201,7 @@ export function SkusTable({
                     onClick={handleSave}
                     className="bg-brand text-brand-foreground hover:bg-brand-hover"
                 >
-                    {submitting ? '保存中…' : '保存价格库存'}
+                    {submitting ? "保存中…" : "保存价格库存"}
                 </Button>
                 {error ? (
                     <p className="flex items-center gap-1.5 text-sm text-destructive">
@@ -213,5 +211,5 @@ export function SkusTable({
                 ) : null}
             </div>
         </div>
-    );
+    )
 }

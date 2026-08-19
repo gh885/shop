@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useState } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import {
     Badge,
     Button,
@@ -17,23 +17,23 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from '@shop/ui-web';
-import { ChevronLeft, ChevronRight, Package, Plus, Search, Store } from 'lucide-react';
+} from "@shop/ui-web"
+import { ChevronLeft, ChevronRight, Package, Plus, Search, Store } from "lucide-react"
 
-import type { Product, ProductStatus } from '@shop/api';
+import type { Product, ProductStatus } from "@shop/api"
 
-import { productApi, toApiError } from '#/lib/api';
-import { priceRangeText } from '#/lib/money';
-import { useCurrentShop } from '#/lib/shop';
+import { productApi, toApiError } from "#/lib/api"
+import { priceRangeText } from "#/lib/money"
+import { useCurrentShop } from "#/lib/shop"
 
 interface ProductSearch {
-    page: number;
-    size: number;
-    status?: ProductStatus;
-    keyword?: string;
+    page: number
+    size: number
+    status?: ProductStatus
+    keyword?: string
 }
 
-export const Route = createFileRoute('/_app/products/')({
+export const Route = createFileRoute("/_app/products/")({
     validateSearch: (search: Record<string, unknown>): ProductSearch => ({
         page: Number(search.page) || 1,
         size: Number(search.size) || 10,
@@ -41,26 +41,26 @@ export const Route = createFileRoute('/_app/products/')({
             search.status === 0 || search.status === 1 || search.status === 2
                 ? search.status
                 : undefined,
-        keyword: typeof search.keyword === 'string' && search.keyword ? search.keyword : undefined,
+        keyword: typeof search.keyword === "string" && search.keyword ? search.keyword : undefined,
     }),
     component: ProductsPage,
-});
+})
 
 const STATUS_TEXT: Record<ProductStatus, string> = {
-    1: '上架中',
-    0: '已下架',
-    2: '草稿',
-};
+    1: "上架中",
+    0: "已下架",
+    2: "草稿",
+}
 
-const STATUS_VARIANT: Record<ProductStatus, 'default' | 'outline' | 'secondary'> = {
-    1: 'default',
-    0: 'outline',
-    2: 'secondary',
-};
+const STATUS_VARIANT: Record<ProductStatus, "default" | "outline" | "secondary"> = {
+    1: "default",
+    0: "outline",
+    2: "secondary",
+}
 
 function ProductsPage() {
-    const shop = useCurrentShop();
-    const search = Route.useSearch();
+    const shop = useCurrentShop()
+    const search = Route.useSearch()
 
     if (!shop) {
         return (
@@ -70,7 +70,7 @@ function ProductsPage() {
                     还没有正常营业的店铺，先到「店铺管理」创建或等待审核
                 </p>
             </div>
-        );
+        )
     }
 
     return (
@@ -95,18 +95,18 @@ function ProductsPage() {
                 search={search}
             />
         </div>
-    );
+    )
 }
 
 /** 筛选栏：状态 + 名称关键词，提交后写回 URL search */
 function FilterBar() {
-    const navigate = useNavigate();
-    const search = Route.useSearch();
-    const [keyword, setKeyword] = useState(search.keyword ?? '');
+    const navigate = useNavigate()
+    const search = Route.useSearch()
+    const [keyword, setKeyword] = useState(search.keyword ?? "")
 
     function apply(next: Partial<ProductSearch>) {
         void navigate({
-            to: '/products',
+            to: "/products",
             search: {
                 page: 1,
                 size: search.size,
@@ -115,16 +115,16 @@ function FilterBar() {
                 ...next,
             },
             replace: true,
-        });
+        })
     }
 
     return (
         <div className="flex items-center gap-3">
             <Select
-                value={search.status === undefined ? 'all' : String(search.status)}
+                value={search.status === undefined ? "all" : String(search.status)}
                 onValueChange={(value) =>
                     apply({
-                        status: value === 'all' ? undefined : (Number(value) as ProductStatus),
+                        status: value === "all" ? undefined : (Number(value) as ProductStatus),
                     })
                 }
             >
@@ -142,8 +142,8 @@ function FilterBar() {
             <form
                 className="flex items-center gap-2"
                 onSubmit={(e) => {
-                    e.preventDefault();
-                    apply({ keyword: keyword.trim() || undefined });
+                    e.preventDefault()
+                    apply({ keyword: keyword.trim() || undefined })
                 }}
             >
                 <Input
@@ -161,32 +161,32 @@ function FilterBar() {
                 </Button>
             </form>
         </div>
-    );
+    )
 }
 
 function ProductTable({ shopId, search }: { shopId: string; search: ProductSearch }) {
-    const queryClient = useQueryClient();
+    const queryClient = useQueryClient()
 
     const products = useQuery({
-        queryKey: ['products', shopId, search],
+        queryKey: ["products", shopId, search],
         queryFn: () => productApi.list(shopId, search),
         placeholderData: keepPreviousData,
-    });
+    })
 
-    const invalidate = () => queryClient.invalidateQueries({ queryKey: ['products', shopId] });
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["products", shopId] })
 
     const publish = useMutation({
         mutationFn: (id: string) => productApi.publish(shopId, id),
         onSuccess: invalidate,
-    });
+    })
     const off = useMutation({
         mutationFn: (id: string) => productApi.off(shopId, id),
         onSuccess: invalidate,
-    });
+    })
     const on = useMutation({
         mutationFn: (id: string) => productApi.on(shopId, id),
         onSuccess: invalidate,
-    });
+    })
 
     if (products.isLoading) {
         return (
@@ -198,16 +198,16 @@ function ProductTable({ shopId, search }: { shopId: string; search: ProductSearc
                     />
                 ))}
             </div>
-        );
+        )
     }
 
     if (products.isError) {
-        return <ErrorNotice error={products.error} />;
+        return <ErrorNotice error={products.error} />
     }
 
-    const records = products.data?.records ?? [];
-    const total = products.data?.total ?? 0;
-    const totalPages = Math.max(1, Math.ceil(total / search.size));
+    const records = products.data?.records ?? []
+    const total = products.data?.total ?? 0
+    const totalPages = Math.max(1, Math.ceil(total / search.size))
 
     if (records.length === 0) {
         return (
@@ -215,11 +215,11 @@ function ProductTable({ shopId, search }: { shopId: string; search: ProductSearc
                 <Package className="size-10 text-muted-foreground/50" />
                 <p className="text-sm text-muted-foreground">
                     {search.keyword || search.status !== undefined
-                        ? '没有符合条件的商品'
-                        : '还没有商品，点右上角「新建商品」开始'}
+                        ? "没有符合条件的商品"
+                        : "还没有商品，点右上角「新建商品」开始"}
                 </p>
             </div>
-        );
+        )
     }
 
     return (
@@ -275,7 +275,7 @@ function ProductTable({ shopId, search }: { shopId: string; search: ProductSearc
                 </div>
             </div>
         </>
-    );
+    )
 }
 
 function PaginationButton({
@@ -283,12 +283,12 @@ function PaginationButton({
     disabled,
     children,
 }: {
-    page: number;
-    target: number;
-    disabled: boolean;
-    children: React.ReactNode;
+    page: number
+    target: number
+    disabled: boolean
+    children: React.ReactNode
 }) {
-    const search = Route.useSearch();
+    const search = Route.useSearch()
     return (
         <Link
             to="/products"
@@ -303,7 +303,7 @@ function PaginationButton({
                 {children}
             </Button>
         </Link>
-    );
+    )
 }
 
 function ProductRow({
@@ -313,11 +313,11 @@ function ProductRow({
     onOff,
     onOn,
 }: {
-    product: Product;
-    busy: boolean;
-    onPublish: () => void;
-    onOff: () => void;
-    onOn: () => void;
+    product: Product
+    busy: boolean
+    onPublish: () => void
+    onOff: () => void
+    onOn: () => void
 }) {
     return (
         <TableRow>
@@ -342,7 +342,7 @@ function ProductRow({
                 <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_TEXT[p.status]}</Badge>
             </TableCell>
             <TableCell className="text-muted-foreground tabular-nums">
-                {new Date(p.updatedAt).toLocaleString('zh-CN')}
+                {new Date(p.updatedAt).toLocaleString("zh-CN")}
             </TableCell>
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
@@ -390,15 +390,15 @@ function ProductRow({
                 </div>
             </TableCell>
         </TableRow>
-    );
+    )
 }
 
 function ErrorNotice({ error }: { error: Error }) {
-    const [detail, setDetail] = useState<string | null>(null);
-    void toApiError(error).then((e) => setDetail(e.detail));
+    const [detail, setDetail] = useState<string | null>(null)
+    void toApiError(error).then((e) => setDetail(e.detail))
     return (
         <div className="rounded-2xl border border-destructive/30 bg-destructive-subtle p-6 text-sm text-destructive-subtle-foreground">
-            {detail ?? '加载失败，请稍后重试'}
+            {detail ?? "加载失败，请稍后重试"}
         </div>
-    );
+    )
 }

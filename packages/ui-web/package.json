@@ -3,11 +3,15 @@
     "version": "0.0.0",
     "private": true,
     "type": "module",
+    "imports": {
+        "#/*": "src/*"
+    },
     "exports": {
         ".": "./src/index.ts",
-        "./src/styles.css": "./src/styles.css",
-        "./src/lib/utils": "./src/lib/utils.ts",
-        "./src/components/ui/*": "./src/components/ui/*.tsx"
+        "./styles.css": "./src/styles.css"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "@base-ui/react": "^1.6.0",
@@ -23,6 +27,7 @@
         "tailwindcss-animate": "^1.0.7"
     },
     "devDependencies": {
+        "@shop/config": "workspace:*",
         "@types/react": "catalog:",
         "@types/react-dom": "catalog:"
     }

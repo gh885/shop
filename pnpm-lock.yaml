@@ -307,6 +307,9 @@ importers:
       '@rolldown/plugin-babel':
         specifier: ^0.2.3
         version: 0.2.3(@babel/core@7.29.7)(@babel/runtime@7.29.7)(rolldown@1.1.5)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0))
+      '@shop/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@tanstack/router-cli':
         specifier: ^1.132.0
         version: 1.167.21
@@ -380,6 +383,9 @@ importers:
       '@rolldown/plugin-babel':
         specifier: ^0.2.3
         version: 0.2.3(@babel/core@7.29.7)(@babel/runtime@7.29.7)(rolldown@1.1.5)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0))
+      '@shop/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@tanstack/router-cli':
         specifier: ^1.132.0
         version: 1.167.21
@@ -407,12 +413,6 @@ importers:
       '@base-ui/react':
         specifier: ^1.6.0
         version: 1.6.0(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@shop/api':
-        specifier: workspace:*
-        version: link:../../packages/api
-      '@shop/ui-web':
-        specifier: workspace:*
-        version: link:../../packages/ui-web
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.3.3(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0))
@@ -474,6 +474,15 @@ importers:
       '@rolldown/plugin-babel':
         specifier: ^0.2.3
         version: 0.2.3(@babel/core@7.29.7)(@babel/runtime@7.29.7)(rolldown@1.1.5)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0))
+      '@shop/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@shop/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@shop/ui-web':
+        specifier: workspace:*
+        version: link:../../packages/ui-web
       '@tanstack/devtools-vite':
         specifier: ^0.8.3
         version: 0.8.3(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0))
@@ -510,6 +519,13 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+    devDependencies:
+      '@shop/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
 
   packages/config: {}
 
@@ -549,6 +565,9 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.3.3)
     devDependencies:
+      '@shop/config':
+        specifier: workspace:*
+        version: link:../config
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17

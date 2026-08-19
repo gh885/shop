@@ -1,22 +1,22 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
-import { Badge, Button, Input, Skeleton } from '@shop/ui-web';
-import { CircleAlert, Store, Trash2, UserPlus } from 'lucide-react';
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+import { Badge, Button, Input, Skeleton } from "@shop/ui-web"
+import { CircleAlert, Store, Trash2, UserPlus } from "lucide-react"
 
-import { InviteMemberRequestSchema } from '@shop/api';
+import { InviteMemberRequestSchema } from "@shop/api"
 
-import { shopApi, toApiError } from '#/lib/api';
-import { useMe } from '#/lib/me';
-import { useCurrentShop } from '#/lib/shop';
+import { shopApi, toApiError } from "#/lib/api"
+import { useMe } from "#/lib/me"
+import { useCurrentShop } from "#/lib/shop"
 
-export const Route = createFileRoute('/_app/members')({
+export const Route = createFileRoute("/_app/members")({
     component: MembersPage,
-});
+})
 
 /** 店员管理：基于当前经营店铺（顶栏可切换） */
 function MembersPage() {
-    const shop = useCurrentShop();
+    const shop = useCurrentShop()
 
     if (!shop) {
         return (
@@ -26,7 +26,7 @@ function MembersPage() {
                     还没有正常营业的店铺，先到「店铺管理」创建或等待审核
                 </p>
             </div>
-        );
+        )
     }
 
     return (
@@ -39,43 +39,43 @@ function MembersPage() {
             </div>
             <MemberPanel shopId={shop.id} />
         </div>
-    );
+    )
 }
 
 function MemberPanel({ shopId }: { shopId: string }) {
-    const queryClient = useQueryClient();
-    const me = useMe();
-    const [phone, setPhone] = useState('');
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient()
+    const me = useMe()
+    const [phone, setPhone] = useState("")
+    const [error, setError] = useState<string | null>(null)
 
     const members = useQuery({
-        queryKey: ['shops', shopId, 'members'],
+        queryKey: ["shops", shopId, "members"],
         queryFn: () => shopApi.members(shopId),
-    });
+    })
 
     const isOwner = members.data?.some(
-        (m) => m.role === 'OWNER' && m.status === 'ACTIVE' && m.phone === me.data?.phone,
-    );
+        (m) => m.role === "OWNER" && m.status === "ACTIVE" && m.phone === me.data?.phone,
+    )
 
     const invite = useMutation({
         mutationFn: (value: string) => shopApi.invite(shopId, { phone: value }),
         onSuccess: () => {
-            setPhone('');
-            setError(null);
-            void queryClient.invalidateQueries({ queryKey: ['shops', shopId, 'members'] });
+            setPhone("")
+            setError(null)
+            void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
         },
         onError: async (e) => {
-            const err = await toApiError(e);
-            setError(err.detail);
+            const err = await toApiError(e)
+            setError(err.detail)
         },
-    });
+    })
 
     const remove = useMutation({
         mutationFn: (memberId: string) => shopApi.removeMember(shopId, memberId),
         onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ['shops', shopId, 'members'] });
+            void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
         },
-    });
+    })
 
     if (members.isLoading) {
         return (
@@ -87,7 +87,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                     />
                 ))}
             </div>
-        );
+        )
     }
 
     return (
@@ -102,13 +102,13 @@ function MemberPanel({ shopId }: { shopId: string }) {
                     >
                         <span className="tabular-nums">{m.phone ?? m.userId}</span>
                         <span className="flex items-center gap-2">
-                            <Badge variant={m.role === 'OWNER' ? 'default' : 'secondary'}>
-                                {m.role === 'OWNER' ? '店主' : '店员'}
+                            <Badge variant={m.role === "OWNER" ? "default" : "secondary"}>
+                                {m.role === "OWNER" ? "店主" : "店员"}
                             </Badge>
-                            {m.status === 'PENDING' ? (
+                            {m.status === "PENDING" ? (
                                 <Badge variant="outline">待确认</Badge>
                             ) : null}
-                            {isOwner && m.role !== 'OWNER' ? (
+                            {isOwner && m.role !== "OWNER" ? (
                                 <Button
                                     variant="ghost"
                                     size="icon-sm"
@@ -128,14 +128,14 @@ function MemberPanel({ shopId }: { shopId: string }) {
                 <form
                     className="mt-5 flex items-start gap-2"
                     onSubmit={(e) => {
-                        e.preventDefault();
-                        setError(null);
-                        const result = InviteMemberRequestSchema.shape.phone.safeParse(phone);
+                        e.preventDefault()
+                        setError(null)
+                        const result = InviteMemberRequestSchema.shape.phone.safeParse(phone)
                         if (!result.success) {
-                            setError(result.error.issues[0]?.message ?? '请输入正确的手机号');
-                            return;
+                            setError(result.error.issues[0]?.message ?? "请输入正确的手机号")
+                            return
                         }
-                        invite.mutate(result.data);
+                        invite.mutate(result.data)
                     }}
                 >
                     <div className="flex-1 space-y-1.5">
@@ -144,7 +144,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                             inputMode="tel"
                             maxLength={11}
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value.replaceAll(/\D/g, ''))}
+                            onChange={(e) => setPhone(e.target.value.replaceAll(/\D/g, ""))}
                         />
                         {error ? (
                             <p className="flex items-center gap-1 text-sm text-destructive">
@@ -166,5 +166,5 @@ function MemberPanel({ shopId }: { shopId: string }) {
                 <p className="mt-5 text-sm text-muted-foreground">只有店主可以邀请或移除成员。</p>
             )}
         </section>
-    );
+    )
 }

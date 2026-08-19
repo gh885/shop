@@ -9,12 +9,11 @@
         "dev": "vite dev --port 3000",
         "generate-routes": "tsr generate",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "@base-ui/react": "^1.6.0",
-        "@shop/api": "workspace:*",
-        "@shop/ui-web": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
         "@tanstack/react-devtools": "^0.10.9",
         "@tanstack/react-form": "^1.33.2",
@@ -37,6 +36,9 @@
     },
     "devDependencies": {
         "@rolldown/plugin-babel": "^0.2.3",
+        "@shop/api": "workspace:*",
+        "@shop/config": "workspace:*",
+        "@shop/ui-web": "workspace:*",
         "@tanstack/devtools-vite": "^0.8.3",
         "@tanstack/router-cli": "^1.132.0",
         "@types/node": "^26.1.1",

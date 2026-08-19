@@ -1,4 +1,4 @@
-@import '@shop/ui-web/src/styles.css';
+@import "@shop/ui-web/src/styles.css";
 
 /* ui-web 在 apps/admin 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明 */
 @source '../../../packages/ui-web/src';
@@ -51,7 +51,7 @@
    浅色身份定制的 token（暖白底 → 暖炭、靛蓝提亮一档保证深底对比）。
    由 <html data-theme="dark"> 驱动（index.html 首屏脚本 + 顶栏 ThemeToggle），
    未设置时走上方 :root 浅色兜底。原生控件随 color-scheme: dark 自动变暗。 */
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
     color-scheme: dark;
 
     /* 暖炭画布：卡面浮于其上，wells 沉于其下 */
@@ -93,12 +93,12 @@ body {
 }
 
 /* 拖拽侧栏宽度时禁用宽度过渡，避免跟手感延迟；同时锁光标与文本选择 */
-[data-sidebar-resizing='true'] {
+[data-sidebar-resizing="true"] {
     cursor: col-resize;
     user-select: none;
 
-    [data-slot='sidebar-gap'],
-    [data-slot='sidebar-container'] {
+    [data-slot="sidebar-gap"],
+    [data-slot="sidebar-container"] {
         transition: none;
     }
 }

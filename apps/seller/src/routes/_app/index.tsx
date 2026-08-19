@@ -1,6 +1,6 @@
-import { Navigate, createFileRoute } from '@tanstack/react-router';
+import { Navigate, createFileRoute } from "@tanstack/react-router"
 
-export const Route = createFileRoute('/_app/')({
+export const Route = createFileRoute("/_app/")({
     component: () => (
         <Navigate
             to="/products"
@@ -8,4 +8,4 @@ export const Route = createFileRoute('/_app/')({
             replace
         />
     ),
-});
+})

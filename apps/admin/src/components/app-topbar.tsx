@@ -1,4 +1,4 @@
-import { Link, useLocation } from '@tanstack/react-router';
+import { Link, useLocation } from "@tanstack/react-router"
 import {
     SidebarTrigger,
     TopBar,
@@ -6,17 +6,17 @@ import {
     TopBarBrand,
     TopBarNav,
     TopBarNavItem,
-} from '@shop/ui-web';
+} from "@shop/ui-web"
 
-import { AccountAvatar } from './account';
-import { NAV, activeDomain } from './nav';
-import { ThemeToggle } from './theme-toggle';
+import { AccountAvatar } from "./account"
+import { NAV, activeDomain } from "./nav"
+import { ThemeToggle } from "./theme-toggle"
 
 // 顶栏：左侧折叠触发器 + 一级 Tab（业务域），右侧亮暗切换 + 账号头像。
 // 品牌与完整账号在侧栏（SidebarHeader / SidebarFooter 的 <Account />）。
 export function AppTopBar() {
-    const { pathname } = useLocation();
-    const domain = activeDomain(pathname);
+    const { pathname } = useLocation()
+    const domain = activeDomain(pathname)
 
     return (
         <TopBar>
@@ -43,5 +43,5 @@ export function AppTopBar() {
                 <AccountAvatar />
             </TopBarActions>
         </TopBar>
-    );
+    )
 }

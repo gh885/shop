@@ -1,41 +1,75 @@
+# yaml-language-server: $schema=./node_modules/lefthook/schema.json
+# 用本地 schema：schemastore.org 上的托管副本落后于 2.1.10，会误报 jobs/exclude 非法
+#
+# 逃生舱（别用 --no-verify，它连 commitlint 一起跳过）：
+#   LEFTHOOK=0 git commit …              跳过全部钩子
+#   LEFTHOOK_EXCLUDE=lint git commit …   按 tag/name 跳过单个作业
+
+min_version: 2.1.10
 assert_lefthook_installed: true
 colors: true
 
 # ── pre-commit：轻量检查，只跑暂存文件 ──
 pre-commit:
+    # 冲突解决与交互式 rebase 期间每个 commit 都会触发，纯噪音
+    skip:
+        - merge
+        - rebase
+
+    # 生成物与锁文件不参与格式化/lint
+    # routeTree.gen.ts 被 oxfmt 改写后会被路由插件再生成回去，来回抖动
+    exclude:
+        - "**/*.gen.ts"
+        - "pnpm-lock.yaml"
+
     jobs:
         # 前端／通用文件格式化
-        - name: Format (TS/JS/MD)
-          glob: '**/*.{ts,tsx,js,jsx,json,yml,yaml,md}'
+        - name: fmt-web
+          tags: [format]
+          glob: "**/*.{ts,tsx,js,jsx,json,yml,yaml,md}"
           run: pnpm oxfmt --config packages/config/oxfmt.config.ts --write {staged_files}
           stage_fixed: true
 
         # 后端 Java 格式化（只当有 .java 文件变更时触发）
-        - name: Format (Java)
-          glob: '**/*.java'
-          run: mvn -f apps/server/pom.xml spotless:apply
+        - name: fmt-java
+          tags: [format]
+          glob: "**/*.java"
+          timeout: 120s
+          run: mvn -f apps/server/pom.xml spotless:apply -q
           stage_fixed: true
 
         # 前端 lint
-        - name: Lint (TS/JS)
-          glob: '**/*.{ts,tsx,js,jsx}'
+        - name: lint-web
+          tags: [lint]
+          glob: "**/*.{ts,tsx,js,jsx}"
           run: pnpm oxlint --config packages/config/oxlint.config.ts {staged_files}
+          fail_text: "oxlint 未通过；可自动修复的部分跑 pnpm lint:web"
 
 # ── commit-msg：Conventional Commits 校验 ──
 commit-msg:
     jobs:
-        - name: Commit message validation
+        - name: commitlint
           run: pnpm commitlint --edit {1}
-          fail_text: '提交信息格式不符合规范，请参考 Conventional Commits 规范'
+          fail_text: "提交信息格式不符合规范，请参考 Conventional Commits 规范"
 
-# ── pre-push：重量检查，全量跑 ──
+# ── pre-push：重量检查，全量跑；三项互不依赖，并行 ──
 pre-push:
-    jobs:
-        - name: Lint check
-          run: pnpm lint
+    parallel: true
+    skip:
+        - merge
+        - rebase
 
-        - name: Type check
+    jobs:
+        # 不带 --fix：push 前只校验，不改工作区
+        - name: lint
+          tags: [lint]
+          run: pnpm oxlint --config packages/config/oxlint.config.ts .
+
+        - name: typecheck
+          tags: [types]
           run: pnpm typecheck
 
-        - name: Java compile
+        - name: java-build
+          tags: [java]
+          timeout: 300s
           run: mvn -f apps/server/pom.xml compile -q

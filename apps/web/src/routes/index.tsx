@@ -1,17 +1,17 @@
-import { Link, createFileRoute } from '@tanstack/react-router';
-import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from 'lucide-react';
-import { motion, useReducedMotion, type Variants } from 'motion/react';
+import { Link, createFileRoute } from "@tanstack/react-router"
+import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
+import { motion, useReducedMotion, type Variants } from "motion/react"
 
-import { buttonVariants, cn } from '@shop/ui-web';
+import { buttonVariants, cn } from "@shop/ui-web"
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
     component: Home,
     head: () => ({
-        meta: [{ title: 'Shop - 多店铺电商平台' }],
+        meta: [{ title: "Shop - 多店铺电商平台" }],
     }),
-});
+})
 
-const EASE = [0.16, 1, 0.3, 1] as const;
+const EASE = [0.16, 1, 0.3, 1] as const
 
 const staggerVariants: Variants = {
     hidden: { opacity: 0, y: 24 },
@@ -20,7 +20,7 @@ const staggerVariants: Variants = {
         y: 0,
         transition: { duration: 0.6, delay: i * 0.1, ease: EASE },
     }),
-};
+}
 
 function Home() {
     return (
@@ -29,11 +29,11 @@ function Home() {
             <Categories />
             <SellerBanner />
         </div>
-    );
+    )
 }
 
 function Hero() {
-    const reduce = useReducedMotion();
+    const reduce = useReducedMotion()
 
     return (
         <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr]">
@@ -43,7 +43,7 @@ function Hero() {
                         key={i}
                         custom={i}
                         variants={staggerVariants}
-                        initial={reduce ? false : 'hidden'}
+                        initial={reduce ? false : "hidden"}
                         animate="show"
                     >
                         {i === 0 ? (
@@ -61,8 +61,8 @@ function Hero() {
                                 <a
                                     href="#categories"
                                     className={cn(
-                                        buttonVariants({ size: 'lg' }),
-                                        'bg-brand text-brand-foreground hover:bg-brand-hover active:translate-y-px',
+                                        buttonVariants({ size: "lg" }),
+                                        "bg-brand text-brand-foreground hover:bg-brand-hover active:translate-y-px",
                                     )}
                                 >
                                     逛商品分类
@@ -70,7 +70,7 @@ function Hero() {
                                 </a>
                                 <Link
                                     to="/sell"
-                                    className={buttonVariants({ variant: 'outline', size: 'lg' })}
+                                    className={buttonVariants({ variant: "outline", size: "lg" })}
                                 >
                                     我要开店
                                 </Link>
@@ -109,44 +109,44 @@ function Hero() {
                 </div>
             </div>
         </section>
-    );
+    )
 }
 
 const CATEGORIES = [
     {
-        name: '服饰鞋包',
+        name: "服饰鞋包",
         icon: Shirt,
-        subs: ['女装', '男装', '鞋靴', '箱包'],
+        subs: ["女装", "男装", "鞋靴", "箱包"],
     },
     {
-        name: '数码家电',
+        name: "数码家电",
         icon: Smartphone,
-        subs: ['手机', '电脑办公', '家用电器'],
+        subs: ["手机", "电脑办公", "家用电器"],
     },
     {
-        name: '美妆个护',
+        name: "美妆个护",
         icon: Sparkles,
-        subs: ['护肤', '彩妆', '个人护理'],
+        subs: ["护肤", "彩妆", "个人护理"],
     },
     {
-        name: '家居家装',
+        name: "家居家装",
         icon: Sofa,
-        subs: ['家具', '家纺', '厨具'],
+        subs: ["家具", "家纺", "厨具"],
     },
     {
-        name: '食品生鲜',
+        name: "食品生鲜",
         icon: Apple,
-        subs: ['休闲零食', '生鲜果蔬', '酒水饮料'],
+        subs: ["休闲零食", "生鲜果蔬", "酒水饮料"],
     },
     {
-        name: '母婴玩具',
+        name: "母婴玩具",
         icon: Baby,
-        subs: ['奶粉辅食', '纸尿裤', '玩具'],
+        subs: ["奶粉辅食", "纸尿裤", "玩具"],
     },
-] as const;
+] as const
 
 function Categories() {
-    const reduce = useReducedMotion();
+    const reduce = useReducedMotion()
 
     return (
         <section
@@ -172,25 +172,25 @@ function Categories() {
                             className="group rounded-2xl bg-background p-6 shadow-sm transition-transform duration-300 hover:-translate-y-1"
                             custom={i}
                             variants={staggerVariants}
-                            initial={reduce ? false : 'hidden'}
+                            initial={reduce ? false : "hidden"}
                             whileInView="show"
                             viewport={{ once: true, amount: 0.2 }}
                         >
                             <cat.icon className="size-6 text-brand transition-transform duration-300 group-hover:scale-110" />
                             <h3 className="mt-4 font-semibold">{cat.name}</h3>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                {cat.subs.join(' / ')}
+                                {cat.subs.join(" / ")}
                             </p>
                         </motion.div>
                     ))}
                 </div>
             </div>
         </section>
-    );
+    )
 }
 
 function SellerBanner() {
-    const reduce = useReducedMotion();
+    const reduce = useReducedMotion()
 
     return (
         <section className="mx-auto max-w-6xl px-4 py-24">
@@ -215,8 +215,8 @@ function SellerBanner() {
                 <Link
                     to="/sell"
                     className={cn(
-                        buttonVariants({ size: 'lg' }),
-                        'shrink-0 bg-brand text-brand-foreground hover:bg-brand-hover active:translate-y-px',
+                        buttonVariants({ size: "lg" }),
+                        "shrink-0 bg-brand text-brand-foreground hover:bg-brand-hover active:translate-y-px",
                     )}
                 >
                     免费开店
@@ -224,5 +224,5 @@ function SellerBanner() {
                 </Link>
             </motion.div>
         </section>
-    );
+    )
 }

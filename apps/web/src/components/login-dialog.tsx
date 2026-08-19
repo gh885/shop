@@ -1,60 +1,59 @@
-import { useEffect, useState } from 'react';
-import { CircleAlert, Loader2, QrCode } from 'lucide-react';
-import { z } from 'zod';
+import { useEffect, useState } from "react"
+import { CircleAlert, Loader2, QrCode } from "lucide-react"
+import { z } from "zod"
 
-import { useMutation } from '@tanstack/react-query';
-import { ErrorCodes } from '@shop/api';
-import { Button, Dialog, DialogContent, DialogTitle, Input, cn, useAppForm } from '@shop/ui-web';
-
-import { authApi, toApiError } from '#/lib/api';
-import { getDeviceId, tokenStore } from '#/lib/auth';
+import { useMutation } from "@tanstack/react-query"
+import { ErrorCodes } from "@shop/api"
+import { Button, cn, Dialog, DialogContent, DialogTitle, Input, useAppForm } from "@shop/ui-web"
+import { authApi, toApiError } from "#/lib/api"
+import { getDeviceId, tokenStore } from "#/lib/auth"
 
 /* 嵌套行（+86 前缀 / 内嵌按钮）里的 Input：去掉自带边框与 focus ring，
    视觉容器由外层 wrapper（rounded + bg-muted + focus-within:ring）承担 */
 const embeddedInputClass =
-    'h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 focus-visible:ring-0';
+    "h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 focus-visible:ring-0"
 
-type LoginTab = 'sms' | 'password';
+type LoginTab = "sms" | "password"
 
 // ---------- 校验 schema（与后端契约一致，见 packages/api/schemas/auth） ----------
 
-const PHONE_PATTERN = /^1[3-9]\d{9}$/;
-const PhoneSchema = z.string().regex(PHONE_PATTERN, '请输入正确的手机号');
+const PHONE_PATTERN = /^1[3-9]\d{9}$/
+const PhoneSchema = z.string().regex(PHONE_PATTERN, "请输入正确的手机号")
 
 const SmsFormSchema = z.object({
     phone: PhoneSchema,
-    code: z.string().length(6, '请输入 6 位验证码'),
+    code: z.string().length(6, "请输入 6 位验证码"),
     password: z.string(),
-});
+})
 
 const PasswordFormSchema = z.object({
     phone: PhoneSchema,
     code: z.string(),
-    password: z.string().min(8, '密码至少 8 位'),
-});
+    password: z.string().min(8, "密码至少 8 位"),
+})
 
 interface LoginDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
+    open: boolean
+    onOpenChange: (open: boolean) => void
 }
 
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
-    const [tab, setTab] = useState<LoginTab>('sms');
-    const [serverError, setServerError] = useState<string | null>(null);
-    const [passwordNotSet, setPasswordNotSet] = useState(false);
-    const [codeInvalid, setCodeInvalid] = useState(false);
-    const [countdown, setCountdown] = useState(0);
+    const [tab, setTab] = useState<LoginTab>("sms")
+    const [serverError, setServerError] = useState<string | null>(null)
+    const [passwordNotSet, setPasswordNotSet] = useState(false)
+    const [codeInvalid, setCodeInvalid] = useState(false)
+    const [countdown, setCountdown] = useState(0)
 
     const form = useAppForm({
-        defaultValues: { phone: '', code: '', password: '' },
-        validators: { onSubmit: tab === 'sms' ? SmsFormSchema : PasswordFormSchema },
+        defaultValues: { phone: "", code: "", password: "" },
+        validators: { onSubmit: tab === "sms" ? SmsFormSchema : PasswordFormSchema },
         onSubmit: async ({ value }) => {
-            setServerError(null);
-            setPasswordNotSet(false);
-            setCodeInvalid(false);
+            setServerError(null)
+            setPasswordNotSet(false)
+            setCodeInvalid(false)
             try {
                 const result =
-                    tab === 'sms'
+                    tab === "sms"
                         ? await authApi.loginBySms({
                               phone: value.phone,
                               code: value.code,
@@ -64,51 +63,51 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                               phone: value.phone,
                               password: value.password,
                               deviceId: getDeviceId(),
-                          });
-                tokenStore.set(result.accessToken);
-                onOpenChange(false);
-                form.reset();
-                setTab('sms');
-                setCountdown(0);
+                          })
+                tokenStore.set(result.accessToken)
+                onOpenChange(false)
+                form.reset()
+                setTab("sms")
+                setCountdown(0)
             } catch (error) {
-                const err = await toApiError(error);
-                setServerError(err.detail);
-                setPasswordNotSet(err.code === ErrorCodes.PASSWORD_NOT_SET);
+                const err = await toApiError(error)
+                setServerError(err.detail)
+                setPasswordNotSet(err.code === ErrorCodes.PASSWORD_NOT_SET)
                 setCodeInvalid(
                     err.code === ErrorCodes.SMS_CODE_INVALID ||
                         err.code === ErrorCodes.SMS_CODE_EXPIRED,
-                );
+                )
             }
         },
-    });
+    })
 
     useEffect(() => {
-        if (countdown <= 0) return;
-        const timer = setInterval(() => setCountdown((s) => s - 1), 1000);
-        return () => clearInterval(timer);
-    }, [countdown]);
+        if (countdown <= 0) return
+        const timer = setInterval(() => setCountdown((s) => s - 1), 1000)
+        return () => clearInterval(timer)
+    }, [countdown])
 
     const sendCode = useMutation({
         mutationFn: (phone: string) => authApi.sendSmsCode({ phone }),
         onSuccess: () => {
-            setServerError(null);
-            setCountdown(60);
+            setServerError(null)
+            setCountdown(60)
         },
         onError: async (e) => {
-            const err = await toApiError(e);
-            setServerError(err.detail);
+            const err = await toApiError(e)
+            setServerError(err.detail)
         },
-    });
+    })
 
     function switchTab(next: LoginTab) {
-        setTab(next);
-        setServerError(null);
-        setPasswordNotSet(false);
-        setCodeInvalid(false);
+        setTab(next)
+        setServerError(null)
+        setPasswordNotSet(false)
+        setCodeInvalid(false)
     }
 
     function handleSendCode(phone: string) {
-        sendCode.mutate(phone);
+        sendCode.mutate(phone)
     }
 
     return (
@@ -155,20 +154,20 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                         <form
                             className="flex min-w-0 flex-1 flex-col gap-4"
                             onSubmit={(e) => {
-                                e.preventDefault();
-                                form.handleSubmit();
+                                e.preventDefault()
+                                form.handleSubmit()
                             }}
                         >
                             <div className="flex gap-6">
                                 <TabButton
-                                    active={tab === 'sms'}
-                                    onClick={() => switchTab('sms')}
+                                    active={tab === "sms"}
+                                    onClick={() => switchTab("sms")}
                                 >
                                     验证码登录
                                 </TabButton>
                                 <TabButton
-                                    active={tab === 'password'}
-                                    onClick={() => switchTab('password')}
+                                    active={tab === "password"}
+                                    onClick={() => switchTab("password")}
                                 >
                                     密码登录
                                 </TabButton>
@@ -187,7 +186,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                         <Input
                                             className={cn(
                                                 embeddedInputClass,
-                                                'text-sm tracking-wide tabular-nums placeholder:tracking-normal',
+                                                "text-sm tracking-wide tabular-nums placeholder:tracking-normal",
                                             )}
                                             placeholder="请输入手机号"
                                             inputMode="tel"
@@ -197,7 +196,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                             onBlur={field.handleBlur}
                                             onChange={(e) =>
                                                 field.handleChange(
-                                                    e.target.value.replaceAll(/\D/g, ''),
+                                                    e.target.value.replaceAll(/\D/g, ""),
                                                 )
                                             }
                                         />
@@ -205,21 +204,21 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 )}
                             </form.AppField>
 
-                            {tab === 'sms' ? (
+                            {tab === "sms" ? (
                                 /* 验证码 + 内嵌发送按钮 */
                                 <form.AppField name="code">
                                     {(field) => (
                                         <div
                                             className={cn(
-                                                'flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30',
+                                                "flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30",
                                                 codeInvalid &&
-                                                    'animate-shake ring-2 ring-destructive/40',
+                                                    "animate-shake ring-2 ring-destructive/40",
                                             )}
                                         >
                                             <Input
                                                 className={cn(
                                                     embeddedInputClass,
-                                                    'text-sm tracking-widest tabular-nums placeholder:tracking-normal',
+                                                    "text-sm tracking-widest tabular-nums placeholder:tracking-normal",
                                                 )}
                                                 placeholder="请输入验证码"
                                                 inputMode="numeric"
@@ -229,9 +228,9 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                 onBlur={field.handleBlur}
                                                 onChange={(e) => {
                                                     field.handleChange(
-                                                        e.target.value.replaceAll(/\D/g, ''),
-                                                    );
-                                                    setCodeInvalid(false);
+                                                        e.target.value.replaceAll(/\D/g, ""),
+                                                    )
+                                                    setCodeInvalid(false)
                                                 }}
                                             />
                                             <form.Subscribe
@@ -248,7 +247,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                         }
                                                         onClick={() =>
                                                             handleSendCode(
-                                                                form.getFieldValue('phone'),
+                                                                form.getFieldValue("phone"),
                                                             )
                                                         }
                                                     >
@@ -257,9 +256,9 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                                 {countdown}s 后重发
                                                             </span>
                                                         ) : sendCode.isPending ? (
-                                                            '发送中…'
+                                                            "发送中…"
                                                         ) : (
-                                                            '获取验证码'
+                                                            "获取验证码"
                                                         )}
                                                     </button>
                                                 )}
@@ -272,7 +271,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                     {(field) => (
                                         <div className="flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30">
                                             <Input
-                                                className={cn(embeddedInputClass, 'text-sm')}
+                                                className={cn(embeddedInputClass, "text-sm")}
                                                 type="password"
                                                 placeholder="请输入密码"
                                                 autoComplete="current-password"
@@ -295,7 +294,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                             <button
                                                 type="button"
                                                 className="shrink-0 cursor-pointer font-medium text-brand transition-opacity hover:opacity-70"
-                                                onClick={() => switchTab('sms')}
+                                                onClick={() => switchTab("sms")}
                                             >
                                                 改用验证码登录
                                             </button>
@@ -309,7 +308,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                     isSubmitting: state.isSubmitting,
                                     ready:
                                         PHONE_PATTERN.test(state.values.phone) &&
-                                        (tab === 'sms'
+                                        (tab === "sms"
                                             ? state.values.code.length === 6
                                             : state.values.password.length >= 8),
                                 })}
@@ -326,7 +325,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                 登录中…
                                             </>
                                         ) : (
-                                            '登录'
+                                            "登录"
                                         )}
                                     </Button>
                                 )}
@@ -353,7 +352,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 </div>
             </DialogContent>
         </Dialog>
-    );
+    )
 }
 
 function TabButton({
@@ -361,28 +360,28 @@ function TabButton({
     onClick,
     children,
 }: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
+    active: boolean
+    onClick: () => void
+    children: React.ReactNode
 }) {
     return (
         <button
             type="button"
             className={cn(
-                'relative cursor-pointer pb-2 text-[15px] transition-colors duration-200',
+                "relative cursor-pointer pb-2 text-[15px] transition-colors duration-200",
                 active
-                    ? 'font-semibold text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
+                    ? "font-semibold text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
             )}
             onClick={onClick}
         >
             {children}
             <span
                 className={cn(
-                    'absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-brand transition-opacity duration-200',
-                    active ? 'opacity-100' : 'opacity-0',
+                    "absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-brand transition-opacity duration-200",
+                    active ? "opacity-100" : "opacity-0",
                 )}
             />
         </button>
-    );
+    )
 }

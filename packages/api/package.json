@@ -3,11 +3,18 @@
     "version": "0.0.0",
     "private": true,
     "type": "module",
+    "imports": {
+        "#/*": "src/*"
+    },
     "exports": {
         ".": "./src/index.ts"
     },
     "dependencies": {
         "ky": "^2.0.2",
         "zod": "catalog:"
+    },
+    "devDependencies": {
+        "@shop/config": "workspace:*",
+        "@types/node": "^26.1.1"
     }
 }

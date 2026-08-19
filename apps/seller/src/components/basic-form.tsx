@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import {
     Button,
     Input,
@@ -9,22 +9,22 @@ import {
     SelectTrigger,
     SelectValue,
     Textarea,
-} from '@shop/ui-web';
-import { CircleAlert, Plus, Trash2 } from 'lucide-react';
+} from "@shop/ui-web"
+import { CircleAlert, Plus, Trash2 } from "lucide-react"
 
-import type { CategoryNode, ParamItem, Product } from '@shop/api';
+import type { CategoryNode, ParamItem, Product } from "@shop/api"
 
-import { productApi } from '#/lib/api';
+import { productApi } from "#/lib/api"
 
 export interface BasicFormValues {
-    categoryId: string;
-    name: string;
-    subtitle: string;
-    description: string;
-    mainImage: string;
+    categoryId: string
+    name: string
+    subtitle: string
+    description: string
+    mainImage: string
     /** 每行一个 URL，提交时拆分 */
-    imagesText: string;
-    params: ParamItem[];
+    imagesText: string
+    params: ParamItem[]
 }
 
 /** 商品基本信息表单：新建草稿与编辑共用（新建无 initial） */
@@ -34,49 +34,49 @@ export function BasicForm({
     submitText,
     onSubmit,
 }: {
-    initial?: Product;
-    submitting: boolean;
-    submitText: string;
-    onSubmit: (values: BasicFormValues) => void;
+    initial?: Product
+    submitting: boolean
+    submitText: string
+    onSubmit: (values: BasicFormValues) => void
 }) {
     const [values, setValues] = useState<BasicFormValues>(() => ({
-        categoryId: initial?.categoryId ?? '',
-        name: initial?.name ?? '',
-        subtitle: initial?.subtitle ?? '',
-        description: initial?.description ?? '',
-        mainImage: initial?.mainImage ?? '',
-        imagesText: (initial?.images ?? []).join('\n'),
+        categoryId: initial?.categoryId ?? "",
+        name: initial?.name ?? "",
+        subtitle: initial?.subtitle ?? "",
+        description: initial?.description ?? "",
+        mainImage: initial?.mainImage ?? "",
+        imagesText: (initial?.images ?? []).join("\n"),
         params: initial?.params ?? [],
-    }));
-    const [error, setError] = useState<string | null>(null);
+    }))
+    const [error, setError] = useState<string | null>(null)
 
     const categories = useQuery({
-        queryKey: ['categories', 'tree'],
+        queryKey: ["categories", "tree"],
         queryFn: () => productApi.categoryTree(),
         staleTime: 10 * 60_000,
-    });
-    const leafOptions = flattenLeaves(categories.data ?? []);
+    })
+    const leafOptions = flattenLeaves(categories.data ?? [])
 
     function patch(partial: Partial<BasicFormValues>) {
-        setValues((v) => ({ ...v, ...partial }));
+        setValues((v) => ({ ...v, ...partial }))
     }
 
     function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setError(null);
+        e.preventDefault()
+        setError(null)
         if (!values.categoryId) {
-            setError('请选择商品分类');
-            return;
+            setError("请选择商品分类")
+            return
         }
         if (!values.name.trim()) {
-            setError('请输入商品名称');
-            return;
+            setError("请输入商品名称")
+            return
         }
         if (values.name.trim().length > 128) {
-            setError('商品名最长 128 字');
-            return;
+            setError("商品名最长 128 字")
+            return
         }
-        onSubmit({ ...values, name: values.name.trim(), subtitle: values.subtitle.trim() });
+        onSubmit({ ...values, name: values.name.trim(), subtitle: values.subtitle.trim() })
     }
 
     return (
@@ -187,7 +187,7 @@ export function BasicForm({
                 </label>
                 <Textarea
                     id="bf-images"
-                    placeholder={'https://…/1.jpg\nhttps://…/2.jpg'}
+                    placeholder={"https://…/1.jpg\nhttps://…/2.jpg"}
                     rows={3}
                     value={values.imagesText}
                     onChange={(e) => patch({ imagesText: e.target.value })}
@@ -214,29 +214,35 @@ export function BasicForm({
                 disabled={submitting}
                 className="bg-brand text-brand-foreground hover:bg-brand-hover"
             >
-                {submitting ? '保存中…' : submitText}
+                {submitting ? "保存中…" : submitText}
             </Button>
         </form>
-    );
+    )
 }
 
 /** {name, value} 行编辑器：商品参数与规格维度复用 */
+let rowSeq = 0
+const nextRowId = () => `param-${++rowSeq}`
+
 export function ParamsEditor({
     params,
     onChange,
 }: {
-    params: ParamItem[];
-    onChange: (next: ParamItem[]) => void;
+    params: ParamItem[]
+    onChange: (next: ParamItem[]) => void
 }) {
+    // 受控数组无 id：并行维护行 id，避免可增删列表用 index 当 key 导致 DOM 错位
+    const [rowIds, setRowIds] = useState<string[]>(() => params.map(() => nextRowId()))
+
     function update(index: number, patch: Partial<ParamItem>) {
-        onChange(params.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+        onChange(params.map((p, i) => (i === index ? { ...p, ...patch } : p)))
     }
 
     return (
         <div className="space-y-2">
             {params.map((p, i) => (
                 <div
-                    key={i}
+                    key={rowIds[i]}
                     className="flex items-center gap-2"
                 >
                     <Input
@@ -258,7 +264,10 @@ export function ParamsEditor({
                         variant="ghost"
                         size="icon-sm"
                         aria-label="删除参数"
-                        onClick={() => onChange(params.filter((_, j) => j !== i))}
+                        onClick={() => {
+                            onChange(params.filter((_, j) => j !== i))
+                            setRowIds((ids) => ids.filter((_, j) => j !== i))
+                        }}
                     >
                         <Trash2 className="size-4 text-muted-foreground" />
                     </Button>
@@ -268,13 +277,16 @@ export function ParamsEditor({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => onChange([...params, { name: '', value: '' }])}
+                onClick={() => {
+                    onChange([...params, { name: "", value: "" }])
+                    setRowIds((ids) => [...ids, nextRowId()])
+                }}
             >
                 <Plus className="size-4" />
                 添加参数
             </Button>
         </div>
-    );
+    )
 }
 
 /** 类目树 → 末级选项（商品只挂末级分类），label 带层级路径 */
@@ -283,10 +295,10 @@ function flattenLeaves(
     prefix: string[] = [],
 ): { id: string; label: string }[] {
     return nodes.flatMap((node) => {
-        const path = [...prefix, node.name];
+        const path = [...prefix, node.name]
         if (node.children && node.children.length > 0) {
-            return flattenLeaves(node.children, path);
+            return flattenLeaves(node.children, path)
         }
-        return [{ id: node.id, label: path.join(' / ') }];
-    });
+        return [{ id: node.id, label: path.join(" / ") }]
+    })
 }

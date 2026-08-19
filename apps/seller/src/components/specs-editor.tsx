@@ -1,17 +1,25 @@
-import { useState } from 'react';
-import { Button, Input } from '@shop/ui-web';
-import { CircleAlert, Plus, Trash2 } from 'lucide-react';
+import { useState } from "react"
+import { Button, Input } from "@shop/ui-web"
+import { CircleAlert, Plus, Trash2 } from "lucide-react"
 
-import type { SpecItem } from '@shop/api';
+import type { SpecItem } from "@shop/api"
 
 interface SpecDraft {
-    name: string;
+    id: string
+    name: string
     /** 逗号/顿号分隔的取值文本，保存时拆分去重 */
-    valuesText: string;
+    valuesText: string
 }
 
+let draftSeq = 0
+const nextDraftId = () => `spec-${++draftSeq}`
+
 function toDrafts(specs: SpecItem[] | null | undefined): SpecDraft[] {
-    return (specs ?? []).map((s) => ({ name: s.name, valuesText: s.values.join('，') }));
+    return (specs ?? []).map((s) => ({
+        id: nextDraftId(),
+        name: s.name,
+        valuesText: s.values.join("，"),
+    }))
 }
 
 /**
@@ -23,22 +31,22 @@ export function SpecsEditor({
     submitting,
     onSave,
 }: {
-    specs: SpecItem[] | null | undefined;
-    submitting: boolean;
-    onSave: (specs: SpecItem[]) => void;
+    specs: SpecItem[] | null | undefined
+    submitting: boolean
+    onSave: (specs: SpecItem[]) => void
 }) {
-    const [drafts, setDrafts] = useState<SpecDraft[]>(() => toDrafts(specs));
-    const [error, setError] = useState<string | null>(null);
+    const [drafts, setDrafts] = useState<SpecDraft[]>(() => toDrafts(specs))
+    const [error, setError] = useState<string | null>(null)
 
     function update(index: number, patch: Partial<SpecDraft>) {
-        setDrafts((ds) => ds.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+        setDrafts((ds) => ds.map((d, i) => (i === index ? { ...d, ...patch } : d)))
     }
 
     function handleSave() {
-        setError(null);
-        const specs: SpecItem[] = [];
+        setError(null)
+        const specs: SpecItem[] = []
         for (const d of drafts) {
-            const name = d.name.trim();
+            const name = d.name.trim()
             const values = [
                 ...new Set(
                     d.valuesText
@@ -46,25 +54,25 @@ export function SpecsEditor({
                         .map((v) => v.trim())
                         .filter(Boolean),
                 ),
-            ];
+            ]
             if (!name) {
-                setError('规格维度名不能为空');
-                return;
+                setError("规格维度名不能为空")
+                return
             }
             if (values.length === 0) {
-                setError(`「${name}」至少需要一个取值`);
-                return;
+                setError(`「${name}」至少需要一个取值`)
+                return
             }
-            specs.push({ name, values });
+            specs.push({ name, values })
         }
-        onSave(specs);
+        onSave(specs)
     }
 
     return (
         <div className="space-y-3">
             {drafts.map((d, i) => (
                 <div
-                    key={i}
+                    key={d.id}
                     className="flex items-start gap-2"
                 >
                     <Input
@@ -97,7 +105,9 @@ export function SpecsEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setDrafts((ds) => [...ds, { name: '', valuesText: '' }])}
+                    onClick={() =>
+                        setDrafts((ds) => [...ds, { id: nextDraftId(), name: "", valuesText: "" }])
+                    }
                 >
                     <Plus className="size-4" />
                     添加维度
@@ -109,7 +119,7 @@ export function SpecsEditor({
                     onClick={handleSave}
                     className="bg-brand text-brand-foreground hover:bg-brand-hover"
                 >
-                    {submitting ? '保存中…' : '保存规格'}
+                    {submitting ? "保存中…" : "保存规格"}
                 </Button>
             </div>
 
@@ -125,5 +135,5 @@ export function SpecsEditor({
                 SKU，需要再到下方 SKU 表设置价格和库存。
             </p>
         </div>
-    );
+    )
 }

@@ -8,79 +8,79 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as SellIndexRouteImport } from './routes/sell/index'
+import { Route as rootRouteImport } from "./routes/__root"
+import { Route as IndexRouteImport } from "./routes/index"
+import { Route as SellIndexRouteImport } from "./routes/sell/index"
 
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
+    id: "/",
+    path: "/",
+    getParentRoute: () => rootRouteImport,
 } as any)
 const SellIndexRoute = SellIndexRouteImport.update({
-  id: '/sell/',
-  path: '/sell/',
-  getParentRoute: () => rootRouteImport,
+    id: "/sell/",
+    path: "/sell/",
+    getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/sell/': typeof SellIndexRoute
+    "/": typeof IndexRoute
+    "/sell/": typeof SellIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/sell': typeof SellIndexRoute
+    "/": typeof IndexRoute
+    "/sell": typeof SellIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/sell/': typeof SellIndexRoute
+    __root__: typeof rootRouteImport
+    "/": typeof IndexRoute
+    "/sell/": typeof SellIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sell/'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sell'
-  id: '__root__' | '/' | '/sell/'
-  fileRoutesById: FileRoutesById
+    fileRoutesByFullPath: FileRoutesByFullPath
+    fullPaths: "/" | "/sell/"
+    fileRoutesByTo: FileRoutesByTo
+    to: "/" | "/sell"
+    id: "__root__" | "/" | "/sell/"
+    fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  SellIndexRoute: typeof SellIndexRoute
+    IndexRoute: typeof IndexRoute
+    SellIndexRoute: typeof SellIndexRoute
 }
 
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+declare module "@tanstack/react-router" {
+    interface FileRoutesByPath {
+        "/": {
+            id: "/"
+            path: "/"
+            fullPath: "/"
+            preLoaderRoute: typeof IndexRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        "/sell/": {
+            id: "/sell/"
+            path: "/sell"
+            fullPath: "/sell/"
+            preLoaderRoute: typeof SellIndexRouteImport
+            parentRoute: typeof rootRouteImport
+        }
     }
-    '/sell/': {
-      id: '/sell/'
-      path: '/sell'
-      fullPath: '/sell/'
-      preLoaderRoute: typeof SellIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  SellIndexRoute: SellIndexRoute,
+    IndexRoute: IndexRoute,
+    SellIndexRoute: SellIndexRoute,
 }
 export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+    ._addFileChildren(rootRouteChildren)
+    ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
+import type { getRouter } from "./router.tsx"
+import type { createStart } from "@tanstack/react-start"
+declare module "@tanstack/react-start" {
+    interface Register {
+        ssr: true
+        router: Awaited<ReturnType<typeof getRouter>>
+    }
 }

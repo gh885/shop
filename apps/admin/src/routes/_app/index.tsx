@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
-import type { ColumnDef, ColumnFiltersState } from '@tanstack/react-table';
-import { useState } from 'react';
-import { z } from 'zod';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
+import { useState } from "react"
+import { z } from "zod"
 
 import {
     Badge,
@@ -16,67 +16,67 @@ import {
     DialogTitle,
     Textarea,
     type DataTableFilterConfig,
-} from '@shop/ui-web';
+} from "@shop/ui-web"
 
-import { adminApi, ShopReviewStatusSchema } from '../../lib/api';
-import type { ShopReviewItem, ShopReviewStatus } from '../../lib/api';
+import { adminApi, ShopReviewStatusSchema } from "../../lib/api"
+import type { ShopReviewItem, ShopReviewStatus } from "../../lib/api"
 
-export const Route = createFileRoute('/_app/')({
+export const Route = createFileRoute("/_app/")({
     validateSearch: z.object({
         status: ShopReviewStatusSchema.optional(),
         page: z.coerce.number().int().min(1).catch(1),
         size: z.coerce.number().int().min(1).catch(20),
     }),
     component: ReviewPage,
-});
+})
 
 const STATUS_BADGE: Record<ShopReviewStatus, { label: string; className: string }> = {
     PENDING: {
-        label: '待审核',
-        className: 'bg-warning-subtle text-warning-subtle-foreground',
+        label: "待审核",
+        className: "bg-warning-subtle text-warning-subtle-foreground",
     },
     APPROVED: {
-        label: '已通过',
-        className: 'bg-success-subtle text-success-subtle-foreground',
+        label: "已通过",
+        className: "bg-success-subtle text-success-subtle-foreground",
     },
     REJECTED: {
-        label: '已驳回',
-        className: 'bg-destructive-subtle text-destructive-subtle-foreground',
+        label: "已驳回",
+        className: "bg-destructive-subtle text-destructive-subtle-foreground",
     },
-};
+}
 
 const STATUS_FILTER: DataTableFilterConfig = {
-    columnId: 'status',
-    title: '状态',
+    columnId: "status",
+    title: "状态",
     options: [
-        { label: '待审核', value: 'PENDING' },
-        { label: '已通过', value: 'APPROVED' },
-        { label: '已驳回', value: 'REJECTED' },
+        { label: "待审核", value: "PENDING" },
+        { label: "已通过", value: "APPROVED" },
+        { label: "已驳回", value: "REJECTED" },
     ],
-};
+}
 
 const columns: ColumnDef<ShopReviewItem>[] = [
     {
-        accessorKey: 'shopName',
-        header: '店铺名称',
+        accessorKey: "shopName",
+        header: "店铺名称",
         cell: ({ row }) => <span className="font-medium">{row.original.shopName}</span>,
     },
     {
-        accessorKey: 'ownerPhone',
-        header: '联系电话',
+        accessorKey: "ownerPhone",
+        header: "联系电话",
         cell: ({ row }) => <span className="tabular-nums">{row.original.ownerPhone}</span>,
     },
     {
-        accessorKey: 'status',
-        header: '状态',
+        accessorKey: "status",
+        header: "状态",
         cell: ({ row }) => {
-            const badge = STATUS_BADGE[row.original.status];
-            return <Badge className={badge.className}>{badge.label}</Badge>;
+            const badge = STATUS_BADGE[row.original.status]
+            return <Badge className={badge.className}>{badge.label}</Badge>
         },
     },
     {
-        accessorKey: 'reason',
-        header: '驳回理由',
+        accessorKey: "reason",
+        header: "驳回理由",
         cell: ({ row }) =>
             row.original.reason ? (
                 <span className="max-w-48 truncate text-muted-foreground">
@@ -87,8 +87,8 @@ const columns: ColumnDef<ShopReviewItem>[] = [
             ),
     },
     {
-        accessorKey: 'createdAt',
-        header: '申请时间',
+        accessorKey: "createdAt",
+        header: "申请时间",
         cell: ({ row }) => (
             <span className="tabular-nums text-muted-foreground">
                 {formatTime(row.original.createdAt)}
@@ -96,8 +96,8 @@ const columns: ColumnDef<ShopReviewItem>[] = [
         ),
     },
     {
-        accessorKey: 'decidedAt',
-        header: '处理时间',
+        accessorKey: "decidedAt",
+        header: "处理时间",
         cell: ({ row }) =>
             row.original.decidedAt ? (
                 <span className="tabular-nums text-muted-foreground">
@@ -108,25 +108,25 @@ const columns: ColumnDef<ShopReviewItem>[] = [
             ),
     },
     {
-        id: 'actions',
+        id: "actions",
         header: () => <span className="flex justify-end">操作</span>,
         enableHiding: false,
         cell: ({ row }) => <ReviewActions item={row.original} />,
     },
-];
+]
 
 function ReviewPage() {
-    const { status, page, size } = Route.useSearch();
-    const navigate = Route.useNavigate();
+    const { status, page, size } = Route.useSearch()
+    const navigate = Route.useNavigate()
 
     const { data, isPending } = useQuery({
-        queryKey: ['admin', 'reviews', status, page, size],
+        queryKey: ["admin", "reviews", status, page, size],
         queryFn: () => adminApi.listReviews({ status, page, size }),
-    });
+    })
 
     // 服务端模式：分页/筛选状态由 URL 接管，DataTable 内不自管
-    const pagination = { pageIndex: page - 1, pageSize: size };
-    const columnFilters: ColumnFiltersState = status ? [{ id: 'status', value: [status] }] : [];
+    const pagination = { pageIndex: page - 1, pageSize: size }
+    const columnFilters: ColumnFiltersState = status ? [{ id: "status", value: [status] }] : []
 
     return (
         <div className="space-y-4">
@@ -145,45 +145,45 @@ function ReviewPage() {
                 filters={[STATUS_FILTER]}
                 pagination={pagination}
                 onPaginationChange={(updater) => {
-                    const next = typeof updater === 'function' ? updater(pagination) : updater;
+                    const next = typeof updater === "function" ? updater(pagination) : updater
                     void navigate({
                         search: { status, page: next.pageIndex + 1, size: next.pageSize },
-                    });
+                    })
                 }}
                 columnFilters={columnFilters}
                 onColumnFiltersChange={(updater) => {
-                    const next = typeof updater === 'function' ? updater(columnFilters) : updater;
+                    const next = typeof updater === "function" ? updater(columnFilters) : updater
                     // 后端 status 单值，多选时取最后一次选择
-                    const values = next.find((f) => f.id === 'status')?.value as
+                    const values = next.find((f) => f.id === "status")?.value as
                         | string[]
-                        | undefined;
-                    const s = values?.at(-1) as ShopReviewStatus | undefined;
-                    void navigate({ search: { status: s, page: 1, size } });
+                        | undefined
+                    const s = values?.at(-1) as ShopReviewStatus | undefined
+                    void navigate({ search: { status: s, page: 1, size } })
                 }}
             />
         </div>
-    );
+    )
 }
 
 function ReviewActions({ item }: { item: ShopReviewItem }) {
-    const queryClient = useQueryClient();
-    const [rejectOpen, setRejectOpen] = useState(false);
-    const [reason, setReason] = useState('');
+    const queryClient = useQueryClient()
+    const [rejectOpen, setRejectOpen] = useState(false)
+    const [reason, setReason] = useState("")
 
-    const invalidate = () => queryClient.invalidateQueries({ queryKey: ['admin', 'reviews'] });
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] })
 
     const approve = useMutation({
         mutationFn: () => adminApi.approve(item.id),
         onSuccess: invalidate,
-    });
+    })
     const reject = useMutation({
         mutationFn: () => adminApi.reject(item.id, reason),
         onSuccess: () => {
-            setRejectOpen(false);
-            setReason('');
-            void invalidate();
+            setRejectOpen(false)
+            setReason("")
+            void invalidate()
         },
-    });
+    })
 
     return (
         <div className="flex justify-end gap-2">
@@ -237,11 +237,11 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
                 </DialogContent>
             </Dialog>
         </div>
-    );
+    )
 }
 
 function formatTime(iso: string): string {
-    const d = new Date(iso);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const d = new Date(iso)
+    const pad = (n: number) => String(n).padStart(2, "0")
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }

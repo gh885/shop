@@ -1,51 +1,51 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, createFileRoute } from '@tanstack/react-router';
-import { Badge, Button, Skeleton } from '@shop/ui-web';
-import { ArrowLeft, CircleAlert } from 'lucide-react';
+import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Link, createFileRoute } from "@tanstack/react-router"
+import { Badge, Button, Skeleton } from "@shop/ui-web"
+import { ArrowLeft, CircleAlert } from "lucide-react"
 
-import type { ProductStatus } from '@shop/api';
+import type { ProductStatus } from "@shop/api"
 
-import { BasicForm, type BasicFormValues } from '#/components/basic-form';
-import { SkusTable } from '#/components/skus-table';
-import { SpecsEditor } from '#/components/specs-editor';
-import { productApi, toApiError } from '#/lib/api';
-import { useCurrentShop } from '#/lib/shop';
+import { BasicForm, type BasicFormValues } from "#/components/basic-form"
+import { SkusTable } from "#/components/skus-table"
+import { SpecsEditor } from "#/components/specs-editor"
+import { productApi, toApiError } from "#/lib/api"
+import { useCurrentShop } from "#/lib/shop"
 
-export const Route = createFileRoute('/_app/products/$productId')({
+export const Route = createFileRoute("/_app/products/$productId")({
     component: ProductEditPage,
-});
+})
 
 const STATUS_TEXT: Record<ProductStatus, string> = {
-    1: '上架中',
-    0: '已下架',
-    2: '草稿',
-};
+    1: "上架中",
+    0: "已下架",
+    2: "草稿",
+}
 
-const STATUS_VARIANT: Record<ProductStatus, 'default' | 'outline' | 'secondary'> = {
-    1: 'default',
-    0: 'outline',
-    2: 'secondary',
-};
+const STATUS_VARIANT: Record<ProductStatus, "default" | "outline" | "secondary"> = {
+    1: "default",
+    0: "outline",
+    2: "secondary",
+}
 
 /** 商品编辑：基本信息 / 规格模板 / SKU 价格库存 三段，顶部按状态给出发布/上下架动作 */
 function ProductEditPage() {
-    const { productId } = Route.useParams();
-    const shop = useCurrentShop();
-    const queryClient = useQueryClient();
-    const [serverError, setServerError] = useState<string | null>(null);
+    const { productId } = Route.useParams()
+    const shop = useCurrentShop()
+    const queryClient = useQueryClient()
+    const [serverError, setServerError] = useState<string | null>(null)
 
     const detail = useQuery({
-        queryKey: ['products', shop?.id, productId],
+        queryKey: ["products", shop?.id, productId],
         queryFn: () => productApi.detail(shop!.id, productId),
         enabled: !!shop,
-    });
+    })
 
     /** 成功后刷新详情缓存；详情数据驱动规格/SKU 两个编辑器 */
     const refresh = () =>
-        queryClient.invalidateQueries({ queryKey: ['products', shop?.id, productId] });
+        queryClient.invalidateQueries({ queryKey: ["products", shop?.id, productId] })
 
-    const onError = async (e: unknown) => setServerError((await toApiError(e)).detail);
+    const onError = async (e: unknown) => setServerError((await toApiError(e)).detail)
 
     const updateBasic = useMutation({
         mutationFn: (values: BasicFormValues) =>
@@ -59,58 +59,58 @@ function ProductEditPage() {
                 params: values.params.filter((p) => p.name.trim() && p.value.trim()),
             }),
         onSuccess: () => {
-            setServerError(null);
-            void refresh();
+            setServerError(null)
+            void refresh()
         },
         onError,
-    });
+    })
 
     const updateSpecs = useMutation({
         mutationFn: (specs: Parameters<typeof productApi.updateSpecs>[2]) =>
             productApi.updateSpecs(shop!.id, productId, specs),
         onSuccess: () => {
-            setServerError(null);
-            void refresh();
+            setServerError(null)
+            void refresh()
         },
         onError,
-    });
+    })
 
     const updateSkus = useMutation({
         mutationFn: (items: Parameters<typeof productApi.updateSkus>[2]) =>
             productApi.updateSkus(shop!.id, productId, items),
         onSuccess: () => {
-            setServerError(null);
-            void refresh();
+            setServerError(null)
+            void refresh()
         },
         onError,
-    });
+    })
 
     const publish = useMutation({
         mutationFn: () => productApi.publish(shop!.id, productId),
         onSuccess: () => {
-            setServerError(null);
-            void refresh();
+            setServerError(null)
+            void refresh()
         },
         onError,
-    });
+    })
 
     const off = useMutation({
         mutationFn: () => productApi.off(shop!.id, productId),
         onSuccess: () => {
-            setServerError(null);
-            void refresh();
+            setServerError(null)
+            void refresh()
         },
         onError,
-    });
+    })
 
     const on = useMutation({
         mutationFn: () => productApi.on(shop!.id, productId),
         onSuccess: () => {
-            setServerError(null);
-            void refresh();
+            setServerError(null)
+            void refresh()
         },
         onError,
-    });
+    })
 
     if (detail.isLoading || !shop) {
         return (
@@ -119,7 +119,7 @@ function ProductEditPage() {
                 <Skeleton className="h-64 w-full rounded-2xl" />
                 <Skeleton className="h-40 w-full rounded-2xl" />
             </div>
-        );
+        )
     }
 
     if (detail.isError || !detail.data) {
@@ -134,10 +134,10 @@ function ProductEditPage() {
                     返回商品列表
                 </Link>
             </div>
-        );
+        )
     }
 
-    const { product, skus } = detail.data;
+    const { product, skus } = detail.data
 
     return (
         <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -224,13 +224,13 @@ function ProductEditPage() {
                 />
             </section>
         </div>
-    );
+    )
 }
 
 function splitLines(text: string): string[] | undefined {
     const lines = text
-        .split('\n')
+        .split("\n")
         .map((l) => l.trim())
-        .filter(Boolean);
-    return lines.length > 0 ? lines : undefined;
+        .filter(Boolean)
+    return lines.length > 0 ? lines : undefined
 }

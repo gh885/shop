@@ -1,21 +1,21 @@
-'use client';
+"use client"
 
-import { type Table } from '@tanstack/react-table';
-import { XIcon } from 'lucide-react';
+import { type Table } from "@tanstack/react-table"
+import { XIcon } from "lucide-react"
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from "src/components/ui/button"
+import { Input } from "src/components/ui/input"
 
-import { DataTableFacetedFilter, type DataTableFilterConfig } from './data-table-faceted-filter';
-import { DataTableViewOptions } from './data-table-view-options';
+import { DataTableFacetedFilter, type DataTableFilterConfig } from "./data-table-faceted-filter"
+import { DataTableViewOptions } from "./data-table-view-options"
 
 type DataTableToolbarProps<TData> = {
-    table: Table<TData>;
-    searchPlaceholder?: string;
+    table: Table<TData>
+    searchPlaceholder?: string
     /** 传则列过滤，否则全局过滤 */
-    searchKey?: string;
-    filters?: DataTableFilterConfig[];
-};
+    searchKey?: string
+    filters?: DataTableFilterConfig[]
+}
 
 /** 工具栏：搜索 + faceted 筛选 + 重置 + 列显隐 */
 export function DataTableToolbar<TData>({
@@ -24,7 +24,7 @@ export function DataTableToolbar<TData>({
     searchKey,
     filters = [],
 }: DataTableToolbarProps<TData>) {
-    const isFiltered = table.getState().columnFilters.length > 0;
+    const isFiltered = table.getState().columnFilters.length > 0
 
     return (
         <div className="flex items-center justify-between gap-2">
@@ -33,7 +33,7 @@ export function DataTableToolbar<TData>({
                     (searchKey ? (
                         <Input
                             placeholder={searchPlaceholder}
-                            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ''}
+                            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
                             onChange={(event) =>
                                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
                             }
@@ -42,14 +42,14 @@ export function DataTableToolbar<TData>({
                     ) : (
                         <Input
                             placeholder={searchPlaceholder}
-                            value={(table.getState().globalFilter as string) ?? ''}
+                            value={(table.getState().globalFilter as string) ?? ""}
                             onChange={(event) => table.setGlobalFilter(event.target.value)}
                             className="h-8 w-48"
                         />
                     ))}
                 {filters.map((filter) => {
-                    const column = table.getColumn(filter.columnId);
-                    if (!column) return null;
+                    const column = table.getColumn(filter.columnId)
+                    if (!column) return null
                     return (
                         <DataTableFacetedFilter
                             key={filter.columnId}
@@ -57,7 +57,7 @@ export function DataTableToolbar<TData>({
                             title={filter.title}
                             options={filter.options}
                         />
-                    );
+                    )
                 })}
                 {isFiltered && (
                     <Button
@@ -65,8 +65,8 @@ export function DataTableToolbar<TData>({
                         size="sm"
                         className="h-8 px-2 lg:px-3"
                         onClick={() => {
-                            table.resetColumnFilters();
-                            table.setGlobalFilter('');
+                            table.resetColumnFilters()
+                            table.setGlobalFilter("")
                         }}
                     >
                         重置
@@ -76,5 +76,5 @@ export function DataTableToolbar<TData>({
             </div>
             <DataTableViewOptions table={table} />
         </div>
-    );
+    )
 }

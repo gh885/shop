@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { useState } from "react"
+import { createFileRoute } from "@tanstack/react-router"
 import {
     ArrowRight,
     CheckCircle2,
@@ -8,22 +8,22 @@ import {
     Package,
     Sparkles,
     Store,
-} from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion, type Variants } from 'motion/react';
+} from "lucide-react"
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react"
 
-import { Button, buttonVariants } from '@shop/ui-web';
+import { Button, buttonVariants } from "@shop/ui-web"
 
-import { useAuthStatus, useLoginDialogOpen } from '../../lib/auth';
-import { SELLER_URL } from '../../lib/external';
+import { useAuthStatus, useLoginDialogOpen } from "../../lib/auth"
+import { SELLER_URL } from "../../lib/external"
 
-export const Route = createFileRoute('/sell/')({
+export const Route = createFileRoute("/sell/")({
     component: SellLanding,
     head: () => ({
-        meta: [{ title: '免费开店 - Shop' }],
+        meta: [{ title: "免费开店 - Shop" }],
     }),
-});
+})
 
-const EASE = [0.16, 1, 0.3, 1] as const;
+const EASE = [0.16, 1, 0.3, 1] as const
 
 function SellLanding() {
     return (
@@ -33,20 +33,20 @@ function SellLanding() {
             <Steps />
             <FinalCta />
         </div>
-    );
+    )
 }
 
 /** 开店 CTA：未登录拉起全局登录框，已登录进入卖家中心 */
-function OpenShopCta({ size = 'default' }: { size?: 'default' | 'lg' }) {
-    const status = useAuthStatus();
-    const [, setLoginOpen] = useLoginDialogOpen();
+function OpenShopCta({ size = "default" }: { size?: "default" | "lg" }) {
+    const status = useAuthStatus()
+    const [, setLoginOpen] = useLoginDialogOpen()
 
     function handleClick() {
-        if (status === 'authed') {
+        if (status === "authed") {
             // 店铺管理已迁到卖家中心（apps/seller 独立 SPA），跨应用跳转
-            window.location.href = SELLER_URL;
+            window.location.href = SELLER_URL
         } else {
-            setLoginOpen(true);
+            setLoginOpen(true)
         }
     }
 
@@ -59,7 +59,7 @@ function OpenShopCta({ size = 'default' }: { size?: 'default' | 'lg' }) {
             免费开店
             <ArrowRight className="size-4" />
         </Button>
-    );
+    )
 }
 
 const heroTextVariants: Variants = {
@@ -69,10 +69,10 @@ const heroTextVariants: Variants = {
         y: 0,
         transition: { duration: 0.7, delay: i * 0.12, ease: EASE },
     }),
-};
+}
 
 function Hero() {
-    const reduce = useReducedMotion();
+    const reduce = useReducedMotion()
 
     return (
         <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr]">
@@ -82,7 +82,7 @@ function Hero() {
                         key={i}
                         custom={i}
                         variants={heroTextVariants}
-                        initial={reduce ? false : 'hidden'}
+                        initial={reduce ? false : "hidden"}
                         animate="show"
                     >
                         {i === 0 ? (
@@ -100,7 +100,7 @@ function Hero() {
                                 <OpenShopCta size="lg" />
                                 <a
                                     href="#steps"
-                                    className={buttonVariants({ variant: 'outline', size: 'lg' })}
+                                    className={buttonVariants({ variant: "outline", size: "lg" })}
                                 >
                                     了解入驻流程
                                 </a>
@@ -139,52 +139,52 @@ function Hero() {
                 </div>
             </div>
         </section>
-    );
+    )
 }
 
 const MODES = [
     {
-        key: 'goods',
-        label: '我有好货',
+        key: "goods",
+        label: "我有好货",
         icon: Package,
-        title: '好货不愁卖',
-        body: '把货源优势直接变成店铺销量。上架商品、管理库存、跟踪订单，经营所需的基础能力一站配齐。',
-        img: 'https://picsum.photos/seed/sell-goods/960/640',
-        alt: '丰富的货源',
+        title: "好货不愁卖",
+        body: "把货源优势直接变成店铺销量。上架商品、管理库存、跟踪订单，经营所需的基础能力一站配齐。",
+        img: "https://picsum.photos/seed/sell-goods/960/640",
+        alt: "丰富的货源",
     },
     {
-        key: 'live',
-        label: '我擅长直播',
+        key: "live",
+        label: "我擅长直播",
         icon: Megaphone,
-        title: '会表达，就开店',
-        body: '擅长镜头前的表达，就让它变成成交。店铺是你内容流量的承接地，粉丝看完就能下单。',
-        img: 'https://picsum.photos/seed/sell-live/960/640',
-        alt: '直播带货',
+        title: "会表达，就开店",
+        body: "擅长镜头前的表达，就让它变成成交。店铺是你内容流量的承接地，粉丝看完就能下单。",
+        img: "https://picsum.photos/seed/sell-live/960/640",
+        alt: "直播带货",
     },
     {
-        key: 'original',
-        label: '我是原创',
+        key: "original",
+        label: "我是原创",
         icon: Sparkles,
-        title: '原创值得被认真对待',
-        body: '手作、设计、原创内容都有自己的受众。开一家只属于你的店，让同好的人找到你。',
-        img: 'https://picsum.photos/seed/sell-original/960/640',
-        alt: '原创手作',
+        title: "原创值得被认真对待",
+        body: "手作、设计、原创内容都有自己的受众。开一家只属于你的店，让同好的人找到你。",
+        img: "https://picsum.photos/seed/sell-original/960/640",
+        alt: "原创手作",
     },
     {
-        key: 'factory',
-        label: '我有工厂',
+        key: "factory",
+        label: "我有工厂",
         icon: Factory,
-        title: '从车间直达买家',
-        body: '去掉中间环节，源头好货直面消费者。支持邀请成员共同打理店铺，团队协作更高效。',
-        img: 'https://picsum.photos/seed/sell-factory/960/640',
-        alt: '工厂车间',
+        title: "从车间直达买家",
+        body: "去掉中间环节，源头好货直面消费者。支持邀请成员共同打理店铺，团队协作更高效。",
+        img: "https://picsum.photos/seed/sell-factory/960/640",
+        alt: "工厂车间",
     },
-] as const;
+] as const
 
 function BusinessModes() {
-    const reduce = useReducedMotion();
-    const [active, setActive] = useState<(typeof MODES)[number]['key']>('goods');
-    const mode = MODES.find((m) => m.key === active) ?? MODES[0];
+    const reduce = useReducedMotion()
+    const [active, setActive] = useState<(typeof MODES)[number]["key"]>("goods")
+    const mode = MODES.find((m) => m.key === active) ?? MODES[0]
 
     return (
         <section className="bg-sunken">
@@ -206,8 +206,8 @@ function BusinessModes() {
                         className="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1"
                     >
                         {MODES.map((m) => {
-                            const Icon = m.icon;
-                            const selected = m.key === active;
+                            const Icon = m.icon
+                            const selected = m.key === active
                             return (
                                 <button
                                     key={m.key}
@@ -216,14 +216,14 @@ function BusinessModes() {
                                     onClick={() => setActive(m.key)}
                                     className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
                                         selected
-                                            ? 'bg-background text-brand shadow-sm'
-                                            : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
+                                            ? "bg-background text-brand shadow-sm"
+                                            : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
                                     }`}
                                 >
                                     <Icon className="size-4" />
                                     {m.label}
                                 </button>
-                            );
+                            )
                         })}
                     </div>
 
@@ -252,26 +252,26 @@ function BusinessModes() {
                 </div>
             </motion.div>
         </section>
-    );
+    )
 }
 
 const STEPS = [
     {
-        title: '创建店铺',
-        body: '登录后填写店铺信息，一分钟提交入驻申请。',
+        title: "创建店铺",
+        body: "登录后填写店铺信息，一分钟提交入驻申请。",
     },
     {
-        title: '平台审核',
-        body: '平台对入驻申请进行审核，结果及时可见。',
+        title: "平台审核",
+        body: "平台对入驻申请进行审核，结果及时可见。",
     },
     {
-        title: '开始经营',
-        body: '上架商品、邀请成员，店铺正式开张。',
+        title: "开始经营",
+        body: "上架商品、邀请成员，店铺正式开张。",
     },
-] as const;
+] as const
 
 function Steps() {
-    const reduce = useReducedMotion();
+    const reduce = useReducedMotion()
 
     return (
         <section
@@ -309,11 +309,11 @@ function Steps() {
                 ))}
             </ol>
         </section>
-    );
+    )
 }
 
 function FinalCta() {
-    const reduce = useReducedMotion();
+    const reduce = useReducedMotion()
 
     return (
         <section className="bg-brand-subtle">
@@ -334,5 +334,5 @@ function FinalCta() {
                 <OpenShopCta size="lg" />
             </motion.div>
         </section>
-    );
+    )
 }
