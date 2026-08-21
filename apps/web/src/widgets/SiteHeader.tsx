@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { LogOut, UserRound } from "lucide-react"
 
 import {
@@ -20,33 +20,31 @@ import { useAuthStatus, useLoginDialogOpen } from "../shared/api/auth"
 
 import { SiteNav } from "./SiteNav"
 
-/** 站点头部：品牌 + 主导航 + 登录态区（头像 hover 弹出用户菜单） */
+/** 站点头部：京东式顶部灰条，不吸顶。仅保留导航 + 登录态，品牌 logo 由首页第一层承载 */
 export function SiteHeader() {
     const status = useAuthStatus()
     const [, setLoginOpen] = useLoginDialogOpen()
 
     return (
-        <header className="border-b border-border/60 bg-background/80">
-            <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
-                <Link
-                    to="/"
-                    className="text-lg font-bold tracking-tight"
-                >
-                    Shop
-                    <span className="ms-2 text-xs font-normal text-muted-foreground">
-                        多店铺电商平台
-                    </span>
-                </Link>
+        <header className="border-b border-border/60 bg-sunken/60">
+            <div className="mx-auto flex h-9 max-w-[1400px] items-center gap-6 px-6">
+                <span className="text-xs text-muted-foreground">中国大陆站</span>
 
                 <SiteNav />
 
                 <div className="ml-auto flex items-center gap-3">
                     {status === "unknown" ? (
-                        <span className="h-8 w-16 animate-pulse rounded-lg bg-muted" />
+                        <span className="h-4 w-12 animate-pulse rounded bg-muted" />
                     ) : status === "authed" ? (
                         <UserMenu />
                     ) : (
-                        <Button onClick={() => setLoginOpen(true)}>登录</Button>
+                        <Button
+                            size="sm"
+                            className="h-7 px-3 text-xs"
+                            onClick={() => setLoginOpen(true)}
+                        >
+                            登录
+                        </Button>
                     )}
                 </div>
             </div>

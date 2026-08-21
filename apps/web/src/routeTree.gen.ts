@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as SellIndexRouteImport } from './routes/sell/index'
 import { Route as AccountAddressIndexRouteImport } from './routes/account/address/index'
 
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellIndexRoute = SellIndexRouteImport.update({
@@ -38,12 +44,14 @@ const AccountAddressIndexRoute = AccountAddressIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
+  '/welcome': typeof WelcomeRoute
   '/sell/': typeof SellIndexRoute
   '/account/address/': typeof AccountAddressIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
+  '/welcome': typeof WelcomeRoute
   '/sell': typeof SellIndexRoute
   '/account/address': typeof AccountAddressIndexRoute
 }
@@ -51,20 +59,23 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
+  '/welcome': typeof WelcomeRoute
   '/sell/': typeof SellIndexRoute
   '/account/address/': typeof AccountAddressIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/account' | '/sell/' | '/account/address/'
+  fullPaths: '/' | '/account' | '/welcome' | '/sell/' | '/account/address/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/account' | '/sell' | '/account/address'
-  id: '__root__' | '/' | '/account' | '/sell/' | '/account/address/'
+  to: '/' | '/account' | '/welcome' | '/sell' | '/account/address'
+  id:
+    '__root__' | '/' | '/account' | '/welcome' | '/sell/' | '/account/address/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRouteWithChildren
+  WelcomeRoute: typeof WelcomeRoute
   SellIndexRoute: typeof SellIndexRoute
 }
 
@@ -82,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell/': {
@@ -115,6 +133,7 @@ const AccountRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRouteWithChildren,
+  WelcomeRoute: WelcomeRoute,
   SellIndexRoute: SellIndexRoute,
 }
 export const routeTree = rootRouteImport

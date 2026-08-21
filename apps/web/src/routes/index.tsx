@@ -1,8 +1,16 @@
+import { useLayoutEffect, useRef, useState } from "react"
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
-import { motion, useReducedMotion, type Variants } from "motion/react"
+import { ChevronDown, ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react"
 
-import { buttonVariants, cn } from "@shop/ui-web"
+import { Button } from "@shop/ui-web"
+
+import { Sticky } from "../shared/ui/sticky"
+import { HomeCategoryNav } from "#/features/home/home-category-nav"
+import { UserCard } from "#/features/home/user-card"
+import { ProductCard, type ProductCardData } from "#/features/home/product-card"
+
+/** 第一层顶栏高度（px）。第五层吸顶时以此为 top 偏移。 */
+export const HOME_HEADER_HEIGHT = 64
 
 export const Route = createFileRoute("/")({
     component: Home,
@@ -11,218 +19,352 @@ export const Route = createFileRoute("/")({
     }),
 })
 
-const EASE = [0.16, 1, 0.3, 1] as const
-
-const staggerVariants: Variants = {
-    hidden: { opacity: 0, y: 24 },
-    show: (i: number) => ({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.6, delay: i * 0.1, ease: EASE },
-    }),
-}
-
 function Home() {
     return (
         <div>
-            <Hero />
-            <Categories />
-            <SellerBanner />
+            <HomeHeader />
+            <CategoryCards />
+            <RecommendBar />
+            <ProductGrid />
         </div>
     )
 }
 
-function Hero() {
-    const reduce = useReducedMotion()
+/** 第四层：吸顶推荐条，吸在顶栏下方。扁平数组（猜你喜欢是普通一项），每页显示数量由容器宽度自动决定，首末页隐藏对应翻页按钮 */
+const RECOMMEND_ITEMS = [
+    "猜你喜欢",
+    "运动户外",
+    "食品生鲜",
+    "日用百货",
+    "服饰时尚",
+    "3C数码",
+    "智能家电",
+    "家用电器",
+    "珠宝饰品",
+    "玩具潮玩",
+    "鲜花园艺",
+    "数字生活",
+    "家装建材",
+    "办公文教",
+    "手机",
+    "笔记本",
+    "空调",
+    "冰箱",
+    "洗衣机",
+    "耳机",
+    "智能手表",
+    "扫地机器人",
+    "+更多",
+]
+
+function RecommendBar() {
+    const [page, setPage] = useState(0)
+
+    // 测量一页能放多少个词：测量层与显示层同宽、单行，累计宽度（含 gap）直到放不下
+    const measureRef = useRef<HTMLDivElement>(null)
+    const [pageSize, setPageSize] = useState(0)
+
+    useLayoutEffect(() => {
+        const el = measureRef.current
+        if (!el) return
+
+        const measure = () => {
+            const containerWidth = el.clientWidth
+            const children = [...el.children] as HTMLElement[]
+            let used = 0
+            let count = 0
+            for (let i = 0; i < children.length; i++) {
+                if (i > 0) used += 16 // gap-4
+                used += children[i].offsetWidth
+                if (used > containerWidth) break
+                count++
+            }
+            setPageSize(count)
+        }
+
+        measure()
+        const ro = new ResizeObserver(measure)
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [])
+
+    const totalPages = Math.max(1, Math.ceil(RECOMMEND_ITEMS.length / pageSize))
+    const clampedPage = Math.min(page, totalPages - 1)
+    const visible = RECOMMEND_ITEMS.slice(clampedPage * pageSize, (clampedPage + 1) * pageSize)
+
+    const prevPage = () => setPage((p) => Math.max(0, p - 1))
+    const nextPage = () => setPage((p) => Math.min(totalPages - 1, p + 1))
+    const refresh = () => setPage(0)
 
     return (
-        <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr]">
-            <div className="space-y-6">
-                {[0, 1, 2].map((i) => (
-                    <motion.div
-                        key={i}
-                        custom={i}
-                        variants={staggerVariants}
-                        initial={reduce ? false : "hidden"}
-                        animate="show"
+        <Sticky top={HOME_HEADER_HEIGHT}>
+            <div className="bg-background/95 backdrop-blur">
+                <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-6 py-3">
+                    {/* 左侧往回翻页：第一页隐藏 */}
+                    {clampedPage > 0 && (
+                        <button
+                            type="button"
+                            onClick={prevPage}
+                            className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                            aria-label="上一组"
+                        >
+                            <ChevronLeft className="size-5" />
+                        </button>
+                    )}
+                    {/* 视窗容器：与测量层同宽同布局 */}
+                    <div className="relative flex flex-1 items-center gap-4 overflow-hidden">
+                        {/* 测量层：隐藏、单行，累计宽度算出一页能放几个词 */}
+                        <div
+                            ref={measureRef}
+                            aria-hidden
+                            className="invisible absolute inset-0 flex gap-4"
+                        >
+                            {RECOMMEND_ITEMS.map((tab) => (
+                                <span
+                                    key={tab}
+                                    className="shrink-0 whitespace-nowrap text-base"
+                                >
+                                    {tab}
+                                </span>
+                            ))}
+                        </div>
+                        {/* 当前页可见项 */}
+                        {visible.map((tab, i) => (
+                            <button
+                                key={tab}
+                                type="button"
+                                className={`shrink-0 whitespace-nowrap text-base transition-colors ${
+                                    clampedPage === 0 && i === 0
+                                        ? "font-semibold text-primary"
+                                        : "text-muted-foreground hover:text-primary"
+                                }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
+                    {/* 右侧翻页：最后一页隐藏 */}
+                    {clampedPage < totalPages - 1 && (
+                        <button
+                            type="button"
+                            onClick={nextPage}
+                            className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                            aria-label="下一组"
+                        >
+                            <ChevronRight className="size-5" />
+                        </button>
+                    )}
+                    {/* 刷新 */}
+                    <button
+                        type="button"
+                        onClick={refresh}
+                        className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                        aria-label="刷新"
                     >
-                        {i === 0 ? (
-                            <h1 className="text-4xl leading-tight font-bold tracking-tight text-balance md:text-5xl">
-                                千万小店，
-                                <br />
-                                各有各的好
-                            </h1>
-                        ) : i === 1 ? (
-                            <p className="max-w-md text-lg text-muted-foreground">
-                                从产地直供到手作原创，每家店都有自己的脾气。逛的是店，买的是放心。
-                            </p>
-                        ) : (
-                            <div className="flex items-center gap-4">
-                                <a
-                                    href="#categories"
-                                    className={cn(
-                                        buttonVariants({ size: "lg" }),
-                                        "bg-primary text-primary-foreground hover:bg-primary-hover active:translate-y-px",
-                                    )}
-                                >
-                                    逛商品分类
-                                    <ArrowRight className="size-4" />
-                                </a>
-                                <Link
-                                    to="/sell"
-                                    className={buttonVariants({ variant: "outline", size: "lg" })}
-                                >
-                                    我要开店
-                                </Link>
-                            </div>
-                        )}
-                    </motion.div>
+                        <RefreshCw className="size-4" />
+                    </button>
+                </div>
+                <div className="mx-auto max-w-[1400px] border-t border-border/60 px-6" />
+            </div>
+        </Sticky>
+    )
+}
+
+/** 第五层：商品卡片网格（mock 数据，接后端后替换数据源） */
+const MOCK_PRODUCTS: ProductCardData[] = [
+    {
+        title: "索尼（SONY）WH-1000XM5 头戴式无线降噪耳机 深夜黑",
+        price: 199900,
+        sales: "已售 8.2万",
+        tags: ["自营", "放心购"],
+        shop: "索尼京东自营旗舰店",
+    },
+    {
+        title: "澳佳宝（Blackmores）深海鱼油胶囊 1000mg 400粒 中老年保健",
+        price: 13900,
+        sales: "已售 100万+",
+        tags: ["自营", "满299减30"],
+        shop: "澳佳宝海外自营",
+    },
+    {
+        title: "狼蛛（AULA）SC580EVO 双8K无线鼠标 电竞游戏专用",
+        price: 11850,
+        sales: "已售 2万+",
+        tags: ["自营", "超级补贴"],
+        shop: "狼蛛官方旗舰店",
+    },
+    {
+        title: "雷蛇（Razer）毒蝰V4pro专业版 轻量化无线游戏鼠标",
+        price: 31900,
+        sales: "已售 5.3万",
+        tags: ["自营", "价保30天"],
+        shop: "雷蛇京东自营",
+    },
+    {
+        title: "美的（Midea）1.5匹变频空调挂机 新一级能效 省电星",
+        price: 249900,
+        sales: "已售 36万+",
+        tags: ["自营", "以旧换新"],
+        shop: "美的京东自营旗舰店",
+    },
+    {
+        title: "三只松鼠 每日坚果 750g/30袋 混合干果礼盒装",
+        price: 7990,
+        sales: "已售 200万+",
+        tags: ["自营", "放心购"],
+        shop: "三只松鼠旗舰店",
+    },
+    {
+        title: "Apple iPhone 16 Pro 256GB 原色钛金属 支持移动联通电信5G",
+        price: 899900,
+        sales: "已售 12万+",
+        tags: ["自营", "正品行货"],
+        shop: "Apple产品京东自营",
+    },
+    {
+        title: "小林制药（KOBAYASHI）运动鞋除菌消臭喷雾 250ml 日本进口",
+        price: 2890,
+        sales: "已售 60万+",
+        tags: ["国际", "首购礼金2元"],
+        shop: "小林制药海外店",
+    },
+    {
+        title: "联想拯救者 300W 氮化镓适配器 笔记本快充 原装正品",
+        price: 35910,
+        sales: "已售 20万+",
+        tags: ["自营", "只换不修"],
+        shop: "联想京东自营",
+    },
+    {
+        title: "金达日美指甲刀套装 甲沟炎专用 修脚工具 不锈钢",
+        price: 1740,
+        sales: "已售 100万+",
+        tags: ["自营", "工厂榜第2名"],
+        shop: "金达日美旗舰店",
+    },
+    {
+        title: "惠普战99 台式电脑一体机 14代酷睿 办公家用整机",
+        price: 748900,
+        sales: "已售 700+",
+        tags: ["自营", "免息分期"],
+        shop: "惠普京东自营",
+    },
+    {
+        title: "范泳辰（fanyongchen）男士控油蓬松洗发水 500ml 留香去屑",
+        price: 3590,
+        sales: "已售 40万+",
+        tags: ["自营", "放心购"],
+        shop: "范泳辰旗舰店",
+    },
+].map((p, i) => ({
+    ...p,
+    id: `p-${i}`,
+    image: `https://picsum.photos/seed/product-${i}/400/400`,
+}))
+
+function ProductGrid() {
+    return (
+        <section className="mx-auto max-w-[1400px] px-6 py-6">
+            <div className="grid grid-cols-5 gap-3 rounded-xl bg-sunken/50 p-3">
+                {MOCK_PRODUCTS.map((product) => (
+                    <ProductCard
+                        key={product.id}
+                        product={product}
+                    />
                 ))}
             </div>
+        </section>
+    )
+}
 
-            <div className="grid grid-cols-2 gap-4">
-                <motion.img
-                    src="https://picsum.photos/seed/home-market/640/800"
-                    alt="集市上的特色小店"
-                    className="mt-8 aspect-4/5 w-full rounded-2xl object-cover"
-                    initial={reduce ? false : { opacity: 0, y: 32 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.25, ease: EASE }}
-                />
-                <div className="grid gap-4">
-                    <motion.img
-                        src="https://picsum.photos/seed/home-crafts/640/480"
-                        alt="手作商品摊位"
-                        className="aspect-4/3 w-full rounded-2xl object-cover"
-                        initial={reduce ? false : { opacity: 0, y: 32 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.4, ease: EASE }}
-                    />
-                    <motion.img
-                        src="https://picsum.photos/seed/home-fresh/640/480"
-                        alt="新鲜食材"
-                        className="aspect-4/3 w-full rounded-2xl object-cover"
-                        initial={reduce ? false : { opacity: 0, y: 32 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.55, ease: EASE }}
-                    />
-                </div>
+/** 第二层：左侧分类导航 + 中间三个运营位 + 最右用户卡片 */
+const PROMO_CARDS = [
+    { title: "家电焕新季", subtitle: "以旧换新 至高补贴 20%", seed: "promo-appliance" },
+    { title: "超市囤货节", subtitle: "满 199 减 100 限时抢", seed: "promo-grocery" },
+    { title: "新品首发", subtitle: "数码潮玩 抢先体验", seed: "promo-digital" },
+]
+
+function CategoryCards() {
+    return (
+        <section className="mx-auto max-w-[1400px] px-6 py-6">
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_250px] gap-4">
+                <HomeCategoryNav defaultHeight={200} />
+                {PROMO_CARDS.map((card) => (
+                    <button
+                        key={card.seed}
+                        type="button"
+                        className="group relative h-[200px] overflow-hidden rounded-xl text-left"
+                    >
+                        <img
+                            src={`https://picsum.photos/seed/${card.seed}/480/240`}
+                            alt={card.title}
+                            loading="lazy"
+                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                        <div className="absolute inset-x-0 bottom-0 p-4">
+                            <div className="text-base font-bold text-white">{card.title}</div>
+                            <div className="mt-0.5 text-xs text-white/80">{card.subtitle}</div>
+                        </div>
+                    </button>
+                ))}
+                <UserCard />
             </div>
         </section>
     )
 }
 
-const CATEGORIES = [
-    {
-        name: "服饰鞋包",
-        icon: Shirt,
-        subs: ["女装", "男装", "鞋靴", "箱包"],
-    },
-    {
-        name: "数码家电",
-        icon: Smartphone,
-        subs: ["手机", "电脑办公", "家用电器"],
-    },
-    {
-        name: "美妆个护",
-        icon: Sparkles,
-        subs: ["护肤", "彩妆", "个人护理"],
-    },
-    {
-        name: "家居家装",
-        icon: Sofa,
-        subs: ["家具", "家纺", "厨具"],
-    },
-    {
-        name: "食品生鲜",
-        icon: Apple,
-        subs: ["休闲零食", "生鲜果蔬", "酒水饮料"],
-    },
-    {
-        name: "母婴玩具",
-        icon: Baby,
-        subs: ["奶粉辅食", "纸尿裤", "玩具"],
-    },
-] as const
-
-function Categories() {
-    const reduce = useReducedMotion()
+/** 第一层：sticky 顶栏，左侧 logo，中间大搜索框（整体圆角容器 + 热搜词） */
+function HomeHeader() {
+    const [category, setCategory] = useState("宝贝")
 
     return (
-        <section
-            id="categories"
-            className="scroll-mt-20 bg-sunken"
-        >
-            <div className="mx-auto max-w-6xl px-4 py-24">
-                <motion.h2
-                    className="text-3xl font-bold tracking-tight"
-                    initial={reduce ? false : { opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.4 }}
-                    transition={{ duration: 0.6, ease: EASE }}
-                >
-                    按分类逛逛
-                </motion.h2>
-                <p className="mt-2 text-muted-foreground">分类浏览即将上线，先看看都有什么。</p>
-
-                <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3">
-                    {CATEGORIES.map((cat, i) => (
-                        <motion.div
-                            key={cat.name}
-                            className="group rounded-2xl bg-background p-6 shadow-sm transition-transform duration-300 hover:-translate-y-1"
-                            custom={i}
-                            variants={staggerVariants}
-                            initial={reduce ? false : "hidden"}
-                            whileInView="show"
-                            viewport={{ once: true, amount: 0.2 }}
-                        >
-                            <cat.icon className="size-6 text-muted-foreground transition-transform duration-300 group-hover:scale-110" />
-                            <h3 className="mt-4 font-semibold">{cat.name}</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {cat.subs.join(" / ")}
-                            </p>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
-        </section>
-    )
-}
-
-function SellerBanner() {
-    const reduce = useReducedMotion()
-
-    return (
-        <section className="mx-auto max-w-6xl px-4 py-24">
-            <motion.div
-                className="flex flex-col items-start gap-4 rounded-2xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between"
-                initial={reduce ? false : { opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.7, ease: EASE }}
+        <Sticky top={0}>
+            <header
+                className="border-b border-border/60 bg-background/95 backdrop-blur"
+                style={{ height: HOME_HEADER_HEIGHT }}
             >
-                <div className="flex items-start gap-4">
-                    <Store className="mt-1 size-8 shrink-0 text-primary" />
-                    <div className="space-y-1">
-                        <h2 className="text-2xl font-bold tracking-tight text-primary-subtle-foreground">
-                            0 元开店，让好生意被更多人看见
-                        </h2>
-                        <p className="text-primary-subtle-foreground/80">
-                            免费创建店铺，审核通过即可上架商品，开始经营。
-                        </p>
+                <div className="mx-auto flex h-full max-w-[1400px] items-center gap-14 px-6">
+                    {/* 品牌 logo：橙色文字 + 下方小字 */}
+                    <Link
+                        to="/"
+                        className="flex shrink-0 items-baseline gap-1 leading-none"
+                    >
+                        <span className="text-3xl font-black tracking-tight text-primary">
+                            Shop
+                        </span>
+                        <span className="text-xs font-semibold tracking-widest text-primary/70">
+                            SHOP.COM
+                        </span>
+                    </Link>
+
+                    {/* 中间大搜索框：整体圆角容器，分类下拉 + 输入框 + 搜索按钮 */}
+                    <div className="mx-auto w-full max-w-3xl">
+                        <div className="flex h-12 items-center rounded-xl border-2 border-primary bg-background">
+                            {/* 分类下拉：橙色文字 + 箭头，竖线分隔 */}
+                            <button
+                                type="button"
+                                onClick={() => setCategory(category === "宝贝" ? "全部" : "宝贝")}
+                                className="flex shrink-0 items-center gap-1 pl-5 pr-3 text-base font-medium text-primary transition-colors hover:text-primary-hover"
+                            >
+                                {category}
+                                <ChevronDown className="size-4" />
+                            </button>
+                            <span className="h-5 w-px bg-border" />
+
+                            <input
+                                placeholder="搜索商品"
+                                className="h-full flex-1 bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground"
+                            />
+
+                            <Button className="m-1 h-10 shrink-0 gap-1 rounded-lg bg-primary px-6 text-base">
+                                <Search className="size-4" />
+                                搜索
+                            </Button>
+                        </div>
                     </div>
                 </div>
-                <Link
-                    to="/sell"
-                    className={cn(
-                        buttonVariants({ size: "lg" }),
-                        "shrink-0 bg-primary text-primary-foreground hover:bg-primary-hover active:translate-y-px",
-                    )}
-                >
-                    免费开店
-                    <ArrowRight className="size-4" />
-                </Link>
-            </motion.div>
-        </section>
+            </header>
+        </Sticky>
     )
 }
