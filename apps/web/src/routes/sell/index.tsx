@@ -13,8 +13,8 @@ import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion
 
 import { Button, buttonVariants } from "@shop/ui-web"
 
-import { useAuthStatus, useLoginDialogOpen } from "../../lib/auth"
-import { SELLER_URL } from "../../lib/external"
+import { useAuthStatus, useLoginDialogOpen } from "../../shared/api/auth"
+import { SELLER_URL } from "../../shared/lib/external"
 
 export const Route = createFileRoute("/sell/")({
     component: SellLanding,
@@ -54,7 +54,7 @@ function OpenShopCta({ size = "default" }: { size?: "default" | "lg" }) {
         <Button
             size={size}
             onClick={handleClick}
-            className="bg-brand text-brand-foreground hover:bg-brand-hover active:translate-y-px"
+            className="bg-primary text-primary-foreground hover:bg-primary-hover active:translate-y-px"
         >
             免费开店
             <ArrowRight className="size-4" />
@@ -216,7 +216,7 @@ function BusinessModes() {
                                     onClick={() => setActive(m.key)}
                                     className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
                                         selected
-                                            ? "bg-background text-brand shadow-sm"
+                                            ? "bg-background text-foreground shadow-sm"
                                             : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
                                     }`}
                                 >
@@ -298,8 +298,8 @@ function Steps() {
                         viewport={{ once: true, amount: 0.4 }}
                         transition={{ duration: 0.6, delay: i * 0.12, ease: EASE }}
                     >
-                        <span className="absolute -top-2.25 left-0 size-4 rounded-full border-2 border-brand bg-background" />
-                        <span className="text-sm font-medium text-brand">0{i + 1}</span>
+                        <span className="absolute -top-2.25 left-0 size-4 rounded-full border-2 border-foreground bg-background" />
+                        <span className="text-sm font-medium text-foreground">0{i + 1}</span>
                         <h3 className="mt-2 text-xl font-semibold">{step.title}</h3>
                         <p className="mt-2 leading-relaxed text-muted-foreground">{step.body}</p>
                         {i === STEPS.length - 1 ? (
@@ -316,7 +316,7 @@ function FinalCta() {
     const reduce = useReducedMotion()
 
     return (
-        <section className="bg-brand-subtle">
+        <section className="bg-primary-subtle">
             <motion.div
                 className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center"
                 initial={reduce ? false : { opacity: 0, y: 24 }}
@@ -324,11 +324,11 @@ function FinalCta() {
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.7, ease: EASE }}
             >
-                <Store className="size-10 text-brand" />
-                <h2 className="text-3xl font-bold tracking-tight text-brand-subtle-foreground">
+                <Store className="size-10 text-primary" />
+                <h2 className="text-3xl font-bold tracking-tight text-primary-subtle-foreground">
                     准备好开店了吗？
                 </h2>
-                <p className="max-w-md text-brand-subtle-foreground/80">
+                <p className="max-w-md text-primary-subtle-foreground/80">
                     免费创建你的第一家店铺，从一件好货开始。
                 </p>
                 <OpenShopCta size="lg" />

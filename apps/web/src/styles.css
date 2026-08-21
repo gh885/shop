@@ -1,4 +1,4 @@
-@import "@shop/ui-web/src/styles.css";
+@import "@shop/ui-web/styles.css";
 
 /* ui-web 在 apps/web 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明 */
 @source '../../../packages/ui-web/src';
@@ -14,7 +14,9 @@ html {
 html,
 body,
 #app {
-    min-height: 100%;
+    /* 让根容器至少撑满视口高度，footer 才能沉底（vh 兜底不支持 dvh 的旧浏览器） */
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 body {
@@ -23,8 +25,21 @@ body {
     color: var(--color-foreground);
 }
 
-/* 选中文本着色，跟随品牌暖红 */
+/* 选中文本着色，跟随品牌橙 */
 ::selection {
-    background-color: var(--brand-200);
-    color: var(--brand-900);
+    background-color: var(--orange-200);
+    color: var(--orange-900);
+}
+
+/* 路由切换顶部进度条：不确定态滑块往返移动 */
+@keyframes route-progress {
+    0% {
+        transform: translateX(-100%);
+    }
+    50% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }

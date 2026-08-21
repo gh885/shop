@@ -21,6 +21,8 @@ public class AddressService {
 
     private final AddressMapper addressMapper;
 
+    private final RegionRegistry regionRegistry;
+
     /** 我的地址列表：默认地址置顶，其余按创建时间倒序 */
     public List<Address> list(UUID userId) {
         return addressMapper.selectList(new LambdaQueryWrapper<Address>()
@@ -37,6 +39,7 @@ public class AddressService {
     /** 新增地址；标记默认时先清掉其他默认，保证每用户至多一个默认 */
     @Transactional
     public Address create(UUID userId, AddressRequest req) {
+        validateRegion(req.regionCode());
         boolean asDefault = Boolean.TRUE.equals(req.isDefault());
         if (asDefault) {
             clearDefaults(userId);
@@ -61,6 +64,7 @@ public class AddressService {
     /** 修改地址：仅本人地址；isDefault 为 null 时保持原值 */
     @Transactional
     public Address update(UUID userId, UUID id, AddressRequest req) {
+        validateRegion(req.regionCode());
         Address address = own(userId, id);
         address.setReceiverName(req.receiverName());
         address.setPhone(req.phone());
@@ -80,7 +84,7 @@ public class AddressService {
         return address;
     }
 
-    /** 删除地址：软删（MyBatis-Plus 逻辑删除），仅本人地址；被删的默认地址不自动顶替 */
+    /** 删除地址：软删（MyBatis-Plus 逻辑删除），仅本人地址；被删的默认地址不自动顶替，允许无默认 */
     @Transactional
     public void delete(UUID userId, UUID id) {
         Address address = own(userId, id);
@@ -97,6 +101,23 @@ public class AddressService {
         addressMapper.updateById(address);
         log.info("[USER] 设置默认收货地址, userId={}, addrId={}", userId, id);
         return address;
+    }
+
+    /** 取消默认：仅当目标是默认时清掉标记，允许出现「无默认地址」状态 */
+    @Transactional
+    public Address unsetDefault(UUID userId, UUID id) {
+        Address address = own(userId, id);
+        if (Boolean.TRUE.equals(address.getIsDefault())) {
+            address.setIsDefault(false);
+            addressMapper.updateById(address);
+            log.info("[USER] 取消默认收货地址, userId={}, addrId={}", userId, id);
+        }
+        return address;
+    }
+
+    /** 校验行政区划码为合法国标 6 位码 */
+    private void validateRegion(String regionCode) {
+        Validate.isTrue(regionRegistry.isValidCode(regionCode), "行政区划代码无效");
     }
 
     // ========== 内部 ==========

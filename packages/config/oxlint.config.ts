@@ -34,6 +34,8 @@ export default defineConfig({
     },
 
     rules: {
+        "import/no-cycle": "warn",
+
         // ── error — 安全无争议 ──
         "unicorn/error-message": "error",
         "unicorn/throw-new-error": "error",

@@ -81,7 +81,7 @@ function ProductsPage() {
                     <p className="mt-1 text-sm text-muted-foreground">「{shop.name}」的商品</p>
                 </div>
                 <Link to="/products/new">
-                    <Button className="bg-brand text-brand-foreground hover:bg-brand-hover">
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary-hover">
                         <Plus className="size-4" />
                         新建商品
                     </Button>
@@ -326,7 +326,7 @@ function ProductRow({
                     <Link
                         to="/products/$productId"
                         params={{ productId: p.id }}
-                        className="font-medium hover:text-brand"
+                        className="font-medium hover:text-link"
                     >
                         {p.name}
                     </Link>
@@ -363,7 +363,7 @@ function ProductRow({
                             size="sm"
                             disabled={busy}
                             onClick={onPublish}
-                            className="text-brand hover:text-brand"
+                            className="text-primary hover:text-primary"
                         >
                             发布
                         </Button>
@@ -382,7 +382,7 @@ function ProductRow({
                             size="sm"
                             disabled={busy}
                             onClick={onOn}
-                            className="text-brand hover:text-brand"
+                            className="text-primary hover:text-primary"
                         >
                             上架
                         </Button>

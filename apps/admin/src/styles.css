@@ -1,4 +1,4 @@
-@import "@shop/ui-web/src/styles.css";
+@import "@shop/ui-web/styles.css";
 
 /* ui-web 在 apps/admin 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明 */
 @source '../../../packages/ui-web/src';
@@ -30,13 +30,13 @@
     /* 链接/主交互用平台身份色（靛蓝），与 C 端暖红区分 */
     --color-link: var(--indigo-600);
 
-    /* 品牌语义槽位整体改映射到靛蓝色阶 */
-    --color-brand: var(--indigo-500);
-    --color-brand-foreground: var(--neutral-0);
-    --color-brand-hover: var(--indigo-600);
-    --color-brand-active: var(--indigo-700);
-    --color-brand-subtle: var(--indigo-50);
-    --color-brand-subtle-foreground: var(--indigo-700);
+    /* 主操作/CTA 槽位（primary）整体映射到靛蓝色阶（平台身份色） */
+    --color-primary: var(--indigo-500);
+    --color-primary-foreground: var(--neutral-0);
+    --color-primary-hover: var(--indigo-600);
+    --color-primary-active: var(--indigo-700);
+    --color-primary-subtle: var(--indigo-50);
+    --color-primary-subtle-foreground: var(--indigo-700);
 
     /* 焦点环用身份色，后台表单密集，焦点可见性优先 */
     --color-ring: var(--indigo-500);
@@ -70,13 +70,13 @@
     /* 链接/主交互：靛蓝 400，深底可读 */
     --color-link: var(--indigo-400);
 
-    /* 品牌语义槽映射到靛蓝 400 档：实色按钮底提亮，前景改深色字 */
-    --color-brand: var(--indigo-400);
-    --color-brand-foreground: var(--indigo-900);
-    --color-brand-hover: var(--indigo-300);
-    --color-brand-active: var(--indigo-200);
-    --color-brand-subtle: var(--indigo-900);
-    --color-brand-subtle-foreground: var(--indigo-200);
+    /* 主操作/CTA 映射到靛蓝 400 档：实色按钮底提亮，前景改深色字 */
+    --color-primary: var(--indigo-400);
+    --color-primary-foreground: var(--indigo-900);
+    --color-primary-hover: var(--indigo-300);
+    --color-primary-active: var(--indigo-200);
+    --color-primary-subtle: var(--indigo-900);
+    --color-primary-subtle-foreground: var(--indigo-200);
 
     /* 焦点环 */
     --color-ring: var(--indigo-400);

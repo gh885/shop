@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 
-import { SELLER_URL } from "../lib/external"
+import { SELLER_URL } from "../shared/lib/external"
 
 const FOOTER_GROUPS = [
     {

@@ -12,9 +12,10 @@
                         同一模式出现第二个消费方时再下沉为组件 token。
 
    风格定位：消费级电商转化风 —— 中性灰撑全场（不抢商品内容风头），
-   品牌暖红只用于转化引导（登录/购买等 CTA），偏大圆角，暗色一等公民。
-   seller/admin 端复用时保持 primitive 不动，只换 semantic 的 brand 映射；
-   平台端（admin）身份色用 indigo 冷色相，与 C 端暖红区分。
+   单一主色（淘宝橙红 primary）只用于转化引导（登录/购买等 CTA），
+   偏大圆角，暗色一等公民。
+   seller/admin 端复用时保持 primitive 不动，只换 semantic 的 primary 映射；
+   平台端（admin）身份色用 indigo 冷色相，与 C 端橙红区分。
    ========================================================================== */
 
 /* ---------- Layer 1: Primitive ----------
@@ -40,17 +41,19 @@
     --neutral-900: hsl(0 0% 9%);
     --neutral-950: hsl(0 0% 3.9%);
 
-    /* 品牌暖红（350° hue），仅用于转化引导 */
-    --brand-50: hsl(350 100% 97%);
-    --brand-100: hsl(350 90% 93%);
-    --brand-200: hsl(350 85% 86%);
-    --brand-300: hsl(350 82% 74%);
-    --brand-400: hsl(350 80% 64%);
-    --brand-500: hsl(350 78% 56%);
-    --brand-600: hsl(350 75% 48%);
-    --brand-700: hsl(350 72% 40%);
-    --brand-800: hsl(350 70% 32%);
-    --brand-900: hsl(350 68% 25%);
+    /* 品牌主色（淘宝橙，hue 15，饱和 100%）—— 唯一转化/主操作色，贯穿登录/购买/开店 CTA。
+       500 = #FF5017 为标志性淘宝橙，实色按钮底直接用（白字 3.28:1，与淘宝一致，
+       过 WCAG 大字号阈值；如需 AA 可换 600 档）。 */
+    --orange-50: hsl(15 100% 97%);
+    --orange-100: hsl(15 96% 92%);
+    --orange-200: hsl(15 94% 84%);
+    --orange-300: hsl(15 96% 72%);
+    --orange-400: hsl(15 98% 63%);
+    --orange-500: #FF5017;
+    --orange-600: hsl(15 100% 45%);
+    --orange-700: hsl(15 98% 37%);
+    --orange-800: hsl(15 94% 29%);
+    --orange-900: hsl(15 90% 21%);
 
     /* 平台冷色相（靛蓝）—— admin/seller 端身份色，供语义层映射。
        与 info 蓝（hue 217）拉开距离，品牌与信息反馈不撞车。 */
@@ -112,15 +115,19 @@
     --color-foreground: light-dark(var(--neutral-950), var(--neutral-50));
     --color-card-foreground: light-dark(var(--neutral-950), var(--neutral-50));
     --color-popover-foreground: light-dark(var(--neutral-950), var(--neutral-50));
-    --color-link: light-dark(var(--brand-600), var(--brand-400));
+    --color-link: light-dark(var(--orange-600), var(--orange-400));
 
-    /* 主操作（中性黑白）。
-       primary-hover 为独立色阶 token（hover 要换色阶时用）；
+    /* 主操作 = 品牌转化色（淘宝橙 #FF5017），与 brand 合并后的唯一主/CTA 色，无独立 brand。
+       实色按钮底用 orange-500（亮橙，与淘宝一致，白字 3.28:1），浅深模式实色相同。
+       primary-hover/active 为色阶递进 token（hover 换色阶用）；
        shadcn 组件自带 hover:bg-primary/80 是透明度体系，二者并存不互斥，
        同一组件内二选一，别混用。 */
-    --color-primary: light-dark(var(--neutral-900), var(--neutral-50));
-    --color-primary-foreground: light-dark(var(--neutral-50), var(--neutral-900));
-    --color-primary-hover: light-dark(var(--neutral-800), var(--neutral-200));
+    --color-primary: var(--orange-500);
+    --color-primary-foreground: var(--neutral-0);
+    --color-primary-hover: light-dark(var(--orange-600), var(--orange-400));
+    --color-primary-active: light-dark(var(--orange-700), var(--orange-300));
+    --color-primary-subtle: light-dark(var(--orange-50), var(--orange-900));
+    --color-primary-subtle-foreground: light-dark(var(--orange-700), var(--orange-200));
 
     /* 次级/弱化表面（secondary / muted / accent 深浅两模式值相同，
        保留三个语义名是为将来视觉分化预留，勿合并） */
@@ -131,18 +138,10 @@
     --color-accent: light-dark(var(--neutral-100), var(--neutral-800));
     --color-accent-foreground: light-dark(var(--neutral-900), var(--neutral-50));
 
-    /* 品牌转化色（登录/购买等 CTA 专用）。
-       实色按钮底从 brand-500 提到 brand-600：白字对比度 4.1:1 → 5.1:1，
-       深浅模式都过 AA（原深色 brand-400 白字仅 3.3:1，不达标）。
-       若想保留 500 的明度，把前景改成深色字即可。
-       brand-hover / brand-active 为色阶递进体系（与 primary-hover 同源），
-       shadcn 组件的 hover:bg-brand/80 透明度体系不吃这俩，组件内二选一。 */
-    --color-brand: var(--brand-600);
-    --color-brand-foreground: var(--neutral-0);
-    --color-brand-hover: light-dark(var(--brand-700), var(--brand-500));
-    --color-brand-active: light-dark(var(--brand-800), var(--brand-400));
-    --color-brand-subtle: light-dark(var(--brand-50), var(--brand-900));
-    --color-brand-subtle-foreground: light-dark(var(--brand-700), var(--brand-200));
+    /* 使用纪律：primary（品牌橙）只留给转化引导（登录/购买/开店等 CTA）。
+       选中/激活态一律走 accent（弱底强调）或 foreground（强强调），
+       焦点/可访问性环走 ring，装饰图标走 muted-foreground，内联链接走 link。
+       禁止把 primary 当“通用强调色”用在导航高亮、选中态、焦点环上。 */
 
     /* 反馈（每色三件套：实色 base+foreground / 弱底 subtle+subtle-foreground）。
        弱底是 shop 的色阶对写法（浅底深字）；shadcn 新版用 bg-x/10 + text-x 透明度
@@ -188,7 +187,7 @@
     /* 图表分类色（shadcn Chart 组件消费；复用现有色相做 5 分类。
        当前无图表组件引用，按需保留/替换色相） */
     --color-chart-1: var(--indigo-500);
-    --color-chart-2: var(--brand-500);
+    --color-chart-2: var(--orange-500);
     --color-chart-3: var(--green-500);
     --color-chart-4: var(--amber-500);
     --color-chart-5: var(--blue-500);

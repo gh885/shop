@@ -109,7 +109,7 @@ function LoginPage() {
         <div className="flex min-h-dvh items-center justify-center bg-sunken px-4">
             <div className="w-full max-w-sm rounded-2xl bg-card p-8 shadow-sm ring-1 ring-border">
                 <div className="mb-8 flex flex-col items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-brand text-brand-foreground">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                         <Store className="size-5" />
                     </div>
                     <h1 className="text-lg font-semibold tracking-tight">登录卖家中心</h1>
@@ -142,7 +142,7 @@ function LoginPage() {
                         validators={{ onChange: PhoneSchema }}
                     >
                         {(field) => (
-                            <div className="flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30">
+                            <div className="flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring">
                                 <span className="border-e px-3.5 text-sm tabular-nums text-muted-foreground">
                                     +86
                                 </span>
@@ -167,7 +167,7 @@ function LoginPage() {
                             {(field) => (
                                 <div
                                     className={cn(
-                                        "flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30",
+                                        "flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring",
                                         codeInvalid && "animate-shake ring-2 ring-destructive/40",
                                     )}
                                 >
@@ -190,7 +190,7 @@ function LoginPage() {
                                         {(phoneValid) => (
                                             <button
                                                 type="button"
-                                                className="shrink-0 cursor-pointer px-3.5 text-sm font-medium text-brand transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:font-normal disabled:text-muted-foreground/60 disabled:hover:opacity-100"
+                                                className="shrink-0 cursor-pointer px-3.5 text-sm font-medium text-primary transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:font-normal disabled:text-muted-foreground/60 disabled:hover:opacity-100"
                                                 disabled={
                                                     !phoneValid ||
                                                     countdown > 0 ||
@@ -218,7 +218,7 @@ function LoginPage() {
                     ) : (
                         <form.AppField name="password">
                             {(field) => (
-                                <div className="flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30">
+                                <div className="flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring">
                                     <Input
                                         className="h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 text-sm focus-visible:ring-0"
                                         type="password"
@@ -255,7 +255,7 @@ function LoginPage() {
                         {({ isSubmitting, ready }) => (
                             <Button
                                 type="submit"
-                                className="h-11 w-full rounded-xl bg-brand text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-hover active:translate-y-px disabled:opacity-40"
+                                className="h-11 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover active:translate-y-px disabled:opacity-40"
                                 disabled={!ready || isSubmitting}
                             >
                                 {isSubmitting ? (
@@ -298,7 +298,7 @@ function TabButton({
             {children}
             <span
                 className={cn(
-                    "absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-brand transition-opacity duration-200",
+                    "absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-foreground transition-opacity duration-200",
                     active ? "opacity-100" : "opacity-0",
                 )}
             />

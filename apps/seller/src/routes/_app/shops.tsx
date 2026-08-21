@@ -129,7 +129,7 @@ function PendingInvites() {
                         className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
                     >
                         <div className="flex items-center gap-3">
-                            <MailPlus className="size-5 text-brand" />
+                            <MailPlus className="size-5 text-muted-foreground" />
                             <span className="text-sm">
                                 「{invite.shopName ?? "未知店铺"}」邀请你成为店铺成员
                             </span>
@@ -138,7 +138,7 @@ function PendingInvites() {
                             size="sm"
                             disabled={accept.isPending}
                             onClick={() => accept.mutate(invite.memberId)}
-                            className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                            className="bg-primary text-primary-foreground hover:bg-primary-hover"
                         >
                             同意加入
                         </Button>
@@ -215,7 +215,7 @@ function CreateShopForm() {
                 <Button
                     type="submit"
                     disabled={create.isPending || !name.trim()}
-                    className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                    className="bg-primary text-primary-foreground hover:bg-primary-hover"
                 >
                     {create.isPending ? "提交中…" : "提交申请"}
                 </Button>

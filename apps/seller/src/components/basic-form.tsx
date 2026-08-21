@@ -212,7 +212,7 @@ export function BasicForm({
             <Button
                 type="submit"
                 disabled={submitting}
-                className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                className="bg-primary text-primary-foreground hover:bg-primary-hover"
             >
                 {submitting ? "保存中…" : submitText}
             </Button>

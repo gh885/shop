@@ -1,17 +1,25 @@
 import { useEffect } from "react"
-import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstack/react-router"
+import {
+    HeadContent,
+    Link,
+    Scripts,
+    createRootRouteWithContext,
+    useRouter,
+} from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
-import { Button, buttonVariants } from "@shop/ui-web"
+import { Button, Toaster, buttonVariants } from "@shop/ui-web"
 
-import TanStackQueryDevtools from "../integrations/tanstack-query/devtools"
-import { LoginDialog } from "../components/login-dialog"
-import { SiteFooter } from "../components/site-footer"
-import { SiteNav } from "../components/site-nav"
-import { bootstrapAuth, logout } from "../lib/api"
-import { useAuthStatus, useLoginDialogOpen } from "../lib/auth"
-import { useClearMe, useMe } from "../lib/me"
+import TanStackQueryDevtools from "../app/tanstack-query/devtools"
+import TanstackQueryProvider from "../app/tanstack-query/root-provider"
+import { BackToTop } from "../widgets/BackToTop"
+import { RouteProgressBar } from "../widgets/RouteProgressBar"
+import { LoginDialog } from "../features/session/login-dialog"
+import { SiteFooter } from "../widgets/SiteFooter"
+import { SiteHeader } from "../widgets/SiteHeader"
+import { bootstrapAuth } from "../shared/api/client"
+import { useLoginDialogOpen } from "../shared/api/auth"
 
 import appCss from "../styles.css?url"
 
@@ -47,8 +55,35 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         ],
     }),
     notFoundComponent: NotFound,
+    errorComponent: RouteError,
     shellComponent: RootDocument,
 })
+
+/** 全局错误边界：路由渲染抛错时给友好错误页 + 重试，避免白屏 */
+function RouteError({ error, reset }: { error: Error; reset: () => void }) {
+    return (
+        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-24">
+            <p className="text-sm font-medium text-destructive">出错了</p>
+            <h1 className="text-3xl font-bold tracking-tight">页面暂时无法加载</h1>
+            <p className="text-muted-foreground">{error.message || "发生了意外错误，请重试。"}</p>
+            <div className="flex gap-2">
+                <Button
+                    onClick={() => {
+                        reset()
+                    }}
+                >
+                    重试
+                </Button>
+                <Button
+                    variant="outline"
+                    render={<Link to="/" />}
+                >
+                    回到首页
+                </Button>
+            </div>
+        </div>
+    )
+}
 
 /** 品牌化的 404：给出回首页的出口，不做死胡同 */
 function NotFound() {
@@ -77,16 +112,23 @@ const devtoolsPlugins = [
 ]
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+    const router = useRouter()
+    const queryClient = (router.options.context as MyRouterContext).queryClient
     return (
         <html lang="zh-CN">
             <head>
                 <HeadContent />
             </head>
-            <body className="flex min-h-dvh flex-col">
-                <Header />
-                <main className="flex-1">{children}</main>
-                <SiteFooter />
-                <GlobalLoginDialog />
+            <body className="flex min-h-screen flex-col supports-[height:100dvh]:min-h-dvh">
+                <Toaster />
+                <RouteProgressBar />
+                <TanstackQueryProvider queryClient={queryClient}>
+                    <SiteHeader />
+                    <main className="flex flex-1 flex-col">{children}</main>
+                    <SiteFooter />
+                    <BackToTop />
+                    <GlobalLoginDialog />
+                </TanstackQueryProvider>
                 <TanStackDevtools
                     config={devtoolsConfig}
                     plugins={devtoolsPlugins}
@@ -94,56 +136,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 <Scripts />
             </body>
         </html>
-    )
-}
-
-function Header() {
-    const status = useAuthStatus()
-    const [, setLoginOpen] = useLoginDialogOpen()
-    const me = useMe()
-    const clearMe = useClearMe()
-
-    async function handleLogout() {
-        await logout()
-        clearMe()
-    }
-
-    return (
-        <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
-            <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
-                <Link
-                    to="/"
-                    className="text-lg font-bold tracking-tight"
-                >
-                    Shop
-                    <span className="ms-2 text-xs font-normal text-muted-foreground">
-                        多店铺电商平台
-                    </span>
-                </Link>
-
-                <SiteNav />
-
-                <div className="ml-auto flex items-center gap-3">
-                    {status === "unknown" ? (
-                        <span className="h-8 w-16 animate-pulse rounded-lg bg-muted" />
-                    ) : status === "authed" ? (
-                        <>
-                            <span className="text-sm text-muted-foreground">
-                                {me.data?.nickname ?? me.data?.phone ?? "…"}
-                            </span>
-                            <Button
-                                variant="outline"
-                                onClick={handleLogout}
-                            >
-                                退出登录
-                            </Button>
-                        </>
-                    ) : (
-                        <Button onClick={() => setLoginOpen(true)}>登录</Button>
-                    )}
-                </div>
-            </div>
-        </header>
     )
 }
 

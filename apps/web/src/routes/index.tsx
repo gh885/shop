@@ -62,7 +62,7 @@ function Hero() {
                                     href="#categories"
                                     className={cn(
                                         buttonVariants({ size: "lg" }),
-                                        "bg-brand text-brand-foreground hover:bg-brand-hover active:translate-y-px",
+                                        "bg-primary text-primary-foreground hover:bg-primary-hover active:translate-y-px",
                                     )}
                                 >
                                     逛商品分类
@@ -176,7 +176,7 @@ function Categories() {
                             whileInView="show"
                             viewport={{ once: true, amount: 0.2 }}
                         >
-                            <cat.icon className="size-6 text-brand transition-transform duration-300 group-hover:scale-110" />
+                            <cat.icon className="size-6 text-muted-foreground transition-transform duration-300 group-hover:scale-110" />
                             <h3 className="mt-4 font-semibold">{cat.name}</h3>
                             <p className="mt-1 text-sm text-muted-foreground">
                                 {cat.subs.join(" / ")}
@@ -195,19 +195,19 @@ function SellerBanner() {
     return (
         <section className="mx-auto max-w-6xl px-4 py-24">
             <motion.div
-                className="flex flex-col items-start gap-4 rounded-2xl bg-brand-subtle p-8 md:flex-row md:items-center md:justify-between"
+                className="flex flex-col items-start gap-4 rounded-2xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between"
                 initial={reduce ? false : { opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.7, ease: EASE }}
             >
                 <div className="flex items-start gap-4">
-                    <Store className="mt-1 size-8 shrink-0 text-brand" />
+                    <Store className="mt-1 size-8 shrink-0 text-primary" />
                     <div className="space-y-1">
-                        <h2 className="text-2xl font-bold tracking-tight text-brand-subtle-foreground">
+                        <h2 className="text-2xl font-bold tracking-tight text-primary-subtle-foreground">
                             0 元开店，让好生意被更多人看见
                         </h2>
-                        <p className="text-brand-subtle-foreground/80">
+                        <p className="text-primary-subtle-foreground/80">
                             免费创建店铺，审核通过即可上架商品，开始经营。
                         </p>
                     </div>
@@ -216,7 +216,7 @@ function SellerBanner() {
                     to="/sell"
                     className={cn(
                         buttonVariants({ size: "lg" }),
-                        "shrink-0 bg-brand text-brand-foreground hover:bg-brand-hover active:translate-y-px",
+                        "shrink-0 bg-primary text-primary-foreground hover:bg-primary-hover active:translate-y-px",
                     )}
                 >
                     免费开店

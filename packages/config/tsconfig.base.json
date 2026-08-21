@@ -2,8 +2,8 @@
     "compilerOptions": {
         "target": "ES2023",
         "strict": true,
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
         "noEmit": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,

@@ -14,6 +14,7 @@ const config = defineConfig({
             // 同源代理到后端，规避 CORS / refresh cookie（Secure + httpOnly）跨域问题
             "/auth": { target: "http://localhost:8080", changeOrigin: true },
             "/api": { target: "http://localhost:8080", changeOrigin: true },
+            "/user": { target: "http://localhost:8080", changeOrigin: true },
         },
     },
     plugins: [

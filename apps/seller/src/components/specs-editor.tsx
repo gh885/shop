@@ -117,7 +117,7 @@ export function SpecsEditor({
                     size="sm"
                     disabled={submitting}
                     onClick={handleSave}
-                    className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                    className="bg-primary text-primary-foreground hover:bg-primary-hover"
                 >
                     {submitting ? "保存中…" : "保存规格"}
                 </Button>

@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 public record AddressRequest(
         @NotBlank @Size(max = 30) String receiverName,
         @NotBlank @Pattern(regexp = "^[0-9+\\-]{5,20}$", message = "手机号格式不正确") String phone,
-        @NotBlank @Size(max = 12) String regionCode,
+        @NotBlank @Pattern(regexp = "^\\d{6}$", message = "行政区划代码格式不正确") String regionCode,
         @NotBlank @Size(max = 30) String province,
         @NotBlank @Size(max = 30) String city,
         @NotBlank @Size(max = 30) String district,

@@ -40,7 +40,10 @@ export function createApiClient(
     options?: ApiClientOptions,
 ): ApiClient {
     const raw: KyInstance = ky.create({
-        prefix: baseUrl,
+        // baseUrl 为空（浏览器端走 Vite proxy 同源）时兜底为 "/"：
+        // 让 "auth/refresh" 这类路径拼成根相对的 "/auth/refresh"，
+        // 否则 ky 会相对当前页面路径解析，/account 下就变成 /account/auth/refresh
+        prefix: baseUrl || "/",
         credentials: "include",
 
         // 请求超时 10s

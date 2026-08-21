@@ -33,18 +33,6 @@ export function bootstrapAuth(): Promise<void> {
     return bootstrapPromise
 }
 
-// ---------- 登出 ----------
-
-export async function logout(): Promise<void> {
-    try {
-        await authApi.logout({ deviceId: getDeviceId() })
-    } catch {
-        // 登出接口失败也强制清本地状态
-    } finally {
-        tokenStore.clear()
-    }
-}
-
 // ---------- 路由守卫 ----------
 
 /**

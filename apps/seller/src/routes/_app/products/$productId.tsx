@@ -129,7 +129,7 @@ function ProductEditPage() {
                 <Link
                     to="/products"
                     search={{ page: 1, size: 10 }}
-                    className="text-sm text-brand"
+                    className="text-sm text-link"
                 >
                     返回商品列表
                 </Link>
@@ -162,7 +162,7 @@ function ProductEditPage() {
                         <Button
                             disabled={publish.isPending}
                             onClick={() => publish.mutate()}
-                            className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                            className="bg-primary text-primary-foreground hover:bg-primary-hover"
                         >
                             发布上架
                         </Button>
@@ -178,7 +178,7 @@ function ProductEditPage() {
                         <Button
                             disabled={on.isPending}
                             onClick={() => on.mutate()}
-                            className="bg-brand text-brand-foreground hover:bg-brand-hover"
+                            className="bg-primary text-primary-foreground hover:bg-primary-hover"
                         >
                             重新上架
                         </Button>

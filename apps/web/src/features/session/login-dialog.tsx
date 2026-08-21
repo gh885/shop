@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react"
 import { CircleAlert, Loader2, QrCode } from "lucide-react"
-import { z } from "zod"
 
 import { useMutation } from "@tanstack/react-query"
 import { ErrorCodes } from "@shop/api"
 import { Button, cn, Dialog, DialogContent, DialogTitle, Input, useAppForm } from "@shop/ui-web"
-import { authApi, toApiError } from "#/lib/api"
-import { getDeviceId, tokenStore } from "#/lib/auth"
+import { toApiError } from "#/shared/api/client"
+
+import { loginByPassword, loginBySms, sendSmsCode as sendSmsCodeAction } from "./actions"
+import { notify } from "#/shared/lib/toast"
+import { PasswordFormSchema, PHONE_PATTERN, PhoneSchema, SmsFormSchema } from "./schema"
 
 /* 嵌套行（+86 前缀 / 内嵌按钮）里的 Input：去掉自带边框与 focus ring，
    视觉容器由外层 wrapper（rounded + bg-muted + focus-within:ring）承担 */
@@ -14,23 +16,6 @@ const embeddedInputClass =
     "h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 focus-visible:ring-0"
 
 type LoginTab = "sms" | "password"
-
-// ---------- 校验 schema（与后端契约一致，见 packages/api/schemas/auth） ----------
-
-const PHONE_PATTERN = /^1[3-9]\d{9}$/
-const PhoneSchema = z.string().regex(PHONE_PATTERN, "请输入正确的手机号")
-
-const SmsFormSchema = z.object({
-    phone: PhoneSchema,
-    code: z.string().length(6, "请输入 6 位验证码"),
-    password: z.string(),
-})
-
-const PasswordFormSchema = z.object({
-    phone: PhoneSchema,
-    code: z.string(),
-    password: z.string().min(8, "密码至少 8 位"),
-})
 
 interface LoginDialogProps {
     open: boolean
@@ -52,23 +37,16 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
             setPasswordNotSet(false)
             setCodeInvalid(false)
             try {
-                const result =
-                    tab === "sms"
-                        ? await authApi.loginBySms({
-                              phone: value.phone,
-                              code: value.code,
-                              deviceId: getDeviceId(),
-                          })
-                        : await authApi.loginByPassword({
-                              phone: value.phone,
-                              password: value.password,
-                              deviceId: getDeviceId(),
-                          })
-                tokenStore.set(result.accessToken)
+                if (tab === "sms") {
+                    await loginBySms(value.phone, value.code)
+                } else {
+                    await loginByPassword(value.phone, value.password)
+                }
                 onOpenChange(false)
                 form.reset()
                 setTab("sms")
                 setCountdown(0)
+                notify.success("登录成功", "欢迎回来")
             } catch (error) {
                 const err = await toApiError(error)
                 setServerError(err.detail)
@@ -88,14 +66,16 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     }, [countdown])
 
     const sendCode = useMutation({
-        mutationFn: (phone: string) => authApi.sendSmsCode({ phone }),
+        mutationFn: (phone: string) => sendSmsCodeAction(phone),
         onSuccess: () => {
             setServerError(null)
             setCountdown(60)
+            notify.success("验证码已发送")
         },
         onError: async (e) => {
             const err = await toApiError(e)
             setServerError(err.detail)
+            notify.error(err.detail)
         },
     })
 
@@ -117,7 +97,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         >
             <DialogContent className="gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-2xl">
                 {/* 顶部品牌色环境光，打破纯平 */}
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-brand/8 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-primary/8 to-transparent" />
 
                 <div className="relative flex flex-col gap-7 p-8 pt-7">
                     <DialogTitle className="text-center text-xl font-semibold tracking-tight">
@@ -129,16 +109,16 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                         <div className="hidden w-56 flex-col items-center justify-center gap-4 sm:flex">
                             <div className="flex items-center gap-2">
                                 <p className="text-sm font-medium">扫码登录</p>
-                                <span className="rounded bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand">
+                                <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
                                     即将上线
                                 </span>
                             </div>
                             <div className="relative flex size-44 items-center justify-center rounded-2xl bg-muted/70">
                                 {/* 扫码框四角标记 */}
-                                <span className="absolute left-3 top-3 size-4 rounded-tl-md border-l-2 border-t-2 border-brand/50" />
-                                <span className="absolute right-3 top-3 size-4 rounded-tr-md border-r-2 border-t-2 border-brand/50" />
-                                <span className="absolute bottom-3 left-3 size-4 rounded-bl-md border-b-2 border-l-2 border-brand/50" />
-                                <span className="absolute bottom-3 right-3 size-4 rounded-br-md border-b-2 border-r-2 border-brand/50" />
+                                <span className="absolute left-0 top-0 size-4 rounded-tl-md border-l-2 border-t-2 border-foreground/30" />
+                                <span className="absolute right-0 top-0 size-4 rounded-tr-md border-r-2 border-t-2 border-foreground/30" />
+                                <span className="absolute bottom-0 left-0 size-4 rounded-bl-md border-b-2 border-l-2 border-foreground/30" />
+                                <span className="absolute right-0 bottom-0 size-4 rounded-br-md border-b-2 border-r-2 border-foreground/30" />
                                 <QrCode
                                     className="size-20 text-muted-foreground/50"
                                     strokeWidth={1.25}
@@ -179,7 +159,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 validators={{ onChange: PhoneSchema }}
                             >
                                 {(field) => (
-                                    <div className="flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30">
+                                    <div className="flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring">
                                         <span className="border-e px-3.5 text-sm tabular-nums text-muted-foreground">
                                             +86
                                         </span>
@@ -210,7 +190,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                     {(field) => (
                                         <div
                                             className={cn(
-                                                "flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30",
+                                                "flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring",
                                                 codeInvalid &&
                                                     "animate-shake ring-2 ring-destructive/40",
                                             )}
@@ -239,7 +219,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                 {(phoneValid) => (
                                                     <button
                                                         type="button"
-                                                        className="shrink-0 cursor-pointer px-3.5 text-sm font-medium text-brand transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:font-normal disabled:text-muted-foreground/60 disabled:hover:opacity-100"
+                                                        className="shrink-0 cursor-pointer px-3.5 text-sm font-medium text-primary transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:font-normal disabled:text-muted-foreground/60 disabled:hover:opacity-100"
                                                         disabled={
                                                             !phoneValid ||
                                                             countdown > 0 ||
@@ -269,7 +249,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                             ) : (
                                 <form.AppField name="password">
                                     {(field) => (
-                                        <div className="flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-brand/30">
+                                        <div className="flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring">
                                             <Input
                                                 className={cn(embeddedInputClass, "text-sm")}
                                                 type="password"
@@ -293,7 +273,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                         {passwordNotSet && (
                                             <button
                                                 type="button"
-                                                className="shrink-0 cursor-pointer font-medium text-brand transition-opacity hover:opacity-70"
+                                                className="shrink-0 cursor-pointer font-medium text-primary transition-opacity hover:opacity-70"
                                                 onClick={() => switchTab("sms")}
                                             >
                                                 改用验证码登录
@@ -316,7 +296,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 {({ isSubmitting, ready }) => (
                                     <Button
                                         type="submit"
-                                        className="h-12 w-full rounded-xl bg-brand text-[15px] font-semibold text-brand-foreground shadow-lg shadow-brand/25 transition-all hover:bg-brand-hover hover:shadow-brand/35 active:scale-[0.98] active:bg-brand-active disabled:opacity-40 disabled:shadow-none"
+                                        className="h-12 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover hover:shadow-primary/35 active:scale-[0.98] active:bg-primary-active disabled:opacity-40 disabled:shadow-none"
                                         disabled={!ready || isSubmitting}
                                     >
                                         {isSubmitting ? (
@@ -335,14 +315,14 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 登录即代表同意
                                 <button
                                     type="button"
-                                    className="mx-1 cursor-pointer text-foreground transition-colors hover:text-brand"
+                                    className="mx-1 cursor-pointer text-foreground transition-colors hover:text-link"
                                 >
                                     用户协议
                                 </button>
                                 和
                                 <button
                                     type="button"
-                                    className="mx-1 cursor-pointer text-foreground transition-colors hover:text-brand"
+                                    className="mx-1 cursor-pointer text-foreground transition-colors hover:text-link"
                                 >
                                     隐私政策
                                 </button>
@@ -378,7 +358,7 @@ function TabButton({
             {children}
             <span
                 className={cn(
-                    "absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-brand transition-opacity duration-200",
+                    "absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-foreground transition-opacity duration-200",
                     active ? "opacity-100" : "opacity-0",
                 )}
             />

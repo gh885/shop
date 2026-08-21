@@ -16,7 +16,7 @@ export function AccountAvatar({ className }: { className?: string }) {
         <div
             title={me?.displayName}
             className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-md bg-brand text-sm font-medium text-brand-foreground",
+                "flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground",
                 className,
             )}
         >

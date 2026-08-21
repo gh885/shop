@@ -63,4 +63,10 @@ public class AddressController {
     public Address setDefault(@PathVariable UUID id) {
         return addressService.setDefault(UserIdHolder.get(), id);
     }
+
+    /** 取消默认地址：允许该用户无默认地址 */
+    @DeleteMapping("/{id}/default")
+    public Address unsetDefault(@PathVariable UUID id) {
+        return addressService.unsetDefault(UserIdHolder.get(), id);
+    }
 }

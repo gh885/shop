@@ -12,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@shop/ui-web"
 
-import { SELLER_URL } from "../lib/external"
+import { SELLER_URL } from "../shared/lib/external"
 
 /** 二级导航项：hover 一级项展开下拉，悬停带 children 的项再右弹二级 */
 export interface SiteNavChildItem {

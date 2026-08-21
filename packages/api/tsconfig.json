@@ -1,7 +1,9 @@
 {
     "extends": "@shop/config/tsconfig.node.json",
     "compilerOptions": {
-        "types": ["node"]
+        "types": ["node"],
+        "module": "ESNext",
+        "moduleResolution": "bundler"
     },
     "include": ["src"]
 }
