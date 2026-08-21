@@ -123,6 +123,13 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- 智能粘贴：中文收货地址解析（文本 → 姓名/电话/省市区/详细地址） -->
+		<dependency>
+			<groupId>com.github.alotuser</groupId>
+			<artifactId>smart-parse-address</artifactId>
+			<version>1.7.7</version>
+		</dependency>
+
 		<!-- Test -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

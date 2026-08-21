@@ -1,9 +1,12 @@
 package com.shop.platform.user.service;
 
+import com.alotuser.address.SmartAgent;
+import com.alotuser.address.assets.UserInfo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
+import com.shop.platform.user.dto.AddressParseResult;
 import com.shop.platform.user.dto.AddressRequest;
 import com.shop.platform.user.mapper.Address;
 import com.shop.platform.user.mapper.AddressMapper;
@@ -115,9 +118,47 @@ public class AddressService {
         return address;
     }
 
+    /**
+     * 智能粘贴：把一段非结构化收货文本解析成结构化字段。
+     * 文本分词/抽取交给第三方库（smart-parse-address），
+     * 区划名称 → 国标码的映射复用本模块 RegionRegistry（权威数据）。
+     * 收件人/手机号可能抽取失败，由前端填充后让用户确认。
+     */
+    public AddressParseResult parse(String text) {
+        UserInfo info = SmartAgent.parseUserAddressString(text).getUserInfo();
+        String province = trimToNull(info.getProvince());
+        String city = trimToNull(info.getCity());
+        String district = trimToNull(info.getCounty());
+        String regionCode = regionRegistry.resolveCode(province, city, district);
+        log.info("[USER] 智能粘贴解析, 命中区划码={}", regionCode);
+        return new AddressParseResult(
+                cleanReceiver(info.getName()),
+                trimToNull(info.getMobile()),
+                regionCode,
+                province,
+                city,
+                district,
+                trimToNull(info.getAddress()));
+    }
+
     /** 校验行政区划码为合法国标 6 位码 */
     private void validateRegion(String regionCode) {
         Validate.isTrue(regionRegistry.isValidCode(regionCode), "行政区划代码无效");
+    }
+
+    /** 去空白，空串转 null */
+    private static String trimToNull(String s) {
+        if (s == null) {
+            return null;
+        }
+        String trimmed = s.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /** 收件人清洗：去掉尾部逗号/句号/空白等杂讯（如 "淘宝,"） */
+    private static String cleanReceiver(String name) {
+        String s = trimToNull(name);
+        return s == null ? null : s.replaceAll("[\\s,，。;；、]+$", "");
     }
 
     // ========== 内部 ==========

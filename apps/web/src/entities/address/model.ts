@@ -58,6 +58,28 @@ export const AddressInputSchema = z.object({
 })
 export type AddressInput = z.infer<typeof AddressInputSchema>
 
+/** 智能粘贴解析结果（wire → 业务形状） */
+export const AddressParseSchema = z
+    .object({
+        receiverName: z.string().nullable(),
+        phone: z.string().nullable(),
+        regionCode: z.string().nullable(),
+        province: z.string().nullable(),
+        city: z.string().nullable(),
+        district: z.string().nullable(),
+        detail: z.string().nullable(),
+    })
+    .transform((d) => ({
+        receiver: d.receiverName ?? undefined,
+        phone: d.phone ?? undefined,
+        regionCode: d.regionCode ?? undefined,
+        province: d.province ?? undefined,
+        city: d.city ?? undefined,
+        district: d.district ?? undefined,
+        detail: d.detail ?? undefined,
+    }))
+export type AddressParse = z.infer<typeof AddressParseSchema>
+
 // ---------- 领域规则 ----------
 
 /** 手机号是否合法（中国大陆 11 位） */

@@ -1,9 +1,24 @@
 import { useEffect, useState } from "react"
 
-import { Button, Dialog, DialogContent, DialogTitle, Input, cn, useAppForm } from "@shop/ui-web"
+import {
+    Button,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    Input,
+    Textarea,
+    cn,
+    useAppForm,
+} from "@shop/ui-web"
 
-import { AddressInputSchema, type Address, type AddressInput } from "#/entities/address"
+import {
+    AddressInputSchema,
+    parseAddressText,
+    type Address,
+    type AddressInput,
+} from "#/entities/address"
 import RegionPicker, { type RegionNode } from "#/shared/ui/RegionPicker"
+import { notify } from "#/shared/lib/toast"
 
 import { findPath, loadChildren } from "./load-regions"
 import { useCreateAddress, useUpdateAddress } from "./use-address"
@@ -91,6 +106,9 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
     const [regionReady, setRegionReady] = useState(!editing)
     // 「自定义」标签输入框是否展开（空串无法区分未选与自定义，需独立状态）
     const [customLabel, setCustomLabel] = useState(false)
+    // 智能粘贴：待解析文本 + 解析中
+    const [smartText, setSmartText] = useState("")
+    const [parsing, setParsing] = useState(false)
 
     const form = useAppForm({
         defaultValues: toDefaults(editing),
@@ -134,6 +152,34 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
         form.setFieldValue("regionCode", path.at(-1)?.code ?? "")
     }
 
+    /** 智能粘贴：解析文本 → 预填表单（收件人/手机号/区划/详细地址） */
+    async function handleSmartParse() {
+        if (!smartText.trim()) return
+        setParsing(true)
+        try {
+            const parsed = await parseAddressText(smartText.trim())
+            form.setFieldValue("receiver", parsed.receiver ?? "")
+            form.setFieldValue("phone", parsed.phone ?? "")
+            form.setFieldValue("detail", parsed.detail ?? "")
+            if (parsed.regionCode) {
+                // 用权威区划数据反查路径，regionCode/省市区 以路径为准（避免库与本地命名差异）
+                const path = await findPath(parsed.regionCode)
+                setRegionPath(path)
+                form.setFieldValue("province", path[0]?.label ?? "")
+                form.setFieldValue("city", path[1]?.label ?? "")
+                form.setFieldValue("district", path[2]?.label ?? "")
+                form.setFieldValue("regionCode", path.at(-1)?.code ?? "")
+            } else {
+                notify.warning("未能识别所在地区，请手动选择")
+            }
+            setSmartText("")
+        } catch (err) {
+            notify.fromError(err, "识别失败，请检查输入")
+        } finally {
+            setParsing(false)
+        }
+    }
+
     const busy = create.isPending || update.isPending
 
     return (
@@ -151,6 +197,33 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                         form.handleSubmit()
                     }}
                 >
+                    {/* 智能粘贴：左标签 + 右侧圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}
+                    <div className="flex items-start gap-4">
+                        <span className="w-16 shrink-0 pt-2.5 text-sm">智能粘贴</span>
+                        <div className="min-w-0 flex-1">
+                            <div className="rounded-lg border border-border bg-card">
+                                <Textarea
+                                    className="h-24 w-full resize-none rounded-none border-0 bg-transparent p-3 text-sm focus-visible:ring-0"
+                                    placeholder="粘贴文本到此处，将自动识别收货信息,例：淘宝，139********，浙江省杭州市西湖区某小区"
+                                    maxLength={500}
+                                    value={smartText}
+                                    onChange={(e) => setSmartText(e.target.value)}
+                                />
+                                <div className="flex justify-end p-3 pt-0">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        className="rounded-lg bg-primary px-6 text-primary-foreground hover:bg-primary-hover"
+                                        disabled={parsing || !smartText.trim()}
+                                        onClick={() => void handleSmartParse()}
+                                    >
+                                        {parsing ? "识别中…" : "粘贴并识别"}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* 地区：国标行政区划级联选择（数据源懒加载，见 ./load-regions） */}
                     <form.AppField name="regionCode">
                         {(field) => (

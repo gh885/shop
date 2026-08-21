@@ -2,7 +2,13 @@ import { z } from "zod"
 
 import { api } from "#/shared/api/client"
 
-import { AddressSchema, type Address, type AddressInput } from "./model"
+import {
+    AddressParseSchema,
+    AddressSchema,
+    type Address,
+    type AddressInput,
+    type AddressParse,
+} from "./model"
 
 /**
  * Address 数据层读写命令（纯逻辑，不含 React Query / React）。
@@ -65,6 +71,13 @@ export async function updateAddress(id: string, input: AddressInput): Promise<Ad
 /** 删除收货地址（软删，返回 204 无响应体） */
 export async function deleteAddress(id: string): Promise<void> {
     await raw.delete(`user/addresses/${id}`)
+}
+
+/** 智能粘贴：解析收货文本为结构化字段 */
+export async function parseAddressText(text: string): Promise<AddressParse> {
+    return AddressParseSchema.parse(
+        await raw.post("user/addresses/parse", { json: { text } }).json(),
+    )
 }
 
 /** 设为默认地址：每用户至多一个 */

@@ -1,6 +1,8 @@
 package com.shop.platform.user.controller;
 
 import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.user.dto.AddressParseRequest;
+import com.shop.platform.user.dto.AddressParseResult;
 import com.shop.platform.user.dto.AddressRequest;
 import com.shop.platform.user.mapper.Address;
 import com.shop.platform.user.service.AddressService;
@@ -31,6 +33,12 @@ public class AddressController {
     @ResponseStatus(HttpStatus.CREATED)
     public Address create(@Valid @RequestBody AddressRequest req) {
         return addressService.create(UserIdHolder.get(), req);
+    }
+
+    /** 智能粘贴：解析收货文本为结构化字段（无需入库，纯文本处理） */
+    @PostMapping("/parse")
+    public AddressParseResult parse(@Valid @RequestBody AddressParseRequest req) {
+        return addressService.parse(req.text());
     }
 
     /** 我的收货地址列表：默认地址置顶 */
