@@ -1,5 +1,6 @@
 package com.shop.platform.product.controller;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.product.dto.ProductQuery;
@@ -57,8 +58,8 @@ public class ProductController {
             String name,
             String subtitle,
             String mainImage,
-            Long minPrice,
-            Long maxPrice) {
+            Money minPrice,
+            Money maxPrice) {
 
         static ProductResponse from(Product p) {
             return new ProductResponse(
@@ -68,8 +69,8 @@ public class ProductController {
                     p.getName(),
                     p.getSubtitle(),
                     p.getMainImage(),
-                    p.getMinPrice(),
-                    p.getMaxPrice());
+                    p.getMinPrice() == null ? null : Money.cny(p.getMinPrice()),
+                    p.getMaxPrice() == null ? null : Money.cny(p.getMaxPrice()));
         }
     }
 
@@ -100,10 +101,15 @@ public class ProductController {
             String name,
             List<ParamItem> attributes,
             String image,
-            Long price,
-            Long originalPrice,
-            String currency,
+            Money price,
+            Money originalPrice,
             Integer stock) {
+
+        /** 币种取 Sku.currency，缺省回退本平台默认币种 CNY；null 金额不构造成 Money */
+        private static Money money(Long fen, String currency) {
+            if (fen == null) return null;
+            return Money.ofFen(fen, currency != null ? currency : Money.CNY);
+        }
 
         static SkuResponse from(Sku s) {
             return new SkuResponse(
@@ -111,9 +117,8 @@ public class ProductController {
                     s.getName(),
                     s.getAttributes(),
                     s.getImage(),
-                    s.getPrice(),
-                    s.getOriginalPrice(),
-                    s.getCurrency(),
+                    money(s.getPrice(), s.getCurrency()),
+                    money(s.getOriginalPrice(), s.getCurrency()),
                     s.getStock());
         }
     }

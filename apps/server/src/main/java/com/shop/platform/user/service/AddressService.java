@@ -5,6 +5,7 @@ import com.alotuser.address.assets.UserInfo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
 import com.shop.platform.user.dto.AddressParseResult;
 import com.shop.platform.user.dto.AddressRequest;
@@ -50,7 +51,7 @@ public class AddressService {
         Address address = Address.builder()
                 .userId(userId)
                 .receiverName(req.receiverName())
-                .phone(req.phone())
+                .phone(PhoneNumber.of(req.phone()).value())
                 .regionCode(req.regionCode())
                 .province(req.province())
                 .city(req.city())
@@ -70,7 +71,7 @@ public class AddressService {
         validateRegion(req.regionCode());
         Address address = own(userId, id);
         address.setReceiverName(req.receiverName());
-        address.setPhone(req.phone());
+        address.setPhone(PhoneNumber.of(req.phone()).value());
         address.setRegionCode(req.regionCode());
         address.setProvince(req.province());
         address.setCity(req.city());
