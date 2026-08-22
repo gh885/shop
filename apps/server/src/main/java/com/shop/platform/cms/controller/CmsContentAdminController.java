@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 管理端 CMS 内容维护。TODO(admin 模块落地后): 接入管理员鉴权 */
+/** 管理端 CMS 内容维护（鉴权由 StaffAuthFilter 统一处理：/admin/** 仅放行 kind=staff token） */
 @RestController
 @RequestMapping("/admin/cms")
 @RequiredArgsConstructor

@@ -33,6 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProductService {
 
+    /** 单商品 SKU 组合数上限（笛卡尔积总量校验，见 updateSpecs） */
+    private static final int MAX_SKU_COMBINATIONS = 500;
+
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
     private final SkuMapper skuMapper;
@@ -63,14 +66,14 @@ public class ProductService {
         product.setSpecs(specs);
         productMapper.updateById(product);
 
-        // 3. 算目标组合：按模板顺序做笛卡尔积
+        // 3. 算目标组合：按模板顺序做笛卡尔积。总量封顶，防止误操作/恶意请求生成海量 SKU 拖垮库
         List<List<String>> combos = cartesian(specs);
+        Validate.isTrue(combos.size() <= MAX_SKU_COMBINATIONS, "规格组合数过多（" + combos.size() + "），请精简规格后重试");
 
         // 4. 对账：组合没变的保留（价格库存不丢），新增的补 SKU
         //    现有 SKU 按 attributes 的 List<ParamItem> 值建索引（record 相等性 = JSON 值相等，见 updateSpecs javadoc）
-        List<Sku> existing = skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
         Map<List<ParamItem>, Sku> byAttrs = new LinkedHashMap<>();
-        for (Sku sku : existing) {
+        for (Sku sku : skusOf(productId)) {
             byAttrs.put(sku.getAttributes(), sku);
         }
 
@@ -132,7 +135,7 @@ public class ProductService {
 
         // 3. 重算价格区间并返回该商品全部 SKU
         recalcPriceRange(productId);
-        return skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
+        return skusOf(productId);
     }
 
     /** 发布：门槛是每个 SKU 都已设价（库存允许 0，可售罄上架），通过后置上架并回填聚合价格区间 */
@@ -142,12 +145,8 @@ public class ProductService {
         // 1. 校验：仅草稿可发布
         Validate.isTrue(product.getStatus() == Product.STATUS_DRAFT, 409, "只有草稿可以发布");
 
-        // 2. 校验门槛：必须有 SKU，且所有 SKU 都设了价（库存允许 0，可售罄上架）
-        List<Sku> skus = ensurePublishable(productId);
-
         // 3. 回填聚合价格区间并置为上架
-        product.setMinPrice(minPrice(skus));
-        product.setMaxPrice(maxPrice(skus));
+        applyPriceRange(product, ensurePublishable(productId));
         product.setStatus(Product.STATUS_PUBLISHED);
         productMapper.updateById(product);
         return product;
@@ -169,8 +168,7 @@ public class ProductService {
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查（管理端要能看草稿） */
     public ProductDetail detail(UUID productId) {
         Product product = requireShopOwned(productId);
-        List<Sku> skus = skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
-        return new ProductDetail(product, skus);
+        return new ProductDetail(product, skusOf(productId));
     }
 
     // ========== 买家侧公开读 ==========
@@ -305,36 +303,31 @@ public class ProductService {
 
     /** 发布门槛：必须有 SKU，且所有 SKU 都设了价（库存允许 0，可售罄上架）。publish 与 on 共用 */
     private List<Sku> ensurePublishable(UUID productId) {
-        List<Sku> skus = skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
+        List<Sku> skus = skusOf(productId);
         Validate.isTrue(!skus.isEmpty(), "请先设置商品规格");
         boolean anyMissingPrice = skus.stream().anyMatch(s -> s.getPrice() == null);
         Validate.isTrue(!anyMissingPrice, "所有 SKU 都需设置价格后才能发布");
         return skus;
     }
 
+    /** 商品全部 SKU（含各状态） */
+    private List<Sku> skusOf(UUID productId) {
+        return skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
+    }
+
+    /** 一次算好 min/max 价格冗余副本（真实成交价永远以 skus.price 为准；全部未定价时两端为 null）。publish 与 recalcPriceRange 共用 */
+    private static void applyPriceRange(Product product, List<Sku> skus) {
+        List<Long> prices =
+                skus.stream().map(Sku::getPrice).filter(Objects::nonNull).toList();
+        product.setMinPrice(prices.stream().min(Long::compare).orElse(null));
+        product.setMaxPrice(prices.stream().max(Long::compare).orElse(null));
+    }
+
     /** 从全部 SKU 重算 minPrice/maxPrice 冗余副本（真实成交价永远以 skus.price 为准） */
     private void recalcPriceRange(UUID productId) {
         Product product = productMapper.selectById(productId);
-        List<Sku> skus = skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
-        product.setMinPrice(minPrice(skus));
-        product.setMaxPrice(maxPrice(skus));
+        applyPriceRange(product, skusOf(productId));
         productMapper.updateById(product);
-    }
-
-    private static Long minPrice(List<Sku> skus) {
-        return skus.stream()
-                .map(Sku::getPrice)
-                .filter(Objects::nonNull)
-                .min(Long::compare)
-                .orElse(null);
-    }
-
-    private static Long maxPrice(List<Sku> skus) {
-        return skus.stream()
-                .map(Sku::getPrice)
-                .filter(Objects::nonNull)
-                .max(Long::compare)
-                .orElse(null);
     }
 
     /** 组装草稿实体。草稿没有 SKU，故价格字段留空、specs 为 [] */

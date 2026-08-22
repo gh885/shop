@@ -22,20 +22,26 @@ interface LoginDialogProps {
     onOpenChange: (open: boolean) => void
 }
 
+/** 提交/发码失败信息（detail 展示，code 决定交互分支），null = 无错误 */
+type SubmitError = { detail?: string; code?: string } | null
+
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     const [tab, setTab] = useState<LoginTab>("sms")
-    const [serverError, setServerError] = useState<string | null>(null)
-    const [passwordNotSet, setPasswordNotSet] = useState(false)
-    const [codeInvalid, setCodeInvalid] = useState(false)
+    // 服务端错误统一存一个状态；passwordNotSet / codeInvalid 由 code 推导，不再单独维护
+    const [error, setError] = useState<SubmitError>(null)
     const [countdown, setCountdown] = useState(0)
+
+    const serverError = error?.detail ?? null
+    const passwordNotSet = error?.code === ErrorCodes.PASSWORD_NOT_SET
+    const isCodeError = (e: SubmitError) =>
+        e?.code === ErrorCodes.SMS_CODE_INVALID || e?.code === ErrorCodes.SMS_CODE_EXPIRED
+    const codeInvalid = isCodeError(error)
 
     const form = useAppForm({
         defaultValues: { phone: "", code: "", password: "" },
         validators: { onSubmit: tab === "sms" ? SmsFormSchema : PasswordFormSchema },
         onSubmit: async ({ value }) => {
-            setServerError(null)
-            setPasswordNotSet(false)
-            setCodeInvalid(false)
+            setError(null)
             try {
                 if (tab === "sms") {
                     await loginBySms(value.phone, value.code)
@@ -48,13 +54,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 setCountdown(0)
                 notify.success("登录成功", "欢迎回来")
             } catch (error) {
-                const err = await toApiError(error)
-                setServerError(err.detail)
-                setPasswordNotSet(err.code === ErrorCodes.PASSWORD_NOT_SET)
-                setCodeInvalid(
-                    err.code === ErrorCodes.SMS_CODE_INVALID ||
-                        err.code === ErrorCodes.SMS_CODE_EXPIRED,
-                )
+                setError(await toApiError(error))
             }
         },
     })
@@ -68,22 +68,20 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     const sendCode = useMutation({
         mutationFn: (phone: string) => sendSmsCodeAction(phone),
         onSuccess: () => {
-            setServerError(null)
+            setError(null)
             setCountdown(60)
             notify.success("验证码已发送")
         },
         onError: async (e) => {
             const err = await toApiError(e)
-            setServerError(err.detail)
+            setError(err)
             notify.error(err.detail)
         },
     })
 
     function switchTab(next: LoginTab) {
         setTab(next)
-        setServerError(null)
-        setPasswordNotSet(false)
-        setCodeInvalid(false)
+        setError(null)
     }
 
     function handleSendCode(phone: string) {
@@ -210,7 +208,10 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                     field.handleChange(
                                                         e.target.value.replaceAll(/\D/g, ""),
                                                     )
-                                                    setCodeInvalid(false)
+                                                    // 重新输入时只清验证码类错误（抖动随之消失），其余服务端错误保留到下次提交
+                                                    setError((prev) =>
+                                                        isCodeError(prev) ? null : prev,
+                                                    )
                                                 }}
                                             />
                                             <form.Subscribe

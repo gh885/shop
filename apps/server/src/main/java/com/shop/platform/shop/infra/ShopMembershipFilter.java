@@ -3,6 +3,8 @@ package com.shop.platform.shop.infra;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.infra.web.RequestPaths;
+import com.shop.platform.infra.web.UnauthorizedWriter;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import jakarta.servlet.FilterChain;
@@ -10,14 +12,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
@@ -38,12 +36,18 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/seller/");
+        // 非规范路径（含编码等）不跳过，进 doFilterInternal 统一 400
+        String path = RequestPaths.routePath(request);
+        return path != null && !path.startsWith("/seller/");
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        if (RequestPaths.routePath(request) == null) {
+            UnauthorizedWriter.write(response, objectMapper, 400, null, "非法请求路径");
+            return;
+        }
         try {
             // 1. 解析 X-Shop-Id 头
             String header = request.getHeader("X-Shop-Id");
@@ -56,7 +60,7 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
                 }
             }
             if (shopId == null) {
-                writeForbidden(response, "缺少店铺上下文（X-Shop-Id）");
+                UnauthorizedWriter.write(response, objectMapper, 403, null, "缺少店铺上下文（X-Shop-Id）");
                 return;
             }
 
@@ -66,7 +70,7 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
                     .eq(ShopMember::getUserId, UserIdHolder.get())
                     .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
             if (count == 0) {
-                writeForbidden(response, "你不是该店铺成员");
+                UnauthorizedWriter.write(response, objectMapper, 403, null, "你不是该店铺成员");
                 return;
             }
 
@@ -76,19 +80,5 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
         } finally {
             ShopIdHolder.clear();
         }
-    }
-
-    /** 与 GlobalExceptionHandler 同契约的 problem+json 出口（filter 层异常过不了 @RestControllerAdvice） */
-    private void writeForbidden(HttpServletResponse response, String detail) throws IOException {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("title", "Forbidden");
-        body.put("status", 403);
-        body.put("detail", detail);
-        body.put("requestId", MDC.get("trace_id"));
-
-        response.setStatus(403);
-        response.setContentType("application/problem+json");
-        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
-        objectMapper.writeValue(response.getOutputStream(), body);
     }
 }

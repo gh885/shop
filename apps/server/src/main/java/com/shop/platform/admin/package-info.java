@@ -5,7 +5,9 @@
  *
  * <p>依赖 shop 模块的事件类（监听 ShopCreatedEvent 入队审核、发布 ShopReviewDecidedEvent），只依赖事件，不碰 shop 的表。
  */
-@ApplicationModule(displayName = "Admin", allowedDependencies = "shop")
+@ApplicationModule(
+        displayName = "Admin",
+        allowedDependencies = {"shop :: events"})
 package com.shop.platform.admin;
 
 import org.springframework.modulith.ApplicationModule;

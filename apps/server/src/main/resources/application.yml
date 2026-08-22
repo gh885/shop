@@ -54,6 +54,9 @@ mybatis-plus:
 shop:
     auth:
         enabled: true
+        # 短信通道：dev = 验证码打日志 + 固定码 666666，仅限本地开发。
+        # 未配置时 DevSmsChannel 不装配——生产接入真实通道实现（实现 SmsChannel 接口）后换掉此值
+        sms-channel: dev
     cms:
         enabled: true
     jwt:

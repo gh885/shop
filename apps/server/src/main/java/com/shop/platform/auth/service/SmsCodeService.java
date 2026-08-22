@@ -1,6 +1,6 @@
 package com.shop.platform.auth.service;
 
-import static com.shop.platform.auth.service.AuthHashes.sha256Hex;
+import static com.shop.platform.infra.security.RefreshTokenStore.sha256Hex;
 
 import com.shop.platform.auth.infra.DevSmsChannel;
 import com.shop.platform.auth.infra.SmsChannel;

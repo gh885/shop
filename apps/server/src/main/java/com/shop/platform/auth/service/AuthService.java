@@ -1,12 +1,13 @@
 package com.shop.platform.auth.service;
 
-import static com.shop.platform.auth.service.AuthHashes.sha256Hex;
+import static com.shop.platform.infra.security.RefreshTokenStore.sha256Hex;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
@@ -163,7 +164,7 @@ public class AuthService {
 
         // 4. 通过短信发送
         smsChannel.sendCode(phone, "重置密码验证码: " + token);
-        log.info("[AUTH] 重置密码验证码已发送, phone={}", maskPhone(phone));
+        log.info("[AUTH] 重置密码验证码已发送, phone={}", PhoneNumber.mask(phone));
     }
 
     /** 使用重置 token 设置新密码（RESET-02/03） */
@@ -278,7 +279,7 @@ public class AuthService {
             String reason;
             if (user == null) {
                 reason = "user_not_found";
-                log.warn("[AUTH] 登录失败：用户不存在, phone={}, ip={}", maskPhone(phone), clientIp);
+                log.warn("[AUTH] 登录失败：用户不存在, phone={}, ip={}", PhoneNumber.mask(phone), clientIp);
             } else if (user.getPasswordHash() == null) {
                 reason = "no_password";
                 log.warn("[AUTH] 登录失败：未设置密码, userId={}, ip={}", user.getId(), clientIp);
@@ -370,9 +371,4 @@ public class AuthService {
     }
 
     // ========== 工具方法 ==========
-
-    private static String maskPhone(String phone) {
-        if (phone == null || phone.length() < 7) return "****";
-        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
-    }
 }

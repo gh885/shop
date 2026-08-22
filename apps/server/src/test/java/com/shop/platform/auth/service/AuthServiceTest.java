@@ -233,7 +233,7 @@ class AuthServiceTest {
         @Test
         void success() {
             String token = "rt:valid";
-            String hash = AuthHashes.sha256Hex(token);
+            String hash = RefreshTokenStore.sha256Hex(token);
 
             when(refreshTokenStore.consume(hash)).thenReturn(USER_ID.toString());
             when(userMapper.selectById(USER_ID)).thenReturn(new User() {
@@ -253,7 +253,7 @@ class AuthServiceTest {
         @Test
         void expiredTokenThrows() {
             String token = "rt:expired";
-            String hash = AuthHashes.sha256Hex(token);
+            String hash = RefreshTokenStore.sha256Hex(token);
 
             when(refreshTokenStore.consume(hash)).thenReturn(null);
             when(refreshTokenStore.consumedSubject(hash)).thenReturn(null);
@@ -264,7 +264,7 @@ class AuthServiceTest {
         @Test
         void replayDetectionRevokesAll() {
             String token = "rt:replay";
-            String hash = AuthHashes.sha256Hex(token);
+            String hash = RefreshTokenStore.sha256Hex(token);
 
             when(refreshTokenStore.consume(hash)).thenReturn(null);
             when(refreshTokenStore.consumedSubject(hash)).thenReturn(USER_ID.toString());

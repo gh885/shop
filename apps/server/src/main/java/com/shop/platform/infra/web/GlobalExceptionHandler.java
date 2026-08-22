@@ -23,9 +23,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ProblemDetail> handleBusiness(BusinessException ex) {
-        ProblemDetail pd = ProblemDetail.forStatus(ex.getHttpStatus());
-        pd.setTitle(HttpStatus.valueOf(ex.getHttpStatus()).getReasonPhrase());
-        pd.setDetail(ex.getDetail());
+        ProblemDetail pd = problem(HttpStatus.valueOf(ex.getHttpStatus()), ex.getDetail());
         if (ex.getCode() != null) {
             pd.setProperty("code", ex.getCode());
         }
@@ -33,10 +31,7 @@ public class GlobalExceptionHandler {
         if (errors != null && !errors.isEmpty()) {
             pd.setProperty("errors", errors);
         }
-        pd.setProperty("requestId", MDC.get("trace_id"));
-        return ResponseEntity.status(ex.getHttpStatus())
-                .header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(pd);
+        return noStore(pd);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -47,21 +42,8 @@ public class GlobalExceptionHandler {
                 .toList();
 
         // ERR-05: 日志精确到字段，不含实际值
-        String clientIp = request.getRemoteAddr();
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader != null && !xfHeader.isEmpty() && !"unknown".equalsIgnoreCase(xfHeader)) {
-            clientIp = xfHeader.split(",")[0].trim();
-        }
-        log.warn("参数校验失败: {} 个字段错误, path={}, ip={}", errors.size(), request.getRequestURI(), clientIp);
-
-        ProblemDetail pd = ProblemDetail.forStatus(422);
-        pd.setTitle("Unprocessable Entity");
-        pd.setDetail("输入校验失败（" + errors.size() + " 个字段错误）");
-        pd.setProperty("requestId", MDC.get("trace_id"));
-        pd.setProperty("errors", errors);
-        return ResponseEntity.status(422)
-                .header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(pd);
+        log.warn("参数校验失败: {} 个字段错误, path={}, ip={}", errors.size(), request.getRequestURI(), ClientIp.of(request));
+        return noStore(unprocessable(errors));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -70,48 +52,48 @@ public class GlobalExceptionHandler {
         List<Map<String, String>> errors = ex.getConstraintViolations().stream()
                 .map(cv -> Map.of("field", cv.getPropertyPath().toString(), "message", cv.getMessage()))
                 .toList();
-        ProblemDetail pd = ProblemDetail.forStatus(422);
-        pd.setTitle("Unprocessable Entity");
-        pd.setDetail("输入校验失败（" + errors.size() + " 个字段错误）");
-        pd.setProperty("requestId", MDC.get("trace_id"));
-        pd.setProperty("errors", errors);
-        return ResponseEntity.status(422)
-                .header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(pd);
+        return noStore(unprocessable(errors));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ProblemDetail> handleMissingParam(MissingServletRequestParameterException ex) {
         // 必填查询参数缺失 → 400，不能落进兜底的 500
-        ProblemDetail pd = ProblemDetail.forStatus(400);
-        pd.setTitle("Bad Request");
-        pd.setDetail("缺少请求参数: " + ex.getParameterName());
-        pd.setProperty("requestId", MDC.get("trace_id"));
-        return ResponseEntity.status(400)
-                .header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(pd);
+        return noStore(problem(HttpStatus.BAD_REQUEST, "缺少请求参数: " + ex.getParameterName()));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ProblemDetail> handleMessageNotReadable(HttpMessageNotReadableException ex) {
         // ERR-03: JSON 格式非法、未知字段等解析失败 → 400
-        ProblemDetail pd = ProblemDetail.forStatus(400);
-        pd.setTitle("Bad Request");
-        pd.setDetail("请求体格式错误");
-        pd.setProperty("requestId", MDC.get("trace_id"));
-        return ResponseEntity.status(400)
-                .header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(pd);
+        return noStore(problem(HttpStatus.BAD_REQUEST, "请求体格式错误"));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGeneral(Exception ex) {
         log.error("未捕获异常", ex);
-        ProblemDetail pd = ProblemDetail.forStatus(500);
-        pd.setTitle("Internal Server Error");
-        pd.setDetail("服务器内部错误");
+        return noStore(problem(HttpStatus.INTERNAL_SERVER_ERROR, "服务器内部错误"));
+    }
+
+    // ---- 组装辅助 ----
+
+    /** 统一 ProblemDetail 组装：title 取状态码 reason phrase，requestId 从 MDC 带出 */
+    private static ProblemDetail problem(HttpStatus status, String detail) {
+        ProblemDetail pd = ProblemDetail.forStatus(status);
+        pd.setTitle(status.getReasonPhrase());
+        pd.setDetail(detail);
         pd.setProperty("requestId", MDC.get("trace_id"));
-        return ResponseEntity.status(500)
+        return pd;
+    }
+
+    /** 字段级校验失败统一出口：422 + errors 明细（@RequestBody 与 @RequestParam 约束共用） */
+    private static ProblemDetail unprocessable(List<Map<String, String>> errors) {
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "输入校验失败（" + errors.size() + " 个字段错误）");
+        pd.setProperty("errors", errors);
+        return pd;
+    }
+
+    /** 所有 handler 共用响应契约：no-store 防止错误响应被缓存 */
+    private static ResponseEntity<ProblemDetail> noStore(ProblemDetail pd) {
+        return ResponseEntity.status(pd.getStatus())
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(pd);
     }

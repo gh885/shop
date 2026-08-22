@@ -12,8 +12,10 @@ import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.service.AuthService;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.security.TokenPair;
+import com.shop.platform.infra.web.ClientIp;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,7 +46,7 @@ public class AuthController {
     /** 发送短信验证码 */
     @PostMapping("/sms-code")
     public void sendSmsCode(@Valid @RequestBody SmsCodeRequest req, HttpServletRequest servletRequest) {
-        smsCodeService.sendCode(req.phone(), getClientIp(servletRequest));
+        smsCodeService.sendCode(req.phone(), ClientIp.of(servletRequest));
     }
 
     /** 短信验证码登录/注册 */
@@ -53,7 +55,7 @@ public class AuthController {
             @Valid @RequestBody SmsLoginRequest req,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
-        TokenPair result = authService.loginBySms(req.phone(), req.code(), req.deviceId(), getClientIp(servletRequest));
+        TokenPair result = authService.loginBySms(req.phone(), req.code(), req.deviceId(), ClientIp.of(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -65,7 +67,7 @@ public class AuthController {
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
         TokenPair result =
-                authService.loginByPassword(req.phone(), req.password(), req.deviceId(), getClientIp(servletRequest));
+                authService.loginByPassword(req.phone(), req.password(), req.deviceId(), ClientIp.of(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -80,7 +82,7 @@ public class AuthController {
     /** 发送重置密码验证码 */
     @PostMapping("/forgot-password")
     public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest req, HttpServletRequest servletRequest) {
-        authService.forgotPassword(req.phone(), getClientIp(servletRequest));
+        authService.forgotPassword(req.phone(), ClientIp.of(servletRequest));
     }
 
     /** 使用重置 token 设置新密码 */
@@ -111,7 +113,7 @@ public class AuthController {
     public MeResponse me() {
         UUID userId = UserIdHolder.get();
         User user = authService.getMe(userId);
-        return new MeResponse(user.getId(), maskPhone(user.getPhone()), user.getNickname(), user.getAvatarKey());
+        return new MeResponse(user.getId(), PhoneNumber.mask(user.getPhone()), user.getNickname(), user.getAvatarKey());
     }
 
     /** 登出（STORE-02: 清除 Cookie） */
@@ -156,22 +158,6 @@ public class AuthController {
             if (fromCookie != null) return fromCookie;
         }
         return req != null ? req.refreshToken() : null;
-    }
-
-    // ---- IP 提取 ----
-
-    private static String getClientIp(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader != null && !xfHeader.isEmpty() && !"unknown".equalsIgnoreCase(xfHeader)) {
-            return xfHeader.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
-
-    /** 手机号脱敏（展示层变形，与 AuthService 日志脱敏同规则） */
-    private static String maskPhone(String phone) {
-        if (phone == null || phone.length() < 7) return "****";
-        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 
     // ---- Response DTOs ----

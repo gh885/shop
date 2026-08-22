@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 管理端类目维护。TODO(admin 模块落地后): 接入管理员鉴权 */
+/** 管理端类目维护（鉴权由 StaffAuthFilter 统一处理：/admin/** 仅放行 kind=staff token） */
 @RestController
 @RequestMapping("/admin/categories")
 @RequiredArgsConstructor

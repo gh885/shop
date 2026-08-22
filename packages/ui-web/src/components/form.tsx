@@ -41,6 +41,14 @@ function errorMessage(error: unknown): string {
     return String(error)
 }
 
+/** 取字段首个校验错误的用户可读文案（无错误返回 undefined）。供 AppField 渲染行内错误用 */
+export function firstFieldError(field: {
+    state: { meta: { errors: unknown[] } }
+}): string | undefined {
+    const error = field.state.meta.errors[0]
+    return error === undefined ? undefined : errorMessage(error)
+}
+
 // ---------- 字段组件 ----------
 
 interface TextFieldProps {

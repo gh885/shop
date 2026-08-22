@@ -46,70 +46,59 @@ export function useUpdateAddress() {
     })
 }
 
-/** 删除地址：乐观移除 + 失败回滚 */
-export function useDeleteAddress() {
+/**
+ * 乐观更新 mutation 工厂（删除/设默认/取消默认共用脚手架）：
+ * onMutate 先本地改缓存、失败回滚 prev、成功提示、settled 失效重取。
+ * patch 描述「给定旧列表与目标 id，返回新列表」。
+ */
+function useOptimisticAddressMutation(
+    mutationFn: (id: string) => Promise<unknown>,
+    patch: (list: Address[], id: string) => Address[],
+    messages: { success: string; error: string },
+) {
     const qc = useQueryClient()
     return useMutation({
-        mutationFn: (id: string) => deleteAddress(id),
+        mutationFn,
         onMutate: async (id) => {
             await qc.cancelQueries({ queryKey: KEY })
             const prev = qc.getQueryData<Address[]>(KEY)
-            qc.setQueryData<Address[]>(KEY, (old) => old?.filter((a) => a.id !== id) ?? [])
+            qc.setQueryData<Address[]>(KEY, (old) => patch(old ?? [], id))
             return { prev }
         },
         onError: (err, _id, ctx) => {
             qc.setQueryData(KEY, ctx?.prev)
-            notify.fromError(err, "删除地址失败")
+            notify.fromError(err, messages.error)
         },
-        onSuccess: () => notify.success("地址已删除"),
+        onSuccess: () => notify.success(messages.success),
         onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
     })
+}
+
+/** 删除地址：乐观移除 + 失败回滚 */
+export function useDeleteAddress() {
+    return useOptimisticAddressMutation(
+        deleteAddress,
+        (list, id) => list.filter((a) => a.id !== id),
+        { success: "地址已删除", error: "删除地址失败" },
+    )
 }
 
 /** 设为默认：乐观置唯一默认 + 失败回滚 */
 export function useSetDefaultAddress() {
-    const qc = useQueryClient()
-    return useMutation({
-        mutationFn: (id: string) => setDefaultAddress(id),
-        onMutate: async (id) => {
-            await qc.cancelQueries({ queryKey: KEY })
-            const prev = qc.getQueryData<Address[]>(KEY)
-            qc.setQueryData<Address[]>(
-                KEY,
-                (old) => old?.map((a) => ({ ...a, isDefault: a.id === id })) ?? [],
-            )
-            return { prev }
-        },
-        onError: (err, _id, ctx) => {
-            qc.setQueryData(KEY, ctx?.prev)
-            notify.fromError(err, "设置默认失败")
-        },
-        onSuccess: () => notify.success("已设为默认地址"),
-        onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
-    })
+    return useOptimisticAddressMutation(
+        setDefaultAddress,
+        (list, id) => list.map((a) => ({ ...a, isDefault: a.id === id })),
+        { success: "已设为默认地址", error: "设置默认失败" },
+    )
 }
 
 /** 取消默认：乐观清默认标记 + 失败回滚 */
 export function useUnsetDefaultAddress() {
-    const qc = useQueryClient()
-    return useMutation({
-        mutationFn: (id: string) => unsetDefaultAddress(id),
-        onMutate: async (id) => {
-            await qc.cancelQueries({ queryKey: KEY })
-            const prev = qc.getQueryData<Address[]>(KEY)
-            qc.setQueryData<Address[]>(
-                KEY,
-                (old) => old?.map((a) => (a.id === id ? { ...a, isDefault: false } : a)) ?? [],
-            )
-            return { prev }
-        },
-        onError: (err, _id, ctx) => {
-            qc.setQueryData(KEY, ctx?.prev)
-            notify.fromError(err, "取消默认失败")
-        },
-        onSuccess: () => notify.success("已取消默认地址"),
-        onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
-    })
+    return useOptimisticAddressMutation(
+        unsetDefaultAddress,
+        (list, id) => list.map((a) => (a.id === id ? { ...a, isDefault: false } : a)),
+        { success: "已取消默认地址", error: "取消默认失败" },
+    )
 }
 
 export type { Address }

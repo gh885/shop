@@ -42,7 +42,12 @@ public record PhoneNumber(String value) {
 
     /** 脱敏展示：138****8000。日志、异步通知里避免明文落盘 */
     public String masked() {
-        if (value.length() < 7) return "****";
-        return value.substring(0, 3) + "****" + value.substring(value.length() - 4);
+        return mask(value);
+    }
+
+    /** 脱敏任意手机号字符串（不校验格式，null/过短一律 ****）：日志与展示层脱敏的统一出口 */
+    public static String mask(String rawPhone) {
+        if (rawPhone == null || rawPhone.length() < 7) return "****";
+        return rawPhone.substring(0, 3) + "****" + rawPhone.substring(rawPhone.length() - 4);
     }
 }

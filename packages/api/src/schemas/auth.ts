@@ -59,7 +59,8 @@ export const TokenResultSchema = z.object({
 export type TokenResult = z.infer<typeof TokenResultSchema>
 
 export const MeResponseSchema = z.object({
-    id: z.number(),
+    // 后端 MeResponse.id 是 UUID（Java UUID 序列化为字符串），曾误标 number 导致 useMe 必抛 ZodError
+    id: z.uuid(),
     phone: z.string(),
     nickname: z.string().nullable(),
     avatarKey: z.string().nullable(),

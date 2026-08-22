@@ -17,6 +17,7 @@ import {
     type Address,
     type AddressInput,
 } from "#/entities/address"
+import { firstFieldError } from "@shop/ui-web"
 import RegionPicker, { type RegionNode } from "#/shared/ui/RegionPicker"
 import { notify } from "#/shared/lib/toast"
 
@@ -79,15 +80,6 @@ function FormRow({
     )
 }
 
-/** 取字段首个校验错误信息 */
-function firstError(field: { state: { meta: { errors: unknown[] } } }): string | undefined {
-    const e = field.state.meta.errors[0]
-    if (!e) return undefined
-    if (typeof e === "string") return e
-    if (typeof e === "object" && "message" in e) return String(e.message)
-    return undefined
-}
-
 export interface AddressFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -143,8 +135,8 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, editing])
 
-    /** 地区选择变化：同步进表单字段（province/city/district/regionCode） */
-    function onRegionChange(path: RegionNode[]) {
+    /** 地区路径 → 表单四字段同步（province/city/district/regionCode）。手动选择与智能粘贴共用，保证两条入口行为一致 */
+    function applyRegion(path: RegionNode[]) {
         setRegionPath(path)
         form.setFieldValue("province", path[0]?.label ?? "")
         form.setFieldValue("city", path[1]?.label ?? "")
@@ -163,18 +155,13 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
             form.setFieldValue("detail", parsed.detail ?? "")
             if (parsed.regionCode) {
                 // 用权威区划数据反查路径，regionCode/省市区 以路径为准（避免库与本地命名差异）
-                const path = await findPath(parsed.regionCode)
-                setRegionPath(path)
-                form.setFieldValue("province", path[0]?.label ?? "")
-                form.setFieldValue("city", path[1]?.label ?? "")
-                form.setFieldValue("district", path[2]?.label ?? "")
-                form.setFieldValue("regionCode", path.at(-1)?.code ?? "")
+                applyRegion(await findPath(parsed.regionCode))
             } else {
                 notify.warning("未能识别所在地区，请手动选择")
             }
             setSmartText("")
-        } catch (err) {
-            notify.fromError(err, "识别失败，请检查输入")
+        } catch (error) {
+            notify.fromError(error, "识别失败，请检查输入")
         } finally {
             setParsing(false)
         }
@@ -230,12 +217,12 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                             <FormRow
                                 label="所在地区"
                                 required
-                                error={firstError(field)}
+                                error={firstFieldError(field)}
                             >
                                 {regionReady && (
                                     <RegionPicker
                                         value={regionPath}
-                                        onChange={onRegionChange}
+                                        onChange={applyRegion}
                                         loadChildren={loadChildren}
                                         levelLabels={["省", "市", "区"]}
                                         placeholder="请选择省/市/区"
@@ -251,7 +238,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                 label="详细地址"
                                 required
                                 htmlFor={field.name}
-                                error={firstError(field)}
+                                error={firstFieldError(field)}
                             >
                                 <Input
                                     id={field.name}
@@ -271,7 +258,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                 label="收货人姓名"
                                 required
                                 htmlFor={field.name}
-                                error={firstError(field)}
+                                error={firstFieldError(field)}
                             >
                                 <Input
                                     id={field.name}
@@ -291,7 +278,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                 label="手机号码"
                                 required
                                 htmlFor={field.name}
-                                error={firstError(field)}
+                                error={firstFieldError(field)}
                             >
                                 <Input
                                     id={field.name}

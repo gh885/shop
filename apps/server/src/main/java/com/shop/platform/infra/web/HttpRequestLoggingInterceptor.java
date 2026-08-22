@@ -41,11 +41,7 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
         int status = response.getStatus();
 
         // 客户端 IP
-        String clientIp = request.getRemoteAddr();
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader != null && !xfHeader.isEmpty() && !"unknown".equalsIgnoreCase(xfHeader)) {
-            clientIp = xfHeader.split(",")[0].trim();
-        }
+        String clientIp = ClientIp.of(request);
 
         // 场景字段放 MDC，event 用单独 key
         MDC.put("event", "http.request");
