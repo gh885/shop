@@ -94,26 +94,4 @@ export const RecommendTabSchema = RecommendTabDtoSchema.transform((dto) => ({
 }))
 export type RecommendTab = z.infer<typeof RecommendTabSchema>
 
-// ---------- 买家商品列表（/api/products 的 ProductResponse） ----------
-
-// 后端金额一律 Money（amount + currency），见 common/Money.java；商品列表取 minPrice.amount 即可
-const MoneySchema = z.object({ amount: z.number().int().min(0), currency: z.string() })
-
-const BuyerProductDtoSchema = z.object({
-    id: z.string(),
-    shopId: z.string(),
-    categoryId: z.string(),
-    name: z.string(),
-    subtitle: z.string().nullable(),
-    mainImage: z.string().nullable(),
-    minPrice: MoneySchema.nullable(),
-    maxPrice: MoneySchema.nullable(),
-})
-export const BuyerProductSchema = BuyerProductDtoSchema.transform((dto) => ({
-    id: dto.id,
-    title: dto.name,
-    subtitle: dto.subtitle ?? "",
-    image: dto.mainImage ?? "",
-    price: dto.minPrice?.amount ?? 0,
-}))
-export type BuyerProduct = z.infer<typeof BuyerProductSchema>
+// 买家商品形状已下沉到 #/entities/product（Product/ProductDetail），首页商品流直接复用，不再本地定义

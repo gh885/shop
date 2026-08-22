@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as DevDestructiveRouteImport } from './routes/dev/destructive'
+import { Route as ProductsIdRouteImport } from './routes/products/$id'
 import { Route as SellIndexRouteImport } from './routes/sell/index'
 import { Route as AccountAddressIndexRouteImport } from './routes/account/address/index'
 
@@ -30,6 +32,16 @@ const WelcomeRoute = WelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevDestructiveRoute = DevDestructiveRouteImport.update({
+  id: '/dev/destructive',
+  path: '/dev/destructive',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsIdRoute = ProductsIdRouteImport.update({
+  id: '/products/$id',
+  path: '/products/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellIndexRoute = SellIndexRouteImport.update({
   id: '/sell/',
   path: '/sell/',
@@ -45,6 +57,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/dev/destructive': typeof DevDestructiveRoute
+  '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
   '/account/address/': typeof AccountAddressIndexRoute
 }
@@ -52,6 +66,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/dev/destructive': typeof DevDestructiveRoute
+  '/products/$id': typeof ProductsIdRoute
   '/sell': typeof SellIndexRoute
   '/account/address': typeof AccountAddressIndexRoute
 }
@@ -60,22 +76,47 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/dev/destructive': typeof DevDestructiveRoute
+  '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
   '/account/address/': typeof AccountAddressIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/account' | '/welcome' | '/sell/' | '/account/address/'
+  fullPaths:
+    | '/'
+    | '/account'
+    | '/welcome'
+    | '/dev/destructive'
+    | '/products/$id'
+    | '/sell/'
+    | '/account/address/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/account' | '/welcome' | '/sell' | '/account/address'
+  to:
+    | '/'
+    | '/account'
+    | '/welcome'
+    | '/dev/destructive'
+    | '/products/$id'
+    | '/sell'
+    | '/account/address'
   id:
-    '__root__' | '/' | '/account' | '/welcome' | '/sell/' | '/account/address/'
+    | '__root__'
+    | '/'
+    | '/account'
+    | '/welcome'
+    | '/dev/destructive'
+    | '/products/$id'
+    | '/sell/'
+    | '/account/address/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRouteWithChildren
   WelcomeRoute: typeof WelcomeRoute
+  DevDestructiveRoute: typeof DevDestructiveRoute
+  ProductsIdRoute: typeof ProductsIdRoute
   SellIndexRoute: typeof SellIndexRoute
 }
 
@@ -100,6 +141,20 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev/destructive': {
+      id: '/dev/destructive'
+      path: '/dev/destructive'
+      fullPath: '/dev/destructive'
+      preLoaderRoute: typeof DevDestructiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/$id': {
+      id: '/products/$id'
+      path: '/products/$id'
+      fullPath: '/products/$id'
+      preLoaderRoute: typeof ProductsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell/': {
@@ -134,6 +189,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRouteWithChildren,
   WelcomeRoute: WelcomeRoute,
+  DevDestructiveRoute: DevDestructiveRoute,
+  ProductsIdRoute: ProductsIdRoute,
   SellIndexRoute: SellIndexRoute,
 }
 export const routeTree = rootRouteImport

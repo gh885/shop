@@ -213,7 +213,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                     <Button
                                         type="button"
                                         size="sm"
-                                        className="rounded-lg bg-primary px-6 text-primary-foreground hover:bg-primary-hover"
+                                        className="px-6"
                                         disabled={parsing || !smartText.trim()}
                                         onClick={() => void handleSmartParse()}
                                     >
@@ -401,7 +401,6 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                         </Button>
                         <Button
                             type="submit"
-                            className="bg-primary text-primary-foreground hover:bg-primary-hover"
                             disabled={busy}
                         >
                             {busy ? "保存中…" : "确定"}

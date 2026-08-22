@@ -49,7 +49,7 @@
     --orange-200: hsl(15 94% 84%);
     --orange-300: hsl(15 96% 72%);
     --orange-400: hsl(15 98% 63%);
-    --orange-500: #FF5017;
+    --orange-500: #ff5017;
     --orange-600: hsl(15 100% 45%);
     --orange-700: hsl(15 98% 37%);
     --orange-800: hsl(15 94% 29%);
@@ -106,14 +106,11 @@
     --color-card: light-dark(var(--neutral-0), var(--neutral-950));
     --color-popover: light-dark(var(--neutral-0), var(--neutral-950));
     --color-sunken: light-dark(var(--neutral-100), var(--neutral-900));
-    /* scrim 为 shop 扩展（shadcn 无遮罩 token，其 Dialog 硬编码 bg-black/xx） */
-    --color-scrim: light-dark(hsl(0 0% 0% / 0.4), hsl(0 0% 0% / 0.6));
 
     /* 内容（文字阶梯：foreground 主文字 → muted-foreground 次要 → disabled-foreground
        禁用。次要文字统一走 muted-foreground；原 foreground-subtle / foreground-disabled
        与 muted-foreground / disabled-foreground 语义重叠，已合并移除） */
     --color-foreground: light-dark(var(--neutral-950), var(--neutral-50));
-    --color-card-foreground: light-dark(var(--neutral-950), var(--neutral-50));
     --color-popover-foreground: light-dark(var(--neutral-950), var(--neutral-50));
     --color-link: light-dark(var(--orange-600), var(--orange-400));
 
@@ -146,8 +143,9 @@
     /* 反馈（每色三件套：实色 base+foreground / 弱底 subtle+subtle-foreground）。
        弱底是 shop 的色阶对写法（浅底深字）；shadcn 新版用 bg-x/10 + text-x 透明度
        表达同角色，二选一保持一致即可。
-       destructive-foreground 沿用旧版 shadcn 命名（新版已删、改 /10 风格），保留兼容。 */
-    --color-destructive: light-dark(var(--red-500), var(--red-800));
+       destructive 跟随 shadcn 语义（文字/描边/弱底色，非实色填充底），
+       暗色必须亮（red-500），深红（red-800）在暗底上对比度塌陷。 */
+    --color-destructive: var(--red-500);
     --color-destructive-foreground: var(--neutral-50);
     --color-destructive-subtle: light-dark(var(--red-100), var(--red-900));
     --color-destructive-subtle-foreground: light-dark(var(--red-700), var(--red-500));
@@ -164,13 +162,8 @@
     --color-info-subtle: light-dark(var(--blue-100), var(--blue-900));
     --color-info-subtle-foreground: light-dark(var(--blue-700), var(--blue-500));
 
-    /* 禁用 */
-    --color-disabled: light-dark(var(--neutral-100), var(--neutral-800));
-    --color-disabled-foreground: light-dark(var(--neutral-400), var(--neutral-500));
-
     /* 结构与焦点 */
     --color-border: light-dark(var(--neutral-200), var(--neutral-800));
-    --color-border-strong: light-dark(var(--neutral-300), var(--neutral-400));
     --color-input: light-dark(var(--neutral-200), var(--neutral-800));
     --color-ring: light-dark(var(--neutral-950), var(--neutral-300));
 
@@ -183,14 +176,6 @@
     --color-sidebar-accent-foreground: light-dark(var(--neutral-900), var(--neutral-50));
     --color-sidebar-border: light-dark(var(--neutral-200), var(--neutral-800));
     --color-sidebar-ring: light-dark(var(--neutral-400), var(--neutral-500));
-
-    /* 图表分类色（shadcn Chart 组件消费；复用现有色相做 5 分类。
-       当前无图表组件引用，按需保留/替换色相） */
-    --color-chart-1: var(--indigo-500);
-    --color-chart-2: var(--orange-500);
-    --color-chart-3: var(--green-500);
-    --color-chart-4: var(--amber-500);
-    --color-chart-5: var(--blue-500);
 
     /* 字体：shop 未引入外部字体，heading 与正文同栈；接品牌字体时改 --font-sans */
     --font-heading: var(--font-sans);
@@ -211,8 +196,6 @@
     --shadow-lg: light-dark(var(--shadow-lg-light), var(--shadow-lg-dark));
 
     /* 动效 */
-    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --animate-shake: shake 0.4s ease-in-out;
     @keyframes shake {
         10%,

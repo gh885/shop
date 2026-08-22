@@ -21,7 +21,6 @@
 
     /* 分割线压淡：结构靠底色差，线只是辅助 */
     --color-border: hsl(40 5% 90%);
-    --color-border-strong: hsl(40 4% 82%);
 
     /* 侧栏：纯白浮于暖白画布之上 */
     --color-sidebar: var(--neutral-0);
@@ -61,7 +60,6 @@
 
     /* 分割线随底色压暗 */
     --color-border: hsl(40 4% 16%);
-    --color-border-strong: hsl(40 4% 24%);
 
     /* 侧栏：与卡面同档，浮于画布之上 */
     --color-sidebar: hsl(40 5% 12%);

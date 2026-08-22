@@ -1,6 +1,9 @@
+import { Link } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
-/** 商品卡片（京东式）：方形图 + 两行标题 + 标签排 + 价格/销量/加购 */
+import { Badge, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
+
+/** 商品卡片（京东式）：方形图 + 两行标题 + 标签排 + 价格/销量/加购。商品域 UI，首页/详情推荐/搜索/类目页共用 */
 export interface ProductCardData {
     id: string
     image: string
@@ -31,7 +34,11 @@ function Price({ value, className }: { value: number; className?: string }) {
 
 export function ProductCard({ product }: { product: ProductCardData }) {
     return (
-        <div className="group flex cursor-pointer flex-col overflow-hidden rounded-lg bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.18)]">
+        <Link
+            to="/products/$id"
+            params={{ id: product.id }}
+            className="group flex flex-col overflow-hidden rounded-lg bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.18)]"
+        >
             {/* 图片：方形、铺满、轻微圆角，hover 微放大 */}
             <div className="relative overflow-hidden rounded-lg bg-white">
                 <img
@@ -52,25 +59,32 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                 {product.tags && product.tags.length > 0 && (
                     <div className="mt-1.5 flex h-4 items-center gap-1 overflow-hidden">
                         {product.tags.map((tag, i) => (
-                            <span
+                            <Badge
                                 key={tag}
+                                variant={i === 0 ? "default" : "outline"}
                                 className={
                                     i === 0
-                                        ? "rounded-[3px] bg-primary px-1 text-[10px] leading-4 font-medium text-primary-foreground"
-                                        : "rounded-[3px] border border-primary/50 px-1 text-[10px] leading-[13px] text-primary"
+                                        ? "h-4 rounded-[3px] px-1 text-[10px]"
+                                        : "h-4 rounded-[3px] border-primary/50 px-1 text-[10px] text-primary"
                                 }
                             >
                                 {tag}
-                            </span>
+                            </Badge>
                         ))}
                         {product.shop && (
-                            <button
-                                type="button"
-                                title={product.shop}
-                                className="truncate text-[11px] text-muted-foreground transition-colors hover:text-primary"
-                            >
-                                {product.shop}
-                            </button>
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <button
+                                            type="button"
+                                            className="truncate text-[11px] text-muted-foreground transition-colors hover:text-primary"
+                                        >
+                                            {product.shop}
+                                        </button>
+                                    }
+                                />
+                                <TooltipContent>{product.shop}</TooltipContent>
+                            </Tooltip>
                         )}
                     </div>
                 )}
@@ -89,12 +103,16 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                     <button
                         type="button"
                         aria-label="加入购物车"
+                        onClick={(e) => {
+                            // 卡片整体是 Link，阻止冒泡导航；加购需选规格，引导进详情页
+                            e.preventDefault()
+                        }}
                         className="ml-auto flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary transition-all duration-200 hover:bg-primary hover:text-primary-foreground active:scale-90"
                     >
                         <Plus className="size-4" />
                     </button>
                 </div>
             </div>
-        </div>
+        </Link>
     )
 }

@@ -1,6 +1,13 @@
+import { MapPin } from "lucide-react"
+
 import {
     Badge,
     Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
     Table,
     TableBody,
     TableCell,
@@ -56,11 +63,18 @@ export function AddressTable({
                 <TableBody>
                     {addresses.length === 0 ? (
                         <TableRow>
-                            <TableCell
-                                colSpan={5}
-                                className="h-24 text-center text-muted-foreground"
-                            >
-                                暂无收货地址
+                            <TableCell colSpan={5}>
+                                <Empty className="my-6">
+                                    <EmptyHeader>
+                                        <EmptyMedia variant="icon">
+                                            <MapPin />
+                                        </EmptyMedia>
+                                        <EmptyTitle>暂无收货地址</EmptyTitle>
+                                        <EmptyDescription>
+                                            添加常用收货地址，下单更快捷
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             </TableCell>
                         </TableRow>
                     ) : (

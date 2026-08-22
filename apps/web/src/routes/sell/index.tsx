@@ -54,10 +54,9 @@ function OpenShopCta({ size = "default" }: { size?: "default" | "lg" }) {
         <Button
             size={size}
             onClick={handleClick}
-            className="bg-primary text-primary-foreground hover:bg-primary-hover active:translate-y-px"
         >
             免费开店
-            <ArrowRight className="size-4" />
+            <ArrowRight />
         </Button>
     )
 }

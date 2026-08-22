@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
 import { motion, useReducedMotion, type Variants } from "motion/react"
 
-import { buttonVariants, cn } from "@shop/ui-web"
+import { buttonVariants } from "@shop/ui-web"
 
 export const Route = createFileRoute("/welcome")({
     component: Home,
@@ -60,10 +60,7 @@ function Hero() {
                             <div className="flex items-center gap-4">
                                 <a
                                     href="#categories"
-                                    className={cn(
-                                        buttonVariants({ size: "lg" }),
-                                        "bg-primary text-primary-foreground hover:bg-primary-hover active:translate-y-px",
-                                    )}
+                                    className={buttonVariants({ size: "lg" })}
                                 >
                                     逛商品分类
                                     <ArrowRight className="size-4" />
@@ -214,10 +211,7 @@ function SellerBanner() {
                 </div>
                 <Link
                     to="/sell"
-                    className={cn(
-                        buttonVariants({ size: "lg" }),
-                        "shrink-0 bg-primary text-primary-foreground hover:bg-primary-hover active:translate-y-px",
-                    )}
+                    className={buttonVariants({ size: "lg" })}
                 >
                     免费开店
                     <ArrowRight className="size-4" />

@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react"
 import { ChevronDown } from "lucide-react"
-import { Button, cn } from "@shop/ui-web"
+
+import {
+    cn,
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarProvider,
+} from "@shop/ui-web"
 
 /**
  * NavMenu —— 垂直导航菜单（账号中心侧边栏、后台菜单通用）
@@ -14,6 +25,11 @@ import { Button, cn } from "@shop/ui-web"
  * - onSelect  点击叶子项时回调 key；禁用项不触发
  *
  * 自有状态：expandedKeys（哪些分组展开了），纯 UI 状态，外部无需关心。
+ *
+ * 实现：复用 sidebar 组件族的菜单件（SidebarMenuButton 自带激活态
+ * data-active + hover/focus 环），分组展开用 Collapsible。SidebarProvider
+ * 只是 context 载体（SidebarMenuButton 依赖 useSidebar），className="contents"
+ * 消除其包裹 div 的布局影响。
  */
 
 export interface NavMenuLeaf {
@@ -44,11 +60,8 @@ function isGroup(item: NavMenuItem): item is NavMenuGroup {
     return "children" in item
 }
 
-/** 菜单项尺寸：对齐原样式（h-9 高度、px-3 内边距、rounded-md），覆盖 Button 基类的 default 变体 */
-const itemClass = "w-full px-3 gap-2 rounded-md font-normal"
-
 export default function NavMenu({ items, activeKey, onSelect }: NavMenuProps) {
-    // 默认展开包含当前高亮项的分组（如截图中"我的订单"因"我的卡券包"高亮而展开）
+    // 默认展开包含当前高亮项的分组
     const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(
         () =>
             new Set(
@@ -59,8 +72,7 @@ export default function NavMenu({ items, activeKey, onSelect }: NavMenuProps) {
             ),
     )
 
-    // activeKey 变化时自动展开新高亮项所在分组（点击其他分组、外部路由跳转都适用）；
-    // 只做"确保展开"，用户手动收起的分组不会被强制重开
+    // activeKey 变化时自动展开新高亮项所在分组（只做"确保展开"，用户手动收起的不强制重开）
     useEffect(() => {
         setExpandedKeys((prev) => {
             const parent = items.find(
@@ -86,70 +98,72 @@ export default function NavMenu({ items, activeKey, onSelect }: NavMenuProps) {
     const renderLeaf = (leaf: NavMenuLeaf, indent: boolean) => {
         const active = leaf.key === activeKey
         return (
-            <li key={leaf.key}>
-                <Button
-                    variant="ghost"
-                    size="lg"
+            <SidebarMenuItem key={leaf.key}>
+                <SidebarMenuButton
+                    isActive={active}
                     disabled={leaf.disabled}
                     aria-current={active ? "page" : undefined}
                     onClick={() => onSelect(leaf.key)}
-                    className={cn(
-                        itemClass,
-                        indent && "pl-9",
-                        active &&
-                            "bg-accent font-semibold text-accent-foreground hover:bg-accent hover:text-accent-foreground",
-                    )}
+                    className={cn("h-9 px-3", indent && "pl-9")}
                 >
                     {leaf.icon}
                     <span className="flex-1 truncate">{leaf.label}</span>
-                </Button>
-            </li>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
         )
     }
 
     return (
-        <nav
-            aria-label="导航菜单"
-            className="bg-sidebar text-sidebar-foreground w-56"
-        >
-            <ul className="flex flex-col gap-0.5 p-2">
-                {items.map((item) => {
-                    if (!isGroup(item)) {
-                        return renderLeaf(item, false)
-                    }
-                    const expanded = expandedKeys.has(item.key)
-                    return (
-                        <li key={item.key}>
-                            <Button
-                                variant="ghost"
-                                size="lg"
-                                disabled={item.disabled}
-                                aria-expanded={expanded}
-                                aria-controls={`nav-menu-${item.key}`}
-                                onClick={() => toggleGroup(item.key)}
-                                className={itemClass}
+        <SidebarProvider className="contents">
+            <nav
+                aria-label="导航菜单"
+                className="w-56 bg-sidebar text-sidebar-foreground"
+            >
+                <SidebarMenu className="gap-0.5 p-2">
+                    {items.map((item) => {
+                        if (!isGroup(item)) {
+                            return renderLeaf(item, false)
+                        }
+                        const expanded = expandedKeys.has(item.key)
+                        return (
+                            <Collapsible
+                                key={item.key}
+                                open={expanded}
+                                onOpenChange={() => toggleGroup(item.key)}
                             >
-                                {item.icon}
-                                <span className="flex-1 truncate">{item.label}</span>
-                                <ChevronDown
-                                    className={cn(
-                                        "ms-auto size-4 shrink-0 transition-transform duration-200",
-                                        expanded && "rotate-180",
-                                    )}
-                                />
-                            </Button>
-                            {expanded && (
-                                <ul
-                                    id={`nav-menu-${item.key}`}
-                                    className="mt-0.5 flex flex-col gap-0.5"
-                                >
-                                    {item.children.map((child) => renderLeaf(child, true))}
-                                </ul>
-                            )}
-                        </li>
-                    )
-                })}
-            </ul>
-        </nav>
+                                <SidebarMenuItem>
+                                    <CollapsibleTrigger
+                                        render={
+                                            <SidebarMenuButton
+                                                disabled={item.disabled}
+                                                aria-controls={`nav-menu-${item.key}`}
+                                                className="h-9 px-3"
+                                            >
+                                                {item.icon}
+                                                <span className="flex-1 truncate">
+                                                    {item.label}
+                                                </span>
+                                                <ChevronDown
+                                                    className={cn(
+                                                        "ms-auto transition-transform duration-200",
+                                                        expanded && "rotate-180",
+                                                    )}
+                                                />
+                                            </SidebarMenuButton>
+                                        }
+                                    />
+                                    <CollapsibleContent id={`nav-menu-${item.key}`}>
+                                        {/* 去掉 SidebarMenuSub 默认的左侧竖线缩进，沿用纯缩进风格 */}
+                                        <SidebarMenuSub className="m-0 translate-x-0 gap-0.5 border-l-0 p-0 pt-0.5">
+                                            {item.children.map((child) => renderLeaf(child, true))}
+                                        </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                </SidebarMenuItem>
+                            </Collapsible>
+                        )
+                    })}
+                </SidebarMenu>
+            </nav>
+        </SidebarProvider>
     )
 }

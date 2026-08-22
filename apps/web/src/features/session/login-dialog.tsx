@@ -217,9 +217,10 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                 selector={(s) => PHONE_PATTERN.test(s.values.phone)}
                                             >
                                                 {(phoneValid) => (
-                                                    <button
-                                                        type="button"
-                                                        className="shrink-0 cursor-pointer px-3.5 text-sm font-medium text-primary transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:font-normal disabled:text-muted-foreground/60 disabled:hover:opacity-100"
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="shrink-0 px-3.5 text-sm text-primary hover:bg-transparent hover:text-primary-hover disabled:font-normal disabled:text-muted-foreground/60"
                                                         disabled={
                                                             !phoneValid ||
                                                             countdown > 0 ||
@@ -240,7 +241,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                         ) : (
                                                             "获取验证码"
                                                         )}
-                                                    </button>
+                                                    </Button>
                                                 )}
                                             </form.Subscribe>
                                         </div>
@@ -271,13 +272,14 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                         <CircleAlert className="size-3.5 shrink-0" />
                                         {serverError}
                                         {passwordNotSet && (
-                                            <button
-                                                type="button"
-                                                className="shrink-0 cursor-pointer font-medium text-primary transition-opacity hover:opacity-70"
+                                            <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="h-auto shrink-0 p-0"
                                                 onClick={() => switchTab("sms")}
                                             >
                                                 改用验证码登录
-                                            </button>
+                                            </Button>
                                         )}
                                     </p>
                                 )}
@@ -296,7 +298,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 {({ isSubmitting, ready }) => (
                                     <Button
                                         type="submit"
-                                        className="h-12 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover hover:shadow-primary/35 active:scale-[0.98] active:bg-primary-active disabled:opacity-40 disabled:shadow-none"
+                                        className="h-12 w-full rounded-xl text-[15px] font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/35 active:scale-[0.98] disabled:opacity-40 disabled:shadow-none"
                                         disabled={!ready || isSubmitting}
                                     >
                                         {isSubmitting ? (
@@ -313,19 +315,21 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
                             <p className="text-center text-xs text-muted-foreground">
                                 登录即代表同意
-                                <button
-                                    type="button"
-                                    className="mx-1 cursor-pointer text-foreground transition-colors hover:text-link"
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="mx-1 h-auto p-0 text-foreground hover:text-link"
                                 >
                                     用户协议
-                                </button>
+                                </Button>
                                 和
-                                <button
-                                    type="button"
-                                    className="mx-1 cursor-pointer text-foreground transition-colors hover:text-link"
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="mx-1 h-auto p-0 text-foreground hover:text-link"
                                 >
                                     隐私政策
-                                </button>
+                                </Button>
                             </p>
                         </form>
                     </div>

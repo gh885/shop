@@ -56,11 +56,8 @@ function AddressPage() {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h1 className="text-xl font-bold">收货地址</h1>
-                <Button
-                    onClick={openCreate}
-                    className="bg-primary text-primary-foreground hover:bg-primary-hover"
-                >
-                    <Plus className="size-4" />
+                <Button onClick={openCreate}>
+                    <Plus />
                     新增收货地址
                 </Button>
             </div>
