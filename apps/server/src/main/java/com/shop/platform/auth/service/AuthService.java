@@ -293,7 +293,7 @@ public class AuthService {
                 MDC.put("user_id", user.getId().toString());
             }
             try {
-                log.warn("");
+                log.warn("[AUTH] 登录失败, reason={}, client_ip={}", reason, clientIp);
             } finally {
                 MDC.remove("event");
                 MDC.remove("reason");
@@ -332,7 +332,7 @@ public class AuthService {
         MDC.put("event", "auth.login.succeeded");
         MDC.put("user_id", user.getId().toString());
         try {
-            log.info("");
+            log.info("[AUTH] 登录成功, userId={}", user.getId());
         } finally {
             MDC.remove("event");
             MDC.remove("user_id");

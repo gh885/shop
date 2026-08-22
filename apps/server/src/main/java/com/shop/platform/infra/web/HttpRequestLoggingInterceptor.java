@@ -55,7 +55,8 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
         MDC.put("latency_ms", String.valueOf(latencyMs));
         MDC.put("client_ip", clientIp);
         try {
-            log.atLevel(status >= 500 ? Level.ERROR : Level.INFO).log("");
+            log.atLevel(status >= 500 ? Level.ERROR : Level.INFO)
+                    .log("{} {} -> {} ({}ms) client={}", method, bestMatchPattern, status, latencyMs, clientIp);
         } finally {
             MDC.remove("event");
             MDC.remove("method");

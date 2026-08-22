@@ -31,8 +31,21 @@ spring:
             - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
 logging:
+    # 控制台：人读格式 + 全链路 trace_id + ANSI 着色。
+    # 注意 %clr 用圆括号 (…) 包裹（Spring Boot 官方写法），不是花括号——嵌套的 %d{}/%logger{} 自带花括号，用花括号会解析错乱。
+    pattern:
+        console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr([%thread]){faint} %clr([%X{trace_id}]){magenta} %clr(%logger{40}){cyan} %clr(-){faint} %m%n"
+    level:
+        root: INFO
+        # 压框架启动噪音，业务日志（com.shop.platform）保持 INFO 可读
+        org.springframework: WARN
+        org.apache.catalina: WARN
     structured:
-        format: ecs
+        format:
+            # 文件输出 ECS JSON（可解析、可进日志系统）；控制台走上面的可读 pattern
+            file: ecs
+    file:
+        name: logs/shop-server.log
 
 mybatis-plus:
     configuration:
