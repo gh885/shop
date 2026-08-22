@@ -39,6 +39,7 @@ public class JwtProperties {
             "/api/products",
             "/api/categories",
             "/api/shops",
+            "/api/cms",
             "/auth/sms-code",
             "/auth/login/sms",
             "/auth/login/password",

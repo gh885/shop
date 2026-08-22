@@ -41,6 +41,8 @@ mybatis-plus:
 shop:
     auth:
         enabled: true
+    cms:
+        enabled: true
     jwt:
         # ES256 密钥对（PKCS#8 / X.509 base64），不配置则启动时自动生成临时密钥对
         # private-key: "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg..."
