@@ -8,8 +8,8 @@ export interface ProductCardData {
     title: string
     /** 价格（分） */
     price: number
-    /** 销量描述 */
-    sales: string
+    /** 销量描述。后端 ProductResponse 暂未提供 sales 聚合字段，接上后直接给 */
+    sales?: string
     /** 标签排，如 自营 / 放心购 */
     tags?: string[]
     /** 店铺名 */
@@ -81,9 +81,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                         value={product.price}
                         className="text-primary"
                     />
-                    <span className="truncate text-[11px] text-muted-foreground">
-                        {product.sales}
-                    </span>
+                    {product.sales && (
+                        <span className="truncate text-[11px] text-muted-foreground">
+                            {product.sales}
+                        </span>
+                    )}
                     <button
                         type="button"
                         aria-label="加入购物车"
