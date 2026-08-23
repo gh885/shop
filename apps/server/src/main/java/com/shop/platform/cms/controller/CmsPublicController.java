@@ -1,8 +1,5 @@
 package com.shop.platform.cms.controller;
 
-import com.shop.platform.cms.mapper.Banner;
-import com.shop.platform.cms.mapper.NavEntry;
-import com.shop.platform.cms.mapper.RecommendTab;
 import com.shop.platform.cms.service.ContentService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,19 +22,19 @@ public class CmsPublicController {
 
     /** 首页分类导航：指定导航位下的启用条目（subs 为 JSONB 整段） */
     @GetMapping("/nav")
-    public List<NavEntry> nav(@RequestParam(defaultValue = "home") String navKey) {
-        return contentService.nav(navKey);
+    public List<NavEntryResponse> nav(@RequestParam(defaultValue = "home") String navKey) {
+        return NavEntryResponse.from(contentService.nav(navKey));
     }
 
     /** 首页运营位 banner：启用且命中生效时间窗口 */
     @GetMapping("/banners")
-    public List<Banner> banners(@RequestParam(defaultValue = "home_promo") String slot) {
-        return contentService.banners(slot);
+    public List<BannerResponse> banners(@RequestParam(defaultValue = "home_promo") String slot) {
+        return BannerResponse.from(contentService.banners(slot));
     }
 
     /** 首页推荐条词条（扁平数组，is_default 标"猜你喜欢"） */
     @GetMapping("/recommend-tabs")
-    public List<RecommendTab> recommendTabs() {
-        return contentService.recommendTabs();
+    public List<RecommendTabResponse> recommendTabs() {
+        return RecommendTabResponse.from(contentService.recommendTabs());
     }
 }

@@ -7,6 +7,7 @@ import com.shop.platform.user.dto.AddressRequest;
 import com.shop.platform.user.mapper.Address;
 import com.shop.platform.user.service.AddressService;
 import jakarta.validation.Valid;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +32,8 @@ public class AddressController {
     /** 新增收货地址 */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Address create(@Valid @RequestBody AddressRequest req) {
-        return addressService.create(UserIdHolder.get(), req);
+    public AddressResponse create(@Valid @RequestBody AddressRequest req) {
+        return AddressResponse.from(addressService.create(UserIdHolder.get(), req));
     }
 
     /** 智能粘贴：解析收货文本为结构化字段（无需入库，纯文本处理） */
@@ -43,20 +44,20 @@ public class AddressController {
 
     /** 我的收货地址列表：默认地址置顶 */
     @GetMapping
-    public List<Address> list() {
-        return addressService.list(UserIdHolder.get());
+    public List<AddressResponse> list() {
+        return AddressResponse.from(addressService.list(UserIdHolder.get()));
     }
 
     /** 地址详情（结算页反显用） */
     @GetMapping("/{id}")
-    public Address detail(@PathVariable UUID id) {
-        return addressService.detail(UserIdHolder.get(), id);
+    public AddressResponse detail(@PathVariable UUID id) {
+        return AddressResponse.from(addressService.detail(UserIdHolder.get(), id));
     }
 
     /** 修改收货地址 */
     @PutMapping("/{id}")
-    public Address update(@PathVariable UUID id, @Valid @RequestBody AddressRequest req) {
-        return addressService.update(UserIdHolder.get(), id, req);
+    public AddressResponse update(@PathVariable UUID id, @Valid @RequestBody AddressRequest req) {
+        return AddressResponse.from(addressService.update(UserIdHolder.get(), id, req));
     }
 
     /** 删除收货地址（软删，返回 204） */
@@ -68,13 +69,54 @@ public class AddressController {
 
     /** 设为默认地址：每用户至多一个默认 */
     @PutMapping("/{id}/default")
-    public Address setDefault(@PathVariable UUID id) {
-        return addressService.setDefault(UserIdHolder.get(), id);
+    public AddressResponse setDefault(@PathVariable UUID id) {
+        return AddressResponse.from(addressService.setDefault(UserIdHolder.get(), id));
     }
 
     /** 取消默认地址：允许该用户无默认地址 */
     @DeleteMapping("/{id}/default")
-    public Address unsetDefault(@PathVariable UUID id) {
-        return addressService.unsetDefault(UserIdHolder.get(), id);
+    public AddressResponse unsetDefault(@PathVariable UUID id) {
+        return AddressResponse.from(addressService.unsetDefault(UserIdHolder.get(), id));
+    }
+
+    /**
+     * 地址出参：字段镜像实体现状（前端 zod schema 逐字段严格校验，只减不增），
+     * 刻意不吐 deletedAt（软删内部标记）。HTTP 契约与存储模型在此解耦。
+     */
+    public record AddressResponse(
+            UUID id,
+            UUID userId,
+            String receiverName,
+            String phone,
+            String regionCode,
+            String province,
+            String city,
+            String district,
+            String detail,
+            String label,
+            Boolean isDefault,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt) {
+
+        static AddressResponse from(Address a) {
+            return new AddressResponse(
+                    a.getId(),
+                    a.getUserId(),
+                    a.getReceiverName(),
+                    a.getPhone(),
+                    a.getRegionCode(),
+                    a.getProvince(),
+                    a.getCity(),
+                    a.getDistrict(),
+                    a.getDetail(),
+                    a.getLabel(),
+                    a.getIsDefault(),
+                    a.getCreatedAt(),
+                    a.getUpdatedAt());
+        }
+
+        static List<AddressResponse> from(List<Address> list) {
+            return list.stream().map(AddressResponse::from).toList();
+        }
     }
 }

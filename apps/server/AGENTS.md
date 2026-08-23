@@ -70,7 +70,7 @@ public class Product {
 - **HTTP 入参（模块 `dto/` 包）**：`<动作>Request`，查询类入参用 `<名词>Query`；`Request` / `Query` 后缀只允许出现在 dto 包
 - **业务入参聚合（service 包内部类）**：`<动作>Command`，仅当入参字段多到无法拆包传基本类型时使用
 - **Service 出参（service 包顶层类）**：能直接返回实体/已有类型就不新建；必须变形时按形状命名（`CategoryNode` / `StaffInfo` / `ProductDetail`），不贴统一 Response 标签，名字要说出"装的是什么"而非"某操作的结果"。形状名是开放集合、无方向性，ArchUnit 不强制其位置，按本节约定放 service 包顶层类
-- **HTTP 出参（controller 包内部类）**：仅当出参需要为前端定制变形（脱敏/组装/字段转换）时定义 `<名词>Response`；`Response` 后缀只允许出现在 controller 包
+- **HTTP 出参（controller 包内部类；跨 controller 共用时可为包内顶层类）**：**一律定义 `<名词>Response` record，禁止直接返回 mapper 实体** —— 实体的每一列都是潜在契约，存储演进会悄悄破坏前端（先例：Address 曾把 deletedAt 软删标记序列化出去）。字段镜像现状、只减不增；由 NamingRulesTest 强制。注意 service 形状类内嵌 mapper 实体时同样不得越过 HTTP 边界（如 ProductDetail 需转 ProductDetailResponse）
 - **子组件**：Request 内部的嵌套小组件按语义命名（如 `SkuUpdateItem`），不受方向后缀约束
 - **跨模块共享**：多个模块都要用的形状类（如 `TokenPair`）放共享层（`common/` 或 `infra/`），按共享层语义两轴判断归属
 

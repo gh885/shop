@@ -3,9 +3,6 @@ package com.shop.platform.cms.controller;
 import com.shop.platform.cms.dto.BannerRequest;
 import com.shop.platform.cms.dto.NavRequest;
 import com.shop.platform.cms.dto.RecommendTabRequest;
-import com.shop.platform.cms.mapper.Banner;
-import com.shop.platform.cms.mapper.NavEntry;
-import com.shop.platform.cms.mapper.RecommendTab;
 import com.shop.platform.cms.service.ContentService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -31,18 +28,18 @@ public class CmsContentAdminController {
     // ========== 导航 ==========
 
     @GetMapping("/nav")
-    public List<NavEntry> nav(@RequestParam(required = false) String navKey) {
-        return contentService.navAll(navKey);
+    public List<NavEntryResponse> nav(@RequestParam(required = false) String navKey) {
+        return NavEntryResponse.from(contentService.navAll(navKey));
     }
 
     @PostMapping("/nav")
-    public NavEntry createNav(@Valid @RequestBody NavRequest req) {
-        return contentService.createNav(req);
+    public NavEntryResponse createNav(@Valid @RequestBody NavRequest req) {
+        return NavEntryResponse.from(contentService.createNav(req));
     }
 
     @PutMapping("/nav/{id}")
-    public NavEntry updateNav(@PathVariable UUID id, @Valid @RequestBody NavRequest req) {
-        return contentService.updateNav(id, req);
+    public NavEntryResponse updateNav(@PathVariable UUID id, @Valid @RequestBody NavRequest req) {
+        return NavEntryResponse.from(contentService.updateNav(id, req));
     }
 
     /** 状态走 path：启用 /nav/{id}/status/1，停用 /nav/{id}/status/0 */
@@ -54,18 +51,18 @@ public class CmsContentAdminController {
     // ========== banner ==========
 
     @GetMapping("/banners")
-    public List<Banner> banners(@RequestParam(required = false) String slot) {
-        return contentService.bannersAll(slot);
+    public List<BannerResponse> banners(@RequestParam(required = false) String slot) {
+        return BannerResponse.from(contentService.bannersAll(slot));
     }
 
     @PostMapping("/banners")
-    public Banner createBanner(@Valid @RequestBody BannerRequest req) {
-        return contentService.createBanner(req);
+    public BannerResponse createBanner(@Valid @RequestBody BannerRequest req) {
+        return BannerResponse.from(contentService.createBanner(req));
     }
 
     @PutMapping("/banners/{id}")
-    public Banner updateBanner(@PathVariable UUID id, @Valid @RequestBody BannerRequest req) {
-        return contentService.updateBanner(id, req);
+    public BannerResponse updateBanner(@PathVariable UUID id, @Valid @RequestBody BannerRequest req) {
+        return BannerResponse.from(contentService.updateBanner(id, req));
     }
 
     @PutMapping("/banners/{id}/status/{status}")
@@ -76,18 +73,18 @@ public class CmsContentAdminController {
     // ========== 推荐条 ==========
 
     @GetMapping("/recommend-tabs")
-    public List<RecommendTab> tabs() {
-        return contentService.tabsAll();
+    public List<RecommendTabResponse> tabs() {
+        return RecommendTabResponse.from(contentService.tabsAll());
     }
 
     @PostMapping("/recommend-tabs")
-    public RecommendTab createTab(@Valid @RequestBody RecommendTabRequest req) {
-        return contentService.createTab(req);
+    public RecommendTabResponse createTab(@Valid @RequestBody RecommendTabRequest req) {
+        return RecommendTabResponse.from(contentService.createTab(req));
     }
 
     @PutMapping("/recommend-tabs/{id}")
-    public RecommendTab updateTab(@PathVariable UUID id, @Valid @RequestBody RecommendTabRequest req) {
-        return contentService.updateTab(id, req);
+    public RecommendTabResponse updateTab(@PathVariable UUID id, @Valid @RequestBody RecommendTabRequest req) {
+        return RecommendTabResponse.from(contentService.updateTab(id, req));
     }
 
     @PutMapping("/recommend-tabs/{id}/status/{status}")

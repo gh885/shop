@@ -3,6 +3,7 @@ package com.shop.platform.shop.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.CrossSchemaReader;
 import com.shop.platform.shop.events.ShopCreatedEvent;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
@@ -29,6 +30,7 @@ public class ShopService {
     private final ShopMemberMapper shopMemberMapper;
     private final ApplicationEventPublisher events;
     private final JdbcTemplate jdbc;
+    private final CrossSchemaReader reader;
 
     /** 开店：建店（PENDING_REVIEW）+ 店主成为 OWNER 成员 + 发布审核事件 */
     @Transactional
@@ -212,7 +214,7 @@ public class ShopService {
         }
     }
 
-    /** 跨 schema 只读：按手机号查 auth.users.id（全局唯一），未注册返回 null */
+    /** 跨 schema 只读：按手机号查 auth.users.id（全局唯一），未注册返回 null。非主键点查，属 CrossSchemaReader 之外的特例，保持显式 */
     private UUID findUserIdByPhone(String phone) {
         List<UUID> ids = jdbc.query(
                 "SELECT id FROM auth.users WHERE phone = ?", (rs, i) -> rs.getObject("id", UUID.class), phone);
@@ -221,17 +223,6 @@ public class ShopService {
 
     /** 跨 schema 只读：按 ID 批量查 auth.users 手机号 */
     private Map<UUID, String> loadPhones(List<UUID> userIds) {
-        if (userIds.isEmpty()) return Map.of();
-        String in = userIds.stream().map(id -> "?").collect(Collectors.joining(","));
-        return jdbc.query(
-                "SELECT id, phone FROM auth.users WHERE id IN (" + in + ")",
-                rs -> {
-                    Map<UUID, String> map = new java.util.HashMap<>();
-                    while (rs.next()) {
-                        map.put(rs.getObject("id", UUID.class), rs.getString("phone"));
-                    }
-                    return map;
-                },
-                userIds.toArray());
+        return reader.stringsByIds("auth.users", "phone", userIds);
     }
 }

@@ -9,6 +9,7 @@ import com.shop.platform.shop.service.ShopInviteItem;
 import com.shop.platform.shop.service.ShopMemberItem;
 import com.shop.platform.shop.service.ShopService;
 import jakarta.validation.Valid;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -29,15 +30,15 @@ public class ShopController {
 
     /** 开店：当前登录用户（统一账号）创建店铺，落 PENDING_REVIEW 待平台审核 */
     @PostMapping
-    public Shop create(@Valid @RequestBody CreateShopRequest req) {
+    public ShopResponse create(@Valid @RequestBody CreateShopRequest req) {
         UUID ownerId = UserIdHolder.get();
-        return shopService.createShop(ownerId, req.name(), req.logoKey());
+        return ShopResponse.from(shopService.createShop(ownerId, req.name(), req.logoKey()));
     }
 
     /** 我的店铺列表（ACTIVE 成员身份） */
     @GetMapping("/mine")
-    public List<Shop> mine() {
-        return shopService.myShops(UserIdHolder.get());
+    public List<ShopResponse> mine() {
+        return ShopResponse.from(shopService.myShops(UserIdHolder.get()));
     }
 
     /** 我的待确认邀请 */
@@ -48,8 +49,8 @@ public class ShopController {
 
     /** 同意邀请，确认后成为店铺 ACTIVE 成员 */
     @PostMapping("/invites/{memberId}/accept")
-    public ShopMember acceptInvite(@PathVariable UUID memberId) {
-        return shopService.acceptInvite(memberId, UserIdHolder.get());
+    public ShopMemberResponse acceptInvite(@PathVariable UUID memberId) {
+        return ShopMemberResponse.from(shopService.acceptInvite(memberId, UserIdHolder.get()));
     }
 
     /** 店铺成员列表（本店成员可见） */
@@ -60,13 +61,61 @@ public class ShopController {
 
     /** 店主按手机号邀请成员，对方登录后确认才生效 */
     @PostMapping("/{shopId}/invites")
-    public ShopMember invite(@PathVariable UUID shopId, @Valid @RequestBody InviteMemberRequest req) {
-        return shopService.invite(shopId, UserIdHolder.get(), req.phone());
+    public ShopMemberResponse invite(@PathVariable UUID shopId, @Valid @RequestBody InviteMemberRequest req) {
+        return ShopMemberResponse.from(shopService.invite(shopId, UserIdHolder.get(), req.phone()));
     }
 
     /** 店主移除成员 */
     @DeleteMapping("/{shopId}/members/{memberId}")
     public void removeMember(@PathVariable UUID shopId, @PathVariable UUID memberId) {
         shopService.removeMember(shopId, memberId, UserIdHolder.get());
+    }
+
+    /** 店铺出参：字段镜像实体现状（前端 ShopSchema 严格校验，只减不增） */
+    public record ShopResponse(
+            UUID id,
+            UUID ownerId,
+            String name,
+            String logoKey,
+            String status,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt) {
+
+        static ShopResponse from(Shop shop) {
+            return new ShopResponse(
+                    shop.getId(),
+                    shop.getOwnerId(),
+                    shop.getName(),
+                    shop.getLogoKey(),
+                    shop.getStatus(),
+                    shop.getCreatedAt(),
+                    shop.getUpdatedAt());
+        }
+
+        static List<ShopResponse> from(List<Shop> list) {
+            return list.stream().map(ShopResponse::from).toList();
+        }
+    }
+
+    /** 成员出参：invite/accept 返回，前端 ShopMemberSchema 逐字段校验 */
+    public record ShopMemberResponse(
+            UUID id,
+            UUID shopId,
+            UUID userId,
+            String role,
+            String status,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt) {
+
+        static ShopMemberResponse from(ShopMember member) {
+            return new ShopMemberResponse(
+                    member.getId(),
+                    member.getShopId(),
+                    member.getUserId(),
+                    member.getRole(),
+                    member.getStatus(),
+                    member.getCreatedAt(),
+                    member.getUpdatedAt());
+        }
     }
 }

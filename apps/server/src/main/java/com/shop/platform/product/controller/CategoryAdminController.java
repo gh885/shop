@@ -7,6 +7,7 @@ import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
 import jakarta.validation.Valid;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -33,17 +34,43 @@ public class CategoryAdminController {
     }
 
     @PostMapping
-    public Category create(@Valid @RequestBody CreateCategoryRequest req) {
-        return categoryService.create(req.parentId(), req.name(), req.sort(), req.iconUrl());
+    public CategoryResponse create(@Valid @RequestBody CreateCategoryRequest req) {
+        return CategoryResponse.from(categoryService.create(req.parentId(), req.name(), req.sort(), req.iconUrl()));
     }
 
     @PutMapping("/{id}")
-    public Category update(@PathVariable UUID id, @Valid @RequestBody UpdateCategoryRequest req) {
-        return categoryService.update(id, req.name(), req.sort(), req.iconUrl());
+    public CategoryResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateCategoryRequest req) {
+        return CategoryResponse.from(categoryService.update(id, req.name(), req.sort(), req.iconUrl()));
     }
 
     @PutMapping("/{id}/status")
     public void updateStatus(@PathVariable UUID id, @Valid @RequestBody UpdateStatusRequest req) {
         categoryService.updateStatus(id, req.status());
+    }
+
+    /** 类目出参：字段镜像实体现状；树形展示走 service 的 CategoryNode（含 children），此处为单节点 CRUD 回显 */
+    public record CategoryResponse(
+            UUID id,
+            UUID parentId,
+            String name,
+            Integer level,
+            Integer sort,
+            Integer status,
+            String iconUrl,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt) {
+
+        static CategoryResponse from(Category c) {
+            return new CategoryResponse(
+                    c.getId(),
+                    c.getParentId(),
+                    c.getName(),
+                    c.getLevel(),
+                    c.getSort(),
+                    c.getStatus(),
+                    c.getIconUrl(),
+                    c.getCreatedAt(),
+                    c.getUpdatedAt());
+        }
     }
 }

@@ -7,10 +7,10 @@ import com.shop.platform.admin.mapper.ShopReviewMapper;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.CrossSchemaReader;
 import com.shop.platform.shop.events.ShopCreatedEvent;
 import com.shop.platform.shop.events.ShopReviewDecidedEvent;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +18,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShopReviewService {
 
     private final ShopReviewMapper shopReviewMapper;
-    private final JdbcTemplate jdbc;
+    private final CrossSchemaReader reader;
     private final ApplicationEventPublisher events;
 
     // ========== 审核队列 ==========
@@ -115,52 +114,24 @@ public class ShopReviewService {
         log.info("[ADMIN] 新店待审入队, shopId={}", event.shopId());
     }
 
-    // ========== 跨 schema 只读拼装 ==========
+    // ========== 跨 schema 只读拼装（经 infra CrossSchemaReader，禁止 JOIN） ==========
 
     /** shopId → 店名 */
     private Map<UUID, String> loadShopNames(List<UUID> shopIds) {
-        return queryPairs("shop.shops", shopIds, "name");
+        return reader.stringsByIds("shop.shops", "name", shopIds);
     }
 
     /** shopId → 店主手机号：先取 shop.owner_id，再按 auth.users.id 查 phone（两步，禁止 JOIN） */
     private Map<UUID, String> loadOwnerPhones(List<UUID> shopIds) {
-        String in = placeholders(shopIds);
-        Map<UUID, UUID> owners = jdbc.query(
-                "SELECT id, owner_id FROM shop.shops WHERE id IN (" + in + ")",
-                rs -> {
-                    Map<UUID, UUID> map = new HashMap<>();
-                    while (rs.next()) {
-                        map.put(rs.getObject("id", UUID.class), rs.getObject("owner_id", UUID.class));
-                    }
-                    return map;
-                },
-                shopIds.toArray());
+        Map<UUID, UUID> owners =
+                reader.byIds("shop.shops", List.of("owner_id"), shopIds, rs -> rs.getObject("owner_id", UUID.class));
         if (owners.isEmpty()) return Map.of();
 
         List<UUID> ownerIds = owners.values().stream().distinct().toList();
-        Map<UUID, String> phones = queryPairs("auth.users", ownerIds, "phone");
+        Map<UUID, String> phones = reader.stringsByIds("auth.users", "phone", ownerIds);
 
         Map<UUID, String> result = new HashMap<>();
         owners.forEach((shopId, ownerId) -> result.put(shopId, phones.get(ownerId)));
         return result;
-    }
-
-    /** 按 ID 批量查单字段：SELECT id, <column> FROM <table> WHERE id IN (...) */
-    private Map<UUID, String> queryPairs(String table, List<UUID> ids, String column) {
-        String in = placeholders(ids);
-        return jdbc.query(
-                "SELECT id, " + column + " FROM " + table + " WHERE id IN (" + in + ")",
-                rs -> {
-                    Map<UUID, String> map = new HashMap<>();
-                    while (rs.next()) {
-                        map.put(rs.getObject("id", UUID.class), rs.getString(column));
-                    }
-                    return map;
-                },
-                ids.toArray());
-    }
-
-    private static String placeholders(List<UUID> ids) {
-        return String.join(",", Collections.nCopies(ids.size(), "?"));
     }
 }

@@ -2,7 +2,9 @@ package com.shop.platform;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -89,4 +91,15 @@ class NamingRulesTest {
             .resideOutsideOfPackage("..controller..")
             .allowEmptyShould(true)
             .as("Response 后缀只允许出现在 controller 包");
+
+    /** controller 方法禁止返回 mapper 包实体：HTTP 出参一律 Response record，契约与存储模型解耦 */
+    @ArchTest
+    static final ArchRule controllers_return_no_mapper_types = noMethods()
+            .that()
+            .areDeclaredInClassesThat()
+            .resideInAPackage("..controller..")
+            .should()
+            .haveRawReturnType(JavaClass.Predicates.resideInAPackage("..mapper.."))
+            .allowEmptyShould(true)
+            .as("controller 出参禁止 mapper 实体（HTTP 契约用 Response record）");
 }
