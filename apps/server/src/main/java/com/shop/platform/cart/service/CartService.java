@@ -200,10 +200,6 @@ public class CartService {
                     false);
         }
         ProductRow product = products.get(sku.productId());
-        boolean available =
-                product != null && product.status() == PRODUCT_STATUS_PUBLISHED && sku.status() == SKU_STATUS_ON_SALE;
-        CartItemView.ProductInfo productInfo = new CartItemView.ProductInfo(
-                product.id(), product.name(), product.mainImage(), product.shopId(), shopNames.get(product.shopId()));
         CartItemView.SkuInfo skuInfo = new CartItemView.SkuInfo(
                 sku.id(),
                 sku.name(),
@@ -212,6 +208,21 @@ public class CartService {
                 money(sku.originalPrice(), sku.currency()),
                 sku.stock(),
                 sku.status());
+        // SPU 缺失（被删）：只剩 SKU 信息同样置灰，不触碰 product 字段
+        if (product == null) {
+            return new CartItemView(
+                    item.getId(),
+                    item.getSkuId(),
+                    item.getQuantity(),
+                    item.getSelected(),
+                    item.getCreatedAt(),
+                    null,
+                    skuInfo,
+                    false);
+        }
+        boolean available = product.status() == PRODUCT_STATUS_PUBLISHED && sku.status() == SKU_STATUS_ON_SALE;
+        CartItemView.ProductInfo productInfo = new CartItemView.ProductInfo(
+                product.id(), product.name(), product.mainImage(), product.shopId(), shopNames.get(product.shopId()));
         return new CartItemView(
                 item.getId(),
                 item.getSkuId(),

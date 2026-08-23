@@ -1,11 +1,11 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 
 import type { ProductDetail } from "#/entities/product"
 import { productDetailOptions, shopOptions } from "#/features/product-detail/use-product-detail"
 import { useSkuSelection } from "#/features/product-detail/use-sku-selection"
 import { DescriptionSection } from "#/widgets/product-detail/description-section"
-import { DetailColumns } from "#/widgets/product-detail/detail-columns"
+import { DetailColumns } from "#/shared/ui/detail-columns"
 import { DetailHeader } from "#/widgets/product-detail/detail-header"
 import { DetailSectionTabs } from "#/widgets/product-detail/detail-section-tabs"
 import { Gallery } from "#/widgets/product-detail/gallery"
@@ -50,6 +50,8 @@ export const Route = createFileRoute("/products/$id")({
 function ProductDetailPage() {
     const { detail } = Route.useLoaderData() as { detail: ProductDetail }
     const sel = useSkuSelection(detail)
+    // 加购数量：与规格选中态一样由 route 持有，购买区步进器与 CTA 加购共用
+    const [quantity, setQuantity] = useState(1)
 
     // 画廊图序：选中 SKU 有专属图时置顶（主图跟随规格切换），去重后供画廊以 URL 作键
     const images = useMemo(() => {
@@ -97,6 +99,8 @@ function ProductDetailPage() {
                                 selection={sel.selection}
                                 select={sel.select}
                                 isAvailable={sel.isAvailable}
+                                quantity={quantity}
+                                onQuantityChange={setQuantity}
                             />
                         </section>
                     }
@@ -104,6 +108,7 @@ function ProductDetailPage() {
                         <PurchaseCta
                             detail={detail}
                             selection={sel.selection}
+                            quantity={quantity}
                         />
                     }
                 />

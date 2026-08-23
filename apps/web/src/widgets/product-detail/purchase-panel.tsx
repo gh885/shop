@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
 import { ToggleGroup, ToggleGroupItem } from "@shop/ui-web"
@@ -23,11 +22,15 @@ export function PurchasePanel({
     selection,
     select,
     isAvailable,
+    quantity,
+    onQuantityChange,
 }: {
     detail: ProductDetail
     selection: SkuSelection
     select: (specName: string, value: string) => void
     isAvailable: (specName: string, value: string) => boolean
+    quantity: number
+    onQuantityChange: (n: number) => void
 }) {
     const price = derivePriceView(detail, selection)
     const complete = isSelectionComplete(detail, selection)
@@ -123,7 +126,11 @@ export function PurchasePanel({
 
             {/* 数量步进：分隔线与上方信息区隔开（对齐参考图） */}
             <div className="flex items-center gap-3 border-t border-border/60 pt-4">
-                <QuantityStepper max={soldOut ? 0 : (matchedSku?.stock ?? undefined)} />
+                <QuantityStepper
+                    quantity={quantity}
+                    onChange={onQuantityChange}
+                    max={soldOut ? 0 : (matchedSku?.stock ?? undefined)}
+                />
                 <span className="text-sm text-muted-foreground">
                     {deriveStockText(detail, selection)}
                 </span>
@@ -167,8 +174,15 @@ function SpecButton({
 }
 
 /** 数量步进器：max 为选中 SKU 库存；undefined 表示规格未选全（给宽松上限） */
-function QuantityStepper({ max }: { max: number | undefined }) {
-    const [qty, setQty] = useState(1)
+function QuantityStepper({
+    quantity,
+    onChange,
+    max,
+}: {
+    quantity: number
+    onChange: (n: number) => void
+    max: number | undefined
+}) {
     const upper = max ?? 99
 
     return (
@@ -178,20 +192,20 @@ function QuantityStepper({ max }: { max: number | undefined }) {
                 <button
                     type="button"
                     aria-label="减少数量"
-                    disabled={qty <= 1}
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                    onClick={() => onChange(Math.max(1, quantity - 1))}
                     className="flex h-full w-9 items-center justify-center text-muted-foreground transition-colors hover:text-primary disabled:opacity-30"
                 >
                     <Minus className="size-4" />
                 </button>
                 <span className="w-10 border-x border-border text-center text-sm tabular-nums">
-                    {qty}
+                    {quantity}
                 </span>
                 <button
                     type="button"
                     aria-label="增加数量"
-                    disabled={qty >= upper}
-                    onClick={() => setQty((q) => Math.min(upper, q + 1))}
+                    disabled={quantity >= upper}
+                    onClick={() => onChange(Math.min(upper, quantity + 1))}
                     className="flex h-full w-9 items-center justify-center text-muted-foreground transition-colors hover:text-primary disabled:opacity-30"
                 >
                     <Plus className="size-4" />

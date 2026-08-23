@@ -5,6 +5,8 @@ import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.infra.web.UnauthorizedWriter;
+import com.shop.platform.shop.mapper.Shop;
+import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import jakarta.servlet.FilterChain;
@@ -12,6 +14,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.Ordered;
@@ -32,6 +35,7 @@ import tools.jackson.databind.ObjectMapper;
 public class ShopMembershipFilter extends OncePerRequestFilter {
 
     private final ShopMemberMapper shopMemberMapper;
+    private final ShopMapper shopMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -64,7 +68,17 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 2. 成员校验：当前用户必须是该店 ACTIVE 成员
+            // 2. 店铺须存在且可用（PENDING_REVIEW/ACTIVE）：shop.shops 里没有的店，或已被拒/封禁，不允许商家做任何操作
+            //    （防"商品挂在不存在的店铺"这类孤儿数据）
+            Long shopCount = shopMapper.selectCount(new LambdaQueryWrapper<Shop>()
+                    .eq(Shop::getId, shopId)
+                    .in(Shop::getStatus, List.of(Shop.STATUS_PENDING_REVIEW, Shop.STATUS_ACTIVE)));
+            if (shopCount == 0) {
+                UnauthorizedWriter.write(response, objectMapper, 403, null, "店铺不存在或不可用");
+                return;
+            }
+
+            // 3. 成员校验：当前用户必须是该店 ACTIVE 成员
             Long count = shopMemberMapper.selectCount(new LambdaQueryWrapper<ShopMember>()
                     .eq(ShopMember::getShopId, shopId)
                     .eq(ShopMember::getUserId, UserIdHolder.get())
@@ -74,7 +88,7 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 3. 落上下文，请求结束清理
+            // 4. 落上下文，请求结束清理
             ShopIdHolder.set(shopId);
             chain.doFilter(request, response);
         } finally {

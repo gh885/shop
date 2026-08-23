@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
 import { Badge, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
@@ -33,20 +33,28 @@ function Price({ value, className }: { value: number; className?: string }) {
 }
 
 export function ProductCard({ product }: { product: ProductCardData }) {
+    const navigate = useNavigate()
+
     return (
         <Link
             to="/products/$id"
             params={{ id: product.id }}
             className="group flex flex-col overflow-hidden rounded-lg bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.18)]"
         >
-            {/* 图片：方形、铺满、轻微圆角，hover 微放大 */}
+            {/* 图片：方形、铺满、轻微圆角，hover 微放大；无图（image 归一为 ""）渲染灰底占位，避免 img src="" 警告 */}
             <div className="relative overflow-hidden rounded-lg bg-white">
-                <img
-                    src={product.image}
-                    alt={product.title}
-                    loading="lazy"
-                    className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-                />
+                {product.image ? (
+                    <img
+                        src={product.image}
+                        alt={product.title}
+                        loading="lazy"
+                        className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                    />
+                ) : (
+                    <div className="flex aspect-square w-full items-center justify-center bg-muted text-xs text-muted-foreground">
+                        暂无图片
+                    </div>
+                )}
             </div>
 
             <div className="flex flex-col px-2 pt-2.5 pb-3">
@@ -104,8 +112,10 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                         type="button"
                         aria-label="加入购物车"
                         onClick={(e) => {
-                            // 卡片整体是 Link，阻止冒泡导航；加购需选规格，引导进详情页
+                            // 卡片整体是 Link，阻止默认导航；加购需选规格，引导进详情页
                             e.preventDefault()
+                            e.stopPropagation()
+                            navigate({ to: "/products/$id", params: { id: product.id } })
                         }}
                         className="ml-auto flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary transition-all duration-200 hover:bg-primary hover:text-primary-foreground active:scale-90"
                     >

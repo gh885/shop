@@ -105,7 +105,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 
 - 样式入口只需 `@import '@shop/ui-web/src/styles.css'`（内含 tailwindcss 与主题变量，不要重复 import tailwindcss）
 - 必须加 `@source '../../../packages/ui-web/src'`（Tailwind v4 内容探测不覆盖 app 目录之外的包，否则组件类名不生成 CSS）
-- API 请求走 Vite proxy 同源（`/auth`、`/api`、`/user` → `localhost:8080`），浏览器端 baseUrl 用空串；SSR loader 里需绝对地址
+- API 请求走 Vite proxy 同源（`/auth`、`/api`、`/user`、`/cart` → `localhost:8080`），浏览器端 baseUrl 用空串；SSR loader 里需绝对地址
 - 登录态：`apps/web/src/lib/auth.ts`（access token 只存内存，refresh token 走后端 httpOnly cookie）
 - 启动时 `bootstrapAuth()` 静默刷新（`lib/api.ts`），root 布局挂载处调用；受保护路由用 `beforeLoad: () => requireAuth()` 守卫，未登录自动拉起全局登录 Dialog
 - 用户信息：`useMe()`（`lib/me.ts`，TanStack Query 缓存，未登录不发请求）

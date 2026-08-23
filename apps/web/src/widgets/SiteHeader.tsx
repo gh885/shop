@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router"
-import { LogOut, UserRound } from "lucide-react"
+import { LogOut, ShoppingCart, UserRound } from "lucide-react"
 
 import {
     Avatar,
@@ -14,6 +14,7 @@ import {
     DropdownMenuTrigger,
 } from "@shop/ui-web"
 
+import { useCartCount } from "../features/cart/use-cart"
 import { logout } from "../features/session/actions"
 import { useClearMe, useMe } from "../features/session/use-me"
 import { useAuthStatus, useLoginDialogOpen } from "../shared/api/auth"
@@ -24,15 +25,32 @@ import { SiteNav } from "./SiteNav"
 export function SiteHeader() {
     const status = useAuthStatus()
     const [, setLoginOpen] = useLoginDialogOpen()
+    const navigate = useNavigate()
+    const cartCount = useCartCount()
 
     return (
         <header className="border-b border-border/60 bg-sunken/60">
-            <div className="mx-auto flex h-9 max-w-[1400px] items-center gap-6 px-6">
+            <div className="mx-auto flex h-9 max-w-[1486px] items-center gap-6 px-6">
                 <span className="text-xs text-muted-foreground">中国大陆站</span>
 
                 <SiteNav />
 
                 <div className="ml-auto flex items-center gap-3">
+                    {/* 购物车入口：已登录显示角标计数，点击跳转到购物车页 */}
+                    <button
+                        type="button"
+                        aria-label="购物车"
+                        onClick={() => navigate({ to: "/cart" })}
+                        className="relative flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        <ShoppingCart className="size-[18px]" />
+                        {status === "authed" && (cartCount.data ?? 0) > 0 && (
+                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none text-primary-foreground">
+                                {cartCount.data && cartCount.data > 99 ? "99+" : cartCount.data}
+                            </span>
+                        )}
+                    </button>
+
                     {status === "unknown" ? (
                         <span className="h-4 w-12 animate-pulse rounded bg-muted" />
                     ) : status === "authed" ? (

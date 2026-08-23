@@ -1,14 +1,17 @@
+import { useNavigate } from "@tanstack/react-router"
 import { ShoppingCart, Star } from "lucide-react"
 
 import { Button } from "@shop/ui-web"
 
-import { notify } from "#/shared/lib/toast"
-import type { ProductDetail } from "#/entities/product"
+import { useAddToCart } from "#/features/cart/use-cart"
 import {
     findMatchingSku,
     isSelectionComplete,
     type SkuSelection,
 } from "#/features/product-detail/model"
+import type { ProductDetail } from "#/entities/product"
+import { useLoginDialogOpen, useIsLoggedIn } from "#/shared/api/auth"
+import { notify } from "#/shared/lib/toast"
 
 /**
  * 商品动作卡：加购 / 立即购买 / 收藏。
@@ -18,25 +21,45 @@ import {
 export function PurchaseCta({
     detail,
     selection,
+    quantity,
 }: {
     detail: ProductDetail
     selection: SkuSelection
+    quantity: number
 }) {
+    const navigate = useNavigate()
+    const isLoggedIn = useIsLoggedIn()
+    const [, setLoginOpen] = useLoginDialogOpen()
+    const addToCart = useAddToCart()
+
     const complete = isSelectionComplete(detail, selection)
     const matchedSku = findMatchingSku(detail.skus, selection)
     /** 选全规格后才有「售罄」概念：命中 SKU 无库存 */
     const soldOut = complete && (matchedSku?.stock ?? 0) <= 0
 
+    /** 加购：未登录先拉起登录框；登录后按选中 SKU + 数量加购，成功后跳转购物车 */
+    function handleAdd() {
+        if (!isLoggedIn) {
+            setLoginOpen(true)
+            return
+        }
+        if (!matchedSku) return
+        addToCart.mutate(
+            { skuId: matchedSku.id, quantity },
+            { onSuccess: () => navigate({ to: "/cart" }) },
+        )
+    }
+
     return (
         <div className="rounded-3xl bg-background p-3 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.12)] ring-1 ring-border/60">
             <div className="flex items-stretch gap-3">
                 <Button
-                    disabled={!complete || soldOut}
-                    onClick={() => notify.info("购物车功能即将上线")}
+                    disabled={!complete || soldOut || addToCart.isPending}
+                    onClick={handleAdd}
                     className="h-12 w-28 flex-none gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-base text-white hover:from-amber-400 hover:to-amber-600"
                 >
                     <ShoppingCart className="size-5" />
-                    加购
+                    {addToCart.isPending ? "加购中…" : "加购"}
                 </Button>
                 <Button
                     disabled={!complete || soldOut}
