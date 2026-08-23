@@ -82,7 +82,9 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 
 ```bash
 # 必须用 npx（pnpm dlx 会因 store 里 zod v4 冲突而报错）
-"yes" | npx -y shadcn@latest add <component-name> --cwd packages/ui-web
+# 注意：npm 11+ 会读根 package.json 的 devEngines，在项目目录内跑 npx 直接报 EBADDEVENGINES——
+# 需先 cd 到项目外任意目录再执行，--cwd 用绝对路径指向 ui-web
+"yes" | npx -y shadcn@latest add <component-name> --cwd /绝对路径/packages/ui-web
 ```
 
 示例：

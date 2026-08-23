@@ -35,7 +35,6 @@ public class JwtProperties {
      * <p>买家侧的浏览接口（商品/类目/店铺）必须匿名可访问：未登录也要能逛。 注意只放开只读浏览，购物车/下单等 /api 下的写接口不在此列，逐个新增时不要图省事写 "/api"。
      */
     private List<String> skipPaths = List.of(
-            "/api/health",
             "/api/products",
             "/api/categories",
             "/api/shops",
@@ -46,5 +45,7 @@ public class JwtProperties {
             "/auth/refresh",
             "/auth/forgot-password",
             "/auth/reset-password",
-            "/admin");
+            "/admin",
+            // 运维端点匿名可达（Prometheus 抓取无 token）；生产由网关限制来源
+            "/actuator");
 }

@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as WelcomeRouteImport } from './routes/welcome'
-import { Route as DevDestructiveRouteImport } from './routes/dev/destructive'
 import { Route as ProductsIdRouteImport } from './routes/products/$id'
 import { Route as SellIndexRouteImport } from './routes/sell/index'
 import { Route as AccountAddressIndexRouteImport } from './routes/account/address/index'
@@ -38,11 +37,6 @@ const WelcomeRoute = WelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DevDestructiveRoute = DevDestructiveRouteImport.update({
-  id: '/dev/destructive',
-  path: '/dev/destructive',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProductsIdRoute = ProductsIdRouteImport.update({
   id: '/products/$id',
   path: '/products/$id',
@@ -64,7 +58,6 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/welcome': typeof WelcomeRoute
-  '/dev/destructive': typeof DevDestructiveRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
   '/account/address/': typeof AccountAddressIndexRoute
@@ -74,7 +67,6 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/welcome': typeof WelcomeRoute
-  '/dev/destructive': typeof DevDestructiveRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell': typeof SellIndexRoute
   '/account/address': typeof AccountAddressIndexRoute
@@ -85,7 +77,6 @@ export interface FileRoutesById {
   '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/welcome': typeof WelcomeRoute
-  '/dev/destructive': typeof DevDestructiveRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
   '/account/address/': typeof AccountAddressIndexRoute
@@ -97,7 +88,6 @@ export interface FileRouteTypes {
     | '/account'
     | '/cart'
     | '/welcome'
-    | '/dev/destructive'
     | '/products/$id'
     | '/sell/'
     | '/account/address/'
@@ -107,7 +97,6 @@ export interface FileRouteTypes {
     | '/account'
     | '/cart'
     | '/welcome'
-    | '/dev/destructive'
     | '/products/$id'
     | '/sell'
     | '/account/address'
@@ -117,7 +106,6 @@ export interface FileRouteTypes {
     | '/account'
     | '/cart'
     | '/welcome'
-    | '/dev/destructive'
     | '/products/$id'
     | '/sell/'
     | '/account/address/'
@@ -128,7 +116,6 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRouteWithChildren
   CartRoute: typeof CartRoute
   WelcomeRoute: typeof WelcomeRoute
-  DevDestructiveRoute: typeof DevDestructiveRoute
   ProductsIdRoute: typeof ProductsIdRoute
   SellIndexRoute: typeof SellIndexRoute
 }
@@ -161,13 +148,6 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dev/destructive': {
-      id: '/dev/destructive'
-      path: '/dev/destructive'
-      fullPath: '/dev/destructive'
-      preLoaderRoute: typeof DevDestructiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products/$id': {
@@ -210,7 +190,6 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRouteWithChildren,
   CartRoute: CartRoute,
   WelcomeRoute: WelcomeRoute,
-  DevDestructiveRoute: DevDestructiveRoute,
   ProductsIdRoute: ProductsIdRoute,
   SellIndexRoute: SellIndexRoute,
 }

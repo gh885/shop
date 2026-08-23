@@ -1,96 +1,100 @@
 # Shop — 多店铺电商平台
 
-模块化单体架构的多店铺电商平台，支持 22+ 个业务模块按需插拔，可随时拆分为微服务。
+模块化单体架构的多店铺电商平台：后端按业务模块划分（模块 = 顶层包 = PG schema），由 Spring Modulith 强制校验边界，可随时拆分为微服务。
 
 ## 技术栈
 
 | 层     | 技术                                                                      |
 | ------ | ------------------------------------------------------------------------- |
 | 前端   | TanStack Start (React 19, TypeScript 7, Vite 8, Tailwind v4)              |
-| 后端   | Spring Boot 4.1 + Spring Modulith 2.1 + REST (OpenAPI) + MyBatis-Plus 3.5 |
+| 后端   | Spring Boot 4.1 + Spring Modulith 2.1 + REST + MyBatis-Plus 3.5           |
 | 数据库 | PostgreSQL 18 (Schema 隔离) + Redis 7                                     |
-| 工具   | Maven + pnpm + Docker Compose + Lefthook + Oxlint/Oxfmt                   |
+| 工具   | Maven + pnpm + Lefthook + Oxlint/Oxfmt (TS) + Spotless / Google Java Format (Java) |
 
 ## 前置要求
 
 - Java 25 + Maven
 - Node.js 22+ + pnpm 11+
-- WSL2 上运行的 PostgreSQL 18 + Redis 7（localhost 直连）
+- WSL2 上运行的 PostgreSQL 18 + Redis 7（localhost 直连，无需 Docker）
 
 ## 快速开始
 
 ```bash
-# 1. 数据库与 Redis 已在 WSL2 上运行（localhost 直连即可，无需启动）
+# 1. 数据库与 Redis 已在 WSL2 上运行（localhost 直连即可）
 
 # 2. 启动后端（http://localhost:8080）
 pnpm dev:server
 
-# 3. 启动前端（http://localhost:3000，新终端）
+# 3. 启动买家端（新终端，http://localhost:3000）
 pnpm dev:web
 
 # 或者一键启动前后端
 pnpm dev
 ```
 
-打开 http://localhost:3000 查看系统状态。
-
 ## 目录结构
 
 ```
 shop/
 ├── apps/
-│   ├── web/                    # 买家端（SSR）
-│   ├── seller/                 # 卖家工作台（SPA）
-│   ├── admin/                  # 平台管理端（SPA）
-│   ├── mobile-buyer/           # Expo / React Native
-│   ├── mobile-seller/
-│   └── server/                 # Spring Boot 模块化单体
+│   ├── web/                    # 买家端 SSR（TanStack Start，3000 端口）
+│   ├── seller/                 # 卖家工作台 SPA（5000 端口）
+│   ├── admin/                  # 平台管理端 SPA（4000 端口）
+│   └── server/                 # Spring Boot 模块化单体（8080 端口）
 │       └── src/main/java/com/shop/platform/
-│           ├── common/         # 跨模块共享（响应封装、异常体系、UserIdHolder）
-│           ├── config/         # 全局基础设施（Filter、Advice、ExceptionHandler）
-│           ├── auth/           # 模块 = 顶层包 = PG schema
-│           ├── product/
-│           └── …               # 22 个业务模块
+│           ├── common/         # 共享纯包：异常体系、Money/PhoneNumber、UserIdHolder 等（框架无关）
+│           ├── infra/          # 共享纯包：JWT、限流、Filter、MyBatis 配置等跨模块技术适配
+│           └── auth/ product/ cart/ favorite/ cms/ shop/ admin/ user/
+│                              # 业务模块 = 顶层包 = PG schema；内部 controller → dto → service → mapper 三层到底
 ├── packages/
-│   ├── api-client/             # OpenAPI 生成的 TS client
-│   ├── domain/                 # 纯 TS 业务逻辑
-│   ├── ui-web/                 # shadcn 组件库
-│   ├── i18n/                   # 翻译资源
-│   └── config/                 # 共享配置（tsconfig / oxlint / oxfmt）
-├── openapi/                    # OpenAPI 契约（唯一 API 事实来源）
-├── docs/                       # PRD / ADR / 架构文档
-└── scripts/                    # 工具脚本
+│   ├── api/                    # TS API 客户端与 zod schema（openapi 未启用，类型手动维护）
+│   ├── ui-web/                 # shadcn/ui + BaseUI 组件库（CLI 生成，不手写）
+│   └── config/                 # tsconfig / oxlint / oxfmt 共享配置
+└── docs/                       # 约定文档（错误码唯一真相源见 docs/error-codes.md）
 ```
 
-## 常用命令
+## 架构原则
 
-```bash
-pnpm dev          # 启动前后端
-pnpm dev:web      # 只启动前端
-pnpm dev:server   # 只启动后端
-pnpm build        # 构建全部
-pnpm lint         # 前端 lint + 后端编译检查
-pnpm format       # 格式化前端 + 后端代码
-pnpm typecheck    # TypeScript 类型检查
+- **模块隔离**：模块之间不 import 对方的 service/repo，只靠 Spring Modulith Event Bus 通信
+- **Schema 隔离**：每个模块拥有自己的 PG schema，可只读跨 schema 按 ID 查字段，不许跨 schema JOIN
+- **`common/` 与 `infra/` 是共享纯包**：不属于任何业务模块，经 `@Modulithic(sharedModules)` 显式登记为共享模块
+- **Modulith 强制校验**：测试期跨模块 import 直接报错（见 `ModularityTests`），命名规约由 ArchUnit 校验
+
+详细开发规范（模块组织、错误码、UI 组件接入等）见 [AGENTS.md](AGENTS.md)。
+
+## 数据库与 Redis
+
+PostgreSQL 18 与 Redis 7 运行在 WSL2 上，Windows 侧通过 localhost 直连：
+
+```
+数据库：shop:shop_dev@localhost:5432/shop
+Redis：localhost:6379
 ```
 
 ## 开发规范
 
 ### 提交信息
 
-遵循 Conventional Commits 格式：
+遵循 Conventional Commits 格式，scope 可选：
 
 ```
 feat(web): 商品列表页加筛选
 fix(server): 修复库存扣减并发问题
-refactor(api-client): 提取公共请求逻辑
+refactor(server): 收口金额字段到 Money 值对象
 ```
 
-scope 可选，填具体模块名。
+### 常用命令
 
-### 架构原则
+```bash
+pnpm dev          # 启动前后端
+pnpm dev:web      # 只启动买家端
+pnpm dev:seller   # 卖家工作台
+pnpm dev:admin    # 平台管理端
+pnpm dev:server   # 只启动后端
+pnpm build        # vite build + mvn compile
+pnpm lint         # oxlint --fix + mvn compile
+pnpm format       # oxfmt + spotless:apply
+pnpm typecheck    # tsc --noEmit（三个前端 app）
+```
 
-- **模块化单体**：模块之间不 import 对方的 service/repo，只靠 Event Bus 通信
-- **Schema 隔离**：每个模块拥有自己的 PG schema，可只读跨 schema 查，不许跨 schema JOIN
-- **`common/` 纯包**：跨模块共享类型，不属于任何 Modulith 模块，无 `@ApplicationModule`
-- **`config/` 全局基础设施**：Filter、Advice、ExceptionHandler 等 Spring 组件
+Lefthook 在 pre-commit 自动格式化暂存文件并跑 lint，commit-msg 校验提交信息格式，pre-push 跑全量 lint / typecheck / Java 编译。

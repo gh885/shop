@@ -30,6 +30,14 @@ spring:
         exclude:
             - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
+# 运维端点：健康检查（DB+Redis 自动探测）与 Prometheus 抓取；JwtProperties.skipPaths 已放行 /actuator。
+# 生产部署时需在网关层限制 /actuator/prometheus 的来源。
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health,prometheus
+
 logging:
     # 控制台：人读格式 + 全链路 trace_id + ANSI 着色。
     # 注意 %clr 用圆括号 (…) 包裹（Spring Boot 官方写法），不是花括号——嵌套的 %d{}/%logger{} 自带花括号，用花括号会解析错乱。

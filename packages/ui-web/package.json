@@ -24,8 +24,7 @@
         "react": "catalog:",
         "react-dom": "catalog:",
         "tailwind-merge": "^3.6.0",
-        "tailwindcss": "catalog:",
-        "tailwindcss-animate": "^1.0.7"
+        "tailwindcss": "catalog:"
     },
     "devDependencies": {
         "@shop/config": "workspace:*",

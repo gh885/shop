@@ -12,6 +12,7 @@ import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.security.JwtProperties;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
+import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -45,7 +46,8 @@ class FiltersPathNormalizationTest {
         var staffAuthFilter = new StaffAuthFilter(jwtProvider, new ObjectMapper());
         var jwtAuthFilter = new JwtAuthFilter(jwtProvider, new JwtProperties(), new ObjectMapper());
         // ShopMembershipFilter 只在缺 X-Shop-Id 时触达 mapper，正常用例到不了 DB
-        var shopMembershipFilter = new ShopMembershipFilter(mock(ShopMemberMapper.class), new ObjectMapper());
+        var shopMembershipFilter =
+                new ShopMembershipFilter(mock(ShopMemberMapper.class), mock(ShopMapper.class), new ObjectMapper());
 
         mockMvc = MockMvcBuilders.standaloneSetup(new ProbeController())
                 .addFilters(staffAuthFilter, jwtAuthFilter, shopMembershipFilter)
