@@ -4,6 +4,8 @@ target/
 *.jar
 *.war
 *.log
+logs/
+*.log.*
 **/mvnw
 **/mvnw.cmd
 **/.mvn
