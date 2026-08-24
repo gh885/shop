@@ -4,7 +4,6 @@ import com.shop.platform.product.dto.CreateCategoryRequest;
 import com.shop.platform.product.dto.UpdateCategoryRequest;
 import com.shop.platform.product.dto.UpdateStatusRequest;
 import com.shop.platform.product.mapper.Category;
-import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
@@ -29,8 +28,10 @@ public class CategoryAdminController {
 
     /** 全量类目树（含禁用节点） */
     @GetMapping("/tree")
-    public List<CategoryNode> tree() {
-        return categoryService.adminTree();
+    public List<CategoryNodeResponse> tree() {
+        return categoryService.adminTree().stream()
+                .map(CategoryNodeResponse::from)
+                .toList();
     }
 
     @PostMapping

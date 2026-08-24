@@ -1,14 +1,26 @@
 package com.shop.platform;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
+import com.shop.platform.infra.security.TokenPair;
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaMethod;
+import com.tngtech.archunit.core.domain.JavaParameterizedType;
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 
 /**
  * 三层契约命名规范（见 apps/server/AGENTS.md「命名规范（三层契约）」）。
@@ -102,4 +114,64 @@ class NamingRulesTest {
             .haveRawReturnType(JavaClass.Predicates.resideInAPackage("..mapper.."))
             .allowEmptyShould(true)
             .as("controller 出参禁止 mapper 实体（HTTP 契约用 Response record）");
+
+    /** HTTP handler 出参必须为 <名词>Response 形状（或其 List/PageResult 包装）；void 与共享层值对象 TokenPair 豁免。
+     * service 形状类（CartItemView/CategoryNode 等）不得直出——「只减不增」的转换墙由 from() 工厂承担 */
+    @ArchTest
+    static final ArchRule handler_outputs_are_response_shaped = methods()
+            .that(httpHandlers())
+            .should(haveResponseShapedReturnTypes())
+            .as("HTTP 出参必须为 Response 形状");
+
+    private static DescribedPredicate<JavaMethod> httpHandlers() {
+        DescribedPredicate<JavaMethod> predicate = DescribedPredicate.describe(
+                "标注了 @GetMapping/@PostMapping/@PutMapping/@DeleteMapping",
+                m -> m.isAnnotatedWith(GetMapping.class)
+                        || m.isAnnotatedWith(PostMapping.class)
+                        || m.isAnnotatedWith(PutMapping.class)
+                        || m.isAnnotatedWith(DeleteMapping.class));
+        return predicate;
+    }
+
+    private static ArchCondition<JavaMethod> haveResponseShapedReturnTypes() {
+        return new ArchCondition<>("返回 XxxResponse / List<XxxResponse> / PageResult<XxxResponse> / void") {
+            @Override
+            public void check(JavaMethod method, ConditionEvents events) {
+                String violation = responseShapeViolationOf(method);
+                if (violation != null) {
+                    events.add(SimpleConditionEvent.violated(method, violation));
+                }
+            }
+        };
+    }
+
+    /** 违规描述；null = 合规 */
+    private static String responseShapeViolationOf(JavaMethod method) {
+        if (method.getRawReturnType().isEquivalentTo(void.class)) {
+            return null; // 动作型端点无出参，204 即契约
+        }
+        // 共享层值对象豁免（见 AGENTS.md）：auth/admin 登录端点共用 infra 的 TokenPair
+        if (method.getRawReturnType().isEquivalentTo(TokenPair.class)) {
+            return null;
+        }
+        String rawName = method.getRawReturnType().getName();
+        if (rawName.endsWith("Response")) {
+            return null;
+        }
+        if (rawName.equals(java.util.List.class.getName())
+                || rawName.equals(com.shop.platform.common.PageResult.class.getName())) {
+            boolean elementIsResponse = method.getReturnType() instanceof JavaParameterizedType parameterized
+                    && !parameterized.getActualTypeArguments().isEmpty()
+                    && parameterized
+                            .getActualTypeArguments()
+                            .getFirst()
+                            .getName()
+                            .endsWith("Response");
+            if (elementIsResponse) {
+                return null;
+            }
+            return "handler " + method.getFullName() + " 返回裸容器类型，元素必须为 XxxResponse: " + rawName;
+        }
+        return "handler " + method.getFullName() + " 出参未贴 Response 后缀: " + rawName;
+    }
 }

@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -59,8 +60,8 @@ public class StaffAuthController {
 
     /** 当前登录员工信息 */
     @GetMapping("/me")
-    public StaffInfo me() {
-        return staffService.getMe(StaffContext.get());
+    public StaffInfoResponse me() {
+        return StaffInfoResponse.from(staffService.getMe(StaffContext.get()));
     }
 
     /** 登出：删除当前设备 refresh token + 清 cookie */
@@ -102,5 +103,13 @@ public class StaffAuthController {
                     .orElse(null);
         }
         return null;
+    }
+
+    /** 员工信息出参：镜像 service 的 StaffInfo，字段只减不增 */
+    public record StaffInfoResponse(UUID id, String employeeNo, String displayName) {
+
+        static StaffInfoResponse from(StaffInfo info) {
+            return new StaffInfoResponse(info.id(), info.employeeNo(), info.displayName());
+        }
     }
 }

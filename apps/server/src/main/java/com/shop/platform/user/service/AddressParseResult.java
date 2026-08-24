@@ -1,4 +1,4 @@
-package com.shop.platform.user.dto;
+package com.shop.platform.user.service;
 
 /**
  * 智能粘贴解析结果：把非结构化收货文本拆成结构化字段。

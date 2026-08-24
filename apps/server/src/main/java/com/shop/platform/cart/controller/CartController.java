@@ -5,8 +5,10 @@ import com.shop.platform.cart.dto.BatchDeleteCartItemsRequest;
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
 import com.shop.platform.cart.dto.UpdateCartSelectedRequest;
 import com.shop.platform.cart.mapper.CartItem;
+import com.shop.platform.cart.service.CartCount;
 import com.shop.platform.cart.service.CartItemView;
 import com.shop.platform.cart.service.CartService;
+import com.shop.platform.common.Money;
 import com.shop.platform.common.UserIdHolder;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
@@ -44,14 +46,16 @@ public class CartController {
 
     /** 整车列表：现价/库存/店铺信息读取时拼装，失效条目置灰保留 */
     @GetMapping("/items")
-    public List<CartItemView> list() {
-        return cartService.list(UserIdHolder.get());
+    public List<CartListItemResponse> list() {
+        return cartService.list(UserIdHolder.get()).stream()
+                .map(CartListItemResponse::from)
+                .toList();
     }
 
     /** 角标计数：免拉整车 */
     @GetMapping("/count")
-    public CartService.CartCount count() {
-        return cartService.count(UserIdHolder.get());
+    public CartCountResponse count() {
+        return CartCountResponse.from(cartService.count(UserIdHolder.get()));
     }
 
     /** 改数量或勾选（部分更新） */
@@ -98,6 +102,60 @@ public class CartController {
                     item.getSelected(),
                     item.getCreatedAt(),
                     item.getUpdatedAt());
+        }
+    }
+
+    /** 列表条目出参：镜像 service 的 CartItemView（行字段 + 拼装展示数据），字段只减不增 */
+    public record CartListItemResponse(
+            UUID id,
+            UUID skuId,
+            Integer quantity,
+            Boolean selected,
+            OffsetDateTime addedAt,
+            ProductInfo product,
+            SkuInfo sku,
+            boolean available) {
+
+        static CartListItemResponse from(CartItemView view) {
+            return new CartListItemResponse(
+                    view.id(),
+                    view.skuId(),
+                    view.quantity(),
+                    view.selected(),
+                    view.addedAt(),
+                    ProductInfo.from(view.product()),
+                    SkuInfo.from(view.sku()),
+                    view.available());
+        }
+
+        public record ProductInfo(UUID id, String name, String mainImage, UUID shopId, String shopName) {
+
+            static ProductInfo from(CartItemView.ProductInfo info) {
+                return new ProductInfo(info.id(), info.name(), info.mainImage(), info.shopId(), info.shopName());
+            }
+        }
+
+        public record SkuInfo(
+                UUID id, String name, String image, Money price, Money originalPrice, Integer stock, Integer status) {
+
+            static SkuInfo from(CartItemView.SkuInfo info) {
+                return new SkuInfo(
+                        info.id(),
+                        info.name(),
+                        info.image(),
+                        info.price(),
+                        info.originalPrice(),
+                        info.stock(),
+                        info.status());
+            }
+        }
+    }
+
+    /** 角标计数出参：镜像 service 的 CartCount，字段只减不增 */
+    public record CartCountResponse(long total, long selected) {
+
+        static CartCountResponse from(CartCount count) {
+            return new CartCountResponse(count.total(), count.selected());
         }
     }
 }

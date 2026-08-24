@@ -305,7 +305,4 @@ public class CartService {
 
     /** product.products 行投影 */
     private record ProductRow(UUID id, UUID shopId, String name, String mainImage, Integer status) {}
-
-    /** 角标计数出参 */
-    public record CartCount(long total, long selected) {}
 }

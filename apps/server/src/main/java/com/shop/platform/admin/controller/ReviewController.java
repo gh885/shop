@@ -30,9 +30,11 @@ public class ReviewController {
 
     /** 审核队列：按 status 筛选分页（PENDING 待审 / APPROVED 已通过 / REJECTED 已拒绝） */
     @GetMapping
-    public PageResult<ShopReviewItem> list(
+    public PageResult<ShopReviewListItemResponse> list(
             @Valid PageParams pageParams, @RequestParam(required = false) String status) {
-        return shopReviewService.pageList(pageParams, status);
+        PageResult<ShopReviewItem> page = shopReviewService.pageList(pageParams, status);
+        return new PageResult<>(
+                page.records().stream().map(ShopReviewListItemResponse::from).toList(), page.total());
     }
 
     /** 审核通过：店铺状态 → ACTIVE */
@@ -45,6 +47,30 @@ public class ReviewController {
     @PostMapping("/{id}/reject")
     public ShopReviewResponse reject(@PathVariable UUID id, @Valid @RequestBody RejectRequest req) {
         return ShopReviewResponse.from(shopReviewService.reject(id, StaffContext.get(), req.reason()));
+    }
+
+    /** 审核队列项出参：镜像 service 的 ShopReviewItem（含跨 schema 拼装的店名/店主手机号），字段只减不增 */
+    public record ShopReviewListItemResponse(
+            UUID id,
+            UUID shopId,
+            String shopName,
+            String ownerPhone,
+            String status,
+            String reason,
+            OffsetDateTime decidedAt,
+            OffsetDateTime createdAt) {
+
+        static ShopReviewListItemResponse from(ShopReviewItem item) {
+            return new ShopReviewListItemResponse(
+                    item.id(),
+                    item.shopId(),
+                    item.shopName(),
+                    item.ownerPhone(),
+                    item.status(),
+                    item.reason(),
+                    item.decidedAt(),
+                    item.createdAt());
+        }
     }
 
     /** 审核记录出参：字段镜像实体现状（admin 端 ShopReviewSchema 严格校验） */

@@ -43,8 +43,10 @@ public class ShopController {
 
     /** 我的待确认邀请 */
     @GetMapping("/invites")
-    public List<ShopInviteItem> invites() {
-        return shopService.myInvites(UserIdHolder.get());
+    public List<ShopInviteItemResponse> invites() {
+        return shopService.myInvites(UserIdHolder.get()).stream()
+                .map(ShopInviteItemResponse::from)
+                .toList();
     }
 
     /** 同意邀请，确认后成为店铺 ACTIVE 成员 */
@@ -55,8 +57,10 @@ public class ShopController {
 
     /** 店铺成员列表（本店成员可见） */
     @GetMapping("/{shopId}/members")
-    public List<ShopMemberItem> members(@PathVariable UUID shopId) {
-        return shopService.members(shopId, UserIdHolder.get());
+    public List<ShopMemberItemResponse> members(@PathVariable UUID shopId) {
+        return shopService.members(shopId, UserIdHolder.get()).stream()
+                .map(ShopMemberItemResponse::from)
+                .toList();
     }
 
     /** 店主按手机号邀请成员，对方登录后确认才生效 */
@@ -116,6 +120,22 @@ public class ShopController {
                     member.getStatus(),
                     member.getCreatedAt(),
                     member.getUpdatedAt());
+        }
+    }
+
+    /** 邀请列表项出参：镜像 service 的 ShopInviteItem，字段只减不增 */
+    public record ShopInviteItemResponse(UUID memberId, UUID shopId, String shopName, OffsetDateTime createdAt) {
+
+        static ShopInviteItemResponse from(ShopInviteItem item) {
+            return new ShopInviteItemResponse(item.memberId(), item.shopId(), item.shopName(), item.createdAt());
+        }
+    }
+
+    /** 成员列表项出参：镜像 service 的 ShopMemberItem（含跨 schema 拼装的手机号），字段只减不增 */
+    public record ShopMemberItemResponse(UUID memberId, UUID userId, String phone, String role, String status) {
+
+        static ShopMemberItemResponse from(ShopMemberItem item) {
+            return new ShopMemberItemResponse(item.memberId(), item.userId(), item.phone(), item.role(), item.status());
         }
     }
 }

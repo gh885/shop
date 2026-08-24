@@ -1,5 +1,6 @@
 package com.shop.platform.favorite.controller;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.UserIdHolder;
@@ -50,8 +51,11 @@ public class FavoriteController {
 
     /** 我的收藏分页：新收藏在前；下架商品置灰保留（available=false） */
     @GetMapping
-    public PageResult<FavoriteItemView> list(@Valid PageParams pageParams) {
-        return favoriteService.list(UserIdHolder.get(), pageParams.page(), pageParams.size());
+    public PageResult<FavoriteListItemResponse> list(@Valid PageParams pageParams) {
+        PageResult<FavoriteItemView> page =
+                favoriteService.list(UserIdHolder.get(), pageParams.page(), pageParams.size());
+        return new PageResult<>(
+                page.records().stream().map(FavoriteListItemResponse::from).toList(), page.total());
     }
 
     /** 批量查已收藏子集：详情页心形状态用，避免 product 详情接口反向依赖本模块 */
@@ -65,6 +69,27 @@ public class FavoriteController {
 
         static FavoriteItemResponse from(FavoriteItem item) {
             return new FavoriteItemResponse(item.getId(), item.getProductId(), item.getCreatedAt());
+        }
+    }
+
+    /** 列表条目出参：镜像 service 的 FavoriteItemView，字段只减不增 */
+    public record FavoriteListItemResponse(
+            UUID id, UUID productId, OffsetDateTime favoritedAt, ProductInfo product, boolean available) {
+
+        static FavoriteListItemResponse from(FavoriteItemView view) {
+            return new FavoriteListItemResponse(
+                    view.id(),
+                    view.productId(),
+                    view.favoritedAt(),
+                    ProductInfo.from(view.product()),
+                    view.available());
+        }
+
+        public record ProductInfo(UUID id, String name, String mainImage, Money minPrice, Money maxPrice) {
+
+            static ProductInfo from(FavoriteItemView.ProductInfo info) {
+                return new ProductInfo(info.id(), info.name(), info.mainImage(), info.minPrice(), info.maxPrice());
+            }
         }
     }
 

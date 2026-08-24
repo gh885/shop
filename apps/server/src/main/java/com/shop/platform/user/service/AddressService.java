@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
-import com.shop.platform.user.dto.AddressParseResult;
 import com.shop.platform.user.dto.AddressRequest;
 import com.shop.platform.user.mapper.Address;
 import com.shop.platform.user.mapper.AddressMapper;
