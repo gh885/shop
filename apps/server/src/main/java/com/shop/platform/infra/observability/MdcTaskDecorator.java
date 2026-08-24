@@ -17,9 +17,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class MdcTaskDecorator implements TaskDecorator {
 
-    private static final String VERSION = "version";
-    private static final String ENV = "env";
-
     @Override
     public Runnable decorate(Runnable task) {
         Map<String, String> parentContext = MDC.getCopyOfContextMap();

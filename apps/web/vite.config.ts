@@ -19,6 +19,10 @@ const config = defineConfig({
             "/api": { target: "http://localhost:8080", changeOrigin: true },
             "/user": { target: "http://localhost:8080", changeOrigin: true },
             "/cart/": { target: "http://localhost:8080", changeOrigin: true },
+            // /orders、/payments 同理：买家端页面路由（/orders）与 API 前缀（/orders/*）重叠，
+            // 代理只写带尾斜杠的 key，页面路由不被劫持；支付入口是 POST /payments，无裸路径调用
+            "/orders/": { target: "http://localhost:8080", changeOrigin: true },
+            "/payments": { target: "http://localhost:8080", changeOrigin: true },
         },
     },
     plugins: [

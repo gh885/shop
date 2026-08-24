@@ -14,6 +14,7 @@ export const ErrorCodes = {
     USER_DISABLED: "USER_DISABLED",
     STAFF_DISABLED: "STAFF_DISABLED",
     PASSWORD_NOT_SET: "PASSWORD_NOT_SET",
+    INSUFFICIENT_STOCK: "INSUFFICIENT_STOCK",
 } as const
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
