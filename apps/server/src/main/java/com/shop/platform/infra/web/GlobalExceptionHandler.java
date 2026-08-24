@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
 
     /** 字段级校验失败统一出口：422 + errors 明细（@RequestBody 与 @RequestParam 约束共用） */
     private static ProblemDetail unprocessable(List<Map<String, String>> errors) {
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "输入校验失败（" + errors.size() + " 个字段错误）");
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "输入校验失败（" + errors.size() + " 个字段错误）");
         pd.setProperty("errors", errors);
         return pd;
     }

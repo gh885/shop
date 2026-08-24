@@ -52,8 +52,8 @@ public class RegionRegistry {
 
     /** 递归遍历，记录合法 6 位码 + 名称叶子（depth: 0=省 1=市 2=区县） */
     private void walk(JsonNode node, String[] path, int depth) {
-        String code = node.path("code").asText();
-        String name = node.path("name").asText();
+        String code = node.path("code").asString();
+        String name = node.path("name").asString();
 
         if (code.length() == 6) {
             validCodes.add(code);
@@ -66,7 +66,7 @@ public class RegionRegistry {
         if (children == null || !children.isArray() || children.isEmpty()) {
             return;
         }
-        String first = children.get(0).path("code").asText();
+        String first = children.get(0).path("code").asString();
         // 直筒子市：children 是 9 位街道码 → 该市本身作为区级，码为 cityCode+"00"
         if (depth == 1 && first.length() == 9) {
             validCodes.add(code + "00");
