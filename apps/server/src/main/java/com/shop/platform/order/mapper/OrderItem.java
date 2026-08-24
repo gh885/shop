@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.common.Money;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -63,4 +64,19 @@ public class OrderItem {
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)
     private OffsetDateTime createdAt;
+
+    // ---- 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段） ----
+
+    public Money priceAsMoney() {
+        return Money.ofFen(price, currency);
+    }
+
+    /** 划线价可空，随原值返回 null */
+    public Money originalPriceAsMoney() {
+        return originalPrice == null ? null : Money.ofFen(originalPrice, currency);
+    }
+
+    public Money amountAsMoney() {
+        return Money.ofFen(amount, currency);
+    }
 }

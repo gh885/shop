@@ -1,6 +1,7 @@
 package com.shop.platform.payment.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.CrossSchemaReader;
 import com.shop.platform.payment.events.PaymentSucceededEvent;
@@ -51,16 +52,16 @@ public class PaymentService {
     public Payment pay(UUID userId, UUID orderId) {
         // 1. 只读点查订单：存在、属于本人、待付款才可支付；金额以订单投影为准，不信前端
         OrderRow order = reader.byId(
-                "orders.orders",
-                ORDER_COLUMNS,
-                orderId,
-                rs -> new OrderRow(
-                        rs.getString("order_no"),
-                        rs.getObject("user_id", UUID.class),
-                        rs.getString("status"),
-                        rs.getObject("pay_amount", Long.class),
-                        rs.getString("currency")));
-        Validate.notNull(order, "订单不存在");
+                        "orders.orders",
+                        ORDER_COLUMNS,
+                        orderId,
+                        rs -> new OrderRow(
+                                rs.getString("order_no"),
+                                rs.getObject("user_id", UUID.class),
+                                rs.getString("status"),
+                                rs.getObject("pay_amount", Long.class),
+                                rs.getString("currency")))
+                .orElseThrow(() -> BusinessException.notFound("订单不存在"));
         Validate.isTrue(order.userId().equals(userId), "订单不存在");
 
         // 2. 幂等短路在前：已存在成功流水直接返回——重试/连点/订单已支付都回到同一笔流水，不报错

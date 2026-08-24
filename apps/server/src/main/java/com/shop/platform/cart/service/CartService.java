@@ -14,6 +14,7 @@ import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.CrossSchemaReader;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @RequiredArgsConstructor
 public class CartService {
-
-    /** 单条目数量上限，与 DB CHECK 同值兜底；真实限购（秒杀限件）在下单校验 */
-    private static final int MAX_QUANTITY_PER_ITEM = 999;
 
     /** 单用户购物车不同 SKU 条目上限，防刷；合并不受限 */
     private static final int MAX_ITEMS_PER_USER = 99;
@@ -52,10 +50,14 @@ public class CartService {
     @Transactional
     public CartItem add(UUID userId, AddCartItemRequest req) {
         // 1. 校验可加购：SKU 存在且在售、其 SPU 已上架（跨 schema 只读按 ID 查，禁止 JOIN）
-        SkuRow sku = loadSku(req.skuId());
-        Validate.isTrue(sku != null && sku.status() == SKU_STATUS_ON_SALE, "商品规格不存在或已停售");
-        Integer spuStatus = loadProductStatus(sku.productId());
-        Validate.isTrue(spuStatus != null && spuStatus == PRODUCT_STATUS_PUBLISHED, "商品已下架");
+        SkuRow sku = loadSku(req.skuId())
+                .filter(s -> s.status() == SKU_STATUS_ON_SALE)
+                .orElseThrow(() -> BusinessException.badRequest("商品规格不存在或已停售"));
+        Validate.isTrue(
+                loadProductStatus(sku.productId())
+                        .filter(s -> s == PRODUCT_STATUS_PUBLISHED)
+                        .isPresent(),
+                "商品已下架");
 
         // 2. 合并或新增：同 SKU 已在车里则累加封顶，否则插新行
         LambdaQueryWrapper<CartItem> byUserAndSku = new LambdaQueryWrapper<CartItem>()
@@ -63,7 +65,7 @@ public class CartService {
                 .eq(CartItem::getSkuId, req.skuId());
         CartItem existing = cartItemMapper.selectOne(byUserAndSku);
         if (existing != null) {
-            existing.setQuantity(Math.min(existing.getQuantity() + req.quantity(), MAX_QUANTITY_PER_ITEM));
+            existing.setQuantity(existing.mergedQuantity(req.quantity()));
             cartItemMapper.updateById(existing);
             return existing;
         }
@@ -86,7 +88,7 @@ public class CartService {
             // 4. 并发重复加购撞 uk_cart_items_user_sku：回退为合并
             CartItem raced = cartItemMapper.selectOne(byUserAndSku);
             Validate.notNull(raced, "购物车条目不存在");
-            raced.setQuantity(Math.min(raced.getQuantity() + req.quantity(), MAX_QUANTITY_PER_ITEM));
+            raced.setQuantity(raced.mergedQuantity(req.quantity()));
             cartItemMapper.updateById(raced);
             return raced;
         }
@@ -254,13 +256,13 @@ public class CartService {
                         rs.getObject("status", Integer.class)));
     }
 
-    /** 单个 SKU 行（加购校验用），不存在返回 null */
-    private SkuRow loadSku(UUID skuId) {
-        return loadSkus(List.of(skuId)).get(skuId);
+    /** 单个 SKU 行（加购校验用），查无此行返回 empty */
+    private Optional<SkuRow> loadSku(UUID skuId) {
+        return Optional.ofNullable(loadSkus(List.of(skuId)).get(skuId));
     }
 
-    /** 单个 SPU 状态（加购校验用） */
-    private Integer loadProductStatus(UUID productId) {
+    /** 单个 SPU 状态（加购校验用），查无此行返回 empty */
+    private Optional<Integer> loadProductStatus(UUID productId) {
         return reader.byId(
                 "product.products", List.of("status"), productId, rs -> rs.getObject("status", Integer.class));
     }

@@ -52,6 +52,14 @@ public class Product {
 - 某一步超过 ~10 行 → 抽成私有方法，注释升级成方法名（编号是重构温度计）
 - 落实在 service 层；controller/mapper 是样板代码，不强制
 
+## 实体行为约定（半充血）
+
+**不变式与状态规则归实体，编排与持久化归 service。**
+
+- 实体可以有：状态谓词（`Product.isPublished()`）、派生视图（`Order.payAmountAsMoney()`）、状态机与动作推导（`Order.buyerActions()`，源自私有 TRANSITIONS 表）、值运算（`Money.plus()`）——这些是「数据自己说得出口的话」
+- service 保留：事务边界、跨模块事件、条件更新（`WHERE status = ?` + 影响行数判断是并发闸门，不因实体有状态方法而改读-改-写；要内存态流转先补 `@Version` 乐观锁基建）
+- 不给实体加无调用者的方法：谓词/视图先有消费点再上实体（YAGNI）
+
 ## 共享层语义（common / infra）
 
 判据：**换技术会不会重写？** 会 → 技术适配；不会 → 框架无关契约。

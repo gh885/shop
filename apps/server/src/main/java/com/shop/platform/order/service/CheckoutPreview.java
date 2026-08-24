@@ -35,13 +35,6 @@ public record CheckoutPreview(
         public static final String CAUSE_STOCK_SHORTAGE = "STOCK_SHORTAGE";
     }
 
-    /** 收货地址回显：user_profile.addresses 的只读投影，不含软删等内部字段 */
-    public record Address(
-            UUID id,
-            String receiverName,
-            String receiverPhone,
-            String province,
-            String city,
-            String district,
-            String detail) {}
+    /** 收货地址回显：地址簿 ID + 快照值对象（user_profile.addresses 只读投影，不含软删等内部字段） */
+    public record Address(UUID id, AddressSnapshot snapshot) {}
 }

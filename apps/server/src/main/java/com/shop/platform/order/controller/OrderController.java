@@ -149,7 +149,13 @@ public class OrderController {
 
             static Address from(CheckoutPreview.Address a) {
                 return new Address(
-                        a.id(), a.receiverName(), a.receiverPhone(), a.province(), a.city(), a.district(), a.detail());
+                        a.id(),
+                        a.snapshot().receiverName(),
+                        a.snapshot().receiverPhone(),
+                        a.snapshot().province(),
+                        a.snapshot().city(),
+                        a.snapshot().district(),
+                        a.snapshot().detail());
             }
         }
     }
@@ -160,12 +166,7 @@ public class OrderController {
     public record CreatedOrder(UUID id, String orderNo, UUID shopId, Money payAmount, OffsetDateTime payExpireAt) {
 
         static CreatedOrder from(Order o) {
-            return new CreatedOrder(
-                    o.getId(),
-                    o.getOrderNo(),
-                    o.getShopId(),
-                    Money.ofFen(o.getPayAmount(), o.getCurrency()),
-                    o.getPayExpireAt());
+            return new CreatedOrder(o.getId(), o.getOrderNo(), o.getShopId(), o.payAmountAsMoney(), o.getPayExpireAt());
         }
     }
 
@@ -184,7 +185,7 @@ public class OrderController {
                     o.order().getId(),
                     o.order().getOrderNo(),
                     o.order().getStatus(),
-                    Money.ofFen(o.order().getPayAmount(), o.order().getCurrency()),
+                    o.order().payAmountAsMoney(),
                     o.order().getPayExpireAt(),
                     o.order().getCreatedAt(),
                     o.items().stream().map(OrderItemResponse::from).toList());
@@ -196,6 +197,7 @@ public class OrderController {
             UUID id,
             String orderNo,
             String status,
+            List<String> availableActions,
             Money itemAmount,
             Money shippingFee,
             Money payAmount,
@@ -223,9 +225,10 @@ public class OrderController {
                     order.getId(),
                     order.getOrderNo(),
                     order.getStatus(),
-                    Money.ofFen(order.getItemAmount(), order.getCurrency()),
-                    Money.ofFen(order.getShippingFee(), order.getCurrency()),
-                    Money.ofFen(order.getPayAmount(), order.getCurrency()),
+                    order.buyerActions(),
+                    order.itemAmountAsMoney(),
+                    order.shippingFeeAsMoney(),
+                    order.payAmountAsMoney(),
                     order.getBuyerMessage(),
                     order.getReceiverName(),
                     order.getReceiverPhone(),
@@ -263,10 +266,10 @@ public class OrderController {
                     i.getSkuId(),
                     i.getName(),
                     i.getImage(),
-                    Money.ofFen(i.getPrice(), i.getCurrency()),
-                    i.getOriginalPrice() != null ? Money.ofFen(i.getOriginalPrice(), i.getCurrency()) : null,
+                    i.priceAsMoney(),
+                    i.originalPriceAsMoney(),
                     i.getQuantity(),
-                    Money.ofFen(i.getAmount(), i.getCurrency()));
+                    i.amountAsMoney());
         }
     }
 }

@@ -70,7 +70,7 @@ public class SellerOrderController {
                     order.getId(),
                     order.getOrderNo(),
                     order.getStatus(),
-                    Money.ofFen(order.getPayAmount(), order.getCurrency()),
+                    order.payAmountAsMoney(),
                     order.getReceiverName(),
                     o.items().size(),
                     order.getCreatedAt());
@@ -82,6 +82,7 @@ public class SellerOrderController {
             UUID id,
             String orderNo,
             String status,
+            List<String> availableActions,
             Money itemAmount,
             Money shippingFee,
             Money payAmount,
@@ -111,17 +112,18 @@ public class SellerOrderController {
                             i.getSkuId(),
                             i.getName(),
                             i.getImage(),
-                            Money.ofFen(i.getPrice(), i.getCurrency()),
+                            i.priceAsMoney(),
                             i.getQuantity(),
-                            Money.ofFen(i.getAmount(), i.getCurrency())))
+                            i.amountAsMoney()))
                     .toList();
             return new SellerOrderDetailResponse(
                     order.getId(),
                     order.getOrderNo(),
                     order.getStatus(),
-                    Money.ofFen(order.getItemAmount(), order.getCurrency()),
-                    Money.ofFen(order.getShippingFee(), order.getCurrency()),
-                    Money.ofFen(order.getPayAmount(), order.getCurrency()),
+                    order.sellerActions(),
+                    order.itemAmountAsMoney(),
+                    order.shippingFeeAsMoney(),
+                    order.payAmountAsMoney(),
                     order.getBuyerMessage(),
                     order.getReceiverName(),
                     order.getReceiverPhone(),

@@ -5,7 +5,11 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.common.Money;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -36,9 +40,30 @@ public class Order {
 
     public static final String STATUS_CANCELLED = "CANCELLED";
 
-    /** 全部合法状态（列表筛选参数校验用） */
-    public static final java.util.Set<String> ALL_STATUSES =
-            java.util.Set.of(STATUS_PENDING_PAYMENT, STATUS_PAID, STATUS_SHIPPED, STATUS_COMPLETED, STATUS_CANCELLED);
+    /**
+     * 状态机：合法转移的唯一真相。service 层的条件更新（WHERE status = ?）从这里取源/目标状态，
+     * 前端动作按钮从 {@link #buyerActions()} / {@link #sellerActions()} 推导，三处消费同一张表不会漂移。
+     */
+    private static final Map<String, Set<String>> TRANSITIONS = Map.of(
+            STATUS_PENDING_PAYMENT, Set.of(STATUS_PAID, STATUS_CANCELLED),
+            STATUS_PAID, Set.of(STATUS_SHIPPED, STATUS_CANCELLED),
+            STATUS_SHIPPED, Set.of(STATUS_COMPLETED),
+            STATUS_COMPLETED, Set.of(),
+            STATUS_CANCELLED, Set.of());
+
+    /** 全部合法状态（列表筛选参数校验用），由转移表派生避免双份枚举 */
+    public static final Set<String> ALL_STATUSES = TRANSITIONS.keySet();
+
+    /** 转移目标 → 前端动作名：状态机是后端语汇，动作是交互语汇，一张映射表维系两套词表 */
+    private static final Map<String, String> ACTION_BY_TARGET = Map.of(
+            STATUS_PAID, "PAY",
+            STATUS_CANCELLED, "CANCEL",
+            STATUS_SHIPPED, "SHIP",
+            STATUS_COMPLETED, "RECEIVE");
+
+    private static final Set<String> BUYER_ACTIONS = Set.of("PAY", "CANCEL", "RECEIVE");
+
+    private static final Set<String> SELLER_ACTIONS = Set.of("SHIP");
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
@@ -114,4 +139,35 @@ public class Order {
     /** 更新时间，插入/更新时自动填充 */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private OffsetDateTime updatedAt;
+
+    // ---- 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段） ----
+
+    public Money itemAmountAsMoney() {
+        return Money.ofFen(itemAmount, currency);
+    }
+
+    public Money shippingFeeAsMoney() {
+        return Money.ofFen(shippingFee, currency);
+    }
+
+    public Money payAmountAsMoney() {
+        return Money.ofFen(payAmount, currency);
+    }
+
+    /** 买家视角当前可执行的动作（详情页按钮组渲染用），按状态从转移表推导；终态返回空列表 */
+    public List<String> buyerActions() {
+        return actionsFor(BUYER_ACTIONS);
+    }
+
+    /** 卖家视角当前可执行的动作（发货作业按钮用） */
+    public List<String> sellerActions() {
+        return actionsFor(SELLER_ACTIONS);
+    }
+
+    private List<String> actionsFor(Set<String> allowed) {
+        return TRANSITIONS.getOrDefault(status, Set.of()).stream()
+                .map(ACTION_BY_TARGET::get)
+                .filter(allowed::contains)
+                .toList();
+    }
 }

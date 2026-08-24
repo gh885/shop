@@ -121,7 +121,7 @@ public class OrderService {
     @Transactional
     public List<Order> create(UUID userId, CreateOrderRequest req) {
         // 1. 校验收货地址归属并取快照（下单定格，之后改/删地址不影响本单）
-        AddressRow address = loadAddressRow(userId, req.addressId());
+        AddressSnapshot address = loadAddressRow(userId, req.addressId()).snapshot();
 
         // 2. 全量有效才允许下单：任一行失效或缺货直接拒绝（预览页已提示过，这里兜底并发变化）
         ResolvedCheckout resolved = resolve(userId, req.cartItemIds(), req.buySkuId(), req.buyQuantity());
@@ -403,23 +403,20 @@ public class OrderService {
                         CheckoutPreview.UnavailableLine.CAUSE_STOCK_SHORTAGE));
                 continue;
             }
-            // 图片解析在此定型：SKU 图空则回落 SPU 主图，落库即终值，读端零逻辑
+            // 图片解析在此定型：SKU 图空则回落 SPU 主图，落库即终值，读端零逻辑；金额在此定型为 Money
             valid.add(new ValidLine(
                     line.skuId(),
                     sku.productId(),
                     product.shopId(),
                     sku.name(),
                     sku.image() != null ? sku.image() : product.mainImage(),
-                    sku.price(),
-                    sku.originalPrice(),
-                    sku.currency(),
+                    Money.ofFen(sku.price(), sku.currency()),
+                    sku.originalPrice() != null ? Money.ofFen(sku.originalPrice(), sku.currency()) : null,
                     line.quantity(),
                     sku.stock()));
         }
-        Money total = valid.stream()
-                .map(l -> Money.ofFen(l.price(), l.currency()).times(l.quantity()))
-                .reduce(Money.cny(0), Money::plus);
-        return new ResolvedCheckout(valid, unavailable, total);
+        // 总额口径与分组小计（sumLines）同源，不会漂移
+        return new ResolvedCheckout(valid, unavailable, sumLines(valid));
     }
 
     /** 有效行按店铺分组算钱；店铺名跨 schema 只读拼装（一组对应一笔待创建订单） */
@@ -440,24 +437,15 @@ public class OrderService {
 
     private CheckoutPreview.Line toPreviewLine(ValidLine l) {
         return new CheckoutPreview.Line(
-                l.skuId(),
-                l.productId(),
-                l.name(),
-                l.image(),
-                Money.ofFen(l.price(), l.currency()),
-                l.originalPrice() != null ? Money.ofFen(l.originalPrice(), l.currency()) : null,
-                l.quantity(),
-                l.stock());
+                l.skuId(), l.productId(), l.name(), l.image(), l.price(), l.originalPrice(), l.quantity(), l.stock());
     }
 
     private Money sumLines(List<ValidLine> lines) {
-        return lines.stream()
-                .map(l -> Money.ofFen(l.price(), l.currency()).times(l.quantity()))
-                .reduce(Money.cny(0), Money::plus);
+        return lines.stream().map(l -> l.price().times(l.quantity())).reduce(Money.cny(0), Money::plus);
     }
 
     /** 落一笔订单：主表快照 + 行项目快照；orderNo 极小概率撞号时换号重插 */
-    private Order persistOrder(UUID userId, String buyerMessage, AddressRow addr, List<ValidLine> lines) {
+    private Order persistOrder(UUID userId, String buyerMessage, AddressSnapshot addr, List<ValidLine> lines) {
         Money itemAmount = sumLines(lines);
         Order template = Order.builder()
                 .userId(userId)
@@ -467,8 +455,9 @@ public class OrderService {
                 .shippingFee(0L) // V1 未接计费恒 0；上运费后 payAmount = itemAmount + shippingFee
                 .payAmount(itemAmount.amount())
                 .currency(itemAmount.currency())
+                // 快照整块展开成六列平铺（MyBatis-Plus 无嵌入映射）
                 .receiverName(addr.receiverName())
-                .receiverPhone(addr.phone())
+                .receiverPhone(addr.receiverPhone())
                 .receiverProvince(addr.province())
                 .receiverCity(addr.city())
                 .receiverDistrict(addr.district())
@@ -479,16 +468,17 @@ public class OrderService {
 
         Order order = insertOrder(template);
         for (ValidLine line : lines) {
-            Money lineAmount = Money.ofFen(line.price(), line.currency()).times(line.quantity());
+            Money lineAmount = line.price().times(line.quantity());
             orderItemMapper.insert(OrderItem.builder()
                     .orderId(order.getId())
                     .productId(line.productId())
                     .skuId(line.skuId())
                     .name(line.name())
                     .image(line.image())
-                    .price(line.price())
-                    .originalPrice(line.originalPrice())
-                    .currency(line.currency())
+                    .price(line.price().amount())
+                    .originalPrice(
+                            line.originalPrice() != null ? line.originalPrice().amount() : null)
+                    .currency(line.price().currency())
                     .quantity(line.quantity())
                     .amount(lineAmount.amount())
                     .build());
@@ -561,27 +551,27 @@ public class OrderService {
     }
 
     private CheckoutPreview.Address loadAddress(UUID userId, UUID addressId) {
-        AddressRow row = loadAddressRow(userId, addressId);
         return new CheckoutPreview.Address(
-                addressId, row.receiverName(), row.phone(), row.province(), row.city(), row.district(), row.detail());
+                addressId, loadAddressRow(userId, addressId).snapshot());
     }
 
-    /** 地址快照来源：归属本人且未删除，否则 404（预览与创建共用一道门） */
+    /** 地址快照来源：归属本人且未删除，否则 404（预览与创建共用一道门）；列 → 快照的组装收敛在此一处 */
     private AddressRow loadAddressRow(UUID userId, UUID addressId) {
         AddressRow row = reader.byId(
-                "user_profile.addresses",
-                ADDRESS_COLUMNS,
-                addressId,
-                rs -> new AddressRow(
-                        rs.getObject("user_id", UUID.class),
-                        rs.getString("receiver_name"),
-                        rs.getString("phone"),
-                        rs.getString("province"),
-                        rs.getString("city"),
-                        rs.getString("district"),
-                        rs.getString("detail"),
-                        rs.getObject("deleted_at", OffsetDateTime.class)));
-        Validate.notNull(row, "收货地址不存在");
+                        "user_profile.addresses",
+                        ADDRESS_COLUMNS,
+                        addressId,
+                        rs -> new AddressRow(
+                                rs.getObject("user_id", UUID.class),
+                                new AddressSnapshot(
+                                        rs.getString("receiver_name"),
+                                        rs.getString("phone"),
+                                        rs.getString("province"),
+                                        rs.getString("city"),
+                                        rs.getString("district"),
+                                        rs.getString("detail")),
+                                rs.getObject("deleted_at", OffsetDateTime.class)))
+                .orElseThrow(() -> BusinessException.notFound("收货地址不存在"));
         Validate.isTrue(row.userId().equals(userId), "收货地址不存在");
         Validate.isTrue(row.deletedAt() == null, "收货地址不存在");
         return row;
@@ -596,16 +586,15 @@ public class OrderService {
     /** 结算请求行：立即购买时 cartItemId 为 null */
     private record RequestedLine(UUID skuId, int quantity, UUID cartItemId) {}
 
-    /** 跨 schema 点查通过后的有效行：携带分组所需 shopId 与全部快照字段 */
+    /** 跨 schema 点查通过后的有效行：携带分组所需 shopId 与全部快照字段；价格在入口已定型为 Money */
     private record ValidLine(
             UUID skuId,
             UUID productId,
             UUID shopId,
             String name,
             String image,
-            Long price,
-            Long originalPrice,
-            String currency,
+            Money price,
+            Money originalPrice,
             int quantity,
             int stock) {}
 
@@ -626,13 +615,5 @@ public class OrderService {
 
     private record ProductRow(UUID shopId, String mainImage, Integer status) {}
 
-    private record AddressRow(
-            UUID userId,
-            String receiverName,
-            String phone,
-            String province,
-            String city,
-            String district,
-            String detail,
-            OffsetDateTime deletedAt) {}
+    private record AddressRow(UUID userId, AddressSnapshot snapshot, OffsetDateTime deletedAt) {}
 }

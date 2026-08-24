@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -55,9 +56,10 @@ public class CrossSchemaReader {
                 ids.toArray());
     }
 
-    /** 单条点查，不存在返回 null */
-    public <T> T byId(String table, List<String> columns, UUID id, RowProjection<T> projection) {
-        return byIds(table, columns, List.of(id), projection).get(id);
+    /** 单条点查：Optional 明示「可能查无此行」，由调用方就地决定 404 / 过滤 / 兜底 */
+    public <T> Optional<T> byId(String table, List<String> columns, UUID id, RowProjection<T> projection) {
+        return Optional.ofNullable(
+                byIds(table, columns, List.of(id), projection).get(id));
     }
 
     /** 单字符串列糖衣（店名/手机号等展示字段拼装最常用），缺失的 id 不在 Map 中 */

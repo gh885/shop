@@ -38,10 +38,12 @@ public class FavoriteService {
      */
     @Transactional
     public FavoriteItem add(UUID userId, UUID productId) {
-        // 1. 校验商品存在且已上架（跨 schema 只读按 ID 查，禁止 JOIN）
-        Integer status = reader.byId(
-                "product.products", List.of("status"), productId, rs -> rs.getObject("status", Integer.class));
-        Validate.isTrue(status != null && status == PRODUCT_STATUS_PUBLISHED, "商品不存在或已下架");
+        // 1. 校验商品存在且已上架（跨 schema 只读按 ID 查，禁止 JOIN）：查到状态且状态为在售才放行
+        boolean published = reader.byId(
+                        "product.products", List.of("status"), productId, rs -> rs.getObject("status", Integer.class))
+                .filter(s -> s == PRODUCT_STATUS_PUBLISHED)
+                .isPresent();
+        Validate.isTrue(published, "商品不存在或已下架");
 
         // 2. 幂等：已在收藏夹直接返回原行
         FavoriteItem existing = favoriteItemMapper.selectOne(new LambdaQueryWrapper<FavoriteItem>()

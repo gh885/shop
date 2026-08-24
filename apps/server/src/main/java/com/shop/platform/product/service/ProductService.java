@@ -57,8 +57,7 @@ public class ProductService {
     @Transactional
     public List<Sku> updateSpecs(UUID productId, List<SpecItem> specs) {
         Product product = requireShopOwned(productId);
-        // 1. 校验：上架商品不能改规格（草稿/下架态可改）；规格名不能重复（重复会产生语义混淆的组合）
-        Validate.isTrue(product.getStatus() != Product.STATUS_PUBLISHED, 409, "上架商品不能修改规格，请先下架");
+        product.ensureSpecsEditable();
         long distinctNames = specs.stream().map(SpecItem::name).distinct().count();
         Validate.isTrue(distinctNames == specs.size(), "规格名不能重复");
 
@@ -142,12 +141,10 @@ public class ProductService {
     @Transactional
     public Product publish(UUID productId) {
         Product product = requireShopOwned(productId);
-        // 1. 校验：仅草稿可发布
-        Validate.isTrue(product.getStatus() == Product.STATUS_DRAFT, 409, "只有草稿可以发布");
-
-        // 3. 回填聚合价格区间并置为上架
+        // 1. 复检发布门槛：每个 SKU 都已设价（跨聚合校验留 service）
         applyPriceRange(product, ensurePublishable(productId));
-        product.setStatus(Product.STATUS_PUBLISHED);
+        // 2. 守卫 + 置上架（仅草稿可发布的规则在实体内）
+        product.publish();
         productMapper.updateById(product);
         return product;
     }
@@ -201,7 +198,7 @@ public class ProductService {
     /** 买家侧商品详情：非上架商品一律 404（不泄露"存在但没上架"），SKU 只返在售 */
     public ProductDetail publicDetail(UUID productId) {
         Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
-        Validate.isTrue(product.getStatus() == Product.STATUS_PUBLISHED, 404, "商品不存在");
+        Validate.isTrue(product.isPublished(), 404, "商品不存在");
         List<Sku> skus = skuMapper.selectList(
                 new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId).eq(Sku::getStatus, Sku.STATUS_ON_SALE));
         return new ProductDetail(product, skus);
@@ -232,10 +229,8 @@ public class ProductService {
     @Transactional
     public Product off(UUID productId) {
         Product product = requireShopOwned(productId);
-        // 1. 状态校验：只有上架能下架
-        Validate.isTrue(product.getStatus() == Product.STATUS_PUBLISHED, 409, "只有上架商品可以下架");
-        // 2. 置下架并落库
-        product.setStatus(Product.STATUS_OFF);
+        // 守卫 + 置下架（仅上架可下架的规则在实体内）
+        product.off();
         productMapper.updateById(product);
         return product;
     }
@@ -244,12 +239,10 @@ public class ProductService {
     @Transactional
     public Product on(UUID productId) {
         Product product = requireShopOwned(productId);
-        // 1. 状态校验：只有下架能重新上架
-        Validate.isTrue(product.getStatus() == Product.STATUS_OFF, 409, "只有下架商品可以重新上架");
-        // 2. 复检发布门槛：有 SKU 且全部设价
+        // 1. 复检发布门槛：下架期间 SKU 可能被改（跨聚合校验留 service）
         ensurePublishable(productId);
-        // 3. 置上架
-        product.setStatus(Product.STATUS_PUBLISHED);
+        // 2. 守卫 + 置上架（仅下架可重上的规则在实体内）
+        product.relist();
         productMapper.updateById(product);
         return product;
     }

@@ -19,8 +19,11 @@ public record PhoneNumber(String value) {
     /** 归一化后允许：可选的国际前缀 +，其余为数字，长度 5–20。索引 0 除外 */
     private static final Pattern NORMALIZABLE = Pattern.compile("^\\+?\\d{5,20}$");
 
+    /** 大陆手机号正则（编译期常量）：@Pattern 等注解场景直接引用本常量，规则单点化 */
+    public static final String CHINA_MOBILE_PATTERN = "^1[3-9]\\d{9}$";
+
     /** 大陆手机号：1 开头、第二位 3-9、共 11 位 */
-    private static final Pattern CHINA_MOBILE = Pattern.compile("^1[3-9]\\d{9}$");
+    private static final Pattern CHINA_MOBILE = Pattern.compile(CHINA_MOBILE_PATTERN);
 
     public PhoneNumber {
         Validate.isTrue(value != null && NORMALIZABLE.matcher(value).matches(), "手机号格式不正确");

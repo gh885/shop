@@ -27,6 +27,9 @@ import lombok.NoArgsConstructor;
 @TableName("cart.items")
 public class CartItem {
 
+    /** 单行购买数量上限，与 DB CHECK 兜底同值 */
+    public static final int MAX_QUANTITY_PER_ITEM = 999;
+
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -39,6 +42,11 @@ public class CartItem {
 
     /** 数量。DB CHECK 兜底 1~999，真实限购（秒杀限件）在 service/order 校验 */
     private Integer quantity;
+
+    /** 同 SKU 再加 n 件后的合并数量：单行上限封顶（DB CHECK 同值兜底），加购合并的唯一口径 */
+    public int mergedQuantity(int additional) {
+        return Math.min(quantity + additional, MAX_QUANTITY_PER_ITEM);
+    }
 
     /** 结算勾选位：结算页只提交勾选条目。落库保证跨设备一致 */
     private Boolean selected;
