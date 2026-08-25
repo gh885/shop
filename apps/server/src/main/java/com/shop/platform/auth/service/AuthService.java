@@ -1,9 +1,6 @@
 package com.shop.platform.auth.service;
 
-import static com.shop.platform.infra.security.RefreshTokenStore.sha256Hex;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
@@ -12,15 +9,15 @@ import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.util.RateLimiter;
-import java.security.SecureRandom;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.HexFormat;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,8 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
     // Rate limiting (LOGIN-05)
     private static final String RATE_IP_PWD = "rl:ip:pwd:";
     private static final String RATE_USER_PWD = "rl:user:pwd:";
@@ -41,12 +36,7 @@ public class AuthService {
     private static final int RATE_USER_MAX = 5;
     private static final int RATE_USER_WINDOW = 600; // 秒
 
-    // Password reset
-    private static final String KEY_RESET = "reset:";
-    private static final String KEY_RESET_RATE = "rl:reset:";
-    private static final long RESET_TTL_MINUTES = 30;
-
-    private static final String RESET_TOKEN_PREFIX = "rst:";
+    // Password reset（验证码签发/校验收敛在 SmsCodeService，这里只做业务编排）
 
     // Common password blacklist (REG-03)
     private static final Set<String> COMMON_PASSWORDS = Set.of(
@@ -72,25 +62,35 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final SmsCodeService smsCodeService;
-    private final SmsChannel smsChannel;
     private final StringRedisTemplate redis;
     private final RefreshTokenStore refreshTokenStore;
 
     // ========== 短信登录/注册 ==========
 
-    @Transactional
+    /**
+     * 不加事务：并发首登时 insert 撞唯一索引后 PG 会中止当前事务，catch 后无法回读；
+     * 且本方法只有单行 insert 与 lastLoginAt 更新，无多表一致性诉求。
+     */
     public TokenPair loginBySms(String phone, String code, String deviceId, String clientIp) {
         // 1. 校验短信验证码
         smsCodeService.verifyCode(phone, code);
 
-        // 2. 查找或自动注册（手机号不存在则创建）
+        // 2. 查找或自动注册；并发撞 idx_users_phone 时回读对方插入的账号即可幂等
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
         if (user == null) {
             user = User.autoRegister(phone);
-            userMapper.insert(user);
+            try {
+                userMapper.insert(user);
+            } catch (DuplicateKeyException e) {
+                user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+                if (user == null) throw e;
+            }
         }
 
-        // 3. 签发 Token
+        // 3. 账号状态检查：与密码登录同门槛，禁用账号不得借短信通道绕过
+        ensureUserActive(user);
+
+        // 4. 签发 Token
         return issueTokens(user, deviceId);
     }
 
@@ -144,42 +144,20 @@ public class AuthService {
 
     // ========== 密码重置 ==========
 
-    /** 发送重置密码验证码（RESET-01/02） */
+    /** 发送重置密码验证码（RESET-01/02）。频控与 OTP 生命周期收敛在 SmsCodeService */
     public void forgotPassword(String phone, String clientIp) {
-        // 1. 限流检查（RESET-01: 不暴露账号存在性，静默返回）
-        String rateKey = KEY_RESET_RATE + phone;
-        if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
-            return;
-        }
-
-        // 2. 生成重置 Token（存 SHA-256 哈希，不落明文）
-        byte[] bytes = new byte[32];
-        SECURE_RANDOM.nextBytes(bytes);
-        String token = RESET_TOKEN_PREFIX + HexFormat.of().formatHex(bytes);
-        String hash = sha256Hex(token);
-
-        // 3. 存储哈希，30 分钟有效期（RESET-02）
-        redis.opsForValue().set(KEY_RESET + hash, phone, Duration.ofMinutes(RESET_TTL_MINUTES));
-        redis.opsForValue().set(rateKey, "1", Duration.ofSeconds(60));
-
-        // 4. 通过短信发送
-        smsChannel.sendCode(phone, "重置密码验证码: " + token);
+        smsCodeService.sendResetCode(phone, clientIp);
         log.info("[AUTH] 重置密码验证码已发送, phone={}", PhoneNumber.mask(phone));
     }
 
-    /** 使用重置 token 设置新密码（RESET-02/03） */
+    /** 使用重置验证码设置新密码（RESET-02/03） */
     @Transactional
-    public void resetPassword(String phone, String token, String newPassword) {
-        // 1. 校验新密码强度
+    public void resetPassword(String phone, String code, String newPassword) {
+        // 1. 校验新密码强度（先本地校验，避免浪费一次性验证码）
         validatePassword(newPassword, phone);
 
-        // 2. 验证重置 Token（单次使用 getAndDelete）
-        String hash = sha256Hex(token);
-        String storedPhone = redis.opsForValue().getAndDelete(KEY_RESET + hash);
-
-        if (storedPhone == null || !storedPhone.equals(phone)) {
-            throw BusinessException.badRequest("重置链接已过期或无效");
-        }
+        // 2. 校验重置验证码（单次消费 + 尝试上限，防线同登录验证码）
+        smsCodeService.verifyResetCode(phone, code);
 
         // 3. 更新密码（用户不存在也静默成功，不暴露账号存在性）
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
@@ -196,33 +174,36 @@ public class AuthService {
 
     /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测）。Redis 机制见 RefreshTokenStore */
     public TokenPair refresh(String refreshToken, String deviceId) {
-        String hash = RefreshTokenStore.sha256Hex(refreshToken);
-
-        // 1. 消费旧 Refresh Token（getAndDelete = 一次性）
-        String storedUserId = refreshTokenStore.consume(hash);
+        // 1. 消费旧 Refresh Token（getAndDelete = 一次性；哈希化收敛在存储层内部）
+        String storedUserId = refreshTokenStore.consume(refreshToken);
 
         if (storedUserId == null) {
-            // 2. 重放检测：检查是否已被消费（MAINT-04）
-            String replayedUserId = refreshTokenStore.consumedSubject(hash);
-            if (replayedUserId != null) {
-                log.warn("[AUTH] Refresh Token 重放攻击已检测, userId={}", replayedUserId);
-                deleteAllRefreshTokens(UUID.fromString(replayedUserId));
-                throw new BusinessException(410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
+            // 2. 重放裁决：宽限期内算多标签页并发重复（静默拒绝），超期才算盗用（全端吊销）（MAINT-04）
+            RefreshTokenStore.ReplayCheck replay = refreshTokenStore.checkReplay(refreshToken);
+            if (replay.consumed()) {
+                if (!replay.withinGrace()) {
+                    log.warn("[AUTH] Refresh Token 重放攻击已检测, userId={}", replay.subjectId());
+                    deleteAllRefreshTokens(UUID.fromString(replay.subjectId()));
+                    throw new BusinessException(410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
+                }
+                log.info("[AUTH] Refresh 并发竞争（宽限期内）, userId={}", replay.subjectId());
+                throw BusinessException.unauthorized("登录状态正在其他页面刷新，请稍后重试");
             }
             throw BusinessException.unauthorized("Refresh Token 无效或已过期");
         }
 
         UUID userId = UUID.fromString(storedUserId);
 
-        // 3. 标记已消费（短 TTL 窗口）
-        refreshTokenStore.markConsumed(hash, storedUserId);
+        // 3. 标记已消费（带时间戳，供重放裁决区分并发竞争与盗用）
+        refreshTokenStore.markConsumed(refreshToken, storedUserId);
 
         // 4. 清除旧设备索引
         refreshTokenStore.revokeDevice(storedUserId, deviceId);
 
-        // 5. 查用户并签发全新 Token
+        // 5. 查用户并签发全新 Token；禁用账号在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
+        ensureUserActive(user);
         return issueTokens(user, deviceId);
     }
 
@@ -275,7 +256,10 @@ public class AuthService {
         boolean matched = passwordEncoder.matches(password, storedHash);
 
         if (user == null || !matched) {
-            // UX-05: 日志精确记录失败原因
+            // LOGIN-01: 对外统一——不管「无此用户 / 未设密码 / 密码错误」，响应体一律相同，防账号枚举。
+            // no_password 分支刻意不返回 PASSWORD_NOT_SET：短信自动注册会产生大量「从未设密码」的活跃号，
+            // 若在登录路径暴露该状态，攻击者即可筛出真实注册户（枚举）。真正需要引导用户去设密的场景
+            // 放注册后环节，不走登录失败通道；此处只保留内部精确日志（UX-05），供运营揪撞库者。
             String reason;
             if (user == null) {
                 reason = "user_not_found";
@@ -301,9 +285,6 @@ public class AuthService {
                 MDC.remove("client_ip");
                 if (user != null) MDC.remove("user_id");
             }
-            if ("no_password".equals(reason)) {
-                throw new BusinessException(401, "PASSWORD_NOT_SET", "该手机号还未设置密码，请用验证码登录");
-            }
             throw BusinessException.unauthorized("手机号或密码错误");
         }
         return user;
@@ -320,10 +301,9 @@ public class AuthService {
     private TokenPair issueTokens(User user, String deviceId) {
         String accessToken = jwtProvider.createAccessToken(user.getId());
         String refreshToken = jwtProvider.generateRefreshToken();
-        String hash = RefreshTokenStore.sha256Hex(refreshToken);
 
-        // MAINT-01/02: 存 SHA-256 哈希，不落明文；签发 + 设备索引见 RefreshTokenStore
-        refreshTokenStore.issue(user.getId().toString(), deviceId, hash);
+        // MAINT-01/02: 只存 HMAC 摘要不落明文，摘要算法与存储结构收敛在 RefreshTokenStore/SecretHasher
+        refreshTokenStore.issue(user.getId().toString(), deviceId, refreshToken);
 
         // 更新最后登录时间
         user.setLastLoginAt(OffsetDateTime.now());
@@ -356,8 +336,8 @@ public class AuthService {
         if (password == null || password.length() < 8) {
             throw BusinessException.badRequest("密码长度至少 8 位");
         }
-        // REG-06: BCrypt 72 字节限制
-        if (password.length() > 72) {
+        // REG-06: BCrypt 的 72 是「字节」上限，不是字符数（多字节字符会超 72 字节导致编码失败/截断失配）
+        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
             throw BusinessException.badRequest("密码长度不能超过 72 位");
         }
         // REG-05: 不与手机号相同

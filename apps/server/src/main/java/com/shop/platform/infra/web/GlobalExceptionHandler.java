@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
@@ -19,7 +20,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 @Slf4j
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final ClientIp clientIp;
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ProblemDetail> handleBusiness(BusinessException ex) {
@@ -42,7 +46,7 @@ public class GlobalExceptionHandler {
                 .toList();
 
         // ERR-05: 日志精确到字段，不含实际值
-        log.warn("参数校验失败: {} 个字段错误, path={}, ip={}", errors.size(), request.getRequestURI(), ClientIp.of(request));
+        log.warn("参数校验失败: {} 个字段错误, path={}, ip={}", errors.size(), request.getRequestURI(), clientIp.of(request));
         return noStore(unprocessable(errors));
     }
 

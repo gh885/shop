@@ -34,7 +34,7 @@ export type ForgotPasswordRequest = z.infer<typeof ForgotPasswordRequestSchema>
 
 export const ResetPasswordRequestSchema = z.object({
     phone: z.string().min(7).max(20).trim(),
-    token: z.string().min(1).max(200),
+    code: z.string().length(6),
     newPassword: z.string().min(8).max(72),
 })
 export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>
@@ -52,9 +52,9 @@ export type LogoutRequest = z.infer<typeof LogoutRequestSchema>
 
 // ---------- 响应 ----------
 
+// refreshToken 只经 httpOnly cookie 下发，响应体不含此字段
 export const TokenResultSchema = z.object({
     accessToken: z.string(),
-    refreshToken: z.string(),
 })
 export type TokenResult = z.infer<typeof TokenResultSchema>
 

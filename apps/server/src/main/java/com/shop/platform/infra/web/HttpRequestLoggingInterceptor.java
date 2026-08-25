@@ -2,6 +2,7 @@ package com.shop.platform.infra.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.slf4j.event.Level;
 import org.springframework.stereotype.Component;
@@ -12,9 +13,12 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * URL（EVT-02）。
  */
 @Component
+@RequiredArgsConstructor
 public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger("http.request");
+
+    private final ClientIp clientIp;
 
     private static final String START_ATTR = "__httpRequestStart__";
 
@@ -41,7 +45,7 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
         int status = response.getStatus();
 
         // 客户端 IP
-        String clientIp = ClientIp.of(request);
+        String resolvedIp = clientIp.of(request);
 
         // 场景字段放 MDC，event 用单独 key
         MDC.put("event", "http.request");
@@ -49,10 +53,10 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
         MDC.put("path", bestMatchPattern);
         MDC.put("status", String.valueOf(status));
         MDC.put("latency_ms", String.valueOf(latencyMs));
-        MDC.put("client_ip", clientIp);
+        MDC.put("client_ip", resolvedIp);
         try {
             log.atLevel(status >= 500 ? Level.ERROR : Level.INFO)
-                    .log("{} {} -> {} ({}ms) client={}", method, bestMatchPattern, status, latencyMs, clientIp);
+                    .log("{} {} -> {} ({}ms) client={}", method, bestMatchPattern, status, latencyMs, resolvedIp);
         } finally {
             MDC.remove("event");
             MDC.remove("method");

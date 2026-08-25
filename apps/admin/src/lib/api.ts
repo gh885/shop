@@ -16,9 +16,9 @@ export const StaffLoginRequestSchema = z.object({
 })
 export type StaffLoginRequest = z.infer<typeof StaffLoginRequestSchema>
 
+// refreshToken 只经 httpOnly cookie 下发，响应体不含此字段
 export const TokenResultSchema = z.object({
     accessToken: z.string(),
-    refreshToken: z.string(),
 })
 export type TokenResult = z.infer<typeof TokenResultSchema>
 

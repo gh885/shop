@@ -60,6 +60,15 @@ mybatis-plus:
         map-underscore-to-camel-case: true
 
 shop:
+    web:
+        # 客户端 IP 取法：默认只信 TCP 对端地址（remoteAddr）。仅当部署在会覆写
+        # X-Forwarded-For 的可信反向代理（nginx 等）之后才改 true，否则 IP 限流可被伪造头绕过
+        trust-forwarded-for: false
+    security:
+        # 服务端 pepper：HMAC-SHA256 密钥，验证码 / refresh token 落 Redis 前的脱敏密钥。
+        # 生产必须显式配置（openssl rand -hex 32）；未配置则启动时生成临时值——
+        # 重启后在途验证码与 refresh token 全部失效，仅限开发环境
+        # pepper: "${SHOP_SECURITY_PEPPER}"
     auth:
         enabled: true
         # 短信通道：dev = 验证码打日志 + 固定码 666666，仅限本地开发。

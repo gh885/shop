@@ -1,20 +1,23 @@
 package com.shop.platform.infra.security;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Opaque refresh token 的 Redis 存储与轮换机制：签发（哈希落库 + 设备索引）、单次消费（getAndDelete = rotation）、
- * 重放检测、设备级/全量吊销。
+ * Opaque refresh token 的 Redis 存储与轮换机制：签发（摘要落库 + 设备索引）、单次消费（getAndDelete = rotation）、
+ * 重放裁决、设备级/全量吊销。token 只存 HMAC 摘要不落明文（摘要算法见 {@link SecretHasher}），
+ * 调用方一律传原文，哈希细节收敛在本类内部。
+ *
+ * <p>存储结构：
+ * <pre>
+ * refresh:&lt;hmac&gt;                       → subjectId              （权威键，TTL 即有效期）
+ * refresh:user:&lt;subjectId&gt;:&lt;deviceId&gt; → hmac                   （设备 → token 索引，登出用）
+ * refresh:devices:&lt;subjectId&gt;          → Set&lt;deviceId&gt;          （设备集合，全量吊销枚举用）
+ * refresh:consumed:&lt;hmac&gt;              → subjectId:timestamp    （重放裁决痕迹，短 TTL）
+ * </pre>
  *
  * <p>auth（用户）与 admin（员工）共用同一套机制，subject 由调用方决定（userId / staffId），本类不感知业务实体。
  */
@@ -22,67 +25,89 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RefreshTokenStore {
 
-    private static final String KEY_REFRESH = "refresh:"; // refresh:<sha256> → subjectId
-    private static final String KEY_USER_DEVICE = "refresh:user:"; // refresh:user:<subjectId>:<deviceId> → sha256
-    private static final String KEY_CONSUMED = "refresh:consumed:"; // refresh:consumed:<sha256> → subjectId (replay)
+    private static final String KEY_REFRESH = "refresh:"; // refresh:<hmac> → subjectId
+    private static final String KEY_USER_DEVICE = "refresh:user:"; // refresh:user:<subjectId>:<deviceId> → hmac
+    private static final String KEY_DEVICES = "refresh:devices:"; // refresh:devices:<subjectId> → Set<deviceId>
+    private static final String KEY_CONSUMED = "refresh:consumed:"; // refresh:consumed:<hmac> → subjectId:ts
     private static final long REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000L; // 7 天
 
-    private final StringRedisTemplate redis;
+    /**
+     * 并发重复宽限期：多标签页同时启动会拿同一个旧 refresh 并发请求，后到者若被当成攻击
+     * 会把用户全端误杀。窗口内的重复按良性竞争处理，超出仍出现旧码才判定盗用。
+     */
+    private static final long REPLAY_GRACE_MS = 15_000;
 
-    /** 签发：存 SHA-256 哈希（不落明文）+ 设备索引（按 deviceId 管理） */
-    public void issue(String subjectId, String deviceId, String hash) {
+    private final StringRedisTemplate redis;
+    private final SecretHasher secretHasher;
+
+    /** 重放裁决结果：consumed = 见过消费痕迹；withinGrace = 是否仍在并发宽限期内；subjectId = 属主 */
+    public record ReplayCheck(boolean consumed, boolean withinGrace, String subjectId) {}
+
+    /** 签发：存 HMAC 摘要（不落明文）+ 设备索引 + 设备集合（供全量吊销枚举） */
+    public void issue(String subjectId, String deviceId, String rawToken) {
+        String hash = secretHasher.hash(rawToken);
         redis.opsForValue().set(KEY_REFRESH + hash, subjectId, Duration.ofMillis(REFRESH_TTL_MS));
         redis.opsForValue().set(KEY_USER_DEVICE + subjectId + ":" + deviceId, hash, Duration.ofMillis(REFRESH_TTL_MS));
+        // 设备集合随签发滑动续期。单个 refresh:<hash> 的 TTL 才是权威过期时间；
+        // 集合里滞留的陈旧 deviceId 在吊销/登出时按空值跳过即可
+        redis.opsForSet().add(KEY_DEVICES + subjectId, deviceId);
+        redis.expire(KEY_DEVICES + subjectId, Duration.ofMillis(REFRESH_TTL_MS));
     }
 
     /** 消费旧 token（getAndDelete = 一次性）；返回 null 表示无效或已被消费 */
-    public String consume(String hash) {
-        return redis.opsForValue().getAndDelete(KEY_REFRESH + hash);
+    public String consume(String rawToken) {
+        return redis.opsForValue().getAndDelete(KEY_REFRESH + secretHasher.hash(rawToken));
     }
 
-    /** 查询是否已被消费过（重放检测用） */
-    public String consumedSubject(String hash) {
-        return redis.opsForValue().get(KEY_CONSUMED + hash);
+    /**
+     * 标记已消费（短 TTL 窗口）。值带消费时间戳：重放裁决必须区分
+     * 「几秒前的并发重复」（良性）与「很久之后的旧码再现」（盗用），二者只差一个时间。
+     */
+    public void markConsumed(String rawToken, String subjectId) {
+        String value = subjectId + ":" + System.currentTimeMillis();
+        redis.opsForValue().set(KEY_CONSUMED + secretHasher.hash(rawToken), value, Duration.ofMinutes(30));
     }
 
-    /** 标记已消费（短 TTL 窗口，供重放检测识别） */
-    public void markConsumed(String hash, String subjectId) {
-        redis.opsForValue().set(KEY_CONSUMED + hash, subjectId, Duration.ofMinutes(30));
+    /**
+     * 消费失败后的重放裁决。宽限期内视为并发重复（调用方静默拒绝即可），超出宽限期判盗用
+     * （调用方应全端吊销 + 告警）。
+     */
+    public ReplayCheck checkReplay(String rawToken) {
+        String raw = redis.opsForValue().get(KEY_CONSUMED + secretHasher.hash(rawToken));
+        if (raw == null) {
+            return new ReplayCheck(false, false, null);
+        }
+        int sep = raw.lastIndexOf(':');
+        String subjectId = raw.substring(0, sep);
+        long consumedAt = Long.parseLong(raw.substring(sep + 1));
+        boolean withinGrace = System.currentTimeMillis() - consumedAt < REPLAY_GRACE_MS;
+        return new ReplayCheck(true, withinGrace, subjectId);
     }
 
-    /** 删除指定设备的 refresh token（登出 / 刷新前清理旧设备索引） */
+    /** 删除指定设备的 refresh token（登出 / 刷新前清理旧设备索引），并从设备集合移除 */
     public void revokeDevice(String subjectId, String deviceId) {
         String idxKey = KEY_USER_DEVICE + subjectId + ":" + deviceId;
         String storedHash = redis.opsForValue().getAndDelete(idxKey);
         if (storedHash != null) {
             redis.delete(KEY_REFRESH + storedHash);
         }
+        redis.opsForSet().remove(KEY_DEVICES + subjectId, deviceId);
     }
 
-    /** 吊销某主体所有设备的 refresh token（改密 / 重放攻击兜底） */
+    /**
+     * 吊销某主体所有设备的 refresh token（改密 / 重放攻击兜底）。
+     *
+     * <p>经设备集合枚举而非 KEYS 通配扫描——KEYS 是 O(全键空间) 的阻塞命令，生产实例上会卡住所有请求；
+     * 单主体的设备集合是个位数成员的小 Set，SMEMBERS 成本可忽略。
+     */
     public void revokeAll(String subjectId) {
-        String pattern = KEY_USER_DEVICE + subjectId + ":*";
-        Set<String> keys = redis.keys(pattern);
-        if (keys == null || keys.isEmpty()) return;
-
-        List<String> hashes = redis.opsForValue().multiGet(keys);
-        redis.delete(keys);
-        List<String> refreshKeys = hashes.stream()
-                .filter(Objects::nonNull)
-                .map(h -> KEY_REFRESH + h)
-                .toList();
-        if (!refreshKeys.isEmpty()) {
-            redis.delete(refreshKeys);
+        String devicesKey = KEY_DEVICES + subjectId;
+        Set<String> devices = redis.opsForSet().members(devicesKey);
+        if (devices != null && !devices.isEmpty()) {
+            for (String device : devices) {
+                revokeDevice(subjectId, device);
+            }
         }
-    }
-
-    /** SHA-256 hex。refresh token 只存哈希不落明文（MAINT-01/02） */
-    public static String sha256Hex(String input) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
+        redis.delete(devicesKey);
     }
 }

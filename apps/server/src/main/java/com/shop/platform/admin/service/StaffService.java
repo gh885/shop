@@ -48,18 +48,20 @@ public class StaffService {
 
     /** 刷新双 token（一次一换 + 重放检测，与 C 端同一套凭证逻辑） */
     public TokenPair refresh(String refreshToken, String deviceId) {
-        String hash = RefreshTokenStore.sha256Hex(refreshToken);
-
-        // 1. 消费旧 Refresh Token（getAndDelete = 一次性）
-        String storedStaffId = refreshTokenStore.consume(hash);
+        // 1. 消费旧 Refresh Token（getAndDelete = 一次性；哈希化收敛在存储层内部）
+        String storedStaffId = refreshTokenStore.consume(refreshToken);
 
         if (storedStaffId == null) {
-            // 2. 重放检测：检查是否已被消费
-            String replayedStaffId = refreshTokenStore.consumedSubject(hash);
-            if (replayedStaffId != null) {
-                log.warn("[ADMIN] Refresh Token 重放攻击已检测, staffId={}", replayedStaffId);
-                refreshTokenStore.revokeAll(replayedStaffId);
-                throw new BusinessException(410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
+            // 2. 重放裁决：宽限期内算并发重复（静默拒绝），超期才算盗用（全端吊销）
+            RefreshTokenStore.ReplayCheck replay = refreshTokenStore.checkReplay(refreshToken);
+            if (replay.consumed()) {
+                if (!replay.withinGrace()) {
+                    log.warn("[ADMIN] Refresh Token 重放攻击已检测, staffId={}", replay.subjectId());
+                    refreshTokenStore.revokeAll(replay.subjectId());
+                    throw new BusinessException(410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
+                }
+                log.info("[ADMIN] Refresh 并发竞争（宽限期内）, staffId={}", replay.subjectId());
+                throw BusinessException.unauthorized("登录状态正在其他页面刷新，请稍后重试");
             }
             throw BusinessException.unauthorized("Refresh Token 无效或已过期");
         }
@@ -67,12 +69,15 @@ public class StaffService {
         UUID staffId = UUID.fromString(storedStaffId);
 
         // 3. 标记已消费 + 清除旧设备索引
-        refreshTokenStore.markConsumed(hash, storedStaffId);
+        refreshTokenStore.markConsumed(refreshToken, storedStaffId);
         refreshTokenStore.revokeDevice(storedStaffId, deviceId);
 
-        // 4. 查员工并签发全新 Token
+        // 4. 查员工并签发全新 Token；禁用员工在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
         Staff staff = staffMapper.selectById(staffId);
         if (staff == null) throw BusinessException.notFound("员工不存在");
+        if (!Staff.STATUS_ACTIVE.equals(staff.getStatus())) {
+            throw new BusinessException(403, "STAFF_DISABLED", "账号已被禁用");
+        }
         return issueTokens(staff, deviceId);
     }
 
@@ -95,10 +100,9 @@ public class StaffService {
     private TokenPair issueTokens(Staff staff, String deviceId) {
         String accessToken = jwtProvider.createStaffAccessToken(staff.getId());
         String refreshToken = jwtProvider.generateRefreshToken();
-        String hash = RefreshTokenStore.sha256Hex(refreshToken);
 
-        // 存 SHA-256 哈希，不落明文；签发 + 设备索引见 RefreshTokenStore
-        refreshTokenStore.issue(staff.getId().toString(), deviceId, hash);
+        // 只存 HMAC 摘要不落明文；摘要算法与存储结构收敛在 RefreshTokenStore/SecretHasher
+        refreshTokenStore.issue(staff.getId().toString(), deviceId, refreshToken);
         return new TokenPair(accessToken, refreshToken);
     }
 }

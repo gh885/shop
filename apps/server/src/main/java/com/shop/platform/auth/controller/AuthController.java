@@ -42,11 +42,12 @@ public class AuthController {
 
     private final SmsCodeService smsCodeService;
     private final AuthService authService;
+    private final ClientIp clientIp;
 
     /** 发送短信验证码 */
     @PostMapping("/sms-code")
     public void sendSmsCode(@Valid @RequestBody SmsCodeRequest req, HttpServletRequest servletRequest) {
-        smsCodeService.sendCode(req.phone(), ClientIp.of(servletRequest));
+        smsCodeService.sendCode(req.phone(), clientIp.of(servletRequest));
     }
 
     /** 短信验证码登录/注册 */
@@ -55,7 +56,7 @@ public class AuthController {
             @Valid @RequestBody SmsLoginRequest req,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
-        TokenPair result = authService.loginBySms(req.phone(), req.code(), req.deviceId(), ClientIp.of(servletRequest));
+        TokenPair result = authService.loginBySms(req.phone(), req.code(), req.deviceId(), clientIp.of(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -67,7 +68,7 @@ public class AuthController {
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
         TokenPair result =
-                authService.loginByPassword(req.phone(), req.password(), req.deviceId(), ClientIp.of(servletRequest));
+                authService.loginByPassword(req.phone(), req.password(), req.deviceId(), clientIp.of(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -82,13 +83,13 @@ public class AuthController {
     /** 发送重置密码验证码 */
     @PostMapping("/forgot-password")
     public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest req, HttpServletRequest servletRequest) {
-        authService.forgotPassword(req.phone(), ClientIp.of(servletRequest));
+        authService.forgotPassword(req.phone(), clientIp.of(servletRequest));
     }
 
     /** 使用重置 token 设置新密码 */
     @PostMapping("/reset-password")
     public void resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
-        authService.resetPassword(req.phone(), req.token(), req.newPassword());
+        authService.resetPassword(req.phone(), req.code(), req.newPassword());
     }
 
     /** 刷新双 token（STORE-02: Cookie + Body 双来源） */

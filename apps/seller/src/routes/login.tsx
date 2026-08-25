@@ -68,11 +68,8 @@ function LoginPage() {
                 void navigate({ to: "/", replace: true })
             } catch (error) {
                 const err = await toApiError(error)
-                setServerError(
-                    err.code === ErrorCodes.PASSWORD_NOT_SET
-                        ? "该账号尚未设置密码，请改用验证码登录"
-                        : err.detail,
-                )
+                // 登录失败对外统一文案（后端刻意不暴露「未设密码」以反账号枚举）
+                setServerError(err.detail)
                 setCodeInvalid(
                     err.code === ErrorCodes.SMS_CODE_INVALID ||
                         err.code === ErrorCodes.SMS_CODE_EXPIRED,
