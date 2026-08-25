@@ -74,25 +74,45 @@ class NamingRulesTest {
             .resideOutsideOfPackage("..dto..")
             .as("Request 后缀只允许出现在 dto 包");
 
-    /** 以 Query 结尾的类只能出现在 dto 包。当前尚无 Query 类，允许空匹配 */
+    /** 以 Query 结尾的类只能出现在 dto 包（HTTP 查询入参）或 api 包（跨模块只读查询，如 ProductReadQuery） */
     @ArchTest
     static final ArchRule query_suffix_only_in_dto = noClasses()
             .that()
             .haveSimpleNameEndingWith("Query")
             .should()
             .resideOutsideOfPackage("..dto..")
+            .andShould()
+            .resideOutsideOfPackage("..api..")
             .allowEmptyShould(true)
-            .as("Query 后缀只允许出现在 dto 包");
+            .as("Query 后缀只允许出现在 dto 包或 api 包");
 
-    /** 以 Command 结尾的类只能出现在 service 包 */
+    /** 以 Command 结尾的类只能出现在 service 包（业务入参聚合）或 api 包（跨模块命令，如 StockCommand） */
     @ArchTest
     static final ArchRule command_suffix_only_in_service = noClasses()
             .that()
             .haveSimpleNameEndingWith("Command")
             .should()
             .resideOutsideOfPackage("..service..")
+            .andShould()
+            .resideOutsideOfPackage("..api..")
             .allowEmptyShould(true)
-            .as("Command 后缀只允许出现在 service 包");
+            .as("Command 后缀只允许出现在 service 包或 api 包");
+
+    /**
+     * JdbcTemplate 只允许 infra.db（共享数据访问基建）与各模块 api 包（跨模块只读查询落点）引用，
+     * 禁止出现在 service 等其他包——跨 schema 裸 SQL 必须收进 owning 模块的 api 包。
+     */
+    @ArchTest
+    static final ArchRule jdbc_template_only_in_infra_db_and_api = noClasses()
+            .that()
+            .resideOutsideOfPackage("..infra.db..")
+            .and()
+            .resideOutsideOfPackage("..api..")
+            .should()
+            .dependOnClassesThat()
+            .areAssignableTo(org.springframework.jdbc.core.JdbcTemplate.class)
+            .allowEmptyShould(true)
+            .as("JdbcTemplate 只允许 infra.db 与各模块 api 包引用");
 
     /** 以 Response 结尾的类只能出现在 controller 包 */
     @ArchTest

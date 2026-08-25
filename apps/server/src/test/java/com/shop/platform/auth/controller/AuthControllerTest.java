@@ -222,7 +222,8 @@ class AuthControllerTest {
                                     """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("new-at"))
-                .andExpect(jsonPath("$.refreshToken").value("rt:new"))
+                // refresh token 只走 httpOnly cookie，@JsonIgnore 不落响应体（防 XSS 读走凭证）
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(cookie().exists("refresh_token"));
     }
 
@@ -300,7 +301,8 @@ class AuthControllerTest {
                                     """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("at1"))
-                .andExpect(jsonPath("$.refreshToken").value("rt1"))
+                // refresh token 不落响应体，只走 httpOnly cookie（见 TokenPair 的 @JsonIgnore）
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(cookie().exists("refresh_token"));
     }
 
@@ -321,7 +323,8 @@ class AuthControllerTest {
     // ========== IP 提取 ==========
 
     @Test
-    void sendSmsCode_withXForwardedFor_passesClientIp() throws Exception {
+    void sendSmsCode_withXForwardedFor_untrustedByDefault() throws Exception {
+        // ClientIp 默认不信 XFF（客户端自报头，盲信会让 IP 限流失效）→ 用 TCP 对端地址
         mockMvc.perform(
                         post("/auth/sms-code")
                                 .header("X-Forwarded-For", "203.0.113.1, 10.0.0.1")
@@ -332,7 +335,7 @@ class AuthControllerTest {
                                     """))
                 .andExpect(status().isOk());
 
-        verify(smsCodeService).sendCode(eq("13800138000"), eq("203.0.113.1"));
+        verify(smsCodeService).sendCode(eq("13800138000"), eq("127.0.0.1"));
     }
 
     @Test

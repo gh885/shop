@@ -1,9 +1,9 @@
 package com.shop.platform.shop.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.shop.platform.auth.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
-import com.shop.platform.infra.db.CrossSchemaReader;
 import com.shop.platform.shop.events.ShopCreatedEvent;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +28,7 @@ public class ShopService {
     private final ShopMapper shopMapper;
     private final ShopMemberMapper shopMemberMapper;
     private final ApplicationEventPublisher events;
-    private final JdbcTemplate jdbc;
-    private final CrossSchemaReader reader;
+    private final UserReadQuery userReadQuery;
 
     /** 开店：建店（PENDING_REVIEW）+ 店主成为 OWNER 成员 + 发布审核事件 */
     @Transactional
@@ -133,7 +131,7 @@ public class ShopService {
         List<ShopMember> members = shopMemberMapper.selectList(new LambdaQueryWrapper<ShopMember>()
                 .eq(ShopMember::getShopId, shopId)
                 .orderByAsc(ShopMember::getCreatedAt));
-        Map<UUID, String> phones = loadPhones(
+        Map<UUID, String> phones = userReadQuery.phonesByIds(
                 members.stream().map(ShopMember::getUserId).distinct().toList());
         return members.stream()
                 .map(m -> new ShopMemberItem(
@@ -147,8 +145,8 @@ public class ShopService {
         // 1. 校验操作者是店主
         requireOwner(shopId, ownerId);
 
-        // 2. 按手机号找人（跨 schema 只读，auth.users 全局唯一手机号）
-        UUID inviteeId = findUserIdByPhone(phone);
+        // 2. 按手机号找人（auth :: api 只读，auth.users 全局唯一手机号）
+        UUID inviteeId = userReadQuery.findIdByPhone(phone);
         if (inviteeId == null) {
             throw BusinessException.badRequest("该手机号还未注册");
         }
@@ -212,17 +210,5 @@ public class ShopService {
         if (count == 0) {
             throw BusinessException.forbidden("你不是该店铺成员");
         }
-    }
-
-    /** 跨 schema 只读：按手机号查 auth.users.id（全局唯一），未注册返回 null。非主键点查，属 CrossSchemaReader 之外的特例，保持显式 */
-    private UUID findUserIdByPhone(String phone) {
-        List<UUID> ids = jdbc.query(
-                "SELECT id FROM auth.users WHERE phone = ?", (rs, i) -> rs.getObject("id", UUID.class), phone);
-        return ids.isEmpty() ? null : ids.getFirst();
-    }
-
-    /** 跨 schema 只读：按 ID 批量查 auth.users 手机号 */
-    private Map<UUID, String> loadPhones(List<UUID> userIds) {
-        return reader.stringsByIds("auth.users", "phone", userIds);
     }
 }

@@ -1,35 +1,32 @@
-package com.shop.platform.product.service;
+package com.shop.platform.product.api;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.order.events.OrderCancelledEvent;
-import com.shop.platform.order.events.OrderCreatedEvent;
-import com.shop.platform.order.events.OrderLine;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SkuMapper;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 库存事件监听：订单创建扣减、订单取消回补。
+ * 库存命令（跨模块消费）：order 模块下单扣减、取消/关单回补。
  *
- * <p>同步同事务消费（不用 AFTER_COMMIT）：扣减发生在下单事务内，任一 SKU 条件扣减失败
+ * <p>同步同事务调用：扣减发生在下单事务内，任一 SKU 条件扣减失败
  * （WHERE stock >= n 影响行数 = 0）抛 409 令整单回滚——防超卖的最终闸门与下单原子；
- * 回补同理与取消原子。数量来自本模块校验过的快照行，SQL 参数化拼接无注入面。
+ * 回补同理与取消原子。数量来自调用方校验过的快照行，SQL 参数化拼接无注入面。
  */
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class StockEventListener {
+public class StockCommand {
 
     private final SkuMapper skuMapper;
 
-    @EventListener
-    public void onOrderCreated(OrderCreatedEvent event) {
-        for (OrderLine line : event.lines()) {
+    /** 条件扣减：任一行库存不足即抛 409，调用方事务整体回滚 */
+    public void deduct(List<StockLine> lines) {
+        for (StockLine line : lines) {
             // 1. 条件扣减：库存不足时影响行数为 0，拒绝整笔订单
             int affected = skuMapper.update(
                     null,
@@ -45,10 +42,9 @@ public class StockEventListener {
         }
     }
 
-    @EventListener
-    public void onOrderCancelled(OrderCancelledEvent event) {
-        for (OrderLine line : event.lines()) {
-            // 取消回补：无条件加回（订单既然成立过，库存就欠它）
+    /** 取消回补：无条件加回（订单既然成立过，库存就欠它） */
+    public void restock(List<StockLine> lines) {
+        for (StockLine line : lines) {
             skuMapper.update(
                     null,
                     new LambdaUpdateWrapper<Sku>()

@@ -20,8 +20,8 @@ openapi/                  ← （预留）OpenAPI 契约 —— 当前未启用�
 
 ## 关键架构规则
 
-1. **模块隔离**：模块之间不 import 对方的 service/repo，只靠 Spring Modulith Event Bus 通信
-2. **Schema 隔离**：每个模块拥有自己的 PG schema（`product.products`），可只读跨 schema 按 ID 查字段
+1. **模块隔离**：模块之间不 import 对方的 service/repo。模块间通信 = **api 包接口**（`@NamedInterface("api")`，查询与命令，同步同事务调用）+ **events 包事件**（`@NamedInterface("events")`，纯通知）。消费方在 `@ApplicationModule(allowedDependencies = …)` 显式登记
+2. **Schema 隔离**：每个模块拥有自己的 PG schema（`product.products`）；跨 schema 只读按 ID 查询一律收进 owning 模块的 api 包（JdbcTemplate 只允许 infra.db 与各模块 api 包引用，ArchUnit 强制）
 3. **不许跨 schema JOIN**
 4. **`common/` 与 `infra/` 属于共享纯包**，不属于任何业务模块，无`@ApplicationModule`，经 `@Modulithic(sharedModules = {"common","infra"})` 显式登记为共享模块，任何模块可引用
 5. **@Modulithic 强制校验模块边界**，测试期跨模块 import 直接报错
@@ -35,11 +35,13 @@ server/src/main/java/com/shop/platform/
 ├── infra/                        ← 共享纯包：跨模块技术适配（JWT、限流、Filter、MyBatis 配置）
 ├── auth/                         ← 模块 = 顶层包 = PG schema
 │   ├── AuthModuleConfig.java     ← @ConditionalOnProperty 开关
-│   ├── package-info.java         ← @ApplicationModule
+│   ├── package-info.java         ← @ApplicationModule（消费他模块时在 allowedDependencies 显式登记）
 │   ├── controller/               ← REST 入口
 │   ├── dto/                      ← HTTP 入参（XxxRequest / XxxQuery）
 │   ├── service/                  ← 业务逻辑
-│   └── mapper/                   ← Entity + Mapper
+│   ├── mapper/                   ← Entity + Mapper
+│   ├── api/                      ← 可选：对外命名接口 @NamedInterface("api")，跨模块同步查询（XxxReadQuery）与命令（XxxCommand）
+│   └── events/                   ← 可选：对外事件 @NamedInterface("events")，纯通知
 ├── product/
 ├── order/
 └── …
@@ -48,7 +50,7 @@ server/src/main/java/com/shop/platform/
 - 模块内部结构：controller → service → mapper，三层到底
 - 命名规范（三层契约）见 `apps/server/AGENTS.md`，由 ArchUnit 强制校验
 - BO/Model 可选，不预创建空目录
-- events/ 目录只在需要跨模块事件时创建
+- api/ 只在有跨模块同步调用需求时创建；events/ 只在需要跨模块纯通知事件时创建
 
 ## 常用命令
 

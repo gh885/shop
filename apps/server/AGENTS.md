@@ -77,9 +77,10 @@ public class Product {
 - **数据库对象（mapper 包）**：裸名词无后缀（`User` / `Product` / `Sku`）；Mapper 接口以 `Mapper` 结尾
 - **HTTP 入参（模块 `dto/` 包）**：`<动作>Request`，查询类入参用 `<名词>Query`；`Request` / `Query` 后缀只允许出现在 dto 包。create/update 共用同一 body 时允许 `<名词>Request`（如 BannerRequest / AddressRequest），字段完全相同才共用，别为了凑后缀复制两份
 - **业务入参聚合（service 包内部类）**：`<动作>Command`，仅当入参字段多到无法拆包传基本类型时使用
+- **跨模块 api 包（模块 `api/`，`@NamedInterface("api")`）**：对外暴露的同步接口。只读查询用 `<名词>ReadQuery`（如 ProductReadQuery，返回 XxxView 投影 record，状态魔法值私有在 owning 模块、对外给 `onSale()`/`published()` 这类谓词）；命令用 `<动作>Command`（如 StockCommand，同事务同步调用语义，失败抛异常回滚调用方事务）。跨 schema 裸 SQL 只允许出现在这里与 infra.db
 - **Service 出参（service 包顶层类）**：能直接返回实体/已有类型就不新建；必须变形时按形状命名（`CategoryNode` / `StaffInfo` / `ProductDetail`），不贴统一 Response 标签，名字要说出"装的是什么"而非"某操作的结果"。形状名是开放集合、无方向性，ArchUnit 不强制其位置，按本节约定放 service 包顶层类
 - **HTTP 出参（controller 包内部类；跨 controller 共用时可为包内顶层类，如 cms 的三个 Response、product 的 CategoryNodeResponse）**：**一律定义 `<名词>Response` record，禁止直接返回 mapper 实体或 service 形状类** —— 实体的每一列都是潜在契约，存储演进会悄悄破坏前端（先例：Address 曾把 deletedAt 软删标记序列化出去；CartController 曾直出 CartItemView）。字段镜像现状、只减不增；由 NamingRulesTest 强制：HTTP handler 返回类型必须是 `XxxResponse / List<XxxResponse> / PageResult<XxxResponse>` / void，共享层值对象（infra 的 TokenPair，auth/admin 登录共用）豁免。注意 service 形状类内嵌 mapper 实体时同样不得越过 HTTP 边界（如 ProductDetail 需转 ProductDetailResponse）
 - **子组件**：Request 内部的嵌套小组件按语义命名（如 `SkuUpdateItem`），不受方向后缀约束
 - **跨模块共享**：多个模块都要用的形状类（如 `TokenPair`）放共享层（`common/` 或 `infra/`），按共享层语义两轴判断归属
 
-由 `src/test/java/com/shop/platform/NamingRulesTest.java`（ArchUnit）强制校验方向后缀的归属（Request/Query → dto，Command → service，Response → controller，mapper 裸名词）；形状命名的位置为文字约定。
+由 `src/test/java/com/shop/platform/NamingRulesTest.java`（ArchUnit）强制校验方向后缀的归属（Request → dto，Query → dto/api，Command → service/api，Response → controller，mapper 裸名词；JdbcTemplate 只允许 infra.db 与 api 包）；形状命名的位置为文字约定。

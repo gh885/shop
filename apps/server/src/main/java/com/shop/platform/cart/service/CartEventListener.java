@@ -1,9 +1,9 @@
 package com.shop.platform.cart.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.shop.platform.cart.events.CartCheckedOutEvent;
 import com.shop.platform.cart.mapper.CartItem;
 import com.shop.platform.cart.mapper.CartItemMapper;
-import com.shop.platform.order.events.CartCheckedOutEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

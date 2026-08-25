@@ -11,10 +11,12 @@ import com.shop.platform.cart.mapper.CartItemMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
-import com.shop.platform.infra.db.CrossSchemaReader;
+import com.shop.platform.product.api.ProductReadQuery;
+import com.shop.platform.product.api.ProductView;
+import com.shop.platform.product.api.SkuView;
+import com.shop.platform.shop.api.ShopReadQuery;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,32 +32,24 @@ public class CartService {
     /** 单用户购物车不同 SKU 条目上限，防刷；合并不受限 */
     private static final int MAX_ITEMS_PER_USER = 99;
 
-    // product / shop schema 的状态值约定（裸 SQL 只读访问，不 import 对方模块类）
-    private static final int SKU_STATUS_ON_SALE = 1;
-
-    private static final int PRODUCT_STATUS_PUBLISHED = 1;
-
-    /** product.skus 投影列（购物车视图需要的展示与可用性字段） */
-    private static final List<String> SKU_COLUMNS =
-            List.of("product_id", "name", "image", "price", "original_price", "currency", "stock", "status");
-
-    /** product.products 投影列（卡片 + 可用性判断） */
-    private static final List<String> PRODUCT_COLUMNS = List.of("shop_id", "name", "main_image", "status");
-
     private final CartItemMapper cartItemMapper;
 
-    private final CrossSchemaReader reader;
+    private final ProductReadQuery productReadQuery;
+
+    private final ShopReadQuery shopReadQuery;
 
     /** 加购：同 SKU 幂等合并为数量累加。停售/下架拒收，库存不足放行（闸门在下单） */
     @Transactional
     public CartItem add(UUID userId, AddCartItemRequest req) {
-        // 1. 校验可加购：SKU 存在且在售、其 SPU 已上架（跨 schema 只读按 ID 查，禁止 JOIN）
-        SkuRow sku = loadSku(req.skuId())
-                .filter(s -> s.status() == SKU_STATUS_ON_SALE)
+        // 1. 校验可加购：SKU 存在且在售、其 SPU 已上架（product :: api 按 ID 只读查，禁止 JOIN）
+        SkuView sku = productReadQuery.skusByIds(List.of(req.skuId())).values().stream()
+                .findFirst()
+                .filter(SkuView::onSale)
                 .orElseThrow(() -> BusinessException.badRequest("商品规格不存在或已停售"));
         Validate.isTrue(
-                loadProductStatus(sku.productId())
-                        .filter(s -> s == PRODUCT_STATUS_PUBLISHED)
+                productReadQuery.productsByIds(List.of(sku.productId())).values().stream()
+                        .findFirst()
+                        .filter(ProductView::published)
                         .isPresent(),
                 "商品已下架");
 
@@ -97,8 +91,8 @@ public class CartService {
     /**
      * 整车列表：新加的在前。
      *
-     * <p>展示数据三次只读 IN 批查（SKU → SPU → 店铺名）内存拼装，禁止跨 schema JOIN、不做 N+1；
-     * 失效条目（SKU 被删/停售、SPU 下架）available=false 原样保留置灰。
+     * <p>展示数据三次只读 IN 批查（SKU → SPU → 店铺名，经 product / shop 的 api 包）内存拼装，
+     * 禁止跨 schema JOIN、不做 N+1；失效条目（SKU 被删/停售、SPU 下架）available=false 原样保留置灰。
      */
     public List<CartItemView> list(UUID userId) {
         // 1. 拉整车
@@ -109,15 +103,15 @@ public class CartService {
             return List.of();
         }
 
-        // 2. 跨 schema 只读批查展示数据
+        // 2. 跨模块只读批查展示数据
         List<UUID> skuIds = items.stream().map(CartItem::getSkuId).distinct().toList();
-        Map<UUID, SkuRow> skus = loadSkus(skuIds);
+        Map<UUID, SkuView> skus = productReadQuery.skusByIds(skuIds);
         List<UUID> productIds =
-                skus.values().stream().map(SkuRow::productId).distinct().toList();
-        Map<UUID, ProductRow> products = loadProducts(productIds);
+                skus.values().stream().map(SkuView::productId).distinct().toList();
+        Map<UUID, ProductView> products = productReadQuery.productsByIds(productIds);
         List<UUID> shopIds =
-                products.values().stream().map(ProductRow::shopId).distinct().toList();
-        Map<UUID, String> shopNames = loadShopNames(shopIds);
+                products.values().stream().map(ProductView::shopId).distinct().toList();
+        Map<UUID, String> shopNames = shopReadQuery.namesByIds(shopIds);
 
         // 3. 拼装视图
         return items.stream()
@@ -188,8 +182,8 @@ public class CartService {
 
     /** 拼装单条视图：SKU 缺失 → 全空视图置灰；SPU 缺失 → 只剩 SKU 信息同样置灰 */
     private CartItemView assemble(
-            CartItem item, Map<UUID, SkuRow> skus, Map<UUID, ProductRow> products, Map<UUID, String> shopNames) {
-        SkuRow sku = skus.get(item.getSkuId());
+            CartItem item, Map<UUID, SkuView> skus, Map<UUID, ProductView> products, Map<UUID, String> shopNames) {
+        SkuView sku = skus.get(item.getSkuId());
         if (sku == null) {
             return new CartItemView(
                     item.getId(),
@@ -201,7 +195,7 @@ public class CartService {
                     null,
                     false);
         }
-        ProductRow product = products.get(sku.productId());
+        ProductView product = products.get(sku.productId());
         CartItemView.SkuInfo skuInfo = new CartItemView.SkuInfo(
                 sku.id(),
                 sku.name(),
@@ -222,7 +216,7 @@ public class CartService {
                     skuInfo,
                     false);
         }
-        boolean available = product.status() == PRODUCT_STATUS_PUBLISHED && sku.status() == SKU_STATUS_ON_SALE;
+        boolean available = product.published() && sku.onSale();
         CartItemView.ProductInfo productInfo = new CartItemView.ProductInfo(
                 product.id(), product.name(), product.mainImage(), product.shopId(), shopNames.get(product.shopId()));
         return new CartItemView(
@@ -236,75 +230,8 @@ public class CartService {
                 available);
     }
 
-    // ========== 跨 schema 只读（经 infra CrossSchemaReader 按主键点查，禁止 JOIN） ==========
-
-    /** product.skus 按 ID 批查展示字段 */
-    private Map<UUID, SkuRow> loadSkus(List<UUID> skuIds) {
-        return reader.byIds(
-                "product.skus",
-                SKU_COLUMNS,
-                skuIds,
-                rs -> new SkuRow(
-                        rs.getObject("id", UUID.class),
-                        rs.getObject("product_id", UUID.class),
-                        rs.getString("name"),
-                        rs.getString("image"),
-                        rs.getObject("price", Long.class),
-                        rs.getObject("original_price", Long.class),
-                        rs.getString("currency"),
-                        rs.getObject("stock", Integer.class),
-                        rs.getObject("status", Integer.class)));
-    }
-
-    /** 单个 SKU 行（加购校验用），查无此行返回 empty */
-    private Optional<SkuRow> loadSku(UUID skuId) {
-        return Optional.ofNullable(loadSkus(List.of(skuId)).get(skuId));
-    }
-
-    /** 单个 SPU 状态（加购校验用），查无此行返回 empty */
-    private Optional<Integer> loadProductStatus(UUID productId) {
-        return reader.byId(
-                "product.products", List.of("status"), productId, rs -> rs.getObject("status", Integer.class));
-    }
-
-    /** product.products 按 ID 批查卡片字段 */
-    private Map<UUID, ProductRow> loadProducts(List<UUID> productIds) {
-        return reader.byIds(
-                "product.products",
-                PRODUCT_COLUMNS,
-                productIds,
-                rs -> new ProductRow(
-                        rs.getObject("id", UUID.class),
-                        rs.getObject("shop_id", UUID.class),
-                        rs.getString("name"),
-                        rs.getString("main_image"),
-                        rs.getObject("status", Integer.class)));
-    }
-
-    /** shop.shops 按 ID 批查店名（按店铺分组展示用） */
-    private Map<UUID, String> loadShopNames(List<UUID> shopIds) {
-        return reader.stringsByIds("shop.shops", "name", shopIds);
-    }
-
     private static Money money(Long fen, String currency) {
         if (fen == null) return null;
         return Money.ofFen(fen, currency != null ? currency : Money.CNY);
     }
-
-    // ========== 只读投影 ==========
-
-    /** product.skus 行投影（cart 视角只需要展示与可用性字段） */
-    private record SkuRow(
-            UUID id,
-            UUID productId,
-            String name,
-            String image,
-            Long price,
-            Long originalPrice,
-            String currency,
-            Integer stock,
-            Integer status) {}
-
-    /** product.products 行投影 */
-    private record ProductRow(UUID id, UUID shopId, String name, String mainImage, Integer status) {}
 }

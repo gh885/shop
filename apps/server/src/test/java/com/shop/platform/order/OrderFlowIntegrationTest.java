@@ -10,15 +10,14 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
-import com.shop.platform.order.events.OrderCreatedEvent;
-import com.shop.platform.order.events.OrderLine;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.service.PaymentService;
-import com.shop.platform.product.service.StockEventListener;
+import com.shop.platform.product.api.StockCommand;
+import com.shop.platform.product.api.StockLine;
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -43,7 +42,7 @@ class OrderFlowIntegrationTest {
     private PaymentService paymentService;
 
     @Autowired
-    private StockEventListener stockEventListener;
+    private StockCommand stockCommand;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -121,7 +120,7 @@ class OrderFlowIntegrationTest {
         assertEquals(0, preview.unavailable().size());
         assertEquals(2000L, preview.totalPayAmount().amount());
 
-        // 2. 下单：拆一单、行快照落库、库存 5 → 3（事件同步扣减）
+        // 2. 下单：拆一单、行快照落库、库存 5 → 3（同事务同步调用扣减）
         List<Order> created = orderService.create(userId, buyNow(2));
         assertEquals(1, created.size());
         Order order = created.getFirst();
@@ -130,7 +129,7 @@ class OrderFlowIntegrationTest {
         assertNotNull(order.getPayExpireAt());
         assertEquals(3, stockOf());
 
-        // 3. 支付：流水落库且订单推进到 PAID（同事务事件链）
+        // 3. 支付：流水落库且订单推进到 PAID（同事务同步调用链）
         Payment paid = paymentService.pay(userId, order.getId());
         assertEquals(Payment.STATUS_SUCCESS, paid.getStatus());
         assertEquals(Order.STATUS_PAID, statusOf(order.getId()));
@@ -172,15 +171,13 @@ class OrderFlowIntegrationTest {
         assertEquals(5, stockOf());
     }
 
-    /** 并发窗口兑底：预览时充足、扣减时被抢空 → 条件更新影响行数 0 → 监听器抛 INSUFFICIENT_STOCK(409) */
+    /** 并发窗口兑底：预览时充足、扣减时被抢空 → 条件更新影响行数 0 → StockCommand 抛 INSUFFICIENT_STOCK(409) */
     @Test
-    void stockListener_raceWindowShortage_conflictWithCode() {
+    void stockCommand_raceWindowShortage_conflictWithCode() {
         seedSku(5);
 
-        BusinessException ex = assertThrows(
-                BusinessException.class,
-                () -> stockEventListener.onOrderCreated(
-                        new OrderCreatedEvent(skuId, List.of(new OrderLine(skuId, 999)))));
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> stockCommand.deduct(List.of(new StockLine(skuId, 999))));
         assertEquals(409, ex.getHttpStatus());
         assertEquals("INSUFFICIENT_STOCK", ex.getCode());
     }

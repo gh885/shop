@@ -233,9 +233,8 @@ class AuthServiceTest {
         @Test
         void success() {
             String token = "rt:valid";
-            String hash = RefreshTokenStore.sha256Hex(token);
 
-            when(refreshTokenStore.consume(hash)).thenReturn(USER_ID.toString());
+            when(refreshTokenStore.consume(token)).thenReturn(USER_ID.toString());
             when(userMapper.selectById(USER_ID)).thenReturn(new User() {
                 {
                     setId(USER_ID);
@@ -253,10 +252,10 @@ class AuthServiceTest {
         @Test
         void expiredTokenThrows() {
             String token = "rt:expired";
-            String hash = RefreshTokenStore.sha256Hex(token);
 
-            when(refreshTokenStore.consume(hash)).thenReturn(null);
-            when(refreshTokenStore.consumedSubject(hash)).thenReturn(null);
+            when(refreshTokenStore.consume(token)).thenReturn(null);
+            when(refreshTokenStore.checkReplay(token))
+                    .thenReturn(new RefreshTokenStore.ReplayCheck(false, false, null));
 
             assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
         }
@@ -264,10 +263,10 @@ class AuthServiceTest {
         @Test
         void replayDetectionRevokesAll() {
             String token = "rt:replay";
-            String hash = RefreshTokenStore.sha256Hex(token);
 
-            when(refreshTokenStore.consume(hash)).thenReturn(null);
-            when(refreshTokenStore.consumedSubject(hash)).thenReturn(USER_ID.toString());
+            when(refreshTokenStore.consume(token)).thenReturn(null);
+            when(refreshTokenStore.checkReplay(token))
+                    .thenReturn(new RefreshTokenStore.ReplayCheck(true, false, USER_ID.toString()));
 
             var ex = assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
             assertEquals(410, ex.getHttpStatus());

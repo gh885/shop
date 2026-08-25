@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,8 +42,8 @@ public class Order {
     public static final String STATUS_CANCELLED = "CANCELLED";
 
     /**
-     * 状态机：合法转移的唯一真相。service 层的条件更新（WHERE status = ?）从这里取源/目标状态，
-     * 前端动作按钮从 {@link #buyerActions()} / {@link #sellerActions()} 推导，三处消费同一张表不会漂移。
+     * 状态机：合法转移的唯一真相。service / api 层的条件更新（WHERE status IN sourcesOf(目标态)）
+     * 从这里反推源状态，前端动作按钮从 {@link #buyerActions()} / {@link #sellerActions()} 推导，三处消费同一张表不会漂移。
      */
     private static final Map<String, Set<String>> TRANSITIONS = Map.of(
             STATUS_PENDING_PAYMENT, Set.of(STATUS_PAID, STATUS_CANCELLED),
@@ -53,6 +54,17 @@ public class Order {
 
     /** 全部合法状态（列表筛选参数校验用），由转移表派生避免双份枚举 */
     public static final Set<String> ALL_STATUSES = TRANSITIONS.keySet();
+
+    /**
+     * 能转移到 target 的全部源状态：条件更新（WHERE status IN (...)）的合法前置集。
+     * 源状态不再散写各 service，加新转移只改 TRANSITIONS 一处。
+     */
+    public static Set<String> sourcesOf(String target) {
+        return TRANSITIONS.entrySet().stream()
+                .filter(e -> e.getValue().contains(target))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
 
     /** 转移目标 → 前端动作名：状态机是后端语汇，动作是交互语汇，一张映射表维系两套词表 */
     private static final Map<String, String> ACTION_BY_TARGET = Map.of(

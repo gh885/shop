@@ -6,7 +6,8 @@ import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
 import com.shop.platform.favorite.mapper.FavoriteItem;
 import com.shop.platform.favorite.mapper.FavoriteItemMapper;
-import com.shop.platform.infra.db.CrossSchemaReader;
+import com.shop.platform.product.api.ProductReadQuery;
+import com.shop.platform.product.api.ProductView;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,16 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class FavoriteService {
 
-    /** product.products 状态值约定（裸 SQL 只读访问，不 import 对方模块类） */
-    private static final int PRODUCT_STATUS_PUBLISHED = 1;
-
-    /** product.products 投影列（收藏卡片：标题/主图/现价区间） */
-    private static final List<String> PRODUCT_COLUMNS =
-            List.of("shop_id", "name", "main_image", "min_price", "max_price", "status");
-
     private final FavoriteItemMapper favoriteItemMapper;
 
-    private final CrossSchemaReader reader;
+    private final ProductReadQuery productReadQuery;
 
     /**
      * 收藏：幂等开关。商品不存在或未上架拒绝；重复收藏撞唯一索引后静默回退为无操作。
@@ -38,10 +32,10 @@ public class FavoriteService {
      */
     @Transactional
     public FavoriteItem add(UUID userId, UUID productId) {
-        // 1. 校验商品存在且已上架（跨 schema 只读按 ID 查，禁止 JOIN）：查到状态且状态为在售才放行
-        boolean published = reader.byId(
-                        "product.products", List.of("status"), productId, rs -> rs.getObject("status", Integer.class))
-                .filter(s -> s == PRODUCT_STATUS_PUBLISHED)
+        // 1. 校验商品存在且已上架（product :: api 按 ID 只读查，禁止 JOIN）：查到且已上架才放行
+        boolean published = productReadQuery.productsByIds(List.of(productId)).values().stream()
+                .findFirst()
+                .filter(ProductView::published)
                 .isPresent();
         Validate.isTrue(published, "商品不存在或已下架");
 
@@ -88,8 +82,8 @@ public class FavoriteService {
             return new PageResult<>(List.of(), pageResult.getTotal());
         }
 
-        // 2. 跨 schema 只读批查商品卡片数据
-        Map<UUID, ProductRow> products = loadProducts(
+        // 2. 跨模块只读批查商品卡片数据（product :: api）
+        Map<UUID, ProductView> products = productReadQuery.productsByIds(
                 rows.stream().map(FavoriteItem::getProductId).distinct().toList());
 
         // 3. 拼装视图：商品被删/下架 → available=false 原样保留置灰
@@ -120,12 +114,12 @@ public class FavoriteService {
     // ========== 内部 ==========
 
     /** 拼装单条视图：商品缺失 → 全空视图置灰 */
-    private FavoriteItemView assemble(FavoriteItem item, Map<UUID, ProductRow> products) {
-        ProductRow p = products.get(item.getProductId());
+    private FavoriteItemView assemble(FavoriteItem item, Map<UUID, ProductView> products) {
+        ProductView p = products.get(item.getProductId());
         if (p == null) {
             return new FavoriteItemView(item.getId(), item.getProductId(), item.getCreatedAt(), null, false);
         }
-        boolean available = p.status() == PRODUCT_STATUS_PUBLISHED;
+        boolean available = p.published();
         FavoriteItemView.ProductInfo info = new FavoriteItemView.ProductInfo(
                 p.id(),
                 p.name(),
@@ -134,22 +128,4 @@ public class FavoriteService {
                 p.maxPrice() == null ? null : Money.cny(p.maxPrice()));
         return new FavoriteItemView(item.getId(), item.getProductId(), item.getCreatedAt(), info, available);
     }
-
-    /** product.products 按 ID 批查卡片字段（经 infra CrossSchemaReader） */
-    private Map<UUID, ProductRow> loadProducts(List<UUID> productIds) {
-        return reader.byIds(
-                "product.products",
-                PRODUCT_COLUMNS,
-                productIds,
-                rs -> new ProductRow(
-                        rs.getObject("id", UUID.class),
-                        rs.getString("name"),
-                        rs.getString("main_image"),
-                        rs.getObject("min_price", Long.class),
-                        rs.getObject("max_price", Long.class),
-                        rs.getObject("status", Integer.class)));
-    }
-
-    /** product.products 行投影（favorite 视角只需要卡片与可用性字段） */
-    private record ProductRow(UUID id, String name, String mainImage, Long minPrice, Long maxPrice, Integer status) {}
 }

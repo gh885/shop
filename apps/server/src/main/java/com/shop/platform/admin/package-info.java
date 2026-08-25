@@ -3,11 +3,12 @@
  *
  * <p>schema: admin
  *
- * <p>依赖 shop 模块的事件类（监听 ShopCreatedEvent 入队审核、发布 ShopReviewDecidedEvent），只依赖事件，不碰 shop 的表。
+ * <p>依赖 shop 模块的事件类（监听 ShopCreatedEvent 入队审核、发布 ShopReviewDecidedEvent）与
+ * shop / auth 的 api 包只读查询（店名/店主手机号拼装），不碰他方的表。
  */
 @ApplicationModule(
         displayName = "Admin",
-        allowedDependencies = {"shop :: events"})
+        allowedDependencies = {"shop :: events", "shop :: api", "auth :: api"})
 package com.shop.platform.admin;
 
 import org.springframework.modulith.ApplicationModule;
