@@ -35,23 +35,13 @@ public class ContentService {
 
     /** 前台首页导航：指定导航位下启用条目，按排序返回。subs 为 JSONB 整段带出 */
     public List<NavEntry> nav(String navKey) {
-        return navEntryMapper.selectList(new LambdaQueryWrapper<NavEntry>()
-                .eq(NavEntry::getNavKey, navKey)
-                .eq(NavEntry::getStatus, NavEntry.STATUS_ENABLED)
-                .orderByAsc(NavEntry::getSortOrder)
-                .orderByAsc(NavEntry::getId));
+        return navEntryMapper.selectEnabledByKey(navKey);
     }
 
     /** 前台运营位 banner：启用 && 在生效时间窗口内（start_at/end_at 为 null 则不受限）。列表小，时间过滤在 Java 侧做 */
     public List<Banner> banners(String slot) {
         OffsetDateTime now = OffsetDateTime.now();
-        return bannerMapper
-                .selectList(new LambdaQueryWrapper<Banner>()
-                        .eq(Banner::getSlot, slot)
-                        .eq(Banner::getStatus, Banner.STATUS_ENABLED)
-                        .orderByAsc(Banner::getSortOrder)
-                        .orderByAsc(Banner::getId))
-                .stream()
+        return bannerMapper.selectEnabledBySlot(slot).stream()
                 .filter(b -> (b.getStartAt() == null || !b.getStartAt().isAfter(now))
                         && (b.getEndAt() == null || !b.getEndAt().isBefore(now)))
                 .toList();
@@ -59,10 +49,7 @@ public class ContentService {
 
     /** 前台推荐条：启用词条按排序返回，is_default 标记"猜你喜欢" */
     public List<RecommendTab> recommendTabs() {
-        return recommendTabMapper.selectList(new LambdaQueryWrapper<RecommendTab>()
-                .eq(RecommendTab::getStatus, RecommendTab.STATUS_ENABLED)
-                .orderByAsc(RecommendTab::getSortOrder)
-                .orderByAsc(RecommendTab::getId));
+        return recommendTabMapper.selectEnabled();
     }
 
     // ========== 后台读 ==========

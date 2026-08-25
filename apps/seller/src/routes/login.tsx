@@ -1,32 +1,22 @@
 import { useEffect, useState } from "react"
 import { CircleAlert, Loader2, Store } from "lucide-react"
-import { z } from "zod"
 
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ErrorCodes } from "@shop/api"
-import { Button, Input, cn, useAppForm } from "@shop/ui-web"
+import {
+    ErrorCodes,
+    PasswordFormSchema,
+    PHONE_PATTERN,
+    PhoneSchema,
+    SmsFormSchema,
+    toApiError,
+} from "@shop/api"
+import { Button, Input, cn, useAppForm, useCountdown } from "@shop/ui-web"
 
-import { authApi, bootstrapAuth, toApiError } from "#/lib/api"
-import { authState, getDeviceId, tokenStore } from "#/lib/auth"
+import { authApi, authState, bootstrapAuth, getDeviceId, tokenStore } from "#/lib/api"
 
 export const Route = createFileRoute("/login")({
     component: LoginPage,
-})
-
-const PHONE_PATTERN = /^1[3-9]\d{9}$/
-const PhoneSchema = z.string().regex(PHONE_PATTERN, "请输入正确的手机号")
-
-const SmsFormSchema = z.object({
-    phone: PhoneSchema,
-    code: z.string().length(6, "请输入 6 位验证码"),
-    password: z.string(),
-})
-
-const PasswordFormSchema = z.object({
-    phone: PhoneSchema,
-    code: z.string(),
-    password: z.string().min(8, "密码至少 8 位"),
 })
 
 type LoginTab = "sms" | "password"
@@ -36,13 +26,16 @@ function LoginPage() {
     const [tab, setTab] = useState<LoginTab>("sms")
     const [serverError, setServerError] = useState<string | null>(null)
     const [codeInvalid, setCodeInvalid] = useState(false)
-    const [countdown, setCountdown] = useState(0)
+    const [countdown, setCountdown] = useCountdown()
 
     // 已登录（refresh cookie 有效）直接进入工作台
     useEffect(() => {
-        void bootstrapAuth().then(() => {
-            if (authState.getStatus() === "authed") void navigate({ to: "/", replace: true })
-        })
+        void (async () => {
+            await bootstrapAuth()
+            if (authState.getStatus() === "authed") {
+                await navigate({ to: "/", replace: true })
+            }
+        })()
     }, [navigate])
 
     const form = useAppForm({
@@ -67,7 +60,7 @@ function LoginPage() {
                 tokenStore.set(result.accessToken)
                 void navigate({ to: "/", replace: true })
             } catch (error) {
-                const err = await toApiError(error)
+                const err = toApiError(error)
                 // 登录失败对外统一文案（后端刻意不暴露「未设密码」以反账号枚举）
                 setServerError(err.detail)
                 setCodeInvalid(
@@ -78,21 +71,14 @@ function LoginPage() {
         },
     })
 
-    useEffect(() => {
-        if (countdown <= 0) return
-        const timer = setInterval(() => setCountdown((s) => s - 1), 1000)
-        return () => clearInterval(timer)
-    }, [countdown])
-
     const sendCode = useMutation({
         mutationFn: (phone: string) => authApi.sendSmsCode({ phone }),
         onSuccess: () => {
             setServerError(null)
             setCountdown(60)
         },
-        onError: async (e) => {
-            const err = await toApiError(e)
-            setServerError(err.detail)
+        onError: (e) => {
+            setServerError(toApiError(e).detail)
         },
     })
 

@@ -22,8 +22,9 @@ import { ChevronLeft, ChevronRight, Package, Plus, Search, Store } from "lucide-
 
 import type { Product, ProductStatus } from "@shop/api"
 
-import { productApi, toApiError } from "#/lib/api"
-import { priceRangeText } from "#/lib/money"
+import { priceRangeText, toApiError } from "@shop/api"
+
+import { productApi } from "#/lib/api"
 import { useCurrentShop } from "#/lib/shop"
 
 interface ProductSearch {
@@ -394,11 +395,9 @@ function ProductRow({
 }
 
 function ErrorNotice({ error }: { error: Error }) {
-    const [detail, setDetail] = useState<string | null>(null)
-    void toApiError(error).then((e) => setDetail(e.detail))
     return (
         <div className="rounded-2xl border border-destructive/30 bg-destructive-subtle p-6 text-sm text-destructive-subtle-foreground">
-            {detail ?? "加载失败，请稍后重试"}
+            {toApiError(error).detail}
         </div>
     )
 }

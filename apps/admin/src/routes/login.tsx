@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button, Input } from "@shop/ui-web"
 
 import { adminApi, requireGuest } from "../lib/api"
-import { getDeviceId, tokenStore } from "../lib/auth"
+import { getDeviceId, tokenStore } from "../lib/api"
 
 export const Route = createFileRoute("/login")({
     beforeLoad: requireGuest,

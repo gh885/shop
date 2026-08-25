@@ -4,7 +4,7 @@ import { Button, cn, useSidebar } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 
 import { adminApi } from "../lib/api"
-import { getDeviceId, tokenStore } from "../lib/auth"
+import { getDeviceId, tokenStore } from "../lib/api"
 import { useMe } from "../lib/me"
 
 /** 账号头像（首字）：顶栏右侧独立展示，侧栏账号行内复用 */

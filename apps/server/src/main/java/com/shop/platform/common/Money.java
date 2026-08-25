@@ -41,11 +41,6 @@ public record Money(long amount, String currency) {
         return new Money(this.amount * factor, this.currency);
     }
 
-    /** 两个金额是否为同币种（比较前先对齐币种，避免拿分多少误判大小） */
-    public boolean sameCurrency(Money other) {
-        return other != null && this.currency.equals(other.currency);
-    }
-
     private void requireSameCurrency(Money other) {
         Validate.isTrue(other != null && this.currency.equals(other.currency), "金额币种不一致，无法运算");
     }

@@ -6,7 +6,9 @@ import { CircleAlert, Store, Trash2, UserPlus } from "lucide-react"
 
 import { InviteMemberRequestSchema } from "@shop/api"
 
-import { shopApi, toApiError } from "#/lib/api"
+import { toApiError } from "@shop/api"
+
+import { shopApi } from "#/lib/api"
 import { useMe } from "#/lib/me"
 import { useCurrentShop } from "#/lib/shop"
 
@@ -53,8 +55,9 @@ function MemberPanel({ shopId }: { shopId: string }) {
         queryFn: () => shopApi.members(shopId),
     })
 
+    // 身份判定比 userId（uuid），不比 phone：phone 可空且可变更
     const isOwner = members.data?.some(
-        (m) => m.role === "OWNER" && m.status === "ACTIVE" && m.phone === me.data?.phone,
+        (m) => m.role === "OWNER" && m.status === "ACTIVE" && m.userId === me.data?.id,
     )
 
     const invite = useMutation({
@@ -64,8 +67,8 @@ function MemberPanel({ shopId }: { shopId: string }) {
             setError(null)
             void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
         },
-        onError: async (e) => {
-            const err = await toApiError(e)
+        onError: (e) => {
+            const err = toApiError(e)
             setError(err.detail)
         },
     })

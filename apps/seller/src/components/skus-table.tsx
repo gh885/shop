@@ -18,7 +18,7 @@ import { CircleAlert } from "lucide-react"
 
 import type { Sku, SkuUpdateItem } from "@shop/api"
 
-import { fenToYuan, yuanToFen } from "#/lib/money"
+import { fenToYuan, yuanToFen } from "@shop/api"
 
 interface SkuDraft {
     skuId: string

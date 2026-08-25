@@ -1,14 +1,29 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { CircleAlert, Loader2, QrCode } from "lucide-react"
 
 import { useMutation } from "@tanstack/react-query"
-import { ErrorCodes } from "@shop/api"
-import { Button, cn, Dialog, DialogContent, DialogTitle, Input, useAppForm } from "@shop/ui-web"
-import { toApiError } from "#/shared/api/client"
+import {
+    ErrorCodes,
+    PasswordFormSchema,
+    PHONE_PATTERN,
+    PhoneSchema,
+    SmsFormSchema,
+    toApiError,
+    type ApiError,
+} from "@shop/api"
+import {
+    Button,
+    cn,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    Input,
+    useAppForm,
+    useCountdown,
+} from "@shop/ui-web"
 
 import { loginByPassword, loginBySms, sendSmsCode as sendSmsCodeAction } from "./actions"
 import { notify } from "#/shared/lib/toast"
-import { PasswordFormSchema, PHONE_PATTERN, PhoneSchema, SmsFormSchema } from "./schema"
 
 /* 嵌套行（+86 前缀 / 内嵌按钮）里的 Input：去掉自带边框与 focus ring，
    视觉容器由外层 wrapper（rounded + bg-muted + focus-within:ring）承担 */
@@ -23,25 +38,27 @@ interface LoginDialogProps {
 }
 
 /** 提交/发码失败信息（detail 展示，code 决定交互分支），null = 无错误 */
-type SubmitError = { detail?: string; code?: string } | null
+type SubmitError = ApiError | null
+
+/** 验证码类错误（输错/过期）：重新输入时自动清除并停掉抖动 */
+function isCodeError(e: SubmitError): boolean {
+    return e?.code === ErrorCodes.SMS_CODE_INVALID || e?.code === ErrorCodes.SMS_CODE_EXPIRED
+}
 
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     const [tab, setTab] = useState<LoginTab>("sms")
-    // 服务端错误统一存一个状态；passwordNotSet / codeInvalid 由 code 推导，不再单独维护
-    const [error, setError] = useState<SubmitError>(null)
-    const [countdown, setCountdown] = useState(0)
+    // 服务端错误统一存一个状态；codeInvalid 由 code 推导，不再单独维护
+    const [submitError, setSubmitError] = useState<SubmitError>(null)
+    const [countdown, setCountdown] = useCountdown()
 
-    const serverError = error?.detail ?? null
-    const passwordNotSet = error?.code === ErrorCodes.PASSWORD_NOT_SET
-    const isCodeError = (e: SubmitError) =>
-        e?.code === ErrorCodes.SMS_CODE_INVALID || e?.code === ErrorCodes.SMS_CODE_EXPIRED
-    const codeInvalid = isCodeError(error)
+    const serverError = submitError?.detail ?? null
+    const codeInvalid = isCodeError(submitError)
 
     const form = useAppForm({
         defaultValues: { phone: "", code: "", password: "" },
         validators: { onSubmit: tab === "sms" ? SmsFormSchema : PasswordFormSchema },
         onSubmit: async ({ value }) => {
-            setError(null)
+            setSubmitError(null)
             try {
                 if (tab === "sms") {
                     await loginBySms(value.phone, value.code)
@@ -54,34 +71,28 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 setCountdown(0)
                 notify.success("登录成功", "欢迎回来")
             } catch (error) {
-                setError(await toApiError(error))
+                setSubmitError(toApiError(error))
             }
         },
     })
 
-    useEffect(() => {
-        if (countdown <= 0) return
-        const timer = setInterval(() => setCountdown((s) => s - 1), 1000)
-        return () => clearInterval(timer)
-    }, [countdown])
-
     const sendCode = useMutation({
         mutationFn: (phone: string) => sendSmsCodeAction(phone),
         onSuccess: () => {
-            setError(null)
+            setSubmitError(null)
             setCountdown(60)
             notify.success("验证码已发送")
         },
-        onError: async (e) => {
-            const err = await toApiError(e)
-            setError(err)
+        onError: (e) => {
+            const err = toApiError(e)
+            setSubmitError(err)
             notify.error(err.detail)
         },
     })
 
     function switchTab(next: LoginTab) {
         setTab(next)
-        setError(null)
+        setSubmitError(null)
     }
 
     function handleSendCode(phone: string) {
@@ -209,7 +220,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                         e.target.value.replaceAll(/\D/g, ""),
                                                     )
                                                     // 重新输入时只清验证码类错误（抖动随之消失），其余服务端错误保留到下次提交
-                                                    setError((prev) =>
+                                                    setSubmitError((prev) =>
                                                         isCodeError(prev) ? null : prev,
                                                     )
                                                 }}
@@ -272,16 +283,6 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                     <p className="flex items-center gap-1.5 text-[13px] text-destructive">
                                         <CircleAlert className="size-3.5 shrink-0" />
                                         {serverError}
-                                        {passwordNotSet && (
-                                            <Button
-                                                variant="link"
-                                                size="sm"
-                                                className="h-auto shrink-0 p-0"
-                                                onClick={() => switchTab("sms")}
-                                            >
-                                                改用验证码登录
-                                            </Button>
-                                        )}
                                     </p>
                                 )}
                             </div>

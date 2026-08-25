@@ -7,12 +7,13 @@ import { CartItemsSchema, type CartItem } from "./model"
 /**
  * Cart 数据层读写命令（纯逻辑，不含 React Query / React）。
  * 全部接口要求登录（后端 JwtAuthFilter 未放行 /cart，401 由路由守卫兜住），仅浏览器端调用。
- * features/cart/use-cart 在此之上包 hooks。
+ * features/cart/use-cart 在此之上包 hooks。读命令走 api.request（响应过 Zod 校验、错误已归一化）；
+ * 写命令无响应体，直接用 api.raw 发出。
  */
 
 /** 整车列表：现价/库存/店铺由后端读取时拼装，失效条目置灰保留 */
 export async function fetchCartItems(): Promise<CartItem[]> {
-    return CartItemsSchema.parse(await api.raw.get("cart/items").json())
+    return api.request(CartItemsSchema, "cart/items")
 }
 
 /** 角标计数 wire：镜像后端 CartService.CartCount（total 全部 / selected 已勾选） */
@@ -23,7 +24,8 @@ const CartCountSchema = z.object({
 
 /** 购物车角标计数：免拉整车，头部角标用 */
 export async function fetchCartCount(): Promise<number> {
-    return CartCountSchema.parse(await api.raw.get("cart/count").json()).total
+    const count = await api.request(CartCountSchema, "cart/count")
+    return count.total
 }
 
 /** 加购：同 SKU 幂等合并为数量累加（后端处理），成功仅需 201，无需解析返回体 */

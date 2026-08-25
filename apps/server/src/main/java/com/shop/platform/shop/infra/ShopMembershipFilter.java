@@ -7,7 +7,6 @@ import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.infra.web.UnauthorizedWriter;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
-import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -79,11 +78,7 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
             }
 
             // 3. 成员校验：当前用户必须是该店 ACTIVE 成员
-            Long count = shopMemberMapper.selectCount(new LambdaQueryWrapper<ShopMember>()
-                    .eq(ShopMember::getShopId, shopId)
-                    .eq(ShopMember::getUserId, UserIdHolder.get())
-                    .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
-            if (count == 0) {
+            if (!shopMemberMapper.isActiveMember(shopId, UserIdHolder.get())) {
                 UnauthorizedWriter.write(response, objectMapper, 403, null, "你不是该店铺成员");
                 return;
             }

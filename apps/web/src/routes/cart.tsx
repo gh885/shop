@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { CartProvider, useCart } from "#/features/cart/cart-provider"
-import { requireAuth, useAuthGuard } from "#/shared/api/client"
+import { requireAuth, useAuthGuard } from "#/shared/api/auth"
 import { DetailColumns } from "#/shared/ui/detail-columns"
 import { CartHeader } from "#/widgets/cart/cart-header"
 import { CartSettlement } from "#/widgets/cart/cart-settlement"

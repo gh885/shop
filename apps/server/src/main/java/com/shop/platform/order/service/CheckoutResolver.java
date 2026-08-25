@@ -2,7 +2,6 @@ package com.shop.platform.order.service;
 
 import com.shop.platform.cart.api.CartLineView;
 import com.shop.platform.cart.api.CartReadQuery;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
@@ -61,18 +60,14 @@ class CheckoutResolver {
         Map<UUID, ProductView> products = productReadQuery.productsByIds(
                 skus.values().stream().map(SkuView::productId).distinct().toList());
 
-        // 3. 逐行三道判定分类：缺失/停售/下架 → UNAVAILABLE；在售但库存不足 → STOCK_SHORTAGE；否则进有效行
+        // 3. 逐行判定分类：缺失/停售/下架 → UNAVAILABLE；在售但库存不足 → STOCK_SHORTAGE；否则进有效行
         List<ValidLine> valid = new ArrayList<>();
         List<CheckoutPreview.UnavailableLine> unavailable = new ArrayList<>();
         for (RequestedLine line : requested) {
             SkuView sku = skus.get(line.skuId());
-            boolean onSale = sku != null && sku.onSale() && products.containsKey(sku.productId());
-            if (!onSale) {
-                unavailable.add(unavailableLine(line, sku, CheckoutPreview.UnavailableLine.CAUSE_UNAVAILABLE));
-                continue;
-            }
-            ProductView product = products.get(sku.productId());
-            if (!product.published()) {
+            ProductView product = sku == null ? null : products.get(sku.productId());
+            boolean sellable = sku != null && sku.onSale() && product != null && product.published();
+            if (!sellable) {
                 unavailable.add(unavailableLine(line, sku, CheckoutPreview.UnavailableLine.CAUSE_UNAVAILABLE));
                 continue;
             }
@@ -131,18 +126,11 @@ class CheckoutResolver {
         Map<UUID, String> shopNames = shopReadQuery.namesByIds(byShop.keySet());
         return byShop.entrySet().stream()
                 .map(e -> {
-                    List<CheckoutPreview.Line> lines =
-                            e.getValue().stream().map(this::toPreviewLine).toList();
                     Money itemAmount = sumLines(e.getValue());
                     return new CheckoutPreview.Group(
-                            e.getKey(), shopNames.get(e.getKey()), lines, itemAmount, Money.cny(0), itemAmount);
+                            e.getKey(), shopNames.get(e.getKey()), e.getValue(), itemAmount, Money.cny(0), itemAmount);
                 })
                 .toList();
-    }
-
-    private CheckoutPreview.Line toPreviewLine(ValidLine l) {
-        return new CheckoutPreview.Line(
-                l.skuId(), l.productId(), l.name(), l.image(), l.price(), l.originalPrice(), l.quantity(), l.stock());
     }
 
     Money sumLines(List<ValidLine> lines) {
@@ -151,8 +139,7 @@ class CheckoutResolver {
 
     /** 地址快照来源（user :: api）：归属本人且未删除，否则 404（预览与创建共用一道门） */
     AddressSnapshot loadAddressSnapshot(UUID userId, UUID addressId) {
-        AddressSnapshotView row =
-                addressReadQuery.byId(addressId).orElseThrow(() -> BusinessException.notFound("收货地址不存在"));
+        AddressSnapshotView row = Validate.present(addressReadQuery.byId(addressId), "收货地址不存在");
         Validate.isTrue(row.userId().equals(userId), "收货地址不存在");
         Validate.isTrue(row.deletedAt() == null, "收货地址不存在");
         return new AddressSnapshot(
@@ -172,18 +159,6 @@ class CheckoutResolver {
 
     /** 结算请求行：立即购买时 cartItemId 为 null */
     record RequestedLine(UUID skuId, int quantity, UUID cartItemId) {}
-
-    /** 三道判定通过后的有效行：携带分组所需 shopId 与全部快照字段；价格在入口已定型为 Money */
-    record ValidLine(
-            UUID skuId,
-            UUID productId,
-            UUID shopId,
-            String name,
-            String image,
-            Money price,
-            Money originalPrice,
-            int quantity,
-            int stock) {}
 
     record ResolvedCheckout(
             List<ValidLine> valid, List<CheckoutPreview.UnavailableLine> unavailable, Money totalPayAmount) {}

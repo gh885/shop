@@ -12,28 +12,28 @@ import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
+import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.service.PaymentService;
+import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * 交易关键链路集成验证（真库）：预览 → 下单扣库存 → MOCK 支付推进状态机 → 幂等重付 →
  * 越态取消拒绝 → 超时关单回补库存。测试数据自建自清，不依赖种子数据。
  */
 @SpringBootTest
-class OrderFlowIntegrationTest {
+class OrderFlowIT extends IntegrationTestSupport {
 
     @Autowired
     private OrderService orderService;
@@ -44,14 +44,9 @@ class OrderFlowIntegrationTest {
     @Autowired
     private StockCommand stockCommand;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private final UUID userId = UUID.randomUUID();
 
     private final UUID shopId = UUID.randomUUID();
-
-    private UUID productId;
 
     private UUID skuId;
 
@@ -59,48 +54,15 @@ class OrderFlowIntegrationTest {
 
     /** 建一个在售 SKU：单价 1000 分，库存 5 */
     private void seedSku(int stock) {
-        productId = UUID.randomUUID();
-        skuId = UUID.randomUUID();
-        addressId = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO product.products (id, shop_id, category_id, name, status) VALUES (?::uuid, ?::uuid, ?::uuid, '测试商品', 1)",
-                productId.toString(),
-                shopId.toString(),
-                UUID.randomUUID().toString());
-        jdbc.update(
-                "INSERT INTO product.skus (id, product_id, name, price, currency, status) VALUES (?::uuid, ?::uuid, '测试SKU', 1000, 'CNY', 1)",
-                skuId.toString(),
-                productId.toString());
-        // 库存主体独立行（inventory）：总库存 stock，无冻结
-        jdbc.update(
-                "INSERT INTO inventory.sku_stock (id, sku_id, stock, frozen_stock) VALUES (?::uuid, ?::uuid, ?, 0)",
-                UUID.randomUUID().toString(),
-                skuId.toString(),
-                stock);
-        jdbc.update(
-                "INSERT INTO user_profile.addresses (id, user_id, receiver_name, phone, region_code, province, city, district, detail) "
-                        + "VALUES (?::uuid, ?::uuid, '张三', '13800000000', '110100', '北京市', '北京市', '朝阳区', '测试路 1 号')",
-                addressId.toString(),
-                userId.toString());
-    }
-
-    @AfterEach
-    void cleanup() {
-        // 只清自己造的数：按本测试持有的 id 精确删除，跨 schema 各回各家
-        jdbc.update(
+        // service 造的数据无法预知主键，按 userId 圈定登记清理（含下单发布的 CartCheckedOutEvent 登记行）
+        db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
+        db.onDelete(
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
                 userId.toString());
-        jdbc.update("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
-        jdbc.update("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        if (skuId != null) {
-            jdbc.update("DELETE FROM inventory.stock_movements WHERE sku_id = ?::uuid", skuId.toString());
-            jdbc.update("DELETE FROM inventory.sku_stock WHERE sku_id = ?::uuid", skuId.toString());
-            jdbc.update("DELETE FROM product.skus WHERE product_id = ?::uuid", productId.toString());
-            jdbc.update("DELETE FROM product.products WHERE id = ?::uuid", productId.toString());
-        }
-        if (addressId != null) {
-            jdbc.update("DELETE FROM user_profile.addresses WHERE id = ?::uuid", addressId.toString());
-        }
+        db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
+        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
+        skuId = db.seedOnSaleSku(shopId, 1000, stock);
+        addressId = db.seedAddress(userId);
     }
 
     private int totalStockOf() {
@@ -127,7 +89,7 @@ class OrderFlowIntegrationTest {
     }
 
     @Test
-    void fullFlow_createDeductStock_payThenIdempotent_cancelRejectedAfterPaid() {
+    void 全链路_下单冻结_支付幂等_已付可取消() {
         seedSku(5);
 
         // 1. 预览：一组一行，应付 = 1000 × 2
@@ -170,6 +132,14 @@ class OrderFlowIntegrationTest {
         assertEquals(5, totalStockOf());
         assertEquals(0, frozenStockOf());
 
+        // 回补记账走 RETURN（RELEASE 口径 quantity=0，回补动总库存必须独立类型，否则按 type 对账失真）
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM inventory.stock_movements WHERE order_id = ?::uuid AND type = 'RETURN'",
+                        Integer.class,
+                        order.getId().toString()));
+
         BusinessException ex =
                 assertThrows(BusinessException.class, () -> orderService.cancel(userId, order.getId(), "再试一次"));
         assertEquals(409, ex.getHttpStatus());
@@ -177,7 +147,7 @@ class OrderFlowIntegrationTest {
 
     /** 请求行库存不足在 resolve 前置拦截（400），与预览同一道判定；订单零残留 */
     @Test
-    void create_insufficientStock_rejectedUpfront_noResidue() {
+    void 创建订单_库存不足_前置拦截零残留() {
         seedSku(5);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> orderService.create(userId, buyNow(999)));
@@ -195,7 +165,7 @@ class OrderFlowIntegrationTest {
 
     /** 并发窗口兑底：预览时充足、冻结时被抢空 → 条件更新影响行数 0 → StockCommand 抛 INSUFFICIENT_STOCK(409) */
     @Test
-    void stockCommand_raceWindowShortage_conflictWithCode() {
+    void 并发窗口_库存抢空_409() {
         seedSku(5);
 
         BusinessException ex = assertThrows(
@@ -206,7 +176,7 @@ class OrderFlowIntegrationTest {
     }
 
     @Test
-    void closeExpired_restoresStock_andMarksCancelled() throws Exception {
+    void 超时关单_回补库存_转已取消() throws Exception {
         seedSku(5);
 
         List<Order> created = orderService.create(userId, buyNow(1));
@@ -231,13 +201,101 @@ class OrderFlowIntegrationTest {
         assertEquals(409, ex.getHttpStatus());
     }
 
+    /** 库存绝对量调整的业务闸门：新总量低于在冻量拒绝（409），冻结释放后放行 */
     @Test
-    void pageMine_returnsOrdersWithItems() {
+    void 调整总量_低于在冻_拒绝至释放() {
+        seedSku(5);
+        UUID orderId = orderService.create(userId, buyNow(2)).getFirst().getId();
+        assertEquals(2, frozenStockOf());
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> stockCommand.setTotal(skuId, 1));
+        assertEquals(409, ex.getHttpStatus());
+        assertEquals(5, totalStockOf()); // 拒绝即整体不生效，不产生半套状态
+
+        // 取消释放冻结后允许调低
+        orderService.cancel(userId, orderId, null);
+        stockCommand.setTotal(skuId, 1);
+        assertEquals(1, totalStockOf());
+    }
+
+    /** 库存主体行随 SKU 删除：有冻结在身拒绝删（否则取消时 release 无处可释放），释放后可清；流水保留 */
+    @Test
+    void 删库存行_冻结中拒绝_释放后清除() {
+        seedSku(5);
+        UUID orderId = orderService.create(userId, buyNow(1)).getFirst().getId();
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> stockCommand.removeRow(skuId));
+        assertEquals(409, ex.getHttpStatus());
+        assertEquals(1, frozenStockOf());
+
+        orderService.cancel(userId, orderId, null);
+        stockCommand.removeRow(skuId);
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM inventory.sku_stock WHERE sku_id = ?::uuid",
+                        Integer.class,
+                        skuId.toString()));
+        // append-only 账本不随行清理（FREEZE + RELEASE 两笔历史）
+        assertEquals(
+                2,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM inventory.stock_movements WHERE sku_id = ?::uuid",
+                        Integer.class,
+                        skuId.toString()));
+    }
+
+    @Test
+    void 分页我的订单_带商品明细() {
         seedSku(5);
         orderService.create(userId, buyNow(1));
 
         PageResult<OrderWithItems> page = orderService.pageMine(userId, null, new PageParams(1, 10));
         assertEquals(1, page.total());
         assertEquals(1, page.records().getFirst().items().size());
+    }
+
+    /**
+     * 发货收货腿：状态机后半段 PAID → SHIPPED → COMPLETED 只有真库能验条件更新影响行数。
+     * 同时钉死：越店发货 404、重复收货 409、物流公司/运单号回填落库。
+     */
+    @Test
+    void 发货收货_物流回填落库_越店404错态409() {
+        seedSku(5);
+        UUID orderId = orderService.create(userId, buyNow(2)).getFirst().getId();
+        paymentService.pay(userId, orderId);
+
+        // 越店发货：另一家店的 shopId 圈不到这单 → 404，订单状态不动
+        ShipOrderRequest req = new ShipOrderRequest("顺丰", "SF123456789");
+        assertEquals(
+                404,
+                assertThrows(BusinessException.class, () -> orderService.ship(UUID.randomUUID(), orderId, req))
+                        .getHttpStatus());
+        assertEquals(Order.STATUS_PAID, statusOf(orderId));
+
+        // 本店发货：PAID → SHIPPED，物流信息落库（一单一包裹）
+        orderService.ship(shopId, orderId, req);
+        assertEquals(Order.STATUS_SHIPPED, statusOf(orderId));
+        String logistics = jdbc.queryForObject(
+                "SELECT logistics_company || '|' || tracking_no FROM orders.orders WHERE id = ?::uuid",
+                String.class,
+                orderId.toString());
+        assertEquals("顺丰|SF123456789", logistics);
+
+        // 已发货不可再发（源状态集不含 SHIPPED）→ 409
+        assertEquals(
+                409,
+                assertThrows(BusinessException.class, () -> orderService.ship(shopId, orderId, req))
+                        .getHttpStatus());
+
+        // 收货：SHIPPED → COMPLETED，完成时刻落库；重复收货被状态闸门拒绝
+        orderService.receive(userId, orderId);
+        assertEquals(Order.STATUS_COMPLETED, statusOf(orderId));
+        assertNotNull(jdbc.queryForObject(
+                "SELECT completed_at FROM orders.orders WHERE id = ?::uuid", Object.class, orderId.toString()));
+        assertEquals(
+                409,
+                assertThrows(BusinessException.class, () -> orderService.receive(userId, orderId))
+                        .getHttpStatus());
     }
 }

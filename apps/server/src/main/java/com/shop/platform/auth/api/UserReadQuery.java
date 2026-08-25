@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -37,10 +38,10 @@ public class UserReadQuery {
                 ids.toArray());
     }
 
-    /** 按手机号查 userId（auth.users 全局唯一手机号），未注册返回 null。非主键点查，保持显式 */
-    public UUID findIdByPhone(String phone) {
+    /** 按手机号查 userId（auth.users 全局唯一手机号），未注册返回 empty —— api 包缺席语义统一走 Optional */
+    public Optional<UUID> findIdByPhone(String phone) {
         List<UUID> ids = jdbc.query(
                 "SELECT id FROM auth.users WHERE phone = ?", (rs, i) -> rs.getObject("id", UUID.class), phone);
-        return ids.isEmpty() ? null : ids.getFirst();
+        return ids.isEmpty() ? Optional.empty() : Optional.of(ids.getFirst());
     }
 }

@@ -5,6 +5,8 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.mapper.CategoryMapper;
+import com.shop.platform.product.mapper.Product;
+import com.shop.platform.product.mapper.ProductMapper;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -24,6 +26,8 @@ public class CategoryService {
     private static final int MAX_LEVEL = 3;
 
     private final CategoryMapper categoryMapper;
+
+    private final ProductMapper productMapper;
 
     /** 前台类目树：仅启用节点，禁用节点整支剪掉 */
     public List<CategoryNode> publicTree() {
@@ -68,7 +72,7 @@ public class CategoryService {
     /** 更新名称/排序/图标。parentId 创建后不可改（不支持移动节点，见架构文档） */
     @Transactional
     public Category update(UUID id, String name, Integer sort, String iconUrl) {
-        Category category = getOrThrow(id);
+        Category category = requireCategory(id);
         category.setName(name);
         category.setSort(sort != null ? sort : 0);
         category.setIconUrl(iconUrl);
@@ -80,16 +84,23 @@ public class CategoryService {
         return category;
     }
 
-    /** 启用/禁用。禁用采用查询侧裁剪，不写扩散，可无损恢复 */
+    /**
+     * 启用/禁用。禁用采用查询侧裁剪，不写扩散，可无损恢复；仍被商品引用的类目禁止禁用——
+     * 否则商品会悬在一个买家侧不可见的类目里。
+     */
     @Transactional
     public void updateStatus(UUID id, int status) {
-        Category category = getOrThrow(id);
-        // TODO(products 表落地后): 禁用时校验类目下无商品引用，否则拒绝
+        Category category = requireCategory(id);
+        // 禁用闸门：类目下仍有商品引用（含草稿/下架——软删语义的商品仍占类目位）则拒绝
+        if (status == Category.STATUS_DISABLED) {
+            Long refs = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getCategoryId, id));
+            Validate.isTrue(refs == 0, "类目下仍有 " + refs + " 个商品，移出后才能禁用");
+        }
         category.setStatus(status);
         categoryMapper.updateById(category);
     }
 
-    private Category getOrThrow(UUID id) {
+    private Category requireCategory(UUID id) {
         return Validate.notNull(categoryMapper.selectById(id), "类目不存在");
     }
 

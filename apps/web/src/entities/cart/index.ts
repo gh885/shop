@@ -1,7 +1,6 @@
 export {
     CartItemSchema,
     CartItemsSchema,
-    formatFen,
     groupByShop,
     type CartItem,
     type CartShopGroup,

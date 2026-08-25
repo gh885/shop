@@ -1,8 +1,7 @@
+import { PageResultSchema } from "@shop/api"
 import { z } from "zod"
 
-import { PageResultSchema } from "@shop/api"
-
-import { publicApi } from "#/shared/api/public"
+import { publicClient } from "#/shared/api/public"
 
 import {
     ProductDetailSchema,
@@ -22,30 +21,23 @@ import {
 const ProductIdSchema = z.uuid()
 
 /** 全站上架商品分页：首页商品流 / 搜索 / 类目页共用 */
-export async function fetchProducts(query: ProductListQueryInput = {}): Promise<{
-    records: Product[]
-    total: number
-}> {
+export async function fetchProducts(
+    query: ProductListQueryInput = {},
+): Promise<{ records: Product[]; total: number }> {
     const q = ProductListQuerySchema.parse(query)
-    return PageResultSchema(ProductSchema).parse(
-        await publicApi
-            .get("api/products", {
-                searchParams: {
-                    page: q.page,
-                    size: q.size,
-                    ...(q.categoryId ? { categoryId: q.categoryId } : {}),
-                    ...(q.shopId ? { shopId: q.shopId } : {}),
-                    ...(q.keyword ? { keyword: q.keyword } : {}),
-                    ...(q.sort ? { sort: q.sort } : {}),
-                },
-            })
-            .json(),
-    )
+    return publicClient.request(PageResultSchema(ProductSchema), "api/products", {
+        searchParams: {
+            page: q.page,
+            size: q.size,
+            ...(q.categoryId ? { categoryId: q.categoryId } : {}),
+            ...(q.shopId ? { shopId: q.shopId } : {}),
+            ...(q.keyword ? { keyword: q.keyword } : {}),
+            ...(q.sort ? { sort: q.sort } : {}),
+        },
+    })
 }
 
-/** 商品详情：不存在或非上架由后端 404（ky 抛 ApiError，调用方自行转 notFound） */
+/** 商品详情：不存在或非上架由后端 404（抛归一化的 ApiError，调用方自行转 notFound） */
 export async function fetchProductDetail(id: string): Promise<ProductDetail> {
-    return ProductDetailSchema.parse(
-        await publicApi.get(`api/products/${ProductIdSchema.parse(id)}`).json(),
-    )
+    return publicClient.request(ProductDetailSchema, `api/products/${ProductIdSchema.parse(id)}`)
 }

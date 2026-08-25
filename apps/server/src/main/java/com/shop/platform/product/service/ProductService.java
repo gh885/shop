@@ -74,7 +74,7 @@ public class ProductService {
         // 4. 对账：组合没变的保留（价格库存不丢），新增的补 SKU
         //    现有 SKU 按 attributes 的 List<ParamItem> 值建索引（record 相等性 = JSON 值相等，见 updateSpecs javadoc）
         Map<List<ParamItem>, Sku> byAttrs = new LinkedHashMap<>();
-        for (Sku sku : skusOf(productId)) {
+        for (Sku sku : skuMapper.selectByProductId(productId)) {
             byAttrs.put(sku.getAttributes(), sku);
         }
 
@@ -98,13 +98,15 @@ public class ProductService {
             }
         }
 
-        // 5. 组合消失的旧 SKU 删掉
+        // 5. 组合消失的旧 SKU 删掉（库存主体行经 inventory :: api 同事务随行清理，流水账本保留）
         for (Sku removed : byAttrs.values()) {
+            stockCommand.removeRow(removed.getId());
             skuMapper.deleteById(removed.getId());
         }
 
-        // 6. 重算价格区间（min/max 冗余副本随 SKU 变化同步）
-        recalcPriceRange(productId);
+        // 6. 重算价格区间：SPU 与 SKU 都在手上，直接回填免重查
+        applyPriceRange(product, result);
+        productMapper.updateById(product);
         return result;
     }
 
@@ -112,8 +114,8 @@ public class ProductService {
      *  库存归 inventory 模块：seller 传的 stock 是「绝对量设定」，经 inventory :: StockCommand.setTotal 走乐观锁，不写 product 表。*/
     @Transactional
     public List<Sku> updateSkus(UUID productId, List<SkuUpdateItem> items) {
-        // 1. 商品必须存在且属于当前店铺（任何状态都允许改价/补货，是日常运营操作）
-        requireShopOwned(productId);
+        // 1. 商品必须存在且属于当前店铺（任何状态都允许改价/补货，是日常运营操作）；实体留作价格区间回填
+        Product product = requireShopOwned(productId);
 
         // 2. 逐条更新：WHERE 同时校验 SKU 归属，只 set 非空字段（skuCode/status 传 null 即不改）
         try {
@@ -138,9 +140,11 @@ public class ProductService {
             throw BusinessException.conflict(null, "SKU 编码已存在");
         }
 
-        // 4. 重算价格区间并返回该商品全部 SKU
-        recalcPriceRange(productId);
-        return skusOf(productId);
+        // 4. 重算价格区间并返回该商品全部 SKU：一次查出，出参与区间同源
+        List<Sku> all = skuMapper.selectByProductId(productId);
+        applyPriceRange(product, all);
+        productMapper.updateById(product);
+        return all;
     }
 
     /** 发布：门槛是每个 SKU 都已设价（库存允许 0，可售罄上架），通过后置上架并回填聚合价格区间 */
@@ -171,7 +175,7 @@ public class ProductService {
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查（管理端要能看草稿） */
     public ProductDetail detail(UUID productId) {
         Product product = requireShopOwned(productId);
-        return new ProductDetail(product, skusOf(productId));
+        return new ProductDetail(product, skuMapper.selectByProductId(productId));
     }
 
     // ========== 买家侧公开读 ==========
@@ -205,8 +209,7 @@ public class ProductService {
     public ProductDetail publicDetail(UUID productId) {
         Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
         Validate.isTrue(product.isPublished(), 404, "商品不存在");
-        List<Sku> skus = skuMapper.selectList(
-                new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId).eq(Sku::getStatus, Sku.STATUS_ON_SALE));
+        List<Sku> skus = skuMapper.selectOnSaleByProductId(productId);
         return new ProductDetail(product, skus);
     }
 
@@ -302,31 +305,19 @@ public class ProductService {
 
     /** 发布门槛：必须有 SKU，且所有 SKU 都设了价（库存允许 0，可售罄上架）。publish 与 on 共用 */
     private List<Sku> ensurePublishable(UUID productId) {
-        List<Sku> skus = skusOf(productId);
+        List<Sku> skus = skuMapper.selectByProductId(productId);
         Validate.isTrue(!skus.isEmpty(), "请先设置商品规格");
         boolean anyMissingPrice = skus.stream().anyMatch(s -> s.getPrice() == null);
         Validate.isTrue(!anyMissingPrice, "所有 SKU 都需设置价格后才能发布");
         return skus;
     }
 
-    /** 商品全部 SKU（含各状态） */
-    private List<Sku> skusOf(UUID productId) {
-        return skuMapper.selectList(new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId));
-    }
-
-    /** 一次算好 min/max 价格冗余副本（真实成交价永远以 skus.price 为准；全部未定价时两端为 null）。publish 与 recalcPriceRange 共用 */
+    /** 一次算好 min/max 价格冗余副本（真实成交价永远以 skus.price 为准；全部未定价时两端为 null）。publish 与 recalc 共用 */
     private static void applyPriceRange(Product product, List<Sku> skus) {
         List<Long> prices =
                 skus.stream().map(Sku::getPrice).filter(Objects::nonNull).toList();
         product.setMinPrice(prices.stream().min(Long::compare).orElse(null));
         product.setMaxPrice(prices.stream().max(Long::compare).orElse(null));
-    }
-
-    /** 从全部 SKU 重算 minPrice/maxPrice 冗余副本（真实成交价永远以 skus.price 为准） */
-    private void recalcPriceRange(UUID productId) {
-        Product product = productMapper.selectById(productId);
-        applyPriceRange(product, skusOf(productId));
-        productMapper.updateById(product);
     }
 
     /** 组装草稿实体。草稿没有 SKU，故价格字段留空、specs 为 [] */

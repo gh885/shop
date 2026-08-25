@@ -1,4 +1,4 @@
-package com.shop.platform.auth.service;
+package com.shop.platform.auth;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -7,6 +7,8 @@ import static org.mockito.Mockito.*;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
+import com.shop.platform.auth.service.AuthService;
+import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
@@ -75,20 +77,20 @@ class AuthServiceTest {
         }
 
         @Test
-        void rejectNull() {
+        void 空密码_拒绝() {
             var ex = assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, null));
             assertEquals(400, ex.getHttpStatus());
         }
 
         @Test
-        void rejectShortPassword() {
+        void 过短_拒绝() {
             var ex = assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, "1234567"));
             assertEquals(400, ex.getHttpStatus());
             assertNull(ex.getCode());
         }
 
         @Test
-        void rejectLongPassword() {
+        void 过长_拒绝() {
             var ex =
                     assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, "a".repeat(73)));
             assertEquals(400, ex.getHttpStatus());
@@ -96,14 +98,14 @@ class AuthServiceTest {
         }
 
         @Test
-        void rejectCommonPassword() {
+        void 常见弱口令_拒绝() {
             var ex = assertThrows(BusinessException.class, () -> authService.setPassword(USER_ID, null, "password"));
             assertEquals(400, ex.getHttpStatus());
             assertNull(ex.getCode());
         }
 
         @Test
-        void rejectPhoneEqualsPassword() {
+        void 与手机号相同_拒绝() {
             var user = new User();
             user.setPhone("13800138000");
             when(userMapper.selectById(USER_ID)).thenReturn(user);
@@ -117,14 +119,14 @@ class AuthServiceTest {
     @Nested
     class LoginByPassword {
         @Test
-        void success() {
+        void 成功_签发双令牌并清限流() {
             var user = new User();
             user.setId(USER_ID);
             user.setPhone("13800138000");
             user.setPasswordHash("$2a$12$hashhashhashhashhashhashah");
             user.setStatus("ACTIVE");
 
-            when(userMapper.selectOne(any())).thenReturn(user);
+            when(userMapper.selectByPhone("13800138000")).thenReturn(user);
             when(passwordEncoder.matches(eq("correct"), anyString())).thenReturn(true);
             when(jwtProvider.createAccessToken(USER_ID)).thenReturn("at");
             when(jwtProvider.generateRefreshToken()).thenReturn("rt:xxx");
@@ -137,14 +139,14 @@ class AuthServiceTest {
         }
 
         @Test
-        void wrongPassword() {
+        void 密码错误_拒绝() {
             var user = new User();
             user.setId(USER_ID);
             user.setPhone("13800138000");
             user.setPasswordHash("$2a$12$hashhashhashhashhashhashah");
             user.setStatus("ACTIVE");
 
-            when(userMapper.selectOne(any())).thenReturn(user);
+            when(userMapper.selectByPhone("13800138000")).thenReturn(user);
             when(passwordEncoder.matches(eq("wrong"), anyString())).thenReturn(false);
 
             assertThrows(
@@ -153,8 +155,8 @@ class AuthServiceTest {
         }
 
         @Test
-        void userNotFound() {
-            when(userMapper.selectOne(any())).thenReturn(null);
+        void 用户不存在_统一话术防枚举() {
+            when(userMapper.selectByPhone("13800138000")).thenReturn(null);
             // 无论 user 是否存在都用 dummy hash，所以 encoder 不会接触 null
             when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
@@ -164,13 +166,13 @@ class AuthServiceTest {
         }
 
         @Test
-        void disabledUser() {
+        void 已禁用_403() {
             var user = new User();
             user.setId(USER_ID);
             user.setPasswordHash("$2a$12$hash");
             user.setStatus("DISABLED");
 
-            when(userMapper.selectOne(any())).thenReturn(user);
+            when(userMapper.selectByPhone("13800138000")).thenReturn(user);
             when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
             var ex = assertThrows(
@@ -183,7 +185,7 @@ class AuthServiceTest {
     @Nested
     class SetPassword {
         @Test
-        void firstTime_noCurrentPasswordRequired() {
+        void 首次设置_免旧密码() {
             var user = new User();
             user.setId(USER_ID);
             user.setPhone("13800138000");
@@ -198,7 +200,7 @@ class AuthServiceTest {
         }
 
         @Test
-        void changePassword_requiresCurrentPassword() {
+        void 改密_缺旧密码_401() {
             var user = new User();
             user.setId(USER_ID);
             user.setPasswordHash("$2a$12$oldhash");
@@ -213,7 +215,7 @@ class AuthServiceTest {
         }
 
         @Test
-        void changePassword_wrongCurrentPassword() {
+        void 改密_旧密码错_401() {
             var user = new User();
             user.setId(USER_ID);
             user.setPasswordHash("$2a$12$oldhash");
@@ -231,7 +233,7 @@ class AuthServiceTest {
     @Nested
     class TokenRefresh {
         @Test
-        void success() {
+        void 成功_轮换新令牌() {
             String token = "rt:valid";
 
             when(refreshTokenStore.consume(token)).thenReturn(USER_ID.toString());
@@ -250,7 +252,7 @@ class AuthServiceTest {
         }
 
         @Test
-        void expiredTokenThrows() {
+        void 令牌过期_拒绝() {
             String token = "rt:expired";
 
             when(refreshTokenStore.consume(token)).thenReturn(null);
@@ -261,7 +263,7 @@ class AuthServiceTest {
         }
 
         @Test
-        void replayDetectionRevokesAll() {
+        void 重放检测_410() {
             String token = "rt:replay";
 
             when(refreshTokenStore.consume(token)).thenReturn(null);
@@ -271,15 +273,5 @@ class AuthServiceTest {
             var ex = assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
             assertEquals(410, ex.getHttpStatus());
         }
-    }
-
-    @Test
-    void maskPhone() {
-        // 通过 loginByPassword 的日志间接测试 maskPhone 行为——确保不抛
-        when(userMapper.selectOne(any())).thenReturn(null);
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
-
-        assertThrows(
-                BusinessException.class, () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1"));
     }
 }

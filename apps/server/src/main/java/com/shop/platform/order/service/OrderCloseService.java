@@ -3,11 +3,9 @@ package com.shop.platform.order.service;
 import static com.shop.platform.order.mapper.Order.STATUS_CANCELLED;
 import static com.shop.platform.order.mapper.Order.STATUS_PENDING_PAYMENT;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.order.mapper.Order;
-import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
 import java.time.OffsetDateTime;
@@ -56,10 +54,7 @@ public class OrderCloseService {
         }
 
         // 2. 释放库存（同事务同步调用）：frozen 减回可用
-        stockCommand.release(
-                order.getId(),
-                OrderService.toStockLines(orderItemMapper.selectList(
-                        new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, order.getId()))));
+        stockCommand.release(order.getId(), OrderService.toStockLines(orderItemMapper.selectByOrderId(order.getId())));
         return true;
     }
 }

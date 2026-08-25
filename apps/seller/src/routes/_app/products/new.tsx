@@ -4,7 +4,9 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, CircleAlert, Store } from "lucide-react"
 
 import { BasicForm, type BasicFormValues } from "#/components/basic-form"
-import { productApi, toApiError } from "#/lib/api"
+import { toApiError } from "@shop/api"
+
+import { productApi } from "#/lib/api"
 import { useCurrentShop } from "#/lib/shop"
 
 export const Route = createFileRoute("/_app/products/new")({
@@ -31,8 +33,8 @@ function NewProductPage() {
         onSuccess: (product) => {
             void navigate({ to: "/products/$productId", params: { productId: product.id } })
         },
-        onError: async (e) => {
-            setServerError((await toApiError(e)).detail)
+        onError: (e) => {
+            setServerError(toApiError(e).detail)
         },
     })
 

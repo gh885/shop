@@ -1,6 +1,5 @@
 package com.shop.platform.cart.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.dto.BatchDeleteCartItemsRequest;
@@ -46,22 +45,17 @@ public class CartService {
     @Transactional
     public CartItem add(UUID userId, AddCartItemRequest req) {
         // 1. 校验可加购：SKU 存在且在售、其 SPU 已上架（product :: api 按 ID 只读查，禁止 JOIN）
-        SkuView sku = productReadQuery.skusByIds(List.of(req.skuId())).values().stream()
-                .findFirst()
-                .filter(SkuView::onSale)
-                .orElseThrow(() -> BusinessException.badRequest("商品规格不存在或已停售"));
+        SkuView sku =
+                Validate.present(productReadQuery.skuById(req.skuId()).filter(SkuView::onSale), 400, "商品规格不存在或已停售");
         Validate.isTrue(
-                productReadQuery.productsByIds(List.of(sku.productId())).values().stream()
-                        .findFirst()
+                productReadQuery
+                        .productById(sku.productId())
                         .filter(ProductView::published)
                         .isPresent(),
                 "商品已下架");
 
         // 2. 合并或新增：同 SKU 已在车里则累加封顶，否则插新行
-        LambdaQueryWrapper<CartItem> byUserAndSku = new LambdaQueryWrapper<CartItem>()
-                .eq(CartItem::getUserId, userId)
-                .eq(CartItem::getSkuId, req.skuId());
-        CartItem existing = cartItemMapper.selectOne(byUserAndSku);
+        CartItem existing = cartItemMapper.selectByUserAndSku(userId, req.skuId());
         if (existing != null) {
             existing.setQuantity(existing.mergedQuantity(req.quantity()));
             cartItemMapper.updateById(existing);
@@ -69,8 +63,8 @@ public class CartService {
         }
 
         // 3. 新条目前查条目数上限防刷（并发窗口内微小越界可容忍：非资金安全线，唯一索引才是硬兜底）
-        Long count = cartItemMapper.selectCount(new LambdaQueryWrapper<CartItem>().eq(CartItem::getUserId, userId));
-        Validate.isTrue(count < MAX_ITEMS_PER_USER, "购物车最多存放 " + MAX_ITEMS_PER_USER + " 种商品");
+        Validate.isTrue(
+                cartItemMapper.countByUser(userId) < MAX_ITEMS_PER_USER, "购物车最多存放 " + MAX_ITEMS_PER_USER + " 种商品");
 
         CartItem item = CartItem.builder()
                 .userId(userId)
@@ -84,7 +78,7 @@ public class CartService {
             return item;
         } catch (DuplicateKeyException e) {
             // 4. 并发重复加购撞 uk_cart_items_user_sku：回退为合并
-            CartItem raced = cartItemMapper.selectOne(byUserAndSku);
+            CartItem raced = cartItemMapper.selectByUserAndSku(userId, req.skuId());
             Validate.notNull(raced, "购物车条目不存在");
             raced.setQuantity(raced.mergedQuantity(req.quantity()));
             cartItemMapper.updateById(raced);
@@ -100,9 +94,7 @@ public class CartService {
      */
     public List<CartItemView> list(UUID userId) {
         // 1. 拉整车
-        List<CartItem> items = cartItemMapper.selectList(new LambdaQueryWrapper<CartItem>()
-                .eq(CartItem::getUserId, userId)
-                .orderByDesc(CartItem::getCreatedAt));
+        List<CartItem> items = cartItemMapper.selectWholeCart(userId);
         if (items.isEmpty()) {
             return List.of();
         }
@@ -126,17 +118,15 @@ public class CartService {
 
     /** 角标计数：免拉整车 */
     public CartCount count(UUID userId) {
-        long total = cartItemMapper.selectCount(new LambdaQueryWrapper<CartItem>().eq(CartItem::getUserId, userId));
-        long selected = cartItemMapper.selectCount(new LambdaQueryWrapper<CartItem>()
-                .eq(CartItem::getUserId, userId)
-                .eq(CartItem::getSelected, true));
+        long total = cartItemMapper.countByUser(userId);
+        long selected = cartItemMapper.countSelectedByUser(userId);
         return new CartCount(total, selected);
     }
 
     /** 改数量或勾选：部分更新，null 字段保持原值 */
     @Transactional
     public CartItem update(UUID userId, UUID id, UpdateCartItemRequest req) {
-        CartItem item = own(userId, id);
+        CartItem item = requireOwned(userId, id);
         if (req.quantity() != null) {
             item.setQuantity(req.quantity());
         }
@@ -162,22 +152,20 @@ public class CartService {
     /** 删一条 */
     @Transactional
     public void remove(UUID userId, UUID id) {
-        own(userId, id);
+        requireOwned(userId, id);
         cartItemMapper.deleteById(id);
     }
 
     /** 批量删：清除失效商品/删除选中共用 */
     @Transactional
     public void batchRemove(UUID userId, BatchDeleteCartItemsRequest req) {
-        cartItemMapper.delete(new LambdaQueryWrapper<CartItem>()
-                .eq(CartItem::getUserId, userId)
-                .in(CartItem::getId, req.itemIds()));
+        cartItemMapper.deleteByUserAndIds(userId, req.itemIds());
     }
 
     // ========== 内部 ==========
 
     /** 取本人条目：不存在或不属于当前用户一律 404，不泄露他人数据存在性 */
-    private CartItem own(UUID userId, UUID id) {
+    private CartItem requireOwned(UUID userId, UUID id) {
         CartItem item = Validate.notNull(cartItemMapper.selectById(id), "购物车条目不存在");
         if (!item.getUserId().equals(userId)) {
             throw BusinessException.notFound("购物车条目不存在");
@@ -185,7 +173,7 @@ public class CartService {
         return item;
     }
 
-    /** 拼装单条视图：SKU 缺失 → 全空视图置灰；SPU 缺失 → 只剩 SKU 信息同样置灰 */
+    /** 拼装单条视图：SKU/SPU 缺失时对应段置 null，前端据此置灰；available = SPU 上架且 SKU 在售 */
     private CartItemView assemble(
             CartItem item,
             Map<UUID, SkuView> skus,
@@ -193,20 +181,23 @@ public class CartService {
             Map<UUID, ProductView> products,
             Map<UUID, String> shopNames) {
         SkuView sku = skus.get(item.getSkuId());
-        if (sku == null) {
-            return new CartItemView(
-                    item.getId(),
-                    item.getSkuId(),
-                    item.getQuantity(),
-                    item.getSelected(),
-                    item.getCreatedAt(),
-                    null,
-                    null,
-                    false);
-        }
-        ProductView product = products.get(sku.productId());
+        ProductView product = sku == null ? null : products.get(sku.productId());
+        boolean available = product != null && product.published() && sku.onSale();
+        return new CartItemView(
+                item.getId(),
+                item.getSkuId(),
+                item.getQuantity(),
+                item.getSelected(),
+                item.getCreatedAt(),
+                product == null ? null : productInfo(product, shopNames),
+                sku == null ? null : skuInfo(sku, stocks),
+                available);
+    }
+
+    /** SKU 段：现价/原价 + 实时可用库存（加购到下单的比价窗口） */
+    private static CartItemView.SkuInfo skuInfo(SkuView sku, Map<UUID, StockView> stocks) {
         StockView stock = stocks.get(sku.id());
-        CartItemView.SkuInfo skuInfo = new CartItemView.SkuInfo(
+        return new CartItemView.SkuInfo(
                 sku.id(),
                 sku.name(),
                 sku.image(),
@@ -214,30 +205,12 @@ public class CartService {
                 money(sku.originalPrice(), sku.currency()),
                 stock == null ? 0 : stock.availableStock(),
                 sku.status());
-        // SPU 缺失（被删）：只剩 SKU 信息同样置灰，不触碰 product 字段
-        if (product == null) {
-            return new CartItemView(
-                    item.getId(),
-                    item.getSkuId(),
-                    item.getQuantity(),
-                    item.getSelected(),
-                    item.getCreatedAt(),
-                    null,
-                    skuInfo,
-                    false);
-        }
-        boolean available = product.published() && sku.onSale();
-        CartItemView.ProductInfo productInfo = new CartItemView.ProductInfo(
+    }
+
+    /** SPU 段：卡片字段 + 店铺名 */
+    private static CartItemView.ProductInfo productInfo(ProductView product, Map<UUID, String> shopNames) {
+        return new CartItemView.ProductInfo(
                 product.id(), product.name(), product.mainImage(), product.shopId(), shopNames.get(product.shopId()));
-        return new CartItemView(
-                item.getId(),
-                item.getSkuId(),
-                item.getQuantity(),
-                item.getSelected(),
-                item.getCreatedAt(),
-                productInfo,
-                skuInfo,
-                available);
     }
 
     private static Money money(Long fen, String currency) {

@@ -468,6 +468,9 @@ importers:
       ky:
         specifier: ^2.0.2
         version: 2.0.2
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
       zod:
         specifier: 'catalog:'
         version: 4.4.3
@@ -478,6 +481,9 @@ importers:
       '@types/node':
         specifier: ^26.1.1
         version: 26.1.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.17
 
   packages/config: {}
 

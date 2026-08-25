@@ -13,7 +13,7 @@ import org.springframework.modulith.core.ApplicationModules;
 class ModularityTests {
 
     @Test
-    void verifiesModuleBoundaries() {
+    void 校验模块边界() {
         ApplicationModules.of(ShopServerApplication.class).verify();
     }
 }

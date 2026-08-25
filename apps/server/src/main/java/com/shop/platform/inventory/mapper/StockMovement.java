@@ -22,7 +22,8 @@ import lombok.NoArgsConstructor;
  *   <li>quantity = 总库存增量（after_stock - before_stock），带符号（正 = 总库存/可卖量增加）
  *   <li>对账口径：Σ(quantity) = 当前总库存相对初始态的净变化；Σ(after_available - before_available) = 可用量净变化
  * </ul>
- * 口径约束：FREEZE 与 RELEASE 只换冻结/可用归属不动总存量（quantity=0）；CAPTURE 扣实总库存 -n；RESTOCK 补货总库存 +n。
+ * 口径约束：FREEZE 与 RELEASE 只换冻结/可用归属不动总存量（quantity=0）；CAPTURE 扣实总库存 -n；
+ * RESTOCK 后台补货总库存 +n；RETURN 已付款取消回补总库存 +n（订单驱动，orderId 必有）。
  */
 @Data
 @Builder
@@ -40,6 +41,9 @@ public class StockMovement {
 
     public static final String TYPE_RESTOCK = "RESTOCK";
 
+    /** 已付款订单取消/退款回补：CAPTURE 已扣实的货退回可卖池，总库存 +n，orderId 必有 */
+    public static final String TYPE_RETURN = "RETURN";
+
     /** 主键。应用层生成 uuidv7 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -47,10 +51,10 @@ public class StockMovement {
     /** 归属 SKU ID，product.skus.id，裸引用 */
     private UUID skuId;
 
-    /** 关联订单 ID，orders.orders.id；冻结/扣实/释放必有，补货为 NULL */
+    /** 关联订单 ID，orders.orders.id；冻结/扣实/释放/回补必有，后台补货为 NULL */
     private UUID orderId;
 
-    /** 类型：FREEZE / CAPTURE / RELEASE / RESTOCK */
+    /** 类型：FREEZE / CAPTURE / RELEASE / RESTOCK / RETURN */
     private String type;
 
     /** 本次总库存增量（after_stock - before_stock，带符号） */

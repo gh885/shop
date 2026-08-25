@@ -1,6 +1,5 @@
 package com.shop.platform.auth.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
@@ -76,13 +75,13 @@ public class AuthService {
         smsCodeService.verifyCode(phone, code);
 
         // 2. 查找或自动注册；并发撞 idx_users_phone 时回读对方插入的账号即可幂等
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+        User user = userMapper.selectByPhone(phone);
         if (user == null) {
             user = User.autoRegister(phone);
             try {
                 userMapper.insert(user);
             } catch (DuplicateKeyException e) {
-                user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+                user = userMapper.selectByPhone(phone);
                 if (user == null) throw e;
             }
         }
@@ -160,7 +159,7 @@ public class AuthService {
         smsCodeService.verifyResetCode(phone, code);
 
         // 3. 更新密码（用户不存在也静默成功，不暴露账号存在性）
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+        User user = userMapper.selectByPhone(phone);
         if (user != null) {
             user.setPasswordHash(passwordEncoder.encode(newPassword));
             userMapper.updateById(user);
@@ -249,7 +248,7 @@ public class AuthService {
     /** 查询用户并比对密码（查用户与比密码之间不做分支，走到底） */
     private User authenticate(String phone, String password, String clientIp) {
         // LOGIN-01/02: 查用户与比密码之间不做分支，走到底
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+        User user = userMapper.selectByPhone(phone);
         String storedHash =
                 user != null && user.getPasswordHash() != null ? user.getPasswordHash() : DUMMY_PASSWORD_HASH;
 
@@ -260,34 +259,41 @@ public class AuthService {
             // no_password 分支刻意不返回 PASSWORD_NOT_SET：短信自动注册会产生大量「从未设密码」的活跃号，
             // 若在登录路径暴露该状态，攻击者即可筛出真实注册户（枚举）。真正需要引导用户去设密的场景
             // 放注册后环节，不走登录失败通道；此处只保留内部精确日志（UX-05），供运营揪撞库者。
-            String reason;
-            if (user == null) {
-                reason = "user_not_found";
-                log.warn("[AUTH] 登录失败：用户不存在, phone={}, ip={}", PhoneNumber.mask(phone), clientIp);
-            } else if (user.getPasswordHash() == null) {
-                reason = "no_password";
-                log.warn("[AUTH] 登录失败：未设置密码, userId={}, ip={}", user.getId(), clientIp);
-            } else {
-                reason = "wrong_password";
-                log.warn("[AUTH] 登录失败：密码错误, userId={}, ip={}", user.getId(), clientIp);
-            }
-            MDC.put("event", "auth.login.failed");
-            MDC.put("reason", reason);
-            MDC.put("client_ip", clientIp);
-            if (user != null) {
-                MDC.put("user_id", user.getId().toString());
-            }
-            try {
-                log.warn("[AUTH] 登录失败, reason={}, client_ip={}", reason, clientIp);
-            } finally {
-                MDC.remove("event");
-                MDC.remove("reason");
-                MDC.remove("client_ip");
-                if (user != null) MDC.remove("user_id");
-            }
-            throw BusinessException.unauthorized("手机号或密码错误");
+            throw loginRejected(user, phone, clientIp);
         }
         return user;
+    }
+
+    /** 登录失败的统一出口：内部分支记精确原因（供运营排查），对外一律同一句话；MDC 供日志检索聚合 */
+    private BusinessException loginRejected(User user, String phone, String clientIp) {
+        String reason;
+        if (user == null) {
+            reason = "user_not_found";
+            log.warn("[AUTH] 登录失败：用户不存在, phone={}, ip={}", PhoneNumber.mask(phone), clientIp);
+        } else if (user.getPasswordHash() == null) {
+            reason = "no_password";
+            log.warn("[AUTH] 登录失败：未设置密码, userId={}, ip={}", user.getId(), clientIp);
+        } else {
+            reason = "wrong_password";
+            log.warn("[AUTH] 登录失败：密码错误, userId={}, ip={}", user.getId(), clientIp);
+        }
+        MDC.put("event", "auth.login.failed");
+        MDC.put("reason", reason);
+        MDC.put("client_ip", clientIp);
+        if (user != null) {
+            MDC.put("user_id", user.getId().toString());
+        }
+        try {
+            log.warn("[AUTH] 登录失败, reason={}, client_ip={}", reason, clientIp);
+        } finally {
+            MDC.remove("event");
+            MDC.remove("reason");
+            MDC.remove("client_ip");
+            if (user != null) {
+                MDC.remove("user_id");
+            }
+        }
+        return BusinessException.unauthorized("手机号或密码错误");
     }
 
     private void ensureUserActive(User user) {

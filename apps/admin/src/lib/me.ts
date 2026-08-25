@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 
 import { adminApi } from "./api"
-import { useAuthStatus } from "./auth"
+import { useAuthStatus } from "./api"
 
 const ME_QUERY_KEY = ["admin", "me"] as const
 

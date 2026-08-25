@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query"
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
     addCartItem,
@@ -12,6 +12,7 @@ import {
 } from "#/entities/cart"
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
+import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
 /**
  * 购物车数据 hooks：列表查询 + 乐观更新 mutations（勾选/数量/删除先改缓存、失败回滚）。
@@ -57,76 +58,57 @@ export function useAddToCart() {
     })
 }
 
-/** 乐观更新脚手架（与 features/address/use-address 同款）：先本地 patch，失败回滚，settled 重取 */
-function useOptimisticCartMutation<TVars>(
-    mutationFn: (vars: TVars) => Promise<unknown>,
-    patch: (list: CartItem[], vars: TVars) => CartItem[],
-    messages: { error: string },
-) {
-    const qc = useQueryClient()
-    return useMutation({
-        mutationFn,
-        onMutate: async (vars) => {
-            await qc.cancelQueries({ queryKey: KEY })
-            const prev = qc.getQueryData<CartItem[]>(KEY)
-            qc.setQueryData<CartItem[]>(KEY, (old) => patch(old ?? [], vars))
-            return { prev }
-        },
-        onError: (err, _vars, ctx) => {
-            qc.setQueryData(KEY, ctx?.prev)
-            notify.fromError(err, messages.error)
-        },
-        onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
-    })
-}
-
 /** 改数量（步进器 ±1） */
 export function useUpdateCartQuantity() {
-    return useOptimisticCartMutation(
-        ({ id, quantity }: { id: string; quantity: number }) => updateCartItem(id, { quantity }),
-        (list, { id, quantity }) =>
+    return useOptimisticListMutation<CartItem, { id: string; quantity: number }>({
+        queryKey: KEY,
+        mutationFn: ({ id, quantity }) => updateCartItem(id, { quantity }),
+        patch: (list, { id, quantity }) =>
             list.map((item) => (item.id === id ? { ...item, quantity } : item)),
-        { error: "修改数量失败" },
-    )
+        messages: { error: "修改数量失败" },
+    })
 }
 
 /** 单条勾选/取消 */
 export function useToggleCartItem() {
-    return useOptimisticCartMutation(
-        ({ id, selected }: { id: string; selected: boolean }) => updateCartItem(id, { selected }),
-        (list, { id, selected }) =>
+    return useOptimisticListMutation<CartItem, { id: string; selected: boolean }>({
+        queryKey: KEY,
+        mutationFn: ({ id, selected }) => updateCartItem(id, { selected }),
+        patch: (list, { id, selected }) =>
             list.map((item) => (item.id === id ? { ...item, selected } : item)),
-        { error: "勾选失败" },
-    )
+        messages: { error: "勾选失败" },
+    })
 }
 
 /** 批量勾选：itemIds 省略 = 整车（全选/取消全选），传列表 = 按店铺勾选 */
 export function useSelectCartItems() {
-    return useOptimisticCartMutation(
-        ({ itemIds, selected }: { itemIds?: string[]; selected: boolean }) =>
-            updateCartSelected(itemIds, selected),
-        (list, { itemIds, selected }) =>
+    return useOptimisticListMutation<CartItem, { itemIds?: string[]; selected: boolean }>({
+        queryKey: KEY,
+        mutationFn: ({ itemIds, selected }) => updateCartSelected(itemIds, selected),
+        patch: (list, { itemIds, selected }) =>
             itemIds === undefined
                 ? list.map((item) => ({ ...item, selected }))
                 : list.map((item) => (itemIds.includes(item.id) ? { ...item, selected } : item)),
-        { error: "勾选失败" },
-    )
+        messages: { error: "勾选失败" },
+    })
 }
 
 /** 删一条 */
 export function useRemoveCartItem() {
-    return useOptimisticCartMutation(
-        (id: string) => removeCartItem(id),
-        (list, id) => list.filter((item) => item.id !== id),
-        { error: "删除失败" },
-    )
+    return useOptimisticListMutation<CartItem, string>({
+        queryKey: KEY,
+        mutationFn: (id) => removeCartItem(id),
+        patch: (list, id) => list.filter((item) => item.id !== id),
+        messages: { error: "删除失败" },
+    })
 }
 
 /** 批量删（删除选中 / 清除失效共用） */
 export function useBatchRemoveCartItems() {
-    return useOptimisticCartMutation(
-        (itemIds: string[]) => batchRemoveCartItems(itemIds),
-        (list, itemIds) => list.filter((item) => !itemIds.includes(item.id)),
-        { error: "删除失败" },
-    )
+    return useOptimisticListMutation<CartItem, string[]>({
+        queryKey: KEY,
+        mutationFn: (itemIds) => batchRemoveCartItems(itemIds),
+        patch: (list, itemIds) => list.filter((item) => !itemIds.includes(item.id)),
+        messages: { error: "删除失败" },
+    })
 }

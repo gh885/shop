@@ -38,7 +38,7 @@ public class RegionRegistry {
     private record RegionLeaf(String province, String city, String county, String code) {}
 
     @PostConstruct
-    void load() {
+    public void load() {
         try (InputStream in = new ClassPathResource("regions/regions.json").getInputStream()) {
             JsonNode root = objectMapper.readTree(in);
             for (JsonNode province : root) {

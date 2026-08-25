@@ -18,9 +18,8 @@ import lombok.NoArgsConstructor;
  * 库存主体 —— 一个 SKU 一行，管"这一卖法有多少货、被冻结多少"。
  *
  * <p>半充血（见 AGENTS.md）：不变式与派生归实体，并发闸门与持久化归 service。
- * 派生视图只有 {@link #availableStock()}（stock - frozen_stock，只读不落库）；
- * 真正的原子扣减/冻结/扣实/释放一律条件更新（WHERE 可用量 >= n + 影响行数判 0），
- * 不因实体有状态方法而改读-改-写。
+ * 真正的原子扣减/冻结/扣实/释放一律条件更新（WHERE 可用量 >= n + 影响行数判 0，
+ * 见 SkuStockMapper 的单语句 RETURNING OLD/NEW），不因实体有状态方法而改读-改-写。
  *
  * <p>{@code @Version} 乐观锁只服务于「绝对量调整」这条读-改-写路径（后台把总库存 set 成某值，
  * 两个并发调整会互相覆盖）——updateById 时 MP 自动带 version 比较 + version+1，冲突则影响行数为 0。
@@ -56,16 +55,4 @@ public class SkuStock {
     /** 更新时间 */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private OffsetDateTime updatedAt;
-
-    // ---- 派生视图：只读转换不落库（非表字段） ----
-
-    /** 可用量 = 总库存 - 冻结量。下单/冻结只能动可用量，扣实/释放动的是冻结量 */
-    public int availableStock() {
-        return stock - frozenStock;
-    }
-
-    /** 是否缺货（可用量为 0）：列表/详情前端标缺货用 */
-    public boolean isSoldOut() {
-        return availableStock() <= 0;
-    }
 }

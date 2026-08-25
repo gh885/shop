@@ -32,6 +32,8 @@ export interface ApiClient {
 export interface ApiClientOptions {
     /** 401 自动刷新的端点（相对路径，经 Vite proxy 同源；默认 C 端 auth/refresh） */
     refreshPath?: string
+    /** 打印每个请求的耗时日志（dev 用；应用侧传 import.meta.env.DEV） */
+    debug?: boolean
 }
 
 export function createApiClient(
@@ -98,10 +100,12 @@ export function createApiClient(
                     const ms = start ? Math.round(performance.now() - start) : 0
 
                     // 日志
-                    console.log(
-                        `[API] ${req.method} ${path} ${response.status} ${ms}ms`,
-                        response.ok ? "" : response.statusText,
-                    )
+                    if (options?.debug) {
+                        console.log(
+                            `[API] ${req.method} ${path} ${response.status} ${ms}ms`,
+                            response.ok ? "" : response.statusText,
+                        )
+                    }
 
                     // 401 自动刷新（跳过 refresh 端点本身，防止死循环）
                     const refreshPath = options?.refreshPath ?? "auth/refresh"
@@ -138,6 +142,31 @@ export function createApiClient(
 
 // ---------- 错误归一化 ----------
 
+/**
+ * 把任意抛出的错误归一化为用户可读的 ApiError（UI 展示边界用）。
+ *
+ * 全站唯一的错误归一化出口：toast、表单错误态、路由 loader 的 404 判断都走这里，
+ * 不要在 app 里再手写 HTTPError 鸭子类型。与 normalizeError 的区别：
+ * 本函数永不抛出（未知错误一律按网络错误兜底），适合 catch 后直接展示。
+ */
+export function toApiError(error: unknown): ApiError {
+    if (error instanceof HTTPError) {
+        // ky v2 已把响应体预解析进 error.data（response.body 已消耗，不能再 .json()）
+        const body = error.data as Partial<ApiError> | undefined
+        if (body && typeof body === "object" && typeof body.detail === "string") {
+            return {
+                status: error.response.status,
+                detail: body.detail,
+                code: body.code,
+                requestId: body.requestId,
+            }
+        }
+        return { status: error.response.status, detail: "请求失败，请稍后重试" }
+    }
+    return { status: 0, detail: "网络错误，请检查连接" }
+}
+
+/** request() 内部用：HTTPError → RFC7807 错误体；TypeError → 网络错误；其余原样抛出 */
 function normalizeError(error: unknown): ApiError {
     if (error instanceof HTTPError) {
         if (error.data && typeof error.data === "object") {

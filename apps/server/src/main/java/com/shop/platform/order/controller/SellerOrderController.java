@@ -11,7 +11,6 @@ import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderWithItems;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,10 +39,10 @@ public class SellerOrderController {
                 page.records().stream().map(SellerOrderListItemResponse::from).toList(), page.total());
     }
 
-    /** 本店订单详情：收货快照即打包面单信息 */
+    /** 本店订单详情：收货快照即打包面单信息（与买家侧共用契约，动作集取卖家视角） */
     @GetMapping("/{id}")
-    public SellerOrderDetailResponse detail(@PathVariable UUID id) {
-        return SellerOrderDetailResponse.from(orderService.sellerDetail(ShopIdHolder.get(), id));
+    public OrderDetailResponse detail(@PathVariable UUID id) {
+        return OrderDetailResponse.sellerView(orderService.sellerDetail(ShopIdHolder.get(), id));
     }
 
     /** 发货：待发货 → 已发货，回填物流公司 + 运单号 */
@@ -54,7 +53,7 @@ public class SellerOrderController {
 
     // ---- 出参形状 ----
 
-    /** 列表卡片：买家收货人摘要 + 行项目数，发货作业先扫一眼再进详情 */
+    /** 列表卡片：买家收货人摘要 + 行项目数，发货作业先扫一眼再进详情；详情与买家侧共用 OrderDetailResponse */
     public record SellerOrderListItemResponse(
             UUID id,
             String orderNo,
@@ -74,72 +73,6 @@ public class SellerOrderController {
                     order.getReceiverName(),
                     o.items().size(),
                     order.getCreatedAt());
-        }
-    }
-
-    /** 详情出参：镜像买家详情的卖方视角（不含 buyerMessage 以外的买家私有字段？留言本身卖家可见） */
-    public record SellerOrderDetailResponse(
-            UUID id,
-            String orderNo,
-            String status,
-            List<String> availableActions,
-            Money itemAmount,
-            Money shippingFee,
-            Money payAmount,
-            String buyerMessage,
-            String receiverName,
-            String receiverPhone,
-            String receiverProvince,
-            String receiverCity,
-            String receiverDistrict,
-            String receiverDetail,
-            String logisticsCompany,
-            String trackingNo,
-            OffsetDateTime paidAt,
-            OffsetDateTime shippedAt,
-            OffsetDateTime completedAt,
-            OffsetDateTime cancelledAt,
-            String cancelReason,
-            OffsetDateTime createdAt,
-            List<Item> items) {
-
-        public record Item(UUID skuId, String name, String image, Money price, Integer quantity, Money amount) {}
-
-        static SellerOrderDetailResponse from(OrderWithItems o) {
-            Order order = o.order();
-            List<Item> items = o.items().stream()
-                    .map(i -> new Item(
-                            i.getSkuId(),
-                            i.getName(),
-                            i.getImage(),
-                            i.priceAsMoney(),
-                            i.getQuantity(),
-                            i.amountAsMoney()))
-                    .toList();
-            return new SellerOrderDetailResponse(
-                    order.getId(),
-                    order.getOrderNo(),
-                    order.getStatus(),
-                    order.sellerActions(),
-                    order.itemAmountAsMoney(),
-                    order.shippingFeeAsMoney(),
-                    order.payAmountAsMoney(),
-                    order.getBuyerMessage(),
-                    order.getReceiverName(),
-                    order.getReceiverPhone(),
-                    order.getReceiverProvince(),
-                    order.getReceiverCity(),
-                    order.getReceiverDistrict(),
-                    order.getReceiverDetail(),
-                    order.getLogisticsCompany(),
-                    order.getTrackingNo(),
-                    order.getPaidAt(),
-                    order.getShippedAt(),
-                    order.getCompletedAt(),
-                    order.getCancelledAt(),
-                    order.getCancelReason(),
-                    order.getCreatedAt(),
-                    items);
         }
     }
 }

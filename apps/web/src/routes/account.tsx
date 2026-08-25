@@ -3,7 +3,7 @@ import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/rea
 import { MapPin } from "lucide-react"
 
 import NavMenu, { type NavMenuItem } from "#/widgets/NavMenu"
-import { requireAuth } from "#/shared/api/client"
+import { requireAuth } from "#/shared/api/auth"
 
 /** 个人中心侧边栏菜单（目前只有收货地址一项，后续扩展） */
 const MENU_ITEMS: NavMenuItem[] = [

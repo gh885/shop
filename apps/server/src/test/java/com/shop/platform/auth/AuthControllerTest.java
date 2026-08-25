@@ -1,82 +1,29 @@
-package com.shop.platform.auth.controller;
+package com.shop.platform.auth;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.shop.platform.auth.infra.JwtAuthFilter;
-import com.shop.platform.auth.service.AuthService;
-import com.shop.platform.auth.service.SmsCodeService;
-import com.shop.platform.common.UserIdHolder;
-import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.TokenPair;
-import com.shop.platform.infra.web.RequestBodySizeFilter;
-import com.shop.platform.infra.web.RequestIdFilter;
+import com.shop.platform.testsupport.WebControllerTestSupport;
 import jakarta.servlet.http.Cookie;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@ActiveProfiles("test")
-@TestPropertySource(
-        properties = {
-            "spring.flyway.enabled=false",
-            "spring.autoconfigure.exclude="
-                    + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
-                    + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
-                    + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
-                    + "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
-        })
-class AuthControllerTest {
+/**
+ * 认证接口契约：参数校验、JwtAuthFilter 守卫、refresh 双来源（Cookie/Body）、Cookie 属性、
+ * RequestBodySizeFilter、ClientIp 提取。service 全 mock（基类），业务规则见 AuthServiceTest。
+ */
+class AuthControllerTest extends WebControllerTestSupport {
 
     private static final UUID USER_ID = UUID.randomUUID();
-
-    private MockMvc mockMvc;
-
-    @Autowired
-    WebApplicationContext context;
-
-    @MockitoBean
-    AuthService authService;
-
-    @MockitoBean
-    SmsCodeService smsCodeService;
-
-    @Autowired
-    JwtProvider jwtProvider;
-
-    // RefreshTokenStore 依赖 StringRedisTemplate，本测试排除了 Redis 自动配置，补一个 mock bean 供上下文加载
-    @MockitoBean
-    StringRedisTemplate stringRedisTemplate;
-
-    @BeforeEach
-    void setUp() {
-        UserIdHolder.clear();
-        // webAppContextSetup 不会自动注册 Filter Bean，手动把所有 Filter 加进去
-        mockMvc = MockMvcBuilders.webAppContextSetup(context)
-                .addFilters(
-                        context.getBean(RequestIdFilter.class),
-                        context.getBean(RequestBodySizeFilter.class),
-                        context.getBean(JwtAuthFilter.class))
-                .build();
-    }
 
     // ========== 请求体校验 (BODY-01) ==========
 
     @Test
-    void sendSmsCode_blankPhone_returns422() throws Exception {
+    void 发送验证码_空手机号_422() throws Exception {
         mockMvc.perform(
                         post("/auth/sms-code")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -89,7 +36,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void sendSmsCode_tooShortPhone_returns422() throws Exception {
+    void 发送验证码_手机号过短_422() throws Exception {
         mockMvc.perform(
                         post("/auth/sms-code")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -102,7 +49,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void sendSmsCode_unknownField_returns400() throws Exception {
+    void 发送验证码_未知字段_400() throws Exception {
         // ERR-03: Jackson FAIL_ON_UNKNOWN_PROPERTIES → JSON 解析失败 → 400
         mockMvc.perform(
                         post("/auth/sms-code")
@@ -116,7 +63,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginByPassword_blankFields_returns422() throws Exception {
+    void 密码登录_全空字段_422() throws Exception {
         mockMvc.perform(
                         post("/auth/login/password")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +80,7 @@ class AuthControllerTest {
     // 注意：JwtAuthFilter 直接写响应（不走 @ControllerAdvice）
 
     @Test
-    void setPassword_withoutToken_returns401() throws Exception {
+    void 设置密码_无令牌_401() throws Exception {
         mockMvc.perform(
                         post("/auth/password")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -146,7 +93,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void logout_withoutToken_returns401() throws Exception {
+    void 登出_无令牌_401() throws Exception {
         mockMvc.perform(
                         post("/auth/logout")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -159,7 +106,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void setPassword_withInvalidToken_returns401() throws Exception {
+    void 设置密码_坏令牌_401() throws Exception {
         mockMvc.perform(
                         post("/auth/password")
                                 .header("Authorization", "Bearer invalid.jwt.token")
@@ -172,7 +119,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void setPassword_withValidToken_callsService() throws Exception {
+    void 设置密码_有效令牌_透传服务() throws Exception {
         String token = jwtProvider.createAccessToken(USER_ID);
 
         mockMvc.perform(
@@ -191,7 +138,7 @@ class AuthControllerTest {
     // ========== Cookie 行为 ==========
 
     @Test
-    void loginByPassword_success_setsRefreshCookie() throws Exception {
+    void 密码登录_成功_下发刷新Cookie() throws Exception {
         when(authService.loginByPassword(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(new TokenPair("access-token", "rt:test-value"));
 
@@ -211,7 +158,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void refresh_fromCookie_succeeds() throws Exception {
+    void 刷新_Cookie携带_成功() throws Exception {
         when(authService.refresh(eq("rt:cookie"), anyString())).thenReturn(new TokenPair("new-at", "rt:new"));
 
         mockMvc.perform(post("/auth/refresh")
@@ -228,7 +175,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void refresh_fromBody_fallsBack() throws Exception {
+    void 刷新_请求体兜底() throws Exception {
         when(authService.refresh(eq("rt:body"), anyString())).thenReturn(new TokenPair("new-at", "rt:new"));
 
         mockMvc.perform(
@@ -244,7 +191,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void refresh_noToken_returns401() throws Exception {
+    void 刷新_无令牌_401() throws Exception {
         mockMvc.perform(post("/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -255,7 +202,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void logout_clearsCookie() throws Exception {
+    void 登出_清除Cookie() throws Exception {
         String token = jwtProvider.createAccessToken(USER_ID);
 
         mockMvc.perform(
@@ -274,7 +221,7 @@ class AuthControllerTest {
     // ========== 成功路径 ==========
 
     @Test
-    void sendSmsCode_success_returns200() throws Exception {
+    void 发送验证码_成功() throws Exception {
         mockMvc.perform(
                         post("/auth/sms-code")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -288,7 +235,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginByPassword_success_returnsTokenResult() throws Exception {
+    void 密码登录_成功_刷新令牌只进Cookie() throws Exception {
         when(authService.loginByPassword(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(new TokenPair("at1", "rt1"));
 
@@ -309,7 +256,7 @@ class AuthControllerTest {
     // ========== RequestBodySizeFilter (SEC-04) ==========
 
     @Test
-    void requestBodyTooLarge_returns413() throws Exception {
+    void 请求体超限_413() throws Exception {
         // 超过 1MB 限制 → 413，filter 在 JSON 解析前拦截
         String largeBody = "x".repeat(1_048_577);
 
@@ -323,7 +270,7 @@ class AuthControllerTest {
     // ========== IP 提取 ==========
 
     @Test
-    void sendSmsCode_withXForwardedFor_untrustedByDefault() throws Exception {
+    void 验证码_IP来源_XFF默认不信任() throws Exception {
         // ClientIp 默认不信 XFF（客户端自报头，盲信会让 IP 限流失效）→ 用 TCP 对端地址
         mockMvc.perform(
                         post("/auth/sms-code")
@@ -339,7 +286,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void sendSmsCode_withoutXForwardedFor_usesRemoteAddr() throws Exception {
+    void 验证码_IP来源_取对端地址() throws Exception {
         mockMvc.perform(
                         post("/auth/sms-code")
                                 .contentType(MediaType.APPLICATION_JSON)

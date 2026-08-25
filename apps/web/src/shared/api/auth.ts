@@ -1,69 +1,45 @@
+import { useEffect } from "react"
+import { redirect, useNavigate } from "@tanstack/react-router"
 import { useSyncExternalStore } from "react"
 
-import type { TokenStore } from "@shop/api"
+import { authState, bootstrapAuth } from "./client"
 
-// access token 只存内存：短效（10 分钟），页面加载由 bootstrap 用 refresh cookie 换新
-const DEVICE_KEY = "shop_device_id"
+export type { AuthStatus } from "@shop/api"
+// 共享登录态（实现在 @shop/api/auth-kit，装配见 ./client）；转发省得调用方跨文件取
+export {
+    tokenStore,
+    getDeviceId,
+    useAuthStatus,
+    useIsLoggedIn,
+    bootstrapAuth,
+    authState,
+} from "./client"
 
-// ---------- 认证状态（模块级 store，useSyncExternalStore 驱动 UI） ----------
+// ---------- 全局登录 Dialog 开关（web 特有：未登录拉起 Dialog 而非跳页） ----------
 
-export type AuthStatus = "unknown" | "authed" | "guest"
-
-// 启动时一律 unknown，待 bootstrap 用 refresh cookie 换新 access token 后裁决
-let accessToken: string | null = null
-let status: AuthStatus = "unknown"
 let loginDialogOpen = false
 
-const listeners = new Set<() => void>()
+const dialogListeners = new Set<() => void>()
 
 function emit() {
-    listeners.forEach((l) => l())
-}
-
-export const tokenStore: TokenStore & { clear: () => void } = {
-    get: () => accessToken,
-    set: (token: string) => {
-        accessToken = token
-        status = "authed"
-        emit()
-    },
-    clear: () => {
-        accessToken = null
-        status = "guest"
-        emit()
-    },
-}
-
-export const authState = {
-    getStatus: () => status,
-    /** bootstrap 失败但无本地态可清时的兜底（不清 localStorage 场景） */
-    markGuest: () => {
-        status = "guest"
-        emit()
-    },
-    openLoginDialog: () => {
-        loginDialogOpen = true
-        emit()
-    },
-    closeLoginDialog: () => {
-        loginDialogOpen = false
-        emit()
-    },
+    dialogListeners.forEach((l) => l())
 }
 
 function subscribe(listener: () => void) {
-    listeners.add(listener)
+    dialogListeners.add(listener)
     return () => {
-        listeners.delete(listener)
+        dialogListeners.delete(listener)
     }
 }
 
-export function useAuthStatus(): AuthStatus {
-    return useSyncExternalStore(subscribe, authState.getStatus, () => "unknown")
+export function openLoginDialog() {
+    loginDialogOpen = true
+    emit()
 }
 
-export function useIsLoggedIn(): boolean {
-    return useAuthStatus() === "authed"
+export function closeLoginDialog() {
+    loginDialogOpen = false
+    emit()
 }
 
 export function useLoginDialogOpen(): [boolean, (open: boolean) => void] {
@@ -72,24 +48,41 @@ export function useLoginDialogOpen(): [boolean, (open: boolean) => void] {
         () => loginDialogOpen,
         () => false,
     )
-    const setOpen = (next: boolean) =>
-        next ? authState.openLoginDialog() : authState.closeLoginDialog()
+    const setOpen = (next: boolean) => (next ? openLoginDialog() : closeLoginDialog())
     return [open, setOpen]
 }
 
-// ---------- 设备 ID（持久化，用于多端会话管理） ----------
+// ---------- 路由守卫 ----------
 
-let cachedDeviceId: string | null = null
-
-export function getDeviceId(): string {
-    if (cachedDeviceId) return cachedDeviceId
-    const stored = localStorage.getItem(DEVICE_KEY)
-    if (stored) {
-        cachedDeviceId = stored
-        return stored
+/**
+ * 受保护路由的 beforeLoad 守卫：确保登录态已裁决，未登录则拉起登录 Dialog 并跳回首页。
+ *
+ * SSR 首屏无法裁决登录态（refresh cookie 只在浏览器端刷新），直接放行，由页面的 useAuthGuard 兜底。
+ *
+ * 用法：createFileRoute('/x')({ beforeLoad: () => requireAuth(), ... })
+ */
+export async function requireAuth(): Promise<void> {
+    if (import.meta.env.SSR) return
+    await bootstrapAuth()
+    if (authState.getStatus() !== "authed") {
+        openLoginDialog()
+        throw redirect({ to: "/" })
     }
-    const id = crypto.randomUUID()
-    localStorage.setItem(DEVICE_KEY, id)
-    cachedDeviceId = id
-    return id
+}
+
+/**
+ * SSR 直访受保护页的客户端兜底守卫：挂载后裁决登录态，未登录拉起登录 Dialog 并跳回首页。
+ * 与 beforeLoad 的 requireAuth 配合（客户端导航走 beforeLoad，SSR 直访走这里）。
+ */
+export function useAuthGuard(): void {
+    const navigate = useNavigate()
+    useEffect(() => {
+        void (async () => {
+            await bootstrapAuth()
+            if (authState.getStatus() !== "authed") {
+                openLoginDialog()
+                await navigate({ to: "/" })
+            }
+        })()
+    }, [navigate])
 }

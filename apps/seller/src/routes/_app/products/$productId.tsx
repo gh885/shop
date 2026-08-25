@@ -9,7 +9,9 @@ import type { ProductStatus } from "@shop/api"
 import { BasicForm, type BasicFormValues } from "#/components/basic-form"
 import { SkusTable } from "#/components/skus-table"
 import { SpecsEditor } from "#/components/specs-editor"
-import { productApi, toApiError } from "#/lib/api"
+import { toApiError } from "@shop/api"
+
+import { productApi } from "#/lib/api"
 import { useCurrentShop } from "#/lib/shop"
 
 export const Route = createFileRoute("/_app/products/$productId")({
@@ -45,7 +47,7 @@ function ProductEditPage() {
     const refresh = () =>
         queryClient.invalidateQueries({ queryKey: ["products", shop?.id, productId] })
 
-    const onError = async (e: unknown) => setServerError((await toApiError(e)).detail)
+    const onError = (e: unknown) => setServerError(toApiError(e).detail)
 
     const updateBasic = useMutation({
         mutationFn: (values: BasicFormValues) =>

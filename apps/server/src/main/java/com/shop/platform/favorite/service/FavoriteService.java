@@ -1,6 +1,5 @@
 package com.shop.platform.favorite.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
@@ -33,16 +32,14 @@ public class FavoriteService {
     @Transactional
     public FavoriteItem add(UUID userId, UUID productId) {
         // 1. 校验商品存在且已上架（product :: api 按 ID 只读查，禁止 JOIN）：查到且已上架才放行
-        boolean published = productReadQuery.productsByIds(List.of(productId)).values().stream()
-                .findFirst()
+        boolean published = productReadQuery
+                .productById(productId)
                 .filter(ProductView::published)
                 .isPresent();
         Validate.isTrue(published, "商品不存在或已下架");
 
         // 2. 幂等：已在收藏夹直接返回原行
-        FavoriteItem existing = favoriteItemMapper.selectOne(new LambdaQueryWrapper<FavoriteItem>()
-                .eq(FavoriteItem::getUserId, userId)
-                .eq(FavoriteItem::getProductId, productId));
+        FavoriteItem existing = favoriteItemMapper.selectByUserAndProduct(userId, productId);
         if (existing != null) {
             return existing;
         }
@@ -55,28 +52,20 @@ public class FavoriteService {
             log.info("[FAVORITE] 收藏, userId={}, productId={}", userId, productId);
             return item;
         } catch (DuplicateKeyException e) {
-            return favoriteItemMapper.selectOne(new LambdaQueryWrapper<FavoriteItem>()
-                    .eq(FavoriteItem::getUserId, userId)
-                    .eq(FavoriteItem::getProductId, productId));
+            return favoriteItemMapper.selectByUserAndProduct(userId, productId);
         }
     }
 
     /** 取消收藏：按商品 ID 删（收藏是开关不是行管理），幂等——不存在也返回成功 */
     @Transactional
     public void remove(UUID userId, UUID productId) {
-        favoriteItemMapper.delete(new LambdaQueryWrapper<FavoriteItem>()
-                .eq(FavoriteItem::getUserId, userId)
-                .eq(FavoriteItem::getProductId, productId));
+        favoriteItemMapper.deleteByUserAndProduct(userId, productId);
     }
 
     /** 我的收藏分页：新收藏在前，商品卡片数据读取时拼装，下架商品 available=false 置灰保留 */
     public PageResult<FavoriteItemView> list(UUID userId, long page, long size) {
         // 1. 分页拉收藏行（覆盖索引左前缀 user_id，按收藏时间倒序）
-        var pageResult = favoriteItemMapper.selectPage(
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size),
-                new LambdaQueryWrapper<FavoriteItem>()
-                        .eq(FavoriteItem::getUserId, userId)
-                        .orderByDesc(FavoriteItem::getCreatedAt));
+        var pageResult = favoriteItemMapper.selectPageByUser(userId, page, size);
         List<FavoriteItem> rows = pageResult.getRecords();
         if (rows.isEmpty()) {
             return new PageResult<>(List.of(), pageResult.getTotal());
@@ -102,11 +91,7 @@ public class FavoriteService {
         if (productIds.isEmpty()) {
             return List.of();
         }
-        return favoriteItemMapper
-                .selectList(new LambdaQueryWrapper<FavoriteItem>()
-                        .eq(FavoriteItem::getUserId, userId)
-                        .in(FavoriteItem::getProductId, productIds))
-                .stream()
+        return favoriteItemMapper.selectByUserAndProducts(userId, productIds).stream()
                 .map(FavoriteItem::getProductId)
                 .toList();
     }

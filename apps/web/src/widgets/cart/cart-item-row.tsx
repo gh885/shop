@@ -2,7 +2,9 @@ import { Minus, Plus } from "lucide-react"
 
 import { Checkbox } from "@shop/ui-web"
 
-import { formatFen, type CartItem } from "#/entities/cart"
+import { fenToYuan } from "@shop/api"
+
+import type { CartItem } from "#/entities/cart"
 import { useCart } from "#/features/cart/cart-provider"
 import { notify } from "#/shared/lib/toast"
 
@@ -59,7 +61,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
             <div className="w-28 shrink-0 text-right">
                 {item.sku?.price ? (
                     <p className="text-sm font-bold text-primary">
-                        ¥{formatFen(item.sku.price.amount)}
+                        ¥{fenToYuan(item.sku.price.amount)}
                     </p>
                 ) : (
                     <p className="text-sm text-muted-foreground">暂无价格</p>
@@ -68,7 +70,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
                     item.sku.price &&
                     item.sku.originalPrice.amount > item.sku.price.amount && (
                         <p className="text-xs text-muted-foreground line-through">
-                            ¥{formatFen(item.sku.originalPrice.amount)}
+                            ¥{fenToYuan(item.sku.originalPrice.amount)}
                         </p>
                     )}
             </div>

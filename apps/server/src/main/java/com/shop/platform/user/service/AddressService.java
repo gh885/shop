@@ -2,8 +2,6 @@ package com.shop.platform.user.service;
 
 import com.alotuser.address.SmartAgent;
 import com.alotuser.address.assets.UserInfo;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
@@ -28,15 +26,12 @@ public class AddressService {
 
     /** 我的地址列表：默认地址置顶，其余按创建时间倒序 */
     public List<Address> list(UUID userId) {
-        return addressMapper.selectList(new LambdaQueryWrapper<Address>()
-                .eq(Address::getUserId, userId)
-                .orderByDesc(Address::getIsDefault)
-                .orderByDesc(Address::getCreatedAt));
+        return addressMapper.selectByUser(userId);
     }
 
     /** 地址详情：仅本人可见，否则 404 */
     public Address detail(UUID userId, UUID id) {
-        return own(userId, id);
+        return requireOwned(userId, id);
     }
 
     /** 新增地址；标记默认时先清掉其他默认，保证每用户至多一个默认 */
@@ -45,7 +40,7 @@ public class AddressService {
         validateRegion(req.regionCode());
         boolean asDefault = Boolean.TRUE.equals(req.isDefault());
         if (asDefault) {
-            clearDefaults(userId);
+            addressMapper.clearDefault(userId);
         }
         Address address = Address.builder()
                 .userId(userId)
@@ -68,7 +63,7 @@ public class AddressService {
     @Transactional
     public Address update(UUID userId, UUID id, AddressRequest req) {
         validateRegion(req.regionCode());
-        Address address = own(userId, id);
+        Address address = requireOwned(userId, id);
         address.setReceiverName(req.receiverName());
         address.setPhone(PhoneNumber.of(req.phone()).value());
         address.setRegionCode(req.regionCode());
@@ -80,7 +75,7 @@ public class AddressService {
         if (req.isDefault() != null) {
             address.setIsDefault(req.isDefault());
             if (Boolean.TRUE.equals(address.getIsDefault())) {
-                clearDefaults(userId);
+                addressMapper.clearDefault(userId);
             }
         }
         addressMapper.updateById(address);
@@ -90,7 +85,7 @@ public class AddressService {
     /** 删除地址：软删（MyBatis-Plus 逻辑删除），仅本人地址；被删的默认地址不自动顶替，允许无默认 */
     @Transactional
     public void delete(UUID userId, UUID id) {
-        Address address = own(userId, id);
+        Address address = requireOwned(userId, id);
         addressMapper.deleteById(address.getId());
         log.info("[USER] 删除收货地址, userId={}, addrId={}", userId, id);
     }
@@ -98,8 +93,8 @@ public class AddressService {
     /** 设为默认：清掉本人其他默认后置目标为默认，靠部分唯一索引兜底并发 */
     @Transactional
     public Address setDefault(UUID userId, UUID id) {
-        Address address = own(userId, id);
-        clearDefaults(userId);
+        Address address = requireOwned(userId, id);
+        addressMapper.clearDefault(userId);
         address.setIsDefault(true);
         addressMapper.updateById(address);
         log.info("[USER] 设置默认收货地址, userId={}, addrId={}", userId, id);
@@ -109,7 +104,7 @@ public class AddressService {
     /** 取消默认：仅当目标是默认时清掉标记，允许出现「无默认地址」状态 */
     @Transactional
     public Address unsetDefault(UUID userId, UUID id) {
-        Address address = own(userId, id);
+        Address address = requireOwned(userId, id);
         if (Boolean.TRUE.equals(address.getIsDefault())) {
             address.setIsDefault(false);
             addressMapper.updateById(address);
@@ -171,17 +166,8 @@ public class AddressService {
         return label;
     }
 
-    /** 把当前用户所有地址的默认标记清零（创建/更新/设默认前调用） */
-    private void clearDefaults(UUID userId) {
-        addressMapper.update(
-                null,
-                new LambdaUpdateWrapper<Address>()
-                        .eq(Address::getUserId, userId)
-                        .set(Address::getIsDefault, false));
-    }
-
     /** 取本人地址：不存在或不属于当前用户一律 404，不泄露他人数据存在性 */
-    private Address own(UUID userId, UUID id) {
+    private Address requireOwned(UUID userId, UUID id) {
         Address address = Validate.notNull(addressMapper.selectById(id), "地址不存在");
         if (!address.getUserId().equals(userId)) {
             throw BusinessException.notFound("地址不存在");

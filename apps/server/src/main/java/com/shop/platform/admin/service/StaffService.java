@@ -1,6 +1,5 @@
 package com.shop.platform.admin.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.admin.mapper.Staff;
 import com.shop.platform.admin.mapper.StaffMapper;
 import com.shop.platform.common.BusinessException;
@@ -29,7 +28,7 @@ public class StaffService {
     /** 工号 + 密码登录（平台员工独立账号体系，不走手机验证码） */
     public TokenPair login(String employeeNo, String password, String deviceId) {
         // 1. 查员工并比对密码（不存在与密码错误统一提示，不暴露账号存在性）
-        Staff staff = staffMapper.selectOne(new LambdaQueryWrapper<Staff>().eq(Staff::getEmployeeNo, employeeNo));
+        Staff staff = staffMapper.selectByEmployeeNo(employeeNo);
         if (staff == null || !passwordEncoder.matches(password, staff.getPasswordHash())) {
             log.warn("[ADMIN] 登录失败：工号或密码错误, employeeNo={}", employeeNo);
             throw BusinessException.unauthorized("工号或密码错误");

@@ -9,10 +9,10 @@ import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.mapper.Order;
-import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderWithItems;
+import com.shop.platform.order.service.ValidLine;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -68,7 +68,7 @@ public class OrderController {
     /** 订单详情：含收货快照、物流、各状态时间戳 */
     @GetMapping("/{id}")
     public OrderDetailResponse detail(@PathVariable UUID id) {
-        return OrderDetailResponse.from(orderService.detail(UserIdHolder.get(), id));
+        return OrderDetailResponse.buyerView(orderService.detail(UserIdHolder.get(), id));
     }
 
     /** 取消订单：仅待付款/待发货可取消，取消即回补库存 */
@@ -123,7 +123,7 @@ public class OrderController {
                 Integer quantity,
                 Integer stock) {
 
-            static Item from(CheckoutPreview.Line l) {
+            static Item from(ValidLine l) {
                 return new Item(
                         l.skuId(),
                         l.productId(),
@@ -189,87 +189,6 @@ public class OrderController {
                     o.order().getPayExpireAt(),
                     o.order().getCreatedAt(),
                     o.items().stream().map(OrderItemResponse::from).toList());
-        }
-    }
-
-    /** 订单详情出参：收货快照 + 物流 + 全部时间戳，客服排查同用此契约 */
-    public record OrderDetailResponse(
-            UUID id,
-            String orderNo,
-            String status,
-            List<String> availableActions,
-            Money itemAmount,
-            Money shippingFee,
-            Money payAmount,
-            String buyerMessage,
-            String receiverName,
-            String receiverPhone,
-            String receiverProvince,
-            String receiverCity,
-            String receiverDistrict,
-            String receiverDetail,
-            String logisticsCompany,
-            String trackingNo,
-            OffsetDateTime payExpireAt,
-            OffsetDateTime paidAt,
-            OffsetDateTime shippedAt,
-            OffsetDateTime completedAt,
-            OffsetDateTime cancelledAt,
-            String cancelReason,
-            OffsetDateTime createdAt,
-            List<OrderItemResponse> items) {
-
-        static OrderDetailResponse from(OrderWithItems o) {
-            Order order = o.order();
-            return new OrderDetailResponse(
-                    order.getId(),
-                    order.getOrderNo(),
-                    order.getStatus(),
-                    order.buyerActions(),
-                    order.itemAmountAsMoney(),
-                    order.shippingFeeAsMoney(),
-                    order.payAmountAsMoney(),
-                    order.getBuyerMessage(),
-                    order.getReceiverName(),
-                    order.getReceiverPhone(),
-                    order.getReceiverProvince(),
-                    order.getReceiverCity(),
-                    order.getReceiverDistrict(),
-                    order.getReceiverDetail(),
-                    order.getLogisticsCompany(),
-                    order.getTrackingNo(),
-                    order.getPayExpireAt(),
-                    order.getPaidAt(),
-                    order.getShippedAt(),
-                    order.getCompletedAt(),
-                    order.getCancelledAt(),
-                    order.getCancelReason(),
-                    order.getCreatedAt(),
-                    o.items().stream().map(OrderItemResponse::from).toList());
-        }
-    }
-
-    /** 行项目出参：快照字段原样透出，amount 供详情页小计展示 */
-    public record OrderItemResponse(
-            UUID productId,
-            UUID skuId,
-            String name,
-            String image,
-            Money price,
-            Money originalPrice,
-            Integer quantity,
-            Money amount) {
-
-        static OrderItemResponse from(OrderItem i) {
-            return new OrderItemResponse(
-                    i.getProductId(),
-                    i.getSkuId(),
-                    i.getName(),
-                    i.getImage(),
-                    i.priceAsMoney(),
-                    i.originalPriceAsMoney(),
-                    i.getQuantity(),
-                    i.amountAsMoney());
         }
     }
 }

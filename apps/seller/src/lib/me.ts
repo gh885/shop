@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { authApi } from "./api"
-import { useAuthStatus } from "./auth"
+import { useAuthStatus } from "./api"
 
 const ME_QUERY_KEY = ["me"] as const
 

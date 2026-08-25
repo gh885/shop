@@ -1,12 +1,10 @@
 package com.shop.platform.order.api;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.mapper.Order;
-import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
 import java.time.OffsetDateTime;
@@ -42,12 +40,9 @@ public class OrderCommand {
         Validate.isTrue(affected == 1, 409, "订单已取消或已支付，本次支付未生效");
 
         // 支付成功即扣实冻结库存（同事务）：货真的没了，冻结量归还
-        List<StockLine> lines =
-                orderItemMapper
-                        .selectList(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId))
-                        .stream()
-                        .map(i -> new StockLine(i.getSkuId(), i.getQuantity()))
-                        .toList();
+        List<StockLine> lines = orderItemMapper.selectByOrderId(orderId).stream()
+                .map(i -> new StockLine(i.getSkuId(), i.getQuantity()))
+                .toList();
         stockCommand.capture(orderId, lines);
     }
 }

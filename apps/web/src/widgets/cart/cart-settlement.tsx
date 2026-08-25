@@ -1,6 +1,6 @@
 import { Button } from "@shop/ui-web"
 
-import { formatFen } from "#/entities/cart"
+import { fenToYuan } from "@shop/api"
 import { useCart } from "#/features/cart/cart-provider"
 import { notify } from "#/shared/lib/toast"
 
@@ -51,7 +51,7 @@ export function CartSettlement() {
             {/* 商品总价 */}
             <div className="mt-5 flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">商品总价</span>
-                <span className="font-medium text-foreground">¥{formatFen(selectedTotal)}</span>
+                <span className="font-medium text-foreground">¥{fenToYuan(selectedTotal)}</span>
             </div>
 
             {/* 优惠/满减/红包区：本期不做，留白给后续订单接入 */}
@@ -60,7 +60,7 @@ export function CartSettlement() {
                 <span className="text-sm text-muted-foreground">合计：</span>
                 <div className="text-right">
                     <span className="text-2xl font-bold tracking-tight text-primary">
-                        ¥{formatFen(selectedTotal)}
+                        ¥{fenToYuan(selectedTotal)}
                     </span>
                 </div>
             </div>

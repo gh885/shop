@@ -104,9 +104,6 @@ export function groupByShop(items: CartItem[]): CartShopGroup[] {
 
 // ---------- 展示辅助 ----------
 
-/** 分 → "26.64"（元字符串，两位小数）。展示层拼接 ¥ 符号与字号 */
-export function formatFen(fen: number): string {
-    return (fen / 100).toFixed(2)
-}
+// 金额格式化（fenToYuan 等）在 @shop/api，与 Money 契约同源，不在本模块重复定义
 
 export type { Money }

@@ -7,6 +7,7 @@ import com.shop.platform.infra.security.SecretHasher;
 import com.shop.platform.infra.util.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.function.UnaryOperator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -26,6 +27,7 @@ public class SmsCodeService {
 
     // 重置密码验证码：与登录验证码同一套防线，只有 key 前缀不同
     private static final String KEY_RESET_CODE = "reset:code:";
+    private static final String KEY_RESET_RATE = "reset:rate:";
     private static final String KEY_RESET_ATTEMPT = "reset:attempt:";
 
     private static final long CODE_TTL = 5; // 验证码有效 5 分钟
@@ -42,61 +44,12 @@ public class SmsCodeService {
 
     /** 发送验证码 */
     public void sendCode(String phone, String clientIp) {
-        // 1. 限流检查：IP 维度（OTP-06）+ 单 IP 每日不同手机号数（防横扫轰炸）
-        if (RateLimiter.exceeded(redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
-            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
-        }
-        enforceDistinctPhonesPerIp(clientIp, phone);
-
-        // 2. 限流检查：60s 重发间隔 + 每日上限（INCR 原子操作消除 TOCTOU 竞争）
-        String rateKey = KEY_RATE + phone;
-        if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
-            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
-        }
-        if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
-            throw new BusinessException(429, "SMS_DAILY_LIMIT", "今日验证码已达上限");
-        }
-
-        // 3. 生成 6 位验证码，存 HMAC 摘要（pepper 在应用配置，拖库不可离线枚举）
-        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
-        String codeHash = secretHasher.hash(phone + ":" + code);
-        String codeKey = KEY_CODE + phone;
-        redis.opsForValue().set(codeKey, codeHash, Duration.ofMinutes(CODE_TTL));
-
-        // 4. 写频控标记，重发后清旧尝试计数（UX-03）
-        redis.opsForValue().set(rateKey, "1", Duration.ofSeconds(RATE_TTL));
-        redis.delete(KEY_ATTEMPT + phone);
-
-        // 5. 发送
-        smsChannel.sendCode(phone, code);
+        sendOtp(KEY_CODE, KEY_RATE, KEY_ATTEMPT, phone, clientIp, code -> code);
     }
 
-    /** 发送重置密码验证码：频控（IP + 手机号冷却 + 每日上限）与哈希存储复用登录验证码的防线 */
+    /** 发送重置密码验证码：频控防线与哈希存储复用登录验证码（sendOtp），仅 key 前缀与短信文案不同 */
     public void sendResetCode(String phone, String clientIp) {
-        // 1. 限流检查：IP 维度（与登录验证码共用 IP 预算）+ 单 IP 每日不同手机号数（防横扫轰炸）+ 60s 重发间隔 + 每日上限
-        if (RateLimiter.exceeded(redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
-            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
-        }
-        enforceDistinctPhonesPerIp(clientIp, phone);
-        String rateKey = "reset:rate:" + phone;
-        if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
-            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
-        }
-        if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
-            throw new BusinessException(429, "SMS_DAILY_LIMIT", "今日验证码已达上限");
-        }
-
-        // 2. 生成 6 位验证码，存 HMAC 摘要（pepper 在应用配置，拖库不可离线枚举），有效期同登录验证码
-        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
-        redis.opsForValue()
-                .set(KEY_RESET_CODE + phone, secretHasher.hash(phone + ":" + code), Duration.ofMinutes(CODE_TTL));
-
-        // 3. 写频控标记，重发后清旧尝试计数（与 sendCode 的 UX-03 对齐：重发即给全新 5 次机会）
-        redis.opsForValue().set(rateKey, "1", Duration.ofSeconds(RATE_TTL));
-        redis.delete(KEY_RESET_ATTEMPT + phone);
-
-        // 4. 发送（内容为可人工输入的短码，而非长随机 token）
-        smsChannel.sendCode(phone, "重置密码验证码: " + code);
+        sendOtp(KEY_RESET_CODE, KEY_RESET_RATE, KEY_RESET_ATTEMPT, phone, clientIp, code -> "重置密码验证码: " + code);
     }
 
     /** 校验登录验证码 */
@@ -107,6 +60,47 @@ public class SmsCodeService {
     /** 校验重置密码验证码；防线与登录验证码一致（尝试上限、一次性消费、哈希比对） */
     public void verifyResetCode(String phone, String code) {
         consumeOtp(KEY_RESET_CODE, KEY_RESET_ATTEMPT, phone, code);
+    }
+
+    /**
+     * OTP 发送通用路径：限流防线（IP / 单 IP 去重号码 / 60s 冷却 / 日限）→ 生成 6 位码 → HMAC 摘要落 Redis → 发送。
+     * 登录与重置两套验证码只有 key 前缀不同；校验侧的对称收敛见 consumeOtp。
+     *
+     * @param text 文案定型：登录裸码直发，重置带用途前缀（可人工输入的短码，而非长随机 token）
+     */
+    private void sendOtp(
+            String codePrefix,
+            String ratePrefix,
+            String attemptPrefix,
+            String phone,
+            String clientIp,
+            UnaryOperator<String> text) {
+        // 1. 限流检查：IP 维度（OTP-06）+ 单 IP 每日不同手机号数（防横扫轰炸）
+        if (RateLimiter.exceeded(redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
+            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
+        }
+        enforceDistinctPhonesPerIp(clientIp, phone);
+
+        // 2. 限流检查：60s 重发间隔 + 每日上限（INCR 原子操作消除 TOCTOU 竞争）
+        String rateKey = ratePrefix + phone;
+        if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
+            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
+        }
+        if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
+            throw new BusinessException(429, "SMS_DAILY_LIMIT", "今日验证码已达上限");
+        }
+
+        // 3. 生成 6 位验证码，存 HMAC 摘要（pepper 在应用配置，拖库不可离线枚举）
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        redis.opsForValue()
+                .set(codePrefix + phone, secretHasher.hash(phone + ":" + code), Duration.ofMinutes(CODE_TTL));
+
+        // 4. 写频控标记，重发后清旧尝试计数（UX-03：重发即给全新 5 次机会）
+        redis.opsForValue().set(rateKey, "1", Duration.ofSeconds(RATE_TTL));
+        redis.delete(attemptPrefix + phone);
+
+        // 5. 发送
+        smsChannel.sendCode(phone, text.apply(code));
     }
 
     /**

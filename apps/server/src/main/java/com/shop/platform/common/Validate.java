@@ -1,11 +1,6 @@
 package com.shop.platform.common;
 
-/**
- * 前置条件守卫：把「if (条件不满足) throw BusinessException」压成一行。
- *
- * <p>只在失败路径构造异常，happy path 零开销。所有异常由全局异常处理器统一转 ProblemDetail， 对应关系：notNull → 404；isTrue → 默认
- * 400，可重载指定状态码或业务 code。
- */
+import java.util.Optional;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
@@ -30,5 +25,15 @@ public final class Validate {
     public static <T> T notNull(T reference, String detail) {
         if (reference == null) throw BusinessException.notFound(detail);
         return reference;
+    }
+
+    /** Optional 必须有值（api 包单点查的标准收口），否则 404；返回值方便链式使用 */
+    public static <T> T present(Optional<T> optional, String detail) {
+        return optional.orElseThrow(() -> BusinessException.notFound(detail));
+    }
+
+    /** Optional 必须有值，否则指定状态码的业务异常（缺席不等于不存在时用，如 400 参数不可满足） */
+    public static <T> T present(Optional<T> optional, int httpStatus, String detail) {
+        return optional.orElseThrow(() -> new BusinessException(httpStatus, detail));
     }
 }

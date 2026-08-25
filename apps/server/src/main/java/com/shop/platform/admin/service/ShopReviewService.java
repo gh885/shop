@@ -19,8 +19,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -107,8 +107,16 @@ public class ShopReviewService {
 
     // ========== 事件监听 ==========
 
-    /** shop 开店后入队一条 PENDING 审核（纯通知：提交后异步消费，失败不重试——审核队列缺失可由人工补录兜底） */
-    @Async
+    /**
+     * shop 开店后入队一条 PENDING 审核（纯通知，at-least-once）。
+     *
+     * <p>提交后同线程同步消费 + REQUIRES_NEW 独立事务。刻意不用 @Async：线程池队列在内存里，
+     * 崩溃丢任务；afterCommit 阶段原事务已提交，不开新事务的写入会被连接池回滚，REQUIRES_NEW 也是必须的。
+     *
+     * <p>可靠性由 kernel.event_publication 登记（与开店事务原子落库）+ 重启补发 +
+     * EventPublicationRecoveryJob 定期重投兜底：崩溃留 PUBLISHED/PROCESSING、消费抛错标 FAILED，均自动重投。
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onShopCreated(ShopCreatedEvent event) {
         ShopReview review = ShopReview.builder()

@@ -4,11 +4,11 @@
 
 ## 技术栈
 
-| 层     | 技术                                                                      |
-| ------ | ------------------------------------------------------------------------- |
-| 前端   | TanStack Start (React 19, TypeScript 7, Vite 8, Tailwind v4)              |
-| 后端   | Spring Boot 4.1 + Spring Modulith 2.1 + REST + MyBatis-Plus 3.5           |
-| 数据库 | PostgreSQL 18 (Schema 隔离) + Redis 7                                     |
+| 层     | 技术                                                                               |
+| ------ | ---------------------------------------------------------------------------------- |
+| 前端   | TanStack Start (React 19, TypeScript 7, Vite 8, Tailwind v4)                       |
+| 后端   | Spring Boot 4.1 + Spring Modulith 2.1 + REST + MyBatis-Plus 3.5                    |
+| 数据库 | PostgreSQL 18 (Schema 隔离) + Redis 7                                              |
 | 工具   | Maven + pnpm + Lefthook + Oxlint/Oxfmt (TS) + Spotless / Google Java Format (Java) |
 
 ## 前置要求

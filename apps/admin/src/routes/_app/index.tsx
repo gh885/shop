@@ -4,6 +4,8 @@ import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
 import { useState } from "react"
 import { z } from "zod"
 
+import { ShopReviewStatusSchema, type ShopReviewItem, type ShopReviewStatus } from "@shop/api"
+
 import {
     Badge,
     Button,
@@ -18,8 +20,7 @@ import {
     type DataTableFilterConfig,
 } from "@shop/ui-web"
 
-import { adminApi, ShopReviewStatusSchema } from "../../lib/api"
-import type { ShopReviewItem, ShopReviewStatus } from "../../lib/api"
+import { adminApi } from "../../lib/api"
 
 export const Route = createFileRoute("/_app/")({
     validateSearch: z.object({

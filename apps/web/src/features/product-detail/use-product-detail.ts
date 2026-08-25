@@ -1,8 +1,9 @@
 import { z } from "zod"
 import { queryOptions, useQuery } from "@tanstack/react-query"
 
-import { publicApi } from "#/shared/api/public"
-import { fetchProductDetail, fetchProducts, type ProductDetail } from "#/entities/product"
+import { fetchProductDetail, fetchProducts } from "#/entities/product/actions"
+import type { ProductDetail } from "#/entities/product"
+import { publicClient } from "#/shared/api/public"
 
 /**
  * 商品详情数据 hooks：route loader 用 queryOptions 预热，组件 useQuery 读同一缓存
@@ -39,8 +40,9 @@ export interface PublicShop {
 }
 
 async function fetchShopPublic(shopId: string): Promise<PublicShop> {
-    const dto = PublicShopDtoSchema.parse(
-        await publicApi.get(`api/shops/${z.uuid().parse(shopId)}`).json(),
+    const dto = await publicClient.request(
+        PublicShopDtoSchema,
+        `api/shops/${z.uuid().parse(shopId)}`,
     )
     return { id: dto.id, name: dto.name, logoKey: dto.logoKey ?? undefined }
 }

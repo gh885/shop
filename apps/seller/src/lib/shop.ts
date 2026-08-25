@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import type { Shop } from "@shop/api"
 
 import { shopApi } from "./api"
-import { useAuthStatus } from "./auth"
+import { useAuthStatus } from "./api"
 
 // ---------- 我的店铺列表 ----------
 

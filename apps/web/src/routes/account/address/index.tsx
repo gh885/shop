@@ -14,7 +14,7 @@ import {
     useSetDefaultAddress,
     useUnsetDefaultAddress,
 } from "#/features/address"
-import { requireAuth } from "#/shared/api/client"
+import { requireAuth } from "#/shared/api/auth"
 
 export const Route = createFileRoute("/account/address/")({
     beforeLoad: () => requireAuth(),

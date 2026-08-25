@@ -1,4 +1,4 @@
-package com.shop.platform.infra.web;
+package com.shop.platform.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -11,6 +11,7 @@ import com.shop.platform.auth.infra.JwtAuthFilter;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.security.JwtProperties;
 import com.shop.platform.infra.security.JwtProvider;
+import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
@@ -68,7 +69,7 @@ class FiltersPathNormalizationTest {
     }
 
     @Test
-    void encodedAdminPathIsRejected() throws Exception {
+    void 编码变体路径_400拒绝() throws Exception {
         // 解码后命中管理端路由的变体：修复前这里会 200 泄漏数据，现在必须 400
         mockMvc.perform(get("/%61dmin/secret").header("Authorization", "Bearer " + userToken()))
                 .andExpect(status().isBadRequest());
@@ -77,7 +78,7 @@ class FiltersPathNormalizationTest {
     }
 
     @Test
-    void legitAdminPathStillRequiresStaffToken() throws Exception {
+    void 规范管理路径_用户令牌仍被拒() throws Exception {
         // 规范路径行为不变：用户 token 仍被员工过滤链拒绝
         mockMvc.perform(get("/admin/secret").header("Authorization", "Bearer " + userToken()))
                 .andExpect(status().isUnauthorized())
@@ -85,7 +86,7 @@ class FiltersPathNormalizationTest {
     }
 
     @Test
-    void staffTokenReachesAdminController() throws Exception {
+    void 员工令牌_正常通行() throws Exception {
         mockMvc.perform(get("/admin/secret").header("Authorization", "Bearer " + staffToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ok").value(true));
@@ -94,7 +95,7 @@ class FiltersPathNormalizationTest {
     // ---------- RequestPaths 单测：MockMvc 会预规范化点号段/双斜杠，只能在这里控制原始 URI ----------
 
     @Test
-    void routePathRejectsNonCanonicalPaths() {
+    void 非规范路径_路由判空() {
         assertThat(routeOf("/api/../admin/secret")).isNull(); // 容器归一化后命中 /admin
         assertThat(routeOf("/seller/./secret")).isNull();
         assertThat(routeOf("//admin/secret")).isNull();
@@ -103,7 +104,7 @@ class FiltersPathNormalizationTest {
     }
 
     @Test
-    void routePathPassesCleanPathAndStripsContextPath() {
+    void 规范路径_剥离ContextPath() {
         assertThat(routeOf("/admin/secret")).isEqualTo("/admin/secret");
         assertThat(routeOf("/seller/products")).isEqualTo("/seller/products");
 

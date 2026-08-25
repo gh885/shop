@@ -11,6 +11,7 @@ import {
     type AddressInput,
 } from "#/entities/address"
 import { notify } from "#/shared/lib/toast"
+import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
 const KEY = ["addresses"] as const
 
@@ -46,59 +47,34 @@ export function useUpdateAddress() {
     })
 }
 
-/**
- * 乐观更新 mutation 工厂（删除/设默认/取消默认共用脚手架）：
- * onMutate 先本地改缓存、失败回滚 prev、成功提示、settled 失效重取。
- * patch 描述「给定旧列表与目标 id，返回新列表」。
- */
-function useOptimisticAddressMutation(
-    mutationFn: (id: string) => Promise<unknown>,
-    patch: (list: Address[], id: string) => Address[],
-    messages: { success: string; error: string },
-) {
-    const qc = useQueryClient()
-    return useMutation({
-        mutationFn,
-        onMutate: async (id) => {
-            await qc.cancelQueries({ queryKey: KEY })
-            const prev = qc.getQueryData<Address[]>(KEY)
-            qc.setQueryData<Address[]>(KEY, (old) => patch(old ?? [], id))
-            return { prev }
-        },
-        onError: (err, _id, ctx) => {
-            qc.setQueryData(KEY, ctx?.prev)
-            notify.fromError(err, messages.error)
-        },
-        onSuccess: () => notify.success(messages.success),
-        onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
-    })
-}
-
 /** 删除地址：乐观移除 + 失败回滚 */
 export function useDeleteAddress() {
-    return useOptimisticAddressMutation(
-        deleteAddress,
-        (list, id) => list.filter((a) => a.id !== id),
-        { success: "地址已删除", error: "删除地址失败" },
-    )
+    return useOptimisticListMutation<Address, string>({
+        queryKey: KEY,
+        mutationFn: (id) => deleteAddress(id),
+        patch: (list, id) => list.filter((a) => a.id !== id),
+        messages: { success: "地址已删除", error: "删除地址失败" },
+    })
 }
 
 /** 设为默认：乐观置唯一默认 + 失败回滚 */
 export function useSetDefaultAddress() {
-    return useOptimisticAddressMutation(
-        setDefaultAddress,
-        (list, id) => list.map((a) => ({ ...a, isDefault: a.id === id })),
-        { success: "已设为默认地址", error: "设置默认失败" },
-    )
+    return useOptimisticListMutation<Address, string>({
+        queryKey: KEY,
+        mutationFn: (id) => setDefaultAddress(id),
+        patch: (list, id) => list.map((a) => ({ ...a, isDefault: a.id === id })),
+        messages: { success: "已设为默认地址", error: "设置默认失败" },
+    })
 }
 
 /** 取消默认：乐观清默认标记 + 失败回滚 */
 export function useUnsetDefaultAddress() {
-    return useOptimisticAddressMutation(
-        unsetDefaultAddress,
-        (list, id) => list.map((a) => (a.id === id ? { ...a, isDefault: false } : a)),
-        { success: "已取消默认地址", error: "取消默认失败" },
-    )
+    return useOptimisticListMutation<Address, string>({
+        queryKey: KEY,
+        mutationFn: (id) => unsetDefaultAddress(id),
+        patch: (list, id) => list.map((a) => (a.id === id ? { ...a, isDefault: false } : a)),
+        messages: { success: "已取消默认地址", error: "取消默认失败" },
+    })
 }
 
-export type { Address }
+export type { Address } from "#/entities/address"

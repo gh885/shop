@@ -24,7 +24,6 @@ import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
 import com.shop.platform.order.service.CheckoutResolver.ResolvedCheckout;
-import com.shop.platform.order.service.CheckoutResolver.ValidLine;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -111,22 +110,23 @@ public class OrderService {
                 checkoutResolver.resolve(userId, req.cartItemIds(), req.buySkuId(), req.buyQuantity());
         Validate.isTrue(resolved.unavailable().isEmpty(), "部分商品已下架或库存不足，请重新确认结算");
 
-        // 3. 按店铺拆单落库：主表 + 行项目两份快照
+        // 3. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用解析结果免重查
         Map<UUID, List<ValidLine>> byShop = resolved.valid().stream()
                 .collect(Collectors.groupingBy(ValidLine::shopId, LinkedHashMap::new, Collectors.toList()));
-        List<Order> created = new ArrayList<>();
+        List<Map.Entry<Order, List<ValidLine>>> staged = new ArrayList<>();
         for (List<ValidLine> lines : byShop.values()) {
-            created.add(persistOrder(userId, req.buyerMessage(), address, lines));
+            staged.add(Map.entry(persistOrder(userId, req.buyerMessage(), address, lines), lines));
         }
 
         // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 删除已购条目（事件通知）
-        for (Order order : created) {
-            stockCommand.freeze(order.getId(), toStockLines(itemsByOrder(order.getId())));
+        for (Map.Entry<Order, List<ValidLine>> entry : staged) {
+            stockCommand.freeze(entry.getKey().getId(), stockLinesOf(entry.getValue()));
         }
         List<UUID> cartItemIds = distinct(req.cartItemIds());
         if (!cartItemIds.isEmpty()) {
             events.publishEvent(new CartCheckedOutEvent(userId, cartItemIds));
         }
+        List<Order> created = staged.stream().map(Map.Entry::getKey).toList();
         log.info("[ORDER] 下单成功, userId={}, 单数={}, 总应付={}", userId, created.size(), resolved.totalPayAmount());
         return created;
     }
@@ -148,35 +148,33 @@ public class OrderService {
     /** 订单详情：非本人一律 404，不泄露单据存在性 */
     public OrderWithItems detail(UUID userId, UUID orderId) {
         Order order = requireOwned(userId, orderId);
-        return new OrderWithItems(order, itemsByOrder(order.getId()));
+        return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
     }
 
     // ========== 状态机：买家操作 ==========
 
-    /** 买家取消：仅待付款/待发货可取消（源状态由状态机反推），库存回补经同事务同步调用生效 */
+    /** 买家取消：仅待付款/待发货可取消（源状态由状态机反推），库存回补按 RETURNING OLD 带回的真实前态分流 */
     @Transactional
     public void cancel(UUID userId, UUID orderId, String reason) {
         // 1. 归属校验
-        Order order = requireOwned(userId, orderId);
+        requireOwned(userId, orderId);
 
-        // 2. 取出行项供回补库存
-        List<OrderItem> items = itemsByOrder(order.getId());
+        // 2. 取出行项供库存回退
+        List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
 
-        // 3. 条件转移：抢不到说明已被支付/发货/关闭，让前端刷新重试
-        int affected = orderMapper.update(
-                null,
-                condition(orderId)
-                        .in(Order::getStatus, Order.sourcesOf(STATUS_CANCELLED))
-                        .set(Order::getStatus, STATUS_CANCELLED)
-                        .set(Order::getCancelledAt, OffsetDateTime.now())
-                        .set(Order::getCancelReason, reason == null || reason.isBlank() ? null : reason.trim()));
-        Validate.isTrue(affected == 1, 409, "订单状态已变更，当前不可取消");
+        // 3. 条件转移并取回转移前状态：抢不到说明已被支付/发货/关闭，让前端刷新重试
+        String previousStatus = orderMapper.cancelReturningPrevious(
+                orderId,
+                Order.sourcesOf(STATUS_CANCELLED),
+                OffsetDateTime.now(),
+                reason == null || reason.isBlank() ? null : reason.trim());
+        Validate.isTrue(previousStatus != null, 409, "订单状态已变更，当前不可取消");
 
-        // 4. 库存回退（inventory 同步调用，与取消同事务生效）：付款前取消释放冻结（frozen→可用），付款后取消回补总库存（已扣实 → stock 增）
-        if (Order.STATUS_PAID.equals(order.getStatus())) {
-            stockCommand.restock(order.getId(), toStockLines(items));
+        // 4. 库存回退按真实前态分流：付款后取消回补总库存（已扣实 → stock 增），付款前取消释放冻结（frozen→可用）
+        if (Order.STATUS_PAID.equals(previousStatus)) {
+            stockCommand.restock(orderId, toStockLines(items));
         } else {
-            stockCommand.release(order.getId(), toStockLines(items));
+            stockCommand.release(orderId, toStockLines(items));
         }
         log.info("[ORDER] 买家取消订单, orderId={}, userId={}", orderId, userId);
     }
@@ -237,7 +235,7 @@ public class OrderService {
     public OrderWithItems sellerDetail(UUID shopId, UUID orderId) {
         Order order = Validate.notNull(orderMapper.selectById(orderId), "订单不存在");
         Validate.isTrue(order.getShopId().equals(shopId), "订单不存在");
-        return new OrderWithItems(order, itemsByOrder(order.getId()));
+        return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
     }
 
     // ========== 状态机：系统 ==========
@@ -340,20 +338,14 @@ public class OrderService {
         if (orders.isEmpty()) {
             return List.of();
         }
-        Map<UUID, List<OrderItem>> grouped = orderItemMapper
-                .selectList(new LambdaQueryWrapper<OrderItem>()
-                        .in(
-                                OrderItem::getOrderId,
-                                orders.stream().map(Order::getId).toList()))
-                .stream()
-                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+        Map<UUID, List<OrderItem>> grouped =
+                orderItemMapper
+                        .selectByOrderIds(orders.stream().map(Order::getId).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(OrderItem::getOrderId));
         return orders.stream()
                 .map(o -> new OrderWithItems(o, grouped.getOrDefault(o.getId(), List.of())))
                 .toList();
-    }
-
-    private List<OrderItem> itemsByOrder(UUID orderId) {
-        return orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
     }
 
     /** 更新起点：主键定位 + 影响行数即乐观闸门 */
@@ -365,6 +357,11 @@ public class OrderService {
         return items.stream()
                 .map(i -> new StockLine(i.getSkuId(), i.getQuantity()))
                 .toList();
+    }
+
+    /** 结算有效行 → 库存结算行：下单冻结直接吃解析结果，免重查刚落库的行项目 */
+    private static List<StockLine> stockLinesOf(List<ValidLine> lines) {
+        return lines.stream().map(l -> new StockLine(l.skuId(), l.quantity())).toList();
     }
 
     private static List<UUID> distinct(List<UUID> ids) {

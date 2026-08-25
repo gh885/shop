@@ -30,6 +30,17 @@ spring:
         exclude:
             - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
+    modulith:
+        events:
+            # 事件登记表补发：重启后自动重投未完成的 AFTER_COMMIT 登记（崩溃窗口兑底）
+            republish-outstanding-events-on-restart: true
+            jdbc:
+                # 登记表结构归 Flyway 管（V22__kernel_event_publication.sql），关掉框架自带初始化
+                schema-initialization:
+                    enabled: false
+                # 跨模块基建表，与 distributed_locks 同居 kernel schema（见 V1/V22）
+                schema: kernel
+
 # 运维端点：健康检查（DB+Redis 自动探测）与 Prometheus 抓取；JwtProperties.skipPaths 已放行 /actuator。
 # 生产部署时需在网关层限制 /actuator/prometheus 的来源。
 management:

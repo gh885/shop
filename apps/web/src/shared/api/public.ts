@@ -1,7 +1,7 @@
 import { createApiClient } from "@shop/api"
 
 /**
- * 公开接口（匿名可访问，如 /api/products、/api/cms/*、/api/shops/{id}）的 ky 实例。
+ * 公开接口（匿名可访问，如 /api/products、/api/cms/*、/api/shops/{id}）的 API 客户端。
  *
  * 与 client.ts 的 api 区别：不带登录态，且 SSR 可用——
  * SSR（route loader）无法走 Vite proxy，需显式后端地址（默认 dev 后端，VITE_API_ORIGIN 可覆盖）；
@@ -9,4 +9,4 @@ import { createApiClient } from "@shop/api"
  */
 const RAW_API_ORIGIN = import.meta.env.VITE_API_ORIGIN ?? "http://localhost:8080"
 
-export const publicApi = createApiClient(import.meta.env.SSR ? RAW_API_ORIGIN : "").raw
+export const publicClient = createApiClient(import.meta.env.SSR ? RAW_API_ORIGIN : "")

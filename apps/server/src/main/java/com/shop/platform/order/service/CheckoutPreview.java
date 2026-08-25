@@ -12,20 +12,14 @@ import java.util.UUID;
 public record CheckoutPreview(
         List<Group> groups, List<UnavailableLine> unavailable, Address address, Money totalPayAmount) {
 
-    /** 单个店铺的结算分组：一组对应一笔待创建订单 */
+    /** 单个店铺的结算分组：一组对应一笔待创建订单；行即 ValidLine（预览与下单同源同形状） */
     public record Group(
-            UUID shopId, String shopName, List<Line> lines, Money itemAmount, Money shippingFee, Money payAmount) {}
-
-    /** 有效结算行：价格是 DB 当前值的投影，下单时以此为准，不信前端 */
-    public record Line(
-            UUID skuId,
-            UUID productId,
-            String name,
-            String image,
-            Money price,
-            Money originalPrice,
-            int quantity,
-            int stock) {}
+            UUID shopId,
+            String shopName,
+            List<ValidLine> lines,
+            Money itemAmount,
+            Money shippingFee,
+            Money payAmount) {}
 
     /** 失效行：cause 区分「下架/删除」与「库存不足」，前端分别置灰和引导改数量 */
     public record UnavailableLine(UUID skuId, String name, String image, int quantity, String cause) {

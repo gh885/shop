@@ -7,7 +7,9 @@ import { CheckCircle2, CircleAlert, MailPlus, Store } from "lucide-react"
 import type { Shop, ShopStatus } from "@shop/api"
 import { CreateShopRequestSchema } from "@shop/api"
 
-import { shopApi, toApiError } from "#/lib/api"
+import { toApiError } from "@shop/api"
+
+import { shopApi } from "#/lib/api"
 import { setCurrentShopId, useCurrentShop, useMyShops } from "#/lib/shop"
 
 export const Route = createFileRoute("/_app/shops")({
@@ -164,8 +166,8 @@ function CreateShopForm() {
             setDone(true)
             void queryClient.invalidateQueries({ queryKey: ["shops"] })
         },
-        onError: async (e) => {
-            const err = await toApiError(e)
+        onError: (e) => {
+            const err = toApiError(e)
             setError(err.detail)
         },
     })

@@ -1,8 +1,6 @@
 package com.shop.platform.cart.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.cart.events.CartCheckedOutEvent;
-import com.shop.platform.cart.mapper.CartItem;
 import com.shop.platform.cart.mapper.CartItemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +23,7 @@ public class CartEventListener {
         if (event.cartItemIds().isEmpty()) {
             return;
         }
-        int deleted = cartItemMapper.delete(new LambdaQueryWrapper<CartItem>()
-                .eq(CartItem::getUserId, event.userId())
-                .in(CartItem::getId, event.cartItemIds()));
+        int deleted = cartItemMapper.deleteByUserAndIds(event.userId(), event.cartItemIds());
         log.debug(
                 "[CART] 结算清理购物车条目, userId={}, deleted={}/{}",
                 event.userId(),

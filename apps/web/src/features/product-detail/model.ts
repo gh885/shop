@@ -1,3 +1,5 @@
+import { fenToYuan } from "@shop/api"
+
 import type { ProductDetail, Sku, SpecItem } from "#/entities/product"
 
 /**
@@ -57,10 +59,7 @@ export function isImageSpecGroup(skus: Sku[], spec: SpecItem): boolean {
 
 // ---------- 价格 / 库存展示 ----------
 
-/** 分 → "26.64"（元字符串，两位小数）。展示层拼接 ¥ 符号与字号 */
-export function formatFen(fen: number): string {
-    return (fen / 100).toFixed(2)
-}
+// 金额格式化用 @shop/api 的 fenToYuan（与 Money 契约同源），不在本模块重复定义
 
 export interface PriceView {
     /** 主价文案（元字符串）：选全规格 → SKU 价；未选全 → 价格区间下限 */
@@ -78,8 +77,8 @@ export function derivePriceView(detail: ProductDetail, selection: SkuSelection):
     const matched = findMatchingSku(detail.skus, selection)
     if (matched?.price) {
         return {
-            primary: formatFen(matched.price.amount),
-            original: matched.originalPrice ? formatFen(matched.originalPrice.amount) : undefined,
+            primary: fenToYuan(matched.price.amount),
+            original: matched.originalPrice ? fenToYuan(matched.originalPrice.amount) : undefined,
             currency: matched.price.currency,
         }
     }
@@ -88,9 +87,9 @@ export function derivePriceView(detail: ProductDetail, selection: SkuSelection):
     const from = priceMin ?? priceMax
     if (!from) return { primary: "0.00", currency: "CNY" }
     return {
-        primary: formatFen(from.amount),
+        primary: fenToYuan(from.amount),
         rangeTo:
-            priceMax && priceMax.amount !== from.amount ? formatFen(priceMax.amount) : undefined,
+            priceMax && priceMax.amount !== from.amount ? fenToYuan(priceMax.amount) : undefined,
         currency: from.currency,
     }
 }

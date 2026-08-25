@@ -64,11 +64,7 @@ public class ShopService {
 
     /** 我的店铺列表：当前用户 ACTIVE 成员身份对应的全部店铺，新店在前 */
     public List<Shop> myShops(UUID userId) {
-        List<UUID> shopIds = shopMemberMapper
-                .selectList(new LambdaQueryWrapper<ShopMember>()
-                        .eq(ShopMember::getUserId, userId)
-                        .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE))
-                .stream()
+        List<UUID> shopIds = shopMemberMapper.selectActiveByUser(userId).stream()
                 .map(ShopMember::getShopId)
                 .toList();
         if (shopIds.isEmpty()) return List.of();
@@ -78,10 +74,7 @@ public class ShopService {
 
     /** 我的待确认邀请：别人邀我、等我同意的成员记录，拼上店名 */
     public List<ShopInviteItem> myInvites(UUID userId) {
-        List<ShopMember> pending = shopMemberMapper.selectList(new LambdaQueryWrapper<ShopMember>()
-                .eq(ShopMember::getUserId, userId)
-                .eq(ShopMember::getStatus, ShopMember.STATUS_PENDING)
-                .orderByDesc(ShopMember::getCreatedAt));
+        List<ShopMember> pending = shopMemberMapper.selectPendingByUser(userId);
         if (pending.isEmpty()) return List.of();
 
         Map<UUID, Shop> shops = shopMapper
@@ -128,9 +121,7 @@ public class ShopService {
     /** 店铺成员列表：仅本店 ACTIVE 成员可见，拼上成员手机号（跨 schema 只读按 ID 查，禁止 JOIN） */
     public List<ShopMemberItem> members(UUID shopId, UUID operatorId) {
         requireActiveMember(shopId, operatorId);
-        List<ShopMember> members = shopMemberMapper.selectList(new LambdaQueryWrapper<ShopMember>()
-                .eq(ShopMember::getShopId, shopId)
-                .orderByAsc(ShopMember::getCreatedAt));
+        List<ShopMember> members = shopMemberMapper.selectByShop(shopId);
         Map<UUID, String> phones = userReadQuery.phonesByIds(
                 members.stream().map(ShopMember::getUserId).distinct().toList());
         return members.stream()
@@ -146,19 +137,13 @@ public class ShopService {
         requireOwner(shopId, ownerId);
 
         // 2. 按手机号找人（auth :: api 只读，auth.users 全局唯一手机号）
-        UUID inviteeId = userReadQuery.findIdByPhone(phone);
-        if (inviteeId == null) {
-            throw BusinessException.badRequest("该手机号还未注册");
-        }
+        UUID inviteeId = Validate.present(userReadQuery.findIdByPhone(phone), 400, "该手机号还未注册");
         if (inviteeId.equals(ownerId)) {
             throw BusinessException.badRequest("不能邀请自己");
         }
 
         // 3. 防重：同店同人只能有一条成员记录（唯一索引 uk_shop_members_shop_user 兜底并发）
-        Long exists = shopMemberMapper.selectCount(new LambdaQueryWrapper<ShopMember>()
-                .eq(ShopMember::getShopId, shopId)
-                .eq(ShopMember::getUserId, inviteeId));
-        if (exists > 0) {
+        if (shopMemberMapper.existsByShopAndUser(shopId, inviteeId)) {
             throw BusinessException.conflict(null, "对方已是店铺成员或已有待确认邀请");
         }
 
@@ -191,23 +176,14 @@ public class ShopService {
 
     /** 当前用户是否为该店店主，不是则 403 */
     private void requireOwner(UUID shopId, UUID userId) {
-        Long count = shopMemberMapper.selectCount(new LambdaQueryWrapper<ShopMember>()
-                .eq(ShopMember::getShopId, shopId)
-                .eq(ShopMember::getUserId, userId)
-                .eq(ShopMember::getRole, ShopMember.ROLE_OWNER)
-                .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
-        if (count == 0) {
+        if (!shopMemberMapper.isActiveOwner(shopId, userId)) {
             throw BusinessException.forbidden("只有店主可以执行该操作");
         }
     }
 
     /** 当前用户是否为该店 ACTIVE 成员，不是则 403 */
     private void requireActiveMember(UUID shopId, UUID userId) {
-        Long count = shopMemberMapper.selectCount(new LambdaQueryWrapper<ShopMember>()
-                .eq(ShopMember::getShopId, shopId)
-                .eq(ShopMember::getUserId, userId)
-                .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
-        if (count == 0) {
+        if (!shopMemberMapper.isActiveMember(shopId, userId)) {
             throw BusinessException.forbidden("你不是该店铺成员");
         }
     }

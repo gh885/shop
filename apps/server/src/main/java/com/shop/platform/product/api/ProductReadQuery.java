@@ -2,7 +2,9 @@ package com.shop.platform.product.api;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -74,5 +76,15 @@ public class ProductReadQuery {
                     return map;
                 },
                 ids.toArray());
+    }
+
+    /** 单个 SKU 点查（在售校验等单对象消费用），无行返回 empty —— api 包缺席语义统一走 Optional */
+    public Optional<SkuView> skuById(UUID skuId) {
+        return Optional.ofNullable(skusByIds(List.of(skuId)).get(skuId));
+    }
+
+    /** 单个 SPU 点查（上架校验等单对象消费用），无行返回 empty */
+    public Optional<ProductView> productById(UUID productId) {
+        return Optional.ofNullable(productsByIds(List.of(productId)).get(productId));
     }
 }
