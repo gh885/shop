@@ -5,11 +5,11 @@ import static com.shop.platform.order.mapper.Order.STATUS_PENDING_PAYMENT;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
-import com.shop.platform.product.api.StockCommand;
 import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,9 +55,11 @@ public class OrderCloseService {
             return false;
         }
 
-        // 2. 回补库存（同事务同步调用）
-        stockCommand.restock(OrderService.toStockLines(orderItemMapper.selectList(
-                new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, order.getId()))));
+        // 2. 释放库存（同事务同步调用）：frozen 减回可用
+        stockCommand.release(
+                order.getId(),
+                OrderService.toStockLines(orderItemMapper.selectList(
+                        new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, order.getId()))));
         return true;
     }
 }

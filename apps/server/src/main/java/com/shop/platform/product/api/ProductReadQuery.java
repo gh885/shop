@@ -26,7 +26,7 @@ public class ProductReadQuery {
         }
         String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(","));
         return jdbc.query(
-                "SELECT id, product_id, name, image, price, original_price, currency, stock, status "
+                "SELECT id, product_id, name, image, price, original_price, currency, status "
                         + "FROM product.skus WHERE id IN (" + placeholders + ")",
                 rs -> {
                     Map<UUID, SkuView> map = new HashMap<>();
@@ -41,7 +41,6 @@ public class ProductReadQuery {
                                         rs.getObject("price", Long.class),
                                         rs.getObject("original_price", Long.class),
                                         rs.getString("currency"),
-                                        rs.getObject("stock", Integer.class),
                                         rs.getObject("status", Integer.class)));
                     }
                     return map;

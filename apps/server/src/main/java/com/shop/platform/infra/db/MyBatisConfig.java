@@ -3,6 +3,7 @@ package com.shop.platform.infra.db;
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import java.util.UUID;
 import org.springframework.context.annotation.Bean;
@@ -17,11 +18,12 @@ public class MyBatisConfig {
         return configuration -> configuration.getTypeHandlerRegistry().register(UUID.class, new UuidTypeHandler());
     }
 
-    /** 分页插件：selectPage 的 COUNT + LIMIT 改写靠它，不注册会静默返回全量（假分页） */
+    /** 分页 + 乐观锁插件：selectPage 改写靠分页；@Version 字段更新依赖乐观锁（见 SkuStock.version） */
     @Bean
     MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.POSTGRE_SQL));
+        interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
         return interceptor;
     }
 }

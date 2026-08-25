@@ -11,6 +11,8 @@ import com.shop.platform.cart.mapper.CartItemMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
+import com.shop.platform.inventory.api.StockReadQuery;
+import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.api.ProductReadQuery;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
@@ -35,6 +37,8 @@ public class CartService {
     private final CartItemMapper cartItemMapper;
 
     private final ProductReadQuery productReadQuery;
+
+    private final StockReadQuery stockReadQuery;
 
     private final ShopReadQuery shopReadQuery;
 
@@ -106,6 +110,7 @@ public class CartService {
         // 2. 跨模块只读批查展示数据
         List<UUID> skuIds = items.stream().map(CartItem::getSkuId).distinct().toList();
         Map<UUID, SkuView> skus = productReadQuery.skusByIds(skuIds);
+        Map<UUID, StockView> stocks = stockReadQuery.availableBySkuIds(skuIds);
         List<UUID> productIds =
                 skus.values().stream().map(SkuView::productId).distinct().toList();
         Map<UUID, ProductView> products = productReadQuery.productsByIds(productIds);
@@ -115,7 +120,7 @@ public class CartService {
 
         // 3. 拼装视图
         return items.stream()
-                .map(item -> assemble(item, skus, products, shopNames))
+                .map(item -> assemble(item, skus, stocks, products, shopNames))
                 .toList();
     }
 
@@ -182,7 +187,11 @@ public class CartService {
 
     /** 拼装单条视图：SKU 缺失 → 全空视图置灰；SPU 缺失 → 只剩 SKU 信息同样置灰 */
     private CartItemView assemble(
-            CartItem item, Map<UUID, SkuView> skus, Map<UUID, ProductView> products, Map<UUID, String> shopNames) {
+            CartItem item,
+            Map<UUID, SkuView> skus,
+            Map<UUID, StockView> stocks,
+            Map<UUID, ProductView> products,
+            Map<UUID, String> shopNames) {
         SkuView sku = skus.get(item.getSkuId());
         if (sku == null) {
             return new CartItemView(
@@ -196,13 +205,14 @@ public class CartService {
                     false);
         }
         ProductView product = products.get(sku.productId());
+        StockView stock = stocks.get(sku.id());
         CartItemView.SkuInfo skuInfo = new CartItemView.SkuInfo(
                 sku.id(),
                 sku.name(),
                 sku.image(),
                 money(sku.price(), sku.currency()),
                 money(sku.originalPrice(), sku.currency()),
-                sku.stock(),
+                stock == null ? 0 : stock.availableStock(),
                 sku.status());
         // SPU 缺失（被删）：只剩 SKU 信息同样置灰，不触碰 product 字段
         if (product == null) {

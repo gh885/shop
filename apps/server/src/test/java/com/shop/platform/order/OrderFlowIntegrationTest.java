@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.inventory.api.StockCommand;
+import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.mapper.Order;
@@ -16,8 +18,6 @@ import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.service.PaymentService;
-import com.shop.platform.product.api.StockCommand;
-import com.shop.platform.product.api.StockLine;
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -68,9 +68,14 @@ class OrderFlowIntegrationTest {
                 shopId.toString(),
                 UUID.randomUUID().toString());
         jdbc.update(
-                "INSERT INTO product.skus (id, product_id, name, price, currency, stock, status) VALUES (?::uuid, ?::uuid, '测试SKU', 1000, 'CNY', ?, 1)",
+                "INSERT INTO product.skus (id, product_id, name, price, currency, status) VALUES (?::uuid, ?::uuid, '测试SKU', 1000, 'CNY', 1)",
                 skuId.toString(),
-                productId.toString(),
+                productId.toString());
+        // 库存主体独立行（inventory）：总库存 stock，无冻结
+        jdbc.update(
+                "INSERT INTO inventory.sku_stock (id, sku_id, stock, frozen_stock) VALUES (?::uuid, ?::uuid, ?, 0)",
+                UUID.randomUUID().toString(),
+                skuId.toString(),
                 stock);
         jdbc.update(
                 "INSERT INTO user_profile.addresses (id, user_id, receiver_name, phone, region_code, province, city, district, detail) "
@@ -88,6 +93,8 @@ class OrderFlowIntegrationTest {
         jdbc.update("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
         jdbc.update("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
         if (skuId != null) {
+            jdbc.update("DELETE FROM inventory.stock_movements WHERE sku_id = ?::uuid", skuId.toString());
+            jdbc.update("DELETE FROM inventory.sku_stock WHERE sku_id = ?::uuid", skuId.toString());
             jdbc.update("DELETE FROM product.skus WHERE product_id = ?::uuid", productId.toString());
             jdbc.update("DELETE FROM product.products WHERE id = ?::uuid", productId.toString());
         }
@@ -96,9 +103,18 @@ class OrderFlowIntegrationTest {
         }
     }
 
-    private Integer stockOf() {
+    private int totalStockOf() {
         return jdbc.queryForObject(
-                "SELECT stock FROM product.skus WHERE id = ?::uuid", Integer.class, skuId.toString());
+                "SELECT stock FROM inventory.sku_stock WHERE sku_id = ?::uuid", Integer.class, skuId.toString());
+    }
+
+    private int frozenStockOf() {
+        return jdbc.queryForObject(
+                "SELECT frozen_stock FROM inventory.sku_stock WHERE sku_id = ?::uuid", Integer.class, skuId.toString());
+    }
+
+    private int availableOf() {
+        return totalStockOf() - frozenStockOf();
     }
 
     private String statusOf(UUID orderId) {
@@ -127,12 +143,16 @@ class OrderFlowIntegrationTest {
         assertEquals(Order.STATUS_PENDING_PAYMENT, order.getStatus());
         assertEquals(2000L, order.getPayAmount());
         assertNotNull(order.getPayExpireAt());
-        assertEquals(3, stockOf());
+        assertEquals(5, totalStockOf());
+        assertEquals(2, frozenStockOf());
+        assertEquals(3, availableOf());
 
         // 3. 支付：流水落库且订单推进到 PAID（同事务同步调用链）
         Payment paid = paymentService.pay(userId, order.getId());
         assertEquals(Payment.STATUS_SUCCESS, paid.getStatus());
         assertEquals(Order.STATUS_PAID, statusOf(order.getId()));
+        assertEquals(3, totalStockOf());
+        assertEquals(0, frozenStockOf());
 
         // 4. 幂等重付：返回同一笔成功流水，订单状态不变
         Payment again = paymentService.pay(userId, order.getId());
@@ -144,10 +164,11 @@ class OrderFlowIntegrationTest {
                         Integer.class,
                         order.getId().toString()));
 
-        // 5. 已付款（待发货）仍可取消：库存回补；重复取消被状态闸门拒绝
+        // 5. 已付款（待发货）仍可取消：已扣实 → 回补总库存（3→5）；重复取消被状态闸门拒绝
         orderService.cancel(userId, order.getId(), "不想买了");
         assertEquals(Order.STATUS_CANCELLED, statusOf(order.getId()));
-        assertEquals(5, stockOf());
+        assertEquals(5, totalStockOf());
+        assertEquals(0, frozenStockOf());
 
         BusinessException ex =
                 assertThrows(BusinessException.class, () -> orderService.cancel(userId, order.getId(), "再试一次"));
@@ -168,16 +189,18 @@ class OrderFlowIntegrationTest {
                         "SELECT count(*) FROM orders.orders WHERE user_id = ?::uuid",
                         Integer.class,
                         userId.toString()));
-        assertEquals(5, stockOf());
+        assertEquals(5, totalStockOf());
+        assertEquals(0, frozenStockOf());
     }
 
-    /** 并发窗口兑底：预览时充足、扣减时被抢空 → 条件更新影响行数 0 → StockCommand 抛 INSUFFICIENT_STOCK(409) */
+    /** 并发窗口兑底：预览时充足、冻结时被抢空 → 条件更新影响行数 0 → StockCommand 抛 INSUFFICIENT_STOCK(409) */
     @Test
     void stockCommand_raceWindowShortage_conflictWithCode() {
         seedSku(5);
 
-        BusinessException ex =
-                assertThrows(BusinessException.class, () -> stockCommand.deduct(List.of(new StockLine(skuId, 999))));
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> stockCommand.freeze(UUID.randomUUID(), List.of(new StockLine(skuId, 999))));
         assertEquals(409, ex.getHttpStatus());
         assertEquals("INSUFFICIENT_STOCK", ex.getCode());
     }
@@ -188,7 +211,8 @@ class OrderFlowIntegrationTest {
 
         List<Order> created = orderService.create(userId, buyNow(1));
         UUID orderId = created.getFirst().getId();
-        assertEquals(4, stockOf());
+        assertEquals(4, availableOf());
+        assertEquals(1, frozenStockOf());
 
         // 把付款截止时刻拨到过去，模拟超时
         jdbc.update(
@@ -199,7 +223,8 @@ class OrderFlowIntegrationTest {
         int closed = orderService.closeExpired();
         assertTrue(closed >= 1);
         assertEquals(Order.STATUS_CANCELLED, statusOf(orderId));
-        assertEquals(5, stockOf()); // 库存已回补
+        assertEquals(5, availableOf()); // 库存已回补（释放冻结）
+        assertEquals(0, frozenStockOf());
 
         // 关单后再支付被拒：订单不是待付款状态
         BusinessException ex = assertThrows(BusinessException.class, () -> paymentService.pay(userId, orderId));

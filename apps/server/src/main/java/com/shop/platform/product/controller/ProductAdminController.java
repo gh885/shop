@@ -3,6 +3,8 @@ package com.shop.platform.product.controller;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.ShopIdHolder;
+import com.shop.platform.inventory.api.StockReadQuery;
+import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.dto.CreateProductRequest;
 import com.shop.platform.product.dto.UpdateProductRequest;
 import com.shop.platform.product.dto.UpdateSkusRequest;
@@ -19,6 +21,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -38,6 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProductAdminController {
     private final ProductService productService;
+    private final StockReadQuery stockReadQuery;
 
     /** 创建商品草稿，返回含 id/createdAt 的出参。shopId 从店铺上下文（X-Shop-Id）取，不由前端传入 */
     @PostMapping
@@ -48,13 +52,15 @@ public class ProductAdminController {
     /** 更新规格并按新模板对账 SKU，返回当前全部 SKU（含新 id，供 updateSku 定位） */
     @PutMapping("/{id}/specs")
     public List<SkuResponse> updateSpecs(@PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
-        return SkuResponse.from(productService.updateSpecs(id, request.specs()));
+        List<Sku> skus = productService.updateSpecs(id, request.specs());
+        return SkuResponse.from(skus, stocks(skus));
     }
 
     /** 批量更新 SKU 价格/库存，返回更新后的 SKU 列表 */
     @PutMapping("/{id}/skus")
     public List<SkuResponse> updateSkus(@PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
-        return SkuResponse.from(productService.updateSkus(id, request.items()));
+        List<Sku> skus = productService.updateSkus(id, request.items());
+        return SkuResponse.from(skus, stocks(skus));
     }
 
     /** 发布草稿，返回 status=1 且回填过价格区间的商品 */
@@ -77,7 +83,8 @@ public class ProductAdminController {
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查 */
     @GetMapping("/{id}")
     public ProductDetailResponse detail(@PathVariable UUID id) {
-        return ProductDetailResponse.from(productService.detail(id));
+        ProductDetail d = productService.detail(id);
+        return ProductDetailResponse.from(d, stocks(d.skus()));
     }
 
     /** 编辑基本信息（specs/SKU 之外的字段）；改规格走 PUT /{id}/specs */
@@ -158,7 +165,7 @@ public class ProductAdminController {
             OffsetDateTime createdAt,
             OffsetDateTime updatedAt) {
 
-        static SkuResponse from(Sku s) {
+        static SkuResponse from(Sku s, StockView stock) {
             return new SkuResponse(
                     s.getId(),
                     s.getProductId(),
@@ -169,22 +176,30 @@ public class ProductAdminController {
                     s.getPrice(),
                     s.getOriginalPrice(),
                     s.getCurrency(),
-                    s.getStock(),
+                    stock == null ? 0 : stock.availableStock(),
                     s.getStatus(),
                     s.getCreatedAt(),
                     s.getUpdatedAt());
         }
 
-        static List<SkuResponse> from(List<Sku> list) {
-            return list.stream().map(SkuResponse::from).toList();
+        /** 批量转换：按 skuId 从库存 Map 取 availableStock，缺省 0。库存归 inventory 模块，不写 product 表 */
+        static List<SkuResponse> from(List<Sku> list, Map<UUID, StockView> stocks) {
+            return list.stream()
+                    .map(s -> SkuResponse.from(s, stocks.get(s.getId())))
+                    .toList();
         }
     }
 
     /** 详情出参：SPU + 全部 SKU，替代 service 层的 ProductDetail（其内嵌 mapper 实体，不得越过 HTTP 边界） */
     public record ProductDetailResponse(ProductResponse product, List<SkuResponse> skus) {
 
-        static ProductDetailResponse from(ProductDetail d) {
-            return new ProductDetailResponse(ProductResponse.from(d.product()), SkuResponse.from(d.skus()));
+        static ProductDetailResponse from(ProductDetail d, Map<UUID, StockView> stocks) {
+            return new ProductDetailResponse(ProductResponse.from(d.product()), SkuResponse.from(d.skus(), stocks));
         }
+    }
+
+    /** 跨模块批查库存：skuId → StockView，供 SkuResponse 补库存展示（卖家端） */
+    private Map<UUID, StockView> stocks(List<Sku> skus) {
+        return stockReadQuery.availableBySkuIds(skus.stream().map(Sku::getId).toList());
     }
 }

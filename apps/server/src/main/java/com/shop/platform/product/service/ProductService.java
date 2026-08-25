@@ -7,6 +7,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.Validate;
+import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.dto.SkuUpdateItem;
 import com.shop.platform.product.mapper.CategoryMapper;
@@ -39,6 +40,7 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
     private final SkuMapper skuMapper;
+    private final StockCommand stockCommand;
 
     /** 创建商品草稿：只落基本信息，specs/SKU 由后续接口补充。shopId 由 controller 从店铺上下文（X-Shop-Id）注入 */
     public Product create(CreateProductCommand command) {
@@ -90,6 +92,8 @@ public class ProductService {
                         .status(Sku.STATUS_ON_SALE)
                         .build();
                 skuMapper.insert(fresh);
+                // 库存主体行随 SKU 诞生（stock=0），卖家随后经 updateSkus 设总量
+                stockCommand.ensureRow(fresh.getId());
                 result.add(fresh);
             }
         }
@@ -104,7 +108,8 @@ public class ProductService {
         return result;
     }
 
-    /** 批量更新 SKU。任何状态都允许：上架后补货/改价/停用是日常运营操作。price/stock 必填，其余只 set 非空字段 */
+    /** 批量更新 SKU。任何状态都允许：上架后补货/改价/停用是日常运营操作。price 必填，其余只 set 非空字段。
+     *  库存归 inventory 模块：seller 传的 stock 是「绝对量设定」，经 inventory :: StockCommand.setTotal 走乐观锁，不写 product 表。*/
     @Transactional
     public List<Sku> updateSkus(UUID productId, List<SkuUpdateItem> items) {
         // 1. 商品必须存在且属于当前店铺（任何状态都允许改价/补货，是日常运营操作）
@@ -123,16 +128,17 @@ public class ProductService {
                                 .set(item.originalPrice() != null, Sku::getOriginalPrice, item.originalPrice())
                                 .set(item.skuCode() != null, Sku::getSkuCode, item.skuCode())
                                 .set(item.status() != null, Sku::getStatus, item.status())
-                                .set(Sku::getPrice, item.price())
-                                .set(Sku::getStock, item.stock()));
+                                .set(Sku::getPrice, item.price()));
                 Validate.isTrue(affected == 1, "SKU 不存在或不属于该商品");
+                // 3. 库存绝对量设定（读-改-写，乐观锁）：同一事务内同步调用 inventory :: api
+                stockCommand.setTotal(item.skuId(), item.stock());
             }
         } catch (DuplicateKeyException e) {
             // uk_skus_code 全局唯一索引兜底重复业务编码
             throw BusinessException.conflict(null, "SKU 编码已存在");
         }
 
-        // 3. 重算价格区间并返回该商品全部 SKU
+        // 4. 重算价格区间并返回该商品全部 SKU
         recalcPriceRange(productId);
         return skusOf(productId);
     }

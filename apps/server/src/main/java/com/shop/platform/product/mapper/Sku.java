@@ -17,7 +17,8 @@ import lombok.NoArgsConstructor;
 /**
  * 商品 SKU —— 具体卖法，存"卖多少钱、有多少货"。
  *
- * <p>一个 SPU 挂 0..N 个 SKU，靠 productId 连线。买家下单扣的是 SKU 的 price/stock， 永远不直接对 SPU 交易。
+ * <p>一个 SPU 挂 0..N 个 SKU，靠 productId 连线。买家下单扣的是 SKU 的 price；售价与展示归本模块，
+ * 库存不归本模块（V19 起唯一真相源在 inventory.sku_stock，见 inventory 模块）。
  */
 @Data
 @Builder
@@ -75,15 +76,7 @@ public class Sku {
     /** 币种（如 CNY），与 price 一起组成代码里的 Money 类型 */
     private String currency;
 
-    /**
-     * 可售库存，全表最"活"的字段。
-     *
-     * <p>扣减必须带条件防超卖：UPDATE ... WHERE id=? AND stock>=n，影响行数=0 即库存不足。
-     * 后续做订单时还会演化出"冻结库存"（下单冻结、支付成功扣实、超时释放）。
-     */
-    private Integer stock;
-
-    /** 1 在售 / 0 停用。注意与 0 库存区分：缺货可补可恢复，停用是"这个卖法不卖了" */
+    /** 1 在售 / 0 停用。注意与缺货区分：缺货可补可恢复，停用是"这个卖法不卖了" */
     private Integer status;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */

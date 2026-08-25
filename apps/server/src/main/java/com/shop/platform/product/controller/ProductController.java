@@ -3,6 +3,8 @@ package com.shop.platform.product.controller;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.inventory.api.StockReadQuery;
+import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
@@ -12,6 +14,7 @@ import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -36,6 +39,8 @@ public class ProductController {
 
     private final ProductService productService;
 
+    private final StockReadQuery stockReadQuery;
+
     /** 商品列表：只返上架商品，可按类目/店铺/关键词筛选并排序 */
     @GetMapping
     public PageResult<ProductResponse> list(@Valid PageParams pageParams, @Valid ProductQuery query) {
@@ -47,7 +52,8 @@ public class ProductController {
     /** 商品详情：非上架一律 404，SKU 只返在售 */
     @GetMapping("/{id}")
     public ProductDetailResponse detail(@PathVariable UUID id) {
-        return ProductDetailResponse.from(productService.publicDetail(id));
+        ProductDetail d = productService.publicDetail(id);
+        return ProductDetailResponse.from(d, stocks(d.skus()));
     }
 
     /** 列表项：够渲染一张商品卡片即可，详情独有的大字段（description/images）不进列表，省带宽 */
@@ -83,7 +89,7 @@ public class ProductController {
             List<ParamItem> params,
             List<SkuResponse> skus) {
 
-        static ProductDetailResponse from(ProductDetail d) {
+        static ProductDetailResponse from(ProductDetail d, Map<UUID, StockView> stocks) {
             Product p = d.product();
             return new ProductDetailResponse(
                     ProductResponse.from(p),
@@ -91,7 +97,9 @@ public class ProductController {
                     p.getImages(),
                     p.getSpecs(),
                     p.getParams(),
-                    d.skus().stream().map(SkuResponse::from).toList());
+                    d.skus().stream()
+                            .map(s -> SkuResponse.from(s, stocks.get(s.getId())))
+                            .toList());
         }
     }
 
@@ -111,7 +119,7 @@ public class ProductController {
             return Money.ofFen(fen, currency != null ? currency : Money.CNY);
         }
 
-        static SkuResponse from(Sku s) {
+        static SkuResponse from(Sku s, StockView stock) {
             return new SkuResponse(
                     s.getId(),
                     s.getName(),
@@ -119,7 +127,12 @@ public class ProductController {
                     s.getImage(),
                     money(s.getPrice(), s.getCurrency()),
                     money(s.getOriginalPrice(), s.getCurrency()),
-                    s.getStock());
+                    stock == null ? 0 : stock.availableStock());
         }
+    }
+
+    /** 跨模块批查库存：skuId → StockView，供 SkuResponse 补库存展示（买家端详情） */
+    private Map<UUID, StockView> stocks(List<Sku> skus) {
+        return stockReadQuery.availableBySkuIds(skus.stream().map(Sku::getId).toList());
     }
 }

@@ -5,6 +5,8 @@ import com.shop.platform.cart.api.CartReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
+import com.shop.platform.inventory.api.StockReadQuery;
+import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.api.ProductReadQuery;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
@@ -35,6 +37,8 @@ class CheckoutResolver {
 
     private final ProductReadQuery productReadQuery;
 
+    private final StockReadQuery stockReadQuery;
+
     private final ShopReadQuery shopReadQuery;
 
     private final AddressReadQuery addressReadQuery;
@@ -49,10 +53,11 @@ class CheckoutResolver {
         // 1. 组装请求行：来源二选一，立即购买数量封顶
         List<RequestedLine> requested = requestedLines(userId, cartItemIds, buySkuId, buyQuantity);
 
-        // 2. 批量拉 SKU / SPU 投影（product :: api 按 ID 只读点查，禁止 JOIN）
+        // 2. 批量拉 SKU / SPU / 库存投影（product / inventory :: api 按 ID 只读点查，禁止 JOIN）
         List<UUID> skuIds =
                 requested.stream().map(RequestedLine::skuId).distinct().toList();
         Map<UUID, SkuView> skus = productReadQuery.skusByIds(skuIds);
+        Map<UUID, StockView> stocks = stockReadQuery.availableBySkuIds(skuIds);
         Map<UUID, ProductView> products = productReadQuery.productsByIds(
                 skus.values().stream().map(SkuView::productId).distinct().toList());
 
@@ -71,7 +76,10 @@ class CheckoutResolver {
                 unavailable.add(unavailableLine(line, sku, CheckoutPreview.UnavailableLine.CAUSE_UNAVAILABLE));
                 continue;
             }
-            if (sku.stock() == null || sku.stock() < line.quantity()) {
+            int available = stocks.get(line.skuId()) == null
+                    ? 0
+                    : stocks.get(line.skuId()).availableStock();
+            if (available < line.quantity()) {
                 unavailable.add(unavailableLine(line, sku, CheckoutPreview.UnavailableLine.CAUSE_STOCK_SHORTAGE));
                 continue;
             }
@@ -85,7 +93,7 @@ class CheckoutResolver {
                     Money.ofFen(sku.price(), sku.currency()),
                     sku.originalPrice() != null ? Money.ofFen(sku.originalPrice(), sku.currency()) : null,
                     line.quantity(),
-                    sku.stock()));
+                    available));
         }
         // 总额口径与分组小计（sumLines）同源，不会漂移
         return new ResolvedCheckout(valid, unavailable, sumLines(valid));

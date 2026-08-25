@@ -14,7 +14,6 @@ public record SkuView(
         Long price,
         Long originalPrice,
         String currency,
-        Integer stock,
         Integer status) {
 
     /** 在售状态值，魔法值私有在本模块；消费方用 {@link #onSale()} */

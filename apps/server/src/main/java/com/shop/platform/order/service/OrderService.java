@@ -14,6 +14,8 @@ import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
+import com.shop.platform.inventory.api.StockCommand;
+import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.dto.ShipOrderRequest;
@@ -23,8 +25,6 @@ import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
 import com.shop.platform.order.service.CheckoutResolver.ResolvedCheckout;
 import com.shop.platform.order.service.CheckoutResolver.ValidLine;
-import com.shop.platform.product.api.StockCommand;
-import com.shop.platform.product.api.StockLine;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -119,9 +119,9 @@ public class OrderService {
             created.add(persistOrder(userId, req.buyerMessage(), address, lines));
         }
 
-        // 4. 库存与购物车清理：product 条件扣减（同事务同步调用，不足抛 409 回滚全部），cart 删除已购条目（事件通知）
+        // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 删除已购条目（事件通知）
         for (Order order : created) {
-            stockCommand.deduct(toStockLines(itemsByOrder(order.getId())));
+            stockCommand.freeze(order.getId(), toStockLines(itemsByOrder(order.getId())));
         }
         List<UUID> cartItemIds = distinct(req.cartItemIds());
         if (!cartItemIds.isEmpty()) {
@@ -172,8 +172,12 @@ public class OrderService {
                         .set(Order::getCancelReason, reason == null || reason.isBlank() ? null : reason.trim()));
         Validate.isTrue(affected == 1, 409, "订单状态已变更，当前不可取消");
 
-        // 4. 回补库存：product 同步调用，与取消同事务生效
-        stockCommand.restock(toStockLines(items));
+        // 4. 库存回退（inventory 同步调用，与取消同事务生效）：付款前取消释放冻结（frozen→可用），付款后取消回补总库存（已扣实 → stock 增）
+        if (Order.STATUS_PAID.equals(order.getStatus())) {
+            stockCommand.restock(order.getId(), toStockLines(items));
+        } else {
+            stockCommand.release(order.getId(), toStockLines(items));
+        }
         log.info("[ORDER] 买家取消订单, orderId={}, userId={}", orderId, userId);
     }
 
