@@ -87,7 +87,7 @@ public class Product {
 
 ## 测试资产规范（integration tests）
 
-真库直连 dev 库（WSL2 PostgreSQL），**不用 `@Transactional` 回滚**——AFTER_COMMIT 监听、Modulith outbox 登记这类提交期行为只有真提交才验得到。数据一律**自建自清**，机制收敛在 `src/test/java/com/shop/platform/testsupport/`：
+集成测试直连**专用测试库 shop_test**（WSL2 PostgreSQL，与 dev 库隔离，见 `application-test.yml`），**不用 `@Transactional` 回滚**——AFTER_COMMIT 监听、Modulith outbox 登记这类提交期行为只有真提交才验得到。数据一律**自建自清**，机制收敛在 `src/test/java/com/shop/platform/testsupport/`：
 
 - 测试统一**平铺在模块包根**（auth/XxxTest），不按 controller/service 再分层；仅当测试要触达被测类 package-private 成员时才下钻到其精确包
 - **方法名 = 失败时的诊断书**：一律中文，下划线分段「动作/场景_条件_预期」（如 类目被商品引用_禁用拒绝_移除后放行、密码登录_全空字段_422、超时关单_回补库存_转已取消）；说公开行为不说实现细节；@Nested 组内可省略重复主语；值对象的单一场景允许一句话连读（非法手机号被拒绝）
@@ -96,7 +96,7 @@ public class Product {
 - 种子数据走 `db.seedOnSaleSku(shopId, priceFen, stock)` / `db.seedAddress(userId)`，清理自动登记
 - service 调用产生的数据（无法预知主键）：建出后立即 `db.onDelete(sql, args…)` 登记，按自有 ID/userId/shopId 圈定；下单等发领域事件的路径要连 `kernel.event_publication` 一起登记（serialized_event LIKE %id%）
 - **登记顺序 = 插入顺序（父表在前）**，purge 按登记逆序执行 → 先子后父；删除幂等，重复登记无害
-- 清理 SQL 禁止 TRUNCATE / 无 WHERE 的 DELETE（dev 库人机共用）；类目这类有唯一索引的数据，名字带随机后缀防撞
+- 清理 SQL 禁止 TRUNCATE / 无 WHERE 的 DELETE；测试库（shop_test）允许整库 wipe，dev 库人机共用严禁触碰
 
 **接口测试（web 层契约）**统一继承 `WebControllerTestSupport`：全量上下文剔除数据源、service 全部 @MockitoBean 集中在基类（所有子类共享一个缓存容器），请求走真实过滤器链。每个端点至少一条 happy path + 关键守卫（401/403/422/错误码透传）+ 出参形状回归（如地址不吐 deletedAt、买家侧 SKU 不吐 skuCode）。seller 路径用 `stubSellerMembership()` 放行成员过滤器（MP lambda 缓存需预热，基类已处理）。
 

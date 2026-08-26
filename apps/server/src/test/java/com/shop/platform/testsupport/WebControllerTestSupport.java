@@ -36,15 +36,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * 接口层（HTTP 契约）测试基座：全量启动应用上下文但剔除数据源，service 一律 mock，
+ * 接口层（HTTP 契约）测试基座：全量启动应用上下文，service 一律 mock，
  * 请求走真实过滤器链（RequestId → BodySize → StaffAuth → JwtAuth → ShopMembership）。
+ *
+ * <p>数据库：所有测试上下文统一连专用库 shop_test（见 application-test.yml），Flyway 迁移一次后共享；
+ * 与 dev 库彻底隔离。曾经试图 exclude DataSource 自动配置，但 Boot 4 已迁移自动配置类包名，
+ * 旧全限定名排除无效——与其假装无库，不如统一指向隔离库。
  *
  * <p>测的是接口契约：路由、认证守卫、参数校验、错误码透传、响应序列化形状；
  * 业务逻辑归单元测试与真库 IT，这里不重复。
@@ -52,20 +55,9 @@ import org.springframework.web.context.WebApplicationContext;
  * <p>全部 service 的 {@code @MockitoBean} 集中在本基类——子类共享同一个缓存上下文，
  * 整个套件只起一次 Spring 容器。子类按需 stub 继承来的 mock 字段即可
  * （@MockitoBean 不做 strict-stub 检查，未用到的 stub 无副作用）。
- *
- * <p>命名约定见 AGENTS.md「测试资产规范」：*Test 快环（本基座），真库集成用 *IT + IntegrationTestSupport。
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(
-        properties = {
-            "spring.flyway.enabled=false",
-            "spring.autoconfigure.exclude="
-                    + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
-                    + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
-                    + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
-                    + "org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration"
-        })
 public abstract class WebControllerTestSupport {
 
     @Autowired

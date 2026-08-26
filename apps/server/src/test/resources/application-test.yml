@@ -1,8 +1,19 @@
+# 集成测试专用库：与 dev 库隔离，测试数据再泄漏也脏不到开发数据。
+# 注意：本文件不继承主配置的 spring.datasource.url，必须显式指向 shop_test。
 spring:
+    datasource:
+        url: jdbc:postgresql://127.0.0.1:5432/shop_test
+        username: shop
+        password: shop_dev
+
     flyway:
         enabled: true
         locations: classpath:db/migration
-        baseline-on-migrate: true
+        # 测试库从零全量迁移（V1→最新），不继承主配置的 baseline-version:10
+        baseline-on-migrate: false
+        # 钉死默认 schema：用户名与模块 schema 同名（shop），PG 的 "$user" search_path 会把
+        # current_schema 解析成 shop schema，导致 Flyway 去那里找历史表而误判“无历史表”
+        default-schema: public
 
     jackson:
         deserialization:
