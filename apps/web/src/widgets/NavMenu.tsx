@@ -54,13 +54,15 @@ export interface NavMenuProps {
     items: NavMenuItem[]
     activeKey: string
     onSelect: (key: string) => void
+    /** 侧边栏宽度，默认 224px（w-56） */
+    widthClass?: string
 }
 
 function isGroup(item: NavMenuItem): item is NavMenuGroup {
     return "children" in item
 }
 
-export default function NavMenu({ items, activeKey, onSelect }: NavMenuProps) {
+export default function NavMenu({ items, activeKey, onSelect, widthClass = "w-56" }: NavMenuProps) {
     // 默认展开包含当前高亮项的分组
     const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(
         () =>
@@ -117,7 +119,7 @@ export default function NavMenu({ items, activeKey, onSelect }: NavMenuProps) {
         <SidebarProvider className="contents">
             <nav
                 aria-label="导航菜单"
-                className="w-56 bg-sidebar text-sidebar-foreground"
+                className={cn(widthClass, "bg-sidebar text-sidebar-foreground")}
             >
                 <SidebarMenu className="gap-0.5 p-2">
                     {items.map((item) => {

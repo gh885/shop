@@ -13,9 +13,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as OrdersOrderIdRouteImport } from './routes/orders/$orderId'
 import { Route as ProductsIdRouteImport } from './routes/products/$id'
 import { Route as SellIndexRouteImport } from './routes/sell/index'
 import { Route as AccountAddressIndexRouteImport } from './routes/account/address/index'
+import { Route as AccountFavoritesIndexRouteImport } from './routes/account/favorites/index'
+import { Route as AccountOrdersIndexRouteImport } from './routes/account/orders/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -37,6 +40,11 @@ const WelcomeRoute = WelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
+  id: '/orders/$orderId',
+  path: '/orders/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductsIdRoute = ProductsIdRouteImport.update({
   id: '/products/$id',
   path: '/products/$id',
@@ -52,24 +60,40 @@ const AccountAddressIndexRoute = AccountAddressIndexRouteImport.update({
   path: '/address/',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountFavoritesIndexRoute = AccountFavoritesIndexRouteImport.update({
+  id: '/favorites/',
+  path: '/favorites/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountOrdersIndexRoute = AccountOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => AccountRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/welcome': typeof WelcomeRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
   '/account/address/': typeof AccountAddressIndexRoute
+  '/account/favorites/': typeof AccountFavoritesIndexRoute
+  '/account/orders/': typeof AccountOrdersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/welcome': typeof WelcomeRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell': typeof SellIndexRoute
   '/account/address': typeof AccountAddressIndexRoute
+  '/account/favorites': typeof AccountFavoritesIndexRoute
+  '/account/orders': typeof AccountOrdersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,9 +101,12 @@ export interface FileRoutesById {
   '/account': typeof AccountRouteWithChildren
   '/cart': typeof CartRoute
   '/welcome': typeof WelcomeRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
   '/account/address/': typeof AccountAddressIndexRoute
+  '/account/favorites/': typeof AccountFavoritesIndexRoute
+  '/account/orders/': typeof AccountOrdersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,27 +115,36 @@ export interface FileRouteTypes {
     | '/account'
     | '/cart'
     | '/welcome'
+    | '/orders/$orderId'
     | '/products/$id'
     | '/sell/'
     | '/account/address/'
+    | '/account/favorites/'
+    | '/account/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/account'
     | '/cart'
     | '/welcome'
+    | '/orders/$orderId'
     | '/products/$id'
     | '/sell'
     | '/account/address'
+    | '/account/favorites'
+    | '/account/orders'
   id:
     | '__root__'
     | '/'
     | '/account'
     | '/cart'
     | '/welcome'
+    | '/orders/$orderId'
     | '/products/$id'
     | '/sell/'
     | '/account/address/'
+    | '/account/favorites/'
+    | '/account/orders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,6 +152,7 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRouteWithChildren
   CartRoute: typeof CartRoute
   WelcomeRoute: typeof WelcomeRoute
+  OrdersOrderIdRoute: typeof OrdersOrderIdRoute
   ProductsIdRoute: typeof ProductsIdRoute
   SellIndexRoute: typeof SellIndexRoute
 }
@@ -150,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orders/$orderId': {
+      id: '/orders/$orderId'
+      path: '/orders/$orderId'
+      fullPath: '/orders/$orderId'
+      preLoaderRoute: typeof OrdersOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products/$id': {
       id: '/products/$id'
       path: '/products/$id'
@@ -171,15 +215,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountAddressIndexRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/favorites/': {
+      id: '/account/favorites/'
+      path: '/favorites'
+      fullPath: '/account/favorites/'
+      preLoaderRoute: typeof AccountFavoritesIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/orders/': {
+      id: '/account/orders/'
+      path: '/orders'
+      fullPath: '/account/orders/'
+      preLoaderRoute: typeof AccountOrdersIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
   }
 }
 
 interface AccountRouteChildren {
   AccountAddressIndexRoute: typeof AccountAddressIndexRoute
+  AccountFavoritesIndexRoute: typeof AccountFavoritesIndexRoute
+  AccountOrdersIndexRoute: typeof AccountOrdersIndexRoute
 }
 
 const AccountRouteChildren: AccountRouteChildren = {
   AccountAddressIndexRoute: AccountAddressIndexRoute,
+  AccountFavoritesIndexRoute: AccountFavoritesIndexRoute,
+  AccountOrdersIndexRoute: AccountOrdersIndexRoute,
 }
 
 const AccountRouteWithChildren =
@@ -190,6 +252,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRouteWithChildren,
   CartRoute: CartRoute,
   WelcomeRoute: WelcomeRoute,
+  OrdersOrderIdRoute: OrdersOrderIdRoute,
   ProductsIdRoute: ProductsIdRoute,
   SellIndexRoute: SellIndexRoute,
 }
