@@ -8,15 +8,13 @@ import {
     OrderStatusSection,
     OrderSummaryCard,
 } from "#/features/orders/detail"
-import { requireAuth } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
 
 function notifyOrderAction(_order: unknown, action: string) {
     notify.info(`「${action}」即将上线`)
 }
 
-export const Route = createFileRoute("/orders/$orderId")({
-    beforeLoad: () => requireAuth(),
+export const Route = createFileRoute("/_protected/orders/$orderId")({
     component: OrderDetailPage,
     head: () => ({
         meta: [{ title: "订单详情 - Shop" }],

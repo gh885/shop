@@ -5,10 +5,8 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@s
 import { HeartOff } from "lucide-react"
 
 import { FavoriteCard, FavoritesToolbar } from "#/features/favorites"
-import { requireAuth } from "#/shared/api/auth"
 
-export const Route = createFileRoute("/account/favorites/")({
-    beforeLoad: () => requireAuth(),
+export const Route = createFileRoute("/_protected/account/favorites/")({
     component: FavoritesPage,
     head: () => ({
         meta: [{ title: "我的收藏 - 个人中心 - Shop" }],

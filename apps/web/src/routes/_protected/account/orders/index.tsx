@@ -7,11 +7,9 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@s
 import type { Order, OrderStatus } from "#/entities/order"
 import { ORDER_STATUS_LABEL } from "#/entities/order"
 import { OrderCard } from "#/features/orders"
-import { requireAuth } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
 
-export const Route = createFileRoute("/account/orders/")({
-    beforeLoad: () => requireAuth(),
+export const Route = createFileRoute("/_protected/account/orders/")({
     component: OrdersPage,
     head: () => ({
         meta: [{ title: "我的订单 - 个人中心 - Shop" }],

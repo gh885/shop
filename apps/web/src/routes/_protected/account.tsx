@@ -4,7 +4,6 @@ import { Heart, MapPin, ReceiptText } from "lucide-react"
 
 import NavMenu, { type NavMenuItem } from "#/widgets/NavMenu"
 import { AccountHeader } from "#/widgets/account"
-import { requireAuth } from "#/shared/api/auth"
 
 /** 个人中心侧边栏菜单（收货地址、我的收藏、我的订单等，后续扩展） */
 const MENU_ITEMS: NavMenuItem[] = [
@@ -25,8 +24,7 @@ const MENU_ITEMS: NavMenuItem[] = [
     },
 ]
 
-export const Route = createFileRoute("/account")({
-    beforeLoad: () => requireAuth(),
+export const Route = createFileRoute("/_protected/account")({
     component: AccountLayout,
     head: () => ({
         meta: [{ title: "个人中心 - Shop" }],

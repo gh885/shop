@@ -14,10 +14,8 @@ import {
     useSetDefaultAddress,
     useUnsetDefaultAddress,
 } from "#/features/address"
-import { requireAuth } from "#/shared/api/auth"
 
-export const Route = createFileRoute("/account/address/")({
-    beforeLoad: () => requireAuth(),
+export const Route = createFileRoute("/_protected/account/address/")({
     component: AddressPage,
     head: () => ({
         meta: [{ title: "收货地址 - 个人中心 - Shop" }],

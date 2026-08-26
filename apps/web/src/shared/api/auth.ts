@@ -1,6 +1,5 @@
-import { useEffect } from "react"
-import { redirect, useNavigate } from "@tanstack/react-router"
 import { useSyncExternalStore } from "react"
+import { redirect } from "@tanstack/react-router"
 
 import { authState, bootstrapAuth } from "./client"
 
@@ -57,7 +56,8 @@ export function useLoginDialogOpen(): [boolean, (open: boolean) => void] {
 /**
  * 受保护路由的 beforeLoad 守卫：确保登录态已裁决，未登录则拉起登录 Dialog 并跳回首页。
  *
- * SSR 首屏无法裁决登录态（refresh cookie 只在浏览器端刷新），直接放行，由页面的 useAuthGuard 兜底。
+ * SSR 首屏无法裁决登录态（refresh cookie 只在浏览器端刷新），直接放行，由 _protected 布局的 gate 兜底
+ * （见 routes/_protected/route.tsx：只在 auth 裁决为 authed 后渲染 <Outlet/>，guest 则拉 Dialog 跳首页）。
  *
  * 用法：createFileRoute('/x')({ beforeLoad: () => requireAuth(), ... })
  */
@@ -68,21 +68,4 @@ export async function requireAuth(): Promise<void> {
         openLoginDialog()
         throw redirect({ to: "/" })
     }
-}
-
-/**
- * SSR 直访受保护页的客户端兜底守卫：挂载后裁决登录态，未登录拉起登录 Dialog 并跳回首页。
- * 与 beforeLoad 的 requireAuth 配合（客户端导航走 beforeLoad，SSR 直访走这里）。
- */
-export function useAuthGuard(): void {
-    const navigate = useNavigate()
-    useEffect(() => {
-        void (async () => {
-            await bootstrapAuth()
-            if (authState.getStatus() !== "authed") {
-                openLoginDialog()
-                await navigate({ to: "/" })
-            }
-        })()
-    }, [navigate])
 }

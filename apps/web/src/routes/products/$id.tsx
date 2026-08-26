@@ -41,13 +41,54 @@ export const Route = createFileRoute("/products/$id")({
         return { detail }
     },
     component: ProductDetailPage,
-    head: ({ match }) => ({
-        meta: [
-            {
-                title: `${(match.loaderData as { detail?: ProductDetail } | undefined)?.detail?.product.title ?? "商品详情"} - Shop`,
-            },
-        ],
-    }),
+    head: ({ match }) => {
+        const d = (match.loaderData as { detail?: ProductDetail } | undefined)?.detail
+        const p = d?.product
+        const price = p?.priceMin?.amount
+        const ogImage = p?.image || d?.images?.[0]
+        const meta: Array<
+            | { title: string }
+            | { property: string; content: string }
+            | { name: string; content: string }
+        > = [
+            { title: `${p?.title ?? "商品详情"} - Shop` },
+            // OpenGraph：SSR 直接写入 <head>，社交/搜索爬虫首帧即拿到（这是 SSR 相对 SPA 的硬收益）
+            { property: "og:title", content: p?.title ?? "商品详情" },
+            { property: "og:type", content: "product" },
+            { property: "og:site_name", content: "Shop" },
+            { name: "description", content: p?.subtitle || p?.title || "商品详情" },
+        ]
+        if (ogImage) meta.push({ property: "og:image", content: ogImage })
+        return {
+            meta,
+            links: [
+                // canonical：详情页 URL 唯一权威来源，避免带查询串/尺寸参数的分裂页被重复索引
+                { rel: "canonical", href: `https://shop.example.com/products/${p?.id}` },
+            ],
+            scripts: [
+                // JSON-LD Product 结构：价格/库存/图给搜索引擎与购物聚合，SPA 无法提供
+                {
+                    type: "application/ld+json",
+                    children: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "Product",
+                        name: p?.title,
+                        description: p?.subtitle,
+                        image: ogImage ? [ogImage] : undefined,
+                        sku: p?.id,
+                        offers: price
+                            ? {
+                                  "@type": "Offer",
+                                  price: (price / 100).toFixed(2),
+                                  priceCurrency: p?.priceMin?.currency ?? "CNY",
+                                  availability: "https://schema.org/InStock",
+                              }
+                            : undefined,
+                    }),
+                },
+            ],
+        }
+    },
 })
 
 function ProductDetailPage() {

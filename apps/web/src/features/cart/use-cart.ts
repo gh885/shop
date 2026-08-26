@@ -13,7 +13,6 @@ import {
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
 import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
-
 /**
  * 购物车数据 hooks：列表查询 + 乐观更新 mutations（勾选/数量/删除先改缓存、失败回滚）。
  * 整车都要求登录，路由层用 requireAuth 守卫，这里不做未登录降级。
@@ -21,19 +20,20 @@ import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
 const KEY = ["cart-items"] as const
 
+/** 购物车列表：仅在路由 /cart（_protected 内）使用。
+ * 登录态由 _protected 布局 gate 保证（authed 后才渲染子路由），挂载时必已登录，
+ * 数据层无需再写 enabled gating。 */
 export const cartItemsOptions = queryOptions({
     queryKey: KEY,
     queryFn: fetchCartItems,
 })
 
 export function useCartItems() {
-    // 整车要求登录：登录态裁决前不发请求，避免未登录直访 /cart 时先打出一串 401。
-    // 未登录由路由守卫（requireAuth / useAuthGuard）拉起登录 Dialog，不在这里降级。
-    const isLoggedIn = useIsLoggedIn()
-    return useQuery({ ...cartItemsOptions, enabled: isLoggedIn })
+    return useQuery(cartItemsOptions)
 }
 
-/** 角标计数：免拉整车，头部角标用；同样要求登录，未登录不发请求 */
+/** 角标计数：免拉整车，头部角标用；可在公开页（SiteHeader/首页）使用，故必须保留 enabled gating ——
+ * 不在 _protected 内，未登录时不发请求，避免公开页访问时打 401 */
 export const cartCountOptions = queryOptions({
     queryKey: ["cart-count"],
     queryFn: fetchCartCount,

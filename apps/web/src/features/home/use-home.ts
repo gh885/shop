@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
 import { fetchBanners, fetchFeedProducts, fetchHomeNav, fetchRecommendTabs } from "./actions"
 
@@ -48,7 +48,8 @@ export function useRecommendTabs() {
     return useQuery(recommendTabsOptions)
 }
 
-/** 首页商品流 */
+/** 首页商品流：SSR 流式版。loader 不预热该查询，组件 useSuspenseQuery 挂起边界，
+ * SSR 先吐骨架壳，feed resolve 后经 queryStream 流给客户端 hydrate（见 route loader 注释） */
 export function useFeedProducts() {
-    return useQuery(feedOptions)
+    return useSuspenseQuery(feedOptions)
 }
