@@ -3,7 +3,9 @@ package com.shop.platform.order.controller;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Permissions;
 import com.shop.platform.common.ShopIdHolder;
+import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
@@ -21,12 +23,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 卖家订单管理。shopId 从店铺上下文（X-Shop-Id，ShopMembershipFilter 校验成员身份）取，
+ * 卖家订单管理（授权要求 ORDER_FULFILL，读随写权）。shopId 从店铺上下文（X-Shop-Id，ShopMembershipFilter 校验成员身份）取，
  * 前端不传店 ID；越店访问在 service 层按 shop_id 过滤/校验，一律 404。
  */
 @RestController
 @RequestMapping("/seller/orders")
 @RequiredArgsConstructor
+@RequirePermission(Permissions.ORDER_FULFILL)
 public class SellerOrderController {
 
     private final OrderService orderService;

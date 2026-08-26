@@ -2,7 +2,9 @@ package com.shop.platform.product.controller;
 
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Permissions;
 import com.shop.platform.common.ShopIdHolder;
+import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.dto.CreateProductRequest;
@@ -34,11 +36,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 卖家商品管理。出参一律 Response record：卖家端 zod schema 逐字段严格校验，字段镜像实体现状只减不增 */
+/** 卖家商品管理（授权要求 PRODUCT_MANAGE，读随写权）。出参一律 Response record：卖家端 zod schema 逐字段严格校验，字段镜像实体现状只减不增 */
 @RestController
 @RequestMapping("/seller/products")
 @Validated
 @RequiredArgsConstructor
+@RequirePermission(Permissions.PRODUCT_MANAGE)
 public class ProductAdminController {
     private final ProductService productService;
     private final StockReadQuery stockReadQuery;

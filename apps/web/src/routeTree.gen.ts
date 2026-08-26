@@ -8,192 +8,200 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as IndexRouteImport } from "./routes/index"
-import { Route as AccountRouteImport } from "./routes/account"
-import { Route as CartRouteImport } from "./routes/cart"
-import { Route as WelcomeRouteImport } from "./routes/welcome"
-import { Route as ProductsIdRouteImport } from "./routes/products/$id"
-import { Route as SellIndexRouteImport } from "./routes/sell/index"
-import { Route as AccountAddressIndexRouteImport } from "./routes/account/address/index"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as CartRouteImport } from './routes/cart'
+import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as ProductsIdRouteImport } from './routes/products/$id'
+import { Route as SellIndexRouteImport } from './routes/sell/index'
+import { Route as AccountAddressIndexRouteImport } from './routes/account/address/index'
 
 const IndexRoute = IndexRouteImport.update({
-    id: "/",
-    path: "/",
-    getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AccountRoute = AccountRouteImport.update({
-    id: "/account",
-    path: "/account",
-    getParentRoute: () => rootRouteImport,
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
-    id: "/cart",
-    path: "/cart",
-    getParentRoute: () => rootRouteImport,
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const WelcomeRoute = WelcomeRouteImport.update({
-    id: "/welcome",
-    path: "/welcome",
-    getParentRoute: () => rootRouteImport,
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsIdRoute = ProductsIdRouteImport.update({
-    id: "/products/$id",
-    path: "/products/$id",
-    getParentRoute: () => rootRouteImport,
+  id: '/products/$id',
+  path: '/products/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const SellIndexRoute = SellIndexRouteImport.update({
-    id: "/sell/",
-    path: "/sell/",
-    getParentRoute: () => rootRouteImport,
+  id: '/sell/',
+  path: '/sell/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AccountAddressIndexRoute = AccountAddressIndexRouteImport.update({
-    id: "/address/",
-    path: "/address/",
-    getParentRoute: () => AccountRoute,
+  id: '/address/',
+  path: '/address/',
+  getParentRoute: () => AccountRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-    "/": typeof IndexRoute
-    "/account": typeof AccountRouteWithChildren
-    "/cart": typeof CartRoute
-    "/welcome": typeof WelcomeRoute
-    "/products/$id": typeof ProductsIdRoute
-    "/sell/": typeof SellIndexRoute
-    "/account/address/": typeof AccountAddressIndexRoute
+  '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
+  '/cart': typeof CartRoute
+  '/welcome': typeof WelcomeRoute
+  '/products/$id': typeof ProductsIdRoute
+  '/sell/': typeof SellIndexRoute
+  '/account/address/': typeof AccountAddressIndexRoute
 }
 export interface FileRoutesByTo {
-    "/": typeof IndexRoute
-    "/account": typeof AccountRouteWithChildren
-    "/cart": typeof CartRoute
-    "/welcome": typeof WelcomeRoute
-    "/products/$id": typeof ProductsIdRoute
-    "/sell": typeof SellIndexRoute
-    "/account/address": typeof AccountAddressIndexRoute
+  '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
+  '/cart': typeof CartRoute
+  '/welcome': typeof WelcomeRoute
+  '/products/$id': typeof ProductsIdRoute
+  '/sell': typeof SellIndexRoute
+  '/account/address': typeof AccountAddressIndexRoute
 }
 export interface FileRoutesById {
-    __root__: typeof rootRouteImport
-    "/": typeof IndexRoute
-    "/account": typeof AccountRouteWithChildren
-    "/cart": typeof CartRoute
-    "/welcome": typeof WelcomeRoute
-    "/products/$id": typeof ProductsIdRoute
-    "/sell/": typeof SellIndexRoute
-    "/account/address/": typeof AccountAddressIndexRoute
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/account': typeof AccountRouteWithChildren
+  '/cart': typeof CartRoute
+  '/welcome': typeof WelcomeRoute
+  '/products/$id': typeof ProductsIdRoute
+  '/sell/': typeof SellIndexRoute
+  '/account/address/': typeof AccountAddressIndexRoute
 }
 export interface FileRouteTypes {
-    fileRoutesByFullPath: FileRoutesByFullPath
-    fullPaths:
-        | "/"
-        | "/account"
-        | "/cart"
-        | "/welcome"
-        | "/products/$id"
-        | "/sell/"
-        | "/account/address/"
-    fileRoutesByTo: FileRoutesByTo
-    to: "/" | "/account" | "/cart" | "/welcome" | "/products/$id" | "/sell" | "/account/address"
-    id:
-        | "__root__"
-        | "/"
-        | "/account"
-        | "/cart"
-        | "/welcome"
-        | "/products/$id"
-        | "/sell/"
-        | "/account/address/"
-    fileRoutesById: FileRoutesById
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/account'
+    | '/cart'
+    | '/welcome'
+    | '/products/$id'
+    | '/sell/'
+    | '/account/address/'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/account'
+    | '/cart'
+    | '/welcome'
+    | '/products/$id'
+    | '/sell'
+    | '/account/address'
+  id:
+    | '__root__'
+    | '/'
+    | '/account'
+    | '/cart'
+    | '/welcome'
+    | '/products/$id'
+    | '/sell/'
+    | '/account/address/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-    IndexRoute: typeof IndexRoute
-    AccountRoute: typeof AccountRouteWithChildren
-    CartRoute: typeof CartRoute
-    WelcomeRoute: typeof WelcomeRoute
-    ProductsIdRoute: typeof ProductsIdRoute
-    SellIndexRoute: typeof SellIndexRoute
+  IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRouteWithChildren
+  CartRoute: typeof CartRoute
+  WelcomeRoute: typeof WelcomeRoute
+  ProductsIdRoute: typeof ProductsIdRoute
+  SellIndexRoute: typeof SellIndexRoute
 }
 
-declare module "@tanstack/react-router" {
-    interface FileRoutesByPath {
-        "/": {
-            id: "/"
-            path: "/"
-            fullPath: "/"
-            preLoaderRoute: typeof IndexRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        "/account": {
-            id: "/account"
-            path: "/account"
-            fullPath: "/account"
-            preLoaderRoute: typeof AccountRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        "/cart": {
-            id: "/cart"
-            path: "/cart"
-            fullPath: "/cart"
-            preLoaderRoute: typeof CartRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        "/welcome": {
-            id: "/welcome"
-            path: "/welcome"
-            fullPath: "/welcome"
-            preLoaderRoute: typeof WelcomeRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        "/products/$id": {
-            id: "/products/$id"
-            path: "/products/$id"
-            fullPath: "/products/$id"
-            preLoaderRoute: typeof ProductsIdRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        "/sell/": {
-            id: "/sell/"
-            path: "/sell"
-            fullPath: "/sell/"
-            preLoaderRoute: typeof SellIndexRouteImport
-            parentRoute: typeof rootRouteImport
-        }
-        "/account/address/": {
-            id: "/account/address/"
-            path: "/address"
-            fullPath: "/account/address/"
-            preLoaderRoute: typeof AccountAddressIndexRouteImport
-            parentRoute: typeof AccountRoute
-        }
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/$id': {
+      id: '/products/$id'
+      path: '/products/$id'
+      fullPath: '/products/$id'
+      preLoaderRoute: typeof ProductsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sell/': {
+      id: '/sell/'
+      path: '/sell'
+      fullPath: '/sell/'
+      preLoaderRoute: typeof SellIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/address/': {
+      id: '/account/address/'
+      path: '/address'
+      fullPath: '/account/address/'
+      preLoaderRoute: typeof AccountAddressIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+  }
 }
 
 interface AccountRouteChildren {
-    AccountAddressIndexRoute: typeof AccountAddressIndexRoute
+  AccountAddressIndexRoute: typeof AccountAddressIndexRoute
 }
 
 const AccountRouteChildren: AccountRouteChildren = {
-    AccountAddressIndexRoute: AccountAddressIndexRoute,
+  AccountAddressIndexRoute: AccountAddressIndexRoute,
 }
 
-const AccountRouteWithChildren = AccountRoute._addFileChildren(AccountRouteChildren)
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-    IndexRoute: IndexRoute,
-    AccountRoute: AccountRouteWithChildren,
-    CartRoute: CartRoute,
-    WelcomeRoute: WelcomeRoute,
-    ProductsIdRoute: ProductsIdRoute,
-    SellIndexRoute: SellIndexRoute,
+  IndexRoute: IndexRoute,
+  AccountRoute: AccountRouteWithChildren,
+  CartRoute: CartRoute,
+  WelcomeRoute: WelcomeRoute,
+  ProductsIdRoute: ProductsIdRoute,
+  SellIndexRoute: SellIndexRoute,
 }
 export const routeTree = rootRouteImport
-    ._addFileChildren(rootRouteChildren)
-    ._addFileTypes<FileRouteTypes>()
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx"
-import type { createStart } from "@tanstack/react-start"
-declare module "@tanstack/react-start" {
-    interface Register {
-        ssr: true
-        router: Awaited<ReturnType<typeof getRouter>>
-    }
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
 }

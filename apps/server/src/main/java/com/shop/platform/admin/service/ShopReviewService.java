@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -101,7 +102,22 @@ public class ShopReviewService {
         // 3. 发审核决定事件 → shop 模块改店铺状态
         events.publishEvent(
                 new ShopReviewDecidedEvent(review.getShopId(), ShopReview.STATUS_APPROVED.equals(newStatus), reason));
-        log.info("[ADMIN] 店铺审核决定, shopId={}, status={}, staffId={}", review.getShopId(), newStatus, staffId);
+
+        // 4. L3 审计留痕（结构化事件，约定见 docs/business-event-logging.md）
+        MDC.put("event", "shop_review.decided");
+        MDC.put("review_id", review.getId().toString());
+        MDC.put("shop_id", review.getShopId().toString());
+        MDC.put("decision", newStatus);
+        MDC.put("staff_id", staffId.toString());
+        try {
+            log.info("");
+        } finally {
+            MDC.remove("event");
+            MDC.remove("review_id");
+            MDC.remove("shop_id");
+            MDC.remove("decision");
+            MDC.remove("staff_id");
+        }
         return review;
     }
 

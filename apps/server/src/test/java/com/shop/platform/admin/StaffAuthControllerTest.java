@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.shop.platform.admin.service.StaffInfo;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.testsupport.WebControllerTestSupport;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -75,12 +76,15 @@ class StaffAuthControllerTest extends WebControllerTestSupport {
     }
 
     @Test
-    void 当前员工信息_员工令牌守卫() throws Exception {
-        when(staffService.getMe(staffId)).thenReturn(new StaffInfo(staffId, "E001", "运营小王"));
+    void 当前员工信息_含岗位与权限码_员工令牌守卫() throws Exception {
+        when(staffService.getMe(staffId))
+                .thenReturn(new StaffInfo(staffId, "E001", "运营小王", "OPS", List.of("CMS_MANAGE")));
 
         mockMvc.perform(get("/admin/auth/me").header("Authorization", "Bearer " + staffToken(staffId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.employeeNo").value("E001"));
+                .andExpect(jsonPath("$.employeeNo").value("E001"))
+                .andExpect(jsonPath("$.role").value("OPS"))
+                .andExpect(jsonPath("$.permissions[0]").value("CMS_MANAGE"));
 
         // C 端用户令牌进不了管理端链路
         mockMvc.perform(get("/admin/auth/me").header("Authorization", "Bearer " + userToken(UUID.randomUUID())))

@@ -6,6 +6,8 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,11 +89,37 @@ public class StaffService {
         refreshTokenStore.revokeDevice(staffId.toString(), deviceId);
     }
 
-    /** 当前登录员工信息 */
+    /** 当前登录员工信息（含岗位与有效权限码，前端菜单/按钮显隐用） */
     public StaffInfo getMe(UUID staffId) {
         Staff staff = staffMapper.selectById(staffId);
         if (staff == null) throw BusinessException.notFound("员工不存在");
-        return new StaffInfo(staff.getId(), staff.getEmployeeNo(), staff.getDisplayName());
+
+        // 1. 解析岗位；禁用/未知岗位按无权限展示（登录/判权层会拦，这里只负责如实呈现）
+        boolean active = Staff.STATUS_ACTIVE.equals(staff.getStatus());
+        StaffRole role = StaffRole.parseOrNull(staff.getRole());
+
+        // 2. SUPER_ADMIN 展开通配符为具体码列表；无岗位或已禁用给空集
+        List<String> permissions = active && role != null ? role.declaredPermissions() : List.of();
+        return new StaffInfo(
+                staff.getId(),
+                staff.getEmployeeNo(),
+                staff.getDisplayName(),
+                role == null ? null : role.name(),
+                permissions);
+    }
+
+    /** 当前员工有效权限集（PermissionInterceptor 判权入口，每请求实时查库）。
+     *  禁用/查无此人/未知岗位 → 空集：token 还活着但权限立即消失，收权下一请求生效。 */
+    public Set<String> effectivePermissions(UUID staffId) {
+        Staff staff = staffMapper.selectById(staffId);
+        if (staff == null || !Staff.STATUS_ACTIVE.equals(staff.getStatus())) {
+            return Set.of();
+        }
+        StaffRole role = StaffRole.parseOrNull(staff.getRole());
+        if (role == null) {
+            return Set.of();
+        }
+        return role.permissions();
     }
 
     // ========== Token 签发 ==========

@@ -126,13 +126,18 @@ public class ShopService {
                 members.stream().map(ShopMember::getUserId).distinct().toList());
         return members.stream()
                 .map(m -> new ShopMemberItem(
-                        m.getId(), m.getUserId(), phones.get(m.getUserId()), m.getRole(), m.getStatus()))
+                        m.getId(),
+                        m.getUserId(),
+                        phones.get(m.getUserId()),
+                        m.getRole(),
+                        m.getStatus(),
+                        m.getPermissions()))
                 .toList();
     }
 
-    /** 店主邀请成员：按手机号找人，落 PENDING 等对方登录后确认 */
+    /** 店主邀请成员：按手机号找人，落 PENDING 等对方登录后确认（可选携带可授予权限码，默认空集） */
     @Transactional
-    public ShopMember invite(UUID shopId, UUID ownerId, String phone) {
+    public ShopMember invite(UUID shopId, UUID ownerId, String phone, List<String> permissions) {
         // 1. 校验操作者是店主
         requireOwner(shopId, ownerId);
 
@@ -147,16 +152,35 @@ public class ShopService {
             throw BusinessException.conflict(null, "对方已是店铺成员或已有待确认邀请");
         }
 
-        // 4. 落 PENDING 邀请，等对方确认
+        // 4. 白名单校验后落 PENDING 邀请（最小权限：不传 = 空集），等对方确认
+        List<String> grants = SellerGrants.sanitize(permissions);
         ShopMember member = ShopMember.builder()
                 .shopId(shopId)
                 .userId(inviteeId)
                 .role(ShopMember.ROLE_MEMBER)
                 .status(ShopMember.STATUS_PENDING)
+                .permissions(grants)
                 .build();
         shopMemberMapper.insert(member);
-        log.info("[SHOP] 邀请成员, shopId={}, invitee={}", shopId, inviteeId);
+        log.info("[SHOP] 邀请成员, shopId={}, invitee={}, grants={}", shopId, inviteeId, grants);
         return member;
+    }
+
+    /** 店主调整子账号权限（全量替换）：OWNER 权限固有不可改；下一请求即生效（判权实时查库） */
+    @Transactional
+    public void updatePermissions(UUID shopId, UUID memberId, UUID operatorId, List<String> permissions) {
+        // 1. 只有店主可调权
+        requireOwner(shopId, operatorId);
+
+        // 2. 目标必须是本店 MEMBER（OWNER 权限固有，不存在“改店主权限”）
+        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "成员不存在");
+        Validate.isTrue(member.getShopId().equals(shopId), "成员不属于该店铺");
+        Validate.isTrue(ShopMember.ROLE_MEMBER.equals(member.getRole()), "不能修改店主的权限");
+
+        // 3. 白名单校验后全量替换
+        member.setPermissions(SellerGrants.sanitize(permissions));
+        shopMemberMapper.updateById(member);
+        log.info("[SHOP] 调整成员权限, shopId={}, memberId={}, permissions={}", shopId, memberId, member.getPermissions());
     }
 
     /** 店主移除成员：不能移除自己（店主身份随店铺存续） */

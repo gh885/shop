@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /** 商品 SPU 服务：创建（草稿）→ 规格 → SKU → 发布，逐步补充。 */
 @Service
@@ -161,12 +162,14 @@ public class ProductService {
 
     /** 商家后台商品列表：按店铺分页，可按状态/名称筛选，创建时间倒序。管理端要看全量状态，含草稿/下架 */
     public PageResult<Product> pageList(UUID shopId, Integer status, String keyword, long page, long size) {
+        // MP 的条件 boolean 参数不短路右侧表达式：keyword.trim() 必须先判空提取，否则无 keyword 请求 NPE
+        String trimmedKeyword = keyword == null ? null : keyword.trim();
         Page<Product> result = productMapper.selectPage(
                 new Page<>(page, size),
                 new LambdaQueryWrapper<Product>()
                         .eq(Product::getShopId, shopId)
                         .eq(status != null, Product::getStatus, status)
-                        .like(keyword != null && !keyword.isBlank(), Product::getName, keyword.trim())
+                        .like(StringUtils.hasText(trimmedKeyword), Product::getName, trimmedKeyword)
                         .orderByDesc(Product::getCreatedAt)
                         .orderByDesc(Product::getId));
         return new PageResult<>(result.getRecords(), result.getTotal());

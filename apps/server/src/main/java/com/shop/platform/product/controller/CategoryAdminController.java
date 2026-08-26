@@ -1,5 +1,7 @@
 package com.shop.platform.product.controller;
 
+import com.shop.platform.common.Permissions;
+import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.product.dto.CreateCategoryRequest;
 import com.shop.platform.product.dto.UpdateCategoryRequest;
 import com.shop.platform.product.dto.UpdateStatusRequest;
@@ -18,10 +20,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 管理端类目维护（鉴权由 StaffAuthFilter 统一处理：/admin/** 仅放行 kind=staff token） */
+/** 管理端类目维护（认证由 StaffAuthFilter 统一处理，授权要求 CATEGORY_MANAGE，岗位 OPS） */
 @RestController
 @RequestMapping("/admin/categories")
 @RequiredArgsConstructor
+@RequirePermission(Permissions.CATEGORY_MANAGE)
 public class CategoryAdminController {
 
     private final CategoryService categoryService;

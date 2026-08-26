@@ -3,6 +3,7 @@ package com.shop.platform.shop.controller;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.shop.dto.CreateShopRequest;
 import com.shop.platform.shop.dto.InviteMemberRequest;
+import com.shop.platform.shop.dto.UpdateMemberPermissionsRequest;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.service.ShopInviteItem;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -63,10 +65,19 @@ public class ShopController {
                 .toList();
     }
 
-    /** 店主按手机号邀请成员，对方登录后确认才生效 */
+    /** 店主按手机号邀请成员（可选携带可授予权限码），对方登录后确认才生效 */
     @PostMapping("/{shopId}/invites")
     public ShopMemberResponse invite(@PathVariable UUID shopId, @Valid @RequestBody InviteMemberRequest req) {
-        return ShopMemberResponse.from(shopService.invite(shopId, UserIdHolder.get(), req.phone()));
+        return ShopMemberResponse.from(shopService.invite(shopId, UserIdHolder.get(), req.phone(), req.permissions()));
+    }
+
+    /** 店主调整子账号权限（全量替换），下一请求即生效 */
+    @PutMapping("/{shopId}/members/{memberId}/permissions")
+    public void updatePermissions(
+            @PathVariable UUID shopId,
+            @PathVariable UUID memberId,
+            @Valid @RequestBody UpdateMemberPermissionsRequest req) {
+        shopService.updatePermissions(shopId, memberId, UserIdHolder.get(), req.permissions());
     }
 
     /** 店主移除成员 */
@@ -101,13 +112,14 @@ public class ShopController {
         }
     }
 
-    /** 成员出参：invite/accept 返回，前端 ShopMemberSchema 逐字段校验 */
+    /** 成员出参：invite/accept 返回，前端 ShopMemberSchema 逐字段校验；permissions 为被授予码（OWNER 空集） */
     public record ShopMemberResponse(
             UUID id,
             UUID shopId,
             UUID userId,
             String role,
             String status,
+            List<String> permissions,
             OffsetDateTime createdAt,
             OffsetDateTime updatedAt) {
 
@@ -118,6 +130,7 @@ public class ShopController {
                     member.getUserId(),
                     member.getRole(),
                     member.getStatus(),
+                    member.getPermissions(),
                     member.getCreatedAt(),
                     member.getUpdatedAt());
         }
@@ -131,11 +144,13 @@ public class ShopController {
         }
     }
 
-    /** 成员列表项出参：镜像 service 的 ShopMemberItem（含跨 schema 拼装的手机号），字段只减不增 */
-    public record ShopMemberItemResponse(UUID memberId, UUID userId, String phone, String role, String status) {
+    /** 成员列表项出参：镜像 service 的 ShopMemberItem（含跨 schema 拼装的手机号 + 权限码），字段只减不增 */
+    public record ShopMemberItemResponse(
+            UUID memberId, UUID userId, String phone, String role, String status, List<String> permissions) {
 
         static ShopMemberItemResponse from(ShopMemberItem item) {
-            return new ShopMemberItemResponse(item.memberId(), item.userId(), item.phone(), item.role(), item.status());
+            return new ShopMemberItemResponse(
+                    item.memberId(), item.userId(), item.phone(), item.role(), item.status(), item.permissions());
         }
     }
 }

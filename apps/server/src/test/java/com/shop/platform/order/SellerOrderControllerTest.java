@@ -116,7 +116,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
 
     @Test
     void 非本店成员_403() throws Exception {
-        when(shopMemberMapper.isActiveMember(any(), any())).thenReturn(false);
+        when(shopMemberMapper.findActiveMember(any(), any())).thenReturn(null);
 
         mockMvc.perform(get("/seller/orders")
                         .header("Authorization", "Bearer " + userToken(userId))

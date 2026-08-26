@@ -19,7 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 /**
  * 店铺治理链集成验证（真库）：开店落 PENDING_REVIEW + owner 自动成为 ACTIVE 成员 + 审核入队 →
  * admin 审批（同步事件监听改店铺状态）→ ACTIVE 公开可见 / REJECTED 对外 404。
- * 授权以 shop_members 为准（卖家闸门 isActiveMember），二次审批有幂等守卫。
+ * 授权以 shop_members 为准（卖家闸门 findActiveMember 装载成员上下文），二次审批有幂等守卫。
  */
 @SpringBootTest
 class ShopGovernanceIT extends IntegrationTestSupport {

@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@TableName("shop.shop_members")
+@TableName(value = "shop.shop_members", autoResultMap = true)
 public class ShopMember {
 
     /** 成员角色，见 role 字段 javadoc：OWNER 店主 / MEMBER 成员 */
@@ -48,6 +48,11 @@ public class ShopMember {
 
     /** 角色：OWNER 店主 / MEMBER 成员。OWNER 只有开店时写入那一条；邀请加入的都是 MEMBER */
     private String role;
+
+    /** 子账号被授予的权限码（白名单见 shop/service/SellerGrants，默认空集=最小权限）；
+     *  OWNER 全权由角色判定不读此列。jsonb 存储，读写经 JsonbStringListHandler */
+    @TableField(typeHandler = JsonbStringListHandler.class)
+    private java.util.List<String> permissions;
 
     /** 成员状态：PENDING 邀请待对方同意 / ACTIVE 已生效 */
     private String status;

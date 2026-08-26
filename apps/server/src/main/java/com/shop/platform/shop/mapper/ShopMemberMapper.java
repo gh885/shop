@@ -39,13 +39,21 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
                 > 0;
     }
 
-    /** 是否该店 ACTIVE 成员：卖家接口过滤链（ShopMembershipFilter）与成员可见性校验共用同一闸门 */
+    /** 是否该店 ACTIVE 成员：成员可见性校验用（过滤链已改用 findActiveMember 装载角色与权限） */
     default boolean isActiveMember(UUID shopId, UUID userId) {
         return selectCount(new LambdaQueryWrapper<ShopMember>()
                         .eq(ShopMember::getShopId, shopId)
                         .eq(ShopMember::getUserId, userId)
                         .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE))
                 > 0;
+    }
+
+    /** 该店该用户的 ACTIVE 成员行：卖家过滤链取整行顺带装载角色/权限到 ShopMemberContext，非成员返回 null */
+    default ShopMember findActiveMember(UUID shopId, UUID userId) {
+        return selectOne(new LambdaQueryWrapper<ShopMember>()
+                .eq(ShopMember::getShopId, shopId)
+                .eq(ShopMember::getUserId, userId)
+                .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
     }
 
     /** 是否该店 ACTIVE 店主（店主专属操作的 403 闸门） */

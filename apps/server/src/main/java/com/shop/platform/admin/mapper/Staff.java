@@ -44,6 +44,9 @@ public class Staff {
     /** 员工状态：ACTIVE 正常 / 其他值禁用，不做物理删除 */
     private String status;
 
+    /** 岗位：StaffRole 枚举名（SUPER_ADMIN/REVIEWER/OPS）。岗位→权限码映射见 admin/service/StaffRole，库里只存岗位名 */
+    private String role;
+
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)
     private OffsetDateTime createdAt;

@@ -106,10 +106,12 @@ public class StaffAuthController {
     }
 
     /** 员工信息出参：镜像 service 的 StaffInfo，字段只减不增 */
-    public record StaffInfoResponse(UUID id, String employeeNo, String displayName) {
+    public record StaffInfoResponse(
+            UUID id, String employeeNo, String displayName, String role, java.util.List<String> permissions) {
 
         static StaffInfoResponse from(StaffInfo info) {
-            return new StaffInfoResponse(info.id(), info.employeeNo(), info.displayName());
+            return new StaffInfoResponse(
+                    info.id(), info.employeeNo(), info.displayName(), info.role(), info.permissions());
         }
     }
 }

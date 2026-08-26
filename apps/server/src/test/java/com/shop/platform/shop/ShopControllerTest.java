@@ -112,7 +112,8 @@ class ShopControllerTest extends WebControllerTestSupport {
     @Test
     void 成员列表_拼装手机号() throws Exception {
         when(shopService.members(shopId, userId))
-                .thenReturn(List.of(new ShopMemberItem(UUID.randomUUID(), userId, "138****0000", "OWNER", "ACTIVE")));
+                .thenReturn(List.of(
+                        new ShopMemberItem(UUID.randomUUID(), userId, "138****0000", "OWNER", "ACTIVE", List.of())));
 
         mockMvc.perform(get("/shops/{shopId}/members", shopId).header("Authorization", "Bearer " + userToken(userId)))
                 .andExpect(status().isOk())
@@ -125,7 +126,8 @@ class ShopControllerTest extends WebControllerTestSupport {
         member.setId(UUID.randomUUID());
         member.setShopId(shopId);
         member.setStatus("INVITED");
-        when(shopService.invite(eq(shopId), eq(userId), eq("13800138000"))).thenReturn(member);
+        when(shopService.invite(eq(shopId), eq(userId), eq("13800138000"), eq(null)))
+                .thenReturn(member);
 
         mockMvc.perform(
                         post("/shops/{shopId}/invites", shopId)
@@ -134,6 +136,27 @@ class ShopControllerTest extends WebControllerTestSupport {
                                 .content(
                                         """
                             {"phone": "13800138000"}
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INVITED"));
+    }
+
+    @Test
+    void 邀请成员_携带权限码() throws Exception {
+        ShopMember member = new ShopMember();
+        member.setId(UUID.randomUUID());
+        member.setShopId(shopId);
+        member.setStatus("INVITED");
+        when(shopService.invite(eq(shopId), eq(userId), eq("13800138000"), eq(List.of("ORDER_FULFILL"))))
+                .thenReturn(member);
+
+        mockMvc.perform(
+                        post("/shops/{shopId}/invites", shopId)
+                                .header("Authorization", "Bearer " + userToken(userId))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                            {"phone": "13800138000", "permissions": ["ORDER_FULFILL"]}
                             """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("INVITED"));

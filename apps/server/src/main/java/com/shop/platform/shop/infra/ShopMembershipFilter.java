@@ -2,11 +2,13 @@ package com.shop.platform.shop.infra;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.ShopIdHolder;
+import com.shop.platform.common.ShopMemberContext;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.infra.web.UnauthorizedWriter;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
+import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,7 +26,8 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * 店铺上下文过滤链：只处理卖家侧接口（/seller/**）。从 X-Shop-Id 头取店铺，校验当前用户是该店 ACTIVE 成员，
- * 通过后置 ShopIdHolder；产物接口的 shopId 一律从这里取，不再信任请求体/参数里的 shopId（堵越权）。
+ * 通过后置 ShopIdHolder 并顺带把成员角色/权限装进 ShopMemberContext——卖家域判权零额外查询；
+ * 产物接口的 shopId 一律从这里取，不再信任请求体/参数里的 shopId（堵越权）。
  *
  * <p>顺序在 JwtAuthFilter（+10）之后，UserIdHolder 必然已设值。
  */
@@ -77,17 +80,20 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 3. 成员校验：当前用户必须是该店 ACTIVE 成员
-            if (!shopMemberMapper.isActiveMember(shopId, UserIdHolder.get())) {
+            // 3. 成员校验 + 权限装载：ACTIVE 成员行整行取出，角色/权限塞上下文供 SellerPermissionResolver 判权
+            ShopMember member = shopMemberMapper.findActiveMember(shopId, UserIdHolder.get());
+            if (member == null) {
                 UnauthorizedWriter.write(response, objectMapper, 403, null, "你不是该店铺成员");
                 return;
             }
 
             // 4. 落上下文，请求结束清理
             ShopIdHolder.set(shopId);
+            ShopMemberContext.set(new ShopMemberContext.Member(member.getRole(), member.getPermissions()));
             chain.doFilter(request, response);
         } finally {
             ShopIdHolder.clear();
+            ShopMemberContext.clear();
         }
     }
 }

@@ -135,6 +135,11 @@ public abstract class WebControllerTestSupport {
     @BeforeEach
     void setUpWebMvc() {
         UserIdHolder.clear();
+        // 判权默认桩：契约测试假定持全权的在岗员工（SUPER_ADMIN 通配）；
+        // 权限矩阵测试自行覆盖此桩（如 OPS 只给 CMS_MANAGE）。
+        // @MockitoBean 每用例自动 reset，这里的 stub 对每个测试重新生效。
+        org.mockito.Mockito.when(staffService.effectivePermissions(any()))
+                .thenReturn(java.util.Set.of(com.shop.platform.infra.security.authz.PermissionResolver.WILDCARD));
         // webAppContextSetup 不自动注册 Filter Bean，按生产 @Order 手动挂全链
         mockMvc = MockMvcBuilders.webAppContextSetup(context)
                 .addFilters(
@@ -156,13 +161,26 @@ public abstract class WebControllerTestSupport {
         return jwtProvider.createStaffAccessToken(staffId);
     }
 
-    /** seller 测试的成员过滤器放行桩：店铺存在可用 + 当前用户是 ACTIVE 成员。
+    /** seller 测试的成员过滤器放行桩：店铺存在可用 + 当前用户是 ACTIVE 店主（通配全通过）。
      *  剔除了数据源后 MP 的 lambda 缓存未初始化（mapper 未加载），过滤器里的 LambdaQueryWrapper 会炸，先手动注册表信息。 */
     protected void stubSellerMembership() {
         MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
+        // ShopMember 开了 autoResultMap（permissions jsonb），构建 ResultMap 需要各字段的 TypeHandler；
+        // 裸配置里缺 UUID 的注册，这里补上（生产侧由 infra.db.MyBatisConfig 注册）
+        assistant
+                .getConfiguration()
+                .getTypeHandlerRegistry()
+                .register(UUID.class, new com.shop.platform.infra.db.UuidTypeHandler());
         TableInfoHelper.initTableInfo(assistant, Shop.class);
         TableInfoHelper.initTableInfo(assistant, ShopMember.class);
         org.mockito.Mockito.when(shopMapper.selectCount(any())).thenReturn(1L);
-        org.mockito.Mockito.when(shopMemberMapper.isActiveMember(any(), any())).thenReturn(true);
+        org.mockito.Mockito.when(shopMemberMapper.findActiveMember(any(), any()))
+                .thenReturn(ShopMember.builder()
+                        .shopId(UUID.randomUUID())
+                        .userId(UUID.randomUUID())
+                        .role(ShopMember.ROLE_OWNER)
+                        .status(ShopMember.STATUS_ACTIVE)
+                        .permissions(java.util.List.of())
+                        .build());
     }
 }

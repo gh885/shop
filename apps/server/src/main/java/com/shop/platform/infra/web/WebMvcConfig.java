@@ -1,5 +1,6 @@
 package com.shop.platform.infra.web;
 
+import com.shop.platform.infra.security.authz.PermissionInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -11,13 +12,19 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final HttpRequestLoggingInterceptor httpRequestLoggingInterceptor;
 
-    public WebMvcConfig(HttpRequestLoggingInterceptor httpRequestLoggingInterceptor) {
+    private final PermissionInterceptor permissionInterceptor;
+
+    public WebMvcConfig(
+            HttpRequestLoggingInterceptor httpRequestLoggingInterceptor, PermissionInterceptor permissionInterceptor) {
         this.httpRequestLoggingInterceptor = httpRequestLoggingInterceptor;
+        this.permissionInterceptor = permissionInterceptor;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 判权注册在日志之后：拒绝响应同样被 http.request 事件记录
         registry.addInterceptor(httpRequestLoggingInterceptor);
+        registry.addInterceptor(permissionInterceptor);
     }
 
     @Override

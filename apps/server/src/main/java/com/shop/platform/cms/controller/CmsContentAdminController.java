@@ -4,6 +4,8 @@ import com.shop.platform.cms.dto.BannerRequest;
 import com.shop.platform.cms.dto.NavRequest;
 import com.shop.platform.cms.dto.RecommendTabRequest;
 import com.shop.platform.cms.service.ContentService;
+import com.shop.platform.common.Permissions;
+import com.shop.platform.infra.security.authz.RequirePermission;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -17,10 +19,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 管理端 CMS 内容维护（鉴权由 StaffAuthFilter 统一处理：/admin/** 仅放行 kind=staff token） */
+/** 管理端 CMS 内容维护（认证由 StaffAuthFilter 统一处理，授权要求 CMS_MANAGE，岗位 OPS） */
 @RestController
 @RequestMapping("/admin/cms")
 @RequiredArgsConstructor
+@RequirePermission(Permissions.CMS_MANAGE)
 public class CmsContentAdminController {
 
     private final ContentService contentService;

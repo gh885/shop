@@ -7,6 +7,8 @@ import com.shop.platform.admin.service.ShopReviewItem;
 import com.shop.platform.admin.service.ShopReviewService;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Permissions;
+import com.shop.platform.infra.security.authz.RequirePermission;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/admin/reviews")
 @Validated
 @RequiredArgsConstructor
+@RequirePermission(Permissions.SHOP_REVIEW)
 public class ReviewController {
 
     private final ShopReviewService shopReviewService;
