@@ -5,6 +5,8 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.shop.platform.infra.security.DeviceInfo;
+import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import jakarta.servlet.http.Cookie;
@@ -146,7 +148,7 @@ class AuthControllerTest extends WebControllerTestSupport {
 
     @Test
     void 密码登录_成功_下发刷新Cookie() throws Exception {
-        when(authService.loginByPassword(anyString(), anyString(), anyString(), anyString()))
+        when(authService.loginByPassword(anyString(), anyString(), anyString(), anyString(), nullable(String.class)))
                 .thenReturn(new TokenPair("access-token", "rt:test-value"));
 
         mockMvc.perform(
@@ -166,7 +168,8 @@ class AuthControllerTest extends WebControllerTestSupport {
 
     @Test
     void 刷新_Cookie携带_成功() throws Exception {
-        when(authService.refresh(eq("rt:cookie"), anyString())).thenReturn(new TokenPair("new-at", "rt:new"));
+        when(authService.refresh(eq("rt:cookie"), nullable(String.class), anyString(), nullable(String.class)))
+                .thenReturn(new TokenPair("new-at", "rt:new"));
 
         mockMvc.perform(post("/auth/refresh")
                         .cookie(new Cookie("refresh_token", "rt:cookie"))
@@ -183,7 +186,8 @@ class AuthControllerTest extends WebControllerTestSupport {
 
     @Test
     void 刷新_请求体兜底() throws Exception {
-        when(authService.refresh(eq("rt:body"), anyString())).thenReturn(new TokenPair("new-at", "rt:new"));
+        when(authService.refresh(eq("rt:body"), nullable(String.class), anyString(), nullable(String.class)))
+                .thenReturn(new TokenPair("new-at", "rt:new"));
 
         mockMvc.perform(
                         post("/auth/refresh")
@@ -244,7 +248,7 @@ class AuthControllerTest extends WebControllerTestSupport {
 
     @Test
     void 密码登录_成功_刷新令牌只进Cookie() throws Exception {
-        when(authService.loginByPassword(anyString(), anyString(), anyString(), anyString()))
+        when(authService.loginByPassword(anyString(), anyString(), anyString(), anyString(), nullable(String.class)))
                 .thenReturn(new TokenPair("at1", "rt1"));
 
         mockMvc.perform(
@@ -306,5 +310,91 @@ class AuthControllerTest extends WebControllerTestSupport {
 
         // MockMvc 默认 RemoteAddr 为 127.0.0.1
         verify(smsCodeService).sendCode(eq("13800138000"), eq("127.0.0.1"));
+    }
+
+    // ========== 个人资料 / 设备管理 ==========
+
+    @Test
+    void 更新个人资料_成功() throws Exception {
+        String token = jwtProvider.createAccessToken(USER_ID);
+        when(authService.updateProfile(eq(USER_ID), any())).thenReturn(meUser());
+
+        mockMvc.perform(
+                        put("/auth/profile")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                    {"nickname": "阿店"}
+                                    """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nickname").value("阿店"));
+    }
+
+    @Test
+    void 更新个人资料_空昵称_422() throws Exception {
+        String token = jwtProvider.createAccessToken(USER_ID);
+        mockMvc.perform(
+                        put("/auth/profile")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                    {"nickname": ""}
+                                    """))
+                .andExpect(status().is(422));
+    }
+
+    @Test
+    void 设备列表_成功_标记当前设备() throws Exception {
+        String token = jwtProvider.createAccessToken(USER_ID);
+        when(authService.listDevices(eq(USER_ID), eq("dev-current")))
+                .thenReturn(java.util.List.of(
+                        new RefreshTokenStore.DeviceEntry(
+                                "dev-current",
+                                new DeviceInfo("Windows Chrome", "127.0.0.1", java.time.OffsetDateTime.now())),
+                        new RefreshTokenStore.DeviceEntry(
+                                "dev-old",
+                                new DeviceInfo("iPhone Safari", "203.0.113.1", java.time.OffsetDateTime.now()))));
+
+        mockMvc.perform(get("/auth/devices")
+                        .header("Authorization", "Bearer " + token)
+                        .param("currentDeviceId", "dev-current"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].deviceId").value("dev-current"))
+                .andExpect(jsonPath("$[0].isCurrent").value(true))
+                .andExpect(jsonPath("$[1].isCurrent").value(false));
+    }
+
+    @Test
+    void 登出单个设备_成功() throws Exception {
+        String token = jwtProvider.createAccessToken(USER_ID);
+        mockMvc.perform(delete("/auth/devices/dev-old").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        verify(authService).deleteDevice(eq(USER_ID), eq("dev-old"));
+    }
+
+    @Test
+    void 登出所有设备_成功() throws Exception {
+        String token = jwtProvider.createAccessToken(USER_ID);
+        mockMvc.perform(post("/auth/logout-all").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        verify(authService).logoutAll(eq(USER_ID));
+    }
+
+    @Test
+    void 设备接口_无令牌_401() throws Exception {
+        mockMvc.perform(get("/auth/devices")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/auth/profile").header("Authorization", "x")).andExpect(status().isUnauthorized());
+    }
+
+    /** mock MeResponse 用的便捷构造（nickname 可被 updateProfile 返回） */
+    private com.shop.platform.auth.mapper.User meUser() {
+        com.shop.platform.auth.mapper.User u = new com.shop.platform.auth.mapper.User();
+        u.setId(USER_ID);
+        u.setPhone("13800138000");
+        u.setNickname("阿店");
+        return u;
     }
 }

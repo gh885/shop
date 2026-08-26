@@ -131,7 +131,7 @@ class AuthServiceTest {
             when(jwtProvider.createAccessToken(USER_ID)).thenReturn("at");
             when(jwtProvider.generateRefreshToken()).thenReturn("rt:xxx");
 
-            var result = authService.loginByPassword("13800138000", "correct", "dev1", "127.0.0.1");
+            var result = authService.loginByPassword("13800138000", "correct", "dev1", "127.0.0.1", "UA");
 
             assertEquals("at", result.accessToken());
             assertEquals("rt:xxx", result.refreshToken());
@@ -151,7 +151,7 @@ class AuthServiceTest {
 
             assertThrows(
                     BusinessException.class,
-                    () -> authService.loginByPassword("13800138000", "wrong", "dev1", "127.0.0.1"));
+                    () -> authService.loginByPassword("13800138000", "wrong", "dev1", "127.0.0.1", "UA"));
         }
 
         @Test
@@ -162,7 +162,7 @@ class AuthServiceTest {
 
             assertThrows(
                     BusinessException.class,
-                    () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1"));
+                    () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1", "UA"));
         }
 
         @Test
@@ -177,7 +177,7 @@ class AuthServiceTest {
 
             var ex = assertThrows(
                     BusinessException.class,
-                    () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1"));
+                    () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1", "UA"));
             assertEquals(403, ex.getHttpStatus());
         }
     }
@@ -246,7 +246,7 @@ class AuthServiceTest {
             when(jwtProvider.createAccessToken(USER_ID)).thenReturn("new-at");
             when(jwtProvider.generateRefreshToken()).thenReturn("rt:new");
 
-            var result = authService.refresh(token, "dev1");
+            var result = authService.refresh(token, "dev1", "127.0.0.1", "UA");
             assertEquals("new-at", result.accessToken());
             assertEquals("rt:new", result.refreshToken());
         }
@@ -259,7 +259,7 @@ class AuthServiceTest {
             when(refreshTokenStore.checkReplay(token))
                     .thenReturn(new RefreshTokenStore.ReplayCheck(false, false, null));
 
-            assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
+            assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1", "127.0.0.1", "UA"));
         }
 
         @Test
@@ -270,7 +270,7 @@ class AuthServiceTest {
             when(refreshTokenStore.checkReplay(token))
                     .thenReturn(new RefreshTokenStore.ReplayCheck(true, false, USER_ID.toString()));
 
-            var ex = assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1"));
+            var ex = assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1", "127.0.0.1", "UA"));
             assertEquals(410, ex.getHttpStatus());
         }
     }

@@ -1,6 +1,9 @@
 package com.shop.platform.infra.security;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +32,8 @@ public class RefreshTokenStore {
     private static final String KEY_USER_DEVICE = "refresh:user:"; // refresh:user:<subjectId>:<deviceId> → hmac
     private static final String KEY_DEVICES = "refresh:devices:"; // refresh:devices:<subjectId> → Set<deviceId>
     private static final String KEY_CONSUMED = "refresh:consumed:"; // refresh:consumed:<hmac> → subjectId:ts
+    private static final String KEY_DEVICE_META =
+            "refresh:meta:"; // refresh:meta:<subjectId>:<deviceId> → hash{name,ip,lastLoginAt}
     private static final long REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000L; // 7 天
 
     /**
@@ -43,8 +48,13 @@ public class RefreshTokenStore {
     /** 重放裁决结果：consumed = 见过消费痕迹；withinGrace = 是否仍在并发宽限期内；subjectId = 属主 */
     public record ReplayCheck(boolean consumed, boolean withinGrace, String subjectId) {}
 
-    /** 签发：存 HMAC 摘要（不落明文）+ 设备索引 + 设备集合（供全量吊销枚举） */
+    /** 签发：无设备元数据的简版（admin 端暂不采集 UA/IP）；委托完整版并生成默认 DeviceInfo */
     public void issue(String subjectId, String deviceId, String rawToken) {
+        issue(subjectId, deviceId, rawToken, new DeviceInfo("管理端", null, OffsetDateTime.now()));
+    }
+
+    /** 签发：存 HMAC 摘要（不落明文）+ 设备索引 + 设备集合（供全量吊销枚举）+ 设备元数据 */
+    public void issue(String subjectId, String deviceId, String rawToken, DeviceInfo deviceInfo) {
         String hash = secretHasher.hash(rawToken);
         redis.opsForValue().set(KEY_REFRESH + hash, subjectId, Duration.ofMillis(REFRESH_TTL_MS));
         redis.opsForValue().set(KEY_USER_DEVICE + subjectId + ":" + deviceId, hash, Duration.ofMillis(REFRESH_TTL_MS));
@@ -52,6 +62,13 @@ public class RefreshTokenStore {
         // 集合里滞留的陈旧 deviceId 在吊销/登出时按空值跳过即可
         redis.opsForSet().add(KEY_DEVICES + subjectId, deviceId);
         redis.expire(KEY_DEVICES + subjectId, Duration.ofMillis(REFRESH_TTL_MS));
+        // 设备元数据：设备名（UA 解析）、登录 IP、最近活跃时间，随签发写入
+        String metaKey = KEY_DEVICE_META + subjectId + ":" + deviceId;
+        var hashOps = redis.opsForHash();
+        hashOps.put(metaKey, "name", deviceInfo.deviceName());
+        hashOps.put(metaKey, "ip", deviceInfo.ip());
+        hashOps.put(metaKey, "lastLoginAt", deviceInfo.lastLoginAt().toString());
+        redis.expire(metaKey, Duration.ofMillis(REFRESH_TTL_MS));
     }
 
     /** 消费旧 token（getAndDelete = 一次性）；返回 null 表示无效或已被消费 */
@@ -92,6 +109,7 @@ public class RefreshTokenStore {
             redis.delete(KEY_REFRESH + storedHash);
         }
         redis.opsForSet().remove(KEY_DEVICES + subjectId, deviceId);
+        redis.delete(KEY_DEVICE_META + subjectId + ":" + deviceId);
     }
 
     /**
@@ -110,4 +128,40 @@ public class RefreshTokenStore {
         }
         redis.delete(devicesKey);
     }
+
+    /**
+     * 枚举当前有效（仍在会话）的设备列表，含元数据与最后活跃时间，供安全设置页展示。
+     * 仅返回仍有有效 refresh token 索引的设备；stale deviceId（token 已过期但集合残留）被跳过。
+     *
+     * @param currentDeviceId 前端当前设备（用于标记「本机」，可为 null）
+     */
+    public List<DeviceEntry> listDevices(String subjectId, String currentDeviceId) {
+        Set<String> devices = redis.opsForSet().members(KEY_DEVICES + subjectId);
+        if (devices == null || devices.isEmpty()) {
+            return List.of();
+        }
+        List<DeviceEntry> result = new ArrayList<>();
+        for (String deviceId : devices) {
+            // 仅保留仍有有效 revoke 索引的设备（UUID 随机生成，服务端无脚本筛选；按 deviceId 精确匹配）
+            if (redis.opsForValue().get(KEY_USER_DEVICE + subjectId + ":" + deviceId) == null) {
+                continue;
+            }
+            result.add(new DeviceEntry(deviceId, readDeviceInfo(subjectId, deviceId)));
+        }
+        return result;
+    }
+
+    /** 读取某设备的元数据：name/ip/lastLoginAt；缺失（无 meta）时回退当前设备名"未知设备" */
+    private DeviceInfo readDeviceInfo(String subjectId, String deviceId) {
+        var hashOps = redis.opsForHash();
+        String name = (String) hashOps.get(KEY_DEVICE_META + subjectId + ":" + deviceId, "name");
+        String ip = (String) hashOps.get(KEY_DEVICE_META + subjectId + ":" + deviceId, "ip");
+        String ts = (String) hashOps.get(KEY_DEVICE_META + subjectId + ":" + deviceId, "lastLoginAt");
+        if (name == null) name = "未知设备";
+        OffsetDateTime last = ts != null ? OffsetDateTime.parse(ts) : null;
+        return new DeviceInfo(name, ip, last);
+    }
+
+    /** 设备列表条目：deviceId + 解析后的元数据 */
+    public record DeviceEntry(String deviceId, DeviceInfo info) {}
 }

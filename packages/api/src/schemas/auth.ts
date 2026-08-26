@@ -70,6 +70,22 @@ export const MeResponseSchema = z.object({
 })
 export type MeResponse = z.infer<typeof MeResponseSchema>
 
+/** 更新个人资料请求（本期仅昵称） */
+export const UpdateProfileRequestSchema = z.object({
+    nickname: z.string().min(1).max(30),
+})
+export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>
+
+/** 设备列表项（对应后端 DeviceEntryResponse） */
+export const DeviceEntrySchema = z.object({
+    deviceId: z.string(),
+    deviceName: z.string(),
+    ip: z.string().nullable(),
+    lastLoginAt: z.string().nullable(),
+    isCurrent: z.boolean(),
+})
+export type DeviceEntry = z.infer<typeof DeviceEntrySchema>
+
 /** 图形验证码：image 为 base64 data URI，captchaId 校验时回传 */
 export const CaptchaResponseSchema = z.object({
     captchaId: z.string(),

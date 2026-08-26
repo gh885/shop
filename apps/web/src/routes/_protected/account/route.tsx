@@ -1,26 +1,45 @@
 import { useEffect } from "react"
 import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
-import { Heart, MapPin, ReceiptText } from "lucide-react"
+import { Heart, MapPin, ReceiptText, Shield, UserRound } from "lucide-react"
 
 import NavMenu, { type NavMenuItem } from "#/widgets/NavMenu"
 import { AccountHeader } from "#/widgets/account"
 
-/** 个人中心侧边栏菜单（收货地址、我的收藏、我的订单等，后续扩展） */
-const MENU_ITEMS: NavMenuItem[] = [
+/**
+ * 个人中心侧边栏菜单（数据驱动）。
+ * 每项声明 key→label→icon→to，activeKey 由 route path 前缀匹配、handleSelect 由 to 派生，
+ * 新增菜单只改这一个数组，不再散落三处 if-else。
+ */
+const MENU_ITEMS: (NavMenuItem & { to: string })[] = [
     {
         key: "orders",
         label: "我的订单",
         icon: <ReceiptText className="size-4" />,
+        to: "/account/orders",
     },
     {
         key: "address",
         label: "收货地址",
         icon: <MapPin className="size-4" />,
+        to: "/account/address",
     },
     {
         key: "favorites",
         label: "我的收藏",
         icon: <Heart className="size-4" />,
+        to: "/account/favorites",
+    },
+    {
+        key: "profile",
+        label: "个人资料",
+        icon: <UserRound className="size-4" />,
+        to: "/account/profile",
+    },
+    {
+        key: "security",
+        label: "安全设置",
+        icon: <Shield className="size-4" />,
+        to: "/account/security",
     },
 ]
 
@@ -43,19 +62,12 @@ function AccountLayout() {
         }
     }, [location.pathname, navigate])
 
-    // 当前高亮项由路由推导（后续增加子页时在此扩展）
-    const activeKey = location.pathname.startsWith("/account/orders")
-        ? "orders"
-        : location.pathname.startsWith("/account/address")
-          ? "address"
-          : location.pathname.startsWith("/account/favorites")
-            ? "favorites"
-            : ""
+    // 当前高亮项由 route path 前缀匹配（越长越要精确，订单/地址/收藏路径互不前缀包含）
+    const activeKey = MENU_ITEMS.find((m) => location.pathname.startsWith(m.to))?.key ?? ""
 
     function handleSelect(key: string) {
-        if (key === "orders") void navigate({ to: "/account/orders" })
-        if (key === "address") void navigate({ to: "/account/address" })
-        if (key === "favorites") void navigate({ to: "/account/favorites" })
+        const item = MENU_ITEMS.find((m) => m.key === key)
+        if (item) void navigate({ to: item.to })
     }
 
     return (

@@ -4,13 +4,16 @@ import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
+import com.shop.platform.infra.security.DeviceInfo;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.util.RateLimiter;
+import com.shop.platform.infra.util.UserAgentParser;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -70,7 +73,7 @@ public class AuthService {
      * 不加事务：并发首登时 insert 撞唯一索引后 PG 会中止当前事务，catch 后无法回读；
      * 且本方法只有单行 insert 与 lastLoginAt 更新，无多表一致性诉求。
      */
-    public TokenPair loginBySms(String phone, String code, String deviceId, String clientIp) {
+    public TokenPair loginBySms(String phone, String code, String deviceId, String clientIp, String userAgent) {
         // 1. 校验短信验证码
         smsCodeService.verifyCode(phone, code);
 
@@ -90,12 +93,13 @@ public class AuthService {
         ensureUserActive(user);
 
         // 4. 签发 Token
-        return issueTokens(user, deviceId);
+        return issueTokens(user, deviceId, clientIp, userAgent);
     }
 
     // ========== 密码登录 ==========
 
-    public TokenPair loginByPassword(String phone, String password, String deviceId, String clientIp) {
+    public TokenPair loginByPassword(
+            String phone, String password, String deviceId, String clientIp, String userAgent) {
 
         // 1. 限流检查（被限流时走 dummy hash 防时序探测）
         rejectIfRateLimited(phone, password, clientIp);
@@ -110,7 +114,7 @@ public class AuthService {
         clearPasswordRateLimit(phone, clientIp);
 
         // 5. 签发 Token
-        return issueTokens(user, deviceId);
+        return issueTokens(user, deviceId, clientIp, userAgent);
     }
 
     // ========== 设置/修改密码 ==========
@@ -172,7 +176,7 @@ public class AuthService {
     // ========== Token 刷新（Rotation） ==========
 
     /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测）。Redis 机制见 RefreshTokenStore */
-    public TokenPair refresh(String refreshToken, String deviceId) {
+    public TokenPair refresh(String refreshToken, String deviceId, String clientIp, String userAgent) {
         // 1. 消费旧 Refresh Token（getAndDelete = 一次性；哈希化收敛在存储层内部）
         String storedUserId = refreshTokenStore.consume(refreshToken);
 
@@ -203,7 +207,7 @@ public class AuthService {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
         ensureUserActive(user);
-        return issueTokens(user, deviceId);
+        return issueTokens(user, deviceId, clientIp, userAgent);
     }
 
     // ========== 当前用户 ==========
@@ -213,6 +217,37 @@ public class AuthService {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
         return user;
+    }
+
+    /** 更新个人资料（本期仅昵称）。头像上传未做，avatarKey 不在此改 */
+    public User updateProfile(UUID userId, String nickname) {
+        User user = userMapper.selectById(userId);
+        if (user == null) throw BusinessException.notFound("用户不存在");
+        if (nickname != null) {
+            String trimmed = nickname.trim();
+            if (trimmed.isEmpty()) throw BusinessException.badRequest("昵称不能为空");
+            if (trimmed.length() > 30) throw BusinessException.badRequest("昵称不能超过 30 字");
+            user.setNickname(trimmed);
+        }
+        userMapper.updateById(user);
+        return user;
+    }
+
+    // ========== 设备管理 ==========
+
+    /** 枚举当前有效的登录设备（含元数据），供安全设置页展示 */
+    public List<RefreshTokenStore.DeviceEntry> listDevices(UUID userId, String currentDeviceId) {
+        return refreshTokenStore.listDevices(userId.toString(), currentDeviceId);
+    }
+
+    /** 登出单个设备 */
+    public void deleteDevice(UUID userId, String deviceId) {
+        refreshTokenStore.revokeDevice(userId.toString(), deviceId);
+    }
+
+    /** 登出所有设备（清空当前用户全端会话） */
+    public void logoutAll(UUID userId) {
+        refreshTokenStore.revokeAll(userId.toString());
     }
 
     // ========== 登出 ==========
@@ -304,12 +339,13 @@ public class AuthService {
 
     // ========== Token 签发 ==========
 
-    private TokenPair issueTokens(User user, String deviceId) {
+    private TokenPair issueTokens(User user, String deviceId, String clientIp, String userAgent) {
         String accessToken = jwtProvider.createAccessToken(user.getId());
         String refreshToken = jwtProvider.generateRefreshToken();
 
-        // MAINT-01/02: 只存 HMAC 摘要不落明文，摘要算法与存储结构收敛在 RefreshTokenStore/SecretHasher
-        refreshTokenStore.issue(user.getId().toString(), deviceId, refreshToken);
+        // MAINT-01/02: 只存 HMAC 摘要不落明文；随签发记录设备元数据（设备名/IP/时间），供设备列表展示
+        DeviceInfo deviceInfo = new DeviceInfo(UserAgentParser.parse(userAgent), clientIp, OffsetDateTime.now());
+        refreshTokenStore.issue(user.getId().toString(), deviceId, refreshToken, deviceInfo);
 
         // 更新最后登录时间
         user.setLastLoginAt(OffsetDateTime.now());

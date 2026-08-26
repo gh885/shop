@@ -4,8 +4,10 @@ import {
     MeResponseSchema,
     TokenResultSchema,
     CaptchaResponseSchema,
+    DeviceEntrySchema,
     type MeResponse,
     type CaptchaResponse,
+    type DeviceEntry,
     type PasswordLoginRequest,
     type SmsCodeRequest,
     type SmsLoginRequest,
@@ -14,6 +16,7 @@ import {
     type ResetPasswordRequest,
     type RefreshRequest,
     type LogoutRequest,
+    type UpdateProfileRequest,
     type TokenResult,
 } from "./schemas/auth"
 
@@ -64,6 +67,31 @@ export function createAuthApi(api: KyInstance) {
         /** 当前登录用户信息 */
         async me(): Promise<MeResponse> {
             return MeResponseSchema.parse(await api.get("auth/me").json())
+        },
+
+        /** 更新个人资料（本期仅昵称） */
+        async updateProfile(data: UpdateProfileRequest): Promise<MeResponse> {
+            return MeResponseSchema.parse(await api.put("auth/profile", { json: data }).json())
+        },
+
+        /** 设备列表（currentDeviceId 标记当前设备） */
+        async listDevices(currentDeviceId?: string): Promise<DeviceEntry[]> {
+            const res = await api
+                .get("auth/devices", {
+                    searchParams: currentDeviceId ? { currentDeviceId } : undefined,
+                })
+                .json()
+            return DeviceEntrySchema.array().parse(res)
+        },
+
+        /** 登出单个设备 */
+        async deleteDevice(deviceId: string): Promise<void> {
+            await api.delete(`auth/devices/${deviceId}`)
+        },
+
+        /** 登出所有设备 */
+        async logoutAll(): Promise<void> {
+            await api.post("auth/logout-all")
         },
 
         /** 登出 */

@@ -8,6 +8,7 @@ import com.shop.platform.auth.dto.ResetPasswordRequest;
 import com.shop.platform.auth.dto.SetPasswordRequest;
 import com.shop.platform.auth.dto.SmsCodeRequest;
 import com.shop.platform.auth.dto.SmsLoginRequest;
+import com.shop.platform.auth.dto.UpdateProfileRequest;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.service.AuthService;
 import com.shop.platform.auth.service.SmsCodeService;
@@ -22,15 +23,21 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -67,7 +74,8 @@ public class AuthController {
             @Valid @RequestBody SmsLoginRequest req,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
-        TokenPair result = authService.loginBySms(req.phone(), req.code(), req.deviceId(), clientIp.of(servletRequest));
+        TokenPair result = authService.loginBySms(
+                req.phone(), req.code(), req.deviceId(), clientIp.of(servletRequest), userAgent(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -78,8 +86,8 @@ public class AuthController {
             @Valid @RequestBody PasswordLoginRequest req,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
-        TokenPair result =
-                authService.loginByPassword(req.phone(), req.password(), req.deviceId(), clientIp.of(servletRequest));
+        TokenPair result = authService.loginByPassword(
+                req.phone(), req.password(), req.deviceId(), clientIp.of(servletRequest), userAgent(servletRequest));
         setRefreshCookie(servletResponse, result.refreshToken());
         return result;
     }
@@ -115,7 +123,7 @@ public class AuthController {
         }
         String deviceId = req != null && req.deviceId() != null ? req.deviceId() : "default";
 
-        TokenPair result = authService.refresh(refreshToken, deviceId);
+        TokenPair result = authService.refresh(refreshToken, deviceId, clientIp.of(request), userAgent(request));
         setRefreshCookie(response, result.refreshToken());
         return result;
     }
@@ -135,6 +143,49 @@ public class AuthController {
         UUID userId = UserIdHolder.get();
         authService.logout(userId, req.deviceId());
         clearRefreshCookie(response);
+    }
+
+    /** 更新个人资料（本期仅昵称；头像上传未做，不在此改） */
+    @PutMapping("/profile")
+    public MeResponse updateProfile(@Valid @RequestBody UpdateProfileRequest req) {
+        UUID userId = UserIdHolder.get();
+        User user = authService.updateProfile(userId, req.nickname());
+        return new MeResponse(user.getId(), PhoneNumber.mask(user.getPhone()), user.getNickname(), user.getAvatarKey());
+    }
+
+    /** 登出所有设备（清空全端会话，当前请求也失效，需重新登录） */
+    @PostMapping("/logout-all")
+    public void logoutAll() {
+        UUID userId = UserIdHolder.get();
+        authService.logoutAll(userId);
+    }
+
+    /** 设备列表：展示当前有效会话（设备名/IP/时间），当前设备标记 isCurrent */
+    @GetMapping("/devices")
+    public List<DeviceEntryResponse> devices(@RequestParam(required = false) String currentDeviceId) {
+        UUID userId = UserIdHolder.get();
+        return authService.listDevices(userId, currentDeviceId).stream()
+                .map(entry -> new DeviceEntryResponse(
+                        entry.deviceId(),
+                        entry.info().deviceName(),
+                        entry.info().ip(),
+                        entry.info().lastLoginAt(),
+                        entry.deviceId().equals(currentDeviceId)))
+                .toList();
+    }
+
+    /** 登出单台设备 */
+    @DeleteMapping("/devices/{deviceId}")
+    public void deleteDevice(@PathVariable String deviceId) {
+        UUID userId = UserIdHolder.get();
+        authService.deleteDevice(userId, deviceId);
+    }
+
+    // ---- 请求工具 ----
+
+    /** User-Agent 头（可能为 null，用于设备名解析） */
+    private String userAgent(HttpServletRequest request) {
+        return request.getHeader("User-Agent");
     }
 
     // ---- Cookie 处理 ----
@@ -179,4 +230,8 @@ public class AuthController {
 
     /** 图形验证码出参：前端渲染图（base64 data URI），校验时回传 id + 用户输入 */
     public record CaptchaResponse(String captchaId, String image) {}
+
+    /** 设备列表项：deviceId + 元数据（设备名/IP/最近活跃）+ 是否当前设备 */
+    public record DeviceEntryResponse(
+            String deviceId, String deviceName, String ip, OffsetDateTime lastLoginAt, boolean isCurrent) {}
 }

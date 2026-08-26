@@ -20,6 +20,8 @@ import { Route as ProtectedOrdersOrderIdRouteImport } from './routes/_protected/
 import { Route as ProtectedAccountAddressIndexRouteImport } from './routes/_protected/account/address/index'
 import { Route as ProtectedAccountFavoritesIndexRouteImport } from './routes/_protected/account/favorites/index'
 import { Route as ProtectedAccountOrdersIndexRouteImport } from './routes/_protected/account/orders/index'
+import { Route as ProtectedAccountProfileIndexRouteImport } from './routes/_protected/account/profile/index'
+import { Route as ProtectedAccountSecurityIndexRouteImport } from './routes/_protected/account/security/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -78,6 +80,18 @@ const ProtectedAccountOrdersIndexRoute =
     path: '/orders/',
     getParentRoute: () => ProtectedAccountRouteRoute,
   } as any)
+const ProtectedAccountProfileIndexRoute =
+  ProtectedAccountProfileIndexRouteImport.update({
+    id: '/profile/',
+    path: '/profile/',
+    getParentRoute: () => ProtectedAccountRouteRoute,
+  } as any)
+const ProtectedAccountSecurityIndexRoute =
+  ProtectedAccountSecurityIndexRouteImport.update({
+    id: '/security/',
+    path: '/security/',
+    getParentRoute: () => ProtectedAccountRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,6 +104,8 @@ export interface FileRoutesByFullPath {
   '/account/address/': typeof ProtectedAccountAddressIndexRoute
   '/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
   '/account/orders/': typeof ProtectedAccountOrdersIndexRoute
+  '/account/profile/': typeof ProtectedAccountProfileIndexRoute
+  '/account/security/': typeof ProtectedAccountSecurityIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +118,8 @@ export interface FileRoutesByTo {
   '/account/address': typeof ProtectedAccountAddressIndexRoute
   '/account/favorites': typeof ProtectedAccountFavoritesIndexRoute
   '/account/orders': typeof ProtectedAccountOrdersIndexRoute
+  '/account/profile': typeof ProtectedAccountProfileIndexRoute
+  '/account/security': typeof ProtectedAccountSecurityIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +134,8 @@ export interface FileRoutesById {
   '/_protected/account/address/': typeof ProtectedAccountAddressIndexRoute
   '/_protected/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
   '/_protected/account/orders/': typeof ProtectedAccountOrdersIndexRoute
+  '/_protected/account/profile/': typeof ProtectedAccountProfileIndexRoute
+  '/_protected/account/security/': typeof ProtectedAccountSecurityIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,6 +150,8 @@ export interface FileRouteTypes {
     | '/account/address/'
     | '/account/favorites/'
     | '/account/orders/'
+    | '/account/profile/'
+    | '/account/security/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -142,6 +164,8 @@ export interface FileRouteTypes {
     | '/account/address'
     | '/account/favorites'
     | '/account/orders'
+    | '/account/profile'
+    | '/account/security'
   id:
     | '__root__'
     | '/'
@@ -155,6 +179,8 @@ export interface FileRouteTypes {
     | '/_protected/account/address/'
     | '/_protected/account/favorites/'
     | '/_protected/account/orders/'
+    | '/_protected/account/profile/'
+    | '/_protected/account/security/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -244,6 +270,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAccountOrdersIndexRouteImport
       parentRoute: typeof ProtectedAccountRouteRoute
     }
+    '/_protected/account/profile/': {
+      id: '/_protected/account/profile/'
+      path: '/profile'
+      fullPath: '/account/profile/'
+      preLoaderRoute: typeof ProtectedAccountProfileIndexRouteImport
+      parentRoute: typeof ProtectedAccountRouteRoute
+    }
+    '/_protected/account/security/': {
+      id: '/_protected/account/security/'
+      path: '/security'
+      fullPath: '/account/security/'
+      preLoaderRoute: typeof ProtectedAccountSecurityIndexRouteImport
+      parentRoute: typeof ProtectedAccountRouteRoute
+    }
   }
 }
 
@@ -251,12 +291,16 @@ interface ProtectedAccountRouteRouteChildren {
   ProtectedAccountAddressIndexRoute: typeof ProtectedAccountAddressIndexRoute
   ProtectedAccountFavoritesIndexRoute: typeof ProtectedAccountFavoritesIndexRoute
   ProtectedAccountOrdersIndexRoute: typeof ProtectedAccountOrdersIndexRoute
+  ProtectedAccountProfileIndexRoute: typeof ProtectedAccountProfileIndexRoute
+  ProtectedAccountSecurityIndexRoute: typeof ProtectedAccountSecurityIndexRoute
 }
 
 const ProtectedAccountRouteRouteChildren: ProtectedAccountRouteRouteChildren = {
   ProtectedAccountAddressIndexRoute: ProtectedAccountAddressIndexRoute,
   ProtectedAccountFavoritesIndexRoute: ProtectedAccountFavoritesIndexRoute,
   ProtectedAccountOrdersIndexRoute: ProtectedAccountOrdersIndexRoute,
+  ProtectedAccountProfileIndexRoute: ProtectedAccountProfileIndexRoute,
+  ProtectedAccountSecurityIndexRoute: ProtectedAccountSecurityIndexRoute,
 }
 
 const ProtectedAccountRouteRouteWithChildren =
