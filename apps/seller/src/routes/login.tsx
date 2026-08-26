@@ -11,7 +11,7 @@ import {
     SmsFormSchema,
     toApiError,
 } from "@shop/api"
-import { Button, Input, cn, useAppForm, useCountdown } from "@shop/ui-web"
+import { Button, Input, cn, useAppForm, useCaptcha, useCountdown } from "@shop/ui-web"
 
 import { authApi, authState, bootstrapAuth, getDeviceId, tokenStore } from "#/lib/api"
 
@@ -26,7 +26,10 @@ function LoginPage() {
     const [tab, setTab] = useState<LoginTab>("sms")
     const [serverError, setServerError] = useState<string | null>(null)
     const [codeInvalid, setCodeInvalid] = useState(false)
+    const [captchaInvalid, setCaptchaInvalid] = useState(false)
     const [countdown, setCountdown] = useCountdown()
+    // 图形验证码：发码前先过人机验证（对应后端 infra/captcha）
+    const captcha = useCaptcha(authApi.getCaptcha)
 
     // 已登录（refresh cookie 有效）直接进入工作台
     useEffect(() => {
@@ -38,8 +41,15 @@ function LoginPage() {
         })()
     }, [navigate])
 
+    // 页面挂载默认短信 Tab：加载图形验证码（发码前先过人机验证）
+    useEffect(() => {
+        void captcha.refresh()
+        // captcha 实例稳定（useCallback 包裹的 getCaptcha），仅在挂载时触发一次
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     const form = useAppForm({
-        defaultValues: { phone: "", code: "", password: "" },
+        defaultValues: { phone: "", code: "", password: "", captchaCode: "" },
         validators: { onSubmit: tab === "sms" ? SmsFormSchema : PasswordFormSchema },
         onSubmit: async ({ value }) => {
             setServerError(null)
@@ -72,13 +82,33 @@ function LoginPage() {
     })
 
     const sendCode = useMutation({
-        mutationFn: (phone: string) => authApi.sendSmsCode({ phone }),
+        mutationFn: (phone: string) =>
+            authApi.sendSmsCode({
+                phone,
+                captchaId: captcha.captchaId,
+                captchaCode: form.getFieldValue("captchaCode"),
+            }),
         onSuccess: () => {
             setServerError(null)
             setCountdown(60)
+            setCaptchaInvalid(false)
+            // 验证码 token 一次性：发码成功换新图
+            captcha.reset()
+            form.setFieldValue("captchaCode", "")
         },
         onError: (e) => {
-            setServerError(toApiError(e).detail)
+            const err = toApiError(e)
+            setServerError(err.detail)
+            const isCaptchaErr =
+                err.code === ErrorCodes.CAPTCHA_REQUIRED ||
+                err.code === ErrorCodes.CAPTCHA_EXPIRED ||
+                err.code === ErrorCodes.CAPTCHA_INVALID
+            setCaptchaInvalid(isCaptchaErr)
+            // 图形验证码类失败：刷新图并清空输入
+            if (isCaptchaErr) {
+                captcha.reset()
+                form.setFieldValue("captchaCode", "")
+            }
         },
     })
 
@@ -86,6 +116,8 @@ function LoginPage() {
         setTab(next)
         setServerError(null)
         setCodeInvalid(false)
+        // 切到短信 Tab 时确保验证码图存在（default sms tab 挂载即加载）
+        if (next === "sms" && !captcha.image) void captcha.refresh()
     }
 
     return (
@@ -146,6 +178,56 @@ function LoginPage() {
                     </form.AppField>
 
                     {tab === "sms" ? (
+                        /* 图形验证码：发码前先人机验证（点击图片刷新） */
+                        <form.AppField name="captchaCode">
+                            {(field) => (
+                                <div
+                                    className={cn(
+                                        "flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring",
+                                        captchaInvalid &&
+                                            "animate-shake ring-2 ring-destructive/40",
+                                    )}
+                                >
+                                    <Input
+                                        className="h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 text-sm tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal focus-visible:ring-0"
+                                        placeholder="图形验证码"
+                                        autoComplete="off"
+                                        maxLength={4}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        onChange={(e) => {
+                                            field.handleChange(e.target.value.toUpperCase())
+                                            setCaptchaInvalid(false)
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        aria-label="刷新图形验证码"
+                                        onClick={() => void captcha.refresh()}
+                                        className="shrink-0 self-stretch border-l border-border/60"
+                                    >
+                                        {captcha.image ? (
+                                            <img
+                                                src={captcha.image}
+                                                alt="图形验证码"
+                                                className="h-full w-[96px] rounded-r-xl"
+                                            />
+                                        ) : captcha.loading ? (
+                                            <span className="flex h-full w-[96px] items-center justify-center text-xs text-muted-foreground">
+                                                加载中…
+                                            </span>
+                                        ) : (
+                                            <span className="flex h-full w-[96px] items-center justify-center text-xs text-muted-foreground">
+                                                点击获取
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+                        </form.AppField>
+                    ) : null}
+
+                    {tab === "sms" ? (
                         <form.AppField name="code">
                             {(field) => (
                                 <div
@@ -168,14 +250,19 @@ function LoginPage() {
                                         }}
                                     />
                                     <form.Subscribe
-                                        selector={(s) => PHONE_PATTERN.test(s.values.phone)}
+                                        selector={(s) => ({
+                                            phoneValid: PHONE_PATTERN.test(s.values.phone),
+                                            captchaValid: s.values.captchaCode.length === 4,
+                                        })}
                                     >
-                                        {(phoneValid) => (
+                                        {({ phoneValid, captchaValid }) => (
                                             <button
                                                 type="button"
                                                 className="shrink-0 cursor-pointer px-3.5 text-sm font-medium text-primary transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:font-normal disabled:text-muted-foreground/60 disabled:hover:opacity-100"
                                                 disabled={
                                                     !phoneValid ||
+                                                    !captchaValid ||
+                                                    !captcha.image ||
                                                     countdown > 0 ||
                                                     sendCode.isPending
                                                 }

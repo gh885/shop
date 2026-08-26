@@ -18,9 +18,9 @@ export async function loginByPassword(phone: string, password: string): Promise<
     tokenStore.set(result.accessToken)
 }
 
-/** 发送短信验证码 */
-export function sendSmsCode(phone: string): Promise<void> {
-    return authApi.sendSmsCode({ phone })
+/** 发送短信验证码（需先过图形验证码，captchaId + captchaCode 一起上报） */
+export function sendSmsCode(phone: string, captcha: { captchaId: string; captchaCode: string }) {
+    return authApi.sendSmsCode({ phone, ...captcha })
 }
 
 /** 登出：接口失败也强制清本地状态 */

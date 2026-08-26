@@ -4,6 +4,9 @@ import { z } from "zod"
 
 export const SmsCodeRequestSchema = z.object({
     phone: z.string().min(7).max(20).trim(),
+    // 人机验证：发码前置防线（见 infra/captcha.CaptchaService），必须携带
+    captchaId: z.string().min(1).max(100),
+    captchaCode: z.string().min(1).max(10),
 })
 export type SmsCodeRequest = z.infer<typeof SmsCodeRequestSchema>
 
@@ -67,6 +70,13 @@ export const MeResponseSchema = z.object({
 })
 export type MeResponse = z.infer<typeof MeResponseSchema>
 
+/** 图形验证码：image 为 base64 data URI，captchaId 校验时回传 */
+export const CaptchaResponseSchema = z.object({
+    captchaId: z.string(),
+    image: z.string(),
+})
+export type CaptchaResponse = z.infer<typeof CaptchaResponseSchema>
+
 // ---------- 登录表单（客户端字段级校验，与后端契约对齐） ----------
 
 /** 中国大陆手机号 */
@@ -81,6 +91,8 @@ export const SmsFormSchema = z.object({
     phone: PhoneSchema,
     code: z.string().length(6, "请输入 6 位验证码"),
     password: z.string(),
+    // 人机验证输入（发码阶段用）；登录提交时已清空，允许任意长度
+    captchaCode: z.string().max(4),
 })
 
 /** 密码登录表单（code 为占位字段，见上） */
@@ -88,4 +100,5 @@ export const PasswordFormSchema = z.object({
     phone: PhoneSchema,
     code: z.string(),
     password: z.string().min(8, "密码至少 8 位"),
+    captchaCode: z.string(),
 })

@@ -14,6 +14,7 @@ import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.infra.captcha.CaptchaService;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
 import jakarta.servlet.http.Cookie;
@@ -42,12 +43,22 @@ public class AuthController {
 
     private final SmsCodeService smsCodeService;
     private final AuthService authService;
+    private final CaptchaService captchaService;
     private final ClientIp clientIp;
 
     /** 发送短信验证码 */
     @PostMapping("/sms-code")
     public void sendSmsCode(@Valid @RequestBody SmsCodeRequest req, HttpServletRequest servletRequest) {
+        // 人机验证前置：脚本直调 /sms-code 短信轰炸前必须过图形验证码（防线顺序：人机验证 → 频控 → OTP）
+        captchaService.verify(req.captchaId(), req.captchaCode());
         smsCodeService.sendCode(req.phone(), clientIp.of(servletRequest));
+    }
+
+    /** 发放图形验证码（匿名可达，见 JwtProperties.skipPaths） */
+    @GetMapping("/captcha")
+    public CaptchaResponse captcha() {
+        CaptchaService.Captcha captcha = captchaService.generate();
+        return new CaptchaResponse(captcha.captchaId(), captcha.image());
     }
 
     /** 短信验证码登录/注册 */
@@ -165,4 +176,7 @@ public class AuthController {
 
     /** 当前登录用户信息（手机号已脱敏） */
     public record MeResponse(UUID id, String phone, String nickname, String avatarKey) {}
+
+    /** 图形验证码出参：前端渲染图（base64 data URI），校验时回传 id + 用户输入 */
+    public record CaptchaResponse(String captchaId, String image) {}
 }

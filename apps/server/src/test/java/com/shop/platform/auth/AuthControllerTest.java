@@ -9,6 +9,7 @@ import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import jakarta.servlet.http.Cookie;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
@@ -20,6 +21,12 @@ class AuthControllerTest extends WebControllerTestSupport {
 
     private static final UUID USER_ID = UUID.randomUUID();
 
+    // 人机验证为发码前置防线：契约测试默认放行，后续单测单独覆盖 verify 逻辑（见 infra.captcha.CaptchaServiceTest）
+    @BeforeEach
+    void stubCaptcha() {
+        org.mockito.Mockito.doNothing().when(captchaService).verify(any(), any());
+    }
+
     // ========== 请求体校验 (BODY-01) ==========
 
     @Test
@@ -29,7 +36,7 @@ class AuthControllerTest extends WebControllerTestSupport {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
-                                    {"phone": ""}
+                                    {"phone": "", "captchaId": "c1", "captchaCode": "A1B2"}
                                     """))
                 .andExpect(status().is(422))
                 .andExpect(jsonPath("$.errors[0].field").value("phone"));
@@ -42,7 +49,7 @@ class AuthControllerTest extends WebControllerTestSupport {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
-                                    {"phone": "123"}
+                                    {"phone": "123", "captchaId": "c1", "captchaCode": "A1B2"}
                                     """))
                 .andExpect(status().is(422))
                 .andExpect(jsonPath("$.errors[0].field").value("phone"));
@@ -227,11 +234,12 @@ class AuthControllerTest extends WebControllerTestSupport {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
-                                    {"phone": "13800138000"}
+                                    {"phone": "13800138000", "captchaId": "c1", "captchaCode": "A1B2"}
                                     """))
                 .andExpect(status().isOk());
 
         verify(smsCodeService).sendCode(eq("13800138000"), anyString());
+        verify(captchaService).verify(eq("c1"), eq("A1B2"));
     }
 
     @Test
@@ -278,7 +286,7 @@ class AuthControllerTest extends WebControllerTestSupport {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
-                                    {"phone": "13800138000"}
+                                    {"phone": "13800138000", "captchaId": "c1", "captchaCode": "A1B2"}
                                     """))
                 .andExpect(status().isOk());
 
@@ -292,7 +300,7 @@ class AuthControllerTest extends WebControllerTestSupport {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
-                                    {"phone": "13800138000"}
+                                    {"phone": "13800138000", "captchaId": "c1", "captchaCode": "A1B2"}
                                     """))
                 .andExpect(status().isOk());
 

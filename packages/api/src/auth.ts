@@ -3,7 +3,9 @@ import type { KyInstance } from "ky"
 import {
     MeResponseSchema,
     TokenResultSchema,
+    CaptchaResponseSchema,
     type MeResponse,
+    type CaptchaResponse,
     type PasswordLoginRequest,
     type SmsCodeRequest,
     type SmsLoginRequest,
@@ -17,6 +19,11 @@ import {
 
 export function createAuthApi(api: KyInstance) {
     return {
+        /** 发放图形验证码（匿名） */
+        async getCaptcha(): Promise<CaptchaResponse> {
+            return CaptchaResponseSchema.parse(await api.get("auth/captcha").json())
+        },
+
         /** 发送短信验证码 */
         async sendSmsCode(data: SmsCodeRequest): Promise<void> {
             await api.post("auth/sms-code", { json: data })

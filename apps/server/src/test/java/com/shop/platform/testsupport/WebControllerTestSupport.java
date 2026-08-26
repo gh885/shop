@@ -14,6 +14,7 @@ import com.shop.platform.cart.service.CartService;
 import com.shop.platform.cms.service.ContentService;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.favorite.service.FavoriteService;
+import com.shop.platform.infra.captcha.CaptchaService;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.web.RequestBodySizeFilter;
 import com.shop.platform.infra.web.RequestIdFilter;
@@ -75,6 +76,9 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected SmsCodeService smsCodeService;
+
+    @MockitoBean
+    protected CaptchaService captchaService;
 
     @MockitoBean
     protected CartService cartService;
