@@ -54,7 +54,8 @@ export default defineConfig({
         "react/react-in-jsx-scope": "off",
 
         // ── warn — 推荐写法 ──
-        "unicorn/filename-case": ["warn", { case: "kebabCase" }],
+        // 仓库混用 PascalCase 组件 + kebabCase 工具/hook/路由，单一 case 规则无法满足全部，关闭以免恒定噪音
+        "unicorn/filename-case": "off",
         "unicorn/prefer-includes": "warn",
         "unicorn/prefer-string-slice": "warn",
         "unicorn/prefer-string-replace-all": "warn",
@@ -65,7 +66,8 @@ export default defineConfig({
         "unicorn/prefer-default-parameters": "warn",
         "unicorn/prefer-logical-operator-over-ternary": "warn",
         "unicorn/prefer-number-properties": "warn",
-        "unicorn/prefer-global-this": "warn",
+        // 浏览器/SSR 下 window 是标准且正确的写法，globalThis 属误报
+        "unicorn/prefer-global-this": "off",
         "unicorn/prefer-class-fields": "warn",
         "unicorn/prefer-export-from": "warn",
         "unicorn/prefer-negative-index": "warn",
@@ -77,7 +79,8 @@ export default defineConfig({
         "unicorn/no-zero-fractions": "warn",
         "unicorn/number-literal-case": "warn",
         "unicorn/no-console-spaces": "warn",
-        "unicorn/no-nested-ternary": "warn",
+        // 与 oxfmt 冲突：oxfmt 会剥掉嵌套三元的外层括号，本规则又要括号，同文件无法同时满足。排版交给 formatter
+        "unicorn/no-nested-ternary": "off",
         "unicorn/no-await-expression-member": "warn",
         "unicorn/no-useless-undefined": "warn",
         "unicorn/no-useless-promise-resolve-reject": "warn",

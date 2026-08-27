@@ -17,12 +17,15 @@ type DataTableToolbarProps<TData> = {
     filters?: DataTableFilterConfig[]
 }
 
+/** 稳定的空数组引用，避免每次 render 重建默认值 */
+const NO_FILTERS: DataTableFilterConfig[] = []
+
 /** 工具栏：搜索 + faceted 筛选 + 重置 + 列显隐 */
 export function DataTableToolbar<TData>({
     table,
     searchPlaceholder,
     searchKey,
-    filters = [],
+    filters = NO_FILTERS,
 }: DataTableToolbarProps<TData>) {
     const isFiltered = table.getState().columnFilters.length > 0
 

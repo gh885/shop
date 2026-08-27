@@ -89,6 +89,7 @@ export default function RegionPicker({
                 const loaded: RegionNode[][] = []
                 let parent: RegionNode | null = null
                 for (const node of value) {
+                    // oxlint-disable-next-line eslint/no-await-in-loop -- 级联选择:每一层的加载依赖上层节点,必须串行
                     const children = await fetchChildren(parent)
                     loaded.push(children)
                     parent = node.isLeaf ? null : node
@@ -123,6 +124,7 @@ export default function RegionPicker({
         const requestId = ++requestIdRef.current
         setLoading(true)
         fetchChildren(node)
+            // oxlint-disable-next-line promise/always-return -- 终态副作用,链尾无下一环,无需返回值
             .then((children) => {
                 if (requestId !== requestIdRef.current) return
                 setLevels((prev) => [...prev.slice(0, level + 1), children])

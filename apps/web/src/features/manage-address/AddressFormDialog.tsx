@@ -125,6 +125,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
         // 编辑值是非内置标签时直接展开自定义输入框
         setCustomLabel(Boolean(editing?.label) && !LABELS.some((l) => l.value === editing?.label))
         if (editing) {
+            // oxlint-disable-next-line promise/always-return -- 终态副作用,链尾无下一环,无需返回值
             void findPath(editing.regionCode).then((path) => {
                 setRegionPath(path)
                 setRegionReady(true)
