@@ -8,13 +8,16 @@ export function HomeBannerItem({ banner }: { banner: Banner }) {
         // TODO: banner 规划了跳转链路（活动页/商品聚合页），暂无对应路由，先落回首页
         <Link
             to="/"
-            className="group relative h-[200px] overflow-hidden rounded-xl text-left"
+            className="group relative h-[200px] min-w-0 flex-1 overflow-hidden rounded-xl bg-sunken/50 text-left"
         >
             <img
                 src={banner.image}
                 alt={banner.title}
                 loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={(e) => {
+                    e.currentTarget.style.display = "none"
+                }}
+                className="inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4">

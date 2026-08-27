@@ -60,27 +60,25 @@ function Home() {
     return (
         <>
             <HomeHeader />
-            <section className="mx-auto max-w-(--container-page) px-6 py-6">
-                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_250px] gap-4">
-                    <HomeCategoryNav
-                        defaultHeight={200}
-                        entries={nav.data}
-                    />
-                    {banners.data
-                        ? banners.data.slice(0, 3).map((banner) => (
-                              <HomeBannerItem
-                                  key={banner.id}
-                                  banner={banner}
-                              />
-                          ))
-                        : Array.from({ length: 3 }, (_, i) => (
-                              <Skeleton
-                                  key={i}
-                                  className="h-[200px] rounded-xl"
-                              />
-                          ))}
-                    <UserCard />
-                </div>
+            <section className="mx-auto flex max-w-(--container-page) gap-4 px-6 py-6">
+                <HomeCategoryNav
+                    defaultHeight={200}
+                    entries={nav.data}
+                />
+                {banners.data
+                    ? banners.data.slice(0, 3).map((banner) => (
+                          <HomeBannerItem
+                              key={banner.id}
+                              banner={banner}
+                          />
+                      ))
+                    : Array.from({ length: 3 }, (_, i) => (
+                          <Skeleton
+                              key={i}
+                              className="flex-1 h-[200px] rounded-xl"
+                          />
+                      ))}
+                <UserCard />
             </section>
             <RecommendBar />
             {/* 商品流流式边界：loader 未预热，useSuspenseQuery 在此挂起，SSR 吐骨架、resolve 后流式补全 */}

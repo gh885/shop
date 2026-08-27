@@ -42,22 +42,15 @@ export function HomeCategoryNav({
     }
 
     const active = entries.find((e) => e.id === activeId) ?? null
-    const isHovering = activeId !== null
 
     return (
         <div
-            className="relative"
+            className="relative w-[250px] shrink-0"
             style={{ height: defaultHeight }}
             onMouseLeave={() => setActiveId(null)}
         >
-            {/* 单列表：正常态 in-flow 限高裁剪（外层 height 锚定 grid 行高）；hover 态 absolute 向下覆盖，不推流 */}
-            <div
-                className={`rounded-xl border border-border/60 bg-background ${
-                    isHovering
-                        ? "absolute top-0 left-0 z-40 w-full shadow-lg"
-                        : "h-full overflow-hidden"
-                }`}
-            >
+            {/** 单列表：始终完整显示，hover 仅切换行高亮 + 右侧展开 Mega 面板，不做 absolute 跳动 */}
+            <div className="h-full overflow-hidden rounded-xl border border-border/60 bg-background">
                 <ul>
                     {entries.map((entry) => {
                         const Icon = ICON_BY_KEY[entry.iconKey] ?? ShoppingBag
@@ -66,7 +59,7 @@ export function HomeCategoryNav({
                                 <Button
                                     variant="ghost"
                                     onMouseEnter={() => setActiveId(entry.id)}
-                                    className={`w-full justify-start gap-3 rounded-none px-4 py-2 text-sm ${
+                                    className={`w-full justify-start gap-3 rounded-none px-4 py-1.5 text-sm ${
                                         activeId === entry.id
                                             ? "bg-sunken text-foreground"
                                             : "text-muted-foreground hover:text-foreground"
