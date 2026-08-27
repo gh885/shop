@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { LogOut, ShoppingCart, UserRound } from "lucide-react"
 
 import {
@@ -25,7 +25,6 @@ import { SiteNav } from "./SiteNav"
 export function SiteHeader() {
     const status = useAuthStatus()
     const [, setLoginOpen] = useLoginDialogOpen()
-    const navigate = useNavigate()
     const cartCount = useCartCount()
 
     return (
@@ -37,10 +36,9 @@ export function SiteHeader() {
 
                 <div className="ml-auto flex items-center gap-3">
                     {/* 购物车入口：已登录显示角标计数，点击跳转到购物车页 */}
-                    <button
-                        type="button"
+                    <Link
+                        to="/cart"
                         aria-label="购物车"
-                        onClick={() => navigate({ to: "/cart" })}
                         className="relative flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
                     >
                         <ShoppingCart className="size-[18px]" />
@@ -49,7 +47,7 @@ export function SiteHeader() {
                                 {cartCount.data && cartCount.data > 99 ? "99+" : cartCount.data}
                             </span>
                         )}
-                    </button>
+                    </Link>
 
                     {status === "unknown" ? (
                         <span className="h-4 w-12 animate-pulse rounded bg-muted" />
@@ -72,7 +70,6 @@ export function SiteHeader() {
 
 /** 已登录用户区：头像 hover 展开菜单，含个人中心 + 退出登录 */
 function UserMenu() {
-    const navigate = useNavigate()
     const me = useMe()
     const clearMe = useClearMe()
 
@@ -105,7 +102,7 @@ function UserMenu() {
                     <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                 </DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => navigate({ to: "/account" })}>
+                <DropdownMenuItem render={<Link to="/account" />}>
                     <UserRound className="size-4" />
                     个人中心
                 </DropdownMenuItem>

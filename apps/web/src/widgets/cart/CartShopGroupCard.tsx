@@ -1,6 +1,15 @@
 import { Minus, Plus } from "lucide-react"
 
-import { Checkbox } from "@shop/ui-web"
+import {
+    Button,
+    Checkbox,
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemMedia,
+    ItemTitle,
+} from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
 import type { CartItem, CartShopGroup } from "#/entities/cart"
@@ -59,8 +68,8 @@ function CartItemRow({ item }: { item: CartItem }) {
     const disabled = !item.available
 
     return (
-        <div
-            className={`flex items-center gap-4 py-5 ${disabled ? "opacity-50" : ""}`}
+        <Item
+            className={`flex-nowrap gap-4 py-5 ${disabled ? "opacity-50" : ""}`}
             data-testid={`cart-item-${item.id}`}
         >
             <Checkbox
@@ -70,21 +79,26 @@ function CartItemRow({ item }: { item: CartItem }) {
                 aria-label={`选择 ${title}`}
             />
 
-            <img
-                src={image || undefined}
-                alt={title}
-                className="size-20 rounded-lg border border-border/60 object-cover"
-            />
+            <ItemMedia
+                variant="image"
+                className="size-20 rounded-lg border border-border/60"
+            >
+                <img
+                    src={image || undefined}
+                    alt={title}
+                    className="object-cover"
+                />
+            </ItemMedia>
 
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <p className="line-clamp-2 text-sm font-medium text-foreground">{title}</p>
-                {item.sku?.name && <p className="text-xs text-muted-foreground">{item.sku.name}</p>}
+            <ItemContent>
+                <ItemTitle className="line-clamp-2 w-full">{title}</ItemTitle>
+                {item.sku?.name && <ItemDescription>{item.sku.name}</ItemDescription>}
                 {outOfStock && (
                     <span className="w-fit rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">
                         缺货
                     </span>
                 )}
-            </div>
+            </ItemContent>
 
             <div className="text-right">
                 <p className="text-sm font-semibold text-foreground">
@@ -97,27 +111,29 @@ function CartItemRow({ item }: { item: CartItem }) {
                 )}
             </div>
 
-            <div className="flex items-center gap-2">
-                <button
-                    type="button"
+            <ItemActions className="gap-2">
+                <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-foreground"
                     disabled={disabled || item.quantity <= 1}
                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="flex size-7 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
                     aria-label="减少数量"
                 >
                     <Minus className="size-3.5" />
-                </button>
+                </Button>
                 <span className="w-8 text-center text-sm tabular-nums">{item.quantity}</span>
-                <button
-                    type="button"
+                <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-foreground"
                     disabled={disabled || stock === 0}
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="flex size-7 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
                     aria-label="增加数量"
                 >
                     <Plus className="size-3.5" />
-                </button>
-            </div>
+                </Button>
+            </ItemActions>
 
             <div className="flex w-24 flex-col gap-1">
                 <button
@@ -137,6 +153,6 @@ function CartItemRow({ item }: { item: CartItem }) {
                     删除
                 </button>
             </div>
-        </div>
+        </Item>
     )
 }

@@ -1,4 +1,13 @@
-import { Button } from "@shop/ui-web"
+import {
+    Button,
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemMedia,
+    ItemTitle,
+} from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/api"
 
@@ -98,82 +107,87 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
 
             {/* 订单项逐行 */}
             <PanelContent>
-                {order.items.map((item) => (
-                    <div
-                        key={item.id}
-                        className="flex items-center gap-4 px-5 py-4"
-                    >
-                        {/* 主图 */}
-                        <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                            {item.image && (
-                                <img
-                                    src={item.image}
-                                    alt={item.title}
-                                    className="size-full object-cover"
-                                />
-                            )}
-                        </div>
+                <ItemGroup>
+                    {order.items.map((item) => (
+                        <Item
+                            key={item.id}
+                            className="flex-nowrap px-5 py-4"
+                        >
+                            {/* 主图 */}
+                            <ItemMedia
+                                variant="image"
+                                className="size-16 rounded-md bg-muted"
+                            >
+                                {item.image && (
+                                    <img
+                                        src={item.image}
+                                        alt={item.title}
+                                        className="object-cover"
+                                    />
+                                )}
+                            </ItemMedia>
 
-                        {/* 描述：标题 + 规格 + 服务标签 */}
-                        <div className="min-w-0 flex-1">
-                            <p className="line-clamp-2 text-sm text-foreground">{item.title}</p>
-                            {item.spec && (
-                                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                                    {item.spec}
-                                </p>
-                            )}
-                            {item.tags.length > 0 && (
-                                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                                    {item.tags.join(" ")}
-                                </p>
-                            )}
-                        </div>
+                            {/* 描述：标题 + 规格 + 服务标签 */}
+                            <ItemContent>
+                                <ItemTitle className="line-clamp-2 w-full">{item.title}</ItemTitle>
+                                {item.spec && (
+                                    <ItemDescription className="line-clamp-1">
+                                        {item.spec}
+                                    </ItemDescription>
+                                )}
+                                {item.tags.length > 0 && (
+                                    <ItemDescription className="line-clamp-1">
+                                        {item.tags.join(" ")}
+                                    </ItemDescription>
+                                )}
+                            </ItemContent>
 
-                        {/* 金额：单价 · 划线原价 · 数量 */}
-                        <div className="w-24 shrink-0 text-right">
-                            <p className="text-sm font-bold text-foreground">
-                                ¥{fenToYuan(item.price.amount)}
-                            </p>
-                            {item.originalPrice &&
-                                item.originalPrice.amount > item.price.amount && (
-                                    <p className="text-xs text-muted-foreground line-through">
-                                        ¥{fenToYuan(item.originalPrice.amount)}
+                            {/* 金额：单价 · 划线原价 · 数量 */}
+                            <div className="w-24 shrink-0 text-right">
+                                <p className="text-sm font-bold text-foreground">
+                                    ¥{fenToYuan(item.price.amount)}
+                                </p>
+                                {item.originalPrice &&
+                                    item.originalPrice.amount > item.price.amount && (
+                                        <p className="text-xs text-muted-foreground line-through">
+                                            ¥{fenToYuan(item.originalPrice.amount)}
+                                        </p>
+                                    )}
+                                <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+                            </div>
+
+                            {/* 实付金额（订单维度，每行同步展示） */}
+                            <div className="w-28 shrink-0 text-right">
+                                <p className="text-sm font-bold text-foreground">
+                                    实付款{" "}
+                                    <span className="text-primary">
+                                        ¥{fenToYuan(order.payAmount.amount)}
+                                    </span>
+                                </p>
+                                {order.shippingFee && (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        含运费：¥{fenToYuan(order.shippingFee.amount)}
                                     </p>
                                 )}
-                            <p className="text-xs text-muted-foreground">x{item.quantity}</p>
-                        </div>
+                            </div>
 
-                        {/* 实付金额（订单维度，每行同步展示） */}
-                        <div className="w-28 shrink-0 text-right">
-                            <p className="text-sm font-bold text-foreground">
-                                实付款{" "}
-                                <span className="text-primary">
-                                    ¥{fenToYuan(order.payAmount.amount)}
-                                </span>
-                            </p>
-                            {order.shippingFee && (
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    含运费：¥{fenToYuan(order.shippingFee.amount)}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* 订单操作：按状态动态渲染 */}
-                        <div className="flex w-36 shrink-0 flex-col items-end gap-2">
-                            {actions.map((a) => (
-                                <Button
-                                    key={a.key}
-                                    variant={a.variant ?? "outline"}
-                                    size="sm"
-                                    className="min-w-24"
-                                    onClick={() => onAction?.(order, a.key)}
-                                >
-                                    {a.label}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
-                ))}
+                            {/* 订单操作：按状态动态渲染 */}
+                            <ItemActions className="w-36 gap-2">
+                                {actions.map((a) => (
+                                    <Button
+                                        key={a.key}
+                                        variant={a.variant ?? "outline"}
+                                        size="sm"
+                                        className="min-w-24"
+                                        onClick={() => onAction?.(order, a.key)}
+                                    >
+                                        {a.label}
+                                    </Button>
+                                ))}
+                            </ItemActions>
+                        </Item>
+                    ))}
+                </ItemGroup>
             </PanelContent>
         </Panel>
     )

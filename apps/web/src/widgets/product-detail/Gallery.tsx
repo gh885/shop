@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import type { CarouselApi } from "@shop/ui-web"
 import {
+    Button,
     Carousel,
     CarouselContent,
     CarouselItem,
@@ -109,22 +110,24 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         {/* 圆形翻页箭头：loop 首尾相接（第一张点左箭头翻到最后的参数页）；hover 区域才显示 */}
                         {images.length > 0 && (
                             <>
-                                <button
-                                    type="button"
+                                <Button
+                                    variant="ghost"
+                                    size="icon-lg"
                                     aria-label="上一张"
                                     onClick={() => api?.scrollPrev()}
-                                    className="absolute top-1/2 left-2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                    className="absolute top-1/2 left-2 z-10 size-10 -translate-y-1/2 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
                                 >
                                     <ChevronLeft className="size-5" />
-                                </button>
-                                <button
-                                    type="button"
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-lg"
                                     aria-label="下一张"
                                     onClick={() => api?.scrollNext()}
-                                    className="absolute top-1/2 right-2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                    className="absolute top-1/2 right-2 z-10 size-10 -translate-y-1/2 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
                                 >
                                     <ChevronRight className="size-5" />
-                                </button>
+                                </Button>
                             </>
                         )}
                     </Carousel>

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Link } from "@tanstack/react-router"
 import {
     Armchair,
     Baby,
@@ -103,15 +104,16 @@ export function HomeCategoryNav({
 function NavGroupRow({ group }: { group: NavGroup }) {
     return (
         <div className="flex items-baseline gap-3">
-            <button
-                type="button"
+            {/* TODO: 分类词条需跳往对应分类/列表页，暂无路由，先落回首页 */}
+            <Link
+                to="/"
                 className="group flex shrink-0 items-center gap-1 text-sm font-semibold whitespace-nowrap"
             >
                 {group.name}
                 <span className="text-xs text-muted-foreground transition-colors group-hover:text-primary">
                     &gt;
                 </span>
-            </button>
+            </Link>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 {group.items.map((item) => (
                     <span

@@ -44,30 +44,30 @@ export function CartToolbar() {
 
             {/* 右：筛选 + 车内搜索（占位） */}
             <div className="flex items-center gap-2">
-                <button
-                    type="button"
+                <Button
+                    variant="outline"
+                    className="w-24 rounded-md px-3 text-muted-foreground"
                     onClick={() => notify.info("分类筛选即将上线")}
-                    className="flex h-8 w-24 items-center justify-between rounded-md border border-border bg-background px-3 text-sm text-muted-foreground"
                 >
                     分类
                     <span className="text-xs">▾</span>
-                </button>
-                <button
-                    type="button"
+                </Button>
+                <Button
+                    variant="outline"
+                    className="w-24 rounded-md px-3 text-muted-foreground"
                     onClick={() => notify.info("状态筛选即将上线")}
-                    className="flex h-8 w-24 items-center justify-between rounded-md border border-border bg-background px-3 text-sm text-muted-foreground"
                 >
                     状态
                     <span className="text-xs">▾</span>
-                </button>
-                <button
-                    type="button"
+                </Button>
+                <Button
+                    variant="outline"
+                    className="w-56 rounded-md px-3 text-muted-foreground"
                     onClick={() => notify.info("车内搜索即将上线")}
-                    className="flex h-8 w-56 items-center justify-between rounded-md border border-border bg-background px-3 text-sm text-muted-foreground"
                 >
                     搜索购物车内商品
                     <Search className="size-4" />
-                </button>
+                </Button>
             </div>
         </div>
     )
