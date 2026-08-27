@@ -4,22 +4,20 @@ import { createFileRoute, notFound } from "@tanstack/react-router"
 import { toApiError } from "@shop/api"
 
 import type { ProductDetail } from "#/entities/product"
-import { productDetailOptions, shopOptions } from "#/features/product-detail/use-product-detail"
-import { useSkuSelection } from "#/features/product-detail/use-sku-selection"
-import { DescriptionSection } from "#/widgets/product-detail/description-section"
-import { DetailColumns } from "#/shared/ui/detail-columns"
-import { DetailHeader } from "#/widgets/product-detail/detail-header"
-import { DetailSectionTabs } from "#/widgets/product-detail/detail-section-tabs"
-import { Gallery } from "#/widgets/product-detail/gallery"
-import { ParamsSection } from "#/widgets/product-detail/params-section"
-import { PurchaseCta } from "#/widgets/product-detail/purchase-cta"
-import { PurchasePanel } from "#/widgets/product-detail/purchase-panel"
 import {
     AlsoViewedSection,
+    DetailHeader,
+    DetailSections,
+    Gallery,
+    productDetailOptions,
+    PurchaseCta,
+    PurchasePanel,
+    shopOptions,
+    ShopBar,
     ShopRecommendSection,
-} from "#/widgets/product-detail/recommend-sections"
-import { ReviewsSection } from "#/widgets/product-detail/reviews-section"
-import { ShopBar } from "#/widgets/product-detail/shop-bar"
+    useSkuSelection,
+} from "#/widgets/product-detail"
+import { DetailColumns } from "#/shared/ui/DetailColumns"
 
 export const Route = createFileRoute("/products/$id")({
     /**
@@ -127,11 +125,8 @@ function ProductDetailPage() {
                                     params={detail.params}
                                 />
                             </section>
-                            {/* 吸顶锚点导航 + 五个区块（点击 tab 平滑滚动到对应位置） */}
-                            <DetailSectionTabs />
-                            <ReviewsSection />
-                            <ParamsSection params={detail.params} />
-                            <DescriptionSection detail={detail} />
+                            {/* 吸顶锚点导航 + 评价/参数/图文详情 */}
+                            <DetailSections detail={detail} />
                             <ShopRecommendSection detail={detail} />
                             <AlsoViewedSection detail={detail} />
                         </>

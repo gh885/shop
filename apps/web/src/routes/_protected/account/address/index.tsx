@@ -13,7 +13,7 @@ import {
     useDeleteAddress,
     useSetDefaultAddress,
     useUnsetDefaultAddress,
-} from "#/features/address"
+} from "#/features/manage-address"
 
 export const Route = createFileRoute("/_protected/account/address/")({
     component: AddressPage,

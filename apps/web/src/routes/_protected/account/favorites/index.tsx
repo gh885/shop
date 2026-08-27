@@ -4,7 +4,8 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
 import { HeartOff } from "lucide-react"
 
-import { FavoriteCard, FavoritesToolbar } from "#/features/favorites"
+import { FavoriteCard } from "#/entities/favorite"
+import { FavoritesToolbar } from "#/widgets/favorites"
 
 export const Route = createFileRoute("/_protected/account/favorites/")({
     component: FavoritesPage,

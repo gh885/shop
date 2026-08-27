@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button, Input, Separator, Skeleton, useAppForm } from "@shop/ui-web"
 
-import { useMe } from "#/features/session/use-me"
+import { useMe } from "#/entities/user"
 import { authApi } from "#/shared/api/client"
 import { notify } from "#/shared/lib/toast"
 

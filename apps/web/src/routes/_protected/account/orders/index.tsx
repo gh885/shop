@@ -5,8 +5,7 @@ import { CircleAlert } from "lucide-react"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
 
 import type { Order, OrderStatus } from "#/entities/order"
-import { ORDER_STATUS_LABEL } from "#/entities/order"
-import { OrderCard } from "#/features/orders"
+import { ORDER_STATUS_LABEL, OrderCard } from "#/entities/order"
 import { notify } from "#/shared/lib/toast"
 
 export const Route = createFileRoute("/_protected/account/orders/")({

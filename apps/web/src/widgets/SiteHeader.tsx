@@ -14,10 +14,10 @@ import {
     DropdownMenuTrigger,
 } from "@shop/ui-web"
 
-import { useCartCount } from "../features/cart/use-cart"
-import { logout } from "../features/session/actions"
-import { useClearMe, useMe } from "../features/session/use-me"
-import { useAuthStatus, useLoginDialogOpen } from "../shared/api/auth"
+import { useCartCount } from "#/features/cart"
+import { logout } from "#/features/login"
+import { useClearMe, useMe } from "#/entities/user"
+import { useAuthStatus, useLoginDialogOpen } from "#/shared/api/auth"
 
 import { SiteNav } from "./SiteNav"
 

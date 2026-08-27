@@ -1,1 +1,1 @@
-export { AccountHeader } from "./account-header"
+export { AccountHeader } from "./AccountHeader"

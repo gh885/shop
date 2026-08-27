@@ -1,0 +1,25 @@
+import type { Banner } from "./model"
+
+/** 单个 banner 位：图 + 底部渐变标题，hover 微缩放 */
+export function HomeBannerItem({ banner }: { banner: Banner }) {
+    return (
+        <button
+            type="button"
+            className="group relative h-[200px] overflow-hidden rounded-xl text-left"
+        >
+            <img
+                src={banner.image}
+                alt={banner.title}
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4">
+                <div className="text-base font-bold text-white">{banner.title}</div>
+                {banner.subtitle && (
+                    <div className="mt-0.5 text-xs text-white/80">{banner.subtitle}</div>
+                )}
+            </div>
+        </button>
+    )
+}

@@ -1,11 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { CartProvider, useCart } from "#/features/cart/cart-provider"
-import { DetailColumns } from "#/shared/ui/detail-columns"
-import { CartHeader } from "#/widgets/cart/cart-header"
-import { CartSettlement } from "#/widgets/cart/cart-settlement"
-import { CartShopGroupCard } from "#/widgets/cart/cart-shop-group"
-import { CartToolbar } from "#/widgets/cart/cart-toolbar"
+import { CartProvider, useCart } from "#/features/cart"
+import { DetailColumns } from "#/shared/ui/DetailColumns"
+import { CartHeader, CartSettlement, CartShopGroupCard, CartToolbar } from "#/widgets/cart"
 
 export const Route = createFileRoute("/_protected/cart")({
     component: CartPage,

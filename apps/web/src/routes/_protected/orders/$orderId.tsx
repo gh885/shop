@@ -7,7 +7,7 @@ import {
     OrderShopSection,
     OrderStatusSection,
     OrderSummaryCard,
-} from "#/features/orders/detail"
+} from "#/entities/order"
 import { notify } from "#/shared/lib/toast"
 
 function notifyOrderAction(_order: unknown, action: string) {

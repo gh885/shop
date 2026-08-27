@@ -3,11 +3,20 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { Skeleton } from "@shop/ui-web"
 
-import { bannersOptions, homeNavOptions, recommendTabsOptions } from "#/features/home/use-home"
-import { CategoryCards } from "#/widgets/home/category-cards"
-import { HomeHeader } from "#/widgets/home/home-header"
-import { ProductGrid } from "#/widgets/home/product-grid"
-import { RecommendBar } from "#/widgets/home/recommend-bar"
+import {
+    bannersOptions,
+    homeNavOptions,
+    recommendTabsOptions,
+    useBanners,
+    useFeedProducts,
+    useHomeNav,
+    UserCard,
+    HomeCategoryNav,
+    HomeBannerItem,
+    HomeHeader,
+    RecommendBar,
+} from "#/widgets/home"
+import { ProductCard, type Product, type ProductCardData } from "#/entities/product"
 
 export const Route = createFileRoute("/")({
     /**
@@ -39,12 +48,40 @@ export const Route = createFileRoute("/")({
     }),
 })
 
+function toProductCardData(p: Product): ProductCardData {
+    return { id: p.id, image: p.image, title: p.title, price: p.priceMin?.amount ?? 0 }
+}
+
 /** 首页：五个层级区块，数据各自经 use-home 的 hooks 取（loader 已预热缓存） */
 function Home() {
+    const feed = useFeedProducts()
+    const nav = useHomeNav()
+    const banners = useBanners()
     return (
-        <div>
+        <>
             <HomeHeader />
-            <CategoryCards />
+            <section className="mx-auto max-w-(--container-page) px-6 py-6">
+                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_250px] gap-4">
+                    <HomeCategoryNav
+                        defaultHeight={200}
+                        entries={nav.data}
+                    />
+                    {banners.data
+                        ? banners.data.slice(0, 3).map((banner) => (
+                              <HomeBannerItem
+                                  key={banner.id}
+                                  banner={banner}
+                              />
+                          ))
+                        : Array.from({ length: 3 }, (_, i) => (
+                              <Skeleton
+                                  key={i}
+                                  className="h-[200px] rounded-xl"
+                              />
+                          ))}
+                    <UserCard />
+                </div>
+            </section>
             <RecommendBar />
             {/* 商品流流式边界：loader 未预热，useSuspenseQuery 在此挂起，SSR 吐骨架、resolve 后流式补全 */}
             <Suspense
@@ -61,8 +98,17 @@ function Home() {
                     </section>
                 }
             >
-                <ProductGrid />
+                <section className="mx-auto max-w-(--container-page) px-6 py-6">
+                    <div className="grid grid-cols-5 gap-3 rounded-xl bg-sunken/50 p-3">
+                        {feed.data.map((product) => (
+                            <ProductCard
+                                key={product.id}
+                                product={toProductCardData(product)}
+                            />
+                        ))}
+                    </div>
+                </section>
             </Suspense>
-        </div>
+        </>
     )
 }
