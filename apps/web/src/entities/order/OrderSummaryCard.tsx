@@ -5,7 +5,9 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Separator } from "@sh
 
 import { fenToYuan } from "@shop/api"
 
-import { ORDER_STATUS_LABEL, type Money } from "#/entities/order"
+import type { Money } from "@shop/api"
+
+import { ORDER_STATUS_LABEL } from "./model"
 
 /**
  * 详情页右侧信息卡：三大块 —— 付款详情、订单信息、订单服务。

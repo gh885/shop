@@ -2,7 +2,7 @@ import { Button } from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/api"
 
-import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "#/entities/order"
+import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "./model"
 import { Panel, PanelContent, PanelHeader } from "#/shared/ui/Panel"
 
 /**

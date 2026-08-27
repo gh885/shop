@@ -2,7 +2,7 @@ import { MapPin } from "lucide-react"
 
 import { Button } from "@shop/ui-web"
 
-import { ORDER_STATUS_LABEL, type OrderDetail, type OrderStatus } from "#/entities/order"
+import { ORDER_STATUS_LABEL, type OrderDetail, type OrderStatus } from "./model"
 
 /**
  * 订单状态区：状态大标题 + 收货地址 + 操作按钮排。

@@ -2,7 +2,7 @@ import { Button } from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/api"
 
-import type { OrderItem } from "#/entities/order"
+import type { OrderItem } from "./model"
 import { Panel, PanelContent, PanelHeader } from "#/shared/ui/Panel"
 
 /**
