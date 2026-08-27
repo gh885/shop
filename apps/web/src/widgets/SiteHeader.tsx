@@ -30,7 +30,7 @@ export function SiteHeader() {
 
     return (
         <header className="border-b border-border/60 bg-sunken/60">
-            <div className="mx-auto flex h-9 max-w-[1486px] items-center gap-6 px-6">
+            <div className="mx-auto flex h-9 max-w-(--container-page) items-center gap-6 px-6">
                 <span className="text-xs text-muted-foreground">中国大陆站</span>
 
                 <SiteNav />

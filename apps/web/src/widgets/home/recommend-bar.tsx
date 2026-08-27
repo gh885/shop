@@ -56,10 +56,10 @@ export function RecommendBar() {
         return (
             <Sticky top={HOME_HEADER_HEIGHT}>
                 <div className="bg-background/95 backdrop-blur">
-                    <div className="mx-auto max-w-[1400px] px-6 py-3">
+                    <div className="mx-auto max-w-(--container-page) px-6 py-3">
                         <Skeleton className="h-6 w-1/2 rounded" />
                     </div>
-                    <div className="mx-auto max-w-[1400px] border-t border-border/60 px-6" />
+                    <div className="mx-auto max-w-(--container-page) border-t border-border/60 px-6" />
                 </div>
             </Sticky>
         )
@@ -68,7 +68,7 @@ export function RecommendBar() {
     return (
         <Sticky top={HOME_HEADER_HEIGHT}>
             <div className="bg-background/95 backdrop-blur">
-                <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-6 py-3">
+                <div className="mx-auto flex max-w-(--container-page) items-center gap-4 px-6 py-3">
                     {/* 左侧往回翻页：第一页隐藏 */}
                     {clampedPage > 0 && (
                         <Button
@@ -136,7 +136,7 @@ export function RecommendBar() {
                         <RefreshCw className="size-4" />
                     </Button>
                 </div>
-                <div className="mx-auto max-w-[1400px] border-t border-border/60 px-6" />
+                <div className="mx-auto max-w-(--container-page) border-t border-border/60 px-6" />
             </div>
         </Sticky>
     )

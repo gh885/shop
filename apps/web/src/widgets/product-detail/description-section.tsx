@@ -1,3 +1,5 @@
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@shop/ui-web"
+
 import type { ProductDetail } from "#/entities/product"
 import { DetailSection } from "./detail-section"
 
@@ -9,7 +11,12 @@ export function DescriptionSection({ detail }: { detail: ProductDetail }) {
                 id="detail"
                 title="图文详情"
             >
-                <p className="text-sm text-muted-foreground">暂无图文详情</p>
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyTitle>暂无图文详情</EmptyTitle>
+                        <EmptyDescription>卖家还没有上传商品图文</EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
             </DetailSection>
         )
     }

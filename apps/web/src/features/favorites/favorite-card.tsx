@@ -47,7 +47,7 @@ export function FavoriteCard({
         <Link
             to="/products/$id"
             params={{ id: favorite.id }}
-            className="group relative flex w-60 shrink-0 flex-col overflow-hidden rounded-lg bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.18)]"
+            className="group relative flex w-60 shrink-0 flex-col overflow-hidden rounded-lg bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-lift"
         >
             {/* 批量模式下左上角选择框；点击不触发卡片跳转 */}
             {batchMode && (
@@ -94,7 +94,7 @@ export function FavoriteCard({
                 </p>
 
                 {/* 收藏人数 */}
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                <p className="mt-1.5 text-xs text-muted-foreground">
                     {collectText(favorite.collectCount)}
                 </p>
 

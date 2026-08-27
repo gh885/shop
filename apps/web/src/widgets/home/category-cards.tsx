@@ -10,7 +10,7 @@ export function CategoryCards() {
     const banners = useBanners()
 
     return (
-        <section className="mx-auto max-w-[1400px] px-6 py-6">
+        <section className="mx-auto max-w-(--container-page) px-6 py-6">
             <div className="grid grid-cols-[1fr_1fr_1fr_1fr_250px] gap-4">
                 <HomeCategoryNav
                     defaultHeight={200}

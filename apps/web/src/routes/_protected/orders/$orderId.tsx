@@ -30,10 +30,10 @@ function OrderDetailPage() {
         <div className="flex flex-1 flex-col">
             <AccountHeader
                 title="订单详情"
-                widthClass="max-w-[1184px]"
+                widthClass="max-w-(--container-narrow)"
             />
 
-            <div className="mx-auto w-full max-w-[1184px] flex-1 px-6 py-8">
+            <div className="mx-auto w-full max-w-(--container-narrow) flex-1 px-6 py-8">
                 <div className="flex gap-8">
                     {/* 左侧主区 */}
                     <div className="min-w-0 flex-1 space-y-8">

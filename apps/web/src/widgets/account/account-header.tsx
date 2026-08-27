@@ -13,7 +13,7 @@ import { Button, Logo } from "@shop/ui-web"
 
 export function AccountHeader({
     title = "个人中心",
-    widthClass = "max-w-[1486px]",
+    widthClass = "max-w-(--container-page)",
 }: {
     title?: string
     widthClass?: string
@@ -52,7 +52,7 @@ export function AccountHeader({
                     onSubmit={onSubmit}
                     className="w-full max-w-xl"
                 >
-                    <div className="flex h-11 items-center rounded-xl border-2 border-primary bg-background">
+                    <div className="flex h-11 items-center rounded-xl border border-border bg-background">
                         <input
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}

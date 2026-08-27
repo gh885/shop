@@ -46,7 +46,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         <Link
             to="/products/$id"
             params={{ id: product.id }}
-            className="group flex flex-col overflow-hidden rounded-lg bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.18)]"
+            className="group flex flex-col overflow-hidden rounded-lg bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-lift"
         >
             {/* 图片：方形、铺满、轻微圆角，hover 微放大；无图（image 归一为 ""）渲染灰底占位，避免 img src="" 警告 */}
             <div className="relative overflow-hidden rounded-lg bg-white">
@@ -92,7 +92,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                                     render={
                                         <button
                                             type="button"
-                                            className="truncate text-[11px] text-muted-foreground transition-colors hover:text-primary"
+                                            className="truncate text-xs text-muted-foreground transition-colors hover:text-primary"
                                         >
                                             {product.shop}
                                         </button>
@@ -111,7 +111,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                         className="text-primary"
                     />
                     {product.sales && (
-                        <span className="truncate text-[11px] text-muted-foreground">
+                        <span className="truncate text-xs text-muted-foreground">
                             {product.sales}
                         </span>
                     )}

@@ -21,7 +21,7 @@ const FOOTER_GROUPS = [
 export function SiteFooter() {
     return (
         <footer className="border-t border-border">
-            <div className="mx-auto flex max-w-[1486px] flex-col gap-8 px-4 py-10 md:flex-row md:justify-between">
+            <div className="mx-auto flex max-w-(--container-page) flex-col gap-8 px-4 py-10 md:flex-row md:justify-between">
                 <div className="space-y-2">
                     <p className="text-sm font-semibold">Shop 多店铺电商平台</p>
                     <p className="text-sm text-muted-foreground">千万小店，各有各的好。</p>
@@ -61,7 +61,7 @@ export function SiteFooter() {
             </div>
 
             <div className="border-t border-border">
-                <p className="mx-auto max-w-[1486px] px-4 py-4 text-xs text-muted-foreground">
+                <p className="mx-auto max-w-(--container-page) px-4 py-4 text-xs text-muted-foreground">
                     © {new Date().getFullYear()} Shop
                 </p>
             </div>

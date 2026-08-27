@@ -51,12 +51,12 @@ export function PurchaseCta({
     }
 
     return (
-        <div className="rounded-3xl bg-background p-3 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.12)] ring-1 ring-border/60">
+        <div className="rounded-3xl bg-background p-3 shadow-float ring-1 ring-border/60">
             <div className="flex items-stretch gap-3">
                 <Button
                     disabled={!complete || soldOut || addToCart.isPending}
                     onClick={handleAdd}
-                    className="h-12 w-28 flex-none gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-base text-white hover:from-amber-400 hover:to-amber-600"
+                    className="h-12 w-28 flex-none gap-2 rounded-xl bg-gradient-to-r from-cta-alt to-cta-alt-hover text-base text-white hover:from-cta-alt-hover hover:to-cta-alt-active"
                 >
                     <ShoppingCart className="size-5" />
                     {addToCart.isPending ? "加购中…" : "加购"}
@@ -64,7 +64,7 @@ export function PurchaseCta({
                 <Button
                     disabled={!complete || soldOut}
                     onClick={() => notify.info("下单功能即将上线")}
-                    className="h-12 flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-primary text-base hover:from-orange-600 hover:to-primary-hover"
+                    className="h-12 flex-1 rounded-xl bg-gradient-to-r from-primary to-primary-hover text-base hover:from-primary-hover hover:to-primary-active"
                 >
                     立即购买
                 </Button>

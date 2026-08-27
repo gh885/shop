@@ -74,6 +74,7 @@
     --green-700: hsl(152 55% 30%);
     --green-900: hsl(152 40% 14%);
     --amber-100: hsl(45 95% 92%);
+    --amber-400: hsl(43 96% 56%);
     --amber-500: hsl(38 92% 45%);
     --amber-700: hsl(32 90% 32%);
     --amber-900: hsl(38 50% 14%);
@@ -96,6 +97,13 @@
     --shadow-md-dark: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
     --shadow-lg-light: 0 10px 15px -3px hsl(0 0% 9% / 0.1), 0 4px 6px -4px hsl(0 0% 9% / 0.08);
     --shadow-lg-dark: 0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.5);
+
+    /* lift = 商品卡 hover 抬起（大扩散软投影）；float = 悬浮 CTA 卡。
+       都不在 sm/md/lg 海拔阶梯上，是专用观感，故单列。 */
+    --shadow-lift-light: 0 12px 32px -8px hsl(0 0% 9% / 0.18);
+    --shadow-lift-dark: 0 12px 32px -8px hsl(0 0% 0% / 0.7);
+    --shadow-float-light: 0 4px 16px -8px hsl(0 0% 9% / 0.12);
+    --shadow-float-dark: 0 4px 16px -8px hsl(0 0% 0% / 0.55);
 }
 
 /* ---------- Layer 2: Semantic（light-dark() 单份定义，深浅随系统偏好） ---------- */
@@ -111,6 +119,7 @@
        禁用。次要文字统一走 muted-foreground；原 foreground-subtle / foreground-disabled
        与 muted-foreground / disabled-foreground 语义重叠，已合并移除） */
     --color-foreground: light-dark(var(--neutral-950), var(--neutral-50));
+    --color-card-foreground: light-dark(var(--neutral-950), var(--neutral-50));
     --color-popover-foreground: light-dark(var(--neutral-950), var(--neutral-50));
     --color-link: light-dark(var(--orange-600), var(--orange-400));
 
@@ -125,6 +134,13 @@
     --color-primary-active: light-dark(var(--orange-700), var(--orange-300));
     --color-primary-subtle: light-dark(var(--orange-50), var(--orange-900));
     --color-primary-subtle-foreground: light-dark(var(--orange-700), var(--orange-200));
+
+    /* 次 CTA（琥珀金）—— 详情页「加购」与「立即购买」并排时用来区分主次（淘宝同款配色）。
+       不是反馈色 warning，别混用：warning 表示状态，这里表示动作。
+       与 primary 同样的三档阶梯（base / hover / active），实色浅深模式相同。 */
+    --color-cta-alt: var(--amber-400);
+    --color-cta-alt-hover: var(--amber-500);
+    --color-cta-alt-active: var(--amber-700);
 
     /* 次级/弱化表面（secondary / muted / accent 深浅两模式值相同，
        保留三个语义名是为将来视觉分化预留，勿合并） */
@@ -180,6 +196,12 @@
     /* 字体：shop 未引入外部字体，heading 与正文同栈；接品牌字体时改 --font-sans */
     --font-heading: var(--font-sans);
 
+    /* 版心宽度。用 max-w-(--container-page) 消费，
+       注意 Tailwind v4 的 --container-* 自动映射有 bug，勿依赖 max-w-container-page 类 */
+    --container-page: 92.875rem;
+    --container-narrow: 74rem;
+    /* narrow=74rem(1184px)：订单详情等窄版心；page=92.875rem(1486px)：主版心 */
+
     /* 圆角阶梯（友好感，消费级偏大；全部由 --radius 推导，改一个全站联动） */
     --radius: 0.5rem;
     --radius-sm: calc(var(--radius) * 0.75);
@@ -194,6 +216,8 @@
     --shadow-sm: light-dark(var(--shadow-sm-light), var(--shadow-sm-dark));
     --shadow-md: light-dark(var(--shadow-md-light), var(--shadow-md-dark));
     --shadow-lg: light-dark(var(--shadow-lg-light), var(--shadow-lg-dark));
+    --shadow-lift: light-dark(var(--shadow-lift-light), var(--shadow-lift-dark));
+    --shadow-float: light-dark(var(--shadow-float-light), var(--shadow-float-dark));
 
     /* 动效 */
     --animate-shake: shake 0.4s ease-in-out;

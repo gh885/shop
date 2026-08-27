@@ -11,7 +11,7 @@ export function ProductGrid() {
     const feed = useFeedProducts()
 
     return (
-        <section className="mx-auto max-w-[1400px] px-6 py-6">
+        <section className="mx-auto max-w-(--container-page) px-6 py-6">
             <div className="grid grid-cols-5 gap-3 rounded-xl bg-sunken/50 p-3">
                 {feed.data.map((product) => (
                     <ProductCard

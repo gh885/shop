@@ -112,7 +112,7 @@ function ProductDetailPage() {
     return (
         <div>
             <DetailHeader />
-            <div className="mx-auto w-full max-w-[1486px] px-6 pb-10">
+            <div className="mx-auto w-full max-w-(--container-page) px-6 pb-10">
                 {/* 左滚右停：左栏（店铺条+画廊+描述）随滚动，右栏购买区钉住 */}
                 <DetailColumns
                     left={

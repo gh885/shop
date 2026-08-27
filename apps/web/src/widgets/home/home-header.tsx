@@ -26,7 +26,7 @@ export function HomeHeader() {
                 className="border-b border-border/60 bg-background/95 backdrop-blur"
                 style={{ height: HOME_HEADER_HEIGHT }}
             >
-                <div className="mx-auto flex h-full max-w-[1400px] items-center gap-14 px-6">
+                <div className="mx-auto flex h-full max-w-(--container-page) items-center gap-14 px-6">
                     {/* 品牌 logo：图形标 + 字标 */}
                     <Link
                         to="/"
@@ -38,7 +38,7 @@ export function HomeHeader() {
 
                     {/* 中间大搜索框：整体圆角容器，分类下拉 + 输入框 + 搜索按钮 */}
                     <div className="mx-auto w-full max-w-3xl">
-                        <div className="flex h-12 items-center rounded-xl border-2 border-primary bg-background">
+                        <div className="flex h-12 items-center rounded-xl border border-border bg-background">
                             {/* 分类下拉：橙色文字 + 箭头，竖线分隔 */}
                             <DropdownMenu>
                                 <DropdownMenuTrigger className="flex shrink-0 items-center gap-1 pl-5 pr-3 text-base font-medium text-primary transition-colors hover:text-primary-hover">

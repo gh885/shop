@@ -23,7 +23,7 @@ export function DetailHeader() {
 
     return (
         <header className="border-b border-border/60 bg-background">
-            <div className="mx-auto flex h-16 w-full max-w-[1486px] items-center justify-between px-6">
+            <div className="mx-auto flex h-16 w-full max-w-(--container-page) items-center justify-between px-6">
                 {/* 品牌 logo：与首页同款 */}
                 <Link
                     to="/"

@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Loader2 } from "lucide-react"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button, Input, Skeleton, useAppForm } from "@shop/ui-web"
+import { Button, Input, Separator, Skeleton, useAppForm } from "@shop/ui-web"
 
 import { useMe } from "#/features/session/use-me"
 import { authApi } from "#/shared/api/client"
@@ -71,7 +71,7 @@ function ProfilePage() {
                 </div>
             </div>
 
-            <div className="h-px bg-border" />
+            <Separator />
 
             <div className="space-y-4">
                 <h2 className="text-base font-semibold">昵称</h2>

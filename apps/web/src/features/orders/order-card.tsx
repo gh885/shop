@@ -3,6 +3,7 @@ import { Button } from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
 import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "#/entities/order"
+import { Panel, PanelContent, PanelHeader } from "#/shared/ui/panel"
 
 /**
  * 订单卡片（京东/淘宝式订单列表项）。
@@ -72,9 +73,9 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
     const actions = ORDER_ACTIONS[order.status]
 
     return (
-        <section className="overflow-hidden rounded-lg border border-border/60 bg-background">
+        <Panel className="text-sm">
             {/* 顶部订单信息条 */}
-            <div className="flex items-center gap-4 border-b border-border/60 bg-muted/40 px-5 py-3 text-sm">
+            <PanelHeader className="bg-muted/40">
                 <span className="text-muted-foreground">{formatTime(order.createdAt)}</span>
                 <span className="text-muted-foreground">
                     订单号：<span className="text-foreground">{order.orderNo}</span>
@@ -93,10 +94,10 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                         订单详情
                     </Button>
                 </div>
-            </div>
+            </PanelHeader>
 
             {/* 订单项逐行 */}
-            <div className="divide-y divide-border/60">
+            <PanelContent>
                 {order.items.map((item) => (
                     <div
                         key={item.id}
@@ -173,7 +174,7 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                         </div>
                     </div>
                 ))}
-            </div>
-        </section>
+            </PanelContent>
+        </Panel>
     )
 }

@@ -65,7 +65,7 @@ export function UserCard() {
                 ].map((item) => (
                     <div key={item.label}>
                         <div className="text-sm font-semibold">{item.value}</div>
-                        <div className="mt-0.5 text-[11px] text-muted-foreground">{item.label}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">{item.label}</div>
                     </div>
                 ))}
             </div>
@@ -81,7 +81,7 @@ export function UserCard() {
                     <Button
                         key={item.label}
                         variant="ghost"
-                        className="flex h-auto flex-col gap-1 px-1 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                        className="flex h-auto flex-col gap-1 px-1 py-1 text-xs text-muted-foreground hover:text-foreground"
                         onClick={() =>
                             // TODO: 浏览记录 / 店铺关注页未实现，暂路由到首页；落地后接真实路径
                             void navigate({ to: item.to }).catch(() => {})

@@ -1,6 +1,6 @@
 import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
-import { ToggleGroup, ToggleGroupItem } from "@shop/ui-web"
+import { Separator, ToggleGroup, ToggleGroupItem } from "@shop/ui-web"
 
 import type { ProductDetail } from "#/entities/product"
 import {
@@ -125,7 +125,8 @@ export function PurchasePanel({
             )}
 
             {/* 数量步进：分隔线与上方信息区隔开（对齐参考图） */}
-            <div className="flex items-center gap-3 border-t border-border/60 pt-4">
+            <Separator />
+            <div className="flex items-center gap-3">
                 <QuantityStepper
                     quantity={quantity}
                     onChange={onQuantityChange}

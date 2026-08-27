@@ -23,7 +23,7 @@ export function CartHeader() {
 
     return (
         <header className="bg-background">
-            <div className="mx-auto flex h-16 w-full max-w-[1486px] items-center justify-between px-6">
+            <div className="mx-auto flex h-16 w-full max-w-(--container-page) items-center justify-between px-6">
                 {/* 左：品牌 logo + 页面标题 */}
                 <div className="flex items-center gap-3">
                     <Link

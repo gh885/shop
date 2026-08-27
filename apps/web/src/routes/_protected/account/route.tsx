@@ -76,7 +76,7 @@ function AccountLayout() {
             <AccountHeader />
 
             {/* 主体：与站点头部同宽 1486px，保持整体版心一致 */}
-            <div className="mx-auto flex w-full max-w-[1486px] flex-1 gap-6 px-6 py-8">
+            <div className="mx-auto flex w-full max-w-(--container-page) flex-1 gap-6 px-6 py-8">
                 <div className="shrink-0 self-start">
                     <NavMenu
                         items={MENU_ITEMS}

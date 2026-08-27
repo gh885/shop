@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { CircleAlert, Loader2, LogOut, Monitor, Smartphone } from "lucide-react"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Button, Input, Skeleton, useAppForm } from "@shop/ui-web"
+import { Button, Empty, EmptyHeader, EmptyTitle, Input, Skeleton, useAppForm } from "@shop/ui-web"
 
 import { authApi } from "#/shared/api/client"
 import { getDeviceId } from "#/shared/api/auth"
@@ -51,7 +51,7 @@ function ChangePassword() {
                 if (value.current.length === 0) return { fields: { current: "请输入当前密码" } }
                 if (value.next.length < 8) return { fields: { next: "新密码至少 8 位" } }
                 if (value.next !== value.confirm) return { fields: { confirm: "两次输入不一致" } }
-                return undefined
+                return
             },
         },
         onSubmit: ({ value }) => change.mutate({ current: value.current, next: value.next }),
@@ -185,9 +185,11 @@ function DeviceManager() {
                         />
                     ))
                 ) : devices.data?.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                        暂无其他登录设备
-                    </p>
+                    <Empty className="py-6">
+                        <EmptyHeader>
+                            <EmptyTitle>暂无其他登录设备</EmptyTitle>
+                        </EmptyHeader>
+                    </Empty>
                 ) : (
                     devices.data?.map((d) => (
                         <div

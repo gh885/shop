@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 
-import { Skeleton } from "@shop/ui-web"
+import { Empty, EmptyHeader, EmptyTitle, Skeleton } from "@shop/ui-web"
 
 import type { Product, ProductDetail } from "#/entities/product"
 import { ProductCard } from "#/entities/product"
@@ -37,9 +37,11 @@ function RecoGrid({ products, currentId }: { products: Product[] | undefined; cu
                       />
                   ))}
             {list && list.length === 0 && (
-                <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
-                    暂无推荐商品
-                </p>
+                <Empty className="col-span-full py-6">
+                    <EmptyHeader>
+                        <EmptyTitle>暂无推荐商品</EmptyTitle>
+                    </EmptyHeader>
+                </Empty>
             )}
         </div>
     )

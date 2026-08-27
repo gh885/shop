@@ -1,8 +1,6 @@
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form"
 
 import { Button } from "src/components/ui/button"
-import { Input } from "src/components/ui/input"
-import { cn } from "src/lib/utils"
 
 /**
  * 表单基础设施（基于 TanStack Form 官方 createFormHook 模式）
@@ -18,7 +16,7 @@ import { cn } from "src/lib/utils"
  * <form.AppForm>
  *     <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
  *         <form.AppField name="phone" validators={{ onChange: PhoneSchema }}>
- *             {(field) => <field.TextField label="手机号" placeholder="请输入手机号" />}
+ *             {(field) => <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />}
  *         </form.AppField>
  *         <form.SubmitButton>登录</form.SubmitButton>
  *     </form>
@@ -29,7 +27,7 @@ import { cn } from "src/lib/utils"
  * 错误文案取自 schema 的 message，与 packages/api 的契约保持一致。
  */
 
-const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts()
+const { fieldContext, formContext, useFormContext } = createFormHookContexts()
 
 // ---------- 错误归一化（zod issue / string / 其他） ----------
 
@@ -47,69 +45,6 @@ export function firstFieldError(field: {
 }): string | undefined {
     const error = field.state.meta.errors[0]
     return error === undefined ? undefined : errorMessage(error)
-}
-
-// ---------- 字段组件 ----------
-
-interface TextFieldProps {
-    label?: string
-    placeholder?: string
-    type?: "text" | "password" | "tel" | "email"
-    autoComplete?: string
-    maxLength?: number
-    className?: string
-}
-
-function TextField({
-    label,
-    placeholder,
-    type = "text",
-    autoComplete,
-    maxLength,
-    className,
-}: TextFieldProps) {
-    const field = useFieldContext<string>()
-    const errors = field.state.meta.errors
-    const showError = field.state.meta.isTouched && errors.length > 0
-
-    return (
-        <div className={cn("flex flex-col gap-1.5", className)}>
-            {label && (
-                <label
-                    htmlFor={field.name}
-                    className="text-sm font-medium"
-                >
-                    {label}
-                </label>
-            )}
-            <Input
-                id={field.name}
-                name={field.name}
-                type={type}
-                placeholder={placeholder}
-                autoComplete={autoComplete}
-                maxLength={maxLength}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={showError || undefined}
-            />
-            {showError && (
-                <p className="text-[13px] text-destructive">
-                    {errors.map(errorMessage).join("，")}
-                </p>
-            )}
-        </div>
-    )
-}
-
-function PasswordField(props: Omit<TextFieldProps, "type">) {
-    return (
-        <TextField
-            {...props}
-            type="password"
-        />
-    )
 }
 
 // ---------- 表单级组件 ----------
@@ -136,10 +71,7 @@ function SubmitButton({ children, className }: { children: React.ReactNode; clas
 export const { useAppForm, withForm } = createFormHook({
     fieldContext,
     formContext,
-    fieldComponents: {
-        TextField,
-        PasswordField,
-    },
+    fieldComponents: {},
     formComponents: {
         SubmitButton,
     },

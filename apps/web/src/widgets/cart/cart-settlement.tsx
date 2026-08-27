@@ -1,4 +1,4 @@
-import { Button } from "@shop/ui-web"
+import { Button, Separator } from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/api"
 import { useCart } from "#/features/cart/cart-provider"
@@ -56,7 +56,8 @@ export function CartSettlement() {
 
             {/* 优惠/满减/红包区：本期不做，留白给后续订单接入 */}
             {/* 合计 */}
-            <div className="mt-6 flex items-end justify-between border-t border-border/60 pt-4">
+            <Separator className="mt-6" />
+            <div className="mt-4 flex items-end justify-between">
                 <span className="text-sm text-muted-foreground">合计：</span>
                 <div className="text-right">
                     <span className="text-2xl font-bold tracking-tight text-primary">
@@ -69,7 +70,7 @@ export function CartSettlement() {
             <Button
                 disabled={selectedCount === 0 || isMutating}
                 onClick={() => notify.info("下单功能即将上线")}
-                className="mt-5 h-12 w-full rounded-xl bg-gradient-to-r from-orange-500 to-primary text-base text-white hover:from-orange-600 hover:to-primary-hover"
+                className="mt-5 h-12 w-full rounded-xl bg-gradient-to-r from-primary to-primary-hover text-base text-white hover:from-primary-hover hover:to-primary-active"
             >
                 去结算{selectedCount > 0 ? `(${selectedCount})` : ""}
             </Button>

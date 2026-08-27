@@ -3,6 +3,7 @@ import { Button } from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
 import type { OrderItem } from "#/entities/order"
+import { Panel, PanelContent, PanelHeader } from "#/shared/ui/panel"
 
 /**
  * 店铺 + 商品信息区：店铺行（店名 + 查看交易快照）+ 逐条商品行。
@@ -24,10 +25,10 @@ export interface OrderShopSectionProps {
 
 export function OrderShopSection({ order, items, onItemAction }: OrderShopSectionProps) {
     return (
-        <div className="rounded-xl border border-border/60 bg-background">
+        <Panel>
             {/* 店铺行 */}
-            <div className="flex items-center gap-3 border-b border-border/60 px-5 py-3.5">
-                <span className="inline-flex size-5 items-center justify-center rounded bg-primary text-[11px] font-bold text-primary-foreground">
+            <PanelHeader className="gap-3 py-3.5">
+                <span className="inline-flex size-5 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
                     店
                 </span>
                 <span className="text-sm font-medium text-foreground">{order.shopName}</span>
@@ -38,10 +39,10 @@ export function OrderShopSection({ order, items, onItemAction }: OrderShopSectio
                 >
                     查看交易快照
                 </Button>
-            </div>
+            </PanelHeader>
 
             {/* 商品逐行 */}
-            <div className="divide-y divide-border/60">
+            <PanelContent>
                 {items.map((item) => (
                     <div
                         key={item.id}
@@ -104,7 +105,7 @@ export function OrderShopSection({ order, items, onItemAction }: OrderShopSectio
                         </div>
                     </div>
                 ))}
-            </div>
-        </div>
+            </PanelContent>
+        </Panel>
     )
 }

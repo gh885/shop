@@ -34,7 +34,7 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
                             {done ? (
                                 <Check className="size-3.5" />
                             ) : (
-                                <span className="text-[11px]">{index + 1}</span>
+                                <span className="text-xs">{index + 1}</span>
                             )}
                         </div>
                         <span

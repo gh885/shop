@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { ChevronDown, Copy } from "lucide-react"
 
-import { Button } from "@shop/ui-web"
+import { Button, Card, CardContent, CardHeader, CardTitle, Separator } from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/api"
 
@@ -62,91 +62,100 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
     return (
         <div className="space-y-5">
             {/* 付款详情 */}
-            <div className="rounded-xl border border-border/60 bg-background p-5">
-                <h3 className="mb-3 text-base font-bold">付款详情</h3>
-                <div className="space-y-1">
+            <Card>
+                <CardHeader>
+                    <CardTitle>付款详情</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
                     <InfoRow label="商品总价">¥{fenToYuan(order.totalAmount.amount)}</InfoRow>
                     <InfoRow label="运费(快递)">
                         ¥{fenToYuan(order.shippingFee?.amount ?? 0)}
                     </InfoRow>
-                    <div className="border-t border-border/60 pt-2">
-                        <InfoRow label="实付款">
-                            <span className="text-lg font-bold text-foreground">
-                                ¥{fenToYuan(order.payAmount.amount)}
-                            </span>
-                        </InfoRow>
-                    </div>
-                </div>
-            </div>
-
-            {/* 订单信息 */}
-            <div className="rounded-xl border border-border/60 bg-background p-5">
-                <h3 className="mb-3 text-base font-bold">订单信息</h3>
-                <div className="divide-y divide-border/40">
-                    <div className="py-1">
-                        <InfoRow label="订单编号">
-                            {order.orderNo}
-                            <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                className="ml-1 text-muted-foreground"
-                                aria-label="复制订单号"
-                            >
-                                <Copy />
-                            </Button>
-                        </InfoRow>
-                    </div>
-                    <InfoRow label="支付方式">{order.payMethod || "—"}</InfoRow>
-                    <InfoRow label="收货信息">
-                        <span className="block leading-relaxed">
-                            {order.receiver.phone}，{order.receiver.address}
+                    <Separator className="my-2" />
+                    <InfoRow label="实付款">
+                        <span className="text-lg font-bold text-foreground">
+                            ¥{fenToYuan(order.payAmount.amount)}
                         </span>
                     </InfoRow>
-                    <InfoRow label="订单状态">
-                        {ORDER_STATUS_LABEL[order.status as keyof typeof ORDER_STATUS_LABEL] ??
-                            order.status}
-                    </InfoRow>
-                    <InfoRow label="创建时间">{dateStr(order.createdAt)}</InfoRow>
-                    <InfoRow label="付款时间">{dateStr(order.payTime)}</InfoRow>
-                    <InfoRow label="发货时间">{dateStr(order.shipTime)}</InfoRow>
-                    <InfoRow label="成交时间">{dateStr(order.finishTime)}</InfoRow>
+                </CardContent>
+            </Card>
 
-                    {/* 次要字段可折叠 */}
-                    <button
-                        type="button"
-                        onClick={() => setMoreOpen((o) => !o)}
-                        className="flex w-full items-center justify-center gap-1 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                        {moreOpen ? "收起更多订单信息" : "展开更多订单信息"}
-                        <ChevronDown
-                            className={`size-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`}
-                        />
-                    </button>
-
-                    {moreOpen && (
+            {/* 订单信息 */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>订单信息</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="divide-y divide-border/40">
                         <div className="py-1">
-                            <InfoRow label="交易快照">
+                            <InfoRow label="订单编号">
+                                {order.orderNo}
                                 <Button
-                                    variant="link"
-                                    size="sm"
-                                    className="text-primary"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="ml-1 text-muted-foreground"
+                                    aria-label="复制订单号"
                                 >
-                                    查看交易快照
+                                    <Copy />
                                 </Button>
                             </InfoRow>
-                            <InfoRow label="支付宝交易号">{order.payTxnNo || "—"}</InfoRow>
                         </div>
-                    )}
-                </div>
-            </div>
+                        <InfoRow label="支付方式">{order.payMethod || "—"}</InfoRow>
+                        <InfoRow label="收货信息">
+                            <span className="block leading-relaxed">
+                                {order.receiver.phone}，{order.receiver.address}
+                            </span>
+                        </InfoRow>
+                        <InfoRow label="订单状态">
+                            {ORDER_STATUS_LABEL[order.status as keyof typeof ORDER_STATUS_LABEL] ??
+                                order.status}
+                        </InfoRow>
+                        <InfoRow label="创建时间">{dateStr(order.createdAt)}</InfoRow>
+                        <InfoRow label="付款时间">{dateStr(order.payTime)}</InfoRow>
+                        <InfoRow label="发货时间">{dateStr(order.shipTime)}</InfoRow>
+                        <InfoRow label="成交时间">{dateStr(order.finishTime)}</InfoRow>
+
+                        {/* 次要字段可折叠 */}
+                        <button
+                            type="button"
+                            onClick={() => setMoreOpen((o) => !o)}
+                            className="flex w-full items-center justify-center gap-1 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                            {moreOpen ? "收起更多订单信息" : "展开更多订单信息"}
+                            <ChevronDown
+                                className={`size-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`}
+                            />
+                        </button>
+
+                        {moreOpen && (
+                            <div className="py-1">
+                                <InfoRow label="交易快照">
+                                    <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="text-primary"
+                                    >
+                                        查看交易快照
+                                    </Button>
+                                </InfoRow>
+                                <InfoRow label="支付宝交易号">{order.payTxnNo || "—"}</InfoRow>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* 订单服务 */}
-            <div className="rounded-xl border border-border/60 bg-background p-5">
-                <h3 className="mb-3 text-base font-bold">订单服务</h3>
-                <p className="text-sm text-muted-foreground">
-                    {order.services.length > 0 ? order.services.join("、") : "暂无"}
-                </p>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>订单服务</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                        {order.services.length > 0 ? order.services.join("、") : "暂无"}
+                    </p>
+                </CardContent>
+            </Card>
         </div>
     )
 }

@@ -1,3 +1,5 @@
+import { Empty, EmptyHeader, EmptyTitle } from "@shop/ui-web"
+
 import type { ParamItem } from "#/entities/product"
 import { DetailSection } from "./detail-section"
 
@@ -11,7 +13,11 @@ export function ParamsSection({ params }: { params: ParamItem[] }) {
             title="参数信息"
         >
             {params.length === 0 ? (
-                <p className="text-sm text-muted-foreground">暂无参数</p>
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyTitle>暂无参数</EmptyTitle>
+                    </EmptyHeader>
+                </Empty>
             ) : (
                 <div className="space-y-4">
                     {head && (

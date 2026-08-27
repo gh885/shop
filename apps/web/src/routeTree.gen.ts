@@ -8,338 +8,332 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
-import { Route as WelcomeRouteImport } from './routes/welcome'
-import { Route as ProtectedAccountRouteRouteImport } from './routes/_protected/account/route'
-import { Route as ProtectedCartRouteImport } from './routes/_protected/cart'
-import { Route as ProductsIdRouteImport } from './routes/products/$id'
-import { Route as SellIndexRouteImport } from './routes/sell/index'
-import { Route as ProtectedOrdersOrderIdRouteImport } from './routes/_protected/orders/$orderId'
-import { Route as ProtectedAccountAddressIndexRouteImport } from './routes/_protected/account/address/index'
-import { Route as ProtectedAccountFavoritesIndexRouteImport } from './routes/_protected/account/favorites/index'
-import { Route as ProtectedAccountOrdersIndexRouteImport } from './routes/_protected/account/orders/index'
-import { Route as ProtectedAccountProfileIndexRouteImport } from './routes/_protected/account/profile/index'
-import { Route as ProtectedAccountSecurityIndexRouteImport } from './routes/_protected/account/security/index'
+import { Route as rootRouteImport } from "./routes/__root"
+import { Route as IndexRouteImport } from "./routes/index"
+import { Route as ProtectedRouteRouteImport } from "./routes/_protected/route"
+import { Route as WelcomeRouteImport } from "./routes/welcome"
+import { Route as ProtectedAccountRouteRouteImport } from "./routes/_protected/account/route"
+import { Route as ProtectedCartRouteImport } from "./routes/_protected/cart"
+import { Route as ProductsIdRouteImport } from "./routes/products/$id"
+import { Route as SellIndexRouteImport } from "./routes/sell/index"
+import { Route as ProtectedOrdersOrderIdRouteImport } from "./routes/_protected/orders/$orderId"
+import { Route as ProtectedAccountAddressIndexRouteImport } from "./routes/_protected/account/address/index"
+import { Route as ProtectedAccountFavoritesIndexRouteImport } from "./routes/_protected/account/favorites/index"
+import { Route as ProtectedAccountOrdersIndexRouteImport } from "./routes/_protected/account/orders/index"
+import { Route as ProtectedAccountProfileIndexRouteImport } from "./routes/_protected/account/profile/index"
+import { Route as ProtectedAccountSecurityIndexRouteImport } from "./routes/_protected/account/security/index"
 
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
+    id: "/",
+    path: "/",
+    getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
-  id: '/_protected',
-  getParentRoute: () => rootRouteImport,
+    id: "/_protected",
+    getParentRoute: () => rootRouteImport,
 } as any)
 const WelcomeRoute = WelcomeRouteImport.update({
-  id: '/welcome',
-  path: '/welcome',
-  getParentRoute: () => rootRouteImport,
+    id: "/welcome",
+    path: "/welcome",
+    getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedAccountRouteRoute = ProtectedAccountRouteRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => ProtectedRouteRoute,
+    id: "/account",
+    path: "/account",
+    getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedCartRoute = ProtectedCartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
-  getParentRoute: () => ProtectedRouteRoute,
+    id: "/cart",
+    path: "/cart",
+    getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProductsIdRoute = ProductsIdRouteImport.update({
-  id: '/products/$id',
-  path: '/products/$id',
-  getParentRoute: () => rootRouteImport,
+    id: "/products/$id",
+    path: "/products/$id",
+    getParentRoute: () => rootRouteImport,
 } as any)
 const SellIndexRoute = SellIndexRouteImport.update({
-  id: '/sell/',
-  path: '/sell/',
-  getParentRoute: () => rootRouteImport,
+    id: "/sell/",
+    path: "/sell/",
+    getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedOrdersOrderIdRoute = ProtectedOrdersOrderIdRouteImport.update({
-  id: '/orders/$orderId',
-  path: '/orders/$orderId',
-  getParentRoute: () => ProtectedRouteRoute,
+    id: "/orders/$orderId",
+    path: "/orders/$orderId",
+    getParentRoute: () => ProtectedRouteRoute,
 } as any)
-const ProtectedAccountAddressIndexRoute =
-  ProtectedAccountAddressIndexRouteImport.update({
-    id: '/address/',
-    path: '/address/',
+const ProtectedAccountAddressIndexRoute = ProtectedAccountAddressIndexRouteImport.update({
+    id: "/address/",
+    path: "/address/",
     getParentRoute: () => ProtectedAccountRouteRoute,
-  } as any)
-const ProtectedAccountFavoritesIndexRoute =
-  ProtectedAccountFavoritesIndexRouteImport.update({
-    id: '/favorites/',
-    path: '/favorites/',
+} as any)
+const ProtectedAccountFavoritesIndexRoute = ProtectedAccountFavoritesIndexRouteImport.update({
+    id: "/favorites/",
+    path: "/favorites/",
     getParentRoute: () => ProtectedAccountRouteRoute,
-  } as any)
-const ProtectedAccountOrdersIndexRoute =
-  ProtectedAccountOrdersIndexRouteImport.update({
-    id: '/orders/',
-    path: '/orders/',
+} as any)
+const ProtectedAccountOrdersIndexRoute = ProtectedAccountOrdersIndexRouteImport.update({
+    id: "/orders/",
+    path: "/orders/",
     getParentRoute: () => ProtectedAccountRouteRoute,
-  } as any)
-const ProtectedAccountProfileIndexRoute =
-  ProtectedAccountProfileIndexRouteImport.update({
-    id: '/profile/',
-    path: '/profile/',
+} as any)
+const ProtectedAccountProfileIndexRoute = ProtectedAccountProfileIndexRouteImport.update({
+    id: "/profile/",
+    path: "/profile/",
     getParentRoute: () => ProtectedAccountRouteRoute,
-  } as any)
-const ProtectedAccountSecurityIndexRoute =
-  ProtectedAccountSecurityIndexRouteImport.update({
-    id: '/security/',
-    path: '/security/',
+} as any)
+const ProtectedAccountSecurityIndexRoute = ProtectedAccountSecurityIndexRouteImport.update({
+    id: "/security/",
+    path: "/security/",
     getParentRoute: () => ProtectedAccountRouteRoute,
-  } as any)
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/welcome': typeof WelcomeRoute
-  '/account': typeof ProtectedAccountRouteRouteWithChildren
-  '/cart': typeof ProtectedCartRoute
-  '/products/$id': typeof ProductsIdRoute
-  '/sell/': typeof SellIndexRoute
-  '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/account/address/': typeof ProtectedAccountAddressIndexRoute
-  '/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
-  '/account/orders/': typeof ProtectedAccountOrdersIndexRoute
-  '/account/profile/': typeof ProtectedAccountProfileIndexRoute
-  '/account/security/': typeof ProtectedAccountSecurityIndexRoute
+    "/": typeof IndexRoute
+    "/welcome": typeof WelcomeRoute
+    "/account": typeof ProtectedAccountRouteRouteWithChildren
+    "/cart": typeof ProtectedCartRoute
+    "/products/$id": typeof ProductsIdRoute
+    "/sell/": typeof SellIndexRoute
+    "/orders/$orderId": typeof ProtectedOrdersOrderIdRoute
+    "/account/address/": typeof ProtectedAccountAddressIndexRoute
+    "/account/favorites/": typeof ProtectedAccountFavoritesIndexRoute
+    "/account/orders/": typeof ProtectedAccountOrdersIndexRoute
+    "/account/profile/": typeof ProtectedAccountProfileIndexRoute
+    "/account/security/": typeof ProtectedAccountSecurityIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/welcome': typeof WelcomeRoute
-  '/account': typeof ProtectedAccountRouteRouteWithChildren
-  '/cart': typeof ProtectedCartRoute
-  '/products/$id': typeof ProductsIdRoute
-  '/sell': typeof SellIndexRoute
-  '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/account/address': typeof ProtectedAccountAddressIndexRoute
-  '/account/favorites': typeof ProtectedAccountFavoritesIndexRoute
-  '/account/orders': typeof ProtectedAccountOrdersIndexRoute
-  '/account/profile': typeof ProtectedAccountProfileIndexRoute
-  '/account/security': typeof ProtectedAccountSecurityIndexRoute
+    "/": typeof IndexRoute
+    "/welcome": typeof WelcomeRoute
+    "/account": typeof ProtectedAccountRouteRouteWithChildren
+    "/cart": typeof ProtectedCartRoute
+    "/products/$id": typeof ProductsIdRoute
+    "/sell": typeof SellIndexRoute
+    "/orders/$orderId": typeof ProtectedOrdersOrderIdRoute
+    "/account/address": typeof ProtectedAccountAddressIndexRoute
+    "/account/favorites": typeof ProtectedAccountFavoritesIndexRoute
+    "/account/orders": typeof ProtectedAccountOrdersIndexRoute
+    "/account/profile": typeof ProtectedAccountProfileIndexRoute
+    "/account/security": typeof ProtectedAccountSecurityIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_protected': typeof ProtectedRouteRouteWithChildren
-  '/welcome': typeof WelcomeRoute
-  '/_protected/account': typeof ProtectedAccountRouteRouteWithChildren
-  '/_protected/cart': typeof ProtectedCartRoute
-  '/products/$id': typeof ProductsIdRoute
-  '/sell/': typeof SellIndexRoute
-  '/_protected/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/_protected/account/address/': typeof ProtectedAccountAddressIndexRoute
-  '/_protected/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
-  '/_protected/account/orders/': typeof ProtectedAccountOrdersIndexRoute
-  '/_protected/account/profile/': typeof ProtectedAccountProfileIndexRoute
-  '/_protected/account/security/': typeof ProtectedAccountSecurityIndexRoute
+    __root__: typeof rootRouteImport
+    "/": typeof IndexRoute
+    "/_protected": typeof ProtectedRouteRouteWithChildren
+    "/welcome": typeof WelcomeRoute
+    "/_protected/account": typeof ProtectedAccountRouteRouteWithChildren
+    "/_protected/cart": typeof ProtectedCartRoute
+    "/products/$id": typeof ProductsIdRoute
+    "/sell/": typeof SellIndexRoute
+    "/_protected/orders/$orderId": typeof ProtectedOrdersOrderIdRoute
+    "/_protected/account/address/": typeof ProtectedAccountAddressIndexRoute
+    "/_protected/account/favorites/": typeof ProtectedAccountFavoritesIndexRoute
+    "/_protected/account/orders/": typeof ProtectedAccountOrdersIndexRoute
+    "/_protected/account/profile/": typeof ProtectedAccountProfileIndexRoute
+    "/_protected/account/security/": typeof ProtectedAccountSecurityIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/welcome'
-    | '/account'
-    | '/cart'
-    | '/products/$id'
-    | '/sell/'
-    | '/orders/$orderId'
-    | '/account/address/'
-    | '/account/favorites/'
-    | '/account/orders/'
-    | '/account/profile/'
-    | '/account/security/'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/welcome'
-    | '/account'
-    | '/cart'
-    | '/products/$id'
-    | '/sell'
-    | '/orders/$orderId'
-    | '/account/address'
-    | '/account/favorites'
-    | '/account/orders'
-    | '/account/profile'
-    | '/account/security'
-  id:
-    | '__root__'
-    | '/'
-    | '/_protected'
-    | '/welcome'
-    | '/_protected/account'
-    | '/_protected/cart'
-    | '/products/$id'
-    | '/sell/'
-    | '/_protected/orders/$orderId'
-    | '/_protected/account/address/'
-    | '/_protected/account/favorites/'
-    | '/_protected/account/orders/'
-    | '/_protected/account/profile/'
-    | '/_protected/account/security/'
-  fileRoutesById: FileRoutesById
+    fileRoutesByFullPath: FileRoutesByFullPath
+    fullPaths:
+        | "/"
+        | "/welcome"
+        | "/account"
+        | "/cart"
+        | "/products/$id"
+        | "/sell/"
+        | "/orders/$orderId"
+        | "/account/address/"
+        | "/account/favorites/"
+        | "/account/orders/"
+        | "/account/profile/"
+        | "/account/security/"
+    fileRoutesByTo: FileRoutesByTo
+    to:
+        | "/"
+        | "/welcome"
+        | "/account"
+        | "/cart"
+        | "/products/$id"
+        | "/sell"
+        | "/orders/$orderId"
+        | "/account/address"
+        | "/account/favorites"
+        | "/account/orders"
+        | "/account/profile"
+        | "/account/security"
+    id:
+        | "__root__"
+        | "/"
+        | "/_protected"
+        | "/welcome"
+        | "/_protected/account"
+        | "/_protected/cart"
+        | "/products/$id"
+        | "/sell/"
+        | "/_protected/orders/$orderId"
+        | "/_protected/account/address/"
+        | "/_protected/account/favorites/"
+        | "/_protected/account/orders/"
+        | "/_protected/account/profile/"
+        | "/_protected/account/security/"
+    fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
-  WelcomeRoute: typeof WelcomeRoute
-  ProductsIdRoute: typeof ProductsIdRoute
-  SellIndexRoute: typeof SellIndexRoute
+    IndexRoute: typeof IndexRoute
+    ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
+    WelcomeRoute: typeof WelcomeRoute
+    ProductsIdRoute: typeof ProductsIdRoute
+    SellIndexRoute: typeof SellIndexRoute
 }
 
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+declare module "@tanstack/react-router" {
+    interface FileRoutesByPath {
+        "/": {
+            id: "/"
+            path: "/"
+            fullPath: "/"
+            preLoaderRoute: typeof IndexRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        "/_protected": {
+            id: "/_protected"
+            path: ""
+            fullPath: "/"
+            preLoaderRoute: typeof ProtectedRouteRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        "/welcome": {
+            id: "/welcome"
+            path: "/welcome"
+            fullPath: "/welcome"
+            preLoaderRoute: typeof WelcomeRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        "/_protected/account": {
+            id: "/_protected/account"
+            path: "/account"
+            fullPath: "/account"
+            preLoaderRoute: typeof ProtectedAccountRouteRouteImport
+            parentRoute: typeof ProtectedRouteRoute
+        }
+        "/_protected/cart": {
+            id: "/_protected/cart"
+            path: "/cart"
+            fullPath: "/cart"
+            preLoaderRoute: typeof ProtectedCartRouteImport
+            parentRoute: typeof ProtectedRouteRoute
+        }
+        "/products/$id": {
+            id: "/products/$id"
+            path: "/products/$id"
+            fullPath: "/products/$id"
+            preLoaderRoute: typeof ProductsIdRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        "/sell/": {
+            id: "/sell/"
+            path: "/sell"
+            fullPath: "/sell/"
+            preLoaderRoute: typeof SellIndexRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        "/_protected/orders/$orderId": {
+            id: "/_protected/orders/$orderId"
+            path: "/orders/$orderId"
+            fullPath: "/orders/$orderId"
+            preLoaderRoute: typeof ProtectedOrdersOrderIdRouteImport
+            parentRoute: typeof ProtectedRouteRoute
+        }
+        "/_protected/account/address/": {
+            id: "/_protected/account/address/"
+            path: "/address"
+            fullPath: "/account/address/"
+            preLoaderRoute: typeof ProtectedAccountAddressIndexRouteImport
+            parentRoute: typeof ProtectedAccountRouteRoute
+        }
+        "/_protected/account/favorites/": {
+            id: "/_protected/account/favorites/"
+            path: "/favorites"
+            fullPath: "/account/favorites/"
+            preLoaderRoute: typeof ProtectedAccountFavoritesIndexRouteImport
+            parentRoute: typeof ProtectedAccountRouteRoute
+        }
+        "/_protected/account/orders/": {
+            id: "/_protected/account/orders/"
+            path: "/orders"
+            fullPath: "/account/orders/"
+            preLoaderRoute: typeof ProtectedAccountOrdersIndexRouteImport
+            parentRoute: typeof ProtectedAccountRouteRoute
+        }
+        "/_protected/account/profile/": {
+            id: "/_protected/account/profile/"
+            path: "/profile"
+            fullPath: "/account/profile/"
+            preLoaderRoute: typeof ProtectedAccountProfileIndexRouteImport
+            parentRoute: typeof ProtectedAccountRouteRoute
+        }
+        "/_protected/account/security/": {
+            id: "/_protected/account/security/"
+            path: "/security"
+            fullPath: "/account/security/"
+            preLoaderRoute: typeof ProtectedAccountSecurityIndexRouteImport
+            parentRoute: typeof ProtectedAccountRouteRoute
+        }
     }
-    '/_protected': {
-      id: '/_protected'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ProtectedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/welcome': {
-      id: '/welcome'
-      path: '/welcome'
-      fullPath: '/welcome'
-      preLoaderRoute: typeof WelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected/account': {
-      id: '/_protected/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof ProtectedAccountRouteRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/cart': {
-      id: '/_protected/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof ProtectedCartRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/products/$id': {
-      id: '/products/$id'
-      path: '/products/$id'
-      fullPath: '/products/$id'
-      preLoaderRoute: typeof ProductsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sell/': {
-      id: '/sell/'
-      path: '/sell'
-      fullPath: '/sell/'
-      preLoaderRoute: typeof SellIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected/orders/$orderId': {
-      id: '/_protected/orders/$orderId'
-      path: '/orders/$orderId'
-      fullPath: '/orders/$orderId'
-      preLoaderRoute: typeof ProtectedOrdersOrderIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/account/address/': {
-      id: '/_protected/account/address/'
-      path: '/address'
-      fullPath: '/account/address/'
-      preLoaderRoute: typeof ProtectedAccountAddressIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
-    }
-    '/_protected/account/favorites/': {
-      id: '/_protected/account/favorites/'
-      path: '/favorites'
-      fullPath: '/account/favorites/'
-      preLoaderRoute: typeof ProtectedAccountFavoritesIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
-    }
-    '/_protected/account/orders/': {
-      id: '/_protected/account/orders/'
-      path: '/orders'
-      fullPath: '/account/orders/'
-      preLoaderRoute: typeof ProtectedAccountOrdersIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
-    }
-    '/_protected/account/profile/': {
-      id: '/_protected/account/profile/'
-      path: '/profile'
-      fullPath: '/account/profile/'
-      preLoaderRoute: typeof ProtectedAccountProfileIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
-    }
-    '/_protected/account/security/': {
-      id: '/_protected/account/security/'
-      path: '/security'
-      fullPath: '/account/security/'
-      preLoaderRoute: typeof ProtectedAccountSecurityIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
-    }
-  }
 }
 
 interface ProtectedAccountRouteRouteChildren {
-  ProtectedAccountAddressIndexRoute: typeof ProtectedAccountAddressIndexRoute
-  ProtectedAccountFavoritesIndexRoute: typeof ProtectedAccountFavoritesIndexRoute
-  ProtectedAccountOrdersIndexRoute: typeof ProtectedAccountOrdersIndexRoute
-  ProtectedAccountProfileIndexRoute: typeof ProtectedAccountProfileIndexRoute
-  ProtectedAccountSecurityIndexRoute: typeof ProtectedAccountSecurityIndexRoute
+    ProtectedAccountAddressIndexRoute: typeof ProtectedAccountAddressIndexRoute
+    ProtectedAccountFavoritesIndexRoute: typeof ProtectedAccountFavoritesIndexRoute
+    ProtectedAccountOrdersIndexRoute: typeof ProtectedAccountOrdersIndexRoute
+    ProtectedAccountProfileIndexRoute: typeof ProtectedAccountProfileIndexRoute
+    ProtectedAccountSecurityIndexRoute: typeof ProtectedAccountSecurityIndexRoute
 }
 
 const ProtectedAccountRouteRouteChildren: ProtectedAccountRouteRouteChildren = {
-  ProtectedAccountAddressIndexRoute: ProtectedAccountAddressIndexRoute,
-  ProtectedAccountFavoritesIndexRoute: ProtectedAccountFavoritesIndexRoute,
-  ProtectedAccountOrdersIndexRoute: ProtectedAccountOrdersIndexRoute,
-  ProtectedAccountProfileIndexRoute: ProtectedAccountProfileIndexRoute,
-  ProtectedAccountSecurityIndexRoute: ProtectedAccountSecurityIndexRoute,
+    ProtectedAccountAddressIndexRoute: ProtectedAccountAddressIndexRoute,
+    ProtectedAccountFavoritesIndexRoute: ProtectedAccountFavoritesIndexRoute,
+    ProtectedAccountOrdersIndexRoute: ProtectedAccountOrdersIndexRoute,
+    ProtectedAccountProfileIndexRoute: ProtectedAccountProfileIndexRoute,
+    ProtectedAccountSecurityIndexRoute: ProtectedAccountSecurityIndexRoute,
 }
 
-const ProtectedAccountRouteRouteWithChildren =
-  ProtectedAccountRouteRoute._addFileChildren(
+const ProtectedAccountRouteRouteWithChildren = ProtectedAccountRouteRoute._addFileChildren(
     ProtectedAccountRouteRouteChildren,
-  )
+)
 
 interface ProtectedRouteRouteChildren {
-  ProtectedAccountRouteRoute: typeof ProtectedAccountRouteRouteWithChildren
-  ProtectedCartRoute: typeof ProtectedCartRoute
-  ProtectedOrdersOrderIdRoute: typeof ProtectedOrdersOrderIdRoute
+    ProtectedAccountRouteRoute: typeof ProtectedAccountRouteRouteWithChildren
+    ProtectedCartRoute: typeof ProtectedCartRoute
+    ProtectedOrdersOrderIdRoute: typeof ProtectedOrdersOrderIdRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
-  ProtectedAccountRouteRoute: ProtectedAccountRouteRouteWithChildren,
-  ProtectedCartRoute: ProtectedCartRoute,
-  ProtectedOrdersOrderIdRoute: ProtectedOrdersOrderIdRoute,
+    ProtectedAccountRouteRoute: ProtectedAccountRouteRouteWithChildren,
+    ProtectedCartRoute: ProtectedCartRoute,
+    ProtectedOrdersOrderIdRoute: ProtectedOrdersOrderIdRoute,
 }
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
-  ProtectedRouteRouteChildren,
+    ProtectedRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
-  WelcomeRoute: WelcomeRoute,
-  ProductsIdRoute: ProductsIdRoute,
-  SellIndexRoute: SellIndexRoute,
+    IndexRoute: IndexRoute,
+    ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
+    WelcomeRoute: WelcomeRoute,
+    ProductsIdRoute: ProductsIdRoute,
+    SellIndexRoute: SellIndexRoute,
 }
 export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+    ._addFileChildren(rootRouteChildren)
+    ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
+import type { getRouter } from "./router.tsx"
+import type { createStart } from "@tanstack/react-start"
+declare module "@tanstack/react-start" {
+    interface Register {
+        ssr: true
+        router: Awaited<ReturnType<typeof getRouter>>
+    }
 }

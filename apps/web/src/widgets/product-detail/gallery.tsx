@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react"
 import type { CarouselApi } from "@shop/ui-web"
-import { Carousel, CarouselContent, CarouselItem, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    Empty,
+    EmptyHeader,
+    EmptyTitle,
+    Tabs,
+    TabsList,
+    TabsTrigger,
+} from "@shop/ui-web"
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
 import type { ParamItem } from "#/entities/product"
@@ -150,9 +160,11 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
 function ParamsSlide({ params }: { params: ParamItem[] }) {
     if (params.length === 0) {
         return (
-            <div className="flex h-[480px] items-center justify-center text-sm text-muted-foreground">
-                暂无参数
-            </div>
+            <Empty className="h-[480px]">
+                <EmptyHeader>
+                    <EmptyTitle>暂无参数</EmptyTitle>
+                </EmptyHeader>
+            </Empty>
         )
     }
 
