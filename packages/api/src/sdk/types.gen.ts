@@ -549,6 +549,8 @@ export type OrderDetailResponse = {
     id?: string;
     orderNo?: string;
     status?: string;
+    shopId?: string;
+    shopName?: string;
     availableActions?: Array<string>;
     itemAmount?: Money;
     shippingFee?: Money;
@@ -587,6 +589,8 @@ export type OrderListItemResponse = {
     id?: string;
     orderNo?: string;
     status?: string;
+    shopId?: string;
+    shopName?: string;
     payAmount?: Money;
     payExpireAt?: string;
     createdAt?: string;

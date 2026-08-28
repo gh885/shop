@@ -13,10 +13,12 @@ import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.order.service.ValidLine;
+import com.shop.platform.shop.api.ShopReadQuery;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -43,6 +45,8 @@ public class OrderController {
 
     private final OrderService orderService;
 
+    private final ShopReadQuery shopReadQuery;
+
     /** 结算预览：按店分组算钱（拆单预告）+ 失效行置灰 + 地址可选回显。只读幂等 */
     @PostMapping("/preview")
     public PreviewResponse previewOrder(@Valid @RequestBody PreviewOrderRequest req) {
@@ -63,14 +67,24 @@ public class OrderController {
     @GetMapping("/mine")
     public PageResult<OrderListItemResponse> listMyOrders(@Valid PageParams pageParams, @Valid OrderQuery query) {
         PageResult<OrderWithItems> page = orderService.pageMine(UserIdHolder.get(), query.status(), pageParams);
+        // 店名批量点查（shop :: api）：列表多单多店，集中拼一次
+        Map<UUID, String> shopNames = shopReadQuery.namesByIds(
+                page.records().stream().map(o -> o.order().getShopId()).toList());
         return new PageResult<>(
-                page.records().stream().map(OrderListItemResponse::from).toList(), page.total());
+                page.records().stream()
+                        .map(o -> OrderListItemResponse.from(o, shopNames))
+                        .toList(),
+                page.total());
     }
 
     /** 订单详情：含收货快照、物流、各状态时间戳 */
     @GetMapping("/{id}")
     public OrderDetailResponse getOrderDetail(@PathVariable UUID id) {
-        return OrderDetailResponse.buyerView(orderService.detail(UserIdHolder.get(), id));
+        OrderWithItems detail = orderService.detail(UserIdHolder.get(), id);
+        String shopName = shopReadQuery
+                .namesByIds(List.of(detail.order().getShopId()))
+                .get(detail.order().getShopId());
+        return OrderDetailResponse.buyerView(detail, shopName);
     }
 
     /** 取消订单：仅待付款/待发货可取消，取消即回补库存 */
@@ -177,16 +191,20 @@ public class OrderController {
             UUID id,
             String orderNo,
             String status,
+            UUID shopId,
+            String shopName,
             Money payAmount,
             OffsetDateTime payExpireAt,
             OffsetDateTime createdAt,
             List<OrderItemResponse> items) {
 
-        static OrderListItemResponse from(OrderWithItems o) {
+        static OrderListItemResponse from(OrderWithItems o, Map<UUID, String> shopNames) {
             return new OrderListItemResponse(
                     o.order().getId(),
                     o.order().getOrderNo(),
                     o.order().getStatus(),
+                    o.order().getShopId(),
+                    shopNames.getOrDefault(o.order().getShopId(), ""),
                     o.order().payAmountAsMoney(),
                     o.order().getPayExpireAt(),
                     o.order().getCreatedAt(),

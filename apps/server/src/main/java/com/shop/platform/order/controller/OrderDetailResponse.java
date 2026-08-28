@@ -16,6 +16,8 @@ public record OrderDetailResponse(
         UUID id,
         String orderNo,
         String status,
+        UUID shopId,
+        String shopName,
         List<String> availableActions,
         Money itemAmount,
         Money shippingFee,
@@ -38,23 +40,25 @@ public record OrderDetailResponse(
         OffsetDateTime createdAt,
         List<OrderItemResponse> items) {
 
-    /** 买家视角：可执行动作按买家状态机推导 */
-    public static OrderDetailResponse buyerView(OrderWithItems o) {
-        return from(o, Order::buyerActions);
+    /** 买家视角：可执行动作按买家状态机推导；shopName 由调用方（order controller）经 shop :: api 拼入 */
+    public static OrderDetailResponse buyerView(OrderWithItems o, String shopName) {
+        return from(o, shopName, Order::buyerActions);
     }
 
     /** 卖家视角：发货作业动作 */
     public static OrderDetailResponse sellerView(OrderWithItems o) {
-        return from(o, Order::sellerActions);
+        return from(o, null, Order::sellerActions);
     }
 
-    private static OrderDetailResponse from(OrderWithItems o, Function<Order, List<String>> actions) {
+    private static OrderDetailResponse from(OrderWithItems o, String shopName, Function<Order, List<String>> actions) {
         Order order = o.order();
         return new OrderDetailResponse(
                 // 单据身份与状态
                 order.getId(),
                 order.getOrderNo(),
                 order.getStatus(),
+                order.getShopId(),
+                shopName,
                 actions.apply(order),
                 // 金额三件套
                 order.itemAmountAsMoney(),
