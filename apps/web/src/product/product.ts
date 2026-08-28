@@ -1,10 +1,11 @@
 import { fenToYuan } from "@shop/api"
 import type { Money } from "@shop/api"
+import type { Money as SdkMoney } from "@shop/api/sdk"
 import type {
     ParamItem,
-    ProductDetailResponse,
-    ProductResponse,
-    SkuResponse,
+    PublicProductDetailResponse,
+    PublicProductResponse,
+    PublicSkuResponse,
     SpecItem,
 } from "@shop/api/sdk"
 
@@ -12,8 +13,7 @@ import type {
  * product —— 买家侧商品领域层（纯类型 + 纯规则 + wire → 投影，不碰 React / 网络）。
  *
  * 投影刻意做瘦：只暴露消费方真正需要的字段，wire 的可选字段归一成稳定缺省形状。
- * 金额一律 Money（分 + 币种），不裸传 number。wire 里 SKU 价/区间价是裸数字（分）+ 独立币种，
- * 投影时拼回 Money（ProductResponse 无币种列，按全站约定默认 CNY）。
+ * 金额一律 Money（分 + 币种），不裸传 number；后端已直接差分 Money 对象（币种含在 Money 里），投影直接透传。
  */
 
 // ---------- 业务类型 ----------
@@ -78,8 +78,14 @@ export type ProductListQueryInput = {
 
 // ---------- wire → 投影 ----------
 
-/** wire → 业务形状：ProductResponse 可选字段归一；区间价是裸数字（分），拼回 Money 默认 CNY */
-export function toProduct(dto: ProductResponse): Product {
+/** 归一：SDK 的 Money 字段全可选（openapi-ts 默认），业务 Money 必填；null 原样保留，否则回填默认币种。 */
+function toMoney(m: SdkMoney | null | undefined): Money | null {
+    if (m == null) return null
+    return { amount: m.amount ?? 0, currency: m.currency ?? "CNY" }
+}
+
+/** wire → 业务形状：PublicProductResponse 可选字段归一；minPrice/maxPrice 已是 Money，归一成必填 Money */
+export function toProduct(dto: PublicProductResponse): Product {
     return {
         id: dto.id ?? "",
         shopId: dto.shopId ?? "",
@@ -87,34 +93,32 @@ export function toProduct(dto: ProductResponse): Product {
         title: dto.name ?? "",
         subtitle: dto.subtitle ?? "",
         image: dto.mainImage ?? "",
-        priceMin: dto.minPrice == null ? null : { amount: dto.minPrice, currency: "CNY" },
-        priceMax: dto.maxPrice == null ? null : { amount: dto.maxPrice, currency: "CNY" },
+        priceMin: toMoney(dto.minPrice),
+        priceMax: toMoney(dto.maxPrice),
     }
 }
 
-/** wire → 业务形状：SKU 价/划线价是裸数字（分）+ 独立币种，拼回 Money */
-export function toSku(dto: SkuResponse): Sku {
-    const currency = dto.currency ?? "CNY"
+/** wire → 业务形状：SKU 价/划线价已是 Money（币种已含在 Money 里），归一成必填 Money；price 缺省回 0 分 */
+export function toSku(dto: PublicSkuResponse): Sku {
     return {
         id: dto.id ?? "",
         name: dto.name ?? "",
         attributes: dto.attributes ?? [],
         image: dto.image,
-        price: { amount: dto.price ?? 0, currency },
-        originalPrice: dto.originalPrice == null ? null : { amount: dto.originalPrice, currency },
+        price: toMoney(dto.price) ?? { amount: 0, currency: "CNY" },
+        originalPrice: toMoney(dto.originalPrice),
         stock: dto.stock ?? 0,
     }
 }
 
-/** 详情 wire：product 里带 description/images/specs/params，投影时从 product 取；SKU 逐条 toSku */
-export function toProductDetail(dto: ProductDetailResponse): ProductDetail {
-    const p = dto.product
+/** 详情 wire：description/images/specs/params 在详情响应顶层（product 只是列表项），SKU 逐条 toSku */
+export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail {
     return {
-        product: toProduct(p ?? {}),
-        description: p?.description ?? "",
-        images: p?.images ?? [],
-        specs: p?.specs ?? [],
-        params: p?.params ?? [],
+        product: toProduct(dto.product ?? {}),
+        description: dto.description ?? "",
+        images: dto.images ?? [],
+        specs: dto.specs ?? [],
+        params: dto.params ?? [],
         skus: (dto.skus ?? []).map(toSku),
     }
 }

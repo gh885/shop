@@ -23,6 +23,9 @@ const config = defineConfig({
             // 代理只写带尾斜杠的 key，页面路由不被劫持；支付入口是 POST /payments，无裸路径调用
             "/orders/": { target: "http://localhost:8080", changeOrigin: true },
             "/payments": { target: "http://localhost:8080", changeOrigin: true },
+            // /favorites 同为已登录用户接口（根路径），但无同名页面路由（页面在 /account/favorites），
+            // 且 API 会调裸 POST /favorites（收藏开关）——用无尾斜杠 key 同时覆盖裸路径与 /favorites/*
+            "/favorites": { target: "http://localhost:8080", changeOrigin: true },
         },
     },
     plugins: [

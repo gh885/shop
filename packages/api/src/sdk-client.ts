@@ -54,6 +54,28 @@ export interface SdkClientOptions {
     debug?: boolean
 }
 
+/**
+ * 扁平化 query 序列化：Spring 模块入参多为 `@Valid XxxQuery`（如 PageParams/ProductQuery），
+ * 实际按扁平参数绑定（page/size/categoryId/sort...）。而奥 hey-api 默认把对象参数序列化成
+ * deepObject（`query[sort]=newest`，裸 `[ ]`），Tomcat 默认拒绝裸括号 → 直接 400。
+ * 这里把对象/数组拍平为顶层 `k=v`，贴合 Spring 绑定，也避免裸括号。
+ */
+const flattenQuerySerializer = (query: Record<string, unknown>): string => {
+    const search: string[] = []
+    const push = (key: string, value: unknown) => {
+        if (value === undefined || value === null) return
+        if (Array.isArray(value)) {
+            value.forEach((v) => push(key, v))
+        } else if (typeof value === "object") {
+            Object.entries(value as Record<string, unknown>).forEach(([k, v]) => push(k, v))
+        } else {
+            search.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+        }
+    }
+    for (const [k, v] of Object.entries(query ?? {})) push(k, v)
+    return search.join("&")
+}
+
 export function configureSdkClient(
     baseUrl: string,
     tokens?: TokenStore,
@@ -63,6 +85,7 @@ export function configureSdkClient(
         baseUrl: baseUrl || "/",
         credentials: "include",
         fetch: fetchWithPolicy,
+        querySerializer: flattenQuerySerializer,
     })
 
     // ---- 请求前：token + 全链路 ID + 计时起点 ----

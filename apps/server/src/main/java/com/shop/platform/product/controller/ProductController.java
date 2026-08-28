@@ -12,6 +12,7 @@ import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -58,7 +59,10 @@ public class ProductController {
         return ProductDetailResponse.from(d, stocks(d.skus()));
     }
 
-    /** 列表项：够渲染一张商品卡片即可，详情独有的大字段（description/images）不进列表，省带宽 */
+    /** 列表项：够渲染一张商品卡片即可，详情独有的大字段（description/images）不进列表，省带宽。
+     * 与卖家端 ProductAdminController 的同名 record 区分（若非同名，springdoc 会在 components.schemas 互相覆盖，
+     * 买家端金额 Money 会被卖家端 Long 覆盖、混入 admin 字段）。 */
+    @Schema(name = "PublicProductResponse")
     public record ProductResponse(
             UUID id,
             UUID shopId,
@@ -82,7 +86,7 @@ public class ProductController {
         }
     }
 
-    /** 详情：嵌套列表项 + 详情独有字段，字段不重复铺一遍（与 service 的 ProductDetail 同构） */
+    @Schema(name = "PublicProductDetailResponse")
     public record ProductDetailResponse(
             ProductResponse product,
             String description,
@@ -105,7 +109,7 @@ public class ProductController {
         }
     }
 
-    /** SKU：买家选规格/下单要用的字段。不返 skuCode（仓管内部编码）与 status（service 已过滤，恒为在售） */
+    @Schema(name = "PublicSkuResponse")
     public record SkuResponse(
             UUID id,
             String name,

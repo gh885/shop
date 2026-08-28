@@ -1809,7 +1809,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/PageResultProductResponse"
+                                    "$ref": "#/components/schemas/PageResultPublicProductResponse"
                                 }
                             }
                         }
@@ -1834,7 +1834,9 @@
                         "description": "OK",
                         "content": {
                             "*/*": {
-                                "schema": { "$ref": "#/components/schemas/ProductDetailResponse" }
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicProductDetailResponse"
+                                }
                             }
                         }
                     }
@@ -3030,6 +3032,64 @@
                     "shopId": { "type": "string", "format": "uuid" },
                     "keyword": { "type": "string", "maxLength": 128, "minLength": 0 },
                     "sort": { "type": "string", "pattern": "newest|price_asc|price_desc" }
+                }
+            },
+            "PageResultPublicProductResponse": {
+                "type": "object",
+                "properties": {
+                    "records": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/PublicProductResponse" }
+                    },
+                    "total": { "type": "integer", "format": "int64" }
+                }
+            },
+            "PublicProductResponse": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "format": "uuid" },
+                    "shopId": { "type": "string", "format": "uuid" },
+                    "categoryId": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" },
+                    "subtitle": { "type": "string" },
+                    "mainImage": { "type": "string" },
+                    "minPrice": { "$ref": "#/components/schemas/Money" },
+                    "maxPrice": { "$ref": "#/components/schemas/Money" }
+                }
+            },
+            "PublicProductDetailResponse": {
+                "type": "object",
+                "properties": {
+                    "product": { "$ref": "#/components/schemas/PublicProductResponse" },
+                    "description": { "type": "string" },
+                    "images": { "type": "array", "items": { "type": "string" } },
+                    "specs": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/SpecItem" }
+                    },
+                    "params": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/ParamItem" }
+                    },
+                    "skus": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/PublicSkuResponse" }
+                    }
+                }
+            },
+            "PublicSkuResponse": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" },
+                    "attributes": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/ParamItem" }
+                    },
+                    "image": { "type": "string" },
+                    "price": { "$ref": "#/components/schemas/Money" },
+                    "originalPrice": { "$ref": "#/components/schemas/Money" },
+                    "stock": { "type": "integer", "format": "int32" }
                 }
             },
             "CategoryNodeResponse": {

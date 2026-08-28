@@ -19,4 +19,6 @@ const { tokenStore } = authKit
 
 // 生成 SDK（@shop/api/sdk）的默认 client：同源 + 同一套 token/401 刷新拦截。
 // 之后业务代码可直接调用 CartApi.getCartItems() 等具名方法。
-configureSdkClient("", tokenStore, { debug: import.meta.env.DEV })
+// 浏览器端走 Vite proxy（同源相对路径）；SSR loader 在 Node 跑，需绝对地址（见 AGENTS.md）
+const baseUrl = import.meta.env.SSR ? "http://localhost:8080" : ""
+configureSdkClient(baseUrl, tokenStore, { debug: import.meta.env.DEV })
