@@ -5,7 +5,13 @@ import { CircleAlert } from "lucide-react"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
 
 import type { Order, OrderStatus } from "#/order"
-import { ORDER_STATUS_LABEL, OrderCard, useMyOrders } from "#/order"
+import {
+    ORDER_STATUS_LABEL,
+    OrderCard,
+    useMyOrders,
+    useCancelOrder,
+    useReceiveOrder,
+} from "#/order"
 import { notify } from "#/shared/lib/toast"
 import { Skeleton } from "@shop/ui-web"
 
@@ -29,9 +35,29 @@ function OrdersPage() {
     const [tab, setTab] = useState<OrderStatus | "all">("all")
     const navigate = useNavigate()
     const { data, isLoading, isError } = useMyOrders(tab)
+    const cancel = useCancelOrder()
+    const receive = useReceiveOrder()
 
     // 按后端返回直接渲染（后端已按 status 过滤）；追加按状态 Tab 过滤仅用于「全部」时无需再筛
     const orders: Order[] = data?.records ?? []
+
+    // 订单卡片操作分发：pay → 收银台；cancel → 取消；confirm → 确认收货；其余暂 toast 占位
+    const handleAction = (order: Order, action: string) => {
+        switch (action) {
+            case "pay":
+                void navigate({ to: "/pay/$orderId", params: { orderId: order.id } })
+                break
+            case "cancel":
+                cancel.mutate(order.id)
+                break
+            case "confirm":
+                receive.mutate(order.id)
+                break
+            default:
+                notify.info(`「${action}」即将上线`)
+                break
+        }
+    }
 
     return (
         <div className="space-y-4">
@@ -100,7 +126,7 @@ function OrdersPage() {
                                     params: { orderId: o.id },
                                 })
                             }
-                            onAction={(_order, action) => notify.info(`「${action}」即将上线`)}
+                            onAction={handleAction}
                         />
                     ))}
                 </div>

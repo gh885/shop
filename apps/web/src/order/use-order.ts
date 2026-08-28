@@ -1,6 +1,8 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query"
 import { OrdersApi, PaymentsApi } from "@shop/api/sdk"
 import type { PreviewResponse } from "@shop/api/sdk"
+
+import { notify } from "#/shared/lib/toast"
 
 import { toOrder, toOrderDetail } from "./order"
 import type { Order, OrderDetail, OrderStatus } from "./model"
@@ -119,4 +121,35 @@ export async function receiveOrder(orderId: string) {
     const res = await OrdersApi.receiveOrder({ path: { id: orderId } })
     if (res.error) throw res.error
     return res.data
+}
+
+// ---------- 订单操作 mutation（取消/确认收货/支付） ----------
+
+/** 取消订单：仅待付款/待发货可取消，成功后失效订单列表 + 详情缓存 */
+export function useCancelOrder() {
+    const qc = useQueryClient()
+    return useMutation({
+        mutationFn: (orderId: string) => cancelOrder(orderId),
+        onMutate: () => notify.info("取消订单中…"),
+        onSuccess: (_data, orderId) => {
+            notify.success("订单已取消")
+            qc.invalidateQueries({ queryKey: ["my-orders"] })
+            qc.invalidateQueries({ queryKey: ["order-detail", orderId] })
+        },
+        onError: (err) => notify.fromError(err, "取消订单失败"),
+    })
+}
+
+/** 确认收货：已发货 → 已完成 */
+export function useReceiveOrder() {
+    const qc = useQueryClient()
+    return useMutation({
+        mutationFn: (orderId: string) => receiveOrder(orderId),
+        onSuccess: (_data, orderId) => {
+            notify.success("确认收货成功")
+            qc.invalidateQueries({ queryKey: ["my-orders"] })
+            qc.invalidateQueries({ queryKey: ["order-detail", orderId] })
+        },
+        onError: (err) => notify.fromError(err, "确认收货失败"),
+    })
 }

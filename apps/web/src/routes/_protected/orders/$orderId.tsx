@@ -1,12 +1,12 @@
-import { createFileRoute, notFound } from "@tanstack/react-router"
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 
 import { AccountHeader } from "#/widgets/account"
-import { useOrderDetail } from "#/order"
+import { useOrderDetail, useCancelOrder, useReceiveOrder, type OrderDetail } from "#/order"
 import { OrderProgress, OrderShopSection, OrderStatusSection, OrderSummaryCard } from "#/order"
 import { notify } from "#/shared/lib/toast"
 import { Skeleton } from "@shop/ui-web"
 
-function notifyOrderAction(_order: unknown, action: string) {
+function notifyItemAction(_order: unknown, action: string) {
     notify.info(`「${action}」即将上线`)
 }
 
@@ -21,7 +21,28 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
  * 受保护路由，挂载时必已登录，数据客户端拉取（不进 loader）。 */
 function OrderDetailPage() {
     const { orderId } = Route.useParams()
+    const navigate = useNavigate()
     const { data: order, isLoading, isError } = useOrderDetail(orderId)
+    const cancel = useCancelOrder()
+    const receive = useReceiveOrder()
+
+    // 状态区客户操作分发（商品区是加购/售后，走 notifyItemAction）
+    const handleOrderAction = (o: OrderDetail, action: string) => {
+        switch (action) {
+            case "pay":
+                void navigate({ to: "/pay/$orderId", params: { orderId: o.id } })
+                break
+            case "cancel":
+                cancel.mutate(o.id)
+                break
+            case "confirm":
+                receive.mutate(o.id)
+                break
+            default:
+                notify.info(`「${action}」即将上线`)
+                break
+        }
+    }
 
     if (isError) throw notFound()
     if (isLoading || !order) {
@@ -55,7 +76,7 @@ function OrderDetailPage() {
                             <OrderProgress status={order.status} />
                             <OrderStatusSection
                                 order={order}
-                                onAction={notifyOrderAction}
+                                onAction={handleOrderAction}
                             />
                         </div>
 
@@ -63,7 +84,7 @@ function OrderDetailPage() {
                         <OrderShopSection
                             order={order}
                             items={order.items}
-                            onItemAction={notifyOrderAction}
+                            onItemAction={notifyItemAction}
                         />
                     </div>
 

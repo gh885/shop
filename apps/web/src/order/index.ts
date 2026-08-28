@@ -1,5 +1,5 @@
 export { toOrder, toOrderDetail, toOrderItem } from "./order"
-export { useMyOrders, useOrderDetail } from "./use-order"
+export { useMyOrders, useOrderDetail, useCancelOrder, useReceiveOrder } from "./use-order"
 export { myOrdersOptions, orderDetailOptions } from "./use-order"
 export { ORDER_STATUS_LABEL, ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEPS } from "./model"
 export type { Order, OrderDetail, OrderItem, OrderStatus, OrderTimelineItem } from "./model"
