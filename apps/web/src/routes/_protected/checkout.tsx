@@ -6,18 +6,31 @@ import { Button, Separator, Skeleton } from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
 import { useAddressList, type Address } from "#/address"
-import { useCheckoutPreview, useCreateOrder, type CheckoutPreview } from "#/checkout"
+import {
+    useCheckoutPreview,
+    useCreateOrder,
+    type CheckoutPreview,
+    type CheckoutSource,
+} from "#/checkout"
 import { notify } from "#/shared/lib/toast"
 
 export const Route = createFileRoute("/_protected/checkout")({
-    validateSearch: (search: Record<string, unknown>): { cartItemIds: string[] } => {
+    // 结算来源：cartItemIds（购物车）与 buySkuId+buyQuantity（立即购买）二选一
+    validateSearch: (search: Record<string, unknown>): CheckoutSource => {
         const parsed = search.cartItemIds
         const ids = Array.isArray(parsed)
             ? parsed.filter((x): x is string => typeof x === "string")
             : typeof parsed === "string"
               ? [parsed]
               : []
-        return { cartItemIds: ids }
+        return {
+            cartItemIds: ids.length > 0 ? ids : undefined,
+            buySkuId: typeof search.buySkuId === "string" ? search.buySkuId : undefined,
+            buyQuantity:
+                typeof search.buyQuantity === "number" && search.buyQuantity > 0
+                    ? search.buyQuantity
+                    : undefined,
+        }
     },
     component: CheckoutPage,
     head: () => ({ meta: [{ title: "结算 - Shop" }] }),
@@ -25,7 +38,7 @@ export const Route = createFileRoute("/_protected/checkout")({
 
 function CheckoutPage() {
     const navigate = useNavigate()
-    const { cartItemIds } = Route.useSearch()
+    const source = Route.useSearch()
     const { data: addresses } = useAddressList()
     const createOrder = useCreateOrder()
 
@@ -33,7 +46,7 @@ function CheckoutPage() {
     // 默认选中：已勾选的，否则默认地址，兜底第一条——提交/预览都可用
     const defaultAddress = addresses?.find((a) => a.isDefault) ?? addresses?.[0]
     const effectiveAddressId = addressId || defaultAddress?.id || ""
-    const preview = useCheckoutPreview({ cartItemIds, addressId: effectiveAddressId || undefined })
+    const preview = useCheckoutPreview({ source, addressId: effectiveAddressId || undefined })
 
     const submit = () => {
         if (!effectiveAddressId) {
@@ -41,7 +54,7 @@ function CheckoutPage() {
             return
         }
         createOrder.mutate(
-            { addressId: effectiveAddressId, cartItemIds },
+            { addressId: effectiveAddressId, source },
             {
                 onSuccess: (res) => {
                     const orders = res?.orders ?? []

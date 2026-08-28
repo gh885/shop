@@ -7,25 +7,34 @@ import { createOrder, createPayment, fetchPreview } from "#/order/use-order"
 
 /** use-checkout —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
 
-/** 结算预览：以 cartItemIds（或 buy）为 key；地址切换 → 新 key 重新预览，避免手动 refetch */
-export function checkoutPreviewKey(args: { cartItemIds: string[]; addressId?: string }) {
-    return ["checkout-preview", args.cartItemIds.join(","), args.addressId ?? ""] as const
+/** 结算来源：购物车选中条目（cartItemIds）与立即购买（buySkuId+buyQuantity）二选一 */
+export type CheckoutSource = {
+    cartItemIds?: string[]
+    buySkuId?: string
+    buyQuantity?: number
 }
 
+const sourceKey = (s: CheckoutSource) =>
+    s.cartItemIds && s.cartItemIds.length > 0
+        ? s.cartItemIds.join(",")
+        : `${s.buySkuId ?? ""}#${s.buyQuantity ?? 1}`
+
+/** 结算预览：以来源为 key；地址切换 → 新 key 重新预览，避免手动 refetch */
 export function useCheckoutPreview({
-    cartItemIds,
+    source,
     addressId,
 }: {
-    cartItemIds: string[]
+    source: CheckoutSource
     addressId?: string
 }) {
+    const enabled = (source.cartItemIds?.length ?? 0) > 0 || !!source.buySkuId
     return useQuery({
-        queryKey: checkoutPreviewKey({ cartItemIds, addressId }),
+        queryKey: ["checkout-preview", sourceKey(source), addressId ?? ""] as const,
         queryFn: async (): Promise<CheckoutPreview> => {
-            const res = await fetchPreview({ cartItemIds, addressId })
+            const res = await fetchPreview({ ...source, addressId })
             return toCheckoutPreview(res)
         },
-        enabled: cartItemIds.length > 0,
+        enabled,
         staleTime: 0,
         retry: false,
     })
@@ -35,8 +44,12 @@ export function useCheckoutPreview({
 export function useCreateOrder() {
     const qc = useQueryClient()
     return useMutation({
-        mutationFn: (args: { addressId: string; cartItemIds: string[]; buyerMessage?: string }) =>
-            createOrder(args),
+        mutationFn: (args: { addressId: string; source: CheckoutSource; buyerMessage?: string }) =>
+            createOrder({
+                addressId: args.addressId,
+                ...args.source,
+                buyerMessage: args.buyerMessage,
+            }),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["my-orders"] })
             qc.invalidateQueries({ queryKey: ["cart-items"] })

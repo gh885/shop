@@ -7,3 +7,4 @@ export type {
     CheckoutAddress,
 } from "./checkout"
 export { useCheckoutPreview, useCreateOrder, useCreatePayment } from "./use-checkout"
+export type { CheckoutSource } from "./use-checkout"

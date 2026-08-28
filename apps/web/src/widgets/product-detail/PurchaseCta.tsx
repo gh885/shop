@@ -8,7 +8,6 @@ import { useFavoriteStatus, useToggleFavorite } from "#/favorite"
 import { findMatchingSku, isSelectionComplete, type SkuSelection } from "#/product"
 import type { ProductDetail } from "#/product"
 import { useIsLoggedIn, openLoginDialog } from "#/shared/api/auth"
-import { notify } from "#/shared/lib/toast"
 
 /**
  * 商品动作卡：加购 / 立即购买 / 收藏。
@@ -46,6 +45,19 @@ export function PurchaseCta({
         )
     }
 
+    /** 立即购买：未登录先拉起登录框；登录后按选中 SKU + 数量跳结算（buySkuId 路径），送达页由结算页承接 */
+    function handleBuyNow() {
+        if (!isLoggedIn) {
+            openLoginDialog()
+            return
+        }
+        if (!matchedSku) return
+        void navigate({
+            to: "/checkout",
+            search: { buySkuId: matchedSku.id, buyQuantity: quantity },
+        })
+    }
+
     /** 收藏开关：未登录先拉起登录框；登录后按当前状态 toggle */
     function handleFavorite() {
         if (!isLoggedIn) {
@@ -66,7 +78,7 @@ export function PurchaseCta({
                     {addToCart.isPending ? "加购中…" : "加购"}
                 </Button>
                 <Button
-                    onClick={() => notify.info("下单功能即将上线")}
+                    onClick={handleBuyNow}
                     className="h-12 flex-1 rounded-xl bg-gradient-to-r from-primary to-primary-hover text-base hover:from-primary-hover hover:to-primary-active"
                 >
                     立即购买
