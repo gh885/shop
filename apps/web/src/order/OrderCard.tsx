@@ -19,9 +19,10 @@ import { Panel, PanelContent, PanelHeader } from "#/shared/ui/Panel"
  *
  * 结构：
  *   顶部订单信息条：时间 · 订单号（不截断）· 店铺 | 右侧 状态 + 订单详情按钮
- *   下方逐行订单项：主图 · 标题/规格/服务标签 · 单价×数量 · 实付金额 · 操作按钮
+ *   下方逐行订单项：主图 · 标题 · 单价×数量 · 行小计
  *
  * 操作按钮按订单状态动态给出（见 ORDER_ACTIONS）。纯展示，回调交给外部。
+ * 行项无独立 id（订单快照只留 productId/skuId），渲染 key 用 `productId+skuId+quantity`。
  */
 
 /** 按状态给出该订单可执行的操作（主操作 + 次操作），后续路由/接口落地后接真实动作 */
@@ -38,27 +39,16 @@ const ORDER_ACTIONS: Record<
         { key: "logistics", label: "查看物流" },
         { key: "confirm", label: "确认收货", variant: "default" },
     ],
-    pending_review: [
-        { key: "review", label: "去评价", variant: "default" },
-        { key: "rebuy", label: "再买一单" },
-    ],
-    completed: [
-        { key: "rebuy", label: "加入购物车", variant: "default" },
-        { key: "after_sale", label: "申请售后" },
-        { key: "rebuy2", label: "再买一单" },
-    ],
+    completed: [{ key: "rebuy", label: "再买一单" }],
     cancelled: [{ key: "rebuy", label: "再买一单" }],
-    refunding: [{ key: "view_refund", label: "查看退款" }],
 }
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
     pending_payment: "text-primary",
     pending_shipment: "text-primary",
     pending_receipt: "text-primary",
-    pending_review: "text-primary",
     completed: "text-muted-foreground",
     cancelled: "text-muted-foreground",
-    refunding: "text-destructive",
 }
 
 const pad = (n: number) => String(n).padStart(2, "0")
@@ -69,6 +59,10 @@ function formatTime(iso: string): string {
     if (Number.isNaN(d.getTime())) return iso
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
+
+/** 行项渲染 key：一行订单内可能同一 SKU 出现多次（不同快照），拼 quantity 兜底去重 */
+const orderItemKey = (item: Order["items"][number]) =>
+    `${item.productId}-${item.skuId}-${item.quantity}`
 
 export interface OrderCardProps {
     order: Order
@@ -110,7 +104,7 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                 <ItemGroup>
                     {order.items.map((item) => (
                         <Item
-                            key={item.id}
+                            key={orderItemKey(item)}
                             className="flex-nowrap px-5 py-4"
                         >
                             {/* 主图 */}
@@ -127,19 +121,12 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                                 )}
                             </ItemMedia>
 
-                            {/* 描述：标题 + 规格 + 服务标签 */}
+                            {/* 描述：标题 */}
                             <ItemContent>
                                 <ItemTitle className="line-clamp-2 w-full">{item.title}</ItemTitle>
-                                {item.spec && (
-                                    <ItemDescription className="line-clamp-1">
-                                        {item.spec}
-                                    </ItemDescription>
-                                )}
-                                {item.tags.length > 0 && (
-                                    <ItemDescription className="line-clamp-1">
-                                        {item.tags.join(" ")}
-                                    </ItemDescription>
-                                )}
+                                <ItemDescription className="line-clamp-1 text-muted-foreground">
+                                    规格：{item.skuId ? "已选规格" : "默认规格"}
+                                </ItemDescription>
                             </ItemContent>
 
                             {/* 金额：单价 · 划线原价 · 数量 */}
@@ -156,19 +143,14 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                                 <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                             </div>
 
-                            {/* 实付金额（订单维度，每行同步展示） */}
+                            {/* 行小计 */}
                             <div className="w-28 shrink-0 text-right">
                                 <p className="text-sm font-bold text-foreground">
-                                    实付款{" "}
+                                    小计{" "}
                                     <span className="text-primary">
-                                        ¥{fenToYuan(order.payAmount.amount)}
+                                        ¥{fenToYuan(item.amount.amount)}
                                     </span>
                                 </p>
-                                {order.shippingFee && (
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        含运费：¥{fenToYuan(order.shippingFee.amount)}
-                                    </p>
-                                )}
                             </div>
 
                             {/* 订单操作：按状态动态渲染 */}

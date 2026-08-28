@@ -45,7 +45,7 @@ export function OrderShopSection({ order, items, onItemAction }: OrderShopSectio
             <PanelContent>
                 {items.map((item) => (
                     <div
-                        key={item.id}
+                        key={`${item.productId}-${item.skuId}-${item.quantity}`}
                         className="flex items-center gap-4 px-5 py-4"
                     >
                         {/* 主图 */}
@@ -59,19 +59,9 @@ export function OrderShopSection({ order, items, onItemAction }: OrderShopSectio
                             )}
                         </div>
 
-                        {/* 标题/规格/标签 */}
+                        {/* 标题 */}
                         <div className="min-w-0 flex-1">
                             <p className="line-clamp-2 text-sm text-foreground">{item.title}</p>
-                            {item.spec && (
-                                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                                    {item.spec}
-                                </p>
-                            )}
-                            {item.tags.length > 0 && (
-                                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                                    {item.tags.join(" ")}
-                                </p>
-                            )}
                         </div>
 
                         {/* 单价 × 数量 */}
@@ -86,7 +76,7 @@ export function OrderShopSection({ order, items, onItemAction }: OrderShopSectio
 
                         {/* 行小计 */}
                         <div className="w-20 shrink-0 text-right text-sm font-bold text-foreground">
-                            ¥{fenToYuan(item.price.amount * item.quantity)}
+                            ¥{fenToYuan(item.amount.amount)}
                         </div>
 
                         {/* 按状态操作 */}

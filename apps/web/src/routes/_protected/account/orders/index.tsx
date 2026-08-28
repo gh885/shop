@@ -5,8 +5,9 @@ import { CircleAlert } from "lucide-react"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
 
 import type { Order, OrderStatus } from "#/order"
-import { ORDER_STATUS_LABEL, OrderCard } from "#/order"
+import { ORDER_STATUS_LABEL, OrderCard, useMyOrders } from "#/order"
 import { notify } from "#/shared/lib/toast"
+import { Skeleton } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/orders/")({
     component: OrdersPage,
@@ -15,23 +16,22 @@ export const Route = createFileRoute("/_protected/account/orders/")({
     }),
 })
 
-/** 状态 Tab：全部 + 各状态 */
+/** 状态 Tab：全部 + 各状态（与后端枚举对齐，无待评价/退款中阶段） */
 const STATUS_TABS: { key: OrderStatus | "all"; label: string }[] = [
     { key: "all", label: "全部" },
     { key: "pending_payment", label: "待付款" },
     { key: "pending_shipment", label: "待发货" },
     { key: "pending_receipt", label: "待收货" },
-    { key: "pending_review", label: "待评价" },
+    { key: "completed", label: "交易成功" },
 ]
 
 function OrdersPage() {
     const [tab, setTab] = useState<OrderStatus | "all">("all")
     const navigate = useNavigate()
+    const { data, isLoading, isError } = useMyOrders(tab)
 
-    const orders: Order[] = MockOrders
-
-    // 按状态 Tab 过滤
-    const filtered = tab === "all" ? orders : orders.filter((o) => o.status === tab)
+    // 按后端返回直接渲染（后端已按 status 过滤）；追加按状态 Tab 过滤仅用于「全部」时无需再筛
+    const orders: Order[] = data?.records ?? []
 
     return (
         <div className="space-y-4">
@@ -55,7 +55,28 @@ function OrdersPage() {
                 ))}
             </div>
 
-            {filtered.length === 0 ? (
+            {isLoading ? (
+                <div className="space-y-4">
+                    {/* 占位骨架：数据未到，无稳定 key 可用，index 合法 */}
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton
+                            /* eslint-disable-next-line react/no-array-index-key */
+                            key={i}
+                            className="h-40 w-full rounded-2xl"
+                        />
+                    ))}
+                </div>
+            ) : isError ? (
+                <Empty className="py-16">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <CircleAlert />
+                        </EmptyMedia>
+                        <EmptyTitle>加载失败</EmptyTitle>
+                        <EmptyDescription>请稍后重试或刷新页面。</EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
+            ) : orders.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
@@ -69,7 +90,7 @@ function OrdersPage() {
                 </Empty>
             ) : (
                 <div className="space-y-4">
-                    {filtered.map((order) => (
+                    {orders.map((order) => (
                         <OrderCard
                             key={order.id}
                             order={order}
@@ -87,71 +108,3 @@ function OrdersPage() {
         </div>
     )
 }
-
-// TODO: 后端 /orders 接口接入后替换为 useOrders()；此处为临时占位数据
-const MockOrders: Order[] = [
-    {
-        id: "7b2e5d4a-1000-4c3b-9a01-000000000001",
-        orderNo: "2364889262174095366",
-        createdAt: "2024-11-10T14:23:00+08:00",
-        status: "completed",
-        shopId: "aaaa1111-bbbb-4ccc-8ddd-000000000001",
-        shopName: "新华文轩旗舰店",
-        itemCount: 2,
-        totalAmount: { amount: 3420, currency: "CNY" },
-        payAmount: { amount: 3420, currency: "CNY" },
-        shippingFee: { amount: 0, currency: "CNY" },
-        items: [
-            {
-                id: "7b2e5d4a-1001-4c3b-9a01-000000000001",
-                productId: "7b2e5d4a-2001-4c3b-9a01-000000000001",
-                skuId: null,
-                title: "【狂欢价】【新华文轩】局外人 加缪正版 柳鸣九诺贝尔文学奖获奖者荒谬主义文学外国文学经典小说鼠疫西西弗神话现当代文学 [交易快照]",
-                image: "",
-                spec: "局外人",
-                tags: ["退货宝", "大促价保", "7天无理由退换"],
-                price: { amount: 1476, currency: "CNY" },
-                originalPrice: { amount: 1600, currency: "CNY" },
-                quantity: 1,
-            },
-            {
-                id: "7b2e5d4a-1002-4c3b-9a01-000000000002",
-                productId: "7b2e5d4a-2002-4c3b-9a01-000000000002",
-                skuId: null,
-                title: "【狂欢价】大卫科波菲尔+老人与海+复活+百年孤独 查尔斯狄更斯海明威列夫托尔斯泰加西亚马尔克斯初高中课外阅读世界名著 [交易快照]",
-                image: "",
-                spec: "",
-                tags: ["退货宝", "大促价保", "7天无理由退换"],
-                price: { amount: 1944, currency: "CNY" },
-                originalPrice: { amount: 2150, currency: "CNY" },
-                quantity: 1,
-            },
-        ],
-    },
-    {
-        id: "7b2e5d4a-2000-4c3b-9a01-000000000003",
-        orderNo: "2364889262174095377",
-        createdAt: "2024-12-01T09:12:00+08:00",
-        status: "pending_receipt",
-        shopId: "aaaa1111-bbbb-4ccc-8ddd-000000000002",
-        shopName: "三星官方旗舰店",
-        itemCount: 1,
-        totalAmount: { amount: 499000, currency: "CNY" },
-        payAmount: { amount: 499000, currency: "CNY" },
-        shippingFee: { amount: 0, currency: "CNY" },
-        items: [
-            {
-                id: "7b2e5d4a-2001-4c3b-9a01-000000000003",
-                productId: "7b2e5d4a-3001-4c3b-9a01-000000000003",
-                skuId: null,
-                title: "三星 Galaxy S24 Ultra 12GB+256GB 钛灰 骁龙8 Gen3 智能 AI 手机",
-                image: "",
-                spec: "颜色:钛灰 存储:12GB+256GB",
-                tags: ["官方旗舰", "全国联保"],
-                price: { amount: 499000, currency: "CNY" },
-                originalPrice: null,
-                quantity: 1,
-            },
-        ],
-    },
-]

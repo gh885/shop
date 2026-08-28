@@ -5,37 +5,19 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Separator } from "@sh
 
 import { fenToYuan } from "@shop/api"
 
-import type { Money } from "@shop/api"
-
-import { ORDER_STATUS_LABEL } from "./model"
+import { ORDER_STATUS_LABEL, type OrderDetail } from "./model"
 
 /**
- * 详情页右侧信息卡：三大块 —— 付款详情、订单信息、订单服务。
+ * 详情页右侧信息卡：两大块 —— 付款详情、订单信息。
  *
  * - 付款详情：商品总额 / 运费 / 实付款（金额敏感，突出显示）
- * - 订单信息：订单号、支付方式、收货信息、时间轴等；交易号等次要项可折叠
- * - 订单服务：如「假一赔四」等
- * 信息项是否出现与订单状态有关（如未付款不显示支付时间、支付方式）。
+ * - 订单信息：订单号、收货信息、订单状态、各状态时间轴
+ * 信息项是否出现与订单状态有关（如未付款不显示支付时间）。
+ * 订单快照字段来自后端（receiverName/receiverProvince/...、paidAt/shippedAt/completedAt）。
  */
 
 export interface OrderSummaryCardProps {
-    order: {
-        orderNo: string
-        status: string
-        payMethod: string
-        payTxnNo: string
-        receiver: { name: string; phone: string; address: string }
-        totalAmount: Money
-        payAmount: Money
-        shippingFee: Money | null
-        services: string[]
-        createdAt: string
-        payTime: string
-        shipTime: string
-        finishTime: string
-    }
-    /** 已展开订单信息全部字段 */
-    onToggle?: () => void
+    order: OrderDetail
 }
 
 const pad = (n: number) => String(n).padStart(2, "0")
@@ -61,6 +43,15 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
     // 「更多订单信息」折叠：默认收起，点击展开交易号等次要字段
     const [moreOpen, setMoreOpen] = useState(false)
 
+    const fullAddress = [
+        order.receiverProvince,
+        order.receiverCity,
+        order.receiverDistrict,
+        order.receiverDetail,
+    ]
+        .filter(Boolean)
+        .join("")
+
     return (
         <div className="space-y-5">
             {/* 付款详情 */}
@@ -69,7 +60,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                     <CardTitle>付款详情</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1">
-                    <InfoRow label="商品总价">¥{fenToYuan(order.totalAmount.amount)}</InfoRow>
+                    <InfoRow label="商品总价">¥{fenToYuan(order.itemAmount.amount)}</InfoRow>
                     <InfoRow label="运费(快递)">
                         ¥{fenToYuan(order.shippingFee?.amount ?? 0)}
                     </InfoRow>
@@ -102,10 +93,12 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                                 </Button>
                             </InfoRow>
                         </div>
-                        <InfoRow label="支付方式">{order.payMethod || "—"}</InfoRow>
+                        <InfoRow label="店铺">{order.shopName || "—"}</InfoRow>
                         <InfoRow label="收货信息">
                             <span className="block leading-relaxed">
-                                {order.receiver.phone}，{order.receiver.address}
+                                {order.receiverName} {order.receiverPhone}
+                                <br />
+                                {fullAddress}
                             </span>
                         </InfoRow>
                         <InfoRow label="订单状态">
@@ -113,11 +106,11 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                                 order.status}
                         </InfoRow>
                         <InfoRow label="创建时间">{dateStr(order.createdAt)}</InfoRow>
-                        <InfoRow label="付款时间">{dateStr(order.payTime)}</InfoRow>
-                        <InfoRow label="发货时间">{dateStr(order.shipTime)}</InfoRow>
-                        <InfoRow label="成交时间">{dateStr(order.finishTime)}</InfoRow>
+                        <InfoRow label="付款时间">{dateStr(order.paidAt)}</InfoRow>
+                        <InfoRow label="发货时间">{dateStr(order.shippedAt)}</InfoRow>
+                        <InfoRow label="成交时间">{dateStr(order.completedAt)}</InfoRow>
 
-                        {/* 次要字段可折叠 */}
+                        {/* 物流 / 留言等次要字段可折叠 */}
                         <button
                             type="button"
                             onClick={() => setMoreOpen((o) => !o)}
@@ -131,31 +124,12 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
 
                         {moreOpen && (
                             <div className="py-1">
-                                <InfoRow label="交易快照">
-                                    <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="text-primary"
-                                    >
-                                        查看交易快照
-                                    </Button>
-                                </InfoRow>
-                                <InfoRow label="支付宝交易号">{order.payTxnNo || "—"}</InfoRow>
+                                <InfoRow label="物流公司">{order.logisticsCompany || "—"}</InfoRow>
+                                <InfoRow label="运单号">{order.trackingNo || "—"}</InfoRow>
+                                <InfoRow label="买家留言">{order.buyerMessage || "—"}</InfoRow>
                             </div>
                         )}
                     </div>
-                </CardContent>
-            </Card>
-
-            {/* 订单服务 */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>订单服务</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                        {order.services.length > 0 ? order.services.join("、") : "暂无"}
-                    </p>
                 </CardContent>
             </Card>
         </div>

@@ -1,9 +1,11 @@
+import { useNavigate } from "@tanstack/react-router"
+
 import { Button, Separator } from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/api"
 import { deriveCartItemView, deriveSelectedItems, deriveSelectedTotal } from "./cart"
 import { useCartItems, useToggleCartItem } from "./use-cart"
-import { notify } from "#/shared/lib/toast"
+import type { CartItem } from "./cart"
 
 /**
  * 购物车右栏结算明细（对齐参考图，但本期不做优惠/红包/满减）：
@@ -13,9 +15,16 @@ import { notify } from "#/shared/lib/toast"
 export function Settlement() {
     const { data: items } = useCartItems()
     const toggle = useToggleCartItem()
+    const navigate = useNavigate()
     const selectedItems = deriveSelectedItems(items ?? [])
     const selectedCount = selectedItems.length
     const selectedTotal = deriveSelectedTotal(selectedItems)
+
+    // 去结算：仅传已勾选且可售的购物车条目 id（cartItemIds），由后端按选中集合校验/拆单
+    const goCheckout = () => {
+        const ids = selectedItems.map((i: CartItem) => i.id)
+        void navigate({ to: "/checkout", search: { cartItemIds: ids } })
+    }
 
     return (
         <div className="rounded-2xl bg-background p-6 ring-1 ring-border/60">
@@ -77,7 +86,7 @@ export function Settlement() {
             {/* 去结算 */}
             <Button
                 disabled={selectedCount === 0}
-                onClick={() => notify.info("下单功能即将上线")}
+                onClick={goCheckout}
                 className="mt-5 h-12 w-full rounded-xl bg-linear-to-r from-primary to-primary-hover text-base text-white hover:from-primary-hover hover:to-primary-active"
             >
                 去结算{selectedCount > 0 ? `(${selectedCount})` : ""}
