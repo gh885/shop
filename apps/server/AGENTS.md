@@ -82,6 +82,9 @@ public class Product {
 - **HTTP 出参（controller 包内部类；跨 controller 共用时可为包内顶层类，如 cms 的三个 Response、product 的 CategoryNodeResponse）**：**一律定义 `<名词>Response` record，禁止直接返回 mapper 实体或 service 形状类** —— 实体的每一列都是潜在契约，存储演进会悄悄破坏前端（先例：Address 曾把 deletedAt 软删标记序列化出去；CartController 曾直出 CartItemView）。字段镜像现状、只减不增；由 NamingRulesTest 强制：HTTP handler 返回类型必须是 `XxxResponse / List<XxxResponse> / PageResult<XxxResponse>` / void，共享层值对象（infra 的 TokenPair，auth/admin 登录共用）豁免。注意 service 形状类内嵌 mapper 实体时同样不得越过 HTTP 边界（如 ProductDetail 需转 ProductDetailResponse）
 - **子组件**：Request 内部的嵌套小组件按语义命名（如 `SkuUpdateItem`），不受方向后缀约束
 - **跨模块共享**：多个模块都要用的形状类（如 `TokenPair`）放共享层（`common/` 或 `infra/`），按共享层语义两轴判断归属
+- **springdoc/OpenAPI（`@Tag` + 方法名 = operationId）**：每个 Controller 加 `@Tag(name = "…", description = "…")`，tag 名决定 SDK 类名（`cart` → `CartApi`）与文档分组；不写 `@Operation(operationId)`——springdoc 默认取 Java 方法名当 operationId，直接决定 SDK 方法名，所以 **Controller 公共方法名必须语义化且全局唯一**（如 `addCartItem` / `listMyOrders` / `getPublicProductDetail`，杜绝 `add`/`list`/`update` 这类跨 Controller 撞名的泛名）。
+    - tag 命名：域名词，跨端冲突时带角色前缀（`products` / `seller-products` / `admin-reviews` / `cms-public`）；同域只读/只写分端时各自成 tag（`shops` vs `public-shops`）
+    - 方法名 = 动词 + 资源 + 必要限定（`listMyOrders` / `getShopOrderDetail`），同域多角色（买家/卖家/管理员）靠前缀区分保证全局唯一的 operationId
 
 由 `src/test/java/com/shop/platform/NamingRulesTest.java`（ArchUnit）强制校验方向后缀的归属（Request → dto，Query → dto/api，Command → service/api，Response → controller，mapper 裸名词；JdbcTemplate 只允许 infra.db 与 api 包）；形状命名的位置为文字约定。
 

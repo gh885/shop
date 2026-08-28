@@ -22,6 +22,7 @@
 		<jjwt.version>0.12.6</jjwt.version>
 		<uuid-creator.version>6.1.1</uuid-creator.version>
 		<archunit.version>1.4.2</archunit.version>
+		<springdoc.version>3.1.0</springdoc.version>
 	</properties>
 
 	<dependencies>
@@ -40,6 +41,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<!-- OpenAPI 契约：暴露 /v3/api-docs 与 Swagger UI，前端 openapi-typescript 据此生成类型 -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.modulith</groupId>

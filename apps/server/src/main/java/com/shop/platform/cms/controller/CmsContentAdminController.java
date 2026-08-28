@@ -6,6 +6,7 @@ import com.shop.platform.cms.dto.RecommendTabRequest;
 import com.shop.platform.cms.service.ContentService;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 管理端 CMS 内容维护（认证由 StaffAuthFilter 统一处理，授权要求 CMS_MANAGE，岗位 OPS） */
+@Tag(name = "cms-admin", description = "管理端 CMS 内容维护")
 @RestController
 @RequestMapping("/admin/cms")
 @RequiredArgsConstructor
@@ -31,7 +33,7 @@ public class CmsContentAdminController {
     // ========== 导航 ==========
 
     @GetMapping("/nav")
-    public List<NavEntryResponse> nav(@RequestParam(required = false) String navKey) {
+    public List<NavEntryResponse> listAdminNav(@RequestParam(required = false) String navKey) {
         return NavEntryResponse.from(contentService.navAll(navKey));
     }
 
@@ -54,7 +56,7 @@ public class CmsContentAdminController {
     // ========== banner ==========
 
     @GetMapping("/banners")
-    public List<BannerResponse> banners(@RequestParam(required = false) String slot) {
+    public List<BannerResponse> listAdminBanners(@RequestParam(required = false) String slot) {
         return BannerResponse.from(contentService.bannersAll(slot));
     }
 
@@ -76,7 +78,7 @@ public class CmsContentAdminController {
     // ========== 推荐条 ==========
 
     @GetMapping("/recommend-tabs")
-    public List<RecommendTabResponse> tabs() {
+    public List<RecommendTabResponse> listAdminRecommendTabs() {
         return RecommendTabResponse.from(contentService.tabsAll());
     }
 

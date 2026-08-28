@@ -1,6 +1,7 @@
 package com.shop.platform.cms.controller;
 
 import com.shop.platform.cms.service.ContentService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>首页 SSR loader 并发拉这三块；数据量小，全量返回由前端缓存。跳转 target 软关联，前端携 ID 另调业务接口。
  */
+@Tag(name = "cms-public", description = "CMS 前台只读（匿名可访问）")
 @RestController
 @RequestMapping("/api/cms")
 @RequiredArgsConstructor
@@ -22,19 +24,19 @@ public class CmsPublicController {
 
     /** 首页分类导航：指定导航位下的启用条目（subs 为 JSONB 整段） */
     @GetMapping("/nav")
-    public List<NavEntryResponse> nav(@RequestParam(defaultValue = "home") String navKey) {
+    public List<NavEntryResponse> getHomeNav(@RequestParam(defaultValue = "home") String navKey) {
         return NavEntryResponse.from(contentService.nav(navKey));
     }
 
     /** 首页运营位 banner：启用且命中生效时间窗口 */
     @GetMapping("/banners")
-    public List<BannerResponse> banners(@RequestParam(defaultValue = "home_promo") String slot) {
+    public List<BannerResponse> getHomeBanners(@RequestParam(defaultValue = "home_promo") String slot) {
         return BannerResponse.from(contentService.banners(slot));
     }
 
     /** 首页推荐条词条（扁平数组，is_default 标"猜你喜欢"） */
     @GetMapping("/recommend-tabs")
-    public List<RecommendTabResponse> recommendTabs() {
+    public List<RecommendTabResponse> getRecommendTabs() {
         return RecommendTabResponse.from(contentService.recommendTabs());
     }
 }

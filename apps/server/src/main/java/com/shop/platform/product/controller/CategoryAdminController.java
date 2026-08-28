@@ -7,6 +7,7 @@ import com.shop.platform.product.dto.UpdateCategoryRequest;
 import com.shop.platform.product.dto.UpdateStatusRequest;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.service.CategoryService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 管理端类目维护（认证由 StaffAuthFilter 统一处理，授权要求 CATEGORY_MANAGE，岗位 OPS） */
+@Tag(name = "categories-admin", description = "管理端类目维护")
 @RestController
 @RequestMapping("/admin/categories")
 @RequiredArgsConstructor
@@ -31,24 +33,24 @@ public class CategoryAdminController {
 
     /** 全量类目树（含禁用节点） */
     @GetMapping("/tree")
-    public List<CategoryNodeResponse> tree() {
+    public List<CategoryNodeResponse> getAdminCategoryTree() {
         return categoryService.adminTree().stream()
                 .map(CategoryNodeResponse::from)
                 .toList();
     }
 
     @PostMapping
-    public CategoryResponse create(@Valid @RequestBody CreateCategoryRequest req) {
+    public CategoryResponse createCategory(@Valid @RequestBody CreateCategoryRequest req) {
         return CategoryResponse.from(categoryService.create(req.parentId(), req.name(), req.sort(), req.iconUrl()));
     }
 
     @PutMapping("/{id}")
-    public CategoryResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateCategoryRequest req) {
+    public CategoryResponse updateCategory(@PathVariable UUID id, @Valid @RequestBody UpdateCategoryRequest req) {
         return CategoryResponse.from(categoryService.update(id, req.name(), req.sort(), req.iconUrl()));
     }
 
     @PutMapping("/{id}/status")
-    public void updateStatus(@PathVariable UUID id, @Valid @RequestBody UpdateStatusRequest req) {
+    public void updateCategoryStatus(@PathVariable UUID id, @Valid @RequestBody UpdateStatusRequest req) {
         categoryService.updateStatus(id, req.status());
     }
 

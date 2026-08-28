@@ -13,6 +13,7 @@ import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.order.service.ValidLine;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>支付入口不在本控制器——POST /payments 由 payment 模块承接，本模块经事件感知支付结果。
  * 出参一律 Response record：快照字段只减不增，实体内部状态（updatedAt 等）不外泄。
  */
+@Tag(name = "orders", description = "买家订单（全部需登录）")
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor
@@ -43,7 +45,7 @@ public class OrderController {
 
     /** 结算预览：按店分组算钱（拆单预告）+ 失效行置灰 + 地址可选回显。只读幂等 */
     @PostMapping("/preview")
-    public PreviewResponse preview(@Valid @RequestBody PreviewOrderRequest req) {
+    public PreviewResponse previewOrder(@Valid @RequestBody PreviewOrderRequest req) {
         return PreviewResponse.from(orderService.preview(UserIdHolder.get(), req));
     }
 
@@ -51,7 +53,7 @@ public class OrderController {
      * 路径刻意避开裸 POST /orders —— 买家端有同名页面路由，Vite 代理只放行 /orders/ 前缀（见 web vite.config） */
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public CreatedOrdersResponse create(@Valid @RequestBody CreateOrderRequest req) {
+    public CreatedOrdersResponse createOrder(@Valid @RequestBody CreateOrderRequest req) {
         return new CreatedOrdersResponse(orderService.create(UserIdHolder.get(), req).stream()
                 .map(CreatedOrder::from)
                 .toList());
@@ -59,7 +61,7 @@ public class OrderController {
 
     /** 我的订单分页：status 对应「待付款/待发货…」tab，每单内嵌行项免二次请求。同上避让页面路由 */
     @GetMapping("/mine")
-    public PageResult<OrderListItemResponse> list(@Valid PageParams pageParams, @Valid OrderQuery query) {
+    public PageResult<OrderListItemResponse> listMyOrders(@Valid PageParams pageParams, @Valid OrderQuery query) {
         PageResult<OrderWithItems> page = orderService.pageMine(UserIdHolder.get(), query.status(), pageParams);
         return new PageResult<>(
                 page.records().stream().map(OrderListItemResponse::from).toList(), page.total());
@@ -67,19 +69,19 @@ public class OrderController {
 
     /** 订单详情：含收货快照、物流、各状态时间戳 */
     @GetMapping("/{id}")
-    public OrderDetailResponse detail(@PathVariable UUID id) {
+    public OrderDetailResponse getOrderDetail(@PathVariable UUID id) {
         return OrderDetailResponse.buyerView(orderService.detail(UserIdHolder.get(), id));
     }
 
     /** 取消订单：仅待付款/待发货可取消，取消即回补库存 */
     @PutMapping("/{id}/cancel")
-    public void cancel(@PathVariable UUID id, @Valid @RequestBody CancelOrderRequest req) {
+    public void cancelOrder(@PathVariable UUID id, @Valid @RequestBody CancelOrderRequest req) {
         orderService.cancel(UserIdHolder.get(), id, req.reason());
     }
 
     /** 确认收货：已发货 → 已完成 */
     @PutMapping("/{id}/receive")
-    public void receive(@PathVariable UUID id) {
+    public void receiveOrder(@PathVariable UUID id) {
         orderService.receive(UserIdHolder.get(), id);
     }
 

@@ -14,5 +14,6 @@ public record FavoriteItemView(
         UUID id, UUID productId, OffsetDateTime favoritedAt, ProductInfo product, boolean available) {
 
     /** 商品卡片信息：够渲染一张收藏卡片即可 */
-    public record ProductInfo(UUID id, String name, String mainImage, Money minPrice, Money maxPrice) {}
+    public record ProductInfo(
+            UUID id, String name, String mainImage, Money minPrice, Money maxPrice, long collectCount) {}
 }

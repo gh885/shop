@@ -10,6 +10,8 @@ import com.shop.platform.cart.service.CartItemView;
 import com.shop.platform.cart.service.CartService;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.UserIdHolder;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 买家购物车。全部接口要求登录（不在 JwtAuthFilter skipPaths 内，未登录 401）。
  * 结算预览/创建订单不属于本模块——order 拿勾选条目 ID 去取数做快照。
  */
+@Tag(name = "cart", description = "买家购物车（全部需登录）")
 @RestController
 @RequestMapping("/cart")
 @RequiredArgsConstructor
@@ -40,13 +43,13 @@ public class CartController {
     /** 加购：同 SKU 幂等合并为数量累加 */
     @PostMapping("/items")
     @ResponseStatus(HttpStatus.CREATED)
-    public CartItemResponse add(@Valid @RequestBody AddCartItemRequest req) {
+    public CartItemResponse addCartItem(@Valid @RequestBody AddCartItemRequest req) {
         return CartItemResponse.from(cartService.add(UserIdHolder.get(), req));
     }
 
     /** 整车列表：现价/库存/店铺信息读取时拼装，失效条目置灰保留 */
     @GetMapping("/items")
-    public List<CartListItemResponse> list() {
+    public List<CartListItemResponse> listCartItems() {
         return cartService.list(UserIdHolder.get()).stream()
                 .map(CartListItemResponse::from)
                 .toList();
@@ -54,31 +57,31 @@ public class CartController {
 
     /** 角标计数：免拉整车 */
     @GetMapping("/count")
-    public CartCountResponse count() {
+    public CartCountResponse getCartCount() {
         return CartCountResponse.from(cartService.count(UserIdHolder.get()));
     }
 
     /** 改数量或勾选（部分更新） */
     @PutMapping("/items/{id}")
-    public CartItemResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateCartItemRequest req) {
+    public CartItemResponse updateCartItem(@PathVariable UUID id, @Valid @RequestBody UpdateCartItemRequest req) {
         return CartItemResponse.from(cartService.update(UserIdHolder.get(), id, req));
     }
 
     /** 批量勾选/全选：itemIds 省略 = 整车；按店铺勾选由前端传该店条目 ID 列表 */
     @PutMapping("/items/selected")
-    public void updateSelected(@Valid @RequestBody UpdateCartSelectedRequest req) {
+    public void updateCartSelected(@Valid @RequestBody UpdateCartSelectedRequest req) {
         cartService.updateSelected(UserIdHolder.get(), req);
     }
 
     /** 删一条 */
     @DeleteMapping("/items/{id}")
-    public void remove(@PathVariable UUID id) {
+    public void removeCartItem(@PathVariable UUID id) {
         cartService.remove(UserIdHolder.get(), id);
     }
 
     /** 批量删：「清除失效商品」「删除选中」共用 */
     @PostMapping("/items/batch-delete")
-    public void batchRemove(@Valid @RequestBody BatchDeleteCartItemsRequest req) {
+    public void batchRemoveCartItems(@Valid @RequestBody BatchDeleteCartItemsRequest req) {
         cartService.batchRemove(UserIdHolder.get(), req);
     }
 
@@ -128,6 +131,7 @@ public class CartController {
                     view.available());
         }
 
+        @Schema(name = "CartProductInfo", description = "购物车条目里的商品（SPU）信息")
         public record ProductInfo(UUID id, String name, String mainImage, UUID shopId, String shopName) {
 
             static ProductInfo from(CartItemView.ProductInfo info) {

@@ -48,5 +48,8 @@ public class JwtProperties {
             "/auth/reset-password",
             "/admin",
             // 运维端点匿名可达（Prometheus 抓取无 token）；生产由网关限制来源
-            "/actuator");
+            "/actuator",
+            // OpenAPI 文档元数据匿名可达：前端 openapi-typescript 据此生成类型；生产由网关限制来源
+            "/v3/api-docs",
+            "/swagger-ui");
 }

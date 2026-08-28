@@ -5,6 +5,7 @@ import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.payment.dto.CreatePaymentRequest;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.service.PaymentService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 「创建支付单 + 返回跳转参数」，回调走网关通知，订单侧始终只经事件感知结果。
  * 幂等：重复发起返回同一笔成功流水（200），不报错。
  */
+@Tag(name = "payments", description = "买家支付")
 @RestController
 @RequestMapping("/payments")
 @RequiredArgsConstructor
@@ -33,7 +35,7 @@ public class PaymentController {
     /** 发起支付：仅待付款订单可付；金额以订单为准，前端不报价 */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PaymentResponse pay(@Valid @RequestBody CreatePaymentRequest req) {
+    public PaymentResponse createPayment(@Valid @RequestBody CreatePaymentRequest req) {
         return PaymentResponse.from(paymentService.pay(UserIdHolder.get(), req.orderId()));
     }
 

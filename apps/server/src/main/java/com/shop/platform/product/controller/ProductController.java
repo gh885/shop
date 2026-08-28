@@ -12,6 +12,7 @@ import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>店铺名不在这里拼：product 模块不碰 shop 的数据，前端拿 shopId 另调 GET /api/shops/{id}（SSR 里两个请求可并发）。
  */
+@Tag(name = "products", description = "买家侧商品浏览（匿名可访问）")
 @RestController
 @RequestMapping("/api/products")
 @Validated
@@ -43,7 +45,7 @@ public class ProductController {
 
     /** 商品列表：只返上架商品，可按类目/店铺/关键词筛选并排序 */
     @GetMapping
-    public PageResult<ProductResponse> list(@Valid PageParams pageParams, @Valid ProductQuery query) {
+    public PageResult<ProductResponse> listPublicProducts(@Valid PageParams pageParams, @Valid ProductQuery query) {
         PageResult<Product> page = productService.pagePublic(query, pageParams.page(), pageParams.size());
         return new PageResult<>(
                 page.records().stream().map(ProductResponse::from).toList(), page.total());
@@ -51,7 +53,7 @@ public class ProductController {
 
     /** 商品详情：非上架一律 404，SKU 只返在售 */
     @GetMapping("/{id}")
-    public ProductDetailResponse detail(@PathVariable UUID id) {
+    public ProductDetailResponse getPublicProductDetail(@PathVariable UUID id) {
         ProductDetail d = productService.publicDetail(id);
         return ProductDetailResponse.from(d, stocks(d.skus()));
     }

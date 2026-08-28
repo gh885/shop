@@ -5,6 +5,7 @@ import com.shop.platform.user.dto.AddressParseRequest;
 import com.shop.platform.user.dto.AddressRequest;
 import com.shop.platform.user.mapper.Address;
 import com.shop.platform.user.service.AddressService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "addresses", description = "买家收货地址（全部需登录）")
 @RestController
 @RequestMapping("/user/addresses")
 @RequiredArgsConstructor
@@ -31,50 +33,50 @@ public class AddressController {
     /** 新增收货地址 */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AddressResponse create(@Valid @RequestBody AddressRequest req) {
+    public AddressResponse createAddress(@Valid @RequestBody AddressRequest req) {
         return AddressResponse.from(addressService.create(UserIdHolder.get(), req));
     }
 
     /** 智能粘贴：解析收货文本为结构化字段（无需入库，纯文本处理） */
     @PostMapping("/parse")
-    public AddressParseResponse parse(@Valid @RequestBody AddressParseRequest req) {
+    public AddressParseResponse parseAddress(@Valid @RequestBody AddressParseRequest req) {
         return AddressParseResponse.from(addressService.parse(req.text()));
     }
 
     /** 我的收货地址列表：默认地址置顶 */
     @GetMapping
-    public List<AddressResponse> list() {
+    public List<AddressResponse> listAddresses() {
         return AddressResponse.from(addressService.list(UserIdHolder.get()));
     }
 
     /** 地址详情（结算页反显用） */
     @GetMapping("/{id}")
-    public AddressResponse detail(@PathVariable UUID id) {
+    public AddressResponse getAddressDetail(@PathVariable UUID id) {
         return AddressResponse.from(addressService.detail(UserIdHolder.get(), id));
     }
 
     /** 修改收货地址 */
     @PutMapping("/{id}")
-    public AddressResponse update(@PathVariable UUID id, @Valid @RequestBody AddressRequest req) {
+    public AddressResponse updateAddress(@PathVariable UUID id, @Valid @RequestBody AddressRequest req) {
         return AddressResponse.from(addressService.update(UserIdHolder.get(), id, req));
     }
 
     /** 删除收货地址（软删，返回 204） */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
+    public void deleteAddress(@PathVariable UUID id) {
         addressService.delete(UserIdHolder.get(), id);
     }
 
     /** 设为默认地址：每用户至多一个默认 */
     @PutMapping("/{id}/default")
-    public AddressResponse setDefault(@PathVariable UUID id) {
+    public AddressResponse setDefaultAddress(@PathVariable UUID id) {
         return AddressResponse.from(addressService.setDefault(UserIdHolder.get(), id));
     }
 
     /** 取消默认地址：允许该用户无默认地址 */
     @DeleteMapping("/{id}/default")
-    public AddressResponse unsetDefault(@PathVariable UUID id) {
+    public AddressResponse unsetDefaultAddress(@PathVariable UUID id) {
         return AddressResponse.from(addressService.unsetDefault(UserIdHolder.get(), id));
     }
 

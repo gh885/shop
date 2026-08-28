@@ -8,6 +8,7 @@ import com.shop.platform.admin.service.StaffInfo;
 import com.shop.platform.admin.service.StaffService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.TokenPair;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "admin-auth", description = "平台员工认证")
 @RestController
 @RequestMapping("/admin/auth")
 @RequiredArgsConstructor
@@ -36,7 +38,7 @@ public class StaffAuthController {
 
     /** 工号 + 密码登录，返回独立于 C 端的 token（kind=staff），refresh 落 httpOnly cookie */
     @PostMapping("/login")
-    public TokenPair login(@Valid @RequestBody LoginRequest req, HttpServletResponse response) {
+    public TokenPair staffLogin(@Valid @RequestBody LoginRequest req, HttpServletResponse response) {
         TokenPair result = staffService.login(req.employeeNo(), req.password(), req.deviceId());
         setRefreshCookie(response, result.refreshToken());
         return result;
@@ -44,7 +46,7 @@ public class StaffAuthController {
 
     /** 刷新双 token（admin 纯 web：refresh 只认 httpOnly cookie，不做 body 双来源） */
     @PostMapping("/refresh")
-    public TokenPair refresh(
+    public TokenPair refreshStaffSession(
             HttpServletRequest request,
             HttpServletResponse response,
             @RequestBody(required = false) RefreshRequest req) {
@@ -60,13 +62,13 @@ public class StaffAuthController {
 
     /** 当前登录员工信息 */
     @GetMapping("/me")
-    public StaffInfoResponse me() {
+    public StaffInfoResponse getStaffMe() {
         return StaffInfoResponse.from(staffService.getMe(StaffContext.get()));
     }
 
     /** 登出：删除当前设备 refresh token + 清 cookie */
     @PostMapping("/logout")
-    public void logout(@Valid @RequestBody LogoutRequest req, HttpServletResponse response) {
+    public void staffLogout(@Valid @RequestBody LogoutRequest req, HttpServletResponse response) {
         staffService.logout(StaffContext.get(), req.deviceId());
         clearRefreshCookie(response);
     }

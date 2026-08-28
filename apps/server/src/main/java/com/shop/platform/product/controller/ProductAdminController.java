@@ -17,6 +17,7 @@ import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 卖家商品管理（授权要求 PRODUCT_MANAGE，读随写权）。出参一律 Response record：卖家端 zod schema 逐字段严格校验，字段镜像实体现状只减不增 */
+@Tag(name = "products-admin", description = "卖家商品管理")
 @RestController
 @RequestMapping("/seller/products")
 @Validated
@@ -48,33 +50,33 @@ public class ProductAdminController {
 
     /** 创建商品草稿，返回含 id/createdAt 的出参。shopId 从店铺上下文（X-Shop-Id）取，不由前端传入 */
     @PostMapping
-    public ProductResponse create(@Valid @RequestBody CreateProductRequest request) {
+    public ProductResponse createProduct(@Valid @RequestBody CreateProductRequest request) {
         return ProductResponse.from(productService.create(request.toCommand(ShopIdHolder.get())));
     }
 
     /** 更新规格并按新模板对账 SKU，返回当前全部 SKU（含新 id，供 updateSku 定位） */
     @PutMapping("/{id}/specs")
-    public List<SkuResponse> updateSpecs(@PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
+    public List<SkuResponse> updateProductSpecs(@PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
         List<Sku> skus = productService.updateSpecs(id, request.specs());
         return SkuResponse.from(skus, stocks(skus));
     }
 
     /** 批量更新 SKU 价格/库存，返回更新后的 SKU 列表 */
     @PutMapping("/{id}/skus")
-    public List<SkuResponse> updateSkus(@PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
+    public List<SkuResponse> updateProductSkus(@PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
         List<Sku> skus = productService.updateSkus(id, request.items());
         return SkuResponse.from(skus, stocks(skus));
     }
 
     /** 发布草稿，返回 status=1 且回填过价格区间的商品 */
     @PostMapping("/{id}/publish")
-    public ProductResponse publish(@PathVariable UUID id) {
+    public ProductResponse publishProduct(@PathVariable UUID id) {
         return ProductResponse.from(productService.publish(id));
     }
 
     /** 商家后台商品列表：按当前店铺（X-Shop-Id）分页，可按状态/名称筛选 */
     @GetMapping
-    public PageResult<ProductResponse> list(
+    public PageResult<ProductResponse> listShopProducts(
             @Valid PageParams pageParams,
             @RequestParam(required = false) @Min(0) @Max(2) Integer status,
             @RequestParam(required = false) @Size(max = 128) String keyword) {
@@ -85,26 +87,26 @@ public class ProductAdminController {
 
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查 */
     @GetMapping("/{id}")
-    public ProductDetailResponse detail(@PathVariable UUID id) {
+    public ProductDetailResponse getShopProductDetail(@PathVariable UUID id) {
         ProductDetail d = productService.detail(id);
         return ProductDetailResponse.from(d, stocks(d.skus()));
     }
 
     /** 编辑基本信息（specs/SKU 之外的字段）；改规格走 PUT /{id}/specs */
     @PutMapping("/{id}")
-    public ProductResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateProductRequest request) {
+    public ProductResponse updateProduct(@PathVariable UUID id, @Valid @RequestBody UpdateProductRequest request) {
         return ProductResponse.from(productService.updateBasic(id, request.toCommand()));
     }
 
     /** 下架：仅上架商品可下架。不做物理删除，下架即"删除"语义 */
     @PostMapping("/{id}/off")
-    public ProductResponse off(@PathVariable UUID id) {
+    public ProductResponse offProduct(@PathVariable UUID id) {
         return ProductResponse.from(productService.off(id));
     }
 
     /** 重新上架：仅下架商品可上架，复检发布门槛（全部 SKU 已设价） */
     @PostMapping("/{id}/on")
-    public ProductResponse on(@PathVariable UUID id) {
+    public ProductResponse onProduct(@PathVariable UUID id) {
         return ProductResponse.from(productService.on(id));
     }
 

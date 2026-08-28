@@ -1,11 +1,14 @@
 package com.shop.platform.favorite.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
@@ -39,5 +42,22 @@ public interface FavoriteItemMapper extends BaseMapper<FavoriteItem> {
         return selectList(new LambdaQueryWrapper<FavoriteItem>()
                 .eq(FavoriteItem::getUserId, userId)
                 .in(FavoriteItem::getProductId, productIds));
+    }
+
+    /**
+     * 全站各商品收藏人数：列表页「N人收藏」用（统计所有用户，非本人）。
+     * 只 count 不 join——收藏量是收藏夹自有指标，跨模块读商品信息在 service 层拼装。
+     */
+    default Map<UUID, Long> collectCountByProductIds(Collection<UUID> productIds) {
+        if (productIds.isEmpty()) {
+            return Map.of();
+        }
+        return selectMaps(new QueryWrapper<FavoriteItem>()
+                        .select("product_id", "count(*) AS cnt")
+                        .in("product_id", productIds)
+                        .groupBy("product_id"))
+                .stream()
+                .collect(Collectors.toMap(
+                        m -> UUID.fromString((String) m.get("product_id")), m -> ((Number) m.get("cnt")).longValue()));
     }
 }

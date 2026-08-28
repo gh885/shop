@@ -74,7 +74,7 @@ class FavoriteControllerTest extends WebControllerTestSupport {
                                 productId,
                                 OffsetDateTime.now(),
                                 new FavoriteItemView.ProductInfo(
-                                        productId, "收藏商品", "p.png", Money.cny(500), Money.cny(900)),
+                                        productId, "收藏商品", "p.png", Money.cny(500), Money.cny(900), 1200L),
                                 false)),
                         1));
 
@@ -85,6 +85,7 @@ class FavoriteControllerTest extends WebControllerTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.records[0].product.minPrice.amount").value(500))
+                .andExpect(jsonPath("$.records[0].product.collectCount").value(1200))
                 .andExpect(jsonPath("$.records[0].available").value(false));
     }
 

@@ -18,6 +18,7 @@ import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.captcha.CaptchaService;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "auth", description = "买家账号认证与个人资料")
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -63,7 +65,7 @@ public class AuthController {
 
     /** 发放图形验证码（匿名可达，见 JwtProperties.skipPaths） */
     @GetMapping("/captcha")
-    public CaptchaResponse captcha() {
+    public CaptchaResponse getCaptcha() {
         CaptchaService.Captcha captcha = captchaService.generate();
         return new CaptchaResponse(captcha.captchaId(), captcha.image());
     }

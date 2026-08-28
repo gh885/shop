@@ -72,12 +72,17 @@ public class FavoriteService {
         }
 
         // 2. 跨模块只读批查商品卡片数据（product :: api）
-        Map<UUID, ProductView> products = productReadQuery.productsByIds(
-                rows.stream().map(FavoriteItem::getProductId).distinct().toList());
+        List<UUID> productIds =
+                rows.stream().map(FavoriteItem::getProductId).distinct().toList();
+        Map<UUID, ProductView> products = productReadQuery.productsByIds(productIds);
+
+        // 2.1 批查各商品收藏人数（本模块自有指标，不跨模块）
+        Map<UUID, Long> collectCounts = favoriteItemMapper.collectCountByProductIds(productIds);
 
         // 3. 拼装视图：商品被删/下架 → available=false 原样保留置灰
-        List<FavoriteItemView> views =
-                rows.stream().map(item -> assemble(item, products)).toList();
+        List<FavoriteItemView> views = rows.stream()
+                .map(item -> assemble(item, products, collectCounts))
+                .toList();
         return new PageResult<>(views, pageResult.getTotal());
     }
 
@@ -99,7 +104,9 @@ public class FavoriteService {
     // ========== 内部 ==========
 
     /** 拼装单条视图：商品缺失 → 全空视图置灰 */
-    private FavoriteItemView assemble(FavoriteItem item, Map<UUID, ProductView> products) {
+    private FavoriteItemView assemble(
+            FavoriteItem item, Map<UUID, ProductView> products, Map<UUID, Long> collectCounts) {
+        long collectCount = collectCounts.getOrDefault(item.getProductId(), 0L);
         ProductView p = products.get(item.getProductId());
         if (p == null) {
             return new FavoriteItemView(item.getId(), item.getProductId(), item.getCreatedAt(), null, false);
@@ -110,7 +117,8 @@ public class FavoriteService {
                 p.name(),
                 p.mainImage(),
                 p.minPrice() == null ? null : Money.cny(p.minPrice()),
-                p.maxPrice() == null ? null : Money.cny(p.maxPrice()));
+                p.maxPrice() == null ? null : Money.cny(p.maxPrice()),
+                collectCount);
         return new FavoriteItemView(item.getId(), item.getProductId(), item.getCreatedAt(), info, available);
     }
 }
