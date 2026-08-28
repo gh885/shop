@@ -4,7 +4,7 @@ import type { PreviewResponse } from "@shop/api/sdk"
 
 import { notify } from "#/shared/lib/toast"
 
-import { toOrder, toOrderDetail } from "./order"
+import { statusToWire, toOrder, toOrderDetail } from "./order"
 import type { Order, OrderDetail, OrderStatus } from "./model"
 
 /**
@@ -33,7 +33,9 @@ export const myOrdersOptions = ({
             const res = await OrdersApi.listMyOrders({
                 query: {
                     pageParams: { page, size },
-                    query: { status: status === "all" ? undefined : status },
+                    query: {
+                        status: status && status !== "all" ? statusToWire(status) : undefined,
+                    },
                 },
             })
             if (res.error) throw res.error
@@ -102,9 +104,16 @@ export async function createOrder(args: {
     return res.data ?? {}
 }
 
-/** 发起支付：V1 MOCK 即时成功，返回成功流水 */
+/** 发起支付：V1 创建 PENDING 流水（不动订单状态），返回待确认流水 */
 export async function createPayment(orderId: string) {
     const res = await PaymentsApi.createPayment({ body: { orderId } })
+    if (res.error) throw res.error
+    return res.data ?? {}
+}
+
+/** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；返回成功流水 */
+export async function confirmPayment(paymentId: string) {
+    const res = await PaymentsApi.confirmPayment({ path: { id: paymentId } })
     if (res.error) throw res.error
     return res.data ?? {}
 }

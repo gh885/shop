@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { notify } from "#/shared/lib/toast"
 
 import { toCheckoutPreview, type CheckoutPreview } from "./checkout"
-import { createOrder, createPayment, fetchPreview } from "#/order/use-order"
+import { confirmPayment, createOrder, createPayment, fetchPreview } from "#/order/use-order"
 
 /** use-checkout —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
 
@@ -58,15 +58,23 @@ export function useCreateOrder() {
     })
 }
 
-/** 发起支付：下单成功后的新单逐单支付（V1 MOCK 即时成功） */
+/** 发起支付：下单后创建 PENDING 流水（V1 两段式的第一段），不动订单状态 */
 export function useCreatePayment() {
-    const qc = useQueryClient()
     return useMutation({
         mutationFn: (orderId: string) => createPayment(orderId),
+        onError: (err) => notify.fromError(err, "发起支付失败"),
+    })
+}
+
+/** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；成功后失效订单缓存 */
+export function useConfirmPayment() {
+    const qc = useQueryClient()
+    return useMutation({
+        mutationFn: (paymentId: string) => confirmPayment(paymentId),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["my-orders"] })
             qc.invalidateQueries({ queryKey: ["order-detail"] })
         },
-        onError: (err) => notify.fromError(err, "支付失败"),
+        onError: (err) => notify.fromError(err, "确认支付失败"),
     })
 }

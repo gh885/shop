@@ -1,7 +1,7 @@
 import type { Money } from "@shop/api"
 import type { Money as SdkMoney } from "@shop/api/sdk"
 
-import type { Order, OrderDetail, OrderItem } from "./model"
+import type { Order, OrderDetail, OrderItem, OrderStatus } from "./model"
 
 /**
  * entities/order —— 订单领域数据层（纯类型 + wire → 投影 + 纯规则，不碰 React / 网络）。
@@ -9,6 +9,36 @@ import type { Order, OrderDetail, OrderItem } from "./model"
  * 与 model.ts 的分工：这里把生成 SDK 的 wire 形状（字段全可选）归一成领域形状（稳定缺省），
  * model.ts 只定义领域类型与展示辅助。金额一律 Money，wire 的 SDK Money 字段可选，经 toMoney 归一必填。
  */
+
+// ---------- 状态映射（后端枚举大写 → 前端领域枚举小写，双向） ----------
+
+/** wire（后端）状态 → 前端领域枚举。后端 PAID（已付款）映射为待发货（前端履约流无独立「已付款」段） */
+const WIRE_TO_STATUS: Record<string, OrderStatus> = {
+    PENDING_PAYMENT: "pending_payment",
+    PAID: "pending_shipment",
+    SHIPPED: "pending_receipt",
+    COMPLETED: "completed",
+    CANCELLED: "cancelled",
+}
+
+/** 前端领域枚举 → wire（后端）枚举：查询筛选/状态机动作都用后端大写常量 */
+const STATUS_TO_WIRE: Record<OrderStatus, string> = {
+    pending_payment: "PENDING_PAYMENT",
+    pending_shipment: "PAID",
+    pending_receipt: "SHIPPED",
+    completed: "COMPLETED",
+    cancelled: "CANCELLED",
+}
+
+/** wire → 领域：后端状态归一成前端枚举，未知值兜底待付款 */
+function toStatus(wire?: string): OrderStatus {
+    return wire ? (WIRE_TO_STATUS[wire] ?? "pending_payment") : "pending_payment"
+}
+
+/** 领域 → wire：查询参数/状态机动作传回后端大写枚举 */
+export function statusToWire(status: OrderStatus): string {
+    return STATUS_TO_WIRE[status]
+}
 
 /** 归一：SDK 的 Money 字段全可选（openapi-ts 默认），业务 Money 必填；null 原样保留 */
 function toMoney(m: SdkMoney | null | undefined): Money | null {
@@ -64,7 +94,7 @@ export function toOrder(dto: {
         id: dto.id ?? "",
         orderNo: dto.orderNo ?? "",
         createdAt: dto.createdAt ?? "",
-        status: (dto.status ?? "pending_payment") as Order["status"],
+        status: toStatus(dto.status),
         shopId: dto.shopId ?? "",
         shopName: dto.shopName ?? "",
         items: (dto.items ?? []).map(toOrderItem),

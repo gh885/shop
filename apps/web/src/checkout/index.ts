@@ -6,5 +6,10 @@ export type {
     UnavailableLine,
     CheckoutAddress,
 } from "./checkout"
-export { useCheckoutPreview, useCreateOrder, useCreatePayment } from "./use-checkout"
+export {
+    useCheckoutPreview,
+    useCreateOrder,
+    useCreatePayment,
+    useConfirmPayment,
+} from "./use-checkout"
 export type { CheckoutSource } from "./use-checkout"
