@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from "react"
 
-import type { ProductDetail, SkuSelection } from "#/entities/product"
+import type { ProductDetail, SkuSelection } from "#/product"
 
-import { findMatchingSku, isValueAvailable } from "#/entities/product"
+import { findMatchingSku, isValueAvailable } from "#/product"
 
 /**
  * 规格选择状态容器：route 持有唯一实例，gallery（图随 SKU 切换）与

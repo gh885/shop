@@ -4,8 +4,13 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
 import { HeartOff } from "lucide-react"
 
-import { FavoriteCard } from "#/entities/favorite"
-import { FavoritesToolbar } from "#/widgets/favorites"
+import {
+    FavoriteCard,
+    filterFavorites,
+    Toolbar,
+    useFavorites,
+    useRemoveFavorites,
+} from "#/favorite"
 
 export const Route = createFileRoute("/_protected/account/favorites/")({
     component: FavoritesPage,
@@ -15,27 +20,45 @@ export const Route = createFileRoute("/_protected/account/favorites/")({
 })
 
 function FavoritesPage() {
+    // 页面局部 UI 状态（真实源在客户端）→ useState，不进 query
     const [keyword, setKeyword] = useState("")
     const [batchMode, setBatchMode] = useState(false)
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
 
-    const favorites: Parameters<typeof FavoriteCard>[0]["favorite"][] = MockFavorites
+    const { data: favorites = [] } = useFavorites()
+    const removeFavorites = useRemoveFavorites()
 
-    // 关键词筛选（前端过滤；后端接入后改为查参）
-    const filtered = favorites.filter((f) =>
-        f.title.toLowerCase().includes(keyword.trim().toLowerCase()),
-    )
+    const filtered = filterFavorites(favorites, keyword)
 
-    function toggleSelect(id: string) {
+    function handleRemove(productId: string) {
+        removeFavorites.mutate([productId])
         setSelected((prev) => {
+            if (!prev.has(productId)) return prev
             const next = new Set(prev)
-            if (next.has(id)) next.delete(id)
-            else next.add(id)
+            next.delete(productId)
             return next
         })
     }
 
-    // 退出批量模式时清空已选
+    function handleBatchDelete() {
+        if (selected.size === 0) return
+        removeFavorites.mutate([...selected])
+        setSelected(new Set())
+    }
+
+    function handleToggleSelectAll(checked: boolean) {
+        setSelected(checked ? new Set(filtered.map((f) => f.productId)) : new Set())
+    }
+
+    function toggleSelect(productId: string) {
+        setSelected((prev) => {
+            const next = new Set(prev)
+            if (next.has(productId)) next.delete(productId)
+            else next.add(productId)
+            return next
+        })
+    }
+
     function toggleBatchMode() {
         setBatchMode((prev) => {
             if (prev) setSelected(new Set())
@@ -45,13 +68,16 @@ function FavoritesPage() {
 
     return (
         <div className="space-y-5">
-            <FavoritesToolbar
+            <Toolbar
                 total={filtered.length}
                 keyword={keyword}
                 onKeywordChange={setKeyword}
                 batchMode={batchMode}
                 onToggleBatchMode={toggleBatchMode}
                 selectedCount={selected.size}
+                allSelected={filtered.length > 0 && selected.size >= filtered.length}
+                onToggleSelectAll={handleToggleSelectAll}
+                onBatchDelete={handleBatchDelete}
             />
 
             {filtered.length === 0 ? (
@@ -74,11 +100,12 @@ function FavoritesPage() {
                 <div className="flex flex-wrap gap-3">
                     {filtered.map((favorite) => (
                         <FavoriteCard
-                            key={favorite.id}
+                            key={favorite.productId}
                             favorite={favorite}
                             batchMode={batchMode}
-                            selected={selected.has(favorite.id)}
+                            selected={selected.has(favorite.productId)}
                             onToggleSelect={toggleSelect}
+                            onRemove={handleRemove}
                         />
                     ))}
                 </div>
@@ -86,42 +113,3 @@ function FavoritesPage() {
         </div>
     )
 }
-
-// TODO: 后端 /favorites 接口接入后替换为 useFavorites()；此处为临时占位数据
-const MockFavorites: Parameters<typeof FavoriteCard>[0]["favorite"][] = [
-    {
-        id: "7b2e5d4a-1111-4c3b-9a01-000000000001",
-        image: "",
-        title: "毕业生（第十届茅盾文学奖得主，电视剧《人世间》原著作者梁晓声长篇力作）",
-        collectCount: 1000,
-        price: 3199,
-    },
-    {
-        id: "7b2e5d4a-2222-4c3b-9a01-000000000002",
-        image: "",
-        title: "认知觉醒：开启自我改变的原动力（百万册纪念版）",
-        collectCount: 35600,
-        price: 4990,
-    },
-    {
-        id: "7b2e5d4a-3333-4c3b-9a01-000000000003",
-        image: "",
-        title: "活着（余华代表作，2024精装典藏版）",
-        collectCount: 980,
-        price: 2800,
-    },
-    {
-        id: "7b2e5d4a-4444-4c3b-9a01-000000000004",
-        image: "",
-        title: "三体（全三册，雨果奖获奖作品）",
-        collectCount: 152000,
-        price: 9300,
-    },
-    {
-        id: "7b2e5d4a-4444-4c3b-9a01-000000000004",
-        image: "",
-        title: "三体（全三册，雨果奖获奖作品）",
-        collectCount: 152000,
-        price: 9300,
-    },
-]

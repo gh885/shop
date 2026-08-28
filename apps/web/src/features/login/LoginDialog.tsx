@@ -2,15 +2,7 @@ import { useEffect, useState } from "react"
 import { CircleAlert, Loader2, QrCode } from "lucide-react"
 
 import { useMutation } from "@tanstack/react-query"
-import {
-    ErrorCodes,
-    PasswordFormSchema,
-    PHONE_PATTERN,
-    PhoneSchema,
-    SmsFormSchema,
-    toApiError,
-    type ApiError,
-} from "@shop/api"
+import { ErrorCodes, type ApiError } from "@shop/api"
 import {
     Button,
     cn,
@@ -23,9 +15,20 @@ import {
     useCountdown,
 } from "@shop/ui-web"
 
-import { loginByPassword, loginBySms, sendSmsCode as sendSmsCodeAction } from "./actions"
-import { authApi } from "#/shared/api/client"
+import {
+    getCaptcha,
+    loginByPassword,
+    loginBySms,
+    sendSmsCode as sendSmsCodeAction,
+} from "./actions"
+import { normalizeApiError } from "#/shared/lib/api-error"
 import { notify } from "#/shared/lib/toast"
+import {
+    PasswordFormSchema,
+    PHONE_PATTERN,
+    PhoneSchema,
+    SmsFormSchema,
+} from "#/shared/lib/validation"
 
 /* 嵌套行（+86 前缀 / 内嵌按钮）里的 Input：去掉自带边框与 focus ring，
    视觉容器由外层 wrapper（rounded + bg-muted + focus-within:ring）承担 */
@@ -62,7 +65,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     const [submitError, setSubmitError] = useState<SubmitError>(null)
     const [countdown, setCountdown] = useCountdown()
     // 图形验证码：挂载即加载（默认短信 tab 需要人机验证才能发码）。图在登录后随 dialog 关闭清理态
-    const captcha = useCaptcha(authApi.getCaptcha)
+    const captcha = useCaptcha(getCaptcha)
     // useCaptcha 的 refresh 是 useCallback 稳定引用；提取出来供 useEffect 依赖数组用
     const refreshCaptcha = captcha.refresh
 
@@ -87,7 +90,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 setCountdown(0)
                 notify.success("登录成功", "欢迎回来")
             } catch (error) {
-                setSubmitError(toApiError(error))
+                setSubmitError(normalizeApiError(error))
             }
         },
     })
@@ -107,7 +110,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
             form.setFieldValue("captchaCode", "")
         },
         onError: (e) => {
-            const err = toApiError(e)
+            const err = normalizeApiError(e)
             setSubmitError(err)
             // 图形验证码类失败：刷新验证码图，引导用户重输（其余错误保留原图避免无谓请求）
             if (isCaptchaError(err)) {

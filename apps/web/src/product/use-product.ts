@@ -1,0 +1,45 @@
+import { ProductsApi } from "@shop/api/sdk"
+
+import {
+    toProduct,
+    toProductDetail,
+    type Product,
+    type ProductDetail,
+    type ProductListQueryInput,
+} from "./product"
+
+/**
+ * use-product —— 商品的数据层（纯异步函数，非 hook）。规则/类型在 ./product.ts。
+ * 真正的 React 接线（queryOptions）都在各页面级 use-*（如 widgets/product-detail/use-product-detail、
+ * widgets/home/use-home）——商品列表/详情被首页商品流、详情推荐、类目/搜索等多处复用，
+ * 不在模块内绑死 query key/缓存策略，由调用方决定。
+ */
+
+/** 全站商品分页：卡片流/推荐/类目/搜索共用，返回领域形状 */
+export async function fetchProducts(
+    input: ProductListQueryInput,
+): Promise<{ records: Product[]; total: number }> {
+    const res = await ProductsApi.listPublicProducts({
+        query: {
+            pageParams: { page: input.page ?? 1, size: input.size ?? 20 },
+            query: {
+                categoryId: input.categoryId,
+                shopId: input.shopId,
+                keyword: input.keyword,
+                sort: input.sort,
+            },
+        },
+    })
+    if (res.error) throw res.error
+    return {
+        records: (res.data?.records ?? []).map(toProduct),
+        total: res.data?.total ?? 0,
+    }
+}
+
+/** 商品详情：匿名可访问（公开页），返回领域形状 */
+export async function fetchProductDetail(id: string): Promise<ProductDetail> {
+    const res = await ProductsApi.getPublicProductDetail({ path: { id } })
+    if (res.error) throw res.error
+    return toProductDetail(res.data ?? {})
+}

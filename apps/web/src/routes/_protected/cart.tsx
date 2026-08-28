@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { CartProvider, useCart } from "#/features/cart"
+import { ShopGroupCard, Settlement, Toolbar, groupByShop, useCartItems } from "#/cart"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
-import { CartHeader, CartSettlement, CartShopGroupCard, CartToolbar } from "#/widgets/cart"
+import { SearchHeader } from "#/shared/ui/SearchHeader"
 
 export const Route = createFileRoute("/_protected/cart")({
     component: CartPage,
@@ -11,22 +11,20 @@ export const Route = createFileRoute("/_protected/cart")({
 
 function CartPage() {
     // 登录守卫由 _protected layout 统一负责（beforeLoad 裁决 + authed 后才渲染子路由）
-    // 整页包一个 CartProvider：列表分组、选中、金额等派生状态与业务逻辑都在 useCart() 里。
-
-    // 整页包一个 CartProvider：列表分组、选中、金额等派生状态与业务逻辑都在 useCart() 里。
     return (
-        <CartProvider>
-            <CartHeader />
+        <>
+            <SearchHeader title="购物车" />
             {/* 左滚右停：左栏（工具栏+商品列表）随页面滚动，右栏结算明细吸顶 */}
             <div className="mx-auto w-full max-w-(--container-page) px-6 pb-10">
                 <CartContent />
             </div>
-        </CartProvider>
+        </>
     )
 }
 
 function CartList() {
-    const { groups, isPending } = useCart()
+    const { data: items, isPending } = useCartItems()
+    const groups = groupByShop(items ?? [])
     if (isPending) {
         return <p className="py-16 text-center text-sm text-muted-foreground">加载中…</p>
     }
@@ -38,7 +36,7 @@ function CartList() {
         )
     }
     return groups.map((group) => (
-        <CartShopGroupCard
+        <ShopGroupCard
             key={group.shopId}
             group={group}
         />
@@ -51,11 +49,11 @@ function CartContent() {
             rightWidth="360px"
             left={
                 <div className="min-h-full rounded-2xl bg-background p-6">
-                    <CartToolbar />
+                    <Toolbar />
                     <CartList />
                 </div>
             }
-            right={<CartSettlement />}
+            right={<Settlement />}
         />
     )
 }

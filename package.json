@@ -24,7 +24,8 @@
         "format": "pnpm format:web && pnpm format:server",
         "format:web": "oxfmt --config packages/config/oxfmt.config.ts --write .",
         "format:server": "mvn -f apps/server/pom.xml spotless:apply",
-        "typecheck": "pnpm --filter web exec tsc --noEmit && pnpm --filter admin exec tsc --noEmit && pnpm --filter seller exec tsc --noEmit"
+        "typecheck": "pnpm --filter web exec tsc --noEmit && pnpm --filter admin exec tsc --noEmit && pnpm --filter seller exec tsc --noEmit",
+        "gen:sdk": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts"
     },
     "devDependencies": {
         "@commitlint/cli": "^21.2.1",

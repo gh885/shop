@@ -1,21 +1,98 @@
 import { redirect } from "@tanstack/react-router"
 
-import { createAdminApi, createApiClient, createAuthKit } from "@shop/api"
+import { configureSdkClient, createAuthKit } from "@shop/api"
+import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
 
-// admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 admin/auth/refresh（cookie）。
-// API 契约（schemas + endpoints）在 @shop/api 的 createAdminApi / schemas/admin。
+// admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
+// 生成 SDK（@shop/api/sdk）统一出入参，业务方法经 adminApi 具名封装（error 转抛供调用方 catch）。
 export const authKit = createAuthKit({
     deviceKey: "shop_admin_device_id",
-    // 引用下方 adminApi：调用发生在模块初始化后，安全
-    refresh: (deviceId) => adminApi.refresh(deviceId),
+    // 引用下方 AdminAuthApi：调用发生在模块初始化后，安全
+    refresh: async () => {
+        const res = await AdminAuthApi.refreshStaffSession()
+        const token = res.data?.accessToken
+        if (!token) throw res.error ?? new Error("refresh 失败")
+        return { accessToken: token }
+    },
 })
 export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus } = authKit
 
-export const api = createApiClient("", tokenStore, {
+// 生成 SDK 的默认 client：同源 + 同一套 token / 401 刷新拦截（刷新端点 admin 侧不同）
+configureSdkClient("", tokenStore, {
     refreshPath: "admin/auth/refresh",
     debug: import.meta.env.DEV,
 })
-export const adminApi = createAdminApi(api.raw)
+
+/** admin 业务方法封装：SDK 返回 { data, error } 不抛错，这里把 error 转抛，供调用方统一 catch 归一化 */
+export const adminApi = {
+    /** 员工登录：成功后返回 access token */
+    async login(input: { employeeNo: string; password: string; deviceId: string }) {
+        const res = await AdminAuthApi.staffLogin({ body: input })
+        if (res.error) throw res.error
+        return { accessToken: res.data?.accessToken ?? "" }
+    },
+
+    /** 当前登录员工信息 */
+    async me() {
+        const res = await AdminAuthApi.getStaffMe()
+        if (res.error) throw res.error
+        return res.data
+    },
+
+    /** 登出 */
+    async logout(deviceId: string) {
+        const res = await AdminAuthApi.staffLogout({ body: { deviceId } })
+        if (res.error) throw res.error
+    },
+
+    /** 店铺审核分页列表 */
+    async listReviews(input: { status?: string; page: number; size: number }) {
+        const res = await AdminReviewsApi.listShopReviews({
+            query: {
+                status: input.status,
+                pageParams: { page: input.page, size: input.size },
+            },
+        })
+        if (res.error) throw res.error
+        return {
+            records: (res.data?.records ?? []).map((r) => ({
+                id: r.id ?? "",
+                shopId: r.shopId ?? "",
+                shopName: r.shopName ?? "",
+                ownerPhone: r.ownerPhone ?? "",
+                status: r.status ?? "",
+                reason: r.reason ?? "",
+                decidedAt: r.decidedAt ?? "",
+                createdAt: r.createdAt ?? "",
+            })),
+            total: res.data?.total ?? 0,
+        }
+    },
+
+    /** 审核通过 */
+    async approve(id: string) {
+        const res = await AdminReviewsApi.approveShopReview({ path: { id } })
+        if (res.error) throw res.error
+    },
+
+    /** 审核驳回 */
+    async reject(id: string, reason: string) {
+        const res = await AdminReviewsApi.rejectShopReview({ path: { id }, body: { reason } })
+        if (res.error) throw res.error
+    },
+}
+
+/** 店铺审核行：wire 字段归一（后端非空返回，此处定非可选形状供表格使用） */
+export type ShopReviewItem = {
+    id: string
+    shopId: string
+    shopName: string
+    ownerPhone: string
+    status: string
+    reason: string
+    decidedAt: string
+    createdAt: string
+}
 
 // ---------- 路由守卫 ----------
 

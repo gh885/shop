@@ -18,8 +18,7 @@ import { RouteProgressBar } from "../widgets/RouteProgressBar"
 import { LoginDialog } from "#/features/login"
 import { SiteFooter } from "../widgets/SiteFooter"
 import { SiteHeader } from "../widgets/SiteHeader"
-import { bootstrapAuth } from "../shared/api/client"
-import { useLoginDialogOpen } from "../shared/api/auth"
+import { bootstrapAuth, useLoginDialogOpen } from "../shared/api/auth"
 
 import appCss from "../styles.css?url"
 

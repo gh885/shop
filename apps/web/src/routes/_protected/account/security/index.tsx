@@ -3,9 +3,9 @@ import { createFileRoute } from "@tanstack/react-router"
 import { CircleAlert, Loader2, LogOut, Monitor, Smartphone } from "lucide-react"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { AuthApi } from "@shop/api/sdk"
 import { Button, Empty, EmptyHeader, EmptyTitle, Input, Skeleton, useAppForm } from "@shop/ui-web"
 
-import { authApi } from "#/shared/api/client"
 import { getDeviceId } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
 
@@ -35,7 +35,7 @@ function ChangePassword() {
 
     const change = useMutation({
         mutationFn: ({ current, next }: { current: string; next: string }) =>
-            authApi.setPassword({ currentPassword: current, newPassword: next }),
+            AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
         onSuccess: () => {
             notify.success("密码已修改")
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
@@ -137,11 +137,11 @@ function DeviceManager() {
 
     const devices = useQuery({
         queryKey: DEVICES_KEY,
-        queryFn: () => authApi.listDevices(currentDeviceId),
+        queryFn: async () => (await AuthApi.devices({ query: { currentDeviceId } })).data ?? [],
     })
 
     const deleteDevice = useMutation({
-        mutationFn: (deviceId: string) => authApi.deleteDevice(deviceId),
+        mutationFn: (deviceId: string) => AuthApi.deleteDevice({ path: { deviceId } }),
         onSuccess: () => {
             notify.success("已退出该设备")
             void qc.invalidateQueries({ queryKey: DEVICES_KEY })
@@ -150,7 +150,7 @@ function DeviceManager() {
     })
 
     const logoutAll = useMutation({
-        mutationFn: () => authApi.logoutAll(),
+        mutationFn: () => AuthApi.logoutAll(),
         onSuccess: () => {
             notify.success("已退出所有设备")
             window.location.href = "/"
@@ -196,7 +196,7 @@ function DeviceManager() {
                             key={d.deviceId}
                             className="flex items-center gap-3 rounded-xl border border-border/60 px-4 py-3"
                         >
-                            {isMobileName(d.deviceName) ? (
+                            {isMobileName(d.deviceName ?? "") ? (
                                 <Smartphone className="size-5 shrink-0 text-muted-foreground" />
                             ) : (
                                 <Monitor className="size-5 shrink-0 text-muted-foreground" />
@@ -218,7 +218,7 @@ function DeviceManager() {
                                 variant="ghost"
                                 size="sm"
                                 disabled={d.isCurrent || deleteDevice.isPending}
-                                onClick={() => deleteDevice.mutate(d.deviceId)}
+                                onClick={() => deleteDevice.mutate(d.deviceId ?? "")}
                             >
                                 <LogOut className="size-4" />
                                 退出
@@ -238,7 +238,7 @@ function isMobileName(name: string): boolean {
     return n.includes("iphone") || n.includes("android") || n.includes("手机")
 }
 
-function formatTime(iso: string | null): string {
+function formatTime(iso: string | null | undefined): string {
     if (!iso) return "时间未知"
     try {
         return new Date(iso).toLocaleString("zh-CN", {

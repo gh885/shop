@@ -3,10 +3,10 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Loader2 } from "lucide-react"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { AuthApi } from "@shop/api/sdk"
 import { Button, Input, Separator, Skeleton, useAppForm } from "@shop/ui-web"
 
-import { useMe } from "#/entities/user"
-import { authApi } from "#/shared/api/client"
+import { useMe } from "#/user"
 import { notify } from "#/shared/lib/toast"
 
 export const Route = createFileRoute("/_protected/account/profile/")({
@@ -22,7 +22,7 @@ function ProfilePage() {
     const { data: me, isLoading } = useMe()
 
     const update = useMutation({
-        mutationFn: (name: string) => authApi.updateProfile({ nickname: name }),
+        mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
         onSuccess: () => {
             notify.success("资料已更新")
             void qc.invalidateQueries({ queryKey: ["me"] })

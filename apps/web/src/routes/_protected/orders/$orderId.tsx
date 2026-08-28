@@ -1,13 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { AccountHeader } from "#/widgets/account"
-import type { OrderDetail } from "#/entities/order"
-import {
-    OrderProgress,
-    OrderShopSection,
-    OrderStatusSection,
-    OrderSummaryCard,
-} from "#/entities/order"
+import type { OrderDetail } from "#/order"
+import { OrderProgress, OrderShopSection, OrderStatusSection, OrderSummaryCard } from "#/order"
 import { notify } from "#/shared/lib/toast"
 
 function notifyOrderAction(_order: unknown, action: string) {

@@ -1,12 +1,13 @@
 import { useNavigate } from "@tanstack/react-router"
-import { ShoppingCart, Star } from "lucide-react"
+import { Heart, ShoppingCart } from "lucide-react"
 
 import { Button } from "@shop/ui-web"
 
-import { useAddToCart } from "#/features/cart"
-import { findMatchingSku, isSelectionComplete, type SkuSelection } from "#/entities/product"
-import type { ProductDetail } from "#/entities/product"
-import { useLoginDialogOpen, useIsLoggedIn } from "#/shared/api/auth"
+import { useAddToCart } from "#/cart"
+import { useFavoriteStatus, useToggleFavorite } from "#/favorite"
+import { findMatchingSku, isSelectionComplete, type SkuSelection } from "#/product"
+import type { ProductDetail } from "#/product"
+import { useIsLoggedIn, openLoginDialog } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
 
 /**
@@ -25,18 +26,17 @@ export function PurchaseCta({
 }) {
     const navigate = useNavigate()
     const isLoggedIn = useIsLoggedIn()
-    const [, setLoginOpen] = useLoginDialogOpen()
     const addToCart = useAddToCart()
+    const { data: favorited = false } = useFavoriteStatus(detail.product.id)
+    const toggleFavorite = useToggleFavorite(detail.product.id)
 
     const complete = isSelectionComplete(detail, selection)
     const matchedSku = findMatchingSku(detail.skus, selection)
-    /** 选全规格后才有「售罄」概念：命中 SKU 无库存 */
-    const soldOut = complete && (matchedSku?.stock ?? 0) <= 0
 
     /** 加购：未登录先拉起登录框；登录后按选中 SKU + 数量加购，成功后跳转购物车 */
     function handleAdd() {
         if (!isLoggedIn) {
-            setLoginOpen(true)
+            openLoginDialog()
             return
         }
         if (!matchedSku) return
@@ -46,11 +46,19 @@ export function PurchaseCta({
         )
     }
 
+    /** 收藏开关：未登录先拉起登录框；登录后按当前状态 toggle */
+    function handleFavorite() {
+        if (!isLoggedIn) {
+            openLoginDialog()
+            return
+        }
+        toggleFavorite.mutate()
+    }
+
     return (
         <div className="rounded-3xl bg-background p-3 shadow-float ring-1 ring-border/60">
             <div className="flex items-stretch gap-3">
                 <Button
-                    disabled={!complete || soldOut || addToCart.isPending}
                     onClick={handleAdd}
                     className="h-12 w-28 flex-none gap-2 rounded-xl bg-gradient-to-r from-cta-alt to-cta-alt-hover text-base text-white hover:from-cta-alt-hover hover:to-cta-alt-active"
                 >
@@ -58,7 +66,6 @@ export function PurchaseCta({
                     {addToCart.isPending ? "加购中…" : "加购"}
                 </Button>
                 <Button
-                    disabled={!complete || soldOut}
                     onClick={() => notify.info("下单功能即将上线")}
                     className="h-12 flex-1 rounded-xl bg-gradient-to-r from-primary to-primary-hover text-base hover:from-primary-hover hover:to-primary-active"
                 >
@@ -66,11 +73,16 @@ export function PurchaseCta({
                 </Button>
                 <Button
                     variant="outline"
-                    aria-label="收藏"
-                    onClick={() => notify.info("收藏功能即将上线")}
-                    className="h-12 w-12 rounded-xl text-muted-foreground hover:border-primary/50 hover:bg-transparent hover:text-primary"
+                    aria-label={favorited ? "取消收藏" : "收藏"}
+                    aria-pressed={favorited}
+                    onClick={handleFavorite}
+                    className={`h-12 w-12 rounded-xl ${
+                        favorited
+                            ? "border-primary/50 text-primary"
+                            : "text-muted-foreground hover:border-primary/50 hover:bg-transparent hover:text-primary"
+                    }`}
                 >
-                    <Star className="size-5" />
+                    <Heart className={`size-5 ${favorited ? "fill-primary" : ""}`} />
                 </Button>
             </div>
 

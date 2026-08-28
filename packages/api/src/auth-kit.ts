@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react"
 
-import type { TokenStore } from "./client"
+import type { TokenStore } from "./sdk-client"
 
 /**
  * 应用无关的登录态套件：access token 内存存储 + 启动静默刷新 + 设备 ID + 登录态订阅。
@@ -31,8 +31,6 @@ export interface AuthKit {
     /** 登录态只读访问 */
     authState: {
         getStatus: () => AuthStatus
-        /** bootstrap 失败但无本地态可清时的兜底（不清 localStorage 场景） */
-        markGuest: () => void
     }
     /**
      * 启动时静默刷新：refresh cookie 有效则换新 access token，否则按未登录处理。
@@ -68,10 +66,6 @@ export function createAuthKit(options: AuthKitOptions): AuthKit {
 
     const authState = {
         getStatus: () => status,
-        markGuest: () => {
-            status = "guest"
-            emit()
-        },
     }
 
     const tokenStore: TokenStore & { clear: () => void } = {
@@ -99,8 +93,6 @@ export function createAuthKit(options: AuthKitOptions): AuthKit {
             tokenStore.set(result.accessToken)
         } catch {
             tokenStore.clear()
-        } finally {
-            if (status === "unknown") authState.markGuest()
         }
     }
 

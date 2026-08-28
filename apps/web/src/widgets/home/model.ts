@@ -1,97 +1,85 @@
-import { z } from "zod"
+import type { BannerResponse, NavEntryResponse, RecommendTabResponse } from "@shop/api/sdk"
 
 /**
- * widgets/home 领域层 —— wire DTO + 业务形状 + 商品卡片映射。
+ * widgets/home 领域层 —— CMS 首页内容类型 + wire → 投影（纯函数，不碰 React / 网络）。
+ * 首页为公开读，走生成 SDK 的 CmsPublicApi（见 actions.ts）。
  *
- * - 本文件（model.ts）：后端响应 schema + 业务形状
- * - actions.ts：读写命令（纯逻辑，用 api.raw 请求）
- * 对外（index.ts 或直接 import）只暴露业务类型，传输 DTO 不出门。
+ * 投影字段刻意对齐组件消费：subs/target/iconKey 等可选字段归一成稳定缺省形状。
  */
 
 // ---------- CMS：首页导航 ----------
 
 /** 导航子分组 {name, items[]}，与后端 NavGroup 同构 */
-export const NavGroupSchema = z.object({
-    name: z.string(),
-    items: z.array(z.string()),
-})
-export type NavGroup = z.infer<typeof NavGroupSchema>
+export type NavGroup = { name: string; items: string[] }
 
-/** 后端 NavEntry wire 形状 */
-const NavEntryDtoSchema = z.object({
-    id: z.string(),
-    navKey: z.string(),
-    title: z.string(),
-    iconKey: z.string().nullable(),
-    target: z.string().nullable(),
-    targetType: z.string().nullable(),
-    subs: z.array(NavGroupSchema).nullable(),
-    sortOrder: z.number(),
-    status: z.number(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-})
-export const NavEntrySchema = NavEntryDtoSchema.transform((dto) => ({
-    id: dto.id,
-    title: dto.title,
-    iconKey: dto.iconKey ?? "",
-    target: dto.target ?? "",
-    targetType: dto.targetType ?? "",
-    subs: dto.subs ?? [],
-}))
-export type NavEntry = z.infer<typeof NavEntrySchema>
+/** 首页导航项（投影后形状） */
+export type NavEntry = {
+    id: string
+    title: string
+    iconKey: string
+    target: string
+    targetType: string
+    subs: NavGroup[]
+}
+
+/** wire → 投影 */
+export function toNavEntry(dto: NavEntryResponse): NavEntry {
+    return {
+        id: dto.id ?? "",
+        title: dto.title ?? "",
+        iconKey: dto.iconKey ?? "",
+        target: dto.target ?? "",
+        targetType: dto.targetType ?? "",
+        subs: (dto.subs ?? []).map((sub) => ({ name: sub.name, items: sub.items ?? [] })),
+    }
+}
 
 // ---------- CMS：运营位 banner ----------
 
-/** 后端 Banner wire 形状 */
-const BannerDtoSchema = z.object({
-    id: z.string(),
-    slot: z.string(),
-    title: z.string(),
-    subtitle: z.string().nullable(),
-    imageUrl: z.string(),
-    target: z.string().nullable(),
-    targetType: z.string().nullable(),
-    link: z.string().nullable(),
-    sortOrder: z.number(),
-    status: z.number(),
-    startAt: z.string().nullable(),
-    endAt: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-})
-export const BannerSchema = BannerDtoSchema.transform((dto) => ({
-    id: dto.id,
-    title: dto.title,
-    subtitle: dto.subtitle ?? "",
-    image: dto.imageUrl,
-    target: dto.target ?? "",
-    targetType: dto.targetType ?? "",
-    link: dto.link ?? "",
-}))
-export type Banner = z.infer<typeof BannerSchema>
+/** 首页运营位 banner（投影后形状） */
+export type Banner = {
+    id: string
+    title: string
+    subtitle: string
+    image: string
+    target: string
+    targetType: string
+    link: string
+}
+
+/** wire → 投影 */
+export function toBanner(dto: BannerResponse): Banner {
+    return {
+        id: dto.id ?? "",
+        title: dto.title ?? "",
+        subtitle: dto.subtitle ?? "",
+        image: dto.imageUrl ?? "",
+        target: dto.target ?? "",
+        targetType: dto.targetType ?? "",
+        link: dto.link ?? "",
+    }
+}
 
 // ---------- CMS：推荐条词条 ----------
 
-/** 后端 RecommendTab wire 形状 */
-const RecommendTabDtoSchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    target: z.string().nullable(),
-    targetType: z.string().nullable(),
-    isDefault: z.boolean().nullable(),
-    sortOrder: z.number(),
-    status: z.number(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-})
-export const RecommendTabSchema = RecommendTabDtoSchema.transform((dto) => ({
-    id: dto.id,
-    name: dto.name,
-    target: dto.target ?? "",
-    targetType: dto.targetType ?? "",
-    isDefault: dto.isDefault ?? false,
-}))
-export type RecommendTab = z.infer<typeof RecommendTabSchema>
+/** 首页推荐条词条（投影后形状） */
+export type RecommendTab = {
+    id: string
+    name: string
+    target: string
+    targetType: string
+    isDefault: boolean
+}
 
-// 买家商品形状已下沉到 #/entities/product（Product/ProductDetail），首页商品流直接复用，不再本地定义
+/** wire → 投影 */
+export function toRecommendTab(dto: RecommendTabResponse): RecommendTab {
+    return {
+        id: dto.id ?? "",
+        name: dto.name ?? "",
+        target: dto.target ?? "",
+        targetType: dto.targetType ?? "",
+        isDefault: dto.isDefault ?? false,
+    }
+}
+
+// 买家商品形状已下沉到 #/product（Product/ProductDetail），首页商品流直接复用，不再本地定义

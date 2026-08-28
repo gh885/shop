@@ -4,8 +4,8 @@ import { Archive, Clock, Heart, MapPin, Star } from "lucide-react"
 import { Avatar, AvatarFallback, Button } from "@shop/ui-web"
 
 import { useLoginDialogOpen, useAuthStatus } from "#/shared/api/auth"
-import { useMe } from "#/entities/user"
-import { useCartCount } from "#/features/cart"
+import { useMe } from "#/user"
+import { useCartCount } from "#/cart"
 
 /**
  * 第二层最右侧：用户信息卡片（京东式，宽 ~250px）。

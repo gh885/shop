@@ -5,7 +5,7 @@ export { HomeCategoryNav } from "./HomeCategoryNav"
 export { UserCard } from "./UserCard"
 
 export { fetchHomeNav, fetchBanners, fetchRecommendTabs, fetchFeedProducts } from "./actions"
-export { NavGroupSchema, NavEntrySchema, BannerSchema, RecommendTabSchema } from "./model"
+export { toBanner, toNavEntry, toRecommendTab } from "./model"
 export type { NavGroup, NavEntry, Banner, RecommendTab } from "./model"
 
 export {

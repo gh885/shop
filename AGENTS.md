@@ -15,7 +15,7 @@ apps/web/                ← 买家端 SSR
 apps/seller/             ← 卖家工作台 SPA
 apps/admin/              ← 平台管理端 SPA
 packages/                ← 共享包（api / ui-web / common / config）
-openapi/                  ← （预留）OpenAPI 契约 —— 当前未启用，前端 API 类型手动维护于 packages/api
+openapi/                  ← OpenAPI 契约（api-docs.json，由后端 /v3/api-docs 导出），packages/api 的 SDK 由 @hey-api/openapi-ts 从此生成
 ```
 
 ## 关键架构规则
@@ -66,6 +66,9 @@ pnpm dev:admin        # 平台管理端（独立 SPA，4000 端口）
 pnpm lint             # oxlint + mvn compile
 pnpm format           # oxfmt + spotless:apply
 pnpm typecheck        # tsc --noEmit
+
+# SDK 生成（需后端已启动）
+pnpm gen:sdk          # 拉取 /v3/api-docs 覆盖 openapi/api-docs.json，重新生成 packages/api/src/sdk
 
 # 构建
 pnpm build            # vite build + mvn compile

@@ -12,7 +12,7 @@ import {
     EmptyTitle,
 } from "@shop/ui-web"
 
-import type { ProductDetail } from "#/entities/product"
+import type { ProductDetail } from "#/product"
 import { Sticky } from "#/shared/ui/Sticky"
 
 import { DetailSection } from "./DetailSection"

@@ -16,7 +16,7 @@ import {
     HomeHeader,
     RecommendBar,
 } from "#/widgets/home"
-import { ProductCard, type Product, type ProductCardData } from "#/entities/product"
+import { ProductCard, type Product, type ProductCardData } from "#/product"
 
 export const Route = createFileRoute("/")({
     /**

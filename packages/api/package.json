@@ -7,7 +7,9 @@
         "#/*": "src/*"
     },
     "exports": {
-        ".": "./src/index.ts"
+        ".": "./src/index.ts",
+        "./sdk": "./src/sdk/index.ts",
+        "./schemas/types.gen": "./src/schemas/types.gen.ts"
     },
     "dependencies": {
         "ky": "^2.0.2",
@@ -15,8 +17,10 @@
         "zod": "catalog:"
     },
     "devDependencies": {
+        "@hey-api/openapi-ts": "^0.99.0",
         "@shop/config": "workspace:*",
         "@types/node": "^26.1.1",
-        "@types/react": "catalog:"
+        "@types/react": "catalog:",
+        "typescript": "^5.0.2"
     }
 }

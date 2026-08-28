@@ -5,7 +5,7 @@ import { Plus } from "lucide-react"
 import { Button, Dialog, DialogContent, DialogTitle, Skeleton } from "@shop/ui-web"
 import { CircleAlert } from "lucide-react"
 
-import type { Address } from "#/entities/address"
+import type { Address } from "#/address"
 import {
     AddressFormDialog,
     AddressTable,
@@ -13,7 +13,7 @@ import {
     useDeleteAddress,
     useSetDefaultAddress,
     useUnsetDefaultAddress,
-} from "#/features/manage-address"
+} from "#/address"
 
 export const Route = createFileRoute("/_protected/account/address/")({
     component: AddressPage,

@@ -2,7 +2,7 @@ import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
 import { Separator, ToggleGroup, ToggleGroupItem } from "@shop/ui-web"
 
-import type { ProductDetail } from "#/entities/product"
+import type { ProductDetail } from "#/product"
 import {
     derivePriceView,
     deriveStockText,
@@ -11,7 +11,7 @@ import {
     isSelectionComplete,
     specValueImage,
     type SkuSelection,
-} from "#/entities/product"
+} from "#/product"
 
 /**
  * 详情页右侧购买区：标题 → 价格 → 服务承诺 → 规格选择 → 数量 → 加购/立即购买（对齐参考图）。

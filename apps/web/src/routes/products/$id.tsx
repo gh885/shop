@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 
-import { toApiError } from "@shop/api"
-
-import type { ProductDetail } from "#/entities/product"
+import type { ProductDetail } from "#/product"
 import {
     AlsoViewedSection,
     DetailHeader,
@@ -29,8 +27,8 @@ export const Route = createFileRoute("/products/$id")({
         try {
             detail = await context.queryClient.ensureQueryData(productDetailOptions(params.id))
         } catch (error) {
-            // 详情不存在/非上架由后端 404；数据层已把错误归一化为 ApiError
-            if (toApiError(error).status === 404) throw notFound()
+            // 详情不存在/非上架由后端 404；数据层已把错误归一化为 ApiError（status/detail）
+            if ((error as { status?: number }).status === 404) throw notFound()
             throw error
         }
         await context.queryClient

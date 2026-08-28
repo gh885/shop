@@ -4,8 +4,6 @@ import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
 import { useState } from "react"
 import { z } from "zod"
 
-import { ShopReviewStatusSchema, type ShopReviewItem, type ShopReviewStatus } from "@shop/api"
-
 import {
     Badge,
     Button,
@@ -20,7 +18,11 @@ import {
     type DataTableFilterConfig,
 } from "@shop/ui-web"
 
-import { adminApi } from "../../lib/api"
+import { adminApi, type ShopReviewItem } from "../../lib/api"
+
+/** 店铺审核状态（与后端枚举对齐） */
+type ShopReviewStatus = "PENDING" | "APPROVED" | "REJECTED"
+const ShopReviewStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"])
 
 export const Route = createFileRoute("/_app/")({
     validateSearch: z.object({
@@ -71,7 +73,7 @@ const columns: ColumnDef<ShopReviewItem>[] = [
         accessorKey: "status",
         header: "状态",
         cell: ({ row }) => {
-            const badge = STATUS_BADGE[row.original.status]
+            const badge = STATUS_BADGE[row.original.status as ShopReviewStatus]
             return <Badge className={badge.className}>{badge.label}</Badge>
         },
     },

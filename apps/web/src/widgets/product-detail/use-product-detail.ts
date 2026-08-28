@@ -1,9 +1,8 @@
-import { z } from "zod"
 import { queryOptions, useQuery } from "@tanstack/react-query"
+import { PublicShopsApi } from "@shop/api/sdk"
 
-import { fetchProductDetail, fetchProducts } from "#/entities/product"
-import type { ProductDetail } from "#/entities/product"
-import { publicClient } from "#/shared/api/public"
+import { fetchProductDetail, fetchProducts } from "#/product"
+import type { ProductDetail } from "#/product"
 
 /**
  * 商品详情数据 hooks：route loader 用 queryOptions 预热，组件 useQuery 读同一缓存
@@ -23,28 +22,18 @@ export const productDetailOptions = (id: string) =>
 
 // ---------- 店铺公开信息（GET /api/shops/{id}，匿名可访问） ----------
 
-/** 店铺公开出参 wire：仅对外可展示字段（后端 ShopPublicController.ShopResponse） */
-const PublicShopDtoSchema = z.object({
-    id: z.uuid(),
-    name: z.string(),
-    /** 对象存储 key（非完整 URL），可能为空 */
-    logoKey: z.string().nullable(),
-    createdAt: z.string(),
-})
-
+/** 店铺公开信息：仅对外可展示字段（后端 ShopPublicController.ShopResponse） */
 export interface PublicShop {
     id: string
     name: string
-    /** 原始 logo key；展示层自行判断是否为可用 URL，否则回退字母头像 */
+    /** 对象存储 key（非完整 URL），可能为空 */
     logoKey?: string
 }
 
 async function fetchShopPublic(shopId: string): Promise<PublicShop> {
-    const dto = await publicClient.request(
-        PublicShopDtoSchema,
-        `api/shops/${z.uuid().parse(shopId)}`,
-    )
-    return { id: dto.id, name: dto.name, logoKey: dto.logoKey ?? undefined }
+    const res = await PublicShopsApi.getPublicShop({ path: { id: shopId } })
+    const d = res.data
+    return { id: d?.id ?? "", name: d?.name ?? "", logoKey: d?.logoKey ?? undefined }
 }
 
 export const shopOptions = (shopId: string) =>

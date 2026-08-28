@@ -1,18 +1,13 @@
 import { useSyncExternalStore } from "react"
 import { redirect } from "@tanstack/react-router"
 
-import { authState, bootstrapAuth } from "./client"
+import { authKit } from "./client"
 
 export type { AuthStatus } from "@shop/api"
-// 共享登录态（实现在 @shop/api/auth-kit，装配见 ./client）；转发省得调用方跨文件取
-export {
-    tokenStore,
-    getDeviceId,
-    useAuthStatus,
-    useIsLoggedIn,
-    bootstrapAuth,
-    authState,
-} from "./client"
+// web 侧认证唯一入口：登录态成员（实现在 @shop/api/auth-kit，装配见 ./client）
+// + 登录 Dialog 开关 + 路由守卫。本文件改完后，其它文件不要再从 ./client 拿认证相关符号。
+export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus, useIsLoggedIn } =
+    authKit
 
 // ---------- 全局登录 Dialog 开关（web 特有：未登录拉起 Dialog 而非跳页） ----------
 

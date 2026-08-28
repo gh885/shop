@@ -14,9 +14,9 @@ import {
     DropdownMenuTrigger,
 } from "@shop/ui-web"
 
-import { useCartCount } from "#/features/cart"
+import { useCartCount } from "#/cart"
 import { logout } from "#/features/login"
-import { useClearMe, useMe } from "#/entities/user"
+import { useClearMe, useMe } from "#/user"
 import { useAuthStatus, useLoginDialogOpen } from "#/shared/api/auth"
 
 import { SiteNav } from "./SiteNav"

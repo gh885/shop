@@ -1,12 +1,22 @@
-import { createApiClient, createAuthApi, createAuthKit } from "@shop/api"
+import { configureSdkClient, createAuthKit } from "@shop/api"
+import { AuthApi } from "@shop/api/sdk"
 
 // 浏览器端走 Vite proxy（同源相对路径），见 vite.config.ts
+// 本文件只做「依赖装配」，不对外暴露认证成员（tokenStore/bootstrapAuth/hooks 等）——
+// 认证逻辑统一从 #/shared/api/auth 出，避免同一概念两个入口。
 export const authKit = createAuthKit({
-    // 引用下方 authApi：调用发生在模块初始化后，安全
-    refresh: (deviceId) => authApi.refresh({ deviceId }),
+    // 引用下方 AuthApi：调用发生在模块初始化后，安全
+    // refresh 返回 { data, error }（SDK 不抛错），失败时抛错供 createAuthKit 裁决为 guest
+    refresh: async (deviceId) => {
+        const res = await AuthApi.refresh({ body: { deviceId } })
+        const token = res.data?.accessToken
+        if (!token) throw res.error ?? new Error("refresh 失败")
+        return { accessToken: token }
+    },
 })
-export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus, useIsLoggedIn } =
-    authKit
 
-export const api = createApiClient("", tokenStore, { debug: import.meta.env.DEV })
-export const authApi = createAuthApi(api.raw)
+const { tokenStore } = authKit
+
+// 生成 SDK（@shop/api/sdk）的默认 client：同源 + 同一套 token/401 刷新拦截。
+// 之后业务代码可直接调用 CartApi.getCartItems() 等具名方法。
+configureSdkClient("", tokenStore, { debug: import.meta.env.DEV })

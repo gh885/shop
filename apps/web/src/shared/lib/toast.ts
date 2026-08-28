@@ -1,7 +1,5 @@
 import { toast } from "@shop/ui-web"
 
-import { toApiError } from "@shop/api"
-
 /**
  * 全局 toast 封装（基于 @shop/ui-web 的 BaseUI toast 单例）。
  *
@@ -12,6 +10,23 @@ import { toApiError } from "@shop/api"
  * 注意：只在客户端事件回调里调用（mutation onSuccess/onError 等），
  * 不要在组件渲染期或 SSR 阶段调用。
  */
+
+/** 服务端错误归一化后形状 —— 生成的 SDK 错误拦截器已归一化为 { status, detail, code?, requestId? }（见 @shop/api/sdk-client） */
+interface NormalizedError {
+    status?: number
+    detail?: string
+    code?: string
+    requestId?: string
+}
+
+function normalizeError(err: unknown): { status: number; detail: string } {
+    if (typeof err === "object" && err !== null && "detail" in err) {
+        const e = err as NormalizedError
+        return { status: e.status ?? 0, detail: e.detail ?? "请求失败，请稍后重试" }
+    }
+    return { status: 0, detail: "请求失败，请稍后重试" }
+}
+
 export const notify = {
     success(title: string, description?: string) {
         toast.add({ title, description, type: "success" })
@@ -27,7 +42,7 @@ export const notify = {
     },
     /** 从任意错误提取用户可读文案：后端有 detail 优先展示；网络层错误用调用方场景兜底 */
     fromError(err: unknown, fallback = "操作失败，请稍后重试") {
-        const e = toApiError(err)
+        const e = normalizeError(err)
         this.error(e.status === 0 ? fallback : e.detail)
     },
 }
