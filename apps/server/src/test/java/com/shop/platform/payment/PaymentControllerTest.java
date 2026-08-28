@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
 /**
- * 买家支付接口契约（V1 MOCK 渠道）：发起即成功、金额以订单为准、错误码透传。
- * 幂等重付与状态机推进见 OrderFlowIT。
+ * 买家支付接口契约（V1 MOCK 两段式）：发起返回 PENDING 流水、金额以订单为准、错误码透传；
+ * 确认端点转发确认逻辑。幂等重付与状态机推进见 OrderFlowIT。
  */
 class PaymentControllerTest extends WebControllerTestSupport {
 
@@ -32,7 +32,7 @@ class PaymentControllerTest extends WebControllerTestSupport {
     }
 
     @Test
-    void 发起支付_201_返回流水() throws Exception {
+    void 发起支付_201_返回待确认流水() throws Exception {
         Payment p = new Payment();
         p.setId(UUID.randomUUID());
         p.setOrderId(orderId);
@@ -40,8 +40,7 @@ class PaymentControllerTest extends WebControllerTestSupport {
         p.setAmount(2000L);
         p.setCurrency("CNY");
         p.setChannel("MOCK");
-        p.setStatus(Payment.STATUS_SUCCESS);
-        p.setPaidAt(OffsetDateTime.now());
+        p.setStatus(Payment.STATUS_PENDING); // 两段式：发起只是 PENDING，未确认前 paidAt 为空
         when(paymentService.pay(userId, orderId)).thenReturn(p);
 
         mockMvc.perform(post("/payments")
@@ -55,6 +54,28 @@ class PaymentControllerTest extends WebControllerTestSupport {
                 .andExpect(jsonPath("$.orderNo").value("20260101120000001"))
                 .andExpect(jsonPath("$.amount.amount").value(2000))
                 .andExpect(jsonPath("$.channel").value("MOCK"))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+    }
+
+    @Test
+    void 确认支付_返回成功流水() throws Exception {
+        UUID paymentId = UUID.randomUUID();
+        Payment p = new Payment();
+        p.setId(paymentId);
+        p.setOrderId(orderId);
+        p.setOrderNo("20260101120000001");
+        p.setAmount(2000L);
+        p.setCurrency("CNY");
+        p.setChannel("MOCK");
+        p.setStatus(Payment.STATUS_SUCCESS);
+        p.setPaidAt(OffsetDateTime.now());
+        when(paymentService.confirm(userId, paymentId)).thenReturn(p);
+
+        mockMvc.perform(post("/payments/{id}/confirm", paymentId)
+                        .header("Authorization", "Bearer " + userToken(userId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(paymentId.toString()))
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.paidAt").isNotEmpty());
     }
 

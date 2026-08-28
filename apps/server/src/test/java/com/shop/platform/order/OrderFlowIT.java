@@ -109,14 +109,21 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertEquals(2, frozenStockOf());
         assertEquals(3, availableOf());
 
-        // 3. 支付：流水落库且订单推进到 PAID（同事务同步调用链）
-        Payment paid = paymentService.pay(userId, order.getId());
+        // 3. 发起支付：只落 PENDING 流水，订单仍待付款、库存仍冻结（两段式第一段不动订单、不扣实）
+        Payment pending = paymentService.pay(userId, order.getId());
+        assertEquals(Payment.STATUS_PENDING, pending.getStatus());
+        assertEquals(Order.STATUS_PENDING_PAYMENT, statusOf(order.getId()));
+        assertEquals(5, totalStockOf());
+        assertEquals(2, frozenStockOf());
+
+        // 3b. 确认支付：PENDING → SUCCESS + 订单推进到 PAID（同事务同步调用链扣实冻结库存）
+        Payment paid = paymentService.confirm(userId, pending.getId());
         assertEquals(Payment.STATUS_SUCCESS, paid.getStatus());
         assertEquals(Order.STATUS_PAID, statusOf(order.getId()));
         assertEquals(3, totalStockOf());
         assertEquals(0, frozenStockOf());
 
-        // 4. 幂等重付：返回同一笔成功流水，订单状态不变
+        // 4. 幂等重付：发起返回同一笔成功流水（确认后已成 SUCCESS），订单状态不变
         Payment again = paymentService.pay(userId, order.getId());
         assertEquals(paid.getId(), again.getId());
         assertEquals(
@@ -263,7 +270,8 @@ class OrderFlowIT extends IntegrationTestSupport {
     void 发货收货_物流回填落库_越店404错态409() {
         seedSku(5);
         UUID orderId = orderService.create(userId, buyNow(2)).getFirst().getId();
-        paymentService.pay(userId, orderId);
+        Payment pending = paymentService.pay(userId, orderId);
+        paymentService.confirm(userId, pending.getId()); // 两段式：确认后才推进到 PAID
 
         // 越店发货：另一家店的 shopId 圈不到这单 → 404，订单状态不动
         ShipOrderRequest req = new ShipOrderRequest("顺丰", "SF123456789");

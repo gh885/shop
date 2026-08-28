@@ -20,8 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 
 /**
- * 支付业务单测（资金路径）：归属校验、幂等短路（重试/连点回到同一笔流水）、
- * 非待付款拒绝、并发撞唯一索引回退。MOCK 渠道状态机推进见 OrderFlowIT。
+ * 支付业务单测（资金路径，两段式状态机）：发起只落 PENDING 流水不动订单；
+ * 确认推进 PENDING→SUCCESS + 订单状态机；归属校验、幂等短路、非待付款拒绝、并发撞唯一索引回退。
  */
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -59,18 +59,21 @@ class PaymentServiceTest {
                 .thenReturn(Optional.of(new OrderPaymentView("20260101120000001", userId, status, 2000L, "CNY")));
     }
 
+    // ========== 发起（PENDING） ==========
+
     @Test
-    void 正常支付_落成功流水并推状态机() {
+    void 正常发起_落待确认流水_不推进订单状态机() {
         stubOrder("PENDING_PAYMENT");
         stubInsertSuccess();
         when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null);
+        when(paymentMapper.selectPendingByOrder(orderId)).thenReturn(null);
 
         Payment payment = service.pay(userId, orderId);
 
-        assertThat(payment.getStatus()).isEqualTo(Payment.STATUS_SUCCESS);
+        assertThat(payment.getStatus()).isEqualTo(Payment.STATUS_PENDING); // 发起只占位，不动订单
         assertThat(payment.getAmount()).isEqualTo(2000L); // 金额以订单投影为准
         assertThat(payment.getChannel()).isEqualTo(Payment.CHANNEL_MOCK);
-        org.mockito.Mockito.verify(orderCommand).markPaid(orderId); // 同事务推进 PENDING_PAYMENT → PAID
+        org.mockito.Mockito.verify(orderCommand, org.mockito.Mockito.never()).markPaid(any());
     }
 
     @Test
@@ -94,7 +97,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void 已有成功流水_幂等返回同一笔_不再落库不再推状态机() {
+    void 已有成功流水_幂等返回同一笔_不再落库() {
         stubOrder("PAID"); // 订单已被前次支付推进
         Payment existing = new Payment();
         existing.setId(UUID.randomUUID());
@@ -105,13 +108,28 @@ class PaymentServiceTest {
 
         assertThat(again.getId()).isEqualTo(existing.getId());
         org.mockito.Mockito.verify(paymentMapper, org.mockito.Mockito.never()).insert(any(Payment.class));
-        org.mockito.Mockito.verify(orderCommand, org.mockito.Mockito.never()).markPaid(any());
     }
 
     @Test
-    void 非待付款态_409拒绝() {
+    void 已有待确认流水_复用同一笔_不堆积多条PENDING() {
+        stubOrder("PENDING_PAYMENT");
+        Payment pending = new Payment();
+        pending.setId(UUID.randomUUID());
+        pending.setStatus(Payment.STATUS_PENDING);
+        when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null);
+        when(paymentMapper.selectPendingByOrder(orderId)).thenReturn(pending);
+
+        Payment again = service.pay(userId, orderId);
+
+        assertThat(again.getId()).isEqualTo(pending.getId());
+        org.mockito.Mockito.verify(paymentMapper, org.mockito.Mockito.never()).insert(any(Payment.class));
+    }
+
+    @Test
+    void 非待付款态_409拒绝发起() {
         stubOrder("CANCELLED");
         when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null);
+        when(paymentMapper.selectPendingByOrder(orderId)).thenReturn(null);
 
         assertThatThrownBy(() -> service.pay(userId, orderId)).isInstanceOfSatisfying(BusinessException.class, ex -> {
             assertThat(ex.getHttpStatus()).isEqualTo(409);
@@ -119,20 +137,91 @@ class PaymentServiceTest {
     }
 
     @Test
-    void 并发重复支付撞唯一索引_退回既有流水() {
+    void 并发发起撞唯一索引_退回既有流水() {
         stubOrder("PENDING_PAYMENT");
         Payment winner = new Payment();
         winner.setId(UUID.randomUUID());
-        winner.setStatus(Payment.STATUS_SUCCESS);
-        when(paymentMapper.selectSuccessByOrder(orderId))
+        winner.setStatus(Payment.STATUS_PENDING);
+        when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null).thenReturn(null);
+        when(paymentMapper.selectPendingByOrder(orderId))
                 .thenReturn(null) // 首查无流水
                 .thenReturn(winner); // 撞索引后回查拿到赢家
-        when(paymentMapper.insert(any(Payment.class)))
-                .thenThrow(new DuplicateKeyException("uk_payments_order_success"));
+        when(paymentMapper.insert(any(Payment.class))).thenThrow(new DuplicateKeyException("payment.payments_uuid"));
 
         Payment result = service.pay(userId, orderId);
 
         assertThat(result.getId()).isEqualTo(winner.getId()); // 与并发赢家同笔，语义等同幂等
         org.mockito.Mockito.verify(orderCommand, org.mockito.Mockito.never()).markPaid(any());
+    }
+
+    // ========== 确认（PENDING→SUCCESS） ==========
+
+    private Payment pendingPayment(UUID paymentId, String status) {
+        Payment p = new Payment();
+        p.setId(paymentId);
+        p.setUserId(userId);
+        p.setOrderId(orderId);
+        p.setStatus(status);
+        return p;
+    }
+
+    @Test
+    void 正常确认_置成功并推进订单状态机() {
+        UUID paymentId = UUID.randomUUID();
+        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, Payment.STATUS_PENDING));
+        when(paymentMapper.transition(paymentId, Payment.STATUS_SUCCESS)).thenReturn(1);
+
+        Payment result = service.confirm(userId, paymentId);
+
+        assertThat(result.getStatus()).isEqualTo(Payment.STATUS_SUCCESS);
+        org.mockito.Mockito.verify(orderCommand).markPaid(orderId); // 同事务推进 PENDING_PAYMENT → PAID
+    }
+
+    @Test
+    void 确认_非本人流水_不泄露归属() {
+        UUID paymentId = UUID.randomUUID();
+        Payment stranger = pendingPayment(paymentId, Payment.STATUS_PENDING);
+        stranger.setUserId(UUID.randomUUID());
+        when(paymentMapper.selectById(paymentId)).thenReturn(stranger);
+
+        assertThatThrownBy(() -> service.confirm(userId, paymentId))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(400);
+                    assertThat(ex.getDetail()).isEqualTo("支付流水不存在");
+                });
+    }
+
+    @Test
+    void 确认_流水不存在_404() {
+        UUID paymentId = UUID.randomUUID();
+        when(paymentMapper.selectById(paymentId)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.confirm(userId, paymentId))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> assertThat(ex.getHttpStatus())
+                        .isEqualTo(404));
+    }
+
+    @Test
+    void 确认_已成功_幂等直接返回() {
+        UUID paymentId = UUID.randomUUID();
+        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, Payment.STATUS_SUCCESS));
+
+        Payment result = service.confirm(userId, paymentId);
+
+        assertThat(result.getStatus()).isEqualTo(Payment.STATUS_SUCCESS);
+        org.mockito.Mockito.verify(paymentMapper, org.mockito.Mockito.never()).transition(any(), any());
+        org.mockito.Mockito.verify(orderCommand, org.mockito.Mockito.never()).markPaid(any());
+    }
+
+    @Test
+    void 确认_状态已被抢占_409拒绝() {
+        UUID paymentId = UUID.randomUUID();
+        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, Payment.STATUS_PENDING));
+        when(paymentMapper.transition(paymentId, Payment.STATUS_SUCCESS)).thenReturn(0);
+
+        assertThatThrownBy(() -> service.confirm(userId, paymentId))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(409);
+                });
     }
 }

@@ -319,6 +319,7 @@ export type PaymentResponse = {
     orderNo?: string;
     amount?: Money;
     channel?: string;
+    status?: string;
     paidAt?: string;
 };
 
@@ -1389,6 +1390,24 @@ export type CreatePaymentResponses = {
 };
 
 export type CreatePaymentResponse = CreatePaymentResponses[keyof CreatePaymentResponses];
+
+export type ConfirmPaymentData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/payments/{id}/confirm';
+};
+
+export type ConfirmPaymentResponses = {
+    /**
+     * OK
+     */
+    200: PaymentResponse;
+};
+
+export type ConfirmPaymentResponse = ConfirmPaymentResponses[keyof ConfirmPaymentResponses];
 
 export type PreviewOrderData = {
     body: PreviewOrderRequest;

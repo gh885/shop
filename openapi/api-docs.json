@@ -921,6 +921,28 @@
                 }
             }
         },
+        "/payments/{id}/confirm": {
+            "post": {
+                "tags": ["payments"],
+                "operationId": "confirmPayment",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": { "schema": { "$ref": "#/components/schemas/PaymentResponse" } }
+                        }
+                    }
+                }
+            }
+        },
         "/orders/preview": {
             "post": {
                 "tags": ["orders"],
@@ -2526,6 +2548,7 @@
                     "orderNo": { "type": "string" },
                     "amount": { "$ref": "#/components/schemas/Money" },
                     "channel": { "type": "string" },
+                    "status": { "type": "string" },
                     "paidAt": { "type": "string", "format": "date-time" }
                 }
             },
