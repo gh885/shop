@@ -40,6 +40,8 @@ export type Order = {
     /** 下单时间 ISO */
     createdAt: string
     status: OrderStatus
+    /** 付款截止（待付款订单倒计时用；已付款为空） */
+    payExpireAt: string
     shopId: string
     shopName: string
     items: OrderItem[]
@@ -67,8 +69,6 @@ export type OrderDetail = Order & {
     /** 物流回填 */
     logisticsCompany: string
     trackingNo: string
-    /** 付款截止（倒计时） */
-    payExpireAt: string
     paidAt: string
     shippedAt: string
     completedAt: string

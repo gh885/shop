@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react"
 import { Button } from "@shop/ui-web"
 
 import { ORDER_STATUS_LABEL, type OrderDetail, type OrderStatus } from "./model"
+import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 
 /**
  * 订单状态区：状态大标题 + 收货地址 + 操作按钮排。
@@ -38,6 +39,9 @@ export interface OrderStatusSectionProps {
 
 export function OrderStatusSection({ order, onAction }: OrderStatusSectionProps) {
     const actions = STATUS_ACTIONS[order.status]
+    // 待付款订单展示付款截止倒计时
+    const pending = order.status === "pending_payment"
+    const { seconds } = useCountdown(pending ? order.payExpireAt : "")
     const fullAddress = [
         order.receiverProvince,
         order.receiverCity,
@@ -49,10 +53,17 @@ export function OrderStatusSection({ order, onAction }: OrderStatusSectionProps)
 
     return (
         <div className="space-y-5">
-            {/* 状态大标题 */}
-            <h2 className="text-2xl font-bold text-foreground">
-                {ORDER_STATUS_LABEL[order.status]}
-            </h2>
+            {/* 状态大标题 + 待付款倒计时 */}
+            <div className="flex items-end gap-4">
+                <h2 className="text-2xl font-bold text-foreground">
+                    {ORDER_STATUS_LABEL[order.status]}
+                </h2>
+                {pending && (
+                    <span className="pb-1 text-sm font-medium text-destructive">
+                        付款剩余 {formatCountdown(seconds)}
+                    </span>
+                )}
+            </div>
 
             {/* 收货地址（下单定格快照） */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

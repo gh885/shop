@@ -12,6 +12,7 @@ import {
 import { fenToYuan } from "@shop/api"
 
 import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "./model"
+import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 import { Panel, PanelContent, PanelHeader } from "#/shared/ui/Panel"
 
 /**
@@ -74,6 +75,9 @@ export interface OrderCardProps {
 
 export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
     const actions = ORDER_ACTIONS[order.status]
+    // 待付款订单展示付款截止倒计时（其余状态不显示）
+    const pending = order.status === "pending_payment"
+    const { seconds } = useCountdown(pending ? order.payExpireAt : "")
 
     return (
         <Panel className="text-sm">
@@ -86,6 +90,11 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                 <span className="text-foreground">{order.shopName}</span>
 
                 <div className="ml-auto flex items-center gap-4">
+                    {pending && (
+                        <span className="text-xs font-medium text-destructive">
+                            剩 {formatCountdown(seconds)}
+                        </span>
+                    )}
                     <span className={STATUS_COLOR[order.status]}>
                         {ORDER_STATUS_LABEL[order.status]}
                     </span>

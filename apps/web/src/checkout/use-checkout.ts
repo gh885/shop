@@ -52,7 +52,8 @@ export function useCreateOrder() {
             }),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["my-orders"] })
-            qc.invalidateQueries({ queryKey: ["cart-items"] })
+            qc.invalidateQueries({ queryKey: ["cart-items"] }) // 后端 CartCheckedOutEvent 已删已购条目，缓存随之失效
+            qc.invalidateQueries({ queryKey: ["cart-count"] })
         },
         onError: (err) => notify.fromError(err, "下单失败"),
     })
