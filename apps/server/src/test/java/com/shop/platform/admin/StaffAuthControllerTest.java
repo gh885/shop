@@ -80,7 +80,7 @@ class StaffAuthControllerTest extends WebControllerTestSupport {
         when(staffService.getMe(staffId))
                 .thenReturn(new StaffInfo(staffId, "E001", "运营小王", "OPS", List.of("CMS_MANAGE")));
 
-        mockMvc.perform(get("/admin/auth/me").header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(get("/admin/auth/me").with(staffAuth(staffId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.employeeNo").value("E001"))
                 .andExpect(jsonPath("$.role").value("OPS"))
@@ -94,8 +94,7 @@ class StaffAuthControllerTest extends WebControllerTestSupport {
     @Test
     void 登出_清设备令牌与Cookie() throws Exception {
         mockMvc.perform(post("/admin/auth/logout")
-                        .header("Authorization", "Bearer " + staffToken(staffId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(staffAuth(staffId))
                         .content("""
                             {"deviceId": "dev1"}
                             """))

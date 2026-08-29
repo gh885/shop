@@ -8,14 +8,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.common.Money;
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.favorite.mapper.FavoriteItem;
 import com.shop.platform.favorite.service.FavoriteItemView;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
@@ -28,11 +26,6 @@ class FavoriteControllerTest extends WebControllerTestSupport {
 
     private final UUID productId = UUID.randomUUID();
 
-    @AfterEach
-    void clearContext() {
-        UserIdHolder.clear();
-    }
-
     @Test
     void 收藏_201_返回收藏行() throws Exception {
         when(favoriteService.add(eq(userId), eq(productId)))
@@ -44,7 +37,7 @@ class FavoriteControllerTest extends WebControllerTestSupport {
                         .build());
 
         mockMvc.perform(post("/favorites")
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"productId": "%s"}
@@ -58,8 +51,7 @@ class FavoriteControllerTest extends WebControllerTestSupport {
 
     @Test
     void 取消收藏_204幂等() throws Exception {
-        mockMvc.perform(delete("/favorites/products/{id}", productId)
-                        .header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(delete("/favorites/products/{id}", productId).with(userAuth(userId)))
                 .andExpect(status().isNoContent());
 
         verify(favoriteService).remove(userId, productId);
@@ -81,7 +73,7 @@ class FavoriteControllerTest extends WebControllerTestSupport {
         mockMvc.perform(get("/favorites")
                         .queryParam("page", "1")
                         .queryParam("size", "10")
-                        .header("Authorization", "Bearer " + userToken(userId)))
+                        .with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.records[0].product.minPrice.amount").value(500))
@@ -96,7 +88,7 @@ class FavoriteControllerTest extends WebControllerTestSupport {
                 .thenReturn(List.of(productId));
 
         mockMvc.perform(post("/favorites/exists")
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(
                                 """

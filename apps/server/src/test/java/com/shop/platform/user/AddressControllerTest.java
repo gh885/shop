@@ -8,13 +8,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import com.shop.platform.user.mapper.Address;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
@@ -27,11 +25,6 @@ class AddressControllerTest extends WebControllerTestSupport {
     private final UUID userId = UUID.randomUUID();
 
     private final UUID addressId = UUID.randomUUID();
-
-    @AfterEach
-    void clearContext() {
-        UserIdHolder.clear();
-    }
 
     private Address address() {
         Address a = new Address();
@@ -57,7 +50,7 @@ class AddressControllerTest extends WebControllerTestSupport {
 
         mockMvc.perform(
                         post("/user/addresses")
-                                .header("Authorization", "Bearer " + userToken(userId))
+                                .with(userAuth(userId))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
@@ -82,7 +75,7 @@ class AddressControllerTest extends WebControllerTestSupport {
     void 新增地址_手机号非法_422() throws Exception {
         mockMvc.perform(
                         post("/user/addresses")
-                                .header("Authorization", "Bearer " + userToken(userId))
+                                .with(userAuth(userId))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
@@ -101,7 +94,7 @@ class AddressControllerTest extends WebControllerTestSupport {
                         "张三", "13800000000", "110100", "北京市", "北京市", "朝阳区", "测试路1号"));
 
         mockMvc.perform(post("/user/addresses/parse")
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"text": "%s"}
@@ -118,7 +111,7 @@ class AddressControllerTest extends WebControllerTestSupport {
     void 地址列表_默认置顶由service保证() throws Exception {
         when(addressService.list(userId)).thenReturn(List.of(address()));
 
-        mockMvc.perform(get("/user/addresses").header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(get("/user/addresses").with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(addressId.toString()));
     }
@@ -127,7 +120,7 @@ class AddressControllerTest extends WebControllerTestSupport {
     void 地址详情_结算页反显() throws Exception {
         when(addressService.detail(userId, addressId)).thenReturn(address());
 
-        mockMvc.perform(get("/user/addresses/{id}", addressId).header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(get("/user/addresses/{id}", addressId).with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.district").value("朝阳区"));
 
@@ -140,7 +133,7 @@ class AddressControllerTest extends WebControllerTestSupport {
 
         mockMvc.perform(
                         put("/user/addresses/{id}", addressId)
-                                .header("Authorization", "Bearer " + userToken(userId))
+                                .with(userAuth(userId))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
@@ -154,8 +147,7 @@ class AddressControllerTest extends WebControllerTestSupport {
 
     @Test
     void 删地址_204软删() throws Exception {
-        mockMvc.perform(delete("/user/addresses/{id}", addressId)
-                        .header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(delete("/user/addresses/{id}", addressId).with(userAuth(userId)))
                 .andExpect(status().isNoContent());
 
         verify(addressService).delete(userId, addressId);
@@ -166,13 +158,11 @@ class AddressControllerTest extends WebControllerTestSupport {
         when(addressService.setDefault(userId, addressId)).thenReturn(address());
         when(addressService.unsetDefault(userId, addressId)).thenReturn(address());
 
-        mockMvc.perform(put("/user/addresses/{id}/default", addressId)
-                        .header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(put("/user/addresses/{id}/default", addressId).with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isDefault").value(true));
 
-        mockMvc.perform(delete("/user/addresses/{id}/default", addressId)
-                        .header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(delete("/user/addresses/{id}/default", addressId).with(userAuth(userId)))
                 .andExpect(status().isOk());
 
         verify(addressService).setDefault(userId, addressId);

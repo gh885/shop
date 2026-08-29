@@ -8,13 +8,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
@@ -22,11 +20,6 @@ import org.springframework.http.MediaType;
 class CategoryAdminControllerTest extends WebControllerTestSupport {
 
     private final UUID staffId = UUID.randomUUID();
-
-    @AfterEach
-    void clearContext() {
-        UserIdHolder.clear();
-    }
 
     private Category category() {
         Category c = new Category();

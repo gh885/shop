@@ -7,13 +7,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
 
 /**
  * 管理端 CMS 接口契约：/admin/** 仅收员工令牌（用户令牌 401）、导航/banner/推荐条的
@@ -22,11 +19,6 @@ import org.springframework.http.MediaType;
 class CmsContentAdminControllerTest extends WebControllerTestSupport {
 
     private final UUID staffId = UUID.randomUUID();
-
-    @AfterEach
-    void clearContext() {
-        UserIdHolder.clear();
-    }
 
     @Test
     void 用户令牌访问管理端_401() throws Exception {
@@ -43,7 +35,7 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
     void 导航全量列表_含停用节点() throws Exception {
         when(contentService.navAll(null)).thenReturn(List.of());
 
-        mockMvc.perform(get("/admin/cms/nav").header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(get("/admin/cms/nav").with(staffAuth(staffId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
@@ -60,8 +52,7 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
 
         mockMvc.perform(
                         post("/admin/cms/nav")
-                                .header("Authorization", "Bearer " + staffToken(staffId))
-                                .contentType(MediaType.APPLICATION_JSON)
+                                .with(staffAuth(staffId))
                                 .content(
                                         """
                             {"navKey": "home", "title": "新导航"}
@@ -75,8 +66,7 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
     @Test
     void 新建导航_缺标题_422() throws Exception {
         mockMvc.perform(post("/admin/cms/nav")
-                        .header("Authorization", "Bearer " + staffToken(staffId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(staffAuth(staffId))
                         .content("""
                             {"navKey": "home"}
                             """))
@@ -88,8 +78,7 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
     void 导航状态开关_走路径参数() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(put("/admin/cms/nav/{id}/status/{status}", id, 0)
-                        .header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(put("/admin/cms/nav/{id}/status/{status}", id, 0).with(staffAuth(staffId)))
                 .andExpect(status().isOk());
 
         verify(contentService).setNavStatus(id, 0);
@@ -99,8 +88,7 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
     void 横幅状态开关_与生效窗口字段解耦() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(put("/admin/cms/banners/{id}/status/{status}", id, 1)
-                        .header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(put("/admin/cms/banners/{id}/status/{status}", id, 1).with(staffAuth(staffId)))
                 .andExpect(status().isOk());
 
         verify(contentService).setBannerStatus(id, 1);
@@ -116,15 +104,14 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
         when(contentService.tabsAll()).thenReturn(List.of(tab));
 
         mockMvc.perform(post("/admin/cms/recommend-tabs")
-                        .header("Authorization", "Bearer " + staffToken(staffId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(staffAuth(staffId))
                         .content("""
                             {"name": "猜你喜欢"}
                             """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("猜你喜欢"));
 
-        mockMvc.perform(get("/admin/cms/recommend-tabs").header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(get("/admin/cms/recommend-tabs").with(staffAuth(staffId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].isDefault").value(true));
     }

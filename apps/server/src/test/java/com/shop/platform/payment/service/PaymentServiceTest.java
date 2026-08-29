@@ -3,6 +3,8 @@ package com.shop.platform.payment.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.shop.platform.common.BusinessException;
@@ -73,7 +75,7 @@ class PaymentServiceTest {
         assertThat(payment.getStatus()).isEqualTo(Payment.STATUS_PENDING); // 发起只占位，不动订单
         assertThat(payment.getAmount()).isEqualTo(2000L); // 金额以订单投影为准
         assertThat(payment.getChannel()).isEqualTo(Payment.CHANNEL_MOCK);
-        org.mockito.Mockito.verify(orderCommand, org.mockito.Mockito.never()).markPaid(any());
+        verify(orderCommand, never()).markPaid(any());
     }
 
     @Test
@@ -107,7 +109,7 @@ class PaymentServiceTest {
         Payment again = service.pay(userId, orderId);
 
         assertThat(again.getId()).isEqualTo(existing.getId());
-        org.mockito.Mockito.verify(paymentMapper, org.mockito.Mockito.never()).insert(any(Payment.class));
+        verify(paymentMapper, never()).insert(any(Payment.class));
     }
 
     @Test
@@ -122,7 +124,7 @@ class PaymentServiceTest {
         Payment again = service.pay(userId, orderId);
 
         assertThat(again.getId()).isEqualTo(pending.getId());
-        org.mockito.Mockito.verify(paymentMapper, org.mockito.Mockito.never()).insert(any(Payment.class));
+        verify(paymentMapper, never()).insert(any(Payment.class));
     }
 
     @Test
@@ -151,7 +153,7 @@ class PaymentServiceTest {
         Payment result = service.pay(userId, orderId);
 
         assertThat(result.getId()).isEqualTo(winner.getId()); // 与并发赢家同笔，语义等同幂等
-        org.mockito.Mockito.verify(orderCommand, org.mockito.Mockito.never()).markPaid(any());
+        verify(orderCommand, never()).markPaid(any());
     }
 
     // ========== 确认（PENDING→SUCCESS） ==========
@@ -174,7 +176,7 @@ class PaymentServiceTest {
         Payment result = service.confirm(userId, paymentId);
 
         assertThat(result.getStatus()).isEqualTo(Payment.STATUS_SUCCESS);
-        org.mockito.Mockito.verify(orderCommand).markPaid(orderId); // 同事务推进 PENDING_PAYMENT → PAID
+        verify(orderCommand).markPaid(orderId); // 同事务推进 PENDING_PAYMENT → PAID
     }
 
     @Test
@@ -209,8 +211,8 @@ class PaymentServiceTest {
         Payment result = service.confirm(userId, paymentId);
 
         assertThat(result.getStatus()).isEqualTo(Payment.STATUS_SUCCESS);
-        org.mockito.Mockito.verify(paymentMapper, org.mockito.Mockito.never()).transition(any(), any());
-        org.mockito.Mockito.verify(orderCommand, org.mockito.Mockito.never()).markPaid(any());
+        verify(paymentMapper, never()).transition(any(), any());
+        verify(orderCommand, never()).markPaid(any());
     }
 
     @Test

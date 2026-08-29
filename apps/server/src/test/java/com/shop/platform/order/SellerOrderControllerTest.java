@@ -10,17 +10,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.common.PageResult;
-import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
 
 /**
  * 卖家订单接口契约：X-Shop-Id 成员过滤器守卫（缺头 403 / 非成员 403 / 正常放行落上下文）、
@@ -35,12 +32,6 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
     @BeforeEach
     void stubMembership() {
         stubSellerMembership();
-    }
-
-    @AfterEach
-    void clearContext() {
-        ShopIdHolder.clear();
-        com.shop.platform.common.UserIdHolder.clear();
     }
 
     private Order paidOrder() {
@@ -59,9 +50,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
 
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder sellerGet(
             String path, Object... vars) {
-        return get(path, vars)
-                .header("Authorization", "Bearer " + userToken(userId))
-                .header("X-Shop-Id", shopId.toString());
+        return get(path, vars).with(userAuth(userId)).header("X-Shop-Id", shopId.toString());
     }
 
     @Test
@@ -95,9 +84,8 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
 
         mockMvc.perform(
                         put("/seller/orders/{id}/ship", order.getId())
-                                .header("Authorization", "Bearer " + userToken(userId))
+                                .with(userAuth(userId))
                                 .header("X-Shop-Id", shopId.toString())
-                                .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
                             {"logisticsCompany": "顺丰", "trackingNo": "SF123456789"}
@@ -109,7 +97,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
 
     @Test
     void 缺店铺上下文_403() throws Exception {
-        mockMvc.perform(get("/seller/orders").header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(get("/seller/orders").with(userAuth(userId)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.detail").value("缺少店铺上下文（X-Shop-Id）"));
     }
@@ -118,9 +106,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
     void 非本店成员_403() throws Exception {
         when(shopMemberMapper.findActiveMember(any(), any())).thenReturn(null);
 
-        mockMvc.perform(get("/seller/orders")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .header("X-Shop-Id", shopId.toString()))
+        mockMvc.perform(get("/seller/orders").with(userAuth(userId)).header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.detail").value("你不是该店铺成员"));
     }
@@ -129,9 +115,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
     void 店铺不存在或不可用_403() throws Exception {
         when(shopMapper.selectCount(any())).thenReturn(0L);
 
-        mockMvc.perform(get("/seller/orders")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .header("X-Shop-Id", shopId.toString()))
+        mockMvc.perform(get("/seller/orders").with(userAuth(userId)).header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.detail").value("店铺不存在或不可用"));
     }

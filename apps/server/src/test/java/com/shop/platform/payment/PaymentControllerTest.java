@@ -7,12 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
@@ -25,11 +23,6 @@ class PaymentControllerTest extends WebControllerTestSupport {
     private final UUID userId = UUID.randomUUID();
 
     private final UUID orderId = UUID.randomUUID();
-
-    @AfterEach
-    void clearContext() {
-        UserIdHolder.clear();
-    }
 
     @Test
     void 发起支付_201_返回待确认流水() throws Exception {
@@ -44,7 +37,7 @@ class PaymentControllerTest extends WebControllerTestSupport {
         when(paymentService.pay(userId, orderId)).thenReturn(p);
 
         mockMvc.perform(post("/payments")
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"orderId": "%s"}
@@ -71,8 +64,7 @@ class PaymentControllerTest extends WebControllerTestSupport {
         p.setPaidAt(OffsetDateTime.now());
         when(paymentService.confirm(userId, paymentId)).thenReturn(p);
 
-        mockMvc.perform(post("/payments/{id}/confirm", paymentId)
-                        .header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(post("/payments/{id}/confirm", paymentId).with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(paymentId.toString()))
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
@@ -85,7 +77,7 @@ class PaymentControllerTest extends WebControllerTestSupport {
                 .thenThrow(new BusinessException(409, "ORDER_NOT_PAYABLE", "订单当前状态不可支付"));
 
         mockMvc.perform(post("/payments")
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"orderId": "%s"}

@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
@@ -18,10 +17,8 @@ import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
 
 /**
  * 卖家商品接口契约：X-Shop-Id 成员守卫、草稿全字段出参（含 skuCode/status，与买家侧契约不同）、
@@ -40,12 +37,6 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         stubSellerMembership();
     }
 
-    @AfterEach
-    void clearContext() {
-        ShopIdHolder.clear();
-        com.shop.platform.common.UserIdHolder.clear();
-    }
-
     private Product draft() {
         Product p = new Product();
         p.setId(productId);
@@ -61,9 +52,8 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         when(productService.create(any())).thenReturn(draft());
 
         mockMvc.perform(post("/seller/products")
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .header("X-Shop-Id", shopId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
                         .content(
                                 """
                             {"categoryId": "%s", "name": "卖家商品"}
@@ -92,9 +82,8 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
 
         mockMvc.perform(
                         put("/seller/products/{id}/specs", productId)
-                                .header("Authorization", "Bearer " + userToken(userId))
+                                .with(userAuth(userId))
                                 .header("X-Shop-Id", shopId.toString())
-                                .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
                             {"specs": [{"name": "颜色", "values": ["黑"]}]}
@@ -116,7 +105,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                 .thenReturn(Map.of(sku.getId(), new StockView(sku.getId(), 5, 0, 5)));
 
         mockMvc.perform(get("/seller/products/{id}", productId)
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.product.name").value("卖家商品"))
@@ -130,7 +119,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         when(productService.publish(productId)).thenReturn(published);
 
         mockMvc.perform(post("/seller/products/{id}/publish", productId)
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(1));
@@ -143,7 +132,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         when(productService.off(productId)).thenReturn(off);
 
         mockMvc.perform(post("/seller/products/{id}/off", productId)
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(0));
@@ -160,7 +149,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                         .queryParam("page", "1")
                         .queryParam("size", "10")
                         .queryParam("status", "2")
-                        .header("Authorization", "Bearer " + userToken(userId))
+                        .with(userAuth(userId))
                         .header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.records[0].status").value(2));
@@ -168,7 +157,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
 
     @Test
     void 缺店铺上下文_403() throws Exception {
-        mockMvc.perform(get("/seller/products").header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(get("/seller/products").with(userAuth(userId)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.detail").value("缺少店铺上下文（X-Shop-Id）"));
     }

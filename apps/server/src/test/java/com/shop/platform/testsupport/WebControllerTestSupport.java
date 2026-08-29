@@ -1,6 +1,7 @@
 package com.shop.platform.testsupport;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
@@ -12,6 +13,7 @@ import com.shop.platform.auth.service.AuthService;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.cart.service.CartService;
 import com.shop.platform.cms.service.ContentService;
+import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.favorite.service.FavoriteService;
 import com.shop.platform.infra.captcha.CaptchaService;
@@ -36,9 +38,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -130,11 +135,14 @@ public abstract class WebControllerTestSupport {
 
     @BeforeEach
     void setUpWebMvc() {
+        // 每用例前清 ThreadLocal 上下文（UserIdHolder + 卖家侧 ShopIdHolder），
+        // 隔离器在基类集中做，各子类不必再写 @AfterEach clearContext。
         UserIdHolder.clear();
+        ShopIdHolder.clear();
         // 判权默认桩：契约测试假定持全权的在岗员工（SUPER_ADMIN 通配）；
         // 权限矩阵测试自行覆盖此桩（如 OPS 只给 CMS_MANAGE）。
         // @MockitoBean 每用例自动 reset，这里的 stub 对每个测试重新生效。
-        org.mockito.Mockito.when(staffService.effectivePermissions(any()))
+        when(staffService.effectivePermissions(any()))
                 .thenReturn(java.util.Set.of(com.shop.platform.infra.security.authz.PermissionResolver.WILDCARD));
         // webAppContextSetup 不自动注册 Filter Bean，按生产 @Order 手动挂全链
         mockMvc = MockMvcBuilders.webAppContextSetup(context)
@@ -152,9 +160,31 @@ public abstract class WebControllerTestSupport {
         return jwtProvider.createAccessToken(userId);
     }
 
+    /** 已登录用户请求后处理器：自动挂 C 端 Bearer 令牌 + 设 JSON content-type，一行替掉
+     *  {@code .header("Authorization", ...) + .contentType(APPLICATION_JSON)} 两行样板。
+     *  登录态请求统一 {@code .with(userAuth(userId))}；未登录守卫用例（401）照旧不带；
+     *  GET/DELETE 无请求体时加 content-type 头无害（无体则 Spring 忽略）。 */
+    protected RequestPostProcessor userAuth(UUID userId) {
+        return (req) -> {
+            req.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + userToken(userId));
+            req.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            return req;
+        };
+    }
+
     /** 管理端员工令牌（kind=staff） */
     protected String staffToken(UUID staffId) {
         return jwtProvider.createStaffAccessToken(staffId);
+    }
+
+    /** 管理端员工请求后处理器：自动挂 staff Bearer 令牌 + 设 JSON content-type，
+     *  与 {@link #userAuth} 对位。管理端登录态请求统一 {@code .with(staffAuth(staffId))}。 */
+    protected RequestPostProcessor staffAuth(UUID staffId) {
+        return (req) -> {
+            req.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + staffToken(staffId));
+            req.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            return req;
+        };
     }
 
     /** seller 测试的成员过滤器放行桩：店铺存在可用 + 当前用户是 ACTIVE 店主（通配全通过）。
@@ -169,8 +199,8 @@ public abstract class WebControllerTestSupport {
                 .register(UUID.class, new com.shop.platform.infra.db.UuidTypeHandler());
         TableInfoHelper.initTableInfo(assistant, Shop.class);
         TableInfoHelper.initTableInfo(assistant, ShopMember.class);
-        org.mockito.Mockito.when(shopMapper.selectCount(any())).thenReturn(1L);
-        org.mockito.Mockito.when(shopMemberMapper.findActiveMember(any(), any()))
+        when(shopMapper.selectCount(any())).thenReturn(1L);
+        when(shopMemberMapper.findActiveMember(any(), any()))
                 .thenReturn(ShopMember.builder()
                         .shopId(UUID.randomUUID())
                         .userId(UUID.randomUUID())

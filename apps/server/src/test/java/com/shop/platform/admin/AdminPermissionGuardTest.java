@@ -41,8 +41,7 @@ class AdminPermissionGuardTest extends WebControllerTestSupport {
     void 审核接口_OPS岗位_403并带PERMISSION_DENIED() throws Exception {
         when(staffService.effectivePermissions(any())).thenReturn(Set.of(Permissions.CMS_MANAGE));
 
-        mockMvc.perform(post("/admin/reviews/{id}/approve", reviewId)
-                        .header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(post("/admin/reviews/{id}/approve", reviewId).with(staffAuth(staffId)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("PERMISSION_DENIED"));
     }
@@ -52,8 +51,7 @@ class AdminPermissionGuardTest extends WebControllerTestSupport {
         when(staffService.effectivePermissions(any())).thenReturn(Set.of(Permissions.SHOP_REVIEW));
         when(shopReviewService.approve(reviewId, staffId)).thenReturn(review());
 
-        mockMvc.perform(post("/admin/reviews/{id}/approve", reviewId)
-                        .header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(post("/admin/reviews/{id}/approve", reviewId).with(staffAuth(staffId)))
                 .andExpect(status().isOk());
     }
 
@@ -62,9 +60,7 @@ class AdminPermissionGuardTest extends WebControllerTestSupport {
         // token 未过期但 effectivePermissions 因 status!=ACTIVE 返回空集：收权即时生效
         when(staffService.effectivePermissions(any())).thenReturn(Set.of());
 
-        mockMvc.perform(get("/admin/reviews")
-                        .queryParam("status", "PENDING")
-                        .header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(get("/admin/reviews").queryParam("status", "PENDING").with(staffAuth(staffId)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("PERMISSION_DENIED"));
     }
@@ -74,8 +70,7 @@ class AdminPermissionGuardTest extends WebControllerTestSupport {
         when(staffService.effectivePermissions(any())).thenReturn(Set.of(Permissions.CATEGORY_MANAGE));
         when(categoryService.adminTree()).thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/admin/categories/tree").header("Authorization", "Bearer " + staffToken(staffId)))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/admin/categories/tree").with(staffAuth(staffId))).andExpect(status().isOk());
 
         mockMvc.perform(get("/admin/categories/tree").header("Authorization", "Bearer " + userToken(UUID.randomUUID())))
                 .andExpect(status().isUnauthorized());

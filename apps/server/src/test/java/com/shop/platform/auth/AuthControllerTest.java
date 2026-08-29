@@ -13,6 +13,8 @@ import jakarta.servlet.http.Cookie;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 
 /**
@@ -23,36 +25,29 @@ class AuthControllerTest extends WebControllerTestSupport {
 
     private static final UUID USER_ID = UUID.randomUUID();
 
+    /** 发码请求体模板：phone 可变（空/过短/合法），复用同一骨架 */
+    private static String smsBody(String phone) {
+        return """
+            {"phone": "%s", "captchaId": "c1", "captchaCode": "A1B2"}
+            """
+                .formatted(phone);
+    }
+
     // 人机验证为发码前置防线：契约测试默认放行，后续单测单独覆盖 verify 逻辑（见 infra.captcha.CaptchaServiceTest）
     @BeforeEach
     void stubCaptcha() {
-        org.mockito.Mockito.doNothing().when(captchaService).verify(any(), any());
+        doNothing().when(captchaService).verify(any(), any());
     }
 
     // ========== 请求体校验 (BODY-01) ==========
 
-    @Test
-    void 发送验证码_空手机号_422() throws Exception {
-        mockMvc.perform(
-                        post("/auth/sms-code")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                                    {"phone": "", "captchaId": "c1", "captchaCode": "A1B2"}
-                                    """))
-                .andExpect(status().is(422))
-                .andExpect(jsonPath("$.errors[0].field").value("phone"));
-    }
-
-    @Test
-    void 发送验证码_手机号过短_422() throws Exception {
-        mockMvc.perform(
-                        post("/auth/sms-code")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                                    {"phone": "123", "captchaId": "c1", "captchaCode": "A1B2"}
-                                    """))
+    @ParameterizedTest(name = "发送验证码_非法手机号[{0}]_422字段级拦截")
+    @ValueSource(strings = {"", "123"})
+    void 发送验证码_非法手机号_422字段级拦截(String phone) throws Exception {
+        // 空手机号 / 过短手机号：同一 @NotBlank+@Size 校验，抽参数化合并
+        mockMvc.perform(post("/auth/sms-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(smsBody(phone)))
                 .andExpect(status().is(422))
                 .andExpect(jsonPath("$.errors[0].field").value("phone"));
     }
@@ -233,13 +228,9 @@ class AuthControllerTest extends WebControllerTestSupport {
 
     @Test
     void 发送验证码_成功() throws Exception {
-        mockMvc.perform(
-                        post("/auth/sms-code")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                                    {"phone": "13800138000", "captchaId": "c1", "captchaCode": "A1B2"}
-                                    """))
+        mockMvc.perform(post("/auth/sms-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(smsBody("13800138000")))
                 .andExpect(status().isOk());
 
         verify(smsCodeService).sendCode(eq("13800138000"), anyString());
@@ -284,14 +275,10 @@ class AuthControllerTest extends WebControllerTestSupport {
     @Test
     void 验证码_IP来源_XFF默认不信任() throws Exception {
         // ClientIp 默认不信 XFF（客户端自报头，盲信会让 IP 限流失效）→ 用 TCP 对端地址
-        mockMvc.perform(
-                        post("/auth/sms-code")
-                                .header("X-Forwarded-For", "203.0.113.1, 10.0.0.1")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                                    {"phone": "13800138000", "captchaId": "c1", "captchaCode": "A1B2"}
-                                    """))
+        mockMvc.perform(post("/auth/sms-code")
+                        .header("X-Forwarded-For", "203.0.113.1, 10.0.0.1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(smsBody("13800138000")))
                 .andExpect(status().isOk());
 
         verify(smsCodeService).sendCode(eq("13800138000"), eq("127.0.0.1"));
@@ -299,13 +286,9 @@ class AuthControllerTest extends WebControllerTestSupport {
 
     @Test
     void 验证码_IP来源_取对端地址() throws Exception {
-        mockMvc.perform(
-                        post("/auth/sms-code")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                                    {"phone": "13800138000", "captchaId": "c1", "captchaCode": "A1B2"}
-                                    """))
+        mockMvc.perform(post("/auth/sms-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(smsBody("13800138000")))
                 .andExpect(status().isOk());
 
         // MockMvc 默认 RemoteAddr 为 127.0.0.1

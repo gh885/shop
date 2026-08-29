@@ -3,6 +3,7 @@ package com.shop.platform.cart.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -90,10 +91,12 @@ class CartServiceTest {
 
         CartItem merged = service.add(userId, request(2));
 
-        assertThat(merged).isSameAs(existing); // 原行更新，不插新行
+        // 行为：同一逻辑行合并（同 skuId/userId），数量累加；不新增行（见下方 never insert）
+        assertThat(merged.getSkuId()).isEqualTo(skuId);
+        assertThat(merged.getUserId()).isEqualTo(userId);
         assertThat(merged.getQuantity()).isEqualTo(5);
         verify(cartItemMapper).updateById(existing);
-        org.mockito.Mockito.verify(cartItemMapper, org.mockito.Mockito.never()).insert(any(CartItem.class));
+        verify(cartItemMapper, never()).insert(any(CartItem.class));
     }
 
     @Test
@@ -149,6 +152,6 @@ class CartServiceTest {
         CartItem item = service.add(userId, request(6));
 
         assertThat(item.getQuantity()).isEqualTo(10); // 4 + 6 合并
-        org.mockito.Mockito.verify(cartItemMapper).updateById(item);
+        verify(cartItemMapper).updateById(item);
     }
 }

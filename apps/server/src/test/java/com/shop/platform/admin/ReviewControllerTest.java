@@ -17,7 +17,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
 
 /**
  * 平台审核接口契约：员工守卫、审核队列分页（跨 schema 拼装店名/店主手机号）、
@@ -56,9 +55,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
                                 OffsetDateTime.now())),
                         1));
 
-        mockMvc.perform(get("/admin/reviews")
-                        .queryParam("status", "PENDING")
-                        .header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(get("/admin/reviews").queryParam("status", "PENDING").with(staffAuth(staffId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.records[0].shopName").value("待审店铺"))
                 .andExpect(jsonPath("$.records[0].ownerPhone").value("138****0000"))
@@ -69,8 +66,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
     void 审核通过_落员工身份() throws Exception {
         when(shopReviewService.approve(reviewId, staffId)).thenReturn(review());
 
-        mockMvc.perform(post("/admin/reviews/{id}/approve", reviewId)
-                        .header("Authorization", "Bearer " + staffToken(staffId)))
+        mockMvc.perform(post("/admin/reviews/{id}/approve", reviewId).with(staffAuth(staffId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(ShopReview.STATUS_APPROVED))
                 .andExpect(jsonPath("$.staffId").value(staffId.toString()));
@@ -81,8 +77,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
     @Test
     void 审核拒绝_理由必填() throws Exception {
         mockMvc.perform(post("/admin/reviews/{id}/reject", reviewId)
-                        .header("Authorization", "Bearer " + staffToken(staffId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(staffAuth(staffId))
                         .content("{}"))
                 .andExpect(status().is(422))
                 .andExpect(jsonPath("$.errors[0].field").value("reason"));
@@ -98,8 +93,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
         });
 
         mockMvc.perform(post("/admin/reviews/{id}/reject", reviewId)
-                        .header("Authorization", "Bearer " + staffToken(staffId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(staffAuth(staffId))
                         .content("""
                             {"reason": "资质不全"}
                             """))

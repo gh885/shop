@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderWithItems;
@@ -21,9 +20,7 @@ import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
 
 /**
  * 买家订单接口契约：结算预览分组算钱、创建拆单返回、分页卡片、详情动作集、取消/收货透传。
@@ -39,14 +36,10 @@ class OrderControllerTest extends WebControllerTestSupport {
 
     private final UUID orderId = UUID.randomUUID();
 
-    @AfterEach
-    void clearContext() {
-        UserIdHolder.clear();
-    }
-
     private Order pendingOrder() {
         Order o = new Order();
         o.setId(orderId);
+        o.setShopId(shopId);
         o.setOrderNo("20260101120000001");
         o.setStatus(Order.STATUS_PENDING_PAYMENT);
         o.setCurrency("CNY");
@@ -75,8 +68,7 @@ class OrderControllerTest extends WebControllerTestSupport {
                         Money.cny(2000)));
 
         mockMvc.perform(post("/orders/preview")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content(
                                 """
                             {"buySkuId": "%s", "buyQuantity": 2}
@@ -97,8 +89,7 @@ class OrderControllerTest extends WebControllerTestSupport {
         when(orderService.create(eq(userId), any())).thenReturn(List.of(pendingOrder()));
 
         mockMvc.perform(post("/orders/create")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content(
                                 """
                             {"addressId": "%s", "buySkuId": "%s", "buyQuantity": 1}
@@ -113,8 +104,7 @@ class OrderControllerTest extends WebControllerTestSupport {
     @Test
     void 创建订单_缺地址_422() throws Exception {
         mockMvc.perform(post("/orders/create")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content(
                                 """
                             {"buySkuId": "%s", "buyQuantity": 1}
@@ -132,7 +122,7 @@ class OrderControllerTest extends WebControllerTestSupport {
         mockMvc.perform(get("/orders/mine")
                         .queryParam("page", "1")
                         .queryParam("size", "10")
-                        .header("Authorization", "Bearer " + userToken(userId)))
+                        .with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.records[0].status").value(Order.STATUS_PENDING_PAYMENT))
                 .andExpect(jsonPath("$.records[0].items.length()").value(0));
@@ -142,7 +132,7 @@ class OrderControllerTest extends WebControllerTestSupport {
     void 订单详情_买家视角动作集() throws Exception {
         when(orderService.detail(userId, orderId)).thenReturn(new OrderWithItems(pendingOrder(), List.of()));
 
-        mockMvc.perform(get("/orders/{id}", orderId).header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(get("/orders/{id}", orderId).with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(orderId.toString()))
                 // 待付款单的动作集由实体状态机推导，契约只验非空数组
@@ -152,8 +142,7 @@ class OrderControllerTest extends WebControllerTestSupport {
     @Test
     void 取消订单_原因透传() throws Exception {
         mockMvc.perform(put("/orders/{id}/cancel", orderId)
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content("""
                             {"reason": "不想要了"}
                             """))
@@ -164,7 +153,7 @@ class OrderControllerTest extends WebControllerTestSupport {
 
     @Test
     void 确认收货_已发货转已完成() throws Exception {
-        mockMvc.perform(put("/orders/{id}/receive", orderId).header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(put("/orders/{id}/receive", orderId).with(userAuth(userId)))
                 .andExpect(status().isOk());
 
         verify(orderService).receive(userId, orderId);

@@ -15,14 +15,11 @@ import com.shop.platform.cart.mapper.CartItem;
 import com.shop.platform.cart.service.CartCount;
 import com.shop.platform.cart.service.CartItemView;
 import com.shop.platform.common.Money;
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
 
 /**
  * 购物车接口契约：加购幂等合并、列表视图字段（含失效置灰）、角标计数、
@@ -33,11 +30,6 @@ class CartControllerTest extends WebControllerTestSupport {
     private final UUID userId = UUID.randomUUID();
 
     private final UUID skuId = UUID.randomUUID();
-
-    @AfterEach
-    void clearContext() {
-        UserIdHolder.clear();
-    }
 
     @Test
     void 加购_201_返回条目() throws Exception {
@@ -53,8 +45,7 @@ class CartControllerTest extends WebControllerTestSupport {
                         .build());
 
         mockMvc.perform(post("/cart/items")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content(
                                 """
                             {"skuId": "%s", "quantity": 2}
@@ -68,8 +59,7 @@ class CartControllerTest extends WebControllerTestSupport {
     @Test
     void 加购_缺数量_422() throws Exception {
         mockMvc.perform(post("/cart/items")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content("""
                             {"skuId": "%s"}
                             """
@@ -91,7 +81,7 @@ class CartControllerTest extends WebControllerTestSupport {
                         new CartItemView.SkuInfo(skuId, "黑色 S", null, Money.cny(1000), null, 5, 1),
                         true)));
 
-        mockMvc.perform(get("/cart/items").header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(get("/cart/items").with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].product.name").value("测试商品"))
                 .andExpect(jsonPath("$[0].sku.price.amount").value(1000))
@@ -102,7 +92,7 @@ class CartControllerTest extends WebControllerTestSupport {
     void 角标计数_免拉整车() throws Exception {
         when(cartService.count(userId)).thenReturn(new CartCount(3, 1));
 
-        mockMvc.perform(get("/cart/count").header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(get("/cart/count").with(userAuth(userId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(3))
                 .andExpect(jsonPath("$.selected").value(1));
@@ -116,8 +106,7 @@ class CartControllerTest extends WebControllerTestSupport {
                         CartItem.builder().id(itemId).skuId(skuId).quantity(5).build());
 
         mockMvc.perform(put("/cart/items/{id}", itemId)
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content("""
                             {"quantity": 5}
                             """))
@@ -128,8 +117,7 @@ class CartControllerTest extends WebControllerTestSupport {
     @Test
     void 批量勾选_整车全选() throws Exception {
         mockMvc.perform(put("/cart/items/selected")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content("""
                             {"selected": true}
                             """))
@@ -141,7 +129,7 @@ class CartControllerTest extends WebControllerTestSupport {
     @Test
     void 删除单条() throws Exception {
         UUID itemId = UUID.randomUUID();
-        mockMvc.perform(delete("/cart/items/{id}", itemId).header("Authorization", "Bearer " + userToken(userId)))
+        mockMvc.perform(delete("/cart/items/{id}", itemId).with(userAuth(userId)))
                 .andExpect(status().isOk());
 
         verify(cartService).remove(userId, itemId);
@@ -150,8 +138,7 @@ class CartControllerTest extends WebControllerTestSupport {
     @Test
     void 批量删除_清除失效共用() throws Exception {
         mockMvc.perform(post("/cart/items/batch-delete")
-                        .header("Authorization", "Bearer " + userToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(userAuth(userId))
                         .content(
                                 """
                             {"itemIds": ["%s", "%s"]}
