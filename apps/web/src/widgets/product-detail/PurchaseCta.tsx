@@ -58,13 +58,13 @@ export function PurchaseCta({
         })
     }
 
-    /** 收藏开关：未登录先拉起登录框；登录后按当前状态 toggle */
+    /** 收藏开关：未登录先拉起登录框；登录后按点击前状态 toggle（判定 add/remove 的方向） */
     function handleFavorite() {
         if (!isLoggedIn) {
             openLoginDialog()
             return
         }
-        toggleFavorite.mutate()
+        toggleFavorite.mutate(favorited)
     }
 
     return (

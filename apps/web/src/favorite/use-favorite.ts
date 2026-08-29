@@ -62,12 +62,14 @@ export function useFavoriteStatus(productId: string) {
     })
 }
 
-/** 收藏/取消收藏开关：详情页心形按钮用，乐观切换、失败回滚 */
+/** 收藏/取消收藏开关：详情页心形按钮用，乐观切换、失败回滚。
+ * 调用方传入<b>点击前</b>的当前状态（来自 useFavoriteStatus），判定该发 add 还是 remove——
+ * 不读被乐观更新污染后的 cache，否则未收藏时点收藏会误判为已收藏而发 DELETE。 */
 export function useToggleFavorite(productId: string) {
     const qc = useQueryClient()
     return useMutation({
-        mutationFn: async () => {
-            const favorited = qc.getQueryData<boolean>(["favorite-status", productId]) ?? false
+        // favorited = 点击前是否已收藏；据此决定 add / remove
+        mutationFn: async (favorited: boolean) => {
             if (favorited) await FavoritesApi.removeFavorite({ path: { productId } })
             else await FavoritesApi.addFavorite({ body: { productId } })
             return !favorited

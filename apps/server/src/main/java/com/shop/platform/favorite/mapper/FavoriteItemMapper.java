@@ -57,7 +57,20 @@ public interface FavoriteItemMapper extends BaseMapper<FavoriteItem> {
                         .in("product_id", productIds)
                         .groupBy("product_id"))
                 .stream()
-                .collect(Collectors.toMap(
-                        m -> UUID.fromString((String) m.get("product_id")), m -> ((Number) m.get("cnt")).longValue()));
+                .collect(Collectors.toMap(m -> toUuid(m.get("product_id")), m -> ((Number) m.get("cnt")).longValue()));
+    }
+
+    /**
+     * uuid 列经 selectMaps 返回的值，PG JDBC 驱动可能给 {@link UUID} 或 {@link String}（取决版本/配置），
+     * 两者都收口成 {@link UUID}，避免 {@code (String)} 强转在 UUID 类型下抛 ClassCastException。
+     */
+    private static UUID toUuid(Object value) {
+        if (value instanceof UUID uuid) {
+            return uuid;
+        }
+        if (value instanceof String s) {
+            return UUID.fromString(s);
+        }
+        throw new IllegalArgumentException("product_id 列返回了意外的类型: " + value.getClass());
     }
 }
