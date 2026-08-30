@@ -30,7 +30,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 /**
  * 交易关键链路集成验证（真库）：预览 → 下单扣库存 → MOCK 支付推进状态机 → 幂等重付 →
- * 越态取消拒绝 → 超时关单回补库存。测试数据自建自清，不依赖种子数据。
+ * 已付款取消回补库存且落退款单据 → 越态取消拒绝 → 超时关单回补库存。测试数据自建自清，不依赖种子数据。
+ *
+ * <p>库存闸门在<b>真并发</b>下的可靠性单独由 inventory/StockConcurrencyIT 验证（本类的
+ * 「并发窗口_库存抢空」是单线程造场景，只说闸门未过时的响应，不说并发安全）。
  */
 @SpringBootTest
 class OrderFlowIT extends IntegrationTestSupport {
@@ -138,6 +141,18 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertEquals(Order.STATUS_CANCELLED, statusOf(order.getId()));
         assertEquals(5, totalStockOf());
         assertEquals(0, frozenStockOf());
+
+        // 5b. 已付款单取消必须留下退款单据：成功流水转 REFUNDED 并回填退款时刻（同事务，绝不出现「单已取消、货款仍显示已收」）
+        assertEquals(
+                Payment.STATUS_REFUNDED,
+                jdbc.queryForObject(
+                        "SELECT status FROM payment.payments WHERE id = ?::uuid",
+                        String.class,
+                        paid.getId().toString()));
+        assertNotNull(jdbc.queryForObject(
+                "SELECT refunded_at FROM payment.payments WHERE id = ?::uuid",
+                Timestamp.class,
+                paid.getId().toString()));
 
         // 回补记账走 RETURN（RELEASE 口径 quantity=0，回补动总库存必须独立类型，否则按 type 对账失真）
         assertEquals(

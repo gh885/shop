@@ -25,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
  * PENDING/SUCCESS，不堆积。确认用条件转移 PENDING→SUCCESS 防重复确认。
  *
  * <p>事务：发起只落流水；确认时同事务调用 OrderCommand.markPaid（同步推进订单、扣实冻结库存），
- * 订单已被取消/超时则 markPaid 抛 409 → 本事务把流水置 FAILED 后回滚（资金状态两侧最终一致）。
+ * 订单已被取消/超时则 markPaid 抛 409 → 本事务整体回滚，流水留在 PENDING（绝不出现「单没了却显示支付成功」）。
+ * 留 PENDING 而非置 FAILED 是刻意的：同一事务里改不成 FAILED（会被一起回滚），要落 FAILED 得靠真实网关
+ * 回调带来的失败通知，届时在 confirm 的兄弟方法里走 {@code transition(id, FAILED)}。
  */
 @Service
 @Slf4j
@@ -86,8 +88,8 @@ public class PaymentService {
     /**
      * 确认支付（模拟网关回调）：校验流水归属 → 条件转移 PENDING→SUCCESS → 同事务推进订单。
      *
-     * <p>订单已被取消/超时关闭时 markPaid 抛 409：把该笔流水标记 FAILED（网关侧已付款但订单已失效，
-     * 由对账/退款语义兜底），并回滚本事务——绝不出现「钱付了单没了却显示成功」。
+     * <p>订单已被取消/超时关闭时 markPaid 抛 409：本事务整体回滚（SUCCESS 转移一并撤销，流水留在 PENDING），
+     * 绝不出现「钱付了单没了却显示成功」。网关侧真已收款的场景由对账 + 退款语义兜底。
      */
     @Transactional
     public Payment confirm(UUID userId, UUID paymentId) {

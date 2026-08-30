@@ -3,6 +3,7 @@ package com.shop.platform.payment.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -33,5 +34,19 @@ public interface PaymentMapper extends BaseMapper<Payment> {
                         .eq(Payment::getId, paymentId)
                         .eq(Payment::getStatus, Payment.STATUS_PENDING)
                         .set(Payment::getStatus, toStatus));
+    }
+
+    /**
+     * 成功流水转退款终态：SUCCESS → REFUNDED 并回填退款时刻。按 orderId 而非主键定位：
+     * 调用方（取消事件）只知道订单，不知道流水 ID。条件转移即幂等闸门：重复退款影响 0 行。
+     */
+    default int refundByOrder(UUID orderId, OffsetDateTime refundedAt) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Payment>()
+                        .eq(Payment::getOrderId, orderId)
+                        .eq(Payment::getStatus, Payment.STATUS_SUCCESS)
+                        .set(Payment::getStatus, Payment.STATUS_REFUNDED)
+                        .set(Payment::getRefundedAt, refundedAt));
     }
 }

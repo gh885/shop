@@ -14,10 +14,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 支付流水 —— 一笔订单的一次成功支付，存"谁在哪一刻通过什么渠道付了多少钱"。
+ * 支付流水 —— 一笔订单的一次支付尝试，存「谁在哪一刻通过什么渠道付了多少钱」。
  *
- * <p>V1 MOCK 渠道发起即成功，行只插不改（无 updated_at）；接真实网关后扩展 PENDING/FAILED 状态机，
- * uk_payments_order_success 部分唯一索引始终保证一单至多一条成功流水。
+ * <p>状态机：PENDING → SUCCESS → REFUNDED（已付款订单取消），或 PENDING → FAILED（网关回调失败，
+ * 接真实网关后启用）。行可改状态（均走条件转移），但金额/渠道/归属落库后不变。
+ * uk_payments_order_success 部分唯一索引保证一单至多一条<b>当下有效</b>的成功流水；
+ * 转 REFUNDED 后索引自动放开，但订单此时已 CANCELLED，markPaid 会拒绝再次支付。
  */
 @Data
 @Builder
@@ -31,6 +33,9 @@ public class Payment {
     public static final String STATUS_SUCCESS = "SUCCESS";
 
     public static final String STATUS_FAILED = "FAILED";
+
+    /** 已退款（终态）：已付款订单取消时由 SUCCESS 转入，见 PaymentRefundListener */
+    public static final String STATUS_REFUNDED = "REFUNDED";
 
     public static final String CHANNEL_MOCK = "MOCK";
 
@@ -56,11 +61,14 @@ public class Payment {
     /** 支付渠道：V1 恒 MOCK；网关化后 MOCK/WECHAT/ALIPAY */
     private String channel;
 
-    /** 流水状态：V1 恒 SUCCESS；网关化后扩展 PENDING/FAILED/REFUNDED */
+    /** 流水状态：PENDING / SUCCESS / REFUNDED / FAILED（常量见本类） */
     private String status;
 
-    /** 支付成功时刻；网关化后 PENDING 流水此列为 NULL */
+    /** 支付成功时刻；PENDING 流水此列为 NULL，确认成功时回填 */
     private OffsetDateTime paidAt;
+
+    /** 退款时刻；与 status = REFUNDED 同时写入（见 V25 迁移） */
+    private OffsetDateTime refundedAt;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)

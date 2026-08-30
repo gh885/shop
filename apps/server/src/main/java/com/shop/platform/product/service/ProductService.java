@@ -221,7 +221,7 @@ public class ProductService {
         // 1. 校验：商品存在且属于当前店铺、分类存在（同创建）
         requireShopOwned(productId);
         Validate.isTrue(categoryMapper.selectById(command.categoryId()) != null, "分类不存在");
-        // 2. 局部更新：传 null 的字段不写（全库统一 PATCH 语义，见 apps/server/CLAUDE.md），WHERE 只有主键也走 wrapper——与 updateSkus 同形态
+        // 2. 局部更新：传 null 的字段不写（全库统一 PATCH 语义，见 apps/server/AGENTS.md），WHERE 只有主键也走 wrapper——与 updateSkus 同形态
         productMapper.update(
                 null,
                 new LambdaUpdateWrapper<Product>()

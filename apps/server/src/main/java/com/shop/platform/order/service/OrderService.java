@@ -19,6 +19,7 @@ import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.dto.ShipOrderRequest;
+import com.shop.platform.order.events.OrderCancelledEvent;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
@@ -153,7 +154,10 @@ public class OrderService {
 
     // ========== 状态机：买家操作 ==========
 
-    /** 买家取消：仅待付款/待发货可取消（源状态由状态机反推），库存回补按 RETURNING OLD 带回的真实前态分流 */
+    /**
+     * 买家取消：仅待付款/待发货可取消（源状态由状态机反推），库存回补按 RETURNING OLD 带回的真实前态分流。
+     * 已付款单取消同事务发 OrderCancelledEvent，payment 落退款单据 —— 取消与退款原子生效。
+     */
     @Transactional
     public void cancel(UUID userId, UUID orderId, String reason) {
         // 1. 归属校验
@@ -171,12 +175,16 @@ public class OrderService {
         Validate.isTrue(previousStatus != null, 409, "订单状态已变更，当前不可取消");
 
         // 4. 库存回退按真实前态分流：付款后取消回补总库存（已扣实 → stock 增），付款前取消释放冻结（frozen→可用）
-        if (Order.STATUS_PAID.equals(previousStatus)) {
+        boolean wasPaid = Order.STATUS_PAID.equals(previousStatus);
+        if (wasPaid) {
             stockCommand.restock(orderId, toStockLines(items));
         } else {
             stockCommand.release(orderId, toStockLines(items));
         }
-        log.info("[ORDER] 买家取消订单, orderId={}, userId={}", orderId, userId);
+
+        // 5. 退款：已付款单必须留下退款单据（payment 同步监听置 REFUNDED，同事务 → 取消不成功则退款不落）
+        events.publishEvent(new OrderCancelledEvent(orderId, userId, wasPaid));
+        log.info("[ORDER] 买家取消订单, orderId={}, userId={}, 取消前态={}", orderId, userId, previousStatus);
     }
 
     /** 确认收货：已发货 → 已完成 */
