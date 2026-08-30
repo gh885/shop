@@ -26,15 +26,15 @@ export interface ProductCardData {
     shop?: string
 }
 
-/** 价格按 元.角分 拆成三段：¥ 小、整数大、小数小 */
+/** 价格按 元.角分 拆成三段：¥ 小、整数大、小数小。价格是全卡视觉锚点，字重要压得住 */
 function Price({ value, className }: { value: number; className?: string }) {
     const yuan = Math.floor(value / 100)
     const cents = String(value % 100).padStart(2, "0")
     return (
         <span className={`font-bold tabular-nums leading-none ${className ?? ""}`}>
-            <span className="text-[0.65em]">¥</span>
-            <span className="text-xl tracking-tight">{yuan}</span>
-            <span className="text-[0.7em]">.{cents}</span>
+            <span className="text-[0.6em]">¥</span>
+            <span className="text-2xl tracking-tight">{yuan}</span>
+            <span className="text-[0.65em]">.{cents}</span>
         </span>
     )
 }
@@ -46,63 +46,63 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         <Link
             to="/products/$id"
             params={{ id: product.id }}
-            className="group flex flex-col overflow-hidden rounded-lg bg-background transition-all duration-200 hover:-translate-y-1 hover:shadow-lift"
+            className="group flex flex-col overflow-hidden rounded-lg bg-background shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lift"
         >
-            {/* 图片：方形、铺满、轻微圆角，hover 微放大；无图（image 归一为 ""）渲染灰底占位，避免 img src="" 警告 */}
-            <div className="relative overflow-hidden rounded-lg bg-white">
-                {product.image ? (
-                    <img
-                        src={product.image}
-                        alt={product.title}
-                        loading="lazy"
-                        className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-                    />
-                ) : (
-                    <div className="flex aspect-square w-full items-center justify-center bg-muted text-xs text-muted-foreground">
-                        暂无图片
-                    </div>
-                )}
-            </div>
+            {/* 图片出血铺满卡片上边缘（图即卡片，货架观感）；无图渲染灰底占位，避免 img src="" 警告 */}
+            {product.image ? (
+                <img
+                    src={product.image}
+                    alt={product.title}
+                    loading="lazy"
+                    className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                />
+            ) : (
+                <div className="flex aspect-square w-full items-center justify-center bg-muted text-xs text-muted-foreground">
+                    暂无图片
+                </div>
+            )}
 
-            <div className="flex flex-col px-2 pt-2.5 pb-3">
+            <div className="flex flex-col px-2.5 pt-2 pb-3">
                 {/* 标题：两行截断，hover 变主题色 */}
                 <p className="line-clamp-2 min-h-11 text-sm leading-snug text-foreground transition-colors group-hover:text-primary">
                     {product.title}
                 </p>
 
-                {/* 标签排：自营红底 + 服务类描边 */}
-                {product.tags && product.tags.length > 0 && (
-                    <div className="mt-1.5 flex h-4 items-center gap-1 overflow-hidden">
-                        {product.tags.map((tag, i) => (
-                            <Badge
-                                key={tag}
-                                variant={i === 0 ? "default" : "outline"}
-                                className={
-                                    i === 0
-                                        ? "h-4 rounded-[3px] px-1 text-[10px]"
-                                        : "h-4 rounded-[3px] border-primary/50 px-1 text-[10px] text-primary"
+                {/* 标签排：自营红底 + 服务类描边；无标签也保留行高，网格基线对齐 */}
+                <div className="mt-1.5 flex h-4 items-center gap-1 overflow-hidden">
+                    {product.tags?.map((tag, i) => (
+                        <Badge
+                            key={tag}
+                            variant={i === 0 ? "default" : "outline"}
+                            className={
+                                i === 0
+                                    ? "h-4 rounded-[3px] px-1 text-[10px]"
+                                    : "h-4 rounded-[3px] border-primary/50 px-1 text-[10px] text-primary"
+                            }
+                        >
+                            {tag}
+                        </Badge>
+                    ))}
+                </div>
+
+                {/* 店铺行：始终占位（固定行高），无店铺名时留空，保证网格内卡片基线一致 */}
+                <div className="mt-1 flex h-4 items-center">
+                    {product.shop && (
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <button
+                                        type="button"
+                                        className="truncate text-xs text-muted-foreground transition-colors hover:text-primary"
+                                    >
+                                        {product.shop}
+                                    </button>
                                 }
-                            >
-                                {tag}
-                            </Badge>
-                        ))}
-                        {product.shop && (
-                            <Tooltip>
-                                <TooltipTrigger
-                                    render={
-                                        <button
-                                            type="button"
-                                            className="truncate text-xs text-muted-foreground transition-colors hover:text-primary"
-                                        >
-                                            {product.shop}
-                                        </button>
-                                    }
-                                />
-                                <TooltipContent>{product.shop}</TooltipContent>
-                            </Tooltip>
-                        )}
-                    </div>
-                )}
+                            />
+                            <TooltipContent>{product.shop}</TooltipContent>
+                        </Tooltip>
+                    )}
+                </div>
 
                 {/* 最下行：价格 + 销量小字，右侧加购按钮 */}
                 <div className="mt-1.5 flex items-center gap-1.5">

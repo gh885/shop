@@ -11,9 +11,9 @@
    Layer 3 Component  — 暂不抽取；组件直接消费语义层，
                         同一模式出现第二个消费方时再下沉为组件 token。
 
-   风格定位：消费级电商转化风 —— 中性灰撑全场（不抢商品内容风头），
-   单一主色（淘宝橙红 primary）只用于转化引导（登录/购买等 CTA），
-   偏大圆角，暗色一等公民。
+   风格定位：消费级电商转化风 —— 暖灰 canvas 做"地面"、白卡浮起（层次靠底色差
+   不靠描边），单一主色（淘宝橙红 primary）渗透搜索框/价格/CTA 等转化信号，
+   小圆角分层（控件 6px / 卡片 9-12px），暗色一等公民。
    seller/admin 端复用时保持 primitive 不动，只换 semantic 的 primary 映射；
    平台端（admin）身份色用 indigo 冷色相，与 C 端橙红区分。
    ========================================================================== */
@@ -27,19 +27,19 @@
 :root {
     color-scheme: light dark;
 
-    /* 中性灰（无彩色相，暖冷中性） */
+    /* 中性灰（微量暖色相 hue 30，向淘宝的暖灰靠；低饱和不抢商品内容） */
     --neutral-0: hsl(0 0% 100%);
-    --neutral-50: hsl(0 0% 98%);
-    --neutral-100: hsl(0 0% 96.1%);
-    --neutral-200: hsl(0 0% 89.8%);
-    --neutral-300: hsl(0 0% 83.1%);
-    --neutral-400: hsl(0 0% 63.9%);
-    --neutral-500: hsl(0 0% 45.1%);
-    --neutral-600: hsl(0 0% 32%);
-    --neutral-700: hsl(0 0% 21%);
-    --neutral-800: hsl(0 0% 14.9%);
-    --neutral-900: hsl(0 0% 9%);
-    --neutral-950: hsl(0 0% 3.9%);
+    --neutral-50: hsl(30 4% 98%);
+    --neutral-100: hsl(30 5% 96%);
+    --neutral-200: hsl(30 5% 90%);
+    --neutral-300: hsl(30 4% 83%);
+    --neutral-400: hsl(30 3% 64%);
+    --neutral-500: hsl(30 3% 45%);
+    --neutral-600: hsl(30 3% 32%);
+    --neutral-700: hsl(30 4% 21%);
+    --neutral-800: hsl(30 5% 15%);
+    --neutral-900: hsl(30 6% 9%);
+    --neutral-950: hsl(30 7% 4%);
 
     /* 品牌主色（淘宝橙，hue 15，饱和 100%）—— 唯一转化/主操作色，贯穿登录/购买/开店 CTA。
        500 = #FF5017 为标志性淘宝橙，实色按钮底直接用（白字 3.28:1，与淘宝一致，
@@ -109,11 +109,13 @@
 /* ---------- Layer 2: Semantic（light-dark() 单份定义，深浅随系统偏好） ---------- */
 
 @theme {
-    /* 表面 */
-    --color-background: light-dark(var(--neutral-0), var(--neutral-950));
-    --color-card: light-dark(var(--neutral-0), var(--neutral-950));
-    --color-popover: light-dark(var(--neutral-0), var(--neutral-950));
-    --color-sunken: light-dark(var(--neutral-100), var(--neutral-900));
+    /* 表面：canvas 是页面"地面"（浅暖灰），background/card 是浮在灰地上的白卡——
+       电商层次靠底色差而非描边（border 只留功能分隔），暗色反向（地面更暗、卡更亮） */
+    --color-canvas: light-dark(var(--neutral-100), var(--neutral-950));
+    --color-background: light-dark(var(--neutral-0), var(--neutral-900));
+    --color-card: light-dark(var(--neutral-0), var(--neutral-900));
+    --color-popover: light-dark(var(--neutral-0), var(--neutral-900));
+    --color-sunken: light-dark(var(--neutral-100), var(--neutral-800));
 
     /* 内容（文字阶梯：foreground 主文字 → muted-foreground 次要 → disabled-foreground
        禁用。次要文字统一走 muted-foreground；原 foreground-subtle / foreground-disabled
@@ -202,8 +204,9 @@
     --container-narrow: 74rem;
     /* narrow=74rem(1184px)：订单详情等窄版心；page=92.875rem(1486px)：主版心 */
 
-    /* 圆角阶梯（友好感，消费级偏大；全部由 --radius 推导，改一个全站联动） */
-    --radius: 0.5rem;
+    /* 圆角阶梯（电商货架风：偏小、分层明确——控件 md=6px，卡片 lg=9px / xl=12px，
+       避免 SaaS 式大圆角一刀切；全部由 --radius 推导，改一个全站联动） */
+    --radius: 0.375rem;
     --radius-sm: calc(var(--radius) * 0.75);
     --radius-md: var(--radius);
     --radius-lg: calc(var(--radius) * 1.5);

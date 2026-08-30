@@ -21,7 +21,8 @@ body,
 
 body {
     margin: 0;
-    background-color: var(--color-background);
+    /* 页面底色吃 canvas（浅暖灰"地面"），白卡浮在上面——电商层次靠底色差，不靠描边 */
+    background-color: var(--color-canvas);
     color: var(--color-foreground);
 }
 

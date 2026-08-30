@@ -44,8 +44,8 @@ export function SearchHeader({
                     {title && <h1 className="text-xl font-semibold text-foreground">{title}</h1>}
                 </div>
 
-                {/* 右侧搜索组：输入框 + 搜索 + 各页附加按钮 */}
-                <div className="flex h-9 w-[400px] items-center overflow-hidden rounded-lg border border-border bg-background">
+                {/* 右侧搜索组：2px 橙描边 + 实色橙按钮（与首页同款），各页附加按钮挂 extra */}
+                <div className="flex h-9 w-[400px] items-center overflow-hidden rounded-md border-2 border-primary bg-background">
                     <input
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}

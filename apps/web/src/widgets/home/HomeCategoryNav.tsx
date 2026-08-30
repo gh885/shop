@@ -50,7 +50,7 @@ export function HomeCategoryNav({
             onMouseLeave={() => setActiveId(null)}
         >
             {/** 单列表：始终完整显示，hover 仅切换行高亮 + 右侧展开 Mega 面板，不做 absolute 跳动 */}
-            <div className="h-full overflow-hidden rounded-xl border border-border/60 bg-background">
+            <div className="h-full overflow-hidden rounded-lg bg-background shadow-sm">
                 <ul>
                     {entries.map((entry) => {
                         const Icon = ICON_BY_KEY[entry.iconKey] ?? ShoppingBag
@@ -76,7 +76,7 @@ export function HomeCategoryNav({
 
             {/* hover 展开的 Mega Menu 面板：绝对定位盖在右侧内容上方，高度由内容撑开 */}
             {active?.subs && active.subs.length > 0 && (
-                <div className="absolute top-0 left-full z-50 hidden w-[680px] rounded-xl border border-border/60 bg-background shadow-float md:block">
+                <div className="absolute top-0 left-full z-50 hidden w-[680px] rounded-lg bg-background shadow-float md:block">
                     {/* 词条组：横向流式平铺，一行的组名后跟整排词条 */}
                     <div className="p-5">
                         <div className="flex flex-col gap-4">

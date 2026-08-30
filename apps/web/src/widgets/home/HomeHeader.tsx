@@ -36,9 +36,9 @@ export function HomeHeader() {
                         <Logo size={36} />
                     </Link>
 
-                    {/* 中间大搜索框：整体圆角容器，分类下拉 + 输入框 + 搜索按钮 */}
+                    {/* 中间大搜索框：2px 橙描边 + 实色橙按钮（淘宝标志性元素），分类下拉 + 输入框 */}
                     <div className="mx-auto w-full max-w-3xl">
-                        <div className="flex h-12 items-center rounded-xl border border-border bg-background">
+                        <div className="flex h-12 items-center rounded-lg border-2 border-primary bg-background focus-within:shadow-float">
                             {/* 分类下拉：橙色文字 + 箭头，竖线分隔 */}
                             <DropdownMenu>
                                 <DropdownMenuTrigger className="flex shrink-0 items-center gap-1 pl-5 pr-3 text-base font-medium text-primary transition-colors hover:text-primary-hover">
@@ -63,7 +63,7 @@ export function HomeHeader() {
                                 className="h-full flex-1 bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground"
                             />
 
-                            <Button className="m-1 h-10 px-6 text-base">
+                            <Button className="mr-0.5 h-11 rounded-md px-8 text-base">
                                 <Search />
                                 搜索
                             </Button>

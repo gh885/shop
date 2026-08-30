@@ -26,7 +26,7 @@ export function UserCard() {
     const fallbackChar = displayName.charAt(0)
 
     return (
-        <div className="flex h-[200px] w-[250px] shrink-0 flex-col rounded-xl border border-border/60 bg-background p-4">
+        <div className="flex h-[200px] w-[250px] shrink-0 flex-col rounded-lg bg-background p-4 shadow-sm">
             {/* 头部：头像 + 昵称 */}
             <div className="flex items-center gap-3">
                 <Avatar className="size-10">
