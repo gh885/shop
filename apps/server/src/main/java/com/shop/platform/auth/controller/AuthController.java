@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -54,6 +55,15 @@ public class AuthController {
     private final AuthService authService;
     private final CaptchaService captchaService;
     private final ClientIp clientIp;
+
+    /**
+     * refresh cookie 的 Domain。留空 = 不设 domain（单站点，如本地 localhost）；
+     * 生产配置成共享父域（如 .example.com）后，买家端(web)与卖家端(seller)共用同一个
+     * refresh cookie —— 登录一处另一处自动登录（淘宝千牛式共享会话 / 轻量单点登录）。
+     * 注意：admin 走独立 staff 账号体系与 C 端隔离，不纳入共享。
+     */
+    @Value("${shop.auth.refresh-cookie-domain:}")
+    private String refreshCookieDomain;
 
     /** 发送短信验证码 */
     @PostMapping("/sms-code")
@@ -203,13 +213,17 @@ public class AuthController {
     }
 
     private ResponseCookie buildRefreshCookie(String value, long maxAgeSec) {
-        return ResponseCookie.from(REFRESH_COOKIE, value)
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(REFRESH_COOKIE, value)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Lax")
                 .path("/auth/refresh")
-                .maxAge(Duration.ofSeconds(maxAgeSec))
-                .build();
+                .maxAge(Duration.ofSeconds(maxAgeSec));
+        // 未配置时保持无 domain（本地开发）；配置后才跨子域共享会话
+        if (refreshCookieDomain != null && !refreshCookieDomain.isBlank()) {
+            builder.domain(refreshCookieDomain);
+        }
+        return builder.build();
     }
 
     /** Cookie → Body 依次尝试获取 refresh token */

@@ -6,8 +6,8 @@ import { ArrowLeft, CircleAlert, Store } from "lucide-react"
 import { BasicForm, type BasicFormValues } from "#/components/basic-form"
 import { toApiError } from "@shop/api"
 
-import { productApi } from "#/lib/api"
-import { useCurrentShop } from "#/lib/shop"
+import { productApi } from "#/shared/lib/api"
+import { useCurrentShop } from "#/shared/lib/shop"
 
 export const Route = createFileRoute("/_app/products/new")({
     component: NewProductPage,

@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shop/ui-web"
 
-import { setCurrentShopId, useCurrentShop, useMyShops } from "../lib/shop"
+import { setCurrentShopId, useCurrentShop, useMyShops } from "../shared/lib/shop"
 
 /** 顶栏店铺切换器：切换当前经营店铺（X-Shop-Id 上下文），只列 ACTIVE 店铺 */
 export function ShopSwitcher() {

@@ -8,9 +8,9 @@ import { InviteMemberRequestSchema } from "@shop/api"
 
 import { toApiError } from "@shop/api"
 
-import { shopApi } from "#/lib/api"
-import { useMe } from "#/lib/me"
-import { useCurrentShop } from "#/lib/shop"
+import { shopApi } from "#/shared/lib/api"
+import { useMe } from "#/shared/lib/me"
+import { useCurrentShop } from "#/shared/lib/shop"
 
 export const Route = createFileRoute("/_app/members")({
     component: MembersPage,

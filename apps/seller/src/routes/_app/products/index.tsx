@@ -24,8 +24,8 @@ import type { Product, ProductStatus } from "@shop/api"
 
 import { priceRangeText, toApiError } from "@shop/api"
 
-import { productApi } from "#/lib/api"
-import { useCurrentShop } from "#/lib/shop"
+import { productApi } from "#/shared/lib/api"
+import { useCurrentShop } from "#/shared/lib/shop"
 
 interface ProductSearch {
     page: number
@@ -82,7 +82,7 @@ function ProductsPage() {
                     <p className="mt-1 text-sm text-muted-foreground">「{shop.name}」的商品</p>
                 </div>
                 <Link to="/products/new">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary-hover">
+                    <Button>
                         <Plus className="size-4" />
                         新建商品
                     </Button>

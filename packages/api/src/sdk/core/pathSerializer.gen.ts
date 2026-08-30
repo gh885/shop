@@ -116,7 +116,7 @@ export const serializePrimitiveParam = ({
   }
 
   if (typeof value === 'object') {
-    throw new Error(
+    throw new TypeError(
       'Deeply-nested arrays/objects aren’t supported. Provide your own `querySerializer()` to handle these.',
     );
   }

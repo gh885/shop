@@ -85,6 +85,9 @@ shop:
         # 短信通道：dev = 验证码打日志 + 固定码 666666，仅限本地开发。
         # 未配置时 DevSmsChannel 不装配——生产接入真实通道实现（实现 SmsChannel 接口）后换掉此值
         sms-channel: dev
+        # refresh cookie 的 Domain。留空 = 不设 domain（本地 localhost，web/seller 同 host 已天然共享）；
+        # 生产设成共享父域（如 .example.com）后买家端与卖家端共用会话，登录一处另一处自动登录
+        refresh-cookie-domain: ""
     cms:
         enabled: true
     jwt:

@@ -34,6 +34,9 @@ shop:
         # 短信通道：生产禁止 dev（固定码 666666 后门）。接入真实 SmsChannel 实现后再上线；
         # 未实现真实通道时该占位符会导致 DevSmsChannel 不装配——发码接口启动即失败而非静默降级
         sms-channel: ${SHOP_AUTH_SMS_CHANNEL}
+        # refresh cookie 的共享父域（如 .example.com）：web/seller 同域共享会话实现轻量单点登录。
+        # 必须与前端域的父域一致；留空则各站独立会话（不自动登录）
+        refresh-cookie-domain: ${SHOP_AUTH_REFRESH_COOKIE_DOMAIN}
 
     jwt:
         # ES256 密钥对（PKCS#8 / X.509 base64）：生产必须固定——重启 token 不失效、多实例共享验签。

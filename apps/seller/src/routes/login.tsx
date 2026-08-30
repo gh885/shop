@@ -13,7 +13,7 @@ import {
 } from "@shop/api"
 import { Button, Input, cn, useAppForm, useCaptcha, useCountdown } from "@shop/ui-web"
 
-import { authApi, authState, bootstrapAuth, getDeviceId, tokenStore } from "#/lib/api"
+import { authApi, authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
 
 export const Route = createFileRoute("/login")({
     component: LoginPage,

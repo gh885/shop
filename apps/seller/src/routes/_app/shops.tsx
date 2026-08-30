@@ -9,8 +9,8 @@ import { CreateShopRequestSchema } from "@shop/api"
 
 import { toApiError } from "@shop/api"
 
-import { shopApi } from "#/lib/api"
-import { setCurrentShopId, useCurrentShop, useMyShops } from "#/lib/shop"
+import { shopApi } from "#/shared/lib/api"
+import { setCurrentShopId, useCurrentShop, useMyShops } from "#/shared/lib/shop"
 
 export const Route = createFileRoute("/_app/shops")({
     component: ShopsPage,

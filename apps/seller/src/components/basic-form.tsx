@@ -14,7 +14,7 @@ import { CircleAlert, Plus, Trash2 } from "lucide-react"
 
 import type { CategoryNode, ParamItem, Product } from "@shop/api"
 
-import { productApi } from "#/lib/api"
+import { productApi } from "#/shared/lib/api"
 
 export interface BasicFormValues {
     categoryId: string

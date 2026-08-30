@@ -11,8 +11,8 @@ import { SkusTable } from "#/components/skus-table"
 import { SpecsEditor } from "#/components/specs-editor"
 import { toApiError } from "@shop/api"
 
-import { productApi } from "#/lib/api"
-import { useCurrentShop } from "#/lib/shop"
+import { productApi } from "#/shared/lib/api"
+import { useCurrentShop } from "#/shared/lib/shop"
 
 export const Route = createFileRoute("/_app/products/$productId")({
     component: ProductEditPage,

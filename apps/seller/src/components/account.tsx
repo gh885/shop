@@ -3,8 +3,8 @@ import { useNavigate } from "@tanstack/react-router"
 import { Button, cn, useSidebar } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 
-import { logout } from "../lib/api"
-import { useClearMe, useMe } from "../lib/me"
+import { logout } from "../shared/lib/api"
+import { useClearMe, useMe } from "../shared/lib/me"
 
 /** 账号头像（手机号/昵称首字）：顶栏右侧展示 */
 export function AccountAvatar({ className }: { className?: string }) {
