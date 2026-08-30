@@ -1,21 +1,31 @@
 package com.shop.platform.payment.service;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.order.events.OrderAfterSaleRefundedEvent;
 import com.shop.platform.order.events.OrderCancelledEvent;
+import com.shop.platform.payment.gateway.PaymentGateway;
+import com.shop.platform.payment.gateway.PaymentGatewayException;
+import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.mapper.PaymentMapper;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 退款监听 —— order 侧两条「该退钱了」的通知落成退款单据（成功流水 → REFUNDED）。
+ * 退款监听 —— order 侧两条「该退钱了」的通知，先经 {@link PaymentGateway#refund} 提交给渠道，
+ * 渠道受理后再把成功流水置 REFUNDED（退款单成为真资产，不再只是改状态）。
  * 一律同步同事务（{@code @EventListener} 而非 AFTER_COMMIT）：退款写不成就让订单侧一起回滚。
  *
- * <p>两条通知对「无流水可退」的取舍刻意不同，见各方法注释。
+ * <p>两条通知对「无流水可退 / 渠道拒退」的取舍刻意不同：
+ * <ul>
+ *   <li><b>已付款单取消</b>：放行并告警——取消是买家的既得权利，不能因为对不上流水把订单卡在待发货，
+ *       退款差对走日志与人工对账。</li>
+ *   <li><b>售后同意</b>：抛异常回滚——售后是双方可协商的流程，停回「申请中」由人工处理，
+ *       比在订单上假报「已退款」诚实。</li>
+ * </ul>
  */
 @Component
 @Slf4j
@@ -24,39 +34,55 @@ public class PaymentRefundListener {
 
     private final PaymentMapper paymentMapper;
 
-    /**
-     * 已付款订单取消：把成功流水转 REFUNDED。
-     *
-     * <p>无流水可退时<b>放行并告警</b>：取消是买家的既得权利，不能因为对不上流水把订单卡在待发货
-     * （对账靠日志与 payment 侧巡检）。V1 MOCK 渠道只置状态，接真实网关后此处改为调退款 API + 落退款单。
-     */
+    private final PaymentGateway paymentGateway;
+
     @EventListener
     public void onOrderCancelled(OrderCancelledEvent event) {
-        if (refund(event.orderId()) == 0) {
+        Payment success = paymentMapper.selectSuccessByOrder(event.orderId());
+        if (success == null) {
             log.error("[PAYMENT] 已付款订单取消但无成功流水可退, orderId={}, userId={}", event.orderId(), event.userId());
             return;
         }
-        log.info("[PAYMENT] 订单取消退款, orderId={}, userId={}", event.orderId(), event.userId());
+        backendRefund(success, "订单取消退款", false);
+        log.info(
+                "[PAYMENT] 订单取消退款, orderId={}, userId={}, refundNo={}",
+                event.orderId(),
+                event.userId(),
+                success.getRefundGatewayNo());
+    }
+
+    @EventListener
+    public void onOrderAfterSaleRefunded(OrderAfterSaleRefundedEvent event) {
+        Payment success = Validate.notNull(paymentMapper.selectSuccessByOrder(event.orderId()), "该订单没有可退款的支付流水");
+        backendRefund(success, "售后退款", true);
+        log.info(
+                "[PAYMENT] 售后退款到账, orderId={}, userId={}, amount={}, refundNo={}",
+                event.orderId(),
+                event.userId(),
+                event.refundAmount(),
+                success.getRefundGatewayNo());
     }
 
     /**
-     * 售后同意退款：把成功流水转 REFUNDED。
-     *
-     * <p>无流水可退时<b>抛异常回滚</b>：售后是可反复协商的流程，让它停回「申请中」由人工处理，
-     * 比在订单上假报「已退款」诚实。与取消相反的取舍——那边不能卡死买家，这边不能凭空宣告退款。
+     * 提交渠道退款并落本地退款单。渠道拒退时按 {@code strict} 取舍：{@code false}=放行人工对账（取消），
+     * {@code true}=抛异常回滚（售后）。返回流水已带渠道退款单号，供调用方日志。
      */
-    @EventListener
-    public void onOrderAfterSaleRefunded(OrderAfterSaleRefundedEvent event) {
-        Validate.isTrue(refund(event.orderId()) > 0, 409, "该订单没有可退款的支付流水");
-        log.info(
-                "[PAYMENT] 售后退款到账, orderId={}, userId={}, amount={}",
-                event.orderId(),
-                event.userId(),
-                event.refundAmount());
-    }
-
-    /** 成功流水 → REFUNDED，返回影响行数（0 = 无流水可退） */
-    private int refund(UUID orderId) {
-        return paymentMapper.refundByOrder(orderId, OffsetDateTime.now());
+    private void backendRefund(Payment success, String reason, boolean strict) {
+        PaymentGateway.RefundOutcome outcome;
+        try {
+            outcome = paymentGateway.refund(new PaymentGateway.RefundParams(
+                    success.getId(),
+                    success.getOrderId(),
+                    success.getOrderNo(),
+                    Money.ofFen(success.getAmount(), success.getCurrency()),
+                    reason));
+        } catch (PaymentGatewayException e) {
+            if (strict) {
+                throw e;
+            }
+            log.error("[PAYMENT] 渠道退款失败但不阻塞取消, orderId={}, reason={}", success.getOrderId(), reason, e);
+            return;
+        }
+        paymentMapper.refundByOrder(success.getOrderId(), OffsetDateTime.now(), outcome.refundNo());
     }
 }

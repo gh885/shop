@@ -5,7 +5,8 @@
  * <p>schema: payment。订单前置校验走 order :: api 的 OrderReadQuery 只读点查，不 import order 内部类型；
  * 支付确认经 order :: api 的 OrderCommand.markPaid 同步同事务调用推进订单状态机，两侧原子生效；
  * 退款方向相反，由 order :: events 驱动：OrderCancelledEvent（已付款单取消）与 OrderAfterSaleRefundedEvent
- * （售后同意退款）各自同步监听，把成功流水转 REFUNDED。
+ * （售后同意退款）各自同步监听，先经 {@code payment.gateway.PaymentGateway} 提交真实渠道、受理后再置 REFUNDED。
+ * V1 由 MOCK 实现支撑（受理即完成），接真实网关只换实现，模块内部逻辑不变。
  */
 @ApplicationModule(
         displayName = "Payment",

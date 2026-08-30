@@ -70,6 +70,9 @@ public class Payment {
     /** 退款时刻；与 status = REFUNDED 同时写入（见 V25 迁移） */
     private OffsetDateTime refundedAt;
 
+    /** 渠道侧退款单号：调网关退款受理后回填，对账/客服凭它对得上渠道侧那笔退款 */
+    private String refundGatewayNo;
+
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)
     private OffsetDateTime createdAt;

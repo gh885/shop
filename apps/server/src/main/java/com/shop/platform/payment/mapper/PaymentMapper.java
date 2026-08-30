@@ -37,16 +37,17 @@ public interface PaymentMapper extends BaseMapper<Payment> {
     }
 
     /**
-     * 成功流水转退款终态：SUCCESS → REFUNDED 并回填退款时刻。按 orderId 而非主键定位：
-     * 调用方（取消事件）只知道订单，不知道流水 ID。条件转移即幂等闸门：重复退款影响 0 行。
+     * 成功流水转退款终态：SUCCESS → REFUNDED 并回填退款时刻与渠道侧退款单号。按 orderId 而非主键定位：
+     * 调用方（退款监听）只知道订单，不知道流水 ID。条件转移即幂等闸门：重复退款影响 0 行。
      */
-    default int refundByOrder(UUID orderId, OffsetDateTime refundedAt) {
+    default int refundByOrder(UUID orderId, OffsetDateTime refundedAt, String refundGatewayNo) {
         return update(
                 null,
                 new LambdaUpdateWrapper<Payment>()
                         .eq(Payment::getOrderId, orderId)
                         .eq(Payment::getStatus, Payment.STATUS_SUCCESS)
                         .set(Payment::getStatus, Payment.STATUS_REFUNDED)
-                        .set(Payment::getRefundedAt, refundedAt));
+                        .set(Payment::getRefundedAt, refundedAt)
+                        .set(Payment::getRefundGatewayNo, refundGatewayNo));
     }
 }
