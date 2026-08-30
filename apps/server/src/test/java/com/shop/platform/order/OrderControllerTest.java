@@ -13,6 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.order.service.ValidLine;
@@ -41,7 +43,8 @@ class OrderControllerTest extends WebControllerTestSupport {
         o.setId(orderId);
         o.setShopId(shopId);
         o.setOrderNo("20260101120000001");
-        o.setStatus(Order.STATUS_PENDING_PAYMENT);
+        o.setStatus(OrderStatus.PENDING_PAYMENT);
+        o.setAfterSaleStatus(AfterSaleStatus.NONE);
         o.setCurrency("CNY");
         o.setItemAmount(2000L);
         o.setShippingFee(0L);
@@ -124,7 +127,7 @@ class OrderControllerTest extends WebControllerTestSupport {
                         .queryParam("size", "10")
                         .with(userAuth(userId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.records[0].status").value(Order.STATUS_PENDING_PAYMENT))
+                .andExpect(jsonPath("$.records[0].status").value(OrderStatus.PENDING_PAYMENT.name()))
                 .andExpect(jsonPath("$.records[0].items.length()").value(0));
     }
 
@@ -148,7 +151,7 @@ class OrderControllerTest extends WebControllerTestSupport {
                             """))
                 .andExpect(status().isOk());
 
-        verify(orderService).cancel(userId, orderId, "不想要了");
+        verify(orderTransitionService).cancel(userId, orderId, "不想要了");
     }
 
     @Test
@@ -156,7 +159,7 @@ class OrderControllerTest extends WebControllerTestSupport {
         mockMvc.perform(put("/orders/{id}/receive", orderId).with(userAuth(userId)))
                 .andExpect(status().isOk());
 
-        verify(orderService).receive(userId, orderId);
+        verify(orderTransitionService).receive(userId, orderId);
     }
 
     @Test

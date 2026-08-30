@@ -38,6 +38,12 @@ public record OrderDetailResponse(
         OffsetDateTime cancelledAt,
         String cancelReason,
         OffsetDateTime createdAt,
+        // 售后线（与履约主状态机正交）：状态 / 类型 / 退款额 / 退款完成时刻 / 申请截止
+        String afterSaleStatus,
+        String afterSaleType,
+        Money refundAmount,
+        OffsetDateTime afterSaleRefundedAt,
+        OffsetDateTime applyExpireAt,
         List<OrderItemResponse> items) {
 
     /** 买家视角：可执行动作按买家状态机推导；shopName 由调用方（order controller）经 shop :: api 拼入 */
@@ -56,7 +62,7 @@ public record OrderDetailResponse(
                 // 单据身份与状态
                 order.getId(),
                 order.getOrderNo(),
-                order.getStatus(),
+                order.getStatus().name(),
                 order.getShopId(),
                 shopName,
                 actions.apply(order),
@@ -83,6 +89,14 @@ public record OrderDetailResponse(
                 order.getCancelledAt(),
                 order.getCancelReason(),
                 order.getCreatedAt(),
+                // 售后线：订单只记「退多少、退没退」，资金态在 payment 模块；无售后时类型/退款额为 NULL
+                order.getAfterSaleStatus().name(),
+                order.getAfterSaleType() == null
+                        ? null
+                        : order.getAfterSaleType().name(),
+                order.refundAmountAsMoney(),
+                order.getAfterSaleRefundedAt(),
+                order.getApplyExpireAt(),
                 // 行项目
                 o.items().stream().map(OrderItemResponse::from).toList());
     }

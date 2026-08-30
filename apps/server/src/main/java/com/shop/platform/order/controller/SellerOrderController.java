@@ -10,6 +10,7 @@ import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.service.OrderService;
+import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.order.service.OrderWithItems;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -36,6 +37,8 @@ public class SellerOrderController {
 
     private final OrderService orderService;
 
+    private final OrderTransitionService orderTransitionService;
+
     /** 本店订单分页：status 筛选待发货等作业 tab */
     @GetMapping
     public PageResult<SellerOrderListItemResponse> listShopOrders(
@@ -54,7 +57,19 @@ public class SellerOrderController {
     /** 发货：待发货 → 已发货，回填物流公司 + 运单号 */
     @PutMapping("/{id}/ship")
     public void shipOrder(@PathVariable UUID id, @Valid @RequestBody ShipOrderRequest req) {
-        orderService.ship(ShopIdHolder.get(), id, req);
+        orderTransitionService.ship(ShopIdHolder.get(), id, req);
+    }
+
+    /** 同意售后：APPLYING → REFUNDED，同事务落退款单据（退款写不成则整单回滚） */
+    @PutMapping("/{id}/after-sales/agree")
+    public void agreeAfterSale(@PathVariable UUID id) {
+        orderTransitionService.agreeAfterSale(ShopIdHolder.get(), id);
+    }
+
+    /** 拒绝售后：APPLYING → REJECTED */
+    @PutMapping("/{id}/after-sales/reject")
+    public void rejectAfterSale(@PathVariable UUID id) {
+        orderTransitionService.rejectAfterSale(ShopIdHolder.get(), id);
     }
 
     // ---- 出参形状 ----
@@ -74,7 +89,7 @@ public class SellerOrderController {
             return new SellerOrderListItemResponse(
                     order.getId(),
                     order.getOrderNo(),
-                    order.getStatus(),
+                    order.getStatus().name(),
                     order.payAmountAsMoney(),
                     order.getReceiverName(),
                     o.items().size(),

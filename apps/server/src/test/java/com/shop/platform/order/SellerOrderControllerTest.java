@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.common.PageResult;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
@@ -38,7 +40,8 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         Order o = new Order();
         o.setId(UUID.randomUUID());
         o.setOrderNo("20260101120000002");
-        o.setStatus(Order.STATUS_PAID);
+        o.setStatus(OrderStatus.PAID);
+        o.setAfterSaleStatus(AfterSaleStatus.NONE);
         o.setCurrency("CNY");
         o.setItemAmount(2000L);
         o.setShippingFee(0L);
@@ -92,7 +95,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
                             """))
                 .andExpect(status().isOk());
 
-        verify(orderService).ship(eq(shopId), eq(order.getId()), any());
+        verify(orderTransitionService).ship(eq(shopId), eq(order.getId()), any());
     }
 
     @Test

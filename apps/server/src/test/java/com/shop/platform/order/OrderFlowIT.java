@@ -14,8 +14,12 @@ import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
+import com.shop.platform.order.service.OrderTimeout;
+import com.shop.platform.order.service.OrderTimeoutService;
+import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.service.PaymentService;
@@ -40,6 +44,12 @@ class OrderFlowIT extends IntegrationTestSupport {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private OrderTransitionService orderTransitionService;
+
+    @Autowired
+    private OrderTimeoutService orderTimeoutService;
 
     @Autowired
     private PaymentService paymentService;
@@ -82,9 +92,9 @@ class OrderFlowIT extends IntegrationTestSupport {
         return totalStockOf() - frozenStockOf();
     }
 
-    private String statusOf(UUID orderId) {
+    private OrderStatus statusOf(UUID orderId) {
         return jdbc.queryForObject(
-                "SELECT status FROM orders.orders WHERE id = ?::uuid", String.class, orderId.toString());
+                "SELECT status FROM orders.orders WHERE id = ?::uuid", OrderStatus.class, orderId.toString());
     }
 
     private CreateOrderRequest buyNow(int quantity) {
@@ -105,7 +115,7 @@ class OrderFlowIT extends IntegrationTestSupport {
         List<Order> created = orderService.create(userId, buyNow(2));
         assertEquals(1, created.size());
         Order order = created.getFirst();
-        assertEquals(Order.STATUS_PENDING_PAYMENT, order.getStatus());
+        assertEquals(OrderStatus.PENDING_PAYMENT, order.getStatus());
         assertEquals(2000L, order.getPayAmount());
         assertNotNull(order.getPayExpireAt());
         assertEquals(5, totalStockOf());
@@ -115,14 +125,14 @@ class OrderFlowIT extends IntegrationTestSupport {
         // 3. 发起支付：只落 PENDING 流水，订单仍待付款、库存仍冻结（两段式第一段不动订单、不扣实）
         Payment pending = paymentService.pay(userId, order.getId());
         assertEquals(Payment.STATUS_PENDING, pending.getStatus());
-        assertEquals(Order.STATUS_PENDING_PAYMENT, statusOf(order.getId()));
+        assertEquals(OrderStatus.PENDING_PAYMENT, statusOf(order.getId()));
         assertEquals(5, totalStockOf());
         assertEquals(2, frozenStockOf());
 
         // 3b. 确认支付：PENDING → SUCCESS + 订单推进到 PAID（同事务同步调用链扣实冻结库存）
         Payment paid = paymentService.confirm(userId, pending.getId());
         assertEquals(Payment.STATUS_SUCCESS, paid.getStatus());
-        assertEquals(Order.STATUS_PAID, statusOf(order.getId()));
+        assertEquals(OrderStatus.PAID, statusOf(order.getId()));
         assertEquals(3, totalStockOf());
         assertEquals(0, frozenStockOf());
 
@@ -137,8 +147,8 @@ class OrderFlowIT extends IntegrationTestSupport {
                         order.getId().toString()));
 
         // 5. 已付款（待发货）仍可取消：已扣实 → 回补总库存（3→5）；重复取消被状态闸门拒绝
-        orderService.cancel(userId, order.getId(), "不想买了");
-        assertEquals(Order.STATUS_CANCELLED, statusOf(order.getId()));
+        orderTransitionService.cancel(userId, order.getId(), "不想买了");
+        assertEquals(OrderStatus.CANCELLED, statusOf(order.getId()));
         assertEquals(5, totalStockOf());
         assertEquals(0, frozenStockOf());
 
@@ -162,8 +172,8 @@ class OrderFlowIT extends IntegrationTestSupport {
                         Integer.class,
                         order.getId().toString()));
 
-        BusinessException ex =
-                assertThrows(BusinessException.class, () -> orderService.cancel(userId, order.getId(), "再试一次"));
+        BusinessException ex = assertThrows(
+                BusinessException.class, () -> orderTransitionService.cancel(userId, order.getId(), "再试一次"));
         assertEquals(409, ex.getHttpStatus());
     }
 
@@ -212,9 +222,9 @@ class OrderFlowIT extends IntegrationTestSupport {
                 Timestamp.from(OffsetDateTime.now().minusSeconds(1).toInstant()),
                 orderId.toString());
 
-        int closed = orderService.closeExpired();
+        int closed = orderTimeoutService.sweep(OrderTimeout.PAY);
         assertTrue(closed >= 1);
-        assertEquals(Order.STATUS_CANCELLED, statusOf(orderId));
+        assertEquals(OrderStatus.CANCELLED, statusOf(orderId));
         assertEquals(5, availableOf()); // 库存已回补（释放冻结）
         assertEquals(0, frozenStockOf());
 
@@ -235,7 +245,7 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertEquals(5, totalStockOf()); // 拒绝即整体不生效，不产生半套状态
 
         // 取消释放冻结后允许调低
-        orderService.cancel(userId, orderId, null);
+        orderTransitionService.cancel(userId, orderId, null);
         stockCommand.setTotal(skuId, 1);
         assertEquals(1, totalStockOf());
     }
@@ -250,7 +260,7 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertEquals(409, ex.getHttpStatus());
         assertEquals(1, frozenStockOf());
 
-        orderService.cancel(userId, orderId, null);
+        orderTransitionService.cancel(userId, orderId, null);
         stockCommand.removeRow(skuId);
         assertEquals(
                 0,
@@ -292,13 +302,15 @@ class OrderFlowIT extends IntegrationTestSupport {
         ShipOrderRequest req = new ShipOrderRequest("顺丰", "SF123456789");
         assertEquals(
                 404,
-                assertThrows(BusinessException.class, () -> orderService.ship(UUID.randomUUID(), orderId, req))
+                assertThrows(
+                                BusinessException.class,
+                                () -> orderTransitionService.ship(UUID.randomUUID(), orderId, req))
                         .getHttpStatus());
-        assertEquals(Order.STATUS_PAID, statusOf(orderId));
+        assertEquals(OrderStatus.PAID, statusOf(orderId));
 
         // 本店发货：PAID → SHIPPED，物流信息落库（一单一包裹）
-        orderService.ship(shopId, orderId, req);
-        assertEquals(Order.STATUS_SHIPPED, statusOf(orderId));
+        orderTransitionService.ship(shopId, orderId, req);
+        assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
         String logistics = jdbc.queryForObject(
                 "SELECT logistics_company || '|' || tracking_no FROM orders.orders WHERE id = ?::uuid",
                 String.class,
@@ -308,17 +320,17 @@ class OrderFlowIT extends IntegrationTestSupport {
         // 已发货不可再发（源状态集不含 SHIPPED）→ 409
         assertEquals(
                 409,
-                assertThrows(BusinessException.class, () -> orderService.ship(shopId, orderId, req))
+                assertThrows(BusinessException.class, () -> orderTransitionService.ship(shopId, orderId, req))
                         .getHttpStatus());
 
         // 收货：SHIPPED → COMPLETED，完成时刻落库；重复收货被状态闸门拒绝
-        orderService.receive(userId, orderId);
-        assertEquals(Order.STATUS_COMPLETED, statusOf(orderId));
+        orderTransitionService.receive(userId, orderId);
+        assertEquals(OrderStatus.COMPLETED, statusOf(orderId));
         assertNotNull(jdbc.queryForObject(
                 "SELECT completed_at FROM orders.orders WHERE id = ?::uuid", Object.class, orderId.toString()));
         assertEquals(
                 409,
-                assertThrows(BusinessException.class, () -> orderService.receive(userId, orderId))
+                assertThrows(BusinessException.class, () -> orderTransitionService.receive(userId, orderId))
                         .getHttpStatus());
     }
 }

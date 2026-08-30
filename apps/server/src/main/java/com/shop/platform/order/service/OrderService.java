@@ -1,12 +1,8 @@
 package com.shop.platform.order.service;
 
-import static com.shop.platform.order.mapper.Order.STATUS_CANCELLED;
-import static com.shop.platform.order.mapper.Order.STATUS_COMPLETED;
-import static com.shop.platform.order.mapper.Order.STATUS_PENDING_PAYMENT;
-import static com.shop.platform.order.mapper.Order.STATUS_SHIPPED;
+import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.cart.events.CartCheckedOutEvent;
 import com.shop.platform.common.BusinessException;
@@ -18,12 +14,15 @@ import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
-import com.shop.platform.order.dto.ShipOrderRequest;
-import com.shop.platform.order.events.OrderCancelledEvent;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
+import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.OrderAction;
+import com.shop.platform.order.model.OrderActor;
+import com.shop.platform.order.model.OrderStatus;
+import com.shop.platform.order.model.OrderTimeouts;
 import com.shop.platform.order.service.CheckoutResolver.ResolvedCheckout;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -43,19 +42,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 订单业务：结算预览、按店拆单、状态机流转。
+ * 订单只读与下单：结算预览、按店拆单下单、买家/卖家两侧查询。
  *
- * <p>事务与协作约定：下单/取消在事务内同步调用 product :: api 的 StockCommand（同事务）——
- * 库存不足则整单回滚，订单取消与库存回补原子生效；购物车清理是真通知，仍走事件总线
- * （CartCheckedOutEvent）。金额一律以 DB 投影计算，前端传入的只作展示。
+ * <p>状态变更（取消/收货/发货/售后/超时）一律不在本类——归 {@link OrderTransitionService}，
+ * 本类只做「下单 + 查询 + 装配」。事务与协作约定：下单在事务内同步调用 inventory :: api 的
+ * StockCommand（同事务），库存不足则整单回滚；购物车清理是真通知，仍走事件总线（CartCheckedOutEvent）。
+ *
+ * <p>创建订单是「状态进入 PENDING_PAYMENT」的首动作，本类落单后记一条审计流水；此后一切状态变更
+ * 的审计由 {@link OrderTransitionService} 负责，改变状态的口子全部留痕。
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class OrderService {
-
-    /** 待付款超时分钟数，超时由定时任务关单回补库存 */
-    private static final int PAY_EXPIRE_MINUTES = 15;
 
     private final OrderMapper orderMapper;
 
@@ -65,7 +64,7 @@ public class OrderService {
 
     private final StockCommand stockCommand;
 
-    private final OrderCloseService orderCloseService;
+    private final OrderStatusLogWriter statusLogWriter;
 
     private final ApplicationEventPublisher events;
 
@@ -136,12 +135,12 @@ public class OrderService {
 
     /** 我的订单分页：每单内嵌行项，列表页免 N+1 */
     public PageResult<OrderWithItems> pageMine(UUID userId, String status, PageParams page) {
-        validateStatus(status);
+        OrderStatus filter = parseStatusFilter(status);
         Page<Order> rows = orderMapper.selectPage(
                 new Page<>(page.page(), page.size()),
                 new LambdaQueryWrapper<Order>()
                         .eq(Order::getUserId, userId)
-                        .eq(status != null && !status.isBlank(), Order::getStatus, status)
+                        .eq(filter != null, Order::getStatus, filter)
                         .orderByDesc(Order::getCreatedAt));
         return new PageResult<>(attachItems(rows.getRecords()), rows.getTotal());
     }
@@ -152,89 +151,16 @@ public class OrderService {
         return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
     }
 
-    // ========== 状态机：买家操作 ==========
-
-    /**
-     * 买家取消：仅待付款/待发货可取消（源状态由状态机反推），库存回补按 RETURNING OLD 带回的真实前态分流。
-     * 已付款单取消同事务发 OrderCancelledEvent，payment 落退款单据 —— 取消与退款原子生效。
-     */
-    @Transactional
-    public void cancel(UUID userId, UUID orderId, String reason) {
-        // 1. 归属校验
-        requireOwned(userId, orderId);
-
-        // 2. 取出行项供库存回退
-        List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
-
-        // 3. 条件转移并取回转移前状态：抢不到说明已被支付/发货/关闭，让前端刷新重试
-        String previousStatus = orderMapper.cancelReturningPrevious(
-                orderId,
-                Order.sourcesOf(STATUS_CANCELLED),
-                OffsetDateTime.now(),
-                reason == null || reason.isBlank() ? null : reason.trim());
-        Validate.isTrue(previousStatus != null, 409, "订单状态已变更，当前不可取消");
-
-        // 4. 库存回退按真实前态分流：付款后取消回补总库存（已扣实 → stock 增），付款前取消释放冻结（frozen→可用）
-        boolean wasPaid = Order.STATUS_PAID.equals(previousStatus);
-        if (wasPaid) {
-            stockCommand.restock(orderId, toStockLines(items));
-        } else {
-            stockCommand.release(orderId, toStockLines(items));
-        }
-
-        // 5. 退款：已付款单必须留下退款单据（payment 同步监听置 REFUNDED，同事务 → 取消不成功则退款不落）
-        events.publishEvent(new OrderCancelledEvent(orderId, userId, wasPaid));
-        log.info("[ORDER] 买家取消订单, orderId={}, userId={}, 取消前态={}", orderId, userId, previousStatus);
-    }
-
-    /** 确认收货：已发货 → 已完成 */
-    @Transactional
-    public void receive(UUID userId, UUID orderId) {
-        requireOwned(userId, orderId);
-        int affected = orderMapper.update(
-                null,
-                condition(orderId)
-                        .in(Order::getStatus, Order.sourcesOf(STATUS_COMPLETED))
-                        .set(Order::getStatus, STATUS_COMPLETED)
-                        .set(Order::getCompletedAt, OffsetDateTime.now()));
-        Validate.isTrue(affected == 1, 409, "订单状态已变更，当前不可确认收货");
-    }
-
-    // ========== 状态机：卖家操作 ==========
-
-    /** 发货：待发货 → 已发货，回填物流信息（一单一包裹） */
-    @Transactional
-    public void ship(UUID shopId, UUID orderId, ShipOrderRequest req) {
-        // 1. 条件转移：限定本店 + 状态机反推的源状态，越店与错态都在影响行数上暴露
-        int affected = orderMapper.update(
-                null,
-                condition(orderId)
-                        .eq(Order::getShopId, shopId)
-                        .in(Order::getStatus, Order.sourcesOf(STATUS_SHIPPED))
-                        .set(Order::getStatus, STATUS_SHIPPED)
-                        .set(Order::getShippedAt, OffsetDateTime.now())
-                        .set(Order::getLogisticsCompany, req.logisticsCompany())
-                        .set(Order::getTrackingNo, req.trackingNo()));
-        if (affected > 0) {
-            return;
-        }
-
-        // 2. 失败细分原因：不存在/非本店给 404，状态不对给 409
-        Order existing = orderMapper.selectById(orderId);
-        if (existing == null || !existing.getShopId().equals(shopId)) {
-            throw BusinessException.notFound("订单不存在");
-        }
-        throw new BusinessException(409, "订单不是待发货状态");
-    }
+    // ========== 卖家侧查询 ==========
 
     /** 卖家订单分页：ShopIdHolder 圈定本店 */
     public PageResult<OrderWithItems> pageSeller(UUID shopId, String status, PageParams page) {
-        validateStatus(status);
+        OrderStatus filter = parseStatusFilter(status);
         Page<Order> rows = orderMapper.selectPage(
                 new Page<>(page.page(), page.size()),
                 new LambdaQueryWrapper<Order>()
                         .eq(Order::getShopId, shopId)
-                        .eq(status != null && !status.isBlank(), Order::getStatus, status)
+                        .eq(filter != null, Order::getStatus, filter)
                         .orderByDesc(Order::getCreatedAt));
         return new PageResult<>(attachItems(rows.getRecords()), rows.getTotal());
     }
@@ -246,27 +172,6 @@ public class OrderService {
         return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
     }
 
-    // ========== 状态机：系统 ==========
-
-    /**
-     * 超时关单批量入口：扫描过期待付款单（非事务），逐笔委托 OrderCloseService 关单回补——
-     * 每笔独立事务，批量入口与单笔方法分属两个 bean，规避自调用导致 @Transactional 失效。
-     */
-    public int closeExpired() {
-        List<Order> expired = orderMapper.selectList(new LambdaQueryWrapper<Order>()
-                .eq(Order::getStatus, STATUS_PENDING_PAYMENT)
-                .lt(Order::getPayExpireAt, OffsetDateTime.now())
-                .orderByAsc(Order::getPayExpireAt)
-                .last("LIMIT " + OrderCloseService.CLOSE_BATCH_LIMIT));
-        int closed = 0;
-        for (Order order : expired) {
-            if (orderCloseService.closeOne(order)) {
-                closed++;
-            }
-        }
-        return closed;
-    }
-
     // ========== 内部：落单 ==========
 
     /** 落一笔订单：主表快照 + 行项目快照；orderNo 极小概率撞号时换号重插 */
@@ -275,7 +180,7 @@ public class OrderService {
         Order template = Order.builder()
                 .userId(userId)
                 .shopId(lines.getFirst().shopId())
-                .status(STATUS_PENDING_PAYMENT)
+                .status(PENDING_PAYMENT)
                 .itemAmount(itemAmount.amount())
                 .shippingFee(0L) // V1 未接计费恒 0；上运费后 payAmount = itemAmount + shippingFee
                 .payAmount(itemAmount.amount())
@@ -288,10 +193,13 @@ public class OrderService {
                 .receiverDistrict(addr.district())
                 .receiverDetail(addr.detail())
                 .buyerMessage(buyerMessage == null || buyerMessage.isBlank() ? null : buyerMessage.trim())
-                .payExpireAt(OffsetDateTime.now().plusMinutes(PAY_EXPIRE_MINUTES))
+                .payExpireAt(OffsetDateTime.now().plus(OrderTimeouts.PAY))
+                .afterSaleStatus(AfterSaleStatus.NONE)
                 .build();
 
         Order order = insertOrder(template);
+        // 首动作审计：订单落库即进入 PENDING_PAYMENT（无前态），此后状态变更由 OrderTransitionService 留痕
+        statusLogWriter.record(order.getId(), null, PENDING_PAYMENT, OrderAction.CREATE, OrderActor.BUYER, null);
         for (ValidLine line : lines) {
             Money lineAmount = line.price().times(line.quantity());
             orderItemMapper.insert(OrderItem.builder()
@@ -338,8 +246,16 @@ public class OrderService {
         return order;
     }
 
-    private void validateStatus(String status) {
-        Validate.isTrue(status == null || status.isBlank() || Order.ALL_STATUSES.contains(status), "非法的订单状态筛选值");
+    /** 列表筛选状态：空 = 全部；非法值给 400（枚举自己就是合法值表，不另维护一份） */
+    private static OrderStatus parseStatusFilter(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        try {
+            return OrderStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw BusinessException.badRequest("非法的订单状态筛选值");
+        }
     }
 
     private List<OrderWithItems> attachItems(List<Order> orders) {
@@ -353,17 +269,6 @@ public class OrderService {
                         .collect(Collectors.groupingBy(OrderItem::getOrderId));
         return orders.stream()
                 .map(o -> new OrderWithItems(o, grouped.getOrDefault(o.getId(), List.of())))
-                .toList();
-    }
-
-    /** 更新起点：主键定位 + 影响行数即乐观闸门 */
-    private static LambdaUpdateWrapper<Order> condition(UUID orderId) {
-        return new LambdaUpdateWrapper<Order>().eq(Order::getId, orderId);
-    }
-
-    static List<StockLine> toStockLines(List<OrderItem> items) {
-        return items.stream()
-                .map(i -> new StockLine(i.getSkuId(), i.getQuantity()))
                 .toList();
     }
 

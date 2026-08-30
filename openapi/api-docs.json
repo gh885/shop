@@ -1,7 +1,7 @@
 {
     "openapi": "3.1.0",
     "info": { "title": "OpenAPI definition", "version": "v0" },
-    "servers": [{ "url": "http://localhost:8080", "description": "Generated server url" }],
+    "servers": [{ "url": "http://localhost:8099", "description": "Generated server url" }],
     "tags": [
         { "name": "admin-auth", "description": "平台员工认证" },
         { "name": "cms-admin", "description": "管理端 CMS 内容维护" },
@@ -303,6 +303,36 @@
                 "responses": { "200": { "description": "OK" } }
             }
         },
+        "/seller/orders/{id}/after-sales/reject": {
+            "put": {
+                "tags": ["seller-orders"],
+                "operationId": "rejectAfterSale",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "responses": { "200": { "description": "OK" } }
+            }
+        },
+        "/seller/orders/{id}/after-sales/agree": {
+            "put": {
+                "tags": ["seller-orders"],
+                "operationId": "agreeAfterSale",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "responses": { "200": { "description": "OK" } }
+            }
+        },
         "/orders/{id}/receive": {
             "put": {
                 "tags": ["orders"],
@@ -338,6 +368,21 @@
                     },
                     "required": true
                 },
+                "responses": { "200": { "description": "OK" } }
+            }
+        },
+        "/orders/{id}/after-sales/cancel": {
+            "put": {
+                "tags": ["orders"],
+                "operationId": "cancelAfterSale",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
                 "responses": { "200": { "description": "OK" } }
             }
         },
@@ -941,6 +986,29 @@
                         }
                     }
                 }
+            }
+        },
+        "/orders/{id}/after-sales": {
+            "post": {
+                "tags": ["orders"],
+                "operationId": "applyAfterSale",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/ApplyAfterSaleRequest" }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": { "201": { "description": "Created" } }
             }
         },
         "/orders/preview": {
@@ -2552,6 +2620,14 @@
                     "paidAt": { "type": "string", "format": "date-time" }
                 }
             },
+            "ApplyAfterSaleRequest": {
+                "type": "object",
+                "properties": {
+                    "type": { "type": "string", "enum": ["REFUND_ONLY"] },
+                    "reason": { "type": "string", "maxLength": 200, "minLength": 0 }
+                },
+                "required": ["type"]
+            },
             "PreviewOrderRequest": {
                 "type": "object",
                 "properties": {
@@ -2917,6 +2993,11 @@
                     "cancelledAt": { "type": "string", "format": "date-time" },
                     "cancelReason": { "type": "string" },
                     "createdAt": { "type": "string", "format": "date-time" },
+                    "afterSaleStatus": { "type": "string" },
+                    "afterSaleType": { "type": "string" },
+                    "refundAmount": { "$ref": "#/components/schemas/Money" },
+                    "afterSaleRefundedAt": { "type": "string", "format": "date-time" },
+                    "applyExpireAt": { "type": "string", "format": "date-time" },
                     "items": {
                         "type": "array",
                         "items": { "$ref": "#/components/schemas/OrderItemResponse" }

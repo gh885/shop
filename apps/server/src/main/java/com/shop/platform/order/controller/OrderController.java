@@ -4,6 +4,7 @@ import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.order.dto.ApplyAfterSaleRequest;
 import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderQuery;
@@ -11,6 +12,7 @@ import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
+import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.order.service.ValidLine;
 import com.shop.platform.shop.api.ShopReadQuery;
@@ -44,6 +46,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     private final OrderService orderService;
+
+    private final OrderTransitionService orderTransitionService;
 
     private final ShopReadQuery shopReadQuery;
 
@@ -90,13 +94,26 @@ public class OrderController {
     /** 取消订单：仅待付款/待发货可取消，取消即回补库存 */
     @PutMapping("/{id}/cancel")
     public void cancelOrder(@PathVariable UUID id, @Valid @RequestBody CancelOrderRequest req) {
-        orderService.cancel(UserIdHolder.get(), id, req.reason());
+        orderTransitionService.cancel(UserIdHolder.get(), id, req.reason());
     }
 
     /** 确认收货：已发货 → 已完成 */
     @PutMapping("/{id}/receive")
     public void receiveOrder(@PathVariable UUID id) {
-        orderService.receive(UserIdHolder.get(), id);
+        orderTransitionService.receive(UserIdHolder.get(), id);
+    }
+
+    /** 申请售后：仅「已完成」且申请窗口未过可发起（售后线独立于履约主状态机） */
+    @PostMapping("/{id}/after-sales")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void applyAfterSale(@PathVariable UUID id, @Valid @RequestBody ApplyAfterSaleRequest req) {
+        orderTransitionService.applyAfterSale(UserIdHolder.get(), id, req.type(), req.reason());
+    }
+
+    /** 撤销售后申请：APPLYING → CLOSED */
+    @PutMapping("/{id}/after-sales/cancel")
+    public void cancelAfterSale(@PathVariable UUID id) {
+        orderTransitionService.cancelAfterSale(UserIdHolder.get(), id);
     }
 
     // ---- 出参形状 ----
@@ -202,7 +219,7 @@ public class OrderController {
             return new OrderListItemResponse(
                     o.order().getId(),
                     o.order().getOrderNo(),
-                    o.order().getStatus(),
+                    o.order().getStatus().name(),
                     o.order().getShopId(),
                     shopNames.getOrDefault(o.order().getShopId(), ""),
                     o.order().payAmountAsMoney(),

@@ -6,12 +6,12 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
+import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.AfterSaleType;
+import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,8 +21,10 @@ import lombok.NoArgsConstructor;
 /**
  * 订单主表 —— 一次结算按店铺拆出的单笔订单，存"谁买了哪家的货、什么状态、该付多少"。
  *
- * <p>收货地址与金额都是下单瞬间的快照；状态机单路径流转（待付款 → 待发货 → 已发货 → 已完成，
- * 待付款/待发货可取消），各状态时刻用独立时间戳列留痕，不做流水表。
+ * <p>收货地址与金额都是下单瞬间的快照。状态规则（转移表、可执行动作）属领域知识，收在 {@link OrderStatus}
+ * / {@link AfterSaleStatus}（本模块 model 包），实体只持枚举字段并薄委托，不重复定义转移表。
+ * DB 列存枚举 {@code name()}（varchar 列 + MyBatis 默认 EnumTypeHandler），各状态时刻用独立时间戳列留痕；
+ * 多动作的历史回放靠 {@link OrderStatusLog} 审计流水，不靠这些列。
  */
 @Data
 @Builder
@@ -30,52 +32,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @TableName("orders.orders")
 public class Order {
-
-    public static final String STATUS_PENDING_PAYMENT = "PENDING_PAYMENT";
-
-    public static final String STATUS_PAID = "PAID";
-
-    public static final String STATUS_SHIPPED = "SHIPPED";
-
-    public static final String STATUS_COMPLETED = "COMPLETED";
-
-    public static final String STATUS_CANCELLED = "CANCELLED";
-
-    /**
-     * 状态机：合法转移的唯一真相。service / api 层的条件更新（WHERE status IN sourcesOf(目标态)）
-     * 从这里反推源状态，前端动作按钮从 {@link #buyerActions()} / {@link #sellerActions()} 推导，三处消费同一张表不会漂移。
-     */
-    private static final Map<String, Set<String>> TRANSITIONS = Map.of(
-            STATUS_PENDING_PAYMENT, Set.of(STATUS_PAID, STATUS_CANCELLED),
-            STATUS_PAID, Set.of(STATUS_SHIPPED, STATUS_CANCELLED),
-            STATUS_SHIPPED, Set.of(STATUS_COMPLETED),
-            STATUS_COMPLETED, Set.of(),
-            STATUS_CANCELLED, Set.of());
-
-    /** 全部合法状态（列表筛选参数校验用），由转移表派生避免双份枚举 */
-    public static final Set<String> ALL_STATUSES = TRANSITIONS.keySet();
-
-    /**
-     * 能转移到 target 的全部源状态：条件更新（WHERE status IN (...)）的合法前置集。
-     * 源状态不再散写各 service，加新转移只改 TRANSITIONS 一处。
-     */
-    public static Set<String> sourcesOf(String target) {
-        return TRANSITIONS.entrySet().stream()
-                .filter(e -> e.getValue().contains(target))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-    }
-
-    /** 转移目标 → 前端动作名：状态机是后端语汇，动作是交互语汇，一张映射表维系两套词表 */
-    private static final Map<String, String> ACTION_BY_TARGET = Map.of(
-            STATUS_PAID, "PAY",
-            STATUS_CANCELLED, "CANCEL",
-            STATUS_SHIPPED, "SHIP",
-            STATUS_COMPLETED, "RECEIVE");
-
-    private static final Set<String> BUYER_ACTIONS = Set.of("PAY", "CANCEL", "RECEIVE");
-
-    private static final Set<String> SELLER_ACTIONS = Set.of("SHIP");
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
@@ -90,8 +46,17 @@ public class Order {
     /** 卖家店铺 ID，shop.shops.id，裸引用不加 FK；一次结算按它拆成 N 单 */
     private UUID shopId;
 
-    /** 状态机：PENDING_PAYMENT 待付款 / PAID 待发货 / SHIPPED 已发货 / COMPLETED 已完成 / CANCELLED 已关闭 */
-    private String status;
+    /** 履约主状态机：待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消（规则见 OrderStatus） */
+    private OrderStatus status;
+
+    /** 售后状态机（独立线，不挤占 status）：NONE → APPLYING →（REFUNDED / REJECTED / CLOSED），默认 NONE */
+    private AfterSaleStatus afterSaleStatus;
+
+    /** 售后类型（无售后时为 NULL） */
+    private AfterSaleType afterSaleType;
+
+    /** 售后退款金额口径（分）；资金态在 payment.payments，订单只记「该退多少」 */
+    private Long refundAmount;
 
     /** 商品总额（Σ 行小计），分。DB CHECK 钉死 pay_amount = item_amount + shipping_fee */
     private Long itemAmount;
@@ -138,11 +103,25 @@ public class Order {
 
     private OffsetDateTime cancelledAt;
 
-    /** 取消原因：买家填写或超时关单的固定文案「超时未支付，自动关闭」 */
+    /** 取消原因：买家填写或系统自动取消的固定文案 */
     private String cancelReason;
 
-    /** 待付款截止时刻，超时由定时任务关单（idx_orders_pay_expire 部分索引即扫描全集） */
+    /** 售后退款完成时刻 */
+    private OffsetDateTime afterSaleRefundedAt;
+
+    // ---- 到期时刻：各由对应动作回填，定时任务按部分索引扫到期（窗口长度见 OrderTimeouts） ----
+
+    /** 待付款截止（下单时回填），到期自动关单 */
     private OffsetDateTime payExpireAt;
+
+    /** 待发货截止（付款时回填），到期自动取消并退款 */
+    private OffsetDateTime shipExpireAt;
+
+    /** 确认收货截止（发货时回填），到期自动确认收货 */
+    private OffsetDateTime receiveExpireAt;
+
+    /** 售后申请截止（收货时回填），过期不再受理售后申请 */
+    private OffsetDateTime applyExpireAt;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)
@@ -166,20 +145,18 @@ public class Order {
         return Money.ofFen(payAmount, currency);
     }
 
-    /** 买家视角当前可执行的动作（详情页按钮组渲染用），按状态从转移表推导；终态返回空列表 */
+    /** 售后退款额；未同意退款前为 null（列可空） */
+    public Money refundAmountAsMoney() {
+        return refundAmount == null ? null : Money.ofFen(refundAmount, currency);
+    }
+
+    /** 买家视角当前可执行的动作：规则在 {@link OrderStatus}，实体只薄委托 */
     public List<String> buyerActions() {
-        return actionsFor(BUYER_ACTIONS);
+        return List.copyOf(status.buyerActions());
     }
 
-    /** 卖家视角当前可执行的动作（发货作业按钮用） */
+    /** 卖家视角当前可执行的动作：同上，薄委托 */
     public List<String> sellerActions() {
-        return actionsFor(SELLER_ACTIONS);
-    }
-
-    private List<String> actionsFor(Set<String> allowed) {
-        return TRANSITIONS.getOrDefault(status, Set.of()).stream()
-                .map(ACTION_BY_TARGET::get)
-                .filter(allowed::contains)
-                .toList();
+        return List.copyOf(status.sellerActions());
     }
 }
