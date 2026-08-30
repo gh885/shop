@@ -123,6 +123,12 @@ public class Order {
     /** 售后申请截止（收货时回填），过期不再受理售后申请 */
     private OffsetDateTime applyExpireAt;
 
+    /** 退货物流公司（买家回寄退货时填写，仅退货退款路径） */
+    private String returnLogisticsCompany;
+
+    /** 退货运单号（买家回寄退货时填写，仅退货退款路径） */
+    private String returnTrackingNo;
+
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)
     private OffsetDateTime createdAt;

@@ -1,11 +1,13 @@
 package com.shop.platform.order.model;
 
 /**
- * 售后类型。V1 只做仅退款（货不退、无库存回补）；退货退款涉及退货物流与收货确认，
- * 到真做时再加常量 + 放宽 DB CHECK，不预留占位。DB 列存 {@code name()}。
+ * 售后类型。DB 列存 {@code name()}，CHECK 约束紧跟在 {@link #values()}（迁移同步）。
  */
 public enum AfterSaleType {
 
-    /** 仅退款：买家保留商品，只退钱，无库存回补 */
-    REFUND_ONLY
+    /** 仅退款：买家保留商品，只退钱，无库存回补（卖家同意即退款完成） */
+    REFUND_ONLY,
+
+    /** 退货退款：买家寄回商品、卖家确认收货后退款并回补库存（中间态 RETURNING） */
+    RETURN_REFUND
 }

@@ -9,6 +9,7 @@ import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
+import com.shop.platform.order.dto.ReturnGoodsRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
@@ -114,6 +115,12 @@ public class OrderController {
     @PutMapping("/{id}/after-sales/cancel")
     public void cancelAfterSale(@PathVariable UUID id) {
         orderTransitionService.cancelAfterSale(UserIdHolder.get(), id);
+    }
+
+    /** 回寄退货并填写物流单：仅退货退款、退货中（RETURNING）可操作，态不变只落物流单号 */
+    @PutMapping("/{id}/after-sales/return")
+    public void returnGoods(@PathVariable UUID id, @Valid @RequestBody ReturnGoodsRequest req) {
+        orderTransitionService.returnGoods(UserIdHolder.get(), id, req.logisticsCompany(), req.trackingNo());
     }
 
     // ---- 出参形状 ----

@@ -32,8 +32,14 @@ public enum OrderAction {
     /** 买家申请售后 */
     AFTER_SALE_APPLY,
 
-    /** 卖家同意售后并退款 */
+    /** 卖家同意售后并退款（仅退款） */
     AFTER_SALE_REFUND,
+
+    /** 卖家同意退货退款（进入退货流程，尚未退款） */
+    AFTER_SALE_AGREE_RETURN,
+
+    /** 买家回寄并填写退货物流单 */
+    AFTER_SALE_RETURN_GOODS,
 
     /** 卖家拒绝售后 */
     AFTER_SALE_REJECT,

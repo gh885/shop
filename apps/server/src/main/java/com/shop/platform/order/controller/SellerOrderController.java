@@ -60,7 +60,7 @@ public class SellerOrderController {
         orderTransitionService.ship(ShopIdHolder.get(), id, req);
     }
 
-    /** 同意售后：APPLYING → REFUNDED，同事务落退款单据（退款写不成则整单回滚） */
+    /** 同意售后：按售后类型分派——仅退款 APPLYING→REFUNDED 一步退；退货退款 APPLYING→RETURNING 进入退货流程 */
     @PutMapping("/{id}/after-sales/agree")
     public void agreeAfterSale(@PathVariable UUID id) {
         orderTransitionService.agreeAfterSale(ShopIdHolder.get(), id);
@@ -70,6 +70,12 @@ public class SellerOrderController {
     @PutMapping("/{id}/after-sales/reject")
     public void rejectAfterSale(@PathVariable UUID id) {
         orderTransitionService.rejectAfterSale(ShopIdHolder.get(), id);
+    }
+
+    /** 确认收到退货（仅退货退款、退货中）：RETURNING → REFUNDED，回补库存并退款 */
+    @PutMapping("/{id}/after-sales/receive")
+    public void receiveReturn(@PathVariable UUID id) {
+        orderTransitionService.receiveReturn(ShopIdHolder.get(), id);
     }
 
     // ---- 出参形状 ----

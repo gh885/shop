@@ -44,6 +44,9 @@ public record OrderDetailResponse(
         Money refundAmount,
         OffsetDateTime afterSaleRefundedAt,
         OffsetDateTime applyExpireAt,
+        // 退货退款：买家回寄物流（仅退货退款、已有回寄时非空）
+        String returnLogisticsCompany,
+        String returnTrackingNo,
         List<OrderItemResponse> items) {
 
     /** 买家视角：可执行动作按买家状态机推导；shopName 由调用方（order controller）经 shop :: api 拼入 */
@@ -97,6 +100,8 @@ public record OrderDetailResponse(
                 order.refundAmountAsMoney(),
                 order.getAfterSaleRefundedAt(),
                 order.getApplyExpireAt(),
+                order.getReturnLogisticsCompany(),
+                order.getReturnTrackingNo(),
                 // 行项目
                 o.items().stream().map(OrderItemResponse::from).toList());
     }

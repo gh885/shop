@@ -1,7 +1,7 @@
 {
     "openapi": "3.1.0",
     "info": { "title": "OpenAPI definition", "version": "v0" },
-    "servers": [{ "url": "http://localhost:8099", "description": "Generated server url" }],
+    "servers": [{ "url": "http://localhost:8097", "description": "Generated server url" }],
     "tags": [
         { "name": "admin-auth", "description": "平台员工认证" },
         { "name": "cms-admin", "description": "管理端 CMS 内容维护" },
@@ -318,6 +318,21 @@
                 "responses": { "200": { "description": "OK" } }
             }
         },
+        "/seller/orders/{id}/after-sales/receive": {
+            "put": {
+                "tags": ["seller-orders"],
+                "operationId": "receiveReturn",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "responses": { "200": { "description": "OK" } }
+            }
+        },
         "/seller/orders/{id}/after-sales/agree": {
             "put": {
                 "tags": ["seller-orders"],
@@ -364,6 +379,29 @@
                     "content": {
                         "application/json": {
                             "schema": { "$ref": "#/components/schemas/CancelOrderRequest" }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": { "200": { "description": "OK" } }
+            }
+        },
+        "/orders/{id}/after-sales/return": {
+            "put": {
+                "tags": ["orders"],
+                "operationId": "returnGoods",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/ReturnGoodsRequest" }
                         }
                     },
                     "required": true
@@ -2327,6 +2365,14 @@
                 "type": "object",
                 "properties": { "reason": { "type": "string", "maxLength": 200, "minLength": 0 } }
             },
+            "ReturnGoodsRequest": {
+                "type": "object",
+                "properties": {
+                    "logisticsCompany": { "type": "string", "maxLength": 32, "minLength": 0 },
+                    "trackingNo": { "type": "string", "maxLength": 64, "minLength": 0 }
+                },
+                "required": ["logisticsCompany", "trackingNo"]
+            },
             "UpdateCartItemRequest": {
                 "type": "object",
                 "properties": {
@@ -2623,7 +2669,7 @@
             "ApplyAfterSaleRequest": {
                 "type": "object",
                 "properties": {
-                    "type": { "type": "string", "enum": ["REFUND_ONLY"] },
+                    "type": { "type": "string", "enum": ["REFUND_ONLY", "RETURN_REFUND"] },
                     "reason": { "type": "string", "maxLength": 200, "minLength": 0 }
                 },
                 "required": ["type"]
@@ -2998,6 +3044,8 @@
                     "refundAmount": { "$ref": "#/components/schemas/Money" },
                     "afterSaleRefundedAt": { "type": "string", "format": "date-time" },
                     "applyExpireAt": { "type": "string", "format": "date-time" },
+                    "returnLogisticsCompany": { "type": "string" },
+                    "returnTrackingNo": { "type": "string" },
                     "items": {
                         "type": "array",
                         "items": { "$ref": "#/components/schemas/OrderItemResponse" }
