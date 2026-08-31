@@ -72,6 +72,7 @@ public class OrderService {
     // ========== 结算预览 ==========
 
     /** 结算预览：只读。有效行按店铺分组算钱，失效/缺货行平铺置灰，地址可选回显 */
+    @Transactional(readOnly = true)
     public CheckoutPreview preview(UUID userId, PreviewOrderRequest req) {
         // 1. 解析条目并判定可售性（跨模块只读点查，禁止 JOIN）
         ResolvedCheckout resolved =
@@ -131,6 +132,7 @@ public class OrderService {
     // ========== 买家侧查询 ==========
 
     /** 我的订单分页：每单内嵌行项，列表页免 N+1 */
+    @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageMine(UUID userId, String status, PageParams page) {
         OrderStatus filter = parseStatusFilter(status);
         Page<Order> rows = orderMapper.selectPage(
@@ -143,6 +145,7 @@ public class OrderService {
     }
 
     /** 订单详情：非本人一律 404，不泄露单据存在性 */
+    @Transactional(readOnly = true)
     public OrderWithItems detail(UUID userId, UUID orderId) {
         Order order = orderMapper.requireOwned(userId, orderId);
         return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
@@ -151,6 +154,7 @@ public class OrderService {
     // ========== 卖家侧查询 ==========
 
     /** 卖家订单分页：ShopIdHolder 圈定本店 */
+    @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageSeller(UUID shopId, String status, PageParams page) {
         OrderStatus filter = parseStatusFilter(status);
         Page<Order> rows = orderMapper.selectPage(
@@ -163,6 +167,7 @@ public class OrderService {
     }
 
     /** 卖家订单详情：非本店一律 404 */
+    @Transactional(readOnly = true)
     public OrderWithItems sellerDetail(UUID shopId, UUID orderId) {
         Order order = orderMapper.requireShopOwned(shopId, orderId);
         return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));

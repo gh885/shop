@@ -8,13 +8,12 @@ import com.shop.platform.infra.util.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.function.UnaryOperator;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class SmsCodeService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -35,12 +34,33 @@ public class SmsCodeService {
     private static final int DAILY_LIMIT = 20; // 每手机号每日上限
     private static final int IP_RATE_MAX = 10; // 每 IP 每分钟上限
     private static final int MAX_ATTEMPTS = 5; // 最大尝试次数
-    private static final int IP_DISTINCT_PHONES_MAX = 5; // 每 IP 每日不同手机号上限（防单 IP 横扫大量号码轰炸）
 
     private final StringRedisTemplate redis;
     private final SmsChannel smsChannel;
     private final SecretHasher secretHasher;
     private final ObjectProvider<DevSmsChannel> devSmsChannelProvider;
+
+    /**
+     * 每 IP 每日不同手机号上限（防单 IP 横扫大量号码轰炸）。
+     *
+     * <p>做成可配置且默认放到 30：运营商 CGNAT、公司出口、校园网下大量真实用户共享同一个出口 IP，
+     * 阈值太低会把正常注册挡在门外——这条防线拦的是「一个 IP 横扫几百个号」，不是「同一栋楼有几个人注册」。
+     * 真实出口 IP 分布因部署而异，交给部署方按观测调整。
+     */
+    private final int ipDistinctPhonesMax;
+
+    public SmsCodeService(
+            StringRedisTemplate redis,
+            SmsChannel smsChannel,
+            SecretHasher secretHasher,
+            ObjectProvider<DevSmsChannel> devSmsChannelProvider,
+            @Value("${shop.auth.sms-ip-distinct-phones-max:30}") int ipDistinctPhonesMax) {
+        this.redis = redis;
+        this.smsChannel = smsChannel;
+        this.secretHasher = secretHasher;
+        this.devSmsChannelProvider = devSmsChannelProvider;
+        this.ipDistinctPhonesMax = ipDistinctPhonesMax;
+    }
 
     /** 发送验证码 */
     public void sendCode(String phone, String clientIp) {
@@ -153,17 +173,20 @@ public class SmsCodeService {
      * 但累计成本由攻击者用单个 IP 撬动。这里按 IP 维护去重号码集合，超过上限的「新号码」
      * 拒绝发送；已见过的号码不受影响（复发仍交由 60s/日限兜底）。
      *
-     * <p>SADD 原子返回是否新增：仅新增成员导致总数超限才拦截，避免误伤对既有号码的重复发送。
+     * <p>先判容量再 SADD：被拒的新号码不该占坑。反过来（先加后判）会让越界后的每次尝试都把集合
+     * 撑大一格，攻击者反而能用被拒请求持续膨胀这个 key，且集合再也降不回阈值内。
+     * SADD 原子返回是否新增：既有号码复发不受影响。
      */
     private void enforceDistinctPhonesPerIp(String clientIp, String phone) {
         String key = "sms:ip:phones:" + clientIp;
-        Long added = redis.opsForSet().add(key, phone);
-        if (added != null && added == 1L) {
-            redis.expire(key, Duration.ofDays(1));
+        if (!Boolean.TRUE.equals(redis.opsForSet().isMember(key, phone))) {
             Long size = redis.opsForSet().size(key);
-            if (size != null && size > IP_DISTINCT_PHONES_MAX) {
+            if (size != null && size >= ipDistinctPhonesMax) {
                 throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
             }
+        }
+        if (Long.valueOf(1L).equals(redis.opsForSet().add(key, phone))) {
+            redis.expire(key, Duration.ofDays(1));
         }
     }
 }

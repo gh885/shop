@@ -1,0 +1,9 @@
+# oxfmt 在未显式 --ignore-path 时读取 .gitignore 与本文件（见 oxfmt --help 的 Ignore Options）。
+# 生成物不参与格式化——它们由工具重写，格式化只会制造 diff 噪音：
+#   - packages/api/src/sdk/**  由 @hey-api/openapi-ts 从 openapi/api-docs.json 生成（pnpm gen:sdk）
+#   - routeTree.gen.ts         由 TanStack Router 插件在 dev/build 时生成
+# lefthook 的 pre-commit 已按 **/*.gen.ts 排除（见 lefthook.yml），但根脚本 `oxfmt --write .`
+# 此前没有这层排除，跑一次 pnpm format 就会改写约 8000 行生成代码。两处口径在此对齐。
+
+**/*.gen.ts
+packages/api/src/sdk/

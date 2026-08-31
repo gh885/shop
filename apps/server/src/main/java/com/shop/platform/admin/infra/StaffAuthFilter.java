@@ -36,8 +36,8 @@ public class StaffAuthFilter extends OncePerRequestFilter {
         if (path == null) {
             return false;
         }
-        // 只处理平台员工命名空间，登录/刷新入口放行
-        if (!path.startsWith("/admin")) return true;
+        // 只处理平台员工命名空间，登录/刷新入口放行（命名空间判定与判权拦截器共用 RequestPaths.inNamespace）
+        if (!RequestPaths.inNamespace(path, "/admin")) return true;
         return path.startsWith("/admin/auth/login") || path.startsWith("/admin/auth/refresh");
     }
 

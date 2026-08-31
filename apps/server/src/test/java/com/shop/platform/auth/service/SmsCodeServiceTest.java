@@ -61,18 +61,22 @@ class SmsCodeServiceTest {
 
     private final SecretHasher secretHasher = new SecretHasher("a".repeat(32));
 
+    /** 单 IP 每日不同号码上限（生产可配，测试固定值便于构造越界场景） */
+    private static final int IP_DISTINCT_PHONES_MAX = 30;
+
     private SmsCodeService service;
 
     @BeforeEach
     void setUp() {
-        service = new SmsCodeService(redis, smsChannel, secretHasher, devProvider);
+        service = new SmsCodeService(redis, smsChannel, secretHasher, devProvider, IP_DISTINCT_PHONES_MAX);
         lenient().when(redis.opsForValue()).thenReturn(valueOps);
         lenient().when(redis.opsForSet()).thenReturn(setOps);
         // RateLimiter 静态调用：默认窗口内计数为 1（不限流）
         lenient()
                 .when(redis.execute(ArgumentMatchers.<RedisScript<Long>>any(), anyList(), anyString()))
                 .thenReturn(1L);
-        // 单 IP 去重号码集合：默认新增成功且规模 1
+        // 单 IP 去重号码集合：默认为「新号码、集合未满」的放行态
+        lenient().when(setOps.isMember(anyString(), anyString())).thenReturn(false);
         lenient().when(setOps.add(anyString(), anyString())).thenReturn(1L);
         lenient().when(setOps.size(anyString())).thenReturn(1L);
         // 无 dev 固定码渠道
@@ -125,21 +129,25 @@ class SmsCodeServiceTest {
 
     @Test
     void 单IP横扫大量新号码_429拦截() {
-        when(setOps.add(anyString(), eq(phone))).thenReturn(1L); // 新号码
-        when(setOps.size(anyString())).thenReturn(6L); // 上限 5
+        // 新号码（不在集合里）+ 集合已达上限 → 拒绝，且该号码不该被塞进集合（否则被拒请求还能把集合撑大）
+        when(setOps.isMember(anyString(), eq(phone))).thenReturn(false);
+        when(setOps.size(anyString())).thenReturn((long) IP_DISTINCT_PHONES_MAX);
 
         assertThatThrownBy(() -> service.sendCode(phone, ip))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("发送过于频繁");
+        verify(setOps, never()).add(anyString(), eq(phone));
     }
 
     @Test
-    void 单IP已见过的号码_不触发去重拦截() {
-        // SADD 返回 0 = 老号码复发：跳过 size 检查（不误伤），交由 60s/日限兜底
-        when(setOps.add(anyString(), eq(phone))).thenReturn(0L);
+    void 单IP已见过的号码_越界也不拦截() {
+        // 老号码复发：跳过容量判定（不误伤），交由 60s/日限兜底——哪怕集合早已越界
+        when(setOps.isMember(anyString(), eq(phone))).thenReturn(true);
 
         service.sendCode(phone, ip);
+
         verify(smsChannel).sendCode(eq(phone), anyString());
+        verify(setOps, never()).size(anyString()); // 已是成员，连容量都不必查
     }
 
     @Test

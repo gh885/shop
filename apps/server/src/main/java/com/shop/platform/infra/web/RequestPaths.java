@@ -28,6 +28,16 @@ public final class RequestPaths {
         return isCanonical(path) ? path : null;
     }
 
+    /**
+     * 命名空间归属判定：{@code /admin} 与 {@code /admin/**} 算命中，{@code /admins} 不算。
+     *
+     * <p>裸 {@code startsWith(prefix)} 会把 {@code /adminfoo} 也算进管理端命名空间——过滤链与判权拦截器
+     * 若各写一套，同一路径可能一边算命中一边算不命中。收在这里，两处共用同一判定。
+     */
+    public static boolean inNamespace(String path, String prefix) {
+        return path.equals(prefix) || path.startsWith(prefix + "/");
+    }
+
     private static boolean isCanonical(String path) {
         // '%' 百分号编码（/%61dmin）、';' 路径参数（容器按段剥离）、'//' 冗余斜杠、
         // '.' / '..' 点号段（容器映射前归一化）：原文与路由视角不一致，一律拒绝

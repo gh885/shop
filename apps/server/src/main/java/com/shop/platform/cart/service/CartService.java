@@ -74,6 +74,7 @@ public class CartService {
      * <p>展示数据三次只读 IN 批查（SKU → SPU → 店铺名，经 product / shop 的 api 包）内存拼装，
      * 禁止跨 schema JOIN、不做 N+1；失效条目（SKU 被删/停售、SPU 下架）available=false 原样保留置灰。
      */
+    @Transactional(readOnly = true)
     public List<CartItemView> list(UUID userId) {
         // 1. 拉整车
         List<CartItem> items = cartItemMapper.selectWholeCart(userId);
@@ -99,6 +100,7 @@ public class CartService {
     }
 
     /** 角标计数：免拉整车 */
+    @Transactional(readOnly = true)
     public CartCount count(UUID userId) {
         long total = cartItemMapper.countByUser(userId);
         long selected = cartItemMapper.countSelectedByUser(userId);

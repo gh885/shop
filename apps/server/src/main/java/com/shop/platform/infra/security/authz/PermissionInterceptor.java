@@ -91,8 +91,8 @@ public class PermissionInterceptor implements HandlerInterceptor {
         return false;
     }
 
-    /** 前缀匹配：/admin 与 /admin/** 等价看待，避免 /admins 这类前缀碰撞 */
+    /** 前缀匹配：/admin 与 /admin/** 等价看待，避免 /admins 这类前缀碰撞（判定与 StaffAuthFilter 共用） */
     private static boolean isGuarded(String path) {
-        return GUARDED_PREFIXES.stream().anyMatch(p -> path.equals(p) || path.startsWith(p + "/"));
+        return GUARDED_PREFIXES.stream().anyMatch(p -> RequestPaths.inNamespace(path, p));
     }
 }

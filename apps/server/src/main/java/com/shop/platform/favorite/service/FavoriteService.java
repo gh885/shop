@@ -51,6 +51,7 @@ public class FavoriteService {
     }
 
     /** 我的收藏分页：新收藏在前，商品卡片数据读取时拼装，下架商品 available=false 置灰保留 */
+    @Transactional(readOnly = true)
     public PageResult<FavoriteItemView> list(UUID userId, long page, long size) {
         // 1. 分页拉收藏行（覆盖索引左前缀 user_id，按收藏时间倒序）
         var pageResult = favoriteItemMapper.selectPageByUser(userId, page, size);
