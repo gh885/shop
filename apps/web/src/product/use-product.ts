@@ -1,3 +1,4 @@
+import { unwrap } from "@shop/api"
 import { ProductsApi } from "@shop/api/sdk"
 
 import {
@@ -19,27 +20,26 @@ import {
 export async function fetchProducts(
     input: ProductListQueryInput,
 ): Promise<{ records: Product[]; total: number }> {
-    const res = await ProductsApi.listPublicProducts({
-        query: {
-            pageParams: { page: input.page ?? 1, size: input.size ?? 20 },
+    const page = unwrap(
+        await ProductsApi.listPublicProducts({
             query: {
-                categoryId: input.categoryId,
-                shopId: input.shopId,
-                keyword: input.keyword,
-                sort: input.sort,
+                pageParams: { page: input.page ?? 1, size: input.size ?? 20 },
+                query: {
+                    categoryId: input.categoryId,
+                    shopId: input.shopId,
+                    keyword: input.keyword,
+                    sort: input.sort,
+                },
             },
-        },
-    })
-    if (res.error) throw res.error
+        }),
+    )
     return {
-        records: (res.data?.records ?? []).map(toProduct),
-        total: res.data?.total ?? 0,
+        records: (page.records ?? []).map(toProduct),
+        total: page.total ?? 0,
     }
 }
 
 /** 商品详情：匿名可访问（公开页），返回领域形状 */
 export async function fetchProductDetail(id: string): Promise<ProductDetail> {
-    const res = await ProductsApi.getPublicProductDetail({ path: { id } })
-    if (res.error) throw res.error
-    return toProductDetail(res.data ?? {})
+    return toProductDetail(unwrap(await ProductsApi.getPublicProductDetail({ path: { id } })))
 }

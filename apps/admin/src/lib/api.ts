@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createAuthKit } from "@shop/api"
+import { configureSdkClient, createAuthKit, unwrap } from "@shop/api"
 import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
 
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
@@ -23,39 +23,36 @@ configureSdkClient("", tokenStore, {
     debug: import.meta.env.DEV,
 })
 
-/** admin 业务方法封装：SDK 返回 { data, error } 不抛错，这里把 error 转抛，供调用方统一 catch 归一化 */
+/** admin 业务方法封装：SDK 返回 { data, error } 不抛错，unwrap 把 error 转抛，供调用方统一 catch 归一化 */
 export const adminApi = {
     /** 员工登录：成功后返回 access token */
     async login(input: { employeeNo: string; password: string; deviceId: string }) {
-        const res = await AdminAuthApi.staffLogin({ body: input })
-        if (res.error) throw res.error
-        return { accessToken: res.data?.accessToken ?? "" }
+        const data = unwrap(await AdminAuthApi.staffLogin({ body: input }))
+        return { accessToken: data.accessToken ?? "" }
     },
 
     /** 当前登录员工信息 */
     async me() {
-        const res = await AdminAuthApi.getStaffMe()
-        if (res.error) throw res.error
-        return res.data
+        return unwrap(await AdminAuthApi.getStaffMe())
     },
 
     /** 登出 */
     async logout(deviceId: string) {
-        const res = await AdminAuthApi.staffLogout({ body: { deviceId } })
-        if (res.error) throw res.error
+        unwrap(await AdminAuthApi.staffLogout({ body: { deviceId } }))
     },
 
     /** 店铺审核分页列表 */
     async listReviews(input: { status?: string; page: number; size: number }) {
-        const res = await AdminReviewsApi.listShopReviews({
-            query: {
-                status: input.status,
-                pageParams: { page: input.page, size: input.size },
-            },
-        })
-        if (res.error) throw res.error
+        const page = unwrap(
+            await AdminReviewsApi.listShopReviews({
+                query: {
+                    status: input.status,
+                    pageParams: { page: input.page, size: input.size },
+                },
+            }),
+        )
         return {
-            records: (res.data?.records ?? []).map((r) => ({
+            records: (page.records ?? []).map((r) => ({
                 id: r.id ?? "",
                 shopId: r.shopId ?? "",
                 shopName: r.shopName ?? "",
@@ -65,20 +62,18 @@ export const adminApi = {
                 decidedAt: r.decidedAt ?? "",
                 createdAt: r.createdAt ?? "",
             })),
-            total: res.data?.total ?? 0,
+            total: page.total ?? 0,
         }
     },
 
     /** 审核通过 */
     async approve(id: string) {
-        const res = await AdminReviewsApi.approveShopReview({ path: { id } })
-        if (res.error) throw res.error
+        unwrap(await AdminReviewsApi.approveShopReview({ path: { id } }))
     },
 
     /** 审核驳回 */
     async reject(id: string, reason: string) {
-        const res = await AdminReviewsApi.rejectShopReview({ path: { id }, body: { reason } })
-        if (res.error) throw res.error
+        unwrap(await AdminReviewsApi.rejectShopReview({ path: { id }, body: { reason } }))
     },
 }
 
