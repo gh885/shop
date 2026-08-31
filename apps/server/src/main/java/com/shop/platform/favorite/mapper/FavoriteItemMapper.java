@@ -29,13 +29,6 @@ public interface FavoriteItemMapper extends BaseMapper<FavoriteItem> {
             + " RETURNING *")
     FavoriteItem upsertIdempotent(@Param("userId") UUID userId, @Param("productId") UUID productId);
 
-    /** 本人某商品收藏行：详情页「是否已收藏」的单点查 */
-    default FavoriteItem selectByUserAndProduct(UUID userId, UUID productId) {
-        return selectOne(new LambdaQueryWrapper<FavoriteItem>()
-                .eq(FavoriteItem::getUserId, userId)
-                .eq(FavoriteItem::getProductId, productId));
-    }
-
     /** 取消收藏：收藏是开关不是行管理，不存在也是 0 行 */
     default int deleteByUserAndProduct(UUID userId, UUID productId) {
         return delete(new LambdaQueryWrapper<FavoriteItem>()

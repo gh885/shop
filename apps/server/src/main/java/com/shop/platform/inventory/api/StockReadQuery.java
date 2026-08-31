@@ -39,9 +39,4 @@ public class StockReadQuery {
                 },
                 ids.toArray());
     }
-
-    /** 单条 SKU 可用库存：查无此行返回 null（SKU 尚未建库存主体，视作无货） */
-    public StockView availableBySkuId(UUID skuId) {
-        return availableBySkuIds(java.util.List.of(skuId)).get(skuId);
-    }
 }

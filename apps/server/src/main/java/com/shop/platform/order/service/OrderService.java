@@ -144,7 +144,7 @@ public class OrderService {
 
     /** 订单详情：非本人一律 404，不泄露单据存在性 */
     public OrderWithItems detail(UUID userId, UUID orderId) {
-        Order order = requireOwned(userId, orderId);
+        Order order = orderMapper.requireOwned(userId, orderId);
         return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
     }
 
@@ -164,8 +164,7 @@ public class OrderService {
 
     /** 卖家订单详情：非本店一律 404 */
     public OrderWithItems sellerDetail(UUID shopId, UUID orderId) {
-        Order order = Validate.notNull(orderMapper.selectById(orderId), "订单不存在");
-        Validate.isTrue(order.getShopId().equals(shopId), "订单不存在");
+        Order order = orderMapper.requireShopOwned(shopId, orderId);
         return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
     }
 
@@ -235,12 +234,6 @@ public class OrderService {
     }
 
     // ========== 内部：查询与装配辅助 ==========
-
-    private Order requireOwned(UUID userId, UUID orderId) {
-        Order order = Validate.notNull(orderMapper.selectById(orderId), "订单不存在");
-        Validate.isTrue(order.getUserId().equals(userId), "订单不存在");
-        return order;
-    }
 
     /** 列表筛选状态：空 = 全部；非法值给 400（枚举自己就是合法值表，不另维护一份） */
     private static OrderStatus parseStatusFilter(String status) {

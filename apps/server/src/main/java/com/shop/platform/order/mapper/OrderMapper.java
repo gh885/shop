@@ -1,6 +1,7 @@
 package com.shop.platform.order.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.common.Validate;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -11,6 +12,26 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
+
+    /**
+     * 取本人订单：买家侧一切动作与查询的同一道门。不存在与不属于本人给同一句话，
+     * 不泄露单据存在性。收在这里而非各 service 各写一份——「越权说什么」只该定义一处。
+     *
+     * <p>注意现状：不存在走 {@link Validate#notNull} 给 404，归属不符走 {@link Validate#isTrue} 给 400，
+     * 状态码并不一致（文案一致）。与 CheckoutResolver 的地址归属判定同源，见 CheckoutResolverTest 的说明。
+     */
+    default Order requireOwned(UUID userId, UUID orderId) {
+        Order order = Validate.notNull(selectById(orderId), "订单不存在");
+        Validate.isTrue(order.getUserId().equals(userId), "订单不存在");
+        return order;
+    }
+
+    /** 取本店订单：卖家侧同一道门，越店与不存在同样不区分 */
+    default Order requireShopOwned(UUID shopId, UUID orderId) {
+        Order order = Validate.notNull(selectById(orderId), "订单不存在");
+        Validate.isTrue(order.getShopId().equals(shopId), "订单不存在");
+        return order;
+    }
 
     /**
      * 取消订单的条件转移：限定调用方给出的合法源状态集（买家取消给 {@link OrderStatus#sourcesOf} 的全集，

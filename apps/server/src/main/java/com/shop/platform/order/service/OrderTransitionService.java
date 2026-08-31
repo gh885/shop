@@ -71,7 +71,7 @@ public class OrderTransitionService {
     /** 买家取消：仅待付款/待发货可取消（源态由状态机反推），库存与退款按真实前态分流 */
     @Transactional
     public void cancel(UUID userId, UUID orderId, String reason) {
-        Order order = requireOwned(userId, orderId);
+        Order order = orderMapper.requireOwned(userId, orderId);
         boolean cancelled =
                 cancelFrom(order, OrderStatus.sourcesOf(CANCELLED), reason, OrderAction.CANCEL, OrderActor.BUYER);
         Validate.isTrue(cancelled, 409, "订单状态已变更，当前不可取消");
@@ -80,7 +80,7 @@ public class OrderTransitionService {
     /** 确认收货：已发货 → 已完成，同时开通售后申请窗口 */
     @Transactional
     public void receive(UUID userId, UUID orderId) {
-        requireOwned(userId, orderId);
+        orderMapper.requireOwned(userId, orderId);
         boolean completed = complete(orderId, OrderAction.RECEIVE, OrderActor.BUYER);
         Validate.isTrue(completed, 409, "订单状态已变更，当前不可确认收货");
     }
@@ -140,7 +140,7 @@ public class OrderTransitionService {
     /** 买家申请售后（仅退款 / 退货退款，申请时定 type）：仅「已完成 + 售后线空闲 + 申请窗口未过」可发起 */
     @Transactional
     public void applyAfterSale(UUID userId, UUID orderId, AfterSaleType type, String reason) {
-        requireOwned(userId, orderId);
+        orderMapper.requireOwned(userId, orderId);
         advanceAfterSale(orderId, AfterSaleAction.APPLY, reason, update -> update.eq(Order::getStatus, COMPLETED)
                 .gt(Order::getApplyExpireAt, OffsetDateTime.now())
                 .set(Order::getAfterSaleType, type));
@@ -156,7 +156,7 @@ public class OrderTransitionService {
      */
     @Transactional
     public void agreeAfterSale(UUID shopId, UUID orderId) {
-        Order order = requireShopOrder(shopId, orderId);
+        Order order = orderMapper.requireShopOwned(shopId, orderId);
         if (order.getAfterSaleType() == AfterSaleType.RETURN_REFUND) {
             advanceAfterSale(orderId, AfterSaleAction.AGREE_RETURN, null);
             return;
@@ -175,7 +175,7 @@ public class OrderTransitionService {
      */
     @Transactional
     public void returnGoods(UUID userId, UUID orderId, String company, String trackingNo) {
-        requireOwned(userId, orderId);
+        orderMapper.requireOwned(userId, orderId);
         advanceAfterSale(orderId, AfterSaleAction.RETURN_GOODS, null, update -> update.set(
                         Order::getReturnLogisticsCompany, company)
                 .set(Order::getReturnTrackingNo, trackingNo));
@@ -187,7 +187,7 @@ public class OrderTransitionService {
      */
     @Transactional
     public void receiveReturn(UUID shopId, UUID orderId) {
-        Order order = requireShopOrder(shopId, orderId);
+        Order order = orderMapper.requireShopOwned(shopId, orderId);
         advanceAfterSale(
                 orderId,
                 AfterSaleAction.RECEIVE_RETURN,
@@ -200,14 +200,14 @@ public class OrderTransitionService {
     /** 卖家拒绝售后：APPLYING → REJECTED（终态） */
     @Transactional
     public void rejectAfterSale(UUID shopId, UUID orderId) {
-        requireShopOrder(shopId, orderId);
+        orderMapper.requireShopOwned(shopId, orderId);
         advanceAfterSale(orderId, AfterSaleAction.REJECT, null);
     }
 
     /** 买家撤销售后申请：APPLYING → CLOSED（终态） */
     @Transactional
     public void cancelAfterSale(UUID userId, UUID orderId) {
-        requireOwned(userId, orderId);
+        orderMapper.requireOwned(userId, orderId);
         advanceAfterSale(orderId, AfterSaleAction.CLOSE, null);
     }
 
@@ -299,21 +299,7 @@ public class OrderTransitionService {
                         .set(Order::getAfterSaleRefundedAt, OffsetDateTime.now()));
     }
 
-    // ========== 私有：动作前置校验 ==========
-
-    /** 买家侧归属：非本人一律 404，不泄露单据存在性 */
-    private Order requireOwned(UUID userId, UUID orderId) {
-        Order order = Validate.notNull(orderMapper.selectById(orderId), "订单不存在");
-        Validate.isTrue(order.getUserId().equals(userId), "订单不存在");
-        return order;
-    }
-
-    /** 卖家侧归属：非本店一律 404 */
-    private Order requireShopOrder(UUID shopId, UUID orderId) {
-        Order order = Validate.notNull(orderMapper.selectById(orderId), "订单不存在");
-        Validate.isTrue(order.getShopId().equals(shopId), "订单不存在");
-        return order;
-    }
+    // ========== 私有：更新辅助 ==========
 
     /** 更新起点：主键定位 + 影响行数即乐观闸门 */
     private static LambdaUpdateWrapper<Order> condition(UUID orderId) {
