@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router"
 import { requireAuth } from "#/shared/lib/api"
-import { Input, Separator, TopBar, TopBarActions, TopBarBrand } from "@shop/ui-web"
+import { cn, Input, Separator, TopBar, TopBarActions, TopBarBrand } from "@shop/ui-web"
 import {
     BellIcon,
     BookOpenIcon,
@@ -52,25 +52,44 @@ function crumbsOf(pathname: string): Crumb[] {
     return [{ label: "首页", to: "/" }, { label: hit.section }, { label: hit.page }]
 }
 
+/** 当前页面名称（顶栏展示） */
+function pageTitleOf(pathname: string): string {
+    return CRUMB_SECTION_BY_PATH[pathname]?.page ?? "工作台"
+}
+
+// 内容区需要大空间的页面：隐藏侧边栏与面包屑，顶栏收成「品牌 + 页名 + 动作」，内容通栏铺满
+const FULL_WIDTH_PATHS = new Set(["/products/new"])
+
 /** 工作台壳（千牛式）：蓝灰 canvas 画布上，通栏透明顶栏 + 一级轨，
     「二级面板 + 内容」合并为一张白色浮面（大圆角、无分割线） */
 export function SellerLayout() {
     const { pathname } = useLocation()
+    const fullWidth = FULL_WIDTH_PATHS.has(pathname)
 
     return (
         <SellerSidebarProvider activeKey={activeKeyOf(pathname)}>
             <div className="flex h-svh w-full flex-col">
-                <AppTopBar />
+                <AppTopBar
+                    title={pageTitleOf(pathname)}
+                    minimal={fullWidth}
+                />
                 <div className="flex min-h-0 flex-1">
-                    <SidebarRail />
+                    {!fullWidth && <SidebarRail />}
                     {/* 白色浮面：面板与内容同处一张卡，rounded-tl 浮于 canvas */}
-                    <div className="flex min-w-0 flex-1 rounded-tl-2xl bg-background">
-                        <SidebarPanel />
+                    <div
+                        className={cn(
+                            "flex min-w-0 flex-1 bg-background",
+                            !fullWidth && "rounded-tl-2xl",
+                        )}
+                    >
+                        {!fullWidth && <SidebarPanel />}
                         <main className="min-w-0 flex-1 overflow-auto p-6">
-                            <PageBreadcrumb
-                                crumbs={crumbsOf(pathname)}
-                                className="mb-4"
-                            />
+                            {!fullWidth && (
+                                <PageBreadcrumb
+                                    crumbs={crumbsOf(pathname)}
+                                    className="mb-4"
+                                />
+                            )}
                             <Outlet />
                         </main>
                     </div>
@@ -107,8 +126,9 @@ function TopBarAction({
     )
 }
 
-/** 顶栏：透明浮于 canvas 画布，无分割线；品牌块 + 店铺切换 + 白色 pill 搜索；右侧公告、动作群、账号 */
-function AppTopBar() {
+/** 顶栏：透明浮于 canvas 画布，无分割线。minimal（内容区需大空间的页面）下
+    隐去店铺切换与搜索，只留「品牌 + 当前页名 + 动作群 + 账号」 */
+function AppTopBar({ title, minimal = false }: { title: string; minimal?: boolean }) {
     return (
         <TopBar className="gap-3 border-b-0 bg-transparent px-4">
             <TopBarBrand className="mr-0 gap-2.5">
@@ -118,27 +138,31 @@ function AppTopBar() {
                 <span className="text-sm font-semibold tracking-tight">卖家中心</span>
             </TopBarBrand>
 
-            <ShopSwitcher />
+            {!minimal && (
+                <>
+                    <ShopSwitcher />
 
-            <div className="relative hidden w-60 md:block">
-                <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="搜索菜单、功能"
-                    className="h-9 rounded-full border-transparent bg-background pl-9 shadow-none focus-visible:border-transparent focus-visible:ring-2"
-                />
-            </div>
+                    <div className="relative hidden w-60 md:block">
+                        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="搜索菜单、功能"
+                            className="h-9 rounded-full border-transparent bg-background pl-9 shadow-none focus-visible:border-transparent focus-visible:ring-2"
+                        />
+                    </div>
 
-            <div className="min-w-0 flex-1" />
+                    <div className="min-w-0 flex-1" />
+                </>
+            )}
 
-            <span className="hidden items-center gap-2 truncate text-xs lg:flex">
-                <span className="font-medium text-primary">公告</span>
+            {minimal && (
                 <Separator
                     orientation="vertical"
-                    className="h-3"
+                    className="mr-1 h-4"
                 />
-                <span className="truncate text-muted-foreground">平台年货节招商报名已开启</span>
-            </span>
+            )}
+
+            <span className="hidden max-w-60 truncate text-sm font-medium lg:block">{title}</span>
 
             <TopBarActions className="gap-1">
                 <TopBarAction

@@ -27,20 +27,23 @@ export interface BasicFormValues {
     params: ParamItem[]
 }
 
-/** 商品基本信息表单：新建草稿与编辑共用（新建无 initial） */
+/** 商品基本信息表单：新建草稿与编辑共用（新建无 initial）。
+    lockedCategoryId：发布流第一步已选定类目，表内不再重复选 */
 export function BasicForm({
     initial,
+    lockedCategoryId,
     submitting,
     submitText,
     onSubmit,
 }: {
     initial?: Product
+    lockedCategoryId?: string
     submitting: boolean
     submitText: string
     onSubmit: (values: BasicFormValues) => void
 }) {
     const [values, setValues] = useState<BasicFormValues>(() => ({
-        categoryId: initial?.categoryId ?? "",
+        categoryId: lockedCategoryId ?? initial?.categoryId ?? "",
         name: initial?.name ?? "",
         subtitle: initial?.subtitle ?? "",
         description: initial?.description ?? "",
@@ -54,6 +57,7 @@ export function BasicForm({
         queryKey: ["categories", "tree"],
         queryFn: () => productApi.categoryTree(),
         staleTime: 10 * 60_000,
+        enabled: !lockedCategoryId,
     })
     const leafOptions = flattenLeaves(categories.data ?? [])
 
@@ -84,35 +88,37 @@ export function BasicForm({
             className="space-y-5"
             onSubmit={handleSubmit}
         >
-            <div className="space-y-2">
-                <label
-                    htmlFor="bf-category"
-                    className="text-sm font-medium"
-                >
-                    商品分类
-                </label>
-                <Select
-                    value={values.categoryId}
-                    onValueChange={(v) => patch({ categoryId: v as string })}
-                >
-                    <SelectTrigger
-                        id="bf-category"
-                        className="w-full"
+            {!lockedCategoryId && (
+                <div className="space-y-2">
+                    <label
+                        htmlFor="bf-category"
+                        className="text-sm font-medium"
                     >
-                        <SelectValue placeholder="选择末级分类" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {leafOptions.map((opt) => (
-                            <SelectItem
-                                key={opt.id}
-                                value={opt.id}
-                            >
-                                {opt.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+                        商品分类
+                    </label>
+                    <Select
+                        value={values.categoryId}
+                        onValueChange={(v) => patch({ categoryId: v as string })}
+                    >
+                        <SelectTrigger
+                            id="bf-category"
+                            className="w-full"
+                        >
+                            <SelectValue placeholder="选择末级分类" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {leafOptions.map((opt) => (
+                                <SelectItem
+                                    key={opt.id}
+                                    value={opt.id}
+                                >
+                                    {opt.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
             <div className="space-y-2">
                 <label
