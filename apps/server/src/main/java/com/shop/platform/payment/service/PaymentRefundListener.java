@@ -43,31 +43,33 @@ public class PaymentRefundListener {
             log.error("[PAYMENT] 已付款订单取消但无成功流水可退, orderId={}, userId={}", event.orderId(), event.userId());
             return;
         }
-        backendRefund(success, "订单取消退款", false);
-        log.info(
-                "[PAYMENT] 订单取消退款, orderId={}, userId={}, refundNo={}",
-                event.orderId(),
-                event.userId(),
-                success.getRefundGatewayNo());
+        String refundNo = backendRefund(success, "订单取消退款", false);
+        if (refundNo == null) {
+            return; // 渠道拒退且不阻塞取消：失败已在 backendRefund 里打过 ERROR，这里不能再报「已退款」
+        }
+        log.info("[PAYMENT] 订单取消退款, orderId={}, userId={}, refundNo={}", event.orderId(), event.userId(), refundNo);
     }
 
     @EventListener
     public void onOrderAfterSaleRefunded(OrderAfterSaleRefundedEvent event) {
         Payment success = Validate.notNull(paymentMapper.selectSuccessByOrder(event.orderId()), "该订单没有可退款的支付流水");
-        backendRefund(success, "售后退款", true);
+        String refundNo = backendRefund(success, "售后退款", true);
         log.info(
                 "[PAYMENT] 售后退款到账, orderId={}, userId={}, amount={}, refundNo={}",
                 event.orderId(),
                 event.userId(),
                 event.refundAmount(),
-                success.getRefundGatewayNo());
+                refundNo);
     }
 
     /**
      * 提交渠道退款并落本地退款单。渠道拒退时按 {@code strict} 取舍：{@code false}=放行人工对账（取消），
-     * {@code true}=抛异常回滚（售后）。返回流水已带渠道退款单号，供调用方日志。
+     * {@code true}=抛异常回滚（售后）。
+     *
+     * @return 渠道侧退款单号（对账凭据）；放行的失败返回 null。不能读 {@code success.getRefundGatewayNo()}
+     *     ——refundByOrder 是条件更新语句，不回写内存实体，那里恒为退款前的 null
      */
-    private void backendRefund(Payment success, String reason, boolean strict) {
+    private String backendRefund(Payment success, String reason, boolean strict) {
         PaymentGateway.RefundOutcome outcome;
         try {
             outcome = paymentGateway.refund(new PaymentGateway.RefundParams(
@@ -81,8 +83,9 @@ public class PaymentRefundListener {
                 throw e;
             }
             log.error("[PAYMENT] 渠道退款失败但不阻塞取消, orderId={}, reason={}", success.getOrderId(), reason, e);
-            return;
+            return null;
         }
         paymentMapper.refundByOrder(success.getOrderId(), OffsetDateTime.now(), outcome.refundNo());
+        return outcome.refundNo();
     }
 }

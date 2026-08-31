@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,36 +53,19 @@ public class CartService {
                         .isPresent(),
                 "商品已下架");
 
-        // 2. 合并或新增：同 SKU 已在车里则累加封顶，否则插新行
-        CartItem existing = cartItemMapper.selectByUserAndSku(userId, req.skuId());
-        if (existing != null) {
-            existing.setQuantity(existing.mergedQuantity(req.quantity()));
-            cartItemMapper.updateById(existing);
-            return existing;
+        // 2. 条目数上限防刷：车里已有该 SKU 时只累加数量、不占新坑，故不计入闸门
+        //    （并发窗口内微小越界可容忍：非资金安全线，唯一索引才是硬兜底）
+        if (cartItemMapper.selectByUserAndSku(userId, req.skuId()) == null) {
+            Validate.isTrue(
+                    cartItemMapper.countByUser(userId) < MAX_ITEMS_PER_USER, "购物车最多存放 " + MAX_ITEMS_PER_USER + " 种商品");
         }
 
-        // 3. 新条目前查条目数上限防刷（并发窗口内微小越界可容忍：非资金安全线，唯一索引才是硬兜底）
-        Validate.isTrue(
-                cartItemMapper.countByUser(userId) < MAX_ITEMS_PER_USER, "购物车最多存放 " + MAX_ITEMS_PER_USER + " 种商品");
-
-        CartItem item = CartItem.builder()
-                .userId(userId)
-                .skuId(req.skuId())
-                .quantity(req.quantity())
-                .selected(true)
-                .build();
-        try {
-            cartItemMapper.insert(item);
-            log.info("[CART] 加购, userId={}, skuId={}, quantity={}", userId, req.skuId(), req.quantity());
-            return item;
-        } catch (DuplicateKeyException e) {
-            // 4. 并发重复加购撞 uk_cart_items_user_sku：回退为合并
-            CartItem raced = cartItemMapper.selectByUserAndSku(userId, req.skuId());
-            Validate.notNull(raced, "购物车条目不存在");
-            raced.setQuantity(raced.mergedQuantity(req.quantity()));
-            cartItemMapper.updateById(raced);
-            return raced;
-        }
+        // 3. 一条 upsert 落库（见 CartItemMapper#upsertMerging）：新条目插入，同 SKU 累加封顶，
+        //    并发重复加购由 ON CONFLICT 在行锁下合并——不能靠 catch DuplicateKeyException 回退，
+        //    PG 撞唯一索引即中止整个事务，catch 后发不出任何语句
+        CartItem item = cartItemMapper.upsertMerging(userId, req.skuId(), req.quantity());
+        log.info("[CART] 加购, userId={}, skuId={}, quantity={}", userId, req.skuId(), req.quantity());
+        return item;
     }
 
     /**

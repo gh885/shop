@@ -19,11 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DuplicateKeyException;
 
 /**
  * 支付业务单测（资金路径，两段式状态机）：发起只落 PENDING 流水不动订单；
- * 确认推进 PENDING→SUCCESS + 订单状态机；归属校验、幂等短路、非待付款拒绝、并发撞唯一索引回退。
+ * 确认推进 PENDING→SUCCESS + 订单状态机；归属校验、幂等短路、非待付款拒绝。
  */
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -136,24 +135,6 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> service.pay(userId, orderId)).isInstanceOfSatisfying(BusinessException.class, ex -> {
             assertThat(ex.getHttpStatus()).isEqualTo(409);
         });
-    }
-
-    @Test
-    void 并发发起撞唯一索引_退回既有流水() {
-        stubOrder("PENDING_PAYMENT");
-        Payment winner = new Payment();
-        winner.setId(UUID.randomUUID());
-        winner.setStatus(Payment.STATUS_PENDING);
-        when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null).thenReturn(null);
-        when(paymentMapper.selectPendingByOrder(orderId))
-                .thenReturn(null) // 首查无流水
-                .thenReturn(winner); // 撞索引后回查拿到赢家
-        when(paymentMapper.insert(any(Payment.class))).thenThrow(new DuplicateKeyException("payment.payments_uuid"));
-
-        Payment result = service.pay(userId, orderId);
-
-        assertThat(result.getId()).isEqualTo(winner.getId()); // 与并发赢家同笔，语义等同幂等
-        verify(orderCommand, never()).markPaid(any());
     }
 
     // ========== 确认（PENDING→SUCCESS） ==========

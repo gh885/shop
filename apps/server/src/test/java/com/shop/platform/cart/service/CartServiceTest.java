@@ -2,7 +2,6 @@ package com.shop.platform.cart.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,11 +21,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DuplicateKeyException;
 
 /**
- * 加购业务单测：可加购判定（SKU 在售 + SPU 上架）、同 SKU 合并累加封顶、条目数防刷、
- * 并发撞唯一索引回退为合并。整车视图拼装与真库链路见控制器测试 / IT。
+ * 加购业务单测：可加购判定（SKU 在售 + SPU 上架）、条目数防刷、以及「已在车里的 SKU 不占新坑」。
+ *
+ * <p>同 SKU 累加与封顶 999 现在是 upsert 单语句的 DB 侧语义（{@code CartItemMapper#upsertMerging}
+ * 的 ON CONFLICT DO UPDATE），mock 掉 mapper 就测不到，改由真库链路的控制器测试 / IT 覆盖。
  */
 @ExtendWith(MockitoExtension.class)
 class CartServiceTest {
@@ -69,7 +69,14 @@ class CartServiceTest {
         stubSellable();
         when(cartItemMapper.selectByUserAndSku(userId, skuId)).thenReturn(null);
         when(cartItemMapper.countByUser(userId)).thenReturn(0L);
-        when(cartItemMapper.insert(any(CartItem.class))).thenReturn(1);
+        when(cartItemMapper.upsertMerging(userId, skuId, 2))
+                .thenReturn(CartItem.builder()
+                        .id(UUID.randomUUID())
+                        .userId(userId)
+                        .skuId(skuId)
+                        .quantity(2)
+                        .selected(true)
+                        .build());
 
         CartItem item = service.add(userId, request(2));
 
@@ -78,7 +85,7 @@ class CartServiceTest {
     }
 
     @Test
-    void 同SKU已在车_合并累加() {
+    void 同SKU已在车_不占新坑_跳过条目数闸门() {
         stubSellable();
         CartItem existing = CartItem.builder()
                 .id(UUID.randomUUID())
@@ -88,23 +95,22 @@ class CartServiceTest {
                 .selected(true)
                 .build();
         when(cartItemMapper.selectByUserAndSku(userId, skuId)).thenReturn(existing);
+        // 累加由 upsert 在 DB 侧完成，service 只透传落库后的整行
+        when(cartItemMapper.upsertMerging(userId, skuId, 2))
+                .thenReturn(CartItem.builder()
+                        .id(existing.getId())
+                        .userId(userId)
+                        .skuId(skuId)
+                        .quantity(5)
+                        .selected(true)
+                        .build());
 
         CartItem merged = service.add(userId, request(2));
 
-        // 行为：同一逻辑行合并（同 skuId/userId），数量累加；不新增行（见下方 never insert）
         assertThat(merged.getSkuId()).isEqualTo(skuId);
-        assertThat(merged.getUserId()).isEqualTo(userId);
         assertThat(merged.getQuantity()).isEqualTo(5);
-        verify(cartItemMapper).updateById(existing);
-        verify(cartItemMapper, never()).insert(any(CartItem.class));
-    }
-
-    @Test
-    void 合并_数量封顶999() {
-        // 纯实体方法：合并上限是 CartItem 自己的不变式
-        CartItem existing = CartItem.builder().quantity(995).build();
-
-        assertThat(existing.mergedQuantity(10)).isEqualTo(999); // 顶到单条目上限
+        // 已在车里只累加数量，不新占条目坑 → 不查条目数
+        verify(cartItemMapper, never()).countByUser(userId);
     }
 
     @Test
@@ -138,20 +144,5 @@ class CartServiceTest {
         assertThatThrownBy(() -> service.add(userId, request(1)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("最多存放");
-    }
-
-    @Test
-    void 并发重复加购撞唯一索引_回退为合并() {
-        stubSellable();
-        when(cartItemMapper.selectByUserAndSku(userId, skuId))
-                .thenReturn(null) // 首查无
-                .thenReturn(CartItem.builder().quantity(4).build()); // 撞索引后回查到赢家行
-        when(cartItemMapper.countByUser(userId)).thenReturn(0L);
-        when(cartItemMapper.insert(any(CartItem.class))).thenThrow(new DuplicateKeyException("uk"));
-
-        CartItem item = service.add(userId, request(6));
-
-        assertThat(item.getQuantity()).isEqualTo(10); // 4 + 6 合并
-        verify(cartItemMapper).updateById(item);
     }
 }

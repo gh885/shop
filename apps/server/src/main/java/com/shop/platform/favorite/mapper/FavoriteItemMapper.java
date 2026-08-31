@@ -10,11 +10,26 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface FavoriteItemMapper extends BaseMapper<FavoriteItem> {
 
-    /** 本人某商品收藏行：幂等收藏查重与并发撞唯一索引后的回读共用 */
+    /**
+     * 收藏落库的唯一语句：收藏是幂等开关，已收藏则原样返回既有行（DO UPDATE 写回同值只为让 RETURNING 出行，
+     * DO NOTHING 撞冲突时不返回任何行）。
+     *
+     * <p>做成 upsert 而不是「先查再插、撞唯一索引后 catch 回读」：PG 一旦因唯一索引报错就把整个事务标记为
+     * aborted，catch 之后的任何语句都会 25P02 失败（pgjdbc 默认 autosave=never，不打 savepoint），回读路径
+     * 根本执行不到。id / created_at 由列默认值生成。
+     */
+    @Select("INSERT INTO favorite.items (user_id, product_id) VALUES (#{userId}, #{productId})"
+            + " ON CONFLICT (user_id, product_id) DO UPDATE SET product_id = EXCLUDED.product_id"
+            + " RETURNING *")
+    FavoriteItem upsertIdempotent(@Param("userId") UUID userId, @Param("productId") UUID productId);
+
+    /** 本人某商品收藏行：详情页「是否已收藏」的单点查 */
     default FavoriteItem selectByUserAndProduct(UUID userId, UUID productId) {
         return selectOne(new LambdaQueryWrapper<FavoriteItem>()
                 .eq(FavoriteItem::getUserId, userId)

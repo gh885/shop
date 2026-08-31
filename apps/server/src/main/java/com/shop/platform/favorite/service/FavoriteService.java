@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +25,7 @@ public class FavoriteService {
     private final ProductReadQuery productReadQuery;
 
     /**
-     * 收藏：幂等开关。商品不存在或未上架拒绝；重复收藏撞唯一索引后静默回退为无操作。
+     * 收藏：幂等开关。商品不存在或未上架拒绝；重复收藏由 upsert 原样返回既有行，不产生第二行。
      * 返回当前条目（已存在时为原行），前端据此渲染已收藏态。
      */
     @Transactional
@@ -38,22 +37,11 @@ public class FavoriteService {
                 .isPresent();
         Validate.isTrue(published, "商品不存在或已下架");
 
-        // 2. 幂等：已在收藏夹直接返回原行
-        FavoriteItem existing = favoriteItemMapper.selectByUserAndProduct(userId, productId);
-        if (existing != null) {
-            return existing;
-        }
-
-        // 3. 落行；并发重复收藏撞 uk_favorite_items_user_product 时回退查原行
-        FavoriteItem item =
-                FavoriteItem.builder().userId(userId).productId(productId).build();
-        try {
-            favoriteItemMapper.insert(item);
-            log.info("[FAVORITE] 收藏, userId={}, productId={}", userId, productId);
-            return item;
-        } catch (DuplicateKeyException e) {
-            return favoriteItemMapper.selectByUserAndProduct(userId, productId);
-        }
+        // 2. 一条 upsert 落库（见 FavoriteItemMapper#upsertIdempotent）：未收藏则插入，已收藏原样返回既有行。
+        //    不能靠 catch DuplicateKeyException 回读：PG 撞唯一索引即中止整个事务，catch 后发不出任何语句
+        FavoriteItem item = favoriteItemMapper.upsertIdempotent(userId, productId);
+        log.info("[FAVORITE] 收藏, userId={}, productId={}", userId, productId);
+        return item;
     }
 
     /** 取消收藏：按商品 ID 删（收藏是开关不是行管理），幂等——不存在也返回成功 */

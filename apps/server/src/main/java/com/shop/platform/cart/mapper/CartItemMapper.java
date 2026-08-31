@@ -6,11 +6,32 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface CartItemMapper extends BaseMapper<CartItem> {
 
-    /** 本人某 SKU 条目：加购合并与并发撞唯一索引后的回读共用 */
+    /**
+     * 加购落库的唯一语句：新条目插入，同 SKU 已在车里则数量累加、封顶
+     * {@link CartItem#MAX_QUANTITY_PER_ITEM}（DB CHECK 同值兜底），返回落库后的整行。
+     *
+     * <p>做成 upsert 而不是「先查再插、撞唯一索引后 catch 回退合并」：PG 一旦因唯一索引报错就把整个
+     * 事务标记为 aborted，catch 之后的任何语句都会 25P02 失败（pgjdbc 默认 autosave=never，不打 savepoint），
+     * 回退路径根本执行不到。顺带消掉了读-改-写在并发加购下的丢失更新——累加在行锁下由 DB 完成。
+     *
+     * <p>声明为 {@code @Select} 是消费 RETURNING 结果集的既定姿势（走 executeQuery 而非 executeUpdate）；
+     * id / created_at / updated_at 全部由列默认值生成，不经 MyBatis-Plus 自动填充。
+     */
+    @Select("INSERT INTO cart.items AS c (user_id, sku_id, quantity, selected)"
+            + " VALUES (#{userId}, #{skuId}, #{quantity}, TRUE)"
+            + " ON CONFLICT (user_id, sku_id) DO UPDATE"
+            + " SET quantity = LEAST(c.quantity + EXCLUDED.quantity, " + CartItem.MAX_QUANTITY_PER_ITEM + "),"
+            + "     updated_at = NOW()"
+            + " RETURNING *")
+    CartItem upsertMerging(@Param("userId") UUID userId, @Param("skuId") UUID skuId, @Param("quantity") int quantity);
+
+    /** 本人某 SKU 条目：加购前判定「是否新占一个条目坑」用 */
     default CartItem selectByUserAndSku(UUID userId, UUID skuId) {
         return selectOne(new LambdaQueryWrapper<CartItem>()
                 .eq(CartItem::getUserId, userId)

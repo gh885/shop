@@ -10,7 +10,6 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <b>发起</b>建 PENDING 流水（只占位、不动订单状态），<b>确认</b>（内部 mock 确认端点，模拟网关回调）
  * 才验签推进订单状态机、置 SUCCESS。验证通过后这段 mock 确认替换成真实网关回调即可，状态机逻辑不变。
  *
- * <p>幂等：一单至多一条成功流水（uk_payments_order_success 部分唯一索引）；重复发起复用既有
+ * <p>幂等：一单至多一条成功流水（uk_payments_order_success 部分唯一索引）；串行重复发起复用既有
  * PENDING/SUCCESS，不堆积。确认用条件转移 PENDING→SUCCESS 防重复确认。
  *
  * <p>事务：发起只落流水；确认时同事务调用 OrderCommand.markPaid（同步推进订单、扣实冻结库存），
@@ -41,7 +40,7 @@ public class PaymentService {
     private final OrderCommand orderCommand;
 
     /**
-     * 发起支付：校验订单可付 → 建 PENDING 流水（不动订单状态）。重复发起幂等返回既有流水。
+     * 发起支付：校验订单可付 → 建 PENDING 流水（不动订单状态）。串行重复发起幂等返回既有流水。
      *
      * <p>接真实网关时：此处改为创建 PENDING 流水 + 返回收银台跳转参数，本方法只负责「下支付单」，
      * 结果的推进交给回调（对应本类的 confirm）。
@@ -66,6 +65,12 @@ public class PaymentService {
         Validate.isTrue(order.pendingPayment(), 409, "订单不是待付款状态");
 
         // 4. 写 PENDING 流水（渠道 MOCK，paidAt 留空待确认时回填）
+        //    这里不设 try/catch：uk_payments_order_success 是 WHERE status = 'SUCCESS' 的部分唯一索引，
+        //    PENDING 行插不出唯一冲突。并发发起会各插一条 PENDING（第 2 步的短路只挡得住串行重试），
+        //    但重复扣款不由此拦——两条都去 confirm 时只有第一条能让 markPaid 的条件转移过闸，
+        //    第二条拿到 409 连带整个事务回滚。多出来的 PENDING 行是账面噪音，不是资金风险。
+        //    （真要一单一 PENDING，得加 WHERE status = 'PENDING' 的部分唯一索引 + ON CONFLICT DO NOTHING，
+        //     不能靠 catch DuplicateKeyException 回读：PG 撞唯一索引即中止整个事务，catch 后发不出任何语句。）
         Payment payment = Payment.builder()
                 .orderId(orderId)
                 .orderNo(order.orderNo())
@@ -75,12 +80,7 @@ public class PaymentService {
                 .channel(Payment.CHANNEL_MOCK)
                 .status(Payment.STATUS_PENDING)
                 .build();
-        try {
-            paymentMapper.insert(payment);
-        } catch (DuplicateKeyException e) {
-            // 并发窗口内另一请求先落了 PENDING：退回既有待确认流水，语义等同幂等重试
-            return Validate.notNull(paymentMapper.selectPendingByOrder(orderId), "支付流水写入冲突");
-        }
+        paymentMapper.insert(payment);
         log.info("[PAYMENT] 发起支付, orderId={}, userId={}, paymentId={}", orderId, userId, payment.getId());
         return payment;
     }

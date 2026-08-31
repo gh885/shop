@@ -4,6 +4,7 @@ import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.shop.platform.cart.events.CartCheckedOutEvent;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
@@ -32,12 +33,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,8 +68,6 @@ public class OrderService {
     private final ApplicationEventPublisher events;
 
     private static final DateTimeFormatter ORDER_NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
-
-    private static final AtomicLong ORDER_NO_SEQ = new AtomicLong();
 
     // ========== 结算预览 ==========
 
@@ -174,7 +171,7 @@ public class OrderService {
 
     // ========== 内部：落单 ==========
 
-    /** 落一笔订单：主表快照 + 行项目快照；orderNo 极小概率撞号时换号重插 */
+    /** 落一笔订单：主表快照 + 行项目快照（单号生成见 {@link #insertOrder}） */
     private Order persistOrder(UUID userId, String buyerMessage, AddressSnapshot addr, List<ValidLine> lines) {
         Money itemAmount = checkoutResolver.sumLines(lines);
         Order template = Order.builder()
@@ -219,22 +216,21 @@ public class OrderService {
         return order;
     }
 
+    /**
+     * 落一笔订单：主键与业务单号在插入前定好，一次插入到位。
+     *
+     * <p>不做「撞号换号重试」：PG 一旦因唯一索引报错就把整个事务标记为 aborted，catch 之后的重插必然
+     * 25P02 失败（pgjdbc 默认 autosave=never，不打 savepoint）——重试循环执行不到第二轮。改为让单号
+     * 在构造上就不撞：uuidv7 主键自带 74 位随机段，取其低位派生 6 位十进制后缀，同毫秒内的区分度由它承担，
+     * 不再依赖进程内序列（多实例各自计数，本来就会撞）。uk_orders_order_no 仍是最后防线。
+     */
     private Order insertOrder(Order template) {
-        // 业务单号 = 时间戳(17位) + 进程内序列(3位)；uk_orders_order_no 是最后防线，撞号换号重试
-        for (int attempt = 0; attempt < 3; attempt++) {
-            try {
-                orderMapper.insert(withNextOrderNo(template));
-                return template;
-            } catch (DuplicateKeyException ignored) {
-                // 撞号重试
-            }
-        }
-        throw new BusinessException(500, "订单号生成冲突，请重试");
-    }
-
-    private Order withNextOrderNo(Order template) {
-        long seq = ORDER_NO_SEQ.updateAndGet(v -> (v + 1) % 1000);
-        template.setOrderNo(OffsetDateTime.now().format(ORDER_NO_FMT) + "%03d".formatted(seq));
+        UUID id = UuidCreator.getTimeOrderedEpoch();
+        template.setId(id);
+        // 业务单号 = 毫秒时间戳(17位) + 主键随机段派生(6位)，共 23 字符，order_no VARCHAR(32) 装得下
+        template.setOrderNo(OffsetDateTime.now().format(ORDER_NO_FMT)
+                + "%06d".formatted(Math.floorMod(id.getLeastSignificantBits(), 1_000_000)));
+        orderMapper.insert(template);
         return template;
     }
 

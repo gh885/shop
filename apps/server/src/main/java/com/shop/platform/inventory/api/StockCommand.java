@@ -6,6 +6,7 @@ import com.shop.platform.inventory.mapper.SkuStockMapper;
 import com.shop.platform.inventory.mapper.StockFrames;
 import com.shop.platform.inventory.mapper.StockMovement;
 import com.shop.platform.inventory.mapper.StockMovementMapper;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
  * </ul>
  * 每笔变更同步写一条<b>流水</b>（append-only 账本），前后帧来自更新语句本身，严格连续可重放。
  * 资金/库存两侧原子靠调用方事务。
+ *
+ * <p><b>批量操作一律按 skuId 升序上锁</b>（{@link #ordered}）：每条更新语句在事务内持有该行的行锁直到提交，
+ * 若按调用方给的顺序（= 用户勾选购物车的顺序）逐行锁，两笔含相同 SKU 集合但顺序相反的并发订单就会
+ * 循环等待，被 PG 死锁检测器杀掉一笔。固定全局顺序后循环不可能成环，退化为正常排队。
  */
 @Component
 @Slf4j
@@ -35,13 +40,18 @@ public class StockCommand {
 
     private final StockMovementMapper movementMapper;
 
+    /** 批量存量操作的统一上锁顺序：按 skuId 升序，见类注释 */
+    private static List<StockLine> ordered(List<StockLine> lines) {
+        return lines.stream().sorted(Comparator.comparing(StockLine::skuId)).toList();
+    }
+
     /**
      * 下单冻结：stock 不变，frozen += n，可用 -= n。任一 SKU 可用量不足（无行返回）抛 409 令整单回滚。
      * 冻结成功即有库存被锁定；未付款超时/取消走 release。
      */
     @Transactional
     public void freeze(UUID orderId, List<StockLine> lines) {
-        for (StockLine line : lines) {
+        for (StockLine line : ordered(lines)) {
             // 1. 条件冻结：可用量不足时闸门不过（无行返回），拒绝整笔订单
             StockFrames frames = skuStockMapper.freezeOne(line.skuId(), line.quantity());
             if (frames == null) {
@@ -59,7 +69,7 @@ public class StockCommand {
      */
     @Transactional
     public void capture(UUID orderId, List<StockLine> lines) {
-        for (StockLine line : lines) {
+        for (StockLine line : ordered(lines)) {
             StockFrames frames = skuStockMapper.captureOne(line.skuId(), line.quantity());
             // 扣实失败的规范化响应交给调用方（订单已被取消时 markPaid 早已拒绝），此处仍兜底防御
             if (frames == null) {
@@ -77,7 +87,7 @@ public class StockCommand {
      */
     @Transactional
     public void release(UUID orderId, List<StockLine> lines) {
-        for (StockLine line : lines) {
+        for (StockLine line : ordered(lines)) {
             StockFrames frames = skuStockMapper.releaseOne(line.skuId(), line.quantity());
             if (frames == null) {
                 log.warn("[INVENTORY] 释放失败: 冻结量不足, skuId={}, need={}", line.skuId(), line.quantity());
@@ -95,7 +105,7 @@ public class StockCommand {
      */
     @Transactional
     public void restock(UUID orderId, List<StockLine> lines) {
-        for (StockLine line : lines) {
+        for (StockLine line : ordered(lines)) {
             StockFrames frames = skuStockMapper.restockOne(line.skuId(), line.quantity());
             if (frames == null) {
                 throw BusinessException.notFound("SKU 不存在或无库存记录");
