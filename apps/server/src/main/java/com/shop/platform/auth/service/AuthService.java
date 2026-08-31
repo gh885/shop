@@ -1,5 +1,6 @@
 package com.shop.platform.auth.service;
 
+import com.shop.platform.auth.AuthModuleConfig;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,8 +59,18 @@ public class AuthService {
             "asdfghjkl",
             "zxcvbnm");
 
-    // Dummy hash for timing-consistent login (LOGIN-01)
-    private static final String DUMMY_PASSWORD_HASH = "$2a$12$0000000000000000000000000000000000000000000000";
+    /**
+     * 等时对比用的占位哈希（LOGIN-01）：用户不存在/被限流时拿它跑一次 BCrypt，让响应耗时与"用户存在且密码错误"
+     * 一致，堵掉按响应时间做账号枚举。
+     *
+     * <p>必须是<b>合法</b> BCrypt 串且代价与 {@code passwordEncoder} 相同：Spring 的 BCryptPasswordEncoder
+     * 先用正则 {@code \$2[ayb]\$\d{2}\$[./0-9A-Za-z]{53}} 校验格式，不合法就打条 WARN 直接 return false
+     * ——KDF 根本不执行，等时防护形同虚设（曾因手写 46 位零串踩过：占位 139µs vs 真实 179ms，差 1289 倍）。
+     * 故这里由编码器现算而非硬编码字面量，代价因子跟着 {@link AuthModuleConfig#BCRYPT_STRENGTH} 走，不会失配。
+     * 格式不变式由 AuthServiceTest 钉死。
+     */
+    static final String DUMMY_PASSWORD_HASH = new BCryptPasswordEncoder(AuthModuleConfig.BCRYPT_STRENGTH)
+            .encode("dummy-placeholder-never-matches-any-real-password");
 
     private final UserMapper userMapper;
     private final JwtProvider jwtProvider;

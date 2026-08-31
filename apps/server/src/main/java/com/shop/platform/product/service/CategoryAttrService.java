@@ -132,46 +132,41 @@ public class CategoryAttrService {
             throw BusinessException.conflict(null, "该属性下已存在同名值");
         }
 
-        // 2. 圈定引用 SKU：spec_key 含该 valueId（UUID 字符串无子串误撞风险），重读重写快照
-        List<Sku> affected =
-                skuMapper.selectList(new LambdaQueryWrapper<Sku>().like(Sku::getSpecKey, valueId.toString()));
+        // 2. 圈定引用 SKU：attributes 含该 valueId（JSONB containment，走 idx_skus_attributes_gin），
+        //    重读重写快照。SPU 名批量取一次——按 productId 逐条点查会随引用 SKU 数放大成 N+1
+        List<Sku> affected = skuMapper.selectByValueId(valueId);
+        if (affected.isEmpty()) {
+            return row;
+        }
+        Map<UUID, Product> products =
+                productMapper
+                        .selectByIds(affected.stream()
+                                .map(Sku::getProductId)
+                                .distinct()
+                                .toList())
+                        .stream()
+                        .collect(Collectors.toMap(Product::getId, p -> p));
         for (Sku sku : affected) {
             List<SkuAttr> attrs = sku.getAttributes().stream()
                     .map(a -> a.valueId().equals(valueId) ? new SkuAttr(a.attrId(), a.valueId(), a.name(), value) : a)
                     .toList();
             sku.setAttributes(attrs);
-            sku.setName(buildSkuName(productMapper.selectById(sku.getProductId()), attrs));
+            sku.setName(buildSkuName(products.get(sku.getProductId()), attrs));
             skuMapper.updateById(sku);
         }
         return row;
     }
 
     /**
-     * 卖家扩充值：值域外新值自动建档（source=2），同名复用。供 ProductService.updateSpecs 受理 customValues。
-     * 唯一索引兜底并发：撞索引即已有同名行，重查返回。
+     * 卖家扩充值：值域外新值自动建档（source=2），同名复用（含平台预置值，不改其 source）。
+     * 供 ProductService.updateSpecs 受理 customValues。
+     *
+     * <p>一条 upsert 落库（见 CategoryAttrValueMapper#upsertSellerValue）——不能靠 catch
+     * DuplicateKeyException 回读：PG 撞唯一索引即中止整个事务，catch 后发不出任何语句。
      */
     @Transactional
     public CategoryAttrValue ensureSellerValue(UUID attrId, String value) {
-        CategoryAttrValue existing = valueMapper.selectOne(new LambdaQueryWrapper<CategoryAttrValue>()
-                .eq(CategoryAttrValue::getAttrId, attrId)
-                .eq(CategoryAttrValue::getValue, value));
-        if (existing != null) {
-            return existing;
-        }
-        CategoryAttrValue row = CategoryAttrValue.builder()
-                .attrId(attrId)
-                .value(value)
-                .sort(0)
-                .source(CategoryAttrValue.SOURCE_SELLER)
-                .build();
-        try {
-            valueMapper.insert(row);
-        } catch (DuplicateKeyException e) {
-            return valueMapper.selectOne(new LambdaQueryWrapper<CategoryAttrValue>()
-                    .eq(CategoryAttrValue::getAttrId, attrId)
-                    .eq(CategoryAttrValue::getValue, value));
-        }
-        return row;
+        return valueMapper.upsertSellerValue(attrId, value);
     }
 
     private CategoryAttr requireAttr(UUID attrId) {
