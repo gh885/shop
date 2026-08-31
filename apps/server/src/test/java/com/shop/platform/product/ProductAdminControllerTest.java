@@ -80,18 +80,31 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         when(productService.updateSpecs(eq(productId), any())).thenReturn(List.of(sku));
         when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of());
 
-        mockMvc.perform(
-                        put("/seller/products/{id}/specs", productId)
-                                .with(userAuth(userId))
-                                .header("X-Shop-Id", shopId.toString())
-                                .content(
-                                        """
-                            {"specs": [{"name": "颜色", "values": ["黑"]}]}
-                            """))
+        mockMvc.perform(put("/seller/products/{id}/specs", productId)
+                        .with(userAuth(userId))
+                        .header("X-Shop-Id", shopId.toString())
+                        .content(
+                                """
+                            {"specs": [{"attrId": "%s", "valueIds": ["%s"]}]}
+                            """
+                                        .formatted(UUID.randomUUID(), UUID.randomUUID())))
                 .andExpect(status().isOk())
                 // 卖家侧契约：skuCode/status 进出参（仓管编码与停用态），与买家侧刻意不同
                 .andExpect(jsonPath("$[0].skuCode").value("SKU-001"))
                 .andExpect(jsonPath("$[0].status").value(1));
+    }
+
+    @Test
+    void 改规格_选择全空_422() throws Exception {
+        mockMvc.perform(put("/seller/products/{id}/specs", productId)
+                        .with(userAuth(userId))
+                        .header("X-Shop-Id", shopId.toString())
+                        .content(
+                                """
+                            {"specs": [{"attrId": "%s"}]}
+                            """
+                                        .formatted(UUID.randomUUID())))
+                .andExpect(status().is(422));
     }
 
     @Test

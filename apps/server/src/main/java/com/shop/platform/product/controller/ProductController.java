@@ -9,6 +9,7 @@ import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.mapper.SkuAttr;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
@@ -113,7 +114,7 @@ public class ProductController {
     public record SkuResponse(
             UUID id,
             String name,
-            List<ParamItem> attributes,
+            List<SkuAttr> attributes,
             String image,
             Money price,
             Money originalPrice,

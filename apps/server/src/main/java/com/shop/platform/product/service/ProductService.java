@@ -10,13 +10,19 @@ import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.dto.SkuUpdateItem;
+import com.shop.platform.product.mapper.CategoryAttr;
+import com.shop.platform.product.mapper.CategoryAttrMapper;
+import com.shop.platform.product.mapper.CategoryAttrValue;
+import com.shop.platform.product.mapper.CategoryAttrValueMapper;
 import com.shop.platform.product.mapper.CategoryMapper;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.mapper.SkuAttr;
 import com.shop.platform.product.mapper.SkuMapper;
 import com.shop.platform.product.mapper.SpecItem;
+import com.shop.platform.product.mapper.SpecValue;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -24,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -41,54 +48,70 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
     private final SkuMapper skuMapper;
+    private final CategoryAttrMapper attrMapper;
+    private final CategoryAttrValueMapper attrValueMapper;
+    private final CategoryAttrService categoryAttrService;
     private final StockCommand stockCommand;
 
     /** 创建商品草稿：只落基本信息，specs/SKU 由后续接口补充。shopId 由 controller 从店铺上下文（X-Shop-Id）注入 */
     public Product create(CreateProductCommand command) {
         Validate.isTrue(categoryMapper.selectById(command.categoryId()) != null, "分类不存在");
+        // 类目有参数模板时校验 params（required 必填、attrId 归属、值域约束）；无模板维持自由文本
+        validateParams(command.categoryId(), command.params());
         Product draft = toDraftEntity(command);
         productMapper.insert(draft);
         return draft;
     }
 
     /**
-     * 更新销售属性模板，并按新模板对账 SKU：规格组合没变的保留（价格库存不丢）、组合消失的删除、组合新增的按笛卡尔积生成。
+     * 按类目属性模板提交规格选择，并按 valueId 组合（spec_key）对账 SKU：
+     * 组合没变的保留（价格库存不丢）、组合消失的删除、组合新增的按笛卡尔积生成。
      *
-     * <p>attributes 按模板顺序组装 List<ParamItem>（record 值相等 = JSON 值相等），handler 按字段序固定序列化，保证
-     * uk_skus_product_attrs 唯一索引对同一组合命中同一条。 已知限制：规格值改名（黑→曜石黑）会被视为新组合，旧 SKU 删、价格丢失（淘宝的属性映射本次不做）。
+     * <p>规格值 ID 化后，规格值改名只是改快照（见 CategoryAttrService.updateValue），不再被视为新组合—— 消除了旧版"改名即丢价"的已知限制。spec_key = valueId
+     * 按模板维度顺序 ':' join，uk_skus_product_spec_key 唯一索引兜底重复组合。
      */
     @Transactional
-    public List<Sku> updateSpecs(UUID productId, List<SpecItem> specs) {
+    public List<Sku> updateSpecs(UUID productId, List<SpecSelection> selections) {
+        // 1. 归属 + 规格可编辑性守卫（上架冻结规格，要改先下架）
         Product product = requireShopOwned(productId);
         product.ensureSpecsEditable();
-        long distinctNames = specs.stream().map(SpecItem::name).distinct().count();
-        Validate.isTrue(distinctNames == specs.size(), "规格名不能重复");
+        long distinctAttrs =
+                selections.stream().map(SpecSelection::attrId).distinct().count();
+        Validate.isTrue(distinctAttrs == selections.size(), "规格属性不能重复");
 
-        // 2. 落规格模板，SKU 生成公式自此定死
+        // 2. 按模板解析选择：attr 存在、启用、属于商品当前类目、kind=spec；valueIds 属于该 attr；
+        //    customValues 仅当 attr.allow_custom 时受理，值域外新值自动建档（source=2，同名复用）
+        List<SpecItem> specs = resolveSelections(product, selections);
+
+        // 3. 落规格模板快照（name/value 从模板读出；模板改名后的快照同步在下一次 updateSpecs 重写）
         product.setSpecs(specs);
         productMapper.updateById(product);
 
-        // 3. 算目标组合：按模板顺序做笛卡尔积。总量封顶，防止误操作/恶意请求生成海量 SKU 拖垮库
-        List<List<String>> combos = cartesian(specs);
+        // 4. 算目标组合：按模板顺序对取值做笛卡尔积。总量封顶，防止误操作/恶意请求生成海量 SKU 拖垮库
+        List<List<SpecValue>> combos = cartesian(specs);
         Validate.isTrue(combos.size() <= MAX_SKU_COMBINATIONS, "规格组合数过多（" + combos.size() + "），请精简规格后重试");
 
-        // 4. 对账：组合没变的保留（价格库存不丢），新增的补 SKU
-        //    现有 SKU 按 attributes 的 List<ParamItem> 值建索引（record 相等性 = JSON 值相等，见 updateSpecs javadoc）
-        Map<List<ParamItem>, Sku> byAttrs = new LinkedHashMap<>();
+        // 5. 对账改按 spec_key：组合没变的保留（改名不再产生新组合，价格库存不丢），保留的顺带刷新 attributes/name 快照
+        Map<String, Sku> bySpecKey = new LinkedHashMap<>();
         for (Sku sku : skuMapper.selectByProductId(productId)) {
-            byAttrs.put(sku.getAttributes(), sku);
+            bySpecKey.put(sku.getSpecKey(), sku);
         }
 
         List<Sku> result = new ArrayList<>();
-        for (List<String> combo : combos) {
-            List<ParamItem> attrs = buildAttributes(specs, combo);
-            Sku kept = byAttrs.remove(attrs);
+        for (List<SpecValue> combo : combos) {
+            String specKey = combo.stream().map(sv -> sv.valueId().toString()).collect(Collectors.joining(":"));
+            List<SkuAttr> attrs = buildAttributes(specs, combo);
+            Sku kept = bySpecKey.remove(specKey);
             if (kept != null) {
+                kept.setAttributes(attrs);
+                kept.setName(buildSkuName(product, combo));
+                skuMapper.updateById(kept);
                 result.add(kept);
             } else {
                 Sku fresh = Sku.builder()
                         .productId(productId)
                         .attributes(attrs)
+                        .specKey(specKey)
                         .name(buildSkuName(product, combo))
                         .status(Sku.STATUS_ON_SALE)
                         .build();
@@ -99,13 +122,13 @@ public class ProductService {
             }
         }
 
-        // 5. 组合消失的旧 SKU 删掉（库存主体行经 inventory :: api 同事务随行清理，流水账本保留）
-        for (Sku removed : byAttrs.values()) {
+        // 6. 组合消失的旧 SKU 删掉（库存主体行经 inventory :: api 同事务随行清理，流水账本保留）
+        for (Sku removed : bySpecKey.values()) {
             stockCommand.removeRow(removed.getId());
             skuMapper.deleteById(removed.getId());
         }
 
-        // 6. 重算价格区间：SPU 与 SKU 都在手上，直接回填免重查
+        // 7. 重算价格区间：SPU 与 SKU 都在手上，直接回填免重查
         applyPriceRange(product, result);
         productMapper.updateById(product);
         return result;
@@ -219,9 +242,11 @@ public class ProductService {
     /** 编辑基本信息（specs/SKU 之外的字段）。任何状态可改：上架后改展示字段/分类是日常运营，改规格走 updateSpecs */
     public Product updateBasic(UUID productId, UpdateBasicCommand command) {
         // 1. 校验：商品存在且属于当前店铺、分类存在（同创建）
-        requireShopOwned(productId);
+        Product product = requireShopOwned(productId);
         Validate.isTrue(categoryMapper.selectById(command.categoryId()) != null, "分类不存在");
-        // 2. 局部更新：传 null 的字段不写（全库统一 PATCH 语义，见 apps/server/AGENTS.md），WHERE 只有主键也走 wrapper——与 updateSkus 同形态
+        // 2. params 模板校验：传了 params 用新值校验，没传（不改）则拿存量对新类目复检（换类目可能撞上必填模板）
+        validateParams(command.categoryId(), command.params() != null ? command.params() : product.getParams());
+        // 3. 局部更新：传 null 的字段不写（全库统一 PATCH 语义，见 apps/server/AGENTS.md），WHERE 只有主键也走 wrapper——与 updateSkus 同形态
         productMapper.update(
                 null,
                 new LambdaUpdateWrapper<Product>()
@@ -233,7 +258,7 @@ public class ProductService {
                         .set(command.mainImage() != null, Product::getMainImage, command.mainImage())
                         .set(command.images() != null, Product::getImages, command.images())
                         .set(command.params() != null, Product::getParams, command.params()));
-        // 3. 查回：wrapper 不返回实体，重查保证响应与 DB 一致
+        // 4. 查回：wrapper 不返回实体，重查保证响应与 DB 一致
         return productMapper.selectById(productId);
     }
 
@@ -273,15 +298,95 @@ public class ProductService {
         return product;
     }
 
-    /** 笛卡尔积：specs 为空时返回 [[]]，恰好对应单规格商品的 1 个隐藏 SKU；取值用 LinkedHashSet 去重 */
-    private List<List<String>> cartesian(List<SpecItem> specs) {
-        List<List<String>> result = new ArrayList<>();
+    /** 规格选择 → 模板解析：校验 attr/value 归属与状态，受理卖家自定义值，产出落库的 specs 快照 */
+    private List<SpecItem> resolveSelections(Product product, List<SpecSelection> selections) {
+        List<SpecItem> specs = new ArrayList<>();
+        for (SpecSelection sel : selections) {
+            CategoryAttr attr = Validate.notNull(attrMapper.selectById(sel.attrId()), "规格属性不存在");
+            Validate.isTrue(attr.getStatus() == CategoryAttr.STATUS_ENABLED, "规格属性已禁用");
+            Validate.isTrue(attr.getCategoryId().equals(product.getCategoryId()), "规格属性不属于商品当前类目");
+            Validate.isTrue(attr.getKind() == CategoryAttr.KIND_SPEC, "非销售属性不能作为规格");
+
+            List<SpecValue> values = new ArrayList<>();
+            if (sel.valueIds() != null) {
+                // LinkedHashSet 去重：同值重复选择会撞 uk_skus_product_spec_key
+                for (UUID valueId : new LinkedHashSet<>(sel.valueIds())) {
+                    CategoryAttrValue row = attrValueMapper.selectById(valueId);
+                    Validate.isTrue(row != null && row.getAttrId().equals(attr.getId()), "规格值不存在或不属于该属性");
+                    values.add(new SpecValue(row.getId(), row.getValue()));
+                }
+            }
+            if (sel.customValues() != null) {
+                for (String raw : sel.customValues()) {
+                    String value = raw == null ? "" : raw.trim();
+                    Validate.isTrue(!value.isEmpty(), "自定义规格值不能为空");
+                    Validate.isTrue(Boolean.TRUE.equals(attr.getAllowCustom()), "该属性不允许自定义值");
+                    CategoryAttrValue row = categoryAttrService.ensureSellerValue(attr.getId(), value);
+                    // 同名复用：与 valueIds 已选值撞同行时去重
+                    if (values.stream().noneMatch(v -> v.valueId().equals(row.getId()))) {
+                        values.add(new SpecValue(row.getId(), row.getValue()));
+                    }
+                }
+            }
+            Validate.isTrue(!values.isEmpty(), "每个规格至少选择一个值");
+            specs.add(new SpecItem(attr.getId(), attr.getName(), values));
+        }
+        return specs;
+    }
+
+    /**
+     * params 模板校验：类目存在参数模板（kind=2 启用条目）时——提交的 attrId 必须属于模板、
+     * required 必须有值、allow_custom=false 且有值域时值须在值域内；类目无模板维持自由文本（attrId=null）。
+     */
+    private void validateParams(UUID categoryId, List<ParamItem> params) {
+        List<CategoryAttr> template = attrMapper.selectList(new LambdaQueryWrapper<CategoryAttr>()
+                .eq(CategoryAttr::getCategoryId, categoryId)
+                .eq(CategoryAttr::getKind, CategoryAttr.KIND_PARAM)
+                .eq(CategoryAttr::getStatus, CategoryAttr.STATUS_ENABLED));
+        if (template.isEmpty()) {
+            return;
+        }
+        Map<UUID, CategoryAttr> byId = template.stream().collect(Collectors.toMap(CategoryAttr::getId, a -> a));
+        List<ParamItem> items = params == null ? List.of() : params;
+
+        // 1. 提交的每条 param 必须关联本类目模板属性；值域受控（allow_custom=false 且有值域）时值须在值域内
+        for (ParamItem item : items) {
+            CategoryAttr attr = item.attrId() == null ? null : byId.get(item.attrId());
+            Validate.isTrue(attr != null, "参数必须关联类目模板属性");
+            if (!Boolean.TRUE.equals(attr.getAllowCustom())) {
+                List<CategoryAttrValue> domain = attrValueMapper.selectList(
+                        new LambdaQueryWrapper<CategoryAttrValue>().eq(CategoryAttrValue::getAttrId, attr.getId()));
+                if (!domain.isEmpty()) {
+                    Validate.isTrue(
+                            domain.stream().anyMatch(v -> v.getValue().equals(item.value())),
+                            "参数值不在值域内：" + attr.getName());
+                }
+            }
+        }
+
+        // 2. required 的 param 必须有值
+        for (CategoryAttr attr : template) {
+            if (Boolean.TRUE.equals(attr.getRequired())) {
+                boolean filled =
+                        items.stream().anyMatch(i -> attr.getId().equals(i.attrId()) && StringUtils.hasText(i.value()));
+                Validate.isTrue(filled, "缺少必填参数：" + attr.getName());
+            }
+        }
+    }
+
+    /** 笛卡尔积：specs 为空时返回 [[]]，恰好对应单规格商品的 1 个隐藏 SKU；取值按 valueId 去重 */
+    private List<List<SpecValue>> cartesian(List<SpecItem> specs) {
+        List<List<SpecValue>> result = new ArrayList<>();
         result.add(new ArrayList<>());
         for (SpecItem dim : specs) {
-            List<List<String>> next = new ArrayList<>();
-            for (List<String> prefix : result) {
-                for (String value : new LinkedHashSet<>(dim.values())) {
-                    List<String> combo = new ArrayList<>(prefix);
+            List<List<SpecValue>> next = new ArrayList<>();
+            Map<UUID, SpecValue> dedup = new LinkedHashMap<>();
+            for (SpecValue v : dim.values()) {
+                dedup.putIfAbsent(v.valueId(), v);
+            }
+            for (List<SpecValue> prefix : result) {
+                for (SpecValue value : dedup.values()) {
+                    List<SpecValue> combo = new ArrayList<>(prefix);
                     combo.add(value);
                     next.add(combo);
                 }
@@ -291,18 +396,23 @@ public class ProductService {
         return result;
     }
 
-    /** 按模板顺序组装规格取值，同一组合生成值相等的 List<ParamItem>（record 相等性 = JSON 值相等） */
-    private List<ParamItem> buildAttributes(List<SpecItem> specs, List<String> combo) {
-        List<ParamItem> entries = new ArrayList<>();
+    /** 按模板顺序组装 SKU 规格取值快照：attrId/valueId 是身份，name/value 从模板读出 */
+    private List<SkuAttr> buildAttributes(List<SpecItem> specs, List<SpecValue> combo) {
+        List<SkuAttr> entries = new ArrayList<>();
         for (int i = 0; i < specs.size(); i++) {
-            entries.add(new ParamItem(specs.get(i).name(), combo.get(i)));
+            entries.add(new SkuAttr(
+                    specs.get(i).attrId(),
+                    combo.get(i).valueId(),
+                    specs.get(i).name(),
+                    combo.get(i).value()));
         }
         return entries;
     }
 
     /** SPU 名 + 规格值拼接，如「iPhone 15 Pro 256G 黑色」；单规格商品即 SPU 名本身。截断到列上限 160 */
-    private String buildSkuName(Product product, List<String> combo) {
-        String name = combo.isEmpty() ? product.getName() : product.getName() + " " + String.join(" ", combo);
+    private String buildSkuName(Product product, List<SpecValue> combo) {
+        List<String> values = combo.stream().map(SpecValue::value).toList();
+        String name = values.isEmpty() ? product.getName() : product.getName() + " " + String.join(" ", values);
         return name.length() > 160 ? name.substring(0, 160) : name;
     }
 
@@ -361,4 +471,10 @@ public class ProductService {
             String mainImage,
             List<String> images,
             List<ParamItem> params) {}
+
+    /**
+     * 一个规格维度的选择：attrId 定位模板属性，valueIds 选值域内值，customValues 提交值域外新值
+     * （仅当 attr.allow_custom 时受理，自动建档 source=2）。两列表至少一非空（HTTP 层 @AssertTrue 先拦）。
+     */
+    public record SpecSelection(UUID attrId, List<UUID> valueIds, List<String> customValues) {}
 }

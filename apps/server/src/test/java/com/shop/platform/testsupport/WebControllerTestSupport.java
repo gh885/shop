@@ -24,6 +24,7 @@ import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.payment.service.PaymentService;
+import com.shop.platform.product.service.CategoryAttrService;
 import com.shop.platform.product.service.CategoryService;
 import com.shop.platform.product.service.ProductService;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
@@ -100,6 +101,9 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected CategoryService categoryService;
+
+    @MockitoBean
+    protected CategoryAttrService categoryAttrService;
 
     @MockitoBean
     protected OrderService orderService;

@@ -58,7 +58,7 @@ public final class TestDb {
                 shopId.toString(),
                 UUID.randomUUID().toString());
         jdbc.update(
-                "INSERT INTO product.skus (id, product_id, name, price, currency, status) VALUES (?::uuid, ?::uuid, '测试SKU', ?, 'CNY', 1)",
+                "INSERT INTO product.skus (id, product_id, name, price, currency, status, spec_key) VALUES (?::uuid, ?::uuid, '测试SKU', ?, 'CNY', 1, '')",
                 skuId.toString(),
                 productId.toString(),
                 priceFen);

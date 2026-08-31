@@ -57,12 +57,19 @@ public class Sku {
     /**
      * 规格取值（JSONB），必须是 Product.specs 模板里存在的值。
      *
-     * <p>SPU 管"可选哪些值"（values），SKU 管"这行选了哪个值"（value）：
-     * [{"name":"颜色","value":"黑"},{"name":"尺码","value":"L"}] 校验（值必须来自模板、组合不重复）在 service 层做，JSONB
-     * 列本身不约束。
+     * <p>SPU 管"可选哪些值"（values），SKU 管"这行选了哪个值"：
+     * [{attrId, valueId, name, value}] —— attrId/valueId 是身份，name/value 是快照冗余（订单/展示免 join）。
+     * 唯一性不由本列承担，见 specKey。
      */
-    @TableField(typeHandler = JsonbParamItemsHandler.class)
-    private List<ParamItem> attributes;
+    @TableField(typeHandler = JsonbSkuAttrsHandler.class)
+    private List<SkuAttr> attributes;
+
+    /**
+     * SKU 身份：valueId 按模板维度顺序 ':' join（无规格商品为 ''），uk_skus_product_spec_key 唯一索引的落点。
+     *
+     * <p>规格值改名只改 name/value 快照，spec_key 不变——对账按它走，改名不再被视为新组合，价格库存不丢。
+     */
+    private String specKey;
 
     /** 该规格自己的图（如黑色款单独一张图），与 SPU 的 mainImage 区分，可空 */
     private String image;

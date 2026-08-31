@@ -14,6 +14,7 @@ import com.shop.platform.product.dto.UpdateSpecsRequest;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.mapper.SkuAttr;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
@@ -54,10 +55,10 @@ public class ProductAdminController {
         return ProductResponse.from(productService.create(request.toCommand(ShopIdHolder.get())));
     }
 
-    /** 更新规格并按新模板对账 SKU，返回当前全部 SKU（含新 id，供 updateSku 定位） */
+    /** 提交规格选择并按 valueId 组合（spec_key）对账 SKU，返回当前全部 SKU（含新 id，供 updateSku 定位） */
     @PutMapping("/{id}/specs")
     public List<SkuResponse> updateProductSpecs(@PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
-        List<Sku> skus = productService.updateSpecs(id, request.specs());
+        List<Sku> skus = productService.updateSpecs(id, request.toSelections());
         return SkuResponse.from(skus, stocks(skus));
     }
 
@@ -160,7 +161,7 @@ public class ProductAdminController {
             UUID productId,
             String skuCode,
             String name,
-            List<ParamItem> attributes,
+            List<SkuAttr> attributes,
             String image,
             Long price,
             Long originalPrice,

@@ -105,11 +105,11 @@ public class Product {
     /**
      * 销售属性模板（JSONB）—— SKU 的生成公式。
      *
-     * <p>每个维度是一个 {name, values}，SKU 按所有维度的笛卡尔积生成：
-     * [{"name":"颜色","values":["黑","白"]},{"name":"尺码","values":["S","M","L"]}] 会生成 2×3=6 个 SKU。
+     * <p>每个维度是一个 {attrId, name, values:[{valueId, value}]}，SKU 按所有维度的笛卡尔积生成，
+     * 身份为 valueId 组合（skus.spec_key）：[{"attrId":...,"name":"颜色","values":[{"valueId":...,"value":"黑"}]}]。
      *
      * <p>判断一个维度是不是销售属性的标准：换一个值价格/库存会不会变，会，就是销售属性。 单规格商品为 []，此时恰好生成 1 个 SKU（价格库存仍需放 Sku 表）。 与 params
-     * 分开存，防止参数被误当规格生成出无意义的 SKU。
+     * 分开存，防止参数被误当规格生成出无意义的 SKU。attrId/valueId 指向类目属性模板（category_attrs），name/value 是显示快照。
      */
     @TableField(typeHandler = JsonbSpecItemsHandler.class)
     private List<SpecItem> specs;
