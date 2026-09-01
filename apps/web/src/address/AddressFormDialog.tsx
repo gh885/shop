@@ -6,13 +6,13 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
+    Field,
     Input,
     Textarea,
     cn,
+    firstFieldError,
     useAppForm,
 } from "@shop/ui-web"
-
-import { firstFieldError } from "@shop/ui-web"
 import RegionPicker, { type RegionNode } from "#/shared/ui/RegionPicker"
 import { notify } from "#/shared/lib/toast"
 
@@ -56,37 +56,6 @@ function toDefaults(a?: Address | null): AddressInput {
         label: a?.label ?? "HOME",
         isDefault: a?.isDefault ?? false,
     }
-}
-
-/** 表单行：左侧标签（required 带红星）+ 右侧控件 */
-function FormRow({
-    label,
-    required,
-    htmlFor,
-    error,
-    children,
-}: {
-    label: string
-    required?: boolean
-    htmlFor?: string
-    error?: string
-    children: React.ReactNode
-}) {
-    return (
-        <div className="flex items-start gap-4">
-            <label
-                htmlFor={htmlFor}
-                className="flex w-16 shrink-0 items-start pt-2.5 text-sm"
-            >
-                {required && <span className="mr-0.5 text-destructive">*</span>}
-                {label}
-            </label>
-            <div className="min-w-0 flex-1">
-                {children}
-                {error && <p className="mt-1.5 text-xs text-destructive">{error}</p>}
-            </div>
-        </div>
-    )
 }
 
 export interface AddressFormDialogProps {
@@ -224,9 +193,10 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                     {/* 地区：国标行政区划级联选择（数据源懒加载，见 ./regions） */}
                     <form.AppField name="regionCode">
                         {(field) => (
-                            <FormRow
+                            <Field
                                 label="所在地区"
                                 required
+                                layout="horizontal"
                                 error={firstFieldError(field)}
                             >
                                 {regionReady && (
@@ -238,85 +208,49 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                         placeholder="请选择省/市/区"
                                     />
                                 )}
-                            </FormRow>
+                            </Field>
                         )}
                     </form.AppField>
 
                     <form.AppField name="detail">
                         {(field) => (
-                            <FormRow
+                            <field.TextField
                                 label="详细地址"
                                 required
-                                htmlFor={field.name}
-                                error={firstFieldError(field)}
-                            >
-                                <Input
-                                    id={field.name}
-                                    placeholder="请输入详细地址信息，如道路、小区、单元等"
-                                    maxLength={120}
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                />
-                            </FormRow>
+                                layout="horizontal"
+                                placeholder="请输入详细地址信息，如道路、小区、单元等"
+                                maxLength={120}
+                            />
                         )}
                     </form.AppField>
 
                     <form.AppField name="receiver">
                         {(field) => (
-                            <FormRow
+                            <field.TextField
                                 label="收货人姓名"
                                 required
-                                htmlFor={field.name}
-                                error={firstFieldError(field)}
-                            >
-                                <Input
-                                    id={field.name}
-                                    placeholder="长度不超过 30 个字符"
-                                    maxLength={30}
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                />
-                            </FormRow>
+                                layout="horizontal"
+                                placeholder="长度不超过 30 个字符"
+                                maxLength={30}
+                            />
                         )}
                     </form.AppField>
 
                     <form.AppField name="phone">
                         {(field) => (
-                            <FormRow
+                            <field.TextField
                                 label="手机号码"
                                 required
-                                htmlFor={field.name}
-                                error={firstFieldError(field)}
-                            >
-                                <Input
-                                    id={field.name}
-                                    placeholder="请输入手机号"
-                                    inputMode="tel"
-                                    maxLength={20}
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                />
-                            </FormRow>
+                                layout="horizontal"
+                                placeholder="请输入手机号"
+                                inputMode="tel"
+                                maxLength={20}
+                            />
                         )}
                     </form.AppField>
 
                     <form.AppField name="isDefault">
-                        {(field) => (
-                            <FormRow label="默认地址">
-                                <label className="flex h-9 cursor-pointer items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        className="size-4 accent-accent-foreground"
-                                        checked={Boolean(field.state.value)}
-                                        onChange={(e) => field.handleChange(e.target.checked)}
-                                    />
-                                    设置为默认收货地址
-                                </label>
-                            </FormRow>
-                        )}
+                        {(field) => <field.CheckboxField label="设置为默认收货地址" />}
                     </form.AppField>
 
                     <form.AppField name="label">
@@ -326,7 +260,10 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                 customLabel ||
                                 (value !== "" && !LABELS.some((l) => l.value === value))
                             return (
-                                <FormRow label="地址标签">
+                                <Field
+                                    label="地址标签"
+                                    layout="horizontal"
+                                >
                                     <div className="flex flex-wrap items-center gap-2">
                                         {LABELS.map((l) => (
                                             <button
@@ -383,7 +320,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                             </span>
                                         </div>
                                     )}
-                                </FormRow>
+                                </Field>
                             )
                         }}
                     </form.AppField>

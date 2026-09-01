@@ -4,7 +4,7 @@ import { CircleAlert, Loader2, LogOut, Monitor, Smartphone } from "lucide-react"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AuthApi } from "@shop/api/sdk"
-import { Button, Empty, EmptyHeader, EmptyTitle, Input, Skeleton, useAppForm } from "@shop/ui-web"
+import { Button, Empty, EmptyHeader, EmptyTitle, Skeleton, useAppForm } from "@shop/ui-web"
 
 import { getDeviceId } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
@@ -75,37 +75,28 @@ function ChangePassword() {
             >
                 <form.AppField name="current">
                     {(field) => (
-                        <Input
+                        <field.TextField
                             type="password"
                             placeholder="当前密码"
                             autoComplete="current-password"
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
                         />
                     )}
                 </form.AppField>
                 <form.AppField name="next">
                     {(field) => (
-                        <Input
+                        <field.TextField
                             type="password"
                             placeholder="新密码（至少 8 位）"
                             autoComplete="new-password"
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
                         />
                     )}
                 </form.AppField>
                 <form.AppField name="confirm">
                     {(field) => (
-                        <Input
+                        <field.TextField
                             type="password"
                             placeholder="确认新密码"
                             autoComplete="new-password"
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
                         />
                     )}
                 </form.AppField>

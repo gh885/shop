@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { AuthApi } from "@shop/api/sdk"
-import { Button, Input, Separator, Skeleton, useAppForm } from "@shop/ui-web"
+import { Button, Separator, Skeleton, useAppForm } from "@shop/ui-web"
 
 import { useMe } from "#/user"
 import { notify } from "#/shared/lib/toast"
@@ -84,12 +84,9 @@ function ProfilePage() {
                 >
                     <form.AppField name="nickname">
                         {(field) => (
-                            <Input
+                            <field.TextField
                                 placeholder="请输入昵称"
                                 maxLength={30}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                onChange={(e) => field.handleChange(e.target.value)}
                             />
                         )}
                     </form.AppField>
