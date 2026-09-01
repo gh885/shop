@@ -97,10 +97,26 @@ export interface CategoryNode {
 
 // ---------- 请求 ----------
 
+/** 商品标题（搜索标题）：参与搜索召回的关键词位，上限 30 字 */
+export const ProductNameSchema = z
+    .string()
+    .trim()
+    .min(1, "请输入商品标题")
+    .max(30, "商品标题最长 30 字")
+
+/** 一句话卖点：可不填；填了就得写够一句（10~30 字），与后端 @Pattern 校验对齐 */
+export const SellingPointSchema = z
+    .string()
+    .trim()
+    .refine(
+        (v) => v.length === 0 || (v.length >= 10 && v.length <= 30),
+        "卖点填了就写 10~30 字，不想写可以留空",
+    )
+
 export const CreateProductRequestSchema = z.object({
     categoryId: z.uuid("请选择商品分类"),
-    name: z.string().trim().min(1, "请输入商品名称").max(128, "商品名最长 128 字"),
-    subtitle: z.string().max(255).optional(),
+    name: ProductNameSchema,
+    subtitle: SellingPointSchema.optional(),
     description: z.string().optional(),
     mainImage: z.string().max(255).optional(),
     images: z.array(z.string().max(255)).optional(),

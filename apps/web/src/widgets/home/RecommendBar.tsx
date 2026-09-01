@@ -1,9 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 
-import { Button, Skeleton } from "@shop/ui-web"
+import { Button, Skeleton, Sticky } from "@shop/ui-web"
 
-import { Sticky } from "#/shared/ui/Sticky"
 import { HOME_HEADER_HEIGHT } from "./HomeHeader"
 import { useRecommendTabs } from "./use-home"
 

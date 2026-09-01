@@ -68,22 +68,28 @@ export function SellerLayout() {
 
     return (
         <SellerSidebarProvider activeKey={activeKeyOf(pathname)}>
-            <div className="flex h-svh w-full flex-col">
+            <div className="flex h-svh w-full flex-col bg-canvas">
                 <AppTopBar
                     title={pageTitleOf(pathname)}
                     minimal={fullWidth}
                 />
                 <div className="flex min-h-0 flex-1">
+                    {/* 侧边栏两列都落在 canvas 画布上（蓝灰），内容才进白色浮面 */}
                     {!fullWidth && <SidebarRail />}
-                    {/* 白色浮面：面板与内容同处一张卡，rounded-tl 浮于 canvas */}
+                    {!fullWidth && <SidebarPanel />}
+                    {/* 白色浮面：只有内容，rounded-tl 浮于 canvas */}
                     <div
                         className={cn(
                             "flex min-w-0 flex-1 bg-background",
                             !fullWidth && "rounded-tl-2xl",
                         )}
                     >
-                        {!fullWidth && <SidebarPanel />}
-                        <main className="min-w-0 flex-1 overflow-auto p-6">
+                        <main
+                            className={cn(
+                                "min-w-0 flex-1 overflow-auto p-6",
+                                fullWidth && "bg-canvas",
+                            )}
+                        >
                             {!fullWidth && (
                                 <PageBreadcrumb
                                     crumbs={crumbsOf(pathname)}
@@ -130,7 +136,9 @@ function TopBarAction({
     隐去店铺切换与搜索，只留「品牌 + 当前页名 + 动作群 + 账号」 */
 function AppTopBar({ title, minimal = false }: { title: string; minimal?: boolean }) {
     return (
-        <TopBar className="gap-3 border-b-0 bg-transparent px-4">
+        <TopBar
+            className={cn("gap-3 px-4", minimal ? "border-border" : "border-b-0 bg-transparent")}
+        >
             <TopBarBrand className="mr-0 gap-2.5">
                 <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <StoreIcon className="size-4.5" />

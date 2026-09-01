@@ -73,14 +73,20 @@ export function BasicForm({
             return
         }
         if (!values.name.trim()) {
-            setError("请输入商品名称")
+            setError("请输入商品标题")
             return
         }
-        if (values.name.trim().length > 128) {
-            setError("商品名最长 128 字")
+        if (values.name.trim().length > 30) {
+            setError("商品标题最长 30 字")
             return
         }
-        onSubmit({ ...values, name: values.name.trim(), subtitle: values.subtitle.trim() })
+        // 卖点选填；填了就得写够一句（与后端 @Pattern 对齐）
+        const sellingPoint = values.subtitle.trim()
+        if (sellingPoint && (sellingPoint.length < 10 || sellingPoint.length > 30)) {
+            setError("卖点填了就写 10~30 字，不想写可以留空")
+            return
+        }
+        onSubmit({ ...values, name: values.name.trim(), subtitle: sellingPoint })
     }
 
     return (
@@ -125,12 +131,12 @@ export function BasicForm({
                     htmlFor="bf-name"
                     className="text-sm font-medium"
                 >
-                    商品名称
+                    商品标题
                 </label>
                 <Input
                     id="bf-name"
-                    placeholder="越短越准，列表与搜索共用它"
-                    maxLength={128}
+                    placeholder="买家搜索靠它命中，最长 30 字"
+                    maxLength={30}
                     value={values.name}
                     onChange={(e) => patch({ name: e.target.value })}
                 />
@@ -141,12 +147,12 @@ export function BasicForm({
                     htmlFor="bf-subtitle"
                     className="text-sm font-medium"
                 >
-                    副标题
+                    商品卖点
                 </label>
                 <Input
                     id="bf-subtitle"
-                    placeholder="一句话卖点，可空"
-                    maxLength={255}
+                    placeholder="选填；填了就写 10~30 字，展示在详情页标题下方"
+                    maxLength={30}
                     value={values.subtitle}
                     onChange={(e) => patch({ subtitle: e.target.value })}
                 />

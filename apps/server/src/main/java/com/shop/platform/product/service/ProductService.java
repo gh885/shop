@@ -253,7 +253,7 @@ public class ProductService {
                         .eq(Product::getId, productId)
                         .set(Product::getCategoryId, command.categoryId())
                         .set(Product::getName, command.name())
-                        .set(command.subtitle() != null, Product::getSubtitle, command.subtitle())
+                        .set(command.subtitle() != null, Product::getSubtitle, blankToNull(command.subtitle()))
                         .set(command.description() != null, Product::getDescription, command.description())
                         .set(command.mainImage() != null, Product::getMainImage, command.mainImage())
                         .set(command.images() != null, Product::getImages, command.images())
@@ -433,13 +433,18 @@ public class ProductService {
         product.setMaxPrice(prices.stream().max(Long::compare).orElse(null));
     }
 
+    /** 「没填」与「清空」入库都落 null：空串只是传输层用来表达清空的信号，不进 DB */
+    private static String blankToNull(String text) {
+        return text == null || text.isBlank() ? null : text;
+    }
+
     /** 组装草稿实体。草稿没有 SKU，故价格字段留空、specs 为 [] */
     private Product toDraftEntity(CreateProductCommand command) {
         return Product.builder()
                 .shopId(command.shopId())
                 .categoryId(command.categoryId())
                 .name(command.name())
-                .subtitle(command.subtitle())
+                .subtitle(blankToNull(command.subtitle()))
                 .description(command.description())
                 .mainImage(command.mainImage())
                 .images(command.images())

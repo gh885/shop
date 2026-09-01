@@ -312,10 +312,13 @@ function SectionBlock({ section, activeKey }: { section: SubSection; activeKey: 
         >
             <CollapsibleTrigger
                 render={
-                    <div className="group flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm font-semibold">
+                    <button
+                        type="button"
+                        className="group flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm font-semibold"
+                    >
                         <span className="flex-1">{section.title}</span>
                         <ChevronUp className="size-3.5 text-muted-foreground transition-transform duration-200 group-data-open:rotate-180" />
-                    </div>
+                    </button>
                 }
             />
             <CollapsibleContent>

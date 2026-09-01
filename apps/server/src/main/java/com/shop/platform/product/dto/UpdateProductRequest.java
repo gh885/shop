@@ -5,6 +5,7 @@ import com.shop.platform.product.service.ProductService.UpdateBasicCommand;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
@@ -13,8 +14,10 @@ import java.util.UUID;
 public record UpdateProductRequest(
         /** 主分类 ID */
         @NotNull UUID categoryId,
-        @NotBlank @Size(max = 128) String name,
-        @Size(max = 255) String subtitle,
+        /** 搜索标题，上限 30 字，语义同 CreateProductRequest */
+        @NotBlank @Size(max = 30, message = "商品标题最长 30 字") String name,
+        /** 一句话卖点：空串＝清空已填内容，不传（null）＝不改（PATCH 语义） */
+        @Pattern(regexp = "^$|^[\\s\\S]{10,30}$", message = "卖点填了就写 10~30 字，不想写可以留空") String subtitle,
         String description,
         @Size(max = 255) String mainImage,
         List<@Size(max = 255) String> images,

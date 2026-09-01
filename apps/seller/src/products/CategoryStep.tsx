@@ -43,7 +43,7 @@ export function CategoryStep({
 
     return (
         <div className="space-y-4 pb-20">
-            <div className="rounded-2xl bg-muted/40 p-3">
+            <div className="rounded-2xl bg-background p-3 shadow-sm">
                 <Tabs
                     value="search"
                     className="mb-3"
@@ -79,7 +79,7 @@ export function CategoryStep({
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         placeholder="输入商品名找类目，如「宠物喂食器」"
-                        className="h-10 flex-1 border-transparent bg-background shadow-none focus-visible:border-transparent"
+                        className="h-10 flex-1 border-transparent bg-muted/60 shadow-none focus-visible:border-transparent"
                     />
                     <Button
                         type="submit"
@@ -89,7 +89,7 @@ export function CategoryStep({
                     </Button>
                     <Button
                         type="button"
-                        variant="ghost"
+                        variant="secondary"
                         className="h-10 bg-background hover:bg-background/70"
                         onClick={() => {
                             setKeyword("")
@@ -139,7 +139,7 @@ function ConfirmBar({
     onNext: () => void
 }) {
     return (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-background/85 py-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 py-3 backdrop-blur">
             <div className="mx-auto flex w-full max-w-[1184px] items-center gap-3 px-6">
                 <span className="shrink-0 text-sm text-muted-foreground">类目</span>
                 {pathNames.length === 0 ? (

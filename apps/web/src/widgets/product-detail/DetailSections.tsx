@@ -10,10 +10,10 @@ import {
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
+    Sticky,
 } from "@shop/ui-web"
 
 import type { ProductDetail } from "#/product"
-import { Sticky } from "#/shared/ui/Sticky"
 
 import { DetailSection } from "./DetailSection"
 

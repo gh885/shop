@@ -1,17 +1,17 @@
-import { useState } from "react"
-import { useMutation } from "@tanstack/react-query"
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, CircleAlert, Store } from "lucide-react"
+import { useRef, useState } from "react"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { CircleAlert, Store } from "lucide-react"
 
-import { BasicForm, type BasicFormValues } from "#/components/basic-form"
 import { toApiError } from "@shop/api"
+import type { ApiError, SkuUpdateItem } from "@shop/api"
+import type { SkuResponse } from "@shop/api/sdk"
 
-import { CategoryStep } from "#/products"
-import { productApi } from "#/shared/lib/api"
+import { CategoryStep, PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/products"
+import { productApi, type SpecSelection } from "#/shared/lib/api"
 import { useCurrentShop } from "#/shared/lib/shop"
 
 interface NewProductSearch {
-    /** 已选末级类目 id：有值 = 进入第二步（填基本信息），空 = 第一步选类目 */
+    /** 已选末级类目 id：有值 = 进入第二步（填商品信息），空 = 第一步选类目 */
     categoryId?: string
 }
 
@@ -22,31 +22,65 @@ export const Route = createFileRoute("/_app/products/new")({
     component: NewProductPage,
 })
 
-/** 发布商品：第一步选类目（类目发布后不可改，单独成屏），第二步建草稿基本信息 */
+/** 发布商品：第一步选类目（类目发布后不可改，单独成屏），第二步填商品信息建档 */
 function NewProductPage() {
     const shop = useCurrentShop()
     const navigate = useNavigate()
     const { categoryId } = Route.useSearch()
     const [serverError, setServerError] = useState<string | null>(null)
+    const [submitting, setSubmitting] = useState(false)
+    // 选值后生成 SKU 网格需要已建草稿的 id；首次建了就缓存
+    const draftIdRef = useRef<string | null>(null)
 
-    const create = useMutation({
-        mutationFn: (values: BasicFormValues) =>
-            productApi.create(shop!.id, {
-                categoryId: values.categoryId,
-                name: values.name,
-                subtitle: values.subtitle || undefined,
-                description: values.description || undefined,
-                mainImage: values.mainImage || undefined,
-                images: splitLines(values.imagesText),
-                params: values.params.filter((p) => p.name.trim() && p.value.trim()),
-            }),
-        onSuccess: (product) => {
-            void navigate({ to: "/products/$productId", params: { productId: product.id } })
-        },
-        onError: (e) => {
+    /** 建草稿（幂等）：首次用到时建档，后续复用 */
+    async function ensureDraft(values: BasicStepValues): Promise<string> {
+        if (draftIdRef.current) return draftIdRef.current
+        const product = await productApi.create(shop!.id, {
+            categoryId: categoryId!,
+            name: values.name,
+            subtitle: values.subtitle || undefined,
+            mainImage: values.mainImage || undefined,
+        })
+        draftIdRef.current = product.id
+        return product.id
+    }
+
+    /** 生成 SKU 网格：销售信息选值变化时由子组件调用 */
+    async function applySpecs(
+        values: BasicStepValues,
+        selections: SpecSelection[],
+    ): Promise<SkuResponse[]> {
+        // 生成 SKU 需先建草稿，而建档必填标题；没填就先拦住，给个可操作的提示而不是 422
+        if (!values.name.trim()) {
+            throw { status: 0, detail: "请先填写商品标题，再配置销售规格" } satisfies ApiError
+        }
+        const id = await ensureDraft(values)
+        return productApi.applySpecs(shop!.id, id, selections)
+    }
+
+    /** 提交：建草稿 → 写规格价格库存 → 上架；草稿模式只建档回列表 */
+    async function onSubmit(values: BasicStepValues, mode: SubmitMode, skuItems: SkuUpdateItem[]) {
+        setServerError(null)
+        setSubmitting(true)
+        try {
+            const id = await ensureDraft(values)
+            if (skuItems.length) {
+                await productApi.updateSkus(shop!.id, id, skuItems)
+            }
+            if (mode === "submit" && skuItems.length) {
+                // 有规格才算完整：按价上架
+                await productApi.publish(shop!.id, id)
+                void navigate({ to: "/products/$productId", params: { productId: id } })
+            } else {
+                // 无规格或存草稿：回列表，到编辑页再补价格库存
+                void navigate({ to: "/products", search: { page: 1, size: 10 } })
+            }
+        } catch (e) {
             setServerError(toApiError(e).detail)
-        },
-    })
+        } finally {
+            setSubmitting(false)
+        }
+    }
 
     if (!shop) {
         return (
@@ -73,59 +107,22 @@ function NewProductPage() {
         )
     }
 
-    // 第二步：基本信息（类目已在第一步锁定，回上一步可重选）
+    // 第二步：填商品信息（类目已在第一步锁定，可回上一步重选）
     return (
-        <div className="mx-auto w-full max-w-[1184px] space-y-6">
-            <div className="flex items-center justify-between gap-3">
-                <Link
-                    to="."
-                    search={{}}
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                    <ArrowLeft className="size-4" />
-                    返回上一步（重选类目）
-                </Link>
-                <Link
-                    to="/products"
-                    search={{ page: 1, size: 10 }}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                    退出发布
-                </Link>
-            </div>
-
-            <div>
-                <h1 className="text-xl font-bold tracking-tight">填写商品信息</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    先填基本信息保存草稿，下一步再设置规格、价格和库存。
+        <div className="mx-auto w-full max-w-[1184px]">
+            <PublishBasicStep
+                categoryId={categoryId}
+                submitting={submitting}
+                onSwitchCategory={() => void navigate({ to: ".", search: {} })}
+                applySpecs={applySpecs}
+                onSubmit={onSubmit}
+            />
+            {serverError ? (
+                <p className="flex items-center gap-1.5 pb-4 text-sm text-destructive">
+                    <CircleAlert className="size-4" />
+                    {serverError}
                 </p>
-            </div>
-
-            <div className="rounded-2xl bg-muted/40 p-6">
-                <BasicForm
-                    lockedCategoryId={categoryId}
-                    submitting={create.isPending}
-                    submitText="保存草稿"
-                    onSubmit={(values) => {
-                        setServerError(null)
-                        create.mutate(values)
-                    }}
-                />
-                {serverError ? (
-                    <p className="mt-3 flex items-center gap-1.5 text-sm text-destructive">
-                        <CircleAlert className="size-4" />
-                        {serverError}
-                    </p>
-                ) : null}
-            </div>
+            ) : null}
         </div>
     )
-}
-
-function splitLines(text: string): string[] | undefined {
-    const lines = text
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean)
-    return lines.length > 0 ? lines : undefined
 }

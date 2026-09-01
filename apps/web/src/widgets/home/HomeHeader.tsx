@@ -9,9 +9,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     Logo,
+    Sticky,
 } from "@shop/ui-web"
-
-import { Sticky } from "#/shared/ui/Sticky"
 
 /** 第一层顶栏高度（px）。推荐条吸顶时以此为 top 偏移 */
 export const HOME_HEADER_HEIGHT = 64
