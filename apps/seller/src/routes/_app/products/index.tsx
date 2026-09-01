@@ -324,13 +324,7 @@ function ProductRow({
         <TableRow>
             <TableCell>
                 <div className="space-y-0.5">
-                    <Link
-                        to="/products/$productId"
-                        params={{ productId: p.id }}
-                        className="font-medium hover:text-link"
-                    >
-                        {p.name}
-                    </Link>
+                    <span className="font-medium">{p.name}</span>
                     {p.subtitle ? (
                         <p className="max-w-md truncate text-xs text-muted-foreground">
                             {p.subtitle}
@@ -347,17 +341,6 @@ function ProductRow({
             </TableCell>
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
-                    <Link
-                        to="/products/$productId"
-                        params={{ productId: p.id }}
-                    >
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                        >
-                            编辑
-                        </Button>
-                    </Link>
                     {p.status === 2 ? (
                         <Button
                             variant="ghost"

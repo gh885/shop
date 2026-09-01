@@ -70,9 +70,9 @@ function NewProductPage() {
             if (mode === "submit" && skuItems.length) {
                 // 有规格才算完整：按价上架
                 await productApi.publish(shop!.id, id)
-                void navigate({ to: "/products/$productId", params: { productId: id } })
+                void navigate({ to: "/products", search: { page: 1, size: 10 } })
             } else {
-                // 无规格或存草稿：回列表，到编辑页再补价格库存
+                // 无规格或存草稿：回列表
                 void navigate({ to: "/products", search: { page: 1, size: 10 } })
             }
         } catch (e) {

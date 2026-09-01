@@ -18,9 +18,7 @@ import {
     type CreateProductRequest,
     type MeResponse,
     type SkuResponse,
-    type SpecItem,
     type SkuUpdateItem,
-    type UpdateProductRequest,
 } from "@shop/api/sdk"
 
 // 浏览器端走 Vite proxy（同源相对路径），见 vite.config.ts
@@ -179,28 +177,6 @@ export const productApi = {
                     headers: shopHeader(shopId),
                 }),
             ),
-        )
-    },
-
-    /** 更新基本信息 */
-    async updateBasic(shopId: string, id: string, payload: UpdateProductRequest) {
-        unwrap(
-            await ProductsAdminApi.updateProduct({
-                path: { id },
-                body: payload,
-                headers: shopHeader(shopId),
-            }),
-        )
-    },
-
-    /** 更新销售规格（按新规格对账 SKU） */
-    async updateSpecs(shopId: string, id: string, specs: SpecItem[]) {
-        unwrap(
-            await ProductsAdminApi.updateProductSpecs({
-                path: { id },
-                body: { specs },
-                headers: shopHeader(shopId),
-            }),
         )
     },
 
