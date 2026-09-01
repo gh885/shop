@@ -20,6 +20,7 @@
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<spotless.version>2.44.4</spotless.version>
 		<jjwt.version>0.12.6</jjwt.version>
+		<qiniu.version>7.19.0</qiniu.version>
 		<uuid-creator.version>6.1.1</uuid-creator.version>
 		<archunit.version>1.4.2</archunit.version>
 		<springdoc.version>3.1.0</springdoc.version>
@@ -115,6 +116,13 @@
 			<artifactId>jjwt-jackson</artifactId>
 			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
+		</dependency>
+
+		<!-- 七牛云对象存储（Kodo）：服务端签发上传凭证（presigned 直传），不在服务端中转文件流 -->
+		<dependency>
+			<groupId>com.qiniu</groupId>
+			<artifactId>qiniu-java-sdk</artifactId>
+			<version>${qiniu.version}</version>
 		</dependency>
 
 		<dependency>

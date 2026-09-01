@@ -90,7 +90,7 @@ public class ProductController {
     @Schema(name = "PublicProductDetailResponse")
     public record ProductDetailResponse(
             ProductResponse product,
-            String description,
+            List<String> detailImages,
             List<String> images,
             List<SpecItem> specs,
             List<ParamItem> params,
@@ -100,7 +100,7 @@ public class ProductController {
             Product p = d.product();
             return new ProductDetailResponse(
                     ProductResponse.from(p),
-                    p.getDescription(),
+                    p.getDetailImages(),
                     p.getImages(),
                     p.getSpecs(),
                     p.getParams(),

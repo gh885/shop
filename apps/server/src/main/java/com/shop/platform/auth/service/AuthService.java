@@ -231,8 +231,8 @@ public class AuthService {
         return user;
     }
 
-    /** 更新个人资料（本期仅昵称）。头像上传未做，avatarKey 不在此改 */
-    public User updateProfile(UUID userId, String nickname) {
+    /** 更新个人资料：昵称 + 头像（头像 key 由前端上传后随请求带回）。avatarKey null＝不改，空串＝清空 */
+    public User updateProfile(UUID userId, String nickname, String avatarKey) {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
         if (nickname != null) {
@@ -240,6 +240,9 @@ public class AuthService {
             if (trimmed.isEmpty()) throw BusinessException.badRequest("昵称不能为空");
             if (trimmed.length() > 30) throw BusinessException.badRequest("昵称不能超过 30 字");
             user.setNickname(trimmed);
+        }
+        if (avatarKey != null) {
+            user.setAvatarKey(avatarKey.isBlank() ? null : avatarKey);
         }
         userMapper.updateById(user);
         return user;

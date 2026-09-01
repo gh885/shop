@@ -21,8 +21,8 @@ public record CreateProductRequest(
          * 故用 Pattern 而非 Size —— Size(min) 会把空串一起判死。
          */
         @Pattern(regexp = "^$|^[\\s\\S]{10,30}$", message = "卖点填了就写 10~30 字，不想写可以留空") String subtitle,
-        /** 详情富文本，TEXT 无长度上限，且请求体有 RequestBodySizeFilter 兜底 */
-        String description,
+        /** 详情图流（对象存储 key 数组，按序铺开渲染，代替富文本 HTML）；为空 [] 时详情无图 */
+        List<@Size(max = 255) String> detailImages,
         @Size(max = 255) String mainImage,
         List<@Size(max = 255) String> images,
         /** 非销售参数，可空：[] */
@@ -34,6 +34,6 @@ public record CreateProductRequest(
 
     /** 映射为 service 入参，shopId 由店铺上下文（X-Shop-Id + 成员校验）注入 */
     public CreateProductCommand toCommand(UUID shopId) {
-        return new CreateProductCommand(shopId, categoryId, name, subtitle, description, mainImage, images, params);
+        return new CreateProductCommand(shopId, categoryId, name, subtitle, detailImages, mainImage, images, params);
     }
 }

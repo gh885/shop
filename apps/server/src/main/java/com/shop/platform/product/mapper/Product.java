@@ -89,15 +89,20 @@ public class Product {
     /** 一句话卖点。商品详情页标题下方展示，可空；非空时由入参层限定 10~30 字 */
     private String subtitle;
 
-    /** 详情页大段图文介绍（富文本 HTML）。只影响详情页渲染，与列表/搜索无关，单独存大字段 */
-    private String description;
+    /**
+     * 详情图流（JSONB 图片 key 数组）—— 详情页按序铺开渲染的一组图，代替富文本 HTML。
+     * 淘宝式详情就是几张图，不是一段 HTML（省富文本编辑器、灭 XSS 面、天然响应式、逐张走 CDN）。
+     * 存对象存储 key（非完整 URL），展示时拼当前环境域名。
+     */
+    @TableField(typeHandler = JsonbStringListHandler.class)
+    private List<String> detailImages;
 
-    /** 主图 URL。列表页缩略图、商品页首图都优先加载它，各规格的差异图放在 Sku.image */
+    /** 主图 key（对象存储 key 非完整 URL）。列表页缩略图、商品页首图优先加载它，各规格差异图在 Sku.image */
     private String mainImage;
 
     /**
-     * 轮播图 URL 数组（JSONB），如 ["/img/1.jpg","/img/2.jpg"]。 选择 JSONB 而不是独立表：这些图只是"摆给买家看"，不参与查询/筛选。
-     * 等需要单独管理图片（上传进度、裁剪、审核）时再拆成表。
+     * 轮播图 key 数组（JSONB），如 ["product/a.jpg","product/b.jpg"]。 选择 JSONB 而不是独立表：这些图只是"摆给买家看"，不参与查询/筛选。
+     * 等需要单独管理图片（上传进度、裁剪、审核）时再拆成表。存对象存储 key，非完整 URL。
      */
     @TableField(typeHandler = JsonbStringListHandler.class)
     private List<String> images;

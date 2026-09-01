@@ -18,7 +18,8 @@ public record UpdateProductRequest(
         @NotBlank @Size(max = 30, message = "商品标题最长 30 字") String name,
         /** 一句话卖点：空串＝清空已填内容，不传（null）＝不改（PATCH 语义） */
         @Pattern(regexp = "^$|^[\\s\\S]{10,30}$", message = "卖点填了就写 10~30 字，不想写可以留空") String subtitle,
-        String description,
+        /** 详情图流（对象存储 key 数组）；空串/空数组语义见 PATCH。null＝不改 */
+        List<@Size(max = 255) String> detailImages,
         @Size(max = 255) String mainImage,
         List<@Size(max = 255) String> images,
         List<@Valid ParamItem> params) {
@@ -29,6 +30,6 @@ public record UpdateProductRequest(
 
     /** 映射为 service 入参 */
     public UpdateBasicCommand toCommand() {
-        return new UpdateBasicCommand(categoryId, name, subtitle, description, mainImage, images, params);
+        return new UpdateBasicCommand(categoryId, name, subtitle, detailImages, mainImage, images, params);
     }
 }

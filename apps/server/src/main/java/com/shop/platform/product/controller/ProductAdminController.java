@@ -4,6 +4,7 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.common.ShopIdHolder;
+import com.shop.platform.infra.qiniu.QiniuClient;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
@@ -48,6 +49,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductAdminController {
     private final ProductService productService;
     private final StockReadQuery stockReadQuery;
+    private final QiniuClient qiniuClient;
+
+    /** 商品图上传凭证：前端拿 ticket 后直传七牛，传完把 key 写进商品的 mainImage / images / detailImages */
+    @PostMapping("/image-ticket")
+    public ImageTicketResponse issueImageTicket(@RequestParam String ext) {
+        String e = QiniuClient.validateImageExt(ext);
+        String key = qiniuClient.newKey("product", e);
+        return new ImageTicketResponse(
+                qiniuClient.uploadUrl(key), key, qiniuClient.issueUploadToken(key), qiniuClient.publicUrl(key));
+    }
 
     /** 创建商品草稿，返回含 id/createdAt 的出参。shopId 从店铺上下文（X-Shop-Id）取，不由前端传入 */
     @PostMapping
@@ -120,7 +131,7 @@ public class ProductAdminController {
             UUID categoryId,
             String name,
             String subtitle,
-            String description,
+            List<String> detailImages,
             String mainImage,
             List<String> images,
             List<SpecItem> specs,
@@ -138,7 +149,7 @@ public class ProductAdminController {
                     p.getCategoryId(),
                     p.getName(),
                     p.getSubtitle(),
-                    p.getDescription(),
+                    p.getDetailImages(),
                     p.getMainImage(),
                     p.getImages(),
                     p.getSpecs(),
@@ -154,6 +165,9 @@ public class ProductAdminController {
             return list.stream().map(ProductResponse::from).toList();
         }
     }
+
+    /** 商品图上传凭证：前端 PUT 到 uploadUrl（Authorization: UpToken <token>），传完用 url/key 存进商品图字段 */
+    public record ImageTicketResponse(String uploadUrl, String key, String token, String url) {}
 
     /** SKU 全字段出参：比买家侧多 skuCode/status（卖家要看到仓管编码与停用态）；价格裸分直传，与前端 schema 对齐 */
     public record SkuResponse(

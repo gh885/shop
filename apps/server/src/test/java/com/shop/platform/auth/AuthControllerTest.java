@@ -300,7 +300,7 @@ class AuthControllerTest extends WebControllerTestSupport {
     @Test
     void 更新个人资料_成功() throws Exception {
         String token = jwtProvider.createAccessToken(USER_ID);
-        when(authService.updateProfile(eq(USER_ID), any())).thenReturn(meUser());
+        when(authService.updateProfile(eq(USER_ID), any(), any())).thenReturn(meUser());
 
         mockMvc.perform(
                         put("/auth/profile")

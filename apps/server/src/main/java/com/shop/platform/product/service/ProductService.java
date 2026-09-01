@@ -254,7 +254,7 @@ public class ProductService {
                         .set(Product::getCategoryId, command.categoryId())
                         .set(Product::getName, command.name())
                         .set(command.subtitle() != null, Product::getSubtitle, blankToNull(command.subtitle()))
-                        .set(command.description() != null, Product::getDescription, command.description())
+                        .set(command.detailImages() != null, Product::getDetailImages, command.detailImages())
                         .set(command.mainImage() != null, Product::getMainImage, command.mainImage())
                         .set(command.images() != null, Product::getImages, command.images())
                         .set(command.params() != null, Product::getParams, command.params()));
@@ -445,7 +445,7 @@ public class ProductService {
                 .categoryId(command.categoryId())
                 .name(command.name())
                 .subtitle(blankToNull(command.subtitle()))
-                .description(command.description())
+                .detailImages(command.detailImages() == null ? List.of() : command.detailImages())
                 .mainImage(command.mainImage())
                 .images(command.images())
                 .specs(List.of())
@@ -462,7 +462,7 @@ public class ProductService {
             UUID categoryId,
             String name,
             String subtitle,
-            String description,
+            List<String> detailImages,
             String mainImage,
             List<String> images,
             List<ParamItem> params) {}
@@ -472,7 +472,7 @@ public class ProductService {
             UUID categoryId,
             String name,
             String subtitle,
-            String description,
+            List<String> detailImages,
             String mainImage,
             List<String> images,
             List<ParamItem> params) {}

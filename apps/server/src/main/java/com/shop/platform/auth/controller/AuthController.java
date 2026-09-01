@@ -16,6 +16,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.captcha.CaptchaService;
+import com.shop.platform.infra.qiniu.QiniuClient;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -54,6 +55,7 @@ public class AuthController {
     private final SmsCodeService smsCodeService;
     private final AuthService authService;
     private final CaptchaService captchaService;
+    private final QiniuClient qiniuClient;
     private final ClientIp clientIp;
 
     /**
@@ -148,6 +150,15 @@ public class AuthController {
         return new MeResponse(user.getId(), PhoneNumber.mask(user.getPhone()), user.getNickname(), user.getAvatarKey());
     }
 
+    /** 头像上传凭证：前端拿 ticket 后直传七牛，传完把 key 随更新资料（avatarKey）保存 */
+    @PostMapping("/avatar-ticket")
+    public AvatarTicketResponse issueAvatarTicket(@RequestParam String ext) {
+        String e = QiniuClient.validateImageExt(ext);
+        String key = qiniuClient.newKey("user/avatar", e);
+        return new AvatarTicketResponse(
+                qiniuClient.uploadUrl(key), key, qiniuClient.issueUploadToken(key), qiniuClient.publicUrl(key));
+    }
+
     /** 登出（STORE-02: 清除 Cookie） */
     @PostMapping("/logout")
     public void logout(
@@ -157,11 +168,11 @@ public class AuthController {
         clearRefreshCookie(response);
     }
 
-    /** 更新个人资料（本期仅昵称；头像上传未做，不在此改） */
+    /** 更新个人资料（昵称 + 头像） */
     @PutMapping("/profile")
     public MeResponse updateProfile(@Valid @RequestBody UpdateProfileRequest req) {
         UUID userId = UserIdHolder.get();
-        User user = authService.updateProfile(userId, req.nickname());
+        User user = authService.updateProfile(userId, req.nickname(), req.avatarKey());
         return new MeResponse(user.getId(), PhoneNumber.mask(user.getPhone()), user.getNickname(), user.getAvatarKey());
     }
 
@@ -243,6 +254,9 @@ public class AuthController {
 
     /** 当前登录用户信息（手机号已脱敏） */
     public record MeResponse(UUID id, String phone, String nickname, String avatarKey) {}
+
+    /** 图片上传凭证：前端把文件 PUT 到 uploadUrl，请求头带 Authorization: UpToken <token>；传完用 url/key 保存 */
+    public record AvatarTicketResponse(String uploadUrl, String key, String token, String url) {}
 
     /** 图形验证码出参：前端渲染图（base64 data URI），校验时回传 id + 用户输入 */
     public record CaptchaResponse(String captchaId, String image) {}
