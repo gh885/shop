@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptShopInviteData, AcceptShopInviteResponses, AddCartItemData, AddCartItemResponses, AddFavoriteData, AddFavoriteResponses, AgreeAfterSaleData, AgreeAfterSaleResponses, ApplyAfterSaleData, ApplyAfterSaleResponses, ApproveShopReviewData, ApproveShopReviewResponses, BatchRemoveCartItemsData, BatchRemoveCartItemsResponses, CancelAfterSaleData, CancelAfterSaleResponses, CancelOrderData, CancelOrderResponses, CheckFavoriteExistsData, CheckFavoriteExistsResponses, ConfirmPaymentData, ConfirmPaymentResponses, CreateAddressData, CreateAddressResponses, CreateBannerData, CreateBannerResponses, CreateCategoryData, CreateCategoryResponses, CreateNavData, CreateNavResponses, CreateOrderData, CreateOrderResponses, CreatePaymentData, CreatePaymentResponses, CreateProductData, CreateProductResponses, CreateShopData, CreateShopResponses, CreateTabData, CreateTabResponses, DeleteAddressData, DeleteAddressResponses, DeleteDeviceData, DeleteDeviceResponses, DevicesData, DevicesResponses, ForgotPasswordData, ForgotPasswordResponses, GetAddressDetailData, GetAddressDetailResponses, GetAdminCategoryTreeData, GetAdminCategoryTreeResponses, GetCaptchaData, GetCaptchaResponses, GetCartCountData, GetCartCountResponses, GetCategoryTreeData, GetCategoryTreeResponses, GetHomeBannersData, GetHomeBannersResponses, GetHomeNavData, GetHomeNavResponses, GetOrderDetailData, GetOrderDetailResponses, GetPublicProductDetailData, GetPublicProductDetailResponses, GetPublicShopData, GetPublicShopResponses, GetRecommendTabsData, GetRecommendTabsResponses, GetShopOrderDetailData, GetShopOrderDetailResponses, GetShopProductDetailData, GetShopProductDetailResponses, GetStaffMeData, GetStaffMeResponses, InviteShopMemberData, InviteShopMemberResponses, ListAddressesData, ListAddressesResponses, ListAdminBannersData, ListAdminBannersResponses, ListAdminNavData, ListAdminNavResponses, ListAdminRecommendTabsData, ListAdminRecommendTabsResponses, ListCartItemsData, ListCartItemsResponses, ListFavoritesData, ListFavoritesResponses, ListMyOrdersData, ListMyOrdersResponses, ListMyShopsData, ListMyShopsResponses, ListPublicProductsData, ListPublicProductsResponses, ListShopInvitesData, ListShopInvitesResponses, ListShopMembersData, ListShopMembersResponses, ListShopOrdersData, ListShopOrdersResponses, ListShopProductsData, ListShopProductsResponses, ListShopReviewsData, ListShopReviewsResponses, LoginByPasswordData, LoginByPasswordResponses, LoginBySmsData, LoginBySmsResponses, LogoutAllData, LogoutAllResponses, LogoutData, LogoutResponses, MeData, MeResponses, OffProductData, OffProductResponses, OnProductData, OnProductResponses, ParseAddressData, ParseAddressResponses, PreviewOrderData, PreviewOrderResponses, PublishProductData, PublishProductResponses, ReceiveOrderData, ReceiveOrderResponses, ReceiveReturnData, ReceiveReturnResponses, RefreshData, RefreshResponses, RefreshStaffSessionData, RefreshStaffSessionResponses, RejectAfterSaleData, RejectAfterSaleResponses, RejectShopReviewData, RejectShopReviewResponses, RemoveCartItemData, RemoveCartItemResponses, RemoveFavoriteData, RemoveFavoriteResponses, RemoveShopMemberData, RemoveShopMemberResponses, ResetPasswordData, ResetPasswordResponses, ReturnGoodsData, ReturnGoodsResponses, SendSmsCodeData, SendSmsCodeResponses, SetBannerStatusData, SetBannerStatusResponses, SetDefaultAddressData, SetDefaultAddressResponses, SetNavStatusData, SetNavStatusResponses, SetPasswordData, SetPasswordResponses, SetTabStatusData, SetTabStatusResponses, ShipOrderData, ShipOrderResponses, StaffLoginData, StaffLoginResponses, StaffLogoutData, StaffLogoutResponses, UnsetDefaultAddressData, UnsetDefaultAddressResponses, UpdateAddressData, UpdateAddressResponses, UpdateBannerData, UpdateBannerResponses, UpdateCartItemData, UpdateCartItemResponses, UpdateCartSelectedData, UpdateCartSelectedResponses, UpdateCategoryData, UpdateCategoryResponses, UpdateCategoryStatusData, UpdateCategoryStatusResponses, UpdateNavData, UpdateNavResponses, UpdateProductData, UpdateProductResponses, UpdateProductSkusData, UpdateProductSkusResponses, UpdateProductSpecsData, UpdateProductSpecsResponses, UpdateProfileData, UpdateProfileResponses, UpdateShopMemberPermissionsData, UpdateShopMemberPermissionsResponses, UpdateTabData, UpdateTabResponses } from './types.gen';
+import type { AcceptShopInviteData, AcceptShopInviteResponses, AddCartItemData, AddCartItemResponses, AddFavoriteData, AddFavoriteResponses, AgreeAfterSaleData, AgreeAfterSaleResponses, ApplyAfterSaleData, ApplyAfterSaleResponses, ApproveShopReviewData, ApproveShopReviewResponses, BatchRemoveCartItemsData, BatchRemoveCartItemsResponses, CancelAfterSaleData, CancelAfterSaleResponses, CancelOrderData, CancelOrderResponses, CheckFavoriteExistsData, CheckFavoriteExistsResponses, ConfirmPaymentData, ConfirmPaymentResponses, CreateAddressData, CreateAddressResponses, CreateBannerData, CreateBannerResponses, CreateCategoryAttrData, CreateCategoryAttrResponses, CreateCategoryAttrValueData, CreateCategoryAttrValueResponses, CreateCategoryData, CreateCategoryResponses, CreateNavData, CreateNavResponses, CreateOrderData, CreateOrderResponses, CreatePaymentData, CreatePaymentResponses, CreateProductData, CreateProductResponses, CreateShopData, CreateShopResponses, CreateTabData, CreateTabResponses, DeleteAddressData, DeleteAddressResponses, DeleteDeviceData, DeleteDeviceResponses, DevicesData, DevicesResponses, ForgotPasswordData, ForgotPasswordResponses, GetAddressDetailData, GetAddressDetailResponses, GetAdminCategoryTreeData, GetAdminCategoryTreeResponses, GetCaptchaData, GetCaptchaResponses, GetCartCountData, GetCartCountResponses, GetCategoryAttrTemplateData, GetCategoryAttrTemplateResponses, GetCategoryTreeData, GetCategoryTreeResponses, GetHomeBannersData, GetHomeBannersResponses, GetHomeNavData, GetHomeNavResponses, GetOrderDetailData, GetOrderDetailResponses, GetPublicCategoryAttrTemplateData, GetPublicCategoryAttrTemplateResponses, GetPublicProductDetailData, GetPublicProductDetailResponses, GetPublicShopData, GetPublicShopResponses, GetRecommendTabsData, GetRecommendTabsResponses, GetShopOrderDetailData, GetShopOrderDetailResponses, GetShopProductDetailData, GetShopProductDetailResponses, GetStaffMeData, GetStaffMeResponses, InviteShopMemberData, InviteShopMemberResponses, IssueAvatarTicketData, IssueAvatarTicketResponses, IssueImageTicketData, IssueImageTicketResponses, ListAddressesData, ListAddressesResponses, ListAdminBannersData, ListAdminBannersResponses, ListAdminNavData, ListAdminNavResponses, ListAdminRecommendTabsData, ListAdminRecommendTabsResponses, ListCartItemsData, ListCartItemsResponses, ListFavoritesData, ListFavoritesResponses, ListMyOrdersData, ListMyOrdersResponses, ListMyShopsData, ListMyShopsResponses, ListPublicProductsData, ListPublicProductsResponses, ListShopInvitesData, ListShopInvitesResponses, ListShopMembersData, ListShopMembersResponses, ListShopOrdersData, ListShopOrdersResponses, ListShopProductsData, ListShopProductsResponses, ListShopReviewsData, ListShopReviewsResponses, LoginByPasswordData, LoginByPasswordResponses, LoginBySmsData, LoginBySmsResponses, LogoutAllData, LogoutAllResponses, LogoutData, LogoutResponses, MeData, MeResponses, OffProductData, OffProductResponses, OnProductData, OnProductResponses, ParseAddressData, ParseAddressResponses, PreviewOrderData, PreviewOrderResponses, PublishProductData, PublishProductResponses, ReceiveOrderData, ReceiveOrderResponses, ReceiveReturnData, ReceiveReturnResponses, RefreshData, RefreshResponses, RefreshStaffSessionData, RefreshStaffSessionResponses, RejectAfterSaleData, RejectAfterSaleResponses, RejectShopReviewData, RejectShopReviewResponses, RemoveCartItemData, RemoveCartItemResponses, RemoveFavoriteData, RemoveFavoriteResponses, RemoveShopMemberData, RemoveShopMemberResponses, ResetPasswordData, ResetPasswordResponses, ReturnGoodsData, ReturnGoodsResponses, SendSmsCodeData, SendSmsCodeResponses, SetBannerStatusData, SetBannerStatusResponses, SetDefaultAddressData, SetDefaultAddressResponses, SetNavStatusData, SetNavStatusResponses, SetPasswordData, SetPasswordResponses, SetTabStatusData, SetTabStatusResponses, ShipOrderData, ShipOrderResponses, StaffLoginData, StaffLoginResponses, StaffLogoutData, StaffLogoutResponses, UnsetDefaultAddressData, UnsetDefaultAddressResponses, UpdateAddressData, UpdateAddressResponses, UpdateBannerData, UpdateBannerResponses, UpdateCartItemData, UpdateCartItemResponses, UpdateCartSelectedData, UpdateCartSelectedResponses, UpdateCategoryAttrData, UpdateCategoryAttrResponses, UpdateCategoryAttrStatusData, UpdateCategoryAttrStatusResponses, UpdateCategoryAttrValueData, UpdateCategoryAttrValueResponses, UpdateCategoryData, UpdateCategoryResponses, UpdateCategoryStatusData, UpdateCategoryStatusResponses, UpdateNavData, UpdateNavResponses, UpdateProductData, UpdateProductResponses, UpdateProductSkusData, UpdateProductSkusResponses, UpdateProductSpecsData, UpdateProductSpecsResponses, UpdateProfileData, UpdateProfileResponses, UpdateShopMemberPermissionsData, UpdateShopMemberPermissionsResponses, UpdateTabData, UpdateTabResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -191,6 +191,10 @@ export class ProductsAdminApi {
     
     public static offProduct<ThrowOnError extends boolean = false>(options: Options<OffProductData, ThrowOnError>): RequestResult<OffProductResponses, unknown, ThrowOnError> {
         return (options.client ?? client).post<OffProductResponses, unknown, ThrowOnError>({ url: '/seller/products/{id}/off', ...options });
+    }
+    
+    public static issueImageTicket<ThrowOnError extends boolean = false>(options: Options<IssueImageTicketData, ThrowOnError>): RequestResult<IssueImageTicketResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).post<IssueImageTicketResponses, unknown, ThrowOnError>({ url: '/seller/products/image-ticket', ...options });
     }
 }
 
@@ -462,6 +466,10 @@ export class AuthApi {
         });
     }
     
+    public static issueAvatarTicket<ThrowOnError extends boolean = false>(options: Options<IssueAvatarTicketData, ThrowOnError>): RequestResult<IssueAvatarTicketResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).post<IssueAvatarTicketResponses, unknown, ThrowOnError>({ url: '/auth/avatar-ticket', ...options });
+    }
+    
     public static me<ThrowOnError extends boolean = false>(options?: Options<MeData, ThrowOnError>): RequestResult<MeResponses, unknown, ThrowOnError> {
         return (options?.client ?? client).get<MeResponses, unknown, ThrowOnError>({ url: '/auth/me', ...options });
     }
@@ -572,6 +580,39 @@ export class CmsAdminApi {
 }
 
 export class CategoriesAdminApi {
+    public static updateCategoryAttr<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryAttrData, ThrowOnError>): RequestResult<UpdateCategoryAttrResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).put<UpdateCategoryAttrResponses, unknown, ThrowOnError>({
+            url: '/admin/category-attrs/{attrId}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static updateCategoryAttrStatus<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryAttrStatusData, ThrowOnError>): RequestResult<UpdateCategoryAttrStatusResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).put<UpdateCategoryAttrStatusResponses, unknown, ThrowOnError>({
+            url: '/admin/category-attrs/{attrId}/status',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static updateCategoryAttrValue<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryAttrValueData, ThrowOnError>): RequestResult<UpdateCategoryAttrValueResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).put<UpdateCategoryAttrValueResponses, unknown, ThrowOnError>({
+            url: '/admin/category-attr-values/{valueId}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
     public static updateCategory<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryData, ThrowOnError>): RequestResult<UpdateCategoryResponses, unknown, ThrowOnError> {
         return (options.client ?? client).put<UpdateCategoryResponses, unknown, ThrowOnError>({
             url: '/admin/categories/{id}',
@@ -594,9 +635,35 @@ export class CategoriesAdminApi {
         });
     }
     
+    public static createCategoryAttrValue<ThrowOnError extends boolean = false>(options: Options<CreateCategoryAttrValueData, ThrowOnError>): RequestResult<CreateCategoryAttrValueResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).post<CreateCategoryAttrValueResponses, unknown, ThrowOnError>({
+            url: '/admin/category-attrs/{attrId}/values',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
     public static createCategory<ThrowOnError extends boolean = false>(options: Options<CreateCategoryData, ThrowOnError>): RequestResult<CreateCategoryResponses, unknown, ThrowOnError> {
         return (options.client ?? client).post<CreateCategoryResponses, unknown, ThrowOnError>({
             url: '/admin/categories',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static getCategoryAttrTemplate<ThrowOnError extends boolean = false>(options: Options<GetCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetCategoryAttrTemplateResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).get<GetCategoryAttrTemplateResponses, unknown, ThrowOnError>({ url: '/admin/categories/{id}/attrs', ...options });
+    }
+    
+    public static createCategoryAttr<ThrowOnError extends boolean = false>(options: Options<CreateCategoryAttrData, ThrowOnError>): RequestResult<CreateCategoryAttrResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).post<CreateCategoryAttrResponses, unknown, ThrowOnError>({
+            url: '/admin/categories/{id}/attrs',
             ...options,
             headers: {
                 'Content-Type': 'application/json',
@@ -750,6 +817,10 @@ export class CmsPublicApi {
 }
 
 export class CategoriesApi {
+    public static getPublicCategoryAttrTemplate<ThrowOnError extends boolean = false>(options: Options<GetPublicCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetPublicCategoryAttrTemplateResponses, unknown, ThrowOnError> {
+        return (options.client ?? client).get<GetPublicCategoryAttrTemplateResponses, unknown, ThrowOnError>({ url: '/api/categories/{id}/attr-template', ...options });
+    }
+    
     public static getCategoryTree<ThrowOnError extends boolean = false>(options?: Options<GetCategoryTreeData, ThrowOnError>): RequestResult<GetCategoryTreeResponses, unknown, ThrowOnError> {
         return (options?.client ?? client).get<GetCategoryTreeResponses, unknown, ThrowOnError>({ url: '/api/categories/tree', ...options });
     }

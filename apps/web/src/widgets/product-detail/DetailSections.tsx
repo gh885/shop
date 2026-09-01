@@ -14,6 +14,7 @@ import {
 } from "@shop/ui-web"
 
 import type { ProductDetail } from "#/product"
+import { imgUrl } from "#/shared/lib/image"
 
 import { DetailSection } from "./DetailSection"
 
@@ -143,9 +144,9 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
     )
 }
 
-/** 图文详情：描述文字 + 图片纵向铺陈 */
+/** 图文详情：详情图流纵向铺陈（淘宝式几张图，代替富文本 HTML） */
 function DescriptionSection({ detail }: { detail: ProductDetail }) {
-    if (detail.description === "" && detail.images.length === 0) {
+    if (detail.detailImages.length === 0) {
         return (
             <DetailSection
                 id="detail"
@@ -166,24 +167,17 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
             id="detail"
             title="图文详情"
         >
-            {detail.description && (
-                <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/90">
-                    {detail.description}
-                </p>
-            )}
-            {detail.images.length > 0 && (
-                <div className="mt-4 flex flex-col items-center gap-2">
-                    {detail.images.map((img) => (
-                        <img
-                            key={img}
-                            src={img}
-                            alt="商品详情图"
-                            loading="lazy"
-                            className="w-full max-w-2xl rounded-lg object-contain"
-                        />
-                    ))}
-                </div>
-            )}
+            <div className="flex flex-col items-center gap-2">
+                {detail.detailImages.map((img) => (
+                    <img
+                        key={img}
+                        src={imgUrl(img)}
+                        alt="商品详情图"
+                        loading="lazy"
+                        className="w-full max-w-2xl rounded-lg object-contain"
+                    />
+                ))}
+            </div>
         </DetailSection>
     )
 }

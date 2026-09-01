@@ -1,7 +1,7 @@
 {
     "openapi": "3.1.0",
     "info": { "title": "OpenAPI definition", "version": "v0" },
-    "servers": [{ "url": "http://localhost:8097", "description": "Generated server url" }],
+    "servers": [{ "url": "http://localhost:8080", "description": "Generated server url" }],
     "tags": [
         { "name": "admin-auth", "description": "平台员工认证" },
         { "name": "cms-admin", "description": "管理端 CMS 内容维护" },
@@ -659,6 +659,95 @@
                 "responses": { "200": { "description": "OK" } }
             }
         },
+        "/admin/category-attrs/{attrId}": {
+            "put": {
+                "tags": ["categories-admin"],
+                "operationId": "updateCategoryAttr",
+                "parameters": [
+                    {
+                        "name": "attrId",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/CategoryAttrRequest" }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": { "$ref": "#/components/schemas/CategoryAttrResponse" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/category-attrs/{attrId}/status": {
+            "put": {
+                "tags": ["categories-admin"],
+                "operationId": "updateCategoryAttrStatus",
+                "parameters": [
+                    {
+                        "name": "attrId",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/UpdateStatusRequest" }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": { "200": { "description": "OK" } }
+            }
+        },
+        "/admin/category-attr-values/{valueId}": {
+            "put": {
+                "tags": ["categories-admin"],
+                "operationId": "updateCategoryAttrValue",
+                "parameters": [
+                    {
+                        "name": "valueId",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/CategoryAttrValueRequest" }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryAttrValueResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/categories/{id}": {
             "put": {
                 "tags": ["categories-admin"],
@@ -977,6 +1066,30 @@
                         "description": "OK",
                         "content": {
                             "*/*": { "schema": { "$ref": "#/components/schemas/ProductResponse" } }
+                        }
+                    }
+                }
+            }
+        },
+        "/seller/products/image-ticket": {
+            "post": {
+                "tags": ["products-admin"],
+                "operationId": "issueImageTicket",
+                "parameters": [
+                    {
+                        "name": "ext",
+                        "in": "query",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": { "$ref": "#/components/schemas/ImageTicketResponse" }
+                            }
                         }
                     }
                 }
@@ -1368,6 +1481,30 @@
                 "responses": { "200": { "description": "OK" } }
             }
         },
+        "/auth/avatar-ticket": {
+            "post": {
+                "tags": ["auth"],
+                "operationId": "issueAvatarTicket",
+                "parameters": [
+                    {
+                        "name": "ext",
+                        "in": "query",
+                        "required": true,
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": { "$ref": "#/components/schemas/AvatarTicketResponse" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/reviews/{id}/reject": {
             "post": {
                 "tags": ["admin-reviews"],
@@ -1559,6 +1696,40 @@
                 }
             }
         },
+        "/admin/category-attrs/{attrId}/values": {
+            "post": {
+                "tags": ["categories-admin"],
+                "operationId": "createCategoryAttrValue",
+                "parameters": [
+                    {
+                        "name": "attrId",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/CategoryAttrValueRequest" }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryAttrValueResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/categories": {
             "post": {
                 "tags": ["categories-admin"],
@@ -1576,6 +1747,65 @@
                         "description": "OK",
                         "content": {
                             "*/*": { "schema": { "$ref": "#/components/schemas/CategoryResponse" } }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/categories/{id}/attrs": {
+            "get": {
+                "tags": ["categories-admin"],
+                "operationId": "getCategoryAttrTemplate",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CategoryAttrNodeResponse"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": ["categories-admin"],
+                "operationId": "createCategoryAttr",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/CategoryAttrRequest" }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": { "$ref": "#/components/schemas/CategoryAttrResponse" }
+                            }
                         }
                     }
                 }
@@ -2044,6 +2274,35 @@
                 }
             }
         },
+        "/api/categories/{id}/attr-template": {
+            "get": {
+                "tags": ["categories"],
+                "operationId": "getPublicCategoryAttrTemplate",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string", "format": "uuid" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CategoryAttrNodeResponse"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/categories/tree": {
             "get": {
                 "tags": ["categories"],
@@ -2232,6 +2491,7 @@
             "ParamItem": {
                 "type": "object",
                 "properties": {
+                    "attrId": { "type": "string", "format": "uuid" },
                     "name": { "type": "string", "maxLength": 32, "minLength": 0 },
                     "value": { "type": "string", "maxLength": 64, "minLength": 0 }
                 },
@@ -2241,9 +2501,12 @@
                 "type": "object",
                 "properties": {
                     "categoryId": { "type": "string", "format": "uuid" },
-                    "name": { "type": "string", "maxLength": 128, "minLength": 0 },
-                    "subtitle": { "type": "string", "maxLength": 255, "minLength": 0 },
-                    "description": { "type": "string" },
+                    "name": { "type": "string", "maxLength": 30, "minLength": 0 },
+                    "subtitle": { "type": "string", "pattern": "^$|^[\\s\\S]{10,30}$" },
+                    "detailImages": {
+                        "type": "array",
+                        "items": { "type": "string", "maxLength": 255, "minLength": 0 }
+                    },
                     "mainImage": { "type": "string", "maxLength": 255, "minLength": 0 },
                     "images": {
                         "type": "array",
@@ -2264,7 +2527,7 @@
                     "categoryId": { "type": "string", "format": "uuid" },
                     "name": { "type": "string" },
                     "subtitle": { "type": "string" },
-                    "description": { "type": "string" },
+                    "detailImages": { "type": "array", "items": { "type": "string" } },
                     "mainImage": { "type": "string" },
                     "images": { "type": "array", "items": { "type": "string" } },
                     "specs": {
@@ -2285,27 +2548,64 @@
             "SpecItem": {
                 "type": "object",
                 "properties": {
-                    "name": { "type": "string", "maxLength": 32, "minLength": 0 },
+                    "attrId": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" },
                     "values": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/SpecValue" }
+                    }
+                },
+                "required": ["attrId", "name", "values"]
+            },
+            "SpecValue": {
+                "type": "object",
+                "properties": {
+                    "valueId": { "type": "string", "format": "uuid" },
+                    "value": { "type": "string" }
+                },
+                "required": ["value", "valueId"]
+            },
+            "SpecSelectionRequest": {
+                "type": "object",
+                "properties": {
+                    "attrId": { "type": "string", "format": "uuid" },
+                    "valueIds": {
+                        "type": "array",
+                        "items": { "type": "string", "format": "uuid" },
+                        "maxItems": 20,
+                        "minItems": 0
+                    },
+                    "customValues": {
                         "type": "array",
                         "items": { "type": "string", "maxLength": 64, "minLength": 0 },
                         "maxItems": 20,
                         "minItems": 0
-                    }
+                    },
+                    "selectionPresent": { "type": "boolean" }
                 },
-                "required": ["name", "values"]
+                "required": ["attrId"]
             },
             "UpdateSpecsRequest": {
                 "type": "object",
                 "properties": {
                     "specs": {
                         "type": "array",
-                        "items": { "$ref": "#/components/schemas/SpecItem" },
+                        "items": { "$ref": "#/components/schemas/SpecSelectionRequest" },
                         "maxItems": 10,
                         "minItems": 0
                     }
                 },
                 "required": ["specs"]
+            },
+            "SkuAttr": {
+                "type": "object",
+                "properties": {
+                    "attrId": { "type": "string", "format": "uuid" },
+                    "valueId": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" },
+                    "value": { "type": "string" }
+                },
+                "required": ["attrId", "name", "value", "valueId"]
             },
             "SkuResponse": {
                 "type": "object",
@@ -2316,7 +2616,7 @@
                     "name": { "type": "string" },
                     "attributes": {
                         "type": "array",
-                        "items": { "$ref": "#/components/schemas/ParamItem" }
+                        "items": { "$ref": "#/components/schemas/SkuAttr" }
                     },
                     "image": { "type": "string" },
                     "price": { "type": "integer", "format": "int64" },
@@ -2406,7 +2706,10 @@
             },
             "UpdateProfileRequest": {
                 "type": "object",
-                "properties": { "nickname": { "type": "string", "maxLength": 30, "minLength": 0 } },
+                "properties": {
+                    "nickname": { "type": "string", "maxLength": 30, "minLength": 0 },
+                    "avatarKey": { "type": "string", "maxLength": 255, "minLength": 0 }
+                },
                 "required": ["nickname"]
             },
             "MeResponse": {
@@ -2535,6 +2838,58 @@
                     "updatedAt": { "type": "string", "format": "date-time" }
                 }
             },
+            "CategoryAttrRequest": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string", "maxLength": 32, "minLength": 0 },
+                    "kind": { "type": "integer", "format": "int32", "maximum": 2, "minimum": 1 },
+                    "required": { "type": "boolean" },
+                    "allowCustom": { "type": "boolean" },
+                    "sort": { "type": "integer", "format": "int32" }
+                },
+                "required": ["kind", "name"]
+            },
+            "CategoryAttrResponse": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "format": "uuid" },
+                    "categoryId": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" },
+                    "kind": { "type": "integer", "format": "int32" },
+                    "required": { "type": "boolean" },
+                    "allowCustom": { "type": "boolean" },
+                    "sort": { "type": "integer", "format": "int32" },
+                    "status": { "type": "integer", "format": "int32" },
+                    "createdAt": { "type": "string", "format": "date-time" },
+                    "updatedAt": { "type": "string", "format": "date-time" }
+                }
+            },
+            "UpdateStatusRequest": {
+                "type": "object",
+                "properties": {
+                    "status": { "type": "integer", "format": "int32", "maximum": 1, "minimum": 0 }
+                },
+                "required": ["status"]
+            },
+            "CategoryAttrValueRequest": {
+                "type": "object",
+                "properties": {
+                    "value": { "type": "string", "maxLength": 64, "minLength": 0 },
+                    "sort": { "type": "integer", "format": "int32" }
+                },
+                "required": ["value"]
+            },
+            "CategoryAttrValueResponse": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "format": "uuid" },
+                    "attrId": { "type": "string", "format": "uuid" },
+                    "value": { "type": "string" },
+                    "sort": { "type": "integer", "format": "int32" },
+                    "source": { "type": "integer", "format": "int32" },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                }
+            },
             "UpdateCategoryRequest": {
                 "type": "object",
                 "properties": {
@@ -2557,13 +2912,6 @@
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
                 }
-            },
-            "UpdateStatusRequest": {
-                "type": "object",
-                "properties": {
-                    "status": { "type": "integer", "format": "int32", "maximum": 1, "minimum": 0 }
-                },
-                "required": ["status"]
             },
             "AddressParseRequest": {
                 "type": "object",
@@ -2627,9 +2975,12 @@
                 "type": "object",
                 "properties": {
                     "categoryId": { "type": "string", "format": "uuid" },
-                    "name": { "type": "string", "maxLength": 128, "minLength": 0 },
-                    "subtitle": { "type": "string", "maxLength": 255, "minLength": 0 },
-                    "description": { "type": "string" },
+                    "name": { "type": "string", "maxLength": 30, "minLength": 0 },
+                    "subtitle": { "type": "string", "pattern": "^$|^[\\s\\S]{10,30}$" },
+                    "detailImages": {
+                        "type": "array",
+                        "items": { "type": "string", "maxLength": 255, "minLength": 0 }
+                    },
                     "mainImage": { "type": "string", "maxLength": 255, "minLength": 0 },
                     "images": {
                         "type": "array",
@@ -2641,6 +2992,15 @@
                     }
                 },
                 "required": ["categoryId", "name"]
+            },
+            "ImageTicketResponse": {
+                "type": "object",
+                "properties": {
+                    "uploadUrl": { "type": "string" },
+                    "key": { "type": "string" },
+                    "token": { "type": "string" },
+                    "url": { "type": "string" }
+                }
             },
             "CreatePaymentRequest": {
                 "type": "object",
@@ -2903,6 +3263,15 @@
                 "type": "object",
                 "properties": { "phone": { "type": "string", "maxLength": 20, "minLength": 7 } },
                 "required": ["phone"]
+            },
+            "AvatarTicketResponse": {
+                "type": "object",
+                "properties": {
+                    "uploadUrl": { "type": "string" },
+                    "key": { "type": "string" },
+                    "token": { "type": "string" },
+                    "url": { "type": "string" }
+                }
             },
             "RejectRequest": {
                 "type": "object",
@@ -3217,7 +3586,7 @@
                 "type": "object",
                 "properties": {
                     "product": { "$ref": "#/components/schemas/PublicProductResponse" },
-                    "description": { "type": "string" },
+                    "detailImages": { "type": "array", "items": { "type": "string" } },
                     "images": { "type": "array", "items": { "type": "string" } },
                     "specs": {
                         "type": "array",
@@ -3240,12 +3609,22 @@
                     "name": { "type": "string" },
                     "attributes": {
                         "type": "array",
-                        "items": { "$ref": "#/components/schemas/ParamItem" }
+                        "items": { "$ref": "#/components/schemas/SkuAttr" }
                     },
                     "image": { "type": "string" },
                     "price": { "$ref": "#/components/schemas/Money" },
                     "originalPrice": { "$ref": "#/components/schemas/Money" },
                     "stock": { "type": "integer", "format": "int32" }
+                }
+            },
+            "CategoryAttrNodeResponse": {
+                "type": "object",
+                "properties": {
+                    "attr": { "$ref": "#/components/schemas/CategoryAttrResponse" },
+                    "values": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/CategoryAttrValueResponse" }
+                    }
                 }
             },
             "CategoryNodeResponse": {

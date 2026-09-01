@@ -6,6 +6,7 @@ import type {
     PublicProductDetailResponse,
     PublicProductResponse,
     PublicSkuResponse,
+    SkuAttr,
     SpecItem,
 } from "@shop/api/sdk"
 
@@ -34,7 +35,7 @@ export type Product = {
 export type Sku = {
     id: string
     name: string
-    attributes: ParamItem[]
+    attributes: SkuAttr[]
     image?: string
     price: Money
     originalPrice: Money | null
@@ -44,7 +45,8 @@ export type Sku = {
 /** 商品详情：内嵌已塑形的 product/sku，异常字段 null 归一成空值，渲染层无需再判空 */
 export type ProductDetail = {
     product: Product
-    description: string
+    /** 详情图流：对象存储 key 数组，按序铺开渲染（代替富文本 HTML）；展示时用 imgUrl 拼 CDN 域名 */
+    detailImages: string[]
     images: string[]
     specs: SpecItem[]
     params: ParamItem[]
@@ -111,11 +113,11 @@ export function toSku(dto: PublicSkuResponse): Sku {
     }
 }
 
-/** 详情 wire：description/images/specs/params 在详情响应顶层（product 只是列表项），SKU 逐条 toSku */
+/** 详情 wire：detailImages/images/specs/params 在详情响应顶层（product 只是列表项），SKU 逐条 toSku */
 export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail {
     return {
         product: toProduct(dto.product ?? {}),
-        description: dto.description ?? "",
+        detailImages: dto.detailImages ?? [],
         images: dto.images ?? [],
         specs: dto.specs ?? [],
         params: dto.params ?? [],
@@ -170,7 +172,7 @@ export function specValueImage(skus: Sku[], specName: string, value: string): st
 
 /** 规格组是否用图片卡渲染：任一值有 SKU 专属图即整组升级（对齐淘宝「分册名」图片卡） */
 export function isImageSpecGroup(skus: Sku[], spec: SpecItem): boolean {
-    return spec.values.some((v) => specValueImage(skus, spec.name, v) !== undefined)
+    return spec.values.some((v) => specValueImage(skus, spec.name, v.value) !== undefined)
 }
 
 // ---------- 价格 / 库存展示 ----------

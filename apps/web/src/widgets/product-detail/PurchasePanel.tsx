@@ -82,7 +82,8 @@ export function PurchasePanel({
                     <div key={spec.name}>
                         <p className="mb-2 text-sm text-muted-foreground">{spec.name}</p>
                         <div className="flex flex-wrap gap-2.5">
-                            {spec.values.map((value) => {
+                            {spec.values.map((sv) => {
+                                const value = sv.value
                                 const image = specValueImage(detail.skus, spec.name, value)
                                 return (
                                     <SpecButton
@@ -109,16 +110,19 @@ export function PurchasePanel({
                             variant="outline"
                             className="flex-wrap"
                         >
-                            {spec.values.map((value) => (
-                                <ToggleGroupItem
-                                    key={value}
-                                    value={value}
-                                    disabled={!isAvailable(spec.name, value)}
-                                    className="text-foreground aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:text-primary"
-                                >
-                                    {value}
-                                </ToggleGroupItem>
-                            ))}
+                            {spec.values.map((sv) => {
+                                const value = sv.value
+                                return (
+                                    <ToggleGroupItem
+                                        key={value}
+                                        value={value}
+                                        disabled={!isAvailable(spec.name, value)}
+                                        className="text-foreground aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:text-primary"
+                                    >
+                                        {value}
+                                    </ToggleGroupItem>
+                                )
+                            })}
                         </ToggleGroup>
                     </div>
                 ),
