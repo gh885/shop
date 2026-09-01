@@ -13,7 +13,8 @@ import {
 } from "@shop/api"
 import { Button, Input, cn, useAppForm, useCaptcha, useCountdown } from "@shop/ui-web"
 
-import { authApi, authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
+import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
+import { getCaptcha, loginByPassword, loginBySms, sendSmsCode } from "#/shared/lib/auth-data"
 
 export const Route = createFileRoute("/login")({
     component: LoginPage,
@@ -29,7 +30,7 @@ function LoginPage() {
     const [captchaInvalid, setCaptchaInvalid] = useState(false)
     const [countdown, setCountdown] = useCountdown()
     // 图形验证码：发码前先过人机验证（对应后端 infra/captcha）
-    const captcha = useCaptcha(authApi.getCaptcha)
+    const captcha = useCaptcha(getCaptcha)
 
     // 已登录（refresh cookie 有效）直接进入工作台
     useEffect(() => {
@@ -57,12 +58,12 @@ function LoginPage() {
             try {
                 const result =
                     tab === "sms"
-                        ? await authApi.loginBySms({
+                        ? await loginBySms({
                               phone: value.phone,
                               code: value.code,
                               deviceId: getDeviceId(),
                           })
-                        : await authApi.loginByPassword({
+                        : await loginByPassword({
                               phone: value.phone,
                               password: value.password,
                               deviceId: getDeviceId(),
@@ -83,7 +84,7 @@ function LoginPage() {
 
     const sendCode = useMutation({
         mutationFn: (phone: string) =>
-            authApi.sendSmsCode({
+            sendSmsCode({
                 phone,
                 captchaId: captcha.captchaId,
                 captchaCode: form.getFieldValue("captchaCode"),

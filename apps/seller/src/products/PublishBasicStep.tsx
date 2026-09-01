@@ -11,11 +11,12 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { ProductNameSchema, SellingPointSchema } from "@shop/api"
-import type { SkuUpdateItem } from "@shop/api"
+import type { SkuUpdateItem } from "@shop/api/sdk"
 import type { SkuResponse } from "@shop/api/sdk"
 
-import type { SpecSelection } from "#/shared/lib/api"
+import { ProductNameSchema, SellingPointSchema } from "./form-rules"
+
+import type { SpecSelection } from "./data"
 
 import { CountedInput } from "./CountedInput"
 import { FieldRow, SectionCard } from "./SectionCard"
@@ -241,7 +242,7 @@ export function PublishBasicStep({
                     <SalesInfoSection
                         categoryId={categoryId}
                         onApply={(selections) => applySpecs(form.state.values, selections)}
-                        onSpecsChange={() => undefined}
+                        onSpecsChange={() => {}}
                         onItemsChange={(items) => {
                             skuItemsRef.current = items
                         }}

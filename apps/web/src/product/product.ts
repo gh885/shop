@@ -116,7 +116,7 @@ export function toSku(dto: PublicSkuResponse): Sku {
 /** 详情 wire：detailImages/images/specs/params 在详情响应顶层（product 只是列表项），SKU 逐条 toSku */
 export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail {
     return {
-        product: toProduct(dto.product ?? {}),
+        product: toProduct(dto.product ?? ({} as PublicProductResponse)),
         detailImages: dto.detailImages ?? [],
         images: dto.images ?? [],
         specs: dto.specs ?? [],

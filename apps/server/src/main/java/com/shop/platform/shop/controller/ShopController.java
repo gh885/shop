@@ -9,6 +9,7 @@ import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.service.ShopInviteItem;
 import com.shop.platform.shop.service.ShopMemberItem;
 import com.shop.platform.shop.service.ShopService;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
@@ -90,13 +91,13 @@ public class ShopController {
 
     /** 店铺出参：字段镜像实体现状（前端 ShopSchema 严格校验，只减不增） */
     public record ShopResponse(
-            UUID id,
-            UUID ownerId,
-            String name,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID ownerId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
             String logoKey,
-            String status,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt) {
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 
         static ShopResponse from(Shop shop) {
             return new ShopResponse(
@@ -116,14 +117,14 @@ public class ShopController {
 
     /** 成员出参：invite/accept 返回，前端 ShopMemberSchema 逐字段校验；permissions 为被授予码（OWNER 空集） */
     public record ShopMemberResponse(
-            UUID id,
-            UUID shopId,
-            UUID userId,
-            String role,
-            String status,
-            List<String> permissions,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt) {
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID shopId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID userId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String role,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<String> permissions,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 
         static ShopMemberResponse from(ShopMember member) {
             return new ShopMemberResponse(
@@ -148,7 +149,12 @@ public class ShopController {
 
     /** 成员列表项出参：镜像 service 的 ShopMemberItem（含跨 schema 拼装的手机号 + 权限码），字段只减不增 */
     public record ShopMemberItemResponse(
-            UUID memberId, UUID userId, String phone, String role, String status, List<String> permissions) {
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID memberId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID userId,
+            String phone,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String role,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<String> permissions) {
 
         static ShopMemberItemResponse from(ShopMemberItem item) {
             return new ShopMemberItemResponse(

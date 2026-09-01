@@ -2,7 +2,7 @@ import { useState } from "react"
 import { ChevronRight, Search } from "lucide-react"
 import { cn, Input } from "@shop/ui-web"
 
-import type { CategoryNode } from "@shop/api"
+import type { CategoryNode } from "#/domain"
 
 import { columnsOf, filterByName, isLeaf } from "./category"
 

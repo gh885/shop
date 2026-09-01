@@ -19,6 +19,7 @@ import com.shop.platform.product.mapper.SkuAttr;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -126,10 +127,10 @@ public class ProductAdminController {
 
     /** SPU 全字段出参：草稿期 minPrice/maxPrice 可为 null */
     public record ProductResponse(
-            UUID id,
-            UUID shopId,
-            UUID categoryId,
-            String name,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID shopId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID categoryId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
             String subtitle,
             List<String> detailImages,
             String mainImage,
@@ -138,9 +139,9 @@ public class ProductAdminController {
             List<ParamItem> params,
             Long minPrice,
             Long maxPrice,
-            Integer status,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt) {
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 
         static ProductResponse from(Product p) {
             return new ProductResponse(
@@ -171,19 +172,19 @@ public class ProductAdminController {
 
     /** SKU 全字段出参：比买家侧多 skuCode/status（卖家要看到仓管编码与停用态）；价格裸分直传，与前端 schema 对齐 */
     public record SkuResponse(
-            UUID id,
-            UUID productId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID productId,
             String skuCode,
-            String name,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
             List<SkuAttr> attributes,
             String image,
             Long price,
             Long originalPrice,
             String currency,
-            Integer stock,
-            Integer status,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt) {
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 
         static SkuResponse from(Sku s, StockView stock) {
             return new SkuResponse(
@@ -211,7 +212,9 @@ public class ProductAdminController {
     }
 
     /** 详情出参：SPU + 全部 SKU，替代 service 层的 ProductDetail（其内嵌 mapper 实体，不得越过 HTTP 边界） */
-    public record ProductDetailResponse(ProductResponse product, List<SkuResponse> skus) {
+    public record ProductDetailResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductResponse product,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<SkuResponse> skus) {
 
         static ProductDetailResponse from(ProductDetail d, Map<UUID, StockView> stocks) {
             return new ProductDetailResponse(ProductResponse.from(d.product()), SkuResponse.from(d.skus(), stocks));

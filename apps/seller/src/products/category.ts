@@ -1,4 +1,4 @@
-import type { CategoryNode } from "@shop/api"
+import type { CategoryNode } from "#/domain"
 
 /**
  * category —— 类目选择的纯逻辑（树 → 视图读模型）。不碰 React / 网络。

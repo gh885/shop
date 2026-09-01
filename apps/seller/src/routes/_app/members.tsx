@@ -1,16 +1,18 @@
 import { useState } from "react"
+import { z } from "zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Badge, Button, Input, Skeleton } from "@shop/ui-web"
 import { CircleAlert, Store, Trash2, UserPlus } from "lucide-react"
 
-import { InviteMemberRequestSchema } from "@shop/api"
-
 import { toApiError } from "@shop/api"
 
-import { shopApi } from "#/shared/lib/api"
+import { inviteMember, removeMember, shopMembers } from "#/shared/lib/shop-data"
 import { useMe } from "#/shared/lib/me"
 import { useCurrentShop } from "#/shared/lib/shop"
+
+/** 邀请手机号校验：与后端手机号 @Pattern 对齐（就近放在表单旁） */
+const InvitePhoneSchema = z.string().regex(/^1\d{10}$/, "请输入正确的手机号")
 
 export const Route = createFileRoute("/_app/members")({
     component: MembersPage,
@@ -52,7 +54,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
 
     const members = useQuery({
         queryKey: ["shops", shopId, "members"],
-        queryFn: () => shopApi.members(shopId),
+        queryFn: () => shopMembers(shopId),
     })
 
     // 身份判定比 userId（uuid），不比 phone：phone 可空且可变更
@@ -61,7 +63,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     )
 
     const invite = useMutation({
-        mutationFn: (value: string) => shopApi.invite(shopId, { phone: value }),
+        mutationFn: (value: string) => inviteMember(shopId, { phone: value }),
         onSuccess: () => {
             setPhone("")
             setError(null)
@@ -74,7 +76,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     })
 
     const remove = useMutation({
-        mutationFn: (memberId: string) => shopApi.removeMember(shopId, memberId),
+        mutationFn: (memberId: string) => removeMember(shopId, memberId),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
         },
@@ -133,7 +135,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                     onSubmit={(e) => {
                         e.preventDefault()
                         setError(null)
-                        const result = InviteMemberRequestSchema.shape.phone.safeParse(phone)
+                        const result = InvitePhoneSchema.safeParse(phone)
                         if (!result.success) {
                             setError(result.error.issues[0]?.message ?? "请输入正确的手机号")
                             return

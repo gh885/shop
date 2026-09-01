@@ -1,6 +1,6 @@
 /**
  * 金额工具：后端价格字段一律为「分」（Money.amount），表单与展示层用「元」。
- * 与 schemas/common 的 MoneySchema 同住一包——金额的形状、换算、展示只有一个真相源。
+ * 与 common.ts 的 MoneySchema 同住一包——金额的形状、换算、展示只有一个真相源。
  */
 
 /** 分 → 元字符串两位小数（如 29900 → "299.00"）；null/undefined 显示占位符 */

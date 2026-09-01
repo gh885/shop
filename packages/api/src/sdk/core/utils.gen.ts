@@ -30,10 +30,10 @@ export const defaultPathSerializer = ({ path, url: _url }: PathSerializer): stri
       }
 
       if (name.startsWith('.')) {
-        name = name.substring(1);
+        name = name.slice(1);
         style = 'label';
       } else if (name.startsWith(';')) {
-        name = name.substring(1);
+        name = name.slice(1);
         style = 'matrix';
       }
 
@@ -102,7 +102,7 @@ export const getUrl = ({
   }
   let search = query ? querySerializer(query) : '';
   if (search.startsWith('?')) {
-    search = search.substring(1);
+    search = search.slice(1);
   }
   if (search) {
     url += `?${search}`;
@@ -127,7 +127,7 @@ export function getValidRequestBody(options: {
     }
 
     // not all clients implement a serializedBody property (i.e., client-axios)
-    return options.body !== '' ? options.body : null;
+    return options.body === '' ? null : options.body;
   }
 
   // plain/text body

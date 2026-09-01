@@ -19,6 +19,7 @@ import com.shop.platform.infra.captcha.CaptchaService;
 import com.shop.platform.infra.qiniu.QiniuClient;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -253,15 +254,25 @@ public class AuthController {
     // ---- Response DTOs ----
 
     /** 当前登录用户信息（手机号已脱敏） */
-    public record MeResponse(UUID id, String phone, String nickname, String avatarKey) {}
+    public record MeResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String phone,
+            String nickname,
+            String avatarKey) {}
 
     /** 图片上传凭证：前端把文件 PUT 到 uploadUrl，请求头带 Authorization: UpToken <token>；传完用 url/key 保存 */
     public record AvatarTicketResponse(String uploadUrl, String key, String token, String url) {}
 
     /** 图形验证码出参：前端渲染图（base64 data URI），校验时回传 id + 用户输入 */
-    public record CaptchaResponse(String captchaId, String image) {}
+    public record CaptchaResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String captchaId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String image) {}
 
     /** 设备列表项：deviceId + 元数据（设备名/IP/最近活跃）+ 是否当前设备 */
     public record DeviceEntryResponse(
-            String deviceId, String deviceName, String ip, OffsetDateTime lastLoginAt, boolean isCurrent) {}
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String deviceId,
+            String deviceName,
+            String ip,
+            OffsetDateTime lastLoginAt,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean isCurrent) {}
 }

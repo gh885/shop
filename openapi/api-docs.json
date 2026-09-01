@@ -3319,7 +3319,8 @@
                     "role": { "type": "string" },
                     "status": { "type": "string" },
                     "permissions": { "type": "array", "items": { "type": "string" } }
-                }
+                },
+                "required": ["memberId", "permissions", "role", "status", "userId"]
             },
             "ShopInviteItemResponse": {
                 "type": "object",
@@ -3580,7 +3581,8 @@
                     "mainImage": { "type": "string" },
                     "minPrice": { "$ref": "#/components/schemas/Money" },
                     "maxPrice": { "$ref": "#/components/schemas/Money" }
-                }
+                },
+                "required": ["categoryId", "id", "name", "shopId"]
             },
             "PublicProductDetailResponse": {
                 "type": "object",
@@ -3615,7 +3617,8 @@
                     "price": { "$ref": "#/components/schemas/Money" },
                     "originalPrice": { "$ref": "#/components/schemas/Money" },
                     "stock": { "type": "integer", "format": "int32" }
-                }
+                },
+                "required": ["id", "name", "stock"]
             },
             "CategoryAttrNodeResponse": {
                 "type": "object",

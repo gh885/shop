@@ -65,10 +65,10 @@ public class ProductController {
      * 买家端金额 Money 会被卖家端 Long 覆盖、混入 admin 字段）。 */
     @Schema(name = "PublicProductResponse")
     public record ProductResponse(
-            UUID id,
-            UUID shopId,
-            UUID categoryId,
-            String name,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID shopId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID categoryId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
             String subtitle,
             String mainImage,
             Money minPrice,
@@ -89,12 +89,12 @@ public class ProductController {
 
     @Schema(name = "PublicProductDetailResponse")
     public record ProductDetailResponse(
-            ProductResponse product,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductResponse product,
             List<String> detailImages,
             List<String> images,
             List<SpecItem> specs,
             List<ParamItem> params,
-            List<SkuResponse> skus) {
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<SkuResponse> skus) {
 
         static ProductDetailResponse from(ProductDetail d, Map<UUID, StockView> stocks) {
             Product p = d.product();
@@ -112,13 +112,13 @@ public class ProductController {
 
     @Schema(name = "PublicSkuResponse")
     public record SkuResponse(
-            UUID id,
-            String name,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
             List<SkuAttr> attributes,
             String image,
             Money price,
             Money originalPrice,
-            Integer stock) {
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock) {
 
         /** 币种取 Sku.currency，缺省回退本平台默认币种 CNY；null 金额不构造成 Money */
         private static Money money(Long fen, String currency) {

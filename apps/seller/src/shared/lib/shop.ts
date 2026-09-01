@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from "react"
 import { useQuery } from "@tanstack/react-query"
 
-import type { Shop } from "@shop/api"
+import type { Shop } from "#/domain"
 
-import { shopApi } from "./api"
+import { myShops } from "./shop-data"
 import { useAuthStatus } from "./api"
 
 // ---------- 我的店铺列表 ----------
@@ -12,7 +12,7 @@ export function useMyShops() {
     const status = useAuthStatus()
     return useQuery({
         queryKey: ["shops", "mine"],
-        queryFn: () => shopApi.myShops(),
+        queryFn: () => myShops(),
         enabled: status === "authed",
     })
 }

@@ -16,9 +16,10 @@ import {
 } from "@shop/ui-web"
 import { CircleAlert } from "lucide-react"
 
-import type { Sku, SkuUpdateItem } from "@shop/api"
+import type { SkuUpdateItem } from "@shop/api/sdk"
 
 import { fenToYuan, yuanToFen } from "@shop/api"
+import type { Sku } from "#/domain"
 
 interface SkuDraft {
     skuId: string
@@ -97,7 +98,8 @@ export function SkusTable({
                 name: d.name.trim() || undefined,
                 skuCode: d.skuCode.trim() || undefined,
                 price,
-                originalPrice,
+                // SDK 的 originalPrice 为 number | undefined，null 归一为 undefined
+                originalPrice: originalPrice ?? undefined,
                 stock,
                 status: d.status,
             })

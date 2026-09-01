@@ -12,8 +12,7 @@ import {
 } from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
-import type { SkuUpdateItem } from "@shop/api"
-import type { SkuResponse } from "@shop/api/sdk"
+import type { SkuUpdateItem, SkuResponse } from "@shop/api/sdk"
 
 interface RowDraft {
     skuId: string

@@ -20,11 +20,10 @@ import {
 } from "@shop/ui-web"
 import { ChevronLeft, ChevronRight, Package, Plus, Search, Store } from "lucide-react"
 
-import type { Product, ProductStatus } from "@shop/api"
-
 import { priceRangeText, toApiError } from "@shop/api"
+import type { Product, ProductStatus } from "#/domain"
 
-import { productApi } from "#/shared/lib/api"
+import { listProducts, offProduct, onProduct, publishProduct } from "#/products/data"
 import { useCurrentShop } from "#/shared/lib/shop"
 
 interface ProductSearch {
@@ -170,22 +169,22 @@ function ProductTable({ shopId, search }: { shopId: string; search: ProductSearc
 
     const products = useQuery({
         queryKey: ["products", shopId, search],
-        queryFn: () => productApi.list(shopId, search),
+        queryFn: () => listProducts(shopId, search),
         placeholderData: keepPreviousData,
     })
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ["products", shopId] })
 
     const publish = useMutation({
-        mutationFn: (id: string) => productApi.publish(shopId, id),
+        mutationFn: (id: string) => publishProduct(shopId, id),
         onSuccess: invalidate,
     })
     const off = useMutation({
-        mutationFn: (id: string) => productApi.off(shopId, id),
+        mutationFn: (id: string) => offProduct(shopId, id),
         onSuccess: invalidate,
     })
     const on = useMutation({
-        mutationFn: (id: string) => productApi.on(shopId, id),
+        mutationFn: (id: string) => onProduct(shopId, id),
         onSuccess: invalidate,
     })
 

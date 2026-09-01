@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { queryOptions, useQuery } from "@tanstack/react-query"
 
-import { productApi } from "#/shared/lib/api"
+import { categoryTree } from "./data"
 
 import { flattenLeafPaths, type LeafPath } from "./category"
 
@@ -12,7 +12,7 @@ import { flattenLeafPaths, type LeafPath } from "./category"
 
 const categoryTreeOptions = queryOptions({
     queryKey: ["categories", "tree"],
-    queryFn: () => productApi.categoryTree(),
+    queryFn: () => categoryTree(),
     staleTime: 10 * 60_000,
 })
 

@@ -155,7 +155,7 @@ export function createSseClient<TData = unknown>({
             const { done, value } = await reader.read();
             if (done) break;
             buffer += value;
-            buffer = buffer.replace(/\r\n?/g, '\n'); // normalize line endings
+            buffer = buffer.replaceAll(/\r\n?/g, '\n'); // normalize line endings
 
             const chunks = buffer.split('\n\n');
             buffer = chunks.pop() ?? '';
@@ -183,7 +183,7 @@ export function createSseClient<TData = unknown>({
               let data: unknown;
               let parsedJson = false;
 
-              if (dataLines.length) {
+              if (dataLines.length > 0) {
                 const rawData = dataLines.join('\n');
                 try {
                   data = JSON.parse(rawData);
@@ -210,7 +210,7 @@ export function createSseClient<TData = unknown>({
                 retry: retryDelay,
               });
 
-              if (dataLines.length) {
+              if (dataLines.length > 0) {
                 yield data as any;
               }
             }

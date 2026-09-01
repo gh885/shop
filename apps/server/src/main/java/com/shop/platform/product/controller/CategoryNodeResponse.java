@@ -1,6 +1,7 @@
 package com.shop.platform.product.controller;
 
 import com.shop.platform.product.service.CategoryNode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,12 +11,12 @@ import java.util.UUID;
  * <p>CategoryController（前台）与 CategoryAdminController（管理端）共用 → 按规范提升为包内顶层类。
  */
 public record CategoryNodeResponse(
-        UUID id,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
         UUID parentId,
-        String name,
-        Integer level,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer level,
         Integer sort,
-        Integer status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer status,
         String iconUrl,
         List<CategoryNodeResponse> children) {
 

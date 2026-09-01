@@ -2,7 +2,7 @@ import { useState } from "react"
 import { ImageIcon, Plus, Trash2 } from "lucide-react"
 import { Input } from "@shop/ui-web"
 
-import type { CategoryAttrTemplateNode, SpecSelection } from "#/shared/lib/api"
+import type { CategoryAttrTemplateNode, SpecSelection } from "./data"
 
 /**
  * 销售属性编辑器（千牛式逐行取值）。

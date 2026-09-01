@@ -578,12 +578,12 @@ export type LoginRequest = {
 };
 
 export type ShopMemberItemResponse = {
-    memberId?: string;
-    userId?: string;
+    memberId: string;
+    userId: string;
     phone?: string;
-    role?: string;
-    status?: string;
-    permissions?: Array<string>;
+    role: string;
+    status: string;
+    permissions: Array<string>;
 };
 
 export type ShopInviteItemResponse = {
@@ -779,10 +779,10 @@ export type PageResultPublicProductResponse = {
 };
 
 export type PublicProductResponse = {
-    id?: string;
-    shopId?: string;
-    categoryId?: string;
-    name?: string;
+    id: string;
+    shopId: string;
+    categoryId: string;
+    name: string;
     subtitle?: string;
     mainImage?: string;
     minPrice?: Money;
@@ -799,13 +799,13 @@ export type PublicProductDetailResponse = {
 };
 
 export type PublicSkuResponse = {
-    id?: string;
-    name?: string;
+    id: string;
+    name: string;
     attributes?: Array<SkuAttr>;
     image?: string;
     price?: Money;
     originalPrice?: Money;
-    stock?: number;
+    stock: number;
 };
 
 export type CategoryAttrNodeResponse = {

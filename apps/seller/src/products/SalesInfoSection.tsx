@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react"
 import { Skeleton } from "@shop/ui-web"
 import { toApiError } from "@shop/api"
-import type { SkuResponse } from "@shop/api/sdk"
-import type { SkuUpdateItem } from "@shop/api"
+import type { SkuResponse, SkuUpdateItem } from "@shop/api/sdk"
 
-import { productApi, type CategoryAttrTemplateNode, type SpecSelection } from "#/shared/lib/api"
+import { attrTemplate, type CategoryAttrTemplateNode, type SpecSelection } from "./data"
 
 import { FieldRow, SectionCard } from "./SectionCard"
 import { SalesAttrsEditor } from "./SalesAttrsEditor"
@@ -38,8 +37,7 @@ export function SalesInfoSection({
 
     useEffect(() => {
         let cancelled = false
-        productApi
-            .attrTemplate(categoryId)
+        attrTemplate(categoryId)
             .then((nodes) => {
                 if (!cancelled) setTemplate(nodes.filter((n) => n.attr.kind === 1))
             })

@@ -1,16 +1,18 @@
 import { useState } from "react"
+import { z } from "zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Badge, Button, Input, Skeleton } from "@shop/ui-web"
 import { CheckCircle2, CircleAlert, MailPlus, Store } from "lucide-react"
 
-import type { Shop, ShopStatus } from "@shop/api"
-import { CreateShopRequestSchema } from "@shop/api"
-
 import { toApiError } from "@shop/api"
+import type { Shop, ShopStatus } from "#/domain"
 
-import { shopApi } from "#/shared/lib/api"
+import { acceptInvite, createShop, myInvites } from "#/shared/lib/shop-data"
 import { setCurrentShopId, useCurrentShop, useMyShops } from "#/shared/lib/shop"
+
+/** 开店表单校验：店名长度与后端 @Size 对齐（就近放在表单旁） */
+const CreateShopNameSchema = z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字")
 
 export const Route = createFileRoute("/_app/shops")({
     component: ShopsPage,
@@ -109,11 +111,11 @@ function PendingInvites() {
     const queryClient = useQueryClient()
     const invites = useQuery({
         queryKey: ["shops", "invites"],
-        queryFn: () => shopApi.myInvites(),
+        queryFn: () => myInvites(),
     })
 
     const accept = useMutation({
-        mutationFn: (memberId: string) => shopApi.acceptInvite(memberId),
+        mutationFn: (memberId: string) => acceptInvite(memberId),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["shops"] })
         },
@@ -159,7 +161,7 @@ function CreateShopForm() {
     const [done, setDone] = useState(false)
 
     const create = useMutation({
-        mutationFn: (value: string) => shopApi.createShop({ name: value }),
+        mutationFn: (value: string) => createShop({ name: value }),
         onSuccess: () => {
             setName("")
             setError(null)
@@ -176,7 +178,7 @@ function CreateShopForm() {
         e.preventDefault()
         setError(null)
         setDone(false)
-        const result = CreateShopRequestSchema.shape.name.safeParse(name)
+        const result = CreateShopNameSchema.safeParse(name)
         if (!result.success) {
             setError(result.error.issues[0]?.message ?? "请输入店铺名称")
             return

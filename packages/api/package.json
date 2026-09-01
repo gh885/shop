@@ -8,8 +8,7 @@
     },
     "exports": {
         ".": "./src/index.ts",
-        "./sdk": "./src/sdk/index.ts",
-        "./schemas/types.gen": "./src/schemas/types.gen.ts"
+        "./sdk": "./src/sdk/index.ts"
     },
     "dependencies": {
         "ky": "^2.0.2",

@@ -3,11 +3,17 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { CircleAlert, Store } from "lucide-react"
 
 import { toApiError } from "@shop/api"
-import type { ApiError, SkuUpdateItem } from "@shop/api"
-import type { SkuResponse } from "@shop/api/sdk"
+import type { ApiError } from "@shop/api"
+import type { SkuUpdateItem, SkuResponse } from "@shop/api/sdk"
 
 import { CategoryStep, PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/products"
-import { productApi, type SpecSelection } from "#/shared/lib/api"
+import {
+    applyProductSpecs,
+    createProduct,
+    publishProduct,
+    updateProductSkus,
+} from "#/products/data"
+import type { SpecSelection } from "#/products/data"
 import { useCurrentShop } from "#/shared/lib/shop"
 
 interface NewProductSearch {
@@ -35,7 +41,7 @@ function NewProductPage() {
     /** 建草稿（幂等）：首次用到时建档，后续复用 */
     async function ensureDraft(values: BasicStepValues): Promise<string> {
         if (draftIdRef.current) return draftIdRef.current
-        const product = await productApi.create(shop!.id, {
+        const product = await createProduct(shop!.id, {
             categoryId: categoryId!,
             name: values.name,
             subtitle: values.subtitle || undefined,
@@ -55,7 +61,7 @@ function NewProductPage() {
             throw { status: 0, detail: "请先填写商品标题，再配置销售规格" } satisfies ApiError
         }
         const id = await ensureDraft(values)
-        return productApi.applySpecs(shop!.id, id, selections)
+        return applyProductSpecs(shop!.id, id, selections)
     }
 
     /** 提交：建草稿 → 写规格价格库存 → 上架；草稿模式只建档回列表 */
@@ -64,19 +70,19 @@ function NewProductPage() {
         setSubmitting(true)
         try {
             const id = await ensureDraft(values)
-            if (skuItems.length) {
-                await productApi.updateSkus(shop!.id, id, skuItems)
+            if (skuItems.length > 0) {
+                await updateProductSkus(shop!.id, id, skuItems)
             }
-            if (mode === "submit" && skuItems.length) {
+            if (mode === "submit" && skuItems.length > 0) {
                 // 有规格才算完整：按价上架
-                await productApi.publish(shop!.id, id)
+                await publishProduct(shop!.id, id)
                 void navigate({ to: "/products", search: { page: 1, size: 10 } })
             } else {
                 // 无规格或存草稿：回列表
                 void navigate({ to: "/products", search: { page: 1, size: 10 } })
             }
-        } catch (e) {
-            setServerError(toApiError(e).detail)
+        } catch (error) {
+            setServerError(toApiError(error).detail)
         } finally {
             setSubmitting(false)
         }
