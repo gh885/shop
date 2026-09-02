@@ -1,5 +1,3 @@
-import type { AddressResponse } from "@shop/api/sdk"
-
 /**
  * address 模块 —— 纯逻辑（类型 + wire→投影）。不碰 React / 网络。
  * 地址的「规则」（默认唯一性、完整性、手机号合法性）由后端裁决，前端不复刻；
@@ -42,20 +40,4 @@ export type AddressParse = {
     city?: string
     district?: string
     detail?: string
-}
-
-/** wire → 投影：receiverName → receiver，label 归一 undefined */
-export function toAddress(dto: AddressResponse): Address {
-    return {
-        id: dto.id ?? "",
-        receiver: dto.receiverName ?? "",
-        phone: dto.phone ?? "",
-        regionCode: dto.regionCode ?? "",
-        province: dto.province ?? "",
-        city: dto.city ?? "",
-        district: dto.district ?? "",
-        detail: dto.detail ?? "",
-        label: dto.label ?? undefined,
-        isDefault: dto.isDefault ?? false,
-    }
 }

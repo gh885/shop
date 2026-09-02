@@ -16,10 +16,9 @@ import {
 } from "@shop/ui-web"
 import { CircleAlert } from "lucide-react"
 
-import type { SkuUpdateItem } from "@shop/api/sdk"
+import type { SkuResponse, SkuUpdateItem } from "@shop/api/sdk"
 
 import { fenToYuan, yuanToFen } from "@shop/api"
-import type { Sku } from "#/domain"
 
 interface SkuDraft {
     skuId: string
@@ -33,18 +32,15 @@ interface SkuDraft {
     status: "ON_SALE" | "DISABLED"
 }
 
-function toDrafts(skus: Sku[]): SkuDraft[] {
+function toDrafts(skus: SkuResponse[]): SkuDraft[] {
     return skus.map((s) => ({
         skuId: s.id,
         label: (s.attributes ?? []).map((a) => a.value).join(" / ") || "单规格",
         name: s.name,
         skuCode: s.skuCode ?? "",
-        priceText: s.price === null || s.price === undefined ? "" : fenToYuan(s.price),
-        originalPriceText:
-            s.originalPrice === null || s.originalPrice === undefined
-                ? ""
-                : fenToYuan(s.originalPrice),
-        stockText: s.stock === null || s.stock === undefined ? "" : String(s.stock),
+        priceText: s.price === undefined ? "" : fenToYuan(s.price),
+        originalPriceText: s.originalPrice === undefined ? "" : fenToYuan(s.originalPrice),
+        stockText: s.stock === undefined ? "" : String(s.stock),
         status: s.status === "DISABLED" ? "DISABLED" : "ON_SALE",
     }))
 }
@@ -58,16 +54,16 @@ export function SkusTable({
     submitting,
     onSave,
 }: {
-    skus: Sku[]
+    skus: SkuResponse[]
     submitting: boolean
     onSave: (items: SkuUpdateItem[]) => void
 }) {
     const [drafts, setDrafts] = useState<SkuDraft[]>(() => toDrafts(skus))
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | undefined>()
 
     useEffect(() => {
         setDrafts(toDrafts(skus))
-        setError(null)
+        setError(undefined)
     }, [skus])
 
     function update(index: number, patch: Partial<SkuDraft>) {
@@ -75,7 +71,7 @@ export function SkusTable({
     }
 
     function handleSave() {
-        setError(null)
+        setError(undefined)
         const items: SkuUpdateItem[] = []
         for (const d of drafts) {
             const price = yuanToFen(d.priceText)
@@ -88,8 +84,10 @@ export function SkusTable({
                 setError(`「${d.label}」的库存无效，请输入不小于 0 的整数`)
                 return
             }
-            const originalPrice = d.originalPriceText.trim() ? yuanToFen(d.originalPriceText) : null
-            if (d.originalPriceText.trim() && originalPrice === null) {
+            const originalPrice = d.originalPriceText.trim()
+                ? yuanToFen(d.originalPriceText)
+                : undefined
+            if (d.originalPriceText.trim() && originalPrice === undefined) {
                 setError(`「${d.label}」的划线价无效`)
                 return
             }
@@ -98,7 +96,7 @@ export function SkusTable({
                 name: d.name.trim() || undefined,
                 skuCode: d.skuCode.trim() || undefined,
                 price,
-                // SDK 的 originalPrice 为 number | undefined，null 归一为 undefined
+                // SDK 的 originalPrice 为 number | undefined，undefined 归一为 undefined
                 originalPrice: originalPrice ?? undefined,
                 stock,
                 status: d.status,
@@ -212,7 +210,7 @@ export function SkusTable({
                         <CircleAlert className="size-4" />
                         {error}
                     </p>
-                ) : null}
+                ) : undefined}
             </div>
         </div>
     )

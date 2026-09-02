@@ -303,7 +303,7 @@ function Steps() {
                         <p className="mt-2 leading-relaxed text-muted-foreground">{step.body}</p>
                         {i === STEPS.length - 1 ? (
                             <CheckCircle2 className="mt-4 size-5 text-success" />
-                        ) : null}
+                        ) : undefined}
                     </motion.li>
                 ))}
             </ol>

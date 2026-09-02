@@ -27,8 +27,8 @@ function toDrafts(rows: SkuResponse[]): RowDraft[] {
     return rows.map((r) => ({
         skuId: r.id as string,
         label: (r.attributes ?? []).map((a) => a.value).join(" / ") || "单规格",
-        priceText: r.price == null ? "" : fenToYuan(r.price),
-        stockText: r.stock == null ? "" : String(r.stock),
+        priceText: r.price == undefined ? "" : fenToYuan(r.price),
+        stockText: r.stock == undefined ? "" : String(r.stock),
         skuCode: r.skuCode ?? "",
         status: r.status === "DISABLED" ? "DISABLED" : "ON_SALE",
     }))
@@ -104,7 +104,7 @@ export function SkuGridEditor({
             )
     }, [drafts, keyword])
 
-    if (rows.length === 0) return null
+    if (rows.length === 0) return
 
     const content = (
         <div className={fullscreen ? "fixed inset-0 z-50 overflow-auto bg-background p-6" : ""}>

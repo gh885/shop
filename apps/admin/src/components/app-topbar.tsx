@@ -26,7 +26,7 @@ export function AppTopBar() {
 
             <TopBarNav>
                 {NAV.map((d) =>
-                    d.groups.length === 0 ? null : (
+                    d.groups.length === 0 ? undefined : (
                         <TopBarNavItem
                             key={d.key}
                             isActive={d === domain}

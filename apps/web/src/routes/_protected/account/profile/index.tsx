@@ -56,7 +56,7 @@ function ProfilePage() {
         )
     }
 
-    const displayName = me?.nickname ?? null
+    const displayName = me?.nickname ?? undefined
 
     return (
         <div className="space-y-5 rounded-2xl bg-background p-6">

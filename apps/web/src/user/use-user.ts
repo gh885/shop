@@ -1,20 +1,18 @@
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
-import { AuthApi } from "@shop/api/sdk"
+import { AuthApi, type MeResponse } from "@shop/api/sdk"
 
 import { useAuthStatus } from "#/shared/api/auth"
 
-import { toCurrentUser, type CurrentUser } from "./user"
-
 /**
- * use-user —— 当前登录用户的 React 接线层。规则/类型在 ./user.ts，这里只管读写。
+ * use-user —— 当前登录用户的 React 接线层。这里只管读写。
+ * 直接返回 SDK 的 MeResponse（字段可选），组件按需 Pick 自己渲染的字段；
  * 登录态由 auth-kit gate；未登录（guest）不发请求。
  */
 
 const ME_QUERY_KEY = ["me"] as const
 
-async function fetchMe(): Promise<CurrentUser> {
-    const res = await AuthApi.me()
-    return toCurrentUser(res.data ?? {})
+async function fetchMe(): Promise<MeResponse | undefined> {
+    return (await AuthApi.me()).data
 }
 
 const meOptions = queryOptions({

@@ -54,6 +54,9 @@ export default defineConfig({
         "react/react-in-jsx-scope": "off",
 
         // ── warn — 推荐写法 ──
+        // 领域层约定：对外兼容 null，对内只用 undefined（用 ?. / ?? 判空，不写 null 字面量）。
+        // 存量 98 处 null（多为 useState(null) / || null 兜底），先 warn 暴露，清完再升 error
+        "no-null": "warn",
         // 仓库混用 PascalCase 组件 + kebabCase 工具/hook/路由，单一 case 规则无法满足全部，关闭以免恒定噪音
         "unicorn/filename-case": "off",
         "unicorn/prefer-includes": "warn",

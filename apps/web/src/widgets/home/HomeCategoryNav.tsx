@@ -34,20 +34,20 @@ export function HomeCategoryNav({
     defaultHeight?: number
     entries: NavEntry[] | undefined
 }) {
-    const [activeId, setActiveId] = useState<string | null>(null)
+    const [activeId, setActiveId] = useState<string | undefined>()
 
     // 后端未返回数据（加载中/为空）→ 骨架占位
     if (!entries) {
         return <Skeleton className="h-full w-full rounded-xl" />
     }
 
-    const active = entries.find((e) => e.id === activeId) ?? null
+    const active = entries.find((e) => e.id === activeId) ?? undefined
 
     return (
         <div
             className="relative w-[250px] shrink-0"
             style={{ height: defaultHeight }}
-            onMouseLeave={() => setActiveId(null)}
+            onMouseLeave={() => setActiveId(undefined)}
         >
             {/** 单列表：始终完整显示，hover 仅切换行高亮 + 右侧展开 Mega 面板，不做 absolute 跳动 */}
             <div className="h-full overflow-hidden rounded-lg bg-background shadow-sm">

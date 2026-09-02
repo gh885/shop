@@ -23,7 +23,7 @@ export function AppSidebar() {
     const domain = activeDomain(pathname)
 
     // 工作台这类无菜单的域：不渲染侧栏，内容区全宽
-    if (domain.groups.length === 0) return null
+    if (domain.groups.length === 0) return
 
     return (
         <Sidebar collapsible="icon">

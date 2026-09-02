@@ -7,7 +7,7 @@ export interface RegionData {
     children?: RegionData[]
 }
 
-let treePromise: Promise<RegionData[]> | null = null
+let treePromise
 
 /** 懒加载整棵树（首次取地区时才动态 import，之后复用） */
 function loadTree(): Promise<RegionData[]> {
@@ -21,7 +21,7 @@ function isDirectCity(node: RegionData): boolean {
 }
 
 /** RegionPicker 数据源：按层取孩子。根层返回省，区县层为叶子 */
-export async function loadChildren(parent: RegionNode | null): Promise<RegionNode[]> {
+export async function loadChildren(parent: RegionNode | undefined): Promise<RegionNode[]> {
     const tree = await loadTree()
     if (!parent) {
         return tree.map((p) => ({ code: p.code, label: p.name, isLeaf: false }))
@@ -64,7 +64,7 @@ export async function findPath(code: string): Promise<RegionNode[]> {
     return path
 }
 
-function findNode(nodes: RegionData[], code: string): RegionData | null {
+function findNode(nodes: RegionData[], code: string): RegionData | undefined {
     for (const n of nodes) {
         if (n.code === code) return n
         if (n.children) {
@@ -72,5 +72,5 @@ function findNode(nodes: RegionData[], code: string): RegionData | null {
             if (found) return found
         }
     }
-    return null
+    return undefined
 }

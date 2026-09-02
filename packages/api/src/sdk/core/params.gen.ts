@@ -97,7 +97,7 @@ interface Params {
 function stripEmptySlots(params: Params): void {
   for (const [slot, value] of Object.entries(params)) {
     if (slot === 'body') continue;
-    if (value && typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) {
       delete params[slot as Slot];
     }
   }

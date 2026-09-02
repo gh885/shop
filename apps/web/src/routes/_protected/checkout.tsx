@@ -283,7 +283,7 @@ function GroupCard({ group }: { group: CheckoutGroup }) {
 }
 
 function UnavailableCard({ lines }: { lines: CheckoutPreview["unavailable"] }) {
-    if (lines.length === 0) return null
+    if (lines.length === 0) return
     return (
         <div className="rounded-2xl bg-muted/40 p-5 ring-1 ring-border/60">
             <div className="flex items-center gap-2 text-sm font-medium text-destructive">

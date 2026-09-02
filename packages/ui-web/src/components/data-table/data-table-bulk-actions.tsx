@@ -23,7 +23,7 @@ export function DataTableBulkActions<TData>({
     const selectedCount = table.getFilteredSelectedRowModel().rows.length
 
     if (selectedCount === 0) {
-        return null
+        return
     }
 
     return (

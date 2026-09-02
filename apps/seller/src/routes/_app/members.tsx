@@ -50,7 +50,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const queryClient = useQueryClient()
     const me = useMe()
     const [phone, setPhone] = useState("")
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | undefined>()
 
     const members = useQuery({
         queryKey: ["shops", shopId, "members"],
@@ -66,7 +66,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
         mutationFn: (value: string) => inviteMember(shopId, { phone: value }),
         onSuccess: () => {
             setPhone("")
-            setError(null)
+            setError(undefined)
             void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
         },
         onError: (e) => {
@@ -112,7 +112,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                             </Badge>
                             {m.status === "PENDING" ? (
                                 <Badge variant="outline">待确认</Badge>
-                            ) : null}
+                            ) : undefined}
                             {isOwner && m.role !== "OWNER" ? (
                                 <Button
                                     variant="ghost"
@@ -123,7 +123,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                 >
                                     <Trash2 className="size-4 text-muted-foreground" />
                                 </Button>
-                            ) : null}
+                            ) : undefined}
                         </span>
                     </li>
                 ))}
@@ -134,7 +134,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                     className="mt-5 flex items-start gap-2"
                     onSubmit={(e) => {
                         e.preventDefault()
-                        setError(null)
+                        setError(undefined)
                         const result = InvitePhoneSchema.safeParse(phone)
                         if (!result.success) {
                             setError(result.error.issues[0]?.message ?? "请输入正确的手机号")
@@ -156,7 +156,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                 <CircleAlert className="size-3.5" />
                                 {error}
                             </p>
-                        ) : null}
+                        ) : undefined}
                     </div>
                     <Button
                         type="submit"

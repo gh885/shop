@@ -28,12 +28,12 @@ export function SalesInfoSection({
     onSpecsChange: (selections: SpecSelection[]) => void
     onItemsChange: (items: SkuUpdateItem[]) => void
 }) {
-    const [template, setTemplate] = useState<CategoryAttrTemplateNode[] | null>(null)
-    const [loadError, setLoadError] = useState<string | null>(null)
+    const [template, setTemplate] = useState<CategoryAttrTemplateNode[] | undefined>()
+    const [loadError, setLoadError] = useState<string | undefined>()
     const [selections, setSelections] = useState<SpecSelection[]>([])
     const [skus, setSkus] = useState<SkuResponse[]>([])
     const [applying, setApplying] = useState(false)
-    const [applyError, setApplyError] = useState<string | null>(null)
+    const [applyError, setApplyError] = useState<string | undefined>()
 
     useEffect(() => {
         let cancelled = false
@@ -58,7 +58,7 @@ export function SalesInfoSection({
         }
         const timer = setTimeout(async () => {
             setApplying(true)
-            setApplyError(null)
+            setApplyError(undefined)
             try {
                 const result = await onApply(selections)
                 setSkus(result)
@@ -103,7 +103,7 @@ export function SalesInfoSection({
                 />
             </FieldRow>
 
-            {applyError ? <p className="mt-3 text-sm text-destructive">{applyError}</p> : null}
+            {applyError ? <p className="mt-3 text-sm text-destructive">{applyError}</p> : undefined}
             {applying && <p className="mt-3 text-xs text-muted-foreground">正在按模板生成 SKU…</p>}
 
             {skus.length > 0 && (

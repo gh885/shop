@@ -163,12 +163,12 @@ const PLACEHOLDER_ITEMS: SidebarItem[] = [
 interface SidebarState {
     items: SidebarItem[]
     activeKey: string
-    /** 二级面板当前展示的一级项（无分组可展时为 null） */
-    shown: SidebarItem | null
+    /** 二级面板当前展示的一级项（无分组可展时为 undefined） */
+    shown: SidebarItem | undefined
     select: (key: string) => void
 }
 
-const SidebarContext = createContext<SidebarState | null>(null)
+const SidebarContext = createContext<SidebarState | undefined>(undefined)
 
 function useSidebarState() {
     const ctx = use(SidebarContext)
@@ -189,16 +189,18 @@ function SellerSidebarProvider({
         items
             .filter(isGroup)
             .find((g) => g.sections?.some((s) => s.items.some((l) => l.key === activeKey)))?.key ??
-        null
-    const [selectedKey, setSelectedKey] = useState<string | null>(null)
+        undefined
+    const [selectedKey, setSelectedKey] = useState<string | undefined>()
     const shownKey = selectedKey ?? activeGroupKey
 
     const value = useMemo<SidebarState>(() => {
-        const shownItem = shownKey ? (items.find((i) => i.key === shownKey) ?? null) : null
+        const shownItem = shownKey
+            ? (items.find((i) => i.key === shownKey) ?? undefined)
+            : undefined
         return {
             items,
             activeKey,
-            shown: shownItem && isGroup(shownItem) ? shownItem : null,
+            shown: shownItem && isGroup(shownItem) ? shownItem : undefined,
             select: setSelectedKey,
         }
     }, [items, activeKey, shownKey])
@@ -216,7 +218,7 @@ function SidebarRail({ className }: { className?: string }) {
         items
             .filter(isGroup)
             .find((g) => g.sections?.some((s) => s.items.some((l) => l.key === activeKey)))?.key ??
-        null
+        undefined
 
     return (
         <aside className={cn("flex w-24 shrink-0 flex-col", className)}>
@@ -265,7 +267,7 @@ function SidebarRail({ className }: { className?: string }) {
 
 function SidebarPanel({ className }: { className?: string }) {
     const { shown, activeKey } = useSidebarState()
-    if (!shown) return null
+    if (!shown) return
 
     return (
         <aside className={cn("flex w-44 shrink-0 flex-col text-foreground", className)}>

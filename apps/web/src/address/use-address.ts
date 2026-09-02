@@ -4,7 +4,7 @@ import { AddressesApi } from "@shop/api/sdk"
 import { notify } from "#/shared/lib/toast"
 import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
-import { toAddress, type Address, type AddressInput, type AddressParse } from "./address"
+import { type Address, type AddressInput, type AddressParse } from "./address"
 
 /** use-address —— 地址的 React 接线层。规则/类型在 ./address.ts，这里只管读写。
 
@@ -14,7 +14,7 @@ const KEY = ["addresses"] as const
 
 async function listAddresses(): Promise<Address[]> {
     const res = await AddressesApi.listAddresses()
-    return (res.data ?? []).map(toAddress)
+    return (res.data ?? []) as Address[]
 }
 
 /** 我的地址列表 */

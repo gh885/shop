@@ -27,8 +27,8 @@ export type Product = {
     title: string
     subtitle: string
     image: string
-    priceMin: Money | null
-    priceMax: Money | null
+    priceMin: Money | undefined
+    priceMax: Money | undefined
 }
 
 /** SKU 业务形状：attributes 空数组兜底；image 为 undefined 表示无专属图（回退主图）；stock 缺失按 0 售罄处理 */
@@ -38,11 +38,11 @@ export type Sku = {
     attributes: SkuAttr[]
     image?: string
     price: Money
-    originalPrice: Money | null
+    originalPrice: Money | undefined
     stock: number
 }
 
-/** 商品详情：内嵌已塑形的 product/sku，异常字段 null 归一成空值，渲染层无需再判空 */
+/** 商品详情：内嵌已塑形的 product/sku，异常字段 undefined 归一成空值，渲染层无需再判空 */
 export type ProductDetail = {
     product: Product
     /** 详情图流：对象存储 key 数组，按序铺开渲染（代替富文本 HTML）；展示时用 imgUrl 拼 CDN 域名 */
@@ -80,9 +80,9 @@ export type ProductListQueryInput = {
 
 // ---------- wire → 投影 ----------
 
-/** 归一：SDK 的 Money 字段全可选（openapi-ts 默认），业务 Money 必填；null 原样保留，否则回填默认币种。 */
-function toMoney(m: SdkMoney | null | undefined): Money | null {
-    if (m == null) return null
+/** 归一：SDK 的 Money 字段全可选（openapi-ts 默认），业务 Money 必填；undefined 原样保留，否则回填默认币种。 */
+function toMoney(m: SdkMoney | undefined): Money | undefined {
+    if (m == undefined) return undefined
     return { amount: m.amount ?? 0, currency: m.currency ?? "CNY" }
 }
 

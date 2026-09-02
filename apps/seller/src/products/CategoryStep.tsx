@@ -19,14 +19,14 @@ export function CategoryStep({
     onConfirm,
 }: {
     /** 已选末级类目 id（来自 URL），用于返回本步时回填 */
-    value: string | null
+    value: string | undefined
     onConfirm: (leafId: string) => void
 }) {
     const { data: tree = [], isPending } = useCategoryTree()
     const leafPaths = useLeafPaths()
 
-    // null = 还没手动点过，跟随 URL 上的 value 回填
-    const [picked, setPicked] = useState<string[] | null>(null)
+    // undefined = 还没手动点过，跟随 URL 上的 value 回填
+    const [picked, setPicked] = useState<string[] | undefined>()
     const selectedIds = picked ?? leafPaths.find((p) => p.id === value)?.ids ?? []
 
     const [draft, setDraft] = useState("")

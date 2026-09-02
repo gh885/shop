@@ -6,7 +6,7 @@
  * - AddressTable.tsx / AddressFormDialog.tsx ：受控组件（表单校验 zchema 局部在 AddressFormDialog 内）
  */
 
-export { toAddress, type Address, type AddressInput, type AddressParse } from "./address"
+export { type Address, type AddressInput, type AddressParse } from "./address"
 
 export {
     parseAddressText,

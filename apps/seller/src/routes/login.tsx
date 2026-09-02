@@ -25,7 +25,7 @@ type LoginTab = "sms" | "password"
 function LoginPage() {
     const navigate = useNavigate()
     const [tab, setTab] = useState<LoginTab>("sms")
-    const [serverError, setServerError] = useState<string | null>(null)
+    const [serverError, setServerError] = useState<string | undefined>()
     const [codeInvalid, setCodeInvalid] = useState(false)
     const [captchaInvalid, setCaptchaInvalid] = useState(false)
     const [countdown, setCountdown] = useCountdown()
@@ -53,7 +53,7 @@ function LoginPage() {
         defaultValues: { phone: "", code: "", password: "", captchaCode: "" },
         validators: { onSubmit: tab === "sms" ? SmsFormSchema : PasswordFormSchema },
         onSubmit: async ({ value }) => {
-            setServerError(null)
+            setServerError(undefined)
             setCodeInvalid(false)
             try {
                 const result =
@@ -90,7 +90,7 @@ function LoginPage() {
                 captchaCode: form.getFieldValue("captchaCode"),
             }),
         onSuccess: () => {
-            setServerError(null)
+            setServerError(undefined)
             setCountdown(60)
             setCaptchaInvalid(false)
             // 验证码 token 一次性：发码成功换新图
@@ -115,7 +115,7 @@ function LoginPage() {
 
     function switchTab(next: LoginTab) {
         setTab(next)
-        setServerError(null)
+        setServerError(undefined)
         setCodeInvalid(false)
         // 切到短信 Tab 时确保验证码图存在（default sms tab 挂载即加载）
         if (next === "sms" && !captcha.image) void captcha.refresh()
@@ -226,7 +226,7 @@ function LoginPage() {
                                 </div>
                             )}
                         </form.AppField>
-                    ) : null}
+                    ) : undefined}
 
                     {tab === "sms" ? (
                         <form.AppField name="code">

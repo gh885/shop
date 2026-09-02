@@ -66,7 +66,7 @@ export function FieldRow({
                     <p className="text-xs text-destructive">{error}</p>
                 ) : hint ? (
                     <p className="text-xs text-muted-foreground">{hint}</p>
-                ) : null}
+                ) : undefined}
             </div>
         </div>
     )

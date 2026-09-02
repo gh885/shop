@@ -10,23 +10,19 @@ import type { Money } from "@shop/api"
 
 // ---------- 业务类型 ----------
 
-/** 订单状态：与后端枚举对齐（已付款即进入履约流，无待评价/退款中阶段） */
-export type OrderStatus =
-    | "pending_payment" // 待付款
-    | "pending_shipment" // 待发货
-    | "pending_receipt" // 待收货
-    | "completed" // 已完成 / 交易成功
-    | "cancelled" // 已取消
+// 订单状态类型与 wire↔领域映射收在包级 shared（#/shared/order-status），此处复用
+import type { OrderStatus } from "#/shared/order-status"
+export type { OrderStatus }
 
 /** 订单项业务形状（快照字段原样透出；amount 为行小计 = 单价 × 数量）。
  * 注意：后端行项无 id（订单快照只留 productId/skuId），渲染 key 用 `productId + skuId + quantity`。 */
 export type OrderItem = {
     productId: string
-    skuId: string | null
+    skuId: string | undefined
     title: string
     image: string
     price: Money
-    originalPrice: Money | null
+    originalPrice: Money | undefined
     quantity: number
     /** 行小计（单价 × 数量） */
     amount: Money
@@ -48,12 +44,12 @@ export type Order = {
     /** 商品总额（若干行合计） */
     itemAmount: Money
     /** 运费（V1 恒 0） */
-    shippingFee: Money | null
+    shippingFee: Money | undefined
     /** 实付金额 = 商品总额 + 运费 - 优惠，最终结算口径 */
     payAmount: Money
 }
 
-/** 订单详情业务形状（在列表形状之上扩展详情字段，null 归一空值） */
+/** 订单详情业务形状（在列表形状之上扩展详情字段，undefined 归一空值） */
 export type OrderDetail = Order & {
     /** 可执行动作：按后端状态机推导（pay/cancel/receive/...） */
     availableActions: string[]

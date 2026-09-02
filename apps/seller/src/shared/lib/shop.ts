@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react"
 import { useQuery } from "@tanstack/react-query"
 
-import type { Shop } from "#/domain"
+import type { ShopResponse } from "@shop/api/sdk"
 
 import { myShops } from "./shop-data"
 import { useAuthStatus } from "./api"
@@ -21,7 +21,8 @@ export function useMyShops() {
 
 const STORAGE_KEY = "shop_seller_current_shop"
 
-let stored = localStorage.getItem(STORAGE_KEY)
+// 统一 undefined 约定：localStorage.getItem 返回 string | null，此处归一为 string | undefined
+let stored: string | undefined = localStorage.getItem(STORAGE_KEY) ?? undefined
 
 const listeners = new Set<() => void>()
 
@@ -32,7 +33,7 @@ function subscribe(listener: () => void) {
     }
 }
 
-export function setCurrentShopId(shopId: string | null) {
+export function setCurrentShopId(shopId: string | undefined) {
     stored = shopId
     if (shopId) {
         localStorage.setItem(STORAGE_KEY, shopId)
@@ -50,9 +51,9 @@ function getStored() {
  * 当前经营店铺：取本地记忆，要求仍是我的 ACTIVE 店铺；否则落到第一家 ACTIVE 店。
  * 商品/店员等卖家侧页面都以它为上下文（请求头 X-Shop-Id）。
  */
-export function useCurrentShop(): Shop | null {
-    const shopId = useSyncExternalStore(subscribe, getStored, () => null)
+export function useCurrentShop(): ShopResponse | undefined {
+    const shopId = useSyncExternalStore(subscribe, getStored, () => undefined)
     const shops = useMyShops()
     const actives = shops.data?.filter((s) => s.status === "ACTIVE") ?? []
-    return actives.find((s) => s.id === shopId) ?? actives[0] ?? null
+    return actives.find((s) => s.id === shopId) ?? actives[0] ?? undefined
 }

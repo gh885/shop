@@ -44,7 +44,7 @@ const LABELS = [
 
 const CUSTOM_LABEL_MAX = 4
 
-function toDefaults(a?: Address | null): AddressInput {
+function toDefaults(a?: Address | undefined): AddressInput {
     return {
         receiver: a?.receiver ?? "",
         phone: a?.phone ?? "",
@@ -61,8 +61,8 @@ function toDefaults(a?: Address | null): AddressInput {
 export interface AddressFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    /** 传入则为编辑模式；null/未传为新增 */
-    editing?: Address | null
+    /** 传入则为编辑模式；undefined/未传为新增 */
+    editing?: Address | undefined
 }
 
 /** 新增/修改收货地址表单弹窗 */

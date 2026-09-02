@@ -30,13 +30,13 @@ function AddressPage() {
 
     // 新增/编辑弹窗状态
     const [dialogOpen, setDialogOpen] = useState(false)
-    const [editing, setEditing] = useState<Address | null>(null)
+    const [editing, setEditing] = useState<Address | undefined>()
 
     // 删除确认
-    const [deleteTarget, setDeleteTarget] = useState<Address | null>(null)
+    const [deleteTarget, setDeleteTarget] = useState<Address | undefined>()
 
     function openCreate() {
-        setEditing(null)
+        setEditing(undefined)
         setDialogOpen(true)
     }
 
@@ -47,7 +47,7 @@ function AddressPage() {
 
     function confirmDelete() {
         if (deleteTarget) del.mutate(deleteTarget.id)
-        setDeleteTarget(null)
+        setDeleteTarget(undefined)
     }
 
     return (
@@ -105,7 +105,7 @@ function AddressPage() {
             {/* 删除确认 */}
             <Dialog
                 open={Boolean(deleteTarget)}
-                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                onOpenChange={(open) => !open && setDeleteTarget(undefined)}
             >
                 <DialogContent className="sm:max-w-sm">
                     <DialogTitle>删除收货地址</DialogTitle>
@@ -115,7 +115,7 @@ function AddressPage() {
                     <div className="mt-4 flex justify-end gap-2">
                         <Button
                             variant="outline"
-                            onClick={() => setDeleteTarget(null)}
+                            onClick={() => setDeleteTarget(undefined)}
                         >
                             取消
                         </Button>

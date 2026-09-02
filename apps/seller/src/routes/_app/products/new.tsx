@@ -33,10 +33,10 @@ function NewProductPage() {
     const shop = useCurrentShop()
     const navigate = useNavigate()
     const { categoryId } = Route.useSearch()
-    const [serverError, setServerError] = useState<string | null>(null)
+    const [serverError, setServerError] = useState<string | undefined>()
     const [submitting, setSubmitting] = useState(false)
     // 选值后生成 SKU 网格需要已建草稿的 id；首次建了就缓存
-    const draftIdRef = useRef<string | null>(null)
+    const draftIdRef = useRef<string | undefined>(undefined)
 
     /** 建草稿（幂等）：首次用到时建档，后续复用 */
     async function ensureDraft(values: BasicStepValues): Promise<string> {
@@ -66,7 +66,7 @@ function NewProductPage() {
 
     /** 提交：建草稿 → 写规格价格库存 → 上架；草稿模式只建档回列表 */
     async function onSubmit(values: BasicStepValues, mode: SubmitMode, skuItems: SkuUpdateItem[]) {
-        setServerError(null)
+        setServerError(undefined)
         setSubmitting(true)
         try {
             const id = await ensureDraft(values)
@@ -104,7 +104,7 @@ function NewProductPage() {
         return (
             <div className="mx-auto w-full max-w-[1184px]">
                 <CategoryStep
-                    value={null}
+                    value={undefined}
                     onConfirm={(leafId) =>
                         void navigate({ to: ".", search: { categoryId: leafId } })
                     }
@@ -128,7 +128,7 @@ function NewProductPage() {
                     <CircleAlert className="size-4" />
                     {serverError}
                 </p>
-            ) : null}
+            ) : undefined}
         </div>
     )
 }

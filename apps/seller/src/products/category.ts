@@ -1,4 +1,4 @@
-import type { CategoryNode } from "#/domain"
+import type { CategoryNodeResponse } from "@shop/api/sdk"
 
 /**
  * category —— 类目选择的纯逻辑（树 → 视图读模型）。不碰 React / 网络。
@@ -18,14 +18,12 @@ export interface LeafPath {
     names: string[]
 }
 
-const childrenOf = (node: CategoryNode): CategoryNode[] => node.children ?? []
-
 /** 末级判定：商品只能挂末级类目 */
-export const isLeaf = (node: CategoryNode): boolean => childrenOf(node).length === 0
+export const isLeaf = (node: CategoryNodeResponse): boolean => (node.children?.length ?? 0) === 0
 
 /** 树 → 末级路径清单（搜索语料，整棵树拍平一次即可） */
 export function flattenLeafPaths(
-    nodes: CategoryNode[],
+    nodes: CategoryNodeResponse[],
     ids: string[] = [],
     names: string[] = [],
 ): LeafPath[] {
@@ -34,7 +32,7 @@ export function flattenLeafPaths(
         const nextNames = [...names, node.name]
         return isLeaf(node)
             ? [{ id: node.id, ids: nextIds, names: nextNames }]
-            : flattenLeafPaths(childrenOf(node), nextIds, nextNames)
+            : flattenLeafPaths(node.children ?? [], nextIds, nextNames)
     })
 }
 
@@ -51,34 +49,43 @@ export function searchLeafPaths(paths: LeafPath[], keyword: string, limit = 60):
 }
 
 /** 选中路径 → 级联列：第 0 列是根，之后每列是上一列选中项的子级（无子级则不再出列） */
-export function columnsOf(tree: CategoryNode[], selectedIds: string[]): CategoryNode[][] {
-    const columns: CategoryNode[][] = [tree]
+export function columnsOf(
+    tree: CategoryNodeResponse[],
+    selectedIds: string[],
+): CategoryNodeResponse[][] {
+    const columns: CategoryNodeResponse[][] = [tree]
     for (const id of selectedIds) {
         const current = columns.at(-1)?.find((n) => n.id === id)
         if (!current || isLeaf(current)) break
-        columns.push(childrenOf(current))
+        columns.push(current.children ?? [])
     }
     return columns
 }
 
 /** 选中路径 → 节点链（遇到断链就截断，容忍脏 URL 参数） */
-export function nodesOf(tree: CategoryNode[], selectedIds: string[]): CategoryNode[] {
-    const chain: CategoryNode[] = []
+export function nodesOf(
+    tree: CategoryNodeResponse[],
+    selectedIds: string[],
+): CategoryNodeResponse[] {
+    const chain: CategoryNodeResponse[] = []
     let level = tree
     for (const id of selectedIds) {
         const node = level.find((n) => n.id === id)
         if (!node) break
         chain.push(node)
-        level = childrenOf(node)
+        level = node.children ?? []
     }
     return chain
 }
 
 /** 已选到末级才算选完（可进下一步） */
-export function selectedLeafId(tree: CategoryNode[], selectedIds: string[]): string | null {
+export function selectedLeafId(
+    tree: CategoryNodeResponse[],
+    selectedIds: string[],
+): string | undefined {
     const chain = nodesOf(tree, selectedIds)
     const last = chain.at(-1)
-    return last && isLeaf(last) ? last.id : null
+    return last && isLeaf(last) ? last.id : undefined
 }
 
 /** 点第 column 列的某项：截断其后的选择 */
@@ -87,7 +94,10 @@ export function selectAt(selectedIds: string[], column: number, id: string): str
 }
 
 /** 列内按名称过滤（列顶部的小搜索框） */
-export function filterByName(nodes: CategoryNode[], keyword: string): CategoryNode[] {
+export function filterByName(
+    nodes: CategoryNodeResponse[],
+    keyword: string,
+): CategoryNodeResponse[] {
     const kw = keyword.trim().toLowerCase()
     if (!kw) return nodes
     return nodes.filter((n) => n.name.toLowerCase().includes(kw))

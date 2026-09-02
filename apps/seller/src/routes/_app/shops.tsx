@@ -6,10 +6,10 @@ import { Badge, Button, Input, Skeleton } from "@shop/ui-web"
 import { CheckCircle2, CircleAlert, MailPlus, Store } from "lucide-react"
 
 import { toApiError } from "@shop/api"
-import type { Shop, ShopStatus } from "#/domain"
 
 import { acceptInvite, createShop, myInvites } from "#/shared/lib/shop-data"
 import { setCurrentShopId, useCurrentShop, useMyShops } from "#/shared/lib/shop"
+import type { ShopResponse } from "@shop/api/sdk"
 
 /** 开店表单校验：店名长度与后端 @Size 对齐（就近放在表单旁） */
 const CreateShopNameSchema = z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字")
@@ -18,14 +18,17 @@ export const Route = createFileRoute("/_app/shops")({
     component: ShopsPage,
 })
 
-const STATUS_TEXT: Record<ShopStatus, string> = {
+const STATUS_TEXT: Record<ShopResponse["status"], string> = {
     PENDING_REVIEW: "审核中",
     ACTIVE: "正常营业",
     REJECTED: "审核未通过",
     DISABLED: "已封禁",
 }
 
-const STATUS_VARIANT: Record<ShopStatus, "secondary" | "default" | "destructive" | "outline"> = {
+const STATUS_VARIANT: Record<
+    ShopResponse["status"],
+    "secondary" | "default" | "destructive" | "outline"
+> = {
     PENDING_REVIEW: "secondary",
     ACTIVE: "default",
     REJECTED: "destructive",
@@ -80,14 +83,14 @@ function ShopsPage() {
     )
 }
 
-function ShopCard({ shop, isCurrent }: { shop: Shop; isCurrent: boolean }) {
+function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean }) {
     return (
         <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-5">
             <div className="space-y-1">
                 <div className="flex items-center gap-3">
                     <h3 className="font-semibold">{shop.name}</h3>
                     <Badge variant={STATUS_VARIANT[shop.status]}>{STATUS_TEXT[shop.status]}</Badge>
-                    {isCurrent ? <Badge variant="outline">当前经营</Badge> : null}
+                    {isCurrent ? <Badge variant="outline">当前经营</Badge> : undefined}
                 </div>
                 <p className="text-sm text-muted-foreground">
                     创建于 {new Date(shop.createdAt).toLocaleDateString("zh-CN")}
@@ -101,7 +104,7 @@ function ShopCard({ shop, isCurrent }: { shop: Shop; isCurrent: boolean }) {
                 >
                     设为当前店铺
                 </Button>
-            ) : null}
+            ) : undefined}
         </div>
     )
 }
@@ -121,7 +124,7 @@ function PendingInvites() {
         },
     })
 
-    if (!invites.data || invites.data.length === 0) return null
+    if (!invites.data || invites.data.length === 0) return
 
     return (
         <section className="space-y-3">
@@ -141,7 +144,7 @@ function PendingInvites() {
                         <Button
                             size="sm"
                             disabled={accept.isPending}
-                            onClick={() => accept.mutate(invite.memberId)}
+                            onClick={() => accept.mutate(invite.memberId ?? "")}
                             className="bg-primary text-primary-foreground hover:bg-primary-hover"
                         >
                             同意加入
@@ -157,14 +160,14 @@ function PendingInvites() {
 function CreateShopForm() {
     const queryClient = useQueryClient()
     const [name, setName] = useState("")
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | undefined>()
     const [done, setDone] = useState(false)
 
     const create = useMutation({
         mutationFn: (value: string) => createShop({ name: value }),
         onSuccess: () => {
             setName("")
-            setError(null)
+            setError(undefined)
             setDone(true)
             void queryClient.invalidateQueries({ queryKey: ["shops"] })
         },
@@ -176,7 +179,7 @@ function CreateShopForm() {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
-        setError(null)
+        setError(undefined)
         setDone(false)
         const result = CreateShopNameSchema.safeParse(name)
         if (!result.success) {
@@ -208,13 +211,13 @@ function CreateShopForm() {
                             <CircleAlert className="size-3.5" />
                             {error}
                         </p>
-                    ) : null}
+                    ) : undefined}
                     {done ? (
                         <p className="flex items-center gap-1 text-sm text-success">
                             <CheckCircle2 className="size-3.5" />
                             已提交，等待平台审核
                         </p>
-                    ) : null}
+                    ) : undefined}
                 </div>
                 <Button
                     type="submit"

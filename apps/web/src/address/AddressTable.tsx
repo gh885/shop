@@ -28,7 +28,7 @@ const BUILTIN_LABEL_NAMES: Record<string, string> = {
 }
 
 function labelName(label?: string) {
-    return label ? (BUILTIN_LABEL_NAMES[label] ?? label) : null
+    return label ? (BUILTIN_LABEL_NAMES[label] ?? label) : undefined
 }
 
 export interface AddressTableProps {

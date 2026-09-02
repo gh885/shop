@@ -17,8 +17,8 @@ export function yuanToFen(yuan: string): number | null {
 }
 
 /** 价格区间展示（分）：单规格同价时只显示一个价 */
-export function priceRangeText(min: number | null, max: number | null): string {
-    if (min === null) return "未定价"
-    if (max === null || max === min) return `¥${fenToYuan(min)}`
+export function priceRangeText(min?: number, max?: number): string {
+    if (min === undefined) return "未定价"
+    if (max === undefined || max === min) return `¥${fenToYuan(min)}`
     return `¥${fenToYuan(min)} ~ ¥${fenToYuan(max)}`
 }

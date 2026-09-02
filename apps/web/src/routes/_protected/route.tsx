@@ -39,5 +39,5 @@ function ProtectedLayout() {
 
     // 未裁决（unknown / guest）阶段一律不渲染子路由：
     // 子路由只在 auth 已裁决为 authed 后才挂载，数据 hook 运行时代理必然带 token，无需逐个写 enabled gating
-    return status === "authed" ? <Outlet /> : null
+    return status === "authed" ? <Outlet /> : undefined
 }

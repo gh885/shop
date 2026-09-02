@@ -31,7 +31,6 @@ async function fetchCartItems(): Promise<CartItem[]> {
     const res = await CartApi.listCartItems()
     return (res.data ?? []).map(toCartItem)
 }
-
 async function fetchCartCount(): Promise<number> {
     const res = await CartApi.getCartCount()
     return res.data?.total ?? 0

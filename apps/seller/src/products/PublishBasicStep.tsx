@@ -323,7 +323,7 @@ function useActiveSection(): string {
 
     useEffect(() => {
         const elements = SECTIONS.map((s) => document.getElementById(s.id)).filter(
-            (el): el is HTMLElement => el !== null,
+            (el): el is HTMLElement => el !== undefined,
         )
         if (elements.length === 0) return
 

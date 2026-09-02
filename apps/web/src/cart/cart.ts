@@ -22,7 +22,6 @@ export type CartItem = {
     skuId: string
     quantity: number
     selected: boolean
-    addedAt: Date
     available: boolean
     /** 失效条目（无 SPU / 商品被删）没有 product；groupByShop 据此归入「失效商品」组 */
     product?: CartProductInfo
@@ -40,25 +39,28 @@ export type CartItem = {
  * 数量越界/库存这个 UX 预判在 use-cart 的 useCartItemActions 里（仍以后端裁决为准）。
  */
 
-/** wire → 投影：契约里 product/sku/available/addedAt 均可选，归一成更稳的缺省形状 */
+// ---------- 投影映射（wire → 领域） ----------
+
+/**
+ * 轻量映射：只做组件真正需要的两个重命名（wire name/mainImage → 域 title/image）
+ * 与 available 默认 true，其余字段原样透传。不做逐字段造假兜底（`?? ""` 一律避免）。
+ */
 export function toCartItem(dto: CartListItemResponse): CartItem {
-    const product: CartProductInfo | undefined = dto.product
-        ? {
-              id: dto.product.id ?? "",
-              title: dto.product.name ?? "",
-              image: dto.product.mainImage ?? "",
-              shopId: dto.product.shopId ?? "",
-              shopName: dto.product.shopName ?? "",
-          }
-        : undefined
     return {
         id: dto.id ?? "",
         skuId: dto.skuId ?? "",
         quantity: dto.quantity ?? 0,
         selected: dto.selected ?? false,
-        addedAt: dto.addedAt ? new Date(dto.addedAt) : new Date(0),
         available: dto.available ?? true,
-        product,
+        product: dto.product
+            ? {
+                  id: dto.product.id ?? "",
+                  title: dto.product.name ?? "",
+                  image: dto.product.mainImage ?? "",
+                  shopId: dto.product.shopId ?? "",
+                  shopName: dto.product.shopName ?? "",
+              }
+            : undefined,
         sku: dto.sku,
     }
 }

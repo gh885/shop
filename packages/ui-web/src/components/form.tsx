@@ -71,7 +71,7 @@ export function firstFieldError(field: {
 // ---------- 布局与错误展示 ----------
 
 export function FieldError({ error, className }: { error?: string; className?: string }) {
-    if (!error) return null
+    if (!error) return
     return <p className={cn("text-xs text-destructive", className)}>{error}</p>
 }
 
@@ -109,7 +109,7 @@ export function Field({
             {required && <span className="mr-0.5 text-destructive">*</span>}
             {label}
         </label>
-    ) : null
+    ) : undefined
 
     if (layout === "horizontal") {
         return (

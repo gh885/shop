@@ -2,9 +2,8 @@ import { useState } from "react"
 import { ChevronRight, Search } from "lucide-react"
 import { cn, Input } from "@shop/ui-web"
 
-import type { CategoryNode } from "#/domain"
-
 import { columnsOf, filterByName, isLeaf } from "./category"
+import type { CategoryNodeResponse } from "@shop/api/sdk"
 
 /** 类目最多三级（后端 CategoryService.MAX_LEVEL），列位固定摆满，避免选之前只有孤零零一列 */
 const COLUMN_SLOTS = [0, 1, 2]
@@ -19,7 +18,7 @@ export function CategoryColumns({
     selectedIds,
     onSelect,
 }: {
-    tree: CategoryNode[]
+    tree: CategoryNodeResponse[]
     selectedIds: string[]
     onSelect: (column: number, id: string) => void
 }) {
@@ -54,7 +53,7 @@ function CategoryColumn({
     selectedId,
     onSelect,
 }: {
-    nodes: CategoryNode[]
+    nodes: CategoryNodeResponse[]
     selectedId?: string
     onSelect: (id: string) => void
 }) {

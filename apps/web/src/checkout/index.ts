@@ -1,4 +1,3 @@
-export { toCheckoutPreview } from "./checkout"
 export type {
     CheckoutPreview,
     CheckoutGroup,

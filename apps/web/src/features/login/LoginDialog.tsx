@@ -43,8 +43,8 @@ interface LoginDialogProps {
     onOpenChange: (open: boolean) => void
 }
 
-/** 提交/发码失败信息（detail 展示，code 决定交互分支），null = 无错误 */
-type SubmitError = ApiError | null
+/** 提交/发码失败信息（detail 展示，code 决定交互分支），undefined = 无错误 */
+type SubmitError = ApiError | undefined
 
 /** 验证码类错误（输错/过期）：重新输入时自动清除并停掉抖动 */
 function isCodeError(e: SubmitError): boolean {
@@ -63,14 +63,14 @@ function isCaptchaError(e: SubmitError): boolean {
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     const [tab, setTab] = useState<LoginTab>("sms")
     // 服务端错误统一存一个状态；codeInvalid 由 code 推导，不再单独维护
-    const [submitError, setSubmitError] = useState<SubmitError>(null)
+    const [submitError, setSubmitError] = useState<SubmitError>()
     const [countdown, setCountdown] = useCountdown()
     // 图形验证码：挂载即加载（默认短信 tab 需要人机验证才能发码）。图在登录后随 dialog 关闭清理态
     const captcha = useCaptcha(getCaptcha)
     // useCaptcha 的 refresh 是 useCallback 稳定引用；提取出来供 useEffect 依赖数组用
     const refreshCaptcha = captcha.refresh
 
-    const serverError = submitError?.detail ?? null
+    const serverError = submitError?.detail ?? undefined
     const codeInvalid = isCodeError(submitError)
     const captchaInvalid = isCaptchaError(submitError)
 
@@ -78,7 +78,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         defaultValues: { phone: "", code: "", password: "", captchaCode: "" },
         validators: { onSubmit: tab === "sms" ? SmsFormSchema : PasswordFormSchema },
         onSubmit: async ({ value }) => {
-            setSubmitError(null)
+            setSubmitError(undefined)
             try {
                 if (tab === "sms") {
                     await loginBySms(value.phone, value.code)
@@ -103,7 +103,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 captchaCode: form.getFieldValue("captchaCode"),
             }),
         onSuccess: () => {
-            setSubmitError(null)
+            setSubmitError(undefined)
             setCountdown(60)
             notify.success("验证码已发送")
             // 验证码 token 一次性：发码成功即换新图，下次发码需重新人机验证
@@ -132,7 +132,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
     function switchTab(next: LoginTab) {
         setTab(next)
-        setSubmitError(null)
+        setSubmitError(undefined)
         // 切到短信 Tab 时确保图形验证码图存在（避免发码按钮可用但无图）
         if (next === "sms" && !captcha.image) void captcha.refresh()
     }
@@ -260,7 +260,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                     field.handleChange(e.target.value.toUpperCase())
                                                     // 重新输入时只清验证码类错误，其余保留到下次提交
                                                     setSubmitError((prev) =>
-                                                        isCaptchaError(prev) ? null : prev,
+                                                        isCaptchaError(prev) ? undefined : prev,
                                                     )
                                                 }}
                                             />
@@ -290,7 +290,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                         </div>
                                     )}
                                 </form.AppField>
-                            ) : null}
+                            ) : undefined}
 
                             {tab === "sms" ? (
                                 /* 验证码 + 内嵌发送按钮 */
@@ -320,7 +320,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                     )
                                                     // 重新输入时只清验证码类错误（抖动随之消失），其余服务端错误保留到下次提交
                                                     setSubmitError((prev) =>
-                                                        isCodeError(prev) ? null : prev,
+                                                        isCodeError(prev) ? undefined : prev,
                                                     )
                                                 }}
                                             />

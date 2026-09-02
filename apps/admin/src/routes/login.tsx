@@ -15,13 +15,13 @@ function LoginPage() {
     const navigate = Route.useNavigate()
     const [employeeNo, setEmployeeNo] = useState("")
     const [password, setPassword] = useState("")
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | undefined>()
     const [pending, setPending] = useState(false)
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault()
         setPending(true)
-        setError(null)
+        setError(undefined)
         try {
             const result = await adminApi.login({
                 employeeNo: employeeNo.trim(),

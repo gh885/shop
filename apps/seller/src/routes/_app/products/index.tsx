@@ -21,15 +21,15 @@ import {
 import { ChevronLeft, ChevronRight, Package, Plus, Search, Store } from "lucide-react"
 
 import { priceRangeText, toApiError } from "@shop/api"
-import type { Product, ProductStatus } from "#/domain"
 
 import { listProducts, offProduct, onProduct, publishProduct } from "#/products/data"
 import { useCurrentShop } from "#/shared/lib/shop"
+import type { ProductResponse } from "@shop/api/sdk"
 
 interface ProductSearch {
     page: number
     size: number
-    status?: ProductStatus
+    status?: ProductResponse["status"]
     keyword?: string
 }
 
@@ -46,13 +46,13 @@ export const Route = createFileRoute("/_app/products/")({
     component: ProductsPage,
 })
 
-const STATUS_TEXT: Record<ProductStatus, string> = {
+const STATUS_TEXT: Record<ProductResponse["status"], string> = {
     PUBLISHED: "上架中",
     OFF: "已下架",
     DRAFT: "草稿",
 }
 
-const STATUS_VARIANT: Record<ProductStatus, "default" | "outline" | "secondary"> = {
+const STATUS_VARIANT: Record<ProductResponse["status"], "default" | "outline" | "secondary"> = {
     PUBLISHED: "default",
     OFF: "outline",
     DRAFT: "secondary",
@@ -124,7 +124,7 @@ function FilterBar() {
                 value={search.status ?? "all"}
                 onValueChange={(value) =>
                     apply({
-                        status: value === "all" ? undefined : (value as ProductStatus),
+                        status: value === "all" ? undefined : (value as ProductResponse["status"]),
                     })
                 }
             >
@@ -313,7 +313,7 @@ function ProductRow({
     onOff,
     onOn,
 }: {
-    product: Product
+    product: ProductResponse
     busy: boolean
     onPublish: () => void
     onOff: () => void
@@ -328,7 +328,7 @@ function ProductRow({
                         <p className="max-w-md truncate text-xs text-muted-foreground">
                             {p.subtitle}
                         </p>
-                    ) : null}
+                    ) : undefined}
                 </div>
             </TableCell>
             <TableCell className="tabular-nums">{priceRangeText(p.minPrice, p.maxPrice)}</TableCell>

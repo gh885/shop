@@ -22,7 +22,7 @@ import {
  * 契约：
  * - value        已选路径（受控），如 [山西省, 太原市, 小店区]；空数组 = 未选
  * - onChange     任意一层选中变化即回调完整路径（选中上层会截断下层）
- * - loadChildren 给一个节点返回其子节点列表；传 null 表示取根层
+ * - loadChildren 给一个节点返回其子节点列表；传 undefined 表示取根层
  * - levelLabels  各层页签名，如 ['省', '市', '区', '街道']
  * - placeholder  触发框未选时的占位文案
  *
@@ -41,14 +41,14 @@ export interface RegionNode {
 export interface RegionPickerProps {
     value: RegionNode[]
     onChange: (path: RegionNode[]) => void
-    loadChildren: (parent: RegionNode | null) => Promise<RegionNode[]>
+    loadChildren: (parent: RegionNode | undefined) => Promise<RegionNode[]>
     /** 各层页签名；未选中的页签显示此名，选中的页签也固定显示此名 */
     levelLabels?: string[]
     placeholder?: string
 }
 
 /** 缓存 key：根层统一用 ''，其余用父节点 code */
-const cacheKeyOf = (parent: RegionNode | null) => parent?.code ?? ""
+const cacheKeyOf = (parent: RegionNode | undefined) => parent?.code ?? ""
 
 export default function RegionPicker({
     value,
@@ -60,6 +60,7 @@ export default function RegionPicker({
     const [open, setOpen] = useState(false)
     // 面板宽度跟随触发框（打开时实测，BaseUI 没有等效 CSS 变量可用）
     const [panelWidth, setPanelWidth] = useState<number>()
+    // React ref 未挂载时约定为 null（非 undefined），no-null 白名单：框架哨兵
     const triggerRef = useRef<HTMLButtonElement | null>(null)
     // levels[i] = 第 i 层的可选列表；levels.length 至多比 value.length 多 1
     const [levels, setLevels] = useState<RegionNode[][]>([])
@@ -70,7 +71,7 @@ export default function RegionPicker({
     const requestIdRef = useRef(0)
 
     const fetchChildren = useCallback(
-        async (parent: RegionNode | null): Promise<RegionNode[]> => {
+        async (parent: RegionNode | undefined): Promise<RegionNode[]> => {
             const cached = cacheRef.current.get(cacheKeyOf(parent))
             if (cached) return cached
             const children = await loadChildren(parent)
@@ -87,16 +88,16 @@ export default function RegionPicker({
             setLoading(true)
             try {
                 const loaded: RegionNode[][] = []
-                let parent: RegionNode | null = null
+                let parent
                 for (const node of value) {
                     // oxlint-disable-next-line eslint/no-await-in-loop -- 级联选择:每一层的加载依赖上层节点,必须串行
                     const children = await fetchChildren(parent)
                     loaded.push(children)
-                    parent = node.isLeaf ? null : node
+                    parent = node.isLeaf ? undefined : node
                     if (node.isLeaf) break
                 }
                 // 路径最深节点不是叶子 → 再加载下一层，等着用户继续选
-                if (parent !== null || value.length === 0) {
+                if (parent !== undefined || value.length === 0) {
                     loaded.push(await fetchChildren(parent))
                 }
                 if (requestId !== requestIdRef.current) return

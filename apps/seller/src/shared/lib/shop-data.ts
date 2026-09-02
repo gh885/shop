@@ -2,24 +2,21 @@ import { unwrap } from "@shop/api"
 import { ShopsApi } from "@shop/api/sdk"
 
 import {
-    toShop,
-    toShopInviteItem,
-    toShopMemberItem,
-    type Shop,
-    type ShopInviteItem,
-    type ShopMemberItem,
-} from "#/domain"
+    type ShopResponse,
+    type ShopInviteItemResponse,
+    type ShopMemberItemResponse,
+} from "@shop/api/sdk"
 
 // ---------- 店铺域数据函数（直接在调用点用，不经集中封装对象） ----------
 
 /** 我的店铺列表：wire → 领域形状 */
-export async function myShops(): Promise<Shop[]> {
-    return (unwrap(await ShopsApi.listMyShops()) ?? []).map(toShop)
+export async function myShops(): Promise<ShopResponse[]> {
+    return unwrap(await ShopsApi.listMyShops()) ?? []
 }
 
 /** 待确认邀请（我的视角）：wire → 领域形状 */
-export async function myInvites(): Promise<ShopInviteItem[]> {
-    return (unwrap(await ShopsApi.listShopInvites()) ?? []).map(toShopInviteItem)
+export async function myInvites(): Promise<ShopInviteItemResponse[]> {
+    return unwrap(await ShopsApi.listShopInvites()) ?? []
 }
 
 /** 接受加入邀请 */
@@ -33,10 +30,8 @@ export async function createShop(input: { name: string }) {
 }
 
 /** 店铺成员列表（店主视角，含手机号与权限）：wire → 领域形状 */
-export async function shopMembers(shopId: string): Promise<ShopMemberItem[]> {
-    return (unwrap(await ShopsApi.listShopMembers({ path: { shopId } })) ?? []).map(
-        toShopMemberItem,
-    )
+export async function shopMembers(shopId: string): Promise<ShopMemberItemResponse[]> {
+    return unwrap(await ShopsApi.listShopMembers({ path: { shopId } })) ?? []
 }
 
 /** 邀请成员入店 */

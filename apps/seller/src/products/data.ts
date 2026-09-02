@@ -2,19 +2,11 @@ import { unwrap } from "@shop/api"
 import {
     CategoriesApi,
     ProductsAdminApi,
-    type CategoryAttrNodeResponse,
     type CreateProductRequest,
+    type ProductResponse,
     type SkuResponse,
     type SkuUpdateItem,
 } from "@shop/api/sdk"
-
-import {
-    toCategoryTree,
-    toProduct,
-    toProductDetail,
-    type Product,
-    type ProductStatus,
-} from "#/domain"
 
 // ---------- 商品域数据函数（直接在调用点用，不经集中封装对象） ----------
 
@@ -26,8 +18,8 @@ const shopHeader = (shopId: string): { "X-Shop-Id": string } => ({ "X-Shop-Id": 
  */
 export async function listProducts(
     shopId: string,
-    search: { page: number; size: number; status?: ProductStatus; keyword?: string },
-): Promise<{ records: Product[]; total: number }> {
+    search: { page: number; size: number; status?: ProductResponse["status"]; keyword?: string },
+): Promise<{ records: ProductResponse[]; total: number }> {
     const page = unwrap(
         await ProductsAdminApi.listShopProducts({
             query: {
@@ -39,32 +31,28 @@ export async function listProducts(
         }),
     )
     return {
-        records: (page.records ?? []).map(toProduct),
+        records: page.records ?? [],
         total: page.total ?? 0,
     }
 }
 
 /** 商品详情（基本信息 + SKU 列表）：wire → 领域形状 */
 export async function productDetail(shopId: string, id: string) {
-    return toProductDetail(
-        unwrap(
-            await ProductsAdminApi.getShopProductDetail({
-                path: { id },
-                headers: shopHeader(shopId),
-            }),
-        ),
+    return unwrap(
+        await ProductsAdminApi.getShopProductDetail({
+            path: { id },
+            headers: shopHeader(shopId),
+        }),
     )
 }
 
 /** 新建草稿商品：wire → 领域形状 */
 export async function createProduct(shopId: string, payload: CreateProductRequest) {
-    return toProduct(
-        unwrap(
-            await ProductsAdminApi.createProduct({
-                body: payload,
-                headers: shopHeader(shopId),
-            }),
-        ),
+    return unwrap(
+        await ProductsAdminApi.createProduct({
+            body: payload,
+            headers: shopHeader(shopId),
+        }),
     )
 }
 
@@ -117,7 +105,7 @@ export async function onProduct(shopId: string, id: string) {
 
 /** 类目树（末级可挂商品）：wire → 领域形状 */
 export async function categoryTree() {
-    return toCategoryTree(unwrap(await CategoriesApi.getCategoryTree()))
+    return unwrap(await CategoriesApi.getCategoryTree())
 }
 
 /** 类目属性模板（公开接口），发布页取销售属性（kind=SPEC）用 */
@@ -125,7 +113,7 @@ export async function attrTemplate(categoryId: string): Promise<CategoryAttrTemp
     const nodes = unwrap(
         await CategoriesApi.getPublicCategoryAttrTemplate({ path: { id: categoryId } }),
     )
-    return (nodes ?? []).map(toTemplateNode)
+    return (nodes ?? []) as CategoryAttrTemplateNode[]
 }
 
 // ---------- 商品域类型（就近放在数据函数旁） ----------
@@ -164,32 +152,4 @@ export interface CategoryAttrTemplateValue {
 export interface CategoryAttrTemplateNode {
     attr: CategoryAttrTemplateAttr
     values: CategoryAttrTemplateValue[]
-}
-
-/** wire（可选）→ 领域形状（非空/字面量）：kind/source/status 归一为枚举字面量 */
-function toTemplateNode(dto: CategoryAttrNodeResponse): CategoryAttrTemplateNode {
-    const a = dto.attr ?? {}
-    const v = dto.values ?? []
-    return {
-        attr: {
-            id: a.id ?? "",
-            categoryId: a.categoryId ?? "",
-            name: a.name ?? "",
-            kind: a.kind === "PARAM" ? "PARAM" : "SPEC",
-            required: a.required ?? false,
-            allowCustom: a.allowCustom ?? false,
-            sort: a.sort ?? 0,
-            status: a.status === "DISABLED" ? "DISABLED" : "ENABLED",
-            createdAt: a.createdAt ?? "",
-            updatedAt: a.updatedAt ?? "",
-        },
-        values: v.map((val) => ({
-            id: val.id ?? "",
-            attrId: val.attrId ?? "",
-            value: val.value ?? "",
-            sort: val.sort ?? 0,
-            source: val.source === "SELLER" ? "SELLER" : "PLATFORM",
-            createdAt: val.createdAt ?? "",
-        })),
-    }
 }

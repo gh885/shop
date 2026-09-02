@@ -31,7 +31,7 @@ function SecurityPage() {
 // ---------- 修改密码 ----------
 
 function ChangePassword() {
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<string | undefined>()
 
     const change = useMutation({
         mutationFn: ({ current, next }: { current: string; next: string }) =>
@@ -229,7 +229,7 @@ function isMobileName(name: string): boolean {
     return n.includes("iphone") || n.includes("android") || n.includes("手机")
 }
 
-function formatTime(iso: string | null | undefined): string {
+function formatTime(iso: string | undefined): string {
     if (!iso) return "时间未知"
     try {
         return new Date(iso).toLocaleString("zh-CN", {

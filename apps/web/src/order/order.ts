@@ -1,7 +1,8 @@
 import type { Money } from "@shop/api"
 import type { Money as SdkMoney } from "@shop/api/sdk"
 
-import type { Order, OrderDetail, OrderItem, OrderStatus } from "./model"
+import { toStatusFromWire, statusToWire } from "#/shared/order-status"
+import type { Order, OrderDetail, OrderItem } from "./model"
 
 /**
  * entities/order —— 订单领域数据层（纯类型 + wire → 投影 + 纯规则，不碰 React / 网络）。
@@ -11,55 +12,33 @@ import type { Order, OrderDetail, OrderItem, OrderStatus } from "./model"
  */
 
 // ---------- 状态映射（后端枚举大写 → 前端领域枚举小写，双向） ----------
+// 状态机唯一真相在 #/shared/order-status（toStatusFromWire / statusToWire）
 
-/** wire（后端）状态 → 前端领域枚举。后端 PAID（已付款）映射为待发货（前端履约流无独立「已付款」段） */
-const WIRE_TO_STATUS: Record<string, OrderStatus> = {
-    PENDING_PAYMENT: "pending_payment",
-    PAID: "pending_shipment",
-    SHIPPED: "pending_receipt",
-    COMPLETED: "completed",
-    CANCELLED: "cancelled",
-}
+/** wire → 领域：后端状态归一成前端枚举（真实语义投影，保留） */
+const toStatus = toStatusFromWire
 
-/** 前端领域枚举 → wire（后端）枚举：查询筛选/状态机动作都用后端大写常量 */
-const STATUS_TO_WIRE: Record<OrderStatus, string> = {
-    pending_payment: "PENDING_PAYMENT",
-    pending_shipment: "PAID",
-    pending_receipt: "SHIPPED",
-    completed: "COMPLETED",
-    cancelled: "CANCELLED",
-}
+export { statusToWire }
 
-/** wire → 领域：后端状态归一成前端枚举，未知值兜底待付款 */
-function toStatus(wire?: string): OrderStatus {
-    return wire ? (WIRE_TO_STATUS[wire] ?? "pending_payment") : "pending_payment"
-}
-
-/** 领域 → wire：查询参数/状态机动作传回后端大写枚举 */
-export function statusToWire(status: OrderStatus): string {
-    return STATUS_TO_WIRE[status]
-}
-
-/** 归一：SDK 的 Money 字段全可选（openapi-ts 默认），业务 Money 必填；null 原样保留 */
-function toMoney(m: SdkMoney | null | undefined): Money | null {
-    if (m == null) return null
+/** 归一：SDK 的 Money 字段全可选（openapi-ts 默认），业务 Money 必填；undefined 原样保留 */
+function toMoney(m: SdkMoney | undefined): Money | undefined {
+    if (m == undefined) return undefined
     return { amount: m.amount ?? 0, currency: m.currency ?? "CNY" }
 }
 
-/** 行项 wire → 业务：快照字段归一，null → 空/缺省值 */
+/** 行项 wire → 业务：快照字段归一，undefined → 空/缺省值 */
 export function toOrderItem(dto: {
     productId?: string
-    skuId?: string | null
+    skuId?: string | undefined
     name?: string
-    image?: string | null
+    image?: string | undefined
     price?: SdkMoney
-    originalPrice?: SdkMoney | null
+    originalPrice?: SdkMoney | undefined
     quantity?: number
     amount?: SdkMoney
 }): OrderItem {
     return {
         productId: dto.productId ?? "",
-        skuId: dto.skuId ?? null,
+        skuId: dto.skuId ?? undefined,
         title: dto.name ?? "",
         image: dto.image ?? "",
         price: toMoney(dto.price) ?? { amount: 0, currency: "CNY" },
@@ -69,7 +48,7 @@ export function toOrderItem(dto: {
     }
 }
 
-/** 列表项 wire → 业务：列表项已内嵌行项目，金额三件套直接透传（shippingFee 后端可能为 null） */
+/** 列表项 wire → 业务：列表项已内嵌行项目，金额三件套直接透传（shippingFee 后端可能为 undefined） */
 export function toOrder(dto: {
     id?: string
     orderNo?: string
@@ -81,11 +60,11 @@ export function toOrder(dto: {
     createdAt?: string
     items?: Array<{
         productId?: string
-        skuId?: string | null
+        skuId?: string | undefined
         name?: string
-        image?: string | null
+        image?: string | undefined
         price?: SdkMoney
-        originalPrice?: SdkMoney | null
+        originalPrice?: SdkMoney | undefined
         quantity?: number
         amount?: SdkMoney
     }>
@@ -100,12 +79,12 @@ export function toOrder(dto: {
         shopName: dto.shopName ?? "",
         items: (dto.items ?? []).map(toOrderItem),
         itemAmount: toMoney(dto.payAmount) ?? { amount: 0, currency: "CNY" },
-        shippingFee: null,
+        shippingFee: undefined,
         payAmount: toMoney(dto.payAmount) ?? { amount: 0, currency: "CNY" },
     }
 }
 
-/** 详情 wire → 业务：在列表形状之上扩展详情字段（收货快照、物流、时间戳、可执行动作），null 归一空值 */
+/** 详情 wire → 业务：在列表形状之上扩展详情字段（收货快照、物流、时间戳、可执行动作），undefined 归一空值 */
 export function toOrderDetail(dto: {
     id?: string
     orderNo?: string
@@ -134,11 +113,11 @@ export function toOrderDetail(dto: {
     createdAt?: string
     items?: Array<{
         productId?: string
-        skuId?: string | null
+        skuId?: string | undefined
         name?: string
-        image?: string | null
+        image?: string | undefined
         price?: SdkMoney
-        originalPrice?: SdkMoney | null
+        originalPrice?: SdkMoney | undefined
         quantity?: number
         amount?: SdkMoney
     }>
