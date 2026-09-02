@@ -1,37 +1,69 @@
 packages:
-    - "apps/*"
-    - "packages/*"
+  - "apps/*"
+  - "packages/*"
 onlyBuiltDependencies:
-    - esbuild
-    - lightningcss
+  - esbuild
+  - lightningcss
 catalog:
-    typescript: ^7.0.2
-    zod: ^4.4.3
-    react: ^19.2.0
-    react-dom: ^19.2.0
-    "@types/react": ^19.2.17
-    "@types/react-dom": ^19.2.3
-    tailwindcss: ^4.3.3
+  typescript: ^7.0.2
+  zod: ^4.5.4
+  react: ^19.2.8
+  react-dom: ^19.2.8
+  "@types/react": ^19.2.18
+  "@types/react-dom": ^19.2.5
+  tailwindcss: ^4.3.3
+  vite: ^8.2.2
+  "@vitejs/plugin-react": ^6.1.1
+  "@tailwindcss/vite": ^4.3.3
+  "@rolldown/plugin-babel": ^0.2.3
+  "@tanstack/react-query": ^5.102.8
+  "@tanstack/react-router": ^1.170.32
+  "@tanstack/react-table": ^8.21.3
+  "@tanstack/router-cli": ^1.167.33
+  lucide-react: ^1.39.0
+  "@types/node": ^26.4.1
 allowBuilds:
-    lefthook: true
+  lefthook: true
 minimumReleaseAgeExclude:
-    - "@oxfmt/binding-android-arm-eabi@0.61.0"
-    - "@oxfmt/binding-android-arm64@0.61.0"
-    - "@oxfmt/binding-darwin-arm64@0.61.0"
-    - "@oxfmt/binding-darwin-x64@0.61.0"
-    - "@oxfmt/binding-freebsd-x64@0.61.0"
-    - "@oxfmt/binding-linux-arm-gnueabihf@0.61.0"
-    - "@oxfmt/binding-linux-arm-musleabihf@0.61.0"
-    - "@oxfmt/binding-linux-arm64-gnu@0.61.0"
-    - "@oxfmt/binding-linux-arm64-musl@0.61.0"
-    - "@oxfmt/binding-linux-ppc64-gnu@0.61.0"
-    - "@oxfmt/binding-linux-riscv64-gnu@0.61.0"
-    - "@oxfmt/binding-linux-riscv64-musl@0.61.0"
-    - "@oxfmt/binding-linux-s390x-gnu@0.61.0"
-    - "@oxfmt/binding-linux-x64-gnu@0.61.0"
-    - "@oxfmt/binding-linux-x64-musl@0.61.0"
-    - "@oxfmt/binding-openharmony-arm64@0.61.0"
-    - "@oxfmt/binding-win32-arm64-msvc@0.61.0"
-    - "@oxfmt/binding-win32-ia32-msvc@0.61.0"
-    - "@oxfmt/binding-win32-x64-msvc@0.61.0"
-    - oxfmt@0.61.0
+  - '@oxfmt/binding-android-arm-eabi@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-android-arm64@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-darwin-arm64@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-darwin-x64@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-freebsd-x64@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-arm-gnueabihf@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-arm-musleabihf@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-arm64-gnu@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-arm64-musl@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-ppc64-gnu@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-riscv64-gnu@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-riscv64-musl@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-s390x-gnu@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-x64-gnu@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-linux-x64-musl@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-openharmony-arm64@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-win32-arm64-msvc@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-win32-ia32-msvc@0.61.0 || 0.66.0'
+  - '@oxfmt/binding-win32-x64-msvc@0.61.0 || 0.66.0'
+  - oxfmt@0.61.0 || 0.66.0
+  - "@oxlint/binding-android-arm-eabi@1.81.0"
+  - "@oxlint/binding-android-arm64@1.81.0"
+  - "@oxlint/binding-darwin-arm64@1.81.0"
+  - "@oxlint/binding-darwin-x64@1.81.0"
+  - "@oxlint/binding-freebsd-x64@1.81.0"
+  - "@oxlint/binding-linux-arm-gnueabihf@1.81.0"
+  - "@oxlint/binding-linux-arm-musleabihf@1.81.0"
+  - "@oxlint/binding-linux-arm64-gnu@1.81.0"
+  - "@oxlint/binding-linux-arm64-musl@1.81.0"
+  - "@oxlint/binding-linux-ppc64-gnu@1.81.0"
+  - "@oxlint/binding-linux-riscv64-gnu@1.81.0"
+  - "@oxlint/binding-linux-riscv64-musl@1.81.0"
+  - "@oxlint/binding-linux-s390x-gnu@1.81.0"
+  - "@oxlint/binding-linux-x64-gnu@1.81.0"
+  - "@oxlint/binding-linux-x64-musl@1.81.0"
+  - "@oxlint/binding-openharmony-arm64@1.81.0"
+  - "@oxlint/binding-win32-arm64-msvc@1.81.0"
+  - "@oxlint/binding-win32-ia32-msvc@1.81.0"
+  - "@oxlint/binding-win32-x64-msvc@1.81.0"
+  - "@types/node@26.4.1"
+  - lucide-react@1.39.0
+  - oxlint@1.81.0

@@ -13,40 +13,34 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "@tailwindcss/vite": "^4.1.18",
-        "@tanstack/react-devtools": "^0.10.9",
-        "@tanstack/react-query": "^5.101.4",
-        "@tanstack/react-query-devtools": "^5.101.4",
-        "@tanstack/react-router": "^1.170.18",
-        "@tanstack/react-router-devtools": "^1.167.0",
-        "@tanstack/react-router-ssr-query": "^1.167.1",
-        "@tanstack/react-start": "^1.168.32",
-        "lucide-react": "^1.27.0",
-        "motion": "^13.1.0",
+        "@tailwindcss/vite": "catalog:",
+        "@tanstack/react-devtools": "^0.10.12",
+        "@tanstack/react-query": "catalog:",
+        "@tanstack/react-query-devtools": "^5.102.8",
+        "@tanstack/react-router": "catalog:",
+        "@tanstack/react-router-devtools": "^1.167.1",
+        "@tanstack/react-router-ssr-query": "^1.167.2",
+        "@tanstack/react-start": "^1.168.49",
+        "lucide-react": "catalog:",
+        "motion": "^13.1.1",
         "react": "catalog:",
         "react-dom": "catalog:",
         "tailwindcss": "catalog:",
         "zod": "catalog:"
     },
     "devDependencies": {
-        "@rolldown/plugin-babel": "^0.2.3",
+        "@rolldown/plugin-babel": "catalog:",
         "@shop/api": "workspace:*",
         "@shop/config": "workspace:*",
         "@shop/ui-web": "workspace:*",
-        "@tanstack/devtools-vite": "^0.8.3",
-        "@tanstack/router-cli": "^1.132.0",
-        "@types/node": "^26.1.1",
+        "@tanstack/devtools-vite": "^0.8.5",
+        "@tanstack/router-cli": "catalog:",
+        "@types/node": "catalog:",
         "@types/react": "catalog:",
         "@types/react-dom": "catalog:",
-        "@vitejs/plugin-react": "^6.0.1",
+        "@vitejs/plugin-react": "catalog:",
         "babel-plugin-react-compiler": "^1.0.0",
         "typescript": "catalog:",
-        "vite": "^8.0.0"
-    },
-    "pnpm": {
-        "onlyBuiltDependencies": [
-            "esbuild",
-            "lightningcss"
-        ]
+        "vite": "catalog:"
     }
 }

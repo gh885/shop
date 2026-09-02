@@ -7,8 +7,9 @@ import { useRouterState } from "@tanstack/react-router"
  * 纯装饰，pointer-events-none，不干扰交互。
  */
 export function RouteProgressBar() {
+    // 用文档化的 isLoading（前台路由加载/切换）代替已移除的 isTransitioning
     const loading = useRouterState({
-        select: (s) => s.isLoading || s.isTransitioning,
+        select: (s) => s.isLoading,
     })
     const [visible, setVisible] = useState(false)
 

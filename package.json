@@ -28,18 +28,18 @@
         "gen:sdk": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts"
     },
     "devDependencies": {
-        "@commitlint/cli": "^21.2.1",
-        "@commitlint/config-conventional": "^21.2.0",
-        "lefthook": "^2.1.10",
-        "oxfmt": "^0.61.0",
-        "oxlint": "^1.75.0",
-        "oxlint-tailwindcss": "^1.5.0",
+        "@commitlint/cli": "^21.2.2",
+        "@commitlint/config-conventional": "^21.2.2",
+        "lefthook": "^2.1.12",
+        "oxfmt": "^0.66.0",
+        "oxlint": "^1.81.0",
+        "oxlint-tailwindcss": "^1.10.2",
         "typescript": "catalog:"
     },
     "devEngines": {
         "packageManager": {
             "name": "pnpm",
-            "version": "^11.17.0",
+            "version": "^11.25.0",
             "onFail": "download"
         }
     }

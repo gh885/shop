@@ -57,6 +57,11 @@ export default defineConfig({
         // 领域层约定：对外兼容 null，对内只用 undefined（用 ?. / ?? 判空，不写 null 字面量）。
         // 存量 98 处 null（多为 useState(null) / || null 兜底），先 warn 暴露，清完再升 error
         "no-null": "warn",
+        // React Compiler 诊断规则（oxlint 1.81 起默认 error）：代码库大量有意用 setState-in-effect
+        // 做防抖/同步、第三方 hook 不可 memo、deps 排他——属推荐性建议，非正确性错误，降为 warn 不阻断
+        "react/set-state-in-effect": "warn",
+        "react/incompatible-library": "warn",
+        "react/exhaustive-effect-dependencies": "warn",
         // 仓库混用 PascalCase 组件 + kebabCase 工具/hook/路由，单一 case 规则无法满足全部，关闭以免恒定噪音
         "unicorn/filename-case": "off",
         "unicorn/prefer-includes": "warn",
@@ -102,17 +107,7 @@ export default defineConfig({
 
     overrides: [],
 
-    ignorePatterns: [
-        "**/node_modules/**",
-        "**/dist/**",
-        "**/build/**",
-        "**/.output/**",
-        "**/.git/**",
-        "**/coverage/**",
-        "**/*.d.ts",
-        "**/generated/**",
-        "**/*.generated.*",
-        "**/routeTree.gen.ts",
-        "**/migrations/**",
-    ],
+    // ignorePatterns 相对本配置文件目录解析，无法匹配 config 目录之外的真实项目路径
+    // （sdk / generated / *.gen.ts / routeTree 等）。项目级忽略统一写根级 .eslintignore。
+    ignorePatterns: [],
 })
