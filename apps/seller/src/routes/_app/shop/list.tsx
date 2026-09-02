@@ -14,7 +14,7 @@ import type { ShopResponse } from "@shop/api/sdk"
 /** 开店表单校验：店名长度与后端 @Size 对齐（就近放在表单旁） */
 const CreateShopNameSchema = z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字")
 
-export const Route = createFileRoute("/_app/shops")({
+export const Route = createFileRoute("/_app/shop/list")({
     component: ShopsPage,
 })
 

@@ -14,7 +14,7 @@ import { useCurrentShop } from "#/shared/lib/shop"
 /** 邀请手机号校验：与后端手机号 @Pattern 对齐（就近放在表单旁） */
 const InvitePhoneSchema = z.string().regex(/^1\d{10}$/, "请输入正确的手机号")
 
-export const Route = createFileRoute("/_app/members")({
+export const Route = createFileRoute("/_app/shop/member")({
     component: MembersPage,
 })
 

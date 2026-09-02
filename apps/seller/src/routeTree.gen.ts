@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppMembersRouteImport } from './routes/_app/members'
-import { Route as AppShopsRouteImport } from './routes/_app/shops'
-import { Route as AppProductsIndexRouteImport } from './routes/_app/products/index'
-import { Route as AppProductsNewRouteImport } from './routes/_app/products/new'
+import { Route as AppServiceRouteImport } from './routes/_app/service'
+import { Route as AppGroupLeafRouteImport } from './routes/_app/$group/$leaf'
+import { Route as AppProductCreateRouteImport } from './routes/_app/product/create'
+import { Route as AppProductListRouteImport } from './routes/_app/product/list'
+import { Route as AppShopListRouteImport } from './routes/_app/shop/list'
+import { Route as AppShopMemberRouteImport } from './routes/_app/shop/member'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -31,68 +33,101 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppMembersRoute = AppMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
+const AppServiceRoute = AppServiceRouteImport.update({
+  id: '/service',
+  path: '/service',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppShopsRoute = AppShopsRouteImport.update({
-  id: '/shops',
-  path: '/shops',
+const AppGroupLeafRoute = AppGroupLeafRouteImport.update({
+  id: '/$group/$leaf',
+  path: '/$group/$leaf',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppProductsIndexRoute = AppProductsIndexRouteImport.update({
-  id: '/products/',
-  path: '/products/',
+const AppProductCreateRoute = AppProductCreateRouteImport.update({
+  id: '/product/create',
+  path: '/product/create',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppProductsNewRoute = AppProductsNewRouteImport.update({
-  id: '/products/new',
-  path: '/products/new',
+const AppProductListRoute = AppProductListRouteImport.update({
+  id: '/product/list',
+  path: '/product/list',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppShopListRoute = AppShopListRouteImport.update({
+  id: '/shop/list',
+  path: '/shop/list',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppShopMemberRoute = AppShopMemberRouteImport.update({
+  id: '/shop/member',
+  path: '/shop/member',
   getParentRoute: () => AppRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
-  '/members': typeof AppMembersRoute
-  '/shops': typeof AppShopsRoute
-  '/products/new': typeof AppProductsNewRoute
-  '/products/': typeof AppProductsIndexRoute
+  '/service': typeof AppServiceRoute
+  '/$group/$leaf': typeof AppGroupLeafRoute
+  '/product/create': typeof AppProductCreateRoute
+  '/product/list': typeof AppProductListRoute
+  '/shop/list': typeof AppShopListRoute
+  '/shop/member': typeof AppShopMemberRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/members': typeof AppMembersRoute
-  '/shops': typeof AppShopsRoute
+  '/service': typeof AppServiceRoute
   '/': typeof AppIndexRoute
-  '/products/new': typeof AppProductsNewRoute
-  '/products': typeof AppProductsIndexRoute
+  '/$group/$leaf': typeof AppGroupLeafRoute
+  '/product/create': typeof AppProductCreateRoute
+  '/product/list': typeof AppProductListRoute
+  '/shop/list': typeof AppShopListRoute
+  '/shop/member': typeof AppShopMemberRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/members': typeof AppMembersRoute
-  '/_app/shops': typeof AppShopsRoute
+  '/_app/service': typeof AppServiceRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/products/new': typeof AppProductsNewRoute
-  '/_app/products/': typeof AppProductsIndexRoute
+  '/_app/$group/$leaf': typeof AppGroupLeafRoute
+  '/_app/product/create': typeof AppProductCreateRoute
+  '/_app/product/list': typeof AppProductListRoute
+  '/_app/shop/list': typeof AppShopListRoute
+  '/_app/shop/member': typeof AppShopMemberRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/members' | '/shops' | '/products/new' | '/products/'
+    | '/'
+    | '/login'
+    | '/service'
+    | '/$group/$leaf'
+    | '/product/create'
+    | '/product/list'
+    | '/shop/list'
+    | '/shop/member'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/members' | '/shops' | '/' | '/products/new' | '/products'
+  to:
+    | '/login'
+    | '/service'
+    | '/'
+    | '/$group/$leaf'
+    | '/product/create'
+    | '/product/list'
+    | '/shop/list'
+    | '/shop/member'
   id:
     | '__root__'
     | '/_app'
     | '/login'
-    | '/_app/members'
-    | '/_app/shops'
+    | '/_app/service'
     | '/_app/'
-    | '/_app/products/new'
-    | '/_app/products/'
+    | '/_app/$group/$leaf'
+    | '/_app/product/create'
+    | '/_app/product/list'
+    | '/_app/shop/list'
+    | '/_app/shop/member'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -123,51 +158,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/members': {
-      id: '/_app/members'
-      path: '/members'
-      fullPath: '/members'
-      preLoaderRoute: typeof AppMembersRouteImport
+    '/_app/service': {
+      id: '/_app/service'
+      path: '/service'
+      fullPath: '/service'
+      preLoaderRoute: typeof AppServiceRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/shops': {
-      id: '/_app/shops'
-      path: '/shops'
-      fullPath: '/shops'
-      preLoaderRoute: typeof AppShopsRouteImport
+    '/_app/$group/$leaf': {
+      id: '/_app/$group/$leaf'
+      path: '/$group/$leaf'
+      fullPath: '/$group/$leaf'
+      preLoaderRoute: typeof AppGroupLeafRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/products/': {
-      id: '/_app/products/'
-      path: '/products'
-      fullPath: '/products/'
-      preLoaderRoute: typeof AppProductsIndexRouteImport
+    '/_app/product/create': {
+      id: '/_app/product/create'
+      path: '/product/create'
+      fullPath: '/product/create'
+      preLoaderRoute: typeof AppProductCreateRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/products/new': {
-      id: '/_app/products/new'
-      path: '/products/new'
-      fullPath: '/products/new'
-      preLoaderRoute: typeof AppProductsNewRouteImport
+    '/_app/product/list': {
+      id: '/_app/product/list'
+      path: '/product/list'
+      fullPath: '/product/list'
+      preLoaderRoute: typeof AppProductListRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/shop/list': {
+      id: '/_app/shop/list'
+      path: '/shop/list'
+      fullPath: '/shop/list'
+      preLoaderRoute: typeof AppShopListRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/shop/member': {
+      id: '/_app/shop/member'
+      path: '/shop/member'
+      fullPath: '/shop/member'
+      preLoaderRoute: typeof AppShopMemberRouteImport
       parentRoute: typeof AppRouteRoute
     }
   }
 }
 
 interface AppRouteRouteChildren {
-  AppMembersRoute: typeof AppMembersRoute
-  AppShopsRoute: typeof AppShopsRoute
+  AppServiceRoute: typeof AppServiceRoute
   AppIndexRoute: typeof AppIndexRoute
-  AppProductsNewRoute: typeof AppProductsNewRoute
-  AppProductsIndexRoute: typeof AppProductsIndexRoute
+  AppGroupLeafRoute: typeof AppGroupLeafRoute
+  AppProductCreateRoute: typeof AppProductCreateRoute
+  AppProductListRoute: typeof AppProductListRoute
+  AppShopListRoute: typeof AppShopListRoute
+  AppShopMemberRoute: typeof AppShopMemberRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
-  AppMembersRoute: AppMembersRoute,
-  AppShopsRoute: AppShopsRoute,
+  AppServiceRoute: AppServiceRoute,
   AppIndexRoute: AppIndexRoute,
-  AppProductsNewRoute: AppProductsNewRoute,
-  AppProductsIndexRoute: AppProductsIndexRoute,
+  AppGroupLeafRoute: AppGroupLeafRoute,
+  AppProductCreateRoute: AppProductCreateRoute,
+  AppProductListRoute: AppProductListRoute,
+  AppShopListRoute: AppShopListRoute,
+  AppShopMemberRoute: AppShopMemberRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

@@ -90,7 +90,6 @@ export default defineConfig({
         // 与 oxfmt 冲突：oxfmt 会剥掉嵌套三元的外层括号，本规则又要括号，同文件无法同时满足。排版交给 formatter
         "unicorn/no-nested-ternary": "off",
         "unicorn/no-await-expression-member": "warn",
-        "unicorn/no-useless-undefined": "warn",
         "unicorn/no-useless-promise-resolve-reject": "warn",
         "unicorn/no-useless-switch-case": "warn",
         "unicorn/no-anonymous-default-export": "warn",
@@ -103,6 +102,9 @@ export default defineConfig({
         "unicorn/no-negated-condition": "warn",
         "unicorn/prefer-string-trim-start-end": "warn",
         "unicorn/prefer-single-call": "warn",
+        // oxlint --fix 会误删 React 19 类型签名必需的 undefined（如 useRef<T>(undefined)、
+        // getServerSnapshot 返回值），删后直接 typecheck 报错。关闭以免自动修复破坏类型安全的代码
+        "unicorn/no-useless-undefined": "off",
     },
 
     overrides: [],

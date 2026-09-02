@@ -33,7 +33,7 @@ interface ProductSearch {
     keyword?: string
 }
 
-export const Route = createFileRoute("/_app/products/")({
+export const Route = createFileRoute("/_app/product/list")({
     validateSearch: (search: Record<string, unknown>): ProductSearch => ({
         page: Number(search.page) || 1,
         size: Number(search.size) || 10,
@@ -80,7 +80,7 @@ function ProductsPage() {
                     <h1 className="text-xl font-bold tracking-tight">商品管理</h1>
                     <p className="mt-1 text-sm text-muted-foreground">「{shop.name}」的商品</p>
                 </div>
-                <Link to="/products/new">
+                <Link to="/product/create">
                     <Button>
                         <Plus className="size-4" />
                         新建商品
@@ -106,7 +106,7 @@ function FilterBar() {
 
     function apply(next: Partial<ProductSearch>) {
         void navigate({
-            to: "/products",
+            to: "/product/list",
             search: {
                 page: 1,
                 size: search.size,
@@ -291,7 +291,7 @@ function PaginationButton({
     const search = Route.useSearch()
     return (
         <Link
-            to="/products"
+            to="/product/list"
             search={{ ...search, page: target }}
             disabled={disabled}
         >

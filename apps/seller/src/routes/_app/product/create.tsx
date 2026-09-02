@@ -21,7 +21,7 @@ interface NewProductSearch {
     categoryId?: string
 }
 
-export const Route = createFileRoute("/_app/products/new")({
+export const Route = createFileRoute("/_app/product/create")({
     validateSearch: (search: Record<string, unknown>): NewProductSearch => ({
         categoryId: typeof search.categoryId === "string" ? search.categoryId : undefined,
     }),
@@ -76,10 +76,10 @@ function NewProductPage() {
             if (mode === "submit" && skuItems.length > 0) {
                 // 有规格才算完整：按价上架
                 await publishProduct(shop!.id, id)
-                void navigate({ to: "/products", search: { page: 1, size: 10 } })
+                void navigate({ to: "/product/list", search: { page: 1, size: 10 } })
             } else {
                 // 无规格或存草稿：回列表
-                void navigate({ to: "/products", search: { page: 1, size: 10 } })
+                void navigate({ to: "/product/list", search: { page: 1, size: 10 } })
             }
         } catch (error) {
             setServerError(toApiError(error).detail)
