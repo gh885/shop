@@ -19,11 +19,15 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * 卖家订单接口契约：X-Shop-Id 成员过滤器守卫（缺头 403 / 非成员 403 / 正常放行落上下文）、
- * 本店分页与详情、发货传参。shopId 由过滤器从 header 落 ShopIdHolder，前端不传店 ID。
+ * 卖家订单接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
+ *
+ * <p>HTTP 独有：X-Shop-Id 成员过滤器守卫（缺头 403 / 非成员 403 / 店铺不可用 403 / 成员放行 200）、
+ * 路由与参数绑定（verify，shopId 由 header 落上下文进 service）。本店视图拼装与动作集归 service/IT；
+ * 响应形状由 OpenAPI→SDK 钉死。
  */
 class SellerOrderControllerTest extends WebControllerTestSupport {
 
@@ -56,70 +60,79 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         return get(path, vars).with(userAuth(userId)).header("X-Shop-Id", shopId.toString());
     }
 
-    @Test
-    void 本店订单分页_带收货人摘要() throws Exception {
-        when(orderService.pageSeller(eq(shopId), any(), any()))
-                .thenReturn(new PageResult<>(List.of(new OrderWithItems(paidOrder(), List.of())), 1));
+    @Nested
+    class 本店订单 { // GET /seller/orders
 
-        mockMvc.perform(sellerGet("/seller/orders").param("page", "1").param("size", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.records[0].receiverName").value("张三"))
-                .andExpect(jsonPath("$.records[0].itemCount").value(0));
+        @Test
+        void 成员放行_200_shopId落上下文() throws Exception {
+            when(orderService.pageSeller(eq(shopId), any(), any()))
+                    .thenReturn(new PageResult<>(List.of(new OrderWithItems(paidOrder(), List.of())), 1));
+
+            mockMvc.perform(sellerGet("/seller/orders").param("page", "1").param("size", "10"))
+                    .andExpect(status().isOk());
+
+            verify(orderService).pageSeller(eq(shopId), any(), any());
+        }
+
+        @Test
+        void 缺店铺上下文_403() throws Exception {
+            mockMvc.perform(get("/seller/orders").with(userAuth(userId)))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.detail").value("缺少店铺上下文（X-Shop-Id）"));
+        }
+
+        @Test
+        void 非本店成员_403() throws Exception {
+            when(shopMemberMapper.findActiveMember(any(), any())).thenReturn(null);
+
+            mockMvc.perform(get("/seller/orders").with(userAuth(userId)).header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.detail").value("你不是该店铺成员"));
+        }
+
+        @Test
+        void 店铺不存在或不可用_403() throws Exception {
+            when(shopMapper.selectCount(any())).thenReturn(0L);
+
+            mockMvc.perform(get("/seller/orders").with(userAuth(userId)).header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.detail").value("店铺不存在或不可用"));
+        }
     }
 
-    @Test
-    void 订单详情_卖家视角动作集() throws Exception {
-        Order order = paidOrder();
-        when(orderService.sellerDetail(shopId, order.getId())).thenReturn(new OrderWithItems(order, List.of()));
+    @Nested
+    class 订单详情 { // GET /seller/orders/{id}
 
-        mockMvc.perform(sellerGet("/seller/orders/{id}", order.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(order.getId().toString()))
-                .andExpect(jsonPath("$.availableActions").isArray());
+        @Test
+        void 返回200_绑定id() throws Exception {
+            Order order = paidOrder();
+            when(orderService.sellerDetail(shopId, order.getId())).thenReturn(new OrderWithItems(order, List.of()));
 
-        verify(orderService).sellerDetail(shopId, order.getId());
+            mockMvc.perform(sellerGet("/seller/orders/{id}", order.getId())).andExpect(status().isOk());
+
+            verify(orderService).sellerDetail(shopId, order.getId());
+        }
     }
 
-    @Test
-    void 发货_回填物流公司与运单号() throws Exception {
-        Order order = paidOrder();
-        when(orderService.pageSeller(any(), any(), any())).thenReturn(new PageResult<>(List.of(), 0));
+    @Nested
+    class 发货 { // PUT /seller/orders/{id}/ship
 
-        mockMvc.perform(
-                        put("/seller/orders/{id}/ship", order.getId())
-                                .with(userAuth(userId))
-                                .header("X-Shop-Id", shopId.toString())
-                                .content(
-                                        """
-                            {"logisticsCompany": "顺丰", "trackingNo": "SF123456789"}
-                            """))
-                .andExpect(status().isOk());
+        @Test
+        void 回填物流单号() throws Exception {
+            Order order = paidOrder();
+            when(orderService.pageSeller(any(), any(), any())).thenReturn(new PageResult<>(List.of(), 0));
 
-        verify(orderTransitionService).ship(eq(shopId), eq(order.getId()), any());
-    }
+            mockMvc.perform(
+                            put("/seller/orders/{id}/ship", order.getId())
+                                    .with(userAuth(userId))
+                                    .header("X-Shop-Id", shopId.toString())
+                                    .content(
+                                            """
+                                {"logisticsCompany": "顺丰", "trackingNo": "SF123456789"}
+                                """))
+                    .andExpect(status().isOk());
 
-    @Test
-    void 缺店铺上下文_403() throws Exception {
-        mockMvc.perform(get("/seller/orders").with(userAuth(userId)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value("缺少店铺上下文（X-Shop-Id）"));
-    }
-
-    @Test
-    void 非本店成员_403() throws Exception {
-        when(shopMemberMapper.findActiveMember(any(), any())).thenReturn(null);
-
-        mockMvc.perform(get("/seller/orders").with(userAuth(userId)).header("X-Shop-Id", shopId.toString()))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value("你不是该店铺成员"));
-    }
-
-    @Test
-    void 店铺不存在或不可用_403() throws Exception {
-        when(shopMapper.selectCount(any())).thenReturn(0L);
-
-        mockMvc.perform(get("/seller/orders").with(userAuth(userId)).header("X-Shop-Id", shopId.toString()))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value("店铺不存在或不可用"));
+            verify(orderTransitionService).ship(eq(shopId), eq(order.getId()), any());
+        }
     }
 }

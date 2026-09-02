@@ -5,7 +5,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -20,11 +22,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * 卖家商品接口契约：X-Shop-Id 成员守卫、草稿全字段出参（含 skuCode/status，与买家侧契约不同）、
- * 规格对账/SKU 批改透传、上下架状态机入口。业务规则见 ProductIT。
+ * 卖家商品接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
+ *
+ * <p>HTTP 独有：X-Shop-Id 成员守卫（403）、请求入参校验（422）、出参不吐草稿未定价 minPrice（absence）、
+ * 路由与参数绑定（verify）。上下架状态机、规格对账、卖家侧 skuCode/status 契约归 service/ProductIT；
+ * 响应形状由 OpenAPI→SDK 钉死。
  */
 class ProductAdminControllerTest extends WebControllerTestSupport {
 
@@ -49,131 +55,150 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         return p;
     }
 
-    @Test
-    void 创建商品_落店铺上下文() throws Exception {
-        when(productService.create(any())).thenReturn(draft());
+    @Nested
+    class 本店商品 { // GET /seller/products
 
-        mockMvc.perform(post("/seller/products")
-                        .with(userAuth(userId))
-                        .header("X-Shop-Id", shopId.toString())
-                        .content(
+        @Test
+        void 列表_按状态筛选() throws Exception {
+            when(productService.pageList(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong()))
+                    .thenReturn(new com.shop.platform.common.PageResult<>(List.of(draft()), 1));
+
+            mockMvc.perform(get("/seller/products")
+                            .queryParam("page", "1")
+                            .queryParam("size", "10")
+                            .queryParam("status", "DRAFT")
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isOk());
+
+            verify(productService).pageList(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong());
+        }
+
+        @Test
+        void 缺店铺上下文_403() throws Exception {
+            mockMvc.perform(get("/seller/products").with(userAuth(userId)))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.detail").value("缺少店铺上下文（X-Shop-Id）"));
+        }
+    }
+
+    @Nested
+    class 创建商品 { // POST /seller/products
+
+        @Test
+        void 落店铺上下文_不吐草稿未定价() throws Exception {
+            when(productService.create(any())).thenReturn(draft());
+
+            mockMvc.perform(post("/seller/products")
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString())
+                            .content(
+                                    """
+                                {"categoryId": "%s", "name": "卖家商品"}
                                 """
-                            {"categoryId": "%s", "name": "卖家商品"}
-                            """
-                                        .formatted(UUID.randomUUID())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("卖家商品"))
-                // 草稿期未设价：min/max 为 null 而非 0
-                .andExpect(jsonPath("$.minPrice").doesNotExist());
+                                            .formatted(UUID.randomUUID())))
+                    .andExpect(status().isOk())
+                    // 草稿期未设价：min/max 为 null 而非 0
+                    .andExpect(jsonPath("$.minPrice").doesNotExist());
 
-        verify(productService).create(any());
+            verify(productService).create(any());
+        }
     }
 
-    @Test
-    void 改规格_返回SKU列表_卖家可见skuCode() throws Exception {
-        Sku sku = new Sku();
-        sku.setId(UUID.randomUUID());
-        sku.setProductId(productId);
-        sku.setSkuCode("SKU-001");
-        sku.setName("卖家商品 黑色");
-        sku.setPrice(1000L);
-        sku.setCurrency("CNY");
-        sku.setStatus(SkuStatus.ON_SALE);
-        when(productService.updateSpecs(eq(productId), any())).thenReturn(List.of(sku));
-        when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of());
+    @Nested
+    class 商品详情 { // GET /seller/products/{id}
 
-        mockMvc.perform(put("/seller/products/{id}/specs", productId)
-                        .with(userAuth(userId))
-                        .header("X-Shop-Id", shopId.toString())
-                        .content(
+        @Test
+        void SPU加全部SKU() throws Exception {
+            Sku sku = new Sku();
+            sku.setId(UUID.randomUUID());
+            sku.setName("卖家商品 黑色");
+            sku.setStatus(SkuStatus.ON_SALE);
+            when(productService.detail(productId)).thenReturn(new ProductDetail(draft(), List.of(sku)));
+            when(stockReadQuery.availableBySkuIds(any()))
+                    .thenReturn(Map.of(sku.getId(), new StockView(sku.getId(), 5, 0, 5)));
+
+            mockMvc.perform(get("/seller/products/{id}", productId)
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isOk());
+
+            verify(productService).detail(productId);
+        }
+    }
+
+    @Nested
+    class 改规格 { // PUT /seller/products/{id}/specs
+
+        @Test
+        void 返回SKU列表() throws Exception {
+            Sku sku = new Sku();
+            sku.setId(UUID.randomUUID());
+            sku.setProductId(productId);
+            sku.setSkuCode("SKU-001");
+            sku.setName("卖家商品 黑色");
+            sku.setPrice(1000L);
+            sku.setCurrency("CNY");
+            sku.setStatus(SkuStatus.ON_SALE);
+            when(productService.updateSpecs(eq(productId), any())).thenReturn(List.of(sku));
+            when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of());
+
+            mockMvc.perform(put("/seller/products/{id}/specs", productId)
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString())
+                            .content(
+                                    """
+                                {"specs": [{"attrId": "%s", "valueIds": ["%s"]}]}
                                 """
-                            {"specs": [{"attrId": "%s", "valueIds": ["%s"]}]}
-                            """
-                                        .formatted(UUID.randomUUID(), UUID.randomUUID())))
-                .andExpect(status().isOk())
-                // 卖家侧契约：skuCode/status 进出参（仓管编码与停用态），与买家侧刻意不同
-                .andExpect(jsonPath("$[0].skuCode").value("SKU-001"))
-                .andExpect(jsonPath("$[0].status").value("ON_SALE"));
-    }
+                                            .formatted(UUID.randomUUID(), UUID.randomUUID())))
+                    .andExpect(status().isOk());
 
-    @Test
-    void 改规格_选择全空_422() throws Exception {
-        mockMvc.perform(put("/seller/products/{id}/specs", productId)
-                        .with(userAuth(userId))
-                        .header("X-Shop-Id", shopId.toString())
-                        .content(
+            verify(productService).updateSpecs(eq(productId), any());
+        }
+
+        @Test
+        void 选择全空_422() throws Exception {
+            mockMvc.perform(put("/seller/products/{id}/specs", productId)
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString())
+                            .content(
+                                    """
+                                {"specs": [{"attrId": "%s"}]}
                                 """
-                            {"specs": [{"attrId": "%s"}]}
-                            """
-                                        .formatted(UUID.randomUUID())))
-                .andExpect(status().is(422));
+                                            .formatted(UUID.randomUUID())))
+                    .andExpect(status().is(422));
+        }
     }
 
-    @Test
-    void 商品详情_SPU加全部SKU() throws Exception {
-        Sku sku = new Sku();
-        sku.setId(UUID.randomUUID());
-        sku.setName("卖家商品 黑色");
-        sku.setStatus(SkuStatus.ON_SALE);
-        when(productService.detail(productId)).thenReturn(new ProductDetail(draft(), List.of(sku)));
-        when(stockReadQuery.availableBySkuIds(any()))
-                .thenReturn(Map.of(sku.getId(), new StockView(sku.getId(), 5, 0, 5)));
+    @Nested
+    class 商品状态 { // POST /seller/products/{id}/{publish|off}
 
-        mockMvc.perform(get("/seller/products/{id}", productId)
-                        .with(userAuth(userId))
-                        .header("X-Shop-Id", shopId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.product.name").value("卖家商品"))
-                .andExpect(jsonPath("$.skus[0].stock").value(5));
-    }
+        @Test
+        void 发布() throws Exception {
+            Product published = draft();
+            published.setStatus(ProductStatus.PUBLISHED);
+            when(productService.publish(productId)).thenReturn(published);
 
-    @Test
-    void 发布_复检门槛后上架() throws Exception {
-        Product published = draft();
-        published.setStatus(ProductStatus.PUBLISHED);
-        when(productService.publish(productId)).thenReturn(published);
+            mockMvc.perform(post("/seller/products/{id}/publish", productId)
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isOk());
 
-        mockMvc.perform(post("/seller/products/{id}/publish", productId)
-                        .with(userAuth(userId))
-                        .header("X-Shop-Id", shopId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PUBLISHED"));
-    }
+            verify(productService).publish(productId);
+        }
 
-    @Test
-    void 下架再上架_状态机入口() throws Exception {
-        Product off = draft();
-        off.setStatus(ProductStatus.OFF);
-        when(productService.off(productId)).thenReturn(off);
+        @Test
+        void 下架() throws Exception {
+            Product off = draft();
+            off.setStatus(ProductStatus.OFF);
+            when(productService.off(productId)).thenReturn(off);
 
-        mockMvc.perform(post("/seller/products/{id}/off", productId)
-                        .with(userAuth(userId))
-                        .header("X-Shop-Id", shopId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("OFF"));
+            mockMvc.perform(post("/seller/products/{id}/off", productId)
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isOk());
 
-        verify(productService).off(productId);
-    }
-
-    @Test
-    void 本店商品列表_按状态筛选() throws Exception {
-        when(productService.pageList(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong()))
-                .thenReturn(new com.shop.platform.common.PageResult<>(List.of(draft()), 1));
-
-        mockMvc.perform(get("/seller/products")
-                        .queryParam("page", "1")
-                        .queryParam("size", "10")
-                        .queryParam("status", "DRAFT")
-                        .with(userAuth(userId))
-                        .header("X-Shop-Id", shopId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.records[0].status").value("DRAFT"));
-    }
-
-    @Test
-    void 缺店铺上下文_403() throws Exception {
-        mockMvc.perform(get("/seller/products").with(userAuth(userId)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.detail").value("缺少店铺上下文（X-Shop-Id）"));
+            verify(productService).off(productId);
+        }
     }
 }

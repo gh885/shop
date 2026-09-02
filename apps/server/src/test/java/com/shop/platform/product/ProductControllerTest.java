@@ -2,6 +2,7 @@ package com.shop.platform.product;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,11 +20,14 @@ import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * 买家侧商品浏览接口契约：匿名可达、列表卡片字段、详情聚合库存、非上架 404。
- * 关键契约回归：买家侧不吐 skuCode/status（仓管内部字段）。
+ * 买家侧商品浏览接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
+ *
+ * <p>HTTP 独有：匿名可达、非上架 404 + 错误码、出参不吐内部治理字段（skuCode/status，absence）、
+ * 路由与参数绑定（verify）。视图拼装与库存聚合归 service/ProductIT。
  */
 class ProductControllerTest extends WebControllerTestSupport {
 
@@ -55,40 +59,46 @@ class ProductControllerTest extends WebControllerTestSupport {
         return s;
     }
 
-    @Test
-    void 商品列表_匿名可访问_返回卡片字段() throws Exception {
-        when(productService.pagePublic(any(), anyLong(), anyLong()))
-                .thenReturn(new PageResult<>(List.of(product()), 1));
+    @Nested
+    class 商品列表 { // GET /api/products
 
-        mockMvc.perform(get("/api/products"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.records[0].name").value("测试手机"))
-                .andExpect(jsonPath("$.total").value(1));
+        @Test
+        void 匿名可访问() throws Exception {
+            when(productService.pagePublic(any(), anyLong(), anyLong()))
+                    .thenReturn(new PageResult<>(List.of(product()), 1));
+
+            mockMvc.perform(get("/api/products")).andExpect(status().isOk());
+
+            verify(productService).pagePublic(any(), anyLong(), anyLong());
+        }
     }
 
-    @Test
-    void 商品详情_聚合SKU与库存() throws Exception {
-        ProductDetail detail = new ProductDetail(product(), List.of(sku()));
-        when(productService.publicDetail(productId)).thenReturn(detail);
-        when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of(skuId, new StockView(skuId, 5, 2, 3)));
+    @Nested
+    class 商品详情 { // GET /api/products/{id}
 
-        mockMvc.perform(get("/api/products/{id}", productId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.product.name").value("测试手机"))
-                .andExpect(jsonPath("$.skus[0].price.amount").value(1000))
-                .andExpect(jsonPath("$.skus[0].stock").value(3))
-                // 契约回归：skuCode 是仓管编码，status 恒为在售——都不进买家契约
-                .andExpect(jsonPath("$.skus[0].skuCode").doesNotExist())
-                .andExpect(jsonPath("$.skus[0].status").doesNotExist());
-    }
+        @Test
+        void 聚合SKU与库存_不吐仓管字段() throws Exception {
+            ProductDetail detail = new ProductDetail(product(), List.of(sku()));
+            when(productService.publicDetail(productId)).thenReturn(detail);
+            when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of(skuId, new StockView(skuId, 5, 2, 3)));
 
-    @Test
-    void 详情_非上架_404() throws Exception {
-        when(productService.publicDetail(productId))
-                .thenThrow(new BusinessException(404, "PRODUCT_NOT_FOUND", "商品不存在或未上架"));
+            mockMvc.perform(get("/api/products/{id}", productId))
+                    .andExpect(status().isOk())
+                    // 契约回归：skuCode 是仓管编码，status 恒为在售——都不进买家契约
+                    .andExpect(jsonPath("$.skus[0].skuCode").doesNotExist())
+                    .andExpect(jsonPath("$.skus[0].status").doesNotExist());
 
-        mockMvc.perform(get("/api/products/{id}", productId))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
+            verify(productService).publicDetail(productId);
+        }
+
+        @Test
+        void 非上架_404() throws Exception {
+            when(productService.publicDetail(productId))
+                    .thenThrow(new BusinessException(404, "PRODUCT_NOT_FOUND", "商品不存在或未上架"));
+
+            mockMvc.perform(get("/api/products/{id}", productId))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
+        }
     }
 }

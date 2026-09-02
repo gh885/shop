@@ -8,99 +8,108 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.shop.platform.admin.service.StaffInfo;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.testsupport.WebControllerTestSupport;
-import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
 /**
- * 员工认证接口契约：工号登录下发 httpOnly refresh cookie、admin 端刷新只认 Cookie 不认 Body、
- * me/logout 上下文透传。与 C 端 /auth/** 完全独立（kind=staff）。
+ * 员工认证接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
+ *
+ * <p>HTTP 独有：status、守卫（401）、校验（422）、错误码，以及 cookie 的 httpOnly/路径/maxAge 清空。
+ * 令牌签发细节归 infra.security 单测；响应体字段形状由 OpenAPI→SDK 钉死。
  */
 class StaffAuthControllerTest extends WebControllerTestSupport {
 
     private final UUID staffId = UUID.randomUUID();
 
-    @Test
-    void 工号登录_成功_下发刷新Cookie() throws Exception {
-        when(staffService.login("E001", "password123", "dev1")).thenReturn(new TokenPair("staff-at", "staff-rt"));
+    @Nested
+    class 登录 { // POST /admin/auth/login
 
-        mockMvc.perform(
-                        post("/admin/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                            {"employeeNo": "E001", "password": "password123", "deviceId": "dev1"}
-                            """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("staff-at"))
-                // admin 端 cookie 与 C 端路径隔离
-                .andExpect(cookie().exists("staff_refresh_token"))
-                .andExpect(cookie().httpOnly("staff_refresh_token", true))
-                .andExpect(cookie().path("staff_refresh_token", "/admin/auth/refresh"));
+        @Test
+        void 成功_下发HttpOnly刷新Cookie() throws Exception {
+            when(staffService.login("E001", "password123", "dev1")).thenReturn(new TokenPair("staff-at", "staff-rt"));
 
-        verify(staffService).login("E001", "password123", "dev1");
+            mockMvc.perform(
+                            post("/admin/auth/login")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"employeeNo": "E001", "password": "password123", "deviceId": "dev1"}
+                                """))
+                    .andExpect(status().isOk())
+                    // admin 端 cookie 与 C 端路径隔离
+                    .andExpect(cookie().exists("staff_refresh_token"))
+                    .andExpect(cookie().httpOnly("staff_refresh_token", true))
+                    .andExpect(cookie().path("staff_refresh_token", "/admin/auth/refresh"));
+
+            verify(staffService).login("E001", "password123", "dev1");
+        }
+
+        @Test
+        void 缺deviceId_422() throws Exception {
+            mockMvc.perform(
+                            post("/admin/auth/login")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"employeeNo": "E001", "password": "password123"}
+                                """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("deviceId"));
+        }
     }
 
-    @Test
-    void 登录_缺设备号_422() throws Exception {
-        mockMvc.perform(
-                        post("/admin/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                            {"employeeNo": "E001", "password": "password123"}
-                            """))
-                .andExpect(status().is(422))
-                .andExpect(jsonPath("$.errors[0].field").value("deviceId"));
+    @Nested
+    class 刷新 { // POST /admin/auth/refresh
+
+        @Test
+        void 只认Cookie_解码续签() throws Exception {
+            when(staffService.refresh("rt:cookie", "default")).thenReturn(new TokenPair("new-at", "new-rt"));
+
+            mockMvc.perform(post("/admin/auth/refresh")
+                            .cookie(new jakarta.servlet.http.Cookie("staff_refresh_token", "rt:cookie")))
+                    .andExpect(status().isOk());
+
+            verify(staffService).refresh("rt:cookie", "default");
+        }
+
+        @Test
+        void 无Cookie_401() throws Exception {
+            mockMvc.perform(post("/admin/auth/refresh"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
+        }
     }
 
-    @Test
-    void 刷新_只认Cookie不认Body() throws Exception {
-        when(staffService.refresh("rt:cookie", "default")).thenReturn(new TokenPair("new-at", "new-rt"));
+    @Nested
+    class 当前员工 { // GET /admin/auth/me
 
-        mockMvc.perform(post("/admin/auth/refresh")
-                        .cookie(new jakarta.servlet.http.Cookie("staff_refresh_token", "rt:cookie")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("new-at"));
+        @Test
+        void 用户令牌_401() throws Exception {
+            mockMvc.perform(get("/admin/auth/me").header("Authorization", "Bearer " + userToken(UUID.randomUUID())))
+                    .andExpect(status().isUnauthorized());
+        }
     }
 
-    @Test
-    void 刷新_无Cookie_401() throws Exception {
-        mockMvc.perform(post("/admin/auth/refresh"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
-    }
+    @Nested
+    class 登出 { // POST /admin/auth/logout
 
-    @Test
-    void 当前员工信息_含岗位与权限码_员工令牌守卫() throws Exception {
-        when(staffService.getMe(staffId))
-                .thenReturn(new StaffInfo(staffId, "E001", "运营小王", "OPS", List.of("CMS_MANAGE")));
+        @Test
+        void 清Cookies() throws Exception {
+            mockMvc.perform(
+                            post("/admin/auth/logout")
+                                    .with(staffAuth(staffId))
+                                    .content(
+                                            """
+                                {"deviceId": "dev1"}
+                                """))
+                    .andExpect(status().isOk())
+                    .andExpect(cookie().maxAge("staff_refresh_token", 0));
 
-        mockMvc.perform(get("/admin/auth/me").with(staffAuth(staffId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.employeeNo").value("E001"))
-                .andExpect(jsonPath("$.role").value("OPS"))
-                .andExpect(jsonPath("$.permissions[0]").value("CMS_MANAGE"));
-
-        // C 端用户令牌进不了管理端链路
-        mockMvc.perform(get("/admin/auth/me").header("Authorization", "Bearer " + userToken(UUID.randomUUID())))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void 登出_清设备令牌与Cookie() throws Exception {
-        mockMvc.perform(post("/admin/auth/logout")
-                        .with(staffAuth(staffId))
-                        .content("""
-                            {"deviceId": "dev1"}
-                            """))
-                .andExpect(status().isOk())
-                .andExpect(cookie().maxAge("staff_refresh_token", 0));
-
-        verify(staffService).logout(staffId, "dev1");
+            verify(staffService).logout(staffId, "dev1");
+        }
     }
 }

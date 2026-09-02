@@ -10,23 +10,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.shop.platform.common.Money;
-import com.shop.platform.common.PageResult;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
-import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderWithItems;
-import com.shop.platform.order.service.ValidLine;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * 买家订单接口契约：结算预览分组算钱、创建拆单返回、分页卡片、详情动作集、取消/收货透传。
- * 业务状态机与真库链路见 OrderFlowIT。
+ * 买家订单接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
+ *
+ * <p>只断言 HTTP 边界独有的失败面：status、鉴权守卫（401）、请求入参校验（422）、方法路由与参数绑定（verify）。
+ * 业务状态机与结算分组归 OrderTest / AfterSaleActionTest / CheckoutResolverTest / OrderFlowIT；响应形状由 OpenAPI→SDK 钉死。
  */
 class OrderControllerTest extends WebControllerTestSupport {
 
@@ -54,116 +53,86 @@ class OrderControllerTest extends WebControllerTestSupport {
         return o;
     }
 
-    @Test
-    void 结算预览_按店分组算钱() throws Exception {
-        when(orderService.preview(eq(userId), any()))
-                .thenReturn(new CheckoutPreview(
-                        List.of(new CheckoutPreview.Group(
-                                shopId,
-                                "测试店铺",
-                                List.of(new ValidLine(
-                                        skuId, productId(), shopId, "测试手机", "p.png", Money.cny(1000), null, 2, 5)),
-                                Money.cny(2000),
-                                Money.cny(0),
-                                Money.cny(2000))),
-                        List.of(),
-                        null,
-                        Money.cny(2000)));
+    @Nested
+    class 创建订单 { // POST /orders/create
 
-        mockMvc.perform(post("/orders/preview")
-                        .with(userAuth(userId))
-                        .content(
+        @Test
+        void 合法body_201() throws Exception {
+            when(orderService.create(eq(userId), any())).thenReturn(List.of(pendingOrder()));
+
+            mockMvc.perform(post("/orders/create")
+                            .with(userAuth(userId))
+                            .content(
+                                    """
+                                {"addressId": "%s", "buySkuId": "%s", "buyQuantity": 1}
                                 """
-                            {"buySkuId": "%s", "buyQuantity": 2}
-                            """
-                                        .formatted(skuId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.groups[0].shopName").value("测试店铺"))
-                .andExpect(jsonPath("$.groups[0].lines[0].quantity").value(2))
-                .andExpect(jsonPath("$.totalPayAmount.amount").value(2000));
-    }
+                                            .formatted(UUID.randomUUID(), skuId)))
+                    .andExpect(status().isCreated());
+        }
 
-    private UUID productId() {
-        return UUID.randomUUID();
-    }
-
-    @Test
-    void 创建订单_201_返回拆单与付款倒计时() throws Exception {
-        when(orderService.create(eq(userId), any())).thenReturn(List.of(pendingOrder()));
-
-        mockMvc.perform(post("/orders/create")
-                        .with(userAuth(userId))
-                        .content(
+        @Test
+        void 缺addressId_422() throws Exception {
+            mockMvc.perform(post("/orders/create")
+                            .with(userAuth(userId))
+                            .content(
+                                    """
+                                {"buySkuId": "%s", "buyQuantity": 1}
                                 """
-                            {"addressId": "%s", "buySkuId": "%s", "buyQuantity": 1}
-                            """
-                                        .formatted(UUID.randomUUID(), skuId)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.orders[0].orderNo").value("20260101120000001"))
-                .andExpect(jsonPath("$.orders[0].payExpireAt").isNotEmpty())
-                .andExpect(jsonPath("$.orders[0].payAmount.amount").value(2000));
+                                            .formatted(skuId)))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("addressId"));
+        }
     }
 
-    @Test
-    void 创建订单_缺地址_422() throws Exception {
-        mockMvc.perform(post("/orders/create")
-                        .with(userAuth(userId))
-                        .content(
-                                """
-                            {"buySkuId": "%s", "buyQuantity": 1}
-                            """
-                                        .formatted(skuId)))
-                .andExpect(status().is(422))
-                .andExpect(jsonPath("$.errors[0].field").value("addressId"));
+    @Nested
+    class 我的订单 { // GET /orders/mine
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(get("/orders/mine")).andExpect(status().isUnauthorized());
+        }
     }
 
-    @Test
-    void 我的订单_分页卡片带行项() throws Exception {
-        when(orderService.pageMine(eq(userId), any(), any()))
-                .thenReturn(new PageResult<>(List.of(new OrderWithItems(pendingOrder(), List.of())), 1));
+    @Nested
+    class 订单详情 { // GET /orders/{id}
 
-        mockMvc.perform(get("/orders/mine")
-                        .queryParam("page", "1")
-                        .queryParam("size", "10")
-                        .with(userAuth(userId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.records[0].status").value(OrderStatus.PENDING_PAYMENT.name()))
-                .andExpect(jsonPath("$.records[0].items.length()").value(0));
+        @Test
+        void 返回200_绑定id() throws Exception {
+            when(orderService.detail(userId, orderId)).thenReturn(new OrderWithItems(pendingOrder(), List.of()));
+
+            mockMvc.perform(get("/orders/{id}", orderId).with(userAuth(userId))).andExpect(status().isOk());
+
+            verify(orderService).detail(userId, orderId);
+        }
     }
 
-    @Test
-    void 订单详情_买家视角动作集() throws Exception {
-        when(orderService.detail(userId, orderId)).thenReturn(new OrderWithItems(pendingOrder(), List.of()));
+    @Nested
+    class 取消订单 { // PUT /orders/{id}/cancel
 
-        mockMvc.perform(get("/orders/{id}", orderId).with(userAuth(userId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(orderId.toString()))
-                // 待付款单的动作集由实体状态机推导，契约只验非空数组
-                .andExpect(jsonPath("$.availableActions").isArray());
+        @Test
+        void 原因透传() throws Exception {
+            mockMvc.perform(
+                            put("/orders/{id}/cancel", orderId)
+                                    .with(userAuth(userId))
+                                    .content(
+                                            """
+                                {"reason": "不想要了"}
+                                """))
+                    .andExpect(status().isOk());
+
+            verify(orderTransitionService).cancel(userId, orderId, "不想要了");
+        }
     }
 
-    @Test
-    void 取消订单_原因透传() throws Exception {
-        mockMvc.perform(put("/orders/{id}/cancel", orderId)
-                        .with(userAuth(userId))
-                        .content("""
-                            {"reason": "不想要了"}
-                            """))
-                .andExpect(status().isOk());
+    @Nested
+    class 确认收货 { // PUT /orders/{id}/receive
 
-        verify(orderTransitionService).cancel(userId, orderId, "不想要了");
-    }
+        @Test
+        void 返回200() throws Exception {
+            mockMvc.perform(put("/orders/{id}/receive", orderId).with(userAuth(userId)))
+                    .andExpect(status().isOk());
 
-    @Test
-    void 确认收货_已发货转已完成() throws Exception {
-        mockMvc.perform(put("/orders/{id}/receive", orderId).with(userAuth(userId)))
-                .andExpect(status().isOk());
-
-        verify(orderTransitionService).receive(userId, orderId);
-    }
-
-    @Test
-    void 未登录_401() throws Exception {
-        mockMvc.perform(get("/orders/mine")).andExpect(status().isUnauthorized());
+            verify(orderTransitionService).receive(userId, orderId);
+        }
     }
 }

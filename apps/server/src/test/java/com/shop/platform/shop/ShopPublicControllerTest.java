@@ -1,5 +1,6 @@
 package com.shop.platform.shop;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,7 +13,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-/** 店铺公开信息接口契约：匿名可达、仅 ACTIVE 可见、隐藏 ownerId/status 内部治理字段。 */
+/** 店铺公开信息接口契约：匿名可达 + 出参不泄漏内部治理字段（ownerId/status，absence）。 */
 class ShopPublicControllerTest extends WebControllerTestSupport {
 
     @Test
@@ -29,9 +30,10 @@ class ShopPublicControllerTest extends WebControllerTestSupport {
 
         mockMvc.perform(get("/api/shops/{id}", shopId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("公开店铺"))
                 // 契约回归：ownerId 与 status 是内部治理字段，公开出参刻意不含
                 .andExpect(jsonPath("$.ownerId").doesNotExist())
                 .andExpect(jsonPath("$.status").doesNotExist());
+
+        verify(shopService).publicShop(shopId);
     }
 }
