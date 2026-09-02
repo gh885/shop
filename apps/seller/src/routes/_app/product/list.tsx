@@ -4,6 +4,11 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import {
     Badge,
     Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
     Input,
     Select,
     SelectContent,
@@ -11,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
     Skeleton,
+    StateError,
     Table,
     TableBody,
     TableCell,
@@ -202,7 +208,13 @@ function ProductTable({ shopId, search }: { shopId: string; search: ProductSearc
     }
 
     if (products.isError) {
-        return <ErrorNotice error={products.error} />
+        return (
+            <StateError
+                message={toApiError(products.error).detail}
+                onRetry={() => void products.refetch()}
+                retrying={products.isFetching}
+            />
+        )
     }
 
     const records = products.data?.records ?? []
@@ -211,14 +223,23 @@ function ProductTable({ shopId, search }: { shopId: string; search: ProductSearc
 
     if (records.length === 0) {
         return (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center">
-                <Package className="size-10 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                    {search.keyword || search.status !== undefined
-                        ? "没有符合条件的商品"
-                        : "还没有商品，点右上角「新建商品」开始"}
-                </p>
-            </div>
+            <Empty className="rounded-2xl border-border py-16">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <Package />
+                    </EmptyMedia>
+                    <EmptyTitle>
+                        {search.keyword || search.status !== undefined
+                            ? "没有符合条件的商品"
+                            : "还没有商品"}
+                    </EmptyTitle>
+                    <EmptyDescription>
+                        {search.keyword || search.status !== undefined
+                            ? "换个筛选条件试试"
+                            : "点右上角「新建商品」开始"}
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         )
     }
 
@@ -373,13 +394,5 @@ function ProductRow({
                 </div>
             </TableCell>
         </TableRow>
-    )
-}
-
-function ErrorNotice({ error }: { error: Error }) {
-    return (
-        <div className="rounded-2xl border border-destructive/30 bg-destructive-subtle p-6 text-sm text-destructive-subtle-foreground">
-            {toApiError(error).detail}
-        </div>
     )
 }

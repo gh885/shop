@@ -2,7 +2,18 @@ import { useState } from "react"
 import { z } from "zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { Badge, Button, Input, Skeleton } from "@shop/ui-web"
+import {
+    Badge,
+    Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Input,
+    Skeleton,
+    StateError,
+} from "@shop/ui-web"
 import { CheckCircle2, CircleAlert, MailPlus, Store } from "lucide-react"
 
 import { toApiError } from "@shop/api"
@@ -39,6 +50,16 @@ function ShopsPage() {
     const shops = useMyShops()
     const current = useCurrentShop()
 
+    if (shops.isError) {
+        return (
+            <StateError
+                message={toApiError(shops.error).detail}
+                onRetry={() => void shops.refetch()}
+                retrying={shops.isFetching}
+            />
+        )
+    }
+
     return (
         <div className="mx-auto w-full max-w-3xl space-y-8">
             <div>
@@ -69,12 +90,15 @@ function ShopsPage() {
                         />
                     ))
                 ) : (
-                    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-14 text-center">
-                        <Store className="size-10 text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground">
-                            还没有店铺，在下方创建第一家吧
-                        </p>
-                    </div>
+                    <Empty className="rounded-2xl border-border py-14">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Store />
+                            </EmptyMedia>
+                            <EmptyTitle>还没有店铺</EmptyTitle>
+                            <EmptyDescription>在下方创建第一家吧</EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 )}
             </section>
 

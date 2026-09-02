@@ -2,7 +2,18 @@ import { useState } from "react"
 import { z } from "zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { Badge, Button, Input, Skeleton } from "@shop/ui-web"
+import {
+    Badge,
+    Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Input,
+    Skeleton,
+    StateError,
+} from "@shop/ui-web"
 import { CircleAlert, Store, Trash2, UserPlus } from "lucide-react"
 
 import { toApiError } from "@shop/api"
@@ -82,6 +93,16 @@ function MemberPanel({ shopId }: { shopId: string }) {
         },
     })
 
+    if (members.isError) {
+        return (
+            <StateError
+                message={toApiError(members.error).detail}
+                onRetry={() => void members.refetch()}
+                retrying={members.isFetching}
+            />
+        )
+    }
+
     if (members.isLoading) {
         return (
             <div className="space-y-2">
@@ -99,35 +120,47 @@ function MemberPanel({ shopId }: { shopId: string }) {
         <section className="rounded-2xl border border-border bg-card p-6">
             <h2 className="font-semibold">成员列表</h2>
 
-            <ul className="mt-3 divide-y divide-border">
-                {members.data?.map((m) => (
-                    <li
-                        key={m.memberId}
-                        className="flex items-center justify-between py-3 text-sm"
-                    >
-                        <span className="tabular-nums">{m.phone ?? m.userId}</span>
-                        <span className="flex items-center gap-2">
-                            <Badge variant={m.role === "OWNER" ? "default" : "secondary"}>
-                                {m.role === "OWNER" ? "店主" : "店员"}
-                            </Badge>
-                            {m.status === "PENDING" ? (
-                                <Badge variant="outline">待确认</Badge>
-                            ) : undefined}
-                            {isOwner && m.role !== "OWNER" ? (
-                                <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    disabled={remove.isPending}
-                                    onClick={() => remove.mutate(m.memberId)}
-                                    aria-label="移除成员"
-                                >
-                                    <Trash2 className="size-4 text-muted-foreground" />
-                                </Button>
-                            ) : undefined}
-                        </span>
-                    </li>
-                ))}
-            </ul>
+            {!members.data || members.data.length === 0 ? (
+                <Empty className="mt-3 border-border py-10">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <Store />
+                        </EmptyMedia>
+                        <EmptyTitle>暂无成员</EmptyTitle>
+                        <EmptyDescription>邀请对方加入店铺后，成员会出现在这里</EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
+            ) : (
+                <ul className="mt-3 divide-y divide-border">
+                    {members.data.map((m) => (
+                        <li
+                            key={m.memberId}
+                            className="flex items-center justify-between py-3 text-sm"
+                        >
+                            <span className="tabular-nums">{m.phone ?? m.userId}</span>
+                            <span className="flex items-center gap-2">
+                                <Badge variant={m.role === "OWNER" ? "default" : "secondary"}>
+                                    {m.role === "OWNER" ? "店主" : "店员"}
+                                </Badge>
+                                {m.status === "PENDING" ? (
+                                    <Badge variant="outline">待确认</Badge>
+                                ) : undefined}
+                                {isOwner && m.role !== "OWNER" ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        disabled={remove.isPending}
+                                        onClick={() => remove.mutate(m.memberId)}
+                                        aria-label="移除成员"
+                                    >
+                                        <Trash2 className="size-4 text-muted-foreground" />
+                                    </Button>
+                                ) : undefined}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            )}
 
             {isOwner ? (
                 <form
