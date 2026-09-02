@@ -1,5 +1,6 @@
 package com.shop.platform.infra.util;
 
+import java.util.Locale;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -17,7 +18,7 @@ public final class UserAgentParser {
         if (userAgent == null || userAgent.isBlank()) {
             return "未知设备";
         }
-        String ua = userAgent.toLowerCase();
+        String ua = userAgent.toLowerCase(Locale.ROOT);
 
         // 操作系统 / 设备
         String os;

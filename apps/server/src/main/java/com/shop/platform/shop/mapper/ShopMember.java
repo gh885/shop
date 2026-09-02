@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.shop.model.MemberRole;
+import com.shop.platform.shop.model.MemberStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -26,16 +28,6 @@ import lombok.NoArgsConstructor;
 @TableName(value = "shop.shop_members", autoResultMap = true)
 public class ShopMember {
 
-    /** 成员角色，见 role 字段 javadoc：OWNER 店主 / MEMBER 成员 */
-    public static final String ROLE_OWNER = "OWNER";
-
-    public static final String ROLE_MEMBER = "MEMBER";
-
-    /** 成员状态，见 status 字段 javadoc：PENDING 邀请待确认 / ACTIVE 已生效 */
-    public static final String STATUS_PENDING = "PENDING";
-
-    public static final String STATUS_ACTIVE = "ACTIVE";
-
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -46,16 +38,16 @@ public class ShopMember {
     /** 成员用户 ID（auth.users.id，统一账号）。同店同人唯一，唯一索引 uk_shop_members_shop_user 兜底并发 */
     private UUID userId;
 
-    /** 角色：OWNER 店主 / MEMBER 成员。OWNER 只有开店时写入那一条；邀请加入的都是 MEMBER */
-    private String role;
+    /** 角色：店主/成员，概念归 {@link MemberRole}。OWNER 只有开店时写入那一条；邀请加入的都是 MEMBER */
+    private MemberRole role;
 
     /** 子账号被授予的权限码（白名单见 shop/service/SellerGrants，默认空集=最小权限）；
      *  OWNER 全权由角色判定不读此列。jsonb 存储，读写经 JsonbStringListHandler */
     @TableField(typeHandler = JsonbStringListHandler.class)
     private java.util.List<String> permissions;
 
-    /** 成员状态：PENDING 邀请待对方同意 / ACTIVE 已生效 */
-    private String status;
+    /** 成员状态：PENDING 邀请待对方同意 / ACTIVE 已生效，概念归 {@link MemberStatus} */
+    private MemberStatus status;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)

@@ -39,6 +39,18 @@ public enum OrderStatus {
             COMPLETED, Set.of(),
             CANCELLED, Set.of());
 
+    /**
+     * 目标态 → 源态集（{@link #TRANSITIONS} 反向投影）。
+     *
+     * <p>集中掉 {@code sourcesOf} 每次调用都全表 stream + 收集的浪费：状态机常量在枚举初始化期算一次，
+     * 而每笔状态转移（下单/取消/发货/确认）都会调它——把它从「每次扫描」降为「查表」。
+     */
+    private static final Map<OrderStatus, Set<OrderStatus>> SOURCES = TRANSITIONS.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> TRANSITIONS.entrySet().stream()
+                    .filter(other -> other.getValue().contains(e.getKey()))
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toSet())));
+
     /** 转移目标 → 动作名：状态是后端语汇，动作是前端交互语汇，一张映射维系两套词表 */
     private static final Map<OrderStatus, String> ACTION_BY_TARGET =
             Map.of(PAID, "PAY", CANCELLED, "CANCEL", SHIPPED, "SHIP", COMPLETED, "RECEIVE");
@@ -51,10 +63,7 @@ public enum OrderStatus {
 
     /** 能转移到 target 的全部源状态：条件更新（WHERE status IN (...)）的合法前置集 */
     public static Set<OrderStatus> sourcesOf(OrderStatus target) {
-        return TRANSITIONS.entrySet().stream()
-                .filter(e -> e.getValue().contains(target))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+        return SOURCES.getOrDefault(target, Set.of());
     }
 
     /** 买家视角当前可执行的动作（详情页按钮组渲染用）；终态返回空 */

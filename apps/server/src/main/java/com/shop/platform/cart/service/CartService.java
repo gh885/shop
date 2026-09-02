@@ -188,7 +188,7 @@ public class CartService {
                 money(sku.price(), sku.currency()),
                 money(sku.originalPrice(), sku.currency()),
                 stock == null ? 0 : stock.availableStock(),
-                sku.status());
+                sku.onSale());
     }
 
     /** SPU 段：卡片字段 + 店铺名 */

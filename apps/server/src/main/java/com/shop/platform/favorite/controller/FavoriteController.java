@@ -3,12 +3,12 @@ package com.shop.platform.favorite.controller;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.favorite.dto.AddFavoriteRequest;
 import com.shop.platform.favorite.dto.FavoriteExistsRequest;
 import com.shop.platform.favorite.mapper.FavoriteItem;
 import com.shop.platform.favorite.service.FavoriteItemView;
 import com.shop.platform.favorite.service.FavoriteService;
+import com.shop.platform.infra.web.CurrentUser;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -41,30 +41,30 @@ public class FavoriteController {
     /** 收藏商品：幂等，已存在返回原行 */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public FavoriteItemResponse addFavorite(@Valid @RequestBody AddFavoriteRequest req) {
-        return FavoriteItemResponse.from(favoriteService.add(UserIdHolder.get(), req.productId()));
+    public FavoriteItemResponse addFavorite(@CurrentUser UUID userId, @Valid @RequestBody AddFavoriteRequest req) {
+        return FavoriteItemResponse.from(favoriteService.add(userId, req.productId()));
     }
 
     /** 取消收藏：按商品 ID 删，幂等（未收藏也 204） */
     @DeleteMapping("/products/{productId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void removeFavorite(@PathVariable UUID productId) {
-        favoriteService.remove(UserIdHolder.get(), productId);
+    public void removeFavorite(@CurrentUser UUID userId, @PathVariable UUID productId) {
+        favoriteService.remove(userId, productId);
     }
 
     /** 我的收藏分页：新收藏在前；下架商品置灰保留（available=false） */
     @GetMapping
-    public PageResult<FavoriteListItemResponse> listFavorites(@Valid PageParams pageParams) {
-        PageResult<FavoriteItemView> page =
-                favoriteService.list(UserIdHolder.get(), pageParams.page(), pageParams.size());
-        return new PageResult<>(
-                page.records().stream().map(FavoriteListItemResponse::from).toList(), page.total());
+    public PageResult<FavoriteListItemResponse> listFavorites(@CurrentUser UUID userId, @Valid PageParams pageParams) {
+        return favoriteService
+                .list(userId, pageParams.page(), pageParams.size())
+                .map(FavoriteListItemResponse::from);
     }
 
     /** 批量查已收藏子集：详情页心形状态用，避免 product 详情接口反向依赖本模块 */
     @PostMapping("/exists")
-    public FavoriteExistsResponse checkFavoriteExists(@Valid @RequestBody FavoriteExistsRequest req) {
-        return new FavoriteExistsResponse(favoriteService.favoritedProductIds(UserIdHolder.get(), req.productIds()));
+    public FavoriteExistsResponse checkFavoriteExists(
+            @CurrentUser UUID userId, @Valid @RequestBody FavoriteExistsRequest req) {
+        return new FavoriteExistsResponse(favoriteService.favoritedProductIds(userId, req.productIds()));
     }
 
     /** 收藏行出参：刻意不吐 userId（JWT 冗余），按 HTTP 契约规范禁止裸吐实体 */

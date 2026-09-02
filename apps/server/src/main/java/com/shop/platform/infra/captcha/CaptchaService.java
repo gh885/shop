@@ -15,6 +15,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.imageio.ImageIO;
@@ -70,7 +71,7 @@ public class CaptchaService {
         if (stored == null) {
             throw new BusinessException(400, "CAPTCHA_EXPIRED", "图形验证码已过期，请刷新重试");
         }
-        if (!stored.equals(hash(captchaCode.trim().toUpperCase()))) {
+        if (!stored.equals(hash(captchaCode.trim().toUpperCase(Locale.ROOT)))) {
             throw new BusinessException(400, "CAPTCHA_INVALID", "图形验证码错误，请重试");
         }
     }

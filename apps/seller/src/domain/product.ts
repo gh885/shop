@@ -8,13 +8,13 @@ import type { ParamItem, ProductResponse, SkuAttr, SkuResponse, SpecItem } from 
  * wire 字段全可选（openapi-ts 默认），投影归一为稳定的非空/字面量领域形状，前端不再依赖 SDK 的可选性。
  */
 
-// ---------- 状态（字面量联合，与后端 Product.STATUS_* 对齐） ----------
+// ---------- 状态（字面量联合，与后端枚举 name() 对齐） ----------
 
-/** 商品状态：1 上架 / 0 下架 / 2 草稿 */
-export type ProductStatus = 1 | 0 | 2
+/** 商品状态：PUBLISHED 上架 / OFF 下架 / DRAFT 草稿 */
+export type ProductStatus = "PUBLISHED" | "OFF" | "DRAFT"
 
-/** SKU / 通用状态：1 在售 / 0 停用 */
-export type ActiveStatus = 1 | 0
+/** SKU 在售状态：ON_SALE 在售 / DISABLED 停用 */
+export type ActiveStatus = "ON_SALE" | "DISABLED"
 
 // ---------- 域类型（非空） ----------
 
@@ -54,12 +54,12 @@ export type Sku = {
 
 // ---------- wire → 投影 ----------
 
-function toStatus(s: number): ProductStatus {
-    return s === 1 || s === 0 ? s : 2
+function toStatus(s: ProductStatus | undefined): ProductStatus {
+    return s === "PUBLISHED" || s === "OFF" ? s : "DRAFT"
 }
 
-function toActiveStatus(s: number): ActiveStatus {
-    return s === 0 ? 0 : 1
+function toActiveStatus(s: ActiveStatus | undefined): ActiveStatus {
+    return s === "DISABLED" ? "DISABLED" : "ON_SALE"
 }
 
 /** wire → 商品：可选字段归一为稳定缺省，status 归一字面量（非法值按草稿处理） */
@@ -76,7 +76,7 @@ export function toProduct(dto: ProductResponse): Product {
         params: dto.params ?? [],
         minPrice: dto.minPrice ?? null,
         maxPrice: dto.maxPrice ?? null,
-        status: toStatus(dto.status ?? 2),
+        status: toStatus(dto.status),
         createdAt: dto.createdAt ?? "",
         updatedAt: dto.updatedAt ?? "",
     }
@@ -95,7 +95,7 @@ export function toSku(dto: SkuResponse): Sku {
         originalPrice: dto.originalPrice ?? null,
         currency: dto.currency ?? null,
         stock: dto.stock ?? null,
-        status: toActiveStatus(dto.status ?? 1),
+        status: toActiveStatus(dto.status),
     }
 }
 
@@ -105,7 +105,7 @@ export function toProductDetail(dto: { product?: ProductResponse; skus?: SkuResp
     skus: Sku[]
 } {
     return {
-        product: toProduct(dto.product ?? {}),
+        product: toProduct(dto.product ?? ({} as ProductResponse)),
         skus: (dto.skus ?? []).map(toSku),
     }
 }

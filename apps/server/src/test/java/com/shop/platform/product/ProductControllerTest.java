@@ -12,6 +12,8 @@ import com.shop.platform.common.PageResult;
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.model.ProductStatus;
+import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
@@ -37,7 +39,7 @@ class ProductControllerTest extends WebControllerTestSupport {
         p.setName("测试手机");
         p.setSubtitle("旗舰机");
         p.setMainImage("main.png");
-        p.setStatus(1);
+        p.setStatus(ProductStatus.PUBLISHED);
         return p;
     }
 
@@ -49,7 +51,7 @@ class ProductControllerTest extends WebControllerTestSupport {
         s.setPrice(1000L);
         s.setOriginalPrice(1200L);
         s.setCurrency("CNY");
-        s.setStatus(1);
+        s.setStatus(SkuStatus.ON_SALE);
         return s;
     }
 

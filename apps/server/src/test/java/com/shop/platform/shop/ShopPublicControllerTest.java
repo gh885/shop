@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.shop.mapper.Shop;
+import com.shop.platform.shop.model.ShopStatus;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -22,7 +23,7 @@ class ShopPublicControllerTest extends WebControllerTestSupport {
         shop.setOwnerId(UUID.randomUUID());
         shop.setName("公开店铺");
         shop.setLogoKey("logo.png");
-        shop.setStatus(Shop.STATUS_ACTIVE);
+        shop.setStatus(ShopStatus.ACTIVE);
         shop.setCreatedAt(OffsetDateTime.now());
         when(shopService.publicShop(shopId)).thenReturn(shop);
 

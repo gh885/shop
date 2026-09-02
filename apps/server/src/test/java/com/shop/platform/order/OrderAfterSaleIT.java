@@ -13,6 +13,7 @@ import com.shop.platform.order.model.AfterSaleType;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.payment.mapper.Payment;
+import com.shop.platform.payment.model.PaymentStatus;
 import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.UUID;
@@ -91,7 +92,7 @@ class OrderAfterSaleIT extends IntegrationTestSupport {
         transitions.agreeAfterSale(shopId, orderId);
         assertEquals(AfterSaleStatus.RETURNING.name(), afterSaleStatus());
         assertEquals(
-                Payment.STATUS_SUCCESS,
+                PaymentStatus.SUCCESS.name(),
                 jdbc.queryForObject(
                         "SELECT status FROM payment.payments WHERE order_id = ?::uuid",
                         String.class,
@@ -112,7 +113,7 @@ class OrderAfterSaleIT extends IntegrationTestSupport {
         assertEquals(AfterSaleStatus.REFUNDED.name(), afterSaleStatus());
         assertEquals(5, totalStock());
         assertEquals(
-                Payment.STATUS_REFUNDED,
+                PaymentStatus.REFUNDED.name(),
                 jdbc.queryForObject(
                         "SELECT status FROM payment.payments WHERE order_id = ?::uuid",
                         String.class,

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.cms.mapper.Banner;
 import com.shop.platform.cms.mapper.NavEntry;
+import com.shop.platform.cms.model.CmsStatus;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +23,7 @@ class CmsPublicControllerTest extends WebControllerTestSupport {
         entry.setId(UUID.randomUUID());
         entry.setNavKey("home");
         entry.setTitle("手机数码");
-        entry.setStatus(1);
+        entry.setStatus(CmsStatus.ENABLED);
         when(contentService.nav("home")).thenReturn(List.of(entry));
 
         mockMvc.perform(get("/api/cms/nav"))

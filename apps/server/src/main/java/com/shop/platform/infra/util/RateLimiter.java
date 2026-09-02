@@ -2,6 +2,7 @@ package com.shop.platform.infra.util;
 
 import java.time.Duration;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -12,7 +13,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
  * <p>INCR 与首次 EXPIRE 用 Lua 原子执行：两步分离时若进程在 INCR 后、EXPIRE 前崩溃，
  * 会留下永不过期的计数键，该 IP/手机号将被永久限流直到手工清理。窗口从首次访问起算（固定窗口，非滑动）。
  */
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RateLimiter {
 
     private static final DefaultRedisScript<Long> INCR_WITH_TTL = new DefaultRedisScript<>(

@@ -12,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.model.ProductStatus;
+import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
@@ -43,7 +45,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         p.setShopId(shopId);
         p.setCategoryId(UUID.randomUUID());
         p.setName("卖家商品");
-        p.setStatus(2); // 草稿
+        p.setStatus(ProductStatus.DRAFT); // 草稿
         return p;
     }
 
@@ -76,7 +78,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         sku.setName("卖家商品 黑色");
         sku.setPrice(1000L);
         sku.setCurrency("CNY");
-        sku.setStatus(1);
+        sku.setStatus(SkuStatus.ON_SALE);
         when(productService.updateSpecs(eq(productId), any())).thenReturn(List.of(sku));
         when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of());
 
@@ -91,7 +93,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                 .andExpect(status().isOk())
                 // 卖家侧契约：skuCode/status 进出参（仓管编码与停用态），与买家侧刻意不同
                 .andExpect(jsonPath("$[0].skuCode").value("SKU-001"))
-                .andExpect(jsonPath("$[0].status").value(1));
+                .andExpect(jsonPath("$[0].status").value("ON_SALE"));
     }
 
     @Test
@@ -112,7 +114,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         Sku sku = new Sku();
         sku.setId(UUID.randomUUID());
         sku.setName("卖家商品 黑色");
-        sku.setStatus(1);
+        sku.setStatus(SkuStatus.ON_SALE);
         when(productService.detail(productId)).thenReturn(new ProductDetail(draft(), List.of(sku)));
         when(stockReadQuery.availableBySkuIds(any()))
                 .thenReturn(Map.of(sku.getId(), new StockView(sku.getId(), 5, 0, 5)));
@@ -128,44 +130,44 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
     @Test
     void 发布_复检门槛后上架() throws Exception {
         Product published = draft();
-        published.setStatus(1);
+        published.setStatus(ProductStatus.PUBLISHED);
         when(productService.publish(productId)).thenReturn(published);
 
         mockMvc.perform(post("/seller/products/{id}/publish", productId)
                         .with(userAuth(userId))
                         .header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(1));
+                .andExpect(jsonPath("$.status").value("PUBLISHED"));
     }
 
     @Test
     void 下架再上架_状态机入口() throws Exception {
         Product off = draft();
-        off.setStatus(0);
+        off.setStatus(ProductStatus.OFF);
         when(productService.off(productId)).thenReturn(off);
 
         mockMvc.perform(post("/seller/products/{id}/off", productId)
                         .with(userAuth(userId))
                         .header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(0));
+                .andExpect(jsonPath("$.status").value("OFF"));
 
         verify(productService).off(productId);
     }
 
     @Test
     void 本店商品列表_按状态筛选() throws Exception {
-        when(productService.pageList(eq(shopId), eq(2), any(), anyLong(), anyLong()))
+        when(productService.pageList(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong()))
                 .thenReturn(new com.shop.platform.common.PageResult<>(List.of(draft()), 1));
 
         mockMvc.perform(get("/seller/products")
                         .queryParam("page", "1")
                         .queryParam("size", "10")
-                        .queryParam("status", "2")
+                        .queryParam("status", "DRAFT")
                         .with(userAuth(userId))
                         .header("X-Shop-Id", shopId.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.records[0].status").value(2));
+                .andExpect(jsonPath("$.records[0].status").value("DRAFT"));
     }
 
     @Test

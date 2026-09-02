@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.cms.model.CmsStatus;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.UUID;
@@ -78,20 +79,22 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
     void 导航状态开关_走路径参数() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(put("/admin/cms/nav/{id}/status/{status}", id, 0).with(staffAuth(staffId)))
+        mockMvc.perform(put("/admin/cms/nav/{id}/status/{status}", id, "DISABLED")
+                        .with(staffAuth(staffId)))
                 .andExpect(status().isOk());
 
-        verify(contentService).setNavStatus(id, 0);
+        verify(contentService).setNavStatus(id, CmsStatus.DISABLED);
     }
 
     @Test
     void 横幅状态开关_与生效窗口字段解耦() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(put("/admin/cms/banners/{id}/status/{status}", id, 1).with(staffAuth(staffId)))
+        mockMvc.perform(put("/admin/cms/banners/{id}/status/{status}", id, "ENABLED")
+                        .with(staffAuth(staffId)))
                 .andExpect(status().isOk());
 
-        verify(contentService).setBannerStatus(id, 1);
+        verify(contentService).setBannerStatus(id, CmsStatus.ENABLED);
     }
 
     @Test

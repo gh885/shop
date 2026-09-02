@@ -2,6 +2,7 @@ package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageResult;
@@ -23,13 +24,19 @@ import com.shop.platform.product.mapper.SkuAttr;
 import com.shop.platform.product.mapper.SkuMapper;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.mapper.SpecValue;
+import com.shop.platform.product.model.AttrKind;
+import com.shop.platform.product.model.CategoryAttrStatus;
+import com.shop.platform.product.model.ProductStatus;
+import com.shop.platform.product.model.SkuStatus;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -113,7 +120,7 @@ public class ProductService {
                         .attributes(attrs)
                         .specKey(specKey)
                         .name(buildSkuName(product, combo))
-                        .status(Sku.STATUS_ON_SALE)
+                        .status(SkuStatus.ON_SALE)
                         .build();
                 skuMapper.insert(fresh);
                 // 库存主体行随 SKU 诞生（stock=0），卖家随后经 updateSkus 设总量
@@ -184,7 +191,7 @@ public class ProductService {
     }
 
     /** 商家后台商品列表：按店铺分页，可按状态/名称筛选，创建时间倒序。管理端要看全量状态，含草稿/下架 */
-    public PageResult<Product> pageList(UUID shopId, Integer status, String keyword, long page, long size) {
+    public PageResult<Product> pageList(UUID shopId, ProductStatus status, String keyword, long page, long size) {
         // MP 的条件 boolean 参数不短路右侧表达式：keyword.trim() 必须先判空提取，否则无 keyword 请求 NPE
         String trimmedKeyword = keyword == null ? null : keyword.trim();
         Page<Product> result = productMapper.selectPage(
@@ -213,14 +220,13 @@ public class ProductService {
      * 表——这两个字段的存在意义就在此。
      */
     public PageResult<Product> pagePublic(ProductQuery query, long page, long size) {
+        // StringBuilder.blankToNull 与 pageList 同口径：no keyword 时归一为 null，免 NPE；hasText 再兜底
+        String keyword = query.keyword() == null ? null : query.keyword().trim();
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
-                .eq(Product::getStatus, Product.STATUS_PUBLISHED)
+                .eq(Product::getStatus, ProductStatus.PUBLISHED)
                 .eq(query.categoryId() != null, Product::getCategoryId, query.categoryId())
                 .eq(query.shopId() != null, Product::getShopId, query.shopId())
-                .like(
-                        query.keyword() != null && !query.keyword().isBlank(),
-                        Product::getName,
-                        query.keyword() == null ? null : query.keyword().trim());
+                .like(StringUtils.hasText(keyword), Product::getName, keyword);
         // 每种排序都补 id 兜底，保证翻页时同值记录顺序稳定（否则第 2 页可能重复第 1 页的行）
         switch (query.sort() == null ? "newest" : query.sort()) {
             case "price_asc" -> wrapper.orderByAsc(Product::getMinPrice).orderByDesc(Product::getId);
@@ -300,18 +306,31 @@ public class ProductService {
 
     /** 规格选择 → 模板解析：校验 attr/value 归属与状态，受理卖家自定义值，产出落库的 specs 快照 */
     private List<SpecItem> resolveSelections(Product product, List<SpecSelection> selections) {
+        // 属性与值域一次批量捞进 Map，循环体退化为纯内存谓词——旧版逐条 selectById 在
+        // 「3 维度 × 每维 10 值」下要往返 34 次，而 updateSpecs 是卖家高频操作
+        Map<UUID, CategoryAttr> attrsById =
+                byId(attrMapper, selections.stream().map(SpecSelection::attrId).toList(), CategoryAttr::getId);
+        Map<UUID, CategoryAttrValue> valuesById = byId(
+                attrValueMapper,
+                selections.stream()
+                        .map(SpecSelection::valueIds)
+                        .filter(Objects::nonNull)
+                        .flatMap(List::stream)
+                        .toList(),
+                CategoryAttrValue::getId);
+
         List<SpecItem> specs = new ArrayList<>();
         for (SpecSelection sel : selections) {
-            CategoryAttr attr = Validate.notNull(attrMapper.selectById(sel.attrId()), "规格属性不存在");
-            Validate.isTrue(attr.getStatus() == CategoryAttr.STATUS_ENABLED, "规格属性已禁用");
+            CategoryAttr attr = Validate.notNull(attrsById.get(sel.attrId()), "规格属性不存在");
+            Validate.isTrue(attr.isEnabled(), "规格属性已禁用");
             Validate.isTrue(attr.getCategoryId().equals(product.getCategoryId()), "规格属性不属于商品当前类目");
-            Validate.isTrue(attr.getKind() == CategoryAttr.KIND_SPEC, "非销售属性不能作为规格");
+            Validate.isTrue(attr.getKind() == AttrKind.SPEC, "非销售属性不能作为规格");
 
             List<SpecValue> values = new ArrayList<>();
             if (sel.valueIds() != null) {
                 // LinkedHashSet 去重：同值重复选择会撞 uk_skus_product_spec_key
                 for (UUID valueId : new LinkedHashSet<>(sel.valueIds())) {
-                    CategoryAttrValue row = attrValueMapper.selectById(valueId);
+                    CategoryAttrValue row = valuesById.get(valueId);
                     Validate.isTrue(row != null && row.getAttrId().equals(attr.getId()), "规格值不存在或不属于该属性");
                     values.add(new SpecValue(row.getId(), row.getValue()));
                 }
@@ -321,6 +340,7 @@ public class ProductService {
                     String value = raw == null ? "" : raw.trim();
                     Validate.isTrue(!value.isEmpty(), "自定义规格值不能为空");
                     Validate.isTrue(Boolean.TRUE.equals(attr.getAllowCustom()), "该属性不允许自定义值");
+                    // 自定义值必须逐条 upsert（要建档），无法批量预取
                     CategoryAttrValue row = categoryAttrService.ensureSellerValue(attr.getId(), value);
                     // 同名复用：与 valueIds 已选值撞同行时去重
                     if (values.stream().noneMatch(v -> v.valueId().equals(row.getId()))) {
@@ -334,6 +354,15 @@ public class ProductService {
         return specs;
     }
 
+    /** 批量按主键取行 → id → 实体 Map；空集合不发查询（空 IN 列表在 MP 下会退化成全表扫） */
+    private static <T> Map<UUID, T> byId(BaseMapper<T> mapper, List<UUID> ids, Function<T, UUID> idOf) {
+        Set<UUID> distinct = ids.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        if (distinct.isEmpty()) {
+            return Map.of();
+        }
+        return mapper.selectByIds(distinct).stream().collect(Collectors.toMap(idOf, Function.identity()));
+    }
+
     /**
      * params 模板校验：类目存在参数模板（kind=2 启用条目）时——提交的 attrId 必须属于模板、
      * required 必须有值、allow_custom=false 且有值域时值须在值域内；类目无模板维持自由文本（attrId=null）。
@@ -341,30 +370,37 @@ public class ProductService {
     private void validateParams(UUID categoryId, List<ParamItem> params) {
         List<CategoryAttr> template = attrMapper.selectList(new LambdaQueryWrapper<CategoryAttr>()
                 .eq(CategoryAttr::getCategoryId, categoryId)
-                .eq(CategoryAttr::getKind, CategoryAttr.KIND_PARAM)
-                .eq(CategoryAttr::getStatus, CategoryAttr.STATUS_ENABLED));
+                .eq(CategoryAttr::getKind, AttrKind.PARAM)
+                .eq(CategoryAttr::getStatus, CategoryAttrStatus.ENABLED));
         if (template.isEmpty()) {
             return;
         }
-        Map<UUID, CategoryAttr> byId = template.stream().collect(Collectors.toMap(CategoryAttr::getId, a -> a));
+        Map<UUID, CategoryAttr> byId =
+                template.stream().collect(Collectors.toMap(CategoryAttr::getId, Function.identity()));
         List<ParamItem> items = params == null ? List.of() : params;
 
-        // 1. 提交的每条 param 必须关联本类目模板属性；值域受控（allow_custom=false 且有值域）时值须在值域内
+        // 1. 值域一次性按整个模板捞出并按 attrId 分组：旧版在 param 循环里逐个 selectList，
+        //    N 个受控参数 = N 次往返，而这里的候选集本就限定在同一类目模板内
+        Map<UUID, Set<String>> domainByAttr = attrValueMapper
+                .selectList(new LambdaQueryWrapper<CategoryAttrValue>().in(CategoryAttrValue::getAttrId, byId.keySet()))
+                .stream()
+                .collect(Collectors.groupingBy(
+                        CategoryAttrValue::getAttrId,
+                        Collectors.mapping(CategoryAttrValue::getValue, Collectors.toSet())));
+
+        // 2. 提交的每条 param 必须关联本类目模板属性；值域受控（allow_custom=false 且有值域）时值须在值域内
         for (ParamItem item : items) {
             CategoryAttr attr = item.attrId() == null ? null : byId.get(item.attrId());
             Validate.isTrue(attr != null, "参数必须关联类目模板属性");
             if (!Boolean.TRUE.equals(attr.getAllowCustom())) {
-                List<CategoryAttrValue> domain = attrValueMapper.selectList(
-                        new LambdaQueryWrapper<CategoryAttrValue>().eq(CategoryAttrValue::getAttrId, attr.getId()));
+                Set<String> domain = domainByAttr.getOrDefault(attr.getId(), Set.of());
                 if (!domain.isEmpty()) {
-                    Validate.isTrue(
-                            domain.stream().anyMatch(v -> v.getValue().equals(item.value())),
-                            "参数值不在值域内：" + attr.getName());
+                    Validate.isTrue(domain.contains(item.value()), "参数值不在值域内：" + attr.getName());
                 }
             }
         }
 
-        // 2. required 的 param 必须有值
+        // 3. required 的 param 必须有值
         for (CategoryAttr attr : template) {
             if (Boolean.TRUE.equals(attr.getRequired())) {
                 boolean filled =
@@ -450,7 +486,7 @@ public class ProductService {
                 .images(command.images())
                 .specs(List.of())
                 .params(command.params())
-                .status(Product.STATUS_DRAFT)
+                .status(ProductStatus.DRAFT)
                 .build();
     }
 

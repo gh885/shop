@@ -10,6 +10,7 @@ import com.shop.platform.cms.mapper.NavEntry;
 import com.shop.platform.cms.mapper.NavEntryMapper;
 import com.shop.platform.cms.mapper.RecommendTab;
 import com.shop.platform.cms.mapper.RecommendTabMapper;
+import com.shop.platform.cms.model.CmsStatus;
 import com.shop.platform.common.Validate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -87,7 +88,7 @@ public class ContentService {
                 .targetType(req.targetType())
                 .subs(req.subs())
                 .sortOrder(req.sortOrder() != null ? req.sortOrder() : 0)
-                .status(NavEntry.STATUS_ENABLED)
+                .status(CmsStatus.ENABLED)
                 .build();
         navEntryMapper.insert(entry);
         return entry;
@@ -111,7 +112,7 @@ public class ContentService {
 
     /** 启用(1)/停用(0)：不做物理删除，可无损恢复 */
     @Transactional
-    public void setNavStatus(UUID id, int status) {
+    public void setNavStatus(UUID id, CmsStatus status) {
         NavEntry entry = requireNav(id);
         entry.setStatus(status);
         navEntryMapper.updateById(entry);
@@ -131,7 +132,7 @@ public class ContentService {
                 .targetType(req.targetType())
                 .link(req.link())
                 .sortOrder(req.sortOrder() != null ? req.sortOrder() : 0)
-                .status(Banner.STATUS_ENABLED)
+                .status(CmsStatus.ENABLED)
                 .startAt(req.startAt())
                 .endAt(req.endAt())
                 .build();
@@ -160,7 +161,7 @@ public class ContentService {
 
     /** 启用(1)/停用(0)：不做物理删除，可无损恢复 */
     @Transactional
-    public void setBannerStatus(UUID id, int status) {
+    public void setBannerStatus(UUID id, CmsStatus status) {
         Banner banner = requireBanner(id);
         banner.setStatus(status);
         bannerMapper.updateById(banner);
@@ -177,7 +178,7 @@ public class ContentService {
                 .targetType(req.targetType())
                 .isDefault(req.isDefault() != null ? req.isDefault() : false)
                 .sortOrder(req.sortOrder() != null ? req.sortOrder() : 0)
-                .status(RecommendTab.STATUS_ENABLED)
+                .status(CmsStatus.ENABLED)
                 .build();
         recommendTabMapper.insert(tab);
         return tab;
@@ -198,7 +199,7 @@ public class ContentService {
 
     /** 启用(1)/停用(0)：不做物理删除，可无损恢复 */
     @Transactional
-    public void setTabStatus(UUID id, int status) {
+    public void setTabStatus(UUID id, CmsStatus status) {
         RecommendTab tab = requireTab(id);
         tab.setStatus(status);
         recommendTabMapper.updateById(tab);

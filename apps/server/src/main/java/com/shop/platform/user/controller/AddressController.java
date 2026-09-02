@@ -1,6 +1,6 @@
 package com.shop.platform.user.controller;
 
-import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.infra.web.CurrentUser;
 import com.shop.platform.user.dto.AddressParseRequest;
 import com.shop.platform.user.dto.AddressRequest;
 import com.shop.platform.user.mapper.Address;
@@ -33,8 +33,8 @@ public class AddressController {
     /** 新增收货地址 */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AddressResponse createAddress(@Valid @RequestBody AddressRequest req) {
-        return AddressResponse.from(addressService.create(UserIdHolder.get(), req));
+    public AddressResponse createAddress(@CurrentUser UUID userId, @Valid @RequestBody AddressRequest req) {
+        return AddressResponse.from(addressService.create(userId, req));
     }
 
     /** 智能粘贴：解析收货文本为结构化字段（无需入库，纯文本处理） */
@@ -45,39 +45,40 @@ public class AddressController {
 
     /** 我的收货地址列表：默认地址置顶 */
     @GetMapping
-    public List<AddressResponse> listAddresses() {
-        return AddressResponse.from(addressService.list(UserIdHolder.get()));
+    public List<AddressResponse> listAddresses(@CurrentUser UUID userId) {
+        return AddressResponse.from(addressService.list(userId));
     }
 
     /** 地址详情（结算页反显用） */
     @GetMapping("/{id}")
-    public AddressResponse getAddressDetail(@PathVariable UUID id) {
-        return AddressResponse.from(addressService.detail(UserIdHolder.get(), id));
+    public AddressResponse getAddressDetail(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return AddressResponse.from(addressService.detail(userId, id));
     }
 
     /** 修改收货地址 */
     @PutMapping("/{id}")
-    public AddressResponse updateAddress(@PathVariable UUID id, @Valid @RequestBody AddressRequest req) {
-        return AddressResponse.from(addressService.update(UserIdHolder.get(), id, req));
+    public AddressResponse updateAddress(
+            @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody AddressRequest req) {
+        return AddressResponse.from(addressService.update(userId, id, req));
     }
 
     /** 删除收货地址（软删，返回 204） */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteAddress(@PathVariable UUID id) {
-        addressService.delete(UserIdHolder.get(), id);
+    public void deleteAddress(@CurrentUser UUID userId, @PathVariable UUID id) {
+        addressService.delete(userId, id);
     }
 
     /** 设为默认地址：每用户至多一个默认 */
     @PutMapping("/{id}/default")
-    public AddressResponse setDefaultAddress(@PathVariable UUID id) {
-        return AddressResponse.from(addressService.setDefault(UserIdHolder.get(), id));
+    public AddressResponse setDefaultAddress(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return AddressResponse.from(addressService.setDefault(userId, id));
     }
 
     /** 取消默认地址：允许该用户无默认地址 */
     @DeleteMapping("/{id}/default")
-    public AddressResponse unsetDefaultAddress(@PathVariable UUID id) {
-        return AddressResponse.from(addressService.unsetDefault(UserIdHolder.get(), id));
+    public AddressResponse unsetDefaultAddress(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return AddressResponse.from(addressService.unsetDefault(userId, id));
     }
 
     /**

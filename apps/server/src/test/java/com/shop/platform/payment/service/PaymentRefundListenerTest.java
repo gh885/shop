@@ -16,6 +16,7 @@ import com.shop.platform.payment.gateway.PaymentGateway;
 import com.shop.platform.payment.gateway.PaymentGatewayException;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.mapper.PaymentMapper;
+import com.shop.platform.payment.model.PaymentStatus;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,7 +51,7 @@ class PaymentRefundListenerTest {
         p.setOrderNo("20260101120000001");
         p.setAmount(2000L);
         p.setCurrency("CNY");
-        p.setStatus(Payment.STATUS_SUCCESS);
+        p.setStatus(PaymentStatus.SUCCESS);
         return p;
     }
 

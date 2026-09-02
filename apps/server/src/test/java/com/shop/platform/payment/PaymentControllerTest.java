@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.payment.mapper.Payment;
+import com.shop.platform.payment.model.PaymentStatus;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -33,7 +34,7 @@ class PaymentControllerTest extends WebControllerTestSupport {
         p.setAmount(2000L);
         p.setCurrency("CNY");
         p.setChannel("MOCK");
-        p.setStatus(Payment.STATUS_PENDING); // 两段式：发起只是 PENDING，未确认前 paidAt 为空
+        p.setStatus(PaymentStatus.PENDING); // 两段式：发起只是 PENDING，未确认前 paidAt 为空
         when(paymentService.pay(userId, orderId)).thenReturn(p);
 
         mockMvc.perform(post("/payments")
@@ -60,7 +61,7 @@ class PaymentControllerTest extends WebControllerTestSupport {
         p.setAmount(2000L);
         p.setCurrency("CNY");
         p.setChannel("MOCK");
-        p.setStatus(Payment.STATUS_SUCCESS);
+        p.setStatus(PaymentStatus.SUCCESS);
         p.setPaidAt(OffsetDateTime.now());
         when(paymentService.confirm(userId, paymentId)).thenReturn(p);
 

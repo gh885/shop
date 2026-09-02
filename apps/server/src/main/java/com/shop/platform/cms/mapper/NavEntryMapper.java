@@ -2,6 +2,7 @@ package com.shop.platform.cms.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.cms.model.CmsStatus;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -12,7 +13,7 @@ public interface NavEntryMapper extends BaseMapper<NavEntry> {
     default List<NavEntry> selectEnabledByKey(String navKey) {
         return selectList(new LambdaQueryWrapper<NavEntry>()
                 .eq(NavEntry::getNavKey, navKey)
-                .eq(NavEntry::getStatus, NavEntry.STATUS_ENABLED)
+                .eq(NavEntry::getStatus, CmsStatus.ENABLED)
                 .orderByAsc(NavEntry::getSortOrder)
                 .orderByAsc(NavEntry::getId));
     }

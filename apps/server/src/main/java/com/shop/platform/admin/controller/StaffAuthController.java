@@ -8,17 +8,14 @@ import com.shop.platform.admin.service.StaffInfo;
 import com.shop.platform.admin.service.StaffService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.TokenPair;
+import com.shop.platform.infra.web.RefreshCookies;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.time.Duration;
-import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,16 +28,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class StaffAuthController {
 
-    private static final String REFRESH_COOKIE = "staff_refresh_token";
-    private static final long REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 天秒数
+    /**
+     * 管理端 cookie 身份：名字与买家端刻意不同（同域下两套会话不得互相覆盖），
+     * 作用路径收窄到本端 refresh 端点；不设 domain —— staff 账号体系与 C 端隔离，不参与跨子域共享。
+     */
+    private static final RefreshCookies.Spec COOKIE =
+            new RefreshCookies.Spec("staff_refresh_token", "/admin/auth/refresh", null);
 
     private final StaffService staffService;
+    private final RefreshCookies refreshCookies;
 
     /** 工号 + 密码登录，返回独立于 C 端的 token（kind=staff），refresh 落 httpOnly cookie */
     @PostMapping("/login")
     public TokenPair staffLogin(@Valid @RequestBody LoginRequest req, HttpServletResponse response) {
         TokenPair result = staffService.login(req.employeeNo(), req.password(), req.deviceId());
-        setRefreshCookie(response, result.refreshToken());
+        refreshCookies.issue(response, COOKIE, result.refreshToken());
         return result;
     }
 
@@ -50,13 +52,13 @@ public class StaffAuthController {
             HttpServletRequest request,
             HttpServletResponse response,
             @RequestBody(required = false) RefreshRequest req) {
-        String refreshToken = readRefreshCookie(request);
+        String refreshToken = refreshCookies.read(request, COOKIE);
         if (refreshToken == null) {
             throw new BusinessException(401, "INVALID_TOKEN", "Refresh Token 未提供");
         }
-        String deviceId = req != null && req.deviceId() != null ? req.deviceId() : "default";
+        String deviceId = req == null || req.deviceId() == null ? "default" : req.deviceId();
         TokenPair result = staffService.refresh(refreshToken, deviceId);
-        setRefreshCookie(response, result.refreshToken());
+        refreshCookies.issue(response, COOKIE, result.refreshToken());
         return result;
     }
 
@@ -70,46 +72,12 @@ public class StaffAuthController {
     @PostMapping("/logout")
     public void staffLogout(@Valid @RequestBody LogoutRequest req, HttpServletResponse response) {
         staffService.logout(StaffContext.get(), req.deviceId());
-        clearRefreshCookie(response);
-    }
-
-    // ---- Cookie 处理 ----
-
-    private void setRefreshCookie(HttpServletResponse response, String refreshToken) {
-        response.addHeader(
-                HttpHeaders.SET_COOKIE,
-                buildRefreshCookie(refreshToken, REFRESH_COOKIE_MAX_AGE).toString());
-    }
-
-    private void clearRefreshCookie(HttpServletResponse response) {
-        response.addHeader(HttpHeaders.SET_COOKIE, buildRefreshCookie("", 0).toString());
-    }
-
-    private ResponseCookie buildRefreshCookie(String value, long maxAgeSec) {
-        return ResponseCookie.from(REFRESH_COOKIE, value)
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Lax")
-                .path("/admin/auth/refresh")
-                .maxAge(Duration.ofSeconds(maxAgeSec))
-                .build();
-    }
-
-    /** 只从 cookie 取 refresh token（admin 无 native 端，无需 body 来源） */
-    private String readRefreshCookie(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            return Arrays.stream(request.getCookies())
-                    .filter(c -> REFRESH_COOKIE.equals(c.getName()))
-                    .map(Cookie::getValue)
-                    .findFirst()
-                    .orElse(null);
-        }
-        return null;
+        refreshCookies.clear(response, COOKIE);
     }
 
     /** 员工信息出参：镜像 service 的 StaffInfo，字段只减不增 */
     public record StaffInfoResponse(
-            UUID id, String employeeNo, String displayName, String role, java.util.List<String> permissions) {
+            UUID id, String employeeNo, String displayName, String role, List<String> permissions) {
 
         static StaffInfoResponse from(StaffInfo info) {
             return new StaffInfoResponse(

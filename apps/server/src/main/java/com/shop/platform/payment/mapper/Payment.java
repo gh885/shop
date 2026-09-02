@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.payment.model.PaymentStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -27,15 +28,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @TableName("payment.payments")
 public class Payment {
-
-    public static final String STATUS_PENDING = "PENDING";
-
-    public static final String STATUS_SUCCESS = "SUCCESS";
-
-    public static final String STATUS_FAILED = "FAILED";
-
-    /** 已退款（终态）：已付款订单取消时由 SUCCESS 转入，见 PaymentRefundListener */
-    public static final String STATUS_REFUNDED = "REFUNDED";
 
     public static final String CHANNEL_MOCK = "MOCK";
 
@@ -61,8 +53,8 @@ public class Payment {
     /** 支付渠道：V1 恒 MOCK；网关化后 MOCK/WECHAT/ALIPAY */
     private String channel;
 
-    /** 流水状态：PENDING / SUCCESS / REFUNDED / FAILED（常量见本类） */
-    private String status;
+    /** 流水状态：PENDING / SUCCESS / REFUNDED / FAILED，概念归 {@link PaymentStatus} */
+    private PaymentStatus status;
 
     /** 支付成功时刻；PENDING 流水此列为 NULL，确认成功时回填 */
     private OffsetDateTime paidAt;

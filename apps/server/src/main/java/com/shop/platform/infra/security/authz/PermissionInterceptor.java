@@ -4,10 +4,12 @@ import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.infra.web.UnauthorizedWriter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -50,9 +52,10 @@ public class PermissionInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        RequirePermission required = hm.getMethodAnnotation(RequirePermission.class);
+        RequirePermission required =
+                AnnotatedElementUtils.findMergedAnnotation(hm.getMethod(), RequirePermission.class);
         if (required == null) {
-            required = hm.getBeanType().getAnnotation(RequirePermission.class);
+            required = AnnotatedElementUtils.findMergedAnnotation(hm.getBeanType(), RequirePermission.class);
         }
 
         if (required == null) {
@@ -64,10 +67,9 @@ public class PermissionInterceptor implements HandlerInterceptor {
         }
 
         Set<String> granted = granted();
-        boolean pass = granted.contains(PermissionResolver.WILDCARD);
-        for (String code : required.value()) {
-            pass = pass || granted.contains(code);
-        }
+        // requested 权限码 ANY 语义：任一命中即通过；通配码恒通过
+        boolean pass = granted.contains(PermissionResolver.WILDCARD)
+                || Arrays.stream(required.value()).anyMatch(granted::contains);
         if (!pass) {
             log.warn("[AUTHZ] 判权拒绝, path={}, required={}", path, String.join(",", required.value()));
             return deny(request, response, "没有执行该操作的权限");

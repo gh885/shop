@@ -32,6 +32,8 @@ import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
+import com.shop.platform.shop.model.MemberRole;
+import com.shop.platform.shop.model.MemberStatus;
 import com.shop.platform.shop.service.ShopService;
 import com.shop.platform.user.service.AddressService;
 import java.util.UUID;
@@ -212,8 +214,8 @@ public abstract class WebControllerTestSupport {
                 .thenReturn(ShopMember.builder()
                         .shopId(UUID.randomUUID())
                         .userId(UUID.randomUUID())
-                        .role(ShopMember.ROLE_OWNER)
-                        .status(ShopMember.STATUS_ACTIVE)
+                        .role(MemberRole.OWNER)
+                        .status(MemberStatus.ACTIVE)
                         .permissions(java.util.List.of())
                         .build());
     }

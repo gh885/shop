@@ -9,6 +9,9 @@ import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
+import com.shop.platform.shop.model.MemberRole;
+import com.shop.platform.shop.model.MemberStatus;
+import com.shop.platform.shop.model.ShopStatus;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,7 +44,7 @@ public class ShopService {
                 .ownerId(ownerId)
                 .name(name)
                 .logoKey(logoKey)
-                .status(Shop.STATUS_PENDING_REVIEW)
+                .status(ShopStatus.PENDING_REVIEW)
                 .build();
         shopMapper.insert(shop);
 
@@ -49,8 +52,8 @@ public class ShopService {
         ShopMember owner = ShopMember.builder()
                 .shopId(shop.getId())
                 .userId(ownerId)
-                .role(ShopMember.ROLE_OWNER)
-                .status(ShopMember.STATUS_ACTIVE)
+                .role(MemberRole.OWNER)
+                .status(MemberStatus.ACTIVE)
                 .build();
         shopMemberMapper.insert(owner);
 
@@ -100,8 +103,8 @@ public class ShopService {
     public ShopMember acceptInvite(UUID memberId, UUID userId) {
         ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "邀请不存在或已失效");
         Validate.isTrue(member.getUserId().equals(userId), "不能确认发给别人的邀请");
-        Validate.isTrue(ShopMember.STATUS_PENDING.equals(member.getStatus()), "该邀请已处理");
-        member.setStatus(ShopMember.STATUS_ACTIVE);
+        Validate.isTrue(MemberStatus.PENDING.equals(member.getStatus()), "该邀请已处理");
+        member.setStatus(MemberStatus.ACTIVE);
         shopMemberMapper.updateById(member);
         log.info("[SHOP] 成员确认加入, shopId={}, userId={}", member.getShopId(), userId);
         return member;
@@ -112,7 +115,7 @@ public class ShopService {
     /** 店铺公开信息：仅 ACTIVE 可见。待审核/被拒/封禁的店对买家一律 404，不泄露"存在但不可用" */
     public Shop publicShop(UUID shopId) {
         Shop shop = Validate.notNull(shopMapper.selectById(shopId), "店铺不存在");
-        Validate.isTrue(Shop.STATUS_ACTIVE.equals(shop.getStatus()), 404, "店铺不存在");
+        Validate.isTrue(shop.isActive(), 404, "店铺不存在");
         return shop;
     }
 
@@ -157,8 +160,8 @@ public class ShopService {
         ShopMember member = ShopMember.builder()
                 .shopId(shopId)
                 .userId(inviteeId)
-                .role(ShopMember.ROLE_MEMBER)
-                .status(ShopMember.STATUS_PENDING)
+                .role(MemberRole.MEMBER)
+                .status(MemberStatus.PENDING)
                 .permissions(grants)
                 .build();
         shopMemberMapper.insert(member);
@@ -175,7 +178,7 @@ public class ShopService {
         // 2. 目标必须是本店 MEMBER（OWNER 权限固有，不存在“改店主权限”）
         ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "成员不存在");
         Validate.isTrue(member.getShopId().equals(shopId), "成员不属于该店铺");
-        Validate.isTrue(ShopMember.ROLE_MEMBER.equals(member.getRole()), "不能修改店主的权限");
+        Validate.isTrue(MemberRole.MEMBER.equals(member.getRole()), "不能修改店主的权限");
 
         // 3. 白名单校验后全量替换
         member.setPermissions(SellerGrants.sanitize(permissions));
@@ -189,7 +192,7 @@ public class ShopService {
         requireOwner(shopId, ownerId);
         ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "成员不存在");
         Validate.isTrue(member.getShopId().equals(shopId), "成员不属于该店铺");
-        if (ShopMember.ROLE_OWNER.equals(member.getRole())) {
+        if (MemberRole.OWNER.equals(member.getRole())) {
             throw BusinessException.badRequest("不能移除店主");
         }
         shopMemberMapper.deleteById(memberId);

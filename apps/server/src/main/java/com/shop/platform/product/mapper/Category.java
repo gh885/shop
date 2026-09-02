@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.product.model.CategoryStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -29,11 +30,6 @@ public class Category {
     /** 根节点的 parent_id 占位值 */
     public static final UUID ROOT_PARENT_ID = new UUID(0L, 0L);
 
-    /** 类目状态，见 status 字段 javadoc：1 启用 / 0 禁用 */
-    public static final int STATUS_ENABLED = 1;
-
-    public static final int STATUS_DISABLED = 0;
-
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -50,8 +46,12 @@ public class Category {
     /** 同级排序权重 */
     private Integer sort;
 
-    /** 1 启用 / 0 禁用，不做物理删除。禁用节点查询时整支剪掉（不写扩散，可无损恢复），见 buildTree */
-    private Integer status;
+    /** 启用 / 禁用，不做物理删除。禁用节点查询时整支剪掉（不写扩散，可无损恢复），见 buildTree */
+    private CategoryStatus status;
+
+    public boolean isEnabled() {
+        return status != null && status.isEnabled();
+    }
 
     /** 分类图标 URL，前台类目入口展示用，可空 */
     private String iconUrl;

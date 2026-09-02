@@ -12,7 +12,7 @@ export type CategoryNode = {
     name: string
     level: number
     sort: number | null
-    status: number
+    status: "DISABLED" | "ENABLED"
     iconUrl: string | null
     children: CategoryNode[]
 }
@@ -25,7 +25,7 @@ export function toCategoryNode(dto: CategoryNodeResponse): CategoryNode {
         name: dto.name ?? "",
         level: dto.level ?? 0,
         sort: dto.sort ?? null,
-        status: dto.status ?? 0,
+        status: dto.status ?? "DISABLED",
         iconUrl: dto.iconUrl ?? null,
         children: (dto.children ?? []).map(toCategoryNode),
     }

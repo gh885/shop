@@ -14,6 +14,9 @@ import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SkuAttr;
 import com.shop.platform.product.mapper.SkuMapper;
+import com.shop.platform.product.model.AttrKind;
+import com.shop.platform.product.model.AttrValueSource;
+import com.shop.platform.product.model.CategoryAttrStatus;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -54,7 +57,7 @@ public class CategoryAttrService {
     /** 新建模板属性。只允许叶子类目（level=3，同商品挂载规则）；同类目重名 409（唯一索引兜底） */
     @Transactional
     public CategoryAttr createAttr(
-            UUID categoryId, String name, int kind, Boolean required, Boolean allowCustom, Integer sort) {
+            UUID categoryId, String name, AttrKind kind, Boolean required, Boolean allowCustom, Integer sort) {
         Category category = Validate.notNull(categoryMapper.selectById(categoryId), "类目不存在");
         Validate.isTrue(category.getLevel() == 3, "只有叶子类目（三级）才能挂属性模板");
         CategoryAttr attr = CategoryAttr.builder()
@@ -64,7 +67,7 @@ public class CategoryAttrService {
                 .required(required != null ? required : false)
                 .allowCustom(allowCustom != null ? allowCustom : true)
                 .sort(sort != null ? sort : 0)
-                .status(CategoryAttr.STATUS_ENABLED)
+                .status(CategoryAttrStatus.ENABLED)
                 .build();
         try {
             attrMapper.insert(attr);
@@ -92,13 +95,13 @@ public class CategoryAttrService {
 
     /** 启用/禁用属性。同 categories 语义：查询侧裁剪不写扩散，已被引用的存量 SKU 快照自洽，新商品不可再选 */
     @Transactional
-    public void updateAttrStatus(UUID attrId, int status) {
+    public void updateAttrStatus(UUID attrId, CategoryAttrStatus status) {
         CategoryAttr attr = requireAttr(attrId);
         attr.setStatus(status);
         attrMapper.updateById(attr);
     }
 
-    /** 平台预置值（source=1）。同属性重名 409（唯一索引兜底） */
+    /** 平台预置值（{@link AttrValueSource#PLATFORM}）。同属性重名 409（唯一索引兜底） */
     @Transactional
     public CategoryAttrValue addValue(UUID attrId, String value, Integer sort) {
         requireAttr(attrId);
@@ -106,7 +109,7 @@ public class CategoryAttrService {
                 .attrId(attrId)
                 .value(value)
                 .sort(sort != null ? sort : 0)
-                .source(CategoryAttrValue.SOURCE_PLATFORM)
+                .source(AttrValueSource.PLATFORM)
                 .build();
         try {
             valueMapper.insert(row);
@@ -176,7 +179,7 @@ public class CategoryAttrService {
     private List<CategoryAttrNode> buildTemplate(UUID categoryId, boolean enabledOnly) {
         List<CategoryAttr> attrs = attrMapper.selectList(new LambdaQueryWrapper<CategoryAttr>()
                 .eq(CategoryAttr::getCategoryId, categoryId)
-                .eq(enabledOnly, CategoryAttr::getStatus, CategoryAttr.STATUS_ENABLED)
+                .eq(enabledOnly, CategoryAttr::getStatus, CategoryAttrStatus.ENABLED)
                 .orderByAsc(CategoryAttr::getSort)
                 .orderByAsc(CategoryAttr::getCreatedAt));
         if (attrs.isEmpty()) {

@@ -18,7 +18,7 @@ public interface CategoryAttrValueMapper extends BaseMapper<CategoryAttrValue> {
      * 根本执行不到。id / created_at / updated_at 由列默认值生成。
      */
     @Select("INSERT INTO product.category_attr_values (attr_id, value, sort, source)"
-            + " VALUES (#{attrId}, #{value}, 0, " + CategoryAttrValue.SOURCE_SELLER + ")"
+            + " VALUES (#{attrId}, #{value}, 0, 'SELLER')"
             + " ON CONFLICT (attr_id, value) DO UPDATE SET value = EXCLUDED.value"
             + " RETURNING *")
     CategoryAttrValue upsertSellerValue(@Param("attrId") UUID attrId, @Param("value") String value);

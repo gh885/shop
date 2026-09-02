@@ -2,36 +2,44 @@ package com.shop.platform.infra.web;
 
 import com.shop.platform.infra.security.authz.PermissionInterceptor;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/** Spring MVC 装配：请求日志拦截器 + CORS（controller 包只放 REST 入口，故放 infra）。 */
+/** Spring MVC 装配：请求日志/判权拦截器 + 上下文形参解析器 + CORS（controller 包只放 REST 入口，故放 infra）。 */
 @Configuration
+@RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final HttpRequestLoggingInterceptor httpRequestLoggingInterceptor;
 
     private final PermissionInterceptor permissionInterceptor;
 
-    private final List<String> corsAllowedOrigins;
+    private final CurrentUserArgumentResolver currentUserArgumentResolver;
 
-    public WebMvcConfig(
-            HttpRequestLoggingInterceptor httpRequestLoggingInterceptor,
-            PermissionInterceptor permissionInterceptor,
-            @Value("${shop.web.cors-allowed-origins}") List<String> corsAllowedOrigins) {
-        this.httpRequestLoggingInterceptor = httpRequestLoggingInterceptor;
-        this.permissionInterceptor = permissionInterceptor;
-        this.corsAllowedOrigins = corsAllowedOrigins;
-    }
+    private final CurrentShopArgumentResolver currentShopArgumentResolver;
+
+    private final WebProperties props;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // 判权注册在日志之后：拒绝响应同样被 http.request 事件记录
         registry.addInterceptor(httpRequestLoggingInterceptor);
         registry.addInterceptor(permissionInterceptor);
+    }
+
+    /**
+     * 请求上下文形参解析：{@code @CurrentUser} / {@code @CurrentShop} 把过滤器装载的 ThreadLocal
+     * 提到 handler 签名上。注册在这里而非各模块——上下文本身是共享层设施，
+     * 各模块 controller 只消费注解，不认识 Holder。
+     */
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(currentUserArgumentResolver);
+        resolvers.add(currentShopArgumentResolver);
     }
 
     /**
@@ -45,7 +53,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins(corsAllowedOrigins.toArray(String[]::new))
+                .allowedOrigins(props.corsAllowedOrigins().toArray(String[]::new))
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .exposedHeaders("x-request-id");
     }

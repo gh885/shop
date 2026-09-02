@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.shop.platform.admin.mapper.ShopReview;
+import com.shop.platform.admin.model.ShopReviewStatus;
 import com.shop.platform.admin.service.ShopReviewService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.shop.mapper.Shop;
+import com.shop.platform.shop.model.ShopStatus;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -77,7 +79,7 @@ class ShopGovernanceIT extends IntegrationTestSupport {
     @Test
     void 开店_店主自动ACTIVE成员_审核入队PENDING() {
         Shop shop = openShop("治理链店铺");
-        assertEquals(Shop.STATUS_PENDING_REVIEW, shopStatus(shop.getId()));
+        assertEquals("PENDING_REVIEW", shopStatus(shop.getId()));
         assertTrue(isOwnerActiveMember(shop.getId())); // 授权判断以 shop_members 为准
 
         awaitReviewId(shop.getId()); // 入队行存在即可，状态断言在审批用例里
@@ -85,7 +87,7 @@ class ShopGovernanceIT extends IntegrationTestSupport {
                 "SELECT count(*) FROM admin.shop_reviews WHERE shop_id = ?::uuid AND status = ?",
                 Integer.class,
                 shop.getId().toString(),
-                ShopReview.STATUS_PENDING);
+                ShopReviewStatus.PENDING.name());
         assertEquals(1, pending);
     }
 
@@ -97,8 +99,8 @@ class ShopGovernanceIT extends IntegrationTestSupport {
         ShopReview decided = shopReviewService.approve(reviewId, staffId);
 
         // 同步监听已把店铺推进 ACTIVE；publicShop 只对 ACTIVE 放行
-        assertEquals(Shop.STATUS_ACTIVE, shopStatus(shop.getId()));
-        assertEquals(ShopReview.STATUS_APPROVED, decided.getStatus());
+        assertEquals(ShopStatus.ACTIVE.name(), shopStatus(shop.getId()));
+        assertEquals(ShopReviewStatus.APPROVED, decided.getStatus());
         assertEquals(staffId, decided.getStaffId());
         assertNotNull(decided.getDecidedAt());
         assertNotNull(shopService.publicShop(shop.getId()));
@@ -111,8 +113,8 @@ class ShopGovernanceIT extends IntegrationTestSupport {
 
         ShopReview decided = shopReviewService.reject(reviewId, staffId, "资质不全");
 
-        assertEquals(Shop.STATUS_REJECTED, shopStatus(shop.getId()));
-        assertEquals(ShopReview.STATUS_REJECTED, decided.getStatus());
+        assertEquals(ShopStatus.REJECTED.name(), shopStatus(shop.getId()));
+        assertEquals(ShopReviewStatus.REJECTED, decided.getStatus());
         BusinessException hidden = assertThrows(BusinessException.class, () -> shopService.publicShop(shop.getId()));
         assertEquals(404, hidden.getHttpStatus()); // 拒绝的店对外「不存在」，而非 403
     }
@@ -126,7 +128,7 @@ class ShopGovernanceIT extends IntegrationTestSupport {
         BusinessException again =
                 assertThrows(BusinessException.class, () -> shopReviewService.reject(reviewId, staffId, "再试一次"));
         assertTrue(again.getHttpStatus() >= 400 && again.getHttpStatus() < 500);
-        assertEquals(Shop.STATUS_ACTIVE, shopStatus(shop.getId())); // 状态不被二次改写
+        assertEquals(ShopStatus.ACTIVE.name(), shopStatus(shop.getId())); // 状态不被二次改写
     }
 
     @Test

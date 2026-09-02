@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.admin.mapper.ShopReview;
+import com.shop.platform.admin.model.ShopReviewStatus;
 import com.shop.platform.admin.service.ShopReviewItem;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.testsupport.WebControllerTestSupport;
@@ -33,7 +34,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
         r.setId(reviewId);
         r.setShopId(UUID.randomUUID());
         r.setStaffId(staffId);
-        r.setStatus(ShopReview.STATUS_APPROVED);
+        r.setStatus(ShopReviewStatus.APPROVED);
         r.setDecidedAt(OffsetDateTime.now());
         r.setCreatedAt(OffsetDateTime.now());
         r.setUpdatedAt(OffsetDateTime.now());
@@ -49,7 +50,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
                                 UUID.randomUUID(),
                                 "待审店铺",
                                 "138****0000",
-                                ShopReview.STATUS_PENDING,
+                                ShopReviewStatus.PENDING,
                                 null,
                                 null,
                                 OffsetDateTime.now())),
@@ -68,7 +69,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
 
         mockMvc.perform(post("/admin/reviews/{id}/approve", reviewId).with(staffAuth(staffId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(ShopReview.STATUS_APPROVED))
+                .andExpect(jsonPath("$.status").value(ShopReviewStatus.APPROVED.name()))
                 .andExpect(jsonPath("$.staffId").value(staffId.toString()));
 
         verify(shopReviewService).approve(reviewId, staffId);
@@ -87,7 +88,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
     void 审核拒绝_理由留痕() throws Exception {
         when(shopReviewService.reject(eq(reviewId), eq(staffId), eq("资质不全"))).thenAnswer(inv -> {
             ShopReview r = review();
-            r.setStatus(ShopReview.STATUS_REJECTED);
+            r.setStatus(ShopReviewStatus.REJECTED);
             r.setReason(inv.getArgument(2));
             return r;
         });
@@ -98,7 +99,7 @@ class ReviewControllerTest extends WebControllerTestSupport {
                             {"reason": "资质不全"}
                             """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(ShopReview.STATUS_REJECTED))
+                .andExpect(jsonPath("$.status").value(ShopReviewStatus.REJECTED.name()))
                 .andExpect(jsonPath("$.reason").value("资质不全"));
     }
 

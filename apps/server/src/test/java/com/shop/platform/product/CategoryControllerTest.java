@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
@@ -23,10 +24,17 @@ class CategoryControllerTest extends WebControllerTestSupport {
                         "手机数码",
                         1,
                         99,
-                        1,
+                        CategoryStatus.ENABLED,
                         null,
                         List.of(new CategoryNode(
-                                UUID.randomUUID(), UUID.randomUUID(), "手机", 2, 10, 1, null, List.of())))));
+                                UUID.randomUUID(),
+                                UUID.randomUUID(),
+                                "手机",
+                                2,
+                                10,
+                                CategoryStatus.ENABLED,
+                                null,
+                                List.of())))));
 
         mockMvc.perform(get("/api/categories/tree"))
                 .andExpect(status().isOk())

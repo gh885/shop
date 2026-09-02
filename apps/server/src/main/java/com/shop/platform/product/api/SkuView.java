@@ -1,5 +1,6 @@
 package com.shop.platform.product.api;
 
+import com.shop.platform.product.model.SkuStatus;
 import java.util.UUID;
 
 /**
@@ -14,13 +15,10 @@ public record SkuView(
         Long price,
         Long originalPrice,
         String currency,
-        Integer status) {
-
-    /** 在售状态值，魔法值私有在本模块；消费方用 {@link #onSale()} */
-    private static final int STATUS_ON_SALE = 1;
+        SkuStatus status) {
 
     /** 是否在售（可下单/加购的 SKU 态闸门） */
     public boolean onSale() {
-        return status != null && status == STATUS_ON_SALE;
+        return status != null && status.onSale();
     }
 }

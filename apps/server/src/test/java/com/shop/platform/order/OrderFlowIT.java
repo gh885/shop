@@ -22,6 +22,7 @@ import com.shop.platform.order.service.OrderTimeoutService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.payment.mapper.Payment;
+import com.shop.platform.payment.model.PaymentStatus;
 import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.sql.Timestamp;
@@ -124,14 +125,14 @@ class OrderFlowIT extends IntegrationTestSupport {
 
         // 3. 发起支付：只落 PENDING 流水，订单仍待付款、库存仍冻结（两段式第一段不动订单、不扣实）
         Payment pending = paymentService.pay(userId, order.getId());
-        assertEquals(Payment.STATUS_PENDING, pending.getStatus());
+        assertEquals(PaymentStatus.PENDING, pending.getStatus());
         assertEquals(OrderStatus.PENDING_PAYMENT, statusOf(order.getId()));
         assertEquals(5, totalStockOf());
         assertEquals(2, frozenStockOf());
 
         // 3b. 确认支付：PENDING → SUCCESS + 订单推进到 PAID（同事务同步调用链扣实冻结库存）
         Payment paid = paymentService.confirm(userId, pending.getId());
-        assertEquals(Payment.STATUS_SUCCESS, paid.getStatus());
+        assertEquals(PaymentStatus.SUCCESS, paid.getStatus());
         assertEquals(OrderStatus.PAID, statusOf(order.getId()));
         assertEquals(3, totalStockOf());
         assertEquals(0, frozenStockOf());
@@ -154,7 +155,7 @@ class OrderFlowIT extends IntegrationTestSupport {
 
         // 5b. 已付款单取消必须留下退款单据：成功流水转 REFUNDED 并回填退款时刻（同事务，绝不出现「单已取消、货款仍显示已收」）
         assertEquals(
-                Payment.STATUS_REFUNDED,
+                PaymentStatus.REFUNDED.name(),
                 jdbc.queryForObject(
                         "SELECT status FROM payment.payments WHERE id = ?::uuid",
                         String.class,

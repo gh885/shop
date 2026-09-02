@@ -1,5 +1,7 @@
 package com.shop.platform.common;
 
+import java.util.Locale;
+
 /**
  * 金额值对象：amount + currency 一体，不可变、无身份、按值比较。
  *
@@ -16,7 +18,7 @@ public record Money(long amount, String currency) {
     public Money {
         Validate.isTrue(amount >= 0, "金额不能为负");
         Validate.isTrue(currency != null && !currency.isBlank(), "币种不能为空");
-        currency = currency.trim().toUpperCase();
+        currency = currency.trim().toUpperCase(Locale.ROOT);
     }
 
     /** 工厂：按「分」构造。金额语义在方法名里说清，调用方不用猜单位 */

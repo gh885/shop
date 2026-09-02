@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
+import com.shop.platform.auth.model.UserStatus;
 import com.shop.platform.auth.service.AuthService;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
@@ -124,7 +125,7 @@ class AuthServiceTest {
             user.setId(USER_ID);
             user.setPhone("13800138000");
             user.setPasswordHash("$2a$12$hashhashhashhashhashhashah");
-            user.setStatus("ACTIVE");
+            user.setStatus(UserStatus.ACTIVE);
 
             when(userMapper.selectByPhone("13800138000")).thenReturn(user);
             when(passwordEncoder.matches(eq("correct"), anyString())).thenReturn(true);
@@ -144,7 +145,7 @@ class AuthServiceTest {
             user.setId(USER_ID);
             user.setPhone("13800138000");
             user.setPasswordHash("$2a$12$hashhashhashhashhashhashah");
-            user.setStatus("ACTIVE");
+            user.setStatus(UserStatus.ACTIVE);
 
             when(userMapper.selectByPhone("13800138000")).thenReturn(user);
             when(passwordEncoder.matches(eq("wrong"), anyString())).thenReturn(false);
@@ -170,7 +171,7 @@ class AuthServiceTest {
             var user = new User();
             user.setId(USER_ID);
             user.setPasswordHash("$2a$12$hash");
-            user.setStatus("DISABLED");
+            user.setStatus(UserStatus.DISABLED);
 
             when(userMapper.selectByPhone("13800138000")).thenReturn(user);
             when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
@@ -240,7 +241,7 @@ class AuthServiceTest {
             when(userMapper.selectById(USER_ID)).thenReturn(new User() {
                 {
                     setId(USER_ID);
-                    setStatus("ACTIVE");
+                    setStatus(UserStatus.ACTIVE);
                 }
             });
             when(jwtProvider.createAccessToken(USER_ID)).thenReturn("new-at");

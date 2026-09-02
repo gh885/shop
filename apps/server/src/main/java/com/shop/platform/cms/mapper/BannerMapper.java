@@ -2,6 +2,7 @@ package com.shop.platform.cms.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.cms.model.CmsStatus;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -12,7 +13,7 @@ public interface BannerMapper extends BaseMapper<Banner> {
     default List<Banner> selectEnabledBySlot(String slot) {
         return selectList(new LambdaQueryWrapper<Banner>()
                 .eq(Banner::getSlot, slot)
-                .eq(Banner::getStatus, Banner.STATUS_ENABLED)
+                .eq(Banner::getStatus, CmsStatus.ENABLED)
                 .orderByAsc(Banner::getSortOrder)
                 .orderByAsc(Banner::getId));
     }

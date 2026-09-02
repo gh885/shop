@@ -11,6 +11,8 @@ import com.shop.platform.product.mapper.CategoryAttr;
 import com.shop.platform.product.mapper.CategoryAttrValue;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.model.AttrKind;
+import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.service.CategoryAttrService;
 import com.shop.platform.product.service.ProductService;
 import com.shop.platform.product.service.ProductService.CreateProductCommand;
@@ -58,12 +60,7 @@ class ProductIT extends IntegrationTestSupport {
     /** 在种子类目上建销售属性 + 平台预置值（唯一名防重复跑撞 uk_category_attrs_category_name），自建自清 */
     private CategoryAttr seedSpecAttr(String name, String... values) {
         CategoryAttr attr = categoryAttrService.createAttr(
-                SEED_CATEGORY,
-                name + UUID.randomUUID().toString().substring(0, 8),
-                CategoryAttr.KIND_SPEC,
-                null,
-                null,
-                null);
+                SEED_CATEGORY, name + UUID.randomUUID().toString().substring(0, 8), AttrKind.SPEC, null, null, null);
         db.onDelete(
                 "DELETE FROM product.category_attrs WHERE id = ?::uuid",
                 attr.getId().toString());
@@ -130,7 +127,7 @@ class ProductIT extends IntegrationTestSupport {
 
         // 5. 发布：状态上架，min/max 聚合 100..300
         Product published = productService.publish(draft.getId());
-        assertEquals(1, published.getStatus());
+        assertEquals(ProductStatus.PUBLISHED, published.getStatus());
         assertEquals(100L, published.getMinPrice());
         assertEquals(300L, published.getMaxPrice());
     }
@@ -177,7 +174,7 @@ class ProductIT extends IntegrationTestSupport {
         Map<String, Object> row = jdbc.queryForMap(
                 "SELECT source, value FROM product.category_attr_values WHERE attr_id = ?::uuid AND value = '定制色'",
                 color.getId().toString());
-        assertEquals(2, ((Number) row.get("source")).intValue());
+        assertEquals("SELLER", row.get("source"));
     }
 
     @Test
@@ -195,12 +192,11 @@ class ProductIT extends IntegrationTestSupport {
 
     @Test
     void 规格属性跨类目_400() {
-        CategoryAttr color = seedSpecAttr("颜色", "黑");
         // 另一个类目下的属性，挂到本商品类目之外
         CategoryAttr foreign = categoryAttrService.createAttr(
                 UUID.fromString("01900000-0000-7000-8000-000000000302"),
                 "他类属性" + UUID.randomUUID().toString().substring(0, 8),
-                CategoryAttr.KIND_SPEC,
+                AttrKind.SPEC,
                 null,
                 null,
                 null);
@@ -263,7 +259,7 @@ class ProductIT extends IntegrationTestSupport {
 
         // 1. 下架：上架 → 下架
         Product off = productService.off(draft.getId());
-        assertEquals(0, off.getStatus());
+        assertEquals(ProductStatus.OFF, off.getStatus());
 
         // 2. 下架态可改规格（决策 G：仅上架拒绝改规格），换值 = 换 spec_key，新 SKU 未设价
         List<Sku> next = productService.updateSpecs(

@@ -7,6 +7,7 @@ import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.mapper.CategoryMapper;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.ProductMapper;
+import com.shop.platform.product.model.CategoryStatus;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -46,7 +47,7 @@ public class CategoryService {
         int level = 1;
         if (parentId != null && !Category.ROOT_PARENT_ID.equals(parentId)) {
             Category parent = Validate.notNull(categoryMapper.selectById(parentId), "父类目不存在");
-            Validate.isTrue(parent.getStatus() == Category.STATUS_ENABLED, "父类目已禁用，不能在其下创建");
+            Validate.isTrue(parent.isEnabled(), "父类目已禁用，不能在其下创建");
             level = parent.getLevel() + 1;
             Validate.isTrue(level <= MAX_LEVEL, "最多支持三级类目");
         }
@@ -56,7 +57,7 @@ public class CategoryService {
                 .name(name)
                 .level(level)
                 .sort(sort != null ? sort : 0)
-                .status(Category.STATUS_ENABLED)
+                .status(CategoryStatus.ENABLED)
                 .iconUrl(iconUrl)
                 .build();
         // 3. 落库：唯一索引兜底并发下的同级重名
@@ -89,10 +90,10 @@ public class CategoryService {
      * 否则商品会悬在一个买家侧不可见的类目里。
      */
     @Transactional
-    public void updateStatus(UUID id, int status) {
+    public void updateStatus(UUID id, CategoryStatus status) {
         Category category = requireCategory(id);
         // 禁用闸门：类目下仍有商品引用（含草稿/下架——软删语义的商品仍占类目位）则拒绝
-        if (status == Category.STATUS_DISABLED) {
+        if (status == CategoryStatus.DISABLED) {
             Long refs = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getCategoryId, id));
             Validate.isTrue(refs == 0, "类目下仍有 " + refs + " 个商品，移出后才能禁用");
         }
@@ -109,7 +110,7 @@ public class CategoryService {
         List<Category> all = categoryMapper.selectList(new LambdaQueryWrapper<Category>());
         Map<UUID, Category> visible = new HashMap<>();
         for (Category c : all) {
-            if (includeDisabled || c.getStatus() == Category.STATUS_ENABLED) {
+            if (includeDisabled || c.isEnabled()) {
                 visible.put(c.getId(), c);
             }
         }

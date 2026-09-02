@@ -1,6 +1,7 @@
 package com.shop.platform.cms.controller;
 
 import com.shop.platform.cms.mapper.NavEntry;
+import com.shop.platform.cms.model.CmsStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -18,7 +19,7 @@ public record NavEntryResponse(
         String targetType,
         List<com.shop.platform.cms.mapper.NavGroup> subs,
         Integer sortOrder,
-        Integer status,
+        CmsStatus status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt) {
 

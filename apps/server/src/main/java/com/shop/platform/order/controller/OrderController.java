@@ -3,7 +3,7 @@ package com.shop.platform.order.controller;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
-import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.infra.web.CurrentUser;
 import com.shop.platform.order.dto.ApplyAfterSaleRequest;
 import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
@@ -11,6 +11,7 @@ import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.dto.ReturnGoodsRequest;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
@@ -54,38 +55,35 @@ public class OrderController {
 
     /** 结算预览：按店分组算钱（拆单预告）+ 失效行置灰 + 地址可选回显。只读幂等 */
     @PostMapping("/preview")
-    public PreviewResponse previewOrder(@Valid @RequestBody PreviewOrderRequest req) {
-        return PreviewResponse.from(orderService.preview(UserIdHolder.get(), req));
+    public PreviewResponse previewOrder(@CurrentUser UUID userId, @Valid @RequestBody PreviewOrderRequest req) {
+        return PreviewResponse.from(orderService.preview(userId, req));
     }
 
     /** 创建订单：一次结算按店铺拆 N 单，全成全败；返回全部新单供逐单倒计时付款。
      * 路径刻意避开裸 POST /orders —— 买家端有同名页面路由，Vite 代理只放行 /orders/ 前缀（见 web vite.config） */
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public CreatedOrdersResponse createOrder(@Valid @RequestBody CreateOrderRequest req) {
-        return new CreatedOrdersResponse(orderService.create(UserIdHolder.get(), req).stream()
+    public CreatedOrdersResponse createOrder(@CurrentUser UUID userId, @Valid @RequestBody CreateOrderRequest req) {
+        return new CreatedOrdersResponse(orderService.create(userId, req).stream()
                 .map(CreatedOrder::from)
                 .toList());
     }
 
     /** 我的订单分页：status 对应「待付款/待发货…」tab，每单内嵌行项免二次请求。同上避让页面路由 */
     @GetMapping("/mine")
-    public PageResult<OrderListItemResponse> listMyOrders(@Valid PageParams pageParams, @Valid OrderQuery query) {
-        PageResult<OrderWithItems> page = orderService.pageMine(UserIdHolder.get(), query.status(), pageParams);
+    public PageResult<OrderListItemResponse> listMyOrders(
+            @CurrentUser UUID userId, @Valid PageParams pageParams, @Valid OrderQuery query) {
+        PageResult<OrderWithItems> page = orderService.pageMine(userId, query.status(), pageParams);
         // 店名批量点查（shop :: api）：列表多单多店，集中拼一次
         Map<UUID, String> shopNames = shopReadQuery.namesByIds(
                 page.records().stream().map(o -> o.order().getShopId()).toList());
-        return new PageResult<>(
-                page.records().stream()
-                        .map(o -> OrderListItemResponse.from(o, shopNames))
-                        .toList(),
-                page.total());
+        return page.map(o -> OrderListItemResponse.from(o, shopNames));
     }
 
     /** 订单详情：含收货快照、物流、各状态时间戳 */
     @GetMapping("/{id}")
-    public OrderDetailResponse getOrderDetail(@PathVariable UUID id) {
-        OrderWithItems detail = orderService.detail(UserIdHolder.get(), id);
+    public OrderDetailResponse getOrderDetail(@CurrentUser UUID userId, @PathVariable UUID id) {
+        OrderWithItems detail = orderService.detail(userId, id);
         String shopName = shopReadQuery
                 .namesByIds(List.of(detail.order().getShopId()))
                 .get(detail.order().getShopId());
@@ -94,33 +92,36 @@ public class OrderController {
 
     /** 取消订单：仅待付款/待发货可取消，取消即回补库存 */
     @PutMapping("/{id}/cancel")
-    public void cancelOrder(@PathVariable UUID id, @Valid @RequestBody CancelOrderRequest req) {
-        orderTransitionService.cancel(UserIdHolder.get(), id, req.reason());
+    public void cancelOrder(
+            @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody CancelOrderRequest req) {
+        orderTransitionService.cancel(userId, id, req.reason());
     }
 
     /** 确认收货：已发货 → 已完成 */
     @PutMapping("/{id}/receive")
-    public void receiveOrder(@PathVariable UUID id) {
-        orderTransitionService.receive(UserIdHolder.get(), id);
+    public void receiveOrder(@CurrentUser UUID userId, @PathVariable UUID id) {
+        orderTransitionService.receive(userId, id);
     }
 
     /** 申请售后：仅「已完成」且申请窗口未过可发起（售后线独立于履约主状态机） */
     @PostMapping("/{id}/after-sales")
     @ResponseStatus(HttpStatus.CREATED)
-    public void applyAfterSale(@PathVariable UUID id, @Valid @RequestBody ApplyAfterSaleRequest req) {
-        orderTransitionService.applyAfterSale(UserIdHolder.get(), id, req.type(), req.reason());
+    public void applyAfterSale(
+            @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody ApplyAfterSaleRequest req) {
+        orderTransitionService.applyAfterSale(userId, id, req.type(), req.reason());
     }
 
     /** 撤销售后申请：APPLYING → CLOSED */
     @PutMapping("/{id}/after-sales/cancel")
-    public void cancelAfterSale(@PathVariable UUID id) {
-        orderTransitionService.cancelAfterSale(UserIdHolder.get(), id);
+    public void cancelAfterSale(@CurrentUser UUID userId, @PathVariable UUID id) {
+        orderTransitionService.cancelAfterSale(userId, id);
     }
 
     /** 回寄退货并填写物流单：仅退货退款、退货中（RETURNING）可操作，态不变只落物流单号 */
     @PutMapping("/{id}/after-sales/return")
-    public void returnGoods(@PathVariable UUID id, @Valid @RequestBody ReturnGoodsRequest req) {
-        orderTransitionService.returnGoods(UserIdHolder.get(), id, req.logisticsCompany(), req.trackingNo());
+    public void returnGoods(
+            @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody ReturnGoodsRequest req) {
+        orderTransitionService.returnGoods(userId, id, req.logisticsCompany(), req.trackingNo());
     }
 
     // ---- 出参形状 ----
@@ -214,7 +215,7 @@ public class OrderController {
     public record OrderListItemResponse(
             UUID id,
             String orderNo,
-            String status,
+            OrderStatus status,
             UUID shopId,
             String shopName,
             Money payAmount,
@@ -226,7 +227,7 @@ public class OrderController {
             return new OrderListItemResponse(
                     o.order().getId(),
                     o.order().getOrderNo(),
-                    o.order().getStatus().name(),
+                    o.order().getStatus(),
                     o.order().getShopId(),
                     shopNames.getOrDefault(o.order().getShopId(), ""),
                     o.order().payAmountAsMoney(),

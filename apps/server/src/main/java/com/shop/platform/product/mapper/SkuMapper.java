@@ -2,6 +2,7 @@ package com.shop.platform.product.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.product.model.SkuStatus;
 import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
@@ -33,6 +34,6 @@ public interface SkuMapper extends BaseMapper<Sku> {
     /** 商品在售 SKU（买家详情只返在售卖法） */
     default List<Sku> selectOnSaleByProductId(UUID productId) {
         return selectList(
-                new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId).eq(Sku::getStatus, Sku.STATUS_ON_SALE));
+                new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId).eq(Sku::getStatus, SkuStatus.ON_SALE));
     }
 }

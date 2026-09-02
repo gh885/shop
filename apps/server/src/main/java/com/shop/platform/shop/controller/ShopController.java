@@ -1,11 +1,14 @@
 package com.shop.platform.shop.controller;
 
-import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.infra.web.CurrentUser;
 import com.shop.platform.shop.dto.CreateShopRequest;
 import com.shop.platform.shop.dto.InviteMemberRequest;
 import com.shop.platform.shop.dto.UpdateMemberPermissionsRequest;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMember;
+import com.shop.platform.shop.model.MemberRole;
+import com.shop.platform.shop.model.MemberStatus;
+import com.shop.platform.shop.model.ShopStatus;
 import com.shop.platform.shop.service.ShopInviteItem;
 import com.shop.platform.shop.service.ShopMemberItem;
 import com.shop.platform.shop.service.ShopService;
@@ -35,58 +38,59 @@ public class ShopController {
 
     /** 开店：当前登录用户（统一账号）创建店铺，落 PENDING_REVIEW 待平台审核 */
     @PostMapping
-    public ShopResponse createShop(@Valid @RequestBody CreateShopRequest req) {
-        UUID ownerId = UserIdHolder.get();
+    public ShopResponse createShop(@CurrentUser UUID ownerId, @Valid @RequestBody CreateShopRequest req) {
         return ShopResponse.from(shopService.createShop(ownerId, req.name(), req.logoKey()));
     }
 
     /** 我的店铺列表（ACTIVE 成员身份） */
     @GetMapping("/mine")
-    public List<ShopResponse> listMyShops() {
-        return ShopResponse.from(shopService.myShops(UserIdHolder.get()));
+    public List<ShopResponse> listMyShops(@CurrentUser UUID userId) {
+        return ShopResponse.from(shopService.myShops(userId));
     }
 
     /** 我的待确认邀请 */
     @GetMapping("/invites")
-    public List<ShopInviteItemResponse> listShopInvites() {
-        return shopService.myInvites(UserIdHolder.get()).stream()
+    public List<ShopInviteItemResponse> listShopInvites(@CurrentUser UUID userId) {
+        return shopService.myInvites(userId).stream()
                 .map(ShopInviteItemResponse::from)
                 .toList();
     }
 
     /** 同意邀请，确认后成为店铺 ACTIVE 成员 */
     @PostMapping("/invites/{memberId}/accept")
-    public ShopMemberResponse acceptShopInvite(@PathVariable UUID memberId) {
-        return ShopMemberResponse.from(shopService.acceptInvite(memberId, UserIdHolder.get()));
+    public ShopMemberResponse acceptShopInvite(@CurrentUser UUID userId, @PathVariable UUID memberId) {
+        return ShopMemberResponse.from(shopService.acceptInvite(memberId, userId));
     }
 
     /** 店铺成员列表（本店成员可见） */
     @GetMapping("/{shopId}/members")
-    public List<ShopMemberItemResponse> listShopMembers(@PathVariable UUID shopId) {
-        return shopService.members(shopId, UserIdHolder.get()).stream()
+    public List<ShopMemberItemResponse> listShopMembers(@CurrentUser UUID userId, @PathVariable UUID shopId) {
+        return shopService.members(shopId, userId).stream()
                 .map(ShopMemberItemResponse::from)
                 .toList();
     }
 
     /** 店主按手机号邀请成员（可选携带可授予权限码），对方登录后确认才生效 */
     @PostMapping("/{shopId}/invites")
-    public ShopMemberResponse inviteShopMember(@PathVariable UUID shopId, @Valid @RequestBody InviteMemberRequest req) {
-        return ShopMemberResponse.from(shopService.invite(shopId, UserIdHolder.get(), req.phone(), req.permissions()));
+    public ShopMemberResponse inviteShopMember(
+            @CurrentUser UUID userId, @PathVariable UUID shopId, @Valid @RequestBody InviteMemberRequest req) {
+        return ShopMemberResponse.from(shopService.invite(shopId, userId, req.phone(), req.permissions()));
     }
 
     /** 店主调整子账号权限（全量替换），下一请求即生效 */
     @PutMapping("/{shopId}/members/{memberId}/permissions")
     public void updateShopMemberPermissions(
+            @CurrentUser UUID userId,
             @PathVariable UUID shopId,
             @PathVariable UUID memberId,
             @Valid @RequestBody UpdateMemberPermissionsRequest req) {
-        shopService.updatePermissions(shopId, memberId, UserIdHolder.get(), req.permissions());
+        shopService.updatePermissions(shopId, memberId, userId, req.permissions());
     }
 
     /** 店主移除成员 */
     @DeleteMapping("/{shopId}/members/{memberId}")
-    public void removeShopMember(@PathVariable UUID shopId, @PathVariable UUID memberId) {
-        shopService.removeMember(shopId, memberId, UserIdHolder.get());
+    public void removeShopMember(@CurrentUser UUID userId, @PathVariable UUID shopId, @PathVariable UUID memberId) {
+        shopService.removeMember(shopId, memberId, userId);
     }
 
     /** 店铺出参：字段镜像实体现状（前端 ShopSchema 严格校验，只减不增） */
@@ -95,7 +99,7 @@ public class ShopController {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID ownerId,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
             String logoKey,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ShopStatus status,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 
@@ -120,8 +124,8 @@ public class ShopController {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID shopId,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID userId,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String role,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) MemberRole role,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) MemberStatus status,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<String> permissions,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
@@ -152,8 +156,8 @@ public class ShopController {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID memberId,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID userId,
             String phone,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String role,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) MemberRole role,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) MemberStatus status,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<String> permissions) {
 
         static ShopMemberItemResponse from(ShopMemberItem item) {

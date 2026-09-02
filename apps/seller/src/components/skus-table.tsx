@@ -30,7 +30,7 @@ interface SkuDraft {
     priceText: string
     originalPriceText: string
     stockText: string
-    status: 0 | 1
+    status: "ON_SALE" | "DISABLED"
 }
 
 function toDrafts(skus: Sku[]): SkuDraft[] {
@@ -45,7 +45,7 @@ function toDrafts(skus: Sku[]): SkuDraft[] {
                 ? ""
                 : fenToYuan(s.originalPrice),
         stockText: s.stock === null || s.stock === undefined ? "" : String(s.stock),
-        status: s.status === 0 ? 0 : 1,
+        status: s.status === "DISABLED" ? "DISABLED" : "ON_SALE",
     }))
 }
 
@@ -175,8 +175,10 @@ export function SkusTable({
                             </TableCell>
                             <TableCell>
                                 <Select
-                                    value={String(d.status)}
-                                    onValueChange={(v) => update(i, { status: Number(v) as 0 | 1 })}
+                                    value={d.status}
+                                    onValueChange={(v) =>
+                                        update(i, { status: v as "ON_SALE" | "DISABLED" })
+                                    }
                                 >
                                     <SelectTrigger
                                         size="sm"
@@ -185,8 +187,8 @@ export function SkusTable({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="1">在售</SelectItem>
-                                        <SelectItem value="0">停用</SelectItem>
+                                        <SelectItem value="ON_SALE">在售</SelectItem>
+                                        <SelectItem value="DISABLED">停用</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </TableCell>

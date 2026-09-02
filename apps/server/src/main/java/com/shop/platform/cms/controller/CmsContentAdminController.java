@@ -3,6 +3,7 @@ package com.shop.platform.cms.controller;
 import com.shop.platform.cms.dto.BannerRequest;
 import com.shop.platform.cms.dto.NavRequest;
 import com.shop.platform.cms.dto.RecommendTabRequest;
+import com.shop.platform.cms.model.CmsStatus;
 import com.shop.platform.cms.service.ContentService;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
@@ -47,9 +48,9 @@ public class CmsContentAdminController {
         return NavEntryResponse.from(contentService.updateNav(id, req));
     }
 
-    /** 状态走 path：启用 /nav/{id}/status/1，停用 /nav/{id}/status/0 */
+    /** 状态走 path：启用 /nav/{id}/status/ENABLED，停用 /nav/{id}/status/DISABLED */
     @PutMapping("/nav/{id}/status/{status}")
-    public void setNavStatus(@PathVariable UUID id, @PathVariable Integer status) {
+    public void setNavStatus(@PathVariable UUID id, @PathVariable CmsStatus status) {
         contentService.setNavStatus(id, status);
     }
 
@@ -71,7 +72,7 @@ public class CmsContentAdminController {
     }
 
     @PutMapping("/banners/{id}/status/{status}")
-    public void setBannerStatus(@PathVariable UUID id, @PathVariable Integer status) {
+    public void setBannerStatus(@PathVariable UUID id, @PathVariable CmsStatus status) {
         contentService.setBannerStatus(id, status);
     }
 
@@ -93,7 +94,7 @@ public class CmsContentAdminController {
     }
 
     @PutMapping("/recommend-tabs/{id}/status/{status}")
-    public void setTabStatus(@PathVariable UUID id, @PathVariable Integer status) {
+    public void setTabStatus(@PathVariable UUID id, @PathVariable CmsStatus status) {
         contentService.setTabStatus(id, status);
     }
 }

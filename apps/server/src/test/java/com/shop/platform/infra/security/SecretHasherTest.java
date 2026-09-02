@@ -13,9 +13,14 @@ class SecretHasherTest {
 
     private static final String PEPPER = "a".repeat(32);
 
+    /** 生产构造：配置注入路径（本测用 Spring 无关的 POJO，保持纯单测） */
+    private static SecretHasher hasher(String pepper) {
+        return new SecretHasher(new SecretProperties(pepper));
+    }
+
     @Test
     void 同pepper同输入_摘要确定且为64位hex() {
-        SecretHasher hasher = new SecretHasher(PEPPER);
+        SecretHasher hasher = hasher(PEPPER);
 
         String h1 = hasher.hash("rt:abc123");
         String h2 = hasher.hash("rt:abc123");
@@ -26,20 +31,20 @@ class SecretHasherTest {
 
     @Test
     void 不同输入_摘要必不同() {
-        SecretHasher hasher = new SecretHasher(PEPPER);
+        SecretHasher hasher = hasher(PEPPER);
 
         assertThat(hasher.hash("123456")).isNotEqualTo(hasher.hash("123457"));
     }
 
     @Test
     void 换pepper_摘要必不同() {
-        assertThat(new SecretHasher(PEPPER).hash("x")).isNotEqualTo(new SecretHasher("b".repeat(32)).hash("x"));
+        assertThat(hasher(PEPPER).hash("x")).isNotEqualTo(hasher("b".repeat(32)).hash("x"));
     }
 
     @Test
     void pepper过短_启动直接失败() {
         // 安全约束：短 pepper 让离线猜解成本骤降，宁可不启动
-        assertThatThrownBy(() -> new SecretHasher("short"))
+        assertThatThrownBy(() -> hasher("short"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("32");
     }
@@ -47,6 +52,6 @@ class SecretHasherTest {
     @Test
     void 未配置pepper_临时生成可用() {
         // 开发模式：临时 pepper，hash 正常工作即可
-        assertThat(new SecretHasher("").hash("验证码123456")).hasSize(64);
+        assertThat(hasher("").hash("验证码123456")).hasSize(64);
     }
 }

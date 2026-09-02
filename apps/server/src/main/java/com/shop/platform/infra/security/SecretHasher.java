@@ -8,7 +8,6 @@ import java.util.HexFormat;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -30,7 +29,8 @@ public class SecretHasher {
 
     private final byte[] pepper;
 
-    public SecretHasher(@Value("${shop.security.pepper:}") String configuredPepper) {
+    public SecretHasher(SecretProperties props) {
+        String configuredPepper = props.pepper();
         if (StringUtils.hasText(configuredPepper)) {
             if (configuredPepper.length() < 32) {
                 throw new IllegalStateException("shop.security.pepper 至少 32 字符（openssl rand -hex 32）");

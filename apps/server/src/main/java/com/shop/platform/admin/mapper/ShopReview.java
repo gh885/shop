@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.admin.model.ShopReviewStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -26,13 +27,6 @@ import lombok.NoArgsConstructor;
 @TableName("admin.shop_reviews")
 public class ShopReview {
 
-    /** 审核状态，见 status 字段 javadoc：PENDING 待审 / APPROVED 通过 / REJECTED 拒绝 */
-    public static final String STATUS_PENDING = "PENDING";
-
-    public static final String STATUS_APPROVED = "APPROVED";
-
-    public static final String STATUS_REJECTED = "REJECTED";
-
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -43,8 +37,13 @@ public class ShopReview {
     /** 审批员工 ID（admin.staff.id），PENDING 时为 NULL，审批时写入 */
     private UUID staffId;
 
-    /** 审核状态：PENDING 待审 / APPROVED 通过 / REJECTED 拒绝。PENDING 行即「待审核队列」 */
-    private String status;
+    /** 审核状态：PENDING 待审 / APPROVED 通过 / REJECTED 拒绝。PENDING 行即「待审核队列」。概念归 {@link ShopReviewStatus} */
+    private ShopReviewStatus status;
+
+    /** 是否待审（仅待审可被处置） */
+    public boolean isPending() {
+        return status != null && status.isPending();
+    }
 
     /** 审批理由/备注（拒绝时一般必填），可空 */
     private String reason;

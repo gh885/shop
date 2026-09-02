@@ -10,6 +10,7 @@ import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
+import com.shop.platform.shop.model.ShopStatus;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -74,7 +75,7 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
             //    （防"商品挂在不存在的店铺"这类孤儿数据）
             Long shopCount = shopMapper.selectCount(new LambdaQueryWrapper<Shop>()
                     .eq(Shop::getId, shopId)
-                    .in(Shop::getStatus, List.of(Shop.STATUS_PENDING_REVIEW, Shop.STATUS_ACTIVE)));
+                    .in(Shop::getStatus, List.of(ShopStatus.PENDING_REVIEW, ShopStatus.ACTIVE)));
             if (shopCount == 0) {
                 UnauthorizedWriter.write(response, objectMapper, 403, null, "店铺不存在或不可用");
                 return;
@@ -89,7 +90,7 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
 
             // 4. 落上下文，请求结束清理
             ShopIdHolder.set(shopId);
-            ShopMemberContext.set(new ShopMemberContext.Member(member.getRole(), member.getPermissions()));
+            ShopMemberContext.set(new ShopMemberContext.Member(member.getRole().name(), member.getPermissions()));
             chain.doFilter(request, response);
         } finally {
             ShopIdHolder.clear();

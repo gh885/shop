@@ -11,7 +11,9 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderPaymentView;
 import com.shop.platform.order.api.OrderReadQuery;
+import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.payment.mapper.Payment;
+import com.shop.platform.payment.model.PaymentStatus;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +57,7 @@ class PaymentServiceTest {
         });
     }
 
-    private void stubOrder(String status) {
+    private void stubOrder(OrderStatus status) {
         when(orderReadQuery.paymentViewById(orderId))
                 .thenReturn(Optional.of(new OrderPaymentView("20260101120000001", userId, status, 2000L, "CNY")));
     }
@@ -64,14 +66,14 @@ class PaymentServiceTest {
 
     @Test
     void 正常发起_落待确认流水_不推进订单状态机() {
-        stubOrder("PENDING_PAYMENT");
+        stubOrder(OrderStatus.PENDING_PAYMENT);
         stubInsertSuccess();
         when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null);
         when(paymentMapper.selectPendingByOrder(orderId)).thenReturn(null);
 
         Payment payment = service.pay(userId, orderId);
 
-        assertThat(payment.getStatus()).isEqualTo(Payment.STATUS_PENDING); // 发起只占位，不动订单
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING); // 发起只占位，不动订单
         assertThat(payment.getAmount()).isEqualTo(2000L); // 金额以订单投影为准
         assertThat(payment.getChannel()).isEqualTo(Payment.CHANNEL_MOCK);
         verify(orderCommand, never()).markPaid(any());
@@ -88,7 +90,7 @@ class PaymentServiceTest {
 
     @Test
     void 非本人订单_与不存在同一句话_不泄露归属() {
-        stubOrder("PENDING_PAYMENT");
+        stubOrder(OrderStatus.PENDING_PAYMENT);
         UUID stranger = UUID.randomUUID();
 
         assertThatThrownBy(() -> service.pay(stranger, orderId)).isInstanceOfSatisfying(BusinessException.class, ex -> {
@@ -99,10 +101,10 @@ class PaymentServiceTest {
 
     @Test
     void 已有成功流水_幂等返回同一笔_不再落库() {
-        stubOrder("PAID"); // 订单已被前次支付推进
+        stubOrder(OrderStatus.PAID); // 订单已被前次支付推进
         Payment existing = new Payment();
         existing.setId(UUID.randomUUID());
-        existing.setStatus(Payment.STATUS_SUCCESS);
+        existing.setStatus(PaymentStatus.SUCCESS);
         when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(existing);
 
         Payment again = service.pay(userId, orderId);
@@ -113,10 +115,10 @@ class PaymentServiceTest {
 
     @Test
     void 已有待确认流水_复用同一笔_不堆积多条PENDING() {
-        stubOrder("PENDING_PAYMENT");
+        stubOrder(OrderStatus.PENDING_PAYMENT);
         Payment pending = new Payment();
         pending.setId(UUID.randomUUID());
-        pending.setStatus(Payment.STATUS_PENDING);
+        pending.setStatus(PaymentStatus.PENDING);
         when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null);
         when(paymentMapper.selectPendingByOrder(orderId)).thenReturn(pending);
 
@@ -128,7 +130,7 @@ class PaymentServiceTest {
 
     @Test
     void 非待付款态_409拒绝发起() {
-        stubOrder("CANCELLED");
+        stubOrder(OrderStatus.CANCELLED);
         when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null);
         when(paymentMapper.selectPendingByOrder(orderId)).thenReturn(null);
 
@@ -139,7 +141,7 @@ class PaymentServiceTest {
 
     // ========== 确认（PENDING→SUCCESS） ==========
 
-    private Payment pendingPayment(UUID paymentId, String status) {
+    private Payment pendingPayment(UUID paymentId, PaymentStatus status) {
         Payment p = new Payment();
         p.setId(paymentId);
         p.setUserId(userId);
@@ -151,19 +153,19 @@ class PaymentServiceTest {
     @Test
     void 正常确认_置成功并推进订单状态机() {
         UUID paymentId = UUID.randomUUID();
-        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, Payment.STATUS_PENDING));
-        when(paymentMapper.transition(paymentId, Payment.STATUS_SUCCESS)).thenReturn(1);
+        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, PaymentStatus.PENDING));
+        when(paymentMapper.transition(paymentId, PaymentStatus.SUCCESS)).thenReturn(1);
 
         Payment result = service.confirm(userId, paymentId);
 
-        assertThat(result.getStatus()).isEqualTo(Payment.STATUS_SUCCESS);
+        assertThat(result.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
         verify(orderCommand).markPaid(orderId); // 同事务推进 PENDING_PAYMENT → PAID
     }
 
     @Test
     void 确认_非本人流水_不泄露归属() {
         UUID paymentId = UUID.randomUUID();
-        Payment stranger = pendingPayment(paymentId, Payment.STATUS_PENDING);
+        Payment stranger = pendingPayment(paymentId, PaymentStatus.PENDING);
         stranger.setUserId(UUID.randomUUID());
         when(paymentMapper.selectById(paymentId)).thenReturn(stranger);
 
@@ -187,11 +189,11 @@ class PaymentServiceTest {
     @Test
     void 确认_已成功_幂等直接返回() {
         UUID paymentId = UUID.randomUUID();
-        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, Payment.STATUS_SUCCESS));
+        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, PaymentStatus.SUCCESS));
 
         Payment result = service.confirm(userId, paymentId);
 
-        assertThat(result.getStatus()).isEqualTo(Payment.STATUS_SUCCESS);
+        assertThat(result.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
         verify(paymentMapper, never()).transition(any(), any());
         verify(orderCommand, never()).markPaid(any());
     }
@@ -199,8 +201,8 @@ class PaymentServiceTest {
     @Test
     void 确认_状态已被抢占_409拒绝() {
         UUID paymentId = UUID.randomUUID();
-        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, Payment.STATUS_PENDING));
-        when(paymentMapper.transition(paymentId, Payment.STATUS_SUCCESS)).thenReturn(0);
+        when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, PaymentStatus.PENDING));
+        when(paymentMapper.transition(paymentId, PaymentStatus.SUCCESS)).thenReturn(0);
 
         assertThatThrownBy(() -> service.confirm(userId, paymentId))
                 .isInstanceOfSatisfying(BusinessException.class, ex -> {

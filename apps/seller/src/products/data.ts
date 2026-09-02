@@ -2,13 +2,19 @@ import { unwrap } from "@shop/api"
 import {
     CategoriesApi,
     ProductsAdminApi,
+    type CategoryAttrNodeResponse,
     type CreateProductRequest,
     type SkuResponse,
     type SkuUpdateItem,
 } from "@shop/api/sdk"
 
-import { toCategoryTree, toProduct, toProductDetail, type Product } from "#/domain"
-import { tokenStore } from "#/shared/lib/api"
+import {
+    toCategoryTree,
+    toProduct,
+    toProductDetail,
+    type Product,
+    type ProductStatus,
+} from "#/domain"
 
 // ---------- 商品域数据函数（直接在调用点用，不经集中封装对象） ----------
 
@@ -20,7 +26,7 @@ const shopHeader = (shopId: string): { "X-Shop-Id": string } => ({ "X-Shop-Id": 
  */
 export async function listProducts(
     shopId: string,
-    search: { page: number; size: number; status?: number; keyword?: string },
+    search: { page: number; size: number; status?: ProductStatus; keyword?: string },
 ): Promise<{ records: Product[]; total: number }> {
     const page = unwrap(
         await ProductsAdminApi.listShopProducts({
@@ -114,14 +120,12 @@ export async function categoryTree() {
     return toCategoryTree(unwrap(await CategoriesApi.getCategoryTree()))
 }
 
-/** 类目属性模板（公开接口），发布页取销售属性（kind=1）用；带鉴权头避免误判 */
+/** 类目属性模板（公开接口），发布页取销售属性（kind=SPEC）用 */
 export async function attrTemplate(categoryId: string): Promise<CategoryAttrTemplateNode[]> {
-    const token = tokenStore.get()
-    const res = await fetch(`/api/categories/${categoryId}/attr-template`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    })
-    if (!res.ok) throw new Error(`拉取类目属性模板失败(${res.status})`)
-    return (await res.json()) as CategoryAttrTemplateNode[]
+    const nodes = unwrap(
+        await CategoriesApi.getPublicCategoryAttrTemplate({ path: { id: categoryId } }),
+    )
+    return (nodes ?? []).map(toTemplateNode)
 }
 
 // ---------- 商品域类型（就近放在数据函数旁） ----------
@@ -137,12 +141,12 @@ export interface CategoryAttrTemplateAttr {
     id: string
     categoryId: string
     name: string
-    /** 1 销售属性 / 2 非销售参数 */
-    kind: number
+    /** SPEC 销售属性 / PARAM 非销售参数 */
+    kind: "SPEC" | "PARAM"
     required: boolean
     allowCustom: boolean
     sort: number
-    status: number
+    status: "DISABLED" | "ENABLED"
     createdAt: string
     updatedAt: string
 }
@@ -152,12 +156,40 @@ export interface CategoryAttrTemplateValue {
     attrId: string
     value: string
     sort: number
-    /** 1 平台预置 / 2 卖家扩充 */
-    source: number
+    /** PLATFORM 平台预置 / SELLER 卖家扩充 */
+    source: "PLATFORM" | "SELLER"
     createdAt: string
 }
 
 export interface CategoryAttrTemplateNode {
     attr: CategoryAttrTemplateAttr
     values: CategoryAttrTemplateValue[]
+}
+
+/** wire（可选）→ 领域形状（非空/字面量）：kind/source/status 归一为枚举字面量 */
+function toTemplateNode(dto: CategoryAttrNodeResponse): CategoryAttrTemplateNode {
+    const a = dto.attr ?? {}
+    const v = dto.values ?? []
+    return {
+        attr: {
+            id: a.id ?? "",
+            categoryId: a.categoryId ?? "",
+            name: a.name ?? "",
+            kind: a.kind === "PARAM" ? "PARAM" : "SPEC",
+            required: a.required ?? false,
+            allowCustom: a.allowCustom ?? false,
+            sort: a.sort ?? 0,
+            status: a.status === "DISABLED" ? "DISABLED" : "ENABLED",
+            createdAt: a.createdAt ?? "",
+            updatedAt: a.updatedAt ?? "",
+        },
+        values: v.map((val) => ({
+            id: val.id ?? "",
+            attrId: val.attrId ?? "",
+            value: val.value ?? "",
+            sort: val.sort ?? 0,
+            source: val.source === "SELLER" ? "SELLER" : "PLATFORM",
+            createdAt: val.createdAt ?? "",
+        })),
+    }
 }

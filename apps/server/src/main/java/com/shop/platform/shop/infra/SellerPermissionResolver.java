@@ -2,7 +2,7 @@ package com.shop.platform.shop.infra;
 
 import com.shop.platform.common.ShopMemberContext;
 import com.shop.platform.infra.security.authz.PermissionResolver;
-import com.shop.platform.shop.mapper.ShopMember;
+import com.shop.platform.shop.model.MemberRole;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +19,7 @@ public class SellerPermissionResolver implements PermissionResolver {
         if (member == null) {
             return null;
         }
-        return ShopMember.ROLE_OWNER.equals(member.role())
+        return MemberRole.OWNER.name().equals(member.role())
                 ? Set.of(PermissionResolver.WILDCARD)
                 : member.permissions() == null ? Set.of() : Set.copyOf(member.permissions());
     }

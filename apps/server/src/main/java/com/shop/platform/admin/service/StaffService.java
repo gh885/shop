@@ -37,7 +37,7 @@ public class StaffService {
         }
 
         // 2. 检查账号状态
-        if (!Staff.STATUS_ACTIVE.equals(staff.getStatus())) {
+        if (!staff.isActive()) {
             throw new BusinessException(403, "STAFF_DISABLED", "账号已被禁用");
         }
 
@@ -76,7 +76,7 @@ public class StaffService {
         // 4. 查员工并签发全新 Token；禁用员工在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
         Staff staff = staffMapper.selectById(staffId);
         if (staff == null) throw BusinessException.notFound("员工不存在");
-        if (!Staff.STATUS_ACTIVE.equals(staff.getStatus())) {
+        if (!staff.isActive()) {
             throw new BusinessException(403, "STAFF_DISABLED", "账号已被禁用");
         }
         return issueTokens(staff, deviceId);
@@ -95,7 +95,7 @@ public class StaffService {
         if (staff == null) throw BusinessException.notFound("员工不存在");
 
         // 1. 解析岗位；禁用/未知岗位按无权限展示（登录/判权层会拦，这里只负责如实呈现）
-        boolean active = Staff.STATUS_ACTIVE.equals(staff.getStatus());
+        boolean active = staff.isActive();
         StaffRole role = StaffRole.parseOrNull(staff.getRole());
 
         // 2. SUPER_ADMIN 展开通配符为具体码列表；无岗位或已禁用给空集
@@ -112,7 +112,7 @@ public class StaffService {
      *  禁用/查无此人/未知岗位 → 空集：token 还活着但权限立即消失，收权下一请求生效。 */
     public Set<String> effectivePermissions(UUID staffId) {
         Staff staff = staffMapper.selectById(staffId);
-        if (staff == null || !Staff.STATUS_ACTIVE.equals(staff.getStatus())) {
+        if (staff == null || !staff.isActive()) {
             return Set.of();
         }
         StaffRole role = StaffRole.parseOrNull(staff.getRole());

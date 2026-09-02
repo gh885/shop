@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.admin.mapper.ShopReview;
 import com.shop.platform.admin.mapper.ShopReviewMapper;
+import com.shop.platform.admin.model.ShopReviewStatus;
 import com.shop.platform.auth.api.UserReadQuery;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
@@ -45,7 +46,10 @@ public class ShopReviewService {
         Page<ShopReview> rows = shopReviewMapper.selectPage(
                 new Page<>(pageParams.page(), pageParams.size()),
                 new LambdaQueryWrapper<ShopReview>()
-                        .eq(status != null && !status.isBlank(), ShopReview::getStatus, status)
+                        .eq(
+                                status != null && !status.isBlank(),
+                                ShopReview::getStatus,
+                                status == null || status.isBlank() ? null : ShopReviewStatus.valueOf(status))
                         .orderByAsc(ShopReview::getStatus)
                         .orderByDesc(ShopReview::getCreatedAt));
 
@@ -79,18 +83,18 @@ public class ShopReviewService {
 
     @Transactional
     public ShopReview approve(UUID reviewId, UUID staffId) {
-        return decide(reviewId, staffId, ShopReview.STATUS_APPROVED, null);
+        return decide(reviewId, staffId, ShopReviewStatus.APPROVED, null);
     }
 
     @Transactional
     public ShopReview reject(UUID reviewId, UUID staffId, String reason) {
-        return decide(reviewId, staffId, ShopReview.STATUS_REJECTED, reason);
+        return decide(reviewId, staffId, ShopReviewStatus.REJECTED, reason);
     }
 
-    private ShopReview decide(UUID reviewId, UUID staffId, String newStatus, String reason) {
+    private ShopReview decide(UUID reviewId, UUID staffId, ShopReviewStatus newStatus, String reason) {
         // 1. 校验存在且未审
         ShopReview review = Validate.notNull(shopReviewMapper.selectById(reviewId), "审核记录不存在");
-        Validate.isTrue(ShopReview.STATUS_PENDING.equals(review.getStatus()), "该店铺已审核，请刷新列表");
+        Validate.isTrue(review.isPending(), "该店铺已审核，请刷新列表");
 
         // 2. 写入审批留痕（谁批的、批没批、理由、时间）
         review.setStatus(newStatus);
@@ -101,13 +105,13 @@ public class ShopReviewService {
 
         // 3. 发审核决定事件 → shop 模块改店铺状态
         events.publishEvent(
-                new ShopReviewDecidedEvent(review.getShopId(), ShopReview.STATUS_APPROVED.equals(newStatus), reason));
+                new ShopReviewDecidedEvent(review.getShopId(), ShopReviewStatus.APPROVED.equals(newStatus), reason));
 
         // 4. L3 审计留痕（结构化事件，约定见 docs/business-event-logging.md）
         MDC.put("event", "shop_review.decided");
         MDC.put("review_id", review.getId().toString());
         MDC.put("shop_id", review.getShopId().toString());
-        MDC.put("decision", newStatus);
+        MDC.put("decision", newStatus.name());
         MDC.put("staff_id", staffId.toString());
         try {
             log.info("");
@@ -137,7 +141,7 @@ public class ShopReviewService {
     public void onShopCreated(ShopCreatedEvent event) {
         ShopReview review = ShopReview.builder()
                 .shopId(event.shopId())
-                .status(ShopReview.STATUS_PENDING)
+                .status(ShopReviewStatus.PENDING)
                 .build();
         shopReviewMapper.insert(review);
         log.info("[ADMIN] 新店待审入队, shopId={}", event.shopId());

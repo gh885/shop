@@ -53,10 +53,10 @@ export type UpdateProductRequest = {
 };
 
 export type ProductResponse = {
-    id?: string;
-    shopId?: string;
-    categoryId?: string;
-    name?: string;
+    id: string;
+    shopId: string;
+    categoryId: string;
+    name: string;
     subtitle?: string;
     detailImages?: Array<string>;
     mainImage?: string;
@@ -65,9 +65,9 @@ export type ProductResponse = {
     params?: Array<ParamItem>;
     minPrice?: number;
     maxPrice?: number;
-    status?: number;
-    createdAt?: string;
-    updatedAt?: string;
+    status: 'OFF' | 'PUBLISHED' | 'DRAFT';
+    createdAt: string;
+    updatedAt: string;
 };
 
 export type SpecItem = {
@@ -100,19 +100,19 @@ export type SkuAttr = {
 };
 
 export type SkuResponse = {
-    id?: string;
-    productId?: string;
+    id: string;
+    productId: string;
     skuCode?: string;
-    name?: string;
+    name: string;
     attributes?: Array<SkuAttr>;
     image?: string;
     price?: number;
     originalPrice?: number;
     currency?: string;
-    stock?: number;
-    status?: number;
-    createdAt?: string;
-    updatedAt?: string;
+    stock: number;
+    status: 'DISABLED' | 'ON_SALE';
+    createdAt: string;
+    updatedAt: string;
 };
 
 export type SkuUpdateItem = {
@@ -123,7 +123,7 @@ export type SkuUpdateItem = {
     originalPrice?: number;
     stock: number;
     skuCode?: string;
-    status?: number;
+    status?: 'DISABLED' | 'ON_SALE';
 };
 
 export type UpdateSkusRequest = {
@@ -190,7 +190,7 @@ export type RecommendTabResponse = {
     targetType?: string;
     isDefault?: boolean;
     sortOrder?: number;
-    status?: number;
+    status?: 'DISABLED' | 'ENABLED';
     createdAt?: string;
     updatedAt?: string;
 };
@@ -219,7 +219,7 @@ export type NavEntryResponse = {
     targetType?: string;
     subs?: Array<NavGroup>;
     sortOrder?: number;
-    status?: number;
+    status?: 'DISABLED' | 'ENABLED';
     createdAt?: string;
     updatedAt?: string;
 };
@@ -247,7 +247,7 @@ export type BannerResponse = {
     targetType?: string;
     link?: string;
     sortOrder?: number;
-    status?: number;
+    status?: 'DISABLED' | 'ENABLED';
     startAt?: string;
     endAt?: string;
     createdAt?: string;
@@ -256,7 +256,7 @@ export type BannerResponse = {
 
 export type CategoryAttrRequest = {
     name: string;
-    kind: number;
+    kind: 'SPEC' | 'PARAM';
     required?: boolean;
     allowCustom?: boolean;
     sort?: number;
@@ -266,17 +266,17 @@ export type CategoryAttrResponse = {
     id?: string;
     categoryId?: string;
     name?: string;
-    kind?: number;
+    kind?: 'SPEC' | 'PARAM';
     required?: boolean;
     allowCustom?: boolean;
     sort?: number;
-    status?: number;
+    status?: 'DISABLED' | 'ENABLED';
     createdAt?: string;
     updatedAt?: string;
 };
 
-export type UpdateStatusRequest = {
-    status: number;
+export type UpdateCategoryAttrStatusRequest = {
+    status: 'DISABLED' | 'ENABLED';
 };
 
 export type CategoryAttrValueRequest = {
@@ -289,7 +289,7 @@ export type CategoryAttrValueResponse = {
     attrId?: string;
     value?: string;
     sort?: number;
-    source?: number;
+    source?: 'PLATFORM' | 'SELLER';
     createdAt?: string;
 };
 
@@ -305,10 +305,14 @@ export type CategoryResponse = {
     name?: string;
     level?: number;
     sort?: number;
-    status?: number;
+    status?: 'DISABLED' | 'ENABLED';
     iconUrl?: string;
     createdAt?: string;
     updatedAt?: string;
+};
+
+export type UpdateCategoryStatusRequest = {
+    status: 'DISABLED' | 'ENABLED';
 };
 
 export type AddressParseRequest = {
@@ -331,13 +335,13 @@ export type CreateShopRequest = {
 };
 
 export type ShopResponse = {
-    id?: string;
-    ownerId?: string;
-    name?: string;
+    id: string;
+    ownerId: string;
+    name: string;
     logoKey?: string;
-    status?: string;
-    createdAt?: string;
-    updatedAt?: string;
+    status: 'PENDING_REVIEW' | 'ACTIVE' | 'REJECTED' | 'DISABLED';
+    createdAt: string;
+    updatedAt: string;
 };
 
 export type InviteMemberRequest = {
@@ -346,14 +350,14 @@ export type InviteMemberRequest = {
 };
 
 export type ShopMemberResponse = {
-    id?: string;
-    shopId?: string;
-    userId?: string;
-    role?: string;
-    status?: string;
-    permissions?: Array<string>;
-    createdAt?: string;
-    updatedAt?: string;
+    id: string;
+    shopId: string;
+    userId: string;
+    role: 'OWNER' | 'MEMBER';
+    status: 'PENDING' | 'ACTIVE';
+    permissions: Array<string>;
+    createdAt: string;
+    updatedAt: string;
 };
 
 export type CreateProductRequest = {
@@ -388,7 +392,7 @@ export type PaymentResponse = {
     orderNo?: string;
     amount?: Money;
     channel?: string;
-    status?: string;
+    status?: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
     paidAt?: string;
 };
 
@@ -557,7 +561,7 @@ export type ShopReviewResponse = {
     id?: string;
     shopId?: string;
     staffId?: string;
-    status?: string;
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED';
     reason?: string;
     decidedAt?: string;
     createdAt?: string;
@@ -581,8 +585,8 @@ export type ShopMemberItemResponse = {
     memberId: string;
     userId: string;
     phone?: string;
-    role: string;
-    status: string;
+    role: 'OWNER' | 'MEMBER';
+    status: 'PENDING' | 'ACTIVE';
     permissions: Array<string>;
 };
 
@@ -604,8 +608,8 @@ export type PageResultProductResponse = {
 };
 
 export type ProductDetailResponse = {
-    product?: ProductResponse;
-    skus?: Array<SkuResponse>;
+    product: ProductResponse;
+    skus: Array<SkuResponse>;
 };
 
 export type OrderQuery = {
@@ -620,7 +624,7 @@ export type PageResultSellerOrderListItemResponse = {
 export type SellerOrderListItemResponse = {
     id?: string;
     orderNo?: string;
-    status?: string;
+    status?: 'PENDING_PAYMENT' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
     payAmount?: Money;
     receiverName?: string;
     itemCount?: number;
@@ -630,7 +634,7 @@ export type SellerOrderListItemResponse = {
 export type OrderDetailResponse = {
     id?: string;
     orderNo?: string;
-    status?: string;
+    status?: 'PENDING_PAYMENT' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
     shopId?: string;
     shopName?: string;
     availableActions?: Array<string>;
@@ -653,8 +657,8 @@ export type OrderDetailResponse = {
     cancelledAt?: string;
     cancelReason?: string;
     createdAt?: string;
-    afterSaleStatus?: string;
-    afterSaleType?: string;
+    afterSaleStatus?: 'NONE' | 'APPLYING' | 'RETURNING' | 'REFUNDED' | 'REJECTED' | 'CLOSED';
+    afterSaleType?: 'REFUND_ONLY' | 'RETURN_REFUND';
     refundAmount?: Money;
     afterSaleRefundedAt?: string;
     applyExpireAt?: string;
@@ -677,7 +681,7 @@ export type OrderItemResponse = {
 export type OrderListItemResponse = {
     id?: string;
     orderNo?: string;
-    status?: string;
+    status?: 'PENDING_PAYMENT' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
     shopId?: string;
     shopName?: string;
     payAmount?: Money;
@@ -745,7 +749,7 @@ export type SkuInfo = {
     price?: Money;
     originalPrice?: Money;
     stock?: number;
-    status?: number;
+    onSale?: boolean;
 };
 
 export type CartCountResponse = {
@@ -790,12 +794,12 @@ export type PublicProductResponse = {
 };
 
 export type PublicProductDetailResponse = {
-    product?: PublicProductResponse;
+    product: PublicProductResponse;
     detailImages?: Array<string>;
     images?: Array<string>;
     specs?: Array<SpecItem>;
     params?: Array<ParamItem>;
-    skus?: Array<PublicSkuResponse>;
+    skus: Array<PublicSkuResponse>;
 };
 
 export type PublicSkuResponse = {
@@ -814,12 +818,12 @@ export type CategoryAttrNodeResponse = {
 };
 
 export type CategoryNodeResponse = {
-    id?: string;
+    id: string;
     parentId?: string;
-    name?: string;
-    level?: number;
+    name: string;
+    level: number;
     sort?: number;
-    status?: number;
+    status: 'DISABLED' | 'ENABLED';
     iconUrl?: string;
     children?: Array<CategoryNodeResponse>;
 };
@@ -834,7 +838,7 @@ export type ShopReviewListItemResponse = {
     shopId?: string;
     shopName?: string;
     ownerPhone?: string;
-    status?: string;
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED';
     reason?: string;
     decidedAt?: string;
     createdAt?: string;
@@ -1241,7 +1245,7 @@ export type SetTabStatusData = {
     body?: never;
     path: {
         id: string;
-        status: number;
+        status: 'DISABLED' | 'ENABLED';
     };
     query?: never;
     url: '/admin/cms/recommend-tabs/{id}/status/{status}';
@@ -1276,7 +1280,7 @@ export type SetNavStatusData = {
     body?: never;
     path: {
         id: string;
-        status: number;
+        status: 'DISABLED' | 'ENABLED';
     };
     query?: never;
     url: '/admin/cms/nav/{id}/status/{status}';
@@ -1311,7 +1315,7 @@ export type SetBannerStatusData = {
     body?: never;
     path: {
         id: string;
-        status: number;
+        status: 'DISABLED' | 'ENABLED';
     };
     query?: never;
     url: '/admin/cms/banners/{id}/status/{status}';
@@ -1343,7 +1347,7 @@ export type UpdateCategoryAttrResponses = {
 export type UpdateCategoryAttrResponse = UpdateCategoryAttrResponses[keyof UpdateCategoryAttrResponses];
 
 export type UpdateCategoryAttrStatusData = {
-    body: UpdateStatusRequest;
+    body: UpdateCategoryAttrStatusRequest;
     path: {
         attrId: string;
     };
@@ -1395,7 +1399,7 @@ export type UpdateCategoryResponses = {
 export type UpdateCategoryResponse = UpdateCategoryResponses[keyof UpdateCategoryResponses];
 
 export type UpdateCategoryStatusData = {
-    body: UpdateStatusRequest;
+    body: UpdateCategoryStatusRequest;
     path: {
         id: string;
     };
@@ -1515,7 +1519,7 @@ export type ListShopProductsData = {
     path?: never;
     query: {
         pageParams: PageParams;
-        status?: number;
+        status?: 'OFF' | 'PUBLISHED' | 'DRAFT';
         keyword?: string;
     };
     url: '/seller/products';
@@ -1826,6 +1830,9 @@ export type ResetPasswordResponses = {
 
 export type RefreshData = {
     body?: RefreshRequest;
+    headers?: {
+        'User-Agent'?: string;
+    };
     path?: never;
     query?: never;
     url: '/auth/refresh';
@@ -1884,6 +1891,9 @@ export type LogoutAllResponses = {
 
 export type LoginBySmsData = {
     body: SmsLoginRequest;
+    headers?: {
+        'User-Agent'?: string;
+    };
     path?: never;
     query?: never;
     url: '/auth/login/sms';
@@ -1900,6 +1910,9 @@ export type LoginBySmsResponse = LoginBySmsResponses[keyof LoginBySmsResponses];
 
 export type LoginByPasswordData = {
     body: PasswordLoginRequest;
+    headers?: {
+        'User-Agent'?: string;
+    };
     path?: never;
     query?: never;
     url: '/auth/login/password';

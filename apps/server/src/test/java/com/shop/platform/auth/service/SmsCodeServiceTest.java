@@ -13,10 +13,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.shop.platform.auth.AuthProperties;
 import com.shop.platform.auth.infra.DevSmsChannel;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.SecretHasher;
+import com.shop.platform.infra.security.SecretProperties;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +61,7 @@ class SmsCodeServiceTest {
     @Mock
     private ObjectProvider<DevSmsChannel> devProvider;
 
-    private final SecretHasher secretHasher = new SecretHasher("a".repeat(32));
+    private final SecretHasher secretHasher = new SecretHasher(new SecretProperties("a".repeat(32)));
 
     /** 单 IP 每日不同号码上限（生产可配，测试固定值便于构造越界场景） */
     private static final int IP_DISTINCT_PHONES_MAX = 30;
@@ -68,7 +70,12 @@ class SmsCodeServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SmsCodeService(redis, smsChannel, secretHasher, devProvider, IP_DISTINCT_PHONES_MAX);
+        service = new SmsCodeService(
+                redis,
+                smsChannel,
+                secretHasher,
+                devProvider,
+                new AuthProperties(true, "dev", "", IP_DISTINCT_PHONES_MAX));
         lenient().when(redis.opsForValue()).thenReturn(valueOps);
         lenient().when(redis.opsForSet()).thenReturn(setOps);
         // RateLimiter 静态调用：默认窗口内计数为 1（不限流）

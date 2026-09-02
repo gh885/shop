@@ -1,9 +1,10 @@
 package com.shop.platform.common;
 
 import java.util.Optional;
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Validate {
 
     /** 条件必须为真，否则 400 业务异常（detail 即给前端的信息） */

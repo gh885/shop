@@ -1,6 +1,8 @@
 package com.shop.platform.product.controller;
 
 import com.shop.platform.product.mapper.CategoryAttr;
+import com.shop.platform.product.model.AttrKind;
+import com.shop.platform.product.model.CategoryAttrStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -9,11 +11,11 @@ public record CategoryAttrResponse(
         UUID id,
         UUID categoryId,
         String name,
-        Integer kind,
+        AttrKind kind,
         Boolean required,
         Boolean allowCustom,
         Integer sort,
-        Integer status,
+        CategoryAttrStatus status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt) {
 

@@ -7,6 +7,8 @@ import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.product.mapper.CategoryAttr;
 import com.shop.platform.product.mapper.CategoryAttrValue;
 import com.shop.platform.product.mapper.ParamItem;
+import com.shop.platform.product.model.AttrKind;
+import com.shop.platform.product.model.CategoryAttrStatus;
 import com.shop.platform.product.service.CategoryAttrNode;
 import com.shop.platform.product.service.CategoryAttrService;
 import com.shop.platform.product.service.ProductService;
@@ -35,7 +37,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
     private ProductService productService;
 
     /** 建模板属性（唯一名防重复跑撞唯一索引）并登记清理（父表在前） */
-    private CategoryAttr seedAttr(UUID categoryId, String name, int kind, Boolean required, Boolean allowCustom) {
+    private CategoryAttr seedAttr(UUID categoryId, String name, AttrKind kind, Boolean required, Boolean allowCustom) {
         CategoryAttr attr = categoryAttrService.createAttr(
                 categoryId, name + UUID.randomUUID().toString().substring(0, 8), kind, required, allowCustom, null);
         db.onDelete(
@@ -54,7 +56,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
 
     @Test
     void 模板CRUD_改名排序_禁用后公开模板裁剪() {
-        CategoryAttr attr = seedAttr(L3_PHONE, "颜色", CategoryAttr.KIND_SPEC, null, null);
+        CategoryAttr attr = seedAttr(L3_PHONE, "颜色", AttrKind.SPEC, null, null);
         CategoryAttrValue black = categoryAttrService.addValue(attr.getId(), "黑", 1);
         categoryAttrService.addValue(attr.getId(), "白", 2);
 
@@ -72,7 +74,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
         assertEquals("曜石黑", renamed.getValue());
 
         // 3. 禁用后：管理端模板仍可见，公开模板裁剪
-        categoryAttrService.updateAttrStatus(attr.getId(), CategoryAttr.STATUS_DISABLED);
+        categoryAttrService.updateAttrStatus(attr.getId(), CategoryAttrStatus.DISABLED);
         assertTrue(categoryAttrService.listTemplate(L3_PHONE).stream()
                 .anyMatch(n -> n.attr().getId().equals(attr.getId())));
         assertTrue(categoryAttrService.publicTemplate(L3_PHONE).stream()
@@ -82,23 +84,23 @@ class CategoryAttrIT extends IntegrationTestSupport {
     @Test
     void 非叶子类目挂模板_400() {
         BusinessException ex = assertThrows(
-                BusinessException.class, () -> categoryAttrService.createAttr(L1_DIGITAL, "颜色", 1, null, null, null));
+                BusinessException.class,
+                () -> categoryAttrService.createAttr(L1_DIGITAL, "颜色", AttrKind.SPEC, null, null, null));
         assertEquals(400, ex.getHttpStatus());
     }
 
     @Test
     void 同类目同名属性_409() {
-        CategoryAttr attr = seedAttr(L3_PHONE, "颜色", CategoryAttr.KIND_SPEC, null, null);
+        CategoryAttr attr = seedAttr(L3_PHONE, "颜色", AttrKind.SPEC, null, null);
         BusinessException ex = assertThrows(
                 BusinessException.class,
-                () -> categoryAttrService.createAttr(
-                        L3_PHONE, attr.getName(), CategoryAttr.KIND_SPEC, null, null, null));
+                () -> categoryAttrService.createAttr(L3_PHONE, attr.getName(), AttrKind.SPEC, null, null, null));
         assertEquals(409, ex.getHttpStatus());
     }
 
     @Test
     void 必填参数缺失_400() {
-        CategoryAttr param = seedAttr(L3_PHONE, "产地", CategoryAttr.KIND_PARAM, true, null);
+        CategoryAttr param = seedAttr(L3_PHONE, "产地", AttrKind.PARAM, true, null);
         UUID shopId = UUID.randomUUID();
         ShopIdHolder.set(shopId);
         db.onDelete("DELETE FROM product.products WHERE shop_id = ?::uuid", shopId.toString());
@@ -123,7 +125,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
 
     @Test
     void 参数值域受控_域外值_400() {
-        CategoryAttr param = seedAttr(L3_PHONE, "网络制式", CategoryAttr.KIND_PARAM, null, false);
+        CategoryAttr param = seedAttr(L3_PHONE, "网络制式", AttrKind.PARAM, null, false);
         categoryAttrService.addValue(param.getId(), "5G", null);
         UUID shopId = UUID.randomUUID();
         ShopIdHolder.set(shopId);
@@ -157,7 +159,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
 
     @Test
     void 参数attrId不属于模板_400() {
-        seedAttr(L3_PHONE, "产地", CategoryAttr.KIND_PARAM, null, null);
+        seedAttr(L3_PHONE, "产地", AttrKind.PARAM, null, null);
         UUID shopId = UUID.randomUUID();
         ShopIdHolder.set(shopId);
         db.onDelete("DELETE FROM product.products WHERE shop_id = ?::uuid", shopId.toString());

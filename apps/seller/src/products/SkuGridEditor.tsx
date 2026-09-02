@@ -20,7 +20,7 @@ interface RowDraft {
     priceText: string
     stockText: string
     skuCode: string
-    status: 0 | 1
+    status: "ON_SALE" | "DISABLED"
 }
 
 function toDrafts(rows: SkuResponse[]): RowDraft[] {
@@ -30,7 +30,7 @@ function toDrafts(rows: SkuResponse[]): RowDraft[] {
         priceText: r.price == null ? "" : fenToYuan(r.price),
         stockText: r.stock == null ? "" : String(r.stock),
         skuCode: r.skuCode ?? "",
-        status: r.status === 0 ? 0 : 1,
+        status: r.status === "DISABLED" ? "DISABLED" : "ON_SALE",
     }))
 }
 
@@ -255,16 +255,22 @@ export function SkuGridEditor({
                                 <button
                                     type="button"
                                     role="switch"
-                                    aria-checked={d.status === 1}
+                                    aria-checked={d.status === "ON_SALE"}
                                     aria-label="是否上架"
-                                    onClick={() => update(i, { status: d.status === 1 ? 0 : 1 })}
+                                    onClick={() =>
+                                        update(i, {
+                                            status: d.status === "ON_SALE" ? "DISABLED" : "ON_SALE",
+                                        })
+                                    }
                                     className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                                        d.status === 1 ? "bg-primary" : "bg-muted-foreground/30"
+                                        d.status === "ON_SALE"
+                                            ? "bg-primary"
+                                            : "bg-muted-foreground/30"
                                     }`}
                                 >
                                     <span
                                         className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-all ${
-                                            d.status === 1 ? "left-[22px]" : "left-0.5"
+                                            d.status === "ON_SALE" ? "left-[22px]" : "left-0.5"
                                         }`}
                                     />
                                 </button>

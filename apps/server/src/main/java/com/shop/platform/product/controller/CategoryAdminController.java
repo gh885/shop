@@ -4,8 +4,9 @@ import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.product.dto.CreateCategoryRequest;
 import com.shop.platform.product.dto.UpdateCategoryRequest;
-import com.shop.platform.product.dto.UpdateStatusRequest;
+import com.shop.platform.product.dto.UpdateCategoryStatusRequest;
 import com.shop.platform.product.mapper.Category;
+import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.product.service.CategoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -50,7 +51,7 @@ public class CategoryAdminController {
     }
 
     @PutMapping("/{id}/status")
-    public void updateCategoryStatus(@PathVariable UUID id, @Valid @RequestBody UpdateStatusRequest req) {
+    public void updateCategoryStatus(@PathVariable UUID id, @Valid @RequestBody UpdateCategoryStatusRequest req) {
         categoryService.updateStatus(id, req.status());
     }
 
@@ -61,7 +62,7 @@ public class CategoryAdminController {
             String name,
             Integer level,
             Integer sort,
-            Integer status,
+            CategoryStatus status,
             String iconUrl,
             OffsetDateTime createdAt,
             OffsetDateTime updatedAt) {

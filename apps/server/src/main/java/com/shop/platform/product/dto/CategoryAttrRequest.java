@@ -1,7 +1,7 @@
 package com.shop.platform.product.dto;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import com.shop.platform.product.model.AttrKind;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -12,8 +12,8 @@ import jakarta.validation.constraints.Size;
  */
 public record CategoryAttrRequest(
         @NotBlank @Size(max = 32) String name,
-        /** 1 销售属性 / 2 非销售参数 */
-        @NotNull @Min(1) @Max(2) Integer kind,
+        /** 销售属性 / 非销售参数 */
+        @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED) AttrKind kind,
         /** param 是否必填（对 spec 无意义），缺省 false */
         Boolean required,
         /** 卖家可否扩充值域/自由输入，缺省 true */

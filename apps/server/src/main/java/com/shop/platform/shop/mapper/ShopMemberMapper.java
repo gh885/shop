@@ -2,6 +2,8 @@ package com.shop.platform.shop.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.shop.model.MemberRole;
+import com.shop.platform.shop.model.MemberStatus;
 import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
@@ -13,14 +15,14 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
     default List<ShopMember> selectActiveByUser(UUID userId) {
         return selectList(new LambdaQueryWrapper<ShopMember>()
                 .eq(ShopMember::getUserId, userId)
-                .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
+                .eq(ShopMember::getStatus, MemberStatus.ACTIVE));
     }
 
     /** 用户待确认邀请（PENDING），新的在前 */
     default List<ShopMember> selectPendingByUser(UUID userId) {
         return selectList(new LambdaQueryWrapper<ShopMember>()
                 .eq(ShopMember::getUserId, userId)
-                .eq(ShopMember::getStatus, ShopMember.STATUS_PENDING)
+                .eq(ShopMember::getStatus, MemberStatus.PENDING)
                 .orderByDesc(ShopMember::getCreatedAt));
     }
 
@@ -44,7 +46,7 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
         return selectCount(new LambdaQueryWrapper<ShopMember>()
                         .eq(ShopMember::getShopId, shopId)
                         .eq(ShopMember::getUserId, userId)
-                        .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE))
+                        .eq(ShopMember::getStatus, MemberStatus.ACTIVE))
                 > 0;
     }
 
@@ -53,7 +55,7 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
         return selectOne(new LambdaQueryWrapper<ShopMember>()
                 .eq(ShopMember::getShopId, shopId)
                 .eq(ShopMember::getUserId, userId)
-                .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE));
+                .eq(ShopMember::getStatus, MemberStatus.ACTIVE));
     }
 
     /** 是否该店 ACTIVE 店主（店主专属操作的 403 闸门） */
@@ -61,8 +63,8 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
         return selectCount(new LambdaQueryWrapper<ShopMember>()
                         .eq(ShopMember::getShopId, shopId)
                         .eq(ShopMember::getUserId, userId)
-                        .eq(ShopMember::getRole, ShopMember.ROLE_OWNER)
-                        .eq(ShopMember::getStatus, ShopMember.STATUS_ACTIVE))
+                        .eq(ShopMember::getRole, MemberRole.OWNER)
+                        .eq(ShopMember::getStatus, MemberStatus.ACTIVE))
                 > 0;
     }
 }

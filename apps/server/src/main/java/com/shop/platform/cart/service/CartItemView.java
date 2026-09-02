@@ -25,5 +25,5 @@ public record CartItemView(
 
     /** SKU 侧信息：价格永远是「现在」的价格，stock=0 前端标缺货，status 前端区分停售文案 */
     public record SkuInfo(
-            UUID id, String name, String image, Money price, Money originalPrice, Integer stock, Integer status) {}
+            UUID id, String name, String image, Money price, Money originalPrice, Integer stock, boolean onSale) {}
 }

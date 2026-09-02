@@ -1,6 +1,7 @@
 package com.shop.platform.product.service;
 
 import com.shop.platform.product.mapper.Category;
+import com.shop.platform.product.model.CategoryStatus;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
@@ -12,7 +13,7 @@ public record CategoryNode(
         String name,
         Integer level,
         Integer sort,
-        Integer status,
+        CategoryStatus status,
         String iconUrl,
         List<CategoryNode> children) {
 

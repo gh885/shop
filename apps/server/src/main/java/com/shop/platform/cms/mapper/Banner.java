@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.cms.model.CmsStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -20,11 +21,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @TableName("cms.banners")
 public class Banner {
-
-    /** 状态见 status 字段 javadoc：1 启用 / 0 停用 */
-    public static final int STATUS_ENABLED = 1;
-
-    public static final int STATUS_DISABLED = 0;
 
     /** 主键。应用层生成 uuidv7 */
     @TableId(type = IdType.INPUT)
@@ -54,8 +50,8 @@ public class Banner {
     /** 同级排序权重 */
     private Integer sortOrder;
 
-    /** 1 启用 / 0 停用，不做物理删除 */
-    private Integer status;
+    /** 启用 / 停用，不做物理删除 */
+    private CmsStatus status;
 
     /** 定时生效：null 表示立即生效，不参与时间过滤 */
     private OffsetDateTime startAt;

@@ -13,6 +13,8 @@ import com.shop.platform.common.Money;
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
+import com.shop.platform.product.model.ProductStatus;
+import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.user.api.AddressSnapshotView;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -64,20 +66,24 @@ class CheckoutResolverTest {
                 new CheckoutResolver(productReadQuery, stockReadQuery, shopReadQuery, addressReadQuery, cartReadQuery);
     }
 
-    private SkuView sku(Long price, int status) {
+    private SkuView sku(Long price, SkuStatus status) {
         return new SkuView(skuId, productId, "黑色 S", null, price, 1200L, "CNY", status);
     }
 
-    private ProductView product(int status) {
+    private ProductView product(ProductStatus status) {
         return new ProductView(productId, shopId, "测试手机", "spu.png", 1000L, 1000L, status);
     }
 
     private void stubSellable(long price, int available) {
-        lenient().when(productReadQuery.skusByIds(anyCollection())).thenReturn(Map.of(skuId, sku(price, 1)));
+        lenient()
+                .when(productReadQuery.skusByIds(anyCollection()))
+                .thenReturn(Map.of(skuId, sku(price, SkuStatus.ON_SALE)));
         lenient()
                 .when(stockReadQuery.availableBySkuIds(anyCollection()))
                 .thenReturn(Map.of(skuId, new StockView(skuId, 10, 0, available)));
-        lenient().when(productReadQuery.productsByIds(anyCollection())).thenReturn(Map.of(productId, product(1)));
+        lenient()
+                .when(productReadQuery.productsByIds(anyCollection()))
+                .thenReturn(Map.of(productId, product(ProductStatus.PUBLISHED)));
     }
 
     // ---- 来源二选一 ----
@@ -147,8 +153,10 @@ class CheckoutResolverTest {
 
     @Test
     void SKU停售_归因UNAVAILABLE() {
-        when(productReadQuery.skusByIds(anyCollection())).thenReturn(Map.of(skuId, sku(500L, 0))); // 停售
-        when(productReadQuery.productsByIds(anyCollection())).thenReturn(Map.of(productId, product(1)));
+        when(productReadQuery.skusByIds(anyCollection()))
+                .thenReturn(Map.of(skuId, sku(500L, SkuStatus.DISABLED))); // 停售
+        when(productReadQuery.productsByIds(anyCollection()))
+                .thenReturn(Map.of(productId, product(ProductStatus.PUBLISHED)));
 
         var resolved = resolver.resolve(userId, null, skuId, 1);
         assertThat(resolved.unavailable().getFirst().cause())
@@ -157,8 +165,9 @@ class CheckoutResolverTest {
 
     @Test
     void SPU下架_归因UNAVAILABLE() {
-        when(productReadQuery.skusByIds(anyCollection())).thenReturn(Map.of(skuId, sku(500L, 1)));
-        when(productReadQuery.productsByIds(anyCollection())).thenReturn(Map.of(productId, product(0))); // 下架
+        when(productReadQuery.skusByIds(anyCollection())).thenReturn(Map.of(skuId, sku(500L, SkuStatus.ON_SALE)));
+        when(productReadQuery.productsByIds(anyCollection()))
+                .thenReturn(Map.of(productId, product(ProductStatus.OFF))); // 下架
 
         var resolved = resolver.resolve(userId, null, skuId, 1);
         assertThat(resolved.unavailable().getFirst().cause())
@@ -177,8 +186,9 @@ class CheckoutResolverTest {
 
     @Test
     void 库存投影缺席_按零库存处理() {
-        when(productReadQuery.skusByIds(anyCollection())).thenReturn(Map.of(skuId, sku(500L, 1)));
-        when(productReadQuery.productsByIds(anyCollection())).thenReturn(Map.of(productId, product(1)));
+        when(productReadQuery.skusByIds(anyCollection())).thenReturn(Map.of(skuId, sku(500L, SkuStatus.ON_SALE)));
+        when(productReadQuery.productsByIds(anyCollection()))
+                .thenReturn(Map.of(productId, product(ProductStatus.PUBLISHED)));
         when(stockReadQuery.availableBySkuIds(anyCollection())).thenReturn(Map.of());
 
         var resolved = resolver.resolve(userId, null, skuId, 1);

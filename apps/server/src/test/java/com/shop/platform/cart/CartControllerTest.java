@@ -78,7 +78,7 @@ class CartControllerTest extends WebControllerTestSupport {
                         true,
                         OffsetDateTime.now(),
                         new CartItemView.ProductInfo(UUID.randomUUID(), "测试商品", "p.png", UUID.randomUUID(), "测试店铺"),
-                        new CartItemView.SkuInfo(skuId, "黑色 S", null, Money.cny(1000), null, 5, 1),
+                        new CartItemView.SkuInfo(skuId, "黑色 S", null, Money.cny(1000), null, 5, true),
                         true)));
 
         mockMvc.perform(get("/cart/items").with(userAuth(userId)))

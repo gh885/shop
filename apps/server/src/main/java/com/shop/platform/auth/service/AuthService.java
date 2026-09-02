@@ -5,6 +5,7 @@ import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
+import com.shop.platform.infra.observability.MdcScope;
 import com.shop.platform.infra.security.DeviceInfo;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
@@ -15,11 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -327,27 +328,15 @@ public class AuthService {
             reason = "wrong_password";
             log.warn("[AUTH] 登录失败：密码错误, userId={}, ip={}", user.getId(), clientIp);
         }
-        MDC.put("event", "auth.login.failed");
-        MDC.put("reason", reason);
-        MDC.put("client_ip", clientIp);
-        if (user != null) {
-            MDC.put("user_id", user.getId().toString());
-        }
-        try {
+        try (MdcScope scope = MdcScope.of("event", "auth.login.failed", "reason", reason, "client_ip", clientIp)) {
+            scope.put("user_id", user == null ? null : user.getId().toString());
             log.warn("[AUTH] 登录失败, reason={}, client_ip={}", reason, clientIp);
-        } finally {
-            MDC.remove("event");
-            MDC.remove("reason");
-            MDC.remove("client_ip");
-            if (user != null) {
-                MDC.remove("user_id");
-            }
         }
         return BusinessException.unauthorized("手机号或密码错误");
     }
 
     private void ensureUserActive(User user) {
-        if (!User.STATUS_ACTIVE.equals(user.getStatus())) {
+        if (!user.isActive()) {
             throw new BusinessException(403, "USER_DISABLED", "账号已被禁用");
         }
     }
@@ -367,13 +356,9 @@ public class AuthService {
         userMapper.updateById(user);
 
         // EVT-12: 登录成功事件
-        MDC.put("event", "auth.login.succeeded");
-        MDC.put("user_id", user.getId().toString());
-        try {
+        try (MdcScope _ = MdcScope.of(
+                "event", "auth.login.succeeded", "user_id", user.getId().toString())) {
             log.info("[AUTH] 登录成功, userId={}", user.getId());
-        } finally {
-            MDC.remove("event");
-            MDC.remove("user_id");
         }
 
         return new TokenPair(accessToken, refreshToken);
@@ -402,7 +387,7 @@ public class AuthService {
             throw BusinessException.badRequest("密码不能与手机号相同");
         }
         // REG-03: 常见密码黑名单
-        if (COMMON_PASSWORDS.contains(password.toLowerCase())) {
+        if (COMMON_PASSWORDS.contains(password.toLowerCase(Locale.ROOT))) {
             throw BusinessException.badRequest("密码过于常见，请更换");
         }
     }

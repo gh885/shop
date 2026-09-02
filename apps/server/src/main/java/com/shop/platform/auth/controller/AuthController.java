@@ -1,5 +1,6 @@
 package com.shop.platform.auth.controller;
 
+import com.shop.platform.auth.AuthProperties;
 import com.shop.platform.auth.dto.ForgotPasswordRequest;
 import com.shop.platform.auth.dto.LogoutRequest;
 import com.shop.platform.auth.dto.PasswordLoginRequest;
@@ -14,32 +15,30 @@ import com.shop.platform.auth.service.AuthService;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
-import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.captcha.CaptchaService;
 import com.shop.platform.infra.qiniu.QiniuClient;
+import com.shop.platform.infra.qiniu.UploadTicket;
+import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
-import io.swagger.v3.oas.annotations.media.Schema;
+import com.shop.platform.infra.web.CurrentUser;
+import com.shop.platform.infra.web.RefreshCookies;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,23 +49,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private static final String REFRESH_COOKIE = "refresh_token";
-    private static final long REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 天秒数
-
     private final SmsCodeService smsCodeService;
     private final AuthService authService;
     private final CaptchaService captchaService;
     private final QiniuClient qiniuClient;
     private final ClientIp clientIp;
+    private final RefreshCookies refreshCookies;
+    private final AuthProperties authProperties;
 
     /**
-     * refresh cookie 的 Domain。留空 = 不设 domain（单站点，如本地 localhost）；
+     * 买家端 refresh cookie 身份。domain 留空 = 不设 domain（单站点，如本地 localhost）；
      * 生产配置成共享父域（如 .example.com）后，买家端(web)与卖家端(seller)共用同一个
      * refresh cookie —— 登录一处另一处自动登录（淘宝千牛式共享会话 / 轻量单点登录）。
      * 注意：admin 走独立 staff 账号体系与 C 端隔离，不纳入共享。
      */
-    @Value("${shop.auth.refresh-cookie-domain:}")
-    private String refreshCookieDomain;
+    private RefreshCookies.Spec cookieSpec() {
+        return new RefreshCookies.Spec("refresh_token", "/auth/refresh", authProperties.refreshCookieDomain());
+    }
 
     /** 发送短信验证码 */
     @PostMapping("/sms-code")
@@ -87,11 +86,12 @@ public class AuthController {
     @PostMapping("/login/sms")
     public TokenPair loginBySms(
             @Valid @RequestBody SmsLoginRequest req,
+            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
-        TokenPair result = authService.loginBySms(
-                req.phone(), req.code(), req.deviceId(), clientIp.of(servletRequest), userAgent(servletRequest));
-        setRefreshCookie(servletResponse, result.refreshToken());
+        TokenPair result =
+                authService.loginBySms(req.phone(), req.code(), req.deviceId(), clientIp.of(servletRequest), userAgent);
+        refreshCookies.issue(servletResponse, cookieSpec(), result.refreshToken());
         return result;
     }
 
@@ -99,18 +99,18 @@ public class AuthController {
     @PostMapping("/login/password")
     public TokenPair loginByPassword(
             @Valid @RequestBody PasswordLoginRequest req,
+            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
         TokenPair result = authService.loginByPassword(
-                req.phone(), req.password(), req.deviceId(), clientIp.of(servletRequest), userAgent(servletRequest));
-        setRefreshCookie(servletResponse, result.refreshToken());
+                req.phone(), req.password(), req.deviceId(), clientIp.of(servletRequest), userAgent);
+        refreshCookies.issue(servletResponse, cookieSpec(), result.refreshToken());
         return result;
     }
 
     /** 首次设置密码（无旧密码）或修改密码（需当前密码，RESET-05） */
     @PostMapping("/password")
-    public void setPassword(@Valid @RequestBody SetPasswordRequest req) {
-        UUID userId = UserIdHolder.get();
+    public void setPassword(@CurrentUser UUID userId, @Valid @RequestBody SetPasswordRequest req) {
         authService.setPassword(userId, req.currentPassword(), req.newPassword());
     }
 
@@ -131,148 +131,104 @@ public class AuthController {
     public TokenPair refresh(
             HttpServletRequest request,
             HttpServletResponse response,
+            @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
             @RequestBody(required = false) RefreshRequest req) {
-        String refreshToken = resolveRefreshToken(request, req);
+        // Cookie 优先、Body 兜底：web 走 httpOnly cookie，原生端无 cookie 容器只能走 body
+        String fromCookie = refreshCookies.read(request, cookieSpec());
+        String refreshToken = fromCookie != null ? fromCookie : (req == null ? null : req.refreshToken());
         if (refreshToken == null) {
             throw new BusinessException(401, "INVALID_TOKEN", "Refresh Token 未提供");
         }
-        String deviceId = req != null && req.deviceId() != null ? req.deviceId() : "default";
 
-        TokenPair result = authService.refresh(refreshToken, deviceId, clientIp.of(request), userAgent(request));
-        setRefreshCookie(response, result.refreshToken());
+        TokenPair result = authService.refresh(refreshToken, deviceIdOrDefault(req), clientIp.of(request), userAgent);
+        refreshCookies.issue(response, cookieSpec(), result.refreshToken());
         return result;
     }
 
     /** 当前登录用户信息 */
     @GetMapping("/me")
-    public MeResponse me() {
-        UUID userId = UserIdHolder.get();
-        User user = authService.getMe(userId);
-        return new MeResponse(user.getId(), PhoneNumber.mask(user.getPhone()), user.getNickname(), user.getAvatarKey());
+    public MeResponse me(@CurrentUser UUID userId) {
+        return MeResponse.from(authService.getMe(userId));
     }
 
     /** 头像上传凭证：前端拿 ticket 后直传七牛，传完把 key 随更新资料（avatarKey）保存 */
     @PostMapping("/avatar-ticket")
     public AvatarTicketResponse issueAvatarTicket(@RequestParam String ext) {
-        String e = QiniuClient.validateImageExt(ext);
-        String key = qiniuClient.newKey("user/avatar", e);
-        return new AvatarTicketResponse(
-                qiniuClient.uploadUrl(key), key, qiniuClient.issueUploadToken(key), qiniuClient.publicUrl(key));
+        return AvatarTicketResponse.from(qiniuClient.issueTicket("user/avatar", ext));
     }
 
     /** 登出（STORE-02: 清除 Cookie） */
     @PostMapping("/logout")
-    public void logout(
-            HttpServletRequest request, HttpServletResponse response, @Valid @RequestBody LogoutRequest req) {
-        UUID userId = UserIdHolder.get();
+    public void logout(@CurrentUser UUID userId, @Valid @RequestBody LogoutRequest req, HttpServletResponse response) {
         authService.logout(userId, req.deviceId());
-        clearRefreshCookie(response);
+        refreshCookies.clear(response, cookieSpec());
     }
 
     /** 更新个人资料（昵称 + 头像） */
     @PutMapping("/profile")
-    public MeResponse updateProfile(@Valid @RequestBody UpdateProfileRequest req) {
-        UUID userId = UserIdHolder.get();
-        User user = authService.updateProfile(userId, req.nickname(), req.avatarKey());
-        return new MeResponse(user.getId(), PhoneNumber.mask(user.getPhone()), user.getNickname(), user.getAvatarKey());
+    public MeResponse updateProfile(@CurrentUser UUID userId, @Valid @RequestBody UpdateProfileRequest req) {
+        return MeResponse.from(authService.updateProfile(userId, req.nickname(), req.avatarKey()));
     }
 
     /** 登出所有设备（清空全端会话，当前请求也失效，需重新登录） */
     @PostMapping("/logout-all")
-    public void logoutAll() {
-        UUID userId = UserIdHolder.get();
+    public void logoutAll(@CurrentUser UUID userId) {
         authService.logoutAll(userId);
     }
 
     /** 设备列表：展示当前有效会话（设备名/IP/时间），当前设备标记 isCurrent */
     @GetMapping("/devices")
-    public List<DeviceEntryResponse> devices(@RequestParam(required = false) String currentDeviceId) {
-        UUID userId = UserIdHolder.get();
+    public List<DeviceEntryResponse> devices(
+            @CurrentUser UUID userId, @RequestParam(required = false) String currentDeviceId) {
         return authService.listDevices(userId, currentDeviceId).stream()
-                .map(entry -> new DeviceEntryResponse(
-                        entry.deviceId(),
-                        entry.info().deviceName(),
-                        entry.info().ip(),
-                        entry.info().lastLoginAt(),
-                        entry.deviceId().equals(currentDeviceId)))
+                .map(entry -> DeviceEntryResponse.from(entry, currentDeviceId))
                 .toList();
     }
 
     /** 登出单台设备 */
     @DeleteMapping("/devices/{deviceId}")
-    public void deleteDevice(@PathVariable String deviceId) {
-        UUID userId = UserIdHolder.get();
+    public void deleteDevice(@CurrentUser UUID userId, @PathVariable String deviceId) {
         authService.deleteDevice(userId, deviceId);
     }
 
-    // ---- 请求工具 ----
-
-    /** User-Agent 头（可能为 null，用于设备名解析） */
-    private String userAgent(HttpServletRequest request) {
-        return request.getHeader("User-Agent");
-    }
-
-    // ---- Cookie 处理 ----
-
-    private void setRefreshCookie(HttpServletResponse response, String refreshToken) {
-        response.addHeader(
-                HttpHeaders.SET_COOKIE,
-                buildRefreshCookie(refreshToken, REFRESH_COOKIE_MAX_AGE).toString());
-    }
-
-    private void clearRefreshCookie(HttpServletResponse response) {
-        response.addHeader(HttpHeaders.SET_COOKIE, buildRefreshCookie("", 0).toString());
-    }
-
-    private ResponseCookie buildRefreshCookie(String value, long maxAgeSec) {
-        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(REFRESH_COOKIE, value)
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Lax")
-                .path("/auth/refresh")
-                .maxAge(Duration.ofSeconds(maxAgeSec));
-        // 未配置时保持无 domain（本地开发）；配置后才跨子域共享会话
-        if (refreshCookieDomain != null && !refreshCookieDomain.isBlank()) {
-            builder.domain(refreshCookieDomain);
-        }
-        return builder.build();
-    }
-
-    /** Cookie → Body 依次尝试获取 refresh token */
-    private String resolveRefreshToken(HttpServletRequest request, RefreshRequest req) {
-        if (request.getCookies() != null) {
-            String fromCookie = Arrays.stream(request.getCookies())
-                    .filter(c -> REFRESH_COOKIE.equals(c.getName()))
-                    .map(Cookie::getValue)
-                    .findFirst()
-                    .orElse(null);
-            if (fromCookie != null) return fromCookie;
-        }
-        return req != null ? req.refreshToken() : null;
+    /** 刷新请求可不带 body（web 走 cookie），deviceId 缺省归入 "default" 桶 */
+    private static String deviceIdOrDefault(RefreshRequest req) {
+        return req == null || req.deviceId() == null ? "default" : req.deviceId();
     }
 
     // ---- Response DTOs ----
 
     /** 当前登录用户信息（手机号已脱敏） */
-    public record MeResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String phone,
-            String nickname,
-            String avatarKey) {}
+    public record MeResponse(UUID id, String phone, String nickname, String avatarKey) {
+
+        static MeResponse from(User user) {
+            return new MeResponse(
+                    user.getId(), PhoneNumber.mask(user.getPhone()), user.getNickname(), user.getAvatarKey());
+        }
+    }
 
     /** 图片上传凭证：前端把文件 PUT 到 uploadUrl，请求头带 Authorization: UpToken <token>；传完用 url/key 保存 */
-    public record AvatarTicketResponse(String uploadUrl, String key, String token, String url) {}
+    public record AvatarTicketResponse(String uploadUrl, String key, String token, String url) {
+
+        static AvatarTicketResponse from(UploadTicket t) {
+            return new AvatarTicketResponse(t.uploadUrl(), t.key(), t.token(), t.url());
+        }
+    }
 
     /** 图形验证码出参：前端渲染图（base64 data URI），校验时回传 id + 用户输入 */
-    public record CaptchaResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String captchaId,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String image) {}
+    public record CaptchaResponse(String captchaId, String image) {}
 
     /** 设备列表项：deviceId + 元数据（设备名/IP/最近活跃）+ 是否当前设备 */
     public record DeviceEntryResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String deviceId,
-            String deviceName,
-            String ip,
-            OffsetDateTime lastLoginAt,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean isCurrent) {}
+            String deviceId, String deviceName, String ip, OffsetDateTime lastLoginAt, boolean isCurrent) {
+
+        static DeviceEntryResponse from(RefreshTokenStore.DeviceEntry entry, String currentDeviceId) {
+            return new DeviceEntryResponse(
+                    entry.deviceId(),
+                    entry.info().deviceName(),
+                    entry.info().ip(),
+                    entry.info().lastLoginAt(),
+                    entry.deviceId().equals(currentDeviceId));
+        }
+    }
 }

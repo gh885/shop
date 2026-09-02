@@ -53,12 +53,12 @@ public final class TestDb {
         UUID productId = UUID.randomUUID();
         UUID skuId = UUID.randomUUID();
         jdbc.update(
-                "INSERT INTO product.products (id, shop_id, category_id, name, status) VALUES (?::uuid, ?::uuid, ?::uuid, '测试商品', 1)",
+                "INSERT INTO product.products (id, shop_id, category_id, name, status) VALUES (?::uuid, ?::uuid, ?::uuid, '测试商品', 'PUBLISHED')",
                 productId.toString(),
                 shopId.toString(),
                 UUID.randomUUID().toString());
         jdbc.update(
-                "INSERT INTO product.skus (id, product_id, name, price, currency, status, spec_key) VALUES (?::uuid, ?::uuid, '测试SKU', ?, 'CNY', 1, '')",
+                "INSERT INTO product.skus (id, product_id, name, price, currency, status, spec_key) VALUES (?::uuid, ?::uuid, '测试SKU', ?, 'CNY', 'ON_SALE', '')",
                 skuId.toString(),
                 productId.toString(),
                 priceFen);

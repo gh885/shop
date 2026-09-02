@@ -551,7 +551,7 @@
                         "name": "status",
                         "in": "path",
                         "required": true,
-                        "schema": { "type": "integer", "format": "int32" }
+                        "schema": { "type": "string", "enum": ["DISABLED", "ENABLED"] }
                     }
                 ],
                 "responses": { "200": { "description": "OK" } }
@@ -602,7 +602,7 @@
                         "name": "status",
                         "in": "path",
                         "required": true,
-                        "schema": { "type": "integer", "format": "int32" }
+                        "schema": { "type": "string", "enum": ["DISABLED", "ENABLED"] }
                     }
                 ],
                 "responses": { "200": { "description": "OK" } }
@@ -653,7 +653,7 @@
                         "name": "status",
                         "in": "path",
                         "required": true,
-                        "schema": { "type": "integer", "format": "int32" }
+                        "schema": { "type": "string", "enum": ["DISABLED", "ENABLED"] }
                     }
                 ],
                 "responses": { "200": { "description": "OK" } }
@@ -706,7 +706,9 @@
                 "requestBody": {
                     "content": {
                         "application/json": {
-                            "schema": { "$ref": "#/components/schemas/UpdateStatusRequest" }
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCategoryAttrStatusRequest"
+                            }
                         }
                     },
                     "required": true
@@ -793,7 +795,7 @@
                 "requestBody": {
                     "content": {
                         "application/json": {
-                            "schema": { "$ref": "#/components/schemas/UpdateStatusRequest" }
+                            "schema": { "$ref": "#/components/schemas/UpdateCategoryStatusRequest" }
                         }
                     },
                     "required": true
@@ -957,12 +959,7 @@
                         "name": "status",
                         "in": "query",
                         "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int32",
-                            "maximum": 2,
-                            "minimum": 0
-                        }
+                        "schema": { "type": "string", "enum": ["OFF", "PUBLISHED", "DRAFT"] }
                     },
                     {
                         "name": "keyword",
@@ -1368,6 +1365,14 @@
             "post": {
                 "tags": ["auth"],
                 "operationId": "refresh",
+                "parameters": [
+                    {
+                        "name": "User-Agent",
+                        "in": "header",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    }
+                ],
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -1426,6 +1431,14 @@
             "post": {
                 "tags": ["auth"],
                 "operationId": "loginBySms",
+                "parameters": [
+                    {
+                        "name": "User-Agent",
+                        "in": "header",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    }
+                ],
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -1448,6 +1461,14 @@
             "post": {
                 "tags": ["auth"],
                 "operationId": "loginByPassword",
+                "parameters": [
+                    {
+                        "name": "User-Agent",
+                        "in": "header",
+                        "required": false,
+                        "schema": { "type": "string" }
+                    }
+                ],
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -2540,10 +2561,19 @@
                     },
                     "minPrice": { "type": "integer", "format": "int64" },
                     "maxPrice": { "type": "integer", "format": "int64" },
-                    "status": { "type": "integer", "format": "int32" },
+                    "status": { "type": "string", "enum": ["OFF", "PUBLISHED", "DRAFT"] },
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
-                }
+                },
+                "required": [
+                    "categoryId",
+                    "createdAt",
+                    "id",
+                    "name",
+                    "shopId",
+                    "status",
+                    "updatedAt"
+                ]
             },
             "SpecItem": {
                 "type": "object",
@@ -2623,10 +2653,11 @@
                     "originalPrice": { "type": "integer", "format": "int64" },
                     "currency": { "type": "string" },
                     "stock": { "type": "integer", "format": "int32" },
-                    "status": { "type": "integer", "format": "int32" },
+                    "status": { "type": "string", "enum": ["DISABLED", "ON_SALE"] },
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
-                }
+                },
+                "required": ["createdAt", "id", "name", "productId", "status", "stock", "updatedAt"]
             },
             "SkuUpdateItem": {
                 "type": "object",
@@ -2638,7 +2669,7 @@
                     "originalPrice": { "type": "integer", "format": "int64", "minimum": 0 },
                     "stock": { "type": "integer", "format": "int32", "minimum": 0 },
                     "skuCode": { "type": "string", "maxLength": 64, "minLength": 0 },
-                    "status": { "type": "integer", "format": "int32", "maximum": 1, "minimum": 0 }
+                    "status": { "type": "string", "enum": ["DISABLED", "ON_SALE"] }
                 },
                 "required": ["price", "skuId", "stock"]
             },
@@ -2744,7 +2775,7 @@
                     "targetType": { "type": "string" },
                     "isDefault": { "type": "boolean" },
                     "sortOrder": { "type": "integer", "format": "int32" },
-                    "status": { "type": "integer", "format": "int32" },
+                    "status": { "type": "string", "enum": ["DISABLED", "ENABLED"] },
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
                 }
@@ -2795,7 +2826,7 @@
                         "items": { "$ref": "#/components/schemas/NavGroup" }
                     },
                     "sortOrder": { "type": "integer", "format": "int32" },
-                    "status": { "type": "integer", "format": "int32" },
+                    "status": { "type": "string", "enum": ["DISABLED", "ENABLED"] },
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
                 }
@@ -2831,7 +2862,7 @@
                     "targetType": { "type": "string" },
                     "link": { "type": "string" },
                     "sortOrder": { "type": "integer", "format": "int32" },
-                    "status": { "type": "integer", "format": "int32" },
+                    "status": { "type": "string", "enum": ["DISABLED", "ENABLED"] },
                     "startAt": { "type": "string", "format": "date-time" },
                     "endAt": { "type": "string", "format": "date-time" },
                     "createdAt": { "type": "string", "format": "date-time" },
@@ -2842,7 +2873,7 @@
                 "type": "object",
                 "properties": {
                     "name": { "type": "string", "maxLength": 32, "minLength": 0 },
-                    "kind": { "type": "integer", "format": "int32", "maximum": 2, "minimum": 1 },
+                    "kind": { "type": "string", "enum": ["SPEC", "PARAM"] },
                     "required": { "type": "boolean" },
                     "allowCustom": { "type": "boolean" },
                     "sort": { "type": "integer", "format": "int32" }
@@ -2855,20 +2886,18 @@
                     "id": { "type": "string", "format": "uuid" },
                     "categoryId": { "type": "string", "format": "uuid" },
                     "name": { "type": "string" },
-                    "kind": { "type": "integer", "format": "int32" },
+                    "kind": { "type": "string", "enum": ["SPEC", "PARAM"] },
                     "required": { "type": "boolean" },
                     "allowCustom": { "type": "boolean" },
                     "sort": { "type": "integer", "format": "int32" },
-                    "status": { "type": "integer", "format": "int32" },
+                    "status": { "type": "string", "enum": ["DISABLED", "ENABLED"] },
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
                 }
             },
-            "UpdateStatusRequest": {
+            "UpdateCategoryAttrStatusRequest": {
                 "type": "object",
-                "properties": {
-                    "status": { "type": "integer", "format": "int32", "maximum": 1, "minimum": 0 }
-                },
+                "properties": { "status": { "type": "string", "enum": ["DISABLED", "ENABLED"] } },
                 "required": ["status"]
             },
             "CategoryAttrValueRequest": {
@@ -2886,7 +2915,7 @@
                     "attrId": { "type": "string", "format": "uuid" },
                     "value": { "type": "string" },
                     "sort": { "type": "integer", "format": "int32" },
-                    "source": { "type": "integer", "format": "int32" },
+                    "source": { "type": "string", "enum": ["PLATFORM", "SELLER"] },
                     "createdAt": { "type": "string", "format": "date-time" }
                 }
             },
@@ -2907,11 +2936,16 @@
                     "name": { "type": "string" },
                     "level": { "type": "integer", "format": "int32" },
                     "sort": { "type": "integer", "format": "int32" },
-                    "status": { "type": "integer", "format": "int32" },
+                    "status": { "type": "string", "enum": ["DISABLED", "ENABLED"] },
                     "iconUrl": { "type": "string" },
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
                 }
+            },
+            "UpdateCategoryStatusRequest": {
+                "type": "object",
+                "properties": { "status": { "type": "string", "enum": ["DISABLED", "ENABLED"] } },
+                "required": ["status"]
             },
             "AddressParseRequest": {
                 "type": "object",
@@ -2945,10 +2979,14 @@
                     "ownerId": { "type": "string", "format": "uuid" },
                     "name": { "type": "string" },
                     "logoKey": { "type": "string" },
-                    "status": { "type": "string" },
+                    "status": {
+                        "type": "string",
+                        "enum": ["PENDING_REVIEW", "ACTIVE", "REJECTED", "DISABLED"]
+                    },
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
-                }
+                },
+                "required": ["createdAt", "id", "name", "ownerId", "status", "updatedAt"]
             },
             "InviteMemberRequest": {
                 "type": "object",
@@ -2964,12 +3002,22 @@
                     "id": { "type": "string", "format": "uuid" },
                     "shopId": { "type": "string", "format": "uuid" },
                     "userId": { "type": "string", "format": "uuid" },
-                    "role": { "type": "string" },
-                    "status": { "type": "string" },
+                    "role": { "type": "string", "enum": ["OWNER", "MEMBER"] },
+                    "status": { "type": "string", "enum": ["PENDING", "ACTIVE"] },
                     "permissions": { "type": "array", "items": { "type": "string" } },
                     "createdAt": { "type": "string", "format": "date-time" },
                     "updatedAt": { "type": "string", "format": "date-time" }
-                }
+                },
+                "required": [
+                    "createdAt",
+                    "id",
+                    "permissions",
+                    "role",
+                    "shopId",
+                    "status",
+                    "updatedAt",
+                    "userId"
+                ]
             },
             "CreateProductRequest": {
                 "type": "object",
@@ -3022,7 +3070,10 @@
                     "orderNo": { "type": "string" },
                     "amount": { "$ref": "#/components/schemas/Money" },
                     "channel": { "type": "string" },
-                    "status": { "type": "string" },
+                    "status": {
+                        "type": "string",
+                        "enum": ["PENDING", "SUCCESS", "FAILED", "REFUNDED"]
+                    },
                     "paidAt": { "type": "string", "format": "date-time" }
                 }
             },
@@ -3284,7 +3335,7 @@
                     "id": { "type": "string", "format": "uuid" },
                     "shopId": { "type": "string", "format": "uuid" },
                     "staffId": { "type": "string", "format": "uuid" },
-                    "status": { "type": "string" },
+                    "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
                     "reason": { "type": "string" },
                     "decidedAt": { "type": "string", "format": "date-time" },
                     "createdAt": { "type": "string", "format": "date-time" },
@@ -3316,8 +3367,8 @@
                     "memberId": { "type": "string", "format": "uuid" },
                     "userId": { "type": "string", "format": "uuid" },
                     "phone": { "type": "string" },
-                    "role": { "type": "string" },
-                    "status": { "type": "string" },
+                    "role": { "type": "string", "enum": ["OWNER", "MEMBER"] },
+                    "status": { "type": "string", "enum": ["PENDING", "ACTIVE"] },
                     "permissions": { "type": "array", "items": { "type": "string" } }
                 },
                 "required": ["memberId", "permissions", "role", "status", "userId"]
@@ -3356,7 +3407,8 @@
                         "type": "array",
                         "items": { "$ref": "#/components/schemas/SkuResponse" }
                     }
-                }
+                },
+                "required": ["product", "skus"]
             },
             "OrderQuery": { "type": "object", "properties": { "status": { "type": "string" } } },
             "PageResultSellerOrderListItemResponse": {
@@ -3374,7 +3426,10 @@
                 "properties": {
                     "id": { "type": "string", "format": "uuid" },
                     "orderNo": { "type": "string" },
-                    "status": { "type": "string" },
+                    "status": {
+                        "type": "string",
+                        "enum": ["PENDING_PAYMENT", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"]
+                    },
                     "payAmount": { "$ref": "#/components/schemas/Money" },
                     "receiverName": { "type": "string" },
                     "itemCount": { "type": "integer", "format": "int64" },
@@ -3386,7 +3441,10 @@
                 "properties": {
                     "id": { "type": "string", "format": "uuid" },
                     "orderNo": { "type": "string" },
-                    "status": { "type": "string" },
+                    "status": {
+                        "type": "string",
+                        "enum": ["PENDING_PAYMENT", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"]
+                    },
                     "shopId": { "type": "string", "format": "uuid" },
                     "shopName": { "type": "string" },
                     "availableActions": { "type": "array", "items": { "type": "string" } },
@@ -3409,8 +3467,11 @@
                     "cancelledAt": { "type": "string", "format": "date-time" },
                     "cancelReason": { "type": "string" },
                     "createdAt": { "type": "string", "format": "date-time" },
-                    "afterSaleStatus": { "type": "string" },
-                    "afterSaleType": { "type": "string" },
+                    "afterSaleStatus": {
+                        "type": "string",
+                        "enum": ["NONE", "APPLYING", "RETURNING", "REFUNDED", "REJECTED", "CLOSED"]
+                    },
+                    "afterSaleType": { "type": "string", "enum": ["REFUND_ONLY", "RETURN_REFUND"] },
                     "refundAmount": { "$ref": "#/components/schemas/Money" },
                     "afterSaleRefundedAt": { "type": "string", "format": "date-time" },
                     "applyExpireAt": { "type": "string", "format": "date-time" },
@@ -3440,7 +3501,10 @@
                 "properties": {
                     "id": { "type": "string", "format": "uuid" },
                     "orderNo": { "type": "string" },
-                    "status": { "type": "string" },
+                    "status": {
+                        "type": "string",
+                        "enum": ["PENDING_PAYMENT", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"]
+                    },
                     "shopId": { "type": "string", "format": "uuid" },
                     "shopName": { "type": "string" },
                     "payAmount": { "$ref": "#/components/schemas/Money" },
@@ -3527,7 +3591,7 @@
                     "price": { "$ref": "#/components/schemas/Money" },
                     "originalPrice": { "$ref": "#/components/schemas/Money" },
                     "stock": { "type": "integer", "format": "int32" },
-                    "status": { "type": "integer", "format": "int32" }
+                    "onSale": { "type": "boolean" }
                 }
             },
             "CartCountResponse": {
@@ -3602,7 +3666,8 @@
                         "type": "array",
                         "items": { "$ref": "#/components/schemas/PublicSkuResponse" }
                     }
-                }
+                },
+                "required": ["product", "skus"]
             },
             "PublicSkuResponse": {
                 "type": "object",
@@ -3638,13 +3703,14 @@
                     "name": { "type": "string" },
                     "level": { "type": "integer", "format": "int32" },
                     "sort": { "type": "integer", "format": "int32" },
-                    "status": { "type": "integer", "format": "int32" },
+                    "status": { "type": "string", "enum": ["DISABLED", "ENABLED"] },
                     "iconUrl": { "type": "string" },
                     "children": {
                         "type": "array",
                         "items": { "$ref": "#/components/schemas/CategoryNodeResponse" }
                     }
-                }
+                },
+                "required": ["id", "level", "name", "status"]
             },
             "PageResultShopReviewListItemResponse": {
                 "type": "object",
@@ -3663,7 +3729,7 @@
                     "shopId": { "type": "string", "format": "uuid" },
                     "shopName": { "type": "string" },
                     "ownerPhone": { "type": "string" },
-                    "status": { "type": "string" },
+                    "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
                     "reason": { "type": "string" },
                     "decidedAt": { "type": "string", "format": "date-time" },
                     "createdAt": { "type": "string", "format": "date-time" }

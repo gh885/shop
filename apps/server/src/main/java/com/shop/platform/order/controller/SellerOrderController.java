@@ -4,11 +4,12 @@ import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
-import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentShop;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.order.service.OrderWithItems;
@@ -42,40 +43,38 @@ public class SellerOrderController {
     /** 本店订单分页：status 筛选待发货等作业 tab */
     @GetMapping
     public PageResult<SellerOrderListItemResponse> listShopOrders(
-            @Valid PageParams pageParams, @Valid OrderQuery query) {
-        PageResult<OrderWithItems> page = orderService.pageSeller(ShopIdHolder.get(), query.status(), pageParams);
-        return new PageResult<>(
-                page.records().stream().map(SellerOrderListItemResponse::from).toList(), page.total());
+            @CurrentShop UUID shopId, @Valid PageParams pageParams, @Valid OrderQuery query) {
+        return orderService.pageSeller(shopId, query.status(), pageParams).map(SellerOrderListItemResponse::from);
     }
 
     /** 本店订单详情：收货快照即打包面单信息（与买家侧共用契约，动作集取卖家视角） */
     @GetMapping("/{id}")
-    public OrderDetailResponse getShopOrderDetail(@PathVariable UUID id) {
-        return OrderDetailResponse.sellerView(orderService.sellerDetail(ShopIdHolder.get(), id));
+    public OrderDetailResponse getShopOrderDetail(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        return OrderDetailResponse.sellerView(orderService.sellerDetail(shopId, id));
     }
 
     /** 发货：待发货 → 已发货，回填物流公司 + 运单号 */
     @PutMapping("/{id}/ship")
-    public void shipOrder(@PathVariable UUID id, @Valid @RequestBody ShipOrderRequest req) {
-        orderTransitionService.ship(ShopIdHolder.get(), id, req);
+    public void shipOrder(@CurrentShop UUID shopId, @PathVariable UUID id, @Valid @RequestBody ShipOrderRequest req) {
+        orderTransitionService.ship(shopId, id, req);
     }
 
     /** 同意售后：按售后类型分派——仅退款 APPLYING→REFUNDED 一步退；退货退款 APPLYING→RETURNING 进入退货流程 */
     @PutMapping("/{id}/after-sales/agree")
-    public void agreeAfterSale(@PathVariable UUID id) {
-        orderTransitionService.agreeAfterSale(ShopIdHolder.get(), id);
+    public void agreeAfterSale(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        orderTransitionService.agreeAfterSale(shopId, id);
     }
 
     /** 拒绝售后：APPLYING → REJECTED */
     @PutMapping("/{id}/after-sales/reject")
-    public void rejectAfterSale(@PathVariable UUID id) {
-        orderTransitionService.rejectAfterSale(ShopIdHolder.get(), id);
+    public void rejectAfterSale(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        orderTransitionService.rejectAfterSale(shopId, id);
     }
 
     /** 确认收到退货（仅退货退款、退货中）：RETURNING → REFUNDED，回补库存并退款 */
     @PutMapping("/{id}/after-sales/receive")
-    public void receiveReturn(@PathVariable UUID id) {
-        orderTransitionService.receiveReturn(ShopIdHolder.get(), id);
+    public void receiveReturn(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        orderTransitionService.receiveReturn(shopId, id);
     }
 
     // ---- 出参形状 ----
@@ -84,7 +83,7 @@ public class SellerOrderController {
     public record SellerOrderListItemResponse(
             UUID id,
             String orderNo,
-            String status,
+            OrderStatus status,
             Money payAmount,
             String receiverName,
             long itemCount,
@@ -95,7 +94,7 @@ public class SellerOrderController {
             return new SellerOrderListItemResponse(
                     order.getId(),
                     order.getOrderNo(),
-                    order.getStatus().name(),
+                    order.getStatus(),
                     order.payAmountAsMoney(),
                     order.getReceiverName(),
                     o.items().size(),

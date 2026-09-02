@@ -13,6 +13,8 @@ import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.product.api.ProductReadQuery;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
+import com.shop.platform.product.model.ProductStatus;
+import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.shop.api.ShopReadQuery;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,9 +61,11 @@ class CartServiceTest {
     /** SKU 在售 + SPU 上架的可购组合 */
     private void stubSellable() {
         when(productReadQuery.skuById(skuId))
-                .thenReturn(Optional.of(new SkuView(skuId, productId, "黑色 S", null, 1000L, null, "CNY", 1)));
+                .thenReturn(Optional.of(
+                        new SkuView(skuId, productId, "黑色 S", null, 1000L, null, "CNY", SkuStatus.ON_SALE)));
         when(productReadQuery.productById(productId))
-                .thenReturn(Optional.of(new ProductView(productId, UUID.randomUUID(), "测试手机", null, null, null, 1)));
+                .thenReturn(Optional.of(new ProductView(
+                        productId, UUID.randomUUID(), "测试手机", null, null, null, ProductStatus.PUBLISHED)));
     }
 
     @Test
@@ -125,10 +129,12 @@ class CartServiceTest {
     @Test
     void SPU已下架_拒收() {
         when(productReadQuery.skuById(skuId))
-                .thenReturn(Optional.of(new SkuView(skuId, productId, "x", null, 1000L, null, "CNY", 1)));
+                .thenReturn(
+                        Optional.of(new SkuView(skuId, productId, "x", null, 1000L, null, "CNY", SkuStatus.ON_SALE)));
         // status=0 下架
         when(productReadQuery.productById(productId))
-                .thenReturn(Optional.of(new ProductView(productId, UUID.randomUUID(), "测试手机", null, null, null, 0)));
+                .thenReturn(Optional.of(
+                        new ProductView(productId, UUID.randomUUID(), "测试手机", null, null, null, ProductStatus.OFF)));
 
         assertThatThrownBy(() -> service.add(userId, request(1)))
                 .isInstanceOf(BusinessException.class)

@@ -3,9 +3,10 @@ package com.shop.platform.product.controller;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
-import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.infra.qiniu.QiniuClient;
+import com.shop.platform.infra.qiniu.UploadTicket;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentShop;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.dto.CreateProductRequest;
@@ -17,13 +18,13 @@ import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SkuAttr;
 import com.shop.platform.product.mapper.SpecItem;
+import com.shop.platform.product.model.ProductStatus;
+import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -55,16 +56,13 @@ public class ProductAdminController {
     /** 商品图上传凭证：前端拿 ticket 后直传七牛，传完把 key 写进商品的 mainImage / images / detailImages */
     @PostMapping("/image-ticket")
     public ImageTicketResponse issueImageTicket(@RequestParam String ext) {
-        String e = QiniuClient.validateImageExt(ext);
-        String key = qiniuClient.newKey("product", e);
-        return new ImageTicketResponse(
-                qiniuClient.uploadUrl(key), key, qiniuClient.issueUploadToken(key), qiniuClient.publicUrl(key));
+        return ImageTicketResponse.from(qiniuClient.issueTicket("product", ext));
     }
 
     /** 创建商品草稿，返回含 id/createdAt 的出参。shopId 从店铺上下文（X-Shop-Id）取，不由前端传入 */
     @PostMapping
-    public ProductResponse createProduct(@Valid @RequestBody CreateProductRequest request) {
-        return ProductResponse.from(productService.create(request.toCommand(ShopIdHolder.get())));
+    public ProductResponse createProduct(@CurrentShop UUID shopId, @Valid @RequestBody CreateProductRequest request) {
+        return ProductResponse.from(productService.create(request.toCommand(shopId)));
     }
 
     /** 提交规格选择并按 valueId 组合（spec_key）对账 SKU，返回当前全部 SKU（含新 id，供 updateSku 定位） */
@@ -81,7 +79,7 @@ public class ProductAdminController {
         return SkuResponse.from(skus, stocks(skus));
     }
 
-    /** 发布草稿，返回 status=1 且回填过价格区间的商品 */
+    /** 发布草稿，返回 status=PUBLISHED 且回填过价格区间的商品 */
     @PostMapping("/{id}/publish")
     public ProductResponse publishProduct(@PathVariable UUID id) {
         return ProductResponse.from(productService.publish(id));
@@ -90,12 +88,13 @@ public class ProductAdminController {
     /** 商家后台商品列表：按当前店铺（X-Shop-Id）分页，可按状态/名称筛选 */
     @GetMapping
     public PageResult<ProductResponse> listShopProducts(
+            @CurrentShop UUID shopId,
             @Valid PageParams pageParams,
-            @RequestParam(required = false) @Min(0) @Max(2) Integer status,
+            @RequestParam(required = false) ProductStatus status,
             @RequestParam(required = false) @Size(max = 128) String keyword) {
-        PageResult<Product> page =
-                productService.pageList(ShopIdHolder.get(), status, keyword, pageParams.page(), pageParams.size());
-        return new PageResult<>(ProductResponse.from(page.records()), page.total());
+        return productService
+                .pageList(shopId, status, keyword, pageParams.page(), pageParams.size())
+                .map(ProductResponse::from);
     }
 
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查 */
@@ -139,7 +138,7 @@ public class ProductAdminController {
             List<ParamItem> params,
             Long minPrice,
             Long maxPrice,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductStatus status,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 
@@ -168,7 +167,13 @@ public class ProductAdminController {
     }
 
     /** 商品图上传凭证：前端 PUT 到 uploadUrl（Authorization: UpToken <token>），传完用 url/key 存进商品图字段 */
-    public record ImageTicketResponse(String uploadUrl, String key, String token, String url) {}
+    public record ImageTicketResponse(String uploadUrl, String key, String token, String url) {
+
+        /** 镜像 infra 共享值对象 {@link UploadTicket}：拼装逻辑只留一份，HTTP 边界保留自家契约 */
+        static ImageTicketResponse from(UploadTicket t) {
+            return new ImageTicketResponse(t.uploadUrl(), t.key(), t.token(), t.url());
+        }
+    }
 
     /** SKU 全字段出参：比买家侧多 skuCode/status（卖家要看到仓管编码与停用态）；价格裸分直传，与前端 schema 对齐 */
     public record SkuResponse(
@@ -182,7 +187,7 @@ public class ProductAdminController {
             Long originalPrice,
             String currency,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) SkuStatus status,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 

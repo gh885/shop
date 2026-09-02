@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.auth.model.UserStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -25,9 +26,6 @@ import lombok.NoArgsConstructor;
 @TableName("auth.users")
 public class User {
 
-    /** 账号状态：ACTIVE 正常（与 status 字段 javadoc 同步）。提升为常量，工厂与业务层共享，防硬编码 */
-    public static final String STATUS_ACTIVE = "ACTIVE";
-
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -44,8 +42,8 @@ public class User {
     /** 头像 key（对象存储 key，非完整 URL，换 CDN/域名不影响存量数据），可空 */
     private String avatarKey;
 
-    /** 账号状态：ACTIVE 正常，其他值表示禁用/注销；不做物理删除 */
-    private String status;
+    /** 账号状态：正常/禁用，概念归 {@link UserStatus}；不做物理删除 */
+    private UserStatus status;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)
@@ -62,6 +60,11 @@ public class User {
 
     /** 短信验证码自动注册的新用户：状态固定 ACTIVE，密码后补。phone 为唯一必填，由构造签名编译期强制 */
     public static User autoRegister(String phone) {
-        return User.builder().phone(phone).status(STATUS_ACTIVE).build();
+        return User.builder().phone(phone).status(UserStatus.ACTIVE).build();
+    }
+
+    /** 是否正常账号（登录/刷新/下单的通用闸门）；禁用/注销返回 false */
+    public boolean isActive() {
+        return status != null && status.isActive();
     }
 }

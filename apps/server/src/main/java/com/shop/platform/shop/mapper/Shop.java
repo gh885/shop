@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.shop.model.ShopStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -26,15 +27,6 @@ import lombok.NoArgsConstructor;
 @TableName("shop.shops")
 public class Shop {
 
-    /** 店铺状态，见 status 字段 javadoc：PENDING_REVIEW 待审核 / ACTIVE 正常 / REJECTED 拒绝 / DISABLED 封禁 */
-    public static final String STATUS_PENDING_REVIEW = "PENDING_REVIEW";
-
-    public static final String STATUS_ACTIVE = "ACTIVE";
-
-    public static final String STATUS_REJECTED = "REJECTED";
-
-    public static final String STATUS_DISABLED = "DISABLED";
-
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -48,8 +40,13 @@ public class Shop {
     /** 店铺 logo 的 key（对象存储 key，非完整 URL，与 user.avatar_key 同风格），可空 */
     private String logoKey;
 
-    /** 店铺状态：PENDING_REVIEW 待平台审核 / ACTIVE 正常 / REJECTED 审核拒绝 / DISABLED 平台封禁；不做物理删除 */
-    private String status;
+    /** 店铺状态：PENDING_REVIEW 待审核 / ACTIVE 正常 / REJECTED 拒绝 / DISABLED 封禁；概念归 {@link ShopStatus}；不做物理删除 */
+    private ShopStatus status;
+
+    /** 是否正常营业态（下单/上架等业务闸门） */
+    public boolean isActive() {
+        return status != null && status.isActive();
+    }
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)

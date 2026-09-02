@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.admin.model.StaffStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -25,9 +26,6 @@ import lombok.NoArgsConstructor;
 @TableName("admin.staff")
 public class Staff {
 
-    /** 员工状态，见 status 字段 javadoc：ACTIVE 正常，其他值禁用 */
-    public static final String STATUS_ACTIVE = "ACTIVE";
-
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -41,8 +39,13 @@ public class Staff {
     /** 真名/展示名，可空 */
     private String displayName;
 
-    /** 员工状态：ACTIVE 正常 / 其他值禁用，不做物理删除 */
-    private String status;
+    /** 员工状态：正常/禁用，概念归 {@link StaffStatus}；不做物理删除 */
+    private StaffStatus status;
+
+    /** 是否可登录/操作后台的闸门 */
+    public boolean isActive() {
+        return status != null && status.isActive();
+    }
 
     /** 岗位：StaffRole 枚举名（SUPER_ADMIN/REVIEWER/OPS）。岗位→权限码映射见 admin/service/StaffRole，库里只存岗位名 */
     private String role;

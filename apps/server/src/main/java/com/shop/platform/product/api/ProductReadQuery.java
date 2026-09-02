@@ -1,5 +1,7 @@
 package com.shop.platform.product.api;
 
+import com.shop.platform.product.model.ProductStatus;
+import com.shop.platform.product.model.SkuStatus;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +45,7 @@ public class ProductReadQuery {
                                         rs.getObject("price", Long.class),
                                         rs.getObject("original_price", Long.class),
                                         rs.getString("currency"),
-                                        rs.getObject("status", Integer.class)));
+                                        SkuStatus.valueOf(rs.getString("status"))));
                     }
                     return map;
                 },
@@ -71,7 +73,7 @@ public class ProductReadQuery {
                                         rs.getString("main_image"),
                                         rs.getObject("min_price", Long.class),
                                         rs.getObject("max_price", Long.class),
-                                        rs.getObject("status", Integer.class)));
+                                        ProductStatus.valueOf(rs.getString("status"))));
                     }
                     return map;
                 },

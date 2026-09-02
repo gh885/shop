@@ -3,6 +3,7 @@ package com.shop.platform.admin.controller;
 import com.shop.platform.admin.dto.RejectRequest;
 import com.shop.platform.admin.infra.StaffContext;
 import com.shop.platform.admin.mapper.ShopReview;
+import com.shop.platform.admin.model.ShopReviewStatus;
 import com.shop.platform.admin.service.ShopReviewItem;
 import com.shop.platform.admin.service.ShopReviewService;
 import com.shop.platform.common.PageParams;
@@ -37,9 +38,7 @@ public class ReviewController {
     @GetMapping
     public PageResult<ShopReviewListItemResponse> listShopReviews(
             @Valid PageParams pageParams, @RequestParam(required = false) String status) {
-        PageResult<ShopReviewItem> page = shopReviewService.pageList(pageParams, status);
-        return new PageResult<>(
-                page.records().stream().map(ShopReviewListItemResponse::from).toList(), page.total());
+        return shopReviewService.pageList(pageParams, status).map(ShopReviewListItemResponse::from);
     }
 
     /** 审核通过：店铺状态 → ACTIVE */
@@ -60,7 +59,7 @@ public class ReviewController {
             UUID shopId,
             String shopName,
             String ownerPhone,
-            String status,
+            ShopReviewStatus status,
             String reason,
             OffsetDateTime decidedAt,
             OffsetDateTime createdAt) {
@@ -83,7 +82,7 @@ public class ReviewController {
             UUID id,
             UUID shopId,
             UUID staffId,
-            String status,
+            ShopReviewStatus status,
             String reason,
             OffsetDateTime decidedAt,
             OffsetDateTime createdAt,

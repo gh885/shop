@@ -10,6 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMember;
+import com.shop.platform.shop.model.MemberRole;
+import com.shop.platform.shop.model.MemberStatus;
+import com.shop.platform.shop.model.ShopStatus;
 import com.shop.platform.shop.service.ShopInviteItem;
 import com.shop.platform.shop.service.ShopMemberItem;
 import com.shop.platform.testsupport.WebControllerTestSupport;
@@ -29,7 +32,7 @@ class ShopControllerTest extends WebControllerTestSupport {
 
     private final UUID shopId = UUID.randomUUID();
 
-    private Shop shop(String status) {
+    private Shop shop(ShopStatus status) {
         Shop s = new Shop();
         s.setId(shopId);
         s.setOwnerId(userId);
@@ -42,7 +45,7 @@ class ShopControllerTest extends WebControllerTestSupport {
 
     @Test
     void 开店_落待审核状态() throws Exception {
-        when(shopService.createShop(eq(userId), eq("新店铺"), isNull())).thenReturn(shop(Shop.STATUS_PENDING_REVIEW));
+        when(shopService.createShop(eq(userId), eq("新店铺"), isNull())).thenReturn(shop(ShopStatus.PENDING_REVIEW));
 
         mockMvc.perform(post("/shops")
                         .with(userAuth(userId))
@@ -51,7 +54,7 @@ class ShopControllerTest extends WebControllerTestSupport {
                             {"name": "新店铺"}
                             """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(Shop.STATUS_PENDING_REVIEW))
+                .andExpect(jsonPath("$.status").value("PENDING_REVIEW"))
                 .andExpect(jsonPath("$.name").value("测试店铺"));
     }
 
@@ -68,11 +71,11 @@ class ShopControllerTest extends WebControllerTestSupport {
 
     @Test
     void 我的店铺列表() throws Exception {
-        when(shopService.myShops(userId)).thenReturn(List.of(shop(Shop.STATUS_ACTIVE)));
+        when(shopService.myShops(userId)).thenReturn(List.of(shop(ShopStatus.ACTIVE)));
 
         mockMvc.perform(get("/shops/mine").with(userAuth(userId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value(Shop.STATUS_ACTIVE));
+                .andExpect(jsonPath("$[0].status").value("ACTIVE"));
     }
 
     @Test
@@ -92,8 +95,8 @@ class ShopControllerTest extends WebControllerTestSupport {
         member.setId(memberId);
         member.setShopId(shopId);
         member.setUserId(userId);
-        member.setRole("OWNER");
-        member.setStatus("ACTIVE");
+        member.setRole(MemberRole.OWNER);
+        member.setStatus(MemberStatus.ACTIVE);
         when(shopService.acceptInvite(memberId, userId)).thenReturn(member);
 
         mockMvc.perform(post("/shops/invites/{memberId}/accept", memberId).with(userAuth(userId)))
@@ -104,8 +107,8 @@ class ShopControllerTest extends WebControllerTestSupport {
     @Test
     void 成员列表_拼装手机号() throws Exception {
         when(shopService.members(shopId, userId))
-                .thenReturn(List.of(
-                        new ShopMemberItem(UUID.randomUUID(), userId, "138****0000", "OWNER", "ACTIVE", List.of())));
+                .thenReturn(List.of(new ShopMemberItem(
+                        UUID.randomUUID(), userId, "138****0000", MemberRole.OWNER, MemberStatus.ACTIVE, List.of())));
 
         mockMvc.perform(get("/shops/{shopId}/members", shopId).with(userAuth(userId)))
                 .andExpect(status().isOk())
@@ -117,7 +120,7 @@ class ShopControllerTest extends WebControllerTestSupport {
         ShopMember member = new ShopMember();
         member.setId(UUID.randomUUID());
         member.setShopId(shopId);
-        member.setStatus("INVITED");
+        member.setStatus(MemberStatus.PENDING);
         when(shopService.invite(eq(shopId), eq(userId), eq("13800138000"), eq(null)))
                 .thenReturn(member);
 
@@ -130,7 +133,7 @@ class ShopControllerTest extends WebControllerTestSupport {
                             {"phone": "13800138000"}
                             """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("INVITED"));
+                .andExpect(jsonPath("$.status").value("PENDING"));
     }
 
     @Test
@@ -138,7 +141,7 @@ class ShopControllerTest extends WebControllerTestSupport {
         ShopMember member = new ShopMember();
         member.setId(UUID.randomUUID());
         member.setShopId(shopId);
-        member.setStatus("INVITED");
+        member.setStatus(MemberStatus.PENDING);
         when(shopService.invite(eq(shopId), eq(userId), eq("13800138000"), eq(List.of("ORDER_FULFILL"))))
                 .thenReturn(member);
 
@@ -151,7 +154,7 @@ class ShopControllerTest extends WebControllerTestSupport {
                             {"phone": "13800138000", "permissions": ["ORDER_FULFILL"]}
                             """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("INVITED"));
+                .andExpect(jsonPath("$.status").value("PENDING"));
     }
 
     @Test

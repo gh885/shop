@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Validate;
+import com.shop.platform.product.model.ProductStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -27,25 +28,18 @@ import lombok.NoArgsConstructor;
 @TableName(value = "product.products", autoResultMap = true)
 public class Product {
 
-    /** 商品状态，见 status 字段 javadoc：1 上架 / 0 下架 / 2 草稿 */
-    public static final int STATUS_PUBLISHED = 1;
-
-    public static final int STATUS_OFF = 0;
-
-    public static final int STATUS_DRAFT = 2;
-
-    // ---- 状态谓词：service 层的业务判断读起来像业务语言，而不是魔法数字比较 ----
+    // ---- 状态谓词：委托领域枚举的状态机（{@link ProductStatus}），service 读起来像业务语言而非魔法数字比较 ----
 
     public boolean isPublished() {
-        return status == STATUS_PUBLISHED;
+        return status != null && status.isPublished();
     }
 
     public boolean isOff() {
-        return status == STATUS_OFF;
+        return status != null && status.isOff();
     }
 
     public boolean isDraft() {
-        return status == STATUS_DRAFT;
+        return status != null && status.isDraft();
     }
 
     // ---- 状态流转：守卫 + 变更一体，不变式在实体内不可绕过；持久化（updateById）留在 service ----
@@ -53,24 +47,24 @@ public class Product {
     /** 上架：仅草稿可发布（跨聚合门槛「SKU 全部设价」由 service 复检，不在此处） */
     public void publish() {
         Validate.isTrue(isDraft(), 409, "只有草稿可以发布");
-        status = STATUS_PUBLISHED;
+        status = ProductStatus.PUBLISHED;
     }
 
     /** 下架：仅上架可下架 */
     public void off() {
         Validate.isTrue(isPublished(), 409, "只有上架商品可以下架");
-        status = STATUS_OFF;
+        status = ProductStatus.OFF;
     }
 
     /** 重新上架：仅下架可重上（重上前 SKU 设价复检同样在 service） */
     public void relist() {
         Validate.isTrue(isOff(), 409, "只有下架商品可以重新上架");
-        status = STATUS_PUBLISHED;
+        status = ProductStatus.PUBLISHED;
     }
 
     /** 规格可编辑性守卫：上架商品规格冻结（价格库存可改，规格组合不可改），要改规格先下架 */
     public void ensureSpecsEditable() {
-        Validate.isTrue(!isPublished(), 409, "上架商品不能修改规格，请先下架");
+        Validate.isTrue(status == null || status.isSpecsEditable(), 409, "上架商品不能修改规格，请先下架");
     }
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
@@ -143,8 +137,11 @@ public class Product {
      */
     private Long maxPrice;
 
-    /** 商品状态：1 上架 / 0 下架 / 2 草稿。不做物理删除 */
-    private Integer status;
+    /**
+     * 商品状态：概念上是领域枚举（{@link ProductStatus}），状态机/谓词归枚举；
+     * 实体只持裸字段并薄委托，不重复定义。不做物理删除。
+     */
+    private ProductStatus status;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)

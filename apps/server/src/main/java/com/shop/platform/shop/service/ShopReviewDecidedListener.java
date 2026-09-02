@@ -3,6 +3,7 @@ package com.shop.platform.shop.service;
 import com.shop.platform.shop.events.ShopReviewDecidedEvent;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
+import com.shop.platform.shop.model.ShopStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -31,7 +32,7 @@ public class ShopReviewDecidedListener {
             return;
         }
         // 状态对齐：通过 → ACTIVE，拒绝 → REJECTED
-        shop.setStatus(event.approved() ? Shop.STATUS_ACTIVE : Shop.STATUS_REJECTED);
+        shop.setStatus(event.approved() ? ShopStatus.ACTIVE : ShopStatus.REJECTED);
         shopMapper.updateById(shop);
         log.info("[SHOP] 店铺状态更新, shopId={}, status={}", event.shopId(), shop.getStatus());
     }

@@ -2,6 +2,9 @@ package com.shop.platform.order.controller;
 
 import com.shop.platform.common.Money;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.AfterSaleType;
+import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.OrderWithItems;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -15,7 +18,7 @@ import java.util.function.Function;
 public record OrderDetailResponse(
         UUID id,
         String orderNo,
-        String status,
+        OrderStatus status,
         UUID shopId,
         String shopName,
         List<String> availableActions,
@@ -39,8 +42,8 @@ public record OrderDetailResponse(
         String cancelReason,
         OffsetDateTime createdAt,
         // 售后线（与履约主状态机正交）：状态 / 类型 / 退款额 / 退款完成时刻 / 申请截止
-        String afterSaleStatus,
-        String afterSaleType,
+        AfterSaleStatus afterSaleStatus,
+        AfterSaleType afterSaleType,
         Money refundAmount,
         OffsetDateTime afterSaleRefundedAt,
         OffsetDateTime applyExpireAt,
@@ -65,7 +68,7 @@ public record OrderDetailResponse(
                 // 单据身份与状态
                 order.getId(),
                 order.getOrderNo(),
-                order.getStatus().name(),
+                order.getStatus(),
                 order.getShopId(),
                 shopName,
                 actions.apply(order),
@@ -93,10 +96,8 @@ public record OrderDetailResponse(
                 order.getCancelReason(),
                 order.getCreatedAt(),
                 // 售后线：订单只记「退多少、退没退」，资金态在 payment 模块；无售后时类型/退款额为 NULL
-                order.getAfterSaleStatus().name(),
-                order.getAfterSaleType() == null
-                        ? null
-                        : order.getAfterSaleType().name(),
+                order.getAfterSaleStatus(),
+                order.getAfterSaleType(),
                 order.refundAmountAsMoney(),
                 order.getAfterSaleRefundedAt(),
                 order.getApplyExpireAt(),

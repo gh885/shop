@@ -9,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.product.mapper.CategoryAttr;
 import com.shop.platform.product.mapper.CategoryAttrValue;
+import com.shop.platform.product.model.AttrKind;
+import com.shop.platform.product.model.AttrValueSource;
+import com.shop.platform.product.model.CategoryAttrStatus;
 import com.shop.platform.product.service.CategoryAttrNode;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
@@ -27,11 +30,11 @@ class CategoryAttrAdminControllerTest extends WebControllerTestSupport {
                 .id(UUID.randomUUID())
                 .categoryId(categoryId)
                 .name("颜色")
-                .kind(1)
+                .kind(AttrKind.SPEC)
                 .required(false)
                 .allowCustom(true)
                 .sort(0)
-                .status(1)
+                .status(CategoryAttrStatus.ENABLED)
                 .build();
     }
 
@@ -43,7 +46,7 @@ class CategoryAttrAdminControllerTest extends WebControllerTestSupport {
                 .attrId(a.getId())
                 .value("黑")
                 .sort(0)
-                .source(1)
+                .source(AttrValueSource.PLATFORM)
                 .build();
         when(categoryAttrService.listTemplate(categoryId)).thenReturn(List.of(new CategoryAttrNode(a, List.of(v))));
 
@@ -58,22 +61,22 @@ class CategoryAttrAdminControllerTest extends WebControllerTestSupport {
         mockMvc.perform(post("/admin/categories/{id}/attrs", categoryId)
                         .with(staffAuth(staffId))
                         .content("""
-                            {"kind": 1}
+                            {"kind": "SPEC"}
                             """))
                 .andExpect(status().is(422))
                 .andExpect(jsonPath("$.errors[0].field").value("name"));
     }
 
     @Test
-    void 新建属性_kind越界_422() throws Exception {
+    void 新建属性_kind非法_400() throws Exception {
         mockMvc.perform(
                         post("/admin/categories/{id}/attrs", categoryId)
                                 .with(staffAuth(staffId))
                                 .content(
                                         """
-                            {"name": "颜色", "kind": 3}
+                            {"name": "颜色", "kind": "INVALID"}
                             """))
-                .andExpect(status().is(422));
+                .andExpect(status().is(400));
     }
 
     @Test
@@ -84,7 +87,7 @@ class CategoryAttrAdminControllerTest extends WebControllerTestSupport {
                 .attrId(UUID.randomUUID())
                 .value("曜石黑")
                 .sort(0)
-                .source(1)
+                .source(AttrValueSource.PLATFORM)
                 .build();
         when(categoryAttrService.updateValue(eq(valueId), eq("曜石黑"), any())).thenReturn(renamed);
 
@@ -104,12 +107,13 @@ class CategoryAttrAdminControllerTest extends WebControllerTestSupport {
         UUID attrId = UUID.randomUUID();
         mockMvc.perform(put("/admin/category-attrs/{attrId}/status", attrId)
                         .with(staffAuth(staffId))
-                        .content("""
-                            {"status": 0}
+                        .content(
+                                """
+                            {"status": "DISABLED"}
                             """))
                 .andExpect(status().isOk());
 
-        verify(categoryAttrService).updateAttrStatus(attrId, 0);
+        verify(categoryAttrService).updateAttrStatus(attrId, CategoryAttrStatus.DISABLED);
     }
 
     @Test

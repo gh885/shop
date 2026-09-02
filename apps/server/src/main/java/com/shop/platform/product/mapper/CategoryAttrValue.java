@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.product.model.AttrValueSource;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -26,11 +27,6 @@ import lombok.NoArgsConstructor;
 @TableName("product.category_attr_values")
 public class CategoryAttrValue {
 
-    /** 值来源：1 平台预置 / 2 卖家扩充（提交值域外新值自动建档） */
-    public static final int SOURCE_PLATFORM = 1;
-
-    public static final int SOURCE_SELLER = 2;
-
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
@@ -44,8 +40,8 @@ public class CategoryAttrValue {
     /** 同属性内排序权重 */
     private Integer sort;
 
-    /** 1 平台预置 / 2 卖家扩充 */
-    private Integer source;
+    /** 平台预置 / 卖家扩充 */
+    private AttrValueSource source;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)

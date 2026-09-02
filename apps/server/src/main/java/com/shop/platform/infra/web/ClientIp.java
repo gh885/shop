@@ -1,7 +1,7 @@
 package com.shop.platform.infra.web;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,17 +15,14 @@ import org.springframework.stereotype.Component;
  * {@code shop.web.trust-forwarded-for=true} 显式开启首段解析。
  */
 @Component
+@RequiredArgsConstructor
 public class ClientIp {
 
-    private final boolean trustForwardedFor;
-
-    public ClientIp(@Value("${shop.web.trust-forwarded-for:false}") boolean trustForwardedFor) {
-        this.trustForwardedFor = trustForwardedFor;
-    }
+    private final WebProperties props;
 
     /** 客户端 IP：默认 remoteAddr；可信反代场景取 XFF 首段 */
     public String of(HttpServletRequest request) {
-        if (!trustForwardedFor) {
+        if (!props.trustForwardedFor()) {
             return request.getRemoteAddr();
         }
         String forwarded = request.getHeader("X-Forwarded-For");

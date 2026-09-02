@@ -39,7 +39,7 @@ export function SalesInfoSection({
         let cancelled = false
         attrTemplate(categoryId)
             .then((nodes) => {
-                if (!cancelled) setTemplate(nodes.filter((n) => n.attr.kind === 1))
+                if (!cancelled) setTemplate(nodes.filter((n) => n.attr.kind === "SPEC"))
             })
             .catch((error) => !cancelled && setLoadError(toApiError(error).detail))
         return () => {

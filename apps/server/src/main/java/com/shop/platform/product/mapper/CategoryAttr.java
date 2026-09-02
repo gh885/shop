@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.product.model.AttrKind;
+import com.shop.platform.product.model.CategoryAttrStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -16,7 +18,7 @@ import lombok.NoArgsConstructor;
 /**
  * 类目属性定义 —— 挂在叶子类目（level=3）上的属性模板条目。
  *
- * <p>kind=1 销售属性（参与 SKU 生成，规格项由此 ID 化）；kind=2 非销售参数（仅展示，required 位只对它有意义）。
+ * <p>kind=SPEC 销售属性（参与 SKU 生成，规格项由此 ID 化）；kind=PARAM 非销售参数（仅展示，required 位只对它有意义）。
  * 禁用同 categories 软删语义：不物理删，已被引用的存量快照自洽，新商品不可再选。
  */
 @Data
@@ -25,16 +27,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @TableName("product.category_attrs")
 public class CategoryAttr {
-
-    /** 属性类型：1 销售属性 / 2 非销售参数 */
-    public static final int KIND_SPEC = 1;
-
-    public static final int KIND_PARAM = 2;
-
-    /** 属性状态，见 status 字段 javadoc：1 启用 / 0 禁用 */
-    public static final int STATUS_ENABLED = 1;
-
-    public static final int STATUS_DISABLED = 0;
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
@@ -46,8 +38,8 @@ public class CategoryAttr {
     /** 属性名（如「颜色」「产地」）。同类目内唯一，uk_category_attrs_category_name 兜底并发重名 */
     private String name;
 
-    /** 1 销售属性 / 2 非销售参数，见字段 javadoc */
-    private Integer kind;
+    /** spec 销售属性 / param 非销售参数，概念归 {@link AttrKind} */
+    private AttrKind kind;
 
     /** param 是否必填；spec 恒参与 SKU 生成，该位仅对 param 有意义 */
     private Boolean required;
@@ -58,8 +50,12 @@ public class CategoryAttr {
     /** 同类目内排序权重 */
     private Integer sort;
 
-    /** 1 启用 / 0 禁用。同 categories 语义：查询侧裁剪，不写扩散，存量引用自洽 */
-    private Integer status;
+    /** 启用 / 禁用。同 categories 语义：查询侧裁剪，不写扩散，存量引用自洽 */
+    private CategoryAttrStatus status;
+
+    public boolean isEnabled() {
+        return status != null && status.isEnabled();
+    }
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)

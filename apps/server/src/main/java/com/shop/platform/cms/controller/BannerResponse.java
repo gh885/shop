@@ -1,6 +1,7 @@
 package com.shop.platform.cms.controller;
 
 import com.shop.platform.cms.mapper.Banner;
+import com.shop.platform.cms.model.CmsStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +21,7 @@ public record BannerResponse(
         String targetType,
         String link,
         Integer sortOrder,
-        Integer status,
+        CmsStatus status,
         OffsetDateTime startAt,
         OffsetDateTime endAt,
         OffsetDateTime createdAt,

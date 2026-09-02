@@ -1,5 +1,6 @@
 package com.shop.platform.order.api;
 
+import com.shop.platform.order.model.OrderStatus;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,8 @@ public class OrderReadQuery {
                         (rs, i) -> new OrderPaymentView(
                                 rs.getString("order_no"),
                                 rs.getObject("user_id", UUID.class),
-                                rs.getString("status"),
+                                // DB 存枚举 name()（varchar + 默认 EnumTypeHandler），这里按契约还原
+                                OrderStatus.valueOf(rs.getString("status")),
                                 rs.getObject("pay_amount", Long.class),
                                 rs.getString("currency")),
                         orderId)

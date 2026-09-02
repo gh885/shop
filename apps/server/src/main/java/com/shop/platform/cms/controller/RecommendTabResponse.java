@@ -1,6 +1,7 @@
 package com.shop.platform.cms.controller;
 
 import com.shop.platform.cms.mapper.RecommendTab;
+import com.shop.platform.cms.model.CmsStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +17,7 @@ public record RecommendTabResponse(
         String targetType,
         Boolean isDefault,
         Integer sortOrder,
-        Integer status,
+        CmsStatus status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt) {
 

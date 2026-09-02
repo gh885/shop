@@ -3,8 +3,9 @@ package com.shop.platform;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.shop.platform.admin.mapper.ShopReview;
+import com.shop.platform.admin.model.ShopReviewStatus;
 import com.shop.platform.shop.mapper.Shop;
+import com.shop.platform.shop.model.ShopStatus;
 import com.shop.platform.shop.service.ShopService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.UUID;
@@ -42,14 +43,14 @@ class EventPublicationIT extends IntegrationTestSupport {
         db.onDelete("DELETE FROM shop.shop_members WHERE shop_id = ?", shopId);
         db.onDelete("DELETE FROM shop.shops WHERE id = ?", shopId);
 
-        assertEquals(Shop.STATUS_PENDING_REVIEW, shop.getStatus());
+        assertEquals(ShopStatus.PENDING_REVIEW, shop.getStatus());
 
         // 2. 提交后 AFTER_COMMIT 监听已在独立事务入队一条 PENDING 审核（事件被消费的事实）
         Integer pendingReviews = jdbc.queryForObject(
                 "SELECT count(*) FROM admin.shop_reviews WHERE shop_id = ? AND status = ?",
                 Integer.class,
                 shopId,
-                ShopReview.STATUS_PENDING);
+                ShopReviewStatus.PENDING.name());
         assertEquals(1, pendingReviews);
 
         // 3. 登记表：该事件的发布行存在且已标 COMPLETED——崩溃补发只认未完成的行，

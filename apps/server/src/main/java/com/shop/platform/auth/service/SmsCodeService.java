@@ -1,5 +1,6 @@
 package com.shop.platform.auth.service;
 
+import com.shop.platform.auth.AuthProperties;
 import com.shop.platform.auth.infra.DevSmsChannel;
 import com.shop.platform.auth.infra.SmsChannel;
 import com.shop.platform.common.BusinessException;
@@ -8,12 +9,13 @@ import com.shop.platform.infra.util.RateLimiter;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.function.UnaryOperator;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class SmsCodeService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -41,26 +43,14 @@ public class SmsCodeService {
     private final ObjectProvider<DevSmsChannel> devSmsChannelProvider;
 
     /**
-     * 每 IP 每日不同手机号上限（防单 IP 横扫大量号码轰炸）。
+     * 认证模块配置。此处只消费 {@code smsIpDistinctPhonesMax}——每 IP 每日不同手机号上限
+     * （防单 IP 横扫大量号码轰炸）。
      *
      * <p>做成可配置且默认放到 30：运营商 CGNAT、公司出口、校园网下大量真实用户共享同一个出口 IP，
      * 阈值太低会把正常注册挡在门外——这条防线拦的是「一个 IP 横扫几百个号」，不是「同一栋楼有几个人注册」。
      * 真实出口 IP 分布因部署而异，交给部署方按观测调整。
      */
-    private final int ipDistinctPhonesMax;
-
-    public SmsCodeService(
-            StringRedisTemplate redis,
-            SmsChannel smsChannel,
-            SecretHasher secretHasher,
-            ObjectProvider<DevSmsChannel> devSmsChannelProvider,
-            @Value("${shop.auth.sms-ip-distinct-phones-max:30}") int ipDistinctPhonesMax) {
-        this.redis = redis;
-        this.smsChannel = smsChannel;
-        this.secretHasher = secretHasher;
-        this.devSmsChannelProvider = devSmsChannelProvider;
-        this.ipDistinctPhonesMax = ipDistinctPhonesMax;
-    }
+    private final AuthProperties authProperties;
 
     /** 发送验证码 */
     public void sendCode(String phone, String clientIp) {
@@ -181,7 +171,7 @@ public class SmsCodeService {
         String key = "sms:ip:phones:" + clientIp;
         if (!Boolean.TRUE.equals(redis.opsForSet().isMember(key, phone))) {
             Long size = redis.opsForSet().size(key);
-            if (size != null && size >= ipDistinctPhonesMax) {
+            if (size != null && size >= authProperties.smsIpDistinctPhonesMax()) {
                 throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
             }
         }

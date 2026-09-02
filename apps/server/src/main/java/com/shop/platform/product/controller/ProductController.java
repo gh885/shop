@@ -48,9 +48,9 @@ public class ProductController {
     /** 商品列表：只返上架商品，可按类目/店铺/关键词筛选并排序 */
     @GetMapping
     public PageResult<ProductResponse> listPublicProducts(@Valid PageParams pageParams, @Valid ProductQuery query) {
-        PageResult<Product> page = productService.pagePublic(query, pageParams.page(), pageParams.size());
-        return new PageResult<>(
-                page.records().stream().map(ProductResponse::from).toList(), page.total());
+        return productService
+                .pagePublic(query, pageParams.page(), pageParams.size())
+                .map(ProductResponse::from);
     }
 
     /** 商品详情：非上架一律 404，SKU 只返在售 */

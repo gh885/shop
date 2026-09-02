@@ -4,7 +4,7 @@ import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.product.dto.CategoryAttrRequest;
 import com.shop.platform.product.dto.CategoryAttrValueRequest;
-import com.shop.platform.product.dto.UpdateStatusRequest;
+import com.shop.platform.product.dto.UpdateCategoryAttrStatusRequest;
 import com.shop.platform.product.service.CategoryAttrService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -59,7 +59,8 @@ public class CategoryAttrAdminController {
 
     /** 启用/禁用属性（同 categories 语义：查询侧裁剪，不写扩散） */
     @PutMapping("/category-attrs/{attrId}/status")
-    public void updateCategoryAttrStatus(@PathVariable UUID attrId, @Valid @RequestBody UpdateStatusRequest req) {
+    public void updateCategoryAttrStatus(
+            @PathVariable UUID attrId, @Valid @RequestBody UpdateCategoryAttrStatusRequest req) {
         categoryAttrService.updateAttrStatus(attrId, req.status());
     }
 

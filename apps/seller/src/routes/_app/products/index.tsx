@@ -38,7 +38,7 @@ export const Route = createFileRoute("/_app/products/")({
         page: Number(search.page) || 1,
         size: Number(search.size) || 10,
         status:
-            search.status === 0 || search.status === 1 || search.status === 2
+            search.status === "PUBLISHED" || search.status === "OFF" || search.status === "DRAFT"
                 ? search.status
                 : undefined,
         keyword: typeof search.keyword === "string" && search.keyword ? search.keyword : undefined,
@@ -47,15 +47,15 @@ export const Route = createFileRoute("/_app/products/")({
 })
 
 const STATUS_TEXT: Record<ProductStatus, string> = {
-    1: "上架中",
-    0: "已下架",
-    2: "草稿",
+    PUBLISHED: "上架中",
+    OFF: "已下架",
+    DRAFT: "草稿",
 }
 
 const STATUS_VARIANT: Record<ProductStatus, "default" | "outline" | "secondary"> = {
-    1: "default",
-    0: "outline",
-    2: "secondary",
+    PUBLISHED: "default",
+    OFF: "outline",
+    DRAFT: "secondary",
 }
 
 function ProductsPage() {
@@ -121,10 +121,10 @@ function FilterBar() {
     return (
         <div className="flex items-center gap-3">
             <Select
-                value={search.status === undefined ? "all" : String(search.status)}
+                value={search.status ?? "all"}
                 onValueChange={(value) =>
                     apply({
-                        status: value === "all" ? undefined : (Number(value) as ProductStatus),
+                        status: value === "all" ? undefined : (value as ProductStatus),
                     })
                 }
             >
@@ -133,9 +133,9 @@ function FilterBar() {
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">全部状态</SelectItem>
-                    <SelectItem value="1">上架中</SelectItem>
-                    <SelectItem value="0">已下架</SelectItem>
-                    <SelectItem value="2">草稿</SelectItem>
+                    <SelectItem value="PUBLISHED">上架中</SelectItem>
+                    <SelectItem value="OFF">已下架</SelectItem>
+                    <SelectItem value="DRAFT">草稿</SelectItem>
                 </SelectContent>
             </Select>
 
@@ -340,7 +340,7 @@ function ProductRow({
             </TableCell>
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
-                    {p.status === 2 ? (
+                    {p.status === "DRAFT" ? (
                         <Button
                             variant="ghost"
                             size="sm"
@@ -350,7 +350,7 @@ function ProductRow({
                         >
                             发布
                         </Button>
-                    ) : p.status === 1 ? (
+                    ) : p.status === "PUBLISHED" ? (
                         <Button
                             variant="ghost"
                             size="sm"

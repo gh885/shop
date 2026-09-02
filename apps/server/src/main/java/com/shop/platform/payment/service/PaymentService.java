@@ -6,6 +6,7 @@ import com.shop.platform.order.api.OrderPaymentView;
 import com.shop.platform.order.api.OrderReadQuery;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.mapper.PaymentMapper;
+import com.shop.platform.payment.model.PaymentStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -78,7 +79,7 @@ public class PaymentService {
                 .amount(order.payAmount())
                 .currency(order.currency())
                 .channel(Payment.CHANNEL_MOCK)
-                .status(Payment.STATUS_PENDING)
+                .status(PaymentStatus.PENDING)
                 .build();
         paymentMapper.insert(payment);
         log.info("[PAYMENT] 发起支付, orderId={}, userId={}, paymentId={}", orderId, userId, payment.getId());
@@ -98,14 +99,14 @@ public class PaymentService {
         Validate.isTrue(payment.getUserId().equals(userId), "支付流水不存在");
 
         // 2. 已是成功流水（重复确认）：直接返回，幂等
-        if (Payment.STATUS_SUCCESS.equals(payment.getStatus())) {
+        if (payment.getStatus() != null && payment.getStatus().isSuccess()) {
             return payment;
         }
 
         // 3. 条件转移 PENDING→SUCCESS：抢不到说明已被确认/失败，拒绝
-        int affected = paymentMapper.transition(paymentId, Payment.STATUS_SUCCESS);
+        int affected = paymentMapper.transition(paymentId, PaymentStatus.SUCCESS);
         Validate.isTrue(affected == 1, 409, "支付流水状态已变更，请刷新订单");
-        payment.setStatus(Payment.STATUS_SUCCESS); // 同步内存对象，返回给前端的是转移后的成功态
+        payment.setStatus(PaymentStatus.SUCCESS); // 同步内存对象，返回给前端的是转移后的成功态
 
         // 4. 同事务推进订单状态机 + 扣实冻结库存；订单已被取消/超时则 markPaid 抛 409，
         //    本事务整体回滚（第 3 步的 SUCCESS 转移一并撤销，流水留在 PENDING，绝不出现「取消却显示支付成功」）

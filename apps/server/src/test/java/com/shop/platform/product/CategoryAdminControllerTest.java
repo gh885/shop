@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.product.mapper.Category;
+import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -27,7 +28,7 @@ class CategoryAdminControllerTest extends WebControllerTestSupport {
         c.setName("新类目");
         c.setLevel(1);
         c.setSort(99);
-        c.setStatus(1);
+        c.setStatus(CategoryStatus.ENABLED);
         c.setCreatedAt(OffsetDateTime.now());
         c.setUpdatedAt(OffsetDateTime.now());
         return c;
@@ -94,11 +95,12 @@ class CategoryAdminControllerTest extends WebControllerTestSupport {
         mockMvc.perform(put("/admin/categories/{id}/status", id)
                         .header("Authorization", "Bearer " + staffToken(staffId))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {"status": 0}
+                        .content(
+                                """
+                            {"status": "DISABLED"}
                             """))
                 .andExpect(status().isOk());
 
-        verify(categoryService).updateStatus(id, 0);
+        verify(categoryService).updateStatus(id, CategoryStatus.DISABLED);
     }
 }

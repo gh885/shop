@@ -1,5 +1,6 @@
 package com.shop.platform.product.controller;
 
+import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.product.service.CategoryNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
@@ -16,7 +17,7 @@ public record CategoryNodeResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer level,
         Integer sort,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) CategoryStatus status,
         String iconUrl,
         List<CategoryNodeResponse> children) {
 

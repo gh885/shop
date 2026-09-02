@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.admin.mapper.ShopReview;
+import com.shop.platform.admin.model.ShopReviewStatus;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
@@ -30,7 +31,7 @@ class AdminPermissionGuardTest extends WebControllerTestSupport {
         r.setId(reviewId);
         r.setShopId(UUID.randomUUID());
         r.setStaffId(staffId);
-        r.setStatus(ShopReview.STATUS_APPROVED);
+        r.setStatus(ShopReviewStatus.APPROVED);
         r.setDecidedAt(OffsetDateTime.now());
         r.setCreatedAt(OffsetDateTime.now());
         r.setUpdatedAt(OffsetDateTime.now());

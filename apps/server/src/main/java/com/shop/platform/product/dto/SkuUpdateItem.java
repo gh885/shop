@@ -1,6 +1,7 @@
 package com.shop.platform.product.dto;
 
-import jakarta.validation.constraints.Max;
+import com.shop.platform.product.model.SkuStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -16,5 +17,5 @@ public record SkuUpdateItem(
         @NotNull @Min(0) Integer stock,
         /** 业务编码（仓管/ERP 对账用），全局唯一；传 null 不改，重复会 409 */
         @Size(max = 64) String skuCode,
-        /** 1 在售 / 0 停用；传 null 不改 */
-        @Min(0) @Max(1) Integer status) {}
+        /** 在售 / 停用；传 null 不改 */
+        @Schema SkuStatus status) {}

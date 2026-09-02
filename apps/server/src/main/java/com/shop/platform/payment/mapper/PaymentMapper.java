@@ -3,6 +3,7 @@ package com.shop.platform.payment.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.payment.model.PaymentStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
@@ -14,25 +15,25 @@ public interface PaymentMapper extends BaseMapper<Payment> {
     default Payment selectSuccessByOrder(UUID orderId) {
         return selectOne(new LambdaQueryWrapper<Payment>()
                 .eq(Payment::getOrderId, orderId)
-                .eq(Payment::getStatus, Payment.STATUS_SUCCESS));
+                .eq(Payment::getStatus, PaymentStatus.SUCCESS));
     }
 
     /** 订单最早的待确认流水：重复发起时复用同一笔，避免一单堆积多条 PENDING */
     default Payment selectPendingByOrder(UUID orderId) {
         return selectOne(new LambdaQueryWrapper<Payment>()
                 .eq(Payment::getOrderId, orderId)
-                .eq(Payment::getStatus, Payment.STATUS_PENDING)
+                .eq(Payment::getStatus, PaymentStatus.PENDING)
                 .orderByAsc(Payment::getCreatedAt)
                 .last("LIMIT 1"));
     }
 
     /** 条件转移 PENDING → 传入状态：确认/失败共用乐观闸门，防重复确认；返回影响行数 */
-    default int transition(UUID paymentId, String toStatus) {
+    default int transition(UUID paymentId, PaymentStatus toStatus) {
         return update(
                 null,
                 new LambdaUpdateWrapper<Payment>()
                         .eq(Payment::getId, paymentId)
-                        .eq(Payment::getStatus, Payment.STATUS_PENDING)
+                        .eq(Payment::getStatus, PaymentStatus.PENDING)
                         .set(Payment::getStatus, toStatus));
     }
 
@@ -45,8 +46,8 @@ public interface PaymentMapper extends BaseMapper<Payment> {
                 null,
                 new LambdaUpdateWrapper<Payment>()
                         .eq(Payment::getOrderId, orderId)
-                        .eq(Payment::getStatus, Payment.STATUS_SUCCESS)
-                        .set(Payment::getStatus, Payment.STATUS_REFUNDED)
+                        .eq(Payment::getStatus, PaymentStatus.SUCCESS)
+                        .set(Payment::getStatus, PaymentStatus.REFUNDED)
                         .set(Payment::getRefundedAt, refundedAt)
                         .set(Payment::getRefundGatewayNo, refundGatewayNo));
     }

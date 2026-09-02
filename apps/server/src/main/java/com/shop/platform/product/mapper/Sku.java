@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.product.model.SkuStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -26,11 +27,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @TableName(value = "product.skus", autoResultMap = true)
 public class Sku {
-
-    /** SKU 状态，见 status 字段 javadoc：1 在售 / 0 停用，与 SPU 状态无关 */
-    public static final int STATUS_ON_SALE = 1;
-
-    public static final int STATUS_DISABLED = 0;
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
@@ -83,8 +79,8 @@ public class Sku {
     /** 币种（如 CNY），与 price 一起组成代码里的 Money 类型 */
     private String currency;
 
-    /** 1 在售 / 0 停用。注意与缺货区分：缺货可补可恢复，停用是"这个卖法不卖了" */
-    private Integer status;
+    /** 在售 / 停用。注意与缺货区分：缺货可补可恢复，停用是「这个卖法不卖了」。概念归 {@link SkuStatus} */
+    private SkuStatus status;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)
