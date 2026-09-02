@@ -14,10 +14,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppServiceRouteImport } from './routes/_app/service'
 import { Route as AppGroupLeafRouteImport } from './routes/_app/$group/$leaf'
-import { Route as AppProductCreateRouteImport } from './routes/_app/product/create'
 import { Route as AppProductListRouteImport } from './routes/_app/product/list'
 import { Route as AppShopListRouteImport } from './routes/_app/shop/list'
 import { Route as AppShopMemberRouteImport } from './routes/_app/shop/member'
+import { Route as AppProductCreateBasicRouteImport } from './routes/_app/product/create/basic'
+import { Route as AppProductCreateCategoryRouteImport } from './routes/_app/product/create/category'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -43,11 +44,6 @@ const AppGroupLeafRoute = AppGroupLeafRouteImport.update({
   path: '/$group/$leaf',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppProductCreateRoute = AppProductCreateRouteImport.update({
-  id: '/product/create',
-  path: '/product/create',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppProductListRoute = AppProductListRouteImport.update({
   id: '/product/list',
   path: '/product/list',
@@ -63,26 +59,39 @@ const AppShopMemberRoute = AppShopMemberRouteImport.update({
   path: '/shop/member',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppProductCreateBasicRoute = AppProductCreateBasicRouteImport.update({
+  id: '/product/create/basic',
+  path: '/product/create/basic',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppProductCreateCategoryRoute =
+  AppProductCreateCategoryRouteImport.update({
+    id: '/product/create/category',
+    path: '/product/create/category',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/service': typeof AppServiceRoute
   '/$group/$leaf': typeof AppGroupLeafRoute
-  '/product/create': typeof AppProductCreateRoute
   '/product/list': typeof AppProductListRoute
   '/shop/list': typeof AppShopListRoute
   '/shop/member': typeof AppShopMemberRoute
+  '/product/create/basic': typeof AppProductCreateBasicRoute
+  '/product/create/category': typeof AppProductCreateCategoryRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/service': typeof AppServiceRoute
   '/': typeof AppIndexRoute
   '/$group/$leaf': typeof AppGroupLeafRoute
-  '/product/create': typeof AppProductCreateRoute
   '/product/list': typeof AppProductListRoute
   '/shop/list': typeof AppShopListRoute
   '/shop/member': typeof AppShopMemberRoute
+  '/product/create/basic': typeof AppProductCreateBasicRoute
+  '/product/create/category': typeof AppProductCreateCategoryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -91,10 +100,11 @@ export interface FileRoutesById {
   '/_app/service': typeof AppServiceRoute
   '/_app/': typeof AppIndexRoute
   '/_app/$group/$leaf': typeof AppGroupLeafRoute
-  '/_app/product/create': typeof AppProductCreateRoute
   '/_app/product/list': typeof AppProductListRoute
   '/_app/shop/list': typeof AppShopListRoute
   '/_app/shop/member': typeof AppShopMemberRoute
+  '/_app/product/create/basic': typeof AppProductCreateBasicRoute
+  '/_app/product/create/category': typeof AppProductCreateCategoryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -103,20 +113,22 @@ export interface FileRouteTypes {
     | '/login'
     | '/service'
     | '/$group/$leaf'
-    | '/product/create'
     | '/product/list'
     | '/shop/list'
     | '/shop/member'
+    | '/product/create/basic'
+    | '/product/create/category'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/service'
     | '/'
     | '/$group/$leaf'
-    | '/product/create'
     | '/product/list'
     | '/shop/list'
     | '/shop/member'
+    | '/product/create/basic'
+    | '/product/create/category'
   id:
     | '__root__'
     | '/_app'
@@ -124,10 +136,11 @@ export interface FileRouteTypes {
     | '/_app/service'
     | '/_app/'
     | '/_app/$group/$leaf'
-    | '/_app/product/create'
     | '/_app/product/list'
     | '/_app/shop/list'
     | '/_app/shop/member'
+    | '/_app/product/create/basic'
+    | '/_app/product/create/category'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -172,13 +185,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGroupLeafRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/product/create': {
-      id: '/_app/product/create'
-      path: '/product/create'
-      fullPath: '/product/create'
-      preLoaderRoute: typeof AppProductCreateRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/_app/product/list': {
       id: '/_app/product/list'
       path: '/product/list'
@@ -200,6 +206,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppShopMemberRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/product/create/basic': {
+      id: '/_app/product/create/basic'
+      path: '/product/create/basic'
+      fullPath: '/product/create/basic'
+      preLoaderRoute: typeof AppProductCreateBasicRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/product/create/category': {
+      id: '/_app/product/create/category'
+      path: '/product/create/category'
+      fullPath: '/product/create/category'
+      preLoaderRoute: typeof AppProductCreateCategoryRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
@@ -207,20 +227,22 @@ interface AppRouteRouteChildren {
   AppServiceRoute: typeof AppServiceRoute
   AppIndexRoute: typeof AppIndexRoute
   AppGroupLeafRoute: typeof AppGroupLeafRoute
-  AppProductCreateRoute: typeof AppProductCreateRoute
   AppProductListRoute: typeof AppProductListRoute
   AppShopListRoute: typeof AppShopListRoute
   AppShopMemberRoute: typeof AppShopMemberRoute
+  AppProductCreateBasicRoute: typeof AppProductCreateBasicRoute
+  AppProductCreateCategoryRoute: typeof AppProductCreateCategoryRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppServiceRoute: AppServiceRoute,
   AppIndexRoute: AppIndexRoute,
   AppGroupLeafRoute: AppGroupLeafRoute,
-  AppProductCreateRoute: AppProductCreateRoute,
   AppProductListRoute: AppProductListRoute,
   AppShopListRoute: AppShopListRoute,
   AppShopMemberRoute: AppShopMemberRoute,
+  AppProductCreateBasicRoute: AppProductCreateBasicRoute,
+  AppProductCreateCategoryRoute: AppProductCreateCategoryRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

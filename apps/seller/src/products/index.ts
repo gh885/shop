@@ -8,6 +8,10 @@
  * 桶文件只暴露外部真正消费的那几个；域内一律相对路径直连，不走这里。
  */
 
-export { CategoryStep } from "./CategoryStep"
-export { PublishBasicStep, type BasicStepValues, type SubmitMode } from "./PublishBasicStep"
+export { CategoryStep } from "./create/category/CategoryStep"
+export {
+    BasicStep as PublishBasicStep,
+    type BasicStepValues,
+    type SubmitMode,
+} from "./create/basic/BasicStep"
 export { useCategoryTree } from "./use-category"

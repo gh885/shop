@@ -67,6 +67,11 @@ public class Product {
         Validate.isTrue(status == null || status.isSpecsEditable(), 409, "上架商品不能修改规格，请先下架");
     }
 
+    /** 放弃（删除）守卫：仅草稿可放弃；上架/下架商品是经营资产，不做物理删除。 */
+    public void ensureAbandonable() {
+        Validate.isTrue(isDraft(), 409, "只有草稿可以放弃，已发布/下架商品需走下架");
+    }
+
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;

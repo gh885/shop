@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -120,6 +121,12 @@ public class ProductAdminController {
     @PostMapping("/{id}/on")
     public ProductResponse onProduct(@PathVariable UUID id) {
         return ProductResponse.from(productService.on(id));
+    }
+
+    /** 放弃草稿：仅草稿可删（同事务清 SKU+库存），供草稿箱「扔掉这个草稿」。无 body，成功即 204。 */
+    @DeleteMapping("/{id}")
+    public void abandonProduct(@PathVariable UUID id) {
+        productService.abandon(id);
     }
 
     // ========== HTTP 出参（与买家侧 ProductController 的同名 record 互不共享：方向不同契约不同） ==========

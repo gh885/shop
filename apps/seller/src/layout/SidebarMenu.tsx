@@ -79,7 +79,7 @@ export const NAV_ITEMS: SidebarItem[] = [
                 title: "商品管理",
                 items: [
                     { key: "list", label: "商品列表", to: "/product/list" },
-                    { key: "create", label: "发布商品", to: "/product/create" },
+                    { key: "create", label: "发布商品", to: "/product/create/category" },
                     { key: "category", label: "商品分类", to: "/product/category" },
                     { key: "stock", label: "库存管理", to: "/product/stock" },
                 ],

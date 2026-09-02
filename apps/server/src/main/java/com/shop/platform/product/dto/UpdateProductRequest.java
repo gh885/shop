@@ -3,7 +3,6 @@ package com.shop.platform.product.dto;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.service.ProductService.UpdateBasicCommand;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -14,8 +13,8 @@ import java.util.UUID;
 public record UpdateProductRequest(
         /** 主分类 ID */
         @NotNull UUID categoryId,
-        /** 搜索标题，上限 30 字，语义同 CreateProductRequest */
-        @NotBlank @Size(max = 30, message = "商品标题最长 30 字") String name,
+        /** 搜索标题，上限 30 字；草稿阶段允许空（发布前由 ensurePublishable 统校验），空串＝清空 */
+        @Size(max = 30, message = "商品标题最长 30 字") String name,
         /** 一句话卖点：空串＝清空已填内容，不传（null）＝不改（PATCH 语义） */
         @Pattern(regexp = "^$|^[\\s\\S]{10,30}$", message = "卖点填了就写 10~30 字，不想写可以留空") String subtitle,
         /** 详情图流（对象存储 key 数组）；空串/空数组语义见 PATCH。null＝不改 */

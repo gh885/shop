@@ -44,7 +44,7 @@ export type ParamItem = {
 
 export type UpdateProductRequest = {
     categoryId: string;
-    name: string;
+    name?: string;
     subtitle?: string;
     detailImages?: Array<string>;
     mainImage?: string;
@@ -362,7 +362,7 @@ export type ShopMemberResponse = {
 
 export type CreateProductRequest = {
     categoryId: string;
-    name: string;
+    name?: string;
     subtitle?: string;
     detailImages?: Array<string>;
     mainImage?: string;
@@ -953,6 +953,22 @@ export type UpdateShopMemberPermissionsData = {
 };
 
 export type UpdateShopMemberPermissionsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type AbandonProductData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/products/{id}';
+};
+
+export type AbandonProductResponses = {
     /**
      * OK
      */

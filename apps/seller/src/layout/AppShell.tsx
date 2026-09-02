@@ -7,7 +7,7 @@ import { AppTopBar } from "./AppTopBar"
 import { activeSectionOf, NAV_ITEMS } from "./SidebarMenu"
 
 // 内容区需要大空间的页面：隐藏侧边栏与面包屑，顶栏收成「品牌 + 页名 + 动作」，内容通栏铺满
-const FULL_WIDTH_PATHS = new Set(["/product/create"])
+const FULL_WIDTH_PATHS = new Set(["/product/create/category", "/product/create/basic"])
 
 /** 由 pathname 在菜单树中找命中叶子的 label（用于页面标题 / 面包屑当前页） */
 function leafLabelOf(pathname: string): string {

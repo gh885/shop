@@ -182,6 +182,8 @@ public class ProductService {
     @Transactional
     public Product publish(UUID productId) {
         Product product = requireShopOwned(productId);
+        // 0. 草稿阶段允许空名，但发布必须有名（买家搜索/展示依赖）
+        Validate.isTrue(StringUtils.hasText(product.getName()), "请先填写商品标题再发布");
         // 1. 复检发布门槛：每个 SKU 都已设价（跨聚合校验留 service）
         applyPriceRange(product, ensurePublishable(productId));
         // 2. 守卫 + 置上架（仅草稿可发布的规则在实体内）
@@ -288,6 +290,23 @@ public class ProductService {
         product.relist();
         productMapper.updateById(product);
         return product;
+    }
+
+    /** 放弃（删除）草稿：仅草稿可删，同事务清 SKU + 库存行，避免草稿箱堆积废弃草稿。
+     *  上架/下架商品是经营资产，不做物理删除（走 off）——此删除入口只服务「不发了，扔掉这个草稿」。 */
+    @Transactional
+    public void abandon(UUID productId) {
+        // 1. 归属 + 守卫：商品存在且属于当前店铺、仅草稿可放弃（规则在实体内）
+        Product product = requireShopOwned(productId);
+        product.ensureAbandonable();
+        // 2. 同事务清 SKU + 库存主体行（对齐 updateSpecs 删除组合的先例：先清库存行再删 SKU）
+        List<Sku> skus = skuMapper.selectByProductId(productId);
+        for (Sku sku : skus) {
+            stockCommand.removeRow(sku.getId());
+            skuMapper.deleteById(sku.getId());
+        }
+        // 3. 删 SPU
+        productMapper.deleteById(productId);
     }
 
     // ========== 私有辅助 ==========

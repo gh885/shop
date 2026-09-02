@@ -1,7 +1,7 @@
 import { CornerDownLeft } from "lucide-react"
 import { cn } from "@shop/ui-web"
 
-import type { LeafPath } from "./category"
+import type { LeafPath } from "../../category"
 
 /**
  * 搜索发品的候选类目列表：命中的是「末级类目路径」，
@@ -21,7 +21,7 @@ export function CategorySearchResults({
 }) {
     if (results.length === 0) {
         return (
-            <div className="flex h-[460px] flex-col items-center justify-center gap-1 rounded-xl bg-background text-sm text-muted-foreground">
+            <div className="flex h-115 flex-col items-center justify-center gap-1 rounded-xl bg-background text-sm text-muted-foreground">
                 <p>没搜到「{keyword}」相关类目</p>
                 <p className="text-xs">换个更通用的词，或点「选择类目」逐级找</p>
             </div>
@@ -29,7 +29,7 @@ export function CategorySearchResults({
     }
 
     return (
-        <div className="h-[460px] overflow-y-auto rounded-xl bg-background">
+        <div className="h-115 overflow-y-auto rounded-xl bg-background">
             <p className="sticky top-0 bg-background px-4 py-2.5 text-xs text-muted-foreground">
                 找到 {results.length} 个类目，选一个继续
             </p>

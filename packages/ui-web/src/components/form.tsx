@@ -84,6 +84,7 @@ export function Field({
     required,
     htmlFor,
     error,
+    hint,
     className,
     layout = "vertical",
     children,
@@ -92,6 +93,8 @@ export function Field({
     required?: boolean
     htmlFor?: string
     error?: string
+    /** 控件下方灰字说明（写作建议、格式要求）；error 存在时优先显示 error */
+    hint?: React.ReactNode
     className?: string
     /** vertical = label 在控件上方；horizontal = label 固定左列（w-16） */
     layout?: "vertical" | "horizontal"
@@ -117,10 +120,14 @@ export function Field({
                 {labelNode}
                 <div className="min-w-0 flex-1">
                     {children}
-                    <FieldError
-                        error={error}
-                        className="mt-1.5"
-                    />
+                    {error ? (
+                        <FieldError
+                            error={error}
+                            className="mt-1.5"
+                        />
+                    ) : hint ? (
+                        <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
+                    ) : undefined}
                 </div>
             </div>
         )
@@ -130,7 +137,11 @@ export function Field({
         <div className={cn("flex flex-col gap-1.5", className)}>
             {labelNode}
             {children}
-            <FieldError error={error} />
+            {error ? (
+                <FieldError error={error} />
+            ) : hint ? (
+                <p className="text-xs text-muted-foreground">{hint}</p>
+            ) : undefined}
         </div>
     )
 }

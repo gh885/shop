@@ -86,7 +86,7 @@ function ProductsPage() {
                     <h1 className="text-xl font-bold tracking-tight">商品管理</h1>
                     <p className="mt-1 text-sm text-muted-foreground">「{shop.name}」的商品</p>
                 </div>
-                <Link to="/product/create">
+                <Link to="/product/create/category">
                     <Button>
                         <Plus className="size-4" />
                         新建商品

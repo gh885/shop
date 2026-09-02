@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
 import {
     Button,
     Input,
+    Switch,
     Table,
     TableBody,
     TableCell,
@@ -10,99 +11,62 @@ import {
     TableHeader,
     TableRow,
 } from "@shop/ui-web"
-import { fenToYuan } from "@shop/api"
 
-import type { SkuUpdateItem, SkuResponse } from "@shop/api/sdk"
-
-interface RowDraft {
-    skuId: string
-    label: string
-    priceText: string
-    stockText: string
-    skuCode: string
-    status: "ON_SALE" | "DISABLED"
-}
-
-function toDrafts(rows: SkuResponse[]): RowDraft[] {
-    return rows.map((r) => ({
-        skuId: r.id as string,
-        label: (r.attributes ?? []).map((a) => a.value).join(" / ") || "单规格",
-        priceText: r.price == undefined ? "" : fenToYuan(r.price),
-        stockText: r.stock == undefined ? "" : String(r.stock),
-        skuCode: r.skuCode ?? "",
-        status: r.status === "DISABLED" ? "DISABLED" : "ON_SALE",
-    }))
-}
+import type { SkuDraftRow } from "./product-form-state"
 
 /**
- * 销售规格网格（受控）：工具栏（批量填写价格/数量 + 搜索 + 全屏）+
+ * 销售规格网格（完全受控）：工具栏（批量填写价格/数量 + 搜索 + 全屏）+
  * 规格 | 价格 | 数量 | 商家编码 | SKU分类 | 是否上架 | 操作（删除）。
- * skus 由服务端 applySpecs 生成后传入，值由父级持有（onChange 上报），便于随发布一次提交。
  *
- * 说明：SKU分类 后端模型尚无对应字段，先渲染禁用占位；批量填写为纯前端批量回填；
- * 删除为本地移除（该行不随 updateSkus 上报），重新选值生成网格可找回。
+ * rows 由外层(use-product-draft)持有，本组件不存值；任何编辑都 onChange 上抛新的行数组，
+ * 供外层 autosave 落库。BatchPrice/搜索/全屏为纯 UI 瞬态，保留自持（不影响草稿）。
+ *
+ * 说明：SKU分类 后端模型尚无对应字段，先渲染禁用占位；删除为移除该行（不随更新上报）。
  */
 export function SkuGridEditor({
     rows,
     onChange,
 }: {
-    rows: SkuResponse[]
-    onChange: (items: SkuUpdateItem[]) => void
+    rows: SkuDraftRow[]
+    onChange: (rows: SkuDraftRow[]) => void
 }) {
-    const [drafts, setDrafts] = useState<RowDraft[]>(() => toDrafts(rows))
     const [batchPrice, setBatchPrice] = useState("")
     const [batchStock, setBatchStock] = useState("")
     const [keyword, setKeyword] = useState("")
     const [fullscreen, setFullscreen] = useState(false)
 
-    useEffect(() => setDrafts(toDrafts(rows)), [rows])
-
-    function update(index: number, patch: Partial<RowDraft>) {
-        setDrafts((ds) => ds.map((d, i) => (i === index ? { ...d, ...patch } : d)))
+    function update(index: number, patch: Partial<SkuDraftRow>) {
+        onChange(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)))
     }
 
-    /** 删除规格行：本地移除（不随 updateSkus 上报），重新选值生成网格可找回 */
+    /** 删除规格行：移除该行（不随后续更新上报），重新选值生成网格可找回 */
     function remove(index: number) {
-        setDrafts((ds) => ds.filter((_, i) => i !== index))
+        onChange(rows.filter((_, i) => i !== index))
     }
 
     /** 批量填写：把工具栏里的价格/数量回填到所有行（留空的字段不覆盖） */
     function applyBatch() {
-        setDrafts((ds) =>
-            ds.map((d) => ({
-                ...d,
-                priceText: batchPrice.trim() ? batchPrice.trim() : d.priceText,
+        onChange(
+            rows.map((r) => ({
+                ...r,
+                priceText: batchPrice.trim() ? batchPrice.trim() : r.priceText,
                 stockText: batchStock.trim()
                     ? batchStock.trim().replaceAll(/\D/g, "")
-                    : d.stockText,
+                    : r.stockText,
             })),
         )
     }
 
-    // 草稿变化即上报 items（父级在发布时读取）
-    useEffect(() => {
-        onChange(
-            drafts.map((d) => ({
-                skuId: d.skuId,
-                price: Number(d.priceText),
-                stock: Number(d.stockText) || 0,
-                skuCode: d.skuCode.trim() || undefined,
-                status: d.status,
-            })),
-        )
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [drafts])
-
     const visible = useMemo(() => {
         const kw = keyword.trim().toLowerCase()
-        if (!kw) return drafts.map((d, i) => ({ d, i }))
-        return drafts
+        if (!kw) return rows.map((d, i) => ({ d, i }))
+        return rows
             .map((d, i) => ({ d, i }))
             .filter(
                 ({ d }) =>
                     d.label.toLowerCase().includes(kw) || d.skuCode.toLowerCase().includes(kw),
             )
-    }, [drafts, keyword])
+    }, [rows, keyword])
 
     if (rows.length === 0) return
 
@@ -196,10 +160,6 @@ export function SkuGridEditor({
                         <TableRow key={d.skuId}>
                             <TableCell>
                                 <span className="flex items-center gap-2">
-                                    <span
-                                        className="size-8 shrink-0 rounded-md bg-muted"
-                                        aria-hidden
-                                    />
                                     <span className="font-medium">{d.label}</span>
                                 </span>
                             </TableCell>
@@ -252,37 +212,23 @@ export function SkuGridEditor({
                                 />
                             </TableCell>
                             <TableCell>
-                                <button
-                                    type="button"
-                                    role="switch"
-                                    aria-checked={d.status === "ON_SALE"}
-                                    aria-label="是否上架"
+                                <Switch
+                                    checked={d.status !== "DISABLED"}
                                     onClick={() =>
                                         update(i, {
                                             status: d.status === "ON_SALE" ? "DISABLED" : "ON_SALE",
                                         })
                                     }
-                                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                                        d.status === "ON_SALE"
-                                            ? "bg-primary"
-                                            : "bg-muted-foreground/30"
-                                    }`}
-                                >
-                                    <span
-                                        className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-all ${
-                                            d.status === "ON_SALE" ? "left-[22px]" : "left-0.5"
-                                        }`}
-                                    />
-                                </button>
+                                    aria-label="是否上架"
+                                ></Switch>
                             </TableCell>
                             <TableCell>
-                                <button
-                                    type="button"
+                                <Button
+                                    variant="link"
                                     onClick={() => remove(i)}
-                                    className="text-sm text-primary hover:underline"
                                 >
                                     删除
-                                </button>
+                                </Button>
                             </TableCell>
                         </TableRow>
                     ))}

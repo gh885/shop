@@ -81,6 +81,7 @@ function GroupItem({ item, isShown }: { item: SidebarItem; isShown: boolean }) {
     return (
         <Button
             variant="ghost"
+            nativeButton={false}
             render={
                 target ? (
                     <Link

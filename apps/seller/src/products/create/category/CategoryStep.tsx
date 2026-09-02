@@ -2,10 +2,10 @@ import { useState } from "react"
 import { ImageIcon, ListTree, Search } from "lucide-react"
 import { Button, Input, Skeleton, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 
-import { nodesOf, searchLeafPaths, selectAt, selectedLeafId, type LeafPath } from "./category"
+import { nodesOf, searchLeafPaths, selectAt, selectedLeafId, type LeafPath } from "../../category"
 import { CategoryColumns } from "./CategoryColumns"
 import { CategorySearchResults } from "./CategorySearchResults"
-import { useCategoryTree, useLeafPaths } from "./use-category"
+import { useCategoryTree, useLeafPaths } from "../../use-category"
 
 /**
  * 发布第一步：选类目（千牛「搜索发品 / 以图发品」那一屏）。
@@ -15,9 +15,15 @@ import { useCategoryTree, useLeafPaths } from "./use-category"
  * 样式走底色分层（浅灰工作区 + 白色列面），不描边框。
  */
 export function CategoryStep({
+    mode,
+    onModeChange,
     value,
     onConfirm,
 }: {
+    /** 发品方式（来自 URL）：search（搜索发品）/ image（以图发品，本期置灰） */
+    mode: "search" | "image"
+    /** 切换发品方式：由父级写回 URL（刷新可恢复） */
+    onModeChange: (mode: "search" | "image") => void
     /** 已选末级类目 id（来自 URL），用于返回本步时回填 */
     value: string | undefined
     onConfirm: (leafId: string) => void
@@ -45,7 +51,10 @@ export function CategoryStep({
         <div className="space-y-4 pb-20">
             <div className="rounded-2xl bg-background p-3 shadow-sm">
                 <Tabs
-                    value="search"
+                    value={mode}
+                    onValueChange={(next) => {
+                        if (next === "search" || next === "image") onModeChange(next)
+                    }}
                     className="mb-3"
                 >
                     <TabsList className="h-10 w-full bg-transparent p-0">
@@ -102,7 +111,7 @@ export function CategoryStep({
                 </form>
 
                 {isPending ? (
-                    <Skeleton className="h-[460px] w-full rounded-xl" />
+                    <Skeleton className="h-115 w-full rounded-xl" />
                 ) : keyword ? (
                     <CategorySearchResults
                         keyword={keyword}
@@ -140,7 +149,7 @@ function ConfirmBar({
 }) {
     return (
         <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 py-3 backdrop-blur">
-            <div className="mx-auto flex w-full max-w-[1184px] items-center gap-3 px-6">
+            <div className="mx-auto flex w-full max-w-narrow items-center gap-3 px-6">
                 <span className="shrink-0 text-sm text-muted-foreground">类目</span>
                 {pathNames.length === 0 ? (
                     <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">

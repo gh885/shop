@@ -3,9 +3,11 @@ import {
     CategoriesApi,
     ProductsAdminApi,
     type CreateProductRequest,
+    type ProductDetailResponse,
     type ProductResponse,
     type SkuResponse,
     type SkuUpdateItem,
+    type UpdateProductRequest,
 } from "@shop/api/sdk"
 
 // ---------- 商品域数据函数（直接在调用点用，不经集中封装对象） ----------
@@ -37,7 +39,7 @@ export async function listProducts(
 }
 
 /** 商品详情（基本信息 + SKU 列表）：wire → 领域形状 */
-export async function productDetail(shopId: string, id: string) {
+export async function productDetail(shopId: string, id: string): Promise<ProductDetailResponse> {
     return unwrap(
         await ProductsAdminApi.getShopProductDetail({
             path: { id },
@@ -70,6 +72,27 @@ export async function updateProductSkus(
         }),
     )
     return data as SkuResponse[]
+}
+
+/** 编辑商品基本信息（autosave 用）：草稿阶段 name 可空 */
+export async function updateProduct(shopId: string, id: string, payload: UpdateProductRequest) {
+    return unwrap(
+        await ProductsAdminApi.updateProduct({
+            path: { id },
+            body: payload,
+            headers: shopHeader(shopId),
+        }),
+    )
+}
+
+/** 放弃草稿（仅 DRAFT 可删，同事务清 SKU+库存） */
+export async function abandonProduct(shopId: string, id: string) {
+    unwrap(
+        await ProductsAdminApi.abandonProduct({
+            path: { id },
+            headers: shopHeader(shopId),
+        }),
+    )
 }
 
 /** 应用销售属性选择 → 服务端按 valueId 组合对账 SKU，返回当前 SKU 网格（价格/库存留空待填） */

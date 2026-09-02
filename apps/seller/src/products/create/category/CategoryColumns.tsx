@@ -2,7 +2,7 @@ import { useState } from "react"
 import { ChevronRight, Search } from "lucide-react"
 import { cn, Input } from "@shop/ui-web"
 
-import { columnsOf, filterByName, isLeaf } from "./category"
+import { columnsOf, filterByName, isLeaf } from "../../category"
 import type { CategoryNodeResponse } from "@shop/api/sdk"
 
 /** 类目最多三级（后端 CategoryService.MAX_LEVEL），列位固定摆满，避免选之前只有孤零零一列 */
@@ -27,7 +27,7 @@ export function CategoryColumns({
     const reachedLeaf = selectedIds.length > 0 && columns.length === selectedIds.length
 
     return (
-        <div className="flex h-[460px] gap-2">
+        <div className="flex h-115 gap-2">
             {COLUMN_SLOTS.map((slot) => {
                 const nodes = columns[slot]
                 return nodes ? (

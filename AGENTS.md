@@ -107,6 +107,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
     - 风格定位：消费级电商转化风——中性灰撑全场，品牌暖红只做转化引导（CTA）
 - 图标库：`lucide-react`
 - 组件导出：`packages/ui-web/src/index.ts` → 各 app 直接 import
+- **优先使用 `@shop/ui-web` 组件**：任何 UI 元素能用 ui-web 设计系统组件的**一律用**，禁止用原生标签（`<button>`/`<input>` 等）或 app 内自造同质组件；ui-web 没有的（业务形态特殊）才允许在 app 内实现，且仍要复用 ui-web 的基础原子
 
 ### App 接入 ui-web（如 apps/web）
 

@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { ImageIcon, Plus, Trash2 } from "lucide-react"
-import { Input } from "@shop/ui-web"
+import { Badge, Button, Input } from "@shop/ui-web"
 
-import type { CategoryAttrTemplateNode, SpecSelection } from "./data"
+import type { CategoryAttrTemplateNode, SpecSelection } from "../../data"
 
 /**
  * 销售属性编辑器（千牛式逐行取值）。
@@ -66,11 +66,9 @@ export function SalesAttrsEditor({
                 >
                     {/* 维度头：名 + 取值数 + 重要徽标*/}
                     <div className="mb-3 flex items-center gap-2">
-                        <h3 className="text-sm font-semibold">{d.name}</h3>
+                        <span className="text-sm">{d.name}</span>
                         <span className="text-xs text-muted-foreground">({d.rows.length})</span>
-                        <span className="rounded-md bg-warning-subtle px-1.5 py-0.5 text-xs font-medium text-warning">
-                            重要
-                        </span>
+                        <Badge variant="warning">重要</Badge>
                     </div>
 
                     {/* 取值行列表：定宽 22rem 自动换行，不撑满内容区 */}
@@ -78,7 +76,7 @@ export function SalesAttrsEditor({
                         {d.rows.map((row, ri) => (
                             <div
                                 key={row.id}
-                                className="flex w-[22rem] items-center gap-2"
+                                className="flex w-88 items-center gap-2"
                             >
                                 {supportsImage(d.name) && (
                                     <button
@@ -106,27 +104,29 @@ export function SalesAttrsEditor({
                                     />
                                 </div>
                                 {d.rows.length > 1 && (
-                                    <button
-                                        type="button"
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-lg"
                                         onClick={() => removeRow(ai, ri)}
                                         aria-label="删除取值"
-                                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-destructive focus-visible:ring-2"
+                                        className="hover:text-destructive"
                                     >
                                         <Trash2 className="size-4" />
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                         ))}
 
                         {/* 「+」跟在最后一个取值行后面（flex 流内，行尾有空位就同行，不强行另起一行） */}
-                        <button
-                            type="button"
+                        <Button
+                            variant="ghost"
+                            size="icon-lg"
                             onClick={() => addRow(ai)}
                             aria-label="添加取值"
-                            className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dashed border-input text-muted-foreground transition-colors hover:border-primary hover:text-primary focus-visible:ring-2"
+                            className="border border-dashed border-input hover:border-primary hover:text-primary"
                         >
                             <Plus className="size-4" />
-                        </button>
+                        </Button>
                     </div>
 
                     {/* 模板值域（原生 datalist 供取值行 autocomplete） */}

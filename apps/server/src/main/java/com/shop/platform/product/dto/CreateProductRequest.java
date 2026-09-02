@@ -3,7 +3,6 @@ package com.shop.platform.product.dto;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.service.ProductService.CreateProductCommand;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -14,8 +13,11 @@ import java.util.UUID;
 public record CreateProductRequest(
         /** 主分类 ID */
         @NotNull UUID categoryId,
-        /** 搜索标题：参与搜索召回的关键词位，写长了在卡片里也是被截断，上限 30 字 */
-        @NotBlank @Size(max = 30, message = "商品标题最长 30 字") String name,
+        /**
+         * 搜索标题：参与搜索召回的关键词位，写长了在卡片里也是被截断，上限 30 字。
+         * 草稿阶段允许空（先建档再边填边存），发布时由 ensurePublishable 统校验非空。
+         */
+        @Size(max = 30, message = "商品标题最长 30 字") String name,
         /**
          * 一句话卖点：可不填；填了就得写够一句（10~30 字）。空串＝清空（PATCH 语义下要与「不传」区分），
          * 故用 Pattern 而非 Size —— Size(min) 会把空串一起判死。
@@ -29,6 +31,7 @@ public record CreateProductRequest(
         List<@Valid ParamItem> params) {
     public CreateProductRequest {
         if (name != null) name = name.trim();
+        if (name == null) name = ""; // 草稿允许空名，落空串满足 NOT NULL；发布时再校验
         if (subtitle != null) subtitle = subtitle.trim();
     }
 

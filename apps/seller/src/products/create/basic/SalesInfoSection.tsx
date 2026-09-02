@@ -1,0 +1,145 @@
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle, Field, Skeleton, StateError } from "@shop/ui-web"
+import { priceRangeText, toApiError, yuanToFen } from "@shop/api"
+
+import { attrTemplate, type CategoryAttrTemplateNode, type SpecSelection } from "../../data"
+
+import { SalesAttrsEditor } from "./SalesAttrsEditor"
+import { SkuGridEditor } from "./SkuGridEditor"
+import type { SkuDraftRow } from "./product-form-state"
+
+/**
+ * 发布页「销售信息」块（section-sales）：①销售属性 ②销售规格 ③一口价 ④总库存。
+ *
+ * 完全受控：selections/skuRows 由外层(use-product-draft)持有，本组件只做模板加载(自身副作用) + 展示转发。
+ * 选值变化 → onSelectionsChange 上抛（级联生成 SKU 交给外层 hook）；SKU 行编辑 → onSkuRowsChange 上抛。
+ *
+ * 一口价/总库存为商品级派生展示（不做输入）：
+ *  - 一口价 = 当前全部 SKU 价格区间（单 SKU 同价只显一个价），随 SKU 编辑实时联动（对齐淘宝"有效 SKU 价格区间"）
+ *  - 总库存 = 全部 SKU 库存之和，纯展示不可填
+ *
+ * 三态：模板加载中 → Skeleton；失败 → StateError(带重试)；无销售属性 → 属性块给 Empty 提示，
+ * 但一口价/总库存仍展示（单规格商品也有一口价/库存，与"是否有规格属性"无关）。
+ */
+export function SalesInfoSection({
+    categoryId,
+    selections,
+    skuRows,
+    onSelectionsChange,
+    onSkuRowsChange,
+}: {
+    categoryId: string
+    selections: SpecSelection[]
+    skuRows: SkuDraftRow[]
+    onSelectionsChange: (selections: SpecSelection[]) => void
+    onSkuRowsChange: (rows: SkuDraftRow[]) => void
+}) {
+    const [template, setTemplate] = useState<CategoryAttrTemplateNode[] | undefined>()
+    const [loadError, setLoadError] = useState<string | undefined>()
+    // 重载信号：重试时自增触发重新拉取
+    const [reloadKey, setReloadKey] = useState(0)
+
+    // ---- 模板加载（提升到壳；失败可重试） ----
+    useEffect(() => {
+        let cancelled = false
+        attrTemplate(categoryId)
+            .then((nodes) => {
+                if (cancelled) return
+                setTemplate(nodes.filter((n) => n.attr.kind === "SPEC"))
+                setLoadError(undefined)
+            })
+            .catch((error) => {
+                if (!cancelled) setLoadError(toApiError(error).detail)
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [categoryId, reloadKey])
+
+    // 加载中（首次）：Skeleton；失败：StateError（重试自增 reloadKey）
+    if (loadError && !template) {
+        return (
+            <StateError
+                message={loadError}
+                onRetry={() => setReloadKey((k) => k + 1)}
+            />
+        )
+    }
+    if (!template) {
+        return <Skeleton className="h-40 w-full" />
+    }
+
+    const hasSpecs = template.length > 0
+
+    return (
+        <Card
+            id="section-sales"
+            className="scroll-mt-20"
+        >
+            <CardHeader>
+                <CardTitle>销售信息</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                {hasSpecs ? (
+                    <Field
+                        label="销售属性"
+                        layout="horizontal"
+                        hint="规范配置销售属性有助于商品转化"
+                    >
+                        <SalesAttrsEditor
+                            attrs={template}
+                            value={selections}
+                            onChange={onSelectionsChange}
+                        />
+                    </Field>
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        该类目没有可配置的销售属性，SKU 保持单规格。
+                    </p>
+                )}
+
+                {skuRows.length > 0 && (
+                    <Field
+                        label="销售规格"
+                        layout="horizontal"
+                        required
+                    >
+                        <SkuGridEditor
+                            rows={skuRows}
+                            onChange={onSkuRowsChange}
+                        />
+                    </Field>
+                )}
+
+                <PriceStockFields skuRows={skuRows} />
+            </CardContent>
+        </Card>
+    )
+}
+
+/** 一口价（价格区间）+ 总库存（库存之和）：纯派生展示，随 SKU 编辑实时联动 */
+function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
+    const prices = skuRows.map((r) => yuanToFen(r.priceText)).filter((n): n is number => n !== null)
+    const min = prices.length > 0 ? Math.min(...prices) : undefined
+    const max = prices.length > 0 ? Math.max(...prices) : undefined
+    const totalStock = skuRows.reduce((sum, r) => sum + (Number(r.stockText) || 0), 0)
+
+    return (
+        <>
+            <Field
+                label="一口价"
+                layout="horizontal"
+                hint="由全部 SKU 价格区间推导；单规格同价只显示一个价"
+            >
+                <p className="pt-2 text-sm text-foreground">{priceRangeText(min, max)}</p>
+            </Field>
+            <Field
+                label="总库存"
+                layout="horizontal"
+                hint="全部 SKU 库存之和，销售属性/规格变更后自动重算"
+            >
+                <p className="pt-2 text-sm text-foreground">{totalStock} 件</p>
+            </Field>
+        </>
+    )
+}
