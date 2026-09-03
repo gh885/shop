@@ -2,49 +2,22 @@ import type { ApiError } from "./common"
 import { client } from "./sdk/client.gen"
 
 /**
- * 生成 SDK（src/sdk）的传输层装配：给 hey-api 生成的默认 client 挂上
- * 与 ky 版 `createApiClient` 等价的拦截 —— token 注入、Correlation ID、
- * 401 自动 refresh 重试、错误归一化为 ApiError、10s 超时、GET 自动重试。
+ * 生成 SDK（src/sdk）的传输层装配：给 hey-api 生成的 ky client 挂上
+ * 拦截 —— token 注入、Correlation ID、401 自动 refresh 重发、错误归一化为
+ * ApiError；超时与（幂等 GET）重试直接交给 ky 原生能力，不再手写 fetch 策略。
  *
  * 各 app 在装配处调用一次（模块初始化）：
  *   configureSdkClient("", tokenStore, { debug: import.meta.env.DEV })
- * 之后业务代码直接用生成的具名方法：`CartApi.getCartItems()`，
- * 返回值 { data, error } 中 error 即归一化后的 ApiError。
+ * 之后业务代码直接用生成的具名方法：`CartApi.getCartItems()`。
+ *
+ * 传输层用 @hey-api/client-ky：依赖已有的 `ky`，其原生 `timeout`/`retry`
+ * 替代了手写的 fetchWithPolicy。错误契约不变 —— throwOnError: true 时，
+ * 出错即抛归一化后的 ApiError（经 error 拦截器），成功直接返回数据。
  */
 
 export interface TokenStore {
     get: () => string | null
     set: (token: string) => void
-}
-
-const startTimes = new WeakMap<Request, number>()
-
-// ---- 超时 + GET 重试（对齐 ky 版：timeout 10s；GET 遇 408/429/5xx 重试 2 次） ----
-
-const TIMEOUT_MS = 10_000
-const RETRY_LIMIT = 2
-const RETRY_STATUSES = new Set([408, 429, 502, 503, 504])
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-const fetchWithPolicy: typeof globalThis.fetch = async (input, init) => {
-    const request = new Request(input, init)
-    // 仅 GET 自动重试（幂等）；非 GET 一次直达
-    const maxAttempts = request.method === "GET" ? RETRY_LIMIT + 1 : 1
-
-    for (let attempt = 1; ; attempt++) {
-        const signal = AbortSignal.any([request.signal, AbortSignal.timeout(TIMEOUT_MS)])
-        try {
-            // 每次重试重新 clone，避免 body/信号被上次消费
-            const response = await globalThis.fetch(new Request(request, { signal }))
-            if (attempt >= maxAttempts || !RETRY_STATUSES.has(response.status)) {
-                return response
-            }
-        } catch (error) {
-            if (attempt >= maxAttempts) throw error
-        }
-        await sleep(300 * attempt)
-    }
 }
 
 export interface SdkClientOptions {
@@ -54,9 +27,16 @@ export interface SdkClientOptions {
     debug?: boolean
 }
 
+// ---- 超时 + 重试（对齐原 ky 版/之前的 fetch 版策略：timeout 10s；仅幂等 GET 遇 408/429/5xx 重试 2 次） ----
+
+const TIMEOUT_MS = 10_000
+const RETRY_LIMIT = 2
+const RETRY_METHODS = ["GET"] as const
+const RETRY_STATUSES = [408, 429, 502, 503, 504]
+
 /**
  * 扁平化 query 序列化：Spring 模块入参多为 `@Valid XxxQuery`（如 PageParams/ProductQuery），
- * 实际按扁平参数绑定（page/size/categoryId/sort...）。而奥 hey-api 默认把对象参数序列化成
+ * 实际按扁平参数绑定（page/size/categoryId/sort...）。而 hey-api 默认把对象参数序列化成
  * deepObject（`query[sort]=newest`，裸 `[ ]`），Tomcat 默认拒绝裸括号 → 直接 400。
  * 这里把对象/数组拍平为顶层 `k=v`，贴合 Spring 绑定，也避免裸括号。
  */
@@ -81,11 +61,20 @@ export function configureSdkClient(
     tokens?: TokenStore,
     options?: SdkClientOptions,
 ) {
+    const startTimes = new WeakMap<Request, number>()
+
     client.setConfig({
         baseUrl: baseUrl || "/",
         credentials: "include",
-        fetch: fetchWithPolicy,
         querySerializer: flattenQuerySerializer,
+        throwOnError: true,
+        // 超时/重试交给 ky 原生：与旧 fetch 版 fetchWithPolicy 等价
+        timeout: TIMEOUT_MS,
+        retry: {
+            limit: RETRY_LIMIT,
+            methods: [...RETRY_METHODS],
+            statusCodes: [...RETRY_STATUSES],
+        },
     })
 
     // ---- 请求前：token + 全链路 ID + 计时起点 ----
@@ -102,6 +91,7 @@ export function configureSdkClient(
     })
 
     // ---- 响应后：日志 + 401 自动 refresh 并重发原请求 ----
+    // 401 重发用原生 fetch（request.url 已含 baseUrl），绕过 ky 避免触发拦截器递归。
     client.interceptors.response.use(async (response, request, opts) => {
         const path = new URL(request.url).pathname
         if (options?.debug) {
@@ -138,14 +128,14 @@ export function configureSdkClient(
                 credentials: request.credentials,
                 signal: request.signal,
             })
-            return await (opts.fetch ?? globalThis.fetch)(retry)
+            return await fetch(retry)
         } catch {
             // refresh 失败 → 原始 401 正常冒泡
             return response
         }
     })
 
-    // ---- 错误归一化：与 ky 版 toApiError 同一出口语义，SDK 调用方拿到的 error 即 ApiError ----
+    // ---- 错误归一化：SDK 调用方拿到的 error 即 ApiError ----
     client.interceptors.error.use((error, response) => {
         if (response) {
             const body = error as Partial<ApiError> | undefined
