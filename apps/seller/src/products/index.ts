@@ -8,12 +8,8 @@
  * 桶文件只暴露外部真正消费的那几个；域内一律相对路径直连，不走这里。
  */
 
-export {
-    FilterBar,
-    DEFAULT_FILTER,
-    type ProductStatusFilter,
-    type ProductListFilter,
-} from "./list/filter"
+export type { ProductStatusFilter } from "./constants"
+export { FilterBar, DEFAULT_FILTER, type ProductListFilter } from "./list/filter"
 export { ProductTable } from "./list/table"
 export { CategoryStep } from "./create/category/CategoryStep"
 export {

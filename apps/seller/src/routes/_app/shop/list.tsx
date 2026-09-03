@@ -17,10 +17,11 @@ import {
 import { CheckCircle2, CircleAlert, MailPlus, Store } from "lucide-react"
 
 import { toApiError } from "@shop/api"
+import type { ShopResponse } from "@shop/api/sdk"
 
 import { acceptInvite, createShop, myInvites } from "#/shared/lib/shop-data"
 import { setCurrentShopId, useCurrentShop, useMyShops } from "#/shared/lib/shop"
-import type { ShopResponse } from "@shop/api/sdk"
+import { SHOP_STATUS_TEXT, SHOP_STATUS_VARIANT } from "#/shared/lib/shop-constants"
 
 /** 开店表单校验：店名长度与后端 @Size 对齐（就近放在表单旁） */
 const CreateShopNameSchema = z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字")
@@ -28,23 +29,6 @@ const CreateShopNameSchema = z.string().trim().min(1, "请输入店铺名称").m
 export const Route = createFileRoute("/_app/shop/list")({
     component: ShopsPage,
 })
-
-const STATUS_TEXT: Record<ShopResponse["status"], string> = {
-    PENDING_REVIEW: "审核中",
-    ACTIVE: "正常营业",
-    REJECTED: "审核未通过",
-    DISABLED: "已封禁",
-}
-
-const STATUS_VARIANT: Record<
-    ShopResponse["status"],
-    "secondary" | "default" | "destructive" | "outline"
-> = {
-    PENDING_REVIEW: "secondary",
-    ACTIVE: "default",
-    REJECTED: "destructive",
-    DISABLED: "outline",
-}
 
 function ShopsPage() {
     const shops = useMyShops()
@@ -113,7 +97,9 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
             <div className="space-y-1">
                 <div className="flex items-center gap-3">
                     <h3 className="font-semibold">{shop.name}</h3>
-                    <Badge variant={STATUS_VARIANT[shop.status]}>{STATUS_TEXT[shop.status]}</Badge>
+                    <Badge variant={SHOP_STATUS_VARIANT[shop.status]}>
+                        {SHOP_STATUS_TEXT[shop.status]}
+                    </Badge>
                     {isCurrent ? <Badge variant="outline">当前经营</Badge> : undefined}
                 </div>
                 <p className="text-sm text-muted-foreground">

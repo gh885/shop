@@ -20,17 +20,8 @@ import { priceRangeText } from "@shop/api"
 import type { ProductResponse } from "@shop/api/sdk"
 
 import { imgUrl } from "#/shared/lib/image"
-
-// ---------- 状态展示 ----------
-
-const STATUS_META: Record<
-    ProductResponse["status"],
-    { label: string; variant: "default" | "secondary" | "outline" }
-> = {
-    PUBLISHED: { label: "上架中", variant: "default" },
-    WAREHOUSE: { label: "仓库中", variant: "secondary" },
-    DRAFT: { label: "草稿", variant: "outline" },
-}
+import { paged } from "#/shared/lib/pagination"
+import { PRODUCT_STATUS_META } from "#/products/constants"
 
 interface ProductTableProps {
     /** 当前页商品行（已含后端聚合好的库存/销量） */
@@ -121,7 +112,7 @@ function ProductRow({
     onOff: () => void
     onOn: () => void
 }) {
-    const meta = STATUS_META[p.status]
+    const meta = PRODUCT_STATUS_META[p.status]
 
     return (
         <TableRow>
@@ -254,23 +245,4 @@ function Pagination({
             </PaginationContent>
         </UiPagination>
     )
-}
-
-/** 页码序列：当前页 ±2 + 首尾 + 省略号。返回数字与 "..." 的混合数组。 */
-function paged(current: number, total: number): (number | "...")[] {
-    const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i)
-    if (total <= 7) return range(1, total)
-    const pages = new Set<number>([1, total])
-    for (let p = current - 2; p <= current + 2; p++) {
-        if (p >= 1 && p <= total) pages.add(p)
-    }
-    const sorted = [...pages].sort((a, b) => a - b)
-    const out: (number | "...")[] = []
-    let prev = 0
-    for (const p of sorted) {
-        if (p - prev > 1) out.push("...")
-        out.push(p)
-        prev = p
-    }
-    return out
 }

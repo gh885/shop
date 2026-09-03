@@ -2,8 +2,7 @@ import { useState } from "react"
 import { Button, Input, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 import { RotateCcw, Search } from "lucide-react"
 
-/** 商品状态页签：在售 / 仓库中 / 草稿 */
-export type ProductStatusFilter = "PUBLISHED" | "WAREHOUSE" | "DRAFT"
+import { PRODUCT_STATUS_TABS, type ProductStatusFilter } from "#/products/constants"
 
 /** 商品列表筛选值（URL 可同步的查询子集） */
 export interface ProductListFilter {
@@ -20,12 +19,6 @@ export interface ProductListFilter {
 export const DEFAULT_FILTER: ProductListFilter = {
     status: "PUBLISHED",
 }
-
-const STATUS_TABS: ReadonlyArray<{ value: ProductStatusFilter; label: string }> = [
-    { value: "PUBLISHED", label: "在售" },
-    { value: "WAREHOUSE", label: "仓库中" },
-    { value: "DRAFT", label: "草稿" },
-]
 
 interface FilterBarProps {
     value: ProductListFilter
@@ -80,7 +73,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                 }}
             >
                 <TabsList variant="line">
-                    {STATUS_TABS.map((tab) => (
+                    {PRODUCT_STATUS_TABS.map((tab) => (
                         <TabsTrigger
                             key={tab.value}
                             value={tab.value}
