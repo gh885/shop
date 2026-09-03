@@ -7,12 +7,14 @@ import {
     CardTitle,
     Field,
     Input,
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
     firstFieldError,
 } from "@shop/ui-web"
 
 import type { BasicForm } from "./form-instance"
 
-import { CountedInput } from "../../CountedInput"
 import { z } from "zod"
 
 /** 商品标题（搜索标题）：参与搜索召回的关键词位，上限 30 字 */
@@ -38,12 +40,15 @@ export function BasicInfoSection({ form }: { form: BasicForm }) {
     return (
         <Card
             id="section-basic"
-            className="scroll-mt-20"
+            className="scroll-mt-16"
         >
             <CardHeader>
-                <CardTitle>基础信息</CardTitle>
+                <CardTitle>
+                    <span className="mr-2 text-muted-foreground/60 tabular-nums">01</span>
+                    基础信息
+                </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-5">
                 <form.AppField
                     name="mainImage"
                     validators={{
@@ -91,15 +96,25 @@ export function BasicInfoSection({ form }: { form: BasicForm }) {
                             error={firstFieldError(field)}
                             hint="买家搜索靠它命中，把品牌、品类、核心属性写进去"
                         >
-                            <CountedInput
-                                id="pf-name"
-                                value={field.state.value}
-                                max={30}
-                                placeholder="如：宠物智能喂食器 定时定量 大容量"
-                                invalid={Boolean(firstFieldError(field))}
-                                onChange={field.handleChange}
-                                onBlur={field.handleBlur}
-                            />
+                            <InputGroup className="h-10">
+                                <InputGroupInput
+                                    id="pf-name"
+                                    value={field.state.value}
+                                    maxLength={30}
+                                    placeholder="如：宠物智能喂食器 定时定量 大容量"
+                                    onChange={(e) => field.handleChange(e.target.value)}
+                                    onBlur={field.handleBlur}
+                                    aria-invalid={Boolean(firstFieldError(field)) || undefined}
+                                />
+                                {field.state.value.length > 0 && (
+                                    <InputGroupAddon
+                                        align="inline-end"
+                                        className="text-xs font-normal tabular-nums text-muted-foreground"
+                                    >
+                                        {field.state.value.length}/30
+                                    </InputGroupAddon>
+                                )}
+                            </InputGroup>
                         </Field>
                     )}
                 </form.AppField>
@@ -119,15 +134,25 @@ export function BasicInfoSection({ form }: { form: BasicForm }) {
                             error={firstFieldError(field)}
                             hint="选填；填了就写 10~30 字，展示在商品详情页标题下方"
                         >
-                            <CountedInput
-                                id="pf-subtitle"
-                                value={field.state.value}
-                                max={30}
-                                placeholder="如：定时定量不撑食，断电续航 72 小时"
-                                invalid={Boolean(firstFieldError(field))}
-                                onChange={field.handleChange}
-                                onBlur={field.handleBlur}
-                            />
+                            <InputGroup className="h-10">
+                                <InputGroupInput
+                                    id="pf-subtitle"
+                                    value={field.state.value}
+                                    maxLength={30}
+                                    placeholder="如：定时定量不撑食，断电续航 72 小时"
+                                    onChange={(e) => field.handleChange(e.target.value)}
+                                    onBlur={field.handleBlur}
+                                    aria-invalid={Boolean(firstFieldError(field)) || undefined}
+                                />
+                                {field.state.value.length > 0 && (
+                                    <InputGroupAddon
+                                        align="inline-end"
+                                        className="text-xs font-normal tabular-nums text-muted-foreground"
+                                    >
+                                        {field.state.value.length}/30
+                                    </InputGroupAddon>
+                                )}
+                            </InputGroup>
                         </Field>
                     )}
                 </form.AppField>

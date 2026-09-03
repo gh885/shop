@@ -1,8 +1,57 @@
 import { useState } from "react"
-import { ImageIcon, Plus, Trash2 } from "lucide-react"
-import { Badge, Button, Input } from "@shop/ui-web"
+import { Plus } from "lucide-react"
+import { Badge, Button } from "@shop/ui-web"
 
 import type { CategoryAttrTemplateNode, SpecSelection } from "../../data"
+
+import { AttrValueRow, type ValueDraft } from "./AttrValueRow"
+
+// ── 内部草稿形状 ──
+
+interface AttrDraft {
+    attrId: string
+    name: string
+    allowCustom: boolean
+    values: CategoryAttrTemplateNode["values"]
+    rows: ValueDraft[]
+}
+
+let seq = 0
+const nextId = () => `v-${++seq}`
+
+/** 销售属性维度是否「取值带图」（占位性判定：名字含 颜色/色；后端上传未接，先只渲染占位按钮） */
+const supportsImage = (name: string) => /颜色|色/.test(name)
+
+function toDrafts(nodes: CategoryAttrTemplateNode[], selected: SpecSelection[]): AttrDraft[] {
+    return nodes.map((n) => {
+        const sel = selected.find((s) => s.attrId === n.attr.id)
+        const rows: ValueDraft[] = []
+        for (const vid of sel?.valueIds ?? []) {
+            const v = n.values.find((x) => x.id === vid)
+            rows.push({ id: nextId(), valueId: vid, value: v?.value ?? "", note: "" })
+        }
+        for (const cv of sel?.customValues ?? []) {
+            rows.push({ id: nextId(), value: cv, note: "" })
+        }
+        if (rows.length === 0) rows.push({ id: nextId(), value: "", note: "" })
+        return {
+            attrId: n.attr.id,
+            name: n.attr.name,
+            allowCustom: n.attr.allowCustom,
+            values: n.values,
+            rows,
+        }
+    })
+}
+
+function toSelections(drafts: AttrDraft[]): SpecSelection[] {
+    const withRows = drafts.filter((d) => d.rows.some((r) => r.value.trim()))
+    return withRows.map((d) => ({
+        attrId: d.attrId,
+        valueIds: d.rows.filter((r) => r.valueId && r.value.trim()).map((r) => r.valueId as string),
+        customValues: d.rows.filter((r) => !r.valueId && r.value.trim()).map((r) => r.value.trim()),
+    }))
+}
 
 /**
  * 销售属性编辑器（千牛式逐行取值）。
@@ -71,53 +120,22 @@ export function SalesAttrsEditor({
                         <Badge variant="warning">重要</Badge>
                     </div>
 
-                    {/* 取值行列表：定宽 22rem 自动换行，不撑满内容区 */}
-                    <div className="flex flex-wrap gap-2">
+                    {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}
+                    <div className="flex flex-wrap items-center gap-2">
                         {d.rows.map((row, ri) => (
-                            <div
+                            <AttrValueRow
                                 key={row.id}
-                                className="flex w-88 items-center gap-2"
-                            >
-                                {supportsImage(d.name) && (
-                                    <button
-                                        type="button"
-                                        aria-label="规格图上传待接入"
-                                        className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground/60"
-                                    >
-                                        <ImageIcon className="size-4" />
-                                    </button>
-                                )}
-                                <div className="flex min-w-0 flex-1 items-center rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/40">
-                                    <Input
-                                        value={row.value}
-                                        placeholder={
-                                            d.allowCustom ? "输入或选择取值" : "请选择取值"
-                                        }
-                                        className="h-9 min-w-0 flex-1 border-0 bg-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
-                                        onChange={(e) => updateValue(ai, ri, e.target.value)}
-                                    />
-                                    <Input
-                                        value={row.note}
-                                        placeholder="备注(可选)"
-                                        className="h-9 w-28 shrink-0 border-0 border-l border-input bg-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
-                                        onChange={(e) => updateNote(ai, ri, e.target.value)}
-                                    />
-                                </div>
-                                {d.rows.length > 1 && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-lg"
-                                        onClick={() => removeRow(ai, ri)}
-                                        aria-label="删除取值"
-                                        className="hover:text-destructive"
-                                    >
-                                        <Trash2 className="size-4" />
-                                    </Button>
-                                )}
-                            </div>
+                                row={row}
+                                showImage={supportsImage(d.name)}
+                                allowCustom={d.allowCustom}
+                                values={d.values.map((v) => v.value)}
+                                removable={d.rows.length > 1}
+                                onValueChange={(text) => updateValue(ai, ri, text)}
+                                onNoteChange={(note) => updateNote(ai, ri, note)}
+                                onRemove={() => removeRow(ai, ri)}
+                            />
                         ))}
 
-                        {/* 「+」跟在最后一个取值行后面（flex 流内，行尾有空位就同行，不强行另起一行） */}
                         <Button
                             variant="ghost"
                             size="icon-lg"
@@ -128,77 +146,8 @@ export function SalesAttrsEditor({
                             <Plus className="size-4" />
                         </Button>
                     </div>
-
-                    {/* 模板值域（原生 datalist 供取值行 autocomplete） */}
-                    <datalist id={`dv-${d.attrId}`}>
-                        {d.values.map((v) => (
-                            <option
-                                key={v.id}
-                                value={v.value}
-                            >
-                                {v.value}
-                            </option>
-                        ))}
-                    </datalist>
                 </div>
             ))}
         </div>
     )
 }
-
-// ── 内部草稿形状 ──
-
-interface ValueDraft {
-    id: string
-    /** 模板值 id；无 = 自定义值 */
-    valueId?: string
-    value: string
-    note: string
-}
-
-interface AttrDraft {
-    attrId: string
-    name: string
-    allowCustom: boolean
-    values: CategoryAttrTemplateNode["values"]
-    rows: ValueDraft[]
-}
-
-let seq = 0
-const nextId = () => `v-${++seq}`
-
-/** 销售属性维度是否「取值带图」（占位性判定：名字含 颜色/色；后端上传未接，先只渲染占位按钮） */
-const supportsImage = (name: string) => /颜色|色/.test(name)
-
-function toDrafts(nodes: CategoryAttrTemplateNode[], selected: SpecSelection[]): AttrDraft[] {
-    return nodes.map((n) => {
-        const sel = selected.find((s) => s.attrId === n.attr.id)
-        const rows: ValueDraft[] = []
-        for (const vid of sel?.valueIds ?? []) {
-            const v = n.values.find((x) => x.id === vid)
-            rows.push({ id: nextId(), valueId: vid, value: v?.value ?? "", note: "" })
-        }
-        for (const cv of sel?.customValues ?? []) {
-            rows.push({ id: nextId(), value: cv, note: "" })
-        }
-        if (rows.length === 0) rows.push({ id: nextId(), value: "", note: "" })
-        return {
-            attrId: n.attr.id,
-            name: n.attr.name,
-            allowCustom: n.attr.allowCustom,
-            values: n.values,
-            rows,
-        }
-    })
-}
-
-function toSelections(drafts: AttrDraft[]): SpecSelection[] {
-    const withRows = drafts.filter((d) => d.rows.some((r) => r.value.trim()))
-    return withRows.map((d) => ({
-        attrId: d.attrId,
-        valueIds: d.rows.filter((r) => r.valueId && r.value.trim()).map((r) => r.valueId as string),
-        customValues: d.rows.filter((r) => !r.valueId && r.value.trim()).map((r) => r.value.trim()),
-    }))
-}
-
-export { type ValueDraft }

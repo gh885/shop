@@ -74,12 +74,15 @@ export function SalesInfoSection({
     return (
         <Card
             id="section-sales"
-            className="scroll-mt-20"
+            className="scroll-mt-16"
         >
             <CardHeader>
-                <CardTitle>销售信息</CardTitle>
+                <CardTitle>
+                    <span className="mr-2 text-muted-foreground/60 tabular-nums">02</span>
+                    销售信息
+                </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-6">
                 {hasSpecs ? (
                     <Field
                         label="销售属性"
@@ -111,7 +114,10 @@ export function SalesInfoSection({
                     </Field>
                 )}
 
-                <PriceStockFields skuRows={skuRows} />
+                {/* 一口价/总库存是只读派生汇总，与上方编辑区用分隔线区隔 */}
+                <div className="space-y-3 border-t border-border pt-5">
+                    <PriceStockFields skuRows={skuRows} />
+                </div>
             </CardContent>
         </Card>
     )
@@ -131,14 +137,16 @@ function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
                 layout="horizontal"
                 hint="由全部 SKU 价格区间推导；单规格同价只显示一个价"
             >
-                <p className="pt-2 text-sm text-foreground">{priceRangeText(min, max)}</p>
+                <p className="pt-2 text-sm text-foreground tabular-nums">
+                    {priceRangeText(min, max)}
+                </p>
             </Field>
             <Field
                 label="总库存"
                 layout="horizontal"
                 hint="全部 SKU 库存之和，销售属性/规格变更后自动重算"
             >
-                <p className="pt-2 text-sm text-foreground">{totalStock} 件</p>
+                <p className="pt-2 text-sm text-foreground tabular-nums">{totalStock} 件</p>
             </Field>
         </>
     )

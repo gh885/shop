@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { CircleAlert, Store } from "lucide-react"
 
 import { toApiError } from "@shop/api"
+import { Button } from "@shop/ui-web"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/products"
 import { useProductDraft } from "#/products/create/basic/use-product-draft"
@@ -69,11 +70,22 @@ function NewProductBasicStep() {
 
     if (!shop) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-                <Store className="size-10 text-muted-foreground/50" />
-                <p className="text-muted-foreground">
-                    还没有正常营业的店铺，先到「店铺管理」创建或等待审核
-                </p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center">
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                    <Store className="size-7" />
+                </div>
+                <div className="space-y-1">
+                    <p className="font-medium">还没有正常营业的店铺</p>
+                    <p className="text-sm text-muted-foreground">
+                        创建店铺或等待审核通过后，再来发布商品
+                    </p>
+                </div>
+                <Button
+                    variant="outline"
+                    onClick={() => void navigate({ to: "/shop/list" })}
+                >
+                    去店铺管理
+                </Button>
             </div>
         )
     }
@@ -97,10 +109,16 @@ function NewProductBasicStep() {
                 onBasicChange={debouncedSaveBasic}
             />
             {serverError ? (
-                <p className="flex items-center gap-1.5 pb-4 text-sm text-destructive">
-                    <CircleAlert className="size-4" />
-                    {serverError}
-                </p>
+                /* 提交失败：浮在底部操作条正上方，与触发按钮保持视觉关联 */
+                <div
+                    role="alert"
+                    className="fixed inset-x-0 bottom-16 z-30 px-6"
+                >
+                    <p className="mx-auto flex w-full max-w-narrow items-center gap-2 rounded-lg bg-destructive-subtle px-4 py-2.5 text-sm text-destructive-subtle-foreground shadow-md">
+                        <CircleAlert className="size-4 shrink-0" />
+                        {serverError}
+                    </p>
+                </div>
             ) : undefined}
         </div>
     )

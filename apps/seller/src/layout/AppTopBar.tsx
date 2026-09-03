@@ -38,11 +38,24 @@ import { logout } from "#/shared/lib/api"
 import { useClearMe, useMe } from "#/shared/lib/me"
 
 /** 顶栏：透明浮于 canvas 画布，无分割线。minimal（内容区需大空间的页面）下
-    隐去搜索，只留「品牌 + 当前页名 + 动作群 + 账号」。 */
-export function AppTopBar({ title, minimal = false }: { title: string; minimal?: boolean }) {
+    隐去搜索，只留「品牌 + 当前页名 + 动作群 + 账号」。
+    sticky=false 用于发布流程页：窗口级滚动，顶栏随内容滚走，让位给贴顶页签 */
+export function AppTopBar({
+    title,
+    minimal = false,
+    sticky = true,
+}: {
+    title: string
+    minimal?: boolean
+    sticky?: boolean
+}) {
     return (
         <TopBarRoot
-            className={cn("gap-3 px-4", minimal ? "border-border" : "border-b-0 bg-transparent")}
+            className={cn(
+                "gap-3 px-4",
+                minimal ? "border-border" : "border-b-0 bg-transparent",
+                !sticky && "static",
+            )}
         >
             {" "}
             <Link to="/">

@@ -3,6 +3,9 @@ import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
 import {
     Button,
     Input,
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
     Switch,
     Table,
     TableBody,
@@ -74,28 +77,48 @@ export function SkuGridEditor({
         <div className={fullscreen ? "fixed inset-0 z-50 overflow-auto bg-background p-6" : ""}>
             {/* 工具栏：批量填写 + 搜索 + 全屏 */}
             <div className="mb-3 flex flex-wrap items-center gap-2">
-                <div className="flex items-center rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/40">
-                    <span className="pl-3 text-sm text-muted-foreground">价格</span>
-                    <Input
+                <InputGroup className="h-9 w-fit">
+                    <InputGroupAddon
+                        align="inline-start"
+                        className="font-normal"
+                    >
+                        价格
+                    </InputGroupAddon>
+                    <InputGroupInput
                         inputMode="decimal"
                         placeholder="0.00"
-                        className="h-9 w-24 border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                        className="flex-none w-24 text-right tabular-nums"
                         value={batchPrice}
                         onChange={(e) => setBatchPrice(e.target.value)}
                     />
-                    <span className="pr-3 text-sm text-muted-foreground">元</span>
-                </div>
-                <div className="flex items-center rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/40">
-                    <span className="pl-3 text-sm text-muted-foreground">数量</span>
-                    <Input
+                    <InputGroupAddon
+                        align="inline-end"
+                        className="font-normal"
+                    >
+                        元
+                    </InputGroupAddon>
+                </InputGroup>
+                <InputGroup className="h-9 w-fit">
+                    <InputGroupAddon
+                        align="inline-start"
+                        className="font-normal"
+                    >
+                        数量
+                    </InputGroupAddon>
+                    <InputGroupInput
                         inputMode="numeric"
                         placeholder="0"
-                        className="h-9 w-20 border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:border-transparent focus-visible:ring-0"
+                        className="flex-none w-20 text-right tabular-nums"
                         value={batchStock}
                         onChange={(e) => setBatchStock(e.target.value)}
                     />
-                    <span className="pr-3 text-sm text-muted-foreground">件</span>
-                </div>
+                    <InputGroupAddon
+                        align="inline-end"
+                        className="font-normal"
+                    >
+                        件
+                    </InputGroupAddon>
+                </InputGroup>
                 <Button
                     type="button"
                     variant="outline"
@@ -107,15 +130,16 @@ export function SkuGridEditor({
                 </Button>
 
                 <div className="ml-auto flex items-center gap-2">
-                    <div className="flex items-center rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/40">
-                        <Input
+                    <InputGroup className="h-9 w-44">
+                        <InputGroupInput
                             placeholder="搜索规格 / 编码"
-                            className="h-9 w-44 border-0 bg-transparent shadow-none focus-visible:border-transparent focus-visible:ring-0"
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
                         />
-                        <Search className="mr-3 size-4 shrink-0 text-muted-foreground/60" />
-                    </div>
+                        <InputGroupAddon align="inline-end">
+                            <Search className="size-4 text-muted-foreground/60" />
+                        </InputGroupAddon>
+                    </InputGroup>
                     <Button
                         type="button"
                         size="sm"
@@ -164,25 +188,28 @@ export function SkuGridEditor({
                                 </span>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-1">
-                                    <Input
+                                <InputGroup className="h-9 w-fit">
+                                    <InputGroupInput
                                         inputMode="decimal"
                                         placeholder="0.00"
-                                        className="w-28 tabular-nums"
+                                        className="flex-none w-24 text-right tabular-nums"
                                         value={d.priceText}
                                         onChange={(e) => update(i, { priceText: e.target.value })}
                                     />
-                                    <span className="shrink-0 text-sm text-muted-foreground">
+                                    <InputGroupAddon
+                                        align="inline-end"
+                                        className="font-normal"
+                                    >
                                         元
-                                    </span>
-                                </div>
+                                    </InputGroupAddon>
+                                </InputGroup>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-1">
-                                    <Input
+                                <InputGroup className="h-9 w-fit">
+                                    <InputGroupInput
                                         inputMode="numeric"
                                         placeholder="0"
-                                        className="w-24 tabular-nums"
+                                        className="flex-none w-24 text-right tabular-nums"
                                         value={d.stockText}
                                         onChange={(e) =>
                                             update(i, {
@@ -190,10 +217,13 @@ export function SkuGridEditor({
                                             })
                                         }
                                     />
-                                    <span className="shrink-0 text-sm text-muted-foreground">
+                                    <InputGroupAddon
+                                        align="inline-end"
+                                        className="font-normal"
+                                    >
                                         件
-                                    </span>
-                                </div>
+                                    </InputGroupAddon>
+                                </InputGroup>
                             </TableCell>
                             <TableCell>
                                 <Input

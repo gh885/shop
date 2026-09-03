@@ -31,17 +31,20 @@ function crumbsOf(pathname: string): Crumb[] {
 /** 工作台壳（千牛式）：蓝灰 canvas 画布上，通栏透明顶栏 + 一级轨，
     「二级面板 + 内容」合并为一张白色浮面（大圆角、无分割线）。
     侧边栏选中态（一级分组 + 二级叶子）完全由 pathname 两段推导，路径即状态，
-    天然支持刷新保持 / 前进后退 / 深链分享，无任何显式状态。 */
+    天然支持刷新保持 / 前进后退 / 深链分享，无任何显式状态。
+    fullWidth 页（发布流程）例外：改用窗口级滚动，顶栏不吸顶随内容滚走，
+    页面内的锚点页签才能吸到视口最顶（见 BasicStep 的 Sticky）。 */
 export function AppShell() {
     const { pathname } = useLocation()
     const fullWidth = FULL_WIDTH_PATHS.has(pathname)
     const title = leafLabelOf(pathname)
 
     return (
-        <div className="flex h-svh w-full flex-col bg-canvas">
+        <div className={cn("flex w-full flex-col bg-canvas", fullWidth ? "min-h-svh" : "h-svh")}>
             <AppTopBar
                 title={title}
                 minimal={fullWidth}
+                sticky={!fullWidth}
             />
             <div className="flex min-h-0 flex-1">
                 {/* 侧边栏两列都落在 canvas 画布上（蓝灰），内容才进白色浮面 */}
@@ -54,7 +57,10 @@ export function AppShell() {
                     )}
                 >
                     <main
-                        className={cn("min-w-0 flex-1 overflow-auto p-6", fullWidth && "bg-canvas")}
+                        className={cn(
+                            "min-w-0 flex-1 p-6",
+                            fullWidth ? "bg-canvas" : "overflow-auto",
+                        )}
                     >
                         {!fullWidth && (
                             <PageBreadcrumb
