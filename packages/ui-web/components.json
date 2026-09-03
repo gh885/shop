@@ -16,5 +16,9 @@
         "utils": "src/lib/utils",
         "lib": "src/lib",
         "hooks": "src/hooks"
+    },
+    "registries": {
+        "@shadcnblocks": "https://shadcnblocks.com/r/{name}.json",
+        "@diceui": "https://diceui.com/r/{style}/{name}.json"
     }
 }
