@@ -79,12 +79,15 @@ export type SpecItem = {
 export type SpecValue = {
     valueId: string;
     value: string;
+    image?: string;
 };
 
 export type SpecSelectionRequest = {
     attrId: string;
     valueIds?: Array<string>;
     customValues?: Array<string>;
+    valueImages?: Record<string, string>;
+    customValueImages?: Record<string, string>;
     selectionPresent?: boolean;
 };
 
@@ -259,6 +262,7 @@ export type CategoryAttrRequest = {
     kind: 'SPEC' | 'PARAM';
     required?: boolean;
     allowCustom?: boolean;
+    allowImage?: boolean;
     sort?: number;
 };
 
@@ -269,6 +273,7 @@ export type CategoryAttrResponse = {
     kind?: 'SPEC' | 'PARAM';
     required?: boolean;
     allowCustom?: boolean;
+    allowImage?: boolean;
     sort?: number;
     status?: 'DISABLED' | 'ENABLED';
     createdAt?: string;
@@ -282,6 +287,7 @@ export type UpdateCategoryAttrStatusRequest = {
 export type CategoryAttrValueRequest = {
     value: string;
     sort?: number;
+    image?: string;
 };
 
 export type CategoryAttrValueResponse = {
@@ -290,6 +296,7 @@ export type CategoryAttrValueResponse = {
     value?: string;
     sort?: number;
     source?: 'PLATFORM' | 'SELLER';
+    image?: string;
     createdAt?: string;
 };
 
