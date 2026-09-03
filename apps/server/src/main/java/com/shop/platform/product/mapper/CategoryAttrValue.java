@@ -43,6 +43,9 @@ public class CategoryAttrValue {
     /** 平台预置 / 卖家扩充 */
     private AttrValueSource source;
 
+    /** 规格值默认图（URL/对象 key，可空），如「红色」对应色卡图 */
+    private String image;
+
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)
     private OffsetDateTime createdAt;

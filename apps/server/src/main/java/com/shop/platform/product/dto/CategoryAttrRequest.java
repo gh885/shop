@@ -18,6 +18,8 @@ public record CategoryAttrRequest(
         Boolean required,
         /** 卖家可否扩充值域/自由输入，缺省 true */
         Boolean allowCustom,
+        /** 该规格是否允许每个取值上传配图 */
+        Boolean allowImage,
         Integer sort) {
     public CategoryAttrRequest {
         if (name != null) name = name.trim();

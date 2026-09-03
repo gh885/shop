@@ -351,7 +351,10 @@ public class ProductService {
                 for (UUID valueId : new LinkedHashSet<>(sel.valueIds())) {
                     CategoryAttrValue row = valuesById.get(valueId);
                     Validate.isTrue(row != null && row.getAttrId().equals(attr.getId()), "规格值不存在或不属于该属性");
-                    values.add(new SpecValue(row.getId(), row.getValue()));
+                    String image =
+                            sel.valueImages() == null ? null : sel.valueImages().get(valueId);
+                    persistValueImage(row, image);
+                    values.add(new SpecValue(row.getId(), row.getValue(), image));
                 }
             }
             if (sel.customValues() != null) {
@@ -363,7 +366,11 @@ public class ProductService {
                     CategoryAttrValue row = categoryAttrService.ensureSellerValue(attr.getId(), value);
                     // 同名复用：与 valueIds 已选值撞同行时去重
                     if (values.stream().noneMatch(v -> v.valueId().equals(row.getId()))) {
-                        values.add(new SpecValue(row.getId(), row.getValue()));
+                        String image = sel.customValueImages() == null
+                                ? null
+                                : sel.customValueImages().get(value);
+                        persistValueImage(row, image);
+                        values.add(new SpecValue(row.getId(), row.getValue(), image));
                     }
                 }
             }
@@ -371,6 +378,14 @@ public class ProductService {
             specs.add(new SpecItem(attr.getId(), attr.getName(), values));
         }
         return specs;
+    }
+
+    /** 规格值的默认图落到 category_attr_values.image（仅在值变化时写，避免无谓更新） */
+    private void persistValueImage(CategoryAttrValue row, String image) {
+        if (image == null) return;
+        if (Objects.equals(row.getImage(), image)) return;
+        row.setImage(image);
+        attrValueMapper.updateById(row);
     }
 
     /** 批量按主键取行 → id → 实体 Map；空集合不发查询（空 IN 列表在 MP 下会退化成全表扫） */
@@ -536,5 +551,10 @@ public class ProductService {
      * 一个规格维度的选择：attrId 定位模板属性，valueIds 选值域内值，customValues 提交值域外新值
      * （仅当 attr.allow_custom 时受理，自动建档 source=2）。两列表至少一非空（HTTP 层 @AssertTrue 先拦）。
      */
-    public record SpecSelection(UUID attrId, List<UUID> valueIds, List<String> customValues) {}
+    public record SpecSelection(
+            UUID attrId,
+            List<UUID> valueIds,
+            List<String> customValues,
+            Map<UUID, String> valueImages,
+            Map<String, String> customValueImages) {}
 }

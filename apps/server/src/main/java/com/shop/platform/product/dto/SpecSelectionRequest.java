@@ -5,6 +5,7 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -14,7 +15,11 @@ import java.util.UUID;
 public record SpecSelectionRequest(
         @NotNull UUID attrId,
         @Size(max = 20) List<UUID> valueIds,
-        @Size(max = 20) List<@Size(max = 64) String> customValues) {
+        @Size(max = 20) List<@Size(max = 64) String> customValues,
+        /** 模板取值（valueId）→ 取值图 */
+        Map<UUID, String> valueImages,
+        /** 自定义取值文本 → 取值图 */
+        Map<String, String> customValueImages) {
 
     /** 两列表至少一非空（getter 命名，Bean Validation 才识别为约束属性） */
     @AssertTrue(message = "valueIds 与 customValues 至少一个非空")
@@ -24,6 +29,6 @@ public record SpecSelectionRequest(
 
     /** 映射为 service 入参 */
     public SpecSelection toSelection() {
-        return new SpecSelection(attrId, valueIds, customValues);
+        return new SpecSelection(attrId, valueIds, customValues, valueImages, customValueImages);
     }
 }

@@ -57,7 +57,13 @@ public class CategoryAttrService {
     /** 新建模板属性。只允许叶子类目（level=3，同商品挂载规则）；同类目重名 409（唯一索引兜底） */
     @Transactional
     public CategoryAttr createAttr(
-            UUID categoryId, String name, AttrKind kind, Boolean required, Boolean allowCustom, Integer sort) {
+            UUID categoryId,
+            String name,
+            AttrKind kind,
+            Boolean required,
+            Boolean allowCustom,
+            Boolean allowImage,
+            Integer sort) {
         Category category = Validate.notNull(categoryMapper.selectById(categoryId), "类目不存在");
         Validate.isTrue(category.getLevel() == 3, "只有叶子类目（三级）才能挂属性模板");
         CategoryAttr attr = CategoryAttr.builder()
@@ -66,6 +72,7 @@ public class CategoryAttrService {
                 .kind(kind)
                 .required(required != null ? required : false)
                 .allowCustom(allowCustom != null ? allowCustom : true)
+                .allowImage(allowImage != null ? allowImage : false)
                 .sort(sort != null ? sort : 0)
                 .status(CategoryAttrStatus.ENABLED)
                 .build();
@@ -79,11 +86,13 @@ public class CategoryAttrService {
 
     /** 更新属性定义（名称/必填/允许扩充/排序）。kind 创建后不可改：销售属性改参数会让存量 SKU 失去出处 */
     @Transactional
-    public CategoryAttr updateAttr(UUID attrId, String name, Boolean required, Boolean allowCustom, Integer sort) {
+    public CategoryAttr updateAttr(
+            UUID attrId, String name, Boolean required, Boolean allowCustom, Boolean allowImage, Integer sort) {
         CategoryAttr attr = requireAttr(attrId);
         attr.setName(name);
         if (required != null) attr.setRequired(required);
         if (allowCustom != null) attr.setAllowCustom(allowCustom);
+        if (allowImage != null) attr.setAllowImage(allowImage);
         if (sort != null) attr.setSort(sort);
         try {
             attrMapper.updateById(attr);
@@ -103,13 +112,14 @@ public class CategoryAttrService {
 
     /** 平台预置值（{@link AttrValueSource#PLATFORM}）。同属性重名 409（唯一索引兜底） */
     @Transactional
-    public CategoryAttrValue addValue(UUID attrId, String value, Integer sort) {
+    public CategoryAttrValue addValue(UUID attrId, String value, Integer sort, String image) {
         requireAttr(attrId);
         CategoryAttrValue row = CategoryAttrValue.builder()
                 .attrId(attrId)
                 .value(value)
                 .sort(sort != null ? sort : 0)
                 .source(AttrValueSource.PLATFORM)
+                .image(image)
                 .build();
         try {
             valueMapper.insert(row);
@@ -124,10 +134,11 @@ public class CategoryAttrService {
      * spec_key（valueId 组合）不动 → SKU 身份不变，价格库存不丢。
      */
     @Transactional
-    public CategoryAttrValue updateValue(UUID valueId, String value, Integer sort) {
-        // 1. 改值名（唯一索引兜底同属性重名）
+    public CategoryAttrValue updateValue(UUID valueId, String value, Integer sort, String image) {
+        // 1. 改值名/图（唯一索引兜底同属性重名）
         CategoryAttrValue row = Validate.notNull(valueMapper.selectById(valueId), "属性值不存在");
         row.setValue(value);
+        if (image != null) row.setImage(image);
         if (sort != null) row.setSort(sort);
         try {
             valueMapper.updateById(row);

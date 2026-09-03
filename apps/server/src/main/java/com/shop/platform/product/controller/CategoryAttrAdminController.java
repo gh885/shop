@@ -46,15 +46,15 @@ public class CategoryAttrAdminController {
     @PostMapping("/categories/{id}/attrs")
     public CategoryAttrResponse createCategoryAttr(@PathVariable UUID id, @Valid @RequestBody CategoryAttrRequest req) {
         return CategoryAttrResponse.from(categoryAttrService.createAttr(
-                id, req.name(), req.kind(), req.required(), req.allowCustom(), req.sort()));
+                id, req.name(), req.kind(), req.required(), req.allowCustom(), req.allowImage(), req.sort()));
     }
 
     /** 更新属性定义（kind 创建后不可改，见 service） */
     @PutMapping("/category-attrs/{attrId}")
     public CategoryAttrResponse updateCategoryAttr(
             @PathVariable UUID attrId, @Valid @RequestBody CategoryAttrRequest req) {
-        return CategoryAttrResponse.from(
-                categoryAttrService.updateAttr(attrId, req.name(), req.required(), req.allowCustom(), req.sort()));
+        return CategoryAttrResponse.from(categoryAttrService.updateAttr(
+                attrId, req.name(), req.required(), req.allowCustom(), req.allowImage(), req.sort()));
     }
 
     /** 启用/禁用属性（同 categories 语义：查询侧裁剪，不写扩散） */
@@ -68,13 +68,15 @@ public class CategoryAttrAdminController {
     @PostMapping("/category-attrs/{attrId}/values")
     public CategoryAttrValueResponse createCategoryAttrValue(
             @PathVariable UUID attrId, @Valid @RequestBody CategoryAttrValueRequest req) {
-        return CategoryAttrValueResponse.from(categoryAttrService.addValue(attrId, req.value(), req.sort()));
+        return CategoryAttrValueResponse.from(
+                categoryAttrService.addValue(attrId, req.value(), req.sort(), req.image()));
     }
 
     /** 改值名/排序：改名同事务刷新引用 SKU 的 attributes/name 快照（改名不丢价） */
     @PutMapping("/category-attr-values/{valueId}")
     public CategoryAttrValueResponse updateCategoryAttrValue(
             @PathVariable UUID valueId, @Valid @RequestBody CategoryAttrValueRequest req) {
-        return CategoryAttrValueResponse.from(categoryAttrService.updateValue(valueId, req.value(), req.sort()));
+        return CategoryAttrValueResponse.from(
+                categoryAttrService.updateValue(valueId, req.value(), req.sort(), req.image()));
     }
 }

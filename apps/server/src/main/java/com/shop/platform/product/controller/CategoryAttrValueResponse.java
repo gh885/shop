@@ -7,10 +7,16 @@ import java.util.UUID;
 
 /** 类目属性值出参：字段镜像 CategoryAttrValue 实体现状，只减不增 */
 public record CategoryAttrValueResponse(
-        UUID id, UUID attrId, String value, Integer sort, AttrValueSource source, OffsetDateTime createdAt) {
+        UUID id,
+        UUID attrId,
+        String value,
+        Integer sort,
+        AttrValueSource source,
+        String image,
+        OffsetDateTime createdAt) {
 
     public static CategoryAttrValueResponse from(CategoryAttrValue v) {
         return new CategoryAttrValueResponse(
-                v.getId(), v.getAttrId(), v.getValue(), v.getSort(), v.getSource(), v.getCreatedAt());
+                v.getId(), v.getAttrId(), v.getValue(), v.getSort(), v.getSource(), v.getImage(), v.getCreatedAt());
     }
 }

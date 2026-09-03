@@ -47,6 +47,9 @@ public class CategoryAttr {
     /** 卖家可否扩充值域/自由输入；false 时提交值必须在值域内 */
     private Boolean allowCustom;
 
+    /** 该规格维度是否允许卖家为每个取值上传配图（如颜色色卡） */
+    private Boolean allowImage;
+
     /** 同类目内排序权重 */
     private Integer sort;
 
