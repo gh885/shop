@@ -88,7 +88,9 @@ export function useProductDraft({
                     categoryId,
                     name: basic.name || "",
                     subtitle: basic.subtitle || undefined,
-                    mainImage: basic.mainImage || undefined,
+                    mainImage: basic.images[0] || undefined,
+                    images: basic.images,
+                    detailImages: basic.detailImages,
                 })
                 draftRef.current = product.id
                 onCreated(product.id)
@@ -104,7 +106,7 @@ export function useProductDraft({
     // ---- 进入第二步即建草稿（name 可空）：让 autosave 有 id 可用；有 draftId（续编）则跳过 ----
     useEffect(() => {
         if (!shopId || !categoryId || draftRef.current) return
-        void ensureDraft({ mainImage: "", name: "", subtitle: "" })
+        void ensureDraft({ images: [], name: "", subtitle: "", detailImages: [] })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopId, categoryId])
 
@@ -178,7 +180,9 @@ export function useProductDraft({
                 categoryId,
                 name: basic.name || "",
                 subtitle: basic.subtitle || undefined,
-                mainImage: basic.mainImage || undefined,
+                mainImage: basic.images[0] || undefined,
+                images: basic.images,
+                detailImages: basic.detailImages,
             })
         },
         [shopId, categoryId],

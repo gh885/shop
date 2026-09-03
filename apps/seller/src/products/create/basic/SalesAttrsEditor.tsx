@@ -4,6 +4,8 @@ import { Badge, Button } from "@shop/ui-web"
 
 import type { CategoryAttrTemplateNode, SpecSelection } from "../../data"
 
+import { uploadProductImage } from "../../data"
+
 import { AttrValueRow, type ValueDraft } from "./AttrValueRow"
 
 // ── 内部草稿形状 ──
@@ -12,15 +14,14 @@ interface AttrDraft {
     attrId: string
     name: string
     allowCustom: boolean
+    /** 该规格是否允许每个取值上传配图（后端类目模板 allow_image） */
+    allowImage: boolean
     values: CategoryAttrTemplateNode["values"]
     rows: ValueDraft[]
 }
 
 let seq = 0
 const nextId = () => `v-${++seq}`
-
-/** 销售属性维度是否「取值带图」（占位性判定：名字含 颜色/色；后端上传未接，先只渲染占位按钮） */
-const supportsImage = (name: string) => /颜色|色/.test(name)
 
 function toDrafts(nodes: CategoryAttrTemplateNode[], selected: SpecSelection[]): AttrDraft[] {
     return nodes.map((n) => {
@@ -38,6 +39,7 @@ function toDrafts(nodes: CategoryAttrTemplateNode[], selected: SpecSelection[]):
             attrId: n.attr.id,
             name: n.attr.name,
             allowCustom: n.attr.allowCustom,
+            allowImage: n.attr.allowImage,
             values: n.values,
             rows,
         }
@@ -46,11 +48,32 @@ function toDrafts(nodes: CategoryAttrTemplateNode[], selected: SpecSelection[]):
 
 function toSelections(drafts: AttrDraft[]): SpecSelection[] {
     const withRows = drafts.filter((d) => d.rows.some((r) => r.value.trim()))
-    return withRows.map((d) => ({
-        attrId: d.attrId,
-        valueIds: d.rows.filter((r) => r.valueId && r.value.trim()).map((r) => r.valueId as string),
-        customValues: d.rows.filter((r) => !r.valueId && r.value.trim()).map((r) => r.value.trim()),
-    }))
+    return withRows.map((d) => {
+        const valueIds = d.rows
+            .filter((r) => r.valueId && r.value.trim())
+            .map((r) => r.valueId as string)
+        const customValues = d.rows
+            .filter((r) => !r.valueId && r.value.trim())
+            .map((r) => r.value.trim())
+        // 取值图：仅收集「有值且有图」的，随规格选择上抛，后端落到 category_attr_values.image
+        const valueImages: Record<string, string> = {}
+        for (const r of d.rows)
+            if (r.valueId && r.value.trim() && r.image) valueImages[r.valueId] = r.image
+        const customValueImages: Record<string, string> = {}
+        for (const r of d.rows) {
+            const v = r.value.trim()
+            if (!r.valueId && v && r.image) customValueImages[v] = r.image
+        }
+        return {
+            attrId: d.attrId,
+            valueIds,
+            customValues,
+            valueImages: Object.keys(valueImages).length ? valueImages : undefined,
+            customValueImages: Object.keys(customValueImages).length
+                ? customValueImages
+                : undefined,
+        }
+    })
 }
 
 /**
@@ -101,6 +124,13 @@ export function SalesAttrsEditor({
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 
+    function updateImage(attrIdx: number, rowIdx: number, image: string | undefined) {
+        const rows = drafts[attrIdx].rows.map((r, i) =>
+            i === rowIdx ? { ...r, image: image ?? "" } : r,
+        )
+        emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
+    }
+
     function removeRow(attrIdx: number, rowIdx: number) {
         const rows = drafts[attrIdx].rows.filter((_, i) => i !== rowIdx)
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
@@ -126,13 +156,15 @@ export function SalesAttrsEditor({
                             <AttrValueRow
                                 key={row.id}
                                 row={row}
-                                showImage={supportsImage(d.name)}
+                                showImage={d.allowImage}
                                 allowCustom={d.allowCustom}
                                 values={d.values.map((v) => v.value)}
                                 removable={d.rows.length > 1}
                                 onValueChange={(text) => updateValue(ai, ri, text)}
                                 onNoteChange={(note) => updateNote(ai, ri, note)}
+                                onImageChange={(img) => updateImage(ai, ri, img)}
                                 onRemove={() => removeRow(ai, ri)}
+                                upload={uploadProductImage}
                             />
                         ))}
 

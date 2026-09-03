@@ -6,6 +6,7 @@ import type { SpecSelection } from "../../data"
 import type { SkuDraftRow } from "./product-form-state"
 
 import { BasicInfoSection } from "./BasicInfoSection"
+import { DetailImagesSection } from "./DetailImagesSection"
 import { SalesInfoSection } from "./SalesInfoSection"
 import { useLeafPaths } from "../../use-category"
 
@@ -18,12 +19,15 @@ const SECTIONS = [
     { id: "section-category", label: "当前类目" },
     { id: "section-basic", label: "基础信息" },
     { id: "section-sales", label: "销售信息" },
+    { id: "section-detail", label: "图文详情" },
 ] as const
 
 export interface BasicStepValues {
-    mainImage: string
+    images: string[]
     name: string
     subtitle: string
+    /** 详情图流（按序铺开渲染，代替富文本 HTML；可空 []） */
+    detailImages: string[]
 }
 
 /** 提交方式：草稿与提交走同一份校验、同一个建档接口，只是落地后去向不同 */
@@ -74,7 +78,7 @@ export function BasicStep({
     }, [onBasicChange])
 
     const form = useAppForm({
-        defaultValues: { mainImage: "", name: "", subtitle: "" } as BasicStepValues,
+        defaultValues: { images: [], name: "", subtitle: "", detailImages: [] } as BasicStepValues,
         onSubmit: ({ value }) => void submit(value, mode.current),
     })
 
@@ -190,6 +194,8 @@ export function BasicStep({
                         onSelectionsChange={onSelectionsChange}
                         onSkuRowsChange={onSkuRowsChange}
                     />
+
+                    <DetailImagesSection form={form} />
                 </div>
 
                 <ActionBar

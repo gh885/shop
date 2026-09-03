@@ -131,6 +131,23 @@ export async function categoryTree() {
     return unwrap(await CategoriesApi.getCategoryTree())
 }
 
+/**
+ * 商品图上传：取七牛直传凭证 → 浏览器直传（不经过应用服务器）→ 返回公网 URL 供入库。
+ * 直传成功后该 key 的 URL 即产品的 images / mainImage / 取值图值。
+ */
+export async function uploadProductImage(file: File): Promise<string> {
+    const ext = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "")
+    const ticket = unwrap(await ProductsAdminApi.issueImageTicket({ query: { ext } }))
+    if (!ticket.uploadUrl || !ticket.token || !ticket.url) throw new Error("图片上传凭证缺失")
+    const res = await fetch(ticket.uploadUrl, {
+        method: "PUT",
+        headers: { Authorization: `UpToken ${ticket.token}` },
+        body: file,
+    })
+    if (!res.ok) throw new Error("图片直传七牛失败")
+    return ticket.url
+}
+
 /** 类目属性模板（公开接口），发布页取销售属性（kind=SPEC）用 */
 export async function attrTemplate(categoryId: string): Promise<CategoryAttrTemplateNode[]> {
     const nodes = unwrap(
@@ -146,6 +163,10 @@ export interface SpecSelection {
     attrId: string
     valueIds: string[]
     customValues: string[]
+    /** 模板取值（valueId）→ 取值图 */
+    valueImages?: Record<string, string>
+    /** 自定义取值文本 → 取值图 */
+    customValueImages?: Record<string, string>
 }
 
 export interface CategoryAttrTemplateAttr {
@@ -156,6 +177,8 @@ export interface CategoryAttrTemplateAttr {
     kind: "SPEC" | "PARAM"
     required: boolean
     allowCustom: boolean
+    /** 该规格是否允许每个取值上传配图 */
+    allowImage: boolean
     sort: number
     status: "DISABLED" | "ENABLED"
     createdAt: string
@@ -166,6 +189,8 @@ export interface CategoryAttrTemplateValue {
     id: string
     attrId: string
     value: string
+    /** 规格值默认图（如「红色」对应色卡图），可空 */
+    image?: string
     sort: number
     /** PLATFORM 平台预置 / SELLER 卖家扩充 */
     source: "PLATFORM" | "SELLER"

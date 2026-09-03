@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react"
-import { ImageOff } from "lucide-react"
 import {
     Card,
     CardContent,
     CardHeader,
     CardTitle,
     Field,
-    Input,
+    ImageUploadGrid,
     InputGroup,
     InputGroupAddon,
     InputGroupInput,
     firstFieldError,
 } from "@shop/ui-web"
+
+import { uploadProductImage } from "../../data"
 
 import type { BasicForm } from "./form-instance"
 
@@ -50,32 +50,30 @@ export function BasicInfoSection({ form }: { form: BasicForm }) {
             </CardHeader>
             <CardContent className="space-y-5">
                 <form.AppField
-                    name="mainImage"
+                    name="images"
                     validators={{
-                        onSubmit: ({ value }) => (value ? undefined : "请填写主图"),
+                        onSubmit: ({ value }) =>
+                            value.length > 0 ? undefined : "请至少上传 1 张商品图",
                     }}
                 >
                     {(field) => (
                         <Field
-                            label="主图"
+                            label="商品图片"
                             required
-                            htmlFor="pf-main-image"
                             layout="horizontal"
                             error={firstFieldError(field)}
-                            hint="列表缩略图与详情首图共用，建议 1:1 正方形、800×800 以上（图片上传待接入，先填 URL）"
+                            hint="第一张即主图（列表/详情首图），拖拽句柄可调顺序；建议 1:1、800×800 以上"
                         >
-                            <div className="flex items-start gap-3">
-                                <MainImagePreview url={field.state.value} />
-                                <Input
-                                    id="pf-main-image"
-                                    value={field.state.value}
-                                    placeholder="https://…/main.jpg"
-                                    maxLength={255}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                    className="h-10 flex-1 bg-background"
-                                />
-                            </div>
+                            {/* 直传七牛：upload 取凭证后浏览器 PUT，落公网 URL；失败回退本地预览由 ImageUpload 提示 */}
+                            <ImageUploadGrid
+                                value={field.state.value}
+                                onChange={(imgs) => field.handleChange(imgs)}
+                                label="上传图片"
+                                coverLabel="主图"
+                                maxCount={5}
+                                size="size-28"
+                                upload={uploadProductImage}
+                            />
                         </Field>
                     )}
                 </form.AppField>
@@ -158,28 +156,5 @@ export function BasicInfoSection({ form }: { form: BasicForm }) {
                 </form.AppField>
             </CardContent>
         </Card>
-    )
-}
-
-/** 主图预览：填了 URL 才显示图，加载失败退回占位（不做上传，先给个「填得对不对」的即时反馈） */
-function MainImagePreview({ url }: { url: string }) {
-    const [broken, setBroken] = useState(false)
-
-    useEffect(() => setBroken(false), [url])
-
-    if (!url || broken) {
-        return (
-            <div className="flex size-20 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground/60">
-                <ImageOff className="size-5" />
-            </div>
-        )
-    }
-    return (
-        <img
-            src={url}
-            alt="主图预览"
-            className="size-20 shrink-0 rounded-lg bg-muted object-cover"
-            onError={() => setBroken(true)}
-        />
     )
 }

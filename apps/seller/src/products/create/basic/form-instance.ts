@@ -1,9 +1,10 @@
 import { useAppForm } from "@shop/ui-web"
 
 interface BasicStepValuesRef {
-    mainImage: string
+    images: string[]
     name: string
     subtitle: string
+    detailImages: string[]
 }
 
 /**
@@ -16,7 +17,12 @@ interface BasicStepValuesRef {
  */
 export function useBasicForm() {
     return useAppForm({
-        defaultValues: { mainImage: "", name: "", subtitle: "" } as BasicStepValuesRef,
+        defaultValues: {
+            images: [],
+            name: "",
+            subtitle: "",
+            detailImages: [],
+        } as BasicStepValuesRef,
         onSubmit: ({ value }) => void value,
     })
 }

@@ -1,4 +1,4 @@
-import { ImageIcon, Trash2 } from "lucide-react"
+import { Trash2 } from "lucide-react"
 import {
     Button,
     Combobox,
@@ -7,6 +7,7 @@ import {
     ComboboxInput,
     ComboboxItem,
     ComboboxList,
+    ImageUpload,
     Input,
 } from "@shop/ui-web"
 
@@ -16,6 +17,8 @@ export interface ValueDraft {
     /** 命中模板值的 id；无 = 自定义值 */
     valueId?: string
     value: string
+    /** 取值图（如颜色所对应的色块图）；本期仅 UI 占位，后端取值模型暂无该字段，提交时丢弃 */
+    image?: string
     /** 备注：本期仅 UI 占位，后端取值无该字段，提交时丢弃 */
     note: string
 }
@@ -37,10 +40,12 @@ export function AttrValueRow({
     removable,
     onValueChange,
     onNoteChange,
+    onImageChange,
     onRemove,
+    upload,
 }: {
     row: ValueDraft
-    /** 是否渲染「取值图」占位按钮（按维度名含颜色/色判定） */
+    /** 是否渲染「取值图」上传（按维度名含颜色/色判定） */
     showImage: boolean
     /** 是否允许自定义取值（决定输入占位文案） */
     allowCustom: boolean
@@ -51,18 +56,22 @@ export function AttrValueRow({
     /** 取值输入变化上抛原始文本（valueId 推导由父级做） */
     onValueChange: (value: string) => void
     onNoteChange: (note: string) => void
+    /** 取值图变化上抛（上传完成给地址，删除给 undefined） */
+    onImageChange: (image: string | undefined) => void
     onRemove: () => void
+    /** 取值图上传函数（直传七牛）；不传用本地预览 */
+    upload?: (file: File) => Promise<string>
 }) {
     return (
         <div className="flex w-fit min-w-0 items-center gap-1.5">
             {showImage && (
-                <button
-                    type="button"
-                    aria-label="规格图上传待接入"
-                    className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground/60"
-                >
-                    <ImageIcon className="size-4" />
-                </button>
+                <ImageUpload
+                    value={row.image || undefined}
+                    onChange={onImageChange}
+                    shape="tile"
+                    size="size-9"
+                    upload={upload}
+                />
             )}
             {/* 取值：自成一框的下拉输入（带展开箭头，InputGroup 由 ComboboxInput 提供）
                 备注：独立小输入框，与取值同高、紧凑并排 */}

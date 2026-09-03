@@ -18,9 +18,11 @@ import type { SkuResponse } from "@shop/api/sdk"
 
 /** 表单字段值（对应后端 UpdateProductRequest = 商品基本信息） */
 export interface ProductBasicForm {
-    mainImage: string
+    images: string[]
     name: string
     subtitle: string
+    /** 详情图流 */
+    detailImages: string[]
 }
 
 /** 销售属性选值（对应 UpdateSpecsRequest.specs） */
@@ -88,7 +90,11 @@ export function mergeSkuRows(
 // ---------- reducer ----------
 
 export function emptyProductDraft(): ProductDraftState {
-    return { basic: { mainImage: "", name: "", subtitle: "" }, selections: [], skuRows: [] }
+    return {
+        basic: { images: [], name: "", subtitle: "", detailImages: [] },
+        selections: [],
+        skuRows: [],
+    }
 }
 
 export type ProductDraftAction =
