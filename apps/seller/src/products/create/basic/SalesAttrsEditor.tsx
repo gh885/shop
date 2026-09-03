@@ -1,10 +1,8 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Plus } from "lucide-react"
 import { Badge, Button } from "@shop/ui-web"
 
 import type { CategoryAttrTemplateNode, SpecSelection } from "../../data"
-
-import { uploadProductImage } from "../../data"
 
 import { AttrValueRow, type ValueDraft } from "./AttrValueRow"
 
@@ -91,14 +89,33 @@ function toSelections(drafts: AttrDraft[]): SpecSelection[] {
 export function SalesAttrsEditor({
     attrs,
     value,
+    disabled,
     onChange,
+    uploadImage,
 }: {
     /** 类目属性模板节点（调用方需已过滤出 kind=1 销售属性） */
     attrs: CategoryAttrTemplateNode[]
     value: SpecSelection[]
+    /** 上架商品规格冻结：禁用整块（fieldset 一次禁用内部所有输入/按钮），值仍回显只读 */
+    disabled?: boolean
     onChange: (selections: SpecSelection[]) => void
+    /** 取值配图上传（绑定当前店铺，凭证需 X-Shop-Id） */
+    uploadImage: (file: File) => Promise<string>
 }) {
     const [drafts, setDrafts] = useState<AttrDraft[]>(() => toDrafts(attrs, value))
+    const draftsRef = useRef(drafts)
+    draftsRef.current = drafts
+
+    // 外部 selections（编辑回显/父级 hydrate）变化 → 重建本地 drafts 行的已选值。
+    // 归一化比较：仅当「当前 drafts 已表达不出这个 value」才重建（清掉本地正在输入的空行会丢焦点）。
+    // 自回声（本组件 emit → 父级 setSelections → value 回传）时 toSelections(drafts) 与 value 一致，会跳过。
+    useEffect(() => {
+        const key = JSON.stringify(value)
+        const draftKey = JSON.stringify(toSelections(draftsRef.current))
+        if (draftKey === key) return // 自回声或已同步，不动本地行
+        setDrafts(toDrafts(attrs, value))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value])
 
     function emit(next: AttrDraft[]) {
         setDrafts(next)
@@ -137,49 +154,54 @@ export function SalesAttrsEditor({
     }
 
     return (
-        <div className="divide-y divide-border">
-            {drafts.map((d, ai) => (
-                <div
-                    key={d.attrId}
-                    className="py-4 first:pt-0 last:pb-0"
-                >
-                    {/* 维度头：名 + 取值数 + 重要徽标*/}
-                    <div className="mb-3 flex items-center gap-2">
-                        <span className="text-sm">{d.name}</span>
-                        <span className="text-xs text-muted-foreground">({d.rows.length})</span>
-                        <Badge variant="warning">重要</Badge>
-                    </div>
+        <fieldset
+            disabled={disabled}
+            className="m-0 min-w-0 border-0 p-0"
+        >
+            <div className="divide-y divide-border">
+                {drafts.map((d, ai) => (
+                    <div
+                        key={d.attrId}
+                        className="py-4 first:pt-0 last:pb-0"
+                    >
+                        {/* 维度头：名 + 取值数 + 重要徽标*/}
+                        <div className="mb-3 flex items-center gap-2">
+                            <span className="text-sm">{d.name}</span>
+                            <span className="text-xs text-muted-foreground">({d.rows.length})</span>
+                            <Badge variant="warning">重要</Badge>
+                        </div>
 
-                    {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        {d.rows.map((row, ri) => (
-                            <AttrValueRow
-                                key={row.id}
-                                row={row}
-                                showImage={d.allowImage}
-                                allowCustom={d.allowCustom}
-                                values={d.values.map((v) => v.value)}
-                                removable={d.rows.length > 1}
-                                onValueChange={(text) => updateValue(ai, ri, text)}
-                                onNoteChange={(note) => updateNote(ai, ri, note)}
-                                onImageChange={(img) => updateImage(ai, ri, img)}
-                                onRemove={() => removeRow(ai, ri)}
-                                upload={uploadProductImage}
-                            />
-                        ))}
+                        {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {d.rows.map((row, ri) => (
+                                <AttrValueRow
+                                    key={row.id}
+                                    row={row}
+                                    showImage={d.allowImage}
+                                    allowCustom={d.allowCustom}
+                                    values={d.values.map((v) => v.value)}
+                                    removable={d.rows.length > 1}
+                                    onValueChange={(text) => updateValue(ai, ri, text)}
+                                    onNoteChange={(note) => updateNote(ai, ri, note)}
+                                    onImageChange={(img) => updateImage(ai, ri, img)}
+                                    onRemove={() => removeRow(ai, ri)}
+                                    upload={uploadImage}
+                                />
+                            ))}
 
-                        <Button
-                            variant="ghost"
-                            size="icon-lg"
-                            onClick={() => addRow(ai)}
-                            aria-label="添加取值"
-                            className="border border-dashed border-input hover:border-primary hover:text-primary"
-                        >
-                            <Plus className="size-4" />
-                        </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon-lg"
+                                onClick={() => addRow(ai)}
+                                aria-label="添加取值"
+                                className="border border-dashed border-input hover:border-primary hover:text-primary"
+                            >
+                                <Plus className="size-4" />
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            ))}
-        </div>
+                ))}
+            </div>
+        </fieldset>
     )
 }

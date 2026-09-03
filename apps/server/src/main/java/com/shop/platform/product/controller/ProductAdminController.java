@@ -22,6 +22,7 @@ import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
+import com.shop.platform.product.service.ProductService.ProductListRow;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -80,13 +81,17 @@ public class ProductAdminController {
         return SkuResponse.from(skus, stocks(skus));
     }
 
-    /** 发布草稿，返回 status=PUBLISHED 且回填过价格区间的商品 */
+    /** 发布草稿：可立即上架（默认）或放入仓库（放入仓库=落 WAREHOUSE，不在售）。返回回填过价格区间的商品 */
     @PostMapping("/{id}/publish")
-    public ProductResponse publishProduct(@PathVariable UUID id) {
-        return ProductResponse.from(productService.publish(id));
+    public ProductResponse publishProduct(
+            @PathVariable UUID id, @RequestParam(defaultValue = "PUBLISHED") ProductStatus target) {
+        return ProductResponse.from(productService.publish(id, target));
     }
 
-    /** 商家后台商品列表：按当前店铺（X-Shop-Id）分页，可按状态/名称筛选 */
+    /**
+     * 商家后台商品列表：按当前店铺（X-Shop-Id）分页，可按状态/名称筛选，每行带库存与累计销量。
+     * 库存=该商品全部 SKU 可用量之和；销量=已完成订单成交量之和（口径见 order :: ProductSoldReadQuery）。
+     */
     @GetMapping
     public PageResult<ProductResponse> listShopProducts(
             @CurrentShop UUID shopId,
@@ -94,7 +99,7 @@ public class ProductAdminController {
             @RequestParam(required = false) ProductStatus status,
             @RequestParam(required = false) @Size(max = 128) String keyword) {
         return productService
-                .pageList(shopId, status, keyword, pageParams.page(), pageParams.size())
+                .pageListWithMetrics(shopId, status, keyword, pageParams.page(), pageParams.size())
                 .map(ProductResponse::from);
     }
 
@@ -145,6 +150,8 @@ public class ProductAdminController {
             List<ParamItem> params,
             Long minPrice,
             Long maxPrice,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Long soldCount,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductStatus status,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
@@ -163,6 +170,31 @@ public class ProductAdminController {
                     p.getParams(),
                     p.getMinPrice(),
                     p.getMaxPrice(),
+                    0,
+                    0L,
+                    p.getStatus(),
+                    p.getCreatedAt(),
+                    p.getUpdatedAt());
+        }
+
+        /** 卖家工作台列表行：SPU 字段 + 库存/销量指标（页面无库存/销量列时也归 0，与 {@link #from(Product)} 一致） */
+        static ProductResponse from(ProductListRow row) {
+            Product p = row.product();
+            return new ProductResponse(
+                    p.getId(),
+                    p.getShopId(),
+                    p.getCategoryId(),
+                    p.getName(),
+                    p.getSubtitle(),
+                    p.getDetailImages(),
+                    p.getMainImage(),
+                    p.getImages(),
+                    p.getSpecs(),
+                    p.getParams(),
+                    p.getMinPrice(),
+                    p.getMaxPrice(),
+                    row.stock(),
+                    row.soldCount(),
                     p.getStatus(),
                     p.getCreatedAt(),
                     p.getUpdatedAt());

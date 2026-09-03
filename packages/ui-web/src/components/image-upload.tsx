@@ -47,6 +47,11 @@ export interface ImageUploadProps {
     preview?: (file: File) => Promise<string> | string
     /** 上传（持久化）函数；不传则直接用本地预览作为最终值 */
     upload?: (file: File) => Promise<string>
+    /**
+     * 把「受控值」转成预览 src。默认原样返回（适用于 value 是完整 URL）。
+     * 若 value 存的是相对 key（如图片上传只存 key、展示时再拼域名），须传解析器（如 imgUrl）。
+     */
+    resolveSrc?: (value: string) => string
     /** 形状：tile 方形瓦片（网格图片）/ circle 圆形（头像/logo） */
     shape?: "tile" | "circle"
     /** 宽高尺寸类名，如 size-24 */
@@ -81,6 +86,7 @@ export function ImageUpload({
     onChange,
     preview = defaultPreview,
     upload,
+    resolveSrc,
     shape = "tile",
     size = "size-24",
     label,
@@ -124,7 +130,7 @@ export function ImageUpload({
                 )}
             >
                 <img
-                    src={value}
+                    src={resolveSrc ? resolveSrc(value) : value}
                     alt={label ?? "图片"}
                     className="size-full object-cover"
                 />

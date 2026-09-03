@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, Field, ImageUploadGrid } from "@shop/ui-web"
 
-import { uploadProductImage } from "../../data"
+import { imgUrl } from "#/shared/lib/image"
 
 import type { BasicForm } from "./form-instance"
 
@@ -10,7 +10,13 @@ import type { BasicForm } from "./form-instance"
  * 与主图/图集同为 basic 字段（detailImages 随 updateBasic 落库），只是视觉上排在销售信息之下。
  * 可拖拽排序；直传七牛（upload=uploadProductImage）；无封面概念（每张都是详情图）。
  */
-export function DetailImagesSection({ form }: { form: BasicForm }) {
+export function DetailImagesSection({
+    form,
+    uploadImage,
+}: {
+    form: BasicForm
+    uploadImage: (file: File) => Promise<string>
+}) {
     return (
         <Card
             id="section-detail"
@@ -36,8 +42,9 @@ export function DetailImagesSection({ form }: { form: BasicForm }) {
                                 label="上传详情图"
                                 maxCount={10}
                                 size="size-24"
-                                upload={uploadProductImage}
-                                className="max-w-[33rem]"
+                                upload={uploadImage}
+                                resolveSrc={imgUrl}
+                                className="max-w-132"
                             />
                         </Field>
                     )}

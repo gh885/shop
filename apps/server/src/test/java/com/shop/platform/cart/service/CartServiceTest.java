@@ -133,8 +133,8 @@ class CartServiceTest {
                         Optional.of(new SkuView(skuId, productId, "x", null, 1000L, null, "CNY", SkuStatus.ON_SALE)));
         // status=0 下架
         when(productReadQuery.productById(productId))
-                .thenReturn(Optional.of(
-                        new ProductView(productId, UUID.randomUUID(), "测试手机", null, null, null, ProductStatus.OFF)));
+                .thenReturn(Optional.of(new ProductView(
+                        productId, UUID.randomUUID(), "测试手机", null, null, null, ProductStatus.WAREHOUSE)));
 
         assertThatThrownBy(() -> service.add(userId, request(1)))
                 .isInstanceOf(BusinessException.class)

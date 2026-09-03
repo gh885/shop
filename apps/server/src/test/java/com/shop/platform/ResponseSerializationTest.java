@@ -61,6 +61,7 @@ class ResponseSerializationTest {
                 AttrKind.SPEC,
                 false,
                 true,
+                true,
                 0,
                 CategoryAttrStatus.ENABLED,
                 OffsetDateTime.now(),

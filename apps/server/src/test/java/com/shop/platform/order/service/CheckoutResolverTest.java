@@ -167,7 +167,7 @@ class CheckoutResolverTest {
     void SPU下架_归因UNAVAILABLE() {
         when(productReadQuery.skusByIds(anyCollection())).thenReturn(Map.of(skuId, sku(500L, SkuStatus.ON_SALE)));
         when(productReadQuery.productsByIds(anyCollection()))
-                .thenReturn(Map.of(productId, product(ProductStatus.OFF))); // 下架
+                .thenReturn(Map.of(productId, product(ProductStatus.WAREHOUSE))); // 下架
 
         var resolved = resolver.resolve(userId, null, skuId, 1);
         assertThat(resolved.unavailable().getFirst().cause())

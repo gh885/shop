@@ -11,6 +11,8 @@ import {
     Input,
 } from "@shop/ui-web"
 
+import { imgUrl } from "#/shared/lib/image"
+
 /** 一个「取值行」的草稿形状：id 稳定拼接；命中模板值记 valueId，否则视为自定义值 */
 export interface ValueDraft {
     id: string
@@ -71,13 +73,19 @@ export function AttrValueRow({
                     shape="tile"
                     size="size-9"
                     upload={upload}
+                    resolveSrc={imgUrl}
                 />
             )}
             {/* 取值：自成一框的下拉输入（带展开箭头，InputGroup 由 ComboboxInput 提供）
-                备注：独立小输入框，与取值同高、紧凑并排 */}
+                备注：独立小输入框，与取值同高、紧凑并排
+
+                ⚠ 必须**受控**（value + onValueChange + inputValue）：编辑回显时父级会重建草稿行、改变 row.value，
+                若用 defaultValue（非受控）会触发 Base UI「初始化后改变 uncontrolled 默认值」告警，且回显值不更新。
+                受控 inputValue 让自定义取值（不在模板值域内）也能在回显时如实显示；命中模板值由父级映射 valueId。 */}
             <Combobox
                 items={values}
-                defaultValue={row.value || null}
+                value={row.value || null}
+                inputValue={row.value ?? ""}
                 onValueChange={(v) => v != null && onValueChange(String(v))}
                 onInputValueChange={(text) => onValueChange(text)}
             >

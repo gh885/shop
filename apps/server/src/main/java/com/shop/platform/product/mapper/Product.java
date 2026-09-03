@@ -34,8 +34,8 @@ public class Product {
         return status != null && status.isPublished();
     }
 
-    public boolean isOff() {
-        return status != null && status.isOff();
+    public boolean isWarehouse() {
+        return status != null && status.isWarehouse();
     }
 
     public boolean isDraft() {
@@ -46,19 +46,26 @@ public class Product {
 
     /** 上架：仅草稿可发布（跨聚合门槛「SKU 全部设价」由 service 复检，不在此处） */
     public void publish() {
-        Validate.isTrue(isDraft(), 409, "只有草稿可以发布");
-        status = ProductStatus.PUBLISHED;
+        publishTo(ProductStatus.PUBLISHED);
     }
 
-    /** 下架：仅上架可下架 */
+    /** 按目标态发布：仅草稿可发布，目标只能是上架（立即上架）或仓库中（放入仓库）。
+     *  跨聚合门槛「SKU 全部设价」由 service 复检，不在此处。 */
+    public void publishTo(ProductStatus target) {
+        Validate.isTrue(target == ProductStatus.PUBLISHED || target == ProductStatus.WAREHOUSE, 400, "发布目标只能是上架或仓库");
+        Validate.isTrue(isDraft(), 409, "只有草稿可以发布");
+        status = target;
+    }
+
+    /** 下架：仅上架可下架，落仓库中 */
     public void off() {
         Validate.isTrue(isPublished(), 409, "只有上架商品可以下架");
-        status = ProductStatus.OFF;
+        status = ProductStatus.WAREHOUSE;
     }
 
-    /** 重新上架：仅下架可重上（重上前 SKU 设价复检同样在 service） */
+    /** 重新上架：仅仓库中可重上（重上前 SKU 设价复检同样在 service） */
     public void relist() {
-        Validate.isTrue(isOff(), 409, "只有下架商品可以重新上架");
+        Validate.isTrue(isWarehouse(), 409, "只有仓库中的商品可以重新上架");
         status = ProductStatus.PUBLISHED;
     }
 

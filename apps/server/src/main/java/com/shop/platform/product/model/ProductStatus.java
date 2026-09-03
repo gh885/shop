@@ -4,27 +4,32 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * SPU 履约状态机（product 模块状态规则的唯一真相）：草稿 → 上架 ⇄ 下架。
+ * SPU 履约状态机（product 模块状态规则的唯一真相）：草稿 → 上架 ⇄ 仓库中，草稿 → 仓库中。
+ *
+ * <p>仓库中（{@link #WAREHOUSE}）是「不在售但填完了」的汇聚态，容纳两类商品：
+ * ① 填完但主动选择放入仓库（草稿 → 仓库中，见 publish(target=WAREHOUSE)）；
+ * ② 上架后又下架（上架 → 仓库中，见 off）。
+ * 从仓库中随时可重新上架。
  *
  * <p>DB 存 {@code name()}（varchar），不存 ordinal——改枚举名不影响存量数据，name 本身即语义。
  * 转移合法性（{@link #TRANSITIONS}）收在这里，实体薄委托；跨聚合门槛（SKU 全设价）留 service。
  */
 public enum ProductStatus {
 
-    /** 下架（等价"删除"，可无损恢复） */
-    OFF,
+    /** 仓库中（等价旧「下架/删除」，可无损恢复；也收填完未发布的商品） */
+    WAREHOUSE,
 
     /** 上架（买家可见/可购） */
     PUBLISHED,
 
-    /** 草稿（创建后未发布） */
+    /** 草稿（创建后未发布，仍在编辑） */
     DRAFT;
 
-    /** 状态图（源态 → 合法目标态）：发布/下架/重上的唯一真相 */
+    /** 状态图（源态 → 合法目标态）：发布/放入仓库/下架/重上的唯一真相 */
     private static final Map<ProductStatus, Set<ProductStatus>> TRANSITIONS = Map.of(
-            DRAFT, Set.of(PUBLISHED),
-            OFF, Set.of(PUBLISHED),
-            PUBLISHED, Set.of(OFF));
+            DRAFT, Set.of(PUBLISHED, WAREHOUSE),
+            WAREHOUSE, Set.of(PUBLISHED),
+            PUBLISHED, Set.of(WAREHOUSE));
 
     // ---- 谓词 ----
 
@@ -32,8 +37,8 @@ public enum ProductStatus {
         return this == PUBLISHED;
     }
 
-    public boolean isOff() {
-        return this == OFF;
+    public boolean isWarehouse() {
+        return this == WAREHOUSE;
     }
 
     public boolean isDraft() {

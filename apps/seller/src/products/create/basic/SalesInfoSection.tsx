@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, Field, Skeleton, StateError } from "@shop/ui-web"
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    Field,
+    RadioGroup,
+    RadioGroupItem,
+    Skeleton,
+    StateError,
+} from "@shop/ui-web"
 import { priceRangeText, toApiError, yuanToFen } from "@shop/api"
 
 import { attrTemplate, type CategoryAttrTemplateNode, type SpecSelection } from "../../data"
 
 import { SalesAttrsEditor } from "./SalesAttrsEditor"
 import { SkuGridEditor } from "./SkuGridEditor"
-import type { SkuDraftRow } from "./product-form-state"
+import type { ListingTime, SkuDraftRow } from "./product-form-state"
 
 /**
  * 发布页「销售信息」块（section-sales）：①销售属性 ②销售规格 ③一口价 ④总库存。
@@ -22,17 +32,29 @@ import type { SkuDraftRow } from "./product-form-state"
  * 但一口价/总库存仍展示（单规格商品也有一口价/库存，与"是否有规格属性"无关）。
  */
 export function SalesInfoSection({
+    fileUpload,
     categoryId,
     selections,
     skuRows,
+    listingTime,
+    specsLocked,
+    listingTimeEditable,
     onSelectionsChange,
     onSkuRowsChange,
+    onListingTimeChange,
 }: {
+    fileUpload: (file: File) => Promise<string>
     categoryId: string
     selections: SpecSelection[]
     skuRows: SkuDraftRow[]
+    listingTime: ListingTime
+    /** 上架商品规格冻结：禁用销售属性编辑器（价格/库存仍可改，改规格需先下架） */
+    specsLocked?: boolean
+    /** 仓库中/上架编辑提交=只保存不回退状态，隐藏「上架时间」选择（避免误导发布） */
+    listingTimeEditable?: boolean
     onSelectionsChange: (selections: SpecSelection[]) => void
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
+    onListingTimeChange: (next: ListingTime) => void
 }) {
     const [template, setTemplate] = useState<CategoryAttrTemplateNode[] | undefined>()
     const [loadError, setLoadError] = useState<string | undefined>()
@@ -92,7 +114,9 @@ export function SalesInfoSection({
                         <SalesAttrsEditor
                             attrs={template}
                             value={selections}
+                            disabled={specsLocked}
                             onChange={onSelectionsChange}
+                            uploadImage={fileUpload}
                         />
                     </Field>
                 ) : (
@@ -118,6 +142,47 @@ export function SalesInfoSection({
                 <div className="space-y-3 border-t border-border pt-5">
                     <PriceStockFields skuRows={skuRows} />
                 </div>
+
+                {/* 上架时间：决定「提交商品信息」落哪个状态。定时上架本轮不做。
+                    仅新建/草稿编辑有意义；仓库中/上架编辑时提交只保存、不回退状态（上架/入库在列表操作）。 */}
+                {listingTimeEditable === false ? (
+                    <p className="text-sm text-muted-foreground">
+                        商品已在上架/仓库状态：此处修改只保存变更、不回退状态；上架、入库请到商品列表操作。
+                    </p>
+                ) : (
+                    <Field
+                        label="上架时间"
+                        layout="horizontal"
+                        required
+                    >
+                        <RadioGroup
+                            className="flex items-center gap-8"
+                            value={listingTime}
+                            onValueChange={(next) => onListingTimeChange(next as ListingTime)}
+                        >
+                            <label
+                                className="flex items-center gap-2 text-sm"
+                                htmlFor="rt-now"
+                            >
+                                <RadioGroupItem
+                                    value="now"
+                                    id="rt-now"
+                                />
+                                立即上架
+                            </label>
+                            <label
+                                className="flex items-center gap-2 text-sm"
+                                htmlFor="rt-warehouse"
+                            >
+                                <RadioGroupItem
+                                    value="warehouse"
+                                    id="rt-warehouse"
+                                />
+                                放入仓库
+                            </label>
+                        </RadioGroup>
+                    </Field>
+                )}
             </CardContent>
         </Card>
     )

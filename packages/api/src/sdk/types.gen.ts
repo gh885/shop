@@ -43,7 +43,7 @@ export type ParamItem = {
 };
 
 export type UpdateProductRequest = {
-    categoryId: string;
+    categoryId?: string;
     name?: string;
     subtitle?: string;
     detailImages?: Array<string>;
@@ -65,7 +65,9 @@ export type ProductResponse = {
     params?: Array<ParamItem>;
     minPrice?: number;
     maxPrice?: number;
-    status: 'OFF' | 'PUBLISHED' | 'DRAFT';
+    stock: number;
+    soldCount: number;
+    status: 'WAREHOUSE' | 'PUBLISHED' | 'DRAFT';
     createdAt: string;
     updatedAt: string;
 };
@@ -86,8 +88,12 @@ export type SpecSelectionRequest = {
     attrId: string;
     valueIds?: Array<string>;
     customValues?: Array<string>;
-    valueImages?: Record<string, string>;
-    customValueImages?: Record<string, string>;
+    valueImages?: {
+        [key: string]: string;
+    };
+    customValueImages?: {
+        [key: string]: string;
+    };
     selectionPresent?: boolean;
 };
 
@@ -1542,7 +1548,7 @@ export type ListShopProductsData = {
     path?: never;
     query: {
         pageParams: PageParams;
-        status?: 'OFF' | 'PUBLISHED' | 'DRAFT';
+        status?: 'WAREHOUSE' | 'PUBLISHED' | 'DRAFT';
         keyword?: string;
     };
     url: '/seller/products';
@@ -1578,7 +1584,9 @@ export type PublishProductData = {
     path: {
         id: string;
     };
-    query?: never;
+    query?: {
+        target?: 'WAREHOUSE' | 'PUBLISHED' | 'DRAFT';
+    };
     url: '/seller/products/{id}/publish';
 };
 

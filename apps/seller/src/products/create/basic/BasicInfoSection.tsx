@@ -11,7 +11,7 @@ import {
     firstFieldError,
 } from "@shop/ui-web"
 
-import { uploadProductImage } from "../../data"
+import { imgUrl } from "#/shared/lib/image"
 
 import type { BasicForm } from "./form-instance"
 
@@ -36,7 +36,13 @@ const SellingPointSchema = z
  * （form.AppField 渲染 + 校验），值变化经壳的 form.Subscribe 上报 autosave。
  * 不依赖隐式 context：组件纯净、可独立测试，字段类型完整（不退化 any）。
  */
-export function BasicInfoSection({ form }: { form: BasicForm }) {
+export function BasicInfoSection({
+    form,
+    uploadImage,
+}: {
+    form: BasicForm
+    uploadImage: (file: File) => Promise<string>
+}) {
     return (
         <Card
             id="section-basic"
@@ -72,7 +78,8 @@ export function BasicInfoSection({ form }: { form: BasicForm }) {
                                 coverLabel="主图"
                                 maxCount={5}
                                 size="size-28"
-                                upload={uploadProductImage}
+                                upload={uploadImage}
+                                resolveSrc={imgUrl}
                             />
                         </Field>
                     )}

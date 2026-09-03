@@ -17,6 +17,7 @@ import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
+import com.shop.platform.product.service.ProductService.ProductListRow;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.Map;
@@ -60,8 +61,9 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
 
         @Test
         void 列表_按状态筛选() throws Exception {
-            when(productService.pageList(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong()))
-                    .thenReturn(new com.shop.platform.common.PageResult<>(List.of(draft()), 1));
+            when(productService.pageListWithMetrics(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong()))
+                    .thenReturn(
+                            new com.shop.platform.common.PageResult<>(List.of(new ProductListRow(draft(), 10, 5L)), 1));
 
             mockMvc.perform(get("/seller/products")
                             .queryParam("page", "1")
@@ -69,9 +71,12 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                             .queryParam("status", "DRAFT")
                             .with(userAuth(userId))
                             .header("X-Shop-Id", shopId.toString()))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.records[0].stock").value(10))
+                    .andExpect(jsonPath("$.records[0].soldCount").value(5));
 
-            verify(productService).pageList(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong());
+            verify(productService)
+                    .pageListWithMetrics(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong());
         }
 
         @Test
@@ -177,20 +182,37 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
         void 发布() throws Exception {
             Product published = draft();
             published.setStatus(ProductStatus.PUBLISHED);
-            when(productService.publish(productId)).thenReturn(published);
+            // 默认 target=PUBLISHED（立即上架）
+            when(productService.publish(productId, ProductStatus.PUBLISHED)).thenReturn(published);
 
             mockMvc.perform(post("/seller/products/{id}/publish", productId)
                             .with(userAuth(userId))
                             .header("X-Shop-Id", shopId.toString()))
                     .andExpect(status().isOk());
 
-            verify(productService).publish(productId);
+            verify(productService).publish(productId, ProductStatus.PUBLISHED);
+        }
+
+        @Test
+        void 发布_放入仓库() throws Exception {
+            Product stored = draft();
+            stored.setStatus(ProductStatus.WAREHOUSE);
+            when(productService.publish(productId, ProductStatus.WAREHOUSE)).thenReturn(stored);
+
+            mockMvc.perform(post("/seller/products/{id}/publish", productId)
+                            .param("target", "WAREHOUSE")
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("WAREHOUSE"));
+
+            verify(productService).publish(productId, ProductStatus.WAREHOUSE);
         }
 
         @Test
         void 下架() throws Exception {
             Product off = draft();
-            off.setStatus(ProductStatus.OFF);
+            off.setStatus(ProductStatus.WAREHOUSE);
             when(productService.off(productId)).thenReturn(off);
 
             mockMvc.perform(post("/seller/products/{id}/off", productId)

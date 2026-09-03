@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react"
 import { CheckCircle2, ChevronRight, ListTree } from "lucide-react"
+import { useCallback } from "react"
 import { Badge, Button, Sticky, Tabs, TabsList, TabsTrigger, useAppForm } from "@shop/ui-web"
 
+import { uploadProductImage } from "#/products/data"
+
 import type { SpecSelection } from "../../data"
-import type { SkuDraftRow } from "./product-form-state"
+import type { ListingTime, SkuDraftRow } from "./product-form-state"
 
 import { BasicInfoSection } from "./BasicInfoSection"
 import { DetailImagesSection } from "./DetailImagesSection"
@@ -30,8 +33,28 @@ export interface BasicStepValues {
     detailImages: string[]
 }
 
-/** 提交方式：草稿与提交走同一份校验、同一个建档接口，只是落地后去向不同 */
-export type SubmitMode = "submit" | "draft"
+/**
+ * 表单默认值（须为**模块级稳定引用**）。
+ *
+ * TanStack Form 的 {@code update()} 在每次渲染比较传入的 {@code defaultValues} 引用：若引用变了且表单未被触碰
+ * （{@code !isTouched}），会把 values 重置回 defaultValues。若这里用每次渲染新建的对象字面量，则编辑回显
+ * {@code form.reset(initialBasic)} 填入的值会在下一次渲染被重置回空（「出现一下就没」）。保持同一引用可避免该坑。
+ */
+const BASIC_DEFAULT_VALUES: BasicStepValues = {
+    images: [],
+    name: "",
+    subtitle: "",
+    detailImages: [],
+}
+
+/**
+ * 提交方式：草稿与提交走同一份校验、同一个建档接口，只是落地后去向不同。
+ *  - submit    立即上架（上架时间=立即上架，发布后 PUBLISHED）
+ *  - warehouse 放入仓库（上架时间=放入仓库，落 WAREHOUSE，不在售）
+ *  - draft     保存草稿（仍是 DRAFT，下次可继续编辑）
+ * 三种都走 updateSkus；仅 submit 触发 publish。warehouse 的目标态由后端 publish target 支撑。
+ */
+export type SubmitMode = "submit" | "warehouse" | "draft"
 
 /**
  * 发布第二步：填商品信息（整体壳）。
@@ -42,7 +65,10 @@ export type SubmitMode = "submit" | "draft"
  * 持有交由 SalesInfoSection；编辑态与草稿持久化都交给外层。
  */
 export function BasicStep({
+    shopId,
     categoryId,
+    productId,
+    productStatus,
     submitting,
     creating,
     onSwitchCategory,
@@ -52,8 +78,14 @@ export function BasicStep({
     onSkuRowsChange,
     submit,
     onBasicChange,
+    initialBasic,
 }: {
+    shopId: string
     categoryId: string
+    /** 编辑已有商品时传入；新建为 undefined（新建可自由切类目） */
+    productId?: string
+    /** 编辑已有商品当前状态（新建 undefined）：非草稿禁切类目；上架冻结规格 */
+    productStatus?: "DRAFT" | "WAREHOUSE" | "PUBLISHED"
     submitting: boolean
     creating: boolean
     onSwitchCategory: () => void
@@ -64,12 +96,36 @@ export function BasicStep({
     submit: (values: BasicStepValues, mode: SubmitMode) => Promise<void>
     /** 表单字段值变化上报（父级做防抖 autosave 落库） */
     onBasicChange: (values: BasicStepValues) => void
+    /** 编辑回显：detail 拉回后的 basic 初值，仅首帧灌 form（经 form.reset）；新建为 undefined */
+    initialBasic?: BasicStepValues
 }) {
+    // 图片上传绑定当前店铺：issue 凭证需 X-Shop-Id 头（/seller/** 强制店铺上下文）。
+    const uploadImage = useCallback((file: File) => uploadProductImage(file, shopId), [shopId])
     const leafPaths = useLeafPaths()
     const categoryNames = leafPaths.find((p) => p.id === categoryId)?.names ?? []
     const active = useActiveSection()
 
-    // 两个提交按钮共用一次校验：按下时先记模式，再交给 form.handleSubmit
+    // 编辑约束（对齐后端「状态 × 字段」矩阵）：
+    //  - 切类目：仅草稿可改（或新建）；仓库中/上架须先下架（结构性变更）。
+    //  - 规格冻结：上架商品规格不可改（价格/库存仍可运营），改规格要先下架。
+    // 是否「新建 / 草稿态」编辑：决定能否切类目、显示上架时间、以及操作条是否提供「保存草稿+发布」——
+    // 仓库中/上架商品已不可回草稿，操作条只剩「保存变更」（严格校验 + 不发布）。
+    const isDraftEditing = !productId || productStatus === "DRAFT"
+    const canSwitchCategory = isDraftEditing
+    const specsLocked = productStatus === "PUBLISHED"
+    const listingTimeEditable = isDraftEditing
+    const editingNotice =
+        productStatus === "PUBLISHED"
+            ? "上架中：改类目/规格需先下架，价格、库存可直接调整"
+            : productStatus === "WAREHOUSE"
+              ? "仓库中：改规格可直接改，改类目需先上架为草稿"
+              : undefined
+
+    // 上架时间：决定「提交商品信息」落 PUBLISHED 还是 WAREHOUSE。
+    // 默认立即上架；定时上架本轮不做。
+    const [listingTime, setListingTime] = useState<ListingTime>("now")
+
+    // 提交方式在点击时由「上架时间」推导：立即上架→submit，放入仓库→warehouse；保存草稿→draft
     const mode = useRef<SubmitMode>("submit")
     // 防抖回调用 ref：避免 subscribe 里每次重渲染触发不稳定闭包
     const basicChangeRef = useRef(onBasicChange)
@@ -78,13 +134,44 @@ export function BasicStep({
     }, [onBasicChange])
 
     const form = useAppForm({
-        defaultValues: { images: [], name: "", subtitle: "", detailImages: [] } as BasicStepValues,
+        defaultValues: BASIC_DEFAULT_VALUES,
         onSubmit: ({ value }) => void submit(value, mode.current),
     })
 
+    // 编辑回显：detail 拉回后把 basic 字段灌进表单（form.reset 同时更新 defaultValues）。
+    // key：用 ref 记录已灌的商品 id 来源，避免后续重渲染反复重置用户输入。
+    // 若用户已在表单里打字（值非空），说明回灌前已输入——跳过 reset，避免用服务端旧值洗掉用户输入。
+    const hydratedRef = useRef(false)
+    useEffect(() => {
+        if (!initialBasic || hydratedRef.current) return
+        const untouched =
+            !form.state.values.name &&
+            !form.state.values.subtitle &&
+            form.state.values.images.length === 0 &&
+            form.state.values.detailImages.length === 0
+        if (untouched) {
+            hydratedRef.current = true
+            // keepDefaultValues：reset 只改 values、不改 this.options.defaultValues，保持其指向模块级稳定常量，
+            // 避免下一次渲染 update() 因 defaultValues 引用变化把刚回填的 values 重置回空。
+            form.reset({ ...initialBasic }, { keepDefaultValues: true })
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialBasic])
+
     function submitAs(next: SubmitMode) {
+        // 「保存草稿」无门槛：不触发 onSubmit 全字段校验，直接把当前值交给 submit(mode=draft)。
+        //（提交/发布才需要标题/图片/SKU 价齐，走 handleSubmit 触发校验。）
+        if (next === "draft") {
+            void submit(form.state.values, "draft")
+            return
+        }
         mode.current = next
         void form.handleSubmit()
+    }
+
+    // 上架时间 → 提交模式：立即上架走 submit；放入仓库走 warehouse
+    function submitAsListing(listing: ListingTime) {
+        submitAs(listing === "warehouse" ? "warehouse" : "submit")
     }
 
     return (
@@ -107,7 +194,7 @@ export function BasicStep({
                         <h1 className="text-lg font-semibold tracking-tight">填写商品信息</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             带 <span className="text-destructive">*</span>{" "}
-                            为必填；基础信息修改后自动保存草稿
+                            为必填；点「保存草稿」或「提交商品信息」时才会保存
                         </p>
                     </div>
                     {/* 流程步骤：第一步已完成，当前停在第二步 */}
@@ -179,30 +266,55 @@ export function BasicStep({
                             type="button"
                             variant="ghost"
                             size="sm"
+                            disabled={!canSwitchCategory}
+                            title={
+                                canSwitchCategory ? undefined : "只有草稿可以修改类目，先下架再改"
+                            }
                             onClick={onSwitchCategory}
                         >
                             切换类目
                         </Button>
                     </div>
 
-                    <BasicInfoSection form={form} />
+                    <BasicInfoSection
+                        form={form}
+                        uploadImage={uploadImage}
+                    />
+
+                    {editingNotice ? (
+                        <div
+                            role="note"
+                            className="rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground"
+                        >
+                            {editingNotice}
+                        </div>
+                    ) : undefined}
 
                     <SalesInfoSection
+                        fileUpload={uploadImage}
                         categoryId={categoryId}
                         selections={selections}
                         skuRows={skuRows}
+                        listingTime={listingTime}
+                        specsLocked={specsLocked}
+                        listingTimeEditable={listingTimeEditable}
                         onSelectionsChange={onSelectionsChange}
                         onSkuRowsChange={onSkuRowsChange}
+                        onListingTimeChange={setListingTime}
                     />
 
-                    <DetailImagesSection form={form} />
+                    <DetailImagesSection
+                        form={form}
+                        uploadImage={uploadImage}
+                    />
                 </div>
 
                 <ActionBar
                     submitting={submitting}
                     creating={creating}
-                    onSubmit={() => submitAs("submit")}
+                    onSubmit={() => submitAsListing(listingTime)}
                     onSaveDraft={() => submitAs("draft")}
+                    draftEditable={isDraftEditing}
                 />
             </form>
         </form.AppForm>
@@ -215,31 +327,46 @@ function ActionBar({
     creating,
     onSubmit,
     onSaveDraft,
+    draftEditable,
 }: {
     submitting: boolean
     creating: boolean
     onSubmit: () => void
     onSaveDraft: () => void
+    /** 草稿态编辑才提供「保存草稿」；仓库中/上架商品不可回草稿，仅保留「保存变更」 */
+    draftEditable: boolean
 }) {
     return (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/90 py-3 backdrop-blur">
             <div className="mx-auto flex w-full max-w-narrow items-center justify-end gap-3 px-6">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={submitting || creating}
-                    onClick={onSaveDraft}
-                    className="h-10 px-6"
-                >
-                    保存草稿
-                </Button>
+                {draftEditable ? (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={submitting || creating}
+                        onClick={onSaveDraft}
+                        className="h-10 px-6"
+                    >
+                        保存草稿
+                    </Button>
+                ) : undefined}
                 <Button
                     type="button"
                     disabled={submitting || creating}
                     onClick={onSubmit}
                     className="h-10 px-10"
                 >
-                    {submitting ? "提交中…" : creating ? "保存中…" : "提交商品信息"}
+                    {draftEditable
+                        ? submitting
+                            ? "提交中…"
+                            : creating
+                              ? "保存中…"
+                              : "提交商品信息"
+                        : submitting
+                          ? "保存中…"
+                          : creating
+                            ? "保存中…"
+                            : "保存变更"}
                 </Button>
             </div>
         </div>

@@ -39,7 +39,13 @@ class CategoryAttrIT extends IntegrationTestSupport {
     /** 建模板属性（唯一名防重复跑撞唯一索引）并登记清理（父表在前） */
     private CategoryAttr seedAttr(UUID categoryId, String name, AttrKind kind, Boolean required, Boolean allowCustom) {
         CategoryAttr attr = categoryAttrService.createAttr(
-                categoryId, name + UUID.randomUUID().toString().substring(0, 8), kind, required, allowCustom, null);
+                categoryId,
+                name + UUID.randomUUID().toString().substring(0, 8),
+                kind,
+                required,
+                allowCustom,
+                null,
+                null);
         db.onDelete(
                 "DELETE FROM product.category_attrs WHERE id = ?::uuid",
                 attr.getId().toString());
@@ -57,8 +63,8 @@ class CategoryAttrIT extends IntegrationTestSupport {
     @Test
     void 模板CRUD_改名排序_禁用后公开模板裁剪() {
         CategoryAttr attr = seedAttr(L3_PHONE, "颜色", AttrKind.SPEC, null, null);
-        CategoryAttrValue black = categoryAttrService.addValue(attr.getId(), "黑", 1);
-        categoryAttrService.addValue(attr.getId(), "白", 2);
+        CategoryAttrValue black = categoryAttrService.addValue(attr.getId(), "黑", 1, null);
+        categoryAttrService.addValue(attr.getId(), "白", 2, null);
 
         // 1. 模板组装：attr + values 按 sort 排序
         List<CategoryAttrNode> template = categoryAttrService.listTemplate(L3_PHONE);
@@ -70,7 +76,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
         assertEquals("黑", node.values().getFirst().getValue());
 
         // 2. 改名/改排序透传
-        CategoryAttrValue renamed = categoryAttrService.updateValue(black.getId(), "曜石黑", 0);
+        CategoryAttrValue renamed = categoryAttrService.updateValue(black.getId(), "曜石黑", 0, null);
         assertEquals("曜石黑", renamed.getValue());
 
         // 3. 禁用后：管理端模板仍可见，公开模板裁剪
@@ -85,7 +91,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
     void 非叶子类目挂模板_400() {
         BusinessException ex = assertThrows(
                 BusinessException.class,
-                () -> categoryAttrService.createAttr(L1_DIGITAL, "颜色", AttrKind.SPEC, null, null, null));
+                () -> categoryAttrService.createAttr(L1_DIGITAL, "颜色", AttrKind.SPEC, null, null, null, null));
         assertEquals(400, ex.getHttpStatus());
     }
 
@@ -94,7 +100,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
         CategoryAttr attr = seedAttr(L3_PHONE, "颜色", AttrKind.SPEC, null, null);
         BusinessException ex = assertThrows(
                 BusinessException.class,
-                () -> categoryAttrService.createAttr(L3_PHONE, attr.getName(), AttrKind.SPEC, null, null, null));
+                () -> categoryAttrService.createAttr(L3_PHONE, attr.getName(), AttrKind.SPEC, null, null, null, null));
         assertEquals(409, ex.getHttpStatus());
     }
 
@@ -126,7 +132,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
     @Test
     void 参数值域受控_域外值_400() {
         CategoryAttr param = seedAttr(L3_PHONE, "网络制式", AttrKind.PARAM, null, false);
-        categoryAttrService.addValue(param.getId(), "5G", null);
+        categoryAttrService.addValue(param.getId(), "5G", null, null);
         UUID shopId = UUID.randomUUID();
         ShopIdHolder.set(shopId);
         db.onDelete("DELETE FROM product.products WHERE shop_id = ?::uuid", shopId.toString());

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { CircleAlert, Store } from "lucide-react"
 
@@ -6,20 +6,20 @@ import { toApiError } from "@shop/api"
 import { Button } from "@shop/ui-web"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/products"
-import { useProductDraft } from "#/products/create/basic/use-product-draft"
+import { useProductDraft, type DraftProductStatus } from "#/products/create/basic/use-product-draft"
 import { useCurrentShop } from "#/shared/lib/shop"
 
 interface BasicSearch {
     /** 已选末级类目 id（第一步确认后跳转带入，必填） */
     categoryId?: string
-    /** 草稿 id：进入第二步即建档后写回，刷新/切路由可继续编辑 */
-    draftId?: string
+    /** 商品 id：新建后点保存/提交回写；编辑已有商品（草稿/仓库中/已发布）由列表页带入，刷新可续编 */
+    productId?: string
 }
 
 export const Route = createFileRoute("/_app/product/create/basic")({
     validateSearch: (search: Record<string, unknown>): BasicSearch => ({
         categoryId: typeof search.categoryId === "string" ? search.categoryId : undefined,
-        draftId: typeof search.draftId === "string" ? search.draftId : undefined,
+        productId: typeof search.productId === "string" ? search.productId : undefined,
     }),
     component: NewProductBasicStep,
 })
@@ -29,21 +29,23 @@ function NewProductBasicStep() {
     const shop = useCurrentShop()
     const navigate = useNavigate()
     const shopId = shop?.id
-    const { categoryId, draftId } = Route.useSearch()
+    const { categoryId, productId } = Route.useSearch()
     const [serverError, setServerError] = useState<string | undefined>()
-    const saveBasicTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
     const draft = useProductDraft({
         shopId,
         categoryId,
-        draftId,
-        onCreated: (newDraftId) =>
+        productId,
+        onCreated: (newProductId) =>
             void navigate({
                 to: "/product/create/basic",
-                search: { categoryId, draftId: newDraftId },
+                search: { categoryId, productId: newProductId },
                 replace: true,
             }),
     })
+
+    // 编辑已有商品时把状态带到发布页（BasicStep 据此决定能否切类目 / 规格是否冻结）；新建无
+    const editingStatus: DraftProductStatus | undefined = draft.productStatus
 
     // 直接访问缺 categoryId：回第一步
     useEffect(() => {
@@ -52,16 +54,15 @@ function NewProductBasicStep() {
         }
     }, [categoryId, navigate])
 
-    // 表单字段变化 → 防抖 autosave 基本信息
-    const debouncedSaveBasic = (values: BasicStepValues) => {
-        clearTimeout(saveBasicTimer.current)
-        saveBasicTimer.current = setTimeout(() => void draft.saveBasic(values), 800)
-    }
+    // 显式保存模式：不再监听字段变化自动落库。（BasicStep 的 onBasicChange 上报未来扩展用，此处置空即不写库）
+    const NOOP_BASIC_CHANGE = useCallback(() => {}, [])
 
     async function onSubmit(values: BasicStepValues, mode: SubmitMode) {
         setServerError(undefined)
         try {
             await draft.submit(values, mode)
+            // 保存草稿：留在当前页（productId 已由 onCreated 写回 URL，可刷新续编）；提交/入库才跳回列表。
+            if (mode === "draft") return
             void navigate({ to: "/product/list", search: { page: 1, size: 10 } })
         } catch (error) {
             setServerError(toApiError(error).detail)
@@ -95,7 +96,10 @@ function NewProductBasicStep() {
     return (
         <div className="mx-auto w-full max-w-narrow">
             <PublishBasicStep
+                shopId={shopId!}
                 categoryId={categoryId}
+                productId={productId}
+                productStatus={editingStatus}
                 submitting={draft.submitting}
                 creating={draft.creating}
                 onSwitchCategory={() =>
@@ -106,7 +110,8 @@ function NewProductBasicStep() {
                 onSelectionsChange={draft.setSelections}
                 onSkuRowsChange={draft.setSkuRows}
                 submit={onSubmit}
-                onBasicChange={debouncedSaveBasic}
+                onBasicChange={NOOP_BASIC_CHANGE}
+                initialBasic={draft.hydratedBasic}
             />
             {serverError ? (
                 /* 提交失败：浮在底部操作条正上方，与触发按钮保持视觉关联 */

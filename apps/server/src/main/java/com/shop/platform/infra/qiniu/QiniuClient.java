@@ -15,8 +15,9 @@ import org.springframework.util.StringUtils;
  * 不碰「传什么 / 谁传 / 传完干什么」：业务归属、权限、传后关联实体，一律由各业务模块自己编排。
  *
  * <p>浏览器直传链路：前端 POST 到业务模块拿到本客户端的 {@link #issueUploadToken(String)} 凭证后，
- * 直接 PUT {@code https://<uploadHost>/<key>}（请求头 {@code Authorization: UpToken <token>}，body 为文件字节），
- * 文件流不经过应用服务器。
+ * POST {@code multipart/form-data} 到 {@code https://<uploadHost>/<key>}（字段 {@code token} + {@code file}），
+ * 文件流不经过应用服务器。不能走浏览器 PUT：七牛 Kodo 上传接口对 PUT 返回 405「only allow POST method」〔实测〕——
+ * 原因是 Kodo 的标准上传是表单（POST multipart），不支持 raw PUT 直传。
  */
 public class QiniuClient {
 
@@ -50,7 +51,7 @@ public class QiniuClient {
         return props.getPublicBaseUrl() + "/" + key;
     }
 
-    /** 浏览器直传 PUT 的目标地址（上传域名 + key），请求头带 {@code Authorization: UpToken <token>}。 */
+    /** 浏览器直传目标地址（上传域名 + key）：POST multipart/form-data，表单含 token + file 两个字段。 */
     public String uploadUrl(String key) {
         return "https://" + props.getUploadHost() + "/" + key;
     }

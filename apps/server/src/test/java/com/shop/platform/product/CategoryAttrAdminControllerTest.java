@@ -2,6 +2,7 @@ package com.shop.platform.product;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -82,7 +83,7 @@ class CategoryAttrAdminControllerTest extends WebControllerTestSupport {
         @Test
         void 透传() throws Exception {
             UUID valueId = UUID.randomUUID();
-            when(categoryAttrService.updateValue(eq(valueId), eq("曜石黑"), any()))
+            when(categoryAttrService.updateValue(eq(valueId), eq("曜石黑"), any(), any()))
                     .thenReturn(CategoryAttrValue.builder()
                             .id(valueId)
                             .attrId(UUID.randomUUID())
@@ -100,7 +101,7 @@ class CategoryAttrAdminControllerTest extends WebControllerTestSupport {
                                 """))
                     .andExpect(status().isOk());
 
-            verify(categoryAttrService).updateValue(eq(valueId), eq("曜石黑"), eq(null));
+            verify(categoryAttrService).updateValue(eq(valueId), eq("曜石黑"), isNull(), isNull());
         }
     }
 

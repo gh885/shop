@@ -37,10 +37,6 @@
         "typescript": "catalog:"
     },
     "devEngines": {
-        "packageManager": {
-            "name": "pnpm",
-            "version": "^11.25.0",
-            "onFail": "download"
-        }
+
     }
 }

@@ -9,6 +9,9 @@ import com.shop.platform.common.PageResult;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
+import com.shop.platform.inventory.api.StockReadQuery;
+import com.shop.platform.inventory.api.StockView;
+import com.shop.platform.order.api.ProductSoldReadQuery;
 import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.dto.SkuUpdateItem;
 import com.shop.platform.product.mapper.CategoryAttr;
@@ -29,6 +32,7 @@ import com.shop.platform.product.model.CategoryAttrStatus;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -59,6 +63,8 @@ public class ProductService {
     private final CategoryAttrValueMapper attrValueMapper;
     private final CategoryAttrService categoryAttrService;
     private final StockCommand stockCommand;
+    private final StockReadQuery stockReadQuery;
+    private final ProductSoldReadQuery productSoldReadQuery;
 
     /** 创建商品草稿：只落基本信息，specs/SKU 由后续接口补充。shopId 由 controller 从店铺上下文（X-Shop-Id）注入 */
     public Product create(CreateProductCommand command) {
@@ -178,16 +184,21 @@ public class ProductService {
         return all;
     }
 
-    /** 发布：门槛是每个 SKU 都已设价（库存允许 0，可售罄上架），通过后置上架并回填聚合价格区间 */
+    /** 发布：门槛是每个 SKU 都已设价（库存允许 0，可售罄上架），通过后置目标态并回填聚合价格区间。
+     *  目标态 = 立即上架（PUBLISHED）或放入仓库（WAREHOUSE），由入参 target 决定；两者同门槛。 */
     @Transactional
-    public Product publish(UUID productId) {
+    public Product publish(UUID productId, ProductStatus target) {
         Product product = requireShopOwned(productId);
-        // 0. 草稿阶段允许空名，但发布必须有名（买家搜索/展示依赖）
+        // 0. 草稿阶段允许空名，但发布（无论上架还是入库）必须有名（买家搜索/展示依赖）
         Validate.isTrue(StringUtils.hasText(product.getName()), "请先填写商品标题再发布");
-        // 1. 复检发布门槛：每个 SKU 都已设价（跨聚合校验留 service）
+        // 1. 复检发布门槛：每个在售 SKU 都已设价（跨聚合校验留 service）
         applyPriceRange(product, ensurePublishable(productId));
-        // 2. 守卫 + 置上架（仅草稿可发布的规则在实体内）
-        product.publish();
+        // 2. 守卫 + 置目标态（仅草稿可发布、目标只许上架/仓库的规则在实体内）
+        product.publishTo(target);
+        // 3. 状态迁移条件更新（乐观锁）：只允许「DRAFT → target」，丢更新/竞态下 affected=0 抛 409，
+        //    避免读-改-写的并发覆盖（如两请求同时发布、或发布外被它请求改态）。
+        requireTransition(productId, ProductStatus.DRAFT, target, "商品状态已变化，请刷新后重试");
+        // 4. 回填的价格区间需落库（DB status 已被 requireTransition 置 target；这里补写 min/max 等）
         productMapper.updateById(product);
         return product;
     }
@@ -205,6 +216,47 @@ public class ProductService {
                         .orderByDesc(Product::getCreatedAt)
                         .orderByDesc(Product::getId));
         return new PageResult<>(result.getRecords(), result.getTotal());
+    }
+
+    /**
+     * 卖家工作台商品列表：分页 + 每行补库存与累计销量指标。
+     *
+     * <p>库存：本页商品全部 SKU → inventory.api 批查可用量 → 按商品 sum（分列已有 min/max，库存是运营要看的总可售）。
+     * 销量：order.api 按已完成订单聚合（口径见 {@link ProductSoldReadQuery}）。
+     * 库存/销量都是纯展示指标，与 SPU 状态正交（草稿/仓库中也可能有历史销量）。
+     */
+    public PageResult<ProductListRow> pageListWithMetrics(
+            UUID shopId, ProductStatus status, String keyword, long page, long size) {
+        PageResult<Product> result = pageList(shopId, status, keyword, page, size);
+        List<UUID> productIds = result.records().stream().map(Product::getId).toList();
+        if (productIds.isEmpty()) {
+            return new PageResult<>(List.of(), result.total());
+        }
+
+        // 批次捞本页全部 SKU → 按商品分组，再批查库存可用量
+        List<Sku> skus = skuMapper.selectByProductIds(productIds);
+        Map<UUID, List<Sku>> skusByProduct = skus.stream().collect(Collectors.groupingBy(Sku::getProductId));
+        Map<UUID, StockView> stocks =
+                stockReadQuery.availableBySkuIds(skus.stream().map(Sku::getId).toList());
+        // stock 缺省 0：SKU 无库存行也在 Map 外，按 0 兜底
+        Map<UUID, Integer> stockByProduct = new HashMap<>();
+        skusByProduct.forEach((pid, list) -> stockByProduct.put(
+                pid,
+                list.stream()
+                        .mapToInt(s -> {
+                            StockView v = stocks.get(s.getId());
+                            return v == null ? 0 : v.availableStock();
+                        })
+                        .sum()));
+
+        // 销量批查（已完成订单聚合），缺省 0
+        Map<UUID, Long> soldByProduct = productSoldReadQuery.soldCountByProductIds(shopId, productIds);
+
+        List<ProductListRow> rows = result.records().stream()
+                .map(p -> new ProductListRow(
+                        p, stockByProduct.getOrDefault(p.getId(), 0), soldByProduct.getOrDefault(p.getId(), 0L)))
+                .toList();
+        return new PageResult<>(rows, result.total());
     }
 
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查（管理端要能看草稿） */
@@ -247,36 +299,80 @@ public class ProductService {
         return new ProductDetail(product, skus);
     }
 
-    /** 编辑基本信息（specs/SKU 之外的字段）。任何状态可改：上架后改展示字段/分类是日常运营，改规格走 updateSpecs */
+    /**
+     * 编辑基本信息（specs/SKU 之外的字段）。任何状态可改：上架后改展示字段/分类是日常运营，改规格走 updateSpecs。
+     *
+     * <p>统一用「实体 + updateById」而非 LambdaUpdateWrapper：detailImages / images / params 是 JSONB 列，
+     * wrapper 的 {@code set(列, List)} 不携带 {@code @TableField(typeHandler)}，MP 把 ArrayList 当普通参数传入，
+     * PG 无法推断数组类型直接 500（实测报「无法推测实例 java.util.ArrayList 的 SQL 类型」）。
+     * 实体方案走实体的 typeHandler，JSONB ↔ List 序列化正确。
+     *
+     * <p>PATCH 语义（传 null 不写）在字段级保留：只 set 非 null 的字段；subtitle 例外——空串表示清空卖点，
+     * 显式写给 null（blankToNull），因为 updateById 默认忽略 null 字段，故 subtitle 单独用 wrapper 子句。
+     */
+    @Transactional
     public Product updateBasic(UUID productId, UpdateBasicCommand command) {
-        // 1. 校验：商品存在且属于当前店铺、分类存在（同创建）
+        // 1. 校验：商品存在且属于当前店铺
         Product product = requireShopOwned(productId);
-        Validate.isTrue(categoryMapper.selectById(command.categoryId()) != null, "分类不存在");
-        // 2. params 模板校验：传了 params 用新值校验，没传（不改）则拿存量对新类目复检（换类目可能撞上必填模板）
-        validateParams(command.categoryId(), command.params() != null ? command.params() : product.getParams());
-        // 3. 局部更新：传 null 的字段不写（全库统一 PATCH 语义，见 apps/server/AGENTS.md），WHERE 只有主键也走 wrapper——与 updateSkus 同形态
-        productMapper.update(
-                null,
-                new LambdaUpdateWrapper<Product>()
-                        .eq(Product::getId, productId)
-                        .set(Product::getCategoryId, command.categoryId())
-                        .set(Product::getName, command.name())
-                        .set(command.subtitle() != null, Product::getSubtitle, blankToNull(command.subtitle()))
-                        .set(command.detailImages() != null, Product::getDetailImages, command.detailImages())
-                        .set(command.mainImage() != null, Product::getMainImage, command.mainImage())
-                        .set(command.images() != null, Product::getImages, command.images())
-                        .set(command.params() != null, Product::getParams, command.params()));
-        // 4. 查回：wrapper 不返回实体，重查保证响应与 DB 一致
-        return productMapper.selectById(productId);
+        // 1.1 类目变更（结构性操作）：PATCH 下 categoryId=null 表示不改；非 null 且与当前不同时仅草稿允许——
+        //     上架/仓库中是经营资产（在售/已填完并关联 SKU 规格快照），换类目会错配规格/重新生产，需先下架再改。
+        UUID targetCategory = command.categoryId();
+        boolean categoryChanged = targetCategory != null && !targetCategory.equals(product.getCategoryId());
+        if (categoryChanged) {
+            Validate.isTrue(product.isDraft(), 409, "只有草稿可以修改类目，上架/仓库中商品请先下架");
+            Validate.isTrue(categoryMapper.selectById(targetCategory) != null, "分类不存在");
+        }
+        // 2. params 模板校验：传了 params 用新值校验，没传（不改）则拿存量对有效类目复检（换类目可能撞上必填模板）
+        UUID effectiveCategory = targetCategory != null ? targetCategory : product.getCategoryId();
+        validateParams(effectiveCategory, command.params() != null ? command.params() : product.getParams());
+
+        // 3. 实体局部更新：非 null 字段 set 到已加载的实体（JSONB 走实体 typeHandler）
+        boolean nameChanged = command.name() != null && !command.name().equals(product.getName());
+        if (categoryChanged) {
+            product.setCategoryId(targetCategory);
+        }
+        if (nameChanged) {
+            product.setName(command.name());
+        }
+        if (command.subtitle() != null) {
+            product.setSubtitle(blankToNull(command.subtitle()));
+        }
+        if (command.detailImages() != null) {
+            product.setDetailImages(command.detailImages());
+        }
+        if (command.mainImage() != null) {
+            product.setMainImage(command.mainImage());
+        }
+        if (command.images() != null) {
+            product.setImages(command.images());
+        }
+        if (command.params() != null) {
+            product.setParams(command.params());
+        }
+        // 4. subtitle「清空调」：空串传进来 = 想清空卖点，而 updateById 忽略 null 字段，用 wrapper 子句单独写 null
+        if (command.subtitle() != null && blankToNull(command.subtitle()) == null) {
+            productMapper.update(
+                    null,
+                    new LambdaUpdateWrapper<Product>()
+                            .eq(Product::getId, productId)
+                            .set(Product::getSubtitle, null));
+        }
+        productMapper.updateById(product);
+        // 5. SKU 名是「SPU名+规格值」的快照（见 buildSkuName）：SPU 改名后刷一遍存量 SKU 名，
+        //    避免购物车/订单/列表里留旧标题。规格值不变则组合不变，name 只是拼串，刷新安全。
+        if (nameChanged) {
+            refreshSkuNames(product, skuMapper.selectByProductId(productId));
+        }
+        return product;
     }
 
     /** 下架：仅上架商品可下架。不做物理删除，下架即"删除"语义，可无损恢复 */
     @Transactional
     public Product off(UUID productId) {
         Product product = requireShopOwned(productId);
-        // 守卫 + 置下架（仅上架可下架的规则在实体内）
+        // 守卫 + 置下架（仅上架可下架的规则在实体内），乐观锁条件更新，见 requireTransition
         product.off();
-        productMapper.updateById(product);
+        requireTransition(productId, ProductStatus.PUBLISHED, ProductStatus.WAREHOUSE, "商品状态已变化，请刷新后重试");
         return product;
     }
 
@@ -284,11 +380,11 @@ public class ProductService {
     @Transactional
     public Product on(UUID productId) {
         Product product = requireShopOwned(productId);
-        // 1. 复检发布门槛：下架期间 SKU 可能被改（跨聚合校验留 service）
+        // 1. 复检发布门槛：下架期间 SKU 可能被改（在售 SKU 口径，见 ensurePublishable）
         ensurePublishable(productId);
-        // 2. 守卫 + 置上架（仅下架可重上的规则在实体内）
+        // 2. 守卫 + 置上架（仅下架可重上的规则在实体内），乐观锁条件更新
         product.relist();
-        productMapper.updateById(product);
+        requireTransition(productId, ProductStatus.WAREHOUSE, ProductStatus.PUBLISHED, "商品状态已变化，请刷新后重试");
         return product;
     }
 
@@ -481,24 +577,66 @@ public class ProductService {
 
     /** SPU 名 + 规格值拼接，如「iPhone 15 Pro 256G 黑色」；单规格商品即 SPU 名本身。截断到列上限 160 */
     private String buildSkuName(Product product, List<SpecValue> combo) {
-        List<String> values = combo.stream().map(SpecValue::value).toList();
+        return joinSkuName(product, combo.stream().map(SpecValue::value).toList());
+    }
+
+    /** 拼 SKU 名：SPU 名 + 各规格值空格连接；单规格/无规格即为 SPU 名本身。截断到列上限 160 */
+    private static String joinSkuName(Product product, List<String> values) {
         String name = values.isEmpty() ? product.getName() : product.getName() + " " + String.join(" ", values);
         return name.length() > 160 ? name.substring(0, 160) : name;
+    }
+
+    /**
+     * SKU 名是「SPU名 + 规格值」的快照：SPU 改名后对存量 SKU 重拼名字（规格值来自 SkuAttr 快照，
+     * 只重拼 name 字符串，不动 spec_key / 价格 / 库存）。买家侧购物车/订单里的 SKU 名随之一致。
+     */
+    private void refreshSkuNames(Product product, List<Sku> skus) {
+        for (Sku sku : skus) {
+            List<String> values = sku.getAttributes() == null
+                    ? List.of()
+                    : sku.getAttributes().stream().map(SkuAttr::value).toList();
+            sku.setName(joinSkuName(product, values));
+            skuMapper.updateById(sku);
+        }
+    }
+
+    /**
+     * 状态迁移乐观锁：只用条件更新「where status=from → set status=to」，affected=0 说明并发下状态已变
+     * （读-判-写之间的竞争窗口被挡），抛 409 让调用方刷新重试；返回的实体字段由调用方另行落库。
+     */
+    private void requireTransition(UUID productId, ProductStatus from, ProductStatus to, String detail) {
+        int affected = productMapper.update(
+                null,
+                new LambdaUpdateWrapper<Product>()
+                        .eq(Product::getId, productId)
+                        .eq(Product::getStatus, from)
+                        .set(Product::getStatus, to));
+        if (affected == 0) {
+            throw BusinessException.conflict(null, detail);
+        }
     }
 
     /** 发布门槛：必须有 SKU，且所有 SKU 都设了价（库存允许 0，可售罄上架）。publish 与 on 共用 */
     private List<Sku> ensurePublishable(UUID productId) {
         List<Sku> skus = skuMapper.selectByProductId(productId);
-        Validate.isTrue(!skus.isEmpty(), "请先设置商品规格");
-        boolean anyMissingPrice = skus.stream().anyMatch(s -> s.getPrice() == null);
-        Validate.isTrue(!anyMissingPrice, "所有 SKU 都需设置价格后才能发布");
+        // 发布/重上门槛只看「在售 SKU」：停用 SKU 不计入（停用 SKU 不该阻塞上架，也不该被索取价格）
+        List<Sku> onSale =
+                skus.stream().filter(s -> s.getStatus() == SkuStatus.ON_SALE).toList();
+        Validate.isTrue(!onSale.isEmpty(), "请先设置商品规格");
+        boolean anyMissingPrice = onSale.stream().anyMatch(s -> s.getPrice() == null);
+        Validate.isTrue(!anyMissingPrice, "所有在售 SKU 都需设置价格后才能发布");
         return skus;
     }
 
     /** 一次算好 min/max 价格冗余副本（真实成交价永远以 skus.price 为准；全部未定价时两端为 null）。publish 与 recalc 共用 */
     private static void applyPriceRange(Product product, List<Sku> skus) {
-        List<Long> prices =
-                skus.stream().map(Sku::getPrice).filter(Objects::nonNull).toList();
+        // 价格区间只反映「在售 SKU」（买家实际可购集）：停用 SKU 的价不计入，否则列表「¥299 起」可能摘自已停用 SKU，
+        // 点进去买不到（publicDetail 只返在售）。真实成交价永远以 skus.price 为准，这里只是列表免查 SKU 的展示副本。
+        List<Long> prices = skus.stream()
+                .filter(s -> s.getStatus() == SkuStatus.ON_SALE)
+                .map(Sku::getPrice)
+                .filter(Objects::nonNull)
+                .toList();
         product.setMinPrice(prices.stream().min(Long::compare).orElse(null));
         product.setMaxPrice(prices.stream().max(Long::compare).orElse(null));
     }
@@ -546,6 +684,9 @@ public class ProductService {
             String mainImage,
             List<String> images,
             List<ParamItem> params) {}
+
+    /** 卖家工作台商品列表行：SPU + 库存/销量两个纯展示指标 */
+    public record ProductListRow(Product product, int stock, long soldCount) {}
 
     /**
      * 一个规格维度的选择：attrId 定位模板属性，valueIds 选值域内值，customValues 提交值域外新值

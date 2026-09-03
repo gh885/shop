@@ -3,16 +3,15 @@ package com.shop.platform.product.dto;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.service.ProductService.UpdateBasicCommand;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
 
-/** 编辑商品基本信息：与创建同字段，去掉 shopId（店铺归属创建后不可改） */
+/** 编辑商品基本信息：与创建同字段，去掉 shopId（店铺归属创建后不可改）。PATCH 语义：null＝不改。 */
 public record UpdateProductRequest(
-        /** 主分类 ID */
-        @NotNull UUID categoryId,
+        /** 主分类 ID。PATCH：null＝不改类目；非 null 且与当前不同时仅草稿可改（上架/仓库中改类目被拒）。 */
+        UUID categoryId,
         /** 搜索标题，上限 30 字；草稿阶段允许空（发布前由 ensurePublishable 统校验），空串＝清空 */
         @Size(max = 30, message = "商品标题最长 30 字") String name,
         /** 一句话卖点：空串＝清空已填内容，不传（null）＝不改（PATCH 语义） */
