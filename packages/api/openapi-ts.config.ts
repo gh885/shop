@@ -4,9 +4,14 @@ export default defineConfig({
     input: "../../openapi/api-docs.json",
     output: "src/sdk",
     plugins: [
-        "@hey-api/client-ky",
+        {
+            name: "@hey-api/client-ky",
+            throwOnError: true,
+        },
         {
             name: "@hey-api/sdk",
+            responseStyle: "data",
+
             operations: {
                 strategy: "byTags",
                 containerName: "{{name}}Api",

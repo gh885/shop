@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query"
-import { unwrap } from "@shop/api"
 import { OrdersApi, PaymentsApi } from "@shop/api/sdk"
 import type { PreviewResponse } from "@shop/api/sdk"
 
@@ -31,19 +30,17 @@ export const myOrdersOptions = ({
     queryOptions({
         queryKey: [...MY_ORDERS_KEY, status ?? "all", page, size],
         queryFn: async (): Promise<{ records: Order[]; total: number }> => {
-            const result = unwrap(
-                await OrdersApi.listMyOrders({
+            const result = await OrdersApi.listMyOrders({
+                query: {
+                    pageParams: { page, size },
                     query: {
-                        pageParams: { page, size },
-                        query: {
-                            status: status && status !== "all" ? statusToWire(status) : undefined,
-                        },
+                        status: status && status !== "all" ? statusToWire(status) : undefined,
                     },
-                }),
-            )
+                },
+            })
             return {
-                records: (result.records ?? []).map(toOrder),
-                total: result.total ?? 0,
+                records: result.records.map(toOrder),
+                total: result.total,
             }
         },
         staleTime: 30_000,
@@ -60,7 +57,7 @@ export const orderDetailOptions = (id: string) =>
     queryOptions({
         queryKey: ["order-detail", id],
         queryFn: async (): Promise<OrderDetail> =>
-            toOrderDetail(unwrap(await OrdersApi.getOrderDetail({ path: { id } }))),
+            toOrderDetail(await OrdersApi.getOrderDetail({ path: { id } })),
         staleTime: 30_000,
         retry: false,
     })
@@ -78,16 +75,14 @@ export async function fetchPreview(args: {
     buyQuantity?: number
     addressId?: string
 }): Promise<PreviewResponse> {
-    return unwrap(
-        await OrdersApi.previewOrder({
-            body: {
-                cartItemIds: args.cartItemIds,
-                buySkuId: args.buySkuId,
-                buyQuantity: args.buyQuantity,
-                addressId: args.addressId,
-            },
-        }),
-    )
+    return await OrdersApi.previewOrder({
+        body: {
+            cartItemIds: args.cartItemIds,
+            buySkuId: args.buySkuId,
+            buyQuantity: args.buyQuantity,
+            addressId: args.addressId,
+        },
+    })
 }
 
 /** 创建订单：按店拆单，返回全部新单 */
@@ -98,29 +93,27 @@ export async function createOrder(args: {
     buyQuantity?: number
     buyerMessage?: string
 }) {
-    return unwrap(await OrdersApi.createOrder({ body: args }))
+    return await OrdersApi.createOrder({ body: args })
 }
 
 /** 发起支付：V1 创建 PENDING 流水（不动订单状态），返回待确认流水 */
 export async function createPayment(orderId: string) {
-    return unwrap(await PaymentsApi.createPayment({ body: { orderId } }))
+    return await PaymentsApi.createPayment({ body: { orderId } })
 }
 
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；返回成功流水 */
 export async function confirmPayment(paymentId: string) {
-    return unwrap(await PaymentsApi.confirmPayment({ path: { id: paymentId } }))
+    return await PaymentsApi.confirmPayment({ path: { id: paymentId } })
 }
 
 /** 取消订单 */
 export async function cancelOrder(orderId: string) {
-    return unwrap(
-        await OrdersApi.cancelOrder({ path: { id: orderId }, body: { reason: "用户取消" } }),
-    )
+    return await OrdersApi.cancelOrder({ path: { id: orderId }, body: { reason: "用户取消" } })
 }
 
 /** 确认收货 */
 export async function receiveOrder(orderId: string) {
-    return unwrap(await OrdersApi.receiveOrder({ path: { id: orderId } }))
+    return await OrdersApi.receiveOrder({ path: { id: orderId } })
 }
 
 // ---------- 订单操作 mutation（取消/确认收货/支付） ----------

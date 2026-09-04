@@ -19,16 +19,25 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 export class AddressesApi {
-    public static deleteAddress<ThrowOnError extends boolean = false>(options: Options<DeleteAddressData, ThrowOnError>): RequestResult<DeleteAddressResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).delete<DeleteAddressResponses, unknown, ThrowOnError>({ url: '/user/addresses/{id}', ...options });
+    public static deleteAddress<ThrowOnError extends boolean = true>(options: Options<DeleteAddressData, ThrowOnError>): RequestResult<DeleteAddressResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<DeleteAddressResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/user/addresses/{id}',
+            ...options
+        });
     }
     
-    public static getAddressDetail<ThrowOnError extends boolean = false>(options: Options<GetAddressDetailData, ThrowOnError>): RequestResult<GetAddressDetailResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<GetAddressDetailResponses, unknown, ThrowOnError>({ url: '/user/addresses/{id}', ...options });
+    public static getAddressDetail<ThrowOnError extends boolean = true>(options: Options<GetAddressDetailData, ThrowOnError>): RequestResult<GetAddressDetailResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetAddressDetailResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/user/addresses/{id}',
+            ...options
+        });
     }
     
-    public static updateAddress<ThrowOnError extends boolean = false>(options: Options<UpdateAddressData, ThrowOnError>): RequestResult<UpdateAddressResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateAddressResponses, unknown, ThrowOnError>({
+    public static updateAddress<ThrowOnError extends boolean = true>(options: Options<UpdateAddressData, ThrowOnError>): RequestResult<UpdateAddressResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateAddressResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/user/addresses/{id}',
             ...options,
             headers: {
@@ -38,20 +47,33 @@ export class AddressesApi {
         });
     }
     
-    public static unsetDefaultAddress<ThrowOnError extends boolean = false>(options: Options<UnsetDefaultAddressData, ThrowOnError>): RequestResult<UnsetDefaultAddressResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).delete<UnsetDefaultAddressResponses, unknown, ThrowOnError>({ url: '/user/addresses/{id}/default', ...options });
+    public static unsetDefaultAddress<ThrowOnError extends boolean = true>(options: Options<UnsetDefaultAddressData, ThrowOnError>): RequestResult<UnsetDefaultAddressResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<UnsetDefaultAddressResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/user/addresses/{id}/default',
+            ...options
+        });
     }
     
-    public static setDefaultAddress<ThrowOnError extends boolean = false>(options: Options<SetDefaultAddressData, ThrowOnError>): RequestResult<SetDefaultAddressResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<SetDefaultAddressResponses, unknown, ThrowOnError>({ url: '/user/addresses/{id}/default', ...options });
+    public static setDefaultAddress<ThrowOnError extends boolean = true>(options: Options<SetDefaultAddressData, ThrowOnError>): RequestResult<SetDefaultAddressResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetDefaultAddressResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/user/addresses/{id}/default',
+            ...options
+        });
     }
     
-    public static listAddresses<ThrowOnError extends boolean = false>(options?: Options<ListAddressesData, ThrowOnError>): RequestResult<ListAddressesResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<ListAddressesResponses, unknown, ThrowOnError>({ url: '/user/addresses', ...options });
+    public static listAddresses<ThrowOnError extends boolean = true>(options?: Options<ListAddressesData, ThrowOnError>): RequestResult<ListAddressesResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAddressesResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/user/addresses',
+            ...options
+        });
     }
     
-    public static createAddress<ThrowOnError extends boolean = false>(options: Options<CreateAddressData, ThrowOnError>): RequestResult<CreateAddressResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateAddressResponses, unknown, ThrowOnError>({
+    public static createAddress<ThrowOnError extends boolean = true>(options: Options<CreateAddressData, ThrowOnError>): RequestResult<CreateAddressResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateAddressResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/user/addresses',
             ...options,
             headers: {
@@ -61,8 +83,9 @@ export class AddressesApi {
         });
     }
     
-    public static parseAddress<ThrowOnError extends boolean = false>(options: Options<ParseAddressData, ThrowOnError>): RequestResult<ParseAddressResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<ParseAddressResponses, unknown, ThrowOnError>({
+    public static parseAddress<ThrowOnError extends boolean = true>(options: Options<ParseAddressData, ThrowOnError>): RequestResult<ParseAddressResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ParseAddressResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/user/addresses/parse',
             ...options,
             headers: {
@@ -74,8 +97,9 @@ export class AddressesApi {
 }
 
 export class ShopsApi {
-    public static updateShopMemberPermissions<ThrowOnError extends boolean = false>(options: Options<UpdateShopMemberPermissionsData, ThrowOnError>): RequestResult<UpdateShopMemberPermissionsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateShopMemberPermissionsResponses, unknown, ThrowOnError>({
+    public static updateShopMemberPermissions<ThrowOnError extends boolean = true>(options: Options<UpdateShopMemberPermissionsData, ThrowOnError>): RequestResult<UpdateShopMemberPermissionsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateShopMemberPermissionsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/shops/{shopId}/members/{memberId}/permissions',
             ...options,
             headers: {
@@ -85,8 +109,9 @@ export class ShopsApi {
         });
     }
     
-    public static createShop<ThrowOnError extends boolean = false>(options: Options<CreateShopData, ThrowOnError>): RequestResult<CreateShopResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateShopResponses, unknown, ThrowOnError>({
+    public static createShop<ThrowOnError extends boolean = true>(options: Options<CreateShopData, ThrowOnError>): RequestResult<CreateShopResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateShopResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/shops',
             ...options,
             headers: {
@@ -96,8 +121,9 @@ export class ShopsApi {
         });
     }
     
-    public static inviteShopMember<ThrowOnError extends boolean = false>(options: Options<InviteShopMemberData, ThrowOnError>): RequestResult<InviteShopMemberResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<InviteShopMemberResponses, unknown, ThrowOnError>({
+    public static inviteShopMember<ThrowOnError extends boolean = true>(options: Options<InviteShopMemberData, ThrowOnError>): RequestResult<InviteShopMemberResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<InviteShopMemberResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/shops/{shopId}/invites',
             ...options,
             headers: {
@@ -107,38 +133,67 @@ export class ShopsApi {
         });
     }
     
-    public static acceptShopInvite<ThrowOnError extends boolean = false>(options: Options<AcceptShopInviteData, ThrowOnError>): RequestResult<AcceptShopInviteResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<AcceptShopInviteResponses, unknown, ThrowOnError>({ url: '/shops/invites/{memberId}/accept', ...options });
+    public static acceptShopInvite<ThrowOnError extends boolean = true>(options: Options<AcceptShopInviteData, ThrowOnError>): RequestResult<AcceptShopInviteResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AcceptShopInviteResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/shops/invites/{memberId}/accept',
+            ...options
+        });
     }
     
-    public static listShopMembers<ThrowOnError extends boolean = false>(options: Options<ListShopMembersData, ThrowOnError>): RequestResult<ListShopMembersResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<ListShopMembersResponses, unknown, ThrowOnError>({ url: '/shops/{shopId}/members', ...options });
+    public static listShopMembers<ThrowOnError extends boolean = true>(options: Options<ListShopMembersData, ThrowOnError>): RequestResult<ListShopMembersResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopMembersResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/shops/{shopId}/members',
+            ...options
+        });
     }
     
-    public static listMyShops<ThrowOnError extends boolean = false>(options?: Options<ListMyShopsData, ThrowOnError>): RequestResult<ListMyShopsResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<ListMyShopsResponses, unknown, ThrowOnError>({ url: '/shops/mine', ...options });
+    public static listMyShops<ThrowOnError extends boolean = true>(options?: Options<ListMyShopsData, ThrowOnError>): RequestResult<ListMyShopsResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListMyShopsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/shops/mine',
+            ...options
+        });
     }
     
-    public static listShopInvites<ThrowOnError extends boolean = false>(options?: Options<ListShopInvitesData, ThrowOnError>): RequestResult<ListShopInvitesResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<ListShopInvitesResponses, unknown, ThrowOnError>({ url: '/shops/invites', ...options });
+    public static listShopInvites<ThrowOnError extends boolean = true>(options?: Options<ListShopInvitesData, ThrowOnError>): RequestResult<ListShopInvitesResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListShopInvitesResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/shops/invites',
+            ...options
+        });
     }
     
-    public static removeShopMember<ThrowOnError extends boolean = false>(options: Options<RemoveShopMemberData, ThrowOnError>): RequestResult<RemoveShopMemberResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).delete<RemoveShopMemberResponses, unknown, ThrowOnError>({ url: '/shops/{shopId}/members/{memberId}', ...options });
+    public static removeShopMember<ThrowOnError extends boolean = true>(options: Options<RemoveShopMemberData, ThrowOnError>): RequestResult<RemoveShopMemberResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<RemoveShopMemberResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/shops/{shopId}/members/{memberId}',
+            ...options
+        });
     }
 }
 
 export class ProductsAdminApi {
-    public static abandonProduct<ThrowOnError extends boolean = false>(options: Options<AbandonProductData, ThrowOnError>): RequestResult<AbandonProductResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).delete<AbandonProductResponses, unknown, ThrowOnError>({ url: '/seller/products/{id}', ...options });
+    public static abandonProduct<ThrowOnError extends boolean = true>(options: Options<AbandonProductData, ThrowOnError>): RequestResult<AbandonProductResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<AbandonProductResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/products/{id}',
+            ...options
+        });
     }
     
-    public static getShopProductDetail<ThrowOnError extends boolean = false>(options: Options<GetShopProductDetailData, ThrowOnError>): RequestResult<GetShopProductDetailResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<GetShopProductDetailResponses, unknown, ThrowOnError>({ url: '/seller/products/{id}', ...options });
+    public static getShopProductDetail<ThrowOnError extends boolean = true>(options: Options<GetShopProductDetailData, ThrowOnError>): RequestResult<GetShopProductDetailResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetShopProductDetailResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/products/{id}',
+            ...options
+        });
     }
     
-    public static updateProduct<ThrowOnError extends boolean = false>(options: Options<UpdateProductData, ThrowOnError>): RequestResult<UpdateProductResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateProductResponses, unknown, ThrowOnError>({
+    public static updateProduct<ThrowOnError extends boolean = true>(options: Options<UpdateProductData, ThrowOnError>): RequestResult<UpdateProductResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateProductResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/seller/products/{id}',
             ...options,
             headers: {
@@ -148,8 +203,9 @@ export class ProductsAdminApi {
         });
     }
     
-    public static updateProductSpecs<ThrowOnError extends boolean = false>(options: Options<UpdateProductSpecsData, ThrowOnError>): RequestResult<UpdateProductSpecsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateProductSpecsResponses, unknown, ThrowOnError>({
+    public static updateProductSpecs<ThrowOnError extends boolean = true>(options: Options<UpdateProductSpecsData, ThrowOnError>): RequestResult<UpdateProductSpecsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateProductSpecsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/seller/products/{id}/specs',
             ...options,
             headers: {
@@ -159,8 +215,9 @@ export class ProductsAdminApi {
         });
     }
     
-    public static updateProductSkus<ThrowOnError extends boolean = false>(options: Options<UpdateProductSkusData, ThrowOnError>): RequestResult<UpdateProductSkusResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateProductSkusResponses, unknown, ThrowOnError>({
+    public static updateProductSkus<ThrowOnError extends boolean = true>(options: Options<UpdateProductSkusData, ThrowOnError>): RequestResult<UpdateProductSkusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateProductSkusResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/seller/products/{id}/skus',
             ...options,
             headers: {
@@ -170,12 +227,17 @@ export class ProductsAdminApi {
         });
     }
     
-    public static listShopProducts<ThrowOnError extends boolean = false>(options: Options<ListShopProductsData, ThrowOnError>): RequestResult<ListShopProductsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<ListShopProductsResponses, unknown, ThrowOnError>({ url: '/seller/products', ...options });
+    public static listShopProducts<ThrowOnError extends boolean = true>(options: Options<ListShopProductsData, ThrowOnError>): RequestResult<ListShopProductsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopProductsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/products',
+            ...options
+        });
     }
     
-    public static createProduct<ThrowOnError extends boolean = false>(options: Options<CreateProductData, ThrowOnError>): RequestResult<CreateProductResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateProductResponses, unknown, ThrowOnError>({
+    public static createProduct<ThrowOnError extends boolean = true>(options: Options<CreateProductData, ThrowOnError>): RequestResult<CreateProductResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateProductResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/seller/products',
             ...options,
             headers: {
@@ -185,26 +247,43 @@ export class ProductsAdminApi {
         });
     }
     
-    public static publishProduct<ThrowOnError extends boolean = false>(options: Options<PublishProductData, ThrowOnError>): RequestResult<PublishProductResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<PublishProductResponses, unknown, ThrowOnError>({ url: '/seller/products/{id}/publish', ...options });
+    public static publishProduct<ThrowOnError extends boolean = true>(options: Options<PublishProductData, ThrowOnError>): RequestResult<PublishProductResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<PublishProductResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/products/{id}/publish',
+            ...options
+        });
     }
     
-    public static onProduct<ThrowOnError extends boolean = false>(options: Options<OnProductData, ThrowOnError>): RequestResult<OnProductResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<OnProductResponses, unknown, ThrowOnError>({ url: '/seller/products/{id}/on', ...options });
+    public static onProduct<ThrowOnError extends boolean = true>(options: Options<OnProductData, ThrowOnError>): RequestResult<OnProductResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<OnProductResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/products/{id}/on',
+            ...options
+        });
     }
     
-    public static offProduct<ThrowOnError extends boolean = false>(options: Options<OffProductData, ThrowOnError>): RequestResult<OffProductResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<OffProductResponses, unknown, ThrowOnError>({ url: '/seller/products/{id}/off', ...options });
+    public static offProduct<ThrowOnError extends boolean = true>(options: Options<OffProductData, ThrowOnError>): RequestResult<OffProductResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<OffProductResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/products/{id}/off',
+            ...options
+        });
     }
     
-    public static issueImageTicket<ThrowOnError extends boolean = false>(options: Options<IssueImageTicketData, ThrowOnError>): RequestResult<IssueImageTicketResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<IssueImageTicketResponses, unknown, ThrowOnError>({ url: '/seller/products/image-ticket', ...options });
+    public static issueImageTicket<ThrowOnError extends boolean = true>(options: Options<IssueImageTicketData, ThrowOnError>): RequestResult<IssueImageTicketResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<IssueImageTicketResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/products/image-ticket',
+            ...options
+        });
     }
 }
 
 export class SellerOrdersApi {
-    public static shipOrder<ThrowOnError extends boolean = false>(options: Options<ShipOrderData, ThrowOnError>): RequestResult<ShipOrderResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<ShipOrderResponses, unknown, ThrowOnError>({
+    public static shipOrder<ThrowOnError extends boolean = true>(options: Options<ShipOrderData, ThrowOnError>): RequestResult<ShipOrderResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ShipOrderResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/seller/orders/{id}/ship',
             ...options,
             headers: {
@@ -214,34 +293,59 @@ export class SellerOrdersApi {
         });
     }
     
-    public static rejectAfterSale<ThrowOnError extends boolean = false>(options: Options<RejectAfterSaleData, ThrowOnError>): RequestResult<RejectAfterSaleResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<RejectAfterSaleResponses, unknown, ThrowOnError>({ url: '/seller/orders/{id}/after-sales/reject', ...options });
+    public static rejectAfterSale<ThrowOnError extends boolean = true>(options: Options<RejectAfterSaleData, ThrowOnError>): RequestResult<RejectAfterSaleResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<RejectAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/orders/{id}/after-sales/reject',
+            ...options
+        });
     }
     
-    public static receiveReturn<ThrowOnError extends boolean = false>(options: Options<ReceiveReturnData, ThrowOnError>): RequestResult<ReceiveReturnResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<ReceiveReturnResponses, unknown, ThrowOnError>({ url: '/seller/orders/{id}/after-sales/receive', ...options });
+    public static receiveReturn<ThrowOnError extends boolean = true>(options: Options<ReceiveReturnData, ThrowOnError>): RequestResult<ReceiveReturnResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ReceiveReturnResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/orders/{id}/after-sales/receive',
+            ...options
+        });
     }
     
-    public static agreeAfterSale<ThrowOnError extends boolean = false>(options: Options<AgreeAfterSaleData, ThrowOnError>): RequestResult<AgreeAfterSaleResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<AgreeAfterSaleResponses, unknown, ThrowOnError>({ url: '/seller/orders/{id}/after-sales/agree', ...options });
+    public static agreeAfterSale<ThrowOnError extends boolean = true>(options: Options<AgreeAfterSaleData, ThrowOnError>): RequestResult<AgreeAfterSaleResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<AgreeAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/orders/{id}/after-sales/agree',
+            ...options
+        });
     }
     
-    public static listShopOrders<ThrowOnError extends boolean = false>(options: Options<ListShopOrdersData, ThrowOnError>): RequestResult<ListShopOrdersResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<ListShopOrdersResponses, unknown, ThrowOnError>({ url: '/seller/orders', ...options });
+    public static listShopOrders<ThrowOnError extends boolean = true>(options: Options<ListShopOrdersData, ThrowOnError>): RequestResult<ListShopOrdersResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopOrdersResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/orders',
+            ...options
+        });
     }
     
-    public static getShopOrderDetail<ThrowOnError extends boolean = false>(options: Options<GetShopOrderDetailData, ThrowOnError>): RequestResult<GetShopOrderDetailResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<GetShopOrderDetailResponses, unknown, ThrowOnError>({ url: '/seller/orders/{id}', ...options });
+    public static getShopOrderDetail<ThrowOnError extends boolean = true>(options: Options<GetShopOrderDetailData, ThrowOnError>): RequestResult<GetShopOrderDetailResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetShopOrderDetailResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/seller/orders/{id}',
+            ...options
+        });
     }
 }
 
 export class OrdersApi {
-    public static receiveOrder<ThrowOnError extends boolean = false>(options: Options<ReceiveOrderData, ThrowOnError>): RequestResult<ReceiveOrderResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<ReceiveOrderResponses, unknown, ThrowOnError>({ url: '/orders/{id}/receive', ...options });
+    public static receiveOrder<ThrowOnError extends boolean = true>(options: Options<ReceiveOrderData, ThrowOnError>): RequestResult<ReceiveOrderResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ReceiveOrderResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/orders/{id}/receive',
+            ...options
+        });
     }
     
-    public static cancelOrder<ThrowOnError extends boolean = false>(options: Options<CancelOrderData, ThrowOnError>): RequestResult<CancelOrderResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<CancelOrderResponses, unknown, ThrowOnError>({
+    public static cancelOrder<ThrowOnError extends boolean = true>(options: Options<CancelOrderData, ThrowOnError>): RequestResult<CancelOrderResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<CancelOrderResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/orders/{id}/cancel',
             ...options,
             headers: {
@@ -251,8 +355,9 @@ export class OrdersApi {
         });
     }
     
-    public static returnGoods<ThrowOnError extends boolean = false>(options: Options<ReturnGoodsData, ThrowOnError>): RequestResult<ReturnGoodsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<ReturnGoodsResponses, unknown, ThrowOnError>({
+    public static returnGoods<ThrowOnError extends boolean = true>(options: Options<ReturnGoodsData, ThrowOnError>): RequestResult<ReturnGoodsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ReturnGoodsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/orders/{id}/after-sales/return',
             ...options,
             headers: {
@@ -262,12 +367,17 @@ export class OrdersApi {
         });
     }
     
-    public static cancelAfterSale<ThrowOnError extends boolean = false>(options: Options<CancelAfterSaleData, ThrowOnError>): RequestResult<CancelAfterSaleResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<CancelAfterSaleResponses, unknown, ThrowOnError>({ url: '/orders/{id}/after-sales/cancel', ...options });
+    public static cancelAfterSale<ThrowOnError extends boolean = true>(options: Options<CancelAfterSaleData, ThrowOnError>): RequestResult<CancelAfterSaleResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<CancelAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/orders/{id}/after-sales/cancel',
+            ...options
+        });
     }
     
-    public static applyAfterSale<ThrowOnError extends boolean = false>(options: Options<ApplyAfterSaleData, ThrowOnError>): RequestResult<ApplyAfterSaleResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<ApplyAfterSaleResponses, unknown, ThrowOnError>({
+    public static applyAfterSale<ThrowOnError extends boolean = true>(options: Options<ApplyAfterSaleData, ThrowOnError>): RequestResult<ApplyAfterSaleResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ApplyAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/orders/{id}/after-sales',
             ...options,
             headers: {
@@ -277,8 +387,9 @@ export class OrdersApi {
         });
     }
     
-    public static previewOrder<ThrowOnError extends boolean = false>(options: Options<PreviewOrderData, ThrowOnError>): RequestResult<PreviewOrderResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<PreviewOrderResponses, unknown, ThrowOnError>({
+    public static previewOrder<ThrowOnError extends boolean = true>(options: Options<PreviewOrderData, ThrowOnError>): RequestResult<PreviewOrderResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<PreviewOrderResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/orders/preview',
             ...options,
             headers: {
@@ -288,8 +399,9 @@ export class OrdersApi {
         });
     }
     
-    public static createOrder<ThrowOnError extends boolean = false>(options: Options<CreateOrderData, ThrowOnError>): RequestResult<CreateOrderResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateOrderResponses, unknown, ThrowOnError>({
+    public static createOrder<ThrowOnError extends boolean = true>(options: Options<CreateOrderData, ThrowOnError>): RequestResult<CreateOrderResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateOrderResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/orders/create',
             ...options,
             headers: {
@@ -299,22 +411,35 @@ export class OrdersApi {
         });
     }
     
-    public static getOrderDetail<ThrowOnError extends boolean = false>(options: Options<GetOrderDetailData, ThrowOnError>): RequestResult<GetOrderDetailResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<GetOrderDetailResponses, unknown, ThrowOnError>({ url: '/orders/{id}', ...options });
+    public static getOrderDetail<ThrowOnError extends boolean = true>(options: Options<GetOrderDetailData, ThrowOnError>): RequestResult<GetOrderDetailResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetOrderDetailResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/orders/{id}',
+            ...options
+        });
     }
     
-    public static listMyOrders<ThrowOnError extends boolean = false>(options: Options<ListMyOrdersData, ThrowOnError>): RequestResult<ListMyOrdersResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<ListMyOrdersResponses, unknown, ThrowOnError>({ url: '/orders/mine', ...options });
+    public static listMyOrders<ThrowOnError extends boolean = true>(options: Options<ListMyOrdersData, ThrowOnError>): RequestResult<ListMyOrdersResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListMyOrdersResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/orders/mine',
+            ...options
+        });
     }
 }
 
 export class CartApi {
-    public static removeCartItem<ThrowOnError extends boolean = false>(options: Options<RemoveCartItemData, ThrowOnError>): RequestResult<RemoveCartItemResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).delete<RemoveCartItemResponses, unknown, ThrowOnError>({ url: '/cart/items/{id}', ...options });
+    public static removeCartItem<ThrowOnError extends boolean = true>(options: Options<RemoveCartItemData, ThrowOnError>): RequestResult<RemoveCartItemResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<RemoveCartItemResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/cart/items/{id}',
+            ...options
+        });
     }
     
-    public static updateCartItem<ThrowOnError extends boolean = false>(options: Options<UpdateCartItemData, ThrowOnError>): RequestResult<UpdateCartItemResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateCartItemResponses, unknown, ThrowOnError>({
+    public static updateCartItem<ThrowOnError extends boolean = true>(options: Options<UpdateCartItemData, ThrowOnError>): RequestResult<UpdateCartItemResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCartItemResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/cart/items/{id}',
             ...options,
             headers: {
@@ -324,8 +449,9 @@ export class CartApi {
         });
     }
     
-    public static updateCartSelected<ThrowOnError extends boolean = false>(options: Options<UpdateCartSelectedData, ThrowOnError>): RequestResult<UpdateCartSelectedResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateCartSelectedResponses, unknown, ThrowOnError>({
+    public static updateCartSelected<ThrowOnError extends boolean = true>(options: Options<UpdateCartSelectedData, ThrowOnError>): RequestResult<UpdateCartSelectedResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCartSelectedResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/cart/items/selected',
             ...options,
             headers: {
@@ -335,12 +461,17 @@ export class CartApi {
         });
     }
     
-    public static listCartItems<ThrowOnError extends boolean = false>(options?: Options<ListCartItemsData, ThrowOnError>): RequestResult<ListCartItemsResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<ListCartItemsResponses, unknown, ThrowOnError>({ url: '/cart/items', ...options });
+    public static listCartItems<ThrowOnError extends boolean = true>(options?: Options<ListCartItemsData, ThrowOnError>): RequestResult<ListCartItemsResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListCartItemsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/cart/items',
+            ...options
+        });
     }
     
-    public static addCartItem<ThrowOnError extends boolean = false>(options: Options<AddCartItemData, ThrowOnError>): RequestResult<AddCartItemResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<AddCartItemResponses, unknown, ThrowOnError>({
+    public static addCartItem<ThrowOnError extends boolean = true>(options: Options<AddCartItemData, ThrowOnError>): RequestResult<AddCartItemResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AddCartItemResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/cart/items',
             ...options,
             headers: {
@@ -350,8 +481,9 @@ export class CartApi {
         });
     }
     
-    public static batchRemoveCartItems<ThrowOnError extends boolean = false>(options: Options<BatchRemoveCartItemsData, ThrowOnError>): RequestResult<BatchRemoveCartItemsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<BatchRemoveCartItemsResponses, unknown, ThrowOnError>({
+    public static batchRemoveCartItems<ThrowOnError extends boolean = true>(options: Options<BatchRemoveCartItemsData, ThrowOnError>): RequestResult<BatchRemoveCartItemsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<BatchRemoveCartItemsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/cart/items/batch-delete',
             ...options,
             headers: {
@@ -361,14 +493,19 @@ export class CartApi {
         });
     }
     
-    public static getCartCount<ThrowOnError extends boolean = false>(options?: Options<GetCartCountData, ThrowOnError>): RequestResult<GetCartCountResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<GetCartCountResponses, unknown, ThrowOnError>({ url: '/cart/count', ...options });
+    public static getCartCount<ThrowOnError extends boolean = true>(options?: Options<GetCartCountData, ThrowOnError>): RequestResult<GetCartCountResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetCartCountResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/cart/count',
+            ...options
+        });
     }
 }
 
 export class AuthApi {
-    public static updateProfile<ThrowOnError extends boolean = false>(options: Options<UpdateProfileData, ThrowOnError>): RequestResult<UpdateProfileResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateProfileResponses, unknown, ThrowOnError>({
+    public static updateProfile<ThrowOnError extends boolean = true>(options: Options<UpdateProfileData, ThrowOnError>): RequestResult<UpdateProfileResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateProfileResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/profile',
             ...options,
             headers: {
@@ -378,8 +515,9 @@ export class AuthApi {
         });
     }
     
-    public static sendSmsCode<ThrowOnError extends boolean = false>(options: Options<SendSmsCodeData, ThrowOnError>): RequestResult<SendSmsCodeResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<SendSmsCodeResponses, unknown, ThrowOnError>({
+    public static sendSmsCode<ThrowOnError extends boolean = true>(options: Options<SendSmsCodeData, ThrowOnError>): RequestResult<SendSmsCodeResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<SendSmsCodeResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/sms-code',
             ...options,
             headers: {
@@ -389,8 +527,9 @@ export class AuthApi {
         });
     }
     
-    public static resetPassword<ThrowOnError extends boolean = false>(options: Options<ResetPasswordData, ThrowOnError>): RequestResult<ResetPasswordResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<ResetPasswordResponses, unknown, ThrowOnError>({
+    public static resetPassword<ThrowOnError extends boolean = true>(options: Options<ResetPasswordData, ThrowOnError>): RequestResult<ResetPasswordResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ResetPasswordResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/reset-password',
             ...options,
             headers: {
@@ -400,8 +539,9 @@ export class AuthApi {
         });
     }
     
-    public static refresh<ThrowOnError extends boolean = false>(options?: Options<RefreshData, ThrowOnError>): RequestResult<RefreshResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).post<RefreshResponses, unknown, ThrowOnError>({
+    public static refresh<ThrowOnError extends boolean = true>(options?: Options<RefreshData, ThrowOnError>): RequestResult<RefreshResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).post<RefreshResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/refresh',
             ...options,
             headers: {
@@ -411,8 +551,9 @@ export class AuthApi {
         });
     }
     
-    public static setPassword<ThrowOnError extends boolean = false>(options: Options<SetPasswordData, ThrowOnError>): RequestResult<SetPasswordResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<SetPasswordResponses, unknown, ThrowOnError>({
+    public static setPassword<ThrowOnError extends boolean = true>(options: Options<SetPasswordData, ThrowOnError>): RequestResult<SetPasswordResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<SetPasswordResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/password',
             ...options,
             headers: {
@@ -422,8 +563,9 @@ export class AuthApi {
         });
     }
     
-    public static logout<ThrowOnError extends boolean = false>(options: Options<LogoutData, ThrowOnError>): RequestResult<LogoutResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<LogoutResponses, unknown, ThrowOnError>({
+    public static logout<ThrowOnError extends boolean = true>(options: Options<LogoutData, ThrowOnError>): RequestResult<LogoutResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<LogoutResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/logout',
             ...options,
             headers: {
@@ -433,12 +575,17 @@ export class AuthApi {
         });
     }
     
-    public static logoutAll<ThrowOnError extends boolean = false>(options?: Options<LogoutAllData, ThrowOnError>): RequestResult<LogoutAllResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).post<LogoutAllResponses, unknown, ThrowOnError>({ url: '/auth/logout-all', ...options });
+    public static logoutAll<ThrowOnError extends boolean = true>(options?: Options<LogoutAllData, ThrowOnError>): RequestResult<LogoutAllResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).post<LogoutAllResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/logout-all',
+            ...options
+        });
     }
     
-    public static loginBySms<ThrowOnError extends boolean = false>(options: Options<LoginBySmsData, ThrowOnError>): RequestResult<LoginBySmsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<LoginBySmsResponses, unknown, ThrowOnError>({
+    public static loginBySms<ThrowOnError extends boolean = true>(options: Options<LoginBySmsData, ThrowOnError>): RequestResult<LoginBySmsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<LoginBySmsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/login/sms',
             ...options,
             headers: {
@@ -448,8 +595,9 @@ export class AuthApi {
         });
     }
     
-    public static loginByPassword<ThrowOnError extends boolean = false>(options: Options<LoginByPasswordData, ThrowOnError>): RequestResult<LoginByPasswordResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<LoginByPasswordResponses, unknown, ThrowOnError>({
+    public static loginByPassword<ThrowOnError extends boolean = true>(options: Options<LoginByPasswordData, ThrowOnError>): RequestResult<LoginByPasswordResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<LoginByPasswordResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/login/password',
             ...options,
             headers: {
@@ -459,8 +607,9 @@ export class AuthApi {
         });
     }
     
-    public static forgotPassword<ThrowOnError extends boolean = false>(options: Options<ForgotPasswordData, ThrowOnError>): RequestResult<ForgotPasswordResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<ForgotPasswordResponses, unknown, ThrowOnError>({
+    public static forgotPassword<ThrowOnError extends boolean = true>(options: Options<ForgotPasswordData, ThrowOnError>): RequestResult<ForgotPasswordResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ForgotPasswordResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/auth/forgot-password',
             ...options,
             headers: {
@@ -470,30 +619,51 @@ export class AuthApi {
         });
     }
     
-    public static issueAvatarTicket<ThrowOnError extends boolean = false>(options: Options<IssueAvatarTicketData, ThrowOnError>): RequestResult<IssueAvatarTicketResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<IssueAvatarTicketResponses, unknown, ThrowOnError>({ url: '/auth/avatar-ticket', ...options });
+    public static issueAvatarTicket<ThrowOnError extends boolean = true>(options: Options<IssueAvatarTicketData, ThrowOnError>): RequestResult<IssueAvatarTicketResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<IssueAvatarTicketResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/avatar-ticket',
+            ...options
+        });
     }
     
-    public static me<ThrowOnError extends boolean = false>(options?: Options<MeData, ThrowOnError>): RequestResult<MeResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<MeResponses, unknown, ThrowOnError>({ url: '/auth/me', ...options });
+    public static me<ThrowOnError extends boolean = true>(options?: Options<MeData, ThrowOnError>): RequestResult<MeResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<MeResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/me',
+            ...options
+        });
     }
     
-    public static devices<ThrowOnError extends boolean = false>(options?: Options<DevicesData, ThrowOnError>): RequestResult<DevicesResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<DevicesResponses, unknown, ThrowOnError>({ url: '/auth/devices', ...options });
+    public static devices<ThrowOnError extends boolean = true>(options?: Options<DevicesData, ThrowOnError>): RequestResult<DevicesResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<DevicesResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/devices',
+            ...options
+        });
     }
     
-    public static getCaptcha<ThrowOnError extends boolean = false>(options?: Options<GetCaptchaData, ThrowOnError>): RequestResult<GetCaptchaResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<GetCaptchaResponses, unknown, ThrowOnError>({ url: '/auth/captcha', ...options });
+    public static getCaptcha<ThrowOnError extends boolean = true>(options?: Options<GetCaptchaData, ThrowOnError>): RequestResult<GetCaptchaResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetCaptchaResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/captcha',
+            ...options
+        });
     }
     
-    public static deleteDevice<ThrowOnError extends boolean = false>(options: Options<DeleteDeviceData, ThrowOnError>): RequestResult<DeleteDeviceResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).delete<DeleteDeviceResponses, unknown, ThrowOnError>({ url: '/auth/devices/{deviceId}', ...options });
+    public static deleteDevice<ThrowOnError extends boolean = true>(options: Options<DeleteDeviceData, ThrowOnError>): RequestResult<DeleteDeviceResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<DeleteDeviceResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/devices/{deviceId}',
+            ...options
+        });
     }
 }
 
 export class CmsAdminApi {
-    public static updateTab<ThrowOnError extends boolean = false>(options: Options<UpdateTabData, ThrowOnError>): RequestResult<UpdateTabResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateTabResponses, unknown, ThrowOnError>({
+    public static updateTab<ThrowOnError extends boolean = true>(options: Options<UpdateTabData, ThrowOnError>): RequestResult<UpdateTabResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateTabResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/cms/recommend-tabs/{id}',
             ...options,
             headers: {
@@ -503,12 +673,17 @@ export class CmsAdminApi {
         });
     }
     
-    public static setTabStatus<ThrowOnError extends boolean = false>(options: Options<SetTabStatusData, ThrowOnError>): RequestResult<SetTabStatusResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<SetTabStatusResponses, unknown, ThrowOnError>({ url: '/admin/cms/recommend-tabs/{id}/status/{status}', ...options });
+    public static setTabStatus<ThrowOnError extends boolean = true>(options: Options<SetTabStatusData, ThrowOnError>): RequestResult<SetTabStatusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetTabStatusResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/cms/recommend-tabs/{id}/status/{status}',
+            ...options
+        });
     }
     
-    public static updateNav<ThrowOnError extends boolean = false>(options: Options<UpdateNavData, ThrowOnError>): RequestResult<UpdateNavResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateNavResponses, unknown, ThrowOnError>({
+    public static updateNav<ThrowOnError extends boolean = true>(options: Options<UpdateNavData, ThrowOnError>): RequestResult<UpdateNavResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateNavResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/cms/nav/{id}',
             ...options,
             headers: {
@@ -518,12 +693,17 @@ export class CmsAdminApi {
         });
     }
     
-    public static setNavStatus<ThrowOnError extends boolean = false>(options: Options<SetNavStatusData, ThrowOnError>): RequestResult<SetNavStatusResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<SetNavStatusResponses, unknown, ThrowOnError>({ url: '/admin/cms/nav/{id}/status/{status}', ...options });
+    public static setNavStatus<ThrowOnError extends boolean = true>(options: Options<SetNavStatusData, ThrowOnError>): RequestResult<SetNavStatusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetNavStatusResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/cms/nav/{id}/status/{status}',
+            ...options
+        });
     }
     
-    public static updateBanner<ThrowOnError extends boolean = false>(options: Options<UpdateBannerData, ThrowOnError>): RequestResult<UpdateBannerResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateBannerResponses, unknown, ThrowOnError>({
+    public static updateBanner<ThrowOnError extends boolean = true>(options: Options<UpdateBannerData, ThrowOnError>): RequestResult<UpdateBannerResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateBannerResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/cms/banners/{id}',
             ...options,
             headers: {
@@ -533,16 +713,25 @@ export class CmsAdminApi {
         });
     }
     
-    public static setBannerStatus<ThrowOnError extends boolean = false>(options: Options<SetBannerStatusData, ThrowOnError>): RequestResult<SetBannerStatusResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<SetBannerStatusResponses, unknown, ThrowOnError>({ url: '/admin/cms/banners/{id}/status/{status}', ...options });
+    public static setBannerStatus<ThrowOnError extends boolean = true>(options: Options<SetBannerStatusData, ThrowOnError>): RequestResult<SetBannerStatusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetBannerStatusResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/cms/banners/{id}/status/{status}',
+            ...options
+        });
     }
     
-    public static listAdminRecommendTabs<ThrowOnError extends boolean = false>(options?: Options<ListAdminRecommendTabsData, ThrowOnError>): RequestResult<ListAdminRecommendTabsResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<ListAdminRecommendTabsResponses, unknown, ThrowOnError>({ url: '/admin/cms/recommend-tabs', ...options });
+    public static listAdminRecommendTabs<ThrowOnError extends boolean = true>(options?: Options<ListAdminRecommendTabsData, ThrowOnError>): RequestResult<ListAdminRecommendTabsResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAdminRecommendTabsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/cms/recommend-tabs',
+            ...options
+        });
     }
     
-    public static createTab<ThrowOnError extends boolean = false>(options: Options<CreateTabData, ThrowOnError>): RequestResult<CreateTabResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateTabResponses, unknown, ThrowOnError>({
+    public static createTab<ThrowOnError extends boolean = true>(options: Options<CreateTabData, ThrowOnError>): RequestResult<CreateTabResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateTabResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/cms/recommend-tabs',
             ...options,
             headers: {
@@ -552,12 +741,17 @@ export class CmsAdminApi {
         });
     }
     
-    public static listAdminNav<ThrowOnError extends boolean = false>(options?: Options<ListAdminNavData, ThrowOnError>): RequestResult<ListAdminNavResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<ListAdminNavResponses, unknown, ThrowOnError>({ url: '/admin/cms/nav', ...options });
+    public static listAdminNav<ThrowOnError extends boolean = true>(options?: Options<ListAdminNavData, ThrowOnError>): RequestResult<ListAdminNavResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAdminNavResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/cms/nav',
+            ...options
+        });
     }
     
-    public static createNav<ThrowOnError extends boolean = false>(options: Options<CreateNavData, ThrowOnError>): RequestResult<CreateNavResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateNavResponses, unknown, ThrowOnError>({
+    public static createNav<ThrowOnError extends boolean = true>(options: Options<CreateNavData, ThrowOnError>): RequestResult<CreateNavResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateNavResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/cms/nav',
             ...options,
             headers: {
@@ -567,12 +761,17 @@ export class CmsAdminApi {
         });
     }
     
-    public static listAdminBanners<ThrowOnError extends boolean = false>(options?: Options<ListAdminBannersData, ThrowOnError>): RequestResult<ListAdminBannersResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<ListAdminBannersResponses, unknown, ThrowOnError>({ url: '/admin/cms/banners', ...options });
+    public static listAdminBanners<ThrowOnError extends boolean = true>(options?: Options<ListAdminBannersData, ThrowOnError>): RequestResult<ListAdminBannersResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAdminBannersResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/cms/banners',
+            ...options
+        });
     }
     
-    public static createBanner<ThrowOnError extends boolean = false>(options: Options<CreateBannerData, ThrowOnError>): RequestResult<CreateBannerResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateBannerResponses, unknown, ThrowOnError>({
+    public static createBanner<ThrowOnError extends boolean = true>(options: Options<CreateBannerData, ThrowOnError>): RequestResult<CreateBannerResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateBannerResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/cms/banners',
             ...options,
             headers: {
@@ -584,8 +783,9 @@ export class CmsAdminApi {
 }
 
 export class CategoriesAdminApi {
-    public static updateCategoryAttr<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryAttrData, ThrowOnError>): RequestResult<UpdateCategoryAttrResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateCategoryAttrResponses, unknown, ThrowOnError>({
+    public static updateCategoryAttr<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrData, ThrowOnError>): RequestResult<UpdateCategoryAttrResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryAttrResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/category-attrs/{attrId}',
             ...options,
             headers: {
@@ -595,8 +795,9 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static updateCategoryAttrStatus<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryAttrStatusData, ThrowOnError>): RequestResult<UpdateCategoryAttrStatusResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateCategoryAttrStatusResponses, unknown, ThrowOnError>({
+    public static updateCategoryAttrStatus<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrStatusData, ThrowOnError>): RequestResult<UpdateCategoryAttrStatusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryAttrStatusResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/category-attrs/{attrId}/status',
             ...options,
             headers: {
@@ -606,8 +807,9 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static updateCategoryAttrValue<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryAttrValueData, ThrowOnError>): RequestResult<UpdateCategoryAttrValueResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateCategoryAttrValueResponses, unknown, ThrowOnError>({
+    public static updateCategoryAttrValue<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrValueData, ThrowOnError>): RequestResult<UpdateCategoryAttrValueResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryAttrValueResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/category-attr-values/{valueId}',
             ...options,
             headers: {
@@ -617,8 +819,9 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static updateCategory<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryData, ThrowOnError>): RequestResult<UpdateCategoryResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateCategoryResponses, unknown, ThrowOnError>({
+    public static updateCategory<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryData, ThrowOnError>): RequestResult<UpdateCategoryResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/categories/{id}',
             ...options,
             headers: {
@@ -628,8 +831,9 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static updateCategoryStatus<ThrowOnError extends boolean = false>(options: Options<UpdateCategoryStatusData, ThrowOnError>): RequestResult<UpdateCategoryStatusResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).put<UpdateCategoryStatusResponses, unknown, ThrowOnError>({
+    public static updateCategoryStatus<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryStatusData, ThrowOnError>): RequestResult<UpdateCategoryStatusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryStatusResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/categories/{id}/status',
             ...options,
             headers: {
@@ -639,8 +843,9 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static createCategoryAttrValue<ThrowOnError extends boolean = false>(options: Options<CreateCategoryAttrValueData, ThrowOnError>): RequestResult<CreateCategoryAttrValueResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateCategoryAttrValueResponses, unknown, ThrowOnError>({
+    public static createCategoryAttrValue<ThrowOnError extends boolean = true>(options: Options<CreateCategoryAttrValueData, ThrowOnError>): RequestResult<CreateCategoryAttrValueResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateCategoryAttrValueResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/category-attrs/{attrId}/values',
             ...options,
             headers: {
@@ -650,8 +855,9 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static createCategory<ThrowOnError extends boolean = false>(options: Options<CreateCategoryData, ThrowOnError>): RequestResult<CreateCategoryResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateCategoryResponses, unknown, ThrowOnError>({
+    public static createCategory<ThrowOnError extends boolean = true>(options: Options<CreateCategoryData, ThrowOnError>): RequestResult<CreateCategoryResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateCategoryResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/categories',
             ...options,
             headers: {
@@ -661,12 +867,17 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static getCategoryAttrTemplate<ThrowOnError extends boolean = false>(options: Options<GetCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetCategoryAttrTemplateResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<GetCategoryAttrTemplateResponses, unknown, ThrowOnError>({ url: '/admin/categories/{id}/attrs', ...options });
+    public static getCategoryAttrTemplate<ThrowOnError extends boolean = true>(options: Options<GetCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetCategoryAttrTemplateResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetCategoryAttrTemplateResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/categories/{id}/attrs',
+            ...options
+        });
     }
     
-    public static createCategoryAttr<ThrowOnError extends boolean = false>(options: Options<CreateCategoryAttrData, ThrowOnError>): RequestResult<CreateCategoryAttrResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreateCategoryAttrResponses, unknown, ThrowOnError>({
+    public static createCategoryAttr<ThrowOnError extends boolean = true>(options: Options<CreateCategoryAttrData, ThrowOnError>): RequestResult<CreateCategoryAttrResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateCategoryAttrResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/categories/{id}/attrs',
             ...options,
             headers: {
@@ -676,14 +887,19 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static getAdminCategoryTree<ThrowOnError extends boolean = false>(options?: Options<GetAdminCategoryTreeData, ThrowOnError>): RequestResult<GetAdminCategoryTreeResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<GetAdminCategoryTreeResponses, unknown, ThrowOnError>({ url: '/admin/categories/tree', ...options });
+    public static getAdminCategoryTree<ThrowOnError extends boolean = true>(options?: Options<GetAdminCategoryTreeData, ThrowOnError>): RequestResult<GetAdminCategoryTreeResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetAdminCategoryTreeResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/categories/tree',
+            ...options
+        });
     }
 }
 
 export class PaymentsApi {
-    public static createPayment<ThrowOnError extends boolean = false>(options: Options<CreatePaymentData, ThrowOnError>): RequestResult<CreatePaymentResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CreatePaymentResponses, unknown, ThrowOnError>({
+    public static createPayment<ThrowOnError extends boolean = true>(options: Options<CreatePaymentData, ThrowOnError>): RequestResult<CreatePaymentResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreatePaymentResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/payments',
             ...options,
             headers: {
@@ -693,18 +909,27 @@ export class PaymentsApi {
         });
     }
     
-    public static confirmPayment<ThrowOnError extends boolean = false>(options: Options<ConfirmPaymentData, ThrowOnError>): RequestResult<ConfirmPaymentResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<ConfirmPaymentResponses, unknown, ThrowOnError>({ url: '/payments/{id}/confirm', ...options });
+    public static confirmPayment<ThrowOnError extends boolean = true>(options: Options<ConfirmPaymentData, ThrowOnError>): RequestResult<ConfirmPaymentResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ConfirmPaymentResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/payments/{id}/confirm',
+            ...options
+        });
     }
 }
 
 export class FavoritesApi {
-    public static listFavorites<ThrowOnError extends boolean = false>(options: Options<ListFavoritesData, ThrowOnError>): RequestResult<ListFavoritesResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<ListFavoritesResponses, unknown, ThrowOnError>({ url: '/favorites', ...options });
+    public static listFavorites<ThrowOnError extends boolean = true>(options: Options<ListFavoritesData, ThrowOnError>): RequestResult<ListFavoritesResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListFavoritesResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/favorites',
+            ...options
+        });
     }
     
-    public static addFavorite<ThrowOnError extends boolean = false>(options: Options<AddFavoriteData, ThrowOnError>): RequestResult<AddFavoriteResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<AddFavoriteResponses, unknown, ThrowOnError>({
+    public static addFavorite<ThrowOnError extends boolean = true>(options: Options<AddFavoriteData, ThrowOnError>): RequestResult<AddFavoriteResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AddFavoriteResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/favorites',
             ...options,
             headers: {
@@ -714,8 +939,9 @@ export class FavoritesApi {
         });
     }
     
-    public static checkFavoriteExists<ThrowOnError extends boolean = false>(options: Options<CheckFavoriteExistsData, ThrowOnError>): RequestResult<CheckFavoriteExistsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<CheckFavoriteExistsResponses, unknown, ThrowOnError>({
+    public static checkFavoriteExists<ThrowOnError extends boolean = true>(options: Options<CheckFavoriteExistsData, ThrowOnError>): RequestResult<CheckFavoriteExistsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CheckFavoriteExistsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/favorites/exists',
             ...options,
             headers: {
@@ -725,14 +951,19 @@ export class FavoritesApi {
         });
     }
     
-    public static removeFavorite<ThrowOnError extends boolean = false>(options: Options<RemoveFavoriteData, ThrowOnError>): RequestResult<RemoveFavoriteResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).delete<RemoveFavoriteResponses, unknown, ThrowOnError>({ url: '/favorites/products/{productId}', ...options });
+    public static removeFavorite<ThrowOnError extends boolean = true>(options: Options<RemoveFavoriteData, ThrowOnError>): RequestResult<RemoveFavoriteResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<RemoveFavoriteResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/favorites/products/{productId}',
+            ...options
+        });
     }
 }
 
 export class AdminReviewsApi {
-    public static rejectShopReview<ThrowOnError extends boolean = false>(options: Options<RejectShopReviewData, ThrowOnError>): RequestResult<RejectShopReviewResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<RejectShopReviewResponses, unknown, ThrowOnError>({
+    public static rejectShopReview<ThrowOnError extends boolean = true>(options: Options<RejectShopReviewData, ThrowOnError>): RequestResult<RejectShopReviewResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RejectShopReviewResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/reviews/{id}/reject',
             ...options,
             headers: {
@@ -742,18 +973,27 @@ export class AdminReviewsApi {
         });
     }
     
-    public static approveShopReview<ThrowOnError extends boolean = false>(options: Options<ApproveShopReviewData, ThrowOnError>): RequestResult<ApproveShopReviewResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<ApproveShopReviewResponses, unknown, ThrowOnError>({ url: '/admin/reviews/{id}/approve', ...options });
+    public static approveShopReview<ThrowOnError extends boolean = true>(options: Options<ApproveShopReviewData, ThrowOnError>): RequestResult<ApproveShopReviewResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ApproveShopReviewResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/reviews/{id}/approve',
+            ...options
+        });
     }
     
-    public static listShopReviews<ThrowOnError extends boolean = false>(options: Options<ListShopReviewsData, ThrowOnError>): RequestResult<ListShopReviewsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<ListShopReviewsResponses, unknown, ThrowOnError>({ url: '/admin/reviews', ...options });
+    public static listShopReviews<ThrowOnError extends boolean = true>(options: Options<ListShopReviewsData, ThrowOnError>): RequestResult<ListShopReviewsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopReviewsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/reviews',
+            ...options
+        });
     }
 }
 
 export class AdminAuthApi {
-    public static refreshStaffSession<ThrowOnError extends boolean = false>(options?: Options<RefreshStaffSessionData, ThrowOnError>): RequestResult<RefreshStaffSessionResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).post<RefreshStaffSessionResponses, unknown, ThrowOnError>({
+    public static refreshStaffSession<ThrowOnError extends boolean = true>(options?: Options<RefreshStaffSessionData, ThrowOnError>): RequestResult<RefreshStaffSessionResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).post<RefreshStaffSessionResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/auth/refresh',
             ...options,
             headers: {
@@ -763,8 +1003,9 @@ export class AdminAuthApi {
         });
     }
     
-    public static staffLogout<ThrowOnError extends boolean = false>(options: Options<StaffLogoutData, ThrowOnError>): RequestResult<StaffLogoutResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<StaffLogoutResponses, unknown, ThrowOnError>({
+    public static staffLogout<ThrowOnError extends boolean = true>(options: Options<StaffLogoutData, ThrowOnError>): RequestResult<StaffLogoutResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<StaffLogoutResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/auth/logout',
             ...options,
             headers: {
@@ -774,8 +1015,9 @@ export class AdminAuthApi {
         });
     }
     
-    public static staffLogin<ThrowOnError extends boolean = false>(options: Options<StaffLoginData, ThrowOnError>): RequestResult<StaffLoginResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).post<StaffLoginResponses, unknown, ThrowOnError>({
+    public static staffLogin<ThrowOnError extends boolean = true>(options: Options<StaffLoginData, ThrowOnError>): RequestResult<StaffLoginResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<StaffLoginResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
             url: '/admin/auth/login',
             ...options,
             headers: {
@@ -785,47 +1027,83 @@ export class AdminAuthApi {
         });
     }
     
-    public static getStaffMe<ThrowOnError extends boolean = false>(options?: Options<GetStaffMeData, ThrowOnError>): RequestResult<GetStaffMeResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<GetStaffMeResponses, unknown, ThrowOnError>({ url: '/admin/auth/me', ...options });
+    public static getStaffMe<ThrowOnError extends boolean = true>(options?: Options<GetStaffMeData, ThrowOnError>): RequestResult<GetStaffMeResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetStaffMeResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/admin/auth/me',
+            ...options
+        });
     }
 }
 
 export class PublicShopsApi {
-    public static getPublicShop<ThrowOnError extends boolean = false>(options: Options<GetPublicShopData, ThrowOnError>): RequestResult<GetPublicShopResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<GetPublicShopResponses, unknown, ThrowOnError>({ url: '/api/shops/{id}', ...options });
+    public static getPublicShop<ThrowOnError extends boolean = true>(options: Options<GetPublicShopData, ThrowOnError>): RequestResult<GetPublicShopResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetPublicShopResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/shops/{id}',
+            ...options
+        });
     }
 }
 
 export class ProductsApi {
-    public static listPublicProducts<ThrowOnError extends boolean = false>(options: Options<ListPublicProductsData, ThrowOnError>): RequestResult<ListPublicProductsResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<ListPublicProductsResponses, unknown, ThrowOnError>({ url: '/api/products', ...options });
+    public static listPublicProducts<ThrowOnError extends boolean = true>(options: Options<ListPublicProductsData, ThrowOnError>): RequestResult<ListPublicProductsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListPublicProductsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/products',
+            ...options
+        });
     }
     
-    public static getPublicProductDetail<ThrowOnError extends boolean = false>(options: Options<GetPublicProductDetailData, ThrowOnError>): RequestResult<GetPublicProductDetailResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<GetPublicProductDetailResponses, unknown, ThrowOnError>({ url: '/api/products/{id}', ...options });
+    public static getPublicProductDetail<ThrowOnError extends boolean = true>(options: Options<GetPublicProductDetailData, ThrowOnError>): RequestResult<GetPublicProductDetailResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetPublicProductDetailResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/products/{id}',
+            ...options
+        });
     }
 }
 
 export class CmsPublicApi {
-    public static getRecommendTabs<ThrowOnError extends boolean = false>(options?: Options<GetRecommendTabsData, ThrowOnError>): RequestResult<GetRecommendTabsResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<GetRecommendTabsResponses, unknown, ThrowOnError>({ url: '/api/cms/recommend-tabs', ...options });
+    public static getRecommendTabs<ThrowOnError extends boolean = true>(options?: Options<GetRecommendTabsData, ThrowOnError>): RequestResult<GetRecommendTabsResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetRecommendTabsResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/cms/recommend-tabs',
+            ...options
+        });
     }
     
-    public static getHomeNav<ThrowOnError extends boolean = false>(options?: Options<GetHomeNavData, ThrowOnError>): RequestResult<GetHomeNavResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<GetHomeNavResponses, unknown, ThrowOnError>({ url: '/api/cms/nav', ...options });
+    public static getHomeNav<ThrowOnError extends boolean = true>(options?: Options<GetHomeNavData, ThrowOnError>): RequestResult<GetHomeNavResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetHomeNavResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/cms/nav',
+            ...options
+        });
     }
     
-    public static getHomeBanners<ThrowOnError extends boolean = false>(options?: Options<GetHomeBannersData, ThrowOnError>): RequestResult<GetHomeBannersResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<GetHomeBannersResponses, unknown, ThrowOnError>({ url: '/api/cms/banners', ...options });
+    public static getHomeBanners<ThrowOnError extends boolean = true>(options?: Options<GetHomeBannersData, ThrowOnError>): RequestResult<GetHomeBannersResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetHomeBannersResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/cms/banners',
+            ...options
+        });
     }
 }
 
 export class CategoriesApi {
-    public static getPublicCategoryAttrTemplate<ThrowOnError extends boolean = false>(options: Options<GetPublicCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetPublicCategoryAttrTemplateResponses, unknown, ThrowOnError> {
-        return (options.client ?? client).get<GetPublicCategoryAttrTemplateResponses, unknown, ThrowOnError>({ url: '/api/categories/{id}/attr-template', ...options });
+    public static getPublicCategoryAttrTemplate<ThrowOnError extends boolean = true>(options: Options<GetPublicCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetPublicCategoryAttrTemplateResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetPublicCategoryAttrTemplateResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/categories/{id}/attr-template',
+            ...options
+        });
     }
     
-    public static getCategoryTree<ThrowOnError extends boolean = false>(options?: Options<GetCategoryTreeData, ThrowOnError>): RequestResult<GetCategoryTreeResponses, unknown, ThrowOnError> {
-        return (options?.client ?? client).get<GetCategoryTreeResponses, unknown, ThrowOnError>({ url: '/api/categories/tree', ...options });
+    public static getCategoryTree<ThrowOnError extends boolean = true>(options?: Options<GetCategoryTreeData, ThrowOnError>): RequestResult<GetCategoryTreeResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetCategoryTreeResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/categories/tree',
+            ...options
+        });
     }
 }

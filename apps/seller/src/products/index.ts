@@ -1,7 +1,7 @@
 /**
  * products —— 卖家商品域文件夹（扁形态，同 apps/web/src/cart）：
  * - category.ts     ：纯逻辑（树 → 搜索语料 / 级联列 / 路径推导），不碰 React/网络
- * - use-category.ts ：React 接线（类目树 query + 语料 memo）
+ * - queries.ts      ：TanStack Query 定义层（key 工厂 + queryOptions + 类目树 hooks）
  * - Category*.tsx   ：发布第一步「选类目」的组件（页签 / 搜索 / 级联三列）
  * - Publish*.tsx    ：发布第二步「填商品信息」的组屏（锚点页签 / 分区卡片 / 底部操作条）
  *
@@ -18,4 +18,4 @@ export {
     type SubmitMode,
 } from "./create/basic/BasicStep"
 export type { ListingTime } from "./create/basic/product-form-state"
-export { useCategoryTree } from "./use-category"
+export { useCategoryTree, useLeafPaths } from "./queries"

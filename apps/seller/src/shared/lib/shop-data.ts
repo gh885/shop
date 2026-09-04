@@ -1,4 +1,3 @@
-import { unwrap } from "@shop/api"
 import { ShopsApi } from "@shop/api/sdk"
 
 import {
@@ -11,35 +10,35 @@ import {
 
 /** 我的店铺列表：wire → 领域形状 */
 export async function myShops(): Promise<ShopResponse[]> {
-    return unwrap(await ShopsApi.listMyShops()) ?? []
+    return ShopsApi.listMyShops()
 }
 
 /** 待确认邀请（我的视角）：wire → 领域形状 */
 export async function myInvites(): Promise<ShopInviteItemResponse[]> {
-    return unwrap(await ShopsApi.listShopInvites()) ?? []
+    return ShopsApi.listShopInvites()
 }
 
 /** 接受加入邀请 */
 export async function acceptInvite(memberId: string) {
-    unwrap(await ShopsApi.acceptShopInvite({ path: { memberId } }))
+    await ShopsApi.acceptShopInvite({ path: { memberId } })
 }
 
 /** 开新店（提交 PENDING_REVIEW） */
 export async function createShop(input: { name: string }) {
-    unwrap(await ShopsApi.createShop({ body: { name: input.name } }))
+    await ShopsApi.createShop({ body: { name: input.name } })
 }
 
 /** 店铺成员列表（店主视角，含手机号与权限）：wire → 领域形状 */
 export async function shopMembers(shopId: string): Promise<ShopMemberItemResponse[]> {
-    return unwrap(await ShopsApi.listShopMembers({ path: { shopId } })) ?? []
+    return ShopsApi.listShopMembers({ path: { shopId } })
 }
 
 /** 邀请成员入店 */
 export async function inviteMember(shopId: string, input: { phone: string }) {
-    unwrap(await ShopsApi.inviteShopMember({ path: { shopId }, body: { phone: input.phone } }))
+    await ShopsApi.inviteShopMember({ path: { shopId }, body: { phone: input.phone } })
 }
 
 /** 移除成员 */
 export async function removeMember(shopId: string, memberId: string) {
-    unwrap(await ShopsApi.removeShopMember({ path: { shopId, memberId } }))
+    await ShopsApi.removeShopMember({ path: { shopId, memberId } })
 }

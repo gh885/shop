@@ -1,4 +1,4 @@
-import { toApiError, unwrap } from "@shop/api"
+import { toApiError } from "@shop/api"
 import {
     CategoriesApi,
     ProductsAdminApi,
@@ -11,134 +11,97 @@ import {
 } from "@shop/api/sdk"
 
 // ---------- 商品域数据函数（直接在调用点用，不经集中封装对象） ----------
+// seller 端 /seller/** 请求的 X-Shop-Id 店铺上下文头由 SDK client 拦截自动注入
+//（见 shared/lib/api.ts 的 contextHeaders），此处不再手动携带。
 
-/** seller 商品域请求以当前经营店铺为上下文，后端经 X-Shop-Id 头识别 */
-const shopHeader = (shopId: string): { "X-Shop-Id": string } => ({ "X-Shop-Id": shopId })
-
-/**
- * 店铺商品分页列表：wire → 领域形状（非空/字面量状态）。
- */
-export async function listProducts(
-    shopId: string,
-    search: { page: number; size: number; status?: ProductResponse["status"]; keyword?: string },
-): Promise<{ records: ProductResponse[]; total: number }> {
-    const page = unwrap(
-        await ProductsAdminApi.listShopProducts({
-            query: {
-                pageParams: { page: search.page, size: search.size },
-                status: search.status,
-                keyword: search.keyword,
-            },
-            headers: shopHeader(shopId),
-        }),
-    )
+/** 店铺商品分页列表：wire → 领域形状（非空/字面量状态）。 */
+export async function listProducts(search: {
+    page: number
+    size: number
+    status?: ProductResponse["status"]
+    keyword?: string
+}): Promise<{ records: ProductResponse[]; total: number }> {
+    const page = await ProductsAdminApi.listShopProducts({
+        query: {
+            pageParams: { page: search.page, size: search.size },
+            status: search.status,
+            keyword: search.keyword,
+        },
+    })
     return {
-        records: page.records ?? [],
-        total: page.total ?? 0,
+        records: page.records,
+        total: page.total,
     }
 }
 
 /** 商品详情（基本信息 + SKU 列表）：wire → 领域形状 */
-export async function productDetail(shopId: string, id: string): Promise<ProductDetailResponse> {
-    return unwrap(
-        await ProductsAdminApi.getShopProductDetail({
-            path: { id },
-            headers: shopHeader(shopId),
-        }),
-    )
+export async function productDetail(id: string): Promise<ProductDetailResponse> {
+    return await ProductsAdminApi.getShopProductDetail({ path: { id } })
 }
 
 /** 新建草稿商品：wire → 领域形状 */
-export async function createProduct(shopId: string, payload: CreateProductRequest) {
-    return unwrap(
-        await ProductsAdminApi.createProduct({
-            body: payload,
-            headers: shopHeader(shopId),
-        }),
-    )
+export async function createProduct(payload: CreateProductRequest) {
+    return await ProductsAdminApi.createProduct({ body: payload })
 }
 
 /** 更新 SKU 价格库存，返回更新后的 SKU 网格 */
 export async function updateProductSkus(
-    shopId: string,
     id: string,
     items: SkuUpdateItem[],
 ): Promise<SkuResponse[]> {
-    const data = unwrap(
-        await ProductsAdminApi.updateProductSkus({
-            path: { id },
-            body: { items },
-            headers: shopHeader(shopId),
-        }),
-    )
+    const data = await ProductsAdminApi.updateProductSkus({
+        path: { id },
+        body: { items },
+    })
     return data as SkuResponse[]
 }
 
 /** 编辑商品基本信息（autosave 用）：草稿阶段 name 可空 */
-export async function updateProduct(shopId: string, id: string, payload: UpdateProductRequest) {
-    return unwrap(
-        await ProductsAdminApi.updateProduct({
-            path: { id },
-            body: payload,
-            headers: shopHeader(shopId),
-        }),
-    )
+export async function updateProduct(id: string, payload: UpdateProductRequest) {
+    return await ProductsAdminApi.updateProduct({
+        path: { id },
+        body: payload,
+    })
 }
 
 /** 放弃草稿（仅 DRAFT 可删，同事务清 SKU+库存） */
-export async function abandonProduct(shopId: string, id: string) {
-    unwrap(
-        await ProductsAdminApi.abandonProduct({
-            path: { id },
-            headers: shopHeader(shopId),
-        }),
-    )
+export async function abandonProduct(id: string) {
+    await ProductsAdminApi.abandonProduct({ path: { id } })
 }
 
 /** 应用销售属性选择 → 服务端按 valueId 组合对账 SKU，返回当前 SKU 网格（价格/库存留空待填） */
 export async function applyProductSpecs(
-    shopId: string,
     id: string,
     selections: SpecSelection[],
 ): Promise<SkuResponse[]> {
-    const data = unwrap(
-        await ProductsAdminApi.updateProductSpecs({
-            path: { id },
-            body: { specs: selections } as never,
-            headers: shopHeader(shopId),
-        }),
-    )
+    const data = await ProductsAdminApi.updateProductSpecs({
+        path: { id },
+        body: { specs: selections } as never,
+    })
     return data as unknown as SkuResponse[]
 }
 
 /** 发布（草稿 → target 态）。默认立即上架（PUBLISHED）；放入仓库传 target="WAREHOUSE"。 */
-export async function publishProduct(
-    shopId: string,
-    id: string,
-    target?: "PUBLISHED" | "WAREHOUSE",
-) {
-    unwrap(
-        await ProductsAdminApi.publishProduct({
-            path: { id },
-            query: target ? { target } : undefined,
-            headers: shopHeader(shopId),
-        }),
-    )
+export async function publishProduct(id: string, target?: "PUBLISHED" | "WAREHOUSE") {
+    await ProductsAdminApi.publishProduct({
+        path: { id },
+        query: target ? { target } : undefined,
+    })
 }
 
 /** 下架 */
-export async function offProduct(shopId: string, id: string) {
-    unwrap(await ProductsAdminApi.offProduct({ path: { id }, headers: shopHeader(shopId) }))
+export async function offProduct(id: string) {
+    await ProductsAdminApi.offProduct({ path: { id } })
 }
 
 /** 重新上架 */
-export async function onProduct(shopId: string, id: string) {
-    unwrap(await ProductsAdminApi.onProduct({ path: { id }, headers: shopHeader(shopId) }))
+export async function onProduct(id: string) {
+    await ProductsAdminApi.onProduct({ path: { id } })
 }
 
 /** 类目树（末级可挂商品）：wire → 领域形状 */
 export async function categoryTree() {
-    return unwrap(await CategoriesApi.getCategoryTree())
+    return await CategoriesApi.getCategoryTree()
 }
 
 /**
@@ -150,25 +113,20 @@ export async function categoryTree() {
  * 返回 key 而非完整 URL：产品 images / mainImage / 取值图一律**存 key**，展示时经 imgUrl(key) 拼域名——
  * 换域名只改 VITE_IMAGE_BASE_URL，历史/新数据都可拼；避免存完整 URL 后换域名/协议就不可访问。
  */
-export async function uploadProductImage(file: File, shopId: string): Promise<string> {
-    const ext = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "")
+export async function uploadProductImage(file: File): Promise<string> {
+    const ext = (file.name.split(".").pop() ?? "").toLowerCase().replaceAll(/[^a-z0-9]/g, "")
     let ticket
     try {
-        // 需要 X-Shop-Id 头：/seller/** 由 ShopMembershipFilter 强制店铺上下文（无则 403「缺少店铺上下文」），
-        // issueImageTicket 虽用不到店铺，但鉴权链要求带上。
-        ticket = unwrap(
-            await ProductsAdminApi.issueImageTicket({
-                query: { ext },
-                headers: shopHeader(shopId),
-            }),
-        )
-    } catch (e) {
-        // unwrap 抛 ApiError 对象（无 message），ImageUpload 读 err.message 会落兜底文案，
-        // 这里把 detail 提出来，否则真实原因被吞。另外 IssueImageTicket 本身走 Vite proxy，
-        // 若后端未带 QUYNIU 配置/凭证失败，detail 会揭示（如「文件存储未配置」）。
-        const detail = toApiError(e).detail // ApiError 无 message（Java 异常 detail），透出让前端可见
+        // issueImageTicket 走 /seller/**（Vite proxy），ShopMembershipFilter 强制店铺上下文——
+        // X-Shop-Id 已由 SDK client 拦截注入。若后端未带七牛配置/凭证失败，detail 会揭示（如「文件存储未配置」）。
+        ticket = await ProductsAdminApi.issueImageTicket({ query: { ext } })
+    } catch (error) {
+        //  抛 ApiError 对象（无 message），ImageUpload 读 err.message 会落兜底文案，
+        // 这里把 detail 提出来，否则真实原因被吞。
+        const detail = toApiError(error).detail // ApiError 无 message（Java 异常 detail），透出让前端可见
         throw new Error(
             detail ? `获取上传凭证失败：${detail}` : "获取上传凭证失败，请确认已配置文件存储",
+            { cause: error },
         )
     }
     if (!ticket.uploadUrl || !ticket.token || !ticket.url || !ticket.key)
@@ -194,10 +152,8 @@ export async function uploadProductImage(file: File, shopId: string): Promise<st
 
 /** 类目属性模板（公开接口），发布页取销售属性（kind=SPEC）用 */
 export async function attrTemplate(categoryId: string): Promise<CategoryAttrTemplateNode[]> {
-    const nodes = unwrap(
-        await CategoriesApi.getPublicCategoryAttrTemplate({ path: { id: categoryId } }),
-    )
-    return (nodes ?? []) as CategoryAttrTemplateNode[]
+    const nodes = await CategoriesApi.getPublicCategoryAttrTemplate({ path: { id: categoryId } })
+    return nodes as CategoryAttrTemplateNode[]
 }
 
 // ---------- 商品域类型（就近放在数据函数旁） ----------

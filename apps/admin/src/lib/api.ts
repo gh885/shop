@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createAuthKit, unwrap } from "@shop/api"
+import { configureSdkClient, createAuthKit } from "@shop/api"
 import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
 
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
@@ -8,11 +8,11 @@ import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
 export const authKit = createAuthKit({
     deviceKey: "shop_admin_device_id",
     // 引用下方 AdminAuthApi：调用发生在模块初始化后，安全
+    // SDK 出错即 throw（responseStyle: data + throwOnError），失败由 createAuthKit 裁决为 guest
     refresh: async () => {
         const res = await AdminAuthApi.refreshStaffSession()
-        const token = res.data?.accessToken
-        if (!token) throw res.error ?? new Error("refresh 失败")
-        return { accessToken: token }
+        if (!res.accessToken) throw new Error("refresh 失败")
+        return { accessToken: res.accessToken }
     },
 })
 export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus } = authKit
@@ -23,57 +23,56 @@ configureSdkClient("", tokenStore, {
     debug: import.meta.env.DEV,
 })
 
-/** admin 业务方法封装：SDK 返回 { data, error } 不抛错，unwrap 把 error 转抛，供调用方统一 catch 归一化 */
+/** admin 业务方法封装：SDK 出错即 throw（throwOnError），供调用方统一 catch 归一化 */
 export const adminApi = {
     /** 员工登录：成功后返回 access token */
     async login(input: { employeeNo: string; password: string; deviceId: string }) {
-        const data = unwrap(await AdminAuthApi.staffLogin({ body: input }))
+        const data = await AdminAuthApi.staffLogin({ body: input })
         return { accessToken: data.accessToken ?? "" }
     },
 
     /** 当前登录员工信息 */
     async me() {
-        return unwrap(await AdminAuthApi.getStaffMe())
+        return await AdminAuthApi.getStaffMe()
     },
 
     /** 登出 */
     async logout(deviceId: string) {
-        unwrap(await AdminAuthApi.staffLogout({ body: { deviceId } }))
+        await AdminAuthApi.staffLogout({ body: { deviceId } })
     },
 
     /** 店铺审核分页列表 */
     async listReviews(input: { status?: string; page: number; size: number }) {
-        const page = unwrap(
-            await AdminReviewsApi.listShopReviews({
-                query: {
-                    status: input.status,
-                    pageParams: { page: input.page, size: input.size },
-                },
-            }),
-        )
+        const page = await AdminReviewsApi.listShopReviews({
+            query: {
+                status: input.status,
+                pageParams: { page: input.page, size: input.size },
+            },
+        })
         return {
-            records: (page.records ?? []).map((r) => ({
-                id: r.id ?? "",
-                shopId: r.shopId ?? "",
-                shopName: r.shopName ?? "",
-                ownerPhone: r.ownerPhone ?? "",
-                status: r.status ?? "",
+            records: page.records.map((r) => ({
+                id: r.id,
+                shopId: r.shopId,
+                shopName: r.shopName,
+                ownerPhone: r.ownerPhone,
+                status: r.status,
+                // reason/decidedAt 契约可空（PENDING 时无值），留兜底
                 reason: r.reason ?? "",
                 decidedAt: r.decidedAt ?? "",
-                createdAt: r.createdAt ?? "",
+                createdAt: r.createdAt,
             })),
-            total: page.total ?? 0,
+            total: page.total,
         }
     },
 
     /** 审核通过 */
     async approve(id: string) {
-        unwrap(await AdminReviewsApi.approveShopReview({ path: { id } }))
+        await AdminReviewsApi.approveShopReview({ path: { id } })
     },
 
     /** 审核驳回 */
     async reject(id: string, reason: string) {
-        unwrap(await AdminReviewsApi.rejectShopReview({ path: { id }, body: { reason } }))
+        await AdminReviewsApi.rejectShopReview({ path: { id }, body: { reason } })
     },
 }
 

@@ -616,8 +616,8 @@ export type PageParams = {
 };
 
 export type PageResultProductResponse = {
-    records?: Array<ProductResponse>;
-    total?: number;
+    records: Array<ProductResponse>;
+    total: number;
 };
 
 export type ProductDetailResponse = {
@@ -630,8 +630,8 @@ export type OrderQuery = {
 };
 
 export type PageResultSellerOrderListItemResponse = {
-    records?: Array<SellerOrderListItemResponse>;
-    total?: number;
+    records: Array<SellerOrderListItemResponse>;
+    total: number;
 };
 
 export type SellerOrderListItemResponse = {
@@ -704,8 +704,8 @@ export type OrderListItemResponse = {
 };
 
 export type PageResultOrderListItemResponse = {
-    records?: Array<OrderListItemResponse>;
-    total?: number;
+    records: Array<OrderListItemResponse>;
+    total: number;
 };
 
 export type FavoriteListItemResponse = {
@@ -729,8 +729,8 @@ export type FavoriteProductInfo = {
 };
 
 export type PageResultFavoriteListItemResponse = {
-    records?: Array<FavoriteListItemResponse>;
-    total?: number;
+    records: Array<FavoriteListItemResponse>;
+    total: number;
 };
 
 export type CartListItemResponse = {
@@ -791,8 +791,8 @@ export type ProductQuery = {
 };
 
 export type PageResultPublicProductResponse = {
-    records?: Array<PublicProductResponse>;
-    total?: number;
+    records: Array<PublicProductResponse>;
+    total: number;
 };
 
 export type PublicProductResponse = {
@@ -842,19 +842,19 @@ export type CategoryNodeResponse = {
 };
 
 export type PageResultShopReviewListItemResponse = {
-    records?: Array<ShopReviewListItemResponse>;
-    total?: number;
+    records: Array<ShopReviewListItemResponse>;
+    total: number;
 };
 
 export type ShopReviewListItemResponse = {
-    id?: string;
-    shopId?: string;
-    shopName?: string;
-    ownerPhone?: string;
-    status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    id: string;
+    shopId: string;
+    shopName: string;
+    ownerPhone: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
     reason?: string;
     decidedAt?: string;
-    createdAt?: string;
+    createdAt: string;
 };
 
 export type StaffInfoResponse = {

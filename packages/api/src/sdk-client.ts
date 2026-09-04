@@ -25,6 +25,11 @@ export interface SdkClientOptions {
     refreshPath?: string
     /** 打印每个请求的耗时日志（dev 用） */
     debug?: boolean
+    /**
+     * 动态上下文头（如 seller 的 X-Shop-Id 当前店铺）：每次请求时取值注入，
+     * 值为空不注入；业务显式传入的同名头优先（不覆盖）。
+     */
+    contextHeaders?: () => Record<string, string | undefined>
 }
 
 // ---- 超时 + 重试（对齐原 ky 版/之前的 fetch 版策略：timeout 10s；仅幂等 GET 遇 408/429/5xx 重试 2 次） ----
@@ -85,6 +90,14 @@ export function configureSdkClient(
         }
         if (!request.headers.has("X-Correlation-Id")) {
             request.headers.set("X-Correlation-Id", crypto.randomUUID())
+        }
+        const contextHeaders = options?.contextHeaders?.()
+        if (contextHeaders) {
+            for (const [name, value] of Object.entries(contextHeaders)) {
+                if (value && !request.headers.has(name)) {
+                    request.headers.set(name, value)
+                }
+            }
         }
         startTimes.set(request, performance.now())
         return request

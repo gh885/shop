@@ -6,12 +6,11 @@ import { AuthApi } from "@shop/api/sdk"
 // 认证逻辑统一从 #/shared/api/auth 出，避免同一概念两个入口。
 export const authKit = createAuthKit({
     // 引用下方 AuthApi：调用发生在模块初始化后，安全
-    // refresh 返回 { data, error }（SDK 不抛错），失败时抛错供 createAuthKit 裁决为 guest
+    // SDK 出错即 throw（responseStyle: data + throwOnError），失败由 createAuthKit 裁决为 guest
     refresh: async (deviceId) => {
         const res = await AuthApi.refresh({ body: { deviceId } })
-        const token = res.data?.accessToken
-        if (!token) throw res.error ?? new Error("refresh 失败")
-        return { accessToken: token }
+        if (!res.accessToken) throw new Error("refresh 失败")
+        return { accessToken: res.accessToken }
     },
 })
 

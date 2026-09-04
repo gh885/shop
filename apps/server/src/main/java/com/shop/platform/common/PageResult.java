@@ -1,11 +1,14 @@
 package com.shop.platform.common;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.function.Function;
 
 /** 分页返回包装：只暴露 records + total，把 MyBatis-Plus Page 的插件噪音字段挡在 API 边界外 */
-public record PageResult<T>(List<T> records, long total) {
-
+public record PageResult<T>(
+        @Schema(requiredMode = REQUIRED) List<T> records, @Schema(requiredMode = REQUIRED) long total) {
     /**
      * 逐条变形，total 原样带过。
      *

@@ -96,7 +96,6 @@ function NewProductBasicStep() {
     return (
         <div className="mx-auto w-full max-w-narrow">
             <PublishBasicStep
-                shopId={shopId!}
                 categoryId={categoryId}
                 productId={productId}
                 productStatus={editingStatus}

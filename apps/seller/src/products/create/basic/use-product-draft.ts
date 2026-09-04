@@ -130,7 +130,7 @@ export function useProductDraft({
             if (!shopId || !categoryId) throw { status: 0, detail: "请先选择店铺和类目" }
             setCreating(true)
             try {
-                const product = await createProduct(shopId, {
+                const product = await createProduct({
                     categoryId,
                     name: basic.name || "",
                     subtitle: basic.subtitle || undefined,
@@ -155,7 +155,7 @@ export function useProductDraft({
         if (!shopId || !productId || createdThisSessionRef.current) return
         let cancelled = false
         setHydrated(false)
-        productDetail(shopId, productId)
+        productDetail(productId)
             .then((detail) => {
                 if (cancelled) return
                 dispatch({
@@ -202,7 +202,7 @@ export function useProductDraft({
                 return
             }
             try {
-                const fresh = await applyProductSpecs(shopId, id, next)
+                const fresh = await applyProductSpecs(id, next)
                 dispatch({ type: "setSkuRows", rows: mergeSkuRows(skuRowsRef.current, fresh) })
             } catch {
                 // 生成失败：保留原行，错误由调用方展示
@@ -238,7 +238,7 @@ export function useProductDraft({
                 const id = await ensureDraft(basic)
                 if (!id) return
                 // 2. 落 basic（标题/图片/卖点）——草稿与提交都存
-                await updateProduct(shopId, id, {
+                await updateProduct(id, {
                     categoryId,
                     name: basic.name || "",
                     subtitle: basic.subtitle || undefined,
@@ -250,7 +250,7 @@ export function useProductDraft({
                 //    草稿与提交都做：把当前已配置的规格/组合持久化下来，保证下次进来能完整续编。
                 //    草稿无门槛：规格落库失败（如某维度未选值）时降级跳过规格，仍存 basic；提交模式保持严格（失败抛错让用户看到）。
                 try {
-                    const fresh = await applyProductSpecs(shopId, id, selectionsRef.current)
+                    const fresh = await applyProductSpecs(id, selectionsRef.current)
                     // 把本地已填的价格/库存/编码按「组合值」搬到后端行上（本地行 skuId 空，不能按 id 匹配）
                     const withDraft = mergeLocalPricedRows(
                         skuRowsRef.current,
@@ -281,7 +281,7 @@ export function useProductDraft({
                     status: r.status,
                 }))
                 if (items.length > 0) {
-                    await updateProductSkus(shopId, id, items)
+                    await updateProductSkus(id, items)
                 }
                 // 6. 发布：仅提交/入库才 publish（需 SKU 全设价，前端已校验、后端 ensurePublishable 把关）；草稿到此为止（落 DRAFT）。
                 //    发布只对「新建/草稿态」有意义——编辑仓库中/上架商品时提交=只保存变更、不回退状态（上架/入库请走列表状态按钮),
@@ -291,11 +291,7 @@ export function useProductDraft({
                     priced.length > 0 &&
                     (!productStatus || productStatus === "DRAFT")
                 if (shouldPublish) {
-                    await publishProduct(
-                        shopId,
-                        id,
-                        mode === "warehouse" ? "WAREHOUSE" : "PUBLISHED",
-                    )
+                    await publishProduct(id, mode === "warehouse" ? "WAREHOUSE" : "PUBLISHED")
                 }
             } finally {
                 setSubmitting(false)

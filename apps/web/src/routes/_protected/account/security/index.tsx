@@ -128,7 +128,7 @@ function DeviceManager() {
 
     const devices = useQuery({
         queryKey: DEVICES_KEY,
-        queryFn: async () => (await AuthApi.devices({ query: { currentDeviceId } })).data ?? [],
+        queryFn: () => AuthApi.devices({ query: { currentDeviceId } }),
     })
 
     const deleteDevice = useMutation({

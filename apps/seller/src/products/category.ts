@@ -3,7 +3,7 @@ import type { CategoryNodeResponse } from "@shop/api/sdk"
 /**
  * category —— 类目选择的纯逻辑（树 → 视图读模型）。不碰 React / 网络。
  *
- * 类目树全量返回且长期缓存（见 use-category），所以「搜索」「级联」「路径回填」
+ * 类目树全量返回且长期缓存（见 queries），所以「搜索」「级联」「路径回填」
  * 全在前端这份树上算，不额外开接口：
  * - flattenLeafPaths ：树 → 末级路径清单（搜索的语料）
  * - searchLeafPaths  ：关键词 → 候选末级类目（末级名命中排前）

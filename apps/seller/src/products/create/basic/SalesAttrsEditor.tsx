@@ -66,10 +66,9 @@ function toSelections(drafts: AttrDraft[]): SpecSelection[] {
             attrId: d.attrId,
             valueIds,
             customValues,
-            valueImages: Object.keys(valueImages).length ? valueImages : undefined,
-            customValueImages: Object.keys(customValueImages).length
-                ? customValueImages
-                : undefined,
+            valueImages: Object.keys(valueImages).length > 0 ? valueImages : undefined,
+            customValueImages:
+                Object.keys(customValueImages).length > 0 ? customValueImages : undefined,
         }
     })
 }

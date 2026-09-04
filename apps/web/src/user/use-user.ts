@@ -12,7 +12,7 @@ import { useAuthStatus } from "#/shared/api/auth"
 const ME_QUERY_KEY = ["me"] as const
 
 async function fetchMe(): Promise<MeResponse | undefined> {
-    return (await AuthApi.me()).data
+    return AuthApi.me()
 }
 
 const meOptions = queryOptions({

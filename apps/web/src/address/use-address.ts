@@ -14,7 +14,7 @@ const KEY = ["addresses"] as const
 
 async function listAddresses(): Promise<Address[]> {
     const res = await AddressesApi.listAddresses()
-    return (res.data ?? []) as Address[]
+    return res as Address[]
 }
 
 /** 我的地址列表 */
@@ -85,8 +85,7 @@ export function useUnsetDefaultAddress() {
 
 /** 智能粘贴：解析文本 → 业务形状（表单「粘贴并识别」用） */
 export async function parseAddressText(text: string): Promise<AddressParse> {
-    const res = await AddressesApi.parseAddress({ body: { text } })
-    const d = res.data
+    const d = await AddressesApi.parseAddress({ body: { text } })
     return {
         receiver: d?.receiverName ?? undefined,
         phone: d?.phone ?? undefined,

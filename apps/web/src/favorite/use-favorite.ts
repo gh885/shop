@@ -19,7 +19,7 @@ const KEY = ["favorite-items"] as const
 
 async function fetchFavorites(): Promise<FavoriteItem[]> {
     const res = await FavoritesApi.listFavorites({ query: { pageParams: { page: 1, size: 100 } } })
-    return (res.data?.records ?? []).map(toFavoriteItem)
+    return res.records.map(toFavoriteItem)
 }
 
 export const favoriteItemsOptions = queryOptions({
@@ -55,7 +55,7 @@ export function useFavoriteStatus(productId: string) {
             const res = await FavoritesApi.checkFavoriteExists({
                 body: { productIds: [productId] },
             })
-            return (res.data?.productIds ?? []).includes(productId)
+            return (res.productIds ?? []).includes(productId)
         },
         enabled: isLoggedIn,
         staleTime: 30_000,

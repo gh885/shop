@@ -11,7 +11,7 @@ import type { ListingTime, SkuDraftRow } from "./product-form-state"
 import { BasicInfoSection } from "./BasicInfoSection"
 import { DetailImagesSection } from "./DetailImagesSection"
 import { SalesInfoSection } from "./SalesInfoSection"
-import { useLeafPaths } from "../../use-category"
+import { useLeafPaths } from "../../queries"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
     锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
@@ -65,7 +65,6 @@ export type SubmitMode = "submit" | "warehouse" | "draft"
  * 持有交由 SalesInfoSection；编辑态与草稿持久化都交给外层。
  */
 export function BasicStep({
-    shopId,
     categoryId,
     productId,
     productStatus,
@@ -80,7 +79,6 @@ export function BasicStep({
     onBasicChange,
     initialBasic,
 }: {
-    shopId: string
     categoryId: string
     /** 编辑已有商品时传入；新建为 undefined（新建可自由切类目） */
     productId?: string
@@ -99,8 +97,8 @@ export function BasicStep({
     /** 编辑回显：detail 拉回后的 basic 初值，仅首帧灌 form（经 form.reset）；新建为 undefined */
     initialBasic?: BasicStepValues
 }) {
-    // 图片上传绑定当前店铺：issue 凭证需 X-Shop-Id 头（/seller/** 强制店铺上下文）。
-    const uploadImage = useCallback((file: File) => uploadProductImage(file, shopId), [shopId])
+    // 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入
+    const uploadImage = useCallback((file: File) => uploadProductImage(file), [])
     const leafPaths = useLeafPaths()
     const categoryNames = leafPaths.find((p) => p.id === categoryId)?.names ?? []
     const active = useActiveSection()
@@ -392,7 +390,7 @@ function useActiveSection(): string {
             }
             // 兜底：滚到最底时最后区块顶部可能尚未越过光标，强制激活最后一个
             if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1) {
-                current = SECTIONS[SECTIONS.length - 1].id
+                current = SECTIONS.at(-1)!.id
             }
             setActive(current)
         }

@@ -29,11 +29,11 @@ const CART_COUNT_KEY = ["cart-count"] as const
 
 async function fetchCartItems(): Promise<CartItem[]> {
     const res = await CartApi.listCartItems()
-    return (res.data ?? []).map(toCartItem)
+    return res.map(toCartItem)
 }
 async function fetchCartCount(): Promise<number> {
     const res = await CartApi.getCartCount()
-    return res.data?.total ?? 0
+    return res.total ?? 0
 }
 
 /** 购物车列表：仅在路由 /cart（_protected 内）使用。

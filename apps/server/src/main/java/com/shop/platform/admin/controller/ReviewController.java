@@ -1,5 +1,7 @@
 package com.shop.platform.admin.controller;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
 import com.shop.platform.admin.dto.RejectRequest;
 import com.shop.platform.admin.infra.StaffContext;
 import com.shop.platform.admin.mapper.ShopReview;
@@ -10,6 +12,7 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
@@ -55,14 +58,16 @@ public class ReviewController {
 
     /** 审核队列项出参：镜像 service 的 ShopReviewItem（含跨 schema 拼装的店名/店主手机号），字段只减不增 */
     public record ShopReviewListItemResponse(
-            UUID id,
-            UUID shopId,
-            String shopName,
-            String ownerPhone,
-            ShopReviewStatus status,
+            @Schema(requiredMode = REQUIRED) UUID id,
+            @Schema(requiredMode = REQUIRED) UUID shopId,
+            @Schema(requiredMode = REQUIRED) String shopName,
+            @Schema(requiredMode = REQUIRED) String ownerPhone,
+            @Schema(requiredMode = REQUIRED) ShopReviewStatus status,
+            /** 拒绝理由：仅 REJECTED 后有值，PENDING 时为空（真实可空，不标 required） */
             String reason,
+            /** 审核完成时间：PENDING 时为空（真实可空，不标 required） */
             OffsetDateTime decidedAt,
-            OffsetDateTime createdAt) {
+            @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt) {
 
         static ShopReviewListItemResponse from(ShopReviewItem item) {
             return new ShopReviewListItemResponse(

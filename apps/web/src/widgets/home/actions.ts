@@ -22,19 +22,19 @@ import { fetchProducts } from "#/product"
 /** 首页分类导航（前端在 SSR/客户端均可调，数据小走缓存） */
 export async function fetchHomeNav(): Promise<NavEntry[]> {
     const res = await CmsPublicApi.getHomeNav({ query: { navKey: "home" } })
-    return (res.data ?? []).map(toNavEntry)
+    return res.map(toNavEntry)
 }
 
 /** 首页运营位 banner */
 export async function fetchBanners(): Promise<Banner[]> {
     const res = await CmsPublicApi.getHomeBanners({ query: { slot: "home_promo" } })
-    return (res.data ?? []).map(toBanner)
+    return res.map(toBanner)
 }
 
 /** 首页推荐条词条 */
 export async function fetchRecommendTabs(): Promise<RecommendTab[]> {
     const res = await CmsPublicApi.getRecommendTabs()
-    return (res.data ?? []).map(toRecommendTab)
+    return res.map(toRecommendTab)
 }
 
 /**

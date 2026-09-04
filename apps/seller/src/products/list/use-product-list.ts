@@ -5,15 +5,11 @@ import type { ProductResponse } from "@shop/api/sdk"
 
 import type { ProductStatusFilter } from "#/products/constants"
 import type { ProductListFilter } from "#/products/list/filter"
-import { listProducts, offProduct, onProduct } from "#/products/data"
+import { offProduct, onProduct } from "#/products/data"
+import { productKeys, productListOptions, type ProductListSearch } from "#/products/queries"
 import { useCurrentShop } from "#/shared/lib/shop"
 
-export interface ProductListSearch {
-    status?: ProductStatusFilter
-    keyword?: string
-    page: number
-    size: number
-}
+export type { ProductListSearch }
 
 type NavigateFn = (opts: NavigateOptions) => Promise<unknown> | void
 
@@ -24,24 +20,7 @@ export function useProductList(search: ProductListSearch, navigate: NavigateFn) 
 
     const shopId = shop?.id
 
-    const queryKey = useCallback(
-        (s: ProductListSearch) =>
-            ["products", shopId, s.status ?? "all", s.keyword ?? "", s.page, s.size] as const,
-        [shopId],
-    )
-
-    const products = useQuery({
-        queryKey: queryKey(search),
-        queryFn: () =>
-            listProducts(shopId!, {
-                page: search.page,
-                size: search.size,
-                status: search.status,
-                keyword: search.keyword,
-            }),
-        enabled: !!shopId,
-        placeholderData: (prev) => prev,
-    })
+    const products = useQuery(productListOptions(shopId, search))
 
     const apply = useCallback(
         (next: Partial<ProductListSearch>) => {
@@ -61,16 +40,16 @@ export function useProductList(search: ProductListSearch, navigate: NavigateFn) 
     )
 
     const invalidate = useCallback(
-        () => queryClient.invalidateQueries({ queryKey: ["products", shopId] }),
+        () => queryClient.invalidateQueries({ queryKey: productKeys.lists(shopId) }),
         [queryClient, shopId],
     )
 
     const off = useMutation({
-        mutationFn: (id: string) => offProduct(shopId!, id),
+        mutationFn: (id: string) => offProduct(id),
         onSuccess: invalidate,
     })
     const on = useMutation({
-        mutationFn: (id: string) => onProduct(shopId!, id),
+        mutationFn: (id: string) => onProduct(id),
         onSuccess: invalidate,
     })
 

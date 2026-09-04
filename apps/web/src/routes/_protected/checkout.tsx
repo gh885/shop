@@ -57,7 +57,7 @@ function CheckoutPage() {
             { addressId: effectiveAddressId, source },
             {
                 onSuccess: (res) => {
-                    const orders = res?.orders ?? []
+                    const orders = res.orders ?? []
                     if (orders.length === 0) {
                         notify.error("订单创建失败")
                         return
@@ -76,7 +76,7 @@ function CheckoutPage() {
     return (
         <>
             <CheckoutHeader />
-            <div className="mx-auto w-full max-w-(--container-page) px-6 pb-10">
+            <div className="mx-auto w-full max-w-page px-6 pb-10">
                 {preview.isLoading ? (
                     <div className="space-y-5">
                         <Skeleton className="h-40 w-full rounded-2xl" />
@@ -147,7 +147,7 @@ function CheckoutHeader() {
     const navigate = useNavigate()
     return (
         <header className="border-b border-border/60 bg-background">
-            <div className="mx-auto flex h-16 w-full max-w-(--container-page) items-center gap-4 px-6">
+            <div className="mx-auto flex h-16 w-full max-w-page items-center gap-4 px-6">
                 <Button
                     variant="ghost"
                     size="sm"

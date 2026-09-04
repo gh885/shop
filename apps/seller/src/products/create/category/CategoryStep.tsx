@@ -5,7 +5,7 @@ import { Button, Input, Skeleton, Tabs, TabsList, TabsTrigger } from "@shop/ui-w
 import { nodesOf, searchLeafPaths, selectAt, selectedLeafId, type LeafPath } from "../../category"
 import { CategoryColumns } from "./CategoryColumns"
 import { CategorySearchResults } from "./CategorySearchResults"
-import { useCategoryTree, useLeafPaths } from "../../use-category"
+import { useCategoryTree, useLeafPaths } from "../../queries"
 
 /**
  * 发布第一步：选类目（千牛「搜索发品 / 以图发品」那一屏）。
