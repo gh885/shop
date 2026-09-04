@@ -15,14 +15,14 @@ import {
 // 侧边栏选中态（一级分组 + 二级叶子）直接由 pathname 推导，无需额外状态。
 // ─────────────────────────────────────────────────────────────
 
-export interface SubLeaf {
+interface SubLeaf {
     key: string
     label: string
     /** 两段式路径：/一级分组key/二级leaf key */
     to: string
 }
 
-export interface SubSection {
+interface SubSection {
     title: string
     /** 可折叠分组：标题带 chevron，点击展开/收起，默认展开 */
     collapsible?: boolean
@@ -41,7 +41,7 @@ export interface SidebarItem {
     dividerAfter?: boolean
 }
 
-export const isGroup = (item: SidebarItem) => Boolean(item.sections?.length)
+const isGroup = (item: SidebarItem) => Boolean(item.sections?.length)
 
 // ── 菜单树（一级 key === 路径第一段；二级 leaf key === 路径第二段） ──
 export const NAV_ITEMS: SidebarItem[] = [

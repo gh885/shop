@@ -6,14 +6,6 @@ export { ShopBar } from "./ShopBar"
 export { DetailSections } from "./DetailSections"
 export { ShopRecommendSection, AlsoViewedSection } from "./RecommendSections"
 
-export {
-    productDetailOptions,
-    shopOptions,
-    shopProductsOptions,
-    alsoViewedOptions,
-    useProductDetail,
-    useShop,
-} from "./use-product-detail"
-export type { PublicShop } from "./use-product-detail"
+export { productDetailOptions, shopOptions } from "./use-product-detail"
 
 export { useSkuSelection } from "./use-sku-selection"

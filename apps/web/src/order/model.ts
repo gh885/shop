@@ -96,10 +96,3 @@ export const ORDER_PROGRESS_STEP: Record<OrderStatus, number> = {
 
 /** 进度条步骤名（固定四步，与截图一致） */
 export const ORDER_PROGRESS_STEPS = ["拍下宝贝", "买家付款", "卖家发货", "确认收货"] as const
-
-/** 详情页「订单信息」里的时间项（值为空表示未发生，展示占位） */
-export interface OrderTimelineItem {
-    key: string
-    label: string
-    value: string
-}

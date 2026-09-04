@@ -6,15 +6,14 @@
  * 页面局部的 UI 态（keyword / batchMode / selected）由页面 useState 持有，不在这里。
  */
 
-export { collectText, filterFavorites, toFavoriteItem, type FavoriteItem } from "./favorite"
+export { filterFavorites } from "./favorite"
 
 export {
-    favoriteItemsOptions,
     useFavoriteStatus,
     useFavorites,
     useRemoveFavorites,
     useToggleFavorite,
 } from "./use-favorite"
 
-export { FavoriteCard, type FavoriteCardProps } from "./FavoriteCard"
-export { Toolbar, type ToolbarProps } from "./Toolbar"
+export { FavoriteCard } from "./FavoriteCard"
+export { Toolbar } from "./Toolbar"

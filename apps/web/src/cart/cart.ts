@@ -1,10 +1,7 @@
 import type { CartListItemResponse, SkuInfo } from "@shop/api/sdk"
 
-export type { Money } from "@shop/api"
-export type { SkuInfo } from "@shop/api/sdk"
-
 /** 购物车嵌入的商品缩略信息 —— 投影命名与全站一致（title/image），wire 侧为 name/mainImage */
-export type CartProductInfo = {
+type CartProductInfo = {
     id: string
     title: string
     /** 主图（SDK 可空，UI 用占位图） */

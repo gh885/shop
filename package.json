@@ -6,7 +6,6 @@
     "license": "ISC",
     "author": "",
     "type": "module",
-    "main": "index.js",
     "scripts": {
         "dev": "pnpm dev:web && pnpm dev:server",
         "dev:web": "pnpm --filter web dev",
@@ -30,10 +29,10 @@
     "devDependencies": {
         "@commitlint/cli": "^21.2.2",
         "@commitlint/config-conventional": "^21.2.2",
+        "@commitlint/types": "^21.2.0",
         "lefthook": "^2.1.12",
         "oxfmt": "^0.66.0",
         "oxlint": "^1.81.0",
-        "oxlint-tailwindcss": "^1.10.2",
         "typescript": "catalog:"
     },
     "devEngines": {}

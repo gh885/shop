@@ -6,4 +6,3 @@
  */
 
 export { useMe, useClearMe } from "./use-user"
-export type { MeResponse as CurrentUser } from "@shop/api/sdk"

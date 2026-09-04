@@ -6,7 +6,7 @@ import { AuthApi } from "@shop/api/sdk"
 import { getCurrentShopId } from "./shop-store"
 
 // 浏览器端走 Vite proxy（同源相对路径），见 vite.config.ts
-export const authKit = createAuthKit({
+const authKit = createAuthKit({
     // 引用下方 AuthApi：调用发生在模块初始化后，安全
     // SDK 出错即 throw（responseStyle: data + throwOnError），失败由 createAuthKit 裁决为 guest
     refresh: async (deviceId) => {
@@ -15,8 +15,7 @@ export const authKit = createAuthKit({
         return { accessToken: res.accessToken }
     },
 })
-export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus, useIsLoggedIn } =
-    authKit
+export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus } = authKit
 
 // 生成 SDK（@shop/api/sdk）默认 client：同源 + 同一套 token / 401 刷新拦截；
 // seller 端所有 /seller/** 请求由拦截自动注入 X-Shop-Id 当前店铺头（业务代码不再手动携带）

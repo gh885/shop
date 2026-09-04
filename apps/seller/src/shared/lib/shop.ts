@@ -7,7 +7,7 @@ import { myShops } from "./shop-data"
 import { useAuthStatus } from "./api"
 import { getStoredShopId, subscribe, syncResolvedShopId } from "./shop-store"
 
-export { setCurrentShopId, getCurrentShopId } from "./shop-store"
+export { setCurrentShopId } from "./shop-store"
 
 // ---------- 我的店铺列表 ----------
 

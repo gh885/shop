@@ -5,7 +5,7 @@ import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
 
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
 // 生成 SDK（@shop/api/sdk）统一出入参，业务方法经 adminApi 具名封装（error 转抛供调用方 catch）。
-export const authKit = createAuthKit({
+const authKit = createAuthKit({
     deviceKey: "shop_admin_device_id",
     // 引用下方 AdminAuthApi：调用发生在模块初始化后，安全
     // SDK 出错即 throw（responseStyle: data + throwOnError），失败由 createAuthKit 裁决为 guest
@@ -15,7 +15,8 @@ export const authKit = createAuthKit({
         return { accessToken: res.accessToken }
     },
 })
-export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus } = authKit
+export const { tokenStore, getDeviceId, useAuthStatus } = authKit
+const { authState, bootstrapAuth } = authKit
 
 // 生成 SDK 的默认 client：同源 + 同一套 token / 401 刷新拦截（刷新端点 admin 侧不同）
 configureSdkClient("", tokenStore, {

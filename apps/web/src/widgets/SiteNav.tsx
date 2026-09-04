@@ -15,7 +15,7 @@ import {
 import { SELLER_URL } from "../shared/lib/external"
 
 /** 二级导航项：hover 一级项展开下拉，悬停带 children 的项再右弹二级 */
-export interface SiteNavChildItem {
+interface SiteNavChildItem {
     label: string
     /** 目标路由；分类等页面未落地前先写占位路径，NavLink 里按字符串透传 */
     to: string
@@ -28,7 +28,7 @@ export interface SiteNavItem {
     children?: SiteNavChildItem[]
 }
 
-export const SITE_NAV_ITEMS: SiteNavItem[] = [
+const SITE_NAV_ITEMS: SiteNavItem[] = [
     { label: "首页", to: "/" },
     {
         label: "商品分类",

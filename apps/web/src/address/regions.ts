@@ -1,7 +1,7 @@
 import type { RegionNode } from "#/shared/ui/RegionPicker"
 
 /** 国标行政区划树节点（对应 shared/data/regions.json） */
-export interface RegionData {
+interface RegionData {
     code: string
     name: string
     children?: RegionData[]

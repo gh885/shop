@@ -2,7 +2,6 @@ import { queryOptions, useQuery } from "@tanstack/react-query"
 import { PublicShopsApi } from "@shop/api/sdk"
 
 import { fetchProductDetail, fetchProducts } from "#/product"
-import type { ProductDetail } from "#/product"
 
 /**
  * 商品详情数据 hooks：route loader 用 queryOptions 预热，组件 useQuery 读同一缓存
@@ -62,10 +61,6 @@ export const alsoViewedOptions = queryOptions({
 })
 
 // ---------- hooks ----------
-
-export function useProductDetail(id: string): ProductDetail | undefined {
-    return useQuery(productDetailOptions(id)).data
-}
 
 /** shopId 未就绪前不发请求（enabled 关掉） */
 export function useShop(shopId: string | undefined): PublicShop | undefined {

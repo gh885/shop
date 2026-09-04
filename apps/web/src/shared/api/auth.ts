@@ -3,11 +3,10 @@ import { redirect } from "@tanstack/react-router"
 
 import { authKit } from "./client"
 
-export type { AuthStatus } from "@shop/api"
 // web 侧认证唯一入口：登录态成员（实现在 @shop/api/auth-kit，装配见 ./client）
 // + 登录 Dialog 开关 + 路由守卫。本文件改完后，其它文件不要再从 ./client 拿认证相关符号。
-export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus, useIsLoggedIn } =
-    authKit
+export const { tokenStore, bootstrapAuth, getDeviceId, useAuthStatus, useIsLoggedIn } = authKit
+const { authState } = authKit
 
 // ---------- 全局登录 Dialog 开关（web 特有：未登录拉起 Dialog 而非跳页） ----------
 
@@ -31,7 +30,7 @@ export function openLoginDialog() {
     emit()
 }
 
-export function closeLoginDialog() {
+function closeLoginDialog() {
     loginDialogOpen = false
     emit()
 }

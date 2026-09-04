@@ -4,7 +4,7 @@ import { ClipboardCheckIcon, type LucideIcon } from "lucide-react"
 // ---------- 导航数据源（唯一真相）：一级域 → 侧栏分组 → 菜单项 ----------
 // TopBar 吃 key/label，AppSidebar 吃当前域的 groups，两处消费同一份数据。
 
-export type NavItem = {
+type NavItem = {
     label: string
     link: LinkOptions // linkOptions() 产物，to 被 routeTree 类型校验
     icon?: LucideIcon
@@ -13,7 +13,7 @@ export type NavItem = {
     children?: NavItem[] // 三级子菜单 → SidebarMenuSub
 }
 
-export type NavGroup = {
+type NavGroup = {
     label?: string // 侧栏分组标题，无 label = 平铺
     items: NavItem[]
 }

@@ -22,7 +22,7 @@ async function fetchFavorites(): Promise<FavoriteItem[]> {
     return res.records.map(toFavoriteItem)
 }
 
-export const favoriteItemsOptions = queryOptions({
+const favoriteItemsOptions = queryOptions({
     queryKey: KEY,
     queryFn: fetchFavorites,
 })

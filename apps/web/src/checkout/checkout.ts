@@ -58,7 +58,7 @@ export type CheckoutPreview = {
     totalPayAmount: Money
 }
 
-export type CheckoutGroup = {
+type CheckoutGroup = {
     shopId: string
     shopName: string
     lines: CheckoutLine[]
@@ -67,7 +67,7 @@ export type CheckoutGroup = {
     payAmount: Money
 }
 
-export type CheckoutLine = {
+type CheckoutLine = {
     skuId: string
     productId: string
     name: string
@@ -79,7 +79,7 @@ export type CheckoutLine = {
     stock: number
 }
 
-export type UnavailableLine = {
+type UnavailableLine = {
     skuId: string
     name: string
     /** 主图（SDK 可空） */
@@ -88,7 +88,7 @@ export type UnavailableLine = {
     cause: string
 }
 
-export type CheckoutAddress = {
+type CheckoutAddress = {
     id: string
     receiverName: string
     receiverPhone: string

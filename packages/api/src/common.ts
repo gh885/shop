@@ -12,7 +12,7 @@ export const MoneySchema = z.object({
 export type Money = z.infer<typeof MoneySchema>
 
 /** 后端统一错误响应 */
-export const ApiErrorSchema = z.object({
+const ApiErrorSchema = z.object({
     title: z.string().optional(),
     status: z.number(),
     detail: z.string(),

@@ -28,7 +28,7 @@ function toMoney(m: SdkMoney): Money {
 }
 
 /** 行项 wire → 业务：快照字段归一 */
-export function toOrderItem(dto: {
+function toOrderItem(dto: {
     productId: string
     skuId: string
     name: string

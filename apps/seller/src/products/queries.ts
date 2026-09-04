@@ -1,6 +1,6 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
 
-import { ProductsAdminApi, type ProductResponse } from "@shop/api/sdk"
+import type { ProductResponse } from "@shop/api/sdk"
 
 import { categoryTree, listProducts } from "./data"
 import { useMemo } from "react"
@@ -31,7 +31,7 @@ export const productKeys = {
     detail: (id: string) => ["products", "detail", id] as const,
 }
 
-export const categoryKeys = {
+const categoryKeys = {
     tree: ["categories", "tree"] as const,
 }
 
@@ -52,15 +52,8 @@ export const productListOptions = (shopId: string | undefined, s: ProductListSea
         placeholderData: (prev) => prev,
     })
 
-/** 商品详情（基本信息 + SKU 列表） */
-export const productDetailOptions = (id: string) =>
-    queryOptions({
-        queryKey: productKeys.detail(id),
-        queryFn: () => ProductsAdminApi.getShopProductDetail({ path: { id } }),
-    })
-
 /** 类目树：低频变更公共数据，全量拉一次长缓存，页面内搜索/级联都在这份树上算 */
-export const categoryTreeOptions = queryOptions({
+const categoryTreeOptions = queryOptions({
     queryKey: categoryKeys.tree,
     queryFn: () => categoryTree(),
     staleTime: 10 * 60_000,

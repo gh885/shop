@@ -16,7 +16,7 @@ export interface ProductListFilter {
 }
 
 /** 默认筛选：在售 */
-export const DEFAULT_FILTER: ProductListFilter = {
+const DEFAULT_FILTER: ProductListFilter = {
     status: "PUBLISHED",
 }
 

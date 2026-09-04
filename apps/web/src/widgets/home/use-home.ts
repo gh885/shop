@@ -27,7 +27,7 @@ export const recommendTabsOptions = queryOptions({
     retry: false,
 })
 
-export const feedOptions = queryOptions({
+const feedOptions = queryOptions({
     queryKey: ["home-feed"],
     queryFn: fetchFeedProducts,
     retry: false,

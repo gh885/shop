@@ -15,24 +15,12 @@ export {
     isSelectionComplete,
     isValueAvailable,
     specValueImage,
-    toProduct,
-    toProductDetail,
-    toSku,
 } from "./product"
-export type {
-    PriceView,
-    Product,
-    ProductDetail,
-    ProductListQuery,
-    ProductListQueryInput,
-    ProductSort,
-    Sku,
-    SkuSelection,
-} from "./product"
+export type { Product, ProductDetail, SkuSelection } from "./product"
 
 /** 共享值对象类型（Money / ParamItem / SpecItem）契约在 @shop/api，这里转发省得业务方跨包取 */
-export type { Money } from "@shop/api"
-export type { ParamItem, SpecItem } from "@shop/api/sdk"
+
+export type { ParamItem } from "@shop/api/sdk"
 
 export { fetchProductDetail, fetchProducts } from "./use-product"
 

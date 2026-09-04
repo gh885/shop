@@ -75,7 +75,7 @@ export function useAddToCart() {
 }
 
 /** 改数量（步进器 ±1）；patch 变换语义在 ./cart.ts，这里只接线 */
-export function useUpdateCartQuantity() {
+function useUpdateCartQuantity() {
     return useOptimisticListMutation<CartItem, { id: string; quantity: number }>({
         queryKey: CART_ITEMS_KEY,
         mutationFn: ({ id, quantity }) =>
@@ -108,7 +108,7 @@ export function useSelectCartItems() {
 }
 
 /** 删一条 */
-export function useRemoveCartItem() {
+function useRemoveCartItem() {
     return useOptimisticListMutation<CartItem, string>({
         queryKey: CART_ITEMS_KEY,
         invalidateKeys: [CART_COUNT_KEY],

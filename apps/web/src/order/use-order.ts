@@ -19,10 +19,10 @@ import type { Order, OrderDetail, OrderStatus } from "./model"
 
 // ---------- 我的订单列表 ----------
 
-export const MY_ORDERS_KEY = ["my-orders"] as const
+const MY_ORDERS_KEY = ["my-orders"] as const
 
 /** 仅客户端拉取（受保护页），queryKey 带 status 便于按 tab 缓存分片 */
-export const myOrdersOptions = ({
+const myOrdersOptions = ({
     status,
     page = 1,
     size = 20,
@@ -53,7 +53,7 @@ export function useMyOrders(status: OrderStatus | "all" = "all") {
 
 // ---------- 订单详情 ----------
 
-export const orderDetailOptions = (id: string) =>
+const orderDetailOptions = (id: string) =>
     queryOptions({
         queryKey: ["order-detail", id],
         queryFn: async (): Promise<OrderDetail> =>
@@ -107,12 +107,12 @@ export async function confirmPayment(paymentId: string) {
 }
 
 /** 取消订单 */
-export async function cancelOrder(orderId: string) {
+async function cancelOrder(orderId: string) {
     return await OrdersApi.cancelOrder({ path: { id: orderId }, body: { reason: "用户取消" } })
 }
 
 /** 确认收货 */
-export async function receiveOrder(orderId: string) {
+async function receiveOrder(orderId: string) {
     return await OrdersApi.receiveOrder({ path: { id: orderId } })
 }
 

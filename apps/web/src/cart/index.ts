@@ -10,7 +10,6 @@
 export { groupByShop } from "./cart"
 export { useAddToCart, useCartCount, useCartItems } from "./use-cart"
 
-export { ItemRow } from "./ItemRow"
 export { Settlement } from "./Settlement"
 export { ShopGroupCard } from "./ShopGroupCard"
 export { Toolbar } from "./Toolbar"

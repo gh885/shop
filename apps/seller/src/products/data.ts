@@ -64,11 +64,6 @@ export async function updateProduct(id: string, payload: UpdateProductRequest) {
     })
 }
 
-/** 放弃草稿（仅 DRAFT 可删，同事务清 SKU+库存） */
-export async function abandonProduct(id: string) {
-    await ProductsAdminApi.abandonProduct({ path: { id } })
-}
-
 /** 应用销售属性选择 → 服务端按 valueId 组合对账 SKU，返回当前 SKU 网格（价格/库存留空待填） */
 export async function applyProductSpecs(
     id: string,
@@ -169,7 +164,7 @@ export interface SpecSelection {
     customValueImages?: Record<string, string>
 }
 
-export interface CategoryAttrTemplateAttr {
+interface CategoryAttrTemplateAttr {
     id: string
     categoryId: string
     name: string
@@ -185,7 +180,7 @@ export interface CategoryAttrTemplateAttr {
     updatedAt: string
 }
 
-export interface CategoryAttrTemplateValue {
+interface CategoryAttrTemplateValue {
     id: string
     attrId: string
     value: string

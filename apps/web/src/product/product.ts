@@ -59,17 +59,7 @@ export type ProductDetail = {
 // ---------- 列表查询入参 ----------
 
 /** 排序方式（与后端 ProductQuery 的 @Pattern 对齐，非法值后端 400） */
-export type ProductSort = "newest" | "price_asc" | "price_desc"
-
-/** 全站上架商品列表查询：字段全可选，page/size 有默认（分页上限 100 同后端 @Max） */
-export type ProductListQuery = {
-    page: number
-    size: number
-    categoryId?: string
-    shopId?: string
-    keyword?: string
-    sort?: ProductSort
-}
+type ProductSort = "newest" | "price_asc" | "price_desc"
 
 /** 入参形状（page/size 可省，走默认）与解析后形状分开 */
 export type ProductListQueryInput = {
@@ -103,7 +93,7 @@ export function toProduct(dto: PublicProductResponse): Product {
 }
 
 /** wire → 业务形状：SKU 字段均已 required 且 Money 非 null，原样透传 */
-export function toSku(dto: PublicSkuResponse): Sku {
+function toSku(dto: PublicSkuResponse): Sku {
     return {
         id: dto.id,
         name: dto.name,

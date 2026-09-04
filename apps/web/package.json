@@ -22,10 +22,9 @@
         "@tanstack/react-router-ssr-query": "^1.167.2",
         "@tanstack/react-start": "^1.168.49",
         "lucide-react": "catalog:",
-        "motion": "^13.1.1",
+        "motion": "^13.2.0",
         "react": "catalog:",
         "react-dom": "catalog:",
-        "tailwindcss": "catalog:",
         "zod": "catalog:"
     },
     "devDependencies": {
