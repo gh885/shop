@@ -1,5 +1,6 @@
 package com.shop.platform.order.api;
 
+import com.shop.platform.product.api.ProductSoldQuery;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
-public class ProductSoldReadQuery {
+public class ProductSoldReadQuery implements ProductSoldQuery {
 
     private final JdbcTemplate jdbc;
 

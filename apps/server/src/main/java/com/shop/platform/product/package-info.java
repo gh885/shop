@@ -6,7 +6,7 @@
  */
 @ApplicationModule(
         displayName = "Product",
-        allowedDependencies = {"inventory :: api", "order :: api"})
+        allowedDependencies = {"inventory :: api"})
 package com.shop.platform.product;
 
 import org.springframework.modulith.ApplicationModule;

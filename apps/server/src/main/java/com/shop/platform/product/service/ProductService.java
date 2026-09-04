@@ -11,7 +11,7 @@ import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
-import com.shop.platform.order.api.ProductSoldReadQuery;
+import com.shop.platform.product.api.ProductSoldQuery;
 import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.dto.SkuUpdateItem;
 import com.shop.platform.product.mapper.CategoryAttr;
@@ -64,7 +64,7 @@ public class ProductService {
     private final CategoryAttrService categoryAttrService;
     private final StockCommand stockCommand;
     private final StockReadQuery stockReadQuery;
-    private final ProductSoldReadQuery productSoldReadQuery;
+    private final ProductSoldQuery productSoldQuery;
 
     /** 创建商品草稿：只落基本信息，specs/SKU 由后续接口补充。shopId 由 controller 从店铺上下文（X-Shop-Id）注入 */
     public Product create(CreateProductCommand command) {
@@ -222,7 +222,7 @@ public class ProductService {
      * 卖家工作台商品列表：分页 + 每行补库存与累计销量指标。
      *
      * <p>库存：本页商品全部 SKU → inventory.api 批查可用量 → 按商品 sum（分列已有 min/max，库存是运营要看的总可售）。
-     * 销量：order.api 按已完成订单聚合（口径见 {@link ProductSoldReadQuery}）。
+     * 销量：product.api 按已完成订单聚合（口径见 {@link ProductSoldQuery}）。
      * 库存/销量都是纯展示指标，与 SPU 状态正交（草稿/仓库中也可能有历史销量）。
      */
     public PageResult<ProductListRow> pageListWithMetrics(
@@ -250,7 +250,7 @@ public class ProductService {
                         .sum()));
 
         // 销量批查（已完成订单聚合），缺省 0
-        Map<UUID, Long> soldByProduct = productSoldReadQuery.soldCountByProductIds(shopId, productIds);
+        Map<UUID, Long> soldByProduct = productSoldQuery.soldCountByProductIds(shopId, productIds);
 
         List<ProductListRow> rows = result.records().stream()
                 .map(p -> new ProductListRow(
