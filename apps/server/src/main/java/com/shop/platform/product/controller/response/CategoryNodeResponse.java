@@ -1,4 +1,6 @@
-package com.shop.platform.product.controller;
+package com.shop.platform.product.controller.response;
+
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.product.service.CategoryNode;
@@ -13,13 +15,13 @@ import java.util.UUID;
  */
 public record CategoryNodeResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
-        UUID parentId,
+        @Schema(requiredMode = REQUIRED) UUID parentId,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer level,
-        Integer sort,
+        @Schema(requiredMode = REQUIRED) Integer sort,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) CategoryStatus status,
-        String iconUrl,
-        List<CategoryNodeResponse> children) {
+        @Schema(requiredMode = REQUIRED, nullable = true) String iconUrl,
+        @Schema(requiredMode = REQUIRED) List<CategoryNodeResponse> children) {
 
     public static CategoryNodeResponse from(CategoryNode node) {
         return new CategoryNodeResponse(

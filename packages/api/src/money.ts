@@ -3,20 +3,20 @@
  * 与 common.ts 的 MoneySchema 同住一包——金额的形状、换算、展示只有一个真相源。
  */
 
-/** 分 → 元字符串两位小数（如 29900 → "299.00"）；null/undefined 显示占位符 */
-export function fenToYuan(fen: number | null | undefined, placeholder = "—"): string {
-    if (fen === null || fen === undefined) return placeholder
+/** 分 → 元字符串两位小数（如 29900 → "299.00"）；undefined 显示占位符 */
+export function fenToYuan(fen: number | undefined, placeholder = "—"): string {
+    if (fen === undefined) return placeholder
     return (fen / 100).toFixed(2)
 }
 
-/** 元输入（字符串）→ 分；非法输入返回 null 由调用方拦截 */
-export function yuanToFen(yuan: string): number | null {
+/** 元输入（字符串）→ 分；非法输入返回 undefined 由调用方拦截 */
+export function yuanToFen(yuan: string): number | undefined {
     const value = Number(yuan)
-    if (!yuan.trim() || Number.isNaN(value) || value < 0) return null
+    if (!yuan.trim() || Number.isNaN(value) || value < 0) return undefined
     return Math.round(value * 100)
 }
 
-/** 价格区间展示（分）：单规格同价时只显示一个价 */
+/** 价格区间展示（分）：单规格同价时只显示一个价；undefined 视为「未定价」 */
 export function priceRangeText(min?: number, max?: number): string {
     if (min === undefined) return "未定价"
     if (max === undefined || max === min) return `¥${fenToYuan(min)}`

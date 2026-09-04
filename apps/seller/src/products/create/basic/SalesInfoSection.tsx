@@ -190,7 +190,9 @@ export function SalesInfoSection({
 
 /** 一口价（价格区间）+ 总库存（库存之和）：纯派生展示，随 SKU 编辑实时联动 */
 function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
-    const prices = skuRows.map((r) => yuanToFen(r.priceText)).filter((n): n is number => n !== null)
+    const prices = skuRows
+        .map((r) => yuanToFen(r.priceText))
+        .filter((n): n is number => n !== undefined)
     const min = prices.length > 0 ? Math.min(...prices) : undefined
     const max = prices.length > 0 ? Math.max(...prices) : undefined
     const totalStock = skuRows.reduce((sum, r) => sum + (Number(r.stockText) || 0), 0)

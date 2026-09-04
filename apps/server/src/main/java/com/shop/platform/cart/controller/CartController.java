@@ -1,19 +1,16 @@
 package com.shop.platform.cart.controller;
 
+import com.shop.platform.cart.controller.response.CartCountResponse;
+import com.shop.platform.cart.controller.response.CartItemResponse;
+import com.shop.platform.cart.controller.response.CartListItemResponse;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.dto.BatchDeleteCartItemsRequest;
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
 import com.shop.platform.cart.dto.UpdateCartSelectedRequest;
-import com.shop.platform.cart.mapper.CartItem;
-import com.shop.platform.cart.service.CartCount;
-import com.shop.platform.cart.service.CartItemView;
 import com.shop.platform.cart.service.CartService;
-import com.shop.platform.common.Money;
 import com.shop.platform.infra.web.CurrentUser;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -82,83 +79,5 @@ public class CartController {
     @PostMapping("/items/batch-delete")
     public void batchRemoveCartItems(@CurrentUser UUID userId, @Valid @RequestBody BatchDeleteCartItemsRequest req) {
         cartService.batchRemove(userId, req);
-    }
-
-    /**
-     * 条目出参：刻意不吐 userId（JWT 里就有，纯冗余）。前端 TS 类型尚未建立，
-     * 是唯一可以从一开始就按最小契约设计的端点。
-     */
-    public record CartItemResponse(
-            UUID id,
-            UUID skuId,
-            Integer quantity,
-            Boolean selected,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt) {
-
-        static CartItemResponse from(CartItem item) {
-            return new CartItemResponse(
-                    item.getId(),
-                    item.getSkuId(),
-                    item.getQuantity(),
-                    item.getSelected(),
-                    item.getCreatedAt(),
-                    item.getUpdatedAt());
-        }
-    }
-
-    /** 列表条目出参：镜像 service 的 CartItemView（行字段 + 拼装展示数据），字段只减不增 */
-    public record CartListItemResponse(
-            UUID id,
-            UUID skuId,
-            Integer quantity,
-            Boolean selected,
-            OffsetDateTime addedAt,
-            ProductInfo product,
-            SkuInfo sku,
-            boolean available) {
-
-        static CartListItemResponse from(CartItemView view) {
-            return new CartListItemResponse(
-                    view.id(),
-                    view.skuId(),
-                    view.quantity(),
-                    view.selected(),
-                    view.addedAt(),
-                    ProductInfo.from(view.product()),
-                    SkuInfo.from(view.sku()),
-                    view.available());
-        }
-
-        @Schema(name = "CartProductInfo", description = "购物车条目里的商品（SPU）信息")
-        public record ProductInfo(UUID id, String name, String mainImage, UUID shopId, String shopName) {
-
-            static ProductInfo from(CartItemView.ProductInfo info) {
-                return new ProductInfo(info.id(), info.name(), info.mainImage(), info.shopId(), info.shopName());
-            }
-        }
-
-        public record SkuInfo(
-                UUID id, String name, String image, Money price, Money originalPrice, Integer stock, boolean onSale) {
-
-            static SkuInfo from(CartItemView.SkuInfo info) {
-                return new SkuInfo(
-                        info.id(),
-                        info.name(),
-                        info.image(),
-                        info.price(),
-                        info.originalPrice(),
-                        info.stock(),
-                        info.onSale());
-            }
-        }
-    }
-
-    /** 角标计数出参：镜像 service 的 CartCount，字段只减不增 */
-    public record CartCountResponse(long total, long selected) {
-
-        static CartCountResponse from(CartCount count) {
-            return new CartCountResponse(count.total(), count.selected());
-        }
     }
 }

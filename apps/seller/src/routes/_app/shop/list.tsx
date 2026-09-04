@@ -154,7 +154,7 @@ function PendingInvites() {
                         <Button
                             size="sm"
                             disabled={accept.isPending}
-                            onClick={() => accept.mutate(invite.memberId ?? "")}
+                            onClick={() => accept.mutate(invite.memberId)}
                             className="bg-primary text-primary-foreground hover:bg-primary-hover"
                         >
                             同意加入

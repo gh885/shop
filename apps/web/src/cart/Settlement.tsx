@@ -42,7 +42,7 @@ export function Settlement() {
                                 className="group relative size-16 overflow-hidden rounded-md"
                             >
                                 <img
-                                    src={view.image}
+                                    src={view.image ?? undefined}
                                     alt={view.title}
                                     className="size-full object-cover"
                                 />

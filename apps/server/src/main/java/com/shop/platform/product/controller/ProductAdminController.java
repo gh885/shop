@@ -4,30 +4,25 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.qiniu.QiniuClient;
-import com.shop.platform.infra.qiniu.UploadTicket;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
+import com.shop.platform.product.controller.response.ImageTicketResponse;
+import com.shop.platform.product.controller.response.ProductDetailResponse;
+import com.shop.platform.product.controller.response.ProductResponse;
+import com.shop.platform.product.controller.response.SkuResponse;
 import com.shop.platform.product.dto.CreateProductRequest;
 import com.shop.platform.product.dto.UpdateProductRequest;
 import com.shop.platform.product.dto.UpdateSkusRequest;
 import com.shop.platform.product.dto.UpdateSpecsRequest;
-import com.shop.platform.product.mapper.ParamItem;
-import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
-import com.shop.platform.product.mapper.SkuAttr;
-import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.model.ProductStatus;
-import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
-import com.shop.platform.product.service.ProductService.ProductListRow;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -135,135 +130,6 @@ public class ProductAdminController {
     }
 
     // ========== HTTP 出参（与买家侧 ProductController 的同名 record 互不共享：方向不同契约不同） ==========
-
-    /** SPU 全字段出参：草稿期 minPrice/maxPrice 可为 null */
-    public record ProductResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID shopId,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID categoryId,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
-            String subtitle,
-            List<String> detailImages,
-            String mainImage,
-            List<String> images,
-            List<SpecItem> specs,
-            List<ParamItem> params,
-            Long minPrice,
-            Long maxPrice,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Long soldCount,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductStatus status,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
-
-        static ProductResponse from(Product p) {
-            return new ProductResponse(
-                    p.getId(),
-                    p.getShopId(),
-                    p.getCategoryId(),
-                    p.getName(),
-                    p.getSubtitle(),
-                    p.getDetailImages(),
-                    p.getMainImage(),
-                    p.getImages(),
-                    p.getSpecs(),
-                    p.getParams(),
-                    p.getMinPrice(),
-                    p.getMaxPrice(),
-                    0,
-                    0L,
-                    p.getStatus(),
-                    p.getCreatedAt(),
-                    p.getUpdatedAt());
-        }
-
-        /** 卖家工作台列表行：SPU 字段 + 库存/销量指标（页面无库存/销量列时也归 0，与 {@link #from(Product)} 一致） */
-        static ProductResponse from(ProductListRow row) {
-            Product p = row.product();
-            return new ProductResponse(
-                    p.getId(),
-                    p.getShopId(),
-                    p.getCategoryId(),
-                    p.getName(),
-                    p.getSubtitle(),
-                    p.getDetailImages(),
-                    p.getMainImage(),
-                    p.getImages(),
-                    p.getSpecs(),
-                    p.getParams(),
-                    p.getMinPrice(),
-                    p.getMaxPrice(),
-                    row.stock(),
-                    row.soldCount(),
-                    p.getStatus(),
-                    p.getCreatedAt(),
-                    p.getUpdatedAt());
-        }
-
-        static List<ProductResponse> from(List<Product> list) {
-            return list.stream().map(ProductResponse::from).toList();
-        }
-    }
-
-    /** 商品图上传凭证：前端 PUT 到 uploadUrl（Authorization: UpToken <token>），传完用 url/key 存进商品图字段 */
-    public record ImageTicketResponse(String uploadUrl, String key, String token, String url) {
-
-        /** 镜像 infra 共享值对象 {@link UploadTicket}：拼装逻辑只留一份，HTTP 边界保留自家契约 */
-        static ImageTicketResponse from(UploadTicket t) {
-            return new ImageTicketResponse(t.uploadUrl(), t.key(), t.token(), t.url());
-        }
-    }
-
-    /** SKU 全字段出参：比买家侧多 skuCode/status（卖家要看到仓管编码与停用态）；价格裸分直传，与前端 schema 对齐 */
-    public record SkuResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID productId,
-            String skuCode,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
-            List<SkuAttr> attributes,
-            String image,
-            Long price,
-            Long originalPrice,
-            String currency,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) SkuStatus status,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
-
-        static SkuResponse from(Sku s, StockView stock) {
-            return new SkuResponse(
-                    s.getId(),
-                    s.getProductId(),
-                    s.getSkuCode(),
-                    s.getName(),
-                    s.getAttributes(),
-                    s.getImage(),
-                    s.getPrice(),
-                    s.getOriginalPrice(),
-                    s.getCurrency(),
-                    stock == null ? 0 : stock.availableStock(),
-                    s.getStatus(),
-                    s.getCreatedAt(),
-                    s.getUpdatedAt());
-        }
-
-        /** 批量转换：按 skuId 从库存 Map 取 availableStock，缺省 0。库存归 inventory 模块，不写 product 表 */
-        static List<SkuResponse> from(List<Sku> list, Map<UUID, StockView> stocks) {
-            return list.stream()
-                    .map(s -> SkuResponse.from(s, stocks.get(s.getId())))
-                    .toList();
-        }
-    }
-
-    /** 详情出参：SPU + 全部 SKU，替代 service 层的 ProductDetail（其内嵌 mapper 实体，不得越过 HTTP 边界） */
-    public record ProductDetailResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductResponse product,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<SkuResponse> skus) {
-
-        static ProductDetailResponse from(ProductDetail d, Map<UUID, StockView> stocks) {
-            return new ProductDetailResponse(ProductResponse.from(d.product()), SkuResponse.from(d.skus(), stocks));
-        }
-    }
 
     /** 跨模块批查库存：skuId → StockView，供 SkuResponse 补库存展示（卖家端） */
     private Map<UUID, StockView> stocks(List<Sku> skus) {

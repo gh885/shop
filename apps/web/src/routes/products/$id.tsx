@@ -98,7 +98,7 @@ function ProductDetailPage() {
         const base =
             detail.images.length > 0
                 ? detail.images
-                : [detail.product.image].filter((i) => i !== "")
+                : [detail.product.image].filter((i): i is string => i != undefined && i !== "")
         const merged = sel.matchedSku?.image
             ? [sel.matchedSku.image, ...base.filter((i) => i !== sel.matchedSku?.image)]
             : base

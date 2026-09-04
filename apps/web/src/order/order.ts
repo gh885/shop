@@ -7,8 +7,11 @@ import type { Order, OrderDetail, OrderItem } from "./model"
 /**
  * entities/order —— 订单领域数据层（纯类型 + wire → 投影 + 纯规则，不碰 React / 网络）。
  *
- * 与 model.ts 的分工：这里把生成 SDK 的 wire 形状（字段全可选）归一成领域形状（稳定缺省），
- * model.ts 只定义领域类型与展示辅助。金额一律 Money，wire 的 SDK Money 字段可选，经 toMoney 归一必填。
+ * 与 model.ts 的分工：这里把生成 SDK 的 wire 形状归一成领域形状。
+ * 自后端收紧 OpenAPI 契约（response 字段已标 required / nullable）后：
+ *   - required 字段：契约保证必有，mapping 不再兜底（去掉 ?? "" / ?? 0）。
+ *   - nullable 字段：契约明确可空，如实透传 null，由 UI 层处理「无」的展示（不再 ?? "" 造假）。
+ * 金额一律 Money，SDK 的 Money 现已 required 且非 null，toMoney 原样透传。
  */
 
 // ---------- 状态映射（后端枚举大写 → 前端领域枚举小写，双向） ----------
@@ -19,125 +22,124 @@ const toStatus = toStatusFromWire
 
 export { statusToWire }
 
-/** 归一：SDK 的 Money 字段全可选（openapi-ts 默认），业务 Money 必填；undefined 原样保留 */
-function toMoney(m: SdkMoney | undefined): Money | undefined {
-    if (m == undefined) return undefined
-    return { amount: m.amount ?? 0, currency: m.currency ?? "CNY" }
+/** 归一：SDK 的 Money 现已 required 且非 null，原样透传 */
+function toMoney(m: SdkMoney): Money {
+    return { amount: m.amount, currency: m.currency }
 }
 
-/** 行项 wire → 业务：快照字段归一，undefined → 空/缺省值 */
+/** 行项 wire → 业务：快照字段归一 */
 export function toOrderItem(dto: {
-    productId?: string
-    skuId?: string | undefined
-    name?: string
-    image?: string | undefined
-    price?: SdkMoney
-    originalPrice?: SdkMoney | undefined
-    quantity?: number
-    amount?: SdkMoney
+    productId: string
+    skuId: string
+    name: string
+    image: string | null
+    price: SdkMoney
+    originalPrice: SdkMoney
+    quantity: number
+    amount: SdkMoney
 }): OrderItem {
     return {
-        productId: dto.productId ?? "",
-        skuId: dto.skuId ?? undefined,
-        title: dto.name ?? "",
-        image: dto.image ?? "",
-        price: toMoney(dto.price) ?? { amount: 0, currency: "CNY" },
+        productId: dto.productId,
+        skuId: dto.skuId,
+        title: dto.name,
+        image: dto.image ?? undefined,
+        price: toMoney(dto.price),
         originalPrice: toMoney(dto.originalPrice),
-        quantity: dto.quantity ?? 0,
-        amount: toMoney(dto.amount) ?? { amount: 0, currency: "CNY" },
+        quantity: dto.quantity,
+        amount: toMoney(dto.amount),
     }
 }
 
-/** 列表项 wire → 业务：列表项已内嵌行项目，金额三件套直接透传（shippingFee 后端可能为 undefined） */
+/** 列表项 wire → 业务：列表项已内嵌行项目，金额三件套直接透传 */
 export function toOrder(dto: {
-    id?: string
-    orderNo?: string
-    status?: string
-    shopId?: string
-    shopName?: string
-    payAmount?: SdkMoney
-    payExpireAt?: string
-    createdAt?: string
-    items?: Array<{
-        productId?: string
-        skuId?: string | undefined
-        name?: string
-        image?: string | undefined
-        price?: SdkMoney
-        originalPrice?: SdkMoney | undefined
-        quantity?: number
-        amount?: SdkMoney
+    id: string
+    orderNo: string
+    status: string
+    shopId: string
+    shopName: string | null
+    payAmount: SdkMoney
+    payExpireAt: string
+    createdAt: string
+    items: Array<{
+        productId: string
+        skuId: string
+        name: string
+        image: string | null
+        price: SdkMoney
+        originalPrice: SdkMoney
+        quantity: number
+        amount: SdkMoney
     }>
 }): Order {
     return {
-        id: dto.id ?? "",
-        orderNo: dto.orderNo ?? "",
-        createdAt: dto.createdAt ?? "",
+        id: dto.id,
+        orderNo: dto.orderNo,
+        createdAt: dto.createdAt,
         status: toStatus(dto.status),
-        payExpireAt: dto.payExpireAt ?? "",
-        shopId: dto.shopId ?? "",
-        shopName: dto.shopName ?? "",
-        items: (dto.items ?? []).map(toOrderItem),
-        itemAmount: toMoney(dto.payAmount) ?? { amount: 0, currency: "CNY" },
+        payExpireAt: dto.payExpireAt,
+        shopId: dto.shopId,
+        shopName: dto.shopName,
+        items: dto.items.map(toOrderItem),
+        itemAmount: toMoney(dto.payAmount),
         shippingFee: undefined,
-        payAmount: toMoney(dto.payAmount) ?? { amount: 0, currency: "CNY" },
+        payAmount: toMoney(dto.payAmount),
     }
 }
 
-/** 详情 wire → 业务：在列表形状之上扩展详情字段（收货快照、物流、时间戳、可执行动作），undefined 归一空值 */
+/** 详情 wire → 业务：在列表形状之上扩展详情字段（收货快照、物流、时间戳、可执行动作），可空如实透传 */
 export function toOrderDetail(dto: {
-    id?: string
-    orderNo?: string
-    status?: string
-    shopId?: string
-    shopName?: string
-    availableActions?: Array<string>
-    itemAmount?: SdkMoney
-    shippingFee?: SdkMoney
-    payAmount?: SdkMoney
-    buyerMessage?: string
-    receiverName?: string
-    receiverPhone?: string
-    receiverProvince?: string
-    receiverCity?: string
-    receiverDistrict?: string
-    receiverDetail?: string
-    logisticsCompany?: string
-    trackingNo?: string
-    payExpireAt?: string
-    paidAt?: string
-    shippedAt?: string
-    completedAt?: string
-    cancelledAt?: string
-    cancelReason?: string
-    createdAt?: string
-    items?: Array<{
-        productId?: string
-        skuId?: string | undefined
-        name?: string
-        image?: string | undefined
-        price?: SdkMoney
-        originalPrice?: SdkMoney | undefined
-        quantity?: number
-        amount?: SdkMoney
+    id: string
+    orderNo: string
+    status: string
+    shopId: string
+    shopName: string | null
+    availableActions: Array<string>
+    itemAmount: SdkMoney
+    shippingFee: SdkMoney
+    payAmount: SdkMoney
+    buyerMessage: string | null
+    receiverName: string
+    receiverPhone: string
+    receiverProvince: string
+    receiverCity: string
+    receiverDistrict: string
+    receiverDetail: string
+    logisticsCompany: string | null
+    trackingNo: string | null
+    payExpireAt: string
+    paidAt: string | null
+    shippedAt: string | null
+    completedAt: string | null
+    cancelledAt: string | null
+    cancelReason: string | null
+    createdAt: string
+    items: Array<{
+        productId: string
+        skuId: string
+        name: string
+        image: string | null
+        price: SdkMoney
+        originalPrice: SdkMoney
+        quantity: number
+        amount: SdkMoney
     }>
 }): OrderDetail {
     return {
         ...toOrder(dto),
-        availableActions: dto.availableActions ?? [],
-        buyerMessage: dto.buyerMessage ?? "",
-        receiverName: dto.receiverName ?? "",
-        receiverPhone: dto.receiverPhone ?? "",
-        receiverProvince: dto.receiverProvince ?? "",
-        receiverCity: dto.receiverCity ?? "",
-        receiverDistrict: dto.receiverDistrict ?? "",
-        receiverDetail: dto.receiverDetail ?? "",
-        logisticsCompany: dto.logisticsCompany ?? "",
-        trackingNo: dto.trackingNo ?? "",
-        paidAt: dto.paidAt ?? "",
-        shippedAt: dto.shippedAt ?? "",
-        completedAt: dto.completedAt ?? "",
-        cancelledAt: dto.cancelledAt ?? "",
-        cancelReason: dto.cancelReason ?? "",
+        availableActions: dto.availableActions,
+        buyerMessage: dto.buyerMessage,
+        receiverName: dto.receiverName,
+        receiverPhone: dto.receiverPhone,
+        receiverProvince: dto.receiverProvince,
+        receiverCity: dto.receiverCity,
+        receiverDistrict: dto.receiverDistrict,
+        receiverDetail: dto.receiverDetail,
+        logisticsCompany: dto.logisticsCompany,
+        trackingNo: dto.trackingNo,
+        paidAt: dto.paidAt,
+        shippedAt: dto.shippedAt,
+        completedAt: dto.completedAt,
+        cancelledAt: dto.cancelledAt,
+        cancelReason: dto.cancelReason,
     }
 }

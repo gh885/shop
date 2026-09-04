@@ -1,21 +1,18 @@
 package com.shop.platform.order.controller;
 
-import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
+import com.shop.platform.order.controller.response.OrderDetailResponse;
+import com.shop.platform.order.controller.response.SellerOrderListItemResponse;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.ShipOrderRequest;
-import com.shop.platform.order.mapper.Order;
-import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
-import com.shop.platform.order.service.OrderWithItems;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -75,30 +72,5 @@ public class SellerOrderController {
     @PutMapping("/{id}/after-sales/receive")
     public void receiveReturn(@CurrentShop UUID shopId, @PathVariable UUID id) {
         orderTransitionService.receiveReturn(shopId, id);
-    }
-
-    // ---- 出参形状 ----
-
-    /** 列表卡片：买家收货人摘要 + 行项目数，发货作业先扫一眼再进详情；详情与买家侧共用 OrderDetailResponse */
-    public record SellerOrderListItemResponse(
-            UUID id,
-            String orderNo,
-            OrderStatus status,
-            Money payAmount,
-            String receiverName,
-            long itemCount,
-            OffsetDateTime createdAt) {
-
-        static SellerOrderListItemResponse from(OrderWithItems o) {
-            Order order = o.order();
-            return new SellerOrderListItemResponse(
-                    order.getId(),
-                    order.getOrderNo(),
-                    order.getStatus(),
-                    order.payAmountAsMoney(),
-                    order.getReceiverName(),
-                    o.items().size(),
-                    order.getCreatedAt());
-        }
     }
 }

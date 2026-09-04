@@ -59,7 +59,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
 
             <div className="text-right">
                 <p className="text-sm font-semibold text-foreground">
-                    ¥{fenToYuan(item.sku?.price?.amount ?? 0)}
+                    ¥{fenToYuan(item.sku.price.amount)}
                 </p>
                 {item.sku?.originalPrice && (
                     <p className="text-xs text-muted-foreground line-through">

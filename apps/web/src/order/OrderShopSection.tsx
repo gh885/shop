@@ -18,7 +18,7 @@ const ITEM_ACTIONS: { key: string; label: string; variant?: "default" | "outline
 ]
 
 export interface OrderShopSectionProps {
-    order: { shopId: string; shopName: string; payAmount: { amount: number } }
+    order: { shopId: string; shopName: string | null; payAmount: { amount: number } }
     items: OrderItem[]
     onItemAction?: (item: OrderItem, action: string) => void
 }
@@ -31,7 +31,9 @@ export function OrderShopSection({ order, items, onItemAction }: OrderShopSectio
                 <span className="inline-flex size-5 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
                     店
                 </span>
-                <span className="text-sm font-medium text-foreground">{order.shopName}</span>
+                <span className="text-sm font-medium text-foreground">
+                    {order.shopName ?? "店铺已关闭"}
+                </span>
                 <Button
                     variant="link"
                     size="sm"

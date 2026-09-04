@@ -16,21 +16,23 @@ export type NavGroup = { name: string; items: string[] }
 export type NavEntry = {
     id: string
     title: string
-    iconKey: string
-    target: string
-    targetType: string
+    /** 图标 key（SDK 可空） */
+    iconKey: string | null
+    /** 跳转目标（SDK 可空） */
+    target: string | null
+    targetType: string | null
     subs: NavGroup[]
 }
 
 /** wire → 投影 */
 export function toNavEntry(dto: NavEntryResponse): NavEntry {
     return {
-        id: dto.id ?? "",
-        title: dto.title ?? "",
-        iconKey: dto.iconKey ?? "",
-        target: dto.target ?? "",
-        targetType: dto.targetType ?? "",
-        subs: (dto.subs ?? []).map((sub) => ({ name: sub.name, items: sub.items ?? [] })),
+        id: dto.id,
+        title: dto.title,
+        iconKey: dto.iconKey,
+        target: dto.target,
+        targetType: dto.targetType,
+        subs: dto.subs.map((sub) => ({ name: sub.name, items: sub.items ?? [] })),
     }
 }
 
@@ -40,23 +42,26 @@ export function toNavEntry(dto: NavEntryResponse): NavEntry {
 export type Banner = {
     id: string
     title: string
-    subtitle: string
+    /** 副标题（SDK 可空） */
+    subtitle: string | null
     image: string
-    target: string
-    targetType: string
-    link: string
+    /** 跳转目标（SDK 可空） */
+    target: string | null
+    targetType: string | null
+    /** 外部链接（SDK 可空） */
+    link: string | null
 }
 
 /** wire → 投影 */
 export function toBanner(dto: BannerResponse): Banner {
     return {
-        id: dto.id ?? "",
-        title: dto.title ?? "",
-        subtitle: dto.subtitle ?? "",
-        image: dto.imageUrl ?? "",
-        target: dto.target ?? "",
-        targetType: dto.targetType ?? "",
-        link: dto.link ?? "",
+        id: dto.id,
+        title: dto.title,
+        subtitle: dto.subtitle,
+        image: dto.imageUrl,
+        target: dto.target,
+        targetType: dto.targetType,
+        link: dto.link,
     }
 }
 
@@ -66,19 +71,20 @@ export function toBanner(dto: BannerResponse): Banner {
 export type RecommendTab = {
     id: string
     name: string
-    target: string
-    targetType: string
+    /** 跳转目标（SDK 可空） */
+    target: string | null
+    targetType: string | null
     isDefault: boolean
 }
 
 /** wire → 投影 */
 export function toRecommendTab(dto: RecommendTabResponse): RecommendTab {
     return {
-        id: dto.id ?? "",
-        name: dto.name ?? "",
-        target: dto.target ?? "",
-        targetType: dto.targetType ?? "",
-        isDefault: dto.isDefault ?? false,
+        id: dto.id,
+        name: dto.name,
+        target: dto.target,
+        targetType: dto.targetType,
+        isDefault: dto.isDefault,
     }
 }
 

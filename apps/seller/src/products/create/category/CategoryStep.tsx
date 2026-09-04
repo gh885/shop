@@ -25,7 +25,7 @@ export function CategoryStep({
     /** 切换发品方式：由父级写回 URL（刷新可恢复） */
     onModeChange: (mode: "search" | "image") => void
     /** 已选末级类目 id（来自 URL），用于返回本步时回填 */
-    value: string | undefined
+    value?: string
     onConfirm: (leafId: string) => void
 }) {
     const { data: tree = [], isPending } = useCategoryTree()

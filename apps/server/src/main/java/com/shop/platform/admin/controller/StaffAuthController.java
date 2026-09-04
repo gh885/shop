@@ -1,10 +1,10 @@
 package com.shop.platform.admin.controller;
 
+import com.shop.platform.admin.controller.response.StaffInfoResponse;
 import com.shop.platform.admin.dto.LoginRequest;
 import com.shop.platform.admin.dto.LogoutRequest;
 import com.shop.platform.admin.dto.RefreshRequest;
 import com.shop.platform.admin.infra.StaffContext;
-import com.shop.platform.admin.service.StaffInfo;
 import com.shop.platform.admin.service.StaffService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.TokenPair;
@@ -13,8 +13,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -73,15 +71,5 @@ public class StaffAuthController {
     public void staffLogout(@Valid @RequestBody LogoutRequest req, HttpServletResponse response) {
         staffService.logout(StaffContext.get(), req.deviceId());
         refreshCookies.clear(response, COOKIE);
-    }
-
-    /** 员工信息出参：镜像 service 的 StaffInfo，字段只减不增 */
-    public record StaffInfoResponse(
-            UUID id, String employeeNo, String displayName, String role, List<String> permissions) {
-
-        static StaffInfoResponse from(StaffInfo info) {
-            return new StaffInfoResponse(
-                    info.id(), info.employeeNo(), info.displayName(), info.role(), info.permissions());
-        }
     }
 }

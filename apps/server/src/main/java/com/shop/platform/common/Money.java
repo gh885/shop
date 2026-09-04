@@ -1,5 +1,8 @@
 package com.shop.platform.common;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Locale;
 
 /**
@@ -10,7 +13,7 @@ import java.util.Locale;
  *
  * <p>业务语义：这是一个商品/交易金额，非负；运算只在同币种间进行，跨币种相加直接拒绝，从编译期之外再多一道运行时护栏。
  */
-public record Money(long amount, String currency) {
+public record Money(@Schema(requiredMode = REQUIRED) long amount, @Schema(requiredMode = REQUIRED) String currency) {
 
     /** 常见币种常量。业务侧默认本平台定价货币为 CNY */
     public static final String CNY = "CNY";

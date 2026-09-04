@@ -33,7 +33,7 @@ async function fetchCartItems(): Promise<CartItem[]> {
 }
 async function fetchCartCount(): Promise<number> {
     const res = await CartApi.getCartCount()
-    return res.total ?? 0
+    return res.total
 }
 
 /** 购物车列表：仅在路由 /cart（_protected 内）使用。
@@ -147,7 +147,7 @@ export function useCartItemActions() {
         /** 改数量：越界静默拦下、超库存提示（仍以后端裁决为准）；库存取自调用方手上的 item，不回查列表 */
         updateQuantity: (item: CartItem, quantity: number) => {
             if (quantity < 1 || quantity > MAX_CART_QUANTITY) return
-            const stock = item.sku?.stock ?? 0
+            const stock = item.sku.stock
             if (stock > 0 && quantity > stock) {
                 notify.info(`最多只能购买 ${stock} 件`)
                 return

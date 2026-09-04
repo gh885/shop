@@ -10,13 +10,13 @@ export async function me() {
 /** 图形验证码（发码前先人机验证） */
 export async function getCaptcha(): Promise<{ captchaId: string; image: string }> {
     const data = await AuthApi.getCaptcha()
-    return { captchaId: data.captchaId ?? "", image: data.image ?? "" }
+    return { captchaId: data.captchaId, image: data.image }
 }
 
 /** 短信验证码登录 */
 export async function loginBySms(input: { phone: string; code: string; deviceId: string }) {
     const data = await AuthApi.loginBySms({ body: input })
-    return { accessToken: data.accessToken ?? "" }
+    return { accessToken: data.accessToken }
 }
 
 /** 密码登录 */
@@ -26,7 +26,7 @@ export async function loginByPassword(input: {
     deviceId: string
 }) {
     const data = await AuthApi.loginByPassword({ body: input })
-    return { accessToken: data.accessToken ?? "" }
+    return { accessToken: data.accessToken }
 }
 
 /** 发送短信验证码 */

@@ -32,7 +32,7 @@ export function HomeCategoryNav({
     entries,
 }: {
     defaultHeight?: number
-    entries: NavEntry[] | undefined
+    entries?: NavEntry[]
 }) {
     const [activeId, setActiveId] = useState<string | undefined>()
 
@@ -53,7 +53,8 @@ export function HomeCategoryNav({
             <div className="h-full overflow-hidden rounded-lg bg-background shadow-sm">
                 <ul>
                     {entries.map((entry) => {
-                        const Icon = ICON_BY_KEY[entry.iconKey] ?? ShoppingBag
+                        const Icon =
+                            (entry.iconKey ? ICON_BY_KEY[entry.iconKey] : undefined) ?? ShoppingBag
                         return (
                             <li key={entry.id}>
                                 <Button

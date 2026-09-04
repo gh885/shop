@@ -1,26 +1,25 @@
 package com.shop.platform.order.controller;
 
-import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.infra.web.CurrentUser;
+import com.shop.platform.order.controller.response.CreatedOrder;
+import com.shop.platform.order.controller.response.CreatedOrdersResponse;
+import com.shop.platform.order.controller.response.OrderDetailResponse;
+import com.shop.platform.order.controller.response.OrderListItemResponse;
+import com.shop.platform.order.controller.response.PreviewResponse;
 import com.shop.platform.order.dto.ApplyAfterSaleRequest;
 import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.dto.ReturnGoodsRequest;
-import com.shop.platform.order.mapper.Order;
-import com.shop.platform.order.model.OrderStatus;
-import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.order.service.OrderWithItems;
-import com.shop.platform.order.service.ValidLine;
 import com.shop.platform.shop.api.ShopReadQuery;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -122,118 +121,5 @@ public class OrderController {
     public void returnGoods(
             @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody ReturnGoodsRequest req) {
         orderTransitionService.returnGoods(userId, id, req.logisticsCompany(), req.trackingNo());
-    }
-
-    // ---- 出参形状 ----
-
-    /** 结算预览出参，镜像 service 形状 CheckoutPreview，金额走 Money（amount + currency） */
-    public record PreviewResponse(
-            List<Group> groups, List<UnavailableLine> unavailable, Address address, Money totalPayAmount) {
-
-        static PreviewResponse from(CheckoutPreview p) {
-            return new PreviewResponse(
-                    p.groups().stream().map(Group::from).toList(),
-                    p.unavailable().stream()
-                            .map(u -> new UnavailableLine(u.skuId(), u.name(), u.image(), u.quantity(), u.cause()))
-                            .toList(),
-                    p.address() != null ? Address.from(p.address()) : null,
-                    p.totalPayAmount());
-        }
-
-        public record Group(
-                UUID shopId, String shopName, List<Item> lines, Money itemAmount, Money shippingFee, Money payAmount) {
-
-            static Group from(CheckoutPreview.Group g) {
-                return new Group(
-                        g.shopId(),
-                        g.shopName(),
-                        g.lines().stream().map(Item::from).toList(),
-                        g.itemAmount(),
-                        g.shippingFee(),
-                        g.payAmount());
-            }
-        }
-
-        public record Item(
-                UUID skuId,
-                UUID productId,
-                String name,
-                String image,
-                Money price,
-                Money originalPrice,
-                Integer quantity,
-                Integer stock) {
-
-            static Item from(ValidLine l) {
-                return new Item(
-                        l.skuId(),
-                        l.productId(),
-                        l.name(),
-                        l.image(),
-                        l.price(),
-                        l.originalPrice(),
-                        l.quantity(),
-                        l.stock());
-            }
-        }
-
-        public record UnavailableLine(UUID skuId, String name, String image, Integer quantity, String cause) {}
-
-        public record Address(
-                UUID id,
-                String receiverName,
-                String receiverPhone,
-                String province,
-                String city,
-                String district,
-                String detail) {
-
-            static Address from(CheckoutPreview.Address a) {
-                return new Address(
-                        a.id(),
-                        a.snapshot().receiverName(),
-                        a.snapshot().receiverPhone(),
-                        a.snapshot().province(),
-                        a.snapshot().city(),
-                        a.snapshot().district(),
-                        a.snapshot().detail());
-            }
-        }
-    }
-
-    /** 创建结果：拆出的全部新单，payExpireAt 供前端倒计时 */
-    public record CreatedOrdersResponse(List<CreatedOrder> orders) {}
-
-    public record CreatedOrder(UUID id, String orderNo, UUID shopId, Money payAmount, OffsetDateTime payExpireAt) {
-
-        static CreatedOrder from(Order o) {
-            return new CreatedOrder(o.getId(), o.getOrderNo(), o.getShopId(), o.payAmountAsMoney(), o.getPayExpireAt());
-        }
-    }
-
-    /** 列表卡片：够渲染一行订单即可；详情页独有的大字段（地址/物流/留言）不进列表 */
-    public record OrderListItemResponse(
-            UUID id,
-            String orderNo,
-            OrderStatus status,
-            UUID shopId,
-            String shopName,
-            Money payAmount,
-            OffsetDateTime payExpireAt,
-            OffsetDateTime createdAt,
-            List<OrderItemResponse> items) {
-
-        static OrderListItemResponse from(OrderWithItems o, Map<UUID, String> shopNames) {
-            return new OrderListItemResponse(
-                    o.order().getId(),
-                    o.order().getOrderNo(),
-                    o.order().getStatus(),
-                    o.order().getShopId(),
-                    shopNames.getOrDefault(o.order().getShopId(), ""),
-                    o.order().payAmountAsMoney(),
-                    o.order().getPayExpireAt(),
-                    o.order().getCreatedAt(),
-                    o.items().stream().map(OrderItemResponse::from).toList());
-        }
     }
 }

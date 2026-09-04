@@ -1,6 +1,10 @@
 package com.shop.platform.auth.controller;
 
 import com.shop.platform.auth.AuthProperties;
+import com.shop.platform.auth.controller.response.AvatarTicketResponse;
+import com.shop.platform.auth.controller.response.CaptchaResponse;
+import com.shop.platform.auth.controller.response.DeviceEntryResponse;
+import com.shop.platform.auth.controller.response.MeResponse;
 import com.shop.platform.auth.dto.ForgotPasswordRequest;
 import com.shop.platform.auth.dto.LogoutRequest;
 import com.shop.platform.auth.dto.PasswordLoginRequest;
@@ -10,15 +14,11 @@ import com.shop.platform.auth.dto.SetPasswordRequest;
 import com.shop.platform.auth.dto.SmsCodeRequest;
 import com.shop.platform.auth.dto.SmsLoginRequest;
 import com.shop.platform.auth.dto.UpdateProfileRequest;
-import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.service.AuthService;
 import com.shop.platform.auth.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.infra.captcha.CaptchaService;
 import com.shop.platform.infra.qiniu.QiniuClient;
-import com.shop.platform.infra.qiniu.UploadTicket;
-import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.CurrentUser;
@@ -27,7 +27,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -198,37 +197,4 @@ public class AuthController {
 
     // ---- Response DTOs ----
 
-    /** 当前登录用户信息（手机号已脱敏） */
-    public record MeResponse(UUID id, String phone, String nickname, String avatarKey) {
-
-        static MeResponse from(User user) {
-            return new MeResponse(
-                    user.getId(), PhoneNumber.mask(user.getPhone()), user.getNickname(), user.getAvatarKey());
-        }
-    }
-
-    /** 图片上传凭证：前端把文件 PUT 到 uploadUrl，请求头带 Authorization: UpToken <token>；传完用 url/key 保存 */
-    public record AvatarTicketResponse(String uploadUrl, String key, String token, String url) {
-
-        static AvatarTicketResponse from(UploadTicket t) {
-            return new AvatarTicketResponse(t.uploadUrl(), t.key(), t.token(), t.url());
-        }
-    }
-
-    /** 图形验证码出参：前端渲染图（base64 data URI），校验时回传 id + 用户输入 */
-    public record CaptchaResponse(String captchaId, String image) {}
-
-    /** 设备列表项：deviceId + 元数据（设备名/IP/最近活跃）+ 是否当前设备 */
-    public record DeviceEntryResponse(
-            String deviceId, String deviceName, String ip, OffsetDateTime lastLoginAt, boolean isCurrent) {
-
-        static DeviceEntryResponse from(RefreshTokenStore.DeviceEntry entry, String currentDeviceId) {
-            return new DeviceEntryResponse(
-                    entry.deviceId(),
-                    entry.info().deviceName(),
-                    entry.info().ip(),
-                    entry.info().lastLoginAt(),
-                    entry.deviceId().equals(currentDeviceId));
-        }
-    }
 }

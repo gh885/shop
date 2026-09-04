@@ -16,7 +16,7 @@ export function CategorySearchResults({
 }: {
     keyword: string
     results: LeafPath[]
-    selectedLeafId: string | undefined
+    selectedLeafId?: string
     onPick: (path: LeafPath) => void
 }) {
     if (results.length === 0) {

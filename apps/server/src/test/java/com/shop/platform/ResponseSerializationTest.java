@@ -3,8 +3,8 @@ package com.shop.platform;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.common.Money;
-import com.shop.platform.order.controller.OrderItemResponse;
-import com.shop.platform.product.controller.CategoryAttrResponse;
+import com.shop.platform.order.controller.response.OrderItemResponse;
+import com.shop.platform.product.controller.response.CategoryAttrResponse;
 import com.shop.platform.product.model.AttrKind;
 import com.shop.platform.product.model.CategoryAttrStatus;
 import java.time.OffsetDateTime;

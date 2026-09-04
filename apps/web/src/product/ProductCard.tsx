@@ -13,7 +13,8 @@ import { Badge, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 /** 商品卡片（京东式）：方形图 + 两行标题 + 标签排 + 价格/销量/加购。商品域 UI，首页/详情推荐/搜索/类目页共用 */
 export interface ProductCardData {
     id: string
-    image: string
+    /** 主图：可空，无图时卡片用占位图 */
+    image: string | null
     /** 商品标题 */
     title: string
     /** 价格（分） */

@@ -1,9 +1,9 @@
 package com.shop.platform.shop.controller;
 
+import com.shop.platform.shop.controller.response.PublicShopResponse;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.service.ShopService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,11 +27,8 @@ public class ShopPublicController {
 
     /** 店铺公开信息，仅 ACTIVE 店铺可见 */
     @GetMapping("/{id}")
-    public ShopResponse getPublicShop(@PathVariable UUID id) {
+    public PublicShopResponse getPublicShop(@PathVariable UUID id) {
         Shop shop = shopService.publicShop(id);
-        return new ShopResponse(shop.getId(), shop.getName(), shop.getLogoKey(), shop.getCreatedAt());
+        return new PublicShopResponse(shop.getId(), shop.getName(), shop.getLogoKey(), shop.getCreatedAt());
     }
-
-    /** 店铺对外信息：隐藏 ownerId 与 status（内部治理字段，且非 ACTIVE 根本查不到） */
-    public record ShopResponse(UUID id, String name, String logoKey, OffsetDateTime createdAt) {}
 }

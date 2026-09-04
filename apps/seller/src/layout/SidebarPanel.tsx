@@ -12,7 +12,7 @@ export function SidebarPanel({
     pathname,
     className,
 }: {
-    shown: SidebarItem | undefined
+    shown?: SidebarItem
     /** 当前 pathname（不含 /_app） */
     pathname: string
     className?: string

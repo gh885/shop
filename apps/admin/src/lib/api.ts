@@ -28,7 +28,7 @@ export const adminApi = {
     /** 员工登录：成功后返回 access token */
     async login(input: { employeeNo: string; password: string; deviceId: string }) {
         const data = await AdminAuthApi.staffLogin({ body: input })
-        return { accessToken: data.accessToken ?? "" }
+        return { accessToken: data.accessToken }
     },
 
     /** 当前登录员工信息 */
@@ -56,9 +56,9 @@ export const adminApi = {
                 shopName: r.shopName,
                 ownerPhone: r.ownerPhone,
                 status: r.status,
-                // reason/decidedAt 契约可空（PENDING 时无值），留兜底
-                reason: r.reason ?? "",
-                decidedAt: r.decidedAt ?? "",
+                // reason/decidedAt 契约可空（PENDING 时无值），如实透传 null，UI 显示「—」
+                reason: r.reason,
+                decidedAt: r.decidedAt,
                 createdAt: r.createdAt,
             })),
             total: page.total,
@@ -76,15 +76,15 @@ export const adminApi = {
     },
 }
 
-/** 店铺审核行：wire 字段归一（后端非空返回，此处定非可选形状供表格使用） */
+/** 店铺审核行：wire 字段归一；reason/decidedAt 为真实可空（PENDING 时无值），建模为 null */
 export type ShopReviewItem = {
     id: string
     shopId: string
     shopName: string
     ownerPhone: string
     status: string
-    reason: string
-    decidedAt: string
+    reason: string | null
+    decidedAt: string | null
     createdAt: string
 }
 

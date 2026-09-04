@@ -4,6 +4,24 @@
  * 这里只有投影映射与类型。
  */
 
+import type { AddressResponse } from "@shop/api/sdk"
+
+/** wire → 业务：AddressResponse.receiverName → Address.receiver，其余字段同名透传 */
+export function toAddress(dto: AddressResponse): Address {
+    return {
+        id: dto.id,
+        receiver: dto.receiverName,
+        phone: dto.phone,
+        regionCode: dto.regionCode,
+        province: dto.province,
+        city: dto.city,
+        district: dto.district,
+        detail: dto.detail,
+        label: dto.label,
+        isDefault: dto.isDefault,
+    }
+}
+
 /** 地址业务形状（wire 的 receiverName → receiver 归一） */
 export type Address = {
     id: string

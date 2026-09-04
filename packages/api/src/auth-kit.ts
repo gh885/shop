@@ -48,10 +48,11 @@ export function createAuthKit(options: AuthKitOptions): AuthKit {
     const DEVICE_KEY = options.deviceKey ?? "shop_device_id"
 
     // 启动时一律 unknown，待 bootstrap 用 refresh cookie 换新 access token 后裁决
+    // oxlint-disable-next-line no-null -- TokenStore.get 接口契约返回 string | null，内部变量与接口对齐
     let accessToken: string | null = null
     let status: AuthStatus = "unknown"
-    let bootstrapPromise: Promise<void> | null = null
-    let cachedDeviceId: string | null = null
+    let bootstrapPromise: Promise<void> | undefined
+    let cachedDeviceId: string | undefined
 
     const listeners = new Set<() => void>()
 
@@ -76,6 +77,7 @@ export function createAuthKit(options: AuthKitOptions): AuthKit {
             emit()
         },
         clear: () => {
+            // oxlint-disable-next-line no-null -- TokenStore.get 接口契约返回 string | null
             accessToken = null
             status = "guest"
             emit()

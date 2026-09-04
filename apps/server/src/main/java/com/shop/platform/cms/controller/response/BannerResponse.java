@@ -1,7 +1,10 @@
-package com.shop.platform.cms.controller;
+package com.shop.platform.cms.controller.response;
+
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.cms.mapper.Banner;
 import com.shop.platform.cms.model.CmsStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -12,20 +15,20 @@ import java.util.UUID;
  * 字段镜像实体现状，前端 BannerDtoSchema 逐字段严格校验，只减不增。
  */
 public record BannerResponse(
-        UUID id,
-        String slot,
-        String title,
-        String subtitle,
-        String imageUrl,
-        String target,
-        String targetType,
-        String link,
-        Integer sortOrder,
-        CmsStatus status,
-        OffsetDateTime startAt,
-        OffsetDateTime endAt,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt) {
+        @Schema(requiredMode = REQUIRED) UUID id,
+        @Schema(requiredMode = REQUIRED) String slot,
+        @Schema(requiredMode = REQUIRED) String title,
+        @Schema(requiredMode = REQUIRED, nullable = true) String subtitle,
+        @Schema(requiredMode = REQUIRED) String imageUrl,
+        @Schema(requiredMode = REQUIRED, nullable = true) String target,
+        @Schema(requiredMode = REQUIRED, nullable = true) String targetType,
+        @Schema(requiredMode = REQUIRED, nullable = true) String link,
+        @Schema(requiredMode = REQUIRED) Integer sortOrder,
+        @Schema(requiredMode = REQUIRED) CmsStatus status,
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime startAt,
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime endAt,
+        @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt,
+        @Schema(requiredMode = REQUIRED) OffsetDateTime updatedAt) {
 
     public static BannerResponse from(Banner b) {
         return new BannerResponse(

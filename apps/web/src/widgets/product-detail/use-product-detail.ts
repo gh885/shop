@@ -32,7 +32,7 @@ export interface PublicShop {
 
 async function fetchShopPublic(shopId: string): Promise<PublicShop> {
     const d = await PublicShopsApi.getPublicShop({ path: { id: shopId } })
-    return { id: d.id ?? "", name: d.name ?? "", logoKey: d.logoKey ?? undefined }
+    return { id: d.id, name: d.name, logoKey: d.logoKey ?? undefined }
 }
 
 export const shopOptions = (shopId: string) =>

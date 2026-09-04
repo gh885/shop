@@ -55,7 +55,7 @@ export function useFavoriteStatus(productId: string) {
             const res = await FavoritesApi.checkFavoriteExists({
                 body: { productIds: [productId] },
             })
-            return (res.productIds ?? []).includes(productId)
+            return res.productIds.includes(productId)
         },
         enabled: isLoggedIn,
         staleTime: 30_000,

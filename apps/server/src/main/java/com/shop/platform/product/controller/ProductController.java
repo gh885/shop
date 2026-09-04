@@ -1,19 +1,15 @@
 package com.shop.platform.product.controller;
 
-import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
+import com.shop.platform.product.controller.response.PublicProductDetailResponse;
+import com.shop.platform.product.controller.response.PublicProductResponse;
 import com.shop.platform.product.dto.ProductQuery;
-import com.shop.platform.product.mapper.ParamItem;
-import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
-import com.shop.platform.product.mapper.SkuAttr;
-import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -47,98 +43,21 @@ public class ProductController {
 
     /** 商品列表：只返上架商品，可按类目/店铺/关键词筛选并排序 */
     @GetMapping
-    public PageResult<ProductResponse> listPublicProducts(@Valid PageParams pageParams, @Valid ProductQuery query) {
+    public PageResult<PublicProductResponse> listPublicProducts(
+            @Valid PageParams pageParams, @Valid ProductQuery query) {
         return productService
                 .pagePublic(query, pageParams.page(), pageParams.size())
-                .map(ProductResponse::from);
+                .map(PublicProductResponse::from);
     }
 
     /** 商品详情：非上架一律 404，SKU 只返在售 */
     @GetMapping("/{id}")
-    public ProductDetailResponse getPublicProductDetail(@PathVariable UUID id) {
+    public PublicProductDetailResponse getPublicProductDetail(@PathVariable UUID id) {
         ProductDetail d = productService.publicDetail(id);
-        return ProductDetailResponse.from(d, stocks(d.skus()));
+        return PublicProductDetailResponse.from(d, stocks(d.skus()));
     }
 
-    /** 列表项：够渲染一张商品卡片即可，详情独有的大字段（description/images）不进列表，省带宽。
-     * 与卖家端 ProductAdminController 的同名 record 区分（若非同名，springdoc 会在 components.schemas 互相覆盖，
-     * 买家端金额 Money 会被卖家端 Long 覆盖、混入 admin 字段）。 */
-    @Schema(name = "PublicProductResponse")
-    public record ProductResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID shopId,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID categoryId,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
-            String subtitle,
-            String mainImage,
-            Money minPrice,
-            Money maxPrice) {
-
-        static ProductResponse from(Product p) {
-            return new ProductResponse(
-                    p.getId(),
-                    p.getShopId(),
-                    p.getCategoryId(),
-                    p.getName(),
-                    p.getSubtitle(),
-                    p.getMainImage(),
-                    p.getMinPrice() == null ? null : Money.cny(p.getMinPrice()),
-                    p.getMaxPrice() == null ? null : Money.cny(p.getMaxPrice()));
-        }
-    }
-
-    @Schema(name = "PublicProductDetailResponse")
-    public record ProductDetailResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductResponse product,
-            List<String> detailImages,
-            List<String> images,
-            List<SpecItem> specs,
-            List<ParamItem> params,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<SkuResponse> skus) {
-
-        static ProductDetailResponse from(ProductDetail d, Map<UUID, StockView> stocks) {
-            Product p = d.product();
-            return new ProductDetailResponse(
-                    ProductResponse.from(p),
-                    p.getDetailImages(),
-                    p.getImages(),
-                    p.getSpecs(),
-                    p.getParams(),
-                    d.skus().stream()
-                            .map(s -> SkuResponse.from(s, stocks.get(s.getId())))
-                            .toList());
-        }
-    }
-
-    @Schema(name = "PublicSkuResponse")
-    public record SkuResponse(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String name,
-            List<SkuAttr> attributes,
-            String image,
-            Money price,
-            Money originalPrice,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock) {
-
-        /** 币种取 Sku.currency，缺省回退本平台默认币种 CNY；null 金额不构造成 Money */
-        private static Money money(Long fen, String currency) {
-            if (fen == null) return null;
-            return Money.ofFen(fen, currency != null ? currency : Money.CNY);
-        }
-
-        static SkuResponse from(Sku s, StockView stock) {
-            return new SkuResponse(
-                    s.getId(),
-                    s.getName(),
-                    s.getAttributes(),
-                    s.getImage(),
-                    money(s.getPrice(), s.getCurrency()),
-                    money(s.getOriginalPrice(), s.getCurrency()),
-                    stock == null ? 0 : stock.availableStock());
-        }
-    }
-
-    /** 跨模块批查库存：skuId → StockView，供 SkuResponse 补库存展示（买家端详情） */
+    /** 跨模块批查库存：skuId → StockView，供 PublicSkuResponse 补库存展示（买家端详情） */
     private Map<UUID, StockView> stocks(List<Sku> skus) {
         return stockReadQuery.availableBySkuIds(skus.stream().map(Sku::getId).toList());
     }

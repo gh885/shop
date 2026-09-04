@@ -7,7 +7,8 @@ export type { SkuInfo } from "@shop/api/sdk"
 export type CartProductInfo = {
     id: string
     title: string
-    image: string
+    /** 主图（SDK 可空，UI 用占位图） */
+    image?: string
     shopId: string
     shopName: string
 }
@@ -23,9 +24,10 @@ export type CartItem = {
     quantity: number
     selected: boolean
     available: boolean
-    /** 失效条目（无 SPU / 商品被删）没有 product；groupByShop 据此归入「失效商品」组 */
-    product?: CartProductInfo
-    sku?: SkuInfo
+    /** available=false 时商品已下架，product 仍有值（展示快照用） */
+    product: CartProductInfo
+    /** SKU 快照（价格/库存/规格图） */
+    sku: SkuInfo
 }
 
 /**
@@ -47,20 +49,18 @@ export type CartItem = {
  */
 export function toCartItem(dto: CartListItemResponse): CartItem {
     return {
-        id: dto.id ?? "",
-        skuId: dto.skuId ?? "",
-        quantity: dto.quantity ?? 0,
-        selected: dto.selected ?? false,
-        available: dto.available ?? true,
-        product: dto.product
-            ? {
-                  id: dto.product.id ?? "",
-                  title: dto.product.name ?? "",
-                  image: dto.product.mainImage ?? "",
-                  shopId: dto.product.shopId ?? "",
-                  shopName: dto.product.shopName ?? "",
-              }
-            : undefined,
+        id: dto.id,
+        skuId: dto.skuId,
+        quantity: dto.quantity,
+        selected: dto.selected,
+        available: dto.available,
+        product: {
+            id: dto.product.id,
+            title: dto.product.name,
+            image: dto.product.mainImage ?? undefined,
+            shopId: dto.product.shopId,
+            shopName: dto.product.shopName,
+        },
         sku: dto.sku,
     }
 }
@@ -76,7 +76,8 @@ export type CartShopGroup = {
 
 /** 购物车条目行的视图读模型：组件不再在内部算这些 */
 export type CartItemView = {
-    image: string
+    /** 主图（SDK 可空，UI 用占位图） */
+    image?: string
     title: string
     stock: number
     outOfStock: boolean
@@ -90,7 +91,7 @@ export function deriveSelectedItems(items: CartItem[]): CartItem[] {
 
 /** 选中条目合计金额（分）；无价格的 SKU 按 0 计 */
 export function deriveSelectedTotal(selectedItems: CartItem[]): number {
-    return selectedItems.reduce((sum, i) => sum + (i.sku?.price?.amount ?? 0) * i.quantity, 0)
+    return selectedItems.reduce((sum, i) => sum + (i.sku?.price.amount ?? 0) * i.quantity, 0)
 }
 
 /**
@@ -106,8 +107,8 @@ export function deriveAllSelected(items: CartItem[]): boolean {
 export function groupByShop(items: CartItem[]): CartShopGroup[] {
     const groups: CartShopGroup[] = []
     for (const item of items) {
-        const shopId = item.product?.shopId ?? "__invalid__"
-        const shopName = item.product?.shopName || "失效商品"
+        const shopId = item.product.shopId
+        const shopName = item.product.shopName || "失效商品"
         const group = groups.find((g) => g.shopId === shopId)
         if (group) group.items.push(item)
         else groups.push({ shopId, shopName, items: [item] })
@@ -124,7 +125,7 @@ export function selectableIdsOf(group: CartShopGroup): string[] {
 export function deriveCartItemView(item: CartItem): CartItemView {
     const stock = item.sku?.stock ?? 0
     return {
-        image: item.sku?.image ?? item.product?.image ?? "",
+        image: item.sku?.image ?? item.product?.image ?? undefined,
         title: item.product?.title ?? "商品已失效",
         stock,
         outOfStock: item.available && stock === 0,

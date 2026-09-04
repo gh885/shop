@@ -1,19 +1,16 @@
 package com.shop.platform.favorite.controller;
 
-import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.favorite.controller.response.FavoriteExistsResponse;
+import com.shop.platform.favorite.controller.response.FavoriteItemResponse;
+import com.shop.platform.favorite.controller.response.FavoriteListItemResponse;
 import com.shop.platform.favorite.dto.AddFavoriteRequest;
 import com.shop.platform.favorite.dto.FavoriteExistsRequest;
-import com.shop.platform.favorite.mapper.FavoriteItem;
-import com.shop.platform.favorite.service.FavoriteItemView;
 import com.shop.platform.favorite.service.FavoriteService;
 import com.shop.platform.infra.web.CurrentUser;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -66,44 +63,4 @@ public class FavoriteController {
             @CurrentUser UUID userId, @Valid @RequestBody FavoriteExistsRequest req) {
         return new FavoriteExistsResponse(favoriteService.favoritedProductIds(userId, req.productIds()));
     }
-
-    /** 收藏行出参：刻意不吐 userId（JWT 冗余），按 HTTP 契约规范禁止裸吐实体 */
-    public record FavoriteItemResponse(UUID id, UUID productId, OffsetDateTime createdAt) {
-
-        static FavoriteItemResponse from(FavoriteItem item) {
-            return new FavoriteItemResponse(item.getId(), item.getProductId(), item.getCreatedAt());
-        }
-    }
-
-    /** 列表条目出参：镜像 service 的 FavoriteItemView，字段只减不增 */
-    public record FavoriteListItemResponse(
-            UUID id, UUID productId, OffsetDateTime favoritedAt, ProductInfo product, boolean available) {
-
-        static FavoriteListItemResponse from(FavoriteItemView view) {
-            return new FavoriteListItemResponse(
-                    view.id(),
-                    view.productId(),
-                    view.favoritedAt(),
-                    ProductInfo.from(view.product()),
-                    view.available());
-        }
-
-        @Schema(name = "FavoriteProductInfo", description = "收藏条目里的商品卡片信息")
-        public record ProductInfo(
-                UUID id, String name, String mainImage, Money minPrice, Money maxPrice, long collectCount) {
-
-            static ProductInfo from(FavoriteItemView.ProductInfo info) {
-                return new ProductInfo(
-                        info.id(),
-                        info.name(),
-                        info.mainImage(),
-                        info.minPrice(),
-                        info.maxPrice(),
-                        info.collectCount());
-            }
-        }
-    }
-
-    /** 已收藏商品 ID 子集出参 */
-    public record FavoriteExistsResponse(List<UUID> productIds) {}
 }

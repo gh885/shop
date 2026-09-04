@@ -153,7 +153,7 @@ function SpecButton({
     onSelect,
 }: {
     value: string
-    image: string | undefined
+    image?: string
     selected: boolean
     available: boolean
     onSelect: () => void
@@ -186,7 +186,7 @@ function QuantityStepper({
 }: {
     quantity: number
     onChange: (n: number) => void
-    max: number | undefined
+    max?: number
 }) {
     const upper = max ?? 99
 

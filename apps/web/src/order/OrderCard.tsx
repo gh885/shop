@@ -87,7 +87,7 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                 <span className="text-muted-foreground">
                     订单号：<span className="text-foreground">{order.orderNo}</span>
                 </span>
-                <span className="text-foreground">{order.shopName}</span>
+                <span className="text-foreground">{order.shopName ?? "店铺已关闭"}</span>
 
                 <div className="ml-auto flex items-center gap-4">
                     {pending && (

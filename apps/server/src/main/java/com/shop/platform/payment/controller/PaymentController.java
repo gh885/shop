@@ -1,14 +1,11 @@
 package com.shop.platform.payment.controller;
 
-import com.shop.platform.common.Money;
 import com.shop.platform.infra.web.CurrentUser;
+import com.shop.platform.payment.controller.response.PaymentResponse;
 import com.shop.platform.payment.dto.CreatePaymentRequest;
-import com.shop.platform.payment.mapper.Payment;
-import com.shop.platform.payment.model.PaymentStatus;
 import com.shop.platform.payment.service.PaymentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -49,26 +46,5 @@ public class PaymentController {
     @PostMapping("/{id}/confirm")
     public PaymentResponse confirmPayment(@CurrentUser UUID userId, @PathVariable UUID id) {
         return PaymentResponse.from(paymentService.confirm(userId, id));
-    }
-
-    public record PaymentResponse(
-            UUID id,
-            UUID orderId,
-            String orderNo,
-            Money amount,
-            String channel,
-            PaymentStatus status,
-            OffsetDateTime paidAt) {
-
-        static PaymentResponse from(Payment p) {
-            return new PaymentResponse(
-                    p.getId(),
-                    p.getOrderId(),
-                    p.getOrderNo(),
-                    Money.ofFen(p.getAmount(), p.getCurrency()),
-                    p.getChannel(),
-                    p.getStatus(),
-                    p.getPaidAt());
-        }
     }
 }

@@ -187,7 +187,7 @@ function DeviceManager() {
                             key={d.deviceId}
                             className="flex items-center gap-3 rounded-xl border border-border/60 px-4 py-3"
                         >
-                            {isMobileName(d.deviceName ?? "") ? (
+                            {isMobileName(d.deviceName) ? (
                                 <Smartphone className="size-5 shrink-0 text-muted-foreground" />
                             ) : (
                                 <Monitor className="size-5 shrink-0 text-muted-foreground" />
@@ -209,7 +209,7 @@ function DeviceManager() {
                                 variant="ghost"
                                 size="sm"
                                 disabled={d.isCurrent || deleteDevice.isPending}
-                                onClick={() => deleteDevice.mutate(d.deviceId ?? "")}
+                                onClick={() => deleteDevice.mutate(d.deviceId)}
                             >
                                 <LogOut className="size-4" />
                                 退出
@@ -224,12 +224,13 @@ function DeviceManager() {
 
 // ---------- 工具 ----------
 
-function isMobileName(name: string): boolean {
+function isMobileName(name: string | null): boolean {
+    if (!name) return false
     const n = name.toLowerCase()
     return n.includes("iphone") || n.includes("android") || n.includes("手机")
 }
 
-function formatTime(iso: string | undefined): string {
+function formatTime(iso: string): string {
     if (!iso) return "时间未知"
     try {
         return new Date(iso).toLocaleString("zh-CN", {

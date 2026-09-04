@@ -111,8 +111,8 @@ export function ImageUpload({
             const local = await preview(file)
             const final = upload ? await upload(file) : local
             onChange?.(final)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "图片上传失败")
+        } catch (error) {
+            setError(error instanceof Error ? error.message : "图片上传失败")
         } finally {
             setBusy(false)
         }

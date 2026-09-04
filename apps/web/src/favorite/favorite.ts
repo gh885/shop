@@ -5,8 +5,8 @@ import type { FavoriteListItemResponse, Money } from "@shop/api/sdk"
  * 这不是「收藏的业务规则」（后端裁决），而是 wire→投影 + 复用的小派生。
  */
 
-/** 收藏条目投影：图片 undefined 归一空串；商品被删 → 全空兜底并置灰。
- * price 取最低价（卡片只展示一个价）；available=false（下架）由渲染层置灰保留。 */
+/** 收藏条目投影：商品下架 → available=false 由渲染层置灰保留。
+ * price 取最低价（卡片只展示一个价）。 */
 export type FavoriteItem = {
     /** 收藏行主键（批量删除/跳转按 productId 而非该 id） */
     id: string
@@ -14,22 +14,23 @@ export type FavoriteItem = {
     favoritedAt: string
     available: boolean
     title: string
-    image: string
-    price: Money | undefined
+    /** 主图（SDK 可空，UI 用占位图） */
+    image?: string
+    price?: Money
     collectCount: number
 }
 
 /** wire → 投影（name→title、mainImage→image、minPrice→price；商品被删全空兜底） */
 export function toFavoriteItem(dto: FavoriteListItemResponse): FavoriteItem {
     return {
-        id: dto.id ?? "",
-        productId: dto.productId ?? "",
-        favoritedAt: dto.favoritedAt ?? "",
-        available: dto.available ?? true,
-        title: dto.product?.name ?? "商品已失效",
-        image: dto.product?.mainImage ?? "",
-        price: dto.product?.minPrice ?? undefined,
-        collectCount: dto.product?.collectCount ?? 0,
+        id: dto.id,
+        productId: dto.productId,
+        favoritedAt: dto.favoritedAt,
+        available: dto.available,
+        title: dto.product.name,
+        image: dto.product.mainImage ?? undefined,
+        price: dto.product.minPrice,
+        collectCount: dto.product.collectCount,
     }
 }
 

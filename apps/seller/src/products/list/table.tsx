@@ -136,7 +136,9 @@ function ProductRow({
             </TableCell>
 
             {/* 单价：单 SKU 同价只显一个 */}
-            <TableCell className="tabular-nums">{priceRangeText(p.minPrice, p.maxPrice)}</TableCell>
+            <TableCell className="tabular-nums">
+                {priceRangeText(p.minPrice ?? undefined, p.maxPrice ?? undefined)}
+            </TableCell>
             <TableCell className="tabular-nums">{p.stock}</TableCell>
             <TableCell className="tabular-nums">{p.soldCount}</TableCell>
 

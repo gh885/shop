@@ -1,7 +1,10 @@
-package com.shop.platform.cms.controller;
+package com.shop.platform.cms.controller.response;
+
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.cms.mapper.RecommendTab;
 import com.shop.platform.cms.model.CmsStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -11,15 +14,15 @@ import java.util.UUID;
  * 字段镜像实体现状，前端 RecommendTabDtoSchema 逐字段严格校验，只减不增。
  */
 public record RecommendTabResponse(
-        UUID id,
-        String name,
-        String target,
-        String targetType,
-        Boolean isDefault,
-        Integer sortOrder,
-        CmsStatus status,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt) {
+        @Schema(requiredMode = REQUIRED) UUID id,
+        @Schema(requiredMode = REQUIRED) String name,
+        @Schema(requiredMode = REQUIRED, nullable = true) String target,
+        @Schema(requiredMode = REQUIRED, nullable = true) String targetType,
+        @Schema(requiredMode = REQUIRED) Boolean isDefault,
+        @Schema(requiredMode = REQUIRED) Integer sortOrder,
+        @Schema(requiredMode = REQUIRED) CmsStatus status,
+        @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt,
+        @Schema(requiredMode = REQUIRED) OffsetDateTime updatedAt) {
 
     public static RecommendTabResponse from(RecommendTab t) {
         return new RecommendTabResponse(

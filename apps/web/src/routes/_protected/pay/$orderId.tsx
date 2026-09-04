@@ -74,7 +74,7 @@ function PayPage() {
                             <Button
                                 className="h-11 w-full rounded-xl bg-linear-to-r from-primary to-primary-hover text-white"
                                 disabled={confirm.isPending}
-                                onClick={() => payment && confirm.mutate(payment.id ?? "")}
+                                onClick={() => payment && confirm.mutate(payment.id)}
                             >
                                 {confirm.isPending ? "支付中…" : "确认支付"}
                             </Button>

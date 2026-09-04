@@ -2,6 +2,9 @@ package com.shop.platform.product.controller;
 
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.product.controller.response.CategoryAttrNodeResponse;
+import com.shop.platform.product.controller.response.CategoryAttrResponse;
+import com.shop.platform.product.controller.response.CategoryAttrValueResponse;
 import com.shop.platform.product.dto.CategoryAttrRequest;
 import com.shop.platform.product.dto.CategoryAttrValueRequest;
 import com.shop.platform.product.dto.UpdateCategoryAttrStatusRequest;

@@ -1,5 +1,8 @@
 package com.shop.platform.cms.controller;
 
+import com.shop.platform.cms.controller.response.BannerResponse;
+import com.shop.platform.cms.controller.response.NavEntryResponse;
+import com.shop.platform.cms.controller.response.RecommendTabResponse;
 import com.shop.platform.cms.dto.BannerRequest;
 import com.shop.platform.cms.dto.NavRequest;
 import com.shop.platform.cms.dto.RecommendTabRequest;

@@ -1,13 +1,13 @@
 package com.shop.platform.user.controller;
 
 import com.shop.platform.infra.web.CurrentUser;
+import com.shop.platform.user.controller.response.AddressParseResponse;
+import com.shop.platform.user.controller.response.AddressResponse;
 import com.shop.platform.user.dto.AddressParseRequest;
 import com.shop.platform.user.dto.AddressRequest;
-import com.shop.platform.user.mapper.Address;
 import com.shop.platform.user.service.AddressService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -79,46 +79,5 @@ public class AddressController {
     @DeleteMapping("/{id}/default")
     public AddressResponse unsetDefaultAddress(@CurrentUser UUID userId, @PathVariable UUID id) {
         return AddressResponse.from(addressService.unsetDefault(userId, id));
-    }
-
-    /**
-     * 地址出参：字段镜像实体现状（前端 zod schema 逐字段严格校验，只减不增），
-     * 刻意不吐 deletedAt（软删内部标记）。HTTP 契约与存储模型在此解耦。
-     */
-    public record AddressResponse(
-            UUID id,
-            UUID userId,
-            String receiverName,
-            String phone,
-            String regionCode,
-            String province,
-            String city,
-            String district,
-            String detail,
-            String label,
-            Boolean isDefault,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt) {
-
-        static AddressResponse from(Address a) {
-            return new AddressResponse(
-                    a.getId(),
-                    a.getUserId(),
-                    a.getReceiverName(),
-                    a.getPhone(),
-                    a.getRegionCode(),
-                    a.getProvince(),
-                    a.getCity(),
-                    a.getDistrict(),
-                    a.getDetail(),
-                    a.getLabel(),
-                    a.getIsDefault(),
-                    a.getCreatedAt(),
-                    a.getUpdatedAt());
-        }
-
-        static List<AddressResponse> from(List<Address> list) {
-            return list.stream().map(AddressResponse::from).toList();
-        }
     }
 }

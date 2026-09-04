@@ -1,5 +1,8 @@
 package com.shop.platform.cms.controller;
 
+import com.shop.platform.cms.controller.response.BannerResponse;
+import com.shop.platform.cms.controller.response.NavEntryResponse;
+import com.shop.platform.cms.controller.response.RecommendTabResponse;
 import com.shop.platform.cms.service.ContentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;

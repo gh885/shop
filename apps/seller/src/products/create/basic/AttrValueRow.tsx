@@ -84,9 +84,10 @@ export function AttrValueRow({
                 受控 inputValue 让自定义取值（不在模板值域内）也能在回显时如实显示；命中模板值由父级映射 valueId。 */}
             <Combobox
                 items={values}
+                // oxlint-disable-next-line no-null -- Base UI Combobox value=null 表示无选中，库 API 要求
                 value={row.value || null}
                 inputValue={row.value ?? ""}
-                onValueChange={(v) => v != null && onValueChange(String(v))}
+                onValueChange={(v) => v !== undefined && onValueChange(String(v))}
                 onInputValueChange={(text) => onValueChange(text)}
             >
                 <ComboboxInput

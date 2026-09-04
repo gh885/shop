@@ -25,20 +25,23 @@ export type Product = {
     shopId: string
     categoryId: string
     title: string
-    subtitle: string
-    image: string
-    priceMin: Money | undefined
-    priceMax: Money | undefined
+    /** SDK 可空，null 表示无副标题（UI 回退主标题） */
+    subtitle: string | null
+    /** 主图：SDK 可空，null 表示无图（UI 用占位图） */
+    image: string | null
+    priceMin: Money
+    priceMax: Money
 }
 
-/** SKU 业务形状：attributes 空数组兜底；image 为 undefined 表示无专属图（回退主图）；stock 缺失按 0 售罄处理 */
+/** SKU 业务形状：image 为 null 表示无专属图（回退主图） */
 export type Sku = {
     id: string
     name: string
     attributes: SkuAttr[]
-    image?: string
+    /** SDK 可空，null 表示无专属图 */
+    image?: string | null
     price: Money
-    originalPrice: Money | undefined
+    originalPrice: Money
     stock: number
 }
 
@@ -80,48 +83,47 @@ export type ProductListQueryInput = {
 
 // ---------- wire → 投影 ----------
 
-/** 归一：SDK 的 Money 字段全可选（openapi-ts 默认），业务 Money 必填；undefined 原样保留，否则回填默认币种。 */
-function toMoney(m: SdkMoney | undefined): Money | undefined {
-    if (m == undefined) return undefined
-    return { amount: m.amount ?? 0, currency: m.currency ?? "CNY" }
+/** 归一：SDK 的 Money 现已 required 且非 null，原样透传 */
+function toMoney(m: SdkMoney): Money {
+    return { amount: m.amount, currency: m.currency }
 }
 
-/** wire → 业务形状：PublicProductResponse 可选字段归一；minPrice/maxPrice 已是 Money，归一成必填 Money */
+/** wire → 业务形状：required 字段不再兜底；subtitle/mainImage 可空如实透传 null */
 export function toProduct(dto: PublicProductResponse): Product {
     return {
-        id: dto.id ?? "",
-        shopId: dto.shopId ?? "",
-        categoryId: dto.categoryId ?? "",
-        title: dto.name ?? "",
-        subtitle: dto.subtitle ?? "",
-        image: dto.mainImage ?? "",
+        id: dto.id,
+        shopId: dto.shopId,
+        categoryId: dto.categoryId,
+        title: dto.name,
+        subtitle: dto.subtitle,
+        image: dto.mainImage,
         priceMin: toMoney(dto.minPrice),
         priceMax: toMoney(dto.maxPrice),
     }
 }
 
-/** wire → 业务形状：SKU 价/划线价已是 Money（币种已含在 Money 里），归一成必填 Money；price 缺省回 0 分 */
+/** wire → 业务形状：SKU 字段均已 required 且 Money 非 null，原样透传 */
 export function toSku(dto: PublicSkuResponse): Sku {
     return {
-        id: dto.id ?? "",
-        name: dto.name ?? "",
-        attributes: dto.attributes ?? [],
+        id: dto.id,
+        name: dto.name,
+        attributes: dto.attributes,
         image: dto.image,
-        price: toMoney(dto.price) ?? { amount: 0, currency: "CNY" },
+        price: toMoney(dto.price),
         originalPrice: toMoney(dto.originalPrice),
-        stock: dto.stock ?? 0,
+        stock: dto.stock,
     }
 }
 
 /** 详情 wire：detailImages/images/specs/params 在详情响应顶层（product 只是列表项），SKU 逐条 toSku */
 export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail {
     return {
-        product: toProduct(dto.product ?? ({} as PublicProductResponse)),
-        detailImages: dto.detailImages ?? [],
-        images: dto.images ?? [],
-        specs: dto.specs ?? [],
-        params: dto.params ?? [],
-        skus: (dto.skus ?? []).map(toSku),
+        product: toProduct(dto.product),
+        detailImages: dto.detailImages,
+        images: dto.images,
+        specs: dto.specs,
+        params: dto.params,
+        skus: dto.skus.map(toSku),
     }
 }
 
@@ -163,11 +165,8 @@ export function isValueAvailable(
 
 /** 规格组的某个值对应的 SKU 专属图（取第一个命中），无则 undefined → 该组退化为文字丸 */
 export function specValueImage(skus: Sku[], specName: string, value: string): string | undefined {
-    return skus.find(
-        (sku) =>
-            sku.image !== undefined &&
-            sku.attributes.some((a) => a.name === specName && a.value === value),
-    )?.image
+    const sku = skus.find((s) => s.attributes.some((a) => a.name === specName && a.value === value))
+    return sku?.image ?? undefined
 }
 
 /** 规格组是否用图片卡渲染：任一值有 SKU 专属图即整组升级（对齐淘宝「分册名」图片卡） */

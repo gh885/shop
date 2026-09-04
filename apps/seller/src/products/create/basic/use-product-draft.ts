@@ -160,20 +160,20 @@ export function useProductDraft({
                 if (cancelled) return
                 dispatch({
                     type: "hydrate",
-                    selections: (detail.product?.specs ?? []).map((s) => ({
+                    selections: detail.product.specs.map((s) => ({
                         attrId: s.attrId,
                         valueIds: (s.values ?? []).map((v) => v.valueId),
                         customValues: [],
                     })),
-                    skuRows: (detail.skus ?? []).map(rowFromSku),
+                    skuRows: detail.skus.map(rowFromSku),
                 })
                 setHydratedBasic({
-                    images: detail.product?.images ?? [],
-                    name: detail.product?.name ?? "",
-                    subtitle: detail.product?.subtitle ?? "",
-                    detailImages: detail.product?.detailImages ?? [],
+                    images: detail.product.images,
+                    name: detail.product.name,
+                    subtitle: detail.product.subtitle ?? "",
+                    detailImages: detail.product.detailImages,
                 })
-                setProductStatus(detail.product?.status)
+                setProductStatus(detail.product.status)
                 setHydrated(true)
             })
             .catch(() => setHydrated(true))

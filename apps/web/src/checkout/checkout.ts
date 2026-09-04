@@ -1,51 +1,48 @@
 import type { Money } from "@shop/api"
 import type { Money as SdkMoney, PreviewResponse } from "@shop/api/sdk"
 
-/** 归一：SDK 的 Money 字段全可选，业务 Money 必填；null 原样保留 */
-function toMoney(m: SdkMoney | undefined): Money | undefined {
-    if (m == undefined) return undefined
-    return { amount: m.amount ?? 0, currency: m.currency ?? "CNY" }
+/** 归一：SDK 的 Money 现已 required 且非 null，原样透传 */
+function toMoney(m: SdkMoney): Money {
+    return { amount: m.amount, currency: m.currency }
 }
 
 /** wire → 领域：只做形状归一（field 透传 + Money），不造假默认值。 */
 export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
     return {
-        groups: (dto.groups ?? []).map((g) => ({
-            shopId: g.shopId ?? "",
-            shopName: g.shopName ?? "",
-            lines: (g.lines ?? []).map((l) => ({
-                skuId: l.skuId ?? "",
-                productId: l.productId ?? "",
-                name: l.name ?? "",
-                image: l.image ?? "",
-                price: toMoney(l.price) ?? { amount: 0, currency: "CNY" },
+        groups: dto.groups.map((g) => ({
+            shopId: g.shopId,
+            shopName: g.shopName,
+            lines: g.lines.map((l) => ({
+                skuId: l.skuId,
+                productId: l.productId,
+                name: l.name,
+                image: l.image ?? undefined,
+                price: toMoney(l.price),
                 originalPrice: toMoney(l.originalPrice),
-                quantity: l.quantity ?? 0,
-                stock: l.stock ?? 0,
+                quantity: l.quantity,
+                stock: l.stock,
             })),
-            itemAmount: toMoney(g.itemAmount) ?? { amount: 0, currency: "CNY" },
-            shippingFee: toMoney(g.shippingFee) ?? { amount: 0, currency: "CNY" },
-            payAmount: toMoney(g.payAmount) ?? { amount: 0, currency: "CNY" },
+            itemAmount: toMoney(g.itemAmount),
+            shippingFee: toMoney(g.shippingFee),
+            payAmount: toMoney(g.payAmount),
         })),
-        unavailable: (dto.unavailable ?? []).map((u) => ({
-            skuId: u.skuId ?? "",
-            name: u.name ?? "",
-            image: u.image ?? "",
-            quantity: u.quantity ?? 0,
-            cause: u.cause ?? "",
+        unavailable: dto.unavailable.map((u) => ({
+            skuId: u.skuId,
+            name: u.name,
+            image: u.image ?? undefined,
+            quantity: u.quantity,
+            cause: u.cause,
         })),
-        address: dto.address
-            ? {
-                  id: dto.address.id ?? "",
-                  receiverName: dto.address.receiverName ?? "",
-                  receiverPhone: dto.address.receiverPhone ?? "",
-                  province: dto.address.province ?? "",
-                  city: dto.address.city ?? "",
-                  district: dto.address.district ?? "",
-                  detail: dto.address.detail ?? "",
-              }
-            : undefined,
-        totalPayAmount: toMoney(dto.totalPayAmount) ?? { amount: 0, currency: "CNY" },
+        address: {
+            id: dto.address.id,
+            receiverName: dto.address.receiverName,
+            receiverPhone: dto.address.receiverPhone,
+            province: dto.address.province,
+            city: dto.address.city,
+            district: dto.address.district,
+            detail: dto.address.detail,
+        },
+        totalPayAmount: toMoney(dto.totalPayAmount),
     }
 }
 
@@ -56,7 +53,7 @@ export type CheckoutPreview = {
     /** 失效行（售罄/下架），前端置灰不可选 */
     unavailable: UnavailableLine[]
     /** 回显的地址（后端默认取默认地址；未选返回 undefined，前端持列表自行选） */
-    address: CheckoutAddress | undefined
+    address?: CheckoutAddress
     /** 全部应付总额 */
     totalPayAmount: Money
 }
@@ -74,9 +71,10 @@ export type CheckoutLine = {
     skuId: string
     productId: string
     name: string
-    image: string
+    /** 主图（SDK 可空，UI 用占位图） */
+    image?: string
     price: Money
-    originalPrice: Money | undefined
+    originalPrice: Money
     quantity: number
     stock: number
 }
@@ -84,7 +82,8 @@ export type CheckoutLine = {
 export type UnavailableLine = {
     skuId: string
     name: string
-    image: string
+    /** 主图（SDK 可空） */
+    image?: string
     quantity: number
     cause: string
 }

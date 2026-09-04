@@ -57,7 +57,7 @@ function CheckoutPage() {
             { addressId: effectiveAddressId, source },
             {
                 onSuccess: (res) => {
-                    const orders = res.orders ?? []
+                    const orders = res.orders
                     if (orders.length === 0) {
                         notify.error("订单创建失败")
                         return
@@ -65,8 +65,8 @@ function CheckoutPage() {
                     // 一次结算按店拆单，可能多单：V1 统一跳第一单支付页（支付按单逐单处理）
                     void navigate({
                         to: "/pay/$orderId",
-                        params: { orderId: orders[0].id ?? "" },
-                        search: { orderIds: orders.map((o) => o.id ?? "") },
+                        params: { orderId: orders[0].id },
+                        search: { orderIds: orders.map((o) => o.id) },
                     })
                 },
             },
@@ -112,7 +112,7 @@ function CheckoutPage() {
                                         ¥
                                         {fenToYuan(
                                             preview.data?.groups.reduce(
-                                                (s, g) => s + (g.shippingFee.amount ?? 0),
+                                                (s, g) => s + g.shippingFee.amount,
                                                 0,
                                             ) ?? 0,
                                         )}
@@ -246,11 +246,13 @@ function GroupCard({ group }: { group: CheckoutGroup }) {
                         key={`${l.skuId}-${l.productId}`}
                         className="flex items-center gap-4 px-5 py-4"
                     >
-                        <img
-                            src={l.image}
-                            alt={l.name}
-                            className="size-16 shrink-0 rounded-md bg-muted object-cover"
-                        />
+                        {l.image && (
+                            <img
+                                src={l.image}
+                                alt={l.name}
+                                className="size-16 shrink-0 rounded-md bg-muted object-cover"
+                            />
+                        )}
                         <div className="min-w-0 flex-1">
                             <p className="line-clamp-2 text-sm text-foreground">{l.name}</p>
                         </div>

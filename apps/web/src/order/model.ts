@@ -18,11 +18,12 @@ export type { OrderStatus }
  * 注意：后端行项无 id（订单快照只留 productId/skuId），渲染 key 用 `productId + skuId + quantity`。 */
 export type OrderItem = {
     productId: string
-    skuId: string | undefined
+    skuId: string
     title: string
-    image: string
+    /** 主图（SDK 可空，UI 用占位图） */
+    image?: string
     price: Money
-    originalPrice: Money | undefined
+    originalPrice: Money
     quantity: number
     /** 行小计（单价 × 数量） */
     amount: Money
@@ -39,12 +40,13 @@ export type Order = {
     /** 付款截止（待付款订单倒计时用；已付款为空） */
     payExpireAt: string
     shopId: string
-    shopName: string
+    /** 店铺注销时后端诚实返回 null（@Schema nullable），UI 显示「店铺已关闭」 */
+    shopName: string | null
     items: OrderItem[]
     /** 商品总额（若干行合计） */
     itemAmount: Money
     /** 运费（V1 恒 0） */
-    shippingFee: Money | undefined
+    shippingFee?: Money
     /** 实付金额 = 商品总额 + 运费 - 优惠，最终结算口径 */
     payAmount: Money
 }
@@ -53,8 +55,8 @@ export type Order = {
 export type OrderDetail = Order & {
     /** 可执行动作：按后端状态机推导（pay/cancel/receive/...） */
     availableActions: string[]
-    /** 买家留言（下单定格） */
-    buyerMessage: string
+    /** 买家留言（下单定格；可空） */
+    buyerMessage: string | null
     /** 收货快照（下单定格；卖家侧即面单信息） */
     receiverName: string
     receiverPhone: string
@@ -62,14 +64,14 @@ export type OrderDetail = Order & {
     receiverCity: string
     receiverDistrict: string
     receiverDetail: string
-    /** 物流回填 */
-    logisticsCompany: string
-    trackingNo: string
-    paidAt: string
-    shippedAt: string
-    completedAt: string
-    cancelledAt: string
-    cancelReason: string
+    /** 物流回填（未发货前均为 null） */
+    logisticsCompany: string | null
+    trackingNo: string | null
+    paidAt: string | null
+    shippedAt: string | null
+    completedAt: string | null
+    cancelledAt: string | null
+    cancelReason: string | null
 }
 
 // ---------- 展示辅助 ----------

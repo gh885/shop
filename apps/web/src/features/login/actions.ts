@@ -50,5 +50,5 @@ export async function logout(): Promise<void> {
 /** 图形验证码：SDK 返回 { captchaId, image }，供 useCaptcha 使用（匿名公开接口） */
 export async function getCaptcha(): Promise<{ captchaId: string; image: string }> {
     const data = await AuthApi.getCaptcha()
-    return { captchaId: data.captchaId ?? "", image: data.image ?? "" }
+    return { captchaId: data.captchaId, image: data.image }
 }
