@@ -4,16 +4,16 @@ import type { SkuResponse } from "@shop/api/sdk"
 export { buildSkuRowsFromSelections } from "./sku-combinator"
 
 /**
- * 发布流程「可持久化的客户端值」—— useReducer 的唯一真相源。
+ * 发布流程「可持久化的客户端值」的类型与纯转换函数。
  *
  * 这里只定义「用户填了什么」（basic 表单字段 / selections 销售属性选值 / skuRows SKU 行值），
- * 不含任何请求副作用。草稿回填（GET/{id} → hydrate）、autosave（防抖 PUT）、选值级联生成 SKU
- * 这些副作用都交给 use-product-draft.ts，本文件保持纯函数。
+ * 不含任何请求副作用。草稿回填（GET/{id} → hydrate）、保存落库、选值级联生成 SKU
+ * 这些副作用都交给 use-product-draft.ts（其 reducer 内联在 hook 内），本文件保持纯函数。
  *
- * 值按后端三个更新入口切块，回填/autosave 一一对应：
- *   basic       → PUT /{id}        (updateBasic)
- *   selections  → PUT /{id}/specs  (updateSpecs)
- *   skuRows     → PUT /{id}/skus   (updateSkus)
+ * 值按后端三个更新入口切块，回填/保存一一对应：
+ *   basic       → PUT /{id}        (updateProduct)
+ *   selections  → PUT /{id}/specs  (applyProductSpecs)
+ *   skuRows     → PUT /{id}/skus   (updateProductSkus)
  */
 
 // ---------- 值类型 ----------
@@ -50,13 +50,6 @@ export interface SkuDraftRow {
     stockText: string
     skuCode: string
     status: "ON_SALE" | "DISABLED"
-}
-
-/** 整个可持久化值的快照 */
-export interface ProductDraftState {
-    basic: ProductBasicForm
-    selections: SpecSelections
-    skuRows: SkuDraftRow[]
 }
 
 // ---------- 纯转换/合并函数 ----------
@@ -119,36 +112,4 @@ export function mergeLocalPricedRows(
             status: draft.status,
         }
     })
-}
-
-// ---------- reducer ----------
-
-export function emptyProductDraft(): ProductDraftState {
-    return {
-        basic: { images: [], name: "", subtitle: "", detailImages: [] },
-        selections: [],
-        skuRows: [],
-    }
-}
-
-export type ProductDraftAction =
-    | { type: "hydrate"; draft: ProductDraftState } // 草稿 GET/{id} 整体回填
-    | { type: "setBasic"; patch: Partial<ProductBasicForm> } // 表单字段改
-    | { type: "setSelections"; selections: SpecSelections } // 销售属性选值变
-    | { type: "setSkuRows"; rows: SkuDraftRow[] } // SKU 网格值变
-
-export function productDraftReducer(
-    state: ProductDraftState,
-    action: ProductDraftAction,
-): ProductDraftState {
-    switch (action.type) {
-        case "hydrate":
-            return action.draft
-        case "setBasic":
-            return { ...state, basic: { ...state.basic, ...action.patch } }
-        case "setSelections":
-            return { ...state, selections: action.selections }
-        case "setSkuRows":
-            return { ...state, skuRows: action.rows }
-    }
 }
