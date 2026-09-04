@@ -36,7 +36,5 @@
         "oxlint-tailwindcss": "^1.10.2",
         "typescript": "catalog:"
     },
-    "devEngines": {
-
-    }
+    "devEngines": {}
 }

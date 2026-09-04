@@ -265,9 +265,7 @@ function FileUpload(props: FileUploadProps) {
                     }
 
                     if (propsRef.current.onValueChange) {
-                        const fileList = Array.from(files.values()).map(
-                            (fileState) => fileState.file,
-                        )
+                        const fileList = [...files.values()].map((fileState) => fileState.file)
                         propsRef.current.onValueChange(fileList)
                     }
                     return { ...state, files }
@@ -340,9 +338,7 @@ function FileUpload(props: FileUploadProps) {
                     files.delete(action.file)
 
                     if (propsRef.current.onValueChange) {
-                        const fileList = Array.from(files.values()).map(
-                            (fileState) => fileState.file,
-                        )
+                        const fileList = [...files.values()].map((fileState) => fileState.file)
                         propsRef.current.onValueChange(fileList)
                     }
                     return { ...state, files }
@@ -415,7 +411,7 @@ function FileUpload(props: FileUploadProps) {
     React.useEffect(() => {
         if (isControlled) {
             store.dispatch({ type: "SET_FILES", files: value })
-        } else if (defaultValue && defaultValue.length > 0 && !store.getState().files.size) {
+        } else if (defaultValue && defaultValue.length > 0 && store.getState().files.size === 0) {
             store.dispatch({ type: "SET_FILES", files: defaultValue })
         }
     }, [value, defaultValue, isControlled, store])
@@ -548,10 +544,10 @@ function FileUpload(props: FileUploadProps) {
                     invalid = true
                 }
 
-                if (!rejected) {
-                    acceptedFiles.push(file)
-                } else {
+                if (rejected) {
                     rejectedFiles.push({ file, message: rejectionMessage })
+                } else {
+                    acceptedFiles.push(file)
                 }
             }
 
@@ -566,9 +562,7 @@ function FileUpload(props: FileUploadProps) {
                 store.dispatch({ type: "ADD_FILES", files: acceptedFiles })
 
                 if (isControlled && propsRef.current.onValueChange) {
-                    const currentFiles = Array.from(store.getState().files.values()).map(
-                        (f) => f.file,
-                    )
+                    const currentFiles = [...store.getState().files.values()].map((f) => f.file)
                     propsRef.current.onValueChange([...currentFiles])
                 }
 
@@ -592,7 +586,7 @@ function FileUpload(props: FileUploadProps) {
 
     const onInputChange = React.useCallback(
         (event: React.ChangeEvent<HTMLInputElement>) => {
-            const files = Array.from(event.target.files ?? [])
+            const files = [...(event.target.files ?? [])]
             onFilesChange(files)
             event.target.value = ""
         },
@@ -755,7 +749,7 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
             event.preventDefault()
             store.dispatch({ type: "SET_DRAG_OVER", dragOver: false })
 
-            const files = Array.from(event.dataTransfer.files)
+            const files = [...event.dataTransfer.files]
             const inputElement = context.inputRef.current
             if (!inputElement) return
 
@@ -967,7 +961,7 @@ function FileUploadItem(props: FileUploadItemProps) {
     const fileState = useStore((state) => state.files.get(value))
     const fileCount = useStore((state) => state.files.size)
     const fileIndex = useStore((state) => {
-        const files = Array.from(state.files.keys())
+        const files = [...state.files.keys()]
         return files.indexOf(value) + 1
     })
 
