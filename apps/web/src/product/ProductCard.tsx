@@ -1,3 +1,4 @@
+import { splitFen } from "@shop/api"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
@@ -29,8 +30,7 @@ export interface ProductCardData {
 
 /** 价格按 元.角分 拆成三段：¥ 小、整数大、小数小。价格是全卡视觉锚点，字重要压得住 */
 function Price({ value, className }: { value: number; className?: string }) {
-    const yuan = Math.floor(value / 100)
-    const cents = String(value % 100).padStart(2, "0")
+    const { yuan, cents } = splitFen(value)
     return (
         <span className={`font-bold tabular-nums leading-none ${className ?? ""}`}>
             <span className="text-[0.6em]">¥</span>

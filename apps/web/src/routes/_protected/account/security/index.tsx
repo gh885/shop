@@ -4,6 +4,7 @@ import { CircleAlert, Loader2, LogOut, Monitor, Smartphone } from "lucide-react"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AuthApi } from "@shop/api/sdk"
+import { format, isValid } from "date-fns"
 import { Button, Empty, EmptyHeader, EmptyTitle, Skeleton, useAppForm } from "@shop/ui-web"
 
 import { getDeviceId } from "#/shared/api/auth"
@@ -230,18 +231,11 @@ function isMobileName(name: string | null): boolean {
     return n.includes("iphone") || n.includes("android") || n.includes("手机")
 }
 
+/** 最近操作时间 ISO → 「MM-dd HH:mm」；缺省/非法显示占位 */
 function formatTime(iso: string): string {
     if (!iso) return "时间未知"
-    try {
-        return new Date(iso).toLocaleString("zh-CN", {
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-        })
-    } catch {
-        return "时间未知"
-    }
+    const d = new Date(iso)
+    return isValid(d) ? format(d, "MM-dd HH:mm") : "时间未知"
 }
 
 function toDetail(e: unknown): string {

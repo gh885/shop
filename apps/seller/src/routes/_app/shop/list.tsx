@@ -1,3 +1,4 @@
+import { formatDate } from "#/shared/lib/format"
 import { useState } from "react"
 import { z } from "zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -102,9 +103,7 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
                     </Badge>
                     {isCurrent ? <Badge variant="outline">当前经营</Badge> : undefined}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                    创建于 {new Date(shop.createdAt).toLocaleDateString("zh-CN")}
-                </p>
+                <p className="text-sm text-muted-foreground">创建于 {formatDate(shop.createdAt)}</p>
             </div>
             {shop.status === "ACTIVE" && !isCurrent ? (
                 <Button

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
+import { format } from "date-fns"
 import { useState } from "react"
 import { z } from "zod"
 
@@ -243,8 +244,4 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
     )
 }
 
-function formatTime(iso: string): string {
-    const d = new Date(iso)
-    const pad = (n: number) => String(n).padStart(2, "0")
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+const formatTime = (iso: string) => format(new Date(iso), "yyyy-MM-dd HH:mm")

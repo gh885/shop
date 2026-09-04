@@ -4,7 +4,7 @@ export type { SdkClientOptions } from "./sdk-client"
 export { createAuthKit } from "./auth-kit"
 export type { AuthKit, AuthKitOptions, AuthStatus } from "./auth-kit"
 
-export { fenToYuan, priceRangeText, yuanToFen } from "./money"
+export { fenToYuan, priceRangeText, splitFen, yuanToFen } from "./money"
 
 export type { Money } from "./common"
 export { MoneySchema } from "./common"

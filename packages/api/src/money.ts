@@ -9,6 +9,11 @@ export function fenToYuan(fen: number | undefined, placeholder = "—"): string 
     return (fen / 100).toFixed(2)
 }
 
+/** 分拆成「元整数 + 两位角分」，供价格大字/角分小字的分段排版使用 */
+export function splitFen(fen: number): { yuan: string; cents: string } {
+    return { yuan: String(Math.floor(fen / 100)), cents: String(fen % 100).padStart(2, "0") }
+}
+
 /** 元输入（字符串）→ 分；非法输入返回 undefined 由调用方拦截 */
 export function yuanToFen(yuan: string): number | undefined {
     const value = Number(yuan)

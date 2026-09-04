@@ -13,6 +13,7 @@ import { fenToYuan } from "@shop/api"
 
 import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "./model"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
+import { formatDateTime } from "#/shared/lib/format"
 import { Panel, PanelContent, PanelHeader } from "#/shared/ui/Panel"
 
 /**
@@ -52,15 +53,6 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
     cancelled: "text-muted-foreground",
 }
 
-const pad = (n: number) => String(n).padStart(2, "0")
-
-/** 下单时间 ISO → 「YYYY-MM-DD HH:mm」展示 */
-function formatTime(iso: string): string {
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return iso
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
 /** 行项渲染 key：一行订单内可能同一 SKU 出现多次（不同快照），拼 quantity 兜底去重 */
 const orderItemKey = (item: Order["items"][number]) =>
     `${item.productId}-${item.skuId}-${item.quantity}`
@@ -83,7 +75,7 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
         <Panel className="text-sm">
             {/* 顶部订单信息条 */}
             <PanelHeader className="bg-muted/40">
-                <span className="text-muted-foreground">{formatTime(order.createdAt)}</span>
+                <span className="text-muted-foreground">{formatDateTime(order.createdAt)}</span>
                 <span className="text-muted-foreground">
                     订单号：<span className="text-foreground">{order.orderNo}</span>
                 </span>

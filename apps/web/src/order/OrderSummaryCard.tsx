@@ -5,6 +5,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Separator } from "@sh
 
 import { fenToYuan } from "@shop/api"
 
+import { formatDateTime } from "#/shared/lib/format"
 import { ORDER_STATUS_LABEL, type OrderDetail } from "./model"
 
 /**
@@ -20,14 +21,7 @@ export interface OrderSummaryCardProps {
     order: OrderDetail
 }
 
-const pad = (n: number) => String(n).padStart(2, "0")
-
-const dateStr = (iso: string | null) => {
-    if (!iso) return "—"
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return iso
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+const dateStr = (iso: string | null) => (iso ? formatDateTime(iso) : "—")
 
 /** 单条「label: value」信息行 */
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {

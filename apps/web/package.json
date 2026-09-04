@@ -21,6 +21,7 @@
         "@tanstack/react-router-devtools": "^1.167.1",
         "@tanstack/react-router-ssr-query": "^1.167.2",
         "@tanstack/react-start": "^1.168.49",
+        "date-fns": "catalog:",
         "lucide-react": "catalog:",
         "motion": "^13.2.0",
         "react": "catalog:",

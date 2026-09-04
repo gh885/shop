@@ -1,3 +1,4 @@
+import { fenToYuan } from "@shop/api"
 import { useMemo, useState } from "react"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 
@@ -75,7 +76,7 @@ export const Route = createFileRoute("/products/$id")({
                         offers: price
                             ? {
                                   "@type": "Offer",
-                                  price: (price / 100).toFixed(2),
+                                  price: fenToYuan(price),
                                   priceCurrency: p?.priceMin?.currency ?? "CNY",
                                   availability: "https://schema.org/InStock",
                               }

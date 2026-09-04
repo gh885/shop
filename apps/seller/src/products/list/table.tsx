@@ -1,3 +1,4 @@
+import { formatDate } from "#/shared/lib/format"
 import {
     Badge,
     Button,
@@ -145,9 +146,7 @@ function ProductRow({
             {/* 创建时间：日期 + 状态徽章 */}
             <TableCell>
                 <div className="space-y-0.5">
-                    <span className="block text-sm tabular-nums">
-                        {new Date(p.createdAt).toLocaleDateString("zh-CN")}
-                    </span>
+                    <span className="block text-sm tabular-nums">{formatDate(p.createdAt)}</span>
                     <Badge variant={meta.variant}>{meta.label}</Badge>
                 </div>
             </TableCell>
