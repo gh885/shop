@@ -1,5 +1,7 @@
 package com.shop.platform.order.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 售后状态机 —— 与履约主状态机（{@link OrderStatus}）正交的第二条线，接管「履约完成之后的交易纠葛」。
  * 主状态停在 COMPLETED 不再动，售后只在本线上流转。本枚举只声明<b>状态集</b>；
@@ -9,6 +11,7 @@ package com.shop.platform.order.model;
  * 卖家同意后进入 {@link #RETURNING} 等待回寄与收货，收货确认后才退款并回补库存）。
  * DB 列存 {@code name()}。
  */
+@Schema(enumAsRef = true)
 public enum AfterSaleStatus {
 
     /** 无售后（默认） */

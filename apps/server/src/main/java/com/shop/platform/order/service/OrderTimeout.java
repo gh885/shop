@@ -3,6 +3,7 @@ package com.shop.platform.order.service;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.OrderStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.function.BiPredicate;
 
@@ -13,6 +14,7 @@ import java.util.function.BiPredicate;
  * <p>做成表而不是三份扫描代码：三条线的批量扫描与逐笔委托逻辑逐字相同（见 {@link OrderTimeoutService#sweep}），
  * 差异只有这四列；加第四条超时只加一行，不必再抄一遍扫描器与调度方法。
  */
+@Schema(enumAsRef = true)
 public enum OrderTimeout {
 
     /** 待付款超时：关单并释放冻结库存 */

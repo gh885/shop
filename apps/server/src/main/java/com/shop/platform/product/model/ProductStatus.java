@@ -1,5 +1,6 @@
 package com.shop.platform.product.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +15,7 @@ import java.util.Set;
  * <p>DB 存 {@code name()}（varchar），不存 ordinal——改枚举名不影响存量数据，name 本身即语义。
  * 转移合法性（{@link #TRANSITIONS}）收在这里，实体薄委托；跨聚合门槛（SKU 全设价）留 service。
  */
+@Schema(enumAsRef = true)
 public enum ProductStatus {
 
     /** 仓库中（等价旧「下架/删除」，可无损恢复；也收填完未发布的商品） */

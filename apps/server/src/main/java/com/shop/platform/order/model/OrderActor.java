@@ -1,6 +1,9 @@
 package com.shop.platform.order.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /** 状态转移的发起方 —— 落在 orders.order_status_log.actor_type 上，与动作正交（同一动作可由不同角色发起）。 */
+@Schema(enumAsRef = true)
 public enum OrderActor {
 
     /** 买家 */

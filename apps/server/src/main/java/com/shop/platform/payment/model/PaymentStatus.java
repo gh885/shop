@@ -1,10 +1,13 @@
 package com.shop.platform.payment.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 支付流水状态机：PENDING → SUCCESS → REFUNDED（或 FAILED）。V1 双段式（发起 + 确认）。
  *
  * <p>DB 存 {@code name()}（varchar）。资金态唯一真相在流水行；订单侧只记「退多少」，不重复定义状态。
  */
+@Schema(enumAsRef = true)
 public enum PaymentStatus {
 
     /** 待支付（发起创建，未确认） */

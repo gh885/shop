@@ -1,11 +1,14 @@
 package com.shop.platform.order.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 审计动作语汇 —— 落在 orders.order_status_log.action 上的「这次转移是什么动作」。
  * 状态是后端语汇（{@link OrderStatus} / {@link AfterSaleStatus}），动作是业务语汇：
  * 同一个目标态可以由不同动作到达（买家取消 CANCEL 与超时关单 AUTO_CANCEL 都到 CANCELLED），
  * 靠这一列区分，回放历史时才说得清"谁按了什么"。
  */
+@Schema(enumAsRef = true)
 public enum OrderAction {
 
     /** 下单落库（无前态） */

@@ -2,6 +2,7 @@ package com.shop.platform.admin.service;
 
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.PermissionResolver;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Set;
 
@@ -11,6 +12,7 @@ import java.util.Set;
  *
  * <p>未知 role 字符串一律按无权限处理（fail-close，见 {@link #parseOrNull}）。
  */
+@Schema(enumAsRef = true)
 public enum StaffRole {
 
     /** 超管：通配所有权限码，含员工管理（STAFF_MANAGE 的消费端 P2 提供） */

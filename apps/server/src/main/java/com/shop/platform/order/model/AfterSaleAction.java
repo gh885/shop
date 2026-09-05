@@ -1,5 +1,7 @@
 package com.shop.platform.order.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 售后状态机转移表 —— 每一行是一条合法转移（from → target），也是售后线的<b>状态机唯一真相</b>。
  * 之所以不从 {@link AfterSaleStatus} 反推（像 {@link OrderStatus} 那样 sourcesOf），是因为退货退款让
@@ -10,6 +12,7 @@ package com.shop.platform.order.model;
  * 侧效应（退款走网关、退货回补库存、发事件）不属于状态转移本身，由 service 层在转移成功后编排——
  * 故本枚举只声明「状态怎么走」，不声明「走了之后还要做什么」。
  */
+@Schema(enumAsRef = true)
 public enum AfterSaleAction {
 
     /** 买家申请售后（仅退款或退货退款，申请时定 type） */

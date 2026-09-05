@@ -45,6 +45,9 @@ spring:
                 # 跨模块基建表，与 distributed_locks 同居 kernel schema（见 V1/V22）
                 schema: kernel
 
+# OpenAPI：Java enum 以 $ref 组件 schema 输出（而非内联字面量），前端 openapi-ts 才能生成命名 enum 常量。
+# 开关不在配置里，而是各 enum 类上的 @Schema(enumAsRef = true)（springdoc 无全局属性）
+
 # 运维端点：健康检查（DB+Redis 自动探测）与 Prometheus 抓取；JwtProperties.skipPaths 已放行 /actuator。
 # 生产部署时需在网关层限制 /actuator/prometheus 的来源。
 management:

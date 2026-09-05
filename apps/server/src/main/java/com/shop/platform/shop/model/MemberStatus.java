@@ -1,10 +1,13 @@
 package com.shop.platform.shop.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 店铺成员邀请状态：待生效（被邀请人未确认）/ 已生效。用于成员列表与邀请处理闸门。
  *
  * <p>DB 存 {@code name()}（varchar）。
  */
+@Schema(enumAsRef = true)
 public enum MemberStatus {
 
     /** 待确认（邀请已发，对方登录后确认才生效） */
