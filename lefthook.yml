@@ -73,3 +73,9 @@ pre-push:
           tags: [java]
           timeout: 300s
           run: mvn -f apps/server/pom.xml compile -q
+
+        # 契约漂移检查：SDK 生成物（含 zod 校验 schema）与 api-docs.json 同步；
+        # 后端在跑时顺带比对运行中契约（脚本内部自动跳过）
+        - name: sdk-drift
+          tags: [contract]
+          run: bash scripts/check-sdk-drift.sh

@@ -18,6 +18,7 @@ export const ErrorCodes = {
     STAFF_DISABLED: "STAFF_DISABLED",
     PERMISSION_DENIED: "PERMISSION_DENIED",
     INSUFFICIENT_STOCK: "INSUFFICIENT_STOCK",
+    RESPONSE_VALIDATION_FAILED: "RESPONSE_VALIDATION_FAILED",
 } as const
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]

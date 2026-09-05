@@ -1,5 +1,6 @@
 import type { ApiError } from "./common"
 import { client } from "./sdk/client.gen"
+import { isZodError, RESPONSE_VALIDATION_FAILED, zodIssuesText } from "./api-error"
 
 /**
  * 生成 SDK（src/sdk）的传输层装配：给 hey-api 生成的 ky client 挂上
@@ -149,7 +150,27 @@ export function configureSdkClient(
     })
 
     // ---- 错误归一化：SDK 调用方拿到的 error 即 ApiError ----
-    client.interceptors.error.use((error, response) => {
+    // 响应契约校验（zod responseValidator）抛出的 ZodError 也走这里：
+    // 客户端 catch 后会送进 error 拦截器（sdk/client.gen.ts），借 request 拿到方法与路径。
+    client.interceptors.error.use((error, response, request) => {
+        if (isZodError(error)) {
+            const where = request
+                ? `${request.method} ${new URL(request.url).pathname}`
+                : "(unknown)"
+            const issues = zodIssuesText(error)
+            if (options?.debug) {
+                // dev：完整 issues，尽早暴露契约漂移
+                console.warn(`[API] 响应契约校验失败 ${where}\n  ${issues}`, error.issues)
+            } else {
+                // 生产：上报锚点（监控/埋点可 grep 前缀），不吞
+                console.error(`[API] 响应契约校验失败 ${where} ${issues}`)
+            }
+            return {
+                status: response?.status ?? 200,
+                detail: "响应数据不符合接口契约",
+                code: RESPONSE_VALIDATION_FAILED,
+            } satisfies ApiError
+        }
         if (response) {
             const body = error as Partial<ApiError> | undefined
             if (body && typeof body === "object" && typeof body.detail === "string") {
