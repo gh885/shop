@@ -1,4 +1,10 @@
 import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query"
+import {
+    getHomeBannersQueryKey,
+    getHomeNavQueryKey,
+    getRecommendTabsQueryKey,
+    listPublicProductsQueryKey,
+} from "@shop/api"
 
 import { withContractFallback } from "#/shared/lib/contract-fallback"
 
@@ -9,29 +15,43 @@ const CACHE = 5 * 60_000
 
 /** 共享 queryOptions：route loader 用 ensureQueryData 预热，组件 useQuery 读同一缓存（SSR-query 集成序列化缓存给客户端） */
 export const homeNavOptions = queryOptions({
-    queryKey: ["home-nav"],
-    queryFn: withContractFallback(fetchHomeNav, () => []),
+    queryKey: getHomeNavQueryKey({ query: { navKey: "home" } }),
+    queryFn: withContractFallback(
+        () => fetchHomeNav(),
+        () => [],
+    ),
     staleTime: CACHE,
     retry: false,
 })
 
 export const bannersOptions = queryOptions({
-    queryKey: ["home-banners"],
-    queryFn: withContractFallback(fetchBanners, () => []),
+    queryKey: getHomeBannersQueryKey({ query: { slot: "home_promo" } }),
+    queryFn: withContractFallback(
+        () => fetchBanners(),
+        () => [],
+    ),
     staleTime: CACHE,
     retry: false,
 })
 
 export const recommendTabsOptions = queryOptions({
-    queryKey: ["home-recommend-tabs"],
-    queryFn: withContractFallback(fetchRecommendTabs, () => []),
+    queryKey: getRecommendTabsQueryKey({}),
+    queryFn: withContractFallback(
+        () => fetchRecommendTabs(),
+        () => [],
+    ),
     staleTime: CACHE,
     retry: false,
 })
 
 const feedOptions = queryOptions({
-    queryKey: ["home-feed"],
-    queryFn: withContractFallback(fetchFeedProducts, () => []),
+    queryKey: listPublicProductsQueryKey({
+        query: { pageParams: { page: 1, size: 12 }, query: { sort: "newest" } },
+    }),
+    queryFn: withContractFallback(
+        () => fetchFeedProducts(),
+        () => [],
+    ),
     retry: false,
 })
 

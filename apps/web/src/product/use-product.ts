@@ -18,6 +18,7 @@ import {
 /** 全站商品分页：卡片流/推荐/类目/搜索共用，返回领域形状 */
 export async function fetchProducts(
     input: ProductListQueryInput,
+    signal?: AbortSignal,
 ): Promise<{ records: Product[]; total: number }> {
     const page = await ProductsApi.listPublicProducts({
         query: {
@@ -29,6 +30,7 @@ export async function fetchProducts(
                 sort: input.sort,
             },
         },
+        signal,
     })
     return {
         records: page.records.map(toProduct),
@@ -37,6 +39,6 @@ export async function fetchProducts(
 }
 
 /** 商品详情：匿名可访问（公开页），返回领域形状 */
-export async function fetchProductDetail(id: string): Promise<ProductDetail> {
-    return toProductDetail(await ProductsApi.getPublicProductDetail({ path: { id } }))
+export async function fetchProductDetail(id: string, signal?: AbortSignal): Promise<ProductDetail> {
+    return toProductDetail(await ProductsApi.getPublicProductDetail({ path: { id }, signal }))
 }

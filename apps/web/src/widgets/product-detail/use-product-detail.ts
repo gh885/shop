@@ -1,11 +1,18 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
 import { PublicShopsApi } from "@shop/api/sdk"
+import {
+    getPublicProductDetailQueryKey,
+    getPublicShopQueryKey,
+    listPublicProductsQueryKey,
+} from "@shop/api"
 
 import { fetchProductDetail, fetchProducts } from "#/product"
 
 /**
  * 商品详情数据 hooks：route loader 用 queryOptions 预热，组件 useQuery 读同一缓存
  * （与 widgets/home/use-home 相同的 SSR-query 模式）。
+ *
+ * queryKey 用生成 SDK 的 key 工厂（契约同步、参数类型受检），投影 queryFn 本地保留。
  */
 
 // 商品详情缓存久一点：详情页停留期间不需要失效，改价靠刷新页面
@@ -13,8 +20,8 @@ const CACHE = 5 * 60_000
 
 export const productDetailOptions = (id: string) =>
     queryOptions({
-        queryKey: ["product-detail", id],
-        queryFn: () => fetchProductDetail(id),
+        queryKey: getPublicProductDetailQueryKey({ path: { id } }),
+        queryFn: ({ signal }) => fetchProductDetail(id, signal),
         staleTime: CACHE,
         retry: false,
     })
@@ -29,15 +36,13 @@ export interface PublicShop {
     logoKey?: string
 }
 
-async function fetchShopPublic(shopId: string): Promise<PublicShop> {
-    const d = await PublicShopsApi.getPublicShop({ path: { id: shopId } })
-    return { id: d.id, name: d.name, logoKey: d.logoKey ?? undefined }
-}
-
 export const shopOptions = (shopId: string) =>
     queryOptions({
-        queryKey: ["shop-public", shopId],
-        queryFn: () => fetchShopPublic(shopId),
+        queryKey: getPublicShopQueryKey({ path: { id: shopId } }),
+        queryFn: async ({ signal }): Promise<PublicShop> => {
+            const d = await PublicShopsApi.getPublicShop({ path: { id: shopId }, signal })
+            return { id: d.id, name: d.name, logoKey: d.logoKey ?? undefined }
+        },
         staleTime: CACHE,
         retry: false,
     })
@@ -47,15 +52,19 @@ export const shopOptions = (shopId: string) =>
 /** 后端暂无推荐接口，先复用全站商品列表按条件拉取；仅客户端拉取（不入 loader，不拖慢首屏） */
 export const shopProductsOptions = (shopId: string) =>
     queryOptions({
-        queryKey: ["shop-products", shopId],
-        queryFn: () => fetchProducts({ page: 1, size: 11, shopId }),
+        queryKey: listPublicProductsQueryKey({
+            query: { pageParams: { page: 1, size: 11 }, query: { shopId } },
+        }),
+        queryFn: ({ signal }) => fetchProducts({ page: 1, size: 11, shopId }, signal),
         staleTime: CACHE,
         retry: false,
     })
 
 export const alsoViewedOptions = queryOptions({
-    queryKey: ["also-viewed-products"],
-    queryFn: () => fetchProducts({ page: 1, size: 11, sort: "newest" }),
+    queryKey: listPublicProductsQueryKey({
+        query: { pageParams: { page: 1, size: 11 }, query: { sort: "newest" } },
+    }),
+    queryFn: ({ signal }) => fetchProducts({ page: 1, size: 11, sort: "newest" }, signal),
     staleTime: CACHE,
     retry: false,
 })

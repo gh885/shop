@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { CartApi } from "@shop/api/sdk"
+import { getCartCountQueryKey, listCartItemsQueryKey } from "@shop/api"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
@@ -17,30 +18,24 @@ import {
 /**
  * use-cart —— 购物车的 React 接线层。只管「读状态/写状态」，
  * 具体规则（派生、变换、映射）都在 ./cart.ts 纯函数里。
+ *
+ * queryKey 用生成 SDK 的 key 工厂（契约同步、参数类型受检），投影 queryFn 本地保留。
  */
 
 // ---------- 读：查询 + 缓存 ----------
 
 /** 购物车列表缓存 key（并发 query 与所有 mutation 共享，是唯一失效入口） */
-const CART_ITEMS_KEY = ["cart-items"] as const
+const CART_ITEMS_KEY = listCartItemsQueryKey({})
 
 /** 角标计数缓存 key：算的是条目行数（非件数），故只有加购/删除会改变它 */
-const CART_COUNT_KEY = ["cart-count"] as const
-
-async function fetchCartItems(): Promise<CartItem[]> {
-    const res = await CartApi.listCartItems()
-    return res.map(toCartItem)
-}
-async function fetchCartCount(): Promise<number> {
-    const res = await CartApi.getCartCount()
-    return res.total
-}
+const CART_COUNT_KEY = getCartCountQueryKey({})
 
 /** 购物车列表：仅在路由 /cart（_protected 内）使用。
  * 登录态由 _protected 布局 gate 保证（authed 后才渲染子路由），挂载时必已登录。 */
 const cartItemsOptions = queryOptions({
     queryKey: CART_ITEMS_KEY,
-    queryFn: fetchCartItems,
+    queryFn: async ({ signal }): Promise<CartItem[]> =>
+        (await CartApi.listCartItems({ signal })).map(toCartItem),
 })
 
 export function useCartItems() {
@@ -50,7 +45,7 @@ export function useCartItems() {
 /** 角标计数：免拉整车，头部角标用；可在公开页（SiteHeader/首页）使用，故必须保留 enabled gating */
 const cartCountOptions = queryOptions({
     queryKey: CART_COUNT_KEY,
-    queryFn: fetchCartCount,
+    queryFn: async ({ signal }): Promise<number> => (await CartApi.getCartCount({ signal })).total,
     staleTime: 30_000,
 })
 
