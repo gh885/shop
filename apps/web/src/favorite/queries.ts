@@ -1,6 +1,5 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { FavoritesApi } from "@shop/api/sdk"
-import { listFavoritesQueryKey } from "@shop/api"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
@@ -16,10 +15,9 @@ import { toFavoriteItem, type FavoriteItem } from "./favorite"
 
 // ---------- 列表（收藏页） ----------
 
-const FAVORITES_QUERY = { query: { pageParams: { page: 1, size: 100 } } } as const
-
 /** 收藏页列表缓存 key（乐观移除的 patch 目标） */
-const KEY = listFavoritesQueryKey(FAVORITES_QUERY)
+const KEY = ["favorite-items"] as const
+const FAVORITES_QUERY = { query: { pageParams: { page: 1, size: 100 } } } as const
 
 const favoriteItemsOptions = queryOptions({
     queryKey: KEY,

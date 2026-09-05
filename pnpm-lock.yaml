@@ -498,9 +498,6 @@ importers:
 
   packages/api:
     dependencies:
-      '@tanstack/react-query':
-        specifier: 'catalog:'
-        version: 5.102.8(react@19.2.8)
       ky:
         specifier: ^2.1.0
         version: 2.1.0

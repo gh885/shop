@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query"
 import { OrdersApi, PaymentsApi } from "@shop/api/sdk"
-import { getOrderDetailQueryKey, listMyOrdersQueryKey } from "@shop/api"
 import type { PreviewResponse } from "@shop/api/sdk"
 
 import { notify } from "#/shared/lib/toast"
@@ -20,8 +19,8 @@ import type { Order, OrderDetail, OrderStatus } from "./model"
 
 // ---------- 我的订单列表 ----------
 
-/** 列表失效 key：只含 _id（= 生成的 key 首元素 _id，取 operationId），部分匹配命中所有 tab/分页 */
-const MY_ORDERS_KEY = [{ _id: "listMyOrders" }] as const
+/** 列表失效 key：前缀部分匹配，一发命中所有 tab/分页 */
+const MY_ORDERS_KEY = ["my-orders"] as const
 
 /** 仅客户端拉取（受保护页），queryKey 带 status/page/size 便于按 tab 缓存分片 */
 const myOrdersOptions = ({
@@ -38,7 +37,7 @@ const myOrdersOptions = ({
         },
     } as const
     return queryOptions({
-        queryKey: listMyOrdersQueryKey(wire),
+        queryKey: [...MY_ORDERS_KEY, status ?? "all", page, size],
         queryFn: async ({ signal }): Promise<{ records: Order[]; total: number }> => {
             const result = await OrdersApi.listMyOrders({ ...wire, signal })
             return {
@@ -59,7 +58,7 @@ export function useMyOrders(status: OrderStatus | "all" = "all") {
 
 const orderDetailOptions = (id: string) =>
     queryOptions({
-        queryKey: getOrderDetailQueryKey({ path: { id } }),
+        queryKey: ["order-detail", id],
         queryFn: async ({ signal }): Promise<OrderDetail> =>
             toOrderDetail(await OrdersApi.getOrderDetail({ path: { id }, signal })),
         staleTime: 30_000,
@@ -131,7 +130,7 @@ export function useCancelOrder() {
         onSuccess: (_data, orderId) => {
             notify.success("订单已取消")
             qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
-            qc.invalidateQueries({ queryKey: getOrderDetailQueryKey({ path: { id: orderId } }) })
+            qc.invalidateQueries({ queryKey: ["order-detail", orderId] })
         },
         onError: (err) => notify.fromError(err, "取消订单失败"),
     })
@@ -145,7 +144,7 @@ export function useReceiveOrder() {
         onSuccess: (_data, orderId) => {
             notify.success("确认收货成功")
             qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
-            qc.invalidateQueries({ queryKey: getOrderDetailQueryKey({ path: { id: orderId } }) })
+            qc.invalidateQueries({ queryKey: ["order-detail", orderId] })
         },
         onError: (err) => notify.fromError(err, "确认收货失败"),
     })

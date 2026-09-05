@@ -1,10 +1,5 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
 import { PublicShopsApi } from "@shop/api/sdk"
-import {
-    getPublicProductDetailQueryKey,
-    getPublicShopQueryKey,
-    listPublicProductsQueryKey,
-} from "@shop/api"
 
 import { fetchProductDetail, fetchProducts } from "#/product"
 
@@ -20,7 +15,7 @@ const CACHE = 5 * 60_000
 
 export const productDetailOptions = (id: string) =>
     queryOptions({
-        queryKey: getPublicProductDetailQueryKey({ path: { id } }),
+        queryKey: ["product-detail", id],
         queryFn: ({ signal }) => fetchProductDetail(id, signal),
         staleTime: CACHE,
         retry: false,
@@ -38,7 +33,7 @@ export interface PublicShop {
 
 export const shopOptions = (shopId: string) =>
     queryOptions({
-        queryKey: getPublicShopQueryKey({ path: { id: shopId } }),
+        queryKey: ["shop-public", shopId],
         queryFn: async ({ signal }): Promise<PublicShop> => {
             const d = await PublicShopsApi.getPublicShop({ path: { id: shopId }, signal })
             return { id: d.id, name: d.name, logoKey: d.logoKey ?? undefined }
@@ -52,18 +47,14 @@ export const shopOptions = (shopId: string) =>
 /** 后端暂无推荐接口，先复用全站商品列表按条件拉取；仅客户端拉取（不入 loader，不拖慢首屏） */
 export const shopProductsOptions = (shopId: string) =>
     queryOptions({
-        queryKey: listPublicProductsQueryKey({
-            query: { pageParams: { page: 1, size: 11 }, query: { shopId } },
-        }),
+        queryKey: ["shop-products", shopId],
         queryFn: ({ signal }) => fetchProducts({ page: 1, size: 11, shopId }, signal),
         staleTime: CACHE,
         retry: false,
     })
 
 export const alsoViewedOptions = queryOptions({
-    queryKey: listPublicProductsQueryKey({
-        query: { pageParams: { page: 1, size: 11 }, query: { sort: "newest" } },
-    }),
+    queryKey: ["also-viewed-products"],
     queryFn: ({ signal }) => fetchProducts({ page: 1, size: 11, sort: "newest" }, signal),
     staleTime: CACHE,
     retry: false,

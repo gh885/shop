@@ -30,14 +30,5 @@ export default defineConfig({
             name: "@hey-api/typescript",
             enums: { mode: "javascript" },
         },
-        // 生成每个 GET 的 queryOptions / queryKey 与 mutation 的 mutationOptions，
-        // 供 TanStack Query 直接使用（走同一 client，拦截器照常生效）。
-        // infinite 生成对对象型分页参数（pageParams.page）会产出非法点号路径键，关闭；
-        // 无限滚动将来在业务层手写 queryFn 组装
-        {
-            name: "@tanstack/react-query",
-            infiniteQueryKeys: false,
-            infiniteQueryOptions: false,
-        },
     ],
 })
