@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { useState } from "react"
+import { ShopReviewStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
 import {
@@ -22,8 +23,7 @@ import {
 import { adminApi, reviewListOptions, REVIEW_LIST_KEY, type ShopReviewItem } from "../../lib/api"
 
 /** 店铺审核状态（与后端枚举对齐） */
-type ShopReviewStatus = "PENDING" | "APPROVED" | "REJECTED"
-const ShopReviewStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"])
+const ShopReviewStatusSchema = z.enum(ShopReviewStatus)
 
 export const Route = createFileRoute("/_app/")({
     validateSearch: z.object({

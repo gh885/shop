@@ -1,3 +1,4 @@
+import { z } from "zod"
 import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, MapPin } from "lucide-react"
@@ -14,24 +15,23 @@ import {
 } from "#/checkout"
 import { notify } from "#/shared/lib/toast"
 
+// 结算来源：cartItemIds（购物车）与 buySkuId+buyQuantity（立即购买）二选一；
+// cartItemIds 兼容数组与单值字符串两种 URL 形态，脏值一律 catch 掉走默认流程
+const checkoutSearchSchema = z.object({
+    cartItemIds: z
+        .preprocess(
+            (v) => (Array.isArray(v) ? v : v == null ? undefined : [v]),
+            z.array(z.string()).optional(),
+        )
+        .catch(undefined),
+    buySkuId: z.string().optional().catch(undefined),
+    buyQuantity: z.coerce.number().int().positive().optional().catch(undefined),
+})
+
 export const Route = createFileRoute("/_protected/checkout")({
     // 结算来源：cartItemIds（购物车）与 buySkuId+buyQuantity（立即购买）二选一
-    validateSearch: (search: Record<string, unknown>): CheckoutSource => {
-        const parsed = search.cartItemIds
-        const ids = Array.isArray(parsed)
-            ? parsed.filter((x): x is string => typeof x === "string")
-            : typeof parsed === "string"
-              ? [parsed]
-              : []
-        return {
-            cartItemIds: ids.length > 0 ? ids : undefined,
-            buySkuId: typeof search.buySkuId === "string" ? search.buySkuId : undefined,
-            buyQuantity:
-                typeof search.buyQuantity === "number" && search.buyQuantity > 0
-                    ? search.buyQuantity
-                    : undefined,
-        }
-    },
+    validateSearch: (search: Record<string, unknown>): CheckoutSource =>
+        checkoutSearchSchema.parse(search),
     component: CheckoutPage,
     head: () => ({ meta: [{ title: "结算 - Shop" }] }),
 })

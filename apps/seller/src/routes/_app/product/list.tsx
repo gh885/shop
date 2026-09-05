@@ -10,25 +10,25 @@ import {
 } from "@shop/ui-web"
 import { Package, Store } from "lucide-react"
 
+import { ProductStatus } from "@shop/api/sdk"
 import { toApiError } from "@shop/api"
+import { z } from "zod"
 
 import { ProductTable } from "#/products/list/table"
 import { FilterBar } from "#/products/list/filter"
 import { useProductList, type ProductListSearch } from "#/products/list/use-product-list"
-import type { ProductStatusFilter } from "#/products/constants"
+
+// status 从生成的 ProductStatus 枚举派生（后端加状态时此处编译期跟进），脏值 catch 到默认 tab
+const listSearchSchema = z.object({
+    status: z.enum(ProductStatus).catch("PUBLISHED"),
+    keyword: z.string().min(1).optional().catch(undefined),
+    page: z.coerce.number().int().min(1).catch(1),
+    size: z.coerce.number().int().min(1).catch(10),
+})
 
 export const Route = createFileRoute("/_app/product/list")({
-    validateSearch: (search: Record<string, unknown>): ProductListSearch => ({
-        status:
-            search.status === "PUBLISHED" ||
-            search.status === "WAREHOUSE" ||
-            search.status === "DRAFT"
-                ? (search.status as ProductStatusFilter)
-                : "PUBLISHED",
-        keyword: typeof search.keyword === "string" && search.keyword ? search.keyword : undefined,
-        page: Number(search.page) || 1,
-        size: Number(search.size) || 10,
-    }),
+    validateSearch: (search: Record<string, unknown>): ProductListSearch =>
+        listSearchSchema.parse(search),
     component: ProductsPage,
 })
 

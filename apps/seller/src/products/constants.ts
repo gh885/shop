@@ -1,6 +1,7 @@
+import type { ProductStatus } from "@shop/api/sdk"
 import type { ProductResponse } from "@shop/api/sdk"
 
-export type ProductStatusFilter = "PUBLISHED" | "WAREHOUSE" | "DRAFT"
+export type ProductStatusFilter = ProductStatus
 
 export const PRODUCT_STATUS_META: Record<
     ProductResponse["status"],

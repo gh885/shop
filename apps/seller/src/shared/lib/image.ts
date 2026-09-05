@@ -10,7 +10,13 @@
  *
  * 换域名只改 .env，不改代码；避免把失效/测试域名埋进源码。
  */
-const PREFIX = import.meta.env.VITE_IMAGE_BASE_URL
+import { z } from "zod"
+
+// 配了但写错（非合法 URL）时归一为缺配，走既有的 imgUrl 空串告警路径，避免带病拼 URL
+const PREFIX = z
+    .url()
+    .catch("")
+    .parse(import.meta.env.VITE_IMAGE_BASE_URL) as string | undefined
 
 let warnedMissingBase = false
 
