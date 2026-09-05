@@ -1,4 +1,4 @@
-import { fenToYuan } from "@shop/api"
+import { fenToYuan, isContractViolation } from "@shop/api"
 import { useMemo, useState } from "react"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 
@@ -30,6 +30,8 @@ export const Route = createFileRoute("/products/$id")({
         } catch (error) {
             // 详情不存在/非上架由后端 404；数据层已把错误归一化为 ApiError（status/detail）
             if ((error as { status?: number }).status === 404) throw notFound()
+            // 契约漂移：详情无法伪造合法形状兜底，生产降级为 notFound 页（dev 强抛）
+            if (isContractViolation(error) && import.meta.env.PROD) throw notFound()
             throw error
         }
         await context.queryClient

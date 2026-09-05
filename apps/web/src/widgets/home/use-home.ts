@@ -1,5 +1,7 @@
 import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
+import { withContractFallback } from "#/shared/lib/contract-fallback"
+
 import { fetchBanners, fetchFeedProducts, fetchHomeNav, fetchRecommendTabs } from "./actions"
 
 // 首页内容 5 分钟缓存（运营配置不常变）
@@ -8,28 +10,28 @@ const CACHE = 5 * 60_000
 /** 共享 queryOptions：route loader 用 ensureQueryData 预热，组件 useQuery 读同一缓存（SSR-query 集成序列化缓存给客户端） */
 export const homeNavOptions = queryOptions({
     queryKey: ["home-nav"],
-    queryFn: fetchHomeNav,
+    queryFn: withContractFallback(fetchHomeNav, () => []),
     staleTime: CACHE,
     retry: false,
 })
 
 export const bannersOptions = queryOptions({
     queryKey: ["home-banners"],
-    queryFn: fetchBanners,
+    queryFn: withContractFallback(fetchBanners, () => []),
     staleTime: CACHE,
     retry: false,
 })
 
 export const recommendTabsOptions = queryOptions({
     queryKey: ["home-recommend-tabs"],
-    queryFn: fetchRecommendTabs,
+    queryFn: withContractFallback(fetchRecommendTabs, () => []),
     staleTime: CACHE,
     retry: false,
 })
 
 const feedOptions = queryOptions({
     queryKey: ["home-feed"],
-    queryFn: fetchFeedProducts,
+    queryFn: withContractFallback(fetchFeedProducts, () => []),
     retry: false,
 })
 
