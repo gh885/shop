@@ -1,6 +1,5 @@
 import { fenToYuan } from "@shop/api"
 import type { Money } from "@shop/api"
-import type { Money as SdkMoney } from "@shop/api/sdk"
 import type {
     ParamItem,
     PublicProductDetailResponse,
@@ -73,11 +72,6 @@ export type ProductListQueryInput = {
 
 // ---------- wire → 投影 ----------
 
-/** 归一：SDK 的 Money 现已 required 且非 null，原样透传 */
-function toMoney(m: SdkMoney): Money {
-    return { amount: m.amount, currency: m.currency }
-}
-
 /** wire → 业务形状：required 字段不再兜底；subtitle/mainImage 可空如实透传 null */
 export function toProduct(dto: PublicProductResponse): Product {
     return {
@@ -87,8 +81,8 @@ export function toProduct(dto: PublicProductResponse): Product {
         title: dto.name,
         subtitle: dto.subtitle,
         image: dto.mainImage,
-        priceMin: toMoney(dto.minPrice),
-        priceMax: toMoney(dto.maxPrice),
+        priceMin: dto.minPrice,
+        priceMax: dto.maxPrice,
     }
 }
 
@@ -99,8 +93,8 @@ function toSku(dto: PublicSkuResponse): Sku {
         name: dto.name,
         attributes: dto.attributes,
         image: dto.image,
-        price: toMoney(dto.price),
-        originalPrice: toMoney(dto.originalPrice),
+        price: dto.price,
+        originalPrice: dto.originalPrice,
         stock: dto.stock,
     }
 }

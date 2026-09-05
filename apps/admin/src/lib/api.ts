@@ -1,3 +1,4 @@
+import { queryOptions } from "@tanstack/react-query"
 import { redirect } from "@tanstack/react-router"
 
 import { configureSdkClient, createAuthKit } from "@shop/api"
@@ -106,3 +107,14 @@ export async function requireGuest(): Promise<void> {
         throw redirect({ to: "/", search: { page: 1, size: 20 } })
     }
 }
+
+// ---------- queryOptions：参数化列表的 key/请求同源（与 seller 的 productListOptions 同形态） ----------
+
+/** 审核列表失效 key（mutation 后一发命中所有 status/分页） */
+export const REVIEW_LIST_KEY = ["admin", "reviews"] as const
+
+export const reviewListOptions = (input: { status?: string; page: number; size: number }) =>
+    queryOptions({
+        queryKey: [...REVIEW_LIST_KEY, input.status ?? "all", input.page, input.size] as const,
+        queryFn: () => adminApi.listReviews(input),
+    })

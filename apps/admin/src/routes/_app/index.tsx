@@ -19,7 +19,7 @@ import {
     type DataTableFilterConfig,
 } from "@shop/ui-web"
 
-import { adminApi, type ShopReviewItem } from "../../lib/api"
+import { adminApi, reviewListOptions, REVIEW_LIST_KEY, type ShopReviewItem } from "../../lib/api"
 
 /** 店铺审核状态（与后端枚举对齐） */
 type ShopReviewStatus = "PENDING" | "APPROVED" | "REJECTED"
@@ -123,10 +123,7 @@ function ReviewPage() {
     const { status, page, size } = Route.useSearch()
     const navigate = Route.useNavigate()
 
-    const { data, isPending } = useQuery({
-        queryKey: ["admin", "reviews", status, page, size],
-        queryFn: () => adminApi.listReviews({ status, page, size }),
-    })
+    const { data, isPending } = useQuery(reviewListOptions({ status, page, size }))
 
     // 服务端模式：分页/筛选状态由 URL 接管，DataTable 内不自管
     const pagination = { pageIndex: page - 1, pageSize: size }
@@ -174,7 +171,7 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
     const [rejectOpen, setRejectOpen] = useState(false)
     const [reason, setReason] = useState("")
 
-    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] })
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: REVIEW_LIST_KEY })
 
     const approve = useMutation({
         mutationFn: () => adminApi.approve(item.id),

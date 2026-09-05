@@ -52,13 +52,11 @@ export function useRemoveFavorites() {
 
 /** 心形状态 query 的 key 工厂：useFavoriteStatus 与 useToggleFavorite 必须同源。
  * checkFavoriteExists 是 POST，生成器不产出 queryKey，故本地定义。 */
-const favoritedKey = (productId: string) => ["favorite-status", productId] as const
-
-/** 该商品是否已收藏：详情页心形状态用；未登录不发请求（公开详情页可匿名访问） */
-export function useFavoriteStatus(productId: string) {
-    const isLoggedIn = useIsLoggedIn()
-    return useQuery({
-        queryKey: favoritedKey(productId),
+/** 心形状态 query：key 与 options 同源（useToggleFavorite 的乐观更新复用同一 key）。
+ * checkFavoriteExists 是 POST，生成器不产出 queryKey，故本地定义。 */
+const favoritedOptions = (productId: string) =>
+    queryOptions({
+        queryKey: ["favorite-status", productId] as const,
         queryFn: async ({ signal }) => {
             const res = await FavoritesApi.checkFavoriteExists({
                 body: { productIds: [productId] },
@@ -66,9 +64,13 @@ export function useFavoriteStatus(productId: string) {
             })
             return res.productIds.includes(productId)
         },
-        enabled: isLoggedIn,
         staleTime: 30_000,
     })
+
+/** 该商品是否已收藏：详情页心形状态用；未登录不发请求（公开详情页可匿名访问） */
+export function useFavoriteStatus(productId: string) {
+    const isLoggedIn = useIsLoggedIn()
+    return useQuery({ ...favoritedOptions(productId), enabled: isLoggedIn })
 }
 
 /** 收藏/取消收藏开关：详情页心形按钮用，乐观切换、失败回滚。
@@ -84,14 +86,14 @@ export function useToggleFavorite(productId: string) {
             return !favorited
         },
         onMutate: async () => {
-            await qc.cancelQueries({ queryKey: favoritedKey(productId) })
-            const prev = qc.getQueryData<boolean>(favoritedKey(productId))
-            qc.setQueryData(favoritedKey(productId), !prev)
+            await qc.cancelQueries({ queryKey: favoritedOptions(productId).queryKey })
+            const prev = qc.getQueryData<boolean>(favoritedOptions(productId).queryKey)
+            qc.setQueryData(favoritedOptions(productId).queryKey, !prev)
             return { prev }
         },
         onError: (_e, _v, ctx) => {
-            qc.setQueryData(favoritedKey(productId), ctx?.prev)
+            qc.setQueryData(favoritedOptions(productId).queryKey, ctx?.prev)
         },
-        onSettled: () => qc.invalidateQueries({ queryKey: favoritedKey(productId) }),
+        onSettled: () => qc.invalidateQueries({ queryKey: favoritedOptions(productId).queryKey }),
     })
 }

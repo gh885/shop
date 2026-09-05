@@ -1,10 +1,5 @@
 import type { Money } from "@shop/api"
-import type { Money as SdkMoney, PreviewResponse } from "@shop/api/sdk"
-
-/** 归一：SDK 的 Money 现已 required 且非 null，原样透传 */
-function toMoney(m: SdkMoney): Money {
-    return { amount: m.amount, currency: m.currency }
-}
+import type { PreviewResponse } from "@shop/api/sdk"
 
 /** wire → 领域：只做形状归一（field 透传 + Money），不造假默认值。 */
 export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
@@ -17,14 +12,14 @@ export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
                 productId: l.productId,
                 name: l.name,
                 image: l.image ?? undefined,
-                price: toMoney(l.price),
-                originalPrice: toMoney(l.originalPrice),
+                price: l.price,
+                originalPrice: l.originalPrice,
                 quantity: l.quantity,
                 stock: l.stock,
             })),
-            itemAmount: toMoney(g.itemAmount),
-            shippingFee: toMoney(g.shippingFee),
-            payAmount: toMoney(g.payAmount),
+            itemAmount: g.itemAmount,
+            shippingFee: g.shippingFee,
+            payAmount: g.payAmount,
         })),
         unavailable: dto.unavailable.map((u) => ({
             skuId: u.skuId,
@@ -42,7 +37,7 @@ export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
             district: dto.address.district,
             detail: dto.address.detail,
         },
-        totalPayAmount: toMoney(dto.totalPayAmount),
+        totalPayAmount: dto.totalPayAmount,
     }
 }
 

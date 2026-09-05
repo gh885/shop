@@ -1,5 +1,4 @@
 import type { Money } from "@shop/api"
-import type { Money as SdkMoney } from "@shop/api/sdk"
 
 import { toStatusFromWire, statusToWire } from "#/shared/order-status"
 import type { Order, OrderDetail, OrderItem } from "./model"
@@ -11,7 +10,7 @@ import type { Order, OrderDetail, OrderItem } from "./model"
  * 自后端收紧 OpenAPI 契约（response 字段已标 required / nullable）后：
  *   - required 字段：契约保证必有，mapping 不再兜底（去掉 ?? "" / ?? 0）。
  *   - nullable 字段：契约明确可空，如实透传 null，由 UI 层处理「无」的展示（不再 ?? "" 造假）。
- * 金额一律 Money，SDK 的 Money 现已 required 且非 null，toMoney 原样透传。
+ * 金额一律 Money，SDK 的 Money 现已 required 且非 null， Money 直接透传无需投影。
  */
 
 // ---------- 状态映射（后端枚举大写 → 前端领域枚举小写，双向） ----------
@@ -22,31 +21,26 @@ const toStatus = toStatusFromWire
 
 export { statusToWire }
 
-/** 归一：SDK 的 Money 现已 required 且非 null，原样透传 */
-function toMoney(m: SdkMoney): Money {
-    return { amount: m.amount, currency: m.currency }
-}
-
 /** 行项 wire → 业务：快照字段归一 */
 function toOrderItem(dto: {
     productId: string
     skuId: string
     name: string
     image: string | null
-    price: SdkMoney
-    originalPrice: SdkMoney
+    price: Money
+    originalPrice: Money
     quantity: number
-    amount: SdkMoney
+    amount: Money
 }): OrderItem {
     return {
         productId: dto.productId,
         skuId: dto.skuId,
         title: dto.name,
         image: dto.image ?? undefined,
-        price: toMoney(dto.price),
-        originalPrice: toMoney(dto.originalPrice),
+        price: dto.price,
+        originalPrice: dto.originalPrice,
         quantity: dto.quantity,
-        amount: toMoney(dto.amount),
+        amount: dto.amount,
     }
 }
 
@@ -57,7 +51,7 @@ export function toOrder(dto: {
     status: string
     shopId: string
     shopName: string | null
-    payAmount: SdkMoney
+    payAmount: Money
     payExpireAt: string
     createdAt: string
     items: Array<{
@@ -65,10 +59,10 @@ export function toOrder(dto: {
         skuId: string
         name: string
         image: string | null
-        price: SdkMoney
-        originalPrice: SdkMoney
+        price: Money
+        originalPrice: Money
         quantity: number
-        amount: SdkMoney
+        amount: Money
     }>
 }): Order {
     return {
@@ -80,9 +74,9 @@ export function toOrder(dto: {
         shopId: dto.shopId,
         shopName: dto.shopName,
         items: dto.items.map(toOrderItem),
-        itemAmount: toMoney(dto.payAmount),
+        itemAmount: dto.payAmount,
         shippingFee: undefined,
-        payAmount: toMoney(dto.payAmount),
+        payAmount: dto.payAmount,
     }
 }
 
@@ -94,9 +88,9 @@ export function toOrderDetail(dto: {
     shopId: string
     shopName: string | null
     availableActions: Array<string>
-    itemAmount: SdkMoney
-    shippingFee: SdkMoney
-    payAmount: SdkMoney
+    itemAmount: Money
+    shippingFee: Money
+    payAmount: Money
     buyerMessage: string | null
     receiverName: string
     receiverPhone: string
@@ -118,10 +112,10 @@ export function toOrderDetail(dto: {
         skuId: string
         name: string
         image: string | null
-        price: SdkMoney
-        originalPrice: SdkMoney
+        price: Money
+        originalPrice: Money
         quantity: number
-        amount: SdkMoney
+        amount: Money
     }>
 }): OrderDetail {
     return {
