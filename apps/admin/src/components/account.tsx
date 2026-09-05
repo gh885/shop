@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { Button, cn, useSidebar } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 
-import { adminApi } from "../lib/api"
+import { AdminAuthApi } from "@shop/api/sdk"
 import { getDeviceId, tokenStore } from "../lib/api"
 import { useMe } from "../lib/me"
 
@@ -34,7 +34,7 @@ export function Account() {
     const { data: me } = useMe()
 
     const logout = useMutation({
-        mutationFn: () => adminApi.logout(getDeviceId()),
+        mutationFn: () => AdminAuthApi.staffLogout({ body: { deviceId: getDeviceId() } }),
         onSettled: () => {
             tokenStore.clear()
             void navigate({ to: "/login" })

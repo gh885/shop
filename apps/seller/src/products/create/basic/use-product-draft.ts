@@ -1,16 +1,8 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react"
 
-import type { SkuUpdateItem } from "@shop/api/sdk"
+import { ProductsAdminApi, type SkuUpdateItem } from "@shop/api/sdk"
 
-import {
-    applyProductSpecs,
-    attrTemplate,
-    createProduct,
-    productDetail,
-    publishProduct,
-    updateProduct,
-    updateProductSkus,
-} from "#/products/data"
+import { applyProductSpecs, attrTemplate, publishProduct, updateProductSkus } from "#/products/data"
 
 /** 编辑态商品状态：判断「能否切类目 / 规格是否冻结」，undefined 表示新建（无真实商品态）。 */
 export type DraftProductStatus = "DRAFT" | "WAREHOUSE" | "PUBLISHED"
@@ -130,13 +122,15 @@ export function useProductDraft({
             if (!shopId || !categoryId) throw { status: 0, detail: "请先选择店铺和类目" }
             setCreating(true)
             try {
-                const product = await createProduct({
-                    categoryId,
-                    name: basic.name || "",
-                    subtitle: basic.subtitle || undefined,
-                    mainImage: basic.images[0] || undefined,
-                    images: basic.images,
-                    detailImages: basic.detailImages,
+                const product = await ProductsAdminApi.createProduct({
+                    body: {
+                        categoryId,
+                        name: basic.name || "",
+                        subtitle: basic.subtitle || undefined,
+                        mainImage: basic.images[0] || undefined,
+                        images: basic.images,
+                        detailImages: basic.detailImages,
+                    },
                 })
                 productRef.current = product.id
                 createdThisSessionRef.current = true
@@ -155,7 +149,7 @@ export function useProductDraft({
         if (!shopId || !productId || createdThisSessionRef.current) return
         let cancelled = false
         setHydrated(false)
-        productDetail(productId)
+        ProductsAdminApi.getShopProductDetail({ path: { id: productId } })
             .then((detail) => {
                 if (cancelled) return
                 dispatch({
@@ -238,13 +232,16 @@ export function useProductDraft({
                 const id = await ensureDraft(basic)
                 if (!id) return
                 // 2. 落 basic（标题/图片/卖点）——草稿与提交都存
-                await updateProduct(id, {
-                    categoryId,
-                    name: basic.name || "",
-                    subtitle: basic.subtitle || undefined,
-                    mainImage: basic.images[0] || undefined,
-                    images: basic.images,
-                    detailImages: basic.detailImages,
+                await ProductsAdminApi.updateProduct({
+                    path: { id },
+                    body: {
+                        categoryId,
+                        name: basic.name || "",
+                        subtitle: basic.subtitle || undefined,
+                        mainImage: basic.images[0] || undefined,
+                        images: basic.images,
+                        detailImages: basic.detailImages,
+                    },
                 })
                 // 3. 落 specs 拿真实 skuId（无选值→单规格隐藏 SKU；有选值→对账生成网格；编辑态幂等）
                 //    草稿与提交都做：把当前已配置的规格/组合持久化下来，保证下次进来能完整续编。

@@ -1,8 +1,9 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
 
 import type { ProductResponse } from "@shop/api/sdk"
+import { CategoriesApi } from "@shop/api/sdk"
 
-import { categoryTree, listProducts } from "./data"
+import { listProducts } from "./data"
 import { useMemo } from "react"
 import { type LeafPath, flattenLeafPaths } from "./category"
 
@@ -55,7 +56,7 @@ export const productListOptions = (shopId: string | undefined, s: ProductListSea
 /** 类目树：低频变更公共数据，全量拉一次长缓存，页面内搜索/级联都在这份树上算 */
 const categoryTreeOptions = queryOptions({
     queryKey: categoryKeys.tree,
-    queryFn: () => categoryTree(),
+    queryFn: () => CategoriesApi.getCategoryTree(),
     staleTime: 10 * 60_000,
 })
 

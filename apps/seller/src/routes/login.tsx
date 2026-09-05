@@ -14,7 +14,7 @@ import {
 import { Button, Input, cn, useAppForm, useCaptcha, useCountdown } from "@shop/ui-web"
 
 import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
-import { getCaptcha, loginByPassword, loginBySms, sendSmsCode } from "#/shared/lib/auth-data"
+import { AuthApi } from "@shop/api/sdk"
 
 export const Route = createFileRoute("/login")({
     component: LoginPage,
@@ -30,7 +30,7 @@ function LoginPage() {
     const [captchaInvalid, setCaptchaInvalid] = useState(false)
     const [countdown, setCountdown] = useCountdown()
     // 图形验证码：发码前先过人机验证（对应后端 infra/captcha）
-    const captcha = useCaptcha(getCaptcha)
+    const captcha = useCaptcha(AuthApi.getCaptcha)
 
     // 已登录（refresh cookie 有效）直接进入工作台
     useEffect(() => {
@@ -58,15 +58,19 @@ function LoginPage() {
             try {
                 const result =
                     tab === "sms"
-                        ? await loginBySms({
-                              phone: value.phone,
-                              code: value.code,
-                              deviceId: getDeviceId(),
+                        ? await AuthApi.loginBySms({
+                              body: {
+                                  phone: value.phone,
+                                  code: value.code,
+                                  deviceId: getDeviceId(),
+                              },
                           })
-                        : await loginByPassword({
-                              phone: value.phone,
-                              password: value.password,
-                              deviceId: getDeviceId(),
+                        : await AuthApi.loginByPassword({
+                              body: {
+                                  phone: value.phone,
+                                  password: value.password,
+                                  deviceId: getDeviceId(),
+                              },
                           })
                 tokenStore.set(result.accessToken)
                 void navigate({ to: "/", replace: true })
@@ -84,10 +88,12 @@ function LoginPage() {
 
     const sendCode = useMutation({
         mutationFn: (phone: string) =>
-            sendSmsCode({
-                phone,
-                captchaId: captcha.captchaId,
-                captchaCode: form.getFieldValue("captchaCode"),
+            AuthApi.sendSmsCode({
+                body: {
+                    phone,
+                    captchaId: captcha.captchaId,
+                    captchaCode: form.getFieldValue("captchaCode"),
+                },
             }),
         onSuccess: () => {
             setServerError(undefined)

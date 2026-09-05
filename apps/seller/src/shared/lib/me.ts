@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { me } from "./auth-data"
+import { AuthApi } from "@shop/api/sdk"
 import { useAuthStatus } from "./api"
 
 const ME_QUERY_KEY = ["me"] as const
@@ -10,7 +10,7 @@ export function useMe() {
     const status = useAuthStatus()
     return useQuery({
         queryKey: ME_QUERY_KEY,
-        queryFn: () => me(),
+        queryFn: () => AuthApi.me(),
         enabled: status === "authed",
         staleTime: 5 * 60_000,
         retry: false,

@@ -2,12 +2,10 @@ import { toApiError } from "@shop/api"
 import {
     CategoriesApi,
     ProductsAdminApi,
-    type CreateProductRequest,
-    type ProductDetailResponse,
+    type CategoryAttrNodeResponse,
     type ProductResponse,
     type SkuResponse,
     type SkuUpdateItem,
-    type UpdateProductRequest,
 } from "@shop/api/sdk"
 
 // ---------- 商品域数据函数（直接在调用点用，不经集中封装对象） ----------
@@ -34,33 +32,14 @@ export async function listProducts(search: {
     }
 }
 
-/** 商品详情（基本信息 + SKU 列表）：wire → 领域形状 */
-export async function productDetail(id: string): Promise<ProductDetailResponse> {
-    return await ProductsAdminApi.getShopProductDetail({ path: { id } })
-}
-
-/** 新建草稿商品：wire → 领域形状 */
-export async function createProduct(payload: CreateProductRequest) {
-    return await ProductsAdminApi.createProduct({ body: payload })
-}
-
 /** 更新 SKU 价格库存，返回更新后的 SKU 网格 */
 export async function updateProductSkus(
     id: string,
     items: SkuUpdateItem[],
 ): Promise<SkuResponse[]> {
-    const data = await ProductsAdminApi.updateProductSkus({
+    return await ProductsAdminApi.updateProductSkus({
         path: { id },
         body: { items },
-    })
-    return data as SkuResponse[]
-}
-
-/** 编辑商品基本信息（autosave 用）：草稿阶段 name 可空 */
-export async function updateProduct(id: string, payload: UpdateProductRequest) {
-    return await ProductsAdminApi.updateProduct({
-        path: { id },
-        body: payload,
     })
 }
 
@@ -82,21 +61,6 @@ export async function publishProduct(id: string, target?: "PUBLISHED" | "WAREHOU
         path: { id },
         query: target ? { target } : undefined,
     })
-}
-
-/** 下架 */
-export async function offProduct(id: string) {
-    await ProductsAdminApi.offProduct({ path: { id } })
-}
-
-/** 重新上架 */
-export async function onProduct(id: string) {
-    await ProductsAdminApi.onProduct({ path: { id } })
-}
-
-/** 类目树（末级可挂商品）：wire → 领域形状 */
-export async function categoryTree() {
-    return await CategoriesApi.getCategoryTree()
 }
 
 /**
@@ -147,11 +111,13 @@ export async function uploadProductImage(file: File): Promise<string> {
 
 /** 类目属性模板（公开接口），发布页取销售属性（kind=SPEC）用 */
 export async function attrTemplate(categoryId: string): Promise<CategoryAttrTemplateNode[]> {
-    const nodes = await CategoriesApi.getPublicCategoryAttrTemplate({ path: { id: categoryId } })
-    return nodes as CategoryAttrTemplateNode[]
+    return await CategoriesApi.getPublicCategoryAttrTemplate({ path: { id: categoryId } })
 }
 
 // ---------- 商品域类型（就近放在数据函数旁） ----------
+
+/** 类目属性模板：与生成契约同构，直接别名（勿手写镜像字段，契约演进会漂移） */
+export type CategoryAttrTemplateNode = CategoryAttrNodeResponse
 
 /** 一个销售属性维度的选择：attrId 定位模板属性，valueIds 选值域内值，customValues 提交值域外新值 */
 export interface SpecSelection {
@@ -162,37 +128,4 @@ export interface SpecSelection {
     valueImages?: Record<string, string>
     /** 自定义取值文本 → 取值图 */
     customValueImages?: Record<string, string>
-}
-
-interface CategoryAttrTemplateAttr {
-    id: string
-    categoryId: string
-    name: string
-    /** SPEC 销售属性 / PARAM 非销售参数 */
-    kind: "SPEC" | "PARAM"
-    required: boolean
-    allowCustom: boolean
-    /** 该规格是否允许每个取值上传配图 */
-    allowImage: boolean
-    sort: number
-    status: "DISABLED" | "ENABLED"
-    createdAt: string
-    updatedAt: string
-}
-
-interface CategoryAttrTemplateValue {
-    id: string
-    attrId: string
-    value: string
-    /** 规格值默认图（如「红色」对应色卡图），可空 */
-    image?: string
-    sort: number
-    /** PLATFORM 平台预置 / SELLER 卖家扩充 */
-    source: "PLATFORM" | "SELLER"
-    createdAt: string
-}
-
-export interface CategoryAttrTemplateNode {
-    attr: CategoryAttrTemplateAttr
-    values: CategoryAttrTemplateValue[]
 }

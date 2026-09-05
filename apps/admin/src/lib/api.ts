@@ -33,16 +33,6 @@ export const adminApi = {
         return { accessToken: data.accessToken }
     },
 
-    /** 当前登录员工信息 */
-    async me() {
-        return await AdminAuthApi.getStaffMe()
-    },
-
-    /** 登出 */
-    async logout(deviceId: string) {
-        await AdminAuthApi.staffLogout({ body: { deviceId } })
-    },
-
     /** 店铺审核分页列表 */
     async listReviews(input: { status?: string; page: number; size: number }) {
         const page = await AdminReviewsApi.listShopReviews({

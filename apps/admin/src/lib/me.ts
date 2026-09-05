@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 
-import { adminApi } from "./api"
+import { AdminAuthApi } from "@shop/api/sdk"
 import { useAuthStatus } from "./api"
 
 const ME_QUERY_KEY = ["admin", "me"] as const
@@ -10,7 +10,7 @@ export function useMe() {
     const status = useAuthStatus()
     return useQuery({
         queryKey: ME_QUERY_KEY,
-        queryFn: () => adminApi.me(),
+        queryFn: () => AdminAuthApi.getStaffMe(),
         enabled: status === "authed",
         staleTime: 5 * 60_000,
         retry: false,

@@ -2,10 +2,10 @@ import { useCallback, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { type NavigateOptions } from "@tanstack/react-router"
 import type { ProductResponse } from "@shop/api/sdk"
+import { ProductsAdminApi } from "@shop/api/sdk"
 
 import type { ProductStatusFilter } from "#/products/constants"
 import type { ProductListFilter } from "#/products/list/filter"
-import { offProduct, onProduct } from "#/products/data"
 import { productKeys, productListOptions, type ProductListSearch } from "#/products/queries"
 import { useCurrentShop } from "#/shared/lib/shop"
 
@@ -45,11 +45,11 @@ export function useProductList(search: ProductListSearch, navigate: NavigateFn) 
     )
 
     const off = useMutation({
-        mutationFn: (id: string) => offProduct(id),
+        mutationFn: (id: string) => ProductsAdminApi.offProduct({ path: { id } }),
         onSuccess: invalidate,
     })
     const on = useMutation({
-        mutationFn: (id: string) => onProduct(id),
+        mutationFn: (id: string) => ProductsAdminApi.onProduct({ path: { id } }),
         onSuccess: invalidate,
     })
 
