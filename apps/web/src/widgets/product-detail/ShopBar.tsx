@@ -12,7 +12,7 @@ import {
 
 import { notify } from "#/shared/lib/toast"
 
-import { useShop } from "./use-product-detail"
+import { useShop } from "./queries"
 
 /** 详情页顶部店铺条：头像 + 店名，右侧客服/进店（对齐参考图第一行） */
 export function ShopBar({ shopId }: { shopId: string }) {

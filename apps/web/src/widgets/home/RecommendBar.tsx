@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 import { Button, Skeleton, Sticky } from "@shop/ui-web"
 
 import { HOME_HEADER_HEIGHT } from "./HomeHeader"
-import { useRecommendTabs } from "./use-home"
+import { useRecommendTabs } from "./queries"
 
 /** 首页第四层：吸顶推荐条，吸在顶栏下方。扁平数组（猜你喜欢是普通一项），每页显示数量由容器宽度自动决定，首末页隐藏对应翻页按钮 */
 export function RecommendBar() {

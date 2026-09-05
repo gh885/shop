@@ -17,7 +17,7 @@ import RegionPicker, { type RegionNode } from "#/shared/ui/RegionPicker"
 import { notify } from "#/shared/lib/toast"
 
 import type { Address, AddressInput } from "./address"
-import { parseAddressText, useCreateAddress, useUpdateAddress } from "./use-address"
+import { parseAddressText, useCreateAddress, useUpdateAddress } from "./queries"
 import { findPath, loadChildren } from "./regions"
 
 /** 表单入参校验（form validators 用；表单局部 zchema，非领域契约） */

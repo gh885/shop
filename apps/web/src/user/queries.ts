@@ -4,7 +4,7 @@ import { meOptions as sdkMeOptions, meQueryKey as sdkMeQueryKey } from "@shop/ap
 import { useAuthStatus } from "#/shared/api/auth"
 
 /**
- * use-user —— 当前登录用户的 React 接线层。这里只管读写。
+ * user/queries —— 当前登录用户的 React 接线层。这里只管读写。
  * 直接返回 SDK 的 MeResponse（字段可选），组件按需 Pick 自己渲染的字段；
  * 登录态由 auth-kit gate；未登录（guest）不发请求。
  *

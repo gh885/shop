@@ -9,7 +9,7 @@ import { statusToWire, toOrder, toOrderDetail } from "./order"
 import type { Order, OrderDetail, OrderStatus } from "./model"
 
 /**
- * use-order —— 订单的数据层（fetch 纯函数 + queryOptions + hooks）。
+ * order/queries —— 订单的数据层（fetch 纯函数 + queryOptions + hooks）。
  * 规则/类型在 ./order.ts（投影）与 ./model.ts（领域类型）。
  *
  * 订单页是受保护路由（_protected layout 保证挂载时必已登录），所以：

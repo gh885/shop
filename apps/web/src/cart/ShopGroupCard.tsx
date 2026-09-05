@@ -1,7 +1,7 @@
 import { Checkbox } from "@shop/ui-web"
 
 import { deriveAllSelected, selectableIdsOf, type CartShopGroup } from "./cart"
-import { useCartItemActions, useSelectCartItems } from "./use-cart"
+import { useCartItemActions, useSelectCartItems } from "./queries"
 import { ItemRow } from "./ItemRow"
 
 /**

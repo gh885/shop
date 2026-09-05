@@ -4,7 +4,7 @@ import { Button, Separator } from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/api"
 import { deriveCartItemView, deriveSelectedItems, deriveSelectedTotal } from "./cart"
-import { useCartItems, useToggleCartItem } from "./use-cart"
+import { useCartItems, useToggleCartItem } from "./queries"
 import type { CartItem } from "./cart"
 
 /**

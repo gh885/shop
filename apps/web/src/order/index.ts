@@ -1,4 +1,4 @@
-export { useMyOrders, useOrderDetail, useCancelOrder, useReceiveOrder } from "./use-order"
+export { useMyOrders, useOrderDetail, useCancelOrder, useReceiveOrder } from "./queries"
 
 export { ORDER_STATUS_LABEL } from "./model"
 export type { Order, OrderDetail, OrderStatus } from "./model"

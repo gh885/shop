@@ -9,9 +9,9 @@ import {
 } from "./product"
 
 /**
- * use-product —— 商品的数据层（纯异步函数，非 hook）。规则/类型在 ./product.ts。
- * 真正的 React 接线（queryOptions）都在各页面级 use-*（如 widgets/product-detail/use-product-detail、
- * widgets/home/use-home）——商品列表/详情被首页商品流、详情推荐、类目/搜索等多处复用，
+ * product/data —— 商品的数据层（纯异步函数，非 hook）。规则/类型在 ./product.ts。
+ * 真正的 React 接线（queryOptions）都在各页面级 use-*（如 widgets/product-detail/queries、
+ * widgets/home/queries）——商品列表/详情被首页商品流、详情推荐、类目/搜索等多处复用，
  * 不在模块内绑死 query key/缓存策略，由调用方决定。
  */
 

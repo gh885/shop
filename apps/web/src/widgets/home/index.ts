@@ -11,4 +11,4 @@ export {
     useHomeNav,
     useBanners,
     useFeedProducts,
-} from "./use-home"
+} from "./queries"

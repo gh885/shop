@@ -16,7 +16,7 @@ import {
 } from "./cart"
 
 /**
- * use-cart —— 购物车的 React 接线层。只管「读状态/写状态」，
+ * cart/queries —— 购物车的 React 接线层。只管「读状态/写状态」，
  * 具体规则（派生、变换、映射）都在 ./cart.ts 纯函数里。
  *
  * queryKey 用生成 SDK 的 key 工厂（契约同步、参数类型受检），投影 queryFn 本地保留。

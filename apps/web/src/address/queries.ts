@@ -6,7 +6,7 @@ import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
 import { toAddress, type Address, type AddressInput, type AddressParse } from "./address"
 
-/** use-address —— 地址的 React 接线层。规则/类型在 ./address.ts，这里只管读写。
+/** address/queries —— 地址的 React 接线层。规则/类型在 ./address.ts，这里只管读写。
 
  * 地址列表只在「收货地址」页读、无跨路由共享；留在 query 是为乐观更新（删除/默认态）。 */
 

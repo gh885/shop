@@ -13,7 +13,7 @@ import {
 import { fenToYuan } from "@shop/api"
 
 import { deriveCartItemView, type CartItem } from "./cart"
-import type { CartItemActions } from "./use-cart"
+import type { CartItemActions } from "./queries"
 import { notify } from "#/shared/lib/toast"
 
 /**

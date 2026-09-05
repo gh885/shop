@@ -5,4 +5,4 @@
  * 桶文件只暴露外部真正消费的那几个；模块内部一律相对路径直连，不走这里。
  */
 
-export { useMe, useClearMe } from "./use-user"
+export { useMe, useClearMe } from "./queries"

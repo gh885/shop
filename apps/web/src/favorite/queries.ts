@@ -8,7 +8,7 @@ import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 import { toFavoriteItem, type FavoriteItem } from "./favorite"
 
 /**
- * use-favorite —— 收藏的 React 接线层。只管「读状态/写状态」，规则在 ./favorite.ts 纯函数里。
+ * favorite/queries —— 收藏的 React 接线层。只管「读状态/写状态」，规则在 ./favorite.ts 纯函数里。
  * 状态分两块、互不直接同步：
  * - 列表（收藏页）：useFavorites + useRemoveFavorites（乐观移除，为它留 query）
  * - 详情页心形（useFavoriteStatus / useToggleFavorite）：按 productId 独立 query，乐观切换

@@ -3,7 +3,7 @@ import { Search } from "lucide-react"
 import { Button, Checkbox } from "@shop/ui-web"
 
 import { deriveAllSelected, deriveSelectedItems } from "./cart"
-import { useBatchRemoveCartItems, useCartItems, useSelectCartItems } from "./use-cart"
+import { useBatchRemoveCartItems, useCartItems, useSelectCartItems } from "./queries"
 import { notify } from "#/shared/lib/toast"
 
 /**

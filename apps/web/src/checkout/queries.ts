@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { notify } from "#/shared/lib/toast"
 
 import { toCheckoutPreview, type CheckoutPreview } from "./checkout"
-import { confirmPayment, createOrder, createPayment, fetchPreview } from "#/order/use-order"
+import { confirmPayment, createOrder, createPayment, fetchPreview } from "#/order/queries"
 
-/** use-checkout —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
+/** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
 
 /** 结算来源：购物车选中条目（cartItemIds）与立即购买（buySkuId+buyQuantity）二选一 */
 export type CheckoutSource = {

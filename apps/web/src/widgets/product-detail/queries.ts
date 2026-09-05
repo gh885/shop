@@ -10,7 +10,7 @@ import { fetchProductDetail, fetchProducts } from "#/product"
 
 /**
  * 商品详情数据 hooks：route loader 用 queryOptions 预热，组件 useQuery 读同一缓存
- * （与 widgets/home/use-home 相同的 SSR-query 模式）。
+ * （与 widgets/home/queries 相同的 SSR-query 模式）。
  *
  * queryKey 用生成 SDK 的 key 工厂（契约同步、参数类型受检），投影 queryFn 本地保留。
  */

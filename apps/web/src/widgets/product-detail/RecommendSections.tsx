@@ -6,7 +6,7 @@ import type { Product, ProductDetail } from "#/product"
 import { ProductCard } from "#/product"
 
 import { DetailSection } from "./DetailSection"
-import { alsoViewedOptions, shopProductsOptions } from "./use-product-detail"
+import { alsoViewedOptions, shopProductsOptions } from "./queries"
 
 /** 推荐流通用网格：商品卡片 + 骨架屏，本店推荐与看了又看共用 */
 function RecoGrid({ products, currentId }: { products: Product[] | undefined; currentId: string }) {
