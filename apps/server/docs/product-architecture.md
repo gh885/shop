@@ -1,23 +1,8 @@
 # Product 模块 — 架构说明
 
-## 全库 ID 策略（所有模块通用）
+## 全库 ID 策略
 
-**主键统一使用 uuidv7，类型 `UUID`。**
-
-- 列定义：`id UUID PRIMARY KEY DEFAULT uuidv7()`（PG 18 原生函数，无需扩展）
-- Java 侧：`java.util.UUID`，MyBatis-Plus `@TableId(type = IdType.INPUT)`
-- 实际生成走应用层：`MyBatisPlusMetaObjectHandler` 在 insert 时用 `UuidCreator.getTimeOrderedEpoch()` 填充（字段已有值则不覆盖）；DB default 只是兜底
-- 配套基础设施（`infra/`）：`MyBatisConfig` + `UuidTypeHandler` —— MyBatis 无内置 UUID TypeHandler，不注册会导致 uuid 列映射为 null、`selectById(UUID)` 报 no getter；`MyBatisConfig` 已全局注册，新实体直接用 `UUID` 即可
-- 禁止再引入其他主键方案（自增 / 雪花 / uuidv4），关联表、日志表同样遵守
-
-选型理由：
-
-1. **可枚举问题消失**：ID 可安全暴露在任何接口 / URL / 日志 / 消息队列中，无需逐接口评估暴露面，也不需要双 ID（内部自增 + 外部随机）方案
-2. **生成无协调**：多副本部署、未来拆服务均无需改动（对比雪花的 workerId 分配问题）
-3. **时间有序**：索引局部性接近自增，写入性能无 uuidv4 的碎片化问题
-4. 代价：16B（vs BIGINT 8B），正常业务规模下无感
-
-配套规则：**给用户看的业务编号（订单号、售后单号、支付流水号）是独立业务字段**（日期段 + 随机段），不是主键，不要用主键充当编号。
+主键统一 uuidv7、业务编号独立字段等**全库 ID 策略已上提至 [docs/architecture.md §5](../../docs/architecture.md#5-全库-id-策略所有模块通用)**——它不属于 product 模块，本文不再重复维护。
 
 ## 分类体系
 

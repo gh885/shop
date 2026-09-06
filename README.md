@@ -47,22 +47,18 @@ shop/
 │           └── auth/ product/ inventory/ cart/ favorite/ order/ payment/ cms/ shop/ admin/ user/
 │                              # 业务模块 = 顶层包 = PG schema；内部 controller → dto → service → mapper 三层到底
 ├── packages/
-│   ├── api/                    # TS SDK（@hey-api/openapi-ts 从 openapi/api-docs.json 生成）+ zod schema
-│   ├── ui-web/                 # shadcn/ui + BaseUI 组件库（CLI 生成，不手写）
-│   └── config/                 # tsconfig / oxlint / oxfmt 共享配置
+│   ├── api/                    # TS SDK（@hey-api/openapi-ts 从 openapi/api-docs.json 生成）+ zod 契约校验 + Money/错误码
+│   ├── ui-web/                 # shadcn/ui + BaseUI 组件库（CLI 生成，不手写；视觉规则见包内 DESIGN.md）
+│   ├── common/                 # 前端共享纯逻辑
+│   ├── config/                 # tsconfig / oxlint / oxfmt 共享配置
+│   └── test-utils/             # 跨 app 测试装置（MSW handlers / setup / 假数据工厂）
 ├── openapi/                    # OpenAPI 契约 api-docs.json（后端 /v3/api-docs 导出，pnpm gen:sdk 刷新）
-└── docs/                       # 约定文档（错误码唯一真相源见 docs/error-codes.md）
+└── docs/                       # 架构 / 约定 / 决策 / 清单（索引见下文「文档地图」）
 ```
 
 ## 架构原则
 
-- **模块隔离**：模块之间不 import 对方的 service/repo。模块间通信有两条正规通道 ——
-  **api 包**（`@NamedInterface("api")`，跨模块同步同事务的查询 `XxxReadQuery` 与命令 `XxxCommand`，
-  失败抛异常回滚调用方事务）+ **events 包**（`@NamedInterface("events")`，纯通知）。
-  命令语义（扣库存、推进订单状态）走 api 同步调用，不走事件；消费方在 `allowedDependencies` 显式登记
-- **Schema 隔离**：每个模块拥有自己的 PG schema，可只读跨 schema 按 ID 查字段，不许跨 schema JOIN
-- **`common/` 与 `infra/` 是共享纯包**：不属于任何业务模块，经 `@Modulithic(sharedModules)` 显式登记为共享模块
-- **Modulith 强制校验**：测试期跨模块 import 直接报错（见 `ModularityTests`），命名规约由 ArchUnit 校验（见 `NamingRulesTest`）
+模块隔离（api 包同步调用 + events 纯通知，`allowedDependencies` 显式登记）、schema 隔离（模块 = 顶层包 = PG schema，禁止跨 schema JOIN）、`common/` 与 `infra/` 为共享纯包、Modulith + ArchUnit 强制校验——完整说明（模块依赖图、请求/认证/下单链路、全库 ID 策略、前后端 domain 对应）见 [docs/architecture.md](docs/architecture.md)。
 
 ## 已实现范围与已知边界
 
@@ -92,34 +88,24 @@ PostgreSQL 18 与 Redis 7 运行在 WSL2 上，Windows 侧通过 localhost 直�
 Redis：localhost:6379
 ```
 
+## 文档地图
+
+| 文档                                                   | 内容                                                              |
+| ------------------------------------------------------ | ----------------------------------------------------------------- |
+| [AGENTS.md](AGENTS.md)                                 | 开发操作规范：结构/规则/命令/测试/错误码流程（AI 与开发者的入口） |
+| [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应  |
+| [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像              |
+| [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                              |
+| [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                  |
+| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（权限码表、业务事件日志）                          |
+| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机）                                   |
+| [docs/reference/](docs/reference/)                     | 收编的外部设计清单                                                |
+| [apps/server/docs/](apps/server/docs/)                 | 后端模块实现对照（快照）                                          |
+
 ## 开发规范
 
-### 提交信息
+提交信息（Conventional Commits）、常用命令、前端测试写法、UI 组件接入等规范统一见 [AGENTS.md](AGENTS.md)，此处不再重复维护。
 
-遵循 Conventional Commits 格式，scope 可选：
+后端测试分快慢两环：`mvn test` 只跑 `*Test`（单元 + MockMvc 接口层，不碰数据库），`mvn verify` 追加 `*IT`（真库集成测试，需 shop_test 库可达）。CI 门禁必须用 `mvn verify`。
 
-```
-feat(web): 商品列表页加筛选
-fix(server): 修复库存扣减并发问题
-refactor(server): 收口金额字段到 Money 值对象
-```
-
-### 常用命令
-
-```bash
-pnpm dev          # 启动前后端
-pnpm dev:web      # 只启动买家端
-pnpm dev:seller   # 卖家工作台
-pnpm dev:admin    # 平台管理端
-pnpm dev:server   # 只启动后端
-pnpm build        # vite build + mvn compile
-pnpm lint         # oxlint --fix + mvn compile
-pnpm format       # oxfmt + spotless:apply
-pnpm typecheck    # tsc --noEmit（三个前端 app）
-pnpm gen:sdk      # 需后端已启动：拉 /v3/api-docs 覆盖契约并重新生成 packages/api/src/sdk
-```
-
-后端测试分快慢两环：`mvn test` 只跑 `*Test`（单元 + MockMvc 接口层，不碰数据库），
-`mvn verify` 追加 `*IT`（真库集成测试，需 shop_test 库可达）。CI 门禁必须用 `mvn verify`。
-
-Lefthook 在 pre-commit 自动格式化暂存文件并跑 lint，commit-msg 校验提交信息格式，pre-push 跑全量 lint / typecheck / Java 编译。
+Lefthook：pre-commit 自动格式化并跑 lint，commit-msg 校验提交信息，pre-push 跑全量 lint / typecheck / 测试 / Java 编译 / SDK 契约漂移检查。

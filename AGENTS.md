@@ -100,15 +100,11 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 
 ### 设计约定
 
+- **视觉规则唯一来源：[`packages/ui-web/DESIGN.md`](packages/ui-web/DESIGN.md)**——使用铁律（复用优先/token 分层/primary 纪律）、色彩语义、形状海拔、动效、三端画像（web/seller/admin 差异走端级 Layer 2 覆盖 + 使用策略，不复制组件）都在那里；本文不重复维护
 - 底层无样式组件：`@base-ui/react`（BaseUI），WAI-ARIA 合规
-- 样式系统：Tailwind v4 + 分层主题 token（`packages/ui-web/src/styles.css`）
-    - Layer 1 Primitive（`--neutral/--brand/--green…` 色阶）：禁止组件直接使用
-    - Layer 2 Semantic（`--color-*`）：组件只用这层；明暗模式只重写这层映射
-    - 风格定位：消费级电商转化风——中性灰撑全场，品牌暖红只做转化引导（CTA）
+- 样式系统：Tailwind v4 + 分层主题 token（`packages/ui-web/src/styles.css`，数值真相源）
 - 图标库：`lucide-react`
 - 组件导出：`packages/ui-web/src/index.ts` → 各 app 直接 import
-- **优先使用 `@shop/ui-web` 组件**：任何 UI 元素能用 ui-web 设计系统组件的**一律用**，禁止用原生标签（`<button>`/`<input>` 等）或 app 内自造同质组件；ui-web 没有的（业务形态特殊）才允许在 app 内实现，且仍要复用 ui-web 的基础原子
-- **禁止用 className 覆盖组件皮肤**：业务代码使用 ui-web 组件时，外观（颜色、字号、圆角、边框、阴影）一律走组件的 `variant`/`size` props；`className` 只允许布局类（margin/width/flex/定位/间距）与占位类组件的形状匹配（如 Skeleton/Empty 跟随替代内容的形状）。现有 variant 不够用时扩展组件库，不在业务侧 hack。带皮肤类的原生 div 包裹或替代 ui-web 组件（自造假 Card/假输入框）视同违规，应改用对应组件（InputGroup/ButtonGroup/Card 等）。业务代码使用 primary 色仅限转化 CTA，选中/激活态走 accent 或 foreground
 
 ### App 接入 ui-web（如 apps/web）
 

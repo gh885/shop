@@ -1,6 +1,8 @@
 # 认证实现对照
 
-> 基于认证细节清单 v1.1（2026-07-26）
+> **快照文档**：记录实现进度对照，非持续维护的约定；后续变更以代码为准。
+> 依据清单：[docs/reference/authentication-details.md](../../docs/reference/authentication-details.md) v1.1（2026-07-26）。
+> 更新于 2026-07-27。设计动机与攻击面分析见 [docs/decisions/auth.md](../../docs/decisions/auth.md)。
 
 ## 状态图例
 

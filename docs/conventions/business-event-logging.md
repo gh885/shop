@@ -1,4 +1,4 @@
-# 业务事件日志约定（依据 observability-checklist.md BEV-* / INS-04）
+# 业务事件日志约定（依据 [observability-checklist.md](../reference/observability-checklist.md) BEV-\* / INS-04）
 
 业务事件日志 = 业务代码手动埋点 + 框架自动补信封字段。
 

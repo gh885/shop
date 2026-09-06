@@ -1,21 +1,9 @@
 # 权限系统实现对照
 
-> 基于：《权限细节清单》（D:/Code/docs/permission-details.md v1.0）。项目内权限契约的唯一真相源 = 本文档。
-> 范围：**P0 平台侧 RBAC 与 P1 商家侧子账号权限均已落地**；P2 员工管理待做。引用时注明本表对应的清单版本。
-
-## 权限码表（前后端共同语言，TS 侧常量见 packages/api）
-
-| 域     | 码                              | 含义                         | 授予方式                    |
-| ------ | ------------------------------- | ---------------------------- | --------------------------- |
-| seller | `PRODUCT_MANAGE`                | 商品增删改、规格 SKU、上下架 | 可授予子账号                |
-| seller | `ORDER_FULFILL`                 | 卖家订单查看 + 发货          | 可授予子账号                |
-| seller | `MEMBER_MANAGE` / `SHOP_MANAGE` | 成员管理 / 店铺设置注销      | OWNER 固有，不入可授予集合  |
-| admin  | `SHOP_REVIEW`                   | 入驻审核（通过与拒绝）       | 岗位 REVIEWER               |
-| admin  | `CMS_MANAGE`                    | banner / 导航 / 推荐位       | 岗位 OPS                    |
-| admin  | `CATEGORY_MANAGE`               | 平台类目                     | 岗位 OPS                    |
-| admin  | `STAFF_MANAGE`                  | 创建员工、分配岗位、禁用     | 仅 SUPER_ADMIN（消费端 P2） |
-
-平台岗位预设（`admin.staff.role`）：`SUPER_ADMIN`（通配）/ `REVIEWER` / `OPS`。改映射 = 改 `admin/service/StaffRole` 枚举发版；可授予白名单 = `shop/service/SellerGrants`。
+> **快照文档**：记录实现进度对照，非持续维护的约定；后续变更以代码为准。
+> 依据清单：[docs/reference/permission-details.md](../../docs/reference/permission-details.md) v1.0（2026-09-06 收编）。
+> 更新于 2026-08-26。范围：**P0 平台侧 RBAC 与 P1 商家侧子账号权限均已落地**；P2 员工管理待做。
+> 权限码表（前后端契约真相源）已迁至 [docs/conventions/permission-codes.md](../../docs/conventions/permission-codes.md)。
 
 ## 实现对照
 
