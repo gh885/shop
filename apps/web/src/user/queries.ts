@@ -10,7 +10,8 @@ import { useAuthStatus } from "#/shared/api/auth"
  *
  */
 
-const ME_QUERY_KEY = ["me"] as const
+/** 当前用户缓存 key（登录/登出/资料更新的失效入口，profile 页也引用它） */
+export const ME_QUERY_KEY = ["me"] as const
 
 const meQueryOptions = queryOptions({
     queryKey: ME_QUERY_KEY,

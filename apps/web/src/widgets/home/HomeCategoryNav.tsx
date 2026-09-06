@@ -44,7 +44,7 @@ export function HomeCategoryNav({
     if (entries.length === 0) {
         return (
             <div
-                className="flex w-[250px] shrink-0 items-center justify-center rounded-xl bg-background shadow-sm"
+                className="flex w-62.5 shrink-0 items-center justify-center rounded-xl bg-background shadow-sm"
                 style={{ height: defaultHeight }}
             >
                 <p className="px-4 text-center text-sm text-muted-foreground">
@@ -58,7 +58,7 @@ export function HomeCategoryNav({
 
     return (
         <div
-            className="relative w-[250px] shrink-0"
+            className="relative w-62.5 shrink-0"
             style={{ height: defaultHeight }}
             onMouseLeave={() => setActiveId(undefined)}
         >
@@ -90,7 +90,7 @@ export function HomeCategoryNav({
 
             {/* hover 展开的 Mega Menu 面板：绝对定位盖在右侧内容上方，高度由内容撑开 */}
             {active?.subs && active.subs.length > 0 && (
-                <div className="absolute top-0 left-full z-50 hidden w-[680px] rounded-lg bg-background shadow-float md:block">
+                <div className="absolute top-0 left-full z-50 hidden w-170 rounded-lg bg-background shadow-float md:block">
                     {/* 词条组：横向流式平铺，一行的组名后跟整排词条 */}
                     <div className="p-5">
                         <div className="flex flex-col gap-4">

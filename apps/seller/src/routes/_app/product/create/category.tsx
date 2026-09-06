@@ -49,7 +49,7 @@ function NewProductCategoryStep() {
     }
 
     return (
-        <div className="mx-auto w-full max-w-[1184px]">
+        <div className="mx-auto w-full max-w-narrow">
             <CategoryStep
                 mode={mode ?? "search"}
                 onModeChange={(next) =>

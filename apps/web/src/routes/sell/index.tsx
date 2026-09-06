@@ -12,14 +12,14 @@ import {
 // LazyMotion + m：按需加载动画特性（domAnimation 含 variants/whileInView/AnimatePresence），省约 30kb 全量 motion 包
 import {
     AnimatePresence,
-    LazyMotion,
     domAnimation,
+    LazyMotion,
     m,
     useReducedMotion,
     type Variants,
 } from "motion/react"
 
-import { Button, Card, CardContent, buttonVariants } from "@shop/ui-web"
+import { Button, buttonVariants, Card, CardContent } from "@shop/ui-web"
 
 import { useAuthStatus, useLoginDialogOpen } from "../../shared/api/auth"
 import { SELLER_URL } from "../../shared/lib/external"
@@ -214,15 +214,15 @@ function BusinessModes() {
                         aria-label="经营模式"
                         className="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1"
                     >
-                        {MODES.map((m) => {
-                            const Icon = m.icon
-                            const selected = m.key === active
+                        {MODES.map((mode) => {
+                            const Icon = mode.icon
+                            const selected = mode.key === active
                             return (
                                 <button
-                                    key={m.key}
+                                    key={mode.key}
                                     role="tab"
                                     aria-selected={selected}
-                                    onClick={() => setActive(m.key)}
+                                    onClick={() => setActive(mode.key)}
                                     className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
                                         selected
                                             ? "bg-background text-foreground shadow-sm"
@@ -230,7 +230,7 @@ function BusinessModes() {
                                     }`}
                                 >
                                     <Icon className="size-4" />
-                                    {m.label}
+                                    {mode.label}
                                 </button>
                             )
                         })}

@@ -1,12 +1,10 @@
-import { useState } from "react"
-import { ChevronDown, Copy } from "lucide-react"
-
-import { Button, Card, CardContent, CardHeader, CardTitle, Separator } from "@shop/ui-web"
-
+import { formatDateTime } from "@shop/app-kit"
 import { fenToYuan } from "@shop/api"
 
-import { formatDateTime } from "#/shared/lib/format"
 import { ORDER_STATUS_LABEL, type OrderDetail } from "./model"
+import { Copy, ChevronDown } from "lucide-react"
+import { useState } from "react"
+import { Card, CardHeader, CardTitle, CardContent, Separator, Button } from "@shop/ui-web"
 
 /**
  * 详情页右侧信息卡：两大块 —— 付款详情、订单信息。
@@ -37,14 +35,8 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
     // 「更多订单信息」折叠：默认收起，点击展开交易号等次要字段
     const [moreOpen, setMoreOpen] = useState(false)
 
-    const fullAddress = [
-        order.receiverProvince,
-        order.receiverCity,
-        order.receiverDistrict,
-        order.receiverDetail,
-    ]
-        .filter(Boolean)
-        .join("")
+    const fullAddress =
+        order.receiverProvince + order.receiverCity + order.receiverDistrict + order.receiverDetail
 
     return (
         <div className="space-y-5">
@@ -95,10 +87,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                                 {fullAddress}
                             </span>
                         </InfoRow>
-                        <InfoRow label="订单状态">
-                            {ORDER_STATUS_LABEL[order.status as keyof typeof ORDER_STATUS_LABEL] ??
-                                order.status}
-                        </InfoRow>
+                        <InfoRow label="订单状态">{ORDER_STATUS_LABEL[order.status]}</InfoRow>
                         <InfoRow label="创建时间">{dateStr(order.createdAt)}</InfoRow>
                         <InfoRow label="付款时间">{dateStr(order.paidAt)}</InfoRow>
                         <InfoRow label="发货时间">{dateStr(order.shippedAt)}</InfoRow>

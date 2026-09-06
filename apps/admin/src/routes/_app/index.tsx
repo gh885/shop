@@ -1,11 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createFileRoute } from "@tanstack/react-router"
-import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
-import { format } from "date-fns"
 import { useState } from "react"
 import { ShopReviewStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+import { notify } from "@shop/app-kit"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,9 +27,9 @@ import {
     Textarea,
     type DataTableFilterConfig,
 } from "@shop/ui-web"
-
-import { adminApi, reviewListOptions, REVIEW_LIST_KEY, type ShopReviewItem } from "../../lib/api"
-import { notify } from "../../lib/toast"
+import { type ShopReviewItem, reviewListOptions, REVIEW_LIST_KEY, adminApi } from "#/lib/api"
+import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
+import { isValid, format } from "date-fns"
 
 /** 店铺审核状态（与后端枚举对齐） */
 const ShopReviewStatusSchema = z.enum(ShopReviewStatus)
@@ -59,14 +58,27 @@ const STATUS_BADGE: Record<ShopReviewStatus, { label: string; className: string 
     },
 }
 
+/** 状态筛选选项与状态徽章同源（STATUS_BADGE 是唯一真相，加状态只改一处） */
 const STATUS_FILTER: DataTableFilterConfig = {
     columnId: "status",
     title: "状态",
-    options: [
-        { label: "待审核", value: "PENDING" },
-        { label: "已通过", value: "APPROVED" },
-        { label: "已驳回", value: "REJECTED" },
-    ],
+    options: Object.entries(STATUS_BADGE).map(([value, badge]) => ({
+        value,
+        label: badge.label,
+    })),
+}
+
+/**
+ * 从 column filters 取状态筛选值：DataTable 的 filter value 契约是 unknown，
+ * 本列只可能由 STATUS_FILTER 选项（即 ShopReviewStatus 的值）组成，取最后一次选择；
+ * 无合法值（含清空筛选）返回 undefined。
+ */
+function filterStatus(filters: ColumnFiltersState): ShopReviewStatus | undefined {
+    const value = filters.find((f) => f.id === "status")?.value
+    const candidate = Array.isArray(value) ? value.at(-1) : undefined
+    return typeof candidate === "string" && candidate in ShopReviewStatus
+        ? (candidate as ShopReviewStatus)
+        : undefined
 }
 
 const columns: ColumnDef<ShopReviewItem>[] = [
@@ -84,7 +96,7 @@ const columns: ColumnDef<ShopReviewItem>[] = [
         accessorKey: "status",
         header: "状态",
         cell: ({ row }) => {
-            const badge = STATUS_BADGE[row.original.status as ShopReviewStatus]
+            const badge = STATUS_BADGE[row.original.status]
             return <Badge className={badge.className}>{badge.label}</Badge>
         },
     },
@@ -180,11 +192,7 @@ function ReviewPage() {
                 onColumnFiltersChange={(updater) => {
                     const next = typeof updater === "function" ? updater(columnFilters) : updater
                     // 后端 status 单值，多选时取最后一次选择
-                    const values = next.find((f) => f.id === "status")?.value as
-                        | string[]
-                        | undefined
-                    const s = values?.at(-1) as ShopReviewStatus | undefined
-                    void navigate({ search: { status: s, page: 1, size } })
+                    void navigate({ search: { status: filterStatus(next), page: 1, size } })
                 }}
             />
         </div>
@@ -299,4 +307,7 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
     )
 }
 
-const formatTime = (iso: string) => format(new Date(iso), "yyyy-MM-dd HH:mm")
+const formatTime = (iso: string) => {
+    const d = new Date(iso)
+    return isValid(d) ? format(d, "yyyy-MM-dd HH:mm") : iso
+}

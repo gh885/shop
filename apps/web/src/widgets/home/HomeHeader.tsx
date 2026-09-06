@@ -27,7 +27,7 @@ export function HomeHeader() {
                 className="border-b border-border/60 bg-background/95 backdrop-blur"
                 style={{ height: HOME_HEADER_HEIGHT }}
             >
-                <div className="mx-auto flex h-full max-w-(--container-page) items-center gap-14 px-6">
+                <div className="mx-auto flex h-full max-w-page items-center gap-14 px-6">
                     {/* 品牌 logo：图形标 + 字标 */}
                     <Link
                         to="/"

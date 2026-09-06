@@ -15,16 +15,16 @@ function resolveDimensionValues(
     return template.map((node) => {
         const sel = selections.find((s) => s.attrId === node.attr.id)
         if (!sel) return []
-        const fromValueIds = (sel.valueIds ?? [])
+        const fromValueIds = sel.valueIds
             .map((vid) => {
                 const v = node.values.find((x) => x.id === vid)
-                return v ? ({ valueId: v.id, value: v.value } as SpecValueDraft) : undefined
+                return v ? { valueId: v.id, value: v.value } : undefined
             })
-            .filter((x): x is SpecValueDraft => Boolean(x))
-        const fromCustom = (sel.customValues ?? [])
+            .filter((x) => x !== undefined)
+        const fromCustom = sel.customValues
             .map((cv) => cv.trim())
             .filter(Boolean)
-            .map((cv) => ({ value: cv }) as SpecValueDraft)
+            .map((cv) => ({ value: cv }))
         return [...fromValueIds, ...fromCustom]
     })
 }

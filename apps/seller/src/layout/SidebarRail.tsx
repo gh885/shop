@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { Button, cn } from "@shop/ui-web"
 
-import type { SidebarItem } from "./SidebarMenu"
+import type { SidebarGroup, SidebarItem, SidebarLeaf } from "./SidebarMenu"
 
 /** 一级窄轨（受控，千牛式纵向列表）：蓝灰 canvas 底，图标左 + 名称右，选中 = 白色 pill。
     全部由当前 pathname 驱动（无状态）：
@@ -33,7 +33,7 @@ export function SidebarRail({
                             key={item.key}
                             className="flex flex-col"
                         >
-                            {item.to ? (
+                            {"to" in item ? (
                                 <LeafItem
                                     item={item}
                                     isShown={item.key === "home" && pathname === "/"}
@@ -62,10 +62,10 @@ const rowCls = (isShown: boolean) =>
     )
 
 /** 叶子项：可跳转路由 → Link，点击即导航 */
-function LeafItem({ item, isShown }: { item: SidebarItem; isShown: boolean }) {
+function LeafItem({ item, isShown }: { item: SidebarLeaf; isShown: boolean }) {
     return (
         <Link
-            to={item.to!}
+            to={item.to}
             className={rowCls(isShown)}
         >
             <IconAndLabel item={item} />
@@ -74,8 +74,8 @@ function LeafItem({ item, isShown }: { item: SidebarItem; isShown: boolean }) {
 }
 
 /** 分组项：无独立路由，点击导航到该分组第一个叶子的路径 */
-function GroupItem({ item, isShown }: { item: SidebarItem; isShown: boolean }) {
-    const firstLeaf = item.sections?.[0]?.items[0]
+function GroupItem({ item, isShown }: { item: SidebarGroup; isShown: boolean }) {
+    const firstLeaf = item.sections[0]?.items[0]
     const target = firstLeaf?.to
 
     return (

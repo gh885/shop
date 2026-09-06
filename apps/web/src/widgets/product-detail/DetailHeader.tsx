@@ -1,4 +1,4 @@
-import { notify } from "#/shared/lib/toast"
+import { notify } from "@shop/app-kit"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
 
 /**

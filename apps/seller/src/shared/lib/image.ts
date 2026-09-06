@@ -12,11 +12,11 @@
  */
 import { z } from "zod"
 
-// 配了但写错（非合法 URL）时归一为缺配，走既有的 imgUrl 空串告警路径，避免带病拼 URL
-const PREFIX = z
+// 配了但写错（非合法 URL）时归一为缺配 ""（z.url().catch("") 恒返回 string），走既有的 imgUrl 空串告警路径
+const PREFIX: string = z
     .url()
     .catch("")
-    .parse(import.meta.env.VITE_IMAGE_BASE_URL) as string | undefined
+    .parse(import.meta.env.VITE_IMAGE_BASE_URL)
 
 let warnedMissingBase = false
 

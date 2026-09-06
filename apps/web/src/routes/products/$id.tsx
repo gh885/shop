@@ -1,4 +1,4 @@
-import { fenToYuan, isContractViolation } from "@shop/api"
+import { fenToYuan, isContractViolation, toApiError } from "@shop/api"
 import { useState } from "react"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/products/$id")({
             detail = await context.queryClient.ensureQueryData(productDetailOptions(params.id))
         } catch (error) {
             // 详情不存在/非上架由后端 404；数据层已把错误归一化为 ApiError（status/detail）
-            if ((error as { status?: number }).status === 404) throw notFound()
+            if (toApiError(error).status === 404) throw notFound()
             // 契约漂移：详情无法伪造合法形状兜底，生产降级为 notFound 页（dev 强抛）
             if (isContractViolation(error) && import.meta.env.PROD) throw notFound()
             throw error
@@ -41,10 +41,10 @@ export const Route = createFileRoute("/products/$id")({
     },
     component: ProductDetailPage,
     head: ({ match }) => {
-        const d = (match.loaderData as { detail?: ProductDetail } | undefined)?.detail
+        const d = match.loaderData?.detail
         const p = d?.product
-        const price = p?.priceMin?.amount
-        const ogImage = p?.image || d?.images?.[0]
+        const price = p?.priceMin.amount
+        const ogImage = p?.image || d?.images[0]
         const meta: Array<
             | { title: string }
             | { property: string; content: string }
@@ -75,14 +75,15 @@ export const Route = createFileRoute("/products/$id")({
                         description: p?.subtitle,
                         image: ogImage ? [ogImage] : undefined,
                         sku: p?.id,
-                        offers: price
-                            ? {
-                                  "@type": "Offer",
-                                  price: fenToYuan(price),
-                                  priceCurrency: p?.priceMin?.currency ?? "CNY",
-                                  availability: "https://schema.org/InStock",
-                              }
-                            : undefined,
+                        offers:
+                            p && price
+                                ? {
+                                      "@type": "Offer",
+                                      price: fenToYuan(price),
+                                      priceCurrency: p.priceMin.currency,
+                                      availability: "https://schema.org/InStock",
+                                  }
+                                : undefined,
                     }),
                 },
             ],
@@ -91,7 +92,7 @@ export const Route = createFileRoute("/products/$id")({
 })
 
 function ProductDetailPage() {
-    const { detail } = Route.useLoaderData() as { detail: ProductDetail }
+    const { detail } = Route.useLoaderData()
     const sel = useSkuSelection(detail)
     // 加购数量：与规格选中态一样由 route 持有，购买区步进器与 CTA 加购共用
     const [quantity, setQuantity] = useState(1)

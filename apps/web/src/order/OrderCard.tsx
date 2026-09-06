@@ -7,14 +7,15 @@ import {
     ItemGroup,
     ItemMedia,
     ItemTitle,
+    Panel,
+    PanelContent,
+    PanelHeader,
 } from "@shop/ui-web"
-
-import { fenToYuan } from "@shop/api"
 
 import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "./model"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
-import { formatDateTime } from "#/shared/lib/format"
-import { Panel, PanelContent, PanelHeader } from "@shop/ui-web"
+import { formatDateTime } from "@shop/app-kit"
+import { fenToYuan } from "@shop/api"
 
 /**
  * 订单卡片（京东/淘宝式订单列表项）。
@@ -27,10 +28,20 @@ import { Panel, PanelContent, PanelHeader } from "@shop/ui-web"
  * 行项无独立 id（订单快照只留 productId/skuId），渲染 key 用 `productId+skuId+quantity`。
  */
 
+/** 订单卡片操作 key（封闭联合：分发处 switch/查找表可穷举检查，新增动作编译期可见） */
+export type OrderAction =
+    | "pay"
+    | "cancel"
+    | "remind"
+    | "logistics"
+    | "confirm"
+    | "rebuy"
+    | "add_cart"
+
 /** 按状态给出该订单可执行的操作（主操作 + 次操作），后续路由/接口落地后接真实动作 */
 const ORDER_ACTIONS: Record<
     OrderStatus,
-    { key: string; label: string; variant?: "default" | "outline" }[]
+    { key: OrderAction; label: string; variant?: "default" | "outline" }[]
 > = {
     pending_payment: [
         { key: "pay", label: "去付款", variant: "default" },
@@ -62,9 +73,9 @@ export interface OrderCardProps {
     /** 点击订单详情 */
     onDetail?: (order: Order) => void
     /** 触发某操作（key 对应 ORDER_ACTIONS 里的 key） */
-    onAction?: (order: Order, action: string) => void
+    onAction?: (order: Order, action: OrderAction) => void
     /** 进行中的操作 key：对应按钮禁用，防重复提交 */
-    pendingAction?: string
+    pendingAction?: OrderAction
 }
 
 export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCardProps) {
@@ -137,12 +148,11 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                                 <p className="text-sm font-bold text-foreground">
                                     ¥{fenToYuan(item.price.amount)}
                                 </p>
-                                {item.originalPrice &&
-                                    item.originalPrice.amount > item.price.amount && (
-                                        <p className="text-xs text-muted-foreground line-through">
-                                            ¥{fenToYuan(item.originalPrice.amount)}
-                                        </p>
-                                    )}
+                                {item.originalPrice.amount > item.price.amount && (
+                                    <p className="text-xs text-muted-foreground line-through">
+                                        ¥{fenToYuan(item.originalPrice.amount)}
+                                    </p>
+                                )}
                                 <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                             </div>
 

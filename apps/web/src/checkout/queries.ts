@@ -1,9 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { notify } from "#/shared/lib/toast"
+import { notify } from "@shop/app-kit"
 
 import { toCheckoutPreview, type CheckoutPreview } from "./checkout"
-import { confirmPayment, createOrder, createPayment, fetchPreview } from "#/order/queries"
+import {
+    confirmPayment,
+    createOrder,
+    createPayment,
+    fetchPreview,
+    MY_ORDERS_KEY,
+    ORDER_DETAIL_KEY,
+} from "#/order/queries"
+import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart/queries"
 
 /** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
 
@@ -51,9 +59,9 @@ export function useCreateOrder() {
                 buyerMessage: args.buyerMessage,
             }),
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ["my-orders"] })
-            qc.invalidateQueries({ queryKey: ["cart-items"] }) // 后端 CartCheckedOutEvent 已删已购条目，缓存随之失效
-            qc.invalidateQueries({ queryKey: ["cart-count"] })
+            void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
+            void qc.invalidateQueries({ queryKey: CART_ITEMS_KEY }) // 后端 CartCheckedOutEvent 已删已购条目，缓存随之失效
+            void qc.invalidateQueries({ queryKey: CART_COUNT_KEY })
         },
         onError: (err) => notify.fromError(err, "下单失败"),
     })
@@ -75,8 +83,8 @@ export function useConfirmPayment() {
     return useMutation({
         mutationFn: (paymentId: string) => confirmPayment(paymentId),
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ["my-orders"] })
-            qc.invalidateQueries({ queryKey: ["order-detail"] })
+            void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
+            void qc.invalidateQueries({ queryKey: ORDER_DETAIL_KEY })
         },
         onError: (err) => notify.fromError(err, "确认支付失败"),
     })

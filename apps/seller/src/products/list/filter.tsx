@@ -2,11 +2,12 @@ import { useState } from "react"
 import { Button, Input, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 import { RotateCcw, Search } from "lucide-react"
 
-import { PRODUCT_STATUS_TABS, type ProductStatusFilter } from "#/products/constants"
+import type { ProductStatus } from "@shop/api/sdk"
+import { PRODUCT_STATUS_TABS } from "#/products/constants"
 
 /** 商品列表筛选值（URL 可同步的查询子集） */
 export interface ProductListFilter {
-    status: ProductStatusFilter
+    status: ProductStatus
     /** 商品标题关键词 */
     title?: string
     /** 商品 ID（精确） */
@@ -19,6 +20,10 @@ export interface ProductListFilter {
 const DEFAULT_FILTER: ProductListFilter = {
     status: "PUBLISHED",
 }
+
+/** Tabs 的 onValueChange 给 string，用唯一来源 PRODUCT_STATUS_TABS 收窄成状态枚举（加状态只改 tabs 一处） */
+const isStatusTab = (v: string): v is ProductStatus =>
+    PRODUCT_STATUS_TABS.some((t) => t.value === v)
 
 interface FilterBarProps {
     value: ProductListFilter
@@ -67,9 +72,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
             <Tabs
                 value={value.status}
                 onValueChange={(next) => {
-                    if (next === "PUBLISHED" || next === "WAREHOUSE" || next === "DRAFT") {
-                        apply({ ...value, status: next })
-                    }
+                    if (isStatusTab(next)) apply({ ...value, status: next })
                 }}
             >
                 <TabsList variant="line">

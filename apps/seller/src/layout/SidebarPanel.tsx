@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { ChevronUp } from "lucide-react"
 import { cn, Collapsible, CollapsibleContent, CollapsibleTrigger, MenuTree } from "@shop/ui-web"
 
-import type { SidebarItem } from "./SidebarMenu"
+import type { SidebarGroup } from "./SidebarMenu"
 
 /** 二级面板（受控，无状态，视觉自持）：置于白色浮面容器内，无 header，直接列分组。
     菜单结构由 headless MenuTree 驱动（折叠状态 + activeKey 联动展开），
@@ -12,7 +12,8 @@ export function SidebarPanel({
     pathname,
     className,
 }: {
-    shown?: SidebarItem
+    /** 当前一级分组项（叶子项无二级面板，不渲染本组件内容） */
+    shown?: SidebarGroup
     /** 当前 pathname（不含 /_app） */
     pathname: string
     className?: string
@@ -23,7 +24,7 @@ export function SidebarPanel({
     // 叶子 to 即其唯一路径（pathname 第二段所在完整路径），整条面板的 activeKey 传 pathname
     // 与 MenuTree 契约（activeKey = 高亮叶子 key）对齐；child.key 用 leaf.to 保证跨分组唯一，
     // 使 MenuTree 的「activeKey 联动展开所在分型」能正确工作。
-    const groups = (shown.sections ?? []).map((section) => ({
+    const groups = shown.sections.map((section) => ({
         key: section.title,
         label: section.title,
         collapsible: section.collapsible,

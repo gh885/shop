@@ -1,5 +1,6 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
 import { PublicShopsApi } from "@shop/api/sdk"
+import type { PublicShopResponse } from "@shop/api/sdk"
 
 import { fetchProductDetail, fetchProducts } from "#/product"
 
@@ -23,13 +24,8 @@ export const productDetailOptions = (id: string) =>
 
 // ---------- 店铺公开信息（GET /api/shops/{id}，匿名可访问） ----------
 
-/** 店铺公开信息：仅对外可展示字段（后端 ShopPublicController.ShopResponse） */
-export interface PublicShop {
-    id: string
-    name: string
-    /** 对象存储 key（非完整 URL），可能为空 */
-    logoKey?: string
-}
+/** 店铺公开信息：仅对外可展示字段（logoKey 归一可选，UI 显示字母头像） */
+export type PublicShop = Pick<PublicShopResponse, "id" | "name"> & { logoKey?: string }
 
 export const shopOptions = (shopId: string) =>
     queryOptions({

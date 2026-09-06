@@ -7,7 +7,7 @@ interface RegionData {
     children?: RegionData[]
 }
 
-let treePromise
+let treePromise: Promise<RegionData[]> | undefined
 
 /** 懒加载整棵树（首次取地区时才动态 import，之后复用） */
 function loadTree(): Promise<RegionData[]> {
@@ -17,7 +17,8 @@ function loadTree(): Promise<RegionData[]> {
 
 function isDirectCity(node: RegionData): boolean {
     // 直筒子市（东莞/中山/儋州/嘉峪关等）没有 6 位区级 children，children 是 9 位街道码
-    return (node.children?.length ?? 0) > 0 && node.children!.every((c) => c.code.length !== 6)
+    const children = node.children
+    return !!children?.length && children.every((c) => c.code.length !== 6)
 }
 
 /** RegionPicker 数据源：按层取孩子。根层返回省，区县层为叶子 */

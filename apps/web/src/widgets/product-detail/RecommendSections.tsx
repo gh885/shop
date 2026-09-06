@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 
 import { Empty, EmptyHeader, EmptyTitle, Skeleton } from "@shop/ui-web"
 
-import type { Product, ProductDetail } from "#/product"
-import { ProductCard } from "#/product"
+import { ProductCard, toProductCardData, type Product, type ProductDetail } from "#/product"
 
 import { DetailSection } from "./DetailSection"
 import { alsoViewedOptions, shopProductsOptions } from "./queries"
@@ -19,12 +18,7 @@ function RecoGrid({ products, currentId }: { products: Product[] | undefined; cu
                 ? list.map((product) => (
                       <ProductCard
                           key={product.id}
-                          product={{
-                              id: product.id,
-                              image: product.image,
-                              title: product.title,
-                              price: product.priceMin?.amount ?? 0,
-                          }}
+                          product={toProductCardData(product)}
                       />
                   ))
                 : Array.from({ length: 5 }, (_, i) => (

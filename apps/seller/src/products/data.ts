@@ -3,9 +3,11 @@ import {
     CategoriesApi,
     ProductsAdminApi,
     type CategoryAttrNodeResponse,
+    type ImageTicketResponse,
     type ProductResponse,
     type SkuResponse,
     type SkuUpdateItem,
+    type SpecSelectionRequest,
 } from "@shop/api/sdk"
 
 // ---------- 商品域数据函数（直接在调用点用，不经集中封装对象） ----------
@@ -48,11 +50,10 @@ export async function applyProductSpecs(
     id: string,
     selections: SpecSelection[],
 ): Promise<SkuResponse[]> {
-    const data = await ProductsAdminApi.updateProductSpecs({
+    return await ProductsAdminApi.updateProductSpecs({
         path: { id },
-        body: { specs: selections } as never,
+        body: { specs: selections },
     })
-    return data as unknown as SkuResponse[]
 }
 
 /** 发布（草稿 → target 态）。默认立即上架（PUBLISHED）；放入仓库传 target="WAREHOUSE"。 */
@@ -74,7 +75,7 @@ export async function publishProduct(id: string, target?: "PUBLISHED" | "WAREHOU
  */
 export async function uploadProductImage(file: File): Promise<string> {
     const ext = (file.name.split(".").pop() ?? "").toLowerCase().replaceAll(/[^a-z0-9]/g, "")
-    let ticket
+    let ticket: ImageTicketResponse | undefined
     try {
         // issueImageTicket 走 /seller/**（Vite proxy），ShopMembershipFilter 强制店铺上下文——
         // X-Shop-Id 已由 SDK client 拦截注入。若后端未带七牛配置/凭证失败，detail 会揭示（如「文件存储未配置」）。
@@ -119,13 +120,11 @@ export async function attrTemplate(categoryId: string): Promise<CategoryAttrTemp
 /** 类目属性模板：与生成契约同构，直接别名（勿手写镜像字段，契约演进会漂移） */
 export type CategoryAttrTemplateNode = CategoryAttrNodeResponse
 
-/** 一个销售属性维度的选择：attrId 定位模板属性，valueIds 选值域内值，customValues 提交值域外新值 */
-export interface SpecSelection {
-    attrId: string
+/** 一个销售属性维度的选择：契约同 SpecSelectionRequest，仅 valueIds/customValues 收紧为必填 */
+export type SpecSelection = Omit<
+    SpecSelectionRequest,
+    "valueIds" | "customValues" | "selectionPresent"
+> & {
     valueIds: string[]
     customValues: string[]
-    /** 模板取值（valueId）→ 取值图 */
-    valueImages?: Record<string, string>
-    /** 自定义取值文本 → 取值图 */
-    customValueImages?: Record<string, string>
 }

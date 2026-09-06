@@ -1,16 +1,18 @@
-import { useEffect } from "react"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { CheckCircle2, Wallet } from "lucide-react"
-
-import { Button, Card, CardContent, Spinner } from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
 import { useCreatePayment, useConfirmPayment } from "#/checkout"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { Wallet, CheckCircle2 } from "lucide-react"
+import { useEffect } from "react"
+import { Card, CardContent, Spinner, Button } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/pay/$orderId")({
     component: PayPage,
     head: () => ({ meta: [{ title: "收银台 - Shop" }] }),
 })
+
+/** 收银台阶段：loading → ready → success / confirm-error / create-error */
+type PayPhase = "loading" | "ready" | "success" | "confirm-error" | "create-error"
 
 /** 收银台：V1 两段式（发起→确认）。挂载即发起 PENDING 流水，用户点「确认支付」模拟网关回调，
  * 成功后跳订单列表。amount 取自流水（后端按订单投影，前端不报价）。 */
@@ -30,8 +32,8 @@ function PayPage() {
     const goDetail = () => void navigate({ to: "/orders/$orderId", params: { orderId } })
 
     const payment = create.data
-    // 已确认成功 / 发起成功但确认失败 / 发起失败 / 待发起
-    const phase = confirm.isSuccess
+    // 已确认成功 / 发起成功但确认失败 / 发起失败 / 待发起（收银台状态机，渲染分支与之一一对应）
+    const phase: PayPhase = confirm.isSuccess
         ? "success"
         : confirm.isError
           ? "confirm-error"

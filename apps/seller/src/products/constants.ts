@@ -1,10 +1,7 @@
 import type { ProductStatus } from "@shop/api/sdk"
-import type { ProductResponse } from "@shop/api/sdk"
-
-export type ProductStatusFilter = ProductStatus
 
 export const PRODUCT_STATUS_META: Record<
-    ProductResponse["status"],
+    ProductStatus,
     { label: string; variant: "default" | "secondary" | "outline" }
 > = {
     PUBLISHED: { label: "上架中", variant: "default" },
@@ -12,7 +9,7 @@ export const PRODUCT_STATUS_META: Record<
     DRAFT: { label: "草稿", variant: "outline" },
 }
 
-export const PRODUCT_STATUS_TABS: ReadonlyArray<{ value: ProductStatusFilter; label: string }> = [
+export const PRODUCT_STATUS_TABS: ReadonlyArray<{ value: ProductStatus; label: string }> = [
     { value: "PUBLISHED", label: "在售" },
     { value: "WAREHOUSE", label: "仓库中" },
     { value: "DRAFT", label: "草稿" },

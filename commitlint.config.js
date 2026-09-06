@@ -39,6 +39,7 @@ export default {
                 "server",
                 // packages/
                 "api",
+                "app-kit",
                 "ui-web",
                 "config",
                 // 跨切面

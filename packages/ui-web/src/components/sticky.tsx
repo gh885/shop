@@ -35,7 +35,9 @@ export function Sticky({ top = 0, stuckAt, className, children }: StickyProps) {
 
         // 根：元素顶边一旦越过基准线，即认为「吸住了」
         const observer = new IntersectionObserver(
-            ([entry]) => setStuck(entry.intersectionRatio < 1),
+            ([entry]) => {
+                if (entry) setStuck(entry.intersectionRatio < 1)
+            },
             { rootMargin: `${-line}px 0px 0px 0px`, threshold: [1] },
         )
         observer.observe(el)

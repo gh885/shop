@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import type { CarouselApi } from "@shop/ui-web"
 import {
     Button,
     Carousel,
@@ -11,6 +10,7 @@ import {
     Tabs,
     TabsList,
     TabsTrigger,
+    type CarouselApi,
 } from "@shop/ui-web"
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
@@ -92,7 +92,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         <CarouselContent>
                             {images.map((img) => (
                                 <CarouselItem key={img}>
-                                    <div className="flex h-[480px] items-center justify-center">
+                                    <div className="flex h-120 items-center justify-center">
                                         <img
                                             src={img}
                                             alt="商品主图"
@@ -163,7 +163,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
 function ParamsSlide({ params }: { params: ParamItem[] }) {
     if (params.length === 0) {
         return (
-            <Empty className="h-[480px]">
+            <Empty className="h-120">
                 <EmptyHeader>
                     <EmptyTitle>暂无参数</EmptyTitle>
                 </EmptyHeader>
@@ -172,7 +172,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
     }
 
     return (
-        <div className="flex h-[480px] flex-col rounded-xl bg-sunken/50 p-6">
+        <div className="flex h-120 flex-col rounded-xl bg-sunken/50 p-6">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
                 {params.map((p) => (
                     <div

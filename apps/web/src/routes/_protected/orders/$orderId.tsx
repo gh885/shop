@@ -1,10 +1,10 @@
-import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
+import { OrderProgress, OrderShopSection, OrderStatusSection, OrderSummaryCard } from "#/order"
+import { createFileRoute, notFound } from "@tanstack/react-router"
 import { useState } from "react"
 
 import { AccountHeader } from "#/widgets/account"
-import { useOrderDetail, useCancelOrder, useReceiveOrder, type OrderDetail } from "#/order"
-import { OrderProgress, OrderShopSection, OrderStatusSection, OrderSummaryCard } from "#/order"
-import { notify } from "#/shared/lib/toast"
+import { useOrderDetail, useOrderActions } from "#/order"
+import { notify } from "@shop/app-kit"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -35,29 +35,11 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
  * 受保护路由，挂载时必已登录，数据客户端拉取（不进 loader）。 */
 function OrderDetailPage() {
     const { orderId } = Route.useParams()
-    const navigate = useNavigate()
     const { data: order, isLoading, isError } = useOrderDetail(orderId)
-    const cancel = useCancelOrder()
-    const receive = useReceiveOrder()
 
-    // 状态区客户操作分发（商品区是加购/售后，走 notifyItemAction）
+    // 状态区客户操作分发（商品区是加购/售后，走 notifyItemAction）；取消弹窗由本页持有
     const [cancelOpen, setCancelOpen] = useState(false)
-    const handleOrderAction = (o: OrderDetail, action: string) => {
-        switch (action) {
-            case "pay":
-                void navigate({ to: "/pay/$orderId", params: { orderId: o.id } })
-                break
-            case "cancel":
-                setCancelOpen(true)
-                break
-            case "confirm":
-                receive.mutate(o.id)
-                break
-            default:
-                notify.info(`「${action}」即将上线`)
-                break
-        }
-    }
+    const { handleAction, pendingAction, cancel } = useOrderActions(() => setCancelOpen(true))
 
     if (isError) throw notFound()
     if (isLoading || !order) {
@@ -67,7 +49,7 @@ function OrderDetailPage() {
                     title="订单详情"
                     widthClass="max-w-(--container-narrow)"
                 />
-                <div className="mx-auto w-full max-w-(--container-narrow) flex-1 space-y-8 px-6 py-8">
+                <div className="mx-auto w-full max-w-narrow flex-1 space-y-8 px-6 py-8">
                     <Skeleton className="h-24 w-full rounded-xl" />
                     <Skeleton className="h-64 w-full rounded-xl" />
                 </div>
@@ -82,7 +64,7 @@ function OrderDetailPage() {
                 widthClass="max-w-(--container-narrow)"
             />
 
-            <div className="mx-auto w-full max-w-(--container-narrow) flex-1 px-6 py-8">
+            <div className="mx-auto w-full max-w-narrow flex-1 px-6 py-8">
                 <div className="flex gap-8">
                     {/* 左侧主区 */}
                     <div className="min-w-0 flex-1 space-y-8">
@@ -92,14 +74,8 @@ function OrderDetailPage() {
                                 <OrderProgress status={order.status} />
                                 <OrderStatusSection
                                     order={order}
-                                    pendingAction={
-                                        cancel.isPending
-                                            ? "cancel"
-                                            : receive.isPending
-                                              ? "confirm"
-                                              : undefined
-                                    }
-                                    onAction={handleOrderAction}
+                                    pendingAction={pendingAction}
+                                    onAction={handleAction}
                                 />
                             </CardContent>
                         </Card>

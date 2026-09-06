@@ -10,7 +10,7 @@ import {
     TooltipTrigger,
 } from "@shop/ui-web"
 
-import { notify } from "#/shared/lib/toast"
+import { notify } from "@shop/app-kit"
 
 import { useShop } from "./queries"
 
@@ -30,7 +30,7 @@ export function ShopBar({ shopId }: { shopId: string }) {
                     />
                 )}
                 <AvatarFallback className="rounded-lg bg-sunken text-lg font-bold text-muted-foreground">
-                    {shop?.name?.charAt(0) ?? "店"}
+                    {shop?.name.charAt(0) ?? "店"}
                 </AvatarFallback>
             </Avatar>
 

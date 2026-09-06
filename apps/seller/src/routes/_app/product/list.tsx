@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import {
     Empty,
     EmptyDescription,
@@ -34,7 +34,6 @@ export const Route = createFileRoute("/_app/product/list")({
 
 function ProductsPage() {
     const search = Route.useSearch()
-    const navigate = useNavigate()
     const {
         shop,
         products,
@@ -47,7 +46,7 @@ function ProductsPage() {
         handleOff,
         handleOn,
         onPageChange,
-    } = useProductList(search, navigate as never)
+    } = useProductList(search)
 
     if (!shop) {
         return (

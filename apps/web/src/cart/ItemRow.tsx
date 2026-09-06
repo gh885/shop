@@ -1,33 +1,32 @@
-import { useState } from "react"
-import { Minus, Plus } from "lucide-react"
-
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    Button,
-    ButtonGroup,
-    ButtonGroupText,
-    Checkbox,
-    Item,
-    ItemActions,
-    ItemContent,
-    ItemDescription,
-    ItemMedia,
-    ItemTitle,
-    Badge,
-    Spinner,
-} from "@shop/ui-web"
-import { fenToYuan } from "@shop/api"
-
 import { deriveCartItemView, type CartItem } from "./cart"
 import type { CartItemActions } from "./queries"
-import { notify } from "#/shared/lib/toast"
+import { Minus, Plus } from "lucide-react"
+
+import { fenToYuan } from "@shop/api"
+import { useState } from "react"
+import { notify } from "@shop/app-kit"
+import {
+    Item,
+    Checkbox,
+    ItemMedia,
+    ItemContent,
+    Badge,
+    ItemTitle,
+    ItemDescription,
+    ItemActions,
+    ButtonGroup,
+    Button,
+    ButtonGroupText,
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+    Spinner,
+} from "@shop/ui-web"
 
 /**
  * 购物车条目行：勾选框 + 主图 + 标题/规格 + 价格 + 数量步进 + 操作（移入收藏/删除）。
@@ -46,7 +45,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
             <Checkbox
                 checked={item.selected}
                 disabled={view.disabled}
-                onCheckedChange={(checked) => actions.toggleItem(item.id, checked === true)}
+                onCheckedChange={(checked) => actions.toggleItem(item.id, checked)}
                 aria-label={`选择 ${view.title}`}
             />
 
@@ -63,7 +62,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
 
             <ItemContent>
                 <ItemTitle className="line-clamp-2 w-full">{view.title}</ItemTitle>
-                {item.sku?.name && <ItemDescription>{item.sku.name}</ItemDescription>}
+                {item.sku.name && <ItemDescription>{item.sku.name}</ItemDescription>}
                 {view.outOfStock && <Badge variant="warning">缺货</Badge>}
             </ItemContent>
 
@@ -71,11 +70,9 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 <p className="text-sm font-semibold text-foreground">
                     ¥{fenToYuan(item.sku.price.amount)}
                 </p>
-                {item.sku?.originalPrice && (
-                    <p className="text-xs text-muted-foreground line-through">
-                        ¥{fenToYuan(item.sku.originalPrice.amount)}
-                    </p>
-                )}
+                <p className="text-xs text-muted-foreground line-through">
+                    ¥{fenToYuan(item.sku.originalPrice.amount)}
+                </p>
             </div>
 
             <ItemActions>

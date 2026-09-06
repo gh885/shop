@@ -1,23 +1,21 @@
-import { useState } from "react"
 import { ChevronDown, Search } from "lucide-react"
-
+import { useState } from "react"
+import { notify } from "@shop/app-kit"
 import {
+    Checkbox,
+    Button,
     AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
     AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    Button,
-    Checkbox,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
     Spinner,
 } from "@shop/ui-web"
-
-import { deriveAllSelected, deriveSelectedItems } from "./cart"
-import { useBatchRemoveCartItems, useCartItems, useSelectCartItems } from "./queries"
-import { notify } from "#/shared/lib/toast"
+import { deriveSelectedItems, deriveAllSelected } from "./cart"
+import { useCartItems, useSelectCartItems, useBatchRemoveCartItems } from "./queries"
 
 /**
  * 购物车列表工具栏（左栏头部）：全选（读推导的全选态）+ 批量操作 + 车内搜索占位。
@@ -41,9 +39,7 @@ export function Toolbar() {
                     <Checkbox
                         id="cart-select-all"
                         checked={deriveAllSelected(items ?? [])}
-                        onCheckedChange={(checked) =>
-                            selectItems.mutate({ selected: checked === true })
-                        }
+                        onCheckedChange={(checked) => selectItems.mutate({ selected: checked })}
                         aria-label="全选"
                     />
                     <span>全选</span>

@@ -1,26 +1,25 @@
-import { useEffect, useRef, useState } from "react"
-import { CheckCircle2, ChevronRight, ListTree } from "lucide-react"
-import {
-    Badge,
-    Button,
-    Skeleton,
-    Spinner,
-    Sticky,
-    Tabs,
-    TabsList,
-    TabsTrigger,
-    useAppForm,
-} from "@shop/ui-web"
-
 import { uploadProductImage } from "#/products/data"
+import type { ProductStatus } from "@shop/api/sdk"
 
 import type { SpecSelection } from "../../data"
-import type { ListingTime, SkuDraftRow } from "./product-form-state"
+import type { ListingTime, ProductBasicForm, SkuDraftRow } from "./product-form-state"
 
 import { BasicInfoSection } from "./BasicInfoSection"
 import { DetailImagesSection } from "./DetailImagesSection"
 import { SalesInfoSection } from "./SalesInfoSection"
 import { useLeafPaths } from "../../queries"
+import { CheckCircle2, ChevronRight, Badge, ListTree } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import {
+    useAppForm,
+    Sticky,
+    Tabs,
+    TabsList,
+    TabsTrigger,
+    Skeleton,
+    Button,
+    Spinner,
+} from "@shop/ui-web"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
     锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
@@ -34,13 +33,8 @@ const SECTIONS = [
     { id: "section-detail", label: "图文详情" },
 ] as const
 
-export interface BasicStepValues {
-    images: string[]
-    name: string
-    subtitle: string
-    /** 详情图流（按序铺开渲染，代替富文本 HTML；可空 []） */
-    detailImages: string[]
-}
+/** basic 表单字段值（形状单一来源是 ./product-form-state 的 ProductBasicForm，此处只保留表单语境的名字） */
+export type BasicStepValues = ProductBasicForm
 
 /**
  * 表单默认值（须为**模块级稳定引用**）。
@@ -92,7 +86,7 @@ export function BasicStep({
     /** 编辑已有商品时传入；新建为 undefined（新建可自由切类目） */
     productId?: string
     /** 编辑已有商品当前状态（新建 undefined）：非草稿禁切类目；上架冻结规格 */
-    productStatus?: "DRAFT" | "WAREHOUSE" | "PUBLISHED"
+    productStatus?: ProductStatus
     submitting: boolean
     creating: boolean
     onSwitchCategory: () => void

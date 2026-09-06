@@ -29,7 +29,7 @@ export function SiteHeader() {
 
     return (
         <header className="border-b border-border/60 bg-sunken/60">
-            <div className="mx-auto flex h-9 max-w-(--container-page) items-center gap-6 px-6">
+            <div className="mx-auto flex h-9 max-w-page items-center gap-6 px-6">
                 <span className="text-xs text-muted-foreground">中国大陆站</span>
 
                 <SiteNav />
@@ -41,7 +41,7 @@ export function SiteHeader() {
                         aria-label="购物车"
                         className="relative flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
                     >
-                        <ShoppingCart className="size-[18px]" />
+                        <ShoppingCart className="size-4.5" />
                         {status === "authed" && (cartCount.data ?? 0) > 0 && (
                             <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none text-primary-foreground">
                                 {cartCount.data && cartCount.data > 99 ? "99+" : cartCount.data}

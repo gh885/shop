@@ -1,5 +1,4 @@
-import { fenToYuan } from "@shop/api"
-import type { Money } from "@shop/api"
+import { fenToYuan, type Money } from "@shop/api"
 import type {
     ParamItem,
     PublicProductDetailResponse,
@@ -38,7 +37,7 @@ export type Sku = {
     name: string
     attributes: SkuAttr[]
     /** SDK 可空，null 表示无专属图 */
-    image?: string | null
+    image: string | null
     price: Money
     originalPrice: Money
     stock: number
@@ -176,22 +175,19 @@ export interface PriceView {
 /** 价格展示策略：优先选中 SKU 的价，未选全回退商品价格区间（priceMin/priceMax） */
 export function derivePriceView(detail: ProductDetail, selection: SkuSelection): PriceView {
     const matched = findMatchingSku(detail.skus, selection)
-    if (matched?.price) {
+    if (matched) {
         return {
             primary: fenToYuan(matched.price.amount),
-            original: matched.originalPrice ? fenToYuan(matched.originalPrice.amount) : undefined,
+            original: fenToYuan(matched.originalPrice.amount),
             currency: matched.price.currency,
         }
     }
 
     const { priceMin, priceMax } = detail.product
-    const from = priceMin ?? priceMax
-    if (!from) return { primary: "0.00", currency: "CNY" }
     return {
-        primary: fenToYuan(from.amount),
-        rangeTo:
-            priceMax && priceMax.amount !== from.amount ? fenToYuan(priceMax.amount) : undefined,
-        currency: from.currency,
+        primary: fenToYuan(priceMin.amount),
+        rangeTo: priceMax.amount === priceMin.amount ? undefined : fenToYuan(priceMax.amount),
+        currency: priceMin.currency,
     }
 }
 
@@ -200,6 +196,28 @@ export function deriveStockText(detail: ProductDetail, selection: SkuSelection):
     const matched = findMatchingSku(detail.skus, selection)
     if (matched) return matched.stock > 0 ? `库存 ${matched.stock} 件` : "该规格已售罄"
     return detail.skus.some((s) => s.stock > 0) ? "有货" : "暂时缺货"
+}
+
+/** 商品卡片视图投影（首页 feed/推荐流/搜索/类目通用）：金额按分给展示层拆分 */
+export type ProductCardData = {
+    id: string
+    /** 主图：可空，无图时卡片用占位图 */
+    image: string | null
+    /** 商品标题 */
+    title: string
+    /** 价格（分） */
+    price: number
+    /** 销量描述。后端 ProductResponse 暂未提供 sales 聚合字段，接上后直接给 */
+    sales?: string
+    /** 标签排，如 自营 / 放心购 */
+    tags?: string[]
+    /** 店铺名 */
+    shop?: string
+}
+
+/** Product → 卡片视图投影（首页 feed 与详情页推荐流共用一份，不再各写一遍） */
+export function toProductCardData(p: Product): ProductCardData {
+    return { id: p.id, image: p.image, title: p.title, price: p.priceMin.amount }
 }
 
 /** 全部规格维度都已选择（有规格组时才允许加购/购买） */

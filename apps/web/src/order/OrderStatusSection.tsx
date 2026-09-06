@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react"
 import { Button } from "@shop/ui-web"
 
 import { ORDER_STATUS_LABEL, type OrderDetail, type OrderStatus } from "./model"
+import type { OrderAction } from "./OrderCard"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 
 /**
@@ -14,7 +15,7 @@ import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 /** 按状态给出主/次操作（与列表卡片同源思路，详情页按钮更多） */
 const STATUS_ACTIONS: Record<
     OrderStatus,
-    { key: string; label: string; variant?: "default" | "outline" }[]
+    { key: OrderAction; label: string; variant?: "default" | "outline" }[]
 > = {
     pending_payment: [
         { key: "pay", label: "去付款", variant: "default" },
@@ -34,9 +35,9 @@ const STATUS_ACTIONS: Record<
 
 export interface OrderStatusSectionProps {
     order: OrderDetail
-    onAction?: (order: OrderDetail, action: string) => void
+    onAction?: (order: OrderDetail, action: OrderAction) => void
     /** 进行中的操作 key：对应按钮禁用，防重复提交 */
-    pendingAction?: string
+    pendingAction?: OrderAction
 }
 
 export function OrderStatusSection({ order, onAction, pendingAction }: OrderStatusSectionProps) {
@@ -44,14 +45,8 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
     // 待付款订单展示付款截止倒计时
     const pending = order.status === "pending_payment"
     const { seconds } = useCountdown(pending ? order.payExpireAt : "")
-    const fullAddress = [
-        order.receiverProvince,
-        order.receiverCity,
-        order.receiverDistrict,
-        order.receiverDetail,
-    ]
-        .filter(Boolean)
-        .join("")
+    const fullAddress =
+        order.receiverProvince + order.receiverCity + order.receiverDistrict + order.receiverDetail
 
     return (
         <div className="space-y-5">

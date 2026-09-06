@@ -9,12 +9,21 @@ import { getStoredShopId, subscribe, syncResolvedShopId } from "./shop-store"
 
 export { setCurrentShopId } from "./shop-store"
 
+// ---------- shop 域 queryKey 工厂（与 products 域的 productKeys 同范式：前缀结构一眼可见，invalidate 不漏 key） ----------
+
+export const shopKeys = {
+    all: ["shops"] as const,
+    mine: () => ["shops", "mine"] as const,
+    invites: () => ["shops", "invites"] as const,
+    members: (shopId: string) => ["shops", shopId, "members"] as const,
+}
+
 // ---------- 我的店铺列表 ----------
 
 export function useMyShops() {
     const status = useAuthStatus()
     return useQuery({
-        queryKey: ["shops", "mine"],
+        queryKey: shopKeys.mine(),
         queryFn: () => myShops(),
         enabled: status === "authed",
     })

@@ -1,12 +1,12 @@
 import { useEffect } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 
+import { useMe } from "#/user"
+import { ME_QUERY_KEY } from "#/user/queries"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { AuthApi } from "@shop/api/sdk"
+import { notify } from "@shop/app-kit"
 import { Button, Card, CardContent, Separator, Skeleton, Spinner, useAppForm } from "@shop/ui-web"
-
-import { useMe } from "#/user"
-import { notify } from "#/shared/lib/toast"
 
 export const Route = createFileRoute("/_protected/account/profile/")({
     component: ProfilePage,
@@ -24,7 +24,7 @@ function ProfilePage() {
         mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
         onSuccess: () => {
             notify.success("资料已更新")
-            void qc.invalidateQueries({ queryKey: ["me"] })
+            void qc.invalidateQueries({ queryKey: ME_QUERY_KEY })
         },
         onError: (e) => notify.fromError(e, "更新失败"),
     })

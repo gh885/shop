@@ -26,7 +26,7 @@ function CartPage() {
         <>
             <SearchHeader title="购物车" />
             {/* 左滚右停：左栏（工具栏+商品列表）随页面滚动，右栏结算明细吸顶 */}
-            <div className="mx-auto w-full max-w-(--container-page) px-6 pb-10">
+            <div className="mx-auto w-full max-w-page px-6 pb-10">
                 <CartContent />
             </div>
         </>

@@ -12,7 +12,7 @@ const FULL_WIDTH_PATHS = new Set(["/product/create/category", "/product/create/b
 /** 由 pathname 在菜单树中找命中叶子的 label（用于页面标题 / 面包屑当前页） */
 function leafLabelOf(pathname: string): string {
     for (const item of NAV_ITEMS) {
-        if (!item.sections) continue
+        if (!("sections" in item)) continue
         for (const section of item.sections) {
             const hit = section.items.find((leaf) => leaf.to === pathname)
             if (hit) return hit.label

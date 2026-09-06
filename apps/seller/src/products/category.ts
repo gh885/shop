@@ -19,7 +19,7 @@ export interface LeafPath {
 }
 
 /** 末级判定：商品只能挂末级类目 */
-export const isLeaf = (node: CategoryNodeResponse): boolean => (node.children?.length ?? 0) === 0
+export const isLeaf = (node: CategoryNodeResponse): boolean => node.children.length === 0
 
 /** 树 → 末级路径清单（搜索语料，整棵树拍平一次即可） */
 export function flattenLeafPaths(
@@ -32,7 +32,7 @@ export function flattenLeafPaths(
         const nextNames = [...names, node.name]
         return isLeaf(node)
             ? [{ id: node.id, ids: nextIds, names: nextNames }]
-            : flattenLeafPaths(node.children ?? [], nextIds, nextNames)
+            : flattenLeafPaths(node.children, nextIds, nextNames)
     })
 }
 
@@ -57,7 +57,7 @@ export function columnsOf(
     for (const id of selectedIds) {
         const current = columns.at(-1)?.find((n) => n.id === id)
         if (!current || isLeaf(current)) break
-        columns.push(current.children ?? [])
+        columns.push(current.children)
     }
     return columns
 }
@@ -73,7 +73,7 @@ export function nodesOf(
         const node = level.find((n) => n.id === id)
         if (!node) break
         chain.push(node)
-        level = node.children ?? []
+        level = node.children
     }
     return chain
 }

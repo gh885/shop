@@ -1,34 +1,33 @@
-import { useState } from "react"
+import {
+    useMyOrders,
+    useOrderActions,
+    ORDER_STATUS_LABEL,
+    OrderCard,
+    type OrderStatus,
+    type Order,
+} from "#/order"
+
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { CircleAlert } from "lucide-react"
-
+import { useState } from "react"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    Button,
+    Skeleton,
     Empty,
-    EmptyDescription,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
+    EmptyDescription,
+    Button,
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+    Spinner,
 } from "@shop/ui-web"
-
-import type { Order, OrderStatus } from "#/order"
-import {
-    ORDER_STATUS_LABEL,
-    OrderCard,
-    useMyOrders,
-    useCancelOrder,
-    useReceiveOrder,
-} from "#/order"
-import { notify } from "#/shared/lib/toast"
-import { Skeleton, Spinner } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/orders/")({
     component: OrdersPage,
@@ -51,29 +50,11 @@ function OrdersPage() {
     const [cancelTarget, setCancelTarget] = useState<Order | undefined>()
     const navigate = useNavigate()
     const { data, isLoading, isError, refetch } = useMyOrders(tab)
-    const cancel = useCancelOrder()
-    const receive = useReceiveOrder()
+    // 订单操作分发（与详情页共用）：cancel.mutate 由下方确认弹窗接线
+    const { handleAction, pendingAction, cancel } = useOrderActions(setCancelTarget)
 
     // 按后端返回直接渲染（后端已按 status 过滤）；追加按状态 Tab 过滤仅用于「全部」时无需再筛
     const orders: Order[] = data?.records ?? []
-
-    // 订单卡片操作分发：pay → 收银台；cancel → 二次确认后取消；confirm → 确认收货；其余 toast 占位
-    const handleAction = (order: Order, action: string) => {
-        switch (action) {
-            case "pay":
-                void navigate({ to: "/pay/$orderId", params: { orderId: order.id } })
-                break
-            case "cancel":
-                setCancelTarget(order)
-                break
-            case "confirm":
-                receive.mutate(order.id)
-                break
-            default:
-                notify.info(`「${action}」即将上线`)
-                break
-        }
-    }
 
     return (
         <div className="space-y-4">
@@ -149,13 +130,7 @@ function OrdersPage() {
                         <OrderCard
                             key={order.id}
                             order={order}
-                            pendingAction={
-                                cancel.isPending
-                                    ? "cancel"
-                                    : receive.isPending
-                                      ? "confirm"
-                                      : undefined
-                            }
+                            pendingAction={pendingAction}
                             onDetail={(o) =>
                                 void navigate({
                                     to: "/orders/$orderId",

@@ -2,7 +2,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import { CartApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
-import { notify } from "#/shared/lib/toast"
+import { notify } from "@shop/app-kit"
 import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
 import {
@@ -23,11 +23,11 @@ import {
 
 // ---------- 读：查询 + 缓存 ----------
 
-/** 购物车列表缓存 key（并发 query 与所有 mutation 共享，是唯一失效入口） */
-const CART_ITEMS_KEY = ["cart-items"] as const
+/** 购物车列表缓存 key（并发 query 与所有 mutation 共享，是唯一失效入口；checkout 下单后也引用它失效） */
+export const CART_ITEMS_KEY = ["cart-items"] as const
 
 /** 角标计数缓存 key：算的是条目行数（非件数），故只有加购/删除会改变它 */
-const CART_COUNT_KEY = ["cart-count"] as const
+export const CART_COUNT_KEY = ["cart-count"] as const
 
 /** 购物车列表：仅在路由 /cart（_protected 内）使用。
  * 登录态由 _protected 布局 gate 保证（authed 后才渲染子路由），挂载时必已登录。 */
@@ -144,7 +144,7 @@ export function useCartItemActions() {
 
     return {
         /** 正在删除的条目 id（行内删除按钮的 pending 态来源） */
-        removingId: remove.isPending ? (remove.variables ?? undefined) : undefined,
+        removingId: remove.isPending ? remove.variables : undefined,
         toggleItem: (id: string, selected: boolean) => toggle.mutate({ id, selected }),
         /** 改数量：越界静默拦下、超库存提示（仍以后端裁决为准）；库存取自调用方手上的 item，不回查列表 */
         updateQuantity: (item: CartItem, quantity: number) => {

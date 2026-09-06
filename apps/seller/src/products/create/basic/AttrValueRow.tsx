@@ -86,8 +86,8 @@ export function AttrValueRow({
                 items={values}
                 // oxlint-disable-next-line no-null -- Base UI Combobox value=null 表示无选中，库 API 要求
                 value={row.value || null}
-                inputValue={row.value ?? ""}
-                onValueChange={(v) => v !== undefined && onValueChange(String(v))}
+                inputValue={row.value}
+                onValueChange={(v) => onValueChange(v ?? "")}
                 onInputValueChange={(text) => onValueChange(text)}
             >
                 <ComboboxInput

@@ -1,5 +1,7 @@
 import { fenToYuan } from "@shop/api"
-import type { SkuResponse } from "@shop/api/sdk"
+import type { SkuResponse, SkuStatus } from "@shop/api/sdk"
+
+import type { SpecSelection } from "../../data"
 
 export { buildSkuRowsFromSelections } from "./sku-combinator"
 
@@ -27,8 +29,8 @@ export interface ProductBasicForm {
     detailImages: string[]
 }
 
-/** 销售属性选值（对应 UpdateSpecsRequest.specs） */
-export type SpecSelections = { attrId: string; valueIds: string[]; customValues: string[] }[]
+/** 销售属性选值（对应 UpdateSpecsRequest.specs）：形状单一来源是 ../data.ts 的 SpecSelection（派生自 SDK），此处只起个复数别名 */
+export type SpecSelections = SpecSelection[]
 
 /**
  * 上架时间：决定「提交商品信息」落哪个状态。
@@ -49,7 +51,7 @@ export interface SkuDraftRow {
     /** 用户输入的库存（件字符串，空=未填） */
     stockText: string
     skuCode: string
-    status: "ON_SALE" | "DISABLED"
+    status: SkuStatus
 }
 
 // ---------- 纯转换/合并函数 ----------
@@ -58,9 +60,9 @@ export interface SkuDraftRow {
 export function rowFromSku(sku: SkuResponse): SkuDraftRow {
     return {
         skuId: sku.id,
-        label: (sku.attributes ?? []).map((a) => a.value).join(" / ") || "单规格",
+        label: sku.attributes.map((a) => a.value).join(" / ") || "单规格",
         priceText: sku.price == undefined ? "" : fenToYuan(sku.price),
-        stockText: sku.stock == undefined ? "" : String(sku.stock),
+        stockText: String(sku.stock),
         skuCode: sku.skuCode ?? "",
         status: sku.status === "DISABLED" ? "DISABLED" : "ON_SALE",
     }

@@ -1,20 +1,7 @@
-import { useEffect, useState } from "react"
-import { CircleAlert, Store } from "lucide-react"
-
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import {
-    ErrorCodes,
-    PasswordFormSchema,
-    PHONE_PATTERN,
-    PhoneSchema,
-    SmsFormSchema,
-    toApiError,
-} from "@shop/api"
 import {
     Button,
     Card,
     CardContent,
-    cn,
     Field,
     InputGroup,
     InputGroupAddon,
@@ -23,6 +10,7 @@ import {
     InputGroupText,
     Skeleton,
     Spinner,
+    cn,
     firstFieldError,
     useAppForm,
     useCaptcha,
@@ -31,6 +19,17 @@ import {
 
 import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
 import { AuthApi } from "@shop/api/sdk"
+import {
+    SmsFormSchema,
+    PasswordFormSchema,
+    toApiError,
+    ErrorCodes,
+    PhoneSchema,
+    PHONE_PATTERN,
+} from "@shop/api"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { Store, CircleAlert } from "lucide-react"
+import { useState, useEffect } from "react"
 
 export const Route = createFileRoute("/login")({
     component: LoginPage,
@@ -103,9 +102,7 @@ function LoginPage() {
     })
 
     // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态，
-    // 用普通 async 函数 + pending 标记即可，不需要 useMutation。
-    // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态。
-    // 用 promise 链而非 try/finally：React Compiler 暂不支持 finally 块，.finally 兼顾 pending 复位。
+    // 不需要 useMutation；用 promise 链而非 try/finally（React Compiler 暂不支持 finally 块），.finally 兼顾 pending 复位。
     const [sendingCode, setSendingCode] = useState(false)
     function sendCode(phone: string) {
         setSendingCode(true)
@@ -164,7 +161,7 @@ function LoginPage() {
                         className="flex flex-col gap-4"
                         onSubmit={(e) => {
                             e.preventDefault()
-                            form.handleSubmit()
+                            void form.handleSubmit()
                         }}
                     >
                         <div className="flex gap-6">
@@ -249,12 +246,12 @@ function LoginPage() {
                                                     <img
                                                         src={captcha.image}
                                                         alt="图形验证码"
-                                                        className="h-full w-[96px] rounded-r-xl"
+                                                        className="h-full w-24 rounded-r-xl"
                                                     />
                                                 ) : captcha.loading ? (
-                                                    <Skeleton className="h-full w-[96px]" />
+                                                    <Skeleton className="h-full w-24" />
                                                 ) : (
-                                                    <span className="flex h-full w-[96px] items-center justify-center text-xs text-muted-foreground">
+                                                    <span className="flex h-full w-24 items-center justify-center text-xs text-muted-foreground">
                                                         点击获取
                                                     </span>
                                                 )}
@@ -311,9 +308,7 @@ function LoginPage() {
                                                             sendingCode
                                                         }
                                                         onClick={() =>
-                                                            void sendCode(
-                                                                form.getFieldValue("phone"),
-                                                            )
+                                                            sendCode(form.getFieldValue("phone"))
                                                         }
                                                     >
                                                         {countdown > 0 ? (

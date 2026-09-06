@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { Button, cn, useSidebar, Spinner } from "@shop/ui-web"
+import { Button, cn, Spinner, useSidebar } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 
 import { AdminAuthApi } from "@shop/api/sdk"

@@ -1,10 +1,6 @@
-import { useState } from "react"
-import { createFileRoute } from "@tanstack/react-router"
 import { CircleAlert, LogOut, Monitor, Smartphone } from "lucide-react"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { AuthApi } from "@shop/api/sdk"
-import { format, isValid } from "date-fns"
+import { notify } from "@shop/app-kit"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -35,9 +31,13 @@ import {
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
-
 import { getDeviceId } from "#/shared/api/auth"
-import { notify } from "#/shared/lib/toast"
+import { formatTimeShort } from "@shop/app-kit"
+import { toApiError } from "@shop/api"
+import { AuthApi } from "@shop/api/sdk"
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+import { useState } from "react"
 
 export const Route = createFileRoute("/_protected/account/security/")({
     component: SecurityPage,
@@ -71,7 +71,7 @@ function ChangePassword() {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
             window.location.href = "/"
         },
-        onError: (e) => setError(toDetail(e)),
+        onError: (e) => setError(toApiError(e).detail),
     })
 
     const form = useAppForm({
@@ -237,7 +237,7 @@ function DeviceManager() {
                                         )}
                                     </ItemTitle>
                                     <ItemDescription className="truncate">
-                                        {d.ip ?? "未知 IP"} · {formatTime(d.lastLoginAt)}
+                                        {d.ip ?? "未知 IP"} · {formatTimeShort(d.lastLoginAt)}
                                     </ItemDescription>
                                 </ItemContent>
                                 <ItemActions>
@@ -300,17 +300,4 @@ function isMobileName(name: string | null): boolean {
     if (!name) return false
     const n = name.toLowerCase()
     return n.includes("iphone") || n.includes("android") || n.includes("手机")
-}
-
-/** 最近操作时间 ISO → 「MM-dd HH:mm」；缺省/非法显示占位 */
-function formatTime(iso: string): string {
-    if (!iso) return "时间未知"
-    const d = new Date(iso)
-    return isValid(d) ? format(d, "MM-dd HH:mm") : "时间未知"
-}
-
-function toDetail(e: unknown): string {
-    if (typeof e === "object" && e !== null && "detail" in e)
-        return String((e as { detail: unknown }).detail)
-    return "操作失败，请重试"
 }

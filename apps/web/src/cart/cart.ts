@@ -1,13 +1,14 @@
-import type { CartListItemResponse, SkuInfo } from "@shop/api/sdk"
+import type {
+    CartListItemResponse,
+    CartProductInfo as SdkCartProductInfo,
+    SkuInfo,
+} from "@shop/api/sdk"
 
-/** 购物车嵌入的商品缩略信息 —— 投影命名与全站一致（title/image），wire 侧为 name/mainImage */
-type CartProductInfo = {
-    id: string
+/** 购物车嵌入的商品缩略信息 —— 契约同 SDK CartProductInfo，仅重命名投影（name→title、mainImage→image） */
+type CartItemProduct = Omit<SdkCartProductInfo, "name" | "mainImage"> & {
     title: string
     /** 主图（SDK 可空，UI 用占位图） */
     image?: string
-    shopId: string
-    shopName: string
 }
 
 /**
@@ -22,7 +23,7 @@ export type CartItem = {
     selected: boolean
     available: boolean
     /** available=false 时商品已下架，product 仍有值（展示快照用） */
-    product: CartProductInfo
+    product: CartItemProduct
     /** SKU 快照（价格/库存/规格图） */
     sku: SkuInfo
 }
@@ -86,9 +87,9 @@ export function deriveSelectedItems(items: CartItem[]): CartItem[] {
     return items.filter((item) => item.available && item.selected)
 }
 
-/** 选中条目合计金额（分）；无价格的 SKU 按 0 计 */
+/** 选中条目合计金额（分） */
 export function deriveSelectedTotal(selectedItems: CartItem[]): number {
-    return selectedItems.reduce((sum, i) => sum + (i.sku?.price.amount ?? 0) * i.quantity, 0)
+    return selectedItems.reduce((sum, i) => sum + i.sku.price.amount * i.quantity, 0)
 }
 
 /**
@@ -120,10 +121,10 @@ export function selectableIdsOf(group: CartShopGroup): string[] {
 
 /** 购物车条目行的视图读模型 */
 export function deriveCartItemView(item: CartItem): CartItemView {
-    const stock = item.sku?.stock ?? 0
+    const stock = item.sku.stock
     return {
-        image: item.sku?.image ?? item.product?.image ?? undefined,
-        title: item.product?.title ?? "商品已失效",
+        image: item.sku.image ?? item.product.image,
+        title: item.product.title,
         stock,
         outOfStock: item.available && stock === 0,
         disabled: !item.available,

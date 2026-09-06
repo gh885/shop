@@ -13,6 +13,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
+        "@shop/app-kit": "workspace:*",
         "@tailwindcss/vite": "catalog:",
         "@tanstack/react-devtools": "^0.10.12",
         "@tanstack/react-query": "catalog:",

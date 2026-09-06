@@ -1,6 +1,6 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
 
-import type { ProductResponse } from "@shop/api/sdk"
+import type { ProductStatus } from "@shop/api/sdk"
 import { CategoriesApi } from "@shop/api/sdk"
 
 import { listProducts } from "./data"
@@ -17,7 +17,7 @@ import { type LeafPath, flattenLeafPaths } from "./category"
 // ---------- queryKey 工厂 ----------
 
 export interface ProductListSearch {
-    status?: string
+    status?: ProductStatus
     keyword?: string
     page: number
     size: number
@@ -45,7 +45,7 @@ export const productListOptions = (shopId: string | undefined, s: ProductListSea
             listProducts({
                 page: s.page,
                 size: s.size,
-                status: s.status as ProductResponse["status"] | undefined,
+                status: s.status,
                 keyword: s.keyword,
             }),
         enabled: !!shopId,

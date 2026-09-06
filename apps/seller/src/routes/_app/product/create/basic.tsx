@@ -22,7 +22,7 @@ import {
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/products"
 import { useProductDraft, type DraftProductStatus } from "#/products/create/basic/use-product-draft"
-import { notify } from "#/shared/lib/toast"
+import { notify } from "@shop/app-kit"
 import { useCurrentShop } from "#/shared/lib/shop"
 
 interface BasicSearch {

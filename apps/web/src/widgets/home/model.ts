@@ -1,4 +1,9 @@
-import type { BannerResponse, NavEntryResponse, RecommendTabResponse } from "@shop/api/sdk"
+import type {
+    BannerResponse,
+    NavEntryResponse,
+    NavGroup as SdkNavGroup,
+    RecommendTabResponse,
+} from "@shop/api/sdk"
 
 /**
  * widgets/home 领域层 —— CMS 首页内容类型 + wire → 投影（纯函数，不碰 React / 网络）。
@@ -9,8 +14,8 @@ import type { BannerResponse, NavEntryResponse, RecommendTabResponse } from "@sh
 
 // ---------- CMS：首页导航 ----------
 
-/** 导航子分组 {name, items[]}，与后端 NavGroup 同构 */
-export type NavGroup = { name: string; items: string[] }
+/** 导航子分组 {name, items[]}：契约同后端 NavGroup，仅 items 归一为必有（缺省补 []） */
+export type NavGroup = Omit<SdkNavGroup, "items"> & { items: string[] }
 
 /** 首页导航项（投影后形状） */
 export type NavEntry = {

@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { formatDate } from "#/shared/lib/format"
+import { formatDate } from "@shop/app-kit"
 import {
     AlertDialog,
     AlertDialogAction,

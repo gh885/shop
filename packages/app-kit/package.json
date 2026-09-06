@@ -1,0 +1,21 @@
+{
+    "name": "@shop/app-kit",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@shop/api": "workspace:*",
+        "@shop/ui-web": "workspace:*",
+        "date-fns": "catalog:"
+    },
+    "devDependencies": {
+        "@shop/config": "workspace:*",
+        "typescript": "catalog:"
+    }
+}

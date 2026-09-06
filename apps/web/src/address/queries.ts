@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AddressesApi } from "@shop/api/sdk"
 
-import { notify } from "#/shared/lib/toast"
+import { notify } from "@shop/app-kit"
 import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
 import { toAddress, type Address, type AddressInput, type AddressParse } from "./address"
@@ -29,7 +29,7 @@ export function useCreateAddress() {
         mutationFn: (input: AddressInput) =>
             AddressesApi.createAddress({ body: { ...input, receiverName: input.receiver } }),
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: KEY })
+            void qc.invalidateQueries({ queryKey: KEY })
             notify.success("地址已添加")
         },
         onError: (err) => notify.fromError(err, "添加地址失败"),
@@ -46,7 +46,7 @@ export function useUpdateAddress() {
                 body: { ...input, receiverName: input.receiver },
             }),
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: KEY })
+            void qc.invalidateQueries({ queryKey: KEY })
             notify.success("地址已更新")
         },
         onError: (err) => notify.fromError(err, "更新地址失败"),

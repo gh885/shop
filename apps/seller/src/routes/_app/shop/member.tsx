@@ -1,43 +1,43 @@
-import { useState } from "react"
-import { z } from "zod"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createFileRoute } from "@tanstack/react-router"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    Badge,
-    Button,
-    ButtonGroup,
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-    Field,
-    Input,
-    Skeleton,
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-    StateError,
-    firstFieldError,
-    useAppForm,
-} from "@shop/ui-web"
 import { Store, Trash2, UserPlus } from "lucide-react"
 
 import { toApiError } from "@shop/api"
 
-import { inviteMember, removeMember, shopMembers } from "#/shared/lib/shop-data"
+import { useCurrentShop, shopKeys } from "#/shared/lib/shop"
 import { useMe } from "#/shared/lib/me"
-import { notify } from "#/shared/lib/toast"
-import { useCurrentShop } from "#/shared/lib/shop"
+import { shopMembers, inviteMember, removeMember } from "#/shared/lib/shop-data"
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+import { useState } from "react"
+import { notify } from "@shop/app-kit"
+import {
+    Empty,
+    EmptyHeader,
+    Badge,
+    EmptyMedia,
+    EmptyTitle,
+    EmptyDescription,
+    useAppForm,
+    StateError,
+    Skeleton,
+    Card,
+    CardHeader,
+    CardTitle,
+    CardContent,
+    Button,
+    Field,
+    firstFieldError,
+    ButtonGroup,
+    Input,
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+} from "@shop/ui-web"
+import { z } from "zod"
 
 /** 邀请手机号校验：与后端手机号 @Pattern 对齐（就近放在表单旁） */
 const InvitePhoneSchema = z.string().regex(/^1\d{10}$/, "请输入正确的手机号")
@@ -82,7 +82,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const me = useMe()
 
     const members = useQuery({
-        queryKey: ["shops", shopId, "members"],
+        queryKey: shopKeys.members(shopId),
         queryFn: () => shopMembers(shopId),
     })
 
@@ -95,7 +95,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
         mutationFn: (value: string) => inviteMember(shopId, { phone: value }),
         onSuccess: () => {
             notify.success("邀请已发送")
-            void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
+            void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) })
         },
         onError: (e) => notify.fromError(e, "邀请发送失败"),
     })
@@ -109,7 +109,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
         mutationFn: (memberId: string) => removeMember(shopId, memberId),
         onSuccess: () => {
             notify.success("已移除该成员")
-            void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
+            void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) })
         },
         onError: (e) => notify.fromError(e, "移除成员失败"),
     })
@@ -196,7 +196,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                             className="mt-5"
                             onSubmit={(e) => {
                                 e.preventDefault()
-                                inviteForm.handleSubmit()
+                                void inviteForm.handleSubmit()
                             }}
                         >
                             <inviteForm.AppField

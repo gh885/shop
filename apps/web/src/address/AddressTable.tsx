@@ -16,19 +16,12 @@ import {
     TableRow,
 } from "@shop/ui-web"
 
-import type { Address } from "./address"
-
-/** 内置标签 code → 展示名；未知值按原样文本展示 */
-const BUILTIN_LABEL_NAMES: Record<string, string> = {
-    HOME: "家",
-    WORK: "公司",
-    SCHOOL: "学校",
-    PARENTS: "父母家",
-    FRIEND: "朋友家",
-}
+import { ADDRESS_LABELS, type Address } from "./address"
 
 function labelName(label?: string) {
-    return label ? (BUILTIN_LABEL_NAMES[label] ?? label) : undefined
+    if (!label) return undefined
+    // 未知（自定义）标签按原样文本展示
+    return label in ADDRESS_LABELS ? ADDRESS_LABELS[label as keyof typeof ADDRESS_LABELS] : label
 }
 
 export interface AddressTableProps {

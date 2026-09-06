@@ -3,6 +3,7 @@ import { redirect } from "@tanstack/react-router"
 
 import { configureSdkClient, createAuthKit } from "@shop/api"
 import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
+import type { ShopReviewListItemResponse, ShopReviewStatus } from "@shop/api/sdk"
 
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
 // 生成 SDK（@shop/api/sdk）统一出入参，业务方法经 adminApi 具名封装（error 转抛供调用方 catch）。
@@ -33,8 +34,8 @@ export const adminApi = {
         return { accessToken: data.accessToken }
     },
 
-    /** 店铺审核分页列表 */
-    async listReviews(input: { status?: string; page: number; size: number }) {
+    /** 店铺审核分页列表（wire 透传，无字段变换——形状单一来源是 SDK 的 ShopReviewListItemResponse） */
+    async listReviews(input: { status?: ShopReviewStatus; page: number; size: number }) {
         const page = await AdminReviewsApi.listShopReviews({
             query: {
                 status: input.status,
@@ -42,17 +43,7 @@ export const adminApi = {
             },
         })
         return {
-            records: page.records.map((r) => ({
-                id: r.id,
-                shopId: r.shopId,
-                shopName: r.shopName,
-                ownerPhone: r.ownerPhone,
-                status: r.status,
-                // reason/decidedAt 契约可空（PENDING 时无值），如实透传 null，UI 显示「—」
-                reason: r.reason,
-                decidedAt: r.decidedAt,
-                createdAt: r.createdAt,
-            })),
+            records: page.records,
             total: page.total,
         }
     },
@@ -68,17 +59,8 @@ export const adminApi = {
     },
 }
 
-/** 店铺审核行：wire 字段归一；reason/decidedAt 为真实可空（PENDING 时无值），建模为 null */
-export type ShopReviewItem = {
-    id: string
-    shopId: string
-    shopName: string
-    ownerPhone: string
-    status: string
-    reason: string | null
-    decidedAt: string | null
-    createdAt: string
-}
+/** 店铺审核行：直接复用生成契约（reason/decidedAt 契约可空 = PENDING 时无值，UI 显示「—」） */
+export type ShopReviewItem = ShopReviewListItemResponse
 
 // ---------- 路由守卫 ----------
 
@@ -103,7 +85,11 @@ export async function requireGuest(): Promise<void> {
 /** 审核列表失效 key（mutation 后一发命中所有 status/分页） */
 export const REVIEW_LIST_KEY = ["admin", "reviews"] as const
 
-export const reviewListOptions = (input: { status?: string; page: number; size: number }) =>
+export const reviewListOptions = (input: {
+    status?: ShopReviewStatus
+    page: number
+    size: number
+}) =>
     queryOptions({
         queryKey: [...REVIEW_LIST_KEY, input.status ?? "all", input.page, input.size] as const,
         queryFn: () => adminApi.listReviews(input),

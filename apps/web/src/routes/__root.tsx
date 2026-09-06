@@ -1,15 +1,14 @@
-import { useEffect } from "react"
 import {
+    createRootRouteWithContext,
     HeadContent,
     Link,
     Scripts,
-    createRootRouteWithContext,
     useRouter,
 } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
-import { Button, Toaster, buttonVariants } from "@shop/ui-web"
+import { Button, buttonVariants, Toaster } from "@shop/ui-web"
 
 import TanStackQueryDevtools from "#/app/tanstack-query/DevTools"
 import TanstackQueryProvider from "#/app/tanstack-query/TanstackQueryProvider"
@@ -23,6 +22,7 @@ import { bootstrapAuth, useLoginDialogOpen } from "../shared/api/auth"
 import appCss from "../styles.css?url"
 
 import type { QueryClient } from "@tanstack/react-query"
+import { useEffect } from "react"
 
 interface MyRouterContext {
     queryClient: QueryClient
@@ -112,7 +112,7 @@ const devtoolsPlugins = [
 
 function RootDocument({ children }: { children: React.ReactNode }) {
     const router = useRouter()
-    const queryClient = (router.options.context as MyRouterContext).queryClient
+    const { queryClient } = router.options.context
     return (
         <html lang="zh-CN">
             <head>

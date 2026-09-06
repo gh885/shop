@@ -1,45 +1,20 @@
-import type { Money } from "@shop/api"
-import type { PreviewResponse } from "@shop/api/sdk"
+import { type Money } from "@shop/api"
+import type {
+    Address,
+    Group,
+    Item,
+    PreviewResponse,
+    UnavailableLine as SdkUnavailableLine,
+} from "@shop/api/sdk"
 
-/** wire → 领域：只做形状归一（field 透传 + Money），不造假默认值。 */
-export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
-    return {
-        groups: dto.groups.map((g) => ({
-            shopId: g.shopId,
-            shopName: g.shopName,
-            lines: g.lines.map((l) => ({
-                skuId: l.skuId,
-                productId: l.productId,
-                name: l.name,
-                image: l.image ?? undefined,
-                price: l.price,
-                originalPrice: l.originalPrice,
-                quantity: l.quantity,
-                stock: l.stock,
-            })),
-            itemAmount: g.itemAmount,
-            shippingFee: g.shippingFee,
-            payAmount: g.payAmount,
-        })),
-        unavailable: dto.unavailable.map((u) => ({
-            skuId: u.skuId,
-            name: u.name,
-            image: u.image ?? undefined,
-            quantity: u.quantity,
-            cause: u.cause,
-        })),
-        address: {
-            id: dto.address.id,
-            receiverName: dto.address.receiverName,
-            receiverPhone: dto.address.receiverPhone,
-            province: dto.address.province,
-            city: dto.address.city,
-            district: dto.address.district,
-            detail: dto.address.detail,
-        },
-        totalPayAmount: dto.totalPayAmount,
-    }
-}
+/** 行明细：契约同 SDK Item，仅主图归一（SDK 可空 null，UI 用占位图 → undefined） */
+export type CheckoutLine = Omit<Item, "image"> & { image?: string }
+
+/** 按店分组：契约同 SDK Group，行明细换成本地归一后的 CheckoutLine */
+export type CheckoutGroup = Omit<Group, "lines"> & { lines: CheckoutLine[] }
+
+/** 失效行：契约同 SDK UnavailableLine，仅主图归一 */
+export type UnavailableLine = Omit<SdkUnavailableLine, "image"> & { image?: string }
 
 /** 结算预览业务形状：按店分组明细 + 失效行置灰 + 地址回显可选 + 应付总额 */
 export type CheckoutPreview = {
@@ -47,48 +22,21 @@ export type CheckoutPreview = {
     groups: CheckoutGroup[]
     /** 失效行（售罄/下架），前端置灰不可选 */
     unavailable: UnavailableLine[]
-    /** 回显的地址（后端默认取默认地址；未选返回 undefined，前端持列表自行选） */
-    address?: CheckoutAddress
+    /** 回显的地址（后端默认取默认地址，前端持列表自行选） */
+    address?: Address
     /** 全部应付总额 */
     totalPayAmount: Money
 }
 
-type CheckoutGroup = {
-    shopId: string
-    shopName: string
-    lines: CheckoutLine[]
-    itemAmount: Money
-    shippingFee: Money
-    payAmount: Money
-}
-
-type CheckoutLine = {
-    skuId: string
-    productId: string
-    name: string
-    /** 主图（SDK 可空，UI 用占位图） */
-    image?: string
-    price: Money
-    originalPrice: Money
-    quantity: number
-    stock: number
-}
-
-type UnavailableLine = {
-    skuId: string
-    name: string
-    /** 主图（SDK 可空） */
-    image?: string
-    quantity: number
-    cause: string
-}
-
-type CheckoutAddress = {
-    id: string
-    receiverName: string
-    receiverPhone: string
-    province: string
-    city: string
-    district: string
-    detail: string
+/** wire → 领域：只做形状归一（image null→undefined），不造假默认值。 */
+export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
+    return {
+        groups: dto.groups.map((g) => ({
+            ...g,
+            lines: g.lines.map((l) => ({ ...l, image: l.image ?? undefined })),
+        })),
+        unavailable: dto.unavailable.map((u) => ({ ...u, image: u.image ?? undefined })),
+        address: dto.address,
+        totalPayAmount: dto.totalPayAmount,
+    }
 }

@@ -36,6 +36,24 @@ export default defineConfig({
     rules: {
         "import/no-cycle": "warn",
 
+        // ── type-aware（需 lint 脚本带 --type-aware，依赖 oxlint-tsgolint）──
+        // 防止「死防御」回流：类型已保证非空还写 ?. / ?? 0 / 恒真条件。
+        // 前置：tsconfig 已开 noUncheckedIndexedAccess（否则 arr[i] / record[k] 的存在性检查会全量误报）。
+        // 仅存的 2 处豁免（use-product-draft 的 cancelled）是 tsgolint 不追踪跨闭包赋值窄化的已知局限，
+        // 已用行内 oxlint-disable 注明原因。
+        "typescript/no-unnecessary-condition": "error",
+        // 忘了 await/void 的 Promise：error（存量 17 处已补 void，回归即拦）
+        "typescript/no-floating-promises": "error",
+        // 类型感知的断言体检：多余的断言删掉；护栏式断言（带 in 检查的 as ShopReviewStatus 等）保留为 warn
+        "typescript/no-unnecessary-type-assertion": "warn",
+        "typescript/no-unsafe-type-assertion": "warn",
+        "typescript/no-unnecessary-boolean-literal-compare": "warn",
+        "typescript/no-meaningless-void-operator": "warn",
+        // SDK 生成的方法不用 this，作为回调传递（useCaptcha(AuthApi.getCaptcha)）会误报，降 warn
+        "typescript/unbound-method": "warn",
+        // 与仓库惯例冲突：组件里 `return;`（undefined）与 `return <JSX>` 混用是常见早退模式
+        "typescript/consistent-return": "off",
+
         // ── error — 安全无争议 ──
         "unicorn/error-message": "error",
         "unicorn/throw-new-error": "error",

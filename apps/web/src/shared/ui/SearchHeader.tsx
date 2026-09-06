@@ -4,7 +4,7 @@ import { Search } from "lucide-react"
 
 import { Button, ButtonGroup, Input, Logo } from "@shop/ui-web"
 
-import { notify } from "#/shared/lib/toast"
+import { notify } from "@shop/app-kit"
 
 /**
  * 通用页面顶栏（详情页 / 购物车页共用，非吸顶，随页面滚走）：左品牌 logo + 可选页面标题，右搜索组。
@@ -31,7 +31,7 @@ export function SearchHeader({
 
     return (
         <header className={`bg-background ${className ?? ""}`}>
-            <div className="mx-auto flex h-16 w-full max-w-(--container-page) items-center justify-between px-6">
+            <div className="mx-auto flex h-16 w-full max-w-page items-center justify-between px-6">
                 {/* 左：品牌 logo（与首页同款）+ 可选页面标题 */}
                 <div className="flex items-center gap-3">
                     <Link
@@ -45,7 +45,7 @@ export function SearchHeader({
                 </div>
 
                 {/* 右侧搜索组：2px 橙描边 + 实色橙按钮（与首页同款），各页附加按钮挂 extra */}
-                <ButtonGroup className="h-9 w-[400px] overflow-hidden rounded-md border-2 border-primary bg-background">
+                <ButtonGroup className="h-9 w-100 overflow-hidden rounded-md border-2 border-primary bg-background">
                     <Input
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}

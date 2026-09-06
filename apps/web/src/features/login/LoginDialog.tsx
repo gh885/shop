@@ -1,15 +1,13 @@
-import { useEffect, useState } from "react"
-import { CircleAlert, QrCode } from "lucide-react"
-
 import {
-    ErrorCodes,
-    PasswordFormSchema,
-    PHONE_PATTERN,
-    PhoneSchema,
-    SmsFormSchema,
-    toApiError,
     type ApiError,
+    ErrorCodes,
+    SmsFormSchema,
+    PasswordFormSchema,
+    toApiError,
+    PhoneSchema,
+    PHONE_PATTERN,
 } from "@shop/api"
+import { notify } from "@shop/app-kit"
 import {
     Button,
     cn,
@@ -17,6 +15,7 @@ import {
     DialogContent,
     DialogTitle,
     Field,
+    firstFieldError,
     InputGroup,
     InputGroupAddon,
     InputGroupButton,
@@ -24,19 +23,18 @@ import {
     InputGroupText,
     Skeleton,
     Spinner,
-    firstFieldError,
     useAppForm,
     useCaptcha,
     useCountdown,
 } from "@shop/ui-web"
-
+import { QrCode, CircleAlert } from "lucide-react"
+import { useState, useEffect } from "react"
 import {
     getCaptcha,
     loginByPassword,
     loginBySms,
     sendSmsCode as sendSmsCodeAction,
 } from "./actions"
-import { notify } from "#/shared/lib/toast"
 
 type LoginTab = "sms" | "password"
 
@@ -99,9 +97,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     })
 
     // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态，
-    // 用普通 async 函数 + pending 标记即可，不需要 useMutation。
-    // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态。
-    // 用 promise 链而非 try/finally：React Compiler 暂不支持 finally 块，.finally 兼顾 pending 复位。
+    // 不需要 useMutation；用 promise 链而非 try/finally（React Compiler 暂不支持 finally 块），.finally 兼顾 pending 复位。
     const [sendingCode, setSendingCode] = useState(false)
     function handleSendCode(phone: string) {
         setSendingCode(true)
@@ -190,7 +186,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                             className="flex min-w-0 flex-1 flex-col gap-4"
                             onSubmit={(e) => {
                                 e.preventDefault()
-                                form.handleSubmit()
+                                void form.handleSubmit()
                             }}
                         >
                             <div className="flex gap-6">
@@ -282,12 +278,12 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                         <img
                                                             src={captcha.image}
                                                             alt="图形验证码"
-                                                            className="h-full w-[104px] rounded-r-xl"
+                                                            className="h-full w-26 rounded-r-xl"
                                                         />
                                                     ) : captcha.loading ? (
-                                                        <Skeleton className="h-full w-[104px]" />
+                                                        <Skeleton className="h-full w-26" />
                                                     ) : (
-                                                        <span className="flex h-full w-[104px] items-center justify-center text-xs text-muted-foreground">
+                                                        <span className="flex h-full w-26 items-center justify-center text-xs text-muted-foreground">
                                                             点击获取
                                                         </span>
                                                     )}
@@ -351,7 +347,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                                 sendingCode
                                                             }
                                                             onClick={() =>
-                                                                void handleSendCode(
+                                                                handleSendCode(
                                                                     form.getFieldValue("phone"),
                                                                 )
                                                             }

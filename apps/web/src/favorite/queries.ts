@@ -2,7 +2,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import { FavoritesApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
-import { notify } from "#/shared/lib/toast"
+import { notify } from "@shop/app-kit"
 import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
 import { toFavoriteItem, type FavoriteItem } from "./favorite"
@@ -47,10 +47,6 @@ export function useRemoveFavorites() {
 
 // ---------- 详情页心形（单商品） ----------
 
-// ---------- 详情页心形（单商品） ----------
-
-/** 心形状态 query 的 key 工厂：useFavoriteStatus 与 useToggleFavorite 必须同源。
- * checkFavoriteExists 是 POST，生成器不产出 queryKey，故本地定义。 */
 /** 心形状态 query：key 与 options 同源（useToggleFavorite 的乐观更新复用同一 key）。
  * checkFavoriteExists 是 POST，生成器不产出 queryKey，故本地定义。 */
 const favoritedOptions = (productId: string) =>

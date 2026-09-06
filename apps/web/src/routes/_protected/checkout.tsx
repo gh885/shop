@@ -1,47 +1,45 @@
-import { z } from "zod"
-import { useState } from "react"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, CircleAlert, MapPin } from "lucide-react"
-
+import { useAddressList, type Address } from "#/address"
 import {
+    type CheckoutSource,
+    useCreateOrder,
+    useCheckoutPreview,
+    type CheckoutGroup,
+    type UnavailableLine,
+} from "#/checkout"
+import { fenToYuan } from "@shop/api"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
+import { useState } from "react"
+import { notify } from "@shop/app-kit"
+import {
+    Skeleton,
     Button,
     Card,
-    CardContent,
-    CardFooter,
     CardHeader,
     CardTitle,
+    CardContent,
+    Separator,
+    CardFooter,
+    Spinner,
     Empty,
-    EmptyDescription,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
-    Item,
-    ItemActions,
-    ItemContent,
-    ItemDescription,
-    ItemMedia,
-    ItemTitle,
-    Panel,
-    PanelContent,
-    PanelHeader,
+    EmptyDescription,
     RadioGroup,
+    Item,
     RadioGroupItem,
-    Separator,
-    Skeleton,
-    Spinner,
+    ItemContent,
+    ItemTitle,
+    ItemDescription,
+    Panel,
+    PanelHeader,
+    PanelContent,
+    ItemMedia,
+    ItemActions,
 } from "@shop/ui-web"
-import { fenToYuan } from "@shop/api"
+import { z } from "zod"
 
-import { useAddressList, type Address } from "#/address"
-import {
-    useCheckoutPreview,
-    useCreateOrder,
-    type CheckoutPreview,
-    type CheckoutSource,
-} from "#/checkout"
-import { notify } from "#/shared/lib/toast"
-
-// 结算来源：cartItemIds（购物车）与 buySkuId+buyQuantity（立即购买）二选一；
 // cartItemIds 兼容数组与单值字符串两种 URL 形态，脏值一律 catch 掉走默认流程
 const checkoutSearchSchema = z.object({
     cartItemIds: z
@@ -91,7 +89,7 @@ function CheckoutPage() {
                     // 一次结算按店拆单，可能多单：V1 统一跳第一单支付页（支付按单逐单处理）
                     void navigate({
                         to: "/pay/$orderId",
-                        params: { orderId: orders[0].id },
+                        params: { orderId: orders[0]!.id },
                         search: { orderIds: orders.map((o) => o.id) },
                     })
                 },
@@ -246,7 +244,7 @@ function AddressPicker({
         )
     }
     // 默认选中：已勾选的，否则默认地址
-    const effectiveId = value || addresses.find((a) => a.isDefault)?.id || addresses[0].id
+    const effectiveId = value || addresses.find((a) => a.isDefault)?.id || addresses[0]!.id
     return (
         <Card>
             <CardHeader>
@@ -258,7 +256,7 @@ function AddressPicker({
             <CardContent>
                 <RadioGroup
                     value={effectiveId}
-                    onValueChange={(v) => onChange(v as string)}
+                    onValueChange={(v: string) => onChange(v)}
                     className="gap-2"
                 >
                     {addresses.map((a) => (
@@ -291,8 +289,6 @@ function AddressPicker({
         </Card>
     )
 }
-
-type CheckoutGroup = CheckoutPreview["groups"][number]
 
 function GroupCard({ group }: { group: CheckoutGroup }) {
     return (
@@ -354,7 +350,7 @@ function GroupCard({ group }: { group: CheckoutGroup }) {
     )
 }
 
-function UnavailableCard({ lines }: { lines: CheckoutPreview["unavailable"] }) {
+function UnavailableCard({ lines }: { lines: UnavailableLine[] }) {
     if (lines.length === 0) return
     return (
         <Item

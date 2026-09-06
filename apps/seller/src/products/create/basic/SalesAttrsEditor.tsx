@@ -50,8 +50,10 @@ function toSelections(drafts: AttrDraft[]): SpecSelection[] {
     const withRows = drafts.filter((d) => d.rows.some((r) => r.value.trim()))
     return withRows.map((d) => {
         const valueIds = d.rows
-            .filter((r) => r.valueId && r.value.trim())
-            .map((r) => r.valueId as string)
+            .filter(
+                (r): r is ValueDraft & { valueId: string } => !!r.valueId && r.value.trim() !== "",
+            )
+            .map((r) => r.valueId)
         const customValues = d.rows
             .filter((r) => !r.valueId && r.value.trim())
             .map((r) => r.value.trim())
@@ -128,30 +130,39 @@ export function SalesAttrsEditor({
 
     function updateValue(attrIdx: number, rowIdx: number, text: string) {
         const d = drafts[attrIdx]
+        if (!d) return
         const match = d.values.find((v) => v.value === text.trim())
-        const rows = d.rows.with(rowIdx, { ...d.rows[rowIdx], value: text, valueId: match?.id })
+        const current = d.rows[rowIdx]
+        if (!current) return
+        const rows = d.rows.with(rowIdx, { ...current, value: text, valueId: match?.id })
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 
     function updateNote(attrIdx: number, rowIdx: number, note: string) {
-        const rows = drafts[attrIdx].rows.map((r, i) => (i === rowIdx ? { ...r, note } : r))
+        const d = drafts[attrIdx]
+        if (!d) return
+        const rows = d.rows.map((r, i) => (i === rowIdx ? { ...r, note } : r))
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 
     function addRow(attrIdx: number) {
-        const rows = [...drafts[attrIdx].rows, { id: nextId(), value: "", note: "" }]
+        const d = drafts[attrIdx]
+        if (!d) return
+        const rows = [...d.rows, { id: nextId(), value: "", note: "" }]
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 
     function updateImage(attrIdx: number, rowIdx: number, image: string | undefined) {
-        const rows = drafts[attrIdx].rows.map((r, i) =>
-            i === rowIdx ? { ...r, image: image ?? "" } : r,
-        )
+        const d = drafts[attrIdx]
+        if (!d) return
+        const rows = d.rows.map((r, i) => (i === rowIdx ? { ...r, image: image ?? "" } : r))
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 
     function removeRow(attrIdx: number, rowIdx: number) {
-        const rows = drafts[attrIdx].rows.filter((_, i) => i !== rowIdx)
+        const d = drafts[attrIdx]
+        if (!d) return
+        const rows = d.rows.filter((_, i) => i !== rowIdx)
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 

@@ -21,7 +21,7 @@ export function ShopGroupCard({ group }: { group: CartShopGroup }) {
                     onCheckedChange={(checked) =>
                         selectItems.mutate({
                             itemIds: selectableIdsOf(group),
-                            selected: checked === true,
+                            selected: checked,
                         })
                     }
                     aria-label={`选择 ${group.shopName} 全部商品`}

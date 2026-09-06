@@ -15,8 +15,9 @@ export {
     isSelectionComplete,
     isValueAvailable,
     specValueImage,
+    toProductCardData,
 } from "./product"
-export type { Product, ProductDetail, SkuSelection } from "./product"
+export type { Product, ProductCardData, ProductDetail, SkuSelection } from "./product"
 
 /** 共享值对象类型（Money / ParamItem / SpecItem）契约在 @shop/api，这里转发省得业务方跨包取 */
 
@@ -25,4 +26,3 @@ export type { ParamItem } from "@shop/api/sdk"
 export { fetchProductDetail, fetchProducts } from "./data"
 
 export { ProductCard } from "./ProductCard"
-export type { ProductCardData } from "./ProductCard"

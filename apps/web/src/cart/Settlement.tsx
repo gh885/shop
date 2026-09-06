@@ -5,7 +5,6 @@ import { Button, Separator } from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 import { deriveCartItemView, deriveSelectedItems, deriveSelectedTotal } from "./cart"
 import { useCartItems, useToggleCartItem } from "./queries"
-import type { CartItem } from "./cart"
 
 /**
  * 购物车右栏结算明细（对齐参考图，但本期不做优惠/红包/满减）：
@@ -22,7 +21,7 @@ export function Settlement() {
 
     // 去结算：仅传已勾选且可售的购物车条目 id（cartItemIds），由后端按选中集合校验/拆单
     const goCheckout = () => {
-        const ids = selectedItems.map((i: CartItem) => i.id)
+        const ids = selectedItems.map((i) => i.id)
         void navigate({ to: "/checkout", search: { cartItemIds: ids } })
     }
 

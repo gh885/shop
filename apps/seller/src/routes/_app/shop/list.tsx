@@ -1,45 +1,44 @@
-import { formatDate } from "#/shared/lib/format"
-import { useState } from "react"
-import { z } from "zod"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMyShops, useCurrentShop, shopKeys } from "#/shared/lib/shop"
+import { SHOP_STATUS_VARIANT, SHOP_STATUS_TEXT } from "#/shared/lib/shop-constants"
+import { myInvites, acceptInvite, createShop } from "#/shared/lib/shop-data"
+import { setCurrentShopId } from "#/shared/lib/shop-store"
+import { formatDate } from "@shop/app-kit"
+import { toApiError } from "@shop/api"
+import type { ShopResponse } from "@shop/api/sdk"
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { Store, MailPlus, CheckCircle2 } from "lucide-react"
+import { useState } from "react"
+import { notify } from "@shop/app-kit"
 import {
-    Badge,
-    Button,
-    ButtonGroup,
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+    StateError,
+    Skeleton,
     Empty,
-    EmptyDescription,
+    Badge,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
-    Field,
-    Input,
+    EmptyDescription,
     Item,
-    ItemActions,
     ItemContent,
-    ItemDescription,
-    ItemMedia,
     ItemTitle,
-    Skeleton,
-    Spinner,
-    StateError,
-    firstFieldError,
+    ItemDescription,
+    ItemActions,
+    Button,
+    ItemMedia,
     useAppForm,
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+    Field,
+    firstFieldError,
+    ButtonGroup,
+    Input,
+    Spinner,
 } from "@shop/ui-web"
-import { CheckCircle2, MailPlus, Store } from "lucide-react"
-
-import { toApiError } from "@shop/api"
-import type { ShopResponse } from "@shop/api/sdk"
-
-import { acceptInvite, createShop, myInvites } from "#/shared/lib/shop-data"
-import { setCurrentShopId, useCurrentShop, useMyShops } from "#/shared/lib/shop"
-import { SHOP_STATUS_TEXT, SHOP_STATUS_VARIANT } from "#/shared/lib/shop-constants"
-import { notify } from "#/shared/lib/toast"
+import { z } from "zod"
 
 /** 开店表单校验：店名长度与后端 @Size 对齐（就近放在表单旁） */
 const CreateShopNameSchema = z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字")
@@ -145,7 +144,7 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
 function PendingInvites() {
     const queryClient = useQueryClient()
     const invites = useQuery({
-        queryKey: ["shops", "invites"],
+        queryKey: shopKeys.invites(),
         queryFn: () => myInvites(),
     })
 
@@ -153,7 +152,7 @@ function PendingInvites() {
         mutationFn: (memberId: string) => acceptInvite(memberId),
         onSuccess: () => {
             notify.success("已加入店铺")
-            void queryClient.invalidateQueries({ queryKey: ["shops"] })
+            void queryClient.invalidateQueries({ queryKey: shopKeys.all })
         },
         onError: (e) => notify.fromError(e, "加入店铺失败"),
     })
@@ -178,9 +177,7 @@ function PendingInvites() {
                             >
                                 <MailPlus />
                             </ItemMedia>
-                            <span className="text-sm">
-                                「{invite.shopName ?? "未知店铺"}」邀请你成为店铺成员
-                            </span>
+                            <span className="text-sm">「{invite.shopName}」邀请你成为店铺成员</span>
                         </div>
                         <ItemActions>
                             <Button
@@ -207,7 +204,7 @@ function CreateShopForm() {
         mutationFn: (value: string) => createShop({ name: value }),
         onSuccess: () => {
             setDone(true)
-            void queryClient.invalidateQueries({ queryKey: ["shops"] })
+            void queryClient.invalidateQueries({ queryKey: shopKeys.all })
         },
         onError: (e) => notify.fromError(e, "创建店铺失败"),
     })
@@ -232,7 +229,7 @@ function CreateShopForm() {
                 <form
                     onSubmit={(e) => {
                         e.preventDefault()
-                        form.handleSubmit()
+                        void form.handleSubmit()
                     }}
                 >
                     <form.AppField

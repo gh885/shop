@@ -36,26 +36,19 @@ export type Address = {
     isDefault: boolean
 }
 
-/** 新增/修改地址的表单入参（业务形状，receiver 而非 receiverName） */
-export type AddressInput = {
-    receiver: string
-    phone: string
-    regionCode: string
-    province: string
-    city: string
-    district: string
-    detail: string
-    label?: string
-    isDefault?: boolean
-}
+/** 新增/修改地址的表单入参（业务形状，receiver 而非 receiverName；isDefault 可缺省） */
+export type AddressInput = Omit<Address, "id" | "isDefault"> & { isDefault?: boolean }
 
-/** 智能粘贴解析结果（wire → 业务形状，缺失字段为 undefined） */
-export type AddressParse = {
-    receiver?: string
-    phone?: string
-    regionCode?: string
-    province?: string
-    city?: string
-    district?: string
-    detail?: string
-}
+/** 智能粘贴解析结果（缺失字段为 undefined） */
+export type AddressParse = Partial<
+    Pick<Address, "receiver" | "phone" | "regionCode" | "province" | "city" | "district" | "detail">
+>
+
+/** 内置地址标签 code → 展示名（与后端 Address.LABEL_* 对齐）：表单选项与列表展示共用的单一来源 */
+export const ADDRESS_LABELS = {
+    HOME: "家",
+    WORK: "公司",
+    SCHOOL: "学校",
+    PARENTS: "父母家",
+    FRIEND: "朋友家",
+} as const

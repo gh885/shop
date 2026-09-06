@@ -93,7 +93,7 @@ export function Toolbar({
                 <div className="flex items-center gap-2">
                     <Checkbox
                         checked={allSelected}
-                        onCheckedChange={(checked) => onToggleSelectAll(checked === true)}
+                        onCheckedChange={(checked) => onToggleSelectAll(checked)}
                         aria-label="全选"
                     />
                     <span className="text-sm text-muted-foreground">

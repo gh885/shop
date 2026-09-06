@@ -1,12 +1,8 @@
-import { useEffect, useReducer, useRef, useState } from "react"
-
-import { ProductsAdminApi, type SkuUpdateItem } from "@shop/api/sdk"
+import { ProductsAdminApi, type ProductStatus, type SkuUpdateItem } from "@shop/api/sdk"
 
 import { applyProductSpecs, attrTemplate, publishProduct, updateProductSkus } from "#/products/data"
-import { notify } from "#/shared/lib/toast"
+import { useEffect, useReducer, useRef, useState } from "react"
 
-/** 编辑态商品状态：判断「能否切类目 / 规格是否冻结」，undefined 表示新建（无真实商品态）。 */
-export type DraftProductStatus = "DRAFT" | "WAREHOUSE" | "PUBLISHED"
 import {
     buildSkuRowsFromSelections,
     mergeLocalPricedRows,
@@ -17,13 +13,33 @@ import {
     type SpecSelections,
 } from "./product-form-state"
 import type { CategoryAttrTemplateNode } from "../../data"
+import { notify } from "@shop/app-kit"
 
-/** 编辑回显：basic 表单字段（回填 detail.product 的基本信息，供调用方 form.reset 灌值） */
-export interface HydratedBasic {
-    images: string[]
-    name: string
-    subtitle: string
-    detailImages: string[]
+/** 编辑态商品状态（= SDK ProductStatus）：判断「能否切类目 / 规格是否冻结」，undefined 表示新建（无真实商品态）。 */
+export type DraftProductStatus = ProductStatus
+
+/** 编辑回显：basic 表单字段（形状 = ProductBasicForm 单一来源；回填 detail.product 的基本信息，供调用方 form.reset 灌值） */
+export type HydratedBasic = ProductBasicForm
+
+/** 本 hook 主动拒绝的业务错误：形状对齐 ApiError（调用方 toApiError / notify.fromError 直接读 detail） */
+class BusinessError {
+    readonly status = 0
+    readonly detail: string
+    constructor(detail: string) {
+        this.detail = detail
+    }
+}
+
+/** basic 表单值 → UpdateProductRequest 公共字段（create 与 update 两个入口共用一份拼装） */
+function toBasicPayload(categoryId: string, basic: ProductBasicForm) {
+    return {
+        categoryId,
+        name: basic.name || "",
+        subtitle: basic.subtitle || undefined,
+        mainImage: basic.images[0] || undefined,
+        images: basic.images,
+        detailImages: basic.detailImages,
+    }
 }
 
 /** 本 hook 受控值快照（basic 由调用方 useAppForm 持有，不入此 reducer） */
@@ -135,19 +151,12 @@ export function useProductDraft({
     // ---- 建档（幂等）：只在保存/提交时创建。无 shop/category 则跳过 ----
     async function ensureDraft(basic: ProductBasicForm): Promise<string> {
         if (productRef.current) return productRef.current
-        if (!shopId || !categoryId) throw { status: 0, detail: "请先选择店铺和类目" }
+        if (!shopId || !categoryId) throw new BusinessError("请先选择店铺和类目")
         setCreating(true)
         // 不用 try/finally（React Compiler 暂不支持 finally 块）：成功/失败路径各自复位 creating
         try {
             const product = await ProductsAdminApi.createProduct({
-                body: {
-                    categoryId,
-                    name: basic.name || "",
-                    subtitle: basic.subtitle || undefined,
-                    mainImage: basic.images[0] || undefined,
-                    images: basic.images,
-                    detailImages: basic.detailImages,
-                },
+                body: toBasicPayload(categoryId, basic),
             })
             productRef.current = product.id
             createdThisSessionRef.current = true
@@ -171,12 +180,13 @@ export function useProductDraft({
                 const detail = await ProductsAdminApi.getShopProductDetail({
                     path: { id: productId },
                 })
+                // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
                 if (cancelled) return
                 dispatch({
                     type: "hydrate",
                     selections: detail.product.specs.map((s) => ({
                         attrId: s.attrId,
-                        valueIds: (s.values ?? []).map((v) => v.valueId),
+                        valueIds: s.values.map((v) => v.valueId),
                         customValues: [],
                     })),
                     skuRows: detail.skus.map(rowFromSku),
@@ -190,6 +200,7 @@ export function useProductDraft({
                 setProductStatus(detail.product.status)
                 setHydrated(true)
             } catch {
+                // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
                 if (cancelled) return
                 notify.error("商品信息加载失败，请刷新重试")
                 setHydrated(true)
@@ -245,9 +256,11 @@ export function useProductDraft({
         void (async () => {
             try {
                 const rows = await reconcileSpecSkus(id, selections, () => skuRowsRef.current)
+                // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
                 if (cancelled) return
                 dispatch({ type: "setSkuRows", rows })
             } catch {
+                // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
                 if (cancelled) return
                 notify.error("生成商品规格失败，请重试")
             }
@@ -269,7 +282,7 @@ export function useProductDraft({
         try {
             if (!categoryId) {
                 setSubmitting(false)
-                return Promise.reject({ status: 0, detail: "请先选择类目" })
+                return Promise.reject(new BusinessError("请先选择类目"))
             }
             // 1. 建档（首次才 POST；编辑态复用）——拿到可落库的 productId（草稿/提交都需先有商品）
             const id = await ensureDraft(basic)
@@ -277,14 +290,7 @@ export function useProductDraft({
             // 2. 落 basic（标题/图片/卖点）——草稿与提交都存
             await ProductsAdminApi.updateProduct({
                 path: { id },
-                body: {
-                    categoryId,
-                    name: basic.name || "",
-                    subtitle: basic.subtitle || undefined,
-                    mainImage: basic.images[0] || undefined,
-                    images: basic.images,
-                    detailImages: basic.detailImages,
-                },
+                body: toBasicPayload(categoryId, basic),
             })
             // 3. 落 specs 拿真实 skuId（无选值→单规格隐藏 SKU；有选值→对账生成网格；编辑态幂等）
             //    草稿与提交都做：把当前已配置的规格/组合持久化下来，保证下次进来能完整续编。
@@ -308,10 +314,7 @@ export function useProductDraft({
                 const unPriced = skuRowsRef.current.filter((r) => !r.priceText.trim())
                 if (unPriced.length > 0) {
                     setSubmitting(false)
-                    return Promise.reject({
-                        status: 0,
-                        detail: "还有 SKU 未设置价格，请补全后再提交",
-                    })
+                    return Promise.reject(new BusinessError("还有 SKU 未设置价格，请补全后再提交"))
                 }
             }
             // 5. 只回传「已设价」的 SKU（此时已带真实 skuId）；空价 SKU 不发（草稿无门槛的关键：

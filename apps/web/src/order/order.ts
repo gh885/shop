@@ -1,4 +1,4 @@
-import type { Money } from "@shop/api"
+import type { OrderDetailResponse, OrderItemResponse, OrderListItemResponse } from "@shop/api/sdk"
 
 import { toStatusFromWire } from "#/shared/order-status"
 import type { Order, OrderDetail, OrderItem } from "./model"
@@ -11,27 +11,16 @@ import type { Order, OrderDetail, OrderItem } from "./model"
  *   - required 字段：契约保证必有，mapping 不再兜底（去掉 ?? "" / ?? 0）。
  *   - nullable 字段：契约明确可空，如实透传 null，由 UI 层处理「无」的展示（不再 ?? "" 造假）。
  * 金额一律 Money，SDK 的 Money 现已 required 且非 null， Money 直接透传无需投影。
+ * 入参直接用 SDK 生成的 DTO 类型（行项形状单一事实来源在 types.gen，不手抄）。
  */
 
 // ---------- 状态映射（后端枚举大写 → 前端领域枚举小写，双向） ----------
 // 状态机唯一真相在 #/shared/order-status（toStatusFromWire / statusToWire）
 
-/** wire → 领域：后端状态归一成前端枚举（真实语义投影，保留） */
-const toStatus = toStatusFromWire
-
 export { statusToWire } from "#/shared/order-status"
 
 /** 行项 wire → 业务：快照字段归一 */
-function toOrderItem(dto: {
-    productId: string
-    skuId: string
-    name: string
-    image: string | null
-    price: Money
-    originalPrice: Money
-    quantity: number
-    amount: Money
-}): OrderItem {
+function toOrderItem(dto: OrderItemResponse): OrderItem {
     return {
         productId: dto.productId,
         skuId: dto.skuId,
@@ -45,31 +34,12 @@ function toOrderItem(dto: {
 }
 
 /** 列表项 wire → 业务：列表项已内嵌行项目，金额三件套直接透传 */
-export function toOrder(dto: {
-    id: string
-    orderNo: string
-    status: string
-    shopId: string
-    shopName: string | null
-    payAmount: Money
-    payExpireAt: string
-    createdAt: string
-    items: Array<{
-        productId: string
-        skuId: string
-        name: string
-        image: string | null
-        price: Money
-        originalPrice: Money
-        quantity: number
-        amount: Money
-    }>
-}): Order {
+export function toOrder(dto: OrderListItemResponse): Order {
     return {
         id: dto.id,
         orderNo: dto.orderNo,
         createdAt: dto.createdAt,
-        status: toStatus(dto.status),
+        status: toStatusFromWire(dto.status),
         payExpireAt: dto.payExpireAt,
         shopId: dto.shopId,
         shopName: dto.shopName,
@@ -81,43 +51,7 @@ export function toOrder(dto: {
 }
 
 /** 详情 wire → 业务：在列表形状之上扩展详情字段（收货快照、物流、时间戳、可执行动作），可空如实透传 */
-export function toOrderDetail(dto: {
-    id: string
-    orderNo: string
-    status: string
-    shopId: string
-    shopName: string | null
-    availableActions: Array<string>
-    itemAmount: Money
-    shippingFee: Money
-    payAmount: Money
-    buyerMessage: string | null
-    receiverName: string
-    receiverPhone: string
-    receiverProvince: string
-    receiverCity: string
-    receiverDistrict: string
-    receiverDetail: string
-    logisticsCompany: string | null
-    trackingNo: string | null
-    payExpireAt: string
-    paidAt: string | null
-    shippedAt: string | null
-    completedAt: string | null
-    cancelledAt: string | null
-    cancelReason: string | null
-    createdAt: string
-    items: Array<{
-        productId: string
-        skuId: string
-        name: string
-        image: string | null
-        price: Money
-        originalPrice: Money
-        quantity: number
-        amount: Money
-    }>
-}): OrderDetail {
+export function toOrderDetail(dto: OrderDetailResponse): OrderDetail {
     return {
         ...toOrder(dto),
         availableActions: dto.availableActions,

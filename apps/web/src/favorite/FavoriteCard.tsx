@@ -3,6 +3,8 @@ import { Check } from "lucide-react"
 
 import { Item, ItemContent, ItemDescription, ItemHeader, ItemTitle } from "@shop/ui-web"
 
+import { ProductImage } from "#/shared/ui/ProductImage"
+
 import { collectText, type FavoriteItem } from "./favorite"
 
 /**
@@ -38,7 +40,7 @@ export function FavoriteCard({
             onToggleSelect?.(favorite.productId)
             return
         }
-        navigate({ to: `/products/${favorite.productId}` })
+        void navigate({ to: `/products/${favorite.productId}` })
     }
 
     return (
@@ -55,18 +57,10 @@ export function FavoriteCard({
                     <Item variant="outline">
                         <ItemHeader>
                             <div className="relative">
-                                {favorite.image ? (
-                                    <img
-                                        src={favorite.image}
-                                        alt={favorite.title}
-                                        loading="lazy"
-                                        className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-                                    />
-                                ) : (
-                                    <div className="flex aspect-square w-full items-center justify-center bg-muted text-xs text-muted-foreground">
-                                        暂无图片
-                                    </div>
-                                )}
+                                <ProductImage
+                                    src={favorite.image}
+                                    alt={favorite.title}
+                                />
                                 {batchMode && selected && (
                                     <span className="absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-primary text-white">
                                         <Check className="size-4" />

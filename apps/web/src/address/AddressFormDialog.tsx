@@ -1,25 +1,25 @@
 import { useEffect, useState } from "react"
 import { z } from "zod"
 
+import { notify } from "@shop/app-kit"
 import {
     Button,
+    cn,
     Dialog,
     DialogContent,
     DialogTitle,
     Field,
+    firstFieldError,
     Input,
     InputGroup,
     InputGroupAddon,
     InputGroupTextarea,
     Spinner,
-    cn,
-    firstFieldError,
     useAppForm,
 } from "@shop/ui-web"
 import RegionPicker, { type RegionNode } from "#/shared/ui/RegionPicker"
-import { notify } from "#/shared/lib/toast"
 
-import type { Address, AddressInput } from "./address"
+import { ADDRESS_LABELS, type Address, type AddressInput } from "./address"
 import { parseAddressText, useCreateAddress, useUpdateAddress } from "./queries"
 import { findPath, loadChildren } from "./regions"
 
@@ -36,18 +36,12 @@ const AddressInputSchema = z.object({
     isDefault: z.boolean().optional(),
 })
 
-/** 内置标签选项（与后端 Address.LABEL_* 对齐） */
-const LABELS = [
-    { value: "HOME", label: "家" },
-    { value: "WORK", label: "公司" },
-    { value: "SCHOOL", label: "学校" },
-    { value: "PARENTS", label: "父母家" },
-    { value: "FRIEND", label: "朋友家" },
-] as const
+/** 内置标签选项（code/展示名单一来源在 ./address 的 ADDRESS_LABELS） */
+const LABELS = Object.entries(ADDRESS_LABELS).map(([value, label]) => ({ value, label }))
 
 const CUSTOM_LABEL_MAX = 4
 
-function toDefaults(a?: Address | undefined): AddressInput {
+function toDefaults(a?: Address): AddressInput {
     return {
         receiver: a?.receiver ?? "",
         phone: a?.phone ?? "",
@@ -65,7 +59,7 @@ export interface AddressFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     /** 传入则为编辑模式；undefined/未传为新增 */
-    editing?: Address | undefined
+    editing?: Address
 }
 
 /** 新增/修改收货地址表单弹窗 */
@@ -174,7 +168,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                     className="mt-4 flex flex-col gap-5"
                     onSubmit={(e) => {
                         e.preventDefault()
-                        form.handleSubmit()
+                        void form.handleSubmit()
                     }}
                 >
                     {/* 智能粘贴：左标签 + 右侧圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}

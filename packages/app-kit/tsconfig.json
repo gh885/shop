@@ -1,0 +1,10 @@
+{
+    "extends": "@shop/config/tsconfig.app.json",
+    "compilerOptions": {
+        "lib": ["ES2023", "DOM"],
+        "paths": {
+            "src/*": ["../ui-web/src/*"]
+        }
+    },
+    "include": ["src"]
+}

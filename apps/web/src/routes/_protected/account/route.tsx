@@ -76,12 +76,12 @@ function AccountLayout() {
         <div className="flex flex-1 flex-col">
             <AccountHeader />
 
-            <div className="mx-auto flex w-full max-w-(--container-page) flex-1 gap-6 px-6 py-8">
+            <div className="mx-auto flex w-full max-w-page flex-1 gap-6 px-6 py-8">
                 <div className="shrink-0 self-start">
                     <SidebarProvider className="contents">
                         <nav
                             aria-label="导航菜单"
-                            className="w-[166px] bg-sidebar text-sidebar-foreground"
+                            className="w-41.5 bg-sidebar text-sidebar-foreground"
                         >
                             <SidebarMenu className="gap-0.5 p-2">
                                 <MenuTree

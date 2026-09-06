@@ -2,8 +2,15 @@ import { toApiError } from "@shop/api"
 import { toast } from "@shop/ui-web"
 
 /**
- * 全局 toast 封装（基于 @shop/ui-web 的 BaseUI toast 单例）。
- * 统一审核操作的成功/失败反馈，错误归一化为用户可读文案。
+ * 全局 toast 封装（基于 @shop/ui-web 的 BaseUI toast 单例，三个 SPA 共用）。
+ *
+ * 这是「应用层胶水」：同时知道后端契约（ApiError）与 UI（toast）——
+ * 「后端 detail 优先展示、网络错误（status 0）用兜底文案」是产品决策，
+ * 不属于 @shop/ui-web（纯 UI，不知道契约）也不属于 @shop/api（不知道展示）。
+ * 所有写操作（加购、下单、上下架、审核等）的反馈都走这里，避免散落各自调 toast.add。
+ *
+ * 注意：只在客户端事件回调里调用（mutation onSuccess/onError 等），
+ * 不要在组件渲染期或 SSR 阶段调用。
  */
 
 export const notify = {

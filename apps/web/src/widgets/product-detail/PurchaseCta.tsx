@@ -1,13 +1,13 @@
-import { useNavigate } from "@tanstack/react-router"
 import { Heart, ShoppingCart } from "lucide-react"
 
-import { Button, Spinner } from "@shop/ui-web"
+import { useNavigate } from "@tanstack/react-router"
 
 import { useAddToCart } from "#/cart"
 import { useFavoriteStatus, useToggleFavorite } from "#/favorite"
 import { findMatchingSku, isSelectionComplete, type SkuSelection } from "#/product"
 import type { ProductDetail } from "#/product"
 import { useIsLoggedIn, openLoginDialog } from "#/shared/api/auth"
+import { Button, Spinner } from "@shop/ui-web"
 
 /**
  * 商品动作卡：加购 / 立即购买 / 收藏。
@@ -32,12 +32,15 @@ export function PurchaseCta({
     const complete = isSelectionComplete(detail, selection)
     const matchedSku = findMatchingSku(detail.skus, selection)
 
-    /** 加购：未登录先拉起登录框；登录后按选中 SKU + 数量加购，成功后跳转购物车 */
+    /** 未登录先拉起登录框；返回是否已登录（调用方据此决定是否继续动作） */
+    function ensureLogin(): boolean {
+        if (!isLoggedIn) openLoginDialog()
+        return isLoggedIn
+    }
+
+    /** 加购：登录后按选中 SKU + 数量加购，成功后跳转购物车 */
     function handleAdd() {
-        if (!isLoggedIn) {
-            openLoginDialog()
-            return
-        }
+        if (!ensureLogin()) return
         if (!matchedSku) return
         addToCart.mutate(
             { skuId: matchedSku.id, quantity },
@@ -45,12 +48,9 @@ export function PurchaseCta({
         )
     }
 
-    /** 立即购买：未登录先拉起登录框；登录后按选中 SKU + 数量跳结算（buySkuId 路径），送达页由结算页承接 */
+    /** 立即购买：登录后按选中 SKU + 数量跳结算（buySkuId 路径），送达页由结算页承接 */
     function handleBuyNow() {
-        if (!isLoggedIn) {
-            openLoginDialog()
-            return
-        }
+        if (!ensureLogin()) return
         if (!matchedSku) return
         void navigate({
             to: "/checkout",
@@ -58,12 +58,9 @@ export function PurchaseCta({
         })
     }
 
-    /** 收藏开关：未登录先拉起登录框；登录后按点击前状态 toggle（判定 add/remove 的方向） */
+    /** 收藏开关：登录后按点击前状态 toggle（判定 add/remove 的方向） */
     function handleFavorite() {
-        if (!isLoggedIn) {
-            openLoginDialog()
-            return
-        }
+        if (!ensureLogin()) return
         toggleFavorite.mutate(favorited)
     }
 

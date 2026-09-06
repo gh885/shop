@@ -16,7 +16,7 @@ import {
     HomeHeader,
     RecommendBar,
 } from "#/widgets/home"
-import { ProductCard, type Product, type ProductCardData } from "#/product"
+import { ProductCard, toProductCardData } from "#/product"
 
 export const Route = createFileRoute("/")({
     /**
@@ -47,10 +47,6 @@ export const Route = createFileRoute("/")({
         links: [{ rel: "canonical", href: "https://shop.example.com/" }],
     }),
 })
-
-function toProductCardData(p: Product): ProductCardData {
-    return { id: p.id, image: p.image, title: p.title, price: p.priceMin?.amount ?? 0 }
-}
 
 /** 首页：五个层级区块，数据各自经 use-home 的 hooks 取（loader 已预热缓存） */
 function Home() {

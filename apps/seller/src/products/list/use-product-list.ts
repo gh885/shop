@@ -1,22 +1,21 @@
-import { useState } from "react"
+import { productKeys, productListOptions } from "#/products/queries"
+import type { ProductListSearch } from "#/products/queries"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type NavigateOptions } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import type { ProductResponse } from "@shop/api/sdk"
 import { ProductsAdminApi } from "@shop/api/sdk"
 
-import type { ProductStatusFilter } from "#/products/constants"
 import type { ProductListFilter } from "#/products/list/filter"
-import { productKeys, productListOptions } from "#/products/queries"
-import type { ProductListSearch } from "#/products/queries"
-import { notify } from "#/shared/lib/toast"
+
 import { useCurrentShop } from "#/shared/lib/shop"
+import { useState } from "react"
+import { notify } from "@shop/app-kit"
 
 export type { ProductListSearch } from "#/products/queries"
 
-type NavigateFn = (opts: NavigateOptions) => Promise<unknown> | void
-
-export function useProductList(search: ProductListSearch, navigate: NavigateFn) {
+export function useProductList(search: ProductListSearch) {
     const shop = useCurrentShop()
+    const navigate = useNavigate()
     const queryClient = useQueryClient()
     const [busyId, setBusyId] = useState<string | undefined>()
 
@@ -35,7 +34,7 @@ export function useProductList(search: ProductListSearch, navigate: NavigateFn) 
                 size: search.size,
                 ...next,
                 ...(next.status !== undefined || next.keyword !== undefined ? { page: 1 } : {}),
-            } as ProductListSearch,
+            },
         })
     }
 
@@ -85,7 +84,7 @@ export function useProductList(search: ProductListSearch, navigate: NavigateFn) 
     }
 
     const filterValue: ProductListFilter = {
-        status: (search.status ?? "PUBLISHED") as ProductStatusFilter,
+        status: search.status ?? "PUBLISHED",
         title: search.keyword ?? "",
     }
 

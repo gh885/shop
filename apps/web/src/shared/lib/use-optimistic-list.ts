@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { notify } from "./toast"
+import { notify } from "@shop/app-kit"
 
 interface OptimisticListMutationOptions<TData, TVars> {
     /** 列表缓存 key（如 ["cart-items"]） */
