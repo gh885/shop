@@ -35,7 +35,7 @@ export const zUpdateMemberPermissionsRequest = z.object({
 });
 
 export const zParamItem = z.object({
-    attrId: z.uuid().optional(),
+    attrId: z.uuid().nullable(),
     name: z.string().min(0).max(32),
     value: z.string().min(0).max(64)
 });
@@ -59,7 +59,7 @@ export const zProductStatus = z.enum([
 export const zSpecValue = z.object({
     valueId: z.uuid(),
     value: z.string(),
-    image: z.string().optional()
+    image: z.string().nullable()
 });
 
 export const zSpecItem = z.object({

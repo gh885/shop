@@ -37,7 +37,7 @@ export type UpdateMemberPermissionsRequest = {
 };
 
 export type ParamItem = {
-    attrId?: string;
+    attrId: string | null;
     name: string;
     value: string;
 };
@@ -89,7 +89,7 @@ export type SpecItem = {
 export type SpecValue = {
     valueId: string;
     value: string;
-    image?: string;
+    image: string | null;
 };
 
 export type SpecSelectionRequest = {

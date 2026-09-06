@@ -49,7 +49,7 @@ function makeDetail(
         specs: specs.map((s) => ({
             attrId: `a-${s.name}`,
             name: s.name,
-            values: s.values.map((v) => ({ valueId: `v-${v}`, value: v })),
+            values: s.values.map((v) => ({ valueId: `v-${v}`, value: v, image: null })),
         })),
         params: [],
         skus,

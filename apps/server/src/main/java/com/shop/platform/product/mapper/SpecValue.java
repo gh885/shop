@@ -11,4 +11,4 @@ import java.util.UUID;
 public record SpecValue(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID valueId,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String value,
-        @Schema String image) {}
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String image) {}
