@@ -14,7 +14,7 @@ import {
 } from "@shop/ui-web"
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
-import type { ParamItem } from "#/product"
+import type { ParamItem } from "@shop/api/sdk"
 
 /**
  * 详情页左侧：缩略图列 + 主图轮播 + 底部「图集 / 参数」Tabs。

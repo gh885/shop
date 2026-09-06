@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query"
 
 import { Empty, EmptyHeader, EmptyTitle, Skeleton } from "@shop/ui-web"
 
-import { ProductCard, toProductCardData, type Product, type ProductDetail } from "#/product"
+import { ProductCard } from "../ProductCard"
+import { toProductCardData, type Product, type ProductDetail } from "../product"
 
 import { DetailSection } from "./DetailSection"
 import { alsoViewedOptions, shopProductsOptions } from "./queries"

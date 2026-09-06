@@ -1,8 +1,8 @@
 import { useEffect } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { useMe } from "#/user"
-import { ME_QUERY_KEY } from "#/user/queries"
+import { useMe } from "#/account"
+import { ME_QUERY_KEY } from "#/account/queries"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { AuthApi } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit"

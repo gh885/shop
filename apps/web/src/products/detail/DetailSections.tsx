@@ -13,7 +13,7 @@ import {
     Sticky,
 } from "@shop/ui-web"
 
-import type { ProductDetail } from "#/product"
+import type { ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
 
 import { DetailSection } from "./DetailSection"

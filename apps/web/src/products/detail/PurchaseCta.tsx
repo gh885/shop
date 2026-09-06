@@ -4,8 +4,8 @@ import { useNavigate } from "@tanstack/react-router"
 
 import { useAddToCart } from "#/cart"
 import { useFavoriteStatus, useToggleFavorite } from "#/favorite"
-import { findMatchingSku, isSelectionComplete, type SkuSelection } from "#/product"
-import type { ProductDetail } from "#/product"
+import { findMatchingSku, isSelectionComplete, type SkuSelection } from "../product"
+import type { ProductDetail } from "../product"
 import { useIsLoggedIn, openLoginDialog } from "#/shared/api/auth"
 import { Button, Spinner } from "@shop/ui-web"
 

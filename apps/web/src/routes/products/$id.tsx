@@ -2,7 +2,7 @@ import { fenToYuan, isContractViolation, toApiError } from "@shop/api"
 import { useState } from "react"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 
-import type { ProductDetail } from "#/product"
+import type { ProductDetail } from "#/products"
 import {
     AlsoViewedSection,
     DetailHeader,
@@ -15,7 +15,7 @@ import {
     ShopBar,
     ShopRecommendSection,
     useSkuSelection,
-} from "#/widgets/product-detail"
+} from "#/products/detail"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 
 export const Route = createFileRoute("/products/$id")({

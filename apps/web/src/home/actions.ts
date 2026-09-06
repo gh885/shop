@@ -9,8 +9,8 @@ import {
     type RecommendTab,
 } from "./model"
 
-import type { Product } from "#/product"
-import { fetchProducts } from "#/product"
+import type { Product } from "#/products"
+import { fetchProducts } from "#/products"
 
 /**
  * Home 数据层读写命令（纯逻辑，不含 React Query / React）。

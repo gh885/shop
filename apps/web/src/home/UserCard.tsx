@@ -4,7 +4,7 @@ import { Archive, Clock, Heart, MapPin, Star } from "lucide-react"
 import { Avatar, AvatarFallback, Button } from "@shop/ui-web"
 
 import { useLoginDialogOpen, useAuthStatus } from "#/shared/api/auth"
-import { useMe } from "#/user"
+import { useMe } from "#/account"
 import { useCartCount } from "#/cart"
 
 /**

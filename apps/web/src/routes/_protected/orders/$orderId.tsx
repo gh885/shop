@@ -2,7 +2,7 @@ import { OrderProgress, OrderShopSection, OrderStatusSection, OrderSummaryCard }
 import { createFileRoute, notFound } from "@tanstack/react-router"
 import { useState } from "react"
 
-import { AccountHeader } from "#/widgets/account"
+import { AccountHeader } from "#/account"
 import { useOrderDetail, useOrderActions } from "#/order"
 import { notify } from "@shop/app-kit"
 import {

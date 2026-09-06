@@ -2,7 +2,7 @@ import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
 import { Separator, ToggleGroup, ToggleGroupItem } from "@shop/ui-web"
 
-import type { ProductDetail } from "#/product"
+import type { ProductDetail } from "../product"
 import {
     derivePriceView,
     deriveStockText,
@@ -11,7 +11,7 @@ import {
     isSelectionComplete,
     specValueImage,
     type SkuSelection,
-} from "#/product"
+} from "../product"
 
 /**
  * 详情页右侧购买区：标题 → 价格 → 服务承诺 → 规格选择 → 数量 → 加购/立即购买（对齐参考图）。
@@ -77,8 +77,9 @@ export function PurchasePanel({
             </div>
 
             {/* 规格选择：有 SKU 专属图的维度升级为图片卡，其余文字丸（对齐参考图 分册名/套餐类型） */}
-            {detail.specs.map((spec) =>
-                isImageSpecGroup(detail.skus, spec) ? (
+            {detail.specs.map((spec) => {
+                const selected = selection[spec.name]
+                return isImageSpecGroup(detail.skus, spec) ? (
                     <div key={spec.name}>
                         <p className="mb-2 text-sm text-muted-foreground">{spec.name}</p>
                         <div className="flex flex-wrap gap-2.5">
@@ -102,7 +103,7 @@ export function PurchasePanel({
                     <div key={spec.name}>
                         <p className="mb-2 text-sm text-muted-foreground">{spec.name}</p>
                         <ToggleGroup
-                            value={selection[spec.name] ? [selection[spec.name]] : []}
+                            value={selected === undefined ? [] : [selected]}
                             onValueChange={(v) => {
                                 // 不允许反选为空：SKU 规格必须选中一个值
                                 if (v[0] !== undefined) select(spec.name, v[0])
@@ -124,8 +125,8 @@ export function PurchasePanel({
                             })}
                         </ToggleGroup>
                     </div>
-                ),
-            )}
+                )
+            })}
 
             {/* 数量步进：分隔线与上方信息区隔开（对齐参考图） */}
             <Separator />

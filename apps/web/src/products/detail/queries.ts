@@ -2,7 +2,7 @@ import { queryOptions, useQuery } from "@tanstack/react-query"
 import { PublicShopsApi } from "@shop/api/sdk"
 import type { PublicShopResponse } from "@shop/api/sdk"
 
-import { fetchProductDetail, fetchProducts } from "#/product"
+import { fetchProductDetail, fetchProducts } from "../data"
 
 /**
  * 商品详情数据 hooks：route loader 用 queryOptions 预热，组件 useQuery 读同一缓存

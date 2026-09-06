@@ -10,7 +10,7 @@ import {
     SidebarMenuItem,
     SidebarProvider,
 } from "@shop/ui-web"
-import { AccountHeader } from "#/widgets/account"
+import { AccountHeader } from "#/account"
 
 /**
  * 个人中心侧边栏菜单（数据驱动，路径驱动）。

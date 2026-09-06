@@ -175,7 +175,7 @@ describe("selectableIdsOf", () => {
         const [group] = groupByShop(
             items(makeDto({ id: "a" }), makeDto({ id: "b", available: false })),
         )
-        expect(selectableIdsOf(group)).toEqual(["a"])
+        expect(selectableIdsOf(group!)).toEqual(["a"]) // 分组结构由 groupByShop 测试保证
     })
 })
 

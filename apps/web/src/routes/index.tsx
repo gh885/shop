@@ -15,8 +15,8 @@ import {
     HomeBannerItem,
     HomeHeader,
     RecommendBar,
-} from "#/widgets/home"
-import { ProductCard, toProductCardData } from "#/product"
+} from "#/home"
+import { ProductCard, toProductCardData } from "#/products"
 
 export const Route = createFileRoute("/")({
     /**

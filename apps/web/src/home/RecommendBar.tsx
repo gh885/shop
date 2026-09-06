@@ -30,7 +30,7 @@ export function RecommendBar() {
             let count = 0
             for (let i = 0; i < children.length; i++) {
                 if (i > 0) used += 16 // gap-4
-                used += children[i].offsetWidth
+                used += children[i]?.offsetWidth ?? 0
                 if (used > containerWidth) break
                 count++
             }
