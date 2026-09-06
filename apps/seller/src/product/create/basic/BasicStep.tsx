@@ -1,4 +1,4 @@
-import { uploadProductImage } from "#/products/data"
+import { uploadProductImage } from "#/product/data"
 import type { ProductStatus } from "@shop/api/sdk"
 
 import type { SpecSelection } from "../../data"

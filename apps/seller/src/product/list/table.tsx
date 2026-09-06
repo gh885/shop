@@ -32,7 +32,7 @@ import type { ProductResponse } from "@shop/api/sdk"
 
 import { imgUrl } from "#/shared/lib/image"
 import { paged } from "#/shared/lib/pagination"
-import { PRODUCT_STATUS_META } from "#/products/constants"
+import { PRODUCT_STATUS_META } from "#/product/constants"
 
 interface ProductTableProps {
     /** 当前页商品行（已含后端聚合好的库存/销量） */

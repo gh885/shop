@@ -2,9 +2,9 @@ import { Store, Trash2, UserPlus } from "lucide-react"
 
 import { toApiError } from "@shop/api"
 
-import { useCurrentShop, shopKeys } from "#/shared/lib/shop"
+import { useCurrentShop, shopKeys } from "#/shop"
 import { useMe } from "#/shared/lib/me"
-import { shopMembers, inviteMember, removeMember } from "#/shared/lib/shop-data"
+import { shopMembers, inviteMember, removeMember } from "#/shop/data"
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"

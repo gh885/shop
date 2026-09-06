@@ -1,6 +1,6 @@
 import { ProductsAdminApi, type ProductStatus, type SkuUpdateItem } from "@shop/api/sdk"
 
-import { applyProductSpecs, attrTemplate, publishProduct, updateProductSkus } from "#/products/data"
+import { applyProductSpecs, attrTemplate, publishProduct, updateProductSkus } from "#/product/data"
 import { useEffect, useReducer, useRef, useState } from "react"
 
 import {

@@ -20,10 +20,10 @@ import {
     EmptyTitle,
 } from "@shop/ui-web"
 
-import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/products"
-import { useProductDraft, type DraftProductStatus } from "#/products/create/basic/use-product-draft"
+import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
+import { useProductDraft, type DraftProductStatus } from "#/product/create/basic/use-product-draft"
 import { notify } from "@shop/app-kit"
-import { useCurrentShop } from "#/shared/lib/shop"
+import { useCurrentShop } from "#/shop"
 
 interface BasicSearch {
     /** 已选末级类目 id（第一步确认后跳转带入，必填） */

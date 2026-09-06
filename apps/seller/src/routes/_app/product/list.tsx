@@ -14,9 +14,9 @@ import { ProductStatus } from "@shop/api/sdk"
 import { toApiError } from "@shop/api"
 import { z } from "zod"
 
-import { ProductTable } from "#/products/list/table"
-import { FilterBar } from "#/products/list/filter"
-import { useProductList, type ProductListSearch } from "#/products/list/use-product-list"
+import { ProductTable } from "#/product/list/table"
+import { FilterBar } from "#/product/list/filter"
+import { useProductList, type ProductListSearch } from "#/product/list/use-product-list"
 
 // status 从生成的 ProductStatus 枚举派生（后端加状态时此处编译期跟进），脏值 catch 到默认 tab
 const listSearchSchema = z.object({

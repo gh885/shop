@@ -3,8 +3,8 @@ import { Store } from "lucide-react"
 
 import { Button, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
 
-import { CategoryStep } from "#/products"
-import { useCurrentShop } from "#/shared/lib/shop"
+import { CategoryStep } from "#/product"
+import { useCurrentShop } from "#/shop"
 
 interface CreateSearch {
     /** 已选末级类目 id：有值则进入第二步（填商品信息），空 = 第一步选类目 */

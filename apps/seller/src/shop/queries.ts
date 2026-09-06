@@ -3,11 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 
 import type { ShopResponse } from "@shop/api/sdk"
 
-import { myShops } from "./shop-data"
-import { useAuthStatus } from "./api"
-import { getStoredShopId, subscribe, syncResolvedShopId } from "./shop-store"
+import { myShops } from "./data"
+import { useAuthStatus } from "../shared/lib/api"
+import { getStoredShopId, subscribe, syncResolvedShopId } from "../shared/lib/shop-store"
 
-export { setCurrentShopId } from "./shop-store"
+export { setCurrentShopId } from "../shared/lib/shop-store"
 
 // ---------- shop 域 queryKey 工厂（与 products 域的 productKeys 同范式：前缀结构一眼可见，invalidate 不漏 key） ----------
 

@@ -1,17 +1,17 @@
-import { productKeys, productListOptions } from "#/products/queries"
-import type { ProductListSearch } from "#/products/queries"
+import { productKeys, productListOptions } from "#/product/queries"
+import type { ProductListSearch } from "#/product/queries"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { ProductResponse } from "@shop/api/sdk"
 import { ProductsAdminApi } from "@shop/api/sdk"
 
-import type { ProductListFilter } from "#/products/list/filter"
+import type { ProductListFilter } from "#/product/list/filter"
 
-import { useCurrentShop } from "#/shared/lib/shop"
+import { useCurrentShop } from "#/shop"
 import { useState } from "react"
 import { notify } from "@shop/app-kit"
 
-export type { ProductListSearch } from "#/products/queries"
+export type { ProductListSearch } from "#/product/queries"
 
 export function useProductList(search: ProductListSearch) {
     const shop = useCurrentShop()
