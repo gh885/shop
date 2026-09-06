@@ -28,11 +28,16 @@
     "devDependencies": {
         "@rolldown/plugin-babel": "catalog:",
         "@shop/config": "workspace:*",
+        "@shop/test-utils": "workspace:*",
         "@tanstack/router-cli": "catalog:",
+        "@testing-library/react": "catalog:",
+        "@testing-library/user-event": "catalog:",
         "@types/node": "catalog:",
         "@types/react": "catalog:",
         "@types/react-dom": "catalog:",
         "@vitejs/plugin-react": "catalog:",
+        "jsdom": "catalog:",
+        "msw": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:"
     }

@@ -120,6 +120,45 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - 用户信息：`useMe()`（`lib/me.ts`，TanStack Query 缓存，未登录不发请求）
 - 表单：用 `useAppForm`（`@shop/ui-web`，TanStack Form + Zod validators），不手写裸 state 表单
 
+## 前端测试（Vitest + Testing Library + MSW）
+
+```bash
+pnpm test        # 全量跑一次（vitest projects：apps/* + packages/*）
+pnpm test:watch  # watch 模式
+```
+
+### 分层与位置
+
+- 纯逻辑单测（cart/order-status/money 等 `*.test.ts`）；组件/集成测试走 jsdom + Testing Library（`*.test.tsx`）；server function 的真实行为交给 E2E（Playwright，未接入）
+- **测试文件与被测模块同目录、同名**（`xxx.ts` → `xxx.test.ts`），不建 `__tests__`/`test/` 用例目录；`src/test/` 只放跨模块测试装置（setup/render），共享 handler 与假数据进 `packages/test-utils`
+- vitest 显式导入（不开 globals）；route 文件保持薄，业务逻辑放独立模块才可单测
+
+### 怎么写
+
+- 一个测试只讲一件事：Given / When / Then，标题说**行为与后果**（含理由：`下架 ≠ 缺货`、`PAID → pending_shipment`），不用函数名当标题
+- 断言可观察后果（错误文案、弹窗关闭、请求体），不断言渲染次数/内部 state（React Compiler 自动 memo，渲染计数断言必碎）；形状断言用 `toMatchObject` 聚焦关心字段
+- 异步等确定性信号：`userEvent.setup()` + `findBy*/waitFor`，禁止 `sleep()` 凑时间
+- 夹具：测试文件内 `makeXxx(overrides)` 工厂（默认值 + 只暴露该测试关心的维度），不做跨文件共享的可变 fixture；契约级假数据（`makeAddress` 等）进 test-utils，且**必须过 SDK zod schema**（连 UUID 格式都校验）
+- 改 bug 先写复现测试再修
+
+### 网络与渲染约定
+
+- **只 mock HTTP 网络层（MSW），禁止 `vi.mock` 业务模块/内部函数**——mock 实现会让测试跟实现绑死
+- 默认 handler 集中在 `packages/test-utils`，按 openapi 契约 mock；用例内用 `server.use(http.xxx(...))` 局部覆盖并捕获请求体，断言「业务形状 → wire 形状」投影（如 receiver → receiverName）
+- 组件测试一律走 `renderWithProviders`（各 app `src/test/render.tsx`，挂独立 QueryClientProvider；需路由上下文只改这个文件），不裸用 `render`
+- 查询用可访问性语义：`getByRole` / `getByLabelText`，禁 className 查询；label 文本必须纯净（必填星号走伪元素，不进 textContent）
+
+### 什么测 / 什么不测
+
+- **必测**：换算/状态机等决策逻辑（含边界与兜底）、wire→领域投影映射、表单流与请求体、bug 回归
+- **不测**：纯类型、纯透传 re-export、zod schema 字段罗列（SDK 生成物自带校验）；快照测试一律不用
+- 心智标准：这个分支里若藏着一个错的映射/反的布尔/漏掉的兜底，测试能不能红？能红才写
+
+### 已知坑
+
+- MSW handler path 必须写 `*/user/...` 通配形式（裸 `/user/...` 按 jsdom origin 解析，匹配不上 SDK 打到 8080 的请求）
+- pre-push 跑 `pnpm test`；seller/admin 尚无用例，其 vitest 配置已开 `passWithNoTests`
+
 ## 开发规范
 
 - 提交遵循 Conventional Commits：`<type>(<scope>): <subject>`（scope 可选）
