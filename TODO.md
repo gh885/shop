@@ -6,7 +6,6 @@
 ## 进行中
 
 - [ ] 工作区未提交改动收尾（`git status` 里那批：toast 迁移 ui-web、`use-order-actions`、`ProductImage`、`format.ts`、seller/admin 页面改动）
-- [ ] App 目录结构迁移：先把约定落进 AGENTS.md（顶层 layout/routes/shared/{domain}、domain 内文件名即分层、依赖方向与 index.ts 公开入口、domain 目录名 = 路由顶层段），再把 `widgets/`、`features/` 并入 domain，统一 product/products 命名错位
 
 ## 近期要做
 
