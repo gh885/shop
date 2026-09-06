@@ -445,7 +445,7 @@ function FileUpload(props: FileUploadProps) {
                             store.dispatch({
                                 type: "SET_ERROR",
                                 file,
-                                error: error.message ?? "Upload failed",
+                                error: error.message || "Upload failed",
                             })
                         },
                     })
@@ -577,7 +577,7 @@ function FileUpload(props: FileUploadProps) {
 
                 if (propsRef.current.onUpload) {
                     requestAnimationFrame(() => {
-                        onFilesUpload(acceptedFiles)
+                        void onFilesUpload(acceptedFiles)
                     })
                 }
             }
@@ -774,9 +774,7 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
             event.preventDefault()
             store.dispatch({ type: "SET_DRAG_OVER", dragOver: false })
 
-            const items = event.clipboardData?.items
-            if (!items) return
-
+            const items = event.clipboardData.items
             const files: File[] = []
             for (let i = 0; i < items.length; i++) {
                 const item = items[i]
@@ -914,7 +912,7 @@ function FileUploadList(props: FileUploadListProps) {
             aria-orientation={orientation}
             data-orientation={orientation}
             data-slot="file-upload-list"
-            data-state={shouldRender ? "active" : "inactive"}
+            data-state="active"
             dir={context.dir}
             {...listProps}
             className={cn(

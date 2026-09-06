@@ -50,7 +50,7 @@ export function DataTableFacetedFilter<TData, TValue>({
             >
                 <PlusIcon className="size-3.5" />
                 {title}
-                {selectedValues?.size > 0 && (
+                {selectedValues.size > 0 && (
                     <>
                         <Separator
                             orientation="vertical"

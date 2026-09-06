@@ -117,7 +117,7 @@ function NavLink({
         return (
             <a
                 href={to}
-                {...(props as React.ComponentProps<"a">)}
+                {...props}
             >
                 {children}
             </a>
@@ -125,7 +125,7 @@ function NavLink({
     }
     return (
         <Link
-            to={to as never}
+            to={to}
             {...props}
         >
             {children}

@@ -49,7 +49,7 @@ export function toApiError(err: unknown): ApiError {
     ) {
         const e = err as ApiError
         return {
-            status: e.status ?? 0,
+            status: typeof e.status === "number" ? e.status : 0,
             detail: e.detail,
             code: e.code,
             requestId: e.requestId,

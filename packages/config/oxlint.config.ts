@@ -125,7 +125,14 @@ export default defineConfig({
         "unicorn/no-useless-undefined": "off",
     },
 
-    overrides: [],
+    overrides: [
+        {
+            // ImageUploadGrid 的空位瓦片是纯占位槽（无数据、无增删重排语义），
+            // 索引 key 是唯一合理选择，规则对该文件豁免
+            files: ["packages/ui-web/src/components/image-upload.tsx"],
+            rules: { "react/no-array-index-key": "off" },
+        },
+    ],
 
     // ignorePatterns 相对本配置文件目录解析，无法匹配 config 目录之外的真实项目路径
     // （sdk / generated / *.gen.ts / routeTree 等）。项目级忽略统一写根级 .eslintignore。

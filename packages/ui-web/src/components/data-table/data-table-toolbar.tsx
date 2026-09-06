@@ -36,7 +36,11 @@ export function DataTableToolbar<TData>({
                     (searchKey ? (
                         <Input
                             placeholder={searchPlaceholder}
-                            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+                            value={
+                                (table.getColumn(searchKey)?.getFilterValue() as
+                                    | string
+                                    | undefined) ?? ""
+                            }
                             onChange={(event) =>
                                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
                             }
@@ -45,7 +49,7 @@ export function DataTableToolbar<TData>({
                     ) : (
                         <Input
                             placeholder={searchPlaceholder}
-                            value={(table.getState().globalFilter as string) ?? ""}
+                            value={(table.getState().globalFilter as string | undefined) ?? ""}
                             onChange={(event) => table.setGlobalFilter(event.target.value)}
                             className="h-8 w-48"
                         />

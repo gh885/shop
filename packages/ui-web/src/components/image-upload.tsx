@@ -192,7 +192,7 @@ export interface ImageUploadGridProps extends Omit<
     "value" | "onChange" | "shape"
 > {
     /** 多图地址数组（受控）；顺序即展示顺序 */
-    value: string[]
+    value?: string[]
     onChange: (value: string[]) => void
     /** 最多可传数量，默认 5 */
     maxCount?: number

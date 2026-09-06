@@ -54,11 +54,15 @@ const flattenQuerySerializer = (query: Record<string, unknown>): string => {
             value.forEach((v) => push(key, v))
         } else if (typeof value === "object") {
             Object.entries(value as Record<string, unknown>).forEach(([k, v]) => push(k, v))
-        } else {
+        } else if (
+            typeof value === "string" ||
+            typeof value === "number" ||
+            typeof value === "boolean"
+        ) {
             search.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
         }
     }
-    for (const [k, v] of Object.entries(query ?? {})) push(k, v)
+    for (const [k, v] of Object.entries(query)) push(k, v)
     return search.join("&")
 }
 
