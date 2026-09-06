@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
-import { motion, useReducedMotion, type Variants } from "motion/react"
+// LazyMotion + m：按需加载动画特性（domAnimation 含 variants/whileInView），省约 30kb 全量 motion 包
+import { LazyMotion, domAnimation, m, useReducedMotion, type Variants } from "motion/react"
 
 import { buttonVariants, Card, CardContent } from "@shop/ui-web"
 
@@ -24,11 +25,13 @@ const staggerVariants: Variants = {
 
 function Home() {
     return (
-        <div>
-            <Hero />
-            <Categories />
-            <SellerBanner />
-        </div>
+        <LazyMotion features={domAnimation}>
+            <div>
+                <Hero />
+                <Categories />
+                <SellerBanner />
+            </div>
+        </LazyMotion>
     )
 }
 
@@ -39,7 +42,7 @@ function Hero() {
         <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr]">
             <div className="space-y-6">
                 {[0, 1, 2].map((i) => (
-                    <motion.div
+                    <m.div
                         key={i}
                         custom={i}
                         variants={staggerVariants}
@@ -73,12 +76,12 @@ function Hero() {
                                 </Link>
                             </div>
                         )}
-                    </motion.div>
+                    </m.div>
                 ))}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                <motion.img
+                <m.img
                     src="https://picsum.photos/seed/home-market/640/800"
                     alt="集市上的特色小店"
                     className="mt-8 aspect-4/5 w-full rounded-2xl object-cover"
@@ -87,7 +90,7 @@ function Hero() {
                     transition={{ duration: 0.8, delay: 0.25, ease: EASE }}
                 />
                 <div className="grid gap-4">
-                    <motion.img
+                    <m.img
                         src="https://picsum.photos/seed/home-crafts/640/480"
                         alt="手作商品摊位"
                         className="aspect-4/3 w-full rounded-2xl object-cover"
@@ -95,7 +98,7 @@ function Hero() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.4, ease: EASE }}
                     />
-                    <motion.img
+                    <m.img
                         src="https://picsum.photos/seed/home-fresh/640/480"
                         alt="新鲜食材"
                         className="aspect-4/3 w-full rounded-2xl object-cover"
@@ -151,7 +154,7 @@ function Categories() {
             className="scroll-mt-20 bg-sunken"
         >
             <div className="mx-auto max-w-6xl px-4 py-24">
-                <motion.h2
+                <m.h2
                     className="text-3xl font-bold tracking-tight"
                     initial={reduce ? false : { opacity: 0, y: 24 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -159,12 +162,12 @@ function Categories() {
                     transition={{ duration: 0.6, ease: EASE }}
                 >
                     按分类逛逛
-                </motion.h2>
+                </m.h2>
                 <p className="mt-2 text-muted-foreground">分类浏览即将上线，先看看都有什么。</p>
 
                 <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3">
                     {CATEGORIES.map((cat, i) => (
-                        <motion.div
+                        <m.div
                             key={cat.name}
                             className="group"
                             custom={i}
@@ -182,7 +185,7 @@ function Categories() {
                                     </p>
                                 </CardContent>
                             </Card>
-                        </motion.div>
+                        </m.div>
                     ))}
                 </div>
             </div>
@@ -195,7 +198,7 @@ function SellerBanner() {
 
     return (
         <section className="mx-auto max-w-6xl px-4 py-24">
-            <motion.div
+            <m.div
                 className="flex flex-col items-start gap-4 rounded-2xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between"
                 initial={reduce ? false : { opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -220,7 +223,7 @@ function SellerBanner() {
                     免费开店
                     <ArrowRight className="size-4" />
                 </Link>
-            </motion.div>
+            </m.div>
         </section>
     )
 }

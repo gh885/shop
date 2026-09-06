@@ -13,14 +13,16 @@ export function RouteProgressBar() {
     })
     const [visible, setVisible] = useState(false)
 
+    // 加载开始：渲染期直接显示（props→state 调整模式，避免 effect 内同步 setState）
+    if (loading && !visible) {
+        setVisible(true)
+    }
+
     useEffect(() => {
-        if (loading) {
-            setVisible(true)
-        } else {
-            // 加载完成后短暂停留再淡出，避免闪烁
-            const timer = setTimeout(() => setVisible(false), 250)
-            return () => clearTimeout(timer)
-        }
+        if (loading) return
+        // 加载完成后短暂停留再淡出，避免闪烁
+        const timer = setTimeout(() => setVisible(false), 250)
+        return () => clearTimeout(timer)
     }, [loading])
 
     return (

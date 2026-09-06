@@ -10,7 +10,7 @@ import {
     StoreIcon,
 } from "lucide-react"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
     Avatar,
     AvatarFallback,
@@ -36,7 +36,7 @@ import {
 } from "@shop/ui-web"
 
 import { logout } from "#/shared/lib/api"
-import { useClearMe, useMe } from "#/shared/lib/me"
+import { ME_QUERY_KEY, useMe } from "#/shared/lib/me"
 
 /** 顶栏：透明浮于 canvas 画布，无分割线。minimal（内容区需大空间的页面）下
     隐去搜索，只留「品牌 + 当前页名 + 动作群 + 账号」。
@@ -154,13 +154,14 @@ function TopBarAction({
 function AccountChip() {
     const navigate = useNavigate()
     const { data: me } = useMe()
-    const clearMe = useClearMe()
+    const queryClient = useQueryClient()
     const name = me?.nickname ?? me?.phone ?? "未登录"
 
     const logoutMutation = useMutation({
         mutationFn: () => logout(),
         onSettled: () => {
-            clearMe()
+            // 登出后用户信息必然失效：直接移除 me 缓存（key 归 me.ts 所有）
+            queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
             void navigate({ to: "/login" })
         },
     })

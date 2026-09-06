@@ -59,7 +59,9 @@ export function useCreateOrder() {
     })
 }
 
-/** 发起支付：下单后创建 PENDING 流水（V1 两段式的第一段），不动订单状态 */
+/** 发起支付：下单后创建 PENDING 流水（V1 两段式的第一段），不动订单状态。
+ *  不做缓存失效：返回的流水由调用方（收银台）直接消费，且此步不改变任何已缓存查询
+ *  （订单状态推进在 confirmPayment，由 useConfirmPayment 失效 my-orders / order-detail）。 */
 export function useCreatePayment() {
     return useMutation({
         mutationFn: (orderId: string) => createPayment(orderId),

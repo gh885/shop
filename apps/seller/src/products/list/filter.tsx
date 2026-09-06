@@ -85,27 +85,48 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
             </Tabs>
 
             <form
-                className="flex items-center gap-2"
+                className="flex items-end gap-2"
                 onSubmit={handleSubmit}
             >
-                <Input
-                    className="w-56"
-                    placeholder="商品标题"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                />
-                <Input
-                    className="w-44"
-                    placeholder="商品 ID"
-                    value={productId}
-                    onChange={(e) => setProductId(e.target.value)}
-                />
-                <Input
-                    className="w-44"
-                    placeholder="商家编号"
-                    value={merchantCode}
-                    onChange={(e) => setMerchantCode(e.target.value)}
-                />
+                <label
+                    htmlFor="filter-title"
+                    className="flex flex-col gap-1 text-xs text-muted-foreground"
+                >
+                    商品标题
+                    <Input
+                        id="filter-title"
+                        className="w-56"
+                        placeholder="如：无线蓝牙耳机"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                    />
+                </label>
+                <label
+                    htmlFor="filter-product-id"
+                    className="flex flex-col gap-1 text-xs text-muted-foreground"
+                >
+                    商品 ID
+                    <Input
+                        id="filter-product-id"
+                        className="w-44"
+                        placeholder="输入完整 ID 精确匹配"
+                        value={productId}
+                        onChange={(e) => setProductId(e.target.value)}
+                    />
+                </label>
+                <label
+                    htmlFor="filter-merchant-code"
+                    className="flex flex-col gap-1 text-xs text-muted-foreground"
+                >
+                    商家编号
+                    <Input
+                        id="filter-merchant-code"
+                        className="w-44"
+                        placeholder="输入完整编号精确匹配"
+                        value={merchantCode}
+                        onChange={(e) => setMerchantCode(e.target.value)}
+                    />
+                </label>
                 <Button type="submit">
                     <Search className="size-4" />
                     搜索

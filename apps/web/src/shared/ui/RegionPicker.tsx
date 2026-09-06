@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ChevronDown } from "lucide-react"
 
 import {
@@ -66,48 +66,46 @@ export default function RegionPicker({
     // levels[i] = 第 i 层的可选列表；levels.length 至多比 value.length 多 1
     const [levels, setLevels] = useState<RegionNode[][]>([])
     const [activeLevel, setActiveLevel] = useState(0)
-    const [loading, setLoading] = useState(false)
+    // loading 初始即 true：挂载 effect 立即发起加载，避免在 effect 内同步 setState（级联渲染）
+    const [loading, setLoading] = useState(true)
     const cacheRef = useRef(new Map<string, RegionNode[]>())
     // 防竞态：连续快速点击时，只接受最后一次请求的结果
     const requestIdRef = useRef(0)
 
-    const fetchChildren = useCallback(
-        async (parent: RegionNode | undefined): Promise<RegionNode[]> => {
-            const cached = cacheRef.current.get(cacheKeyOf(parent))
-            if (cached) return cached
-            const children = await loadChildren(parent)
-            cacheRef.current.set(cacheKeyOf(parent), children)
-            return children
-        },
-        [loadChildren],
-    )
+    async function fetchChildren(parent: RegionNode | undefined): Promise<RegionNode[]> {
+        const cached = cacheRef.current.get(cacheKeyOf(parent))
+        if (cached) return cached
+        const children = await loadChildren(parent)
+        cacheRef.current.set(cacheKeyOf(parent), children)
+        return children
+    }
 
-    // 挂载时：加载根层；若 value 非空（编辑回填），沿路径逐层把各级列表补齐
+    // 挂载时：加载根层；若 value 非空（编辑回填），沿路径逐层把各级列表补齐。
+    // 用 promise 链而非 try/finally（React Compiler 暂不支持 finally 块），.finally 复位 loading。
     useEffect(() => {
         const requestId = ++requestIdRef.current
-        ;(async () => {
-            setLoading(true)
-            try {
-                const loaded: RegionNode[][] = []
-                let parent
-                for (const node of value) {
-                    // oxlint-disable-next-line eslint/no-await-in-loop -- 级联选择:每一层的加载依赖上层节点,必须串行
-                    const children = await fetchChildren(parent)
-                    loaded.push(children)
-                    parent = node.isLeaf ? undefined : node
-                    if (node.isLeaf) break
-                }
-                // 路径最深节点不是叶子 → 再加载下一层，等着用户继续选
-                if (parent !== undefined || value.length === 0) {
-                    loaded.push(await fetchChildren(parent))
-                }
-                if (requestId !== requestIdRef.current) return
-                setLevels(loaded)
-                setActiveLevel(Math.min(value.length, loaded.length - 1))
-            } finally {
-                if (requestId === requestIdRef.current) setLoading(false)
+        const load = async () => {
+            const loaded: RegionNode[][] = []
+            let parent
+            for (const node of value) {
+                // oxlint-disable-next-line eslint/no-await-in-loop -- 级联选择:每一层的加载依赖上层节点,必须串行
+                const children = await fetchChildren(parent)
+                loaded.push(children)
+                parent = node.isLeaf ? undefined : node
+                if (node.isLeaf) break
             }
-        })()
+            // 路径最深节点不是叶子 → 再加载下一层，等着用户继续选
+            if (parent !== undefined || value.length === 0) {
+                loaded.push(await fetchChildren(parent))
+            }
+            if (requestId !== requestIdRef.current) return
+            setLevels(loaded)
+            setActiveLevel(Math.min(value.length, loaded.length - 1))
+        }
+        // 挂载加载失败静默；loading 无条件复位（挂载加载与 selectAt 不重叠，后者依赖挂载结果）
+        void load()
+            .catch(() => undefined)
+            .finally(() => setLoading(false))
         // 仅在挂载时执行；value 的后续变化全部由 selectAt 驱动
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
@@ -139,6 +137,16 @@ export default function RegionPicker({
 
     const labelOf = (index: number) => levelLabels?.[index] ?? "请选择"
     const summary = value.map((n) => n.label).join(" / ")
+    // 层级页签：位置即语义（第 N 级），显式建模为带 id 的条目，避免直接以数组下标作 JSX key
+    const levelTabs = Array.from(
+        { length: Math.max(levelLabels?.length ?? 0, levels.length) },
+        (_, level) => ({
+            id: `level-${level}`,
+            value: String(level),
+            label: labelOf(level),
+            disabled: level >= levels.length,
+        }),
+    )
 
     return (
         <Popover
@@ -185,21 +193,16 @@ export default function RegionPicker({
                         variant="line"
                         className="border-border w-full rounded-none border-b p-0"
                     >
-                        {Array.from(
-                            { length: Math.max(levelLabels?.length ?? 0, levels.length) },
-                            (_, index) => (
-                                <TabsTrigger
-                                    // 层级页签固定顺序、不增删重排，index 是唯一且稳定的 key
-                                    // eslint-disable-next-line react/no-array-index-key
-                                    key={index}
-                                    value={String(index)}
-                                    disabled={index >= levels.length}
-                                    className="data-active:text-foreground data-active:after:bg-foreground flex-1 py-2.5 font-medium data-active:font-semibold"
-                                >
-                                    {labelOf(index)}
-                                </TabsTrigger>
-                            ),
-                        )}
+                        {levelTabs.map((tab) => (
+                            <TabsTrigger
+                                key={tab.id}
+                                value={tab.value}
+                                disabled={tab.disabled}
+                                className="data-active:text-foreground data-active:after:bg-foreground flex-1 py-2.5 font-medium data-active:font-semibold"
+                            >
+                                {tab.label}
+                            </TabsTrigger>
+                        ))}
                     </TabsList>
 
                     {/* 所有页签共享一个面板：当前层的选项列表 */}

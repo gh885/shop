@@ -24,6 +24,8 @@ import { FileUpload, FileUploadDropzone } from "./file-upload"
 
 const ACCEPT_IMAGE = "image/*"
 const MAX_SIZE_MB = 10
+/** value 缺省时的稳定空数组引用（避免每次渲染新建，干扰依赖数组的 memo/effect） */
+const EMPTY_IMAGES: string[] = []
 
 function fileToDataURL(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -249,7 +251,7 @@ function SortableTile({
  * 底层复用 ImageUpload（即复用 FileUpload 的校验/拖拽）；value 为有序数组、受控上抛。
  */
 export function ImageUploadGrid({
-    value = [],
+    value = EMPTY_IMAGES,
     onChange,
     maxCount = 5,
     size = "size-24",

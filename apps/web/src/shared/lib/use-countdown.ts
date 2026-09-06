@@ -11,12 +11,15 @@ function remainingMs(targetIso: string): number {
 export function useCountdown(targetIso: string): { seconds: number; expired: boolean } {
     const [seconds, setSeconds] = useState(() => Math.ceil(remainingMs(targetIso) / 1000))
 
+    // targetIso 变化时在渲染期调整状态（React 文档推荐的 props→state 模式，避免 effect 内同步 setState）
+    const [prevTarget, setPrevTarget] = useState(targetIso)
+    if (prevTarget !== targetIso) {
+        setPrevTarget(targetIso)
+        setSeconds(targetIso ? Math.ceil(remainingMs(targetIso) / 1000) : 0)
+    }
+
     useEffect(() => {
-        if (!targetIso) {
-            setSeconds(0)
-            return
-        }
-        setSeconds(Math.ceil(remainingMs(targetIso) / 1000))
+        if (!targetIso) return
         const timer = setInterval(() => {
             const s = Math.ceil(remainingMs(targetIso) / 1000)
             setSeconds(s)

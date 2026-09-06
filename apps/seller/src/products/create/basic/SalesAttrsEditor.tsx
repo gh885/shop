@@ -24,9 +24,11 @@ const nextId = () => `v-${++seq}`
 function toDrafts(nodes: CategoryAttrTemplateNode[], selected: SpecSelection[]): AttrDraft[] {
     return nodes.map((n) => {
         const sel = selected.find((s) => s.attrId === n.attr.id)
+        // 模板取值按 id 建一次索引，避免回显时对每个已选值线性扫描 values
+        const valueById = new Map(n.values.map((v) => [v.id, v]))
         const rows: ValueDraft[] = []
         for (const vid of sel?.valueIds ?? []) {
-            const v = n.values.find((x) => x.id === vid)
+            const v = valueById.get(vid)
             rows.push({ id: nextId(), valueId: vid, value: v?.value ?? "", note: "" })
         }
         for (const cv of sel?.customValues ?? []) {
@@ -103,7 +105,10 @@ export function SalesAttrsEditor({
 }) {
     const [drafts, setDrafts] = useState<AttrDraft[]>(() => toDrafts(attrs, value))
     const draftsRef = useRef(drafts)
-    draftsRef.current = drafts
+    // 渲染期不写 ref（React Compiler 禁止）：本 effect 声明在前，后面的同步 effect 读到的已是最新 drafts
+    useEffect(() => {
+        draftsRef.current = drafts
+    }, [drafts])
 
     // 外部 selections（编辑回显/父级 hydrate）变化 → 重建本地 drafts 行的已选值。
     // 归一化比较：仅当「当前 drafts 已表达不出这个 value」才重建（清掉本地正在输入的空行会丢焦点）。
@@ -124,9 +129,7 @@ export function SalesAttrsEditor({
     function updateValue(attrIdx: number, rowIdx: number, text: string) {
         const d = drafts[attrIdx]
         const match = d.values.find((v) => v.value === text.trim())
-        const rows = d.rows.map((r, i) =>
-            i === rowIdx ? { ...r, value: text, valueId: match?.id } : r,
-        )
+        const rows = d.rows.with(rowIdx, { ...d.rows[rowIdx], value: text, valueId: match?.id })
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 

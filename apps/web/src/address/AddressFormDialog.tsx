@@ -97,22 +97,32 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
         },
     })
 
-    // 打开或切换编辑目标时重置表单 + 回填地区路径
+    // 打开/切换编辑目标时重置本地状态：渲染期状态调整模式（对 React Compiler 友好，
+    // 避免 effect 内同步 setState 触发级联渲染）。key 取 open + 编辑目标 id。
+    const editKey = open ? (editing?.id ?? "new") : "closed"
+    const [prevEditKey, setPrevEditKey] = useState(editKey)
+    if (prevEditKey !== editKey) {
+        setPrevEditKey(editKey)
+        if (open) {
+            setRegionPath([])
+            setRegionReady(editing ? false : true)
+            // 编辑值是非内置标签时直接展开自定义输入框
+            setCustomLabel(
+                Boolean(editing?.label) && !LABELS.some((l) => l.value === editing?.label),
+            )
+        }
+    }
+
+    // form.reset 同步外部表单 store + 编辑回填异步反查地区路径
     useEffect(() => {
         if (!open) return
         form.reset(toDefaults(editing))
-        setRegionPath([])
-        setRegionReady(false)
-        // 编辑值是非内置标签时直接展开自定义输入框
-        setCustomLabel(Boolean(editing?.label) && !LABELS.some((l) => l.value === editing?.label))
         if (editing) {
             // oxlint-disable-next-line promise/always-return -- 终态副作用,链尾无下一环,无需返回值
             void findPath(editing.regionCode).then((path) => {
                 setRegionPath(path)
                 setRegionReady(true)
             })
-        } else {
-            setRegionReady(true)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, editing])
@@ -126,7 +136,8 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
         form.setFieldValue("regionCode", path.at(-1)?.code ?? "")
     }
 
-    /** 智能粘贴：解析文本 → 预填表单（收件人/手机号/区划/详细地址） */
+    /** 智能粘贴：解析文本 → 预填表单（收件人/手机号/区划/详细地址）。
+     *  不用 try/finally（React Compiler 暂不支持 finally 块）：成功/失败路径各自复位 parsing。 */
     async function handleSmartParse() {
         if (!smartText.trim()) return
         setParsing(true)
@@ -142,9 +153,9 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                 notify.warning("未能识别所在地区，请手动选择")
             }
             setSmartText("")
+            setParsing(false)
         } catch (error) {
             notify.fromError(error, "识别失败，请检查输入")
-        } finally {
             setParsing(false)
         }
     }

@@ -22,10 +22,10 @@ const FAVORITES_QUERY = { query: { pageParams: { page: 1, size: 100 } } } as con
 
 const favoriteItemsOptions = queryOptions({
     queryKey: KEY,
-    queryFn: async ({ signal }): Promise<FavoriteItem[]> =>
-        (await FavoritesApi.listFavorites({ ...FAVORITES_QUERY, signal })).records.map(
-            toFavoriteItem,
-        ),
+    queryFn: async ({ signal }): Promise<FavoriteItem[]> => {
+        const res = await FavoritesApi.listFavorites({ ...FAVORITES_QUERY, signal })
+        return res.records.map(toFavoriteItem)
+    },
 })
 
 export function useFavorites() {

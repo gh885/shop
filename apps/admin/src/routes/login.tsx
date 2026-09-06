@@ -36,9 +36,9 @@ function LoginPage() {
                 })
                 tokenStore.set(result.accessToken)
                 void navigate({ to: "/", search: { page: 1, size: 20 } })
-            } catch (err) {
+            } catch (error) {
                 // 401 才是凭证错误；网络错误/服务端故障如实提示，避免误导成密码错误
-                const apiErr = toApiError(err)
+                const apiErr = toApiError(error)
                 setError(apiErr.status === 401 ? "工号或密码不正确" : "登录失败，请检查网络后重试")
             }
         },

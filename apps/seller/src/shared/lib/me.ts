@@ -1,9 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 
 import { AuthApi } from "@shop/api/sdk"
 import { useAuthStatus } from "./api"
 
 const ME_QUERY_KEY = ["me"] as const
+export { ME_QUERY_KEY }
 
 /** 当前登录用户信息（未登录时不发请求） */
 export function useMe() {
@@ -15,10 +16,4 @@ export function useMe() {
         staleTime: 5 * 60_000,
         retry: false,
     })
-}
-
-/** 登出等场景下清除缓存的用户信息 */
-export function useClearMe() {
-    const queryClient = useQueryClient()
-    return () => queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
 }

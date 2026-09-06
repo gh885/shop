@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Search } from "lucide-react"
+import { ChevronDown, Search } from "lucide-react"
 
 import {
     AlertDialog,
@@ -34,8 +34,12 @@ export function Toolbar() {
         <div className="flex h-12 items-center justify-between border-b border-border/60">
             {/* 左：全选 + 批量操作 */}
             <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-sm text-foreground">
+                <label
+                    htmlFor="cart-select-all"
+                    className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                >
                     <Checkbox
+                        id="cart-select-all"
                         checked={deriveAllSelected(items ?? [])}
                         onCheckedChange={(checked) =>
                             selectItems.mutate({ selected: checked === true })
@@ -43,11 +47,12 @@ export function Toolbar() {
                         aria-label="全选"
                     />
                     <span>全选</span>
-                </div>
+                </label>
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => notify.info("请先勾选商品")}
+                    disabled={selectedIds.length === 0}
+                    onClick={() => notify.info("移入收藏功能即将上线")}
                 >
                     移入收藏
                 </Button>
@@ -69,7 +74,7 @@ export function Toolbar() {
                     onClick={() => notify.info("分类筛选即将上线")}
                 >
                     分类
-                    <span className="text-xs">▾</span>
+                    <ChevronDown className="size-3.5" />
                 </Button>
                 <Button
                     variant="outline"
@@ -77,7 +82,7 @@ export function Toolbar() {
                     onClick={() => notify.info("状态筛选即将上线")}
                 >
                     状态
-                    <span className="text-xs">▾</span>
+                    <ChevronDown className="size-3.5" />
                 </Button>
                 <Button
                     variant="outline"

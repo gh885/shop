@@ -25,8 +25,9 @@ export function PageBreadcrumb({ crumbs, className }: { crumbs: Crumb[]; classNa
             <BreadcrumbList>
                 {crumbs.map((crumb, index) => {
                     const isLast = index === crumbs.length - 1
+                    // key 用内容（跳转目标/标签）：面包屑路径内不会出现重复项
                     return (
-                        <Fragment key={`${crumb.label}-${index}`}>
+                        <Fragment key={crumb.to ?? crumb.label}>
                             {index > 0 && <BreadcrumbSeparator />}
                             <BreadcrumbItem>
                                 {isLast || !crumb.to ? (

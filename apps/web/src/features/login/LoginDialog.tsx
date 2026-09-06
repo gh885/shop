@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { CircleAlert, QrCode } from "lucide-react"
 
-import { useMutation } from "@tanstack/react-query"
 import {
     ErrorCodes,
     PasswordFormSchema,
@@ -99,31 +98,37 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         },
     })
 
-    const sendCode = useMutation({
-        mutationFn: (phone: string) =>
-            sendSmsCodeAction(phone, {
-                captchaId: captcha.captchaId,
-                captchaCode: form.getFieldValue("captchaCode"),
-            }),
-        onSuccess: () => {
-            setSubmitError(undefined)
-            setCountdown(60)
-            notify.success("验证码已发送")
-            // 验证码 token 一次性：发码成功即换新图，下次发码需重新人机验证
-            captcha.reset()
-            form.setFieldValue("captchaCode", "")
-        },
-        onError: (e) => {
-            const err = toApiError(e)
-            setSubmitError(err)
-            // 图形验证码类失败：刷新验证码图，引导用户重输（其余错误保留原图避免无谓请求）
-            if (isCaptchaError(err)) {
+    // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态，
+    // 用普通 async 函数 + pending 标记即可，不需要 useMutation。
+    // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态。
+    // 用 promise 链而非 try/finally：React Compiler 暂不支持 finally 块，.finally 兼顾 pending 复位。
+    const [sendingCode, setSendingCode] = useState(false)
+    function handleSendCode(phone: string) {
+        setSendingCode(true)
+        void sendSmsCodeAction(phone, {
+            captchaId: captcha.captchaId,
+            captchaCode: form.getFieldValue("captchaCode"),
+        })
+            .then(() => {
+                setSubmitError(undefined)
+                setCountdown(60)
+                notify.success("验证码已发送")
+                // 验证码 token 一次性：发码成功即换新图，下次发码需重新人机验证
                 captcha.reset()
                 form.setFieldValue("captchaCode", "")
-            }
-            notify.error(err.detail)
-        },
-    })
+            })
+            .catch((error) => {
+                const err = toApiError(error)
+                setSubmitError(err)
+                // 图形验证码类失败：刷新验证码图，引导用户重输（其余错误保留原图避免无谓请求）
+                if (isCaptchaError(err)) {
+                    captcha.reset()
+                    form.setFieldValue("captchaCode", "")
+                }
+                notify.error(err.detail)
+            })
+            .finally(() => setSendingCode(false))
+    }
 
     // 打开即加载图形验证码（默认短信 Tab 需先人机验证才能发码）；关闭时清理发送态
     // 依赖 refreshCaptcha（useCallback 稳定）而非整个 captcha 对象——后者每次 render 都是新引用，会无限触发刷新
@@ -138,10 +143,6 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         setSubmitError(undefined)
         // 切到短信 Tab 时确保图形验证码图存在（避免发码按钮可用但无图）
         if (next === "sms" && !captcha.image) void captcha.refresh()
-    }
-
-    function handleSendCode(phone: string) {
-        sendCode.mutate(phone)
     }
 
     return (
@@ -347,10 +348,10 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                                 !captchaValid ||
                                                                 !captcha.image ||
                                                                 countdown > 0 ||
-                                                                sendCode.isPending
+                                                                sendingCode
                                                             }
                                                             onClick={() =>
-                                                                handleSendCode(
+                                                                void handleSendCode(
                                                                     form.getFieldValue("phone"),
                                                                 )
                                                             }
@@ -359,7 +360,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                                                 <span className="tabular-nums">
                                                                     {countdown}s 后重发
                                                                 </span>
-                                                            ) : sendCode.isPending ? (
+                                                            ) : sendingCode ? (
                                                                 <Spinner />
                                                             ) : (
                                                                 "获取验证码"

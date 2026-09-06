@@ -33,8 +33,10 @@ const CART_COUNT_KEY = ["cart-count"] as const
  * 登录态由 _protected 布局 gate 保证（authed 后才渲染子路由），挂载时必已登录。 */
 const cartItemsOptions = queryOptions({
     queryKey: CART_ITEMS_KEY,
-    queryFn: async ({ signal }): Promise<CartItem[]> =>
-        (await CartApi.listCartItems({ signal })).map(toCartItem),
+    queryFn: async ({ signal }): Promise<CartItem[]> => {
+        const res = await CartApi.listCartItems({ signal })
+        return res.map(toCartItem)
+    },
 })
 
 export function useCartItems() {
@@ -44,7 +46,10 @@ export function useCartItems() {
 /** 角标计数：免拉整车，头部角标用；可在公开页（SiteHeader/首页）使用，故必须保留 enabled gating */
 const cartCountOptions = queryOptions({
     queryKey: CART_COUNT_KEY,
-    queryFn: async ({ signal }): Promise<number> => (await CartApi.getCartCount({ signal })).total,
+    queryFn: async ({ signal }): Promise<number> => {
+        const res = await CartApi.getCartCount({ signal })
+        return res.total
+    },
     staleTime: 30_000,
 })
 
@@ -138,6 +143,8 @@ export function useCartItemActions() {
     const remove = useRemoveCartItem()
 
     return {
+        /** 正在删除的条目 id（行内删除按钮的 pending 态来源） */
+        removingId: remove.isPending ? (remove.variables ?? undefined) : undefined,
         toggleItem: (id: string, selected: boolean) => toggle.mutate({ id, selected }),
         /** 改数量：越界静默拦下、超库存提示（仍以后端裁决为准）；库存取自调用方手上的 item，不回查列表 */
         updateQuantity: (item: CartItem, quantity: number) => {

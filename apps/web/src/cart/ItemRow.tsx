@@ -20,6 +20,8 @@ import {
     ItemDescription,
     ItemMedia,
     ItemTitle,
+    Badge,
+    Spinner,
 } from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
@@ -62,11 +64,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
             <ItemContent>
                 <ItemTitle className="line-clamp-2 w-full">{view.title}</ItemTitle>
                 {item.sku?.name && <ItemDescription>{item.sku.name}</ItemDescription>}
-                {view.outOfStock && (
-                    <span className="w-fit rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">
-                        缺货
-                    </span>
-                )}
+                {view.outOfStock && <Badge variant="warning">缺货</Badge>}
             </ItemContent>
 
             <div className="text-right">
@@ -108,23 +106,23 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 </ButtonGroup>
             </ItemActions>
 
-            <div className="flex w-24 flex-col gap-1">
-                <button
-                    type="button"
+            <div className="flex w-24 flex-col items-start gap-1">
+                <Button
+                    variant="ghost"
+                    size="xs"
                     disabled={view.disabled}
                     onClick={() => notify.info("移入收藏功能即将上线")}
-                    className="text-xs text-muted-foreground transition-colors hover:text-primary disabled:opacity-40"
                 >
                     移入收藏
-                </button>
-                <button
-                    type="button"
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="xs"
                     disabled={view.disabled}
                     onClick={() => setConfirmOpen(true)}
-                    className="text-xs text-muted-foreground transition-colors hover:text-destructive disabled:opacity-40"
                 >
                     删除
-                </button>
+                </Button>
             </div>
 
             {/* 删除确认 */}
@@ -143,12 +141,13 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                         <AlertDialogCancel>取消</AlertDialogCancel>
                         <AlertDialogAction
                             variant="destructive"
+                            disabled={actions.removingId === item.id}
                             onClick={() => {
                                 actions.removeItem(item.id)
                                 setConfirmOpen(false)
                             }}
                         >
-                            删除
+                            {actions.removingId === item.id && <Spinner />}删除
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

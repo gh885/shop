@@ -9,7 +9,15 @@ import {
     Sparkles,
     Store,
 } from "lucide-react"
-import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react"
+// LazyMotion + m：按需加载动画特性（domAnimation 含 variants/whileInView/AnimatePresence），省约 30kb 全量 motion 包
+import {
+    AnimatePresence,
+    LazyMotion,
+    domAnimation,
+    m,
+    useReducedMotion,
+    type Variants,
+} from "motion/react"
 
 import { Button, Card, CardContent, buttonVariants } from "@shop/ui-web"
 
@@ -27,12 +35,14 @@ const EASE = [0.16, 1, 0.3, 1] as const
 
 function SellLanding() {
     return (
-        <div>
-            <Hero />
-            <BusinessModes />
-            <Steps />
-            <FinalCta />
-        </div>
+        <LazyMotion features={domAnimation}>
+            <div>
+                <Hero />
+                <BusinessModes />
+                <Steps />
+                <FinalCta />
+            </div>
+        </LazyMotion>
     )
 }
 
@@ -77,7 +87,7 @@ function Hero() {
         <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr]">
             <div className="space-y-6">
                 {[0, 1, 2].map((i) => (
-                    <motion.div
+                    <m.div
                         key={i}
                         custom={i}
                         variants={heroTextVariants}
@@ -105,12 +115,12 @@ function Hero() {
                                 </a>
                             </div>
                         )}
-                    </motion.div>
+                    </m.div>
                 ))}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                <motion.img
+                <m.img
                     src="https://picsum.photos/seed/sell-storefront/640/800"
                     alt="街边小店"
                     className="mt-8 aspect-4/5 w-full rounded-2xl object-cover"
@@ -119,7 +129,7 @@ function Hero() {
                     transition={{ duration: 0.8, delay: 0.25, ease: EASE }}
                 />
                 <div className="grid gap-4">
-                    <motion.img
+                    <m.img
                         src="https://picsum.photos/seed/sell-parcels/640/480"
                         alt="打包发货"
                         className="aspect-4/3 w-full rounded-2xl object-cover"
@@ -127,7 +137,7 @@ function Hero() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.4, ease: EASE }}
                     />
-                    <motion.img
+                    <m.img
                         src="https://picsum.photos/seed/sell-crafts/640/480"
                         alt="手作商品"
                         className="aspect-4/3 w-full rounded-2xl object-cover"
@@ -187,7 +197,7 @@ function BusinessModes() {
 
     return (
         <section className="bg-sunken">
-            <motion.div
+            <m.div
                 className="mx-auto max-w-6xl px-4 py-24"
                 initial={reduce ? false : { opacity: 0, y: 32 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -227,7 +237,7 @@ function BusinessModes() {
                     </div>
 
                     <AnimatePresence mode="wait">
-                        <motion.div
+                        <m.div
                             key={mode.key}
                             role="tabpanel"
                             initial={reduce ? false : { opacity: 0, y: 16 }}
@@ -251,10 +261,10 @@ function BusinessModes() {
                                     />
                                 </CardContent>
                             </Card>
-                        </motion.div>
+                        </m.div>
                     </AnimatePresence>
                 </div>
-            </motion.div>
+            </m.div>
         </section>
     )
 }
@@ -282,7 +292,7 @@ function Steps() {
             id="steps"
             className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24"
         >
-            <motion.h2
+            <m.h2
                 className="text-3xl font-bold tracking-tight"
                 initial={reduce ? false : { opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -290,11 +300,11 @@ function Steps() {
                 transition={{ duration: 0.6, ease: EASE }}
             >
                 三步开店，流程透明
-            </motion.h2>
+            </m.h2>
 
             <ol className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-6">
                 {STEPS.map((step, i) => (
-                    <motion.li
+                    <m.li
                         key={step.title}
                         className="relative border-t-2 border-border pt-6"
                         initial={reduce ? false : { opacity: 0, y: 24 }}
@@ -309,7 +319,7 @@ function Steps() {
                         {i === STEPS.length - 1 ? (
                             <CheckCircle2 className="mt-4 size-5 text-success" />
                         ) : undefined}
-                    </motion.li>
+                    </m.li>
                 ))}
             </ol>
         </section>
@@ -321,7 +331,7 @@ function FinalCta() {
 
     return (
         <section className="bg-primary-subtle">
-            <motion.div
+            <m.div
                 className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center"
                 initial={reduce ? false : { opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -336,7 +346,7 @@ function FinalCta() {
                     免费创建你的第一家店铺，从一件好货开始。
                 </p>
                 <OpenShopCta size="lg" />
-            </motion.div>
+            </m.div>
         </section>
     )
 }

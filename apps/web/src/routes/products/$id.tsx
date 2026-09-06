@@ -1,5 +1,5 @@
 import { fenToYuan, isContractViolation } from "@shop/api"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 
 import type { ProductDetail } from "#/product"
@@ -97,7 +97,7 @@ function ProductDetailPage() {
     const [quantity, setQuantity] = useState(1)
 
     // 画廊图序：选中 SKU 有专属图时置顶（主图跟随规格切换），去重后供画廊以 URL 作键
-    const images = useMemo(() => {
+    const images = (() => {
         const base =
             detail.images.length > 0
                 ? detail.images
@@ -106,7 +106,7 @@ function ProductDetailPage() {
             ? [sel.matchedSku.image, ...base.filter((i) => i !== sel.matchedSku?.image)]
             : base
         return [...new Set(merged)]
-    }, [detail, sel.matchedSku])
+    })()
 
     return (
         <div>

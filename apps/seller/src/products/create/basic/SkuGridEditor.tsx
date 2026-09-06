@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
 import {
     Button,
@@ -52,7 +52,7 @@ export function SkuGridEditor({
         onChange(
             rows.map((r) => ({
                 ...r,
-                priceText: batchPrice.trim() ? batchPrice.trim() : r.priceText,
+                priceText: batchPrice.trim() || r.priceText,
                 stockText: batchStock.trim()
                     ? batchStock.trim().replaceAll(/\D/g, "")
                     : r.stockText,
@@ -60,7 +60,7 @@ export function SkuGridEditor({
         )
     }
 
-    const visible = useMemo(() => {
+    const visible = (() => {
         const kw = keyword.trim().toLowerCase()
         if (!kw) return rows.map((d, i) => ({ d, i }))
         return rows
@@ -69,7 +69,7 @@ export function SkuGridEditor({
                 ({ d }) =>
                     d.label.toLowerCase().includes(kw) || d.skuCode.toLowerCase().includes(kw),
             )
-    }, [rows, keyword])
+    })()
 
     if (rows.length === 0) return
 

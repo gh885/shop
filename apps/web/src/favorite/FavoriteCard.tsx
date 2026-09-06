@@ -42,40 +42,45 @@ export function FavoriteCard({
     }
 
     return (
-        <button
-            type="button"
-            onClick={handleClick}
-            className="group relative block w-60 shrink-0 transition-all duration-200 hover:shadow-lift"
-        >
-            <div className="flex w-full max-w-xl flex-col gap-6">
-                <Item variant="outline">
-                    <ItemHeader>
-                        <div className="relative">
-                            {favorite.image ? (
-                                <img
-                                    src={favorite.image}
-                                    alt={favorite.title}
-                                    loading="lazy"
-                                    className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-                                />
-                            ) : (
-                                <div className="flex aspect-square w-full items-center justify-center bg-muted text-xs text-muted-foreground">
-                                    暂无图片
-                                </div>
-                            )}
-                            {batchMode && selected && (
-                                <span className="absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-primary text-white">
-                                    <Check className="size-4" />
-                                </span>
-                            )}
-                        </div>
-                    </ItemHeader>
-                    <ItemContent>
-                        <ItemTitle>{favorite.title}</ItemTitle>
-                        <ItemDescription>{collectText(favorite.collectCount)}</ItemDescription>
-                    </ItemContent>
-                </Item>
-            </div>
+        // 容器用 div：避免 button 嵌套 button（键盘/读屏无法区分嵌套可交互控件）；
+        // 可点击区域是覆盖卡片的内层 button，「移出」是其兄弟节点
+        <div className="group relative block w-60 shrink-0 transition-all duration-200 hover:shadow-lift">
+            <button
+                type="button"
+                onClick={handleClick}
+                aria-label={favorite.title}
+                className="block w-full cursor-pointer text-left"
+            >
+                <div className="flex w-full max-w-xl flex-col gap-6">
+                    <Item variant="outline">
+                        <ItemHeader>
+                            <div className="relative">
+                                {favorite.image ? (
+                                    <img
+                                        src={favorite.image}
+                                        alt={favorite.title}
+                                        loading="lazy"
+                                        className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                                    />
+                                ) : (
+                                    <div className="flex aspect-square w-full items-center justify-center bg-muted text-xs text-muted-foreground">
+                                        暂无图片
+                                    </div>
+                                )}
+                                {batchMode && selected && (
+                                    <span className="absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-primary text-white">
+                                        <Check className="size-4" />
+                                    </span>
+                                )}
+                            </div>
+                        </ItemHeader>
+                        <ItemContent>
+                            <ItemTitle>{favorite.title}</ItemTitle>
+                            <ItemDescription>{collectText(favorite.collectCount)}</ItemDescription>
+                        </ItemContent>
+                    </Item>
+                </div>
+            </button>
 
             {onRemove && !batchMode && (
                 <button
@@ -89,6 +94,6 @@ export function FavoriteCard({
                     移出
                 </button>
             )}
-        </button>
+        </div>
     )
 }

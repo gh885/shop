@@ -1,6 +1,6 @@
 import type { Money } from "@shop/api"
 
-import { toStatusFromWire, statusToWire } from "#/shared/order-status"
+import { toStatusFromWire } from "#/shared/order-status"
 import type { Order, OrderDetail, OrderItem } from "./model"
 
 /**
@@ -19,7 +19,7 @@ import type { Order, OrderDetail, OrderItem } from "./model"
 /** wire → 领域：后端状态归一成前端枚举（真实语义投影，保留） */
 const toStatus = toStatusFromWire
 
-export { statusToWire }
+export { statusToWire } from "#/shared/order-status"
 
 /** 行项 wire → 业务：快照字段归一 */
 function toOrderItem(dto: {

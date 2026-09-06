@@ -83,10 +83,9 @@ function FavoritesPage() {
     }
 
     function toggleBatchMode() {
-        setBatchMode((prev) => {
-            if (prev) setSelected(new Set())
-            return !prev
-        })
+        // 退出批量模式时清空选择；updater 内不副作用（不纯），按当前值直接更新
+        if (batchMode) setSelected(new Set())
+        setBatchMode(!batchMode)
     }
 
     return (

@@ -157,7 +157,7 @@ interface FileUploadContextValue {
     disabled: boolean
     dir: Direction
     inputRef: React.RefObject<HTMLInputElement | null>
-    urlCache: WeakMap<File, string>
+    urlCache: Map<File, string>
 }
 
 const FileUploadContext = React.createContext<FileUploadContextValue | null>(null)
@@ -233,7 +233,9 @@ function FileUpload(props: FileUploadProps) {
     const dir = dirProp ?? "ltr"
     const listeners = useLazyRef(() => new Set<() => void>()).current
     const files = useLazyRef<Map<File, FileState>>(() => new Map()).current
-    const urlCache = useLazyRef(() => new WeakMap<File, string>()).current
+    // 用 Map 而非 WeakMap：预览 objectURL 需要在组件卸载时统一 revoke（WeakMap 不可枚举）；
+    // File 生命周期本就跟随 files Map，这里强引用不延长其存活
+    const urlCache = useLazyRef(() => new Map<File, string>()).current
     const inputRef = React.useRef<HTMLInputElement>(null)
     const isControlled = value !== undefined
 
@@ -417,15 +419,14 @@ function FileUpload(props: FileUploadProps) {
     }, [value, defaultValue, isControlled, store])
 
     React.useEffect(() => {
+        // 卸载时统一 revoke 所有预览 objectURL（含已 REMOVE/CLEAR 漏网的），避免内存泄漏
         return () => {
-            for (const file of files.keys()) {
-                const cachedUrl = urlCache.get(file)
-                if (cachedUrl) {
-                    URL.revokeObjectURL(cachedUrl)
-                }
+            for (const url of urlCache.values()) {
+                URL.revokeObjectURL(url)
             }
+            urlCache.clear()
         }
-    }, [files, urlCache])
+    }, [urlCache])
 
     const onFilesUpload = React.useCallback(
         async (files: File[]) => {
@@ -1030,18 +1031,33 @@ function FileUploadItemPreview(props: FileUploadItemPreviewProps) {
     const itemContext = useFileUploadItemContext(ITEM_PREVIEW_NAME)
     const context = useFileUploadContext(ITEM_PREVIEW_NAME)
 
+    const file = itemContext.fileState?.file
+    const isImage = file?.type.startsWith("image/") ?? false
+
+    // objectURL 生命周期由本组件独占：effect 内创建、同一 effect 的 cleanup 内 revoke（配对可见，避免泄漏）。
+    // urlCache 只作「file → 已 revoke」的登记，供 REMOVE_FILE/CLEAR 兜底清理。
+    const [imageUrl, setImageUrl] = React.useState<string | null>(null)
+    React.useEffect(() => {
+        if (!file || !isImage) {
+            setImageUrl(null)
+            return
+        }
+        const url = URL.createObjectURL(file)
+        context.urlCache.set(file, url)
+        setImageUrl(url)
+        return () => {
+            URL.revokeObjectURL(url)
+            context.urlCache.delete(file)
+            setImageUrl(null)
+        }
+    }, [file, isImage, context])
+
     const getDefaultRender = React.useCallback(
         (file: File) => {
-            if (itemContext.fileState?.file.type.startsWith("image/")) {
-                let url = context.urlCache.get(file)
-                if (!url) {
-                    url = URL.createObjectURL(file)
-                    context.urlCache.set(file, url)
-                }
-
+            if (file.type.startsWith("image/") && imageUrl) {
                 return (
                     <img
-                        src={url}
+                        src={imageUrl}
                         alt={file.name}
                         className="size-full object-cover"
                     />
@@ -1050,7 +1066,7 @@ function FileUploadItemPreview(props: FileUploadItemPreviewProps) {
 
             return getFileIcon(file)
         },
-        [itemContext.fileState?.file.type, context.urlCache],
+        [imageUrl],
     )
 
     const onPreviewRender = React.useCallback(

@@ -94,12 +94,10 @@ function ChangePassword() {
                 <CardDescription>修改后所有设备将退出登录，需重新验证。</CardDescription>
             </CardHeader>
             <CardContent>
+                {/* React 19 form action：React 自动接管提交（无需 preventDefault），校验仍走 TanStack Form */}
                 <form
                     className="max-w-md space-y-3"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        form.handleSubmit()
-                    }}
+                    action={() => void form.handleSubmit()}
                 >
                     <form.AppField name="current">
                         {(field) => (

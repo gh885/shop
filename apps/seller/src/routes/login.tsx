@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { CircleAlert, Store } from "lucide-react"
 
-import { useMutation } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import {
     ErrorCodes,
@@ -103,38 +102,44 @@ function LoginPage() {
         },
     })
 
-    const sendCode = useMutation({
-        mutationFn: (phone: string) =>
-            AuthApi.sendSmsCode({
-                body: {
-                    phone,
-                    captchaId: captcha.captchaId,
-                    captchaCode: form.getFieldValue("captchaCode"),
-                },
-            }),
-        onSuccess: () => {
-            setServerError(undefined)
-            setCountdown(60)
-            setCaptchaInvalid(false)
-            // 验证码 token 一次性：发码成功换新图
-            captcha.reset()
-            form.setFieldValue("captchaCode", "")
-        },
-        onError: (e) => {
-            const err = toApiError(e)
-            setServerError(err.detail)
-            const isCaptchaErr =
-                err.code === ErrorCodes.CAPTCHA_REQUIRED ||
-                err.code === ErrorCodes.CAPTCHA_EXPIRED ||
-                err.code === ErrorCodes.CAPTCHA_INVALID
-            setCaptchaInvalid(isCaptchaErr)
-            // 图形验证码类失败：刷新图并清空输入
-            if (isCaptchaErr) {
+    // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态，
+    // 用普通 async 函数 + pending 标记即可，不需要 useMutation。
+    // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态。
+    // 用 promise 链而非 try/finally：React Compiler 暂不支持 finally 块，.finally 兼顾 pending 复位。
+    const [sendingCode, setSendingCode] = useState(false)
+    function sendCode(phone: string) {
+        setSendingCode(true)
+        void AuthApi.sendSmsCode({
+            body: {
+                phone,
+                captchaId: captcha.captchaId,
+                captchaCode: form.getFieldValue("captchaCode"),
+            },
+        })
+            .then(() => {
+                setServerError(undefined)
+                setCountdown(60)
+                setCaptchaInvalid(false)
+                // 验证码 token 一次性：发码成功换新图
                 captcha.reset()
                 form.setFieldValue("captchaCode", "")
-            }
-        },
-    })
+            })
+            .catch((error) => {
+                const err = toApiError(error)
+                setServerError(err.detail)
+                const isCaptchaErr =
+                    err.code === ErrorCodes.CAPTCHA_REQUIRED ||
+                    err.code === ErrorCodes.CAPTCHA_EXPIRED ||
+                    err.code === ErrorCodes.CAPTCHA_INVALID
+                setCaptchaInvalid(isCaptchaErr)
+                // 图形验证码类失败：刷新图并清空输入
+                if (isCaptchaErr) {
+                    captcha.reset()
+                    form.setFieldValue("captchaCode", "")
+                }
+            })
+            .finally(() => setSendingCode(false))
+    }
 
     function switchTab(next: LoginTab) {
         setTab(next)
@@ -303,10 +308,10 @@ function LoginPage() {
                                                             !captchaValid ||
                                                             !captcha.image ||
                                                             countdown > 0 ||
-                                                            sendCode.isPending
+                                                            sendingCode
                                                         }
                                                         onClick={() =>
-                                                            sendCode.mutate(
+                                                            void sendCode(
                                                                 form.getFieldValue("phone"),
                                                             )
                                                         }
@@ -315,7 +320,7 @@ function LoginPage() {
                                                             <span className="tabular-nums">
                                                                 {countdown}s 后重发
                                                             </span>
-                                                        ) : sendCode.isPending ? (
+                                                        ) : sendingCode ? (
                                                             <Spinner />
                                                         ) : (
                                                             "获取验证码"

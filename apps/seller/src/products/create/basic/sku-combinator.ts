@@ -23,7 +23,7 @@ function resolveDimensionValues(
             .filter((x): x is SpecValueDraft => Boolean(x))
         const fromCustom = (sel.customValues ?? [])
             .map((cv) => cv.trim())
-            .filter((cv) => Boolean(cv))
+            .filter(Boolean)
             .map((cv) => ({ value: cv }) as SpecValueDraft)
         return [...fromValueIds, ...fromCustom]
     })

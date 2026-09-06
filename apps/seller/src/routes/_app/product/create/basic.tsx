@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createFileRoute, useBlocker, useNavigate } from "@tanstack/react-router"
 import { CircleAlert, Store } from "lucide-react"
 
@@ -68,20 +68,17 @@ function NewProductBasicStep() {
     const baselineRef = useRef<BasicStepValues | undefined>(undefined)
     const lastHydratedRef = useRef(hydratedBasic)
 
-    const handleBasicChange = useCallback(
-        (values: BasicStepValues) => {
-            const hydratedChanged = lastHydratedRef.current !== hydratedBasic
-            lastHydratedRef.current = hydratedBasic
-            if (baselineRef.current === undefined || hydratedChanged) {
-                baselineRef.current = values
-                return
-            }
-            if (JSON.stringify(values) !== JSON.stringify(baselineRef.current)) {
-                setDirty(true)
-            }
-        },
-        [hydratedBasic],
-    )
+    function handleBasicChange(values: BasicStepValues) {
+        const hydratedChanged = lastHydratedRef.current !== hydratedBasic
+        lastHydratedRef.current = hydratedBasic
+        if (baselineRef.current === undefined || hydratedChanged) {
+            baselineRef.current = values
+            return
+        }
+        if (JSON.stringify(values) !== JSON.stringify(baselineRef.current)) {
+            setDirty(true)
+        }
+    }
 
     const blocker = useBlocker({
         shouldBlockFn: () => dirty,

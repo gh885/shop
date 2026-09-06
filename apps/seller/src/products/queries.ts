@@ -4,7 +4,6 @@ import type { ProductResponse } from "@shop/api/sdk"
 import { CategoriesApi } from "@shop/api/sdk"
 
 import { listProducts } from "./data"
-import { useMemo } from "react"
 import { type LeafPath, flattenLeafPaths } from "./category"
 
 /**
@@ -64,8 +63,8 @@ export function useCategoryTree() {
     return useQuery(categoryTreeOptions)
 }
 
-/** 末级路径清单（搜索语料）：树没变就不重算 */
+/** 末级路径清单（搜索语料）：树没变编译器自动缓存，不重复展平 */
 export function useLeafPaths(): LeafPath[] {
     const { data } = useCategoryTree()
-    return useMemo(() => flattenLeafPaths(data ?? []), [data])
+    return flattenLeafPaths(data ?? [])
 }

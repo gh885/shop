@@ -217,7 +217,6 @@ function ProductRow({
                             size="sm"
                             disabled={busy}
                             onClick={onOn}
-                            className="text-primary hover:text-primary"
                         >
                             上架
                         </Button>
@@ -259,7 +258,8 @@ function Pagination({
                 </PaginationItem>
                 {pages.map((p, i) =>
                     p === "..." ? (
-                        <PaginationItem key={`e${i}`}>
+                        // 省略号以「前一页码」为身份（两段省略号的前页码必不同），不以数组下标作 key
+                        <PaginationItem key={`ellipsis-${pages[i - 1] ?? "start"}`}>
                             <PaginationEllipsis />
                         </PaginationItem>
                     ) : (

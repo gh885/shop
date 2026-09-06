@@ -11,7 +11,7 @@ export function paged(current: number, total: number): PagedItems {
     for (let p = current - 2; p <= current + 2; p++) {
         if (p >= 1 && p <= total) pages.add(p)
     }
-    const sorted = [...pages].sort((a, b) => a - b)
+    const sorted = [...pages].toSorted((a, b) => a - b)
     const out: PagedItems = []
     let prev = 0
     for (const p of sorted) {

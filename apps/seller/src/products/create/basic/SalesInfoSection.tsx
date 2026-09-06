@@ -64,15 +64,18 @@ export function SalesInfoSection({
     // ---- 模板加载（提升到壳；失败可重试） ----
     useEffect(() => {
         let cancelled = false
-        attrTemplate(categoryId)
-            .then((nodes) => {
-                if (cancelled) return
-                setTemplate(nodes.filter((n) => n.attr.kind === "SPEC"))
-                setLoadError(undefined)
-            })
-            .catch((error) => {
+        const loadTemplate = async () => {
+            try {
+                const nodes = await attrTemplate(categoryId)
+                if (!cancelled) {
+                    setTemplate(nodes.filter((n) => n.attr.kind === "SPEC"))
+                    setLoadError(undefined)
+                }
+            } catch (error) {
                 if (!cancelled) setLoadError(toApiError(error).detail)
-            })
+            }
+        }
+        void loadTemplate()
         return () => {
             cancelled = true
         }

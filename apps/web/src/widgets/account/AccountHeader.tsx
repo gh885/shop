@@ -57,6 +57,7 @@ export function AccountHeader({
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
                             placeholder="搜索商品"
+                            aria-label="搜索商品"
                             className="h-full flex-1 bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                         />
                         <Button

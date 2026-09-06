@@ -50,7 +50,7 @@ export function Settlement() {
                                     type="button"
                                     onClick={() => toggle.mutate({ id: item.id, selected: false })}
                                     aria-label={`取消选择 ${view.title}`}
-                                    className="absolute inset-0 hidden items-center justify-center bg-black/50 text-xs text-white group-hover:flex"
+                                    className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
                                 >
                                     取消选择
                                 </button>
@@ -68,7 +68,9 @@ export function Settlement() {
             {/* 商品总价 */}
             <div className="mt-5 flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">商品总价</span>
-                <span className="font-medium text-foreground">¥{fenToYuan(selectedTotal)}</span>
+                <span className="font-medium text-foreground tabular-nums">
+                    ¥{fenToYuan(selectedTotal)}
+                </span>
             </div>
 
             {/* 优惠/满减/红包区：本期不做，留白给后续订单接入 */}
@@ -77,7 +79,7 @@ export function Settlement() {
             <div className="mt-4 flex items-end justify-between">
                 <span className="text-sm text-muted-foreground">合计：</span>
                 <div className="text-right">
-                    <span className="text-2xl font-bold tracking-tight text-primary">
+                    <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
                         ¥{fenToYuan(selectedTotal)}
                     </span>
                 </div>

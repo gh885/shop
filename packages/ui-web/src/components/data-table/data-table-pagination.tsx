@@ -81,9 +81,12 @@ export function DataTablePagination<TData>({ table, className }: DataTablePagina
 
                 {pageNumbers.map((pageNumber, index) => (
                     <div
-                        // 分页页码固定序列：数字页码唯一，index 仅用于区分重复的省略号分隔符
-                        // eslint-disable-next-line react/no-array-index-key
-                        key={`${pageNumber}-${index}`}
+                        // 分页页码固定序列：数字页码唯一；省略号以「前一页码」为身份，不以数组下标作 key
+                        key={
+                            pageNumber === "..."
+                                ? `ellipsis-${pageNumbers[index - 1] ?? "start"}`
+                                : String(pageNumber)
+                        }
                         className="flex items-center"
                     >
                         {pageNumber === "..." ? (

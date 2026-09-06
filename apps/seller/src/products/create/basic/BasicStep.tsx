@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react"
 import { CheckCircle2, ChevronRight, ListTree } from "lucide-react"
-import { useCallback } from "react"
 import {
     Badge,
     Button,
@@ -108,7 +107,7 @@ export function BasicStep({
     initialBasic?: BasicStepValues
 }) {
     // 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入
-    const uploadImage = useCallback((file: File) => uploadProductImage(file), [])
+    const uploadImage = (file: File) => uploadProductImage(file)
     const leafPaths = useLeafPaths()
     const categoryNames = leafPaths.find((p) => p.id === categoryId)?.names ?? []
     const active = useActiveSection()
