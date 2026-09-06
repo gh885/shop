@@ -103,13 +103,15 @@ export function Field({
     const labelNode = label ? (
         <label
             htmlFor={htmlFor}
-            className={
+            className={cn(
                 layout === "horizontal"
                     ? "w-16 shrink-0 pt-2.5 text-sm"
-                    : "text-sm font-medium text-foreground"
-            }
+                    : "text-sm font-medium text-foreground",
+                // 必填星号走伪元素：不进 label 的文本内容（label 文本保持纯净，供
+                // 屏幕阅读器与测试查询精确匹配；必填语义由表单校验/aria 传达）
+                required && "before:mr-0.5 before:text-destructive before:content-['*']",
+            )}
         >
-            {required && <span className="mr-0.5 text-destructive">*</span>}
             {label}
         </label>
     ) : undefined
