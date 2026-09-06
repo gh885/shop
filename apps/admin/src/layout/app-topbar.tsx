@@ -30,7 +30,7 @@ export function AppTopBar() {
                         <TopBarNavItem
                             key={d.key}
                             isActive={d === domain}
-                            render={<Link {...d.groups[0].items[0].link} />}
+                            render={<Link {...d.groups[0]?.items[0]?.link} />}
                         >
                             {d.label}
                         </TopBarNavItem>

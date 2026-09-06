@@ -4,8 +4,8 @@ import { useState } from "react"
 
 import { Button, Card, CardContent, Spinner, useAppForm } from "@shop/ui-web"
 
-import { adminApi, requireGuest } from "../lib/api"
-import { getDeviceId, tokenStore } from "../lib/api"
+import { adminApi, requireGuest } from "../shared/lib/api"
+import { getDeviceId, tokenStore } from "../shared/lib/api"
 import { toApiError } from "@shop/api"
 
 export const Route = createFileRoute("/login")({

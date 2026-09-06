@@ -23,7 +23,7 @@ export function AppSidebar() {
     const domain = activeDomain(pathname)
 
     // 工作台这类无菜单的域：不渲染侧栏，内容区全宽
-    if (domain.groups.length === 0) return
+    if (!domain || domain.groups.length === 0) return
 
     return (
         <Sidebar collapsible="icon">
@@ -38,8 +38,8 @@ export function AppSidebar() {
                 </div>
             </SidebarHeader>
             <SidebarContent>
-                {domain.groups.map((group) => (
-                    <SidebarGroup key={group.label ?? group.items[0].label}>
+                {domain.groups.map((group, i) => (
+                    <SidebarGroup key={group.label ?? group.items[0]?.label ?? i}>
                         {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
                         <SidebarGroupContent>
                             <SidebarMenu>

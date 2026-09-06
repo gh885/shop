@@ -27,7 +27,7 @@ import {
     Textarea,
     type DataTableFilterConfig,
 } from "@shop/ui-web"
-import { type ShopReviewItem, reviewListOptions, REVIEW_LIST_KEY, adminApi } from "#/lib/api"
+import { type ShopReviewItem, reviewListOptions, REVIEW_LIST_KEY, adminApi } from "#/shared/lib/api"
 import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
 import { isValid, format } from "date-fns"
 

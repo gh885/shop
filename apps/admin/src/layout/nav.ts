@@ -44,8 +44,8 @@ export const NAV: NavDomain[] = [
     },
 ]
 
-/** 当前路由所属业务域：先按 `/{key}` 前缀精确匹配，兜底到第一个有菜单的域 */
-export function activeDomain(pathname: string): NavDomain {
+/** 当前路由所属业务域：先按 `/{key}` 前缀精确匹配，兜底到第一个有菜单的域；NAV 为空时 undefined */
+export function activeDomain(pathname: string): NavDomain | undefined {
     return (
         NAV.find((d) => pathname.startsWith(`/${d.key}`)) ??
         NAV.find((d) => d.groups.length > 0) ??

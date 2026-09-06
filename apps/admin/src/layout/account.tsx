@@ -4,8 +4,8 @@ import { Button, cn, Spinner, useSidebar } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 
 import { AdminAuthApi } from "@shop/api/sdk"
-import { getDeviceId, tokenStore } from "../lib/api"
-import { useMe } from "../lib/me"
+import { getDeviceId, tokenStore } from "../shared/lib/api"
+import { useMe } from "../shared/lib/me"
 
 /** 账号头像（首字）：顶栏右侧独立展示，侧栏账号行内复用 */
 export function AccountAvatar({ className }: { className?: string }) {
