@@ -3,6 +3,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react"
 import { ProductsAdminApi, type SkuUpdateItem } from "@shop/api/sdk"
 
 import { applyProductSpecs, attrTemplate, publishProduct, updateProductSkus } from "#/products/data"
+import { notify } from "#/shared/lib/toast"
 
 /** 编辑态商品状态：判断「能否切类目 / 规格是否冻结」，undefined 表示新建（无真实商品态）。 */
 export type DraftProductStatus = "DRAFT" | "WAREHOUSE" | "PUBLISHED"
@@ -170,7 +171,10 @@ export function useProductDraft({
                 setProductStatus(detail.product.status)
                 setHydrated(true)
             })
-            .catch(() => setHydrated(true))
+            .catch(() => {
+                notify.error("商品信息加载失败，请刷新重试")
+                setHydrated(true)
+            })
         return () => {
             cancelled = true
         }
@@ -199,7 +203,8 @@ export function useProductDraft({
                 const fresh = await applyProductSpecs(id, next)
                 dispatch({ type: "setSkuRows", rows: mergeSkuRows(skuRowsRef.current, fresh) })
             } catch {
-                // 生成失败：保留原行，错误由调用方展示
+                // 生成失败：保留原行，toast 提示避免无感知
+                notify.error("生成商品规格失败，请重试")
             }
         },
         [shopId, template],

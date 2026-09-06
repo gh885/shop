@@ -3,23 +3,40 @@ import { z } from "zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
     Badge,
     Button,
+    ButtonGroup,
     Empty,
     EmptyDescription,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
+    Field,
     Input,
     Skeleton,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
     StateError,
+    firstFieldError,
+    useAppForm,
 } from "@shop/ui-web"
-import { CircleAlert, Store, Trash2, UserPlus } from "lucide-react"
+import { Store, Trash2, UserPlus } from "lucide-react"
 
 import { toApiError } from "@shop/api"
 
 import { inviteMember, removeMember, shopMembers } from "#/shared/lib/shop-data"
 import { useMe } from "#/shared/lib/me"
+import { notify } from "#/shared/lib/toast"
 import { useCurrentShop } from "#/shared/lib/shop"
 
 /** 邀请手机号校验：与后端手机号 @Pattern 对齐（就近放在表单旁） */
@@ -35,12 +52,15 @@ function MembersPage() {
 
     if (!shop) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-                <Store className="size-10 text-muted-foreground/50" />
-                <p className="text-muted-foreground">
-                    还没有正常营业的店铺，先到「店铺管理」创建或等待审核
-                </p>
-            </div>
+            <Empty className="py-24">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <Store />
+                    </EmptyMedia>
+                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
+                    <EmptyDescription>先到「店铺管理」创建店铺或等待审核通过。</EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         )
     }
 
@@ -60,8 +80,6 @@ function MembersPage() {
 function MemberPanel({ shopId }: { shopId: string }) {
     const queryClient = useQueryClient()
     const me = useMe()
-    const [phone, setPhone] = useState("")
-    const [error, setError] = useState<string | undefined>()
 
     const members = useQuery({
         queryKey: ["shops", shopId, "members"],
@@ -76,22 +94,28 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const invite = useMutation({
         mutationFn: (value: string) => inviteMember(shopId, { phone: value }),
         onSuccess: () => {
-            setPhone("")
-            setError(undefined)
+            notify.success("邀请已发送")
             void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
         },
-        onError: (e) => {
-            const err = toApiError(e)
-            setError(err.detail)
-        },
+        onError: (e) => notify.fromError(e, "邀请发送失败"),
+    })
+
+    const inviteForm = useAppForm({
+        defaultValues: { phone: "" },
+        onSubmit: ({ value }) => invite.mutate(value.phone),
     })
 
     const remove = useMutation({
         mutationFn: (memberId: string) => removeMember(shopId, memberId),
         onSuccess: () => {
+            notify.success("已移除该成员")
             void queryClient.invalidateQueries({ queryKey: ["shops", shopId, "members"] })
         },
+        onError: (e) => notify.fromError(e, "移除成员失败"),
     })
+
+    // 移除二次确认：记录目标成员，确认后才真正执行
+    const [removeTarget, setRemoveTarget] = useState<string | undefined>()
 
     if (members.isError) {
         return (
@@ -117,92 +141,138 @@ function MemberPanel({ shopId }: { shopId: string }) {
     }
 
     return (
-        <section className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="font-semibold">成员列表</h2>
+        <Card>
+            <CardHeader>
+                <CardTitle>成员列表</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {!members.data || members.data.length === 0 ? (
+                    <Empty className="mt-3 py-10">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <Store />
+                            </EmptyMedia>
+                            <EmptyTitle>暂无成员</EmptyTitle>
+                            <EmptyDescription>
+                                邀请对方加入店铺后，成员会出现在这里
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                ) : (
+                    <ul className="mt-3 divide-y divide-border">
+                        {members.data.map((m) => (
+                            <li
+                                key={m.memberId}
+                                className="flex items-center justify-between py-3 text-sm"
+                            >
+                                <span className="tabular-nums">{m.phone ?? m.userId}</span>
+                                <span className="flex items-center gap-2">
+                                    <Badge variant={m.role === "OWNER" ? "default" : "secondary"}>
+                                        {m.role === "OWNER" ? "店主" : "店员"}
+                                    </Badge>
+                                    {m.status === "PENDING" ? (
+                                        <Badge variant="outline">待确认</Badge>
+                                    ) : undefined}
+                                    {isOwner && m.role !== "OWNER" ? (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            disabled={remove.isPending}
+                                            onClick={() => setRemoveTarget(m.memberId)}
+                                            aria-label="移除成员"
+                                        >
+                                            <Trash2 className="size-4 text-muted-foreground" />
+                                        </Button>
+                                    ) : undefined}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
 
-            {!members.data || members.data.length === 0 ? (
-                <Empty className="mt-3 border-border py-10">
-                    <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                            <Store />
-                        </EmptyMedia>
-                        <EmptyTitle>暂无成员</EmptyTitle>
-                        <EmptyDescription>邀请对方加入店铺后，成员会出现在这里</EmptyDescription>
-                    </EmptyHeader>
-                </Empty>
-            ) : (
-                <ul className="mt-3 divide-y divide-border">
-                    {members.data.map((m) => (
-                        <li
-                            key={m.memberId}
-                            className="flex items-center justify-between py-3 text-sm"
+                {isOwner ? (
+                    <inviteForm.AppForm>
+                        <form
+                            className="mt-5"
+                            onSubmit={(e) => {
+                                e.preventDefault()
+                                inviteForm.handleSubmit()
+                            }}
                         >
-                            <span className="tabular-nums">{m.phone ?? m.userId}</span>
-                            <span className="flex items-center gap-2">
-                                <Badge variant={m.role === "OWNER" ? "default" : "secondary"}>
-                                    {m.role === "OWNER" ? "店主" : "店员"}
-                                </Badge>
-                                {m.status === "PENDING" ? (
-                                    <Badge variant="outline">待确认</Badge>
-                                ) : undefined}
-                                {isOwner && m.role !== "OWNER" ? (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        disabled={remove.isPending}
-                                        onClick={() => remove.mutate(m.memberId)}
-                                        aria-label="移除成员"
-                                    >
-                                        <Trash2 className="size-4 text-muted-foreground" />
-                                    </Button>
-                                ) : undefined}
-                            </span>
-                        </li>
-                    ))}
-                </ul>
-            )}
+                            <inviteForm.AppField
+                                name="phone"
+                                validators={{ onChange: InvitePhoneSchema }}
+                            >
+                                {(field) => (
+                                    <Field error={firstFieldError(field)}>
+                                        <ButtonGroup className="w-full">
+                                            <Input
+                                                id="invite-phone"
+                                                aria-label="被邀请人手机号"
+                                                placeholder="输入对方手机号，邀请加入店铺"
+                                                inputMode="tel"
+                                                maxLength={11}
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) =>
+                                                    field.handleChange(
+                                                        e.target.value.replaceAll(/\D/g, ""),
+                                                    )
+                                                }
+                                            />
+                                            <inviteForm.Subscribe selector={(s) => s.values.phone}>
+                                                {(phone) => (
+                                                    <Button
+                                                        type="submit"
+                                                        variant="outline"
+                                                        disabled={
+                                                            invite.isPending || phone.length !== 11
+                                                        }
+                                                    >
+                                                        <UserPlus className="size-4" />
+                                                        邀请
+                                                    </Button>
+                                                )}
+                                            </inviteForm.Subscribe>
+                                        </ButtonGroup>
+                                    </Field>
+                                )}
+                            </inviteForm.AppField>
+                        </form>
+                    </inviteForm.AppForm>
+                ) : (
+                    <p className="mt-5 text-sm text-muted-foreground">
+                        只有店主可以邀请或移除成员。
+                    </p>
+                )}
 
-            {isOwner ? (
-                <form
-                    className="mt-5 flex items-start gap-2"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        setError(undefined)
-                        const result = InvitePhoneSchema.safeParse(phone)
-                        if (!result.success) {
-                            setError(result.error.issues[0]?.message ?? "请输入正确的手机号")
-                            return
-                        }
-                        invite.mutate(result.data)
-                    }}
+                {/* 移除成员二次确认 */}
+                <AlertDialog
+                    open={Boolean(removeTarget)}
+                    onOpenChange={(open) => !open && setRemoveTarget(undefined)}
                 >
-                    <div className="flex-1 space-y-1.5">
-                        <Input
-                            placeholder="输入对方手机号，邀请加入店铺"
-                            inputMode="tel"
-                            maxLength={11}
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value.replaceAll(/\D/g, ""))}
-                        />
-                        {error ? (
-                            <p className="flex items-center gap-1 text-sm text-destructive">
-                                <CircleAlert className="size-3.5" />
-                                {error}
-                            </p>
-                        ) : undefined}
-                    </div>
-                    <Button
-                        type="submit"
-                        variant="outline"
-                        disabled={invite.isPending || phone.length !== 11}
-                    >
-                        <UserPlus className="size-4" />
-                        邀请
-                    </Button>
-                </form>
-            ) : (
-                <p className="mt-5 text-sm text-muted-foreground">只有店主可以邀请或移除成员。</p>
-            )}
-        </section>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>移除成员</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                确定将该成员移出店铺吗？移除后对方将无法访问本店铺。
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>取消</AlertDialogCancel>
+                            <AlertDialogAction
+                                variant="destructive"
+                                onClick={() => {
+                                    if (removeTarget) remove.mutate(removeTarget)
+                                    setRemoveTarget(undefined)
+                                }}
+                            >
+                                移除
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardContent>
+        </Card>
     )
 }

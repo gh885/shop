@@ -1,9 +1,35 @@
 import { z } from "zod"
 import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, MapPin } from "lucide-react"
+import { ArrowLeft, CircleAlert, MapPin } from "lucide-react"
 
-import { Button, Separator, Skeleton } from "@shop/ui-web"
+import {
+    Button,
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemMedia,
+    ItemTitle,
+    Panel,
+    PanelContent,
+    PanelHeader,
+    RadioGroup,
+    RadioGroupItem,
+    Separator,
+    Skeleton,
+    Spinner,
+} from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
 import { useAddressList, type Address } from "#/address"
@@ -82,6 +108,16 @@ function CheckoutPage() {
                         <Skeleton className="h-40 w-full rounded-2xl" />
                         <Skeleton className="h-40 w-full rounded-2xl" />
                     </div>
+                ) : preview.isError ? (
+                    <div className="flex flex-col items-center gap-4 py-16 text-sm text-muted-foreground">
+                        <span>结算信息加载失败，请重试</span>
+                        <Button
+                            variant="outline"
+                            onClick={() => void preview.refetch()}
+                        >
+                            重新加载
+                        </Button>
+                    </div>
                 ) : (
                     <div className="flex gap-6">
                         {/* 左：地址 + 商品分组 + 失效行 */}
@@ -102,9 +138,11 @@ function CheckoutPage() {
 
                         {/* 右：金额结算卡 */}
                         <div className="w-80 shrink-0">
-                            <div className="sticky top-4 rounded-2xl bg-background p-6 ring-1 ring-border/60">
-                                <h2 className="text-lg font-semibold">结算</h2>
-                                <div className="mt-4 space-y-2 text-sm">
+                            <Card className="sticky top-4">
+                                <CardHeader>
+                                    <CardTitle>结算</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
                                     <Row label="商品总额">
                                         ¥{fenToYuan(preview.data?.totalPayAmount.amount ?? 0)}
                                     </Row>
@@ -117,24 +155,25 @@ function CheckoutPage() {
                                             ) ?? 0,
                                         )}
                                     </Row>
-                                </div>
-                                <Separator className="my-4" />
-                                <div className="flex items-end justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                        应付总额：
-                                    </span>
-                                    <span className="text-2xl font-bold text-primary">
-                                        ¥{fenToYuan(preview.data?.totalPayAmount.amount ?? 0)}
-                                    </span>
-                                </div>
-                                <Button
-                                    className="mt-5 h-12 w-full rounded-xl bg-linear-to-r from-primary to-primary-hover text-base text-white"
-                                    disabled={!addressId || createOrder.isPending}
-                                    onClick={submit}
-                                >
-                                    {createOrder.isPending ? "提交中…" : "提交订单"}
-                                </Button>
-                            </div>
+                                    <Separator />
+                                    <div className="flex items-end justify-between">
+                                        <span className="text-muted-foreground">应付总额：</span>
+                                        <span className="text-2xl font-bold text-primary">
+                                            ¥{fenToYuan(preview.data?.totalPayAmount.amount ?? 0)}
+                                        </span>
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button
+                                        variant="cta"
+                                        className="h-12 w-full"
+                                        disabled={!effectiveAddressId || createOrder.isPending}
+                                        onClick={submit}
+                                    >
+                                        {createOrder.isPending && <Spinner />}提交订单
+                                    </Button>
+                                </CardFooter>
+                            </Card>
                         </div>
                     </div>
                 )}
@@ -181,51 +220,75 @@ function AddressPicker({
     value: string
     onChange: (id: string) => void
 }) {
+    const navigate = useNavigate()
     if (addresses.length === 0) {
         return (
-            <div className="rounded-2xl bg-background p-6 ring-1 ring-border/60">
-                <p className="text-sm text-muted-foreground">请先添加收货地址</p>
-            </div>
+            <Card>
+                <CardContent>
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <MapPin />
+                            </EmptyMedia>
+                            <EmptyTitle>还没有收货地址</EmptyTitle>
+                            <EmptyDescription>添加收货地址后即可提交订单。</EmptyDescription>
+                            <Button
+                                variant="outline"
+                                className="mt-2"
+                                onClick={() => void navigate({ to: "/account/address" })}
+                            >
+                                去添加地址
+                            </Button>
+                        </EmptyHeader>
+                    </Empty>
+                </CardContent>
+            </Card>
         )
     }
     // 默认选中：已勾选的，否则默认地址
     const effectiveId = value || addresses.find((a) => a.isDefault)?.id || addresses[0].id
     return (
-        <div className="rounded-2xl bg-background p-4 ring-1 ring-border/60">
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                <MapPin className="size-4 text-primary" />
-                收货地址
-            </div>
-            <div className="space-y-2">
-                {addresses.map((a) => (
-                    <label
-                        key={a.id}
-                        className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-colors ${
-                            effectiveId === a.id
-                                ? "border-primary bg-primary/5"
-                                : "border-border/60 hover:bg-muted/40"
-                        }`}
-                    >
-                        <input
-                            type="radio"
-                            name="address"
-                            checked={effectiveId === a.id}
-                            onChange={() => onChange(a.id)}
-                            className="size-3.5 accent-primary"
-                        />
-                        <span className="font-medium">
-                            {a.receiver} {a.phone}
-                        </span>
-                        <span className="text-muted-foreground">
-                            {a.province}
-                            {a.city}
-                            {a.district}
-                            {a.detail}
-                        </span>
-                    </label>
-                ))}
-            </div>
-        </div>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <MapPin className="size-4 text-primary" />
+                    收货地址
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <RadioGroup
+                    value={effectiveId}
+                    onValueChange={(v) => onChange(v as string)}
+                    className="gap-2"
+                >
+                    {addresses.map((a) => (
+                        <Item
+                            key={a.id}
+                            variant={effectiveId === a.id ? "default" : "outline"}
+                            size="sm"
+                            className={
+                                effectiveId === a.id
+                                    ? "border-primary bg-primary/5"
+                                    : "hover:bg-muted/40"
+                            }
+                        >
+                            <RadioGroupItem value={a.id} />
+                            <ItemContent>
+                                <ItemTitle className="text-sm font-medium">
+                                    {a.receiver} {a.phone}
+                                </ItemTitle>
+                                <ItemDescription className="line-clamp-1">
+                                    {a.province}
+                                    {a.city}
+                                    {a.district}
+                                    {a.detail}
+                                </ItemDescription>
+                            </ItemContent>
+                        </Item>
+                    ))}
+                </RadioGroup>
+            </CardContent>
+        </Card>
     )
 }
 
@@ -233,43 +296,50 @@ type CheckoutGroup = CheckoutPreview["groups"][number]
 
 function GroupCard({ group }: { group: CheckoutGroup }) {
     return (
-        <div className="rounded-2xl bg-background ring-1 ring-border/60">
-            <div className="flex items-center gap-2 border-b border-border/60 px-5 py-3.5 text-sm font-medium">
-                <span className="inline-flex size-5 items-center justify-center rounded bg-primary text-xs font-bold text-white">
+        <Panel>
+            <PanelHeader className="gap-2 text-sm font-medium">
+                <span className="inline-flex size-5 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
                     店
                 </span>
                 {group.shopName}
-            </div>
-            <div className="divide-y divide-border/40">
+            </PanelHeader>
+            <PanelContent>
                 {group.lines.map((l) => (
-                    <div
+                    <Item
                         key={`${l.skuId}-${l.productId}`}
-                        className="flex items-center gap-4 px-5 py-4"
+                        size="sm"
+                        className="rounded-none border-0 px-5 py-4"
                     >
-                        {l.image && (
-                            <img
-                                src={l.image}
-                                alt={l.name}
-                                className="size-16 shrink-0 rounded-md bg-muted object-cover"
-                            />
-                        )}
-                        <div className="min-w-0 flex-1">
-                            <p className="line-clamp-2 text-sm text-foreground">{l.name}</p>
-                        </div>
-                        <div className="w-20 shrink-0 text-right text-sm">
-                            <span className="font-bold text-foreground">
-                                ¥{fenToYuan(l.price.amount)}
-                            </span>
-                            <span className="ml-1 text-xs text-muted-foreground">
-                                x{l.quantity}
-                            </span>
-                        </div>
-                        <div className="w-20 shrink-0 text-right text-sm font-bold text-foreground">
-                            ¥{fenToYuan(l.price.amount * l.quantity)}
-                        </div>
-                    </div>
+                        <ItemMedia
+                            variant="image"
+                            className="size-16 shrink-0 rounded-md bg-muted"
+                        >
+                            {l.image && (
+                                <img
+                                    src={l.image}
+                                    alt={l.name}
+                                />
+                            )}
+                        </ItemMedia>
+                        <ItemContent>
+                            <ItemTitle className="line-clamp-2 w-full text-sm font-normal">
+                                {l.name}
+                            </ItemTitle>
+                        </ItemContent>
+                        <ItemActions className="gap-6 self-center">
+                            <div className="w-20 text-right">
+                                <span className="font-bold">{fenToYuan(l.price.amount)}</span>
+                                <span className="ml-1 text-xs text-muted-foreground">
+                                    x{l.quantity}
+                                </span>
+                            </div>
+                            <div className="w-20 text-right font-bold">
+                                ¥{fenToYuan(l.price.amount * l.quantity)}
+                            </div>
+                        </ItemActions>
+                    </Item>
                 ))}
-            </div>
+            </PanelContent>
             <div className="flex items-center justify-end gap-6 border-t border-border/60 px-5 py-3 text-sm">
                 <span className="text-muted-foreground">
                     商品总额{" "}
@@ -280,25 +350,28 @@ function GroupCard({ group }: { group: CheckoutGroup }) {
                     应付 <b className="text-primary">¥{fenToYuan(group.payAmount.amount)}</b>
                 </span>
             </div>
-        </div>
+        </Panel>
     )
 }
 
 function UnavailableCard({ lines }: { lines: CheckoutPreview["unavailable"] }) {
     if (lines.length === 0) return
     return (
-        <div className="rounded-2xl bg-muted/40 p-5 ring-1 ring-border/60">
-            <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-                <MapPin className="size-4" />
+        <Item
+            variant="muted"
+            className="flex-col items-start gap-2"
+        >
+            <div className="flex items-center gap-2 font-medium text-destructive">
+                <CircleAlert className="size-4" />
                 以下商品已失效
             </div>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+            <ul className="text-muted-foreground">
                 {lines.map((l) => (
                     <li key={l.skuId}>
                         {l.name} x{l.quantity}（{l.cause}）
                     </li>
                 ))}
             </ul>
-        </div>
+        </Item>
     )
 }

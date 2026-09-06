@@ -1,10 +1,24 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 
 import { AccountHeader } from "#/widgets/account"
 import { useOrderDetail, useCancelOrder, useReceiveOrder, type OrderDetail } from "#/order"
 import { OrderProgress, OrderShopSection, OrderStatusSection, OrderSummaryCard } from "#/order"
 import { notify } from "#/shared/lib/toast"
-import { Skeleton } from "@shop/ui-web"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    Card,
+    CardContent,
+    Skeleton,
+    Spinner,
+} from "@shop/ui-web"
 
 function notifyItemAction(_order: unknown, action: string) {
     notify.info(`「${action}」即将上线`)
@@ -27,13 +41,14 @@ function OrderDetailPage() {
     const receive = useReceiveOrder()
 
     // 状态区客户操作分发（商品区是加购/售后，走 notifyItemAction）
+    const [cancelOpen, setCancelOpen] = useState(false)
     const handleOrderAction = (o: OrderDetail, action: string) => {
         switch (action) {
             case "pay":
                 void navigate({ to: "/pay/$orderId", params: { orderId: o.id } })
                 break
             case "cancel":
-                cancel.mutate(o.id)
+                setCancelOpen(true)
                 break
             case "confirm":
                 receive.mutate(o.id)
@@ -72,13 +87,22 @@ function OrderDetailPage() {
                     {/* 左侧主区 */}
                     <div className="min-w-0 flex-1 space-y-8">
                         {/* 进度条 + 状态 + 地址 + 操作 */}
-                        <div className="space-y-6 rounded-xl bg-background p-6">
-                            <OrderProgress status={order.status} />
-                            <OrderStatusSection
-                                order={order}
-                                onAction={handleOrderAction}
-                            />
-                        </div>
+                        <Card>
+                            <CardContent className="space-y-6">
+                                <OrderProgress status={order.status} />
+                                <OrderStatusSection
+                                    order={order}
+                                    pendingAction={
+                                        cancel.isPending
+                                            ? "cancel"
+                                            : receive.isPending
+                                              ? "confirm"
+                                              : undefined
+                                    }
+                                    onAction={handleOrderAction}
+                                />
+                            </CardContent>
+                        </Card>
 
                         {/* 店铺 + 商品 */}
                         <OrderShopSection
@@ -94,6 +118,33 @@ function OrderDetailPage() {
                     </aside>
                 </div>
             </div>
+
+            {/* 取消订单二次确认 */}
+            <AlertDialog
+                open={cancelOpen}
+                onOpenChange={setCancelOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>取消订单</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            确定取消订单 {order.orderNo} 吗？该操作不可恢复。
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            disabled={cancel.isPending}
+                            onClick={() =>
+                                cancel.mutate(order.id, { onSuccess: () => setCancelOpen(false) })
+                            }
+                        >
+                            {cancel.isPending && <Spinner />}取消订单
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

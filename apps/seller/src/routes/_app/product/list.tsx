@@ -51,12 +51,15 @@ function ProductsPage() {
 
     if (!shop) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-                <Store className="size-10 text-muted-foreground/50" />
-                <p className="text-muted-foreground">
-                    还没有正常营业的店铺，先到「店铺管理」创建或等待审核
-                </p>
-            </div>
+            <Empty className="py-24">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <Store />
+                    </EmptyMedia>
+                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
+                    <EmptyDescription>先到「店铺管理」创建店铺或等待审核通过。</EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         )
     }
 
@@ -83,7 +86,7 @@ function ProductsPage() {
                     ))}
                 </div>
             ) : records.length === 0 ? (
-                <Empty className="rounded-2xl border-border py-16">
+                <Empty className="py-16">
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
                             <Package />

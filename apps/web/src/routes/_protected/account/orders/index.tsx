@@ -2,7 +2,22 @@ import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { CircleAlert } from "lucide-react"
 
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@shop/ui-web"
 
 import type { Order, OrderStatus } from "#/order"
 import {
@@ -13,7 +28,7 @@ import {
     useReceiveOrder,
 } from "#/order"
 import { notify } from "#/shared/lib/toast"
-import { Skeleton } from "@shop/ui-web"
+import { Skeleton, Spinner } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/orders/")({
     component: OrdersPage,
@@ -33,22 +48,23 @@ const STATUS_TABS: { key: OrderStatus | "all"; label: string }[] = [
 
 function OrdersPage() {
     const [tab, setTab] = useState<OrderStatus | "all">("all")
+    const [cancelTarget, setCancelTarget] = useState<Order | undefined>()
     const navigate = useNavigate()
-    const { data, isLoading, isError } = useMyOrders(tab)
+    const { data, isLoading, isError, refetch } = useMyOrders(tab)
     const cancel = useCancelOrder()
     const receive = useReceiveOrder()
 
     // 按后端返回直接渲染（后端已按 status 过滤）；追加按状态 Tab 过滤仅用于「全部」时无需再筛
     const orders: Order[] = data?.records ?? []
 
-    // 订单卡片操作分发：pay → 收银台；cancel → 取消；confirm → 确认收货；其余暂 toast 占位
+    // 订单卡片操作分发：pay → 收银台；cancel → 二次确认后取消；confirm → 确认收货；其余 toast 占位
     const handleAction = (order: Order, action: string) => {
         switch (action) {
             case "pay":
                 void navigate({ to: "/pay/$orderId", params: { orderId: order.id } })
                 break
             case "cancel":
-                cancel.mutate(order.id)
+                setCancelTarget(order)
                 break
             case "confirm":
                 receive.mutate(order.id)
@@ -100,6 +116,13 @@ function OrdersPage() {
                         </EmptyMedia>
                         <EmptyTitle>加载失败</EmptyTitle>
                         <EmptyDescription>请稍后重试或刷新页面。</EmptyDescription>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void refetch()}
+                        >
+                            重新加载
+                        </Button>
                     </EmptyHeader>
                 </Empty>
             ) : orders.length === 0 ? (
@@ -112,6 +135,12 @@ function OrdersPage() {
                             {tab === "all" ? "暂无订单" : `暂无${ORDER_STATUS_LABEL[tab]}订单`}
                         </EmptyTitle>
                         <EmptyDescription>去逛逛，把心仪好物带回家。</EmptyDescription>
+                        <Button
+                            className="mt-2"
+                            onClick={() => void navigate({ to: "/" })}
+                        >
+                            去逛逛
+                        </Button>
                     </EmptyHeader>
                 </Empty>
             ) : (
@@ -120,6 +149,13 @@ function OrdersPage() {
                         <OrderCard
                             key={order.id}
                             order={order}
+                            pendingAction={
+                                cancel.isPending
+                                    ? "cancel"
+                                    : receive.isPending
+                                      ? "confirm"
+                                      : undefined
+                            }
                             onDetail={(o) =>
                                 void navigate({
                                     to: "/orders/$orderId",
@@ -131,6 +167,36 @@ function OrdersPage() {
                     ))}
                 </div>
             )}
+
+            {/* 取消订单二次确认 */}
+            <AlertDialog
+                open={Boolean(cancelTarget)}
+                onOpenChange={(open) => !open && setCancelTarget(undefined)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>取消订单</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            确定取消订单 {cancelTarget?.orderNo ?? ""} 吗？该操作不可恢复。
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            disabled={cancel.isPending}
+                            onClick={() => {
+                                if (cancelTarget)
+                                    cancel.mutate(cancelTarget.id, {
+                                        onSuccess: () => setCancelTarget(undefined),
+                                    })
+                            }}
+                        >
+                            {cancel.isPending && <Spinner />}取消订单
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

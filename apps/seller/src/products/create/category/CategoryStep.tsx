@@ -57,11 +57,11 @@ export function CategoryStep({
                     }}
                     className="mb-3"
                 >
-                    <TabsList className="h-10 w-full bg-transparent p-0">
-                        <TabsTrigger
-                            value="search"
-                            className="text-base"
-                        >
+                    <TabsList
+                        variant="line"
+                        className="h-10 w-full p-0"
+                    >
+                        <TabsTrigger value="search">
                             <Search />
                             搜索发品
                         </TabsTrigger>
@@ -69,7 +69,6 @@ export function CategoryStep({
                             value="image"
                             disabled
                             title="以图发品即将上线"
-                            className="text-base"
                         >
                             <ImageIcon />
                             以图发品
@@ -88,7 +87,7 @@ export function CategoryStep({
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         placeholder="输入商品名找类目，如「宠物喂食器」"
-                        className="h-10 flex-1 border-transparent bg-muted/60 shadow-none focus-visible:border-transparent"
+                        className="h-10 flex-1"
                     />
                     <Button
                         type="submit"
@@ -99,7 +98,7 @@ export function CategoryStep({
                     <Button
                         type="button"
                         variant="secondary"
-                        className="h-10 bg-background hover:bg-background/70"
+                        className="h-10"
                         onClick={() => {
                             setKeyword("")
                             setDraft("")

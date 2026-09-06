@@ -1,11 +1,40 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { CircleAlert, Loader2, LogOut, Monitor, Smartphone } from "lucide-react"
+import { CircleAlert, LogOut, Monitor, Smartphone } from "lucide-react"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AuthApi } from "@shop/api/sdk"
 import { format, isValid } from "date-fns"
-import { Button, Empty, EmptyHeader, EmptyTitle, Skeleton, useAppForm } from "@shop/ui-web"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    Button,
+    Card,
+    CardAction,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyTitle,
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemMedia,
+    ItemTitle,
+    Skeleton,
+    Spinner,
+    useAppForm,
+} from "@shop/ui-web"
 
 import { getDeviceId } from "#/shared/api/auth"
 import { notify } from "#/shared/lib/toast"
@@ -59,65 +88,67 @@ function ChangePassword() {
     })
 
     return (
-        <section className="space-y-4 rounded-2xl bg-background p-6">
-            <div>
-                <h2 className="text-base font-semibold">修改登录密码</h2>
-                <p className="text-sm text-muted-foreground">
-                    修改后所有设备将退出登录，需重新验证。
-                </p>
-            </div>
-
-            <form
-                className="max-w-md space-y-3"
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    form.handleSubmit()
-                }}
-            >
-                <form.AppField name="current">
-                    {(field) => (
-                        <field.TextField
-                            type="password"
-                            placeholder="当前密码"
-                            autoComplete="current-password"
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="next">
-                    {(field) => (
-                        <field.TextField
-                            type="password"
-                            placeholder="新密码（至少 8 位）"
-                            autoComplete="new-password"
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="confirm">
-                    {(field) => (
-                        <field.TextField
-                            type="password"
-                            placeholder="确认新密码"
-                            autoComplete="new-password"
-                        />
-                    )}
-                </form.AppField>
-
-                {error && (
-                    <p className="flex items-center gap-1.5 text-[13px] text-destructive">
-                        <CircleAlert className="size-3.5 shrink-0" />
-                        {error}
-                    </p>
-                )}
-
-                <Button
-                    type="submit"
-                    disabled={change.isPending}
-                    className="w-28"
+        <Card>
+            <CardHeader>
+                <CardTitle>修改登录密码</CardTitle>
+                <CardDescription>修改后所有设备将退出登录，需重新验证。</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form
+                    className="max-w-md space-y-3"
+                    onSubmit={(e) => {
+                        e.preventDefault()
+                        form.handleSubmit()
+                    }}
                 >
-                    {change.isPending ? <Loader2 className="animate-spin" /> : "确认修改"}
-                </Button>
-            </form>
-        </section>
+                    <form.AppField name="current">
+                        {(field) => (
+                            <field.TextField
+                                type="password"
+                                label="当前密码"
+                                placeholder="请输入当前密码"
+                                autoComplete="current-password"
+                            />
+                        )}
+                    </form.AppField>
+                    <form.AppField name="next">
+                        {(field) => (
+                            <field.TextField
+                                type="password"
+                                label="新密码"
+                                placeholder="至少 8 位"
+                                autoComplete="new-password"
+                            />
+                        )}
+                    </form.AppField>
+                    <form.AppField name="confirm">
+                        {(field) => (
+                            <field.TextField
+                                type="password"
+                                label="确认新密码"
+                                placeholder="再次输入新密码"
+                                autoComplete="new-password"
+                            />
+                        )}
+                    </form.AppField>
+
+                    {error && (
+                        <p className="flex items-center gap-1.5 text-[13px] text-destructive">
+                            <CircleAlert className="size-3.5 shrink-0" />
+                            {error}
+                        </p>
+                    )}
+
+                    <Button
+                        type="submit"
+                        disabled={change.isPending}
+                        className="w-28"
+                    >
+                        {change.isPending ? <Spinner /> : "确认修改"}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
     )
 }
 
@@ -150,76 +181,118 @@ function DeviceManager() {
         onError: (e) => notify.fromError(e, "退出失败"),
     })
 
-    return (
-        <section className="space-y-4 rounded-2xl bg-background p-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-base font-semibold">登录设备</h2>
-                    <p className="text-sm text-muted-foreground">
-                        管理已登录的设备，退出可疑设备以保护账号。
-                    </p>
-                </div>
-                <Button
-                    variant="outline"
-                    disabled={logoutAll.isPending || devices.data?.length === 0}
-                    onClick={() => logoutAll.mutate()}
-                >
-                    {logoutAll.isPending ? <Loader2 className="animate-spin" /> : "退出所有设备"}
-                </Button>
-            </div>
+    const [logoutAllOpen, setLogoutAllOpen] = useState(false)
+    // 行级删除指示：记录正在退出的设备， Spinner 只显示在对应行
+    const [deletingId, setDeletingId] = useState<string | undefined>()
 
-            <div className="space-y-2">
-                {devices.isLoading ? (
-                    Array.from({ length: 3 }, (_, i) => (
-                        <Skeleton
-                            key={i}
-                            className="h-14 w-full"
-                        />
-                    ))
-                ) : devices.data?.length === 0 ? (
-                    <Empty className="py-6">
-                        <EmptyHeader>
-                            <EmptyTitle>暂无其他登录设备</EmptyTitle>
-                        </EmptyHeader>
-                    </Empty>
-                ) : (
-                    devices.data?.map((d) => (
-                        <div
-                            key={d.deviceId}
-                            className="flex items-center gap-3 rounded-xl border border-border/60 px-4 py-3"
-                        >
-                            {isMobileName(d.deviceName) ? (
-                                <Smartphone className="size-5 shrink-0 text-muted-foreground" />
-                            ) : (
-                                <Monitor className="size-5 shrink-0 text-muted-foreground" />
-                            )}
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">
-                                    {d.deviceName}
-                                    {d.isCurrent && (
-                                        <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
-                                            本机
-                                        </span>
-                                    )}
-                                </p>
-                                <p className="truncate text-xs text-muted-foreground">
-                                    {d.ip ?? "未知 IP"} · {formatTime(d.lastLoginAt)}
-                                </p>
-                            </div>
-                            <Button
-                                variant="ghost"
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>登录设备</CardTitle>
+                <CardDescription>管理已登录的设备，退出可疑设备以保护账号。</CardDescription>
+                <CardAction>
+                    <Button
+                        variant="outline"
+                        disabled={logoutAll.isPending || devices.data?.length === 0}
+                        onClick={() => setLogoutAllOpen(true)}
+                    >
+                        {logoutAll.isPending ? <Spinner /> : "退出所有设备"}
+                    </Button>
+                </CardAction>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    {devices.isLoading ? (
+                        Array.from({ length: 3 }, (_, i) => (
+                            <Skeleton
+                                key={i}
+                                className="h-14 w-full"
+                            />
+                        ))
+                    ) : devices.data?.length === 0 ? (
+                        <Empty className="py-6">
+                            <EmptyHeader>
+                                <EmptyTitle>暂无其他登录设备</EmptyTitle>
+                                <EmptyDescription>
+                                    只有当前设备在登录，账号是安全的。
+                                </EmptyDescription>
+                            </EmptyHeader>
+                        </Empty>
+                    ) : (
+                        devices.data?.map((d) => (
+                            <Item
+                                key={d.deviceId}
+                                variant="outline"
                                 size="sm"
-                                disabled={d.isCurrent || deleteDevice.isPending}
-                                onClick={() => deleteDevice.mutate(d.deviceId)}
+                                className="gap-3 px-4 py-3"
                             >
-                                <LogOut className="size-4" />
-                                退出
-                            </Button>
-                        </div>
-                    ))
-                )}
-            </div>
-        </section>
+                                <ItemMedia variant="icon">
+                                    {isMobileName(d.deviceName) ? <Smartphone /> : <Monitor />}
+                                </ItemMedia>
+                                <ItemContent>
+                                    <ItemTitle className="truncate">
+                                        {d.deviceName}
+                                        {d.isCurrent && (
+                                            <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                                                本机
+                                            </span>
+                                        )}
+                                    </ItemTitle>
+                                    <ItemDescription className="truncate">
+                                        {d.ip ?? "未知 IP"} · {formatTime(d.lastLoginAt)}
+                                    </ItemDescription>
+                                </ItemContent>
+                                <ItemActions>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={d.isCurrent || deleteDevice.isPending}
+                                        onClick={() => {
+                                            setDeletingId(d.deviceId)
+                                            deleteDevice.mutate(d.deviceId, {
+                                                onSettled: () => setDeletingId(undefined),
+                                            })
+                                        }}
+                                    >
+                                        {deletingId === d.deviceId && deleteDevice.isPending ? (
+                                            <Spinner className="size-4" />
+                                        ) : (
+                                            <LogOut className="size-4" />
+                                        )}
+                                        退出
+                                    </Button>
+                                </ItemActions>
+                            </Item>
+                        ))
+                    )}
+                </div>
+
+                {/* 退出所有设备二次确认 */}
+                <AlertDialog
+                    open={logoutAllOpen}
+                    onOpenChange={setLogoutAllOpen}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>退出所有设备</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                将退出包括本机在内的所有登录会话，确定继续吗？
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>取消</AlertDialogCancel>
+                            <AlertDialogAction
+                                variant="destructive"
+                                disabled={logoutAll.isPending}
+                                onClick={() => logoutAll.mutate()}
+                            >
+                                {logoutAll.isPending && <Spinner />}退出所有设备
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardContent>
+        </Card>
     )
 }
 

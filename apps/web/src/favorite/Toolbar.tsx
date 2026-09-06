@@ -1,6 +1,6 @@
 import { Search } from "lucide-react"
 
-import { Button, Checkbox, Input } from "@shop/ui-web"
+import { Button, Checkbox, InputGroup, InputGroupAddon, InputGroupInput } from "@shop/ui-web"
 
 /**
  * 「我的收藏」页头工具栏。受控组件：关键词、批量模式、选中集合全部由外部持有。
@@ -74,15 +74,17 @@ export function Toolbar({
                         </Button>
                     )}
 
-                    <div className="relative">
-                        <Input
+                    <InputGroup className="w-56">
+                        <InputGroupInput
                             value={keyword}
                             onChange={(e) => onKeywordChange(e.target.value)}
                             placeholder="搜索"
-                            className="w-56 pr-8"
+                            aria-label="搜索收藏"
                         />
-                        <Search className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                    </div>
+                        <InputGroupAddon align="inline-end">
+                            <Search className="size-4 text-muted-foreground" />
+                        </InputGroupAddon>
+                    </InputGroup>
                 </div>
             </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { CircleAlert, Loader2, Store } from "lucide-react"
+import { CircleAlert, Store } from "lucide-react"
 
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -11,7 +11,24 @@ import {
     SmsFormSchema,
     toApiError,
 } from "@shop/api"
-import { Button, Input, cn, useAppForm, useCaptcha, useCountdown } from "@shop/ui-web"
+import {
+    Button,
+    Card,
+    CardContent,
+    cn,
+    Field,
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+    InputGroupText,
+    Skeleton,
+    Spinner,
+    firstFieldError,
+    useAppForm,
+    useCaptcha,
+    useCountdown,
+} from "@shop/ui-web"
 
 import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
 import { AuthApi } from "@shop/api/sdk"
@@ -129,225 +146,247 @@ function LoginPage() {
 
     return (
         <div className="flex min-h-dvh items-center justify-center bg-sunken px-4">
-            <div className="w-full max-w-sm rounded-2xl bg-card p-8 shadow-sm ring-1 ring-border">
-                <div className="mb-8 flex flex-col items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                        <Store className="size-5" />
-                    </div>
-                    <h1 className="text-lg font-semibold tracking-tight">登录卖家中心</h1>
-                </div>
-
-                <form
-                    className="flex flex-col gap-4"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        form.handleSubmit()
-                    }}
-                >
-                    <div className="flex gap-6">
-                        <TabButton
-                            active={tab === "sms"}
-                            onClick={() => switchTab("sms")}
-                        >
-                            验证码登录
-                        </TabButton>
-                        <TabButton
-                            active={tab === "password"}
-                            onClick={() => switchTab("password")}
-                        >
-                            密码登录
-                        </TabButton>
+            <Card className="w-full max-w-sm">
+                <CardContent className="flex flex-col gap-8">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                            <Store className="size-5" />
+                        </div>
+                        <h1 className="text-lg font-semibold tracking-tight">登录卖家中心</h1>
                     </div>
 
-                    <form.AppField
-                        name="phone"
-                        validators={{ onChange: PhoneSchema }}
+                    <form
+                        className="flex flex-col gap-4"
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            form.handleSubmit()
+                        }}
                     >
-                        {(field) => (
-                            <div className="flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring">
-                                <span className="border-e px-3.5 text-sm tabular-nums text-muted-foreground">
-                                    +86
-                                </span>
-                                <Input
-                                    className="h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 text-sm tracking-wide tabular-nums placeholder:tracking-normal focus-visible:ring-0"
-                                    placeholder="请输入手机号"
-                                    inputMode="tel"
-                                    autoComplete="tel"
-                                    maxLength={11}
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) =>
-                                        field.handleChange(e.target.value.replaceAll(/\D/g, ""))
-                                    }
-                                />
-                            </div>
-                        )}
-                    </form.AppField>
+                        <div className="flex gap-6">
+                            <TabButton
+                                active={tab === "sms"}
+                                onClick={() => switchTab("sms")}
+                            >
+                                验证码登录
+                            </TabButton>
+                            <TabButton
+                                active={tab === "password"}
+                                onClick={() => switchTab("password")}
+                            >
+                                密码登录
+                            </TabButton>
+                        </div>
 
-                    {tab === "sms" ? (
-                        /* 图形验证码：发码前先人机验证（点击图片刷新） */
-                        <form.AppField name="captchaCode">
+                        <form.AppField
+                            name="phone"
+                            validators={{ onChange: PhoneSchema }}
+                        >
                             {(field) => (
-                                <div
-                                    className={cn(
-                                        "flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring",
-                                        captchaInvalid &&
-                                            "animate-shake ring-2 ring-destructive/40",
-                                    )}
-                                >
-                                    <Input
-                                        className="h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 text-sm tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal focus-visible:ring-0"
-                                        placeholder="图形验证码"
-                                        autoComplete="off"
-                                        maxLength={4}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => {
-                                            field.handleChange(e.target.value.toUpperCase())
-                                            setCaptchaInvalid(false)
-                                        }}
-                                    />
-                                    <button
-                                        type="button"
-                                        aria-label="刷新图形验证码"
-                                        onClick={() => void captcha.refresh()}
-                                        className="shrink-0 self-stretch border-l border-border/60"
-                                    >
-                                        {captcha.image ? (
-                                            <img
-                                                src={captcha.image}
-                                                alt="图形验证码"
-                                                className="h-full w-[96px] rounded-r-xl"
-                                            />
-                                        ) : captcha.loading ? (
-                                            <span className="flex h-full w-[96px] items-center justify-center text-xs text-muted-foreground">
-                                                加载中…
-                                            </span>
-                                        ) : (
-                                            <span className="flex h-full w-[96px] items-center justify-center text-xs text-muted-foreground">
-                                                点击获取
-                                            </span>
-                                        )}
-                                    </button>
-                                </div>
+                                <Field error={firstFieldError(field)}>
+                                    <InputGroup className="h-11 rounded-xl border-0 bg-muted/70">
+                                        <InputGroupAddon align="inline-start">
+                                            <InputGroupText className="px-3.5 tabular-nums">
+                                                +86
+                                            </InputGroupText>
+                                        </InputGroupAddon>
+                                        <InputGroupInput
+                                            aria-label="手机号"
+                                            className="tracking-wide tabular-nums placeholder:tracking-normal"
+                                            placeholder="请输入手机号"
+                                            inputMode="tel"
+                                            autoComplete="tel"
+                                            maxLength={11}
+                                            value={field.state.value}
+                                            onBlur={field.handleBlur}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value.replaceAll(/\D/g, ""),
+                                                )
+                                            }
+                                        />
+                                    </InputGroup>
+                                </Field>
                             )}
                         </form.AppField>
-                    ) : undefined}
 
-                    {tab === "sms" ? (
-                        <form.AppField name="code">
-                            {(field) => (
-                                <div
-                                    className={cn(
-                                        "flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring",
-                                        codeInvalid && "animate-shake ring-2 ring-destructive/40",
-                                    )}
-                                >
-                                    <Input
-                                        className="h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 text-sm tracking-widest tabular-nums placeholder:tracking-normal focus-visible:ring-0"
-                                        placeholder="请输入验证码"
-                                        inputMode="numeric"
-                                        autoComplete="one-time-code"
-                                        maxLength={6}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => {
-                                            field.handleChange(e.target.value.replaceAll(/\D/g, ""))
-                                            setCodeInvalid(false)
-                                        }}
-                                    />
-                                    <form.Subscribe
-                                        selector={(s) => ({
-                                            phoneValid: PHONE_PATTERN.test(s.values.phone),
-                                            captchaValid: s.values.captchaCode.length === 4,
-                                        })}
-                                    >
-                                        {({ phoneValid, captchaValid }) => (
+                        {tab === "sms" ? (
+                            /* 图形验证码：发码前先人机验证（点击图片刷新） */
+                            <form.AppField name="captchaCode">
+                                {(field) => (
+                                    <Field error={firstFieldError(field)}>
+                                        <InputGroup
+                                            className={cn(
+                                                "h-11 rounded-xl border-0 bg-muted/70",
+                                                captchaInvalid &&
+                                                    "animate-shake ring-2 ring-destructive/40",
+                                            )}
+                                        >
+                                            <InputGroupInput
+                                                aria-label="图形验证码"
+                                                className="px-3.5 tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal"
+                                                placeholder="图形验证码"
+                                                autoComplete="off"
+                                                maxLength={4}
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) => {
+                                                    field.handleChange(e.target.value.toUpperCase())
+                                                    setCaptchaInvalid(false)
+                                                }}
+                                            />
                                             <button
                                                 type="button"
-                                                className="shrink-0 cursor-pointer px-3.5 text-sm font-medium text-primary transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:font-normal disabled:text-muted-foreground/60 disabled:hover:opacity-100"
-                                                disabled={
-                                                    !phoneValid ||
-                                                    !captchaValid ||
-                                                    !captcha.image ||
-                                                    countdown > 0 ||
-                                                    sendCode.isPending
-                                                }
-                                                onClick={() =>
-                                                    sendCode.mutate(form.getFieldValue("phone"))
-                                                }
+                                                aria-label="刷新图形验证码"
+                                                onClick={() => void captcha.refresh()}
+                                                className="shrink-0 self-stretch border-l border-border/60"
                                             >
-                                                {countdown > 0 ? (
-                                                    <span className="tabular-nums">
-                                                        {countdown}s 后重发
-                                                    </span>
-                                                ) : sendCode.isPending ? (
-                                                    "发送中…"
+                                                {captcha.image ? (
+                                                    <img
+                                                        src={captcha.image}
+                                                        alt="图形验证码"
+                                                        className="h-full w-[96px] rounded-r-xl"
+                                                    />
+                                                ) : captcha.loading ? (
+                                                    <Skeleton className="h-full w-[96px]" />
                                                 ) : (
-                                                    "获取验证码"
+                                                    <span className="flex h-full w-[96px] items-center justify-center text-xs text-muted-foreground">
+                                                        点击获取
+                                                    </span>
                                                 )}
                                             </button>
-                                        )}
-                                    </form.Subscribe>
-                                </div>
-                            )}
-                        </form.AppField>
-                    ) : (
-                        <form.AppField name="password">
-                            {(field) => (
-                                <div className="flex h-11 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring">
-                                    <Input
-                                        className="h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 text-sm focus-visible:ring-0"
-                                        type="password"
-                                        placeholder="请输入密码"
-                                        autoComplete="current-password"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                    />
-                                </div>
-                            )}
-                        </form.AppField>
-                    )}
-
-                    <div className="min-h-4">
-                        {serverError && (
-                            <p className="flex items-center gap-1.5 text-[13px] text-destructive">
-                                <CircleAlert className="size-3.5 shrink-0" />
-                                {serverError}
-                            </p>
-                        )}
-                    </div>
-
-                    <form.Subscribe
-                        selector={(state) => ({
-                            isSubmitting: state.isSubmitting,
-                            ready:
-                                PHONE_PATTERN.test(state.values.phone) &&
-                                (tab === "sms"
-                                    ? state.values.code.length === 6
-                                    : state.values.password.length >= 8),
-                        })}
-                    >
-                        {({ isSubmitting, ready }) => (
-                            <Button
-                                type="submit"
-                                className="h-11 w-full rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover active:translate-y-px disabled:opacity-40"
-                                disabled={!ready || isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 className="animate-spin" />
-                                        登录中…
-                                    </>
-                                ) : (
-                                    "登录"
+                                        </InputGroup>
+                                    </Field>
                                 )}
-                            </Button>
+                            </form.AppField>
+                        ) : undefined}
+
+                        {tab === "sms" ? (
+                            <form.AppField name="code">
+                                {(field) => (
+                                    <Field error={firstFieldError(field)}>
+                                        <InputGroup
+                                            className={cn(
+                                                "h-11 rounded-xl border-0 bg-muted/70",
+                                                codeInvalid &&
+                                                    "animate-shake ring-2 ring-destructive/40",
+                                            )}
+                                        >
+                                            <InputGroupInput
+                                                aria-label="短信验证码"
+                                                className="px-3.5 tracking-widest tabular-nums placeholder:tracking-normal"
+                                                placeholder="请输入验证码"
+                                                inputMode="numeric"
+                                                autoComplete="one-time-code"
+                                                maxLength={6}
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) => {
+                                                    field.handleChange(
+                                                        e.target.value.replaceAll(/\D/g, ""),
+                                                    )
+                                                    setCodeInvalid(false)
+                                                }}
+                                            />
+                                            <form.Subscribe
+                                                selector={(s) => ({
+                                                    phoneValid: PHONE_PATTERN.test(s.values.phone),
+                                                    captchaValid: s.values.captchaCode.length === 4,
+                                                })}
+                                            >
+                                                {({ phoneValid, captchaValid }) => (
+                                                    <InputGroupButton
+                                                        variant="link"
+                                                        size="sm"
+                                                        className="h-full shrink-0 px-3.5 disabled:opacity-40"
+                                                        disabled={
+                                                            !phoneValid ||
+                                                            !captchaValid ||
+                                                            !captcha.image ||
+                                                            countdown > 0 ||
+                                                            sendCode.isPending
+                                                        }
+                                                        onClick={() =>
+                                                            sendCode.mutate(
+                                                                form.getFieldValue("phone"),
+                                                            )
+                                                        }
+                                                    >
+                                                        {countdown > 0 ? (
+                                                            <span className="tabular-nums">
+                                                                {countdown}s 后重发
+                                                            </span>
+                                                        ) : sendCode.isPending ? (
+                                                            <Spinner />
+                                                        ) : (
+                                                            "获取验证码"
+                                                        )}
+                                                    </InputGroupButton>
+                                                )}
+                                            </form.Subscribe>
+                                        </InputGroup>
+                                    </Field>
+                                )}
+                            </form.AppField>
+                        ) : (
+                            <form.AppField name="password">
+                                {(field) => (
+                                    <Field error={firstFieldError(field)}>
+                                        <InputGroup className="h-11 rounded-xl border-0 bg-muted/70">
+                                            <InputGroupInput
+                                                aria-label="密码"
+                                                type="password"
+                                                placeholder="请输入密码"
+                                                autoComplete="current-password"
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) => field.handleChange(e.target.value)}
+                                            />
+                                        </InputGroup>
+                                    </Field>
+                                )}
+                            </form.AppField>
                         )}
-                    </form.Subscribe>
-                </form>
-            </div>
+
+                        <div className="min-h-4">
+                            {serverError && (
+                                <p className="flex items-center gap-1.5 text-[13px] text-destructive">
+                                    <CircleAlert className="size-3.5 shrink-0" />
+                                    {serverError}
+                                </p>
+                            )}
+                        </div>
+
+                        <form.Subscribe
+                            selector={(state) => ({
+                                isSubmitting: state.isSubmitting,
+                                ready:
+                                    PHONE_PATTERN.test(state.values.phone) &&
+                                    (tab === "sms"
+                                        ? state.values.code.length === 6
+                                        : state.values.password.length >= 8),
+                            })}
+                        >
+                            {({ isSubmitting, ready }) => (
+                                <Button
+                                    type="submit"
+                                    variant="cta"
+                                    className="h-11 w-full"
+                                    disabled={!ready || isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Spinner />
+                                            登录
+                                        </>
+                                    ) : (
+                                        "登录"
+                                    )}
+                                </Button>
+                            )}
+                        </form.Subscribe>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     )
 }

@@ -45,8 +45,9 @@ export function UserCard() {
                     ) : (
                         <Button
                             variant="link"
+                            size="xs"
                             onClick={() => setLoginOpen(true)}
-                            className="mt-0.5 text-xs text-muted-foreground transition-colors hover:text-primary"
+                            className="mt-0.5 h-auto"
                         >
                             登录 / 注册
                         </Button>

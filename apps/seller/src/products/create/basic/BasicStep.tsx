@@ -1,7 +1,17 @@
 import { useEffect, useRef, useState } from "react"
 import { CheckCircle2, ChevronRight, ListTree } from "lucide-react"
 import { useCallback } from "react"
-import { Badge, Button, Sticky, Tabs, TabsList, TabsTrigger, useAppForm } from "@shop/ui-web"
+import {
+    Badge,
+    Button,
+    Skeleton,
+    Spinner,
+    Sticky,
+    Tabs,
+    TabsList,
+    TabsTrigger,
+    useAppForm,
+} from "@shop/ui-web"
 
 import { uploadProductImage } from "#/products/data"
 
@@ -222,7 +232,10 @@ export function BasicStep({
                             onValueChange={(next) => scrollToSection(String(next))}
                             className="w-full"
                         >
-                            <TabsList className="h-full w-full justify-start gap-1 rounded-lg bg-transparent">
+                            <TabsList
+                                variant="line"
+                                className="h-full w-full justify-start gap-1"
+                            >
                                 {SECTIONS.map((section) => (
                                     <TabsTrigger
                                         key={section.id}
@@ -258,7 +271,7 @@ export function BasicStep({
                                     </span>
                                 ))
                             ) : (
-                                <span className="text-muted-foreground">类目加载中…</span>
+                                <Skeleton className="h-4 w-40 align-middle" />
                             )}
                         </p>
                         <Button
@@ -355,17 +368,8 @@ function ActionBar({
                     onClick={onSubmit}
                     className="h-10 px-10"
                 >
-                    {draftEditable
-                        ? submitting
-                            ? "提交中…"
-                            : creating
-                              ? "保存中…"
-                              : "提交商品信息"
-                        : submitting
-                          ? "保存中…"
-                          : creating
-                            ? "保存中…"
-                            : "保存变更"}
+                    {(submitting || creating) && <Spinner />}
+                    {draftEditable ? "提交商品信息" : "保存变更"}
                 </Button>
             </div>
         </div>

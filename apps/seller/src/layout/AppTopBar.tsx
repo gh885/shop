@@ -29,6 +29,7 @@ import {
     PopoverContent,
     PopoverTrigger,
     Separator,
+    Spinner,
     TopBar as TopBarRoot,
     TopBarActions,
     TopBarBrand,
@@ -206,14 +207,21 @@ function AccountChip() {
                     <Item
                         variant="muted"
                         aria-disabled={logoutMutation.isPending}
-                        onClick={() => logoutMutation.mutate()}
-                        className="cursor-pointer"
+                        onClick={() => {
+                            if (!logoutMutation.isPending) logoutMutation.mutate()
+                        }}
+                        className="cursor-pointer data-disabled:opacity-50"
+                        data-disabled={logoutMutation.isPending}
                     >
                         <ItemContent>
                             <ItemTitle>退出登录</ItemTitle>
                         </ItemContent>
                         <ItemActions>
-                            <LogOutIcon className="size-4 text-muted-foreground" />
+                            {logoutMutation.isPending ? (
+                                <Spinner className="size-4 text-muted-foreground" />
+                            ) : (
+                                <LogOutIcon className="size-4 text-muted-foreground" />
+                            )}
                         </ItemActions>
                     </Item>
                 </ItemGroup>

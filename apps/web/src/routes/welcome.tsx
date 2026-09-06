@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
 import { motion, useReducedMotion, type Variants } from "motion/react"
 
-import { buttonVariants } from "@shop/ui-web"
+import { buttonVariants, Card, CardContent } from "@shop/ui-web"
 
 export const Route = createFileRoute("/welcome")({
     component: Home,
@@ -166,18 +166,22 @@ function Categories() {
                     {CATEGORIES.map((cat, i) => (
                         <motion.div
                             key={cat.name}
-                            className="group rounded-2xl bg-background p-6 shadow-sm transition-transform duration-300 hover:-translate-y-1"
+                            className="group"
                             custom={i}
                             variants={staggerVariants}
                             initial={reduce ? false : "hidden"}
                             whileInView="show"
                             viewport={{ once: true, amount: 0.2 }}
                         >
-                            <cat.icon className="size-6 text-muted-foreground transition-transform duration-300 group-hover:scale-110" />
-                            <h3 className="mt-4 font-semibold">{cat.name}</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {cat.subs.join(" / ")}
-                            </p>
+                            <Card className="transition-transform duration-300 hover:-translate-y-1">
+                                <CardContent>
+                                    <cat.icon className="size-6 text-muted-foreground transition-transform duration-300 group-hover:scale-110" />
+                                    <h3 className="mt-4 font-semibold">{cat.name}</h3>
+                                    <p className="mt-1 text-muted-foreground">
+                                        {cat.subs.join(" / ")}
+                                    </p>
+                                </CardContent>
+                            </Card>
                         </motion.div>
                     ))}
                 </div>

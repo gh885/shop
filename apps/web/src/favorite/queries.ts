@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import { FavoritesApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
+import { notify } from "#/shared/lib/toast"
 import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
 
 import { toFavoriteItem, type FavoriteItem } from "./favorite"
@@ -91,6 +92,7 @@ export function useToggleFavorite(productId: string) {
         },
         onError: (_e, _v, ctx) => {
             qc.setQueryData(favoritedOptions(productId).queryKey, ctx?.prev)
+            notify.fromError(_e, "收藏操作失败，请重试")
         },
         onSettled: () => qc.invalidateQueries({ queryKey: favoritedOptions(productId).queryKey }),
     })

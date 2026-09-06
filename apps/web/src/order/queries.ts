@@ -46,6 +46,8 @@ const myOrdersOptions = ({
             }
         },
         staleTime: 30_000,
+        // 切 Tab/翻页时保留上一份数据展示（isPlaceholderData），不重放 Skeleton
+        placeholderData: (prev) => prev,
     })
 }
 
@@ -126,7 +128,6 @@ export function useCancelOrder() {
     const qc = useQueryClient()
     return useMutation({
         mutationFn: (orderId: string) => cancelOrder(orderId),
-        onMutate: () => notify.info("取消订单中…"),
         onSuccess: (_data, orderId) => {
             notify.success("订单已取消")
             qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })

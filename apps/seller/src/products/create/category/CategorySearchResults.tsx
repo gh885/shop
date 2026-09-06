@@ -1,5 +1,5 @@
-import { CornerDownLeft } from "lucide-react"
-import { cn } from "@shop/ui-web"
+import { CornerDownLeft, SearchX } from "lucide-react"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, cn } from "@shop/ui-web"
 
 import type { LeafPath } from "../../category"
 
@@ -21,9 +21,18 @@ export function CategorySearchResults({
 }) {
     if (results.length === 0) {
         return (
-            <div className="flex h-115 flex-col items-center justify-center gap-1 rounded-xl bg-background text-sm text-muted-foreground">
-                <p>没搜到「{keyword}」相关类目</p>
-                <p className="text-xs">换个更通用的词，或点「选择类目」逐级找</p>
+            <div className="flex h-115 items-center rounded-xl bg-background">
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <SearchX />
+                        </EmptyMedia>
+                        <EmptyTitle>没搜到「{keyword}」相关类目</EmptyTitle>
+                        <EmptyDescription>
+                            换个更通用的词，或点「选择类目」逐级找。
+                        </EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
             </div>
         )
     }

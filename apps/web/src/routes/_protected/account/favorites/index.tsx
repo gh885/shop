@@ -1,7 +1,24 @@
 import { useState } from "react"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Skeleton,
+    Spinner,
+} from "@shop/ui-web"
 import { HeartOff } from "lucide-react"
 
 import {
@@ -20,12 +37,14 @@ export const Route = createFileRoute("/_protected/account/favorites/")({
 })
 
 function FavoritesPage() {
+    const navigate = useNavigate()
     // 页面局部 UI 状态（真实源在客户端）→ useState，不进 query
     const [keyword, setKeyword] = useState("")
     const [batchMode, setBatchMode] = useState(false)
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+    const [batchConfirmOpen, setBatchConfirmOpen] = useState(false)
 
-    const { data: favorites = [] } = useFavorites()
+    const { data: favorites = [], isPending, isError, refetch } = useFavorites()
     const removeFavorites = useRemoveFavorites()
 
     const filtered = filterFavorites(favorites, keyword)
@@ -42,8 +61,12 @@ function FavoritesPage() {
 
     function handleBatchDelete() {
         if (selected.size === 0) return
-        removeFavorites.mutate([...selected])
-        setSelected(new Set())
+        removeFavorites.mutate([...selected], {
+            onSuccess: () => {
+                setBatchConfirmOpen(false)
+                setSelected(new Set())
+            },
+        })
     }
 
     function handleToggleSelectAll(checked: boolean) {
@@ -80,7 +103,35 @@ function FavoritesPage() {
                 onBatchDelete={handleBatchDelete}
             />
 
-            {filtered.length === 0 ? (
+            {isPending ? (
+                /* 首次加载：按卡片网格形状占位，避免闪现误导性空态 */
+                <div className="flex flex-wrap gap-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <Skeleton
+                            /* eslint-disable-next-line react/no-array-index-key */
+                            key={i}
+                            className="h-72 w-60 rounded-xl"
+                        />
+                    ))}
+                </div>
+            ) : isError ? (
+                <Empty className="py-16">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <HeartOff />
+                        </EmptyMedia>
+                        <EmptyTitle>加载失败</EmptyTitle>
+                        <EmptyDescription>收藏列表加载失败，请重试。</EmptyDescription>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void refetch()}
+                        >
+                            重新加载
+                        </Button>
+                    </EmptyHeader>
+                </Empty>
+            ) : filtered.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
@@ -94,6 +145,22 @@ function FavoritesPage() {
                                 ? "浏览商品时点击收藏，心仪好物都会汇集在这里。"
                                 : "换个关键词试试。"}
                         </EmptyDescription>
+                        {favorites.length === 0 ? (
+                            <Button
+                                className="mt-2"
+                                onClick={() => void navigate({ to: "/" })}
+                            >
+                                去逛逛
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                className="mt-2"
+                                onClick={() => setKeyword("")}
+                            >
+                                清除搜索
+                            </Button>
+                        )}
                     </EmptyHeader>
                 </Empty>
             ) : (
@@ -110,6 +177,31 @@ function FavoritesPage() {
                     ))}
                 </div>
             )}
+
+            {/* 批量删除二次确认 */}
+            <AlertDialog
+                open={batchConfirmOpen}
+                onOpenChange={setBatchConfirmOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>取消收藏</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            确定移除选中的 {selected.size} 件商品收藏吗？
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            disabled={removeFavorites.isPending}
+                            onClick={handleBatchDelete}
+                        >
+                            {removeFavorites.isPending && <Spinner />}移除
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

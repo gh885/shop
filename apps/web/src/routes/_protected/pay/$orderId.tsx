@@ -1,8 +1,8 @@
 import { useEffect } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { CheckCircle2, Loader2, Wallet } from "lucide-react"
+import { CheckCircle2, Wallet } from "lucide-react"
 
-import { Button } from "@shop/ui-web"
+import { Button, Card, CardContent, Spinner } from "@shop/ui-web"
 import { fenToYuan } from "@shop/api"
 
 import { useCreatePayment, useConfirmPayment } from "#/checkout"
@@ -45,123 +45,129 @@ function PayPage() {
 
     return (
         <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
-            <div className="w-full max-w-md rounded-2xl bg-background p-8 text-center ring-1 ring-border/60">
-                {phase === "loading" && (
-                    <>
-                        <Loader2 className="mx-auto size-12 animate-spin text-primary" />
-                        <h2 className="mt-4 text-lg font-semibold text-foreground">
-                            正在发起支付…
-                        </h2>
-                        <p className="mt-2 text-sm text-muted-foreground">请稍候。</p>
-                    </>
-                )}
+            <Card className="w-full max-w-md text-center">
+                <CardContent>
+                    {phase === "loading" && (
+                        <>
+                            <Spinner className="mx-auto size-12 text-primary" />
+                            <h2 className="mt-4 text-lg font-semibold text-foreground">
+                                正在发起支付…
+                            </h2>
+                            <p className="mt-2 text-sm text-muted-foreground">请稍候。</p>
+                        </>
+                    )}
 
-                {phase === "ready" && (
-                    <>
-                        <Wallet className="mx-auto size-12 text-primary" />
-                        <h2 className="mt-4 text-lg font-semibold text-foreground">收银台</h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            订单号 {payment?.orderNo}
-                        </p>
-                        <p className="mt-4 text-4xl font-bold tracking-tight text-foreground">
-                            ¥{amount}
-                        </p>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                            模拟支付通道（MOCK），点击下方按钮确认支付
-                        </p>
+                    {phase === "ready" && (
+                        <>
+                            <Wallet className="mx-auto size-12 text-primary" />
+                            <h2 className="mt-4 text-lg font-semibold text-foreground">收银台</h2>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                订单号 {payment?.orderNo}
+                            </p>
+                            <p className="mt-4 text-4xl font-bold tracking-tight text-foreground">
+                                ¥{amount}
+                            </p>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                模拟支付通道（MOCK），点击下方按钮确认支付
+                            </p>
 
-                        <div className="mt-6 flex flex-col gap-3">
-                            <Button
-                                className="h-11 w-full rounded-xl bg-linear-to-r from-primary to-primary-hover text-white"
-                                disabled={confirm.isPending}
-                                onClick={() => payment && confirm.mutate(payment.id)}
-                            >
-                                {confirm.isPending ? "支付中…" : "确认支付"}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="h-11 w-full"
-                                onClick={goOrders}
-                            >
-                                取消，返回订单
-                            </Button>
-                        </div>
-                    </>
-                )}
+                            <div className="mt-6 flex flex-col gap-3">
+                                <Button
+                                    variant="cta"
+                                    className="h-11 w-full"
+                                    disabled={confirm.isPending}
+                                    onClick={() => payment && confirm.mutate(payment.id)}
+                                >
+                                    {confirm.isPending && <Spinner />}确认支付
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="h-11 w-full"
+                                    onClick={goOrders}
+                                >
+                                    取消，返回订单
+                                </Button>
+                            </div>
+                        </>
+                    )}
 
-                {phase === "success" && (
-                    <>
-                        <CheckCircle2 className="mx-auto size-12 text-primary" />
-                        <h2 className="mt-4 text-lg font-semibold text-foreground">支付成功</h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            订单已支付，等待商家发货。
-                        </p>
-                        <div className="mt-6 flex flex-col gap-3">
-                            <Button
-                                className="h-11 w-full rounded-xl bg-linear-to-r from-primary to-primary-hover text-white"
-                                onClick={goDetail}
-                            >
-                                查看订单详情
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="h-11 w-full"
-                                onClick={goOrders}
-                            >
-                                返回我的订单
-                            </Button>
-                        </div>
-                    </>
-                )}
+                    {phase === "success" && (
+                        <>
+                            <CheckCircle2 className="mx-auto size-12 text-primary" />
+                            <h2 className="mt-4 text-lg font-semibold text-foreground">支付成功</h2>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                订单已支付，等待商家发货。
+                            </p>
+                            <div className="mt-6 flex flex-col gap-3">
+                                <Button
+                                    variant="cta"
+                                    className="h-11 w-full"
+                                    onClick={goDetail}
+                                >
+                                    查看订单详情
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="h-11 w-full"
+                                    onClick={goOrders}
+                                >
+                                    返回我的订单
+                                </Button>
+                            </div>
+                        </>
+                    )}
 
-                {phase === "create-error" && (
-                    <>
-                        <h2 className="text-lg font-semibold text-destructive">发起支付失败</h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            请刷新收银台或前往订单列表重试。
-                        </p>
-                        <div className="mt-6 flex flex-col gap-3">
-                            <Button
-                                className="h-11 w-full rounded-xl bg-linear-to-r from-primary to-primary-hover text-white"
-                                onClick={goOrders}
-                            >
-                                返回我的订单
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="h-11 w-full"
-                                onClick={() => create.mutate(orderId)}
-                            >
-                                重试发起
-                            </Button>
-                        </div>
-                    </>
-                )}
+                    {phase === "create-error" && (
+                        <>
+                            <h2 className="text-lg font-semibold text-destructive">发起支付失败</h2>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                请刷新收银台或前往订单列表重试。
+                            </p>
+                            <div className="mt-6 flex flex-col gap-3">
+                                <Button
+                                    variant="cta"
+                                    className="h-11 w-full"
+                                    onClick={goOrders}
+                                >
+                                    返回我的订单
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="h-11 w-full"
+                                    onClick={() => create.mutate(orderId)}
+                                >
+                                    重试发起
+                                </Button>
+                            </div>
+                        </>
+                    )}
 
-                {phase === "confirm-error" && (
-                    <>
-                        <h2 className="text-lg font-semibold text-destructive">支付未生效</h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            订单状态可能已变更（已被支付/取消/关闭），请前往订单列表查看。
-                        </p>
-                        <div className="mt-6 flex flex-col gap-3">
-                            <Button
-                                className="h-11 w-full rounded-xl bg-linear-to-r from-primary to-primary-hover text-white"
-                                onClick={goOrders}
-                            >
-                                返回我的订单
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="h-11 w-full"
-                                onClick={goDetail}
-                            >
-                                查看订单详情
-                            </Button>
-                        </div>
-                    </>
-                )}
-            </div>
+                    {phase === "confirm-error" && (
+                        <>
+                            <h2 className="text-lg font-semibold text-destructive">支付未生效</h2>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                订单状态可能已变更（已被支付/取消/关闭），请前往订单列表查看。
+                            </p>
+                            <div className="mt-6 flex flex-col gap-3">
+                                <Button
+                                    variant="cta"
+                                    className="h-11 w-full"
+                                    onClick={goOrders}
+                                >
+                                    返回我的订单
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="h-11 w-full"
+                                    onClick={goDetail}
+                                >
+                                    查看订单详情
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     )
 }

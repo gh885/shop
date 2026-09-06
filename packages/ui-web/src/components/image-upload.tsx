@@ -16,9 +16,10 @@ import {
     useSortable,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, ImagePlus, Loader2, X } from "lucide-react"
+import { GripVertical, ImagePlus, X } from "lucide-react"
 
 import { cn } from "src/lib/utils"
+import { Spinner } from "src/components/ui/spinner"
 import { FileUpload, FileUploadDropzone } from "./file-upload"
 
 const ACCEPT_IMAGE = "image/*"
@@ -168,7 +169,7 @@ export function ImageUpload({
                     )}
                 >
                     {busy ? (
-                        <Loader2 className="size-5 animate-spin" />
+                        <Spinner className="size-5" />
                     ) : (
                         <>
                             {icon ?? (showIcon ? <ImagePlus className="size-5" /> : null)}

@@ -77,7 +77,6 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                         <TabsTrigger
                             key={tab.value}
                             value={tab.value}
-                            className="text-base"
                         >
                             {tab.label}
                         </TabsTrigger>

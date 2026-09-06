@@ -6,6 +6,7 @@ import {
     Popover,
     PopoverContent,
     PopoverTrigger,
+    Skeleton,
     Tabs,
     TabsContent,
     TabsList,
@@ -204,28 +205,33 @@ export default function RegionPicker({
                     {/* 所有页签共享一个面板：当前层的选项列表 */}
                     <TabsContent value={String(activeLevel)}>
                         <ul className="flex h-60 flex-col gap-0.5 overflow-y-auto p-2">
-                            {loading && levels[activeLevel] === undefined ? (
-                                <li className="text-muted-foreground px-3 py-2 text-sm">加载中…</li>
-                            ) : (
-                                (levels[activeLevel] ?? []).map((node) => {
-                                    const selected = value[activeLevel]?.code === node.code
-                                    return (
-                                        <li key={node.code}>
-                                            <Button
-                                                variant="ghost"
-                                                aria-pressed={selected}
-                                                onClick={() => selectAt(activeLevel, node)}
-                                                className={cn(
-                                                    "w-full justify-start",
-                                                    selected && "text-foreground font-medium",
-                                                )}
-                                            >
-                                                {node.label}
-                                            </Button>
-                                        </li>
-                                    )
-                                })
-                            )}
+                            {loading && levels[activeLevel] === undefined
+                                ? // 选项行形状占位（约可容纳 6 行）
+                                  [0, 1, 2, 3, 4, 5].map((i) => (
+                                      <Skeleton
+                                          /* eslint-disable-next-line react/no-array-index-key */
+                                          key={i}
+                                          className="h-9 rounded-md"
+                                      />
+                                  ))
+                                : (levels[activeLevel] ?? []).map((node) => {
+                                      const selected = value[activeLevel]?.code === node.code
+                                      return (
+                                          <li key={node.code}>
+                                              <Button
+                                                  variant="ghost"
+                                                  aria-pressed={selected}
+                                                  onClick={() => selectAt(activeLevel, node)}
+                                                  className={cn(
+                                                      "w-full justify-start",
+                                                      selected && "text-foreground font-medium",
+                                                  )}
+                                              >
+                                                  {node.label}
+                                              </Button>
+                                          </li>
+                                      )
+                                  })}
                         </ul>
                     </TabsContent>
                 </Tabs>

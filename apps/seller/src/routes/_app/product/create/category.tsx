@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Store } from "lucide-react"
 
+import { Button, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
+
 import { CategoryStep } from "#/products"
 import { useCurrentShop } from "#/shared/lib/shop"
 
@@ -27,12 +29,22 @@ function NewProductCategoryStep() {
 
     if (!shop) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-                <Store className="size-10 text-muted-foreground/50" />
-                <p className="text-muted-foreground">
-                    还没有正常营业的店铺，先到「店铺管理」创建或等待审核
-                </p>
-            </div>
+            <Empty className="py-24">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <Store />
+                    </EmptyMedia>
+                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
+                    <EmptyDescription>先到「店铺管理」创建店铺或等待审核通过。</EmptyDescription>
+                    <Button
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => void navigate({ to: "/shop/list" })}
+                    >
+                        去店铺管理
+                    </Button>
+                </EmptyHeader>
+            </Empty>
         )
     }
 

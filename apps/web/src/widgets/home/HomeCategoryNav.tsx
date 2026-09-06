@@ -36,9 +36,22 @@ export function HomeCategoryNav({
 }) {
     const [activeId, setActiveId] = useState<string | undefined>()
 
-    // 后端未返回数据（加载中/为空）→ 骨架占位
-    if (!entries) {
+    // 未加载（undefined）→ 骨架占位；后端返回空数组 → 明确的空态，避免永远停在骨架
+    if (entries === undefined) {
         return <Skeleton className="h-full w-full rounded-xl" />
+    }
+
+    if (entries.length === 0) {
+        return (
+            <div
+                className="flex w-[250px] shrink-0 items-center justify-center rounded-xl bg-background shadow-sm"
+                style={{ height: defaultHeight }}
+            >
+                <p className="px-4 text-center text-sm text-muted-foreground">
+                    商品分类即将上线，敬请期待
+                </p>
+            </div>
+        )
     }
 
     const active = entries.find((e) => e.id === activeId) ?? undefined
@@ -60,7 +73,7 @@ export function HomeCategoryNav({
                                 <Button
                                     variant="ghost"
                                     onMouseEnter={() => setActiveId(entry.id)}
-                                    className={`w-full justify-start gap-3 rounded-none px-4 py-1.5 text-sm ${
+                                    className={`w-full justify-start gap-3 rounded-none px-4 py-1.5 ${
                                         activeId === entry.id
                                             ? "bg-sunken text-foreground"
                                             : "text-muted-foreground hover:text-foreground"

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { ChevronRight, Search } from "lucide-react"
-import { cn, Input } from "@shop/ui-web"
+import { cn, InputGroup, InputGroupAddon, InputGroupInput } from "@shop/ui-web"
 
 import { columnsOf, filterByName, isLeaf } from "../../category"
 import type { CategoryNodeResponse } from "@shop/api/sdk"
@@ -62,15 +62,20 @@ function CategoryColumn({
 
     return (
         <div className="flex min-w-0 flex-1 flex-col rounded-xl bg-background">
-            <div className="relative p-2">
-                <Search className="pointer-events-none absolute top-1/2 left-4.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    type="search"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    placeholder="输入类目名筛选"
-                    className="h-8 border-transparent bg-muted/60 pl-7 text-sm shadow-none focus-visible:border-transparent"
-                />
+            <div className="p-2">
+                <InputGroup className="h-8 border-transparent bg-muted/60">
+                    <InputGroupAddon align="inline-start">
+                        <Search className="size-3.5 text-muted-foreground" />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                        type="search"
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        placeholder="输入类目名筛选"
+                        aria-label="筛选类目"
+                        className="text-sm"
+                    />
+                </InputGroup>
             </div>
 
             <ul className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">

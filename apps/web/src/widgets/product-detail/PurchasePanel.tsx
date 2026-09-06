@@ -117,7 +117,6 @@ export function PurchasePanel({
                                         key={value}
                                         value={value}
                                         disabled={!isAvailable(spec.name, value)}
-                                        className="text-foreground aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:text-primary"
                                     >
                                         {value}
                                     </ToggleGroupItem>

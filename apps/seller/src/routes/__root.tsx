@@ -1,14 +1,19 @@
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router"
 import { CircleAlert, FileQuestion } from "lucide-react"
 
-import { Button } from "@shop/ui-web"
+import { Button, Toaster } from "@shop/ui-web"
 
 /** 全局兜底：404（未匹配路径）与硬错误（路由渲染崩溃）。
     独立于 _app 布局（带侧边栏/顶栏），因为 404/崩溃不是业务场景，不需要经营导航。 */
 export const Route = createRootRoute({
     notFoundComponent: NotFound,
     errorComponent: RouteError,
-    component: () => <Outlet />,
+    component: () => (
+        <>
+            <Toaster />
+            <Outlet />
+        </>
+    ),
 })
 
 /** 品牌化 404：给出回工作台的出口，不做死胡同 */

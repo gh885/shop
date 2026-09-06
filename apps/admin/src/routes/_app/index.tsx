@@ -7,6 +7,14 @@ import { ShopReviewStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
     Badge,
     Button,
     DataTable,
@@ -16,11 +24,13 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    Spinner,
     Textarea,
     type DataTableFilterConfig,
 } from "@shop/ui-web"
 
 import { adminApi, reviewListOptions, REVIEW_LIST_KEY, type ShopReviewItem } from "../../lib/api"
+import { notify } from "../../lib/toast"
 
 /** 店铺审核状态（与后端枚举对齐） */
 const ShopReviewStatusSchema = z.enum(ShopReviewStatus)
@@ -123,7 +133,9 @@ function ReviewPage() {
     const { status, page, size } = Route.useSearch()
     const navigate = Route.useNavigate()
 
-    const { data, isPending } = useQuery(reviewListOptions({ status, page, size }))
+    const { data, isPending, isError, refetch } = useQuery(
+        reviewListOptions({ status, page, size }),
+    )
 
     // 服务端模式：分页/筛选状态由 URL 接管，DataTable 内不自管
     const pagination = { pageIndex: page - 1, pageSize: size }
@@ -137,6 +149,19 @@ function ReviewPage() {
                     审核卖家开店申请，通过后店铺即可上架商品
                 </p>
             </div>
+
+            {isError ? (
+                <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive-subtle px-4 py-3 text-sm text-destructive-subtle-foreground">
+                    <span>审核列表加载失败，可能不是没有待审核的店铺。</span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void refetch()}
+                    >
+                        重新加载
+                    </Button>
+                </div>
+            ) : null}
 
             <DataTable
                 columns={columns}
@@ -169,43 +194,76 @@ function ReviewPage() {
 function ReviewActions({ item }: { item: ShopReviewItem }) {
     const queryClient = useQueryClient()
     const [rejectOpen, setRejectOpen] = useState(false)
+    const [approveOpen, setApproveOpen] = useState(false)
     const [reason, setReason] = useState("")
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: REVIEW_LIST_KEY })
 
     const approve = useMutation({
         mutationFn: () => adminApi.approve(item.id),
-        onSuccess: invalidate,
+        onSuccess: () => {
+            notify.success(`已通过「${item.shopName}」的开店申请`)
+            setApproveOpen(false)
+            void invalidate()
+        },
+        onError: (e) => notify.fromError(e, "审核操作失败"),
     })
     const reject = useMutation({
         mutationFn: () => adminApi.reject(item.id, reason),
         onSuccess: () => {
+            notify.success(`已驳回「${item.shopName}」的开店申请`)
             setRejectOpen(false)
             setReason("")
             void invalidate()
         },
+        onError: (e) => notify.fromError(e, "审核操作失败"),
     })
+
+    const busy = approve.isPending || reject.isPending
 
     return (
         <div className="flex justify-end gap-2">
             <Button
                 variant="outline"
-                disabled={approve.isPending || reject.isPending}
-                onClick={() => approve.mutate()}
+                disabled={busy}
+                onClick={() => setApproveOpen(true)}
             >
-                通过
+                {approve.isPending && <Spinner />}通过
             </Button>
+            <AlertDialog
+                open={approveOpen}
+                onOpenChange={setApproveOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>通过「{item.shopName}」的开店申请</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            通过后店铺即可上架商品，确认执行？
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setApproveOpen(false)}>
+                            取消
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={approve.isPending}
+                            onClick={() => approve.mutate()}
+                        >
+                            {approve.isPending && <Spinner />}确认通过
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <Dialog
                 open={rejectOpen}
                 onOpenChange={setRejectOpen}
             >
                 <Button
-                    variant="outline"
-                    className="text-destructive hover:bg-destructive-subtle"
-                    disabled={approve.isPending || reject.isPending}
+                    variant="destructive"
+                    disabled={busy}
                     onClick={() => setRejectOpen(true)}
                 >
-                    驳回
+                    {reject.isPending && <Spinner />}驳回
                 </Button>
                 <DialogContent>
                     <DialogHeader>
@@ -232,7 +290,7 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
                             disabled={!reason.trim() || reject.isPending}
                             onClick={() => reject.mutate()}
                         >
-                            确认驳回
+                            {reject.isPending && <Spinner />}确认驳回
                         </Button>
                     </DialogFooter>
                 </DialogContent>

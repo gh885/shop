@@ -65,6 +65,7 @@ export function useAddToCart() {
             notify.success("已加入购物车")
             void qc.invalidateQueries({ queryKey: CART_COUNT_KEY })
         },
+        onError: (err) => notify.fromError(err, "加入购物车失败"),
     })
 }
 

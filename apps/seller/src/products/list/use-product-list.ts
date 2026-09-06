@@ -7,6 +7,7 @@ import { ProductsAdminApi } from "@shop/api/sdk"
 import type { ProductStatusFilter } from "#/products/constants"
 import type { ProductListFilter } from "#/products/list/filter"
 import { productKeys, productListOptions, type ProductListSearch } from "#/products/queries"
+import { notify } from "#/shared/lib/toast"
 import { useCurrentShop } from "#/shared/lib/shop"
 
 export type { ProductListSearch }
@@ -46,17 +47,28 @@ export function useProductList(search: ProductListSearch, navigate: NavigateFn) 
 
     const off = useMutation({
         mutationFn: (id: string) => ProductsAdminApi.offProduct({ path: { id } }),
-        onSuccess: invalidate,
+        onSuccess: () => {
+            notify.success("商品已下架")
+            return invalidate()
+        },
+        onError: (err) => notify.fromError(err, "下架失败"),
     })
     const on = useMutation({
         mutationFn: (id: string) => ProductsAdminApi.onProduct({ path: { id } }),
-        onSuccess: invalidate,
+        onSuccess: () => {
+            notify.success("商品已上架")
+            return invalidate()
+        },
+        onError: (err) => notify.fromError(err, "上架失败"),
     })
 
     const handleAction = useCallback(
         (mutateAsync: (id: string) => Promise<unknown>) => (id: string) => {
             setBusyId(id)
-            mutateAsync(id).finally(() => setBusyId(undefined))
+            // 错误已在 mutation 的 onError 里 toast，这里 catch 只为吞掉 unhandled rejection
+            mutateAsync(id)
+                .catch(() => undefined)
+                .finally(() => setBusyId(undefined))
         },
         [],
     )

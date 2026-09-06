@@ -35,9 +35,11 @@ const STATUS_ACTIONS: Record<
 export interface OrderStatusSectionProps {
     order: OrderDetail
     onAction?: (order: OrderDetail, action: string) => void
+    /** 进行中的操作 key：对应按钮禁用，防重复提交 */
+    pendingAction?: string
 }
 
-export function OrderStatusSection({ order, onAction }: OrderStatusSectionProps) {
+export function OrderStatusSection({ order, onAction, pendingAction }: OrderStatusSectionProps) {
     const actions = STATUS_ACTIONS[order.status]
     // 待付款订单展示付款截止倒计时
     const pending = order.status === "pending_payment"
@@ -81,6 +83,7 @@ export function OrderStatusSection({ order, onAction }: OrderStatusSectionProps)
                         variant={a.variant ?? "outline"}
                         size="sm"
                         className="min-w-24"
+                        disabled={pendingAction === a.key}
                         onClick={() => onAction?.(order, a.key)}
                     >
                         {a.label}

@@ -67,7 +67,7 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
                                 <TabsTrigger
                                     key={s.id}
                                     value={s.id}
-                                    className="px-4 text-base data-active:text-primary data-active:after:bg-primary"
+                                    className="px-4"
                                 >
                                     {s.label}
                                 </TabsTrigger>
@@ -91,7 +91,7 @@ function ReviewsSection() {
             id="reviews"
             title="用户评价"
         >
-            <Empty className="border border-dashed">
+            <Empty>
                 <EmptyHeader>
                     <EmptyMedia variant="icon">
                         <MessageSquareOff />

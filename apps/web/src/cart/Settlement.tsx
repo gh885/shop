@@ -85,9 +85,10 @@ export function Settlement() {
 
             {/* 去结算 */}
             <Button
+                variant="cta"
                 disabled={selectedCount === 0}
                 onClick={goCheckout}
-                className="mt-5 h-12 w-full rounded-xl bg-linear-to-r from-primary to-primary-hover text-base text-white hover:from-primary-hover hover:to-primary-active"
+                className="mt-5 h-12 w-full"
             >
                 去结算{selectedCount > 0 ? `(${selectedCount})` : ""}
             </Button>

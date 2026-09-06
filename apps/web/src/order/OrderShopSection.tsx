@@ -1,9 +1,8 @@
-import { Button } from "@shop/ui-web"
+import { Button, Panel, PanelContent, PanelHeader } from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/api"
 
 import type { OrderItem } from "./model"
-import { Panel, PanelContent, PanelHeader } from "#/shared/ui/Panel"
 
 /**
  * 店铺 + 商品信息区：店铺行（店名 + 查看交易快照）+ 逐条商品行。

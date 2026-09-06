@@ -22,6 +22,7 @@
         "@tanstack/react-table": "catalog:",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "cn": "^0.2.5",
         "embla-carousel-react": "^8.6.0",
         "lucide-react": "catalog:",
         "react": "catalog:",

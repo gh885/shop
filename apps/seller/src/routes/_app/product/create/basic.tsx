@@ -1,12 +1,28 @@
-import { useCallback, useEffect, useState } from "react"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { createFileRoute, useBlocker, useNavigate } from "@tanstack/react-router"
 import { CircleAlert, Store } from "lucide-react"
 
 import { toApiError } from "@shop/api"
-import { Button } from "@shop/ui-web"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@shop/ui-web"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/products"
 import { useProductDraft, type DraftProductStatus } from "#/products/create/basic/use-product-draft"
+import { notify } from "#/shared/lib/toast"
 import { useCurrentShop } from "#/shared/lib/shop"
 
 interface BasicSearch {
@@ -44,6 +60,42 @@ function NewProductBasicStep() {
             }),
     })
 
+    // ---- 未保存更改离开提醒 ----
+    // onBasicChange 会在表单值每次变化（含回填）时触发：以回填完成后的首个观测值为基线，
+    // 其后内容变化即视为脏。hydratedBasic 变化（编辑回填完成）时重置基线，避免把程序性回填误判为用户编辑。
+    const [dirty, setDirty] = useState(false)
+    const hydratedBasic = draft.hydratedBasic
+    const baselineRef = useRef<BasicStepValues | undefined>(undefined)
+    const lastHydratedRef = useRef(hydratedBasic)
+
+    const handleBasicChange = useCallback(
+        (values: BasicStepValues) => {
+            const hydratedChanged = lastHydratedRef.current !== hydratedBasic
+            lastHydratedRef.current = hydratedBasic
+            if (baselineRef.current === undefined || hydratedChanged) {
+                baselineRef.current = values
+                return
+            }
+            if (JSON.stringify(values) !== JSON.stringify(baselineRef.current)) {
+                setDirty(true)
+            }
+        },
+        [hydratedBasic],
+    )
+
+    const blocker = useBlocker({
+        shouldBlockFn: () => dirty,
+        withResolver: true,
+    })
+    const leaveOpen = blocker.status === "blocked"
+    // 关闭页面/刷新兜底（路由内跳转由 blocker 处理）
+    useEffect(() => {
+        if (!dirty) return
+        const handler = (e: BeforeUnloadEvent) => e.preventDefault()
+        window.addEventListener("beforeunload", handler)
+        return () => window.removeEventListener("beforeunload", handler)
+    }, [dirty])
+
     // 编辑已有商品时把状态带到发布页（BasicStep 据此决定能否切类目 / 规格是否冻结）；新建无
     const editingStatus: DraftProductStatus | undefined = draft.productStatus
 
@@ -54,15 +106,18 @@ function NewProductBasicStep() {
         }
     }, [categoryId, navigate])
 
-    // 显式保存模式：不再监听字段变化自动落库。（BasicStep 的 onBasicChange 上报未来扩展用，此处置空即不写库）
-    const NOOP_BASIC_CHANGE = useCallback(() => {}, [])
-
     async function onSubmit(values: BasicStepValues, mode: SubmitMode) {
         setServerError(undefined)
         try {
             await draft.submit(values, mode)
-            // 保存草稿：留在当前页（productId 已由 onCreated 写回 URL，可刷新续编）；提交/入库才跳回列表。
-            if (mode === "draft") return
+            // 保存草稿：留在当前页（productId 已由 onCreated 写回 URL，可刷新续编），toast 确认；
+            // 提交/入库才跳回列表。保存成功后重置脏标记与基线。
+            baselineRef.current = undefined
+            setDirty(false)
+            if (mode === "draft") {
+                notify.success("草稿已保存")
+                return
+            }
             void navigate({ to: "/product/list", search: { page: 1, size: 10 } })
         } catch (error) {
             setServerError(toApiError(error).detail)
@@ -71,23 +126,22 @@ function NewProductBasicStep() {
 
     if (!shop) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-                    <Store className="size-7" />
-                </div>
-                <div className="space-y-1">
-                    <p className="font-medium">还没有正常营业的店铺</p>
-                    <p className="text-sm text-muted-foreground">
-                        创建店铺或等待审核通过后，再来发布商品
-                    </p>
-                </div>
-                <Button
-                    variant="outline"
-                    onClick={() => void navigate({ to: "/shop/list" })}
-                >
-                    去店铺管理
-                </Button>
-            </div>
+            <Empty className="py-24">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <Store />
+                    </EmptyMedia>
+                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
+                    <EmptyDescription>创建店铺或等待审核通过后，再来发布商品。</EmptyDescription>
+                    <Button
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => void navigate({ to: "/shop/list" })}
+                    >
+                        去店铺管理
+                    </Button>
+                </EmptyHeader>
+            </Empty>
         )
     }
 
@@ -109,7 +163,7 @@ function NewProductBasicStep() {
                 onSelectionsChange={draft.setSelections}
                 onSkuRowsChange={draft.setSkuRows}
                 submit={onSubmit}
-                onBasicChange={NOOP_BASIC_CHANGE}
+                onBasicChange={handleBasicChange}
                 initialBasic={draft.hydratedBasic}
             />
             {serverError ? (
@@ -123,6 +177,37 @@ function NewProductBasicStep() {
                         {serverError}
                     </p>
                 </div>
+            ) : undefined}
+
+            {/* 未保存更改：拦截路由内跳转（含切类目/侧边栏），确认丢弃才继续 */}
+            {leaveOpen ? (
+                <AlertDialog
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) blocker.reset()
+                    }}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>有未保存的更改</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                离开后当前页面的修改将丢失，确定要离开吗？
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>继续编辑</AlertDialogCancel>
+                            <AlertDialogAction
+                                variant="destructive"
+                                onClick={() => {
+                                    setDirty(false)
+                                    blocker.proceed()
+                                }}
+                            >
+                                丢弃更改并离开
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             ) : undefined}
         </div>
     )

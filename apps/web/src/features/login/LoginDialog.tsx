@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { CircleAlert, Loader2, QrCode } from "lucide-react"
+import { CircleAlert, QrCode } from "lucide-react"
 
 import { useMutation } from "@tanstack/react-query"
 import {
@@ -17,7 +17,15 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
-    Input,
+    Field,
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+    InputGroupText,
+    Skeleton,
+    Spinner,
+    firstFieldError,
     useAppForm,
     useCaptcha,
     useCountdown,
@@ -30,11 +38,6 @@ import {
     sendSmsCode as sendSmsCodeAction,
 } from "./actions"
 import { notify } from "#/shared/lib/toast"
-
-/* 嵌套行（+86 前缀 / 内嵌按钮）里的 Input：去掉自带边框与 focus ring，
-   视觉容器由外层 wrapper（rounded + bg-muted + focus-within:ring）承担 */
-const embeddedInputClass =
-    "h-full flex-1 rounded-none border-0 bg-transparent px-3.5 py-0 focus-visible:ring-0"
 
 type LoginTab = "sms" | "password"
 
@@ -151,7 +154,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-primary/8 to-transparent" />
 
                 <div className="relative flex flex-col gap-7 p-8 pt-7">
-                    <DialogTitle className="text-center text-xl font-semibold tracking-tight">
+                    <DialogTitle className="text-center tracking-tight">
                         登录后畅享更多功能
                     </DialogTitle>
 
@@ -210,28 +213,30 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 validators={{ onChange: PhoneSchema }}
                             >
                                 {(field) => (
-                                    <div className="flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring">
-                                        <span className="border-e px-3.5 text-sm tabular-nums text-muted-foreground">
-                                            +86
-                                        </span>
-                                        <Input
-                                            className={cn(
-                                                embeddedInputClass,
-                                                "text-sm tracking-wide tabular-nums placeholder:tracking-normal",
-                                            )}
-                                            placeholder="请输入手机号"
-                                            inputMode="tel"
-                                            autoComplete="tel"
-                                            maxLength={11}
-                                            value={field.state.value}
-                                            onBlur={field.handleBlur}
-                                            onChange={(e) =>
-                                                field.handleChange(
-                                                    e.target.value.replaceAll(/\D/g, ""),
-                                                )
-                                            }
-                                        />
-                                    </div>
+                                    <Field error={firstFieldError(field)}>
+                                        <InputGroup className="h-12 rounded-xl border-0 bg-muted/70">
+                                            <InputGroupAddon align="inline-start">
+                                                <InputGroupText className="px-3.5 tabular-nums">
+                                                    +86
+                                                </InputGroupText>
+                                            </InputGroupAddon>
+                                            <InputGroupInput
+                                                aria-label="手机号"
+                                                className="tracking-wide tabular-nums placeholder:tracking-normal"
+                                                placeholder="请输入手机号"
+                                                inputMode="tel"
+                                                autoComplete="tel"
+                                                maxLength={11}
+                                                value={field.state.value}
+                                                onBlur={field.handleBlur}
+                                                onChange={(e) =>
+                                                    field.handleChange(
+                                                        e.target.value.replaceAll(/\D/g, ""),
+                                                    )
+                                                }
+                                            />
+                                        </InputGroup>
+                                    </Field>
                                 )}
                             </form.AppField>
 
@@ -239,55 +244,55 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 /* 图形验证码：发码前先人机验证（点击图片刷新） */
                                 <form.AppField name="captchaCode">
                                     {(field) => (
-                                        <div
-                                            className={cn(
-                                                "flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring",
-                                                captchaInvalid &&
-                                                    "animate-shake ring-2 ring-destructive/40",
-                                            )}
-                                        >
-                                            <Input
+                                        <Field error={firstFieldError(field)}>
+                                            <InputGroup
                                                 className={cn(
-                                                    embeddedInputClass,
-                                                    "px-3.5 text-sm tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal",
+                                                    "h-12 rounded-xl border-0 bg-muted/70",
+                                                    captchaInvalid &&
+                                                        "animate-shake ring-2 ring-destructive/40",
                                                 )}
-                                                placeholder="图形验证码"
-                                                autoComplete="off"
-                                                maxLength={4}
-                                                value={field.state.value}
-                                                onBlur={field.handleBlur}
-                                                onChange={(e) => {
-                                                    field.handleChange(e.target.value.toUpperCase())
-                                                    // 重新输入时只清验证码类错误，其余保留到下次提交
-                                                    setSubmitError((prev) =>
-                                                        isCaptchaError(prev) ? undefined : prev,
-                                                    )
-                                                }}
-                                            />
-                                            {/* 验证码图：点击刷新；加载/无图时占位 */}
-                                            <button
-                                                type="button"
-                                                aria-label="刷新图形验证码"
-                                                onClick={() => void captcha.refresh()}
-                                                className="shrink-0 self-stretch border-l border-border/60"
                                             >
-                                                {captcha.image ? (
-                                                    <img
-                                                        src={captcha.image}
-                                                        alt="图形验证码"
-                                                        className="h-full w-[104px] rounded-r-xl"
-                                                    />
-                                                ) : captcha.loading ? (
-                                                    <span className="flex h-full w-[104px] items-center justify-center text-xs text-muted-foreground">
-                                                        加载中…
-                                                    </span>
-                                                ) : (
-                                                    <span className="flex h-full w-[104px] items-center justify-center text-xs text-muted-foreground">
-                                                        点击获取
-                                                    </span>
-                                                )}
-                                            </button>
-                                        </div>
+                                                <InputGroupInput
+                                                    aria-label="图形验证码"
+                                                    className="px-3.5 tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal"
+                                                    placeholder="图形验证码"
+                                                    autoComplete="off"
+                                                    maxLength={4}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) => {
+                                                        field.handleChange(
+                                                            e.target.value.toUpperCase(),
+                                                        )
+                                                        // 重新输入时只清验证码类错误，其余保留到下次提交
+                                                        setSubmitError((prev) =>
+                                                            isCaptchaError(prev) ? undefined : prev,
+                                                        )
+                                                    }}
+                                                />
+                                                {/* 验证码图：点击刷新；加载/无图时占位 */}
+                                                <button
+                                                    type="button"
+                                                    aria-label="刷新图形验证码"
+                                                    onClick={() => void captcha.refresh()}
+                                                    className="shrink-0 self-stretch border-l border-border/60"
+                                                >
+                                                    {captcha.image ? (
+                                                        <img
+                                                            src={captcha.image}
+                                                            alt="图形验证码"
+                                                            className="h-full w-[104px] rounded-r-xl"
+                                                        />
+                                                    ) : captcha.loading ? (
+                                                        <Skeleton className="h-full w-[104px]" />
+                                                    ) : (
+                                                        <span className="flex h-full w-[104px] items-center justify-center text-xs text-muted-foreground">
+                                                            点击获取
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            </InputGroup>
+                                        </Field>
                                     )}
                                 </form.AppField>
                             ) : undefined}
@@ -296,87 +301,94 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 /* 验证码 + 内嵌发送按钮 */
                                 <form.AppField name="code">
                                     {(field) => (
-                                        <div
-                                            className={cn(
-                                                "flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring",
-                                                codeInvalid &&
-                                                    "animate-shake ring-2 ring-destructive/40",
-                                            )}
-                                        >
-                                            <Input
+                                        <Field error={firstFieldError(field)}>
+                                            <InputGroup
                                                 className={cn(
-                                                    embeddedInputClass,
-                                                    "text-sm tracking-widest tabular-nums placeholder:tracking-normal",
+                                                    "h-12 rounded-xl border-0 bg-muted/70",
+                                                    codeInvalid &&
+                                                        "animate-shake ring-2 ring-destructive/40",
                                                 )}
-                                                placeholder="请输入验证码"
-                                                inputMode="numeric"
-                                                autoComplete="one-time-code"
-                                                maxLength={6}
-                                                value={field.state.value}
-                                                onBlur={field.handleBlur}
-                                                onChange={(e) => {
-                                                    field.handleChange(
-                                                        e.target.value.replaceAll(/\D/g, ""),
-                                                    )
-                                                    // 重新输入时只清验证码类错误（抖动随之消失），其余服务端错误保留到下次提交
-                                                    setSubmitError((prev) =>
-                                                        isCodeError(prev) ? undefined : prev,
-                                                    )
-                                                }}
-                                            />
-                                            <form.Subscribe
-                                                selector={(s) => ({
-                                                    phoneValid: PHONE_PATTERN.test(s.values.phone),
-                                                    captchaValid: s.values.captchaCode.length === 4,
-                                                })}
                                             >
-                                                {({ phoneValid, captchaValid }) => (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="shrink-0 px-3.5 text-sm text-primary hover:bg-transparent hover:text-primary-hover disabled:font-normal disabled:text-muted-foreground/60"
-                                                        disabled={
-                                                            !phoneValid ||
-                                                            !captchaValid ||
-                                                            !captcha.image ||
-                                                            countdown > 0 ||
-                                                            sendCode.isPending
-                                                        }
-                                                        onClick={() =>
-                                                            handleSendCode(
-                                                                form.getFieldValue("phone"),
-                                                            )
-                                                        }
-                                                    >
-                                                        {countdown > 0 ? (
-                                                            <span className="tabular-nums">
-                                                                {countdown}s 后重发
-                                                            </span>
-                                                        ) : sendCode.isPending ? (
-                                                            "发送中…"
-                                                        ) : (
-                                                            "获取验证码"
-                                                        )}
-                                                    </Button>
-                                                )}
-                                            </form.Subscribe>
-                                        </div>
+                                                <InputGroupInput
+                                                    aria-label="短信验证码"
+                                                    className="px-3.5 tracking-widest tabular-nums placeholder:tracking-normal"
+                                                    placeholder="请输入验证码"
+                                                    inputMode="numeric"
+                                                    autoComplete="one-time-code"
+                                                    maxLength={6}
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) => {
+                                                        field.handleChange(
+                                                            e.target.value.replaceAll(/\D/g, ""),
+                                                        )
+                                                        // 重新输入时只清验证码类错误（抖动随之消失），其余服务端错误保留到下次提交
+                                                        setSubmitError((prev) =>
+                                                            isCodeError(prev) ? undefined : prev,
+                                                        )
+                                                    }}
+                                                />
+                                                <form.Subscribe
+                                                    selector={(s) => ({
+                                                        phoneValid: PHONE_PATTERN.test(
+                                                            s.values.phone,
+                                                        ),
+                                                        captchaValid:
+                                                            s.values.captchaCode.length === 4,
+                                                    })}
+                                                >
+                                                    {({ phoneValid, captchaValid }) => (
+                                                        <InputGroupButton
+                                                            variant="link"
+                                                            size="sm"
+                                                            className="h-full shrink-0 px-3.5 disabled:opacity-40"
+                                                            disabled={
+                                                                !phoneValid ||
+                                                                !captchaValid ||
+                                                                !captcha.image ||
+                                                                countdown > 0 ||
+                                                                sendCode.isPending
+                                                            }
+                                                            onClick={() =>
+                                                                handleSendCode(
+                                                                    form.getFieldValue("phone"),
+                                                                )
+                                                            }
+                                                        >
+                                                            {countdown > 0 ? (
+                                                                <span className="tabular-nums">
+                                                                    {countdown}s 后重发
+                                                                </span>
+                                                            ) : sendCode.isPending ? (
+                                                                <Spinner />
+                                                            ) : (
+                                                                "获取验证码"
+                                                            )}
+                                                        </InputGroupButton>
+                                                    )}
+                                                </form.Subscribe>
+                                            </InputGroup>
+                                        </Field>
                                     )}
                                 </form.AppField>
                             ) : (
                                 <form.AppField name="password">
                                     {(field) => (
-                                        <div className="flex h-12 items-center rounded-xl bg-muted/70 transition-shadow focus-within:ring-2 focus-within:ring-ring">
-                                            <Input
-                                                className={cn(embeddedInputClass, "text-sm")}
-                                                type="password"
-                                                placeholder="请输入密码"
-                                                autoComplete="current-password"
-                                                value={field.state.value}
-                                                onBlur={field.handleBlur}
-                                                onChange={(e) => field.handleChange(e.target.value)}
-                                            />
-                                        </div>
+                                        <Field error={firstFieldError(field)}>
+                                            <InputGroup className="h-12 rounded-xl border-0 bg-muted/70">
+                                                <InputGroupInput
+                                                    aria-label="密码"
+                                                    type="password"
+                                                    placeholder="请输入密码"
+                                                    autoComplete="current-password"
+                                                    value={field.state.value}
+                                                    onBlur={field.handleBlur}
+                                                    onChange={(e) =>
+                                                        field.handleChange(e.target.value)
+                                                    }
+                                                />
+                                            </InputGroup>
+                                        </Field>
                                     )}
                                 </form.AppField>
                             )}
@@ -404,13 +416,14 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 {({ isSubmitting, ready }) => (
                                     <Button
                                         type="submit"
-                                        className="h-12 w-full rounded-xl text-[15px] font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/35 active:scale-[0.98] disabled:opacity-40 disabled:shadow-none"
+                                        variant="cta"
+                                        className="h-12 w-full"
                                         disabled={!ready || isSubmitting}
                                     >
                                         {isSubmitting ? (
                                             <>
-                                                <Loader2 className="animate-spin" />
-                                                登录中…
+                                                <Spinner />
+                                                登录
                                             </>
                                         ) : (
                                             "登录"
@@ -424,7 +437,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 <Button
                                     variant="link"
                                     size="sm"
-                                    className="mx-1 h-auto p-0 text-foreground hover:text-link"
+                                    className="mx-1 h-auto p-0"
                                 >
                                     用户协议
                                 </Button>
@@ -432,7 +445,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                 <Button
                                     variant="link"
                                     size="sm"
-                                    className="mx-1 h-auto p-0 text-foreground hover:text-link"
+                                    className="mx-1 h-auto p-0"
                                 >
                                     隐私政策
                                 </Button>

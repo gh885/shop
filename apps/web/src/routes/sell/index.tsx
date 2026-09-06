@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react"
 
-import { Button, buttonVariants } from "@shop/ui-web"
+import { Button, Card, CardContent, buttonVariants } from "@shop/ui-web"
 
 import { useAuthStatus, useLoginDialogOpen } from "../../shared/api/auth"
 import { SELLER_URL } from "../../shared/lib/external"
@@ -230,22 +230,27 @@ function BusinessModes() {
                         <motion.div
                             key={mode.key}
                             role="tabpanel"
-                            className="grid grid-cols-1 items-center gap-8 rounded-2xl bg-background p-8 shadow-sm md:grid-cols-2"
                             initial={reduce ? false : { opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={reduce ? undefined : { opacity: 0, y: -8 }}
                             transition={{ duration: 0.35, ease: EASE }}
                         >
-                            <div className="space-y-4">
-                                <h3 className="text-2xl font-semibold">{mode.title}</h3>
-                                <p className="leading-relaxed text-muted-foreground">{mode.body}</p>
-                                <OpenShopCta />
-                            </div>
-                            <img
-                                src={mode.img}
-                                alt={mode.alt}
-                                className="aspect-3/2 w-full rounded-xl object-cover"
-                            />
+                            <Card>
+                                <CardContent className="grid grid-cols-1 items-center gap-8 md:grid-cols-2">
+                                    <div className="space-y-4">
+                                        <h3 className="text-2xl font-semibold">{mode.title}</h3>
+                                        <p className="leading-relaxed text-muted-foreground">
+                                            {mode.body}
+                                        </p>
+                                        <OpenShopCta />
+                                    </div>
+                                    <img
+                                        src={mode.img}
+                                        alt={mode.alt}
+                                        className="aspect-3/2 w-full rounded-xl object-cover"
+                                    />
+                                </CardContent>
+                            </Card>
                         </motion.div>
                     </AnimatePresence>
                 </div>

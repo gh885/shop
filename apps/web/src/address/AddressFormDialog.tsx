@@ -8,7 +8,10 @@ import {
     DialogTitle,
     Field,
     Input,
-    Textarea,
+    InputGroup,
+    InputGroupAddon,
+    InputGroupTextarea,
+    Spinner,
     cn,
     firstFieldError,
     useAppForm,
@@ -165,17 +168,26 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                 >
                     {/* 智能粘贴：左标签 + 右侧圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}
                     <div className="flex items-start gap-4">
-                        <span className="w-16 shrink-0 pt-2.5 text-sm">智能粘贴</span>
+                        <label
+                            htmlFor="smart-paste"
+                            className="w-16 shrink-0 pt-2.5 text-sm"
+                        >
+                            智能粘贴
+                        </label>
                         <div className="min-w-0 flex-1">
-                            <div className="rounded-lg border border-border bg-card">
-                                <Textarea
-                                    className="h-24 w-full resize-none rounded-none border-0 bg-transparent p-3 text-sm focus-visible:ring-0"
+                            <InputGroup>
+                                <InputGroupTextarea
+                                    id="smart-paste"
+                                    className="h-24 resize-none p-3"
                                     placeholder="粘贴文本到此处，将自动识别收货信息,例：淘宝，139********，浙江省杭州市西湖区某小区"
                                     maxLength={500}
                                     value={smartText}
                                     onChange={(e) => setSmartText(e.target.value)}
                                 />
-                                <div className="flex justify-end p-3 pt-0">
+                                <InputGroupAddon
+                                    align="block-end"
+                                    className="justify-end"
+                                >
                                     <Button
                                         type="button"
                                         size="sm"
@@ -183,10 +195,10 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                         disabled={parsing || !smartText.trim()}
                                         onClick={() => void handleSmartParse()}
                                     >
-                                        {parsing ? "识别中…" : "粘贴并识别"}
+                                        {parsing && <Spinner />}粘贴并识别
                                     </Button>
-                                </div>
-                            </div>
+                                </InputGroupAddon>
+                            </InputGroup>
                         </div>
                     </div>
 
@@ -303,6 +315,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                     {showCustomInput && (
                                         <div className="relative mt-2">
                                             <Input
+                                                aria-label="自定义标签名称"
                                                 placeholder="请输入标签名称"
                                                 maxLength={CUSTOM_LABEL_MAX}
                                                 value={
@@ -337,7 +350,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                             type="submit"
                             disabled={busy}
                         >
-                            {busy ? "保存中…" : "确定"}
+                            {busy && <Spinner />}确定
                         </Button>
                     </div>
                 </form>

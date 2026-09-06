@@ -1,5 +1,15 @@
+import { useState } from "react"
+
 import { formatDate } from "#/shared/lib/format"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
     Badge,
     Button,
     Pagination as UiPagination,
@@ -57,6 +67,8 @@ export function ProductTable({
     onPageChange,
 }: ProductTableProps) {
     const totalPages = Math.max(1, Math.ceil(total / pageSize))
+    // 下架二次确认：记录目标商品，确认后才真正执行 onOff
+    const [offTarget, setOffTarget] = useState<ProductResponse | undefined>()
 
     return (
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -78,12 +90,39 @@ export function ProductTable({
                             product={p}
                             busy={p.id === busyId}
                             onEdit={() => onEdit(p.id)}
-                            onOff={() => onOff(p.id)}
+                            onOff={() => setOffTarget(p)}
                             onOn={() => onOn(p.id)}
                         />
                     ))}
                 </TableBody>
             </Table>
+
+            {/* 下架二次确认 */}
+            <AlertDialog
+                open={Boolean(offTarget)}
+                onOpenChange={(open) => !open && setOffTarget(undefined)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>下架商品</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            确定下架「{offTarget?.name ?? ""}」吗？买家将无法再购买该商品。
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            onClick={() => {
+                                if (offTarget) onOff(offTarget.id)
+                                setOffTarget(undefined)
+                            }}
+                        >
+                            下架
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <div className="border-t border-border px-4 py-3">
                 <div className="mb-2 text-sm text-muted-foreground tabular-nums">

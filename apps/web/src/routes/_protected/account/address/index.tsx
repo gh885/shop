@@ -2,7 +2,16 @@ import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
-import { Button, Dialog, DialogContent, DialogTitle, Skeleton } from "@shop/ui-web"
+import {
+    Button,
+    Card,
+    CardContent,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    Skeleton,
+    Spinner,
+} from "@shop/ui-web"
 import { CircleAlert } from "lucide-react"
 
 import type { Address } from "#/address"
@@ -61,22 +70,22 @@ function AddressPage() {
             </div>
 
             {isError ? (
-                <div className="flex flex-col items-start gap-3 rounded-lg border border-border bg-card p-8">
-                    <div className="flex items-center gap-2 text-destructive">
-                        <CircleAlert className="size-5" />
-                        <span className="font-medium">地址列表加载失败</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                        网络异常或服务暂时不可用，请重试。
-                    </p>
-                    <Button
-                        variant="outline"
-                        disabled={isLoading}
-                        onClick={() => void refetch()}
-                    >
-                        重试
-                    </Button>
-                </div>
+                <Card>
+                    <CardContent className="flex flex-col items-start gap-3">
+                        <div className="flex items-center gap-2 text-destructive">
+                            <CircleAlert className="size-5" />
+                            <span className="font-medium">地址列表加载失败</span>
+                        </div>
+                        <p className="text-muted-foreground">网络异常或服务暂时不可用，请重试。</p>
+                        <Button
+                            variant="outline"
+                            disabled={isLoading}
+                            onClick={() => void refetch()}
+                        >
+                            重试
+                        </Button>
+                    </CardContent>
+                </Card>
             ) : isLoading ? (
                 <div className="space-y-2">
                     {Array.from({ length: 3 }, (_, i) => (
@@ -124,7 +133,7 @@ function AddressPage() {
                             disabled={del.isPending}
                             onClick={confirmDelete}
                         >
-                            {del.isPending ? "删除中…" : "删除"}
+                            {del.isPending && <Spinner />}删除
                         </Button>
                     </div>
                 </DialogContent>

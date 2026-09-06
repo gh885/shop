@@ -1,4 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { ShoppingCart } from "lucide-react"
+
+import {
+    Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Skeleton,
+} from "@shop/ui-web"
 
 import { ShopGroupCard, Settlement, Toolbar, groupByShop, useCartItems } from "#/cart"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
@@ -23,16 +34,50 @@ function CartPage() {
 }
 
 function CartList() {
+    const navigate = useNavigate()
     const { data: items, isPending } = useCartItems()
     const groups = groupByShop(items ?? [])
     if (isPending) {
-        return <p className="py-16 text-center text-sm text-muted-foreground">加载中…</p>
+        // 首次加载：按分组卡片形状占位（头部行 + 两行商品）
+        return (
+            <div className="space-y-4">
+                {[0, 1].map((g) => (
+                    <div
+                        key={g}
+                        className="overflow-hidden rounded-2xl border border-border/60"
+                    >
+                        <Skeleton className="h-12 rounded-none" />
+                        <div className="space-y-px">
+                            {[0, 1].map((r) => (
+                                <Skeleton
+                                    /* eslint-disable-next-line react/no-array-index-key */
+                                    key={r}
+                                    className="h-20 rounded-none"
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )
     }
     if (groups.length === 0) {
         return (
-            <p className="py-16 text-center text-sm text-muted-foreground">
-                购物车还是空的，去逛逛吧
-            </p>
+            <Empty className="py-16">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <ShoppingCart />
+                    </EmptyMedia>
+                    <EmptyTitle>购物车还是空的</EmptyTitle>
+                    <EmptyDescription>去逛逛，把心仪好物带回家。</EmptyDescription>
+                    <Button
+                        className="mt-2"
+                        onClick={() => void navigate({ to: "/" })}
+                    >
+                        去逛逛
+                    </Button>
+                </EmptyHeader>
+            </Empty>
         )
     }
     return groups.map((group) => (

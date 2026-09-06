@@ -1,7 +1,18 @@
+import { useState } from "react"
 import { Minus, Plus } from "lucide-react"
 
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
     Button,
+    ButtonGroup,
+    ButtonGroupText,
     Checkbox,
     Item,
     ItemActions,
@@ -23,6 +34,7 @@ import { notify } from "#/shared/lib/toast"
  */
 export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemActions }) {
     const view = deriveCartItemView(item)
+    const [confirmOpen, setConfirmOpen] = useState(false)
 
     return (
         <Item
@@ -68,28 +80,32 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 )}
             </div>
 
-            <ItemActions className="gap-2">
-                <Button
-                    variant="outline"
-                    size="icon-sm"
-                    className="text-muted-foreground hover:text-foreground"
-                    disabled={view.disabled || item.quantity <= 1}
-                    onClick={() => actions.updateQuantity(item, item.quantity - 1)}
-                    aria-label="减少数量"
-                >
-                    <Minus className="size-3.5" />
-                </Button>
-                <span className="w-8 text-center text-sm tabular-nums">{item.quantity}</span>
-                <Button
-                    variant="outline"
-                    size="icon-sm"
-                    className="text-muted-foreground hover:text-foreground"
-                    disabled={view.disabled || view.stock === 0}
-                    onClick={() => actions.updateQuantity(item, item.quantity + 1)}
-                    aria-label="增加数量"
-                >
-                    <Plus className="size-3.5" />
-                </Button>
+            <ItemActions>
+                <ButtonGroup>
+                    <Button
+                        variant="outline"
+                        size="icon-sm"
+                        className="text-muted-foreground hover:text-foreground"
+                        disabled={view.disabled || item.quantity <= 1}
+                        onClick={() => actions.updateQuantity(item, item.quantity - 1)}
+                        aria-label="减少数量"
+                    >
+                        <Minus className="size-3.5" />
+                    </Button>
+                    <ButtonGroupText className="w-8 justify-center border-x bg-background px-0 text-sm tabular-nums">
+                        {item.quantity}
+                    </ButtonGroupText>
+                    <Button
+                        variant="outline"
+                        size="icon-sm"
+                        className="text-muted-foreground hover:text-foreground"
+                        disabled={view.disabled || view.stock === 0}
+                        onClick={() => actions.updateQuantity(item, item.quantity + 1)}
+                        aria-label="增加数量"
+                    >
+                        <Plus className="size-3.5" />
+                    </Button>
+                </ButtonGroup>
             </ItemActions>
 
             <div className="flex w-24 flex-col gap-1">
@@ -104,12 +120,39 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 <button
                     type="button"
                     disabled={view.disabled}
-                    onClick={() => actions.removeItem(item.id)}
+                    onClick={() => setConfirmOpen(true)}
                     className="text-xs text-muted-foreground transition-colors hover:text-destructive disabled:opacity-40"
                 >
                     删除
                 </button>
             </div>
+
+            {/* 删除确认 */}
+            <AlertDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>删除商品</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            确定从购物车删除「{view.title}」吗？
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            onClick={() => {
+                                actions.removeItem(item.id)
+                                setConfirmOpen(false)
+                            }}
+                        >
+                            删除
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Item>
     )
 }

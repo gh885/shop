@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
 import { Heart, ShoppingCart } from "lucide-react"
 
-import { Button } from "@shop/ui-web"
+import { Button, Spinner } from "@shop/ui-web"
 
 import { useAddToCart } from "#/cart"
 import { useFavoriteStatus, useToggleFavorite } from "#/favorite"
@@ -71,15 +71,17 @@ export function PurchaseCta({
         <div className="rounded-3xl bg-background p-3 shadow-float ring-1 ring-border/60">
             <div className="flex items-stretch gap-3">
                 <Button
+                    variant="cta-alt"
                     onClick={handleAdd}
-                    className="h-12 w-28 flex-none gap-2 rounded-xl bg-gradient-to-r from-cta-alt to-cta-alt-hover text-base text-white hover:from-cta-alt-hover hover:to-cta-alt-active"
+                    className="h-12 w-28 flex-none gap-2"
                 >
                     <ShoppingCart className="size-5" />
-                    {addToCart.isPending ? "加购中…" : "加购"}
+                    {addToCart.isPending && <Spinner />}加购
                 </Button>
                 <Button
+                    variant="cta"
                     onClick={handleBuyNow}
-                    className="h-12 flex-1 rounded-xl bg-gradient-to-r from-primary to-primary-hover text-base hover:from-primary-hover hover:to-primary-active"
+                    className="h-12 flex-1"
                 >
                     立即购买
                 </Button>

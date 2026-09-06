@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Search } from "lucide-react"
 
-import { Button, Logo } from "@shop/ui-web"
+import { Button, ButtonGroup, Input, Logo } from "@shop/ui-web"
 
 import { notify } from "#/shared/lib/toast"
 
@@ -45,24 +45,24 @@ export function SearchHeader({
                 </div>
 
                 {/* 右侧搜索组：2px 橙描边 + 实色橙按钮（与首页同款），各页附加按钮挂 extra */}
-                <div className="flex h-9 w-[400px] items-center overflow-hidden rounded-md border-2 border-primary bg-background">
-                    <input
+                <ButtonGroup className="h-9 w-[400px] overflow-hidden rounded-md border-2 border-primary bg-background">
+                    <Input
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && search()}
                         placeholder="搜索"
                         aria-label="搜索商品"
-                        className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                        className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0"
                     />
                     <Button
                         onClick={search}
-                        className="h-full rounded-none px-5"
+                        className="h-full px-5"
                     >
                         <Search />
                         搜索
                     </Button>
                     {extra}
-                </div>
+                </ButtonGroup>
             </div>
         </header>
     )

@@ -14,7 +14,7 @@ import { fenToYuan } from "@shop/api"
 import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "./model"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 import { formatDateTime } from "#/shared/lib/format"
-import { Panel, PanelContent, PanelHeader } from "#/shared/ui/Panel"
+import { Panel, PanelContent, PanelHeader } from "@shop/ui-web"
 
 /**
  * 订单卡片（京东/淘宝式订单列表项）。
@@ -63,9 +63,11 @@ export interface OrderCardProps {
     onDetail?: (order: Order) => void
     /** 触发某操作（key 对应 ORDER_ACTIONS 里的 key） */
     onAction?: (order: Order, action: string) => void
+    /** 进行中的操作 key：对应按钮禁用，防重复提交 */
+    pendingAction?: string
 }
 
-export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
+export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCardProps) {
     const actions = ORDER_ACTIONS[order.status]
     // 待付款订单展示付款截止倒计时（其余状态不显示）
     const pending = order.status === "pending_payment"
@@ -125,7 +127,7 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                             {/* 描述：标题 */}
                             <ItemContent>
                                 <ItemTitle className="line-clamp-2 w-full">{item.title}</ItemTitle>
-                                <ItemDescription className="line-clamp-1 text-muted-foreground">
+                                <ItemDescription className="line-clamp-1 w-full">
                                     规格：{item.skuId ? "已选规格" : "默认规格"}
                                 </ItemDescription>
                             </ItemContent>
@@ -162,6 +164,7 @@ export function OrderCard({ order, onDetail, onAction }: OrderCardProps) {
                                         variant={a.variant ?? "outline"}
                                         size="sm"
                                         className="min-w-24"
+                                        disabled={pendingAction === a.key}
                                         onClick={() => onAction?.(order, a.key)}
                                     >
                                         {a.label}

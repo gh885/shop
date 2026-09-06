@@ -107,4 +107,6 @@ export const reviewListOptions = (input: { status?: string; page: number; size: 
     queryOptions({
         queryKey: [...REVIEW_LIST_KEY, input.status ?? "all", input.page, input.size] as const,
         queryFn: () => adminApi.listReviews(input),
+        // 服务端分页/筛选时保留上一份数据，避免每次翻页都闪整表加载态
+        placeholderData: (prev) => prev,
     })

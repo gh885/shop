@@ -6,16 +6,32 @@ import { createFileRoute } from "@tanstack/react-router"
 import {
     Badge,
     Button,
+    ButtonGroup,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
     Empty,
     EmptyDescription,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
+    Field,
     Input,
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemMedia,
+    ItemTitle,
     Skeleton,
+    Spinner,
     StateError,
+    firstFieldError,
+    useAppForm,
 } from "@shop/ui-web"
-import { CheckCircle2, CircleAlert, MailPlus, Store } from "lucide-react"
+import { CheckCircle2, MailPlus, Store } from "lucide-react"
 
 import { toApiError } from "@shop/api"
 import type { ShopResponse } from "@shop/api/sdk"
@@ -23,6 +39,7 @@ import type { ShopResponse } from "@shop/api/sdk"
 import { acceptInvite, createShop, myInvites } from "#/shared/lib/shop-data"
 import { setCurrentShopId, useCurrentShop, useMyShops } from "#/shared/lib/shop"
 import { SHOP_STATUS_TEXT, SHOP_STATUS_VARIANT } from "#/shared/lib/shop-constants"
+import { notify } from "#/shared/lib/toast"
 
 /** 开店表单校验：店名长度与后端 @Size 对齐（就近放在表单旁） */
 const CreateShopNameSchema = z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字")
@@ -75,7 +92,7 @@ function ShopsPage() {
                         />
                     ))
                 ) : (
-                    <Empty className="rounded-2xl border-border py-14">
+                    <Empty className="py-14">
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
                                 <Store />
@@ -94,27 +111,33 @@ function ShopsPage() {
 
 function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean }) {
     return (
-        <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-5">
-            <div className="space-y-1">
-                <div className="flex items-center gap-3">
-                    <h3 className="font-semibold">{shop.name}</h3>
+        <Item
+            variant="outline"
+            size="sm"
+            className="justify-between p-5"
+        >
+            <ItemContent>
+                <ItemTitle className="flex items-center gap-3">
+                    {shop.name}
                     <Badge variant={SHOP_STATUS_VARIANT[shop.status]}>
                         {SHOP_STATUS_TEXT[shop.status]}
                     </Badge>
                     {isCurrent ? <Badge variant="outline">当前经营</Badge> : undefined}
-                </div>
-                <p className="text-sm text-muted-foreground">创建于 {formatDate(shop.createdAt)}</p>
-            </div>
+                </ItemTitle>
+                <ItemDescription>创建于 {formatDate(shop.createdAt)}</ItemDescription>
+            </ItemContent>
             {shop.status === "ACTIVE" && !isCurrent ? (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentShopId(shop.id)}
-                >
-                    设为当前店铺
-                </Button>
+                <ItemActions>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentShopId(shop.id)}
+                    >
+                        设为当前店铺
+                    </Button>
+                </ItemActions>
             ) : undefined}
-        </div>
+        </Item>
     )
 }
 
@@ -129,8 +152,10 @@ function PendingInvites() {
     const accept = useMutation({
         mutationFn: (memberId: string) => acceptInvite(memberId),
         onSuccess: () => {
+            notify.success("已加入店铺")
             void queryClient.invalidateQueries({ queryKey: ["shops"] })
         },
+        onError: (e) => notify.fromError(e, "加入店铺失败"),
     })
 
     if (!invites.data || invites.data.length === 0) return
@@ -138,29 +163,37 @@ function PendingInvites() {
     return (
         <section className="space-y-3">
             <h2 className="font-semibold">待确认邀请</h2>
-            <ul className="space-y-2">
+            <div className="space-y-2">
                 {invites.data.map((invite) => (
-                    <li
+                    <Item
                         key={invite.memberId}
-                        className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
+                        variant="outline"
+                        size="sm"
+                        className="justify-between p-4"
                     >
                         <div className="flex items-center gap-3">
-                            <MailPlus className="size-5 text-muted-foreground" />
+                            <ItemMedia
+                                variant="icon"
+                                className="border-0 bg-transparent"
+                            >
+                                <MailPlus />
+                            </ItemMedia>
                             <span className="text-sm">
                                 「{invite.shopName ?? "未知店铺"}」邀请你成为店铺成员
                             </span>
                         </div>
-                        <Button
-                            size="sm"
-                            disabled={accept.isPending}
-                            onClick={() => accept.mutate(invite.memberId)}
-                            className="bg-primary text-primary-foreground hover:bg-primary-hover"
-                        >
-                            同意加入
-                        </Button>
-                    </li>
+                        <ItemActions>
+                            <Button
+                                size="sm"
+                                disabled={accept.isPending}
+                                onClick={() => accept.mutate(invite.memberId)}
+                            >
+                                同意加入
+                            </Button>
+                        </ItemActions>
+                    </Item>
                 ))}
-            </ul>
+            </div>
         </section>
     )
 }
@@ -168,59 +201,68 @@ function PendingInvites() {
 /** 开店表单：提交后落 PENDING_REVIEW，等平台和核 */
 function CreateShopForm() {
     const queryClient = useQueryClient()
-    const [name, setName] = useState("")
-    const [error, setError] = useState<string | undefined>()
     const [done, setDone] = useState(false)
 
     const create = useMutation({
         mutationFn: (value: string) => createShop({ name: value }),
         onSuccess: () => {
-            setName("")
-            setError(undefined)
             setDone(true)
             void queryClient.invalidateQueries({ queryKey: ["shops"] })
         },
-        onError: (e) => {
-            const err = toApiError(e)
-            setError(err.detail)
+        onError: (e) => notify.fromError(e, "创建店铺失败"),
+    })
+
+    const form = useAppForm({
+        defaultValues: { name: "" },
+        onSubmit: ({ value }) => {
+            setDone(false)
+            create.mutate(value.name)
         },
     })
 
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault()
-        setError(undefined)
-        setDone(false)
-        const result = CreateShopNameSchema.safeParse(name)
-        if (!result.success) {
-            setError(result.error.issues[0]?.message ?? "请输入店铺名称")
-            return
-        }
-        create.mutate(result.data)
-    }
-
     return (
-        <section className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="font-semibold">开新店</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-                填写店铺名称即可提交，平台审核通过后即可开始经营。
-            </p>
-            <form
-                className="mt-4 flex items-start gap-2"
-                onSubmit={handleSubmit}
-            >
-                <div className="flex-1 space-y-1.5">
-                    <Input
-                        placeholder="给你的店铺起个名字"
-                        maxLength={50}
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                    />
-                    {error ? (
-                        <p className="flex items-center gap-1 text-sm text-destructive">
-                            <CircleAlert className="size-3.5" />
-                            {error}
-                        </p>
-                    ) : undefined}
+        <Card size="sm">
+            <CardHeader>
+                <CardTitle>开新店</CardTitle>
+                <CardDescription>
+                    填写店铺名称即可提交，平台审核通过后即可开始经营。
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault()
+                        form.handleSubmit()
+                    }}
+                >
+                    <form.AppField
+                        name="name"
+                        validators={{ onChange: CreateShopNameSchema }}
+                    >
+                        {(field) => (
+                            <Field error={firstFieldError(field)}>
+                                <ButtonGroup className="w-full">
+                                    <Input
+                                        id="create-shop-name"
+                                        aria-label="店铺名称"
+                                        placeholder="给你的店铺起个名字"
+                                        maxLength={50}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        onChange={(e) => field.handleChange(e.target.value)}
+                                    />
+                                    <Button
+                                        type="submit"
+                                        disabled={create.isPending}
+                                    >
+                                        {create.isPending && <Spinner />}提交申请
+                                    </Button>
+                                </ButtonGroup>
+                            </Field>
+                        )}
+                    </form.AppField>
+                </form>
+                <div className="mt-2 min-h-5">
                     {done ? (
                         <p className="flex items-center gap-1 text-sm text-success">
                             <CheckCircle2 className="size-3.5" />
@@ -228,14 +270,7 @@ function CreateShopForm() {
                         </p>
                     ) : undefined}
                 </div>
-                <Button
-                    type="submit"
-                    disabled={create.isPending || !name.trim()}
-                    className="bg-primary text-primary-foreground hover:bg-primary-hover"
-                >
-                    {create.isPending ? "提交中…" : "提交申请"}
-                </Button>
-            </form>
-        </section>
+            </CardContent>
+        </Card>
     )
 }
