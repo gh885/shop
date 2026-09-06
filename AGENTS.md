@@ -126,6 +126,18 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - 用户信息：`useMe()`（`lib/me.ts`，TanStack Query 缓存，未登录不发请求）
 - 表单：用 `useAppForm`（`@shop/ui-web`，TanStack Form + Zod validators），不手写裸 state 表单
 
+## 状态归属（前端）
+
+原则：**状态在哪里产生（最先可观测），就在最近的消费者处理它**。可观测点由取数机制决定，不机械绑定组件层级：
+
+- query hook → 调用处组件：`isPending`/`isError` 就地渲染 loading/error 态，不往下传
+- 派生态（如 empty：`data.length === 0`）→ 派生它的那一行所在组件
+- mutation 错误 → `onError` 即 `notify.fromError`（toast 的渲染点在根部，已是产生点最近的消费者）；乐观态 → 缓存 patch 层（`useOptimisticListMutation`），列表行只读缓存
+- 组件内部瞬时状态（上传进度/提交中按钮）→ 留在组件内；出现第二个消费者才上提为域内 `use-*.ts`（与 hook 上提规则同构）
+- route loader / `useSuspenseQuery` → 状态上移到 `pendingComponent`/`errorComponent`/Suspense 边界，父组件不再接触 query
+
+分界线：往子组件传**状态标志**（`isPending`/`error` props）= 放错位置的味道——子组件被迫认识"状态是什么"，还会长出可空 props；传**处理后的结果**（`deriveXxx` 视图模型、骨架屏或数据二选一）= 干净——子组件只管"拿到什么画什么"。
+
 ## 前端测试（Vitest + Testing Library + MSW）
 
 ```bash
