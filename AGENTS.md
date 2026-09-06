@@ -110,7 +110,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 
 - 顶层只有五种形态：`app/ layout/ routes/ shared/ {domain}/` + 入口文件（main/router/styles/routeTree.gen）；`widgets/`、`features/`、`components/`、`lib/` 等旧分类法不再新增
 - `app/` 应用装配：Provider 树、全局单例、bootstrap 等基建；不写业务逻辑与 UI 壳
-- `layout/` 平台骨架：导航、页脚、进度条、主题切换等无业务语义的壳；带业务数据的进 domain
+- `layout/` 平台骨架：导航、页脚、进度条等无业务语义的壳；带业务数据的进 domain
 - `{domain}/` 目录名 = **本端路由顶层业务段**（去参数段与叶子页）：web `/products/$id` → `products/`、seller `/product/*` → `product/`；各端机械映射优先于跨端统一命名
 - domain 内「文件名即分层」：`xxx.ts` 逻辑层 / `queries.ts` 数据层 / `use-*.ts` hook / 组件平铺（组件多则开 `components/` 或按路由子目录）；有自己要管的数据和状态的才配叫 domain，纯展示页组件直接写薄在 routes/
 - 依赖方向：`routes → domain → shared`；shared 不 import domain；domain 之间只经对方 `index.ts` 公开入口；跨域通用逻辑下沉 `packages/api`

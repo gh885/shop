@@ -10,9 +10,8 @@ import {
 
 import { AccountAvatar } from "./account"
 import { NAV, activeDomain } from "./nav"
-import { ThemeToggle } from "./theme-toggle"
 
-// 顶栏：左侧折叠触发器 + 一级 Tab（业务域），右侧亮暗切换 + 账号头像。
+// 顶栏：左侧折叠触发器 + 一级 Tab（业务域），右侧账号头像。
 // 品牌与完整账号在侧栏（SidebarHeader / SidebarFooter 的 <Account />）。
 export function AppTopBar() {
     const { pathname } = useLocation()
@@ -39,7 +38,6 @@ export function AppTopBar() {
             </TopBarNav>
 
             <TopBarActions>
-                <ThemeToggle />
                 <AccountAvatar />
             </TopBarActions>
         </TopBar>

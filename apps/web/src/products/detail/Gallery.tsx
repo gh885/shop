@@ -55,7 +55,9 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                             onClick={() => api?.scrollTo(i)}
                             aria-label={`第 ${i + 1} 张图`}
                             className={`overflow-hidden rounded-lg border-2 transition-colors ${
-                                i === current && !isParams ? "border-primary" : "border-transparent"
+                                i === current && !isParams
+                                    ? "border-foreground"
+                                    : "border-transparent"
                             }`}
                         >
                             <img
@@ -65,7 +67,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                             />
                         </button>
                     ))}
-                    {/* 参数项：固定最后，hover/点击切换，选中态橙色描边 */}
+                    {/* 参数项：固定最后，hover/点击切换，选中态强调描边 */}
                     <button
                         type="button"
                         onMouseEnter={() => api?.scrollTo(paramsIndex)}
@@ -73,7 +75,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         aria-label="查看商品参数"
                         className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 transition-colors ${
                             isParams
-                                ? "border-primary bg-primary/5 text-primary"
+                                ? "border-foreground bg-accent text-accent-foreground"
                                 : "border-border bg-sunken/60 text-muted-foreground hover:text-primary"
                         }`}
                     >

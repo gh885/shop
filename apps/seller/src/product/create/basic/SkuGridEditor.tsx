@@ -164,11 +164,11 @@ export function SkuGridEditor({
                 <TableHeader>
                     <TableRow>
                         <TableHead>规格</TableHead>
-                        <TableHead className="w-36">
-                            价格<span className="text-destructive">*</span>
+                        <TableHead className="w-36 before:mr-0.5 before:text-destructive before:content-['*']">
+                            价格
                         </TableHead>
-                        <TableHead className="w-32">
-                            数量<span className="text-destructive">*</span>
+                        <TableHead className="w-32 before:mr-0.5 before:text-destructive before:content-['*']">
+                            数量
                         </TableHead>
                         <TableHead className="w-36">商家编码</TableHead>
                         <TableHead className="w-28">
@@ -231,6 +231,7 @@ export function SkuGridEditor({
                                     maxLength={64}
                                     value={d.skuCode}
                                     onChange={(e) => update(i, { skuCode: e.target.value })}
+                                    className="tabular-nums"
                                 />
                             </TableCell>
                             <TableCell>

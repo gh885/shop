@@ -11,6 +11,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
 import { useState } from "react"
 import { notify } from "@shop/app-kit"
+
+import { Price } from "#/shared/ui/Price"
 import {
     Skeleton,
     Button,
@@ -142,23 +144,29 @@ function CheckoutPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     <Row label="商品总额">
-                                        ¥{fenToYuan(preview.data?.totalPayAmount.amount ?? 0)}
+                                        <Price
+                                            value={preview.data?.totalPayAmount.amount ?? 0}
+                                            className="text-sm"
+                                        />
                                     </Row>
                                     <Row label="运费">
-                                        ¥
-                                        {fenToYuan(
-                                            preview.data?.groups.reduce(
-                                                (s, g) => s + g.shippingFee.amount,
-                                                0,
-                                            ) ?? 0,
-                                        )}
+                                        <Price
+                                            value={
+                                                preview.data?.groups.reduce(
+                                                    (s, g) => s + g.shippingFee.amount,
+                                                    0,
+                                                ) ?? 0
+                                            }
+                                            className="text-sm"
+                                        />
                                     </Row>
                                     <Separator />
                                     <div className="flex items-end justify-between">
                                         <span className="text-muted-foreground">应付总额：</span>
-                                        <span className="text-2xl font-bold text-primary">
-                                            ¥{fenToYuan(preview.data?.totalPayAmount.amount ?? 0)}
-                                        </span>
+                                        <Price
+                                            value={preview.data?.totalPayAmount.amount ?? 0}
+                                            className="text-2xl text-primary"
+                                        />
                                     </div>
                                 </CardContent>
                                 <CardFooter>
@@ -249,7 +257,7 @@ function AddressPicker({
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <MapPin className="size-4 text-primary" />
+                    <MapPin className="size-4 text-muted-foreground" />
                     收货地址
                 </CardTitle>
             </CardHeader>
@@ -266,7 +274,7 @@ function AddressPicker({
                             size="sm"
                             className={
                                 effectiveId === a.id
-                                    ? "border-primary bg-primary/5"
+                                    ? "border-foreground bg-accent"
                                     : "hover:bg-muted/40"
                             }
                         >
@@ -329,8 +337,11 @@ function GroupCard({ group }: { group: CheckoutGroup }) {
                                     x{l.quantity}
                                 </span>
                             </div>
-                            <div className="w-20 text-right font-bold">
-                                ¥{fenToYuan(l.price.amount * l.quantity)}
+                            <div className="w-20 text-right font-bold tabular-nums">
+                                <Price
+                                    value={l.price.amount * l.quantity}
+                                    className="text-sm"
+                                />
                             </div>
                         </ItemActions>
                     </Item>
@@ -339,11 +350,22 @@ function GroupCard({ group }: { group: CheckoutGroup }) {
             <div className="flex items-center justify-end gap-6 border-t border-border/60 px-5 py-3 text-sm">
                 <span className="text-muted-foreground">
                     商品总额{" "}
-                    <b className="text-foreground">¥{fenToYuan(group.itemAmount.amount)}</b> + 运费{" "}
-                    <b className="text-foreground">¥{fenToYuan(group.shippingFee.amount)}</b>
+                    <Price
+                        value={group.itemAmount.amount}
+                        className="text-sm text-foreground"
+                    />{" "}
+                    + 运费{" "}
+                    <Price
+                        value={group.shippingFee.amount}
+                        className="text-sm text-foreground"
+                    />
                 </span>
                 <span className="text-muted-foreground">
-                    应付 <b className="text-primary">¥{fenToYuan(group.payAmount.amount)}</b>
+                    应付{" "}
+                    <Price
+                        value={group.payAmount.amount}
+                        className="text-sm text-primary"
+                    />
                 </span>
             </div>
         </Panel>

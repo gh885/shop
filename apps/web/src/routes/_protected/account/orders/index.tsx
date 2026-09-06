@@ -69,7 +69,7 @@ function OrdersPage() {
                         onClick={() => setTab(t.key)}
                         className={`-mb-px border-b-2 px-4 pb-2.5 text-sm transition-colors ${
                             tab === t.key
-                                ? "border-primary font-medium text-primary"
+                                ? "border-foreground font-medium text-foreground"
                                 : "border-transparent text-muted-foreground hover:text-foreground"
                         }`}
                     >

@@ -1,6 +1,6 @@
 import { Button, Panel, PanelContent, PanelHeader } from "@shop/ui-web"
 
-import { fenToYuan } from "@shop/api"
+import { Price } from "#/shared/ui/Price"
 
 import type { OrderItem } from "./model"
 
@@ -67,17 +67,21 @@ export function OrderShopSection({ order, items, onItemAction }: OrderShopSectio
 
                         {/* 单价 × 数量 */}
                         <div className="w-20 shrink-0 text-right text-sm">
-                            <span className="font-bold text-foreground">
-                                ¥{fenToYuan(item.price.amount)}
-                            </span>
+                            <Price
+                                value={item.price.amount}
+                                className="text-foreground"
+                            />
                             <span className="ml-1 text-xs text-muted-foreground">
                                 x{item.quantity}
                             </span>
                         </div>
 
                         {/* 行小计 */}
-                        <div className="w-20 shrink-0 text-right text-sm font-bold text-foreground">
-                            ¥{fenToYuan(item.amount.amount)}
+                        <div className="w-20 shrink-0 text-right text-sm">
+                            <Price
+                                value={item.amount.amount}
+                                className="text-foreground"
+                            />
                         </div>
 
                         {/* 按状态操作 */}

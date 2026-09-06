@@ -2,6 +2,9 @@ import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
 import { Separator, ToggleGroup, ToggleGroupItem } from "@shop/ui-web"
 
+import { fenToYuan } from "@shop/api"
+
+import { Price } from "#/shared/ui/Price"
 import type { ProductDetail } from "../product"
 import {
     derivePriceView,
@@ -48,18 +51,20 @@ export function PurchasePanel({
                 <p className="-mt-3 text-sm text-muted-foreground">{detail.product.subtitle}</p>
             )}
 
-            {/* 价格区 */}
+            {/* 价格区：共享 Price 走 splitFen 分段（¥ 小/整数大/角分小） */}
             <div className="flex items-baseline gap-2">
-                <span className="text-primary">
-                    <span className="text-lg">¥</span>
-                    <span className="text-4xl font-bold tracking-tight">{price.primary}</span>
-                </span>
-                {price.rangeTo && (
-                    <span className="text-lg font-medium text-primary">- {price.rangeTo}</span>
+                <Price
+                    value={price.primary}
+                    className="text-4xl text-primary"
+                />
+                {price.rangeTo !== undefined && (
+                    <span className="text-lg font-medium text-primary tabular-nums">
+                        - {fenToYuan(price.rangeTo)}
+                    </span>
                 )}
-                {price.original && (
-                    <span className="text-sm text-muted-foreground line-through">
-                        ¥{price.original}
+                {price.original !== undefined && (
+                    <span className="text-sm text-muted-foreground line-through tabular-nums">
+                        ¥{fenToYuan(price.original)}
                     </span>
                 )}
             </div>
@@ -136,7 +141,7 @@ export function PurchasePanel({
                     onChange={onQuantityChange}
                     max={soldOut ? 0 : (matchedSku?.stock ?? undefined)}
                 />
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground tabular-nums">
                     {deriveStockText(detail, selection)}
                 </span>
             </div>
@@ -165,7 +170,7 @@ function SpecButton({
             onClick={onSelect}
             aria-pressed={selected}
             className={`w-24 overflow-hidden rounded-lg border-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                selected ? "border-primary" : "border-border"
+                selected ? "border-foreground" : "border-border"
             }`}
         >
             <img

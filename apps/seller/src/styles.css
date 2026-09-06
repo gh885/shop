@@ -11,13 +11,14 @@
 
    调性：千牛式商家经营工具 —— 冷蓝灰 canvas 画布（hue 227）上，「二级面板 +
    内容」作为白色浮面带大圆角浮起，层次靠底色差、不用分割线。
-   平台端身份色（品牌、导航激活态、CTA）统一走 primary，覆盖为靛蓝冷相
-   （ui-web 注释：平台端 primary 用 indigo，与 C 端橙红区分）。
+   平台端身份色（品牌、CTA）走 primary，覆盖为靛蓝冷相
+   （ui-web 注释：平台端 primary 用 indigo，与 C 端橙红区分）；
+   导航激活态走 accent/foreground。
    密度高于 C 端，固定浅色。
    ========================================================================== */
 
 :root {
-    /* 固定浅色：ui-web 声明了 color-scheme: light dark，这里钉回 light */
+    /* 固定浅色 */
     color-scheme: light;
 }
 
@@ -38,7 +39,7 @@
     --color-link: hsl(219 90% 58%);
 
     /* ── 主操作 = 平台身份色（千牛蓝，比 #3177f6 稍亮）── 覆盖 ui-web 的转化橙。
-       品牌标识、导航激活态、CTA 统一走 primary；hue 219、明度 62% 亮蓝 */
+       品牌标识、CTA 走 primary；hue 219、明度 62% 亮蓝 */
     --color-primary: hsl(219 90% 62%);
     --color-primary-foreground: var(--neutral-0);
     --color-primary-hover: hsl(219 90% 55%);

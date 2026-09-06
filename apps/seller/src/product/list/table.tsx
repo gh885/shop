@@ -169,7 +169,12 @@ function ProductRow({
                         ) : undefined}
                     </div>
                     <div className="min-w-0 space-y-0.5">
-                        <p className="truncate font-medium">{p.name}</p>
+                        <p
+                            className="truncate font-medium"
+                            title={p.name}
+                        >
+                            {p.name}
+                        </p>
                         <p className="text-xs text-muted-foreground tabular-nums">ID: {p.id}</p>
                     </div>
                 </div>

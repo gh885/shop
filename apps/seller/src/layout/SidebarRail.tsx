@@ -53,12 +53,12 @@ export function SidebarRail({
     )
 }
 
-/** 共用行样式：图标 + 名称（横向铺满），选中 = 白色 pill */
+/** 共用行样式：图标 + 名称（横向铺满），选中 = accent 弱底 pill */
 const rowCls = (isShown: boolean) =>
     cn(
         "flex w-full items-center gap-2 rounded-full px-2.5 py-2 text-muted-foreground outline-hidden transition-all duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2",
         isShown &&
-            "bg-background font-medium text-primary shadow-sm hover:bg-background hover:text-primary",
+            "bg-accent font-medium text-accent-foreground shadow-sm hover:bg-accent hover:text-foreground",
     )
 
 /** 叶子项：可跳转路由 → Link，点击即导航 */

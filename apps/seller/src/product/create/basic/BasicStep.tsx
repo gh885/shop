@@ -193,7 +193,7 @@ export function BasicStep({
             >
                 <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
                     <div>
-                        <h1 className="text-lg font-semibold tracking-tight">填写商品信息</h1>
+                        <h1 className="text-xl font-bold tracking-tight">填写商品信息</h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             带 <span className="text-destructive">*</span>{" "}
                             为必填；点「保存草稿」或「提交商品信息」时才会保存
@@ -251,7 +251,10 @@ export function BasicStep({
                     >
                         <ListTree className="size-4 shrink-0 text-muted-foreground" />
                         <span className="shrink-0 text-sm text-muted-foreground">当前类目</span>
-                        <p className="min-w-0 flex-1 truncate text-sm">
+                        <p
+                            className="min-w-0 flex-1 truncate text-sm"
+                            title={categoryNames.length > 0 ? categoryNames.join(" > ") : undefined}
+                        >
                             {categoryNames.length > 0 ? (
                                 categoryNames.map((name, i) => (
                                     <span key={name}>

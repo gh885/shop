@@ -1,4 +1,4 @@
-import type { CategoryAttrNodeResponse } from "../../data"
+import type { CategoryAttrTemplateNode } from "../../data"
 
 import { describe, expect, it } from "vitest"
 
@@ -8,7 +8,7 @@ import { buildSkuRowsFromSelections } from "./sku-combinator"
  * 测试夹具：类目属性模板节点与选值的可控构造。
  * 模板节点顺序即维度顺序；金额/库存等字段与本模块无关，取合法默认值。
  */
-function makeNode(attrId: string, name: string, values: string[]): CategoryAttrNodeResponse {
+function makeNode(attrId: string, name: string, values: string[]): CategoryAttrTemplateNode {
     return {
         attr: {
             id: attrId,
@@ -21,6 +21,7 @@ function makeNode(attrId: string, name: string, values: string[]): CategoryAttrN
             sort: 0,
             status: "ENABLED",
             createdAt: "2026-01-01T00:00:00Z",
+            updatedAt: "2026-01-01T00:00:00Z",
         },
         values: values.map((v, i) => ({
             id: `${attrId}-v${i}`,

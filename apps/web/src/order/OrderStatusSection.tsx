@@ -52,11 +52,11 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
         <div className="space-y-5">
             {/* 状态大标题 + 待付款倒计时 */}
             <div className="flex items-end gap-4">
-                <h2 className="text-2xl font-bold text-foreground">
+                <h1 className="text-xl font-bold text-foreground">
                     {ORDER_STATUS_LABEL[order.status]}
-                </h2>
+                </h1>
                 {pending && (
-                    <span className="pb-1 text-sm font-medium text-destructive">
+                    <span className="pb-1 text-sm font-medium text-destructive tabular-nums">
                         付款剩余 {formatCountdown(seconds)}
                     </span>
                 )}

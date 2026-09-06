@@ -82,7 +82,12 @@ export function AddressTable({
                                     </TableCell>
                                     <TableCell className="max-w-80">
                                         <span className="inline-flex flex-wrap items-center gap-1.5">
-                                            <span className="truncate">{a.detail}</span>
+                                            <span
+                                                className="truncate"
+                                                title={a.detail}
+                                            >
+                                                {a.detail}
+                                            </span>
                                             {label && <Badge variant="secondary">{label}</Badge>}
                                             {a.isDefault && <Badge>默认</Badge>}
                                         </span>

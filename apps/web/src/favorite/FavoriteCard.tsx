@@ -62,7 +62,7 @@ export function FavoriteCard({
                                     alt={favorite.title}
                                 />
                                 {batchMode && selected && (
-                                    <span className="absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-primary text-white">
+                                    <span className="absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
                                         <Check className="size-4" />
                                     </span>
                                 )}

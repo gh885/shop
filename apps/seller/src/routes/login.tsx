@@ -349,7 +349,7 @@ function LoginPage() {
 
                         <div className="min-h-4">
                             {serverError && (
-                                <p className="flex items-center gap-1.5 text-[13px] text-destructive">
+                                <p className="flex items-center gap-1.5 text-2xs text-destructive">
                                     <CircleAlert className="size-3.5 shrink-0" />
                                     {serverError}
                                 </p>
@@ -404,7 +404,7 @@ function TabButton({
         <button
             type="button"
             className={cn(
-                "relative cursor-pointer pb-2 text-[15px] transition-colors duration-200",
+                "relative cursor-pointer pb-2 text-base transition-colors duration-200",
                 active
                     ? "font-semibold text-foreground"
                     : "text-muted-foreground hover:text-foreground",

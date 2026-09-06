@@ -160,7 +160,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                         <div className="hidden w-56 flex-col items-center justify-center gap-4 sm:flex">
                             <div className="flex items-center gap-2">
                                 <p className="text-sm font-medium">扫码登录</p>
-                                <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
+                                <span className="rounded bg-accent px-1.5 py-0.5 text-3xs font-medium text-accent-foreground">
                                     即将上线
                                 </span>
                             </div>
@@ -393,7 +393,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                             {/* 服务端错误：预留高度，避免抖动 */}
                             <div className="min-h-4">
                                 {serverError && (
-                                    <p className="flex items-center gap-1.5 text-[13px] text-destructive">
+                                    <p className="flex items-center gap-1.5 text-2xs text-destructive">
                                         <CircleAlert className="size-3.5 shrink-0" />
                                         {serverError}
                                     </p>
@@ -468,7 +468,7 @@ function TabButton({
         <button
             type="button"
             className={cn(
-                "relative cursor-pointer pb-2 text-[15px] transition-colors duration-200",
+                "relative cursor-pointer pb-2 text-base transition-colors duration-200",
                 active
                     ? "font-semibold text-foreground"
                     : "text-muted-foreground hover:text-foreground",

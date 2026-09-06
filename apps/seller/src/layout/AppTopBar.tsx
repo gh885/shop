@@ -144,7 +144,7 @@ function TopBarAction({
                     <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-destructive" />
                 )}
             </span>
-            <span className="text-[10px] leading-none text-muted-foreground">{label}</span>
+            <span className="text-3xs leading-none text-muted-foreground">{label}</span>
         </Button>
     )
 }

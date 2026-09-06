@@ -229,7 +229,7 @@ function SortableTile({
         >
             {children}
             {coverBadge ? (
-                <span className="pointer-events-none absolute bottom-1 left-1 z-10 rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-medium text-background">
+                <span className="pointer-events-none absolute bottom-1 left-1 z-10 rounded-md bg-foreground px-1.5 py-0.5 text-3xs font-medium text-background">
                     {coverBadge}
                 </span>
             ) : null}

@@ -161,7 +161,7 @@ function PendingInvites() {
 
     return (
         <section className="space-y-3">
-            <h2 className="font-semibold">待确认邀请</h2>
+            <h2 className="font-bold">待确认邀请</h2>
             <div className="space-y-2">
                 {invites.data.map((invite) => (
                     <Item

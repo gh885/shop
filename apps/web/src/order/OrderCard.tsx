@@ -17,6 +17,8 @@ import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 import { formatDateTime } from "@shop/app-kit"
 import { fenToYuan } from "@shop/api"
 
+import { Price } from "#/shared/ui/Price"
+
 /**
  * 订单卡片（京东/淘宝式订单列表项）。
  *
@@ -96,7 +98,7 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
 
                 <div className="ml-auto flex items-center gap-4">
                     {pending && (
-                        <span className="text-xs font-medium text-destructive">
+                        <span className="text-xs font-medium text-destructive tabular-nums">
                             剩 {formatCountdown(seconds)}
                         </span>
                     )}
@@ -145,9 +147,10 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
 
                             {/* 金额：单价 · 划线原价 · 数量 */}
                             <div className="w-24 shrink-0 text-right">
-                                <p className="text-sm font-bold text-foreground">
-                                    ¥{fenToYuan(item.price.amount)}
-                                </p>
+                                <Price
+                                    value={item.price.amount}
+                                    className="text-sm text-foreground"
+                                />
                                 {item.originalPrice.amount > item.price.amount && (
                                     <p className="text-xs text-muted-foreground line-through">
                                         ¥{fenToYuan(item.originalPrice.amount)}
@@ -160,9 +163,10 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                             <div className="w-28 shrink-0 text-right">
                                 <p className="text-sm font-bold text-foreground">
                                     小计{" "}
-                                    <span className="text-primary">
-                                        ¥{fenToYuan(item.amount.amount)}
-                                    </span>
+                                    <Price
+                                        value={item.amount.amount}
+                                        className="text-sm text-primary"
+                                    />
                                 </p>
                             </div>
 

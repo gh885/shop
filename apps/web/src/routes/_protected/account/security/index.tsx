@@ -131,7 +131,7 @@ function ChangePassword() {
                     </form.AppField>
 
                     {error && (
-                        <p className="flex items-center gap-1.5 text-[13px] text-destructive">
+                        <p className="flex items-center gap-1.5 text-2xs text-destructive">
                             <CircleAlert className="size-3.5 shrink-0" />
                             {error}
                         </p>
@@ -231,7 +231,7 @@ function DeviceManager() {
                                     <ItemTitle className="truncate">
                                         {d.deviceName}
                                         {d.isCurrent && (
-                                            <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                                            <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-3xs text-primary">
                                                 本机
                                             </span>
                                         )}

@@ -65,8 +65,11 @@ export function UserCard() {
                     { label: "待评价", value: 0 },
                 ].map((item) => (
                     <div key={item.label}>
-                        <div className="text-base font-semibold">{item.value}</div>
-                        <div className="mt-0.5 text-[11px] truncate text-muted-foreground">
+                        <div className="text-base font-medium tabular-nums">{item.value}</div>
+                        <div
+                            className="mt-0.5 text-3xs truncate text-muted-foreground"
+                            title={item.label}
+                        >
                             {item.label}
                         </div>
                     </div>

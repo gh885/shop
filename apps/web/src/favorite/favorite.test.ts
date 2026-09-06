@@ -16,9 +16,11 @@ function makeDto(
         favoritedAt: "2026-09-01T00:00:00Z",
         available: opts.available ?? true,
         product: {
+            id: "p-1",
             name: opts.name ?? "测试商品",
             mainImage: opts.mainImage ?? null,
             minPrice: { amount: 19900, currency: "CNY" },
+            maxPrice: { amount: 29900, currency: "CNY" },
             collectCount: 12,
         },
     }

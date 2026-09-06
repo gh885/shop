@@ -92,15 +92,20 @@ function CategoryColumn({
                                     "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm outline-hidden transition-colors",
                                     "hover:bg-muted focus-visible:bg-muted",
                                     node.id === selectedId &&
-                                        "bg-primary/10 font-medium text-primary hover:bg-primary/10",
+                                        "bg-accent font-medium text-foreground hover:bg-accent",
                                 )}
                             >
-                                <span className="min-w-0 flex-1 truncate">{node.name}</span>
+                                <span
+                                    className="min-w-0 flex-1 truncate"
+                                    title={node.name}
+                                >
+                                    {node.name}
+                                </span>
                                 {!isLeaf(node) && (
                                     <ChevronRight
                                         className={cn(
                                             "size-3.5 shrink-0 text-muted-foreground/70",
-                                            node.id === selectedId && "text-primary",
+                                            node.id === selectedId && "text-foreground",
                                         )}
                                     />
                                 )}

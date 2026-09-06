@@ -1,9 +1,9 @@
-import { splitFen } from "@shop/api"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
 import { Badge, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
+import { Price } from "#/shared/ui/Price"
 import { ProductImage } from "#/shared/ui/ProductImage"
 import type { ProductCardData } from "./product"
 
@@ -14,18 +14,6 @@ import type { ProductCardData } from "./product"
  * intent 交给浏览器悬停时机，是 feed 场景的正确默认。
  * 卡片视图形状 ProductCardData 与 wire→投影 toProductCardData 在 ./product（单一来源）。
  */
-
-/** 价格按 元.角分 拆成三段：¥ 小、整数大、小数小。价格是全卡视觉锚点，字重要压得住 */
-function Price({ value, className }: { value: number; className?: string }) {
-    const { yuan, cents } = splitFen(value)
-    return (
-        <span className={`font-bold tabular-nums leading-none ${className ?? ""}`}>
-            <span className="text-[0.6em]">¥</span>
-            <span className="text-2xl tracking-tight">{yuan}</span>
-            <span className="text-[0.65em]">.{cents}</span>
-        </span>
-    )
-}
 
 export function ProductCard({ product }: { product: ProductCardData }) {
     const navigate = useNavigate()
@@ -56,8 +44,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                             variant={i === 0 ? "default" : "outline"}
                             className={
                                 i === 0
-                                    ? "h-4 rounded-[3px] px-1 text-[10px]"
-                                    : "h-4 rounded-[3px] border-primary/50 px-1 text-[10px] text-primary"
+                                    ? "h-4 rounded-[3px] px-1 text-3xs"
+                                    : "h-4 rounded-[3px] border-primary/50 px-1 text-3xs text-primary"
                             }
                         >
                             {tag}
@@ -88,7 +76,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
                 <div className="mt-1.5 flex items-center gap-1.5">
                     <Price
                         value={product.price}
-                        className="text-primary"
+                        className="text-2xl text-primary"
                     />
                     {product.sales && (
                         <span className="truncate text-xs text-muted-foreground">

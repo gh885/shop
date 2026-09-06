@@ -11,8 +11,7 @@
    ========================================================================== */
 
 :root {
-    /* 固定浅色：ui-web 声明了 color-scheme: light dark，这里钉回 light，
-       否则系统深色下原生控件（滚动条/表单）会跟着变暗，与浅色设计脱节 */
+    /* 固定浅色 */
     color-scheme: light;
 
     /* 暖白画布（#F7F6F3 一档），卡片保持纯白浮起 */
@@ -44,45 +43,6 @@
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 9% / 0.04);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 9% / 0.05), 0 2px 4px -2px hsl(0 0% 9% / 0.04);
     --shadow-lg: 0 10px 15px -3px hsl(0 0% 9% / 0.06), 0 4px 6px -4px hsl(0 0% 9% / 0.05);
-}
-
-/* 暗色：ui-web 语义层经 light-dark() 自动切深色，这里只覆盖 admin 为
-   浅色身份定制的 token（暖白底 → 暖炭、靛蓝提亮一档保证深底对比）。
-   由 <html data-theme="dark"> 驱动（index.html 首屏脚本 + 顶栏 ThemeToggle），
-   未设置时走上方 :root 浅色兜底。原生控件随 color-scheme: dark 自动变暗。 */
-:root[data-theme="dark"] {
-    color-scheme: dark;
-
-    /* 暖炭画布：卡面浮于其上，wells 沉于其下 */
-    --color-background: hsl(40 5% 8%);
-    --color-sunken: hsl(40 5% 5%);
-    --color-card: hsl(40 5% 12%);
-
-    /* 分割线随底色压暗 */
-    --color-border: hsl(40 4% 16%);
-
-    /* 侧栏：与卡面同档，浮于画布之上 */
-    --color-sidebar: hsl(40 5% 12%);
-    --color-sidebar-border: hsl(40 4% 16%);
-
-    /* 链接/主交互：靛蓝 400，深底可读 */
-    --color-link: var(--indigo-400);
-
-    /* 主操作/CTA 映射到靛蓝 400 档：实色按钮底提亮，前景改深色字 */
-    --color-primary: var(--indigo-400);
-    --color-primary-foreground: var(--indigo-900);
-    --color-primary-hover: var(--indigo-300);
-    --color-primary-active: var(--indigo-200);
-    --color-primary-subtle: var(--indigo-900);
-    --color-primary-subtle-foreground: var(--indigo-200);
-
-    /* 焦点环 */
-    --color-ring: var(--indigo-400);
-
-    /* 阴影：深底用黑底染色暗影 */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.5);
 }
 
 body {

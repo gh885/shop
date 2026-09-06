@@ -124,7 +124,7 @@ function SectionBlock({
     )
 }
 
-/** 二级子项行：激活（当前路径命中）为靛蓝弱底，其余弱化为次要文字；一律 Link 导航 */
+/** 二级子项行：激活（当前路径命中）为 accent 弱底，其余弱化为次要文字；一律 Link 导航 */
 function LeafRow({
     leaf,
     isActive,
@@ -133,9 +133,9 @@ function LeafRow({
     isActive: boolean
 }) {
     const cls = cn(
-        "flex h-8 items-center rounded-md px-2.5 text-[13px] text-foreground/75 outline-hidden transition-all duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2",
+        "flex h-8 items-center rounded-md px-2.5 text-2xs text-foreground/75 outline-hidden transition-all duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2",
         isActive &&
-            "bg-primary-subtle font-medium text-primary-subtle-foreground hover:bg-primary-subtle hover:text-primary-subtle-foreground",
+            "bg-accent font-medium text-accent-foreground hover:bg-accent hover:text-accent-foreground",
     )
     return (
         <Link
@@ -143,7 +143,12 @@ function LeafRow({
             className={cls}
             aria-current={isActive ? "page" : undefined}
         >
-            <span className="min-w-0 flex-1 truncate">{leaf.label}</span>
+            <span
+                className="min-w-0 flex-1 truncate"
+                title={leaf.label}
+            >
+                {leaf.label}
+            </span>
         </Link>
     )
 }

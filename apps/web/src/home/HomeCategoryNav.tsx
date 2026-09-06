@@ -80,7 +80,12 @@ export function HomeCategoryNav({
                                     }`}
                                 >
                                     <Icon className="size-4 shrink-0" />
-                                    <span className="truncate">{entry.title}</span>
+                                    <span
+                                        className="truncate"
+                                        title={entry.title}
+                                    >
+                                        {entry.title}
+                                    </span>
                                 </Button>
                             </li>
                         )
@@ -114,7 +119,7 @@ function NavGroupRow({ group }: { group: NavGroup }) {
             {/* TODO: 分类词条需跳往对应分类/列表页，暂无路由，先落回首页 */}
             <Link
                 to="/"
-                className="group flex shrink-0 items-center gap-1 text-sm font-semibold whitespace-nowrap"
+                className="group flex shrink-0 items-center gap-1 text-sm font-medium whitespace-nowrap"
             >
                 {group.name}
                 <span className="text-xs text-muted-foreground transition-colors group-hover:text-primary">

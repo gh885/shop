@@ -1,5 +1,6 @@
 import { formatDateTime } from "@shop/app-kit"
-import { fenToYuan } from "@shop/api"
+
+import { Price } from "#/shared/ui/Price"
 
 import { ORDER_STATUS_LABEL, type OrderDetail } from "./model"
 import { Copy, ChevronDown } from "lucide-react"
@@ -46,15 +47,24 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                     <CardTitle>付款详情</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1">
-                    <InfoRow label="商品总价">¥{fenToYuan(order.itemAmount.amount)}</InfoRow>
+                    <InfoRow label="商品总价">
+                        <Price
+                            value={order.itemAmount.amount}
+                            className="text-sm"
+                        />
+                    </InfoRow>
                     <InfoRow label="运费(快递)">
-                        ¥{fenToYuan(order.shippingFee?.amount ?? 0)}
+                        <Price
+                            value={order.shippingFee?.amount ?? 0}
+                            className="text-sm"
+                        />
                     </InfoRow>
                     <Separator className="my-2" />
                     <InfoRow label="实付款">
-                        <span className="text-lg font-bold text-foreground">
-                            ¥{fenToYuan(order.payAmount.amount)}
-                        </span>
+                        <Price
+                            value={order.payAmount.amount}
+                            className="text-lg text-foreground"
+                        />
                     </InfoRow>
                 </CardContent>
             </Card>

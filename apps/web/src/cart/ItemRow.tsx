@@ -5,6 +5,8 @@ import { Minus, Plus } from "lucide-react"
 import { fenToYuan } from "@shop/api"
 import { useState } from "react"
 import { notify } from "@shop/app-kit"
+
+import { Price } from "#/shared/ui/Price"
 import {
     Item,
     Checkbox,
@@ -67,9 +69,10 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
             </ItemContent>
 
             <div className="text-right">
-                <p className="text-sm font-semibold text-foreground">
-                    ¥{fenToYuan(item.sku.price.amount)}
-                </p>
+                <Price
+                    value={item.sku.price.amount}
+                    className="text-sm text-foreground"
+                />
                 <p className="text-xs text-muted-foreground line-through">
                     ¥{fenToYuan(item.sku.originalPrice.amount)}
                 </p>

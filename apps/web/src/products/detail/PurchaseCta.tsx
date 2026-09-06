@@ -89,11 +89,11 @@ export function PurchaseCta({
                     onClick={handleFavorite}
                     className={`h-12 w-12 rounded-xl ${
                         favorited
-                            ? "border-primary/50 text-primary"
+                            ? "border-foreground/50 text-foreground"
                             : "text-muted-foreground hover:border-primary/50 hover:bg-transparent hover:text-primary"
                     }`}
                 >
-                    <Heart className={`size-5 ${favorited ? "fill-primary" : ""}`} />
+                    <Heart className={`size-5 ${favorited ? "fill-foreground" : ""}`} />
                 </Button>
             </div>
 

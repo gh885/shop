@@ -1,10 +1,10 @@
-import { fenToYuan } from "@shop/api"
-
 import { useCreatePayment, useConfirmPayment } from "#/checkout"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Wallet, CheckCircle2 } from "lucide-react"
 import { useEffect } from "react"
 import { Card, CardContent, Spinner, Button } from "@shop/ui-web"
+
+import { Price } from "#/shared/ui/Price"
 
 export const Route = createFileRoute("/_protected/pay/$orderId")({
     component: PayPage,
@@ -43,7 +43,7 @@ function PayPage() {
               ? "ready"
               : "loading"
 
-    const amount = payment?.amount ? fenToYuan(payment.amount.amount) : ""
+    const amount = payment?.amount?.amount
 
     return (
         <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
@@ -66,9 +66,12 @@ function PayPage() {
                             <p className="mt-2 text-sm text-muted-foreground">
                                 订单号 {payment?.orderNo}
                             </p>
-                            <p className="mt-4 text-4xl font-bold tracking-tight text-foreground">
-                                ¥{amount}
-                            </p>
+                            {amount !== undefined && (
+                                <Price
+                                    value={amount}
+                                    className="mt-4 text-4xl text-foreground"
+                                />
+                            )}
                             <p className="mt-2 text-xs text-muted-foreground">
                                 模拟支付通道（MOCK），点击下方按钮确认支付
                             </p>
@@ -95,7 +98,7 @@ function PayPage() {
 
                     {phase === "success" && (
                         <>
-                            <CheckCircle2 className="mx-auto size-12 text-primary" />
+                            <CheckCircle2 className="mx-auto size-12 text-success" />
                             <h2 className="mt-4 text-lg font-semibold text-foreground">支付成功</h2>
                             <p className="mt-2 text-sm text-muted-foreground">
                                 订单已支付，等待商家发货。

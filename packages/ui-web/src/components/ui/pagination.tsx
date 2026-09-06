@@ -48,7 +48,7 @@ function PaginationLink({
     <Button
       variant={isActive ? "outline" : "ghost"}
       size={size}
-      className={cn(className)}
+      className={cn("tabular-nums", className)}
       nativeButton={false}
       render={
         <a

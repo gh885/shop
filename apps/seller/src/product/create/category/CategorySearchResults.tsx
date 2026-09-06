@@ -52,7 +52,7 @@ export function CategorySearchResults({
                             className={cn(
                                 "group flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm outline-hidden transition-colors",
                                 "hover:bg-muted focus-visible:bg-muted",
-                                path.id === selectedLeafId && "bg-primary/10 hover:bg-primary/10",
+                                path.id === selectedLeafId && "bg-accent hover:bg-accent",
                             )}
                         >
                             <span className="min-w-0 flex-1 truncate">
@@ -65,12 +65,7 @@ export function CategorySearchResults({
                                         <span className="mx-1 text-muted-foreground/60">/</span>
                                     </span>
                                 ))}
-                                <span
-                                    className={cn(
-                                        "font-medium text-foreground",
-                                        path.id === selectedLeafId && "text-primary",
-                                    )}
-                                >
+                                <span className="font-medium text-foreground">
                                     {path.names.at(-1)}
                                 </span>
                             </span>

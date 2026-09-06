@@ -27,7 +27,7 @@ function makeItemDto(
 
 function makeListDto(
     opts: {
-        status?: string
+        status?: OrderListItemResponse["status"]
         shopName?: string | null
         items?: ReturnType<typeof makeItemDto>[]
     } = {},

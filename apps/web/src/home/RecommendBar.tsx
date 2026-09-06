@@ -104,7 +104,7 @@ export function RecommendBar() {
                                 type="button"
                                 className={`shrink-0 whitespace-nowrap text-base transition-colors ${
                                     tab === defaultName
-                                        ? "font-semibold text-primary"
+                                        ? "font-medium text-foreground"
                                         : "text-muted-foreground hover:text-primary"
                                 }`}
                             >

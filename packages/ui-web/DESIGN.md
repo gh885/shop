@@ -8,8 +8,8 @@
 
 1. **复用优先**：任何 UI 元素先找 ui-web 组件，外观走 `variant`/`size` props。禁止 className 覆盖皮肤、禁止原生标签/带皮肤类的 div 自造假 Card、假输入框；现有 variant 不够时**扩展组件库**，不在业务侧 hack。
 2. **token 分层**：业务代码只允许 Layer 2 语义类（`bg-card`、`text-muted-foreground`、`rounded-lg`…）；Layer 1 原始色阶（`--neutral-*`/`--orange-*`…）只有 styles.css 与端级主题覆盖可写。
-3. **primary 纪律**：品牌橙只留给转化引导（登录/加购/下单/开店）。选中/激活走 `accent` 或 `foreground`，焦点环走 `ring`，装饰图标走 `muted-foreground`，内联链接走 `link`。
-4. **明暗模式**：组件只用 Layer 2 类（值经 `light-dark()` 自动切换）；`light-dark()` 不允许出现在业务代码里。
+3. **primary 纪律**：品牌橙只留给转化引导（登录/加购/下单/开店）。选中/激活走 `accent` 或 `foreground`，焦点环走 `ring`，装饰图标走 `muted-foreground`，内联链接走 `link`。豁免：web 端商品标题/店铺名等内容链接 hover 可变 primary（淘宝实拍同款转化信号），仅 C 端豁免；选中态、图标、焦点环仍禁。
+4. **仅浅色模式**：全站固定浅色，`light-dark()` 已移除；不引入暗色 token 与 `dark:` 变体。
 5. **新组件来源**：shadcn CLI 生成到 ui-web（命令见根 AGENTS.md），不手写底层组件；图标一律 `lucide-react`。
 
 ## 1. 设计基调
@@ -39,8 +39,7 @@
 
 - `destructive`（红）/ `success`（绿）/ `warning`（琥珀）/ `info`（蓝）
 - 状态提示优先用 **subtle 弱底**（浅底深字），实色底只留给按钮类确认/强调；
-- `warning` 表示状态，`cta-alt` 表示动作，两者色近义远；
-- destructive 在暗色必须亮（red-500），深红在暗底对比度塌陷——数值已由 styles.css 保证，业务侧别绕过。
+- `warning` 表示状态，`cta-alt` 表示动作，两者色近义远。
 
 结构与焦点：`border` / `input` / `ring` / `link`。描边一律 `border`，焦点可见性靠 `ring`，别用改文字色等方式表达焦点。
 
@@ -66,6 +65,9 @@ Sidebar 族（`--color-sidebar-*`）：sidebar 组件专用语义，默认与全
 - 未接品牌字体，heading 与正文同栈；接入时只改 `--font-sans`。
 - 版心：`page`（92.875rem，主版心）/ `narrow`（74rem，订单详情等窄页）。消费方式 `max-w-(--container-page)`——Tailwind v4 的 `--container-*` 自动类映射有 bug，勿用 `max-w-container-page`。
 - 字重单屏不超过两种；价格用大数字+角分小字的分段排版（`splitFen`），不用加粗大字一体。
+- 价格排版分工：`splitFen` 分段用于 **C 端展示位**（商品卡/详情/收银台等转化锚点，web 端有共享 `Price` 组件）；**B 端（seller/admin）数字列走纯文本 + `tabular-nums`**——表格里密度优先，分段大字反而破坏行对齐。
+- 会跳变的数字（倒计时、库存、页码、统计）一律 `tabular-nums`，防数字宽度抖动。
+- 字阶补充档：`text-2xs`（13px，辅助说明/表单提示）、`text-3xs`（11px，徽章/角标），禁止再写 `text-[13px]` 类任意值字号。
 
 ## 5. 动效
 

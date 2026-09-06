@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router"
 
 import { Button, Separator } from "@shop/ui-web"
 
-import { fenToYuan } from "@shop/api"
+import { Price } from "#/shared/ui/Price"
 import { deriveCartItemView, deriveSelectedItems, deriveSelectedTotal } from "./cart"
 import { useCartItems, useToggleCartItem } from "./queries"
 
@@ -67,9 +67,10 @@ export function Settlement() {
             {/* 商品总价 */}
             <div className="mt-5 flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">商品总价</span>
-                <span className="font-medium text-foreground tabular-nums">
-                    ¥{fenToYuan(selectedTotal)}
-                </span>
+                <Price
+                    value={selectedTotal}
+                    className="text-sm font-medium text-foreground"
+                />
             </div>
 
             {/* 优惠/满减/红包区：本期不做，留白给后续订单接入 */}
@@ -78,9 +79,10 @@ export function Settlement() {
             <div className="mt-4 flex items-end justify-between">
                 <span className="text-sm text-muted-foreground">合计：</span>
                 <div className="text-right">
-                    <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
-                        ¥{fenToYuan(selectedTotal)}
-                    </span>
+                    <Price
+                        value={selectedTotal}
+                        className="text-2xl text-foreground"
+                    />
                 </div>
             </div>
 

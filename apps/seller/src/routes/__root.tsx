@@ -25,7 +25,7 @@ function NotFound() {
             </div>
             <div className="space-y-1.5">
                 <p className="text-sm font-medium text-muted-foreground">404</p>
-                <h1 className="text-2xl font-bold tracking-tight">页面不存在或已下线</h1>
+                <h1 className="text-xl font-bold tracking-tight">页面不存在或已下线</h1>
                 <p className="text-sm text-muted-foreground">
                     你找的页面不在这里，回工作台继续吧。
                 </p>
@@ -49,7 +49,7 @@ function RouteError({ error, reset }: { error: Error; reset: () => void }) {
             </div>
             <div className="space-y-1.5">
                 <p className="text-sm font-medium text-destructive">出错了</p>
-                <h1 className="text-2xl font-bold tracking-tight">页面暂时无法加载</h1>
+                <h1 className="text-xl font-bold tracking-tight">页面暂时无法加载</h1>
                 <p className="text-sm text-muted-foreground">
                     {error.message || "发生了意外错误，请重试。"}
                 </p>

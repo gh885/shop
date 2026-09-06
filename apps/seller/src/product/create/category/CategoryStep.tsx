@@ -155,7 +155,10 @@ function ConfirmBar({
                         搜索或逐级选择，选到末级类目才能继续
                     </span>
                 ) : (
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    <span
+                        className="min-w-0 flex-1 truncate text-sm font-medium"
+                        title={pathNames.join(" > ")}
+                    >
                         {pathNames.map((name, i) => (
                             <span key={name}>
                                 {i > 0 && (

@@ -6,14 +6,13 @@
    Layer 1 Primitive  — 原始色板，只定义色相/明度色阶，不含语义。
                         组件禁止直接使用，不出现在 class 里。
    Layer 2 Semantic   — 语义 token（@theme 内，生成 bg-* text-* 工具类），
-                        值引用 primitive；明暗用 light-dark() 单份定义，
-                        由 color-scheme: light dark 决定取浅还是取深。
+                        值引用 primitive；仅浅色模式。
    Layer 3 Component  — 暂不抽取；组件直接消费语义层，
                         同一模式出现第二个消费方时再下沉为组件 token。
 
    风格定位：消费级电商转化风 —— 暖灰 canvas 做"地面"、白卡浮起（层次靠底色差
    不靠描边），单一主色（淘宝橙红 primary）渗透搜索框/价格/CTA 等转化信号，
-   小圆角分层（控件 6px / 卡片 9-12px），暗色一等公民。
+   小圆角分层（控件 6px / 卡片 9-12px）。
    seller/admin 端复用时保持 primitive 不动，只换 semantic 的 primary 映射；
    平台端（admin）身份色用 indigo 冷色相，与 C 端橙红区分。
    ========================================================================== */
@@ -25,7 +24,7 @@
    禁止出现在组件 class 里（admin/styles.css 亦按此引用）。 */
 
 :root {
-    color-scheme: light dark;
+    color-scheme: light;
 
     /* 中性灰（微量暖色相 hue 30，向淘宝的暖灰靠；低饱和不抢商品内容） */
     --neutral-0: hsl(0 0% 100%);
@@ -87,71 +86,54 @@
     --red-700: hsl(0 70% 45%);
     --red-800: hsl(0 62.8% 30.6%);
     --red-900: hsl(0 50% 14%);
-
-    /* 阴影（染中性色，不用纯黑低透明度）；浅深两套值，供语义层 light-dark()
-       映射。拆两个变量是因为多图层 box-shadow 含顶层逗号，无法直接写进
-       light-dark() 参数。 */
-    --shadow-sm-light: 0 1px 2px 0 hsl(0 0% 9% / 0.06);
-    --shadow-sm-dark: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
-    --shadow-md-light: 0 4px 6px -1px hsl(0 0% 9% / 0.08), 0 2px 4px -2px hsl(0 0% 9% / 0.06);
-    --shadow-md-dark: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
-    --shadow-lg-light: 0 10px 15px -3px hsl(0 0% 9% / 0.1), 0 4px 6px -4px hsl(0 0% 9% / 0.08);
-    --shadow-lg-dark: 0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.5);
-
-    /* lift = 商品卡 hover 抬起（大扩散软投影）；float = 悬浮 CTA 卡。
-       都不在 sm/md/lg 海拔阶梯上，是专用观感，故单列。 */
-    --shadow-lift-light: 0 12px 32px -8px hsl(0 0% 9% / 0.18);
-    --shadow-lift-dark: 0 12px 32px -8px hsl(0 0% 0% / 0.7);
-    --shadow-float-light: 0 4px 16px -8px hsl(0 0% 9% / 0.12);
-    --shadow-float-dark: 0 4px 16px -8px hsl(0 0% 0% / 0.55);
 }
 
-/* ---------- Layer 2: Semantic（light-dark() 单份定义，深浅随系统偏好） ---------- */
+/* ---------- Layer 2: Semantic（仅浅色模式） ---------- */
 
 @theme {
     /* 表面：canvas 是页面"地面"（浅暖灰），background/card 是浮在灰地上的白卡——
-       电商层次靠底色差而非描边（border 只留功能分隔），暗色反向（地面更暗、卡更亮） */
-    --color-canvas: light-dark(var(--neutral-100), var(--neutral-950));
-    --color-background: light-dark(var(--neutral-0), var(--neutral-900));
-    --color-card: light-dark(var(--neutral-0), var(--neutral-900));
-    --color-popover: light-dark(var(--neutral-0), var(--neutral-900));
-    --color-sunken: light-dark(var(--neutral-100), var(--neutral-800));
+       电商层次靠底色差而非描边（border 只留功能分隔） */
+    --color-canvas: var(--neutral-100);
+    --color-background: var(--neutral-0);
+    --color-card: var(--neutral-0);
+    --color-popover: var(--neutral-0);
+    --color-sunken: var(--neutral-100);
 
     /* 内容（文字阶梯：foreground 主文字 → muted-foreground 次要 → disabled-foreground
        禁用。次要文字统一走 muted-foreground；原 foreground-subtle / foreground-disabled
        与 muted-foreground / disabled-foreground 语义重叠，已合并移除） */
-    --color-foreground: light-dark(var(--neutral-950), var(--neutral-50));
-    --color-card-foreground: light-dark(var(--neutral-950), var(--neutral-50));
-    --color-popover-foreground: light-dark(var(--neutral-950), var(--neutral-50));
-    --color-link: light-dark(var(--orange-600), var(--orange-400));
+    --color-foreground: var(--neutral-950);
+    --color-card-foreground: var(--neutral-950);
+    --color-popover-foreground: var(--neutral-950);
+    --color-link: var(--orange-600);
 
     /* 主操作 = 品牌转化色（淘宝橙 #FF5017），与 brand 合并后的唯一主/CTA 色，无独立 brand。
-       实色按钮底用 orange-500（亮橙，与淘宝一致，白字 3.28:1），浅深模式实色相同。
+       实色按钮底用 orange-500（亮橙，与淘宝一致，白字 3.28:1）。
        primary-hover/active 为色阶递进 token（hover 换色阶用）；
        shadcn 组件自带 hover:bg-primary/80 是透明度体系，二者并存不互斥，
        同一组件内二选一，别混用。 */
     --color-primary: var(--orange-500);
     --color-primary-foreground: var(--neutral-0);
-    --color-primary-hover: light-dark(var(--orange-600), var(--orange-400));
-    --color-primary-active: light-dark(var(--orange-700), var(--orange-300));
-    --color-primary-subtle: light-dark(var(--orange-50), var(--orange-900));
-    --color-primary-subtle-foreground: light-dark(var(--orange-700), var(--orange-200));
+    --color-primary-hover: var(--orange-600);
+    --color-primary-active: var(--orange-700);
+    --color-primary-subtle: var(--orange-50);
+    --color-primary-subtle-foreground: var(--orange-700);
 
     /* 次 CTA（琥珀金）—— 详情页「加购」与「立即购买」并排时用来区分主次（淘宝同款配色）。
        不是反馈色 warning，别混用：warning 表示状态，这里表示动作。
-       与 primary 同样的三档阶梯（base / hover / active），实色浅深模式相同。 */
+       与 primary 同样的三档阶梯（base / hover / active）。 */
     --color-cta-alt: var(--amber-400);
     --color-cta-alt-hover: var(--amber-500);
     --color-cta-alt-active: var(--amber-700);
 
-    /* 次级/弱化表面（secondary / muted / accent 深浅两模式值相同，
+    /* 次级/弱化表面（secondary / muted / accent 当前值相同，
        保留三个语义名是为将来视觉分化预留，勿合并） */
-    --color-secondary: light-dark(var(--neutral-100), var(--neutral-800));
-    --color-secondary-foreground: light-dark(var(--neutral-900), var(--neutral-50));
-    --color-muted: light-dark(var(--neutral-100), var(--neutral-800));
-    --color-muted-foreground: light-dark(var(--neutral-500), var(--neutral-400));
-    --color-accent: light-dark(var(--neutral-100), var(--neutral-800));
-    --color-accent-foreground: light-dark(var(--neutral-900), var(--neutral-50));
+    --color-secondary: var(--neutral-100);
+    --color-secondary-foreground: var(--neutral-900);
+    --color-muted: var(--neutral-100);
+    --color-muted-foreground: var(--neutral-500);
+    --color-accent: var(--neutral-100);
+    --color-accent-foreground: var(--neutral-900);
 
     /* 使用纪律：primary（品牌橙）只留给转化引导（登录/购买/开店等 CTA）。
        选中/激活态一律走 accent（弱底强调）或 foreground（强强调），
@@ -161,42 +143,49 @@
     /* 反馈（每色三件套：实色 base+foreground / 弱底 subtle+subtle-foreground）。
        弱底是 shop 的色阶对写法（浅底深字）；shadcn 新版用 bg-x/10 + text-x 透明度
        表达同角色，二选一保持一致即可。
-       destructive 跟随 shadcn 语义（文字/描边/弱底色，非实色填充底），
-       暗色必须亮（red-500），深红（red-800）在暗底上对比度塌陷。 */
+       destructive 跟随 shadcn 语义（文字/描边/弱底色，非实色填充底）。 */
     --color-destructive: var(--red-500);
     --color-destructive-foreground: var(--neutral-50);
-    --color-destructive-subtle: light-dark(var(--red-100), var(--red-900));
-    --color-destructive-subtle-foreground: light-dark(var(--red-700), var(--red-500));
+    --color-destructive-subtle: var(--red-100);
+    --color-destructive-subtle-foreground: var(--red-700);
     --color-success: var(--green-500);
     --color-success-foreground: var(--neutral-0);
-    --color-success-subtle: light-dark(var(--green-100), var(--green-900));
-    --color-success-subtle-foreground: light-dark(var(--green-700), var(--green-500));
+    --color-success-subtle: var(--green-100);
+    --color-success-subtle-foreground: var(--green-700);
     --color-warning: var(--amber-500);
     --color-warning-foreground: var(--neutral-900);
-    --color-warning-subtle: light-dark(var(--amber-100), var(--amber-900));
-    --color-warning-subtle-foreground: light-dark(var(--amber-700), var(--amber-500));
+    --color-warning-subtle: var(--amber-100);
+    --color-warning-subtle-foreground: var(--amber-700);
     --color-info: var(--blue-500);
     --color-info-foreground: var(--neutral-0);
-    --color-info-subtle: light-dark(var(--blue-100), var(--blue-900));
-    --color-info-subtle-foreground: light-dark(var(--blue-700), var(--blue-500));
+    --color-info-subtle: var(--blue-100);
+    --color-info-subtle-foreground: var(--blue-700);
 
     /* 结构与焦点 */
-    --color-border: light-dark(var(--neutral-200), var(--neutral-800));
-    --color-input: light-dark(var(--neutral-200), var(--neutral-800));
-    --color-ring: light-dark(var(--neutral-950), var(--neutral-300));
+    --color-border: var(--neutral-200);
+    --color-input: var(--neutral-200);
+    --color-ring: var(--neutral-950);
 
     /* Sidebar（shadcn sidebar 组件族消费；默认与全局语义一致，app 可按需覆盖） */
-    --color-sidebar: light-dark(var(--neutral-50), var(--neutral-900));
-    --color-sidebar-foreground: light-dark(var(--neutral-950), var(--neutral-50));
-    --color-sidebar-primary: light-dark(var(--neutral-900), var(--neutral-50));
-    --color-sidebar-primary-foreground: light-dark(var(--neutral-50), var(--neutral-900));
-    --color-sidebar-accent: light-dark(var(--neutral-100), var(--neutral-800));
-    --color-sidebar-accent-foreground: light-dark(var(--neutral-900), var(--neutral-50));
-    --color-sidebar-border: light-dark(var(--neutral-200), var(--neutral-800));
-    --color-sidebar-ring: light-dark(var(--neutral-400), var(--neutral-500));
+    --color-sidebar: var(--neutral-50);
+    --color-sidebar-foreground: var(--neutral-950);
+    --color-sidebar-primary: var(--neutral-900);
+    --color-sidebar-primary-foreground: var(--neutral-50);
+    --color-sidebar-accent: var(--neutral-100);
+    --color-sidebar-accent-foreground: var(--neutral-900);
+    --color-sidebar-border: var(--neutral-200);
+    --color-sidebar-ring: var(--neutral-400);
 
     /* 字体：shop 未引入外部字体，heading 与正文同栈；接品牌字体时改 --font-sans */
     --font-heading: var(--font-sans);
+
+    /* 字阶补充档（xs 以下的语义档，消灭 text-[Npx] 任意值）：
+       text-2xs = 13px（辅助说明/表单提示的事实尺寸），
+       text-3xs = 11px（徽章/角标尺寸；10px 徽章统一收拢到这一档） */
+    --text-2xs: 0.8125rem;
+    --text-2xs--line-height: 1.25rem;
+    --text-3xs: 0.6875rem;
+    --text-3xs--line-height: 1rem;
 
     /* 版心宽度。用 max-w-(--container-page) 消费，
        注意 Tailwind v4 的 --container-* 自动映射有 bug，勿依赖 max-w-container-page 类 */
@@ -215,12 +204,13 @@
     --radius-3xl: calc(var(--radius) * 3);
     --radius-4xl: calc(var(--radius) * 4);
 
-    /* 阴影/海拔（染中性色，不用纯黑低透明度；深浅经 light-dark() 切换） */
-    --shadow-sm: light-dark(var(--shadow-sm-light), var(--shadow-sm-dark));
-    --shadow-md: light-dark(var(--shadow-md-light), var(--shadow-md-dark));
-    --shadow-lg: light-dark(var(--shadow-lg-light), var(--shadow-lg-dark));
-    --shadow-lift: light-dark(var(--shadow-lift-light), var(--shadow-lift-dark));
-    --shadow-float: light-dark(var(--shadow-float-light), var(--shadow-float-dark));
+    /* 阴影/海拔（染中性色，不用纯黑低透明度；
+       lift = 商品卡 hover 抬起，float = 悬浮 CTA 卡，专用观感不在海拔阶梯上） */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 9% / 0.06);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 9% / 0.08), 0 2px 4px -2px hsl(0 0% 9% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 9% / 0.1), 0 4px 6px -4px hsl(0 0% 9% / 0.08);
+    --shadow-lift: 0 12px 32px -8px hsl(0 0% 9% / 0.18);
+    --shadow-float: 0 4px 16px -8px hsl(0 0% 9% / 0.12);
 
     /* 动效 */
     --animate-shake: shake 0.4s ease-in-out;

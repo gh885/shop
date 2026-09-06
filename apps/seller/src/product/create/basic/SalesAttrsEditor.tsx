@@ -207,7 +207,7 @@ export function SalesAttrsEditor({
                                 size="icon-lg"
                                 onClick={() => addRow(ai)}
                                 aria-label="添加取值"
-                                className="border border-dashed border-input hover:border-primary hover:text-primary"
+                                className="border border-dashed border-input hover:border-foreground hover:text-foreground"
                             >
                                 <Plus className="size-4" />
                             </Button>

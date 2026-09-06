@@ -1,4 +1,4 @@
-import { fenToYuan, type Money } from "@shop/api"
+import { type Money } from "@shop/api"
 import type {
     ParamItem,
     PublicProductDetailResponse,
@@ -162,12 +162,13 @@ export function isImageSpecGroup(skus: Sku[], spec: SpecItem): boolean {
 // 金额格式化用 @shop/api 的 fenToYuan（与 Money 契约同源），不在本模块重复定义
 
 export interface PriceView {
-    /** 主价文案（元字符串）：选全规格 → SKU 价；未选全 → 价格区间下限 */
-    primary: string
-    /** 区间上限：与 primary 相同则不显示区间（undefined） */
-    rangeTo?: string
-    /** 划线价（元字符串）：仅选中 SKU 且有 originalPrice 时给 */
-    original?: string
+    /** 主价（分）：选全规格 → SKU 价；未选全 → 价格区间下限。
+     * 给分值而非元字符串，展示层经共享 Price 组件走 splitFen 分段排版 */
+    primary: number
+    /** 区间上限（分）：与 primary 相同则不显示区间（undefined） */
+    rangeTo?: number
+    /** 划线价（分）：仅选中 SKU 且有 originalPrice 时给 */
+    original?: number
     /** 币种（当前只有 CNY，透传给展示层备用） */
     currency: string
 }
@@ -177,16 +178,16 @@ export function derivePriceView(detail: ProductDetail, selection: SkuSelection):
     const matched = findMatchingSku(detail.skus, selection)
     if (matched) {
         return {
-            primary: fenToYuan(matched.price.amount),
-            original: fenToYuan(matched.originalPrice.amount),
+            primary: matched.price.amount,
+            original: matched.originalPrice.amount,
             currency: matched.price.currency,
         }
     }
 
     const { priceMin, priceMax } = detail.product
     return {
-        primary: fenToYuan(priceMin.amount),
-        rangeTo: priceMax.amount === priceMin.amount ? undefined : fenToYuan(priceMax.amount),
+        primary: priceMin.amount,
+        rangeTo: priceMax.amount === priceMin.amount ? undefined : priceMax.amount,
         currency: priceMin.currency,
     }
 }
