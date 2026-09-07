@@ -1,14 +1,5 @@
 import { toApiError } from "@shop/common"
-import {
-    CategoriesApi,
-    ProductsAdminApi,
-    type CategoryAttrNodeResponse,
-    type ImageTicketResponse,
-    type ProductResponse,
-    type SkuResponse,
-    type SkuUpdateItem,
-    type SpecSelectionRequest,
-} from "@shop/api/sdk"
+import { ProductsAdminApi, ProductStatus, type ImageTicketResponse } from "@shop/api/sdk"
 
 // ---------- 商品域数据函数（直接在调用点用，不经集中封装对象） ----------
 // seller 端 /seller/** 请求的 X-Shop-Id 店铺上下文头由 SDK client 拦截自动注入
@@ -18,9 +9,9 @@ import {
 export async function listProducts(search: {
     page: number
     size: number
-    status?: ProductResponse["status"]
+    status?: ProductStatus
     keyword?: string
-}): Promise<{ records: ProductResponse[]; total: number }> {
+}) {
     const page = await ProductsAdminApi.listShopProducts({
         query: {
             pageParams: { page: search.page, size: search.size },
@@ -32,36 +23,6 @@ export async function listProducts(search: {
         records: page.records,
         total: page.total,
     }
-}
-
-/** 更新 SKU 价格库存，返回更新后的 SKU 网格 */
-export async function updateProductSkus(
-    id: string,
-    items: SkuUpdateItem[],
-): Promise<SkuResponse[]> {
-    return await ProductsAdminApi.updateProductSkus({
-        path: { id },
-        body: { items },
-    })
-}
-
-/** 应用销售属性选择 → 服务端按 valueId 组合对账 SKU，返回当前 SKU 网格（价格/库存留空待填） */
-export async function applyProductSpecs(
-    id: string,
-    selections: SpecSelection[],
-): Promise<SkuResponse[]> {
-    return await ProductsAdminApi.updateProductSpecs({
-        path: { id },
-        body: { specs: selections },
-    })
-}
-
-/** 发布（草稿 → target 态）。默认立即上架（PUBLISHED）；放入仓库传 target="WAREHOUSE"。 */
-export async function publishProduct(id: string, target?: "PUBLISHED" | "WAREHOUSE") {
-    await ProductsAdminApi.publishProduct({
-        path: { id },
-        query: target ? { target } : undefined,
-    })
 }
 
 /**
@@ -108,23 +69,4 @@ export async function uploadProductImage(file: File): Promise<string> {
     }
     // 返回相对 key：展示时由 imgUrl(key) 拼当前域名（见 #/shared/lib/image）
     return ticket.key
-}
-
-/** 类目属性模板（公开接口），发布页取销售属性（kind=SPEC）用 */
-export async function attrTemplate(categoryId: string): Promise<CategoryAttrTemplateNode[]> {
-    return await CategoriesApi.getPublicCategoryAttrTemplate({ path: { id: categoryId } })
-}
-
-// ---------- 商品域类型（就近放在数据函数旁） ----------
-
-/** 类目属性模板：与生成契约同构，直接别名（勿手写镜像字段，契约演进会漂移） */
-export type CategoryAttrTemplateNode = CategoryAttrNodeResponse
-
-/** 一个销售属性维度的选择：契约同 SpecSelectionRequest，仅 valueIds/customValues 收紧为必填 */
-export type SpecSelection = Omit<
-    SpecSelectionRequest,
-    "valueIds" | "customValues" | "selectionPresent"
-> & {
-    valueIds: string[]
-    customValues: string[]
 }

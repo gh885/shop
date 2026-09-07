@@ -1,6 +1,6 @@
 import { useAppForm } from "@shop/ui-web"
 
-import type { ProductBasicForm } from "./product-form-state"
+import type { ProductBasicForm } from "#/product/draft-model"
 
 /**
  * 真「表单实例类型”锚点“」——从 useAppForm 的返回推导出可复用类型。

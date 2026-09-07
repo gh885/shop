@@ -148,7 +148,6 @@ function NewProductBasicStep() {
         <div className="mx-auto w-full max-w-narrow">
             <PublishBasicStep
                 categoryId={categoryId}
-                productId={productId}
                 productStatus={editingStatus}
                 submitting={draft.submitting}
                 creating={draft.creating}

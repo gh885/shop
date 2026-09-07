@@ -1,8 +1,13 @@
 import { uploadProductImage } from "#/product/data"
+import { editRules } from "#/product/edit-rules"
 import type { ProductStatus } from "@shop/api/sdk"
 
-import type { SpecSelection } from "../../data"
-import type { ListingTime, ProductBasicForm, SkuDraftRow } from "./product-form-state"
+import type {
+    ListingTime,
+    ProductBasicForm,
+    SkuDraftRow,
+    SpecSelection,
+} from "#/product/draft-model"
 
 import { BasicInfoSection } from "./BasicInfoSection"
 import { DetailImagesSection } from "./DetailImagesSection"
@@ -33,7 +38,7 @@ const SECTIONS = [
     { id: "section-detail", label: "图文详情" },
 ] as const
 
-/** basic 表单字段值（形状单一来源是 ./product-form-state 的 ProductBasicForm，此处只保留表单语境的名字） */
+/** basic 表单字段值（形状单一来源是 draft-model 的 ProductBasicForm，此处只保留表单语境的名字） */
 export type BasicStepValues = ProductBasicForm
 
 /**
@@ -69,7 +74,6 @@ export type SubmitMode = "submit" | "warehouse" | "draft"
  */
 export function BasicStep({
     categoryId,
-    productId,
     productStatus,
     submitting,
     creating,
@@ -83,9 +87,7 @@ export function BasicStep({
     initialBasic,
 }: {
     categoryId: string
-    /** 编辑已有商品时传入；新建为 undefined（新建可自由切类目） */
-    productId?: string
-    /** 编辑已有商品当前状态（新建 undefined）：非草稿禁切类目；上架冻结规格 */
+    /** 编辑已有商品当前状态（新建 undefined）：驱动 edit-rules 会话能力表（类目可改/规格冻结/能否发布/价格必填） */
     productStatus?: ProductStatus
     submitting: boolean
     creating: boolean
@@ -111,16 +113,16 @@ export function BasicStep({
     //  - 规格冻结：上架商品规格不可改（价格/库存仍可运营），改规格要先下架。
     // 是否「新建 / 草稿态」编辑：决定能否切类目、显示上架时间、以及操作条是否提供「保存草稿+发布」——
     // 仓库中/上架商品已不可回草稿，操作条只剩「保存变更」（严格校验 + 不发布）。
-    const isDraftEditing = !productId || productStatus === "DRAFT"
-    const canSwitchCategory = isDraftEditing
-    const specsLocked = productStatus === "PUBLISHED"
-    const listingTimeEditable = isDraftEditing
-    const editingNotice =
-        productStatus === "PUBLISHED"
-            ? "上架中：改类目/规格需先下架，价格、库存可直接调整"
-            : productStatus === "WAREHOUSE"
-              ? "仓库中：改规格可直接改，改类目需先上架为草稿"
-              : undefined
+    // 编辑约束统一来自 edit-rules 表（后端 ProductStatus 状态机的声明式镜像），不再散落推导：
+    //  - 切类目：仅 DRAFT（含新建）可改——类目是结构性字段，发布后（含仓库中）不可改
+    //  - 规格冻结：PUBLISHED 禁改规格（价格/库存仍可运营），改规格先下架
+    //  - 上架时间/发布：仅 DRAFT（含新建）会话有发布目标；仓库/上架只剩「保存变更」（状态不回退）
+    const rules = editRules(productStatus)
+    const canSwitchCategory = rules.switchCategory
+    const specsLocked = !rules.specsEditable
+    const listingTimeEditable = rules.publishTargets !== null
+    const canSaveDraft = rules.publishTargets !== null
+    const editingNotice = rules.notice
 
     // 上架时间：决定「提交商品信息」落 PUBLISHED 还是 WAREHOUSE。
     // 默认立即上架；定时上架本轮不做。
@@ -276,7 +278,7 @@ export function BasicStep({
                             size="sm"
                             disabled={!canSwitchCategory}
                             title={
-                                canSwitchCategory ? undefined : "只有草稿可以修改类目，先下架再改"
+                                canSwitchCategory ? undefined : "类目在发布时确定，发布后不可修改"
                             }
                             onClick={onSwitchCategory}
                         >
@@ -322,7 +324,7 @@ export function BasicStep({
                     creating={creating}
                     onSubmit={() => submitAsListing(listingTime)}
                     onSaveDraft={() => submitAs("draft")}
-                    draftEditable={isDraftEditing}
+                    draftEditable={canSaveDraft}
                 />
             </form>
         </form.AppForm>

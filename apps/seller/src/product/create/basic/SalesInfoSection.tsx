@@ -10,13 +10,15 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { priceRangeText, toApiError, yuanToFen } from "@shop/common"
+import { priceRangeText, toApiError } from "@shop/common"
+import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
-import { attrTemplate, type CategoryAttrTemplateNode, type SpecSelection } from "../../data"
+import { attrTemplate } from "#/product/data"
+
+import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
 
 import { SalesAttrsEditor } from "./SalesAttrsEditor"
 import { SkuGridEditor } from "./SkuGridEditor"
-import type { ListingTime, SkuDraftRow } from "./product-form-state"
 
 /**
  * 发布页「销售信息」块（section-sales）：①销售属性 ②销售规格 ③一口价 ④总库存。
@@ -56,7 +58,7 @@ export function SalesInfoSection({
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
     onListingTimeChange: (next: ListingTime) => void
 }) {
-    const [template, setTemplate] = useState<CategoryAttrTemplateNode[] | undefined>()
+    const [template, setTemplate] = useState<CategoryAttrNodeResponse[] | undefined>()
     const [loadError, setLoadError] = useState<string | undefined>()
     // 重载信号：重试时自增触发重新拉取
     const [reloadKey, setReloadKey] = useState(0)
@@ -193,12 +195,11 @@ export function SalesInfoSection({
 
 /** 一口价（价格区间）+ 总库存（库存之和）：纯派生展示，随 SKU 编辑实时联动 */
 function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
-    const prices = skuRows
-        .map((r) => yuanToFen(r.priceText))
-        .filter((n): n is number => n !== undefined)
+    const prices = skuRows.map((r) => r.price).filter((n): n is number => n !== null)
     const min = prices.length > 0 ? Math.min(...prices) : undefined
     const max = prices.length > 0 ? Math.max(...prices) : undefined
-    const totalStock = skuRows.reduce((sum, r) => sum + (Number(r.stockText) || 0), 0)
+    // 展示侧兜底：null（未填）的库存按 0 计入合计（与 wire 投影落库的 ?? 0 一致）
+    const totalStock = skuRows.reduce((sum, r) => sum + (r.stock ?? 0), 0)
 
     return (
         <>

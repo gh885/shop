@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { Plus } from "lucide-react"
 import { Badge, Button } from "@shop/ui-web"
 
-import type { CategoryAttrTemplateNode, SpecSelection } from "../../data"
+import type { SpecSelection } from "#/product/draft-model"
+import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
 import { AttrValueRow, type ValueDraft } from "./AttrValueRow"
 
@@ -14,14 +15,14 @@ interface AttrDraft {
     allowCustom: boolean
     /** 该规格是否允许每个取值上传配图（后端类目模板 allow_image） */
     allowImage: boolean
-    values: CategoryAttrTemplateNode["values"]
+    values: CategoryAttrNodeResponse["values"]
     rows: ValueDraft[]
 }
 
 let seq = 0
 const nextId = () => `v-${++seq}`
 
-function toDrafts(nodes: CategoryAttrTemplateNode[], selected: SpecSelection[]): AttrDraft[] {
+function toDrafts(nodes: CategoryAttrNodeResponse[], selected: SpecSelection[]): AttrDraft[] {
     return nodes.map((n) => {
         const sel = selected.find((s) => s.attrId === n.attr.id)
         // 模板取值按 id 建一次索引，避免回显时对每个已选值线性扫描 values
@@ -97,7 +98,7 @@ export function SalesAttrsEditor({
     uploadImage,
 }: {
     /** 类目属性模板节点（调用方需已过滤出 kind=1 销售属性） */
-    attrs: CategoryAttrTemplateNode[]
+    attrs: CategoryAttrNodeResponse[]
     value: SpecSelection[]
     /** 上架商品规格冻结：禁用整块（fieldset 一次禁用内部所有输入/按钮），值仍回显只读 */
     disabled?: boolean
