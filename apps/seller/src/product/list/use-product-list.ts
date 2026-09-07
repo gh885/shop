@@ -1,4 +1,4 @@
-import { productKeys, productListOptions } from "#/product/queries"
+import { productKeys, productListOptions, type ProductSort } from "#/product/queries"
 import type { ProductListSearch } from "#/product/queries"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -30,10 +30,15 @@ export function useProductList(search: ProductListSearch) {
             search: {
                 status: search.status,
                 keyword: search.keyword,
+                sort: search.sort,
                 page: search.page,
                 size: search.size,
                 ...next,
-                ...(next.status !== undefined || next.keyword !== undefined ? { page: 1 } : {}),
+                ...(next.status !== undefined ||
+                next.keyword !== undefined ||
+                next.sort !== undefined
+                    ? { page: 1 }
+                    : {}),
             },
         })
     }
@@ -104,5 +109,6 @@ export function useProductList(search: ProductListSearch) {
         handleOff,
         handleOn,
         onPageChange: (page: number) => apply({ page }),
+        onSortChange: (sort: ProductSort) => apply({ sort }),
     }
 }

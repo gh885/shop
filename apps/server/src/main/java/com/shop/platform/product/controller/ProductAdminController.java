@@ -22,6 +22,7 @@ import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Map;
@@ -92,9 +93,14 @@ public class ProductAdminController {
             @CurrentShop UUID shopId,
             @Valid PageParams pageParams,
             @RequestParam(required = false) ProductStatus status,
-            @RequestParam(required = false) @Size(max = 128) String keyword) {
+            @RequestParam(required = false) @Size(max = 128) String keyword,
+            @Pattern(
+                            regexp = "createdAt_desc|createdAt_asc|stock_asc|stock_desc|soldCount_asc|soldCount_desc",
+                            message = "排序方式不支持")
+                    @RequestParam(required = false)
+                    String sort) {
         return productService
-                .pageListWithMetrics(shopId, status, keyword, pageParams.page(), pageParams.size())
+                .pageListWithMetrics(shopId, status, keyword, pageParams.page(), pageParams.size(), sort)
                 .map(ProductResponse::from);
     }
 

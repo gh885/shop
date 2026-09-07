@@ -6,6 +6,20 @@ import { CategoriesApi } from "@shop/api/sdk"
 import { listProducts } from "./data"
 import { type LeafPath, flattenLeafPaths } from "@shop/common"
 
+// ---------- 商品列表排序契约 ----------
+
+/** 卖家商品列表支持的全部排序方式（与后端 listShopProducts 的 sort 枚举一一对应） */
+export const PRODUCT_SORTS = [
+    "createdAt_desc",
+    "createdAt_asc",
+    "stock_asc",
+    "stock_desc",
+    "soldCount_asc",
+    "soldCount_desc",
+] as const
+
+export type ProductSort = (typeof PRODUCT_SORTS)[number]
+
 /**
  * products 域的 TanStack Query 定义层：只放**声明式、无状态**的 query 定义与 key 工厂。
  *
@@ -19,6 +33,7 @@ import { type LeafPath, flattenLeafPaths } from "@shop/common"
 export interface ProductListSearch {
     status?: ProductStatus
     keyword?: string
+    sort?: ProductSort
     page: number
     size: number
 }
@@ -27,7 +42,15 @@ export const productKeys = {
     all: ["products"] as const,
     lists: (shopId?: string) => ["products", shopId] as const,
     list: (shopId: string | undefined, s: ProductListSearch) =>
-        ["products", shopId, s.status ?? "all", s.keyword ?? "", s.page, s.size] as const,
+        [
+            "products",
+            shopId,
+            s.status ?? "all",
+            s.keyword ?? "",
+            s.sort ?? "createdAt_desc",
+            s.page,
+            s.size,
+        ] as const,
     detail: (id: string) => ["products", "detail", id] as const,
 }
 
@@ -47,6 +70,7 @@ export const productListOptions = (shopId: string | undefined, s: ProductListSea
                 size: s.size,
                 status: s.status,
                 keyword: s.keyword,
+                sort: s.sort,
             }),
         enabled: !!shopId,
         placeholderData: (prev) => prev,

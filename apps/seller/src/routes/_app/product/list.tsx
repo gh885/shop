@@ -14,14 +14,21 @@ import { ProductStatus } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
 import { z } from "zod"
 
+import { useState } from "react"
+import type { ProductResponse } from "@shop/api/sdk"
+
 import { ProductTable } from "#/product/list/table"
+import { EditSkuLineDialog, type SkuEditKind } from "#/product/list/EditSkuDialog"
+import { EditTitleDialog } from "#/product/list/EditTitleDialog"
 import { FilterBar } from "#/product/list/filter"
 import { useProductList, type ProductListSearch } from "#/product/list/use-product-list"
+import { PRODUCT_SORTS } from "#/product/queries"
 
 // status 从生成的 ProductStatus 枚举派生（后端加状态时此处编译期跟进），脏值 catch 到默认 tab
 const listSearchSchema = z.object({
     status: z.enum(ProductStatus).catch("PUBLISHED"),
     keyword: z.string().min(1).optional().catch(undefined),
+    sort: z.enum(PRODUCT_SORTS).optional().catch(undefined),
     page: z.coerce.number().int().min(1).catch(1),
     size: z.coerce.number().int().min(1).catch(10),
 })
@@ -46,7 +53,15 @@ function ProductsPage() {
         handleOff,
         handleOn,
         onPageChange,
+        onSortChange,
     } = useProductList(search)
+
+    // 编辑SKU/库存弹窗目标：记录当前行商品（只用 id + name）+ 当前编辑维度（价格/库存）
+    const [lineTarget, setLineTarget] = useState<
+        { product: ProductResponse; kind: SkuEditKind } | undefined
+    >(undefined)
+    // 编辑标题弹窗目标：直接用行内 name/subtitle 预填，无需再拉详情
+    const [titleTarget, setTitleTarget] = useState<ProductResponse | undefined>()
 
     if (!shop) {
         return (
@@ -107,12 +122,33 @@ function ProductsPage() {
                     pageSize={search.size}
                     total={total}
                     busyId={busyId}
+                    sort={search.sort}
                     onEdit={handleEdit}
+                    onEditTitle={setTitleTarget}
+                    onEditPrice={(p) => setLineTarget({ product: p, kind: "price" })}
+                    onEditStock={(p) => setLineTarget({ product: p, kind: "stock" })}
                     onOff={handleOff}
                     onOn={handleOn}
                     onPageChange={onPageChange}
+                    onSortChange={onSortChange}
                 />
             )}
+
+            <EditSkuLineDialog
+                open={Boolean(lineTarget)}
+                kind={lineTarget?.kind ?? "price"}
+                productId={lineTarget?.product.id}
+                productName={lineTarget?.product.name}
+                onOpenChange={(open) => !open && setLineTarget(undefined)}
+                onSaved={() => void products.refetch()}
+            />
+
+            <EditTitleDialog
+                open={Boolean(titleTarget)}
+                product={titleTarget}
+                onOpenChange={(open) => !open && setTitleTarget(undefined)}
+                onSaved={() => void products.refetch()}
+            />
         </div>
     )
 }

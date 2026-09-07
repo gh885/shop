@@ -1648,6 +1648,7 @@ export type ListShopProductsData = {
         pageParams: PageParams;
         status?: ProductStatus;
         keyword?: string;
+        sort?: string;
     };
     url: '/seller/products';
 };

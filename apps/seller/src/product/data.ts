@@ -1,5 +1,6 @@
 import { toApiError } from "@shop/common"
 import { ProductsAdminApi, ProductStatus, type ImageTicketResponse } from "@shop/api/sdk"
+import type { ProductSort } from "#/product/queries"
 
 // ---------- 商品域数据函数（直接在调用点用，不经集中封装对象） ----------
 // seller 端 /seller/** 请求的 X-Shop-Id 店铺上下文头由 SDK client 拦截自动注入
@@ -11,12 +12,14 @@ export async function listProducts(search: {
     size: number
     status?: ProductStatus
     keyword?: string
+    sort?: ProductSort
 }) {
     const page = await ProductsAdminApi.listShopProducts({
         query: {
             pageParams: { page: search.page, size: search.size },
             status: search.status,
             keyword: search.keyword,
+            sort: search.sort,
         },
     })
     return {

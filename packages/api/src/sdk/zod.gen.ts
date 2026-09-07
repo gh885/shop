@@ -1231,7 +1231,8 @@ export const zAcceptShopInviteResponse = zShopMemberResponse;
 export const zListShopProductsQuery = z.object({
     pageParams: zPageParams,
     status: zProductStatus.optional(),
-    keyword: z.string().min(0).max(128).optional()
+    keyword: z.string().min(0).max(128).optional(),
+    sort: z.string().regex(/createdAt_desc|createdAt_asc|stock_asc|stock_desc|soldCount_asc|soldCount_desc/).optional()
 });
 
 /**
