@@ -78,10 +78,13 @@ public class ProductService {
 
     /**
      * 按类目属性模板提交规格选择，并按 valueId 组合（spec_key）对账 SKU：
-     * 组合没变的保留（价格库存不丢）、组合消失的删除、组合新增的按笛卡尔积生成。
+     * 组合没变的保留（价格库存不丢）、组合消失的停用保留（不物理删，见步骤 6）、组合新增的按笛卡尔积生成。
      *
      * <p>规格值 ID 化后，规格值改名只是改快照（见 CategoryAttrService.updateValue），不再被视为新组合—— 消除了旧版"改名即丢价"的已知限制。spec_key = valueId
      * 按模板维度顺序 ':' join，uk_skus_product_spec_key 唯一索引兜底重复组合。
+     *
+     * <p>仅非上架状态可改规格（守卫在实体 ensureSpecsEditable）：改规格必须先下架——
+     * 对账停用而不是删除被移除组合，避免买家购物车/订单里裸引用（无 FK）的 sku 行悬空。
      */
     @Transactional
     public List<Sku> updateSpecs(UUID productId, List<SpecSelection> selections) {
@@ -135,10 +138,14 @@ public class ProductService {
             }
         }
 
-        // 6. 组合消失的旧 SKU 删掉（库存主体行经 inventory :: api 同事务随行清理，流水账本保留）
+        // 6. 组合消失的旧 SKU 停用保留（对齐"SKU 是经营资产不物理删"）：只置 DISABLED，库存主体行原样保留——
+        //    在途订单的冻结/释放需要行存在（removeRow 会拦 frozen>0），且卖家重新选回组合时行、价格、库存都还在，可直接复售；
+        //    物理删除只留给 abandon（草稿：无买家引用，同事务清 SKU + 库存行）。停用 SKU 不进买家可见集合（publicDetail 只返在售）。
         for (Sku removed : bySpecKey.values()) {
-            stockCommand.removeRow(removed.getId());
-            skuMapper.deleteById(removed.getId());
+            if (removed.getStatus() == SkuStatus.ON_SALE) {
+                removed.setStatus(SkuStatus.DISABLED);
+                skuMapper.updateById(removed);
+            }
         }
 
         // 7. 重算价格区间：SPU 与 SKU 都在手上，直接回填免重查
@@ -148,11 +155,16 @@ public class ProductService {
     }
 
     /** 批量更新 SKU。任何状态都允许：上架后补货/改价/停用是日常运营操作。price 必填，其余只 set 非空字段。
-     *  库存归 inventory 模块：seller 传的 stock 是「绝对量设定」，经 inventory :: StockCommand.setTotal 走乐观锁，不写 product 表。*/
+     *  库存归 inventory 模块：seller 传的 stock 是「绝对量设定」，经 inventory :: StockCommand.setTotal 走乐观锁，不写 product 表。
+     *  仅一条额外守卫：上架商品不允许被存成「全部在售 SKU 库存 = 0」（整链接无货必须先下架，见 ensureNotAllOutOfStock）。 */
     @Transactional
     public List<Sku> updateSkus(UUID productId, List<SkuUpdateItem> items) {
         // 1. 商品必须存在且属于当前店铺（任何状态都允许改价/补货，是日常运营操作）；实体留作价格区间回填
         Product product = requireShopOwned(productId);
+        // 1.5 上架商品：预检本次更新后仍须至少一个在售 SKU 有货（对齐「架上商品不能全 0」，改 0 需先下架）
+        if (product.isPublished()) {
+            ensureNotAllOutOfStock(productId, items);
+        }
 
         // 2. 逐条更新：WHERE 同时校验 SKU 归属，只 set 非空字段（skuCode/status 传 null 即不改）
         try {
@@ -184,8 +196,9 @@ public class ProductService {
         return all;
     }
 
-    /** 发布：门槛是每个 SKU 都已设价（库存允许 0，可售罄上架），通过后置目标态并回填聚合价格区间。
-     *  目标态 = 立即上架（PUBLISHED）或放入仓库（WAREHOUSE），由入参 target 决定；两者同门槛。 */
+    /** 发布：目标态 = 立即上架（PUBLISHED）或放入仓库（WAREHOUSE），由入参 target 决定。
+     *  门槛：商品有名 + 每个在售 SKU 都已设价（两目标同门槛）；**立即上架**另须至少一个在售 SKU 有库存——
+     *  对齐「架上商品不能全 0」（仓库中不售，允许售罄入库，届时列表「上架」动作会再拦）。 */
     @Transactional
     public Product publish(UUID productId, ProductStatus target) {
         Product product = requireShopOwned(productId);
@@ -193,6 +206,10 @@ public class ProductService {
         Validate.isTrue(StringUtils.hasText(product.getName()), "请先填写商品标题再发布");
         // 1. 复检发布门槛：每个在售 SKU 都已设价（跨聚合校验留 service）
         applyPriceRange(product, ensurePublishable(productId));
+        // 1.5 立即上架另须有货（放入仓库允许售罄入库）
+        if (target == ProductStatus.PUBLISHED) {
+            ensureOnShelfStock(productId);
+        }
         // 2. 守卫 + 置目标态（仅草稿可发布、目标只许上架/仓库的规则在实体内）
         product.publishTo(target);
         // 3. 状态迁移条件更新（乐观锁）：只允许「DRAFT → target」，丢更新/竞态下 affected=0 抛 409，
@@ -259,10 +276,15 @@ public class ProductService {
         return new PageResult<>(rows, result.total());
     }
 
-    /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查（管理端要能看草稿） */
+    /** 商品详情：SPU 全字段 + SKU（卖家编辑只回显「当前 spec 组合」的行——对账停用的历史残留不打扰卖家，行保留不物理删） */
     public ProductDetail detail(UUID productId) {
         Product product = requireShopOwned(productId);
-        return new ProductDetail(product, skuMapper.selectByProductId(productId));
+        List<Sku> all = skuMapper.selectByProductId(productId);
+        Set<String> currentSpecKeys = specKeysOf(product.getSpecs());
+        List<Sku> skus = all.stream()
+                .filter(s -> currentSpecKeys.contains(s.getSpecKey()))
+                .toList();
+        return new ProductDetail(product, skus);
     }
 
     // ========== 买家侧公开读 ==========
@@ -376,12 +398,14 @@ public class ProductService {
         return product;
     }
 
-    /** 重新上架：仅下架商品可上架，复检发布门槛（下架期间 SKU 可能被改） */
+    /** 重新上架：仅仓库中商品可上架，复检发布门槛（下架期间 SKU 可能被改）+ 有货（对齐「架上不能全 0」） */
     @Transactional
     public Product on(UUID productId) {
         Product product = requireShopOwned(productId);
         // 1. 复检发布门槛：下架期间 SKU 可能被改（在售 SKU 口径，见 ensurePublishable）
         ensurePublishable(productId);
+        // 1.5 上架须有货：仓库中的售罄商品需先补货再上架
+        ensureOnShelfStock(productId);
         // 2. 守卫 + 置上架（仅下架可重上的规则在实体内），乐观锁条件更新
         product.relist();
         requireTransition(productId, ProductStatus.WAREHOUSE, ProductStatus.PUBLISHED, "商品状态已变化，请刷新后重试");
@@ -541,6 +565,16 @@ public class ProductService {
     }
 
     /** 笛卡尔积：specs 为空时返回 [[]]，恰好对应单规格商品的 1 个隐藏 SKU；取值按 valueId 去重 */
+    /** 当前规格快照（product.specs）能产出的全部组合 spec_key；无规格（单规格商品）为 {\"\"}。与 updateSpecs 的 spec_key 口径一致 */
+    private Set<String> specKeysOf(List<SpecItem> specs) {
+        if (specs == null || specs.isEmpty()) {
+            return Set.of("");
+        }
+        return cartesian(specs).stream()
+                .map(combo -> combo.stream().map(sv -> sv.valueId().toString()).collect(Collectors.joining(":")))
+                .collect(Collectors.toSet());
+    }
+
     private List<List<SpecValue>> cartesian(List<SpecItem> specs) {
         List<List<SpecValue>> result = new ArrayList<>();
         result.add(new ArrayList<>());
@@ -616,7 +650,43 @@ public class ProductService {
         }
     }
 
-    /** 发布门槛：必须有 SKU，且所有 SKU 都设了价（库存允许 0，可售罄上架）。publish 与 on 共用 */
+    /** 上架有货门槛：至少一个在售 SKU 库存 > 0（对齐「架上商品不能全 0」）。库存行在 inventory 模块，经 StockReadQuery 读 total。 */
+    private void ensureOnShelfStock(UUID productId) {
+        List<Sku> onSale = skuMapper.selectByProductId(productId).stream()
+                .filter(s -> s.getStatus() == SkuStatus.ON_SALE)
+                .toList();
+        Map<UUID, StockView> stocks =
+                stockReadQuery.availableBySkuIds(onSale.stream().map(Sku::getId).toList());
+        boolean anyInStock = onSale.stream()
+                .anyMatch(s -> stocks.getOrDefault(s.getId(), new StockView(s.getId(), 0, 0, 0))
+                                .stock()
+                        > 0);
+        Validate.isTrue(anyInStock, "商品全部在售 SKU 库存为 0，请补充库存后再上架");
+    }
+
+    /** 上架商品不允许被存成「全部在售 SKU 库存 = 0」（对齐淘宝 API：最后一个 SKU 改 0 需先下架）。
+     *  SKU 级停用/单行售罄仍允许（日常运营）；整链接无货必须先下架再处理。 */
+    private void ensureNotAllOutOfStock(UUID productId, List<SkuUpdateItem> items) {
+        Map<UUID, SkuUpdateItem> byId = items.stream().collect(Collectors.toMap(SkuUpdateItem::skuId, it -> it));
+        List<Sku> skus = skuMapper.selectByProductId(productId);
+        Map<UUID, StockView> stocks =
+                stockReadQuery.availableBySkuIds(skus.stream().map(Sku::getId).toList());
+        boolean anyOnSaleWithStock = skus.stream().anyMatch(s -> {
+            SkuUpdateItem item = byId.get(s.getId());
+            // 本次操作会置停用的行不参与「在售」；未涉及的 SKU 用当前状态与当前库存
+            SkuStatus finalStatus = item != null && item.status() != null ? item.status() : s.getStatus();
+            if (finalStatus != SkuStatus.ON_SALE) return false;
+            int finalStock = item != null
+                    ? item.stock()
+                    : stocks.getOrDefault(s.getId(), new StockView(s.getId(), 0, 0, 0))
+                            .stock();
+            return finalStock > 0;
+        });
+        Validate.isTrue(anyOnSaleWithStock, "上架商品的库存不能全为 0，请先下架商品或补充库存");
+    }
+
+    /** 发布/重上门槛：必须有 SKU，且所有在售 SKU 都设了价。publish 与 on 共用。
+     *  注：库存 0 是否可上架不在此判断（见 ensureOnShelfStock：整链接无货不可上架/需先下架）。 */
     private List<Sku> ensurePublishable(UUID productId) {
         List<Sku> skus = skuMapper.selectByProductId(productId);
         // 发布/重上门槛只看「在售 SKU」：停用 SKU 不计入（停用 SKU 不该阻塞上架，也不该被索取价格）
