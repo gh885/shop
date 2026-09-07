@@ -33,12 +33,16 @@ public final class Permissions {
     /** 卖家订单查看 + 发货 */
     public static final String ORDER_FULFILL = "ORDER_FULFILL";
 
+    /** 店铺发货/退货/揽收地址管理（面单寄件人） */
+    public static final String ADDRESS_MANAGE = "ADDRESS_MANAGE";
+
     /**
      * 全量权限码（文档顺序）。SUPER_ADMIN 在 me 出参展开成这份清单给前端；
      * 判权内部仍用通配符（见 PermissionResolver.WILDCARD），两处新增码要同步。
      */
     public static List<String> all() {
-        return List.of(SHOP_REVIEW, CMS_MANAGE, CATEGORY_MANAGE, STAFF_MANAGE, PRODUCT_MANAGE, ORDER_FULFILL);
+        return List.of(
+                SHOP_REVIEW, CMS_MANAGE, CATEGORY_MANAGE, STAFF_MANAGE, PRODUCT_MANAGE, ORDER_FULFILL, ADDRESS_MANAGE);
     }
 
     private Permissions() {}

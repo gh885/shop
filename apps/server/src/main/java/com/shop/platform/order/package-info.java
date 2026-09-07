@@ -22,7 +22,8 @@
             "shop :: api",
             "user :: api",
             "cart :: api",
-            "cart :: events"
+            "cart :: events",
+            "address :: api"
         })
 package com.shop.platform.order;
 

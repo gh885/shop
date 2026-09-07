@@ -328,7 +328,7 @@ class ProductIT extends IntegrationTestSupport {
                 s1.getId().toString());
 
         // 只查本店铺，不依赖其它测试残留
-        PageResult<ProductListRow> page = productService.pageListWithMetrics(shopId, null, null, 1, 50);
+        PageResult<ProductListRow> page = productService.pageListWithMetrics(shopId, null, null, 1, 50, null);
         ProductListRow row = page.records().stream()
                 .filter(r -> r.product().getId().equals(draft.getId()))
                 .findFirst()

@@ -5,6 +5,7 @@ import com.alotuser.address.assets.UserInfo;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.region.RegionRegistry;
 import com.shop.platform.user.dto.AddressRequest;
 import com.shop.platform.user.mapper.Address;
 import com.shop.platform.user.mapper.AddressMapper;

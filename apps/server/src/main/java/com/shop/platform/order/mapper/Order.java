@@ -84,6 +84,23 @@ public class Order {
 
     private String receiverDetail;
 
+    // ---- 发货快照：镜像 merchant_address.addresses（商家发货地址）+ 面单寄件人，发货时刻定格，永不更新 ----
+
+    private String shipperContactName;
+
+    private String shipperPhone;
+
+    private String shipperProvince;
+
+    private String shipperCity;
+
+    private String shipperDistrict;
+
+    private String shipperDetail;
+
+    /** 面单寄件人名称（履约主体，镜像商家地址的 company_name，公司名称） */
+    private String shipperCompanyName;
+
     /** 买家留言，可空 */
     private String buyerMessage;
 

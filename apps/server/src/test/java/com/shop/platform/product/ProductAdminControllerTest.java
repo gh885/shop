@@ -61,7 +61,8 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
 
         @Test
         void 列表_按状态筛选() throws Exception {
-            when(productService.pageListWithMetrics(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong()))
+            when(productService.pageListWithMetrics(
+                            eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong(), any()))
                     .thenReturn(
                             new com.shop.platform.common.PageResult<>(List.of(new ProductListRow(draft(), 10, 5L)), 1));
 
@@ -76,7 +77,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                     .andExpect(jsonPath("$.records[0].soldCount").value(5));
 
             verify(productService)
-                    .pageListWithMetrics(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong());
+                    .pageListWithMetrics(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong(), any());
         }
 
         @Test

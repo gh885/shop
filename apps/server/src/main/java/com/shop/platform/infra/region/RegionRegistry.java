@@ -1,4 +1,4 @@
-package com.shop.platform.user.service;
+package com.shop.platform.infra.region;
 
 import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
@@ -14,7 +14,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 国标行政区划码注册表：启动时加载 regions/regions.json（与前端 shared/data/regions.json 同源），
+ * 国标行政区划码注册表（共享纯包 infra 下的通用能力，buyer/seller 两端共用）：
+ * 启动时加载 regions/regions.json（与前端 shared/data/regions.json 同源），
  * 扁平化为合法 6 位区划码集合，用于校验 address.regionCode；并提供「省/市/区名称 → 国标码」解析，
  * 供智能粘贴把第三方解析出的区划名称映射回本平台权威码。
  *
@@ -44,7 +45,7 @@ public class RegionRegistry {
             for (JsonNode province : root) {
                 walk(province, new String[2], 0);
             }
-            log.info("[USER] 行政区划码加载完成, 共 {} 个, 名称索引 {} 条", validCodes.size(), leaves.size());
+            log.info("[REGION] 行政区划码加载完成, 共 {} 个, 名称索引 {} 条", validCodes.size(), leaves.size());
         } catch (Exception e) {
             throw new IllegalStateException("加载行政区划数据失败", e);
         }

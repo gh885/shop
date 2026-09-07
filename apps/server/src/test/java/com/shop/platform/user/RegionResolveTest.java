@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.alotuser.address.SmartAgent;
 import com.alotuser.address.assets.UserInfo;
-import com.shop.platform.user.service.RegionRegistry;
+import com.shop.platform.infra.region.RegionRegistry;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 

@@ -13,7 +13,8 @@ import java.util.Set;
  */
 public final class SellerGrants {
 
-    public static final Set<String> GRANTABLE = Set.of(Permissions.PRODUCT_MANAGE, Permissions.ORDER_FULFILL);
+    public static final Set<String> GRANTABLE =
+            Set.of(Permissions.PRODUCT_MANAGE, Permissions.ORDER_FULFILL, Permissions.ADDRESS_MANAGE);
 
     /** 规范化邀请/改权入参：null/空 → 空集；去重保序；白名单外（或 null 元素）一律 400 */
     public static List<String> sanitize(List<String> requested) {

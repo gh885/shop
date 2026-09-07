@@ -7,6 +7,8 @@ import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 import static com.shop.platform.order.model.OrderStatus.SHIPPED;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.shop.platform.address.api.AddressSnapshot;
+import com.shop.platform.address.api.MerchantAddressReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
@@ -66,6 +68,9 @@ public class OrderTransitionService {
 
     private final ApplicationEventPublisher events;
 
+    /** 商家发货地址快照查询：发货时解析默认发货地址（address::api，只读），无默认即拒绝发货 */
+    private final MerchantAddressReadQuery merchantAddressReadQuery;
+
     // ========== 履约主状态机：买家 ==========
 
     /** 买家取消：仅待付款/待发货可取消（源态由状态机反推），库存与退款按真实前态分流 */
@@ -90,7 +95,9 @@ public class OrderTransitionService {
     /** 发货：待发货 → 已发货，回填物流信息（一单一包裹）与确认收货截止 */
     @Transactional
     public void ship(UUID shopId, UUID orderId, ShipOrderRequest req) {
-        // 1. 条件转移：限定本店 + 状态机反推的源状态，越店与错态都在影响行数上暴露
+        // 0. 发货快照：解析本店默认发货地址（address::api）。发货无寄件人即硬失败——不静默兜底、不猜地址
+        AddressSnapshot shipper = Validate.present(merchantAddressReadQuery.resolveShipFrom(shopId), 400, "请先设置默认发货地址");
+        // 1. 条件转移：限定本店 + 状态机反推的源状态，越店与错态都在影响行数上暴露；发货快照在此定格
         OffsetDateTime now = OffsetDateTime.now();
         int affected = orderMapper.update(
                 null,
@@ -101,7 +108,14 @@ public class OrderTransitionService {
                         .set(Order::getShippedAt, now)
                         .set(Order::getReceiveExpireAt, now.plus(OrderTimeouts.RECEIVE))
                         .set(Order::getLogisticsCompany, req.logisticsCompany())
-                        .set(Order::getTrackingNo, req.trackingNo()));
+                        .set(Order::getTrackingNo, req.trackingNo())
+                        .set(Order::getShipperContactName, shipper.contactName())
+                        .set(Order::getShipperPhone, shipper.phone())
+                        .set(Order::getShipperProvince, shipper.province())
+                        .set(Order::getShipperCity, shipper.city())
+                        .set(Order::getShipperDistrict, shipper.district())
+                        .set(Order::getShipperDetail, shipper.detail())
+                        .set(Order::getShipperCompanyName, shipper.companyName()));
         if (affected == 1) {
             statusLogWriter.record(orderId, PAID, SHIPPED, OrderAction.SHIP, OrderActor.SELLER, null);
             return;
