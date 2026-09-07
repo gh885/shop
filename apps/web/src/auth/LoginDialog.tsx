@@ -6,7 +6,7 @@ import {
     toApiError,
     PhoneSchema,
     PHONE_PATTERN,
-} from "@shop/api"
+} from "@shop/common"
 import { notify } from "@shop/app-kit"
 import {
     Button,

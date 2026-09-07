@@ -1,9 +1,10 @@
-import type { ApiError } from "./common"
-import { client } from "./sdk/client.gen"
+import { client } from "@shop/api"
+
+import type { ApiError } from "./api-error"
 import { isZodError, RESPONSE_VALIDATION_FAILED, zodIssuesText } from "./api-error"
 
 /**
- * 生成 SDK（src/sdk）的传输层装配：给 hey-api 生成的 ky client 挂上
+ * 生成 SDK（@shop/api）的传输层装配：给 hey-api 生成的 ky client 挂上
  * 拦截 —— token 注入、Correlation ID、401 自动 refresh 重发、错误归一化为
  * ApiError；超时与（幂等 GET）重试直接交给 ky 原生能力，不再手写 fetch 策略。
  *

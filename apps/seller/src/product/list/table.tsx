@@ -27,7 +27,7 @@ import {
     TableRow,
 } from "@shop/ui-web"
 
-import { priceRangeText } from "@shop/api"
+import { priceRangeText } from "@shop/common"
 import type { ProductResponse } from "@shop/api/sdk"
 
 import { imgUrl } from "#/shared/lib/image"

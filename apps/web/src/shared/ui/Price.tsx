@@ -1,4 +1,4 @@
-import { splitFen } from "@shop/api"
+import { splitFen } from "@shop/common"
 
 /**
  * 价格分段排版（DESIGN.md §4）：¥ 小 / 元整数大 / 角分小。

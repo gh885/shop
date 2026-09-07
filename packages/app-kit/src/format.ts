@@ -2,7 +2,7 @@ import { format, isValid } from "date-fns"
 
 /**
  * 时间格式化（三个 SPA 共用的展示约定，属于「应用层胶水」而非契约）：
- * 与 @shop/api 的金额格式化不同——fenToYuan 镜像 Money 契约所以归 api，
+ * 与 @shop/common 的金额格式化不同——fenToYuan 镜像 Money 契约形状所以归 common，
  * 日期格式是纯展示约定，归 app-kit。非法日期原样返回 iso（与展示兜底约定一致）。
  */
 

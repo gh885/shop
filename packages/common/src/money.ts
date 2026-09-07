@@ -1,7 +1,13 @@
 /**
  * 金额工具：后端价格字段一律为「分」（Money.amount），表单与展示层用「元」。
- * 与 common.ts 的 MoneySchema 同住一包——金额的形状、换算、展示只有一个真相源。
+ *
+ * Money 形状的单一真相源是生成契约（@shop/api 的 types.gen Money = { amount, currency }），
+ * 这里只 re-export、不手写镜像——契约演进（改字段名/增删）由 pnpm gen:sdk 同步。
+ * 换算与展示（分↔元）是本文件独有的职责。
+ * 注：需要 zod 校验原始金额时用 @shop/api 的 zMoney（生成器按契约产出，含 z*Response 嵌套）；
+ * 「金额 ≥ 0」这类契约没表达的领域约束不在手写 schema 里镜像，由后端字段语义兜底。
  */
+export type { Money } from "@shop/api"
 
 /** 分 → 元字符串两位小数（如 29900 → "299.00"）；undefined 显示占位符 */
 export function fenToYuan(fen: number | undefined, placeholder = "—"): string {

@@ -70,7 +70,7 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
 
 ### 4.3 认证链路
 
-双 token 域隔离：`kind=user`（买家）与 `kind=staff`（员工/卖家/管理员）两套 JWT 过滤链。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（packages/api 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`）。设计动机与攻击面：[docs/decisions/auth.md](decisions/auth.md)；实现对照：apps/server/docs/auth-implementation.md。
+双 token 域隔离：`kind=user`（买家）与 `kind=staff`（员工/卖家/管理员）两套 JWT 过滤链。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`）。设计动机与攻击面：[docs/decisions/auth.md](decisions/auth.md)；实现对照：apps/server/docs/auth-implementation.md。
 
 ### 4.4 下单数据流（示意，以代码为准）
 

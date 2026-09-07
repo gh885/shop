@@ -1,6 +1,6 @@
 # 权限码表
 
-> 前后端共同语言。真相源：本文档 + `apps/server/src/main/java/com/shop/platform/common/Permissions.java` 常量（两侧同步改）；TS 侧常量在 `packages/api`。改码表 = 改这三处发版。
+> 前后端共同语言。真相源：本文档 + `apps/server/src/main/java/com/shop/platform/common/Permissions.java` 常量（两侧同步改）；TS 侧常量在 `packages/common`（error-codes.ts，见错误码规范）。改码表 = 改这三处发版。
 
 | 域     | 码                              | 含义                         | 授予方式                    |
 | ------ | ------------------------------- | ---------------------------- | --------------------------- |

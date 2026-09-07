@@ -2,7 +2,7 @@ import { deriveCartItemView, type CartItem } from "./cart"
 import type { CartItemActions } from "./queries"
 import { Minus, Plus } from "lucide-react"
 
-import { fenToYuan } from "@shop/api"
+import { fenToYuan } from "@shop/common"
 import { useState } from "react"
 import { notify } from "@shop/app-kit"
 

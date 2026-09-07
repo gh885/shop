@@ -1,4 +1,4 @@
-import { toApiError } from "@shop/api"
+import { toApiError } from "@shop/common"
 import { toast } from "@shop/ui-web"
 
 /**
@@ -6,7 +6,7 @@ import { toast } from "@shop/ui-web"
  *
  * 这是「应用层胶水」：同时知道后端契约（ApiError）与 UI（toast）——
  * 「后端 detail 优先展示、网络错误（status 0）用兜底文案」是产品决策，
- * 不属于 @shop/ui-web（纯 UI，不知道契约）也不属于 @shop/api（不知道展示）。
+ * 不属于 @shop/ui-web（纯 UI，不知道契约）也不属于 @shop/common（纯错误形状，不做展示决策）。
  * 所有写操作（加购、下单、上下架、审核等）的反馈都走这里，避免散落各自调 toast.add。
  *
  * 注意：只在客户端事件回调里调用（mutation onSuccess/onError 等），

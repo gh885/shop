@@ -11,7 +11,7 @@ import {
 import { Package, Store } from "lucide-react"
 
 import { ProductStatus } from "@shop/api/sdk"
-import { toApiError } from "@shop/api"
+import { toApiError } from "@shop/common"
 import { z } from "zod"
 
 import { ProductTable } from "#/product/list/table"

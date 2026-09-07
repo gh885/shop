@@ -1,4 +1,4 @@
-import { fenToYuan } from "@shop/api"
+import { fenToYuan } from "@shop/common"
 import type { SkuResponse, SkuStatus } from "@shop/api/sdk"
 
 import type { SpecSelection } from "../../data"

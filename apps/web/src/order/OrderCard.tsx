@@ -15,7 +15,7 @@ import {
 import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "./model"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 import { formatDateTime } from "@shop/app-kit"
-import { fenToYuan } from "@shop/api"
+import { fenToYuan } from "@shop/common"
 
 import { Price } from "#/shared/ui/Price"
 

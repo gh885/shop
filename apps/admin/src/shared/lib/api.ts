@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query"
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createAuthKit } from "@shop/api"
+import { configureSdkClient, createAuthKit } from "@shop/common"
 import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
 import type { ShopReviewListItemResponse, ShopReviewStatus } from "@shop/api/sdk"
 

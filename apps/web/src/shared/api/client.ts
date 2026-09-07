@@ -1,5 +1,5 @@
 import { BACKEND_URL } from "#/shared/lib/env"
-import { configureSdkClient, createAuthKit } from "@shop/api"
+import { configureSdkClient, createAuthKit } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 
 // 浏览器端走 Vite proxy（同源相对路径），见 vite.config.ts

@@ -26,7 +26,7 @@ import {
     ErrorCodes,
     PhoneSchema,
     PHONE_PATTERN,
-} from "@shop/api"
+} from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Store, CircleAlert } from "lucide-react"
 import { useState, useEffect } from "react"

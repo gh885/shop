@@ -4,7 +4,7 @@ import type { ProductStatus } from "@shop/api/sdk"
 import { CategoriesApi } from "@shop/api/sdk"
 
 import { listProducts } from "./data"
-import { type LeafPath, flattenLeafPaths } from "./category"
+import { type LeafPath, flattenLeafPaths } from "@shop/common"
 
 /**
  * products 域的 TanStack Query 定义层：只放**声明式、无状态**的 query 定义与 key 工厂。

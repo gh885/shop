@@ -2,7 +2,7 @@ import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
 import { Separator, ToggleGroup, ToggleGroupItem } from "@shop/ui-web"
 
-import { fenToYuan } from "@shop/api"
+import { fenToYuan } from "@shop/common"
 
 import { Price } from "#/shared/ui/Price"
 import type { ProductDetail } from "../product"

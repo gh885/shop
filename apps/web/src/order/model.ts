@@ -1,4 +1,4 @@
-import type { Money } from "@shop/api"
+import type { Money } from "@shop/common"
 
 /**
  * entities/order 领域层 —— 订单业务类型 + 纯规则，不知道 wire 的一切。

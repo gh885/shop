@@ -6,7 +6,7 @@ import {
     type CheckoutGroup,
     type UnavailableLine,
 } from "#/checkout"
-import { fenToYuan } from "@shop/api"
+import { fenToYuan } from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
 import { useState } from "react"

@@ -1,4 +1,4 @@
-import { isContractViolation } from "@shop/api"
+import { isContractViolation } from "@shop/common"
 
 /**
  * 门面读路径的契约漂移降级帮手（配合 @shop/api 的 zod 响应校验）：

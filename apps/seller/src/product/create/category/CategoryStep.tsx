@@ -2,7 +2,7 @@ import { useState } from "react"
 import { ImageIcon, ListTree, Search } from "lucide-react"
 import { Button, Input, Skeleton, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 
-import { nodesOf, searchLeafPaths, selectAt, selectedLeafId, type LeafPath } from "../../category"
+import { nodesOf, searchLeafPaths, selectAt, selectedLeafId, type LeafPath } from "@shop/common"
 import { CategoryColumns } from "./CategoryColumns"
 import { CategorySearchResults } from "./CategorySearchResults"
 import { useCategoryTree, useLeafPaths } from "../../queries"

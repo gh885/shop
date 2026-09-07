@@ -1,6 +1,6 @@
 import { Store, Trash2, UserPlus } from "lucide-react"
 
-import { toApiError } from "@shop/api"
+import { toApiError } from "@shop/common"
 
 import { useCurrentShop, shopKeys } from "#/shop"
 import { useMe } from "#/shared/lib/me"

@@ -321,6 +321,9 @@ importers:
       '@shop/app-kit':
         specifier: workspace:*
         version: link:../../packages/app-kit
+      '@shop/common':
+        specifier: workspace:*
+        version: link:../../packages/common
       '@shop/ui-web':
         specifier: workspace:*
         version: link:../../packages/ui-web
@@ -403,6 +406,9 @@ importers:
       '@shop/app-kit':
         specifier: workspace:*
         version: link:../../packages/app-kit
+      '@shop/common':
+        specifier: workspace:*
+        version: link:../../packages/common
       '@shop/ui-web':
         specifier: workspace:*
         version: link:../../packages/ui-web
@@ -528,6 +534,9 @@ importers:
       '@shop/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@shop/common':
+        specifier: workspace:*
+        version: link:../../packages/common
       '@shop/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -582,9 +591,6 @@ importers:
       ky:
         specifier: ^2.1.0
         version: 2.1.0
-      react:
-        specifier: 'catalog:'
-        version: 19.2.8
       zod:
         specifier: 'catalog:'
         version: 4.5.4
@@ -598,18 +604,15 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.2.18
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
 
   packages/app-kit:
     dependencies:
-      '@shop/api':
+      '@shop/common':
         specifier: workspace:*
-        version: link:../api
+        version: link:../common
       '@shop/ui-web':
         specifier: workspace:*
         version: link:../ui-web
@@ -620,6 +623,31 @@ importers:
       '@shop/config':
         specifier: workspace:*
         version: link:../config
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/common:
+    dependencies:
+      '@shop/api':
+        specifier: workspace:*
+        version: link:../api
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
+      zod:
+        specifier: 'catalog:'
+        version: 4.5.4
+    devDependencies:
+      '@shop/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.18
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

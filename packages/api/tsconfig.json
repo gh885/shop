@@ -1,6 +1,7 @@
 {
     "extends": "@shop/config/tsconfig.node.json",
     "compilerOptions": {
+        "lib": ["ES2023", "DOM"],
         "types": ["node"],
         "module": "ESNext",
         "moduleResolution": "bundler"

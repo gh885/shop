@@ -1,5 +1,22 @@
 import { z } from "zod"
-import type { ApiError } from "./common"
+
+/** 后端统一错误响应（对等后端错误结构；契约漂移时由 toApiError 归一） */
+export const ApiErrorSchema = z.object({
+    title: z.string().optional(),
+    status: z.number(),
+    detail: z.string(),
+    code: z.string().optional(),
+    requestId: z.string().optional(),
+    errors: z
+        .array(
+            z.object({
+                field: z.string(),
+                message: z.string(),
+            }),
+        )
+        .optional(),
+})
+export type ApiError = z.infer<typeof ApiErrorSchema>
 
 /**
  * 响应契约校验失败（生成 SDK 的 zod responseValidator 抛出）。

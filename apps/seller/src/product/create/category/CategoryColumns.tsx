@@ -2,7 +2,7 @@ import { useState } from "react"
 import { ChevronRight, Search } from "lucide-react"
 import { cn, InputGroup, InputGroupAddon, InputGroupInput } from "@shop/ui-web"
 
-import { columnsOf, filterByName, isLeaf } from "../../category"
+import { columnsOf, filterByName, isLeaf } from "@shop/common"
 import type { CategoryNodeResponse } from "@shop/api/sdk"
 
 /** 类目最多三级（后端 CategoryService.MAX_LEVEL），列位固定摆满，避免选之前只有孤零零一列 */

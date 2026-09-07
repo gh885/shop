@@ -6,7 +6,7 @@ import { Button, Card, CardContent, Spinner, useAppForm } from "@shop/ui-web"
 
 import { adminApi, requireGuest } from "../shared/lib/api"
 import { getDeviceId, tokenStore } from "../shared/lib/api"
-import { toApiError } from "@shop/api"
+import { toApiError } from "@shop/common"
 
 export const Route = createFileRoute("/login")({
     beforeLoad: requireGuest,

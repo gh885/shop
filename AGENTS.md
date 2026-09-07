@@ -14,8 +14,8 @@ apps/server/             ← Spring Boot 模块化单体, 不参与 pnpm workspa
 apps/web/                ← 买家端 SSR
 apps/seller/             ← 卖家工作台 SPA
 apps/admin/              ← 平台管理端 SPA
-packages/                ← 共享包（api / ui-web / common / config）
-openapi/                  ← OpenAPI 契约（api-docs.json，由后端 /v3/api-docs 导出），packages/api 的 SDK 由 @hey-api/openapi-ts 从此生成
+packages/                ← 共享包（api / common / app-kit / ui-web / config / test-utils）
+openapi/                  ← OpenAPI 契约（api-docs.json，由后端 /v3/api-docs 导出），packages/api 的 SDK 由 @hey-api/openapi-ts 从此生成（packages/api 内除 src/index.ts 聚合入口外全部是生成物）
 ```
 
 ## 关键架构规则
@@ -113,7 +113,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - `layout/` 平台骨架：导航、页脚、进度条等无业务语义的壳；带业务数据的进 domain
 - `{domain}/` 目录名 = **本端路由顶层业务段**（去参数段与叶子页）：web `/products/$id` → `products/`、seller `/product/*` → `product/`；各端机械映射优先于跨端统一命名
 - domain 内「文件名即分层」：`xxx.ts` 逻辑层 / `queries.ts` 数据层 / `use-*.ts` hook / 组件平铺（组件多则开 `components/` 或按路由子目录）；有自己要管的数据和状态的才配叫 domain，纯展示页组件直接写薄在 routes/
-- 依赖方向：`routes → domain → shared`；shared 不 import domain；domain 之间只经对方 `index.ts` 公开入口；跨域通用逻辑下沉 `packages/api`
+- 依赖方向：`routes → domain → shared`；shared 不 import domain；domain 之间只经对方 `index.ts` 公开入口；跨端通用逻辑下沉共享包 —— 生成 SDK 在 `packages/api`，手写共享逻辑（money/api-error/forms/error-codes/auth-kit/sdk-client/category 树算法）一律归 `packages/common`，**禁止在 `@shop/api` 内新增手写文件**
 - hook 上提标准：≥2 个组件复用或状态机复杂才抽成 `use-*.ts`；域内 hook 留在域内，不因"它是 hook"进 shared
 
 ### App 接入 ui-web（如 apps/web）
@@ -191,7 +191,7 @@ pnpm test:watch  # watch 模式
 
 ```
 SSR（Spring Boot）：throw 时直接硬编码字符串，不维护常量类
-TS（packages/api）：从 docs/error-codes.md 同步到 error-codes.ts
+TS（packages/common）：从 docs/error-codes.md 同步到 error-codes.ts
 
 唯一真相源：docs/error-codes.md
 ```
@@ -200,7 +200,7 @@ TS（packages/api）：从 docs/error-codes.md 同步到 error-codes.ts
 
 1. 新建 code 必须先在 `docs/error-codes.md` 写清「前端行为」和「后端触发场景」
 2. Java 侧直接写字符串：`throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期")`
-3. TS 侧同步到 `packages/api/src/schemas/error-codes.ts`
+3. TS 侧同步到 `packages/common/src/error-codes.ts`
 4. code 用 `SCREAMING_SNAKE_CASE`
 5. 前端能用 status 区分的场景（401/403/404）不加 code
 6. 会被前端 Zod 拦截的校验错误不加 code

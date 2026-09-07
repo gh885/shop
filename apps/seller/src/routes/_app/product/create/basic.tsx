@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { createFileRoute, useBlocker, useNavigate } from "@tanstack/react-router"
 import { CircleAlert, Store } from "lucide-react"
 
-import { toApiError } from "@shop/api"
+import { toApiError } from "@shop/common"
 import {
     AlertDialog,
     AlertDialogAction,

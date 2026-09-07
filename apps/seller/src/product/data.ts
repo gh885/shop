@@ -1,4 +1,4 @@
-import { toApiError } from "@shop/api"
+import { toApiError } from "@shop/common"
 import {
     CategoriesApi,
     ProductsAdminApi,

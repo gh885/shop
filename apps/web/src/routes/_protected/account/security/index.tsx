@@ -33,7 +33,7 @@ import {
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
 import { formatTimeShort } from "@shop/app-kit"
-import { toApiError } from "@shop/api"
+import { toApiError } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"

@@ -15,6 +15,7 @@
     "dependencies": {
         "@shop/api": "workspace:*",
         "@shop/app-kit": "workspace:*",
+        "@shop/common": "workspace:*",
         "@shop/ui-web": "workspace:*",
         "@tailwindcss/vite": "catalog:",
         "@tanstack/react-query": "catalog:",

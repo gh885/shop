@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createAuthKit } from "@shop/api"
+import { configureSdkClient, createAuthKit } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 
 import { getCurrentShopId } from "./shop-store"

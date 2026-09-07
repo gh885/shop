@@ -1,4 +1,5 @@
 import { z } from "zod"
+
 import { describe, expect, it } from "vitest"
 
 import {
@@ -8,7 +9,7 @@ import {
     zodIssuesText,
 } from "./api-error"
 
-/** 契约级假数据：ApiError 形状的合法构造（过 common.ts 的 zod schema 语义） */
+/** 契约级假数据：ApiError 形状的合法构造（过 ApiErrorSchema 的 zod 语义） */
 function makeApiError(
     overrides: Partial<{ status: number; detail: string; code?: string; requestId?: string }> = {},
 ) {

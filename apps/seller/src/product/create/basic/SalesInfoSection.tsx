@@ -10,7 +10,7 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { priceRangeText, toApiError, yuanToFen } from "@shop/api"
+import { priceRangeText, toApiError, yuanToFen } from "@shop/common"
 
 import { attrTemplate, type CategoryAttrTemplateNode, type SpecSelection } from "../../data"
 

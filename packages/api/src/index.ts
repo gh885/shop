@@ -1,23 +1,15 @@
-export { configureSdkClient } from "./sdk-client"
-export type { SdkClientOptions } from "./sdk-client"
-
-export { createAuthKit } from "./auth-kit"
-export type { AuthKit, AuthKitOptions, AuthStatus } from "./auth-kit"
-
-export { fenToYuan, priceRangeText, splitFen, yuanToFen } from "./money"
-
-export type { Money } from "./common"
-export { MoneySchema } from "./common"
-export type { ApiError } from "./common"
-export {
-    toApiError,
-    isContractViolation,
-    isZodError,
-    zodIssuesText,
-    RESPONSE_VALIDATION_FAILED,
-} from "./api-error"
-export * from "./error-codes"
-export * from "./forms"
-// 生成 SDK 自带的 zod schema（zMoney、zXxxResponse 等，随 pnpm gen:sdk 同步）：
-// 供表单 schema 推导、unknown 数据守卫复用；勿直接 import 生成文件内部路径
+/**
+ * @shop/api —— 生成 SDK 的唯一驻所（openapi-ts 输出到 src/sdk/，随 pnpm gen:sdk 重生成）。
+ *
+ * 本文件是包内唯一的**手写**文件：只做生成物的稳定入口聚合 ——
+ *   - `export * from "./sdk"`：全部契约类型 + 各域 Api 调用对象
+ *   - `export * from "./sdk/zod.gen"`：契约响应 zod schema（表单推导 / 数据守卫用）
+ *   - `export { client }`：传输层单例（@shop/common 的 configureSdkClient 装配用）
+ *
+ * 除 index.ts 外禁止在包内新增手写文件：手写共享逻辑（金额 / 错误码 / 表单 / auth /
+ * 传输装配 / 类目树算法）全部归 @shop/common —— 生成物每 gen 一次就整体覆盖，
+ * 手写逻辑混进来会被误伤，且依赖方向必须保持 common → api 单向。
+ */
+export * from "./sdk"
 export * from "./sdk/zod.gen"
+export { client } from "./sdk/client.gen"

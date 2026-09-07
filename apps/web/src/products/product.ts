@@ -1,4 +1,4 @@
-import { type Money } from "@shop/api"
+import { type Money } from "@shop/common"
 import type {
     ParamItem,
     PublicProductDetailResponse,
