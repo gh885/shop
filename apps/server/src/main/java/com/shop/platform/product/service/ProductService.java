@@ -716,7 +716,9 @@ public class ProductService {
         return text == null || text.isBlank() ? null : text;
     }
 
-    /** 组装草稿实体。草稿没有 SKU，故价格字段留空、specs 为 [] */
+    /** 组装草稿实体。草稿没有 SKU，故价格字段留空、specs 为 []；
+     *  请求未传的 images/params 归一为 []（对齐 detailImages）：
+     *  出参 ProductResponse 契约里它们是 required 非空数组，实体落 null 会让响应契约校验直接挂掉 */
     private Product toDraftEntity(CreateProductCommand command) {
         return Product.builder()
                 .shopId(command.shopId())
@@ -725,9 +727,9 @@ public class ProductService {
                 .subtitle(blankToNull(command.subtitle()))
                 .detailImages(command.detailImages() == null ? List.of() : command.detailImages())
                 .mainImage(command.mainImage())
-                .images(command.images())
+                .images(command.images() == null ? List.of() : command.images())
                 .specs(List.of())
-                .params(command.params())
+                .params(command.params() == null ? List.of() : command.params())
                 .status(ProductStatus.DRAFT)
                 .build();
     }

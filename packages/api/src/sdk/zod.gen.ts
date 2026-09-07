@@ -26,8 +26,8 @@ export const zAddressResponse = z.object({
     detail: z.string(),
     label: z.string(),
     isDefault: z.boolean(),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zUpdateMemberPermissionsRequest = z.object({
@@ -84,8 +84,8 @@ export const zProductResponse = z.object({
     stock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     status: zProductStatus,
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zSpecSelectionRequest = z.object({
@@ -122,8 +122,8 @@ export const zSkuResponse = z.object({
     currency: z.string(),
     stock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     status: zSkuStatus,
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zSkuUpdateItem = z.object({
@@ -165,8 +165,8 @@ export const zCartItemResponse = z.object({
     skuId: z.uuid(),
     quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     selected: z.boolean(),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zUpdateCartSelectedRequest = z.object({
@@ -204,8 +204,8 @@ export const zRecommendTabResponse = z.object({
     isDefault: z.boolean(),
     sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     status: zCmsStatus,
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zNavGroup = z.object({
@@ -233,8 +233,8 @@ export const zNavEntryResponse = z.object({
     subs: z.array(zNavGroup),
     sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     status: zCmsStatus,
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zBannerRequest = z.object({
@@ -246,8 +246,8 @@ export const zBannerRequest = z.object({
     targetType: z.string().regex(/PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL/).optional(),
     link: z.string().min(0).max(512).optional(),
     sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    startAt: z.iso.datetime().optional(),
-    endAt: z.iso.datetime().optional()
+    startAt: z.iso.datetime({ offset: true }).optional(),
+    endAt: z.iso.datetime({ offset: true }).optional()
 });
 
 export const zBannerResponse = z.object({
@@ -261,10 +261,10 @@ export const zBannerResponse = z.object({
     link: z.string().nullable(),
     sortOrder: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     status: zCmsStatus,
-    startAt: z.iso.datetime().nullable(),
-    endAt: z.iso.datetime().nullable(),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    startAt: z.iso.datetime({ offset: true }).nullable(),
+    endAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zAttrKind = z.enum(['SPEC', 'PARAM']);
@@ -290,8 +290,8 @@ export const zCategoryAttrResponse = z.object({
     allowImage: z.boolean(),
     sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     status: zCategoryAttrStatus,
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zUpdateCategoryAttrStatusRequest = z.object({
@@ -313,7 +313,7 @@ export const zCategoryAttrValueResponse = z.object({
     sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     source: zAttrValueSource,
     image: z.string().nullable(),
-    createdAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zUpdateCategoryRequest = z.object({
@@ -332,8 +332,8 @@ export const zCategoryResponse = z.object({
     sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     status: zCategoryStatus,
     iconUrl: z.string().nullable(),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zUpdateCategoryStatusRequest = z.object({
@@ -372,8 +372,8 @@ export const zShopResponse = z.object({
     name: z.string(),
     logoKey: z.string().nullable(),
     status: zShopStatus,
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zInviteMemberRequest = z.object({
@@ -392,8 +392,8 @@ export const zShopMemberResponse = z.object({
     role: zMemberRole,
     status: zMemberStatus,
     permissions: z.array(z.string()),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zCreateProductRequest = z.object({
@@ -436,7 +436,7 @@ export const zPaymentResponse = z.object({
     amount: zMoney,
     channel: z.string(),
     status: zPaymentStatus,
-    paidAt: z.iso.datetime().nullable()
+    paidAt: z.iso.datetime({ offset: true }).nullable()
 });
 
 export const zAfterSaleType = z.enum(['REFUND_ONLY', 'RETURN_REFUND']);
@@ -511,7 +511,7 @@ export const zCreatedOrder = z.object({
     orderNo: z.string(),
     shopId: z.uuid(),
     payAmount: zMoney,
-    payExpireAt: z.iso.datetime()
+    payExpireAt: z.iso.datetime({ offset: true })
 });
 
 export const zCreatedOrdersResponse = z.object({
@@ -525,7 +525,7 @@ export const zAddFavoriteRequest = z.object({
 export const zFavoriteItemResponse = z.object({
     id: z.uuid(),
     productId: z.uuid(),
-    createdAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zFavoriteExistsRequest = z.object({
@@ -614,9 +614,9 @@ export const zShopReviewResponse = z.object({
     staffId: z.uuid().nullable(),
     status: zShopReviewStatus,
     reason: z.string().nullable(),
-    decidedAt: z.iso.datetime().nullable(),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime()
+    decidedAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zCreateCategoryRequest = z.object({
@@ -645,7 +645,7 @@ export const zShopInviteItemResponse = z.object({
     memberId: z.uuid(),
     shopId: z.uuid(),
     shopName: z.string(),
-    createdAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zPageParams = z.object({
@@ -682,7 +682,7 @@ export const zSellerOrderListItemResponse = z.object({
     payAmount: zMoney,
     receiverName: z.string(),
     itemCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    createdAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zPageResultSellerOrderListItemResponse = z.object({
@@ -729,18 +729,18 @@ export const zOrderDetailResponse = z.object({
     receiverDetail: z.string(),
     logisticsCompany: z.string().nullable(),
     trackingNo: z.string().nullable(),
-    payExpireAt: z.iso.datetime(),
-    paidAt: z.iso.datetime().nullable(),
-    shippedAt: z.iso.datetime().nullable(),
-    completedAt: z.iso.datetime().nullable(),
-    cancelledAt: z.iso.datetime().nullable(),
+    payExpireAt: z.iso.datetime({ offset: true }),
+    paidAt: z.iso.datetime({ offset: true }).nullable(),
+    shippedAt: z.iso.datetime({ offset: true }).nullable(),
+    completedAt: z.iso.datetime({ offset: true }).nullable(),
+    cancelledAt: z.iso.datetime({ offset: true }).nullable(),
     cancelReason: z.string().nullable(),
-    createdAt: z.iso.datetime(),
+    createdAt: z.iso.datetime({ offset: true }),
     afterSaleStatus: zAfterSaleStatus,
     afterSaleType: zAfterSaleType,
     refundAmount: zMoney,
-    afterSaleRefundedAt: z.iso.datetime().nullable(),
-    applyExpireAt: z.iso.datetime().nullable(),
+    afterSaleRefundedAt: z.iso.datetime({ offset: true }).nullable(),
+    applyExpireAt: z.iso.datetime({ offset: true }).nullable(),
     returnLogisticsCompany: z.string().nullable(),
     returnTrackingNo: z.string().nullable(),
     items: z.array(zOrderItemResponse)
@@ -753,8 +753,8 @@ export const zOrderListItemResponse = z.object({
     shopId: z.uuid(),
     shopName: z.string().nullable(),
     payAmount: zMoney,
-    payExpireAt: z.iso.datetime(),
-    createdAt: z.iso.datetime(),
+    payExpireAt: z.iso.datetime({ offset: true }),
+    createdAt: z.iso.datetime({ offset: true }),
     items: z.array(zOrderItemResponse)
 });
 
@@ -778,7 +778,7 @@ export const zFavoriteProductInfo = z.object({
 export const zFavoriteListItemResponse = z.object({
     id: z.uuid(),
     productId: z.uuid(),
-    favoritedAt: z.iso.datetime(),
+    favoritedAt: z.iso.datetime({ offset: true }),
     product: zFavoriteProductInfo,
     available: z.boolean()
 });
@@ -814,7 +814,7 @@ export const zCartListItemResponse = z.object({
     skuId: z.uuid(),
     quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     selected: z.boolean(),
-    addedAt: z.iso.datetime(),
+    addedAt: z.iso.datetime({ offset: true }),
     product: zCartProductInfo,
     sku: zSkuInfo,
     available: z.boolean()
@@ -829,7 +829,7 @@ export const zDeviceEntryResponse = z.object({
     deviceId: z.string(),
     deviceName: z.string().nullable(),
     ip: z.string().nullable(),
-    lastLoginAt: z.iso.datetime(),
+    lastLoginAt: z.iso.datetime({ offset: true }),
     isCurrent: z.boolean()
 });
 
@@ -842,7 +842,7 @@ export const zPublicShopResponse = z.object({
     id: z.uuid(),
     name: z.string(),
     logoKey: z.string().nullable(),
-    createdAt: z.iso.datetime()
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zProductQuery = z.object({
@@ -910,8 +910,8 @@ export const zShopReviewListItemResponse = z.object({
     ownerPhone: z.string(),
     status: zShopReviewStatus,
     reason: z.string().nullable(),
-    decidedAt: z.iso.datetime().nullable(),
-    createdAt: z.iso.datetime()
+    decidedAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zPageResultShopReviewListItemResponse = z.object({

@@ -21,7 +21,7 @@ import {
 } from "@shop/ui-web"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
-import { useProductDraft, type DraftProductStatus } from "#/product/create/basic/use-product-draft"
+import { useProductDraft } from "#/product/create/basic/use-product-draft"
 import { notify } from "@shop/app-kit"
 import { useCurrentShop } from "#/shop"
 
@@ -93,8 +93,9 @@ function NewProductBasicStep() {
         return () => window.removeEventListener("beforeunload", handler)
     }, [dirty])
 
-    // 编辑已有商品时把状态带到发布页（BasicStep 据此决定能否切类目 / 规格是否冻结）；新建无
-    const editingStatus: DraftProductStatus | undefined = draft.productStatus
+    // 编辑已有商品时把状态带到发布页（BasicStep 据此决定能否切类目 / 规格是否冻结）；新建无。
+    // 类型即 useProductDraft 返回的 ProductStatus | undefined（DraftProductStatus 别名已在重构中删除）
+    const editingStatus = draft.productStatus
 
     // 直接访问缺 categoryId：回第一步
     useEffect(() => {

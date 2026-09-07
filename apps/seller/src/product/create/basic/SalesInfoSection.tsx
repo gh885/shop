@@ -11,9 +11,7 @@ import {
     StateError,
 } from "@shop/ui-web"
 import { priceRangeText, toApiError } from "@shop/common"
-import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
-
-import { attrTemplate } from "#/product/data"
+import { CategoriesApi, type CategoryAttrNodeResponse } from "@shop/api/sdk"
 
 import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
 
@@ -68,7 +66,9 @@ export function SalesInfoSection({
         let cancelled = false
         const loadTemplate = async () => {
             try {
-                const nodes = await attrTemplate(categoryId)
+                const nodes = await CategoriesApi.getPublicCategoryAttrTemplate({
+                    path: { id: categoryId },
+                })
                 if (!cancelled) {
                     setTemplate(nodes.filter((n) => n.attr.kind === "SPEC"))
                     setLoadError(undefined)

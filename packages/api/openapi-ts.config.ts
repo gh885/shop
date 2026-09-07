@@ -24,6 +24,10 @@ export default defineConfig({
                 nesting: "operationId",
             },
         },
+        // 后端 OffsetDateTime 序列化带真实时区偏移（本地开发 JVM +08:00，如 "2025-06-01T10:00:00.123+08:00"）；
+        // zod v4 的 z.iso.datetime() 默认 offset:false 只接受 Z（UTC），非 UTC 时区下所有 datetime 字段契约校验必挂。
+        // 打开 offset 让契约接受 RFC 3339 任意合法偏移（Z 与 ±HH:MM 都行），与后端契约语义对齐。
+        { name: "zod", dates: { offset: true } },
         // 从契约 enum 生成 as const 对象 + 同名 type（如 ProductStatus）：
         // 用 javascript 模式而非 typescript-const，因为项目 tsconfig 开了 erasableSyntaxOnly（TS enum 语法被禁）
         {

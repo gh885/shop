@@ -141,6 +141,18 @@ export function BasicStep({
         onSubmit: ({ value }) => void submit(value, mode.current),
     })
 
+    // 表单值变化上报（脏标记/防抖 autosave）：副作用必须在 effect 里跑，不能放进渲染期——
+    // 原先写在 form.Subscribe 的 render-prop 回调里，等于在 TanStack Form 内部组件（LocalSubscribe）
+    // 渲染期间 setState 父级 NewProductBasicStep，触发 React 的 setState-in-render 告警。
+    // 改为在 effect 里直接订阅 store（listener 收到新 state），值不变则不触发，行为与之前等价；
+    // 不引入新依赖：@tanstack/react-store 未在 seller 声明，form.store 是 FormApi 自带能力。
+    useEffect(() => {
+        const sub = form.store.subscribe((state) => {
+            basicChangeRef.current(state.values)
+        })
+        return () => sub.unsubscribe()
+    }, [form])
+
     // 编辑回显：detail 拉回后把 basic 字段灌进表单（form.reset 同时更新 defaultValues）。
     // key：用 ref 记录已灌的商品 id 来源，避免后续重渲染反复重置用户输入。
     // 若用户已在表单里打字（值非空），说明回灌前已输入——跳过 reset，避免用服务端旧值洗掉用户输入。
@@ -179,13 +191,6 @@ export function BasicStep({
 
     return (
         <form.AppForm>
-            <form.Subscribe selector={(s) => s.values}>
-                {(values) => {
-                    basicChangeRef.current(values)
-                    // oxlint-disable-next-line no-null -- JSX 空渲染必须返回 null
-                    return null
-                }}
-            </form.Subscribe>
             <form
                 className="pb-24"
                 onSubmit={(e) => {

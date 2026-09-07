@@ -20,12 +20,6 @@ import {
     type SpecSelection,
 } from "#/product/draft-model"
 
-/** 编辑态商品状态（= SDK ProductStatus）：判断「能否切类目 / 规格是否冻结」，undefined 表示新建（无真实商品态）。 */
-export type DraftProductStatus = ProductStatus
-
-/** 编辑回显：basic 表单字段（形状 = ProductBasicForm 单一来源；回填 detail.product 的基本信息，供调用方 form.reset 灌值） */
-export type HydratedBasic = ProductBasicForm
-
 /** 本 hook 主动拒绝的业务错误：形状对齐 ApiError（调用方 toApiError / notify.fromError 直接读 detail） */
 class BusinessError {
     readonly status = 0
@@ -102,9 +96,9 @@ export function useProductDraft({
     const { selections, skuRows } = state
 
     const [hydrated, setHydrated] = useState(false)
-    const [hydratedBasic, setHydratedBasic] = useState<HydratedBasic | undefined>()
+    const [hydratedBasic, setHydratedBasic] = useState<ProductBasicForm | undefined>()
     /** 编辑已有商品时的当前状态（新建为 undefined）：决定能否切类目/规格是否冻结 */
-    const [productStatus, setProductStatus] = useState<DraftProductStatus | undefined>()
+    const [productStatus, setProductStatus] = useState<ProductStatus | undefined>()
     /** 类目销售属性模板：前端本地算 SKU 组合用（完全显式模式，无需后端生成） */
     const [template, setTemplate] = useState<CategoryAttrNodeResponse[] | undefined>()
     /** 商品 id（编辑已有商品进入即有；新建保存后回写） */
