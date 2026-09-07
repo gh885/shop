@@ -196,6 +196,9 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
+					<!-- JDK 23+ 默认关闭注解处理，Lombok 生成的符号（log/getPhone 等）全部“找不到符号”。
+					    显式强开 proc=full，否则 Java 25 下 mvn compile/spring-boot:run 必挂（Java 25 测试产物里的 Lombok 符号缺失即此因）。 -->
+					<proc>full</proc>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
