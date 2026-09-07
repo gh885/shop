@@ -156,6 +156,45 @@ export type ShipOrderRequest = {
     trackingNo: string;
 };
 
+export type MerchantAddressRequest = {
+    contactName: string;
+    phone: string;
+    regionCode: string;
+    province: string;
+    city: string;
+    district?: string;
+    detail: string;
+    postalCode?: string | null;
+    companyName?: string | null;
+    note?: string | null;
+    defaultShip?: boolean;
+    defaultReturn?: boolean;
+};
+
+export const AddressStatus = { ACTIVE: 'ACTIVE', DISABLED: 'DISABLED' } as const;
+
+export type AddressStatus = typeof AddressStatus[keyof typeof AddressStatus];
+
+export type MerchantAddressResponse = {
+    id: string;
+    shopId: string;
+    contactName: string;
+    phone: string;
+    regionCode: string;
+    province: string;
+    city: string;
+    district: string;
+    detail: string;
+    postalCode: string | null;
+    companyName: string | null;
+    note: string | null;
+    defaultShip: boolean;
+    defaultReturn: boolean;
+    status: AddressStatus;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type CancelOrderRequest = {
     reason?: string;
 };
@@ -1226,6 +1265,96 @@ export type AgreeAfterSaleResponses = {
     200: unknown;
 };
 
+export type DeleteAddress1Data = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/addresses/{id}';
+};
+
+export type DeleteAddress1Responses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type DeleteAddress1Response = DeleteAddress1Responses[keyof DeleteAddress1Responses];
+
+export type GetAddressDetail1Data = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/addresses/{id}';
+};
+
+export type GetAddressDetail1Responses = {
+    /**
+     * OK
+     */
+    200: MerchantAddressResponse;
+};
+
+export type GetAddressDetail1Response = GetAddressDetail1Responses[keyof GetAddressDetail1Responses];
+
+export type UpdateAddress1Data = {
+    body: MerchantAddressRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/addresses/{id}';
+};
+
+export type UpdateAddress1Responses = {
+    /**
+     * OK
+     */
+    200: MerchantAddressResponse;
+};
+
+export type UpdateAddress1Response = UpdateAddress1Responses[keyof UpdateAddress1Responses];
+
+export type SetDefaultShipData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/addresses/{id}/default-ship';
+};
+
+export type SetDefaultShipResponses = {
+    /**
+     * OK
+     */
+    200: MerchantAddressResponse;
+};
+
+export type SetDefaultShipResponse = SetDefaultShipResponses[keyof SetDefaultShipResponses];
+
+export type SetDefaultReturnData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/addresses/{id}/default-return';
+};
+
+export type SetDefaultReturnResponses = {
+    /**
+     * OK
+     */
+    200: MerchantAddressResponse;
+};
+
+export type SetDefaultReturnResponse = SetDefaultReturnResponses[keyof SetDefaultReturnResponses];
+
 export type ReceiveOrderData = {
     body?: never;
     path: {
@@ -1755,6 +1884,38 @@ export type IssueImageTicketResponses = {
 };
 
 export type IssueImageTicketResponse = IssueImageTicketResponses[keyof IssueImageTicketResponses];
+
+export type ListAddresses1Data = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/seller/addresses';
+};
+
+export type ListAddresses1Responses = {
+    /**
+     * OK
+     */
+    200: Array<MerchantAddressResponse>;
+};
+
+export type ListAddresses1Response = ListAddresses1Responses[keyof ListAddresses1Responses];
+
+export type CreateAddress1Data = {
+    body: MerchantAddressRequest;
+    path?: never;
+    query?: never;
+    url: '/seller/addresses';
+};
+
+export type CreateAddress1Responses = {
+    /**
+     * Created
+     */
+    201: MerchantAddressResponse;
+};
+
+export type CreateAddress1Response = CreateAddress1Responses[keyof CreateAddress1Responses];
 
 export type CreatePaymentData = {
     body: CreatePaymentRequest;

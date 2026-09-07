@@ -117,6 +117,7 @@ export const NAV_ITEMS: SidebarItem[] = [
                 title: "店铺设置",
                 items: [
                     { key: "list", label: "店铺管理", to: "/shop/list" },
+                    { key: "address", label: "地址库", to: "/shop/address" },
                     { key: "member", label: "店员管理", to: "/shop/member" },
                     { key: "decoration", label: "店铺装修", to: "/shop/decoration" },
                     { key: "notice", label: "店铺公告", to: "/shop/notice" },

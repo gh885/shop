@@ -15,6 +15,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppServiceRouteImport } from './routes/_app/service'
 import { Route as AppGroupLeafRouteImport } from './routes/_app/$group/$leaf'
 import { Route as AppProductListRouteImport } from './routes/_app/product/list'
+import { Route as AppShopAddressRouteImport } from './routes/_app/shop/address'
 import { Route as AppShopListRouteImport } from './routes/_app/shop/list'
 import { Route as AppShopMemberRouteImport } from './routes/_app/shop/member'
 import { Route as AppTradeOrderRouteImport } from './routes/_app/trade/order'
@@ -50,6 +51,11 @@ const AppProductListRoute = AppProductListRouteImport.update({
   path: '/product/list',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppShopAddressRoute = AppShopAddressRouteImport.update({
+  id: '/shop/address',
+  path: '/shop/address',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppShopListRoute = AppShopListRouteImport.update({
   id: '/shop/list',
   path: '/shop/list',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/service': typeof AppServiceRoute
   '/$group/$leaf': typeof AppGroupLeafRoute
   '/product/list': typeof AppProductListRoute
+  '/shop/address': typeof AppShopAddressRoute
   '/shop/list': typeof AppShopListRoute
   '/shop/member': typeof AppShopMemberRoute
   '/trade/order': typeof AppTradeOrderRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/$group/$leaf': typeof AppGroupLeafRoute
   '/product/list': typeof AppProductListRoute
+  '/shop/address': typeof AppShopAddressRoute
   '/shop/list': typeof AppShopListRoute
   '/shop/member': typeof AppShopMemberRoute
   '/trade/order': typeof AppTradeOrderRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/$group/$leaf': typeof AppGroupLeafRoute
   '/_app/product/list': typeof AppProductListRoute
+  '/_app/shop/address': typeof AppShopAddressRoute
   '/_app/shop/list': typeof AppShopListRoute
   '/_app/shop/member': typeof AppShopMemberRoute
   '/_app/trade/order': typeof AppTradeOrderRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/service'
     | '/$group/$leaf'
     | '/product/list'
+    | '/shop/address'
     | '/shop/list'
     | '/shop/member'
     | '/trade/order'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$group/$leaf'
     | '/product/list'
+    | '/shop/address'
     | '/shop/list'
     | '/shop/member'
     | '/trade/order'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/$group/$leaf'
     | '/_app/product/list'
+    | '/_app/shop/address'
     | '/_app/shop/list'
     | '/_app/shop/member'
     | '/_app/trade/order'
@@ -204,6 +216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProductListRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/shop/address': {
+      id: '/_app/shop/address'
+      path: '/shop/address'
+      fullPath: '/shop/address'
+      preLoaderRoute: typeof AppShopAddressRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/shop/list': {
       id: '/_app/shop/list'
       path: '/shop/list'
@@ -247,6 +266,7 @@ interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppGroupLeafRoute: typeof AppGroupLeafRoute
   AppProductListRoute: typeof AppProductListRoute
+  AppShopAddressRoute: typeof AppShopAddressRoute
   AppShopListRoute: typeof AppShopListRoute
   AppShopMemberRoute: typeof AppShopMemberRoute
   AppTradeOrderRoute: typeof AppTradeOrderRoute
@@ -259,6 +279,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppGroupLeafRoute: AppGroupLeafRoute,
   AppProductListRoute: AppProductListRoute,
+  AppShopAddressRoute: AppShopAddressRoute,
   AppShopListRoute: AppShopListRoute,
   AppShopMemberRoute: AppShopMemberRoute,
   AppTradeOrderRoute: AppTradeOrderRoute,

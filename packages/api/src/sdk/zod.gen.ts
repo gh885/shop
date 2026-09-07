@@ -146,6 +146,43 @@ export const zShipOrderRequest = z.object({
     trackingNo: z.string().min(0).max(64)
 });
 
+export const zMerchantAddressRequest = z.object({
+    contactName: z.string().min(0).max(30),
+    phone: z.string().min(1).regex(/^[0-9+\-]{5,20}$/),
+    regionCode: z.string().min(1).regex(/^\d{6}$/),
+    province: z.string().min(0).max(30),
+    city: z.string().min(0).max(30),
+    district: z.string().min(0).max(30).optional(),
+    detail: z.string().min(0).max(120),
+    postalCode: z.string().min(0).max(6).regex(/^\d{6}$/).nullish(),
+    companyName: z.string().min(0).max(60).nullish(),
+    note: z.string().min(0).max(200).nullish(),
+    defaultShip: z.boolean().optional(),
+    defaultReturn: z.boolean().optional()
+});
+
+export const zAddressStatus = z.enum(['ACTIVE', 'DISABLED']);
+
+export const zMerchantAddressResponse = z.object({
+    id: z.uuid(),
+    shopId: z.uuid(),
+    contactName: z.string(),
+    phone: z.string(),
+    regionCode: z.string(),
+    province: z.string(),
+    city: z.string(),
+    district: z.string(),
+    detail: z.string(),
+    postalCode: z.string().nullable(),
+    companyName: z.string().nullable(),
+    note: z.string().nullable(),
+    defaultShip: z.boolean(),
+    defaultReturn: z.boolean(),
+    status: zAddressStatus,
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
+});
+
 export const zCancelOrderRequest = z.object({
     reason: z.string().min(0).max(200).optional()
 });
@@ -1049,6 +1086,53 @@ export const zAgreeAfterSalePath = z.object({
     id: z.uuid()
 });
 
+export const zDeleteAddress1Path = z.object({
+    id: z.uuid()
+});
+
+/**
+ * No Content
+ */
+export const zDeleteAddress1Response = z.void();
+
+export const zGetAddressDetail1Path = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zGetAddressDetail1Response = zMerchantAddressResponse;
+
+export const zUpdateAddress1Body = zMerchantAddressRequest;
+
+export const zUpdateAddress1Path = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zUpdateAddress1Response = zMerchantAddressResponse;
+
+export const zSetDefaultShipPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zSetDefaultShipResponse = zMerchantAddressResponse;
+
+export const zSetDefaultReturnPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zSetDefaultReturnResponse = zMerchantAddressResponse;
+
 export const zReceiveOrderPath = z.object({
     id: z.uuid()
 });
@@ -1290,6 +1374,18 @@ export const zIssueImageTicketQuery = z.object({
  * OK
  */
 export const zIssueImageTicketResponse = zImageTicketResponse;
+
+/**
+ * OK
+ */
+export const zListAddresses1Response = z.array(zMerchantAddressResponse);
+
+export const zCreateAddress1Body = zMerchantAddressRequest;
+
+/**
+ * Created
+ */
+export const zCreateAddress1Response = zMerchantAddressResponse;
 
 export const zCreatePaymentBody = zCreatePaymentRequest;
 

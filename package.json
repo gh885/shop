@@ -26,7 +26,8 @@
         "typecheck": "pnpm --filter web exec tsc --noEmit && pnpm --filter admin exec tsc --noEmit && pnpm --filter seller exec tsc --noEmit",
         "test": "vitest run",
         "test:watch": "vitest",
-        "gen:sdk": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts"
+        "gen:sdk": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts && npm run contract:audit",
+        "contract:audit": "node scripts/contract-audit.mjs"
     },
     "devDependencies": {
         "@commitlint/cli": "^21.2.2",
