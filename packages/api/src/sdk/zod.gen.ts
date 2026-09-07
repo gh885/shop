@@ -667,29 +667,6 @@ export const zOrderQuery = z.object({
     status: z.string().optional()
 });
 
-export const zOrderStatus = z.enum([
-    'PENDING_PAYMENT',
-    'PAID',
-    'SHIPPED',
-    'COMPLETED',
-    'CANCELLED'
-]);
-
-export const zSellerOrderListItemResponse = z.object({
-    id: z.uuid(),
-    orderNo: z.string(),
-    status: zOrderStatus,
-    payAmount: zMoney,
-    receiverName: z.string(),
-    itemCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    createdAt: z.iso.datetime({ offset: true })
-});
-
-export const zPageResultSellerOrderListItemResponse = z.object({
-    records: z.array(zSellerOrderListItemResponse),
-    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-});
-
 export const zAfterSaleStatus = z.enum([
     'NONE',
     'APPLYING',
@@ -708,6 +685,33 @@ export const zOrderItemResponse = z.object({
     originalPrice: zMoney,
     quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     amount: zMoney
+});
+
+export const zOrderStatus = z.enum([
+    'PENDING_PAYMENT',
+    'PAID',
+    'SHIPPED',
+    'COMPLETED',
+    'CANCELLED'
+]);
+
+export const zSellerOrderListItemResponse = z.object({
+    id: z.uuid(),
+    orderNo: z.string(),
+    status: zOrderStatus,
+    afterSaleStatus: zAfterSaleStatus,
+    afterSaleType: zAfterSaleType,
+    payAmount: zMoney,
+    receiverName: z.string(),
+    receiverPhone: z.string().nullable(),
+    itemCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    items: z.array(zOrderItemResponse),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
+export const zPageResultSellerOrderListItemResponse = z.object({
+    records: z.array(zSellerOrderListItemResponse),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zOrderDetailResponse = z.object({

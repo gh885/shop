@@ -699,6 +699,28 @@ export type OrderQuery = {
     status?: string;
 };
 
+export const AfterSaleStatus = {
+    NONE: 'NONE',
+    APPLYING: 'APPLYING',
+    RETURNING: 'RETURNING',
+    REFUNDED: 'REFUNDED',
+    REJECTED: 'REJECTED',
+    CLOSED: 'CLOSED'
+} as const;
+
+export type AfterSaleStatus = typeof AfterSaleStatus[keyof typeof AfterSaleStatus];
+
+export type OrderItemResponse = {
+    productId: string;
+    skuId: string;
+    name: string;
+    image: string | null;
+    price: Money;
+    originalPrice: Money;
+    quantity: number;
+    amount: Money;
+};
+
 export const OrderStatus = {
     PENDING_PAYMENT: 'PENDING_PAYMENT',
     PAID: 'PAID',
@@ -718,22 +740,15 @@ export type SellerOrderListItemResponse = {
     id: string;
     orderNo: string;
     status: OrderStatus;
+    afterSaleStatus: AfterSaleStatus;
+    afterSaleType: AfterSaleType;
     payAmount: Money;
     receiverName: string;
+    receiverPhone: string | null;
     itemCount: number;
+    items: Array<OrderItemResponse>;
     createdAt: string;
 };
-
-export const AfterSaleStatus = {
-    NONE: 'NONE',
-    APPLYING: 'APPLYING',
-    RETURNING: 'RETURNING',
-    REFUNDED: 'REFUNDED',
-    REJECTED: 'REJECTED',
-    CLOSED: 'CLOSED'
-} as const;
-
-export type AfterSaleStatus = typeof AfterSaleStatus[keyof typeof AfterSaleStatus];
 
 export type OrderDetailResponse = {
     id: string;
@@ -769,17 +784,6 @@ export type OrderDetailResponse = {
     returnLogisticsCompany: string | null;
     returnTrackingNo: string | null;
     items: Array<OrderItemResponse>;
-};
-
-export type OrderItemResponse = {
-    productId: string;
-    skuId: string;
-    name: string;
-    image: string | null;
-    price: Money;
-    originalPrice: Money;
-    quantity: number;
-    amount: Money;
 };
 
 export type OrderListItemResponse = {
