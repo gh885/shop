@@ -10,7 +10,6 @@ import {
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
-    Sticky,
 } from "@shop/ui-web"
 
 import type { ProductDetail } from "../product"
@@ -52,7 +51,7 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
 
     return (
         <>
-            <Sticky top={0}>
+            <div className="sticky top-0 z-30">
                 <div className="rounded-2xl bg-background">
                     <Tabs
                         value={active}
@@ -75,7 +74,7 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
                         </TabsList>
                     </Tabs>
                 </div>
-            </Sticky>
+            </div>
 
             <ReviewsSection />
             <ParamsSection params={detail.params} />

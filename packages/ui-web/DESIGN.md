@@ -60,6 +60,8 @@ Sidebar 族（`--color-sidebar-*`）：sidebar 组件专用语义，默认与全
 
 **阴影 = 海拔**，五档语义：`sm` 卡片静止态 → `md` 悬停/下拉 → `lg` 弹层 → `lift` 拖拽中/大型浮层 → `float` 轻量悬浮（如吸顶工具条）。阴影已染中性色（非纯黑低透明），禁止业务侧自写 box-shadow。
 
+**吸顶/不随页面滚动**：直接用 Tailwind 内置类 `sticky`（`position: sticky`）配 `z-*`（盖住下层内容，统一 `z-30`），不封装 JS 组件、不做「吸住才显示阴影/背景」的 JS 检测。top 偏移用 `top-*` 或内联 `style`（低层吸顶传上层累计高度）；背景/模糊/分隔线由各自内容自带（`bg-background/95 backdrop-blur` + `border-b`），吸住后的浮起反馈交给常驻分隔线，不依赖吸住态。`sticky` 本身已是原语，无需再包一层工具类。
+
 ## 4. 字体与版式
 
 - 未接品牌字体，heading 与正文同栈；接入时只改 `--font-sans`。

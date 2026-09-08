@@ -15,16 +15,7 @@ import { SalesInfoSection } from "./SalesInfoSection"
 import { useLeafPaths } from "../../queries"
 import { CheckCircle2, ChevronRight, Badge, ListTree } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
-import {
-    useAppForm,
-    Sticky,
-    Tabs,
-    TabsList,
-    TabsTrigger,
-    Skeleton,
-    Button,
-    Spinner,
-} from "@shop/ui-web"
+import { useAppForm, Tabs, TabsList, TabsTrigger, Skeleton, Button, Spinner } from "@shop/ui-web"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
     锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
@@ -222,10 +213,7 @@ export function BasicStep({
                     </ol>
                 </header>
 
-                <Sticky
-                    top={0}
-                    className="-mx-6 mb-4 px-6"
-                >
+                <div className="sticky top-0 z-30 -mx-6 mb-4 px-6">
                     <div className="flex h-12 w-full items-center rounded-xl bg-background px-2 shadow-sm">
                         <Tabs
                             value={active}
@@ -248,7 +236,7 @@ export function BasicStep({
                             </TabsList>
                         </Tabs>
                     </div>
-                </Sticky>
+                </div>
 
                 <div className="space-y-6">
                     {/* 当前类目：千牛式紧凑单项条（白底薄卡 + 面包屑 + 右侧切换），不走大头卡片 */}

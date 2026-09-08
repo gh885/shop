@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 
-import { Button, Skeleton, Sticky } from "@shop/ui-web"
+import { Button, Skeleton } from "@shop/ui-web"
 
 import { HOME_HEADER_HEIGHT } from "./HomeHeader"
 import { useRecommendTabs } from "./queries"
@@ -53,19 +53,25 @@ export function RecommendBar() {
 
     if (!tabs.data) {
         return (
-            <Sticky top={HOME_HEADER_HEIGHT}>
+            <div
+                className="sticky z-30"
+                style={{ top: HOME_HEADER_HEIGHT }}
+            >
                 <div className="bg-background/95 backdrop-blur">
                     <div className="mx-auto max-w-(--container-page) px-6 py-3">
                         <Skeleton className="h-6 w-1/2 rounded" />
                     </div>
                     <div className="mx-auto max-w-(--container-page) border-t border-border/60 px-6" />
                 </div>
-            </Sticky>
+            </div>
         )
     }
 
     return (
-        <Sticky top={HOME_HEADER_HEIGHT}>
+        <div
+            className="sticky z-30"
+            style={{ top: HOME_HEADER_HEIGHT }}
+        >
             <div className="bg-background/95 backdrop-blur">
                 <div className="mx-auto flex max-w-(--container-page) items-center gap-4 px-6 py-3">
                     {/* 左侧往回翻页：第一页隐藏 */}
@@ -137,6 +143,6 @@ export function RecommendBar() {
                 </div>
                 <div className="mx-auto max-w-(--container-page) border-t border-border/60 px-6" />
             </div>
-        </Sticky>
+        </div>
     )
 }

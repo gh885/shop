@@ -11,7 +11,6 @@ import {
     DropdownMenuTrigger,
     Input,
     Logo,
-    Sticky,
 } from "@shop/ui-web"
 
 /** 第一层顶栏高度（px）。推荐条吸顶时以此为 top 偏移 */
@@ -22,7 +21,7 @@ export function HomeHeader() {
     const [category, setCategory] = useState("宝贝")
 
     return (
-        <Sticky top={0}>
+        <div className="sticky top-0 z-30">
             <header
                 className="border-b border-border/60 bg-background/95 backdrop-blur"
                 style={{ height: HOME_HEADER_HEIGHT }}
@@ -73,6 +72,6 @@ export function HomeHeader() {
                     </div>
                 </div>
             </header>
-        </Sticky>
+        </div>
     )
 }
