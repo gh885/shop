@@ -212,8 +212,6 @@ export type ProductCardData = {
     sales?: string
     /** 标签排，如 自营 / 放心购 */
     tags?: string[]
-    /** 店铺名 */
-    shop?: string
 }
 
 /** Product → 卡片视图投影（首页 feed 与详情页推荐流共用一份，不再各写一遍） */

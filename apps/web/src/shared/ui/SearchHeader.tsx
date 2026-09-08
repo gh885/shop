@@ -13,10 +13,13 @@ import { notify } from "@shop/app-kit"
 export function SearchHeader({
     title,
     className,
+    containerClassName,
     extra,
 }: {
     title?: string
     className?: string
+    /** 覆盖版心容器（默认 max-w-page）。详情页版心比主版心宽，需要顶栏跟着一起宽才能对齐 */
+    containerClassName?: string
     extra?: ReactNode
 }) {
     const [keyword, setKeyword] = useState("")
@@ -31,7 +34,9 @@ export function SearchHeader({
 
     return (
         <header className={`bg-background ${className ?? ""}`}>
-            <div className="mx-auto flex h-16 w-full max-w-page items-center justify-between px-6">
+            <div
+                className={`mx-auto flex h-16 w-full items-center justify-between px-6 ${containerClassName ?? "max-w-page"}`}
+            >
                 {/* 左：品牌 logo（与首页同款）+ 可选页面标题 */}
                 <div className="flex items-center gap-3">
                     <Link

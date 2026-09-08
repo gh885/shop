@@ -81,11 +81,12 @@ function Home() {
             <Suspense
                 fallback={
                     <section className="mx-auto max-w-(--container-page) px-6 pb-6">
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            {Array.from({ length: 10 }, (_, i) => (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                            {Array.from({ length: 12 }, (_, i) => (
                                 <Skeleton
                                     key={i}
-                                    className="aspect-square w-full rounded-lg"
+                                    // 骨架高度对齐商品卡（正方形图 + 92px 信息区）的整卡比例，避免加载完跳版
+                                    className="aspect-[5/7] w-full rounded-lg"
                                 />
                             ))}
                         </div>
@@ -93,7 +94,7 @@ function Home() {
                 }
             >
                 <section className="mx-auto max-w-(--container-page) px-6 pb-6">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                         {feed.data.map((product) => (
                             <ProductCard
                                 key={product.id}

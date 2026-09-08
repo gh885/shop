@@ -23,6 +23,9 @@ import type { ParamItem } from "@shop/api/sdk"
  * - hover/点击缩略图（含参数项）→ scrollTo 对应 slide，hover 即预览
  * - 主图两侧圆形箭头首尾循环翻页；仅 hover 主图区域时显示
  * - 选中态从 embla select 事件回同步，缩略图高亮与底部 Tabs 共用同一个 current
+ *
+ * 尺寸对齐天猫 picGallery（844×620）：缩略图列 76 + 间距 16 + 主图区 752×564，
+ * 下方 16px 处是 40px 高的切换条（总高 564 + 16 + 40 = 620）。
  */
 export function Gallery({ images, params }: { images: string[]; params: ParamItem[] }) {
     const [api, setApi] = useState<CarouselApi>()
@@ -44,9 +47,9 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
 
     return (
         <div>
-            <div className="flex gap-3">
-                {/* 竖排缩略图列：图片们 + 固定最后的「参数」项，hover 即切换 */}
-                <div className="flex w-16 shrink-0 flex-col gap-2">
+            <div className="flex gap-4">
+                {/* 竖排缩略图列：图片们 + 固定最后的「参数」项，hover 即切换；超出主图区高度时内部滚动 */}
+                <div className="flex w-19 shrink-0 flex-col gap-2 overflow-y-auto">
                     {images.map((img, i) => (
                         <button
                             key={img}
@@ -55,9 +58,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                             onClick={() => api?.scrollTo(i)}
                             aria-label={`第 ${i + 1} 张图`}
                             className={`overflow-hidden rounded-lg border-2 transition-colors ${
-                                i === current && !isParams
-                                    ? "border-foreground"
-                                    : "border-transparent"
+                                i === current && !isParams ? "border-primary" : "border-transparent"
                             }`}
                         >
                             <img
@@ -75,7 +76,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         aria-label="查看商品参数"
                         className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 transition-colors ${
                             isParams
-                                ? "border-foreground bg-accent text-accent-foreground"
+                                ? "border-primary bg-accent text-accent-foreground"
                                 : "border-border bg-sunken/60 text-muted-foreground hover:text-primary"
                         }`}
                     >
@@ -94,11 +95,11 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         <CarouselContent>
                             {images.map((img) => (
                                 <CarouselItem key={img}>
-                                    <div className="flex h-120 items-center justify-center">
+                                    <div className="flex h-141 items-center justify-center">
                                         <img
                                             src={img}
                                             alt="商品主图"
-                                            className="max-h-full max-w-full rounded-xl object-contain"
+                                            className="size-full rounded-xl object-cover"
                                         />
                                     </div>
                                 </CarouselItem>
@@ -109,7 +110,10 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                             </CarouselItem>
                         </CarouselContent>
 
-                        {/* 圆形翻页箭头：loop 首尾相接（第一张点左箭头翻到最后的参数页）；hover 区域才显示 */}
+                        {/* 圆形翻页箭头：loop 首尾相接（第一张点左箭头翻到最后的参数页）；hover 区域才显示。
+                            垂直居中用 inset-y-0 + my-auto，不能用 -translate-y-1/2：
+                            Button 基础样式带 active:translate-y-px，会盖掉 -translate-y-1/2，
+                            按下瞬间按钮下跳半个高度、指针落空 → 点击不触发（连点没反应）。 */}
                         {images.length > 0 && (
                             <>
                                 <Button
@@ -117,7 +121,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                     size="icon-lg"
                                     aria-label="上一张"
                                     onClick={() => api?.scrollPrev()}
-                                    className="absolute top-1/2 left-2 z-10 size-10 -translate-y-1/2 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                    className="absolute inset-y-0 left-2 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
                                 >
                                     <ChevronLeft className="size-5" />
                                 </Button>
@@ -126,7 +130,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                     size="icon-lg"
                                     aria-label="下一张"
                                     onClick={() => api?.scrollNext()}
-                                    className="absolute top-1/2 right-2 z-10 size-10 -translate-y-1/2 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                    className="absolute inset-y-0 right-2 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
                                 >
                                     <ChevronRight className="size-5" />
                                 </Button>
@@ -136,13 +140,13 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                 </div>
             </div>
 
-            {/* 底部「图集 / 参数」受控 Tabs：与轮播当前 slide 双向同步 */}
+            {/* 底部「图集 / 参数」受控 Tabs：与轮播当前 slide 双向同步（对齐天猫 40px 高切换条） */}
             <Tabs
                 value={isParams ? "params" : "gallery"}
                 onValueChange={(value) => api?.scrollTo(value === "params" ? paramsIndex : 0)}
                 className="mt-4"
             >
-                <TabsList className="mx-auto">
+                <TabsList className="mx-auto min-h-10">
                     <TabsTrigger
                         value="gallery"
                         className="px-6"
@@ -165,7 +169,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
 function ParamsSlide({ params }: { params: ParamItem[] }) {
     if (params.length === 0) {
         return (
-            <Empty className="h-120">
+            <Empty className="h-141">
                 <EmptyHeader>
                     <EmptyTitle>暂无参数</EmptyTitle>
                 </EmptyHeader>
@@ -174,7 +178,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
     }
 
     return (
-        <div className="flex h-120 flex-col rounded-xl bg-sunken/50 p-6">
+        <div className="flex h-141 flex-col rounded-xl bg-sunken/50 p-6">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
                 {params.map((p) => (
                     <div

@@ -170,7 +170,7 @@ function SpecButton({
             onClick={onSelect}
             aria-pressed={selected}
             className={`w-24 overflow-hidden rounded-lg border-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                selected ? "border-foreground" : "border-border"
+                selected ? "border-primary" : "border-border"
             }`}
         >
             <img

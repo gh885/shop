@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { MessageSquareOff } from "lucide-react"
 
 import {
@@ -10,12 +10,88 @@ import {
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
+    Card,
+    CardContent,
+    Skeleton,
 } from "@shop/ui-web"
 
-import type { ProductDetail } from "../product"
+import { toProductCardData, type Product, type ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
+import { useQuery } from "@tanstack/react-query"
+import { ProductCard } from "../ProductCard"
+import { shopProductsOptions, alsoViewedOptions } from "./queries"
 
-import { DetailSection } from "./DetailSection"
+export function DetailSection({
+    id,
+    title,
+    children,
+}: {
+    id: string
+    title: string
+    children: ReactNode
+}) {
+    return (
+        <Card
+            id={id}
+            // 无边框：页面底色已经是白，区块靠标题和留白分隔，不用描边（ring-0 盖掉 Card 默认的 ring-1）
+            className="mt-5 scroll-mt-20 ring-0"
+        >
+            <CardContent>
+                <h2 className="mb-4 border-l-4 border-primary pl-3 text-lg font-bold text-foreground">
+                    {title}
+                </h2>
+                {children}
+            </CardContent>
+        </Card>
+    )
+}
+
+/**
+ * 推荐流网格：商品卡片 + 骨架屏。
+ * className 传列数；`-mx-4` 抵消 DetailSection 卡片自身的 16px 内边距（--card-spacing），
+ * 让网格铺满所在栏宽——淘宝的推荐网格就是贴边的，不贴边卡片会小一圈（199 → 191）。
+ */
+function RecoGrid({
+    products,
+    currentId,
+    className,
+    variant,
+}: {
+    products: Product[] | undefined
+    currentId: string
+    className: string
+    variant?: "default" | "compact"
+}) {
+    // 排除当前商品本身
+    const list = products?.filter((p) => p.id !== currentId)
+    const placeholderCount = 8
+
+    return (
+        <div className={`-mx-4 grid gap-4 ${className}`}>
+            {list
+                ? list.map((product) => (
+                      <ProductCard
+                          key={product.id}
+                          product={toProductCardData(product)}
+                          variant={variant}
+                      />
+                  ))
+                : Array.from({ length: placeholderCount }, (_, i) => (
+                      <Skeleton
+                          key={i}
+                          className="aspect-5/7 w-full rounded-lg"
+                      />
+                  ))}
+            {list && list.length === 0 && (
+                <Empty className="col-span-full py-6">
+                    <EmptyHeader>
+                        <EmptyTitle>暂无推荐商品</EmptyTitle>
+                    </EmptyHeader>
+                </Empty>
+            )}
+        </div>
+    )
+}
 
 /** 左栏区块定义（顺序即 tab 顺序），也是 scrollspy 的观察目标 */
 const DETAIL_SECTIONS = [
@@ -51,29 +127,31 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
 
     return (
         <>
-            <div className="sticky top-0 z-30">
-                <div className="rounded-2xl bg-background">
-                    <Tabs
-                        value={active}
-                        onValueChange={(value) => {
-                            document
-                                .getElementById(value)
-                                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                        }}
+            {/* 区块导航：对齐天猫 TitleTabs 844×76（上 16 / 内容 48 / 下 12）；sticky 贴住时需要不透明底遮住下滚内容 */}
+            <div className="sticky top-0 z-30 bg-canvas pt-4 pb-3">
+                <Tabs
+                    value={active}
+                    onValueChange={(value) => {
+                        document
+                            .getElementById(value)
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }}
+                >
+                    <TabsList
+                        variant="line"
+                        className="min-h-12"
                     >
-                        <TabsList variant="line">
-                            {DETAIL_SECTIONS.map((s) => (
-                                <TabsTrigger
-                                    key={s.id}
-                                    value={s.id}
-                                    className="px-4"
-                                >
-                                    {s.label}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </Tabs>
-                </div>
+                        {DETAIL_SECTIONS.map((s) => (
+                            <TabsTrigger
+                                key={s.id}
+                                value={s.id}
+                                className="px-4"
+                            >
+                                {s.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </Tabs>
             </div>
 
             <ReviewsSection />
@@ -177,6 +255,49 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
                     />
                 ))}
             </div>
+        </DetailSection>
+    )
+}
+
+/**
+ * 本店推荐：同店铺在售商品（排除当前商品）。
+ * 4 列 / 间距 16 / 卡宽 199 → 紧凑卡 199×271，对齐淘宝店铺推荐（左栏 844 铺满）。
+ */
+export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
+    const { data } = useQuery(shopProductsOptions(detail.product.shopId))
+
+    return (
+        <DetailSection
+            id="shop-reco"
+            title="本店推荐"
+        >
+            <RecoGrid
+                products={data?.records}
+                currentId={detail.product.id}
+                className="grid-cols-4"
+                variant="compact"
+            />
+        </DetailSection>
+    )
+}
+
+/**
+ * 看了又看：全站上新流占位（后端推荐接口就绪后替换数据源），排除当前商品。
+ * 不局限在左栏——由路由挂成整页宽区块，6 列 / 间距 16 / 卡宽 234.33，对齐淘宝底部推荐流。
+ */
+export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
+    const { data } = useQuery(alsoViewedOptions)
+
+    return (
+        <DetailSection
+            id="also-viewed"
+            title="看了又看"
+        >
+            <RecoGrid
+                products={data?.records}
+                currentId={detail.product.id}
+                className="grid-cols-6"
+            />
         </DetailSection>
     )
 }

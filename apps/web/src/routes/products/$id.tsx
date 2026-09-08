@@ -5,6 +5,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router"
 import type { ProductDetail } from "#/products"
 import {
     AlsoViewedSection,
+    DETAIL_CONTAINER_CLASS,
     DetailHeader,
     DetailSections,
     Gallery,
@@ -112,47 +113,55 @@ function ProductDetailPage() {
     return (
         <div>
             <DetailHeader />
-            <div className="mx-auto w-full max-w-(--container-page) px-6 pb-10">
+            {/* 版心比主版心宽：内容 1486 = 左栏 844 + 间距 48 + 右栏 594（对齐天猫详情页） */}
+            <div className={`mx-auto w-full px-6 pb-10 ${DETAIL_CONTAINER_CLASS}`}>
                 {/* 左滚右停：左栏（店铺条+画廊+描述）随滚动，右栏购买区钉住 */}
                 <DetailColumns
+                    rightWidth="594px"
+                    gapClassName="gap-x-12"
                     left={
                         <>
-                            {/* 左栏头部：店铺条 */}
-                            <section className="rounded-2xl bg-background p-6 pb-0">
+                            {/* 左栏头部：店铺条（对齐天猫 shopHeader 844×54，下间距 16） */}
+                            <section className="mb-4 h-13.5">
                                 <ShopBar shopId={detail.product.shopId} />
                             </section>
-                            <section className="mt-5 rounded-2xl bg-background p-6 pt-0">
-                                <Gallery
-                                    images={images}
-                                    params={detail.params}
-                                />
-                            </section>
+                            {/* 图区：对齐天猫 picGallery 844×620 = 主图区 564 + 间距 16 + 底部切换条 40 */}
+                            <Gallery
+                                images={images}
+                                params={detail.params}
+                            />
                             {/* 吸顶锚点导航 + 评价/参数/图文详情 */}
                             <DetailSections detail={detail} />
                             <ShopRecommendSection detail={detail} />
-                            <AlsoViewedSection detail={detail} />
                         </>
                     }
                     right={
-                        <section className="rounded-2xl bg-background p-6">
-                            <PurchasePanel
-                                detail={detail}
-                                selection={sel.selection}
-                                select={sel.select}
-                                isAvailable={sel.isAvailable}
-                                quantity={quantity}
-                                onQuantityChange={setQuantity}
-                            />
-                        </section>
-                    }
-                    bottom={
-                        <PurchaseCta
-                            detail={detail}
-                            selection={sel.selection}
-                            quantity={quantity}
-                        />
+                        // 右栏整块 = 一屏高（sticky top-4）：购买面板在上、动作卡贴右栏底部，中间留白固定不变；
+                        // 滚动时整块一起走，到双栏区域末尾落进流位随页面滚走
+                        // （不再出现“先压缩中间空白、空白没了才整体滚”的分段感）
+                        <div className="sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col">
+                            <section className="rounded-2xl bg-background p-6">
+                                <PurchasePanel
+                                    detail={detail}
+                                    selection={sel.selection}
+                                    select={sel.select}
+                                    isAvailable={sel.isAvailable}
+                                    quantity={quantity}
+                                    onQuantityChange={setQuantity}
+                                />
+                            </section>
+                            <div className="sticky bottom-4 mt-auto pt-3">
+                                <PurchaseCta
+                                    detail={detail}
+                                    selection={sel.selection}
+                                    quantity={quantity}
+                                />
+                            </div>
+                        </div>
                     }
                 />
+                {/* 看了又看：整页宽区块，不局限在左栏（对齐淘宝详情页底部推荐流） */}
+                <AlsoViewedSection detail={detail} />
             </div>
         </div>
     )

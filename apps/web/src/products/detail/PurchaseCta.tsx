@@ -11,8 +11,8 @@ import { Button, Spinner } from "@shop/ui-web"
 
 /**
  * 商品动作卡：加购 / 立即购买 / 收藏。
- * 由 DetailColumns 的 bottom 插槽承载（sticky bottom 钉视口底、双栏滚完随页滚走），
- * 宽度即右栏轨道宽。规格未选全或已售罄时禁用；加购/下单后端未就绪，先 toast 占位。
+ * 属于详情页右栏内容（不是独立的布局插槽）：与购买面板同处一个 `sticky top-4` 容器，
+ * 整块随页面滚动，宽度即右栏轨道宽。规格未选全或已售罄时禁用；加购/下单后端未就绪，先 toast 占位。
  */
 export function PurchaseCta({
     detail,
@@ -65,7 +65,7 @@ export function PurchaseCta({
     }
 
     return (
-        <div className="rounded-3xl bg-background p-3 shadow-float ring-1 ring-border/60">
+        <div className="rounded-3xl bg-background p-3 shadow-float">
             <div className="flex items-stretch gap-3">
                 <Button
                     variant="cta-alt"

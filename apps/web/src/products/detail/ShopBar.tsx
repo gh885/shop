@@ -19,7 +19,7 @@ export function ShopBar({ shopId }: { shopId: string }) {
     const shop = useShop(shopId)
 
     return (
-        <div className="flex items-center gap-3">
+        <div className="flex h-full items-center gap-3">
             {/* 头像：logoKey 是对象存储 key 而非 URL（见 V8 迁移注释），当前数据无 CDN 基址，
                 仅在 key 本身是 http(s) 地址时传 AvatarImage，否则回退店名首字 */}
             <Avatar className="size-12 rounded-lg">
