@@ -15,7 +15,6 @@ import {
     Avatar,
     AvatarFallback,
     Button,
-    cn,
     Input,
     Item,
     ItemActions,
@@ -52,11 +51,9 @@ export function AppTopBar({
 }) {
     return (
         <TopBarRoot
-            className={cn(
-                "gap-3 px-4",
-                minimal ? "border-border" : "border-b-0 bg-transparent",
-                !sticky && "static",
-            )}
+            variant={minimal ? "default" : "floating"}
+            sticky={sticky}
+            className="gap-3"
         >
             {" "}
             <Link to="/">
