@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
     Button,
     Carousel,
@@ -16,20 +16,43 @@ import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
 import type { ParamItem } from "@shop/api/sdk"
 
+/** 主图 hover 放大倍数：预览浮层 background-size = ZOOM × 浮层边长，蒙层尺寸由它反推 */
+const ZOOM = 2.5
+
+/** 主图左右留白：图片因此比主图区窄，两侧腾出的地皮留给翻页箭头 */
+const FRAME_GUTTER = "3.5rem"
+
+/** 把中心比例夹在 [half, 1−half] 内，让蒙层不越出图片边界 */
+function clampCenter(v: number, half: number) {
+    return Math.min(1 - half, Math.max(half, v))
+}
+
+/** 原图比例 f → background-position 百分比：两者不是一回事，p = (z·f − 0.5) / (z − 1) */
+function bgPos(f: number, z: number) {
+    return `${((z * f - 0.5) / (z - 1)) * 100}%`
+}
+
 /**
  * 详情页左侧：缩略图列 + 主图轮播 + 底部「图集 / 参数」Tabs。
  *
  * 本质是一个 loop 轮播：slides = 商品图 + 最后一张固定的「参数」页——
  * - hover/点击缩略图（含参数项）→ scrollTo 对应 slide，hover 即预览
  * - 主图两侧圆形箭头首尾循环翻页；仅 hover 主图区域时显示
+ * - hover 主图（鼠标设备）→ 指针处浮现蒙层，主图右侧同步显示蒙层圈住那块的放大图
  * - 选中态从 embla select 事件回同步，缩略图高亮与底部 Tabs 共用同一个 current
  *
- * 尺寸对齐天猫 picGallery（844×620）：缩略图列 76 + 间距 16 + 主图区 752×564，
- * 下方 16px 处是 40px 高的切换条（总高 564 + 16 + 40 = 620）。
+ * 尺寸对齐天猫 picGallery（844×620）：缩略图列 76 + 间距 16 + 主图区 752×564（
+ * 其中图 640 宽居中，两侧各 56 留给翻页箭头），下方 16px 处是 40px 高的切换条
+ * （总高 564 + 16 + 40 = 620）。
  */
 export function Gallery({ images, params }: { images: string[]; params: ParamItem[] }) {
     const [api, setApi] = useState<CarouselApi>()
     const [current, setCurrent] = useState(0)
+    // 放大预览：开关进 state（只在进入/离开时变），蒙层/放大区直接写 DOM —— pointermove 每秒几十次，
+    // 走 state 会把整个轮播跟着重渲染，而这里只需要换两个样式属性
+    const previewRef = useRef<HTMLDivElement>(null)
+    const lensRef = useRef<HTMLDivElement>(null)
+    const [isZooming, setIsZooming] = useState(false)
 
     const paramsIndex = images.length // 「参数」是最后一张 slide
 
@@ -87,20 +110,78 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
 
                 {/* 主轮播区：loop 循环翻页；箭头仅 hover 该区域时浮现 */}
                 <div className="group relative min-w-0 flex-1">
+                    {/* 左右内边距 = 箭头的地盘：图片因此比主图区窄，箭头站在图外 */}
                     <Carousel
                         setApi={setApi}
                         opts={{ loop: true }}
                         className="w-full"
+                        style={{ paddingInline: FRAME_GUTTER }}
                     >
                         <CarouselContent>
-                            {images.map((img) => (
+                            {images.map((img, i) => (
                                 <CarouselItem key={img}>
-                                    <div className="flex h-141 items-center justify-center">
+                                    {/* hover 事件挂在图片框上（不是整个主图区）：箭头所在的留白不算「图片」 */}
+                                    <div
+                                        className="relative flex h-141 items-center justify-center"
+                                        onPointerMove={(e) => {
+                                            // 触屏没有 hover 语义，只在鼠标指针下开预览
+                                            if (e.pointerType !== "mouse") return
+                                            const frame = e.currentTarget.getBoundingClientRect()
+                                            const el = e.currentTarget
+                                                .firstElementChild as HTMLImageElement | null
+                                            // object-cover 会按原图宽高比裁切；裁掉的部分必须从坐标里扣掉，
+                                            // 否则 hover 到图片边缘时，预览里永远看不到那圈边缘
+                                            const nat = el?.naturalWidth
+                                                ? el.naturalWidth / el.naturalHeight
+                                                : frame.width / frame.height
+                                            const frameAspect = frame.width / frame.height
+                                            const visX = Math.min(1, frameAspect / nat) // 横向可见的原图比例
+                                            const visY = Math.min(1, nat / frameAspect) // 纵向可见的原图比例
+                                            // 预览窗口覆盖的原图比例：横 1/ZOOM，纵 nat/ZOOM（像素上都是 natW/ZOOM，正方形）
+                                            const lensX = 1 / ZOOM / visX
+                                            const lensY = nat / ZOOM / visY
+                                            // 蒙层中心 = 指针处，夹住半宽/半高使其不出图
+                                            const fx = clampCenter(
+                                                (e.clientX - frame.left) / frame.width,
+                                                lensX / 2,
+                                            )
+                                            const fy = clampCenter(
+                                                (e.clientY - frame.top) / frame.height,
+                                                lensY / 2,
+                                            )
+                                            const lens = lensRef.current
+                                            if (lens) {
+                                                lens.style.left = `${fx * 100}%`
+                                                lens.style.top = `${fy * 100}%`
+                                                lens.style.width = `${lensX * 100}%`
+                                                lens.style.height = `${lensY * 100}%`
+                                            }
+                                            // 框内比例 → 原图比例（扣掉裁切）→ background-position
+                                            const nx = 0.5 + (fx - 0.5) * visX
+                                            const ny = 0.5 + (fy - 0.5) * visY
+                                            const preview = previewRef.current
+                                            if (preview) {
+                                                preview.style.backgroundPosition = `${bgPos(nx, ZOOM)} ${bgPos(ny, ZOOM / nat)}`
+                                            }
+                                            setIsZooming(true)
+                                        }}
+                                        onPointerLeave={() => setIsZooming(false)}
+                                    >
                                         <img
                                             src={img}
                                             alt="商品主图"
                                             className="size-full rounded-xl object-cover"
                                         />
+                                        {/* 蒙层挂在当前图片框内：坐标就是框内百分比，尺寸由 pointermove 写 */}
+                                        {i === current && (
+                                            <div
+                                                ref={lensRef}
+                                                aria-hidden
+                                                className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 bg-background/50 transition-opacity duration-150 ${
+                                                    isZooming ? "opacity-100" : "opacity-0"
+                                                }`}
+                                            />
+                                        )}
                                     </div>
                                 </CarouselItem>
                             ))}
@@ -121,7 +202,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                     size="icon-lg"
                                     aria-label="上一张"
                                     onClick={() => api?.scrollPrev()}
-                                    className="absolute inset-y-0 left-2 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                    className="absolute inset-y-0 left-0 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
                                 >
                                     <ChevronLeft className="size-5" />
                                 </Button>
@@ -130,13 +211,31 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                     size="icon-lg"
                                     aria-label="下一张"
                                     onClick={() => api?.scrollNext()}
-                                    className="absolute inset-y-0 right-2 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                    className="absolute inset-y-0 right-0 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
                                 >
                                     <ChevronRight className="size-5" />
                                 </Button>
                             </>
                         )}
                     </Carousel>
+
+                    {/* 放大预览：贴在主图右侧（天猫/淘宝同款），盖住右栏购买区但仍在版心内。
+                        常驻挂载、只切显隐：这样 pointermove 能直接写它的样式。
+                        pointer-events-none：它只是一张「画」，指针始终属于主图——
+                        否则鼠标往右去点「加入购物车」会先被它挡住，预览反而不肯关。 */}
+                    {!isParams && images[current] && (
+                        <div
+                            ref={previewRef}
+                            aria-hidden
+                            className={`pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-xl border border-border bg-background bg-no-repeat shadow-lg transition-opacity duration-150 lg:block ${
+                                isZooming ? "opacity-100" : "opacity-0"
+                            }`}
+                            style={{
+                                backgroundImage: `url(${images[current]})`,
+                                backgroundSize: `${ZOOM * 100}%`,
+                            }}
+                        />
+                    )}
                 </div>
             </div>
 

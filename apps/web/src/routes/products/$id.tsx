@@ -140,7 +140,7 @@ function ProductDetailPage() {
                         // 滚动时整块一起走，到双栏区域末尾落进流位随页面滚走
                         // （不再出现“先压缩中间空白、空白没了才整体滚”的分段感）
                         <div className="sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col">
-                            <section className="rounded-2xl bg-background p-6">
+                            <section className="rounded-2xl bg-background px-6 py-2">
                                 <PurchasePanel
                                     detail={detail}
                                     selection={sel.selection}
