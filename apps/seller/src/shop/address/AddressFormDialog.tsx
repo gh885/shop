@@ -11,7 +11,7 @@ import {
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
-import type { MerchantAddressRequest, MerchantAddressResponse } from "@shop/api/sdk"
+import type { MerchantAddressResponse } from "@shop/api/sdk"
 import RegionPicker, { type RegionNode } from "#/shared/ui/RegionPicker"
 
 import { findPath, loadChildren } from "./regions"
@@ -79,9 +79,9 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
         validators: { onSubmit: FormSchema },
         onSubmit: async ({ value }) => {
             if (editing) {
-                await update.mutateAsync({ id: editing.id, input: value as MerchantAddressRequest })
+                await update.mutateAsync({ id: editing.id, input: value })
             } else {
-                await create.mutateAsync(value as MerchantAddressRequest)
+                await create.mutateAsync(value)
             }
             onOpenChange(false)
             form.reset()

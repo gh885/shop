@@ -33,7 +33,7 @@ export function useOrderList(search: OrderListSearch) {
                 page: search.page,
                 size: search.size,
                 ...next,
-                ...(next.status !== undefined ? { page: 1 } : {}),
+                ...(next.status === undefined ? {} : { page: 1 }),
             },
         })
     }

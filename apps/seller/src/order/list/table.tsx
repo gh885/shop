@@ -144,7 +144,7 @@ function OrderRow({
     onReceiveReturn: () => void
 }) {
     const statusMeta = ORDER_STATUS_META[o.status]
-    const saleMeta = o.afterSaleStatus !== "NONE" ? AFTER_SALE_META[o.afterSaleStatus] : undefined
+    const saleMeta = o.afterSaleStatus === "NONE" ? undefined : AFTER_SALE_META[o.afterSaleStatus]
 
     return (
         <TableRow>

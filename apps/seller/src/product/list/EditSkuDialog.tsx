@@ -33,7 +33,7 @@ export type SkuEditKind = "price" | "stock"
  *  不用 s.name —— 那是「SPU名+规格值」拼接快照，会重复出现商品名。 */
 function skuLabel(s: SkuResponse): string {
     const values = (s.attributes ?? []).map((a) => a.value).filter(Boolean)
-    return values.length ? values.join(" / ") : "默认规格"
+    return values.length > 0 ? values.join(" / ") : "默认规格"
 }
 
 /** 编辑器内可变的 SKU 行：价格/库存/编码都以文本态承接输入，提交时才统一换算校验。
@@ -118,8 +118,8 @@ export function EditSkuLineDialog({
                         })),
                     )
                 }
-            } catch (err) {
-                if (!cancelled) setLoadError(toApiError(err).detail)
+            } catch (error) {
+                if (!cancelled) setLoadError(toApiError(error).detail)
             } finally {
                 if (!cancelled) setLoading(false)
             }
@@ -184,8 +184,8 @@ export function EditSkuLineDialog({
             notify.success(meta.okMessage)
             onSaved()
             onOpenChange(false)
-        } catch (err) {
-            notify.fromError(err, "保存失败")
+        } catch (error) {
+            notify.fromError(error, "保存失败")
         } finally {
             setSubmitting(false)
         }

@@ -68,8 +68,8 @@ export function EditTitleDialog({
             notify.success("标题已更新")
             onSaved()
             onOpenChange(false)
-        } catch (err) {
-            notify.fromError(err, "保存失败")
+        } catch (error) {
+            notify.fromError(error, "保存失败")
         } finally {
             setSubmitting(false)
         }
