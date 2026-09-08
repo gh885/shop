@@ -93,7 +93,7 @@
 @theme {
     /* 表面：canvas 是页面"地面"（浅暖灰），background/card 是浮在灰地上的白卡——
        电商层次靠底色差而非描边（border 只留功能分隔） */
-    --color-canvas: var(--neutral-100);
+    --color-canvas: var(--neutral-0);
     --color-background: var(--neutral-0);
     --color-card: var(--neutral-0);
     --color-popover: var(--neutral-0);
