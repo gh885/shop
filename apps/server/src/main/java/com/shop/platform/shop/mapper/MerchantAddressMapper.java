@@ -1,4 +1,4 @@
-package com.shop.platform.address.mapper;
+package com.shop.platform.shop.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;

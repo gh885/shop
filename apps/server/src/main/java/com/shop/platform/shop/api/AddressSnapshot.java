@@ -1,4 +1,4 @@
-package com.shop.platform.address.api;
+package com.shop.platform.shop.api;
 
 import com.shop.platform.common.Validate;
 import java.util.UUID;

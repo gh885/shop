@@ -1,4 +1,4 @@
-package com.shop.platform.address.model;
+package com.shop.platform.shop.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

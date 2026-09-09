@@ -7,8 +7,6 @@ import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 import static com.shop.platform.order.model.OrderStatus.SHIPPED;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.shop.platform.address.api.AddressSnapshot;
-import com.shop.platform.address.api.MerchantAddressReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
@@ -28,6 +26,8 @@ import com.shop.platform.order.model.OrderActor;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.model.OrderTimeouts;
 import com.shop.platform.product.api.ProductCommand;
+import com.shop.platform.shop.api.AddressSnapshot;
+import com.shop.platform.shop.api.MerchantAddressReadQuery;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
@@ -73,7 +73,7 @@ public class OrderTransitionService {
 
     private final ApplicationEventPublisher events;
 
-    /** 商家发货地址快照查询：发货时解析默认发货地址（address::api，只读），无默认即拒绝发货 */
+    /** 商家发货地址快照查询：发货时解析默认发货地址（shop::api，只读），无默认即拒绝发货 */
     private final MerchantAddressReadQuery merchantAddressReadQuery;
 
     // ========== 履约主状态机：买家 ==========
@@ -105,7 +105,7 @@ public class OrderTransitionService {
         if (existing == null || !existing.getShopId().equals(shopId)) {
             throw BusinessException.notFound("订单不存在");
         }
-        // 0.5 发货快照：解析本店默认发货地址（address::api）。发货无寄件人即硬失败——不静默兜底、不猜地址
+        // 0.5 发货快照：解析本店默认发货地址（shop::api）。发货无寄件人即硬失败——不静默兜底、不猜地址
         AddressSnapshot shipper = Validate.present(merchantAddressReadQuery.resolveShipFrom(shopId), 400, "请先设置默认发货地址");
         // 1. 条件转移：限定本店 + 状态机反推的源状态，错态在影响行数上暴露；发货快照在此定格
         OffsetDateTime now = OffsetDateTime.now();

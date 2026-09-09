@@ -1,17 +1,17 @@
-package com.shop.platform.address;
+package com.shop.platform.shop;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.shop.platform.address.dto.MerchantAddressRequest;
-import com.shop.platform.address.mapper.MerchantAddress;
-import com.shop.platform.address.mapper.MerchantAddressMapper;
-import com.shop.platform.address.model.AddressStatus;
-import com.shop.platform.address.service.MerchantAddressService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.region.RegionRegistry;
+import com.shop.platform.shop.dto.MerchantAddressRequest;
+import com.shop.platform.shop.mapper.MerchantAddress;
+import com.shop.platform.shop.mapper.MerchantAddressMapper;
+import com.shop.platform.shop.model.AddressStatus;
+import com.shop.platform.shop.service.MerchantAddressService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

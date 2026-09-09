@@ -1,11 +1,11 @@
-package com.shop.platform.address.controller;
+package com.shop.platform.shop.controller;
 
-import com.shop.platform.address.controller.response.MerchantAddressResponse;
-import com.shop.platform.address.dto.MerchantAddressRequest;
-import com.shop.platform.address.service.MerchantAddressService;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
+import com.shop.platform.shop.controller.response.MerchantAddressResponse;
+import com.shop.platform.shop.dto.MerchantAddressRequest;
+import com.shop.platform.shop.service.MerchantAddressService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;

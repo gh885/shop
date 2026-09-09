@@ -1,13 +1,13 @@
-package com.shop.platform.address.service;
+package com.shop.platform.shop.service;
 
-import com.shop.platform.address.dto.MerchantAddressRequest;
-import com.shop.platform.address.mapper.MerchantAddress;
-import com.shop.platform.address.mapper.MerchantAddressMapper;
-import com.shop.platform.address.model.AddressStatus;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.region.RegionRegistry;
+import com.shop.platform.shop.dto.MerchantAddressRequest;
+import com.shop.platform.shop.mapper.MerchantAddress;
+import com.shop.platform.shop.mapper.MerchantAddressMapper;
+import com.shop.platform.shop.model.AddressStatus;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

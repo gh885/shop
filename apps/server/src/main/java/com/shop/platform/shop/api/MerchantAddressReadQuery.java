@@ -1,4 +1,4 @@
-package com.shop.platform.address.api;
+package com.shop.platform.shop.api;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -7,9 +7,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * 商家地址只读查询（跨模块消费，经 address :: api）：按主键/默认发货/默认退货解析不可变快照。
+ * 商家地址只读查询（跨模块消费，经 shop :: api）：按主键/默认发货/默认退货解析不可变快照。
  *
- * <p>单表查询（本 schema merchant_address.addresses），只解析 {@code 未删 且 ACTIVE} 的行；
+ * <p>单表查询（本模块 schema 的 shop.addresses），只解析 {@code 未删 且 ACTIVE} 的行；
  * 默认解析落到 {@code default_ship/default_return = TRUE}。禁止写、禁止按非键条件 JOIN 他 schema。
  */
 @Component
@@ -36,7 +36,7 @@ public class MerchantAddressReadQuery {
     private Optional<AddressSnapshot> query(String where, Object... args) {
         return jdbc
                 .query(
-                        SELECT_COLUMNS + " FROM merchant_address.addresses a "
+                        SELECT_COLUMNS + " FROM shop.addresses a "
                                 + " WHERE a.deleted_at IS NULL AND a.status = 'ACTIVE' " + where,
                         (rs, i) -> new AddressSnapshot(
                                 rs.getObject("id", UUID.class),

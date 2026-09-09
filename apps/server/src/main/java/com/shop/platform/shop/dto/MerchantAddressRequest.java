@@ -1,4 +1,4 @@
-package com.shop.platform.address.dto;
+package com.shop.platform.shop.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;

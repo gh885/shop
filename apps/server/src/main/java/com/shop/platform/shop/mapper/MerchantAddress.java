@@ -1,4 +1,4 @@
-package com.shop.platform.address.mapper;
+package com.shop.platform.shop.mapper;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.shop.platform.address.model.AddressStatus;
+import com.shop.platform.shop.model.AddressStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -20,14 +20,14 @@ import lombok.NoArgsConstructor;
  * 一条地址可同时承担「默认发货」「默认退货」（各自至多一个，部分唯一索引兜底），
  * 面单寄件人名称由 {@code companyName}（公司名称）承载。
  *
- * <p>归属店铺（shop.shops.id），跨 schema 裸引用不加 FK。order 打面单/售后经 address :: api 拿
+ * <p>归属店铺（shop.shops.id），跨 schema 裸引用不加 FK。order 打面单/售后经 shop :: api 拿
  * 不可变快照（{@code resolveShipFrom/resolveReturnTo}），不直接读本表。
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@TableName("merchant_address.addresses")
+@TableName("shop.addresses")
 public class MerchantAddress {
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */

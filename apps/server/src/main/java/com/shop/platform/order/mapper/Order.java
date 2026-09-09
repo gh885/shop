@@ -84,7 +84,7 @@ public class Order {
 
     private String receiverDetail;
 
-    // ---- 发货快照：镜像 merchant_address.addresses（商家发货地址）+ 面单寄件人，发货时刻定格，永不更新 ----
+    // ---- 发货快照：镜像 shop.addresses（商家发货地址）+ 面单寄件人，发货时刻定格，永不更新 ----
 
     private String shipperContactName;
 

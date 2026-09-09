@@ -1,9 +1,9 @@
-package com.shop.platform.address.controller.response;
+package com.shop.platform.shop.controller.response;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
-import com.shop.platform.address.mapper.MerchantAddress;
-import com.shop.platform.address.model.AddressStatus;
+import com.shop.platform.shop.mapper.MerchantAddress;
+import com.shop.platform.shop.model.AddressStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;
