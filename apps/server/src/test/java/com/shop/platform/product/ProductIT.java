@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.ShopIdHolder;
+import com.shop.platform.product.api.ProductCommand;
 import com.shop.platform.product.dto.SkuUpdateItem;
 import com.shop.platform.product.mapper.CategoryAttr;
 import com.shop.platform.product.mapper.CategoryAttrValue;
+import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.model.AttrKind;
@@ -39,11 +41,18 @@ class ProductIT extends IntegrationTestSupport {
     /** V5 种子数据里的三级类目「手机」 */
     private static final UUID SEED_CATEGORY = UUID.fromString("01900000-0000-7000-8000-000000000301");
 
+    /** V43 模板里「手机」的必填参数「屏幕尺寸」（attr 430103，值域 6.1/6.4/6.7 英寸）：建草稿必须带上 */
+    private static final ParamItem REQUIRED_PARAM =
+            new ParamItem(UUID.fromString("01900000-0000-7000-8000-000000430103"), "屏幕尺寸", "6.1英寸");
+
     @Autowired
     private ProductService productService;
 
     @Autowired
     private CategoryAttrService categoryAttrService;
+
+    @Autowired
+    private ProductCommand productCommand;
 
     /**
      * 接口变更后 shopId 不再由调用方传入，而是来自店铺上下文（X-Shop-Id）。测试直接操作 service，手动落上下文。
@@ -56,8 +65,8 @@ class ProductIT extends IntegrationTestSupport {
         db.onDelete(
                 "DELETE FROM product.skus WHERE product_id IN (SELECT id FROM product.products WHERE shop_id = ?::uuid)",
                 shopId.toString());
-        return productService.create(
-                new CreateProductCommand(shopId, SEED_CATEGORY, name, null, null, null, List.of(), List.of()));
+        return productService.create(new CreateProductCommand(
+                shopId, SEED_CATEGORY, name, null, null, null, List.of(), List.of(REQUIRED_PARAM)));
     }
 
     /** 在种子类目上建销售属性 + 平台预置值（唯一名防重复跑撞 uk_category_attrs_category_name），自建自清 */
@@ -282,9 +291,9 @@ class ProductIT extends IntegrationTestSupport {
         assertEquals(400, ex.getHttpStatus());
     }
 
-    /** 列表指标：pageListWithMetrics 聚合库存（SKU 可用量之和）与成交量（仅统计已完成订单） */
+    /** 列表指标：pageListWithMetrics 聚合库存（SKU 可用量之和）；销量读 products.sold_count 投影列（经 product.api :: ProductCommand 累加） */
     @Test
-    void 列表指标_库存求和_销量只算已完成订单() {
+    void 列表指标_库存求和_销量读投影列() {
         CategoryAttr color = seedSpecAttr("颜色", "黑", "白");
         Product draft = createDraft("列表指标机");
         List<Sku> skus =
@@ -299,33 +308,9 @@ class ProductIT extends IntegrationTestSupport {
         productService.publish(draft.getId(), ProductStatus.PUBLISHED);
 
         UUID shopId = ShopIdHolder.get();
-        UUID userId = UUID.randomUUID();
-        // 两单：一已完成（计销量），一待付款（不计）
-        UUID doneOrder = seedOrder(shopId, userId, "COMPLETED");
-        UUID pendingOrder = seedOrder(shopId, userId, "PENDING_PAYMENT");
-        db.onDelete(
-                "DELETE FROM orders.items WHERE order_id IN (?::uuid, ?::uuid)",
-                doneOrder.toString(),
-                pendingOrder.toString());
-        db.onDelete(
-                "DELETE FROM orders.orders WHERE id IN (?::uuid, ?::uuid)",
-                doneOrder.toString(),
-                pendingOrder.toString());
-        jdbc.update(
-                "INSERT INTO orders.items (order_id, product_id, sku_id, name, price, quantity, amount) "
-                        + "VALUES (?::uuid, ?::uuid, ?::uuid, 'x', 100, 2, 200), (?::uuid, ?::uuid, ?::uuid, 'y', 100, 5, 500)",
-                doneOrder.toString(),
-                draft.getId().toString(),
-                s1.getId().toString(),
-                doneOrder.toString(),
-                draft.getId().toString(),
-                s2.getId().toString());
-        jdbc.update(
-                "INSERT INTO orders.items (order_id, product_id, sku_id, name, price, quantity, amount) "
-                        + "VALUES (?::uuid, ?::uuid, ?::uuid, 'z', 100, 9, 900)",
-                pendingOrder.toString(),
-                draft.getId().toString(),
-                s1.getId().toString());
+        // 两笔已完成订单各成交 2 件、5 件（订单完成事务里经 product :: api 累加；待付款/取消不会走到这里）
+        productCommand.addSold(Map.of(draft.getId(), 2));
+        productCommand.addSold(Map.of(draft.getId(), 5));
 
         // 只查本店铺，不依赖其它测试残留
         PageResult<ProductListRow> page = productService.pageListWithMetrics(shopId, null, null, 1, 50, null);
@@ -333,7 +318,7 @@ class ProductIT extends IntegrationTestSupport {
                 .filter(r -> r.product().getId().equals(draft.getId()))
                 .findFirst()
                 .orElseThrow();
-        // 库存 = 3 + 7 = 10；销量 = 2 + 5 = 7（待付款的 9 不计）
+        // 库存 = 3 + 7 = 10；销量 = 2 + 5 = 7
         assertEquals(10, row.stock());
         assertEquals(7L, row.soldCount());
     }
@@ -355,19 +340,5 @@ class ProductIT extends IntegrationTestSupport {
         assertEquals("新标题", updated.getName());
         assertEquals(List.of("product/a.jpg", "product/b.jpg"), updated.getDetailImages());
         assertEquals(List.of("product/c.jpg"), updated.getImages());
-    }
-
-    /** 建一笔指定状态、无行项的订单（仅商品销量测试用）；调用方需自行清 orders.items/orders */
-    private UUID seedOrder(UUID shopId, UUID userId, String status) {
-        UUID orderId = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO orders.orders (id, order_no, user_id, shop_id, status, item_amount, shipping_fee, pay_amount, currency, receiver_name, receiver_phone, receiver_province, receiver_city, receiver_district, receiver_detail, pay_expire_at) "
-                        + "VALUES (?::uuid, ?, ?::uuid, ?::uuid, ?, 0, 0, 0, 'CNY', '测试', '13800000000', '省', '市', '区', '地址', NOW())",
-                orderId.toString(),
-                "TEST-" + UUID.randomUUID().toString().substring(0, 20),
-                userId.toString(),
-                shopId.toString(),
-                status);
-        return orderId;
     }
 }

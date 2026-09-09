@@ -1,6 +1,7 @@
 package com.shop.platform.product.mapper;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -148,6 +149,13 @@ public class Product {
      * <p>来源同样是各 SKU 的 price，单规格商品时 minPrice == maxPrice。
      */
     private Long maxPrice;
+
+    /**
+     * 累计销量（已完成订单成交件数之和）——product 自持的投影列，订单完成时经 product.api :: ProductCommand 单语句自增。
+     * 实体插入/回写永不带这一列（DB 默认 0；updateById 若把读到的旧值写回，会覆盖并发累加），只由 addSoldCount 改。
+     */
+    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
+    private long soldCount;
 
     /**
      * 商品状态：概念上是领域枚举（{@link ProductStatus}），状态机/谓词归枚举；

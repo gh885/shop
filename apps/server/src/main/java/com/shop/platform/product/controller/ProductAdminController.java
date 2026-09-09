@@ -86,7 +86,7 @@ public class ProductAdminController {
 
     /**
      * 商家后台商品列表：按当前店铺（X-Shop-Id）分页，可按状态/名称筛选，每行带库存与累计销量。
-     * 库存=该商品全部 SKU 可用量之和；销量=已完成订单成交量之和（口径见 product.api :: ProductSoldQuery）。
+     * 库存=该商品全部 SKU 可用量之和；销量=已完成订单成交量之和（products.sold_count 投影列，订单完成时经 product.api :: ProductCommand 累加）。
      */
     @GetMapping
     public PageResult<ProductResponse> listShopProducts(

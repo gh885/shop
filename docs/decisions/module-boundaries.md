@@ -46,26 +46,27 @@
 ```
 account   （叶子）
 shop      → account::api
-product   → inventory::api, order::events        ← 销量投影，异步
+product   → inventory::api
 inventory （叶子）
 cart      → product::api, inventory::api, shop::api, order::events
 favorite  → product::api
-order     → product::api, inventory::api, shop::api, account::api
+order     → product::api, inventory::api, shop::api, account::api   ← 完成时经 product::api 累加销量
 aftersale → order::api, order::events
 payment   → order::api, aftersale::events
 cms       （叶子）
 ```
 
-两条规则：
+两条规则，外加一条工具约束：
 
 - **事件一律归生产方所有**。不再有"放消费方避免成环"的例外。出现成环冲动时，改的是方向，不是事件归属。
 - **api 命令只在需要同事务原子的地方用**：下单冻结库存、支付推进订单并扣实。其余跨模块影响走事件，AFTER_COMMIT 加 outbox。
+- **Modulith 的环检测在模块级，命名接口不拆环**。A 已依赖 B::api，B 再监听 A::events 也是环（监听器引用事件类型即依赖）。此时反向影响只能顺着已有方向走 api 命令，不能靠事件回流——销量就是这种情况：order → product::api 已存在，所以由 order 完成时调 `ProductCommand.addSold`，而不是 product 监听订单完成事件。
 
 ### 1.3 三条反转的交互
 
 **结算：order 不认识 cart。** 下单入参就是 SKU 行，order 本来就要按 product 与 inventory 重算价格和库存，不需要回查购物车。cart 监听 `OrderPlaced`，按 userId 加 skuId 删自己的行。删除：`cart::api`、`CartReadQuery`、`CartCheckedOutEvent`。
 
-**销量：product 自己维护。** `products.sold_count` 列，监听 `OrderCompleted` 累加。删除：`ProductSoldQuery` 接口、`ProductSoldReadQuery` 实现、卖家列表页的跨 schema 聚合。
+**销量：product 自己持有。** `products.sold_count` 列，order 完成事务里经 `product::api` 的 `ProductCommand.addSold` 累加，方向仍是 order → product（product 反向监听订单事件会成模块级环，见上）。删除：`ProductSoldQuery` 接口、`ProductSoldReadQuery` 实现、卖家列表页的跨 schema 聚合。
 
 **审核：shop 一个模块闭环。** 审核记录表迁到 shop schema，`/admin/shops/reviews` 端点放在 shop 模块，`SHOP_REVIEW` 权限守着。删除：`ShopCreatedEvent`、`ShopReviewDecidedEvent`、两个监听器、admin 与 shop 的双向登记。
 
@@ -113,15 +114,15 @@ README 说"可随时拆分为微服务"。实际上模块之间大量是**同事
 
 原则：每步独立可提交、可回退，先做减法，后做搬家。
 
-| 步  | 动作                                                                                                                         | 风险                                              | 触发条件                     |
-| --- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------- |
-| 1   | 删十个 `XxxModuleConfig` 与对应 yml 键；`PasswordEncoder` bean 移到 `AuthService` 同包的普通配置类                           | 无                                                | 立即                         |
-| 2   | `ShopMemberContext` 搬进 `shop.infra` 改枚举；删 address 两个无人消费的事件；两个鉴权过滤器搬进 `infra.security`             | 无，均为模块内移动                                | 立即                         |
-| 3   | 销量改 product 投影列：加 `sold_count` 列，`OrderCompleted` 事件，product 监听累加；删 `ProductSoldQuery` 链路               | 低。需一次回填迁移                                | 立即                         |
-| 4   | 售后独立建表建模块：新 `aftersale` schema 与 tickets 表，状态机从 `OrderTransitionService` 迁出，退款事件改由 aftersale 发布 | 中。数据迁移 orders 三列到 tickets                | 售后功能展开之前，越早越便宜 |
-| 5   | 结算反转：`CreateOrderRequest` 改为 SKU 行；cart 监听 `OrderPlaced` 自清；删 `cart::api` 与 `CartCheckedOutEvent`            | 中。改前端下单入参                                | 与步 4 无关，可并行          |
-| 6   | address 并入 shop：表迁到 shop schema，`MerchantAddressReadQuery` 移入 `shop::api`                                           | 低                                                | 步 2 之后                    |
-| 7   | admin 解体：审核并入 shop，staff 账号与登录并入 auth 并改名 `account`，user 的地址并入 account                               | 高。最大一次搬家，涉及三个 schema 与前端 admin 端 | 前六步稳定后                 |
+| 步  | 动作                                                                                                                                            | 风险                                              | 触发条件                     |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------- |
+| 1   | 删十个 `XxxModuleConfig` 与对应 yml 键；`PasswordEncoder` bean 移到 `AuthService` 同包的普通配置类                                              | 无                                                | 立即                         |
+| 2   | `ShopMemberContext` 搬进 `shop.infra` 改枚举；删 address 两个无人消费的事件；两个鉴权过滤器搬进 `infra.security`                                | 无，均为模块内移动                                | 立即                         |
+| 3   | 销量改 product 投影列：加 `sold_count` 列并回填；`product::api` 增 `ProductCommand.addSold`，order 完成时同事务调用；删 `ProductSoldQuery` 链路 | 低。需一次回填迁移                                | 立即                         |
+| 4   | 售后独立建表建模块：新 `aftersale` schema 与 tickets 表，状态机从 `OrderTransitionService` 迁出，退款事件改由 aftersale 发布                    | 中。数据迁移 orders 三列到 tickets                | 售后功能展开之前，越早越便宜 |
+| 5   | 结算反转：`CreateOrderRequest` 改为 SKU 行；cart 监听 `OrderPlaced` 自清；删 `cart::api` 与 `CartCheckedOutEvent`                               | 中。改前端下单入参                                | 与步 4 无关，可并行          |
+| 6   | address 并入 shop：表迁到 shop schema，`MerchantAddressReadQuery` 移入 `shop::api`                                                              | 低                                                | 步 2 之后                    |
+| 7   | admin 解体：审核并入 shop，staff 账号与登录并入 auth 并改名 `account`，user 的地址并入 account                                                  | 高。最大一次搬家，涉及三个 schema 与前端 admin 端 | 前六步稳定后                 |
 
 每步完成后 `ModularityTests` 与 `NamingRulesTest` 必须仍然绿，`allowedDependencies` 登记同步删减。步 7 完成后更新 [docs/architecture.md §2](../architecture.md) 的依赖图与本文 §1.1 的"对应现状"列。
 

@@ -3,6 +3,7 @@
  *
  * <p>schema: orders（复数避开 PG 保留字 order）。商品/地址快照在下单瞬间定格，之后 product 改价、
  * 用户删地址均不影响旧单。库存冻结/扣实/释放经 inventory :: api 的 StockCommand 同步同事务调用，
+ * 完成（确认收货/超时自动收货）经 product :: api 的 ProductCommand.addSold 同事务累加销量投影，
  * 购物车清理是真通知、仍走事件总线（CartCheckedOutEvent）；支付推进由 payment 经 order :: api 的
  * OrderCommand.markPaid 同步调用完成（同事务扣实冻结库存）。需要退款时发布 events 命名接口的两个事件
  * （已付款单取消、售后同意退款），payment 同步监听落退款单据。本模块不写任何他方 schema。

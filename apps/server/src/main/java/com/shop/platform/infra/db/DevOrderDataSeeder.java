@@ -252,6 +252,13 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                 jdbc.update(itemSql(), params);
             }
         }
+        // 销量投影：直插的已完成单不经 OrderTransitionService，补一笔 products.sold_count（只对本次新插入的单，重启不重复累加）
+        if (affected > 0 && spec.status().equals("COMPLETED")) {
+            for (Object[] params : itemInserts) {
+                jdbc.update(
+                        "UPDATE product.products SET sold_count = sold_count + ? WHERE id = ?", params[8], params[2]);
+            }
+        }
         return affected;
     }
 

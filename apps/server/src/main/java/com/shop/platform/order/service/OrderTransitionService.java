@@ -27,11 +27,13 @@ import com.shop.platform.order.model.OrderAction;
 import com.shop.platform.order.model.OrderActor;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.model.OrderTimeouts;
+import com.shop.platform.product.api.ProductCommand;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -63,6 +65,9 @@ public class OrderTransitionService {
     private final OrderItemMapper orderItemMapper;
 
     private final StockCommand stockCommand;
+
+    /** 商品销量投影命令：完成时把行项成交量累加进 product（product::api，同事务） */
+    private final ProductCommand productCommand;
 
     private final OrderStatusLogWriter statusLogWriter;
 
@@ -274,6 +279,9 @@ public class OrderTransitionService {
             return false;
         }
         statusLogWriter.record(orderId, SHIPPED, COMPLETED, action, actor, null);
+        // 销量投影：完成即成交，同事务经 product :: api 累加（同 SPU 多 SKU 先合并；口径见 ProductCommand）
+        productCommand.addSold(orderItemMapper.selectByOrderId(orderId).stream()
+                .collect(Collectors.toMap(OrderItem::getProductId, OrderItem::getQuantity, Integer::sum)));
         return true;
     }
 
