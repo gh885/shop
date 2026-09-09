@@ -85,4 +85,16 @@ public final class TestDb {
         onDelete("DELETE FROM user_profile.addresses WHERE id = ?::uuid", addressId.toString());
         return addressId;
     }
+
+    /** 本店默认发货地址（发货时 order 经 address::api 解析寄件人，无默认即拒绝发货），返回地址 id。 */
+    public UUID seedShipAddress(UUID shopId) {
+        UUID addressId = UUID.randomUUID();
+        jdbc.update(
+                "INSERT INTO merchant_address.addresses (id, shop_id, contact_name, phone, region_code, province, city, district, detail, default_ship) "
+                        + "VALUES (?::uuid, ?::uuid, '发货员', '13900000000', '440305', '广东省', '深圳市', '南山区', '科技园 1 号', TRUE)",
+                addressId.toString(),
+                shopId.toString());
+        onDelete("DELETE FROM merchant_address.addresses WHERE id = ?::uuid", addressId.toString());
+        return addressId;
+    }
 }

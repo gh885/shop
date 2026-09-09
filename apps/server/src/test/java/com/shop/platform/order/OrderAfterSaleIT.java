@@ -59,6 +59,7 @@ class OrderAfterSaleIT extends IntegrationTestSupport {
         db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
         skuId = db.seedOnSaleSku(shopId, 1000, 5);
         addressId = db.seedAddress(userId);
+        db.seedShipAddress(shopId);
 
         // 走到履约闭环（COMPLETED）：下单冻结 → 支付扣实 → 发货 → 确认收货
         Order created = orderService

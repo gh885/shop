@@ -95,9 +95,14 @@ public class OrderTransitionService {
     /** 发货：待发货 → 已发货，回填物流信息（一单一包裹）与确认收货截止 */
     @Transactional
     public void ship(UUID shopId, UUID orderId, ShipOrderRequest req) {
-        // 0. 发货快照：解析本店默认发货地址（address::api）。发货无寄件人即硬失败——不静默兜底、不猜地址
+        // 0. 归属先于一切：不存在/非本店给 404，不让「请先设置默认发货地址」泄露他店订单是否存在
+        Order existing = orderMapper.selectById(orderId);
+        if (existing == null || !existing.getShopId().equals(shopId)) {
+            throw BusinessException.notFound("订单不存在");
+        }
+        // 0.5 发货快照：解析本店默认发货地址（address::api）。发货无寄件人即硬失败——不静默兜底、不猜地址
         AddressSnapshot shipper = Validate.present(merchantAddressReadQuery.resolveShipFrom(shopId), 400, "请先设置默认发货地址");
-        // 1. 条件转移：限定本店 + 状态机反推的源状态，越店与错态都在影响行数上暴露；发货快照在此定格
+        // 1. 条件转移：限定本店 + 状态机反推的源状态，错态在影响行数上暴露；发货快照在此定格
         OffsetDateTime now = OffsetDateTime.now();
         int affected = orderMapper.update(
                 null,
@@ -120,12 +125,7 @@ public class OrderTransitionService {
             statusLogWriter.record(orderId, PAID, SHIPPED, OrderAction.SHIP, OrderActor.SELLER, null);
             return;
         }
-
-        // 2. 失败细分原因：不存在/非本店给 404，状态不对给 409
-        Order existing = orderMapper.selectById(orderId);
-        if (existing == null || !existing.getShopId().equals(shopId)) {
-            throw BusinessException.notFound("订单不存在");
-        }
+        // 2. 归属已在步骤 0 过门，抢不到转移只剩状态不对
         throw new BusinessException(409, "订单不是待发货状态");
     }
 

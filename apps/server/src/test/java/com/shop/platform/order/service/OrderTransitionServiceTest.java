@@ -7,6 +7,7 @@ import com.shop.platform.address.api.MerchantAddressReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.order.dto.ShipOrderRequest;
+import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
 import java.util.Optional;
@@ -52,6 +53,9 @@ class OrderTransitionServiceTest {
     @Test
     void ship_withoutDefaultShipFromAddress_throwsBadRequest() {
         UUID orderId = UUID.randomUUID();
+        // 归属门先于地址解析：给一笔本店订单放行
+        when(orderMapper.selectById(orderId))
+                .thenReturn(Order.builder().shopId(shopId).build());
         when(merchantAddressReadQuery.resolveShipFrom(shopId)).thenReturn(Optional.empty());
         ShipOrderRequest req = new ShipOrderRequest("顺丰速运", "SF1234567890");
 

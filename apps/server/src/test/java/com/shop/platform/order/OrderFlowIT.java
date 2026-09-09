@@ -77,6 +77,7 @@ class OrderFlowIT extends IntegrationTestSupport {
         db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
         skuId = db.seedOnSaleSku(shopId, 1000, stock);
         addressId = db.seedAddress(userId);
+        db.seedShipAddress(shopId);
     }
 
     private int totalStockOf() {

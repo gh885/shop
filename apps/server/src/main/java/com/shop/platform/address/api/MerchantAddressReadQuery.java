@@ -20,17 +20,17 @@ public class MerchantAddressReadQuery {
 
     /** 按主键取快照：不存在/已删/停用返回 empty */
     public Optional<AddressSnapshot> byId(UUID addressId) {
-        return query(" WHERE a.id = ? ", addressId);
+        return query(" AND a.id = ? ", addressId);
     }
 
     /** 本店默认发货地址快照：无默认（或已删/停用）返回 empty —— 发货无寄件人即硬失败，由消费方决定上报 */
     public Optional<AddressSnapshot> resolveShipFrom(UUID shopId) {
-        return query(" WHERE a.shop_id = ? AND a.default_ship = TRUE LIMIT 1 ", shopId);
+        return query(" AND a.shop_id = ? AND a.default_ship = TRUE LIMIT 1 ", shopId);
     }
 
     /** 本店默认退货地址快照：无默认返回 empty（售后需回寄地址，交由消费方提示配置） */
     public Optional<AddressSnapshot> resolveReturnTo(UUID shopId) {
-        return query(" WHERE a.shop_id = ? AND a.default_return = TRUE LIMIT 1 ", shopId);
+        return query(" AND a.shop_id = ? AND a.default_return = TRUE LIMIT 1 ", shopId);
     }
 
     private Optional<AddressSnapshot> query(String where, Object... args) {
