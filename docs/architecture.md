@@ -119,6 +119,6 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
 
 - 操作规范：[AGENTS.md](../AGENTS.md)、[apps/server/AGENTS.md](../apps/server/AGENTS.md)
 - 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志）
-- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记）
+- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记、[模块边界目标形态与改造路线](decisions/module-boundaries.md)）
 - 依据清单（收编的外部文档）：[docs/reference/](reference/)
 - 模块实现对照（快照）：[apps/server/docs/](../apps/server/docs/)

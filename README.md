@@ -98,7 +98,7 @@ Redis：localhost:6379
 | [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                              |
 | [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                  |
 | [docs/conventions/](docs/conventions/)                 | 持续维护的约定（权限码表、业务事件日志）                          |
-| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机）                                   |
+| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机、模块边界目标形态与改造路线）       |
 | [docs/reference/](docs/reference/)                     | 收编的外部设计清单                                                |
 | [apps/server/docs/](apps/server/docs/)                 | 后端模块实现对照（快照）                                          |
 
