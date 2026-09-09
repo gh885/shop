@@ -6,11 +6,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.shop.platform.admin.infra.StaffAuthFilter;
-import com.shop.platform.auth.infra.JwtAuthFilter;
 import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.infra.security.JwtAuthFilter;
 import com.shop.platform.infra.security.JwtProperties;
 import com.shop.platform.infra.security.JwtProvider;
+import com.shop.platform.infra.security.StaffAuthFilter;
 import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
 import com.shop.platform.shop.mapper.ShopMapper;

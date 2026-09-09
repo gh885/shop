@@ -1,6 +1,7 @@
 package com.shop.platform.admin.infra;
 
 import com.shop.platform.admin.service.StaffService;
+import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.authz.PermissionResolver;
 import java.util.Set;
 import java.util.UUID;

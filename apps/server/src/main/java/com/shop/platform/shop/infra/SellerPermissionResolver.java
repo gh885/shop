@@ -1,6 +1,5 @@
 package com.shop.platform.shop.infra;
 
-import com.shop.platform.common.ShopMemberContext;
 import com.shop.platform.infra.security.authz.PermissionResolver;
 import com.shop.platform.shop.model.MemberRole;
 import java.util.Set;
@@ -19,7 +18,7 @@ public class SellerPermissionResolver implements PermissionResolver {
         if (member == null) {
             return null;
         }
-        return MemberRole.OWNER.name().equals(member.role())
+        return member.role() == MemberRole.OWNER
                 ? Set.of(PermissionResolver.WILDCARD)
                 : member.permissions() == null ? Set.of() : Set.copyOf(member.permissions());
     }

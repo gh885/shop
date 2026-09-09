@@ -2,7 +2,6 @@ package com.shop.platform.shop.infra;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.ShopIdHolder;
-import com.shop.platform.common.ShopMemberContext;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.infra.web.UnauthorizedWriter;
@@ -90,7 +89,7 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
 
             // 4. 落上下文，请求结束清理
             ShopIdHolder.set(shopId);
-            ShopMemberContext.set(new ShopMemberContext.Member(member.getRole().name(), member.getPermissions()));
+            ShopMemberContext.set(new ShopMemberContext.Member(member.getRole(), member.getPermissions()));
             chain.doFilter(request, response);
         } finally {
             ShopIdHolder.clear();

@@ -1,10 +1,10 @@
-package com.shop.platform.admin.infra;
+package com.shop.platform.common;
 
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/** 当前请求平台员工 ID，Admin 模块的 StaffAuthFilter 设值，本模块各层取用（镜像 common.UserIdHolder）。 */
+/** 当前请求平台员工 ID，infra.security 的 StaffAuthFilter 设值，admin 模块各层取用（镜像 UserIdHolder）。 */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StaffContext {
 

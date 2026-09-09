@@ -1,8 +1,6 @@
 package com.shop.platform.address.service;
 
 import com.shop.platform.address.dto.MerchantAddressRequest;
-import com.shop.platform.address.events.AddressChangedEvent;
-import com.shop.platform.address.events.AddressDefaultSwitchedEvent;
 import com.shop.platform.address.mapper.MerchantAddress;
 import com.shop.platform.address.mapper.MerchantAddressMapper;
 import com.shop.platform.address.model.AddressStatus;
@@ -14,7 +12,6 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>越店访问一律 404（不泄露他人地址存在性，对齐 seller order 模式）。</li>
  *   <li>每店至多一个默认发货 / 默认退货：设默认前先清同类默认（部分唯一索引兜底并发）。</li>
  *   <li>软删地址：api 快照解析（未删 + ACTIVE）永不命中已删地址。</li>
- *   <li>删除/取消默认地址不静默顶替，允许该店暂时无默认，但发布事件让下游知晓影响面。</li>
+ *   <li>删除/取消默认地址不静默顶替，允许该店暂时无默认。</li>
  * </ul>
  */
 @Slf4j
@@ -37,9 +34,6 @@ public class MerchantAddressService {
     private final MerchantAddressMapper addressMapper;
 
     private final RegionRegistry regionRegistry;
-
-    /** 事件发布走 Spring 上下文（Modulith events-jdbc outbox 落库），命名 events 接口类型 */
-    private final ApplicationEventPublisher events;
 
     /** 本店地址列表：默认发货/退货置顶，其余按更新时间倒序 */
     public List<MerchantAddress> list(UUID shopId) {
@@ -86,7 +80,6 @@ public class MerchantAddressService {
                 address.getId(),
                 asShipDefault,
                 asReturnDefault);
-        events.publishEvent(new AddressChangedEvent(shopId, address.getId()));
         return address;
     }
 
@@ -109,7 +102,6 @@ public class MerchantAddressService {
         applyDefaultFlag(shopId, address, req.defaultReturn(), false);
         addressMapper.updateById(address);
         log.info("[ADDRESS] 更新商家地址, shopId={}, addressId={}", shopId, id);
-        events.publishEvent(new AddressChangedEvent(shopId, id));
         return address;
     }
 
@@ -119,7 +111,6 @@ public class MerchantAddressService {
         MerchantAddress address = requireOwnedAddress(shopId, id);
         addressMapper.deleteById(address.getId());
         log.info("[ADDRESS] 删除商家地址(软删), shopId={}, addressId={}", shopId, id);
-        events.publishEvent(new AddressChangedEvent(shopId, id));
     }
 
     /** 设为默认发货地址：清本店其他默认发货后置 */
@@ -147,7 +138,6 @@ public class MerchantAddressService {
         }
         addressMapper.updateById(address);
         log.info("[ADDRESS] 设默认{}地址, shopId={}, addressId={}", ship ? "发货" : "退货", shopId, id);
-        events.publishEvent(new AddressDefaultSwitchedEvent(shopId, id, ship));
         return address;
     }
 

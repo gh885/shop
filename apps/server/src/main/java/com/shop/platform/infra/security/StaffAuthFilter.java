@@ -1,7 +1,6 @@
-package com.shop.platform.admin.infra;
+package com.shop.platform.infra.security;
 
-import com.shop.platform.infra.security.BearerTokens;
-import com.shop.platform.infra.security.JwtProvider;
+import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.infra.web.UnauthorizedWriter;
 import jakarta.servlet.FilterChain;

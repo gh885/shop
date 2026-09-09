@@ -4,7 +4,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/** 当前请求用户 ID，Auth 模块的 JwtAuthFilter 设值，各模块统一取用。 */
+/** 当前请求用户 ID，infra.security 的 JwtAuthFilter 设值，各模块统一取用。 */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class UserIdHolder {
 

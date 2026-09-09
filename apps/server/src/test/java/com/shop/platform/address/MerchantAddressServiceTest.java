@@ -6,7 +6,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.shop.platform.address.dto.MerchantAddressRequest;
-import com.shop.platform.address.events.AddressDefaultSwitchedEvent;
 import com.shop.platform.address.mapper.MerchantAddress;
 import com.shop.platform.address.mapper.MerchantAddressMapper;
 import com.shop.platform.address.model.AddressStatus;
@@ -19,10 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 /**
- * 商家地址业务单测（单表「地址本体 + 默认发货/默认退货」模型）：默认唯一、越店 404、软删、默认切换事件。
+ * 商家地址业务单测（单表「地址本体 + 默认发货/默认退货」模型）：默认唯一、越店 404、软删、默认切换。
  *
  * <p>只测 service 领域可断言行为；区划合法码校验、默认发货快照 join 由真库链路（IT/ControllerTest）覆盖。
  */
@@ -37,9 +35,6 @@ class MerchantAddressServiceTest {
 
     @Mock
     private RegionRegistry regionRegistry;
-
-    @Mock
-    private ApplicationEventPublisher events;
 
     @InjectMocks
     private MerchantAddressService addressService;
@@ -124,7 +119,6 @@ class MerchantAddressServiceTest {
 
         verify(addressMapper).clearDefaultShip(shopId);
         verify(addressMapper).updateById(address);
-        verify(events).publishEvent(new AddressDefaultSwitchedEvent(shopId, addrId, true));
         assertThat(address.getDefaultShip()).isTrue();
     }
 

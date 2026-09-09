@@ -1,5 +1,6 @@
-package com.shop.platform.common;
+package com.shop.platform.shop.infra;
 
+import com.shop.platform.shop.model.MemberRole;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -11,8 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ShopMemberContext {
 
-    /** 成员判权视图：role 为 OWNER/MEMBER 枚举名；permissions 仅 MEMBER 消费（OWNER 走通配） */
-    public record Member(String role, List<String> permissions) {}
+    /** 成员判权视图：role 为 OWNER/MEMBER；permissions 仅 MEMBER 消费（OWNER 走通配） */
+    public record Member(MemberRole role, List<String> permissions) {}
 
     private static final ThreadLocal<Member> HOLDER = new ThreadLocal<>();
 

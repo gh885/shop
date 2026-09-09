@@ -25,9 +25,9 @@
 
 - **`common/`（共享纯包）**：框架无关的共享契约，业务代码说得出口的语言 —— `BusinessException` / `Validate` / `UserIdHolder`。零框架依赖，换语言/技术栈依然成立。
 - **根 `infra/`（共享纯包）**：跨模块共享的技术适配 —— `JwtProvider`（jjwt）、`RefreshTokenStore` / `RateLimiter`（Redis）、各类 Filter / Config / TypeHandler / `GlobalExceptionHandler`。换库就重写。
-- **`<module>.infra/`（模块内部）**：单模块内的技术管道 —— `auth.infra.JwtAuthFilter`、`admin.infra.StaffAuthFilter`。Modulith 规定子包类型即模块内部，天然不被跨模块访问。
+- **`<module>.infra/`（模块内部）**：单模块内的技术管道 —— `shop.infra.ShopMembershipFilter`、`admin.infra.StaffPermissionResolver`。Modulith 规定子包类型即模块内部，天然不被跨模块访问。
 
-摆放两轴：**谁读它**（跨模块 → 根共享层；仅模块内 → `<module>.infra`）；**换技术重写吗**（重写 → infra；不重写 → common）。镜像示例：`UserIdHolder`（跨模块，common）vs `StaffContext`（仅 admin，admin.infra）。
+摆放两轴：**谁读它**（跨模块 → 根共享层；仅模块内 → `<module>.infra`）；**换技术重写吗**（重写 → infra；不重写 → common）。镜像示例：`UserIdHolder`（跨模块，common）vs `ShopMemberContext`（仅 shop，shop.infra）。
 
 ## 命名规范（三层契约）
 
