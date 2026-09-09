@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.order.dto.CreateOrderRequest;
+import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.AfterSaleType;
@@ -16,6 +17,7 @@ import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.model.PaymentStatus;
 import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,7 +65,7 @@ class OrderAfterSaleIT extends IntegrationTestSupport {
 
         // 走到履约闭环（COMPLETED）：下单冻结 → 支付扣实 → 发货 → 确认收货
         Order created = orderService
-                .create(userId, new CreateOrderRequest(addressId, null, skuId, 2, null))
+                .create(userId, new CreateOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 2)), null))
                 .getFirst();
         orderId = created.getId();
         Payment pending = paymentService.pay(userId, orderId);

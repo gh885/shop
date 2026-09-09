@@ -15,17 +15,13 @@ import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart/queries"
 
 /** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
 
-/** 结算来源：购物车选中条目（cartItemIds）与立即购买（buySkuId+buyQuantity）二选一 */
-export type CheckoutSource = {
-    cartItemIds?: string[]
-    buySkuId?: string
-    buyQuantity?: number
-}
+/** 结算行：skuId + 件数。购物车勾选与立即购买在入口处归约成同一形状，后端不再区分来源 */
+export type CheckoutLine = { skuId: string; quantity: number }
 
-const sourceKey = (s: CheckoutSource) =>
-    s.cartItemIds && s.cartItemIds.length > 0
-        ? s.cartItemIds.join(",")
-        : `${s.buySkuId ?? ""}#${s.buyQuantity ?? 1}`
+/** 结算来源：一组结算行（URL search 携带，刷新可复现） */
+export type CheckoutSource = { lines: CheckoutLine[] }
+
+const sourceKey = (s: CheckoutSource) => s.lines.map((l) => `${l.skuId}:${l.quantity}`).join(",")
 
 /** 结算预览：以来源为 key；地址切换 → 新 key 重新预览，避免手动 refetch */
 export function useCheckoutPreview({
@@ -35,11 +31,11 @@ export function useCheckoutPreview({
     source: CheckoutSource
     addressId?: string
 }) {
-    const enabled = (source.cartItemIds?.length ?? 0) > 0 || !!source.buySkuId
+    const enabled = source.lines.length > 0
     return useQuery({
         queryKey: ["checkout-preview", sourceKey(source), addressId ?? ""] as const,
         queryFn: async (): Promise<CheckoutPreview> => {
-            const res = await fetchPreview({ ...source, addressId })
+            const res = await fetchPreview({ lines: source.lines, addressId })
             return toCheckoutPreview(res)
         },
         enabled,
@@ -55,12 +51,12 @@ export function useCreateOrder() {
         mutationFn: (args: { addressId: string; source: CheckoutSource; buyerMessage?: string }) =>
             createOrder({
                 addressId: args.addressId,
-                ...args.source,
+                lines: args.source.lines,
                 buyerMessage: args.buyerMessage,
             }),
         onSuccess: () => {
             void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
-            void qc.invalidateQueries({ queryKey: CART_ITEMS_KEY }) // 后端 CartCheckedOutEvent 已删已购条目，缓存随之失效
+            void qc.invalidateQueries({ queryKey: CART_ITEMS_KEY }) // 后端 OrderPlacedEvent 已删已购 SKU 的条目，缓存随之失效
             void qc.invalidateQueries({ queryKey: CART_COUNT_KEY })
         },
         onError: (err) => notify.fromError(err, "下单失败"),

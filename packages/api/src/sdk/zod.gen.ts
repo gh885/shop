@@ -483,11 +483,14 @@ export const zApplyAfterSaleRequest = z.object({
     reason: z.string().min(0).max(200).optional()
 });
 
+export const zOrderLineRequest = z.object({
+    skuId: z.uuid(),
+    quantity: z.int().gte(1).lte(999)
+});
+
 export const zPreviewOrderRequest = z.object({
     addressId: z.uuid().optional(),
-    cartItemIds: z.array(z.uuid()).optional(),
-    buySkuId: z.uuid().optional(),
-    buyQuantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional()
+    lines: z.array(zOrderLineRequest).min(1)
 });
 
 export const zAddress = z.object({
@@ -537,9 +540,7 @@ export const zPreviewResponse = z.object({
 
 export const zCreateOrderRequest = z.object({
     addressId: z.uuid(),
-    cartItemIds: z.array(z.uuid()).optional(),
-    buySkuId: z.uuid().optional(),
-    buyQuantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
+    lines: z.array(zOrderLineRequest).min(1),
     buyerMessage: z.string().min(0).max(200).optional()
 });
 

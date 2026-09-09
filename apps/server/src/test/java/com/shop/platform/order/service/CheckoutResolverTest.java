@@ -7,10 +7,10 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-import com.shop.platform.cart.api.CartLineView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.inventory.api.StockView;
+import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
 import com.shop.platform.product.model.ProductStatus;
@@ -29,7 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * 结算解析器单测——下单资金链路的大脑：来源二选一、可售三道判定（SKU 在售/SPU 上架/库存充足）、
+ * 结算解析器单测——下单资金链路的大脑：结算行归约（同 SKU 合并、封顶）、可售三道判定（SKU 在售/SPU 上架/库存充足）、
  * 失效归因（UNAVAILABLE vs STOCK_SHORTAGE）、图片回落、按店分组算钱。全 mock 无 DB，分支穷举成本低。
  */
 @ExtendWith(MockitoExtension.class)
@@ -55,15 +55,15 @@ class CheckoutResolverTest {
     @Mock
     private com.shop.platform.user.api.AddressReadQuery addressReadQuery;
 
-    @Mock
-    private com.shop.platform.cart.api.CartReadQuery cartReadQuery;
-
     private CheckoutResolver resolver;
 
     @BeforeEach
     void setUp() {
-        resolver =
-                new CheckoutResolver(productReadQuery, stockReadQuery, shopReadQuery, addressReadQuery, cartReadQuery);
+        resolver = new CheckoutResolver(productReadQuery, stockReadQuery, shopReadQuery, addressReadQuery);
+    }
+
+    private static List<OrderLineRequest> lines(UUID skuId, int quantity) {
+        return List.of(new OrderLineRequest(skuId, quantity));
     }
 
     private SkuView sku(Long price, SkuStatus status) {
@@ -86,43 +86,24 @@ class CheckoutResolverTest {
                 .thenReturn(Map.of(productId, product(ProductStatus.PUBLISHED)));
     }
 
-    // ---- 来源二选一 ----
+    // ---- 结算行归约 ----
 
     @Test
-    void 双模式同传_400拒绝() {
-        assertThatThrownBy(() -> resolver.resolve(userId, List.of(UUID.randomUUID()), skuId, 1))
-                .isInstanceOfSatisfying(BusinessException.class, ex -> {
-                    assertThat(ex.getHttpStatus()).isEqualTo(400);
-                    assertThat(ex.getDetail()).contains("二选一");
-                });
+    void 空结算行_400拒绝() {
+        assertThatThrownBy(() -> resolver.resolve(List.of())).isInstanceOfSatisfying(BusinessException.class, ex -> {
+            assertThat(ex.getHttpStatus()).isEqualTo(400);
+            assertThat(ex.getDetail()).contains("不能为空");
+        });
     }
 
     @Test
-    void 立即购买_数量至少1件() {
-        assertThatThrownBy(() -> resolver.resolve(userId, null, skuId, 0))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("至少 1 件");
-    }
-
-    @Test
-    void 立即购买_数量封顶999() {
+    void 同SKU多行合并_件数封顶999() {
         stubSellable(500L, 999);
-        var resolved = resolver.resolve(userId, null, skuId, 10_000);
+        var resolved = resolver.resolve(List.of(new OrderLineRequest(skuId, 600), new OrderLineRequest(skuId, 600)));
 
-        // 超大数量被钳制到单行上限，不炸不溢出
+        // 两行同 SKU 合成一行，超大数量被钳制到单行上限，不炸不溢出
+        assertThat(resolved.valid()).hasSize(1);
         assertThat(resolved.valid().getFirst().quantity()).isEqualTo(999);
-    }
-
-    @Test
-    void 购物车模式_他车条目静默忽略_不泄露存在性() {
-        UUID foreignItem = UUID.randomUUID();
-        when(cartReadQuery.linesByIds(any()))
-                .thenReturn(Map.of(foreignItem, new CartLineView(UUID.randomUUID(), skuId, 1)));
-
-        // 全是别人的条目 → 等效空结算，400 而非 403：不向他车主人泄露「这条目存在」
-        assertThatThrownBy(() -> resolver.resolve(userId, List.of(foreignItem), null, null))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("结算条目不存在");
     }
 
     // ---- 可售三道判定与失效归因 ----
@@ -131,7 +112,7 @@ class CheckoutResolverTest {
     void 可售_进有效行_SPU主图回落() {
         stubSellable(500L, 5);
 
-        var resolved = resolver.resolve(userId, null, skuId, 2);
+        var resolved = resolver.resolve(lines(skuId, 2));
 
         ValidLine line = resolved.valid().getFirst();
         assertThat(line.price()).isEqualTo(Money.cny(500));
@@ -146,7 +127,7 @@ class CheckoutResolverTest {
         // 整个 SKU 没了（被删）
         when(productReadQuery.skusByIds(anyCollection())).thenReturn(Map.of());
 
-        var resolved = resolver.resolve(userId, null, skuId, 1);
+        var resolved = resolver.resolve(lines(skuId, 1));
         assertThat(resolved.unavailable().getFirst().cause())
                 .isEqualTo(CheckoutPreview.UnavailableLine.CAUSE_UNAVAILABLE);
     }
@@ -158,7 +139,7 @@ class CheckoutResolverTest {
         when(productReadQuery.productsByIds(anyCollection()))
                 .thenReturn(Map.of(productId, product(ProductStatus.PUBLISHED)));
 
-        var resolved = resolver.resolve(userId, null, skuId, 1);
+        var resolved = resolver.resolve(lines(skuId, 1));
         assertThat(resolved.unavailable().getFirst().cause())
                 .isEqualTo(CheckoutPreview.UnavailableLine.CAUSE_UNAVAILABLE);
     }
@@ -169,7 +150,7 @@ class CheckoutResolverTest {
         when(productReadQuery.productsByIds(anyCollection()))
                 .thenReturn(Map.of(productId, product(ProductStatus.WAREHOUSE))); // 下架
 
-        var resolved = resolver.resolve(userId, null, skuId, 1);
+        var resolved = resolver.resolve(lines(skuId, 1));
         assertThat(resolved.unavailable().getFirst().cause())
                 .isEqualTo(CheckoutPreview.UnavailableLine.CAUSE_UNAVAILABLE);
     }
@@ -178,7 +159,7 @@ class CheckoutResolverTest {
     void 库存不足_归因STOCK_SHORTAGE() {
         stubSellable(500L, 1); // 只有 1 件
 
-        var resolved = resolver.resolve(userId, null, skuId, 2);
+        var resolved = resolver.resolve(lines(skuId, 2));
         assertThat(resolved.unavailable().getFirst().cause())
                 .isEqualTo(CheckoutPreview.UnavailableLine.CAUSE_STOCK_SHORTAGE);
         assertThat(resolved.valid()).isEmpty();
@@ -191,7 +172,7 @@ class CheckoutResolverTest {
                 .thenReturn(Map.of(productId, product(ProductStatus.PUBLISHED)));
         when(stockReadQuery.availableBySkuIds(anyCollection())).thenReturn(Map.of());
 
-        var resolved = resolver.resolve(userId, null, skuId, 1);
+        var resolved = resolver.resolve(lines(skuId, 1));
         assertThat(resolved.unavailable().getFirst().cause())
                 .isEqualTo(CheckoutPreview.UnavailableLine.CAUSE_STOCK_SHORTAGE);
     }

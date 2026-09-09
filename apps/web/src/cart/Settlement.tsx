@@ -19,10 +19,10 @@ export function Settlement() {
     const selectedCount = selectedItems.length
     const selectedTotal = deriveSelectedTotal(selectedItems)
 
-    // 去结算：仅传已勾选且可售的购物车条目 id（cartItemIds），由后端按选中集合校验/拆单
+    // 去结算：把已勾选且可售的条目归约成结算行（skuId + 件数），由后端按 SKU 行校验/拆单，不再传购物车条目 id
     const goCheckout = () => {
-        const ids = selectedItems.map((i) => i.id)
-        void navigate({ to: "/checkout", search: { cartItemIds: ids } })
+        const lines = selectedItems.map((i) => ({ skuId: i.skuId, quantity: i.quantity }))
+        void navigate({ to: "/checkout", search: { lines } })
     }
 
     return (

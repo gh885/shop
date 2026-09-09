@@ -77,27 +77,16 @@ export function useOrderDetail(id: string) {
 
 /** 结算预览：只读幂等，返回分组明细/失效行/地址/应付总额的 wire 形状（页面再投影） */
 export async function fetchPreview(args: {
-    cartItemIds?: string[]
-    buySkuId?: string
-    buyQuantity?: number
+    lines: { skuId: string; quantity: number }[]
     addressId?: string
 }): Promise<PreviewResponse> {
-    return await OrdersApi.previewOrder({
-        body: {
-            cartItemIds: args.cartItemIds,
-            buySkuId: args.buySkuId,
-            buyQuantity: args.buyQuantity,
-            addressId: args.addressId,
-        },
-    })
+    return await OrdersApi.previewOrder({ body: { lines: args.lines, addressId: args.addressId } })
 }
 
 /** 创建订单：按店拆单，返回全部新单 */
 export async function createOrder(args: {
     addressId: string
-    cartItemIds?: string[]
-    buySkuId?: string
-    buyQuantity?: number
+    lines: { skuId: string; quantity: number }[]
     buyerMessage?: string
 }) {
     return await OrdersApi.createOrder({ body: args })

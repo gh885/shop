@@ -3,12 +3,13 @@
  *
  * <p>schema: cart。不做游客购物车与合并；条目只存 user_id + sku_id + 数量/勾选，
  * 展示数据（现价/库存/标题/店铺）读取时经 product / shop 的 api 包按 ID 只读批查拼装，
- * 禁止 JOIN。CartCheckedOutEvent 归本模块所有（events 命名接口），order 下单后发布、本模块同步清理。
+ * 禁止 JOIN。下单后的清理由 order :: events 的 OrderPlacedEvent 驱动：本模块同步监听，按 userId + skuId 删已购条目；
+ * order 不认识购物车（无 cart :: api），结算入参由前端归约成 SKU 行。
  * 价格快照是 order 模块的职责，cart 不预支。
  */
 @ApplicationModule(
         displayName = "Cart",
-        allowedDependencies = {"product :: api", "inventory :: api", "shop :: api"})
+        allowedDependencies = {"product :: api", "inventory :: api", "shop :: api", "order :: events"})
 package com.shop.platform.cart;
 
 import org.springframework.modulith.ApplicationModule;

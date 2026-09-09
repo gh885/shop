@@ -48,13 +48,13 @@ export function PurchaseCta({
         )
     }
 
-    /** 立即购买：登录后按选中 SKU + 数量跳结算（buySkuId 路径），送达页由结算页承接 */
+    /** 立即购买：登录后按选中 SKU + 数量归约成一行结算行跳结算，送达页由结算页承接 */
     function handleBuyNow() {
         if (!ensureLogin()) return
         if (!matchedSku) return
         void navigate({
             to: "/checkout",
-            search: { buySkuId: matchedSku.id, buyQuantity: quantity },
+            search: { lines: [{ skuId: matchedSku.id, quantity }] },
         })
     }
 

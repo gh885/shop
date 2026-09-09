@@ -1,11 +1,10 @@
 package com.shop.platform.order.service;
 
-import com.shop.platform.cart.api.CartLineView;
-import com.shop.platform.cart.api.CartReadQuery;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
+import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.product.api.ProductReadQuery;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
@@ -14,7 +13,6 @@ import com.shop.platform.user.api.AddressReadQuery;
 import com.shop.platform.user.api.AddressSnapshotView;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,15 +21,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * 结算解析器：把「购物车条目/立即购买参数 → 有效行 + 置灰行 + 按店分组」的整条只读链路
- * 从 OrderService 拆出。跨模块读取全部经各模块 api 包（product / shop / user / cart），
- * 不碰他方 schema 的表名与状态魔法值。
+ * 结算解析器：把「结算行（skuId + 件数）→ 有效行 + 置灰行 + 按店分组」的整条只读链路
+ * 从 OrderService 拆出。跨模块读取全部经各模块 api 包（product / inventory / shop / user），
+ * 不碰他方 schema 的表名与状态魔法值。来源（购物车勾选 / 立即购买）由前端归约，order 不回查购物车。
  */
 @Component
 @RequiredArgsConstructor
 class CheckoutResolver {
 
-    /** 单行购买数量上限，与 cart.items 的 CHECK 同值兜底 */
+    /** 单行购买数量上限，与 cart.items 的 CHECK 同值兜底（同 SKU 多行合并后封顶） */
     private static final int MAX_QUANTITY_PER_LINE = 999;
 
     private final ProductReadQuery productReadQuery;
@@ -42,19 +40,16 @@ class CheckoutResolver {
 
     private final AddressReadQuery addressReadQuery;
 
-    private final CartReadQuery cartReadQuery;
-
     /**
-     * 结算条目解析：购物车模式从 cart 模块点查自己的条目（内存过滤归属），立即购买模式直接用请求参数；
-     * 再对 product 做「SKU 在售 + SPU 上架 + 库存充足」三道判定，产出有效行与置灰行。
+     * 结算行解析：同 SKU 多行先合并；再对 product 做「SKU 在售 + SPU 上架 + 库存充足」三道判定，
+     * 产出有效行与置灰行。
      */
-    ResolvedCheckout resolve(UUID userId, List<UUID> cartItemIds, UUID buySkuId, Integer buyQuantity) {
-        // 1. 组装请求行：来源二选一，立即购买数量封顶
-        List<RequestedLine> requested = requestedLines(userId, cartItemIds, buySkuId, buyQuantity);
+    ResolvedCheckout resolve(List<OrderLineRequest> lines) {
+        // 1. 组装请求行：同 SKU 合并件数并封顶
+        List<RequestedLine> requested = requestedLines(lines);
 
         // 2. 批量拉 SKU / SPU / 库存投影（product / inventory :: api 按 ID 只读点查，禁止 JOIN）
-        List<UUID> skuIds =
-                requested.stream().map(RequestedLine::skuId).distinct().toList();
+        List<UUID> skuIds = requested.stream().map(RequestedLine::skuId).toList();
         Map<UUID, SkuView> skus = productReadQuery.skusByIds(skuIds);
         Map<UUID, StockView> stocks = stockReadQuery.availableBySkuIds(skuIds);
         Map<UUID, ProductView> products = productReadQuery.productsByIds(
@@ -94,29 +89,16 @@ class CheckoutResolver {
         return new ResolvedCheckout(valid, unavailable, sumLines(valid));
     }
 
-    /** 阶段一：来源二选一组装请求行；购物车条目按 ID 点查后内存过滤归属，他车 ID 静默忽略（不泄露他车内容） */
-    private List<RequestedLine> requestedLines(
-            UUID userId, List<UUID> cartItemIds, UUID buySkuId, Integer buyQuantity) {
-        boolean cartMode = cartItemIds != null && !cartItemIds.isEmpty();
-        boolean buyMode = buySkuId != null;
-        Validate.isTrue(cartMode ^ buyMode, "购物车结算与立即购买只能二选一");
-        Validate.isTrue(!buyMode || (buyQuantity != null && buyQuantity >= 1), "购买数量至少 1 件");
-
-        List<RequestedLine> requested = new ArrayList<>();
-        if (buyMode) {
-            requested.add(new RequestedLine(buySkuId, Math.min(buyQuantity, MAX_QUANTITY_PER_LINE), null));
-        } else {
-            LinkedHashSet<UUID> ids = new LinkedHashSet<>(cartItemIds);
-            Map<UUID, CartLineView> rows = cartReadQuery.linesByIds(ids);
-            for (UUID id : ids) {
-                CartLineView row = rows.get(id);
-                if (row != null && row.userId().equals(userId)) {
-                    requested.add(new RequestedLine(row.skuId(), row.quantity(), id));
-                }
-            }
-            Validate.isTrue(!requested.isEmpty(), "结算条目不存在或已被处理");
+    /** 阶段一：结算行归约——同 SKU 合并件数并封顶；空集合 400（HTTP 层 @NotEmpty 先拦，这里兜 service 直调） */
+    private static List<RequestedLine> requestedLines(List<OrderLineRequest> lines) {
+        Validate.isTrue(lines != null && !lines.isEmpty(), "结算条目不能为空");
+        Map<UUID, Integer> merged = new LinkedHashMap<>();
+        for (OrderLineRequest line : lines) {
+            merged.merge(line.skuId(), line.quantity(), (a, b) -> Math.min(a + b, MAX_QUANTITY_PER_LINE));
         }
-        return requested;
+        return merged.entrySet().stream()
+                .map(e -> new RequestedLine(e.getKey(), e.getValue()))
+                .toList();
     }
 
     /** 有效行按店铺分组算钱；店铺名经 shop :: api 只读拼装（一组对应一笔待创建订单） */
@@ -157,8 +139,8 @@ class CheckoutResolver {
 
     // ---- 内部投影 record：结算链路上的一站一形状，仅在本包内流通 ----
 
-    /** 结算请求行：立即购买时 cartItemId 为 null */
-    record RequestedLine(UUID skuId, int quantity, UUID cartItemId) {}
+    /** 结算请求行：同 SKU 合并后的 skuId + 件数 */
+    record RequestedLine(UUID skuId, int quantity) {}
 
     record ResolvedCheckout(
             List<ValidLine> valid, List<CheckoutPreview.UnavailableLine> unavailable, Money totalPayAmount) {}

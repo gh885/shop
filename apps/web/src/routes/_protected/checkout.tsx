@@ -42,20 +42,15 @@ import {
 } from "@shop/ui-web"
 import { z } from "zod"
 
-// cartItemIds 兼容数组与单值字符串两种 URL 形态，脏值一律 catch 掉走默认流程
+// 结算行由 TanStack Router 以 JSON 编进 URL；脏值一律 catch 成空数组，走「无可结算条目」流程
 const checkoutSearchSchema = z.object({
-    cartItemIds: z
-        .preprocess(
-            (v) => (Array.isArray(v) ? v : v == null ? undefined : [v]),
-            z.array(z.string()).optional(),
-        )
-        .catch(undefined),
-    buySkuId: z.string().optional().catch(undefined),
-    buyQuantity: z.coerce.number().int().positive().optional().catch(undefined),
+    lines: z
+        .array(z.object({ skuId: z.string(), quantity: z.coerce.number().int().positive() }))
+        .catch([]),
 })
 
 export const Route = createFileRoute("/_protected/checkout")({
-    // 结算来源：cartItemIds（购物车）与 buySkuId+buyQuantity（立即购买）二选一
+    // 结算来源：一组 skuId + 件数，购物车勾选与立即购买在入口处归约成同一形状
     validateSearch: (search: Record<string, unknown>): CheckoutSource =>
         checkoutSearchSchema.parse(search),
     component: CheckoutPage,

@@ -5,7 +5,6 @@ import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.f4b6a3.uuid.UuidCreator;
-import com.shop.platform.cart.events.CartCheckedOutEvent;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
@@ -15,6 +14,7 @@ import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
+import com.shop.platform.order.events.OrderPlacedEvent;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
@@ -29,7 +29,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,7 +44,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>状态变更（取消/收货/发货/售后/超时）一律不在本类——归 {@link OrderTransitionService}，
  * 本类只做「下单 + 查询 + 装配」。事务与协作约定：下单在事务内同步调用 inventory :: api 的
- * StockCommand（同事务），库存不足则整单回滚；购物车清理是真通知，仍走事件总线（CartCheckedOutEvent）。
+ * StockCommand（同事务），库存不足则整单回滚；下单成功发布 OrderPlacedEvent，cart 同步监听清理已购 SKU
+ * （order 不认识购物车：结算入参就是 SKU 行）。
  *
  * <p>创建订单是「状态进入 PENDING_PAYMENT」的首动作，本类落单后记一条审计流水；此后一切状态变更
  * 的审计由 {@link OrderTransitionService} 负责，改变状态的口子全部留痕。
@@ -75,8 +75,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public CheckoutPreview preview(UUID userId, PreviewOrderRequest req) {
         // 1. 解析条目并判定可售性（跨模块只读点查，禁止 JOIN）
-        ResolvedCheckout resolved =
-                checkoutResolver.resolve(userId, req.cartItemIds(), req.buySkuId(), req.buyQuantity());
+        ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
 
         // 2. 有效行按店铺分组算钱 —— 分组即拆单预告
         List<CheckoutPreview.Group> groups = checkoutResolver.groupByShop(resolved.valid());
@@ -104,8 +103,7 @@ public class OrderService {
         AddressSnapshot address = checkoutResolver.loadAddressSnapshot(userId, req.addressId());
 
         // 2. 全量有效才允许下单：任一行失效或缺货直接拒绝（预览页已提示过，这里兜底并发变化）
-        ResolvedCheckout resolved =
-                checkoutResolver.resolve(userId, req.cartItemIds(), req.buySkuId(), req.buyQuantity());
+        ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
         Validate.isTrue(resolved.unavailable().isEmpty(), "部分商品已下架或库存不足，请重新确认结算");
 
         // 3. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用解析结果免重查
@@ -116,14 +114,12 @@ public class OrderService {
             staged.add(Map.entry(persistOrder(userId, req.buyerMessage(), address, lines), lines));
         }
 
-        // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 删除已购条目（事件通知）
+        // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU
         for (Map.Entry<Order, List<ValidLine>> entry : staged) {
             stockCommand.freeze(entry.getKey().getId(), stockLinesOf(entry.getValue()));
         }
-        List<UUID> cartItemIds = distinct(req.cartItemIds());
-        if (!cartItemIds.isEmpty()) {
-            events.publishEvent(new CartCheckedOutEvent(userId, cartItemIds));
-        }
+        events.publishEvent(new OrderPlacedEvent(
+                userId, resolved.valid().stream().map(ValidLine::skuId).toList()));
         List<Order> created = staged.stream().map(Map.Entry::getKey).toList();
         log.info("[ORDER] 下单成功, userId={}, 单数={}, 总应付={}", userId, created.size(), resolved.totalPayAmount());
         return created;
@@ -269,9 +265,5 @@ public class OrderService {
     /** 结算有效行 → 库存结算行：下单冻结直接吃解析结果，免重查刚落库的行项目 */
     private static List<StockLine> stockLinesOf(List<ValidLine> lines) {
         return lines.stream().map(l -> new StockLine(l.skuId(), l.quantity())).toList();
-    }
-
-    private static List<UUID> distinct(List<UUID> ids) {
-        return ids == null ? List.of() : new ArrayList<>(new LinkedHashSet<>(ids));
     }
 }

@@ -32,14 +32,14 @@ shop/（monorepo，pnpm workspace + Maven，不用 monorepo 工具）
 auth（叶子）        user（叶子）        cms（叶子）         inventory（叶子）
 shop   → auth::api
 product → inventory::api
-cart   → product::api, inventory::api, shop::api
+cart   → product::api, inventory::api, shop::api, order::events
 favorite → product::api
-order  → product::api, inventory::api, shop::api, user::api, cart::api, cart::events
+order  → product::api, inventory::api, shop::api, user::api
 payment → order::api, order::events
 admin  → shop::events, shop::api, auth::api
 ```
 
-事件流：`cart.CartCheckedOutEvent`（结算）→ order 消费；`order` 事件 → payment 消费；`shop` 事件 → admin 消费（入驻审核）。事件发布走 Spring Modulith 事件总线（`infra/events/EventPublicationRecoveryJob` 负责失败恢复）。
+事件流：`order.OrderPlacedEvent`（下单）→ cart 消费清理已购 SKU；`order` 退款类事件 → payment 消费；`shop` 事件 → admin 消费（入驻审核）。事件发布走 Spring Modulith 事件总线（`infra/events/EventPublicationRecoveryJob` 负责失败恢复）。
 
 模块内部三层到底：`controller → service → mapper`，命名契约见 apps/server/AGENTS.md。
 
@@ -75,9 +75,10 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
 ### 4.4 下单数据流（示意，以代码为准）
 
 ```
-买家端购物车（cart 模块，Redis/PG）
-  → 结算：cart 发 CartCheckedOutEvent
-  → order 模块消费事件创建订单（依赖 cart::api、inventory::api 扣减、user::api 收货地址）
+买家端购物车（cart 模块，PG）
+  → 结算：前端把勾选条目归约成 SKU 行（skuId + 件数）提交 /orders/preview 与 /orders/create
+  → order 模块按 product::api 重算价格、inventory::api 冻结库存、user::api 取收货地址快照，按店拆单落库
+  → order 发 OrderPlacedEvent，cart 同事务监听按 userId + skuId 删已购条目
   → payment 模块消费 order 事件 / 调 order::api 完成支付
   → 履约态流转（PAID → 待发货 → …，前端投影见 apps/web/src/shared/order-status.ts）
 ```

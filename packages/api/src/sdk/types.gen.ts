@@ -515,11 +515,14 @@ export type ApplyAfterSaleRequest = {
     reason?: string;
 };
 
+export type OrderLineRequest = {
+    skuId: string;
+    quantity: number;
+};
+
 export type PreviewOrderRequest = {
     addressId?: string;
-    cartItemIds?: Array<string>;
-    buySkuId?: string;
-    buyQuantity?: number;
+    lines: Array<OrderLineRequest>;
 };
 
 export type Address = {
@@ -569,9 +572,7 @@ export type UnavailableLine = {
 
 export type CreateOrderRequest = {
     addressId: string;
-    cartItemIds?: Array<string>;
-    buySkuId?: string;
-    buyQuantity?: number;
+    lines: Array<OrderLineRequest>;
     buyerMessage?: string;
 };
 

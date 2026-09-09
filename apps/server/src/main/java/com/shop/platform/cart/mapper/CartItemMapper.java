@@ -67,4 +67,11 @@ public interface CartItemMapper extends BaseMapper<CartItem> {
                 .eq(CartItem::getUserId, userId)
                 .in(CartItem::getId, ids));
     }
+
+    /** 下单清理（OrderPlacedEvent 监听）：按本人归属 + SKU 集合删，不依赖条目 id；userId 圈定防误删他人条目 */
+    default int deleteByUserAndSkuIds(UUID userId, Collection<UUID> skuIds) {
+        return delete(new LambdaQueryWrapper<CartItem>()
+                .eq(CartItem::getUserId, userId)
+                .in(CartItem::getSkuId, skuIds));
+    }
 }

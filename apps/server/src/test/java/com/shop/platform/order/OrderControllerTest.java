@@ -64,7 +64,7 @@ class OrderControllerTest extends WebControllerTestSupport {
                             .with(userAuth(userId))
                             .content(
                                     """
-                                {"addressId": "%s", "buySkuId": "%s", "buyQuantity": 1}
+                                {"addressId": "%s", "lines": [{"skuId": "%s", "quantity": 1}]}
                                 """
                                             .formatted(UUID.randomUUID(), skuId)))
                     .andExpect(status().isCreated());
@@ -76,7 +76,7 @@ class OrderControllerTest extends WebControllerTestSupport {
                             .with(userAuth(userId))
                             .content(
                                     """
-                                {"buySkuId": "%s", "buyQuantity": 1}
+                                {"lines": [{"skuId": "%s", "quantity": 1}]}
                                 """
                                             .formatted(skuId)))
                     .andExpect(status().is(422))

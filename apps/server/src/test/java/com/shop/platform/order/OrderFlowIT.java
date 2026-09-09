@@ -11,6 +11,7 @@ import com.shop.platform.common.PageResult;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
+import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
@@ -68,7 +69,7 @@ class OrderFlowIT extends IntegrationTestSupport {
 
     /** 建一个在售 SKU：单价 1000 分，库存 5 */
     private void seedSku(int stock) {
-        // service 造的数据无法预知主键，按 userId 圈定登记清理（含下单发布的 CartCheckedOutEvent 登记行）
+        // service 造的数据无法预知主键，按 userId 圈定登记清理（含下单发布的 OrderPlacedEvent 登记行）
         db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
         db.onDelete(
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
@@ -100,7 +101,7 @@ class OrderFlowIT extends IntegrationTestSupport {
     }
 
     private CreateOrderRequest buyNow(int quantity) {
-        return new CreateOrderRequest(addressId, null, skuId, quantity, null);
+        return new CreateOrderRequest(addressId, List.of(new OrderLineRequest(skuId, quantity)), null);
     }
 
     @Test
@@ -108,7 +109,8 @@ class OrderFlowIT extends IntegrationTestSupport {
         seedSku(5);
 
         // 1. 预览：一组一行，应付 = 1000 × 2
-        CheckoutPreview preview = orderService.preview(userId, new PreviewOrderRequest(null, null, skuId, 2));
+        CheckoutPreview preview =
+                orderService.preview(userId, new PreviewOrderRequest(null, List.of(new OrderLineRequest(skuId, 2))));
         assertEquals(1, preview.groups().size());
         assertEquals(0, preview.unavailable().size());
         assertEquals(2000L, preview.totalPayAmount().amount());

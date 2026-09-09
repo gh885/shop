@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.shop.platform.common.Money;
+import com.shop.platform.order.dto.CreateOrderRequest;
+import com.shop.platform.order.dto.OrderLineRequest;
+import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.List;
 import java.util.UUID;
@@ -12,8 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * 购物车模式结算集成验证（真库）：CartCheckedOutEvent 监听在订单创建事务内同步删除被购条目
- * （订单在，条目必不在），这是「只有真库能证明」的跨模块一致性——mock 掉 cart 模块时整条链路是假的。
+ * 下单清购物车集成验证（真库）：cart 监听 order 的 OrderPlacedEvent，在订单创建事务内同步按 userId + skuId
+ * 删除被购条目（订单在，条目必不在），这是「只有真库能证明」的跨模块一致性——mock 掉 cart 模块时整条链路是假的。
  * 同时钉死缺货归因（STOCK_SHORTAGE）与真实库存投影的一致性。
  */
 @SpringBootTest
@@ -67,20 +70,22 @@ class CartCheckoutIT extends IntegrationTestSupport {
         return count;
     }
 
+    private static List<OrderLineRequest> lines(UUID skuId, int quantity) {
+        return List.of(new OrderLineRequest(skuId, quantity));
+    }
+
     @Test
-    void 结算后购物车条目同步清除_未结算的保留() {
+    void 下单后车里同款SKU条目同步清除_未买的保留() {
         UUID sellableSku = db.seedOnSaleSku(shopId, 1000L, 5);
         registerOrderCleanup();
         UUID bought = seedCartItem(sellableSku, 2);
         UUID kept = seedCartItem(db.seedOnSaleSku(shopId, 500L, 9), 1);
 
-        var created = orderService.create(
-                userId,
-                new com.shop.platform.order.dto.CreateOrderRequest(addressId, List.of(bought), null, null, null));
+        var created = orderService.create(userId, new CreateOrderRequest(addressId, lines(sellableSku, 2), null));
 
-        // 一单一行：只买了勾选的那条
+        // 一单一行：只买了这一个 SKU
         assertEquals(1, created.size());
-        assertEquals(1, cartCount()); // 被购条目已随事务删除，未购的保留
+        assertEquals(1, cartCount()); // 同款 SKU 的条目已随事务删除，未买的保留
 
         Integer remaining = jdbc.queryForObject(
                 "SELECT count(*) FROM cart.items WHERE id = ?::uuid", Integer.class, kept.toString());
@@ -92,16 +97,15 @@ class CartCheckoutIT extends IntegrationTestSupport {
     }
 
     @Test
-    void 预览_缺货行归因STOCK_SHORTAGE_有效行进分组() throws Exception {
+    void 预览_缺货行归因STOCK_SHORTAGE_有效行进分组() {
         UUID ok = db.seedOnSaleSku(shopId, 1000L, 5);
         UUID shortage = db.seedOnSaleSku(shopId, 300L, 1); // 库存 1，要买 2 → 缺货
         registerOrderCleanup();
-        UUID okItem = seedCartItem(ok, 2);
-        UUID shortItem = seedCartItem(shortage, 2);
 
         var preview = orderService.preview(
                 userId,
-                new com.shop.platform.order.dto.PreviewOrderRequest(addressId, List.of(okItem, shortItem), null, null));
+                new PreviewOrderRequest(
+                        addressId, List.of(new OrderLineRequest(ok, 2), new OrderLineRequest(shortage, 2))));
 
         // 有效行一组：金额 = 1000×2；运费 V1 恒 0
         assertEquals(1, preview.groups().size());
@@ -112,22 +116,5 @@ class CartCheckoutIT extends IntegrationTestSupport {
                 com.shop.platform.order.service.CheckoutPreview.UnavailableLine.CAUSE_STOCK_SHORTAGE,
                 preview.unavailable().getFirst().cause());
         assertEquals(Money.cny(2000), preview.totalPayAmount());
-    }
-
-    @Test
-    void 购物车与立即购买混用参数_400拒绝() {
-        UUID skuId = db.seedOnSaleSku(shopId, 1000L, 5);
-        registerOrderCleanup();
-        UUID item = seedCartItem(skuId, 1);
-
-        assertThatBothModesRejected(item, skuId);
-    }
-
-    private void assertThatBothModesRejected(UUID item, UUID skuId) {
-        org.junit.jupiter.api.Assertions.assertThrows(
-                com.shop.platform.common.BusinessException.class,
-                () -> orderService.create(
-                        userId,
-                        new com.shop.platform.order.dto.CreateOrderRequest(addressId, List.of(item), skuId, 1, null)));
     }
 }
