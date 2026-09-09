@@ -29,7 +29,6 @@ shop:
         cors-allowed-origins: ${SHOP_WEB_CORS_ALLOWED_ORIGINS}
 
     auth:
-        enabled: true
         # 短信通道：生产禁止 dev（固定码 666666 后门）。接入真实 SmsChannel 实现后再上线；
         # 未实现真实通道时该占位符会导致 DevSmsChannel 不装配——发码接口启动即失败而非静默降级
         sms-channel: ${SHOP_AUTH_SMS_CHANNEL}

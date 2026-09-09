@@ -53,7 +53,6 @@ product.categories (
 
 ```
 product/
-├── ProductModuleConfig.java   ← @ConditionalOnProperty(shop.product.enabled)
 ├── package-info.java          ← @ApplicationModule
 ├── controller/                ← 后续：分类树查询、管理端 CRUD
 ├── service/                   ← 后续：层级校验、移动、禁用级联

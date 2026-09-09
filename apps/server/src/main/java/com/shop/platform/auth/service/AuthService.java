@@ -1,6 +1,5 @@
 package com.shop.platform.auth.service;
 
-import com.shop.platform.auth.AuthModuleConfig;
 import com.shop.platform.auth.mapper.User;
 import com.shop.platform.auth.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
@@ -67,10 +66,10 @@ public class AuthService {
      * <p>必须是<b>合法</b> BCrypt 串且代价与 {@code passwordEncoder} 相同：Spring 的 BCryptPasswordEncoder
      * 先用正则 {@code \$2[ayb]\$\d{2}\$[./0-9A-Za-z]{53}} 校验格式，不合法就打条 WARN 直接 return false
      * ——KDF 根本不执行，等时防护形同虚设（曾因手写 46 位零串踩过：占位 139µs vs 真实 179ms，差 1289 倍）。
-     * 故这里由编码器现算而非硬编码字面量，代价因子跟着 {@link AuthModuleConfig#BCRYPT_STRENGTH} 走，不会失配。
+     * 故这里由编码器现算而非硬编码字面量，代价因子跟着 {@link PasswordEncoderConfig#BCRYPT_STRENGTH} 走，不会失配。
      * 格式不变式由 AuthServiceTest 钉死。
      */
-    static final String DUMMY_PASSWORD_HASH = new BCryptPasswordEncoder(AuthModuleConfig.BCRYPT_STRENGTH)
+    static final String DUMMY_PASSWORD_HASH = new BCryptPasswordEncoder(PasswordEncoderConfig.BCRYPT_STRENGTH)
             .encode("dummy-placeholder-never-matches-any-real-password");
 
     private final UserMapper userMapper;

@@ -2,7 +2,6 @@ package com.shop.platform.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.shop.platform.auth.AuthModuleConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -29,12 +28,12 @@ class DummyPasswordHashTest {
     @Test
     void 占位哈希代价与编码器一致() {
         // 代价不一致时两条路径耗时仍可区分（cost 每 +1 耗时翻倍）
-        assertThat(AuthService.DUMMY_PASSWORD_HASH).startsWith("$2a$" + AuthModuleConfig.BCRYPT_STRENGTH + "$");
+        assertThat(AuthService.DUMMY_PASSWORD_HASH).startsWith("$2a$" + PasswordEncoderConfig.BCRYPT_STRENGTH + "$");
     }
 
     @Test
     void 占位哈希不匹配任何口令() {
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(AuthModuleConfig.BCRYPT_STRENGTH);
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(PasswordEncoderConfig.BCRYPT_STRENGTH);
         // 合法串才会真正进 KDF 比对；顺带确认它不会意外放行
         assertThat(encoder.matches("anything", AuthService.DUMMY_PASSWORD_HASH)).isFalse();
         assertThat(encoder.matches("", AuthService.DUMMY_PASSWORD_HASH)).isFalse();

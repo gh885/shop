@@ -40,11 +40,11 @@
 
 #### 哈希参数
 
-| ID      | 优先级 | 状态      | 说明                                                   |
-| ------- | ------ | --------- | ------------------------------------------------------ |
-| HASH-01 | P0     | ✅ 已实现 | `AuthModuleConfig.java:18` `BCryptPasswordEncoder(12)` |
-| HASH-02 | P0     | ✅ 已实现 | BCryptPasswordEncoder 内部自动生成 16+ 字节随机 salt   |
-| HASH-03 | P0     | ✅ 已实现 | BCrypt modular crypt format 自描述                     |
+| ID      | 优先级 | 状态      | 说明                                                     |
+| ------- | ------ | --------- | -------------------------------------------------------- |
+| HASH-01 | P0     | ✅ 已实现 | `PasswordEncoderConfig.java` `BCryptPasswordEncoder(12)` |
+| HASH-02 | P0     | ✅ 已实现 | BCryptPasswordEncoder 内部自动生成 16+ 字节随机 salt     |
+| HASH-03 | P0     | ✅ 已实现 | BCrypt modular crypt format 自描述                       |
 
 #### 登录验证
 

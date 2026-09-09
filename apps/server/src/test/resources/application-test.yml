@@ -29,7 +29,3 @@ mybatis-plus:
     global-config:
         db-config:
             id-type: AUTO
-
-shop:
-    auth:
-        enabled: true

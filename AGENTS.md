@@ -34,7 +34,6 @@ server/src/main/java/com/shop/platform/
 ├── common/                       ← 共享纯包：框架无关契约（异常体系、校验、UserIdHolder）
 ├── infra/                        ← 共享纯包：跨模块技术适配（JWT、限流、Filter、MyBatis 配置）
 ├── auth/                         ← 模块 = 顶层包 = PG schema
-│   ├── AuthModuleConfig.java     ← @ConditionalOnProperty 开关
 │   ├── package-info.java         ← @ApplicationModule（消费他模块时在 allowedDependencies 显式登记）
 │   ├── controller/               ← REST 入口
 │   ├── dto/                      ← HTTP 入参（XxxRequest / XxxQuery）

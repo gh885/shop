@@ -71,11 +71,7 @@ class SmsCodeServiceTest {
     @BeforeEach
     void setUp() {
         service = new SmsCodeService(
-                redis,
-                smsChannel,
-                secretHasher,
-                devProvider,
-                new AuthProperties(true, "dev", "", IP_DISTINCT_PHONES_MAX));
+                redis, smsChannel, secretHasher, devProvider, new AuthProperties("dev", "", IP_DISTINCT_PHONES_MAX));
         lenient().when(redis.opsForValue()).thenReturn(valueOps);
         lenient().when(redis.opsForSet()).thenReturn(setOps);
         // RateLimiter 静态调用：默认窗口内计数为 1（不限流）
