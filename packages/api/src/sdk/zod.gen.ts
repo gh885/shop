@@ -476,11 +476,33 @@ export const zPaymentResponse = z.object({
     paidAt: z.iso.datetime({ offset: true }).nullable()
 });
 
-export const zAfterSaleType = z.enum(['REFUND_ONLY', 'RETURN_REFUND']);
+export const zTicketType = z.enum(['REFUND_ONLY', 'RETURN_REFUND']);
 
 export const zApplyAfterSaleRequest = z.object({
-    type: zAfterSaleType,
+    type: zTicketType,
     reason: z.string().min(0).max(200).optional()
+});
+
+export const zTicketStatus = z.enum([
+    'APPLYING',
+    'RETURNING',
+    'REFUNDED',
+    'REJECTED',
+    'CLOSED'
+]);
+
+export const zTicketResponse = z.object({
+    id: z.uuid(),
+    orderId: z.uuid(),
+    type: zTicketType,
+    status: zTicketStatus,
+    reason: z.string().nullable(),
+    refundAmount: zMoney,
+    returnLogisticsCompany: z.string().nullable(),
+    returnTrackingNo: z.string().nullable(),
+    refundedAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zOrderLineRequest = z.object({
@@ -738,7 +760,6 @@ export const zSellerOrderListItemResponse = z.object({
     orderNo: z.string(),
     status: zOrderStatus,
     afterSaleStatus: zAfterSaleStatus,
-    afterSaleType: zAfterSaleType,
     payAmount: zMoney,
     receiverName: z.string(),
     receiverPhone: z.string().nullable(),
@@ -779,12 +800,8 @@ export const zOrderDetailResponse = z.object({
     cancelReason: z.string().nullable(),
     createdAt: z.iso.datetime({ offset: true }),
     afterSaleStatus: zAfterSaleStatus,
-    afterSaleType: zAfterSaleType,
     refundAmount: zMoney,
-    afterSaleRefundedAt: z.iso.datetime({ offset: true }).nullable(),
     applyExpireAt: z.iso.datetime({ offset: true }).nullable(),
-    returnLogisticsCompany: z.string().nullable(),
-    returnTrackingNo: z.string().nullable(),
     items: z.array(zOrderItemResponse)
 });
 
@@ -1404,11 +1421,25 @@ export const zConfirmPaymentPath = z.object({
  */
 export const zConfirmPaymentResponse = zPaymentResponse;
 
+export const zGetAfterSalePath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zGetAfterSaleResponse = zTicketResponse;
+
 export const zApplyAfterSaleBody = zApplyAfterSaleRequest;
 
 export const zApplyAfterSalePath = z.object({
     id: z.uuid()
 });
+
+/**
+ * Created
+ */
+export const zApplyAfterSaleResponse = zTicketResponse;
 
 export const zPreviewOrderBody = zPreviewOrderRequest;
 
@@ -1668,6 +1699,15 @@ export const zGetShopOrderDetailPath = z.object({
  * OK
  */
 export const zGetShopOrderDetailResponse = zOrderDetailResponse;
+
+export const zGetShopAfterSalePath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zGetShopAfterSaleResponse = zTicketResponse;
 
 export const zGetOrderDetailPath = z.object({
     id: z.uuid()

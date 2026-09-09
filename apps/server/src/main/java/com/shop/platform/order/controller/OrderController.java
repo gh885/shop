@@ -8,12 +8,10 @@ import com.shop.platform.order.controller.response.CreatedOrdersResponse;
 import com.shop.platform.order.controller.response.OrderDetailResponse;
 import com.shop.platform.order.controller.response.OrderListItemResponse;
 import com.shop.platform.order.controller.response.PreviewResponse;
-import com.shop.platform.order.dto.ApplyAfterSaleRequest;
 import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
-import com.shop.platform.order.dto.ReturnGoodsRequest;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.order.service.OrderWithItems;
@@ -38,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 买家订单。全部接口要求登录（不在 JwtAuthFilter skipPaths 内，未登录 401）。
  *
  * <p>支付入口不在本控制器——POST /payments 由 payment 模块承接，本模块经事件感知支付结果。
+ * 售后入口也不在本控制器——/orders/{id}/after-sales 由 aftersale 模块承接（同 tag，SDK 里仍归 OrdersApi）。
  * 出参一律 Response record：快照字段只减不增，实体内部状态（updatedAt 等）不外泄。
  */
 @Tag(name = "orders", description = "买家订单（全部需登录）")
@@ -100,26 +99,5 @@ public class OrderController {
     @PutMapping("/{id}/receive")
     public void receiveOrder(@CurrentUser UUID userId, @PathVariable UUID id) {
         orderTransitionService.receive(userId, id);
-    }
-
-    /** 申请售后：仅「已完成」且申请窗口未过可发起（售后线独立于履约主状态机） */
-    @PostMapping("/{id}/after-sales")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void applyAfterSale(
-            @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody ApplyAfterSaleRequest req) {
-        orderTransitionService.applyAfterSale(userId, id, req.type(), req.reason());
-    }
-
-    /** 撤销售后申请：APPLYING → CLOSED */
-    @PutMapping("/{id}/after-sales/cancel")
-    public void cancelAfterSale(@CurrentUser UUID userId, @PathVariable UUID id) {
-        orderTransitionService.cancelAfterSale(userId, id);
-    }
-
-    /** 回寄退货并填写物流单：仅退货退款、退货中（RETURNING）可操作，态不变只落物流单号 */
-    @PutMapping("/{id}/after-sales/return")
-    public void returnGoods(
-            @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody ReturnGoodsRequest req) {
-        orderTransitionService.returnGoods(userId, id, req.logisticsCompany(), req.trackingNo());
     }
 }

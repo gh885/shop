@@ -78,6 +78,10 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         // 那些会被超时关单任务扫到并因无库存冻结行而报错），确保每次重启落成一致的确定性数据。
         jdbc.update(
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
+        jdbc.update("DELETE FROM aftersale.ticket_events WHERE ticket_id IN (SELECT t.id FROM aftersale.tickets t"
+                + " JOIN orders.orders o ON o.id = t.order_id WHERE o.order_no LIKE 'DEV%')");
+        jdbc.update(
+                "DELETE FROM aftersale.tickets WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
         jdbc.update("DELETE FROM orders.orders WHERE order_no LIKE 'DEV%'");
 
         UUID shopId = firstActiveShop();
@@ -229,9 +233,7 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                     ts(createdAt),
                     ts(createdAt),
                     spec.afterSaleStatus(),
-                    spec.afterSaleType(),
                     afterSaleRefund(spec, itemAmount),
-                    ts(afterSaleRefunded(spec, daysAgo)),
                     ts(
                             completed(spec, daysAgo) != null && !"NONE".equals(spec.afterSaleStatus())
                                     ? createdAt.plus(15, ChronoUnit.DAYS)
@@ -251,6 +253,30 @@ public class DevOrderDataSeeder implements ApplicationRunner {
             for (Object[] params : itemInserts) {
                 jdbc.update(itemSql(), params);
             }
+        }
+        // 售后单：orders 上只剩投影列，单据本体在 aftersale.tickets（直插一张对应状态的单 + 一条申请时间线）
+        if (affected > 0 && !"NONE".equals(spec.afterSaleStatus())) {
+            UUID ticketId = UUID.nameUUIDFromBytes(("aftersale:" + orderNo(spec)).getBytes());
+            Timestamp applied = ts(completed(spec, daysAgo));
+            jdbc.update(
+                    "INSERT INTO aftersale.tickets (id, order_id, user_id, shop_id, type, status, reason, refund_amount, currency,"
+                            + " refunded_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,'CNY',?,?,?) ON CONFLICT DO NOTHING",
+                    ticketId,
+                    orderId(spec),
+                    buyer,
+                    shopId,
+                    spec.afterSaleType(),
+                    spec.afterSaleStatus(),
+                    "演示售后：商品与描述不符",
+                    itemAmount,
+                    ts(afterSaleRefunded(spec, daysAgo)),
+                    applied,
+                    applied);
+            jdbc.update(
+                    "INSERT INTO aftersale.ticket_events (ticket_id, actor, action, note, created_at) VALUES (?,'BUYER','APPLY',?,?)",
+                    ticketId,
+                    "演示售后：商品与描述不符",
+                    applied);
         }
         // 销量投影：直插的已完成单不经 OrderTransitionService，补一笔 products.sold_count（只对本次新插入的单，重启不重复累加）
         if (affected > 0 && spec.status().equals("COMPLETED")) {
@@ -289,9 +315,9 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                   (id, order_no, user_id, shop_id, status, item_amount, shipping_fee, pay_amount, currency,
                    receiver_name, receiver_phone, receiver_province, receiver_city, receiver_district, receiver_detail,
                    buyer_message, logistics_company, tracking_no, paid_at, shipped_at, completed_at, cancelled_at,
-                   cancel_reason, pay_expire_at, created_at, updated_at, after_sale_status, after_sale_type,
-                   refund_amount, after_sale_refunded_at, apply_expire_at, ship_expire_at, receive_expire_at)
-                VALUES (?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                   cancel_reason, pay_expire_at, created_at, updated_at, after_sale_status,
+                   refund_amount, apply_expire_at, ship_expire_at, receive_expire_at)
+                VALUES (?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT DO NOTHING
                 """;
     }

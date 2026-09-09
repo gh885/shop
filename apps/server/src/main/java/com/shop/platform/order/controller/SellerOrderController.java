@@ -55,22 +55,4 @@ public class SellerOrderController {
     public void shipOrder(@CurrentShop UUID shopId, @PathVariable UUID id, @Valid @RequestBody ShipOrderRequest req) {
         orderTransitionService.ship(shopId, id, req);
     }
-
-    /** 同意售后：按售后类型分派——仅退款 APPLYING→REFUNDED 一步退；退货退款 APPLYING→RETURNING 进入退货流程 */
-    @PutMapping("/{id}/after-sales/agree")
-    public void agreeAfterSale(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        orderTransitionService.agreeAfterSale(shopId, id);
-    }
-
-    /** 拒绝售后：APPLYING → REJECTED */
-    @PutMapping("/{id}/after-sales/reject")
-    public void rejectAfterSale(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        orderTransitionService.rejectAfterSale(shopId, id);
-    }
-
-    /** 确认收到退货（仅退货退款、退货中）：RETURNING → REFUNDED，回补库存并退款 */
-    @PutMapping("/{id}/after-sales/receive")
-    public void receiveReturn(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        orderTransitionService.receiveReturn(shopId, id);
-    }
 }

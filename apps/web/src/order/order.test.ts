@@ -66,12 +66,8 @@ function makeDetailDto(opts: Partial<OrderDetailResponse> = {}): OrderDetailResp
         cancelledAt: null,
         cancelReason: null,
         afterSaleStatus: "NONE",
-        afterSaleType: "REFUND_ONLY",
         refundAmount: MONEY,
-        afterSaleRefundedAt: null,
         applyExpireAt: null,
-        returnLogisticsCompany: null,
-        returnTrackingNo: null,
         ...opts,
     }
 }

@@ -16,12 +16,11 @@ import lombok.NoArgsConstructor;
 /**
  * 订单状态审计流水 —— 每次状态转移追加一行，append-only，不回放不修改。
  *
- * <p>单一履约维度（主状态机单路径）用订单上的时间戳列够用；叠加售后动作后一次「申请 → 同意/拒绝/撤销」
- * 有多个动作，时间戳列记不下中间过程，必须靠这张账本回放历史。它不表达「哪些转移合法」
+ * <p>单一履约维度（主状态机单路径）用订单上的时间戳列够用；同一目标态可由不同动作到达（取消 / 超时关单），\n * 时间戳列说不清「谁按了什么」，必须靠这张账本回放历史。它不表达「哪些转移合法」
  * （那是 order.model 两个状态机枚举的事），只负责「谁在何时把状态从 A 改到 B、因为什么」。
  *
  * <p>三列取值都是 {@code name()}：{@code fromStatus} / {@code toStatus} 来自
- * {@code OrderStatus} 或 {@code AfterSaleStatus}（同一行必属同一状态机，写入口 OrderStatusLogWriter 的泛型约束保证），
+ * {@code OrderStatus}（售后时间线另在 aftersale.ticket_events），
  * {@code action} 来自 {@code OrderAction}，{@code actorType} 来自 {@code OrderActor}。
  */
 @Data

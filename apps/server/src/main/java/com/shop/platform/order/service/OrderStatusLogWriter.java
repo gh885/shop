@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * 订单状态审计写入 —— 所有状态变更（主状态机 / 售后状态机 / 自动处理）成功后的固定收尾。
+ * 订单状态审计写入 —— 履约主状态机的所有状态变更（买家 / 卖家 / 自动处理；售后时间线在 aftersale.ticket_events）成功后的固定收尾。
  *
  * <p>收成一个组件让各转移点共用，是为了约束「每个转移都留痕」：漏记一次历史回放就断链。
  * 调用点须在同事务内调用，且只在条件更新真的改到行之后调用——从未生效的转移不该出现在账本里。
@@ -24,7 +24,7 @@ public class OrderStatusLogWriter {
      * 记一条状态转移。
      *
      * @param from 转移前状态，首动作（下单落库）传 null
-     * @param to 转移后状态；泛型钉住 from/to 同属一条状态机，杜绝把主状态与售后状态混写一行
+     * @param to 转移后状态；泛型钉住 from/to 同属一条状态机
      * @param reason 取消原因 / 售后理由等，无则 null
      */
     public <S extends Enum<S>> void record(

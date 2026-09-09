@@ -3,7 +3,6 @@
  * <ul>
  *   <li>OrderPlacedEvent —— 下单成功；cart 按 userId + skuId 清理已购条目。
  *   <li>OrderCancelledEvent —— 已付款订单取消（买家手动 / 待发货超时）；payment 落退款单据。
- *   <li>OrderAfterSaleRefundedEvent —— 卖家同意售后并退款（售后线 APPLYING → REFUNDED）；payment 落退款单据。
  * </ul>
  * 纯通知类事件；库存增减、订单状态推进、销量累加等命令语义走 api 包同步调用，不走事件。
  */

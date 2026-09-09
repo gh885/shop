@@ -8,9 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.shop.platform.aftersale.events.AfterSaleRefundedEvent;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
-import com.shop.platform.order.events.OrderAfterSaleRefundedEvent;
 import com.shop.platform.order.events.OrderCancelledEvent;
 import com.shop.platform.payment.gateway.PaymentGateway;
 import com.shop.platform.payment.gateway.PaymentGatewayException;
@@ -71,7 +71,7 @@ class PaymentRefundListenerTest {
     @Test
     void 售后_网关受理成功_置退款并回填渠道号() {
         stubSuccessAndOutcome("MOCK-REFUND-yyy");
-        listener.onOrderAfterSaleRefunded(new OrderAfterSaleRefundedEvent(orderId, UUID.randomUUID(), Money.cny(2000)));
+        listener.onAfterSaleRefunded(new AfterSaleRefundedEvent(orderId, UUID.randomUUID(), Money.cny(2000)));
         verify(paymentMapper).refundByOrder(eq(orderId), any(), eq("MOCK-REFUND-yyy"));
     }
 
@@ -86,8 +86,8 @@ class PaymentRefundListenerTest {
     @Test
     void 售后_无成功流水_抛异常回滚() {
         when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null);
-        assertThatThrownBy(() -> listener.onOrderAfterSaleRefunded(
-                        new OrderAfterSaleRefundedEvent(orderId, UUID.randomUUID(), Money.cny(2000))))
+        assertThatThrownBy(() -> listener.onAfterSaleRefunded(
+                        new AfterSaleRefundedEvent(orderId, UUID.randomUUID(), Money.cny(2000))))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("没有可退款的支付流水");
     }
@@ -104,8 +104,8 @@ class PaymentRefundListenerTest {
     void 售后_渠道拒退_抛异常回滚() {
         when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(successPayment());
         when(paymentGateway.refund(any())).thenThrow(new PaymentGatewayException("拒退"));
-        assertThatThrownBy(() -> listener.onOrderAfterSaleRefunded(
-                        new OrderAfterSaleRefundedEvent(orderId, UUID.randomUUID(), Money.cny(2000))))
+        assertThatThrownBy(() -> listener.onAfterSaleRefunded(
+                        new AfterSaleRefundedEvent(orderId, UUID.randomUUID(), Money.cny(2000))))
                 .isInstanceOf(PaymentGatewayException.class);
         verify(paymentMapper, never()).refundByOrder(any(), any(), anyString());
     }

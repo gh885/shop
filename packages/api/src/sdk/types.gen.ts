@@ -506,14 +506,38 @@ export const PaymentStatus = {
 
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
 
-export const AfterSaleType = { REFUND_ONLY: 'REFUND_ONLY', RETURN_REFUND: 'RETURN_REFUND' } as const;
-
-export type AfterSaleType = typeof AfterSaleType[keyof typeof AfterSaleType];
-
 export type ApplyAfterSaleRequest = {
-    type: AfterSaleType;
+    type: TicketType;
     reason?: string;
 };
+
+export const TicketType = { REFUND_ONLY: 'REFUND_ONLY', RETURN_REFUND: 'RETURN_REFUND' } as const;
+
+export type TicketType = typeof TicketType[keyof typeof TicketType];
+
+export type TicketResponse = {
+    id: string;
+    orderId: string;
+    type: TicketType;
+    status: TicketStatus;
+    reason: string | null;
+    refundAmount: Money;
+    returnLogisticsCompany: string | null;
+    returnTrackingNo: string | null;
+    refundedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export const TicketStatus = {
+    APPLYING: 'APPLYING',
+    RETURNING: 'RETURNING',
+    REFUNDED: 'REFUNDED',
+    REJECTED: 'REJECTED',
+    CLOSED: 'CLOSED'
+} as const;
+
+export type TicketStatus = typeof TicketStatus[keyof typeof TicketStatus];
 
 export type OrderLineRequest = {
     skuId: string;
@@ -781,7 +805,6 @@ export type SellerOrderListItemResponse = {
     orderNo: string;
     status: OrderStatus;
     afterSaleStatus: AfterSaleStatus;
-    afterSaleType: AfterSaleType;
     payAmount: Money;
     receiverName: string;
     receiverPhone: string | null;
@@ -817,12 +840,8 @@ export type OrderDetailResponse = {
     cancelReason: string | null;
     createdAt: string;
     afterSaleStatus: AfterSaleStatus;
-    afterSaleType: AfterSaleType;
     refundAmount: Money;
-    afterSaleRefundedAt: string | null;
     applyExpireAt: string | null;
-    returnLogisticsCompany: string | null;
-    returnTrackingNo: string | null;
     items: Array<OrderItemResponse>;
 };
 
@@ -1952,6 +1971,24 @@ export type ConfirmPaymentResponses = {
 
 export type ConfirmPaymentResponse = ConfirmPaymentResponses[keyof ConfirmPaymentResponses];
 
+export type GetAfterSaleData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/orders/{id}/after-sales';
+};
+
+export type GetAfterSaleResponses = {
+    /**
+     * OK
+     */
+    200: TicketResponse;
+};
+
+export type GetAfterSaleResponse = GetAfterSaleResponses[keyof GetAfterSaleResponses];
+
 export type ApplyAfterSaleData = {
     body: ApplyAfterSaleRequest;
     path: {
@@ -1965,8 +2002,10 @@ export type ApplyAfterSaleResponses = {
     /**
      * Created
      */
-    201: unknown;
+    201: TicketResponse;
 };
+
+export type ApplyAfterSaleResponse = ApplyAfterSaleResponses[keyof ApplyAfterSaleResponses];
 
 export type PreviewOrderData = {
     body: PreviewOrderRequest;
@@ -2593,6 +2632,24 @@ export type GetShopOrderDetailResponses = {
 };
 
 export type GetShopOrderDetailResponse = GetShopOrderDetailResponses[keyof GetShopOrderDetailResponses];
+
+export type GetShopAfterSaleData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/orders/{id}/after-sales';
+};
+
+export type GetShopAfterSaleResponses = {
+    /**
+     * OK
+     */
+    200: TicketResponse;
+};
+
+export type GetShopAfterSaleResponse = GetShopAfterSaleResponses[keyof GetShopAfterSaleResponses];
 
 export type GetOrderDetailData = {
     body?: never;

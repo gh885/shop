@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
 import com.shop.platform.order.model.AfterSaleStatus;
-import com.shop.platform.order.model.AfterSaleType;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -49,13 +48,10 @@ public class Order {
     /** 履约主状态机：待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消（规则见 OrderStatus） */
     private OrderStatus status;
 
-    /** 售后状态机（独立线，不挤占 status）：NONE → APPLYING →（REFUNDED / REJECTED / CLOSED），默认 NONE */
+    /** 售后投影（aftersale 每次转移经 order :: api 写回）：最近一张售后单的状态，NONE = 从未售后；单据真相在 aftersale.tickets */
     private AfterSaleStatus afterSaleStatus;
 
-    /** 售后类型（无售后时为 NULL） */
-    private AfterSaleType afterSaleType;
-
-    /** 售后退款金额口径（分）；资金态在 payment.payments，订单只记「该退多少」 */
+    /** 售后退款金额口径（分，aftersale 退款完成时写回）；资金态在 payment.payments，订单只记「该退多少」 */
     private Long refundAmount;
 
     /** 商品总额（Σ 行小计），分。DB CHECK 钉死 pay_amount = item_amount + shipping_fee */
@@ -123,9 +119,6 @@ public class Order {
     /** 取消原因：买家填写或系统自动取消的固定文案 */
     private String cancelReason;
 
-    /** 售后退款完成时刻 */
-    private OffsetDateTime afterSaleRefundedAt;
-
     // ---- 到期时刻：各由对应动作回填，定时任务按部分索引扫到期（窗口长度见 OrderTimeouts） ----
 
     /** 待付款截止（下单时回填），到期自动关单 */
@@ -137,14 +130,8 @@ public class Order {
     /** 确认收货截止（发货时回填），到期自动确认收货 */
     private OffsetDateTime receiveExpireAt;
 
-    /** 售后申请截止（收货时回填），过期不再受理售后申请 */
+    /** 售后申请截止（收货时回填），过期不再受理售后申请（aftersale 经 order :: api 读此窗口） */
     private OffsetDateTime applyExpireAt;
-
-    /** 退货物流公司（买家回寄退货时填写，仅退货退款路径） */
-    private String returnLogisticsCompany;
-
-    /** 退货运单号（买家回寄退货时填写，仅退货退款路径） */
-    private String returnTrackingNo;
 
     /** 创建时间，MyBatis-Plus 插入时自动填充 */
     @TableField(fill = FieldFill.INSERT)

@@ -1,8 +1,8 @@
 package com.shop.platform.payment.service;
 
+import com.shop.platform.aftersale.events.AfterSaleRefundedEvent;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
-import com.shop.platform.order.events.OrderAfterSaleRefundedEvent;
 import com.shop.platform.order.events.OrderCancelledEvent;
 import com.shop.platform.payment.gateway.PaymentGateway;
 import com.shop.platform.payment.gateway.PaymentGatewayException;
@@ -15,7 +15,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 退款监听 —— order 侧两条「该退钱了」的通知，先经 {@link PaymentGateway#refund} 提交给渠道，
+ * 退款监听 —— order（已付款单取消）与 aftersale（售后退款）两条「该退钱了」的通知，先经 {@link PaymentGateway#refund} 提交给渠道，
  * 渠道受理后再把成功流水置 REFUNDED（退款单成为真资产，不再只是改状态）。
  * 一律同步同事务（{@code @EventListener} 而非 AFTER_COMMIT）：退款写不成就让订单侧一起回滚。
  *
@@ -51,7 +51,7 @@ public class PaymentRefundListener {
     }
 
     @EventListener
-    public void onOrderAfterSaleRefunded(OrderAfterSaleRefundedEvent event) {
+    public void onAfterSaleRefunded(AfterSaleRefundedEvent event) {
         Payment success = Validate.notNull(paymentMapper.selectSuccessByOrder(event.orderId()), "该订单没有可退款的支付流水");
         String refundNo = backendRefund(success, "售后退款", true);
         log.info(

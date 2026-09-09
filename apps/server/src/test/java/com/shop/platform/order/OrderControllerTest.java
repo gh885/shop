@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  * 买家订单接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
  *
  * <p>只断言 HTTP 边界独有的失败面：status、鉴权守卫（401）、请求入参校验（422）、方法路由与参数绑定（verify）。
- * 业务状态机与结算分组归 OrderTest / AfterSaleActionTest / CheckoutResolverTest / OrderFlowIT；响应形状由 OpenAPI→SDK 钉死。
+ * 业务状态机与结算分组归 OrderTest / aftersale 的 TicketActionTest / CheckoutResolverTest / OrderFlowIT；响应形状由 OpenAPI→SDK 钉死。
  */
 class OrderControllerTest extends WebControllerTestSupport {
 

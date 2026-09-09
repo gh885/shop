@@ -35,11 +35,12 @@ product → inventory::api
 cart   → product::api, inventory::api, shop::api, order::events
 favorite → product::api
 order  → product::api, inventory::api, shop::api, user::api
-payment → order::api, order::events
+aftersale → order::api, inventory::api
+payment → order::api, order::events, aftersale::events
 admin  → shop::events, shop::api, auth::api
 ```
 
-事件流：`order.OrderPlacedEvent`（下单）→ cart 消费清理已购 SKU；`order` 退款类事件 → payment 消费；`shop` 事件 → admin 消费（入驻审核）。事件发布走 Spring Modulith 事件总线（`infra/events/EventPublicationRecoveryJob` 负责失败恢复）。
+事件流：`order.OrderPlacedEvent`（下单）→ cart 消费清理已购 SKU；`order.OrderCancelledEvent`（已付款单取消）与 `aftersale.AfterSaleRefundedEvent`（售后退款）→ payment 消费落退款单据；`shop` 事件 → admin 消费（入驻审核）。事件发布走 Spring Modulith 事件总线（`infra/events/EventPublicationRecoveryJob` 负责失败恢复）。
 
 模块内部三层到底：`controller → service → mapper`，命名契约见 apps/server/AGENTS.md。
 
@@ -106,15 +107,15 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
 
 前端 domain 按**界面**组织，与后端模块不是 1:1（如"地址"属于界面上独立的 domain，后端却是 user 模块的 `/user/addresses`）。API 前缀与模块对应：
 
-| API 前缀                | 后端模块             | 前端主要消费方                                                |
-| ----------------------- | -------------------- | ------------------------------------------------------------- |
-| `/auth/*`               | auth                 | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）    |
-| `/user/*`               | user                 | web（含收货地址 domain）                                      |
-| `/cart/*`               | cart                 | web 的 cart domain                                            |
-| `/orders/*` `/payments` | order / payment      | web 的 order、checkout domain                                 |
-| `/api/*`                | product、cms、search | web 的 product / home domain；admin 的类目、CMS               |
-| `/shops/*` `/seller/*`  | shop                 | seller 全域（X-Shop-Id 上下文头）                             |
-| `/admin/*`              | admin                | admin 全域（权限拦截见 docs/conventions/permission-codes.md） |
+| API 前缀                | 后端模块                    | 前端主要消费方                                                                  |
+| ----------------------- | --------------------------- | ------------------------------------------------------------------------------- |
+| `/auth/*`               | auth                        | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）                      |
+| `/user/*`               | user                        | web（含收货地址 domain）                                                        |
+| `/cart/*`               | cart                        | web 的 cart domain                                                              |
+| `/orders/*` `/payments` | order / aftersale / payment | web 的 order、checkout domain（`/orders/{id}/after-sales/*` 由 aftersale 承接） |
+| `/api/*`                | product、cms、search        | web 的 product / home domain；admin 的类目、CMS                                 |
+| `/shops/*` `/seller/*`  | shop                        | seller 全域（X-Shop-Id 上下文头）                                               |
+| `/admin/*`              | admin                       | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                   |
 
 ## 7. 文档地图
 

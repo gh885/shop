@@ -1,6 +1,8 @@
 package com.shop.platform.order.api;
 
 import com.shop.platform.order.model.OrderStatus;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -32,5 +34,30 @@ public class OrderReadQuery {
                         orderId)
                 .stream()
                 .findFirst();
+    }
+
+    /** 单笔订单的售后视图：aftersale 申请前置校验（归属 / 已完成 / 窗口未过）与退款口径，查无此单返回 empty */
+    public Optional<OrderAfterSaleView> afterSaleViewById(UUID orderId) {
+        return jdbc
+                .query(
+                        "SELECT user_id, shop_id, status, apply_expire_at, pay_amount, currency FROM orders.orders WHERE id = ?",
+                        (rs, i) -> new OrderAfterSaleView(
+                                rs.getObject("user_id", UUID.class),
+                                rs.getObject("shop_id", UUID.class),
+                                OrderStatus.valueOf(rs.getString("status")),
+                                rs.getObject("apply_expire_at", OffsetDateTime.class),
+                                rs.getObject("pay_amount", Long.class),
+                                rs.getString("currency")),
+                        orderId)
+                .stream()
+                .findFirst();
+    }
+
+    /** 订单行项（SKU + 件数）：aftersale 退货收货回补库存用 */
+    public List<OrderLineView> linesById(UUID orderId) {
+        return jdbc.query(
+                "SELECT sku_id, quantity FROM orders.items WHERE order_id = ?",
+                (rs, i) -> new OrderLineView(rs.getObject("sku_id", UUID.class), rs.getInt("quantity")),
+                orderId);
     }
 }

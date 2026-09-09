@@ -44,7 +44,7 @@ shop/
 │       └── src/main/java/com/shop/platform/
 │           ├── common/         # 共享纯包：异常体系、Money/PhoneNumber、UserIdHolder 等（框架无关）
 │           ├── infra/          # 共享纯包：JWT、限流、Filter、MyBatis 配置等跨模块技术适配
-│           └── auth/ product/ inventory/ cart/ favorite/ order/ payment/ cms/ shop/ admin/ user/
+│           └── auth/ product/ inventory/ cart/ favorite/ order/ aftersale/ payment/ cms/ shop/ admin/ user/
 │                              # 业务模块 = 顶层包 = PG schema；内部 controller → dto → service → mapper 三层到底
 ├── packages/
 │   ├── api/                    # TS SDK（@hey-api/openapi-ts 从 openapi/api-docs.json 生成）+ zod 契约校验 + Money/错误码

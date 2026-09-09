@@ -12,15 +12,11 @@ import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.ShipOrderRequest;
-import com.shop.platform.order.events.OrderAfterSaleRefundedEvent;
 import com.shop.platform.order.events.OrderCancelledEvent;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
-import com.shop.platform.order.model.AfterSaleAction;
-import com.shop.platform.order.model.AfterSaleStatus;
-import com.shop.platform.order.model.AfterSaleType;
 import com.shop.platform.order.model.OrderAction;
 import com.shop.platform.order.model.OrderActor;
 import com.shop.platform.order.model.OrderStatus;
@@ -32,7 +28,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,13 +38,13 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 订单状态变更的唯一去处 —— 买家、卖家、系统三类发起方的单笔事务落点。查询与下单在 {@link OrderService}。
  *
- * <p>转移合法性（状态集与转移表）定义在 {@code order.model} 的 {@link OrderStatus}（履约主线）与
- * {@link AfterSaleStatus}（售后线，与主线正交）；本类只负责驱动：归属校验 → 条件更新（WHERE 源态 IN
+ * <p>转移合法性（状态集与转移表）定义在 {@code order.model} 的 {@link OrderStatus}（履约主线）；
+ * 售后线已独立为 aftersale 模块（AfterSaleService），不在本类。本类只负责驱动：归属校验 → 条件更新（WHERE 源态 IN
  * sourcesOf(目标态)，影响行数即并发闸门）→ 库存/退款协同 → 审计流水。
  *
  * <p>同一目标态的多个入口共用一个私有落点，行为差异只在参数上：取消收在 {@link #cancelFrom}
  * （买家取消 / 待付款超时 / 待发货超时，各给不同的合法源态集与审计动作），完成收在 {@link #complete}
- * （买家确认收货 / 超时自动收货），售后四动作收在 {@link #advanceAfterSale}（差异在 {@link AfterSaleAction} 一张表）。
+ * （买家确认收货 / 超时自动收货）。
  * 买家入口抢不到转移报 409，系统入口返回 false 让位——正确性不依赖加锁。
  *
  * <p>超时批量扫描（非事务）在 {@link OrderTimeoutService}：与本类的单笔事务方法分属两个 bean，
@@ -154,83 +149,7 @@ public class OrderTransitionService {
         return complete(order.getId(), OrderAction.AUTO_RECEIVE, OrderActor.SYSTEM);
     }
 
-    // ========== 售后状态机 ==========
-
-    /** 买家申请售后（仅退款 / 退货退款，申请时定 type）：仅「已完成 + 售后线空闲 + 申请窗口未过」可发起 */
-    @Transactional
-    public void applyAfterSale(UUID userId, UUID orderId, AfterSaleType type, String reason) {
-        orderMapper.requireOwned(userId, orderId);
-        advanceAfterSale(orderId, AfterSaleAction.APPLY, reason, update -> update.eq(Order::getStatus, COMPLETED)
-                .gt(Order::getApplyExpireAt, OffsetDateTime.now())
-                .set(Order::getAfterSaleType, type));
-    }
-
-    /**
-     * 卖家同意售后，按已申请的 {@code type} 分派：
-     * <ul>
-     *   <li>仅退款：APPLYING → REFUNDED 一步到位（同意即退款，无「已同意待退款」悬挂态），无库存回补。</li>
-     *   <li>退货退款：APPLYING → RETURNING（进入退货流程，暂不退款），等买家回寄、卖家收货后再退。</li>
-     * </ul>
-     * 退款由 payment 同步监听同事务落库，落不成则整单回滚、售后线停回原态 —— 不假报「已退款」。
-     */
-    @Transactional
-    public void agreeAfterSale(UUID shopId, UUID orderId) {
-        Order order = orderMapper.requireShopOwned(shopId, orderId);
-        if (order.getAfterSaleType() == AfterSaleType.RETURN_REFUND) {
-            advanceAfterSale(orderId, AfterSaleAction.AGREE_RETURN, null);
-            return;
-        }
-        // 仅退款：转移成功后立即退款（见 advanceAfterSale 之上的 completeRefund 注释）
-        advanceAfterSale(
-                orderId,
-                AfterSaleAction.REFUND,
-                null,
-                update -> update.set(Order::getRefundAmount, order.getPayAmount()));
-        completeRefund(order);
-    }
-
-    /**
-     * 买家回寄并填写退货物流单（仅退货退款、处于 RETURNING 的可操作）：态不变，只落物流单号并记审计。
-     */
-    @Transactional
-    public void returnGoods(UUID userId, UUID orderId, String company, String trackingNo) {
-        orderMapper.requireOwned(userId, orderId);
-        advanceAfterSale(orderId, AfterSaleAction.RETURN_GOODS, null, update -> update.set(
-                        Order::getReturnLogisticsCompany, company)
-                .set(Order::getReturnTrackingNo, trackingNo));
-    }
-
-    /**
-     * 卖家确认收到退货（仅退货退款、处于 RETURNING 的可操作）：RETURNING → REFUNDED，
-     * 同步回补总库存（货真的回来了）并退款。仅退款路径没有本步——它同意即退，不回补库存。
-     */
-    @Transactional
-    public void receiveReturn(UUID shopId, UUID orderId) {
-        Order order = orderMapper.requireShopOwned(shopId, orderId);
-        advanceAfterSale(
-                orderId,
-                AfterSaleAction.RECEIVE_RETURN,
-                null,
-                update -> update.set(Order::getRefundAmount, order.getPayAmount()));
-        stockCommand.restock(orderId, toStockLines(orderItemMapper.selectByOrderId(orderId)));
-        completeRefund(order);
-    }
-
-    /** 卖家拒绝售后：APPLYING → REJECTED（终态） */
-    @Transactional
-    public void rejectAfterSale(UUID shopId, UUID orderId) {
-        orderMapper.requireShopOwned(shopId, orderId);
-        advanceAfterSale(orderId, AfterSaleAction.REJECT, null);
-    }
-
-    /** 买家撤销售后申请：APPLYING → CLOSED（终态） */
-    @Transactional
-    public void cancelAfterSale(UUID userId, UUID orderId) {
-        orderMapper.requireOwned(userId, orderId);
-        advanceAfterSale(orderId, AfterSaleAction.CLOSE, null);
-    }
-
-    // ========== 私有：三个共用落点 ==========
+    // ========== 私有：两个共用落点 ==========
 
     /**
      * 取消的唯一落点（买家取消 / 待付款超时 / 待发货超时共用）。
@@ -283,42 +202,6 @@ public class OrderTransitionService {
         productCommand.addSold(orderItemMapper.selectByOrderId(orderId).stream()
                 .collect(Collectors.toMap(OrderItem::getProductId, OrderItem::getQuantity, Integer::sum)));
         return true;
-    }
-
-    /** 售后线转移（无附加列的动作，from == target 也适用：如 RETURN_GOODS 只填物流不改态） */
-    private void advanceAfterSale(UUID orderId, AfterSaleAction action, String reason) {
-        advanceAfterSale(orderId, action, reason, update -> {});
-    }
-
-    /**
-     * 售后线转移的唯一落点：条件更新（WHERE after_sale_status = action.from()）→ 影响行数闸门 → 审计。
-     * 每个动作的合法前态、目标态、审计动作、发起方、冲突文案全在 {@link AfterSaleAction} 一张表里，
-     * extraSets 承载该动作附带的列（申请填类型、同意/收货填退款额、回寄填物流单）。
-     * 副作用（退款走网关、退货回补库存、发事件）不在状态转移内，由调用方在成功后编排。
-     */
-    private void advanceAfterSale(
-            UUID orderId, AfterSaleAction action, String reason, Consumer<LambdaUpdateWrapper<Order>> extraSets) {
-        AfterSaleStatus from = action.from();
-        LambdaUpdateWrapper<Order> update =
-                condition(orderId).eq(Order::getAfterSaleStatus, from).set(Order::getAfterSaleStatus, action.target());
-        extraSets.accept(update);
-        Validate.isTrue(orderMapper.update(null, update) == 1, 409, action.conflictMessage());
-        statusLogWriter.record(orderId, from, action.target(), action.auditAction(), action.actor(), reason);
-    }
-
-    /**
-     * 退款收尾：通知 payment 经网关落退款单据（同步同事务，落不成整单回滚）后回填退款完成时刻。
-     * 金额口径（refundAmount）已在转移时随订单快照记下，这里只补「退没退成」的时刻——
-     * 事件同步返回即 payment 已把该单成功流水转 REFUNDED（或抛 409 令整体回滚），列值始终诚实。
-     */
-    private void completeRefund(Order order) {
-        events.publishEvent(
-                new OrderAfterSaleRefundedEvent(order.getId(), order.getUserId(), order.payAmountAsMoney()));
-        orderMapper.update(
-                null,
-                new LambdaUpdateWrapper<Order>()
-                        .eq(Order::getId, order.getId())
-                        .set(Order::getAfterSaleRefundedAt, OffsetDateTime.now()));
     }
 
     // ========== 私有：更新辅助 ==========

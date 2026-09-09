@@ -95,7 +95,7 @@ aftersale.tickets        售后单：order_id, order_item_id(可空=整单), typ
 aftersale.ticket_events  时间线：ticket_id, actor, action, note, created_at
 ```
 
-order 只保留 `refund_amount` 汇总口径，由 aftersale 经 `order::api` 写回。
+order 只保留 `refund_amount` 汇总口径与 `after_sale_status` 投影（最近一张单的状态，订单列表/详情要展示它，而 order 不能反向读 aftersale——理由同销量），两者由 aftersale 经 `order::api` 的 `OrderCommand.syncAfterSale` 写回。`apply_expire_at` 是订单自己的申请窗口，仍归 order。
 
 ---
 
@@ -126,7 +126,7 @@ README 说"可随时拆分为微服务"。实际上模块之间大量是**同事
 
 每步完成后 `ModularityTests` 与 `NamingRulesTest` 必须仍然绿，`allowedDependencies` 登记同步删减。步 7 完成后更新 [docs/architecture.md §2](../architecture.md) 的依赖图与本文 §1.1 的"对应现状"列。
 
-进度（2026-09-09）：步 1 `b87a150`、步 2 `6346b9d`、步 3 `39ef7d9`、步 6 `7982aaa`、步 5（本次）已合入 main；步 4、7 未开始。步 3 顺带修了发货路径两个既有缺陷（`3948862`）。
+进度（2026-09-09）：步 1 `b87a150`、步 2 `6346b9d`、步 3 `39ef7d9`、步 6 `7982aaa`、步 5 `7c0cb3a`、步 4（本次）已合入 main；步 7 未开始。步 3 顺带修了发货路径两个既有缺陷（`3948862`）。
 
 ---
 

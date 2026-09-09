@@ -1,4 +1,4 @@
-package com.shop.platform.order.dto;
+package com.shop.platform.aftersale.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

@@ -5,7 +5,6 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 import com.shop.platform.common.Money;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
-import com.shop.platform.order.model.AfterSaleType;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.OrderWithItems;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,6 +16,7 @@ import java.util.function.Function;
 /**
  * 订单详情出参 —— 买家侧与卖家侧共用一个契约：字段本就互为镜像（卖方视角仅动作集来源不同，
  * payExpireAt 随载荷带出对卖家无害），新增字段只改这一处，两侧前端同步演进。
+ * 售后单本体（类型 / 回寄物流 / 退款时刻）在 aftersale 模块的 GET /orders/{id}/after-sales，这里只带订单投影。
  */
 public record OrderDetailResponse(
         @Schema(requiredMode = REQUIRED) UUID id,
@@ -44,15 +44,10 @@ public record OrderDetailResponse(
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime cancelledAt,
         @Schema(requiredMode = REQUIRED, nullable = true) String cancelReason,
         @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt,
-        @Schema(requiredMode = REQUIRED) // 售后线（与履约主状态机正交）：状态 / 类型 / 退款额 / 退款完成时刻 / 申请截止
+        @Schema(requiredMode = REQUIRED) // 售后投影（aftersale 写回）：最近一张单的状态 / 退款口径 / 申请截止
                 AfterSaleStatus afterSaleStatus,
-        @Schema(requiredMode = REQUIRED, nullable = true) AfterSaleType afterSaleType,
         @Schema(requiredMode = REQUIRED, nullable = true) Money refundAmount,
-        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime afterSaleRefundedAt,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime applyExpireAt,
-        @Schema(requiredMode = REQUIRED, nullable = true) // 退货退款：买家回寄物流（仅退货退款、已有回寄时非空）
-                String returnLogisticsCompany,
-        @Schema(requiredMode = REQUIRED, nullable = true) String returnTrackingNo,
         @Schema(requiredMode = REQUIRED) List<OrderItemResponse> items) {
 
     /** 买家视角：可执行动作按买家状态机推导；shopName 由调用方（order controller）经 shop :: api 拼入 */
@@ -98,14 +93,10 @@ public record OrderDetailResponse(
                 order.getCancelledAt(),
                 order.getCancelReason(),
                 order.getCreatedAt(),
-                // 售后线：订单只记「退多少、退没退」，资金态在 payment 模块；无售后时类型/退款额为 NULL
+                // 售后投影：订单只记「最近一张单到哪了、退多少」，单据在 aftersale、资金态在 payment；无售后时退款额为 NULL
                 order.getAfterSaleStatus(),
-                order.getAfterSaleType(),
                 order.refundAmountAsMoney(),
-                order.getAfterSaleRefundedAt(),
                 order.getApplyExpireAt(),
-                order.getReturnLogisticsCompany(),
-                order.getReturnTrackingNo(),
                 // 行项目
                 o.items().stream().map(OrderItemResponse::from).toList());
     }

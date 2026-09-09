@@ -1,12 +1,10 @@
-package com.shop.platform.order.model;
+package com.shop.platform.aftersale.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-/**
- * 售后类型。DB 列存 {@code name()}，CHECK 约束紧跟在 {@link #values()}（迁移同步）。
- */
+/** 售后类型。DB 列存 {@code name()}，CHECK 约束紧跟在 {@link #values()}（迁移同步）。 */
 @Schema(enumAsRef = true)
-public enum AfterSaleType {
+public enum TicketType {
 
     /** 仅退款：买家保留商品，只退钱，无库存回补（卖家同意即退款完成） */
     REFUND_ONLY,
