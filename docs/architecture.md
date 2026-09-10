@@ -35,7 +35,7 @@ product → inventory::api
 cart   → product::api, inventory::api, shop::api, order::events
 favorite → product::api
 order  → product::api, inventory::api, shop::api, account::api
-logistics → order::events（单向消费 OrderShippedEvent；对 order 出度为零，买家查询的归属校验用包裹自己的 user_id）
+logistics → order::api, shop::api（发货入口在物流侧：经 OrderCommand.markShipped / markDelivered 同事务推进订单，order 不认识物流）
 aftersale → order::api, inventory::api
 payment → order::api, order::events, aftersale::events
 ```
@@ -82,7 +82,8 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
   → order 发 OrderPlacedEvent，cart 同事务监听按 userId + skuId 删已购条目
   → payment 模块消费 order 事件 / 调 order::api 完成支付
   → 履约态流转（PAID → 待发货 → …，前端投影见 apps/web/src/shared/order-status.ts）
-  → 卖家发货经 order::events 的 OrderShippedEvent 同步落 logistics 的包裹（同事务，发过货就一定有包裹），
+  → 卖家发货入口在 logistics（POST /seller/shipments）：同事务落包裹 + 经 order::api 推进 PAID → 已发货，
+    一单可多包裹；签收节点把 delivered_at 写回订单，收货倒计时从签收起算。
     轨迹节点由承运商推送/运营补录写入，包裹状态是轨迹的投影（设计见 docs/decisions/logistics.md）
 ```
 

@@ -3,8 +3,8 @@
 > 目的：把物流从"订单表里两个裸字符串列"升格为独立模块的设计决策记下来——为什么这么切、边界往哪走、每一期做什么。
 > 叙述方式：先说断点，再说决策，最后写代码地图。代码位置以 `apps/server/src/main/java/com/shop/platform/` 为根，下称 `platform/`。
 >
-> **状态：一期后端已实现**（V50 迁移 + logistics 模块 + 事件接线 + 两个端点 + 权限码 + 测试）。
-> 一期前端（买家「查看物流」抽屉）与二期及以后未做。模块图已同步 `docs/architecture.md`。
+> **状态：一期、二期后端均已实现**（V50/V51 迁移 + logistics 模块 + 两个买家/卖家/管理端点 + 权限码 + 测试）。
+> 前端整体未做（买家「查看物流」抽屉、卖家发货下拉切新端点）。模块图已同步 `docs/architecture.md`。
 
 ---
 
@@ -73,11 +73,15 @@ order     → logistics                     不存在
 - order 侧改动只有两处：新增 `OrderShippedEvent` + 在 `ship()` 成功分支发布
 - logistics 侧**出度为对 order 零**（只消费 `order :: events`，不读 `order :: api`）：事件已携带全部入参，买家查询的归属校验用包裹自己的 `user_id`。零出度 = 结构上不可能成环
 
+> 二期的入口归一推翻了这条事件：发货方变成 logistics 自己，再发事件给自己听没有意义。
+> 依赖随之翻面为 `logistics → order :: api`（`markShipped` / `markDelivered` 命令 + 发货视图只读），
+> **仍是单向**。这正是"事件只是过渡"的例子：方向由"谁是发起方"决定，而不是由"哪种通道便宜"决定。
+
 ---
 
 ## 2. 领域模型
 
-schema `logistics`，**两张表**（迁移 `V50__logistics_module.sql`）：
+schema `logistics`，三期共**三张表**（`V50` 建前两张，`V51` 加字典与包裹的面单列）：
 
 | 表                         | 关键列                                                                                                                       | 约束 / 索引                                                                                   |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -86,8 +90,10 @@ schema `logistics`，**两张表**（迁移 `V50__logistics_module.sql`）：
 
 要点：
 
-- **一期不建 `carriers` 字典表**：发货仍是卖家手填的物流公司，字典没有消费者。预建一张没人读的表是纯负债，字典随二期发货入口归一一起加
-- 承运商列一期只有一个 `carrier_name`（发货时刻快照）；二期的 `carrier_code` 与字典表同批上
+- **字典是二期随入口归一才建的**：一期发货是卖家手填的物流公司、字典没有消费者，预建一张没人读的表是纯负债
+- 承运商两列并存：`carrier_code` 指身份（对接物流商接口用），`carrier_name` 是发货时刻的展示快照（承运商改名不改写历史单据）。老端点只有名字，落库时回查字典归一，匹配不上则 code 留空
+- **面单寄件人（`ship_from_*`）在二期从 `orders` 搬来**：它是面单 = 包裹的属性，一期错放在订单上（V41 引入）。这些列从未出现在任何 HTTP 出参里，故搬家对契约不可见
+- **一单可多包裹**：二期去掉了「一单一正向包裹」的唯一索引。订单状态由首个包裹推进，后续包裹只追加记录并刷新订单上的物流摘要投影——不引入部分发货状态机（那是另一个量级的语义变更）
 - `direction`（`FORWARD` / `RETURN`）一期就建且**有真实消费者**（买家查轨迹按 FORWARD 过滤），逆向环接入时不用改表
 - `delivered_at` 是签收事实，与 `shipped_at` 一起定义「运输时长」，二期的时间窗口从这里起算
 - **运单号唯一键取 `UNIQUE(tracking_no)` 而非 `UNIQUE(carrier_code, tracking_no)`**：一期 `carrier_code` 为空，而 PG 的唯一索引把 NULL 视为彼此不同——复合键会把「重复录单」这个闸门直接废掉。运单号本身带承运商前缀，全局唯一是站得住的建模（一个号只可能属于一张单）
@@ -114,38 +120,39 @@ schema `logistics`，**两张表**（迁移 `V50__logistics_module.sql`）：
 
 ## 3. 接口与事件
 
-### 事件（order 生产方）
+### 跨模块接口（二期定型）
 
-`platform/order/events/OrderShippedEvent.java` — 发货成功后在下单事务内发布一次：
+发货入口归 logistics 后，通道从「事件」换成「api 命令」，因为发起方换人了：
 
-```
-OrderShippedEvent(orderId, userId, shopId, carrierName, trackingNo, shippedAt)
-```
+| 成员                                                                     | 方向              | 用途                                                        |
+| ------------------------------------------------------------------------ | ----------------- | ----------------------------------------------------------- |
+| `OrderReadQuery.shipmentViewById(orderId)` → `OrderShipmentView`         | logistics → order | 发货前置：归属 + `shippable()` 谓词（状态魔法值不出 order） |
+| `OrderCommand.markShipped(orderId, shopId, carrierName, trackingNo, at)` | logistics → order | 首次发货 PAID→SHIPPED 并落审计流水；追加包裹只刷新摘要投影  |
+| `OrderCommand.markDelivered(orderId, deliveredAt)`                       | logistics → order | 签收事实落 `delivered_at`，并把收货窗口从签收起算           |
 
-logistics 同步监听（`OrderShippedListener`，`@EventListener` 同事务）落 shipment——shipment 落不下则发货整体回滚，符合 `apps/server/AGENTS.md` 的「api 命令只用于同事务原子；其余跨模块影响走事件」。
+三条都是**同事务同步调用**：包裹落不下则订单不推进，订单推不进则包裹回滚——绝不出现「有包裹但订单还是待发货」。这正是 `apps/server/AGENTS.md` 说的「api 命令只用于同事务原子」。
 
-携带 `userId` 是刻意的：买家查轨迹的归属校验因此可以用包裹自己的列，不必回读订单——这是「logistics 对 order 出度为零」的代价与收益。
+两个实现细节值得记：
 
-不是 api 命令是因为不需要返回值也不需回滚语义差异：发货方（order）在转移成功后才发，消费失败自动连带回滚，与 `cart` 消费 `OrderPlacedEvent` 同构。
+- `markShipped` 走 `RETURNING OLD.status` 拿前态：PAID→SHIPPED 才落审计流水，SHIPPED→SHIPPED（追加包裹）不是状态转移
+- `shipped_at` / `receive_expire_at` 用 `COALESCE` **只回填一次**：订单的发货时刻与收货窗口属于首次发货，追加包裹不得把它们往后推
 
 ### HTTP 契约
 
-| 端点                                                  | 归属                  | 说明                                             |
-| ----------------------------------------------------- | --------------------- | ------------------------------------------------ |
-| `GET /orders/{id}/tracking`                           | logistics（买家）     | 轨迹数据源：包裹摘要 + 节点列表；无包裹 404      |
-| `POST /admin/logistics/shipments/{id}/tracking-nodes` | logistics（平台运营） | 补录节点（真实轨迹也会缺：漏扫、推送丢失、纠错） |
+| 端点                                                  | 归属                  | 说明                                                 |
+| ----------------------------------------------------- | --------------------- | ---------------------------------------------------- |
+| `GET /orders/{id}/tracking`                           | logistics（买家）     | 订单级轨迹：`{orderId, shipments:[…]}`；无包裹 404   |
+| `POST /seller/shipments`                              | logistics（卖家）     | 发货（主路径）：`carrierCode` + 运单号               |
+| `PUT /seller/orders/{id}/ship`                        | logistics（卖家）     | **过渡兼容**老前端（自由文本物流公司）；前端切换后删 |
+| `GET /seller/carriers`                                | logistics（卖家）     | 发货下拉：启用的承运商                               |
+| `POST /admin/logistics/shipments/{id}/tracking-nodes` | logistics（平台运营） | 补录节点（真实轨迹也会缺：漏扫、推送丢失、纠错）     |
 
-- `/orders/` 前缀的 Vite proxy 已存在，**前端不用改 proxy**；`/admin` 前缀 admin 端也已有
+- `/orders/` 前缀的 Vite proxy 已存在，**前端不用改 proxy**；`/admin`、`/seller` 前缀也都有
+- 轨迹出参是**订单级包裹列表**（一单多包裹是二期常态），订单摘要口径 = 首/最新包裹——契约在二期改过一次，因为当时前端还没消费它，改的成本为零
+- 老发货路径放在 logistics 模块（不在 order）：路径前缀按角色分端（`/seller`），模块按领域切，两者不冲突
 - 买方路径挂在订单资源下（买家心智模型是「哪个订单的物流」），由本模块承接——与 aftersale 的 `/orders/{id}/after-sales` 同一手法，order 不做转发
 - 出参一律 `<名词>Response`，不给前端包裹主键与 `userId`/`shopId`/去重键等治理字段；展示文案（状态中文名、节点图标）留给前端投影，后端只给标准词表
 - admin 录入新增权限码 `LOGISTICS_MANAGE`（岗位 OPS），已改三处：`docs/conventions/permission-codes.md` + `common/Permissions.java` + `account/service/StaffRole`
-
-### `order::api` 增补（均在二期及以后）
-
-| 成员                                               | 期次    | 用途                                           |
-| -------------------------------------------------- | ------- | ---------------------------------------------- |
-| `OrderCommand.markDelivered(orderId, deliveredAt)` | 二期    | 签收写回订单投影列（只写事实，**不改主状态**） |
-| `OrderReadQuery.shipmentViewById(orderId)`         | 三/四期 | 逆向建单时读收货快照                           |
 
 ---
 
@@ -162,19 +169,23 @@ logistics 同步监听（`OrderShippedListener`，`@EventListener` 同事务）�
 
 **意义**：不是给买家看的，是**把管道的形状定下来**。
 
-### 二期｜发货入口归一 + 签收参与倒计时
+### 二期｜发货入口归一 + 签收参与倒计时（后端已完成，前端待做）
 
-**人话**：发货弹窗里"物流公司"是手打输入框，"顺丰"和"SF"是两家公司，以后没法统计也没法对接。改成下拉选快递公司；发货动作从订单模块搬到物流模块做；同意一个订单发多个包裹；签收后收货倒计时从签收时间起算，而不是从发货时间起算。
+**人话**：发货弹窗里"物流公司"是手打输入框，"顺丰"和"SF"是两家公司，以后没法统计也没法对接。改成下拉选快递公司；发货动作从订单模块搬到物流模块做；一个订单可以发多个包裹；签收后收货倒计时从签收时间起算，而不是从发货时间起算。
 
-**范围**：`POST /seller/shipments` 取代 `SellerOrderController.ship`；`ShipOrderRequest.logisticsCompany` → `carrierCode` + 强校验；`shipments` 一单多行（拆包）；`OrderCommand.markDelivered` + `OrderTimeouts.RECEIVE` 改从 `delivered_at` 起算。
+**范围（已完成）**：`V51` 迁移（字典 + 面单列搬家 + 一单多包裹 + `orders.delivered_at`）；发货入口 `POST /seller/shipments`（`carrierCode` 强校验）与 `GET /seller/carriers`；`OrderCommand.markShipped / markDelivered`；`OrderTransitionService.ship` 与 `OrderShippedEvent` 删除；老端点保留为过渡兼容层。
+**范围（未做）**：卖家发货弹窗改下拉 + 调用新端点（前端任务）。
 
-**验收**：卖家下拉选快递公司；同一运单号第二次录报 409；拆包后订单详情显示"2 个包裹"；签收后 7 天才自动确认收货。
+**验收（已钉在测试里）**：同一运单号第二次录报 409；快递公司停用/不存在报 400；一单两包裹且订单的发货时刻只回填一次；签收后 `receive_expire_at` 从签收时刻起算，迟到节点不再重算。
+
+**遗留**：老端点 `PUT /seller/orders/{id}/ship` 是过渡层，删除条件 = 卖家端切到 `POST /seller/shipments`。
 
 ### 三期｜接真实承运商
 
 **人话**：轨迹靠人敲不算真系统。接一家快递聚合服务，轨迹自动来；处理快递公司推送的三个必踩坑——重复推、乱序推、各家字段不一样。
 
 **范围**：`CarrierGateway` 接口 + 一家实现 + `POST /logistics/webhooks/{carrierCode}`（验签 → 幂等 → 落库）+ 轮询兜底 Job + 重试 + 停滞预警。
+webhook 的落点就是现成的 `TrackingService.recordNode`（去重与单调推进已经在那儿，且被真库 IT 钉死），三期只补验签与协议翻译。
 
 **验收**：真实单号全程无人工干预；重推落库 0 行；乱序推送不出现状态倒退。
 
@@ -200,7 +211,7 @@ logistics 同步监听（`OrderShippedListener`，`@EventListener` 同事务）�
 
 ---
 
-## 6. 一期落地清单（后端已实现）
+## 6. 落地清单（后端已实现）
 
 ### 后端
 
@@ -239,6 +250,33 @@ platform/account/service/StaffRole.java          OPS 岗位 + LOGISTICS_MANAGE
 - operationId 取 Java 方法名，全局唯一且语义化：`getOrderTracking` / `recordTrackingNode`
 - service 方法用 `// 1. // 2.` 编号写流程脉络
 
+### 二期增量
+
+```
+db/migration/V51__logistics_dispatch_and_carriers.sql   carriers + shipments 加列 + 一单多包裹 + orders.delivered_at + 交出面单列
+platform/logistics/
+├── mapper/Carrier.java / CarrierMapper.java            字典（selectEnabled / selectByCode / selectByName）
+├── mapper/Shipment.java                                + carrierCode / shipFrom_*(7) / deliveredAt
+├── mapper/ShipmentMapper.java                          selectForwardByOrder 改列表（一单多包裹）/ selectByOrder
+├── dto/CreateShipmentRequest.java                      新端点入参（carrierCode）
+├── dto/ShipOrderRequest.java                           老端点入参（迁自 order，标 deprecated）
+├── service/DispatchShipmentCommand.java                发货入参聚合（两个入口共用）
+├── service/OrderTracking.java                          订单级出参形状（包裹列表）
+├── service/ShipmentService.java                        发货四道门 + 承运商归一 + 买家查询
+├── service/TrackingService.java                        + 签收回写 order
+├── controller/SellerLogisticsController.java           POST /seller/shipments、GET /seller/carriers、PUT /seller/orders/{id}/ship（兼容）
+├── controller/response/{CarrierResponse,OrderTrackingResponse}.java
+└── controller/TrackingController.java                  出参改订单级包裹列表
+platform/order/
+├── api/OrderShipmentView.java + OrderReadQuery.shipmentViewById   发货前置视图
+├── api/OrderCommand.markShipped / markDelivered                    两条同事务命令
+├── mapper/OrderMapper.markShippedReturningPrevious / markDelivered 条件更新（RETURNING OLD）
+├── mapper/Order.java                                    + deliveredAt，- shipper*(7)
+├── model/OrderTimeouts.RECEIVE                          注释改为「签收起算，发货兜底」
+├── controller/SellerOrderController.java                - 发货端点
+└── （删除）dto/ShipOrderRequest、events/OrderShippedEvent、service/OrderTransitionService.ship
+```
+
 ### 测试资产
 
 | 层   | 文件                                       | 覆盖                                                                                         |
@@ -251,6 +289,9 @@ IT 走真实链路（下单 → 支付 → 发货）而不是直接发事件：�
 
 ### 未完成（下批）
 
-- 前端（web 轨迹抽屉 + MSW handler + 投影单测）——用户已明确本期不做
-- `openapi/api-docs.json` 重新导出 + `pnpm gen:sdk`（需后端启动）
-- 一期之外的“真实轨迹来源”：现在靠 `POST /admin/logistics/shipments/{id}/tracking-nodes` 人工录
+整体前端未做（用户明确本期只做后端）：
+
+- 买家端「查看物流」抽屉（消费 `GET /orders/{id}/tracking`，现在是多包裹列表）+ MSW handler + 投影单测
+- 卖家端发货弹窗改成承运商下拉 + 调 `POST /seller/shipments`，然后删老端点
+- 三期：真实承运商接入（`CarrierGateway` + webhook 验签）；四期：逆向统一 + 物流异常治理
+- 现阶段轨迹仍靠 `POST /admin/logistics/shipments/{id}/tracking-nodes` 人工录（真实来源在三期）
