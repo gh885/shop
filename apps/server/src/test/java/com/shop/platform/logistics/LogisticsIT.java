@@ -9,9 +9,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.logistics.api.ReturnShipmentCommand;
+import com.shop.platform.logistics.api.ReturnShipmentView;
 import com.shop.platform.logistics.dto.TrackingNodeRequest;
 import com.shop.platform.logistics.mapper.Shipment;
 import com.shop.platform.logistics.mapper.ShipmentMapper;
+import com.shop.platform.logistics.model.ShipmentDirection;
+import com.shop.platform.logistics.model.ShipmentIssueStatus;
 import com.shop.platform.logistics.model.ShipmentStatus;
 import com.shop.platform.logistics.model.TrackingNodeCode;
 import com.shop.platform.logistics.service.CarrierPush;
@@ -20,6 +24,7 @@ import com.shop.platform.logistics.service.CarrierTrackingGateway;
 import com.shop.platform.logistics.service.CarrierTrackingNode;
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.OrderTracking;
+import com.shop.platform.logistics.service.ShipmentIssueService;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.logistics.service.ShipmentTracking;
 import com.shop.platform.logistics.service.TrackingPushService;
@@ -79,6 +84,13 @@ class LogisticsIT extends IntegrationTestSupport {
     @Autowired
     private ShipmentMapper shipmentMapper;
 
+    @Autowired
+    private ShipmentIssueService issueService;
+
+    /** 逆向能力经 api 命令暴露（消费方是 aftersale）；IT 直接调用它来造回寄场景 */
+    @Autowired
+    private ReturnShipmentCommand returnShipmentCommand;
+
     // 承运商是我们控制不了的外部系统：真库 IT 也只把"上游"换成假的，落库链路（去重/单调推进/签收回写）
     // 全部是真的。可用性默认为 false，故 @Scheduled 的轮询任务在这些用例之外不会空转
     @MockitoBean
@@ -107,6 +119,9 @@ class LogisticsIT extends IntegrationTestSupport {
         db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
         db.onDelete(
                 "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
+                userId.toString());
+        db.onDelete(
+                "DELETE FROM logistics.shipment_issues WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
                 userId.toString());
         db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
         db.onDelete(
@@ -365,6 +380,140 @@ class LogisticsIT extends IntegrationTestSupport {
         assertEquals(1, trackingSyncService.sync(shipment));
         assertEquals(4, nodeCountOf(shipmentId));
         assertEquals(ShipmentStatus.DELIVERED, statusOf(shipmentId), "签收是终态，后到的中转节点不改状态");
+    }
+
+    /**
+     * 异常治理闭环：停滞 → 开单；重复扫描不重复开单；包裹到终态 → 自动结单。
+     * 判据只有时间，所以造场景的方式就是把 shipped_at 往前拨（不需要真等 24 小时）。
+     */
+    @Test
+    void 停滞包裹开异常单_重复扫描不重复开单_到终态自动结单() {
+        UUID orderId = seedPaidOrder();
+        String trackingNo = "SF" + orderId.toString().substring(0, 12);
+        UUID shipmentId = dispatch(orderId, "SF", trackingNo);
+
+        // 1. 把发货时刻拨到 30 小时前：仍在待揽收，超过 24 小时阈值
+        jdbc.update(
+                "UPDATE logistics.shipments SET shipped_at = ? WHERE id = ?::uuid",
+                OffsetDateTime.now().minusHours(30),
+                shipmentId.toString());
+
+        int opened = issueService.scan();
+        assertTrue(opened >= 1, "停滞包裹应开出异常单");
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM logistics.shipment_issues WHERE shipment_id = ?::uuid AND type = 'PICKUP_TIMEOUT'",
+                        Integer.class,
+                        shipmentId.toString()));
+
+        // 2. 再扫一轮：同一包裹同类异常只留一张未结单（否则列表会被噪音灌满）
+        issueService.scan();
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM logistics.shipment_issues WHERE shipment_id = ?::uuid AND status = 'OPEN'",
+                        Integer.class,
+                        shipmentId.toString()));
+
+        // 3. 包裹签收 → 未结单自动结掉（异常不再需要人处理，留着就是假待办）
+        recordNode(shipmentId, TrackingNodeCode.DELIVERED, OffsetDateTime.now(), "上海浦东网点");
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM logistics.shipment_issues WHERE shipment_id = ?::uuid AND status = 'OPEN'",
+                        Integer.class,
+                        shipmentId.toString()),
+                "到终态自动结单");
+        assertEquals(
+                ShipmentIssueStatus.RESOLVED.name(),
+                jdbc.queryForObject(
+                        "SELECT status FROM logistics.shipment_issues WHERE shipment_id = ?::uuid",
+                        String.class,
+                        shipmentId.toString()));
+    }
+
+    /** 客服手动结单：不存在 404、已结 409——不静默成功 */
+    @Test
+    void 手动结单_不存在404_已结409() {
+        UUID orderId = seedPaidOrder();
+        UUID shipmentId = dispatch(orderId, "SF", "SF" + orderId.toString().substring(0, 12));
+        jdbc.update(
+                "UPDATE logistics.shipments SET shipped_at = ? WHERE id = ?::uuid",
+                OffsetDateTime.now().minusHours(30),
+                shipmentId.toString());
+        issueService.scan();
+        UUID issueId = jdbc.queryForObject(
+                "SELECT id FROM logistics.shipment_issues WHERE shipment_id = ?::uuid",
+                UUID.class,
+                shipmentId.toString());
+
+        issueService.resolve(issueId, "已电话催件");
+        assertEquals(
+                ShipmentIssueStatus.RESOLVED.name(),
+                jdbc.queryForObject(
+                        "SELECT status FROM logistics.shipment_issues WHERE id = ?::uuid",
+                        String.class,
+                        issueId.toString()));
+
+        assertEquals(
+                409,
+                assertThrows(BusinessException.class, () -> issueService.resolve(issueId, "再结一次"))
+                        .getHttpStatus());
+        assertEquals(
+                404,
+                assertThrows(BusinessException.class, () -> issueService.resolve(UUID.randomUUID(), null))
+                        .getHttpStatus());
+    }
+
+    /**
+     * 逆向统一：退货回寄走的是同一套包裹模型（RETURN 方向），因此白拿三件事——
+     * 买家「查看物流」一起看得到、承运商推送按运单号就能匹配到、重复单号有唯一索引兜底。
+     */
+    @Test
+    void 退货回寄_进同一套包裹模型_同屏可见且能接推送() {
+        UUID orderId = seedPaidOrder();
+        String forwardNo = "SF" + orderId.toString().substring(0, 12);
+        dispatch(orderId, "SF", forwardNo);
+
+        // 买家回寄（真实链路里由 aftersale 经 ReturnShipmentCommand 调用）
+        ReturnShipmentView returned = returnShipmentCommand.record(
+                orderId,
+                userId,
+                shopId,
+                "ZTO",
+                "中通快递",
+                "ZT" + orderId.toString().substring(0, 12));
+        assertEquals("中通快递", returned.carrierName(), "承运商名与卖家发货同口径归一");
+
+        // 1. 买家一个接口看到两个方向：正向在前、回寄在后
+        OrderTracking tracking = shipmentService.trackingOfOrder(userId, orderId);
+        assertEquals(2, tracking.shipments().size());
+        assertEquals(
+                ShipmentDirection.FORWARD,
+                tracking.shipments().get(0).shipment().getDirection());
+        assertEquals(
+                ShipmentDirection.RETURN, tracking.shipments().get(1).shipment().getDirection());
+        assertEquals(
+                ShipmentStatus.PICKED_UP, tracking.shipments().get(1).shipment().getStatus(), "买家刚交给承运商，起步就是已寄出");
+
+        // 2. 回寄包裹照样吃推送：匹配按运单号，不看方向——这是复用同一模型最实际的收益
+        OffsetDateTime base = OffsetDateTime.now().minusHours(2).truncatedTo(ChronoUnit.MILLIS);
+        when(pushReceiver.receive(any(), any(), any()))
+                .thenReturn(new CarrierPush(
+                        returned.trackingNo(), List.of(new CarrierTrackingNode("2", "快件已到达【杭州转运中心】", "杭州", base))));
+        trackingPushService.accept("ZTO", "{}", "sign");
+        assertEquals(ShipmentStatus.IN_TRANSIT, statusOf(returned.shipmentId()));
+
+        // 3. 同一运单号再被别人拿去回寄：唯一索引兜底
+        UUID otherOrderId = seedPaidOrder();
+        assertEquals(
+                409,
+                assertThrows(
+                                BusinessException.class,
+                                () -> returnShipmentCommand.record(
+                                        otherOrderId, userId, shopId, "ZTO", "中通快递", returned.trackingNo()))
+                        .getHttpStatus());
     }
 
     /** 网关不可用时轮询直接返回：本地开发没配承运商密钥，不该满屏报错也不该空转 */

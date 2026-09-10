@@ -38,6 +38,9 @@ public class TrackingService {
     /** 签收回写命令：物流事实落到订单投影，由 order 自己重算收货窗口 */
     private final OrderCommand orderCommand;
 
+    /** 包裹到终态时结掉未结异常单：异常不再需要人处理，留着就是假待办 */
+    private final ShipmentIssueService shipmentIssueService;
+
     /**
      * 录入一条轨迹节点：去重落库 + 单调推进包裹状态。重复推送与迟到节点都是幂等的无副作用返回。
      *
@@ -70,9 +73,12 @@ public class TrackingService {
         // 4. 单调推进：抢不到（终态更靠后 / 该节点比当前状态旧）就是乱序或迟到，只落库不改状态
         int advanced = shipmentMapper.advanceStatus(shipmentId, target, target == DELIVERED ? req.occurredAt() : null);
 
-        // 5. 签收回写订单（同事务）：只有真的推进到已签收才写，重复签收与迟到节点不改订单
+        // 5. 终态的两件收尾（同事务）：签收回写订单 + 结掉未结异常单
         if (advanced == 1 && target == DELIVERED) {
             orderCommand.markDelivered(shipment.getOrderId(), req.occurredAt());
+        }
+        if (advanced == 1 && target.terminal()) {
+            shipmentIssueService.resolveOnTerminal(shipmentId, "包裹已到终态（" + target + "），异常自动结单");
         }
 
         log.info(

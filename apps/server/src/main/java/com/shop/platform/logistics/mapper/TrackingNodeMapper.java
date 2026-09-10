@@ -2,7 +2,9 @@ package com.shop.platform.logistics.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -27,6 +29,15 @@ public interface TrackingNodeMapper extends BaseMapper<TrackingNode> {
             ON CONFLICT (dedupe_key) DO NOTHING
             """)
     int insertIgnoreDuplicate(TrackingNode node);
+
+    /** 某包裹最后一条动态的时刻（无动态返回 empty）：异常扫描据此算"多久没动静" */
+    default Optional<OffsetDateTime> selectLastOccurredAt(UUID shipmentId) {
+        return Optional.ofNullable(selectOne(new LambdaQueryWrapper<TrackingNode>()
+                        .eq(TrackingNode::getShipmentId, shipmentId)
+                        .orderByDesc(TrackingNode::getOccurredAt)
+                        .last("LIMIT 1")))
+                .map(TrackingNode::getOccurredAt);
+    }
 
     /** 某包裹的全部轨迹节点：按承运商事件时刻正序，同时刻按 id（uuidv7）稳定排序 */
     default List<TrackingNode> selectByShipment(UUID shipmentId) {

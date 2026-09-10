@@ -85,4 +85,9 @@ public enum ShipmentStatus {
     public static Set<ShipmentStatus> sourcesOf(ShipmentStatus target) {
         return SOURCES.getOrDefault(target, Set.of());
     }
+
+    /** 是否终态（包裹走完或退回）：终态意味着"不需要再等动静了"，轮询与异常扫描都据此放过它 */
+    public boolean terminal() {
+        return this == DELIVERED || this == RETURNED;
+    }
 }

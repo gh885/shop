@@ -21,6 +21,7 @@ import com.shop.platform.infra.security.StaffAuthFilter;
 import com.shop.platform.infra.web.RequestBodySizeFilter;
 import com.shop.platform.infra.web.RequestIdFilter;
 import com.shop.platform.inventory.api.StockReadQuery;
+import com.shop.platform.logistics.service.ShipmentIssueService;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.logistics.service.TrackingPushService;
 import com.shop.platform.logistics.service.TrackingService;
@@ -143,6 +144,9 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected TrackingPushService trackingPushService;
+
+    @MockitoBean
+    protected ShipmentIssueService shipmentIssueService;
 
     @MockitoBean
     protected ShopService shopService;
