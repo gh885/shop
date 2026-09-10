@@ -680,6 +680,23 @@ export const zShopReviewResponse = z.object({
     updatedAt: z.iso.datetime({ offset: true })
 });
 
+export const zTrackingNodeCode = z.enum([
+    'PICKED_UP',
+    'ARRIVED_HUB',
+    'DEPARTED_HUB',
+    'OUT_FOR_DELIVERY',
+    'DELIVERED',
+    'RETURNED',
+    'EXCEPTION'
+]);
+
+export const zTrackingNodeRequest = z.object({
+    nodeCode: zTrackingNodeCode,
+    occurredAt: z.iso.datetime({ offset: true }),
+    description: z.string().min(0).max(200).optional(),
+    location: z.string().min(0).max(100).optional()
+});
+
 export const zCreateCategoryRequest = z.object({
     parentId: z.uuid().optional(),
     name: z.string().min(0).max(64),
@@ -804,6 +821,33 @@ export const zOrderDetailResponse = z.object({
     refundAmount: zMoney,
     applyExpireAt: z.iso.datetime({ offset: true }).nullable(),
     items: z.array(zOrderItemResponse)
+});
+
+export const zShipmentStatus = z.enum([
+    'PENDING_PICKUP',
+    'PICKED_UP',
+    'IN_TRANSIT',
+    'DELIVERING',
+    'DELIVERED',
+    'RETURNED',
+    'EXCEPTION'
+]);
+
+export const zTrackingNodeResponse = z.object({
+    nodeCode: zTrackingNodeCode,
+    description: z.string().nullable(),
+    location: z.string().nullable(),
+    occurredAt: z.iso.datetime({ offset: true })
+});
+
+export const zShipmentTrackingResponse = z.object({
+    orderId: z.uuid(),
+    carrierName: z.string(),
+    trackingNo: z.string(),
+    status: zShipmentStatus,
+    shippedAt: z.iso.datetime({ offset: true }),
+    deliveredAt: z.iso.datetime({ offset: true }).nullable(),
+    nodes: z.array(zTrackingNodeResponse)
 });
 
 export const zOrderListItemResponse = z.object({
@@ -1565,6 +1609,12 @@ export const zApproveShopReviewPath = z.object({
  */
 export const zApproveShopReviewResponse = zShopReviewResponse;
 
+export const zRecordTrackingNodeBody = zTrackingNodeRequest;
+
+export const zRecordTrackingNodePath = z.object({
+    id: z.uuid()
+});
+
 /**
  * OK
  */
@@ -1718,6 +1768,15 @@ export const zGetOrderDetailPath = z.object({
  * OK
  */
 export const zGetOrderDetailResponse = zOrderDetailResponse;
+
+export const zGetOrderTrackingPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zGetOrderTrackingResponse = zShipmentTrackingResponse;
 
 export const zListMyOrdersQuery = z.object({
     pageParams: zPageParams,

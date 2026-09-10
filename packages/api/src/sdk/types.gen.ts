@@ -716,6 +716,25 @@ export const ShopReviewStatus = {
 
 export type ShopReviewStatus = typeof ShopReviewStatus[keyof typeof ShopReviewStatus];
 
+export const TrackingNodeCode = {
+    PICKED_UP: 'PICKED_UP',
+    ARRIVED_HUB: 'ARRIVED_HUB',
+    DEPARTED_HUB: 'DEPARTED_HUB',
+    OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
+    DELIVERED: 'DELIVERED',
+    RETURNED: 'RETURNED',
+    EXCEPTION: 'EXCEPTION'
+} as const;
+
+export type TrackingNodeCode = typeof TrackingNodeCode[keyof typeof TrackingNodeCode];
+
+export type TrackingNodeRequest = {
+    nodeCode: TrackingNodeCode;
+    occurredAt: string;
+    description?: string;
+    location?: string;
+};
+
 export type CreateCategoryRequest = {
     parentId?: string;
     name: string;
@@ -844,6 +863,35 @@ export type OrderDetailResponse = {
     refundAmount: Money;
     applyExpireAt: string | null;
     items: Array<OrderItemResponse>;
+};
+
+export const ShipmentStatus = {
+    PENDING_PICKUP: 'PENDING_PICKUP',
+    PICKED_UP: 'PICKED_UP',
+    IN_TRANSIT: 'IN_TRANSIT',
+    DELIVERING: 'DELIVERING',
+    DELIVERED: 'DELIVERED',
+    RETURNED: 'RETURNED',
+    EXCEPTION: 'EXCEPTION'
+} as const;
+
+export type ShipmentStatus = typeof ShipmentStatus[keyof typeof ShipmentStatus];
+
+export type ShipmentTrackingResponse = {
+    orderId: string;
+    carrierName: string;
+    trackingNo: string;
+    status: ShipmentStatus;
+    shippedAt: string;
+    deliveredAt: string | null;
+    nodes: Array<TrackingNodeResponse>;
+};
+
+export type TrackingNodeResponse = {
+    nodeCode: TrackingNodeCode;
+    description: string | null;
+    location: string | null;
+    occurredAt: string;
 };
 
 export type OrderListItemResponse = {
@@ -2331,6 +2379,22 @@ export type ApproveShopReviewResponses = {
 
 export type ApproveShopReviewResponse = ApproveShopReviewResponses[keyof ApproveShopReviewResponses];
 
+export type RecordTrackingNodeData = {
+    body: TrackingNodeRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/logistics/shipments/{id}/tracking-nodes';
+};
+
+export type RecordTrackingNodeResponses = {
+    /**
+     * Created
+     */
+    201: unknown;
+};
+
 export type ListAdminRecommendTabsData = {
     body?: never;
     path?: never;
@@ -2669,6 +2733,24 @@ export type GetOrderDetailResponses = {
 };
 
 export type GetOrderDetailResponse = GetOrderDetailResponses[keyof GetOrderDetailResponses];
+
+export type GetOrderTrackingData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/orders/{id}/tracking';
+};
+
+export type GetOrderTrackingResponses = {
+    /**
+     * OK
+     */
+    200: ShipmentTrackingResponse;
+};
+
+export type GetOrderTrackingResponse = GetOrderTrackingResponses[keyof GetOrderTrackingResponses];
 
 export type ListMyOrdersData = {
     body?: never;
