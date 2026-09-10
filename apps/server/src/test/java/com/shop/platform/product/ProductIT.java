@@ -17,11 +17,13 @@ import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.model.AttrKind;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.service.CategoryAttrService;
+import com.shop.platform.product.service.ProductListRow;
+import com.shop.platform.product.service.ProductQueryService;
 import com.shop.platform.product.service.ProductService;
 import com.shop.platform.product.service.ProductService.CreateProductCommand;
-import com.shop.platform.product.service.ProductService.ProductListRow;
-import com.shop.platform.product.service.ProductService.SpecSelection;
 import com.shop.platform.product.service.ProductService.UpdateBasicCommand;
+import com.shop.platform.product.service.SkuService;
+import com.shop.platform.product.service.SkuService.SpecSelection;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +49,12 @@ class ProductIT extends IntegrationTestSupport {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private SkuService skuService;
+
+    @Autowired
+    private ProductQueryService productQueryService;
 
     @Autowired
     private CategoryAttrService categoryAttrService;
@@ -118,7 +126,7 @@ class ProductIT extends IntegrationTestSupport {
         Product draft = createDraft("四步流程测试机");
 
         // 1. 选 颜色(黑,白) × 尺码(S,M,L)，生成 6 个 SKU
-        List<Sku> six = productService.updateSpecs(
+        List<Sku> six = skuService.updateSpecs(
                 draft.getId(), List.of(spec(color.getId(), colors, null), spec(size.getId(), sizes, null)));
         assertEquals(6, six.size());
 
@@ -126,11 +134,11 @@ class ProductIT extends IntegrationTestSupport {
         List<SkuUpdateItem> priceAll = six.stream()
                 .map(s -> new SkuUpdateItem(s.getId(), null, null, 100L, null, 10, null, null))
                 .toList();
-        productService.updateSkus(draft.getId(), priceAll);
+        skuService.updateSkus(draft.getId(), priceAll);
 
         // 3. 加一个颜色值（红）→ 对账：原 6 个 spec_key 不变保留价格，新增 3 个价格为空
         CategoryAttrValue red = categoryAttrService.addValue(color.getId(), "红", null, null);
-        List<Sku> nine = productService.updateSpecs(
+        List<Sku> nine = skuService.updateSpecs(
                 draft.getId(),
                 List.of(
                         spec(color.getId(), List.of(colors.get(0), colors.get(1), red.getId()), null),
@@ -145,7 +153,7 @@ class ProductIT extends IntegrationTestSupport {
                 .map(s -> new SkuUpdateItem(s.getId(), null, null, 300L, null, 5, null, null))
                 .toList();
         assertEquals(3, priceNew.size());
-        productService.updateSkus(draft.getId(), priceNew);
+        skuService.updateSkus(draft.getId(), priceNew);
 
         // 5. 发布：状态上架，min/max 聚合 100..300
         Product published = productService.publish(draft.getId(), ProductStatus.PUBLISHED);
@@ -162,13 +170,11 @@ class ProductIT extends IntegrationTestSupport {
         Product draft = createDraft("改名回归机");
 
         // 1. 建 SKU 并设价设量
-        List<Sku> skus =
-                productService.updateSpecs(draft.getId(), List.of(spec(color.getId(), List.of(blackId), null)));
+        List<Sku> skus = skuService.updateSpecs(draft.getId(), List.of(spec(color.getId(), List.of(blackId), null)));
         assertEquals(1, skus.size());
         UUID skuId = skus.getFirst().getId();
         String specKey = skus.getFirst().getSpecKey();
-        productService.updateSkus(
-                draft.getId(), List.of(new SkuUpdateItem(skuId, null, null, 100L, null, 10, null, null)));
+        skuService.updateSkus(draft.getId(), List.of(new SkuUpdateItem(skuId, null, null, 100L, null, 10, null, null)));
 
         // 2. 规格值改名：黑 → 曜石黑
         categoryAttrService.updateValue(blackId, "曜石黑", null, null);
@@ -189,7 +195,7 @@ class ProductIT extends IntegrationTestSupport {
         CategoryAttr color = seedSpecAttr("颜色", "黑");
         Product draft = createDraft("自定义值测试机");
 
-        List<Sku> skus = productService.updateSpecs(draft.getId(), List.of(spec(color.getId(), null, List.of("定制色"))));
+        List<Sku> skus = skuService.updateSpecs(draft.getId(), List.of(spec(color.getId(), null, List.of("定制色"))));
         assertEquals(1, skus.size());
 
         Map<String, Object> row = jdbc.queryForMap(
@@ -206,7 +212,7 @@ class ProductIT extends IntegrationTestSupport {
 
         BusinessException ex = assertThrows(
                 BusinessException.class,
-                () -> productService.updateSpecs(draft.getId(), List.of(spec(color.getId(), null, List.of("定制色")))));
+                () -> skuService.updateSpecs(draft.getId(), List.of(spec(color.getId(), null, List.of("定制色")))));
         assertEquals(400, ex.getHttpStatus());
     }
 
@@ -228,7 +234,7 @@ class ProductIT extends IntegrationTestSupport {
 
         BusinessException ex = assertThrows(
                 BusinessException.class,
-                () -> productService.updateSpecs(draft.getId(), List.of(spec(foreign.getId(), null, List.of("任意")))));
+                () -> skuService.updateSpecs(draft.getId(), List.of(spec(foreign.getId(), null, List.of("任意")))));
         assertEquals(400, ex.getHttpStatus());
     }
 
@@ -236,7 +242,7 @@ class ProductIT extends IntegrationTestSupport {
     void 发布_存在未设价SKU_400() {
         CategoryAttr color = seedSpecAttr("颜色", "黑", "白");
         Product draft = createDraft("未设价草稿");
-        productService.updateSpecs(draft.getId(), List.of(spec(color.getId(), valueIds(color.getId()), null)));
+        skuService.updateSpecs(draft.getId(), List.of(spec(color.getId(), valueIds(color.getId()), null)));
 
         BusinessException ex = assertThrows(
                 BusinessException.class, () -> productService.publish(draft.getId(), ProductStatus.PUBLISHED));
@@ -247,17 +253,17 @@ class ProductIT extends IntegrationTestSupport {
     void 上架态改规格_409() {
         CategoryAttr color = seedSpecAttr("颜色", "黑", "白");
         Product draft = createDraft("已上架草稿");
-        List<Sku> skus = productService.updateSpecs(
+        List<Sku> skus = skuService.updateSpecs(
                 draft.getId(),
                 List.of(spec(color.getId(), List.of(valueIds(color.getId()).get(0)), null)));
-        productService.updateSkus(
+        skuService.updateSkus(
                 draft.getId(),
                 List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, 100L, null, 1, null, null)));
         productService.publish(draft.getId(), ProductStatus.PUBLISHED);
 
         BusinessException ex = assertThrows(
                 BusinessException.class,
-                () -> productService.updateSpecs(
+                () -> skuService.updateSpecs(
                         draft.getId(),
                         List.of(spec(
                                 color.getId(), List.of(valueIds(color.getId()).get(1)), null))));
@@ -269,9 +275,8 @@ class ProductIT extends IntegrationTestSupport {
         CategoryAttr color = seedSpecAttr("颜色", "黑", "白");
         List<UUID> ids = valueIds(color.getId());
         Product draft = createDraft("上下架状态机");
-        List<Sku> skus =
-                productService.updateSpecs(draft.getId(), List.of(spec(color.getId(), List.of(ids.get(0)), null)));
-        productService.updateSkus(
+        List<Sku> skus = skuService.updateSpecs(draft.getId(), List.of(spec(color.getId(), List.of(ids.get(0)), null)));
+        skuService.updateSkus(
                 draft.getId(),
                 List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, 100L, null, 1, null, null)));
         productService.publish(draft.getId(), ProductStatus.PUBLISHED);
@@ -281,8 +286,7 @@ class ProductIT extends IntegrationTestSupport {
         assertEquals(ProductStatus.WAREHOUSE, off.getStatus());
 
         // 2. 下架态可改规格（决策 G：仅上架拒绝改规格），换值 = 换 spec_key，新 SKU 未设价
-        List<Sku> next =
-                productService.updateSpecs(draft.getId(), List.of(spec(color.getId(), List.of(ids.get(1)), null)));
+        List<Sku> next = skuService.updateSpecs(draft.getId(), List.of(spec(color.getId(), List.of(ids.get(1)), null)));
         assertEquals(1, next.size());
         assertEquals(null, next.getFirst().getPrice());
 
@@ -297,10 +301,10 @@ class ProductIT extends IntegrationTestSupport {
         CategoryAttr color = seedSpecAttr("颜色", "黑", "白");
         Product draft = createDraft("列表指标机");
         List<Sku> skus =
-                productService.updateSpecs(draft.getId(), List.of(spec(color.getId(), valueIds(color.getId()), null)));
+                skuService.updateSpecs(draft.getId(), List.of(spec(color.getId(), valueIds(color.getId()), null)));
         Sku s1 = skus.get(0);
         Sku s2 = skus.get(1);
-        productService.updateSkus(
+        skuService.updateSkus(
                 draft.getId(),
                 List.of(
                         new SkuUpdateItem(s1.getId(), null, null, 100L, null, 3, null, null),
@@ -313,7 +317,7 @@ class ProductIT extends IntegrationTestSupport {
         productCommand.addSold(Map.of(draft.getId(), 5));
 
         // 只查本店铺，不依赖其它测试残留
-        PageResult<ProductListRow> page = productService.pageListWithMetrics(shopId, null, null, 1, 50, null);
+        PageResult<ProductListRow> page = productQueryService.pageListWithMetrics(shopId, null, null, 1, 50, null);
         ProductListRow row = page.records().stream()
                 .filter(r -> r.product().getId().equals(draft.getId()))
                 .findFirst()

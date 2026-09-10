@@ -19,7 +19,9 @@ import com.shop.platform.product.dto.UpdateSpecsRequest;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.service.ProductDetail;
+import com.shop.platform.product.service.ProductQueryService;
 import com.shop.platform.product.service.ProductService;
+import com.shop.platform.product.service.SkuService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -48,6 +50,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequirePermission(Permissions.PRODUCT_MANAGE)
 public class ProductAdminController {
     private final ProductService productService;
+    private final SkuService skuService;
+    private final ProductQueryService productQueryService;
     private final StockReadQuery stockReadQuery;
     private final QiniuClient qiniuClient;
 
@@ -66,14 +70,14 @@ public class ProductAdminController {
     /** 提交规格选择并按 valueId 组合（spec_key）对账 SKU，返回当前全部 SKU（含新 id，供 updateSku 定位） */
     @PutMapping("/{id}/specs")
     public List<SkuResponse> updateProductSpecs(@PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
-        List<Sku> skus = productService.updateSpecs(id, request.toSelections());
+        List<Sku> skus = skuService.updateSpecs(id, request.toSelections());
         return SkuResponse.from(skus, stocks(skus));
     }
 
     /** 批量更新 SKU 价格/库存，返回更新后的 SKU 列表 */
     @PutMapping("/{id}/skus")
     public List<SkuResponse> updateProductSkus(@PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
-        List<Sku> skus = productService.updateSkus(id, request.items());
+        List<Sku> skus = skuService.updateSkus(id, request.items());
         return SkuResponse.from(skus, stocks(skus));
     }
 
@@ -99,7 +103,7 @@ public class ProductAdminController {
                             message = "排序方式不支持")
                     @RequestParam(required = false)
                     String sort) {
-        return productService
+        return productQueryService
                 .pageListWithMetrics(shopId, status, keyword, pageParams.page(), pageParams.size(), sort)
                 .map(ProductResponse::from);
     }
@@ -107,7 +111,7 @@ public class ProductAdminController {
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查 */
     @GetMapping("/{id}")
     public ProductDetailResponse getShopProductDetail(@PathVariable UUID id) {
-        ProductDetail d = productService.detail(id);
+        ProductDetail d = productQueryService.detail(id);
         return ProductDetailResponse.from(d, stocks(d.skus()));
     }
 

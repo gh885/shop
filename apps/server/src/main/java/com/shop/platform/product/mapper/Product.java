@@ -9,8 +9,14 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Validate;
 import com.shop.platform.product.model.ProductStatus;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -78,6 +84,50 @@ public class Product {
     /** 放弃（删除）守卫：仅草稿可放弃；上架/下架商品是经营资产，不做物理删除。 */
     public void ensureAbandonable() {
         Validate.isTrue(isDraft(), 409, "只有草稿可以放弃，已发布/下架商品需走下架");
+    }
+
+    // ---- 派生：价格区间与规格组合——数据自己说得出口的话，service 只编排持久化 ----
+
+    /**
+     * 一次算好 min/max 价格冗余副本（真实成交价永远以 skus.price 为准；全部未定价时两端为 null）。
+     * 只反映「在售 SKU」（买家实际可购集）：停用 SKU 的价不计入，否则列表「¥299 起」可能摘自已停用 SKU，
+     * 点进去买不到（publicDetail 只返在售）。
+     */
+    public void applyPriceRange(List<Sku> skus) {
+        List<Long> prices = skus.stream()
+                .filter(Sku::isOnSale)
+                .map(Sku::getPrice)
+                .filter(Objects::nonNull)
+                .toList();
+        minPrice = prices.stream().min(Long::compare).orElse(null);
+        maxPrice = prices.stream().max(Long::compare).orElse(null);
+    }
+
+    /** 规格模板的笛卡尔积：specs 为空时返回 [[]]，恰好对应单规格商品的 1 个隐藏 SKU；各维取值按 valueId 去重 */
+    public List<List<SpecValue>> specCombinations() {
+        List<List<SpecValue>> result = new ArrayList<>();
+        result.add(new ArrayList<>());
+        for (SpecItem dim : specs == null ? List.<SpecItem>of() : specs) {
+            Map<UUID, SpecValue> dedup = new LinkedHashMap<>();
+            for (SpecValue v : dim.values()) {
+                dedup.putIfAbsent(v.valueId(), v);
+            }
+            List<List<SpecValue>> next = new ArrayList<>();
+            for (List<SpecValue> prefix : result) {
+                for (SpecValue value : dedup.values()) {
+                    List<SpecValue> combo = new ArrayList<>(prefix);
+                    combo.add(value);
+                    next.add(combo);
+                }
+            }
+            result = next;
+        }
+        return result;
+    }
+
+    /** 当前规格快照能产出的全部组合 spec_key；无规格（单规格商品）为 {""}。与 SkuService.updateSpecs 的口径一致 */
+    public Set<String> currentSpecKeys() {
+        return specCombinations().stream().map(Sku::specKeyOf).collect(Collectors.toSet());
     }
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */

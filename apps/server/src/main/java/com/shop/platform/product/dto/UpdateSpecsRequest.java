@@ -1,6 +1,6 @@
 package com.shop.platform.product.dto;
 
-import com.shop.platform.product.service.ProductService.SpecSelection;
+import com.shop.platform.product.service.SkuService.SpecSelection;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;

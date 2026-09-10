@@ -9,6 +9,7 @@ import com.shop.platform.product.mapper.CategoryAttrMapper;
 import com.shop.platform.product.mapper.CategoryAttrValue;
 import com.shop.platform.product.mapper.CategoryAttrValueMapper;
 import com.shop.platform.product.mapper.CategoryMapper;
+import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.mapper.Sku;
@@ -21,12 +22,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /**
  * 类目属性模板：叶子类目挂销售属性/非销售参数模板，卖家发商品按模板选值，可扩充（allow_custom）。
@@ -165,7 +168,9 @@ public class CategoryAttrService {
                     .map(a -> a.valueId().equals(valueId) ? new SkuAttr(a.attrId(), a.valueId(), a.name(), value) : a)
                     .toList();
             sku.setAttributes(attrs);
-            sku.setName(buildSkuName(products.get(sku.getProductId()), attrs));
+            sku.setName(Sku.nameOf(
+                    products.get(sku.getProductId()),
+                    attrs.stream().map(SkuAttr::value).toList()));
             skuMapper.updateById(sku);
         }
         return row;
@@ -173,7 +178,7 @@ public class CategoryAttrService {
 
     /**
      * 卖家扩充值：值域外新值自动建档（source=2），同名复用（含平台预置值，不改其 source）。
-     * 供 ProductService.updateSpecs 受理 customValues。
+     * 供 SkuService.updateSpecs 受理 customValues。
      *
      * <p>一条 upsert 落库（见 CategoryAttrValueMapper#upsertSellerValue）——不能靠 catch
      * DuplicateKeyException 回读：PG 撞唯一索引即中止整个事务，catch 后发不出任何语句。
@@ -181,6 +186,52 @@ public class CategoryAttrService {
     @Transactional
     public CategoryAttrValue ensureSellerValue(UUID attrId, String value) {
         return valueMapper.upsertSellerValue(attrId, value);
+    }
+
+    /**
+     * params 模板校验（商品建草稿 / 改基本信息时调用）：类目存在参数模板（kind=2 启用条目）时——提交的 attrId 必须属于模板、
+     * required 必须有值、allow_custom=false 且有值域时值须在值域内；类目无模板维持自由文本（attrId=null）。
+     */
+    public void validateParams(UUID categoryId, List<ParamItem> params) {
+        List<CategoryAttr> template = attrMapper.selectList(new LambdaQueryWrapper<CategoryAttr>()
+                .eq(CategoryAttr::getCategoryId, categoryId)
+                .eq(CategoryAttr::getKind, AttrKind.PARAM)
+                .eq(CategoryAttr::getStatus, CategoryAttrStatus.ENABLED));
+        if (template.isEmpty()) {
+            return;
+        }
+        Map<UUID, CategoryAttr> byId = template.stream().collect(Collectors.toMap(CategoryAttr::getId, a -> a));
+        List<ParamItem> items = params == null ? List.of() : params;
+
+        // 1. 值域一次性按整个模板捞出并按 attrId 分组：旧版在 param 循环里逐个 selectList，
+        //    N 个受控参数 = N 次往返，而这里的候选集本就限定在同一类目模板内
+        Map<UUID, Set<String>> domainByAttr = valueMapper
+                .selectList(new LambdaQueryWrapper<CategoryAttrValue>().in(CategoryAttrValue::getAttrId, byId.keySet()))
+                .stream()
+                .collect(Collectors.groupingBy(
+                        CategoryAttrValue::getAttrId,
+                        Collectors.mapping(CategoryAttrValue::getValue, Collectors.toSet())));
+
+        // 2. 提交的每条 param 必须关联本类目模板属性；值域受控（allow_custom=false 且有值域）时值须在值域内
+        for (ParamItem item : items) {
+            CategoryAttr attr = item.attrId() == null ? null : byId.get(item.attrId());
+            Validate.isTrue(attr != null, "参数必须关联类目模板属性");
+            if (!Boolean.TRUE.equals(attr.getAllowCustom())) {
+                Set<String> domain = domainByAttr.getOrDefault(attr.getId(), Set.of());
+                if (!domain.isEmpty()) {
+                    Validate.isTrue(domain.contains(item.value()), "参数值不在值域内：" + attr.getName());
+                }
+            }
+        }
+
+        // 3. required 的 param 必须有值
+        for (CategoryAttr attr : template) {
+            if (Boolean.TRUE.equals(attr.getRequired())) {
+                boolean filled =
+                        items.stream().anyMatch(i -> attr.getId().equals(i.attrId()) && StringUtils.hasText(i.value()));
+                Validate.isTrue(filled, "缺少必填参数：" + attr.getName());
+            }
+        }
     }
 
     private CategoryAttr requireAttr(UUID attrId) {
@@ -212,12 +263,5 @@ public class CategoryAttrService {
             nodes.add(new CategoryAttrNode(attr, values));
         }
         return nodes;
-    }
-
-    /** SPU 名 + 规格值拼接（与 ProductService 同一公式），截断到列上限 160 */
-    private static String buildSkuName(Product product, List<SkuAttr> attrs) {
-        List<String> values = attrs.stream().map(SkuAttr::value).toList();
-        String name = values.isEmpty() ? product.getName() : product.getName() + " " + String.join(" ", values);
-        return name.length() > 160 ? name.substring(0, 160) : name;
     }
 }

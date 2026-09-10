@@ -17,7 +17,7 @@ import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
-import com.shop.platform.product.service.ProductService.ProductListRow;
+import com.shop.platform.product.service.ProductListRow;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +61,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
 
         @Test
         void 列表_按状态筛选() throws Exception {
-            when(productService.pageListWithMetrics(
+            when(productQueryService.pageListWithMetrics(
                             eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong(), any()))
                     .thenReturn(
                             new com.shop.platform.common.PageResult<>(List.of(new ProductListRow(draft(), 10, 5L)), 1));
@@ -76,7 +76,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                     .andExpect(jsonPath("$.records[0].stock").value(10))
                     .andExpect(jsonPath("$.records[0].soldCount").value(5));
 
-            verify(productService)
+            verify(productQueryService)
                     .pageListWithMetrics(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong(), any());
         }
 
@@ -120,7 +120,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
             sku.setId(UUID.randomUUID());
             sku.setName("卖家商品 黑色");
             sku.setStatus(SkuStatus.ON_SALE);
-            when(productService.detail(productId)).thenReturn(new ProductDetail(draft(), List.of(sku)));
+            when(productQueryService.detail(productId)).thenReturn(new ProductDetail(draft(), List.of(sku)));
             when(stockReadQuery.availableBySkuIds(any()))
                     .thenReturn(Map.of(sku.getId(), new StockView(sku.getId(), 5, 0, 5)));
 
@@ -129,7 +129,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                             .header("X-Shop-Id", shopId.toString()))
                     .andExpect(status().isOk());
 
-            verify(productService).detail(productId);
+            verify(productQueryService).detail(productId);
         }
     }
 
@@ -146,7 +146,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
             sku.setPrice(1000L);
             sku.setCurrency("CNY");
             sku.setStatus(SkuStatus.ON_SALE);
-            when(productService.updateSpecs(eq(productId), any())).thenReturn(List.of(sku));
+            when(skuService.updateSpecs(eq(productId), any())).thenReturn(List.of(sku));
             when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of());
 
             mockMvc.perform(put("/seller/products/{id}/specs", productId)
@@ -159,7 +159,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                                             .formatted(UUID.randomUUID(), UUID.randomUUID())))
                     .andExpect(status().isOk());
 
-            verify(productService).updateSpecs(eq(productId), any());
+            verify(skuService).updateSpecs(eq(productId), any());
         }
 
         @Test

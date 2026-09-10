@@ -9,7 +9,7 @@ import com.shop.platform.product.controller.response.PublicProductResponse;
 import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.service.ProductDetail;
-import com.shop.platform.product.service.ProductService;
+import com.shop.platform.product.service.ProductQueryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProductController {
 
-    private final ProductService productService;
+    private final ProductQueryService productQueryService;
 
     private final StockReadQuery stockReadQuery;
 
@@ -45,7 +45,7 @@ public class ProductController {
     @GetMapping
     public PageResult<PublicProductResponse> listPublicProducts(
             @Valid PageParams pageParams, @Valid ProductQuery query) {
-        return productService
+        return productQueryService
                 .pagePublic(query, pageParams.page(), pageParams.size())
                 .map(PublicProductResponse::from);
     }
@@ -53,7 +53,7 @@ public class ProductController {
     /** 商品详情：非上架一律 404，SKU 只返在售 */
     @GetMapping("/{id}")
     public PublicProductDetailResponse getPublicProductDetail(@PathVariable UUID id) {
-        ProductDetail d = productService.publicDetail(id);
+        ProductDetail d = productQueryService.publicDetail(id);
         return PublicProductDetailResponse.from(d, stocks(d.skus()));
     }
 

@@ -9,6 +9,7 @@ import com.shop.platform.product.model.SkuStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,6 +28,24 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @TableName(value = "product.skus", autoResultMap = true)
 public class Sku {
+
+    /** SKU 名列上限（与 skus.name VARCHAR(160) 同值） */
+    private static final int NAME_MAX = 160;
+
+    public boolean isOnSale() {
+        return status != null && status.onSale();
+    }
+
+    /** SKU 身份：valueId 按模板维度顺序 ':' join，无规格商品为 ''（uk_skus_product_spec_key 的落点） */
+    public static String specKeyOf(List<SpecValue> combo) {
+        return combo.stream().map(v -> v.valueId().toString()).collect(Collectors.joining(":"));
+    }
+
+    /** 显示名公式：SPU 名 + 各规格值空格连接，如「iPhone 15 Pro 256G 黑色」；单规格/无规格即 SPU 名本身。截断到列上限 */
+    public static String nameOf(Product product, List<String> values) {
+        String name = values.isEmpty() ? product.getName() : product.getName() + " " + String.join(" ", values);
+        return name.length() > NAME_MAX ? name.substring(0, NAME_MAX) : name;
+    }
 
     /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
     @TableId(type = IdType.INPUT)

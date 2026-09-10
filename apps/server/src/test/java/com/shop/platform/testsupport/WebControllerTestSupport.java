@@ -27,7 +27,9 @@ import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.product.service.CategoryAttrService;
 import com.shop.platform.product.service.CategoryService;
+import com.shop.platform.product.service.ProductQueryService;
 import com.shop.platform.product.service.ProductService;
+import com.shop.platform.product.service.SkuService;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
@@ -101,6 +103,12 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected ProductService productService;
+
+    @MockitoBean
+    protected SkuService skuService;
+
+    @MockitoBean
+    protected ProductQueryService productQueryService;
 
     @MockitoBean
     protected CategoryService categoryService;

@@ -6,7 +6,7 @@ import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.SpecItem;
 import com.shop.platform.product.model.ProductStatus;
-import com.shop.platform.product.service.ProductService.ProductListRow;
+import com.shop.platform.product.service.ProductListRow;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;

@@ -64,12 +64,12 @@ class ProductControllerTest extends WebControllerTestSupport {
 
         @Test
         void 匿名可访问() throws Exception {
-            when(productService.pagePublic(any(), anyLong(), anyLong()))
+            when(productQueryService.pagePublic(any(), anyLong(), anyLong()))
                     .thenReturn(new PageResult<>(List.of(product()), 1));
 
             mockMvc.perform(get("/api/products")).andExpect(status().isOk());
 
-            verify(productService).pagePublic(any(), anyLong(), anyLong());
+            verify(productQueryService).pagePublic(any(), anyLong(), anyLong());
         }
     }
 
@@ -79,7 +79,7 @@ class ProductControllerTest extends WebControllerTestSupport {
         @Test
         void 聚合SKU与库存_不吐仓管字段() throws Exception {
             ProductDetail detail = new ProductDetail(product(), List.of(sku()));
-            when(productService.publicDetail(productId)).thenReturn(detail);
+            when(productQueryService.publicDetail(productId)).thenReturn(detail);
             when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of(skuId, new StockView(skuId, 5, 2, 3)));
 
             mockMvc.perform(get("/api/products/{id}", productId))
@@ -88,12 +88,12 @@ class ProductControllerTest extends WebControllerTestSupport {
                     .andExpect(jsonPath("$.skus[0].skuCode").doesNotExist())
                     .andExpect(jsonPath("$.skus[0].status").doesNotExist());
 
-            verify(productService).publicDetail(productId);
+            verify(productQueryService).publicDetail(productId);
         }
 
         @Test
         void 非上架_404() throws Exception {
-            when(productService.publicDetail(productId))
+            when(productQueryService.publicDetail(productId))
                     .thenThrow(new BusinessException(404, "PRODUCT_NOT_FOUND", "商品不存在或未上架"));
 
             mockMvc.perform(get("/api/products/{id}", productId))
