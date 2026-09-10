@@ -619,6 +619,11 @@ export type CreatedOrdersResponse = {
     orders: Array<CreatedOrder>;
 };
 
+export type CarrierPushRequest = {
+    requestData: string;
+    dataSign: string;
+};
+
 export type AddFavoriteRequest = {
     productId: string;
 };
@@ -2116,6 +2121,22 @@ export type CreateOrderResponses = {
 };
 
 export type CreateOrderResponse = CreateOrderResponses[keyof CreateOrderResponses];
+
+export type ReceivePushData = {
+    body: CarrierPushRequest;
+    path: {
+        carrierCode: string;
+    };
+    query?: never;
+    url: '/logistics/webhooks/{carrierCode}';
+};
+
+export type ReceivePushResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type ListFavoritesData = {
     body?: never;

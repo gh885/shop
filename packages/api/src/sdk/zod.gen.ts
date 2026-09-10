@@ -585,6 +585,11 @@ export const zCreatedOrdersResponse = z.object({
     orders: z.array(zCreatedOrder)
 });
 
+export const zCarrierPushRequest = z.object({
+    requestData: z.string().min(1),
+    dataSign: z.string().min(1)
+});
+
 export const zAddFavoriteRequest = z.object({
     productId: z.uuid()
 });
@@ -1516,6 +1521,12 @@ export const zCreateOrderBody = zCreateOrderRequest;
  * Created
  */
 export const zCreateOrderResponse = zCreatedOrdersResponse;
+
+export const zReceivePushBody = zCarrierPushRequest;
+
+export const zReceivePushPath = z.object({
+    carrierCode: z.string()
+});
 
 export const zListFavoritesQuery = z.object({
     pageParams: zPageParams
