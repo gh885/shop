@@ -188,7 +188,8 @@ export const zCancelOrderRequest = z.object({
 });
 
 export const zReturnGoodsRequest = z.object({
-    logisticsCompany: z.string().min(0).max(32),
+    carrierCode: z.string().min(0).max(32).optional(),
+    logisticsCompany: z.string().min(0).max(50),
     trackingNo: z.string().min(0).max(64)
 });
 
@@ -221,6 +222,10 @@ export const zMeResponse = z.object({
     phone: z.string(),
     nickname: z.string().nullable(),
     avatarKey: z.string().nullable()
+});
+
+export const zResolveIssueRequest = z.object({
+    note: z.string().min(0).max(200).optional()
 });
 
 export const zRecommendTabRequest = z.object({
@@ -839,6 +844,8 @@ export const zCarrierResponse = z.object({
     name: z.string()
 });
 
+export const zShipmentDirection = z.enum(['FORWARD', 'RETURN']);
+
 export const zShipmentStatus = z.enum([
     'PENDING_PICKUP',
     'PICKED_UP',
@@ -857,6 +864,7 @@ export const zTrackingNodeResponse = z.object({
 });
 
 export const zShipmentTrackingResponse = z.object({
+    direction: zShipmentDirection,
     carrierName: z.string(),
     trackingNo: z.string(),
     status: zShipmentStatus,
@@ -1041,6 +1049,24 @@ export const zShopReviewListItemResponse = z.object({
 export const zPageResultShopReviewListItemResponse = z.object({
     records: z.array(zShopReviewListItemResponse),
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zShipmentIssueStatus = z.enum(['OPEN', 'RESOLVED']);
+
+export const zShipmentIssueType = z.enum([
+    'PICKUP_TIMEOUT',
+    'TRANSIT_STALLED',
+    'DELIVERY_STALLED'
+]);
+
+export const zShipmentIssueResponse = z.object({
+    id: z.uuid(),
+    shipmentId: z.uuid(),
+    type: zShipmentIssueType,
+    status: zShipmentIssueStatus,
+    detail: z.string().nullable(),
+    detectedAt: z.iso.datetime({ offset: true }),
+    resolvedAt: z.iso.datetime({ offset: true }).nullable()
 });
 
 export const zStaffInfoResponse = z.object({
@@ -1259,6 +1285,12 @@ export const zUpdateProfileBody = zUpdateProfileRequest;
  * OK
  */
 export const zUpdateProfileResponse = zMeResponse;
+
+export const zResolveIssueBody = zResolveIssueRequest;
+
+export const zResolveIssuePath = z.object({
+    id: z.uuid()
+});
 
 export const zUpdateTabBody = zRecommendTabRequest;
 
@@ -1919,6 +1951,11 @@ export const zListShopReviewsQuery = z.object({
  * OK
  */
 export const zListShopReviewsResponse = zPageResultShopReviewListItemResponse;
+
+/**
+ * OK
+ */
+export const zListOpenIssuesResponse = z.array(zShipmentIssueResponse);
 
 /**
  * OK

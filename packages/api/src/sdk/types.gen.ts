@@ -200,6 +200,7 @@ export type CancelOrderRequest = {
 };
 
 export type ReturnGoodsRequest = {
+    carrierCode?: string;
     logisticsCompany: string;
     trackingNo: string;
 };
@@ -233,6 +234,10 @@ export type MeResponse = {
     phone: string;
     nickname: string | null;
     avatarKey: string | null;
+};
+
+export type ResolveIssueRequest = {
+    note?: string;
 };
 
 export type RecommendTabRequest = {
@@ -886,6 +891,10 @@ export type OrderTrackingResponse = {
     shipments: Array<ShipmentTrackingResponse>;
 };
 
+export const ShipmentDirection = { FORWARD: 'FORWARD', RETURN: 'RETURN' } as const;
+
+export type ShipmentDirection = typeof ShipmentDirection[keyof typeof ShipmentDirection];
+
 export const ShipmentStatus = {
     PENDING_PICKUP: 'PENDING_PICKUP',
     PICKED_UP: 'PICKED_UP',
@@ -899,6 +908,7 @@ export const ShipmentStatus = {
 export type ShipmentStatus = typeof ShipmentStatus[keyof typeof ShipmentStatus];
 
 export type ShipmentTrackingResponse = {
+    direction: ShipmentDirection;
     carrierName: string;
     trackingNo: string;
     status: ShipmentStatus;
@@ -1086,6 +1096,28 @@ export type ShopReviewListItemResponse = {
     decidedAt: string | null;
     createdAt: string;
 };
+
+export type ShipmentIssueResponse = {
+    id: string;
+    shipmentId: string;
+    type: ShipmentIssueType;
+    status: ShipmentIssueStatus;
+    detail: string | null;
+    detectedAt: string;
+    resolvedAt: string | null;
+};
+
+export const ShipmentIssueStatus = { OPEN: 'OPEN', RESOLVED: 'RESOLVED' } as const;
+
+export type ShipmentIssueStatus = typeof ShipmentIssueStatus[keyof typeof ShipmentIssueStatus];
+
+export const ShipmentIssueType = {
+    PICKUP_TIMEOUT: 'PICKUP_TIMEOUT',
+    TRANSIT_STALLED: 'TRANSIT_STALLED',
+    DELIVERY_STALLED: 'DELIVERY_STALLED'
+} as const;
+
+export type ShipmentIssueType = typeof ShipmentIssueType[keyof typeof ShipmentIssueType];
 
 export type StaffInfoResponse = {
     id: string;
@@ -1571,6 +1603,22 @@ export type UpdateProfileResponses = {
 };
 
 export type UpdateProfileResponse = UpdateProfileResponses[keyof UpdateProfileResponses];
+
+export type ResolveIssueData = {
+    body: ResolveIssueRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/logistics/issues/{id}/resolve';
+};
+
+export type ResolveIssueResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type UpdateTabData = {
     body: RecommendTabRequest;
@@ -3062,6 +3110,22 @@ export type ListShopReviewsResponses = {
 };
 
 export type ListShopReviewsResponse = ListShopReviewsResponses[keyof ListShopReviewsResponses];
+
+export type ListOpenIssuesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/logistics/issues';
+};
+
+export type ListOpenIssuesResponses = {
+    /**
+     * OK
+     */
+    200: Array<ShipmentIssueResponse>;
+};
+
+export type ListOpenIssuesResponse = ListOpenIssuesResponses[keyof ListOpenIssuesResponses];
 
 export type GetAdminCategoryTreeData = {
     body?: never;
