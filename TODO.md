@@ -9,6 +9,7 @@
 
 ## 近期要做
 
+- [ ] 物流一期前端：买家订单页「查看物流」抽屉（后端已就绪，`GET /orders/{id}/tracking`；设计见 `docs/decisions/logistics.md` §6）
 - [ ] E2E：Playwright 接入，先覆盖一条下单主路径（真实后端，storageState 缓存登录态）
 - [ ] seller/admin 首批测试用例（vitest 配置与装置已就绪，`passWithNoTests` 摘除时机 = 有了第一个用例）
 - [ ] CI：GitHub Actions 跑 lint + typecheck + vitest + `mvn verify` + Playwright（本地 lefthook 已覆盖大部分，补远端门禁）

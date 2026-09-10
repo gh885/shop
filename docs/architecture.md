@@ -35,6 +35,7 @@ product → inventory::api
 cart   → product::api, inventory::api, shop::api, order::events
 favorite → product::api
 order  → product::api, inventory::api, shop::api, account::api
+logistics → order::events（单向消费 OrderShippedEvent；对 order 出度为零，买家查询的归属校验用包裹自己的 user_id）
 aftersale → order::api, inventory::api
 payment → order::api, order::events, aftersale::events
 ```
@@ -81,6 +82,8 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
   → order 发 OrderPlacedEvent，cart 同事务监听按 userId + skuId 删已购条目
   → payment 模块消费 order 事件 / 调 order::api 完成支付
   → 履约态流转（PAID → 待发货 → …，前端投影见 apps/web/src/shared/order-status.ts）
+  → 卖家发货经 order::events 的 OrderShippedEvent 同步落 logistics 的包裹（同事务，发过货就一定有包裹），
+    轨迹节点由承运商推送/运营补录写入，包裹状态是轨迹的投影（设计见 docs/decisions/logistics.md）
 ```
 
 ## 5. 全库 ID 策略（所有模块通用）
@@ -106,15 +109,15 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
 
 前端 domain 按**界面**组织，与后端模块不是 1:1（如"地址"属于界面上独立的 domain，后端却是 account 模块的 `/user/addresses`）。API 前缀与模块对应：
 
-| API 前缀                | 后端模块                                             | 前端主要消费方                                                                  |
-| ----------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `/auth/*`               | account                                              | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）                      |
-| `/user/*`               | account                                              | web（含收货地址 domain）                                                        |
-| `/cart/*`               | cart                                                 | web 的 cart domain                                                              |
-| `/orders/*` `/payments` | order / aftersale / payment                          | web 的 order、checkout domain（`/orders/{id}/after-sales/*` 由 aftersale 承接） |
-| `/api/*`                | product、cms、search                                 | web 的 product / home domain；admin 的类目、CMS                                 |
-| `/shops/*` `/seller/*`  | shop                                                 | seller 全域（X-Shop-Id 上下文头）                                               |
-| `/admin/*`              | account（员工登录）/ shop（入驻审核）/ cms / product | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                   |
+| API 前缀                | 后端模块                                                         | 前端主要消费方                                                                                                             |
+| ----------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `/auth/*`               | account                                                          | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）                                                                 |
+| `/user/*`               | account                                                          | web（含收货地址 domain）                                                                                                   |
+| `/cart/*`               | cart                                                             | web 的 cart domain                                                                                                         |
+| `/orders/*` `/payments` | order / aftersale / payment / logistics                          | web 的 order、checkout domain（`/orders/{id}/after-sales/*` 由 aftersale 承接、`/orders/{id}/tracking` 由 logistics 承接） |
+| `/api/*`                | product、cms、search                                             | web 的 product / home domain；admin 的类目、CMS                                                                            |
+| `/shops/*` `/seller/*`  | shop                                                             | seller 全域（X-Shop-Id 上下文头）                                                                                          |
+| `/admin/*`              | account（员工登录）/ shop（入驻审核）/ cms / product / logistics | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                                                              |
 
 ## 7. 文档地图
 
