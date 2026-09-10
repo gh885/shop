@@ -34,7 +34,11 @@ public record ShipmentTrackingResponse(
                 tracking.shipment().getDeliveredAt(),
                 tracking.nodes().stream()
                         .map(n -> new TrackingNodeResponse(
-                                n.getNodeCode(), n.getDescription(), n.getLocation(), n.getOccurredAt()))
+                                n.getNodeCode(),
+                                n.getNodeCode().status(),
+                                n.getDescription(),
+                                n.getLocation(),
+                                n.getOccurredAt()))
                         .toList());
     }
 }
