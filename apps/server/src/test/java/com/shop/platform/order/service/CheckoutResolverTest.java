@@ -191,12 +191,23 @@ class CheckoutResolverTest {
 
         List<CheckoutPreview.Group> groups = resolver.groupByShop(new ArrayList<>(List.of(a, b, c)));
 
+        // 分组按 shopId 升序（与 OrderService.create 拆单顺序一致），但 shopId 是随机 UUID——
+        // 谁排前仅由 UUID 大小决定，所以按 shopId 取组、不按下标假定哪家在前
         assertThat(groups).hasSize(2);
-        CheckoutPreview.Group first = groups.get(0);
-        assertThat(first.shopName()).isEqualTo("甲店");
-        assertThat(first.itemAmount()).isEqualTo(Money.cny(2250)); // 1000×2 + 250×1
-        assertThat(first.payAmount()).isEqualTo(Money.cny(2250)); // V1 运费恒 0
-        assertThat(groups.get(1).itemAmount()).isEqualTo(Money.cny(1000)); // 250×4
+        assertThat(groups.stream().map(CheckoutPreview.Group::shopId)).isSorted();
+
+        CheckoutPreview.Group groupA = groupOf(groups, shopA());
+        assertThat(groupA.shopName()).isEqualTo("甲店");
+        assertThat(groupA.itemAmount()).isEqualTo(Money.cny(2250)); // 1000×2 + 250×1
+        assertThat(groupA.payAmount()).isEqualTo(Money.cny(2250)); // V1 运费恒 0
+        assertThat(groupOf(groups, shopB()).itemAmount()).isEqualTo(Money.cny(1000)); // 250×4
+    }
+
+    private static CheckoutPreview.Group groupOf(List<CheckoutPreview.Group> groups, UUID shopId) {
+        return groups.stream()
+                .filter(g -> g.shopId().equals(shopId))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("未找到店铺分组：" + shopId));
     }
 
     private final UUID shopB = UUID.randomUUID();
