@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import com.shop.platform.account.api.AddressSnapshotView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.inventory.api.StockView;
@@ -15,7 +16,6 @@ import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
-import com.shop.platform.user.api.AddressSnapshotView;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +53,7 @@ class CheckoutResolverTest {
     private com.shop.platform.shop.api.ShopReadQuery shopReadQuery;
 
     @Mock
-    private com.shop.platform.user.api.AddressReadQuery addressReadQuery;
+    private com.shop.platform.account.api.AddressReadQuery addressReadQuery;
 
     private CheckoutResolver resolver;
 

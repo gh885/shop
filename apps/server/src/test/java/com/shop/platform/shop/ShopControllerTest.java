@@ -26,7 +26,7 @@ import org.springframework.http.MediaType;
  * 店铺管理接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
  *
  * <p>HTTP 独有：鉴权守卫（401）、请求入参校验（422）、路由与参数绑定（verify）。
- * 开店入队审核的事件链路、成员跨 schema 拼装、邀请码权限模型归 service/EventPublicationIT；
+ * 开店入队审核的事件链路、成员跨 schema 拼装、邀请码权限模型归 service/ShopGovernanceIT；
  * 响应形状由 OpenAPI→SDK 钉死。
  */
 class ShopControllerTest extends WebControllerTestSupport {

@@ -6,12 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.shop.platform.admin.mapper.ShopReview;
-import com.shop.platform.admin.model.ShopReviewStatus;
-import com.shop.platform.admin.service.ShopReviewService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.shop.mapper.Shop;
+import com.shop.platform.shop.mapper.ShopReview;
+import com.shop.platform.shop.model.ShopReviewStatus;
 import com.shop.platform.shop.model.ShopStatus;
+import com.shop.platform.shop.service.ShopReviewService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -19,8 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * 店铺治理链集成验证（真库）：开店落 PENDING_REVIEW + owner 自动成为 ACTIVE 成员 + 审核入队 →
- * admin 审批（同步事件监听改店铺状态）→ ACTIVE 公开可见 / REJECTED 对外 404。
+ * 店铺治理链集成验证（真库）：开店落 PENDING_REVIEW + owner 自动成为 ACTIVE 成员 + 同事务入队审核 →
+ * 平台审批（同事务推进店铺状态）→ ACTIVE 公开可见 / REJECTED 对外 404。
  * 授权以 shop_members 为准（卖家闸门 findActiveMember 装载成员上下文），二次审批有幂等守卫。
  */
 @SpringBootTest
@@ -36,30 +36,21 @@ class ShopGovernanceIT extends IntegrationTestSupport {
 
     private final UUID staffId = UUID.randomUUID();
 
-    /** 开店并登记全套清理：店铺 + 成员 + 事件登记行（开店/审核决定两枚都按 shopId 圈定） */
+    /** 开店并登记全套清理：店铺 + 成员 + 审核记录 */
     private Shop openShop(String name) {
         Shop shop = shopService.createShop(ownerId, name, null);
-        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + shop.getId() + "%");
-        db.onDelete("DELETE FROM admin.shop_reviews WHERE shop_id = ?", shop.getId());
+        db.onDelete("DELETE FROM shop.shop_reviews WHERE shop_id = ?", shop.getId());
         db.onDelete("DELETE FROM shop.shop_members WHERE shop_id = ?", shop.getId());
         db.onDelete("DELETE FROM shop.shops WHERE id = ?", shop.getId());
         return shop;
     }
 
-    /** 审核入队是 AFTER_COMMIT 监听（独立事务），createShop 返回时可能尚未落库——轮询等它出现 */
-    private UUID awaitReviewId(UUID shopId) {
-        for (int i = 0; i < 100; i++) {
-            UUID id = jdbc.queryForObject(
-                    "SELECT id FROM admin.shop_reviews WHERE shop_id = ?::uuid LIMIT 1", UUID.class, shopId.toString());
-            if (id != null) return id;
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("interrupted while awaiting review row");
-            }
-        }
-        throw new IllegalStateException("审核单未入队: " + shopId);
+    /** 审核入队与建店同事务：createShop 返回即可查到 */
+    private UUID reviewId(UUID shopId) {
+        UUID id = jdbc.queryForObject(
+                "SELECT id FROM shop.shop_reviews WHERE shop_id = ?::uuid LIMIT 1", UUID.class, shopId.toString());
+        assertNotNull(id, "审核单未入队: " + shopId);
+        return id;
     }
 
     private String shopStatus(UUID shopId) {
@@ -82,9 +73,9 @@ class ShopGovernanceIT extends IntegrationTestSupport {
         assertEquals("PENDING_REVIEW", shopStatus(shop.getId()));
         assertTrue(isOwnerActiveMember(shop.getId())); // 授权判断以 shop_members 为准
 
-        awaitReviewId(shop.getId()); // 入队行存在即可，状态断言在审批用例里
+        reviewId(shop.getId());
         Integer pending = jdbc.queryForObject(
-                "SELECT count(*) FROM admin.shop_reviews WHERE shop_id = ?::uuid AND status = ?",
+                "SELECT count(*) FROM shop.shop_reviews WHERE shop_id = ?::uuid AND status = ?",
                 Integer.class,
                 shop.getId().toString(),
                 ShopReviewStatus.PENDING.name());
@@ -94,11 +85,10 @@ class ShopGovernanceIT extends IntegrationTestSupport {
     @Test
     void 审核通过_店铺转ACTIVE_公开可见() {
         Shop shop = openShop("受审通过店铺");
-        UUID reviewId = awaitReviewId(shop.getId());
 
-        ShopReview decided = shopReviewService.approve(reviewId, staffId);
+        ShopReview decided = shopReviewService.approve(reviewId(shop.getId()), staffId);
 
-        // 同步监听已把店铺推进 ACTIVE；publicShop 只对 ACTIVE 放行
+        // 审批同事务已把店铺推进 ACTIVE；publicShop 只对 ACTIVE 放行
         assertEquals(ShopStatus.ACTIVE.name(), shopStatus(shop.getId()));
         assertEquals(ShopReviewStatus.APPROVED, decided.getStatus());
         assertEquals(staffId, decided.getStaffId());
@@ -109,9 +99,8 @@ class ShopGovernanceIT extends IntegrationTestSupport {
     @Test
     void 审核拒绝_店铺REJECTED_公开接口404() {
         Shop shop = openShop("受审拒绝店铺");
-        UUID reviewId = awaitReviewId(shop.getId());
 
-        ShopReview decided = shopReviewService.reject(reviewId, staffId, "资质不全");
+        ShopReview decided = shopReviewService.reject(reviewId(shop.getId()), staffId, "资质不全");
 
         assertEquals(ShopStatus.REJECTED.name(), shopStatus(shop.getId()));
         assertEquals(ShopReviewStatus.REJECTED, decided.getStatus());
@@ -122,7 +111,7 @@ class ShopGovernanceIT extends IntegrationTestSupport {
     @Test
     void 同一审核单二次审批_被守卫拦截且状态不被改写() {
         Shop shop = openShop("重复审批店铺");
-        UUID reviewId = awaitReviewId(shop.getId());
+        UUID reviewId = reviewId(shop.getId());
         shopReviewService.approve(reviewId, staffId);
 
         BusinessException again =

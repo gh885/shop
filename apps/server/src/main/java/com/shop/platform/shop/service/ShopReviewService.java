@@ -1,0 +1,149 @@
+package com.shop.platform.shop.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.api.UserReadQuery;
+import com.shop.platform.common.PageParams;
+import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Validate;
+import com.shop.platform.shop.mapper.Shop;
+import com.shop.platform.shop.mapper.ShopMapper;
+import com.shop.platform.shop.mapper.ShopReview;
+import com.shop.platform.shop.mapper.ShopReviewMapper;
+import com.shop.platform.shop.model.ShopReviewStatus;
+import com.shop.platform.shop.model.ShopStatus;
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 店铺入驻审核（平台员工侧）：待审队列 + 通过/拒绝留痕并同事务推进店铺状态。
+ * 入队由 ShopService.createShop 与建店同事务完成；店主手机号经 account :: api 只读拼装（禁止 JOIN）。
+ */
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class ShopReviewService {
+
+    private final ShopReviewMapper shopReviewMapper;
+    private final ShopMapper shopMapper;
+    private final UserReadQuery userReadQuery;
+
+    // ========== 审核队列 ==========
+
+    /** 审核列表（按 status 筛选分页，含店名/店主手机号） */
+    public PageResult<ShopReviewItem> pageList(PageParams pageParams, String status) {
+        // 1. 分页查审核记录，PENDING 优先、新店在前
+        Page<ShopReview> rows = shopReviewMapper.selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<ShopReview>()
+                        .eq(
+                                status != null && !status.isBlank(),
+                                ShopReview::getStatus,
+                                status == null || status.isBlank() ? null : ShopReviewStatus.valueOf(status))
+                        .orderByAsc(ShopReview::getStatus)
+                        .orderByDesc(ShopReview::getCreatedAt));
+
+        // 2. 空页直接返回（避免拼空 IN 列表）
+        if (rows.getRecords().isEmpty()) {
+            return new PageResult<>(List.of(), rows.getTotal());
+        }
+
+        // 3. 拼装：店名/店主取本模块的店铺行；店主手机号经 account :: api 按 ID 查（禁止 JOIN）
+        List<UUID> shopIds =
+                rows.getRecords().stream().map(ShopReview::getShopId).distinct().toList();
+        Map<UUID, Shop> shops =
+                shopMapper.selectBatchIds(shopIds).stream().collect(Collectors.toMap(Shop::getId, Function.identity()));
+        Map<UUID, String> ownerPhones = loadOwnerPhones(shops);
+
+        // 4. 拼装出参
+        List<ShopReviewItem> items = rows.getRecords().stream()
+                .map(r -> new ShopReviewItem(
+                        r.getId(),
+                        r.getShopId(),
+                        shops.containsKey(r.getShopId())
+                                ? shops.get(r.getShopId()).getName()
+                                : null,
+                        ownerPhones.get(r.getShopId()),
+                        r.getStatus(),
+                        r.getReason(),
+                        r.getDecidedAt(),
+                        r.getCreatedAt()))
+                .toList();
+        return new PageResult<>(items, rows.getTotal());
+    }
+
+    // ========== 审批 ==========
+
+    @Transactional
+    public ShopReview approve(UUID reviewId, UUID staffId) {
+        return decide(reviewId, staffId, ShopReviewStatus.APPROVED, null);
+    }
+
+    @Transactional
+    public ShopReview reject(UUID reviewId, UUID staffId, String reason) {
+        return decide(reviewId, staffId, ShopReviewStatus.REJECTED, reason);
+    }
+
+    /**
+     * 审批的唯一落点：留痕（谁批的、批没批、理由、时间）与店铺状态推进是一个逻辑单元，同事务原子生效——
+     * 店铺状态改不成就整体回滚，员工刷新重试；绝不出现「审核记录已通过、店铺永远卡在待审」的静默分叉。
+     */
+    private ShopReview decide(UUID reviewId, UUID staffId, ShopReviewStatus newStatus, String reason) {
+        // 1. 校验存在且未审
+        ShopReview review = Validate.notNull(shopReviewMapper.selectById(reviewId), "审核记录不存在");
+        Validate.isTrue(review.isPending(), "该店铺已审核，请刷新列表");
+
+        // 2. 写入审批留痕
+        review.setStatus(newStatus);
+        review.setStaffId(staffId);
+        review.setReason(reason);
+        review.setDecidedAt(OffsetDateTime.now());
+        shopReviewMapper.updateById(review);
+
+        // 3. 店铺状态对齐：通过 → ACTIVE，拒绝 → REJECTED
+        Shop shop = Validate.notNull(shopMapper.selectById(review.getShopId()), "店铺不存在");
+        shop.setStatus(newStatus == ShopReviewStatus.APPROVED ? ShopStatus.ACTIVE : ShopStatus.REJECTED);
+        shopMapper.updateById(shop);
+
+        // 4. L3 审计留痕（结构化事件，约定见 docs/business-event-logging.md）
+        MDC.put("event", "shop_review.decided");
+        MDC.put("review_id", review.getId().toString());
+        MDC.put("shop_id", review.getShopId().toString());
+        MDC.put("decision", newStatus.name());
+        MDC.put("staff_id", staffId.toString());
+        try {
+            log.info("[SHOP] 店铺审核决定, shopId={}, status={}", shop.getId(), shop.getStatus());
+        } finally {
+            MDC.remove("event");
+            MDC.remove("review_id");
+            MDC.remove("shop_id");
+            MDC.remove("decision");
+            MDC.remove("staff_id");
+        }
+        return review;
+    }
+
+    // ========== 跨模块只读拼装（经 account 的 api 包，禁止 JOIN） ==========
+
+    /** shopId → 店主手机号：先取 shop.owner_id，再按 account.users.id 查 phone（两步，禁止 JOIN） */
+    private Map<UUID, String> loadOwnerPhones(Map<UUID, Shop> shops) {
+        if (shops.isEmpty()) return Map.of();
+        List<UUID> ownerIds =
+                shops.values().stream().map(Shop::getOwnerId).distinct().toList();
+        Map<UUID, String> phones = userReadQuery.phonesByIds(ownerIds);
+
+        Map<UUID, String> result = new HashMap<>();
+        shops.forEach((shopId, shop) -> result.put(shopId, phones.get(shop.getOwnerId())));
+        return result;
+    }
+}

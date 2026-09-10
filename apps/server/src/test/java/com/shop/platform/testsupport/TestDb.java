@@ -78,11 +78,11 @@ public final class TestDb {
     public UUID seedAddress(UUID userId) {
         UUID addressId = UUID.randomUUID();
         jdbc.update(
-                "INSERT INTO user_profile.addresses (id, user_id, receiver_name, phone, region_code, province, city, district, detail) "
+                "INSERT INTO account.addresses (id, user_id, receiver_name, phone, region_code, province, city, district, detail) "
                         + "VALUES (?::uuid, ?::uuid, '张三', '13800000000', '110100', '北京市', '北京市', '朝阳区', '测试路 1 号')",
                 addressId.toString(),
                 userId.toString());
-        onDelete("DELETE FROM user_profile.addresses WHERE id = ?::uuid", addressId.toString());
+        onDelete("DELETE FROM account.addresses WHERE id = ?::uuid", addressId.toString());
         return addressId;
     }
 

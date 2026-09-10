@@ -34,7 +34,7 @@ public class CartItem {
     @TableId(type = IdType.INPUT)
     private UUID id;
 
-    /** 归属买家（auth.users.id），跨 schema 裸引用不加 FK */
+    /** 归属买家（account.users.id），跨 schema 裸引用不加 FK */
     private UUID userId;
 
     /** 加购的卖法（product.skus.id），跨 schema 裸引用不加 FK；同用户同 SKU 唯一（uk_cart_items_user_sku） */

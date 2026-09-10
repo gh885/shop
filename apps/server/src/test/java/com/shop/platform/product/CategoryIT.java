@@ -103,7 +103,7 @@ class CategoryIT extends IntegrationTestSupport {
 
         UUID productId = UUID.randomUUID();
         jdbc.update(
-                "INSERT INTO product.products (id, shop_id, category_id, name, status) VALUES (?::uuid, ?::uuid, ?::uuid, '占位商品', 'OFF')",
+                "INSERT INTO product.products (id, shop_id, category_id, name, status) VALUES (?::uuid, ?::uuid, ?::uuid, '占位商品', 'WAREHOUSE')",
                 productId.toString(),
                 UUID.randomUUID().toString(),
                 created.getId().toString());

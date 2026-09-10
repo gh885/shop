@@ -61,7 +61,7 @@ class BearerTokensTest {
 
         Verification v = BearerTokens.verify(provider, requestWith("Bearer " + staffToken), false);
 
-        // 安全属性：staff 的 subject 是 admin.staff.id，绝不能落进 userIdHolder
+        // 安全属性：staff 的 subject 是 account.staff.id，绝不能落进 userIdHolder
         assertThat(v.failed()).isTrue();
         assertThat(v.code()).isEqualTo("INVALID_TOKEN");
     }

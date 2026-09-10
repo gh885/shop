@@ -13,9 +13,9 @@
 | admin  | `CATEGORY_MANAGE`               | 平台类目                     | 岗位 OPS                    |
 | admin  | `STAFF_MANAGE`                  | 创建员工、分配岗位、禁用     | 仅 SUPER_ADMIN（消费端 P2） |
 
-平台岗位预设（`admin.staff.role`）：`SUPER_ADMIN`（通配）/ `REVIEWER` / `OPS`。
+平台岗位预设（`account.staff.role`）：`SUPER_ADMIN`（通配）/ `REVIEWER` / `OPS`。
 
-- 改「岗位 → 权限」映射 = 改 `admin/service/StaffRole` 枚举发版；
+- 改「岗位 → 权限」映射 = 改 `account/service/StaffRole` 枚举发版；
 - 卖家可授予白名单 = `shop/service/SellerGrants`（防自我繁殖：OWNER 固有码不入集合）；
 - 全部为 MANAGE 型合并码（读随写权）；拆分触发器 = 第一个「能看不能改」岗位出现。
 

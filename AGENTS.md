@@ -32,8 +32,8 @@ openapi/                  ← OpenAPI 契约（api-docs.json，由后端 /v3/api
 server/src/main/java/com/shop/platform/
 ├── ShopServerApplication.java    ← @Modulithic(sharedModules = {"common","infra"})
 ├── common/                       ← 共享纯包：框架无关契约（异常体系、校验、UserIdHolder）
-├── infra/                        ← 共享纯包：跨模块技术适配（JWT、限流、Filter、MyBatis 配置）
-├── auth/                         ← 模块 = 顶层包 = PG schema
+├── infra/                        ← 共享纯包：跨模块技术适配（JWT、Filter、MyBatis 配置）
+├── account/                      ← 模块 = 顶层包 = PG schema
 │   ├── package-info.java         ← @ApplicationModule（消费他模块时在 allowedDependencies 显式登记）
 │   ├── controller/               ← REST 入口
 │   ├── dto/                      ← HTTP 入参（XxxRequest / XxxQuery）
@@ -209,7 +209,7 @@ TS（packages/common）：从 docs/error-codes.md 同步到 error-codes.ts
 ```
 com.shop.platform       ← 后端主包
 com.shop.platform.infra
-com.shop.platform.auth
+com.shop.platform.account
 …
 ```
 

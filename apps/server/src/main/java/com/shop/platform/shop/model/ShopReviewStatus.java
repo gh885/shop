@@ -1,0 +1,21 @@
+package com.shop.platform.shop.model;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+/** 店铺开店审核状态：待审 → 通过 / 驳回（终态）。审核决定经事件驱动 shop 模块落 ShopStatus。 */
+@Schema(enumAsRef = true)
+public enum ShopReviewStatus {
+
+    /** 待审 */
+    PENDING,
+
+    /** 通过 */
+    APPROVED,
+
+    /** 驳回 */
+    REJECTED;
+
+    public boolean isPending() {
+        return this == PENDING;
+    }
+}

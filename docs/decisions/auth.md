@@ -159,7 +159,7 @@ cookie 同时支持 body 传参兜底，脚本测试等非浏览器客户端走 
 
 每一个安全收益都配了一个工程补偿：内存态刷新即失 → 启动时 `bootstrapAuth()` 单例静默刷新；SSR 首屏裁决不了登录态 → 路由守卫 + 客户端守卫双保险。
 
-**买/卖家共享会话（轻量单点登录，淘宝千牛式）**：买家端(web)与卖家端(seller)共用同一个 `auth.users` 统一账号（无角色字段，手机号即身份）。要让「登录一处另一处自动登录」，只靠共享账号还不够——必须共享**会话**。做法是给 refresh cookie 配共享父域 `Domain=.example.com`（`shop.auth.refresh-cookie-domain`，生产环境变量注入，本地留空）。两个前端站都走 `/auth/refresh`，拿同一个 refresh cookie 静默换 access，于是天然单点登录。三个受控决策：
+**买/卖家共享会话（轻量单点登录，淘宝千牛式）**：买家端(web)与卖家端(seller)共用同一个 `account.users` 统一账号（无角色字段，手机号即身份）。要让「登录一处另一处自动登录」，只靠共享账号还不够——必须共享**会话**。做法是给 refresh cookie 配共享父域 `Domain=.example.com`（`shop.auth.refresh-cookie-domain`，生产环境变量注入，本地留空）。两个前端站都走 `/auth/refresh`，拿同一个 refresh cookie 静默换 access，于是天然单点登录。三个受控决策：
 
 1. **身份 vs 权限**：共享会话只解决身份，不解决权限。卖家端能操作哪些店铺完全由 `X-Shop-Id` + 店铺成员关系在服务端校验决定——单纯「登录了买家账号」绝不等于拥有卖方权限，这是安全边界，必须写在产品规则里。
 2. **admin 不纳入共享**：平台员工走独立 staff 账号体系（`/admin/auth/refresh`，JWT 带 `kind=staff`），与 C 端隔离，避免员工身份混入普通用户会话。

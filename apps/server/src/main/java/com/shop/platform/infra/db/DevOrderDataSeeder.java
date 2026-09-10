@@ -94,7 +94,8 @@ public class DevOrderDataSeeder implements ApplicationRunner {
             log.info("[dev-seed] 跳过订单种子：该店铺无「在售且有价」的 SKU");
             return;
         }
-        List<UUID> buyerIds = jdbc.queryForList("SELECT id FROM auth.users ORDER BY created_at LIMIT 12", UUID.class);
+        List<UUID> buyerIds =
+                jdbc.queryForList("SELECT id FROM account.users ORDER BY created_at LIMIT 12", UUID.class);
         if (buyerIds.isEmpty()) {
             log.info("[dev-seed] 跳过订单种子：无买家用户");
             return;

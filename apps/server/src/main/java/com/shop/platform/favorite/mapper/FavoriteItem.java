@@ -32,7 +32,7 @@ public class FavoriteItem {
     @TableId(type = IdType.INPUT)
     private UUID id;
 
-    /** 归属买家（auth.users.id），跨 schema 裸引用不加 FK */
+    /** 归属买家（account.users.id），跨 schema 裸引用不加 FK */
     private UUID userId;
 
     /** 被收藏的商品（product.products.id，SPU 级），跨 schema 裸引用不加 FK */

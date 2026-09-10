@@ -14,9 +14,9 @@
 | ID        | 优先级 | 状态      | 说明                                                                                                                                                            |
 | --------- | ------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SUBJ-02   | P0     | ✅ 已实现 | kind=staff / kind=user 双 token 域隔离（JwtProvider + 双过滤链，先于本改造存在），AdminPermissionGuardTest 补了 C 端令牌打 admin 接口 401 回归                  |
-| ROLE-01   | P0     | ✅ 已实现 | 权限挂岗位不挂人：`admin.staff.role` 列（V23）→ `StaffRole` 枚举映射，无直接授权通道                                                                            |
+| ROLE-01   | P0     | ✅ 已实现 | 权限挂岗位不挂人：`account.staff.role` 列（V23）→ `StaffRole` 枚举映射，无直接授权通道                                                                          |
 | ROLE-02   | P0     | ✅ 已实现 | role 无 DEFAULT（插入漏写报错）；未知 role 字符串 `parseOrNull → null → 空集`                                                                                   |
-| ROLE-05   | P2     | ⏳ 延后   | 静态映射收口在 `admin/service/StaffRole`；搬表触发条件 = 改映射发版成为真实痛点                                                                                 |
+| ROLE-05   | P2     | ⏳ 延后   | 静态映射收口在 `account/service/StaffRole`；搬表触发条件 = 改映射发版成为真实痛点                                                                               |
 | RES-01    | P0     | ✅ 已实现 | 判权签名 `RequirePermission(String[] codes)`，condition 位在 P1 卖家域扩展时保留（X-Shop-Id 即条件上下文）                                                      |
 | RES-02    | P0     | ✅ 已实现 | `common/Permissions.java` 常量 + notes §3.3 码表为唯一真相源；TS 侧暂只消费错误码                                                                               |
 | GRAN-02   | P0     | ✅ 已实现 | 全部 MANAGE 型合并码（读随写权）；拆分触发器 = 第一个「能看不能改」岗位出现                                                                                     |
@@ -38,7 +38,7 @@
 ## 测试资产
 
 - `AdminEndpointGuardTest` —— 启动自检（快环）
-- `admin/AdminPermissionGuardTest` —— 判权矩阵：OPS 无权 403 / SHOP_REVIEW 放行 / 禁用即时失权 / C 端令牌 401
+- `shop/AdminPermissionGuardTest` —— 判权矩阵：OPS 无权 403 / SHOP_REVIEW 放行 / 禁用即时失权 / C 端令牌 401
 - `WebControllerTestSupport` 默认桩：契约测试假定持通配的在岗员工，权限用例自行覆盖
 
 ## 待办（按分期）

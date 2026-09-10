@@ -4,7 +4,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/** 当前请求平台员工 ID，infra.security 的 StaffAuthFilter 设值，admin 模块各层取用（镜像 UserIdHolder）。 */
+/** 当前请求平台员工 ID，infra.security 的 StaffAuthFilter 设值，account 模块的员工接口与 StaffPermissionResolver 取用（镜像 UserIdHolder）。 */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StaffContext {
 

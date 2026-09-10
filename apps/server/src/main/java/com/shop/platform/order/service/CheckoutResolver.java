@@ -1,5 +1,7 @@
 package com.shop.platform.order.service;
 
+import com.shop.platform.account.api.AddressReadQuery;
+import com.shop.platform.account.api.AddressSnapshotView;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
@@ -9,8 +11,6 @@ import com.shop.platform.product.api.ProductReadQuery;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
 import com.shop.platform.shop.api.ShopReadQuery;
-import com.shop.platform.user.api.AddressReadQuery;
-import com.shop.platform.user.api.AddressSnapshotView;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 结算解析器：把「结算行（skuId + 件数）→ 有效行 + 置灰行 + 按店分组」的整条只读链路
- * 从 OrderService 拆出。跨模块读取全部经各模块 api 包（product / inventory / shop / user），
+ * 从 OrderService 拆出。跨模块读取全部经各模块 api 包（product / inventory / shop / account），
  * 不碰他方 schema 的表名与状态魔法值。来源（购物车勾选 / 立即购买）由前端归约，order 不回查购物车。
  */
 @Component
@@ -119,7 +119,7 @@ class CheckoutResolver {
         return lines.stream().map(l -> l.price().times(l.quantity())).reduce(Money.cny(0), Money::plus);
     }
 
-    /** 地址快照来源（user :: api）：归属本人且未删除，否则 404（预览与创建共用一道门） */
+    /** 地址快照来源（account :: api）：归属本人且未删除，否则 404（预览与创建共用一道门） */
     AddressSnapshot loadAddressSnapshot(UUID userId, UUID addressId) {
         AddressSnapshotView row = Validate.present(addressReadQuery.byId(addressId), "收货地址不存在");
         Validate.isTrue(row.userId().equals(userId), "收货地址不存在");

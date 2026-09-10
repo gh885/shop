@@ -34,7 +34,7 @@ public class Ticket {
     /** 所属订单，orders.orders.id */
     private UUID orderId;
 
-    /** 买家（申请人），auth.users.id */
+    /** 买家（申请人），account.users.id */
     private UUID userId;
 
     /** 卖家店铺（处理方），shop.shops.id */

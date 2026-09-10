@@ -28,6 +28,10 @@ class CategoryAttrIT extends IntegrationTestSupport {
     /** V5 种子：三级类目「智能手机」与一级类目「手机数码」 */
     private static final UUID L3_PHONE = UUID.fromString("01900000-0000-7000-8000-000000000301");
 
+    /** V43 模板里「手机」自带的必填参数「屏幕尺寸」（attr 430103，值域 6.1/6.4/6.7 英寸）：放行用例必须带上 */
+    private static final ParamItem SCREEN_SIZE =
+            new ParamItem(UUID.fromString("01900000-0000-7000-8000-000000430103"), "屏幕尺寸", "6.1英寸");
+
     private static final UUID L1_DIGITAL = UUID.fromString("01900000-0000-7000-8000-000000000101");
 
     @Autowired
@@ -117,7 +121,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
                         new CreateProductCommand(shopId, L3_PHONE, "必填参数测试机", null, null, null, List.of(), List.of())));
         assertEquals(400, ex.getHttpStatus());
 
-        // 补上必填参数后放行
+        // 补上必填参数后放行（连同 V43 模板里手机类目自带的必填「屏幕尺寸」）
         assertDoesNotThrow(() -> productService.create(new CreateProductCommand(
                 shopId,
                 L3_PHONE,
@@ -126,7 +130,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
                 null,
                 null,
                 List.of(),
-                List.of(new ParamItem(param.getId(), "产地", "广东")))));
+                List.of(new ParamItem(param.getId(), "产地", "广东"), SCREEN_SIZE))));
     }
 
     @Test
@@ -160,7 +164,7 @@ class CategoryAttrIT extends IntegrationTestSupport {
                 null,
                 null,
                 List.of(),
-                List.of(new ParamItem(param.getId(), "网络制式", "5G")))));
+                List.of(new ParamItem(param.getId(), "网络制式", "5G"), SCREEN_SIZE))));
     }
 
     @Test

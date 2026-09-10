@@ -6,7 +6,7 @@ import java.util.List;
  * 权限码契约（前后端共同语言）。唯一真相源：docs/permission-implementation.md「权限码表」。
  *
  * <p>规则：SCREAMING_SNAKE_CASE；只增不改名不删除（改名 = 契约破坏）。
- * 放 common 是因为 admin/cms/product 多个模块的 controller 都要引用，
+ * 放 common 是因为 shop/account/cms/product 多个模块的 controller 都要引用，
  * 放任何单模块都会制造跨模块依赖。
  */
 public final class Permissions {

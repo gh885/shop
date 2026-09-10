@@ -20,8 +20,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
- * JWT 签发与验签。auth（用户）与 admin（员工）共用：kind claim 区分两类 subject，用户 token 的 subject 是 auth.users.id，
- * 员工 token 的 subject 是 admin.staff.id，两套 UUID 互不视为对方（各过滤链校验 kind）。
+ * JWT 签发与验签。account 模块的买家与员工登录共用：kind claim 区分两类 subject，用户 token 的 subject 是 account.users.id，
+ * 员工 token 的 subject 是 account.staff.id，两套 UUID 互不视为对方（各过滤链校验 kind）。
  */
 @Component
 @Slf4j

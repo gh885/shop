@@ -39,7 +39,7 @@ public class Order {
     /** 业务单号（对外展示/客服对账），全局唯一；UUID 是库内身份，orderNo 是人对外报的 */
     private String orderNo;
 
-    /** 买家 ID，auth.users.id，跨 schema 裸引用不加 FK */
+    /** 买家 ID，account.users.id，跨 schema 裸引用不加 FK */
     private UUID userId;
 
     /** 卖家店铺 ID，shop.shops.id，裸引用不加 FK；一次结算按它拆成 N 单 */
@@ -66,7 +66,7 @@ public class Order {
     /** 币种（如 CNY），与各金额字段组成代码里的 Money 类型 */
     private String currency;
 
-    // ---- 收货快照：镜像 user_profile.addresses，下单定格，永不更新 ----
+    // ---- 收货快照：镜像 account.addresses，下单定格，永不更新 ----
 
     private String receiverName;
 

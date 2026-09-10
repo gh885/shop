@@ -24,23 +24,22 @@ shop/（monorepo，pnpm workspace + Maven，不用 monorepo 工具）
 
 ## 2. 后端模块图
 
-模块 = 顶层包 = PG schema（`product.products`）。模块间通信只有两条路：**api 包同步调用**（`@NamedInterface("api")`）与 **events 纯通知事件**（`@NamedInterface("events")`），消费方在 `@ApplicationModule(allowedDependencies)` 显式登记，ArchUnit 强制。`common/`（框架无关契约）与 `infra/`（JWT/限流/MyBatis 等技术适配）是共享纯包，经 `@Modulithic(sharedModules)` 登记后任何模块可引用。
+模块 = 顶层包 = PG schema（`product.products`）。模块间通信只有两条路：**api 包同步调用**（`@NamedInterface("api")`）与 **events 纯通知事件**（`@NamedInterface("events")`），消费方在 `@ApplicationModule(allowedDependencies)` 显式登记，ArchUnit 强制。`common/`（框架无关契约）与 `infra/`（JWT/Filter/MyBatis 等技术适配）是共享纯包，经 `@Modulithic(sharedModules)` 登记后任何模块可引用。
 
 当前依赖登记（来自各模块 `package-info.java`，改依赖 = 改登记）：
 
 ```
-auth（叶子）        user（叶子）        cms（叶子）         inventory（叶子）
-shop   → auth::api
+account（叶子）     cms（叶子）         inventory（叶子）
+shop   → account::api
 product → inventory::api
 cart   → product::api, inventory::api, shop::api, order::events
 favorite → product::api
-order  → product::api, inventory::api, shop::api, user::api
+order  → product::api, inventory::api, shop::api, account::api
 aftersale → order::api, inventory::api
 payment → order::api, order::events, aftersale::events
-admin  → shop::events, shop::api, auth::api
 ```
 
-事件流：`order.OrderPlacedEvent`（下单）→ cart 消费清理已购 SKU；`order.OrderCancelledEvent`（已付款单取消）与 `aftersale.AfterSaleRefundedEvent`（售后退款）→ payment 消费落退款单据；`shop` 事件 → admin 消费（入驻审核）。事件发布走 Spring Modulith 事件总线（`infra/events/EventPublicationRecoveryJob` 负责失败恢复）。
+事件流：`order.OrderPlacedEvent`（下单）→ cart 消费清理已购 SKU；`order.OrderCancelledEvent`（已付款单取消）与 `aftersale.AfterSaleRefundedEvent`（售后退款）→ payment 消费落退款单据。三条都是同事务同步监听；`kernel.event_publication` 登记表与 `infra/events/EventPublicationRecoveryJob` 保留给将来的 AFTER_COMMIT 消费方（如接真实支付网关后的退款），当前没有消费方在用。
 
 模块内部三层到底：`controller → service → mapper`，命名契约见 apps/server/AGENTS.md。
 
@@ -78,7 +77,7 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
 ```
 买家端购物车（cart 模块，PG）
   → 结算：前端把勾选条目归约成 SKU 行（skuId + 件数）提交 /orders/preview 与 /orders/create
-  → order 模块按 product::api 重算价格、inventory::api 冻结库存、user::api 取收货地址快照，按店拆单落库
+  → order 模块按 product::api 重算价格、inventory::api 冻结库存、account::api 取收货地址快照，按店拆单落库
   → order 发 OrderPlacedEvent，cart 同事务监听按 userId + skuId 删已购条目
   → payment 模块消费 order 事件 / 调 order::api 完成支付
   → 履约态流转（PAID → 待发货 → …，前端投影见 apps/web/src/shared/order-status.ts）
@@ -105,22 +104,22 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
 
 ## 6. 前端 domain ↔ 后端模块对应
 
-前端 domain 按**界面**组织，与后端模块不是 1:1（如"地址"属于界面上独立的 domain，后端却是 user 模块的 `/user/addresses`）。API 前缀与模块对应：
+前端 domain 按**界面**组织，与后端模块不是 1:1（如"地址"属于界面上独立的 domain，后端却是 account 模块的 `/user/addresses`）。API 前缀与模块对应：
 
-| API 前缀                | 后端模块                    | 前端主要消费方                                                                  |
-| ----------------------- | --------------------------- | ------------------------------------------------------------------------------- |
-| `/auth/*`               | auth                        | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）                      |
-| `/user/*`               | user                        | web（含收货地址 domain）                                                        |
-| `/cart/*`               | cart                        | web 的 cart domain                                                              |
-| `/orders/*` `/payments` | order / aftersale / payment | web 的 order、checkout domain（`/orders/{id}/after-sales/*` 由 aftersale 承接） |
-| `/api/*`                | product、cms、search        | web 的 product / home domain；admin 的类目、CMS                                 |
-| `/shops/*` `/seller/*`  | shop                        | seller 全域（X-Shop-Id 上下文头）                                               |
-| `/admin/*`              | admin                       | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                   |
+| API 前缀                | 后端模块                                             | 前端主要消费方                                                                  |
+| ----------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `/auth/*`               | account                                              | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）                      |
+| `/user/*`               | account                                              | web（含收货地址 domain）                                                        |
+| `/cart/*`               | cart                                                 | web 的 cart domain                                                              |
+| `/orders/*` `/payments` | order / aftersale / payment                          | web 的 order、checkout domain（`/orders/{id}/after-sales/*` 由 aftersale 承接） |
+| `/api/*`                | product、cms、search                                 | web 的 product / home domain；admin 的类目、CMS                                 |
+| `/shops/*` `/seller/*`  | shop                                                 | seller 全域（X-Shop-Id 上下文头）                                               |
+| `/admin/*`              | account（员工登录）/ shop（入驻审核）/ cms / product | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                   |
 
 ## 7. 文档地图
 
 - 操作规范：[AGENTS.md](../AGENTS.md)、[apps/server/AGENTS.md](../apps/server/AGENTS.md)
 - 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志）
-- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记、[模块边界目标形态与改造路线](decisions/module-boundaries.md)）
+- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
 - 依据清单（收编的外部文档）：[docs/reference/](reference/)
 - 模块实现对照（快照）：[apps/server/docs/](../apps/server/docs/)

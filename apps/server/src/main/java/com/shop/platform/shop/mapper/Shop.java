@@ -17,8 +17,8 @@ import lombok.NoArgsConstructor;
 /**
  * 店铺 —— 卖家侧的业务单元，商品的归属（product.products.shop_id）。
  *
- * <p>店主=主账号（owner_id，auth.users.id），店铺成员见 shop_members。店铺状态由平台审核驱动：开店先落 PENDING_REVIEW，平台审核通过才
- * ACTIVE（审核记录在 admin 模块的 shop_reviews），店主才能用它经营。
+ * <p>店主=主账号（owner_id，account.users.id），店铺成员见 shop_members。店铺状态由平台审核驱动：开店先落 PENDING_REVIEW，平台审核通过才
+ * ACTIVE（审核记录在本模块 shop_reviews，审批同事务推进状态），店主才能用它经营。
  */
 @Data
 @Builder

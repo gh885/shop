@@ -82,9 +82,9 @@ class TestDbTest {
 
         UUID addressId = db.seedAddress(userId);
 
-        verify(jdbc).update(contains("INSERT INTO user_profile.addresses"), any(Object[].class));
+        verify(jdbc).update(contains("INSERT INTO account.addresses"), any(Object[].class));
 
         db.purge();
-        verify(jdbc).update(contains("DELETE FROM user_profile.addresses"), eq(addressId.toString()));
+        verify(jdbc).update(contains("DELETE FROM account.addresses"), eq(addressId.toString()));
     }
 }

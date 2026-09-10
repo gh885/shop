@@ -41,7 +41,7 @@ public class Payment {
     /** 冗余单号：对账时人可读，免回查订单表 */
     private String orderNo;
 
-    /** 支付发起人，auth.users.id，裸引用不加 FK */
+    /** 支付发起人，account.users.id，裸引用不加 FK */
     private UUID userId;
 
     /** 支付金额，分（= 订单 pay_amount，service 落库前已按订单投影校验） */

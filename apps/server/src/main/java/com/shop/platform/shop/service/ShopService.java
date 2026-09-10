@@ -1,16 +1,18 @@
 package com.shop.platform.shop.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.shop.platform.auth.api.UserReadQuery;
+import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
-import com.shop.platform.shop.events.ShopCreatedEvent;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
+import com.shop.platform.shop.mapper.ShopReview;
+import com.shop.platform.shop.mapper.ShopReviewMapper;
 import com.shop.platform.shop.model.MemberRole;
 import com.shop.platform.shop.model.MemberStatus;
+import com.shop.platform.shop.model.ShopReviewStatus;
 import com.shop.platform.shop.model.ShopStatus;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +21,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,10 +31,10 @@ public class ShopService {
 
     private final ShopMapper shopMapper;
     private final ShopMemberMapper shopMemberMapper;
-    private final ApplicationEventPublisher events;
+    private final ShopReviewMapper shopReviewMapper;
     private final UserReadQuery userReadQuery;
 
-    /** 开店：建店（PENDING_REVIEW）+ 店主成为 OWNER 成员 + 发布审核事件 */
+    /** 开店：建店（PENDING_REVIEW）+ 店主成为 OWNER 成员 + 同事务入队一条待审记录 */
     @Transactional
     public Shop createShop(UUID ownerId, String name, String logoKey) {
         // 1. 校验店名（controller 已 @Valid，service 兜底）
@@ -57,8 +58,11 @@ public class ShopService {
                 .build();
         shopMemberMapper.insert(owner);
 
-        // 4. 发布事件 → admin 模块入队审核（跨模块，事件驱动解耦）
-        events.publishEvent(new ShopCreatedEvent(shop.getId(), ownerId));
+        // 4. 入队审核：与建店同事务落一条 PENDING（审核在本模块闭环，见 ShopReviewService）
+        shopReviewMapper.insert(ShopReview.builder()
+                .shopId(shop.getId())
+                .status(ShopReviewStatus.PENDING)
+                .build());
         log.info("[SHOP] 开店成功, shopId={}, ownerId={}", shop.getId(), ownerId);
         return shop;
     }
@@ -144,7 +148,7 @@ public class ShopService {
         // 1. 校验操作者是店主
         requireOwner(shopId, ownerId);
 
-        // 2. 按手机号找人（auth :: api 只读，auth.users 全局唯一手机号）
+        // 2. 按手机号找人（account :: api 只读，account.users 全局唯一手机号）
         UUID inviteeId = Validate.present(userReadQuery.findIdByPhone(phone), 400, "该手机号还未注册");
         if (inviteeId.equals(ownerId)) {
             throw BusinessException.badRequest("不能邀请自己");

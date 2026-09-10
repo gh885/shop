@@ -17,7 +17,7 @@ public class JwtProperties {
     /** access_token 过期毫秒数，默认 10 分钟（5-15 分钟推荐范围） */
     private long accessTokenExpiration = 600_000;
 
-    /** 平台员工（admin.staff）access_token 过期毫秒数，默认 8 小时（后台工作台，比 C 端长） */
+    /** 平台员工（account.staff）access_token 过期毫秒数，默认 8 小时（后台工作台，比 C 端长） */
     private long staffAccessTokenExpiration = 28_800_000;
 
     /** refresh_token 过期毫秒数，默认 7 天 */

@@ -1,3 +1,20 @@
+## 模块边界规范
+
+机制（api/events 两通道、schema 隔离、Modulith 登记）见根 AGENTS.md「关键架构规则」；本节是**怎么切、往哪个方向依赖**的判据。
+
+- **按领域切，不按角色切。** 角色只出现在 controller 层的入口前缀（`/api` 匿名、买家裸前缀、`/seller`、`/admin`），不再有 admin / user 这类按角色命名的模块
+- **模块 = 顶层包 = schema。** 唯一登记在案的例外：order 模块用 `orders` schema
+- **事件归生产方。** 事件类只放生产方 `events/` 包，不允许"放消费方避免成环"；有成环冲动时改的是依赖方向，不是事件归属
+- **api 命令只用于同事务原子。** 下单冻结库存、支付推进订单并扣实、售后写回订单投影列；其余跨模块影响走事件
+- **Modulith 的环检测在模块级，命名接口不拆环。** A 已依赖 B::api，B 再监听 A::events 也是环。反向影响顺着已有方向走 api 命令：销量由 order 完成时调 `ProductCommand.addSold`，而不是 product 监听订单事件
+- **投影列归展示方。** 要展示别的模块的聚合（销量、最近售后状态）时本模块持有投影列，由对方经 api 命令同事务写回；不反向读、不跨 schema 聚合
+
+三个坏味道信号：规则出现例外（依赖方向选错）；一个状态机横跨两个 schema（模块切在流程中间）；编译期无环、运行期有环（接口倒置藏了依赖）。
+
+诚实边界：模块之间大量是**同事务同步调用**（下单冻库存、支付推单、退款监听），编译期干净、事务上一体。这是强一致优先的单体取舍，**不是"随时可拆微服务"**——拆任何一个都要先把同事务命令改成 saga 或最终一致。接真实支付网关时退款监听器改 AFTER_COMMIT + outbox，`kernel.event_publication` 登记表与重投任务已备。
+
+不做的事：不合并 cart 与 favorite（演化方向不同）；不拆 category 出 product（属性改名要同事务刷 SKU 快照）；不合并买家地址与商家地址（所有者与快照消费方不同）；不引入 saga / MQ；`infra.db.DevOrderDataSeeder` 保留为 dev-only Java runner 不改 Flyway 种子（它每次启动按当前时间重建、依赖现库真实用户，版本化迁移做不到）。
+
 ## 编码风格 — Java
 
 ### service 层方法注释（编号脉络）
@@ -24,8 +41,8 @@
 判据：**换技术会不会重写？** 会 → 技术适配；不会 → 框架无关契约。
 
 - **`common/`（共享纯包）**：框架无关的共享契约，业务代码说得出口的语言 —— `BusinessException` / `Validate` / `UserIdHolder`。零框架依赖，换语言/技术栈依然成立。
-- **根 `infra/`（共享纯包）**：跨模块共享的技术适配 —— `JwtProvider`（jjwt）、`RefreshTokenStore` / `RateLimiter`（Redis）、各类 Filter / Config / TypeHandler / `GlobalExceptionHandler`。换库就重写。
-- **`<module>.infra/`（模块内部）**：单模块内的技术管道 —— `shop.infra.ShopMembershipFilter`、`admin.infra.StaffPermissionResolver`。Modulith 规定子包类型即模块内部，天然不被跨模块访问。
+- **根 `infra/`（共享纯包）**：跨模块共享的技术适配 —— `JwtProvider`（jjwt）、`RefreshTokenStore`（Redis）、各类 Filter / Config / TypeHandler / `GlobalExceptionHandler`。换库就重写。
+- **`<module>.infra/`（模块内部）**：单模块内的技术管道 —— `shop.infra.ShopMembershipFilter`、`account.infra.StaffPermissionResolver`。Modulith 规定子包类型即模块内部，天然不被跨模块访问。
 
 摆放两轴：**谁读它**（跨模块 → 根共享层；仅模块内 → `<module>.infra`）；**换技术重写吗**（重写 → infra；不重写 → common）。镜像示例：`UserIdHolder`（跨模块，common）vs `ShopMemberContext`（仅 shop，shop.infra）。
 
@@ -51,7 +68,7 @@
 
 集成测试直连**专用测试库 shop_test**（WSL2 PostgreSQL，与 dev 库隔离，见 `application-test.yml`），**不用 `@Transactional` 回滚**——AFTER_COMMIT 监听、Modulith outbox 登记这类提交期行为只有真提交才验得到。数据一律**自建自清**，机制收敛在 `src/test/java/com/shop/platform/testsupport/`：
 
-- 测试统一**平铺在模块包根**（auth/XxxTest），不按 controller/service 再分层；仅当测试要触达被测类 package-private 成员时才下钻到其精确包
+- 测试统一**平铺在模块包根**（account/XxxTest），不按 controller/service 再分层；仅当测试要触达被测类 package-private 成员时才下钻到其精确包
 - **方法名 = 失败时的诊断书**：一律中文，下划线分段「动作/场景_条件_预期」（如 类目被商品引用_禁用拒绝_移除后放行、密码登录_全空字段_422、超时关单_回补库存_转已取消）；说公开行为不说实现细节；@Nested 组内可省略重复主语；值对象的单一场景允许一句话连读（非法手机号被拒绝）
 - **类名分类**：`*Test` = 快环（单元 / MockMvc 接口层），surefire 在 `mvn test` 跑、不碰数据库；集成测试一律 `XxxIT`（如 OrderFlowIT / ProductIT），failsafe 在 `mvn verify` 跑真库。CI 门禁用 `mvn verify` 才覆盖集成测试
 - 集成测试继承 `IntegrationTestSupport`：获得 `jdbc` 字段与每用例一个 `db: TestDb`，`@AfterEach` 自动 `purge()`
