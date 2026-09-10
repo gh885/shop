@@ -38,9 +38,14 @@ public class TrackingService {
     /** 签收回写命令：物流事实落到订单投影，由 order 自己重算收货窗口 */
     private final OrderCommand orderCommand;
 
-    /** 录入一条轨迹节点：去重落库 + 单调推进包裹状态。重复推送与迟到节点都是幂等的无副作用返回 */
+    /**
+     * 录入一条轨迹节点：去重落库 + 单调推进包裹状态。重复推送与迟到节点都是幂等的无副作用返回。
+     *
+     * @return 是否真的落了一条新节点（false = 同一事实已记录过）。调用方用它计数/打日志——
+     *     "收到 3 条、新增 1 条"比"处理了 3 条"信息量大得多，也是排查推送重复率的依据
+     */
     @Transactional
-    public void recordNode(UUID shipmentId, TrackingNodeRequest req) {
+    public boolean recordNode(UUID shipmentId, TrackingNodeRequest req) {
         // 1. 定位包裹：不存在给 404（越权由调用侧的权限闸门负责，这里是运营补录入口）
         Shipment shipment = Validate.notNull(shipmentMapper.selectById(shipmentId), "包裹不存在");
 
@@ -59,7 +64,7 @@ public class TrackingService {
                 .build());
         if (inserted == 0) {
             log.debug("[LOGISTICS] 轨迹节点重复，忽略, shipmentId={}, nodeCode={}", shipmentId, req.nodeCode());
-            return;
+            return false;
         }
 
         // 4. 单调推进：抢不到（终态更靠后 / 该节点比当前状态旧）就是乱序或迟到，只落库不改状态
@@ -75,5 +80,6 @@ public class TrackingService {
                 shipmentId,
                 req.nodeCode(),
                 advanced == 1 ? target : "保持（旧节点或终态已到）");
+        return true;
     }
 }

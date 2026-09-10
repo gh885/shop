@@ -22,7 +22,9 @@ import com.shop.platform.infra.web.RequestBodySizeFilter;
 import com.shop.platform.infra.web.RequestIdFilter;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.logistics.service.ShipmentService;
+import com.shop.platform.logistics.service.TrackingPushService;
 import com.shop.platform.logistics.service.TrackingService;
+import com.shop.platform.logistics.service.TrackingSyncService;
 import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
@@ -135,6 +137,12 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected TrackingService trackingService;
+
+    @MockitoBean
+    protected TrackingSyncService trackingSyncService;
+
+    @MockitoBean
+    protected TrackingPushService trackingPushService;
 
     @MockitoBean
     protected ShopService shopService;

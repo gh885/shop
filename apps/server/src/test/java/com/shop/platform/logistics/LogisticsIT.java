@@ -5,16 +5,26 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.logistics.dto.TrackingNodeRequest;
+import com.shop.platform.logistics.mapper.Shipment;
+import com.shop.platform.logistics.mapper.ShipmentMapper;
 import com.shop.platform.logistics.model.ShipmentStatus;
 import com.shop.platform.logistics.model.TrackingNodeCode;
+import com.shop.platform.logistics.service.CarrierPush;
+import com.shop.platform.logistics.service.CarrierPushReceiver;
+import com.shop.platform.logistics.service.CarrierTrackingGateway;
+import com.shop.platform.logistics.service.CarrierTrackingNode;
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.OrderTracking;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.logistics.service.ShipmentTracking;
+import com.shop.platform.logistics.service.TrackingPushService;
 import com.shop.platform.logistics.service.TrackingService;
+import com.shop.platform.logistics.service.TrackingSyncService;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.mapper.Order;
@@ -33,6 +43,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * 物流闭环集成验证（真库）：发货落包裹 → 轨迹节点推进状态 → 重推与乱序不改终态 →
@@ -58,6 +69,23 @@ class LogisticsIT extends IntegrationTestSupport {
 
     @Autowired
     private TrackingService trackingService;
+
+    @Autowired
+    private TrackingSyncService trackingSyncService;
+
+    @Autowired
+    private TrackingPushService trackingPushService;
+
+    @Autowired
+    private ShipmentMapper shipmentMapper;
+
+    // 承运商是我们控制不了的外部系统：真库 IT 也只把"上游"换成假的，落库链路（去重/单调推进/签收回写）
+    // 全部是真的。可用性默认为 false，故 @Scheduled 的轮询任务在这些用例之外不会空转
+    @MockitoBean
+    private CarrierTrackingGateway gateway;
+
+    @MockitoBean
+    private CarrierPushReceiver pushReceiver;
 
     private final UUID userId = UUID.randomUUID();
 
@@ -295,6 +323,59 @@ class LogisticsIT extends IntegrationTestSupport {
                 () -> dispatch(
                         thirdOrderId, "NOPE", "SF" + thirdOrderId.toString().substring(0, 12)));
         assertEquals(400, unknownCarrier.getHttpStatus());
+    }
+
+    /**
+     * 推送与轮询共用同一条落库路径：真实 TrackingPushService + 真实 TrackingSyncService + 真库，
+     * 只把"承运商"换成假的（端口 mock）。要验的是两个方向行为一致、重推不增行、没法判定的节点被跳过。
+     */
+    @Test
+    void 推送与轮询_同一条落库路径_重推不增行且无法归一的节点被跳过() {
+        UUID orderId = seedPaidOrder();
+        String trackingNo = "SF" + orderId.toString().substring(0, 12);
+        UUID shipmentId = dispatch(orderId, "SF", trackingNo);
+        OffsetDateTime base = OffsetDateTime.now().minusHours(5).truncatedTo(ChronoUnit.MILLIS);
+        Shipment shipment = shipmentMapper.selectById(shipmentId);
+
+        // 1. 推送：对方推三条，其中一条只有套话（两个信号都判不出来 → 跳过不猜）
+        List<CarrierTrackingNode> pushed = List.of(
+                new CarrierTrackingNode("1", "已揽收", "杭州", base),
+                new CarrierTrackingNode("2", "快件已到达【杭州转运中心】", "杭州", base.plusHours(1)),
+                new CarrierTrackingNode("0", "客官您好，感谢使用", null, base.plusHours(2)),
+                new CarrierTrackingNode("3", "已签收，签收人：本人", "上海", base.plusHours(3)));
+        when(pushReceiver.receive(any(), any(), any())).thenReturn(new CarrierPush(trackingNo, pushed));
+
+        trackingPushService.accept("SF", "{}", "sign");
+        assertEquals(3, nodeCountOf(shipmentId), "无法归一的节点不落库");
+        assertEquals(ShipmentStatus.DELIVERED, statusOf(shipmentId));
+        assertEquals(
+                base.plusHours(3).toInstant(),
+                orderColumn(orderId, "delivered_at").toInstant());
+
+        // 2. 重推同一批：一行不增、状态不变（去重靠业务唯一键，推送方重推是常态）
+        trackingPushService.accept("SF", "{}", "sign");
+        assertEquals(3, nodeCountOf(shipmentId));
+
+        // 3. 轮询：同一条落库路径，只落新节点
+        when(gateway.available()).thenReturn(true);
+        when(gateway.fetchTracker("SF", trackingNo))
+                .thenReturn(List.of(
+                        new CarrierTrackingNode("3", "已签收，签收人：本人", "上海", base.plusHours(3)),
+                        new CarrierTrackingNode("2", "快件已离开【上海分拨中心】", "上海", base.plusHours(4))));
+        assertEquals(1, trackingSyncService.sync(shipment));
+        assertEquals(4, nodeCountOf(shipmentId));
+        assertEquals(ShipmentStatus.DELIVERED, statusOf(shipmentId), "签收是终态，后到的中转节点不改状态");
+    }
+
+    /** 网关不可用时轮询直接返回：本地开发没配承运商密钥，不该满屏报错也不该空转 */
+    @Test
+    void 网关未启用_轮询不拉取也不报错() {
+        UUID orderId = seedPaidOrder();
+        UUID shipmentId = dispatch(orderId, "SF", "SF" + orderId.toString().substring(0, 12));
+        when(gateway.available()).thenReturn(false);
+
+        assertEquals(0, trackingSyncService.sync(shipmentMapper.selectById(shipmentId)));
+        assertEquals(0, nodeCountOf(shipmentId));
     }
 
     /** 签收后再确认收货仍由买家动作完成（物流不替买家点按钮）；这里钉死两条路径不冲突 */

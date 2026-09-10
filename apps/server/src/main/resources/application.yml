@@ -104,6 +104,15 @@ shop:
         access-token-expiration: 600000
         staff-access-token-expiration: 28800000
         refresh-token-expiration: 604800000
+    # 物流承运商接入（快递鸟聚合服务，只用于轨迹查询与推送接收）。
+    # 密钥从环境变量注入：export SHOP_KDNIAO_ENABLED=true SHOP_KDNIAO_EBUSINESS_ID=… SHOP_KDNIAO_APP_KEY=…
+    # 未配置时应用照常启动，只是轮询任务与推送端点都不工作（网关 available()=false）——
+    # 轨迹仍可由平台运营经 admin 端点补录。推送端点必须配密钥才能用：它 fail-close，没密钥一律 403
+    logistics:
+        kdniao:
+            enabled: "${SHOP_KDNIAO_ENABLED:false}"
+            ebusiness-id: "${SHOP_KDNIAO_EBUSINESS_ID:}"
+            app-key: "${SHOP_KDNIAO_APP_KEY:}"
     # 七牛云对象存储（图片直传）。密钥从环境变量注入，绝不写死进仓库（AK/SK 一旦泄露等于账号裸奔）：
     # OS:  export QINIU_ACCESS_KEY=… QINIU_SECRET_KEY=…
     # 未配置密钥时应用照常启动，只有调用上传凭证接口时才报错（见 QiniuClient.ensureConfigured）。
