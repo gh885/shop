@@ -84,7 +84,8 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
   → 履约态流转（PAID → 待发货 → …，前端投影见 apps/web/src/shared/order-status.ts）
   → 卖家发货入口在 logistics（POST /seller/shipments）：同事务落包裹 + 经 order::api 推进 PAID → 已发货，
     一单可多包裹；签收节点把 delivered_at 写回订单，收货倒计时从签收起算。
-    轨迹节点由承运商推送/运营补录写入，包裹状态是轨迹的投影（设计见 docs/decisions/logistics.md）
+    轨迹节点由承运商推送（/logistics/webhooks，签名校验后落库）、轮询兜底或运营补录写入，
+    包裹状态是轨迹的投影（设计见 docs/decisions/logistics.md）
 ```
 
 ## 5. 全库 ID 策略（所有模块通用）

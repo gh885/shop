@@ -3,8 +3,9 @@
 > 目的：把物流从"订单表里两个裸字符串列"升格为独立模块的设计决策记下来——为什么这么切、边界往哪走、每一期做什么。
 > 叙述方式：先说断点，再说决策，最后写代码地图。代码位置以 `apps/server/src/main/java/com/shop/platform/` 为根，下称 `platform/`。
 >
-> **状态：一期、二期后端均已实现**（V50/V51 迁移 + logistics 模块 + 两个买家/卖家/管理端点 + 权限码 + 测试）。
-> 前端整体未做（买家「查看物流」抽屉、卖家发货下拉切新端点）。模块图已同步 `docs/architecture.md`。
+> **状态：一期、二期、三期后端均已实现**（V50/V51 迁移 + logistics 模块 + 卖家/买家/管理端端点 + 承运商网关与推送接收 + 权限码 + 测试）。
+> 前端整体未做（买家「查看物流」抽屉、卖家发货下拉切新端点）。四期（逆向统一 + 异常治理）未做。
+> 模块图已同步 `docs/architecture.md`。
 
 ---
 
@@ -180,16 +181,25 @@ schema `logistics`，三期共**三张表**（`V50` 建前两张，`V51` 加字�
 
 **遗留**：老端点 `PUT /seller/orders/{id}/ship` 是过渡层，删除条件 = 卖家端切到 `POST /seller/shipments`。
 
-### 三期｜接真实承运商
+### 三期｜接真实承运商（后端已完成，缺真实密钥联调）
 
-**人话**：轨迹靠人敲不算真系统。接一家快递聚合服务，轨迹自动来；处理快递公司推送的三个必踩坑——重复推、乱序推、各家字段不一样。
+**人话**：轨迹靠人敲不算真系统。接一家快递聚合服务（快递鸟），轨迹自动来；处理推送的三个必踩坑——重复推、乱序推、各家字段不一样。
 
-**范围**：`CarrierGateway` 接口 + 一家实现 + `POST /logistics/webhooks/{carrierCode}`（验签 → 幂等 → 落库）+ 轮询兜底 Job + 重试 + 停滞预警。
-webhook 的落点就是现成的 `TrackingService.recordNode`（去重与单调推进已经在那儿，且被真库 IT 钉死），三期只补验签与协议翻译。
+**范围（已完成）**：
 
-**验收**：真实单号全程无人工干预；重推落库 0 行；乱序推送不出现状态倒退。
+- 出站端口 `CarrierTrackingGateway` + 适配 `infra/kdniao/KdniaoTrackingGateway`（RestClient + 签名 + 响应拍平）
+- 入站端口 `CarrierPushReceiver` + 适配 `infra/kdniao/KdniaoPushReceiver`（验签 + 解析），端点 `POST /logistics/webhooks/{carrierCode}`
+- 归一化 `model/TrackingNormalizer`：**细粒度文本优先、粗状态兜底、都判不出来就不猜**
+- 轮询兜底 `TrackingPollJob`（扫停滞包裹）+ `TrackingSyncService`（拉取 → 归一 → 落库）
+- 两条入站路径（推送 / 轮询）**共用同一个落库方法**，行为不可能分叉
 
-### 四期｜逆向统一 + 异常治理
+**范围（未做）**：真实密钥联调（`SHOP_KDNIAO_*` 未注入时网关 `available()=false`，任务与推送都不工作，应用照常启动）；
+承运商编码映射暂按"字典 code == 聚合服务 ShipperCode"处理，真接入时应落到字典列（`carriers.gateway_code`）。
+
+**验收（已钉在测试里）**：推送/轮询同路径且重推不增行；无法归一的节点被跳过；签收是终态不回退；
+验签：篡改报文/篡改签名/换密钥/缺密钥一律拒绝（fail-close，没有密钥连推送端点都不可用）。
+
+### 四期｜逆向统一 + 异常治理（未做）
 
 **人话**：退货回寄现在又是另一处字符串，和正向物流两套东西——统一到同一个包裹与轨迹模型，用同一个组件展示。再加个定时任务，包裹卡在中转站太久就冒出来，让客服知道该催谁。
 
@@ -277,6 +287,33 @@ platform/order/
 └── （删除）dto/ShipOrderRequest、events/OrderShippedEvent、service/OrderTransitionService.ship
 ```
 
+### 三期增量
+
+```
+platform/logistics/
+├── model/TrackingNormalizer.java              原始文本+粗状态 → 节点码（关键词优先、状态兜底、判不出不猜）
+├── service/CarrierTrackingGateway.java        出站端口（我们问）
+├── service/CarrierTrackingNode.java           原始节点（保留原始形态，翻译不在这层）
+├── service/CarrierPush.java / CarrierPushReceiver.java  入站端口（对方推）
+├── service/TrackingSyncService.java           拉取/接收 → 归一 → 落库（两条路径共用 record()）
+├── service/TrackingPushService.java           推送落地：运单号 → 包裹（匹配不上静默成功）
+├── service/TrackingPollJob.java               @Scheduled 扫停滞包裹，网关不可用直接返回
+├── controller/CarrierWebhookController.java   POST /logistics/webhooks/{carrierCode}（匿名可达，靠签名）
+├── dto/CarrierPushRequest.java                requestData 保原文（验签必须对原文做摘要）
+└── infra/kdniao/                              KdniaoProperties / KdniaoSign / KdniaoTrackingGateway /
+                                               KdniaoPushReceiver / KdniaoConfig
+platform/infra/security/JwtProperties.java     skipPaths + /logistics/webhooks
+application.yml                                shop.logistics.kdniao.{enabled,ebusiness-id,app-key}
+```
+
+三条值得记的判断：
+
+- **验签必须对原始字符串做摘要**：先反序列化再拼回去会因字段顺序/空格差异失配，这是接入外部推送最常见的坑
+  （所以 `CarrierPushRequest.requestData` 是 String 而不是 DTO）。比较用 `MessageDigest.isEqual`，不给时序探测留信号
+- **推送与轮询共用 `TrackingSyncService.record()`**：两个入口两套规则是状态错乱的头号来源
+- **推送找不到包裹时静默成功**：报错会让对方按重试策略反复推一个我们永远处理不了的报文；
+  反过来"没验签就落库"等于把轨迹写入权开放给任何能访问该路径的人（缺密钥一律 403）
+
 ### 测试资产
 
 | 层   | 文件                                       | 覆盖                                                                                         |
@@ -293,5 +330,6 @@ IT 走真实链路（下单 → 支付 → 发货）而不是直接发事件：�
 
 - 买家端「查看物流」抽屉（消费 `GET /orders/{id}/tracking`，现在是多包裹列表）+ MSW handler + 投影单测
 - 卖家端发货弹窗改成承运商下拉 + 调 `POST /seller/shipments`，然后删老端点
-- 三期：真实承运商接入（`CarrierGateway` + webhook 验签）；四期：逆向统一 + 物流异常治理
-- 现阶段轨迹仍靠 `POST /admin/logistics/shipments/{id}/tracking-nodes` 人工录（真实来源在三期）
+- 四期：逆向统一（退货回寄并入 shipments）+ 物流异常治理（停滞/超时预警）
+- 三期遗留：真实密钥联调 + 承运商编码映射落字典列；人工录节点仍在（`POST /admin/logistics/shipments/{id}/tracking-nodes`），
+  它是长期能力（漏扫/推送丢失的补录通道），不是临时脚手架
