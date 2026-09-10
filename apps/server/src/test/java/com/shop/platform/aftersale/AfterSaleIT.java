@@ -61,7 +61,7 @@ class AfterSaleIT extends IntegrationTestSupport {
     @BeforeEach
     void seed() {
         db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        // 发货会落 logistics 包裹（同事务）：测试自建自清，不登记会在重跑时撞运单号唯一索引
+        // 发货与回寄都会落 logistics 包裹（同事务）：测试自建自清，不登记会在重跑时撞运单号唯一索引
         db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
         db.onDelete(
                 "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
@@ -142,14 +142,20 @@ class AfterSaleIT extends IntegrationTestSupport {
         assertEquals(PaymentStatus.SUCCESS.name(), paymentStatus());
         assertEquals(3, totalStock()); // 未退款也未回补
 
-        // 买家回寄填物流：态不变（仍 RETURNING），只落物流单号
-        afterSale.returnGoods(userId, orderId, "中通", "ZT999");
+        // 买家回寄填物流：态不变（仍 RETURNING），售后单落展示投影，包裹落在 logistics（RETURN 方向）
+        afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
         assertEquals(TicketStatus.RETURNING.name(), ticketStatus());
         String logistics = jdbc.queryForObject(
                 "SELECT return_logistics_company || '|' || return_tracking_no FROM aftersale.tickets WHERE order_id = ?::uuid",
                 String.class,
                 orderId.toString());
-        assertEquals("中通|ZT999", logistics);
+        assertEquals("中通快递|ZT999", logistics, "承运商名归一成字典名（code 优先）");
+        assertEquals(
+                "RETURN|中通快递|PICKED_UP",
+                jdbc.queryForObject(
+                        "SELECT direction || '|' || carrier_name || '|' || status FROM logistics.shipments WHERE tracking_no = 'ZT999'",
+                        String.class),
+                "回寄包裹进了同一套包裹模型：能接推送、能被轮询、能展示轨迹");
 
         // 卖家确认收货 → REFUNDED：退款落账（走网关）+ 库存回补（货回来了 3 → 5）+ 订单投影与退款口径写回
         afterSale.receiveReturn(shopId, orderId);

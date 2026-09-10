@@ -56,6 +56,6 @@ public class AfterSaleController {
     @PutMapping("/return")
     public void returnGoods(
             @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody ReturnGoodsRequest req) {
-        afterSaleService.returnGoods(userId, id, req.logisticsCompany(), req.trackingNo());
+        afterSaleService.returnGoods(userId, id, req.carrierCode(), req.logisticsCompany(), req.trackingNo());
     }
 }

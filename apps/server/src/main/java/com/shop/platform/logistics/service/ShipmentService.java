@@ -41,6 +41,9 @@ public class ShipmentService {
 
     private final CarrierMapper carrierMapper;
 
+    /** 承运商解析（与买家回寄共用同一口径） */
+    private final CarrierResolver carrierResolver;
+
     /** 订单只读视图：发货前置校验（归属 / 可发货）——状态词表归 order，本模块只吃谓词 */
     private final OrderReadQuery orderReadQuery;
 
@@ -63,7 +66,7 @@ public class ShipmentService {
         Validate.isTrue(order.shippable(), 409, "订单当前状态不可发货");
 
         // 2. 承运商：code 走字典并校验启用（新端点）；老端点只有名字，匹配得上就归一，匹配不上保留原文
-        String carrierName = resolveCarrierName(command);
+        String carrierName = carrierResolver.resolveName(command.carrierCode(), command.carrierName());
 
         // 3. 寄件人快照：发货无地址即硬失败（面单寄不出去），在包裹上定格
         AddressSnapshot shipFrom =
@@ -107,28 +110,16 @@ public class ShipmentService {
     }
 
     /**
-     * 买家查某订单的物流轨迹：一单多包裹，逐个带轨迹节点。
+     * 买家查某订单的物流轨迹：一单多包裹（含逆向回寄），逐个带轨迹节点。
      * 未发货（或物流模块上线前的历史单）与越权访问给同一句话术、同一个 404——不泄露他单是否存在。
      */
     public OrderTracking trackingOfOrder(UUID userId, UUID orderId) {
-        List<Shipment> shipments = shipmentMapper.selectForwardByOrder(orderId, userId);
+        List<Shipment> shipments = shipmentMapper.selectByOrderAndUser(orderId, userId);
         Validate.isTrue(!shipments.isEmpty(), 404, "暂无物流信息");
         return new OrderTracking(
                 orderId,
                 shipments.stream()
                         .map(s -> new ShipmentTracking(s, trackingNodeMapper.selectByShipment(s.getId())))
                         .toList());
-    }
-
-    /** 承运商名称：code 优先（校验启用），无 code 时按名字回查字典，仍未命中就保留卖家填的原文 */
-    private String resolveCarrierName(DispatchShipmentCommand command) {
-        if (command.carrierCode() != null && !command.carrierCode().isBlank()) {
-            Carrier carrier = carrierMapper.selectByCode(command.carrierCode());
-            Validate.isTrue(carrier != null, 400, "快递公司不存在");
-            Validate.isTrue(Boolean.TRUE.equals(carrier.getEnabled()), 400, "该快递公司已停用");
-            return carrier.getName();
-        }
-        Carrier matched = carrierMapper.selectByName(command.carrierName());
-        return matched == null ? command.carrierName() : matched.getName();
     }
 }

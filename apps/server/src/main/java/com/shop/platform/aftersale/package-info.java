@@ -8,11 +8,14 @@
  * 每次转移经 order :: api 的 OrderCommand.syncAfterSale 把最近一张单的状态与退款口径写回 orders 的投影列
  * （订单列表/详情展示用，order 不反向读本模块——否则与 order :: api 成环）。退款方向发布 events 命名接口的
  * AfterSaleRefundedEvent，payment 同步监听落退款单据（同事务，落不成整体回滚、售后单停回原态）；
- * 退货收货回补库存经 inventory :: api 的 StockCommand.restock 同事务调用。本模块不写任何他方 schema。
+ * 退货收货回补库存经 inventory :: api 的 StockCommand.restock 同事务调用。
+ * 买家回寄经 logistics :: api 的 ReturnShipmentCommand 落 RETURN 包裹（同事务）——退货物流因此与正向物流
+ * 共用同一套包裹与轨迹模型，能接真实承运商推送；本模块 ticket 上的两列只是展示投影。
+ * 本模块不写任何他方 schema。
  */
 @ApplicationModule(
         displayName = "AfterSale",
-        allowedDependencies = {"order :: api", "inventory :: api"})
+        allowedDependencies = {"order :: api", "inventory :: api", "logistics :: api"})
 package com.shop.platform.aftersale;
 
 import org.springframework.modulith.ApplicationModule;

@@ -14,6 +14,8 @@ import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
+import com.shop.platform.logistics.api.ReturnShipmentCommand;
+import com.shop.platform.logistics.api.ReturnShipmentView;
 import com.shop.platform.order.api.OrderAfterSaleView;
 import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderReadQuery;
@@ -55,6 +57,9 @@ public class AfterSaleService {
 
     private final ApplicationEventPublisher events;
 
+    /** 回寄包裹落 logistics（同事务）：退货物流不再是第二套字符串，而是复用正向包裹与轨迹的那一套 */
+    private final ReturnShipmentCommand returnShipmentCommand;
+
     // ========== 买家 ==========
 
     /** 申请售后：仅「已完成 + 申请窗口未过 + 无进行中的单」可发起；退款口径 = 整单实付（V1 整单售后） */
@@ -93,13 +98,21 @@ public class AfterSaleService {
         transition(requireBuyerOpen(userId, orderId, TicketAction.CLOSE), TicketAction.CLOSE, null, u -> {});
     }
 
-    /** 回寄并填写退货物流单（仅退货退款、处于 RETURNING）：态不变，只落物流单号并记时间线 */
+    /**
+     * 回寄并填写退货物流单（仅退货退款、处于 RETURNING）：态不变，只落物流单并记时间线。
+     *
+     * <p>回寄包裹落在 logistics（{@link ReturnShipmentCommand}，同事务）：它之后自动享有正向包裹的一切
+     * ——承运商推送按运单号就能匹配到它、轮询兜底会扫它、买家「查看物流」里会看到它的轨迹。
+     * 售后单上的两列是<b>投影</b>（拿命令返回值写回，展示用），轨迹真相在 logistics。
+     */
     @Transactional
-    public void returnGoods(UUID userId, UUID orderId, String company, String trackingNo) {
+    public void returnGoods(UUID userId, UUID orderId, String carrierCode, String carrierName, String trackingNo) {
         Ticket ticket = requireBuyerOpen(userId, orderId, TicketAction.RETURN_GOODS);
-        transition(ticket, TicketAction.RETURN_GOODS, company + " " + trackingNo, u -> u.set(
-                        Ticket::getReturnLogisticsCompany, company)
-                .set(Ticket::getReturnTrackingNo, trackingNo));
+        ReturnShipmentView shipment = returnShipmentCommand.record(
+                orderId, ticket.getUserId(), ticket.getShopId(), carrierCode, carrierName, trackingNo);
+        transition(ticket, TicketAction.RETURN_GOODS, shipment.carrierName() + " " + shipment.trackingNo(), u -> u.set(
+                        Ticket::getReturnLogisticsCompany, shipment.carrierName())
+                .set(Ticket::getReturnTrackingNo, shipment.trackingNo()));
     }
 
     /** 买家视角最近一张售后单（含终态）；非本人的订单同不存在 */

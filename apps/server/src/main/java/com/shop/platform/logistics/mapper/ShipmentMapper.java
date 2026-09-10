@@ -3,9 +3,9 @@ package com.shop.platform.logistics.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.shop.platform.logistics.model.ShipmentDirection;
 import com.shop.platform.logistics.model.ShipmentStatus;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
@@ -16,15 +16,17 @@ import org.apache.ibatis.annotations.Select;
 public interface ShipmentMapper extends BaseMapper<Shipment> {
 
     /**
-     * 买家查自己的包裹列表（一单可多包裹）：归属（user_id）与方向（FORWARD）都进 WHERE，
+     * 买家查自己的包裹列表（一单可多包裹、含逆向回寄）：归属（user_id）进 WHERE，
      * 越权与无包裹同样返回空列表——不泄露他单存在性，与 order 的 requireOwned 同一意图。
-     * 按发货先后返回，首项即订单摘要里的那个包裹。
+     *
+     * <p>不按方向过滤：买家在"查看物流"里既该看到正向派送，也该看到自己的退货回寄轨迹，
+     * 方向由出参的 {@code direction} 字段交给前端区分（正向在前、逆向在后）。
      */
-    default List<Shipment> selectForwardByOrder(UUID orderId, UUID userId) {
+    default List<Shipment> selectByOrderAndUser(UUID orderId, UUID userId) {
         return selectList(new LambdaQueryWrapper<Shipment>()
                 .eq(Shipment::getOrderId, orderId)
                 .eq(Shipment::getUserId, userId)
-                .eq(Shipment::getDirection, ShipmentDirection.FORWARD)
+                .orderByAsc(Shipment::getDirection)
                 .orderByAsc(Shipment::getShippedAt)
                 .orderByAsc(Shipment::getId));
     }
@@ -59,6 +61,34 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
             LIMIT #{limit}
             """)
     List<Shipment> selectStaleForPolling(@Param("staleBefore") OffsetDateTime staleBefore, @Param("limit") int limit);
+
+    /**
+     * 异常扫描候选：停在给定状态、且最后一条动态早于阈值的正向包裹（与轮询同一条"有没有动静"口径）。
+     *
+     * <p>只看正向：退货回寄卡住由售后流程自己跟进（买家在等，客服有售后单可依），
+     * 混进来会让物流异常列表被售后单淹没。
+     *
+     * <p>注意 {@code <script>} 里的一切 {@code <} 都要写成 {@code &lt;}——MyBatis 会先把注解内容
+     * 当 XML 解析，裸的比较符直接是语法错误（构建期就炸，不留到运行期）。
+     */
+    @Select(
+            """
+            <script>
+            SELECT s.* FROM logistics.shipments s
+            WHERE s.direction = 'FORWARD'
+              AND s.status IN
+              <foreach collection="statuses" item="status" open="(" separator=", " close=")">#{status}</foreach>
+              AND COALESCE(
+                    (SELECT MAX(n.occurred_at) FROM logistics.tracking_nodes n WHERE n.shipment_id = s.id),
+                    s.shipped_at) &lt; #{stalledBefore}
+            ORDER BY s.shipped_at
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Shipment> selectStalled(
+            @Param("statuses") Collection<ShipmentStatus> statuses,
+            @Param("stalledBefore") OffsetDateTime stalledBefore,
+            @Param("limit") int limit);
 
     /**
      * 按轨迹节点单调推进状态：合法前态集由 {@link ShipmentStatus#sourcesOf} 反推，影响行数即闸门。

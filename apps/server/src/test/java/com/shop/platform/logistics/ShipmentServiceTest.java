@@ -8,11 +8,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.logistics.mapper.Carrier;
 import com.shop.platform.logistics.mapper.CarrierMapper;
 import com.shop.platform.logistics.mapper.Shipment;
 import com.shop.platform.logistics.mapper.ShipmentMapper;
 import com.shop.platform.logistics.mapper.TrackingNodeMapper;
+import com.shop.platform.logistics.service.CarrierResolver;
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.api.OrderCommand;
@@ -30,10 +30,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * 发货前置闸门单测（快环）：四道门——订单存在/归属、订单可发、承运商可用、寄件人地址已配。
+ * 发货前置闸门单测（快环）：三道门——订单存在/归属、订单可发、寄件人地址已配
+ * （承运商那一关由 {@link CarrierResolverTest} 单独覆盖）。
  *
  * <p>闸门顺序是刻意的：归属先于一切（不泄露他店订单是否存在），承运商与地址先于落库
- * （宁可拒绝也不落半个包裹）。这里只断言四道门的拒绝与归一行为；落库与订单推进归真库 IT。
+ * （宁可拒绝也不落半个包裹）。这里只断言闸门的拒绝与入参归一；落库与订单推进归真库 IT。
  */
 @ExtendWith(MockitoExtension.class)
 class ShipmentServiceTest {
@@ -50,6 +51,10 @@ class ShipmentServiceTest {
 
     @Mock
     private CarrierMapper carrierMapper;
+
+    /** 字典归一规则在 CarrierResolverTest；这里只关心发货闸门，故整体桩掉 */
+    @Mock
+    private CarrierResolver carrierResolver;
 
     @Mock
     private OrderReadQuery orderReadQuery;
@@ -76,7 +81,7 @@ class ShipmentServiceTest {
         return new AddressSnapshot(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                "发货人",
+                "发货员",
                 "13800000000",
                 "330106",
                 "浙江省",
@@ -123,11 +128,9 @@ class ShipmentServiceTest {
     }
 
     @Test
-    void 快递公司已停用_400_不落包裹() {
+    void 快递公司不可用_400_不落包裹() {
         stubOrder(OrderStatus.PAID);
-        when(carrierMapper.selectByCode("SF"))
-                .thenReturn(
-                        Carrier.builder().code("SF").name("顺丰速运").enabled(false).build());
+        when(carrierResolver.resolveName("SF", null)).thenThrow(new BusinessException(400, "该快递公司已停用"));
 
         assertThatThrownBy(() -> shipmentService.dispatch(command()))
                 .isInstanceOf(BusinessException.class)
@@ -139,9 +142,7 @@ class ShipmentServiceTest {
     @Test
     void 没配默认发货地址_400_不落包裹() {
         stubOrder(OrderStatus.PAID);
-        when(carrierMapper.selectByCode("SF"))
-                .thenReturn(
-                        Carrier.builder().code("SF").name("顺丰速运").enabled(true).build());
+        when(carrierResolver.resolveName("SF", null)).thenReturn("顺丰速运");
         when(merchantAddressReadQuery.resolveShipFrom(shopId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> shipmentService.dispatch(command()))
@@ -152,10 +153,9 @@ class ShipmentServiceTest {
     }
 
     @Test
-    void 老端点手填名字命中字典_归一到字典名() {
+    void 老端点手填名字_按解析结果落库与投影() {
         stubOrder(OrderStatus.PAID);
-        when(carrierMapper.selectByName("顺丰"))
-                .thenReturn(Carrier.builder().code("SF").name("顺丰速运").build());
+        when(carrierResolver.resolveName(null, "顺丰")).thenReturn("顺丰速运");
         when(merchantAddressReadQuery.resolveShipFrom(shopId)).thenReturn(Optional.of(shipFrom()));
 
         shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, null, "顺丰", "SF1234567890"));
