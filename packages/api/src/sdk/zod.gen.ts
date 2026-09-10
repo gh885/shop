@@ -858,6 +858,7 @@ export const zShipmentStatus = z.enum([
 
 export const zTrackingNodeResponse = z.object({
     nodeCode: zTrackingNodeCode,
+    status: zShipmentStatus,
     description: z.string().nullable(),
     location: z.string().nullable(),
     occurredAt: z.iso.datetime({ offset: true })

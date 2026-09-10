@@ -919,6 +919,7 @@ export type ShipmentTrackingResponse = {
 
 export type TrackingNodeResponse = {
     nodeCode: TrackingNodeCode;
+    status: ShipmentStatus;
     description: string | null;
     location: string | null;
     occurredAt: string;
