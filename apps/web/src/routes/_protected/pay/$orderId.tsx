@@ -43,7 +43,8 @@ function PayPage() {
               ? "ready"
               : "loading"
 
-    const amount = payment?.amount?.amount
+    // 金额恒由后端按订单投影给出（Money 的 amount 非空），故只对可能不存在的流水做可选链
+    const amount = payment?.amount.amount
 
     return (
         <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
