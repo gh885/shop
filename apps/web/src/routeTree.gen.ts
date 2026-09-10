@@ -17,6 +17,7 @@ import { Route as ProtectedCartRouteImport } from './routes/_protected/cart'
 import { Route as ProtectedCheckoutRouteImport } from './routes/_protected/checkout'
 import { Route as ProductsIdRouteImport } from './routes/products/$id'
 import { Route as SellIndexRouteImport } from './routes/sell/index'
+import { Route as ProtectedLogisticsOrderIdRouteImport } from './routes/_protected/logistics/$orderId'
 import { Route as ProtectedOrdersOrderIdRouteImport } from './routes/_protected/orders/$orderId'
 import { Route as ProtectedPayOrderIdRouteImport } from './routes/_protected/pay/$orderId'
 import { Route as ProtectedAccountAddressIndexRouteImport } from './routes/_protected/account/address/index'
@@ -64,6 +65,12 @@ const SellIndexRoute = SellIndexRouteImport.update({
   path: '/sell/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProtectedLogisticsOrderIdRoute =
+  ProtectedLogisticsOrderIdRouteImport.update({
+    id: '/logistics/$orderId',
+    path: '/logistics/$orderId',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
 const ProtectedOrdersOrderIdRoute = ProtectedOrdersOrderIdRouteImport.update({
   id: '/orders/$orderId',
   path: '/orders/$orderId',
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof ProtectedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
+  '/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
   '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/pay/$orderId': typeof ProtectedPayOrderIdRoute
   '/account/address/': typeof ProtectedAccountAddressIndexRoute
@@ -129,6 +137,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof ProtectedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell': typeof SellIndexRoute
+  '/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
   '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/pay/$orderId': typeof ProtectedPayOrderIdRoute
   '/account/address': typeof ProtectedAccountAddressIndexRoute
@@ -147,6 +156,7 @@ export interface FileRoutesById {
   '/_protected/checkout': typeof ProtectedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
+  '/_protected/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
   '/_protected/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/_protected/pay/$orderId': typeof ProtectedPayOrderIdRoute
   '/_protected/account/address/': typeof ProtectedAccountAddressIndexRoute
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/products/$id'
     | '/sell/'
+    | '/logistics/$orderId'
     | '/orders/$orderId'
     | '/pay/$orderId'
     | '/account/address/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/products/$id'
     | '/sell'
+    | '/logistics/$orderId'
     | '/orders/$orderId'
     | '/pay/$orderId'
     | '/account/address'
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
     | '/_protected/checkout'
     | '/products/$id'
     | '/sell/'
+    | '/_protected/logistics/$orderId'
     | '/_protected/orders/$orderId'
     | '/_protected/pay/$orderId'
     | '/_protected/account/address/'
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sell/'
       preLoaderRoute: typeof SellIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_protected/logistics/$orderId': {
+      id: '/_protected/logistics/$orderId'
+      path: '/logistics/$orderId'
+      fullPath: '/logistics/$orderId'
+      preLoaderRoute: typeof ProtectedLogisticsOrderIdRouteImport
+      parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/orders/$orderId': {
       id: '/_protected/orders/$orderId'
@@ -350,6 +370,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedAccountRouteRoute: typeof ProtectedAccountRouteRouteWithChildren
   ProtectedCartRoute: typeof ProtectedCartRoute
   ProtectedCheckoutRoute: typeof ProtectedCheckoutRoute
+  ProtectedLogisticsOrderIdRoute: typeof ProtectedLogisticsOrderIdRoute
   ProtectedOrdersOrderIdRoute: typeof ProtectedOrdersOrderIdRoute
   ProtectedPayOrderIdRoute: typeof ProtectedPayOrderIdRoute
 }
@@ -358,6 +379,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAccountRouteRoute: ProtectedAccountRouteRouteWithChildren,
   ProtectedCartRoute: ProtectedCartRoute,
   ProtectedCheckoutRoute: ProtectedCheckoutRoute,
+  ProtectedLogisticsOrderIdRoute: ProtectedLogisticsOrderIdRoute,
   ProtectedOrdersOrderIdRoute: ProtectedOrdersOrderIdRoute,
   ProtectedPayOrderIdRoute: ProtectedPayOrderIdRoute,
 }
