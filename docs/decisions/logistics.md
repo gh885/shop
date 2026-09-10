@@ -4,7 +4,7 @@
 > 叙述方式：先说断点，再说决策，最后写代码地图。代码位置以 `apps/server/src/main/java/com/shop/platform/` 为根，下称 `platform/`。
 >
 > **状态：一～四期后端均已实现**（V50/V51/V52 迁移 + logistics 模块 + 买卖家/管理端端点 + 承运商网关与推送接收 + 逆向统一 + 异常治理 + 测试）。
-> 前端整体未做（买家「查看物流」抽屉、卖家发货下拉切新端点）。模块图已同步 `docs/architecture.md`。
+> 前端：买家「物流详情」独立页已做（`apps/web/src/logistics/`），卖家发货下拉切新端点仍未做。模块图已同步 `docs/architecture.md`。
 
 ---
 
@@ -21,7 +21,7 @@
 | 收货 | 买家手点，或 `RECEIVE` 超时任务（从 `shipped_at` 起算 7 天）                  | 真实签收事实不参与，超时窗口不看物流   |
 | 售后 | `aftersale.tickets.return_tracking_no` 又一坨字符串                           | 正逆向两套物流，无法统一轨迹           |
 
-`apps/web/src/order/OrderCard.tsx` 里「查看物流」落到 `notify.info("即将上线")`——这个空壳就是断点的位置标记。
+`apps/web/src/order/OrderCard.tsx` 里「查看物流」曾落到 `notify.info("即将上线")`——这个空壳就是断点的位置标记，现已接到 `/logistics/$orderId`（见 §7）。
 
 两条环分开做：
 
@@ -158,12 +158,12 @@ schema `logistics`，三期共**三张表**（`V50` 建前两张，`V51` 加字�
 
 ## 4. 分期
 
-### 一期｜把"查看物流"做成真的（后端已完成，前端待做）
+### 一期｜把"查看物流"做成真的（后端 + web 买家出口已完成）
 
 **人话**：现在发货只留下一串没人用的字符串，买家点"查看物流"弹"即将上线"。一期建两张表把包裹和轨迹存下来，买家点开能看到单号和一串节点。还没接快递公司，节点先手动录，把链路跑通。
 
 **范围（已完成）**：`V50` 迁移 + logistics 模块骨架 + `OrderShippedEvent` 接线 + 买家查询端点 + admin 录节点端点 + 权限码 + 后端测试。不改订单表、不改 `OrderStatus`。
-**范围（未做）**：web 端轨迹抽屉（买家出口），SDK 重新生成。
+**范围（买家出口已完成）**：`apps/web/src/logistics/` + `/logistics/$orderId` 独立页（见 §7），SDK 已重新生成。
 
 **验收**：下单 → 支付 → 卖家发货 → 买家看到运单号与 ≥2 个轨迹节点 → 录一个签收节点后状态显示"已签收" → 确认收货 → 已完成 → 售后窗口开。重复录同一节点，数据库行数不变。
 
@@ -349,6 +349,36 @@ platform/aftersale/
 └── package-info.java                            allowedDependencies + logistics :: api
 ```
 
+### 买家端（web）增量
+
+独立页 `/logistics/$orderId`（不是抽屉）——淘宝的物流详情就是独立页，页头复用 `AccountHeader`。
+
+```
+apps/web/src/logistics/            ← domain（目录名 = 本端路由顶层业务段）
+├── model.ts                       词表（状态/节点 → 中文）+ 纯规则（时间文案/跨年补年/折叠切分/标记最新/脱敏）
+├── tracking.ts                    wire → 视图模型：排序（后端正序 → 轴倒序）、按状态分段、并商家侧事件
+├── queries.ts                     useOrderTracking（未发货 404 不重试）
+├── TrackingTimeline.tsx           轴主体（含折叠态）
+├── CarrierBar.tsx                 承运商条 + 复制运单号
+├── LogisticsSummaryCard.tsx       摘要卡（状态 + 目的地 + 脱敏收件人）
+├── ReceiverLine.tsx               页脚收货行
+└── index.ts
+apps/web/src/routes/_protected/logistics/$orderId.tsx    页面装配
+```
+
+四个值得记的判断：
+
+- **契约加了一列：`TrackingNodeResponse.status`**。轴的形态是「按状态分段」（到达/离开分拨同属「运输中」），
+  而推导表在后端（`TrackingNodeCode.status()`）——不给这一列，前端就得复制一份会漂移的映射表。
+- **轴不是节点平铺，是按状态分段**：段首带粗体状态标题，段内续行只有灰色时间。
+  分段是前端投影（`buildTrackingGroups`），所以同一状态被别的状态打断后会分成两段，key 必须带下标。
+- **要复刻淘宝那条轴就得把订单侧事件接进来**：`已下单` / `已发货` 由 `order.createdAt` / `order.shippedAt` 合成
+  （只合成有事实依据的；淘宝的「仓库处理中/打印完成」无数据源，不造假节点）。
+  商家侧事件只并进**首个正向包裹**的轴尾——它们属于订单，不属于某个包裹。
+- **视觉与 `DESIGN.md` 的 primary 纪律冲突**：淘宝把「已签收」的标题/时间/圆点全染品牌橙，
+  而 primary 只留给转化引导。这里改用「实心近黑圆点 + 粗体」表达最新、`destructive` 表达异常，
+  不复制淘宝的橙。
+
 ### 测试资产
 
 | 层   | 文件                                       | 覆盖                                                                                         |
@@ -361,10 +391,7 @@ IT 走真实链路（下单 → 支付 → 发货）而不是直接发事件：�
 
 ### 未完成（下批）
 
-整体前端未做（用户明确本期只做后端）：
-
-- 买家端「查看物流」抽屉（消费 `GET /orders/{id}/tracking`，现在是多包裹列表）+ MSW handler + 投影单测
-- 卖家端发货弹窗改成承运商下拉 + 调 `POST /seller/shipments`，然后删老端点
+- 卖家端发货弹窗改成承运商下拉 + 调 `POST /seller/shipments`，然后删老端点（买家侧已接完）
 - 三期遗留：真实密钥联调 + 承运商编码映射落字典列（现在假设字典 code == 聚合服务 ShipperCode）
 - 四期待补：异常单没有对外通知（买家/客服都靠人看列表）；异常阈值是硬编码常量，未做成配置
 - 人工录节点仍在（`POST /admin/logistics/shipments/{id}/tracking-nodes`），
