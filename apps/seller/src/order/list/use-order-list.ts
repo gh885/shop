@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { OrderStatus } from "@shop/api/sdk"
-import { SellerOrdersApi } from "@shop/api/sdk"
+import { SellerLogisticsApi, SellerOrdersApi } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit"
 
 import { orderKeys, orderListOptions, type OrderListSearch } from "#/order/queries"
@@ -43,8 +43,10 @@ export function useOrderList(search: OrderListSearch) {
     }
 
     const ship = useMutation({
+        // 发货端点已归物流模块（后端把发货当物流动作）：改用 SellerLogisticsApi；
+        // 当前仍走老路径（自由文本物流公司），切到 POST /seller/shipments + 字典下拉是后续前端任务
         mutationFn: (args: ShipInput & { orderId: string }) =>
-            SellerOrdersApi.shipOrder({
+            SellerLogisticsApi.shipOrder({
                 path: { id: args.orderId },
                 body: { logisticsCompany: args.logisticsCompany, trackingNo: args.trackingNo },
             }),
