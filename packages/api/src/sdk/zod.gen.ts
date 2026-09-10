@@ -433,6 +433,12 @@ export const zShopMemberResponse = z.object({
     updatedAt: z.iso.datetime({ offset: true })
 });
 
+export const zCreateShipmentRequest = z.object({
+    orderId: z.uuid(),
+    carrierCode: z.string().min(0).max(32),
+    trackingNo: z.string().min(0).max(64)
+});
+
 export const zCreateProductRequest = z.object({
     categoryId: z.uuid(),
     name: z.string().min(0).max(30).optional(),
@@ -823,6 +829,11 @@ export const zOrderDetailResponse = z.object({
     items: z.array(zOrderItemResponse)
 });
 
+export const zCarrierResponse = z.object({
+    code: z.string(),
+    name: z.string()
+});
+
 export const zShipmentStatus = z.enum([
     'PENDING_PICKUP',
     'PICKED_UP',
@@ -841,13 +852,17 @@ export const zTrackingNodeResponse = z.object({
 });
 
 export const zShipmentTrackingResponse = z.object({
-    orderId: z.uuid(),
     carrierName: z.string(),
     trackingNo: z.string(),
     status: zShipmentStatus,
     shippedAt: z.iso.datetime({ offset: true }),
     deliveredAt: z.iso.datetime({ offset: true }).nullable(),
     nodes: z.array(zTrackingNodeResponse)
+});
+
+export const zOrderTrackingResponse = z.object({
+    orderId: z.uuid(),
+    shipments: z.array(zShipmentTrackingResponse)
 });
 
 export const zOrderListItemResponse = z.object({
@@ -1379,6 +1394,8 @@ export const zAcceptShopInvitePath = z.object({
  */
 export const zAcceptShopInviteResponse = zShopMemberResponse;
 
+export const zCreateShipmentBody = zCreateShipmentRequest;
+
 export const zListShopProductsQuery = z.object({
     pageParams: zPageParams,
     status: zProductStatus.optional(),
@@ -1760,6 +1777,11 @@ export const zGetShopAfterSalePath = z.object({
  */
 export const zGetShopAfterSaleResponse = zTicketResponse;
 
+/**
+ * OK
+ */
+export const zListCarriersResponse = z.array(zCarrierResponse);
+
 export const zGetOrderDetailPath = z.object({
     id: z.uuid()
 });
@@ -1776,7 +1798,7 @@ export const zGetOrderTrackingPath = z.object({
 /**
  * OK
  */
-export const zGetOrderTrackingResponse = zShipmentTrackingResponse;
+export const zGetOrderTrackingResponse = zOrderTrackingResponse;
 
 export const zListMyOrdersQuery = z.object({
     pageParams: zPageParams,

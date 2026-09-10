@@ -461,6 +461,12 @@ export type ShopMemberResponse = {
     updatedAt: string;
 };
 
+export type CreateShipmentRequest = {
+    orderId: string;
+    carrierCode: string;
+    trackingNo: string;
+};
+
 export type CreateProductRequest = {
     categoryId: string;
     name?: string;
@@ -865,6 +871,16 @@ export type OrderDetailResponse = {
     items: Array<OrderItemResponse>;
 };
 
+export type CarrierResponse = {
+    code: string;
+    name: string;
+};
+
+export type OrderTrackingResponse = {
+    orderId: string;
+    shipments: Array<ShipmentTrackingResponse>;
+};
+
 export const ShipmentStatus = {
     PENDING_PICKUP: 'PENDING_PICKUP',
     PICKED_UP: 'PICKED_UP',
@@ -878,7 +894,6 @@ export const ShipmentStatus = {
 export type ShipmentStatus = typeof ShipmentStatus[keyof typeof ShipmentStatus];
 
 export type ShipmentTrackingResponse = {
-    orderId: string;
     carrierName: string;
     trackingNo: string;
     status: ShipmentStatus;
@@ -1843,6 +1858,20 @@ export type AcceptShopInviteResponses = {
 
 export type AcceptShopInviteResponse = AcceptShopInviteResponses[keyof AcceptShopInviteResponses];
 
+export type CreateShipmentData = {
+    body: CreateShipmentRequest;
+    path?: never;
+    query?: never;
+    url: '/seller/shipments';
+};
+
+export type CreateShipmentResponses = {
+    /**
+     * Created
+     */
+    201: unknown;
+};
+
 export type ListShopProductsData = {
     body?: never;
     path?: never;
@@ -2716,6 +2745,22 @@ export type GetShopAfterSaleResponses = {
 
 export type GetShopAfterSaleResponse = GetShopAfterSaleResponses[keyof GetShopAfterSaleResponses];
 
+export type ListCarriersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/seller/carriers';
+};
+
+export type ListCarriersResponses = {
+    /**
+     * OK
+     */
+    200: Array<CarrierResponse>;
+};
+
+export type ListCarriersResponse = ListCarriersResponses[keyof ListCarriersResponses];
+
 export type GetOrderDetailData = {
     body?: never;
     path: {
@@ -2747,7 +2792,7 @@ export type GetOrderTrackingResponses = {
     /**
      * OK
      */
-    200: ShipmentTrackingResponse;
+    200: OrderTrackingResponse;
 };
 
 export type GetOrderTrackingResponse = GetOrderTrackingResponses[keyof GetOrderTrackingResponses];
