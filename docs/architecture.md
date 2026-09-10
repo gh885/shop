@@ -36,7 +36,7 @@ cart   → product::api, inventory::api, shop::api, order::events
 favorite → product::api
 order  → product::api, inventory::api, shop::api, account::api
 logistics → order::api, shop::api（发货入口在物流侧：经 OrderCommand.markShipped / markDelivered 同事务推进订单，order 不认识物流）
-aftersale → order::api, inventory::api
+aftersale → order::api, inventory::api, logistics::api（回寄经物流模块落 RETURN 包裹）
 payment → order::api, order::events, aftersale::events
 ```
 
@@ -120,6 +120,7 @@ SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期
 | `/api/*`                | product、cms、search                                             | web 的 product / home domain；admin 的类目、CMS                                                                            |
 | `/shops/*` `/seller/*`  | shop                                                             | seller 全域（X-Shop-Id 上下文头）                                                                                          |
 | `/admin/*`              | account（员工登录）/ shop（入驻审核）/ cms / product / logistics | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                                                              |
+| `/logistics/webhooks/*` | logistics                                                        | 承运商轨迹推送（匿名，靠报文签名）                                                                                         |
 
 ## 7. 文档地图
 

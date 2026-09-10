@@ -3,9 +3,8 @@
 > 目的：把物流从"订单表里两个裸字符串列"升格为独立模块的设计决策记下来——为什么这么切、边界往哪走、每一期做什么。
 > 叙述方式：先说断点，再说决策，最后写代码地图。代码位置以 `apps/server/src/main/java/com/shop/platform/` 为根，下称 `platform/`。
 >
-> **状态：一期、二期、三期后端均已实现**（V50/V51 迁移 + logistics 模块 + 卖家/买家/管理端端点 + 承运商网关与推送接收 + 权限码 + 测试）。
-> 前端整体未做（买家「查看物流」抽屉、卖家发货下拉切新端点）。四期（逆向统一 + 异常治理）未做。
-> 模块图已同步 `docs/architecture.md`。
+> **状态：一～四期后端均已实现**（V50/V51/V52 迁移 + logistics 模块 + 买卖家/管理端端点 + 承运商网关与推送接收 + 逆向统一 + 异常治理 + 测试）。
+> 前端整体未做（买家「查看物流」抽屉、卖家发货下拉切新端点）。模块图已同步 `docs/architecture.md`。
 
 ---
 
@@ -199,13 +198,25 @@ schema `logistics`，三期共**三张表**（`V50` 建前两张，`V51` 加字�
 **验收（已钉在测试里）**：推送/轮询同路径且重推不增行；无法归一的节点被跳过；签收是终态不回退；
 验签：篡改报文/篡改签名/换密钥/缺密钥一律拒绝（fail-close，没有密钥连推送端点都不可用）。
 
-### 四期｜逆向统一 + 异常治理（未做）
+### 四期｜逆向统一 + 异常治理（后端已完成，前端待做）
 
-**人话**：退货回寄现在又是另一处字符串，和正向物流两套东西——统一到同一个包裹与轨迹模型，用同一个组件展示。再加个定时任务，包裹卡在中转站太久就冒出来，让客服知道该催谁。
+**人话**：退货回寄原本是售后单上的另一处字符串，和正向物流两套东西——统一到同一个包裹与轨迹模型。再加个定时任务，包裹卡在中转站太久就冒出来，让客服知道该催谁。
 
-**范围**：`aftersale` 的 `return_tracking_no` 迁到 `shipments(direction=RETURN)` 并复用轨迹组件；物流异常单（揽收超时 / 中转停滞 / 派送超时）。
+**范围（已完成）**：
 
-**验收**：退货流程里能看到回寄轨迹；造一个停滞包裹，异常列表能冒出来。
+- 逆向统一：新增 `logistics::api` 的 `ReturnShipmentCommand`（`V51` 就留好的 `direction` 列这次真用上了）。
+  aftersale 回寄时经它落 RETURN 包裹，ticket 上两列降级为展示投影；买家「查看物流」里的两个方向一起返回
+- 异常治理：`V52` `shipment_issues` + `ShipmentIssueType`（企划表：状态集 + 阈值 + 人话）+ 小时级扫描任务
+    - `GET/PUT /admin/logistics/issues`（权限复用 LOGISTICS_MANAGE）
+
+**验收（已钉在测试里）**：回寄包裹同屏可见、能接推送、重复运单号 409；
+停滞包裹开单、重复扫描不重复开单（未结单唯一索引）、包裹到终态自动结单、手动结单不存在 404 / 已结 409。
+
+**两条设计要点**：
+
+- 逆向"白拿"了三件事（推送匹配、轮询扫描、买家展示），因为回寄走的<b>是同一张表同一个落库路径</b>，
+  只在 `direction` 上有区别——这就是"正逆向共用一套模型"的实际收益，而不是概念上的漂亮话
+- 异常治理的成败在<b>自动结单</b>：异常不再需要处理时留着它就是假待办，而假待办是异常列表失去信任的开始
 
 ---
 
@@ -314,6 +325,30 @@ application.yml                                shop.logistics.kdniao.{enabled,eb
 - **推送找不到包裹时静默成功**：报错会让对方按重试策略反复推一个我们永远处理不了的报文；
   反过来"没验签就落库"等于把轨迹写入权开放给任何能访问该路径的人（缺密钥一律 403）
 
+### 四期增量
+
+```
+db/migration/V52__logistics_shipment_issues.sql   shipment_issues（未结单部分唯一索引）
+platform/logistics/
+├── api/package-info.java + ReturnShipmentCommand.java + ReturnShipmentView.java   对 aftersale 开的一条命令
+├── model/ShipmentIssueType.java                 异常表驱动（状态集 + 阈值 + 人话）
+├── model/ShipmentIssueStatus.java
+├── model/ShipmentStatus.java                    + terminal()（轮询与异常扫描据此放过终态）
+├── mapper/ShipmentIssue.java / ShipmentIssueMapper.java   selectOpen / resolve / resolveAllOpenOf
+├── mapper/ShipmentMapper.java                   + selectStalled（异常候选）、selectByOrderAndUser（含逆向）
+├── mapper/TrackingNodeMapper.java               + selectLastOccurredAt（"多久没动静"）
+├── service/CarrierResolver.java                 承运商归一收口（三个入口共用一份口径）
+├── service/ShipmentIssueService.java            扫描建单 + 自动结单 + 人工结单
+├── service/ShipmentIssueScanJob.java            @Scheduled 小时级
+├── service/TrackingService.java                 + 终态时结掉未结异常单
+├── controller/AdminShipmentIssueController.java GET / PUT /admin/logistics/issues
+└── controller/response/ShipmentIssueResponse.java、dto/ResolveIssueRequest.java
+platform/aftersale/
+├── service/AfterSaleService.returnGoods          改为经 logistics :: api 落 RETURN 包裹
+├── dto/ReturnGoodsRequest                       + carrierCode（可空，买家可能只知道名字）
+└── package-info.java                            allowedDependencies + logistics :: api
+```
+
 ### 测试资产
 
 | 层   | 文件                                       | 覆盖                                                                                         |
@@ -330,6 +365,7 @@ IT 走真实链路（下单 → 支付 → 发货）而不是直接发事件：�
 
 - 买家端「查看物流」抽屉（消费 `GET /orders/{id}/tracking`，现在是多包裹列表）+ MSW handler + 投影单测
 - 卖家端发货弹窗改成承运商下拉 + 调 `POST /seller/shipments`，然后删老端点
-- 四期：逆向统一（退货回寄并入 shipments）+ 物流异常治理（停滞/超时预警）
-- 三期遗留：真实密钥联调 + 承运商编码映射落字典列；人工录节点仍在（`POST /admin/logistics/shipments/{id}/tracking-nodes`），
+- 三期遗留：真实密钥联调 + 承运商编码映射落字典列（现在假设字典 code == 聚合服务 ShipperCode）
+- 四期待补：异常单没有对外通知（买家/客服都靠人看列表）；异常阈值是硬编码常量，未做成配置
+- 人工录节点仍在（`POST /admin/logistics/shipments/{id}/tracking-nodes`），
   它是长期能力（漏扫/推送丢失的补录通道），不是临时脚手架
