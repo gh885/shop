@@ -1,6 +1,7 @@
 package com.shop.platform.order.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.common.Validate;
 import com.shop.platform.order.model.OrderStatus;
@@ -33,6 +34,51 @@ public interface OrderMapper extends BaseMapper<Order> {
         Order order = Validate.notNull(selectById(orderId), "订单不存在");
         Validate.isTrue(order.getShopId().equals(shopId), "订单不存在");
         return order;
+    }
+
+    /**
+     * 发货的条件转移：本店 + 可发货状态（PAID 首次发货 / SHIPPED 追加包裹，含已取消与已完成），
+     * 成功时经 PG18 RETURNING OLD 带回<b>转移前</b>的状态——前态决定要不要落审计流水：
+     * PAID → SHIPPED 是一次状态转移，SHIPPED → SHIPPED 只是同一订单的又一个包裹。
+     * 无行返回 = 抢不到（非本店 / 已取消 / 已完成 / 不存在），调用方给 404 或 409。
+     *
+     * <p>shipped_at 与 receive_expire_at 用 COALESCE 只回填一次：订单的发货时刻与收货窗口属于<b>首次</b>发货，
+     * 追加包裹不得把它们往后推。logistics_company / tracking_no 则每次刷新为最新包裹（订单详情的物流摘要口径）。
+     */
+    @Select(
+            """
+            UPDATE orders.orders
+            SET status = 'SHIPPED',
+                shipped_at = COALESCE(shipped_at, #{shippedAt}),
+                receive_expire_at = COALESCE(receive_expire_at, #{receiveExpireAt}),
+                logistics_company = #{carrierName},
+                tracking_no = #{trackingNo}
+            WHERE id = #{orderId}
+              AND shop_id = #{shopId}
+              AND status IN ('PAID', 'SHIPPED')
+            RETURNING OLD.status AS "previousStatus"
+            """)
+    OrderStatus markShippedReturningPrevious(
+            @Param("orderId") UUID orderId,
+            @Param("shopId") UUID shopId,
+            @Param("carrierName") String carrierName,
+            @Param("trackingNo") String trackingNo,
+            @Param("shippedAt") OffsetDateTime shippedAt,
+            @Param("receiveExpireAt") OffsetDateTime receiveExpireAt);
+
+    /**
+     * 签收事实落库（物流模块推进到已签收时经 order :: api 调用）：只写投影列 + 把收货窗口从签收起重算。
+     * 限定 SHIPPED 且 delivered_at 为空——重复签收幂等无副作用，已取消/已完成的单不会被物流回写改动。
+     */
+    default int markDelivered(UUID orderId, OffsetDateTime deliveredAt, OffsetDateTime receiveExpireAt) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Order>()
+                        .eq(Order::getId, orderId)
+                        .eq(Order::getStatus, OrderStatus.SHIPPED)
+                        .isNull(Order::getDeliveredAt)
+                        .set(Order::getDeliveredAt, deliveredAt)
+                        .set(Order::getReceiveExpireAt, receiveExpireAt));
     }
 
     /** 同一次结算已落的全部订单（幂等重放回读）；按 shopId 升序，与 OrderService.create 的拆单顺序一致 */

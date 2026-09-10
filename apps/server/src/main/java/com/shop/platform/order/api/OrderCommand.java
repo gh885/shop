@@ -65,6 +65,36 @@ public class OrderCommand {
     }
 
     /**
+     * 发货推进（logistics 在落完包裹后同步调用，同事务）：
+     * <ul>
+     *   <li>首次发货（PAID → SHIPPED）：回填发货时刻与收货窗口，落一行审计流水，并发抢不到招 409
+     *       —— 包裹已在本事务内落下，订单推不进去就整体回滚，不会出现「有包裹但订单还是待发货」。</li>
+     *   <li>追加包裹（SHIPPED → SHIPPED）：订单上没有状态转移，只刷新物流摘要投影（最新包裹口径），不落审计流水。</li>
+     * </ul>
+     * 返回是否首次发货（调用方只用于日志）。
+     */
+    public boolean markShipped(
+            UUID orderId, UUID shopId, String carrierName, String trackingNo, OffsetDateTime shippedAt) {
+        OrderStatus previous = orderMapper.markShippedReturningPrevious(
+                orderId, shopId, carrierName, trackingNo, shippedAt, shippedAt.plus(OrderTimeouts.RECEIVE));
+        Validate.isTrue(previous != null, 409, "订单状态已变更，当前不可发货");
+        boolean firstShipment = previous == OrderStatus.PAID;
+        if (firstShipment) {
+            statusLogWriter.record(orderId, previous, OrderStatus.SHIPPED, OrderAction.SHIP, OrderActor.SELLER, null);
+        }
+        return firstShipment;
+    }
+
+    /**
+     * 签收落库（logistics 在轨迹推进到已签收后同步调用，同事务）：写 delivered_at 投影，
+     * 并把「确认收货」窗口从签收起重算（未签收的单仍按发货兜底，见 {@link OrderTimeouts#RECEIVE}）。
+     * 只认 SHIPPED + 未签收，重复签收与已完成/已取消的单都是无副作用的幂等返回。
+     */
+    public void markDelivered(UUID orderId, OffsetDateTime deliveredAt) {
+        orderMapper.markDelivered(orderId, deliveredAt, deliveredAt.plus(OrderTimeouts.RECEIVE));
+    }
+
+    /**
      * 售后投影写回：afterSaleStatus 取 aftersale 售后单状态的 name()（与 {@link AfterSaleStatus} 同词表，NONE 除外），
      * refundAmount 仅在退款完成时传入（分），其余传 null 不动。
      */

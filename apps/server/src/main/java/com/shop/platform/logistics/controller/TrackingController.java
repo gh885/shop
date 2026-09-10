@@ -1,7 +1,7 @@
 package com.shop.platform.logistics.controller;
 
 import com.shop.platform.infra.web.CurrentUser;
-import com.shop.platform.logistics.controller.response.ShipmentTrackingResponse;
+import com.shop.platform.logistics.controller.response.OrderTrackingResponse;
 import com.shop.platform.logistics.service.ShipmentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.UUID;
@@ -26,9 +26,9 @@ public class TrackingController {
 
     private final ShipmentService shipmentService;
 
-    /** 订单物流轨迹：尚未发货（或物流模块上线前的历史单）给 404「暂无物流信息」 */
+    /** 订单物流轨迹（一单多包裹）：尚未发货（或物流模块上线前的历史单）给 404「暂无物流信息」 */
     @GetMapping("/{id}/tracking")
-    public ShipmentTrackingResponse getOrderTracking(@CurrentUser UUID userId, @PathVariable UUID id) {
-        return ShipmentTrackingResponse.from(shipmentService.trackingOfOrder(userId, id));
+    public OrderTrackingResponse getOrderTracking(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return OrderTrackingResponse.from(shipmentService.trackingOfOrder(userId, id));
     }
 }

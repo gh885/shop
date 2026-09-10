@@ -8,6 +8,8 @@ import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.aftersale.service.AfterSaleService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.logistics.service.DispatchShipmentCommand;
+import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.mapper.Order;
@@ -41,6 +43,10 @@ class AfterSaleIT extends IntegrationTestSupport {
     @Autowired
     private OrderTransitionService transitions;
 
+    /** 发货已归一为物流动作（order 侧只剩状态机后半段） */
+    @Autowired
+    private ShipmentService shipmentService;
+
     @Autowired
     private AfterSaleService afterSale;
 
@@ -55,7 +61,7 @@ class AfterSaleIT extends IntegrationTestSupport {
     @BeforeEach
     void seed() {
         db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        // 发货会经 OrderShippedEvent 同步落 logistics 包裹：测试自建自清，不登记会在重跑时撞运单号唯一索引
+        // 发货会落 logistics 包裹（同事务）：测试自建自清，不登记会在重跑时撞运单号唯一索引
         db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
         db.onDelete(
                 "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
@@ -83,7 +89,7 @@ class AfterSaleIT extends IntegrationTestSupport {
         orderId = created.getId();
         Payment pending = paymentService.pay(userId, orderId);
         paymentService.confirm(userId, pending.getId());
-        transitions.ship(shopId, orderId, new com.shop.platform.order.dto.ShipOrderRequest("顺丰", "SF111"));
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", null, "SF111"));
         transitions.receive(userId, orderId);
         assertEquals(3, totalStock());
     }

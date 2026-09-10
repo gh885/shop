@@ -10,13 +10,16 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.logistics.dto.TrackingNodeRequest;
 import com.shop.platform.logistics.model.ShipmentStatus;
 import com.shop.platform.logistics.model.TrackingNodeCode;
+import com.shop.platform.logistics.service.DispatchShipmentCommand;
+import com.shop.platform.logistics.service.OrderTracking;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.logistics.service.ShipmentTracking;
 import com.shop.platform.logistics.service.TrackingService;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
-import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.model.OrderStatus;
+import com.shop.platform.order.model.OrderTimeouts;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.payment.mapper.Payment;
@@ -32,10 +35,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * 物流闭环集成验证（真库）：发货落包裹 → 轨迹节点推进状态 → 重推与乱序不改终态 → 买家查询的归属闸门。
+ * 物流闭环集成验证（真库）：发货落包裹 → 轨迹节点推进状态 → 重推与乱序不改终态 →
+ * 一单多包裹 → 签收牵动订单（收货倒计时从签收起算）→ 买家查询的归属闸门。
  *
- * <p>走真实订单链路（下单 → 支付 → 发货）而不是直接发事件，因为要验的正是"发货这个动作真的会落出包裹"
- * ——这是同事务监听的全部意义。乱序/重推用录节点的方式造场景（真并发推送的乱序由三期 webhook 覆盖）。
+ * <p>走真实订单链路（下单 → 支付 → 发货）而不是直接调 mapper：要验的正是"这几步真的接得上"
+ * ——发货同事务落包裹并推进订单、签收同事务回写订单投影。
  */
 @SpringBootTest
 class LogisticsIT extends IntegrationTestSupport {
@@ -63,8 +67,14 @@ class LogisticsIT extends IntegrationTestSupport {
 
     private UUID addressId;
 
-    /** 建一个已付款（待发货）订单：单价 1000 分；物流与订单测试数据一律按 userId 圈定登记清理 */
-    private UUID seedPaidOrder() {
+    /**
+     * 共用夹具（一个用例只建一次）：默认发货地址在本店有唯一索引，重复种会撞 uk_addresses_default_ship，
+     * 所以店铺侧夹具与"建几笔订单"分开。
+     */
+    private void seedFixtures() {
+        if (skuId != null) {
+            return;
+        }
         // 登记顺序 = 父表在前，purge 逆序执行 → 先删轨迹再删包裹
         db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
         db.onDelete(
@@ -80,7 +90,11 @@ class LogisticsIT extends IntegrationTestSupport {
         skuId = db.seedOnSaleSku(shopId, 1000, 5);
         addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);
+    }
 
+    /** 建一个已付款（待发货）订单：单价 1000 分；物流与订单测试数据一律按 userId 圈定登记清理 */
+    private UUID seedPaidOrder() {
+        seedFixtures();
         Order order = orderService
                 .create(
                         userId,
@@ -103,34 +117,46 @@ class LogisticsIT extends IntegrationTestSupport {
                 shipmentId.toString());
     }
 
-    /** 发货落包裹：同事务写入，状态待揽收，承运商名与运单号是发货时刻快照 */
-    private UUID shipAndGetShipmentId(UUID orderId) {
-        orderTransitionService.ship(
-                shopId,
-                orderId,
-                new ShipOrderRequest("顺丰速运", "SF" + orderId.toString().substring(0, 12)));
-        UUID shipmentId = jdbc.queryForObject(
-                "SELECT id FROM logistics.shipments WHERE order_id = ?::uuid", UUID.class, orderId.toString());
-        assertNotNull(shipmentId, "发货必须落出包裹");
-        return shipmentId;
+    private ShipmentStatus statusOf(UUID shipmentId) {
+        return jdbc.queryForObject(
+                "SELECT status FROM logistics.shipments WHERE id = ?::uuid",
+                ShipmentStatus.class,
+                shipmentId.toString());
+    }
+
+    private OffsetDateTime orderColumn(UUID orderId, String column) {
+        return jdbc.queryForObject(
+                "SELECT " + column + " FROM orders.orders WHERE id = ?::uuid",
+                OffsetDateTime.class,
+                orderId.toString());
+    }
+
+    /** 发货并取回包裹 ID：运单号带订单前缀，避免用例之间撞唯一索引 */
+    private UUID dispatch(UUID orderId, String carrierCode, String trackingNo) {
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, carrierCode, null, trackingNo));
+        return jdbc.queryForObject("SELECT id FROM logistics.shipments WHERE tracking_no = ?", UUID.class, trackingNo);
     }
 
     @Test
     void 发货落包裹_轨迹逐节点推进状态_重推与乱序不改终态() {
         UUID orderId = seedPaidOrder();
-        UUID shipmentId = shipAndGetShipmentId(orderId);
+        String trackingNo = "SF" + orderId.toString().substring(0, 12);
+        UUID shipmentId = dispatch(orderId, "SF", trackingNo);
 
-        // 1. 发货即落包裹：待揽收，承运商名/运单号/发货时刻都是发货那一刻的快照
-        ShipmentTracking afterShip = shipmentService.trackingOfOrder(userId, orderId);
-        assertEquals(ShipmentStatus.PENDING_PICKUP, afterShip.shipment().getStatus());
-        assertEquals("顺丰速运", afterShip.shipment().getCarrierName());
-        assertTrue(afterShip.shipment().getTrackingNo().startsWith("SF"));
-        assertNotNull(afterShip.shipment().getShippedAt());
-        assertNull(afterShip.shipment().getDeliveredAt());
-        assertEquals(0, afterShip.nodes().size(), "不发假节点：揽收前没有承运商事实");
+        // 1. 发货即落包裹：待揽收，承运商名/运单号/寄件人快照都是发货那一刻定格的
+        OrderTracking tracking = shipmentService.trackingOfOrder(userId, orderId);
+        assertEquals(1, tracking.shipments().size());
+        ShipmentTracking shipped = tracking.shipments().getFirst();
+        assertEquals(ShipmentStatus.PENDING_PICKUP, shipped.shipment().getStatus());
+        assertEquals("SF", shipped.shipment().getCarrierCode());
+        assertEquals("顺丰速运", shipped.shipment().getCarrierName());
+        assertNotNull(shipped.shipment().getShippedAt());
+        assertNull(shipped.shipment().getDeliveredAt());
+        assertEquals("发货员", shipped.shipment().getShipFromContactName(), "寄件人快照在包裹上定格");
+        assertEquals(0, shipped.nodes().size(), "不发假节点：揽收前没有承运商事实");
 
         // 2. 节点按事实推进状态：揽收 → 到达分拨（运输中）→ 派送中
-        OffsetDateTime base = OffsetDateTime.now().minusHours(6);
+        OffsetDateTime base = OffsetDateTime.now().minusHours(6).truncatedTo(ChronoUnit.MILLIS);
         recordNode(shipmentId, TrackingNodeCode.PICKED_UP, base, "杭州西湖网点");
         assertEquals(ShipmentStatus.PICKED_UP, statusOf(shipmentId));
         recordNode(shipmentId, TrackingNodeCode.ARRIVED_HUB, base.plusHours(2), "杭州转运中心");
@@ -138,9 +164,8 @@ class LogisticsIT extends IntegrationTestSupport {
         recordNode(shipmentId, TrackingNodeCode.OUT_FOR_DELIVERY, base.plusHours(5), "上海浦东网点");
         assertEquals(ShipmentStatus.DELIVERING, statusOf(shipmentId));
 
-        // 3. 签收：状态到终态并回填签收时刻
-        //    时刻截到毫秒：PG 的 timestamptz 是微秒精度且会四舍五入，纳秒值写进去读回来必然差 1μs
-        OffsetDateTime deliveredAt = base.plusHours(6).truncatedTo(ChronoUnit.MILLIS);
+        // 3. 签收：状态到终态、回填签收时刻，并把订单的收货窗口改从签收起算
+        OffsetDateTime deliveredAt = base.plusHours(6);
         recordNode(shipmentId, TrackingNodeCode.DELIVERED, deliveredAt, "上海浦东网点");
         assertEquals(ShipmentStatus.DELIVERED, statusOf(shipmentId));
         assertEquals(
@@ -150,21 +175,32 @@ class LogisticsIT extends IntegrationTestSupport {
                                 Timestamp.class,
                                 shipmentId.toString())
                         .toInstant());
+        assertEquals(
+                deliveredAt.toInstant(), orderColumn(orderId, "delivered_at").toInstant(), "签收要回写到订单投影");
+        assertEquals(
+                deliveredAt.plus(OrderTimeouts.RECEIVE).toInstant(),
+                orderColumn(orderId, "receive_expire_at").toInstant(),
+                "收货倒计时从签收起算，不再按发货时刻");
 
         // 4. 重推：同节点码 + 同时刻 + 同地点再录一遍，行数不变、状态不变（去重靠业务唯一键，不靠推送方 message id）
         int before = nodeCountOf(shipmentId);
         recordNode(shipmentId, TrackingNodeCode.DELIVERED, deliveredAt, "上海浦东网点");
         assertEquals(before, nodeCountOf(shipmentId));
 
-        // 5. 乱序/迟到：签收后才到的中转节点照样落库供人看，但不允许把状态倒回运输中
+        // 5. 乱序/迟到：签收后才到的中转节点照样落库供人看，但不允许把状态倒回运输中，也不再把订单窗口往后推
         recordNode(shipmentId, TrackingNodeCode.DEPARTED_HUB, base.plusHours(3), "杭州转运中心");
         assertEquals(before + 1, nodeCountOf(shipmentId));
         assertEquals(ShipmentStatus.DELIVERED, statusOf(shipmentId));
+        assertEquals(
+                deliveredAt.plus(OrderTimeouts.RECEIVE).toInstant(),
+                orderColumn(orderId, "receive_expire_at").toInstant(),
+                "迟到节点不得重算收货窗口");
 
         // 6. 轨迹按时序返回：迟到补推的节点按事件时刻插回原位
-        List<TrackingNodeCode> codes = shipmentService.trackingOfOrder(userId, orderId).nodes().stream()
-                .map(n -> n.getNodeCode())
-                .toList();
+        List<TrackingNodeCode> codes =
+                shipmentService.trackingOfOrder(userId, orderId).shipments().getFirst().nodes().stream()
+                        .map(n -> n.getNodeCode())
+                        .toList();
         assertEquals(
                 List.of(
                         TrackingNodeCode.PICKED_UP,
@@ -176,11 +212,39 @@ class LogisticsIT extends IntegrationTestSupport {
     }
 
     @Test
+    void 一单多包裹_每个包裹各自推进_订单只推进一次() {
+        UUID orderId = seedPaidOrder();
+        UUID first = dispatch(orderId, "SF", "SF" + orderId.toString().substring(0, 10) + "A");
+        UUID second = dispatch(orderId, "ZTO", "ZT" + orderId.toString().substring(0, 10) + "B");
+
+        assertNotNull(first);
+        assertNotNull(second);
+
+        OrderTracking tracking = shipmentService.trackingOfOrder(userId, orderId);
+        assertEquals(2, tracking.shipments().size(), "一单可多包裹");
+        assertEquals("ZTO", tracking.shipments().get(1).shipment().getCarrierCode());
+
+        // 两个包裹各自有独立状态：第一个签收不影响第二个
+        OffsetDateTime base = OffsetDateTime.now().minusHours(3).truncatedTo(ChronoUnit.MILLIS);
+        recordNode(first, TrackingNodeCode.DELIVERED, base, "上海浦东网点");
+        assertEquals(ShipmentStatus.DELIVERED, statusOf(first));
+        assertEquals(ShipmentStatus.PENDING_PICKUP, statusOf(second));
+
+        // 订单已发过货：不能再当"首次发货"重算窗口，签收也不再覆盖已写的 delivered_at
+        assertEquals(base.toInstant(), orderColumn(orderId, "delivered_at").toInstant());
+        recordNode(second, TrackingNodeCode.DELIVERED, base.plusHours(1), "上海浦东网点");
+        assertEquals(
+                base.toInstant(),
+                orderColumn(orderId, "delivered_at").toInstant(),
+                "首签即定格：订单只有一个 delivered_at，后到的包裹签收不重写它");
+    }
+
+    @Test
     void 异常节点_可被后续前向节点离开_不会永久卡死() {
         UUID orderId = seedPaidOrder();
-        UUID shipmentId = shipAndGetShipmentId(orderId);
+        UUID shipmentId = dispatch(orderId, "SF", "SFIT" + orderId.toString().substring(0, 10));
 
-        OffsetDateTime base = OffsetDateTime.now().minusHours(4);
+        OffsetDateTime base = OffsetDateTime.now().minusHours(4).truncatedTo(ChronoUnit.MILLIS);
         recordNode(shipmentId, TrackingNodeCode.PICKED_UP, base, "杭州网点");
         recordNode(shipmentId, TrackingNodeCode.EXCEPTION, base.plusHours(1), "上海转运中心");
         assertEquals(ShipmentStatus.EXCEPTION, statusOf(shipmentId));
@@ -199,7 +263,7 @@ class LogisticsIT extends IntegrationTestSupport {
                 assertThrows(BusinessException.class, () -> shipmentService.trackingOfOrder(userId, orderId));
         assertEquals(404, notShipped.getHttpStatus());
 
-        shipAndGetShipmentId(orderId);
+        dispatch(orderId, "SF", "SF" + orderId.toString().substring(0, 12));
 
         // 越权：别人的订单，同一个 404 与同一句话术——不泄露单据存在性
         BusinessException notMine = assertThrows(
@@ -208,15 +272,44 @@ class LogisticsIT extends IntegrationTestSupport {
         assertEquals(notShipped.getMessage(), notMine.getMessage());
 
         // 本人可读
-        assertEquals(
-                orderId,
-                shipmentService.trackingOfOrder(userId, orderId).shipment().getOrderId());
+        assertEquals(orderId, shipmentService.trackingOfOrder(userId, orderId).orderId());
+        assertTrue(!shipmentService.enabledCarriers().isEmpty(), "字典要有可选承运商");
     }
 
-    private ShipmentStatus statusOf(UUID shipmentId) {
-        return jdbc.queryForObject(
-                "SELECT status FROM logistics.shipments WHERE id = ?::uuid",
-                ShipmentStatus.class,
-                shipmentId.toString());
+    @Test
+    void 发货闸门_运单号重复409_快递公司停用400() {
+        UUID orderId = seedPaidOrder();
+        String trackingNo = "SF" + orderId.toString().substring(0, 12);
+        dispatch(orderId, "SF", trackingNo);
+
+        // 另一个订单拿同一个运单号：唯一索引兜底（一个运单号只属于一个订单）
+        UUID otherOrderId = seedPaidOrder();
+        BusinessException duplicated =
+                assertThrows(BusinessException.class, () -> dispatch(otherOrderId, "ZTO", trackingNo));
+        assertEquals(409, duplicated.getHttpStatus());
+
+        // 未知快递公司 code：字典闸门拒绝，不落包裹
+        UUID thirdOrderId = seedPaidOrder();
+        BusinessException unknownCarrier = assertThrows(
+                BusinessException.class,
+                () -> dispatch(
+                        thirdOrderId, "NOPE", "SF" + thirdOrderId.toString().substring(0, 12)));
+        assertEquals(400, unknownCarrier.getHttpStatus());
+    }
+
+    /** 签收后再确认收货仍由买家动作完成（物流不替买家点按钮）；这里钉死两条路径不冲突 */
+    @Test
+    void 签收后买家确认收货_正常到已完成() {
+        UUID orderId = seedPaidOrder();
+        UUID shipmentId = dispatch(orderId, "SF", "SF" + orderId.toString().substring(0, 12));
+        recordNode(shipmentId, TrackingNodeCode.DELIVERED, OffsetDateTime.now().minusHours(1), "上海浦东网点");
+
+        orderTransitionService.receive(userId, orderId);
+        assertEquals(
+                OrderStatus.COMPLETED,
+                jdbc.queryForObject(
+                        "SELECT status FROM orders.orders WHERE id = ?::uuid",
+                        com.shop.platform.order.model.OrderStatus.class,
+                        orderId.toString()));
     }
 }

@@ -10,10 +10,11 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
+import com.shop.platform.logistics.service.DispatchShipmentCommand;
+import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
-import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.CheckoutPreview;
@@ -54,6 +55,10 @@ class OrderFlowIT extends IntegrationTestSupport {
     @Autowired
     private OrderTransitionService orderTransitionService;
 
+    /** 发货已归一为物流动作：状态机后半段由 logistics 经 order :: api 推进 */
+    @Autowired
+    private ShipmentService shipmentService;
+
     @Autowired
     private OrderTimeoutService orderTimeoutService;
 
@@ -75,7 +80,7 @@ class OrderFlowIT extends IntegrationTestSupport {
     private void seedSku(int stock) {
         // service 造的数据无法预知主键，按 userId 圈定登记清理（含下单发布的 OrderPlacedEvent 登记行）
         db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        // 发货会经 OrderShippedEvent 同步落 logistics 包裹：测试自建自清，不登记会在重跑时撞运单号唯一索引
+        // 发货会落 logistics 包裹（同事务）：测试自建自清，不登记会在重跑时撞运单号唯一索引
         db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
         db.onDelete(
                 "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
@@ -322,38 +327,78 @@ class OrderFlowIT extends IntegrationTestSupport {
 
     /**
      * 发货收货腿：状态机后半段 PAID → SHIPPED → COMPLETED 只有真库能验条件更新影响行数。
-     * 同时钉死：越店发货 404、重复收货 409、物流公司/运单号回填落库。
+     * 发货动作本身已归 logistics（见 LogisticsIT），这里盯的是<b>订单侧后果</b>：
+     * 越店不发、已取消不发、物流摘要投影回填、_shipped_at 与收货窗口只回填一次、重复收货 409。
      */
     @Test
-    void 发货收货_物流回填落库_越店404错态409() {
+    void 发货收货_订单侧推进与投影_越店404错态409() {
         seedSku(5);
         UUID orderId = orderService.create(userId, buyNow(2)).getFirst().getId();
         Payment pending = paymentService.pay(userId, orderId);
         paymentService.confirm(userId, pending.getId()); // 两段式：确认后才推进到 PAID
 
         // 越店发货：另一家店的 shopId 圈不到这单 → 404，订单状态不动
-        ShipOrderRequest req = new ShipOrderRequest("顺丰", "SF123456789");
         assertEquals(
                 404,
                 assertThrows(
                                 BusinessException.class,
-                                () -> orderTransitionService.ship(UUID.randomUUID(), orderId, req))
+                                () -> shipmentService.dispatch(new DispatchShipmentCommand(
+                                        UUID.randomUUID(), orderId, "SF", null, "SF123456789")))
                         .getHttpStatus());
         assertEquals(OrderStatus.PAID, statusOf(orderId));
 
-        // 本店发货：PAID → SHIPPED，物流信息落库（一单一包裹）
-        orderTransitionService.ship(shopId, orderId, req);
+        // 本店发货：PAID → SHIPPED，物流公司（字典名）与运单号回填成订单上的摘要投影
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", null, "SF123456789"));
         assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
         String logistics = jdbc.queryForObject(
                 "SELECT logistics_company || '|' || tracking_no FROM orders.orders WHERE id = ?::uuid",
                 String.class,
                 orderId.toString());
-        assertEquals("顺丰|SF123456789", logistics);
+        assertEquals("顺丰速运|SF123456789", logistics);
 
-        // 已发货不可再发（源状态集不含 SHIPPED）→ 409
+        // 已发货仍可再发（一单多包裹），但订单的发货时刻与收货窗口只回填一次
+        OffsetDateTime firstShippedAt = jdbc.queryForObject(
+                "SELECT shipped_at FROM orders.orders WHERE id = ?::uuid", OffsetDateTime.class, orderId.toString());
+        OffsetDateTime firstReceiveExpireAt = jdbc.queryForObject(
+                "SELECT receive_expire_at FROM orders.orders WHERE id = ?::uuid",
+                OffsetDateTime.class,
+                orderId.toString());
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "ZTO", null, "ZTO987654321"));
+        assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
+        assertEquals(
+                firstShippedAt.toInstant(),
+                jdbc.queryForObject(
+                                "SELECT shipped_at FROM orders.orders WHERE id = ?::uuid",
+                                OffsetDateTime.class,
+                                orderId.toString())
+                        .toInstant(),
+                "追加包裹不得把订单的发货时刻往后推");
+        assertEquals(
+                firstReceiveExpireAt.toInstant(),
+                jdbc.queryForObject(
+                                "SELECT receive_expire_at FROM orders.orders WHERE id = ?::uuid",
+                                OffsetDateTime.class,
+                                orderId.toString())
+                        .toInstant(),
+                "追加包裹不得把收货窗口往后推");
+        assertEquals(
+                "中通快递|ZTO987654321",
+                jdbc.queryForObject(
+                        "SELECT logistics_company || '|' || tracking_no FROM orders.orders WHERE id = ?::uuid",
+                        String.class,
+                        orderId.toString()),
+                "订单摘要投影取最新包裹");
+
+        // 已取消/已完成的单不可发货：取消后发货被拒，且不落包裹
+        UUID cancelledOrderId =
+                orderService.create(userId, buyNow(1)).getFirst().getId();
+        orderTransitionService.cancel(userId, cancelledOrderId, "不想买了");
         assertEquals(
                 409,
-                assertThrows(BusinessException.class, () -> orderTransitionService.ship(shopId, orderId, req))
+                assertThrows(
+                                BusinessException.class,
+                                () -> shipmentService.dispatch(new DispatchShipmentCommand(
+                                        shopId, cancelledOrderId, "SF", null, "SF000000001")))
                         .getHttpStatus());
 
         // 收货：SHIPPED → COMPLETED，完成时刻落库；重复收货被状态闸门拒绝

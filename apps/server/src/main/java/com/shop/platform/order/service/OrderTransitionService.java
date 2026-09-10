@@ -7,13 +7,10 @@ import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 import static com.shop.platform.order.model.OrderStatus.SHIPPED;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
-import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.events.OrderCancelledEvent;
-import com.shop.platform.order.events.OrderShippedEvent;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
@@ -23,8 +20,6 @@ import com.shop.platform.order.model.OrderActor;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.model.OrderTimeouts;
 import com.shop.platform.product.api.ProductCommand;
-import com.shop.platform.shop.api.AddressSnapshot;
-import com.shop.platform.shop.api.MerchantAddressReadQuery;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
@@ -69,9 +64,6 @@ public class OrderTransitionService {
 
     private final ApplicationEventPublisher events;
 
-    /** 商家发货地址快照查询：发货时解析默认发货地址（shop::api，只读），无默认即拒绝发货 */
-    private final MerchantAddressReadQuery merchantAddressReadQuery;
-
     // ========== 履约主状态机：买家 ==========
 
     /** 买家取消：仅待付款/待发货可取消（源态由状态机反推），库存与退款按真实前态分流 */
@@ -92,47 +84,6 @@ public class OrderTransitionService {
     }
 
     // ========== 履约主状态机：卖家 ==========
-
-    /** 发货：待发货 → 已发货，回填物流信息（一单一包裹）与确认收货截止 */
-    @Transactional
-    public void ship(UUID shopId, UUID orderId, ShipOrderRequest req) {
-        // 0. 归属先于一切：不存在/非本店给 404，不让「请先设置默认发货地址」泄露他店订单是否存在
-        Order existing = orderMapper.selectById(orderId);
-        if (existing == null || !existing.getShopId().equals(shopId)) {
-            throw BusinessException.notFound("订单不存在");
-        }
-        // 0.5 发货快照：解析本店默认发货地址（shop::api）。发货无寄件人即硬失败——不静默兜底、不猜地址
-        AddressSnapshot shipper = Validate.present(merchantAddressReadQuery.resolveShipFrom(shopId), 400, "请先设置默认发货地址");
-        // 1. 条件转移：限定本店 + 状态机反推的源状态，错态在影响行数上暴露；发货快照在此定格
-        OffsetDateTime now = OffsetDateTime.now();
-        int affected = orderMapper.update(
-                null,
-                condition(orderId)
-                        .eq(Order::getShopId, shopId)
-                        .in(Order::getStatus, OrderStatus.sourcesOf(SHIPPED))
-                        .set(Order::getStatus, SHIPPED)
-                        .set(Order::getShippedAt, now)
-                        .set(Order::getReceiveExpireAt, now.plus(OrderTimeouts.RECEIVE))
-                        .set(Order::getLogisticsCompany, req.logisticsCompany())
-                        .set(Order::getTrackingNo, req.trackingNo())
-                        .set(Order::getShipperContactName, shipper.contactName())
-                        .set(Order::getShipperPhone, shipper.phone())
-                        .set(Order::getShipperProvince, shipper.province())
-                        .set(Order::getShipperCity, shipper.city())
-                        .set(Order::getShipperDistrict, shipper.district())
-                        .set(Order::getShipperDetail, shipper.detail())
-                        .set(Order::getShipperCompanyName, shipper.companyName()));
-        if (affected == 1) {
-            statusLogWriter.record(orderId, PAID, SHIPPED, OrderAction.SHIP, OrderActor.SELLER, null);
-            // 物流包裹由 logistics 同步监听（同事务）落库：包裹落不下则发货整体回滚，
-            // 「发过货就一定有包裹」由事件携带全部入参保证，logistics 无需回读订单（出度为零）
-            events.publishEvent(new OrderShippedEvent(
-                    orderId, existing.getUserId(), shopId, req.logisticsCompany(), req.trackingNo(), now));
-            return;
-        }
-        // 2. 归属已在步骤 0 过门，抢不到转移只剩状态不对
-        throw new BusinessException(409, "订单不是待发货状态");
-    }
 
     // ========== 履约主状态机：系统超时（单笔事务落点，批量扫描见 OrderTimeoutService） ==========
 

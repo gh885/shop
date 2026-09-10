@@ -14,7 +14,11 @@ public final class OrderTimeouts {
     /** 付款起算：卖家发货窗口，到期自动取消并退款（ship_expire_at） */
     public static final Duration SHIP = Duration.ofDays(3);
 
-    /** 发货起算：买家确认收货窗口，到期自动确认收货（receive_expire_at） */
+    /**
+     * 确认收货窗口（receive_expire_at），到期自动确认收货。两个起算点：
+     * 发货时按发货时刻先铺一个兜底（物流迟迟不签收也不能让单悬着），
+     * 签收时由 logistics 经 order :: api 的 markDelivered 从签收时刻重算——用户看到的是「签收后还有 7 天」。
+     */
     public static final Duration RECEIVE = Duration.ofDays(7);
 
     /** 收货起算：售后申请窗口，过期不再受理（apply_expire_at，申请时的条件更新即闸门） */

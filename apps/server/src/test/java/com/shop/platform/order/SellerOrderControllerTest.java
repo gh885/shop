@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -111,28 +110,6 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
             mockMvc.perform(sellerGet("/seller/orders/{id}", order.getId())).andExpect(status().isOk());
 
             verify(orderService).sellerDetail(shopId, order.getId());
-        }
-    }
-
-    @Nested
-    class 发货 { // PUT /seller/orders/{id}/ship
-
-        @Test
-        void 回填物流单号() throws Exception {
-            Order order = paidOrder();
-            when(orderService.pageSeller(any(), any(), any())).thenReturn(new PageResult<>(List.of(), 0));
-
-            mockMvc.perform(
-                            put("/seller/orders/{id}/ship", order.getId())
-                                    .with(userAuth(userId))
-                                    .header("X-Shop-Id", shopId.toString())
-                                    .content(
-                                            """
-                                {"logisticsCompany": "顺丰", "trackingNo": "SF123456789"}
-                                """))
-                    .andExpect(status().isOk());
-
-            verify(orderTransitionService).ship(eq(shopId), eq(order.getId()), any());
         }
     }
 }

@@ -11,11 +11,15 @@
  *
  * <p>履约主状态机：status：PENDING_PAYMENT → PAID → SHIPPED → COMPLETED，待付款/待发货可取消；规则收在 model 包的
  * OrderStatus，驱动收在 service 包的 OrderTransitionService，每次转移落一行 orders.order_status_log 审计流水。
+ * 发货不再由本模块发起（发货是物流动作，入口归 logistics）：logistics 经 order :: api 的
+ * OrderCommand.markShipped / markDelivered 同事务调用推进状态并回写物流摘要与签收投影
+ * （shipped_at / receive_expire_at 只回填一次，追加包裹不得把窗口往后推），
+ * 本模块因此不认识物流，也不再持有面单寄件人列（已归 shipments）。
  * 售后已独立为 aftersale 模块：订单只留 after_sale_status（最近一张售后单的状态）与 refund_amount（退款口径）两列投影，
  * 由 aftersale 经 order :: api 的 OrderCommand.syncAfterSale 写回；apply_expire_at 是订单自己的售后申请窗口。
  * 资金态归 payment（payments.status）。
  * 三条时间驱动的超时契约（窗口见 OrderTimeouts，规则表见 OrderTimeout）：待付款超时关单、
- * 待发货超时自动取消+退款、已发货超时未确认自动收货。
+ * 待发货超时自动取消+退款、已发货超时未确认自动收货（确认收货窗口由发货先铺兜底、签收后重算）。
  */
 @ApplicationModule(
         displayName = "Order",

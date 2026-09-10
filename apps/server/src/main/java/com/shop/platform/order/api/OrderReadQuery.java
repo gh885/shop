@@ -53,6 +53,21 @@ public class OrderReadQuery {
                 .findFirst();
     }
 
+    /** 单笔订单的发货视图：logistics 发货前置校验（归属 / 可否再发货），查无此单返回 empty */
+    public Optional<OrderShipmentView> shipmentViewById(UUID orderId) {
+        return jdbc
+                .query(
+                        "SELECT user_id, shop_id, status FROM orders.orders WHERE id = ?",
+                        (rs, i) -> new OrderShipmentView(
+                                orderId,
+                                rs.getObject("user_id", UUID.class),
+                                rs.getObject("shop_id", UUID.class),
+                                OrderStatus.valueOf(rs.getString("status"))),
+                        orderId)
+                .stream()
+                .findFirst();
+    }
+
     /** 订单行项（SKU + 件数）：aftersale 退货收货回补库存用 */
     public List<OrderLineView> linesById(UUID orderId) {
         return jdbc.query(

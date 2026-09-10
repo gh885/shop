@@ -47,7 +47,10 @@ public class Shipment {
     /** 正向履约 / 逆向回寄 */
     private ShipmentDirection direction;
 
-    /** 承运商展示名（发货时刻快照，来自卖家填写的物流公司） */
+    /** 承运商稳定标识（字典 code）；老端点手填的名字匹配不上字典时为 null */
+    private String carrierCode;
+
+    /** 承运商展示名（发货时刻快照：承运商改名不改写历史单据） */
     private String carrierName;
 
     /** 运单号；库上有唯一索引（一个运单号只属于一个订单） */
@@ -61,6 +64,23 @@ public class Shipment {
 
     /** 签收时刻（DELIVERED 节点回填），未签收为 null */
     private OffsetDateTime deliveredAt;
+
+    // ---- 面单寄件人快照（发货时刻定格）：从 orders 搬来，它本质是面单 = 包裹的属性 ----
+
+    private String shipFromContactName;
+
+    private String shipFromPhone;
+
+    private String shipFromProvince;
+
+    private String shipFromCity;
+
+    private String shipFromDistrict;
+
+    private String shipFromDetail;
+
+    /** 面单寄件人名称（履约主体，镜像商家地址的 company_name） */
+    private String shipFromCompanyName;
 
     @TableField(fill = FieldFill.INSERT)
     private OffsetDateTime createdAt;
