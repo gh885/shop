@@ -21,7 +21,7 @@ public enum StaffRole {
     /** 入驻审核 */
     REVIEWER,
 
-    /** 运营：CMS 内容 + 平台类目 */
+    /** 运营：CMS 内容 + 平台类目 + 物流轨迹维护 */
     OPS;
 
     /**
@@ -32,7 +32,7 @@ public enum StaffRole {
         return switch (this) {
             case SUPER_ADMIN -> Set.of(PermissionResolver.WILDCARD);
             case REVIEWER -> Set.of(Permissions.SHOP_REVIEW);
-            case OPS -> Set.of(Permissions.CMS_MANAGE, Permissions.CATEGORY_MANAGE);
+            case OPS -> Set.of(Permissions.CMS_MANAGE, Permissions.CATEGORY_MANAGE, Permissions.LOGISTICS_MANAGE);
         };
     }
 

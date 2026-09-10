@@ -75,6 +75,11 @@ class OrderFlowIT extends IntegrationTestSupport {
     private void seedSku(int stock) {
         // service 造的数据无法预知主键，按 userId 圈定登记清理（含下单发布的 OrderPlacedEvent 登记行）
         db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
+        // 发货会经 OrderShippedEvent 同步落 logistics 包裹：测试自建自清，不登记会在重跑时撞运单号唯一索引
+        db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
+        db.onDelete(
+                "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
+                userId.toString());
         db.onDelete(
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
                 userId.toString());

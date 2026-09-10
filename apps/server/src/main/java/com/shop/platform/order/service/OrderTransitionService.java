@@ -13,6 +13,7 @@ import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.events.OrderCancelledEvent;
+import com.shop.platform.order.events.OrderShippedEvent;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
@@ -123,6 +124,10 @@ public class OrderTransitionService {
                         .set(Order::getShipperCompanyName, shipper.companyName()));
         if (affected == 1) {
             statusLogWriter.record(orderId, PAID, SHIPPED, OrderAction.SHIP, OrderActor.SELLER, null);
+            // 物流包裹由 logistics 同步监听（同事务）落库：包裹落不下则发货整体回滚，
+            // 「发过货就一定有包裹」由事件携带全部入参保证，logistics 无需回读订单（出度为零）
+            events.publishEvent(new OrderShippedEvent(
+                    orderId, existing.getUserId(), shopId, req.logisticsCompany(), req.trackingNo(), now));
             return;
         }
         // 2. 归属已在步骤 0 过门，抢不到转移只剩状态不对

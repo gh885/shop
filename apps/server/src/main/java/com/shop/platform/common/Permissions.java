@@ -25,6 +25,9 @@ public final class Permissions {
     /** 员工与岗位管理（创建员工、分配岗位、禁用），仅 SUPER_ADMIN。消费端 P2（员工管理 CRUD） */
     public static final String STAFF_MANAGE = "STAFF_MANAGE";
 
+    /** 物流轨迹维护（补录节点、纠错），岗位 OPS */
+    public static final String LOGISTICS_MANAGE = "LOGISTICS_MANAGE";
+
     // ---- seller 域（店铺子账号，P1 启用标注） ----
 
     /** 商品增删改、规格 SKU、上下架 */
@@ -42,7 +45,14 @@ public final class Permissions {
      */
     public static List<String> all() {
         return List.of(
-                SHOP_REVIEW, CMS_MANAGE, CATEGORY_MANAGE, STAFF_MANAGE, PRODUCT_MANAGE, ORDER_FULFILL, ADDRESS_MANAGE);
+                SHOP_REVIEW,
+                CMS_MANAGE,
+                CATEGORY_MANAGE,
+                LOGISTICS_MANAGE,
+                STAFF_MANAGE,
+                PRODUCT_MANAGE,
+                ORDER_FULFILL,
+                ADDRESS_MANAGE);
     }
 
     private Permissions() {}

@@ -55,6 +55,11 @@ class AfterSaleIT extends IntegrationTestSupport {
     @BeforeEach
     void seed() {
         db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
+        // 发货会经 OrderShippedEvent 同步落 logistics 包裹：测试自建自清，不登记会在重跑时撞运单号唯一索引
+        db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
+        db.onDelete(
+                "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
+                userId.toString());
         db.onDelete(
                 "DELETE FROM aftersale.ticket_events WHERE ticket_id IN (SELECT id FROM aftersale.tickets WHERE user_id = ?::uuid)",
                 userId.toString());

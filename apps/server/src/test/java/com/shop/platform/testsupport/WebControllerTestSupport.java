@@ -21,6 +21,8 @@ import com.shop.platform.infra.security.StaffAuthFilter;
 import com.shop.platform.infra.web.RequestBodySizeFilter;
 import com.shop.platform.infra.web.RequestIdFilter;
 import com.shop.platform.inventory.api.StockReadQuery;
+import com.shop.platform.logistics.service.ShipmentService;
+import com.shop.platform.logistics.service.TrackingService;
 import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
@@ -127,6 +129,12 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected PaymentService paymentService;
+
+    @MockitoBean
+    protected ShipmentService shipmentService;
+
+    @MockitoBean
+    protected TrackingService trackingService;
 
     @MockitoBean
     protected ShopService shopService;
