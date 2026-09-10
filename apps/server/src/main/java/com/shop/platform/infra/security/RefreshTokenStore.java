@@ -3,9 +3,14 @@ package com.shop.platform.infra.security;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisOperations;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -56,19 +61,25 @@ public class RefreshTokenStore {
     /** 签发：存 HMAC 摘要（不落明文）+ 设备索引 + 设备集合（供全量吊销枚举）+ 设备元数据 */
     public void issue(String subjectId, String deviceId, String rawToken, DeviceInfo deviceInfo) {
         String hash = secretHasher.hash(rawToken);
-        redis.opsForValue().set(KEY_REFRESH + hash, subjectId, Duration.ofMillis(REFRESH_TTL_MS));
-        redis.opsForValue().set(KEY_USER_DEVICE + subjectId + ":" + deviceId, hash, Duration.ofMillis(REFRESH_TTL_MS));
-        // 设备集合随签发滑动续期。单个 refresh:<hash> 的 TTL 才是权威过期时间；
-        // 集合里滞留的陈旧 deviceId 在吊销/登出时按空值跳过即可
-        redis.opsForSet().add(KEY_DEVICES + subjectId, deviceId);
-        redis.expire(KEY_DEVICES + subjectId, Duration.ofMillis(REFRESH_TTL_MS));
-        // 设备元数据：设备名（UA 解析）、登录 IP、最近活跃时间，随签发写入
+        Duration ttl = Duration.ofMillis(REFRESH_TTL_MS);
         String metaKey = KEY_DEVICE_META + subjectId + ":" + deviceId;
-        var hashOps = redis.opsForHash();
-        hashOps.put(metaKey, "name", deviceInfo.deviceName());
-        hashOps.put(metaKey, "ip", deviceInfo.ip());
-        hashOps.put(metaKey, "lastLoginAt", deviceInfo.lastLoginAt().toString());
-        redis.expire(metaKey, Duration.ofMillis(REFRESH_TTL_MS));
+        // 设备元数据：设备名（UA 解析）、登录 IP、最近活跃时间，随签发写入（ip 可空，Redis hash 不收 null 值）
+        Map<String, String> meta = new HashMap<>();
+        meta.put("name", deviceInfo.deviceName());
+        if (deviceInfo.ip() != null) meta.put("ip", deviceInfo.ip());
+        meta.put("lastLoginAt", deviceInfo.lastLoginAt().toString());
+        // MULTI/EXEC 原子提交：五个键全落或全不落。权威键 refresh:<hash> 放最后——即便 EXEC 前中断，
+        // 留下的是「有索引没 token」（登出/列表按空值跳过即无害），而不是「有 token 没索引」的吊销不掉的会话。
+        atomically(tx -> {
+            tx.opsForValue().set(KEY_USER_DEVICE + subjectId + ":" + deviceId, hash, ttl);
+            // 设备集合随签发滑动续期。单个 refresh:<hash> 的 TTL 才是权威过期时间；
+            // 集合里滞留的陈旧 deviceId 在吊销/登出时按空值跳过即可
+            tx.opsForSet().add(KEY_DEVICES + subjectId, deviceId);
+            tx.expire(KEY_DEVICES + subjectId, ttl);
+            tx.opsForHash().putAll(metaKey, meta);
+            tx.expire(metaKey, ttl);
+            tx.opsForValue().set(KEY_REFRESH + hash, subjectId, ttl);
+        });
     }
 
     /** 消费旧 token（getAndDelete = 一次性）；返回 null 表示无效或已被消费 */
@@ -104,12 +115,29 @@ public class RefreshTokenStore {
     /** 删除指定设备的 refresh token（登出 / 刷新前清理旧设备索引），并从设备集合移除 */
     public void revokeDevice(String subjectId, String deviceId) {
         String idxKey = KEY_USER_DEVICE + subjectId + ":" + deviceId;
+        // 索引先 GETDEL 拿到 hash（MULTI 内读不到值），余下三个删除原子提交
         String storedHash = redis.opsForValue().getAndDelete(idxKey);
-        if (storedHash != null) {
-            redis.delete(KEY_REFRESH + storedHash);
-        }
-        redis.opsForSet().remove(KEY_DEVICES + subjectId, deviceId);
-        redis.delete(KEY_DEVICE_META + subjectId + ":" + deviceId);
+        atomically(tx -> {
+            if (storedHash != null) {
+                tx.delete(KEY_REFRESH + storedHash);
+            }
+            tx.opsForSet().remove(KEY_DEVICES + subjectId, deviceId);
+            tx.delete(KEY_DEVICE_META + subjectId + ":" + deviceId);
+        });
+    }
+
+    /** MULTI … EXEC 事务块：块内命令排队到 EXEC 一次性原子执行（Redis 事务无回滚，靠写入顺序保证半途失败无害） */
+    private void atomically(Consumer<RedisOperations<String, String>> commands) {
+        redis.execute(new SessionCallback<List<Object>>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public <K, V> List<Object> execute(RedisOperations<K, V> ops) {
+                RedisOperations<String, String> tx = (RedisOperations<String, String>) ops;
+                tx.multi();
+                commands.accept(tx);
+                return tx.exec();
+            }
+        });
     }
 
     /**

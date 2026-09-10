@@ -81,7 +81,8 @@ class CartCheckoutIT extends IntegrationTestSupport {
         UUID bought = seedCartItem(sellableSku, 2);
         UUID kept = seedCartItem(db.seedOnSaleSku(shopId, 500L, 9), 1);
 
-        var created = orderService.create(userId, new CreateOrderRequest(addressId, lines(sellableSku, 2), null));
+        var created = orderService.create(
+                userId, new CreateOrderRequest(UUID.randomUUID(), addressId, lines(sellableSku, 2), null));
 
         // 一单一行：只买了这一个 SKU
         assertEquals(1, created.size());

@@ -12,6 +12,7 @@ import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
+import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.order.service.OrderWithItems;
@@ -47,6 +48,8 @@ public class OrderController {
 
     private final OrderService orderService;
 
+    private final OrderPlacementService orderPlacementService;
+
     private final OrderTransitionService orderTransitionService;
 
     private final ShopReadQuery shopReadQuery;
@@ -57,12 +60,12 @@ public class OrderController {
         return PreviewResponse.from(orderService.preview(userId, req));
     }
 
-    /** 创建订单：一次结算按店铺拆 N 单，全成全败；返回全部新单供逐单倒计时付款。
+    /** 创建订单：一次结算按店铺拆 N 单，全成全败；返回全部新单供逐单倒计时付款。同一 checkoutKey 重复提交返回原单。
      * 路径刻意避开裸 POST /orders —— 买家端有同名页面路由，Vite 代理只放行 /orders/ 前缀（见 web vite.config） */
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
     public CreatedOrdersResponse createOrder(@CurrentUser UUID userId, @Valid @RequestBody CreateOrderRequest req) {
-        return new CreatedOrdersResponse(orderService.create(userId, req).stream()
+        return new CreatedOrdersResponse(orderPlacementService.place(userId, req).stream()
                 .map(CreatedOrder::from)
                 .toList());
     }

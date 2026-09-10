@@ -28,9 +28,9 @@ import com.shop.platform.order.service.CheckoutResolver.ResolvedCheckout;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -96,6 +96,10 @@ public class OrderService {
     /**
      * 创建订单：一次结算按店铺拆成 N 单，全成全败。
      * 库存最终闸门在 product :: api 的同步条件扣减里（失败 → 本事务整体回滚）。
+     *
+     * <p>幂等由 uk_orders_user_checkout_shop 唯一索引承担：同一 checkoutKey 的重复提交在第一条主表 insert 就撞键，
+     * 库存冻结执行不到第二次。撞键后的重放（回读原单）在 {@link OrderPlacementService}——PG 撞唯一索引即中止整个事务，
+     * 只能在事务外接住，本方法不 catch。
      */
     @Transactional
     public List<Order> create(UUID userId, CreateOrderRequest req) {
@@ -106,12 +110,15 @@ public class OrderService {
         ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
         Validate.isTrue(resolved.unavailable().isEmpty(), "部分商品已下架或库存不足，请重新确认结算");
 
-        // 3. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用解析结果免重查
+        // 3. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用解析结果免重查。
+        //    分组按 shopId 升序（TreeMap）而非勾选顺序：逐店冻结时 StockCommand 只在单店内按 skuId 排序，
+        //    店间顺序若跟用户走，两笔店序相反的多店订单会互相等锁（A 持店1等店2，B 持店2等店1）。
+        //    一个 SKU 只属一家店，(shopId, skuId) 升序即全局锁序，环不可能成立。
         Map<UUID, List<ValidLine>> byShop = resolved.valid().stream()
-                .collect(Collectors.groupingBy(ValidLine::shopId, LinkedHashMap::new, Collectors.toList()));
+                .collect(Collectors.groupingBy(ValidLine::shopId, TreeMap::new, Collectors.toList()));
         List<Map.Entry<Order, List<ValidLine>>> staged = new ArrayList<>();
         for (List<ValidLine> lines : byShop.values()) {
-            staged.add(Map.entry(persistOrder(userId, req.buyerMessage(), address, lines), lines));
+            staged.add(Map.entry(persistOrder(userId, req, address, lines), lines));
         }
 
         // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU
@@ -172,11 +179,13 @@ public class OrderService {
     // ========== 内部：落单 ==========
 
     /** 落一笔订单：主表快照 + 行项目快照（单号生成见 {@link #insertOrder}） */
-    private Order persistOrder(UUID userId, String buyerMessage, AddressSnapshot addr, List<ValidLine> lines) {
+    private Order persistOrder(UUID userId, CreateOrderRequest req, AddressSnapshot addr, List<ValidLine> lines) {
+        String buyerMessage = req.buyerMessage();
         Money itemAmount = checkoutResolver.sumLines(lines);
         Order template = Order.builder()
                 .userId(userId)
                 .shopId(lines.getFirst().shopId())
+                .checkoutKey(req.checkoutKey())
                 .status(PENDING_PAYMENT)
                 .itemAmount(itemAmount.amount())
                 .shippingFee(0L) // V1 未接计费恒 0；上运费后 payAmount = itemAmount + shippingFee

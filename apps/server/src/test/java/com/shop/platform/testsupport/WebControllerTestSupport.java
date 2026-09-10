@@ -21,6 +21,7 @@ import com.shop.platform.infra.security.StaffAuthFilter;
 import com.shop.platform.infra.web.RequestBodySizeFilter;
 import com.shop.platform.infra.web.RequestIdFilter;
 import com.shop.platform.inventory.api.StockReadQuery;
+import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.payment.service.PaymentService;
@@ -109,6 +110,9 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected OrderService orderService;
+
+    @MockitoBean
+    protected OrderPlacementService orderPlacementService;
 
     @MockitoBean
     protected OrderTransitionService orderTransitionService;

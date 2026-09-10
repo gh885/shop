@@ -70,7 +70,10 @@ class AfterSaleIT extends IntegrationTestSupport {
 
         // 走到履约闭环（COMPLETED）：下单冻结 → 支付扣实 → 发货 → 确认收货
         Order created = orderService
-                .create(userId, new CreateOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 2)), null))
+                .create(
+                        userId,
+                        new CreateOrderRequest(
+                                UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, 2)), null))
                 .getFirst();
         orderId = created.getId();
         Payment pending = paymentService.pay(userId, orderId);

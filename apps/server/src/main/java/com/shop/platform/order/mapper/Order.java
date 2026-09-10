@@ -45,6 +45,9 @@ public class Order {
     /** 卖家店铺 ID，shop.shops.id，裸引用不加 FK；一次结算按它拆成 N 单 */
     private UUID shopId;
 
+    /** 结算幂等键（前端生成）：同一 (user_id, checkout_key, shop_id) 唯一，重复提交撞键回读原单；历史单与 dev 种子为 null */
+    private UUID checkoutKey;
+
     /** 履约主状态机：待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消（规则见 OrderStatus） */
     private OrderStatus status;
 

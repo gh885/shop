@@ -83,8 +83,9 @@ export async function fetchPreview(args: {
     return await OrdersApi.previewOrder({ body: { lines: args.lines, addressId: args.addressId } })
 }
 
-/** 创建订单：按店拆单，返回全部新单 */
+/** 创建订单：按店拆单，返回全部新单。checkoutKey 为一次结算的幂等键，重试带同一个值即回放原单 */
 export async function createOrder(args: {
+    checkoutKey: string
     addressId: string
     lines: { skuId: string; quantity: number }[]
     buyerMessage?: string

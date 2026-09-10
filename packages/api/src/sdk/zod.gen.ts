@@ -561,6 +561,7 @@ export const zPreviewResponse = z.object({
 });
 
 export const zCreateOrderRequest = z.object({
+    checkoutKey: z.uuid(),
     addressId: z.uuid(),
     lines: z.array(zOrderLineRequest).min(1),
     buyerMessage: z.string().min(0).max(200).optional()

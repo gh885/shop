@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
 
 import { notify } from "@shop/app-kit"
 
@@ -44,12 +45,16 @@ export function useCheckoutPreview({
     })
 }
 
-/** 创建订单：一次结算按店拆 N 单，全成全败；成功后由调用方跳转支付 */
+/** 创建订单：一次结算按店拆 N 单，全成全败；成功后由调用方跳转支付。
+ *  checkoutKey 随结算页挂载生成一次：双击与网络超时后的重试都带同一个键，后端撞键回放原单、不重复冻结库存；
+ *  重新进入结算页 = 新一次结算 = 新键。 */
 export function useCreateOrder() {
     const qc = useQueryClient()
+    const [checkoutKey] = useState(() => crypto.randomUUID())
     return useMutation({
         mutationFn: (args: { addressId: string; source: CheckoutSource; buyerMessage?: string }) =>
             createOrder({
+                checkoutKey,
                 addressId: args.addressId,
                 lines: args.source.lines,
                 buyerMessage: args.buyerMessage,

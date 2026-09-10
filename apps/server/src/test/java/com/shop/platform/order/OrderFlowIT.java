@@ -17,6 +17,7 @@ import com.shop.platform.order.dto.ShipOrderRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.CheckoutPreview;
+import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTimeout;
 import com.shop.platform.order.service.OrderTimeoutService;
@@ -46,6 +47,9 @@ class OrderFlowIT extends IntegrationTestSupport {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private OrderPlacementService orderPlacementService;
 
     @Autowired
     private OrderTransitionService orderTransitionService;
@@ -101,7 +105,8 @@ class OrderFlowIT extends IntegrationTestSupport {
     }
 
     private CreateOrderRequest buyNow(int quantity) {
-        return new CreateOrderRequest(addressId, List.of(new OrderLineRequest(skuId, quantity)), null);
+        return new CreateOrderRequest(
+                UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, quantity)), null);
     }
 
     @Test
@@ -179,6 +184,25 @@ class OrderFlowIT extends IntegrationTestSupport {
         BusinessException ex = assertThrows(
                 BusinessException.class, () -> orderTransitionService.cancel(userId, order.getId(), "再试一次"));
         assertEquals(409, ex.getHttpStatus());
+    }
+
+    /** 幂等：同一 checkoutKey 重复提交（双击 / 超时重试）撞唯一键后回放原单，库存只冻结一次 */
+    @Test
+    void 重复提交同一checkoutKey_回放原单_不重复冻结() {
+        seedSku(5);
+        CreateOrderRequest req = buyNow(2);
+
+        List<Order> first = orderPlacementService.place(userId, req);
+        List<Order> again = orderPlacementService.place(userId, req);
+
+        assertEquals(first.getFirst().getId(), again.getFirst().getId());
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM orders.orders WHERE user_id = ?::uuid",
+                        Integer.class,
+                        userId.toString()));
+        assertEquals(2, frozenStockOf());
     }
 
     /** 请求行库存不足在 resolve 前置拦截（400），与预览同一道判定；订单零残留 */

@@ -595,6 +595,7 @@ export type UnavailableLine = {
 };
 
 export type CreateOrderRequest = {
+    checkoutKey: string;
     addressId: string;
     lines: Array<OrderLineRequest>;
     buyerMessage?: string;

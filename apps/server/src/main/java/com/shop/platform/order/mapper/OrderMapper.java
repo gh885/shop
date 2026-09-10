@@ -1,10 +1,12 @@
 package com.shop.platform.order.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.common.Validate;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,6 +33,14 @@ public interface OrderMapper extends BaseMapper<Order> {
         Order order = Validate.notNull(selectById(orderId), "订单不存在");
         Validate.isTrue(order.getShopId().equals(shopId), "订单不存在");
         return order;
+    }
+
+    /** 同一次结算已落的全部订单（幂等重放回读）；按 shopId 升序，与 OrderService.create 的拆单顺序一致 */
+    default List<Order> selectByCheckoutKey(UUID userId, UUID checkoutKey) {
+        return selectList(new LambdaQueryWrapper<Order>()
+                .eq(Order::getUserId, userId)
+                .eq(Order::getCheckoutKey, checkoutKey)
+                .orderByAsc(Order::getShopId));
     }
 
     /**

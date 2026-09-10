@@ -58,15 +58,15 @@ class OrderControllerTest extends WebControllerTestSupport {
 
         @Test
         void 合法body_201() throws Exception {
-            when(orderService.create(eq(userId), any())).thenReturn(List.of(pendingOrder()));
+            when(orderPlacementService.place(eq(userId), any())).thenReturn(List.of(pendingOrder()));
 
             mockMvc.perform(post("/orders/create")
                             .with(userAuth(userId))
                             .content(
                                     """
-                                {"addressId": "%s", "lines": [{"skuId": "%s", "quantity": 1}]}
+                                {"checkoutKey": "%s", "addressId": "%s", "lines": [{"skuId": "%s", "quantity": 1}]}
                                 """
-                                            .formatted(UUID.randomUUID(), skuId)))
+                                            .formatted(UUID.randomUUID(), UUID.randomUUID(), skuId)))
                     .andExpect(status().isCreated());
         }
 
@@ -76,11 +76,24 @@ class OrderControllerTest extends WebControllerTestSupport {
                             .with(userAuth(userId))
                             .content(
                                     """
-                                {"lines": [{"skuId": "%s", "quantity": 1}]}
+                                {"checkoutKey": "%s", "lines": [{"skuId": "%s", "quantity": 1}]}
                                 """
-                                            .formatted(skuId)))
+                                            .formatted(UUID.randomUUID(), skuId)))
                     .andExpect(status().is(422))
                     .andExpect(jsonPath("$.errors[0].field").value("addressId"));
+        }
+
+        @Test
+        void 缺checkoutKey_422() throws Exception {
+            mockMvc.perform(post("/orders/create")
+                            .with(userAuth(userId))
+                            .content(
+                                    """
+                                {"addressId": "%s", "lines": [{"skuId": "%s", "quantity": 1}]}
+                                """
+                                            .formatted(UUID.randomUUID(), skuId)))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("checkoutKey"));
         }
     }
 

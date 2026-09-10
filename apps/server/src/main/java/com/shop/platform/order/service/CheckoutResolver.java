@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -101,10 +102,11 @@ class CheckoutResolver {
                 .toList();
     }
 
-    /** 有效行按店铺分组算钱；店铺名经 shop :: api 只读拼装（一组对应一笔待创建订单） */
+    /** 有效行按店铺分组算钱；店铺名经 shop :: api 只读拼装（一组对应一笔待创建订单）。
+     *  分组按 shopId 升序，与 OrderService.create 的拆单顺序一致（那边是为锁序，见其第 3 步注释），预览与实际成单同序 */
     List<CheckoutPreview.Group> groupByShop(List<ValidLine> valid) {
-        Map<UUID, List<ValidLine>> byShop = valid.stream()
-                .collect(Collectors.groupingBy(ValidLine::shopId, LinkedHashMap::new, Collectors.toList()));
+        Map<UUID, List<ValidLine>> byShop =
+                valid.stream().collect(Collectors.groupingBy(ValidLine::shopId, TreeMap::new, Collectors.toList()));
         Map<UUID, String> shopNames = shopReadQuery.namesByIds(byShop.keySet());
         return byShop.entrySet().stream()
                 .map(e -> {
