@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.observability.MdcScope;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopReview;
@@ -21,7 +23,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,13 +44,11 @@ public class ShopReviewService {
     /** 审核列表（按 status 筛选分页，含店名/店主手机号） */
     public PageResult<ShopReviewItem> pageList(PageParams pageParams, String status) {
         // 1. 分页查审核记录，PENDING 优先、新店在前
+        ShopReviewStatus filter = Text.blankToNull(status) == null ? null : ShopReviewStatus.valueOf(status);
         Page<ShopReview> rows = shopReviewMapper.selectPage(
                 new Page<>(pageParams.page(), pageParams.size()),
                 new LambdaQueryWrapper<ShopReview>()
-                        .eq(
-                                status != null && !status.isBlank(),
-                                ShopReview::getStatus,
-                                status == null || status.isBlank() ? null : ShopReviewStatus.valueOf(status))
+                        .eq(filter != null, ShopReview::getStatus, filter)
                         .orderByAsc(ShopReview::getStatus)
                         .orderByDesc(ShopReview::getCreatedAt));
 
@@ -116,19 +115,13 @@ public class ShopReviewService {
         shopMapper.updateById(shop);
 
         // 4. L3 审计留痕（结构化事件，约定见 docs/business-event-logging.md）
-        MDC.put("event", "shop_review.decided");
-        MDC.put("review_id", review.getId().toString());
-        MDC.put("shop_id", review.getShopId().toString());
-        MDC.put("decision", newStatus.name());
-        MDC.put("staff_id", staffId.toString());
-        try {
+        try (MdcScope _ = MdcScope.of(
+                "event", "shop_review.decided",
+                "review_id", review.getId().toString(),
+                "shop_id", review.getShopId().toString(),
+                "decision", newStatus.name(),
+                "staff_id", staffId.toString())) {
             log.info("[SHOP] 店铺审核决定, shopId={}, status={}", shop.getId(), shop.getStatus());
-        } finally {
-            MDC.remove("event");
-            MDC.remove("review_id");
-            MDC.remove("shop_id");
-            MDC.remove("decision");
-            MDC.remove("staff_id");
         }
         return review;
     }

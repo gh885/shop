@@ -3,6 +3,7 @@ package com.shop.platform.order.service;
 import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.shop.platform.common.BusinessException;
@@ -141,21 +142,13 @@ public class OrderService {
     /** 我的订单分页：每单内嵌行项，列表页免 N+1 */
     @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageMine(UUID userId, String status, PageParams page) {
-        OrderStatus filter = parseStatusFilter(status);
-        Page<Order> rows = orderMapper.selectPage(
-                new Page<>(page.page(), page.size()),
-                new LambdaQueryWrapper<Order>()
-                        .eq(Order::getUserId, userId)
-                        .eq(filter != null, Order::getStatus, filter)
-                        .orderByDesc(Order::getCreatedAt));
-        return new PageResult<>(attachItems(rows.getRecords()), rows.getTotal());
+        return pageOrders(Order::getUserId, userId, status, page);
     }
 
     /** 订单详情：非本人一律 404，不泄露单据存在性 */
     @Transactional(readOnly = true)
     public OrderWithItems detail(UUID userId, UUID orderId) {
-        Order order = orderMapper.requireOwned(userId, orderId);
-        return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
+        return withItems(orderMapper.requireOwned(userId, orderId));
     }
 
     // ========== 卖家侧查询 ==========
@@ -163,21 +156,13 @@ public class OrderService {
     /** 卖家订单分页：ShopIdHolder 圈定本店 */
     @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageSeller(UUID shopId, String status, PageParams page) {
-        OrderStatus filter = parseStatusFilter(status);
-        Page<Order> rows = orderMapper.selectPage(
-                new Page<>(page.page(), page.size()),
-                new LambdaQueryWrapper<Order>()
-                        .eq(Order::getShopId, shopId)
-                        .eq(filter != null, Order::getStatus, filter)
-                        .orderByDesc(Order::getCreatedAt));
-        return new PageResult<>(attachItems(rows.getRecords()), rows.getTotal());
+        return pageOrders(Order::getShopId, shopId, status, page);
     }
 
     /** 卖家订单详情：非本店一律 404 */
     @Transactional(readOnly = true)
     public OrderWithItems sellerDetail(UUID shopId, UUID orderId) {
-        Order order = orderMapper.requireShopOwned(shopId, orderId);
-        return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
+        return withItems(orderMapper.requireShopOwned(shopId, orderId));
     }
 
     // ========== 内部：落单 ==========
@@ -263,6 +248,24 @@ public class OrderService {
         } catch (IllegalArgumentException e) {
             throw BusinessException.badRequest("非法的订单状态筛选值");
         }
+    }
+
+    /** 买卖两侧分页共用：只有归属列（买家 user_id / 卖家 shop_id）不同 */
+    private PageResult<OrderWithItems> pageOrders(
+            SFunction<Order, ?> ownerColumn, UUID ownerId, String status, PageParams page) {
+        OrderStatus filter = parseStatusFilter(status);
+        Page<Order> rows = orderMapper.selectPage(
+                new Page<>(page.page(), page.size()),
+                new LambdaQueryWrapper<Order>()
+                        .eq(ownerColumn, ownerId)
+                        .eq(filter != null, Order::getStatus, filter)
+                        .orderByDesc(Order::getCreatedAt));
+        return new PageResult<>(attachItems(rows.getRecords()), rows.getTotal());
+    }
+
+    /** 订单 + 行项装配：买卖两侧详情共用 */
+    private OrderWithItems withItems(Order order) {
+        return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
     }
 
     private List<OrderWithItems> attachItems(List<Order> orders) {

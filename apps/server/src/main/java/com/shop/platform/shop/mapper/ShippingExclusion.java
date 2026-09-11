@@ -1,17 +1,12 @@
 package com.shop.platform.shop.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.BaseEntity;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 不配送地区 —— 与运费无关的那一维：命中即<b>下不了单</b>，不是「运费贵一点」。
@@ -24,21 +19,15 @@ import lombok.NoArgsConstructor;
  * 而「送不到」与「送得到但多少钱」本来就是两个判断，分开存放时匹配逻辑也更直白（排除优先于定价）。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("shop.shipping_exclusions")
-public class ShippingExclusion {
-
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class ShippingExclusion extends BaseEntity {
 
     /** 所属模板（shop.shipping_templates.id）；随模板重建，无软删 */
     private UUID templateId;
 
     /** 国标区划码前缀：省 2 位 / 市 4 位 / 区县 6 位 */
     private String regionPrefix;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
 }

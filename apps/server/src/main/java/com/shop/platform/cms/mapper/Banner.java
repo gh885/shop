@@ -1,30 +1,21 @@
 package com.shop.platform.cms.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.cms.model.CmsStatus;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.time.OffsetDateTime;
-import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /** 运营位 banner — 位置 × 内容，slot 标识运营位（如 home_promo）。 */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("cms.banners")
-public class Banner {
-
-    /** 主键。应用层生成 uuidv7 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class Banner extends AuditedEntity {
 
     /** 运营位标识：'home_promo'，可扩 home_sidebar / flash_sale */
     private String slot;
@@ -58,10 +49,4 @@ public class Banner {
 
     /** 定时失效：null 表示不失效 */
     private OffsetDateTime endAt;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

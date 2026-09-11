@@ -6,7 +6,6 @@ import com.shop.platform.cms.mapper.Banner;
 import com.shop.platform.cms.model.CmsStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -46,9 +45,5 @@ public record BannerResponse(
                 b.getEndAt(),
                 b.getCreatedAt(),
                 b.getUpdatedAt());
-    }
-
-    public static List<BannerResponse> from(List<Banner> list) {
-        return list.stream().map(BannerResponse::from).toList();
     }
 }

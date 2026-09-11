@@ -1,14 +1,12 @@
 package com.shop.platform.product.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.AuditedEntity;
+import com.shop.platform.infra.db.JsonbStringListHandler;
 import com.shop.platform.product.model.ProductStatus;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,11 +15,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 商品 SPU —— 商品本体，存"是什么"。
@@ -29,11 +26,11 @@ import lombok.NoArgsConstructor;
  * <p>只存不变的定义信息（名称/图片/规格模板），价格、库存等变体数据在 Sku 表。 一个 SPU 通过 Sku.productId 挂 0..N 个 SKU。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName(value = "product.products", autoResultMap = true)
-public class Product {
+public class Product extends AuditedEntity {
 
     // ---- 状态谓词：委托领域枚举的状态机（{@link ProductStatus}），service 读起来像业务语言而非魔法数字比较 ----
 
@@ -130,10 +127,6 @@ public class Product {
         return specCombinations().stream().map(Sku::specKeyOf).collect(Collectors.toSet());
     }
 
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
-
     /** 归属店铺 ID。shop 模块尚未落地，此处跨 schema 裸引用、不加外键约束；商家后台按它查自己的商品 */
     private UUID shopId;
 
@@ -212,12 +205,4 @@ public class Product {
      * 实体只持裸字段并薄委托，不重复定义。不做物理删除。
      */
     private ProductStatus status;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

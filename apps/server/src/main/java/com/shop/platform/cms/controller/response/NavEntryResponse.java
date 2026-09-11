@@ -40,8 +40,4 @@ public record NavEntryResponse(
                 n.getCreatedAt(),
                 n.getUpdatedAt());
     }
-
-    public static List<NavEntryResponse> from(List<NavEntry> list) {
-        return list.stream().map(NavEntryResponse::from).toList();
-    }
 }

@@ -7,6 +7,7 @@ import com.shop.platform.account.mapper.Address;
 import com.shop.platform.account.mapper.AddressMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
+import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.region.RegionRegistry;
 import java.util.List;
@@ -122,19 +123,19 @@ public class AddressService {
      */
     public AddressParseResult parse(String text) {
         UserInfo info = SmartAgent.parseUserAddressString(text).getUserInfo();
-        String province = trimToNull(info.getProvince());
-        String city = trimToNull(info.getCity());
-        String district = trimToNull(info.getCounty());
+        String province = Text.trimToNull(info.getProvince());
+        String city = Text.trimToNull(info.getCity());
+        String district = Text.trimToNull(info.getCounty());
         String regionCode = regionRegistry.resolveCode(province, city, district);
         log.info("[USER] 智能粘贴解析, 命中区划码={}", regionCode);
         return new AddressParseResult(
                 cleanReceiver(info.getName()),
-                trimToNull(info.getMobile()),
+                Text.trimToNull(info.getMobile()),
                 regionCode,
                 province,
                 city,
                 district,
-                trimToNull(info.getAddress()));
+                Text.trimToNull(info.getAddress()));
     }
 
     /** 校验行政区划码为合法国标 6 位码 */
@@ -142,18 +143,9 @@ public class AddressService {
         Validate.isTrue(regionRegistry.isValidCode(regionCode), "行政区划代码无效");
     }
 
-    /** 去空白，空串转 null */
-    private static String trimToNull(String s) {
-        if (s == null) {
-            return null;
-        }
-        String trimmed = s.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
     /** 收件人清洗：去掉尾部逗号/句号/空白等杂讯（如 "淘宝,"） */
     private static String cleanReceiver(String name) {
-        String s = trimToNull(name);
+        String s = Text.trimToNull(name);
         return s == null ? null : s.replaceAll("[\\s,，。;；、]+$", "");
     }
 

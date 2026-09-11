@@ -35,6 +35,7 @@
 - 实体可以有：状态谓词（`Product.isPublished()`）、派生视图（`Order.payAmountAsMoney()`）、状态机与动作推导（`Order.buyerActions()`，源自私有 TRANSITIONS 表）、值运算（`Money.plus()`）——这些是「数据自己说得出口的话」
 - service 保留：事务边界、跨模块事件、条件更新（`WHERE status = ?` + 影响行数判断是并发闸门，不因实体有状态方法而改读-改-写；要内存态流转先补 `@Version` 乐观锁基建）
 - 不给实体加无调用者的方法：谓词/视图先有消费点再上实体（YAGNI）
+- **主键与时间列继承共享基类**：`infra.db.BaseEntity`（id + createdAt）/ `AuditedEntity`（多 updatedAt）。继承哪一种看表有没有 `updated_at` 列，不看业务可变性——append-only 账本（流水/轨迹/状态日志）不记 updatedAt。子类用 `@SuperBuilder` + `@EqualsAndHashCode(callSuper = true)`（字段在父类，二者少一就会丢字段或丢等价性），别再自己声明 id/createdAt/updatedAt
 
 ## 共享层语义（common / infra）
 
@@ -55,7 +56,7 @@
 - **业务入参聚合（service 包内部类）**：`<动作>Command`，仅当入参字段多到无法拆包传基本类型时使用
 - **跨模块 api 包（模块 `api/`，`@NamedInterface("api")`）**：对外暴露的同步接口。只读查询用 `<名词>ReadQuery`（如 ProductReadQuery，返回 XxxView 投影 record，状态魔法值私有在 owning 模块、对外给 `onSale()`/`published()` 这类谓词）；命令用 `<动作>Command`（如 StockCommand，同事务同步调用语义，失败抛异常回滚调用方事务）。跨 schema 裸 SQL 只允许出现在这里与 infra.db
 - **Service 出参（service 包顶层类）**：能直接返回实体/已有类型就不新建；必须变形时按形状命名（`CategoryNode` / `StaffInfo` / `ProductDetail`），不贴统一 Response 标签，名字要说出"装的是什么"而非"某操作的结果"。形状名是开放集合、无方向性，ArchUnit 不强制其位置，按本节约定放 service 包顶层类
-- **HTTP 出参（controller 包内部类；跨 controller 共用时可为包内顶层类，如 cms 的三个 Response、product 的 CategoryNodeResponse）**：**一律定义 `<名词>Response` record，禁止直接返回 mapper 实体或 service 形状类** —— 实体的每一列都是潜在契约，存储演进会悄悄破坏前端（先例：Address 曾把 deletedAt 软删标记序列化出去；CartController 曾直出 CartItemView）。字段镜像现状、只减不增；由 NamingRulesTest 强制：HTTP handler 返回类型必须是 `XxxResponse / List<XxxResponse> / PageResult<XxxResponse>` / void，共享层值对象（infra 的 TokenPair，auth/admin 登录共用）豁免。注意 service 形状类内嵌 mapper 实体时同样不得越过 HTTP 边界（如 ProductDetail 需转 ProductDetailResponse）
+- **HTTP 出参（controller 包内部类；跨 controller 共用时可为包内顶层类，如 cms 的三个 Response）**：**要么定义 `<名词>Response` record，要么直出 service 形状类（`service/` 包顶层的 `XxxView / XxxItem / XxxNode / XxxInfo / XxxCount / XxxResult`）**；**一律禁止直接返回 mapper 实体** —— 实体的每一列都是潜在契约，存储演进会悄悄破坏前端（先例：Address 曾把 deletedAt 软删标记序列化出去）。直出 service 形状类时该 record 就是 wire 契约：字段只减不增，变更等于改接口，靠 openapi 契约 + 前端 SDK 编译期兜底；内嵌 mapper 实体时同样不得越过 HTTP 边界（如 ProductDetail 内嵌 Product/Sku 实体，仍走 ProductDetailResponse）。由 NamingRulesTest 强制：HTTP handler 返回类型必须是 `XxxResponse` 或 service 包形状类（各自的 `List`/`PageResult` 包装同理）/ void，共享层值对象（infra 的 TokenPair，auth/admin 登录共用）豁免
 - **子组件**：Request 内部的嵌套小组件按语义命名（如 `SkuUpdateItem`），不受方向后缀约束
 - **跨模块共享**：多个模块都要用的形状类（如 `TokenPair`）放共享层（`common/` 或 `infra/`），按共享层语义两轴判断归属
 - **springdoc/OpenAPI（`@Tag` + 方法名 = operationId）**：每个 Controller 加 `@Tag(name = "…", description = "…")`，tag 名决定 SDK 类名（`cart` → `CartApi`）与文档分组；不写 `@Operation(operationId)`——springdoc 默认取 Java 方法名当 operationId，直接决定 SDK 方法名，所以 **Controller 公共方法名必须语义化且全局唯一**（如 `addCartItem` / `listMyOrders` / `getPublicProductDetail`，杜绝 `add`/`list`/`update` 这类跨 Controller 撞名的泛名）。

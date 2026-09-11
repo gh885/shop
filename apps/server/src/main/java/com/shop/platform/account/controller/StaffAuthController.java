@@ -1,9 +1,9 @@
 package com.shop.platform.account.controller;
 
-import com.shop.platform.account.controller.response.StaffInfoResponse;
 import com.shop.platform.account.dto.LoginRequest;
 import com.shop.platform.account.dto.LogoutRequest;
 import com.shop.platform.account.dto.RefreshRequest;
+import com.shop.platform.account.service.StaffInfo;
 import com.shop.platform.account.service.StaffService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.StaffContext;
@@ -62,8 +62,8 @@ public class StaffAuthController {
 
     /** 当前登录员工信息 */
     @GetMapping("/me")
-    public StaffInfoResponse getStaffMe() {
-        return StaffInfoResponse.from(staffService.getMe(StaffContext.get()));
+    public StaffInfo getStaffMe() {
+        return staffService.getMe(StaffContext.get());
     }
 
     /** 登出：删除当前设备 refresh token + 清 cookie */

@@ -6,7 +6,6 @@ import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.model.ShopStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /** 店铺出参：字段镜像实体现状（前端 ShopSchema 严格校验，只减不增） */
@@ -28,9 +27,5 @@ public record ShopResponse(
                 shop.getStatus(),
                 shop.getCreatedAt(),
                 shop.getUpdatedAt());
-    }
-
-    public static List<ShopResponse> from(List<Shop> list) {
-        return list.stream().map(ShopResponse::from).toList();
     }
 }

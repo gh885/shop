@@ -1,5 +1,6 @@
 package com.shop.platform.infra.security;
 
+import com.shop.platform.common.BusinessException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Component;
  * <p>auth（用户）与 admin（员工）共用同一套机制，subject 由调用方决定（userId / staffId），本类不感知业务实体。
  */
 @Component
+@Slf4j
 @RequiredArgsConstructor
 public class RefreshTokenStore {
 
@@ -85,6 +88,40 @@ public class RefreshTokenStore {
     /** 消费旧 token（getAndDelete = 一次性）；返回 null 表示无效或已被消费 */
     public String consume(String rawToken) {
         return redis.opsForValue().getAndDelete(KEY_REFRESH + secretHasher.hash(rawToken));
+    }
+
+    /**
+     * 刷新轮换的统一入口（C 端用户与平台员工共用）：一次性消费旧码 → 重放裁决 → 标记已消费 → 清旧设备索引。
+     *
+     * <p>重放裁决的两个失败面（宽限期内并发竞争静默拒绝 / 超期盗用全端吊销）在此一处裁决，
+     * 调用方拿到 subjectId 后只需查实体、签发新 token。
+     *
+     * @param logTag 日志前缀（[AUTH] / [STAFF]），供按端检索
+     * @return token 属主 subjectId（调用方决定它是 userId 还是 staffId）
+     */
+    public String rotate(String rawToken, String deviceId, String logTag) {
+        // 1. 消费旧 Refresh Token（getAndDelete = 一次性；哈希化收敛在存储层内部）
+        String subjectId = consume(rawToken);
+        if (subjectId == null) {
+            // 2. 重放裁决：宽限期内算多标签页并发重复（静默拒绝），超期才算盗用（全端吊销）
+            ReplayCheck replay = checkReplay(rawToken);
+            if (replay.consumed()) {
+                if (!replay.withinGrace()) {
+                    log.warn("{} Refresh Token 重放攻击已检测, subjectId={}", logTag, replay.subjectId());
+                    revokeAll(replay.subjectId());
+                    throw new BusinessException(410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
+                }
+                log.info("{} Refresh 并发竞争（宽限期内）, subjectId={}", logTag, replay.subjectId());
+                throw BusinessException.unauthorized("登录状态正在其他页面刷新，请稍后重试");
+            }
+            throw BusinessException.unauthorized("Refresh Token 无效或已过期");
+        }
+
+        // 3. 标记已消费（带时间戳，供重放裁决区分并发竞争与盗用）
+        markConsumed(rawToken, subjectId);
+        // 4. 清除旧设备索引
+        revokeDevice(subjectId, deviceId);
+        return subjectId;
     }
 
     /**

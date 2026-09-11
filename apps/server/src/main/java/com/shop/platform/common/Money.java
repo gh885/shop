@@ -34,6 +34,16 @@ public record Money(@Schema(requiredMode = REQUIRED) long amount, @Schema(requir
         return new Money(amountFen, CNY);
     }
 
+    /** 可空工厂：金额列为 null（未定价/未退款等）时透传 null，非空按「分」构造 */
+    public static Money ofFenOrNull(Long amountFen, String currency) {
+        return amountFen == null ? null : ofFen(amountFen, currency);
+    }
+
+    /** 可空便捷工厂：人民币；金额列为 null 时透传 null */
+    public static Money cnyOrNull(Long amountFen) {
+        return amountFen == null ? null : cny(amountFen);
+    }
+
     /** 相加：仅同币种，跨币种抛业务异常（400），避免把 CNY 和 USD 当一回事 */
     public Money plus(Money other) {
         requireSameCurrency(other);

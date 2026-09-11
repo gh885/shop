@@ -1,10 +1,9 @@
 package com.shop.platform.inventory.api;
 
+import com.shop.platform.infra.db.IdBatchReader;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -21,22 +20,16 @@ public class StockReadQuery {
 
     /** 按 SKU ID 批查可用库存：购物车/结算/详情判定缺货与展示用，缺失的 id 不在 Map 中 */
     public Map<UUID, StockView> availableBySkuIds(Collection<UUID> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Map.of();
-        }
-        String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(","));
-        return jdbc.query(
-                "SELECT sku_id, stock, frozen_stock FROM inventory.sku_stock WHERE sku_id IN (" + placeholders + ")",
-                rs -> {
-                    Map<UUID, StockView> map = new HashMap<>();
-                    while (rs.next()) {
-                        UUID skuId = rs.getObject("sku_id", UUID.class);
-                        int stock = rs.getObject("stock", Integer.class);
-                        int frozen = rs.getObject("frozen_stock", Integer.class);
-                        map.put(skuId, new StockView(skuId, stock, frozen, stock - frozen));
-                    }
-                    return map;
-                },
-                ids.toArray());
+        return IdBatchReader.byIds(
+                jdbc,
+                "SELECT sku_id, stock, frozen_stock FROM inventory.sku_stock WHERE sku_id IN (:ids)",
+                ids,
+                (rs, i) -> rs.getObject("sku_id", UUID.class),
+                (rs, i) -> {
+                    UUID skuId = rs.getObject("sku_id", UUID.class);
+                    int stock = rs.getObject("stock", Integer.class);
+                    int frozen = rs.getObject("frozen_stock", Integer.class);
+                    return new StockView(skuId, stock, frozen, stock - frozen);
+                });
     }
 }

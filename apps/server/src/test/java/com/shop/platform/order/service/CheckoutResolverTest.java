@@ -281,10 +281,10 @@ class CheckoutResolverTest {
                 new AddressSnapshotView(UUID.randomUUID(), null, "李四", "13900000000", "110105", "x", "x", "x", "x");
         when(addressReadQuery.byId(any())).thenReturn(Optional.of(foreign));
 
-        // 归属不符与不存在同一句话，但状态码是 400（isTrue 收口）；不泄露存在性的语义靠同文案达成
+        // 归属不符与不存在同一句话、同一个状态码（404）：对外看不出「这条地址存不存在」
         assertThatThrownBy(() -> resolver.loadAddressSnapshot(userId, UUID.randomUUID()))
                 .isInstanceOfSatisfying(BusinessException.class, ex -> {
-                    assertThat(ex.getHttpStatus()).isEqualTo(400);
+                    assertThat(ex.getHttpStatus()).isEqualTo(404);
                     assertThat(ex.getDetail()).isEqualTo("收货地址不存在");
                 });
     }

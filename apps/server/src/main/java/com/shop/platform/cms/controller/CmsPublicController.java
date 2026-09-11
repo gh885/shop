@@ -28,18 +28,20 @@ public class CmsPublicController {
     /** 首页分类导航：指定导航位下的启用条目（subs 为 JSONB 整段） */
     @GetMapping("/nav")
     public List<NavEntryResponse> getHomeNav(@RequestParam(defaultValue = "home") String navKey) {
-        return NavEntryResponse.from(contentService.nav(navKey));
+        return contentService.nav(navKey).stream().map(NavEntryResponse::from).toList();
     }
 
     /** 首页运营位 banner：启用且命中生效时间窗口 */
     @GetMapping("/banners")
     public List<BannerResponse> getHomeBanners(@RequestParam(defaultValue = "home_promo") String slot) {
-        return BannerResponse.from(contentService.banners(slot));
+        return contentService.banners(slot).stream().map(BannerResponse::from).toList();
     }
 
     /** 首页推荐条词条（扁平数组，is_default 标"猜你喜欢"） */
     @GetMapping("/recommend-tabs")
     public List<RecommendTabResponse> getRecommendTabs() {
-        return RecommendTabResponse.from(contentService.recommendTabs());
+        return contentService.recommendTabs().stream()
+                .map(RecommendTabResponse::from)
+                .toList();
     }
 }

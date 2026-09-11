@@ -49,32 +49,11 @@ public class StaffService {
 
     /** 刷新双 token（一次一换 + 重放检测，与 C 端同一套凭证逻辑） */
     public TokenPair refresh(String refreshToken, String deviceId) {
-        // 1. 消费旧 Refresh Token（getAndDelete = 一次性；哈希化收敛在存储层内部）
-        String storedStaffId = refreshTokenStore.consume(refreshToken);
+        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引（机制收敛在 RefreshTokenStore.rotate）
+        String storedStaffId = refreshTokenStore.rotate(refreshToken, deviceId, "[STAFF]");
 
-        if (storedStaffId == null) {
-            // 2. 重放裁决：宽限期内算并发重复（静默拒绝），超期才算盗用（全端吊销）
-            RefreshTokenStore.ReplayCheck replay = refreshTokenStore.checkReplay(refreshToken);
-            if (replay.consumed()) {
-                if (!replay.withinGrace()) {
-                    log.warn("[STAFF] Refresh Token 重放攻击已检测, staffId={}", replay.subjectId());
-                    refreshTokenStore.revokeAll(replay.subjectId());
-                    throw new BusinessException(410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
-                }
-                log.info("[STAFF] Refresh 并发竞争（宽限期内）, staffId={}", replay.subjectId());
-                throw BusinessException.unauthorized("登录状态正在其他页面刷新，请稍后重试");
-            }
-            throw BusinessException.unauthorized("Refresh Token 无效或已过期");
-        }
-
-        UUID staffId = UUID.fromString(storedStaffId);
-
-        // 3. 标记已消费 + 清除旧设备索引
-        refreshTokenStore.markConsumed(refreshToken, storedStaffId);
-        refreshTokenStore.revokeDevice(storedStaffId, deviceId);
-
-        // 4. 查员工并签发全新 Token；禁用员工在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
-        Staff staff = staffMapper.selectById(staffId);
+        // 5. 查员工并签发全新 Token；禁用员工在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
+        Staff staff = staffMapper.selectById(UUID.fromString(storedStaffId));
         if (staff == null) throw BusinessException.notFound("员工不存在");
         if (!staff.isActive()) {
             throw new BusinessException(403, "STAFF_DISABLED", "账号已被禁用");

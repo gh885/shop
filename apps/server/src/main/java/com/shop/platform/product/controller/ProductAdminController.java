@@ -71,14 +71,14 @@ public class ProductAdminController {
     @PutMapping("/{id}/specs")
     public List<SkuResponse> updateProductSpecs(@PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
         List<Sku> skus = skuService.updateSpecs(id, request.toSelections());
-        return SkuResponse.from(skus, stocks(skus));
+        return skuResponses(skus);
     }
 
     /** 批量更新 SKU 价格/库存，返回更新后的 SKU 列表 */
     @PutMapping("/{id}/skus")
     public List<SkuResponse> updateProductSkus(@PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
         List<Sku> skus = skuService.updateSkus(id, request.items());
-        return SkuResponse.from(skus, stocks(skus));
+        return skuResponses(skus);
     }
 
     /** 发布草稿：可立即上架（默认）或放入仓库（放入仓库=落 WAREHOUSE，不在售）。返回回填过价格区间的商品 */
@@ -140,6 +140,13 @@ public class ProductAdminController {
     }
 
     // ========== HTTP 出参（与买家侧 ProductController 的同名 record 互不共享：方向不同契约不同） ==========
+
+    private List<SkuResponse> skuResponses(List<Sku> skus) {
+        Map<UUID, StockView> stocks = stocks(skus);
+        return skus.stream()
+                .map(s -> SkuResponse.from(s, stocks.get(s.getId())))
+                .toList();
+    }
 
     /** 跨模块批查库存：skuId → StockView，供 SkuResponse 补库存展示（卖家端） */
     private Map<UUID, StockView> stocks(List<Sku> skus) {

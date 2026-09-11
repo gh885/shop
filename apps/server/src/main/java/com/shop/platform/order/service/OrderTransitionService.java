@@ -7,6 +7,7 @@ import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 import static com.shop.platform.order.model.OrderStatus.SHIPPED;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
@@ -119,7 +120,7 @@ public class OrderTransitionService {
         List<OrderItem> items = orderItemMapper.selectByOrderId(order.getId());
 
         // 2. 条件转移并取回前态（RETURNING OLD）：库存回退方向取决于真实前态，不能靠 CAS 前的陈旧读
-        String trimmed = reason == null || reason.isBlank() ? null : reason.trim();
+        String trimmed = Text.trimToNull(reason);
         OrderStatus previous =
                 orderMapper.cancelReturningPrevious(order.getId(), sources, OffsetDateTime.now(), trimmed);
         if (previous == null) {

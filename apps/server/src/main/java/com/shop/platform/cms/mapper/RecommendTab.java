@@ -1,30 +1,20 @@
 package com.shop.platform.cms.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.cms.model.CmsStatus;
-import java.time.OffsetDateTime;
-import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.shop.platform.infra.db.AuditedEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /** 推荐条词条 — 首页扁平导航 array 元素，首项 is_default=true 是"猜你喜欢"。 */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("cms.recommend_tabs")
-public class RecommendTab {
-
-    /** 主键。应用层生成 uuidv7 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class RecommendTab extends AuditedEntity {
 
     /** 词条名，如「猜你喜欢」/「运动户外」/「+更多」 */
     private String name;
@@ -43,10 +33,4 @@ public class RecommendTab {
 
     /** 启用 / 停用，不做物理删除 */
     private CmsStatus status;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

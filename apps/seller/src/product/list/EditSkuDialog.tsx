@@ -32,7 +32,7 @@ export type SkuEditKind = "price" | "stock"
 /** SKU 展示名：规格值组合（attributes 是 {name,value} 快照），无规格值时兜底「默认规格」。
  *  不用 s.name —— 那是「SPU名+规格值」拼接快照，会重复出现商品名。 */
 function skuLabel(s: SkuResponse): string {
-    const values = (s.attributes ?? []).map((a) => a.value).filter(Boolean)
+    const values = s.attributes.map((a) => a.value).filter(Boolean)
     return values.length > 0 ? values.join(" / ") : "默认规格"
 }
 
@@ -98,10 +98,10 @@ export function EditSkuLineDialog({
     useEffect(() => {
         if (!open || !productId) return
         let cancelled = false
-        setLoading(true)
-        setLoadError(undefined)
-        setDetail(undefined)
-        void (async () => {
+        const loadDetail = async () => {
+            setLoading(true)
+            setLoadError(undefined)
+            setDetail(undefined)
             try {
                 const d = await ProductsAdminApi.getShopProductDetail({ path: { id: productId } })
                 if (!cancelled) {
@@ -123,7 +123,8 @@ export function EditSkuLineDialog({
             } finally {
                 if (!cancelled) setLoading(false)
             }
-        })()
+        }
+        void loadDetail()
         return () => {
             cancelled = true
         }

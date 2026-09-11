@@ -1,18 +1,14 @@
 package com.shop.platform.logistics.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.BaseEntity;
 import com.shop.platform.logistics.model.TrackingNodeCode;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 轨迹节点 —— append-only 事实：只插不改（故无 updated_at），包裹状态由它推导而来。
@@ -24,14 +20,11 @@ import lombok.NoArgsConstructor;
  * 插入走 {@code ON CONFLICT DO NOTHING}（见 TrackingNodeMapper）。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("logistics.tracking_nodes")
-public class TrackingNode {
-
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class TrackingNode extends BaseEntity {
 
     /** 所属包裹，logistics.shipments.id */
     private UUID shipmentId;
@@ -50,9 +43,6 @@ public class TrackingNode {
 
     /** 去重键（库上唯一索引）：同一包裹 + 同一节点码 + 同一时刻 + 同一地点 = 同一条事实 */
     private String dedupeKey;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
 
     /** 业务唯一键：去重不依赖投递方的 message id（重推会换 id），只认事实本身的四要素 */
     public static String dedupeKey(

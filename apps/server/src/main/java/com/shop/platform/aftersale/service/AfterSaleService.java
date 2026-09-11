@@ -9,9 +9,10 @@ import com.shop.platform.aftersale.mapper.TicketMapper;
 import com.shop.platform.aftersale.model.TicketAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
+import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.logistics.api.ReturnShipmentCommand;
@@ -26,7 +27,6 @@ import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,7 +69,7 @@ public class AfterSaleService {
         Validate.isTrue(order.userId().equals(userId), 404, "订单不存在");
         Validate.isTrue(order.afterSaleOpenAt(OffsetDateTime.now()), 409, TicketAction.APPLY.conflictMessage());
 
-        String trimmed = reason == null || reason.isBlank() ? null : reason.trim();
+        String trimmed = Text.trimToNull(reason);
         Ticket ticket = Ticket.builder()
                 .orderId(orderId)
                 .userId(userId)
@@ -80,12 +80,8 @@ public class AfterSaleService {
                 .refundAmount(order.payAmount())
                 .currency(order.currency())
                 .build();
-        try {
-            ticketMapper.insert(ticket);
-        } catch (DuplicateKeyException e) {
-            // uk_tickets_open_per_order：并发重复申请只能有一张进行中
-            throw new BusinessException(409, "该订单已有进行中的售后");
-        }
+        // uk_tickets_open_per_order：并发重复申请只能有一张进行中
+        DuplicateKeys.conflictOnDuplicate(() -> ticketMapper.insert(ticket), "该订单已有进行中的售后");
         record(ticket, TicketAction.APPLY, trimmed);
         orderCommand.syncAfterSale(orderId, TicketStatus.APPLYING.name(), null);
         log.info("[AFTERSALE] 申请售后, orderId={}, ticketId={}, type={}", orderId, ticket.getId(), type);

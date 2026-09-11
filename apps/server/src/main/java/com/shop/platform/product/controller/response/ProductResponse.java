@@ -47,13 +47,13 @@ public record ProductResponse(
                 p.getMinPrice(),
                 p.getMaxPrice(),
                 0,
-                0L,
+                p.getSoldCount(),
                 p.getStatus(),
                 p.getCreatedAt(),
                 p.getUpdatedAt());
     }
 
-    /** 卖家工作台列表行：SPU 字段 + 库存/销量指标（页面无库存/销量列时也归 0，与 {@link #from(Product)} 一致） */
+    /** 卖家工作台列表行：SPU 字段 + 库存/销量指标 */
     public static ProductResponse from(ProductListRow row) {
         Product p = row.product();
         return new ProductResponse(
@@ -74,9 +74,5 @@ public record ProductResponse(
                 p.getStatus(),
                 p.getCreatedAt(),
                 p.getUpdatedAt());
-    }
-
-    public static List<ProductResponse> from(List<Product> list) {
-        return list.stream().map(ProductResponse::from).toList();
     }
 }

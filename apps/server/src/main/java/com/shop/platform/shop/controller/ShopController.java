@@ -1,13 +1,13 @@
 package com.shop.platform.shop.controller;
 
 import com.shop.platform.infra.web.CurrentUser;
-import com.shop.platform.shop.controller.response.ShopInviteItemResponse;
-import com.shop.platform.shop.controller.response.ShopMemberItemResponse;
 import com.shop.platform.shop.controller.response.ShopMemberResponse;
 import com.shop.platform.shop.controller.response.ShopResponse;
 import com.shop.platform.shop.dto.CreateShopRequest;
 import com.shop.platform.shop.dto.InviteMemberRequest;
 import com.shop.platform.shop.dto.UpdateMemberPermissionsRequest;
+import com.shop.platform.shop.service.ShopInviteItem;
+import com.shop.platform.shop.service.ShopMemberItem;
 import com.shop.platform.shop.service.ShopService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -40,15 +40,13 @@ public class ShopController {
     /** 我的店铺列表（ACTIVE 成员身份） */
     @GetMapping("/mine")
     public List<ShopResponse> listMyShops(@CurrentUser UUID userId) {
-        return ShopResponse.from(shopService.myShops(userId));
+        return shopService.myShops(userId).stream().map(ShopResponse::from).toList();
     }
 
     /** 我的待确认邀请 */
     @GetMapping("/invites")
-    public List<ShopInviteItemResponse> listShopInvites(@CurrentUser UUID userId) {
-        return shopService.myInvites(userId).stream()
-                .map(ShopInviteItemResponse::from)
-                .toList();
+    public List<ShopInviteItem> listShopInvites(@CurrentUser UUID userId) {
+        return shopService.myInvites(userId);
     }
 
     /** 同意邀请，确认后成为店铺 ACTIVE 成员 */
@@ -59,10 +57,8 @@ public class ShopController {
 
     /** 店铺成员列表（本店成员可见） */
     @GetMapping("/{shopId}/members")
-    public List<ShopMemberItemResponse> listShopMembers(@CurrentUser UUID userId, @PathVariable UUID shopId) {
-        return shopService.members(shopId, userId).stream()
-                .map(ShopMemberItemResponse::from)
-                .toList();
+    public List<ShopMemberItem> listShopMembers(@CurrentUser UUID userId, @PathVariable UUID shopId) {
+        return shopService.members(shopId, userId);
     }
 
     /** 店主按手机号邀请成员（可选携带可授予权限码），对方登录后确认才生效 */

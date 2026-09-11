@@ -1,17 +1,12 @@
 package com.shop.platform.shop.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.BaseEntity;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 计费规则覆盖的区域 —— 国标区划码<b>前缀</b>（省 2 位 / 市 4 位 / 区县 6 位）。
@@ -21,21 +16,15 @@ import lombok.NoArgsConstructor;
  * （最长前缀胜），不需要靠界面阻止重叠。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("shop.shipping_rule_regions")
-public class ShippingRuleRegion {
-
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class ShippingRuleRegion extends BaseEntity {
 
     /** 所属规则（shop.shipping_rules.id）；随规则重建，无软删 */
     private UUID ruleId;
 
     /** 国标区划码前缀：省 2 位 / 市 4 位 / 区县 6 位 */
     private String regionPrefix;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
 }

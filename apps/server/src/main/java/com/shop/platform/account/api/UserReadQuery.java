@@ -1,12 +1,11 @@
 package com.shop.platform.account.api;
 
+import com.shop.platform.infra.db.IdBatchReader;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -22,20 +21,12 @@ public class UserReadQuery {
 
     /** userId → 手机号（成员列表/审核队列等展示字段拼装），缺失的 id 不在 Map 中 */
     public Map<UUID, String> phonesByIds(Collection<UUID> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Map.of();
-        }
-        String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(","));
-        return jdbc.query(
-                "SELECT id, phone FROM account.users WHERE id IN (" + placeholders + ")",
-                rs -> {
-                    Map<UUID, String> map = new HashMap<>();
-                    while (rs.next()) {
-                        map.put(rs.getObject("id", UUID.class), rs.getString("phone"));
-                    }
-                    return map;
-                },
-                ids.toArray());
+        return IdBatchReader.byIds(
+                jdbc,
+                "SELECT id, phone FROM account.users WHERE id IN (:ids)",
+                ids,
+                (rs, i) -> rs.getObject("id", UUID.class),
+                (rs, i) -> rs.getString("phone"));
     }
 
     /** 按手机号查 userId（account.users 全局唯一手机号），未注册返回 empty —— api 包缺席语义统一走 Optional */

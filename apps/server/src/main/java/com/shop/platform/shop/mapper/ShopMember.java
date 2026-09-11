@@ -1,19 +1,16 @@
 package com.shop.platform.shop.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
+import com.shop.platform.infra.db.JsonbStringListHandler;
 import com.shop.platform.shop.model.MemberRole;
 import com.shop.platform.shop.model.MemberStatus;
-import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 店铺成员 —— 用户与店铺的多对多关系，卖家身份的载体。
@@ -22,15 +19,11 @@ import lombok.NoArgsConstructor;
  * 成员走「店主邀请 → 对方登录同意」两段式：先落 PENDING，对方同意后置 ACTIVE。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName(value = "shop.shop_members", autoResultMap = true)
-public class ShopMember {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class ShopMember extends AuditedEntity {
 
     /** 所属店铺 ID（shop.shops.id） */
     private UUID shopId;
@@ -48,12 +41,4 @@ public class ShopMember {
 
     /** 成员状态：PENDING 邀请待对方同意 / ACTIVE 已生效，概念归 {@link MemberStatus} */
     private MemberStatus status;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

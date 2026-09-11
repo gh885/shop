@@ -1,17 +1,12 @@
 package com.shop.platform.order.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.BaseEntity;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 订单状态审计流水 —— 每次状态转移追加一行，append-only，不回放不修改。
@@ -24,14 +19,11 @@ import lombok.NoArgsConstructor;
  * {@code action} 来自 {@code OrderAction}，{@code actorType} 来自 {@code OrderActor}。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("orders.order_status_log")
-public class OrderStatusLog {
-
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class OrderStatusLog extends BaseEntity {
 
     /** 所属订单，orders.orders.id */
     private UUID orderId;
@@ -50,7 +42,4 @@ public class OrderStatusLog {
 
     /** 理由：取消原因 / 售后理由 / 自动处理固定文案 */
     private String reason;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
 }

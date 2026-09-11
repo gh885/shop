@@ -1,35 +1,27 @@
 package com.shop.platform.aftersale.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.common.Money;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 售后单 —— 一次售后申请的完整生命周期。订单是它的上游快照来源（order_id 裸引用，不加 FK），
  * 资金态在 payment.payments，这里只记「该退多少、退没退成」。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("aftersale.tickets")
-public class Ticket {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler） */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class Ticket extends AuditedEntity {
 
     /** 所属订单，orders.orders.id */
     private UUID orderId;
@@ -65,14 +57,8 @@ public class Ticket {
     /** 退款完成时刻（REFUNDED 时回填） */
     private OffsetDateTime refundedAt;
 
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
-
     /** 退款口径配上币种成 Money（只读转换，非表字段） */
     public Money refundAmountAsMoney() {
-        return refundAmount == null ? null : Money.ofFen(refundAmount, currency);
+        return Money.ofFenOrNull(refundAmount, currency);
     }
 }

@@ -1,17 +1,12 @@
 package com.shop.platform.cart.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 购物车条目 —— 交易前置暂存区，「这个用户想买几个什么」。
@@ -21,18 +16,14 @@ import lombok.NoArgsConstructor;
  * 下单那一刻的快照由 order 模块负责。条目谁也不引用（订单做快照），删除即硬删，无软删列。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("cart.items")
-public class CartItem {
+public class CartItem extends AuditedEntity {
 
     /** 单行购买数量上限，与 DB CHECK 兜底同值 */
     public static final int MAX_QUANTITY_PER_ITEM = 999;
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
 
     /** 归属买家（account.users.id），跨 schema 裸引用不加 FK */
     private UUID userId;
@@ -45,12 +36,4 @@ public class CartItem {
 
     /** 结算勾选位：结算页只提交勾选条目。落库保证跨设备一致 */
     private Boolean selected;
-
-    /** 加购时间，MyBatis-Plus 插入时自动填充。列表按它倒序 = 新加的在前 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

@@ -1,18 +1,13 @@
 package com.shop.platform.inventory.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 库存主体 —— 一个 SKU 一行，管"这一卖法有多少货、被冻结多少"。
@@ -25,15 +20,11 @@ import lombok.NoArgsConstructor;
  * 两个并发调整会互相覆盖）——updateById 时 MP 自动带 version 比较 + version+1，冲突则影响行数为 0。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("inventory.sku_stock")
-public class SkuStock {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class SkuStock extends AuditedEntity {
 
     /** 归属 SKU ID，product.skus.id，裸引用不加 FK；一卖法一份货，uk 保证唯一 */
     private UUID skuId;
@@ -47,12 +38,4 @@ public class SkuStock {
     /** 乐观锁版本：绝对量调整（读-改-写）的并发闸门，MP 更新时自动注入 */
     @Version
     private Integer version;
-
-    /** 创建时间 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

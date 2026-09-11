@@ -1,15 +1,15 @@
-import type { FavoriteListItemResponse } from "@shop/api/sdk"
+import type { FavoriteItemView } from "@shop/api/sdk"
 import { describe, expect, it } from "vitest"
 
 import { collectText, filterFavorites, toFavoriteItem } from "./favorite"
 
 /**
- * 测试夹具：FavoriteListItemResponse wire 形状可控构造。
+ * 测试夹具：FavoriteItemView wire 形状可控构造。
  * 关心维度：available、name/mainImage/minPrice 投影、collectCount。
  */
 function makeDto(
     opts: { available?: boolean; name?: string; mainImage?: string | null } = {},
-): FavoriteListItemResponse {
+): FavoriteItemView {
     return {
         id: "fav-1",
         productId: "p-1",

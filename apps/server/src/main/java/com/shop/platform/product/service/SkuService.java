@@ -2,9 +2,9 @@ package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
@@ -33,7 +33,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -151,27 +150,27 @@ public class SkuService {
         }
 
         // 2. 逐条更新：WHERE 同时校验 SKU 归属，只 set 非空字段（skuCode/status 传 null 即不改）
-        try {
-            for (SkuUpdateItem item : items) {
-                int affected = skuMapper.update(
-                        null,
-                        new LambdaUpdateWrapper<Sku>()
-                                .eq(Sku::getId, item.skuId())
-                                .eq(Sku::getProductId, productId)
-                                .set(item.name() != null, Sku::getName, item.name())
-                                .set(item.image() != null, Sku::getImage, item.image())
-                                .set(item.originalPrice() != null, Sku::getOriginalPrice, item.originalPrice())
-                                .set(item.skuCode() != null, Sku::getSkuCode, item.skuCode())
-                                .set(item.status() != null, Sku::getStatus, item.status())
-                                .set(Sku::getPrice, item.price()));
-                Validate.isTrue(affected == 1, "SKU 不存在或不属于该商品");
-                // 3. 库存绝对量设定（读-改-写，乐观锁）：同一事务内同步调用 inventory :: api
-                stockCommand.setTotal(item.skuId(), item.stock());
-            }
-        } catch (DuplicateKeyException e) {
-            // uk_skus_code 全局唯一索引兜底重复业务编码
-            throw BusinessException.conflict(null, "SKU 编码已存在");
-        }
+        // uk_skus_code 全局唯一索引兜底重复业务编码
+        DuplicateKeys.conflictOnDuplicate(
+                () -> {
+                    for (SkuUpdateItem item : items) {
+                        int affected = skuMapper.update(
+                                null,
+                                new LambdaUpdateWrapper<Sku>()
+                                        .eq(Sku::getId, item.skuId())
+                                        .eq(Sku::getProductId, productId)
+                                        .set(item.name() != null, Sku::getName, item.name())
+                                        .set(item.image() != null, Sku::getImage, item.image())
+                                        .set(item.originalPrice() != null, Sku::getOriginalPrice, item.originalPrice())
+                                        .set(item.skuCode() != null, Sku::getSkuCode, item.skuCode())
+                                        .set(item.status() != null, Sku::getStatus, item.status())
+                                        .set(Sku::getPrice, item.price()));
+                        Validate.isTrue(affected == 1, "SKU 不存在或不属于该商品");
+                        // 3. 库存绝对量设定（读-改-写，乐观锁）：同一事务内同步调用 inventory :: api
+                        stockCommand.setTotal(item.skuId(), item.stock());
+                    }
+                },
+                "SKU 编码已存在");
 
         // 4. 重算价格区间并返回该商品全部 SKU：一次查出，出参与区间同源
         List<Sku> all = skuMapper.selectByProductId(productId);

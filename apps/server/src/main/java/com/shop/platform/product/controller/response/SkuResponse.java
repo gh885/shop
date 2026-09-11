@@ -9,7 +9,6 @@ import com.shop.platform.product.model.SkuStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /** SKU 全字段出参：比买家侧多 skuCode/status（卖家要看到仓管编码与停用态）；价格裸分直传，与前端 schema 对齐 */
@@ -43,12 +42,5 @@ public record SkuResponse(
                 s.getStatus(),
                 s.getCreatedAt(),
                 s.getUpdatedAt());
-    }
-
-    /** 批量转换：按 skuId 从库存 Map 取 availableStock，缺省 0。库存归 inventory 模块，不写 product 表 */
-    public static List<SkuResponse> from(List<Sku> list, Map<UUID, StockView> stocks) {
-        return list.stream()
-                .map(s -> SkuResponse.from(s, stocks.get(s.getId())))
-                .toList();
     }
 }

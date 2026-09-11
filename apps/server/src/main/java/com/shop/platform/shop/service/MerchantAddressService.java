@@ -129,13 +129,7 @@ public class MerchantAddressService {
 
     private MerchantAddress setDefault(UUID shopId, UUID id, boolean ship) {
         MerchantAddress address = requireOwnedAddress(shopId, id);
-        if (ship) {
-            addressMapper.clearDefaultShip(shopId);
-            address.setDefaultShip(true);
-        } else {
-            addressMapper.clearDefaultReturn(shopId);
-            address.setDefaultReturn(true);
-        }
+        applyDefaultFlag(shopId, address, true, ship);
         addressMapper.updateById(address);
         log.info("[ADDRESS] 设默认{}地址, shopId={}, addressId={}", ship ? "发货" : "退货", shopId, id);
         return address;

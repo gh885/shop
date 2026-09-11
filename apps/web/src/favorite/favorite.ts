@@ -1,4 +1,4 @@
-import type { FavoriteListItemResponse, Money } from "@shop/api/sdk"
+import type { FavoriteItemView, Money } from "@shop/api/sdk"
 
 /**
  * favorite 模块 —— 纯逻辑（投影映射 + 过滤 + 文案），不碰 React / 网络。
@@ -21,7 +21,7 @@ export type FavoriteItem = {
 }
 
 /** wire → 投影（name→title、mainImage→image、minPrice→price；商品被删全空兜底） */
-export function toFavoriteItem(dto: FavoriteListItemResponse): FavoriteItem {
+export function toFavoriteItem(dto: FavoriteItemView): FavoriteItem {
     return {
         id: dto.id,
         productId: dto.productId,

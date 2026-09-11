@@ -22,6 +22,15 @@ public final class Validate {
         if (!condition) throw new BusinessException(httpStatus, detail);
     }
 
+    /**
+     * 必填文本：空白（含 null）即 400；返回 trim 后的净值。
+     * 用于值对象构造期自校验——DB 里已是净值，这里幂等兜底，保证按值比较稳定。
+     */
+    public static String requireText(String value, String label) {
+        isTrue(value != null && !value.isBlank(), label + "不能为空");
+        return value.trim();
+    }
+
     /** 引用必须存在，否则 404；返回引用本身方便链式使用 */
     public static <T> T notNull(T reference, String detail) {
         if (reference == null) throw BusinessException.notFound(detail);

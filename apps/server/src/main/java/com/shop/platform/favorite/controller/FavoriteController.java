@@ -4,9 +4,9 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.favorite.controller.response.FavoriteExistsResponse;
 import com.shop.platform.favorite.controller.response.FavoriteItemResponse;
-import com.shop.platform.favorite.controller.response.FavoriteListItemResponse;
 import com.shop.platform.favorite.dto.AddFavoriteRequest;
 import com.shop.platform.favorite.dto.FavoriteExistsRequest;
+import com.shop.platform.favorite.service.FavoriteItemView;
 import com.shop.platform.favorite.service.FavoriteService;
 import com.shop.platform.infra.web.CurrentUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,10 +51,8 @@ public class FavoriteController {
 
     /** 我的收藏分页：新收藏在前；下架商品置灰保留（available=false） */
     @GetMapping
-    public PageResult<FavoriteListItemResponse> listFavorites(@CurrentUser UUID userId, @Valid PageParams pageParams) {
-        return favoriteService
-                .list(userId, pageParams.page(), pageParams.size())
-                .map(FavoriteListItemResponse::from);
+    public PageResult<FavoriteItemView> listFavorites(@CurrentUser UUID userId, @Valid PageParams pageParams) {
+        return favoriteService.list(userId, pageParams.page(), pageParams.size());
     }
 
     /** 批量查已收藏子集：详情页心形状态用，避免 product 详情接口反向依赖本模块 */

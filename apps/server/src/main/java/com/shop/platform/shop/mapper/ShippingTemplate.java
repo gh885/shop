@@ -1,18 +1,14 @@
 package com.shop.platform.shop.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 运费模板 —— 一个店铺一份计费合同：按收货地区与件数收多少运费，或者干脆包邮。
@@ -24,15 +20,11 @@ import lombok.NoArgsConstructor;
  * {@code ShippingFeeReadQuery} 取报价，不直接读本表；模板怎么算只有本模块说得出口。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("shop.shipping_templates")
-public class ShippingTemplate {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class ShippingTemplate extends AuditedEntity {
 
     /** 归属店铺（shop.shops.id），每店至多一个生效模板（uk_shipping_templates_shop） */
     private UUID shopId;
@@ -49,14 +41,6 @@ public class ShippingTemplate {
     /** 软删除标记：NULL=生效，非 NULL=已删。MyBatis-Plus 逻辑删除，查询自动过滤 */
     @TableLogic(value = "null", delval = "NOW()")
     private OffsetDateTime deletedAt;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 
     /**
      * 本模板是否免运费 —— 模板级包邮条件判定（同店订单合计口径）。

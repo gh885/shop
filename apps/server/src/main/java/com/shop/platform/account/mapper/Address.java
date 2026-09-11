@@ -1,19 +1,15 @@
 package com.shop.platform.account.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 收货地址 —— 买家侧个人资料数据，独立于订单；order 模块结算时跨 schema 按 ID 只读。
@@ -23,11 +19,11 @@ import lombok.NoArgsConstructor;
  * 前端按已知 code 渲染图标，未知值按纯文本展示。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("account.addresses")
-public class Address {
+public class Address extends AuditedEntity {
 
     /** 内置标签枚举。业务层只认这组 code；其余输入按自定义文案处理 */
     public static final String LABEL_HOME = "HOME";
@@ -42,10 +38,6 @@ public class Address {
 
     /** 未指定标签时的默认值 */
     public static final String LABEL_DEFAULT = LABEL_HOME;
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
 
     /** 归属买家（account.users.id），跨 schema 裸引用不加 FK */
     private UUID userId;
@@ -80,12 +72,4 @@ public class Address {
     /** 软删除标记：NULL=有效，非 NULL=已删。MyBatis-Plus 逻辑删除，查询自动过滤 */
     @TableLogic(value = "null", delval = "NOW()")
     private OffsetDateTime deletedAt;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

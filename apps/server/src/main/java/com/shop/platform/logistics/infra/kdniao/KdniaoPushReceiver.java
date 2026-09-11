@@ -4,8 +4,6 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.logistics.service.CarrierPush;
 import com.shop.platform.logistics.service.CarrierPushReceiver;
 import com.shop.platform.logistics.service.CarrierTrackingNode;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,28 +45,7 @@ public class KdniaoPushReceiver implements CarrierPushReceiver {
         if (!StringUtils.hasText(trackingNo)) {
             throw BusinessException.badRequest("推送报文缺少运单号");
         }
-        String rawState = root.path("State").asString("");
-        List<CarrierTrackingNode> nodes = new ArrayList<>();
-        for (JsonNode trace : root.path("Traces")) {
-            nodes.add(new CarrierTrackingNode(
-                    rawState,
-                    trace.path("AcceptStation").asString(""),
-                    trace.path("Location").asString(""),
-                    parseTime(trace.path("AcceptTime").asString(""))));
-        }
+        List<CarrierTrackingNode> nodes = KdniaoTraces.parse(root);
         return new CarrierPush(trackingNo, nodes);
-    }
-
-    /** 时间解析不出来返回 null（该条会在落库前被跳过），不用错时刻推进状态 */
-    private OffsetDateTime parseTime(String raw) {
-        if (!StringUtils.hasText(raw)) {
-            return null;
-        }
-        try {
-            return OffsetDateTime.parse(raw.replace(' ', 'T') + "+08:00");
-        } catch (RuntimeException e) {
-            log.warn("[LOGISTICS] 无法解析推送时间, 原文={}", raw);
-            return null;
-        }
     }
 }

@@ -1,18 +1,14 @@
 package com.shop.platform.payment.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.BaseEntity;
 import com.shop.platform.payment.model.PaymentStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 支付流水 —— 一笔订单的一次支付尝试，存「谁在哪一刻通过什么渠道付了多少钱」。
@@ -23,17 +19,13 @@ import lombok.NoArgsConstructor;
  * 转 REFUNDED 后索引自动放开，但订单此时已 CANCELLED，markPaid 会拒绝再次支付。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("payment.payments")
-public class Payment {
+public class Payment extends BaseEntity {
 
     public static final String CHANNEL_MOCK = "MOCK";
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler） */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
 
     /** 订单 ID，orders.orders.id，跨 schema 裸引用不加 FK */
     private UUID orderId;
@@ -64,8 +56,4 @@ public class Payment {
 
     /** 渠道侧退款单号：调网关退款受理后回填，对账/客服凭它对得上渠道侧那笔退款 */
     private String refundGatewayNo;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
 }

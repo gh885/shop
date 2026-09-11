@@ -6,7 +6,6 @@ import com.shop.platform.shop.mapper.MerchantAddress;
 import com.shop.platform.shop.model.AddressStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -51,9 +50,5 @@ public record MerchantAddressResponse(
                 a.getStatus(),
                 a.getCreatedAt(),
                 a.getUpdatedAt());
-    }
-
-    public static List<MerchantAddressResponse> from(List<MerchantAddress> list) {
-        return list.stream().map(MerchantAddressResponse::from).toList();
     }
 }

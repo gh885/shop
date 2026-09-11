@@ -6,7 +6,6 @@ import com.shop.platform.cms.mapper.RecommendTab;
 import com.shop.platform.cms.model.CmsStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -35,9 +34,5 @@ public record RecommendTabResponse(
                 t.getStatus(),
                 t.getCreatedAt(),
                 t.getUpdatedAt());
-    }
-
-    public static List<RecommendTabResponse> from(List<RecommendTab> list) {
-        return list.stream().map(RecommendTabResponse::from).toList();
     }
 }

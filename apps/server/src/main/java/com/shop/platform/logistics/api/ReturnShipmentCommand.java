@@ -1,6 +1,6 @@
 package com.shop.platform.logistics.api;
 
-import com.shop.platform.common.BusinessException;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.logistics.mapper.Shipment;
 import com.shop.platform.logistics.mapper.ShipmentMapper;
 import com.shop.platform.logistics.model.ShipmentDirection;
@@ -9,7 +9,6 @@ import com.shop.platform.logistics.service.CarrierResolver;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,12 +53,8 @@ public class ReturnShipmentCommand {
                 .status(ShipmentStatus.PICKED_UP)
                 .shippedAt(OffsetDateTime.now())
                 .build();
-        try {
-            shipmentMapper.insert(shipment);
-        } catch (DuplicateKeyException e) {
-            // 一个运单号只属于一个包裹：拿别人的回寄单号来填是常见误操作（也可能是撞库式试探）
-            throw new BusinessException(409, "该运单号已被使用，请核对后重填");
-        }
+        // 一个运单号只属于一个包裹：拿别人的回寄单号来填是常见误操作（也可能是撞库式试探）
+        DuplicateKeys.conflictOnDuplicate(() -> shipmentMapper.insert(shipment), "该运单号已被使用，请核对后重填");
         return new ReturnShipmentView(
                 shipment.getId(), shipment.getCarrierCode(), shipment.getCarrierName(), shipment.getTrackingNo());
     }

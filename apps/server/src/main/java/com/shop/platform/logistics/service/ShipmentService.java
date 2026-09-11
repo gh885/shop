@@ -1,7 +1,7 @@
 package com.shop.platform.logistics.service;
 
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.logistics.mapper.Carrier;
 import com.shop.platform.logistics.mapper.CarrierMapper;
 import com.shop.platform.logistics.mapper.Shipment;
@@ -18,7 +18,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,12 +90,8 @@ public class ShipmentService {
                 .shipFromDetail(shipFrom.detail())
                 .shipFromCompanyName(shipFrom.companyName())
                 .build();
-        try {
-            shipmentMapper.insert(shipment);
-        } catch (DuplicateKeyException e) {
-            // 先查后插挡不住并发，唯一索引才是真相：撞键即该运单号已被别的订单用过
-            throw new BusinessException(409, "该运单号已录入，请核对后重试");
-        }
+        // 先查后插挡不住并发，唯一索引才是真相：撞键即该运单号已被别的订单用过
+        DuplicateKeys.conflictOnDuplicate(() -> shipmentMapper.insert(shipment), "该运单号已录入，请核对后重试");
 
         // 5. 推进订单（同事务）：首次发货 PAID → SHIPPED 并落审计流水，追加包裹只刷新物流摘要投影
         orderCommand.markShipped(

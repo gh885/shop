@@ -14,7 +14,6 @@
  */
 
 import { readFile } from "node:fs/promises"
-import { fileURLToPath } from "node:url"
 
 const ROOT = new URL("../", import.meta.url)
 const OPENAPI = new URL("openapi/api-docs.json", ROOT)

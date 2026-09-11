@@ -1,5 +1,5 @@
 import type {
-    CartListItemResponse,
+    CartItemView as ApiCartItemView,
     CartProductInfo as SdkCartProductInfo,
     SkuInfo,
 } from "@shop/api/sdk"
@@ -12,7 +12,7 @@ type CartItemProduct = Omit<SdkCartProductInfo, "name" | "mainImage"> & {
 }
 
 /**
- * 购物车条目投影 —— 对齐后端购物车列表接口（CartListItemResponse）嵌入的 slim 形状。
+ * 购物车条目投影 —— 对齐后端购物车列表接口（SDK CartItemView）嵌入的 slim 形状。
  * 注意：这里嵌的是 cart 接口自带的 product/sku 缩略（CartProductInfo / SkuInfo），
  * 不是完整商品/SKU 领域对象 —— 购物车只消费店名/图/价/库存，拿全量实属浪费。
  */
@@ -45,7 +45,7 @@ export type CartItem = {
  * 轻量映射：只做组件真正需要的两个重命名（wire name/mainImage → 域 title/image）
  * 与 available 默认 true，其余字段原样透传。不做逐字段造假兜底（`?? ""` 一律避免）。
  */
-export function toCartItem(dto: CartListItemResponse): CartItem {
+export function toCartItem(dto: ApiCartItemView): CartItem {
     return {
         id: dto.id,
         skuId: dto.skuId,

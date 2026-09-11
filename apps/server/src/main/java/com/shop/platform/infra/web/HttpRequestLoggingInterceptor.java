@@ -1,9 +1,9 @@
 package com.shop.platform.infra.web;
 
+import com.shop.platform.infra.observability.MdcScope;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.MDC;
 import org.slf4j.event.Level;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -47,23 +47,22 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
         // 客户端 IP
         String resolvedIp = clientIp.of(request);
 
-        // 场景字段放 MDC，event 用单独 key
-        MDC.put("event", "http.request");
-        MDC.put("method", method);
-        MDC.put("path", bestMatchPattern);
-        MDC.put("status", String.valueOf(status));
-        MDC.put("latency_ms", String.valueOf(latencyMs));
-        MDC.put("client_ip", resolvedIp);
-        try {
+        // 场景字段放 MDC（作用域结束自动回滚），event 用单独 key
+        try (MdcScope _ = MdcScope.of(
+                "event",
+                "http.request",
+                "method",
+                method,
+                "path",
+                bestMatchPattern,
+                "status",
+                String.valueOf(status),
+                "latency_ms",
+                String.valueOf(latencyMs),
+                "client_ip",
+                resolvedIp)) {
             log.atLevel(status >= 500 ? Level.ERROR : Level.INFO)
                     .log("{} {} -> {} ({}ms) client={}", method, bestMatchPattern, status, latencyMs, resolvedIp);
-        } finally {
-            MDC.remove("event");
-            MDC.remove("method");
-            MDC.remove("path");
-            MDC.remove("status");
-            MDC.remove("latency_ms");
-            MDC.remove("client_ip");
         }
     }
 }

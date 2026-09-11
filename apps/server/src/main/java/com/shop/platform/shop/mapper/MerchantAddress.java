@@ -1,19 +1,15 @@
 package com.shop.platform.shop.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.shop.model.AddressStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 商家地址 —— 单表「地址本体 + 用途标记」模型（对齐淘宝地址库）：
@@ -24,15 +20,11 @@ import lombok.NoArgsConstructor;
  * 不可变快照（{@code resolveShipFrom/resolveReturnTo}），不直接读本表。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("shop.addresses")
-public class MerchantAddress {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class MerchantAddress extends AuditedEntity {
 
     /** 归属店铺（shop.shops.id），跨 schema 裸引用不加 FK */
     private UUID shopId;
@@ -79,12 +71,4 @@ public class MerchantAddress {
     /** 软删除标记：NULL=有效，非 NULL=已删。MyBatis-Plus 逻辑删除，查询自动过滤 */
     @TableLogic(value = "null", delval = "NOW()")
     private OffsetDateTime deletedAt;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

@@ -36,6 +36,7 @@ function makeDto(
                 itemAmount: MONEY,
                 shippingFee: { amount: 0, currency: "CNY" },
                 payAmount: MONEY,
+                deliverable: true,
             },
         ],
         unavailable: [

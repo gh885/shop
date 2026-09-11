@@ -18,7 +18,8 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>为什么每个形状一个子类：MyBatis 经 @TableField(typeHandler=X.class) 无参实例化，TypeReference 无法由注解传入；
  * 内置 JacksonTypeHandler 只收裸 Class，List&lt;SpecItem&gt; 会擦除成 List&lt;LinkedHashMap&gt;。子类只声明 typeRef()，JSON 逻辑全在基类。
  *
- * <p>各业务模块在自己的 mapper 包写形状子类（如 product 模块的 JsonbSpecItemsHandler），跨模块不 import 对方 mapper。
+ * <p>各业务模块在自己的 mapper 包写形状子类（如 product 模块的 JsonbSpecItemsHandler），跨模块不 import 对方 mapper；
+ * 通用的 {@code List<String>} 形状已下沉到本包（{@link JsonbStringListHandler}），各模块直接用共享层那份。
  * 查询路径记得配合实体 @TableName(autoResultMap = true)，否则 select 不会走这里的 handler。
  */
 public abstract class JsonbListTypeHandler<T> extends BaseTypeHandler<List<T>> {

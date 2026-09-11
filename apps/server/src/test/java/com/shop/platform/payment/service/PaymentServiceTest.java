@@ -89,12 +89,12 @@ class PaymentServiceTest {
     }
 
     @Test
-    void 非本人订单_与不存在同一句话_不泄露归属() {
+    void 非本人订单_与不存在同一句话_404() {
         stubOrder(OrderStatus.PENDING_PAYMENT);
         UUID stranger = UUID.randomUUID();
 
         assertThatThrownBy(() -> service.pay(stranger, orderId)).isInstanceOfSatisfying(BusinessException.class, ex -> {
-            assertThat(ex.getHttpStatus()).isEqualTo(400);
+            assertThat(ex.getHttpStatus()).isEqualTo(404);
             assertThat(ex.getDetail()).isEqualTo("订单不存在");
         });
     }
@@ -163,7 +163,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void 确认_非本人流水_不泄露归属() {
+    void 确认_非本人流水_404不泄露归属() {
         UUID paymentId = UUID.randomUUID();
         Payment stranger = pendingPayment(paymentId, PaymentStatus.PENDING);
         stranger.setUserId(UUID.randomUUID());
@@ -171,7 +171,7 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> service.confirm(userId, paymentId))
                 .isInstanceOfSatisfying(BusinessException.class, ex -> {
-                    assertThat(ex.getHttpStatus()).isEqualTo(400);
+                    assertThat(ex.getHttpStatus()).isEqualTo(404);
                     assertThat(ex.getDetail()).isEqualTo("支付流水不存在");
                 });
     }

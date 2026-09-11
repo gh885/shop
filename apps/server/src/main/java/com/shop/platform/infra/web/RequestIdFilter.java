@@ -1,5 +1,6 @@
 package com.shop.platform.infra.web;
 
+import com.shop.platform.infra.observability.MdcScope;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -7,7 +8,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -40,15 +40,8 @@ public class RequestIdFilter extends OncePerRequestFilter {
         String requestId = resolveRequestId(request);
         request.setAttribute(REQUEST_ID_ATTR, requestId);
         response.setHeader(HEADER_NAME, requestId);
-        MDC.put("trace_id", requestId);
-        MDC.put("version", version);
-        MDC.put("env", env);
-        try {
+        try (MdcScope _ = MdcScope.of("trace_id", requestId, "version", version, "env", env)) {
             chain.doFilter(request, response);
-        } finally {
-            MDC.remove("trace_id");
-            MDC.remove("version");
-            MDC.remove("env");
         }
     }
 

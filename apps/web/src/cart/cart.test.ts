@@ -1,4 +1,4 @@
-import type { CartListItemResponse } from "@shop/api/sdk"
+import type { CartItemView } from "@shop/api/sdk"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -16,7 +16,7 @@ import {
 } from "./cart"
 
 /**
- * 测试夹具：CartListItemResponse wire 形状 → CartItem 投影的可控构造。
+ * 测试夹具：CartItemView wire 形状 → CartItem 投影的可控构造。
  * 只暴露测试关心的维度（价格/库存/勾选/失效/店铺），其余字段取合法默认值。
  */
 function makeDto(
@@ -32,7 +32,7 @@ function makeDto(
         mainImage?: string | null
         skuImage?: string | null
     } = {},
-): CartListItemResponse {
+): CartItemView {
     const {
         id = "item-1",
         price = 19900,
@@ -71,7 +71,7 @@ function makeDto(
     }
 }
 
-function items(...dtos: CartListItemResponse[]): CartItem[] {
+function items(...dtos: CartItemView[]): CartItem[] {
     return dtos.map(toCartItem)
 }
 

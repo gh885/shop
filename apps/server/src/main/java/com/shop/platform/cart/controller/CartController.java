@@ -1,12 +1,12 @@
 package com.shop.platform.cart.controller;
 
-import com.shop.platform.cart.controller.response.CartCountResponse;
 import com.shop.platform.cart.controller.response.CartItemResponse;
-import com.shop.platform.cart.controller.response.CartListItemResponse;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.dto.BatchDeleteCartItemsRequest;
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
 import com.shop.platform.cart.dto.UpdateCartSelectedRequest;
+import com.shop.platform.cart.service.CartCount;
+import com.shop.platform.cart.service.CartItemView;
 import com.shop.platform.cart.service.CartService;
 import com.shop.platform.infra.web.CurrentUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,14 +46,14 @@ public class CartController {
 
     /** 整车列表：现价/库存/店铺信息读取时拼装，失效条目置灰保留 */
     @GetMapping("/items")
-    public List<CartListItemResponse> listCartItems(@CurrentUser UUID userId) {
-        return cartService.list(userId).stream().map(CartListItemResponse::from).toList();
+    public List<CartItemView> listCartItems(@CurrentUser UUID userId) {
+        return cartService.list(userId);
     }
 
     /** 角标计数：免拉整车 */
     @GetMapping("/count")
-    public CartCountResponse getCartCount(@CurrentUser UUID userId) {
-        return CartCountResponse.from(cartService.count(userId));
+    public CartCount getCartCount(@CurrentUser UUID userId) {
+        return cartService.count(userId);
     }
 
     /** 改数量或勾选（部分更新） */

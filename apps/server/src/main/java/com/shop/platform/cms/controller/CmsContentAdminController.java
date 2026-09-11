@@ -38,7 +38,9 @@ public class CmsContentAdminController {
 
     @GetMapping("/nav")
     public List<NavEntryResponse> listAdminNav(@RequestParam(required = false) String navKey) {
-        return NavEntryResponse.from(contentService.navAll(navKey));
+        return contentService.navAll(navKey).stream()
+                .map(NavEntryResponse::from)
+                .toList();
     }
 
     @PostMapping("/nav")
@@ -61,7 +63,9 @@ public class CmsContentAdminController {
 
     @GetMapping("/banners")
     public List<BannerResponse> listAdminBanners(@RequestParam(required = false) String slot) {
-        return BannerResponse.from(contentService.bannersAll(slot));
+        return contentService.bannersAll(slot).stream()
+                .map(BannerResponse::from)
+                .toList();
     }
 
     @PostMapping("/banners")
@@ -83,7 +87,7 @@ public class CmsContentAdminController {
 
     @GetMapping("/recommend-tabs")
     public List<RecommendTabResponse> listAdminRecommendTabs() {
-        return RecommendTabResponse.from(contentService.tabsAll());
+        return contentService.tabsAll().stream().map(RecommendTabResponse::from).toList();
     }
 
     @PostMapping("/recommend-tabs")

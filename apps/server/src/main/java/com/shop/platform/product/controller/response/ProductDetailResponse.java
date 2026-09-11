@@ -13,6 +13,10 @@ public record ProductDetailResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<SkuResponse> skus) {
 
     public static ProductDetailResponse from(ProductDetail d, Map<UUID, StockView> stocks) {
-        return new ProductDetailResponse(ProductResponse.from(d.product()), SkuResponse.from(d.skus(), stocks));
+        return new ProductDetailResponse(
+                ProductResponse.from(d.product()),
+                d.skus().stream()
+                        .map(s -> SkuResponse.from(s, stocks.get(s.getId())))
+                        .toList());
     }
 }

@@ -1,18 +1,13 @@
 package com.shop.platform.account.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.account.model.UserStatus;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.time.OffsetDateTime;
-import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 平台用户 —— 买家/卖家的统一账号，auth schema。
@@ -20,15 +15,11 @@ import lombok.NoArgsConstructor;
  * <p>手机号为登录账号，全局唯一；注册走短信验证码自动注册，密码为预留字段可后补。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("account.users")
-public class User {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class User extends AuditedEntity {
 
     /** 登录账号（手机号）。全局唯一，唯一索引 idx_users_phone 兜底并发 */
     private String phone;
@@ -44,14 +35,6 @@ public class User {
 
     /** 账号状态：正常/禁用，概念归 {@link UserStatus}；不做物理删除 */
     private UserStatus status;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 
     /** 最近一次登录时间，用于安全提醒/活跃度统计，可空 */
     private OffsetDateTime lastLoginAt;

@@ -237,7 +237,9 @@ class AuthServiceTest {
         void 成功_轮换新令牌() {
             String token = "rt:valid";
 
-            when(refreshTokenStore.consume(token)).thenReturn(USER_ID.toString());
+            // 轮换（消费 + 重放裁决 + 清旧设备索引）收敛在 RefreshTokenStore.rotate，
+            // 其裁决分支由 RefreshTokenStoreIT 用真 Redis 覆盖；这里只验 AuthService 拿到 subjectId 后的签发路径
+            when(refreshTokenStore.rotate(token, "dev1", "[AUTH]")).thenReturn(USER_ID.toString());
             when(userMapper.selectById(USER_ID)).thenReturn(new User() {
                 {
                     setId(USER_ID);
@@ -250,29 +252,6 @@ class AuthServiceTest {
             var result = authService.refresh(token, "dev1", "127.0.0.1", "UA");
             assertEquals("new-at", result.accessToken());
             assertEquals("rt:new", result.refreshToken());
-        }
-
-        @Test
-        void 令牌过期_拒绝() {
-            String token = "rt:expired";
-
-            when(refreshTokenStore.consume(token)).thenReturn(null);
-            when(refreshTokenStore.checkReplay(token))
-                    .thenReturn(new RefreshTokenStore.ReplayCheck(false, false, null));
-
-            assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1", "127.0.0.1", "UA"));
-        }
-
-        @Test
-        void 重放检测_410() {
-            String token = "rt:replay";
-
-            when(refreshTokenStore.consume(token)).thenReturn(null);
-            when(refreshTokenStore.checkReplay(token))
-                    .thenReturn(new RefreshTokenStore.ReplayCheck(true, false, USER_ID.toString()));
-
-            var ex = assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1", "127.0.0.1", "UA"));
-            assertEquals(410, ex.getHttpStatus());
         }
     }
 }

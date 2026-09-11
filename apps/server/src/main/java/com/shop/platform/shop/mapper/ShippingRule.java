@@ -1,17 +1,12 @@
 package com.shop.platform.shop.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 运费计费规则 —— 一档「首件价 + 续件价」。
@@ -23,14 +18,11 @@ import lombok.NoArgsConstructor;
  * 将来加按重量时新增 valuation 列与重量列，语义不靠注释维系。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("shop.shipping_rules")
-public class ShippingRule {
-
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class ShippingRule extends AuditedEntity {
 
     /** 所属模板（shop.shipping_templates.id）；随模板更新整批重建，故无软删 */
     private UUID templateId;
@@ -49,12 +41,6 @@ public class ShippingRule {
 
     /** 续费（分） */
     private Long addFee;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 
     /**
      * 按件计费：首费 + 超出首件部分的「续费档数 × 续费」。

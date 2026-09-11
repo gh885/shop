@@ -5,7 +5,6 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 import com.shop.platform.account.mapper.Address;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,9 +41,5 @@ public record AddressResponse(
                 a.getIsDefault(),
                 a.getCreatedAt(),
                 a.getUpdatedAt());
-    }
-
-    public static List<AddressResponse> from(List<Address> list) {
-        return list.stream().map(AddressResponse::from).toList();
     }
 }

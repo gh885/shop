@@ -1,18 +1,13 @@
 package com.shop.platform.order.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.BaseEntity;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 订单行项目 —— 下单瞬间的商品快照，存"这一行卖的是什么、单价多少、买了几件"。
@@ -21,15 +16,11 @@ import lombok.NoArgsConstructor;
  * 行落库后永不 UPDATE（改数量 = 取消重下），故无 updated_at。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("orders.items")
-public class OrderItem {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler） */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class OrderItem extends BaseEntity {
 
     /** 所属订单 ID，orders.orders.id（同 schema，应用层保证一致性） */
     private UUID orderId;
@@ -61,10 +52,6 @@ public class OrderItem {
     /** 行小计，分，落库固化免读时重算；DB CHECK 钉死 amount = price × quantity */
     private Long amount;
 
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
     // ---- 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段） ----
 
     public Money priceAsMoney() {
@@ -73,7 +60,7 @@ public class OrderItem {
 
     /** 划线价可空，随原值返回 null */
     public Money originalPriceAsMoney() {
-        return originalPrice == null ? null : Money.ofFen(originalPrice, currency);
+        return Money.ofFenOrNull(originalPrice, currency);
     }
 
     public Money amountAsMoney() {

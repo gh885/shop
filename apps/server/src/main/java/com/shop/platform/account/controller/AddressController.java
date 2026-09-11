@@ -1,9 +1,9 @@
 package com.shop.platform.account.controller;
 
-import com.shop.platform.account.controller.response.AddressParseResponse;
 import com.shop.platform.account.controller.response.AddressResponse;
 import com.shop.platform.account.dto.AddressParseRequest;
 import com.shop.platform.account.dto.AddressRequest;
+import com.shop.platform.account.service.AddressParseResult;
 import com.shop.platform.account.service.AddressService;
 import com.shop.platform.infra.web.CurrentUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,14 +39,14 @@ public class AddressController {
 
     /** 智能粘贴：解析收货文本为结构化字段（无需入库，纯文本处理） */
     @PostMapping("/parse")
-    public AddressParseResponse parseAddress(@Valid @RequestBody AddressParseRequest req) {
-        return AddressParseResponse.from(addressService.parse(req.text()));
+    public AddressParseResult parseAddress(@Valid @RequestBody AddressParseRequest req) {
+        return addressService.parse(req.text());
     }
 
     /** 我的收货地址列表：默认地址置顶 */
     @GetMapping
     public List<AddressResponse> listAddresses(@CurrentUser UUID userId) {
-        return AddressResponse.from(addressService.list(userId));
+        return addressService.list(userId).stream().map(AddressResponse::from).toList();
     }
 
     /** 地址详情（结算页反显用） */

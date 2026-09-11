@@ -1,21 +1,17 @@
 package com.shop.platform.order.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
+import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 订单主表 —— 一次结算按店铺拆出的单笔订单，存"谁买了哪家的货、什么状态、该付多少"。
@@ -26,15 +22,11 @@ import lombok.NoArgsConstructor;
  * 多动作的历史回放靠 {@link OrderStatusLog} 审计流水，不靠这些列。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("orders.orders")
-public class Order {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class Order extends AuditedEntity {
 
     /** 业务单号（对外展示/客服对账），全局唯一；UUID 是库内身份，orderNo 是人对外报的 */
     private String orderNo;
@@ -128,14 +120,6 @@ public class Order {
     /** 售后申请截止（收货时回填），过期不再受理售后申请（aftersale 经 order :: api 读此窗口） */
     private OffsetDateTime applyExpireAt;
 
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
-
     // ---- 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段） ----
 
     public Money itemAmountAsMoney() {
@@ -152,7 +136,7 @@ public class Order {
 
     /** 售后退款额；未同意退款前为 null（列可空） */
     public Money refundAmountAsMoney() {
-        return refundAmount == null ? null : Money.ofFen(refundAmount, currency);
+        return Money.ofFenOrNull(refundAmount, currency);
     }
 
     /** 买家视角当前可执行的动作：规则在 {@link OrderStatus}，实体只薄委托 */

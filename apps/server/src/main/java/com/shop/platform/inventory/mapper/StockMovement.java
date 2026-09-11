@@ -1,17 +1,12 @@
 package com.shop.platform.inventory.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.BaseEntity;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 库存流水 —— append-only 账本，每条库存变更一行，可重放对账。
@@ -26,11 +21,11 @@ import lombok.NoArgsConstructor;
  * RESTOCK 后台补货总库存 +n；RETURN 已付款取消回补总库存 +n（订单驱动，orderId 必有）。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("inventory.stock_movements")
-public class StockMovement {
+public class StockMovement extends BaseEntity {
 
     /** 流水类型 */
     public static final String TYPE_FREEZE = "FREEZE";
@@ -43,10 +38,6 @@ public class StockMovement {
 
     /** 已付款订单取消/退款回补：CAPTURE 已扣实的货退回可卖池，总库存 +n，orderId 必有 */
     public static final String TYPE_RETURN = "RETURN";
-
-    /** 主键。应用层生成 uuidv7 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
 
     /** 归属 SKU ID，product.skus.id，裸引用 */
     private UUID skuId;
@@ -71,8 +62,4 @@ public class StockMovement {
 
     /** 操作后可用量 */
     private Integer afterAvailable;
-
-    /** 创建时间，插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
 }

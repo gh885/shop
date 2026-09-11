@@ -1,20 +1,16 @@
 package com.shop.platform.product.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.product.model.SkuStatus;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 商品 SKU —— 具体卖法，存"卖多少钱、有多少货"。
@@ -23,11 +19,11 @@ import lombok.NoArgsConstructor;
  * 库存不归本模块（V19 起唯一真相源在 inventory.sku_stock，见 inventory 模块）。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName(value = "product.skus", autoResultMap = true)
-public class Sku {
+public class Sku extends AuditedEntity {
 
     /** SKU 名列上限（与 skus.name VARCHAR(160) 同值） */
     private static final int NAME_MAX = 160;
@@ -46,10 +42,6 @@ public class Sku {
         String name = values.isEmpty() ? product.getName() : product.getName() + " " + String.join(" ", values);
         return name.length() > NAME_MAX ? name.substring(0, NAME_MAX) : name;
     }
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
 
     /** 归属的 SPU ID，1:N 关系的落点。查"某商品的所有 SKU"靠它，uk_skus_product_attrs 左前缀已覆盖索引 */
     private UUID productId;
@@ -100,12 +92,4 @@ public class Sku {
 
     /** 在售 / 停用。注意与缺货区分：缺货可补可恢复，停用是「这个卖法不卖了」。概念归 {@link SkuStatus} */
     private SkuStatus status;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

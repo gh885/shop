@@ -5,9 +5,9 @@ import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.authz.RequirePermission;
-import com.shop.platform.shop.controller.response.ShopReviewListItemResponse;
 import com.shop.platform.shop.controller.response.ShopReviewResponse;
 import com.shop.platform.shop.dto.RejectRequest;
+import com.shop.platform.shop.service.ShopReviewItem;
 import com.shop.platform.shop.service.ShopReviewService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -34,9 +34,9 @@ public class ReviewController {
 
     /** 审核队列：按 status 筛选分页（PENDING 待审 / APPROVED 已通过 / REJECTED 已拒绝） */
     @GetMapping
-    public PageResult<ShopReviewListItemResponse> listShopReviews(
+    public PageResult<ShopReviewItem> listShopReviews(
             @Valid PageParams pageParams, @RequestParam(required = false) String status) {
-        return shopReviewService.pageList(pageParams, status).map(ShopReviewListItemResponse::from);
+        return shopReviewService.pageList(pageParams, status);
     }
 
     /** 审核通过：店铺状态 → ACTIVE */

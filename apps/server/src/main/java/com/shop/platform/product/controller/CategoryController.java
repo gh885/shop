@@ -1,8 +1,8 @@
 package com.shop.platform.product.controller;
 
 import com.shop.platform.product.controller.response.CategoryAttrNodeResponse;
-import com.shop.platform.product.controller.response.CategoryNodeResponse;
 import com.shop.platform.product.service.CategoryAttrService;
+import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -25,10 +25,8 @@ public class CategoryController {
 
     /** 前台类目树（仅启用节点），数据量小，全量返回由前端缓存 */
     @GetMapping("/tree")
-    public List<CategoryNodeResponse> getCategoryTree() {
-        return categoryService.publicTree().stream()
-                .map(CategoryNodeResponse::from)
-                .toList();
+    public List<CategoryNode> getCategoryTree() {
+        return categoryService.publicTree();
     }
 
     /** 类目属性模板（仅启用属性 + 值域），供卖家发布页与买家详情页 */

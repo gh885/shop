@@ -40,7 +40,9 @@ public class SellerAddressController {
     /** 本店地址库列表：默认发货/退货置顶 */
     @GetMapping
     public List<MerchantAddressResponse> listAddresses(@CurrentShop UUID shopId) {
-        return MerchantAddressResponse.from(addressService.list(shopId));
+        return addressService.list(shopId).stream()
+                .map(MerchantAddressResponse::from)
+                .toList();
     }
 
     /** 新增地址（可同时标记默认发货/默认退货） */

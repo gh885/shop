@@ -6,6 +6,7 @@ import com.shop.platform.account.mapper.User;
 import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
+import com.shop.platform.common.Text;
 import com.shop.platform.infra.observability.MdcScope;
 import com.shop.platform.infra.security.DeviceInfo;
 import com.shop.platform.infra.security.JwtProvider;
@@ -189,34 +190,11 @@ public class AuthService {
 
     /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测）。Redis 机制见 RefreshTokenStore */
     public TokenPair refresh(String refreshToken, String deviceId, String clientIp, String userAgent) {
-        // 1. 消费旧 Refresh Token（getAndDelete = 一次性；哈希化收敛在存储层内部）
-        String storedUserId = refreshTokenStore.consume(refreshToken);
-
-        if (storedUserId == null) {
-            // 2. 重放裁决：宽限期内算多标签页并发重复（静默拒绝），超期才算盗用（全端吊销）（MAINT-04）
-            RefreshTokenStore.ReplayCheck replay = refreshTokenStore.checkReplay(refreshToken);
-            if (replay.consumed()) {
-                if (!replay.withinGrace()) {
-                    log.warn("[AUTH] Refresh Token 重放攻击已检测, userId={}", replay.subjectId());
-                    deleteAllRefreshTokens(UUID.fromString(replay.subjectId()));
-                    throw new BusinessException(410, "REFRESH_TOKEN_REUSED", "Refresh Token 已被重复使用，所有设备已下线");
-                }
-                log.info("[AUTH] Refresh 并发竞争（宽限期内）, userId={}", replay.subjectId());
-                throw BusinessException.unauthorized("登录状态正在其他页面刷新，请稍后重试");
-            }
-            throw BusinessException.unauthorized("Refresh Token 无效或已过期");
-        }
-
-        UUID userId = UUID.fromString(storedUserId);
-
-        // 3. 标记已消费（带时间戳，供重放裁决区分并发竞争与盗用）
-        refreshTokenStore.markConsumed(refreshToken, storedUserId);
-
-        // 4. 清除旧设备索引
-        refreshTokenStore.revokeDevice(storedUserId, deviceId);
+        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引（机制收敛在 RefreshTokenStore.rotate）
+        String storedUserId = refreshTokenStore.rotate(refreshToken, deviceId, "[AUTH]");
 
         // 5. 查用户并签发全新 Token；禁用账号在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
-        User user = userMapper.selectById(userId);
+        User user = userMapper.selectById(UUID.fromString(storedUserId));
         if (user == null) throw BusinessException.notFound("用户不存在");
         ensureUserActive(user);
         return issueTokens(user, deviceId, clientIp, userAgent);
@@ -242,7 +220,7 @@ public class AuthService {
             user.setNickname(trimmed);
         }
         if (avatarKey != null) {
-            user.setAvatarKey(avatarKey.isBlank() ? null : avatarKey);
+            user.setAvatarKey(Text.blankToNull(avatarKey));
         }
         userMapper.updateById(user);
         return user;

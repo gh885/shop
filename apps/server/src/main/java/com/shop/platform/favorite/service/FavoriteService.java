@@ -105,8 +105,8 @@ public class FavoriteService {
                 p.id(),
                 p.name(),
                 p.mainImage(),
-                p.minPrice() == null ? null : Money.cny(p.minPrice()),
-                p.maxPrice() == null ? null : Money.cny(p.maxPrice()),
+                Money.cnyOrNull(p.minPrice()),
+                Money.cnyOrNull(p.maxPrice()),
                 collectCount);
         return new FavoriteItemView(item.getId(), item.getProductId(), item.getCreatedAt(), info, available);
     }

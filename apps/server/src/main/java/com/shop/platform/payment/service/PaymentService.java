@@ -50,7 +50,7 @@ public class PaymentService {
     public Payment pay(UUID userId, UUID orderId) {
         // 1. 只读点查订单（order :: api）：存在、属于本人、待付款才可支付；金额以订单投影为准，不信前端
         OrderPaymentView order = Validate.present(orderReadQuery.paymentViewById(orderId), "订单不存在");
-        Validate.isTrue(order.userId().equals(userId), "订单不存在");
+        Validate.isTrue(order.userId().equals(userId), 404, "订单不存在");
 
         // 2. 幂等短路：已有成功流水直接返回；已有待确认流水复用（不堆积多条 PENDING）
         Payment success = paymentMapper.selectSuccessByOrder(orderId);
@@ -96,7 +96,7 @@ public class PaymentService {
     public Payment confirm(UUID userId, UUID paymentId) {
         // 1. 校验流水存在且属于本人
         Payment payment = Validate.notNull(paymentMapper.selectById(paymentId), "支付流水不存在");
-        Validate.isTrue(payment.getUserId().equals(userId), "支付流水不存在");
+        Validate.isTrue(payment.getUserId().equals(userId), 404, "支付流水不存在");
 
         // 2. 已是成功流水（重复确认）：直接返回，幂等
         if (payment.getStatus() != null && payment.getStatus().isSuccess()) {

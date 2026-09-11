@@ -1,18 +1,13 @@
 package com.shop.platform.product.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.product.model.CategoryStatus;
-import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 商品分类 —— 邻接表实现的类目树。
@@ -21,18 +16,14 @@ import lombok.NoArgsConstructor;
  * CategoryService.buildTree）。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("product.categories")
-public class Category {
+public class Category extends AuditedEntity {
 
     /** 根节点的 parent_id 占位值 */
     public static final UUID ROOT_PARENT_ID = new UUID(0L, 0L);
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
 
     /** 父分类 ID。邻接表存树，根节点的父用 ROOT_PARENT_ID 占位；创建后不可改（不支持移动节点） */
     private UUID parentId;
@@ -55,12 +46,4 @@ public class Category {
 
     /** 分类图标 URL，前台类目入口展示用，可空 */
     private String iconUrl;
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

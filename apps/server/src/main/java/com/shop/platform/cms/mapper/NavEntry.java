@@ -1,31 +1,22 @@
 package com.shop.platform.cms.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.cms.model.CmsStatus;
-import java.time.OffsetDateTime;
+import com.shop.platform.infra.db.AuditedEntity;
 import java.util.List;
-import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /** 首页分类导航条目 — 前端 NavEntry。subs 为 JSONB 子分组，整段配置，不拆表。 */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName(value = "cms.nav_entries", autoResultMap = true)
-public class NavEntry {
-
-    /** 主键。应用层生成 uuidv7 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class NavEntry extends AuditedEntity {
 
     /** 导航位标识：'home'，预留多导航位 */
     private String navKey;
@@ -51,10 +42,4 @@ public class NavEntry {
 
     /** 启用 / 停用，不做物理删除 */
     private CmsStatus status;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

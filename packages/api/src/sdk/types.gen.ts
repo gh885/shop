@@ -36,6 +36,65 @@ export type UpdateMemberPermissionsRequest = {
     permissions?: Array<string>;
 };
 
+export type RegionalRule = {
+    regionPrefixes: Array<string>;
+    firstQuantity: number;
+    firstFee: number;
+    addQuantity: number;
+    addFee: number;
+};
+
+export type ShippingFeeTier = {
+    firstQuantity: number;
+    firstFee: number;
+    addQuantity: number;
+    addFee: number;
+};
+
+export type ShippingTemplateRequest = {
+    freeShipping: boolean;
+    freeOverQuantity?: number;
+    freeOverAmount?: number;
+    defaultRule: ShippingFeeTier;
+    regionRules?: Array<RegionalRule>;
+    excludedRegions?: Array<string>;
+};
+
+export type Money = {
+    amount: number;
+    currency: string;
+};
+
+/**
+ * 一档按件运费：首件价 + 续件价
+ */
+export type ShippingTemplateFeeTier = {
+    id: string;
+    firstQuantity: number;
+    firstFee: Money;
+    addQuantity: number;
+    addFee: Money;
+};
+
+/**
+ * 指定地区规则：一档运费 + 覆盖的区域前缀
+ */
+export type ShippingTemplateRegionRule = {
+    rule: ShippingTemplateFeeTier;
+    regionPrefixes: Array<string>;
+};
+
+export type ShippingTemplateResponse = {
+    id: string;
+    shopId: string;
+    freeShipping: boolean;
+    freeOverQuantity: number | null;
+    freeOverAmount: Money;
+    defaultRule: ShippingTemplateFeeTier;
+    regionRules: Array<ShippingTemplateRegionRule>;
+    excludedRegions: Array<string>;
+};
+
 export type ParamItem = {
     attrId: string | null;
     name: string;
@@ -408,7 +467,7 @@ export type AddressParseRequest = {
     text: string;
 };
 
-export type AddressParseResponse = {
+export type AddressParseResult = {
     receiverName: string;
     phone: string;
     regionCode: string;
@@ -493,11 +552,6 @@ export type CreatePaymentRequest = {
     orderId: string;
 };
 
-export type Money = {
-    amount: number;
-    currency: string;
-};
-
 export type PaymentResponse = {
     id: string;
     orderId: string;
@@ -577,6 +631,7 @@ export type Group = {
     itemAmount: Money;
     shippingFee: Money;
     payAmount: Money;
+    deliverable: boolean;
 };
 
 export type Item = {
@@ -764,7 +819,7 @@ export type LoginRequest = {
     deviceId: string;
 };
 
-export type ShopMemberItemResponse = {
+export type ShopMemberItem = {
     memberId: string;
     userId: string;
     phone: string | null;
@@ -773,7 +828,7 @@ export type ShopMemberItemResponse = {
     permissions: Array<string>;
 };
 
-export type ShopInviteItemResponse = {
+export type ShopInviteItem = {
     memberId: string;
     shopId: string;
     shopName: string;
@@ -942,7 +997,7 @@ export type PageResultOrderListItemResponse = {
     total: number;
 };
 
-export type FavoriteListItemResponse = {
+export type FavoriteItemView = {
     id: string;
     productId: string;
     favoritedAt: string;
@@ -962,12 +1017,12 @@ export type FavoriteProductInfo = {
     collectCount: number;
 };
 
-export type PageResultFavoriteListItemResponse = {
-    records: Array<FavoriteListItemResponse>;
+export type PageResultFavoriteItemView = {
+    records: Array<FavoriteItemView>;
     total: number;
 };
 
-export type CartListItemResponse = {
+export type CartItemView = {
     id: string;
     skuId: string;
     quantity: number;
@@ -999,7 +1054,7 @@ export type SkuInfo = {
     onSale: boolean;
 };
 
-export type CartCountResponse = {
+export type CartCount = {
     total: number;
     selected: number;
 };
@@ -1071,7 +1126,7 @@ export type CategoryAttrNodeResponse = {
     values: Array<CategoryAttrValueResponse>;
 };
 
-export type CategoryNodeResponse = {
+export type CategoryNode = {
     id: string;
     parentId: string;
     name: string;
@@ -1079,15 +1134,15 @@ export type CategoryNodeResponse = {
     sort: number;
     status: CategoryStatus;
     iconUrl: string | null;
-    children: Array<CategoryNodeResponse>;
+    children: Array<CategoryNode>;
 };
 
-export type PageResultShopReviewListItemResponse = {
-    records: Array<ShopReviewListItemResponse>;
+export type PageResultShopReviewItem = {
+    records: Array<ShopReviewItem>;
     total: number;
 };
 
-export type ShopReviewListItemResponse = {
+export type ShopReviewItem = {
     id: string;
     shopId: string;
     shopName: string;
@@ -1120,7 +1175,7 @@ export const ShipmentIssueType = {
 
 export type ShipmentIssueType = typeof ShipmentIssueType[keyof typeof ShipmentIssueType];
 
-export type StaffInfoResponse = {
+export type StaffInfo = {
     id: string;
     employeeNo: string;
     displayName: string | null;
@@ -1234,6 +1289,38 @@ export type UpdateShopMemberPermissionsResponses = {
      */
     200: unknown;
 };
+
+export type GetShippingTemplateData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/seller/shipping-template';
+};
+
+export type GetShippingTemplateResponses = {
+    /**
+     * OK
+     */
+    200: ShippingTemplateResponse;
+};
+
+export type GetShippingTemplateResponse = GetShippingTemplateResponses[keyof GetShippingTemplateResponses];
+
+export type SaveShippingTemplateData = {
+    body: ShippingTemplateRequest;
+    path?: never;
+    query?: never;
+    url: '/seller/shipping-template';
+};
+
+export type SaveShippingTemplateResponses = {
+    /**
+     * OK
+     */
+    200: ShippingTemplateResponse;
+};
+
+export type SaveShippingTemplateResponse = SaveShippingTemplateResponses[keyof SaveShippingTemplateResponses];
 
 export type AbandonProductData = {
     body?: never;
@@ -1855,7 +1942,7 @@ export type ParseAddressResponses = {
     /**
      * OK
      */
-    200: AddressParseResponse;
+    200: AddressParseResult;
 };
 
 export type ParseAddressResponse = ParseAddressResponses[keyof ParseAddressResponses];
@@ -2200,7 +2287,7 @@ export type ListFavoritesResponses = {
     /**
      * OK
      */
-    200: PageResultFavoriteListItemResponse;
+    200: PageResultFavoriteItemView;
 };
 
 export type ListFavoritesResponse = ListFavoritesResponses[keyof ListFavoritesResponses];
@@ -2248,7 +2335,7 @@ export type ListCartItemsResponses = {
     /**
      * OK
      */
-    200: Array<CartListItemResponse>;
+    200: Array<CartItemView>;
 };
 
 export type ListCartItemsResponse = ListCartItemsResponses[keyof ListCartItemsResponses];
@@ -2723,7 +2810,7 @@ export type ListShopMembersResponses = {
     /**
      * OK
      */
-    200: Array<ShopMemberItemResponse>;
+    200: Array<ShopMemberItem>;
 };
 
 export type ListShopMembersResponse = ListShopMembersResponses[keyof ListShopMembersResponses];
@@ -2755,7 +2842,7 @@ export type ListShopInvitesResponses = {
     /**
      * OK
      */
-    200: Array<ShopInviteItemResponse>;
+    200: Array<ShopInviteItem>;
 };
 
 export type ListShopInvitesResponse = ListShopInvitesResponses[keyof ListShopInvitesResponses];
@@ -2897,7 +2984,7 @@ export type GetCartCountResponses = {
     /**
      * OK
      */
-    200: CartCountResponse;
+    200: CartCount;
 };
 
 export type GetCartCountResponse = GetCartCountResponses[keyof GetCartCountResponses];
@@ -3088,7 +3175,7 @@ export type GetCategoryTreeResponses = {
     /**
      * OK
      */
-    200: Array<CategoryNodeResponse>;
+    200: Array<CategoryNode>;
 };
 
 export type GetCategoryTreeResponse = GetCategoryTreeResponses[keyof GetCategoryTreeResponses];
@@ -3107,7 +3194,7 @@ export type ListShopReviewsResponses = {
     /**
      * OK
      */
-    200: PageResultShopReviewListItemResponse;
+    200: PageResultShopReviewItem;
 };
 
 export type ListShopReviewsResponse = ListShopReviewsResponses[keyof ListShopReviewsResponses];
@@ -3139,7 +3226,7 @@ export type GetAdminCategoryTreeResponses = {
     /**
      * OK
      */
-    200: Array<CategoryNodeResponse>;
+    200: Array<CategoryNode>;
 };
 
 export type GetAdminCategoryTreeResponse = GetAdminCategoryTreeResponses[keyof GetAdminCategoryTreeResponses];
@@ -3155,7 +3242,7 @@ export type GetStaffMeResponses = {
     /**
      * OK
      */
-    200: StaffInfoResponse;
+    200: StaffInfo;
 };
 
 export type GetStaffMeResponse = GetStaffMeResponses[keyof GetStaffMeResponses];

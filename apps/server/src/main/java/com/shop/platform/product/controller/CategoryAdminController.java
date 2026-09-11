@@ -2,11 +2,11 @@ package com.shop.platform.product.controller;
 
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
-import com.shop.platform.product.controller.response.CategoryNodeResponse;
 import com.shop.platform.product.controller.response.CategoryResponse;
 import com.shop.platform.product.dto.CreateCategoryRequest;
 import com.shop.platform.product.dto.UpdateCategoryRequest;
 import com.shop.platform.product.dto.UpdateCategoryStatusRequest;
+import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,10 +33,8 @@ public class CategoryAdminController {
 
     /** 全量类目树（含禁用节点） */
     @GetMapping("/tree")
-    public List<CategoryNodeResponse> getAdminCategoryTree() {
-        return categoryService.adminTree().stream()
-                .map(CategoryNodeResponse::from)
-                .toList();
+    public List<CategoryNode> getAdminCategoryTree() {
+        return categoryService.adminTree();
     }
 
     @PostMapping

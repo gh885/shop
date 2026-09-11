@@ -29,7 +29,7 @@ public record PublicProductResponse(
                 p.getName(),
                 p.getSubtitle(),
                 p.getMainImage(),
-                p.getMinPrice() == null ? null : Money.cny(p.getMinPrice()),
-                p.getMaxPrice() == null ? null : Money.cny(p.getMaxPrice()));
+                Money.cnyOrNull(p.getMinPrice()),
+                Money.cnyOrNull(p.getMaxPrice()));
     }
 }

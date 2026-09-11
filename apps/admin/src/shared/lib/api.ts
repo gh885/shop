@@ -3,7 +3,7 @@ import { redirect } from "@tanstack/react-router"
 
 import { configureSdkClient, createAuthKit } from "@shop/common"
 import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
-import type { ShopReviewListItemResponse, ShopReviewStatus } from "@shop/api/sdk"
+import type { ShopReviewStatus } from "@shop/api/sdk"
 
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
 // 生成 SDK（@shop/api/sdk）统一出入参，业务方法经 adminApi 具名封装（error 转抛供调用方 catch）。
@@ -34,7 +34,7 @@ export const adminApi = {
         return { accessToken: data.accessToken }
     },
 
-    /** 店铺审核分页列表（wire 透传，无字段变换——形状单一来源是 SDK 的 ShopReviewListItemResponse） */
+    /** 店铺审核分页列表（wire 透传，无字段变换——形状单一来源是 SDK 的 ShopReviewItem） */
     async listReviews(input: { status?: ShopReviewStatus; page: number; size: number }) {
         const page = await AdminReviewsApi.listShopReviews({
             query: {
@@ -60,7 +60,7 @@ export const adminApi = {
 }
 
 /** 店铺审核行：直接复用生成契约（reason/decidedAt 契约可空 = PENDING 时无值，UI 显示「—」） */
-export type ShopReviewItem = ShopReviewListItemResponse
+export type { ShopReviewItem } from "@shop/api/sdk"
 
 // ---------- 路由守卫 ----------
 

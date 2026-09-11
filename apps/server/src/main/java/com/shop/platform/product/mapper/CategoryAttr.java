@@ -1,19 +1,14 @@
 package com.shop.platform.product.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.product.model.AttrKind;
 import com.shop.platform.product.model.CategoryAttrStatus;
-import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 类目属性定义 —— 挂在叶子类目（level=3）上的属性模板条目。
@@ -22,15 +17,11 @@ import lombok.NoArgsConstructor;
  * 禁用同 categories 软删语义：不物理删，已被引用的存量快照自洽，新商品不可再选。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("product.category_attrs")
-public class CategoryAttr {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class CategoryAttr extends AuditedEntity {
 
     /** 归属类目（只允许叶子类目挂模板，service 层校验 level=3），同 schema FK */
     private UUID categoryId;
@@ -59,12 +50,4 @@ public class CategoryAttr {
     public boolean isEnabled() {
         return status != null && status.isEnabled();
     }
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

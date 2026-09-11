@@ -1,19 +1,15 @@
 package com.shop.platform.logistics.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.logistics.model.ShipmentDirection;
 import com.shop.platform.logistics.model.ShipmentStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 包裹 —— 一次发货一行，是"货"的载体（运单号是"号"，可换单，故分列不合并）。
@@ -25,15 +21,11 @@ import lombok.NoArgsConstructor;
  * <p>DB 列存枚举 {@code name()}（varchar + 默认 EnumTypeHandler），迁移 V50 的 CHECK 与取值同步。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("logistics.shipments")
-public class Shipment {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler） */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class Shipment extends AuditedEntity {
 
     /** 所属订单，orders.orders.id，跨 schema 裸引用不加 FK */
     private UUID orderId;
@@ -81,10 +73,4 @@ public class Shipment {
 
     /** 面单寄件人名称（履约主体，镜像商家地址的 company_name） */
     private String shipFromCompanyName;
-
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

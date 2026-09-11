@@ -26,18 +26,12 @@ public record AddressSnapshot(
 
     public AddressSnapshot {
         // 构造期自校验：非法快照根本造不出来。地址簿入口（AddressRequest）同为 NotBlank，两侧约束对齐
-        receiverName = requireText(receiverName, "收货人");
-        receiverPhone = requireText(receiverPhone, "收货人电话");
-        regionCode = requireText(regionCode, "行政区划代码");
-        province = requireText(province, "省份");
-        city = requireText(city, "城市");
-        district = requireText(district, "区县");
-        detail = requireText(detail, "详细地址");
-    }
-
-    /** 非空校验 + trim 归一化：DB 里已是净值，这里幂等兜底，保证按值比较稳定 */
-    private static String requireText(String value, String label) {
-        Validate.isTrue(value != null && !value.isBlank(), label + "不能为空");
-        return value.trim();
+        receiverName = Validate.requireText(receiverName, "收货人");
+        receiverPhone = Validate.requireText(receiverPhone, "收货人电话");
+        regionCode = Validate.requireText(regionCode, "行政区划代码");
+        province = Validate.requireText(province, "省份");
+        city = Validate.requireText(city, "城市");
+        district = Validate.requireText(district, "区县");
+        detail = Validate.requireText(detail, "详细地址");
     }
 }

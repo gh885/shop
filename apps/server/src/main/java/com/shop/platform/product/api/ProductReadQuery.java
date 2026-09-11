@@ -1,14 +1,13 @@
 package com.shop.platform.product.api;
 
+import com.shop.platform.infra.db.IdBatchReader;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -25,59 +24,39 @@ public class ProductReadQuery {
 
     /** product.skus 按 ID 批查：展示快照与可用性字段，缺失的 id 不在 Map 中 */
     public Map<UUID, SkuView> skusByIds(Collection<UUID> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Map.of();
-        }
-        String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(","));
-        return jdbc.query(
+        return IdBatchReader.byIds(
+                jdbc,
                 "SELECT id, product_id, name, image, price, original_price, currency, status "
-                        + "FROM product.skus WHERE id IN (" + placeholders + ")",
-                rs -> {
-                    Map<UUID, SkuView> map = new HashMap<>();
-                    while (rs.next()) {
-                        map.put(
-                                rs.getObject("id", UUID.class),
-                                new SkuView(
-                                        rs.getObject("id", UUID.class),
-                                        rs.getObject("product_id", UUID.class),
-                                        rs.getString("name"),
-                                        rs.getString("image"),
-                                        rs.getObject("price", Long.class),
-                                        rs.getObject("original_price", Long.class),
-                                        rs.getString("currency"),
-                                        SkuStatus.valueOf(rs.getString("status"))));
-                    }
-                    return map;
-                },
-                ids.toArray());
+                        + "FROM product.skus WHERE id IN (:ids)",
+                ids,
+                (rs, i) -> rs.getObject("id", UUID.class),
+                (rs, i) -> new SkuView(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("product_id", UUID.class),
+                        rs.getString("name"),
+                        rs.getString("image"),
+                        rs.getObject("price", Long.class),
+                        rs.getObject("original_price", Long.class),
+                        rs.getString("currency"),
+                        SkuStatus.valueOf(rs.getString("status"))));
     }
 
     /** product.products 按 ID 批查：分组 shopId、卡片字段与上架状态，缺失的 id 不在 Map 中 */
     public Map<UUID, ProductView> productsByIds(Collection<UUID> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Map.of();
-        }
-        String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(","));
-        return jdbc.query(
+        return IdBatchReader.byIds(
+                jdbc,
                 "SELECT id, shop_id, name, main_image, min_price, max_price, status "
-                        + "FROM product.products WHERE id IN (" + placeholders + ")",
-                rs -> {
-                    Map<UUID, ProductView> map = new HashMap<>();
-                    while (rs.next()) {
-                        map.put(
-                                rs.getObject("id", UUID.class),
-                                new ProductView(
-                                        rs.getObject("id", UUID.class),
-                                        rs.getObject("shop_id", UUID.class),
-                                        rs.getString("name"),
-                                        rs.getString("main_image"),
-                                        rs.getObject("min_price", Long.class),
-                                        rs.getObject("max_price", Long.class),
-                                        ProductStatus.valueOf(rs.getString("status"))));
-                    }
-                    return map;
-                },
-                ids.toArray());
+                        + "FROM product.products WHERE id IN (:ids)",
+                ids,
+                (rs, i) -> rs.getObject("id", UUID.class),
+                (rs, i) -> new ProductView(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("shop_id", UUID.class),
+                        rs.getString("name"),
+                        rs.getString("main_image"),
+                        rs.getObject("min_price", Long.class),
+                        rs.getObject("max_price", Long.class),
+                        ProductStatus.valueOf(rs.getString("status"))));
     }
 
     /** 单个 SKU 点查（在售校验等单对象消费用），无行返回 empty —— api 包缺席语义统一走 Optional */

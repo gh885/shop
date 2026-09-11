@@ -1,8 +1,8 @@
 package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.mapper.CategoryAttr;
 import com.shop.platform.product.mapper.CategoryAttrMapper;
@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -79,11 +78,7 @@ public class CategoryAttrService {
                 .sort(sort != null ? sort : 0)
                 .status(CategoryAttrStatus.ENABLED)
                 .build();
-        try {
-            attrMapper.insert(attr);
-        } catch (DuplicateKeyException e) {
-            throw BusinessException.conflict(null, "该类目下已存在同名属性");
-        }
+        DuplicateKeys.conflictOnDuplicate(() -> attrMapper.insert(attr), "该类目下已存在同名属性");
         return attr;
     }
 
@@ -97,11 +92,7 @@ public class CategoryAttrService {
         if (allowCustom != null) attr.setAllowCustom(allowCustom);
         if (allowImage != null) attr.setAllowImage(allowImage);
         if (sort != null) attr.setSort(sort);
-        try {
-            attrMapper.updateById(attr);
-        } catch (DuplicateKeyException e) {
-            throw BusinessException.conflict(null, "该类目下已存在同名属性");
-        }
+        DuplicateKeys.conflictOnDuplicate(() -> attrMapper.updateById(attr), "该类目下已存在同名属性");
         return attr;
     }
 
@@ -124,11 +115,7 @@ public class CategoryAttrService {
                 .source(AttrValueSource.PLATFORM)
                 .image(image)
                 .build();
-        try {
-            valueMapper.insert(row);
-        } catch (DuplicateKeyException e) {
-            throw BusinessException.conflict(null, "该属性下已存在同名值");
-        }
+        DuplicateKeys.conflictOnDuplicate(() -> valueMapper.insert(row), "该属性下已存在同名值");
         return row;
     }
 
@@ -143,11 +130,7 @@ public class CategoryAttrService {
         row.setValue(value);
         if (image != null) row.setImage(image);
         if (sort != null) row.setSort(sort);
-        try {
-            valueMapper.updateById(row);
-        } catch (DuplicateKeyException e) {
-            throw BusinessException.conflict(null, "该属性下已存在同名值");
-        }
+        DuplicateKeys.conflictOnDuplicate(() -> valueMapper.updateById(row), "该属性下已存在同名值");
 
         // 2. 圈定引用 SKU：attributes 含该 valueId（JSONB containment，走 idx_skus_attributes_gin），
         //    重读重写快照。SPU 名批量取一次——按 productId 逐条点查会随引用 SKU 数放大成 N+1

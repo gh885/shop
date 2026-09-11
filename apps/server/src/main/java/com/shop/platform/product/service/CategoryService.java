@@ -1,8 +1,8 @@
 package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.mapper.CategoryMapper;
 import com.shop.platform.product.mapper.Product;
@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,13 +59,8 @@ public class CategoryService {
                 .status(CategoryStatus.ENABLED)
                 .iconUrl(iconUrl)
                 .build();
-        // 3. 落库：唯一索引兜底并发下的同级重名
-        try {
-            categoryMapper.insert(category);
-        } catch (DuplicateKeyException e) {
-            // uk_categories_parent_name 兜底并发下的同级重名
-            throw BusinessException.conflict(null, "同级下已存在同名类目");
-        }
+        // 3. 落库：uk_categories_parent_name 唯一索引兜底并发下的同级重名
+        DuplicateKeys.conflictOnDuplicate(() -> categoryMapper.insert(category), "同级下已存在同名类目");
         return category;
     }
 
@@ -77,11 +71,7 @@ public class CategoryService {
         category.setName(name);
         category.setSort(sort != null ? sort : 0);
         category.setIconUrl(iconUrl);
-        try {
-            categoryMapper.updateById(category);
-        } catch (DuplicateKeyException e) {
-            throw BusinessException.conflict(null, "同级下已存在同名类目");
-        }
+        DuplicateKeys.conflictOnDuplicate(() -> categoryMapper.updateById(category), "同级下已存在同名类目");
         return category;
     }
 

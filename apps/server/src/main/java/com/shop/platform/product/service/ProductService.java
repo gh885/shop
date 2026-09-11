@@ -3,6 +3,7 @@ package com.shop.platform.product.service;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ShopIdHolder;
+import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockReadQuery;
@@ -87,7 +88,7 @@ public class ProductService {
             product.setName(command.name());
         }
         if (command.subtitle() != null) {
-            product.setSubtitle(blankToNull(command.subtitle()));
+            product.setSubtitle(Text.blankToNull(command.subtitle()));
         }
         if (command.detailImages() != null) {
             product.setDetailImages(command.detailImages());
@@ -102,7 +103,7 @@ public class ProductService {
             product.setParams(command.params());
         }
         // 4. subtitle「清空调」：空串传进来 = 想清空卖点，而 updateById 忽略 null 字段，用 wrapper 子句单独写 null
-        if (command.subtitle() != null && blankToNull(command.subtitle()) == null) {
+        if (command.subtitle() != null && Text.blankToNull(command.subtitle()) == null) {
             productMapper.update(
                     null,
                     new LambdaUpdateWrapper<Product>()
@@ -227,11 +228,6 @@ public class ProductService {
         }
     }
 
-    /** 「没填」与「清空」入库都落 null：空串只是传输层用来表达清空的信号，不进 DB */
-    private static String blankToNull(String text) {
-        return text == null || text.isBlank() ? null : text;
-    }
-
     /** 组装草稿实体。草稿没有 SKU，故价格字段留空、specs 为 []；
      *  请求未传的 images/params 归一为 []（对齐 detailImages）：
      *  出参 ProductResponse 契约里它们是 required 非空数组，实体落 null 会让响应契约校验直接挂掉 */
@@ -240,7 +236,7 @@ public class ProductService {
                 .shopId(command.shopId())
                 .categoryId(command.categoryId())
                 .name(command.name())
-                .subtitle(blankToNull(command.subtitle()))
+                .subtitle(Text.blankToNull(command.subtitle()))
                 .detailImages(command.detailImages() == null ? List.of() : command.detailImages())
                 .mainImage(command.mainImage())
                 .images(command.images() == null ? List.of() : command.images())

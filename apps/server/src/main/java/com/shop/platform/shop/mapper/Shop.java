@@ -1,18 +1,13 @@
 package com.shop.platform.shop.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.shop.model.ShopStatus;
-import java.time.OffsetDateTime;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 店铺 —— 卖家侧的业务单元，商品的归属（product.products.shop_id）。
@@ -21,15 +16,11 @@ import lombok.NoArgsConstructor;
  * ACTIVE（审核记录在本模块 shop_reviews，审批同事务推进状态），店主才能用它经营。
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 @TableName("shop.shops")
-public class Shop {
-
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
-    @TableId(type = IdType.INPUT)
-    private UUID id;
+public class Shop extends AuditedEntity {
 
     /** 店主（主账号）ID。与 shop_members 里 role=OWNER 的那条冗余并存，开店时原子写入；授权判断以 shop_members 为准 */
     private UUID ownerId;
@@ -47,12 +38,4 @@ public class Shop {
     public boolean isActive() {
         return status != null && status.isActive();
     }
-
-    /** 创建时间，MyBatis-Plus 插入时自动填充 */
-    @TableField(fill = FieldFill.INSERT)
-    private OffsetDateTime createdAt;
-
-    /** 更新时间，插入/更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private OffsetDateTime updatedAt;
 }

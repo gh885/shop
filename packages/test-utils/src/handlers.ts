@@ -1,6 +1,6 @@
 import { HttpResponse, http, type RequestHandler } from "msw"
 
-import type { AddressParseResponse, AddressResponse } from "@shop/api/sdk"
+import type { AddressParseResult, AddressResponse } from "@shop/api/sdk"
 
 /**
  * 默认 API handlers —— 按接口契约（openapi/api-docs.json）逐端点 mock。
@@ -32,10 +32,8 @@ export function makeAddress(
     }
 }
 
-/** AddressParseResponse 假数据（智能粘贴解析结果；regionCode 用 regions.json 真实存在的区划码） */
-export function makeAddressParse(
-    overrides: Partial<AddressParseResponse> = {},
-): AddressParseResponse {
+/** AddressParseResult 假数据（智能粘贴解析结果；regionCode 用 regions.json 真实存在的区划码） */
+export function makeAddressParse(overrides: Partial<AddressParseResult> = {}): AddressParseResult {
     return {
         receiverName: "张三",
         phone: "13800000000",

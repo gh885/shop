@@ -3,8 +3,10 @@ package com.shop.platform.infra.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -25,6 +27,9 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
 
     @Autowired
     private StringRedisTemplate redis;
+
+    @Autowired
+    private SecretHasher secretHasher;
 
     private final String subject = "it-" + UUID.randomUUID();
 
@@ -61,5 +66,57 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
 
         store.revokeAll(subject);
         assertFalse(redis.hasKey("refresh:devices:" + subject));
+    }
+
+    // ========== rotate：一次性消费 + 重放裁决 ==========
+
+    /** 有效旧码：返回属主，且旧设备索引被清（后续登出/列表不再看到它） */
+    @Test
+    void rotate_有效旧码_返回属主并清旧设备索引() {
+        store.issue(subject, device, token, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
+
+        assertEquals(subject, store.rotate(token, device, "[IT]"));
+        assertFalse(redis.hasKey("refresh:user:" + subject + ":" + device));
+        assertTrue(store.listDevices(subject, null).isEmpty());
+
+        store.revokeAll(subject);
+    }
+
+    /** 宽限期内重复（多标签页并发启动）：静默拒绝 401，不判盗用、不吊销其他设备 */
+    @Test
+    void rotate_宽限期内重复_401不吊销其他设备() {
+        String otherDevice = UUID.randomUUID().toString();
+        store.issue(subject, device, token, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
+        store.issue(subject, otherDevice, UUID.randomUUID().toString());
+        assertEquals(subject, store.rotate(token, device, "[IT]"));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
+        assertEquals(401, ex.getHttpStatus());
+        // 并发重复不是盗用：另一设备仍在线
+        assertEquals(otherDevice, store.listDevices(subject, null).getFirst().deviceId());
+
+        store.revokeAll(subject);
+    }
+
+    /** 超期旧码再现：判盗用，410 + 全端吊销 */
+    @Test
+    void rotate_超期旧码_410并全端吊销() {
+        String otherDevice = UUID.randomUUID().toString();
+        store.issue(subject, device, token, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
+        store.issue(subject, otherDevice, UUID.randomUUID().toString());
+        // 先消费掉旧码（权威键已删），再把消费痕迹的时间戳拨回纪元（超出 REPLAY_GRACE_MS 宽限期）
+        assertEquals(subject, store.consume(token));
+        redis.opsForValue().set("refresh:consumed:" + secretHasher.hash(token), subject + ":0");
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
+        assertEquals(410, ex.getHttpStatus());
+        assertTrue(store.listDevices(subject, null).isEmpty());
+    }
+
+    /** 从未见过的码：401，且不误判盗用 */
+    @Test
+    void rotate_未知码_401() {
+        BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
+        assertEquals(401, ex.getHttpStatus());
     }
 }

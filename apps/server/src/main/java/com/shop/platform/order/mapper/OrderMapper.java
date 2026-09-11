@@ -17,22 +17,22 @@ import org.apache.ibatis.annotations.Select;
 public interface OrderMapper extends BaseMapper<Order> {
 
     /**
-     * 取本人订单：买家侧一切动作与查询的同一道门。不存在与不属于本人给同一句话，
+     * 取本人订单：买家侧一切动作与查询的同一道门。不存在与不属于本人给同一句话、同一个状态码（404），
      * 不泄露单据存在性。收在这里而非各 service 各写一份——「越权说什么」只该定义一处。
      *
-     * <p>注意现状：不存在走 {@link Validate#notNull} 给 404，归属不符走 {@link Validate#isTrue} 给 400，
-     * 状态码并不一致（文案一致）。与 CheckoutResolver 的地址归属判定同源，见 CheckoutResolverTest 的说明。
+     * <p>归属不符也走 404：400 会说「请求本身有问题」，而事实是「这个资源对你不存在」；
+     * 与 AfterSale/ShipmentService 的同一个门的口径保持一致（曾因 isTrue 默认 400 而不一致）。
      */
     default Order requireOwned(UUID userId, UUID orderId) {
         Order order = Validate.notNull(selectById(orderId), "订单不存在");
-        Validate.isTrue(order.getUserId().equals(userId), "订单不存在");
+        Validate.isTrue(order.getUserId().equals(userId), 404, "订单不存在");
         return order;
     }
 
-    /** 取本店订单：卖家侧同一道门，越店与不存在同样不区分 */
+    /** 取本店订单：卖家侧同一道门，越店与不存在同样不区分（同为 404） */
     default Order requireShopOwned(UUID shopId, UUID orderId) {
         Order order = Validate.notNull(selectById(orderId), "订单不存在");
-        Validate.isTrue(order.getShopId().equals(shopId), "订单不存在");
+        Validate.isTrue(order.getShopId().equals(shopId), 404, "订单不存在");
         return order;
     }
 

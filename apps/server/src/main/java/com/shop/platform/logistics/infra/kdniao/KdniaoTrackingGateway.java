@@ -2,8 +2,6 @@ package com.shop.platform.logistics.infra.kdniao;
 
 import com.shop.platform.logistics.service.CarrierTrackingGateway;
 import com.shop.platform.logistics.service.CarrierTrackingNode;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -87,29 +85,6 @@ public class KdniaoTrackingGateway implements CarrierTrackingGateway {
             log.warn("[LOGISTICS] 快递鸟查询未成功, 原因={}", root.path("Reason").asString(""));
             return List.of();
         }
-        String rawState = root.path("State").asString("");
-        List<CarrierTrackingNode> nodes = new ArrayList<>();
-        for (JsonNode trace : root.path("Traces")) {
-            String time = trace.path("AcceptTime").asString("");
-            nodes.add(new CarrierTrackingNode(
-                    rawState,
-                    trace.path("AcceptStation").asString(""),
-                    trace.path("Location").asString(""),
-                    parseTime(time)));
-        }
-        return nodes;
-    }
-
-    /** 时间按对方格式解析；解析不了就返回 null（该条不落库，避免用错时刻推进状态） */
-    private OffsetDateTime parseTime(String raw) {
-        if (!StringUtils.hasText(raw)) {
-            return null;
-        }
-        try {
-            return OffsetDateTime.parse(raw.replace(' ', 'T') + "+08:00");
-        } catch (RuntimeException e) {
-            log.warn("[LOGISTICS] 无法解析承运商时间, 原文={}", raw);
-            return null;
-        }
+        return KdniaoTraces.parse(root);
     }
 }

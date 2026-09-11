@@ -10,6 +10,7 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaParameterizedType;
+import com.tngtech.archunit.core.domain.JavaType;
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -135,13 +136,18 @@ class NamingRulesTest {
             .allowEmptyShould(true)
             .as("controller 出参禁止 mapper 实体（HTTP 契约用 Response record）");
 
-    /** HTTP handler 出参必须为 <名词>Response 形状（或其 List/PageResult 包装）；void 与共享层值对象 TokenPair 豁免。
-     * service 形状类（CartItemView/CategoryNode 等）不得直出——「只减不增」的转换墙由 from() 工厂承担 */
+    /**
+     * HTTP handler 出参必须为 <名词>Response / service 形状类（或它们的 List/PageResult 包装）；void 与共享层值对象 TokenPair 豁免。
+     *
+     * <p>service 形状类（CartItemView/ShopReviewItem/CategoryNode 等）直出：形状类即 wire 契约，
+     * 字段变更 = 接口变更，由 openapi 契约与前端 SDK 编译期兜底（理由见 apps/server/AGENTS.md「命名规范」）。
+     * 仍然禁止直出 mapper 实体（另有 controllers_return_no_mapper_types 兜底）。
+     */
     @ArchTest
-    static final ArchRule handler_outputs_are_response_shaped = methods()
+    static final ArchRule handler_outputs_are_response_or_service_shaped = methods()
             .that(httpHandlers())
             .should(haveResponseShapedReturnTypes())
-            .as("HTTP 出参必须为 Response 形状");
+            .as("HTTP 出参必须为 Response 或 service 形状类");
 
     private static DescribedPredicate<JavaMethod> httpHandlers() {
         DescribedPredicate<JavaMethod> predicate = DescribedPredicate.describe(
@@ -154,7 +160,7 @@ class NamingRulesTest {
     }
 
     private static ArchCondition<JavaMethod> haveResponseShapedReturnTypes() {
-        return new ArchCondition<>("返回 XxxResponse / List<XxxResponse> / PageResult<XxxResponse> / void") {
+        return new ArchCondition<>("返回 XxxResponse / service 形状类 / 其 List/PageResult 包装 / void") {
             @Override
             public void check(JavaMethod method, ConditionEvents events) {
                 String violation = responseShapeViolationOf(method);
@@ -175,23 +181,31 @@ class NamingRulesTest {
             return null;
         }
         String rawName = method.getRawReturnType().getName();
-        if (rawName.endsWith("Response")) {
+        if (isContractShape(method.getRawReturnType())) {
             return null;
         }
         if (rawName.equals(java.util.List.class.getName())
                 || rawName.equals(com.shop.platform.common.PageResult.class.getName())) {
-            boolean elementIsResponse = method.getReturnType() instanceof JavaParameterizedType parameterized
-                    && !parameterized.getActualTypeArguments().isEmpty()
-                    && parameterized
-                            .getActualTypeArguments()
-                            .getFirst()
-                            .getName()
-                            .endsWith("Response");
-            if (elementIsResponse) {
-                return null;
+            if (method.getReturnType() instanceof JavaParameterizedType parameterized
+                    && !parameterized.getActualTypeArguments().isEmpty()) {
+                JavaType element = parameterized.getActualTypeArguments().getFirst();
+                if (isContractShape(element)) {
+                    return null;
+                }
+                return "handler " + method.getFullName() + " 返回裸容器类型，元素必须为 XxxResponse 或 service 形状类: "
+                        + element.getName();
             }
-            return "handler " + method.getFullName() + " 返回裸容器类型，元素必须为 XxxResponse: " + rawName;
+            return "handler " + method.getFullName() + " 返回裸容器类型: " + rawName;
         }
-        return "handler " + method.getFullName() + " 出参未贴 Response 后缀: " + rawName;
+        return "handler " + method.getFullName() + " 出参未贴 Response 后缀也不是 service 形状类: " + rawName;
+    }
+
+    /** 合法出参形状：XxxResponse，或 service 包里的形状类（XxxView / XxxItem / XxxNode / XxxInfo / XxxCount / XxxResult） */
+    private static boolean isContractShape(JavaType type) {
+        String name = type.getName();
+        if (name.endsWith("Response")) {
+            return true;
+        }
+        return name.startsWith("com.shop.platform.") && name.contains(".service.");
     }
 }

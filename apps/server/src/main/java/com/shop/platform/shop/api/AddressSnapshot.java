@@ -26,16 +26,10 @@ public record AddressSnapshot(
         String companyName) {
 
     public AddressSnapshot {
-        contactName = requireText(contactName, "联系人");
-        phone = requireText(phone, "电话");
-        province = requireText(province, "省份");
-        city = requireText(city, "城市");
-        detail = requireText(detail, "详细地址");
-    }
-
-    /** 非空校验 + trim 归一化（DB 已是净值，幂等兜底保证按值比较稳定） */
-    private static String requireText(String value, String label) {
-        Validate.isTrue(value != null && !value.isBlank(), label + "不能为空");
-        return value.trim();
+        contactName = Validate.requireText(contactName, "联系人");
+        phone = Validate.requireText(phone, "电话");
+        province = Validate.requireText(province, "省份");
+        city = Validate.requireText(city, "城市");
+        detail = Validate.requireText(detail, "详细地址");
     }
 }

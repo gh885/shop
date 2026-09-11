@@ -1,5 +1,6 @@
 package com.shop.platform.shop.dto;
 
+import com.shop.platform.common.Text;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -26,23 +27,15 @@ public record MerchantAddressRequest(
         Boolean defaultShip,
         Boolean defaultReturn) {
     public MerchantAddressRequest {
-        contactName = trimToNull(contactName);
-        phone = trimToNull(phone);
-        regionCode = trimToNull(regionCode);
-        province = trimToNull(province);
-        city = trimToNull(city);
-        district = trimToNull(district);
-        detail = trimToNull(detail);
-        postalCode = trimToNull(postalCode);
-        companyName = trimToNull(companyName);
-        note = trimToNull(note);
-    }
-
-    private static String trimToNull(String s) {
-        if (s == null) {
-            return null;
-        }
-        String trimmed = s.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        contactName = Text.trimToNull(contactName);
+        phone = Text.trimToNull(phone);
+        regionCode = Text.trimToNull(regionCode);
+        province = Text.trimToNull(province);
+        city = Text.trimToNull(city);
+        district = Text.trimToNull(district);
+        detail = Text.trimToNull(detail);
+        postalCode = Text.trimToNull(postalCode);
+        companyName = Text.trimToNull(companyName);
+        note = Text.trimToNull(note);
     }
 }

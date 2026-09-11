@@ -87,7 +87,7 @@ class CheckoutResolver {
                     sku.name(),
                     sku.image() != null ? sku.image() : product.mainImage(),
                     Money.ofFen(sku.price(), sku.currency()),
-                    sku.originalPrice() != null ? Money.ofFen(sku.originalPrice(), sku.currency()) : null,
+                    Money.ofFenOrNull(sku.originalPrice(), sku.currency()),
                     line.quantity(),
                     available));
         }
@@ -147,8 +147,8 @@ class CheckoutResolver {
     /** 地址快照来源（account :: api）：归属本人且未删除，否则 404（预览与创建共用一道门） */
     AddressSnapshot loadAddressSnapshot(UUID userId, UUID addressId) {
         AddressSnapshotView row = Validate.present(addressReadQuery.byId(addressId), "收货地址不存在");
-        Validate.isTrue(row.userId().equals(userId), "收货地址不存在");
-        Validate.isTrue(row.deletedAt() == null, "收货地址不存在");
+        Validate.isTrue(row.userId().equals(userId), 404, "收货地址不存在");
+        Validate.isTrue(row.deletedAt() == null, 404, "收货地址不存在");
         return new AddressSnapshot(
                 row.receiverName(),
                 row.phone(),

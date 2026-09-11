@@ -1,5 +1,6 @@
 package com.shop.platform.logistics.service;
 
+import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.logistics.mapper.Shipment;
 import com.shop.platform.logistics.mapper.ShipmentIssue;
@@ -112,7 +113,7 @@ public class ShipmentIssueService {
     @Transactional
     public void resolve(UUID issueId, String note) {
         Validate.notNull(issueMapper.selectById(issueId), "异常单不存在");
-        String detail = note == null || note.isBlank() ? null : note.trim();
+        String detail = Text.trimToNull(note);
         Validate.isTrue(issueMapper.resolve(issueId, detail, OffsetDateTime.now()) == 1, 409, "异常单已处理，无需重复操作");
     }
 }
