@@ -15,6 +15,7 @@ import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
+import com.shop.testfixtures.ProbeController;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,8 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -115,25 +114,5 @@ class FiltersPathNormalizationTest {
 
     private String routeOf(String uri) {
         return RequestPaths.routePath(new MockHttpServletRequest("GET", uri));
-    }
-}
-
-@RestController
-class ProbeController {
-
-    @GetMapping("/admin/secret")
-    Probe ok1() {
-        return new Probe();
-    }
-
-    @GetMapping("/seller/secret")
-    Probe ok2() {
-        return new Probe();
-    }
-
-    record Probe(boolean ok) {
-        Probe() {
-            this(true);
-        }
     }
 }

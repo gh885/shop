@@ -16,6 +16,9 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
  * 启动自检（docs/permission-details.md ENF-05）：受保护命名空间（/admin、/seller）的每个 handler 必须显式声明
  * {@link RequirePermission}（/admin/auth/** 自服务端点豁免）。与 PermissionInterceptor 的运行时
  * 默认拒绝构成双保险——漏标炸在开发期，而不是生产期莫名 403。
+ *
+ * <p>本自检只看生产 handler。测试专用探针控制器已移出组件扫描范围
+ * （{@code com.shop.testfixtures.ProbeController}），不会再以假端点混进来。
  */
 class AdminEndpointGuardTest extends WebControllerTestSupport {
 
@@ -39,16 +42,6 @@ class AdminEndpointGuardTest extends WebControllerTestSupport {
                 return;
             }
             HandlerMethod hm = handlerMethod;
-            // 测试探针控制器（如 FiltersPathNormalizationTest 的 /admin/secret）在 test-classes 里，
-            // 被组件扫描带进上下文但不属于生产契约，不在本自检范围
-            String codeSource = hm.getBeanType()
-                    .getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .getPath();
-            if (codeSource.contains("test-classes")) {
-                return;
-            }
             boolean declared = hm.hasMethodAnnotation(RequirePermission.class)
                     || hm.getBeanType().isAnnotationPresent(RequirePermission.class);
             if (!declared) {
