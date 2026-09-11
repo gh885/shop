@@ -68,6 +68,7 @@ export const NAV_ITEMS: SidebarItem[] = [
                 title: "交易管理",
                 items: [
                     { key: "order", label: "订单列表", to: "/trade/order" },
+                    { key: "shipping", label: "运费模板", to: "/trade/shipping" },
                     { key: "ship", label: "发货", to: "/trade/ship" },
                     { key: "logistics", label: "物流跟踪", to: "/trade/logistics" },
                     { key: "refund", label: "退款售后", to: "/trade/refund" },

@@ -1,0 +1,1 @@
+export { ShippingTemplatePage } from "./ShippingTemplatePage"

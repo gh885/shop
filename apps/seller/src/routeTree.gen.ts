@@ -19,6 +19,7 @@ import { Route as AppShopAddressRouteImport } from './routes/_app/shop/address'
 import { Route as AppShopListRouteImport } from './routes/_app/shop/list'
 import { Route as AppShopMemberRouteImport } from './routes/_app/shop/member'
 import { Route as AppTradeOrderRouteImport } from './routes/_app/trade/order'
+import { Route as AppTradeShippingRouteImport } from './routes/_app/trade/shipping'
 import { Route as AppProductCreateBasicRouteImport } from './routes/_app/product/create/basic'
 import { Route as AppProductCreateCategoryRouteImport } from './routes/_app/product/create/category'
 
@@ -71,6 +72,11 @@ const AppTradeOrderRoute = AppTradeOrderRouteImport.update({
   path: '/trade/order',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppTradeShippingRoute = AppTradeShippingRouteImport.update({
+  id: '/trade/shipping',
+  path: '/trade/shipping',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppProductCreateBasicRoute = AppProductCreateBasicRouteImport.update({
   id: '/product/create/basic',
   path: '/product/create/basic',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/shop/list': typeof AppShopListRoute
   '/shop/member': typeof AppShopMemberRoute
   '/trade/order': typeof AppTradeOrderRoute
+  '/trade/shipping': typeof AppTradeShippingRoute
   '/product/create/basic': typeof AppProductCreateBasicRoute
   '/product/create/category': typeof AppProductCreateCategoryRoute
 }
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/shop/list': typeof AppShopListRoute
   '/shop/member': typeof AppShopMemberRoute
   '/trade/order': typeof AppTradeOrderRoute
+  '/trade/shipping': typeof AppTradeShippingRoute
   '/product/create/basic': typeof AppProductCreateBasicRoute
   '/product/create/category': typeof AppProductCreateCategoryRoute
 }
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_app/shop/list': typeof AppShopListRoute
   '/_app/shop/member': typeof AppShopMemberRoute
   '/_app/trade/order': typeof AppTradeOrderRoute
+  '/_app/trade/shipping': typeof AppTradeShippingRoute
   '/_app/product/create/basic': typeof AppProductCreateBasicRoute
   '/_app/product/create/category': typeof AppProductCreateCategoryRoute
 }
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/shop/list'
     | '/shop/member'
     | '/trade/order'
+    | '/trade/shipping'
     | '/product/create/basic'
     | '/product/create/category'
   fileRoutesByTo: FileRoutesByTo
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/shop/list'
     | '/shop/member'
     | '/trade/order'
+    | '/trade/shipping'
     | '/product/create/basic'
     | '/product/create/category'
   id:
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_app/shop/list'
     | '/_app/shop/member'
     | '/_app/trade/order'
+    | '/_app/trade/shipping'
     | '/_app/product/create/basic'
     | '/_app/product/create/category'
   fileRoutesById: FileRoutesById
@@ -244,6 +256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTradeOrderRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/trade/shipping': {
+      id: '/_app/trade/shipping'
+      path: '/trade/shipping'
+      fullPath: '/trade/shipping'
+      preLoaderRoute: typeof AppTradeShippingRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/product/create/basic': {
       id: '/_app/product/create/basic'
       path: '/product/create/basic'
@@ -270,6 +289,7 @@ interface AppRouteRouteChildren {
   AppShopListRoute: typeof AppShopListRoute
   AppShopMemberRoute: typeof AppShopMemberRoute
   AppTradeOrderRoute: typeof AppTradeOrderRoute
+  AppTradeShippingRoute: typeof AppTradeShippingRoute
   AppProductCreateBasicRoute: typeof AppProductCreateBasicRoute
   AppProductCreateCategoryRoute: typeof AppProductCreateCategoryRoute
 }
@@ -283,6 +303,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppShopListRoute: AppShopListRoute,
   AppShopMemberRoute: AppShopMemberRoute,
   AppTradeOrderRoute: AppTradeOrderRoute,
+  AppTradeShippingRoute: AppTradeShippingRoute,
   AppProductCreateBasicRoute: AppProductCreateBasicRoute,
   AppProductCreateCategoryRoute: AppProductCreateCategoryRoute,
 }
