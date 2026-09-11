@@ -20,13 +20,14 @@ public class AddressReadQuery {
     public Optional<AddressSnapshotView> byId(UUID addressId) {
         return jdbc
                 .query(
-                        "SELECT user_id, receiver_name, phone, province, city, district, detail, deleted_at "
+                        "SELECT user_id, receiver_name, phone, region_code, province, city, district, detail, deleted_at "
                                 + "FROM account.addresses WHERE id = ?",
                         (rs, i) -> new AddressSnapshotView(
                                 rs.getObject("user_id", UUID.class),
                                 rs.getObject("deleted_at", OffsetDateTime.class),
                                 rs.getString("receiver_name"),
                                 rs.getString("phone"),
+                                rs.getString("region_code"),
                                 rs.getString("province"),
                                 rs.getString("city"),
                                 rs.getString("district"),

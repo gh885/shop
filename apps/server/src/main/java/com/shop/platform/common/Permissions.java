@@ -39,6 +39,9 @@ public final class Permissions {
     /** 店铺发货/退货/揽收地址管理（面单寄件人） */
     public static final String ADDRESS_MANAGE = "ADDRESS_MANAGE";
 
+    /** 运费模板（按收货地区与件数计费、不配送地区） */
+    public static final String SHIPPING_MANAGE = "SHIPPING_MANAGE";
+
     /**
      * 全量权限码（文档顺序）。SUPER_ADMIN 在 me 出参展开成这份清单给前端；
      * 判权内部仍用通配符（见 PermissionResolver.WILDCARD），两处新增码要同步。
@@ -52,7 +55,8 @@ public final class Permissions {
                 STAFF_MANAGE,
                 PRODUCT_MANAGE,
                 ORDER_FULFILL,
-                ADDRESS_MANAGE);
+                ADDRESS_MANAGE,
+                SHIPPING_MANAGE);
     }
 
     private Permissions() {}

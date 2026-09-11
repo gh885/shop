@@ -2,7 +2,9 @@
  * Order 模块 —— 交易主流程：结算预览、按店拆单下单、两条状态机的流转、买卖家两侧视图。
  *
  * <p>schema: orders（复数避开 PG 保留字 order）。商品/地址快照在下单瞬间定格，之后 product 改价、
- * 用户删地址均不影响旧单。库存冻结/扣实/释放经 inventory :: api 的 StockCommand 同步同事务调用，
+ * 用户删地址均不影响旧单。金额构成 = 商品总额 + 运费（DB CHECK 钉死）：运费按收货地区与同店合计件数经
+ * shop :: api 的 ShippingFeeReadQuery 报价，下单时连同所用模板一起落进 orders 的计费快照列；
+ * 未配运费模板的店铺恒 0（模板上线前的存量口径）。库存冻结/扣实/释放经 inventory :: api 的 StockCommand 同步同事务调用，
  * 完成（确认收货/超时自动收货）经 product :: api 的 ProductCommand.addSold 同事务累加销量投影，
  * 下单成功发布 OrderPlacedEvent、cart 同步监听清理已购 SKU（order 不认识购物车，结算入参就是 SKU 行）；
  * 支付推进由 payment 经 order :: api 的
@@ -20,6 +22,8 @@
  * 资金态归 payment（payments.status）。
  * 三条时间驱动的超时契约（窗口见 OrderTimeouts，规则表见 OrderTimeout）：待付款超时关单、
  * 待发货超时自动取消+退款、已发货超时未确认自动收货（确认收货窗口由发货先铺兜底、签收后重算）。
+ * 本模块不自己算运费：模板与计费规则都属 shop，order 只提供订单侧事实（收货区码、同店合计件数
+ * 与商品额）并消费报价，不复制 prefix / 默认规则 / 包邮门槛那套领域知识。
  */
 @ApplicationModule(
         displayName = "Order",

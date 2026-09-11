@@ -60,8 +60,11 @@ public class Order {
     /** 商品总额（Σ 行小计），分。DB CHECK 钉死 pay_amount = item_amount + shipping_fee */
     private Long itemAmount;
 
-    /** 运费，分（V1 未接计费恒 0） */
+    /** 运费（分）：下单时按收货地区与同店合计件数经 shop :: api 报价定格，未配运费模板的店铺恒 0 */
     private Long shippingFee;
+
+    /** 计费所用运费模板（shop.shipping_templates.id）；未配模板为 null，语义 = 没走计费（恒包邮） */
+    private UUID shippingTemplateId;
 
     /** 应付总额，分 */
     private Long payAmount;
@@ -74,6 +77,9 @@ public class Order {
     private String receiverName;
 
     private String receiverPhone;
+
+    /** 收货区划码（国标 6 位）：运费按地区计价的键与凭据，名字只够展示（见 V54） */
+    private String receiverRegionCode;
 
     private String receiverProvince;
 

@@ -88,6 +88,24 @@ public class RegionRegistry {
     }
 
     /**
+     * 前缀是否落在国标区划码空间里（2 位省 / 4 位市 / 6 位区县）。
+     *
+     * <p>运费模板的区域规则存<b>前缀</b>而不是枚举成员表：{@code 44} 即广东全省、{@code 4403} 即深圳市。
+     * 判据是「至少有一个区划码以它开头」，所以不会出现指向不存在省市的悬空前缀。
+     */
+    public boolean hasRegionPrefix(String prefix) {
+        if (prefix == null || prefix.isEmpty() || prefix.length() % 2 != 0 || prefix.length() > 6) {
+            return false;
+        }
+        for (int i = 0; i < prefix.length(); i++) {
+            if (!Character.isDigit(prefix.charAt(i))) {
+                return false;
+            }
+        }
+        return validCodes.stream().anyMatch(code -> code.startsWith(prefix));
+    }
+
+    /**
      * 按省/市/区名称解析出国标 6 位区划码（智能粘贴用）。
      * 名称匹配做了后缀归一化（去 省/市/区/县 等），并容忍直辖市 city 与省同名（如北京 city=北京市）。
      * 找不到返回 null，交由调用方降级处理。

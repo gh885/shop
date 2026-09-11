@@ -10,6 +10,8 @@ import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.product.api.ProductReadQuery;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
+import com.shop.platform.shop.api.ShippingFeeReadQuery;
+import com.shop.platform.shop.api.ShippingQuote;
 import com.shop.platform.shop.api.ShopReadQuery;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -40,6 +42,9 @@ class CheckoutResolver {
     private final ShopReadQuery shopReadQuery;
 
     private final AddressReadQuery addressReadQuery;
+
+    /** 运费报价（shop :: api）：模板与计费规则属店铺，本模块只提供订单侧事实并消费结果 */
+    private final ShippingFeeReadQuery shippingFeeReadQuery;
 
     /**
      * 结算行解析：同 SKU 多行先合并；再对 product 做「SKU 在售 + SPU 上架 + 库存充足」三道判定，
@@ -86,8 +91,7 @@ class CheckoutResolver {
                     line.quantity(),
                     available));
         }
-        // 总额口径与分组小计（sumLines）同源，不会漂移
-        return new ResolvedCheckout(valid, unavailable, sumLines(valid));
+        return new ResolvedCheckout(valid, unavailable);
     }
 
     /** 阶段一：结算行归约——同 SKU 合并件数并封顶；空集合 400（HTTP 层 @NotEmpty 先拦，这里兜 service 直调） */
@@ -103,16 +107,35 @@ class CheckoutResolver {
     }
 
     /** 有效行按店铺分组算钱；店铺名经 shop :: api 只读拼装（一组对应一笔待创建订单）。
-     *  分组按 shopId 升序，与 OrderService.create 的拆单顺序一致（那边是为锁序，见其第 3 步注释），预览与实际成单同序 */
-    List<CheckoutPreview.Group> groupByShop(List<ValidLine> valid) {
+     *  分组按 shopId 升序，与 OrderService.create 的拆单顺序一致（那边是为锁序，见其第 3 步注释），预览与实际成单同序。
+     *
+     * <p>运费也在这里定格，且与订单落库同源（预览与下单走同一个方法）：一个店铺一份模板一份运费，
+     * 口径是<b>同店合计</b>（件数/商品额）而不是按行 —— 首件+续件的「件数」是整单的件数。
+     *
+     * <p>{@code address} 可为 null（预览允许未选地址）：地区未知就算不出运费，此时只预告 0，
+     * 下单走 create 的真实地址路径，不允许拿这份预告当成交口径。
+     */
+    List<CheckoutPreview.Group> groupByShop(List<ValidLine> valid, AddressSnapshot address) {
         Map<UUID, List<ValidLine>> byShop =
                 valid.stream().collect(Collectors.groupingBy(ValidLine::shopId, TreeMap::new, Collectors.toList()));
         Map<UUID, String> shopNames = shopReadQuery.namesByIds(byShop.keySet());
         return byShop.entrySet().stream()
                 .map(e -> {
                     Money itemAmount = sumLines(e.getValue());
+                    int quantity =
+                            e.getValue().stream().mapToInt(ValidLine::quantity).sum();
+                    ShippingQuote quote = address == null
+                            ? null
+                            : shippingFeeReadQuery.quote(e.getKey(), address.regionCode(), quantity, itemAmount);
                     return new CheckoutPreview.Group(
-                            e.getKey(), shopNames.get(e.getKey()), e.getValue(), itemAmount, Money.cny(0), itemAmount);
+                            e.getKey(),
+                            shopNames.get(e.getKey()),
+                            e.getValue(),
+                            itemAmount,
+                            quote == null ? Money.ofFen(0, itemAmount.currency()) : quote.shippingFee(),
+                            quote == null ? itemAmount : itemAmount.plus(quote.shippingFee()),
+                            quote == null || quote.deliverable(),
+                            quote == null ? null : quote.templateId());
                 })
                 .toList();
     }
@@ -127,7 +150,13 @@ class CheckoutResolver {
         Validate.isTrue(row.userId().equals(userId), "收货地址不存在");
         Validate.isTrue(row.deletedAt() == null, "收货地址不存在");
         return new AddressSnapshot(
-                row.receiverName(), row.phone(), row.province(), row.city(), row.district(), row.detail());
+                row.receiverName(),
+                row.phone(),
+                row.regionCode(),
+                row.province(),
+                row.city(),
+                row.district(),
+                row.detail());
     }
 
     private static CheckoutPreview.UnavailableLine unavailableLine(RequestedLine line, SkuView sku, String cause) {
@@ -144,6 +173,5 @@ class CheckoutResolver {
     /** 结算请求行：同 SKU 合并后的 skuId + 件数 */
     record RequestedLine(UUID skuId, int quantity) {}
 
-    record ResolvedCheckout(
-            List<ValidLine> valid, List<CheckoutPreview.UnavailableLine> unavailable, Money totalPayAmount) {}
+    record ResolvedCheckout(List<ValidLine> valid, List<CheckoutPreview.UnavailableLine> unavailable) {}
 }

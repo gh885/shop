@@ -19,7 +19,11 @@ public record CheckoutPreview(
             List<ValidLine> lines,
             Money itemAmount,
             Money shippingFee,
-            Money payAmount) {}
+            Money payAmount,
+            /** 该店是否配送到收货地区（false = 命中了模板的不配送地区）：为 false 时下单必拒，预览页据此拦截 */
+            boolean deliverable,
+            /** 计费所用模板（未配模板为 null）：落进订单的计费快照列，不进 HTTP 出参（买家不需要知道模板 ID） */
+            UUID shippingTemplateId) {}
 
     /** 失效行：cause 区分「下架/删除」与「库存不足」，前端分别置灰和引导改数量 */
     public record UnavailableLine(UUID skuId, String name, String image, int quantity, String cause) {

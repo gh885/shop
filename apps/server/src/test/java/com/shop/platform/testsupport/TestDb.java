@@ -76,12 +76,24 @@ public final class TestDb {
 
     /** 测试收货地址（北京市朝阳区占位），返回地址 id。 */
     public UUID seedAddress(UUID userId) {
+        return seedAddress(userId, "110105", "北京市", "北京市", "朝阳区");
+    }
+
+    /**
+     * 指定地区的测试收货地址，返回地址 id —— 运费按收货地区计价时用它造「不同地区的两笔单」。
+     * regionCode 取国标 6 位码（模板的区域前缀就是拿它做前缀匹配的）。
+     */
+    public UUID seedAddress(UUID userId, String regionCode, String province, String city, String district) {
         UUID addressId = UUID.randomUUID();
         jdbc.update(
                 "INSERT INTO account.addresses (id, user_id, receiver_name, phone, region_code, province, city, district, detail) "
-                        + "VALUES (?::uuid, ?::uuid, '张三', '13800000000', '110100', '北京市', '北京市', '朝阳区', '测试路 1 号')",
+                        + "VALUES (?::uuid, ?::uuid, '张三', '13800000000', ?, ?, ?, ?, '测试路 1 号')",
                 addressId.toString(),
-                userId.toString());
+                userId.toString(),
+                regionCode,
+                province,
+                city,
+                district);
         onDelete("DELETE FROM account.addresses WHERE id = ?::uuid", addressId.toString());
         return addressId;
     }

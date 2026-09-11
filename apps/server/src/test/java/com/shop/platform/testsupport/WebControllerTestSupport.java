@@ -42,6 +42,7 @@ import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import com.shop.platform.shop.model.MemberRole;
 import com.shop.platform.shop.model.MemberStatus;
+import com.shop.platform.shop.service.ShippingTemplateService;
 import com.shop.platform.shop.service.ShopReviewService;
 import com.shop.platform.shop.service.ShopService;
 import java.util.UUID;
@@ -156,6 +157,9 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected ShopReviewService shopReviewService;
+
+    @MockitoBean
+    protected ShippingTemplateService shippingTemplateService;
 
     @MockitoBean
     protected StaffService staffService;

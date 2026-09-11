@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -16,6 +17,7 @@ import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
+import com.shop.platform.shop.api.ShippingQuote;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,11 +57,15 @@ class CheckoutResolverTest {
     @Mock
     private com.shop.platform.account.api.AddressReadQuery addressReadQuery;
 
+    @Mock
+    private com.shop.platform.shop.api.ShippingFeeReadQuery shippingFeeReadQuery;
+
     private CheckoutResolver resolver;
 
     @BeforeEach
     void setUp() {
-        resolver = new CheckoutResolver(productReadQuery, stockReadQuery, shopReadQuery, addressReadQuery);
+        resolver = new CheckoutResolver(
+                productReadQuery, stockReadQuery, shopReadQuery, addressReadQuery, shippingFeeReadQuery);
     }
 
     private static List<OrderLineRequest> lines(UUID skuId, int quantity) {
@@ -118,8 +124,7 @@ class CheckoutResolverTest {
         assertThat(line.price()).isEqualTo(Money.cny(500));
         assertThat(line.image()).isEqualTo("spu.png"); // SKU 图空 → 回落 SPU 主图
         assertThat(line.stock()).isEqualTo(5);
-        assertThat(resolved.totalPayAmount()).isEqualTo(Money.cny(1000));
-        assertThat(resolved.unavailable()).isEmpty();
+        assertThat(resolved.unavailable()).isEmpty(); // 没有失效行，全进有效行
     }
 
     @Test
@@ -180,7 +185,7 @@ class CheckoutResolverTest {
     // ---- 分组算钱 ----
 
     @Test
-    void 按店分组_金额为行小计之和_运费零() {
+    void 按店分组_金额为行小计之和_未选地址时运费预告零() {
         Money p1 = Money.cny(1000);
         Money p2 = Money.cny(250);
         ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, p1, null, 2, 9);
@@ -189,7 +194,7 @@ class CheckoutResolverTest {
 
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店", shopB(), "乙店"));
 
-        List<CheckoutPreview.Group> groups = resolver.groupByShop(new ArrayList<>(List.of(a, b, c)));
+        List<CheckoutPreview.Group> groups = resolver.groupByShop(new ArrayList<>(List.of(a, b, c)), null);
 
         // 分组按 shopId 升序（与 OrderService.create 拆单顺序一致），但 shopId 是随机 UUID——
         // 谁排前仅由 UUID 大小决定，所以按 shopId 取组、不按下标假定哪家在前
@@ -199,8 +204,45 @@ class CheckoutResolverTest {
         CheckoutPreview.Group groupA = groupOf(groups, shopA());
         assertThat(groupA.shopName()).isEqualTo("甲店");
         assertThat(groupA.itemAmount()).isEqualTo(Money.cny(2250)); // 1000×2 + 250×1
-        assertThat(groupA.payAmount()).isEqualTo(Money.cny(2250)); // V1 运费恒 0
+        // 地址未选 = 地区未知：算不出运费，只预告 0（下单必须走真实地址那一路）
+        assertThat(groupA.shippingFee()).isEqualTo(Money.cny(0));
+        assertThat(groupA.payAmount()).isEqualTo(Money.cny(2250));
         assertThat(groupOf(groups, shopB()).itemAmount()).isEqualTo(Money.cny(1000)); // 250×4
+    }
+
+    @Test
+    void 有地址_运费入应付并与报价一致() {
+        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 2, 9);
+        when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
+        when(shippingFeeReadQuery.quote(shopA(), "440305", 2, Money.cny(2000)))
+                .thenReturn(new ShippingQuote(templateId, true, Money.cny(800)));
+
+        List<CheckoutPreview.Group> groups = resolver.groupByShop(List.of(a), snapshot("440305"));
+
+        CheckoutPreview.Group group = groupOf(groups, shopA());
+        assertThat(group.shippingFee()).isEqualTo(Money.cny(800));
+        assertThat(group.payAmount()).isEqualTo(Money.cny(2800)); // 商品 2000 + 运费 800
+        assertThat(group.deliverable()).isTrue();
+        assertThat(group.shippingTemplateId()).isEqualTo(templateId);
+    }
+
+    @Test
+    void 不配送地区_分组标记不可达且运费零() {
+        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
+        when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
+        when(shippingFeeReadQuery.quote(any(), any(), anyInt(), any()))
+                .thenReturn(new ShippingQuote(templateId, false, Money.cny(0)));
+
+        CheckoutPreview.Group group = groupOf(resolver.groupByShop(List.of(a), snapshot("653101")), shopA());
+
+        assertThat(group.deliverable()).isFalse();
+        assertThat(group.shippingFee()).isEqualTo(Money.cny(0));
+    }
+
+    private final UUID templateId = UUID.randomUUID();
+
+    private static AddressSnapshot snapshot(String regionCode) {
+        return new AddressSnapshot("张三", "13800000000", regionCode, "广东省", "深圳市", "南山区", "测试路 1 号");
     }
 
     private static CheckoutPreview.Group groupOf(List<CheckoutPreview.Group> groups, UUID shopId) {
@@ -225,7 +267,7 @@ class CheckoutResolverTest {
     @Test
     void 地址快照_本人未删才放行() {
         AddressSnapshotView mine =
-                new AddressSnapshotView(userId, null, "张三", "13800000000", "北京市", "北京市", "朝阳区", "测试路 1 号");
+                new AddressSnapshotView(userId, null, "张三", "13800000000", "110105", "北京市", "北京市", "朝阳区", "测试路 1 号");
         when(addressReadQuery.byId(any())).thenReturn(Optional.of(mine));
 
         AddressSnapshot snap = resolver.loadAddressSnapshot(userId, UUID.randomUUID());
@@ -236,7 +278,7 @@ class CheckoutResolverTest {
     @Test
     void 地址快照_他人地址_404不泄露存在性() {
         AddressSnapshotView foreign =
-                new AddressSnapshotView(UUID.randomUUID(), null, "李四", "13900000000", "x", "x", "x", "x");
+                new AddressSnapshotView(UUID.randomUUID(), null, "李四", "13900000000", "110105", "x", "x", "x", "x");
         when(addressReadQuery.byId(any())).thenReturn(Optional.of(foreign));
 
         // 归属不符与不存在同一句话，但状态码是 400（isTrue 收口）；不泄露存在性的语义靠同文案达成
@@ -249,8 +291,8 @@ class CheckoutResolverTest {
 
     @Test
     void 地址快照_已软删_404() {
-        AddressSnapshotView deleted =
-                new AddressSnapshotView(userId, OffsetDateTime.now(), "张三", "13800000000", "x", "x", "x", "x");
+        AddressSnapshotView deleted = new AddressSnapshotView(
+                userId, OffsetDateTime.now(), "张三", "13800000000", "110105", "x", "x", "x", "x");
         when(addressReadQuery.byId(any())).thenReturn(Optional.of(deleted));
 
         assertThatThrownBy(() -> resolver.loadAddressSnapshot(userId, UUID.randomUUID()))

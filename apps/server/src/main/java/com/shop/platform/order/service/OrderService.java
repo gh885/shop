@@ -30,7 +30,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -71,22 +70,24 @@ public class OrderService {
 
     // ========== 结算预览 ==========
 
-    /** 结算预览：只读。有效行按店铺分组算钱，失效/缺货行平铺置灰，地址可选回显 */
+    /** 结算预览：只读。有效行按店铺分组算钱（含运费），失效/缺货行平铺置灰，地址可选回显 */
     @Transactional(readOnly = true)
     public CheckoutPreview preview(UUID userId, PreviewOrderRequest req) {
         // 1. 解析条目并判定可售性（跨模块只读点查，禁止 JOIN）
         ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
 
-        // 2. 有效行按店铺分组算钱 —— 分组即拆单预告
-        List<CheckoutPreview.Group> groups = checkoutResolver.groupByShop(resolved.valid());
-        Money totalPayAmount =
-                groups.stream().map(CheckoutPreview.Group::payAmount).reduce(Money.cny(0), Money::plus);
-
-        // 3. 地址回显：传了就校验归属并镜像，没传返回 null（前端持有地址列表自行默认勾选）
+        // 2. 地址回显：传了就校验归属并镜像，没传返回 null（前端持有地址列表自行默认勾选）。
+        //    先于分组 —— 运费按收货地区算，没有地址就只能把运费预告成 0
         CheckoutPreview.Address address = req.addressId() != null
                 ? new CheckoutPreview.Address(
                         req.addressId(), checkoutResolver.loadAddressSnapshot(userId, req.addressId()))
                 : null;
+
+        // 3. 有效行按店铺分组算钱 —— 分组即拆单预告，运费在此定格，与下单走同一条计费路径（同源同口径）
+        List<CheckoutPreview.Group> groups =
+                checkoutResolver.groupByShop(resolved.valid(), address == null ? null : address.snapshot());
+        Money totalPayAmount =
+                groups.stream().map(CheckoutPreview.Group::payAmount).reduce(Money.cny(0), Money::plus);
 
         return new CheckoutPreview(groups, resolved.unavailable(), address, totalPayAmount);
     }
@@ -110,15 +111,16 @@ public class OrderService {
         ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
         Validate.isTrue(resolved.unavailable().isEmpty(), "部分商品已下架或库存不足，请重新确认结算");
 
-        // 3. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用解析结果免重查。
-        //    分组按 shopId 升序（TreeMap）而非勾选顺序：逐店冻结时 StockCommand 只在单店内按 skuId 排序，
-        //    店间顺序若跟用户走，两笔店序相反的多店订单会互相等锁（A 持店1等店2，B 持店2等店1）。
-        //    一个 SKU 只属一家店，(shopId, skuId) 升序即全局锁序，环不可能成立。
-        Map<UUID, List<ValidLine>> byShop = resolved.valid().stream()
-                .collect(Collectors.groupingBy(ValidLine::shopId, TreeMap::new, Collectors.toList()));
+        // 3. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用分组结果免重查。
+        //    分组顺序（shopId 升序）由 CheckoutResolver.groupByShop 保证，不是勾选顺序：逐店冻结时
+        //    StockCommand 只在单店内按 skuId 排序，店间顺序若跟用户走，两笔店序相反的多店订单会互相等锁
+        //    （A 持店1等店2，B 持店2等店1）。一个 SKU 只属一家店，(shopId, skuId) 升序即全局锁序，环不可能成立。
+        //    运费与计费快照随分组一起定格（同店合计口径），不配送地区在此硬拒——预览页拦不住脚本直接下单
+        List<CheckoutPreview.Group> groups = checkoutResolver.groupByShop(resolved.valid(), address);
+        Validate.isTrue(groups.stream().allMatch(CheckoutPreview.Group::deliverable), "部分商品不支持配送到所选地区，请更换收货地址");
         List<Map.Entry<Order, List<ValidLine>>> staged = new ArrayList<>();
-        for (List<ValidLine> lines : byShop.values()) {
-            staged.add(Map.entry(persistOrder(userId, req, address, lines), lines));
+        for (CheckoutPreview.Group group : groups) {
+            staged.add(Map.entry(persistOrder(userId, req, address, group), group.lines()));
         }
 
         // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU
@@ -128,7 +130,9 @@ public class OrderService {
         events.publishEvent(new OrderPlacedEvent(
                 userId, resolved.valid().stream().map(ValidLine::skuId).toList()));
         List<Order> created = staged.stream().map(Map.Entry::getKey).toList();
-        log.info("[ORDER] 下单成功, userId={}, 单数={}, 总应付={}", userId, created.size(), resolved.totalPayAmount());
+        Money totalPayAmount =
+                groups.stream().map(CheckoutPreview.Group::payAmount).reduce(Money.cny(0), Money::plus);
+        log.info("[ORDER] 下单成功, userId={}, 单数={}, 总应付={}", userId, created.size(), totalPayAmount);
         return created;
     }
 
@@ -178,22 +182,26 @@ public class OrderService {
 
     // ========== 内部：落单 ==========
 
-    /** 落一笔订单：主表快照 + 行项目快照（单号生成见 {@link #insertOrder}） */
-    private Order persistOrder(UUID userId, CreateOrderRequest req, AddressSnapshot addr, List<ValidLine> lines) {
+    /** 落一笔订单：主表快照 + 行项目快照（单号生成见 {@link #insertOrder}）。
+     *  金额与计费快照直接吃分组结果（itemAmount / shippingFee / payAmount / templateId 都是同一次计费的产物），
+     *  不重算——重算就会漂移 */
+    private Order persistOrder(UUID userId, CreateOrderRequest req, AddressSnapshot addr, CheckoutPreview.Group group) {
         String buyerMessage = req.buyerMessage();
-        Money itemAmount = checkoutResolver.sumLines(lines);
         Order template = Order.builder()
                 .userId(userId)
-                .shopId(lines.getFirst().shopId())
+                .shopId(group.shopId())
                 .checkoutKey(req.checkoutKey())
                 .status(PENDING_PAYMENT)
-                .itemAmount(itemAmount.amount())
-                .shippingFee(0L) // V1 未接计费恒 0；上运费后 payAmount = itemAmount + shippingFee
-                .payAmount(itemAmount.amount())
-                .currency(itemAmount.currency())
-                // 快照整块展开成六列平铺（MyBatis-Plus 无嵌入映射）
+                .itemAmount(group.itemAmount().amount())
+                .shippingFee(group.shippingFee().amount())
+                .payAmount(group.payAmount().amount())
+                .currency(group.itemAmount().currency())
+                // 计费快照：金额之外把「按哪份模板、哪个地区收的」也留下，模板事后被改不影响追溯（见 V54）
+                .shippingTemplateId(group.shippingTemplateId())
+                // 收货快照整块展开成列平铺（MyBatis-Plus 无嵌入映射）
                 .receiverName(addr.receiverName())
                 .receiverPhone(addr.receiverPhone())
+                .receiverRegionCode(addr.regionCode())
                 .receiverProvince(addr.province())
                 .receiverCity(addr.city())
                 .receiverDistrict(addr.district())
@@ -206,7 +214,7 @@ public class OrderService {
         Order order = insertOrder(template);
         // 首动作审计：订单落库即进入 PENDING_PAYMENT（无前态），此后状态变更由 OrderTransitionService 留痕
         statusLogWriter.record(order.getId(), null, PENDING_PAYMENT, OrderAction.CREATE, OrderActor.BUYER, null);
-        for (ValidLine line : lines) {
+        for (ValidLine line : group.lines()) {
             Money lineAmount = line.price().times(line.quantity());
             orderItemMapper.insert(OrderItem.builder()
                     .orderId(order.getId())

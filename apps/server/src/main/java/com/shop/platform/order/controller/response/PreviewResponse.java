@@ -9,7 +9,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.UUID;
 
-/** 结算预览出参，镜像 service 形状 CheckoutPreview，金额走 Money（amount + currency） */
+/** 结算预览出参，镜像 service 形状 CheckoutPreview，金额走 Money（amount + currency）。
+ *  组内 payAmount = itemAmount + shippingFee（运费按收货地区与同店合计件数现算）；
+ *  deliverable=false 表示该店不配送到所选地区，前端据此拦住提交（下单侧同样会拒）。 */
 public record PreviewResponse(
         @Schema(requiredMode = REQUIRED) List<Group> groups,
         @Schema(requiredMode = REQUIRED) List<UnavailableLine> unavailable,
@@ -32,7 +34,8 @@ public record PreviewResponse(
             @Schema(requiredMode = REQUIRED) List<Item> lines,
             @Schema(requiredMode = REQUIRED) Money itemAmount,
             @Schema(requiredMode = REQUIRED) Money shippingFee,
-            @Schema(requiredMode = REQUIRED) Money payAmount) {
+            @Schema(requiredMode = REQUIRED) Money payAmount,
+            @Schema(requiredMode = REQUIRED) Boolean deliverable) {
 
         public static Group from(CheckoutPreview.Group g) {
             return new Group(
@@ -41,7 +44,8 @@ public record PreviewResponse(
                     g.lines().stream().map(Item::from).toList(),
                     g.itemAmount(),
                     g.shippingFee(),
-                    g.payAmount());
+                    g.payAmount(),
+                    g.deliverable());
         }
     }
 
@@ -83,7 +87,6 @@ public record PreviewResponse(
             @Schema(requiredMode = REQUIRED) String city,
             @Schema(requiredMode = REQUIRED) String district,
             @Schema(requiredMode = REQUIRED) String detail) {
-
         public static Address from(CheckoutPreview.Address a) {
             return new Address(
                     a.id(),
