@@ -1,12 +1,8 @@
-import {
-    CategoriesApi,
-    ProductsAdminApi,
-    type CategoryAttrNodeResponse,
-    type ProductStatus,
-} from "@shop/api/sdk"
+import { ProductsAdminApi, type ProductStatus } from "@shop/api/sdk"
 import { useEffect, useReducer, useRef, useState } from "react"
 
 import { publishGateError, willPublish, type SaveMode } from "#/product/edit-rules"
+import { useCategorySpecTemplate } from "#/product/use-spec-template"
 import { notify } from "@shop/app-kit"
 import {
     buildSkuRowsFromSelections,
@@ -99,8 +95,8 @@ export function useProductDraft({
     const [hydratedBasic, setHydratedBasic] = useState<ProductBasicForm | undefined>()
     /** 编辑已有商品时的当前状态（新建为 undefined）：决定能否切类目/规格是否冻结 */
     const [productStatus, setProductStatus] = useState<ProductStatus | undefined>()
-    /** 类目销售属性模板：前端本地算 SKU 组合用（完全显式模式，无需后端生成） */
-    const [template, setTemplate] = useState<CategoryAttrNodeResponse[] | undefined>()
+    /** 类目销售属性模板：前端本地算 SKU 组合用（完全显式模式，无需后端生成）；失败静默，组合留空 */
+    const { template } = useCategorySpecTemplate(categoryId)
     /** 商品 id（编辑已有商品进入即有；新建保存后回写） */
     const productRef = useRef(productId)
     /** 本会话内点保存创建（非续编）：表单即真相源，回填/值不应被 productDetail 回灌 reset */
@@ -115,27 +111,6 @@ export function useProductDraft({
         skuRowsRef.current = skuRows
         selectionsRef.current = selections
     }, [skuRows, selections])
-
-    // ---- 类目属性模板加载（本地组合 SKU 依赖；失败静默，组合留空） ----
-    // 模板拉取失败：本地组合退化为单规格，不做阻塞。
-    useEffect(() => {
-        if (!categoryId) return
-        let cancelled = false
-        const loadTemplate = async () => {
-            try {
-                const nodes = await CategoriesApi.getPublicCategoryAttrTemplate({
-                    path: { id: categoryId },
-                })
-                if (!cancelled) setTemplate(nodes.filter((n) => n.attr.kind === "SPEC"))
-            } catch {
-                /* 静默：退化为单规格 */
-            }
-        }
-        void loadTemplate()
-        return () => {
-            cancelled = true
-        }
-    }, [categoryId])
 
     // ---- 建档（幂等）：只在保存/提交时创建。无 shop/category 则跳过 ----
     async function ensureDraft(basic: ProductBasicForm): Promise<string> {

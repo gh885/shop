@@ -1,15 +1,14 @@
-import { productKeys, productListOptions, type ProductSort } from "#/product/queries"
-import type { ProductListSearch } from "#/product/queries"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
 import type { ProductResponse } from "@shop/api/sdk"
 import { ProductsAdminApi } from "@shop/api/sdk"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 
 import type { ProductListFilter } from "#/product/list/filter"
-
+import { productKeys, productListOptions, type ProductSort } from "#/product/queries"
+import type { ProductListSearch } from "#/product/queries"
+import { useRowBusy } from "#/shared/lib/use-row-busy"
+import { useWriteMutation } from "#/shared/lib/use-write-mutation"
 import { useCurrentShop } from "#/shop"
-import { useState } from "react"
-import { notify } from "@shop/app-kit"
 
 export type { ProductListSearch } from "#/product/queries"
 
@@ -17,10 +16,9 @@ export function useProductList(search: ProductListSearch) {
     const shop = useCurrentShop()
     const navigate = useNavigate()
     const queryClient = useQueryClient()
-    const [busyId, setBusyId] = useState<string | undefined>()
+    const { busyId, run } = useRowBusy()
 
     const shopId = shop?.id
-
     const products = useQuery(productListOptions(shopId, search))
 
     // React Compiler 已接管缓存：回调不手动 memo，身份由编译器自动稳定
@@ -43,41 +41,22 @@ export function useProductList(search: ProductListSearch) {
         })
     }
 
-    function invalidate() {
-        return queryClient.invalidateQueries({ queryKey: productKeys.lists(shopId) })
+    const invalidate = () => {
+        void queryClient.invalidateQueries({ queryKey: productKeys.lists(shopId) })
     }
 
-    const off = useMutation({
-        mutationFn: (id: string) => ProductsAdminApi.offProduct({ path: { id } }),
-        onSuccess: () => {
-            notify.success("商品已下架")
-            return invalidate()
-        },
-        onError: (err) => notify.fromError(err, "下架失败"),
+    const off = useWriteMutation<string>({
+        mutationFn: (id) => ProductsAdminApi.offProduct({ path: { id } }),
+        invalidate,
+        messages: { success: "商品已下架", error: "下架失败" },
     })
-    const on = useMutation({
-        mutationFn: (id: string) => ProductsAdminApi.onProduct({ path: { id } }),
-        onSuccess: () => {
-            notify.success("商品已上架")
-            return invalidate()
-        },
-        onError: (err) => notify.fromError(err, "上架失败"),
+    const on = useWriteMutation<string>({
+        mutationFn: (id) => ProductsAdminApi.onProduct({ path: { id } }),
+        invalidate,
+        messages: { success: "商品已上架", error: "上架失败" },
     })
-
-    function handleAction(mutateAsync: (id: string) => Promise<unknown>) {
-        return (id: string) => {
-            setBusyId(id)
-            // 错误已在 mutation 的 onError 里 toast，这里 catch 只为吞掉 unhandled rejection
-            mutateAsync(id)
-                .catch(() => undefined)
-                .finally(() => setBusyId(undefined))
-        }
-    }
-    const handleOff = handleAction(off.mutateAsync)
-    const handleOn = handleAction(on.mutateAsync)
 
     const records: ProductResponse[] = products.data?.records ?? []
-    const total = products.data?.total ?? 0
 
     function handleEdit(id: string) {
         const product = records.find((r) => r.id === id)
@@ -93,21 +72,18 @@ export function useProductList(search: ProductListSearch) {
         title: search.keyword ?? "",
     }
 
-    function handleFilterChange(next: ProductListFilter) {
-        apply({ status: next.status, keyword: next.title })
-    }
-
     return {
         shop,
         products,
         records,
-        total,
+        total: products.data?.total ?? 0,
         busyId,
         filterValue,
-        handleFilterChange,
+        handleFilterChange: (next: ProductListFilter) =>
+            apply({ status: next.status, keyword: next.title }),
         handleEdit,
-        handleOff,
-        handleOn,
+        handleOff: run(off.mutateAsync),
+        handleOn: run(on.mutateAsync),
         onPageChange: (page: number) => apply({ page }),
         onSortChange: (sort: ProductSort) => apply({ sort }),
     }

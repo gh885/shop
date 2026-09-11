@@ -19,15 +19,7 @@ import {
     ButtonGroup,
     Button,
     ButtonGroupText,
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogCancel,
-    AlertDialogAction,
-    Spinner,
+    ConfirmDialog,
 } from "@shop/ui-web"
 
 /**
@@ -126,32 +118,18 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
             </div>
 
             {/* 删除确认 */}
-            <AlertDialog
+            <ConfirmDialog
                 open={confirmOpen}
                 onOpenChange={setConfirmOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>删除商品</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            确定从购物车删除「{view.title}」吗？
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            disabled={actions.removingId === item.id}
-                            onClick={() => {
-                                actions.removeItem(item.id)
-                                setConfirmOpen(false)
-                            }}
-                        >
-                            {actions.removingId === item.id && <Spinner />}删除
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                title="删除商品"
+                description={<>确定从购物车删除「{view.title}」吗？</>}
+                confirmText="删除"
+                pending={actions.removingId === item.id}
+                onConfirm={() => {
+                    actions.removeItem(item.id)
+                    setConfirmOpen(false)
+                }}
+            />
         </Item>
     )
 }

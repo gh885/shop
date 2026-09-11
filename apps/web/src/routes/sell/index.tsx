@@ -10,19 +10,21 @@ import {
     Store,
 } from "lucide-react"
 // LazyMotion + m：按需加载动画特性（domAnimation 含 variants/whileInView/AnimatePresence），省约 30kb 全量 motion 包
-import {
-    AnimatePresence,
-    domAnimation,
-    LazyMotion,
-    m,
-    useReducedMotion,
-    type Variants,
-} from "motion/react"
+import { AnimatePresence, m, useReducedMotion } from "motion/react"
 
 import { Button, buttonVariants, Card, CardContent } from "@shop/ui-web"
 
 import { useAuthStatus, useLoginDialogOpen } from "../../shared/api/auth"
 import { SELLER_URL } from "../../shared/lib/external"
+import {
+    EASE,
+    HeroBody,
+    HeroHeadline,
+    LandingHero,
+    LandingMotion,
+    Reveal,
+    SectionTitle,
+} from "#/shared/ui/landing"
 
 export const Route = createFileRoute("/sell/")({
     component: SellLanding,
@@ -31,18 +33,16 @@ export const Route = createFileRoute("/sell/")({
     }),
 })
 
-const EASE = [0.16, 1, 0.3, 1] as const
-
 function SellLanding() {
     return (
-        <LazyMotion features={domAnimation}>
+        <LandingMotion>
             <div>
                 <Hero />
                 <BusinessModes />
                 <Steps />
                 <FinalCta />
             </div>
-        </LazyMotion>
+        </LandingMotion>
     )
 }
 
@@ -71,83 +71,34 @@ function OpenShopCta({ size = "default" }: { size?: "default" | "lg" }) {
     )
 }
 
-const heroTextVariants: Variants = {
-    hidden: { opacity: 0, y: 28 },
-    show: (i: number) => ({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.7, delay: i * 0.12, ease: EASE },
-    }),
-}
-
 function Hero() {
-    const reduce = useReducedMotion()
-
     return (
-        <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr]">
-            <div className="space-y-6">
-                {[0, 1, 2].map((i) => (
-                    <m.div
-                        key={i}
-                        custom={i}
-                        variants={heroTextVariants}
-                        initial={reduce ? false : "hidden"}
-                        animate="show"
+        <LandingHero
+            headline={
+                <HeroHeadline>
+                    0 元开店，
+                    <br />
+                    让好生意被更多人看见
+                </HeroHeadline>
+            }
+            body={<HeroBody>免费创建店铺，平台审核通过后即可上架商品，开始经营。</HeroBody>}
+            actions={
+                <div className="flex items-center gap-4">
+                    <OpenShopCta size="lg" />
+                    <a
+                        href="#steps"
+                        className={buttonVariants({ variant: "outline", size: "lg" })}
                     >
-                        {i === 0 ? (
-                            <h1 className="text-4xl leading-tight font-bold tracking-tight md:text-5xl">
-                                0 元开店，
-                                <br />
-                                让好生意被更多人看见
-                            </h1>
-                        ) : i === 1 ? (
-                            <p className="max-w-md text-lg text-muted-foreground">
-                                免费创建店铺，平台审核通过后即可上架商品，开始经营。
-                            </p>
-                        ) : (
-                            <div className="flex items-center gap-4">
-                                <OpenShopCta size="lg" />
-                                <a
-                                    href="#steps"
-                                    className={buttonVariants({ variant: "outline", size: "lg" })}
-                                >
-                                    了解入驻流程
-                                </a>
-                            </div>
-                        )}
-                    </m.div>
-                ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <m.img
-                    src="https://picsum.photos/seed/sell-storefront/640/800"
-                    alt="街边小店"
-                    className="mt-8 aspect-4/5 w-full rounded-2xl object-cover"
-                    initial={reduce ? false : { opacity: 0, y: 32 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.25, ease: EASE }}
-                />
-                <div className="grid gap-4">
-                    <m.img
-                        src="https://picsum.photos/seed/sell-parcels/640/480"
-                        alt="打包发货"
-                        className="aspect-4/3 w-full rounded-2xl object-cover"
-                        initial={reduce ? false : { opacity: 0, y: 32 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.4, ease: EASE }}
-                    />
-                    <m.img
-                        src="https://picsum.photos/seed/sell-crafts/640/480"
-                        alt="手作商品"
-                        className="aspect-4/3 w-full rounded-2xl object-cover"
-                        initial={reduce ? false : { opacity: 0, y: 32 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.55, ease: EASE }}
-                    />
+                        了解入驻流程
+                    </a>
                 </div>
-            </div>
-        </section>
+            }
+            images={[
+                { src: "https://picsum.photos/seed/sell-storefront/640/800", alt: "街边小店" },
+                { src: "https://picsum.photos/seed/sell-parcels/640/480", alt: "打包发货" },
+                { src: "https://picsum.photos/seed/sell-crafts/640/480", alt: "手作商品" },
+            ]}
+        />
     )
 }
 
@@ -292,16 +243,7 @@ function Steps() {
             id="steps"
             className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24"
         >
-            <m.h2
-                className="text-3xl font-bold tracking-tight"
-                initial={reduce ? false : { opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.4 }}
-                transition={{ duration: 0.6, ease: EASE }}
-            >
-                三步开店，流程透明
-            </m.h2>
-
+            <SectionTitle>三步开店，流程透明</SectionTitle>
             <ol className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-6">
                 {STEPS.map((step, i) => (
                     <m.li
@@ -327,17 +269,9 @@ function Steps() {
 }
 
 function FinalCta() {
-    const reduce = useReducedMotion()
-
     return (
         <section className="bg-primary-subtle">
-            <m.div
-                className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center"
-                initial={reduce ? false : { opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.7, ease: EASE }}
-            >
+            <Reveal className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center">
                 <Store className="size-10 text-primary" />
                 <h2 className="text-3xl font-bold tracking-tight text-primary-subtle-foreground">
                     准备好开店了吗？
@@ -346,7 +280,7 @@ function FinalCta() {
                     免费创建你的第一家店铺，从一件好货开始。
                 </p>
                 <OpenShopCta size="lg" />
-            </m.div>
+            </Reveal>
         </section>
     )
 }

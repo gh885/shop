@@ -1,13 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+    ConfirmDialog,
     Empty,
     EmptyDescription,
     EmptyHeader,
@@ -16,7 +9,7 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { PackageOpen, Store } from "lucide-react"
+import { PackageOpen } from "lucide-react"
 import { z } from "zod"
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
@@ -25,6 +18,7 @@ import { OrderTable } from "#/order/list/table"
 import { OrderFilterBar } from "#/order/list/filter"
 import { ShipDialog } from "#/order/list/ship-dialog"
 import { useOrderList, type OrderListSearch } from "#/order/list/use-order-list"
+import { ShopRequired } from "#/shared/ui/ShopRequired"
 import { useState } from "react"
 
 const listSearchSchema = z.object({
@@ -71,17 +65,7 @@ function OrdersPage() {
     const [confirm, setConfirm] = useState<SaleConfirm | undefined>()
 
     if (!shop) {
-        return (
-            <Empty className="py-24">
-                <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                        <Store />
-                    </EmptyMedia>
-                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
-                    <EmptyDescription>先到「店铺管理」创建店铺或等待审核通过。</EmptyDescription>
-                </EmptyHeader>
-            </Empty>
-        )
+        return <ShopRequired />
     }
 
     const runConfirm = () => {
@@ -146,30 +130,13 @@ function OrdersPage() {
                 onShip={ship}
             />
 
-            <AlertDialog
+            <ConfirmDialog
                 open={Boolean(confirm)}
                 onOpenChange={(open) => !open && setConfirm(undefined)}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            {confirm ? SALE_CONFIRM_TEXT[confirm.kind].title : ""}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {confirm ? SALE_CONFIRM_TEXT[confirm.kind].desc : ""}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            onClick={runConfirm}
-                        >
-                            确定
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                title={confirm ? SALE_CONFIRM_TEXT[confirm.kind].title : ""}
+                description={confirm ? SALE_CONFIRM_TEXT[confirm.kind].desc : ""}
+                onConfirm={runConfirm}
+            />
         </div>
     )
 }

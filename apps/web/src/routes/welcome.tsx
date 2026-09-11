@@ -1,9 +1,18 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
-// LazyMotion + m：按需加载动画特性（domAnimation 含 variants/whileInView），省约 30kb 全量 motion 包
-import { LazyMotion, domAnimation, m, useReducedMotion, type Variants } from "motion/react"
+import { m, useReducedMotion } from "motion/react"
 
 import { buttonVariants, Card, CardContent } from "@shop/ui-web"
+
+import {
+    HeroBody,
+    HeroHeadline,
+    LandingHero,
+    LandingMotion,
+    Reveal,
+    SectionTitle,
+    STAGGER,
+} from "#/shared/ui/landing"
 
 export const Route = createFileRoute("/welcome")({
     component: Home,
@@ -12,103 +21,59 @@ export const Route = createFileRoute("/welcome")({
     }),
 })
 
-const EASE = [0.16, 1, 0.3, 1] as const
-
-const staggerVariants: Variants = {
-    hidden: { opacity: 0, y: 24 },
-    show: (i: number) => ({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.6, delay: i * 0.1, ease: EASE },
-    }),
-}
-
 function Home() {
     return (
-        <LazyMotion features={domAnimation}>
+        <LandingMotion>
             <div>
                 <Hero />
                 <Categories />
                 <SellerBanner />
             </div>
-        </LazyMotion>
+        </LandingMotion>
     )
 }
 
 function Hero() {
-    const reduce = useReducedMotion()
-
     return (
-        <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr]">
-            <div className="space-y-6">
-                {[0, 1, 2].map((i) => (
-                    <m.div
-                        key={i}
-                        custom={i}
-                        variants={staggerVariants}
-                        initial={reduce ? false : "hidden"}
-                        animate="show"
+        <LandingHero
+            headline={
+                <HeroHeadline>
+                    千万小店，
+                    <br />
+                    各有各的好
+                </HeroHeadline>
+            }
+            body={
+                <HeroBody>
+                    从产地直供到手作原创，每家店都有自己的脾气。逛的是店，买的是放心。
+                </HeroBody>
+            }
+            actions={
+                <div className="flex items-center gap-4">
+                    <a
+                        href="#categories"
+                        className={buttonVariants({ size: "lg" })}
                     >
-                        {i === 0 ? (
-                            <h1 className="text-4xl leading-tight font-bold tracking-tight text-balance md:text-5xl">
-                                千万小店，
-                                <br />
-                                各有各的好
-                            </h1>
-                        ) : i === 1 ? (
-                            <p className="max-w-md text-lg text-muted-foreground">
-                                从产地直供到手作原创，每家店都有自己的脾气。逛的是店，买的是放心。
-                            </p>
-                        ) : (
-                            <div className="flex items-center gap-4">
-                                <a
-                                    href="#categories"
-                                    className={buttonVariants({ size: "lg" })}
-                                >
-                                    逛商品分类
-                                    <ArrowRight className="size-4" />
-                                </a>
-                                <Link
-                                    to="/sell"
-                                    className={buttonVariants({ variant: "outline", size: "lg" })}
-                                >
-                                    我要开店
-                                </Link>
-                            </div>
-                        )}
-                    </m.div>
-                ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <m.img
-                    src="https://picsum.photos/seed/home-market/640/800"
-                    alt="集市上的特色小店"
-                    className="mt-8 aspect-4/5 w-full rounded-2xl object-cover"
-                    initial={reduce ? false : { opacity: 0, y: 32 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.25, ease: EASE }}
-                />
-                <div className="grid gap-4">
-                    <m.img
-                        src="https://picsum.photos/seed/home-crafts/640/480"
-                        alt="手作商品摊位"
-                        className="aspect-4/3 w-full rounded-2xl object-cover"
-                        initial={reduce ? false : { opacity: 0, y: 32 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.4, ease: EASE }}
-                    />
-                    <m.img
-                        src="https://picsum.photos/seed/home-fresh/640/480"
-                        alt="新鲜食材"
-                        className="aspect-4/3 w-full rounded-2xl object-cover"
-                        initial={reduce ? false : { opacity: 0, y: 32 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.55, ease: EASE }}
-                    />
+                        逛商品分类
+                        <ArrowRight className="size-4" />
+                    </a>
+                    <Link
+                        to="/sell"
+                        className={buttonVariants({ variant: "outline", size: "lg" })}
+                    >
+                        我要开店
+                    </Link>
                 </div>
-            </div>
-        </section>
+            }
+            images={[
+                {
+                    src: "https://picsum.photos/seed/home-market/640/800",
+                    alt: "集市上的特色小店",
+                },
+                { src: "https://picsum.photos/seed/home-crafts/640/480", alt: "手作商品摊位" },
+                { src: "https://picsum.photos/seed/home-fresh/640/480", alt: "新鲜食材" },
+            ]}
+        />
     )
 }
 
@@ -154,15 +119,7 @@ function Categories() {
             className="scroll-mt-20 bg-sunken"
         >
             <div className="mx-auto max-w-6xl px-4 py-24">
-                <m.h2
-                    className="text-3xl font-bold tracking-tight"
-                    initial={reduce ? false : { opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.4 }}
-                    transition={{ duration: 0.6, ease: EASE }}
-                >
-                    按分类逛逛
-                </m.h2>
+                <SectionTitle>按分类逛逛</SectionTitle>
                 <p className="mt-2 text-muted-foreground">分类浏览即将上线，先看看都有什么。</p>
 
                 <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3">
@@ -171,7 +128,7 @@ function Categories() {
                             key={cat.name}
                             className="group"
                             custom={i}
-                            variants={staggerVariants}
+                            variants={STAGGER}
                             initial={reduce ? false : "hidden"}
                             whileInView="show"
                             viewport={{ once: true, amount: 0.2 }}
@@ -194,17 +151,9 @@ function Categories() {
 }
 
 function SellerBanner() {
-    const reduce = useReducedMotion()
-
     return (
         <section className="mx-auto max-w-6xl px-4 py-24">
-            <m.div
-                className="flex flex-col items-start gap-4 rounded-2xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between"
-                initial={reduce ? false : { opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.7, ease: EASE }}
-            >
+            <Reveal className="flex flex-col items-start gap-4 rounded-2xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-start gap-4">
                     <Store className="mt-1 size-8 shrink-0 text-primary" />
                     <div className="space-y-1">
@@ -223,7 +172,7 @@ function SellerBanner() {
                     免费开店
                     <ArrowRight className="size-4" />
                 </Link>
-            </m.div>
+            </Reveal>
         </section>
     )
 }

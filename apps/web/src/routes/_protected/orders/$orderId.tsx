@@ -5,20 +5,7 @@ import { useState } from "react"
 import { AccountHeader } from "#/account"
 import { useOrderDetail, useOrderActions } from "#/order"
 import { notify } from "@shop/app-kit"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    Card,
-    CardContent,
-    Skeleton,
-    Spinner,
-} from "@shop/ui-web"
+import { Card, CardContent, ConfirmDialog, Skeleton } from "@shop/ui-web"
 
 function notifyItemAction(_order: unknown, action: string) {
     notify.info(`「${action}」即将上线`)
@@ -96,31 +83,15 @@ function OrderDetailPage() {
             </div>
 
             {/* 取消订单二次确认 */}
-            <AlertDialog
+            <ConfirmDialog
                 open={cancelOpen}
                 onOpenChange={setCancelOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>取消订单</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            确定取消订单 {order.orderNo} 吗？该操作不可恢复。
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            disabled={cancel.isPending}
-                            onClick={() =>
-                                cancel.mutate(order.id, { onSuccess: () => setCancelOpen(false) })
-                            }
-                        >
-                            {cancel.isPending && <Spinner />}取消订单
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                title="取消订单"
+                description={<>确定取消订单 {order.orderNo} 吗？该操作不可恢复。</>}
+                confirmText="取消订单"
+                pending={cancel.isPending}
+                onConfirm={() => cancel.mutate(order.id, { onSuccess: () => setCancelOpen(false) })}
+            />
         </div>
     )
 }

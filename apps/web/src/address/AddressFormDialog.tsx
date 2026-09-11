@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { z } from "zod"
 
 import { notify } from "@shop/app-kit"
+import { findPath, loadChildren } from "@shop/common"
 import {
     Button,
     cn,
@@ -14,14 +15,14 @@ import {
     InputGroup,
     InputGroupAddon,
     InputGroupTextarea,
+    RegionPicker,
+    type RegionNode,
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
-import RegionPicker, { type RegionNode } from "#/shared/ui/RegionPicker"
 
 import { ADDRESS_LABELS, type Address, type AddressInput } from "./address"
 import { parseAddressText, useCreateAddress, useUpdateAddress } from "./queries"
-import { findPath, loadChildren } from "./regions"
 
 /** 表单入参校验（form validators 用；表单局部 zchema，非领域契约） */
 const AddressInputSchema = z.object({

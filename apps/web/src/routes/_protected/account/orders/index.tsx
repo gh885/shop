@@ -18,15 +18,7 @@ import {
     EmptyTitle,
     EmptyDescription,
     Button,
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogCancel,
-    AlertDialogAction,
-    Spinner,
+    ConfirmDialog,
 } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/orders/")({
@@ -144,34 +136,20 @@ function OrdersPage() {
             )}
 
             {/* 取消订单二次确认 */}
-            <AlertDialog
+            <ConfirmDialog
                 open={Boolean(cancelTarget)}
                 onOpenChange={(open) => !open && setCancelTarget(undefined)}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>取消订单</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            确定取消订单 {cancelTarget?.orderNo ?? ""} 吗？该操作不可恢复。
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            disabled={cancel.isPending}
-                            onClick={() => {
-                                if (cancelTarget)
-                                    cancel.mutate(cancelTarget.id, {
-                                        onSuccess: () => setCancelTarget(undefined),
-                                    })
-                            }}
-                        >
-                            {cancel.isPending && <Spinner />}取消订单
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                title="取消订单"
+                description={<>确定取消订单 {cancelTarget?.orderNo ?? ""} 吗？该操作不可恢复。</>}
+                confirmText="取消订单"
+                pending={cancel.isPending}
+                onConfirm={() => {
+                    if (cancelTarget)
+                        cancel.mutate(cancelTarget.id, {
+                            onSuccess: () => setCancelTarget(undefined),
+                        })
+                }}
+            />
         </div>
     )
 }

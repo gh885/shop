@@ -13,6 +13,7 @@ import {
 } from "@shop/ui-web"
 
 import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "./model"
+import { ORDER_CARD_ACTIONS, OrderActionButtons, type OrderAction } from "./OrderActionButtons"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 import { formatDateTime } from "@shop/app-kit"
 import { fenToYuan } from "@shop/common"
@@ -26,37 +27,11 @@ import { Price } from "#/shared/ui/Price"
  *   顶部订单信息条：时间 · 订单号（不截断）· 店铺 | 右侧 状态 + 订单详情按钮
  *   下方逐行订单项：主图 · 标题 · 单价×数量 · 行小计
  *
- * 操作按钮按订单状态动态给出（见 ORDER_ACTIONS）。纯展示，回调交给外部。
+ * 操作按钮按订单状态动态给出（见 ORDER_CARD_ACTIONS）。纯展示，回调交给外部。
  * 行项无独立 id（订单快照只留 productId/skuId），渲染 key 用 `productId+skuId+quantity`。
  */
 
-/** 订单卡片操作 key（封闭联合：分发处 switch/查找表可穷举检查，新增动作编译期可见） */
-export type OrderAction =
-    | "pay"
-    | "cancel"
-    | "remind"
-    | "logistics"
-    | "confirm"
-    | "rebuy"
-    | "add_cart"
-
-/** 按状态给出该订单可执行的操作（主操作 + 次操作），后续路由/接口落地后接真实动作 */
-const ORDER_ACTIONS: Record<
-    OrderStatus,
-    { key: OrderAction; label: string; variant?: "default" | "outline" }[]
-> = {
-    pending_payment: [
-        { key: "pay", label: "去付款", variant: "default" },
-        { key: "cancel", label: "取消订单" },
-    ],
-    pending_shipment: [{ key: "remind", label: "提醒发货" }],
-    pending_receipt: [
-        { key: "logistics", label: "查看物流" },
-        { key: "confirm", label: "确认收货", variant: "default" },
-    ],
-    completed: [{ key: "rebuy", label: "再买一单" }],
-    cancelled: [{ key: "rebuy", label: "再买一单" }],
-}
+export type { OrderAction } from "./OrderActionButtons"
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
     pending_payment: "text-primary",
@@ -81,7 +56,6 @@ export interface OrderCardProps {
 }
 
 export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCardProps) {
-    const actions = ORDER_ACTIONS[order.status]
     // 待付款订单展示付款截止倒计时（其余状态不显示）
     const pending = order.status === "pending_payment"
     const { seconds } = useCountdown(pending ? order.payExpireAt : "")
@@ -172,18 +146,11 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
 
                             {/* 订单操作：按状态动态渲染 */}
                             <ItemActions className="w-36 gap-2">
-                                {actions.map((a) => (
-                                    <Button
-                                        key={a.key}
-                                        variant={a.variant ?? "outline"}
-                                        size="sm"
-                                        className="min-w-24"
-                                        disabled={pendingAction === a.key}
-                                        onClick={() => onAction?.(order, a.key)}
-                                    >
-                                        {a.label}
-                                    </Button>
-                                ))}
+                                <OrderActionButtons
+                                    actions={ORDER_CARD_ACTIONS[order.status]}
+                                    disabledKey={pendingAction}
+                                    onAction={(action) => onAction?.(order, action)}
+                                />
                             </ItemActions>
                         </Item>
                     ))}

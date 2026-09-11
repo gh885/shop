@@ -619,10 +619,22 @@ importers:
       date-fns:
         specifier: 'catalog:'
         version: 4.4.0
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.41.0(react@19.2.8)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
+      zod:
+        specifier: 'catalog:'
+        version: 4.5.4
     devDependencies:
       '@shop/config':
         specifier: workspace:*
         version: link:../config
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.18
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -671,6 +683,9 @@ importers:
       msw:
         specifier: 'catalog:'
         version: 2.15.0(@types/node@26.4.1)(typescript@7.0.2)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.8
     devDependencies:
       '@shop/config':
         specifier: workspace:*
@@ -678,6 +693,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.18
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

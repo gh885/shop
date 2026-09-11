@@ -1,24 +1,19 @@
 import { useEffect, useRef, useState } from "react"
 import { ChevronDown } from "lucide-react"
 
-import {
-    Button,
-    cn,
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-    Skeleton,
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@shop/ui-web"
+import { cn } from "../lib/utils"
+import { Button } from "./ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Skeleton } from "./ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 
 /**
  * RegionPicker —— 级联选择器（输入框触发，下拉面板内省/市/区/街道 tab 切换）
  *
  * 概念：沿一棵树逐层向下选择，直到叶子节点。组件不认识"全国地址库"，
  * 只会"给一个节点，要它的孩子们"——数据从哪来、缓存多久，是外部的事。
+ * 国标行政区划数据源在 @shop/common 的 regions（loadChildren / findPath），
+ * 两者靠结构类型对齐：本组件只认 { code, label, isLeaf }，不知道该数据的来源。
  *
  * 契约：
  * - value        已选路径（受控），如 [山西省, 太原市, 小店区]；空数组 = 未选
@@ -51,7 +46,7 @@ export interface RegionPickerProps {
 /** 缓存 key：根层统一用 ''，其余用父节点 code */
 const cacheKeyOf = (parent: RegionNode | undefined) => parent?.code ?? ""
 
-export default function RegionPicker({
+export function RegionPicker({
     value,
     onChange,
     loadChildren,

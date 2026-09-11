@@ -1,9 +1,7 @@
 import { MapPin } from "lucide-react"
 
-import { Button } from "@shop/ui-web"
-
-import { ORDER_STATUS_LABEL, type OrderDetail, type OrderStatus } from "./model"
-import type { OrderAction } from "./OrderCard"
+import { ORDER_STATUS_LABEL, type OrderDetail } from "./model"
+import { ORDER_DETAIL_ACTIONS, OrderActionButtons, type OrderAction } from "./OrderActionButtons"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 
 /**
@@ -11,27 +9,6 @@ import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
  *
  * 操作按钮按状态动态渲染（主操作橙、其余描边）。纯展示，回调交给外部。
  */
-
-/** 按状态给出主/次操作（与列表卡片同源思路，详情页按钮更多） */
-const STATUS_ACTIONS: Record<
-    OrderStatus,
-    { key: OrderAction; label: string; variant?: "default" | "outline" }[]
-> = {
-    pending_payment: [
-        { key: "pay", label: "去付款", variant: "default" },
-        { key: "cancel", label: "取消订单" },
-    ],
-    pending_shipment: [{ key: "remind", label: "提醒发货" }],
-    pending_receipt: [
-        { key: "logistics", label: "查看物流" },
-        { key: "confirm", label: "确认收货", variant: "default" },
-    ],
-    completed: [
-        { key: "rebuy", label: "再买一单", variant: "default" },
-        { key: "add_cart", label: "加入购物车" },
-    ],
-    cancelled: [{ key: "rebuy", label: "再买一单" }],
-}
 
 export interface OrderStatusSectionProps {
     order: OrderDetail
@@ -41,7 +18,6 @@ export interface OrderStatusSectionProps {
 }
 
 export function OrderStatusSection({ order, onAction, pendingAction }: OrderStatusSectionProps) {
-    const actions = STATUS_ACTIONS[order.status]
     // 待付款订单展示付款截止倒计时
     const pending = order.status === "pending_payment"
     const { seconds } = useCountdown(pending ? order.payExpireAt : "")
@@ -72,18 +48,11 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
 
             {/* 操作按钮排 */}
             <div className="flex flex-wrap gap-3">
-                {actions.map((a) => (
-                    <Button
-                        key={a.key}
-                        variant={a.variant ?? "outline"}
-                        size="sm"
-                        className="min-w-24"
-                        disabled={pendingAction === a.key}
-                        onClick={() => onAction?.(order, a.key)}
-                    >
-                        {a.label}
-                    </Button>
-                ))}
+                <OrderActionButtons
+                    actions={ORDER_DETAIL_ACTIONS[order.status]}
+                    disabledKey={pendingAction}
+                    onAction={(action) => onAction?.(order, action)}
+                />
             </div>
         </div>
     )

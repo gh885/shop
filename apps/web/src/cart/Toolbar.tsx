@@ -1,19 +1,7 @@
 import { ChevronDown, Search } from "lucide-react"
 import { useState } from "react"
 import { notify } from "@shop/app-kit"
-import {
-    Checkbox,
-    Button,
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogCancel,
-    AlertDialogAction,
-    Spinner,
-} from "@shop/ui-web"
+import { Checkbox, Button, ConfirmDialog } from "@shop/ui-web"
 import { deriveSelectedItems, deriveAllSelected } from "./cart"
 import { useCartItems, useSelectCartItems, useBatchRemoveCartItems } from "./queries"
 
@@ -91,29 +79,15 @@ export function Toolbar() {
             </div>
 
             {/* 批量删除二次确认 */}
-            <AlertDialog
+            <ConfirmDialog
                 open={confirmOpen}
                 onOpenChange={setConfirmOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>删除商品</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            确定从购物车删除选中的 {selectedIds.length} 件商品吗？
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            disabled={batchRemove.isPending}
-                            onClick={() => batchRemove.mutate(selectedIds)}
-                        >
-                            {batchRemove.isPending && <Spinner />}删除
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                title="删除商品"
+                description={<>确定从购物车删除选中的 {selectedIds.length} 件商品吗？</>}
+                confirmText="删除"
+                pending={batchRemove.isPending}
+                onConfirm={() => batchRemove.mutate(selectedIds)}
+            />
         </div>
     )
 }

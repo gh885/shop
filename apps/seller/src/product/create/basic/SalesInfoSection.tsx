@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react"
 import {
     Card,
     CardContent,
@@ -10,10 +9,10 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { priceRangeText, toApiError } from "@shop/common"
-import { CategoriesApi, type CategoryAttrNodeResponse } from "@shop/api/sdk"
+import { priceRangeText } from "@shop/common"
 
 import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
+import { useCategorySpecTemplate } from "#/product/use-spec-template"
 
 import { SalesAttrsEditor } from "./SalesAttrsEditor"
 import { SkuGridEditor } from "./SkuGridEditor"
@@ -56,39 +55,14 @@ export function SalesInfoSection({
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
     onListingTimeChange: (next: ListingTime) => void
 }) {
-    const [template, setTemplate] = useState<CategoryAttrNodeResponse[] | undefined>()
-    const [loadError, setLoadError] = useState<string | undefined>()
-    // 重载信号：重试时自增触发重新拉取
-    const [reloadKey, setReloadKey] = useState(0)
+    const { template, error: loadError, retry } = useCategorySpecTemplate(categoryId)
 
-    // ---- 模板加载（提升到壳；失败可重试） ----
-    useEffect(() => {
-        let cancelled = false
-        const loadTemplate = async () => {
-            try {
-                const nodes = await CategoriesApi.getPublicCategoryAttrTemplate({
-                    path: { id: categoryId },
-                })
-                if (!cancelled) {
-                    setTemplate(nodes.filter((n) => n.attr.kind === "SPEC"))
-                    setLoadError(undefined)
-                }
-            } catch (error) {
-                if (!cancelled) setLoadError(toApiError(error).detail)
-            }
-        }
-        void loadTemplate()
-        return () => {
-            cancelled = true
-        }
-    }, [categoryId, reloadKey])
-
-    // 加载中（首次）：Skeleton；失败：StateError（重试自增 reloadKey）
+    // 加载中（首次）：Skeleton；失败：StateError（重试重新拉取）
     if (loadError && !template) {
         return (
             <StateError
                 message={loadError}
-                onRetry={() => setReloadKey((k) => k + 1)}
+                onRetry={retry}
             />
         )
     }

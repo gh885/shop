@@ -8,7 +8,7 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { Package, Store } from "lucide-react"
+import { Package } from "lucide-react"
 
 import { ProductStatus } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
@@ -23,6 +23,7 @@ import { EditTitleDialog } from "#/product/list/EditTitleDialog"
 import { FilterBar } from "#/product/list/filter"
 import { useProductList, type ProductListSearch } from "#/product/list/use-product-list"
 import { PRODUCT_SORTS } from "#/product/queries"
+import { ShopRequired } from "#/shared/ui/ShopRequired"
 
 // status 从生成的 ProductStatus 枚举派生（后端加状态时此处编译期跟进），脏值 catch 到默认 tab
 const listSearchSchema = z.object({
@@ -64,17 +65,7 @@ function ProductsPage() {
     const [titleTarget, setTitleTarget] = useState<ProductResponse | undefined>()
 
     if (!shop) {
-        return (
-            <Empty className="py-24">
-                <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                        <Store />
-                    </EmptyMedia>
-                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
-                    <EmptyDescription>先到「店铺管理」创建店铺或等待审核通过。</EmptyDescription>
-                </EmptyHeader>
-            </Empty>
-        )
+        return <ShopRequired />
     }
 
     return (

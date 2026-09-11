@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { createFileRoute, useBlocker, useNavigate } from "@tanstack/react-router"
-import { CircleAlert, Store } from "lucide-react"
+import { CircleAlert } from "lucide-react"
 
 import { toApiError } from "@shop/common"
 import {
@@ -13,16 +13,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     Button,
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
 } from "@shop/ui-web"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
 import { useProductDraft } from "#/product/create/basic/use-product-draft"
 import { notify } from "@shop/app-kit"
+import { ShopRequired } from "#/shared/ui/ShopRequired"
 import { useCurrentShop } from "#/shop"
 
 interface BasicSearch {
@@ -124,22 +120,15 @@ function NewProductBasicStep() {
 
     if (!shop) {
         return (
-            <Empty className="py-24">
-                <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                        <Store />
-                    </EmptyMedia>
-                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
-                    <EmptyDescription>创建店铺或等待审核通过后，再来发布商品。</EmptyDescription>
-                    <Button
-                        variant="outline"
-                        className="mt-2"
-                        onClick={() => void navigate({ to: "/shop/list" })}
-                    >
-                        去店铺管理
-                    </Button>
-                </EmptyHeader>
-            </Empty>
+            <ShopRequired description="创建店铺或等待审核通过后，再来发布商品。">
+                <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => void navigate({ to: "/shop/list" })}
+                >
+                    去店铺管理
+                </Button>
+            </ShopRequired>
         )
     }
 

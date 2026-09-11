@@ -12,10 +12,14 @@
     "dependencies": {
         "@shop/common": "workspace:*",
         "@shop/ui-web": "workspace:*",
-        "date-fns": "catalog:"
+        "date-fns": "catalog:",
+        "lucide-react": "catalog:",
+        "react": "catalog:",
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@shop/config": "workspace:*",
+        "@types/react": "catalog:",
         "typescript": "catalog:"
     }
 }

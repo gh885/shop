@@ -2,22 +2,14 @@ import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
     Button,
+    ConfirmDialog,
     Empty,
     EmptyDescription,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
     Skeleton,
-    Spinner,
 } from "@shop/ui-web"
 import { HeartOff } from "lucide-react"
 
@@ -178,29 +170,15 @@ function FavoritesPage() {
             )}
 
             {/* 批量删除二次确认 */}
-            <AlertDialog
+            <ConfirmDialog
                 open={batchConfirmOpen}
                 onOpenChange={setBatchConfirmOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>取消收藏</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            确定移除选中的 {selected.size} 件商品收藏吗？
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            disabled={removeFavorites.isPending}
-                            onClick={handleBatchDelete}
-                        >
-                            {removeFavorites.isPending && <Spinner />}移除
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                title="取消收藏"
+                description={<>确定移除选中的 {selected.size} 件商品收藏吗？</>}
+                confirmText="移除"
+                pending={removeFavorites.isPending}
+                onConfirm={handleBatchDelete}
+            />
         </div>
     )
 }

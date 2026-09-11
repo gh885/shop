@@ -2,14 +2,6 @@ import { CircleAlert, LogOut, Monitor, Smartphone } from "lucide-react"
 
 import { notify } from "@shop/app-kit"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
     Button,
     Card,
     CardAction,
@@ -17,6 +9,7 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
+    ConfirmDialog,
     Empty,
     EmptyDescription,
     EmptyHeader,
@@ -266,29 +259,15 @@ function DeviceManager() {
                 </div>
 
                 {/* 退出所有设备二次确认 */}
-                <AlertDialog
+                <ConfirmDialog
                     open={logoutAllOpen}
                     onOpenChange={setLogoutAllOpen}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>退出所有设备</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                将退出包括本机在内的所有登录会话，确定继续吗？
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>取消</AlertDialogCancel>
-                            <AlertDialogAction
-                                variant="destructive"
-                                disabled={logoutAll.isPending}
-                                onClick={() => logoutAll.mutate()}
-                            >
-                                {logoutAll.isPending && <Spinner />}退出所有设备
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                    title="退出所有设备"
+                    description="将退出包括本机在内的所有登录会话，确定继续吗？"
+                    confirmText="退出所有设备"
+                    pending={logoutAll.isPending}
+                    onConfirm={() => logoutAll.mutate()}
+                />
             </CardContent>
         </Card>
     )

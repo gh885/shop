@@ -5,10 +5,10 @@ import { toApiError } from "@shop/common"
 import { useCurrentShop, shopKeys } from "#/shop"
 import { useMe } from "#/shared/lib/me"
 import { shopMembers, inviteMember, removeMember } from "#/shop/data"
-import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
+import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { notify } from "@shop/app-kit"
+import { useWriteMutation } from "#/shared/lib/use-write-mutation"
 import {
     Empty,
     EmptyHeader,
@@ -28,15 +28,9 @@ import {
     firstFieldError,
     ButtonGroup,
     Input,
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogCancel,
-    AlertDialogAction,
+    ConfirmDialog,
 } from "@shop/ui-web"
+import { ShopRequired } from "#/shared/ui/ShopRequired"
 import { z } from "zod"
 
 /** 邀请手机号校验：与后端手机号 @Pattern 对齐（就近放在表单旁） */
@@ -51,17 +45,7 @@ function MembersPage() {
     const shop = useCurrentShop()
 
     if (!shop) {
-        return (
-            <Empty className="py-24">
-                <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                        <Store />
-                    </EmptyMedia>
-                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
-                    <EmptyDescription>先到「店铺管理」创建店铺或等待审核通过。</EmptyDescription>
-                </EmptyHeader>
-            </Empty>
-        )
+        return <ShopRequired />
     }
 
     return (
@@ -91,13 +75,11 @@ function MemberPanel({ shopId }: { shopId: string }) {
         (m) => m.role === "OWNER" && m.status === "ACTIVE" && m.userId === me.data?.id,
     )
 
-    const invite = useMutation({
-        mutationFn: (value: string) => inviteMember(shopId, { phone: value }),
-        onSuccess: () => {
-            notify.success("邀请已发送")
-            void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) })
-        },
-        onError: (e) => notify.fromError(e, "邀请发送失败"),
+    const invite = useWriteMutation<string>({
+        mutationFn: (phone) => inviteMember(shopId, { phone }),
+        invalidate: () =>
+            void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),
+        messages: { success: "邀请已发送", error: "邀请发送失败" },
     })
 
     const inviteForm = useAppForm({
@@ -105,13 +87,11 @@ function MemberPanel({ shopId }: { shopId: string }) {
         onSubmit: ({ value }) => invite.mutate(value.phone),
     })
 
-    const remove = useMutation({
-        mutationFn: (memberId: string) => removeMember(shopId, memberId),
-        onSuccess: () => {
-            notify.success("已移除该成员")
-            void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) })
-        },
-        onError: (e) => notify.fromError(e, "移除成员失败"),
+    const remove = useWriteMutation<string>({
+        mutationFn: (memberId) => removeMember(shopId, memberId),
+        invalidate: () =>
+            void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),
+        messages: { success: "已移除该成员", error: "移除成员失败" },
     })
 
     // 移除二次确认：记录目标成员，确认后才真正执行
@@ -247,31 +227,17 @@ function MemberPanel({ shopId }: { shopId: string }) {
                 )}
 
                 {/* 移除成员二次确认 */}
-                <AlertDialog
+                <ConfirmDialog
                     open={Boolean(removeTarget)}
                     onOpenChange={(open) => !open && setRemoveTarget(undefined)}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>移除成员</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                确定将该成员移出店铺吗？移除后对方将无法访问本店铺。
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>取消</AlertDialogCancel>
-                            <AlertDialogAction
-                                variant="destructive"
-                                onClick={() => {
-                                    if (removeTarget) remove.mutate(removeTarget)
-                                    setRemoveTarget(undefined)
-                                }}
-                            >
-                                移除
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                    title="移除成员"
+                    description="确定将该成员移出店铺吗？移除后对方将无法访问本店铺。"
+                    confirmText="移除"
+                    onConfirm={() => {
+                        if (removeTarget) remove.mutate(removeTarget)
+                        setRemoveTarget(undefined)
+                    }}
+                />
             </CardContent>
         </Card>
     )

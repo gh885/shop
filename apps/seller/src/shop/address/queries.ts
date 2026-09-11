@@ -1,8 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { notify } from "@shop/app-kit"
-import type { MerchantAddressRequest, MerchantAddressResponse } from "@shop/api/sdk"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import type { MerchantAddressRequest } from "@shop/api/sdk"
 
 import { useCurrentShop } from "#/shop"
+import { useWriteMutation } from "#/shared/lib/use-write-mutation"
+
 import {
     createAddress,
     deleteAddress,
@@ -30,80 +31,48 @@ export function useAddressList() {
     })
 }
 
-function useInvalidateAddress() {
-    const shop = useCurrentShop()
+/**
+ * 本店地址的五个写操作只差 mutationFn 与成功文案：
+ * 失效 key（含当前店铺）、toast 文案、错误归一全部走 useWriteMutation，不再逐个手写。
+ */
+function useAddressMutation<TInput>(
+    mutationFn: (input: TInput) => Promise<unknown>,
+    success: string,
+) {
+    const shopId = useCurrentShop()?.id
     const queryClient = useQueryClient()
-    const shopId = shop?.id
-    return () => queryClient.invalidateQueries({ queryKey: addressKeys.lists(shopId) })
-}
-
-export interface AddressMutationResult {
-    mutateAsync: (input: MerchantAddressRequest) => Promise<MerchantAddressResponse>
-    isPending: boolean
+    return useWriteMutation<TInput>({
+        mutationFn,
+        invalidate: () =>
+            void queryClient.invalidateQueries({ queryKey: addressKeys.lists(shopId) }),
+        messages: { success },
+    })
 }
 
 /** 新增地址 */
 export function useCreateAddress() {
-    const invalidate = useInvalidateAddress()
-    return useMutation({
-        mutationFn: (input: MerchantAddressRequest) => createAddress(input),
-        onSuccess: () => {
-            void invalidate()
-            notify.success("地址已保存")
-        },
-        onError: (e) => notify.fromError(e),
-    })
+    return useAddressMutation(createAddress, "地址已保存")
 }
 
 /** 编辑地址（保留原 id） */
 export function useUpdateAddress() {
-    const invalidate = useInvalidateAddress()
-    return useMutation({
-        mutationFn: ({ id, input }: { id: string; input: MerchantAddressRequest }) =>
-            updateAddress(id, input),
-        onSuccess: () => {
-            void invalidate()
-            notify.success("地址已更新")
-        },
-        onError: (e) => notify.fromError(e),
-    })
+    return useAddressMutation(
+        ({ id, input }: { id: string; input: MerchantAddressRequest }) => updateAddress(id, input),
+        "地址已更新",
+    )
 }
 
 /** 删除地址 */
 export function useDeleteAddress() {
-    const invalidate = useInvalidateAddress()
-    return useMutation({
-        mutationFn: (id: string) => deleteAddress(id),
-        onSuccess: () => {
-            void invalidate()
-            notify.success("地址已删除")
-        },
-        onError: (e) => notify.fromError(e),
-    })
+    return useAddressMutation((id: string) => deleteAddress(id), "地址已删除")
 }
 
 /** 设为默认发货 */
 export function useSetDefaultShip() {
-    const invalidate = useInvalidateAddress()
-    return useMutation({
-        mutationFn: (id: string) => setDefaultShip(id),
-        onSuccess: () => {
-            void invalidate()
-            notify.success("已设为默认发货地址")
-        },
-        onError: (e) => notify.fromError(e),
-    })
+    return useAddressMutation((id: string) => setDefaultShip(id), "已设为默认发货地址")
 }
 
 /** 设为默认退货 */
 export function useSetDefaultReturn() {
-    const invalidate = useInvalidateAddress()
-    return useMutation({
-        mutationFn: (id: string) => setDefaultReturn(id),
-        onSuccess: () => {
-            void invalidate()
-            notify.success("已设为默认退货地址")
-        },
-        onError: (e) => notify.fromError(e),
-    })
+    return useAddressMutation((id: string) => setDefaultReturn(id), "已设为默认退货地址")
 }

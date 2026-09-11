@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { notify } from "@shop/app-kit"
 
 import type { Order } from "./model"
-import type { OrderAction } from "./OrderCard"
+import type { OrderAction } from "./OrderActionButtons"
 import { useCancelOrder, useReceiveOrder } from "./queries"
 
 /**

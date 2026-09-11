@@ -3,17 +3,9 @@ import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil } from "lucide-react"
 
 import { formatDate } from "@shop/app-kit"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
     Badge,
     Button,
-    Table,
+    ConfirmDialog,
     TableBody,
     TableCell,
     TableHead,
@@ -27,7 +19,7 @@ import { cn } from "@shop/ui-web"
 
 import { imgUrl } from "#/shared/lib/image"
 import { CopyableText } from "#/shared/ui/CopyableText"
-import { TablePagination } from "#/shared/ui/Pagination"
+import { TableCard } from "#/shared/ui/TableCard"
 import type { ProductSort } from "#/product/queries"
 import { PRODUCT_STATUS_META } from "#/product/constants"
 
@@ -77,13 +69,18 @@ export function ProductTable({
     onPageChange,
     onSortChange,
 }: ProductTableProps) {
-    const totalPages = Math.max(1, Math.ceil(total / pageSize))
     // 下架二次确认：记录目标商品，确认后才真正执行 onOff
     const [offTarget, setOffTarget] = useState<ProductResponse | undefined>()
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <Table>
+        <>
+            <TableCard
+                total={total}
+                unit="件商品"
+                page={page}
+                pageSize={pageSize}
+                onPageChange={onPageChange}
+            >
                 <TableHeader>
                     <TableRow>
                         <TableHead className="min-w-72">商品名称</TableHead>
@@ -125,46 +122,21 @@ export function ProductTable({
                         />
                     ))}
                 </TableBody>
-            </Table>
+            </TableCard>
 
             {/* 下架二次确认 */}
-            <AlertDialog
+            <ConfirmDialog
                 open={Boolean(offTarget)}
                 onOpenChange={(open) => !open && setOffTarget(undefined)}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>下架商品</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            确定下架「{offTarget?.name ?? ""}」吗？买家将无法再购买该商品。
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            onClick={() => {
-                                if (offTarget) onOff(offTarget.id)
-                                setOffTarget(undefined)
-                            }}
-                        >
-                            下架
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <div className="border-t border-border px-4 py-3">
-                <div className="mb-2 text-sm text-muted-foreground tabular-nums">
-                    共 {total} 件商品
-                </div>
-                <TablePagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={onPageChange}
-                />
-            </div>
-        </div>
+                title="下架商品"
+                description={<>确定下架「{offTarget?.name ?? ""}」吗？买家将无法再购买该商品。</>}
+                confirmText="下架"
+                onConfirm={() => {
+                    if (offTarget) onOff(offTarget.id)
+                    setOffTarget(undefined)
+                }}
+            />
+        </>
     )
 }
 

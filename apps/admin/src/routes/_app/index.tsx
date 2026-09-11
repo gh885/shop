@@ -6,16 +6,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { notify } from "@shop/app-kit"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
     Badge,
     Button,
+    ConfirmDialog,
     DataTable,
     Dialog,
     DialogContent,
@@ -238,30 +231,16 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
             >
                 {approve.isPending && <Spinner />}通过
             </Button>
-            <AlertDialog
+            <ConfirmDialog
                 open={approveOpen}
                 onOpenChange={setApproveOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>通过「{item.shopName}」的开店申请</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            通过后店铺即可上架商品，确认执行？
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setApproveOpen(false)}>
-                            取消
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            disabled={approve.isPending}
-                            onClick={() => approve.mutate()}
-                        >
-                            {approve.isPending && <Spinner />}确认通过
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                title={`通过「${item.shopName}」的开店申请`}
+                description="通过后店铺即可上架商品，确认执行？"
+                confirmText="确认通过"
+                tone="default"
+                pending={approve.isPending}
+                onConfirm={() => approve.mutate()}
+            />
             <Dialog
                 open={rejectOpen}
                 onOpenChange={setRejectOpen}

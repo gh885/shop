@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { Store } from "lucide-react"
 
-import { Button, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
+import { Button } from "@shop/ui-web"
 
 import { CategoryStep } from "#/product"
+import { ShopRequired } from "#/shared/ui/ShopRequired"
 import { useCurrentShop } from "#/shop"
 
 interface CreateSearch {
@@ -29,22 +29,15 @@ function NewProductCategoryStep() {
 
     if (!shop) {
         return (
-            <Empty className="py-24">
-                <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                        <Store />
-                    </EmptyMedia>
-                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
-                    <EmptyDescription>先到「店铺管理」创建店铺或等待审核通过。</EmptyDescription>
-                    <Button
-                        variant="outline"
-                        className="mt-2"
-                        onClick={() => void navigate({ to: "/shop/list" })}
-                    >
-                        去店铺管理
-                    </Button>
-                </EmptyHeader>
-            </Empty>
+            <ShopRequired>
+                <Button
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => void navigate({ to: "/shop/list" })}
+                >
+                    去店铺管理
+                </Button>
+            </ShopRequired>
         )
     }
 

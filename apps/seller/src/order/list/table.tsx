@@ -1,20 +1,11 @@
-import {
-    Badge,
-    Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@shop/ui-web"
+import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
 import { fenToYuan } from "@shop/common"
 import { formatDate } from "@shop/app-kit"
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
 
 import { imgUrl } from "#/shared/lib/image"
 import { CopyableText } from "#/shared/ui/CopyableText"
-import { TablePagination } from "#/shared/ui/Pagination"
+import { TableCard } from "#/shared/ui/TableCard"
 import { AFTER_SALE_META, ORDER_STATUS_META } from "#/order/constants"
 
 interface OrderTableProps {
@@ -51,48 +42,39 @@ export function OrderTable({
     onRejectAfterSale,
     onReceiveReturn,
 }: OrderTableProps) {
-    const totalPages = Math.max(1, Math.ceil(total / pageSize))
-
     return (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="min-w-64">商品</TableHead>
-                        <TableHead>订单号</TableHead>
-                        <TableHead>买家</TableHead>
-                        <TableHead className="text-right">实付金额</TableHead>
-                        <TableHead>状态</TableHead>
-                        <TableHead className="min-w-36">下单时间</TableHead>
-                        <TableHead className="text-right">操作</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {rows.map((o) => (
-                        <OrderRow
-                            key={o.id}
-                            order={o}
-                            busy={o.id === busyId}
-                            onShip={() => onShip(o)}
-                            onAgreeAfterSale={() => onAgreeAfterSale(o)}
-                            onRejectAfterSale={() => onRejectAfterSale(o)}
-                            onReceiveReturn={() => onReceiveReturn(o)}
-                        />
-                    ))}
-                </TableBody>
-            </Table>
-
-            <div className="border-t border-border px-4 py-3">
-                <div className="mb-2 text-sm text-muted-foreground tabular-nums">
-                    共 {total} 笔订单
-                </div>
-                <TablePagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={onPageChange}
-                />
-            </div>
-        </div>
+        <TableCard
+            total={total}
+            unit="笔订单"
+            page={page}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+        >
+            <TableHeader>
+                <TableRow>
+                    <TableHead className="min-w-64">商品</TableHead>
+                    <TableHead>订单号</TableHead>
+                    <TableHead>买家</TableHead>
+                    <TableHead className="text-right">实付金额</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead className="min-w-36">下单时间</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {rows.map((o) => (
+                    <OrderRow
+                        key={o.id}
+                        order={o}
+                        busy={o.id === busyId}
+                        onShip={() => onShip(o)}
+                        onAgreeAfterSale={() => onAgreeAfterSale(o)}
+                        onRejectAfterSale={() => onRejectAfterSale(o)}
+                        onReceiveReturn={() => onReceiveReturn(o)}
+                    />
+                ))}
+            </TableBody>
+        </TableCard>
     )
 }
 

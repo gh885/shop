@@ -8,13 +8,14 @@ import {
     DialogTitle,
     Field,
     firstFieldError,
+    RegionPicker,
+    type RegionNode,
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
-import RegionPicker, { type RegionNode } from "#/shared/ui/RegionPicker"
+import { findPath, loadChildren } from "@shop/common"
 
-import { findPath, loadChildren } from "./regions"
 import { useCreateAddress, useUpdateAddress } from "./queries"
 
 /** 表单入参校验（form validators 用；表单局部 schema，非领域契约） */

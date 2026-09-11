@@ -1,25 +1,8 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    Button,
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-    Skeleton,
-    StateError,
-} from "@shop/ui-web"
+import { Button, ConfirmDialog, Skeleton, StateError } from "@shop/ui-web"
 import { toApiError } from "@shop/common"
-import { Plus, Store } from "lucide-react"
+import { Plus } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 import { useCurrentShop } from "#/shop"
@@ -31,6 +14,8 @@ import {
 } from "#/shop/address"
 import { AddressTable } from "#/shop/address/AddressTable"
 import { AddressFormDialog } from "#/shop/address/AddressFormDialog"
+import { useRowBusy } from "#/shared/lib/use-row-busy"
+import { ShopRequired } from "#/shared/ui/ShopRequired"
 
 export const Route = createFileRoute("/_app/shop/address")({
     component: AddressPage,
@@ -49,29 +34,13 @@ function AddressPage() {
     const [formOpen, setFormOpen] = useState(false)
     const [editing, setEditing] = useState<MerchantAddressResponse | undefined>()
     const [pendingDelete, setPendingDelete] = useState<PendingDelete>()
-    const [busyId, setBusyId] = useState<string | undefined>()
+    const { busyId, run } = useRowBusy()
 
     if (!shop) {
-        return (
-            <Empty className="py-24">
-                <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                        <Store />
-                    </EmptyMedia>
-                    <EmptyTitle>还没有正常营业的店铺</EmptyTitle>
-                    <EmptyDescription>先到「店铺管理」创建店铺或等待审核通过。</EmptyDescription>
-                </EmptyHeader>
-            </Empty>
-        )
+        return <ShopRequired />
     }
 
     const rows = addresses.data ?? []
-
-    const runSetDefault = (kind: "ship" | "return", addr: MerchantAddressResponse) => {
-        setBusyId(addr.id)
-        const task = kind === "ship" ? setDefaultShip : setDefaultReturn
-        task.mutate(addr.id, { onSettled: () => setBusyId(undefined) })
-    }
 
     return (
         <div className="space-y-5">
@@ -114,8 +83,8 @@ function AddressPage() {
                         setFormOpen(true)
                     }}
                     onDelete={setPendingDelete}
-                    onSetDefaultShip={(a) => runSetDefault("ship", a)}
-                    onSetDefaultReturn={(a) => runSetDefault("return", a)}
+                    onSetDefaultShip={(a) => run(setDefaultShip.mutateAsync)(a.id)}
+                    onSetDefaultReturn={(a) => run(setDefaultReturn.mutateAsync)(a.id)}
                 />
             )}
 
@@ -128,32 +97,21 @@ function AddressPage() {
                 editing={editing}
             />
 
-            <AlertDialog
+            <ConfirmDialog
                 open={Boolean(pendingDelete)}
                 onOpenChange={(open) => !open && setPendingDelete(undefined)}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>删除地址</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            确定删除「{pendingDelete?.contactName}
-                            」的地址吗？删除后该地址不再用于发货/退货。
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            onClick={() => {
-                                if (pendingDelete) del.mutate(pendingDelete.id)
-                                setPendingDelete(undefined)
-                            }}
-                        >
-                            确定
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                title="删除地址"
+                description={
+                    <>
+                        确定删除「{pendingDelete?.contactName}
+                        」的地址吗？删除后该地址不再用于发货/退货。
+                    </>
+                }
+                onConfirm={() => {
+                    if (pendingDelete) del.mutate(pendingDelete.id)
+                    setPendingDelete(undefined)
+                }}
+            />
         </div>
     )
 }
