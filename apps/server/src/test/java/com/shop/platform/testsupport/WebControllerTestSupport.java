@@ -15,6 +15,7 @@ import com.shop.platform.cms.service.ContentService;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.favorite.service.FavoriteService;
+import com.shop.platform.infra.qiniu.QiniuClient;
 import com.shop.platform.infra.security.JwtAuthFilter;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.StaffAuthFilter;
@@ -42,6 +43,7 @@ import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import com.shop.platform.shop.model.MemberRole;
 import com.shop.platform.shop.model.MemberStatus;
+import com.shop.platform.shop.service.MerchantAddressService;
 import com.shop.platform.shop.service.ShippingTemplateService;
 import com.shop.platform.shop.service.ShopReviewService;
 import com.shop.platform.shop.service.ShopService;
@@ -162,7 +164,14 @@ public abstract class WebControllerTestSupport {
     protected ShippingTemplateService shippingTemplateService;
 
     @MockitoBean
+    protected MerchantAddressService merchantAddressService;
+
+    @MockitoBean
     protected StaffService staffService;
+
+    /** 七牛上传凭证签发（商品图 / 头像）：controller 直调基础设施客户端，测试期换成假凭证 */
+    @MockitoBean
+    protected QiniuClient qiniuClient;
 
     /** 跨模块库存查询接口（product 控制器拼装 SKU 库存展示用） */
     @MockitoBean

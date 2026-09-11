@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
 import com.shop.platform.cart.mapper.CartItem;
+import com.shop.platform.cart.service.CartCount;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -80,6 +81,24 @@ class CartControllerTest extends WebControllerTestSupport {
         @Test
         void 未登录_401() throws Exception {
             mockMvc.perform(get("/cart/items")).andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Nested
+    class 角标计数 { // GET /cart/count
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(get("/cart/count")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 登录_绑定当前用户_出参只含总数与勾选数() throws Exception {
+            when(cartService.count(userId)).thenReturn(new CartCount(7, 3));
+
+            mockMvc.perform(get("/cart/count").with(userAuth(userId))).andExpect(status().isOk());
+
+            verify(cartService).count(userId);
         }
     }
 

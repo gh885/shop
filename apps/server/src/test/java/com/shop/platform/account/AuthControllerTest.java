@@ -5,6 +5,8 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.shop.platform.account.infra.CaptchaService;
+import com.shop.platform.infra.qiniu.UploadTicket;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import jakarta.servlet.http.Cookie;
@@ -269,6 +271,153 @@ class AuthControllerTest extends WebControllerTestSupport {
                     .andExpect(status().isOk())
                     .andExpect(cookie().exists("refresh_token"))
                     .andExpect(cookie().maxAge("refresh_token", 0));
+        }
+    }
+
+    @Nested
+    class 图形验证码 { // GET /auth/captcha
+
+        @Test
+        void 匿名可达_出参含ID与图() throws Exception {
+            when(captchaService.generate())
+                    .thenReturn(new CaptchaService.Captcha("cid-1", "data:image/png;base64,AAA"));
+
+            mockMvc.perform(get("/auth/captcha")).andExpect(status().isOk());
+
+            verify(captchaService).generate();
+        }
+    }
+
+    @Nested
+    class 短信登录 { // POST /auth/login/sms
+
+        @Test
+        void 缺deviceId_422() throws Exception {
+            mockMvc.perform(
+                            post("/auth/login/sms")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "13800138000", "code": "123456"}
+                                """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("deviceId"));
+        }
+
+        @Test
+        void 验证码长度非6位_422() throws Exception {
+            mockMvc.perform(
+                            post("/auth/login/sms")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "13800138000", "code": "12345", "deviceId": "dev1"}
+                                """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("code"));
+        }
+
+        /** 短信登录与密码登录同契约：凭证只走 httpOnly cookie，响应体不带 refreshToken */
+        @Test
+        void 成功_刷新令牌只进HttpOnly_Cookie_不进响应体() throws Exception {
+            when(authService.loginBySms(
+                            eq("13800138000"), eq("123456"), eq("dev1"), anyString(), nullable(String.class)))
+                    .thenReturn(new TokenPair("at-sms", "rt-sms"));
+
+            mockMvc.perform(
+                            post("/auth/login/sms")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "13800138000", "code": "123456", "deviceId": "dev1"}
+                                """))
+                    .andExpect(status().isOk())
+                    .andExpect(cookie().httpOnly("refresh_token", true))
+                    .andExpect(cookie().path("refresh_token", "/auth/refresh"))
+                    .andExpect(jsonPath("$.refreshToken").doesNotExist());
+        }
+    }
+
+    @Nested
+    class 忘记密码 { // POST /auth/forgot-password
+
+        @Test
+        void 手机号过短_422() throws Exception {
+            mockMvc.perform(
+                            post("/auth/forgot-password")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "123"}
+                                """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("phone"));
+        }
+
+        @Test
+        void 成功_手机号与来源IP透传() throws Exception {
+            mockMvc.perform(
+                            post("/auth/forgot-password")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "13800138000"}
+                                """))
+                    .andExpect(status().isOk());
+
+            verify(authService).forgotPassword("13800138000", "127.0.0.1");
+        }
+    }
+
+    @Nested
+    class 重置密码 { // POST /auth/reset-password
+
+        @Test
+        void 新密码过短_422() throws Exception {
+            mockMvc.perform(
+                            post("/auth/reset-password")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "13800138000", "code": "123456", "newPassword": "short"}
+                                """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("newPassword"));
+        }
+
+        @Test
+        void 成功_手机号验证码与新密码透传() throws Exception {
+            mockMvc.perform(
+                            post("/auth/reset-password")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "13800138000", "code": "123456", "newPassword": "newPass123"}
+                                """))
+                    .andExpect(status().isOk());
+
+            verify(authService).resetPassword("13800138000", "123456", "newPass123");
+        }
+    }
+
+    @Nested
+    class 头像上传凭证 { // POST /auth/avatar-ticket
+
+        @Test
+        void 缺ext_400() throws Exception {
+            mockMvc.perform(post("/auth/avatar-ticket").with(userAuth(USER_ID))).andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void 有ext_按用户头像前缀签发() throws Exception {
+            when(qiniuClient.issueTicket("user/avatar", "png"))
+                    .thenReturn(
+                            new UploadTicket("https://up.qiniu", "user/avatar/x.png", "token", "https://cdn/x.png"));
+
+            mockMvc.perform(post("/auth/avatar-ticket").with(userAuth(USER_ID)).param("ext", "png"))
+                    .andExpect(status().isOk());
+
+            verify(qiniuClient).issueTicket("user/avatar", "png");
         }
     }
 

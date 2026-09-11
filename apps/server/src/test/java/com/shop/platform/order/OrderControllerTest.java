@@ -1,5 +1,7 @@
 package com.shop.platform.order;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -10,9 +12,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
+import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
@@ -20,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * 买家订单接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
@@ -94,6 +99,79 @@ class OrderControllerTest extends WebControllerTestSupport {
                                             .formatted(UUID.randomUUID(), skuId)))
                     .andExpect(status().is(422))
                     .andExpect(jsonPath("$.errors[0].field").value("checkoutKey"));
+        }
+    }
+
+    @Nested
+    class 结算预览 { // POST /orders/preview
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(post("/orders/preview")
+                            .content(
+                                    """
+                                {"lines": [{"skuId": "%s", "quantity": 1}]}
+                                """
+                                            .formatted(skuId)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 结算行为空_422() throws Exception {
+            mockMvc.perform(
+                            post("/orders/preview")
+                                    .with(userAuth(userId))
+                                    .content(
+                                            """
+                                {"lines": []}
+                                """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("lines"));
+        }
+
+        /** 预览的地址可选（前端未选地址时传 null），但行必填：入参得原样递到 service */
+        @Test
+        void 地址可缺省_绑定当前用户与结算行() throws Exception {
+            when(orderService.preview(eq(userId), any()))
+                    .thenReturn(new CheckoutPreview(List.of(), List.of(), null, Money.cny(0)));
+
+            mockMvc.perform(post("/orders/preview")
+                            .with(userAuth(userId))
+                            .content(
+                                    """
+                                {"lines": [{"skuId": "%s", "quantity": 2}]}
+                                """
+                                            .formatted(skuId)))
+                    .andExpect(status().isOk());
+
+            ArgumentCaptor<com.shop.platform.order.dto.PreviewOrderRequest> captured =
+                    ArgumentCaptor.forClass(com.shop.platform.order.dto.PreviewOrderRequest.class);
+            verify(orderService).preview(eq(userId), captured.capture());
+            assertNull(captured.getValue().addressId());
+            assertEquals(1, captured.getValue().lines().size());
+            assertEquals(skuId, captured.getValue().lines().getFirst().skuId());
+            assertEquals(2, captured.getValue().lines().getFirst().quantity());
+        }
+
+        @Test
+        void 指定地址_透传地址ID() throws Exception {
+            UUID addressId = UUID.randomUUID();
+            when(orderService.preview(eq(userId), any()))
+                    .thenReturn(new CheckoutPreview(List.of(), List.of(), null, Money.cny(0)));
+
+            mockMvc.perform(post("/orders/preview")
+                            .with(userAuth(userId))
+                            .content(
+                                    """
+                                {"addressId": "%s", "lines": [{"skuId": "%s", "quantity": 1}]}
+                                """
+                                            .formatted(addressId, skuId)))
+                    .andExpect(status().isOk());
+
+            ArgumentCaptor<com.shop.platform.order.dto.PreviewOrderRequest> captured =
+                    ArgumentCaptor.forClass(com.shop.platform.order.dto.PreviewOrderRequest.class);
+            verify(orderService).preview(eq(userId), captured.capture());
+            assertEquals(addressId, captured.getValue().addressId());
         }
     }
 

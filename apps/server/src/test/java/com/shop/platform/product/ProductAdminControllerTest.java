@@ -177,6 +177,41 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
     }
 
     @Nested
+    class 商品图上传凭证 { // POST /seller/products/image-ticket
+
+        @Test
+        void 缺店铺上下文_403() throws Exception {
+            mockMvc.perform(post("/seller/products/image-ticket")
+                            .with(userAuth(userId))
+                            .param("ext", "png"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void 缺ext_400() throws Exception {
+            mockMvc.perform(post("/seller/products/image-ticket")
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void 有ext_按商品图前缀签发() throws Exception {
+            when(qiniuClient.issueTicket("product", "jpg"))
+                    .thenReturn(new com.shop.platform.infra.qiniu.UploadTicket(
+                            "https://up.qiniu", "product/x.jpg", "token", "https://cdn/x.jpg"));
+
+            mockMvc.perform(post("/seller/products/image-ticket")
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString())
+                            .param("ext", "jpg"))
+                    .andExpect(status().isOk());
+
+            verify(qiniuClient).issueTicket("product", "jpg");
+        }
+    }
+
+    @Nested
     class 商品状态 { // POST /seller/products/{id}/{publish|off}
 
         @Test
