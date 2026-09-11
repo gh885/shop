@@ -79,6 +79,10 @@ export function configureSdkClient(
         credentials: "include",
         querySerializer: flattenQuerySerializer,
         throwOnError: true,
+        // ky v2 在 throwHttpErrors 时会预读响应 body 填 HTTPError.data，导致 hey-api
+        // 的 parseErrorResponse 再读 response.text() 时报 "Body is unusable"。
+        // 关闭 ky 自己的抛错，让 hey-api 的 error interceptor 统一读取并归一化 ApiError。
+        kyOptions: { throwHttpErrors: false },
         // 超时/重试交给 ky 原生：与旧 fetch 版 fetchWithPolicy 等价
         timeout: TIMEOUT_MS,
         retry: {
