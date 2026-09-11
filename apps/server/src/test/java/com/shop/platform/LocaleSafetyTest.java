@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
  * 永远失败）、{@link com.shop.platform.common.Money} 币种规范化（{@code "cny"} 不等于 {@code "CNY"}，
  * 跨币种护栏形同虚设）、图片扩展名白名单、密码黑名单比对。这类 bug 只在你部署到某个区域机器上时
  * 静默炸，本地永不复现。一律改用 {@code Locale.ROOT} 重载。
+ *
+ * <p>规则精度由被测代码自身保证：生产侧那四处修复本身就是带 {@code Locale.ROOT} 的调用，
+ * 规则若把有参重载一并误伤，本测立即变红。
  */
 class LocaleSafetyTest {
 
@@ -36,11 +39,5 @@ class LocaleSafetyTest {
         String name = call.getTarget().getName();
         return (name.equals("toLowerCase") || name.equals("toUpperCase"))
                 && call.getTarget().getParameterTypes().isEmpty();
-    }
-
-    /** 正例锚点：带 Locale.ROOT 的调用不违规，防规则误伤。 */
-    @SuppressWarnings("unused")
-    private static String anchor() {
-        return "A".toLowerCase(java.util.Locale.ROOT);
     }
 }

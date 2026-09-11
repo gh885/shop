@@ -121,7 +121,7 @@ class AuthControllerTest extends WebControllerTestSupport {
         }
 
         @Test
-        void 成功_下发HttpOnly刷新Cookie() throws Exception {
+        void 成功_刷新令牌只进HttpOnly_Cookie_不进响应体() throws Exception {
             when(authService.loginByPassword(
                             anyString(), anyString(), anyString(), anyString(), nullable(String.class)))
                     .thenReturn(new TokenPair("access-token", "rt:test-value"));
@@ -138,26 +138,9 @@ class AuthControllerTest extends WebControllerTestSupport {
                     .andExpect(cookie().httpOnly("refresh_token", true))
                     .andExpect(cookie().secure("refresh_token", true))
                     .andExpect(cookie().path("refresh_token", "/auth/refresh"))
-                    .andExpect(cookie().maxAge("refresh_token", 7 * 24 * 60 * 60));
-        }
-
-        @Test
-        void 成功_刷新令牌只进Cookie不进响应体() throws Exception {
-            when(authService.loginByPassword(
-                            anyString(), anyString(), anyString(), anyString(), nullable(String.class)))
-                    .thenReturn(new TokenPair("at1", "rt1"));
-
-            mockMvc.perform(
-                            post("/auth/login/password")
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(
-                                            """
-                                {"phone": "13800138000", "password": "password123", "deviceId": "dev1"}
-                                """))
-                    .andExpect(status().isOk())
-                    // refresh token 只走 httpOnly cookie（见 TokenPair 的 @JsonIgnore），@JsonIgnore 不落响应体（防 XSS 读走凭证）
-                    .andExpect(jsonPath("$.refreshToken").doesNotExist())
-                    .andExpect(cookie().exists("refresh_token"));
+                    .andExpect(cookie().maxAge("refresh_token", 7 * 24 * 60 * 60))
+                    // 只有 httpOnly cookie 这条路：进响应体就会被 XSS 读走
+                    .andExpect(jsonPath("$.refreshToken").doesNotExist());
         }
     }
 
