@@ -1,7 +1,9 @@
 @import "@shop/ui-web/styles.css";
 
-/* ui-web 在 apps/seller 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明 */
+/* ui-web 与 app-kit 都在 apps/seller 之外，Tailwind v4 自动内容探测覆盖不到，需显式声明。
+   漏一个不会报错，只会「类名静默不生成」——页面看着正常，控件悄悄掉样式 */
 @source '../../../packages/ui-web/src';
+@source '../../../packages/app-kit/src';
 
 /* ==========================================================================
    Seller 主题覆盖 —— 只覆盖 ui-web 的【同名语义 token】，不新增 token 名。

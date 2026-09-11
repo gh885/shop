@@ -118,7 +118,11 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 ### App 接入 ui-web（如 apps/web）
 
 - 样式入口只需 `@import '@shop/ui-web/src/styles.css'`（内含 tailwindcss 与主题变量，不要重复 import tailwindcss）
-- 必须加 `@source '../../../packages/ui-web/src'`（Tailwind v4 内容探测不覆盖 app 目录之外的包，否则组件类名不生成 CSS）
+- **每个「写了 Tailwind 类名、又位于 app 目录之外」的包都要 `@source`**：目前是
+  `@source '../../../packages/ui-web/src'` 与 `@source '../../../packages/app-kit/src'`。
+  Tailwind v4 内容探测不覆盖 app 目录之外的包；漏声明的失败模式是**静默掉样式**（不报错、不 warning，
+  构建照过、单测照过，只有肉眼看页面才发现控件没了圆角/内边距）。往这两个包加带样式的组件时，
+  先确认三端 `styles.css` 都已声明；给 app-kit 新增带类名的组件同样要检查 app-kit 是否已声明
 - API 请求走 Vite proxy 同源（`/auth`、`/api`、`/user`、`/cart` → `localhost:8080`），浏览器端 baseUrl 用空串；SSR loader 里需绝对地址
 - 登录态：`apps/web/src/lib/auth.ts`（access token 只存内存，refresh token 走后端 httpOnly cookie）
 - 启动时 `bootstrapAuth()` 静默刷新（`lib/api.ts`），root 布局挂载处调用；受保护路由用 `beforeLoad: () => requireAuth()` 守卫，未登录自动拉起全局登录 Dialog
