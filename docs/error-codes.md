@@ -18,6 +18,7 @@
 | `STAFF_DISABLED`             | 403  | 提示"账号已被禁用"，引导联系平台管理员                                                                                           | 平台员工登录时状态非 ACTIVE（StaffService.login）                                            |
 | `PERMISSION_DENIED`          | 403  | 渲染"无权限"页/提示；区别于其他 403（非店铺成员等），不引导登录                                                                  | 已认证主体缺少接口所需权限码（PermissionInterceptor 判权失败）                               |
 | `INSUFFICIENT_STOCK`         | 409  | 提示具体 SKU 缺货，引导改数量/移除后重新结算                                                                                     | 下单时条件扣减库存影响行数为 0（预览后商品被抢空）                                           |
+| `COUPON_ALREADY_CLAIMED`     | 409  | 按钮置为"已领取"并提示，不引导重试                                                                                               | 同一用户重复领取同一张券（每人每模板限领 1 张，唯一索引兜底）                                |
 | `RESPONSE_VALIDATION_FAILED` | 2xx  | 前端生成错误，非后端返回：dev 完整打印 issues 尽早暴露；生产上报监控，读路径可按 `isContractViolation(err)` 降级兜底，写路径强抛 | 后端契约漂移——响应 2xx 但 payload 不符合 OpenAPI 契约（前端 zod responseValidator 校验失败） |
 
 ## 设计原则

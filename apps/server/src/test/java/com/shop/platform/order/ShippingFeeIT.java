@@ -81,7 +81,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
 
     private CreateOrderRequest createRequest(UUID addressId, UUID skuId, int quantity) {
         return new CreateOrderRequest(
-                UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, quantity)), null);
+                UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, quantity)), null, null);
     }
 
     @Test
@@ -92,7 +92,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
         registerOrderCleanup();
 
         var preview = orderService.preview(
-                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 2))));
+                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 2)), null));
 
         // 深圳命中 44 规则：首件 1 件 2000 分 + 续 1 件 800 分；商品额 1000×2
         var group = preview.groups().getFirst();
@@ -126,7 +126,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
         registerOrderCleanup();
 
         var preview = orderService.preview(
-                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 3))));
+                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 3)), null));
 
         // 默认规则：首件 1 件 1000 分 + 续 1 件 500 分 × 2 档（不足一档按一档）
         assertThat(preview.groups().getFirst().shippingFee()).isEqualTo(Money.cny(2000));
@@ -141,7 +141,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
         registerOrderCleanup();
 
         var preview = orderService.preview(
-                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 1))));
+                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 1)), null));
 
         assertThat(preview.groups().getFirst().deliverable()).isFalse();
         assertThat(preview.groups().getFirst().shippingFee()).isEqualTo(Money.cny(0));
@@ -165,12 +165,12 @@ class ShippingFeeIT extends IntegrationTestSupport {
         registerOrderCleanup();
 
         var reached = orderService.preview(
-                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 3))));
+                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 3)), null));
         assertThat(reached.groups().getFirst().shippingFee()).isEqualTo(Money.cny(0));
         assertThat(reached.groups().getFirst().payAmount()).isEqualTo(Money.cny(3000));
 
         var belowThreshold = orderService.preview(
-                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 2))));
+                userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 2)), null));
         assertThat(belowThreshold.groups().getFirst().shippingFee()).isEqualTo(Money.cny(2800));
     }
 

@@ -66,14 +66,19 @@ shop/
 结算预览、按店拆单下单、库存冻结/扣实/释放/回补（含流水账本）、两段式支付（MOCK 渠道）、
 订单状态机（发货/收货/取消/超时关单）、已付款取消退款单据、静态 RBAC、CMS 首页配置、
 物流（包裹/轨迹/承运商对接/异常治理）、售后（买家申请·撤销·回寄 → 卖家同意·拒绝·确认收货退款，
-含卖家退款售后工作台，前后端闭环；设计见 [docs/decisions/aftersale.md](docs/decisions/aftersale.md)）。
+含卖家退款售后工作台，前后端闭环；设计见 [docs/decisions/aftersale.md](docs/decisions/aftersale.md)）、
+优惠券一期后端（店铺券建券/领券/券包/结算选券/占用核销/取消释放/退款退券；设计见
+[docs/decisions/coupon.md](docs/decisions/coupon.md)）。
 
 尚未实现（刻意留白，不是遗漏）：
 
 - **搜索**只有 `name LIKE '%kw%'`，无倒排索引/相关性排序，量级上去必须换方案
 - **支付**仅 MOCK 渠道，未接真实网关（两段式状态机已按可替换设计，见 `PaymentService`）
 - **无缓存层、无消息队列**：热点只读直接打库；跨模块异步仅用 Modulith 事件登记表（outbox）
-- **营销**（优惠券/满减/秒杀/积分）、**分账结算与商家提现**、**买家评价** 均未开始
+- **营销**：优惠券一期**后端已实现**（店铺券的建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，
+  设计见 [docs/decisions/coupon.md](docs/decisions/coupon.md)），**前端页面未做**；
+  折扣券·运费券·平台券·叠加规则·秒杀·积分均未开始
+- **分账结算与商家提现**、**买家评价** 均未开始
 - **售后的两处收尾**：买家订单列表未带售后徽章（列表契约没透出 `afterSaleStatus`）；
   售后退款后仍可再次申请（后端只挡「进行中」的单，重复退款口子敞着，见 `TODO.md`）
 - **平台管理端**（apps/admin）有登录、店铺入驻审核与首页骨架，类目/CMS/物流运维页未做
@@ -93,17 +98,17 @@ Redis：localhost:6379
 
 ## 文档地图
 
-| 文档                                                   | 内容                                                                  |
-| ------------------------------------------------------ | --------------------------------------------------------------------- |
-| [AGENTS.md](AGENTS.md)                                 | 开发操作规范：结构/规则/命令/测试/错误码流程（AI 与开发者的入口）     |
-| [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应      |
-| [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                  |
-| [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                  |
-| [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                      |
-| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（权限码表、业务事件日志）                              |
-| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机、物流四期、售后闭环、模块边界改造路线） |
-| [docs/reference/](docs/reference/)                     | 收编的外部设计清单                                                    |
-| [apps/server/docs/](apps/server/docs/)                 | 后端模块实现对照（快照）                                              |
+| 文档                                                   | 内容                                                                              |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| [AGENTS.md](AGENTS.md)                                 | 开发操作规范：结构/规则/命令/测试/错误码流程（AI 与开发者的入口）                 |
+| [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应                  |
+| [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                              |
+| [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                              |
+| [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                  |
+| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（权限码表、业务事件日志）                                          |
+| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机、物流四期、售后闭环、优惠券定案、模块边界改造路线） |
+| [docs/reference/](docs/reference/)                     | 收编的外部设计清单                                                                |
+| [apps/server/docs/](apps/server/docs/)                 | 后端模块实现对照（快照）                                                          |
 
 ## 开发规范
 

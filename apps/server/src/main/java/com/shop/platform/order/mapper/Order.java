@@ -2,6 +2,7 @@ package com.shop.platform.order.mapper;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
+import com.shop.platform.coupon.api.CouponBearer;
 import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
@@ -49,14 +50,24 @@ public class Order extends AuditedEntity {
     /** 售后退款金额口径（分，aftersale 退款完成时写回）；资金态在 payment.payments，订单只记「该退多少」 */
     private Long refundAmount;
 
-    /** 商品总额（Σ 行小计），分。DB CHECK 钉死 pay_amount = item_amount + shipping_fee */
+    /** 商品总额（Σ 行小计），分。DB CHECK 钉死 pay_amount = item_amount + shipping_fee - discount_amount */
     private Long itemAmount;
 
     /** 运费（分）：下单时按收货地区与同店合计件数经 shop :: api 报价定格，未配运费模板的店铺恒 0 */
     private Long shippingFee;
 
+    /** 券减免额（分）：下单瞬间定格，券规则事后被改不影响本单。无券恒 0 */
+    private Long discountAmount;
+
     /** 计费所用运费模板（shop.shipping_templates.id）；未配模板为 null，语义 = 没走计费（恒包邮） */
     private UUID shippingTemplateId;
+
+    /** 核销的券（coupon.user_coupons.id），无券为 null。裸引用不加 FK：券被删也要能自证减了多少 */
+    private UUID userCouponId;
+
+    /** 承担方快照（SELLER / PLATFORM），无券为 null。一期只有店铺券恒 SELLER，但结算拆账要按它算，故现在就落。
+     *  枚举 ↔ varchar 由 MyBatis 默认 EnumTypeHandler 对译（同 status 列），与 coupon.api 的词表同一份 */
+    private CouponBearer couponBearer;
 
     /** 应付总额，分 */
     private Long payAmount;
@@ -128,6 +139,11 @@ public class Order extends AuditedEntity {
 
     public Money shippingFeeAsMoney() {
         return Money.ofFen(shippingFee, currency);
+    }
+
+    /** 券减免额；无券时为 0（列 NOT NULL DEFAULT 0） */
+    public Money discountAmountAsMoney() {
+        return Money.ofFen(discountAmount, currency);
     }
 
     public Money payAmountAsMoney() {

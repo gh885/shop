@@ -200,6 +200,19 @@ export const zUpdateSkusRequest = z.object({
     items: z.array(zSkuUpdateItem).min(1)
 });
 
+export const zCouponTemplateResponse = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    threshold: zMoney,
+    discount: zMoney,
+    validFrom: z.iso.datetime({ offset: true }),
+    validTo: z.iso.datetime({ offset: true }),
+    totalQuantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    issuedQuantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    status: z.string(),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
 export const zMerchantAddressRequest = z.object({
     contactName: z.string().min(0).max(30),
     phone: z.string().min(1).regex(/^[0-9+\-]{5,20}$/),
@@ -515,6 +528,15 @@ export const zImageTicketResponse = z.object({
     url: z.string()
 });
 
+export const zCreateCouponTemplateRequest = z.object({
+    name: z.string().min(0).max(60),
+    thresholdAmount: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    discountAmount: z.coerce.bigint().gte(BigInt(1)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    totalQuantity: z.int().gte(1).lte(1000000),
+    validFrom: z.iso.datetime({ offset: true }),
+    validTo: z.iso.datetime({ offset: true })
+});
+
 export const zCreatePaymentRequest = z.object({
     orderId: z.uuid()
 });
@@ -572,7 +594,8 @@ export const zOrderLineRequest = z.object({
 
 export const zPreviewOrderRequest = z.object({
     addressId: z.uuid().optional(),
-    lines: z.array(zOrderLineRequest).min(1)
+    lines: z.array(zOrderLineRequest).min(1),
+    userCouponIds: z.array(z.uuid()).min(0).max(20).optional()
 });
 
 export const zAddress = z.object({
@@ -583,6 +606,23 @@ export const zAddress = z.object({
     city: z.string(),
     district: z.string(),
     detail: z.string()
+});
+
+export const zCouponUnavailableReason = z.enum([
+    'NOT_EFFECTIVE',
+    'EXPIRED',
+    'THRESHOLD_NOT_MET',
+    'CURRENCY_MISMATCH'
+]);
+
+export const zCoupon = z.object({
+    userCouponId: z.uuid(),
+    name: z.string(),
+    threshold: zMoney,
+    discount: zMoney,
+    expireAt: z.iso.datetime({ offset: true }),
+    usable: z.boolean(),
+    unavailableReason: zCouponUnavailableReason.nullable()
 });
 
 export const zItem = z.object({
@@ -602,8 +642,11 @@ export const zGroup = z.object({
     lines: z.array(zItem),
     itemAmount: zMoney,
     shippingFee: zMoney,
+    discountAmount: zMoney,
     payAmount: zMoney,
-    deliverable: z.boolean()
+    deliverable: z.boolean(),
+    coupons: z.array(zCoupon),
+    appliedCouponId: z.uuid().nullable()
 });
 
 export const zUnavailableLine = z.object({
@@ -625,6 +668,7 @@ export const zCreateOrderRequest = z.object({
     checkoutKey: z.uuid(),
     addressId: z.uuid(),
     lines: z.array(zOrderLineRequest).min(1),
+    userCouponIds: z.array(z.uuid()).min(0).max(20).optional(),
     buyerMessage: z.string().min(0).max(200).optional()
 });
 
@@ -661,6 +705,20 @@ export const zFavoriteExistsRequest = z.object({
 
 export const zFavoriteExistsResponse = z.object({
     productIds: z.array(z.uuid())
+});
+
+export const zMyCouponResponse = z.object({
+    id: z.uuid(),
+    shopId: z.uuid(),
+    shopName: z.string(),
+    name: z.string(),
+    threshold: zMoney,
+    discount: zMoney,
+    effectiveAt: z.iso.datetime({ offset: true }),
+    expireAt: z.iso.datetime({ offset: true }),
+    status: z.string(),
+    source: z.string(),
+    orderId: z.uuid().nullable()
 });
 
 export const zAddCartItemRequest = z.object({
@@ -866,7 +924,9 @@ export const zOrderDetailResponse = z.object({
     availableActions: z.array(z.string()),
     itemAmount: zMoney,
     shippingFee: zMoney,
+    discountAmount: zMoney,
     payAmount: zMoney,
+    userCouponId: z.uuid().nullable(),
     buyerMessage: z.string().nullable(),
     receiverName: z.string(),
     receiverPhone: z.string(),
@@ -887,6 +947,11 @@ export const zOrderDetailResponse = z.object({
     refundAmount: zMoney.nullable(),
     applyExpireAt: z.iso.datetime({ offset: true }).nullable(),
     items: z.array(zOrderItemResponse)
+});
+
+export const zPageResultCouponTemplateResponse = z.object({
+    records: z.array(zCouponTemplateResponse),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zCarrierResponse = z.object({
@@ -994,6 +1059,15 @@ export const zPageResultFavoriteItemView = z.object({
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
+export const zMyCouponQuery = z.object({
+    status: z.string().regex(/UNUSED|LOCKED|USED|EXPIRED|VOID/).optional()
+});
+
+export const zPageResultMyCouponResponse = z.object({
+    records: z.array(zMyCouponResponse),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
 /**
  * 购物车条目里的商品（SPU）信息
  */
@@ -1042,6 +1116,16 @@ export const zDeviceEntryResponse = z.object({
 export const zCaptchaResponse = z.object({
     captchaId: z.string(),
     image: z.string()
+});
+
+export const zClaimableCouponResponse = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    threshold: zMoney,
+    discount: zMoney,
+    validFrom: z.iso.datetime({ offset: true }),
+    validTo: z.iso.datetime({ offset: true }),
+    soldOut: z.boolean()
 });
 
 export const zPublicShopResponse = z.object({
@@ -1274,6 +1358,15 @@ export const zReceiveReturnPath = z.object({
 export const zAgreeAfterSalePath = z.object({
     id: z.uuid()
 });
+
+export const zStopCouponPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zStopCouponResponse = zCouponTemplateResponse;
 
 export const zDeleteAddress1Path = z.object({
     id: z.uuid()
@@ -1572,6 +1665,22 @@ export const zIssueImageTicketQuery = z.object({
  */
 export const zIssueImageTicketResponse = zImageTicketResponse;
 
+export const zListShopCouponsQuery = z.object({
+    pageParams: zPageParams
+});
+
+/**
+ * OK
+ */
+export const zListShopCouponsResponse = zPageResultCouponTemplateResponse;
+
+export const zCreateCouponBody = zCreateCouponTemplateRequest;
+
+/**
+ * Created
+ */
+export const zCreateCouponResponse = zCouponTemplateResponse;
+
 /**
  * OK
  */
@@ -1662,6 +1771,15 @@ export const zCheckFavoriteExistsBody = zFavoriteExistsRequest;
  * OK
  */
 export const zCheckFavoriteExistsResponse = zFavoriteExistsResponse;
+
+export const zClaimCouponPath = z.object({
+    templateId: z.uuid()
+});
+
+/**
+ * Created
+ */
+export const zClaimCouponResponse = zMyCouponResponse;
 
 /**
  * OK
@@ -1943,6 +2061,16 @@ export const zListMyOrdersQuery = z.object({
  */
 export const zListMyOrdersResponse = zPageResultOrderListItemResponse;
 
+export const zListMyCouponsQuery = z.object({
+    pageParams: zPageParams,
+    query: zMyCouponQuery
+});
+
+/**
+ * OK
+ */
+export const zListMyCouponsResponse = zPageResultMyCouponResponse;
+
 /**
  * OK
  */
@@ -1966,6 +2094,15 @@ export const zDevicesResponse = z.array(zDeviceEntryResponse);
  * OK
  */
 export const zGetCaptchaResponse = zCaptchaResponse;
+
+export const zListShopClaimableCouponsPath = z.object({
+    shopId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zListShopClaimableCouponsResponse = z.array(zClaimableCouponResponse);
 
 export const zGetPublicShopPath = z.object({
     id: z.uuid()

@@ -2,9 +2,11 @@
  * Order 模块 —— 交易主流程：结算预览、按店拆单下单、两条状态机的流转、买卖家两侧视图。
  *
  * <p>schema: orders（复数避开 PG 保留字 order）。商品/地址快照在下单瞬间定格，之后 product 改价、
- * 用户删地址均不影响旧单。金额构成 = 商品总额 + 运费（DB CHECK 钉死）：运费按收货地区与同店合计件数经
+ * 用户删地址均不影响旧单。金额构成 = 商品总额 + 运费 − 券减免额（DB CHECK 钉死）：运费按收货地区与同店合计件数经
  * shop :: api 的 ShippingFeeReadQuery 报价，下单时连同所用模板一起落进 orders 的计费快照列；
- * 未配运费模板的店铺恒 0（模板上线前的存量口径）。库存冻结/扣实/释放经 inventory :: api 的 StockCommand 同步同事务调用，
+ * 未配运费模板的店铺恒 0（模板上线前的存量口径）。券的可用性与减免额经 coupon :: api 的 CouponReadQuery 现算
+ * （门槛基数是同店商品额，不含运费），下单经 CouponCommand.lock 同事务占用、支付时核销、取消时释放或补发，
+ * 券 id 与承担方随金额一起落订单快照。库存冻结/扣实/释放经 inventory :: api 的 StockCommand 同步同事务调用，
  * 完成（确认收货/超时自动收货）经 product :: api 的 ProductCommand.addSold 同事务累加销量投影，
  * 下单成功发布 OrderPlacedEvent、cart 同步监听清理已购 SKU（order 不认识购物车，结算入参就是 SKU 行）；
  * 支付推进由 payment 经 order :: api 的
@@ -27,7 +29,7 @@
  */
 @ApplicationModule(
         displayName = "Order",
-        allowedDependencies = {"product :: api", "inventory :: api", "shop :: api", "account :: api"})
+        allowedDependencies = {"product :: api", "inventory :: api", "shop :: api", "account :: api", "coupon :: api"})
 package com.shop.platform.order;
 
 import org.springframework.modulith.ApplicationModule;

@@ -9,6 +9,7 @@ import static com.shop.platform.order.model.OrderStatus.SHIPPED;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
+import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.events.OrderCancelledEvent;
@@ -60,6 +61,9 @@ public class OrderTransitionService {
 
     /** 商品销量投影命令：完成时把行项成交量累加进 product（product::api，同事务） */
     private final ProductCommand productCommand;
+
+    /** 券命令（coupon :: api）：取消时释放占用的券（未付款）或补发新券（已付款），同事务 */
+    private final CouponCommand couponCommand;
 
     private final OrderStatusLogWriter statusLogWriter;
 
@@ -127,13 +131,16 @@ public class OrderTransitionService {
             return false;
         }
 
-        // 3. 付款后取消：库存已扣实 → 回补总库存，且必须留下退款单据（payment 同步监听，同事务 → 取消不成则退款不落）
+        // 3. 付款后取消：库存已扣实 → 回补总库存，且必须留下退款单据（payment 同步监听，同事务 → 取消不成则退款不落）；
+        //    券此时已核销（USED），走退券补偿（另发新券），不把它改回可用
         if (previous == PAID) {
             stockCommand.restock(order.getId(), toStockLines(items));
+            couponCommand.returnOnRefund(order.getId());
             events.publishEvent(new OrderCancelledEvent(order.getId(), order.getUserId()));
         } else {
-            // 付款前取消：只释放冻结（frozen → 可用）
+            // 付款前取消：只释放冻结（frozen → 可用）；券从「占用」回到买家手上（LOCKED → UNUSED），可再用
             stockCommand.release(order.getId(), toStockLines(items));
+            couponCommand.releaseByOrder(order.getId());
         }
 
         statusLogWriter.record(order.getId(), previous, CANCELLED, action, actor, trimmed);

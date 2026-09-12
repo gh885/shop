@@ -2,6 +2,7 @@ package com.shop.platform.order.api;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.Validate;
+import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.mapper.Order;
@@ -39,9 +40,17 @@ public class OrderCommand {
 
     private final StockCommand stockCommand;
 
+    /** 券命令（coupon :: api）：支付核销在同事务内完成 */
+    private final CouponCommand couponCommand;
+
     private final OrderStatusLogWriter statusLogWriter;
 
-    /** 支付成功的落点：条件转移 PENDING_PAYMENT → PAID，回填发货截止；失败抛 409 令调用方事务回滚 */
+    /**
+     * 支付成功的落点：条件转移 PENDING_PAYMENT → PAID，回填发货截止；失败抛 409 令调用方事务回滚。
+     *
+     * <p>顺带把本单占用的券核销掉（LOCKED → USED，coupon :: api，同事务）：券的占用与资金到账必须一起成立。
+     * 本单没用券时该调用无副作用。
+     */
     public void markPaid(UUID orderId) {
         OffsetDateTime now = OffsetDateTime.now();
         int affected = orderMapper.update(
@@ -59,6 +68,9 @@ public class OrderCommand {
                 .map(i -> new StockLine(i.getSkuId(), i.getQuantity()))
                 .toList();
         stockCommand.capture(orderId, lines);
+
+        // 支付成功即核销券：自此不可逆，退款走补发新券而不是把这张改回可用
+        couponCommand.useByOrder(orderId);
 
         statusLogWriter.record(
                 orderId, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderAction.PAY, OrderActor.BUYER, null);

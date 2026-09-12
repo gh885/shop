@@ -56,6 +56,17 @@ public record Money(@Schema(requiredMode = REQUIRED) long amount, @Schema(requir
         return new Money(this.amount * factor, this.currency);
     }
 
+    /**
+     * 相减：仅同币种。结果不得为负 —— 本类型语义是「交易金额」，负值没有意义
+     * （订单应付 = 商品 + 运费 − 优惠，优惠由券面额与商品额封顶，不可能减穿）。
+     * 需要「差额为负」的场景应先判方向再减，别让一个负金额在链路里漂流。
+     */
+    public Money minus(Money other) {
+        requireSameCurrency(other);
+        Validate.isTrue(this.amount >= other.amount, "金额相减结果不能为负");
+        return new Money(this.amount - other.amount, this.currency);
+    }
+
     private void requireSameCurrency(Money other) {
         Validate.isTrue(other != null && this.currency.equals(other.currency), "金额币种不一致，无法运算");
     }

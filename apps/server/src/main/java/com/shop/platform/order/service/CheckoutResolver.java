@@ -2,8 +2,11 @@ package com.shop.platform.order.service;
 
 import com.shop.platform.account.api.AddressReadQuery;
 import com.shop.platform.account.api.AddressSnapshotView;
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
+import com.shop.platform.coupon.api.CouponAvailabilityView;
+import com.shop.platform.coupon.api.CouponReadQuery;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.order.dto.OrderLineRequest;
@@ -14,9 +17,11 @@ import com.shop.platform.shop.api.ShippingFeeReadQuery;
 import com.shop.platform.shop.api.ShippingQuote;
 import com.shop.platform.shop.api.ShopReadQuery;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,7 +30,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 结算解析器：把「结算行（skuId + 件数）→ 有效行 + 置灰行 + 按店分组」的整条只读链路
- * 从 OrderService 拆出。跨模块读取全部经各模块 api 包（product / inventory / shop / account），
+ * 从 OrderService 拆出。跨模块读取全部经各模块 api 包（product / inventory / shop / account / coupon），
  * 不碰他方 schema 的表名与状态魔法值。来源（购物车勾选 / 立即购买）由前端归约，order 不回查购物车。
  */
 @Component
@@ -45,6 +50,9 @@ class CheckoutResolver {
 
     /** 运费报价（shop :: api）：模板与计费规则属店铺，本模块只提供订单侧事实并消费结果 */
     private final ShippingFeeReadQuery shippingFeeReadQuery;
+
+    /** 券可用性判定与减免额（coupon :: api）：券规则属 coupon 模块，本模块只提供订单侧事实并消费结果 */
+    private final CouponReadQuery couponReadQuery;
 
     /**
      * 结算行解析：同 SKU 多行先合并；再对 product 做「SKU 在售 + SPU 上架 + 库存充足」三道判定，
@@ -112,32 +120,83 @@ class CheckoutResolver {
      * <p>运费也在这里定格，且与订单落库同源（预览与下单走同一个方法）：一个店铺一份模板一份运费，
      * 口径是<b>同店合计</b>（件数/商品额）而不是按行 —— 首件+续件的「件数」是整单的件数。
      *
+     * <p>优惠券同样在这条链路上定格，理由也一样：<b>预览与下单必须共用同一次计算</b>，
+     * 「预览一个价、下单另一个价」是最经典的客诉来源。两条与券有关的定案：
+     * <ul>
+     *   <li>门槛基数 = <b>同店商品额</b>（不含运费、不含其他优惠），口径见 CouponEvaluator；
+     *   <li>包邮门槛仍按<b>优惠前</b>商品额判定 —— 运费先算、券后减，用户用了券不会反而丢掉包邮。
+     * </ul>
+     *
      * <p>{@code address} 可为 null（预览允许未选地址）：地区未知就算不出运费，此时只预告 0，
      * 下单走 create 的真实地址路径，不允许拿这份预告当成交口径。
+     *
+     * @param selectedCouponIds 买家选中的券（可为空）。必须都能在本单落地：选了却不可用、或压根不属于本单任何一家店，
+     *     都当场 400 而不是静默忽略 —— 静默忽略会让用户以为券生效了，看到的价却是原价。
      */
-    List<CheckoutPreview.Group> groupByShop(List<ValidLine> valid, AddressSnapshot address) {
+    List<CheckoutPreview.Group> groupByShop(
+            List<ValidLine> valid, AddressSnapshot address, UUID userId, List<UUID> selectedCouponIds) {
         Map<UUID, List<ValidLine>> byShop =
                 valid.stream().collect(Collectors.groupingBy(ValidLine::shopId, TreeMap::new, Collectors.toList()));
         Map<UUID, String> shopNames = shopReadQuery.namesByIds(byShop.keySet());
-        return byShop.entrySet().stream()
-                .map(e -> {
-                    Money itemAmount = sumLines(e.getValue());
-                    int quantity =
-                            e.getValue().stream().mapToInt(ValidLine::quantity).sum();
-                    ShippingQuote quote = address == null
-                            ? null
-                            : shippingFeeReadQuery.quote(e.getKey(), address.regionCode(), quantity, itemAmount);
-                    return new CheckoutPreview.Group(
-                            e.getKey(),
-                            shopNames.get(e.getKey()),
-                            e.getValue(),
-                            itemAmount,
-                            quote == null ? Money.ofFen(0, itemAmount.currency()) : quote.shippingFee(),
-                            quote == null ? itemAmount : itemAmount.plus(quote.shippingFee()),
-                            quote == null || quote.deliverable(),
-                            quote == null ? null : quote.templateId());
-                })
-                .toList();
+
+        // CopyOf 顺带去重：同一张券传两次也只该用一次
+        Set<UUID> selected = selectedCouponIds == null ? Set.of() : Set.copyOf(selectedCouponIds);
+        Set<UUID> landed = new HashSet<>();
+        List<CheckoutPreview.Group> groups = new ArrayList<>();
+
+        for (Map.Entry<UUID, List<ValidLine>> entry : byShop.entrySet()) {
+            UUID shopId = entry.getKey();
+            List<ValidLine> lines = entry.getValue();
+            Money itemAmount = sumLines(lines);
+            int quantity = lines.stream().mapToInt(ValidLine::quantity).sum();
+
+            // 1. 本店券评估（含不可用者的原因码）：门槛基数是同店商品额
+            List<CouponAvailabilityView> coupons =
+                    couponReadQuery.evaluateForShop(userId, shopId, itemAmount.amount(), itemAmount.currency());
+
+            // 2. 挑出买家在本店选的那张：选了却不可用要当场说明原因。
+            //    刻意写成 if + throw 而不是 Validate.isTrue(...)：后者的文案参数会被即时求值，
+            //    对「可用」的券来说 unavailableReason() 是 null，取 message() 会直接 NPE
+            CouponAvailabilityView appliedCoupon = null;
+            for (CouponAvailabilityView candidate : coupons) {
+                if (!selected.contains(candidate.userCouponId())) {
+                    continue;
+                }
+                if (!candidate.usable()) {
+                    throw BusinessException.badRequest("优惠券「" + candidate.name() + "」不可用："
+                            + candidate.unavailableReason().message());
+                }
+                appliedCoupon = candidate;
+                landed.add(candidate.userCouponId());
+                break;
+            }
+
+            // 3. 运费按优惠前商品额与件数报价（包邮门槛不看优惠，见 ShippingTemplate.freeAt）
+            ShippingQuote quote = address == null
+                    ? null
+                    : shippingFeeReadQuery.quote(shopId, address.regionCode(), quantity, itemAmount);
+            Money shippingFee = quote == null ? Money.ofFen(0, itemAmount.currency()) : quote.shippingFee();
+
+            // 4. 金额定型：应付 = 商品 + 运费 − 券（与 orders 表的 CHECK 同口径，落地与预览同源）
+            Money discountAmount =
+                    appliedCoupon == null ? Money.ofFen(0, itemAmount.currency()) : appliedCoupon.discount();
+            groups.add(new CheckoutPreview.Group(
+                    shopId,
+                    shopNames.get(shopId),
+                    lines,
+                    itemAmount,
+                    shippingFee,
+                    discountAmount,
+                    itemAmount.plus(shippingFee).minus(discountAmount),
+                    quote == null || quote.deliverable(),
+                    quote == null ? null : quote.templateId(),
+                    appliedCoupon,
+                    coupons));
+        }
+
+        // 5. 选中的券必须全部落地：没落地说明它不属于本单任何一家店，或已被占用/使用/过期（不在候选里）
+        Validate.isTrue(selected.size() == landed.size(), "所选优惠券不可用于本单，请重新选择");
+        return groups;
     }
 
     Money sumLines(List<ValidLine> lines) {

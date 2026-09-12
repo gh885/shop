@@ -34,11 +34,14 @@ shop   → account::api
 product → inventory::api
 cart   → product::api, inventory::api, shop::api, order::events
 favorite → product::api
-order  → product::api, inventory::api, shop::api, account::api
+order  → product::api, inventory::api, shop::api, account::api, coupon::api
+coupon → shop::api（券包展示店名；券的领取与核销在本模块闭环，不反向依赖 order）
 logistics → order::api, shop::api（发货入口在物流侧：经 OrderCommand.markShipped / markDelivered 同事务推进订单，order 不认识物流）
-aftersale → order::api, inventory::api, logistics::api（回寄经物流模块落 RETURN 包裹）
+aftersale → order::api, inventory::api, logistics::api, coupon::api（退款完成退券；回寄经物流模块落 RETURN 包裹）
 payment → order::api, order::events, aftersale::events
 ```
+
+券的两个方向都是同事务 api 命令：order 下单占用/支付核销/取消释放、aftersale 退款退券——券与订单/资金要么一起成立要么一起不成。设计见 [docs/decisions/coupon.md](decisions/coupon.md)。
 
 事件流：`order.OrderPlacedEvent`（下单）→ cart 消费清理已购 SKU；`order.OrderCancelledEvent`（已付款单取消）与 `aftersale.AfterSaleRefundedEvent`（售后退款）→ payment 消费落退款单据。三条都是同事务同步监听；`kernel.event_publication` 登记表与 `infra/events/EventPublicationRecoveryJob` 保留给将来的 AFTER_COMMIT 消费方（如接真实支付网关后的退款），当前没有消费方在用。
 
@@ -118,21 +121,22 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 前端 domain 按**界面**组织，与后端模块不是 1:1（如"地址"属于界面上独立的 domain，后端却是 account 模块的 `/user/addresses`）。API 前缀与模块对应：
 
-| API 前缀                | 后端模块                                                         | 前端主要消费方                                                                                                                                                    |
-| ----------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/auth/*`               | account                                                          | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）                                                                                                        |
-| `/user/*`               | account                                                          | web（含收货地址 domain）                                                                                                                                          |
-| `/cart/*`               | cart                                                             | web 的 cart domain                                                                                                                                                |
-| `/orders/*` `/payments` | order / aftersale / payment / logistics                          | web 的 order、checkout domain（`/orders/{id}/after-sales/*` 由 aftersale 承接、`/orders/{id}/tracking` 由 logistics 承接）                                        |
-| `/api/*`                | product、cms、search                                             | web 的 product / home domain；admin 的类目、CMS                                                                                                                   |
-| `/shops/*` `/seller/*`  | shop / order / product / logistics / aftersale                   | seller 全域（X-Shop-Id 上下文头；`/seller/orders` 归 order、`/seller/products` 归 product、`/seller/shipments` 归 logistics、`/seller/after-sales` 归 aftersale） |
-| `/admin/*`              | account（员工登录）/ shop（入驻审核）/ cms / product / logistics | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                                                                                                     |
-| `/logistics/webhooks/*` | logistics                                                        | 承运商轨迹推送（匿名，靠报文签名）                                                                                                                                |
+| API 前缀                | 后端模块                                                         | 前端主要消费方                                                                                                                                                         |
+| ----------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/auth/*`               | account                                                          | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）                                                                                                             |
+| `/user/*`               | account                                                          | web（含收货地址 domain）                                                                                                                                               |
+| `/cart/*`               | cart                                                             | web 的 cart domain                                                                                                                                                     |
+| `/orders/*` `/payments` | order / aftersale / payment / logistics / coupon                 | web 的 order、checkout domain（`/orders/{id}/after-sales/*` 由 aftersale 承接、`/orders/{id}/tracking` 由 logistics 承接；结算预览与下单的券在 coupon，经 order 编排） |
+| `/coupons/*`            | coupon                                                           | web 的券包 domain（`/coupons/mine` 券包、`/coupons/{id}/claim` 领券；`/api/shops/{id}/coupons` 是匿名的店铺领券页）                                                    |
+| `/api/*`                | product、cms、search                                             | web 的 product / home domain；admin 的类目、CMS                                                                                                                        |
+| `/shops/*` `/seller/*`  | shop / order / product / logistics / aftersale                   | seller 全域（X-Shop-Id 上下文头；`/seller/orders` 归 order、`/seller/products` 归 product、`/seller/shipments` 归 logistics、`/seller/after-sales` 归 aftersale）      |
+| `/admin/*`              | account（员工登录）/ shop（入驻审核）/ cms / product / logistics | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                                                                                                          |
+| `/logistics/webhooks/*` | logistics                                                        | 承运商轨迹推送（匿名，靠报文签名）                                                                                                                                     |
 
 ## 7. 文档地图
 
 - 操作规范：[AGENTS.md](../AGENTS.md)、[apps/server/AGENTS.md](../apps/server/AGENTS.md)
 - 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志）
-- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
+- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记、物流四期、售后闭环、[优惠券定案](decisions/coupon.md)——**设计已定案、未编码**）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
 - 依据清单（收编的外部文档）：[docs/reference/](reference/)
 - 模块实现对照（快照）：[apps/server/docs/](../apps/server/docs/)

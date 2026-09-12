@@ -5,12 +5,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.shop.platform.account.api.AddressSnapshotView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
+import com.shop.platform.coupon.api.CouponAvailabilityView;
+import com.shop.platform.coupon.api.CouponBearer;
+import com.shop.platform.coupon.api.CouponReadQuery;
+import com.shop.platform.coupon.api.CouponUnavailableReason;
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.product.api.ProductView;
@@ -60,12 +65,37 @@ class CheckoutResolverTest {
     @Mock
     private com.shop.platform.shop.api.ShippingFeeReadQuery shippingFeeReadQuery;
 
+    @Mock
+    private CouponReadQuery couponReadQuery;
+
     private CheckoutResolver resolver;
 
     @BeforeEach
     void setUp() {
         resolver = new CheckoutResolver(
-                productReadQuery, stockReadQuery, shopReadQuery, addressReadQuery, shippingFeeReadQuery);
+                productReadQuery,
+                stockReadQuery,
+                shopReadQuery,
+                addressReadQuery,
+                shippingFeeReadQuery,
+                couponReadQuery);
+        // 默认无券：绝大多数用例关心的是行解析与运费，券在这里是「不存在」的常态
+        lenient()
+                .when(couponReadQuery.evaluateForShop(any(), any(), anyLong(), any()))
+                .thenReturn(List.of());
+    }
+
+    /** 造一张评估好的券：本店、可用、减 discount 分 */
+    private static CouponAvailabilityView usableCoupon(UUID couponId, long threshold, long discount) {
+        return new CouponAvailabilityView(
+                couponId,
+                "满减券",
+                Money.cny(threshold),
+                Money.cny(discount),
+                CouponBearer.SELLER,
+                OffsetDateTime.now().plusDays(7),
+                true,
+                null);
     }
 
     private static List<OrderLineRequest> lines(UUID skuId, int quantity) {
@@ -194,7 +224,8 @@ class CheckoutResolverTest {
 
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店", shopB(), "乙店"));
 
-        List<CheckoutPreview.Group> groups = resolver.groupByShop(new ArrayList<>(List.of(a, b, c)), null);
+        List<CheckoutPreview.Group> groups =
+                resolver.groupByShop(new ArrayList<>(List.of(a, b, c)), null, userId, null);
 
         // 分组按 shopId 升序（与 OrderService.create 拆单顺序一致），但 shopId 是随机 UUID——
         // 谁排前仅由 UUID 大小决定，所以按 shopId 取组、不按下标假定哪家在前
@@ -217,7 +248,7 @@ class CheckoutResolverTest {
         when(shippingFeeReadQuery.quote(shopA(), "440305", 2, Money.cny(2000)))
                 .thenReturn(new ShippingQuote(templateId, true, Money.cny(800)));
 
-        List<CheckoutPreview.Group> groups = resolver.groupByShop(List.of(a), snapshot("440305"));
+        List<CheckoutPreview.Group> groups = resolver.groupByShop(List.of(a), snapshot("440305"), userId, null);
 
         CheckoutPreview.Group group = groupOf(groups, shopA());
         assertThat(group.shippingFee()).isEqualTo(Money.cny(800));
@@ -233,10 +264,88 @@ class CheckoutResolverTest {
         when(shippingFeeReadQuery.quote(any(), any(), anyInt(), any()))
                 .thenReturn(new ShippingQuote(templateId, false, Money.cny(0)));
 
-        CheckoutPreview.Group group = groupOf(resolver.groupByShop(List.of(a), snapshot("653101")), shopA());
+        CheckoutPreview.Group group =
+                groupOf(resolver.groupByShop(List.of(a), snapshot("653101"), userId, null), shopA());
 
         assertThat(group.deliverable()).isFalse();
         assertThat(group.shippingFee()).isEqualTo(Money.cny(0));
+    }
+
+    // ---- 券接入结算链路 ----
+
+    @Test
+    void 用券_应付减券额_且券信息随分组带出() {
+        UUID couponId = UUID.randomUUID();
+        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 2, 9);
+        when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
+        when(couponReadQuery.evaluateForShop(userId, shopA(), 2000L, "CNY"))
+                .thenReturn(List.of(usableCoupon(couponId, 1500L, 300L)));
+
+        CheckoutPreview.Group group =
+                groupOf(resolver.groupByShop(List.of(a), null, userId, List.of(couponId)), shopA());
+
+        assertThat(group.discountAmount()).isEqualTo(Money.cny(300));
+        assertThat(group.payAmount()).isEqualTo(Money.cny(1700)); // 2000 − 300
+        assertThat(group.appliedCoupon().userCouponId()).isEqualTo(couponId);
+        assertThat(group.coupons()).hasSize(1); // 候选一并带出，供结算页渲染选券区
+    }
+
+    @Test
+    void 用券_门槛基数不含运费_运费照收且不参与打折() {
+        UUID couponId = UUID.randomUUID();
+        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
+        when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
+        // 券按商品额 1000（而不是 1000+800）判定与计算
+        when(couponReadQuery.evaluateForShop(userId, shopA(), 1000L, "CNY"))
+                .thenReturn(List.of(usableCoupon(couponId, 0L, 200L)));
+        when(shippingFeeReadQuery.quote(shopA(), "440305", 1, Money.cny(1000)))
+                .thenReturn(new ShippingQuote(templateId, true, Money.cny(800)));
+
+        CheckoutPreview.Group group =
+                groupOf(resolver.groupByShop(List.of(a), snapshot("440305"), userId, List.of(couponId)), shopA());
+
+        assertThat(group.shippingFee()).isEqualTo(Money.cny(800)); // 运费不打折
+        assertThat(group.payAmount()).isEqualTo(Money.cny(1600)); // 1000 + 800 − 200
+    }
+
+    @Test
+    void 选了不可用的券_400并说明原因() {
+        UUID couponId = UUID.randomUUID();
+        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
+        when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
+        // 未达门槛：券在候选里但 usable=false
+        when(couponReadQuery.evaluateForShop(userId, shopA(), 1000L, "CNY"))
+                .thenReturn(List.of(new CouponAvailabilityView(
+                        couponId,
+                        "满 2000 减 300",
+                        Money.cny(2000),
+                        Money.cny(0),
+                        CouponBearer.SELLER,
+                        OffsetDateTime.now().plusDays(1),
+                        false,
+                        CouponUnavailableReason.THRESHOLD_NOT_MET)));
+
+        // 不能静默按「没用券」算：用户会以为券生效了，看到的却是原价
+        assertThatThrownBy(() -> resolver.groupByShop(List.of(a), null, userId, List.of(couponId)))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(400);
+                    assertThat(ex.getDetail()).contains("满 2000 减 300").contains("门槛");
+                });
+    }
+
+    @Test
+    void 选了不属于本单的券_400拒绝() {
+        UUID couponId = UUID.randomUUID();
+        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
+        when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
+        // 本店候选里没有这张券（跨店券 / 已核销 / 非本人）——不能落地就必须拒绝
+        when(couponReadQuery.evaluateForShop(userId, shopA(), 1000L, "CNY")).thenReturn(List.of());
+
+        assertThatThrownBy(() -> resolver.groupByShop(List.of(a), null, userId, List.of(couponId)))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(400);
+                    assertThat(ex.getDetail()).contains("不可用于本单");
+                });
     }
 
     private final UUID templateId = UUID.randomUUID();

@@ -8,6 +8,7 @@
 | seller | `ORDER_FULFILL`                 | 卖家订单查看 + 发货            | 可授予子账号                |
 | seller | `ADDRESS_MANAGE`                | 店铺发货/退货/揽收/账单地址    | 可授予子账号                |
 | seller | `SHIPPING_MANAGE`               | 运费模板（按地区与件数计费）   | 可授予子账号                |
+| seller | `COUPON_MANAGE`                 | 店铺优惠券（建券、停券、名额） | 可授予子账号                |
 | seller | `MEMBER_MANAGE` / `SHOP_MANAGE` | 成员管理 / 店铺设置注销        | OWNER 固有，不入可授予集合  |
 | admin  | `SHOP_REVIEW`                   | 入驻审核（通过与拒绝）         | 岗位 REVIEWER               |
 | admin  | `CMS_MANAGE`                    | banner / 导航 / 推荐位         | 岗位 OPS                    |

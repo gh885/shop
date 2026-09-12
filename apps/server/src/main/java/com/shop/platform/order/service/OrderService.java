@@ -11,6 +11,7 @@ import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
+import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
@@ -63,6 +64,9 @@ public class OrderService {
 
     private final StockCommand stockCommand;
 
+    /** 券命令（coupon :: api）：下单占用在同事务内完成，抢不到回滚整笔下单 */
+    private final CouponCommand couponCommand;
+
     private final OrderStatusLogWriter statusLogWriter;
 
     private final ApplicationEventPublisher events;
@@ -84,9 +88,9 @@ public class OrderService {
                         req.addressId(), checkoutResolver.loadAddressSnapshot(userId, req.addressId()))
                 : null;
 
-        // 3. 有效行按店铺分组算钱 —— 分组即拆单预告，运费在此定格，与下单走同一条计费路径（同源同口径）
-        List<CheckoutPreview.Group> groups =
-                checkoutResolver.groupByShop(resolved.valid(), address == null ? null : address.snapshot());
+        // 3. 有效行按店铺分组算钱 —— 分组即拆单预告，运费与券都在此定格，与下单走同一条计费路径（同源同口径）
+        List<CheckoutPreview.Group> groups = checkoutResolver.groupByShop(
+                resolved.valid(), address == null ? null : address.snapshot(), userId, req.userCouponIds());
         Money totalPayAmount =
                 groups.stream().map(CheckoutPreview.Group::payAmount).reduce(Money.cny(0), Money::plus);
 
@@ -116,17 +120,29 @@ public class OrderService {
         //    分组顺序（shopId 升序）由 CheckoutResolver.groupByShop 保证，不是勾选顺序：逐店冻结时
         //    StockCommand 只在单店内按 skuId 排序，店间顺序若跟用户走，两笔店序相反的多店订单会互相等锁
         //    （A 持店1等店2，B 持店2等店1）。一个 SKU 只属一家店，(shopId, skuId) 升序即全局锁序，环不可能成立。
-        //    运费与计费快照随分组一起定格（同店合计口径），不配送地区在此硬拒——预览页拦不住脚本直接下单
-        List<CheckoutPreview.Group> groups = checkoutResolver.groupByShop(resolved.valid(), address);
+        //    运费与计费快照随分组一起定格（同店合计口径），不配送地区在此硬拒——预览页拦不住脚本直接下单；
+        //    券的减免额也已在分组时定格（选了却不可用会在这里之前就 400）
+        List<CheckoutPreview.Group> groups =
+                checkoutResolver.groupByShop(resolved.valid(), address, userId, req.userCouponIds());
         Validate.isTrue(groups.stream().allMatch(CheckoutPreview.Group::deliverable), "部分商品不支持配送到所选地区，请更换收货地址");
-        List<Map.Entry<Order, List<ValidLine>>> staged = new ArrayList<>();
+        List<Map.Entry<Order, CheckoutPreview.Group>> staged = new ArrayList<>();
         for (CheckoutPreview.Group group : groups) {
-            staged.add(Map.entry(persistOrder(userId, req, address, group), group.lines()));
+            staged.add(Map.entry(persistOrder(userId, req, address, group), group));
         }
 
-        // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU
-        for (Map.Entry<Order, List<ValidLine>> entry : staged) {
-            stockCommand.freeze(entry.getKey().getId(), stockLinesOf(entry.getValue()));
+        // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU；
+        //    券在同一事务内占用（UNUSED → LOCKED），抢不到同样回滚——券被别的未付款单占着时不会走到这一步还成立
+        for (Map.Entry<Order, CheckoutPreview.Group> entry : staged) {
+            Order order = entry.getKey();
+            CheckoutPreview.Group group = entry.getValue();
+            stockCommand.freeze(order.getId(), stockLinesOf(group.lines()));
+            if (group.appliedCoupon() != null) {
+                couponCommand.lock(
+                        group.appliedCoupon().userCouponId(),
+                        userId,
+                        order.getId(),
+                        group.appliedCoupon().discount());
+            }
         }
         events.publishEvent(new OrderPlacedEvent(
                 userId, resolved.valid().stream().map(ValidLine::skuId).toList()));
@@ -168,8 +184,8 @@ public class OrderService {
     // ========== 内部：落单 ==========
 
     /** 落一笔订单：主表快照 + 行项目快照（单号生成见 {@link #insertOrder}）。
-     *  金额与计费快照直接吃分组结果（itemAmount / shippingFee / payAmount / templateId 都是同一次计费的产物），
-     *  不重算——重算就会漂移 */
+     *  金额与计费/用券快照直接吃分组结果（itemAmount / shippingFee / discountAmount / payAmount / templateId
+     *  都是同一次计费的产物），不重算——重算就会漂移 */
     private Order persistOrder(UUID userId, CreateOrderRequest req, AddressSnapshot addr, CheckoutPreview.Group group) {
         String buyerMessage = req.buyerMessage();
         Order template = Order.builder()
@@ -179,8 +195,19 @@ public class OrderService {
                 .status(PENDING_PAYMENT)
                 .itemAmount(group.itemAmount().amount())
                 .shippingFee(group.shippingFee().amount())
+                .discountAmount(group.discountAmount().amount())
                 .payAmount(group.payAmount().amount())
                 .currency(group.itemAmount().currency())
+                // 用券快照：券 id 与承担方与金额一起落库。券的规则会改、券会被停用，订单必须能自证「减了多少、凭哪张券」；
+                // 承担方是将来结算拆账的依据，历史订单一旦生成就无法补写（见 V57）
+                .userCouponId(
+                        group.appliedCoupon() == null
+                                ? null
+                                : group.appliedCoupon().userCouponId())
+                .couponBearer(
+                        group.appliedCoupon() == null
+                                ? null
+                                : group.appliedCoupon().bearer())
                 // 计费快照：金额之外把「按哪份模板、哪个地区收的」也留下，模板事后被改不影响追溯（见 V54）
                 .shippingTemplateId(group.shippingTemplateId())
                 // 收货快照整块展开成列平铺（MyBatis-Plus 无嵌入映射）

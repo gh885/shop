@@ -210,6 +210,19 @@ export type UpdateSkusRequest = {
     items: Array<SkuUpdateItem>;
 };
 
+export type CouponTemplateResponse = {
+    id: string;
+    name: string;
+    threshold: Money;
+    discount: Money;
+    validFrom: string;
+    validTo: string;
+    totalQuantity: number;
+    issuedQuantity: number;
+    status: string;
+    createdAt: string;
+};
+
 export type MerchantAddressRequest = {
     contactName: string;
     phone: string;
@@ -543,6 +556,15 @@ export type ImageTicketResponse = {
     url: string;
 };
 
+export type CreateCouponTemplateRequest = {
+    name: string;
+    thresholdAmount: number;
+    discountAmount: number;
+    totalQuantity: number;
+    validFrom: string;
+    validTo: string;
+};
+
 export type CreatePaymentRequest = {
     orderId: string;
 };
@@ -607,6 +629,7 @@ export type OrderLineRequest = {
 export type PreviewOrderRequest = {
     addressId?: string;
     lines: Array<OrderLineRequest>;
+    userCouponIds?: Array<string>;
 };
 
 export type Address = {
@@ -619,14 +642,36 @@ export type Address = {
     detail: string;
 };
 
+export type Coupon = {
+    userCouponId: string;
+    name: string;
+    threshold: Money;
+    discount: Money;
+    expireAt: string;
+    usable: boolean;
+    unavailableReason: CouponUnavailableReason | null;
+};
+
+export const CouponUnavailableReason = {
+    NOT_EFFECTIVE: 'NOT_EFFECTIVE',
+    EXPIRED: 'EXPIRED',
+    THRESHOLD_NOT_MET: 'THRESHOLD_NOT_MET',
+    CURRENCY_MISMATCH: 'CURRENCY_MISMATCH'
+} as const;
+
+export type CouponUnavailableReason = typeof CouponUnavailableReason[keyof typeof CouponUnavailableReason];
+
 export type Group = {
     shopId: string;
     shopName: string;
     lines: Array<Item>;
     itemAmount: Money;
     shippingFee: Money;
+    discountAmount: Money;
     payAmount: Money;
     deliverable: boolean;
+    coupons: Array<Coupon>;
+    appliedCouponId: string | null;
 };
 
 export type Item = {
@@ -659,6 +704,7 @@ export type CreateOrderRequest = {
     checkoutKey: string;
     addressId: string;
     lines: Array<OrderLineRequest>;
+    userCouponIds?: Array<string>;
     buyerMessage?: string;
 };
 
@@ -695,6 +741,20 @@ export type FavoriteExistsRequest = {
 
 export type FavoriteExistsResponse = {
     productIds: Array<string>;
+};
+
+export type MyCouponResponse = {
+    id: string;
+    shopId: string;
+    shopName: string;
+    name: string;
+    threshold: Money;
+    discount: Money;
+    effectiveAt: string;
+    expireAt: string;
+    status: string;
+    source: string;
+    orderId: string | null;
 };
 
 export type AddCartItemRequest = {
@@ -908,7 +968,9 @@ export type OrderDetailResponse = {
     availableActions: Array<string>;
     itemAmount: Money;
     shippingFee: Money;
+    discountAmount: Money;
     payAmount: Money;
+    userCouponId: string | null;
     buyerMessage: string | null;
     receiverName: string;
     receiverPhone: string;
@@ -929,6 +991,11 @@ export type OrderDetailResponse = {
     refundAmount: Money | null;
     applyExpireAt: string | null;
     items: Array<OrderItemResponse>;
+};
+
+export type PageResultCouponTemplateResponse = {
+    records: Array<CouponTemplateResponse>;
+    total: number;
 };
 
 export type CarrierResponse = {
@@ -1040,6 +1107,15 @@ export type PageResultFavoriteItemView = {
     total: number;
 };
 
+export type MyCouponQuery = {
+    status?: string;
+};
+
+export type PageResultMyCouponResponse = {
+    records: Array<MyCouponResponse>;
+    total: number;
+};
+
 export type CartItemView = {
     id: string;
     skuId: string;
@@ -1088,6 +1164,16 @@ export type DeviceEntryResponse = {
 export type CaptchaResponse = {
     captchaId: string;
     image: string;
+};
+
+export type ClaimableCouponResponse = {
+    id: string;
+    name: string;
+    threshold: Money;
+    discount: Money;
+    validFrom: string;
+    validTo: string;
+    soldOut: boolean;
 };
 
 export type PublicShopResponse = {
@@ -1475,6 +1561,24 @@ export type AgreeAfterSaleResponses = {
      */
     200: unknown;
 };
+
+export type StopCouponData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/coupons/{id}/stop';
+};
+
+export type StopCouponResponses = {
+    /**
+     * OK
+     */
+    200: CouponTemplateResponse;
+};
+
+export type StopCouponResponse = StopCouponResponses[keyof StopCouponResponses];
 
 export type DeleteAddress1Data = {
     body?: never;
@@ -2126,6 +2230,40 @@ export type IssueImageTicketResponses = {
 
 export type IssueImageTicketResponse = IssueImageTicketResponses[keyof IssueImageTicketResponses];
 
+export type ListShopCouponsData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+    };
+    url: '/seller/coupons';
+};
+
+export type ListShopCouponsResponses = {
+    /**
+     * OK
+     */
+    200: PageResultCouponTemplateResponse;
+};
+
+export type ListShopCouponsResponse = ListShopCouponsResponses[keyof ListShopCouponsResponses];
+
+export type CreateCouponData = {
+    body: CreateCouponTemplateRequest;
+    path?: never;
+    query?: never;
+    url: '/seller/coupons';
+};
+
+export type CreateCouponResponses = {
+    /**
+     * Created
+     */
+    201: CouponTemplateResponse;
+};
+
+export type CreateCouponResponse = CreateCouponResponses[keyof CreateCouponResponses];
+
 export type ListAddresses1Data = {
     body?: never;
     path?: never;
@@ -2325,6 +2463,24 @@ export type CheckFavoriteExistsResponses = {
 };
 
 export type CheckFavoriteExistsResponse = CheckFavoriteExistsResponses[keyof CheckFavoriteExistsResponses];
+
+export type ClaimCouponData = {
+    body?: never;
+    path: {
+        templateId: string;
+    };
+    query?: never;
+    url: '/coupons/{templateId}/claim';
+};
+
+export type ClaimCouponResponses = {
+    /**
+     * Created
+     */
+    201: MyCouponResponse;
+};
+
+export type ClaimCouponResponse = ClaimCouponResponses[keyof ClaimCouponResponses];
 
 export type ListCartItemsData = {
     body?: never;
@@ -2994,6 +3150,25 @@ export type ListMyOrdersResponses = {
 
 export type ListMyOrdersResponse = ListMyOrdersResponses[keyof ListMyOrdersResponses];
 
+export type ListMyCouponsData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        query: MyCouponQuery;
+    };
+    url: '/coupons/mine';
+};
+
+export type ListMyCouponsResponses = {
+    /**
+     * OK
+     */
+    200: PageResultMyCouponResponse;
+};
+
+export type ListMyCouponsResponse = ListMyCouponsResponses[keyof ListMyCouponsResponses];
+
 export type GetCartCountData = {
     body?: never;
     path?: never;
@@ -3059,6 +3234,24 @@ export type GetCaptchaResponses = {
 };
 
 export type GetCaptchaResponse = GetCaptchaResponses[keyof GetCaptchaResponses];
+
+export type ListShopClaimableCouponsData = {
+    body?: never;
+    path: {
+        shopId: string;
+    };
+    query?: never;
+    url: '/api/shops/{shopId}/coupons';
+};
+
+export type ListShopClaimableCouponsResponses = {
+    /**
+     * OK
+     */
+    200: Array<ClaimableCouponResponse>;
+};
+
+export type ListShopClaimableCouponsResponse = ListShopClaimableCouponsResponses[keyof ListShopClaimableCouponsResponses];
 
 export type GetPublicShopData = {
     body?: never;

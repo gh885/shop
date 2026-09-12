@@ -27,7 +27,11 @@ public record OrderDetailResponse(
         @Schema(requiredMode = REQUIRED) List<String> availableActions,
         @Schema(requiredMode = REQUIRED) Money itemAmount,
         @Schema(requiredMode = REQUIRED) Money shippingFee,
+        /** 券减免额；没用券为 0 */
+        @Schema(requiredMode = REQUIRED) Money discountAmount,
         @Schema(requiredMode = REQUIRED) Money payAmount,
+        /** 核销的券；没用券为 null */
+        @Schema(requiredMode = REQUIRED, nullable = true) UUID userCouponId,
         @Schema(requiredMode = REQUIRED, nullable = true) String buyerMessage,
         @Schema(requiredMode = REQUIRED) String receiverName,
         @Schema(requiredMode = REQUIRED) String receiverPhone,
@@ -70,10 +74,12 @@ public record OrderDetailResponse(
                 order.getShopId(),
                 shopName,
                 actions.apply(order),
-                // 金额三件套
+                // 金额四件套：商品 + 运费 − 券 = 应付（与 orders 表 CHECK 同口径）
                 order.itemAmountAsMoney(),
                 order.shippingFeeAsMoney(),
+                order.discountAmountAsMoney(),
                 order.payAmountAsMoney(),
+                order.getUserCouponId(),
                 // 留言 + 收货快照（下单定格；卖家侧即面单信息）
                 order.getBuyerMessage(),
                 order.getReceiverName(),

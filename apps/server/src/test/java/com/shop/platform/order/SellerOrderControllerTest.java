@@ -48,6 +48,8 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         o.setCurrency("CNY");
         o.setItemAmount(2000L);
         o.setShippingFee(0L);
+        // discount_amount 是 NOT NULL DEFAULT 0 的列，夹具必须带上，否则金额四件套拼不出来
+        o.setDiscountAmount(0L);
         o.setPayAmount(2000L);
         o.setReceiverName("张三");
         o.setCreatedAt(OffsetDateTime.now());

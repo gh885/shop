@@ -11,11 +11,12 @@
  * 退货收货回补库存经 inventory :: api 的 StockCommand.restock 同事务调用。
  * 买家回寄经 logistics :: api 的 ReturnShipmentCommand 落 RETURN 包裹（同事务）——退货物流因此与正向物流
  * 共用同一套包裹与轨迹模型，能接真实承运商推送；本模块 ticket 上的两列只是展示投影。
+ * 退款完成同时经 coupon :: api 的 CouponCommand.returnOnRefund 把券还给买家（同事务）——退钱与退券要么一起成立要么都不成立。
  * 本模块不写任何他方 schema。
  */
 @ApplicationModule(
         displayName = "AfterSale",
-        allowedDependencies = {"order :: api", "inventory :: api", "logistics :: api"})
+        allowedDependencies = {"order :: api", "inventory :: api", "logistics :: api", "coupon :: api"})
 package com.shop.platform.aftersale;
 
 import org.springframework.modulith.ApplicationModule;

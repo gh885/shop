@@ -17,6 +17,7 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
+import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
@@ -66,6 +67,9 @@ public class AfterSaleService {
 
     /** 回寄包裹落 logistics（同事务）：退货物流不再是第二套字符串，而是复用正向包裹与轨迹的那一套 */
     private final ReturnShipmentCommand returnShipmentCommand;
+
+    /** 券命令（coupon :: api）：退款完成时退券（另发新券），同事务 */
+    private final CouponCommand couponCommand;
 
     // ========== 买家 ==========
 
@@ -237,6 +241,9 @@ public class AfterSaleService {
         transition(ticket, action, null, u -> u.set(Ticket::getRefundedAt, now));
         events.publishEvent(new AfterSaleRefundedEvent(
                 ticket.getOrderId(), ticket.getUserId(), Money.ofFen(ticket.getRefundAmount(), ticket.getCurrency())));
+        // 退券：整单退款要把券还给买家（另发新券，原券保持 USED）。没用券、或券已过期时无副作用。
+        // 与退款同事务：退款成立而券没退（或反之）都是对不上账的半成品
+        couponCommand.returnOnRefund(ticket.getOrderId());
         log.info(
                 "[AFTERSALE] 售后退款, orderId={}, ticketId={}, amount={}",
                 ticket.getOrderId(),

@@ -116,7 +116,7 @@ class OrderFlowIT extends IntegrationTestSupport {
 
     private CreateOrderRequest buyNow(int quantity) {
         return new CreateOrderRequest(
-                UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, quantity)), null);
+                UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, quantity)), null, null);
     }
 
     @Test
@@ -124,8 +124,8 @@ class OrderFlowIT extends IntegrationTestSupport {
         seedSku(5);
 
         // 1. 预览：一组一行，应付 = 1000 × 2
-        CheckoutPreview preview =
-                orderService.preview(userId, new PreviewOrderRequest(null, List.of(new OrderLineRequest(skuId, 2))));
+        CheckoutPreview preview = orderService.preview(
+                userId, new PreviewOrderRequest(null, List.of(new OrderLineRequest(skuId, 2)), null));
         assertEquals(1, preview.groups().size());
         assertEquals(0, preview.unavailable().size());
         assertEquals(2000L, preview.totalPayAmount().amount());
