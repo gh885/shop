@@ -24,10 +24,14 @@ pre-commit:
 
     jobs:
         # 前端／通用文件格式化
+        # --no-error-on-unmatched-pattern：{staged_files} 可能整体落在 .prettierignore 里
+        # （packages/api/src/sdk/、**/*.gen.ts、openapi/api-docs.json），此时 oxfmt 找不到任何
+        # 可格式化的目标，默认以 2 退出。两个作业都要带这个参数，否则「只提交一次契约/SDK 重生成」
+        # 这类完全干净、也确实无可格式化的提交会被钩子拦下。
         - name: fmt-web
           tags: [format]
           glob: "**/*.{ts,tsx,js,jsx,json,yml,yaml,md}"
-          run: pnpm oxfmt --config packages/config/oxfmt.config.ts --write {staged_files}
+          run: pnpm oxfmt --no-error-on-unmatched-pattern --config packages/config/oxfmt.config.ts --write {staged_files}
           stage_fixed: true
 
         # 后端 Java 格式化（只当有 .java 文件变更时触发）
@@ -39,10 +43,14 @@ pre-commit:
           stage_fixed: true
 
         # 前端 lint
+        # --no-error-on-unmatched-pattern：同一类问题（见上）。最典型的触发是只提交 SDK 重生成产物
+        # —— packages/api/src/sdk/index.ts 不在 lefthook 的 exclude 里，会被交给 oxlint，
+        # 但它在 .eslintignore 里（**/sdk/**），于是 oxlint 拿到空集并以 1 退出。
+        # 全量 lint（pre-push 的 lint 作业与 pnpm lint:web）lint 的是 "."，不会空集，故不加此参数。
         - name: lint-web
           tags: [lint]
           glob: "**/*.{ts,tsx,js,jsx}"
-          run: pnpm oxlint --config packages/config/oxlint.config.ts {staged_files}
+          run: pnpm oxlint --no-error-on-unmatched-pattern --config packages/config/oxlint.config.ts {staged_files}
           fail_text: "oxlint 未通过；可自动修复的部分跑 pnpm lint:web"
 
 # ── commit-msg：Conventional Commits 校验 ──
