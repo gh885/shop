@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppServiceRouteImport } from './routes/_app/service'
 import { Route as AppGroupLeafRouteImport } from './routes/_app/$group/$leaf'
+import { Route as AppMarketingCouponRouteImport } from './routes/_app/marketing/coupon'
 import { Route as AppProductListRouteImport } from './routes/_app/product/list'
 import { Route as AppShopAddressRouteImport } from './routes/_app/shop/address'
 import { Route as AppShopListRouteImport } from './routes/_app/shop/list'
@@ -46,6 +47,11 @@ const AppServiceRoute = AppServiceRouteImport.update({
 const AppGroupLeafRoute = AppGroupLeafRouteImport.update({
   id: '/$group/$leaf',
   path: '/$group/$leaf',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppMarketingCouponRoute = AppMarketingCouponRouteImport.update({
+  id: '/marketing/coupon',
+  path: '/marketing/coupon',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppProductListRoute = AppProductListRouteImport.update({
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/service': typeof AppServiceRoute
   '/$group/$leaf': typeof AppGroupLeafRoute
+  '/marketing/coupon': typeof AppMarketingCouponRoute
   '/product/list': typeof AppProductListRoute
   '/shop/address': typeof AppShopAddressRoute
   '/shop/list': typeof AppShopListRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/service': typeof AppServiceRoute
   '/': typeof AppIndexRoute
   '/$group/$leaf': typeof AppGroupLeafRoute
+  '/marketing/coupon': typeof AppMarketingCouponRoute
   '/product/list': typeof AppProductListRoute
   '/shop/address': typeof AppShopAddressRoute
   '/shop/list': typeof AppShopListRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/_app/service': typeof AppServiceRoute
   '/_app/': typeof AppIndexRoute
   '/_app/$group/$leaf': typeof AppGroupLeafRoute
+  '/_app/marketing/coupon': typeof AppMarketingCouponRoute
   '/_app/product/list': typeof AppProductListRoute
   '/_app/shop/address': typeof AppShopAddressRoute
   '/_app/shop/list': typeof AppShopListRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/service'
     | '/$group/$leaf'
+    | '/marketing/coupon'
     | '/product/list'
     | '/shop/address'
     | '/shop/list'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/service'
     | '/'
     | '/$group/$leaf'
+    | '/marketing/coupon'
     | '/product/list'
     | '/shop/address'
     | '/shop/list'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/_app/service'
     | '/_app/'
     | '/_app/$group/$leaf'
+    | '/_app/marketing/coupon'
     | '/_app/product/list'
     | '/_app/shop/address'
     | '/_app/shop/list'
@@ -231,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/$group/$leaf'
       fullPath: '/$group/$leaf'
       preLoaderRoute: typeof AppGroupLeafRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/marketing/coupon': {
+      id: '/_app/marketing/coupon'
+      path: '/marketing/coupon'
+      fullPath: '/marketing/coupon'
+      preLoaderRoute: typeof AppMarketingCouponRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/product/list': {
@@ -303,6 +322,7 @@ interface AppRouteRouteChildren {
   AppServiceRoute: typeof AppServiceRoute
   AppIndexRoute: typeof AppIndexRoute
   AppGroupLeafRoute: typeof AppGroupLeafRoute
+  AppMarketingCouponRoute: typeof AppMarketingCouponRoute
   AppProductListRoute: typeof AppProductListRoute
   AppShopAddressRoute: typeof AppShopAddressRoute
   AppShopListRoute: typeof AppShopListRoute
@@ -318,6 +338,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppServiceRoute: AppServiceRoute,
   AppIndexRoute: AppIndexRoute,
   AppGroupLeafRoute: AppGroupLeafRoute,
+  AppMarketingCouponRoute: AppMarketingCouponRoute,
   AppProductListRoute: AppProductListRoute,
   AppShopAddressRoute: AppShopAddressRoute,
   AppShopListRoute: AppShopListRoute,

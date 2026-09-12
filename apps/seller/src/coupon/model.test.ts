@@ -1,0 +1,98 @@
+import { describe, expect, it } from "vitest"
+
+import type { CouponTemplateResponse } from "@shop/api/sdk"
+
+import { couponRowFromWire, deriveCouponStatus } from "./model"
+
+/**
+ * 券列表展示状态的纯函数测试。
+ *
+ * 钉住的是「同一张券在列表与结算页不会各说各话」：状态由模板 status + 有效期区间派生，
+ * 边界口径与后端 CouponEvaluator 一致（起点闭、终点开）。
+ */
+
+/** 契约级假数据：只暴露该用例关心的维度，其余字段给合法值 */
+function makeTemplate(overrides: Partial<CouponTemplateResponse> = {}): CouponTemplateResponse {
+    return {
+        id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
+        name: "新春满减券",
+        threshold: { amount: 10000, currency: "CNY" },
+        discount: { amount: 1000, currency: "CNY" },
+        // 取正午而非零点：展示用的日期本地化后在任何时区都落回同一天
+        validFrom: "2026-01-01T12:00:00Z",
+        validTo: "2026-02-01T12:00:00Z",
+        totalQuantity: 100,
+        issuedQuantity: 30,
+        usedQuantity: 12,
+        status: "ACTIVE",
+        createdAt: "2025-12-20T08:00:00Z",
+        ...overrides,
+    }
+}
+
+const FROM = Date.parse("2026-01-01T12:00:00Z")
+const TO = Date.parse("2026-02-01T12:00:00Z")
+
+describe("deriveCouponStatus", () => {
+    it("当前时刻早于有效期起点：未开始", () => {
+        expect(
+            deriveCouponStatus("ACTIVE", "2026-01-01T12:00:00Z", "2026-02-01T12:00:00Z", FROM - 1),
+        ).toBe("NOT_STARTED")
+    })
+
+    it("当前时刻恰好等于起点：进行中（起点是闭区间，与结算判可用同口径）", () => {
+        expect(
+            deriveCouponStatus("ACTIVE", "2026-01-01T12:00:00Z", "2026-02-01T12:00:00Z", FROM),
+        ).toBe("ONGOING")
+    })
+
+    it("当前时刻恰好等于终点：已结束（终点是开区间，过期那一刻起不可用）", () => {
+        expect(
+            deriveCouponStatus("ACTIVE", "2026-01-01T12:00:00Z", "2026-02-01T12:00:00Z", TO),
+        ).toBe("ENDED")
+    })
+
+    it("终点前一毫秒：仍然进行中", () => {
+        expect(
+            deriveCouponStatus("ACTIVE", "2026-01-01T12:00:00Z", "2026-02-01T12:00:00Z", TO - 1),
+        ).toBe("ONGOING")
+    })
+
+    it("模板已停用：不管时间窗处于哪一段都显示已停用（停发是卖家的动作事实）", () => {
+        expect(
+            deriveCouponStatus("STOPPED", "2026-01-01T12:00:00Z", "2026-02-01T12:00:00Z", FROM - 1),
+        ).toBe("STOPPED")
+        expect(
+            deriveCouponStatus("STOPPED", "2026-01-01T12:00:00Z", "2026-02-01T12:00:00Z", FROM),
+        ).toBe("STOPPED")
+        expect(
+            deriveCouponStatus("STOPPED", "2026-01-01T12:00:00Z", "2026-02-01T12:00:00Z", TO),
+        ).toBe("STOPPED")
+    })
+})
+
+describe("couponRowFromWire", () => {
+    it("满减券：规则文案与有效期区间来自契约的分与 ISO 时间", () => {
+        const row = couponRowFromWire(makeTemplate(), FROM)
+
+        expect(row).toMatchObject({
+            name: "新春满减券",
+            ruleText: "满 ¥100 减 ¥10",
+            periodText: "2026-01-01 ~ 2026-02-01",
+            issuedQuantity: 30,
+            totalQuantity: 100,
+            usedQuantity: 12,
+            status: "ONGOING",
+            statusLabel: "进行中",
+        })
+    })
+
+    it("门槛为 0：规则读作无门槛，而不是「满 ¥0」这句废话", () => {
+        const row = couponRowFromWire(
+            makeTemplate({ threshold: { amount: 0, currency: "CNY" } }),
+            FROM,
+        )
+
+        expect(row.ruleText).toBe("无门槛减 ¥10")
+    })
+})
