@@ -1,4 +1,5 @@
 import type { Money } from "@shop/common"
+import type { AfterSaleStatus } from "@shop/api/sdk"
 
 /**
  * entities/order 领域层 —— 订单业务类型 + 纯规则，不知道 wire 的一切。
@@ -57,6 +58,15 @@ export type Order = {
 export type OrderDetail = Order & {
     /** 可执行动作：按后端状态机推导（pay/cancel/receive/...） */
     availableActions: string[]
+    /**
+     * 售后投影：最近一张售后单的状态（NONE = 从未申请过）。
+     * 只有详情契约带它（列表契约没有），所以它是详情字段而不是订单字段。
+     */
+    afterSaleStatus: AfterSaleStatus
+    /** 售后申请截止时刻（契约可空：未完成 / 窗口已过由后端算） */
+    applyExpireAt: string | null
+    /** 最近一次售后的退款口径（未申请过为 null） */
+    refundAmount: Money | null
     /** 买家留言（下单定格；可空） */
     buyerMessage: string | null
     /** 收货快照（下单定格；卖家侧即面单信息） */

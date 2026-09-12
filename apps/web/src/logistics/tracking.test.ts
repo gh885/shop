@@ -61,6 +61,10 @@ function makeOrderDetail(overrides: Partial<OrderDetail> = {}): OrderDetail {
         completedAt: "2026-07-29T18:35:00+08:00",
         cancelledAt: null,
         cancelReason: null,
+        // 售后投影列：轨迹轴不用它们，但详情类型要求在场（默认「从未申请过售后」）
+        afterSaleStatus: "NONE",
+        applyExpireAt: null,
+        refundAmount: null,
         ...overrides,
     }
 }

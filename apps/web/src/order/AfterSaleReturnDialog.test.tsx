@@ -1,0 +1,83 @@
+import type { ComponentProps } from "react"
+import { screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { HttpResponse, http } from "msw"
+import { describe, expect, it, vi } from "vitest"
+
+import { server } from "@shop/test-utils"
+
+import { renderWithProviders } from "#/test/render"
+
+import { AfterSaleReturnDialog } from "./AfterSaleReturnDialog"
+
+/**
+ * 回寄退货填单测试：这一步把退货物流登记成 logistics 的 RETURN 包裹，
+ * 所以「填了什么 → wire 上是什么」必须准（首尾空格要清掉，否则承运商推送按运单号匹配不上）。
+ */
+
+type Captured = Record<string, unknown>
+
+function useCaptureReturn(captured: Captured[]) {
+    server.use(
+        http.put("*/orders/:id/after-sales/return", async ({ request }) => {
+            captured.push((await request.json()) as Captured)
+            return new HttpResponse(null, { status: 204 })
+        }),
+    )
+}
+
+function renderDialog(
+    props: Partial<ComponentProps<typeof AfterSaleReturnDialog>> = {},
+    onOpenChange = vi.fn<(open: boolean) => void>(),
+) {
+    renderWithProviders(
+        <AfterSaleReturnDialog
+            open
+            onOpenChange={onOpenChange}
+            orderId="o-1"
+            {...props}
+        />,
+    )
+    return onOpenChange
+}
+
+describe("AfterSaleReturnDialog", () => {
+    it("空表单提交_两项都被校验拦下、不发请求", async () => {
+        const user = userEvent.setup()
+        const captured: Captured[] = []
+        useCaptureReturn(captured)
+
+        const onOpenChange = renderDialog()
+        await user.click(screen.getByRole("button", { name: "提交" }))
+
+        expect(await screen.findByText("请填写快递公司")).toBeInTheDocument()
+        expect(screen.getByText("请填写运单号")).toBeInTheDocument()
+        expect(captured).toHaveLength(0)
+        expect(onOpenChange).not.toHaveBeenCalledWith(false)
+    })
+
+    it("填写带空格的快递公司与运单号_提交前清空格（运单号要能被承运商推送精确匹配）", async () => {
+        const user = userEvent.setup()
+        const captured: Captured[] = []
+        useCaptureReturn(captured)
+
+        const onOpenChange = renderDialog()
+        await user.type(screen.getByLabelText("快递公司"), "  顺丰速运 ")
+        await user.type(screen.getByLabelText("运单号"), " SF12345678 ")
+        await user.click(screen.getByRole("button", { name: "提交" }))
+
+        await waitFor(() => expect(captured).toHaveLength(1))
+        expect(captured[0]).toEqual({
+            logisticsCompany: "顺丰速运",
+            trackingNo: "SF12345678",
+        })
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    })
+
+    it("已有回寄单_按现有值回填，允许改单重交", async () => {
+        renderDialog({ defaultLogisticsCompany: "中通快递", defaultTrackingNo: "ZT999" })
+
+        expect(screen.getByLabelText("快递公司")).toHaveValue("中通快递")
+        expect(screen.getByLabelText("运单号")).toHaveValue("ZT999")
+    })
+})

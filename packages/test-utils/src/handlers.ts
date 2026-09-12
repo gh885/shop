@@ -1,6 +1,11 @@
 import { HttpResponse, http, type RequestHandler } from "msw"
 
-import type { AddressParseResult, AddressResponse } from "@shop/api/sdk"
+import type {
+    AddressParseResult,
+    AddressResponse,
+    SellerTicketItem,
+    TicketResponse,
+} from "@shop/api/sdk"
 
 /**
  * 默认 API handlers —— 按接口契约（openapi/api-docs.json）逐端点 mock。
@@ -46,6 +51,47 @@ export function makeAddressParse(overrides: Partial<AddressParseResult> = {}): A
     }
 }
 
+/** TicketResponse 完整假数据（售后单：整单售后的默认口径 = 实付 199 元，进行中） */
+export function makeTicket(
+    overrides: Partial<TicketResponse> & Pick<TicketResponse, "id">,
+): TicketResponse {
+    return {
+        orderId: "00000000-0000-4000-8000-000000000002", // 需为合法 v4 UUID（SDK zod schema 校验响应）
+        type: "REFUND_ONLY",
+        status: "APPLYING",
+        reason: "尺码不合适",
+        refundAmount: { amount: 19900, currency: "CNY" },
+        returnLogisticsCompany: null,
+        returnTrackingNo: null,
+        refundedAt: null,
+        createdAt: "2026-01-02T00:00:00Z",
+        updatedAt: "2026-01-02T00:00:00Z",
+        ...overrides,
+    }
+}
+
+/** SellerTicketItem 完整假数据（卖家售后工作台一行：售后单 + 订单摘要） */
+export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}): SellerTicketItem {
+    return {
+        id: "00000000-0000-4000-8000-000000000010",
+        orderId: "00000000-0000-4000-8000-000000000002",
+        orderNo: "20260102120000001",
+        receiverName: "张三",
+        itemCount: 1,
+        firstItemName: "测试SKU",
+        type: "REFUND_ONLY",
+        status: "APPLYING",
+        reason: "尺码不合适",
+        refundAmount: { amount: 19900, currency: "CNY" },
+        returnLogisticsCompany: null,
+        returnTrackingNo: null,
+        refundedAt: null,
+        createdAt: "2026-01-02T00:00:00Z",
+        updatedAt: "2026-01-02T00:00:00Z",
+        ...overrides,
+    }
+}
+
 export const defaultHandlers: RequestHandler[] = [
     http.get("*/user/addresses", () => HttpResponse.json([])),
     http.post("*/user/addresses", () =>
@@ -58,4 +104,15 @@ export const defaultHandlers: RequestHandler[] = [
     http.put("*/user/addresses/:id/default", () => new HttpResponse(null, { status: 204 })),
     http.delete("*/user/addresses/:id/default", () => new HttpResponse(null, { status: 204 })),
     http.post("*/user/addresses/parse", () => HttpResponse.json(makeAddressParse())),
+
+    // 售后：GET 默认 404 = 「这单从没申请过售后」，这是最常见的事实而不是错误（前端据此把售后卡整块不画）
+    http.get("*/orders/:id/after-sales", () => new HttpResponse(null, { status: 404 })),
+    http.post("*/orders/:id/after-sales", () =>
+        HttpResponse.json(makeTicket({ id: crypto.randomUUID() }), { status: 201 }),
+    ),
+    http.put("*/orders/:id/after-sales/cancel", () => new HttpResponse(null, { status: 204 })),
+    http.put("*/orders/:id/after-sales/return", () => new HttpResponse(null, { status: 204 })),
+
+    // 卖家售后工作台：空列表是合法兜底（用例内用 server.use 覆盖成有数据的）
+    http.get("*/seller/after-sales", () => HttpResponse.json({ records: [], total: 0 })),
 ]

@@ -55,6 +55,9 @@ export function toOrderDetail(dto: OrderDetailResponse): OrderDetail {
     return {
         ...toOrder(dto),
         availableActions: dto.availableActions,
+        afterSaleStatus: dto.afterSaleStatus,
+        applyExpireAt: dto.applyExpireAt,
+        refundAmount: dto.refundAmount,
         buyerMessage: dto.buyerMessage,
         receiverName: dto.receiverName,
         receiverPhone: dto.receiverPhone,

@@ -19,10 +19,22 @@ const ITEM_ACTIONS: { key: string; label: string; variant?: "default" | "outline
 export interface OrderShopSectionProps {
     order: { shopId: string; shopName: string | null; payAmount: { amount: number } }
     items: OrderItem[]
+    /**
+     * 是否给出「申请售后」入口：由订单详情页按售后申请门槛推导（见 after-sale.ts canApplyAfterSale）。
+     * 门槛不成立时按钮整条不渲染，而不是渲染成禁用灰——买家问的是「这单还能不能申请」，
+     * 一个永远点不动的按钮只会逼他猜原因。
+     */
+    canApplyAfterSale?: boolean
     onItemAction?: (item: OrderItem, action: string) => void
 }
 
-export function OrderShopSection({ order, items, onItemAction }: OrderShopSectionProps) {
+export function OrderShopSection({
+    order,
+    items,
+    canApplyAfterSale = false,
+    onItemAction,
+}: OrderShopSectionProps) {
+    const itemActions = ITEM_ACTIONS.filter((a) => a.key !== "after_sale" || canApplyAfterSale)
     return (
         <Panel>
             {/* 店铺行 */}
@@ -86,7 +98,7 @@ export function OrderShopSection({ order, items, onItemAction }: OrderShopSectio
 
                         {/* 按状态操作 */}
                         <div className="flex w-40 shrink-0 flex-col items-end gap-2">
-                            {ITEM_ACTIONS.map((a) => (
+                            {itemActions.map((a) => (
                                 <Button
                                     key={a.key}
                                     variant={a.variant ?? "outline"}
