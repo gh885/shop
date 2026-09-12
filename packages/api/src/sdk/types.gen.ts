@@ -219,6 +219,7 @@ export type CouponTemplateResponse = {
     validTo: string;
     totalQuantity: number;
     issuedQuantity: number;
+    usedQuantity: number;
     status: string;
     createdAt: string;
 };

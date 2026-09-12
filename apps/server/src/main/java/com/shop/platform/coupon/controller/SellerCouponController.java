@@ -38,7 +38,7 @@ public class SellerCouponController {
 
     private final CouponTemplateService couponTemplateService;
 
-    /** 本店券列表：含发放总量与已发放数 */
+    /** 本店券列表：含发放总量、已发放数与已核销数 */
     @GetMapping
     public PageResult<CouponTemplateResponse> listShopCoupons(@CurrentShop UUID shopId, @Valid PageParams pageParams) {
         return couponTemplateService.pageMine(shopId, pageParams).map(CouponTemplateResponse::from);

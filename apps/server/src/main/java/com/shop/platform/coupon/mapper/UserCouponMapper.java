@@ -1,6 +1,7 @@
 package com.shop.platform.coupon.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -8,9 +9,12 @@ import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.model.CouponSource;
 import com.shop.platform.coupon.model.UserCouponStatus;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
@@ -31,12 +35,17 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
      * <p>筛选取的是<b>展示状态</b>而非库里的 status：过期以绝对时间为准，收敛任务可能还没刷到，
      * 库里仍是 UNUSED。直接按 status 过滤会让人在「未使用」页签看到早已过期的券。
      * 于是 UNUSED 要额外排掉已过失效时刻的，EXPIRED 要把「已收敛的」与「还没被刷到的」都收进来。
+     *
+     * <p>「未使用」页签同时收 {@code LOCKED}（已被某笔未付款单占用）：对用户来说它就是「还没用掉的券」，
+     * 只是暂时不可选。把它排除掉会让这些券在三个页签里都查不到——用户会以为券丢了。
+     * 展示状态由 {@code MyCoupon.displayStatus} 算出来，页签口径必须与它一致。
      */
     default Page<UserCoupon> selectPageMine(
             Page<UserCoupon> page, UUID userId, UserCouponStatus status, OffsetDateTime now) {
         LambdaQueryWrapper<UserCoupon> query = new LambdaQueryWrapper<UserCoupon>().eq(UserCoupon::getUserId, userId);
         if (status == UserCouponStatus.UNUSED) {
-            query.eq(UserCoupon::getStatus, UserCouponStatus.UNUSED).gt(UserCoupon::getExpireAt, now);
+            query.in(UserCoupon::getStatus, List.of(UserCouponStatus.UNUSED, UserCouponStatus.LOCKED))
+                    .gt(UserCoupon::getExpireAt, now);
         } else if (status == UserCouponStatus.EXPIRED) {
             query.and(w -> w.eq(UserCoupon::getStatus, UserCouponStatus.EXPIRED)
                     .or(o ->
@@ -45,6 +54,39 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
             query.eq(UserCoupon::getStatus, status);
         }
         return selectPage(page, query.orderByDesc(UserCoupon::getCreatedAt));
+    }
+
+    /**
+     * 各模板的<b>已核销</b>数（卖家券列表的「已用掉多少」，一次查回避免列表页 N+1）。
+     *
+     * <p>只数 USED：LOCKED 是「占用中」不是「用掉」，把它算进去会让卖家在买家还没付款时就以为券已成交。
+     * 已发放数在模板行上（`issued_quantity`），这一列回答的是另一个问题——发的券有没有真的变成订单。
+     */
+    default Map<UUID, Long> countUsedByTemplateIds(Collection<UUID> templateIds) {
+        if (templateIds.isEmpty()) {
+            return Map.of();
+        }
+        return selectMaps(new QueryWrapper<UserCoupon>()
+                        .select("template_id", "count(*) AS cnt")
+                        .in("template_id", templateIds)
+                        .eq("status", UserCouponStatus.USED.name())
+                        .groupBy("template_id"))
+                .stream()
+                .collect(Collectors.toMap(m -> toUuid(m.get("template_id")), m -> ((Number) m.get("cnt")).longValue()));
+    }
+
+    /**
+     * uuid 列经 selectMaps 返回的值，PG JDBC 驱动可能给 {@link UUID} 或 {@link String}（取决版本/配置），
+     * 两者都收口成 {@link UUID}，避免 {@code (String)} 强转在 UUID 类型下抛 ClassCastException。
+     */
+    private static UUID toUuid(Object value) {
+        if (value instanceof UUID uuid) {
+            return uuid;
+        }
+        if (value instanceof String s) {
+            return UUID.fromString(s);
+        }
+        throw new IllegalArgumentException("template_id 列返回了意外的类型: " + value.getClass());
     }
 
     /** 我是否已领过该模板的券：领券前的友好判重；真正的闸门是 uk_user_coupons_template_user 唯一索引 */

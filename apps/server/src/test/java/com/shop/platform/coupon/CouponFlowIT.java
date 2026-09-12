@@ -10,6 +10,7 @@ import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.aftersale.service.AfterSaleService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.coupon.api.CouponBearer;
 import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.coupon.api.CouponReadQuery;
@@ -17,6 +18,8 @@ import com.shop.platform.coupon.api.CouponUnavailableReason;
 import com.shop.platform.coupon.dto.CreateCouponTemplateRequest;
 import com.shop.platform.coupon.service.CouponClaimService;
 import com.shop.platform.coupon.service.CouponTemplateService;
+import com.shop.platform.coupon.service.CouponWalletService;
+import com.shop.platform.coupon.service.ShopCoupon;
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.dto.CreateOrderRequest;
@@ -52,6 +55,9 @@ class CouponFlowIT extends IntegrationTestSupport {
 
     @Autowired
     private CouponClaimService couponClaimService;
+
+    @Autowired
+    private CouponWalletService couponWalletService;
 
     @Autowired
     private CouponReadQuery couponReadQuery;
@@ -119,6 +125,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                                 total,
                                 now.minusMinutes(1),
                                 now.plusDays(7)))
+                .template()
                 .getId();
     }
 
@@ -447,6 +454,7 @@ class CouponFlowIT extends IntegrationTestSupport {
         // 明天才开始：领券页也不会列它（selectClaimable 过滤 validFrom），所以「领了但不能用」在一期没有可达路径
         UUID templateId = couponTemplateService
                 .create(shopId, new CreateCouponTemplateRequest("预告券", 0L, 300L, 10, now.plusDays(1), now.plusDays(8)))
+                .template()
                 .getId();
 
         BusinessException ex =
@@ -463,6 +471,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .create(
                         shopId,
                         new CreateCouponTemplateRequest("过期活动", 0L, 300L, 10, now.minusDays(2), now.minusDays(1)))
+                .template()
                 .getId();
 
         BusinessException ex =
@@ -528,5 +537,57 @@ class CouponFlowIT extends IntegrationTestSupport {
         BusinessException ex =
                 assertThrows(BusinessException.class, () -> couponClaimService.claim(userId, templateId));
         assertEquals("COUPON_ALREADY_CLAIMED", ex.getCode());
+    }
+
+    // ========== 状态口径与卖家统计 ==========
+
+    @Test
+    void 券包未使用页签_收下被未付款单占用的券() {
+        seed(5);
+        UUID couponId = couponClaimService
+                .claim(userId, seedTemplate(1500, 300, 10))
+                .coupon()
+                .getId();
+        createOrder(2, couponId);
+        assertEquals("LOCKED", couponStatus(couponId));
+
+        // LOCKED 对用户就是「还没用掉的券」，只是暂时不可选；把它排除掉会让这张券三个页签里都查不到
+        var unusedTab = couponWalletService.pageMine(userId, "UNUSED", new PageParams(1, 10));
+        assertTrue(unusedTab.records().stream().anyMatch(c -> c.coupon().getId().equals(couponId)));
+        // 展示状态如实是「结算中」，不退化成未使用——页签收进来，不代表状态要改口径
+        assertEquals(
+                "LOCKED",
+                unusedTab.records().stream()
+                        .filter(c -> c.coupon().getId().equals(couponId))
+                        .findFirst()
+                        .orElseThrow()
+                        .displayStatus()
+                        .name());
+    }
+
+    @Test
+    void 卖家券列表_已核销数只算支付用掉的_占用中不算() {
+        seed(5);
+        UUID templateId = seedTemplate(1500, 300, 10);
+        UUID couponId = couponClaimService.claim(userId, templateId).coupon().getId();
+
+        Order order = createOrder(2, couponId);
+        // 领走 1 张、占用 1 张、核销 0 张：卖家看「已发放 1 / 已核销 0」才知道券还没变成订单
+        ShopCoupon beforePay = shopCouponOf(templateId);
+        assertEquals(1, beforePay.template().getIssuedQuantity());
+        assertEquals(0L, beforePay.usedQuantity());
+
+        Payment pending = paymentService.pay(userId, order.getId());
+        paymentService.confirm(userId, pending.getId());
+
+        assertEquals(1L, shopCouponOf(templateId).usedQuantity());
+    }
+
+    /** 从卖家列表里取指定模板那一行（走真实分页查询，而不是直接数表——顺带覆盖批量统计的拼装） */
+    private ShopCoupon shopCouponOf(UUID templateId) {
+        return couponTemplateService.pageMine(shopId, new PageParams(1, 20)).records().stream()
+                .filter(row -> row.template().getId().equals(templateId))
+                .findFirst()
+                .orElseThrow();
     }
 }
