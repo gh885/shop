@@ -69,6 +69,13 @@ Spring /v3/api-docs ──pnpm gen:sdk──► openapi/api-docs.json ──@hey
 
 SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期直接报错；lefthook pre-push 有 sdk-drift 检查比对生成物与 api-docs.json。
 
+**可空字段的两种写法必须分清**（这决定生成物是 `T` 还是 `T | null`）：
+
+- 真会发 null 的字段（如划线价、已删除的商品快照、未选地址）标 `@Schema(nullable = true)`，前端按可空处理。
+- 业务上不可能为空的字段**不要**标——典型是买家侧 `PublicProductResponse.minPrice/maxPrice`（发布门槛 + `ensureNotAllOutOfStock` 保证上架商品必有在售且已定价的 SKU）。标了就是过度声明：生成物凭空多出前端分支，真出契约事故时反而少了 zod 这道闸。
+
+springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形表达 `{ "type": "null", "$ref": … }`（`type:"null"` 反而否掉了那句 `$ref`），生成器只取 `$ref`，可空字段就悄悄变成非空。`infra/web/OpenApiConfig` 在契约出口把它改写成 3.1 规范的 `anyOf: [{ $ref }, { type: "null" }]`；`scripts/contract-audit.mjs` 的 ERROR 闸门覆盖四种可空写法，漏标或表达退化会在 `gen:sdk` 时直接失败。
+
 ### 4.3 认证链路
 
 双 token 域隔离：`kind=user`（买家）与 `kind=staff`（员工/卖家/管理员）两套 JWT 过滤链。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`）。设计动机与攻击面：[docs/decisions/auth.md](decisions/auth.md)；实现对照：apps/server/docs/auth-implementation.md。

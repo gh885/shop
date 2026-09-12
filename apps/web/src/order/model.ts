@@ -24,7 +24,8 @@ export type OrderItem = {
     /** 主图（SDK 可空，UI 用占位图） */
     image?: string
     price: Money
-    originalPrice: Money
+    /** 划线价：SDK 可空，null 表示下单时就没有划线价（UI 不画那行删除线） */
+    originalPrice: Money | null
     quantity: number
     /** 行小计（单价 × 数量） */
     amount: Money

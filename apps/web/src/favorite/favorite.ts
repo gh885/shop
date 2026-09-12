@@ -20,17 +20,18 @@ export type FavoriteItem = {
     collectCount: number
 }
 
-/** wire → 投影（name→title、mainImage→image、minPrice→price；商品被删全空兜底） */
+/** wire → 投影（name→title、mainImage→image、minPrice→price；商品被删时 product 为 null，给失效占位） */
 export function toFavoriteItem(dto: FavoriteItemView): FavoriteItem {
+    const p = dto.product
     return {
         id: dto.id,
         productId: dto.productId,
         favoritedAt: dto.favoritedAt,
         available: dto.available,
-        title: dto.product.name,
-        image: dto.product.mainImage ?? undefined,
-        price: dto.product.minPrice,
-        collectCount: dto.product.collectCount,
+        title: p?.name ?? "商品已删除",
+        image: p?.mainImage ?? undefined,
+        price: p?.minPrice ?? undefined,
+        collectCount: p?.collectCount ?? 0,
     }
 }
 

@@ -36,7 +36,7 @@ export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
             lines: g.lines.map((l) => ({ ...l, image: l.image ?? undefined })),
         })),
         unavailable: dto.unavailable.map((u) => ({ ...u, image: u.image ?? undefined })),
-        address: dto.address,
+        address: dto.address ?? undefined,
         totalPayAmount: dto.totalPayAmount,
     }
 }

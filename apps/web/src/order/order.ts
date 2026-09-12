@@ -10,7 +10,7 @@ import type { Order, OrderDetail, OrderItem } from "./model"
  * 自后端收紧 OpenAPI 契约（response 字段已标 required / nullable）后：
  *   - required 字段：契约保证必有，mapping 不再兜底（去掉 ?? "" / ?? 0）。
  *   - nullable 字段：契约明确可空，如实透传 null，由 UI 层处理「无」的展示（不再 ?? "" 造假）。
- * 金额一律 Money，SDK 的 Money 现已 required 且非 null， Money 直接透传无需投影。
+ * 金额一律 Money；成交价/小计等由契约保证非空，只有划线价 originalPrice 可空（无划线价是常态）。
  * 入参直接用 SDK 生成的 DTO 类型（行项形状单一事实来源在 types.gen，不手抄）。
  */
 

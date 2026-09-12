@@ -56,18 +56,23 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
 
             <ItemContent>
                 <ItemTitle className="line-clamp-2 w-full">{view.title}</ItemTitle>
-                {item.sku.name && <ItemDescription>{item.sku.name}</ItemDescription>}
+                {view.skuName && <ItemDescription>{view.skuName}</ItemDescription>}
                 {view.outOfStock && <Badge variant="warning">缺货</Badge>}
             </ItemContent>
 
+            {/* 价格：商品/SKU 已删时无价可展示（整行已置灰），不拿假价糊 */}
             <div className="text-right">
-                <Price
-                    value={item.sku.price.amount}
-                    className="text-sm text-foreground"
-                />
-                <p className="text-xs text-muted-foreground line-through">
-                    ¥{fenToYuan(item.sku.originalPrice.amount)}
-                </p>
+                {view.price !== undefined && (
+                    <Price
+                        value={view.price}
+                        className="text-sm text-foreground"
+                    />
+                )}
+                {view.original !== undefined && (
+                    <p className="text-xs text-muted-foreground line-through">
+                        ¥{fenToYuan(view.original)}
+                    </p>
+                )}
             </div>
 
             <ItemActions>

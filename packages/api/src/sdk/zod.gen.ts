@@ -87,7 +87,7 @@ export const zShippingTemplateResponse = z.object({
     shopId: z.uuid(),
     freeShipping: z.boolean(),
     freeOverQuantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
-    freeOverAmount: zMoney,
+    freeOverAmount: zMoney.nullable(),
     defaultRule: zShippingTemplateFeeTier,
     regionRules: z.array(zShippingTemplateRegionRule),
     excludedRegions: z.array(z.string())
@@ -557,7 +557,7 @@ export const zTicketResponse = z.object({
     type: zTicketType,
     status: zTicketStatus,
     reason: z.string().nullable(),
-    refundAmount: zMoney,
+    refundAmount: zMoney.nullable(),
     returnLogisticsCompany: z.string().nullable(),
     returnTrackingNo: z.string().nullable(),
     refundedAt: z.iso.datetime({ offset: true }).nullable(),
@@ -591,7 +591,7 @@ export const zItem = z.object({
     name: z.string(),
     image: z.string().nullable(),
     price: zMoney,
-    originalPrice: zMoney,
+    originalPrice: zMoney.nullable(),
     quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     stock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
@@ -617,7 +617,7 @@ export const zUnavailableLine = z.object({
 export const zPreviewResponse = z.object({
     groups: z.array(zGroup),
     unavailable: z.array(zUnavailableLine),
-    address: zAddress,
+    address: zAddress.nullable(),
     totalPayAmount: zMoney
 });
 
@@ -826,7 +826,7 @@ export const zOrderItemResponse = z.object({
     name: z.string(),
     image: z.string().nullable(),
     price: zMoney,
-    originalPrice: zMoney,
+    originalPrice: zMoney.nullable(),
     quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     amount: zMoney
 });
@@ -884,7 +884,7 @@ export const zOrderDetailResponse = z.object({
     cancelReason: z.string().nullable(),
     createdAt: z.iso.datetime({ offset: true }),
     afterSaleStatus: zAfterSaleStatus,
-    refundAmount: zMoney,
+    refundAmount: zMoney.nullable(),
     applyExpireAt: z.iso.datetime({ offset: true }).nullable(),
     items: z.array(zOrderItemResponse)
 });
@@ -953,8 +953,8 @@ export const zFavoriteProductInfo = z.object({
     id: z.uuid(),
     name: z.string(),
     mainImage: z.string().nullable(),
-    minPrice: zMoney,
-    maxPrice: zMoney,
+    minPrice: zMoney.nullable(),
+    maxPrice: zMoney.nullable(),
     collectCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
@@ -962,7 +962,7 @@ export const zFavoriteItemView = z.object({
     id: z.uuid(),
     productId: z.uuid(),
     favoritedAt: z.iso.datetime({ offset: true }),
-    product: zFavoriteProductInfo,
+    product: zFavoriteProductInfo.nullable(),
     available: z.boolean()
 });
 
@@ -987,7 +987,7 @@ export const zSkuInfo = z.object({
     name: z.string(),
     image: z.string().nullable(),
     price: zMoney,
-    originalPrice: zMoney,
+    originalPrice: zMoney.nullable(),
     stock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     onSale: z.boolean()
 });
@@ -998,8 +998,8 @@ export const zCartItemView = z.object({
     quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     selected: z.boolean(),
     addedAt: z.iso.datetime({ offset: true }),
-    product: zCartProductInfo,
-    sku: zSkuInfo,
+    product: zCartProductInfo.nullable(),
+    sku: zSkuInfo.nullable(),
     available: z.boolean()
 });
 
@@ -1057,7 +1057,7 @@ export const zPublicSkuResponse = z.object({
     attributes: z.array(zSkuAttr),
     image: z.string().nullable(),
     price: zMoney,
-    originalPrice: zMoney,
+    originalPrice: zMoney.nullable(),
     stock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
 

@@ -89,7 +89,7 @@ export type ShippingTemplateResponse = {
     shopId: string;
     freeShipping: boolean;
     freeOverQuantity: number | null;
-    freeOverAmount: Money;
+    freeOverAmount: Money | null;
     defaultRule: ShippingTemplateFeeTier;
     regionRules: Array<ShippingTemplateRegionRule>;
     excludedRegions: Array<string>;
@@ -581,7 +581,7 @@ export type TicketResponse = {
     type: TicketType;
     status: TicketStatus;
     reason: string | null;
-    refundAmount: Money;
+    refundAmount: Money | null;
     returnLogisticsCompany: string | null;
     returnTrackingNo: string | null;
     refundedAt: string | null;
@@ -635,7 +635,7 @@ export type Item = {
     name: string;
     image: string | null;
     price: Money;
-    originalPrice: Money;
+    originalPrice: Money | null;
     quantity: number;
     stock: number;
 };
@@ -643,7 +643,7 @@ export type Item = {
 export type PreviewResponse = {
     groups: Array<Group>;
     unavailable: Array<UnavailableLine>;
-    address: Address;
+    address: Address | null;
     totalPayAmount: Money;
 };
 
@@ -866,7 +866,7 @@ export type OrderItemResponse = {
     name: string;
     image: string | null;
     price: Money;
-    originalPrice: Money;
+    originalPrice: Money | null;
     quantity: number;
     amount: Money;
 };
@@ -926,7 +926,7 @@ export type OrderDetailResponse = {
     cancelReason: string | null;
     createdAt: string;
     afterSaleStatus: AfterSaleStatus;
-    refundAmount: Money;
+    refundAmount: Money | null;
     applyExpireAt: string | null;
     items: Array<OrderItemResponse>;
 };
@@ -996,7 +996,7 @@ export type FavoriteItemView = {
     id: string;
     productId: string;
     favoritedAt: string;
-    product: FavoriteProductInfo;
+    product: FavoriteProductInfo | null;
     available: boolean;
 };
 
@@ -1007,8 +1007,8 @@ export type FavoriteProductInfo = {
     id: string;
     name: string;
     mainImage: string | null;
-    minPrice: Money;
-    maxPrice: Money;
+    minPrice: Money | null;
+    maxPrice: Money | null;
     collectCount: number;
 };
 
@@ -1023,8 +1023,8 @@ export type CartItemView = {
     quantity: number;
     selected: boolean;
     addedAt: string;
-    product: CartProductInfo;
-    sku: SkuInfo;
+    product: CartProductInfo | null;
+    sku: SkuInfo | null;
     available: boolean;
 };
 
@@ -1044,7 +1044,7 @@ export type SkuInfo = {
     name: string;
     image: string | null;
     price: Money;
-    originalPrice: Money;
+    originalPrice: Money | null;
     stock: number;
     onSale: boolean;
 };
@@ -1112,7 +1112,7 @@ export type PublicSkuResponse = {
     attributes: Array<SkuAttr>;
     image: string | null;
     price: Money;
-    originalPrice: Money;
+    originalPrice: Money | null;
     stock: number;
 };
 

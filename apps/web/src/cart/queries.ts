@@ -149,7 +149,8 @@ export function useCartItemActions() {
         /** 改数量：越界静默拦下、超库存提示（仍以后端裁决为准）；库存取自调用方手上的 item，不回查列表 */
         updateQuantity: (item: CartItem, quantity: number) => {
             if (quantity < 1 || quantity > MAX_CART_QUANTITY) return
-            const stock = item.sku.stock
+            // SKU 已删则库存未知：按「不设上限」放行，后端仍是最终裁决（置灰行本就走不到这里）
+            const stock = item.sku?.stock ?? 0
             if (stock > 0 && quantity > stock) {
                 notify.info(`最多只能购买 ${stock} 件`)
                 return

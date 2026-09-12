@@ -39,7 +39,8 @@ export type Sku = {
     /** SDK 可空，null 表示无专属图 */
     image: string | null
     price: Money
-    originalPrice: Money
+    /** 划线价：SDK 可空，null 表示没有划线价（详情页不画那行删除线） */
+    originalPrice: Money | null
     stock: number
 }
 
@@ -85,7 +86,7 @@ export function toProduct(dto: PublicProductResponse): Product {
     }
 }
 
-/** wire → 业务形状：SKU 字段均已 required 且 Money 非 null，原样透传 */
+/** wire → 业务形状：price 由发布门槛保证有值，originalPrice 可空（无划线价）如实透传 */
 function toSku(dto: PublicSkuResponse): Sku {
     return {
         id: dto.id,
@@ -179,7 +180,7 @@ export function derivePriceView(detail: ProductDetail, selection: SkuSelection):
     if (matched) {
         return {
             primary: matched.price.amount,
-            original: matched.originalPrice.amount,
+            original: matched.originalPrice?.amount,
             currency: matched.price.currency,
         }
     }

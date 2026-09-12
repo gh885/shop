@@ -11,6 +11,8 @@
  *
  * 运行：node scripts/contract-audit.mjs   （Node 24+，依赖 Node 原生 TS type-stripping 直接 import SDK）
  * 说明：WARN 为启发式提示（响应 schema 必填字段名含可选语义），需人确认；ERROR 为自动闸门，gen:sdk 后应恒为 0。
+ *       可空判定必须覆盖四种写法（nullable / type:"null" / type 数组含 null / anyOf 里的 null 分支）——
+ *       只认 `nullable` 会让「$ref + type:"null"」那类字段整个溜过去，而那正是最会出事的形态。
  */
 
 import { readFile } from "node:fs/promises"
@@ -32,10 +34,25 @@ function propsOf(schema) {
     return {
         props: Object.entries(properties).map(([name, p]) => ({
             name,
-            nullable: p.nullable === true,
+            nullable: isNullable(p),
             required: required.has(name),
         })),
     }
+}
+
+/**
+ * 该属性在 OpenAPI 里是否标了可空。四种等价写法都要认，漏掉一种就会出现
+ * 「契约说可空、SDK 说非空」却审计不到的盲区：
+ *   - `nullable: true`            OpenAPI 3.0 遗留写法
+ *   - `type: "null"`              3.1 单类型（springdoc 对 $ref 属性的畸形输出就长这样）
+ *   - `type: ["integer","null"]`  3.1 类型数组
+ *   - `anyOf: [{…}, {type:"null"}]` 3.1 规范写法（infra.web.OpenApiConfig 正把上面那种改写成它）
+ */
+function isNullable(prop) {
+    if (prop.nullable === true || prop.type === "null") return true
+    if (Array.isArray(prop.type) && prop.type.includes("null")) return true
+    const branches = [...(prop.anyOf ?? []), ...(prop.oneOf ?? [])]
+    return branches.some((branch) => branch?.type === "null")
 }
 
 const errors = []

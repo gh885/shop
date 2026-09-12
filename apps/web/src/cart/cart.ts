@@ -15,6 +15,10 @@ type CartItemProduct = Omit<SdkCartProductInfo, "name" | "mainImage"> & {
  * 购物车条目投影 —— 对齐后端购物车列表接口（SDK CartItemView）嵌入的 slim 形状。
  * 注意：这里嵌的是 cart 接口自带的 product/sku 缩略（CartProductInfo / SkuInfo），
  * 不是完整商品/SKU 领域对象 —— 购物车只消费店名/图/价/库存，拿全量实属浪费。
+ *
+ * <p>product/sku 可空 = 商品或 SKU <b>已被删除</b>（不是下架：下架时快照仍在，只是 available=false），
+ * 后端此时连快照都不返回，前端按「失效条目」置灰保留，让买家还能把它删掉。
+ * 两者同生共死——后端 `product = sku == null ? null : …`，SKU 没了商品必然也没了。
  */
 export type CartItem = {
     id: string
@@ -22,11 +26,17 @@ export type CartItem = {
     quantity: number
     selected: boolean
     available: boolean
-    /** available=false 时商品已下架，product 仍有值（展示快照用） */
-    product: CartItemProduct
-    /** SKU 快照（价格/库存/规格图） */
-    sku: SkuInfo
+    /** 商品缩略快照；null = 商品已被删除（此时 sku 也必为 null） */
+    product: CartItemProduct | null
+    /** SKU 快照（价格/库存/规格图）；null = SKU 已被删除 */
+    sku: SkuInfo | null
 }
+
+/** 可售条目：available 且快照齐全。结算与合计只认它，故用它把 null 挡在这条线之外 */
+export type SellableCartItem = CartItem & { product: CartItemProduct; sku: SkuInfo }
+
+/** 「商品已被删除」那一组的店铺 key：后端不再给 shopId，用哨兵把它们聚成一组 */
+const DELETED_SHOP_ID = "__deleted__"
 
 /**
  * cart 模块 —— 纯逻辑（投影映射 + 派生 + 缓存变换语义 + UX 守卫）。不碰 React / 网络。
@@ -52,13 +62,16 @@ export function toCartItem(dto: ApiCartItemView): CartItem {
         quantity: dto.quantity,
         selected: dto.selected,
         available: dto.available,
-        product: {
-            id: dto.product.id,
-            title: dto.product.name,
-            image: dto.product.mainImage ?? undefined,
-            shopId: dto.product.shopId,
-            shopName: dto.product.shopName,
-        },
+        product:
+            dto.product === null
+                ? null
+                : {
+                      id: dto.product.id,
+                      title: dto.product.name,
+                      image: dto.product.mainImage ?? undefined,
+                      shopId: dto.product.shopId,
+                      shopName: dto.product.shopName,
+                  },
         sku: dto.sku,
     }
 }
@@ -72,23 +85,34 @@ export type CartShopGroup = {
     items: CartItem[]
 }
 
-/** 购物车条目行的视图读模型：组件不再在内部算这些 */
+/** 购物车条目行的视图读模型：组件不再在内部算这些，也不再自己判 product/sku 是否还在 */
 export type CartItemView = {
-    /** 主图（SDK 可空，UI 用占位图） */
+    /** 主图（可空，UI 用占位图） */
     image?: string
     title: string
+    /** SKU 规格名（无 SKU 快照时为空） */
+    skuName?: string
+    /** 现价（分）：SKU 已删则无价可展示 */
+    price?: number
+    /** 划线价（分）：无划线价时为空 */
+    original?: number
     stock: number
     outOfStock: boolean
     disabled: boolean
 }
 
+/** 可售条目判定：available 且快照齐全。后端 available 已蕴含快照存在，这里连快照一起收窄给类型看 */
+function isSellable(item: CartItem): item is SellableCartItem {
+    return item.available && item.selected && item.product !== null && item.sku !== null
+}
+
 /** 已勾选且可售的条目：结算与批量删除选中都基于它 */
-export function deriveSelectedItems(items: CartItem[]): CartItem[] {
-    return items.filter((item) => item.available && item.selected)
+export function deriveSelectedItems(items: CartItem[]): SellableCartItem[] {
+    return items.filter(isSellable)
 }
 
 /** 选中条目合计金额（分） */
-export function deriveSelectedTotal(selectedItems: CartItem[]): number {
+export function deriveSelectedTotal(selectedItems: SellableCartItem[]): number {
     return selectedItems.reduce((sum, i) => sum + i.sku.price.amount * i.quantity, 0)
 }
 
@@ -101,12 +125,12 @@ export function deriveAllSelected(items: CartItem[]): boolean {
     return available.length > 0 && available.every((item) => item.selected)
 }
 
-/** 整车 → 按店铺分组，保持服务端返回顺序（组内/组间均不重排）；失效条目归入末尾「失效商品」组 */
+/** 整车 → 按店铺分组，保持服务端返回顺序（组内/组间均不重排）；商品已删除的条目归入末尾「失效商品」组 */
 export function groupByShop(items: CartItem[]): CartShopGroup[] {
     const groups: CartShopGroup[] = []
     for (const item of items) {
-        const shopId = item.product.shopId
-        const shopName = item.product.shopName || "失效商品"
+        const shopId = item.product?.shopId ?? DELETED_SHOP_ID
+        const shopName = item.product?.shopName || "失效商品"
         const group = groups.find((g) => g.shopId === shopId)
         if (group) group.items.push(item)
         else groups.push({ shopId, shopName, items: [item] })
@@ -119,12 +143,23 @@ export function selectableIdsOf(group: CartShopGroup): string[] {
     return group.items.filter((item) => item.available).map((item) => item.id)
 }
 
-/** 购物车条目行的视图读模型 */
+/** 购物车条目行的视图读模型：商品/SKU 已删时给失效占位（无价、无 SKU 名、置灰） */
 export function deriveCartItemView(item: CartItem): CartItemView {
+    if (item.sku === null || item.product === null) {
+        return {
+            title: item.product?.title ?? "商品已删除",
+            stock: 0,
+            outOfStock: false,
+            disabled: true,
+        }
+    }
     const stock = item.sku.stock
     return {
         image: item.sku.image ?? item.product.image,
         title: item.product.title,
+        skuName: item.sku.name || undefined,
+        price: item.sku.price.amount,
+        original: item.sku.originalPrice?.amount,
         stock,
         outOfStock: item.available && stock === 0,
         disabled: !item.available,

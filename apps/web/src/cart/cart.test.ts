@@ -31,6 +31,8 @@ function makeDto(
         shopName?: string
         mainImage?: string | null
         skuImage?: string | null
+        /** 商品/SKU 已被删除：后端连快照都不返回（product 与 sku 同生共死），不是下架 */
+        deleted?: boolean
     } = {},
 ): CartItemView {
     const {
@@ -44,30 +46,35 @@ function makeDto(
         shopName = "数码旗舰店",
         mainImage = null,
         skuImage = null,
+        deleted = false,
     } = opts
     return {
         id,
         skuId: `sku-${id}`,
         quantity,
         selected,
-        available,
+        available: deleted ? false : available,
         addedAt: "2026-01-01T00:00:00Z",
-        product: {
-            id: `p-${id}`,
-            name: `商品${id}`,
-            mainImage,
-            shopId,
-            shopName,
-        },
-        sku: {
-            id: `sku-${id}`,
-            name: "默认规格",
-            image: skuImage,
-            price: { amount: price, currency: "CNY" },
-            originalPrice: { amount: price + 1000, currency: "CNY" },
-            stock,
-            onSale: available,
-        },
+        product: deleted
+            ? null
+            : {
+                  id: `p-${id}`,
+                  name: `商品${id}`,
+                  mainImage,
+                  shopId,
+                  shopName,
+              },
+        sku: deleted
+            ? null
+            : {
+                  id: `sku-${id}`,
+                  name: "默认规格",
+                  image: skuImage,
+                  price: { amount: price, currency: "CNY" },
+                  originalPrice: { amount: price + 1000, currency: "CNY" },
+                  stock,
+                  onSale: available,
+              },
     }
 }
 
@@ -87,13 +94,19 @@ describe("toCartItem", () => {
             skuId: "sku-item-1",
             product: { id: "p-item-1", title: "商品item-1", image: "https://img/main.jpg" },
         })
-        expect(item.sku.image).toBe("https://img/sku.jpg")
+        expect(item.sku?.image).toBe("https://img/sku.jpg")
     })
 
     it("mainImage 为 null 时 image 为 undefined（UI 用占位图，不是空串）", () => {
         const item = toCartItem(makeDto())
-        expect(item.product.image).toBeUndefined()
-        expect(item.sku.image).toBeNull() // sku.image 保留 wire 原语义（null ≠ undefined）
+        expect(item.product?.image).toBeUndefined()
+        expect(item.sku?.image).toBeNull() // sku.image 保留 wire 原语义（null ≠ undefined）
+    })
+
+    it("商品/SKU 被删除时两端都透传 null（不给假快照）", () => {
+        const item = toCartItem(makeDto({ deleted: true }))
+        expect(item.product).toBeNull()
+        expect(item.sku).toBeNull()
     })
 })
 
@@ -114,7 +127,13 @@ describe("deriveSelectedItems / deriveSelectedTotal", () => {
             makeDto({ id: "a", price: 19900, quantity: 2 }),
             makeDto({ id: "b", price: 550 }),
         )
-        expect(deriveSelectedTotal(selected)).toBe(19900 * 2 + 550)
+        expect(deriveSelectedTotal(deriveSelectedItems(selected))).toBe(19900 * 2 + 550)
+    })
+
+    it("商品已删的条目即使曾被勾选也不进合计（快照都没了，无价可算）", () => {
+        const list = items(makeDto({ id: "a", price: 19900 }), makeDto({ id: "b", deleted: true }))
+        expect(deriveSelectedItems(list).map((i) => i.id)).toEqual(["a"])
+        expect(deriveSelectedTotal(deriveSelectedItems(list))).toBe(19900)
     })
 
     it("空列表合计为 0", () => {
@@ -168,6 +187,18 @@ describe("groupByShop", () => {
         const groups = groupByShop(list)
         expect(groups.map((g) => g.shopName)).toEqual(["数码旗舰店", "失效商品"])
     })
+
+    it("商品已删的条目（后端不再给 shopId）聚成同一组，不按店铺散开", () => {
+        const list = items(
+            makeDto({ id: "a" }),
+            makeDto({ id: "b", deleted: true }),
+            makeDto({ id: "c", deleted: true }),
+        )
+        expect(groupByShop(list).map((g) => [g.shopName, g.items.map((i) => i.id)])).toEqual([
+            ["数码旗舰店", ["a"]],
+            ["失效商品", ["b", "c"]],
+        ])
+    })
 })
 
 describe("selectableIdsOf", () => {
@@ -200,6 +231,19 @@ describe("deriveCartItemView", () => {
         const view = deriveCartItemView(toCartItem(makeDto({ available: false, stock: 0 })))
         expect(view.disabled).toBe(true)
         expect(view.outOfStock).toBe(false)
+    })
+
+    it("商品/SKU 已删 → 给失效占位：无价、无 SKU 名、置灰，但仍留一行让买家删得掉", () => {
+        const view = deriveCartItemView(toCartItem(makeDto({ deleted: true })))
+        expect(view).toMatchObject({ title: "商品已删除", disabled: true, stock: 0 })
+        expect(view.price).toBeUndefined()
+        expect(view.original).toBeUndefined()
+        expect(view.skuName).toBeUndefined()
+    })
+
+    it("现价来自 SKU，划线价缺省时不画那行删除线", () => {
+        expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).price).toBe(19900)
+        expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).original).toBe(20900)
     })
 })
 

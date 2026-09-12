@@ -125,11 +125,12 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                                     value={item.price.amount}
                                     className="text-sm text-foreground"
                                 />
-                                {item.originalPrice.amount > item.price.amount && (
-                                    <p className="text-xs text-muted-foreground line-through">
-                                        ¥{fenToYuan(item.originalPrice.amount)}
-                                    </p>
-                                )}
+                                {item.originalPrice !== null &&
+                                    item.originalPrice.amount > item.price.amount && (
+                                        <p className="text-xs text-muted-foreground line-through">
+                                            ¥{fenToYuan(item.originalPrice.amount)}
+                                        </p>
+                                    )}
                                 <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                             </div>
 
