@@ -56,6 +56,16 @@ export type Order = {
 
 /** 订单详情业务形状（在列表形状之上扩展详情字段，undefined 归一空值） */
 export type OrderDetail = Order & {
+    /**
+     * 券减免（详情契约独有）。
+     *
+     * 列表契约只给净额 payAmount，拿不到明细；详情契约有四件套
+     * （itemAmount / shippingFee / discountAmount / payAmount），
+     * 必须自洽：`商品总价 + 运费 − 优惠 = 实付款`。
+     */
+    discountAmount: Money
+    /** 本单核销的券 id（未用券为 null） */
+    userCouponId: string | null
     /** 可执行动作：按后端状态机推导（pay/cancel/receive/...） */
     availableActions: string[]
     /**

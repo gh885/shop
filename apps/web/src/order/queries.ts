@@ -75,22 +75,37 @@ export function useOrderDetail(id: string) {
 
 // ---------- 结算预览 / 下单 / 支付（交互动作，mutation 由调用方 useMutation 接线） ----------
 
-/** 结算预览：只读幂等，返回分组明细/失效行/地址/应付总额的 wire 形状（页面再投影） */
+/** 结算预览：只读幂等，返回分组明细/失效行/地址/应付总额的 wire 形状（页面再投影）。
+ *  `userCouponIds` 为每店选中的券（后端按店核销，至多一张）；不传 = 不用券。 */
 export async function fetchPreview(args: {
     lines: { skuId: string; quantity: number }[]
     addressId?: string
+    userCouponIds?: string[]
 }): Promise<PreviewResponse> {
-    return await OrdersApi.previewOrder({ body: { lines: args.lines, addressId: args.addressId } })
+    return await OrdersApi.previewOrder({
+        body: {
+            lines: args.lines,
+            addressId: args.addressId,
+            userCouponIds: args.userCouponIds?.length ? args.userCouponIds : undefined,
+        },
+    })
 }
 
-/** 创建订单：按店拆单，返回全部新单。checkoutKey 为一次结算的幂等键，重试带同一个值即回放原单 */
+/** 创建订单：按店拆单，返回全部新单。checkoutKey 为一次结算的幂等键，重试带同一个值即回放原单。
+ *  选中的券一并落单（选了却不可用的券后端 400 拒绝，故调用方只传可用券）。 */
 export async function createOrder(args: {
     checkoutKey: string
     addressId: string
     lines: { skuId: string; quantity: number }[]
+    userCouponIds?: string[]
     buyerMessage?: string
 }) {
-    return await OrdersApi.createOrder({ body: args })
+    return await OrdersApi.createOrder({
+        body: {
+            ...args,
+            userCouponIds: args.userCouponIds?.length ? args.userCouponIds : undefined,
+        },
+    })
 }
 
 /** 发起支付：V1 创建 PENDING 流水（不动订单状态），返回待确认流水 */

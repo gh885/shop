@@ -1,18 +1,23 @@
 import { useAddressList, type Address } from "#/address"
 import {
+    CouponPicker,
+    GroupAmountSentence,
+    withDefaultCoupons,
+    type CheckoutGroup,
     type CheckoutSource,
+    type CouponSelection,
+    type UnavailableLine,
     useCreateOrder,
     useCheckoutPreview,
-    type CheckoutGroup,
-    type UnavailableLine,
 } from "#/checkout"
 import { fenToYuan } from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { notify } from "@shop/app-kit"
 
 import { Price } from "#/shared/ui/Price"
+import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 import {
     Skeleton,
     Button,
@@ -64,10 +69,31 @@ function CheckoutPage() {
     const createOrder = useCreateOrder()
 
     const [addressId, setAddressId] = useState("")
+    // 每店选中的券：键存在 = 用户已表态（值可为 null = 明确不用券）。这一层只装「用户的决定」，
+    // 没表态的店由下面的 effect 补默认值——「未表态」与「选了不用」必须能分开，否则默认选券会覆盖用户。
+    const [couponSelection, setCouponSelection] = useState<CouponSelection>({})
     // 默认选中：已勾选的，否则默认地址，兜底第一条——提交/预览都可用
     const defaultAddress = addresses?.find((a) => a.isDefault) ?? addresses?.[0]
     const effectiveAddressId = addressId || defaultAddress?.id || ""
-    const preview = useCheckoutPreview({ source, addressId: effectiveAddressId || undefined })
+    const preview = useCheckoutPreview({
+        source,
+        addressId: effectiveAddressId || undefined,
+        coupons: couponSelection,
+    })
+
+    // 默认选券：后端不会替你选（appliedCouponId 只是回显传过去的 id），首屏拿到候选后取「第一张可用券」。
+    // 只补用户还没表态的店、清掉已不在本次结算里的店；改过的选择（含明确选「不使用」）原样保留。
+    // 补上默认值会让预览 key 变化并重新预览一次，这是必要的：不重算就没有券后价。
+    const previewGroups = preview.data?.groups
+    useEffect(() => {
+        if (!previewGroups) return
+        setCouponSelection((prev) => withDefaultCoupons(previewGroups, prev))
+    }, [previewGroups])
+
+    const summaryGroups = preview.data?.groups ?? []
+    const totalItemAmount = summaryGroups.reduce((s, g) => s + g.itemAmount.amount, 0)
+    const totalShippingFee = summaryGroups.reduce((s, g) => s + g.shippingFee.amount, 0)
+    const totalDiscountAmount = summaryGroups.reduce((s, g) => s + g.discountAmount.amount, 0)
 
     const submit = () => {
         if (!effectiveAddressId) {
@@ -75,7 +101,7 @@ function CheckoutPage() {
             return
         }
         createOrder.mutate(
-            { addressId: effectiveAddressId, source },
+            { addressId: effectiveAddressId, source, coupons: couponSelection },
             {
                 onSuccess: (res) => {
                     const orders = res.orders
@@ -126,6 +152,13 @@ function CheckoutPage() {
                                 <GroupCard
                                     key={g.shopId}
                                     group={g}
+                                    selectedCouponId={couponSelection[g.shopId] ?? null}
+                                    onSelectCoupon={(userCouponId) =>
+                                        setCouponSelection((prev) => ({
+                                            ...prev,
+                                            [g.shopId]: userCouponId,
+                                        }))
+                                    }
                                 />
                             ))}
                             {preview.data && <UnavailableCard lines={preview.data.unavailable} />}
@@ -138,23 +171,28 @@ function CheckoutPage() {
                                     <CardTitle>结算</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
-                                    <Row label="商品总额">
+                                    {/* 金额口径：商品总价 + 运费 − 优惠 = 应付总额。
+                                        顶层 totalPayAmount 已是净额，不能拿来当「商品总价」（那是加了券之前的数）。 */}
+                                    <Row label="商品总价">
                                         <Price
-                                            value={preview.data?.totalPayAmount.amount ?? 0}
+                                            value={totalItemAmount}
                                             className="text-sm"
                                         />
                                     </Row>
                                     <Row label="运费">
                                         <Price
-                                            value={
-                                                preview.data?.groups.reduce(
-                                                    (s, g) => s + g.shippingFee.amount,
-                                                    0,
-                                                ) ?? 0
-                                            }
+                                            value={totalShippingFee}
                                             className="text-sm"
                                         />
                                     </Row>
+                                    {totalDiscountAmount > 0 && (
+                                        <Row label="优惠">
+                                            <DiscountPrice
+                                                value={totalDiscountAmount}
+                                                className="text-sm"
+                                            />
+                                        </Row>
+                                    )}
                                     <Separator />
                                     <div className="flex items-end justify-between">
                                         <span className="text-muted-foreground">应付总额：</span>
@@ -293,7 +331,15 @@ function AddressPicker({
     )
 }
 
-function GroupCard({ group }: { group: CheckoutGroup }) {
+function GroupCard({
+    group,
+    selectedCouponId,
+    onSelectCoupon,
+}: {
+    group: CheckoutGroup
+    selectedCouponId: string | null
+    onSelectCoupon: (userCouponId: string | null) => void
+}) {
     return (
         <Panel>
             <PanelHeader className="gap-2 text-sm font-medium">
@@ -342,19 +388,17 @@ function GroupCard({ group }: { group: CheckoutGroup }) {
                     </Item>
                 ))}
             </PanelContent>
+            <CouponPicker
+                group={group}
+                selectedId={selectedCouponId}
+                onSelect={onSelectCoupon}
+            />
             <div className="flex items-center justify-end gap-6 border-t border-border/60 px-5 py-3 text-sm">
-                <span className="text-muted-foreground">
-                    商品总额{" "}
-                    <Price
-                        value={group.itemAmount.amount}
-                        className="text-sm text-foreground"
-                    />{" "}
-                    + 运费{" "}
-                    <Price
-                        value={group.shippingFee.amount}
-                        className="text-sm text-foreground"
-                    />
-                </span>
+                <GroupAmountSentence
+                    itemAmount={group.itemAmount}
+                    shippingFee={group.shippingFee}
+                    discountAmount={group.discountAmount}
+                />
                 <span className="text-muted-foreground">
                     应付{" "}
                     <Price

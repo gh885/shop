@@ -19,6 +19,7 @@
  * - auth-kit.ts  ：应用无关的登录态套件（内存 token + 静默刷新 + 设备 ID + 订阅）
  * - category.ts  ：类目树的纯算法（末级路径语料 / 级联列 / 路径推导）
  * - regions.ts   ：国标行政区划树的纯算法 + 数据（级联取孩子 / 6 位码反查路径）
+ * - coupon.ts    ：优惠券文案与规则换算（门槛/面额一句话、原因码与状态标签）
  */
 
 export { type Money, fenToYuan, priceRangeText, splitFen, yuanToFen } from "./money"
@@ -56,3 +57,14 @@ export type { LeafPath } from "./category"
 
 export { findPath, loadChildren, loadRegionTree } from "./regions"
 export type { RegionOption, RegionTreeNode } from "./regions"
+
+export {
+    COUPON_SOURCE_LABEL,
+    COUPON_STATUS_LABEL,
+    couponRuleText,
+    couponSourceLabel,
+    couponStatusLabel,
+    couponThresholdText,
+    couponUnavailableReasonText,
+    couponYuanText,
+} from "./coupon"

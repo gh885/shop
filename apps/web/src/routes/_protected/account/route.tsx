@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
-import { Heart, MapPin, ReceiptText, Shield, UserRound } from "lucide-react"
+import { Heart, MapPin, ReceiptText, Shield, TicketPercent, UserRound } from "lucide-react"
 
 import {
     MenuTree,
@@ -23,6 +23,12 @@ const MENU_ITEMS: MenuLeaf[] = [
         label: "我的订单",
         icon: <ReceiptText className="size-4" />,
         to: "/account/orders",
+    },
+    {
+        key: "coupons",
+        label: "我的优惠券",
+        icon: <TicketPercent className="size-4" />,
+        to: "/account/coupons",
     },
     {
         key: "address",

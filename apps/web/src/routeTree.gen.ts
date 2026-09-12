@@ -21,6 +21,7 @@ import { Route as ProtectedLogisticsOrderIdRouteImport } from './routes/_protect
 import { Route as ProtectedOrdersOrderIdRouteImport } from './routes/_protected/orders/$orderId'
 import { Route as ProtectedPayOrderIdRouteImport } from './routes/_protected/pay/$orderId'
 import { Route as ProtectedAccountAddressIndexRouteImport } from './routes/_protected/account/address/index'
+import { Route as ProtectedAccountCouponsIndexRouteImport } from './routes/_protected/account/coupons/index'
 import { Route as ProtectedAccountFavoritesIndexRouteImport } from './routes/_protected/account/favorites/index'
 import { Route as ProtectedAccountOrdersIndexRouteImport } from './routes/_protected/account/orders/index'
 import { Route as ProtectedAccountProfileIndexRouteImport } from './routes/_protected/account/profile/index'
@@ -87,6 +88,12 @@ const ProtectedAccountAddressIndexRoute =
     path: '/address/',
     getParentRoute: () => ProtectedAccountRouteRoute,
   } as any)
+const ProtectedAccountCouponsIndexRoute =
+  ProtectedAccountCouponsIndexRouteImport.update({
+    id: '/coupons/',
+    path: '/coupons/',
+    getParentRoute: () => ProtectedAccountRouteRoute,
+  } as any)
 const ProtectedAccountFavoritesIndexRoute =
   ProtectedAccountFavoritesIndexRouteImport.update({
     id: '/favorites/',
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/pay/$orderId': typeof ProtectedPayOrderIdRoute
   '/account/address/': typeof ProtectedAccountAddressIndexRoute
+  '/account/coupons/': typeof ProtectedAccountCouponsIndexRoute
   '/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
   '/account/orders/': typeof ProtectedAccountOrdersIndexRoute
   '/account/profile/': typeof ProtectedAccountProfileIndexRoute
@@ -141,6 +149,7 @@ export interface FileRoutesByTo {
   '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/pay/$orderId': typeof ProtectedPayOrderIdRoute
   '/account/address': typeof ProtectedAccountAddressIndexRoute
+  '/account/coupons': typeof ProtectedAccountCouponsIndexRoute
   '/account/favorites': typeof ProtectedAccountFavoritesIndexRoute
   '/account/orders': typeof ProtectedAccountOrdersIndexRoute
   '/account/profile': typeof ProtectedAccountProfileIndexRoute
@@ -160,6 +169,7 @@ export interface FileRoutesById {
   '/_protected/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/_protected/pay/$orderId': typeof ProtectedPayOrderIdRoute
   '/_protected/account/address/': typeof ProtectedAccountAddressIndexRoute
+  '/_protected/account/coupons/': typeof ProtectedAccountCouponsIndexRoute
   '/_protected/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
   '/_protected/account/orders/': typeof ProtectedAccountOrdersIndexRoute
   '/_protected/account/profile/': typeof ProtectedAccountProfileIndexRoute
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/orders/$orderId'
     | '/pay/$orderId'
     | '/account/address/'
+    | '/account/coupons/'
     | '/account/favorites/'
     | '/account/orders/'
     | '/account/profile/'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/orders/$orderId'
     | '/pay/$orderId'
     | '/account/address'
+    | '/account/coupons'
     | '/account/favorites'
     | '/account/orders'
     | '/account/profile'
@@ -214,6 +226,7 @@ export interface FileRouteTypes {
     | '/_protected/orders/$orderId'
     | '/_protected/pay/$orderId'
     | '/_protected/account/address/'
+    | '/_protected/account/coupons/'
     | '/_protected/account/favorites/'
     | '/_protected/account/orders/'
     | '/_protected/account/profile/'
@@ -314,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAccountAddressIndexRouteImport
       parentRoute: typeof ProtectedAccountRouteRoute
     }
+    '/_protected/account/coupons/': {
+      id: '/_protected/account/coupons/'
+      path: '/coupons'
+      fullPath: '/account/coupons/'
+      preLoaderRoute: typeof ProtectedAccountCouponsIndexRouteImport
+      parentRoute: typeof ProtectedAccountRouteRoute
+    }
     '/_protected/account/favorites/': {
       id: '/_protected/account/favorites/'
       path: '/favorites'
@@ -347,6 +367,7 @@ declare module '@tanstack/react-router' {
 
 interface ProtectedAccountRouteRouteChildren {
   ProtectedAccountAddressIndexRoute: typeof ProtectedAccountAddressIndexRoute
+  ProtectedAccountCouponsIndexRoute: typeof ProtectedAccountCouponsIndexRoute
   ProtectedAccountFavoritesIndexRoute: typeof ProtectedAccountFavoritesIndexRoute
   ProtectedAccountOrdersIndexRoute: typeof ProtectedAccountOrdersIndexRoute
   ProtectedAccountProfileIndexRoute: typeof ProtectedAccountProfileIndexRoute
@@ -355,6 +376,7 @@ interface ProtectedAccountRouteRouteChildren {
 
 const ProtectedAccountRouteRouteChildren: ProtectedAccountRouteRouteChildren = {
   ProtectedAccountAddressIndexRoute: ProtectedAccountAddressIndexRoute,
+  ProtectedAccountCouponsIndexRoute: ProtectedAccountCouponsIndexRoute,
   ProtectedAccountFavoritesIndexRoute: ProtectedAccountFavoritesIndexRoute,
   ProtectedAccountOrdersIndexRoute: ProtectedAccountOrdersIndexRoute,
   ProtectedAccountProfileIndexRoute: ProtectedAccountProfileIndexRoute,
@@ -398,12 +420,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

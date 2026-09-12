@@ -33,7 +33,9 @@ function toOrderItem(dto: OrderItemResponse): OrderItem {
     }
 }
 
-/** 列表项 wire → 业务：列表项已内嵌行项目，金额三件套直接透传 */
+/** 列表项 wire → 业务：列表项已内嵌行项目。
+ *  列表契约只有净额 `payAmount`，没有商品额/运费/优惠的拆分——所以这里只能拿净额顶 `itemAmount`、
+ *  运费留空；**详情投影必须用详情契约的四件套把这些覆盖掉**，否则金额三行永远加不起来。 */
 export function toOrder(dto: OrderListItemResponse): Order {
     return {
         id: dto.id,
@@ -50,10 +52,15 @@ export function toOrder(dto: OrderListItemResponse): Order {
     }
 }
 
-/** 详情 wire → 业务：在列表形状之上扩展详情字段（收货快照、物流、时间戳、可执行动作），可空如实透传 */
+/** 详情 wire → 业务：在列表形状之上扩展详情字段（收货快照、物流、时间戳、可执行动作），可空如实透传。
+ *  金额四件套以详情契约为准（列表只有净额），这样「商品总价 + 运费 − 优惠 = 实付款」才对得上。 */
 export function toOrderDetail(dto: OrderDetailResponse): OrderDetail {
     return {
         ...toOrder(dto),
+        itemAmount: dto.itemAmount,
+        shippingFee: dto.shippingFee,
+        discountAmount: dto.discountAmount,
+        userCouponId: dto.userCouponId,
         availableActions: dto.availableActions,
         afterSaleStatus: dto.afterSaleStatus,
         applyExpireAt: dto.applyExpireAt,

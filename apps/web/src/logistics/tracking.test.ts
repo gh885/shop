@@ -45,6 +45,9 @@ function makeOrderDetail(overrides: Partial<OrderDetail> = {}): OrderDetail {
         shopName: "测试店",
         items: [],
         itemAmount: { amount: 19900, currency: "CNY" },
+        // 券口径：轨迹轴不用它们，但详情类型要求在场（默认「没用券」）
+        discountAmount: { amount: 0, currency: "CNY" },
+        userCouponId: null,
         payAmount: { amount: 19900, currency: "CNY" },
         availableActions: [],
         buyerMessage: null,

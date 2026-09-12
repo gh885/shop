@@ -3,7 +3,12 @@ import { useState } from "react"
 
 import { notify } from "@shop/app-kit"
 
-import { toCheckoutPreview, type CheckoutPreview } from "./checkout"
+import {
+    couponIdsOf,
+    toCheckoutPreview,
+    type CheckoutPreview,
+    type CouponSelection,
+} from "./checkout"
 import {
     confirmPayment,
     createOrder,
@@ -24,39 +29,63 @@ export type CheckoutSource = { lines: CheckoutLine[] }
 
 const sourceKey = (s: CheckoutSource) => s.lines.map((l) => `${l.skuId}:${l.quantity}`).join(",")
 
-/** 结算预览：以来源为 key；地址切换 → 新 key 重新预览，避免手动 refetch */
+/** 结算预览：以来源 + 地址 + 每店选中的券为 key；任何一项变化都走新 key 重新预览，
+ *  不手动 refetch —— 换券必须重算，这正是「预览价 ≠ 实付价」的来源。 */
 export function useCheckoutPreview({
     source,
     addressId,
+    coupons,
 }: {
     source: CheckoutSource
     addressId?: string
+    /** 每店选中的券；不传 = 本次预览不用券 */
+    coupons?: CouponSelection
 }) {
     const enabled = source.lines.length > 0
+    const userCouponIds = couponIdsOf(coupons ?? {})
     return useQuery({
-        queryKey: ["checkout-preview", sourceKey(source), addressId ?? ""] as const,
+        queryKey: [
+            "checkout-preview",
+            sourceKey(source),
+            addressId ?? "",
+            userCouponIds.join(","),
+        ] as const,
         queryFn: async (): Promise<CheckoutPreview> => {
-            const res = await fetchPreview({ lines: source.lines, addressId })
+            const res = await fetchPreview({
+                lines: source.lines,
+                addressId,
+                userCouponIds,
+            })
             return toCheckoutPreview(res)
         },
         enabled,
         staleTime: 0,
         retry: false,
+        // 换券/换地址都是新 key：保留上一份预览继续展示，否则整页会闪回骨架屏，
+        // 正在选券的 Popover 也会被卸载 —— 换券是把价格重算一遍，不是重新进一次结算页。
+        placeholderData: (prev) => prev,
     })
 }
 
 /** 创建订单：一次结算按店拆 N 单，全成全败；成功后由调用方跳转支付。
  *  checkoutKey 随结算页挂载生成一次：双击与网络超时后的重试都带同一个键，后端撞键回放原单、不重复冻结库存；
- *  重新进入结算页 = 新一次结算 = 新键。 */
+ *  重新进入结算页 = 新一次结算 = 新键。
+ *  选中的券随单提交（后端不接受选了却不可用的券，UI 上只允许勾可用券）。 */
 export function useCreateOrder() {
     const qc = useQueryClient()
     const [checkoutKey] = useState(() => crypto.randomUUID())
     return useMutation({
-        mutationFn: (args: { addressId: string; source: CheckoutSource; buyerMessage?: string }) =>
+        mutationFn: (args: {
+            addressId: string
+            source: CheckoutSource
+            coupons?: CouponSelection
+            buyerMessage?: string
+        }) =>
             createOrder({
                 checkoutKey,
                 addressId: args.addressId,
                 lines: args.source.lines,
+                userCouponIds: couponIdsOf(args.coupons ?? {}),
                 buyerMessage: args.buyerMessage,
             }),
         onSuccess: () => {

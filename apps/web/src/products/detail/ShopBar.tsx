@@ -12,6 +12,8 @@ import {
 
 import { notify } from "@shop/app-kit"
 
+import { ShopCouponPopover } from "#/coupon"
+
 import { useShop } from "./queries"
 
 /** 详情页顶部店铺条：头像 + 店名，右侧客服/进店（对齐参考图第一行） */
@@ -59,6 +61,8 @@ export function ShopBar({ shopId }: { shopId: string }) {
                     <Headphones />
                     客服
                 </Button>
+                {/* 领券入口：该店没有可领券时整块不渲染（空浮层比没有入口更困惑） */}
+                <ShopCouponPopover shopId={shopId} />
                 <Button
                     variant="outline"
                     className="gap-1 rounded-full"

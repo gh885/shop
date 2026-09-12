@@ -1,6 +1,7 @@
 import { type Money } from "@shop/common"
 import type {
     Address,
+    Coupon,
     Group,
     Item,
     PreviewResponse,
@@ -10,33 +11,99 @@ import type {
 /** 行明细：契约同 SDK Item，仅主图归一（SDK 可空 null，UI 用占位图 → undefined） */
 export type CheckoutLine = Omit<Item, "image"> & { image?: string }
 
-/** 按店分组：契约同 SDK Group，行明细换成本地归一后的 CheckoutLine */
+/** 券候选：契约同 SDK Coupon。`usable` / `unavailableReason` 由后端评估器给，前端不重算门槛与有效期 */
+export type CheckoutCoupon = Coupon
+
+/** 按店分组：契约同 SDK Group（含 discountAmount / coupons / appliedCouponId 券三件套），行明细换成本地归一后的 CheckoutLine */
 export type CheckoutGroup = Omit<Group, "lines"> & { lines: CheckoutLine[] }
 
 /** 失效行：契约同 SDK UnavailableLine，仅主图归一 */
 export type UnavailableLine = Omit<SdkUnavailableLine, "image"> & { image?: string }
 
+/**
+ * 每店选中的券：`shopId → userCouponId`；`null` = 明确选「不使用优惠券」。
+ *
+ * 一次结算按店拆单，每店至多一张券，所以形状是 Record 而不是数组。
+ * 「这家店用户还没表态」与「用户选了不使用」是两件事，前者用**键不存在**表达（不是 null）——
+ * 这正是默认选券能"只补缺、不覆盖"的前提。
+ */
+export type CouponSelection = Record<string, string | null>
+
 /** 结算预览业务形状：按店分组明细 + 失效行置灰 + 地址回显可选 + 应付总额 */
 export type CheckoutPreview = {
-    /** 按店拆单预告（每店一组，含行明细/商品额/运费/应付） */
+    /** 按店拆单预告（每店一组，含行明细/商品额/运费/券减免/应付） */
     groups: CheckoutGroup[]
     /** 失效行（售罄/下架），前端置灰不可选 */
     unavailable: UnavailableLine[]
     /** 回显的地址（后端默认取默认地址，前端持列表自行选） */
     address?: Address
-    /** 全部应付总额 */
+    /** 全部应付总额（后端已算净额 = Σ payAmount） */
     totalPayAmount: Money
 }
 
-/** wire → 领域：只做形状归一（image null→undefined），不造假默认值。 */
+/** wire → 领域：只做形状归一（image null→undefined、appliedCouponId 可空归一 null），不造假默认值。 */
 export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
     return {
         groups: dto.groups.map((g) => ({
             ...g,
             lines: g.lines.map((l) => ({ ...l, image: l.image ?? undefined })),
+            appliedCouponId: g.appliedCouponId ?? null,
         })),
         unavailable: dto.unavailable.map((u) => ({ ...u, image: u.image ?? undefined })),
         address: dto.address ?? undefined,
         totalPayAmount: dto.totalPayAmount,
     }
+}
+
+/**
+ * 默认选中的券：候选里的**第一张可用券**。
+ *
+ * 候选顺序由后端定（可用优先 → 减得多优先 → 先过期优先 → id），所以这里只取 head，
+ * 不写比较器——前端再排一次，迟早和"后端以为你选了什么"对不上。
+ * 后端不会自动选券（`appliedCouponId` 只是回显请求里的 id），默认选中是前端的事。
+ */
+export function defaultCouponId(group: CheckoutGroup): string | null {
+    return group.coupons.find((c) => c.usable)?.userCouponId ?? null
+}
+
+/**
+ * 把「用户的选择」补齐成「本次结算每店实际用哪张券」，并剔除已不在本次结算里的店。
+ *
+ * 三条规则：
+ * - 键不存在的店 = 用户还没表态 → 补默认（第一张可用券，可能为 null「没有可用的」）；
+ * - 键存在 = 用户已表态（含明确选「不使用」的 null）→ 原样保留，**绝不被后来的预览覆盖**；
+ * - 已不在本次结算里的店 → 丢掉：把不属于这一单的券发给后端，只会换来一个 400。
+ *
+ * 没有任何变化时返回入参本身：调用方是 effect → setState，靠引用相等才能避免
+ * 「setState → 重新预览 → 再 setState」的取数循环。
+ */
+export function withDefaultCoupons(
+    groups: CheckoutGroup[],
+    choice: CouponSelection,
+): CouponSelection {
+    let changed = false
+    const next: CouponSelection = { ...choice }
+    for (const shopId of Object.keys(next)) {
+        if (groups.some((g) => g.shopId === shopId)) continue
+        delete next[shopId]
+        changed = true
+    }
+    for (const g of groups) {
+        if (g.shopId in next) continue
+        next[g.shopId] = defaultCouponId(g)
+        changed = true
+    }
+    return changed ? next : choice
+}
+
+/**
+ * 每店选中券 → 请求体 `userCouponIds`：过滤未选 / 明确不用的店。
+ *
+ * 排序不是业务需要（券 id 与顺序无关），而是让同一份选择的 queryKey 稳定：
+ * Record 的键序取决于用户点选顺序，不排序就会因为"先选了二店"而白白重新预览一次。
+ */
+export function couponIdsOf(selection: CouponSelection): string[] {
+    return Object.values(selection)
+        .filter((id): id is string => typeof id === "string" && id !== "")
+        .sort()
 }

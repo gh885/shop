@@ -107,6 +107,13 @@ describe("toOrder（列表项投影）", () => {
             createdAt: "2026-09-06T11:30:00Z",
         })
     })
+
+    it("列表契约没有金额四件套_净额只能顶商品额、运费留空（列表页不画明细行）", () => {
+        const order = toOrder(makeListDto())
+
+        expect(order.itemAmount).toEqual(MONEY)
+        expect(order.shippingFee).toBeUndefined()
+    })
 })
 
 describe("toOrderDetail（详情投影）", () => {
@@ -126,6 +133,38 @@ describe("toOrderDetail（详情投影）", () => {
 
         expect(detail.logisticsCompany).toBeNull()
         expect(detail.trackingNo).toBeNull()
+    })
+
+    it("详情四件套覆盖列表口径_商品总价 + 运费 − 优惠 = 实付款（有券也加得起来）", () => {
+        const detail = toOrderDetail(
+            makeDetailDto({
+                itemAmount: { amount: 20000, currency: "CNY" },
+                shippingFee: { amount: 1000, currency: "CNY" },
+                discountAmount: { amount: 3000, currency: "CNY" },
+                payAmount: { amount: 18000, currency: "CNY" },
+                userCouponId: "uc-1",
+            }),
+        )
+
+        expect(detail).toMatchObject({
+            itemAmount: { amount: 20000, currency: "CNY" },
+            shippingFee: { amount: 1000, currency: "CNY" },
+            discountAmount: { amount: 3000, currency: "CNY" },
+            payAmount: { amount: 18000, currency: "CNY" },
+            userCouponId: "uc-1",
+        })
+        expect(
+            detail.itemAmount.amount +
+                (detail.shippingFee?.amount ?? 0) -
+                detail.discountAmount.amount,
+        ).toBe(detail.payAmount.amount)
+    })
+
+    it("没用券的订单_减免为 0 且券 id 为 null（优惠行不出现）", () => {
+        const detail = toOrderDetail(makeDetailDto())
+
+        expect(detail.discountAmount.amount).toBe(0)
+        expect(detail.userCouponId).toBeNull()
     })
 
     it("取消原因与取消时间可带回", () => {

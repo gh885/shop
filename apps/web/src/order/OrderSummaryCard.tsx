@@ -1,6 +1,7 @@
 import { formatDateTime } from "@shop/app-kit"
 
 import { Price } from "#/shared/ui/Price"
+import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 
 import { ORDER_STATUS_LABEL, type OrderDetail } from "./model"
 import { Copy, ChevronDown } from "lucide-react"
@@ -59,6 +60,15 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                             className="text-sm"
                         />
                     </InfoRow>
+                    {/* 优惠是减项，只在真的减过钱时才出现；出现时三行必须加得起来：商品总价 + 运费 − 优惠 = 实付款 */}
+                    {order.discountAmount.amount > 0 && (
+                        <InfoRow label="优惠">
+                            <DiscountPrice
+                                value={order.discountAmount.amount}
+                                className="text-sm"
+                            />
+                        </InfoRow>
+                    )}
                     <Separator className="my-2" />
                     <InfoRow label="实付款">
                         <Price

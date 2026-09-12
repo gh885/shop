@@ -1,0 +1,155 @@
+import { describe, expect, it } from "vitest"
+
+import type { ClaimableCouponResponse, MyCouponResponse } from "@shop/api/sdk"
+
+import {
+    COUPON_TABS,
+    groupByStatus,
+    isCouponAlreadyClaimed,
+    toClaimableCoupon,
+    toMyCoupon,
+    type MyCoupon,
+} from "./coupon"
+
+/**
+ * coupon 领域纯逻辑：wire→领域投影、页签定义、按状态分组、领券错误判定。
+ *
+ * 关心的都是「藏着一个错的映射 / 反的布尔 / 漏掉的兜底就会红」的分支：
+ * null→undefined 的归一、先到先得闸门不被改写、LOCKED 与 UNUSED 的分组顺序、
+ * 以及「409 但没有 code」不能当成已领过。
+ */
+
+const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
+const COUPON_ID = "00000000-0000-4000-8000-0000000000c1"
+const ORDER_ID = "00000000-0000-4000-8000-0000000000e1"
+
+function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCouponResponse {
+    return {
+        id: COUPON_ID,
+        shopId: SHOP_ID,
+        shopName: "测试店",
+        name: "满100减10",
+        threshold: { amount: 10000, currency: "CNY" },
+        discount: { amount: 1000, currency: "CNY" },
+        effectiveAt: "2026-01-01T00:00:00Z",
+        expireAt: "2026-01-31T00:00:00Z",
+        status: "UNUSED",
+        source: "CLAIM",
+        orderId: null,
+        ...overrides,
+    }
+}
+
+function makeMyCoupon(overrides: Partial<MyCoupon> = {}): MyCoupon {
+    return { ...toMyCoupon(makeMyCouponResponse()), ...overrides }
+}
+
+describe("toMyCoupon", () => {
+    it("未关联订单的券_orderId 归一到 undefined 而不是空串", () => {
+        expect(toMyCoupon(makeMyCouponResponse()).orderId).toBeUndefined()
+    })
+
+    it("已核销的券带上订单 id_券包能顺着它跳回订单详情", () => {
+        expect(toMyCoupon(makeMyCouponResponse({ orderId: ORDER_ID })).orderId).toBe(ORDER_ID)
+    })
+
+    it("无门槛券的 threshold 原样透传 0_不补一个假门槛", () => {
+        const coupon = toMyCoupon(
+            makeMyCouponResponse({ threshold: { amount: 0, currency: "CNY" } }),
+        )
+
+        expect(coupon.threshold).toEqual({ amount: 0, currency: "CNY" })
+    })
+
+    it("展示状态取后端算出来的值_不是库里那个可能已过期的原始状态", () => {
+        expect(toMyCoupon(makeMyCouponResponse({ status: "EXPIRED" })).status).toBe("EXPIRED")
+    })
+})
+
+describe("toClaimableCoupon", () => {
+    it("soldOut 原样透传_先到先得的闸门只能由后端决定", () => {
+        const wire: ClaimableCouponResponse = {
+            id: COUPON_ID,
+            name: "满100减10",
+            threshold: { amount: 10000, currency: "CNY" },
+            discount: { amount: 1000, currency: "CNY" },
+            validFrom: "2026-01-01T00:00:00Z",
+            validTo: "2026-01-31T00:00:00Z",
+            soldOut: true,
+        }
+
+        expect(toClaimableCoupon(wire)).toEqual({
+            id: COUPON_ID,
+            name: "满100减10",
+            threshold: { amount: 10000, currency: "CNY" },
+            discount: { amount: 1000, currency: "CNY" },
+            validFrom: "2026-01-01T00:00:00Z",
+            validTo: "2026-01-31T00:00:00Z",
+            soldOut: true,
+        })
+    })
+})
+
+describe("COUPON_TABS", () => {
+    it("页签文案取共享状态标签_与卡片上的标签是同一套说法", () => {
+        expect(COUPON_TABS).toEqual([
+            { value: "UNUSED", label: "未使用" },
+            { value: "USED", label: "已使用" },
+            { value: "EXPIRED", label: "已过期" },
+        ])
+    })
+})
+
+describe("groupByStatus", () => {
+    it("未使用页签里混进结算中的券_未使用在前、结算中另成一组", () => {
+        const locked = makeMyCoupon({ id: "locked", status: "LOCKED" })
+        const unused = makeMyCoupon({ id: "unused", status: "UNUSED" })
+
+        const groups = groupByStatus([locked, unused])
+
+        expect(groups.map((g) => [g.status, g.coupons.map((c) => c.id)])).toEqual([
+            ["UNUSED", ["unused"]],
+            ["LOCKED", ["locked"]],
+        ])
+    })
+
+    it("契约新增的状态值排在已知状态之后_不会插到未使用前面", () => {
+        const groups = groupByStatus([
+            makeMyCoupon({ id: "new", status: "SOMETHING_NEW" }),
+            makeMyCoupon({ id: "unused", status: "UNUSED" }),
+        ])
+
+        expect(groups.map((g) => g.status)).toEqual(["UNUSED", "SOMETHING_NEW"])
+    })
+
+    it("同一状态内的券保持接口返回顺序_分组不重排列表", () => {
+        const groups = groupByStatus([
+            makeMyCoupon({ id: "a" }),
+            makeMyCoupon({ id: "b" }),
+            makeMyCoupon({ id: "c" }),
+        ])
+
+        expect(groups).toHaveLength(1)
+        expect(groups[0]?.coupons.map((c) => c.id)).toEqual(["a", "b", "c"])
+    })
+})
+
+describe("isCouponAlreadyClaimed", () => {
+    it("带 COUPON_ALREADY_CLAIMED 的错误判为已领过（后端两条路径都带这个 code）", () => {
+        expect(
+            isCouponAlreadyClaimed({
+                status: 409,
+                detail: "该优惠券已领取",
+                code: "COUPON_ALREADY_CLAIMED",
+            }),
+        ).toBe(true)
+    })
+
+    it("409 但没有 code（已领完）不算已领过_否则会把「已领完」说成「已领取」", () => {
+        expect(isCouponAlreadyClaimed({ status: 409, detail: "优惠券已领完" })).toBe(false)
+    })
+
+    it("网络错误（status 0）不算已领过", () => {
+        expect(isCouponAlreadyClaimed(new Error("boom"))).toBe(false)
+    })
+})
