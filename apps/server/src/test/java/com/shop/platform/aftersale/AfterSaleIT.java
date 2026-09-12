@@ -7,7 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.aftersale.service.AfterSaleService;
+import com.shop.platform.aftersale.service.SellerTicketItem;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PageParams;
+import com.shop.platform.common.PageResult;
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.dto.CreateOrderRequest;
@@ -188,6 +191,44 @@ class AfterSaleIT extends IntegrationTestSupport {
         assertEquals("REFUNDED", orderProjection());
         assertEquals(PaymentStatus.REFUNDED.name(), paymentStatus());
         assertEquals(3, totalStock()); // 货不退，库存不动
+    }
+
+    @Test
+    void 卖家工作台列表_带订单摘要_按状态筛选且不串店() {
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "质量不行");
+
+        PageResult<SellerTicketItem> all = afterSale.pageShop(shopId, null, new PageParams(1, 10));
+        assertEquals(1, all.total());
+        SellerTicketItem item = all.records().getFirst();
+        // 售后单本体
+        assertEquals(orderId, item.orderId());
+        assertEquals(TicketType.RETURN_REFUND, item.type());
+        assertEquals(TicketStatus.APPLYING, item.status());
+        assertEquals("质量不行", item.reason());
+        assertEquals(2000L, item.refundAmount().amount());
+        // 订单摘要：跨 schema 只读点查后内存拼装（订单号/买家/行数/首个商品名）
+        assertNotNull(item.orderNo());
+        assertEquals("张三", item.receiverName());
+        assertEquals(1, item.itemCount(), "件数口径与卖家订单列表一致：行项行数，同一 SKU 合并成一行");
+        assertEquals("测试SKU", item.firstItemName(), "行项快照名 = SKU 展示名，不回落 SPU 名");
+
+        // 状态筛选：进行中的看得到，还没发生的终态看不到
+        assertEquals(
+                1, afterSale.pageShop(shopId, "APPLYING", new PageParams(1, 10)).total());
+        assertEquals(
+                0, afterSale.pageShop(shopId, "REFUNDED", new PageParams(1, 10)).total());
+
+        // 归属闸门：别的店看不到本店的售后单（不是先查再过滤，而是查询条件里就没有它）
+        assertEquals(
+                0,
+                afterSale
+                        .pageShop(UUID.randomUUID(), null, new PageParams(1, 10))
+                        .total());
+
+        // 非法筛选值 400，不静默当成「全部」
+        BusinessException bad = assertThrows(
+                BusinessException.class, () -> afterSale.pageShop(shopId, "NOT_A_STATUS", new PageParams(1, 10)));
+        assertEquals(400, bad.getHttpStatus());
     }
 
     @Test

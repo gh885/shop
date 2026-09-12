@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
 import {
-    ConfirmDialog,
     Empty,
     EmptyDescription,
     EmptyHeader,
@@ -17,6 +16,7 @@ import { toApiError } from "@shop/common"
 import { OrderTable } from "#/order/list/table"
 import { OrderFilterBar } from "#/order/list/filter"
 import { ShipDialog } from "#/order/list/ship-dialog"
+import { AfterSaleDecisionDialog, type SaleDecisionKind } from "#/order/after-sale-decision-dialog"
 import { useOrderList, type OrderListSearch } from "#/order/list/use-order-list"
 import { ShopRequired } from "#/shared/ui/ShopRequired"
 import { useState } from "react"
@@ -36,15 +36,11 @@ export const Route = createFileRoute("/_app/trade/order")({
     component: OrdersPage,
 })
 
-type SaleConfirm = { order: SellerOrderListItemResponse; kind: "agree" | "reject" | "receive" }
-const SALE_CONFIRM_TEXT: Record<SaleConfirm["kind"], { title: string; desc: string }> = {
-    agree: {
-        title: "同意售后",
-        desc: "确定同意该订单的售后申请吗？仅退款将直接退款；退货退款将进入退货流程。",
-    },
-    reject: { title: "拒绝售后", desc: "确定拒绝该订单的售后申请吗？拒绝后买家不可再次申请。" },
-    receive: { title: "确认收货", desc: "确定确认收到退回商品吗？将回补库存并给买家退款。" },
-}
+/**
+ * 售后决策目标：只留订单 id / 单号——决策弹窗会按 id 重新拉一次售后单
+ * （列表可能是几分钟前拉的，不可逆的资金决定要用当前状态），页面只管把动作路由到对应 mutation。
+ */
+type SaleConfirm = { order: SellerOrderListItemResponse; kind: SaleDecisionKind }
 
 function OrdersPage() {
     const search = Route.useSearch()
@@ -68,12 +64,12 @@ function OrdersPage() {
         return <ShopRequired />
     }
 
+    // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）：这里只管把动作路由到对应 mutation
     const runConfirm = () => {
         if (!confirm) return
         if (confirm.kind === "agree") agreeAfterSale(confirm.order.id)
         else if (confirm.kind === "reject") rejectAfterSale(confirm.order.id)
         else receiveReturn(confirm.order.id)
-        setConfirm(undefined)
     }
 
     return (
@@ -130,11 +126,13 @@ function OrdersPage() {
                 onShip={ship}
             />
 
-            <ConfirmDialog
+            <AfterSaleDecisionDialog
                 open={Boolean(confirm)}
                 onOpenChange={(open) => !open && setConfirm(undefined)}
-                title={confirm ? SALE_CONFIRM_TEXT[confirm.kind].title : ""}
-                description={confirm ? SALE_CONFIRM_TEXT[confirm.kind].desc : ""}
+                kind={confirm?.kind ?? "agree"}
+                orderId={confirm?.order.id}
+                orderNo={confirm?.order.orderNo}
+                shopId={shop.id}
                 onConfirm={runConfirm}
             />
         </div>

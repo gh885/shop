@@ -1,4 +1,4 @@
-import type { AfterSaleStatus, OrderStatus } from "@shop/api/sdk"
+import type { AfterSaleStatus, OrderStatus, TicketStatus, TicketType } from "@shop/api/sdk"
 
 /** 订单履约主状态徽章色板（Badge 的 variant） */
 export const ORDER_STATUS_META: Record<
@@ -25,8 +25,29 @@ export const AFTER_SALE_META: Record<
     CLOSED: { label: "已撤销", variant: "secondary" },
 }
 
-/** 顶部 tab：全部（空串）+ 五个履约主状态；空串=不过滤 */
-export const ORDER_STATUS_TABS: ReadonlyArray<{ value: OrderStatus | ""; label: string }> = [
+/**
+ * 售后类型（卖家决策时最要紧的一个字段：仅退款=同意即退钱，退货退款=先等货回来）。
+ * 文案与买家端各自维护：同一个状态在两个角色眼里该说的话不同（买家看「待寄回商品」、卖家看「退货中」），
+ * 强行合并成一份共享文案只会逼一方读另一方的话。
+ */
+export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
+    REFUND_ONLY: "仅退款",
+    RETURN_REFUND: "退货退款",
+}
+
+/** 售后单状态（决策弹窗顶部的一行事实） */
+export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
+    APPLYING: "待处理",
+    RETURNING: "退货中",
+    REFUNDED: "已退款",
+    REJECTED: "已拒绝",
+    CLOSED: "已撤销",
+}
+
+/** 顶部 tab：全部（空串）+ 五个履约主状态；空串=不过滤 */ export const ORDER_STATUS_TABS: ReadonlyArray<{
+    value: OrderStatus | ""
+    label: string
+}> = [
     { value: "", label: "全部" },
     { value: "PENDING_PAYMENT", label: "待付款" },
     { value: "PAID", label: "待发货" },

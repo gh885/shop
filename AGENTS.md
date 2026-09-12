@@ -178,7 +178,17 @@ pnpm test:watch  # watch 模式
 ### 已知坑
 
 - MSW handler path 必须写 `*/user/...` 通配形式（裸 `/user/...` 按 jsdom origin 解析，匹配不上 SDK 打到 8080 的请求）
-- pre-push 跑 `pnpm test`；seller/admin 尚无用例，其 vitest 配置已开 `passWithNoTests`
+- 要测「非 2xx 按 status 分支」的行为（如 404 = 没有记录），必须先在 app 的 `src/test/setup.ts` 里
+  `configureSdkClient("http://localhost:8080")`：不装配时非 2xx 走 ky 自己的抛错路径（会预读 body），
+  hey-api 解析时报 "Body is unusable"，调用方只拿到 `{status: 0}` 网络错误，404 分支永远测不到。
+  baseUrl 必须是绝对地址——jsdom 的 `new Request()` 来自 undici，相对 URL（线上的同源 `""`）直接抛错。
+  还要在 `beforeAll` 里**再压一次** `client.setConfig({ baseUrl: "http://localhost:8080" })`：
+  测试文件 import 业务域时会连带 import app 的 `#/shared/**/api` 装配，那份按浏览器语义把 baseUrl 覆盖成 `""`，
+  于是所有请求变成 status 0（`beforeAll` 在所有测试模块 import 之后才跑，所以这一压有效）
+- 列表页的 hook 测试要先把登录态与店铺上下文造出来：seller 侧 `useMyShops` 只在 `authed` 时拉
+  `/shops/mine`（测试里 `tokenStore.set("...")`，别忘 `afterEach` 里 `clear()`），
+  `useCurrentShop` 解析出的 shopId 进缓存 key，没就位时失效的是另一棵树
+- pre-push 跑 `pnpm test`；admin 尚无用例，其 vitest 配置已开 `passWithNoTests`
 
 ## 开发规范
 

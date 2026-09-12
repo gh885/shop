@@ -1,6 +1,8 @@
 package com.shop.platform.aftersale.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.aftersale.events.AfterSaleRefundedEvent;
 import com.shop.platform.aftersale.mapper.Ticket;
 import com.shop.platform.aftersale.mapper.TicketEvent;
@@ -9,7 +11,10 @@ import com.shop.platform.aftersale.mapper.TicketMapper;
 import com.shop.platform.aftersale.model.TicketAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
+import com.shop.platform.common.PageParams;
+import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.DuplicateKeys;
@@ -20,7 +25,9 @@ import com.shop.platform.logistics.api.ReturnShipmentView;
 import com.shop.platform.order.api.OrderAfterSaleView;
 import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderReadQuery;
+import com.shop.platform.order.api.OrderSummaryView;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -158,6 +165,68 @@ public class AfterSaleService {
     public Optional<Ticket> latestForShop(UUID shopId, UUID orderId) {
         return Optional.ofNullable(ticketMapper.selectLatestByOrder(orderId))
                 .filter(t -> t.getShopId().equals(shopId));
+    }
+
+    /**
+     * 卖家售后工作台：本店售后单分页，时间倒序（最新的申请/处理在最上面）。
+     *
+     * <p>不做「进行中优先」的排序：待办与历史是同一张表的两种看法，让 status 筛选去分流
+     * （前端默认停在「待处理」tab），比在 SQL 里编一个状态优先级更容易讲清楚。
+     * 每行补订单摘要——工作台要能认出是哪一单，而订单信息不属本模块，经 order :: api 批查后内存拼装。
+     */
+    @Transactional(readOnly = true)
+    public PageResult<SellerTicketItem> pageShop(UUID shopId, String status, PageParams page) {
+        // 1. 筛选值先校验：列表参数写错要立刻 400，静默忽略等于给出一份不知怎么筛出来的数据
+        TicketStatus filter = parseStatusFilter(status);
+        // 2. 本店售后单分页：shop_id 是归属闸门，越店看不到（不是先查再过滤）
+        Page<Ticket> rows = ticketMapper.selectPage(
+                new Page<>(page.page(), page.size()),
+                new LambdaQueryWrapper<Ticket>()
+                        .eq(Ticket::getShopId, shopId)
+                        .eq(filter != null, Ticket::getStatus, filter)
+                        .orderByDesc(Ticket::getCreatedAt));
+        // 3. 订单摘要批量补齐（跨模块只读点查，进 Map 后内存拼装；同一订单可能有多张历史售后单，去重再查）
+        Map<UUID, OrderSummaryView> orders = orderReadQuery.summariesByIds(
+                rows.getRecords().stream().map(Ticket::getOrderId).distinct().toList());
+        // 4. 拼装工作台行
+        return new PageResult<>(
+                rows.getRecords().stream()
+                        .map(t -> toSellerItem(t, orders.get(t.getOrderId())))
+                        .toList(),
+                rows.getTotal());
+    }
+
+    /** 卖家工作台行 = 售后单 + 订单摘要；拼不出摘要说明数据被外力改坏，直接失败而不是给出一行缺订单号的售后单 */
+    private SellerTicketItem toSellerItem(Ticket ticket, OrderSummaryView order) {
+        Validate.isTrue(order != null, 500, "售后单对应的订单不存在，数据不一致");
+        return new SellerTicketItem(
+                ticket.getId(),
+                ticket.getOrderId(),
+                order.orderNo(),
+                order.receiverName(),
+                order.itemCount(),
+                order.firstItemName(),
+                ticket.getType(),
+                ticket.getStatus(),
+                ticket.getReason(),
+                ticket.refundAmountAsMoney(),
+                ticket.getReturnLogisticsCompany(),
+                ticket.getReturnTrackingNo(),
+                ticket.getRefundedAt(),
+                ticket.getCreatedAt(),
+                ticket.getUpdatedAt());
+    }
+
+    /** 状态筛选值：空 = 全部；非法值 400（与订单列表的 status 口径一致） */
+    private static TicketStatus parseStatusFilter(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        try {
+            return TicketStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw BusinessException.badRequest("非法的售后状态筛选值");
+        }
     }
 
     // ========== 私有 ==========

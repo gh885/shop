@@ -936,6 +936,29 @@ export type CarrierResponse = {
     name: string;
 };
 
+export type PageResultSellerTicketItem = {
+    records: Array<SellerTicketItem>;
+    total: number;
+};
+
+export type SellerTicketItem = {
+    id: string;
+    orderId: string;
+    orderNo: string;
+    receiverName: string;
+    itemCount: number;
+    firstItemName: string;
+    type: TicketType;
+    status: TicketStatus;
+    reason: string | null;
+    refundAmount: Money | null;
+    returnLogisticsCompany: string | null;
+    returnTrackingNo: string | null;
+    refundedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type OrderTrackingResponse = {
     orderId: string;
     shipments: Array<ShipmentTrackingResponse>;
@@ -2896,6 +2919,25 @@ export type ListCarriersResponses = {
 };
 
 export type ListCarriersResponse = ListCarriersResponses[keyof ListCarriersResponses];
+
+export type ListShopAfterSalesData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        status?: string;
+    };
+    url: '/seller/after-sales';
+};
+
+export type ListShopAfterSalesResponses = {
+    /**
+     * OK
+     */
+    200: PageResultSellerTicketItem;
+};
+
+export type ListShopAfterSalesResponse = ListShopAfterSalesResponses[keyof ListShopAfterSalesResponses];
 
 export type GetOrderDetailData = {
     body?: never;

@@ -5,6 +5,7 @@
 
 ## 近期要做
 
+- [ ] 后端补一条：售后申请时若该订单已有 REFUNDED 单则拒绝（V1 只挡「进行中」，重复退款敞着口）
 - [ ] E2E：Playwright 接入，先覆盖一条下单主路径（真实后端，storageState 缓存登录态）
 - [ ] admin 首批测试用例（vitest 装置已就绪，`passWithNoTests` 摘除时机 = 有了第一个用例；
       seller 已摘，首个用例是 `apps/seller/src/order/list/ship-dialog.test.tsx`）

@@ -1,8 +1,11 @@
 package com.shop.platform.order.api;
 
+import com.shop.platform.infra.db.IdBatchReader;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -74,5 +77,32 @@ public class OrderReadQuery {
                 "SELECT sku_id, quantity FROM orders.items WHERE order_id = ?",
                 (rs, i) -> new OrderLineView(rs.getObject("sku_id", UUID.class), rs.getInt("quantity")),
                 orderId);
+    }
+
+    /**
+     * 一批订单的摘要：跨模块列表拼装用（卖家售后工作台列本店售后单时补订单号/买家/商品）。
+     *
+     * <p>仍是按主键 IN 的点查——不做非键过滤、不 JOIN 他方 schema；行项计数与首个商品名是同一 schema 内的
+     * 子查询（orders.items 属本模块）。缺失的 id 不在 Map 中，由调用方决定怎么面对。
+     */
+    public Map<UUID, OrderSummaryView> summariesByIds(Collection<UUID> ids) {
+        return IdBatchReader.byIds(
+                jdbc,
+                """
+                SELECT o.id, o.order_no, o.receiver_name,
+                       (SELECT count(*) FROM orders.items i WHERE i.order_id = o.id) AS item_count,
+                       (SELECT i.name FROM orders.items i WHERE i.order_id = o.id
+                         ORDER BY i.created_at, i.id LIMIT 1) AS first_item_name
+                FROM orders.orders o
+                WHERE o.id IN (:ids)
+                """,
+                ids,
+                (rs, i) -> rs.getObject("id", UUID.class),
+                (rs, i) -> new OrderSummaryView(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("order_no"),
+                        rs.getString("receiver_name"),
+                        rs.getLong("item_count"),
+                        rs.getString("first_item_name")));
     }
 }

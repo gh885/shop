@@ -894,6 +894,29 @@ export const zCarrierResponse = z.object({
     name: z.string()
 });
 
+export const zSellerTicketItem = z.object({
+    id: z.uuid(),
+    orderId: z.uuid(),
+    orderNo: z.string(),
+    receiverName: z.string(),
+    itemCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    firstItemName: z.string(),
+    type: zTicketType,
+    status: zTicketStatus,
+    reason: z.string().nullable(),
+    refundAmount: zMoney.nullable(),
+    returnLogisticsCompany: z.string().nullable(),
+    returnTrackingNo: z.string().nullable(),
+    refundedAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
+});
+
+export const zPageResultSellerTicketItem = z.object({
+    records: z.array(zSellerTicketItem),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
 export const zShipmentDirection = z.enum(['FORWARD', 'RETURN']);
 
 export const zShipmentStatus = z.enum([
@@ -1881,6 +1904,16 @@ export const zGetShopAfterSaleResponse = zTicketResponse;
  * OK
  */
 export const zListCarriersResponse = z.array(zCarrierResponse);
+
+export const zListShopAfterSalesQuery = z.object({
+    pageParams: zPageParams,
+    status: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zListShopAfterSalesResponse = zPageResultSellerTicketItem;
 
 export const zGetOrderDetailPath = z.object({
     id: z.uuid()
