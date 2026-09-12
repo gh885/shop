@@ -35,8 +35,12 @@ function makeDto(
                 ],
                 itemAmount: MONEY,
                 shippingFee: { amount: 0, currency: "CNY" },
+                // 券三件套：默认不用券（无候选、无减免、未选中）
+                discountAmount: { amount: 0, currency: "CNY" },
                 payAmount: MONEY,
                 deliverable: true,
+                coupons: [],
+                appliedCouponId: null,
             },
         ],
         unavailable: [

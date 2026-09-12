@@ -30,6 +30,9 @@ export default defineConfig(({ mode }) => {
                 // /favorites 同为已登录用户接口（根路径），但无同名页面路由（页面在 /account/favorites），
                 // 且 API 会调裸 POST /favorites（收藏开关）——用无尾斜杠 key 同时覆盖裸路径与 /favorites/*
                 "/favorites": { target: backend, changeOrigin: true },
+                // /coupons 同理：券包与领券 API 都在 /coupons/*（券包页面路由放 /account/coupons，不占 /coupons），
+                // 匿名可访问的店铺领券页在 /api/shops/{id}/coupons，已被上面的 "/api" 覆盖
+                "/coupons/": { target: backend, changeOrigin: true },
             },
         },
         plugins: [

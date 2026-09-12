@@ -51,6 +51,9 @@ function makeDetailDto(opts: Partial<OrderDetailResponse> = {}): OrderDetailResp
         availableActions: ["PAY", "CANCEL"],
         itemAmount: MONEY,
         shippingFee: { amount: 0, currency: "CNY" },
+        // 券四件套：默认不用券（减免 0、无券 id）
+        discountAmount: { amount: 0, currency: "CNY" },
+        userCouponId: null,
         buyerMessage: null,
         receiverName: "张三",
         receiverPhone: "13800000000",
