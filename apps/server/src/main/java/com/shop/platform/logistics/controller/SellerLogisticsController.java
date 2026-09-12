@@ -5,7 +5,6 @@ import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
 import com.shop.platform.logistics.controller.response.CarrierResponse;
 import com.shop.platform.logistics.dto.CreateShipmentRequest;
-import com.shop.platform.logistics.dto.ShipOrderRequest;
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,9 +14,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -53,19 +50,6 @@ public class SellerLogisticsController {
     @ResponseStatus(HttpStatus.CREATED)
     public void createShipment(@CurrentShop UUID shopId, @Valid @RequestBody CreateShipmentRequest req) {
         shipmentService.dispatch(
-                new DispatchShipmentCommand(shopId, req.orderId(), req.carrierCode(), null, req.trackingNo()));
-    }
-
-    /**
-     * 发货（老路径，过渡兼容）：卖家工作台尚未切到 /seller/shipments 前保留。
-     * 物流公司是自由文本，落库时尝试回查字典归一，匹配不上原样记录。
-     *
-     * @deprecated 改用 {@link #createShipment}；前端切换后删除本方法
-     */
-    @Deprecated
-    @PutMapping("/orders/{id}/ship")
-    public void shipOrder(@CurrentShop UUID shopId, @PathVariable UUID id, @Valid @RequestBody ShipOrderRequest req) {
-        shipmentService.dispatch(
-                new DispatchShipmentCommand(shopId, id, null, req.logisticsCompany(), req.trackingNo()));
+                new DispatchShipmentCommand(shopId, req.orderId(), req.carrierCode(), req.trackingNo()));
     }
 }

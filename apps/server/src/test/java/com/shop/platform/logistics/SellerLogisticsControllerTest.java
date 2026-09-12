@@ -1,12 +1,10 @@
 package com.shop.platform.logistics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
@@ -110,44 +108,6 @@ class SellerLogisticsControllerTest extends WebControllerTestSupport {
             assertEquals(orderId, command.orderId());
             assertEquals("SF", command.carrierCode());
             assertEquals("SF123456789", command.trackingNo());
-            assertNull(command.carrierName(), "新端点只认字典 code，不再要有名字");
-        }
-    }
-
-    @Nested
-    class 发货老路径 { // PUT /seller/orders/{id}/ship（过渡兼容，前端切到新端点后删）
-
-        @Test
-        void 手填物流公司_200_以名字下发且无code() throws Exception {
-            mockMvc.perform(
-                            put("/seller/orders/{id}/ship", orderId)
-                                    .with(userAuth(userId))
-                                    .header("X-Shop-Id", shopId.toString())
-                                    .content(
-                                            """
-                                {"logisticsCompany": "顺丰速运", "trackingNo": "SF123456789"}
-                                """))
-                    .andExpect(status().isOk());
-
-            DispatchShipmentCommand command = capturedDispatch();
-            assertEquals(shopId, command.shopId());
-            assertEquals(orderId, command.orderId());
-            assertNull(command.carrierCode(), "老端点没有 code，靠 service 回查字典归一");
-            assertEquals("顺丰速运", command.carrierName());
-            assertEquals("SF123456789", command.trackingNo());
-        }
-
-        @Test
-        void 缺物流公司_422() throws Exception {
-            mockMvc.perform(
-                            put("/seller/orders/{id}/ship", orderId)
-                                    .with(userAuth(userId))
-                                    .header("X-Shop-Id", shopId.toString())
-                                    .content(
-                                            """
-                                {"trackingNo": "SF123456789"}
-                                """))
-                    .andExpect(status().isUnprocessableEntity());
         }
     }
 }

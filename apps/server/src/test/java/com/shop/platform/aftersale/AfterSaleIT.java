@@ -89,7 +89,7 @@ class AfterSaleIT extends IntegrationTestSupport {
         orderId = created.getId();
         Payment pending = paymentService.pay(userId, orderId);
         paymentService.confirm(userId, pending.getId());
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", null, "SF111"));
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", "SF111"));
         transitions.receive(userId, orderId);
         assertEquals(3, totalStock());
     }

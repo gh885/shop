@@ -200,11 +200,6 @@ export const zUpdateSkusRequest = z.object({
     items: z.array(zSkuUpdateItem).min(1)
 });
 
-export const zShipOrderRequest = z.object({
-    logisticsCompany: z.string().min(0).max(50),
-    trackingNo: z.string().min(0).max(64)
-});
-
 export const zMerchantAddressRequest = z.object({
     contactName: z.string().min(0).max(30),
     phone: z.string().min(1).regex(/^[0-9+\-]{5,20}$/),
@@ -1244,12 +1239,6 @@ export const zUpdateProductSkusPath = z.object({
  * OK
  */
 export const zUpdateProductSkusResponse = z.array(zSkuResponse);
-
-export const zShipOrderBody = zShipOrderRequest;
-
-export const zShipOrderPath = z.object({
-    id: z.uuid()
-});
 
 export const zRejectAfterSalePath = z.object({
     id: z.uuid()

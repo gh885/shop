@@ -176,7 +176,7 @@ class LogisticsIT extends IntegrationTestSupport {
 
     /** 发货并取回包裹 ID：运单号带订单前缀，避免用例之间撞唯一索引 */
     private UUID dispatch(UUID orderId, String carrierCode, String trackingNo) {
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, carrierCode, null, trackingNo));
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, carrierCode, trackingNo));
         return jdbc.queryForObject("SELECT id FROM logistics.shipments WHERE tracking_no = ?", UUID.class, trackingNo);
     }
 

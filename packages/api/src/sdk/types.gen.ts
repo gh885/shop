@@ -210,11 +210,6 @@ export type UpdateSkusRequest = {
     items: Array<SkuUpdateItem>;
 };
 
-export type ShipOrderRequest = {
-    logisticsCompany: string;
-    trackingNo: string;
-};
-
 export type MerchantAddressRequest = {
     contactName: string;
     phone: string;
@@ -1409,22 +1404,6 @@ export type UpdateProductSkusResponses = {
 };
 
 export type UpdateProductSkusResponse = UpdateProductSkusResponses[keyof UpdateProductSkusResponses];
-
-export type ShipOrderData = {
-    body: ShipOrderRequest;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/seller/orders/{id}/ship';
-};
-
-export type ShipOrderResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
 
 export type RejectAfterSaleData = {
     body?: never;

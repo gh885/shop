@@ -4,7 +4,7 @@
 > 叙述方式：先说断点，再说决策，最后写代码地图。代码位置以 `apps/server/src/main/java/com/shop/platform/` 为根，下称 `platform/`。
 >
 > **状态：一～四期后端均已实现**（V50/V51/V52 迁移 + logistics 模块 + 买卖家/管理端端点 + 承运商网关与推送接收 + 逆向统一 + 异常治理 + 测试）。
-> 前端：买家「物流详情」独立页已做（`apps/web/src/logistics/`），卖家发货下拉切新端点仍未做。模块图已同步 `docs/architecture.md`。
+> 前端：买家「物流详情」独立页（`apps/web/src/logistics/`）与卖家发货承运商下拉（`apps/seller/src/order/list/ship-dialog.tsx`）均已做，老端点 `PUT /seller/orders/{id}/ship` 已按计划删除。模块图已同步 `docs/architecture.md`。
 
 ---
 
@@ -91,7 +91,7 @@ schema `logistics`，三期共**三张表**（`V50` 建前两张，`V51` 加字�
 要点：
 
 - **字典是二期随入口归一才建的**：一期发货是卖家手填的物流公司、字典没有消费者，预建一张没人读的表是纯负债
-- 承运商两列并存：`carrier_code` 指身份（对接物流商接口用），`carrier_name` 是发货时刻的展示快照（承运商改名不改写历史单据）。老端点只有名字，落库时回查字典归一，匹配不上则 code 留空
+- 承运商两列并存：`carrier_code` 指身份（对接物流商接口用），`carrier_name` 是发货时刻的展示快照（承运商改名不改写历史单据）。卖家发货只给 code；买家回寄只能给手填名字，落库时回查字典归一，匹配不上则 code 留空
 - **面单寄件人（`ship_from_*`）在二期从 `orders` 搬来**：它是面单 = 包裹的属性，一期错放在订单上（V41 引入）。这些列从未出现在任何 HTTP 出参里，故搬家对契约不可见
 - **一单可多包裹**：二期去掉了「一单一正向包裹」的唯一索引。订单状态由首个包裹推进，后续包裹只追加记录并刷新订单上的物流摘要投影——不引入部分发货状态机（那是另一个量级的语义变更）
 - `direction`（`FORWARD` / `RETURN`）一期就建且**有真实消费者**（买家查轨迹按 FORWARD 过滤），逆向环接入时不用改表
@@ -139,17 +139,16 @@ schema `logistics`，三期共**三张表**（`V50` 建前两张，`V51` 加字�
 
 ### HTTP 契约
 
-| 端点                                                  | 归属                  | 说明                                                 |
-| ----------------------------------------------------- | --------------------- | ---------------------------------------------------- |
-| `GET /orders/{id}/tracking`                           | logistics（买家）     | 订单级轨迹：`{orderId, shipments:[…]}`；无包裹 404   |
-| `POST /seller/shipments`                              | logistics（卖家）     | 发货（主路径）：`carrierCode` + 运单号               |
-| `PUT /seller/orders/{id}/ship`                        | logistics（卖家）     | **过渡兼容**老前端（自由文本物流公司）；前端切换后删 |
-| `GET /seller/carriers`                                | logistics（卖家）     | 发货下拉：启用的承运商                               |
-| `POST /admin/logistics/shipments/{id}/tracking-nodes` | logistics（平台运营） | 补录节点（真实轨迹也会缺：漏扫、推送丢失、纠错）     |
+| 端点                                                  | 归属                  | 说明                                               |
+| ----------------------------------------------------- | --------------------- | -------------------------------------------------- |
+| `GET /orders/{id}/tracking`                           | logistics（买家）     | 订单级轨迹：`{orderId, shipments:[…]}`；无包裹 404 |
+| `POST /seller/shipments`                              | logistics（卖家）     | 发货：`carrierCode` + 运单号                       |
+| `GET /seller/carriers`                                | logistics（卖家）     | 发货下拉：启用的承运商                             |
+| `POST /admin/logistics/shipments/{id}/tracking-nodes` | logistics（平台运营） | 补录节点（真实轨迹也会缺：漏扫、推送丢失、纠错）   |
 
 - `/orders/` 前缀的 Vite proxy 已存在，**前端不用改 proxy**；`/admin`、`/seller` 前缀也都有
 - 轨迹出参是**订单级包裹列表**（一单多包裹是二期常态），订单摘要口径 = 首/最新包裹——契约在二期改过一次，因为当时前端还没消费它，改的成本为零
-- 老发货路径放在 logistics 模块（不在 order）：路径前缀按角色分端（`/seller`），模块按领域切，两者不冲突
+- 发货路径放在 logistics 模块（不在 order）：路径前缀按角色分端（`/seller`），模块按领域切，两者不冲突
 - 买方路径挂在订单资源下（买家心智模型是「哪个订单的物流」），由本模块承接——与 aftersale 的 `/orders/{id}/after-sales` 同一手法，order 不做转发
 - 出参一律 `<名词>Response`，不给前端包裹主键与 `userId`/`shopId`/去重键等治理字段；展示文案（状态中文名、节点图标）留给前端投影，后端只给标准词表
 - admin 录入新增权限码 `LOGISTICS_MANAGE`（岗位 OPS），已改三处：`docs/conventions/permission-codes.md` + `common/Permissions.java` + `account/service/StaffRole`
@@ -169,16 +168,14 @@ schema `logistics`，三期共**三张表**（`V50` 建前两张，`V51` 加字�
 
 **意义**：不是给买家看的，是**把管道的形状定下来**。
 
-### 二期｜发货入口归一 + 签收参与倒计时（后端已完成，前端待做）
+### 二期｜发货入口归一 + 签收参与倒计时（已完成）
 
 **人话**：发货弹窗里"物流公司"是手打输入框，"顺丰"和"SF"是两家公司，以后没法统计也没法对接。改成下拉选快递公司；发货动作从订单模块搬到物流模块做；一个订单可以发多个包裹；签收后收货倒计时从签收时间起算，而不是从发货时间起算。
 
-**范围（已完成）**：`V51` 迁移（字典 + 面单列搬家 + 一单多包裹 + `orders.delivered_at`）；发货入口 `POST /seller/shipments`（`carrierCode` 强校验）与 `GET /seller/carriers`；`OrderCommand.markShipped / markDelivered`；`OrderTransitionService.ship` 与 `OrderShippedEvent` 删除；老端点保留为过渡兼容层。
-**范围（未做）**：卖家发货弹窗改下拉 + 调用新端点（前端任务）。
+**范围（已完成）**：`V51` 迁移（字典 + 面单列搬家 + 一单多包裹 + `orders.delivered_at`）；发货入口 `POST /seller/shipments`（`carrierCode` 强校验）与 `GET /seller/carriers`；`OrderCommand.markShipped / markDelivered`；`OrderTransitionService.ship` 与 `OrderShippedEvent` 删除；卖家发货弹窗改承运商下拉。
+**范围（已完成·清账）**：老端点 `PUT /seller/orders/{id}/ship` 与其入参 `ShipOrderRequest` 已删除——它是过渡层，删除条件（卖家端切到新端点）已达成。`DispatchShipmentCommand.carrierName` 随之去掉：手填名字的兜底归一如今只有买家回寄一条路径需要，走 `ReturnShipmentCommand`。
 
 **验收（已钉在测试里）**：同一运单号第二次录报 409；快递公司停用/不存在报 400；一单两包裹且订单的发货时刻只回填一次；签收后 `receive_expire_at` 从签收时刻起算，迟到节点不再重算。
-
-**遗留**：老端点 `PUT /seller/orders/{id}/ship` 是过渡层，删除条件 = 卖家端切到 `POST /seller/shipments`。
 
 ### 三期｜接真实承运商（后端已完成，缺真实密钥联调）
 
@@ -279,13 +276,12 @@ platform/logistics/
 ├── mapper/Carrier.java / CarrierMapper.java            字典（selectEnabled / selectByCode / selectByName）
 ├── mapper/Shipment.java                                + carrierCode / shipFrom_*(7) / deliveredAt
 ├── mapper/ShipmentMapper.java                          selectForwardByOrder 改列表（一单多包裹）/ selectByOrder
-├── dto/CreateShipmentRequest.java                      新端点入参（carrierCode）
-├── dto/ShipOrderRequest.java                           老端点入参（迁自 order，标 deprecated）
+├── dto/CreateShipmentRequest.java                      发货入参（carrierCode）
 ├── service/DispatchShipmentCommand.java                发货入参聚合（两个入口共用）
 ├── service/OrderTracking.java                          订单级出参形状（包裹列表）
 ├── service/ShipmentService.java                        发货四道门 + 承运商归一 + 买家查询
 ├── service/TrackingService.java                        + 签收回写 order
-├── controller/SellerLogisticsController.java           POST /seller/shipments、GET /seller/carriers、PUT /seller/orders/{id}/ship（兼容）
+├── controller/SellerLogisticsController.java           POST /seller/shipments、GET /seller/carriers
 ├── controller/response/{CarrierResponse,OrderTrackingResponse}.java
 └── controller/TrackingController.java                  出参改订单级包裹列表
 platform/order/
@@ -391,7 +387,6 @@ IT 走真实链路（下单 → 支付 → 发货）而不是直接发事件：�
 
 ### 未完成（下批）
 
-- 卖家端发货弹窗改成承运商下拉 + 调 `POST /seller/shipments`，然后删老端点（买家侧已接完）
 - 三期遗留：真实密钥联调 + 承运商编码映射落字典列（现在假设字典 code == 聚合服务 ShipperCode）
 - 四期待补：异常单没有对外通知（买家/客服都靠人看列表）；异常阈值是硬编码常量，未做成配置
 - 人工录节点仍在（`POST /admin/logistics/shipments/{id}/tracking-nodes`），

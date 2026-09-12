@@ -342,13 +342,13 @@ class OrderFlowIT extends IntegrationTestSupport {
                 404,
                 assertThrows(
                                 BusinessException.class,
-                                () -> shipmentService.dispatch(new DispatchShipmentCommand(
-                                        UUID.randomUUID(), orderId, "SF", null, "SF123456789")))
+                                () -> shipmentService.dispatch(
+                                        new DispatchShipmentCommand(UUID.randomUUID(), orderId, "SF", "SF123456789")))
                         .getHttpStatus());
         assertEquals(OrderStatus.PAID, statusOf(orderId));
 
         // 本店发货：PAID → SHIPPED，物流公司（字典名）与运单号回填成订单上的摘要投影
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", null, "SF123456789"));
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", "SF123456789"));
         assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
         String logistics = jdbc.queryForObject(
                 "SELECT logistics_company || '|' || tracking_no FROM orders.orders WHERE id = ?::uuid",
@@ -363,7 +363,7 @@ class OrderFlowIT extends IntegrationTestSupport {
                 "SELECT receive_expire_at FROM orders.orders WHERE id = ?::uuid",
                 OffsetDateTime.class,
                 orderId.toString());
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "ZTO", null, "ZTO987654321"));
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "ZTO", "ZTO987654321"));
         assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
         assertEquals(
                 firstShippedAt.toInstant(),
@@ -397,8 +397,8 @@ class OrderFlowIT extends IntegrationTestSupport {
                 409,
                 assertThrows(
                                 BusinessException.class,
-                                () -> shipmentService.dispatch(new DispatchShipmentCommand(
-                                        shopId, cancelledOrderId, "SF", null, "SF000000001")))
+                                () -> shipmentService.dispatch(
+                                        new DispatchShipmentCommand(shopId, cancelledOrderId, "SF", "SF000000001")))
                         .getHttpStatus());
 
         // 收货：SHIPPED → COMPLETED，完成时刻落库；重复收货被状态闸门拒绝

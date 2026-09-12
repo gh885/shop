@@ -10,8 +10,8 @@ import { useCurrentShop } from "#/shop"
 
 export type { OrderListSearch } from "#/order/queries"
 
-/** 发货入参：物流公司 + 运单号（供发货弹窗提交） */
-export type ShipInput = { logisticsCompany: string; trackingNo: string }
+/** 发货入参：承运商字典 code + 运单号（供发货弹窗提交）。物流公司名由后端按 code 查字典归一，前端不传 */
+export type ShipInput = { carrierCode: string; trackingNo: string }
 
 export function useOrderList(search: OrderListSearch) {
     const shop = useCurrentShop()
@@ -40,13 +40,15 @@ export function useOrderList(search: OrderListSearch) {
         void queryClient.invalidateQueries({ queryKey: orderKeys.lists(shopId) })
     }
 
-    // 发货端点已归物流模块（后端把发货当物流动作）：改用 SellerLogisticsApi；
-    // 当前仍走老路径（自由文本物流公司），切到 POST /seller/shipments + 字典下拉是后续前端任务
+    // 发货入口归 logistics 模块（后端把发货当物流动作）：承运商走字典 code，后端据此归一展示名
     const ship = useWriteMutation<ShipInput & { orderId: string }>({
         mutationFn: (args) =>
-            SellerLogisticsApi.shipOrder({
-                path: { id: args.orderId },
-                body: { logisticsCompany: args.logisticsCompany, trackingNo: args.trackingNo },
+            SellerLogisticsApi.createShipment({
+                body: {
+                    orderId: args.orderId,
+                    carrierCode: args.carrierCode,
+                    trackingNo: args.trackingNo,
+                },
             }),
         invalidate,
         messages: { success: "已发货", error: "发货失败" },

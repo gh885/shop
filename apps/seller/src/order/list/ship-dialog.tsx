@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
+import { toApiError } from "@shop/common"
 import {
     Button,
     Dialog,
@@ -9,9 +11,22 @@ import {
     DialogHeader,
     DialogTitle,
     Input,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@shop/ui-web"
 
-/** 卖家发货弹窗：填物流公司 + 运单号（ShipOrderRequest）。提交经 onShip 上抛（mutation 在容器持有）。 */
+import { carrierListOptions } from "#/order/queries"
+
+/**
+ * 卖家发货弹窗：选承运商（字典下拉）+ 填运单号。提交经 onShip 上抛（mutation 在容器持有）。
+ *
+ * <p>承运商是自由文本升级来的：同一个顺丰曾能写出五种字，落库后既没法统计也没法对接物流商接口，
+ * 现在只传字典 code，展示名由后端按字典归一（见 docs/decisions/logistics.md §4 二期）。
+ * 字典是弹窗自己拉的——加载/失败态就地渲染，不必让调用方认识"快递公司还没到"这件事。
+ */
 export function ShipDialog({
     open,
     order,
@@ -21,15 +36,17 @@ export function ShipDialog({
     open: boolean
     order?: SellerOrderListItemResponse
     onOpenChange: (open: boolean) => void
-    onShip: (orderId: string, input: { logisticsCompany: string; trackingNo: string }) => void
+    onShip: (orderId: string, input: { carrierCode: string; trackingNo: string }) => void
 }) {
-    const [company, setCompany] = useState("")
+    const carriers = useQuery(carrierListOptions())
+    // 未选中用 null：BaseUI 以 value == null 判定未选中并渲染 placeholder，与 onValueChange 清空时的取值同形
+    const [carrierCode, setCarrierCode] = useState<string | null>(null)
     const [trackingNo, setTrackingNo] = useState("")
     const [error, setError] = useState<string>()
 
     useEffect(() => {
         if (open) {
-            setCompany("")
+            setCarrierCode(null)
             setTrackingNo("")
             setError(undefined)
         }
@@ -37,11 +54,10 @@ export function ShipDialog({
 
     const submit = () => {
         if (!order) return
-        const c = company.trim()
         const t = trackingNo.trim()
-        if (!c) return setError("请填写物流公司")
+        if (!carrierCode) return setError("请选择快递公司")
         if (!t) return setError("请填写运单号")
-        onShip(order.id, { logisticsCompany: c, trackingNo: t })
+        onShip(order.id, { carrierCode, trackingNo: t })
         onOpenChange(false)
     }
 
@@ -61,21 +77,58 @@ export function ShipDialog({
                     </div>
                     <div className="space-y-1.5">
                         <label
-                            htmlFor="ship-company"
+                            htmlFor="ship-carrier"
                             className="text-sm font-medium"
                         >
-                            物流公司
+                            快递公司
                         </label>
-                        <Input
-                            id="ship-company"
-                            value={company}
-                            onChange={(e) => {
-                                setCompany(e.target.value)
-                                if (error) setError(undefined)
-                            }}
-                            maxLength={50}
-                            placeholder="如：顺丰速运"
-                        />
+                        {carriers.isPending ? (
+                            <div className="h-8 w-full animate-pulse rounded-lg bg-muted" />
+                        ) : carriers.isError ? (
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm text-destructive">
+                                    {toApiError(carriers.error).detail}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={carriers.isFetching}
+                                    onClick={() => void carriers.refetch()}
+                                >
+                                    重试
+                                </Button>
+                            </div>
+                        ) : carriers.data.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                暂无可选快递公司，请联系平台维护字典
+                            </p>
+                        ) : (
+                            <Select
+                                items={carriers.data.map((c) => ({ value: c.code, label: c.name }))}
+                                value={carrierCode}
+                                onValueChange={(value) => {
+                                    setCarrierCode(value)
+                                    if (error) setError(undefined)
+                                }}
+                            >
+                                <SelectTrigger
+                                    id="ship-carrier"
+                                    className="w-full"
+                                >
+                                    <SelectValue placeholder="选择快递公司" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {carriers.data.map((c) => (
+                                        <SelectItem
+                                            key={c.code}
+                                            value={c.code}
+                                        >
+                                            {c.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
                     <div className="space-y-1.5">
                         <label

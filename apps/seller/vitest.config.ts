@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config"
 /**
  * seller 测试环境：jsdom + Testing Library，与 apps/web 同一约定。
  * 注意：不挂 React Compiler 的 babel preset —— 测试断言行为，不断言渲染次数。
- * passWithNoTests：暂无用例时不阻塞 pre-push。
+ * 已有用例（order/list/ship-dialog.test.tsx），不再开 passWithNoTests：用例被误删要能被 CI 发现。
  */
 export default defineConfig({
     resolve: { tsconfigPaths: true },
@@ -13,6 +13,5 @@ export default defineConfig({
         environment: "jsdom",
         setupFiles: ["./src/test/setup.ts"],
         include: ["src/**/*.test.{ts,tsx}"],
-        passWithNoTests: true,
     },
 })

@@ -64,8 +64,8 @@ public class ShipmentService {
         Validate.isTrue(order.shopId().equals(command.shopId()), 404, "订单不存在");
         Validate.isTrue(order.shippable(), 409, "订单当前状态不可发货");
 
-        // 2. 承运商：code 走字典并校验启用（新端点）；老端点只有名字，匹配得上就归一，匹配不上保留原文
-        String carrierName = carrierResolver.resolveName(command.carrierCode(), command.carrierName());
+        // 2. 承运商：code 走字典并校验启用（不存在/已停用就是 400）——卖家路径必须给 code，没有名字兜底
+        String carrierName = carrierResolver.resolveName(command.carrierCode());
 
         // 3. 寄件人快照：发货无地址即硬失败（面单寄不出去），在包裹上定格
         AddressSnapshot shipFrom =

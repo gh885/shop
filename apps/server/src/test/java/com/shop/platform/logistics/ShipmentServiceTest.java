@@ -69,7 +69,7 @@ class ShipmentServiceTest {
     private ShipmentService shipmentService;
 
     private DispatchShipmentCommand command() {
-        return new DispatchShipmentCommand(shopId, orderId, "SF", null, "SF1234567890");
+        return new DispatchShipmentCommand(shopId, orderId, "SF", "SF1234567890");
     }
 
     private void stubOrder(OrderStatus status) {
@@ -130,7 +130,7 @@ class ShipmentServiceTest {
     @Test
     void 快递公司不可用_400_不落包裹() {
         stubOrder(OrderStatus.PAID);
-        when(carrierResolver.resolveName("SF", null)).thenThrow(new BusinessException(400, "该快递公司已停用"));
+        when(carrierResolver.resolveName("SF")).thenThrow(new BusinessException(400, "该快递公司已停用"));
 
         assertThatThrownBy(() -> shipmentService.dispatch(command()))
                 .isInstanceOf(BusinessException.class)
@@ -142,7 +142,7 @@ class ShipmentServiceTest {
     @Test
     void 没配默认发货地址_400_不落包裹() {
         stubOrder(OrderStatus.PAID);
-        when(carrierResolver.resolveName("SF", null)).thenReturn("顺丰速运");
+        when(carrierResolver.resolveName("SF")).thenReturn("顺丰速运");
         when(merchantAddressReadQuery.resolveShipFrom(shopId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> shipmentService.dispatch(command()))
@@ -153,12 +153,12 @@ class ShipmentServiceTest {
     }
 
     @Test
-    void 老端点手填名字_按解析结果落库与投影() {
+    void 字典名落库_按解析结果写包裹与订单投影() {
         stubOrder(OrderStatus.PAID);
-        when(carrierResolver.resolveName(null, "顺丰")).thenReturn("顺丰速运");
+        when(carrierResolver.resolveName("SF")).thenReturn("顺丰速运");
         when(merchantAddressReadQuery.resolveShipFrom(shopId)).thenReturn(Optional.of(shipFrom()));
 
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, null, "顺丰", "SF1234567890"));
+        shipmentService.dispatch(command());
 
         // 归一后的名字写进包裹与订单投影：同一个承运商只有一种展示名
         verify(orderCommand).markShipped(eq(orderId), eq(shopId), eq("顺丰速运"), eq("SF1234567890"), any());
