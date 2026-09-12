@@ -67,7 +67,8 @@ shop/
 订单状态机（发货/收货/取消/超时关单）、已付款取消退款单据、静态 RBAC、CMS 首页配置、
 物流（包裹/轨迹/承运商对接/异常治理）、售后（买家申请·撤销·回寄 → 卖家同意·拒绝·确认收货退款，
 含卖家退款售后工作台，前后端闭环；设计见 [docs/decisions/aftersale.md](docs/decisions/aftersale.md)）、
-优惠券一期后端（店铺券建券/领券/券包/结算选券/占用核销/取消释放/退款退券；设计见
+优惠券一期（店铺券的建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，
+买家侧券包·店铺领券·结算选券与卖家侧建券页均已接通；设计见
 [docs/decisions/coupon.md](docs/decisions/coupon.md)）。
 
 尚未实现（刻意留白，不是遗漏）：
@@ -75,8 +76,10 @@ shop/
 - **搜索**只有 `name LIKE '%kw%'`，无倒排索引/相关性排序，量级上去必须换方案
 - **支付**仅 MOCK 渠道，未接真实网关（两段式状态机已按可替换设计，见 `PaymentService`）
 - **无缓存层、无消息队列**：热点只读直接打库；跨模块异步仅用 Modulith 事件登记表（outbox）
-- **营销**：优惠券一期**后端已实现**（店铺券的建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，
-  设计见 [docs/decisions/coupon.md](docs/decisions/coupon.md)），**前端页面未做**；
+- **营销**：优惠券一期已闭环（店铺券的建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，
+  买家券包·店铺领券·结算选券页与卖家建券页均已实现；设计见
+  [docs/decisions/coupon.md](docs/decisions/coupon.md)，与淘系/京东做法的对照见
+  [docs/reference/coupon-platform-practices.md](docs/reference/coupon-platform-practices.md)）；
   折扣券·运费券·平台券·叠加规则·秒杀·积分均未开始
 - **分账结算与商家提现**、**买家评价** 均未开始
 - **售后的两处收尾**：买家订单列表未带售后徽章（列表契约没透出 `afterSaleStatus`）；
