@@ -1,9 +1,9 @@
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { ShippingTemplateRequest, ShippingTemplateResponse } from "@shop/api/sdk"
+import type { ShippingTemplateRequest } from "@shop/api/sdk"
 
 import { useCurrentShop } from "#/shop"
 import { useWriteMutation } from "#/shared/lib/use-write-mutation"
-import { getShippingTemplate, saveShippingTemplate } from "./data"
+import { getShippingTemplate, saveShippingTemplate, type ShippingTemplate } from "./data"
 
 export const shippingKeys = {
     all: ["shipping-template"] as const,
@@ -29,7 +29,7 @@ export function useSaveShippingTemplate() {
     const shopId = useCurrentShop()?.id
 
     // 保存后直接回填缓存（响应即权威数据），不走 invalidate
-    return useWriteMutation<ShippingTemplateRequest, ShippingTemplateResponse>({
+    return useWriteMutation<ShippingTemplateRequest, ShippingTemplate>({
         mutationFn: saveShippingTemplate,
         onSuccess: (saved) => queryClient.setQueryData(shippingKeys.detail(shopId), saved),
         messages: { success: "运费模板已保存" },

@@ -2,9 +2,10 @@ import type {
     ShippingFeeTier,
     ShippingTemplateFeeTier,
     ShippingTemplateRequest,
-    ShippingTemplateResponse,
 } from "@shop/api/sdk"
 import { fenToYuan, yuanToFen } from "@shop/common"
+
+import type { ShippingTemplate } from "./data"
 
 export interface FeeTierFormValue {
     firstQuantity: string
@@ -57,7 +58,7 @@ function feeTierFromWire(rule: ShippingTemplateFeeTier): FeeTierFormValue {
 
 /** 响应形状 → 页面表单形状：Money 元、平铺数值、响应规则嵌套 rule 在这里拍平 */
 export function shippingTemplateFormFromResponse(
-    response: ShippingTemplateResponse | null | undefined,
+    response: ShippingTemplate | null | undefined,
 ): ShippingTemplateFormValues {
     if (!response) return emptyShippingTemplateForm()
 
@@ -65,7 +66,8 @@ export function shippingTemplateFormFromResponse(
         freeShipping: response.freeShipping,
         freeOverQuantity:
             response.freeOverQuantity == null ? "" : String(response.freeOverQuantity),
-        freeOverAmount: response.freeOverAmount ? fenToYuan(response.freeOverAmount.amount) : "",
+        freeOverAmount:
+            response.freeOverAmount == null ? "" : fenToYuan(response.freeOverAmount.amount),
         defaultRule: feeTierFromWire(response.defaultRule),
         regionRules: response.regionRules.map((item) => ({
             id: item.rule.id,
