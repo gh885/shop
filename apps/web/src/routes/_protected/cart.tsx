@@ -44,7 +44,7 @@ function CartList() {
                 {[0, 1].map((g) => (
                     <div
                         key={g}
-                        className="overflow-hidden rounded-2xl border border-border/60"
+                        className="overflow-hidden rounded-xl border border-border/60"
                     >
                         <Skeleton className="h-12 rounded-none" />
                         <div className="space-y-px">
@@ -93,7 +93,7 @@ function CartContent() {
         <DetailColumns
             rightWidth="360px"
             left={
-                <div className="min-h-full rounded-2xl bg-background p-6">
+                <div className="min-h-full rounded-lg bg-background p-6">
                     <Toolbar />
                     <CartList />
                 </div>

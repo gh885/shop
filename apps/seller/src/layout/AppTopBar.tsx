@@ -58,7 +58,7 @@ export function AppTopBar({
             {" "}
             <Link to="/">
                 <TopBarBrand className="mr-0 gap-2.5">
-                    <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                         <StoreIcon className="size-4.5" />
                     </span>
                     <span className="text-sm font-semibold tracking-tight">卖家中心</span>

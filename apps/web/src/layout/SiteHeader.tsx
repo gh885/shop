@@ -43,7 +43,7 @@ export function SiteHeader() {
                     >
                         <ShoppingCart className="size-4.5" />
                         {status === "authed" && (cartCount.data ?? 0) > 0 && (
-                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-3xs leading-none text-primary-foreground">
+                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-active px-1 text-3xs leading-none text-primary-foreground">
                                 {cartCount.data && cartCount.data > 99 ? "99+" : cartCount.data}
                             </span>
                         )}

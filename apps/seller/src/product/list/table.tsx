@@ -231,7 +231,7 @@ function ProductRow({
                                 onClick={onEditTitle}
                                 title="编辑标题/卖点"
                                 aria-label="编辑标题/卖点"
-                                className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 group-hover/name:opacity-100"
+                                className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground opacity-40 transition-opacity hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                             >
                                 <Pencil className="size-3.5" />
                             </button>
@@ -253,7 +253,7 @@ function ProductRow({
                         onClick={onEditPrice}
                         title="编辑价格/SKU编码"
                         aria-label="编辑价格/SKU编码"
-                        className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 group-hover/price:opacity-100"
+                        className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-40 transition-opacity hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                     >
                         <Pencil className="size-3.5" />
                     </button>
@@ -268,7 +268,7 @@ function ProductRow({
                         onClick={onEditStock}
                         title="编辑库存"
                         aria-label="编辑库存"
-                        className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 group-hover/stock:opacity-100"
+                        className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-40 transition-opacity hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                     >
                         <Pencil className="size-3.5" />
                     </button>

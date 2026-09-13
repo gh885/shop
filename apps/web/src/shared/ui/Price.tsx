@@ -9,9 +9,7 @@ import { splitFen } from "@shop/common"
 export function Price({ value, className }: { value: number; className?: string }) {
     const { yuan, cents } = splitFen(value)
     return (
-        <span
-            className={`inline-flex items-baseline font-bold tabular-nums leading-none ${className ?? ""}`}
-        >
+        <span className={`inline-flex items-baseline tabular-nums leading-none ${className ?? ""}`}>
             <span className="text-[0.6em]">¥</span>
             <span className="tracking-tight">{yuan}</span>
             <span className="text-[0.65em]">.{cents}</span>

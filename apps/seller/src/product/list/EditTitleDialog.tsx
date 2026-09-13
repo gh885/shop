@@ -39,6 +39,8 @@ export function EditTitleDialog({
     const [name, setName] = useState("")
     const [subtitle, setSubtitle] = useState("")
     const [error, setError] = useState<string>()
+    // 共享错误文案对应的出错字段：aria-describedby 与提交失败聚焦都靠它定位
+    const [errorField, setErrorField] = useState<"name" | "subtitle">()
     const [submitting, setSubmitting] = useState(false)
 
     // 打开时预填当前值（subtitle 为 null 视作空卖点）
@@ -47,6 +49,7 @@ export function EditTitleDialog({
             setName(product.name)
             setSubtitle(product.subtitle ?? "")
             setError(undefined)
+            setErrorField(undefined)
         }
     }, [open, product])
 
@@ -54,10 +57,17 @@ export function EditTitleDialog({
         if (!product) return
         const trimmedName = name.trim()
         const trimmedSub = subtitle.trim()
-        if (!trimmedName) return setError("请填写商品标题")
-        if (trimmedName.length > NAME_MAX) return setError(`商品标题最长 ${NAME_MAX} 字`)
+        // 校验失败：记录出错字段，aria-describedby 与提交失败聚焦都靠它定位
+        const fail = (message: string, field: "name" | "subtitle") => {
+            setError(message)
+            setErrorField(field)
+            document.getElementById(`edit-title-${field}`)?.focus()
+            return
+        }
+        if (!trimmedName) return fail("请填写商品标题", "name")
+        if (trimmedName.length > NAME_MAX) return fail(`商品标题最长 ${NAME_MAX} 字`, "name")
         if (trimmedSub && (trimmedSub.length < SUBTITLE_MIN || trimmedSub.length > SUBTITLE_MAX)) {
-            return setError(`导购标题填了就写 ${SUBTITLE_MIN}~${SUBTITLE_MAX} 字，不想写可以留空`)
+            return fail(`导购标题需为 ${SUBTITLE_MIN}~${SUBTITLE_MAX} 个字，或留空`, "subtitle")
         }
         setSubmitting(true)
         try {
@@ -99,12 +109,18 @@ export function EditTitleDialog({
                             value={name}
                             onChange={(e) => {
                                 setName(e.target.value)
-                                if (error) setError(undefined)
+                                if (error) {
+                                    setError(undefined)
+                                    setErrorField(undefined)
+                                }
                             }}
                             maxLength={NAME_MAX}
                             placeholder="请输入商品标题"
                             className="tabular-nums"
-                            aria-invalid={Boolean(error)}
+                            aria-invalid={errorField === "name"}
+                            aria-describedby={
+                                errorField === "name" ? "edit-title-error" : undefined
+                            }
                         />
                         <div className="mt-1 text-right text-xs text-muted-foreground tabular-nums">
                             {name.length}/{NAME_MAX}
@@ -128,18 +144,32 @@ export function EditTitleDialog({
                             value={subtitle}
                             onChange={(e) => {
                                 setSubtitle(e.target.value)
-                                if (error) setError(undefined)
+                                if (error) {
+                                    setError(undefined)
+                                    setErrorField(undefined)
+                                }
                             }}
                             maxLength={SUBTITLE_MAX}
                             placeholder={`选填，${SUBTITLE_MIN}~${SUBTITLE_MAX} 字，留空即不展示卖点`}
-                            aria-invalid={Boolean(error)}
+                            aria-invalid={errorField === "subtitle"}
+                            aria-describedby={
+                                errorField === "subtitle" ? "edit-title-error" : undefined
+                            }
                         />
                         <div className="mt-1 text-right text-xs text-muted-foreground tabular-nums">
                             {subtitle.length}/{SUBTITLE_MAX}
                         </div>
                     </div>
 
-                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    {error && (
+                        <p
+                            id="edit-title-error"
+                            role="alert"
+                            className="text-sm text-destructive"
+                        >
+                            {error}
+                        </p>
+                    )}
                 </div>
 
                 <DialogFooter>

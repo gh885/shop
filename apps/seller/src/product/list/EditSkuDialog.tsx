@@ -52,13 +52,13 @@ interface SkuRow {
 
 const KIND_META: Record<SkuEditKind, { title: string; notice: string; okMessage: string }> = {
     price: {
-        title: "编辑SKU",
+        title: "编辑 SKU",
         notice: "库存调整请点库存列进入「编辑库存」，此处只调整价格与商家编码。",
         okMessage: "SKU 价格已更新",
     },
     stock: {
         title: "编辑库存",
-        notice: "价格调整请点价格列进入「编辑SKU」，此处只调整库存。",
+        notice: "价格调整请点价格列进入「编辑 SKU」，此处只调整库存。",
         okMessage: "库存已更新",
     },
 }
@@ -216,7 +216,12 @@ export function EditSkuLineDialog({
                             onRetry={() => setReloadKey((k) => k + 1)}
                         />
                     ) : loading || !detail ? (
-                        <Skeleton className="h-40 w-full" />
+                        <div className="flex max-h-[50vh] flex-col gap-2 overflow-hidden">
+                            <Skeleton className="h-9 w-full rounded-sm" />
+                            <Skeleton className="h-9 w-full rounded-sm" />
+                            <Skeleton className="h-9 w-full rounded-sm" />
+                            <Skeleton className="h-9 w-2/3 rounded-sm" />
+                        </div>
                     ) : (
                         <>
                             <div className="text-sm">
@@ -235,7 +240,9 @@ export function EditSkuLineDialog({
                                             <TableHead>
                                                 {kind === "price" ? "价格" : "库存"}
                                             </TableHead>
-                                            {kind === "price" && <TableHead>sku商家编码</TableHead>}
+                                            {kind === "price" && (
+                                                <TableHead>SKU 商家编码</TableHead>
+                                            )}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -248,6 +255,7 @@ export function EditSkuLineDialog({
                                                     {kind === "price" ? (
                                                         <InputGroup className="h-9 w-fit">
                                                             <InputGroupInput
+                                                                aria-label={`${r.label} 价格`}
                                                                 inputMode="decimal"
                                                                 placeholder="0.00"
                                                                 className="w-32 flex-none text-right tabular-nums"
@@ -268,6 +276,7 @@ export function EditSkuLineDialog({
                                                     ) : (
                                                         <InputGroup className="h-9 w-fit">
                                                             <InputGroupInput
+                                                                aria-label={`${r.label} 库存`}
                                                                 inputMode="numeric"
                                                                 placeholder="0"
                                                                 className="w-24 flex-none text-right tabular-nums"
@@ -294,6 +303,7 @@ export function EditSkuLineDialog({
                                                 {kind === "price" && (
                                                     <TableCell>
                                                         <Input
+                                                            aria-label={`${r.label} 商家编码`}
                                                             value={r.skuCodeText}
                                                             onChange={(e) =>
                                                                 updateRow(r.skuId, {

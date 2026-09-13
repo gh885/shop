@@ -1,5 +1,5 @@
 import { LoginForm } from "@shop/app-kit"
-import { Button, Dialog, DialogContent, DialogTitle } from "@shop/ui-web"
+import { Dialog, DialogContent, DialogTitle } from "@shop/ui-web"
 import { QrCode } from "lucide-react"
 
 import { getCaptcha, loginByPassword, loginBySms, sendSmsCode } from "./actions"
@@ -19,7 +19,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
             open={open}
             onOpenChange={onOpenChange}
         >
-            <DialogContent className="gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-2xl">
+            <DialogContent className="gap-0 overflow-hidden rounded-xl p-0 sm:max-w-2xl">
                 {/* 顶部品牌色环境光，打破纯平 */}
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-primary/8 to-transparent" />
 
@@ -47,21 +47,9 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                             footer={
                                 <p className="text-center text-xs text-muted-foreground">
                                     登录即代表同意
-                                    <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="mx-1 h-auto p-0"
-                                    >
-                                        用户协议
-                                    </Button>
-                                    和
-                                    <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="mx-1 h-auto p-0"
-                                    >
-                                        隐私政策
-                                    </Button>
+                                    {/* 协议/政策暂无落地路由：渲染为不可聚焦的纯文本，避免死按钮 */}
+                                    <span className="mx-1 text-foreground">用户协议</span>和
+                                    <span className="mx-1 text-foreground">隐私政策</span>
                                 </p>
                             }
                         />
@@ -82,7 +70,7 @@ function ScanPlaceholder() {
                     即将上线
                 </span>
             </div>
-            <div className="relative flex size-44 items-center justify-center rounded-2xl bg-muted/70">
+            <div className="relative flex size-44 items-center justify-center rounded-lg bg-muted/70">
                 {/* 扫码框四角标记 */}
                 <span className="absolute left-0 top-0 size-4 rounded-tl-md border-l-2 border-t-2 border-foreground/30" />
                 <span className="absolute right-0 top-0 size-4 rounded-tr-md border-r-2 border-t-2 border-foreground/30" />
@@ -93,7 +81,7 @@ function ScanPlaceholder() {
                     strokeWidth={1.25}
                 />
             </div>
-            <p className="text-xs text-muted-foreground">打开「Shop App」扫一扫</p>
+            <p className="text-xs text-muted-foreground">扫码登录即将上线，请使用手机号登录</p>
         </div>
     )
 }

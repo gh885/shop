@@ -65,7 +65,7 @@ export function PurchaseCta({
     }
 
     return (
-        <div className="rounded-3xl bg-background p-3 shadow-float">
+        <div className="rounded-xl bg-background p-3 shadow-float">
             <div className="flex items-stretch gap-3">
                 <Button
                     variant="cta-alt"
@@ -73,7 +73,7 @@ export function PurchaseCta({
                     className="h-12 w-28 flex-none gap-2"
                 >
                     <ShoppingCart className="size-5" />
-                    {addToCart.isPending && <Spinner />}加购
+                    {addToCart.isPending && <Spinner />}加入购物车
                 </Button>
                 <Button
                     variant="cta"
@@ -87,7 +87,7 @@ export function PurchaseCta({
                     aria-label={favorited ? "取消收藏" : "收藏"}
                     aria-pressed={favorited}
                     onClick={handleFavorite}
-                    className={`h-12 w-12 rounded-xl ${
+                    className={`h-12 w-12 rounded-md ${
                         favorited
                             ? "border-foreground/50 text-foreground"
                             : "text-muted-foreground hover:border-primary/50 hover:bg-transparent hover:text-primary"
@@ -98,7 +98,7 @@ export function PurchaseCta({
             </div>
 
             {!complete && (
-                <p className="mt-2 text-center text-xs text-muted-foreground">请先选择完整规格</p>
+                <p className="mt-2 text-center text-xs text-muted-foreground">请先选好商品规格</p>
             )}
         </div>
     )

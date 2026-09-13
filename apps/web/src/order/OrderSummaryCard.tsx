@@ -73,7 +73,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                     <InfoRow label="实付款">
                         <Price
                             value={order.payAmount.amount}
-                            className="text-lg text-foreground"
+                            className="text-lg font-bold text-foreground"
                         />
                     </InfoRow>
                 </CardContent>

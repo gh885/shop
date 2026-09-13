@@ -34,9 +34,9 @@ import { Price } from "#/shared/ui/Price"
 export type { OrderAction } from "./OrderActionButtons"
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
-    pending_payment: "text-primary",
-    pending_shipment: "text-primary",
-    pending_receipt: "text-primary",
+    pending_payment: "text-warning-foreground",
+    pending_shipment: "text-warning-foreground",
+    pending_receipt: "text-warning-foreground",
     completed: "text-muted-foreground",
     cancelled: "text-muted-foreground",
 }
@@ -140,7 +140,7 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                                     小计{" "}
                                     <Price
                                         value={item.amount.amount}
-                                        className="text-sm text-primary"
+                                        className="text-sm font-bold text-primary"
                                     />
                                 </p>
                             </div>

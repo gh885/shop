@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CircleAlert } from "lucide-react"
 
 import {
@@ -97,6 +97,8 @@ export function LoginForm({
     const [tab, setTab] = useState<LoginTab>("sms")
     // 服务端错误统一存一个状态；codeInvalid / captchaInvalid 由 code 推导，不另立状态
     const [submitError, setSubmitError] = useState<ApiError>()
+    const [submitFailCount, setSubmitFailCount] = useState(0)
+    const serverErrorRef = useRef<HTMLParagraphElement>(null)
     const [countdown, setCountdown] = useCountdown()
     const [sendingCode, setSendingCode] = useState(false)
     const captcha = useCaptcha(getCaptcha)
@@ -127,6 +129,20 @@ export function LoginForm({
                 onSuccess()
             } catch (error) {
                 setSubmitError(toApiError(error))
+                setSubmitFailCount((c) => c + 1)
+            }
+        },
+        // 校验失败：焦点移到第一个报错字段（aria-invalid 由下方 InputGroupInput 承接）
+        onSubmitInvalid: ({ formApi }) => {
+            const order =
+                tab === "sms"
+                    ? (["phone", "captchaCode", "code"] as const)
+                    : (["phone", "password"] as const)
+            for (const name of order) {
+                if ((formApi.getFieldMeta(name)?.errors.length ?? 0) > 0) {
+                    document.getElementById(`login-${name}`)?.focus()
+                    return
+                }
             }
         },
     })
@@ -165,6 +181,11 @@ export function LoginForm({
     useEffect(() => {
         if (active) void refreshCaptcha()
     }, [active, refreshCaptcha])
+
+    // 提交失败：服务端错误节点渲染后把焦点移过去（role="alert" 已播报，聚焦便于键盘用户定位）
+    useEffect(() => {
+        if (submitFailCount > 0) serverErrorRef.current?.focus()
+    }, [submitFailCount])
 
     function switchTab(next: LoginTab) {
         setTab(next)
@@ -208,9 +229,11 @@ export function LoginForm({
                                 <InputGroupText className="px-3.5 tabular-nums">+86</InputGroupText>
                             </InputGroupAddon>
                             <InputGroupInput
+                                id="login-phone"
                                 aria-label="手机号"
+                                aria-invalid={Boolean(firstFieldError(field))}
                                 className="tracking-wide tabular-nums placeholder:tracking-normal"
-                                placeholder="请输入手机号"
+                                placeholder="11 位手机号"
                                 inputMode="tel"
                                 autoComplete="tel"
                                 maxLength={11}
@@ -234,13 +257,16 @@ export function LoginForm({
                                 className={cn(
                                     control,
                                     "rounded-xl border-0 bg-muted/70",
-                                    captchaInvalid && "animate-shake ring-2 ring-destructive/40",
+                                    captchaInvalid &&
+                                        "motion-safe:animate-shake ring-2 ring-destructive/40",
                                 )}
                             >
                                 <InputGroupInput
+                                    id="login-captchaCode"
                                     aria-label="图形验证码"
+                                    aria-invalid={Boolean(firstFieldError(field))}
                                     className="px-3.5 tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal"
-                                    placeholder="图形验证码"
+                                    placeholder="输入右图 4 位字符"
                                     autoComplete="off"
                                     maxLength={4}
                                     value={field.state.value}
@@ -294,11 +320,14 @@ export function LoginForm({
                                 className={cn(
                                     control,
                                     "rounded-xl border-0 bg-muted/70",
-                                    codeInvalid && "animate-shake ring-2 ring-destructive/40",
+                                    codeInvalid &&
+                                        "motion-safe:animate-shake ring-2 ring-destructive/40",
                                 )}
                             >
                                 <InputGroupInput
+                                    id="login-code"
                                     aria-label="短信验证码"
+                                    aria-invalid={Boolean(firstFieldError(field))}
                                     className="px-3.5 tracking-widest tabular-nums placeholder:tracking-normal"
                                     placeholder="请输入验证码"
                                     inputMode="numeric"
@@ -356,7 +385,9 @@ export function LoginForm({
                         <Field error={firstFieldError(field)}>
                             <InputGroup className={cn(control, "rounded-xl border-0 bg-muted/70")}>
                                 <InputGroupInput
+                                    id="login-password"
                                     aria-label="密码"
+                                    aria-invalid={Boolean(firstFieldError(field))}
                                     type="password"
                                     placeholder="请输入密码"
                                     autoComplete="current-password"
@@ -370,32 +401,28 @@ export function LoginForm({
                 </form.AppField>
             )}
 
-            {/* 服务端错误：预留高度，避免抖动 */}
+            {/* 服务端错误：预留高度，避免抖动；role="alert" 播报 + 提交失败时聚焦 */}
             <div className="min-h-4">
                 {serverError && (
-                    <p className="flex items-center gap-1.5 text-2xs text-destructive">
+                    <p
+                        ref={serverErrorRef}
+                        role="alert"
+                        tabIndex={-1}
+                        className="flex items-center gap-1.5 text-2xs text-destructive outline-none"
+                    >
                         <CircleAlert className="size-3.5 shrink-0" />
                         {serverError}
                     </p>
                 )}
             </div>
 
-            <form.Subscribe
-                selector={(state) => ({
-                    isSubmitting: state.isSubmitting,
-                    ready:
-                        PHONE_PATTERN.test(state.values.phone) &&
-                        (tab === "sms"
-                            ? state.values.code.length === 6
-                            : state.values.password.length >= 8),
-                })}
-            >
-                {({ isSubmitting, ready }) => (
+            <form.Subscribe selector={(state) => ({ isSubmitting: state.isSubmitting })}>
+                {({ isSubmitting }) => (
                     <Button
                         type="submit"
                         variant="cta"
                         className={cn(control, "w-full")}
-                        disabled={!ready || isSubmitting}
+                        disabled={isSubmitting}
                     >
                         {isSubmitting ? (
                             <>

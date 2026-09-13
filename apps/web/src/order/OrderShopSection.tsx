@@ -39,7 +39,7 @@ export function OrderShopSection({
         <Panel>
             {/* 店铺行 */}
             <PanelHeader className="gap-3 py-3.5">
-                <span className="inline-flex size-5 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
+                <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
                     店
                 </span>
                 <span className="text-sm font-medium text-foreground">

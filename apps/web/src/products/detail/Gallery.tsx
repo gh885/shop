@@ -10,6 +10,9 @@ import {
     Tabs,
     TabsList,
     TabsTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
     type CarouselApi,
 } from "@shop/ui-web"
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
@@ -80,6 +83,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                             onMouseEnter={() => api?.scrollTo(i)}
                             onClick={() => api?.scrollTo(i)}
                             aria-label={`第 ${i + 1} 张图`}
+                            aria-pressed={i === current && !isParams}
                             className={`overflow-hidden rounded-lg border-2 transition-colors ${
                                 i === current && !isParams ? "border-primary" : "border-transparent"
                             }`}
@@ -197,24 +201,38 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                             按下瞬间按钮下跳半个高度、指针落空 → 点击不触发（连点没反应）。 */}
                         {images.length > 0 && (
                             <>
-                                <Button
-                                    variant="ghost"
-                                    size="icon-lg"
-                                    aria-label="上一张"
-                                    onClick={() => api?.scrollPrev()}
-                                    className="absolute inset-y-0 left-0 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
-                                >
-                                    <ChevronLeft className="size-5" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon-lg"
-                                    aria-label="下一张"
-                                    onClick={() => api?.scrollNext()}
-                                    className="absolute inset-y-0 right-0 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
-                                >
-                                    <ChevronRight className="size-5" />
-                                </Button>
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-lg"
+                                                aria-label="上一张"
+                                                onClick={() => api?.scrollPrev()}
+                                                className="absolute inset-y-0 left-0 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                            >
+                                                <ChevronLeft className="size-5" />
+                                            </Button>
+                                        }
+                                    />
+                                    <TooltipContent>上一张</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-lg"
+                                                aria-label="下一张"
+                                                onClick={() => api?.scrollNext()}
+                                                className="absolute inset-y-0 right-0 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                            >
+                                                <ChevronRight className="size-5" />
+                                            </Button>
+                                        }
+                                    />
+                                    <TooltipContent>下一张</TooltipContent>
+                                </Tooltip>
                             </>
                         )}
                     </Carousel>

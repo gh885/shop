@@ -44,7 +44,7 @@ export function HomeCategoryNav({
     if (entries.length === 0) {
         return (
             <div
-                className="flex w-62.5 shrink-0 items-center justify-center rounded-xl bg-background shadow-sm"
+                className="flex w-full items-center justify-center rounded-xl bg-background shadow-sm lg:w-64 lg:shrink-0"
                 style={{ height: defaultHeight }}
             >
                 <p className="px-4 text-center text-sm text-muted-foreground">
@@ -58,9 +58,15 @@ export function HomeCategoryNav({
 
     return (
         <div
-            className="relative w-62.5 shrink-0"
+            className="relative w-full lg:w-64 lg:shrink-0"
             style={{ height: defaultHeight }}
             onMouseLeave={() => setActiveId(undefined)}
+            onBlur={(e) => {
+                // 焦点移出整个导航区域（含 Mega 面板）时收起，键盘可达的关键
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                    setActiveId(undefined)
+                }
+            }}
         >
             {/** 单列表：始终完整显示，hover 仅切换行高亮 + 右侧展开 Mega 面板，不做 absolute 跳动 */}
             <div className="h-full overflow-hidden rounded-lg bg-background shadow-sm">
@@ -73,6 +79,7 @@ export function HomeCategoryNav({
                                 <Button
                                     variant="ghost"
                                     onMouseEnter={() => setActiveId(entry.id)}
+                                    onFocus={() => setActiveId(entry.id)}
                                     className={`w-full justify-start gap-3 rounded-none px-4 py-1.5 ${
                                         activeId === entry.id
                                             ? "bg-sunken text-foreground"
@@ -95,7 +102,7 @@ export function HomeCategoryNav({
 
             {/* hover 展开的 Mega Menu 面板：绝对定位盖在右侧内容上方，高度由内容撑开 */}
             {active?.subs && active.subs.length > 0 && (
-                <div className="absolute top-0 left-full z-50 hidden w-170 rounded-lg bg-background shadow-float md:block">
+                <div className="absolute top-0 left-full z-50 hidden w-168 rounded-lg bg-background shadow-float md:block">
                     {/* 词条组：横向流式平铺，一行的组名后跟整排词条 */}
                     <div className="p-5">
                         <div className="flex flex-col gap-4">
@@ -128,12 +135,14 @@ function NavGroupRow({ group }: { group: NavGroup }) {
             </Link>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 {group.items.map((item) => (
-                    <span
+                    // 暂无分类路由，先用 button 保证键盘可操作与控件语义
+                    <button
                         key={item}
+                        type="button"
                         className="cursor-pointer whitespace-nowrap transition-colors hover:text-primary"
                     >
                         {item}
-                    </span>
+                    </button>
                 ))}
             </div>
         </div>

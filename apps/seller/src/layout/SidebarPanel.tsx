@@ -133,7 +133,7 @@ function LeafRow({
     isActive: boolean
 }) {
     const cls = cn(
-        "flex h-8 items-center rounded-md px-2.5 text-2xs text-foreground/75 outline-hidden transition-all duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2",
+        "flex h-8 items-center rounded-md px-2.5 text-2xs text-foreground/75 outline-hidden transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2",
         isActive &&
             "bg-accent font-medium text-accent-foreground hover:bg-accent hover:text-accent-foreground",
     )

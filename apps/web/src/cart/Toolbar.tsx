@@ -51,10 +51,10 @@ export function Toolbar() {
             </div>
 
             {/* 右：筛选 + 车内搜索（占位） */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
                 <Button
                     variant="outline"
-                    className="w-24"
+                    className="min-w-20"
                     onClick={() => notify.info("分类筛选即将上线")}
                 >
                     分类
@@ -62,7 +62,7 @@ export function Toolbar() {
                 </Button>
                 <Button
                     variant="outline"
-                    className="w-24"
+                    className="min-w-20"
                     onClick={() => notify.info("状态筛选即将上线")}
                 >
                     状态
@@ -70,7 +70,7 @@ export function Toolbar() {
                 </Button>
                 <Button
                     variant="outline"
-                    className="w-56"
+                    className="min-w-40 flex-1 max-w-56"
                     onClick={() => notify.info("车内搜索即将上线")}
                 >
                     搜索购物车内商品

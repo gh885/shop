@@ -77,7 +77,7 @@ function OrdersPage() {
                         <Skeleton
                             /* eslint-disable-next-line react/no-array-index-key */
                             key={i}
-                            className="h-40 w-full rounded-2xl"
+                            className="h-40 w-full rounded-lg"
                         />
                     ))}
                 </div>

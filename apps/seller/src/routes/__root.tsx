@@ -20,7 +20,7 @@ export const Route = createRootRoute({
 function NotFound() {
     return (
         <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+            <div className="flex size-16 items-center justify-center rounded-lg bg-muted">
                 <FileQuestion className="size-8 text-muted-foreground" />
             </div>
             <div className="space-y-1.5">
@@ -44,7 +44,7 @@ function NotFound() {
 function RouteError({ error, reset }: { error: Error; reset: () => void }) {
     return (
         <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+            <div className="flex size-16 items-center justify-center rounded-lg bg-muted">
                 <CircleAlert className="size-8 text-destructive" />
             </div>
             <div className="space-y-1.5">

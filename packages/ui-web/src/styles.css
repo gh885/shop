@@ -1,3 +1,4 @@
+@import "tw-animate-css";
 @import "tailwindcss";
 
 /* ==========================================================================
@@ -125,6 +126,8 @@
     --color-cta-alt: var(--amber-400);
     --color-cta-alt-hover: var(--amber-500);
     --color-cta-alt-active: var(--amber-700);
+    /* 琥珀底配深棕字（白字在 amber-400 上仅 1.7:1，深棕字 9.5:1 过 AA） */
+    --color-cta-alt-foreground: hsl(30 40% 12%);
 
     /* 次级/弱化表面（secondary / muted / accent 当前值相同，
        保留三个语义名是为将来视觉分化预留，勿合并） */
@@ -232,5 +235,18 @@
         60% {
             transform: translateX(3px);
         }
+    }
+}
+
+/* ---------- 无障碍：尊重系统减弱动态偏好 ----------
+   tw-animate-css 不自带 motion-reduce 降级，这里统一兜底：
+   覆盖组件库动画与项目自定义 keyframes（route-progress、shake 等）。 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }

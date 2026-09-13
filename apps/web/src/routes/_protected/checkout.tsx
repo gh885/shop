@@ -126,8 +126,8 @@ function CheckoutPage() {
             <div className="mx-auto w-full max-w-page px-6 pb-10">
                 {preview.isLoading ? (
                     <div className="space-y-5">
-                        <Skeleton className="h-40 w-full rounded-2xl" />
-                        <Skeleton className="h-40 w-full rounded-2xl" />
+                        <Skeleton className="h-40 w-full rounded-lg" />
+                        <Skeleton className="h-40 w-full rounded-lg" />
                     </div>
                 ) : preview.isError ? (
                     <div className="flex flex-col items-center gap-4 py-16 text-sm text-muted-foreground">
@@ -198,7 +198,7 @@ function CheckoutPage() {
                                         <span className="text-muted-foreground">应付总额：</span>
                                         <Price
                                             value={preview.data?.totalPayAmount.amount ?? 0}
-                                            className="text-2xl text-primary"
+                                            className="text-2xl font-bold text-primary"
                                         />
                                     </div>
                                 </CardContent>
@@ -343,7 +343,7 @@ function GroupCard({
     return (
         <Panel>
             <PanelHeader className="gap-2 text-sm font-medium">
-                <span className="inline-flex size-5 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
+                <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
                     店
                 </span>
                 {group.shopName}
@@ -403,7 +403,7 @@ function GroupCard({
                     应付{" "}
                     <Price
                         value={group.payAmount.amount}
-                        className="text-sm text-primary"
+                        className="text-sm font-bold text-primary"
                     />
                 </span>
             </div>

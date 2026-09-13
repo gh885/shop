@@ -34,7 +34,7 @@ function LoginPage() {
             <Card className="w-full max-w-sm">
                 <CardContent className="flex flex-col gap-8">
                     <div className="flex flex-col items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                        <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                             <Store className="size-5" />
                         </div>
                         <h1 className="text-lg font-semibold tracking-tight">登录卖家中心</h1>

@@ -56,13 +56,15 @@ export function AccountHeader({
                         <input
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
-                            placeholder="搜索商品"
+                            placeholder="搜索功能即将上线"
                             aria-label="搜索商品"
-                            className="h-full flex-1 bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                            disabled
+                            className="h-full flex-1 cursor-not-allowed bg-transparent px-3 text-sm text-foreground opacity-60 outline-none placeholder:text-muted-foreground"
                         />
                         <Button
                             type="submit"
-                            className="m-1 h-9 px-6"
+                            disabled
+                            className="m-1 h-9 cursor-not-allowed px-6 opacity-60"
                         >
                             <Search />
                             搜索

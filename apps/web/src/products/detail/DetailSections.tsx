@@ -211,7 +211,7 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
                                 className="flex gap-6 text-sm sm:grid sm:grid-cols-[140px_1fr] sm:gap-0"
                             >
                                 <dt className="shrink-0 text-muted-foreground">{p.name}</dt>
-                                <dd className="text-foreground">{p.value}</dd>
+                                <dd className="min-w-0 break-words text-foreground">{p.value}</dd>
                             </div>
                         ))}
                     </dl>

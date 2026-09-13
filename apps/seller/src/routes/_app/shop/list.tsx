@@ -78,7 +78,7 @@ function ShopsPage() {
                         {[0, 1].map((i) => (
                             <Skeleton
                                 key={i}
-                                className="h-20 w-full rounded-2xl"
+                                className="h-20 w-full rounded-lg"
                             />
                         ))}
                     </div>

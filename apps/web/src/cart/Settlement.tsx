@@ -26,7 +26,7 @@ export function Settlement() {
     }
 
     return (
-        <div className="rounded-2xl bg-background p-6 ring-1 ring-border/60">
+        <div className="rounded-lg bg-background p-6 ring-1 ring-border/60">
             {/* 标题 */}
             <h2 className="text-lg font-semibold text-foreground">结算明细</h2>
 
@@ -81,7 +81,7 @@ export function Settlement() {
                 <div className="text-right">
                     <Price
                         value={selectedTotal}
-                        className="text-2xl text-foreground"
+                        className="text-2xl font-bold text-foreground"
                     />
                 </div>
             </div>

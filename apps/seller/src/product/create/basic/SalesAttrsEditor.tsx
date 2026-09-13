@@ -182,7 +182,7 @@ export function SalesAttrsEditor({
                         <div className="mb-3 flex items-center gap-2">
                             <span className="text-sm">{d.name}</span>
                             <span className="text-xs text-muted-foreground">({d.rows.length})</span>
-                            <Badge variant="warning">重要</Badge>
+                            <Badge variant="secondary">重要</Badge>
                         </div>
 
                         {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}

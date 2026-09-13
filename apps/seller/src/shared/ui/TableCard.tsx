@@ -25,7 +25,7 @@ export function TableCard({
     children: React.ReactNode
 }) {
     return (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
             <Table>{children}</Table>
 
             <div className="border-t border-border px-4 py-3">

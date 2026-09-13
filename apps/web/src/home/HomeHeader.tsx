@@ -26,7 +26,7 @@ export function HomeHeader() {
                 className="border-b border-border/60 bg-background/95 backdrop-blur"
                 style={{ height: HOME_HEADER_HEIGHT }}
             >
-                <div className="mx-auto flex h-full max-w-page items-center gap-14 px-6">
+                <div className="mx-auto flex h-full max-w-page items-center gap-4 px-6 sm:gap-8">
                     {/* 品牌 logo：图形标 + 字标 */}
                     <Link
                         to="/"
@@ -37,7 +37,7 @@ export function HomeHeader() {
                     </Link>
 
                     {/* 中间大搜索框：2px 橙描边 + 实色橙按钮（淘宝标志性元素），分类下拉 + 输入框 + 搜索按钮拼合 */}
-                    <div className="mx-auto w-full max-w-3xl">
+                    <div className="mx-auto min-w-0 w-full max-w-3xl flex-1">
                         <ButtonGroup className="h-12 w-full rounded-lg border-2 border-primary bg-background focus-within:shadow-float">
                             {/* 分类下拉：橙色文字 + 箭头，竖线分隔 */}
                             <DropdownMenu>
@@ -64,7 +64,7 @@ export function HomeHeader() {
                                 className="h-full flex-1 rounded-none border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0"
                             />
 
-                            <Button className="mr-0.5 h-11 px-8 text-base">
+                            <Button className="mr-0.5 h-11 px-4 text-base sm:px-8">
                                 <Search />
                                 搜索
                             </Button>

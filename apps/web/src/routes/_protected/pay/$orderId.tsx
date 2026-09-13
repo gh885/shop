@@ -70,7 +70,7 @@ function PayPage() {
                             {amount !== undefined && (
                                 <Price
                                     value={amount}
-                                    className="mt-4 text-4xl text-foreground"
+                                    className="mt-4 text-4xl font-bold text-foreground"
                                 />
                             )}
                             <p className="mt-2 text-xs text-muted-foreground">

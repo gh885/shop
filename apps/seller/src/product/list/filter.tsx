@@ -88,7 +88,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
             </Tabs>
 
             <form
-                className="flex items-end gap-2"
+                className="flex flex-wrap items-end gap-2"
                 onSubmit={handleSubmit}
             >
                 <label
@@ -98,7 +98,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                     商品标题
                     <Input
                         id="filter-title"
-                        className="w-56"
+                        className="min-w-40 flex-1 max-w-56"
                         placeholder="如：无线蓝牙耳机"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
@@ -111,7 +111,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                     商品 ID
                     <Input
                         id="filter-product-id"
-                        className="w-44"
+                        className="min-w-32 flex-1 max-w-44"
                         placeholder="输入完整 ID 精确匹配"
                         value={productId}
                         onChange={(e) => setProductId(e.target.value)}
@@ -124,7 +124,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                     商家编号
                     <Input
                         id="filter-merchant-code"
-                        className="w-44"
+                        className="min-w-32 flex-1 max-w-44"
                         placeholder="输入完整编号精确匹配"
                         value={merchantCode}
                         onChange={(e) => setMerchantCode(e.target.value)}

@@ -64,12 +64,12 @@ export function AddressTable({
                         <p className="truncate">{fullAddress(a)}</p>
                         <div className="mt-1 flex gap-1.5">
                             {a.defaultShip && (
-                                <span className="rounded-sm bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">
+                                <span className="rounded-sm bg-info-subtle px-1.5 py-0.5 text-xs text-info-subtle-foreground">
                                     默认发货
                                 </span>
                             )}
                             {a.defaultReturn && (
-                                <span className="rounded-sm bg-teal-50 px-1.5 py-0.5 text-xs text-teal-600">
+                                <span className="rounded-sm bg-success-subtle px-1.5 py-0.5 text-xs text-success-subtle-foreground">
                                     默认退货
                                 </span>
                             )}

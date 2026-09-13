@@ -88,7 +88,7 @@ function HeroCollage({ images }: { images: [HeroImage, HeroImage, HeroImage] }) 
             <m.img
                 src={images[0].src}
                 alt={images[0].alt}
-                className="mt-8 aspect-4/5 w-full rounded-2xl object-cover"
+                className="mt-8 aspect-4/5 w-full rounded-xl object-cover"
                 {...fadeIn(0.25)}
             />
             <div className="grid gap-4">
@@ -97,7 +97,7 @@ function HeroCollage({ images }: { images: [HeroImage, HeroImage, HeroImage] }) 
                         key={img.src}
                         src={img.src}
                         alt={img.alt}
-                        className="aspect-4/3 w-full rounded-2xl object-cover"
+                        className="aspect-4/3 w-full rounded-xl object-cover"
                         {...fadeIn(0.4 + i * 0.15)}
                     />
                 ))}

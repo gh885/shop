@@ -55,7 +55,7 @@ export function PurchasePanel({
             <div className="flex items-baseline gap-2">
                 <Price
                     value={price.primary}
-                    className="text-4xl text-primary"
+                    className="text-4xl font-bold text-primary"
                 />
                 {price.rangeTo !== undefined && (
                     <span className="text-lg font-medium text-primary tabular-nums">
@@ -178,7 +178,12 @@ function SpecButton({
                 alt={value}
                 className="h-16 w-full object-cover"
             />
-            <span className="block truncate px-1.5 py-1 text-xs text-foreground">{value}</span>
+            <span
+                title={value}
+                className="block truncate px-1.5 py-1 text-xs text-foreground"
+            >
+                {value}
+            </span>
         </button>
     )
 }

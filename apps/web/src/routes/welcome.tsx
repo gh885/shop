@@ -133,9 +133,9 @@ function Categories() {
                             whileInView="show"
                             viewport={{ once: true, amount: 0.2 }}
                         >
-                            <Card className="transition-transform duration-300 hover:-translate-y-1">
+                            <Card className="transition-transform duration-200 hover:-translate-y-1">
                                 <CardContent>
-                                    <cat.icon className="size-6 text-muted-foreground transition-transform duration-300 group-hover:scale-110" />
+                                    <cat.icon className="size-6 text-muted-foreground transition-transform duration-200 group-hover:scale-110" />
                                     <h3 className="mt-4 font-semibold">{cat.name}</h3>
                                     <p className="mt-1 text-muted-foreground">
                                         {cat.subs.join(" / ")}
@@ -153,7 +153,7 @@ function Categories() {
 function SellerBanner() {
     return (
         <section className="mx-auto max-w-6xl px-4 py-24">
-            <Reveal className="flex flex-col items-start gap-4 rounded-2xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between">
+            <Reveal className="flex flex-col items-start gap-4 rounded-xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-start gap-4">
                     <Store className="mt-1 size-8 shrink-0 text-primary" />
                     <div className="space-y-1">

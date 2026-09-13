@@ -17,7 +17,7 @@ export function HomeBannerItem({ banner }: { banner: Banner }) {
                 onError={(e) => {
                     e.currentTarget.style.display = "none"
                 }}
-                className="inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4">

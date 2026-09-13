@@ -52,6 +52,7 @@ export function ProductCard({
             <div className={compact ? "mt-2 flex flex-col" : "flex flex-col pt-2 pb-3"}>
                 {/* 标题：单行截断，hover 变主题色 */}
                 <p
+                    title={product.title}
                     className={`truncate font-medium text-foreground transition-colors group-hover:text-primary ${
                         compact ? "text-sm/5.5" : "text-sm/4.5"
                     }`}
@@ -61,8 +62,8 @@ export function ProductCard({
 
                 {/* 标签排：自营红底 + 服务类描边；无标签也保留行高，网格基线对齐 */}
                 <div
-                    className={`flex items-center gap-1 overflow-hidden ${
-                        compact ? "mt-0.5 h-4" : "mt-1.5 h-4.5"
+                    className={`flex flex-wrap items-center gap-1 line-clamp-2 ${
+                        compact ? "mt-0.5" : "mt-1.5"
                     }`}
                 >
                     {product.tags?.map((tag, i) => (
@@ -86,7 +87,7 @@ export function ProductCard({
                 >
                     <Price
                         value={product.price}
-                        className={`text-primary ${compact ? "text-xl" : "text-2xl"}`}
+                        className={`font-bold text-primary ${compact ? "text-xl" : "text-2xl"}`}
                     />
                     {product.sales && (
                         <span className="truncate text-xs text-muted-foreground">

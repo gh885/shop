@@ -49,7 +49,7 @@ export function CategoryStep({
 
     return (
         <div className="space-y-4 pb-20">
-            <div className="rounded-2xl bg-background p-3 shadow-sm">
+            <div className="rounded-lg bg-background p-3 shadow-sm">
                 <Tabs
                     value={mode}
                     onValueChange={(next) => {

@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 
-import { Button, Skeleton } from "@shop/ui-web"
+import { Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import { HOME_HEADER_HEIGHT } from "./HomeHeader"
 import { useRecommendTabs } from "./queries"
@@ -59,7 +59,7 @@ export function RecommendBar() {
             >
                 <div className="bg-background/95 backdrop-blur">
                     <div className="mx-auto max-w-(--container-page) px-6 py-3">
-                        <Skeleton className="h-6 w-1/2 rounded" />
+                        <Skeleton className="h-6 w-1/2 rounded-sm" />
                     </div>
                     <div className="mx-auto max-w-(--container-page) border-t border-border/60 px-6" />
                 </div>
@@ -76,15 +76,22 @@ export function RecommendBar() {
                 <div className="mx-auto flex max-w-(--container-page) items-center gap-4 px-6 py-3">
                     {/* 左侧往回翻页：第一页隐藏 */}
                     {clampedPage > 0 && (
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={prevPage}
-                            aria-label="上一组"
-                            className="shrink-0 text-muted-foreground hover:text-primary"
-                        >
-                            <ChevronLeft className="size-5" />
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={prevPage}
+                                        aria-label="上一组"
+                                        className="shrink-0 text-muted-foreground hover:text-primary"
+                                    >
+                                        <ChevronLeft className="size-5" />
+                                    </Button>
+                                }
+                            />
+                            <TooltipContent>上一组</TooltipContent>
+                        </Tooltip>
                     )}
                     {/* 视窗容器：与测量层同宽同布局 */}
                     <div className="relative flex flex-1 items-center gap-4 overflow-hidden">
@@ -108,7 +115,7 @@ export function RecommendBar() {
                             <button
                                 key={tab}
                                 type="button"
-                                className={`shrink-0 whitespace-nowrap text-base transition-colors ${
+                                className={`shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-base transition-colors ${
                                     tab === defaultName
                                         ? "font-medium text-foreground"
                                         : "text-muted-foreground hover:text-primary"
@@ -120,26 +127,40 @@ export function RecommendBar() {
                     </div>
                     {/* 右侧翻页：最后一页隐藏 */}
                     {clampedPage < totalPages - 1 && (
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={nextPage}
-                            aria-label="下一组"
-                            className="shrink-0 text-muted-foreground hover:text-primary"
-                        >
-                            <ChevronRight className="size-5" />
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={nextPage}
+                                        aria-label="下一组"
+                                        className="shrink-0 text-muted-foreground hover:text-primary"
+                                    >
+                                        <ChevronRight className="size-5" />
+                                    </Button>
+                                }
+                            />
+                            <TooltipContent>下一组</TooltipContent>
+                        </Tooltip>
                     )}
                     {/* 刷新 */}
-                    <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={refresh}
-                        aria-label="刷新"
-                        className="shrink-0 text-muted-foreground hover:text-primary"
-                    >
-                        <RefreshCw className="size-4" />
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={refresh}
+                                    aria-label="刷新"
+                                    className="shrink-0 text-muted-foreground hover:text-primary"
+                                >
+                                    <RefreshCw className="size-4" />
+                                </Button>
+                            }
+                        />
+                        <TooltipContent>刷新推荐</TooltipContent>
+                    </Tooltip>
                 </div>
                 <div className="mx-auto max-w-(--container-page) border-t border-border/60 px-6" />
             </div>

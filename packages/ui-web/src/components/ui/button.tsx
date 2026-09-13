@@ -20,7 +20,7 @@ const buttonVariants = cva(
                 link: "text-link underline-offset-4 hover:underline",
                 cta: "rounded-xl bg-linear-to-r from-primary to-primary-hover text-base text-primary-foreground hover:from-primary-hover hover:to-primary-active active:from-primary-active",
                 "cta-alt":
-                    "rounded-xl bg-linear-to-r from-cta-alt to-cta-alt-hover text-base text-primary-foreground hover:from-cta-alt-hover hover:to-cta-alt-active active:from-cta-alt-active",
+                    "rounded-xl bg-linear-to-r from-cta-alt to-cta-alt-hover text-base text-cta-alt-foreground hover:from-cta-alt-hover hover:to-cta-alt-active active:from-cta-alt-active",
             },
             size: {
                 default:

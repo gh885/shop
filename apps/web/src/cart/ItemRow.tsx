@@ -20,6 +20,9 @@ import {
     Button,
     ButtonGroupText,
     ConfirmDialog,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from "@shop/ui-web"
 
 /**
@@ -77,29 +80,43 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
 
             <ItemActions>
                 <ButtonGroup>
-                    <Button
-                        variant="outline"
-                        size="icon-sm"
-                        className="text-muted-foreground hover:text-foreground"
-                        disabled={view.disabled || item.quantity <= 1}
-                        onClick={() => actions.updateQuantity(item, item.quantity - 1)}
-                        aria-label="减少数量"
-                    >
-                        <Minus className="size-3.5" />
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    variant="outline"
+                                    size="icon-sm"
+                                    className="text-muted-foreground hover:text-foreground"
+                                    disabled={view.disabled || item.quantity <= 1}
+                                    onClick={() => actions.updateQuantity(item, item.quantity - 1)}
+                                    aria-label="减少数量"
+                                >
+                                    <Minus className="size-3.5" />
+                                </Button>
+                            }
+                        />
+                        <TooltipContent>减少数量</TooltipContent>
+                    </Tooltip>
                     <ButtonGroupText className="w-8 justify-center border-x bg-background px-0 text-sm tabular-nums">
                         {item.quantity}
                     </ButtonGroupText>
-                    <Button
-                        variant="outline"
-                        size="icon-sm"
-                        className="text-muted-foreground hover:text-foreground"
-                        disabled={view.disabled || view.stock === 0}
-                        onClick={() => actions.updateQuantity(item, item.quantity + 1)}
-                        aria-label="增加数量"
-                    >
-                        <Plus className="size-3.5" />
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    variant="outline"
+                                    size="icon-sm"
+                                    className="text-muted-foreground hover:text-foreground"
+                                    disabled={view.disabled || view.stock === 0}
+                                    onClick={() => actions.updateQuantity(item, item.quantity + 1)}
+                                    aria-label="增加数量"
+                                >
+                                    <Plus className="size-3.5" />
+                                </Button>
+                            }
+                        />
+                        <TooltipContent>增加数量</TooltipContent>
+                    </Tooltip>
                 </ButtonGroup>
             </ItemActions>
 
