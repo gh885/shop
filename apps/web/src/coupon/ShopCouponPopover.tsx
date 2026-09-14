@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { TicketPercent } from "lucide-react"
 
+import type { ClaimableCouponResponse } from "@shop/api/sdk"
+
 import { formatDate } from "@shop/app-kit"
 import { couponRuleText } from "@shop/common"
 import {
@@ -14,7 +16,7 @@ import {
 
 import { openLoginDialog, useIsLoggedIn } from "#/shared/api/auth"
 
-import { isCouponAlreadyClaimed, type ClaimableCoupon } from "./coupon"
+import { isCouponAlreadyClaimed } from "./coupon"
 import { useClaimCoupon, useShopClaimableCoupons } from "./queries"
 
 /**
@@ -42,7 +44,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
         setClaimedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
     }
 
-    function handleClaim(coupon: ClaimableCoupon) {
+    function handleClaim(coupon: ClaimableCouponResponse) {
         if (!isLoggedIn) {
             openLoginDialog()
             return

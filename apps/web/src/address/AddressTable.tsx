@@ -26,10 +26,13 @@ function labelName(label?: string) {
 
 export interface AddressTableProps {
     addresses: Address[]
+    /** 编辑需整份回填，故给实体 */
     onEdit: (a: Address) => void
-    onDelete: (a: Address) => void
-    onSetDefault: (a: Address) => void
-    onUnsetDefault: (a: Address) => void
+    /** 删除确认只需「是哪条 + 怎么念」：地址由父级持有，不回传整实体 */
+    onDelete: (target: Pick<Address, "id" | "receiver">) => void
+    /** 设/取消默认只需 id */
+    onSetDefault: (id: string) => void
+    onUnsetDefault: (id: string) => void
 }
 
 /** 收货地址列表（纯展示：数据与动作回调均由父级注入）
@@ -105,7 +108,9 @@ export function AddressTable({
                                                 variant="ghost"
                                                 size="sm"
                                                 className="text-destructive hover:text-destructive"
-                                                onClick={() => onDelete(a)}
+                                                onClick={() =>
+                                                    onDelete({ id: a.id, receiver: a.receiver })
+                                                }
                                             >
                                                 删除
                                             </Button>
@@ -113,7 +118,7 @@ export function AddressTable({
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => onUnsetDefault(a)}
+                                                    onClick={() => onUnsetDefault(a.id)}
                                                 >
                                                     取消默认
                                                 </Button>
@@ -121,7 +126,7 @@ export function AddressTable({
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => onSetDefault(a)}
+                                                    onClick={() => onSetDefault(a.id)}
                                                 >
                                                     设为默认
                                                 </Button>

@@ -1,13 +1,11 @@
-import { CouponsApi } from "@shop/api/sdk"
+import { CouponsApi, type ClaimableCouponResponse } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit"
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
     COUPON_PAGE_SIZE,
     isCouponAlreadyClaimed,
-    toClaimableCoupon,
     toMyCoupon,
-    type ClaimableCoupon,
     type CouponTab,
     type MyCoupon,
 } from "./coupon"
@@ -56,12 +54,11 @@ export const SHOP_CLAIMABLE_COUPONS_KEY = ["shop-claimable-coupons"] as const
 const shopClaimableCouponsOptions = (shopId: string) =>
     queryOptions({
         queryKey: [...SHOP_CLAIMABLE_COUPONS_KEY, shopId],
-        queryFn: async ({ signal }): Promise<ClaimableCoupon[]> => {
-            const result = await CouponsApi.listShopClaimableCoupons({
+        queryFn: async ({ signal }): Promise<ClaimableCouponResponse[]> => {
+            return await CouponsApi.listShopClaimableCoupons({
                 path: { shopId },
                 signal,
             })
-            return result.map(toClaimableCoupon)
         },
         staleTime: 60_000,
         // 领券入口是页面的附属件：拉失败就不给入口（不报警、不占位）。但**必须留默认重试**——

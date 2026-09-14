@@ -1,6 +1,6 @@
 /**
  * coupon —— 买家优惠券域（扁形态：逻辑 + 数据 hook + 组件平铺）。
- * - coupon.ts             ：业务类型 + wire→投影（toMyCoupon / toClaimableCoupon）+ 页签定义 + 按状态分组
+ * - coupon.ts             ：业务类型 + wire→投影（toMyCoupon）+ 页签定义 + 按状态分组（可领券直接用 SDK 类型）
  * - queries.ts            ：券包查询 / 领券 mutation / 店铺可领券查询
  * - CouponCard.tsx        ：券包里的一张券（三行信息 + 状态/来源标签）
  * - ShopCouponPopover.tsx ：商品详情页店铺条的领券入口浮层
@@ -14,10 +14,9 @@ export {
     COUPON_TABS,
     groupByStatus,
     isCouponAlreadyClaimed,
-    toClaimableCoupon,
     toMyCoupon,
 } from "./coupon"
-export type { ClaimableCoupon, CouponGroup, CouponTab, MyCoupon } from "./coupon"
+export type { CouponGroup, CouponTab, MyCoupon } from "./coupon"
 
 export {
     MY_COUPONS_KEY,

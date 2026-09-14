@@ -1,9 +1,4 @@
-import type {
-    BannerResponse,
-    NavEntryResponse,
-    NavGroup as SdkNavGroup,
-    RecommendTabResponse,
-} from "@shop/api/sdk"
+import type { BannerResponse, NavEntryResponse, NavGroup as SdkNavGroup } from "@shop/api/sdk"
 
 /**
  * widgets/home 领域层 —— CMS 首页内容类型 + wire → 投影（纯函数，不碰 React / 网络）。
@@ -17,80 +12,31 @@ import type {
 /** 导航子分组 {name, items[]}：契约同后端 NavGroup，仅 items 归一为必有（缺省补 []） */
 export type NavGroup = Omit<SdkNavGroup, "items"> & { items: string[] }
 
-/** 首页导航项（投影后形状） */
-export type NavEntry = {
-    id: string
-    title: string
-    /** 图标 key（SDK 可空） */
-    iconKey: string | null
-    /** 跳转目标（SDK 可空） */
-    target: string | null
-    targetType: string | null
-    subs: NavGroup[]
-}
+/**
+ * 首页导航项：契约之上只归一 subs —— sub.items 可空则补 []。
+ * 其余字段同名同型，用 Omit 组合，不逐字段抄书（iconKey/target/targetType 的可空语义见契约）。
+ */
+export type NavEntry = Omit<NavEntryResponse, "subs"> & { subs: NavGroup[] }
 
-/** wire → 投影 */
+/** wire → 投影：唯一归一的是 subs 的 items 缺省 */
 export function toNavEntry(dto: NavEntryResponse): NavEntry {
-    return {
-        id: dto.id,
-        title: dto.title,
-        iconKey: dto.iconKey,
-        target: dto.target,
-        targetType: dto.targetType,
-        subs: dto.subs.map((sub) => ({ name: sub.name, items: sub.items ?? [] })),
-    }
+    return { ...dto, subs: dto.subs.map((sub) => ({ name: sub.name, items: sub.items ?? [] })) }
 }
 
 // ---------- CMS：运营位 banner ----------
 
-/** 首页运营位 banner（投影后形状） */
-export type Banner = {
-    id: string
-    title: string
-    /** 副标题（SDK 可空） */
-    subtitle: string | null
-    image: string
-    /** 跳转目标（SDK 可空） */
-    target: string | null
-    targetType: string | null
-    /** 外部链接（SDK 可空） */
-    link: string | null
-}
+/**
+ * 首页运营位 banner：契约之上只改一处 —— imageUrl 改叫 image（组件侧都按 image 取）。
+ * 其余字段同名同型，用 Omit 组合，不逐字段抄书。
+ */
+export type Banner = Omit<BannerResponse, "imageUrl"> & { image: string }
 
-/** wire → 投影 */
+/** wire → 投影：唯一的变换是 imageUrl → image */
 export function toBanner(dto: BannerResponse): Banner {
-    return {
-        id: dto.id,
-        title: dto.title,
-        subtitle: dto.subtitle,
-        image: dto.imageUrl,
-        target: dto.target,
-        targetType: dto.targetType,
-        link: dto.link,
-    }
+    return { ...dto, image: dto.imageUrl }
 }
 
 // ---------- CMS：推荐条词条 ----------
-
-/** 首页推荐条词条（投影后形状） */
-export type RecommendTab = {
-    id: string
-    name: string
-    /** 跳转目标（SDK 可空） */
-    target: string | null
-    targetType: string | null
-    isDefault: boolean
-}
-
-/** wire → 投影 */
-export function toRecommendTab(dto: RecommendTabResponse): RecommendTab {
-    return {
-        id: dto.id,
-        name: dto.name,
-        target: dto.target,
-        targetType: dto.targetType,
-        isDefault: dto.isDefault,
-    }
-}
+// 词条字段同名同型、无需归一，直接用 SDK `RecommendTabResponse`，不造镜像类型与恒等投影。
 
 // 买家商品形状已下沉到 #/product（Product/ProductDetail），首页商品流直接复用，不再本地定义

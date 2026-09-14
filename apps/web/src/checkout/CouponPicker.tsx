@@ -32,7 +32,8 @@ import type { CheckoutGroup } from "./checkout"
 const NO_COUPON = "none"
 
 export interface CouponPickerProps {
-    group: CheckoutGroup
+    /** 本控件只消费券候选与「已减多少」：不背整组行明细与运费 */
+    group: Pick<CheckoutGroup, "coupons" | "discountAmount">
     /** 当前选中的券；null = 不使用优惠券 */
     selectedId: string | null
     /** 选中/取消选择：null 表示明确选择「不使用优惠券」 */

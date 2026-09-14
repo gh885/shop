@@ -1,11 +1,12 @@
-import type { ClaimableCouponResponse, MyCouponResponse } from "@shop/api/sdk"
-import { ErrorCodes, couponStatusLabel, toApiError, type Money } from "@shop/common"
+import type { MyCouponResponse } from "@shop/api/sdk"
+import { ErrorCodes, couponStatusLabel, toApiError } from "@shop/common"
 
 /**
  * coupon 领域层 —— 优惠券的业务类型 + wire→领域投影 + 本域纯派生（不碰 React / 网络）。
  *
  * 只归一形状（可空 → undefined），不造假默认值：契约说 `orderId` 可空，就用 undefined 表达「没关联订单」，
  * 不补一个空串；反之必填字段也不兜底 —— 契约收紧后兜底只会掩盖漂移。
+ * 店铺可领券没有需要归一的字段，直接用 SDK `ClaimableCouponResponse`，不造镜像类型。
  *
  * 规则文案与状态/来源标签一律取 `@shop/common` 的共享文案层，本文件不重复一份：
  * 同一张券在券包、店铺领券、结算选券三处说法不同，用户会以为是三张不同的券。
@@ -13,74 +14,28 @@ import { ErrorCodes, couponStatusLabel, toApiError, type Money } from "@shop/com
 
 // ---------- 业务类型 ----------
 
-/** 券包业务形状（`GET /coupons/mine` 的一条） */
-export type MyCoupon = {
-    id: string
-    shopId: string
-    /** 店铺注销时后端诚实返回 null（与订单同一口径，UI 显示「店铺已关闭」） */
-    shopName: string
-    name: string
-    /** 门槛（分）：amount <= 0 即无门槛 */
-    threshold: Money
-    /** 面额（分） */
-    discount: Money
-    /** 生效时间 ISO（领取时已固化成绝对时间） */
-    effectiveAt: string
-    /** 失效时间 ISO */
-    expireAt: string
-    /**
-     * 展示状态：后端 `MyCoupon.displayStatus` 的算出来的值（库里可能还是 UNUSED 而事实已过期），
-     * 不是用户券的原始 status。取值 UNUSED / LOCKED / USED / EXPIRED / VOID。
-     */
-    status: string
-    /** 来源：CLAIM / REFUND_RETURN（退款补发必须让用户看见，否则像凭空多出来的券） */
-    source: string
+/**
+ * 券包业务形状（`GET /coupons/mine` 的一条）：契约之上只改一处 —— 可空的 `orderId` 归一成 undefined。
+ * 其余字段同名同型，用 Omit 组合，不逐字段抄书。
+ *
+ * 契约读不出的几条语义：
+ * - `threshold` / `discount`：分为单位，`threshold.amount <= 0` 即无门槛；
+ * - `effectiveAt` / `expireAt`：ISO 绝对时间（领取时已固化，不再随模板改动）；
+ * - `shopName`：店铺注销时后端诚实返回 null（与订单同一口径，UI 显示「店铺已关闭」）；
+ * - `status`：后端 `MyCoupon.displayStatus` 算出来的值（库里可能还是 UNUSED 而事实已过期），
+ *   不是用户券的原始 status。取值 UNUSED / LOCKED / USED / EXPIRED / VOID；
+ * - `source`：CLAIM / REFUND_RETURN（退款补发必须让用户看见，否则像凭空多出来的券）。
+ */
+export type MyCoupon = Omit<MyCouponResponse, "orderId"> & {
     /** 核销/占用的订单；未用掉的券没有订单（契约可空） */
     orderId?: string
-}
-
-/** 店铺可领券业务形状（`GET /api/shops/{shopId}/coupons` 的一条，匿名可读） */
-export type ClaimableCoupon = {
-    id: string
-    name: string
-    threshold: Money
-    discount: Money
-    validFrom: string
-    validTo: string
-    /** 先到先得闸门：已发完（issued >= total）。UI 必须给明确文案，不能只靠置灰 */
-    soldOut: boolean
 }
 
 // ---------- wire → 领域 ----------
 
 /** 券包 wire → 业务：唯一需要归一的是可空的 orderId（null → undefined） */
 export function toMyCoupon(dto: MyCouponResponse): MyCoupon {
-    return {
-        id: dto.id,
-        shopId: dto.shopId,
-        shopName: dto.shopName,
-        name: dto.name,
-        threshold: dto.threshold,
-        discount: dto.discount,
-        effectiveAt: dto.effectiveAt,
-        expireAt: dto.expireAt,
-        status: dto.status,
-        source: dto.source,
-        orderId: dto.orderId ?? undefined,
-    }
-}
-
-/** 可领券 wire → 业务：字段已一一对应，保持原样，不做任何补值 */
-export function toClaimableCoupon(dto: ClaimableCouponResponse): ClaimableCoupon {
-    return {
-        id: dto.id,
-        name: dto.name,
-        threshold: dto.threshold,
-        discount: dto.discount,
-        validFrom: dto.validFrom,
-        validTo: dto.validTo,
-        soldOut: dto.soldOut,
-    }
+    return { ...dto, orderId: dto.orderId ?? undefined }
 }
 
 // ---------- 页签 ----------

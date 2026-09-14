@@ -1,13 +1,6 @@
-import { CmsPublicApi } from "@shop/api/sdk"
+import { CmsPublicApi, type RecommendTabResponse } from "@shop/api/sdk"
 
-import {
-    toBanner,
-    toNavEntry,
-    toRecommendTab,
-    type Banner,
-    type NavEntry,
-    type RecommendTab,
-} from "./model"
+import { toBanner, toNavEntry, type Banner, type NavEntry } from "./model"
 
 import type { Product } from "#/products"
 import { fetchProducts } from "#/products"
@@ -31,10 +24,9 @@ export async function fetchBanners(): Promise<Banner[]> {
     return res.map(toBanner)
 }
 
-/** 首页推荐条词条 */
-export async function fetchRecommendTabs(): Promise<RecommendTab[]> {
-    const res = await CmsPublicApi.getRecommendTabs()
-    return res.map(toRecommendTab)
+/** 首页推荐条词条：契约字段同名同型，直接用 SDK 类型，不做恒等投影 */
+export async function fetchRecommendTabs(): Promise<RecommendTabResponse[]> {
+    return await CmsPublicApi.getRecommendTabs()
 }
 
 /**

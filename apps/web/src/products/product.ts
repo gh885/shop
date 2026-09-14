@@ -4,7 +4,6 @@ import type {
     PublicProductDetailResponse,
     PublicProductResponse,
     PublicSkuResponse,
-    SkuAttr,
     SpecItem,
 } from "@shop/api/sdk"
 
@@ -31,20 +30,15 @@ export type Product = {
     priceMax: Money
 }
 
-/** SKU 业务形状：image 为 null 表示无专属图（回退主图） */
-export type Sku = {
-    id: string
-    name: string
-    attributes: SkuAttr[]
-    /** SDK 可空，null 表示无专属图 */
-    image: string | null
-    price: Money
-    /** 划线价：SDK 可空，null 表示没有划线价（详情页不画那行删除线） */
-    originalPrice: Money | null
-    stock: number
-}
+/**
+ * SKU 业务形状：直接用 SDK `PublicSkuResponse`，不造镜像类型。
+ *
+ * 契约上 `image` 为 null 表示无专属图（回退主图），`originalPrice` 为 null 表示没有划线价
+ * （详情页不画那行删除线）——都可空如实透传，没有需要归一的字段，所以不做投影。
+ */
+export type Sku = PublicSkuResponse
 
-/** 商品详情：内嵌已塑形的 product/sku，异常字段 undefined 归一成空值，渲染层无需再判空 */
+/** 商品详情：内嵌 wire → 业务塑形后的 product（sku 与契约同形直接透传），渲染层无需再判空 */
 export type ProductDetail = {
     product: Product
     /** 详情图流：对象存储 key 数组，按序铺开渲染（代替富文本 HTML）；展示时用 imgUrl 拼 CDN 域名 */
@@ -86,20 +80,7 @@ export function toProduct(dto: PublicProductResponse): Product {
     }
 }
 
-/** wire → 业务形状：price 由发布门槛保证有值，originalPrice 可空（无划线价）如实透传 */
-function toSku(dto: PublicSkuResponse): Sku {
-    return {
-        id: dto.id,
-        name: dto.name,
-        attributes: dto.attributes,
-        image: dto.image,
-        price: dto.price,
-        originalPrice: dto.originalPrice,
-        stock: dto.stock,
-    }
-}
-
-/** 详情 wire：detailImages/images/specs/params 在详情响应顶层（product 只是列表项），SKU 逐条 toSku */
+/** 详情 wire：detailImages/images/specs/params 在详情响应顶层（product 只是列表项）；SKU 形状与契约一致，原样透传 */
 export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail {
     return {
         product: toProduct(dto.product),
@@ -107,7 +88,7 @@ export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail
         images: dto.images,
         specs: dto.specs,
         params: dto.params,
-        skus: dto.skus.map(toSku),
+        skus: dto.skus,
     }
 }
 

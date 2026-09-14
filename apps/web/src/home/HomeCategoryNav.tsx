@@ -63,7 +63,7 @@ export function HomeCategoryNav({
             onMouseLeave={() => setActiveId(undefined)}
             onBlur={(e) => {
                 // 焦点移出整个导航区域（含 Mega 面板）时收起，键盘可达的关键
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                if (!e.currentTarget.contains(e.relatedTarget)) {
                     setActiveId(undefined)
                 }
             }}

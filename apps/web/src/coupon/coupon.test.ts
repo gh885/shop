@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import type { ClaimableCouponResponse, MyCouponResponse } from "@shop/api/sdk"
+import type { MyCouponResponse } from "@shop/api/sdk"
 
 import {
     COUPON_TABS,
     groupByStatus,
     isCouponAlreadyClaimed,
-    toClaimableCoupon,
     toMyCoupon,
     type MyCoupon,
 } from "./coupon"
@@ -63,30 +62,6 @@ describe("toMyCoupon", () => {
 
     it("展示状态取后端算出来的值_不是库里那个可能已过期的原始状态", () => {
         expect(toMyCoupon(makeMyCouponResponse({ status: "EXPIRED" })).status).toBe("EXPIRED")
-    })
-})
-
-describe("toClaimableCoupon", () => {
-    it("soldOut 原样透传_先到先得的闸门只能由后端决定", () => {
-        const wire: ClaimableCouponResponse = {
-            id: COUPON_ID,
-            name: "满100减10",
-            threshold: { amount: 10000, currency: "CNY" },
-            discount: { amount: 1000, currency: "CNY" },
-            validFrom: "2026-01-01T00:00:00Z",
-            validTo: "2026-01-31T00:00:00Z",
-            soldOut: true,
-        }
-
-        expect(toClaimableCoupon(wire)).toEqual({
-            id: COUPON_ID,
-            name: "满100减10",
-            threshold: { amount: 10000, currency: "CNY" },
-            discount: { amount: 1000, currency: "CNY" },
-            validFrom: "2026-01-01T00:00:00Z",
-            validTo: "2026-01-31T00:00:00Z",
-            soldOut: true,
-        })
     })
 })
 

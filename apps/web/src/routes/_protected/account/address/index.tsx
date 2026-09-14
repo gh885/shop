@@ -41,8 +41,8 @@ function AddressPage() {
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editing, setEditing] = useState<Address | undefined>()
 
-    // 删除确认
-    const [deleteTarget, setDeleteTarget] = useState<Address | undefined>()
+    // 删除确认目标：只需「是哪条 + 怎么念」（地址本身由 useAddressList 持有）
+    const [deleteTarget, setDeleteTarget] = useState<Pick<Address, "id" | "receiver"> | undefined>()
 
     function openCreate() {
         setEditing(undefined)
@@ -100,8 +100,8 @@ function AddressPage() {
                     addresses={addresses}
                     onEdit={openEdit}
                     onDelete={setDeleteTarget}
-                    onSetDefault={(a) => setDefault.mutate(a.id)}
-                    onUnsetDefault={(a) => unsetDefault.mutate(a.id)}
+                    onSetDefault={(id) => setDefault.mutate(id)}
+                    onUnsetDefault={(id) => unsetDefault.mutate(id)}
                 />
             )}
 

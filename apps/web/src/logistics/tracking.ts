@@ -64,6 +64,9 @@ export function buildTrackingGroups(nodes: TrackingNodeResponse[]): TrackingGrou
     })
 }
 
+/** 订单侧时间线输入：只用下单/发货两个时刻，不依赖订单详情全貌（跨域不背 30 个字段） */
+type OrderTimeline = Pick<OrderDetail, "createdAt" | "shippedAt">
+
 /**
  * 订单侧事件 → 段（新 → 旧）。
  *
@@ -71,7 +74,7 @@ export function buildTrackingGroups(nodes: TrackingNodeResponse[]): TrackingGrou
  * 淘宝那条轴上的「仓库处理中 / 打印完成」我们没有数据源——不造假节点，
  * 宁可少两条也不让买家看见一句我们编的话。
  */
-export function buildMerchantGroups(order: OrderDetail): TrackingGroup[] {
+export function buildMerchantGroups(order: OrderTimeline): TrackingGroup[] {
     const events: { key: string; label: string; at: string; text: string }[] = [
         { key: "ORDER_PLACED", label: "已下单", at: order.createdAt, text: "商品已经下单" },
     ]
@@ -112,7 +115,7 @@ export function buildMerchantGroups(order: OrderDetail): TrackingGroup[] {
  */
 export function buildShipmentTracks(
     shipments: ShipmentTrackingResponse[],
-    order?: OrderDetail,
+    order?: OrderTimeline,
 ): ShipmentTrack[] {
     const merchantGroups = order ? buildMerchantGroups(order) : []
     let merchantAttached = false

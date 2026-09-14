@@ -1,8 +1,6 @@
 import type { ShipmentTrackingResponse, TrackingNodeResponse } from "@shop/api/sdk"
 import { describe, expect, it } from "vitest"
 
-import type { OrderDetail } from "#/order"
-
 import { buildMerchantGroups, buildShipmentTracks, buildTrackingGroups } from "./tracking"
 
 /** 夹具：轨迹节点 wire 形状（`buildTrackingGroups` 的唯一输入） */
@@ -33,41 +31,11 @@ function nth<T>(items: T[], index: number): T {
     return item
 }
 
-/** 夹具：订单详情（只填投影用得到的字段，其余给合法默认值） */
-function makeOrderDetail(overrides: Partial<OrderDetail> = {}): OrderDetail {
+/** 夹具：订单侧时间线（buildMerchantGroups 只用下单/发货两个时刻，就造两个） */
+function makeOrderTimeline(overrides: { createdAt?: string; shippedAt?: string | null } = {}) {
     return {
-        id: "o-1",
-        orderNo: "NO20260726001",
         createdAt: "2026-07-26T01:41:00+08:00",
-        status: "completed",
-        payExpireAt: "2026-07-26T01:41:00+08:00",
-        shopId: "shop-1",
-        shopName: "测试店",
-        items: [],
-        itemAmount: { amount: 19900, currency: "CNY" },
-        // 券口径：轨迹轴不用它们，但详情类型要求在场（默认「没用券」）
-        discountAmount: { amount: 0, currency: "CNY" },
-        userCouponId: null,
-        payAmount: { amount: 19900, currency: "CNY" },
-        availableActions: [],
-        buyerMessage: null,
-        receiverName: "张三",
-        receiverPhone: "19551001956",
-        receiverProvince: "山西省",
-        receiverCity: "晋中市",
-        receiverDistrict: "昔阳县",
-        receiverDetail: "乐平镇新西街 1 号",
-        logisticsCompany: "申通快递",
-        trackingNo: "773433522905985",
-        paidAt: "2026-07-26T01:45:00+08:00",
-        shippedAt: "2026-07-26T09:06:00+08:00",
-        completedAt: "2026-07-29T18:35:00+08:00",
-        cancelledAt: null,
-        cancelReason: null,
-        // 售后投影列：轨迹轴不用它们，但详情类型要求在场（默认「从未申请过售后」）
-        afterSaleStatus: "NONE",
-        applyExpireAt: null,
-        refundAmount: null,
+        shippedAt: "2026-07-26T09:06:00+08:00" as string | null,
         ...overrides,
     }
 }
@@ -171,14 +139,14 @@ describe("buildTrackingGroups", () => {
 
 describe("buildMerchantGroups", () => {
     it("未发货只有「已下单」：发货时刻还没发生，不能提前画一条", () => {
-        const groups = buildMerchantGroups(makeOrderDetail({ shippedAt: null }))
+        const groups = buildMerchantGroups(makeOrderTimeline({ shippedAt: null }))
 
         expect(groups.map((g) => g.label)).toEqual(["已下单"])
         expect(nth(nth(groups, 0).nodes, 0).text).toBe("商品已经下单")
     })
 
     it("已发货时两条按新 → 旧排，发货在下单之上", () => {
-        const groups = buildMerchantGroups(makeOrderDetail())
+        const groups = buildMerchantGroups(makeOrderTimeline())
 
         expect(groups.map((g) => g.label)).toEqual(["已发货", "已下单"])
         expect(nth(nth(groups, 0).nodes, 0).time).toBe("07-26 09:06")
@@ -186,7 +154,7 @@ describe("buildMerchantGroups", () => {
 })
 
 describe("buildShipmentTracks", () => {
-    const order = makeOrderDetail()
+    const order = makeOrderTimeline()
 
     it("商家侧事件只并进首个正向包裹：多包裹时每条轴都挂一遍就是把「已下单」讲了三遍", () => {
         const tracks = buildShipmentTracks(
