@@ -1,9 +1,8 @@
-import { OrdersApi, type TicketType } from "@shop/api/sdk"
+import { OrdersApi, type TicketResponse, type TicketType } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { toAfterSaleTicket, type AfterSaleTicket } from "./after-sale"
 import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
 
 /**
@@ -22,11 +21,9 @@ export const AFTER_SALE_KEY = ["after-sale"] as const
 const afterSaleOptions = (orderId: string) =>
     queryOptions({
         queryKey: [...AFTER_SALE_KEY, orderId],
-        queryFn: async ({ signal }): Promise<AfterSaleTicket | null> => {
+        queryFn: async ({ signal }): Promise<TicketResponse | null> => {
             try {
-                return toAfterSaleTicket(
-                    await OrdersApi.getAfterSale({ path: { id: orderId }, signal }),
-                )
+                return await OrdersApi.getAfterSale({ path: { id: orderId }, signal })
             } catch (error) {
                 // 从没申请过售后 → 404；这是「没有」而不是「失败」，不给它错误态
                 if (toApiError(error).status === 404) return null

@@ -34,6 +34,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
         shopId: "shop-1",
         shopName: "测试店",
         items: [],
+        availableActions: [],
         itemAmount: { amount: 19900, currency: "CNY" },
         payAmount: { amount: 19900, currency: "CNY" },
         ...overrides,

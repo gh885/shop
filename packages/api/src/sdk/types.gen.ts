@@ -960,13 +960,22 @@ export type SellerOrderListItemResponse = {
     createdAt: string;
 };
 
+export const OrderAvailableAction = {
+    PAY: 'PAY',
+    CANCEL: 'CANCEL',
+    SHIP: 'SHIP',
+    RECEIVE: 'RECEIVE'
+} as const;
+
+export type OrderAvailableAction = typeof OrderAvailableAction[keyof typeof OrderAvailableAction];
+
 export type OrderDetailResponse = {
     id: string;
     orderNo: string;
     status: OrderStatus;
     shopId: string;
     shopName: string | null;
-    availableActions: Array<string>;
+    availableActions: Array<OrderAvailableAction>;
     itemAmount: Money;
     shippingFee: Money;
     discountAmount: Money;
@@ -1072,6 +1081,7 @@ export type OrderListItemResponse = {
     status: OrderStatus;
     shopId: string;
     shopName: string | null;
+    availableActions: Array<OrderAvailableAction>;
     payAmount: Money;
     payExpireAt: string;
     createdAt: string;

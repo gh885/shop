@@ -1,6 +1,7 @@
 import { Check } from "lucide-react"
 
-import { ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEPS, type OrderStatus } from "./model"
+import { ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEPS } from "./constants"
+import type { OrderStatus } from "./model"
 
 /**
  * 订单进度条：固定「拍下宝贝 → 买家付款 → 卖家发货 → 确认收货」四步。

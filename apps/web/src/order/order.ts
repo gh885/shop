@@ -1,7 +1,12 @@
-import type { OrderDetailResponse, OrderItemResponse, OrderListItemResponse } from "@shop/api/sdk"
+import type {
+    OrderAvailableAction,
+    OrderDetailResponse,
+    OrderItemResponse,
+    OrderListItemResponse,
+} from "@shop/api/sdk"
 
 import { toStatusFromWire } from "#/shared/order-status"
-import type { Order, OrderDetail, OrderItem } from "./model"
+import type { Order, OrderAction, OrderDetail, OrderItem } from "./model"
 
 /**
  * entities/order —— 订单领域数据层（纯类型 + wire → 投影 + 纯规则，不碰 React / 网络）。
@@ -18,6 +23,24 @@ import type { Order, OrderDetail, OrderItem } from "./model"
 // 状态机唯一真相在 #/shared/order-status（toStatusFromWire / statusToWire）
 
 export { statusToWire } from "#/shared/order-status"
+
+/**
+ * 后端动作（wire 大写）→ 领域动作（小写）。
+ *
+ * 全量 Record 而非 Partial：后端枚举加一个动作时这里先编译期红（"没处理新动作"被看见），
+ * 而不是静默少渲染一个按钮。SHIP 是卖家视角动作——买家接口不会下发它，落到这里就丢弃。
+ */
+const ACTION_BY_WIRE: Record<OrderAvailableAction, OrderAction | null> = {
+    PAY: "pay",
+    CANCEL: "cancel",
+    RECEIVE: "confirm",
+    SHIP: null,
+}
+
+/** 动作集 wire → 领域：保序过滤，不在前端补动作（前端附加动作由 deriveOrderActions 拼在后面） */
+export function toOrderActions(wire: readonly OrderAvailableAction[]): OrderAction[] {
+    return wire.map((action) => ACTION_BY_WIRE[action]).filter((a): a is OrderAction => a !== null)
+}
 
 /** 行项 wire → 业务：快照字段归一 */
 function toOrderItem(dto: OrderItemResponse): OrderItem {
@@ -46,6 +69,7 @@ export function toOrder(dto: OrderListItemResponse): Order {
         shopId: dto.shopId,
         shopName: dto.shopName,
         items: dto.items.map(toOrderItem),
+        availableActions: toOrderActions(dto.availableActions),
         itemAmount: dto.payAmount,
         shippingFee: undefined,
         payAmount: dto.payAmount,
@@ -61,7 +85,6 @@ export function toOrderDetail(dto: OrderDetailResponse): OrderDetail {
         shippingFee: dto.shippingFee,
         discountAmount: dto.discountAmount,
         userCouponId: dto.userCouponId,
-        availableActions: dto.availableActions,
         afterSaleStatus: dto.afterSaleStatus,
         applyExpireAt: dto.applyExpireAt,
         refundAmount: dto.refundAmount,

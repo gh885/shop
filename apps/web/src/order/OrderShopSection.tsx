@@ -2,6 +2,7 @@ import { Button, Panel, PanelContent, PanelHeader } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
 
+import { ORDER_ITEM_ACTIONS } from "./constants"
 import type { OrderItem } from "./model"
 
 /**
@@ -11,13 +12,9 @@ import type { OrderItem } from "./model"
  * 列表接口能直接铺，详情页复用。
  */
 
-const ITEM_ACTIONS: { key: string; label: string; variant?: "default" | "outline" }[] = [
-    { key: "add_cart", label: "加入购物车" },
-    { key: "after_sale", label: "申请售后" },
-]
-
 export interface OrderShopSectionProps {
-    order: { shopId: string; shopName: string | null; payAmount: { amount: number } }
+    /** 本区只需店名（店名可空 = 店铺已关闭） */
+    order: { shopName: string | null }
     items: OrderItem[]
     /**
      * 是否给出「申请售后」入口：由订单详情页按售后申请门槛推导（见 after-sale.ts canApplyAfterSale）。
@@ -25,7 +22,8 @@ export interface OrderShopSectionProps {
      * 一个永远点不动的按钮只会逼他猜原因。
      */
     canApplyAfterSale?: boolean
-    onItemAction?: (item: OrderItem, action: string) => void
+    /** 只回传动作：商品行由页面持有（order.items），不绕组件一圈 */
+    onItemAction?: (action: string) => void
 }
 
 export function OrderShopSection({
@@ -34,7 +32,9 @@ export function OrderShopSection({
     canApplyAfterSale = false,
     onItemAction,
 }: OrderShopSectionProps) {
-    const itemActions = ITEM_ACTIONS.filter((a) => a.key !== "after_sale" || canApplyAfterSale)
+    const itemActions = ORDER_ITEM_ACTIONS.filter(
+        (a) => a.key !== "after_sale" || canApplyAfterSale,
+    )
     return (
         <Panel>
             {/* 店铺行 */}
@@ -101,10 +101,10 @@ export function OrderShopSection({
                             {itemActions.map((a) => (
                                 <Button
                                     key={a.key}
-                                    variant={a.variant ?? "outline"}
+                                    variant="outline"
                                     size="sm"
                                     className="min-w-24"
-                                    onClick={() => onItemAction?.(item, a.key)}
+                                    onClick={() => onItemAction?.(a.key)}
                                 >
                                     {a.label}
                                 </Button>

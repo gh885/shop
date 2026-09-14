@@ -1,5 +1,9 @@
 package com.shop.platform.order;
 
+import static com.shop.platform.order.model.OrderAvailableAction.CANCEL;
+import static com.shop.platform.order.model.OrderAvailableAction.PAY;
+import static com.shop.platform.order.model.OrderAvailableAction.RECEIVE;
+import static com.shop.platform.order.model.OrderAvailableAction.SHIP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.order.mapper.Order;
@@ -23,20 +27,20 @@ class OrderTest {
 
     @Test
     void 待付款_买家可支付或取消_卖家无动作() {
-        assertThat(orderOf(OrderStatus.PENDING_PAYMENT).buyerActions()).containsExactlyInAnyOrder("PAY", "CANCEL");
+        assertThat(orderOf(OrderStatus.PENDING_PAYMENT).buyerActions()).containsExactly(PAY, CANCEL);
         assertThat(orderOf(OrderStatus.PENDING_PAYMENT).sellerActions()).isEmpty();
     }
 
     @Test
     void 已付款_买家仍可取消_卖家可发货() {
         // 已付款待发货：取消回补库存是合法转移（见 OrderFlowIT），发货按钮此时亮起
-        assertThat(orderOf(OrderStatus.PAID).buyerActions()).containsExactly("CANCEL");
-        assertThat(orderOf(OrderStatus.PAID).sellerActions()).containsExactly("SHIP");
+        assertThat(orderOf(OrderStatus.PAID).buyerActions()).containsExactly(CANCEL);
+        assertThat(orderOf(OrderStatus.PAID).sellerActions()).containsExactly(SHIP);
     }
 
     @Test
     void 已发货_买家可确认收货_卖家无动作() {
-        assertThat(orderOf(OrderStatus.SHIPPED).buyerActions()).containsExactly("RECEIVE");
+        assertThat(orderOf(OrderStatus.SHIPPED).buyerActions()).containsExactly(RECEIVE);
         assertThat(orderOf(OrderStatus.SHIPPED).sellerActions()).isEmpty();
     }
 

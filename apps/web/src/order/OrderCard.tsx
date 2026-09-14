@@ -12,8 +12,9 @@ import {
     PanelHeader,
 } from "@shop/ui-web"
 
-import { ORDER_STATUS_LABEL, type Order, type OrderStatus } from "./model"
-import { ORDER_CARD_ACTIONS, OrderActionButtons, type OrderAction } from "./OrderActionButtons"
+import { ORDER_STATUS_COLOR, ORDER_STATUS_LABEL } from "./constants"
+import { deriveOrderActions, type Order, type OrderAction } from "./model"
+import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 import { formatDateTime } from "@shop/app-kit"
 import { fenToYuan } from "@shop/common"
@@ -27,19 +28,9 @@ import { Price } from "#/shared/ui/Price"
  *   顶部订单信息条：时间 · 订单号（不截断）· 店铺 | 右侧 状态 + 订单详情按钮
  *   下方逐行订单项：主图 · 标题 · 单价×数量 · 行小计
  *
- * 操作按钮按订单状态动态给出（见 ORDER_CARD_ACTIONS）。纯展示，回调交给外部。
+ * 操作按钮按订单可执行动作渲染（后端算的，见 deriveOrderActions）。纯展示，回调交给外部。
  * 行项无独立 id（订单快照只留 productId/skuId），渲染 key 用 `productId+skuId+quantity`。
  */
-
-export type { OrderAction } from "./OrderActionButtons"
-
-const STATUS_COLOR: Record<OrderStatus, string> = {
-    pending_payment: "text-warning-foreground",
-    pending_shipment: "text-warning-foreground",
-    pending_receipt: "text-warning-foreground",
-    completed: "text-muted-foreground",
-    cancelled: "text-muted-foreground",
-}
 
 /** 行项渲染 key：一行订单内可能同一 SKU 出现多次（不同快照），拼 quantity 兜底去重 */
 const orderItemKey = (item: Order["items"][number]) =>
@@ -47,10 +38,10 @@ const orderItemKey = (item: Order["items"][number]) =>
 
 export interface OrderCardProps {
     order: Order
-    /** 点击订单详情 */
-    onDetail?: (order: Order) => void
+    /** 点击订单详情（订单由列表页持有，不回传） */
+    onDetail?: () => void
     /** 触发某操作（key 对应 ORDER_ACTIONS 里的 key） */
-    onAction?: (order: Order, action: OrderAction) => void
+    onAction?: (action: OrderAction) => void
     /** 进行中的操作 key：对应按钮禁用，防重复提交 */
     pendingAction?: OrderAction
 }
@@ -76,13 +67,13 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                             剩 {formatCountdown(seconds)}
                         </span>
                     )}
-                    <span className={STATUS_COLOR[order.status]}>
+                    <span className={ORDER_STATUS_COLOR[order.status]}>
                         {ORDER_STATUS_LABEL[order.status]}
                     </span>
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onDetail?.(order)}
+                        onClick={() => onDetail?.()}
                     >
                         订单详情
                     </Button>
@@ -148,9 +139,9 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                             {/* 订单操作：按状态动态渲染 */}
                             <ItemActions className="w-36 gap-2">
                                 <OrderActionButtons
-                                    actions={ORDER_CARD_ACTIONS[order.status]}
+                                    actions={deriveOrderActions(order, "card")}
                                     disabledKey={pendingAction}
-                                    onAction={(action) => onAction?.(order, action)}
+                                    onAction={onAction}
                                 />
                             </ItemActions>
                         </Item>

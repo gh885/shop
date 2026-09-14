@@ -1,7 +1,8 @@
 import { MapPin } from "lucide-react"
 
-import { ORDER_STATUS_LABEL, type OrderDetail } from "./model"
-import { ORDER_DETAIL_ACTIONS, OrderActionButtons, type OrderAction } from "./OrderActionButtons"
+import { ORDER_STATUS_LABEL } from "./constants"
+import { deriveOrderActions, type OrderAction, type OrderDetail } from "./model"
+import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 
 /**
@@ -11,8 +12,21 @@ import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
  */
 
 export interface OrderStatusSectionProps {
-    order: OrderDetail
-    onAction?: (order: OrderDetail, action: OrderAction) => void
+    /** 本区渲染所需：状态 + 可执行动作 + 付款截止 + 收货快照（详情契约独有，列表形状没有） */
+    order: Pick<
+        OrderDetail,
+        | "status"
+        | "availableActions"
+        | "payExpireAt"
+        | "receiverName"
+        | "receiverPhone"
+        | "receiverProvince"
+        | "receiverCity"
+        | "receiverDistrict"
+        | "receiverDetail"
+    >
+    /** 只回传动作：订单由页面持有，不绕组件一圈 */
+    onAction?: (action: OrderAction) => void
     /** 进行中的操作 key：对应按钮禁用，防重复提交 */
     pendingAction?: OrderAction
 }
@@ -49,9 +63,9 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
             {/* 操作按钮排 */}
             <div className="flex flex-wrap gap-3">
                 <OrderActionButtons
-                    actions={ORDER_DETAIL_ACTIONS[order.status]}
+                    actions={deriveOrderActions(order, "detail")}
                     disabledKey={pendingAction}
-                    onAction={(action) => onAction?.(order, action)}
+                    onAction={onAction}
                 />
             </div>
         </div>

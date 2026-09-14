@@ -1,11 +1,17 @@
-import type { Money } from "@shop/common"
-import type { AfterSaleStatus } from "@shop/api/sdk"
+import type { Money, OrderDetailResponse } from "@shop/api/sdk"
+
+import {
+    ORDER_ACTION_META,
+    ORDER_ACTION_ORDER,
+    ORDER_PRIMARY_ACTION,
+    ORDER_UI_ACTIONS,
+} from "./constants"
 
 /**
  * entities/order 领域层 —— 订单业务类型 + 纯规则，不知道 wire 的一切。
  *
- * - 本文件（model.ts）：业务类型 + 纯规则，不 import zod / wire DTO。
- * - wire 拼接 / 投影在 ./order.ts（数据层），从生成 SDK 取，不手写 zod。
+ * - 本文件（model.ts）：业务类型 + 动作 key + 纯规则，不 import zod。
+ * - 展示文案 / 色板 / 动作表在 ./constants.ts；wire 拼接 / 投影在 ./order.ts（数据层）。
  * 金额一律 Money（分 + 币种），不裸传 number。
  */
 
@@ -46,6 +52,14 @@ export type Order = {
     /** 店铺注销时后端诚实返回 null（@Schema nullable），UI 显示「店铺已关闭」 */
     shopName: string | null
     items: OrderItem[]
+    /**
+     * 可执行动作：**后端状态机算的**（列表与详情契约都带 availableActions）。
+     *
+     * 前端不再按 status 另推一张「状态 → 按钮」表：那张表曾经与后端漂移
+     * （后端认为待发货可 CANCEL，前端只给了「提醒发货」），
+     * 这里只负责文案、顺序与主次（见 ./constants.ts）。
+     */
+    availableActions: OrderAction[]
     /** 商品总额（若干行合计） */
     itemAmount: Money
     /** 运费（V1 恒 0） */
@@ -54,67 +68,61 @@ export type Order = {
     payAmount: Money
 }
 
-/** 订单详情业务形状（在列表形状之上扩展详情字段，undefined 归一空值） */
-export type OrderDetail = Order & {
-    /**
-     * 券减免（详情契约独有）。
-     *
-     * 列表契约只给净额 payAmount，拿不到明细；详情契约有四件套
-     * （itemAmount / shippingFee / discountAmount / payAmount），
-     * 必须自洽：`商品总价 + 运费 − 优惠 = 实付款`。
-     */
-    discountAmount: Money
-    /** 本单核销的券 id（未用券为 null） */
-    userCouponId: string | null
-    /** 可执行动作：按后端状态机推导（pay/cancel/receive/...） */
-    availableActions: string[]
-    /**
-     * 售后投影：最近一张售后单的状态（NONE = 从未申请过）。
-     * 只有详情契约带它（列表契约没有），所以它是详情字段而不是订单字段。
-     */
-    afterSaleStatus: AfterSaleStatus
-    /** 售后申请截止时刻（契约可空：未完成 / 窗口已过由后端算） */
-    applyExpireAt: string | null
-    /** 最近一次售后的退款口径（未申请过为 null） */
-    refundAmount: Money | null
-    /** 买家留言（下单定格；可空） */
-    buyerMessage: string | null
-    /** 收货快照（下单定格；卖家侧即面单信息） */
-    receiverName: string
-    receiverPhone: string
-    receiverProvince: string
-    receiverCity: string
-    receiverDistrict: string
-    receiverDetail: string
-    /** 物流回填（未发货前均为 null） */
-    logisticsCompany: string | null
-    trackingNo: string | null
-    paidAt: string | null
-    shippedAt: string | null
-    completedAt: string | null
-    cancelledAt: string | null
-    cancelReason: string | null
+/**
+ * 订单详情业务形状 = Order 之上叠加详情契约的增量字段。
+ * 详情契约（OrderDetailResponse）是列表契约的超集：除 status/items 已在 Order 里归一外
+ * 其余字段同名同型，直接 Omit 组合，不逐字段抄书。
+ * 金额四件套（itemAmount / shippingFee / discountAmount / payAmount）以详情契约为准，
+ * 这样「商品总价 + 运费 − 优惠 = 实付款」才对得上。
+ */
+export type OrderDetail = Order & Omit<OrderDetailResponse, "status" | "items" | "availableActions">
+
+/**
+ * 订单按钮上的动作。
+ *
+ * 前四个是后端状态机给的（`availableActions`，wire 大写，经 ./order.ts 投影成小写）：
+ * pay/cancel/confirm 对应 PAY/CANCEL/RECEIVE；ship 只出现在卖家视角，买家页面不会渲染。
+ * 后四个是纯前端交互词汇，后端永远不会产生：remind（提醒发货占位）、rebuy（导航去商品）、
+ * add_cart（跳加购）、logistics（跳物流页）。
+ */
+export type OrderAction =
+    | "pay"
+    | "cancel"
+    | "confirm"
+    | "ship"
+    | "remind"
+    | "rebuy"
+    | "add_cart"
+    | "logistics"
+
+/** 哪个页面在画按钮排：卡片与详情页的动作集差异写在 constants 的表里，不埋在副本里 */
+export type OrderActionSurface = "card" | "detail"
+
+/** 一个动作按钮的声明（主操作用 default，其余描边） */
+export interface OrderActionItem {
+    key: OrderAction
+    label: string
+    variant?: "default" | "outline"
 }
 
-// ---------- 展示辅助 ----------
-
-/** 状态 → 中文展示名 */
-export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
-    pending_payment: "待付款",
-    pending_shipment: "待发货",
-    pending_receipt: "待收货",
-    completed: "交易成功",
-    cancelled: "已取消",
+/**
+ * 按钮排 = 后端给的动作 + 本页附加的前端动作，顺序按 ORDER_ACTION_ORDER 固定。
+ *
+ * 后端给的是**集合**（谁的出边算谁的），画出来必须稳定；
+ * 主操作（橙色）只看页面与状态——一屏只应该有一个主行动。
+ */
+export function deriveOrderActions(
+    order: Pick<Order, "status" | "availableActions">,
+    surface: OrderActionSurface,
+): OrderActionItem[] {
+    const wanted = new Set<OrderAction>([
+        ...order.availableActions,
+        ...(ORDER_UI_ACTIONS[surface][order.status] ?? []),
+    ])
+    const primary = ORDER_PRIMARY_ACTION[surface][order.status]
+    return ORDER_ACTION_ORDER.filter((key) => wanted.has(key)).map((key) => ({
+        key,
+        label: ORDER_ACTION_META[key].label,
+        variant: key === primary ? "default" : undefined,
+    }))
 }
-
-/** 订单状态 → 进度条当前停留的步骤下标（0 起步） */
-export const ORDER_PROGRESS_STEP: Record<OrderStatus, number> = {
-    pending_payment: 0, // 已拍下，待付款
-    pending_shipment: 1, // 已付款，待发货
-    pending_receipt: 2, // 已发货，待收货
-    completed: 3, // 全流程完成
-    cancelled: -1, // 取消：不按进度展示
-}
-
-/** 进度条步骤名（固定四步，与截图一致） */
-export const ORDER_PROGRESS_STEPS = ["拍下宝贝", "买家付款", "卖家发货", "确认收货"] as const

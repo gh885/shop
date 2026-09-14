@@ -20,7 +20,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { AFTER_SALE_TYPE_HINT, AFTER_SALE_TYPE_LABEL, AFTER_SALE_TYPE_ORDER } from "./after-sale"
+import { AFTER_SALE_TYPE_HINT, AFTER_SALE_TYPE_LABEL, AFTER_SALE_TYPE_ORDER } from "./constants"
 import { useApplyAfterSale } from "./after-sale-queries"
 
 /**

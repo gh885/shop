@@ -1,3 +1,4 @@
+import type { TicketResponse } from "@shop/api/sdk"
 import type { ReactNode } from "react"
 import { Badge, Button, Panel, PanelContent, PanelHeader, Spinner } from "@shop/ui-web"
 import { formatDateTime } from "@shop/app-kit"
@@ -5,13 +6,12 @@ import { formatDateTime } from "@shop/app-kit"
 import { Price } from "#/shared/ui/Price"
 
 import {
+    AFTER_SALE_ACTION_LABEL,
     AFTER_SALE_TYPE_LABEL,
     TICKET_STATUS_LABEL,
     TICKET_STATUS_TONE,
-    buyerAfterSaleActions,
-    type AfterSaleAction,
-    type AfterSaleTicket,
-} from "./after-sale"
+} from "./constants"
+import { buyerAfterSaleActions, type AfterSaleAction } from "./after-sale"
 
 /**
  * 售后卡：订单详情里那张「这单售后到哪一步了」的卡片。
@@ -22,14 +22,8 @@ import {
  * 免得前端凭当前状态编造一条看似权威的轨迹。
  */
 
-const ACTION_LABEL: Record<AfterSaleAction, string> = {
-    cancel: "撤销申请",
-    return: "填写退货物流",
-    track: "查看退货物流",
-}
-
 export interface AfterSaleCardProps {
-    ticket: AfterSaleTicket
+    ticket: TicketResponse
     onAction?: (action: AfterSaleAction) => void
     /** 进行中的操作：对应按钮禁用，防重复提交 */
     pendingAction?: AfterSaleAction
@@ -39,7 +33,9 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
     const actions = buyerAfterSaleActions(ticket)
     // 已填过运单号：按钮改叫「修改」，避免买家以为自己还没填
     const actionLabel = (action: AfterSaleAction) =>
-        action === "return" && ticket.returnTrackingNo ? "修改退货物流" : ACTION_LABEL[action]
+        action === "return" && ticket.returnTrackingNo
+            ? "修改退货物流"
+            : AFTER_SALE_ACTION_LABEL[action]
 
     return (
         <Panel>

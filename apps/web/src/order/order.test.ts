@@ -1,8 +1,18 @@
-import type { OrderDetailResponse, OrderListItemResponse } from "@shop/api/sdk"
+import type {
+    OrderAvailableAction,
+    OrderDetailResponse,
+    OrderListItemResponse,
+} from "@shop/api/sdk"
 import { describe, expect, it } from "vitest"
 
-import { ORDER_PROGRESS_STEP, ORDER_STATUS_LABEL } from "./model"
-import { statusToWire, toOrder, toOrderDetail } from "./order"
+import {
+    ORDER_ACTION_META,
+    ORDER_ACTION_ORDER,
+    ORDER_PROGRESS_STEP,
+    ORDER_STATUS_LABEL,
+} from "./constants"
+import { deriveOrderActions } from "./model"
+import { statusToWire, toOrder, toOrderActions, toOrderDetail } from "./order"
 
 /**
  * 测试夹具：订单 wire 形状可控构造。
@@ -30,6 +40,8 @@ function makeListDto(
         status?: OrderListItemResponse["status"]
         shopName?: string | null
         items?: ReturnType<typeof makeItemDto>[]
+        /** 后端状态机给的动作（默认待付款的两个：付款 + 取消） */
+        availableActions?: OrderAvailableAction[]
     } = {},
 ): OrderListItemResponse {
     return {
@@ -38,6 +50,7 @@ function makeListDto(
         status: opts.status ?? "PENDING_PAYMENT",
         shopId: "shop-1",
         shopName: "shopName" in opts ? (opts.shopName ?? null) : "测试店",
+        availableActions: opts.availableActions ?? ["PAY", "CANCEL"],
         payAmount: MONEY,
         payExpireAt: "2026-09-06T12:00:00Z",
         createdAt: "2026-09-06T11:30:00Z",
@@ -48,7 +61,6 @@ function makeListDto(
 function makeDetailDto(opts: Partial<OrderDetailResponse> = {}): OrderDetailResponse {
     return {
         ...makeListDto(),
-        availableActions: ["PAY", "CANCEL"],
         itemAmount: MONEY,
         shippingFee: { amount: 0, currency: "CNY" },
         // 券四件套：默认不用券（减免 0、无券 id）
@@ -114,16 +126,22 @@ describe("toOrder（列表项投影）", () => {
         expect(order.itemAmount).toEqual(MONEY)
         expect(order.shippingFee).toBeUndefined()
     })
+
+    it("可执行动作随之投影：后端给什么就渲染什么（列表页也读后端动作，不按状态另推）", () => {
+        const order = toOrder(makeListDto({ status: "PAID", availableActions: ["CANCEL"] }))
+
+        expect(order.availableActions).toEqual(["cancel"])
+    })
 })
 
 describe("toOrderDetail（详情投影）", () => {
-    it("在列表形状之上扩展收货快照与动作集", () => {
+    it("在列表形状之上扩展收货快照与动作集（动作已从 wire 大写投影成领域小写）", () => {
         const detail = toOrderDetail(makeDetailDto())
 
         expect(detail).toMatchObject({
             receiverName: "张三",
             receiverPhone: "13800000000",
-            availableActions: ["PAY", "CANCEL"],
+            availableActions: ["pay", "cancel"],
         })
         expect(detail.items).toHaveLength(1)
     })
@@ -154,9 +172,7 @@ describe("toOrderDetail（详情投影）", () => {
             userCouponId: "uc-1",
         })
         expect(
-            detail.itemAmount.amount +
-                (detail.shippingFee?.amount ?? 0) -
-                detail.discountAmount.amount,
+            detail.itemAmount.amount + detail.shippingFee.amount - detail.discountAmount.amount,
         ).toBe(detail.payAmount.amount)
     })
 
@@ -197,5 +213,61 @@ describe("展示辅助", () => {
         expect(ORDER_STATUS_LABEL.completed).toBe("交易成功")
         expect(ORDER_PROGRESS_STEP.cancelled).toBe(-1)
         expect(ORDER_PROGRESS_STEP.completed).toBe(3)
+    })
+
+    it("展示顺序表覆盖全部动作_漏登记的动作用户根本看不见", () => {
+        expect([...ORDER_ACTION_ORDER].sort()).toEqual(Object.keys(ORDER_ACTION_META).sort())
+    })
+})
+
+describe("toOrderActions（后端动作 → 领域动作）", () => {
+    it("三个买家动作各自对位（RECEIVE 在前端叫 confirm）", () => {
+        expect(toOrderActions(["PAY"])).toEqual(["pay"])
+        expect(toOrderActions(["CANCEL"])).toEqual(["cancel"])
+        expect(toOrderActions(["RECEIVE"])).toEqual(["confirm"])
+    })
+
+    it("SHIP 是卖方动作_买家投影里丢掉而不是漏进来一个点不动的按钮", () => {
+        expect(toOrderActions(["SHIP"])).toEqual([])
+    })
+})
+
+describe("deriveOrderActions（按钮排 = 后端动作 + 前端附加）", () => {
+    const orderOf = (
+        status: OrderListItemResponse["status"],
+        availableActions: OrderAvailableAction[],
+    ) => toOrder(makeListDto({ status, availableActions }))
+
+    it("待发货_后端的取消 + 前端的提醒发货都在（曾经只给了提醒，取消了没入口）", () => {
+        const items = deriveOrderActions(orderOf("PAID", ["CANCEL"]), "card")
+
+        expect(items.map((i) => i.key)).toEqual(["cancel", "remind"])
+    })
+
+    it("已发货_查看物流在后端的确认收货之前，且确认收货是主操作", () => {
+        const items = deriveOrderActions(orderOf("SHIPPED", ["RECEIVE"]), "card")
+
+        expect(items.map((i) => i.key)).toEqual(["logistics", "confirm"])
+        expect(items.find((i) => i.key === "confirm")?.variant).toBe("default")
+        expect(items.find((i) => i.key === "logistics")?.variant).toBeUndefined()
+    })
+
+    it("终态_后端动作空但卡片与详情页仍各有自己的附加动作", () => {
+        expect(deriveOrderActions(orderOf("COMPLETED", []), "card").map((i) => i.key)).toEqual([
+            "rebuy",
+        ])
+        expect(deriveOrderActions(orderOf("COMPLETED", []), "card")[0]?.variant).toBeUndefined()
+        expect(deriveOrderActions(orderOf("COMPLETED", []), "detail").map((i) => i.key)).toEqual([
+            "rebuy",
+            "add_cart",
+        ])
+        expect(deriveOrderActions(orderOf("COMPLETED", []), "detail")[0]?.variant).toBe("default")
+    })
+
+    it("待付款_主操作是去付款，取消只是描边（一屏只一个橙）", () => {
+        const items = deriveOrderActions(orderOf("PENDING_PAYMENT", ["PAY", "CANCEL"]), "card")
+
+        expect(items.map((i) => i.key)).toEqual(["pay", "cancel"])
+        expect(items.map((i) => i.variant ?? "outline")).toEqual(["default", "outline"])
     })
 })

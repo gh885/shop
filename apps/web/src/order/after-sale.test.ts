@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import {
-    AFTER_SALE_TYPE_LABEL,
-    TICKET_STATUS_LABEL,
-    buyerAfterSaleActions,
-    canApplyAfterSale,
-    toAfterSaleTicket,
-} from "./after-sale"
+import { AFTER_SALE_TYPE_LABEL, TICKET_STATUS_LABEL } from "./constants"
+import { buyerAfterSaleActions, canApplyAfterSale } from "./after-sale"
 import type { ApplyGate } from "./after-sale"
 
 /**
@@ -84,52 +79,6 @@ describe("canApplyAfterSale（申请入口的门槛）", () => {
             expect(canApplyAfterSale(makeGate({ afterSaleStatus }), NOW)).toBe(true)
         },
     )
-})
-
-describe("toAfterSaleTicket（wire 投影）", () => {
-    it("可空字段如实透传 null，不给「未填写」造一个空串", () => {
-        const ticket = toAfterSaleTicket({
-            id: "t-1",
-            orderId: "o-1",
-            type: "RETURN_REFUND",
-            status: "RETURNING",
-            reason: null,
-            refundAmount: null,
-            returnLogisticsCompany: null,
-            returnTrackingNo: null,
-            refundedAt: null,
-            createdAt: "2026-01-02T00:00:00Z",
-            updatedAt: "2026-01-02T00:00:00Z",
-        })
-
-        expect(ticket).toMatchObject({
-            type: "RETURN_REFUND",
-            status: "RETURNING",
-            reason: null,
-            refundAmount: null,
-            returnTrackingNo: null,
-        })
-    })
-
-    it("退款金额与回寄单原样带出（回寄后买家要能从卡上核对运单号）", () => {
-        const ticket = toAfterSaleTicket({
-            id: "t-2",
-            orderId: "o-1",
-            type: "RETURN_REFUND",
-            status: "REFUNDED",
-            reason: "尺码不合适",
-            refundAmount: { amount: 19900, currency: "CNY" },
-            returnLogisticsCompany: "顺丰速运",
-            returnTrackingNo: "SF123456",
-            refundedAt: "2026-01-06T00:00:00Z",
-            createdAt: "2026-01-02T00:00:00Z",
-            updatedAt: "2026-01-06T00:00:00Z",
-        })
-
-        expect(ticket.refundAmount).toEqual({ amount: 19900, currency: "CNY" })
-        expect(ticket.returnLogisticsCompany).toBe("顺丰速运")
-        expect(ticket.returnTrackingNo).toBe("SF123456")
-    })
 })
 
 describe("展示辅助", () => {

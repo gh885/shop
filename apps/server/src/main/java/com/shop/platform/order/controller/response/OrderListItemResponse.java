@@ -3,6 +3,7 @@ package com.shop.platform.order.controller.response;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.common.Money;
+import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.OrderWithItems;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,6 +19,8 @@ public record OrderListItemResponse(
         @Schema(requiredMode = REQUIRED) OrderStatus status,
         @Schema(requiredMode = REQUIRED) UUID shopId,
         @Schema(requiredMode = REQUIRED, nullable = true) String shopName,
+        /** 卡片按钮组：与详情同一套动作来源（后端状态机），前端不按状态另推一张表 */
+        @Schema(requiredMode = REQUIRED) List<OrderAvailableAction> availableActions,
         @Schema(requiredMode = REQUIRED) Money payAmount,
         @Schema(requiredMode = REQUIRED) OffsetDateTime payExpireAt,
         @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt,
@@ -31,6 +34,7 @@ public record OrderListItemResponse(
                 o.order().getShopId(),
                 // 店铺已注销时查不到名字：诚实返回 null，不用 "" 冒充「有一家名字为空的店」
                 shopNames.get(o.order().getShopId()),
+                o.order().buyerActions(),
                 o.order().payAmountAsMoney(),
                 o.order().getPayExpireAt(),
                 o.order().getCreatedAt(),

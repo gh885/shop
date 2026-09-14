@@ -3,7 +3,8 @@ import { formatDateTime } from "@shop/app-kit"
 import { Price } from "#/shared/ui/Price"
 import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 
-import { ORDER_STATUS_LABEL, type OrderDetail } from "./model"
+import { ORDER_STATUS_LABEL } from "./constants"
+import type { OrderDetail } from "./model"
 import { Copy, ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { Card, CardHeader, CardTitle, CardContent, Separator, Button } from "@shop/ui-web"
@@ -56,7 +57,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                     </InfoRow>
                     <InfoRow label="运费(快递)">
                         <Price
-                            value={order.shippingFee?.amount ?? 0}
+                            value={order.shippingFee.amount}
                             className="text-sm"
                         />
                     </InfoRow>

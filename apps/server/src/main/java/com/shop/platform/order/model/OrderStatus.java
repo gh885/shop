@@ -1,6 +1,8 @@
 package com.shop.platform.order.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -10,7 +12,8 @@ import java.util.stream.Collectors;
  * 待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消。完成之后的交易纠葛走 {@link AfterSaleStatus}。
  *
  * <p>一张 {@link #TRANSITIONS} 派生两类消费：{@link #sourcesOf(OrderStatus)} 供条件更新反推合法前态
- * （WHERE status IN (...)），{@link #buyerActions()} / {@link #sellerActions()} 供前端按钮组渲染。
+ * （WHERE status IN (...)），{@link #buyerActions()} / {@link #sellerActions()} 供前端按钮组渲染
+ * （动作名本身是 {@link OrderAvailableAction}）。
  * 转移表放静态字段而非构造器参数：枚举常量的构造器参数里非法前向引用后声明的常量。
  *
  * <p>DB 列存 {@code name()}（varchar 列 + MyBatis 默认 EnumTypeHandler）。
@@ -53,10 +56,6 @@ public enum OrderStatus {
                     .map(Map.Entry::getKey)
                     .collect(Collectors.toSet())));
 
-    /** 转移目标 → 动作名：状态是后端语汇，动作是前端交互语汇，一张映射维系两套词表 */
-    private static final Map<OrderStatus, String> ACTION_BY_TARGET =
-            Map.of(PAID, "PAY", CANCELLED, "CANCEL", SHIPPED, "SHIP", COMPLETED, "RECEIVE");
-
     /** 买家可用的动作目标态 */
     private static final Set<OrderStatus> BUYER_ACTION_TARGETS = Set.of(PAID, CANCELLED, COMPLETED);
 
@@ -68,21 +67,26 @@ public enum OrderStatus {
         return SOURCES.getOrDefault(target, Set.of());
     }
 
-    /** 买家视角当前可执行的动作（详情页按钮组渲染用）；终态返回空 */
-    public Set<String> buyerActions() {
+    /** 买家视角当前可执行的动作（列表/详情按钮组渲染用）；终态返回空 */
+    public List<OrderAvailableAction> buyerActions() {
         return actionsFor(BUYER_ACTION_TARGETS);
     }
 
     /** 卖家视角当前可执行的动作（发货作业按钮用） */
-    public Set<String> sellerActions() {
+    public List<OrderAvailableAction> sellerActions() {
         return actionsFor(SELLER_ACTION_TARGETS);
     }
 
-    /** 某角色在当前态可执行的动作：当前态的出边 ∩ 角色允许的目标，映射成动作名 */
-    private Set<String> actionsFor(Set<OrderStatus> roleTargets) {
-        return TRANSITIONS.getOrDefault(this, Set.of()).stream()
-                .filter(roleTargets::contains)
-                .map(ACTION_BY_TARGET::get)
-                .collect(Collectors.toSet());
+    /**
+     * 某角色在当前态可执行的动作：当前态的出边 ∩ 角色允许的目标，按枚举声明序给出。
+     *
+     * <p>顺序不是业务需要，但响应体必须稳定：集合的迭代顺序会让同一份数据两次请求给出不同 JSON，
+     * 契约快照与前端 diff 都受不了。
+     */
+    private List<OrderAvailableAction> actionsFor(Set<OrderStatus> roleTargets) {
+        Set<OrderStatus> targets = TRANSITIONS.getOrDefault(this, Set.of());
+        return Arrays.stream(OrderAvailableAction.values())
+                .filter(action -> targets.contains(action.target()) && roleTargets.contains(action.target()))
+                .toList();
     }
 }

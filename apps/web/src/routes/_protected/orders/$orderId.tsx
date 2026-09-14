@@ -46,7 +46,7 @@ function OrderDetailPage() {
     const ticket = afterSale.data ?? undefined
 
     /** 商品行操作：「申请售后」开弹窗，其余（加入购物车等）仍是占位 */
-    const handleItemAction = (_item: unknown, action: string) => {
+    const handleItemAction = (action: string) => {
         if (action === "after_sale") return setApplyOpen(true)
         notify.info(`「${action}」即将上线`)
     }
@@ -92,7 +92,7 @@ function OrderDetailPage() {
                                 <OrderStatusSection
                                     order={order}
                                     pendingAction={pendingAction}
-                                    onAction={handleAction}
+                                    onAction={(action) => handleAction(order, action)}
                                 />
                             </CardContent>
                         </Card>

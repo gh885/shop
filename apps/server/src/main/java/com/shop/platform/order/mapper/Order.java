@@ -5,6 +5,7 @@ import com.shop.platform.common.Money;
 import com.shop.platform.coupon.api.CouponBearer;
 import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -156,12 +157,12 @@ public class Order extends AuditedEntity {
     }
 
     /** 买家视角当前可执行的动作：规则在 {@link OrderStatus}，实体只薄委托 */
-    public List<String> buyerActions() {
-        return List.copyOf(status.buyerActions());
+    public List<OrderAvailableAction> buyerActions() {
+        return status.buyerActions();
     }
 
     /** 卖家视角当前可执行的动作：同上，薄委托 */
-    public List<String> sellerActions() {
-        return List.copyOf(status.sellerActions());
+    public List<OrderAvailableAction> sellerActions() {
+        return status.sellerActions();
     }
 }

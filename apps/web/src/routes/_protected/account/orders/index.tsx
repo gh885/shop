@@ -2,6 +2,7 @@ import {
     useMyOrders,
     useOrderActions,
     ORDER_STATUS_LABEL,
+    ORDER_STATUS_TABS,
     OrderCard,
     type OrderStatus,
     type Order,
@@ -28,15 +29,6 @@ export const Route = createFileRoute("/_protected/account/orders/")({
     }),
 })
 
-/** 状态 Tab：全部 + 各状态（与后端枚举对齐，无待评价/退款中阶段） */
-const STATUS_TABS: { key: OrderStatus | "all"; label: string }[] = [
-    { key: "all", label: "全部" },
-    { key: "pending_payment", label: "待付款" },
-    { key: "pending_shipment", label: "待发货" },
-    { key: "pending_receipt", label: "待收货" },
-    { key: "completed", label: "交易成功" },
-]
-
 function OrdersPage() {
     const [tab, setTab] = useState<OrderStatus | "all">("all")
     const [cancelTarget, setCancelTarget] = useState<Order | undefined>()
@@ -54,7 +46,7 @@ function OrdersPage() {
 
             {/* 状态 Tab 导航 */}
             <div className="flex gap-1 border-b border-border/60">
-                {STATUS_TABS.map((t) => (
+                {ORDER_STATUS_TABS.map((t) => (
                     <button
                         key={t.key}
                         type="button"
@@ -123,13 +115,13 @@ function OrdersPage() {
                             key={order.id}
                             order={order}
                             pendingAction={pendingAction}
-                            onDetail={(o) =>
+                            onDetail={() =>
                                 void navigate({
                                     to: "/orders/$orderId",
-                                    params: { orderId: o.id },
+                                    params: { orderId: order.id },
                                 })
                             }
-                            onAction={handleAction}
+                            onAction={(action) => handleAction(order, action)}
                         />
                     ))}
                 </div>

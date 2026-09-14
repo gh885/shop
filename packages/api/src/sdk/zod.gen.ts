@@ -916,13 +916,20 @@ export const zPageResultSellerOrderListItemResponse = z.object({
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
+export const zOrderAvailableAction = z.enum([
+    'PAY',
+    'CANCEL',
+    'SHIP',
+    'RECEIVE'
+]);
+
 export const zOrderDetailResponse = z.object({
     id: z.uuid(),
     orderNo: z.string(),
     status: zOrderStatus,
     shopId: z.uuid(),
     shopName: z.string().nullable(),
-    availableActions: z.array(z.string()),
+    availableActions: z.array(zOrderAvailableAction),
     itemAmount: zMoney,
     shippingFee: zMoney,
     discountAmount: zMoney,
@@ -1024,6 +1031,7 @@ export const zOrderListItemResponse = z.object({
     status: zOrderStatus,
     shopId: z.uuid(),
     shopName: z.string().nullable(),
+    availableActions: z.array(zOrderAvailableAction),
     payAmount: zMoney,
     payExpireAt: z.iso.datetime({ offset: true }),
     createdAt: z.iso.datetime({ offset: true }),

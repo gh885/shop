@@ -1,5 +1,9 @@
 package com.shop.platform.order.model;
 
+import static com.shop.platform.order.model.OrderAvailableAction.CANCEL;
+import static com.shop.platform.order.model.OrderAvailableAction.PAY;
+import static com.shop.platform.order.model.OrderAvailableAction.RECEIVE;
+import static com.shop.platform.order.model.OrderAvailableAction.SHIP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
@@ -46,17 +50,17 @@ class OrderStatusTest {
 
     @Test
     void 买家在待付款态可支付和取消() {
-        assertThat(OrderStatus.PENDING_PAYMENT.buyerActions()).containsExactlyInAnyOrder("PAY", "CANCEL");
+        assertThat(OrderStatus.PENDING_PAYMENT.buyerActions()).containsExactly(PAY, CANCEL);
     }
 
     @Test
     void 买家在待发货态只能取消() {
-        assertThat(OrderStatus.PAID.buyerActions()).containsExactly("CANCEL");
+        assertThat(OrderStatus.PAID.buyerActions()).containsExactly(CANCEL);
     }
 
     @Test
     void 买家在已发货态只能确认收货() {
-        assertThat(OrderStatus.SHIPPED.buyerActions()).containsExactly("RECEIVE");
+        assertThat(OrderStatus.SHIPPED.buyerActions()).containsExactly(RECEIVE);
     }
 
     @Test
@@ -69,7 +73,7 @@ class OrderStatusTest {
 
     @Test
     void 只有待发货态对卖家开放发货动作() {
-        assertThat(OrderStatus.PAID.sellerActions()).containsExactly("SHIP");
+        assertThat(OrderStatus.PAID.sellerActions()).containsExactly(SHIP);
         assertThat(OrderStatus.PENDING_PAYMENT.sellerActions()).isEmpty();
         assertThat(OrderStatus.SHIPPED.sellerActions()).isEmpty();
     }

@@ -5,6 +5,7 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 import com.shop.platform.common.Money;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.OrderWithItems;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -24,7 +25,7 @@ public record OrderDetailResponse(
         @Schema(requiredMode = REQUIRED) OrderStatus status,
         @Schema(requiredMode = REQUIRED) UUID shopId,
         @Schema(requiredMode = REQUIRED, nullable = true) String shopName,
-        @Schema(requiredMode = REQUIRED) List<String> availableActions,
+        @Schema(requiredMode = REQUIRED) List<OrderAvailableAction> availableActions,
         @Schema(requiredMode = REQUIRED) Money itemAmount,
         @Schema(requiredMode = REQUIRED) Money shippingFee,
         /** 券减免额；没用券为 0 */
@@ -64,7 +65,8 @@ public record OrderDetailResponse(
         return from(o, null, Order::sellerActions);
     }
 
-    private static OrderDetailResponse from(OrderWithItems o, String shopName, Function<Order, List<String>> actions) {
+    private static OrderDetailResponse from(
+            OrderWithItems o, String shopName, Function<Order, List<OrderAvailableAction>> actions) {
         Order order = o.order();
         return new OrderDetailResponse(
                 // 单据身份与状态
