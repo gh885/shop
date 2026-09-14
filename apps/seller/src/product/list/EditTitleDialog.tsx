@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Lightbulb } from "lucide-react"
 
 import { notify } from "@shop/app-kit"
-import { ProductsAdminApi, type ProductResponse } from "@shop/api/sdk"
+import { ProductsAdminApi } from "@shop/api/sdk"
 import {
     Button,
     Dialog,
@@ -13,6 +13,8 @@ import {
     Input,
 } from "@shop/ui-web"
 
+import type { ProductTitleTarget } from "./table"
+
 const NAME_MAX = 30
 const SUBTITLE_MIN = 10
 const SUBTITLE_MAX = 30
@@ -20,10 +22,11 @@ const SUBTITLE_MAX = 30
 /**
  * 编辑标题 弹窗：改「商品标题 + 导购标题（卖点）」两项。
  *
- * - 数据直接来自列表行（ProductResponse 已含 name/subtitle），无需再拉详情；
+ * - 数据直接来自列表行（列表行已含 name/subtitle），无需再拉详情；
  * - 后端约束：name ≤ 30 字；subtitle 留空或 10~30 字（见 UpdateProductRequest）；
  * - 提交走 updateProduct（PATCH：传空串 subtitle 即「清空卖点」，name 必填）。
  * - 生命周期：受控（open/product 由外层持有），onSaved 用于保存后让外层失效列表。
+ * - props 只收预填切片（id/name/subtitle），不背整行商品。
  */
 export function EditTitleDialog({
     open,
@@ -32,7 +35,7 @@ export function EditTitleDialog({
     onSaved,
 }: {
     open: boolean
-    product?: ProductResponse
+    product?: ProductTitleTarget
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {

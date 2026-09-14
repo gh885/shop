@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router"
-import type { SellerTicketItem } from "@shop/api/sdk"
 import {
     Empty,
     EmptyDescription,
@@ -15,7 +14,7 @@ import { toApiError } from "@shop/common"
 import { useState } from "react"
 
 import { AfterSaleDecisionDialog, type SaleDecisionKind } from "#/order/after-sale-decision-dialog"
-import { RefundTable } from "#/order/refund/refund-table"
+import { RefundTable, type RefundRowIdentity } from "#/order/refund/refund-table"
 import { RefundTabs } from "#/order/refund/refund-tabs"
 import { RefundTabSchema, type RefundRowAction } from "#/order/refund/model"
 import { useRefundList } from "#/order/refund/use-refund-list"
@@ -42,9 +41,12 @@ export const Route = createFileRoute("/_app/trade/refund")({
     component: RefundPage,
 })
 
-/** 决策目标：动作种类 + 该行的订单信息（弹窗自己按 kind 组织文案与走向说明） */
+/**
+ * 决策目标：动作种类 + 这一行所需的三项——弹窗自己按 kind 组织文案与走向说明，
+ * 并按 orderId 重拉一次售后单（列表可能是几分钟前拉的），所以不留整行售后单。
+ */
 type RefundDecision = {
-    ticket: SellerTicketItem
+    ticket: RefundRowIdentity
     kind: SaleDecisionKind
 }
 

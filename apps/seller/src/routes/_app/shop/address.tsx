@@ -21,8 +21,8 @@ export const Route = createFileRoute("/_app/shop/address")({
     component: AddressPage,
 })
 
-/** 待确认删除的地址 */
-type PendingDelete = MerchantAddressResponse | undefined
+/** 待确认删除的地址：只要「是哪条 + 怎么念」（地址本身由 useAddressList 持有） */
+type PendingDelete = Pick<MerchantAddressResponse, "id" | "contactName"> | undefined
 
 function AddressPage() {
     const shop = useCurrentShop()
@@ -83,8 +83,8 @@ function AddressPage() {
                         setFormOpen(true)
                     }}
                     onDelete={setPendingDelete}
-                    onSetDefaultShip={(a) => run(setDefaultShip.mutateAsync)(a.id)}
-                    onSetDefaultReturn={(a) => run(setDefaultReturn.mutateAsync)(a.id)}
+                    onSetDefaultShip={(id) => run(setDefaultShip.mutateAsync)(id)}
+                    onSetDefaultReturn={(id) => run(setDefaultReturn.mutateAsync)(id)}
                 />
             )}
 

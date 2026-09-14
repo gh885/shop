@@ -34,8 +34,18 @@ export interface RefundTableProps {
     /** 正在处理的售后单 id：该行按钮禁用，防重复提交 */
     busyId?: string
     onPageChange: (page: number) => void
-    onAction: (ticket: SellerTicketItem, action: RefundRowAction) => void
+    /** 行内动作：只回传这一行所需的三项（售后单 id 判忙/确认、订单 id 走请求、单号进文案） */
+    onAction: (ticket: RefundRowIdentity, action: RefundRowAction) => void
 }
+
+/** 行内动作需要的一行身份：售后单 id + 它所属的订单 id / 单号（售后单由父级持有，不回传整行） */
+export type RefundRowIdentity = Pick<SellerTicketItem, "id" | "orderId" | "orderNo">
+
+const rowIdentity = (ticket: SellerTicketItem): RefundRowIdentity => ({
+    id: ticket.id,
+    orderId: ticket.orderId,
+    orderNo: ticket.orderNo,
+})
 
 export function RefundTable({
     rows,
@@ -113,9 +123,9 @@ export function RefundTable({
 
                         <TableCell className="text-right">
                             <RowActions
-                                ticket={ticket}
+                                status={ticket.status}
                                 busy={busyId === ticket.id}
-                                onAction={onAction}
+                                onAction={(action) => onAction(rowIdentity(ticket), action)}
                             />
                         </TableCell>
                     </TableRow>
@@ -127,15 +137,15 @@ export function RefundTable({
 
 /** 行内动作：按售后单状态给按钮（终态行没有动作，给一条说明而不是留白） */
 function RowActions({
-    ticket,
+    status,
     busy,
     onAction,
 }: {
-    ticket: SellerTicketItem
+    status: SellerTicketItem["status"]
     busy: boolean
-    onAction: (ticket: SellerTicketItem, action: RefundRowAction) => void
+    onAction: (action: RefundRowAction) => void
 }) {
-    const actions = refundRowActions(ticket.status)
+    const actions = refundRowActions(status)
     if (actions.length === 0) {
         return <span className="text-xs text-muted-foreground">已处理</span>
     }
@@ -147,7 +157,7 @@ function RowActions({
                     variant={action === "reject" ? "ghost" : "outline"}
                     size="sm"
                     disabled={busy}
-                    onClick={() => onAction(ticket, action)}
+                    onClick={() => onAction(action)}
                 >
                     {REFUND_ACTION_LABEL[action]}
                 </Button>

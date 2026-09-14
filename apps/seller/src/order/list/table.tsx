@@ -16,15 +16,18 @@ interface OrderTableProps {
     /** 单个订单正在执行的动作（如发货中），用于禁用对应行按钮 */
     busyId?: string
     onPageChange: (page: number) => void
-    /** 待发货 → 发货（打开发货弹窗） */
-    onShip: (order: SellerOrderListItemResponse) => void
+    /** 待发货 → 发货（打开发货弹窗）：只回传所需的两项，不回传整行 */
+    onShip: (order: OrderIdentity) => void
     /** 售后申请中 → 同意 */
-    onAgreeAfterSale: (order: SellerOrderListItemResponse) => void
+    onAgreeAfterSale: (order: OrderIdentity) => void
     /** 售后申请中 → 拒绝 */
-    onRejectAfterSale: (order: SellerOrderListItemResponse) => void
+    onRejectAfterSale: (order: OrderIdentity) => void
     /** 退货退款 · 退货中 → 确认收货 */
-    onReceiveReturn: (order: SellerOrderListItemResponse) => void
+    onReceiveReturn: (order: OrderIdentity) => void
 }
+
+/** 行操作需要的订单身份：订单 id（请求）+ 单号（展示/确认文案） */
+export type OrderIdentity = Pick<SellerOrderListItemResponse, "id" | "orderNo">
 
 /**
  * 订单列表主表格：商品（图+名+共N件）/ 订单号 / 买家 / 实付金额 / 状态（主+售后徽章）/ 下单时间 / 操作。
@@ -67,16 +70,21 @@ export function OrderTable({
                         key={o.id}
                         order={o}
                         busy={o.id === busyId}
-                        onShip={() => onShip(o)}
-                        onAgreeAfterSale={() => onAgreeAfterSale(o)}
-                        onRejectAfterSale={() => onRejectAfterSale(o)}
-                        onReceiveReturn={() => onReceiveReturn(o)}
+                        onShip={() => onShip(orderIdentity(o))}
+                        onAgreeAfterSale={() => onAgreeAfterSale(orderIdentity(o))}
+                        onRejectAfterSale={() => onRejectAfterSale(orderIdentity(o))}
+                        onReceiveReturn={() => onReceiveReturn(orderIdentity(o))}
                     />
                 ))}
             </TableBody>
         </TableCard>
     )
 }
+
+const orderIdentity = (o: SellerOrderListItemResponse): OrderIdentity => ({
+    id: o.id,
+    orderNo: o.orderNo,
+})
 
 /** 首件商品（列表已有行明细）：缩略图 + 标题 + 共 N 件 */
 function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {

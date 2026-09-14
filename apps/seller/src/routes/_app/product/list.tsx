@@ -15,9 +15,8 @@ import { toApiError } from "@shop/common"
 import { z } from "zod"
 
 import { useState } from "react"
-import type { ProductResponse } from "@shop/api/sdk"
 
-import { ProductTable } from "#/product/list/table"
+import { ProductTable, type ProductLineTarget, type ProductTitleTarget } from "#/product/list/table"
 import { EditSkuLineDialog, type SkuEditKind } from "#/product/list/EditSkuDialog"
 import { EditTitleDialog } from "#/product/list/EditTitleDialog"
 import { FilterBar } from "#/product/list/filter"
@@ -57,12 +56,12 @@ function ProductsPage() {
         onSortChange,
     } = useProductList(search)
 
-    // 编辑SKU/库存弹窗目标：记录当前行商品（只用 id + name）+ 当前编辑维度（价格/库存）
+    // 编辑SKU/库存弹窗目标：记录当前行商品的 id + name（不背整行）与当前编辑维度（价格/库存）
     const [lineTarget, setLineTarget] = useState<
-        { product: ProductResponse; kind: SkuEditKind } | undefined
+        { product: ProductLineTarget; kind: SkuEditKind } | undefined
     >(undefined)
-    // 编辑标题弹窗目标：直接用行内 name/subtitle 预填，无需再拉详情
-    const [titleTarget, setTitleTarget] = useState<ProductResponse | undefined>()
+    // 编辑标题弹窗目标：直接用行内 name/subtitle 预填，不拉详情，也不背整行
+    const [titleTarget, setTitleTarget] = useState<ProductTitleTarget | undefined>()
 
     if (!shop) {
         return <ShopRequired />

@@ -3,12 +3,13 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
 
-import type { CarrierResponse, SellerOrderListItemResponse } from "@shop/api/sdk"
+import type { CarrierResponse } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 
 import { renderWithProviders } from "#/test/render"
 
 import { ShipDialog } from "./ship-dialog"
+import type { OrderIdentity } from "./table"
 
 /**
  * ShipDialog 集成测试：走真实 React Query + MSW 网络层（handler 遵循 openapi 契约）。
@@ -22,23 +23,9 @@ const CARRIERS: CarrierResponse[] = [
     { code: "ZTO", name: "中通快递" },
 ]
 
-/** 测试夹具：弹窗只读 id 与 orderNo，其余字段求契约合法 */
-function makeOrder(
-    overrides: Partial<SellerOrderListItemResponse> = {},
-): SellerOrderListItemResponse {
-    return {
-        id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
-        orderNo: "NO20260912001",
-        status: "PAID",
-        afterSaleStatus: "NONE",
-        payAmount: { amount: 19900, currency: "CNY" },
-        receiverName: "张三",
-        receiverPhone: "13800000000",
-        itemCount: 1,
-        items: [],
-        createdAt: "2026-09-12T10:00:00Z",
-        ...overrides,
-    }
+/** 测试夹具：弹窗只读 id 与 orderNo，就只给这两项 */
+function makeOrder(orderNo = "NO20260912001"): OrderIdentity {
+    return { id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001", orderNo }
 }
 
 function useCarrierList(carriers: CarrierResponse[] = CARRIERS) {

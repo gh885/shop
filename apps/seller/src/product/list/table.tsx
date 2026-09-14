@@ -37,17 +37,31 @@ interface ProductTableProps {
     sort?: ProductSort
     /** 编辑：跳发布页回显 */
     onEdit: (id: string) => void
-    /** 编辑标题/卖点：打开编辑标题弹窗 */
-    onEditTitle: (product: ProductResponse) => void
+    /** 编辑标题/卖点：打开编辑标题弹窗（只回传预填所需切片） */
+    onEditTitle: (product: ProductTitleTarget) => void
     /** 编辑价格/SKU 编码：打开编辑SKU弹窗 */
-    onEditPrice: (product: ProductResponse) => void
+    onEditPrice: (product: ProductLineTarget) => void
     /** 编辑库存：打开编辑库存弹窗 */
-    onEditStock: (product: ProductResponse) => void
+    onEditStock: (product: ProductLineTarget) => void
     onOff: (id: string) => void
     onOn: (id: string) => void
     onPageChange: (page: number) => void
     onSortChange: (sort: ProductSort) => void
 }
+
+/** 编辑标题弹窗的预填切片：标题/卖点 + 提交用的 id */
+export type ProductTitleTarget = Pick<ProductResponse, "id" | "name" | "subtitle">
+
+/** SKU / 库存弹窗的切片：id 提交，名称用于弹窗标题 */
+export type ProductLineTarget = Pick<ProductResponse, "id" | "name">
+
+const titleTarget = (p: ProductResponse): ProductTitleTarget => ({
+    id: p.id,
+    name: p.name,
+    subtitle: p.subtitle,
+})
+
+const lineTarget = (p: ProductResponse): ProductLineTarget => ({ id: p.id, name: p.name })
 
 /**
  * 商品列表主表格：商品名称（图+名+卖点+标题编辑）/ 价格 / 库存 / 累计销量 / 创建时间（时间+状态）/ 操作。
@@ -114,9 +128,9 @@ export function ProductTable({
                             product={p}
                             busy={p.id === busyId}
                             onEdit={() => onEdit(p.id)}
-                            onEditTitle={() => onEditTitle(p)}
-                            onEditPrice={() => onEditPrice(p)}
-                            onEditStock={() => onEditStock(p)}
+                            onEditTitle={() => onEditTitle(titleTarget(p))}
+                            onEditPrice={() => onEditPrice(lineTarget(p))}
+                            onEditStock={() => onEditStock(lineTarget(p))}
                             onOff={() => setOffTarget(p)}
                             onOn={() => onOn(p.id)}
                         />

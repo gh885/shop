@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
-import type { SellerOrderListItemResponse } from "@shop/api/sdk"
+import type { OrderIdentity } from "./table"
 import { toApiError } from "@shop/common"
 import {
     Button,
@@ -34,7 +34,8 @@ export function ShipDialog({
     onShip,
 }: {
     open: boolean
-    order?: SellerOrderListItemResponse
+    /** 本弹窗只读 id（请求）与单号（展示），不背整行订单 */
+    order?: OrderIdentity
     onOpenChange: (open: boolean) => void
     onShip: (orderId: string, input: { carrierCode: string; trackingNo: string }) => void
 }) {

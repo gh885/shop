@@ -10,10 +10,9 @@ import {
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
 import { z } from "zod"
-import type { SellerOrderListItemResponse } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
 
-import { OrderTable } from "#/order/list/table"
+import { OrderTable, type OrderIdentity } from "#/order/list/table"
 import { OrderFilterBar } from "#/order/list/filter"
 import { ShipDialog } from "#/order/list/ship-dialog"
 import { AfterSaleDecisionDialog, type SaleDecisionKind } from "#/order/after-sale-decision-dialog"
@@ -40,7 +39,7 @@ export const Route = createFileRoute("/_app/trade/order")({
  * 售后决策目标：只留订单 id / 单号——决策弹窗会按 id 重新拉一次售后单
  * （列表可能是几分钟前拉的，不可逆的资金决定要用当前状态），页面只管把动作路由到对应 mutation。
  */
-type SaleConfirm = { order: SellerOrderListItemResponse; kind: SaleDecisionKind }
+type SaleConfirm = { orderId: string; orderNo: string; kind: SaleDecisionKind }
 
 function OrdersPage() {
     const search = Route.useSearch()
@@ -57,7 +56,7 @@ function OrdersPage() {
         rejectAfterSale,
         receiveReturn,
     } = useOrderList(search)
-    const [shipTarget, setShipTarget] = useState<SellerOrderListItemResponse | undefined>()
+    const [shipTarget, setShipTarget] = useState<OrderIdentity | undefined>()
     const [confirm, setConfirm] = useState<SaleConfirm | undefined>()
 
     if (!shop) {
@@ -67,9 +66,9 @@ function OrdersPage() {
     // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）：这里只管把动作路由到对应 mutation
     const runConfirm = () => {
         if (!confirm) return
-        if (confirm.kind === "agree") agreeAfterSale(confirm.order.id)
-        else if (confirm.kind === "reject") rejectAfterSale(confirm.order.id)
-        else receiveReturn(confirm.order.id)
+        if (confirm.kind === "agree") agreeAfterSale(confirm.orderId)
+        else if (confirm.kind === "reject") rejectAfterSale(confirm.orderId)
+        else receiveReturn(confirm.orderId)
     }
 
     return (
@@ -113,9 +112,15 @@ function OrdersPage() {
                     busyId={busyId}
                     onPageChange={onPageChange}
                     onShip={setShipTarget}
-                    onAgreeAfterSale={(o) => setConfirm({ order: o, kind: "agree" })}
-                    onRejectAfterSale={(o) => setConfirm({ order: o, kind: "reject" })}
-                    onReceiveReturn={(o) => setConfirm({ order: o, kind: "receive" })}
+                    onAgreeAfterSale={(o) =>
+                        setConfirm({ orderId: o.id, orderNo: o.orderNo, kind: "agree" })
+                    }
+                    onRejectAfterSale={(o) =>
+                        setConfirm({ orderId: o.id, orderNo: o.orderNo, kind: "reject" })
+                    }
+                    onReceiveReturn={(o) =>
+                        setConfirm({ orderId: o.id, orderNo: o.orderNo, kind: "receive" })
+                    }
                 />
             )}
 
@@ -130,8 +135,8 @@ function OrdersPage() {
                 open={Boolean(confirm)}
                 onOpenChange={(open) => !open && setConfirm(undefined)}
                 kind={confirm?.kind ?? "agree"}
-                orderId={confirm?.order.id}
-                orderNo={confirm?.order.orderNo}
+                orderId={confirm?.orderId}
+                orderNo={confirm?.orderNo}
                 shopId={shop.id}
                 onConfirm={runConfirm}
             />

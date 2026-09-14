@@ -13,10 +13,13 @@ import type { MerchantAddressResponse } from "@shop/api/sdk"
 export interface AddressTableProps {
     rows: MerchantAddressResponse[]
     busyId?: string
+    /** 编辑需整份回填，故给实体 */
     onEdit: (addr: MerchantAddressResponse) => void
-    onDelete: (addr: MerchantAddressResponse) => void
-    onSetDefaultShip: (addr: MerchantAddressResponse) => void
-    onSetDefaultReturn: (addr: MerchantAddressResponse) => void
+    /** 删除确认只需「是哪条 + 怎么念」：地址由父级持有，不回传整实体 */
+    onDelete: (target: Pick<MerchantAddressResponse, "id" | "contactName">) => void
+    /** 设默认只需 id */
+    onSetDefaultShip: (id: string) => void
+    onSetDefaultReturn: (id: string) => void
 }
 
 function fullAddress(a: MerchantAddressResponse): string {
@@ -86,7 +89,7 @@ export function AddressTable({
                             variant="ghost"
                             size="sm"
                             disabled={busyId === a.id}
-                            onClick={() => onSetDefaultShip(a)}
+                            onClick={() => onSetDefaultShip(a.id)}
                         >
                             设为发货
                         </Button>
@@ -94,7 +97,7 @@ export function AddressTable({
                             variant="ghost"
                             size="sm"
                             disabled={busyId === a.id}
-                            onClick={() => onSetDefaultReturn(a)}
+                            onClick={() => onSetDefaultReturn(a.id)}
                         >
                             设为退货
                         </Button>
@@ -112,7 +115,7 @@ export function AddressTable({
                             aria-label="删除"
                             className={cn("text-destructive")}
                             disabled={busyId === a.id}
-                            onClick={() => onDelete(a)}
+                            onClick={() => onDelete({ id: a.id, contactName: a.contactName })}
                         >
                             <Trash2 className="size-4" />
                         </Button>

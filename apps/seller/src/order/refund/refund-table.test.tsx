@@ -46,7 +46,11 @@ describe("RefundTable", () => {
 
         await userEvent.setup().click(screen.getByRole("button", { name: "确认收货" }))
 
-        expect(onAction).toHaveBeenCalledWith(ticket, "receive")
+        // 只回传这一行的身份（三个 id/单号），不回传整行售后单
+        expect(onAction).toHaveBeenCalledWith(
+            { id: ticket.id, orderId: ticket.orderId, orderNo: ticket.orderNo },
+            "receive",
+        )
     })
 
     it("已退款的行_没有处理动作，给一条「已处理」说明而不是留白", () => {
