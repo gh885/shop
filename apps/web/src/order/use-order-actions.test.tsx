@@ -111,7 +111,7 @@ describe("useOrderActions", () => {
         let receivedOrderId: string | undefined
         server.use(
             http.put("*/orders/:id/receive", ({ params }) => {
-                receivedOrderId = params.id as string
+                receivedOrderId = typeof params.id === "string" ? params.id : undefined
                 return new HttpResponse(null, { status: 204 })
             }),
         )

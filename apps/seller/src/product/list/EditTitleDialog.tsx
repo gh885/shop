@@ -41,7 +41,7 @@ export function EditTitleDialog({
 }) {
     const [name, setName] = useState("")
     const [subtitle, setSubtitle] = useState("")
-    const [error, setError] = useState<string>()
+    const [submitError, setSubmitError] = useState<string>()
     // 共享错误文案对应的出错字段：aria-describedby 与提交失败聚焦都靠它定位
     const [errorField, setErrorField] = useState<"name" | "subtitle">()
     const [submitting, setSubmitting] = useState(false)
@@ -49,9 +49,10 @@ export function EditTitleDialog({
     // 打开时预填当前值（subtitle 为 null 视作空卖点）
     useEffect(() => {
         if (open && product) {
+            // oxlint-disable-next-line react/set-state-in-effect -- 打开即预填编辑值是有意为之（复用组件实例，避免 key 重挂载）
             setName(product.name)
             setSubtitle(product.subtitle ?? "")
-            setError(undefined)
+            setSubmitError(undefined)
             setErrorField(undefined)
         }
     }, [open, product])
@@ -62,7 +63,7 @@ export function EditTitleDialog({
         const trimmedSub = subtitle.trim()
         // 校验失败：记录出错字段，aria-describedby 与提交失败聚焦都靠它定位
         const fail = (message: string, field: "name" | "subtitle") => {
-            setError(message)
+            setSubmitError(message)
             setErrorField(field)
             document.getElementById(`edit-title-${field}`)?.focus()
             return
@@ -112,8 +113,8 @@ export function EditTitleDialog({
                             value={name}
                             onChange={(e) => {
                                 setName(e.target.value)
-                                if (error) {
-                                    setError(undefined)
+                                if (submitError) {
+                                    setSubmitError(undefined)
                                     setErrorField(undefined)
                                 }
                             }}
@@ -147,8 +148,8 @@ export function EditTitleDialog({
                             value={subtitle}
                             onChange={(e) => {
                                 setSubtitle(e.target.value)
-                                if (error) {
-                                    setError(undefined)
+                                if (submitError) {
+                                    setSubmitError(undefined)
                                     setErrorField(undefined)
                                 }
                             }}
@@ -164,13 +165,13 @@ export function EditTitleDialog({
                         </div>
                     </div>
 
-                    {error && (
+                    {submitError && (
                         <p
                             id="edit-title-error"
                             role="alert"
                             className="text-sm text-destructive"
                         >
-                            {error}
+                            {submitError}
                         </p>
                     )}
                 </div>

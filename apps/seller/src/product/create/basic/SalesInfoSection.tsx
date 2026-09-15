@@ -137,7 +137,11 @@ export function SalesInfoSection({
                         <RadioGroup
                             className="flex items-center gap-8"
                             value={listingTime}
-                            onValueChange={(next) => onListingTimeChange(next as ListingTime)}
+                            onValueChange={(next) => {
+                                if (next === "now" || next === "warehouse") {
+                                    onListingTimeChange(next)
+                                }
+                            }}
                         >
                             <label
                                 className="flex items-center gap-2 text-sm"

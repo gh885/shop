@@ -175,6 +175,7 @@ export function RegionPicker({
             <PopoverContent
                 align="start"
                 className={cn("gap-0 p-0", panelWidth && "w-(--panel-width)")}
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
                 style={panelWidth ? ({ "--panel-width": panelWidth } as CSSProperties) : undefined}
             >
                 <Tabs

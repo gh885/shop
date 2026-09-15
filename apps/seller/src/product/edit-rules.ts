@@ -25,8 +25,8 @@ export interface EditCapability {
     switchCategory: boolean
     /** 能否改规格组合（上架冻结；价格/库存是运营字段始终可改） */
     specsEditable: boolean
-    /** 本会话可选的发布目标（迁移动作）；null = 无发布动作，只剩「保存变更」 */
-    publishTargets: readonly ("PUBLISHED" | "WAREHOUSE")[] | null
+    /** 本会话可选的发布目标（迁移动作）；undefined = 无发布动作，只剩「保存变更」 */
+    publishTargets: readonly ("PUBLISHED" | "WAREHOUSE")[] | undefined
     /** 价格必填（离开草稿态后）：对齐表单必填——禁止把商品存成「有组合但未设价」 */
     priceRequired: boolean
     /** 编辑页状态提示条文案（可选） */
@@ -43,14 +43,14 @@ export const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
     WAREHOUSE: {
         switchCategory: false,
         specsEditable: true,
-        publishTargets: null,
+        publishTargets: undefined,
         priceRequired: true,
         notice: "仓库中：可改规格与价格库存，保存变更不回退状态；要重新上架请回列表操作",
     },
     PUBLISHED: {
         switchCategory: false,
         specsEditable: false,
-        publishTargets: null,
+        publishTargets: undefined,
         priceRequired: true,
         notice: "上架中：标题/图片/价格/库存可直接调整、实时生效；改规格或类目需先下架",
     },
@@ -63,11 +63,11 @@ export function editRules(status: ProductStatus | undefined): EditCapability {
 
 /** 本次动作是否会把商品移出草稿（提交/入库→是；保存草稿、仓库/上架会话保存变更→否）。 */
 export function willPublish(mode: SaveMode, status: ProductStatus | undefined): boolean {
-    return mode !== "draft" && editRules(status).publishTargets !== null
+    return mode !== "draft" && editRules(status).publishTargets !== undefined
 }
 
 /**
- * 保存/发布前的门槛预检：返回 null=通过，否则返回给用户的拒绝文案。
+ * 保存/发布前的门槛预检：返回 undefined=通过，否则返回给用户的拒绝文案。
  *
  * 门槛绑定「动作目标」而非「商品状态」（对齐千牛：保存≠发布）：
  * - 将发布（新建/草稿会话点提交/入库）：全 SKU 设价是迁移守卫的前端预检（后端 ensurePublishable 仍兜底 409）；
@@ -77,11 +77,11 @@ export function publishGateError(
     rows: SkuDraftRow[],
     mode: SaveMode,
     status: ProductStatus | undefined,
-): string | null {
-    if (unpricedRows(rows).length === 0) return null
+): string | undefined {
+    if (unpricedRows(rows).length === 0) return undefined
     if (willPublish(mode, status)) return "还有 SKU 未设置价格，请补全后再发布"
     if (editRules(status).priceRequired) {
         return "该商品不在草稿期，价格必填：请补全未设价 SKU，或先下架商品再编辑"
     }
-    return null
+    return undefined
 }

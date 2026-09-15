@@ -336,10 +336,10 @@ describe("useCheckoutPreview（选券进请求与 queryKey）", () => {
     })
 
     it("换券重新预览_新请求带上新的 userCouponIds（预览价必须跟着券走）", async () => {
-        const bodies: Record<string, unknown>[] = []
+        const bodies: unknown[] = []
         server.use(
             http.post("*/orders/preview", async ({ request }) => {
-                bodies.push((await request.json()) as Record<string, unknown>)
+                bodies.push(await request.json())
                 return HttpResponse.json(makeDto())
             }),
         )
@@ -359,10 +359,10 @@ describe("useCheckoutPreview（选券进请求与 queryKey）", () => {
     })
 
     it("多店预览把各自的券一起发出去_顺序不影响结果", async () => {
-        const bodies: Record<string, unknown>[] = []
+        const bodies: unknown[] = []
         server.use(
             http.post("*/orders/preview", async ({ request }) => {
-                bodies.push((await request.json()) as Record<string, unknown>)
+                bodies.push(await request.json())
                 return HttpResponse.json(makeDto())
             }),
         )
@@ -385,10 +385,10 @@ describe("useCheckoutPreview（选券进请求与 queryKey）", () => {
 
 describe("useCreateOrder（下单带上选中的券）", () => {
     it("提交时把每店选中的券放进 wire 请求体", async () => {
-        const bodies: Record<string, unknown>[] = []
+        const bodies: unknown[] = []
         server.use(
             http.post("*/orders/create", async ({ request }) => {
-                bodies.push((await request.json()) as Record<string, unknown>)
+                bodies.push(await request.json())
                 return HttpResponse.json({
                     orders: [
                         {
@@ -420,10 +420,10 @@ describe("useCreateOrder（下单带上选中的券）", () => {
     })
 
     it("不选券时请求体里不出现 userCouponIds：不把「不用券」写成一张空券", async () => {
-        const bodies: Record<string, unknown>[] = []
+        const bodies: unknown[] = []
         server.use(
             http.post("*/orders/create", async ({ request }) => {
-                bodies.push((await request.json()) as Record<string, unknown>)
+                bodies.push(await request.json())
                 return HttpResponse.json({ orders: [] })
             }),
         )

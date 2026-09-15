@@ -61,11 +61,10 @@ function isOpen(port, timeoutMs = 800) {
 }
 
 async function closedPorts() {
-    const closed = []
-    for (const t of TARGETS) {
-        if (!(await isOpen(t.port))) closed.push(t)
-    }
-    return closed
+    const results = await Promise.all(
+        TARGETS.map((t) => isOpen(t.port).then((open) => ({ t, open }))),
+    )
+    return results.filter((r) => !r.open).map((r) => r.t)
 }
 
 /** 轮询到全部端口可用；超时则返回仍连不上的那些名字 */
@@ -111,9 +110,9 @@ function reapSessions() {
     )
 }
 
-/** vmmemWSL 的当前工作集（MB）；拿不到就返回 null —— 只为让「占了多少内存」可见 */
+/** vmmemWSL 的当前工作集（MB）；拿不到就返回 undefined —— 只为让「占了多少内存」可见 */
 function vmmemMB() {
-    if (process.platform !== "win32") return null
+    if (process.platform !== "win32") return undefined
     const res = spawnSync(
         "powershell.exe",
         [
@@ -126,12 +125,12 @@ function vmmemMB() {
     // spawnSync 失败时 stdout 是 null（类型上不会体现，所以不能靠 `?? ""` 兜底——
     // 那是类型系统说多余的防御）。判 res.error 更实在：拿不到就 NaN，落到下面统一返回"拿不到"。
     const bytes = res.error ? Number.NaN : Number.parseInt(res.stdout.trim(), 10)
-    return Number.isFinite(bytes) ? Math.round(bytes / 1024 / 1024) : null
+    return Number.isFinite(bytes) ? Math.round(bytes / 1024 / 1024) : undefined
 }
 
 function memoryNote() {
     const mb = vmmemMB()
-    return mb === null ? "" : `，vmmemWSL 约 ${mb}MB`
+    return mb === undefined ? "" : `，vmmemWSL 约 ${mb}MB`
 }
 
 /** 拉起 VM 与两个服务（VM 起来后 systemd 会自己带起已 enable 的单元，这里再兜一层） */
@@ -157,7 +156,8 @@ function wakeDatastore() {
 }
 
 async function ensureDatastore() {
-    if ((await closedPorts()).length === 0) return
+    const ports = await closedPorts()
+    if (ports.length === 0) return
     console.log(`… ${TARGETS.map(label).join("、")} 连不上，拉起 WSL 数据面（distro: ${DISTRO}）`)
     wakeDatastore()
     const stillClosed = await waitForOpen(Date.now() + WAIT_MS)
@@ -175,14 +175,15 @@ if (MODE === "down") {
         reapSessions()
         spawnSync("wsl.exe", ["--shutdown"], { stdio: "ignore" })
         // `wsl --shutdown` 是异步的：等 vmmemWSL 真消失再报数（最多约 5s）
-        for (let i = 0; i < 10 && vmmemMB() !== null; i++) {
+        for (let i = 0; i < 10 && vmmemMB() !== undefined; i++) {
+            // oxlint-disable-next-line no-await-in-loop -- 轮询睡眠必须串行等待，无法并行
             await new Promise((r) => setTimeout(r, 500))
         }
     }
     const after = vmmemMB()
-    const afterText = after === null ? "0MB（VM 已退出）" : `${after}MB`
+    const afterText = after === undefined ? "0MB（VM 已退出）" : `${after}MB`
     console.log(
-        before === null
+        before === undefined
             ? "✓ 已释放数据面（会话已杀、wsl --shutdown 已发）"
             : `✓ 已释放数据面：vmmemWSL ${before}MB → ${afterText}`,
     )

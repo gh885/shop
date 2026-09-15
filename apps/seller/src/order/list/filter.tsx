@@ -19,7 +19,8 @@ export function OrderFilterBar({
         <Tabs
             value={value ?? ""}
             onValueChange={(next) => {
-                onChange(next === "" ? undefined : (next as OrderStatus))
+                const status = ORDER_STATUS_TABS.find((t) => t.value === next)?.value
+                onChange(status === "" ? undefined : status)
             }}
         >
             <TabsList variant="line">

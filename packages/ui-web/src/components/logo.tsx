@@ -121,6 +121,7 @@ export function Logo({
                 variant === "mono" ? "text-current" : "text-primary",
                 className,
             )}
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
             style={{ "--logo-font-size": `${size * 0.72}px` } as CSSProperties}
             {...props}
         >

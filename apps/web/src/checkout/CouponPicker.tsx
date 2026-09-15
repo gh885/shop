@@ -83,6 +83,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                     <PopoverTitle>选择优惠券</PopoverTitle>
                     <RadioGroup
                         value={selectedId ?? NO_COUPON}
+                        // oxlint-disable-next-line no-null -- CouponSelection 契约：null = 明确选「不使用优惠券」
                         onValueChange={(v: string) => onSelect(v === NO_COUPON ? null : v)}
                         className="max-h-72 overflow-y-auto"
                     >

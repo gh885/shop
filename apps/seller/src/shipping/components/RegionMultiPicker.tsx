@@ -65,6 +65,7 @@ function RegionTree({
                     <div key={node.code}>
                         <div
                             className="flex items-center gap-1 rounded-md py-0.5 pr-1 pl-(--indent) hover:bg-muted"
+                            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
                             style={{ "--indent": `${depth * 16 + 4}px` } as CSSProperties}
                         >
                             {hasChildren ? (

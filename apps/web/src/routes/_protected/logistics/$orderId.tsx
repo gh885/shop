@@ -107,7 +107,7 @@ function LogisticsPage() {
                     <div className="space-y-6">
                         <LogisticsSummaryCard
                             statusLabel={SHIPMENT_STATUS_LABEL[primary.status]}
-                            city={order?.receiverCity ?? null}
+                            city={order?.receiverCity ?? undefined}
                             receiverName={order?.receiverName ?? ""}
                             receiverPhone={order?.receiverPhone ?? ""}
                             address={fullAddress}

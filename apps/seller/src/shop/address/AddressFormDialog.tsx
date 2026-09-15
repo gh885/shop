@@ -96,7 +96,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
         setPrevEditKey(editKey)
         if (open) {
             setRegionPath([])
-            setRegionReady(editing ? false : true)
+            setRegionReady(!editing)
         }
     }
 

@@ -37,11 +37,13 @@ export async function listAfterSaleTickets(search: {
  * 本店某订单最近一张售后单（含终态）。
  * 404 = 这单没有售后记录（列表里的售后徽章来自订单投影列，可能已过期）——归零为 null，
  * 不当作错误：卖家点开决策弹窗时拿不到售后单，只是少一层上下文，不该让人点不动。
+ * （消费方用 === null 判定「无售后记录」，undefined 会与其语义冲突）
  */
 export async function getShopAfterSale(orderId: string) {
     try {
         return await SellerOrdersApi.getShopAfterSale({ path: { id: orderId } })
     } catch (error) {
+        // oxlint-disable-next-line no-null -- 见函数注释：消费方以 null 判定「无售后记录」
         if (toApiError(error).status === 404) return null
         throw error
     }

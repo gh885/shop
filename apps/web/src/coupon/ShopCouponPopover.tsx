@@ -38,7 +38,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
     const [claimedIds, setClaimedIds] = useState<string[]>([])
 
     const coupons = data ?? []
-    if (isPending || isError || coupons.length === 0) return null
+    if (isPending || isError || coupons.length === 0) return undefined
 
     function markClaimed(id: string) {
         setClaimedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))

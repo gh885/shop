@@ -46,7 +46,10 @@ export const afterSaleKeys = {
 export const shopAfterSaleOptions = (shopId: string | undefined, orderId: string | undefined) =>
     queryOptions({
         queryKey: afterSaleKeys.detail(shopId, orderId),
-        queryFn: () => getShopAfterSale(orderId as string),
+        queryFn: () => {
+            if (!orderId) throw new Error("缺少订单 ID")
+            return getShopAfterSale(orderId)
+        },
         enabled: !!shopId && !!orderId,
         retry: false,
     })

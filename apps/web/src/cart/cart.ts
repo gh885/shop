@@ -64,7 +64,8 @@ export function toCartItem(dto: ApiCartItemView): CartItem {
         available: dto.available,
         product:
             dto.product === null
-                ? null
+                ? // oxlint-disable-next-line no-null -- 领域契约：product 可空（CartItemProduct | null，已删商品）
+                  null
                 : {
                       id: dto.product.id,
                       title: dto.product.name,

@@ -34,6 +34,7 @@ export function useCategorySpecTemplate(categoryId: string | undefined) {
         return () => {
             cancelled = true
         }
+        // oxlint-disable-next-line react/exhaustive-effect-dependencies -- 加载与 cancelled 语义都收在 effect 内，函数引用刻意不进 deps
     }, [categoryId, reloadKey])
 
     return { template, error, retry: () => setReloadKey((k) => k + 1) }

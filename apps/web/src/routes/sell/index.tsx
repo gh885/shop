@@ -144,7 +144,7 @@ const MODES = [
 function BusinessModes() {
     const reduce = useReducedMotion()
     const [active, setActive] = useState<(typeof MODES)[number]["key"]>("goods")
-    const mode = MODES.find((m) => m.key === active) ?? MODES[0]
+    const mode = MODES.find((item) => item.key === active) ?? MODES[0]
 
     return (
         <section className="bg-sunken">
@@ -165,15 +165,15 @@ function BusinessModes() {
                         aria-label="经营模式"
                         className="flex gap-2 overflow-x-auto lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1"
                     >
-                        {MODES.map((mode) => {
-                            const Icon = mode.icon
-                            const selected = mode.key === active
+                        {MODES.map((item) => {
+                            const Icon = item.icon
+                            const selected = item.key === active
                             return (
                                 <button
-                                    key={mode.key}
+                                    key={item.key}
                                     role="tab"
                                     aria-selected={selected}
-                                    onClick={() => setActive(mode.key)}
+                                    onClick={() => setActive(item.key)}
                                     className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
                                         selected
                                             ? "bg-background text-foreground shadow-sm"
@@ -181,7 +181,7 @@ function BusinessModes() {
                                     }`}
                                 >
                                     <Icon className="size-4" />
-                                    {mode.label}
+                                    {item.label}
                                 </button>
                             )
                         })}

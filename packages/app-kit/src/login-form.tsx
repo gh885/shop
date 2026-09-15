@@ -158,6 +158,7 @@ export function LoginForm({
                 // 验证码 token 一次性：发码成功即换新图，下次发码需重新人机验证
                 resetCaptcha()
                 form.setFieldValue("captchaCode", "")
+                return undefined
             })
             .catch((error) => {
                 const err = toApiError(error)

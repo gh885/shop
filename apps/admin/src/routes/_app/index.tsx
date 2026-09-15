@@ -30,7 +30,9 @@ const ShopReviewStatusSchema = z.enum(ShopReviewStatus)
 export const Route = createFileRoute("/_app/")({
     validateSearch: z.object({
         status: ShopReviewStatusSchema.optional(),
+        // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
         page: z.coerce.number().int().min(1).catch(1),
+        // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
         size: z.coerce.number().int().min(1).catch(20),
     }),
     component: ReviewPage,
@@ -72,9 +74,9 @@ const STATUS_FILTER: DataTableFilterConfig = {
 function filterStatus(filters: ColumnFiltersState): ShopReviewStatus | undefined {
     const value = filters.find((f) => f.id === "status")?.value
     const candidate = Array.isArray(value) ? value.at(-1) : undefined
-    return typeof candidate === "string" && candidate in ShopReviewStatus
-        ? (candidate as ShopReviewStatus)
-        : undefined
+    if (typeof candidate !== "string" || !(candidate in ShopReviewStatus)) return undefined
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TS 枚举无法从 in 窄化出的字符串键还原为枚举类型，断言是唯一写法（配置注释认可的护栏式断言）
+    return candidate as ShopReviewStatus
 }
 
 const columns: ColumnDef<ShopReviewItem>[] = [
@@ -169,7 +171,7 @@ function ReviewPage() {
                         重新加载
                     </Button>
                 </div>
-            ) : null}
+            ) : undefined}
 
             <DataTable
                 columns={columns}

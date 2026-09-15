@@ -69,6 +69,7 @@ export function MenuTree({ items, activeKey, renderLeaf, renderGroup }: MenuTree
     // 用 effect 而非渲染期派生：因为要区分「activeKey 变化（自动展开）」与「用户手动收起（不重开）」，
     // 后者依赖用户的展开/收起交互历史（expandedKeys 状态），无法从 activeKey 纯派生。
     React.useEffect(() => {
+        // oxlint-disable-next-line react/set-state-in-effect -- 见上方注释：需区分自动展开与用户手动收起，无法渲染期派生
         setExpandedKeys((prev) => {
             const parent = items.find(
                 (item): item is MenuGroup =>

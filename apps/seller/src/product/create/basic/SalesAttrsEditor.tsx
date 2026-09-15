@@ -142,6 +142,7 @@ export function SalesAttrsEditor({
     function updateNote(attrIdx: number, rowIdx: number, note: string) {
         const d = drafts[attrIdx]
         if (!d) return
+        // oxlint-disable-next-line oxc/no-map-spread -- React 状态不可变更新（copy-on-write），对象展开是唯一写法
         const rows = d.rows.map((r, i) => (i === rowIdx ? { ...r, note } : r))
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
@@ -156,6 +157,7 @@ export function SalesAttrsEditor({
     function updateImage(attrIdx: number, rowIdx: number, image: string | undefined) {
         const d = drafts[attrIdx]
         if (!d) return
+        // oxlint-disable-next-line oxc/no-map-spread -- React 状态不可变更新（copy-on-write），对象展开是唯一写法
         const rows = d.rows.map((r, i) => (i === rowIdx ? { ...r, image: image ?? "" } : r))
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }

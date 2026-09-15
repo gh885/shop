@@ -15,7 +15,9 @@ import { formatDate } from "@shop/app-kit"
 
 /** 券列表的 URL 状态：页码/每页条数进 URL，可分享可回退（与商品/售后列表同范式） */
 export const couponListSearchSchema = z.object({
+    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     page: z.coerce.number().int().min(1).catch(1),
+    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     size: z.coerce.number().int().min(1).catch(10),
 })
 

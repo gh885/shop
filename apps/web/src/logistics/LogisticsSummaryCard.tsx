@@ -10,8 +10,8 @@ import { maskName, maskPhone } from "./model"
 export interface LogisticsSummaryCardProps {
     /** 最新状态文案，如「已签收」 */
     statusLabel: string
-    /** 目的地城市（收货地址里的市），无地址时为 null */
-    city: string | null
+    /** 目的地城市（收货地址里的市），无地址时不传 */
+    city?: string
     receiverName: string
     receiverPhone: string
     /** 收货详细地址 */

@@ -16,16 +16,18 @@ function makeApiError(
     return { status: 400, detail: "请求参数错误", ...overrides }
 }
 
+/** 构造最小合法 ZodIssue（invalid_type 成员）：夹具过 zod 类型语义，不手写 as never */
+function invalidTypeIssue(
+    path: PropertyKey[],
+    expected = "string",
+    message = "Required",
+): z.ZodIssue {
+    return { code: "invalid_type", expected, path, message }
+}
+
 describe("isContractViolation", () => {
     it("裸 ZodError 是契约漂移", () => {
-        const err = new z.ZodError([
-            {
-                code: "invalid_type",
-                expected: "string",
-                path: ["name"],
-                message: "Required",
-            } as never,
-        ])
+        const err = new z.ZodError([invalidTypeIssue(["name"])])
         expect(isContractViolation(err)).toBe(true)
     })
 
@@ -47,13 +49,8 @@ describe("isContractViolation", () => {
 describe("zodIssuesText", () => {
     it("把 issues 压成一行：path + message，空 path 显示 (root)", () => {
         const err = new z.ZodError([
-            {
-                code: "invalid_type",
-                expected: "string",
-                path: ["receiver", "name"],
-                message: "Required",
-            } as never,
-            { code: "invalid_type", expected: "number", path: [], message: "Required" } as never,
+            invalidTypeIssue(["receiver", "name"]),
+            invalidTypeIssue([], "number"),
         ])
         const text = zodIssuesText(err)
 
@@ -65,9 +62,7 @@ describe("zodIssuesText", () => {
 
 describe("toApiError", () => {
     it("ZodError 归一化为 HTTP 200 + RESPONSE_VALIDATION_FAILED（payload 契约漂移，非传输失败）", () => {
-        const err = new z.ZodError([
-            { code: "invalid_type", expected: "string", path: [], message: "Required" } as never,
-        ])
+        const err = new z.ZodError([invalidTypeIssue([])])
 
         expect(toApiError(err)).toMatchObject({
             status: 200,

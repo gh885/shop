@@ -46,7 +46,11 @@ export function SiteFooter() {
                                             </a>
                                         ) : (
                                             <Link
-                                                to={link.to as never}
+                                                to={
+                                                    link.to === "/" || link.to === "/sell"
+                                                        ? link.to
+                                                        : "/"
+                                                }
                                                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                                             >
                                                 {link.label}

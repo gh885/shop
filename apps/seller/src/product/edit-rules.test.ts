@@ -55,13 +55,13 @@ describe("publishGateError", () => {
     })
 
     it("保存草稿（draft）：未设价不触发门槛（草稿允许留空，不写 0 落库）", () => {
-        expect(publishGateError(UNPRICED, "draft", "DRAFT")).toBeNull()
+        expect(publishGateError(UNPRICED, "draft", "DRAFT")).toBeUndefined()
     })
 
     it("全设价：任何动作都通过", () => {
-        expect(publishGateError(ALL_PRICED, "submit", "DRAFT")).toBeNull()
-        expect(publishGateError(ALL_PRICED, "submit", "WAREHOUSE")).toBeNull()
-        expect(publishGateError(ALL_PRICED, "draft", "DRAFT")).toBeNull()
+        expect(publishGateError(ALL_PRICED, "submit", "DRAFT")).toBeUndefined()
+        expect(publishGateError(ALL_PRICED, "submit", "WAREHOUSE")).toBeUndefined()
+        expect(publishGateError(ALL_PRICED, "draft", "DRAFT")).toBeUndefined()
     })
 
     it("部分设价是「有未设价 SKU」，与全空一样会被拦（以集合判定而非全部）", () => {
@@ -72,6 +72,6 @@ describe("publishGateError", () => {
 
     it("0 元是合法价：price=0 不算未设价（null 才表态未设置）", () => {
         const zeroPriced = [makeRow(0)]
-        expect(publishGateError(zeroPriced, "submit", "DRAFT")).toBeNull()
+        expect(publishGateError(zeroPriced, "submit", "DRAFT")).toBeUndefined()
     })
 })

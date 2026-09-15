@@ -32,12 +32,14 @@ import { ShopRequired } from "#/shared/ui/ShopRequired"
 
 const listSearchSchema = z.object({
     status: RefundTabSchema,
+    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     page: z.coerce.number().int().min(1).catch(1),
+    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     size: z.coerce.number().int().min(1).catch(10),
 })
 
 export const Route = createFileRoute("/_app/trade/refund")({
-    validateSearch: listSearchSchema.parse,
+    validateSearch: (search) => listSearchSchema.parse(search),
     component: RefundPage,
 })
 

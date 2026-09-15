@@ -216,7 +216,9 @@ describe("展示辅助", () => {
     })
 
     it("展示顺序表覆盖全部动作_漏登记的动作用户根本看不见", () => {
-        expect([...ORDER_ACTION_ORDER].sort()).toEqual(Object.keys(ORDER_ACTION_META).sort())
+        expect([...ORDER_ACTION_ORDER].toSorted()).toEqual(
+            Object.keys(ORDER_ACTION_META).toSorted(),
+        )
     })
 })
 

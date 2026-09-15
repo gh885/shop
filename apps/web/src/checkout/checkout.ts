@@ -47,6 +47,7 @@ export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
         groups: dto.groups.map((g) => ({
             ...g,
             lines: g.lines.map((l) => ({ ...l, image: l.image ?? undefined })),
+            // oxlint-disable-next-line no-null -- 契约透传：Group.appliedCouponId 为 string | null（可空归一 null）
             appliedCouponId: g.appliedCouponId ?? null,
         })),
         unavailable: dto.unavailable.map((u) => ({ ...u, image: u.image ?? undefined })),
@@ -63,6 +64,7 @@ export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
  * 后端不会自动选券（`appliedCouponId` 只是回显请求里的 id），默认选中是前端的事。
  */
 export function defaultCouponId(group: CheckoutGroup): string | null {
+    // oxlint-disable-next-line no-null -- CouponSelection 契约：null = 明确选「不使用优惠券」（见类型注释）
     return group.coupons.find((c) => c.usable)?.userCouponId ?? null
 }
 
@@ -105,5 +107,5 @@ export function withDefaultCoupons(
 export function couponIdsOf(selection: CouponSelection): string[] {
     return Object.values(selection)
         .filter((id): id is string => typeof id === "string" && id !== "")
-        .sort()
+        .toSorted()
 }

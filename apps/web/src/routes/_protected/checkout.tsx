@@ -49,6 +49,7 @@ import { z } from "zod"
 
 // 结算行由 TanStack Router 以 JSON 编进 URL；脏值一律 catch 成空数组，走「无可结算条目」流程
 const checkoutSearchSchema = z.object({
+    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     lines: z
         .array(z.object({ skuId: z.string(), quantity: z.coerce.number().int().positive() }))
         .catch([]),
@@ -87,6 +88,7 @@ function CheckoutPage() {
     const previewGroups = preview.data?.groups
     useEffect(() => {
         if (!previewGroups) return
+        // oxlint-disable-next-line react/set-state-in-effect -- 只在预览数据到达时补默认选券（首屏一次性），渲染期派生会覆盖用户明确的选择
         setCouponSelection((prev) => withDefaultCoupons(previewGroups, prev))
     }, [previewGroups])
 
@@ -152,6 +154,7 @@ function CheckoutPage() {
                                 <GroupCard
                                     key={g.shopId}
                                     group={g}
+                                    // oxlint-disable-next-line no-null -- CouponSelection 契约：null = 明确选「不使用优惠券」
                                     selectedCouponId={couponSelection[g.shopId] ?? null}
                                     onSelectCoupon={(userCouponId) =>
                                         setCouponSelection((prev) => ({

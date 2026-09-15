@@ -39,7 +39,8 @@ export function isContractViolation(err: unknown): boolean {
     return (
         typeof err === "object" &&
         err !== null &&
-        (err as ApiError).code === RESPONSE_VALIDATION_FAILED
+        "code" in err &&
+        err.code === RESPONSE_VALIDATION_FAILED
     )
 }
 
@@ -62,14 +63,14 @@ export function toApiError(err: unknown): ApiError {
         typeof err === "object" &&
         err !== null &&
         "detail" in err &&
-        typeof (err as ApiError).detail === "string"
+        typeof err.detail === "string"
     ) {
-        const e = err as ApiError
         return {
-            status: typeof e.status === "number" ? e.status : 0,
-            detail: e.detail,
-            code: e.code,
-            requestId: e.requestId,
+            status: "status" in err && typeof err.status === "number" ? err.status : 0,
+            detail: err.detail,
+            code: "code" in err && typeof err.code === "string" ? err.code : undefined,
+            requestId:
+                "requestId" in err && typeof err.requestId === "string" ? err.requestId : undefined,
         }
     }
     return { status: 0, detail: "请求失败，请稍后重试" }

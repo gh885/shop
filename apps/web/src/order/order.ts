@@ -30,16 +30,18 @@ export { statusToWire } from "#/shared/order-status"
  * 全量 Record 而非 Partial：后端枚举加一个动作时这里先编译期红（"没处理新动作"被看见），
  * 而不是静默少渲染一个按钮。SHIP 是卖家视角动作——买家接口不会下发它，落到这里就丢弃。
  */
-const ACTION_BY_WIRE: Record<OrderAvailableAction, OrderAction | null> = {
+const ACTION_BY_WIRE: Record<OrderAvailableAction, OrderAction | undefined> = {
     PAY: "pay",
     CANCEL: "cancel",
     RECEIVE: "confirm",
-    SHIP: null,
+    SHIP: undefined,
 }
 
 /** 动作集 wire → 领域：保序过滤，不在前端补动作（前端附加动作由 deriveOrderActions 拼在后面） */
 export function toOrderActions(wire: readonly OrderAvailableAction[]): OrderAction[] {
-    return wire.map((action) => ACTION_BY_WIRE[action]).filter((a): a is OrderAction => a !== null)
+    return wire
+        .map((action) => ACTION_BY_WIRE[action])
+        .filter((a): a is OrderAction => a !== undefined)
 }
 
 /** 行项 wire → 业务：快照字段归一 */

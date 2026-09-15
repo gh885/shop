@@ -14,13 +14,13 @@ import { AddressFormDialog } from "./AddressFormDialog"
  * 只 mock HTTP（handler 遵循 openapi 契约），不断言内部实现。
  */
 
-type CreateBody = Record<string, unknown>
+type CreateBody = unknown
 
 /** 捕获创建请求的 handler（body 推入 created，返回契约合法的 AddressResponse） */
 function useCaptureCreate(created: CreateBody[]) {
     server.use(
         http.post("*/user/addresses", async ({ request }) => {
-            created.push((await request.json()) as CreateBody)
+            created.push(await request.json())
             return HttpResponse.json(makeAddress({ id: crypto.randomUUID() }))
         }),
     )

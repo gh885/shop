@@ -16,14 +16,14 @@ import { AfterSaleApplyDialog } from "./AfterSaleApplyDialog"
  * 类型必须原样带上（后端按 type 分派仅退款 / 退货退款两条完全不同的路）。
  */
 
-type Captured = { orderId: string; body: Record<string, unknown> }
+type Captured = { orderId: string; body: unknown }
 
 function useCaptureApply(captured: Captured[]) {
     server.use(
         http.post("*/orders/:id/after-sales", async ({ request, params }) => {
             captured.push({
                 orderId: String(params.id),
-                body: (await request.json()) as Record<string, unknown>,
+                body: await request.json(),
             })
             return HttpResponse.json(makeTicket({ id: crypto.randomUUID() }), { status: 201 })
         }),

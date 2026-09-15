@@ -30,6 +30,7 @@ export function DetailColumns({
         // 由 grid-cols-(--detail-columns) 消费——不需要内联 gridTemplateColumns，也不产生任意值
         <div
             className={`grid grid-cols-(--detail-columns) ${gapClassName}`}
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
             style={{ "--detail-columns": `minmax(0, 1fr) ${rightWidth}` } as CSSProperties}
         >
             <div className="min-w-0 self-start">{left}</div>

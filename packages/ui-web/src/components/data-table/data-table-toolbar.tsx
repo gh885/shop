@@ -28,6 +28,8 @@ export function DataTableToolbar<TData>({
     filters = NO_FILTERS,
 }: DataTableToolbarProps<TData>) {
     const isFiltered = table.getState().columnFilters.length > 0
+    const searchValue = searchKey ? table.getColumn(searchKey)?.getFilterValue() : undefined
+    const globalFilter = table.getState().globalFilter
 
     return (
         <div className="flex items-center justify-between gap-2">
@@ -36,11 +38,7 @@ export function DataTableToolbar<TData>({
                     (searchKey ? (
                         <Input
                             placeholder={searchPlaceholder}
-                            value={
-                                (table.getColumn(searchKey)?.getFilterValue() as
-                                    | string
-                                    | undefined) ?? ""
-                            }
+                            value={typeof searchValue === "string" ? searchValue : ""}
                             onChange={(event) =>
                                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
                             }
@@ -49,7 +47,7 @@ export function DataTableToolbar<TData>({
                     ) : (
                         <Input
                             placeholder={searchPlaceholder}
-                            value={(table.getState().globalFilter as string | undefined) ?? ""}
+                            value={typeof globalFilter === "string" ? globalFilter : ""}
                             onChange={(event) => table.setGlobalFilter(event.target.value)}
                             className="h-8 w-48"
                         />

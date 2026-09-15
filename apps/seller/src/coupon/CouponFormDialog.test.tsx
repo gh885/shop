@@ -65,11 +65,11 @@ describe("CouponFormDialog", () => {
     it("提交：元换算成分、本地时间转成带时区 ISO 时刻，弹窗关闭", async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn<(open: boolean) => void>()
-        let body: Record<string, unknown> | undefined
+        let body: unknown
         useShopContext()
         server.use(
             http.post("*/seller/coupons", async ({ request }) => {
-                body = (await request.json()) as Record<string, unknown>
+                body = await request.json()
                 return HttpResponse.json(makeCreated(), { status: 201 })
             }),
         )
@@ -107,18 +107,22 @@ describe("CouponFormDialog", () => {
             totalQuantity: 50,
         })
         // 本地 10:00 是同一个瞬间，但必须以带时区的 ISO 发给 OffsetDateTime
-        expect(Date.parse(String(body?.validFrom))).toBe(Date.parse("2026-01-01T10:00"))
-        expect(String(body?.validFrom)).toMatch(/Z$/)
+        const validFrom =
+            typeof body === "object" && body !== null && "validFrom" in body
+                ? body.validFrom
+                : undefined
+        expect(Date.parse(String(validFrom))).toBe(Date.parse("2026-01-01T10:00"))
+        expect(String(validFrom)).toMatch(/Z$/)
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     })
 
     it("门槛填 0：按无门槛原样提交 0，不是被当成缺填丢掉", async () => {
         const user = userEvent.setup()
-        let body: Record<string, unknown> | undefined
+        let body: unknown
         useShopContext()
         server.use(
             http.post("*/seller/coupons", async ({ request }) => {
-                body = (await request.json()) as Record<string, unknown>
+                body = await request.json()
                 return HttpResponse.json(
                     makeCreated({ threshold: { amount: 0, currency: "CNY" } }),
                     { status: 201 },
@@ -144,7 +148,7 @@ describe("CouponFormDialog", () => {
         await user.click(screen.getByRole("button", { name: "创建" }))
 
         await waitFor(() => expect(body).toBeDefined())
-        expect(body?.thresholdAmount).toBe(0)
+        expect(body).toMatchObject({ thresholdAmount: 0 })
     })
 
     it("面额大于门槛：拦在本地并说明原因，不发请求", async () => {

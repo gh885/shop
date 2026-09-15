@@ -37,6 +37,9 @@ export function CouponPage({ search }: { search: CouponListSearch }) {
     const stop = useStopCoupon()
     const { busyId, run } = useRowBusy()
     const [formOpen, setFormOpen] = useState(false)
+    // 展示状态相对「现在」派生：一次挂载只取一个时刻，避免同一屏里各行跨秒判定不一致。
+    // 取值走 useState 惰性初始化而不是在渲染里直接调 Date.now()：渲染必须是纯的（react/purity）。
+    const [now] = useState(() => Date.now())
 
     if (!shop) {
         return <ShopRequired description="创建店铺或等待审核通过后，再来配置优惠券。" />
@@ -44,9 +47,6 @@ export function CouponPage({ search }: { search: CouponListSearch }) {
 
     const records = coupons.data?.records ?? []
     const total = coupons.data?.total ?? 0
-    // 展示状态相对「现在」派生：一次挂载只取一个时刻，避免同一屏里各行跨秒判定不一致。
-    // 取值走 useState 惰性初始化而不是在渲染里直接调 Date.now()：渲染必须是纯的（react/purity）。
-    const [now] = useState(() => Date.now())
     const rows = records.map((template) => couponRowFromWire(template, now))
 
     return (

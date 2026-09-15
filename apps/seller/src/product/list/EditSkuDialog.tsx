@@ -128,6 +128,7 @@ export function EditSkuLineDialog({
         return () => {
             cancelled = true
         }
+        // oxlint-disable-next-line react/exhaustive-effect-dependencies -- 加载与 cancelled 语义都收在 effect 内，函数引用刻意不进 deps
     }, [open, productId, reloadKey])
 
     const updateRow = (skuId: string, patch: Partial<SkuRow>) =>

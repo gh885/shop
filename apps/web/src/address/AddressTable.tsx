@@ -18,10 +18,15 @@ import {
 
 import { ADDRESS_LABELS, type Address } from "./address"
 
+/** 类型守卫：in 检查把 label 收窄为 ADDRESS_LABELS 的键（in 本身不会把 string 收窄成 keyof） */
+function isAddressLabel(label: string): label is keyof typeof ADDRESS_LABELS {
+    return label in ADDRESS_LABELS
+}
+
 function labelName(label?: string) {
     if (!label) return undefined
     // 未知（自定义）标签按原样文本展示
-    return label in ADDRESS_LABELS ? ADDRESS_LABELS[label as keyof typeof ADDRESS_LABELS] : label
+    return isAddressLabel(label) ? ADDRESS_LABELS[label] : label
 }
 
 export interface AddressTableProps {

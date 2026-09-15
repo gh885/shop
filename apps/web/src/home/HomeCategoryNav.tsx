@@ -38,6 +38,7 @@ export function HomeCategoryNav({
 
     // 高度由调用方给（index.tsx 传 200，其余场景默认 320）：走 CSS 变量交给 h-(--nav-height)，
     // 不用内联 height。断言与仓库既有写法一致（ui-web 的 sidebar/topbar/toggle-group 同款）
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
     const navHeightStyle = { "--nav-height": `${defaultHeight}px` } as CSSProperties
 
     // 未加载（undefined）→ 骨架占位；后端返回空数组 → 明确的空态，避免永远停在骨架

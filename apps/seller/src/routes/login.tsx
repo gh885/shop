@@ -41,7 +41,7 @@ function LoginPage() {
                     </div>
 
                     <LoginForm
-                        getCaptcha={AuthApi.getCaptcha}
+                        getCaptcha={() => AuthApi.getCaptcha()}
                         sendCode={async (input) => {
                             await AuthApi.sendSmsCode({ body: input })
                         }}

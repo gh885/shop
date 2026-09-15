@@ -240,7 +240,7 @@ export function useProductDraft({
     async function saveAndPublish(basic: ProductBasicForm, mode: SaveMode): Promise<void> {
         if (!shopId) return
         setSubmitting(true)
-        // 注：React Compiler 暂不支持 try/finally，失败路径用 catch + Promise.reject 等价上抛；成功/失败各自复位 submitting
+        // 注：React Compiler 暂不支持 try/finally，失败路径用 catch + throw 等价上抛；成功/失败各自复位 submitting
         try {
             // 1. 建档（首次才 POST；编辑态复用）——拿到可落库的 productId（草稿/提交都需先有商品）
             const id = await ensureDraft(basic)
@@ -264,7 +264,7 @@ export function useProductDraft({
             setSubmitting(false)
         } catch (error) {
             setSubmitting(false)
-            return Promise.reject(error)
+            throw error
         }
     }
 

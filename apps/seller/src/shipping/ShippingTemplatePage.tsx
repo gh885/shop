@@ -141,7 +141,7 @@ export function ShippingTemplatePage() {
     const save = useSaveShippingTemplate()
     const [serverError, setServerError] = useState<string>()
 
-    const defaultValues = useMemo(() => shippingTemplateFormFromResponse(null), [])
+    const defaultValues = useMemo(() => shippingTemplateFormFromResponse(undefined), [])
     const form = useAppForm({
         defaultValues,
         onSubmit: async ({ value }: { value: ShippingTemplateFormValues }) => {
@@ -169,7 +169,7 @@ export function ShippingTemplatePage() {
     // 当前店铺/远端模板变化时重新灌值；保存后 queryCache 回写也会走到这里
     useEffect(() => {
         if (!shopId || templateQuery.isPending || templateQuery.isError) return
-        form.reset(shippingTemplateFormFromResponse(templateQuery.data ?? null))
+        form.reset(shippingTemplateFormFromResponse(templateQuery.data ?? undefined))
         // form 实例稳定，重置只跟随店铺/远端模板变化
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopId, templateQuery.data, templateQuery.isPending, templateQuery.isError])
@@ -198,7 +198,7 @@ export function ShippingTemplatePage() {
         )
     }
 
-    const isNew = templateQuery.data == null
+    const isNew = templateQuery.data == undefined
     return (
         <div className="mx-auto w-full max-w-(--container-narrow) space-y-4 pb-24">
             <Card size="sm">

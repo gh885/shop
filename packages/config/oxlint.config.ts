@@ -306,6 +306,15 @@ export default defineConfig({
             files: ["**/packages/ui-web/src/components/image-upload.tsx"],
             rules: { "react/no-array-index-key": "off" },
         },
+        {
+            // 测试夹具与 MSW handler 必须镜像 wire 契约：SDK 生成类型是 `T | null`
+            // （required + nullable，undefined 不可赋值）、zod schema 是 `.nullable()`
+            // （同样不接受 undefined）；MSW 空响应也要 `new HttpResponse(null, …)`。
+            // 夹具不写 null 就过不了类型/契约校验——属「对外兼容 null」的正当使用，
+            // no-null 只约束内部代码（领域层约定），对测试代码整体豁免。
+            files: ["**/*.test.ts", "**/*.test.tsx", "**/packages/test-utils/**"],
+            rules: { "no-null": "off" },
+        },
     ],
 
     // ignorePatterns 相对本配置文件目录解析，无法匹配 config 目录之外的真实项目路径

@@ -29,6 +29,9 @@ const SECTIONS = [
     { id: "section-detail", label: "图文详情" },
 ] as const
 
+// 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入
+const uploadImage = (file: File) => uploadProductImage(file)
+
 /** basic 表单字段值（形状单一来源是 draft-model 的 ProductBasicForm，此处只保留表单语境的名字） */
 export type BasicStepValues = ProductBasicForm
 
@@ -93,8 +96,6 @@ export function BasicStep({
     /** 编辑回显：detail 拉回后的 basic 初值，仅首帧灌 form（经 form.reset）；新建为 undefined */
     initialBasic?: BasicStepValues
 }) {
-    // 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入
-    const uploadImage = (file: File) => uploadProductImage(file)
     const leafPaths = useLeafPaths()
     const categoryNames = leafPaths.find((p) => p.id === categoryId)?.names ?? []
     const active = useActiveSection()
@@ -111,8 +112,8 @@ export function BasicStep({
     const rules = editRules(productStatus)
     const canSwitchCategory = rules.switchCategory
     const specsLocked = !rules.specsEditable
-    const listingTimeEditable = rules.publishTargets !== null
-    const canSaveDraft = rules.publishTargets !== null
+    const listingTimeEditable = rules.publishTargets !== undefined
+    const canSaveDraft = rules.publishTargets !== undefined
     const editingNotice = rules.notice
 
     // 上架时间：决定「提交商品信息」落 PUBLISHED 还是 WAREHOUSE。

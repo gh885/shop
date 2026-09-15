@@ -97,6 +97,7 @@ export function buildMerchantGroups(order: OrderTimeline): TrackingGroup[] {
                 {
                     key: event.key,
                     time: formatNodeTime(event.at),
+                    // oxlint-disable-next-line no-null -- 领域契约：节点 location 可空（string | null，商家侧事件无位置）
                     location: null,
                     text: event.text,
                     latest: false,

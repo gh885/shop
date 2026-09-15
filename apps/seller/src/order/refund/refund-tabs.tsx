@@ -16,7 +16,10 @@ export function RefundTabs({
     return (
         <Tabs
             value={value}
-            onValueChange={(next) => onChange(next as RefundTab)}
+            onValueChange={(next) => {
+                const tab = REFUND_TABS.find((t) => t.value === next)?.value
+                if (tab) onChange(tab)
+            }}
         >
             <TabsList variant="line">
                 {REFUND_TABS.map((tab) => (

@@ -64,9 +64,9 @@ export function shippingTemplateFormFromResponse(
     return {
         freeShipping: response.freeShipping,
         freeOverQuantity:
-            response.freeOverQuantity == null ? "" : String(response.freeOverQuantity),
+            response.freeOverQuantity == undefined ? "" : String(response.freeOverQuantity),
         freeOverAmount:
-            response.freeOverAmount == null ? "" : fenToYuan(response.freeOverAmount.amount),
+            response.freeOverAmount == undefined ? "" : fenToYuan(response.freeOverAmount.amount),
         defaultRule: feeTierFromWire(response.defaultRule),
         regionRules: response.regionRules.map((item) => ({
             id: item.rule.id,

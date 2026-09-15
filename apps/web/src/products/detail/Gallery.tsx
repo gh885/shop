@@ -128,8 +128,11 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                             // 触屏没有 hover 语义，只在鼠标指针下开预览
                                             if (e.pointerType !== "mouse") return
                                             const frame = e.currentTarget.getBoundingClientRect()
-                                            const el = e.currentTarget
-                                                .firstElementChild as HTMLImageElement | null
+                                            const first = e.currentTarget.firstElementChild
+                                            const el =
+                                                first instanceof HTMLImageElement
+                                                    ? first
+                                                    : undefined
                                             // object-cover 会按原图宽高比裁切；裁掉的部分必须从坐标里扣掉，
                                             // 否则 hover 到图片边缘时，预览里永远看不到那圈边缘
                                             const nat = el?.naturalWidth
@@ -248,6 +251,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                 isZooming ? "opacity-100" : "opacity-0"
                             }`}
                             style={
+                                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
                                 {
                                     "--zoom-image": `url(${images[current]})`,
                                     "--zoom-size": `${ZOOM * 100}%`,

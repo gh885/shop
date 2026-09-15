@@ -30,8 +30,11 @@ const EMPTY_IMAGES: string[] = []
 function fileToDataURL(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(new Error("读取图片失败"))
+        reader.addEventListener("load", () => {
+            if (typeof reader.result === "string") resolve(reader.result)
+            else reject(new Error("读取图片失败"))
+        })
+        reader.addEventListener("error", () => reject(new Error("读取图片失败")))
         reader.readAsDataURL(file)
     })
 }
@@ -102,20 +105,20 @@ export function ImageUpload({
     className,
 }: ImageUploadProps) {
     const [busy, setBusy] = React.useState(false)
-    const [error, setError] = React.useState<string | undefined>()
+    const [uploadError, setUploadError] = React.useState<string | undefined>()
 
     const circular = shape === "circle"
 
     async function handleFile(file: File | undefined) {
         if (!file || disabled) return
-        setError(undefined)
+        setUploadError(undefined)
         try {
             setBusy(true)
             const local = await preview(file)
             const final = upload ? await upload(file) : local
             onChange?.(final)
         } catch (error) {
-            setError(error instanceof Error ? error.message : "图片上传失败")
+            setUploadError(error instanceof Error ? error.message : "图片上传失败")
         } finally {
             setBusy(false)
         }
@@ -160,7 +163,7 @@ export function ImageUpload({
                 maxSize={maxSizeMB * 1024 * 1024}
                 disabled={disabled}
                 onAccept={(files) => handleFile(files[0])}
-                onFileReject={(_, message) => setError(message)}
+                onFileReject={(_, message) => setUploadError(message)}
             >
                 <FileUploadDropzone
                     className={cn(
@@ -174,15 +177,15 @@ export function ImageUpload({
                         <Spinner className="size-5" />
                     ) : (
                         <>
-                            {icon ?? (showIcon ? <ImagePlus className="size-5" /> : null)}
-                            {label ? <span className="text-xs">{label}</span> : null}
+                            {icon ?? (showIcon ? <ImagePlus className="size-5" /> : undefined)}
+                            {label ? <span className="text-xs">{label}</span> : undefined}
                         </>
                     )}
                 </FileUploadDropzone>
             </FileUpload>
-            {error ? (
-                <p className="max-w-24 text-xs leading-tight text-destructive">{error}</p>
-            ) : null}
+            {uploadError ? (
+                <p className="max-w-24 text-xs leading-tight text-destructive">{uploadError}</p>
+            ) : undefined}
         </div>
     )
 }
@@ -221,6 +224,7 @@ function SortableTile({
         <div
             ref={setNodeRef}
             style={
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
                 {
                     "--sortable-transform": transform
                         ? CSS.Transform.toString(transform)
@@ -239,7 +243,7 @@ function SortableTile({
                 <span className="pointer-events-none absolute bottom-1 left-1 z-10 rounded-md bg-foreground px-1.5 py-0.5 text-3xs font-medium text-background">
                     {coverBadge}
                 </span>
-            ) : null}
+            ) : undefined}
             {/* 拖拽句柄（避免与右上角删除、点击上传冲突） */}
             <button
                 type="button"

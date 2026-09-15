@@ -38,11 +38,14 @@ const STATUS_TO_WIRE: Record<OrderStatus, WireOrderStatus> = {
     cancelled: "CANCELLED",
 }
 
+/** 类型守卫：in 检查把 wire 收窄为 WireOrderStatus（in 本身不会把 string 收窄成 keyof） */
+function isWireStatus(wire: string): wire is WireOrderStatus {
+    return wire in WIRE_TO_STATUS
+}
+
 /** wire → 领域：后端状态归一成前端枚举，未知值兜底待付款 */
 export function toStatusFromWire(wire?: string): OrderStatus {
-    return wire && wire in WIRE_TO_STATUS
-        ? WIRE_TO_STATUS[wire as WireOrderStatus]
-        : "pending_payment"
+    return wire && isWireStatus(wire) ? WIRE_TO_STATUS[wire] : "pending_payment"
 }
 
 /** 领域 → wire：查询参数/状态机动作传回后端大写枚举 */

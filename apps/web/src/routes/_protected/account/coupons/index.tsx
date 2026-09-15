@@ -54,7 +54,9 @@ function CouponsPage() {
             <Tabs
                 value={tab}
                 onValueChange={(value) => {
-                    setTab(value as CouponTab)
+                    const next = COUPON_TABS.find((t) => t.value === value)?.value
+                    if (!next) return
+                    setTab(next)
                     // 换页签回到第一页：停在第 3 页看另一类券，多半会落进空列表
                     setPage(1)
                 }}

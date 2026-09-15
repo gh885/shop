@@ -15,12 +15,12 @@ import { AfterSaleReturnDialog } from "./AfterSaleReturnDialog"
  * 所以「填了什么 → wire 上是什么」必须准（首尾空格要清掉，否则承运商推送按运单号匹配不上）。
  */
 
-type Captured = Record<string, unknown>
+type Captured = unknown
 
 function useCaptureReturn(captured: Captured[]) {
     server.use(
         http.put("*/orders/:id/after-sales/return", async ({ request }) => {
-            captured.push((await request.json()) as Captured)
+            captured.push(await request.json())
             return new HttpResponse(null, { status: 204 })
         }),
     )

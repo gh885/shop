@@ -40,14 +40,16 @@ export function ShipDialog({
     onShip: (orderId: string, input: { carrierCode: string; trackingNo: string }) => void
 }) {
     const carriers = useQuery(carrierListOptions())
-    // 未选中用 null：BaseUI 以 value == null 判定未选中并渲染 placeholder，与 onValueChange 清空时的取值同形
-    const [carrierCode, setCarrierCode] = useState<string | null>(null)
+    // 未选中用 undefined：BaseUI 以 value == null 判定未选中并渲染 placeholder（undefined == null），
+    // 与 onValueChange 清空时的取值同形
+    const [carrierCode, setCarrierCode] = useState<string | undefined>(undefined)
     const [trackingNo, setTrackingNo] = useState("")
     const [error, setError] = useState<string>()
 
     useEffect(() => {
         if (open) {
-            setCarrierCode(null)
+            // oxlint-disable-next-line react/set-state-in-effect -- 打开即重置表单是有意为之（复用组件实例，避免 key 重挂载）
+            setCarrierCode(undefined)
             setTrackingNo("")
             setError(undefined)
         }
@@ -109,7 +111,8 @@ export function ShipDialog({
                                 items={carriers.data.map((c) => ({ value: c.code, label: c.name }))}
                                 value={carrierCode}
                                 onValueChange={(value) => {
-                                    setCarrierCode(value)
+                                    // BaseUI Select 回调给 string | null（对外 null 契约），内部统一 undefined
+                                    setCarrierCode(value ?? undefined)
                                     if (error) setError(undefined)
                                 }}
                             >

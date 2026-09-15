@@ -83,6 +83,7 @@ export function DataTable<TData, TValue>({
     const manualSorting = Boolean(onSortingChange)
     const manualFiltering = Boolean(onColumnFiltersChange)
 
+    // oxlint-disable-next-line react/incompatible-library -- TanStack Table 官方指引：返回的 table 对象方法不稳定属预期，不做 memo
     const table = useReactTable({
         data,
         columns,

@@ -1,3 +1,4 @@
+// oxlint-disable-next-line import/no-unassigned-import -- jest-dom 匹配器注册副作用
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
 import { afterAll, afterEach, beforeAll } from "vitest"

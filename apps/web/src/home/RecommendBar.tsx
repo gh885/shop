@@ -24,7 +24,9 @@ export function RecommendBar() {
 
         const measure = () => {
             const containerWidth = el.clientWidth
-            const children = [...el.children] as HTMLElement[]
+            const children = [...el.children].filter(
+                (c): c is HTMLElement => c instanceof HTMLElement,
+            )
             let used = 0
             let count = 0
             for (let i = 0; i < children.length; i++) {

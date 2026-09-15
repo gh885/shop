@@ -266,7 +266,7 @@ export function CheckboxField({
         <div className={cn("flex flex-col gap-1.5", className)}>
             <label className="flex h-9 cursor-pointer items-center gap-2 text-sm">
                 <Checkbox
-                    checked={Boolean(field.state.value)}
+                    checked={field.state.value}
                     onCheckedChange={(checked) => field.handleChange(checked)}
                     aria-invalid={Boolean(error)}
                     {...props}

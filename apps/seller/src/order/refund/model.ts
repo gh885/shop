@@ -18,6 +18,7 @@ export const DEFAULT_REFUND_TAB: RefundTab = "APPLYING"
  * URL 里的筛选值：白名单（状态枚举从 SDK 派生，后端加状态自动放行）+ 兜底到默认页签。
  * 地址栏乱填不会得到一份"不知怎么筛出来的"列表，而是安静回到待处理。
  */
+// oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
 export const RefundTabSchema = z
     .union([z.enum(TicketStatus), z.literal("ALL")])
     .catch(DEFAULT_REFUND_TAB)

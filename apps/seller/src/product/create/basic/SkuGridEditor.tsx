@@ -47,7 +47,7 @@ function PriceCell({
     value: number | null
     onCommit: (fen: number | null) => void
 }) {
-    const [text, setText] = useState<string | null>(null)
+    const [text, setText] = useState<string | undefined>(undefined)
     // 非编辑期显示模型值（分 → 元两位小数）；编辑期显示用户正在输入的文本
     const shown = text ?? (value === null ? "" : fenToYuan(value))
     return (
@@ -59,11 +59,12 @@ function PriceCell({
                 value={shown}
                 onChange={(e) => setText(e.target.value)}
                 onBlur={() => {
-                    if (text === null) return
+                    if (text === undefined) return
                     const raw = text.trim()
-                    setText(null)
+                    setText(undefined)
                     if (raw === "") {
                         // 空 = 清空（未设价）；仅在真的有值时提交，避免无谓重建行
+                        // oxlint-disable-next-line no-null -- 模型契约：null = 未设价（draft-model 设计），清空提交 null
                         if (value !== null) onCommit(null)
                         return
                     }
@@ -93,7 +94,7 @@ function QuantityCell({
     value: number | null
     onCommit: (count: number | null) => void
 }) {
-    const [text, setText] = useState<string | null>(null)
+    const [text, setText] = useState<string | undefined>(undefined)
     const shown = text ?? (value === null ? "" : String(value))
     return (
         <InputGroup className="h-9 w-fit">
@@ -104,10 +105,11 @@ function QuantityCell({
                 value={shown}
                 onChange={(e) => setText(e.target.value.replaceAll(/\D/g, ""))}
                 onBlur={() => {
-                    if (text === null) return
+                    if (text === undefined) return
                     const raw = text.trim()
-                    setText(null)
+                    setText(undefined)
                     if (raw === "") {
+                        // oxlint-disable-next-line no-null -- 模型契约：null = 未填（draft-model 设计），清空提交 null
                         if (value !== null) onCommit(null)
                         return
                     }
@@ -154,8 +156,8 @@ export function SkuGridEditor({
     function applyBatch() {
         const priceText = batchPrice.trim()
         const stockText = batchStock.replaceAll(/\D/g, "")
-        let price: number | null = null
-        let stock: number | null = null
+        let price: number | undefined = undefined
+        let stock: number | undefined = undefined
         if (priceText) {
             const parsed = yuanPriceSchema.safeParse(priceText)
             if (!parsed.success) {
@@ -172,7 +174,7 @@ export function SkuGridEditor({
             }
             stock = parsed.data
         }
-        if (price === null && stock === null) return
+        if (price === undefined && stock === undefined) return
         onChange(rows.map((r) => ({ ...r, price: price ?? r.price, stock: stock ?? r.stock })))
     }
 
@@ -319,6 +321,7 @@ export function SkuGridEditor({
                                     value={d.skuCode ?? ""}
                                     onChange={(e) =>
                                         update(i, {
+                                            // oxlint-disable-next-line no-null -- 模型契约：skuCode 可空（string | null），空串 = 清空
                                             skuCode: e.target.value === "" ? null : e.target.value,
                                         })
                                     }

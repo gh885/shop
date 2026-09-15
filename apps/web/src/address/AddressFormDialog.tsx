@@ -100,7 +100,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
         setPrevEditKey(editKey)
         if (open) {
             setRegionPath([])
-            setRegionReady(editing ? false : true)
+            setRegionReady(!editing)
             // 编辑值是非内置标签时直接展开自定义输入框
             setCustomLabel(
                 Boolean(editing?.label) && !LABELS.some((l) => l.value === editing?.label),

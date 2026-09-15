@@ -21,13 +21,13 @@ const LoginSchema = z.object({
 
 function LoginPage() {
     const navigate = Route.useNavigate()
-    const [error, setError] = useState<string | undefined>()
+    const [loginError, setLoginError] = useState<string | undefined>()
 
     const form = useAppForm({
         defaultValues: { employeeNo: "", password: "" },
         validators: { onSubmit: LoginSchema },
         onSubmit: async ({ value }) => {
-            setError(undefined)
+            setLoginError(undefined)
             try {
                 const result = await adminApi.login({
                     employeeNo: value.employeeNo.trim(),
@@ -39,7 +39,9 @@ function LoginPage() {
             } catch (error) {
                 // 401 才是凭证错误；网络错误/服务端故障如实提示，避免误导成密码错误
                 const apiErr = toApiError(error)
-                setError(apiErr.status === 401 ? "工号或密码不正确" : "登录失败，请检查网络后重试")
+                setLoginError(
+                    apiErr.status === 401 ? "工号或密码不正确" : "登录失败，请检查网络后重试",
+                )
             }
         },
     })
@@ -84,7 +86,7 @@ function LoginPage() {
                                     />
                                 )}
                             </form.AppField>
-                            {error && <p className="text-sm text-destructive">{error}</p>}
+                            {loginError && <p className="text-sm text-destructive">{loginError}</p>}
                             <form.Subscribe selector={(s) => s.isSubmitting}>
                                 {(isSubmitting) => (
                                     <Button

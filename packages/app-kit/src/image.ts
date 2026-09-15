@@ -9,23 +9,23 @@
  *  - 本地/测试：七牛「测试域名」(*.clouddn.com) 只支持 http（HTTPS 证书不受信任）
  *  - 生产：绑定自有备案 CDN 域名 + 开启 HTTPS，如 https://img.yourdomain.com
  */
+/**
+ * 七牛「测试域名」(*.clouddn.com) 的 HTTPS 证书不受信任，只能 http。
+ * 已入库的完整 URL 可能是 https（后端起服务时 publicBaseUrl 配成 https 导致），
+ * 这里对这类域名强制回退 http，否则会原样返回无效 https URL 报证书错误。
+ * 生产自有域名（https）不受影响。
+ */
+function fixTestHostScheme(url: string): string {
+    if (/^https:\/\//i.test(url) && /\.clouddn\.com\//i.test(url)) {
+        return url.replace(/^https:\/\//i, "http://")
+    }
+    return url
+}
+
 export function createImgUrl(rawPrefix: string | undefined) {
     // 配了但写错（非合法 URL）时归一为缺配 ""，走下面的空串告警路径
     const prefix = rawPrefix && /^https?:\/\//i.test(rawPrefix) ? rawPrefix.replace(/\/+$/, "") : ""
     let warnedMissingBase = false
-
-    /**
-     * 七牛「测试域名」(*.clouddn.com) 的 HTTPS 证书不受信任，只能 http。
-     * 已入库的完整 URL 可能是 https（后端起服务时 publicBaseUrl 配成 https 导致），
-     * 这里对这类域名强制回退 http，否则会原样返回无效 https URL 报证书错误。
-     * 生产自有域名（https）不受影响。
-     */
-    function fixTestHostScheme(url: string): string {
-        if (/^https:\/\//i.test(url) && /\.clouddn\.com\//i.test(url)) {
-            return url.replace(/^https:\/\//i, "http://")
-        }
-        return url
-    }
 
     /**
      * key → 公网可访问 URL。兼容两种输入：

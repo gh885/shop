@@ -25,10 +25,10 @@ const apiDoc = JSON.parse(await readFile(OPENAPI, "utf8"))
 const schemas = apiDoc.components?.schemas ?? {}
 const zod = await import(ZOD_URL.href)
 
-/** 读某 schema 的字段可空性信息；非 object schema 返回 null（跳过） */
+/** 读某 schema 的字段可空性信息；非 object schema 返回 undefined（跳过） */
 function propsOf(schema) {
     const isObject = schema.type === "object" || (schema.properties && !schema.allOf)
-    if (!isObject) return null
+    if (!isObject) return undefined
     const required = new Set(schema.required ?? [])
     const properties = schema.properties ?? {}
     return {
@@ -69,6 +69,7 @@ for (const [key, schema] of Object.entries(schemas)) {
     if (typeof zodSchema?.parse !== "function") continue // SDK 未生成该 schema（如仅内部引用），跳过
 
     // 全字段置 null 构造 fixture：null 恰好能区分「接受 null（可空/可选）」与「要求 string（必填）」
+    // oxlint-disable-next-line no-null -- 审计脚本的手法本身就是拿 null 区分契约可空性，必须保留
     const fixture = Object.fromEntries(info.props.map((p) => [p.name, null]))
     let issues = []
     try {

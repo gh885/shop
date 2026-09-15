@@ -26,7 +26,9 @@ const afterSaleOptions = (orderId: string) =>
                 return await OrdersApi.getAfterSale({ path: { id: orderId }, signal })
             } catch (error) {
                 // 从没申请过售后 → 404；这是「没有」而不是「失败」，不给它错误态
-                if (toApiError(error).status === 404) return null
+                if (toApiError(error).status === 404)
+                    // oxlint-disable-next-line no-null -- TanStack Query 以 undefined 表示「仍在加载」，404 归零必须返回 null（显式「无数据」的成功载荷）
+                    return null
                 throw error
             }
         },
@@ -49,7 +51,7 @@ export async function applyAfterSale(
     const reason = input.reason?.trim()
     await OrdersApi.applyAfterSale({
         path: { id: orderId },
-        body: { type: input.type, reason: reason ? reason : undefined },
+        body: { type: input.type, reason: reason || undefined },
     })
 }
 

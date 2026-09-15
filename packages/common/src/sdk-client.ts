@@ -54,7 +54,7 @@ const flattenQuerySerializer = (query: Record<string, unknown>): string => {
         if (Array.isArray(value)) {
             value.forEach((v) => push(key, v))
         } else if (typeof value === "object") {
-            Object.entries(value as Record<string, unknown>).forEach(([k, v]) => push(k, v))
+            Object.entries(value).forEach(([k, v]) => push(k, v))
         } else if (
             typeof value === "string" ||
             typeof value === "number" ||
@@ -138,12 +138,20 @@ export function configureSdkClient(
                 credentials: "include",
             })
             if (!res.ok) return response
-            const { accessToken } = (await res.json()) as { accessToken: string }
-            tokens.set(accessToken)
+            const body: unknown = await res.json()
+            if (
+                typeof body !== "object" ||
+                body === null ||
+                !("accessToken" in body) ||
+                typeof body.accessToken !== "string"
+            ) {
+                return response
+            }
+            tokens.set(body.accessToken)
 
             // 重发原请求：重建 Request（原 body 已消费，从序列化结果取）
             const headers = new Headers(request.headers)
-            headers.set("Authorization", `Bearer ${accessToken}`)
+            headers.set("Authorization", `Bearer ${body.accessToken}`)
             const retry = new Request(request.url, {
                 method: request.method,
                 headers,
@@ -181,13 +189,21 @@ export function configureSdkClient(
             } satisfies ApiError
         }
         if (response) {
-            const body = error as Partial<ApiError> | undefined
-            if (body && typeof body === "object" && typeof body.detail === "string") {
+            if (
+                typeof error === "object" &&
+                error !== null &&
+                "detail" in error &&
+                typeof error.detail === "string"
+            ) {
                 return {
                     status: response.status,
-                    detail: body.detail,
-                    code: body.code,
-                    requestId: body.requestId,
+                    detail: error.detail,
+                    code:
+                        "code" in error && typeof error.code === "string" ? error.code : undefined,
+                    requestId:
+                        "requestId" in error && typeof error.requestId === "string"
+                            ? error.requestId
+                            : undefined,
                 } satisfies ApiError
             }
             return { status: response.status, detail: "请求失败，请稍后重试" } satisfies ApiError

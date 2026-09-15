@@ -32,11 +32,12 @@ export function useCountdown(targetIso: string): { seconds: number; expired: boo
 }
 
 /** 秒 → 「HH:MM:SS」或「MM:SS」倒计时文案（不足 1h 省略小时） */
+const pad = (n: number) => String(n).padStart(2, "0")
+
 export function formatCountdown(totalSeconds: number): string {
     if (totalSeconds <= 0) return "00:00"
     const h = Math.floor(totalSeconds / 3600)
     const m = Math.floor((totalSeconds % 3600) / 60)
     const s = totalSeconds % 60
-    const pad = (n: number) => String(n).padStart(2, "0")
     return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
 }

@@ -8,10 +8,13 @@ import { withContractFallback } from "./contract-fallback"
  * 关键分界：dev（测试即非 PROD）强抛尽早暴露问题；PROD 才降级兜底。
  */
 
+/** 构造最小合法 ZodIssue（invalid_type 成员）：夹具过 zod 类型语义，不手写 as never */
+function invalidTypeIssue(): z.ZodIssue {
+    return { code: "invalid_type", expected: "string", path: [], message: "Required" }
+}
+
 function makeZodError(): unknown {
-    return new z.ZodError([
-        { code: "invalid_type", expected: "string", path: [], message: "Required" } as never,
-    ])
+    return new z.ZodError([invalidTypeIssue()])
 }
 
 describe("withContractFallback", () => {
