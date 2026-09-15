@@ -30,7 +30,7 @@ pre-commit:
         # 这类完全干净、也确实无可格式化的提交会被钩子拦下。
         - name: fmt-web
           tags: [format]
-          glob: "**/*.{ts,tsx,js,jsx,json,yml,yaml,md}"
+          glob: "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,yml,yaml,md}"
           run: pnpm oxfmt --no-error-on-unmatched-pattern --config packages/config/oxfmt.config.ts --write {staged_files}
           stage_fixed: true
 
@@ -49,7 +49,7 @@ pre-commit:
         # 全量 lint（pre-push 的 lint 作业与 pnpm lint:web）lint 的是 "."，不会空集，故不加此参数。
         - name: lint-web
           tags: [lint]
-          glob: "**/*.{ts,tsx,js,jsx}"
+          glob: "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
           run: pnpm oxlint --no-error-on-unmatched-pattern --config packages/config/oxlint.config.ts {staged_files}
           fail_text: "oxlint 未通过；可自动修复的部分跑 pnpm lint:web"
 

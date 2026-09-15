@@ -236,3 +236,34 @@ PostgreSQL 18 与 Redis 7 运行在 WSL2 上，不再用 Docker。Windows 侧通
 
 数据库：`shop:shop_dev@localhost:5432/shop`
 Redis：`localhost:6379`
+
+### WSL 的 VM 按「会话」存活（后端突然连不上库就是这个）
+
+WSL 的 VM 只按「有没有 WSL 会话」存活，没有会话时几十秒就把整台 VM 回收（本机实测 ~20s）。
+VM 一停，Windows 侧 `127.0.0.1:5432` 的转发跟着消失，表现为两种假象：
+
+1. 后端启动失败：`Unable to obtain connection from database: Connection to 127.0.0.1:5432 refused`
+   （看着像数据库没起来，改 JDBC / 重启 PG 都没用）；
+2. **更阴的**：后端已经跑起来也会变僵尸 —— Tomcat 还在 8080 接请求，但每个查库的接口都超时。
+
+两条想当然的路都走不通（都实测过，别再试）：
+
+- **网络流量不算会话**：后端跑着、每 20s 打一次查库接口，第二个请求就超时、VM 照停；
+- **配置项靠不住**：`vmIdleTimeout=-1` 在本版本被接受但不生效，`instanceIdleTimeout` 是未知键，
+  一次性 `wsl -e sh -c 'nohup sleep &'` 里的后台进程会随会话一起被拔掉。
+
+所以只能用 Windows 侧的 `wsl.exe` 会话。但代价得认：VM 活着时 `vmmemWSL` 工作集约 **1.1–1.2GB**
+（客户机里其实只用了 500 多 MB，其余是 VMM 与 page cache）。所以会话按需存在、用完即还：
+
+```bash
+pnpm dev:server   # 推荐：会话跟随后端进程 —— 后端停 / Ctrl-C 就释放内存
+pnpm db:up        # 从 IDE 跑后端时用：拉起数据面 + 挂一个 detached 会话
+pnpm db:down      # 立刻还内存：杀会话 + wsl --shutdown，并打印 vmmemWSL 前后占用
+```
+
+- 从 IDE 跑后端 / 跑 `mvn test`（测试连真库）前，先 `pnpm db:up`，用完 `pnpm db:down`；
+- 强杀（`taskkill /F`、IDE 停止按钮、直接关终端）会留下 `wsl.exe … sleep infinity` 孤儿，
+  它照样把 VM 按着，内存就回不去 —— 所以 `db:up` / `db:down` 都会按命令行把孤儿一起清掉
+  （实现在 `scripts/ensure-datastore.mjs`，三种模式：默认 up / `--hold` / `--down`）；
+- 换发行版用 `SHOP_WSL_DISTRO`，完全不挂会话用 `SHOP_WSL_KEEPALIVE=0`；
+- 想彻底不占 VM 这份内存，只能把 PG/Redis 挪出 WSL（原生服务）—— 那就是另一套环境了。
