@@ -116,11 +116,10 @@ export function AttrValueRow({
             />
             {removable && (
                 <Button
-                    variant="ghost"
+                    variant="destructive"
                     size="icon-lg"
                     onClick={onRemove}
                     aria-label="删除取值"
-                    className="hover:text-destructive"
                 >
                     <Trash2 className="size-4" />
                 </Button>

@@ -67,7 +67,7 @@ function CouponsPage() {
                         <TabsTrigger
                             key={t.value}
                             value={t.value}
-                            className="px-4"
+                            size="lg"
                         >
                             {t.label}
                         </TabsTrigger>
@@ -157,10 +157,7 @@ function CouponsPage() {
                                                 text="上一页"
                                                 aria-label="上一页"
                                                 aria-disabled={page <= 1}
-                                                // ui-web 的 Button 只带 disabled: 视觉规则，没带 aria-disabled: 的，
-                                                // 而这里禁用靠 aria-disabled（不设 disabled 才能保留可聚焦的「当前状态」语义），
-                                                // 所以灰化与不吃指针要显式补上，否则第 1 页的「上一页」看着完全能点
-                                                className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+
                                                 // href 只为让 <a> 可聚焦可回车；跳转由 onClick 接管（分页是本地状态，不是路由）
                                                 href={page > 1 ? "#" : undefined}
                                                 onClick={(e) => {
@@ -179,7 +176,7 @@ function CouponsPage() {
                                                 text="下一页"
                                                 aria-label="下一页"
                                                 aria-disabled={page >= totalPages}
-                                                className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+
                                                 href={page < totalPages ? "#" : undefined}
                                                 onClick={(e) => {
                                                     e.preventDefault()

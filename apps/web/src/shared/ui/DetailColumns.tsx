@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 
 /**
  * 通用「左滚右停」双栏容器（详情页、购物车页共用）：
@@ -26,10 +26,11 @@ export function DetailColumns({
     return (
         // 注意不能加 items-start：右列单元格要拉伸到行高（=左栏高度），
         // 右栏内的 sticky/mt-auto 约束范围才是整个双栏区域。
-        // 列宽不用 Tailwind 的 grid-cols-[...]（无法按 prop 动态拼接），改用内联 gridTemplateColumns。
+        // 列宽按 prop 动态给：把整条 grid-template-columns 塞进 CSS 变量，
+        // 由 grid-cols-(--detail-columns) 消费——不需要内联 gridTemplateColumns，也不产生任意值
         <div
-            className={`grid ${gapClassName}`}
-            style={{ gridTemplateColumns: `minmax(0, 1fr) ${rightWidth}` }}
+            className={`grid grid-cols-(--detail-columns) ${gapClassName}`}
+            style={{ "--detail-columns": `minmax(0, 1fr) ${rightWidth}` } as CSSProperties}
         >
             <div className="min-w-0 self-start">{left}</div>
             <div className="flex flex-col">{right}</div>

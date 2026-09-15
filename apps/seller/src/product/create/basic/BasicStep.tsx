@@ -222,13 +222,14 @@ export function BasicStep({
                         >
                             <TabsList
                                 variant="line"
-                                className="h-full w-full justify-start gap-1"
+                                className="h-full w-full justify-start"
                             >
                                 {SECTIONS.map((section) => (
                                     <TabsTrigger
                                         key={section.id}
                                         value={section.id}
-                                        className="flex-none p-4"
+                                        size="lg"
+                                        className="flex-none"
                                     >
                                         {section.label}
                                     </TabsTrigger>
@@ -348,7 +349,7 @@ function ActionBar({
                         variant="ghost"
                         disabled={submitting || creating}
                         onClick={onSaveDraft}
-                        className="h-10 px-6"
+                        className="h-10"
                     >
                         保存草稿
                     </Button>
@@ -357,7 +358,7 @@ function ActionBar({
                     type="button"
                     disabled={submitting || creating}
                     onClick={onSubmit}
-                    className="h-10 px-10"
+                    className="h-10"
                 >
                     {(submitting || creating) && <Spinner />}
                     {draftEditable ? "提交商品信息" : "保存变更"}

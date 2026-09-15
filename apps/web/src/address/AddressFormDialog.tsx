@@ -197,7 +197,6 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                     <Button
                                         type="button"
                                         size="sm"
-                                        className="px-6"
                                         disabled={parsing || !smartText.trim()}
                                         onClick={() => void handleSmartParse()}
                                     >

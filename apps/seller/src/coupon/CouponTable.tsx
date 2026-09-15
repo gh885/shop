@@ -67,7 +67,7 @@ export function CouponTable({
                         const stopped = row.status === "STOPPED"
                         return (
                             <TableRow key={row.id}>
-                                <TableCell className="font-medium">{row.name}</TableCell>
+                                <TableCell variant="strong">{row.name}</TableCell>
                                 <TableCell>{row.ruleText}</TableCell>
                                 <TableCell className="tabular-nums">{row.periodText}</TableCell>
                                 <TableCell>

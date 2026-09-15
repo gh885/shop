@@ -70,7 +70,7 @@ export function PurchaseCta({
                 <Button
                     variant="cta-alt"
                     onClick={handleAdd}
-                    className="h-12 w-28 flex-none gap-2"
+                    className="h-12 w-28 flex-none"
                 >
                     <ShoppingCart className="size-5" />
                     {addToCart.isPending && <Spinner />}加入购物车
@@ -83,15 +83,11 @@ export function PurchaseCta({
                     立即购买
                 </Button>
                 <Button
-                    variant="outline"
+                    variant={favorited ? "secondary" : "outline"}
                     aria-label={favorited ? "取消收藏" : "收藏"}
                     aria-pressed={favorited}
                     onClick={handleFavorite}
-                    className={`h-12 w-12 rounded-md ${
-                        favorited
-                            ? "border-foreground/50 text-foreground"
-                            : "text-muted-foreground hover:border-primary/50 hover:bg-transparent hover:text-primary"
-                    }`}
+                    className="h-12 w-12"
                 >
                     <Heart className={`size-5 ${favorited ? "fill-foreground" : ""}`} />
                 </Button>

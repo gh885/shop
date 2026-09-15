@@ -64,7 +64,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                 render={
                     <Button
                         variant="outline"
-                        className="gap-1 rounded-full"
+                        shape="pill"
                     >
                         <TicketPercent />
                         领券

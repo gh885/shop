@@ -19,14 +19,13 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
             open={open}
             onOpenChange={onOpenChange}
         >
-            <DialogContent className="gap-0 overflow-hidden rounded-xl p-0 sm:max-w-2xl">
+            {/* 自定义排版：内边距与节奏由下面那层 p-8 的容器自己管（rounded-xl 与基类同值，不必再写） */}
+            <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
                 {/* 顶部品牌色环境光，打破纯平 */}
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-primary/8 to-transparent" />
 
                 <div className="relative flex flex-col gap-7 p-8 pt-7">
-                    <DialogTitle className="text-center tracking-tight">
-                        登录后畅享更多功能
-                    </DialogTitle>
+                    <DialogTitle className="text-center">登录后畅享更多功能</DialogTitle>
 
                     <div className="flex items-stretch gap-8">
                         <ScanPlaceholder />
@@ -35,7 +34,6 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
                         <LoginForm
                             active={open}
-                            size="md"
                             getCaptcha={getCaptcha}
                             sendCode={(input) => sendSmsCode(input.phone, input)}
                             submit={(v) =>

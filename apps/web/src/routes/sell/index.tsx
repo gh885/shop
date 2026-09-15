@@ -159,11 +159,11 @@ function BusinessModes() {
                     多元的经营模式，总有一种适合你
                 </h2>
 
-                <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
+                <div className="mt-10 flex flex-col gap-8 lg:flex-row">
                     <div
                         role="tablist"
                         aria-label="经营模式"
-                        className="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1"
+                        className="flex gap-2 overflow-x-auto lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1"
                     >
                         {MODES.map((mode) => {
                             const Icon = mode.icon
@@ -191,6 +191,7 @@ function BusinessModes() {
                         <m.div
                             key={mode.key}
                             role="tabpanel"
+                            className="lg:min-w-0 lg:flex-1"
                             initial={reduce ? false : { opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={reduce ? undefined : { opacity: 0, y: -8 }}

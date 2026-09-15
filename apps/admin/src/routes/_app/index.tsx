@@ -36,18 +36,21 @@ export const Route = createFileRoute("/_app/")({
     component: ReviewPage,
 })
 
-const STATUS_BADGE: Record<ShopReviewStatus, { label: string; className: string }> = {
+const STATUS_BADGE: Record<
+    ShopReviewStatus,
+    { label: string; variant: "warning" | "success" | "destructive-subtle" }
+> = {
     PENDING: {
         label: "待审核",
-        className: "bg-warning-subtle text-warning-subtle-foreground",
+        variant: "warning",
     },
     APPROVED: {
         label: "已通过",
-        className: "bg-success-subtle text-success-subtle-foreground",
+        variant: "success",
     },
     REJECTED: {
         label: "已驳回",
-        className: "bg-destructive-subtle text-destructive-subtle-foreground",
+        variant: "destructive-subtle",
     },
 }
 
@@ -90,7 +93,7 @@ const columns: ColumnDef<ShopReviewItem>[] = [
         header: "状态",
         cell: ({ row }) => {
             const badge = STATUS_BADGE[row.original.status]
-            return <Badge className={badge.className}>{badge.label}</Badge>
+            return <Badge variant={badge.variant}>{badge.label}</Badge>
         },
     },
     {

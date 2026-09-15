@@ -1245,12 +1245,14 @@ function FileUploadItemProgress(props: FileUploadItemProgressProps) {
                     data-slot="file-upload-progress"
                     {...progressProps}
                     className={cn(
-                        "absolute inset-0 bg-primary/50 transition-[clip-path] duration-300 ease-linear",
+                        "absolute inset-0 bg-primary/50 transition-[clip-path] duration-300 ease-linear [clip-path:var(--progress-clip)]",
                         className,
                     )}
-                    style={{
-                        clipPath: `inset(${topInset}% 0% 0% 0%)`,
-                    }}
+                    style={
+                        {
+                            "--progress-clip": `inset(${topInset}% 0% 0% 0%)`,
+                        } as React.CSSProperties
+                    }
                 />
             )
         }
@@ -1272,10 +1274,12 @@ function FileUploadItemProgress(props: FileUploadItemProgressProps) {
                     )}
                 >
                     <div
-                        className="h-full w-full flex-1 bg-primary transition-transform duration-300 ease-linear"
-                        style={{
-                            transform: `translateX(-${100 - itemContext.fileState.progress}%)`,
-                        }}
+                        className="h-full w-full flex-1 bg-primary transition-transform duration-300 ease-linear [transform:translateX(var(--progress-shift))]"
+                        style={
+                            {
+                                "--progress-shift": `-${100 - itemContext.fileState.progress}%`,
+                            } as React.CSSProperties
+                        }
                     />
                 </ItemProgressPrimitive>
             )

@@ -77,3 +77,4 @@ minimumReleaseAgeExclude:
     - oxlint@1.81.0
     - "@base-ui/react@1.8.0"
     - "@base-ui/utils@0.4.0"
+    - "@shadcn/lint@0.1.0"

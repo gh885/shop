@@ -87,9 +87,9 @@ function AccountLayout() {
                     <SidebarProvider className="contents">
                         <nav
                             aria-label="导航菜单"
-                            className="w-41.5 bg-sidebar text-sidebar-foreground"
+                            className="w-41.5 bg-sidebar p-2 text-sidebar-foreground"
                         >
-                            <SidebarMenu className="gap-0.5 p-2">
+                            <SidebarMenu className="gap-0.5">
                                 <MenuTree
                                     items={MENU_ITEMS}
                                     activeKey={activeKey}
@@ -100,7 +100,6 @@ function AccountLayout() {
                                                 disabled={leaf.disabled}
                                                 aria-current={isActive ? "page" : undefined}
                                                 render={<Link to={leaf.to} />}
-                                                className="h-9 px-3"
                                             >
                                                 {leaf.icon}
                                                 <span className="flex-1 truncate">

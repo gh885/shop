@@ -121,7 +121,7 @@ export function LandingHero({
     const reduce = useReducedMotion()
 
     return (
-        <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr]">
+        <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-20 pb-24 lg:grid-hero-split">
             <div className="space-y-6">
                 {[headline, body, actions].map((block, i) => (
                     <m.div

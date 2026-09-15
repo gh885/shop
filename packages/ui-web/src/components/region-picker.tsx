@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { ChevronDown } from "lucide-react"
 
 import { cn } from "../lib/utils"
@@ -174,8 +174,8 @@ export function RegionPicker({
 
             <PopoverContent
                 align="start"
-                className="gap-0 p-0"
-                style={panelWidth ? { width: panelWidth } : undefined}
+                className={cn("gap-0 p-0", panelWidth && "w-(--panel-width)")}
+                style={panelWidth ? ({ "--panel-width": panelWidth } as CSSProperties) : undefined}
             >
                 <Tabs
                     value={String(activeLevel)}

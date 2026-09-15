@@ -1,6 +1,22 @@
 import { defineConfig } from "oxlint"
 
+/** no-restyle 里「全局都放行」的类名，任何组件上都成立：
+ *  - layout：位置与宽度由页面定，外观归组件 —— 官方推荐基线
+ *  - space-*：`space-y-*` / `space-x-*` 改的是**子元素之间的间隔**（给子元素加 margin），
+ *    永远不可能是在描述元素自己的外观，所以它就是布局原语，和 `flex` / `w-*` 同类。
+ *    注意 `gap-*` 不在此列：`gap-1` 在 Button 上就是"图标与文字的距离"，那是自身外观，
+ *    只有「连 display 都不自己定的容器」才另开（见 CardContent 的 contract）。
+ *  - required-mark：ui-web 自带的必填星号伪元素 utility（styles.css @utility），
+ *    属设计系统提供的类名（语义同 sr-only），不是调用方手搓的样式
+ *  - tabular-nums：只让数字等宽，改不了字号/字重/字族，DESIGN.md 第 70 行
+ *    本就要求 B 端数字列用它 */
+const NO_RESTYLE_ALWAYS_ALLOWED = ["layout", "space-*", "required-mark", "tabular-nums"]
+
 export default defineConfig({
+    // JS 插件（Oxlint 1.80+ 的 JS plugin API，官方标注 alpha）：
+    // @shadcn/lint 是面向 agent 的设计系统 linter —— 报错文本里带"该用什么"，
+    // 建议直接来自 packages/ui-web 的组件 variants / sizes 与 styles.css 的 theme token。
+    jsPlugins: ["@shadcn/lint"],
     plugins: [
         "eslint",
         "oxc",
@@ -31,10 +47,150 @@ export default defineConfig({
         react: {
             version: "19",
         },
+        shadcn: {
+            // 识别设计系统组件：apps 一律从 @shop/ui-web 导入（110 个文件）
+            ui: "@shop/ui-web",
+            // 追加到每一条 shadcn/* 报错末尾。DESIGN.md 是视觉规则唯一真相源，
+            // 让 agent 拿到报错时同时拿到"去哪儿查"。
+            note: "See packages/ui-web/DESIGN.md for design rules and approved exceptions.",
+        },
     },
 
     rules: {
         "import/no-cycle": "warn",
+
+        // ── @shadcn/lint ──
+        // 全量开启。no-restyle 基线 allow: ["layout"]：
+        // 页面可以定位置与宽度，外观（间距/形状/颜色/字体）归组件自己管 ——
+        // 与 DESIGN.md 的「复用优先 / primary 纪律」同源。
+        "shadcn/no-restyle": [
+            "error",
+            {
+                allow: NO_RESTYLE_ALWAYS_ALLOWED,
+                // 只给「结构上必须由调用方定」的类别开口子：
+                // Skeleton 的圆角要跟它替身一致；Empty 的垂直留白随页面语境变。
+                // truncate 是单行省略（内容显示能力），行数档已由 ItemTitle/ItemDescription 的
+                // lines prop 承接（line-clamp-* 不再放行）。
+                //
+                // 坑：contract 的 allow 是「整值替换」而不是「向顶层 allow 追加」，
+                // 所以每条都得显式带上 NO_RESTYLE_ALWAYS_ALLOWED，否则一写 contract
+                // 就把 required-mark / tabular-nums 的全局放行弄丢了。
+                contracts: [
+                    { pattern: "^Skeleton$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "shape"] },
+                    { pattern: "^Empty$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "spacing"] },
+                    { pattern: "^ItemTitle$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "truncate"] },
+                    {
+                        pattern: "^ItemDescription$",
+                        allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "truncate"],
+                    },
+                    // ItemActions 只有一处要更宽的横向间隔：结账页把两列 w-20 的金额并排放在
+                    // 动作槽里，基类 gap-2 会把两列挤成一块。为 1 处加 variant 不值得，按类名开口子。
+                    { pattern: "^ItemActions$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-6"] },
+                    // CardContent 的基类**只有左右内边距**（`px-(--card-spacing)`，见 card.tsx），
+                    // 既没有 display 也没有 gap —— 调用方必然要自己给 `flex`/`grid`，给了 display
+                    // 就必然要自己给 `gap`。`flex` 是 layout 已放行、`gap` 却要拦，这两者是同一件事，
+                    // 所以 CardContent 上的 gap-* 同属 layout。
+                    // （`Card` 不在此列：它自己是 `flex flex-col gap-(--card-spacing)`，gap 归它管。）
+                    { pattern: "^CardContent$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
+                    // DropdownMenuTrigger 在 dropdown-menu.tsx 里是**纯透传**
+                    // （`<MenuPrimitive.Trigger {...props} />`，无 cva、无基类 className），
+                    // 它没有任何自己的皮肤可"拥有"——插件的「<X> owns its shape」这句话在这里是空的，
+                    // 于是调用方写的每一个类都被判成越权。而调用方本来就该是它的皮肤：
+                    //   · SiteNav 的导航项与旁边的普通 <Link> 共用同一个 `navItemClass` 常量
+                    //     （同一个导航项，只是"有子菜单的那个"恰由 Trigger 承载）——
+                    //     给 Trigger 加 variant 会把这套样式抄成第二份，反而制造漂移；
+                    //   · SiteHeader 的是 Avatar 的外壳（圆形焦点环）。
+                    // 结论：这个组件上放行全部类名，并在注释里留下结构性理由。
+                    { pattern: "^DropdownMenuTrigger$", allow: ["*"] },
+                    // 登录表单 size="lg" 那一行的**内部水平节奏**（14px）："+86" 前缀、
+                    // 验证码输入、发送按钮三者共用同一个内边距，整行看起来才是一体。
+                    // 不把它塞进 size="lg" 的类里：那会连带改掉该 size 下所有子件（含密码框），
+                    // 而这里是「这一行的三个位置」而不是「这个尺寸的通用值」。
+                    {
+                        pattern: "^(InputGroupInput|InputGroupText|InputGroupButton)$",
+                        allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "px-3.5"],
+                    },
+                    // 店铺 logo 的占位首字要更醒目（它是"字母当 logo 用"，不是正文）。
+                    // 只放行这一个字重，不往 AvatarFallback 基类加——那会连带改掉四处用户头像。
+                    {
+                        pattern: "^AvatarFallback$",
+                        allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "font-bold"],
+                    },
+                    // Spinner 是 `size-4 animate-spin` 的裸 lucide 图标，颜色走 currentColor，
+                    // 永远是「它替身的那个颜色」：替掉的图标是 muted-foreground、替掉的 CTA 是
+                    // primary，都由上下文决定，组件自身无从自持。只放行这两个语义色。
+                    {
+                        pattern: "^Spinner$",
+                        allow: [
+                            ...NO_RESTYLE_ALWAYS_ALLOWED,
+                            "text-primary",
+                            "text-muted-foreground",
+                        ],
+                    },
+
+                    // ── 容器类：`gap-*` 在这里是「子元素排布」而不是「自身外观」 ──
+                    // 判据同 `space-*`：这些组件的基类**不自己定 display**（或整条就是一条 flex 排布），
+                    // 调用方给了 `flex`/`grid` 就必然要给 `gap`——`flex` 是 layout 已放行、
+                    // `gap` 却要拦，这两件事是同一件。叶子/自带皮肤的组件（Button、Badge、Input、
+                    // ItemActions、PanelHeader…）继续拦，那里 `gap` 就是图标与文字的距离。
+                    //   · CardTitle 基类只有字体，没有 display；
+                    //   · RadioGroup 基类是 `grid gap-2`，调用方改成 `flex` 后 gap 必须跟着走；
+                    //   · SidebarMenu 是 `<ul>`，gap 就是菜单项的排布；
+                    //   · TopBar 家族（TopBar/TopBarBrand/TopBarActions）是顶栏的三段排布。
+                    { pattern: "^CardTitle$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
+                    { pattern: "^RadioGroup$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
+                    { pattern: "^SidebarMenu$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
+                    {
+                        pattern: "^(TopBar|TopBarBrand|TopBarActions)$",
+                        allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"],
+                    },
+
+                    // ── 一次性：窄到具体类名，每条都写清来源 ──
+                    // 欢迎页的「悬停上浮」卡片（位移由调用方给，过渡跟着它一起写在这一处）
+                    {
+                        pattern: "^Card$",
+                        allow: [
+                            ...NO_RESTYLE_ALWAYS_ALLOWED,
+                            "transition-transform",
+                            "duration-200",
+                        ],
+                    },
+                    // 登录弹窗是自定义排版的对话框：整块内容自带 padding 与节奏（顶部还有绝对定位的环境光），
+                    // 所以外层要 `p-0 gap-0`。`DialogContent` 没有 variant 维度，1 个站点不值得为它加。
+                    {
+                        pattern: "^DialogContent$",
+                        allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "p-0", "gap-0"],
+                    },
+                    // 账号菜单里的用户名可能很长，截断是「显示能力」（同 ItemTitle/ItemDescription 的 truncate）
+                    {
+                        pattern: "^DropdownMenuLabel$",
+                        allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "truncate"],
+                    },
+                    // 外层绝对定位了一个前置搜索图标，输入框得让出左侧位置（同上，图标由调用方管）
+                    { pattern: "^Input$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "pl-8"] },
+                    // 智能粘贴框：多行输入要四周 12px（基类只给 py-2 + 单行内边距）
+                    {
+                        pattern: "^InputGroupTextarea$",
+                        allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "p-3"],
+                    },
+                    // 购物车数量步进器的中间格：两边是 − / + 按钮，所以只要左右描边、白底，
+                    // 且格子是固定宽度（w-8）居中的数字，不能有内边距
+                    {
+                        pattern: "^ButtonGroupText$",
+                        allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "border-x", "bg-background", "px-0"],
+                    },
+                ],
+            },
+        ],
+        // shadow-float / shadow-lift 是主题里声明的自定义阴影 token（ui-web/styles.css @theme），
+        // 但插件只认 Tailwind 内置的 shadow-sm/md/lg，认不出自定义 --shadow-* 命名空间，
+        // 于是把它当成"未声明的颜色"报错（实测：shadow-sm/md/lg 通过，shadow-float/lift 被报）。
+        // 只放行这两个具体 token，不用 shadow-* 通配——shadow-<color> 是合法的颜色用法，通配会关掉真检查。
+        "shadcn/no-raw-colors": ["error", { allow: ["shadow-float", "shadow-lift"] }],
+        "shadcn/no-arbitrary-values": "error",
+        "shadcn/no-inline-styles": "error",
+        "shadcn/no-unknown-classes": "error",
+        "shadcn/require-static-classes": "error",
 
         // ── type-aware（需 lint 脚本带 --type-aware，依赖 oxlint-tsgolint）──
         // 防止「死防御」回流：类型已保证非空还写 ?. / ?? 0 / 恒真条件。
@@ -127,9 +283,27 @@ export default defineConfig({
 
     overrides: [
         {
+            // 组件自己就是设计系统的定义处，必须允许自我造型。
+            // 官方要求：no-restyle / no-arbitrary-values / require-static-classes
+            // 三条在组件目录内关闭。no-raw-colors 等仍生效（组件也该用 token）。
+            // 注意两点（oxlint 的 glob 语义，实测）：
+            // 1) override.files 里的相对路径不认 `..`，也不按本配置文件目录解析。
+            //    本配置放在 packages/config/，写 `packages/...` 或 `../../packages/...`
+            //    都匹配不到任何文件（静默失效，不报错）。必须用 `**/packages/...` 前缀。
+            // 2) 目录通配要写 `dir/**/*`，`dir/**` 匹配不到 dir 下的一层文件。
+            files: ["**/packages/ui-web/src/components/**/*"],
+            rules: {
+                "shadcn/no-restyle": "off",
+                "shadcn/no-arbitrary-values": "off",
+                "shadcn/require-static-classes": "off",
+            },
+        },
+        {
             // ImageUploadGrid 的空位瓦片是纯占位槽（无数据、无增删重排语义），
-            // 索引 key 是唯一合理选择，规则对该文件豁免
-            files: ["packages/ui-web/src/components/image-upload.tsx"],
+            // 索引 key 是唯一合理选择，规则对该文件豁免。
+            // 原写法 "packages/ui-web/src/components/image-upload.tsx" 因上述 glob
+            // 语义（相对路径不解析）一直是死配置，此处补 `**/` 前缀修好。
+            files: ["**/packages/ui-web/src/components/image-upload.tsx"],
             rules: { "react/no-array-index-key": "off" },
         },
     ],

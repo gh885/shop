@@ -220,12 +220,19 @@ function SortableTile({
     return (
         <div
             ref={setNodeRef}
-            style={{
-                transform: transform ? CSS.Transform.toString(transform) : undefined,
-                transition,
-            }}
+            style={
+                {
+                    "--sortable-transform": transform
+                        ? CSS.Transform.toString(transform)
+                        : undefined,
+                    "--sortable-transition": transition,
+                } as React.CSSProperties
+            }
             {...attributes}
-            className={cn("relative shrink-0 touch-none", isDragging && "z-10 opacity-90")}
+            className={cn(
+                "relative shrink-0 touch-none [transform:var(--sortable-transform)] [transition:var(--sortable-transition)]",
+                isDragging && "z-10 opacity-90",
+            )}
         >
             {children}
             {coverBadge ? (

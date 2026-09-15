@@ -24,7 +24,7 @@ const tabsListVariants = cva(
         variants: {
             variant: {
                 default: "bg-muted",
-                line: "gap-1 bg-transparent",
+                line: "gap-1 bg-transparent p-0",
             },
         },
         defaultVariants: {
@@ -48,11 +48,21 @@ function TabsList({
     )
 }
 
-function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
+function TabsTrigger({
+    className,
+    size = "default",
+    ...props
+}: TabsPrimitive.Tab.Props & { size?: "default" | "lg" }) {
     return (
         <TabsPrimitive.Tab
             data-slot="tabs-trigger"
+            data-size={size}
             className={cn(
+                // 基类 px-1.5 只够「列表自带 p-[3px] 胶囊」的紧凑排布；页面级分段页签
+                // （列表自带 min-h-10/12 或 h-full）要的是宽字距和大点击区，走 lg 档。
+                // 高度由列表定（`h-[calc(100%-1px)]`），所以这里只管水平内边距——
+                // 调用方写 `p-4` 的纵向那一半本来就不生效，收进这一档不产生视觉差。
+                size === "lg" && "px-4",
                 "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-1.5 py-0.5 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pr-1 has-data-[icon=inline-start]:pl-1 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[variant=default]/tabs-list:data-active:shadow-sm group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
                 "group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent",
                 "data-active:bg-background data-active:text-foreground",

@@ -197,8 +197,9 @@ export function EditSkuLineDialog({
             open={open}
             onOpenChange={onOpenChange}
         >
-            {/* 必须用与基底相同的 sm: 修饰覆写 max-w —— twMerge 对不同修饰不合并，裸 max-w-3xl 会被 sm:max-w-sm 压掉导致内容溢出到半透明遮罩上 */}
-            <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-3xl">
+            {/* 必须用与基底相同的 sm: 修饰覆写 max-w —— twMerge 对不同修饰不合并，裸 max-w-3xl 会被 sm:max-w-sm 压掉导致内容溢出到半透明遮罩上。
+                窄屏兜底 max-w-[calc(100%-2rem)] 由 ui-web 的 DialogContent 基底自带，这里不再重复 */}
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{meta.title}</DialogTitle>
                 </DialogHeader>
@@ -216,7 +217,7 @@ export function EditSkuLineDialog({
                             onRetry={() => setReloadKey((k) => k + 1)}
                         />
                     ) : loading || !detail ? (
-                        <div className="flex max-h-[50vh] flex-col gap-2 overflow-hidden">
+                        <div className="flex max-h-(--max-height-dialog-body) flex-col gap-2 overflow-hidden">
                             <Skeleton className="h-9 w-full rounded-sm" />
                             <Skeleton className="h-9 w-full rounded-sm" />
                             <Skeleton className="h-9 w-full rounded-sm" />
@@ -232,7 +233,7 @@ export function EditSkuLineDialog({
                             </div>
 
                             {/* 超出视口高度内部滚动，避免整卡撑高；overflow-hidden 防止内容溢出到半透明遮罩 */}
-                            <div className="max-h-[50vh] overflow-y-auto overflow-x-hidden rounded-lg border border-border">
+                            <div className="max-h-(--max-height-dialog-body) overflow-y-auto overflow-x-hidden rounded-lg border border-border">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -248,7 +249,10 @@ export function EditSkuLineDialog({
                                     <TableBody>
                                         {rows.map((r) => (
                                             <TableRow key={r.skuId}>
-                                                <TableCell className="whitespace-nowrap text-muted-foreground">
+                                                <TableCell
+                                                    variant="muted"
+                                                    className="whitespace-nowrap"
+                                                >
                                                     {r.label}
                                                 </TableCell>
                                                 <TableCell>
@@ -268,7 +272,7 @@ export function EditSkuLineDialog({
                                                             />
                                                             <InputGroupAddon
                                                                 align="inline-end"
-                                                                className="font-normal"
+                                                                variant="quiet"
                                                             >
                                                                 元
                                                             </InputGroupAddon>
@@ -293,7 +297,7 @@ export function EditSkuLineDialog({
                                                             />
                                                             <InputGroupAddon
                                                                 align="inline-end"
-                                                                className="font-normal"
+                                                                variant="quiet"
                                                             >
                                                                 件
                                                             </InputGroupAddon>

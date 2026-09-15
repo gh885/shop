@@ -69,12 +69,8 @@ export function ProductCard({
                     {product.tags?.map((tag, i) => (
                         <Badge
                             key={tag}
-                            variant={i === 0 ? "default" : "outline"}
-                            className={
-                                i === 0
-                                    ? "h-4 rounded-[3px] px-1 text-3xs"
-                                    : "h-4 rounded-[3px] border-primary/50 px-1 text-3xs text-primary"
-                            }
+                            variant={i === 0 ? "default" : "outline-primary"}
+                            size="sm"
                         >
                             {tag}
                         </Badge>

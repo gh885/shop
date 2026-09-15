@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
 import {
     Button,
     Carousel,
@@ -21,9 +21,6 @@ import type { ParamItem } from "@shop/api/sdk"
 
 /** 主图 hover 放大倍数：预览浮层 background-size = ZOOM × 浮层边长，蒙层尺寸由它反推 */
 const ZOOM = 2.5
-
-/** 主图左右留白：图片因此比主图区窄，两侧腾出的地皮留给翻页箭头 */
-const FRAME_GUTTER = "3.5rem"
 
 /** 把中心比例夹在 [half, 1−half] 内，让蒙层不越出图片边界 */
 function clampCenter(v: number, half: number) {
@@ -114,12 +111,12 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
 
                 {/* 主轮播区：loop 循环翻页；箭头仅 hover 该区域时浮现 */}
                 <div className="group relative min-w-0 flex-1">
-                    {/* 左右内边距 = 箭头的地盘：图片因此比主图区窄，箭头站在图外 */}
+                    {/* gutter="lg"（3.5rem）= 箭头的地盘：图片因此比主图区窄，箭头站在图外 */}
                     <Carousel
                         setApi={setApi}
                         opts={{ loop: true }}
                         className="w-full"
-                        style={{ paddingInline: FRAME_GUTTER }}
+                        gutter="lg"
                     >
                         <CarouselContent>
                             {images.map((img, i) => (
@@ -205,11 +202,12 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                     <TooltipTrigger
                                         render={
                                             <Button
-                                                variant="ghost"
+                                                variant="overlay"
+                                                shape="pill"
                                                 size="icon-lg"
                                                 aria-label="上一张"
                                                 onClick={() => api?.scrollPrev()}
-                                                className="absolute inset-y-0 left-0 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                                className="absolute inset-y-0 left-0 z-10 my-auto size-10"
                                             >
                                                 <ChevronLeft className="size-5" />
                                             </Button>
@@ -221,11 +219,12 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                     <TooltipTrigger
                                         render={
                                             <Button
-                                                variant="ghost"
+                                                variant="overlay"
+                                                shape="pill"
                                                 size="icon-lg"
                                                 aria-label="下一张"
                                                 onClick={() => api?.scrollNext()}
-                                                className="absolute inset-y-0 right-0 z-10 my-auto size-10 rounded-full bg-background/90 shadow-sm opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100 hover:text-primary"
+                                                className="absolute inset-y-0 right-0 z-10 my-auto size-10"
                                             >
                                                 <ChevronRight className="size-5" />
                                             </Button>
@@ -245,13 +244,15 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         <div
                             ref={previewRef}
                             aria-hidden
-                            className={`pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-xl border border-border bg-background bg-no-repeat shadow-lg transition-opacity duration-150 lg:block ${
+                            className={`pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-xl border border-border bg-background bg-(image:--zoom-image) bg-(length:--zoom-size) bg-no-repeat shadow-lg transition-opacity duration-150 lg:block ${
                                 isZooming ? "opacity-100" : "opacity-0"
                             }`}
-                            style={{
-                                backgroundImage: `url(${images[current]})`,
-                                backgroundSize: `${ZOOM * 100}%`,
-                            }}
+                            style={
+                                {
+                                    "--zoom-image": `url(${images[current]})`,
+                                    "--zoom-size": `${ZOOM * 100}%`,
+                                } as CSSProperties
+                            }
                         />
                     )}
                 </div>
@@ -266,13 +267,13 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                 <TabsList className="mx-auto min-h-10">
                     <TabsTrigger
                         value="gallery"
-                        className="px-6"
+                        size="lg"
                     >
                         图集
                     </TabsTrigger>
                     <TabsTrigger
                         value="params"
-                        className="px-6"
+                        size="lg"
                     >
                         参数
                     </TabsTrigger>

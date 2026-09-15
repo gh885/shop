@@ -59,8 +59,6 @@ export interface LoginFormProps {
     onSuccess: () => void
     /** 表单是否可见：false→true 时刷新图形验证码（弹窗场景传入；页面场景默认常显） */
     active?: boolean
-    /** 控件尺寸：md = C 端弹窗，sm = B 端卡片 */
-    size?: "sm" | "md"
     /** 表单底部附加内容（协议文案等） */
     footer?: React.ReactNode
 }
@@ -79,11 +77,10 @@ function isCaptchaError(e: ApiError | undefined): boolean {
     )
 }
 
-/** 尺寸只差控件高度与验证码图宽度，用查表而不是 boolean 分支散落各处 */
-const SIZES = {
-    md: { control: "h-12", captcha: "w-26" },
-    sm: { control: "h-11", captcha: "w-24" },
-} as const
+/** 表单控件统一尺寸（B 端紧凑档）：控件高 44px（h-11）、验证码图宽 96px（w-24）。
+ *  以前按端查表分 sm/md 两档，但两档只差 4px/8px，为它维护一张查表 + 一个 size prop
+ *  不划算，也挡住了 lint 对类名的检查（require-static-classes 读不到查表里的变量）。
+ *  类名一律就地写成字面量，别再收敛回常量——收敛回去规则就又看不见了 */
 
 export function LoginForm({
     getCaptcha,
@@ -91,7 +88,6 @@ export function LoginForm({
     submit,
     onSuccess,
     active = true,
-    size = "md",
     footer,
 }: LoginFormProps) {
     const [tab, setTab] = useState<LoginTab>("sms")
@@ -105,7 +101,6 @@ export function LoginForm({
     // useCaptcha 的 refresh/reset 都是 useCallback 稳定引用；提取出来供依赖数组与回调使用
     const { refresh: refreshCaptcha, reset: resetCaptcha } = captcha
 
-    const { control, captcha: captchaWidth } = SIZES[size]
     const serverError = submitError?.detail
     const codeInvalid = isCodeError(submitError)
     const captchaInvalid = isCaptchaError(submitError)
@@ -224,7 +219,10 @@ export function LoginForm({
             >
                 {(field) => (
                     <Field error={firstFieldError(field)}>
-                        <InputGroup className={cn(control, "rounded-xl border-0 bg-muted/70")}>
+                        <InputGroup
+                            size="lg"
+                            variant="filled"
+                        >
                             <InputGroupAddon align="inline-start">
                                 <InputGroupText className="px-3.5 tabular-nums">+86</InputGroupText>
                             </InputGroupAddon>
@@ -232,7 +230,7 @@ export function LoginForm({
                                 id="login-phone"
                                 aria-label="手机号"
                                 aria-invalid={Boolean(firstFieldError(field))}
-                                className="tracking-wide tabular-nums placeholder:tracking-normal"
+                                className="tabular-nums"
                                 placeholder="11 位手机号"
                                 inputMode="tel"
                                 autoComplete="tel"
@@ -254,18 +252,16 @@ export function LoginForm({
                     {(field) => (
                         <Field error={firstFieldError(field)}>
                             <InputGroup
-                                className={cn(
-                                    control,
-                                    "rounded-xl border-0 bg-muted/70",
-                                    captchaInvalid &&
-                                        "motion-safe:animate-shake ring-2 ring-destructive/40",
-                                )}
+                                size="lg"
+                                variant="filled"
+                                invalid={captchaInvalid}
                             >
                                 <InputGroupInput
                                     id="login-captchaCode"
                                     aria-label="图形验证码"
                                     aria-invalid={Boolean(firstFieldError(field))}
-                                    className="px-3.5 tracking-widest uppercase placeholder:normal-case placeholder:tracking-normal"
+                                    variant="code"
+                                    className="px-3.5"
                                     placeholder="输入右图 4 位字符"
                                     autoComplete="off"
                                     maxLength={4}
@@ -290,17 +286,12 @@ export function LoginForm({
                                         <img
                                             src={captcha.image}
                                             alt="图形验证码"
-                                            className={cn("h-full rounded-r-xl", captchaWidth)}
+                                            className="h-full w-24 rounded-r-xl"
                                         />
                                     ) : captcha.loading ? (
-                                        <Skeleton className={cn("h-full", captchaWidth)} />
+                                        <Skeleton className="h-full w-24" />
                                     ) : (
-                                        <span
-                                            className={cn(
-                                                "flex h-full items-center justify-center text-xs text-muted-foreground",
-                                                captchaWidth,
-                                            )}
-                                        >
+                                        <span className="flex h-full w-24 items-center justify-center text-xs text-muted-foreground">
                                             点击获取
                                         </span>
                                     )}
@@ -317,18 +308,16 @@ export function LoginForm({
                     {(field) => (
                         <Field error={firstFieldError(field)}>
                             <InputGroup
-                                className={cn(
-                                    control,
-                                    "rounded-xl border-0 bg-muted/70",
-                                    codeInvalid &&
-                                        "motion-safe:animate-shake ring-2 ring-destructive/40",
-                                )}
+                                size="lg"
+                                variant="filled"
+                                invalid={codeInvalid}
                             >
                                 <InputGroupInput
                                     id="login-code"
                                     aria-label="短信验证码"
                                     aria-invalid={Boolean(firstFieldError(field))}
-                                    className="px-3.5 tracking-widest tabular-nums placeholder:tracking-normal"
+                                    variant="code"
+                                    className="px-3.5 tabular-nums"
                                     placeholder="请输入验证码"
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
@@ -353,7 +342,7 @@ export function LoginForm({
                                         <InputGroupButton
                                             variant="link"
                                             size="sm"
-                                            className="h-full shrink-0 px-3.5 disabled:opacity-40"
+                                            className="h-full shrink-0 px-3.5"
                                             disabled={
                                                 !phoneValid ||
                                                 !captchaValid ||
@@ -383,7 +372,10 @@ export function LoginForm({
                 <form.AppField name="password">
                     {(field) => (
                         <Field error={firstFieldError(field)}>
-                            <InputGroup className={cn(control, "rounded-xl border-0 bg-muted/70")}>
+                            <InputGroup
+                                size="lg"
+                                variant="filled"
+                            >
                                 <InputGroupInput
                                     id="login-password"
                                     aria-label="密码"
@@ -421,7 +413,7 @@ export function LoginForm({
                     <Button
                         type="submit"
                         variant="cta"
-                        className={cn(control, "w-full")}
+                        className="h-11 w-full"
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (

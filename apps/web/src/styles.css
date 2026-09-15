@@ -46,3 +46,20 @@ body {
         transform: translateX(100%);
     }
 }
+
+/* 动画名收进 token（与 ui-web 的 --animate-shake 同构），
+   消费方式是 animate-route-progress，不再写 animate-[route-progress_1.1s_...] 任意值；
+   首页 sticky 头高度同理：HomeHeader 的高度与 RecommendBar 的 top 必须严格相等，
+   以前靠 TS 常量 HomeHeader → RecommendBar 单向 import 维持，现在两边各吃同一个 token */
+@theme {
+    --animate-route-progress: route-progress 1.1s ease-in-out infinite;
+    --home-header-height: 4rem;
+}
+
+/* ---------- 本端布局工具类 ---------- */
+
+/* 落地页 hero 的图文分栏（左文右图，文字侧略宽）。
+   轨道比例没有对应的刻度或主题命名空间，收成命名 utility 而不是就地写 grid-cols-[1.1fr_1fr] */
+@utility grid-hero-split {
+    grid-template-columns: 1.1fr 1fr;
+}

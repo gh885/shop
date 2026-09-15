@@ -64,7 +64,7 @@ export function AccountHeader({
                         <Button
                             type="submit"
                             disabled
-                            className="m-1 h-9 cursor-not-allowed px-6 opacity-60"
+                            className="m-1 h-9 cursor-not-allowed"
                         >
                             <Search />
                             搜索

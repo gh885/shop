@@ -1,31 +1,16 @@
-import { useState } from "react"
 import { Link } from "@tanstack/react-router"
-import { ChevronDown, Search } from "lucide-react"
 
-import {
-    Button,
-    ButtonGroup,
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    Input,
-    Logo,
-} from "@shop/ui-web"
+import { Logo, SearchBar } from "@shop/ui-web"
 
-/** 第一层顶栏高度（px）。推荐条吸顶时以此为 top 偏移 */
-export const HOME_HEADER_HEIGHT = 64
+import { notifySearchComingSoon } from "#/shared/lib/search"
 
-/** 首页第一层：sticky 顶栏，左侧 logo，中间大搜索框（整体圆角容器 + 分类下拉） */
+/** 首页第一层：sticky 顶栏，左侧 logo，中间大搜索框（整体圆角容器 + 分类下拉）。
+ *  高度吃 --home-header-height token（styles.css），推荐条吸顶的 top 偏移同源，
+ *  不再用 TS 常量做跨组件耦合 */
 export function HomeHeader() {
-    const [category, setCategory] = useState("宝贝")
-
     return (
         <div className="sticky top-0 z-30">
-            <header
-                className="border-b border-border/60 bg-background/95 backdrop-blur"
-                style={{ height: HOME_HEADER_HEIGHT }}
-            >
+            <header className="h-(--home-header-height) border-b border-border/60 bg-background/95 backdrop-blur">
                 <div className="mx-auto flex h-full max-w-page items-center gap-4 px-6 sm:gap-8">
                     {/* 品牌 logo：图形标 + 字标 */}
                     <Link
@@ -36,39 +21,14 @@ export function HomeHeader() {
                         <Logo size={36} />
                     </Link>
 
-                    {/* 中间大搜索框：2px 橙描边 + 实色橙按钮（淘宝标志性元素），分类下拉 + 输入框 + 搜索按钮拼合 */}
+                    {/* 中间大搜索框：与内页顶栏同一个组件，只是尺寸档不同 */}
                     <div className="mx-auto min-w-0 w-full max-w-3xl flex-1">
-                        <ButtonGroup className="h-12 w-full rounded-lg border-2 border-primary bg-background focus-within:shadow-float">
-                            {/* 分类下拉：橙色文字 + 箭头，竖线分隔 */}
-                            <DropdownMenu>
-                                <DropdownMenuTrigger className="flex shrink-0 items-center gap-1 pl-5 pr-3 text-base font-medium text-primary transition-colors hover:text-primary-hover">
-                                    {category}
-                                    <ChevronDown className="size-4" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start">
-                                    {["宝贝", "全部"].map((c) => (
-                                        <DropdownMenuItem
-                                            key={c}
-                                            onClick={() => setCategory(c)}
-                                        >
-                                            {c}
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            <span className="h-5 w-px shrink-0 bg-border" />
-
-                            <Input
-                                aria-label="搜索商品"
-                                placeholder="搜索商品"
-                                className="h-full flex-1 rounded-none border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0"
-                            />
-
-                            <Button className="mr-0.5 h-11 px-4 text-base sm:px-8">
-                                <Search />
-                                搜索
-                            </Button>
-                        </ButtonGroup>
+                        <SearchBar
+                            size="lg"
+                            categories={["宝贝", "全部"]}
+                            placeholder="搜索商品"
+                            onSearch={notifySearchComingSoon}
+                        />
                     </div>
                 </div>
             </header>

@@ -59,7 +59,7 @@ export function CategoryStep({
                 >
                     <TabsList
                         variant="line"
-                        className="h-10 w-full p-0"
+                        className="h-10 w-full"
                     >
                         <TabsTrigger value="search">
                             <Search />
@@ -91,7 +91,7 @@ export function CategoryStep({
                     />
                     <Button
                         type="submit"
-                        className="h-10 px-6"
+                        className="h-10"
                     >
                         搜索
                     </Button>
@@ -172,7 +172,7 @@ function ConfirmBar({
                 <Button
                     disabled={!canNext}
                     onClick={onNext}
-                    className="h-9 px-6"
+                    className="h-9"
                 >
                     确认，下一步
                 </Button>

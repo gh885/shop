@@ -20,10 +20,25 @@ const badgeVariants = cva(
                 success: "bg-success-subtle text-success-subtle-foreground",
                 warning: "bg-warning-subtle text-warning-subtle-foreground",
                 info: "bg-info-subtle text-info-subtle-foreground",
+                // DESIGN.md §色彩：「反馈四色，每色三件套」，状态提示优先用 subtle 弱底。
+                // success/warning/info 已有 subtle 档，destructive 只写了 bg-destructive/10
+                // （临时透明度，不是三件套里的 token）——这里补齐红色那一档
+                "destructive-subtle": "bg-destructive-subtle text-destructive-subtle-foreground",
+                /** 橙描边标签：商品卡上的服务/促销类标签。
+                    默认 `outline` 是中性描边，这档把描边与文字都交给 primary（转化信号） */
+                "outline-primary": "border-primary/50 text-primary",
+            },
+            size: {
+                default: "",
+                /** 紧凑档：商品卡标签排。高 16px / 字号 11px / 方角 ——
+                    DESIGN.md 圆角阶梯里 `sm`（4.5px）的用途本就是「小徽标、chip」，
+                    与默认的 20px 胶囊形区分开 */
+                sm: "h-4 rounded-sm px-1 text-3xs",
             },
         },
         defaultVariants: {
             variant: "default",
+            size: "default",
         },
     },
 )
@@ -31,6 +46,7 @@ const badgeVariants = cva(
 function Badge({
     className,
     variant = "default",
+    size = "default",
     render,
     ...props
 }: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
@@ -38,7 +54,7 @@ function Badge({
         defaultTagName: "span",
         props: mergeProps<"span">(
             {
-                className: cn(badgeVariants({ variant }), className),
+                className: cn(badgeVariants({ variant, size }), className),
             },
             props,
         ),
@@ -46,6 +62,7 @@ function Badge({
         state: {
             slot: "badge",
             variant,
+            size,
         },
     })
 }

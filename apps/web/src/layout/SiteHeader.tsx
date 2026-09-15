@@ -56,7 +56,6 @@ export function SiteHeader() {
                     ) : (
                         <Button
                             size="sm"
-                            className="px-3"
                             onClick={() => setLoginOpen(true)}
                         >
                             登录

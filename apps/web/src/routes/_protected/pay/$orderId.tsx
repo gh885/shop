@@ -47,7 +47,7 @@ function PayPage() {
     const amount = payment?.amount.amount
 
     return (
-        <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
+        <div className="flex min-h-(--min-height-page-center) flex-col items-center justify-center px-6">
             <Card className="w-full max-w-md text-center">
                 <CardContent>
                     {phase === "loading" && (

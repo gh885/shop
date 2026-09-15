@@ -3,19 +3,31 @@ import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 
 import { cn } from "src/lib/utils"
 
+/**
+ * 头像。两个维度：
+ *  - `size`：default / sm / lg / **xl**（xl 连首字字号一起放大——48px 圆里 14px 的首字偏小）
+ *  - `shape`：circle（用户头像，默认）/ **square**（店铺 logo 之类的方形圆角头像）
+ *
+ * `shape` 必须在 Image / Fallback / 外描边环三处同时生效，所以走 `data-shape` +
+ * `group-data-[shape=square]/avatar:`，而不是让调用方各自盖 `rounded-*`——
+ * 漏掉任何一处（尤其 `after:` 那圈描边）方角头像就会露出圆形残留。
+ */
 function Avatar({
     className,
     size = "default",
+    shape = "circle",
     ...props
 }: AvatarPrimitive.Root.Props & {
-    size?: "default" | "sm" | "lg"
+    size?: "default" | "sm" | "lg" | "xl"
+    shape?: "circle" | "square"
 }) {
     return (
         <AvatarPrimitive.Root
             data-slot="avatar"
             data-size={size}
+            data-shape={shape}
             className={cn(
-                "group/avatar relative flex size-8 shrink-0 rounded-full select-none after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken data-[size=lg]:size-10 data-[size=sm]:size-6",
+                "group/avatar relative flex size-8 shrink-0 rounded-full select-none after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken data-[size=lg]:size-10 data-[size=sm]:size-6 data-[size=xl]:size-12 data-[shape=square]:rounded-lg data-[shape=square]:after:rounded-lg",
                 className,
             )}
             {...props}
@@ -27,7 +39,10 @@ function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
     return (
         <AvatarPrimitive.Image
             data-slot="avatar-image"
-            className={cn("aspect-square size-full rounded-full object-cover", className)}
+            className={cn(
+                "aspect-square size-full rounded-full object-cover group-data-[shape=square]/avatar:rounded-lg",
+                className,
+            )}
             {...props}
         />
     )
@@ -38,7 +53,7 @@ function AvatarFallback({ className, ...props }: AvatarPrimitive.Fallback.Props)
         <AvatarPrimitive.Fallback
             data-slot="avatar-fallback"
             className={cn(
-                "flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
+                "flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs group-data-[size=xl]/avatar:text-lg group-data-[shape=square]/avatar:rounded-lg",
                 className,
             )}
             {...props}

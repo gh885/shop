@@ -22,8 +22,9 @@ export function BackToTop() {
         <Button
             variant="outline"
             size="icon"
+            shape="pill"
             aria-label="回到顶部"
-            className="fixed bottom-6 right-6 z-40 rounded-full shadow-md"
+            className="fixed bottom-6 right-6 z-40"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
             <ArrowUp />

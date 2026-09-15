@@ -78,7 +78,7 @@ export function AddressTable({
                             const label = labelName(a.label)
                             return (
                                 <TableRow key={a.id}>
-                                    <TableCell className="font-medium">{a.receiver}</TableCell>
+                                    <TableCell variant="strong">{a.receiver}</TableCell>
                                     <TableCell className="tabular-nums">{a.phone}</TableCell>
                                     <TableCell className="whitespace-nowrap">
                                         {[a.province, a.city, a.district].filter(Boolean).join(" ")}
@@ -105,9 +105,8 @@ export function AddressTable({
                                                 编辑
                                             </Button>
                                             <Button
-                                                variant="ghost"
+                                                variant="destructive"
                                                 size="sm"
-                                                className="text-destructive hover:text-destructive"
                                                 onClick={() =>
                                                     onDelete({ id: a.id, receiver: a.receiver })
                                                 }

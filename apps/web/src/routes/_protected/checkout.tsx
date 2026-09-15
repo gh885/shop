@@ -229,7 +229,6 @@ function CheckoutHeader() {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="gap-1"
                     onClick={() => void navigate({ to: "/cart" })}
                 >
                     <ArrowLeft className="size-4" />
@@ -298,25 +297,19 @@ function AddressPicker({
                 <RadioGroup
                     value={effectiveId}
                     onValueChange={(v: string) => onChange(v)}
-                    className="gap-2"
                 >
                     {addresses.map((a) => (
                         <Item
                             key={a.id}
-                            variant={effectiveId === a.id ? "default" : "outline"}
+                            variant={effectiveId === a.id ? "selected" : "selectable"}
                             size="sm"
-                            className={
-                                effectiveId === a.id
-                                    ? "border-foreground bg-accent"
-                                    : "hover:bg-muted/40"
-                            }
                         >
                             <RadioGroupItem value={a.id} />
                             <ItemContent>
-                                <ItemTitle className="text-sm font-medium">
+                                <ItemTitle>
                                     {a.receiver} {a.phone}
                                 </ItemTitle>
-                                <ItemDescription className="line-clamp-1">
+                                <ItemDescription lines={1}>
                                     {a.province}
                                     {a.city}
                                     {a.district}
@@ -342,23 +335,22 @@ function GroupCard({
 }) {
     return (
         <Panel>
-            <PanelHeader className="gap-2 text-sm font-medium">
-                <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
-                    店
-                </span>
-                {group.shopName}
+            <PanelHeader>
+                <div className="flex items-center gap-2 font-medium">
+                    <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
+                        店
+                    </span>
+                    {group.shopName}
+                </div>
             </PanelHeader>
             <PanelContent>
                 {group.lines.map((l) => (
                     <Item
                         key={`${l.skuId}-${l.productId}`}
-                        size="sm"
-                        className="rounded-none border-0 px-5 py-4"
+                        variant="plain"
+                        size="lg"
                     >
-                        <ItemMedia
-                            variant="image"
-                            className="size-16 shrink-0 rounded-md bg-muted"
-                        >
+                        <ItemMedia variant="thumbnail">
                             {l.image && (
                                 <img
                                     src={l.image}
@@ -367,7 +359,10 @@ function GroupCard({
                             )}
                         </ItemMedia>
                         <ItemContent>
-                            <ItemTitle className="line-clamp-2 w-full text-sm font-normal">
+                            <ItemTitle
+                                lines={2}
+                                className="w-full"
+                            >
                                 {l.name}
                             </ItemTitle>
                         </ItemContent>
@@ -416,7 +411,7 @@ function UnavailableCard({ lines }: { lines: UnavailableLine[] }) {
     return (
         <Item
             variant="muted"
-            className="flex-col items-start gap-2"
+            className="flex-col items-start"
         >
             <div className="flex items-center gap-2 font-medium text-destructive">
                 <CircleAlert className="size-4" />

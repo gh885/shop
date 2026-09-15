@@ -93,7 +93,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                                 <Button
                                     variant="ghost"
                                     size="icon-xs"
-                                    className="ml-1 text-muted-foreground"
+                                    className="ml-1"
                                     aria-label="复制订单号"
                                 >
                                     <Copy />

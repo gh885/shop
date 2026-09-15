@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "src/lib/utils"
 
 const buttonVariants = cva(
-    "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+    "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
     {
         variants: {
             variant: {
@@ -21,6 +21,10 @@ const buttonVariants = cva(
                 cta: "rounded-xl bg-linear-to-r from-primary to-primary-hover text-base text-primary-foreground hover:from-primary-hover hover:to-primary-active active:from-primary-active",
                 "cta-alt":
                     "rounded-xl bg-linear-to-r from-cta-alt to-cta-alt-hover text-base text-cta-alt-foreground hover:from-cta-alt-hover hover:to-cta-alt-active active:from-cta-alt-active",
+                /** 图片/媒体上的悬停浮现圆钮（详情页翻页、放大会用到）。
+                    依赖祖先有 `group`；圆角由 shape="pill" 提供 */
+                overlay:
+                    "bg-background/90 shadow-sm backdrop-blur transition-opacity duration-200 opacity-0 group-hover:opacity-100 hover:text-primary",
             },
             size: {
                 default:
@@ -35,10 +39,16 @@ const buttonVariants = cva(
                     "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
                 "icon-lg": "size-9",
             },
+            /** 形状：pill = 胶囊。默认圆角来自基类的 rounded-md（cta/cta-alt 另烘 rounded-xl） */
+            shape: {
+                default: "",
+                pill: "rounded-full",
+            },
         },
         defaultVariants: {
             variant: "default",
             size: "default",
+            shape: "default",
         },
     },
 )
@@ -47,12 +57,13 @@ function Button({
     className,
     variant = "default",
     size = "default",
+    shape = "default",
     ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
     return (
         <ButtonPrimitive
             data-slot="button"
-            className={cn(buttonVariants({ variant, size, className }))}
+            className={cn(buttonVariants({ variant, size, shape, className }))}
             {...props}
         />
     )

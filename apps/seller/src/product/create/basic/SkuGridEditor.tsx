@@ -77,7 +77,7 @@ function PriceCell({
             />
             <InputGroupAddon
                 align="inline-end"
-                className="font-normal"
+                variant="quiet"
             >
                 元
             </InputGroupAddon>
@@ -121,7 +121,7 @@ function QuantityCell({
             />
             <InputGroupAddon
                 align="inline-end"
-                className="font-normal"
+                variant="quiet"
             >
                 件
             </InputGroupAddon>
@@ -197,7 +197,7 @@ export function SkuGridEditor({
                 <InputGroup className="h-9 w-fit">
                     <InputGroupAddon
                         align="inline-start"
-                        className="font-normal"
+                        variant="quiet"
                     >
                         价格
                     </InputGroupAddon>
@@ -210,7 +210,7 @@ export function SkuGridEditor({
                     />
                     <InputGroupAddon
                         align="inline-end"
-                        className="font-normal"
+                        variant="quiet"
                     >
                         元
                     </InputGroupAddon>
@@ -218,7 +218,7 @@ export function SkuGridEditor({
                 <InputGroup className="h-9 w-fit">
                     <InputGroupAddon
                         align="inline-start"
-                        className="font-normal"
+                        variant="quiet"
                     >
                         数量
                     </InputGroupAddon>
@@ -231,7 +231,7 @@ export function SkuGridEditor({
                     />
                     <InputGroupAddon
                         align="inline-end"
-                        className="font-normal"
+                        variant="quiet"
                     >
                         件
                     </InputGroupAddon>
@@ -281,12 +281,8 @@ export function SkuGridEditor({
                 <TableHeader>
                     <TableRow>
                         <TableHead>规格</TableHead>
-                        <TableHead className="w-36 before:mr-0.5 before:text-destructive before:content-['*']">
-                            价格
-                        </TableHead>
-                        <TableHead className="w-32 before:mr-0.5 before:text-destructive before:content-['*']">
-                            数量
-                        </TableHead>
+                        <TableHead className="w-36 required-mark">价格</TableHead>
+                        <TableHead className="w-32 required-mark">数量</TableHead>
                         <TableHead className="w-36">商家编码</TableHead>
                         <TableHead className="w-28">
                             SKU分类
@@ -334,7 +330,6 @@ export function SkuGridEditor({
                                     disabled
                                     value="单品"
                                     title="SKU分类待后端支持"
-                                    className="text-muted-foreground"
                                 />
                             </TableCell>
                             <TableCell>

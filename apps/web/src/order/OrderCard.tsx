@@ -52,9 +52,9 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
     const { seconds } = useCountdown(pending ? order.payExpireAt : "")
 
     return (
-        <Panel className="text-sm">
+        <Panel>
             {/* 顶部订单信息条 */}
-            <PanelHeader className="bg-muted/40">
+            <PanelHeader variant="muted">
                 <span className="text-muted-foreground">{formatDateTime(order.createdAt)}</span>
                 <span className="text-muted-foreground">
                     订单号：<span className="text-foreground">{order.orderNo}</span>
@@ -86,13 +86,11 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                     {order.items.map((item) => (
                         <Item
                             key={orderItemKey(item)}
-                            className="flex-nowrap px-5 py-4"
+                            size="lg"
+                            className="flex-nowrap"
                         >
                             {/* 主图 */}
-                            <ItemMedia
-                                variant="image"
-                                className="size-16 rounded-md bg-muted"
-                            >
+                            <ItemMedia variant="thumbnail">
                                 {item.image && (
                                     <img
                                         src={item.image}
@@ -104,8 +102,16 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
 
                             {/* 描述：标题 */}
                             <ItemContent>
-                                <ItemTitle className="line-clamp-2 w-full">{item.title}</ItemTitle>
-                                <ItemDescription className="line-clamp-1 w-full">
+                                <ItemTitle
+                                    lines={2}
+                                    className="w-full"
+                                >
+                                    {item.title}
+                                </ItemTitle>
+                                <ItemDescription
+                                    lines={1}
+                                    className="w-full"
+                                >
                                     规格：{item.skuId ? "已选规格" : "默认规格"}
                                 </ItemDescription>
                             </ItemContent>
@@ -137,7 +143,7 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                             </div>
 
                             {/* 订单操作：按状态动态渲染 */}
-                            <ItemActions className="w-36 gap-2">
+                            <ItemActions className="w-36">
                                 <OrderActionButtons
                                     actions={deriveOrderActions(order, "card")}
                                     disabledKey={pendingAction}

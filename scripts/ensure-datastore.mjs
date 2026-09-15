@@ -123,7 +123,9 @@ function vmmemMB() {
         ],
         { encoding: "utf8" },
     )
-    const bytes = Number.parseInt((res.stdout ?? "").trim(), 10)
+    // spawnSync 失败时 stdout 是 null（类型上不会体现，所以不能靠 `?? ""` 兜底——
+    // 那是类型系统说多余的防御）。判 res.error 更实在：拿不到就 NaN，落到下面统一返回"拿不到"。
+    const bytes = res.error ? Number.NaN : Number.parseInt(res.stdout.trim(), 10)
     return Number.isFinite(bytes) ? Math.round(bytes / 1024 / 1024) : null
 }
 

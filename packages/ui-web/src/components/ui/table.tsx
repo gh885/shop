@@ -1,4 +1,5 @@
 import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "src/lib/utils"
 
@@ -73,12 +74,36 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     )
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+/**
+ * 单元格。`variant` 表达的是**这一列在行里扮演什么角色**（列语义，不是行的皮肤）：
+ *  - `strong`：标识列（名称、收件人）——本行的"主键"，字重加一档
+ *  - `muted`：次要列（时间戳、标签）——补充信息，弱化到 muted-foreground
+ * 基类只有 `p-2`，所以字重/文字色得由这里给，否则每个表格都要手写一遍同样的覆盖。
+ */
+const tableCellVariants = cva("", {
+    variants: {
+        variant: {
+            default: "",
+            strong: "font-medium",
+            muted: "text-muted-foreground",
+        },
+    },
+    defaultVariants: {
+        variant: "default",
+    },
+})
+
+function TableCell({
+    className,
+    variant = "default",
+    ...props
+}: React.ComponentProps<"td"> & VariantProps<typeof tableCellVariants>) {
     return (
         <td
             data-slot="table-cell"
             className={cn(
                 "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+                tableCellVariants({ variant }),
                 className,
             )}
             {...props}

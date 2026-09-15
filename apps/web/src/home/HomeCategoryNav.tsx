@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { Link } from "@tanstack/react-router"
 import {
     Armchair,
@@ -36,6 +36,10 @@ export function HomeCategoryNav({
 }) {
     const [activeId, setActiveId] = useState<string | undefined>()
 
+    // 高度由调用方给（index.tsx 传 200，其余场景默认 320）：走 CSS 变量交给 h-(--nav-height)，
+    // 不用内联 height。断言与仓库既有写法一致（ui-web 的 sidebar/topbar/toggle-group 同款）
+    const navHeightStyle = { "--nav-height": `${defaultHeight}px` } as CSSProperties
+
     // 未加载（undefined）→ 骨架占位；后端返回空数组 → 明确的空态，避免永远停在骨架
     if (entries === undefined) {
         return <Skeleton className="h-full w-full rounded-xl" />
@@ -44,8 +48,8 @@ export function HomeCategoryNav({
     if (entries.length === 0) {
         return (
             <div
-                className="flex w-full items-center justify-center rounded-xl bg-background shadow-sm lg:w-64 lg:shrink-0"
-                style={{ height: defaultHeight }}
+                className="flex h-(--nav-height) w-full items-center justify-center rounded-xl bg-background shadow-sm lg:w-64 lg:shrink-0"
+                style={navHeightStyle}
             >
                 <p className="px-4 text-center text-sm text-muted-foreground">
                     商品分类即将上线，敬请期待
@@ -58,8 +62,8 @@ export function HomeCategoryNav({
 
     return (
         <div
-            className="relative w-full lg:w-64 lg:shrink-0"
-            style={{ height: defaultHeight }}
+            className="relative h-(--nav-height) w-full lg:w-64 lg:shrink-0"
+            style={navHeightStyle}
             onMouseLeave={() => setActiveId(undefined)}
             onBlur={(e) => {
                 // 焦点移出整个导航区域（含 Mega 面板）时收起，键盘可达的关键
@@ -77,14 +81,10 @@ export function HomeCategoryNav({
                         return (
                             <li key={entry.id}>
                                 <Button
-                                    variant="ghost"
+                                    variant={activeId === entry.id ? "secondary" : "ghost"}
                                     onMouseEnter={() => setActiveId(entry.id)}
                                     onFocus={() => setActiveId(entry.id)}
-                                    className={`w-full justify-start gap-3 rounded-none px-4 py-1.5 ${
-                                        activeId === entry.id
-                                            ? "bg-sunken text-foreground"
-                                            : "text-muted-foreground hover:text-foreground"
-                                    }`}
+                                    className="w-full justify-start"
                                 >
                                     <Icon className="size-4 shrink-0" />
                                     <span

@@ -204,11 +204,10 @@ export function SalesAttrsEditor({
                             ))}
 
                             <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon-lg"
                                 onClick={() => addRow(ai)}
                                 aria-label="添加取值"
-                                className="border border-dashed border-input hover:border-foreground hover:text-foreground"
                             >
                                 <Plus className="size-4" />
                             </Button>

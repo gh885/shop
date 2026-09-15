@@ -36,7 +36,9 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
 
     return (
         <Item
-            className={`flex-nowrap gap-4 py-5 ${view.disabled ? "opacity-50" : ""}`}
+            size="lg"
+            className="flex-nowrap"
+            data-disabled={view.disabled || undefined}
             data-testid={`cart-item-${item.id}`}
         >
             <Checkbox
@@ -47,8 +49,8 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
             />
 
             <ItemMedia
-                variant="image"
-                className="size-20 rounded-lg border border-border/60"
+                variant="thumbnail"
+                className="size-20"
             >
                 <img
                     src={view.image || undefined}
@@ -58,7 +60,12 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
             </ItemMedia>
 
             <ItemContent>
-                <ItemTitle className="line-clamp-2 w-full">{view.title}</ItemTitle>
+                <ItemTitle
+                    lines={2}
+                    className="w-full"
+                >
+                    {view.title}
+                </ItemTitle>
                 {view.skuName && <ItemDescription>{view.skuName}</ItemDescription>}
                 {view.outOfStock && <Badge variant="warning">缺货</Badge>}
             </ItemContent>
@@ -86,7 +93,6 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                                 <Button
                                     variant="outline"
                                     size="icon-sm"
-                                    className="text-muted-foreground hover:text-foreground"
                                     disabled={view.disabled || item.quantity <= 1}
                                     onClick={() => actions.updateQuantity(item, item.quantity - 1)}
                                     aria-label="减少数量"
@@ -97,7 +103,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                         />
                         <TooltipContent>减少数量</TooltipContent>
                     </Tooltip>
-                    <ButtonGroupText className="w-8 justify-center border-x bg-background px-0 text-sm tabular-nums">
+                    <ButtonGroupText className="w-8 justify-center border-x bg-background px-0 tabular-nums">
                         {item.quantity}
                     </ButtonGroupText>
                     <Tooltip>
@@ -106,7 +112,6 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                                 <Button
                                     variant="outline"
                                     size="icon-sm"
-                                    className="text-muted-foreground hover:text-foreground"
                                     disabled={view.disabled || view.stock === 0}
                                     onClick={() => actions.updateQuantity(item, item.quantity + 1)}
                                     aria-label="增加数量"

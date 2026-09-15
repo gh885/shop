@@ -4,8 +4,10 @@ import * as React from "react"
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Search as SearchIcon } from "lucide-react"
 
 import { cn } from "src/lib/utils"
+import { Input } from "src/components/ui/input"
 
 // 顶栏复合组件（B 端工作台：seller/admin）。
 // 对标 shadcn sidebar 的封装风格：
@@ -148,4 +150,28 @@ function TopBarActions({ className, ...props }: React.ComponentProps<"div">) {
     )
 }
 
-export { TopBar, TopBarActions, TopBarBrand, TopBarNav, TopBarNavItem }
+/**
+ * 顶栏搜索框：胶囊 + 无描边 + 白底，前置图标绝对定位在内。
+ *
+ * 搜索是顶栏的一段（和 Brand / Nav / Actions 同层），所以住在顶栏家族里，
+ * 而不是各 app 各拼一遍「relative 包一层 + 绝对定位图标 + 给输入框补 pl-9」。
+ * 宽度与显隐属布局，交给调用方用 className 定（`hidden w-60 md:block` 之类）。
+ */
+function TopBarSearch({ className, ...props }: React.ComponentProps<"input">) {
+    return (
+        <div
+            data-slot="topbar-search"
+            data-topbar="search"
+            className={cn("relative", className)}
+        >
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+                type="search"
+                className="h-9 rounded-full border-transparent bg-background pl-9 shadow-none focus-visible:border-transparent focus-visible:ring-2"
+                {...props}
+            />
+        </div>
+    )
+}
+
+export { TopBar, TopBarActions, TopBarBrand, TopBarNav, TopBarNavItem, TopBarSearch }

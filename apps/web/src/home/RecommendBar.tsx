@@ -3,7 +3,6 @@ import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 
 import { Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
-import { HOME_HEADER_HEIGHT } from "./HomeHeader"
 import { useRecommendTabs } from "./queries"
 
 /** 首页第四层：吸顶推荐条，吸在顶栏下方。扁平数组（猜你喜欢是普通一项），每页显示数量由容器宽度自动决定，首末页隐藏对应翻页按钮 */
@@ -53,10 +52,7 @@ export function RecommendBar() {
 
     if (!tabs.data) {
         return (
-            <div
-                className="sticky z-30"
-                style={{ top: HOME_HEADER_HEIGHT }}
-            >
+            <div className="sticky top-(--home-header-height) z-30">
                 <div className="bg-background/95 backdrop-blur">
                     <div className="mx-auto max-w-(--container-page) px-6 py-3">
                         <Skeleton className="h-6 w-1/2 rounded-sm" />
@@ -68,10 +64,7 @@ export function RecommendBar() {
     }
 
     return (
-        <div
-            className="sticky z-30"
-            style={{ top: HOME_HEADER_HEIGHT }}
-        >
+        <div className="sticky top-(--home-header-height) z-30">
             <div className="bg-background/95 backdrop-blur">
                 <div className="mx-auto flex max-w-(--container-page) items-center gap-4 px-6 py-3">
                     {/* 左侧往回翻页：第一页隐藏 */}
@@ -84,7 +77,6 @@ export function RecommendBar() {
                                         size="icon-sm"
                                         onClick={prevPage}
                                         aria-label="上一组"
-                                        className="shrink-0 text-muted-foreground hover:text-primary"
                                     >
                                         <ChevronLeft className="size-5" />
                                     </Button>
@@ -135,7 +127,6 @@ export function RecommendBar() {
                                         size="icon-sm"
                                         onClick={nextPage}
                                         aria-label="下一组"
-                                        className="shrink-0 text-muted-foreground hover:text-primary"
                                     >
                                         <ChevronRight className="size-5" />
                                     </Button>
@@ -153,7 +144,6 @@ export function RecommendBar() {
                                     size="icon-sm"
                                     onClick={refresh}
                                     aria-label="刷新"
-                                    className="shrink-0 text-muted-foreground hover:text-primary"
                                 >
                                     <RefreshCw className="size-4" />
                                 </Button>

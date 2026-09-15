@@ -72,7 +72,7 @@ function Home() {
                         : Array.from({ length: 3 }, (_, i) => (
                               <Skeleton
                                   key={i}
-                                  className="h-[200px] rounded-xl"
+                                  className="h-50 rounded-xl"
                               />
                           ))}
                 </div>
@@ -90,7 +90,7 @@ function Home() {
                                 <Skeleton
                                     key={i}
                                     // 骨架高度对齐商品卡（正方形图 + 92px 信息区）的整卡比例，避免加载完跳版
-                                    className="aspect-[5/7] w-full rounded-lg"
+                                    className="aspect-5/7 w-full rounded-lg"
                                 />
                             ))}
                         </div>

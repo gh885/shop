@@ -109,20 +109,16 @@ export function AfterSaleApplyDialog({
                                     onValueChange={(v: string) => {
                                         if (isTicketType(v)) field.handleChange(v)
                                     }}
-                                    className="gap-2"
                                 >
                                     {AFTER_SALE_TYPE_ORDER.map((type) => (
                                         <Item
                                             key={type}
                                             variant={
-                                                field.state.value === type ? "default" : "outline"
+                                                field.state.value === type
+                                                    ? "selected"
+                                                    : "selectable"
                                             }
                                             size="sm"
-                                            className={
-                                                field.state.value === type
-                                                    ? "border-foreground bg-accent"
-                                                    : "hover:bg-muted/40"
-                                            }
                                         >
                                             {/* 可访问名与可见标题同词（label-in-name）：类型名短，说明留在行内灰字里 */}
                                             <RadioGroupItem
@@ -130,10 +126,8 @@ export function AfterSaleApplyDialog({
                                                 aria-label={AFTER_SALE_TYPE_LABEL[type]}
                                             />
                                             <ItemContent>
-                                                <ItemTitle className="text-sm font-medium">
-                                                    {AFTER_SALE_TYPE_LABEL[type]}
-                                                </ItemTitle>
-                                                <ItemDescription className="line-clamp-1">
+                                                <ItemTitle>{AFTER_SALE_TYPE_LABEL[type]}</ItemTitle>
+                                                <ItemDescription lines={1}>
                                                     {AFTER_SALE_TYPE_HINT[type]}
                                                 </ItemDescription>
                                             </ItemContent>

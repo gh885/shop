@@ -62,9 +62,9 @@ export function CouponPage({ search }: { search: CouponListSearch }) {
             </div>
 
             <Card size="sm">
-                <CardContent className="flex items-start gap-3 text-sm text-muted-foreground">
+                <CardContent className="flex items-start gap-3">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                    <p>
+                    <p className="text-sm text-muted-foreground">
                         券模板没有「编辑」：已领出的券按领取时的快照生效，改模板只会影响后来人。
                         要调整规则，请停用旧券后再新建一张。
                     </p>

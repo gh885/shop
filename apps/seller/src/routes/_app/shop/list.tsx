@@ -112,11 +112,11 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
     return (
         <Item
             variant="outline"
-            size="sm"
-            className="justify-between p-5"
+            size="lg"
+            className="justify-between"
         >
             <ItemContent>
-                <ItemTitle className="flex items-center gap-3">
+                <ItemTitle className="flex items-center">
                     {shop.name}
                     <Badge variant={SHOP_STATUS_VARIANT[shop.status]}>
                         {SHOP_STATUS_TEXT[shop.status]}
@@ -167,14 +167,11 @@ function PendingInvites() {
                     <Item
                         key={invite.memberId}
                         variant="outline"
-                        size="sm"
-                        className="justify-between p-4"
+                        size="lg"
+                        className="justify-between"
                     >
                         <div className="flex items-center gap-3">
-                            <ItemMedia
-                                variant="icon"
-                                className="border-0 bg-transparent"
-                            >
+                            <ItemMedia variant="icon">
                                 <MailPlus />
                             </ItemMedia>
                             <span className="text-sm">「{invite.shopName}」邀请你成为店铺成员</span>

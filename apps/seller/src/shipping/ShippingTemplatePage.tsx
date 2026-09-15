@@ -202,9 +202,9 @@ export function ShippingTemplatePage() {
     return (
         <div className="mx-auto w-full max-w-(--container-narrow) space-y-4 pb-24">
             <Card size="sm">
-                <CardContent className="flex items-start gap-3 text-sm text-muted-foreground">
+                <CardContent className="flex items-start gap-3">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                    <p>
+                    <p className="text-sm text-muted-foreground">
                         {isNew
                             ? "你还没有设置运费模板，当前商品结算暂按包邮。保存后对新订单生效。"
                             : "运费模板修改后只影响新订单，已下单订单继续使用下单时的模板快照。"}

@@ -214,8 +214,7 @@ function DeviceManager() {
                             <Item
                                 key={d.deviceId}
                                 variant="outline"
-                                size="sm"
-                                className="gap-3 px-4 py-3"
+                                size="lg"
                             >
                                 <ItemMedia variant="icon">
                                     {isMobileName(d.deviceName) ? <Smartphone /> : <Monitor />}

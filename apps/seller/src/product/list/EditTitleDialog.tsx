@@ -93,7 +93,7 @@ export function EditTitleDialog({
             open={open}
             onOpenChange={onOpenChange}
         >
-            <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl">
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>编辑标题</DialogTitle>
                 </DialogHeader>

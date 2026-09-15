@@ -58,7 +58,13 @@ export const alsoViewedOptions = queryOptions({
 
 // ---------- hooks ----------
 
-/** shopId 未就绪前不发请求（enabled 关掉） */
-export function useShop(shopId: string | undefined): PublicShop | undefined {
-    return useQuery({ ...shopOptions(shopId ?? "pending"), enabled: !!shopId }).data
+/**
+ * 店铺公开信息查询。
+ *
+ * 返回**完整 query 结果**而不是 `.data`：店铺条要自己区分「还在加载」与「加载失败」
+ * （失败必须给重试，而不是让骨架或占位一直挂着）。
+ * shopId 未就绪前不发请求（enabled 关掉）。
+ */
+export function useShopQuery(shopId: string | undefined) {
+    return useQuery({ ...shopOptions(shopId ?? "pending"), enabled: !!shopId })
 }

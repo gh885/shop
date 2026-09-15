@@ -171,13 +171,13 @@ function Axis({
             {hasLineAbove && (
                 <span
                     aria-hidden
-                    className="absolute left-[3.5px] top-0 h-2 w-px bg-border"
+                    className="absolute left-1 top-0 h-2 w-px -translate-x-1/2 bg-border"
                 />
             )}
             {hasLineBelow && (
                 <span
                     aria-hidden
-                    className="absolute left-[3.5px] top-4 bottom-0 w-px bg-border"
+                    className="absolute left-1 top-4 bottom-0 w-px -translate-x-1/2 bg-border"
                 />
             )}
             <span

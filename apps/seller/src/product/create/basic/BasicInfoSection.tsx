@@ -114,7 +114,8 @@ export function BasicInfoSection({
                                 {field.state.value.length > 0 && (
                                     <InputGroupAddon
                                         align="inline-end"
-                                        className="text-xs font-normal tabular-nums text-muted-foreground"
+                                        variant="counter"
+                                        className="tabular-nums"
                                     >
                                         {field.state.value.length}/30
                                     </InputGroupAddon>
@@ -152,7 +153,8 @@ export function BasicInfoSection({
                                 {field.state.value.length > 0 && (
                                     <InputGroupAddon
                                         align="inline-end"
-                                        className="text-xs font-normal tabular-nums text-muted-foreground"
+                                        variant="counter"
+                                        className="tabular-nums"
                                     >
                                         {field.state.value.length}/30
                                     </InputGroupAddon>

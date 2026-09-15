@@ -117,7 +117,10 @@ export function RefundTable({
                             </span>
                         </TableCell>
 
-                        <TableCell className="text-muted-foreground tabular-nums">
+                        <TableCell
+                            variant="muted"
+                            className="tabular-nums"
+                        >
                             {formatDateTime(ticket.createdAt)}
                         </TableCell>
 

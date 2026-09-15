@@ -26,7 +26,7 @@ export function UserCard() {
     const fallbackChar = displayName.charAt(0)
 
     return (
-        <div className="flex h-[200px] w-[250px] shrink-0 flex-col rounded-lg bg-background p-4 shadow-sm">
+        <div className="flex h-50 w-62.5 shrink-0 flex-col rounded-lg bg-background p-4 shadow-sm">
             {/* 头部：头像 + 昵称 */}
             <div className="flex items-center gap-3">
                 <Avatar className="size-10">
@@ -87,8 +87,8 @@ export function UserCard() {
                     <Button
                         key={item.label}
                         variant="ghost"
-
-                        className="flex h-auto flex-col gap-1 text-xs p-1"
+                        size="xs"
+                        className="flex h-auto flex-col"
                         onClick={() =>
                             // TODO: 浏览记录 / 店铺关注页未实现，暂路由到首页；落地后接真实路径
                             void navigate({ to: item.to }).catch(() => {})

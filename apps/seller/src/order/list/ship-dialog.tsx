@@ -67,7 +67,8 @@ export function ShipDialog({
             open={open}
             onOpenChange={onOpenChange}
         >
-            <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-md">
+            {/* max-w 基底已由 ui-web 的 DialogContent 提供（含 max-w-[calc(100%-2rem)]），这里只覆盖 sm: 档 */}
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>发货</DialogTitle>
                 </DialogHeader>

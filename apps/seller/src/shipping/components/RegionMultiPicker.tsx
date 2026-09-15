@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type CSSProperties } from "react"
 import { ChevronRight, MapPin, Search, X } from "lucide-react"
 
 import { loadRegionTree, type RegionTreeNode } from "@shop/common"
@@ -64,8 +64,8 @@ function RegionTree({
                 return (
                     <div key={node.code}>
                         <div
-                            className="flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-muted"
-                            style={{ paddingLeft: `${depth * 16 + 4}px` }}
+                            className="flex items-center gap-1 rounded-md py-0.5 pr-1 pl-(--indent) hover:bg-muted"
+                            style={{ "--indent": `${depth * 16 + 4}px` } as CSSProperties}
                         >
                             {hasChildren ? (
                                 <Button
@@ -172,7 +172,7 @@ export function RegionMultiPicker({
             <Button
                 type="button"
                 variant="outline"
-                className="h-auto min-h-9 w-full justify-start gap-2 py-1.5 text-left font-normal"
+                className="h-auto min-h-9 w-full justify-start text-left"
                 onClick={() => setOpen(true)}
             >
                 <MapPin className="size-4 shrink-0 text-muted-foreground" />
@@ -192,13 +192,13 @@ export function RegionMultiPicker({
                         <Badge
                             key={code}
                             variant="secondary"
-                            className="gap-1 pr-1"
                         >
                             <span className="max-w-56 truncate">
                                 {labelByCode.get(code) ?? code}
                             </span>
                             <button
                                 type="button"
+                                data-icon="inline-end"
                                 aria-label="移除地区"
                                 className="rounded-full p-0.5 hover:bg-foreground/10"
                                 onClick={() => toggleRegion(code)}

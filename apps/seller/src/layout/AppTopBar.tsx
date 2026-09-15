@@ -6,7 +6,6 @@ import {
     CircleHelpIcon,
     HeadsetIcon,
     LogOutIcon,
-    SearchIcon,
     StoreIcon,
 } from "lucide-react"
 import { Link, useNavigate } from "@tanstack/react-router"
@@ -15,7 +14,6 @@ import {
     Avatar,
     AvatarFallback,
     Button,
-    Input,
     Item,
     ItemActions,
     ItemContent,
@@ -32,6 +30,7 @@ import {
     TopBar as TopBarRoot,
     TopBarActions,
     TopBarBrand,
+    TopBarSearch,
 } from "@shop/ui-web"
 
 import { logout } from "#/shared/lib/api"
@@ -105,16 +104,13 @@ function SearchBox() {
     const [query, setQuery] = useState("")
 
     return (
-        <div className="relative hidden w-60 md:block">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-                type="search"
-                placeholder="搜索菜单、功能"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="h-9 rounded-full border-transparent bg-background pl-9 shadow-none focus-visible:border-transparent focus-visible:ring-2"
-            />
-        </div>
+        <TopBarSearch
+            placeholder="搜索菜单、功能"
+            aria-label="搜索菜单、功能"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="hidden w-60 md:block"
+        />
     )
 }
 
@@ -133,7 +129,7 @@ function TopBarAction({
         <Button
             variant="ghost"
             title={label}
-            className="flex w-11 flex-col items-center gap-1 rounded-lg py-1.5"
+            className="flex w-11 flex-col items-center"
         >
             <span className="relative text-foreground/80 [&>svg]:size-4.5">
                 {icon}
@@ -170,7 +166,7 @@ function AccountChip() {
                     <Button
                         variant="ghost"
                         title={name}
-                        className="flex items-center gap-2.5 rounded-lg px-1.5 py-1"
+                        className="flex items-center"
                     >
                         <Avatar size="default">
                             <AvatarFallback>{name.trim().charAt(0) || "?"}</AvatarFallback>
@@ -208,8 +204,8 @@ function AccountChip() {
                         onClick={() => {
                             if (!logoutMutation.isPending) logoutMutation.mutate()
                         }}
-                        className="cursor-pointer data-disabled:opacity-50"
-                        data-disabled={logoutMutation.isPending}
+                        className="cursor-pointer"
+                        data-disabled={logoutMutation.isPending ? "" : undefined}
                     >
                         <ItemContent>
                             <ItemTitle>退出登录</ItemTitle>

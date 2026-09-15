@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useId, type CSSProperties } from "react"
 
 import { cn } from "src/lib/utils"
 
@@ -62,14 +62,16 @@ export function LogoMark({ size = 32, variant = "brand", className, ...props }: 
         >
             {mono ? (
                 <>
+                    {/* mask 里的 fill 不是品牌色，是遮罩亮度：白 = 保留，黑 = 挖掉。
+                        所以不能跟着 currentColor 走，只能显式取主题里的绝对白/黑 */}
                     <mask id={maskId}>
                         <rect
                             width="48"
                             height="48"
                             rx="13"
-                            fill="#fff"
+                            fill="var(--color-white)"
                         />
-                        <g fill="#000">{glyph}</g>
+                        <g fill="var(--color-black)">{glyph}</g>
                     </mask>
                     <rect
                         width="48"
@@ -115,11 +117,11 @@ export function Logo({
     return (
         <span
             className={cn(
-                "inline-flex items-center gap-[0.35em]",
+                "inline-flex items-center gap-[0.35em] text-(length:--logo-font-size)",
                 variant === "mono" ? "text-current" : "text-primary",
                 className,
             )}
-            style={{ fontSize: size * 0.72 }}
+            style={{ "--logo-font-size": `${size * 0.72}px` } as CSSProperties}
             {...props}
         >
             <LogoMark

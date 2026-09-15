@@ -5,7 +5,7 @@ export function ProductImage({ src, alt }: { src: string | null | undefined; alt
             src={src}
             alt={alt}
             loading="lazy"
-            className="aspect-square w-full object-cover transition-transform duration-150 group-hover:scale-[1.04]"
+            className="aspect-square w-full object-cover transition-transform duration-150 group-hover:scale-104"
         />
     ) : (
         <div className="flex aspect-square w-full items-center justify-center bg-muted text-xs text-muted-foreground">

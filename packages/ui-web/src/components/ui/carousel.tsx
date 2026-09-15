@@ -4,6 +4,7 @@ import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-reac
 import { cn } from "src/lib/utils"
 import { Button } from "src/components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { cva, type VariantProps } from "class-variance-authority"
 
 type CarouselApi = UseEmblaCarouselType[1]
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
@@ -16,6 +17,24 @@ type CarouselProps = {
     orientation?: "horizontal" | "vertical"
     setApi?: (api: CarouselApi) => void
 }
+
+/** 两侧留白 = 翻页箭头的地盘：容器因此比图片区宽，箭头站在图外、不压图片。
+    这块留白必须落在根节点上（箭头按根节点定位），所以在组件里做成变体，
+    而不是让调用方从外面塞 padding——那既违反「组件自己管间距」，
+    no-restyle 也会拦下来 */
+const carouselVariants = cva("relative", {
+    variants: {
+        gutter: {
+            none: "",
+            sm: "px-4",
+            md: "px-8",
+            lg: "px-14",
+        },
+    },
+    defaultVariants: {
+        gutter: "none",
+    },
+})
 
 type CarouselContextProps = {
     carouselRef: ReturnType<typeof useEmblaCarousel>[0]
@@ -44,9 +63,10 @@ function Carousel({
     setApi,
     plugins,
     className,
+    gutter,
     children,
     ...props
-}: React.ComponentProps<"div"> & CarouselProps) {
+}: React.ComponentProps<"div"> & CarouselProps & VariantProps<typeof carouselVariants>) {
     const [carouselRef, api] = useEmblaCarousel(
         {
             ...opts,
@@ -116,7 +136,7 @@ function Carousel({
         >
             <div
                 onKeyDownCapture={handleKeyDown}
-                className={cn("relative", className)}
+                className={cn(carouselVariants({ gutter }), className)}
                 // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- WAI-ARIA carousel 模式要求 role=region + aria-roledescription
                 role="region"
                 aria-roledescription="carousel"

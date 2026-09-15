@@ -69,7 +69,6 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="gap-1 font-normal text-primary"
                         >
                             <TicketPercent className="size-4" />
                             {label}
@@ -85,7 +84,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                     <RadioGroup
                         value={selectedId ?? NO_COUPON}
                         onValueChange={(v: string) => onSelect(v === NO_COUPON ? null : v)}
-                        className="max-h-72 gap-2 overflow-y-auto"
+                        className="max-h-72 overflow-y-auto"
                     >
                         {group.coupons.map((c) => {
                             const reason = couponUnavailableReasonText(c.unavailableReason)
@@ -96,13 +95,10 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                             return (
                                 <Item
                                     key={c.userCouponId}
-                                    variant={selectedId === c.userCouponId ? "default" : "outline"}
-                                    size="sm"
-                                    className={
-                                        selectedId === c.userCouponId
-                                            ? "border-foreground bg-accent"
-                                            : undefined
+                                    variant={
+                                        selectedId === c.userCouponId ? "selected" : "selectable"
                                     }
+                                    size="sm"
                                 >
                                     {/* 可访问名与可见标题同词；不可用信息在行内灰字里说明原因，不只靠置灰 */}
                                     <RadioGroupItem
@@ -111,9 +107,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                                         aria-label={title}
                                     />
                                     <ItemContent>
-                                        <ItemTitle className="text-sm font-medium">
-                                            {title}
-                                        </ItemTitle>
+                                        <ItemTitle>{title}</ItemTitle>
                                         <ItemDescription>
                                             {reason ?? `${formatDate(c.expireAt)} 前有效`}
                                         </ItemDescription>
@@ -122,16 +116,15 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                             )
                         })}
                         <Item
-                            variant={selectedId === null ? "default" : "outline"}
+                            variant={selectedId === null ? "selected" : "selectable"}
                             size="sm"
-                            className={selectedId === null ? "border-foreground bg-accent" : ""}
                         >
                             <RadioGroupItem
                                 value={NO_COUPON}
                                 aria-label="不使用优惠券"
                             />
                             <ItemContent>
-                                <ItemTitle className="text-sm font-medium">不使用优惠券</ItemTitle>
+                                <ItemTitle>不使用优惠券</ItemTitle>
                             </ItemContent>
                         </Item>
                     </RadioGroup>

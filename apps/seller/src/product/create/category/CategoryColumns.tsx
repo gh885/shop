@@ -63,7 +63,7 @@ function CategoryColumn({
     return (
         <div className="flex min-w-0 flex-1 flex-col rounded-xl bg-background">
             <div className="p-2">
-                <InputGroup className="h-8 border-transparent bg-muted/60">
+                <InputGroup variant="filled">
                     <InputGroupAddon align="inline-start">
                         <Search className="size-3.5 text-muted-foreground" />
                     </InputGroupAddon>
@@ -73,7 +73,6 @@ function CategoryColumn({
                         onChange={(e) => setKeyword(e.target.value)}
                         placeholder="输入类目名筛选"
                         aria-label="筛选类目"
-                        className="text-sm"
                     />
                 </InputGroup>
             </div>

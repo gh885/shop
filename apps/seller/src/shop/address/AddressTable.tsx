@@ -1,12 +1,4 @@
-import {
-    Button,
-    cn,
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-} from "@shop/ui-web"
+import { Button, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
 import { MapPin, MoreHorizontal, Trash2 } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
@@ -51,7 +43,7 @@ export function AddressTable({
 
     return (
         <div className="divide-y rounded-xl border">
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center gap-4 px-4 py-2.5 text-sm font-medium text-muted-foreground">
+            <div className="grid grid-address-list items-center gap-4 px-4 py-2.5 text-sm font-medium text-muted-foreground">
                 <span>地址</span>
                 <span>联系人</span>
                 <span>备注</span>
@@ -61,7 +53,7 @@ export function AddressTable({
             {rows.map((a) => (
                 <div
                     key={a.id}
-                    className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center gap-4 px-4 py-3"
+                    className="grid grid-address-list items-center gap-4 px-4 py-3"
                 >
                     <div className="min-w-0">
                         <p className="truncate">{fullAddress(a)}</p>
@@ -110,10 +102,9 @@ export function AddressTable({
                             <MoreHorizontal className="size-4" />
                         </Button>
                         <Button
-                            variant="ghost"
+                            variant="destructive"
                             size="icon"
                             aria-label="删除"
-                            className={cn("text-destructive")}
                             disabled={busyId === a.id}
                             onClick={() => onDelete({ id: a.id, contactName: a.contactName })}
                         >

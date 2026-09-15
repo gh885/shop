@@ -1,10 +1,9 @@
-import { useState, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Search } from "lucide-react"
 
-import { Button, ButtonGroup, Input, Logo } from "@shop/ui-web"
+import { Logo, SearchBar } from "@shop/ui-web"
 
-import { notify } from "@shop/app-kit"
+import { notifySearchComingSoon } from "#/shared/lib/search"
 
 /**
  * 通用页面顶栏（详情页 / 购物车页共用，非吸顶，随页面滚走）：左品牌 logo + 可选页面标题，右搜索组。
@@ -22,16 +21,6 @@ export function SearchHeader({
     containerClassName?: string
     extra?: ReactNode
 }) {
-    const [keyword, setKeyword] = useState("")
-
-    const search = () => {
-        if (!keyword.trim()) {
-            notify.info("请输入搜索关键词")
-            return
-        }
-        notify.info("搜索功能即将上线")
-    }
-
     return (
         <header className={`bg-background ${className ?? ""}`}>
             <div
@@ -49,25 +38,14 @@ export function SearchHeader({
                     {title && <h1 className="text-xl font-semibold text-foreground">{title}</h1>}
                 </div>
 
-                {/* 右侧搜索组：2px 橙描边 + 实色橙按钮（与首页同款），各页附加按钮挂 extra */}
-                <ButtonGroup className="h-9 w-100 overflow-hidden rounded-md border-2 border-primary bg-background">
-                    <Input
-                        value={keyword}
-                        onChange={(e) => setKeyword(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && search()}
-                        placeholder="搜索"
-                        aria-label="搜索商品"
-                        className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0"
-                    />
-                    <Button
-                        onClick={search}
-                        className="h-full px-5"
-                    >
-                        <Search />
-                        搜索
-                    </Button>
-                    {extra}
-                </ButtonGroup>
+                {/* 右侧搜索组：与首页同一个组件，只是尺寸档不同 */}
+                <SearchBar
+                    size="sm"
+                    placeholder="搜索"
+                    onSearch={notifySearchComingSoon}
+                    trailing={extra}
+                    className="w-100"
+                />
             </div>
         </header>
     )

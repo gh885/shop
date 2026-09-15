@@ -15,10 +15,12 @@ import {
     specValueImage,
     type SkuSelection,
 } from "../product"
+import { PDP_MAX_QUANTITY } from "./constants"
 
 /**
  * 详情页右侧购买区：标题 → 价格 → 服务承诺 → 规格选择 → 数量 → 加购/立即购买（对齐参考图）。
- * 规格选择状态由 route 的 useSkuSelection 持有，本组件纯受控；数量为局部状态。
+ * 规格选择状态由 route 从 URL 读入并持有（useSkuSelection），本组件纯受控；
+ * 数量由 route 持有并已按库存收敛，本组件不再自己截断。
  */
 export function PurchasePanel({
     detail,
@@ -110,8 +112,11 @@ export function PurchasePanel({
                         <ToggleGroup
                             value={selected === undefined ? [] : [selected]}
                             onValueChange={(v) => {
-                                // 不允许反选为空：SKU 规格必须选中一个值
-                                if (v[0] !== undefined) select(spec.name, v[0])
+                                // ToggleGroup 反选（v 为空）时把当前值再传一次：select 的「同值再点 = 取消」
+                                // 语义正好接住它 —— 图片规格卡（SpecButton）走的是同一条规则，
+                                // 两条渲染路径不能一个能取消、一个取消不了（URL 进了选择态后这种不一致会变成死点击）
+                                const next = v[0] ?? selected
+                                if (next !== undefined) select(spec.name, next)
                             }}
                             variant="outline"
                             className="flex-wrap"
@@ -188,7 +193,7 @@ function SpecButton({
     )
 }
 
-/** 数量步进器：max 为选中 SKU 库存；undefined 表示规格未选全（给宽松上限） */
+/** 数量步进器：max 为选中 SKU 库存；未选全规格时用宽松上界（PDP_MAX_QUANTITY） */
 function QuantityStepper({
     quantity,
     onChange,
@@ -198,7 +203,7 @@ function QuantityStepper({
     onChange: (n: number) => void
     max?: number
 }) {
-    const upper = max ?? 99
+    const upper = max ?? PDP_MAX_QUANTITY
 
     return (
         <div className="flex items-center gap-3">

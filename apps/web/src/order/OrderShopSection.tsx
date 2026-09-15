@@ -37,18 +37,20 @@ export function OrderShopSection({
     )
     return (
         <Panel>
-            {/* 店铺行 */}
-            <PanelHeader className="gap-3 py-3.5">
-                <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
-                    店
-                </span>
-                <span className="text-sm font-medium text-foreground">
-                    {order.shopName ?? "店铺已关闭"}
-                </span>
+            {/* 店铺行：店徽 + 店名是一组（组内 8px），与右侧「查看交易快照」拉开靠页头基类的 gap-4 */}
+            <PanelHeader>
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
+                        店
+                    </span>
+                    <span className="text-sm font-medium text-foreground">
+                        {order.shopName ?? "店铺已关闭"}
+                    </span>
+                </div>
                 <Button
                     variant="link"
                     size="sm"
-                    className="ml-auto text-primary"
+                    className="ml-auto"
                 >
                     查看交易快照
                 </Button>

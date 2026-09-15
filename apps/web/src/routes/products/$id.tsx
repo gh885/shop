@@ -1,28 +1,41 @@
 import { fenToYuan, isContractViolation, toApiError } from "@shop/common"
 import { useState } from "react"
-import { createFileRoute, notFound } from "@tanstack/react-router"
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 
 import type { ProductDetail } from "#/products"
 import {
     AlsoViewedSection,
-    DETAIL_CONTAINER_CLASS,
+    DETAIL_LAYOUT,
     DetailHeader,
     DetailSections,
     Gallery,
+    PDP_MAX_QUANTITY,
+    ProductDetailSkeleton,
     productDetailOptions,
     PurchaseCta,
     PurchasePanel,
     shopOptions,
     ShopBar,
     ShopRecommendSection,
+    type SkuSearch,
+    type SkuSearchInput,
+    skuSearchSchema,
     useSkuSelection,
 } from "#/products/detail"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 
 export const Route = createFileRoute("/products/$id")({
     /**
+     * 规格选择进 URL：`?spec={"颜色":"红","尺码":"L"}`。
+     * 与结算页 `CheckoutSource` 同一套机制（validateSearch + zod + catch 兜脏值），
+     * 脏 URL 退化成「未选规格」而不是报错。
+     *
+     * 入参声明为 `SkuSearchInput`（带 SearchSchemaInput 标记）只是为了让其它页面能裸链到详情页。
+     */
+    validateSearch: (search: SkuSearchInput): SkuSearch => skuSearchSchema.parse(search),
+    /**
      * SSR 预取：详情先行（404 直接 notFound），店铺信息依赖 detail.shopId 只能串行；
-     * 店铺失败不拖垮页面（店条回退字母头像），详情失败才致命。
+     * 店铺失败不拖垮页面（店条转内联错误 + 重试），详情失败才致命。
      */
     loader: async ({ context, params }) => {
         let detail: ProductDetail
@@ -41,6 +54,11 @@ export const Route = createFileRoute("/products/$id")({
         return { detail }
     },
     component: ProductDetailPage,
+    /**
+     * 客户端导航到详情页、loader 超时未完成时顶上。
+     * 与区块级的三态配套：区块有自己的骨架，整页也有（否则期间停在旧页面上，点了没反应）。
+     */
+    pendingComponent: ProductDetailSkeleton,
     head: ({ match }) => {
         const d = match.loaderData?.detail
         const p = d?.product
@@ -94,9 +112,37 @@ export const Route = createFileRoute("/products/$id")({
 
 function ProductDetailPage() {
     const { detail } = Route.useLoaderData()
-    const sel = useSkuSelection(detail)
-    // 加购数量：与规格选中态一样由 route 持有，购买区步进器与 CTA 加购共用
+    const search = Route.useSearch()
+    const navigate = useNavigate({ from: Route.fullPath })
+
+    /**
+     * 规格选择的读写接线：读 URL、写 URL。push / replace 的分工在这里落地 ——
+     * `select`（用户动作）push 进历史，后退能撤回一次选择；
+     * 自愈修正 replace 掉脏值，不进历史（详见 use-sku-selection.ts）。
+     */
+    const sel = useSkuSelection({
+        detail,
+        spec: search.spec,
+        onSpecChange: (spec, options) => {
+            void navigate({
+                // 空选择不带参数：详情页是最常被分享的 URL，`?spec=%7B%7D` 是纯噪音
+                search: Object.keys(spec).length > 0 ? { spec } : {},
+                replace: options.replace,
+                // 换规格不该把页面弹回顶部：用户还在看同一屏
+                resetScroll: false,
+            })
+        },
+    })
+
+    // 数量由 route 持有：购买区步进器与 CTA 加购共用同一份收敛后的值
     const [quantity, setQuantity] = useState(1)
+    /**
+     * 规格切到库存更少的 SKU 后，原数量可能超卖。展示与提交共用这一份收敛值 ——
+     * 只收敛展示会让步进器显示 1 而提交 5，收敛只放在提交里则用户看到的数字是假的。
+     * 下界保 1：售罄时显示 1 而不是 0（加购按钮由 PurchaseCta 的 complete/售罄判定禁用）。
+     */
+    const stockLimit = sel.matchedSku?.stock ?? PDP_MAX_QUANTITY
+    const effectiveQuantity = Math.min(quantity, Math.max(1, stockLimit))
 
     // 画廊图序：选中 SKU 有专属图时置顶（主图跟随规格切换），去重后供画廊以 URL 作键
     const images = (() => {
@@ -113,12 +159,12 @@ function ProductDetailPage() {
     return (
         <div>
             <DetailHeader />
-            {/* 版心比主版心宽：内容 1486 = 左栏 844 + 间距 48 + 右栏 594（对齐天猫详情页） */}
-            <div className={`mx-auto w-full px-6 pb-10 ${DETAIL_CONTAINER_CLASS}`}>
-                {/* 左滚右停：左栏（店铺条+画廊+描述）随滚动，右栏购买区钉住 */}
+            <div className={`mx-auto w-full px-6 pb-10 ${DETAIL_LAYOUT.container}`}>
+                {/* 左滚右停：左栏（店铺条+画廊+描述）随滚动，右栏购买区钉住。
+                    版心与双栏宽度同源（DETAIL_LAYOUT），改一处不会只改对一半 */}
                 <DetailColumns
-                    rightWidth="594px"
-                    gapClassName="gap-x-12"
+                    rightWidth={DETAIL_LAYOUT.rightWidth}
+                    gapClassName={DETAIL_LAYOUT.gap}
                     left={
                         <>
                             {/* 左栏头部：店铺条（对齐天猫 shopHeader 844×54，下间距 16） */}
@@ -139,14 +185,16 @@ function ProductDetailPage() {
                         // 右栏整块 = 一屏高（sticky top-4）：购买面板在上、动作卡贴右栏底部，中间留白固定不变；
                         // 滚动时整块一起走，到双栏区域末尾落进流位随页面滚走
                         // （不再出现“先压缩中间空白、空白没了才整体滚”的分段感）
-                        <div className="sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col">
+                        <div
+                            className={`${DETAIL_LAYOUT.stickyTop} sticky flex ${DETAIL_LAYOUT.minHeight} flex-col`}
+                        >
                             <section className="rounded-xl bg-background px-6 py-2">
                                 <PurchasePanel
                                     detail={detail}
                                     selection={sel.selection}
                                     select={sel.select}
                                     isAvailable={sel.isAvailable}
-                                    quantity={quantity}
+                                    quantity={effectiveQuantity}
                                     onQuantityChange={setQuantity}
                                 />
                             </section>
@@ -154,7 +202,7 @@ function ProductDetailPage() {
                                 <PurchaseCta
                                     detail={detail}
                                     selection={sel.selection}
-                                    quantity={quantity}
+                                    quantity={effectiveQuantity}
                                 />
                             </div>
                         </div>

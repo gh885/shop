@@ -13,11 +13,13 @@ import {
     Card,
     CardContent,
     Skeleton,
+    StateError,
 } from "@shop/ui-web"
 
 import { toProductCardData, type Product, type ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, type UseQueryResult } from "@tanstack/react-query"
+import { toApiError } from "@shop/common"
 import { ProductCard } from "../ProductCard"
 import { shopProductsOptions, alsoViewedOptions } from "./queries"
 
@@ -33,8 +35,9 @@ export function DetailSection({
     return (
         <Card
             id={id}
-            // 无边框：页面底色已经是白，区块靠标题和留白分隔，不用描边（ring-0 盖掉 Card 默认的 ring-1）
-            className="mt-5 scroll-mt-20 ring-0"
+            // 无边框：页面底色已经是白，区块靠标题和留白分隔，不用描边
+            variant="plain"
+            className="mt-5 scroll-mt-20"
         >
             <CardContent>
                 <h2 className="mb-4 border-l-4 border-primary pl-3 text-lg font-bold text-foreground">
@@ -46,43 +49,54 @@ export function DetailSection({
     )
 }
 
-/**
- * 推荐流网格：商品卡片 + 骨架屏。
- * className 传列数；`-mx-4` 抵消 DetailSection 卡片自身的 16px 内边距（--card-spacing），
- * 让网格铺满所在栏宽——淘宝的推荐网格就是贴边的，不贴边卡片会小一圈（199 → 191）。
- */
+/** 推荐流区块的布局类：`-mx-4` 抵消 DetailSection 卡片自身的 16px 内边距（--card-spacing），
+ * 让网格铺满所在栏宽 —— 淘宝的推荐网格就是贴边的，不贴边卡片会小一圈（199 → 191）。 */
+function recoGridClass(className: string): string {
+    return `-mx-4 grid gap-4 ${className}`
+}
+
+/** 加载中：与网格同列数、同卡片尺寸，换到真内容时不跳 */
+function RecoGridSkeleton({ className }: { className: string }) {
+    return (
+        <div
+            className={recoGridClass(className)}
+            aria-hidden
+        >
+            {Array.from({ length: 8 }, (_, i) => (
+                <Skeleton
+                    key={i}
+                    className="aspect-5/7 w-full rounded-lg"
+                />
+            ))}
+        </div>
+    )
+}
+
+/** 有数据：纯展示网格（空数据由 RecoSection 判掉，这里只管画） */
 function RecoGrid({
     products,
     currentId,
     className,
     variant,
 }: {
-    products: Product[] | undefined
+    products: Product[]
     currentId: string
     className: string
     variant?: "default" | "compact"
 }) {
     // 排除当前商品本身
-    const list = products?.filter((p) => p.id !== currentId)
-    const placeholderCount = 8
+    const list = products.filter((p) => p.id !== currentId)
 
     return (
-        <div className={`-mx-4 grid gap-4 ${className}`}>
-            {list
-                ? list.map((product) => (
-                      <ProductCard
-                          key={product.id}
-                          product={toProductCardData(product)}
-                          variant={variant}
-                      />
-                  ))
-                : Array.from({ length: placeholderCount }, (_, i) => (
-                      <Skeleton
-                          key={i}
-                          className="aspect-5/7 w-full rounded-lg"
-                      />
-                  ))}
-            {list && list.length === 0 && (
+        <div className={recoGridClass(className)}>
+            {list.map((product) => (
+                <ProductCard
+                    key={product.id}
+                    product={toProductCardData(product)}
+                    variant={variant}
+                />
+            ))}
+            {list.length === 0 && (
                 <Empty className="col-span-full py-6">
                     <EmptyHeader>
                         <EmptyTitle>暂无推荐商品</EmptyTitle>
@@ -90,6 +104,59 @@ function RecoGrid({
                 </Empty>
             )}
         </div>
+    )
+}
+
+/** 推荐流商品列表的查询形状（`fetchProducts` 的返回） */
+type RecoQuery = UseQueryResult<{ records: Product[]; total: number }>
+
+/**
+ * 推荐流区块：**加载中 / 失败 / 空 / 有数据** 四态的唯一收敛点。
+ *
+ * 此前四态被压成了两态——`products === undefined` 就画骨架，失败也画骨架，
+ * 于是接口挂了页面永远在转圈、用户没有任何重试入口。这里把失败显式分出来（StateError + 重试），
+ * 空态交给网格自己（「暂无推荐商品」）。
+ *
+ * `query` 作为 prop 传整个 query 结果是刻意的：本组件的**职责就是渲染一个查询的四种状态**，
+ * 属于 AGENTS.md 里「页面编排者/宽类型正当」的例外；网格本身（RecoGrid）仍是纯展示。
+ */
+function RecoSection({
+    id,
+    title,
+    query,
+    currentId,
+    className,
+    variant,
+}: {
+    id: string
+    title: string
+    query: RecoQuery
+    currentId: string
+    className: string
+    variant?: "default" | "compact"
+}) {
+    return (
+        <DetailSection
+            id={id}
+            title={title}
+        >
+            {query.isError ? (
+                <StateError
+                    message={toApiError(query.error).detail}
+                    onRetry={() => void query.refetch()}
+                    retrying={query.isFetching}
+                />
+            ) : query.isPending ? (
+                <RecoGridSkeleton className={className} />
+            ) : (
+                <RecoGrid
+                    products={query.data.records}
+                    currentId={currentId}
+                    className={className}
+                    variant={variant}
+                />
+            )}
+        </DetailSection>
     )
 }
 
@@ -145,7 +212,7 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
                             <TabsTrigger
                                 key={s.id}
                                 value={s.id}
-                                className="px-4"
+                                size="lg"
                             >
                                 {s.label}
                             </TabsTrigger>
@@ -208,10 +275,12 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
                         {rest.map((p) => (
                             <div
                                 key={`${p.name}:${p.value}`}
-                                className="flex gap-6 text-sm sm:grid sm:grid-cols-[140px_1fr] sm:gap-0"
+                                className="flex gap-6 text-sm sm:gap-0"
                             >
-                                <dt className="shrink-0 text-muted-foreground">{p.name}</dt>
-                                <dd className="min-w-0 break-words text-foreground">{p.value}</dd>
+                                <dt className="shrink-0 text-muted-foreground sm:w-35">{p.name}</dt>
+                                <dd className="min-w-0 break-words text-foreground sm:flex-1">
+                                    {p.value}
+                                </dd>
                             </div>
                         ))}
                     </dl>
@@ -264,20 +333,17 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
  * 4 列 / 间距 16 / 卡宽 199 → 紧凑卡 199×271，对齐淘宝店铺推荐（左栏 844 铺满）。
  */
 export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
-    const { data } = useQuery(shopProductsOptions(detail.product.shopId))
+    const query = useQuery(shopProductsOptions(detail.product.shopId))
 
     return (
-        <DetailSection
+        <RecoSection
             id="shop-reco"
             title="本店推荐"
-        >
-            <RecoGrid
-                products={data?.records}
-                currentId={detail.product.id}
-                className="grid-cols-4"
-                variant="compact"
-            />
-        </DetailSection>
+            query={query}
+            currentId={detail.product.id}
+            className="grid-cols-4"
+            variant="compact"
+        />
     )
 }
 
@@ -286,18 +352,15 @@ export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
  * 不局限在左栏——由路由挂成整页宽区块，6 列 / 间距 16 / 卡宽 234.33，对齐淘宝底部推荐流。
  */
 export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
-    const { data } = useQuery(alsoViewedOptions)
+    const query = useQuery(alsoViewedOptions)
 
     return (
-        <DetailSection
+        <RecoSection
             id="also-viewed"
             title="看了又看"
-        >
-            <RecoGrid
-                products={data?.records}
-                currentId={detail.product.id}
-                className="grid-cols-6"
-            />
-        </DetailSection>
+            query={query}
+            currentId={detail.product.id}
+            className="grid-cols-6"
+        />
     )
 }

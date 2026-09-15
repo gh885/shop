@@ -32,7 +32,7 @@ export function RouteProgressBar() {
                 visible ? "opacity-100" : "opacity-0"
             }`}
         >
-            <div className="h-full w-full bg-primary motion-safe:animate-[route-progress_1.1s_ease-in-out_infinite]" />
+            <div className="h-full w-full bg-primary motion-safe:animate-route-progress" />
         </div>
     )
 }
