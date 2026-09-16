@@ -15,13 +15,22 @@ import { HeartOff } from "lucide-react"
 
 import {
     FavoriteCard,
+    favoriteItemsOptions,
     filterFavorites,
     Toolbar,
     useFavorites,
     useRemoveFavorites,
 } from "#/favorite"
+import { noop } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/favorites/")({
+    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
+    // hover/导航先拉好收藏列表缓存，组件挂载即命中。query() 失败会 reject —— 预热而已，吞掉；
+    // 错误仍由组件侧的就地错误态处理。
+    loader: ({ context }) => {
+        if (import.meta.env.SSR) return
+        void context.queryClient.query(favoriteItemsOptions).catch(noop)
+    },
     component: FavoritesPage,
     head: () => ({
         meta: [{ title: "我的收藏 - 个人中心 - Shop" }],

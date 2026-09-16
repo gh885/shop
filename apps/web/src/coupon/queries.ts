@@ -23,8 +23,9 @@ import {
 /** 券包缓存前缀：状态页签 × 分页都是同一份数据的切片，失效一发命中整棵子树 */
 export const MY_COUPONS_KEY = ["my-coupons"] as const
 
-/** 仅客户端拉取；queryKey 带全部分页/筛选入参，切页签与翻页各占一格缓存 */
-const myCouponsOptions = (status: CouponTab, page: number) =>
+/** 我的券包 queryOptions：queryKey 带全部分页/筛选入参，切页签与翻页各占一格缓存；
+ *  导出供 route loader 客户端预热（券包页 loader 预取默认页签第一页） */
+export const myCouponsOptions = (status: CouponTab, page: number) =>
     queryOptions({
         queryKey: [...MY_COUPONS_KEY, status, page, COUPON_PAGE_SIZE],
         queryFn: async ({ signal }): Promise<{ records: MyCoupon[]; total: number }> => {

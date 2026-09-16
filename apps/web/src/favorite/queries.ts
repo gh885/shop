@@ -20,7 +20,8 @@ import { toFavoriteItem, type FavoriteItem } from "./favorite"
 const KEY = ["favorite-items"] as const
 const FAVORITES_QUERY = { query: { pageParams: { page: 1, size: 100 } } } as const
 
-const favoriteItemsOptions = queryOptions({
+/** 收藏页列表；导出供 route loader 客户端预热 */
+export const favoriteItemsOptions = queryOptions({
     queryKey: KEY,
     queryFn: async ({ signal }): Promise<FavoriteItem[]> => {
         const res = await FavoritesApi.listFavorites({ ...FAVORITES_QUERY, signal })

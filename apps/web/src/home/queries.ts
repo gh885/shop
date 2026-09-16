@@ -7,7 +7,7 @@ import { fetchBanners, fetchFeedProducts, fetchHomeNav, fetchRecommendTabs } fro
 // 首页内容 5 分钟缓存（运营配置不常变）
 const CACHE = 5 * 60_000
 
-/** 共享 queryOptions：route loader 用 ensureQueryData 预热，组件 useQuery 读同一缓存（SSR-query 集成序列化缓存给客户端） */
+/** 共享 queryOptions：route loader 用 query() 预热，组件 useQuery 读同一缓存（SSR-query 集成序列化缓存给客户端） */
 export const homeNavOptions = queryOptions({
     queryKey: ["home-nav"],
     queryFn: withContractFallback(

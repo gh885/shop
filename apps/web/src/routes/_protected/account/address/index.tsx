@@ -18,13 +18,22 @@ import type { Address } from "#/address"
 import {
     AddressFormDialog,
     AddressTable,
+    addressListOptions,
     useAddressList,
     useDeleteAddress,
     useSetDefaultAddress,
     useUnsetDefaultAddress,
 } from "#/address"
+import { noop } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/address/")({
+    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
+    // hover/导航先拉好地址列表缓存，组件挂载即命中。query() 失败会 reject —— 预热而已，吞掉；
+    // 错误仍由组件侧的就地错误态处理。
+    loader: ({ context }) => {
+        if (import.meta.env.SSR) return
+        void context.queryClient.query(addressListOptions).catch(noop)
+    },
     component: AddressPage,
     head: () => ({
         meta: [{ title: "收货地址 - 个人中心 - Shop" }],

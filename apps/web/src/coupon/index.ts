@@ -21,6 +21,7 @@ export type { CouponGroup, CouponTab, MyCoupon } from "./coupon"
 export {
     MY_COUPONS_KEY,
     SHOP_CLAIMABLE_COUPONS_KEY,
+    myCouponsOptions,
     useClaimCoupon,
     useMyCoupons,
     useShopClaimableCoupons,

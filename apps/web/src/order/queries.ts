@@ -11,8 +11,9 @@ import { notify } from "@shop/app-kit"
  * 规则/类型在 ./order.ts（投影）与 ./model.ts（领域类型）。
  *
  * 订单页是受保护路由（_protected layout 保证挂载时必已登录），所以：
- * - 列表/详情的 queryOptions 都**不进 route loader**（SSR 阶段服务端拿不到 token），
- *   由组件侧 useSuspenseQuery / useQuery 在客户端拉取——与项目「受保护页数据客户端取」的结论一致。
+ * - 列表/详情的 queryOptions 供 route loader **客户端预热**用：SSR 阶段服务端拿不到 token，
+ *   loader 在服务端直接跳过，数据仍由组件侧 useQuery 在客户端拉取；预热让 hover intent /
+ *   客户端导航先拉好缓存，组件挂载即命中，不再闪骨架（query() 失败会被吞掉，错误仍由组件就地错误态处理）。
  * - 结算预览/下单/支付是交互动作，不设缓存，走 mutation。
  */
 
@@ -24,8 +25,9 @@ export const MY_ORDERS_KEY = ["my-orders"] as const
 /** 详情 key 前缀：精确 key 为 [ORDER_DETAIL_KEY, id]，失效用前缀一发命中 */
 export const ORDER_DETAIL_KEY = ["order-detail"] as const
 
-/** 仅客户端拉取（受保护页），queryKey 带 status/page/size 便于按 tab 缓存分片 */
-const myOrdersOptions = ({
+/** 仅客户端拉取（受保护页），queryKey 带 status/page/size 便于按 tab 缓存分片；
+ *  导出供 route loader 客户端预热（account/orders 页 loader 预取默认 tab 第一页） */
+export const myOrdersOptions = ({
     status,
     page = 1,
     size = 20,
@@ -60,7 +62,8 @@ export function useMyOrders(status: OrderStatus | "all" = "all") {
 
 // ---------- 订单详情 ----------
 
-const orderDetailOptions = (id: string) =>
+/** 导出供 route loader 客户端预热（订单详情/物流页 loader 预取） */
+export const orderDetailOptions = (id: string) =>
     queryOptions({
         queryKey: [...ORDER_DETAIL_KEY, id],
         queryFn: async ({ signal }): Promise<OrderDetail> =>

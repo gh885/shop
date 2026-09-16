@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react"
+import { Component, Suspense, useEffect, useState, type ReactNode } from "react"
 import { MessageSquareOff } from "lucide-react"
 
 import {
@@ -18,7 +18,7 @@ import {
 
 import { toProductCardData, type Product, type ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
-import { useQuery, type UseQueryResult } from "@tanstack/react-query"
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { toApiError } from "@shop/common"
 import { ProductCard } from "../ProductCard"
 import { shopProductsOptions, alsoViewedOptions } from "./queries"
@@ -107,56 +107,62 @@ function RecoGrid({
     )
 }
 
-/** 推荐流商品列表的查询形状（`fetchProducts` 的返回） */
-type RecoQuery = UseQueryResult<{ records: Product[]; total: number }>
+/** 推荐流商品列表的查询 key 类型（queryOptions 的 queryKey） */
+type RecoQueryKey = readonly unknown[]
 
 /**
- * 推荐流区块：**加载中 / 失败 / 空 / 有数据** 四态的唯一收敛点。
- *
- * 此前四态被压成了两态——`products === undefined` 就画骨架，失败也画骨架，
- * 于是接口挂了页面永远在转圈、用户没有任何重试入口。这里把失败显式分出来（StateError + 重试），
- * 空态交给网格自己（「暂无推荐商品」）。
- *
- * `query` 作为 prop 传整个 query 结果是刻意的：本组件的**职责就是渲染一个查询的四种状态**，
- * 属于 AGENTS.md 里「页面编排者/宽类型正当」的例外；网格本身（RecoGrid）仍是纯展示。
+ * 推荐流错误边界：suspense 模式下查询错误（且无数据）会抛向最近的 error boundary，
+ * 没有边界会让推荐流失败连累整页 SSR/渲染。边界把错误收敛在本区块内 ——
+ * 与流式改造前 RecoSection 四态中的失败态行为一致（内联错误 + 重试）。
  */
-function RecoSection({
-    id,
-    title,
-    query,
-    currentId,
-    className,
-    variant,
+class RecoErrorBoundary extends Component<
+    { queryKey: RecoQueryKey; children: ReactNode },
+    { error: unknown }
+> {
+    state: { error: unknown } = { error: undefined }
+
+    static getDerivedStateFromError(error: unknown) {
+        return { error }
+    }
+
+    render() {
+        const { error } = this.state
+        return error === undefined ? (
+            this.props.children
+        ) : (
+            <RecoErrorFallback
+                queryKey={this.props.queryKey}
+                error={error}
+                reset={() => this.setState({ error: undefined })}
+            />
+        )
+    }
+}
+
+/** 推荐流失败态：重试 = 先重拉本区块的查询，落地后复位边界、重新挂起渲染 */
+function RecoErrorFallback({
+    queryKey,
+    error,
+    reset,
 }: {
-    id: string
-    title: string
-    query: RecoQuery
-    currentId: string
-    className: string
-    variant?: "default" | "compact"
+    queryKey: RecoQueryKey
+    error: unknown
+    reset: () => void
 }) {
+    const qc = useQueryClient()
+    const [retrying, setRetrying] = useState(false)
     return (
-        <DetailSection
-            id={id}
-            title={title}
-        >
-            {query.isError ? (
-                <StateError
-                    message={toApiError(query.error).detail}
-                    onRetry={() => void query.refetch()}
-                    retrying={query.isFetching}
-                />
-            ) : query.isPending ? (
-                <RecoGridSkeleton className={className} />
-            ) : (
-                <RecoGrid
-                    products={query.data.records}
-                    currentId={currentId}
-                    className={className}
-                    variant={variant}
-                />
-            )}
-        </DetailSection>
+        <StateError
+            message={toApiError(error).detail}
+            retrying={retrying}
+            onRetry={() => {
+                setRetrying(true)
+                void qc.refetchQueries({ queryKey }).finally(() => {
+                    setRetrying(false)
+                    reset()
+                })
+            }}
+        />
     )
 }
 
@@ -328,19 +334,13 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
     )
 }
 
-/**
- * 本店推荐：同店铺在售商品（排除当前商品）。
- * 4 列 / 间距 16 / 卡宽 199 → 紧凑卡 199×271，对齐淘宝店铺推荐（左栏 844 铺满）。
- */
-export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
-    const query = useQuery(shopProductsOptions(detail.product.shopId))
-
+/** 本店推荐内容：数据未到即挂起，pending 态由外层 Suspense 的骨架接管（区块级流式） */
+function ShopRecommendGrid({ shopId, currentId }: { shopId: string; currentId: string }) {
+    const { data } = useSuspenseQuery(shopProductsOptions(shopId))
     return (
-        <RecoSection
-            id="shop-reco"
-            title="本店推荐"
-            query={query}
-            currentId={detail.product.id}
+        <RecoGrid
+            products={data.records}
+            currentId={currentId}
             className="grid-cols-4"
             variant="compact"
         />
@@ -348,19 +348,58 @@ export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
 }
 
 /**
- * 看了又看：全站上新流占位（后端推荐接口就绪后替换数据源），排除当前商品。
- * 不局限在左栏——由路由挂成整页宽区块，6 列 / 间距 16 / 卡宽 234.33，对齐淘宝底部推荐流。
+ * 本店推荐：同店铺在售商品（排除当前商品）。
+ * 4 列 / 间距 16 / 卡宽 199 → 紧凑卡 199×271，对齐淘宝店铺推荐（左栏 844 铺满）。
+ * 外壳（锚点）立即渲染 —— scrollspy 观察不受影响；只让网格走流式：SSR 先吐骨架，
+ * resolve 后经 queryStream 流式补发，不再等客户端挂载后才发请求。
  */
-export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
-    const query = useQuery(alsoViewedOptions)
-
+export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
+    const shopId = detail.product.shopId
     return (
-        <RecoSection
-            id="also-viewed"
-            title="看了又看"
-            query={query}
-            currentId={detail.product.id}
+        <DetailSection
+            id="shop-reco"
+            title="本店推荐"
+        >
+            <RecoErrorBoundary queryKey={shopProductsOptions(shopId).queryKey}>
+                <Suspense fallback={<RecoGridSkeleton className="grid-cols-4" />}>
+                    <ShopRecommendGrid
+                        shopId={shopId}
+                        currentId={detail.product.id}
+                    />
+                </Suspense>
+            </RecoErrorBoundary>
+        </DetailSection>
+    )
+}
+
+/** 看了又看内容：同 ShopRecommendGrid */
+function AlsoViewedGrid({ currentId }: { currentId: string }) {
+    const { data } = useSuspenseQuery(alsoViewedOptions)
+    return (
+        <RecoGrid
+            products={data.records}
+            currentId={currentId}
             className="grid-cols-6"
         />
+    )
+}
+
+/**
+ * 看了又看：全站上新流占位（后端推荐接口就绪后替换数据源），排除当前商品。
+ * 不局限在左栏——由路由挂成整页宽区块，6 列 / 间距 16 / 卡宽 234.33，对齐淘宝底部推荐流。
+ * 流式方式与本店推荐一致（骨架 + error boundary）。
+ */
+export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
+    return (
+        <DetailSection
+            id="also-viewed"
+            title="看了又看"
+        >
+            <RecoErrorBoundary queryKey={alsoViewedOptions.queryKey}>
+                <Suspense fallback={<RecoGridSkeleton className="grid-cols-6" />}>
+                    <AlsoViewedGrid currentId={detail.product.id} />
+                </Suspense>
+            </RecoErrorBoundary>
+        </DetailSection>
     )
 }

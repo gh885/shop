@@ -1,4 +1,11 @@
-import { OrderProgress, OrderShopSection, OrderStatusSection, OrderSummaryCard } from "#/order"
+import {
+    OrderProgress,
+    OrderShopSection,
+    OrderStatusSection,
+    OrderSummaryCard,
+    afterSaleOptions,
+    orderDetailOptions,
+} from "#/order"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
@@ -16,8 +23,17 @@ import {
 } from "#/order"
 import { notify } from "@shop/app-kit"
 import { Card, CardContent, ConfirmDialog, Skeleton } from "@shop/ui-web"
+import { noop } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/orders/$orderId")({
+    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
+    // 详情 + 售后单一起预取（页面本来就并行拉这两路），hover/导航先拉好缓存，组件挂载即命中。
+    // query() 失败会 reject —— 预热而已，吞掉；404/失败仍由组件侧的就地错误态（notFound / 骨架）处理。
+    loader: ({ context, params }) => {
+        if (import.meta.env.SSR) return
+        void context.queryClient.query(orderDetailOptions(params.orderId)).catch(noop)
+        void context.queryClient.query(afterSaleOptions(params.orderId)).catch(noop)
+    },
     component: OrderDetailPage,
     head: () => ({
         meta: [{ title: "订单详情 - Shop" }],
@@ -25,7 +41,7 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
 })
 
 /** 订单详情页：独立页面（不走 account 侧边栏布局），左进度/状态/售后/商品，右侧信息卡。
- * 受保护路由，挂载时必已登录，数据客户端拉取（不进 loader）。 */
+ * 受保护路由，挂载时必已登录；数据由 route loader 在客户端预热（SSR 跳过），组件 useQuery 读同一缓存。 */
 function OrderDetailPage() {
     const { orderId } = Route.useParams()
     const { data: order, isLoading, isError } = useOrderDetail(orderId)

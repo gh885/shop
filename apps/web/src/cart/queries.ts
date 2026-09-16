@@ -30,8 +30,9 @@ export const CART_ITEMS_KEY = ["cart-items"] as const
 export const CART_COUNT_KEY = ["cart-count"] as const
 
 /** 购物车列表：仅在路由 /cart（_protected 内）使用。
- * 登录态由 _protected 布局 gate 保证（authed 后才渲染子路由），挂载时必已登录。 */
-const cartItemsOptions = queryOptions({
+ * 登录态由 _protected 布局 gate 保证（authed 后才渲染子路由），挂载时必已登录。
+ * 导出供 route loader 客户端预热（hover intent 预取）。 */
+export const cartItemsOptions = queryOptions({
     queryKey: CART_ITEMS_KEY,
     queryFn: async ({ signal }): Promise<CartItem[]> => {
         const res = await CartApi.listCartItems({ signal })

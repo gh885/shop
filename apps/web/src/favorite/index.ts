@@ -8,7 +8,13 @@
 
 export { filterFavorites } from "./favorite"
 
-export { useFavoriteStatus, useFavorites, useRemoveFavorites, useToggleFavorite } from "./queries"
+export {
+    favoriteItemsOptions,
+    useFavoriteStatus,
+    useFavorites,
+    useRemoveFavorites,
+    useToggleFavorite,
+} from "./queries"
 
 export { FavoriteCard } from "./FavoriteCard"
 export { Toolbar } from "./Toolbar"

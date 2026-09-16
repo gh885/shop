@@ -9,9 +9,10 @@ import {
     SHIPMENT_STATUS_LABEL,
     TrackingTimeline,
     buildShipmentTracks,
+    orderTrackingOptions,
     useOrderTracking,
 } from "#/logistics"
-import { useOrderDetail } from "#/order"
+import { orderDetailOptions, useOrderDetail } from "#/order"
 import { toApiError } from "@shop/common"
 import {
     Button,
@@ -22,8 +23,17 @@ import {
     EmptyTitle,
     Skeleton,
 } from "@shop/ui-web"
+import { noop } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/logistics/$orderId")({
+    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
+    // 轨迹 + 订单详情两路一起预取（页面本来就并行拉这两路）。query() 失败会 reject ——
+    // 预热而已，吞掉；「未发货 404」等语义仍由组件侧的就地状态处理。
+    loader: ({ context, params }) => {
+        if (import.meta.env.SSR) return
+        void context.queryClient.query(orderTrackingOptions(params.orderId)).catch(noop)
+        void context.queryClient.query(orderDetailOptions(params.orderId)).catch(noop)
+    },
     component: LogisticsPage,
     head: () => ({
         meta: [{ title: "物流详情 - Shop" }],

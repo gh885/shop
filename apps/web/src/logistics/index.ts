@@ -1,4 +1,4 @@
-export { ORDER_TRACKING_KEY, useOrderTracking } from "./queries"
+export { ORDER_TRACKING_KEY, orderTrackingOptions, useOrderTracking } from "./queries"
 
 export { buildShipmentTracks } from "./tracking"
 

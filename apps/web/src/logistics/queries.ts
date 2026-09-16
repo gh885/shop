@@ -5,14 +5,14 @@ import { queryOptions, useQuery } from "@tanstack/react-query"
 /**
  * logistics/queries —— 物流轨迹的数据层（fetch + queryOptions + hook）。
  *
- * 轨迹只在买家物流页消费，且是受保护路由（挂载时必已登录），所以不进 route loader，
- * 由组件侧 useQuery 在客户端拉取——与订单页「受保护页数据客户端取」的结论一致。
+ * 轨迹只在买家物流页消费，且是受保护路由（挂载时必已登录）。SSR 阶段服务端拿不到 token，
+ * loader 在服务端直接跳过、只在客户端预热（hover intent / 导航先拉好缓存），错误仍由组件就地错误态处理。
  */
 
 /** 轨迹缓存 key 前缀：精确 key 为 [ORDER_TRACKING_KEY, orderId] */
 export const ORDER_TRACKING_KEY = ["order-tracking"] as const
 
-const orderTrackingOptions = (orderId: string) =>
+export const orderTrackingOptions = (orderId: string) =>
     queryOptions({
         queryKey: [...ORDER_TRACKING_KEY, orderId],
         queryFn: async ({ signal }): Promise<OrderTrackingResponse> =>

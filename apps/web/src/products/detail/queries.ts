@@ -40,7 +40,8 @@ export const shopOptions = (shopId: string) =>
 
 // ---------- 推荐流：本店推荐（同店商品）/ 看了又看（全站上新占位）----------
 
-/** 后端暂无推荐接口，先复用全站商品列表按条件拉取；仅客户端拉取（不入 loader，不拖慢首屏） */
+/** 后端暂无推荐接口，先复用全站商品列表按条件拉取。
+ *  由推荐区块经 useSuspenseQuery + Suspense 走区块级流式（SSR 吐骨架、queryStream 补发），不进 route loader */
 export const shopProductsOptions = (shopId: string) =>
     queryOptions({
         queryKey: ["shop-products", shopId],

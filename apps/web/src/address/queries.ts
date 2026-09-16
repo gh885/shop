@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AddressesApi } from "@shop/api/sdk"
 
 import { notify } from "@shop/app-kit"
@@ -8,7 +8,8 @@ import { toAddress, type Address, type AddressInput, type AddressParse } from ".
 
 /** address/queries —— 地址的 React 接线层。规则/类型在 ./address.ts，这里只管读写。
 
- * 地址列表只在「收货地址」页读、无跨路由共享；留在 query 是为乐观更新（删除/默认态）。 */
+ * 地址列表只在「收货地址」页读、无跨路由共享；留在 query 是为乐观更新（删除/默认态）。
+ * 列表 options 导出供 route loader 客户端预热。 */
 
 const KEY = ["addresses"] as const
 
@@ -17,9 +18,12 @@ async function listAddresses(): Promise<Address[]> {
     return res.map(toAddress)
 }
 
+/** 我的地址列表 queryOptions */
+export const addressListOptions = queryOptions({ queryKey: KEY, queryFn: listAddresses })
+
 /** 我的地址列表 */
 export function useAddressList() {
-    return useQuery({ queryKey: KEY, queryFn: listAddresses })
+    return useQuery(addressListOptions)
 }
 
 /** 新增地址：成功后失效列表缓存 */

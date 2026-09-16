@@ -1,4 +1,11 @@
-export { useMyOrders, useOrderDetail, useCancelOrder, useReceiveOrder } from "./queries"
+export {
+    myOrdersOptions,
+    orderDetailOptions,
+    useMyOrders,
+    useOrderDetail,
+    useCancelOrder,
+    useReceiveOrder,
+} from "./queries"
 export { useOrderActions } from "./use-order-actions"
 
 export { ORDER_STATUS_LABEL, ORDER_STATUS_TABS } from "./constants"
@@ -22,6 +29,7 @@ export type { AfterSaleAction } from "./after-sale"
 
 export {
     AFTER_SALE_KEY,
+    afterSaleOptions,
     useAfterSale,
     useApplyAfterSale,
     useCancelAfterSale,

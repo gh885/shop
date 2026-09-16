@@ -6,7 +6,7 @@ import { isContractViolation } from "@shop/common"
  * - 生产：仅当响应 2xx 但不符合契约（isContractViolation）时返回兜底数据，
  *   其余错误（404/403/网络等）语义不被吞，照常抛。
  *
- * 用在 queryOptions.queryFn 上：route loader 的 ensureQueryData 与组件 useQuery
+ * 用在 queryOptions.queryFn 上：route loader 的 query() 与组件 useQuery
  * 共用同一缓存，包一处即两头生效，loader 无需各自 catch。
  *
  * 边界（刻意不支持，防滥用）：

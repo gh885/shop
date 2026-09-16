@@ -8,7 +8,7 @@
  */
 
 export { groupByShop } from "./cart"
-export { useAddToCart, useCartCount, useCartItems } from "./queries"
+export { cartItemsOptions, useAddToCart, useCartCount, useCartItems } from "./queries"
 
 export { Settlement } from "./Settlement"
 export { ShopGroupCard } from "./ShopGroupCard"

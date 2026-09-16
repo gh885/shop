@@ -18,7 +18,8 @@ import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
 /** 售后单缓存 key 前缀：精确 key 为 [AFTER_SALE_KEY, orderId] */
 export const AFTER_SALE_KEY = ["after-sale"] as const
 
-const afterSaleOptions = (orderId: string) =>
+/** 导出供 route loader 客户端预热（订单详情页 loader 一并预取售后单） */
+export const afterSaleOptions = (orderId: string) =>
     queryOptions({
         queryKey: [...AFTER_SALE_KEY, orderId],
         queryFn: async ({ signal }): Promise<TicketResponse | null> => {

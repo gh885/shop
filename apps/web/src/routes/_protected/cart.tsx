@@ -11,11 +11,26 @@ import {
     Skeleton,
 } from "@shop/ui-web"
 
-import { ShopGroupCard, Settlement, Toolbar, groupByShop, useCartItems } from "#/cart"
+import {
+    ShopGroupCard,
+    Settlement,
+    Toolbar,
+    groupByShop,
+    cartItemsOptions,
+    useCartItems,
+} from "#/cart"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
+import { noop } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/cart")({
+    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
+    // hover intent / 客户端导航先把缓存拉好，组件 useQuery 命中即渲染，不再闪骨架。
+    // query() 失败会 reject —— 预热而已，吞掉；错误仍由组件侧的就地错误态处理。
+    loader: ({ context }) => {
+        if (import.meta.env.SSR) return
+        void context.queryClient.query(cartItemsOptions).catch(noop)
+    },
     component: CartPage,
     head: () => ({ meta: [{ title: "购物车 - Shop" }] }),
 })
