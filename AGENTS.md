@@ -129,7 +129,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - API 请求走 Vite proxy 同源（`/auth`、`/api`、`/user`、`/cart` → `localhost:8080`），浏览器端 baseUrl 用空串；SSR loader 里需绝对地址
 - 登录态：`apps/web/src/lib/auth.ts`（access token 只存内存，refresh token 走后端 httpOnly cookie）
 - 启动时 `bootstrapAuth()` 静默刷新（`lib/api.ts`），root 布局挂载处调用；受保护路由用 `beforeLoad: () => requireAuth()` 守卫，未登录自动拉起全局登录 Dialog
-- 用户信息：`useMe()`（`lib/me.ts`，TanStack Query 缓存，未登录不发请求）
+- 用户信息：`useMe()`（web 在 `account/queries.ts`、seller/admin 在 `shared/lib/me.ts`，三者都由 `@shop/app-kit` 的 `createMeQuery` 生成，未登录不发请求）
 - 表单：用 `useAppForm`（`@shop/ui-web`，TanStack Form + Zod validators），不手写裸 state 表单
 
 ## 状态归属（前端）
@@ -143,6 +143,29 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - route loader / `useSuspenseQuery` → 状态上移到 `pendingComponent`/`errorComponent`/Suspense 边界，父组件不再接触 query
 
 分界线：往子组件传**状态标志**（`isPending`/`error` props）= 放错位置的味道——子组件被迫认识"状态是什么"，还会长出可空 props；传**处理后的结果**（`deriveXxx` 视图模型、骨架屏或数据二选一）= 干净——子组件只管"拿到什么画什么"。
+
+## 服务端状态：query 的收敛口径
+
+前提：TanStack Query **已经**是唯一的服务端状态通道（三端全量接入，route loader 一律经 Query 缓存取数，没有裸 fetch）。所以这里不是"要不要引入"的决策，而是"**这份数据该不该进 query**"与"**进哪个文件**"。
+
+### 进不进 query：只有一条判据
+
+**这份数据是否是需要保持一致的服务端副本**（会被写操作/别人改动，且有多处读或需跨路由留存）。
+
+- 是 → 进 query。**不要**用 `useState`/zustand 存服务端实体，那等于手写缓存 + 手写失效；判据不是"几处读"（一个组件读也算，收益是免手写 loading 与去重），而是"它是不是副本"。注意区分**实体**与**实体之上的编辑会话**：`EditSkuDialog` 的行必须有本地 `useState`（要能改、要能提交前校验）——那是表单会话，本地草稿是唯一事实源；但**详情本身**必须来自 `productKeys.detail` 的 query（曾经这里自己拉一份详情存 state，于是弹窗改完 SKU、发布页看到的还是旧值）。
+- 否 → 走 api/SDK 裸调或 mutation。典型：文件导出/下载、验证码、一次性提交（登录、反馈）、提交后即离开且无人读缓存的动作。
+- **判据是「缓存这份数据有没有收益」，不是「它是不是服务端数据」**：陈旧值比转圈更糟（结算预览、智能解析）、副作用不可缓存（上传凭证、直传）、一次性会话（登录/刷新 token）、体积大不该进缓存（SSR 期间的流式响应）——这四类即使"是服务端数据"也不进 query。
+- **404 不是「不进 query」的理由**：若已有「无数据」的合法 UI 表达（物流未发货 → 「暂无物流信息」），query + `retry: false` 就够（见 `logistics/queries.ts`）；只有当调用方要把 404 折叠成"没有"（售后单 → `null`）时才在 `queryFn` 里归一（见 `after-sale-queries.ts`）。真正该警惕的是**契约本身在"没有"与"出错"之间含糊**，那是后端要补语义，不是前端绕开 query 的借口。
+- **写操作一律有接线**（`useWriteMutation` / `useOptimisticListMutation`），但**不是每个写操作都需要失效**：`invalidate` 不传 = 显式声明"不改变任何已缓存查询"，不是漏写。失败要就地渲染在表单里、或终态才处理（登出 `onSettled`）的，继续用裸 `useMutation`——边界写在 `packages/app-kit/src/mutations.ts` 的文档注释里，新增写操作前先读那段。
+
+### 放哪个文件：key 归属 = 域，集中在域内 `queries.ts`
+
+- **key 工厂集中在域内 `queries.ts`**（`productKeys` / `couponKeys` / `reviewKeys`…），一个域一棵树。key 散在组件或 `api.ts` 里 = 失效关系退化成"记在写代码的人脑子里"，新增读取方时没人会记得补失效点。
+- **失效规则写在 mutation 旁边**（谁改数据，谁声明影响范围），不写在调用点。跨域连带失效也归进 mutation（下单后失效购物车 + 角标 + 我的订单）。
+- **三端同形态的查询用 app-kit 的工厂，别复制**：`createAppQueryClient()`（默认值唯一真相源）、`createMeQuery()`（当前登录者）、写操作接线。新增一个"三端都会写"的查询时，先问能不能把它变成工厂参数。
+- **不造第二棵 key 树**：同一份服务端数据有两个 key = 两份缓存 + 两处失效，必然漂移（`useMe` 曾在三端各写一遍就是这形态）。发现即合并成一个 `xxxKeys`。
+- **不用 `refetch()` 当刷新**：它绕过 staleTime 强制打网络，且把"谁改了数据"绑在持有该 query 实例的组件上。要同步就 `invalidateQueries`（在 mutation 里）。**错误态的重试按钮也走 invalidate**，不是"用户显式要求重打"的例外——重试的语义是"这份缓存不再可信"，标记失效后由观察者重取；各域把这件事收敛成 hook 的 `onRetry`（域内 `queries.ts`/`use-*.ts` 提供），路由只透传给 `StateError`，不自己拼 key。
+- 领域组件（弹窗/卡片）**不 import query key**：只通过 `onSaved` 这类回调通知外层"数据变了"，由域内 `queries.ts` / `use-*.ts` 决定失效范围。回调名说"发生了什么"，不说"去做什么"（`onSaved` 而非 `invalidateList`）。
 
 ## 前端测试（Vitest + Testing Library + MSW）
 
