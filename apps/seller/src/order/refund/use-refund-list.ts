@@ -5,7 +5,7 @@ import { SellerOrdersApi } from "@shop/api/sdk"
 import { afterSaleKeys, afterSaleListKeys, afterSaleListOptions, orderKeys } from "#/order/queries"
 import { refundTabToStatus, type RefundTab } from "#/order/refund/model"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
-import { useWriteMutation } from "#/shared/lib/use-write-mutation"
+import { useWriteMutation } from "@shop/app-kit"
 import { useCurrentShop } from "#/shop"
 
 /** 工作台的 URL 状态（页签 + 分页）：页签是 URL 词汇（ALL 也是一个页签），wire 词汇只活在数据层里 */
@@ -99,6 +99,8 @@ export function useRefundList(search: RefundListSearch) {
         records: tickets.data?.records ?? [],
         total: tickets.data?.total ?? 0,
         busyId,
+        /** 错误态重试：与处理动作同一条失效入口（工作台列表 + 详情 + 订单列表三棵一起标脏） */
+        onRetry: invalidate,
         handleTabChange: (tab: RefundTab) => apply({ tab }),
         onPageChange: (page: number) => apply({ page }),
         agreeAfterSale: runTicketAction(agree.mutateAsync),

@@ -2,7 +2,7 @@ import { useMyShops, useCurrentShop, shopKeys } from "#/shop"
 import { SHOP_STATUS_VARIANT, SHOP_STATUS_TEXT } from "#/shop/constants"
 import { myInvites, acceptInvite, createShop } from "#/shop/data"
 import { setCurrentShopId } from "#/shop"
-import { formatDate } from "@shop/app-kit"
+import { formatDate, useWriteMutation } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import type { ShopResponse } from "@shop/api/sdk"
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
@@ -55,7 +55,7 @@ function ShopsPage() {
         return (
             <StateError
                 message={toApiError(shops.error).detail}
-                onRetry={() => void shops.refetch()}
+                onRetry={shops.onRetry}
                 retrying={shops.isFetching}
             />
         )
@@ -148,13 +148,10 @@ function PendingInvites() {
         queryFn: () => myInvites(),
     })
 
-    const accept = useMutation({
-        mutationFn: (memberId: string) => acceptInvite(memberId),
-        onSuccess: () => {
-            notify.success("已加入店铺")
-            void queryClient.invalidateQueries({ queryKey: shopKeys.all })
-        },
-        onError: (e) => notify.fromError(e, "加入店铺失败"),
+    const accept = useWriteMutation<string>({
+        mutationFn: (memberId) => acceptInvite(memberId),
+        invalidate: () => void queryClient.invalidateQueries({ queryKey: shopKeys.all }),
+        messages: { success: "已加入店铺", error: "加入店铺失败" },
     })
 
     if (!invites.data || invites.data.length === 0) return

@@ -2,13 +2,13 @@ import { Store, Trash2, UserPlus } from "lucide-react"
 
 import { toApiError } from "@shop/common"
 
-import { useCurrentShop, shopKeys } from "#/shop"
+import { useCurrentShop, shopKeys, useMyShopMembers } from "#/shop"
 import { useMe } from "#/shared/lib/me"
-import { shopMembers, inviteMember, removeMember } from "#/shop/data"
-import { useQueryClient, useQuery } from "@tanstack/react-query"
+import { inviteMember, removeMember } from "#/shop/data"
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { useWriteMutation } from "#/shared/lib/use-write-mutation"
+import { useWriteMutation } from "@shop/app-kit"
 import {
     Empty,
     EmptyHeader,
@@ -65,10 +65,8 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const queryClient = useQueryClient()
     const me = useMe()
 
-    const members = useQuery({
-        queryKey: shopKeys.members(shopId),
-        queryFn: () => shopMembers(shopId),
-    })
+    // 成员列表走域内 query hook（key 与失效规则同源，路由不直接拼 key）
+    const members = useMyShopMembers(shopId)
 
     // 身份判定比 userId（uuid），不比 phone：phone 可空且可变更
     const isOwner = members.data?.some(
@@ -101,7 +99,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
         return (
             <StateError
                 message={toApiError(members.error).detail}
-                onRetry={() => void members.refetch()}
+                onRetry={members.onRetry}
                 retrying={members.isFetching}
             />
         )

@@ -74,7 +74,7 @@ export function CouponPage({ search }: { search: CouponListSearch }) {
             {coupons.isError ? (
                 <StateError
                     message={toApiError(coupons.error).detail}
-                    onRetry={() => void coupons.refetch()}
+                    onRetry={coupons.onRetry}
                     retrying={coupons.isFetching}
                 />
             ) : coupons.isLoading ? (

@@ -62,7 +62,7 @@ function AddressPage() {
             {addresses.isError ? (
                 <StateError
                     message={toApiError(addresses.error).detail}
-                    onRetry={() => void addresses.refetch()}
+                    onRetry={addresses.onRetry}
                     retrying={addresses.isFetching}
                 />
             ) : addresses.isLoading ? (

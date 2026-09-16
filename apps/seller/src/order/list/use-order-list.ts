@@ -3,9 +3,10 @@ import { useNavigate } from "@tanstack/react-router"
 import type { OrderStatus } from "@shop/api/sdk"
 import { SellerLogisticsApi, SellerOrdersApi } from "@shop/api/sdk"
 
+import { useWriteMutation } from "@shop/app-kit"
+
 import { orderKeys, orderListOptions, type OrderListSearch } from "#/order/queries"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
-import { useWriteMutation } from "#/shared/lib/use-write-mutation"
 import { useCurrentShop } from "#/shop"
 
 export type { OrderListSearch } from "#/order/queries"
@@ -78,6 +79,8 @@ export function useOrderList(search: OrderListSearch) {
         records: orders.data?.records ?? [],
         total: orders.data?.total ?? 0,
         busyId,
+        /** 错误态重试：与 mutation 后同一条失效入口（重试 = 这份缓存不再可信） */
+        onRetry: invalidate,
         handleFilterChange: (status?: OrderStatus) => apply({ status, page: 1 }),
         onPageChange: (page: number) => apply({ page }),
         // 发货要带上弹窗填的物流信息：包一层把 ShipInput 折进行 id

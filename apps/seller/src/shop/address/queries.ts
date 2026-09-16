@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { MerchantAddressRequest } from "@shop/api/sdk"
 
 import { useCurrentShop } from "#/shop"
-import { useWriteMutation } from "#/shared/lib/use-write-mutation"
+import { useWriteMutation } from "@shop/app-kit"
 
 import {
     createAddress,
@@ -24,11 +24,16 @@ export const addressKeys = {
 export function useAddressList() {
     const shop = useCurrentShop()
     const shopId = shop?.id
-    return useQuery({
-        queryKey: addressKeys.lists(shopId),
-        queryFn: () => listAddresses(),
-        enabled: Boolean(shopId),
-    })
+    const queryClient = useQueryClient()
+    return {
+        ...useQuery({
+            queryKey: addressKeys.lists(shopId),
+            queryFn: () => listAddresses(),
+            enabled: Boolean(shopId),
+        }),
+        /** 错误态重试：与五个写操作同一条失效入口 */
+        onRetry: () => void queryClient.invalidateQueries({ queryKey: addressKeys.lists(shopId) }),
+    }
 }
 
 /**

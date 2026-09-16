@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { ShopResponse } from "@shop/api/sdk"
 
-import { myShops } from "./data"
+import { myShops, shopMembers } from "./data"
 import { useAuthStatus } from "../shared/lib/api"
 import { getStoredShopId, subscribe, syncResolvedShopId } from "../shared/lib/shop-store"
 
@@ -22,11 +22,31 @@ export const shopKeys = {
 
 export function useMyShops() {
     const status = useAuthStatus()
-    return useQuery({
-        queryKey: shopKeys.mine(),
-        queryFn: () => myShops(),
-        enabled: status === "authed",
-    })
+    const queryClient = useQueryClient()
+    return {
+        ...useQuery({
+            queryKey: shopKeys.mine(),
+            queryFn: () => myShops(),
+            enabled: status === "authed",
+        }),
+        /** 错误态重试：整棵店铺缓存标脏（我的店铺/邀请/成员都挂在这棵树上） */
+        onRetry: () => void queryClient.invalidateQueries({ queryKey: shopKeys.all }),
+    }
+}
+
+// ---------- 店铺成员 ----------
+
+/** 本店成员列表（成员管理页）：与商品的 shopId 入 key 同理——切店铺不串缓存 */
+export function useMyShopMembers(shopId: string) {
+    const queryClient = useQueryClient()
+    return {
+        ...useQuery({
+            queryKey: shopKeys.members(shopId),
+            queryFn: () => shopMembers(shopId),
+        }),
+        /** 错误态重试：与邀请/移除同一条失效入口 */
+        onRetry: () => void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),
+    }
 }
 
 // ---------- 当前店铺上下文（X-Shop-Id 的来源，存储在 ./shop-store） ----------

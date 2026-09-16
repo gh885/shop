@@ -2,7 +2,7 @@ import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ShippingTemplateRequest, ShippingTemplateResponse } from "@shop/api/sdk"
 
 import { useCurrentShop } from "#/shop"
-import { useWriteMutation } from "#/shared/lib/use-write-mutation"
+import { useWriteMutation } from "@shop/app-kit"
 import { getShippingTemplate, saveShippingTemplate } from "./data"
 
 export const shippingKeys = {
@@ -21,7 +21,14 @@ const shippingTemplateOptions = (shopId: string | undefined) =>
 
 export function useShippingTemplate() {
     const shop = useCurrentShop()
-    return useQuery(shippingTemplateOptions(shop?.id))
+    const queryClient = useQueryClient()
+    const shopId = shop?.id
+    const options = shippingTemplateOptions(shopId)
+    return {
+        ...useQuery(options),
+        /** 错误态重试：标脏这一格（key 从 options 取，避免闭包里的 shopId 落后） */
+        onRetry: () => void queryClient.invalidateQueries({ queryKey: options.queryKey }),
+    }
 }
 
 export function useSaveShippingTemplate() {

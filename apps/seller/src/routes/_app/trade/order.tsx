@@ -53,6 +53,7 @@ function OrdersPage() {
         total,
         busyId,
         handleFilterChange,
+        onRetry,
         onPageChange,
         ship,
         agreeAfterSale,
@@ -84,7 +85,7 @@ function OrdersPage() {
             {orders.isError ? (
                 <StateError
                     message={toApiError(orders.error).detail}
-                    onRetry={() => void orders.refetch()}
+                    onRetry={onRetry}
                     retrying={orders.isFetching}
                 />
             ) : orders.isLoading ? (

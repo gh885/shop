@@ -68,6 +68,7 @@ function RefundPage() {
         total,
         busyId,
         handleTabChange,
+        onRetry,
         onPageChange,
         agreeAfterSale,
         rejectAfterSale,
@@ -100,7 +101,7 @@ function RefundPage() {
             {tickets.isError ? (
                 <StateError
                     message={toApiError(tickets.error).detail}
-                    onRetry={() => void tickets.refetch()}
+                    onRetry={onRetry}
                     retrying={tickets.isFetching}
                 />
             ) : tickets.isLoading ? (

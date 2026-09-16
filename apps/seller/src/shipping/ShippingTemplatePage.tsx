@@ -182,7 +182,7 @@ export function ShippingTemplatePage() {
         return (
             <StateError
                 message={toApiError(templateQuery.error).detail}
-                onRetry={() => void templateQuery.refetch()}
+                onRetry={templateQuery.onRetry}
                 retrying={templateQuery.isFetching}
             />
         )

@@ -3,7 +3,7 @@ import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { CreateCouponTemplateRequest } from "@shop/api/sdk"
 
 import { useCurrentShop } from "#/shop"
-import { useWriteMutation } from "#/shared/lib/use-write-mutation"
+import { useWriteMutation } from "@shop/app-kit"
 import { createCoupon, listCoupons, stopCoupon } from "./data"
 import type { CouponListSearch } from "./model"
 
@@ -33,7 +33,13 @@ export const couponListOptions = (shopId: string | undefined, search: CouponList
 /** 本店券模板分页列表 */
 export function useCouponList(search: CouponListSearch) {
     const shop = useCurrentShop()
-    return useQuery(couponListOptions(shop?.id, search))
+    const queryClient = useQueryClient()
+    const shopId = shop?.id
+    return {
+        ...useQuery(couponListOptions(shopId, search)),
+        /** 错误态重试：与建券/停券同一条失效入口 */
+        onRetry: () => void queryClient.invalidateQueries({ queryKey: couponKeys.lists(shopId) }),
+    }
 }
 
 /** 新建券：成功后失效本店列表（新建的券总在按创建时间倒序的第一页） */
