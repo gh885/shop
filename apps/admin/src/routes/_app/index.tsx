@@ -2,9 +2,9 @@ import { useState } from "react"
 import { ShopReviewStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { notify } from "@shop/app-kit"
+import { useWriteMutation } from "@shop/app-kit"
 import {
     Badge,
     Button,
@@ -20,7 +20,8 @@ import {
     Textarea,
     type DataTableFilterConfig,
 } from "@shop/ui-web"
-import { type ShopReviewItem, reviewListOptions, REVIEW_LIST_KEY, adminApi } from "#/shared/lib/api"
+import { type ShopReviewItem, reviewListOptions, adminApi } from "#/shared/lib/api"
+import { reviewKeys } from "#/shared/lib/queries"
 import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
 import { isValid, format } from "date-fns"
 
@@ -203,26 +204,22 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
     const [approveOpen, setApproveOpen] = useState(false)
     const [reason, setReason] = useState("")
 
-    const invalidate = () => queryClient.invalidateQueries({ queryKey: REVIEW_LIST_KEY })
+    const invalidate = () => void queryClient.invalidateQueries({ queryKey: reviewKeys.all })
 
-    const approve = useMutation({
+    const approve = useWriteMutation({
         mutationFn: () => adminApi.approve(item.id),
-        onSuccess: () => {
-            notify.success(`已通过「${item.shopName}」的开店申请`)
-            setApproveOpen(false)
-            void invalidate()
-        },
-        onError: (e) => notify.fromError(e, "审核操作失败"),
+        invalidate,
+        messages: { success: `已通过「${item.shopName}」的开店申请`, error: "审核操作失败" },
+        onSuccess: () => setApproveOpen(false),
     })
-    const reject = useMutation({
+    const reject = useWriteMutation({
         mutationFn: () => adminApi.reject(item.id, reason),
+        invalidate,
+        messages: { success: `已驳回「${item.shopName}」的开店申请`, error: "审核操作失败" },
         onSuccess: () => {
-            notify.success(`已驳回「${item.shopName}」的开店申请`)
             setRejectOpen(false)
             setReason("")
-            void invalidate()
         },
-        onError: (e) => notify.fromError(e, "审核操作失败"),
     })
 
     const busy = approve.isPending || reject.isPending

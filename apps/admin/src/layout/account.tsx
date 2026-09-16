@@ -1,11 +1,11 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Button, cn, Spinner, useSidebar } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 
 import { AdminAuthApi } from "@shop/api/sdk"
 import { getDeviceId, tokenStore } from "../shared/lib/api"
-import { useMe } from "../shared/lib/me"
+import { ME_QUERY_KEY, useMe } from "../shared/lib/me"
 
 /** 账号头像（首字）：顶栏右侧独立展示，侧栏账号行内复用 */
 export function AccountAvatar({ className }: { className?: string }) {
@@ -32,11 +32,14 @@ export function Account() {
     const collapsed = state === "collapsed"
 
     const { data: me } = useMe()
+    const queryClient = useQueryClient()
 
     const logout = useMutation({
         mutationFn: () => AdminAuthApi.staffLogout({ body: { deviceId: getDeviceId() } }),
         onSettled: () => {
             tokenStore.clear()
+            // 身份缓存必须随登出清掉：换账号登录时不清会短暂显示上一个人的姓名/工号
+            queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
             void navigate({ to: "/login" })
         },
     })

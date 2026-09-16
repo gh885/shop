@@ -5,6 +5,8 @@ import { configureSdkClient, createAuthKit } from "@shop/common"
 import { AdminAuthApi, AdminReviewsApi } from "@shop/api/sdk"
 import type { ShopReviewStatus } from "@shop/api/sdk"
 
+import { reviewKeys } from "./queries"
+
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
 // 生成 SDK（@shop/api/sdk）统一出入参，业务方法经 adminApi 具名封装（error 转抛供调用方 catch）。
 const authKit = createAuthKit({
@@ -81,9 +83,7 @@ export async function requireGuest(): Promise<void> {
 }
 
 // ---------- queryOptions：参数化列表的 key/请求同源（与 seller 的 productListOptions 同形态） ----------
-
-/** 审核列表失效 key（mutation 后一发命中所有 status/分页） */
-export const REVIEW_LIST_KEY = ["admin", "reviews"] as const
+// key 不在这里定义：全部集中在 ./queries 的 key 工厂（失效关系的唯一入口）
 
 export const reviewListOptions = (input: {
     status?: ShopReviewStatus
@@ -91,7 +91,7 @@ export const reviewListOptions = (input: {
     size: number
 }) =>
     queryOptions({
-        queryKey: [...REVIEW_LIST_KEY, input.status ?? "all", input.page, input.size] as const,
+        queryKey: reviewKeys.list(input),
         queryFn: () => adminApi.listReviews(input),
         // 服务端分页/筛选时保留上一份数据，避免每次翻页都闪整表加载态
         placeholderData: (prev) => prev,
