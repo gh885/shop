@@ -7,7 +7,12 @@
  * 又实在没必要在每个 app 里复制一份。
  *
  * 放进来的标准：被 ≥2 个 app 使用 + 依赖两个底层包 + 不含端级业务规则
- * （端级业务规则仍归各 app，领域 hook 如 useMe 因接线不同保留在各 app）。
+ * （端级业务规则仍归各 app；端级**装配参数**的差异由工厂参数吸收，见 createMeQuery）。
+ *
+ * 服务端状态接线的公共部分也在这里（两者都是「三端同一形态、只差装配参数」）：
+ * - createAppQueryClient：QueryClient 默认值的唯一构造口
+ * - createMeQuery：当前登录者查询（key / 新鲜度 / enabled 条件三端统一）
+ * - useWriteMutation / useOptimisticListMutation：写操作的 toast + 失效 + 回滚接线
  */
 
 export { notify } from "./notify"
@@ -15,3 +20,8 @@ export { formatDate, formatDateTime, formatTimeShort } from "./format"
 export { LoginForm } from "./login-form"
 export type { LoginFormProps, LoginTab } from "./login-form"
 export { createImgUrl } from "./image"
+export { createAppQueryClient } from "./query-client"
+export { createMeQuery } from "./me-query"
+export type { MeQuery, MeQueryConfig } from "./me-query"
+export { useWriteMutation, useOptimisticListMutation } from "./mutations"
+export type { WriteMutationOptions, OptimisticListMutationOptions } from "./mutations"
