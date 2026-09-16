@@ -152,6 +152,7 @@ function AccountChip() {
 
     const logoutMutation = useMutation({
         mutationFn: () => logout(),
+        // 登出不是「写一处业务数据」，会话终结用 onSettled（成功失败都要清），故不套 useWriteMutation
         onSettled: () => {
             // 登出后用户信息必然失效：直接移除 me 缓存（key 归 me.ts 所有）
             queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
