@@ -1,8 +1,8 @@
-import { ProductsAdminApi, type ProductStatus } from "@shop/api/sdk"
+import { ProductsAdminApi } from "@shop/api/sdk"
 import { useEffect, useReducer, useRef, useState } from "react"
 
 import { publishGateError, willPublish, type SaveMode } from "#/product/edit-rules"
-import { useCategorySpecTemplate } from "#/product/use-spec-template"
+import { useCategorySpecTemplate, useProductDetail } from "#/product/queries"
 import { notify } from "@shop/app-kit"
 import {
     buildSkuRowsFromSelections,
@@ -93,8 +93,6 @@ export function useProductDraft({
 
     const [hydrated, setHydrated] = useState(false)
     const [hydratedBasic, setHydratedBasic] = useState<ProductBasicForm | undefined>()
-    /** 编辑已有商品时的当前状态（新建为 undefined）：决定能否切类目/规格是否冻结 */
-    const [productStatus, setProductStatus] = useState<ProductStatus | undefined>()
     /** 类目销售属性模板：前端本地算 SKU 组合用（完全显式模式，无需后端生成）；失败静默，组合留空 */
     const { template } = useCategorySpecTemplate(categoryId)
     /** 商品 id（编辑已有商品进入即有；新建保存后回写） */
@@ -103,6 +101,13 @@ export function useProductDraft({
     const createdThisSessionRef = useRef(false)
     const [creating, setCreating] = useState(false)
     const [submitting, setSubmitting] = useState(false)
+
+    // 编辑回填的数据源：与列表页编辑弹窗共用一份缓存（productKeys.detail），
+    // 不再自己 useEffect + useState 拉一份拷贝 —— 否则弹窗改完 SKU，发布页看到的还是旧值
+    const detailQuery = useProductDetail(createdThisSessionRef.current ? undefined : productId)
+    const detail = detailQuery.data
+    /** 编辑已有商品时的当前状态（新建为 undefined）：决定能否切类目/规格是否冻结 */
+    const productStatus = detail?.product.status
 
     // 渲染期不写 ref（React Compiler 禁止）：在 effect 中同步，读方均为事件回调/后续 effect
     const skuRowsRef = useRef(skuRows)
@@ -133,48 +138,37 @@ export function useProductDraft({
         }
     }
 
-    // ---- 商品回填：有 productId 时拉详情灌值（selections/skuRows 入 reducer，basic 入 hydratedBasic 供 form.reset） ----
+    // ---- 商品回填：详情到达后灌值（selections/skuRows 入 reducer，basic 入 hydratedBasic 供 form.reset） ----
     // 仅当「进入时即存在 productId（续编/编辑已有商品）」才回填；本会话点保存创建的，表单数据已是真相源，跳过回灌避免冲掉用户输入。
+    const detailError = detailQuery.error
     useEffect(() => {
         if (!shopId || !productId || createdThisSessionRef.current) return
-        let cancelled = false
-        setHydrated(false)
-        const hydrate = async () => {
-            try {
-                const detail = await ProductsAdminApi.getShopProductDetail({
-                    path: { id: productId },
-                })
-                // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
-                if (cancelled) return
-                dispatch({
-                    type: "hydrate",
-                    selections: detail.product.specs.map((s) => ({
-                        attrId: s.attrId,
-                        valueIds: s.values.map((v) => v.valueId),
-                        customValues: [],
-                    })),
-                    skuRows: detail.skus.map(rowFromSku),
-                })
-                setHydratedBasic({
-                    images: detail.product.images,
-                    name: detail.product.name,
-                    subtitle: detail.product.subtitle ?? "",
-                    detailImages: detail.product.detailImages,
-                })
-                setProductStatus(detail.product.status)
-                setHydrated(true)
-            } catch {
-                // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
-                if (cancelled) return
-                notify.error("商品信息加载失败，请刷新重试")
-                setHydrated(true)
-            }
+        if (detailError) {
+            // 详情拉不到也放行 hydrated：否则表单永远停在 loading 骨架，用户无从下手
+            notify.error("商品信息加载失败，请刷新重试")
+            setHydrated(true)
+            return
         }
-        void hydrate()
-        return () => {
-            cancelled = true
-        }
-    }, [shopId, productId])
+        if (!detail) return
+        dispatch({
+            type: "hydrate",
+            selections: detail.product.specs.map((s) => ({
+                attrId: s.attrId,
+                valueIds: s.values.map((v) => v.valueId),
+                customValues: [],
+            })),
+            skuRows: detail.skus.map(rowFromSku),
+        })
+        setHydratedBasic({
+            images: detail.product.images,
+            name: detail.product.name,
+            subtitle: detail.product.subtitle ?? "",
+            detailImages: detail.product.detailImages,
+        })
+        setHydrated(true)
+        // detail / detailError 都由 query 派生（同一份缓存，与列表页编辑弹窗共享），
+        // 不追踪 detailPending：它是「还没到」不是「变了」，不该触发 hydrate
+    }, [shopId, productId, detail, detailError])
 
     // ---- 选值变化 → 生成 SKU 组合行（完全显式双模式） ----
     //  - 新建态（无 productId）：纯本地笛卡尔积（buildSkuRowsFromSelections），skuId 留空，不调后端、不建档；

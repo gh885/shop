@@ -7,7 +7,7 @@ import type { ProductListFilter } from "#/product/list/filter"
 import { productKeys, productListOptions, type ProductSort } from "#/product/queries"
 import type { ProductListSearch } from "#/product/queries"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
-import { useWriteMutation } from "#/shared/lib/use-write-mutation"
+import { useWriteMutation } from "@shop/app-kit"
 import { useCurrentShop } from "#/shop"
 
 export type { ProductListSearch } from "#/product/queries"
@@ -84,6 +84,14 @@ export function useProductList(search: ProductListSearch) {
         handleEdit,
         handleOff: run(off.mutateAsync),
         handleOn: run(on.mutateAsync),
+        /**
+         * 列表内编辑弹窗保存后的同步：交给本域的 mutation 失效（`productKeys.lists`），
+         * 与上下架走同一条失效入口。不用 `products.refetch()` —— 它绕过 staleTime 强制打网络，
+         * 且把「这个弹窗改了列表数据」这件事绑在父组件的 query 实例上，失效范围会随列表结构漂移。
+         */
+        handleSaved: invalidate,
+        /** 错误态重试：与 mutation 后的同步同一条失效入口（重试 = 这份缓存不再可信） */
+        onRetry: invalidate,
         onPageChange: (page: number) => apply({ page }),
         onSortChange: (sort: ProductSort) => apply({ sort }),
     }

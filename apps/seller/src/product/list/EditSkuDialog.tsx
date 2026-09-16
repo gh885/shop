@@ -2,8 +2,9 @@ import { useEffect, useState } from "react"
 import { PackageCheck } from "lucide-react"
 
 import { fenToYuan, toApiError } from "@shop/common"
-import { notify } from "@shop/app-kit"
-import { ProductsAdminApi, type ProductDetailResponse, type SkuResponse } from "@shop/api/sdk"
+import { notify, useWriteMutation } from "@shop/app-kit"
+import { ProductsAdminApi, type SkuResponse, type SkuUpdateItem } from "@shop/api/sdk"
+import { useQueryClient } from "@tanstack/react-query"
 import {
     Button,
     Dialog,
@@ -26,6 +27,7 @@ import {
 } from "@shop/ui-web"
 
 import { countInputSchema, yuanPriceSchema } from "#/product/draft-model"
+import { productKeys, useProductDetail } from "#/product/queries"
 
 export type SkuEditKind = "price" | "stock"
 
@@ -69,7 +71,8 @@ const KIND_META: Record<SkuEditKind, { title: string; notice: string; okMessage:
  * - 从商品详情拉已有 SKU（含当前价格/编码/库存）逐行回填；
  * - 只改当前维度，另一个字段原样回传（updateSkus 把 price/stock 都视为必填绝对量，漏传会误重置）；
  * - 商家编码只有 price 模式可改，留空视为不改（后端 set 非空字段）；提交批量走 updateProductSkus。
- * - 生命周期：受控（open/productId 由外层持有），onSaved 用于保存后让外层失效列表。
+ * - 生命周期：受控（open/productId 由外层持有）。保存成功后调用 onSaved 通知外层「列表数据变了」，
+ *   由外层决定失效哪个 key —— 本层不 import 任何 query key。
  */
 export function EditSkuLineDialog({
     open,
@@ -86,56 +89,57 @@ export function EditSkuLineDialog({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
-    const [detail, setDetail] = useState<ProductDetailResponse | undefined>()
     const [rows, setRows] = useState<SkuRow[]>([])
-    const [loading, setLoading] = useState(false)
-    const [loadError, setLoadError] = useState<string>()
-    const [submitting, setSubmitting] = useState(false)
-    const [reloadKey, setReloadKey] = useState(0)
     const meta = KIND_META[kind]
+    const queryClient = useQueryClient()
 
-    // 每次打开都重新拉详情（受控 open + productId 变化驱动；reloadKey 供加载失败后重试）
+    // 详情走 query：与发布页回填同一份缓存（productKeys.detail）。
+    // 关着弹窗、或没有 productId 时 skipToken 直接不发请求；打开即命中缓存（若发布页刚填过则零请求）。
+    // 变量名用 data 而非 detail：下面对它做 undefined 判定（渲染 loading 分支）时，
+    // tsgolint 只认 `data === undefined` 这种能收窄 UseQueryResult 的写法
+    const { data, isPending, isError, error, onRetry, isFetching } = useProductDetail(
+        open ? productId : undefined,
+    )
+
+    // 详情到达（或换了商品）时灌进可编辑行：本地行状态仍是编辑会话的真相源，query 只负责喂初值。
+    // 用 effect 灌值是有意为之（同 EditTitleDialog 的打开即预填）：行要能改，不能直接读缓存渲染
     useEffect(() => {
-        if (!open || !productId) return
-        let cancelled = false
-        const loadDetail = async () => {
-            setLoading(true)
-            setLoadError(undefined)
-            setDetail(undefined)
-            try {
-                const d = await ProductsAdminApi.getShopProductDetail({ path: { id: productId } })
-                if (!cancelled) {
-                    setDetail(d)
-                    setRows(
-                        d.skus.map((s) => ({
-                            skuId: s.id,
-                            label: skuLabel(s),
-                            priceFen: s.price,
-                            priceText: s.price === null ? "" : fenToYuan(s.price),
-                            stockText: String(s.stock),
-                            stock: s.stock,
-                            skuCodeText: s.skuCode ?? "",
-                        })),
-                    )
-                }
-            } catch (error) {
-                if (!cancelled) setLoadError(toApiError(error).detail)
-            } finally {
-                if (!cancelled) setLoading(false)
-            }
-        }
-        void loadDetail()
-        return () => {
-            cancelled = true
-        }
-        // oxlint-disable-next-line react/exhaustive-effect-dependencies -- 加载与 cancelled 语义都收在 effect 内，函数引用刻意不进 deps
-    }, [open, productId, reloadKey])
+        if (!data) return
+        // oxlint-disable-next-line react/set-state-in-effect -- 服务端初值 → 本地编辑会话是有意的单向灌值
+        setRows(
+            data.skus.map((s) => ({
+                skuId: s.id,
+                label: skuLabel(s),
+                priceFen: s.price,
+                priceText: s.price === null ? "" : fenToYuan(s.price),
+                stockText: String(s.stock),
+                stock: s.stock,
+                skuCodeText: s.skuCode ?? "",
+            })),
+        )
+    }, [data])
+
+    // 提交走写操作接线：toast + 失效由工厂统一，失效范围由本域的 key 决定
+    const save = useWriteMutation<
+        SkuUpdateItem[],
+        Awaited<ReturnType<typeof ProductsAdminApi.updateProductSkus>>
+    >({
+        mutationFn: (items) =>
+            ProductsAdminApi.updateProductSkus({ path: { id: productId! }, body: { items } }),
+        invalidate: () => {
+            // 详情本身被改了（价格/库存/编码）→ 精确失效这一格，避免下次打开读到旧值
+            void queryClient.invalidateQueries({ queryKey: productKeys.detail(productId ?? "") })
+            onSaved()
+        },
+        messages: { success: meta.okMessage, error: "保存失败" },
+        onSuccess: () => onOpenChange(false),
+    })
 
     const updateRow = (skuId: string, patch: Partial<SkuRow>) =>
         setRows((prev) => prev.map((r) => (r.skuId === skuId ? { ...r, ...patch } : r)))
 
     const submit = async () => {
-        if (!productId || !detail) return
+        if (!productId || !data) return
         // 校验当前维度的输入（价格/库存必须填写合法；库存模式的回传价格必须已设置）
         for (const r of rows) {
             if (kind === "price") {
@@ -160,36 +164,27 @@ export function EditSkuLineDialog({
                 }
             }
         }
-        setSubmitting(true)
+        // 校验通过后交给写操作接线；失败提示已在 mutation 的 onError 里统一弹出
+        const items: SkuUpdateItem[] = rows.map((r) => {
+            if (kind === "price") {
+                const skuCode = r.skuCodeText.trim()
+                return {
+                    skuId: r.skuId,
+                    price: yuanPriceSchema.parse(r.priceText),
+                    stock: r.stock,
+                    ...(skuCode ? { skuCode } : {}),
+                }
+            }
+            return {
+                skuId: r.skuId,
+                price: r.priceFen!,
+                stock: countInputSchema.parse(r.stockText),
+            }
+        })
         try {
-            await ProductsAdminApi.updateProductSkus({
-                path: { id: productId },
-                body: {
-                    items: rows.map((r) => {
-                        if (kind === "price") {
-                            const skuCode = r.skuCodeText.trim()
-                            return {
-                                skuId: r.skuId,
-                                price: yuanPriceSchema.parse(r.priceText),
-                                stock: r.stock,
-                                ...(skuCode ? { skuCode } : {}),
-                            }
-                        }
-                        return {
-                            skuId: r.skuId,
-                            price: r.priceFen!,
-                            stock: countInputSchema.parse(r.stockText),
-                        }
-                    }),
-                },
-            })
-            notify.success(meta.okMessage)
-            onSaved()
-            onOpenChange(false)
-        } catch (error) {
-            notify.fromError(error, "保存失败")
-        } finally {
-            setSubmitting(false)
+            await save.mutateAsync(items)
+        } catch {
+            // 提示与失效已由 useWriteMutation 处理，这里只吞掉 rejection（unhandled 会被上报）
         }
     }
 
@@ -212,12 +207,13 @@ export function EditSkuLineDialog({
                         {meta.notice}
                     </div>
 
-                    {loadError ? (
+                    {isError ? (
                         <StateError
-                            message={loadError}
-                            onRetry={() => setReloadKey((k) => k + 1)}
+                            message={toApiError(error).detail}
+                            onRetry={onRetry}
+                            retrying={isFetching}
                         />
-                    ) : loading || !detail ? (
+                    ) : isPending ? (
                         <div className="flex max-h-(--max-height-dialog-body) flex-col gap-2 overflow-hidden">
                             <Skeleton className="h-9 w-full rounded-sm" />
                             <Skeleton className="h-9 w-full rounded-sm" />
@@ -229,7 +225,7 @@ export function EditSkuLineDialog({
                             <div className="text-sm">
                                 <span className="text-muted-foreground">商品标题：</span>
                                 <span className="font-medium">
-                                    {productName ?? detail.product.name}
+                                    {productName ?? data.product.name}
                                 </span>
                             </div>
 
@@ -334,15 +330,15 @@ export function EditSkuLineDialog({
                     <Button
                         variant="secondary"
                         onClick={() => onOpenChange(false)}
-                        disabled={submitting}
+                        disabled={save.isPending}
                     >
                         取消
                     </Button>
                     <Button
                         onClick={() => void submit()}
-                        disabled={submitting || loading || Boolean(loadError)}
+                        disabled={save.isPending || isPending || isError}
                     >
-                        {submitting ? "提交中…" : "提交"}
+                        {save.isPending ? "提交中…" : "提交"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

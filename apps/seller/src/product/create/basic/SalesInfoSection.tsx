@@ -12,7 +12,7 @@ import {
 import { priceRangeText } from "@shop/common"
 
 import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
-import { useCategorySpecTemplate } from "#/product/use-spec-template"
+import { useCategorySpecTemplate } from "#/product/queries"
 
 import { SalesAttrsEditor } from "./SalesAttrsEditor"
 import { SkuGridEditor } from "./SkuGridEditor"

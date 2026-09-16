@@ -57,6 +57,8 @@ function ProductsPage() {
         handleEdit,
         handleOff,
         handleOn,
+        handleSaved,
+        onRetry,
         onPageChange,
         onSortChange,
     } = useProductList(search)
@@ -82,7 +84,7 @@ function ProductsPage() {
             {products.isError ? (
                 <StateError
                     message={toApiError(products.error).detail}
-                    onRetry={() => void products.refetch()}
+                    onRetry={onRetry}
                     retrying={products.isFetching}
                 />
             ) : products.isLoading ? (
@@ -135,14 +137,14 @@ function ProductsPage() {
                 productId={lineTarget?.product.id}
                 productName={lineTarget?.product.name}
                 onOpenChange={(open) => !open && setLineTarget(undefined)}
-                onSaved={() => void products.refetch()}
+                onSaved={handleSaved}
             />
 
             <EditTitleDialog
                 open={Boolean(titleTarget)}
                 product={titleTarget}
                 onOpenChange={(open) => !open && setTitleTarget(undefined)}
-                onSaved={() => void products.refetch()}
+                onSaved={handleSaved}
             />
         </div>
     )
