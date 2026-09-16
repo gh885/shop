@@ -93,7 +93,7 @@ export const countInputSchema = z
 // ---------- 行构造 ----------
 
 /** 空白行（新建态组合/单规格共用一份默认值，避免各处手写 {price:null…}） */
-export function blankDraftRow(label: string): SkuDraftRow {
+function blankDraftRow(label: string): SkuDraftRow {
     // oxlint-disable-next-line no-null -- 设计契约：模型存 null（见文件头「模型只存分与 null」，rowFromSku 不对 wire null 归一）
     return { skuId: null, label, price: null, stock: null, skuCode: null, status: "ON_SALE" }
 }

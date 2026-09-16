@@ -106,7 +106,7 @@ export function useLeafPaths(): LeafPath[] {
  * 不设 staleTime 覆盖（吃全局 10s 兜底）：这是弹窗与回填的取数口，
  * 写操作后由调用方 invalidate 或 setQueryData 收敛（见 EditSkuDialog 的 update 接线）。
  */
-export const productDetailOptions = (productId: string | undefined) =>
+const productDetailOptions = (productId: string | undefined) =>
     queryOptions({
         queryKey: productKeys.detail(productId ?? ""),
         queryFn: productId

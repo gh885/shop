@@ -1,7 +1,6 @@
 import { type Money } from "@shop/common"
 import type {
     Address,
-    Coupon,
     Group,
     Item,
     PreviewResponse,
@@ -9,10 +8,7 @@ import type {
 } from "@shop/api/sdk"
 
 /** 行明细：契约同 SDK Item，仅主图归一（SDK 可空 null，UI 用占位图 → undefined） */
-export type CheckoutLine = Omit<Item, "image"> & { image?: string }
-
-/** 券候选：契约同 SDK Coupon。`usable` / `unavailableReason` 由后端评估器给，前端不重算门槛与有效期 */
-export type CheckoutCoupon = Coupon
+type CheckoutLine = Omit<Item, "image"> & { image?: string }
 
 /** 按店分组：契约同 SDK Group（含 discountAmount / coupons / appliedCouponId 券三件套），行明细换成本地归一后的 CheckoutLine */
 export type CheckoutGroup = Omit<Group, "lines"> & { lines: CheckoutLine[] }

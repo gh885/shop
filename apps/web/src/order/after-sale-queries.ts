@@ -16,7 +16,7 @@ import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
  */
 
 /** 售后单缓存 key 前缀：精确 key 为 [AFTER_SALE_KEY, orderId] */
-export const AFTER_SALE_KEY = ["after-sale"] as const
+const AFTER_SALE_KEY = ["after-sale"] as const
 
 /** 导出供 route loader 客户端预热（订单详情页 loader 一并预取售后单） */
 export const afterSaleOptions = (orderId: string) =>
@@ -45,7 +45,7 @@ export function useAfterSale(orderId: string) {
 // ---------- 写操作（申请 / 撤销 / 回寄），纯 fetch 便于断言投影 ----------
 
 /** 申请售后：type 必填，理由空串按「没填」处理（后端 reason 可空，别把空白当理由存下来） */
-export async function applyAfterSale(
+async function applyAfterSale(
     orderId: string,
     input: { type: TicketType; reason?: string },
 ): Promise<void> {
@@ -57,7 +57,7 @@ export async function applyAfterSale(
 }
 
 /** 撤销售后申请（仅待卖家处理可撤销） */
-export async function cancelAfterSale(orderId: string): Promise<void> {
+async function cancelAfterSale(orderId: string): Promise<void> {
     await OrdersApi.cancelAfterSale({ path: { id: orderId } })
 }
 
@@ -65,7 +65,7 @@ export async function cancelAfterSale(orderId: string): Promise<void> {
  * 回寄退货并填物流单（仅退货退款 · 待寄回可填）。
  * 不传 carrierCode：买家回寄是线下行为，他多半只知道「顺丰」这个名字，后端按名字匹配承运商字典。
  */
-export async function returnAfterSale(
+async function returnAfterSale(
     orderId: string,
     input: { logisticsCompany: string; trackingNo: string },
 ): Promise<void> {
@@ -77,7 +77,6 @@ export async function returnAfterSale(
         },
     })
 }
-
 /** 三个写操作共用：成功提示 + 失效售后单/订单详情/订单列表 */
 function useAfterSaleMutation<TInput>(
     mutationFn: (input: TInput) => Promise<void>,

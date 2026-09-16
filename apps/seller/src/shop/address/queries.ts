@@ -15,7 +15,7 @@ import {
 
 // ---------- address 域 queryKey 工厂（前缀结构一眼可见，invalidate 不漏 key） ----------
 
-export const addressKeys = {
+const addressKeys = {
     all: ["addresses"] as const,
     lists: (shopId: string | undefined) => ["addresses", shopId, "list"] as const,
 }

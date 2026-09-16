@@ -31,7 +31,7 @@ export const orderKeys = {
 }
 
 /** 承运商字典与店铺无关，单独一棵 key 树，不进 orders 前缀（失效订单不影响它） */
-export const carrierKeys = {
+const carrierKeys = {
     all: ["carriers"] as const,
 }
 

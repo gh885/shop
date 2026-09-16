@@ -14,14 +14,14 @@ import type { CouponListSearch } from "./model"
  * 失效也精确打在当前店铺那一棵树上（后端从 X-Shop-Id 取店，前端不传）。
  */
 
-export const couponKeys = {
+const couponKeys = {
     all: ["coupons"] as const,
     lists: (shopId: string | undefined) => ["coupons", shopId] as const,
     list: (shopId: string | undefined, s: CouponListSearch) =>
         ["coupons", shopId, s.page, s.size] as const,
 }
 
-export const couponListOptions = (shopId: string | undefined, search: CouponListSearch) =>
+const couponListOptions = (shopId: string | undefined, search: CouponListSearch) =>
     queryOptions({
         queryKey: couponKeys.list(shopId, search),
         queryFn: () => listCoupons(search.page, search.size),

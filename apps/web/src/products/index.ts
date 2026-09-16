@@ -8,36 +8,9 @@
  * 桶文件只暴露外部真正消费的那几个；模块内部一律相对路径直连，不走这里。
  */
 
-export {
-    derivePriceView,
-    deriveStockText,
-    findMatchingSku,
-    isImageSpecGroup,
-    isSelectionComplete,
-    isValueAvailable,
-    specValueImage,
-    toProductCardData,
-} from "./product"
-export type { Product, ProductCardData, ProductDetail, SkuSelection } from "./product"
+export { toProductCardData } from "./product"
+export type { Product, ProductDetail } from "./product"
 
-/** 共享值对象类型（Money / ParamItem / SpecItem）契约在 @shop/api，这里转发省得业务方跨包取 */
-
-export type { ParamItem } from "@shop/api/sdk"
-
-export { fetchProductDetail, fetchProducts } from "./data"
+export { fetchProducts } from "./data"
 
 export { ProductCard } from "./ProductCard"
-
-export {
-    AlsoViewedSection,
-    DetailHeader,
-    DetailSections,
-    Gallery,
-    productDetailOptions,
-    PurchaseCta,
-    PurchasePanel,
-    shopOptions,
-    ShopBar,
-    ShopRecommendSection,
-    useSkuSelection,
-} from "./detail"

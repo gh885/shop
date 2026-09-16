@@ -22,7 +22,7 @@ import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart/queries"
 /** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
 
 /** 结算行：skuId + 件数。购物车勾选与立即购买在入口处归约成同一形状，后端不再区分来源 */
-export type CheckoutLine = { skuId: string; quantity: number }
+type CheckoutLine = { skuId: string; quantity: number }
 
 /** 结算来源：一组结算行（URL search 携带，刷新可复现） */
 export type CheckoutSource = { lines: CheckoutLine[] }

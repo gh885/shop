@@ -5,7 +5,7 @@ import { useCurrentShop } from "#/shop"
 import { useWriteMutation } from "@shop/app-kit"
 import { getShippingTemplate, saveShippingTemplate } from "./data"
 
-export const shippingKeys = {
+const shippingKeys = {
     all: ["shipping-template"] as const,
     detail: (shopId: string | undefined) => ["shipping-template", shopId] as const,
 }

@@ -1,0 +1,11 @@
+{
+    "$schema": "https://unpkg.com/knip@6/schema.json",
+    "ignore": ["packages/api/src/sdk/**"],
+    "ignoreBinaries": ["mvn", "wsl.exe"],
+    "workspaces": {
+        "apps/admin": {
+            "ignore": ["src/test/render.tsx"],
+            "ignoreDependencies": ["@testing-library/react", "@testing-library/user-event", "msw"]
+        }
+    }
+}

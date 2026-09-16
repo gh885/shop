@@ -28,7 +28,7 @@ export type CouponListSearch = z.infer<typeof couponListSearchSchema>
 /** 列表展示状态：由模板 status 与有效期区间相对当前时刻派生（不是 wire 里的 status 原样透传） */
 export type CouponStatus = "NOT_STARTED" | "ONGOING" | "ENDED" | "STOPPED"
 
-export const COUPON_STATUS_META: Record<
+const COUPON_STATUS_META: Record<
     CouponStatus,
     { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
 > = {

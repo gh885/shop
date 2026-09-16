@@ -21,7 +21,7 @@ import {
 // ---------- 我的券包 ----------
 
 /** 券包缓存前缀：状态页签 × 分页都是同一份数据的切片，失效一发命中整棵子树 */
-export const MY_COUPONS_KEY = ["my-coupons"] as const
+const MY_COUPONS_KEY = ["my-coupons"] as const
 
 /** 我的券包 queryOptions：queryKey 带全部分页/筛选入参，切页签与翻页各占一格缓存；
  *  导出供 route loader 客户端预热（券包页 loader 预取默认页签第一页） */
@@ -50,7 +50,7 @@ export function useMyCoupons(status: CouponTab, page = 1) {
 
 // ---------- 店铺可领券（匿名） ----------
 
-export const SHOP_CLAIMABLE_COUPONS_KEY = ["shop-claimable-coupons"] as const
+const SHOP_CLAIMABLE_COUPONS_KEY = ["shop-claimable-coupons"] as const
 
 const shopClaimableCouponsOptions = (shopId: string) =>
     queryOptions({

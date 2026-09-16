@@ -33,7 +33,7 @@ export interface EditCapability {
     notice?: string
 }
 
-export const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
+const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
     DRAFT: {
         switchCategory: true,
         specsEditable: true,

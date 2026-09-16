@@ -7,12 +7,4 @@
  * 「当前店铺 ID」的全局单例在 shared/lib/shop-store，请求头 X-Shop-Id 由传输层注入。
  */
 
-export {
-    addressKeys,
-    useAddressList,
-    useCreateAddress,
-    useUpdateAddress,
-    useDeleteAddress,
-    useSetDefaultShip,
-    useSetDefaultReturn,
-} from "./queries"
+export { useAddressList, useDeleteAddress, useSetDefaultShip, useSetDefaultReturn } from "./queries"

@@ -9,23 +9,10 @@
  * 本域不重复实现 —— 结算选券、卖家券列表用的是同一套说法。
  */
 
-export {
-    COUPON_PAGE_SIZE,
-    COUPON_TABS,
-    groupByStatus,
-    isCouponAlreadyClaimed,
-    toMyCoupon,
-} from "./coupon"
-export type { CouponGroup, CouponTab, MyCoupon } from "./coupon"
+export { COUPON_PAGE_SIZE, COUPON_TABS, groupByStatus } from "./coupon"
+export type { CouponTab } from "./coupon"
 
-export {
-    MY_COUPONS_KEY,
-    SHOP_CLAIMABLE_COUPONS_KEY,
-    myCouponsOptions,
-    useClaimCoupon,
-    useMyCoupons,
-    useShopClaimableCoupons,
-} from "./queries"
+export { myCouponsOptions, useMyCoupons } from "./queries"
 
 export { CouponCard } from "./CouponCard"
 export { ShopCouponPopover } from "./ShopCouponPopover"

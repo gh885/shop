@@ -18,7 +18,6 @@ export { ProductDetailSkeleton } from "./ProductDetailSkeleton"
 export { PurchaseCta } from "./PurchaseCta"
 export { PurchasePanel } from "./PurchasePanel"
 export { ShopBar } from "./ShopBar"
-export { ShopBarError, ShopBarSkeleton } from "./ShopBarStates"
 
 export { productDetailOptions, shopOptions } from "./queries"
 export { skuSearchSchema, type SkuSearch, type SkuSearchInput } from "./sku-search"

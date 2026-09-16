@@ -11,7 +11,7 @@ import { yuanToFen } from "@shop/common"
  * 两处换算都只在这里发生一次，页面组件不碰金额与时间。
  */
 
-export const COUPON_MAX_TOTAL = 1_000_000
+const COUPON_MAX_TOTAL = 1_000_000
 
 const yuanField = (label: string) =>
     z
@@ -94,7 +94,7 @@ export function emptyCouponForm(): CouponFormValues {
  * datetime-local 的本地墙钟（"2026-01-01T10:00"）→ 带时区的 ISO 时刻。
  * 本地解析是刻意的：卖家填的是自己时区的"10 点"，不是 UTC 的 10 点。
  */
-export function localDateTimeToIso(value: string): string | undefined {
+function localDateTimeToIso(value: string): string | undefined {
     const ms = Date.parse(value)
     if (Number.isNaN(ms)) return undefined
     return new Date(ms).toISOString()

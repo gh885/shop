@@ -10,7 +10,7 @@ import { queryOptions, useQuery } from "@tanstack/react-query"
  */
 
 /** 轨迹缓存 key 前缀：精确 key 为 [ORDER_TRACKING_KEY, orderId] */
-export const ORDER_TRACKING_KEY = ["order-tracking"] as const
+const ORDER_TRACKING_KEY = ["order-tracking"] as const
 
 export const orderTrackingOptions = (orderId: string) =>
     queryOptions({

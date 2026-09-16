@@ -35,7 +35,7 @@ export const EMPTY_FEE_TIER: FeeTierFormValue = {
     addFee: "0.00",
 }
 
-export function emptyShippingTemplateForm(): ShippingTemplateFormValues {
+function emptyShippingTemplateForm(): ShippingTemplateFormValues {
     return {
         freeShipping: false,
         freeOverQuantity: "",

@@ -28,6 +28,8 @@
         "typecheck": "pnpm --filter web exec tsc --noEmit && pnpm --filter admin exec tsc --noEmit && pnpm --filter seller exec tsc --noEmit",
         "test": "vitest run",
         "test:watch": "vitest",
+        "knip": "knip",
+        "knip:production": "knip --production",
         "gen:sdk": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts && npm run contract:audit",
         "contract:audit": "node scripts/contract-audit.mjs"
     },
@@ -37,6 +39,7 @@
         "@commitlint/types": "^21.2.0",
         "@shadcn/lint": "^0.1.0",
         "concurrently": "^10.0.5",
+        "knip": "^6.35.1",
         "lefthook": "^2.1.12",
         "oxfmt": "^0.66.0",
         "oxlint": "^1.81.0",

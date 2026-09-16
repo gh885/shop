@@ -23,7 +23,7 @@ import { toApiError } from "@shop/common"
 import { ProductCard } from "../ProductCard"
 import { shopProductsOptions, alsoViewedOptions } from "./queries"
 
-export function DetailSection({
+function DetailSection({
     id,
     title,
     children,
