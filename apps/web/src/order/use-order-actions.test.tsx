@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest"
 
 import { useOrderActions } from "./use-order-actions"
 import type { Order } from "./model"
+import { myOrdersOptions } from "./queries"
 
 import { createTestQueryClient, server } from "@shop/test-utils"
 
@@ -151,18 +152,15 @@ describe("useOrderActions", () => {
             }),
         )
         const { queryClient } = await setup()
-        // 预置列表缓存，断言动作成功后被标记失效
-        queryClient.setQueryData(["my-orders", "all", 1, 20], { records: [], total: 0 })
+        // 预置列表缓存，断言动作成功后被标记失效（key 由域内 options 工厂生成，不手抄字面量）
+        const listKey = myOrdersOptions().queryKey
+        queryClient.setQueryData(listKey, { records: [], total: 0 })
 
         // 用 hook 返回的 cancel.mutate 直接驱动（调用方从确认弹窗接线的就是它）
         await waitFor(() => expect(capturedBox.current).not.toBeNull())
         capturedBox.current!.cancel.mutate("o-1")
 
         await waitFor(() => expect(cancelBody).toMatchObject({ reason: "用户取消" }))
-        await waitFor(() =>
-            expect(queryClient.getQueryState(["my-orders", "all", 1, 20])?.isInvalidated).toBe(
-                true,
-            ),
-        )
+        await waitFor(() => expect(queryClient.getQueryState(listKey)?.isInvalidated).toBe(true))
     })
 })

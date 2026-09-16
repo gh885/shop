@@ -2,13 +2,16 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import { useOptimisticListMutation } from "./use-optimistic-list"
+import { useOptimisticListMutation } from "@shop/app-kit"
 
 import { createTestQueryClient } from "@shop/test-utils"
 
 /**
  * 乐观列表 mutation 工厂测试：每个用例挂独立 QueryClient，直接断言缓存。
  * 不 mock notify——失败场景只关心「缓存回滚」，提示文案由 notify 自己的行为保证。
+ *
+ * 工厂本体在 @shop/app-kit（seller/admin 也用它），用例留在 web 是因为 jsdom 测试装置
+ * 装在这里（`src/test/setup.ts` 的 MSW + toast 桩）——被测对象是共享包，装置不重复造。
  */
 function setup<TData, TVars>(
     options: Parameters<typeof useOptimisticListMutation<TData, TVars>>[0],
@@ -46,11 +49,14 @@ describe("useOptimisticListMutation", () => {
         await waitFor(() => expect(queryClient.getQueryData(["list"])).toEqual(["a", "b", "c"]))
     })
 
-    it("mutationFn 返回 { error }（SDK 未抛错形态）时提升为异常并回滚缓存", async () => {
+    it("mutationFn 抛错（SDK throwOnError 后的真实形状）时回滚缓存", async () => {
         const { result, queryClient } = setup<string, string>(
             {
                 queryKey: ["list"],
-                mutationFn: async () => ({ error: { status: 409, detail: "冲突" } }),
+                mutationFn: async () => {
+                    // SDK 已配 throwOnError：非 2xx 归一成 ApiError 抛出，不存在「返回 { error }」的路径
+                    throw { status: 409, detail: "冲突" }
+                },
                 patch: (list, vars) => [...list, vars],
                 messages: { error: "操作失败" },
             },

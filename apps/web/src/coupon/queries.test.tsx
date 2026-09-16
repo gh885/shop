@@ -8,7 +8,7 @@ import type { MyCouponResponse } from "@shop/api/sdk"
 import { createTestQueryClient, server } from "@shop/test-utils"
 
 import { COUPON_PAGE_SIZE, type CouponTab } from "./coupon"
-import { useClaimCoupon, useMyCoupons, useShopClaimableCoupons } from "./queries"
+import { myCouponsOptions, useClaimCoupon, useMyCoupons, useShopClaimableCoupons } from "./queries"
 
 /**
  * 券数据层：钉住两件容易出错、出错又很难看出来的事 ——
@@ -116,12 +116,15 @@ describe("useClaimCoupon", () => {
             ),
         )
         const queryClient = createTestQueryClient()
-        // 预置两棵券包缓存：另一页签、另一页码。少失效一棵就会出现「券包页还是旧列表」
-        queryClient.setQueryData(["my-coupons", "UNUSED", 2, COUPON_PAGE_SIZE], {
+        // 预置两棵券包缓存：另一页签、另一页码。少失效一棵就会出现「券包页还是旧列表」。
+        // key 由 myCouponsOptions 生成 —— 手抄 ["my-coupons", …] 会在 key 形状变化时静默失配
+        const unusedKey = myCouponsOptions("UNUSED", 2).queryKey
+        const expiredKey = myCouponsOptions("EXPIRED", 1).queryKey
+        queryClient.setQueryData(unusedKey, {
             records: [],
             total: 0,
         })
-        queryClient.setQueryData(["my-coupons", "EXPIRED", 1, COUPON_PAGE_SIZE], {
+        queryClient.setQueryData(expiredKey, {
             records: [],
             total: 0,
         })
@@ -134,16 +137,8 @@ describe("useClaimCoupon", () => {
         )
         await user.click(screen.getByRole("button", { name: "claim" }))
 
-        await waitFor(() =>
-            expect(
-                queryClient.getQueryState(["my-coupons", "UNUSED", 2, COUPON_PAGE_SIZE])
-                    ?.isInvalidated,
-            ).toBe(true),
-        )
-        expect(
-            queryClient.getQueryState(["my-coupons", "EXPIRED", 1, COUPON_PAGE_SIZE])
-                ?.isInvalidated,
-        ).toBe(true)
+        await waitFor(() => expect(queryClient.getQueryState(unusedKey)?.isInvalidated).toBe(true))
+        expect(queryClient.getQueryState(expiredKey)?.isInvalidated).toBe(true)
     })
 
     it("领取请求打到券模板的领取端点_模板 id 在路径上", async () => {

@@ -16,6 +16,7 @@ import { createTestQueryClient, server } from "@shop/test-utils"
 
 import { tokenStore } from "#/shared/lib/api"
 import { setCurrentShopId } from "#/shop"
+import { afterSaleKeys, orderKeys } from "#/order/queries"
 
 import { useRefundList } from "./use-refund-list"
 
@@ -130,18 +131,17 @@ describe("useRefundList", () => {
         const { user, queryClient } = await setup()
         // 预置两棵"没有观察者"的缓存：售后单详情（决策弹窗读它）与订单列表（售后徽章来自投影列）。
         // 工作台列表自己有观察者，失效的表现是立刻重拉（见下面的 listCalls），不会留下 sticky 的失效标记。
-        queryClient.setQueryData(["after-sale", SHOP_ID, ORDER_ID], null)
-        queryClient.setQueryData(["orders", SHOP_ID, "all", 1, 10], { records: [], total: 0 })
+        // key 由各域 options 工厂生成，不手抄字面量（形状一变，手抄的 key 会静默失配、断言落空）
+        const ticketKey = afterSaleKeys.detail(SHOP_ID, ORDER_ID)
+        const orderListKey = orderKeys.list(SHOP_ID, { page: 1, size: 10 })
+        queryClient.setQueryData(ticketKey, null)
+        queryClient.setQueryData(orderListKey, { records: [], total: 0 })
         const callsBefore = listCalls
 
         await user.click(screen.getByRole("button", { name: "agree" }))
 
         await waitFor(() => expect(listCalls).toBeGreaterThan(callsBefore))
-        expect(queryClient.getQueryState(["after-sale", SHOP_ID, ORDER_ID])?.isInvalidated).toBe(
-            true,
-        )
-        expect(queryClient.getQueryState(["orders", SHOP_ID, "all", 1, 10])?.isInvalidated).toBe(
-            true,
-        )
+        expect(queryClient.getQueryState(ticketKey)?.isInvalidated).toBe(true)
+        expect(queryClient.getQueryState(orderListKey)?.isInvalidated).toBe(true)
     })
 })

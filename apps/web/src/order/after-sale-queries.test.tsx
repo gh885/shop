@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest"
 
 import { createTestQueryClient, makeTicket, server } from "@shop/test-utils"
 
-import { useAfterSale, useApplyAfterSale } from "./after-sale-queries"
+import { afterSaleOptions, useAfterSale, useApplyAfterSale } from "./after-sale-queries"
+import { myOrdersOptions, ORDER_DETAIL_KEY } from "./queries"
 
 /**
  * 售后数据层测试：两件必须钉住的事——
@@ -91,10 +92,16 @@ describe("useApplyAfterSale（申请后的一致性）", () => {
             ),
         )
         const queryClient = createTestQueryClient()
-        // 预置三棵缓存：售后单、订单详情（afterSaleStatus 投影在这）、订单列表
-        queryClient.setQueryData(["after-sale", "o-1"], null)
-        queryClient.setQueryData(["order-detail", "o-1"], {})
-        queryClient.setQueryData(["my-orders", "all", 1, 20], { records: [], total: 0 })
+        // 预置三棵缓存：售后单、订单详情（afterSaleStatus 投影在这）、订单列表。
+        // key 一律由各域 options 工厂生成 —— 手抄字面量会在 key 形状变化时静默失配（测试照过、断言落空）
+        const ticketKey = afterSaleOptions("o-1").queryKey
+        // 详情这棵的 key 由导出的前缀常量拼（不算工厂）：本用例只断言它被标脏，
+        // 值不参与任何渲染，用前缀常量即可避免为了类型正确造一整份 OrderDetail
+        const detailKey = [...ORDER_DETAIL_KEY, "o-1"]
+        const listKey = myOrdersOptions().queryKey
+        queryClient.setQueryData(ticketKey, null)
+        queryClient.setQueryData(detailKey, { id: "o-1" })
+        queryClient.setQueryData(listKey, { records: [], total: 0 })
 
         const user = userEvent.setup()
         render(
@@ -104,10 +111,8 @@ describe("useApplyAfterSale（申请后的一致性）", () => {
         )
         await user.click(screen.getByRole("button", { name: "apply" }))
 
-        await waitFor(() =>
-            expect(queryClient.getQueryState(["after-sale", "o-1"])?.isInvalidated).toBe(true),
-        )
-        expect(queryClient.getQueryState(["order-detail", "o-1"])?.isInvalidated).toBe(true)
-        expect(queryClient.getQueryState(["my-orders", "all", 1, 20])?.isInvalidated).toBe(true)
+        await waitFor(() => expect(queryClient.getQueryState(ticketKey)?.isInvalidated).toBe(true))
+        expect(queryClient.getQueryState(detailKey)?.isInvalidated).toBe(true)
+        expect(queryClient.getQueryState(listKey)?.isInvalidated).toBe(true)
     })
 })
