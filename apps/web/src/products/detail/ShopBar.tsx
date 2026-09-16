@@ -25,14 +25,14 @@ import { useShopQuery } from "./queries"
  * 成功 → 内容（其中「no logo」是成功态下的展示降级，退店名首字字母头像）。
  */
 export function ShopBar({ shopId }: { shopId: string }) {
-    const { data: shop, isError, error, refetch, isFetching } = useShopQuery(shopId)
+    const { data: shop, isError, error, onRetry, isFetching } = useShopQuery(shopId)
 
     // 先判失败：失败时 data 可能为空，落到下面的骨架分支就永远转下去了（这是本次要修的坑）
     if (isError) {
         return (
             <ShopBarError
                 message={toApiError(error).detail || "店铺信息加载失败"}
-                onRetry={() => void refetch()}
+                onRetry={onRetry}
                 retrying={isFetching}
             />
         )

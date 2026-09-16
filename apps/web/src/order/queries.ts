@@ -3,8 +3,9 @@ import type { PreviewResponse } from "@shop/api/sdk"
 
 import { statusToWire, toOrder, toOrderDetail } from "./order"
 import type { Order, OrderDetail, OrderStatus } from "./model"
-import { queryOptions, useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
-import { notify } from "@shop/app-kit"
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
+
+import { useWriteMutation } from "@shop/app-kit"
 
 /**
  * order/queries —— 订单的数据层（fetch 纯函数 + queryOptions + hooks）。
@@ -139,14 +140,17 @@ function useOrderActionMutation(
     messages: { success: string; error: string },
 ) {
     const qc = useQueryClient()
-    return useMutation({
+    return useWriteMutation<string>({
         mutationFn,
-        onSuccess: (_data, orderId) => {
-            notify.success(messages.success)
+        invalidate: () => {
             void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
+        },
+        messages,
+        // 详情 key 带 id（只失效当前这一单）：变量即订单 id，工厂的 invalidate 拿不到，
+        // 故放在 onSuccess 里 —— 语义仍是「谁改数据谁声明影响范围」，只是范围依赖入参
+        onSuccess: (_data, orderId) => {
             void qc.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] })
         },
-        onError: (err) => notify.fromError(err, messages.error),
     })
 }
 

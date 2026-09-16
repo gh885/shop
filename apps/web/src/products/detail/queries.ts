@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 import { PublicShopsApi } from "@shop/api/sdk"
 import type { PublicShopResponse } from "@shop/api/sdk"
 
@@ -65,7 +65,15 @@ export const alsoViewedOptions = queryOptions({
  * 返回**完整 query 结果**而不是 `.data`：店铺条要自己区分「还在加载」与「加载失败」
  * （失败必须给重试，而不是让骨架或占位一直挂着）。
  * shopId 未就绪前不发请求（enabled 关掉）。
+ *
+ * 另给 `onRetry`：错误态的重试按钮走 invalidate 而不是 refetch ——
+ * 「重试」= 声明这份缓存不再可信、请重新取，而不是绕过 staleTime 强打一次网络。
+ * 参数化 key 用前缀失效，顺带把该店其它切片一起标脏。
  */
 export function useShopQuery(shopId: string | undefined) {
-    return useQuery({ ...shopOptions(shopId ?? "pending"), enabled: !!shopId })
+    const queryClient = useQueryClient()
+    return {
+        ...useQuery({ ...shopOptions(shopId ?? "pending"), enabled: !!shopId }),
+        onRetry: () => void queryClient.invalidateQueries({ queryKey: ["shop-public", shopId] }),
+    }
 }

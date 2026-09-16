@@ -41,7 +41,7 @@ export const Route = createFileRoute("/_protected/account/address/")({
 })
 
 function AddressPage() {
-    const { data: addresses = [], isLoading, isError, refetch } = useAddressList()
+    const { data: addresses = [], isLoading, isError, onRetry } = useAddressList()
     const del = useDeleteAddress()
     const setDefault = useSetDefaultAddress()
     const unsetDefault = useUnsetDefaultAddress()
@@ -89,7 +89,7 @@ function AddressPage() {
                         <Button
                             variant="outline"
                             disabled={isLoading}
-                            onClick={() => void refetch()}
+                            onClick={onRetry}
                         >
                             重试
                         </Button>

@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 
-import { notify } from "@shop/app-kit"
+import { useWriteMutation } from "@shop/app-kit"
 
 import {
     couponIdsOf,
@@ -74,13 +74,17 @@ export function useCheckoutPreview({
 export function useCreateOrder() {
     const qc = useQueryClient()
     const [checkoutKey] = useState(() => crypto.randomUUID())
-    return useMutation({
-        mutationFn: (args: {
+    return useWriteMutation<
+        {
             addressId: string
             source: CheckoutSource
             coupons?: CouponSelection
             buyerMessage?: string
-        }) =>
+        },
+        // 显式给出 data 泛型：调用方在 mutate 的 onSuccess 里读 res.orders（拆单结果）
+        Awaited<ReturnType<typeof createOrder>>
+    >({
+        mutationFn: (args) =>
             createOrder({
                 checkoutKey,
                 addressId: args.addressId,
@@ -88,12 +92,12 @@ export function useCreateOrder() {
                 userCouponIds: couponIdsOf(args.coupons ?? {}),
                 buyerMessage: args.buyerMessage,
             }),
-        onSuccess: () => {
+        invalidate: () => {
             void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
             void qc.invalidateQueries({ queryKey: CART_ITEMS_KEY }) // 后端 OrderPlacedEvent 已删已购 SKU 的条目，缓存随之失效
             void qc.invalidateQueries({ queryKey: CART_COUNT_KEY })
         },
-        onError: (err) => notify.fromError(err, "下单失败"),
+        messages: { success: "下单成功", error: "下单失败" },
     })
 }
 
@@ -101,21 +105,24 @@ export function useCreateOrder() {
  *  不做缓存失效：返回的流水由调用方（收银台）直接消费，且此步不改变任何已缓存查询
  *  （订单状态推进在 confirmPayment，由 useConfirmPayment 失效 my-orders / order-detail）。 */
 export function useCreatePayment() {
-    return useMutation({
-        mutationFn: (orderId: string) => createPayment(orderId),
-        onError: (err) => notify.fromError(err, "发起支付失败"),
+    return useWriteMutation<string, Awaited<ReturnType<typeof createPayment>>>({
+        mutationFn: (orderId) => createPayment(orderId),
+        // 不提示成功：调用方拿到流水会立刻 confirm（收银台一次点按串两段），
+        // 这里弹「已发起」紧接着又弹「支付成功」，是两条互相覆盖的提示
+        silentSuccess: true,
+        messages: { error: "发起支付失败" },
     })
 }
 
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；成功后失效订单缓存 */
 export function useConfirmPayment() {
     const qc = useQueryClient()
-    return useMutation({
-        mutationFn: (paymentId: string) => confirmPayment(paymentId),
-        onSuccess: () => {
+    return useWriteMutation<string, Awaited<ReturnType<typeof confirmPayment>>>({
+        mutationFn: (paymentId) => confirmPayment(paymentId),
+        invalidate: () => {
             void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
             void qc.invalidateQueries({ queryKey: ORDER_DETAIL_KEY })
         },
-        onError: (err) => notify.fromError(err, "确认支付失败"),
+        messages: { success: "支付成功", error: "确认支付失败" },
     })
 }

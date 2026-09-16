@@ -1,6 +1,6 @@
 import { CouponsApi, type ClaimableCouponResponse } from "@shop/api/sdk"
-import { notify } from "@shop/app-kit"
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { notify, useWriteMutation } from "@shop/app-kit"
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
     COUPON_PAGE_SIZE,
@@ -86,12 +86,11 @@ export function useShopClaimableCoupons(shopId: string) {
  */
 export function useClaimCoupon() {
     const queryClient = useQueryClient()
-    return useMutation({
-        mutationFn: (templateId: string) => CouponsApi.claimCoupon({ path: { templateId } }),
-        onSuccess: () => {
-            notify.success("领取成功，已放入券包")
-            void queryClient.invalidateQueries({ queryKey: MY_COUPONS_KEY })
-        },
+    return useWriteMutation<string>({
+        mutationFn: (templateId) => CouponsApi.claimCoupon({ path: { templateId } }),
+        invalidate: () => void queryClient.invalidateQueries({ queryKey: MY_COUPONS_KEY }),
+        messages: { success: "领取成功，已放入券包" },
+        // 409 不是失败：券已在券包里，说「领取失败」会让用户反复点
         onError: (err) => {
             if (isCouponAlreadyClaimed(err)) notify.info("该券已领取")
             else notify.fromError(err, "领取失败")

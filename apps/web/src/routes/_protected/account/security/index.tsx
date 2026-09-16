@@ -25,7 +25,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
-import { formatTimeShort } from "@shop/app-kit"
+import { formatTimeShort, useWriteMutation } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query"
@@ -154,15 +154,14 @@ function DeviceManager() {
         queryFn: () => AuthApi.devices({ query: { currentDeviceId } }),
     })
 
-    const deleteDevice = useMutation({
-        mutationFn: (deviceId: string) => AuthApi.deleteDevice({ path: { deviceId } }),
-        onSuccess: () => {
-            notify.success("已退出该设备")
-            void qc.invalidateQueries({ queryKey: DEVICES_KEY })
-        },
-        onError: (e) => notify.fromError(e, "退出失败"),
+    const deleteDevice = useWriteMutation<string>({
+        mutationFn: (deviceId) => AuthApi.deleteDevice({ path: { deviceId } }),
+        invalidate: () => void qc.invalidateQueries({ queryKey: DEVICES_KEY }),
+        messages: { success: "已退出该设备", error: "退出失败" },
     })
 
+    // 退出全部设备：成功后整页跳转（不做缓存失效），且不是「写一处数据」而是会话终结 ——
+    // 保持裸 useMutation，不套工厂（工厂的 success toast + invalidate 在这里都不适用）
     const logoutAll = useMutation({
         mutationFn: () => AuthApi.logoutAll(),
         onSuccess: () => {

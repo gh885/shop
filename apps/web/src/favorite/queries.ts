@@ -3,7 +3,7 @@ import { FavoritesApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { notify } from "@shop/app-kit"
-import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
+import { useOptimisticListMutation } from "@shop/app-kit"
 
 import { toFavoriteItem, type FavoriteItem } from "./favorite"
 

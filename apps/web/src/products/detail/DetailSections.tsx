@@ -139,7 +139,7 @@ class RecoErrorBoundary extends Component<
     }
 }
 
-/** 推荐流失败态：重试 = 先重拉本区块的查询，落地后复位边界、重新挂起渲染 */
+/** 推荐流失败态：重试 = 标脏缓存（invalidate）后复位边界，重新挂起渲染；成功即出内容，再失败会被边界重新捕获 */
 function RecoErrorFallback({
     queryKey,
     error,
@@ -150,17 +150,15 @@ function RecoErrorFallback({
     reset: () => void
 }) {
     const qc = useQueryClient()
-    const [retrying, setRetrying] = useState(false)
     return (
         <StateError
             message={toApiError(error).detail}
-            retrying={retrying}
             onRetry={() => {
-                setRetrying(true)
-                void qc.refetchQueries({ queryKey }).finally(() => {
-                    setRetrying(false)
-                    reset()
-                })
+                // invalidate（而非 refetchQueries 强打）后立刻 reset：边界只负责「显示哪一态」，
+                // 数据是否可信由缓存声明；reset 不能省 —— suspense 下边界不清 error 会永远停在失败态，
+                // 清了之后本组件即卸载（loading 态由 Suspense fallback 接管），无需 retrying 转圈
+                void qc.invalidateQueries({ queryKey })
+                reset()
             }}
         />
     )

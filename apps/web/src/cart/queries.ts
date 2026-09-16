@@ -1,9 +1,8 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 import { CartApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
-import { notify } from "@shop/app-kit"
-import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
+import { notify, useOptimisticListMutation, useWriteMutation } from "@shop/app-kit"
 
 import {
     MAX_CART_QUANTITY,
@@ -64,14 +63,10 @@ export function useCartCount() {
 /** 加购 mutation：成功 toast + 失效角标计数；导航到购物车由调用方决定 */
 export function useAddToCart() {
     const qc = useQueryClient()
-    return useMutation({
-        mutationFn: ({ skuId, quantity }: { skuId: string; quantity: number }) =>
-            CartApi.addCartItem({ body: { skuId, quantity } }),
-        onSuccess: () => {
-            notify.success("已加入购物车")
-            void qc.invalidateQueries({ queryKey: CART_COUNT_KEY })
-        },
-        onError: (err) => notify.fromError(err, "加入购物车失败"),
+    return useWriteMutation<{ skuId: string; quantity: number }>({
+        mutationFn: ({ skuId, quantity }) => CartApi.addCartItem({ body: { skuId, quantity } }),
+        invalidate: () => void qc.invalidateQueries({ queryKey: CART_COUNT_KEY }),
+        messages: { success: "已加入购物车", error: "加入购物车失败" },
     })
 }
 

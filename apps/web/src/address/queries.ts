@@ -1,8 +1,7 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AddressesApi } from "@shop/api/sdk"
 
-import { notify } from "@shop/app-kit"
-import { useOptimisticListMutation } from "#/shared/lib/use-optimistic-list"
+import { useOptimisticListMutation, useWriteMutation } from "@shop/app-kit"
 
 import { toAddress, type Address, type AddressInput, type AddressParse } from "./address"
 
@@ -23,37 +22,36 @@ export const addressListOptions = queryOptions({ queryKey: KEY, queryFn: listAdd
 
 /** 我的地址列表 */
 export function useAddressList() {
-    return useQuery(addressListOptions)
+    const qc = useQueryClient()
+    return {
+        ...useQuery(addressListOptions),
+        /** 错误态重试：与增改删/默认态同一条失效入口（重试 = 这份缓存不再可信） */
+        onRetry: () => void qc.invalidateQueries({ queryKey: KEY }),
+    }
 }
 
 /** 新增地址：成功后失效列表缓存 */
 export function useCreateAddress() {
     const qc = useQueryClient()
-    return useMutation({
-        mutationFn: (input: AddressInput) =>
+    return useWriteMutation<AddressInput>({
+        mutationFn: (input) =>
             AddressesApi.createAddress({ body: { ...input, receiverName: input.receiver } }),
-        onSuccess: () => {
-            void qc.invalidateQueries({ queryKey: KEY })
-            notify.success("地址已添加")
-        },
-        onError: (err) => notify.fromError(err, "添加地址失败"),
+        invalidate: () => void qc.invalidateQueries({ queryKey: KEY }),
+        messages: { success: "地址已添加", error: "添加地址失败" },
     })
 }
 
 /** 修改地址 */
 export function useUpdateAddress() {
     const qc = useQueryClient()
-    return useMutation({
-        mutationFn: ({ id, input }: { id: string; input: AddressInput }) =>
+    return useWriteMutation<{ id: string; input: AddressInput }>({
+        mutationFn: ({ id, input }) =>
             AddressesApi.updateAddress({
                 path: { id },
                 body: { ...input, receiverName: input.receiver },
             }),
-        onSuccess: () => {
-            void qc.invalidateQueries({ queryKey: KEY })
-            notify.success("地址已更新")
-        },
-        onError: (err) => notify.fromError(err, "更新地址失败"),
+        invalidate: () => void qc.invalidateQueries({ queryKey: KEY }),
+        messages: { success: "地址已更新", error: "更新地址失败" },
     })
 }
 
