@@ -25,6 +25,7 @@ import {
     useSkuSelection,
 } from "#/products/detail"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
+import { SITE_ORIGIN } from "#/shared/lib/env"
 
 export const Route = createFileRoute("/products/$id")({
     /**
@@ -42,7 +43,11 @@ export const Route = createFileRoute("/products/$id")({
     loader: async ({ context, params }) => {
         let detail: ProductDetail
         try {
-            detail = await context.queryClient.ensureQueryData(productDetailOptions(params.id))
+            // ensureQueryData 已废弃：query({ ..., staleTime: "static" }) 等价（有缓存即返回，不重复拉）
+            detail = await context.queryClient.query({
+                ...productDetailOptions(params.id),
+                staleTime: "static",
+            })
         } catch (error) {
             // 详情不存在/非上架由后端 404；数据层已把错误归一化为 ApiError（status/detail）
             if (toApiError(error).status === 404) throw notFound()
@@ -51,7 +56,7 @@ export const Route = createFileRoute("/products/$id")({
             throw error
         }
         await context.queryClient
-            .ensureQueryData(shopOptions(detail.product.shopId))
+            .query({ ...shopOptions(detail.product.shopId), staleTime: "static" })
             .catch(() => {})
         return { detail }
     },
@@ -66,6 +71,9 @@ export const Route = createFileRoute("/products/$id")({
         const p = d?.product
         const price = p?.priceMin.amount
         const ogImage = p?.image || d?.images[0]
+        // canonical 取 match.pathname（不含查询串）：规格选择进了 URL，?spec=... 会产生大量等价副本，
+        // 全部收敛到一个权威地址；也不依赖 loaderData，加载失败/降级时不会拼出 /products/undefined
+        const canonical = `${SITE_ORIGIN}${match.pathname}`
         const meta: Array<
             | { title: string }
             | { property: string; content: string }
@@ -76,15 +84,13 @@ export const Route = createFileRoute("/products/$id")({
             { property: "og:title", content: p?.title ?? "商品详情" },
             { property: "og:type", content: "product" },
             { property: "og:site_name", content: "Shop" },
+            { property: "og:url", content: canonical },
             { name: "description", content: p?.subtitle || p?.title || "商品详情" },
         ]
         if (ogImage) meta.push({ property: "og:image", content: ogImage })
         return {
             meta,
-            links: [
-                // canonical：详情页 URL 唯一权威来源，避免带查询串/尺寸参数的分裂页被重复索引
-                { rel: "canonical", href: `https://shop.example.com/products/${p?.id}` },
-            ],
+            links: [{ rel: "canonical", href: canonical }],
             scripts: [
                 // JSON-LD Product 结构：价格/库存/图给搜索引擎与购物聚合，SPA 无法提供
                 {

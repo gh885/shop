@@ -7,6 +7,8 @@ declare interface ImportMetaEnv {
     readonly VITE_SELLER_URL?: string
     /** 图片 CDN 域名：图片字段存的是对象存储 key，展示时用 imgUrl(key) 拼此域名 */
     readonly VITE_IMAGE_BASE_URL?: string
+    /** 站点权威 origin：canonical/og:url 与 router origin 的来源（生产必配，否则绝对 URL 指向 localhost） */
+    readonly VITE_SITE_ORIGIN?: string
 }
 
 declare interface ImportMeta {

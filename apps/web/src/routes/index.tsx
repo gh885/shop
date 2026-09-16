@@ -17,6 +17,7 @@ import {
     RecommendBar,
 } from "#/home"
 import { ProductCard, toProductCardData } from "#/products"
+import { SITE_ORIGIN } from "#/shared/lib/env"
 
 export const Route = createFileRoute("/")({
     /**
@@ -27,25 +28,30 @@ export const Route = createFileRoute("/")({
      */
     loader: async ({ context }) => {
         await Promise.allSettled([
-            context.queryClient.ensureQueryData(homeNavOptions),
-            context.queryClient.ensureQueryData(bannersOptions),
-            context.queryClient.ensureQueryData(recommendTabsOptions),
+            context.queryClient.query({ ...homeNavOptions, staleTime: "static" }),
+            context.queryClient.query({ ...bannersOptions, staleTime: "static" }),
+            context.queryClient.query({ ...recommendTabsOptions, staleTime: "static" }),
         ])
     },
     component: Home,
-    head: () => ({
-        meta: [
-            { title: "Shop - 多店铺电商平台" },
-            { property: "og:title", content: "Shop - 多店铺电商平台" },
-            { property: "og:type", content: "website" },
-            { property: "og:site_name", content: "Shop" },
-            {
-                name: "description",
-                content: "Shop 多店铺电商平台：免费开店，上架好货，让好生意被更多人看见。",
-            },
-        ],
-        links: [{ rel: "canonical", href: "https://shop.example.com/" }],
-    }),
+    head: ({ match }) => {
+        // 绝对 URL 一律用 SITE_ORIGIN 拼：写死域名会让 staging/preview 把错误域名烤进 HTML
+        const canonical = `${SITE_ORIGIN}${match.pathname}`
+        return {
+            meta: [
+                { title: "Shop - 多店铺电商平台" },
+                { property: "og:title", content: "Shop - 多店铺电商平台" },
+                { property: "og:type", content: "website" },
+                { property: "og:site_name", content: "Shop" },
+                { property: "og:url", content: canonical },
+                {
+                    name: "description",
+                    content: "Shop 多店铺电商平台：免费开店，上架好货，让好生意被更多人看见。",
+                },
+            ],
+            links: [{ rel: "canonical", href: canonical }],
+        }
+    },
 })
 
 /** 首页：五个层级区块，数据各自经 use-home 的 hooks 取（loader 已预热缓存） */

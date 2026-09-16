@@ -1,10 +1,4 @@
-import {
-    createRootRouteWithContext,
-    HeadContent,
-    Link,
-    Scripts,
-    useRouter,
-} from "@tanstack/react-router"
+import { createRootRouteWithContext, HeadContent, Link, Scripts } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
@@ -111,8 +105,9 @@ const devtoolsPlugins = [
 ]
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-    const router = useRouter()
-    const { queryClient } = router.options.context
+    // 走 context 的文档化访问器，类型直接从 MyRouterContext 推导；
+    // router.options.context 是实现细节，options 结构一变会静默失效
+    const { queryClient } = Route.useRouteContext()
     return (
         <html lang="zh-CN">
             <head>
