@@ -15,6 +15,11 @@
  * - useWriteMutation / useOptimisticListMutation：写操作的 toast + 失效 + 回滚接线
  */
 
+export { WorkbenchSidebar } from "./workbench/sidebar"
+export { WorkbenchTopBar, WorkbenchTopBarAction, WorkbenchAccount } from "./workbench/topbar"
+export { activeSectionOf } from "./workbench/navigation"
+export type { SidebarItem, SidebarGroup, SidebarLeaf } from "./workbench/navigation"
+
 export { notify } from "./notify"
 export { formatDate, formatDateTime, formatTimeShort } from "./format"
 export { LoginForm } from "./login-form"

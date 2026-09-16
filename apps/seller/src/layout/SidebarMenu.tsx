@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { SidebarItem } from "@shop/app-kit"
 import {
     CalendarIcon,
     ChartColumnIcon,
@@ -8,53 +8,6 @@ import {
     PackageIcon,
     StoreIcon,
 } from "lucide-react"
-
-// ─────────────────────────────────────────────────────────────
-// 侧边栏菜单契约：只描述菜单结构，不持有状态、不关心渲染。
-// 二级叶子项的 `to` = 「/一级分组key/二级leaf key」两段式路径，
-// 侧边栏选中态（一级分组 + 二级叶子）直接由 pathname 推导，无需额外状态。
-// ─────────────────────────────────────────────────────────────
-
-interface SubLeaf {
-    key: string
-    label: string
-    /** 两段式路径：/一级分组key/二级leaf key */
-    to: string
-}
-
-interface SubSection {
-    title: string
-    /** 可折叠分组：标题带 chevron，点击展开/收起，默认展开 */
-    collapsible?: boolean
-    items: SubLeaf[]
-}
-
-/** 一级项公共字段 */
-interface SidebarItemBase {
-    key: string
-    label: string
-    icon?: ReactNode
-    /** 在此项之后渲染一条淡分隔线（轨内分组用） */
-    dividerAfter?: boolean
-}
-
-/** 叶子一级项：可跳转路由 */
-export interface SidebarLeaf extends SidebarItemBase {
-    to: string
-}
-
-/** 分组一级项：子菜单（可含分组标题 / 可折叠分组） */
-export interface SidebarGroup extends SidebarItemBase {
-    sections: SubSection[]
-}
-
-/**
- * 一级菜单项：叶子（to）与分组（sections）可辨识二选一——
- * 编译期约束每项必须给全一种身份，消费端用 `in` 收窄即可，不再有 `item.to!` 这类断言。
- */
-export type SidebarItem = SidebarLeaf | SidebarGroup
-
-const isGroup = (item: SidebarItem): item is SidebarGroup => "sections" in item
 
 // ── 菜单树（一级 key === 路径第一段；二级 leaf key === 路径第二段） ──
 export const NAV_ITEMS: SidebarItem[] = [
@@ -166,11 +119,3 @@ export const NAV_ITEMS: SidebarItem[] = [
         ],
     },
 ]
-
-// ── 路径 → 菜单状态推导 ──
-
-/** 由 pathname 推导所在一级分组项（pathname 第一段匹配分组 key）；分组才有二级面板 */
-export function activeSectionOf(items: SidebarItem[], pathname: string): SidebarGroup | undefined {
-    const groupKey = pathname.split("/")[1]
-    return items.find((g): g is SidebarGroup => isGroup(g) && g.key === groupKey)
-}

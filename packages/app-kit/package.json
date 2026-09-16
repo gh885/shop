@@ -13,6 +13,7 @@
         "@shop/common": "workspace:*",
         "@shop/ui-web": "workspace:*",
         "@tanstack/react-query": "catalog:",
+        "@tanstack/react-router": "catalog:",
         "date-fns": "catalog:",
         "lucide-react": "catalog:",
         "react": "catalog:"

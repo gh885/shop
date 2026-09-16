@@ -4,7 +4,8 @@ import { cn } from "@shop/ui-web"
 import { PageBreadcrumb, type Crumb } from "#/shared/ui/PageBreadcrumb"
 import { Sidebar } from "./Sidebar"
 import { AppTopBar } from "./AppTopBar"
-import { activeSectionOf, NAV_ITEMS } from "./SidebarMenu"
+import { activeSectionOf } from "@shop/app-kit"
+import { NAV_ITEMS } from "./SidebarMenu"
 
 // 内容区需要大空间的页面：隐藏侧边栏与面包屑，顶栏收成「品牌 + 页名 + 动作」，内容通栏铺满
 const FULL_WIDTH_PATHS = new Set(["/product/create/category", "/product/create/basic"])

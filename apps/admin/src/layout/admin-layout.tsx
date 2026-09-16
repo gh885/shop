@@ -1,21 +1,20 @@
 import { Outlet } from "@tanstack/react-router"
-import { SidebarInset, SidebarProvider } from "@shop/ui-web"
-
 import { AppSidebar } from "./app-sidebar"
 import { AppTopBar } from "./app-topbar"
 
-// 壳：顶栏（一级 Tab）+ 侧栏（当前域子菜单）+ 内容区。
-// 导航数据源见 nav.ts：加页面只改那一处。
+/** 与 seller 同一布局：通栏顶栏 + 双列侧栏 + 独立滚动内容区。 */
 export function AdminLayout() {
     return (
-        <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <AppTopBar />
-                <main className="flex flex-1 flex-col p-6">
-                    <Outlet />
-                </main>
-            </SidebarInset>
-        </SidebarProvider>
+        <div className="flex h-svh w-full flex-col bg-canvas">
+            <AppTopBar />
+            <div className="flex min-h-0 flex-1">
+                <AppSidebar />
+                <div className="flex min-w-0 flex-1 rounded-tl-2xl bg-background">
+                    <main className="min-w-0 flex-1 overflow-auto p-6">
+                        <Outlet />
+                    </main>
+                </div>
+            </div>
+        </div>
     )
 }

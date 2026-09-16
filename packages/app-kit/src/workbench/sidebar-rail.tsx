@@ -1,7 +1,13 @@
 import { Link } from "@tanstack/react-router"
 import { Button, cn } from "@shop/ui-web"
 
-import type { SidebarGroup, SidebarItem, SidebarLeaf } from "./SidebarMenu"
+import {
+    activeSectionOf,
+    matchesSidebarPath,
+    type SidebarGroup,
+    type SidebarItem,
+    type SidebarLeaf,
+} from "./navigation"
 
 /** 一级窄轨（受控，千牛式纵向列表）：蓝灰 canvas 底，图标左 + 名称右，选中 = 白色 pill。
     全部由当前 pathname 驱动（无状态）：
@@ -18,8 +24,7 @@ export function SidebarRail({
     pathname: string
     className?: string
 }) {
-    // 当前一级分组 key（pathname 第一段）
-    const activeGroupKey = pathname.split("/")[1]
+    const activeGroupKey = activeSectionOf(items, pathname)?.key
 
     return (
         <aside className={cn("flex w-24 shrink-0 flex-col", className)}>
@@ -36,7 +41,7 @@ export function SidebarRail({
                             {"to" in item ? (
                                 <LeafItem
                                     item={item}
-                                    isShown={item.key === "home" && pathname === "/"}
+                                    isShown={matchesSidebarPath(item.to, pathname)}
                                 />
                             ) : (
                                 <GroupItem
@@ -66,6 +71,8 @@ function LeafItem({ item, isShown }: { item: SidebarLeaf; isShown: boolean }) {
     return (
         <Link
             to={item.to}
+            search={item.search}
+            aria-current={isShown ? "page" : undefined}
             className={rowCls(isShown)}
         >
             <IconAndLabel item={item} />
@@ -86,6 +93,8 @@ function GroupItem({ item, isShown }: { item: SidebarGroup; isShown: boolean }) 
                 target ? (
                     <Link
                         to={target}
+                        search={firstLeaf.search}
+                        aria-current={isShown ? "true" : undefined}
                         className={rowCls(isShown)}
                     />
                 ) : undefined

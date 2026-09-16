@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { ChevronUp } from "lucide-react"
 import { cn, Collapsible, CollapsibleContent, CollapsibleTrigger, MenuTree } from "@shop/ui-web"
 
-import type { SidebarGroup } from "./SidebarMenu"
+import { matchesSidebarPath, type SidebarGroup, type SubLeaf } from "./navigation"
 
 /** 二级面板（受控，无状态，视觉自持）：置于白色浮面容器内，无 header，直接列分组。
     菜单结构由 headless MenuTree 驱动（折叠状态 + activeKey 联动展开），
@@ -36,7 +36,11 @@ export function SidebarPanel({
             <div className="flex-1 overflow-y-auto px-2.5 py-3">
                 <MenuTree
                     items={groups}
-                    activeKey={pathname}
+                    activeKey={
+                        groups
+                            .flatMap((group) => group.children)
+                            .find((leaf) => matchesSidebarPath(leaf.to, pathname))?.key ?? pathname
+                    }
                     renderLeaf={(leaf, isActive) => (
                         <LeafRow
                             key={leaf.key}
@@ -72,7 +76,7 @@ function SectionBlock({
 }: {
     title: string
     collapsible?: boolean
-    items: { key: string; label: string; to: string }[]
+    items: SubLeaf[]
     expanded: boolean
     onToggle: () => void
     isActive: (key: string) => boolean
@@ -125,13 +129,7 @@ function SectionBlock({
 }
 
 /** 二级子项行：激活（当前路径命中）为 accent 弱底，其余弱化为次要文字；一律 Link 导航 */
-function LeafRow({
-    leaf,
-    isActive,
-}: {
-    leaf: { key: string; label: string; to: string }
-    isActive: boolean
-}) {
+function LeafRow({ leaf, isActive }: { leaf: SubLeaf; isActive: boolean }) {
     const cls = cn(
         "flex h-8 items-center rounded-md px-2.5 text-2xs text-foreground/75 outline-hidden transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2",
         isActive &&
@@ -140,6 +138,7 @@ function LeafRow({
     return (
         <Link
             to={leaf.to}
+            search={leaf.search}
             className={cls}
             aria-current={isActive ? "page" : undefined}
         >

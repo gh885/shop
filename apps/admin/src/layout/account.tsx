@@ -1,73 +1,41 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { Button, cn, Spinner, useSidebar } from "@shop/ui-web"
+import { WorkbenchAccount } from "@shop/app-kit"
+import { Button, Spinner } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
-
 import { AdminAuthApi } from "@shop/api/sdk"
 import { getDeviceId, tokenStore } from "../shared/lib/api"
 import { ME_QUERY_KEY, useMe } from "../shared/lib/me"
 
-/** 账号头像（首字）：顶栏右侧独立展示，侧栏账号行内复用 */
-export function AccountAvatar({ className }: { className?: string }) {
-    const { data: me } = useMe()
-    const initial = me?.displayName?.trim().charAt(0) ?? "?"
-
-    return (
-        <div
-            title={me?.displayName ?? undefined}
-            className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground",
-                className,
-            )}
-        >
-            {initial}
-        </div>
-    )
-}
-
-/** 侧栏底部账号行：头像 + 工号姓名 + 退出；侧栏折叠为图标时只留头像 */
+/** 管理员身份与会话逻辑留在本端，账号呈现复用工作台组件。 */
 export function Account() {
     const navigate = useNavigate()
-    const { state } = useSidebar()
-    const collapsed = state === "collapsed"
-
     const { data: me } = useMe()
     const queryClient = useQueryClient()
-
     const logout = useMutation({
         mutationFn: () => AdminAuthApi.staffLogout({ body: { deviceId: getDeviceId() } }),
         onSettled: () => {
             tokenStore.clear()
-            // 身份缓存必须随登出清掉：换账号登录时不清会短暂显示上一个人的姓名/工号
             queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
             void navigate({ to: "/login" })
         },
     })
 
     return (
-        <div className={cn("flex items-center gap-2", collapsed && "flex-col")}>
-            <AccountAvatar />
-            {!collapsed && (
-                <>
-                    <div className="grid min-w-0 flex-1 gap-0.5 text-left leading-tight">
-                        <span className="truncate text-sm font-medium">
-                            {me?.displayName ?? "—"}
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                            {me?.employeeNo}
-                        </span>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        title="退出登录"
-                        disabled={logout.isPending}
-                        onClick={() => logout.mutate()}
-                    >
-                        {logout.isPending ? <Spinner /> : <LogOutIcon />}
-                    </Button>
-                </>
-            )}
-        </div>
+        <WorkbenchAccount
+            name={me?.displayName ?? "—"}
+            description={me?.employeeNo ?? "管理员账号"}
+            logoutAction={
+                <Button
+                    variant="ghost"
+                    className="w-full justify-between"
+                    disabled={logout.isPending}
+                    onClick={() => logout.mutate()}
+                >
+                    退出登录
+                    {logout.isPending ? <Spinner /> : <LogOutIcon />}
+                </Button>
+            }
+        />
     )
 }

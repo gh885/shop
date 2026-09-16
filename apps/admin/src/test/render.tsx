@@ -1,6 +1,24 @@
-/**
- * admin 侧测试 render：统一实现（QueryClientProvider 装配）在 @shop/test-utils。
- *
- * 需要路由上下文的组件测试，在本文件追加 MemoryRouter/RouterProvider —— 改这一处，不动用例。
- */
-export { renderWithProviders } from "@shop/test-utils"
+import type { ReactElement } from "react"
+import {
+    createMemoryHistory,
+    createRootRoute,
+    createRoute,
+    createRouter,
+    RouterProvider,
+} from "@tanstack/react-router"
+import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
+
+/** 布局组件需要真实路由上下文；每次渲染隔离 history 与 QueryClient。 */
+export function renderWithProviders(
+    ui: ReactElement,
+    { initialEntry = "/" }: { initialEntry?: string } = {},
+) {
+    const root = createRootRoute({ component: () => ui })
+    const index = createRoute({ getParentRoute: () => root, path: "/" })
+    const fallback = createRoute({ getParentRoute: () => root, path: "$" })
+    const router = createRouter({
+        routeTree: root.addChildren([index, fallback]),
+        history: createMemoryHistory({ initialEntries: [initialEntry] }),
+    })
+    return { ...renderWithQuery(<RouterProvider router={router} />), router }
+}
