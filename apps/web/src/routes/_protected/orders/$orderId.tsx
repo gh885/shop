@@ -64,9 +64,9 @@ function OrderDetailPage() {
             <div className="flex flex-1 flex-col">
                 <AccountHeader
                     title="订单详情"
-                    widthClass="max-w-(--container-narrow)"
+                    widthClass="max-w-narrow"
                 />
-                <div className="mx-auto w-full max-w-narrow flex-1 space-y-8 px-6 py-8">
+                <div className="narrow-page space-y-8">
                     <Skeleton className="h-24 w-full rounded-xl" />
                     <Skeleton className="h-64 w-full rounded-xl" />
                 </div>
@@ -78,10 +78,10 @@ function OrderDetailPage() {
         <div className="flex flex-1 flex-col">
             <AccountHeader
                 title="订单详情"
-                widthClass="max-w-(--container-narrow)"
+                widthClass="max-w-narrow"
             />
 
-            <div className="mx-auto w-full max-w-narrow flex-1 px-6 py-8">
+            <div className="narrow-page">
                 <div className="flex gap-8">
                     {/* 左侧主区 */}
                     <div className="min-w-0 flex-1 space-y-8">

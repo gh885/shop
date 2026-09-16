@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { useRouterState } from "@tanstack/react-router"
 
+import { cn } from "@shop/ui-web"
+
 /**
  * 全局路由切换进度条：路由加载/过渡时在顶部显示一条不确定态细条，
  * 让用户感知"页面在加载"，消除点击后无反馈的等待感。
@@ -28,9 +30,10 @@ export function RouteProgressBar() {
     return (
         <div
             aria-hidden="true"
-            className={`pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden transition-opacity duration-300 ${
-                visible ? "opacity-100" : "opacity-0"
-            }`}
+            className={cn(
+                "pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden transition-opacity duration-300",
+                visible ? "opacity-100" : "opacity-0",
+            )}
         >
             <div className="h-full w-full bg-primary motion-safe:animate-route-progress" />
         </div>

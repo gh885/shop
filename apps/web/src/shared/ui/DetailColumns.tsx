@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from "react"
 
+import { cn } from "@shop/ui-web"
+
 /**
  * 通用「左滚右停」双栏容器（详情页、购物车页共用）：
  *
@@ -29,7 +31,7 @@ export function DetailColumns({
         // 列宽按 prop 动态给：把整条 grid-template-columns 塞进 CSS 变量，
         // 由 grid-cols-(--detail-columns) 消费——不需要内联 gridTemplateColumns，也不产生任意值
         <div
-            className={`grid grid-cols-(--detail-columns) ${gapClassName}`}
+            className={cn("grid grid-cols-(--detail-columns)", gapClassName)}
             // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
             style={{ "--detail-columns": `minmax(0, 1fr) ${rightWidth}` } as CSSProperties}
         >

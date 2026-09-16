@@ -57,10 +57,10 @@ function LogisticsPage() {
         <div className="flex flex-1 flex-col">
             <AccountHeader
                 title="物流详情"
-                widthClass="max-w-(--container-narrow)"
+                widthClass="max-w-narrow"
             />
 
-            <div className="mx-auto w-full max-w-narrow flex-1 px-6 py-8">
+            <div className="narrow-page">
                 <Link
                     to="/orders/$orderId"
                     params={{ orderId }}

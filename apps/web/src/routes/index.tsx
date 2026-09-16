@@ -56,7 +56,7 @@ function Home() {
     return (
         <>
             <HomeHeader />
-            <section className="mx-auto flex max-w-(--container-page) flex-col gap-4 px-6 py-6 lg:flex-row">
+            <section className="mx-auto flex max-w-page flex-col gap-4 px-6 py-6 lg:flex-row">
                 <HomeCategoryNav
                     defaultHeight={200}
                     entries={nav.data}
@@ -84,8 +84,8 @@ function Home() {
             {/* 商品流流式边界：loader 未预热，useSuspenseQuery 在此挂起，SSR 吐骨架、resolve 后流式补全 */}
             <Suspense
                 fallback={
-                    <section className="mx-auto max-w-(--container-page) px-6 pb-6">
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                    <section className="feed-section">
+                        <div className="grid-feed">
                             {Array.from({ length: 12 }, (_, i) => (
                                 <Skeleton
                                     key={i}
@@ -97,8 +97,8 @@ function Home() {
                     </section>
                 }
             >
-                <section className="mx-auto max-w-(--container-page) px-6 pb-6">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                <section className="feed-section">
+                    <div className="grid-feed">
                         {feed.data.map((product) => (
                             <ProductCard
                                 key={product.id}

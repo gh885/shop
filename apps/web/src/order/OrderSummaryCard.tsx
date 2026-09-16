@@ -7,7 +7,7 @@ import { ORDER_STATUS_LABEL } from "./constants"
 import type { OrderDetail } from "./model"
 import { Copy, ChevronDown } from "lucide-react"
 import { useState } from "react"
-import { Card, CardHeader, CardTitle, CardContent, Separator, Button } from "@shop/ui-web"
+import { Card, CardHeader, CardTitle, CardContent, Separator, Button, cn } from "@shop/ui-web"
 
 /**
  * 详情页右侧信息卡：两大块 —— 付款详情、订单信息。
@@ -122,7 +122,10 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                         >
                             {moreOpen ? "收起更多订单信息" : "展开更多订单信息"}
                             <ChevronDown
-                                className={`size-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`}
+                                className={cn(
+                                    "size-3.5 transition-transform",
+                                    moreOpen && "rotate-180",
+                                )}
                             />
                         </button>
 

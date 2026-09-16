@@ -12,7 +12,7 @@ import {
 // LazyMotion + m：按需加载动画特性（domAnimation 含 variants/whileInView/AnimatePresence），省约 30kb 全量 motion 包
 import { AnimatePresence, m, useReducedMotion } from "motion/react"
 
-import { Button, buttonVariants, Card, CardContent } from "@shop/ui-web"
+import { Button, buttonVariants, Card, CardContent, cn } from "@shop/ui-web"
 
 import { useAuthStatus, useLoginDialogOpen } from "../../shared/api/auth"
 import { SELLER_URL } from "../../shared/lib/external"
@@ -174,11 +174,12 @@ function BusinessModes() {
                                     role="tab"
                                     aria-selected={selected}
                                     onClick={() => setActive(item.key)}
-                                    className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
+                                    className={cn(
+                                        "flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors",
                                         selected
                                             ? "bg-background text-foreground shadow-sm"
-                                            : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-                                    }`}
+                                            : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                                    )}
                                 >
                                     <Icon className="size-4" />
                                     {item.label}

@@ -20,6 +20,7 @@ import {
     EmptyDescription,
     Button,
     ConfirmDialog,
+    cn,
 } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/orders/")({
@@ -51,11 +52,12 @@ function OrdersPage() {
                         key={t.key}
                         type="button"
                         onClick={() => setTab(t.key)}
-                        className={`-mb-px border-b-2 px-4 pb-2.5 text-sm transition-colors ${
+                        className={cn(
+                            "-mb-px border-b-2 px-4 pb-2.5 text-sm transition-colors",
                             tab === t.key
                                 ? "border-foreground font-medium text-foreground"
-                                : "border-transparent text-muted-foreground hover:text-foreground"
-                        }`}
+                                : "border-transparent text-muted-foreground hover:text-foreground",
+                        )}
                     >
                         {t.label}
                     </button>

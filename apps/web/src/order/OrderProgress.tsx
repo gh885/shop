@@ -1,5 +1,7 @@
 import { Check } from "lucide-react"
 
+import { cn } from "@shop/ui-web"
+
 import { ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEPS } from "./constants"
 import type { OrderStatus } from "./model"
 
@@ -24,13 +26,14 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
                     >
                         {/* 节点圆点 */}
                         <div
-                            className={`flex size-6 shrink-0 items-center justify-center rounded-full transition-colors ${
+                            className={cn(
+                                "flex size-6 shrink-0 items-center justify-center rounded-full transition-colors",
                                 done
                                     ? "bg-accent text-accent-foreground"
                                     : current
                                       ? "border-2 border-accent-foreground text-accent-foreground"
-                                      : "border border-border bg-background text-muted-foreground"
-                            }`}
+                                      : "border border-border bg-background text-muted-foreground",
+                            )}
                         >
                             {done ? (
                                 <Check className="size-3.5" />
@@ -39,9 +42,10 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
                             )}
                         </div>
                         <span
-                            className={`ml-2 text-sm ${
-                                done || current ? "text-foreground" : "text-muted-foreground"
-                            }`}
+                            className={cn(
+                                "ml-2 text-sm",
+                                done || current ? "text-foreground" : "text-muted-foreground",
+                            )}
                         >
                             {label}
                         </span>
@@ -49,9 +53,10 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
                         {/* 连接线：非最后一个节点 */}
                         {index < ORDER_PROGRESS_STEPS.length - 1 && (
                             <div
-                                className={`h-px flex-1 min-w-12 ${
-                                    index < step ? "bg-accent-foreground" : "bg-border"
-                                }`}
+                                className={cn(
+                                    "h-px flex-1 min-w-12",
+                                    index < step ? "bg-accent-foreground" : "bg-border",
+                                )}
                             />
                         )}
                     </div>

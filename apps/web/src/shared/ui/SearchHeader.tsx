@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
-import { Logo, SearchBar } from "@shop/ui-web"
+import { cn, Logo, SearchBar } from "@shop/ui-web"
 
 import { notifySearchComingSoon } from "#/shared/lib/search"
 
@@ -22,9 +22,12 @@ export function SearchHeader({
     extra?: ReactNode
 }) {
     return (
-        <header className={`bg-background ${className ?? ""}`}>
+        <header className={cn("bg-background", className)}>
             <div
-                className={`mx-auto flex h-16 w-full items-center justify-between px-6 ${containerClassName ?? "max-w-page"}`}
+                className={cn(
+                    "mx-auto flex h-16 w-full items-center justify-between px-6",
+                    containerClassName ?? "max-w-page",
+                )}
             >
                 {/* 左：品牌 logo（与首页同款）+ 可选页面标题 */}
                 <div className="flex items-center gap-3">

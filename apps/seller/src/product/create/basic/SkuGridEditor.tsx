@@ -15,6 +15,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    cn,
 } from "@shop/ui-web"
 
 import { countInputSchema, yuanPriceSchema } from "#/product/draft-model"
@@ -193,7 +194,7 @@ export function SkuGridEditor({
     if (rows.length === 0) return
 
     const content = (
-        <div className={fullscreen ? "fixed inset-0 z-50 overflow-auto bg-background p-6" : ""}>
+        <div className={cn(fullscreen && "fixed inset-0 z-50 overflow-auto bg-background p-6")}>
             {/* 工具栏：批量填写 + 搜索 + 全屏 */}
             <div className="mb-3 flex flex-wrap items-center gap-2">
                 <InputGroup className="h-9 w-fit">

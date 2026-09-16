@@ -1,4 +1,5 @@
 import { splitFen } from "@shop/common"
+import { cn } from "@shop/ui-web"
 
 /**
  * 价格分段排版（DESIGN.md §4）：¥ 小 / 元整数大 / 角分小。
@@ -9,7 +10,7 @@ import { splitFen } from "@shop/common"
 export function Price({ value, className }: { value: number; className?: string }) {
     const { yuan, cents } = splitFen(value)
     return (
-        <span className={`inline-flex items-baseline tabular-nums leading-none ${className ?? ""}`}>
+        <span className={cn("inline-flex items-baseline tabular-nums leading-none", className)}>
             <span className="price-mark">¥</span>
             <span className="tracking-tight">{yuan}</span>
             <span className="price-cents">.{cents}</span>

@@ -1,6 +1,8 @@
 import { ChevronDown } from "lucide-react"
 import { useState } from "react"
 
+import { cn } from "@shop/ui-web"
+
 import { countNodes, sliceGroups, type TrackingGroup, type TrackingNode } from "./model"
 
 /**
@@ -61,7 +63,7 @@ export function TrackingTimeline({
     const total = countNodes(groups)
     if (total === 0) {
         return (
-            <p className={`py-4 text-sm text-muted-foreground ${className ?? ""}`}>
+            <p className={cn("py-4 text-sm text-muted-foreground", className)}>
                 暂无物流轨迹，商家发货后会显示。
             </p>
         )
@@ -87,18 +89,20 @@ export function TrackingTimeline({
                     {row.head ? (
                         <p className="text-sm leading-6">
                             <span
-                                className={`${row.node.latest ? "font-bold" : "font-medium"} ${
-                                    row.abnormal ? "text-destructive" : "text-foreground"
-                                }`}
+                                className={cn(
+                                    row.node.latest ? "font-bold" : "font-medium",
+                                    row.abnormal ? "text-destructive" : "text-foreground",
+                                )}
                             >
                                 {row.label}
                             </span>
                             <span
-                                className={`ml-2 ${
+                                className={cn(
+                                    "ml-2",
                                     row.node.latest
                                         ? "font-medium text-foreground"
-                                        : "text-muted-foreground"
-                                }`}
+                                        : "text-muted-foreground",
+                                )}
                             >
                                 {row.node.time}
                             </span>
@@ -132,9 +136,10 @@ export function TrackingTimeline({
                     >
                         {expanded ? "收起全部" : "展开更多物流明细"}
                         <ChevronDown
-                            className={`size-3.5 transition-transform ${
-                                expanded ? "rotate-180" : ""
-                            }`}
+                            className={cn(
+                                "size-3.5 transition-transform",
+                                expanded && "rotate-180",
+                            )}
                         />
                     </button>
                 </li>
@@ -182,7 +187,7 @@ function Axis({
             )}
             <span
                 aria-hidden
-                className={`absolute left-0 top-2 size-2 rounded-full ${dotClass}`}
+                className={cn("absolute left-0 top-2 size-2 rounded-full", dotClass)}
             />
         </>
     )

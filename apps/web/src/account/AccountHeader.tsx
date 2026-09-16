@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { Search } from "lucide-react"
 
-import { Button, Logo } from "@shop/ui-web"
+import { Button, cn, Logo } from "@shop/ui-web"
 
 /**
  * 账号类页头（个人中心 / 订单详情共用）：左品牌字标（Logo + 标题），右侧橙框大搜索框。
@@ -13,7 +13,7 @@ import { Button, Logo } from "@shop/ui-web"
 
 export function AccountHeader({
     title = "个人中心",
-    widthClass = "max-w-(--container-page)",
+    widthClass = "max-w-page",
 }: {
     title?: string
     widthClass?: string
@@ -33,7 +33,10 @@ export function AccountHeader({
     return (
         <header className="border-b border-border/60 bg-background">
             <div
-                className={`mx-auto flex h-16 ${widthClass} items-center justify-between gap-8 px-6`}
+                className={cn(
+                    "mx-auto flex h-16 items-center justify-between gap-8 px-6",
+                    widthClass,
+                )}
             >
                 {/* 左：品牌 logo + 标题 */}
                 <Link

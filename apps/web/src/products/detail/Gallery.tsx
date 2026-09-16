@@ -13,6 +13,7 @@ import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
+    cn,
     type CarouselApi,
 } from "@shop/ui-web"
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
@@ -81,9 +82,12 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                             onClick={() => api?.scrollTo(i)}
                             aria-label={`第 ${i + 1} 张图`}
                             aria-pressed={i === current && !isParams}
-                            className={`overflow-hidden rounded-lg border-2 transition-colors ${
-                                i === current && !isParams ? "border-primary" : "border-transparent"
-                            }`}
+                            className={cn(
+                                "overflow-hidden rounded-lg border-2 transition-colors",
+                                i === current && !isParams
+                                    ? "border-primary"
+                                    : "border-transparent",
+                            )}
                         >
                             <img
                                 src={img}
@@ -98,11 +102,12 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         onMouseEnter={() => api?.scrollTo(paramsIndex)}
                         onClick={() => api?.scrollTo(paramsIndex)}
                         aria-label="查看商品参数"
-                        className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 transition-colors ${
+                        className={cn(
+                            "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 transition-colors",
                             isParams
                                 ? "border-primary bg-accent text-accent-foreground"
-                                : "border-border bg-sunken/60 text-muted-foreground hover:text-primary"
-                        }`}
+                                : "border-border bg-sunken/60 text-muted-foreground hover:text-primary",
+                        )}
                     >
                         <SlidersHorizontal className="size-4" />
                         <span className="text-xs">参数</span>
@@ -181,9 +186,10 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                             <div
                                                 ref={lensRef}
                                                 aria-hidden
-                                                className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 bg-background/50 transition-opacity duration-150 ${
-                                                    isZooming ? "opacity-100" : "opacity-0"
-                                                }`}
+                                                className={cn(
+                                                    "pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 bg-background/50 transition-opacity duration-150",
+                                                    isZooming ? "opacity-100" : "opacity-0",
+                                                )}
                                             />
                                         )}
                                     </div>
@@ -247,9 +253,10 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         <div
                             ref={previewRef}
                             aria-hidden
-                            className={`pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-xl border border-border bg-background bg-(image:--zoom-image) bg-(length:--zoom-size) bg-no-repeat shadow-lg transition-opacity duration-150 lg:block ${
-                                isZooming ? "opacity-100" : "opacity-0"
-                            }`}
+                            className={cn(
+                                "pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-xl border border-border bg-background bg-(image:--zoom-image) bg-size-(--zoom-size) bg-no-repeat shadow-lg transition-opacity duration-150 lg:block",
+                                isZooming ? "opacity-100" : "opacity-0",
+                            )}
                             style={
                                 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
                                 {

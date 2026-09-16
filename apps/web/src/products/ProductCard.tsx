@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 
-import { Badge } from "@shop/ui-web"
+import { Badge, cn } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
 import { ProductImage } from "#/shared/ui/ProductImage"
@@ -49,22 +49,24 @@ export function ProductCard({
                 alt={product.title}
             />
 
-            <div className={compact ? "mt-2 flex flex-col" : "flex flex-col pt-2 pb-3"}>
+            <div className={cn(compact ? "mt-2 flex flex-col" : "flex flex-col pt-2 pb-3")}>
                 {/* 标题：单行截断，hover 变主题色 */}
                 <p
                     title={product.title}
-                    className={`truncate font-medium text-foreground transition-colors group-hover:text-primary ${
-                        compact ? "text-sm/5.5" : "text-sm/4.5"
-                    }`}
+                    className={cn(
+                        "truncate font-medium text-foreground transition-colors group-hover:text-primary",
+                        compact ? "text-sm/5.5" : "text-sm/4.5",
+                    )}
                 >
                     {product.title}
                 </p>
 
                 {/* 标签排：自营红底 + 服务类描边；无标签也保留行高，网格基线对齐 */}
                 <div
-                    className={`flex flex-wrap items-center gap-1 line-clamp-2 ${
-                        compact ? "mt-0.5" : "mt-1.5"
-                    }`}
+                    className={cn(
+                        "flex flex-wrap items-center gap-1 line-clamp-2",
+                        compact ? "mt-0.5" : "mt-1.5",
+                    )}
                 >
                     {product.tags?.map((tag, i) => (
                         <Badge
@@ -79,11 +81,14 @@ export function ProductCard({
 
                 {/* 价格行：价格 + 销量小字 */}
                 <div
-                    className={`flex items-end gap-1.5 ${compact ? "mt-0.5 h-5.5" : "mt-1.5 h-6"}`}
+                    className={cn(
+                        "flex items-end gap-1.5",
+                        compact ? "mt-0.5 h-5.5" : "mt-1.5 h-6",
+                    )}
                 >
                     <Price
                         value={product.price}
-                        className={`font-bold text-primary ${compact ? "text-xl" : "text-2xl"}`}
+                        className={cn("font-bold text-primary", compact ? "text-xl" : "text-2xl")}
                     />
                     {product.sales && (
                         <span className="truncate text-xs text-muted-foreground">

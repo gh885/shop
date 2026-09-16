@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 
-import { Button, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
+import { Button, cn, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import { useRecommendTabs } from "./queries"
 
@@ -56,10 +56,10 @@ export function RecommendBar() {
         return (
             <div className="sticky top-(--home-header-height) z-30">
                 <div className="bg-background/95 backdrop-blur">
-                    <div className="mx-auto max-w-(--container-page) px-6 py-3">
+                    <div className="mx-auto max-w-page px-6 py-3">
                         <Skeleton className="h-6 w-1/2 rounded-sm" />
                     </div>
-                    <div className="mx-auto max-w-(--container-page) border-t border-border/60 px-6" />
+                    <div className="feed-divider" />
                 </div>
             </div>
         )
@@ -68,7 +68,7 @@ export function RecommendBar() {
     return (
         <div className="sticky top-(--home-header-height) z-30">
             <div className="bg-background/95 backdrop-blur">
-                <div className="mx-auto flex max-w-(--container-page) items-center gap-4 px-6 py-3">
+                <div className="mx-auto flex max-w-page items-center gap-4 px-6 py-3">
                     {/* 左侧往回翻页：第一页隐藏 */}
                     {clampedPage > 0 && (
                         <Tooltip>
@@ -109,11 +109,12 @@ export function RecommendBar() {
                             <button
                                 key={tab}
                                 type="button"
-                                className={`shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-base transition-colors ${
+                                className={cn(
+                                    "shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-base transition-colors",
                                     tab === defaultName
                                         ? "font-medium text-foreground"
-                                        : "text-muted-foreground hover:text-primary"
-                                }`}
+                                        : "text-muted-foreground hover:text-primary",
+                                )}
                             >
                                 {tab}
                             </button>
@@ -154,7 +155,7 @@ export function RecommendBar() {
                         <TooltipContent>刷新推荐</TooltipContent>
                     </Tooltip>
                 </div>
-                <div className="mx-auto max-w-(--container-page) border-t border-border/60 px-6" />
+                <div className="feed-divider" />
             </div>
         </div>
     )

@@ -2,6 +2,8 @@ import { fenToYuan, isContractViolation, toApiError } from "@shop/common"
 import { useState } from "react"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 
+import { cn } from "@shop/ui-web"
+
 import type { ProductDetail } from "#/products"
 import {
     AlsoViewedSection,
@@ -159,7 +161,7 @@ function ProductDetailPage() {
     return (
         <div>
             <DetailHeader />
-            <div className={`mx-auto w-full px-6 pb-10 ${DETAIL_LAYOUT.container}`}>
+            <div className={cn("mx-auto w-full px-6 pb-10", DETAIL_LAYOUT.container)}>
                 {/* 左滚右停：左栏（店铺条+画廊+描述）随滚动，右栏购买区钉住。
                     版心与双栏宽度同源（DETAIL_LAYOUT），改一处不会只改对一半 */}
                 <DetailColumns
@@ -186,7 +188,12 @@ function ProductDetailPage() {
                         // 滚动时整块一起走，到双栏区域末尾落进流位随页面滚走
                         // （不再出现“先压缩中间空白、空白没了才整体滚”的分段感）
                         <div
-                            className={`${DETAIL_LAYOUT.stickyTop} sticky flex ${DETAIL_LAYOUT.minHeight} flex-col`}
+                            className={cn(
+                                DETAIL_LAYOUT.stickyTop,
+                                "sticky flex",
+                                DETAIL_LAYOUT.minHeight,
+                                "flex-col",
+                            )}
                         >
                             <section className="rounded-xl bg-background px-6 py-2">
                                 <PurchasePanel

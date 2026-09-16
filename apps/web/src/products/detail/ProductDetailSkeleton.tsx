@@ -1,4 +1,4 @@
-import { Skeleton } from "@shop/ui-web"
+import { cn, Skeleton } from "@shop/ui-web"
 
 import { DETAIL_LAYOUT } from "./constants"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
@@ -12,7 +12,7 @@ import { DetailColumns } from "#/shared/ui/DetailColumns"
  */
 export function ProductDetailSkeleton() {
     return (
-        <div className={`mx-auto w-full px-6 pb-10 ${DETAIL_LAYOUT.container}`}>
+        <div className={cn("mx-auto w-full px-6 pb-10", DETAIL_LAYOUT.container)}>
             {/* 店铺条占位：与里层 h-13.5 的高度约束同形 */}
             <div className="mb-4 h-13.5">
                 <div className="flex h-full items-center gap-3">

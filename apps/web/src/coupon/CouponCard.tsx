@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 
 import { formatDate } from "@shop/app-kit"
 import { couponRuleText, couponSourceLabel, couponStatusLabel, couponYuanText } from "@shop/common"
-import { Badge, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
+import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import type { MyCoupon } from "./coupon"
 
@@ -27,9 +27,10 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
         <article className="flex items-center gap-4 rounded-lg border border-border bg-card p-4">
             {/* ① 面额大字：券面额是整元语义，不走商品价的 splitFen 分段（角分在这里只是噪声） */}
             <p
-                className={`w-24 shrink-0 border-r border-dashed border-border pr-4 text-center text-3xl font-bold leading-none tabular-nums ${
-                    usable ? "text-primary" : "text-muted-foreground"
-                }`}
+                className={cn(
+                    "w-24 shrink-0 border-r border-dashed border-border pr-4 text-center text-3xl font-bold leading-none tabular-nums",
+                    usable ? "text-primary" : "text-muted-foreground",
+                )}
             >
                 ¥{couponYuanText(coupon.discount.amount)}
             </p>

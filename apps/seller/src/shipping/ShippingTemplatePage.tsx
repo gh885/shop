@@ -190,7 +190,7 @@ export function ShippingTemplatePage() {
 
     if (templateQuery.isPending) {
         return (
-            <div className="mx-auto w-full max-w-(--container-narrow) space-y-4">
+            <div className="mx-auto w-full max-w-narrow space-y-4">
                 <Skeleton className="h-28 w-full rounded-xl" />
                 <Skeleton className="h-44 w-full rounded-xl" />
                 <Skeleton className="h-44 w-full rounded-xl" />
@@ -200,7 +200,7 @@ export function ShippingTemplatePage() {
 
     const isNew = templateQuery.data == undefined
     return (
-        <div className="mx-auto w-full max-w-(--container-narrow) space-y-4 pb-24">
+        <div className="mx-auto w-full max-w-narrow space-y-4 pb-24">
             <Card size="sm">
                 <CardContent className="flex items-start gap-3">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" />

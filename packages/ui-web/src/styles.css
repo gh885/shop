@@ -190,8 +190,9 @@
     --text-3xs: 0.6875rem;
     --text-3xs--line-height: 1rem;
 
-    /* 版心宽度。用 max-w-(--container-page) 消费，
-       注意 Tailwind v4 的 --container-* 自动映射有 bug，勿依赖 max-w-container-page 类 */
+    /* 版心宽度。统一用 max-w-page / max-w-narrow 消费（Tailwind v4 的 --container-*
+       自动映射可用，实测与显式 var 写法等价；全仓库统一短写法，不再出现
+       max-w-(--container-*) */
     --container-page: 92.875rem;
     --container-narrow: 74rem;
     /* narrow=74rem(1184px)：订单详情等窄版心；page=92.875rem(1486px)：主版心 */

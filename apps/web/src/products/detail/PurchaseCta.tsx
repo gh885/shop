@@ -7,7 +7,7 @@ import { useFavoriteStatus, useToggleFavorite } from "#/favorite"
 import { findMatchingSku, isSelectionComplete, type SkuSelection } from "../product"
 import type { ProductDetail } from "../product"
 import { useIsLoggedIn, openLoginDialog } from "#/shared/api/auth"
-import { Button, Spinner } from "@shop/ui-web"
+import { Button, Spinner, cn } from "@shop/ui-web"
 
 /**
  * 商品动作卡：加购 / 立即购买 / 收藏。
@@ -89,7 +89,7 @@ export function PurchaseCta({
                     onClick={handleFavorite}
                     className="h-12 w-12"
                 >
-                    <Heart className={`size-5 ${favorited ? "fill-foreground" : ""}`} />
+                    <Heart className={cn("size-5", favorited && "fill-foreground")} />
                 </Button>
             </div>
 

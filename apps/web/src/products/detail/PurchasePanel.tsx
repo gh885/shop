@@ -1,6 +1,6 @@
 import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
-import { Separator, ToggleGroup, ToggleGroupItem } from "@shop/ui-web"
+import { Separator, ToggleGroup, ToggleGroupItem, cn } from "@shop/ui-web"
 
 import { fenToYuan } from "@shop/common"
 
@@ -174,9 +174,10 @@ function SpecButton({
             disabled={!available}
             onClick={onSelect}
             aria-pressed={selected}
-            className={`w-24 overflow-hidden rounded-lg border-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                selected ? "border-primary" : "border-border"
-            }`}
+            className={cn(
+                "w-24 overflow-hidden rounded-lg border-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                selected ? "border-primary" : "border-border",
+            )}
         >
             <img
                 src={image}
