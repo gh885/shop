@@ -16,7 +16,12 @@ export default defineConfig({
     // JS 插件（Oxlint 1.80+ 的 JS plugin API，官方标注 alpha）：
     // @shadcn/lint 是面向 agent 的设计系统 linter —— 报错文本里带"该用什么"，
     // 建议直接来自 packages/ui-web 的组件 variants / sizes 与 styles.css 的 theme token。
-    jsPlugins: ["@shadcn/lint"],
+    jsPlugins: [
+        "@shadcn/lint",
+        // React Doctor：命名空间 react-doctor/*（287 条规则：架构/性能/正确性/安全/a11y/包体积 + react-builtins）。
+        // 必须用 { name, specifier } 对象形式注册，否则 oxlint 认不出命名空间、静默不加载。
+        { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
+    ],
     plugins: [
         "eslint",
         "oxc",
@@ -227,6 +232,35 @@ export default defineConfig({
         // React 19 自动 JSX 转换，不需要显式 import React
         "react/react-in-jsx-scope": "off",
 
+        // ── React Doctor（oxlint-plugin-react-doctor，命名空间 react-doctor/*）──
+        // 从官方 RECOMMENDED_RULES（566 条）中精选：先全量跑过一遍项目，
+        // 按命中分布挑出「真问题」warn 暴露；5 条噪音源显式 off（理由如下）。
+        // 注意：React Compiler 已启用（reactCompilerPreset），内联函数/对象/数组
+        // prop 由编译器自动 memo，以下 jsx-no-new-* 属 compiler 时代的过时建议，不开。
+        "react-doctor/jsx-no-new-function-as-prop": "off",
+        "react-doctor/jsx-no-new-object-as-prop": "off",
+        "react-doctor/jsx-no-new-array-as-prop": "off",
+        "react-doctor/jsx-no-jsx-as-prop": "off",
+        // react-refresh 风格规则，与仓库「组件+逻辑+常量同文件混出」的领域层惯例冲突
+        "react-doctor/only-export-components": "off",
+        // ── warn：真实问题，先暴露后清理 ──
+        "react-doctor/no-adjust-state-on-prop-change": "warn",
+        "react-doctor/button-has-type": "warn",
+        "react-doctor/no-high-complexity-react-function": "warn",
+        "react-doctor/js-set-map-lookups": "warn",
+        "react-doctor/prefer-tag-over-role": "warn",
+        "react-doctor/no-array-index-key": "warn",
+        "react-doctor/no-giant-component": "warn",
+        "react-doctor/role-supports-aria-props": "warn",
+        "react-doctor/no-pass-data-to-parent": "warn",
+        "react-doctor/no-transition-all": "warn",
+        "react-doctor/no-reset-all-state-on-prop-change": "warn",
+        // SSR 安全：模块顶层/渲染期裸用浏览器全局会炸服务端
+        "react-doctor/no-unguarded-browser-global-at-module-scope": "warn",
+        "react-doctor/no-unguarded-browser-global-in-render-or-hook-init": "warn",
+        // 中文输入法：回车提交需 IME composition 守卫，否则拼音上屏即误提交
+        "react-doctor/no-enter-submit-without-ime-composition-guard": "warn",
+
         // ── warn — 推荐写法 ──
         // 领域层约定：对外兼容 null，对内只用 undefined（用 ?. / ?? 判空，不写 null 字面量）。
         // 存量 98 处 null（多为 useState(null) / || null 兜底），先 warn 暴露，清完再升 error
@@ -304,7 +338,10 @@ export default defineConfig({
             // 原写法 "packages/ui-web/src/components/image-upload.tsx" 因上述 glob
             // 语义（相对路径不解析）一直是死配置，此处补 `**/` 前缀修好。
             files: ["**/packages/ui-web/src/components/image-upload.tsx"],
-            rules: { "react/no-array-index-key": "off" },
+            rules: {
+                "react/no-array-index-key": "off",
+                "react-doctor/no-array-index-key": "off",
+            },
         },
         {
             // 测试夹具与 MSW handler 必须镜像 wire 契约：SDK 生成类型是 `T | null`
