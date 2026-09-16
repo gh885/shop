@@ -46,7 +46,7 @@ export function FavoriteCard({
     return (
         // 容器用 div：避免 button 嵌套 button（键盘/读屏无法区分嵌套可交互控件）；
         // 可点击区域是覆盖卡片的内层 button，「移出」是其兄弟节点
-        <div className="group relative block w-60 shrink-0 transition-all duration-200 hover:shadow-lift">
+        <div className="group relative block w-60 shrink-0 transition-shadow duration-200 hover:shadow-lift">
             <button
                 type="button"
                 onClick={handleClick}

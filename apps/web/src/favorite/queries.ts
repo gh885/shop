@@ -41,7 +41,10 @@ export function useRemoveFavorites() {
             Promise.all(
                 productIds.map((id) => FavoritesApi.removeFavorite({ path: { productId: id } })),
             ),
-        patch: (list, productIds) => list.filter((item) => !productIds.includes(item.productId)),
+        patch: (list, productIds) => {
+            const removed = new Set(productIds)
+            return list.filter((item) => !removed.has(item.productId))
+        },
         messages: { error: "移出收藏失败" },
     })
 }

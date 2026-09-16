@@ -42,6 +42,7 @@ export function useSkuSelection({
         if (sameSelection(spec, selection)) return
         if (repaired.current !== undefined && sameSelection(repaired.current, spec)) return
         repaired.current = spec
+        // oxlint-disable-next-line react-doctor/no-pass-data-to-parent -- URL 自愈修正必须走 effect（渲染期写 URL 是副作用）；ref 去重保证同一脏 spec 只修一次
         onSpecChange(selection, { replace: true })
     }, [spec, selection, onSpecChange])
 

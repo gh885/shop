@@ -52,6 +52,9 @@ function RegionTree({
     onToggleExpanded: (code: string) => void
     onToggleRegion: (code: string) => void
 }) {
+    // 选中集转 Set：节点遍历里 includes 是 O(n×m)，树的每个节点都要判一次
+    const valueSet = useMemo(() => new Set(value), [value])
+
     return (
         <div className="space-y-0.5">
             {nodes.map((node) => {
@@ -59,7 +62,7 @@ function RegionTree({
                     node.children?.filter((child) => child.code.length <= 6) ?? []
                 const hasChildren = selectableChildren.length > 0
                 const isExpanded = expanded.has(node.code)
-                const checked = value.includes(node.code)
+                const checked = valueSet.has(node.code)
 
                 return (
                     <div key={node.code}>
@@ -124,6 +127,8 @@ export function RegionMultiPicker({
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState("")
     const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
+    // 选中集转 Set：搜索结果遍历里 includes 是 O(n×m)
+    const valueSet = useMemo(() => new Set(value), [value])
 
     useEffect(() => {
         let cancelled = false
@@ -247,7 +252,7 @@ export function RegionMultiPicker({
                                                 className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
                                             >
                                                 <Checkbox
-                                                    checked={value.includes(item.code)}
+                                                    checked={valueSet.has(item.code)}
                                                     onCheckedChange={() => toggleRegion(item.code)}
                                                 />
                                                 <span className="min-w-0 truncate">

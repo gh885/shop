@@ -46,6 +46,7 @@ export const Route = createFileRoute("/_protected/logistics/$orderId")({
  * 数据两路：轨迹（本模块）+ 订单详情（只借三样东西——收货地址、主图、下单/发货时刻）。
  * 订单侧事件由 buildShipmentTracks 并进首个正向包裹的轴尾，页面只负责拼块。
  */
+// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染（加载/轨迹失败/未发货/数据）是受保护页的刻意结构，数据派生（tracks/primary/fullAddress）已扁平；拆分需传 6+ props 的宽接口
 function LogisticsPage() {
     const { orderId } = Route.useParams()
     const tracking = useOrderTracking(orderId)

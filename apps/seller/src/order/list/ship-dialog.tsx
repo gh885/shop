@@ -46,6 +46,7 @@ export function ShipDialog({
     const [trackingNo, setTrackingNo] = useState("")
     const [error, setError] = useState<string>()
 
+    // oxlint-disable react-doctor/no-reset-all-state-on-prop-change, react-doctor/no-adjust-state-on-prop-change -- 打开即重置表单是有意为之（复用组件实例，避免 key 重挂载）
     useEffect(() => {
         if (open) {
             // oxlint-disable-next-line react/set-state-in-effect -- 打开即重置表单是有意为之（复用组件实例，避免 key 重挂载）
@@ -54,6 +55,7 @@ export function ShipDialog({
             setError(undefined)
         }
     }, [open])
+    // oxlint-enable react-doctor/no-reset-all-state-on-prop-change, react-doctor/no-adjust-state-on-prop-change
 
     const submit = () => {
         if (!order) return

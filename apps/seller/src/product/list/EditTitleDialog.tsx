@@ -48,6 +48,7 @@ export function EditTitleDialog({
     const [submitting, setSubmitting] = useState(false)
 
     // 打开时预填当前值（subtitle 为 null 视作空卖点）
+    // oxlint-disable react-doctor/no-adjust-state-on-prop-change -- 打开即预填编辑值是有意为之（复用组件实例，避免 key 重挂载）
     useEffect(() => {
         if (open && product) {
             // oxlint-disable-next-line react/set-state-in-effect -- 打开即预填编辑值是有意为之（复用组件实例，避免 key 重挂载）
@@ -57,6 +58,7 @@ export function EditTitleDialog({
             setErrorField(undefined)
         }
     }, [open, product])
+    // oxlint-enable react-doctor/no-adjust-state-on-prop-change
 
     const submit = async () => {
         if (!product) return

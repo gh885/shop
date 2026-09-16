@@ -199,6 +199,272 @@ interface FileUploadProps extends Omit<React.ComponentProps<"div">, "defaultValu
     required?: boolean
 }
 
+/**
+ * store reducer 的运行上下文：files/urlCache 是与 state 同生的引用 Map（reducer 直接 mutate 后返回新引用），
+ * onValueChange 用闭包包装、dispatch 时读 propsRef 最新值（等价于原来 dispatch 内读 propsRef.current）。
+ */
+interface StoreReducerCtx {
+    files: Map<File, FileState>
+    urlCache: Map<File, string>
+    onValueChange?: (files: File[]) => void
+}
+
+function storeReducer(
+    prevState: StoreState,
+    action: StoreAction,
+    { files, urlCache, onValueChange }: StoreReducerCtx,
+): StoreState {
+    switch (action.type) {
+        case "ADD_FILES": {
+            for (const file of action.files) {
+                files.set(file, {
+                    file,
+                    progress: 0,
+                    status: "idle",
+                })
+            }
+
+            if (onValueChange) {
+                onValueChange([...files.values()].map((fileState) => fileState.file))
+            }
+            return { ...prevState, files }
+        }
+
+        case "SET_FILES": {
+            const newFileSet = new Set(action.files)
+            for (const existingFile of files.keys()) {
+                if (!newFileSet.has(existingFile)) {
+                    files.delete(existingFile)
+                }
+            }
+
+            for (const file of action.files) {
+                const existingState = files.get(file)
+                if (!existingState) {
+                    files.set(file, {
+                        file,
+                        progress: 0,
+                        status: "idle",
+                    })
+                }
+            }
+            return { ...prevState, files }
+        }
+
+        case "SET_PROGRESS": {
+            const fileState = files.get(action.file)
+            if (fileState) {
+                files.set(action.file, {
+                    ...fileState,
+                    progress: action.progress,
+                    status: "uploading",
+                })
+            }
+            return { ...prevState, files }
+        }
+
+        case "SET_SUCCESS": {
+            const fileState = files.get(action.file)
+            if (fileState) {
+                files.set(action.file, {
+                    ...fileState,
+                    progress: 100,
+                    status: "success",
+                })
+            }
+            return { ...prevState, files }
+        }
+
+        case "SET_ERROR": {
+            const fileState = files.get(action.file)
+            if (fileState) {
+                files.set(action.file, {
+                    ...fileState,
+                    error: action.error,
+                    status: "error",
+                })
+            }
+            return { ...prevState, files }
+        }
+
+        case "REMOVE_FILE": {
+            const cachedUrl = urlCache.get(action.file)
+            if (cachedUrl) {
+                URL.revokeObjectURL(cachedUrl)
+                urlCache.delete(action.file)
+            }
+
+            files.delete(action.file)
+
+            if (onValueChange) {
+                onValueChange([...files.values()].map((fileState) => fileState.file))
+            }
+            return { ...prevState, files }
+        }
+
+        case "SET_DRAG_OVER": {
+            return { ...prevState, dragOver: action.dragOver }
+        }
+
+        case "SET_INVALID": {
+            return { ...prevState, invalid: action.invalid }
+        }
+
+        case "CLEAR": {
+            for (const file of files.keys()) {
+                const cachedUrl = urlCache.get(file)
+                if (cachedUrl) {
+                    URL.revokeObjectURL(cachedUrl)
+                    urlCache.delete(file)
+                }
+            }
+
+            files.clear()
+            if (onValueChange) {
+                onValueChange([])
+            }
+            return { ...prevState, files, invalid: false }
+        }
+
+        default:
+            return prevState
+    }
+}
+
+/**
+ * 文件选择后的处理链：按 maxFiles / onFileValidate / accept / maxSize 逐文件校验，
+ * 拒绝的走 onFileReject，通过的入 store（ADD_FILES）并按需触发上传。
+ * 独立成模块级函数：验证逻辑可单测，也让 FileUpload 主组件只留装配。
+ */
+interface FilesChangeCtx {
+    disabled: boolean
+    maxFiles?: number
+    maxSize?: number
+    acceptTypes?: string[]
+    isControlled: boolean
+    store: Store
+    onValueChange?: (files: File[]) => void
+    onAccept?: (files: File[]) => void
+    onFileAccept?: (file: File) => void
+    onFileReject?: (file: File, message: string) => void
+    onFileValidate?: (file: File) => string | null | undefined
+    onUpload?: FileUploadProps["onUpload"]
+    triggerUpload: (files: File[]) => void
+}
+
+function handleFilesChange(originalFiles: File[], ctx: FilesChangeCtx): void {
+    if (ctx.disabled) return
+
+    let filesToProcess = [...originalFiles]
+    let hasError = false
+
+    if (ctx.maxFiles) {
+        const currentCount = ctx.store.getState().files.size
+        const remainingSlotCount = Math.max(0, ctx.maxFiles - currentCount)
+
+        if (remainingSlotCount < filesToProcess.length) {
+            const rejectedFiles = filesToProcess.slice(remainingSlotCount)
+            hasError = true
+
+            filesToProcess = filesToProcess.slice(0, remainingSlotCount)
+
+            for (const file of rejectedFiles) {
+                let rejectionMessage = `Maximum ${ctx.maxFiles} files allowed`
+
+                if (ctx.onFileValidate) {
+                    const validationMessage = ctx.onFileValidate(file)
+                    if (validationMessage) {
+                        rejectionMessage = validationMessage
+                    }
+                }
+
+                ctx.onFileReject?.(file, rejectionMessage)
+            }
+        }
+    }
+
+    const acceptedFiles: File[] = []
+    const rejectedFiles: { file: File; message: string }[] = []
+
+    for (const file of filesToProcess) {
+        let rejected = false
+        let rejectionMessage = ""
+
+        if (ctx.onFileValidate) {
+            const validationMessage = ctx.onFileValidate(file)
+            if (validationMessage) {
+                rejectionMessage = validationMessage
+                ctx.onFileReject?.(file, rejectionMessage)
+                rejected = true
+                hasError = true
+                continue
+            }
+        }
+
+        if (ctx.acceptTypes) {
+            const fileType = file.type
+            const fileExtension = `.${file.name.split(".").pop()}`
+
+            if (
+                !ctx.acceptTypes.some(
+                    (type) =>
+                        type === fileType ||
+                        type === fileExtension ||
+                        (type.includes("/*") && fileType.startsWith(type.replace("/*", "/"))),
+                )
+            ) {
+                rejectionMessage = "File type not accepted"
+                ctx.onFileReject?.(file, rejectionMessage)
+                rejected = true
+                hasError = true
+            }
+        }
+
+        if (ctx.maxSize && file.size > ctx.maxSize) {
+            rejectionMessage = "File too large"
+            ctx.onFileReject?.(file, rejectionMessage)
+            rejected = true
+            hasError = true
+        }
+
+        if (rejected) {
+            rejectedFiles.push({ file, message: rejectionMessage })
+        } else {
+            acceptedFiles.push(file)
+        }
+    }
+
+    if (hasError) {
+        ctx.store.dispatch({ type: "SET_INVALID", invalid: hasError })
+        setTimeout(() => {
+            ctx.store.dispatch({ type: "SET_INVALID", invalid: false })
+        }, 2000)
+    }
+
+    if (acceptedFiles.length > 0) {
+        ctx.store.dispatch({ type: "ADD_FILES", files: acceptedFiles })
+
+        if (ctx.isControlled && ctx.onValueChange) {
+            const currentFiles = [...ctx.store.getState().files.values()].map((f) => f.file)
+            ctx.onValueChange([...currentFiles])
+        }
+
+        if (ctx.onAccept) {
+            ctx.onAccept(acceptedFiles)
+        }
+
+        for (const file of acceptedFiles) {
+            ctx.onFileAccept?.(file)
+        }
+
+        if (ctx.onUpload) {
+            requestAnimationFrame(() => {
+                ctx.triggerUpload(acceptedFiles)
+            })
+        }
+    }
+}
+
 function FileUpload(props: FileUploadProps) {
     const {
         value,
@@ -255,130 +521,17 @@ function FileUpload(props: FileUploadProps) {
             invalid: invalid,
         }
 
-        function reducer(prevState: StoreState, action: StoreAction): StoreState {
-            switch (action.type) {
-                case "ADD_FILES": {
-                    for (const file of action.files) {
-                        files.set(file, {
-                            file,
-                            progress: 0,
-                            status: "idle",
-                        })
-                    }
-
-                    if (propsRef.current.onValueChange) {
-                        const fileList = [...files.values()].map((fileState) => fileState.file)
-                        propsRef.current.onValueChange(fileList)
-                    }
-                    return { ...prevState, files }
-                }
-
-                case "SET_FILES": {
-                    const newFileSet = new Set(action.files)
-                    for (const existingFile of files.keys()) {
-                        if (!newFileSet.has(existingFile)) {
-                            files.delete(existingFile)
-                        }
-                    }
-
-                    for (const file of action.files) {
-                        const existingState = files.get(file)
-                        if (!existingState) {
-                            files.set(file, {
-                                file,
-                                progress: 0,
-                                status: "idle",
-                            })
-                        }
-                    }
-                    return { ...prevState, files }
-                }
-
-                case "SET_PROGRESS": {
-                    const fileState = files.get(action.file)
-                    if (fileState) {
-                        files.set(action.file, {
-                            ...fileState,
-                            progress: action.progress,
-                            status: "uploading",
-                        })
-                    }
-                    return { ...prevState, files }
-                }
-
-                case "SET_SUCCESS": {
-                    const fileState = files.get(action.file)
-                    if (fileState) {
-                        files.set(action.file, {
-                            ...fileState,
-                            progress: 100,
-                            status: "success",
-                        })
-                    }
-                    return { ...prevState, files }
-                }
-
-                case "SET_ERROR": {
-                    const fileState = files.get(action.file)
-                    if (fileState) {
-                        files.set(action.file, {
-                            ...fileState,
-                            error: action.error,
-                            status: "error",
-                        })
-                    }
-                    return { ...prevState, files }
-                }
-
-                case "REMOVE_FILE": {
-                    const cachedUrl = urlCache.get(action.file)
-                    if (cachedUrl) {
-                        URL.revokeObjectURL(cachedUrl)
-                        urlCache.delete(action.file)
-                    }
-
-                    files.delete(action.file)
-
-                    if (propsRef.current.onValueChange) {
-                        const fileList = [...files.values()].map((fileState) => fileState.file)
-                        propsRef.current.onValueChange(fileList)
-                    }
-                    return { ...prevState, files }
-                }
-
-                case "SET_DRAG_OVER": {
-                    return { ...state, dragOver: action.dragOver }
-                }
-
-                case "SET_INVALID": {
-                    return { ...prevState, invalid: action.invalid }
-                }
-
-                case "CLEAR": {
-                    for (const file of files.keys()) {
-                        const cachedUrl = urlCache.get(file)
-                        if (cachedUrl) {
-                            URL.revokeObjectURL(cachedUrl)
-                            urlCache.delete(file)
-                        }
-                    }
-
-                    files.clear()
-                    if (propsRef.current.onValueChange) {
-                        propsRef.current.onValueChange([])
-                    }
-                    return { ...prevState, files, invalid: false }
-                }
-
-                default:
-                    return prevState
-            }
+        const reducerCtx: StoreReducerCtx = {
+            files,
+            urlCache,
+            // 闭包包装：dispatch 时读 propsRef.current 拿到最新 onValueChange（与原来的 dispatch 内读等价）
+            onValueChange: (next) => propsRef.current.onValueChange?.(next),
         }
 
         return {
             getState: () => state,
             dispatch: (action) => {
-                state = reducer(state, action)
+                state = storeReducer(state, action, reducerCtx)
                 for (const listener of listeners) {
                     listener()
                 }
@@ -470,119 +623,23 @@ function FileUpload(props: FileUploadProps) {
 
     const onFilesChange = React.useCallback(
         (originalFiles: File[]) => {
-            if (disabled) return
-
-            let filesToProcess = [...originalFiles]
-            let hasError = false
-
-            if (maxFiles) {
-                const currentCount = store.getState().files.size
-                const remainingSlotCount = Math.max(0, maxFiles - currentCount)
-
-                if (remainingSlotCount < filesToProcess.length) {
-                    const rejectedFiles = filesToProcess.slice(remainingSlotCount)
-                    hasError = true
-
-                    filesToProcess = filesToProcess.slice(0, remainingSlotCount)
-
-                    for (const file of rejectedFiles) {
-                        let rejectionMessage = `Maximum ${maxFiles} files allowed`
-
-                        if (propsRef.current.onFileValidate) {
-                            const validationMessage = propsRef.current.onFileValidate(file)
-                            if (validationMessage) {
-                                rejectionMessage = validationMessage
-                            }
-                        }
-
-                        propsRef.current.onFileReject?.(file, rejectionMessage)
-                    }
-                }
-            }
-
-            const acceptedFiles: File[] = []
-            const rejectedFiles: { file: File; message: string }[] = []
-
-            for (const file of filesToProcess) {
-                let rejected = false
-                let rejectionMessage = ""
-
-                if (propsRef.current.onFileValidate) {
-                    const validationMessage = propsRef.current.onFileValidate(file)
-                    if (validationMessage) {
-                        rejectionMessage = validationMessage
-                        propsRef.current.onFileReject?.(file, rejectionMessage)
-                        rejected = true
-                        hasError = true
-                        continue
-                    }
-                }
-
-                if (acceptTypes) {
-                    const fileType = file.type
-                    const fileExtension = `.${file.name.split(".").pop()}`
-
-                    if (
-                        !acceptTypes.some(
-                            (type) =>
-                                type === fileType ||
-                                type === fileExtension ||
-                                (type.includes("/*") &&
-                                    fileType.startsWith(type.replace("/*", "/"))),
-                        )
-                    ) {
-                        rejectionMessage = "File type not accepted"
-                        propsRef.current.onFileReject?.(file, rejectionMessage)
-                        rejected = true
-                        hasError = true
-                    }
-                }
-
-                if (maxSize && file.size > maxSize) {
-                    rejectionMessage = "File too large"
-                    propsRef.current.onFileReject?.(file, rejectionMessage)
-                    rejected = true
-                    hasError = true
-                }
-
-                if (rejected) {
-                    rejectedFiles.push({ file, message: rejectionMessage })
-                } else {
-                    acceptedFiles.push(file)
-                }
-            }
-
-            if (hasError) {
-                store.dispatch({ type: "SET_INVALID", invalid: hasError })
-                setTimeout(() => {
-                    store.dispatch({ type: "SET_INVALID", invalid: false })
-                }, 2000)
-            }
-
-            if (acceptedFiles.length > 0) {
-                store.dispatch({ type: "ADD_FILES", files: acceptedFiles })
-
-                if (isControlled && propsRef.current.onValueChange) {
-                    const currentFiles = [...store.getState().files.values()].map((f) => f.file)
-                    propsRef.current.onValueChange([...currentFiles])
-                }
-
-                if (propsRef.current.onAccept) {
-                    propsRef.current.onAccept(acceptedFiles)
-                }
-
-                for (const file of acceptedFiles) {
-                    propsRef.current.onFileAccept?.(file)
-                }
-
-                if (propsRef.current.onUpload) {
-                    requestAnimationFrame(() => {
-                        void onFilesUpload(acceptedFiles)
-                    })
-                }
-            }
+            handleFilesChange(originalFiles, {
+                disabled,
+                maxFiles,
+                maxSize,
+                acceptTypes,
+                isControlled,
+                store,
+                onValueChange: propsRef.current.onValueChange,
+                onAccept: propsRef.current.onAccept,
+                onFileAccept: propsRef.current.onFileAccept,
+                onFileReject: propsRef.current.onFileReject,
+                onFileValidate: propsRef.current.onFileValidate,
+                onUpload: propsRef.current.onUpload,
+                triggerUpload: onFilesUpload,
+            })
         },
-        [store, isControlled, propsRef, onFilesUpload, maxFiles, acceptTypes, maxSize, disabled],
+        [disabled, maxFiles, maxSize, acceptTypes, isControlled, store, propsRef, onFilesUpload],
     )
 
     const onInputChange = React.useCallback(
@@ -882,7 +939,7 @@ function FileUploadTrigger(props: FileUploadTriggerProps) {
     )
 }
 
-interface FileUploadListProps extends React.ComponentProps<"div"> {
+interface FileUploadListProps extends React.ComponentProps<"ul"> {
     orientation?: "horizontal" | "vertical"
 
     forceMount?: boolean
@@ -903,13 +960,13 @@ function FileUploadList(props: FileUploadListProps) {
 
     if (!shouldRender) return undefined
 
-    const ListPrimitive = "div"
+    // 用 ul/li 原生语义（Tailwind preflight 已重置 ul/li 默认样式，视觉零变化），
+    // 比 div role="list"/"listitem" 的读屏语义更可靠
+    const ListPrimitive = "ul"
 
     return (
         <ListPrimitive
-            role="list"
             id={context.listId}
-            aria-orientation={orientation}
             data-orientation={orientation}
             data-slot="file-upload-list"
             data-state="active"
@@ -943,7 +1000,8 @@ function useFileUploadItemContext(consumerName: string) {
     return context
 }
 
-interface FileUploadItemProps extends React.ComponentProps<"div"> {
+// value 是上传组件的「文件」语义，与 li 元素类型里的 value（string|number）冲突，需 Omit 后重声明
+interface FileUploadItemProps extends Omit<React.ComponentProps<"li">, "value"> {
     value: File
 }
 
@@ -986,12 +1044,11 @@ function FileUploadItem(props: FileUploadItemProps) {
             ? "Upload complete"
             : "Ready to upload"
 
-    const ItemPrimitive = "div"
+    const ItemPrimitive = "li"
 
     return (
         <FileUploadItemContext.Provider value={itemContext}>
             <ItemPrimitive
-                role="listitem"
                 id={id}
                 aria-setsize={fileCount}
                 aria-posinset={fileIndex}
@@ -1160,6 +1217,8 @@ interface FileUploadItemProgressProps extends React.ComponentProps<"div"> {
     forceMount?: boolean
 }
 
+// oxlint-disable jsx-a11y/prefer-tag-over-role, react-doctor/prefer-tag-over-role -- progressbar 无原生等价物：fill 分支是绝对定位覆盖层（clip-path 揭示进度），
+// circular/linear 分支需自定义绘制，progress 元素的 UA 默认样式无法被 className 干净覆盖；ARIA 进度语义（valuemin/max/now/text）已完整声明
 function FileUploadItemProgress(props: FileUploadItemProgressProps) {
     const {
         variant = "linear",
@@ -1288,6 +1347,7 @@ function FileUploadItemProgress(props: FileUploadItemProgressProps) {
             )
     }
 }
+// oxlint-enable jsx-a11y/prefer-tag-over-role, react-doctor/prefer-tag-over-role
 
 interface FileUploadItemDeleteProps extends React.ComponentProps<"button"> {}
 

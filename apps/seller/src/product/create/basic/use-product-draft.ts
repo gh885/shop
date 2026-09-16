@@ -146,6 +146,7 @@ export function useProductDraft({
         if (detailError) {
             // 详情拉不到也放行 hydrated：否则表单永远停在 loading 骨架，用户无从下手
             notify.error("商品信息加载失败，请刷新重试")
+            // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- 详情到达后灌值进表单是刻意数据流（异步数据不能渲染期派生）
             setHydrated(true)
             return
         }
@@ -165,6 +166,7 @@ export function useProductDraft({
             subtitle: detail.product.subtitle ?? "",
             detailImages: detail.product.detailImages,
         })
+        // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- 详情到达后灌值进表单是刻意数据流（异步数据不能渲染期派生）
         setHydrated(true)
         // detail / detailError 都由 query 派生（同一份缓存，与列表页编辑弹窗共享），
         // 不追踪 detailPending：它是「还没到」不是「变了」，不该触发 hydrate

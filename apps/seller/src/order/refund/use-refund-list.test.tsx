@@ -47,7 +47,10 @@ function Probe() {
     const list = useRefundList({ tab: "APPLYING", page: 1, size: 10 })
     return (
         <div>
-            <button onClick={() => list.agreeAfterSale({ ticketId: TICKET_ID, orderId: ORDER_ID })}>
+            <button
+                type="button"
+                onClick={() => list.agreeAfterSale({ ticketId: TICKET_ID, orderId: ORDER_ID })}
+            >
                 agree
             </button>
             <span data-testid="busy">{list.busyId ?? "none"}</span>

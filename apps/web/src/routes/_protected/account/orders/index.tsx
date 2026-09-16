@@ -78,7 +78,7 @@ function OrdersPage() {
                     {/* 占位骨架：数据未到，无稳定 key 可用，index 合法 */}
                     {Array.from({ length: 3 }).map((_, i) => (
                         <Skeleton
-                            /* eslint-disable-next-line react/no-array-index-key */
+                            /* eslint-disable-next-line react/no-array-index-key, react-doctor/no-array-index-key */
                             key={i}
                             className="h-40 w-full rounded-lg"
                         />

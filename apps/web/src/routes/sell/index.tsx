@@ -171,6 +171,7 @@ function BusinessModes() {
                             return (
                                 <button
                                     key={item.key}
+                                    type="button"
                                     role="tab"
                                     aria-selected={selected}
                                     onClick={() => setActive(item.key)}

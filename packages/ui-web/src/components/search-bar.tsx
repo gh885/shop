@@ -107,7 +107,9 @@ export function SearchBar({
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => {
-                    if (e.key === "Enter") submit()
+                    // IME 组合期间（中文输入法选词上屏）e.key 也是 "Enter"，直接提交会把
+                    // 正在组词的拼音当成搜索词；isComposing 为真时跳过，待组合结束再放行
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) submit()
                 }}
                 placeholder={placeholder}
                 aria-label="搜索商品"

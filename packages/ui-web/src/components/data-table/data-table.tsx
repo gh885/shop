@@ -14,6 +14,7 @@ import {
     type ColumnFiltersState,
     type OnChangeFn,
     type PaginationState,
+    type Row,
     type SortingState,
 } from "@tanstack/react-table"
 
@@ -141,33 +142,11 @@ export function DataTable<TData, TValue>({
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {isLoading && <SkeletonRows colSpan={colSpan} />}
-                        {!isLoading && rows.length === 0 && (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={colSpan}
-                                    className="h-24 text-center text-muted-foreground"
-                                >
-                                    暂无数据
-                                </TableCell>
-                            </TableRow>
-                        )}
-                        {!isLoading &&
-                            rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={row.getIsSelected() ? "selected" : undefined}
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext(),
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))}
+                        <TableBodyContent
+                            rows={rows}
+                            isLoading={isLoading}
+                            colSpan={colSpan}
+                        />
                     </TableBody>
                 </Table>
             </div>
@@ -183,6 +162,49 @@ export function DataTable<TData, TValue>({
                 </DataTableBulkActions>
             )}
         </div>
+    )
+}
+
+/**
+ * 表体三态：加载骨架 / 空态 / 数据行。独立组件让 DataTable 主体只留
+ * 「装配」（toolbar + 表 + 分页 + 批量栏），三态条件链不参与主组件复杂度。
+ */
+function TableBodyContent<TData>({
+    rows,
+    isLoading,
+    colSpan,
+}: {
+    rows: Row<TData>[]
+    isLoading: boolean
+    colSpan: number
+}) {
+    return (
+        <>
+            {isLoading && <SkeletonRows colSpan={colSpan} />}
+            {!isLoading && rows.length === 0 && (
+                <TableRow>
+                    <TableCell
+                        colSpan={colSpan}
+                        className="h-24 text-center text-muted-foreground"
+                    >
+                        暂无数据
+                    </TableCell>
+                </TableRow>
+            )}
+            {!isLoading &&
+                rows.map((row) => (
+                    <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() ? "selected" : undefined}
+                    >
+                        {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                        ))}
+                    </TableRow>
+                ))}
+        </>
     )
 }
 

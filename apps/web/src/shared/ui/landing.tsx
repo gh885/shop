@@ -125,7 +125,7 @@ export function LandingHero({
             <div className="space-y-6">
                 {[headline, body, actions].map((block, i) => (
                     <m.div
-                        /* eslint-disable-next-line react/no-array-index-key -- 三段固定结构，位置即身份 */
+                        /* eslint-disable-next-line react/no-array-index-key, react-doctor/no-array-index-key -- 三段固定结构，位置即身份 */
                         key={i}
                         custom={i}
                         variants={STAGGER}

@@ -44,6 +44,7 @@ export const Route = createFileRoute("/_app/product/list")({
     component: ProductsPage,
 })
 
+// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 商品列表页：搜索参数 + 列表 + 分页 + 行操作集中在页面是刻意结构，逻辑（查询/派生）全在域内；拆分需传 7+ props 的宽接口
 function ProductsPage() {
     const search = Route.useSearch()
     const {

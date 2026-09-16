@@ -43,7 +43,14 @@ function MyCouponsProbe({ status, page }: { status: CouponTab; page: number }) {
 
 function ClaimProbe() {
     const claim = useClaimCoupon()
-    return <button onClick={() => claim.mutate(TEMPLATE_ID)}>claim</button>
+    return (
+        <button
+            type="button"
+            onClick={() => claim.mutate(TEMPLATE_ID)}
+        >
+            claim
+        </button>
+    )
 }
 
 function ClaimableProbe({ shopId }: { shopId: string }) {

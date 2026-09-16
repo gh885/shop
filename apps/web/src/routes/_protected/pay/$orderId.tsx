@@ -29,6 +29,7 @@ type PayPhase =
  * 成功后立即模拟网关回调确认，成功后跳订单列表。不再随组件挂载自动发起（服务端命令的
  * 触发源必须是显式用户动作，而不是 mount effect）。金额取自订单详情（后端按订单投影，前端不报价）。
  */
+// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 收银台状态机 7 分支已用 PayPhase 显式建模（注释与分支一一对应），拆分会把同一状态机渲染碎片化到多个组件；分支内无嵌套业务逻辑
 function PayPage() {
     const navigate = useNavigate()
     const { orderId } = Route.useParams()

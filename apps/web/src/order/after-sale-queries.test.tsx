@@ -30,7 +30,12 @@ function TicketProbe({ orderId }: { orderId: string }) {
 function ApplyProbe() {
     const apply = useApplyAfterSale("o-1")
     return (
-        <button onClick={() => apply.mutate({ type: "REFUND_ONLY", reason: "  " })}>apply</button>
+        <button
+            type="button"
+            onClick={() => apply.mutate({ type: "REFUND_ONLY", reason: "  " })}
+        >
+            apply
+        </button>
     )
 }
 

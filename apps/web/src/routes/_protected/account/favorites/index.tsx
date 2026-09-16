@@ -37,6 +37,7 @@ export const Route = createFileRoute("/_protected/account/favorites/")({
     }),
 })
 
+// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染 + 批量操作状态（选择/模式/确认）集中在页面是刻意结构，派生（filtered）与 handlers 已扁平；拆分需传 7+ props 的宽接口
 function FavoritesPage() {
     const navigate = useNavigate()
     // 页面局部 UI 状态（真实源在客户端）→ useState，不进 query
@@ -108,7 +109,7 @@ function FavoritesPage() {
                 <div className="flex flex-wrap gap-3">
                     {Array.from({ length: 6 }).map((_, i) => (
                         <Skeleton
-                            /* eslint-disable-next-line react/no-array-index-key */
+                            /* eslint-disable-next-line react/no-array-index-key, react-doctor/no-array-index-key */
                             key={i}
                             className="h-72 w-60 rounded-xl"
                         />

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { TicketPercent } from "lucide-react"
 
 import type { ClaimableCouponResponse } from "@shop/api/sdk"
@@ -36,6 +36,8 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
     const isLoggedIn = useIsLoggedIn()
     // 可领券响应刻意不带「我领过没」（匿名通道拿不到当前用户），已领标记只能是本浮层的局部状态
     const [claimedIds, setClaimedIds] = useState<string[]>([])
+    // 已领集合转 Set：券列表遍历里 includes 是 O(n×m)
+    const claimedIdSet = useMemo(() => new Set(claimedIds), [claimedIds])
 
     const coupons = data ?? []
     if (isPending || isError || coupons.length === 0) return undefined
@@ -81,7 +83,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                 {/* 券数无上界（模板是卖家随手建的），不给高度上限时超出的券连同「领取」按钮会被顶出视口且无滚动提示 */}
                 <ul className="flex max-h-72 flex-col gap-3 overflow-y-auto">
                     {coupons.map((coupon) => {
-                        const claimed = claimedIds.includes(coupon.id)
+                        const claimed = claimedIdSet.has(coupon.id)
                         const rule = couponRuleText(coupon.threshold.amount, coupon.discount.amount)
                         const label = claimed ? "已领取" : coupon.soldOut ? "已领完" : "领取"
                         return (

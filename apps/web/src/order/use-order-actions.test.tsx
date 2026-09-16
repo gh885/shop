@@ -57,11 +57,24 @@ function Probe() {
     const c = actions
     return (
         <div>
-            <button onClick={() => c.handleAction(makeOrder({ id: "o-pay" }), "pay")}>pay</button>
-            <button onClick={() => c.handleAction(makeOrder({ id: "o-cancel" }), "cancel")}>
+            <button
+                type="button"
+                onClick={() => c.handleAction(makeOrder({ id: "o-pay" }), "pay")}
+            >
+                pay
+            </button>
+            <button
+                type="button"
+                onClick={() => c.handleAction(makeOrder({ id: "o-cancel" }), "cancel")}
+            >
                 cancel
             </button>
-            <button onClick={() => c.handleAction(makeOrder(), "confirm")}>confirm</button>
+            <button
+                type="button"
+                onClick={() => c.handleAction(makeOrder(), "confirm")}
+            >
+                confirm
+            </button>
             <span data-testid="pending">{c.pendingAction ?? "none"}</span>
         </div>
     )

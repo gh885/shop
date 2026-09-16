@@ -7,7 +7,9 @@
 const STORAGE_KEY = "shop_seller_current_shop"
 
 // 统一 undefined 约定：localStorage.getItem 返回 string | null，此处归一为 string | undefined
-let stored: string | undefined = localStorage.getItem(STORAGE_KEY) ?? undefined
+// SSR/测试环境（typeof window === "undefined"）下不读 localStorage，回落 undefined
+let stored: string | undefined =
+    typeof window === "undefined" ? undefined : (localStorage.getItem(STORAGE_KEY) ?? undefined)
 
 /**
  * 已解析的当前店铺 id（useCurrentShop 的解析结果，含「落到第一家 ACTIVE 店」兜底）。

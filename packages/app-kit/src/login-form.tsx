@@ -82,6 +82,7 @@ function isCaptchaError(e: ApiError | undefined): boolean {
  *  不划算，也挡住了 lint 对类名的检查（require-static-classes 读不到查表里的变量）。
  *  类名一律就地写成字面量，别再收敛回常量——收敛回去规则就又看不见了 */
 
+// oxlint-disable-next-line react-doctor/no-giant-component -- TanStack Form 的 AppField 渲染 prop 结构决定行数（每字段 30-60 行）；抽子组件需传 form 实例与 6+ 回调，接口更宽，违背高内聚
 export function LoginForm({
     getCaptcha,
     sendCode,

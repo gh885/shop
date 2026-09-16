@@ -51,6 +51,7 @@ export const Route = createFileRoute("/_protected/account/coupons/")({
  * 我的券包：状态页签（服务端按 status 筛选）+ 分页 + 三态。
  * 逻辑（投影/分组/页签定义/请求）全在 `#/coupon` 域里，这里只组装与渲染。
  */
+// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染 + 页签/分组/分页组装是页面刻意结构，逻辑（投影/分组/请求）全在 #/coupon 域；拆分需传 6+ props 的宽接口
 function CouponsPage() {
     const [tab, setTab] = useState<CouponTab>("UNUSED")
     const [page, setPage] = useState(1)
@@ -100,7 +101,7 @@ function CouponsPage() {
                             {/* 占位骨架：数据未到，无稳定 key 可用，index 合法 */}
                             {Array.from({ length: 3 }).map((_, i) => (
                                 <Skeleton
-                                    /* eslint-disable-next-line react/no-array-index-key */
+                                    /* eslint-disable-next-line react/no-array-index-key, react-doctor/no-array-index-key */
                                     key={i}
                                     className="h-24 w-full rounded-lg"
                                 />

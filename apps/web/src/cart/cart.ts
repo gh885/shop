@@ -185,10 +185,15 @@ export function setItemsSelected(
 ): CartItem[] {
     return itemIds === undefined
         ? list.map((item) => ({ ...item, selected }))
-        : list.map((item) => (itemIds.includes(item.id) ? { ...item, selected } : item))
+        : (() => {
+              // 勾选集转 Set：行级 includes 是 O(n×m)
+              const idSet = new Set(itemIds)
+              return list.map((item) => (idSet.has(item.id) ? { ...item, selected } : item))
+          })()
 }
 
 /** 删除（单条/批量共用） */
 export function removeItems(list: CartItem[], ids: string[]): CartItem[] {
-    return list.filter((item) => !ids.includes(item.id))
+    const idSet = new Set(ids)
+    return list.filter((item) => !idSet.has(item.id))
 }
