@@ -10,6 +10,15 @@ import {
     Button,
     ConfirmDialog,
     DataTable,
+    DataTableToolbar,
+    DataTablePagination,
+    DataTableSkeleton,
+    DataTableViewOptions,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
     Dialog,
     DialogContent,
     DialogDescription,
@@ -18,11 +27,12 @@ import {
     DialogTitle,
     Spinner,
     Textarea,
-    type DataTableFilterConfig,
+    useDataTable,
+    type DataTableFeatures,
 } from "@shop/ui-web"
 import { type ShopReviewItem, reviewListOptions, adminApi } from "#/shared/lib/api"
-import { reviewKeys } from "#/shared/lib/queries"
-import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table"
+import { reviewKeys, useReviewRetry } from "#/shared/lib/queries"
+import type { ColumnDef } from "@tanstack/react-table"
 import { isValid, format } from "date-fns"
 
 /** 店铺审核状态（与后端枚举对齐） */
@@ -57,30 +67,9 @@ const STATUS_BADGE: Record<
     },
 }
 
-/** 状态筛选选项与状态徽章同源（STATUS_BADGE 是唯一真相，加状态只改一处） */
-const STATUS_FILTER: DataTableFilterConfig = {
-    columnId: "status",
-    title: "状态",
-    options: Object.entries(STATUS_BADGE).map(([value, badge]) => ({
-        value,
-        label: badge.label,
-    })),
-}
+const EMPTY_REVIEWS: ShopReviewItem[] = []
 
-/**
- * 从 column filters 取状态筛选值：DataTable 的 filter value 契约是 unknown，
- * 本列只可能由 STATUS_FILTER 选项（即 ShopReviewStatus 的值）组成，取最后一次选择；
- * 无合法值（含清空筛选）返回 undefined。
- */
-function filterStatus(filters: ColumnFiltersState): ShopReviewStatus | undefined {
-    const value = filters.find((f) => f.id === "status")?.value
-    const candidate = Array.isArray(value) ? value.at(-1) : undefined
-    if (typeof candidate !== "string" || !(candidate in ShopReviewStatus)) return undefined
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TS 枚举无法从 in 窄化出的字符串键还原为枚举类型，断言是唯一写法（配置注释认可的护栏式断言）
-    return candidate as ShopReviewStatus
-}
-
-const columns: ColumnDef<ShopReviewItem>[] = [
+const columns: ColumnDef<DataTableFeatures, ShopReviewItem>[] = [
     {
         accessorKey: "shopName",
         header: "店铺名称",
@@ -144,13 +133,29 @@ function ReviewPage() {
     const { status, page, size } = Route.useSearch()
     const navigate = Route.useNavigate()
 
-    const { data, isPending, isError, refetch } = useQuery(
-        reviewListOptions({ status, page, size }),
-    )
+    const onRetry = useReviewRetry({ status, page, size })
+    const { data, isPending, isError } = useQuery(reviewListOptions({ status, page, size }))
 
     // 服务端模式：分页/筛选状态由 URL 接管，DataTable 内不自管
     const pagination = { pageIndex: page - 1, pageSize: size }
-    const columnFilters: ColumnFiltersState = status ? [{ id: "status", value: [status] }] : []
+
+    const { table } = useDataTable({
+        columns,
+        data: data?.records ?? EMPTY_REVIEWS,
+        getRowId: (row) => row.id,
+        enableSorting: false,
+        rowCount: data?.total,
+        manualPagination: true,
+        manualFiltering: true,
+        manualSorting: true,
+        state: { pagination },
+        onPaginationChange: (updater) => {
+            const next = typeof updater === "function" ? updater(pagination) : updater
+            void navigate({
+                search: { status, page: next.pageIndex + 1, size: next.pageSize },
+            })
+        },
+    })
 
     return (
         <div className="space-y-4">
@@ -167,33 +172,59 @@ function ReviewPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => void refetch()}
+                        onClick={onRetry}
                     >
                         重新加载
                     </Button>
                 </div>
             ) : undefined}
 
-            <DataTable
-                columns={columns}
-                data={data?.records ?? []}
-                rowCount={data?.total}
-                isLoading={isPending}
-                filters={[STATUS_FILTER]}
-                pagination={pagination}
-                onPaginationChange={(updater) => {
-                    const next = typeof updater === "function" ? updater(pagination) : updater
-                    void navigate({
-                        search: { status, page: next.pageIndex + 1, size: next.pageSize },
-                    })
-                }}
-                columnFilters={columnFilters}
-                onColumnFiltersChange={(updater) => {
-                    const next = typeof updater === "function" ? updater(columnFilters) : updater
-                    // 后端 status 单值，多选时取最后一次选择
-                    void navigate({ search: { status: filterStatus(next), page: 1, size } })
-                }}
-            />
+            <DataTableToolbar
+                table={table}
+                actions={<DataTableViewOptions table={table} />}
+            >
+                <Select
+                    value={status ?? "all"}
+                    onValueChange={(value) => {
+                        const parsed = ShopReviewStatusSchema.safeParse(value)
+                        void navigate({
+                            search: {
+                                status: parsed.success ? parsed.data : undefined,
+                                page: 1,
+                                size,
+                            },
+                        })
+                    }}
+                >
+                    <SelectTrigger aria-label="审核状态">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">全部状态</SelectItem>
+                        {Object.entries(STATUS_BADGE).map(([value, badge]) => (
+                            <SelectItem
+                                key={value}
+                                value={value}
+                            >
+                                {badge.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </DataTableToolbar>
+            {isPending ? (
+                <DataTableSkeleton columns={columns.length} />
+            ) : (
+                !isError && (
+                    <>
+                        <DataTable
+                            table={table}
+                            emptyContent="暂无符合条件的审核申请"
+                        />
+                        <DataTablePagination table={table} />
+                    </>
+                )
+            )}
         </div>
     )
 }

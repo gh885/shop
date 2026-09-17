@@ -1,6 +1,6 @@
 "use client"
 
-import { type Table } from "@tanstack/react-table"
+import { type ReactTable, type RowData } from "@tanstack/react-table"
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
@@ -18,15 +18,20 @@ import {
     SelectValue,
 } from "src/components/ui/select"
 
-type DataTablePaginationProps<TData> = {
-    table: Table<TData>
+import type { DataTableFeatures } from "./data-table-features"
+
+type DataTablePaginationProps<TData extends RowData> = {
+    table: ReactTable<DataTableFeatures, TData>
     className?: string
 }
 
 /** 分页：页大小 Select + 首/上/页码/下/末 */
-export function DataTablePagination<TData>({ table, className }: DataTablePaginationProps<TData>) {
-    const currentPage = table.getState().pagination.pageIndex + 1
+export function DataTablePagination<TData extends RowData>({
+    table,
+    className,
+}: DataTablePaginationProps<TData>) {
     const totalPages = table.getPageCount()
+    const currentPage = totalPages === 0 ? 0 : table.state.pagination.pageIndex + 1
     const pageNumbers = getPageNumbers(currentPage, totalPages)
 
     return (
@@ -34,13 +39,16 @@ export function DataTablePagination<TData>({ table, className }: DataTablePagina
             <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">每页</span>
                 <Select
-                    value={`${table.getState().pagination.pageSize}`}
+                    value={`${table.state.pagination.pageSize}`}
                     onValueChange={(value) => {
                         table.setPageSize(Number(value))
                     }}
                 >
-                    <SelectTrigger className="h-8 w-17">
-                        <SelectValue placeholder={`${table.getState().pagination.pageSize}`} />
+                    <SelectTrigger
+                        aria-label="每页条数"
+                        className="h-8 w-17"
+                    >
+                        <SelectValue placeholder={`${table.state.pagination.pageSize}`} />
                     </SelectTrigger>
                     <SelectContent side="top">
                         {[10, 20, 30, 40, 50].map((pageSize) => (
@@ -93,7 +101,8 @@ export function DataTablePagination<TData>({ table, className }: DataTablePagina
                             <span className="px-1 text-sm text-muted-foreground">…</span>
                         ) : (
                             <Button
-                                variant={currentPage === pageNumber ? "default" : "outline"}
+                                variant={currentPage === pageNumber ? "secondary" : "outline"}
+                                aria-current={currentPage === pageNumber ? "page" : undefined}
                                 className="h-8 min-w-8 px-2"
                                 onClick={() => table.setPageIndex(pageNumber - 1)}
                             >

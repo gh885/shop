@@ -1,0 +1,60 @@
+import {
+    columnFacetingFeature,
+    columnFilteringFeature,
+    columnVisibilityFeature,
+    createFacetedRowModel,
+    createFacetedUniqueValues,
+    createFilteredRowModel,
+    createPaginatedRowModel,
+    createSortedRowModel,
+    filterFn_arrHas,
+    filterFn_arrIncludes,
+    filterFn_equals,
+    filterFn_inDateRange,
+    filterFn_inNumberRange,
+    filterFn_includesString,
+    filterFn_weakEquals,
+    globalFilteringFeature,
+    rowPaginationFeature,
+    rowSelectionFeature,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    sortFn_datetime,
+    sortFn_text,
+    tableFeatures,
+} from "@tanstack/react-table"
+
+/** 只注册现有表格使用的能力；manual* 选项负责跳过服务端已执行的处理。 */
+export const dataTableFeatures = tableFeatures({
+    columnFilteringFeature,
+    globalFilteringFeature,
+    columnFacetingFeature,
+    columnVisibilityFeature,
+    rowPaginationFeature,
+    rowSelectionFeature,
+    rowSortingFeature,
+    filteredRowModel: createFilteredRowModel(),
+    paginatedRowModel: createPaginatedRowModel(),
+    sortedRowModel: createSortedRowModel(),
+    facetedRowModel: createFacetedRowModel(),
+    facetedUniqueValues: createFacetedUniqueValues(),
+    // v9 的 auto 只从注册表解析函数，覆盖字符串、数字、日期、布尔及数组的默认推断。
+    filterFns: {
+        includesString: filterFn_includesString,
+        inNumberRange: filterFn_inNumberRange,
+        inDateRange: filterFn_inDateRange,
+        equals: filterFn_equals,
+        arrHas: filterFn_arrHas,
+        arrIncludes: filterFn_arrIncludes,
+        weakEquals: filterFn_weakEquals,
+    },
+    sortFns: {
+        alphanumeric: sortFn_alphanumeric,
+        basic: sortFn_basic,
+        datetime: sortFn_datetime,
+        text: sortFn_text,
+    },
+})
+
+export type DataTableFeatures = typeof dataTableFeatures

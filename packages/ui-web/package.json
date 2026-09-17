@@ -33,7 +33,13 @@
     },
     "devDependencies": {
         "@shop/config": "workspace:*",
+        "@shop/test-utils": "workspace:*",
+        "@testing-library/react": "catalog:",
+        "@testing-library/user-event": "catalog:",
         "@types/react": "catalog:",
-        "@types/react-dom": "catalog:"
+        "@types/react-dom": "catalog:",
+        "@vitejs/plugin-react": "catalog:",
+        "jsdom": "catalog:",
+        "vitest": "catalog:"
     }
 }

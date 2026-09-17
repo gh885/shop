@@ -1,26 +1,29 @@
 "use client"
 
 import * as React from "react"
-import { type Table } from "@tanstack/react-table"
+import { type ReactTable, type RowData } from "@tanstack/react-table"
 import { XIcon } from "lucide-react"
 
 import { Badge } from "src/components/ui/badge"
 import { Button } from "src/components/ui/button"
 import { Separator } from "src/components/ui/separator"
 
-type DataTableBulkActionsProps<TData> = {
-    table: Table<TData>
+import type { DataTableFeatures } from "./data-table-features"
+
+type DataTableBulkActionsProps<TData extends RowData> = {
+    table: ReactTable<DataTableFeatures, TData>
     entityName: string
     children: React.ReactNode
 }
 
 /** 选中行后底部浮出的批量操作条；无选中不渲染 */
-export function DataTableBulkActions<TData>({
+export function DataTableBulkActions<TData extends RowData>({
     table,
     entityName,
     children,
 }: DataTableBulkActionsProps<TData>) {
-    const selectedCount = table.getFilteredSelectedRowModel().rows.length
+    // rowSelection 可保留跨页 ID，row model 只有当前加载的数据。
+    const selectedCount = Object.keys(table.state.rowSelection).length
 
     if (selectedCount === 0) {
         return
@@ -44,7 +47,12 @@ export function DataTableBulkActions<TData>({
                     className="h-5"
                 />
                 <div className="flex items-center gap-1.5 text-sm">
-                    <Badge className="min-w-6 rounded-lg">{selectedCount}</Badge>
+                    <Badge
+                        variant="secondary"
+                        className="min-w-6 rounded-lg"
+                    >
+                        {selectedCount}
+                    </Badge>
                     <span className="text-muted-foreground">{entityName} 已选</span>
                 </div>
                 <Separator

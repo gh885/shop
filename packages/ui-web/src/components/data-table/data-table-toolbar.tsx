@@ -1,57 +1,38 @@
 "use client"
 
-import { type Table } from "@tanstack/react-table"
+import type { ReactNode } from "react"
+import { type ReactTable, type RowData } from "@tanstack/react-table"
 import { XIcon } from "lucide-react"
 
 import { Button } from "src/components/ui/button"
-import { Input } from "src/components/ui/input"
 
 import { DataTableFacetedFilter, type DataTableFilterConfig } from "./data-table-faceted-filter"
-import { DataTableViewOptions } from "./data-table-view-options"
 
-type DataTableToolbarProps<TData> = {
-    table: Table<TData>
-    searchPlaceholder?: string
-    /** 传则列过滤，否则全局过滤 */
-    searchKey?: string
+import type { DataTableFeatures } from "./data-table-features"
+
+type DataTableToolbarProps<TData extends RowData> = {
+    table: ReactTable<DataTableFeatures, TData>
     filters?: DataTableFilterConfig[]
+    children?: ReactNode
+    actions?: ReactNode
 }
 
 /** 稳定的空数组引用，避免每次 render 重建默认值 */
 const NO_FILTERS: DataTableFilterConfig[] = []
 
-/** 工具栏：搜索 + faceted 筛选 + 重置 + 列显隐 */
-export function DataTableToolbar<TData>({
+/** 工具栏：faceted 筛选 + 重置 + 列显隐。搜索框由调用方按需插入。 */
+export function DataTableToolbar<TData extends RowData>({
     table,
-    searchPlaceholder,
-    searchKey,
     filters = NO_FILTERS,
+    children,
+    actions,
 }: DataTableToolbarProps<TData>) {
-    const isFiltered = table.getState().columnFilters.length > 0
-    const searchValue = searchKey ? table.getColumn(searchKey)?.getFilterValue() : undefined
-    const globalFilter = table.getState().globalFilter
+    const isFiltered = table.state.columnFilters.length > 0 || Boolean(table.state.globalFilter)
 
     return (
         <div className="flex items-center justify-between gap-2">
             <div className="flex flex-1 flex-wrap items-center gap-2">
-                {searchPlaceholder &&
-                    (searchKey ? (
-                        <Input
-                            placeholder={searchPlaceholder}
-                            value={typeof searchValue === "string" ? searchValue : ""}
-                            onChange={(event) =>
-                                table.getColumn(searchKey)?.setFilterValue(event.target.value)
-                            }
-                            className="h-8 w-48"
-                        />
-                    ) : (
-                        <Input
-                            placeholder={searchPlaceholder}
-                            value={typeof globalFilter === "string" ? globalFilter : ""}
-                            onChange={(event) => table.setGlobalFilter(event.target.value)}
-                            className="h-8 w-48"
-                        />
-                    ))}
+                {children}
                 {filters.map((filter) => {
                     const column = table.getColumn(filter.columnId)
                     if (!column) return
@@ -70,7 +51,7 @@ export function DataTableToolbar<TData>({
                         size="sm"
                         className="h-8 px-2 lg:px-3"
                         onClick={() => {
-                            table.resetColumnFilters()
+                            table.resetColumnFilters(true)
                             table.setGlobalFilter("")
                         }}
                     >
@@ -79,7 +60,7 @@ export function DataTableToolbar<TData>({
                     </Button>
                 )}
             </div>
-            <DataTableViewOptions table={table} />
+            {actions}
         </div>
     )
 }

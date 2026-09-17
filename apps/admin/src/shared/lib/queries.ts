@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query"
 import type { ShopReviewStatus } from "@shop/api/sdk"
 
 /**
@@ -17,3 +18,9 @@ export const reviewKeys = {
     list: (input: { status?: ShopReviewStatus; page: number; size: number }) =>
         ["admin", "reviews", input.status ?? "all", input.page, input.size] as const,
 } as const
+
+/** 错误重试同样标记缓存失效，不绕过缓存直接 refetch。 */
+export function useReviewRetry(input: { status?: ShopReviewStatus; page: number; size: number }) {
+    const queryClient = useQueryClient()
+    return () => void queryClient.invalidateQueries({ queryKey: reviewKeys.list(input) })
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { type Column } from "@tanstack/react-table"
+import { Subscribe, type Column, type RowData } from "@tanstack/react-table"
 import { CheckIcon, PlusIcon } from "lucide-react"
 
 import { cn } from "src/lib/utils"
@@ -9,6 +9,8 @@ import { Badge } from "src/components/ui/badge"
 import { Button } from "src/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "src/components/ui/popover"
 import { Separator } from "src/components/ui/separator"
+
+import type { DataTableFeatures } from "./data-table-features"
 
 export type DataTableFilterOption = {
     label: string
@@ -22,20 +24,46 @@ export type DataTableFilterConfig = {
     options: DataTableFilterOption[]
 }
 
-type DataTableFacetedFilterProps<TData, TValue> = {
-    column?: Column<TData, TValue>
+type DataTableFacetedFilterProps<TData extends RowData, TValue> = {
+    column?: Column<DataTableFeatures, TData, TValue>
     title?: string
     options: DataTableFilterOption[]
 }
 
-/** 多选筛选：Popover 勾选列表 + 触发钮上的已选 Badge（BaseUI 无 Command，故自绘列表） */
-export function DataTableFacetedFilter<TData, TValue>({
+/** 多选分面筛选；客户端标量列需显式配置 filterFn: "arrHas"。 */
+export function DataTableFacetedFilter<TData extends RowData, TValue>({
     column,
     title,
     options,
 }: DataTableFacetedFilterProps<TData, TValue>) {
-    const facets = column?.getFacetedUniqueValues()
-    const filterValue = column?.getFilterValue()
+    if (!column) return
+    return (
+        <Subscribe source={column.table.store}>
+            {(state) => (
+                <FacetedFilterContent
+                    column={column}
+                    title={title}
+                    options={options}
+                    filterValue={
+                        state.columnFilters.find((filter) => filter.id === column.id)?.value
+                    }
+                />
+            )}
+        </Subscribe>
+    )
+}
+
+function FacetedFilterContent<TData extends RowData, TValue>({
+    column,
+    title,
+    options,
+    filterValue,
+}: DataTableFacetedFilterProps<TData, TValue> & { filterValue: unknown }) {
+    // 服务端分页不能把当前页的计数冒充全量分面计数。
+    const facets =
+        column?.table.options.manualFiltering || column?.table.options.manualPagination
+            ? undefined
+            : column?.getFacetedUniqueValues()
     const selectedValues = new Set<string>(
         Array.isArray(filterValue)
             ? filterValue.filter((v): v is string => typeof v === "string")
@@ -100,9 +128,11 @@ export function DataTableFacetedFilter<TData, TValue>({
                     {options.map((option) => {
                         const isSelected = selectedValues.has(option.value)
                         return (
-                            <button
+                            <Button
                                 key={option.value}
                                 type="button"
+                                variant="ghost"
+                                aria-pressed={isSelected}
                                 onClick={() => {
                                     if (isSelected) {
                                         selectedValues.delete(option.value)
@@ -114,13 +144,13 @@ export function DataTableFacetedFilter<TData, TValue>({
                                         filterValues.length > 0 ? filterValues : undefined,
                                     )
                                 }}
-                                className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                className="justify-start"
                             >
                                 <div
                                     className={cn(
                                         "flex size-4 shrink-0 items-center justify-center rounded-sm border",
                                         isSelected
-                                            ? "border-primary bg-primary text-primary-foreground"
+                                            ? "border-foreground bg-accent text-accent-foreground"
                                             : "border-muted-foreground/30 [&_svg]:invisible",
                                     )}
                                 >
@@ -135,7 +165,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                                         {facets.get(option.value)}
                                     </span>
                                 )}
-                            </button>
+                            </Button>
                         )
                     })}
                     {selectedValues.size > 0 && (

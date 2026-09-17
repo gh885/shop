@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { type Column } from "@tanstack/react-table"
+import { Subscribe, type Column, type RowData } from "@tanstack/react-table"
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, EyeOffIcon } from "lucide-react"
 
 import { cn } from "src/lib/utils"
@@ -14,17 +14,42 @@ import {
     DropdownMenuTrigger,
 } from "src/components/ui/dropdown-menu"
 
-type DataTableColumnHeaderProps<TData, TValue> = React.HTMLAttributes<HTMLDivElement> & {
-    column: Column<TData, TValue>
+import type { DataTableFeatures } from "./data-table-features"
+
+type DataTableColumnHeaderProps<
+    TData extends RowData,
+    TValue,
+> = React.HTMLAttributes<HTMLDivElement> & {
+    column: Column<DataTableFeatures, TData, TValue>
     title: string
 }
 
 /** 列头：可排序则下拉升序/降序/隐藏，不可排序渲染纯标题 */
-export function DataTableColumnHeader<TData, TValue>({
+export function DataTableColumnHeader<TData extends RowData, TValue>({
     column,
     title,
     className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
+    return (
+        <Subscribe source={column.table.atoms.sorting}>
+            {(sorting) => (
+                <ColumnHeaderContent
+                    column={column}
+                    title={title}
+                    className={className}
+                    sortDirection={sorting.find((sort) => sort.id === column.id)?.desc}
+                />
+            )}
+        </Subscribe>
+    )
+}
+
+function ColumnHeaderContent<TData extends RowData, TValue>({
+    column,
+    title,
+    className,
+    sortDirection,
+}: DataTableColumnHeaderProps<TData, TValue> & { sortDirection: boolean | undefined }) {
     if (!column.getCanSort()) {
         return <div className={cn(className)}>{title}</div>
     }
@@ -42,9 +67,9 @@ export function DataTableColumnHeader<TData, TValue>({
                     }
                 >
                     <span>{title}</span>
-                    {column.getIsSorted() === "desc" ? (
+                    {sortDirection === true ? (
                         <ArrowDownIcon className="size-3.5" />
-                    ) : column.getIsSorted() === "asc" ? (
+                    ) : sortDirection === false ? (
                         <ArrowUpIcon className="size-3.5" />
                     ) : (
                         <ChevronsUpDownIcon className="size-3.5" />

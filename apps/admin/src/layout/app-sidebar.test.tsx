@@ -10,7 +10,7 @@ describe("管理端共享侧栏", () => {
         const { router } = renderWithProviders(<AppSidebar />)
         const review = await screen.findByRole("link", { name: "入驻审核" })
         expect(review).toHaveAttribute("aria-current", "page")
-        const merchant = screen.getByRole("button", { name: "商家", exact: true })
+        const merchant = screen.getByRole("button", { name: "商家" })
         expect(merchant).toHaveAttribute("aria-current", "true")
         expect(review).toHaveAttribute("href", "/?page=1&size=20")
         expect(merchant).toHaveAttribute("href", "/?page=1&size=20")
