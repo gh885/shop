@@ -53,7 +53,7 @@ export interface WriteMutationOptions<TInput, TData> {
 }
 
 /**
- * 写操作 mutation：成功 → invalidate → onSuccess → success toast；失败 → notify.fromError → onError。
+ * 写操作 mutation：成功 → invalidateKeys/invalidate → onSuccess → success toast；失败 → notify.fromError → onError。
  * 调用方拿到的仍是标准 UseMutationResult（isPending / variables / mutate / mutateAsync 一应俱全）。
  *
  * 不适用它的情况（这些继续用裸 useMutation，是正当的，不是漏网）：
