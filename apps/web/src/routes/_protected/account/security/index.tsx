@@ -28,7 +28,7 @@ import { getDeviceId } from "#/shared/api/auth"
 import { formatTimeShort, useWriteMutation } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 
@@ -146,7 +146,6 @@ function ChangePassword() {
 // ---------- 设备管理 ----------
 
 function DeviceManager() {
-    const qc = useQueryClient()
     const currentDeviceId = getDeviceId()
 
     const devices = useQuery({
@@ -156,7 +155,7 @@ function DeviceManager() {
 
     const deleteDevice = useWriteMutation<string>({
         mutationFn: (deviceId) => AuthApi.deleteDevice({ path: { deviceId } }),
-        invalidate: () => void qc.invalidateQueries({ queryKey: DEVICES_KEY }),
+        invalidateKeys: [DEVICES_KEY],
         messages: { success: "已退出该设备", error: "退出失败" },
     })
 

@@ -141,7 +141,6 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
 
 /** 待确认邀请：别人邀请我加入的店铺 */
 function PendingInvites() {
-    const queryClient = useQueryClient()
     const invites = useQuery({
         queryKey: shopKeys.invites(),
         queryFn: () => ShopsApi.listShopInvites(),
@@ -149,7 +148,7 @@ function PendingInvites() {
 
     const accept = useWriteMutation<string>({
         mutationFn: (memberId) => ShopsApi.acceptShopInvite({ path: { memberId } }),
-        invalidate: () => void queryClient.invalidateQueries({ queryKey: shopKeys.all }),
+        invalidateKeys: [shopKeys.all],
         messages: { success: "已加入店铺", error: "加入店铺失败" },
     })
 

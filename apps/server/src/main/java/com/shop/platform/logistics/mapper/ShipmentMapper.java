@@ -31,14 +31,6 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
                 .orderByAsc(Shipment::getId));
     }
 
-    /** 本店某订单的全部包裹（卖家发货作业视图） */
-    default List<Shipment> selectByOrder(UUID orderId) {
-        return selectList(new LambdaQueryWrapper<Shipment>()
-                .eq(Shipment::getOrderId, orderId)
-                .orderByAsc(Shipment::getShippedAt)
-                .orderByAsc(Shipment::getId));
-    }
-
     /** 按运单号取包裹（推送入口）：一个运单号只属于一个订单，唯一索引保证至多一行；无则 null */
     default Shipment selectByTrackingNo(String trackingNo) {
         return selectOne(new LambdaQueryWrapper<Shipment>().eq(Shipment::getTrackingNo, trackingNo));

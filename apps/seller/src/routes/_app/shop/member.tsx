@@ -5,7 +5,6 @@ import { toApiError } from "@shop/common"
 import { useShop, shopKeys, useMyShopMembers } from "#/shop"
 import { useMe } from "#/shared/lib/me"
 import { ShopsApi } from "@shop/api/sdk"
-import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { useWriteMutation } from "@shop/app-kit"
@@ -57,7 +56,6 @@ function MembersPage() {
 }
 
 function MemberPanel({ shopId }: { shopId: string }) {
-    const queryClient = useQueryClient()
     const me = useMe()
 
     // 成员列表走域内 query hook（key 与失效规则同源，路由不直接拼 key）
@@ -70,8 +68,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
 
     const invite = useWriteMutation<string>({
         mutationFn: (phone) => ShopsApi.inviteShopMember({ path: { shopId }, body: { phone } }),
-        invalidate: () =>
-            void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),
+        invalidateKeys: [shopKeys.members(shopId)],
         messages: { success: "邀请已发送", error: "邀请发送失败" },
     })
 
@@ -82,8 +79,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
 
     const remove = useWriteMutation<string>({
         mutationFn: (memberId) => ShopsApi.removeShopMember({ path: { shopId, memberId } }),
-        invalidate: () =>
-            void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),
+        invalidateKeys: [shopKeys.members(shopId)],
         messages: { success: "已移除该成员", error: "移除成员失败" },
     })
 

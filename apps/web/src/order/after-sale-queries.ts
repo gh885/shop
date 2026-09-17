@@ -1,7 +1,7 @@
 import { OrdersApi, type TicketResponse, type TicketType } from "@shop/api/sdk"
 import { useWriteMutation } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
-import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery } from "@tanstack/react-query"
 
 import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
 
@@ -85,14 +85,9 @@ function useAfterSaleMutation<TInput>(
     mutationFn: (input: TInput) => Promise<unknown>,
     messages: { success: string; error: string },
 ) {
-    const qc = useQueryClient()
     return useWriteMutation<TInput>({
         mutationFn,
-        invalidate: () => {
-            void qc.invalidateQueries({ queryKey: AFTER_SALE_KEY })
-            void qc.invalidateQueries({ queryKey: ORDER_DETAIL_KEY })
-            void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
-        },
+        invalidateKeys: [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_ORDERS_KEY],
         messages,
     })
 }

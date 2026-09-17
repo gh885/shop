@@ -1,6 +1,12 @@
 import { queryOptions, skipToken, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import type { CategoryAttrNodeResponse, ImageTicketResponse, ProductStatus } from "@shop/api/sdk"
+import type {
+    CategoryAttrNodeResponse,
+    ImageTicketResponse,
+    ProductStatus,
+    SkuUpdateItem,
+} from "@shop/api/sdk"
+import { useWriteMutation } from "@shop/app-kit"
 import { CategoriesApi, ProductsAdminApi } from "@shop/api/sdk"
 
 import { type LeafPath, flattenLeafPaths, toApiError } from "@shop/common"
@@ -22,28 +28,6 @@ export type ProductSort = (typeof PRODUCT_SORTS)[number]
 // ---------- SDK 调用封装（数据函数） ----------
 // seller 端 /seller/** 请求的 X-Shop-Id 店铺上下文头由 SDK client 拦截自动注入
 //（见 shared/lib/api.ts 的 contextHeaders），此处不再手动携带。
-
-/** 店铺商品分页列表：wire → 领域形状（非空/字面量状态）。 */
-async function listProducts(search: {
-    page: number
-    size: number
-    status?: ProductStatus
-    keyword?: string
-    sort?: ProductSort
-}) {
-    const page = await ProductsAdminApi.listShopProducts({
-        query: {
-            pageParams: { page: search.page, size: search.size },
-            status: search.status,
-            keyword: search.keyword,
-            sort: search.sort,
-        },
-    })
-    return {
-        records: page.records,
-        total: page.total,
-    }
-}
 
 /**
  * 商品图上传：取七牛直传凭证 → 浏览器直传（不经过应用服务器）→ 返回**对象存储 key（相对路径）**供入库。
@@ -137,12 +121,13 @@ export const productListOptions = (shopId: string, s: ProductListSearch) =>
     queryOptions({
         queryKey: productKeys.list(shopId, s),
         queryFn: () =>
-            listProducts({
-                page: s.page,
-                size: s.size,
-                status: s.status,
-                keyword: s.keyword,
-                sort: s.sort,
+            ProductsAdminApi.listShopProducts({
+                query: {
+                    pageParams: { page: s.page, size: s.size },
+                    status: s.status,
+                    keyword: s.keyword,
+                    sort: s.sort,
+                },
             }),
         placeholderData: (prev) => prev,
     })
@@ -194,6 +179,17 @@ export function useProductDetail(productId: string | undefined) {
         /** 错误态重试：标脏这一格后由观察者重取（key 从 options 取，不依赖闭包里的 productId） */
         onRetry: () => void queryClient.invalidateQueries({ queryKey: options.queryKey }),
     }
+}
+
+/** 编辑 SKU 后只失效当前商品详情；列表刷新与关闭弹窗由 onSaved 通知消费方。 */
+export function useUpdateProductSkus(success: string, onSaved: () => void) {
+    return useWriteMutation({
+        mutationFn: ({ productId, items }: { productId: string; items: SkuUpdateItem[] }) =>
+            ProductsAdminApi.updateProductSkus({ path: { id: productId }, body: { items } }),
+        invalidateKeys: (_data, { productId }) => [productKeys.detail(productId)],
+        messages: { success, error: "保存失败" },
+        onSuccess: onSaved,
+    })
 }
 
 // ---------- 类目销售属性模板（发布页两处共用） ----------

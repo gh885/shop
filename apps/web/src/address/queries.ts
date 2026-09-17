@@ -32,25 +32,23 @@ export function useAddressList() {
 
 /** 新增地址：成功后失效列表缓存 */
 export function useCreateAddress() {
-    const qc = useQueryClient()
     return useWriteMutation<AddressInput>({
         mutationFn: (input) =>
             AddressesApi.createAddress({ body: { ...input, receiverName: input.receiver } }),
-        invalidate: () => void qc.invalidateQueries({ queryKey: KEY }),
+        invalidateKeys: [KEY],
         messages: { success: "地址已添加", error: "添加地址失败" },
     })
 }
 
 /** 修改地址 */
 export function useUpdateAddress() {
-    const qc = useQueryClient()
     return useWriteMutation<{ id: string; input: AddressInput }>({
         mutationFn: ({ id, input }) =>
             AddressesApi.updateAddress({
                 path: { id },
                 body: { ...input, receiverName: input.receiver },
             }),
-        invalidate: () => void qc.invalidateQueries({ queryKey: KEY }),
+        invalidateKeys: [KEY],
         messages: { success: "地址已更新", error: "更新地址失败" },
     })
 }

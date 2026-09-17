@@ -40,10 +40,11 @@ export interface WriteMutationOptions<TInput, TData> {
      */
     silentSuccess?: boolean
     /**
-     * 成功后的缓存失效。传的是「谁改数据，谁声明影响范围」的那句话：
-     * 通常 `() => { void queryClient.invalidateQueries({ queryKey: xxxKeys.lists(shopId) }) }`。
+     * 成功后失效的 key；范围依赖回执/提交参数时用函数，无需自行获取 QueryClient。
      * 不传即「这个写操作不改变任何已缓存查询」——是显式声明，不是忘了写。
      */
+    invalidateKeys?: readonly QueryKey[] | ((data: TData, input: TInput) => readonly QueryKey[])
+    /** 逃生口：多个写操作与错误态重试共用一份失效逻辑（如列表页 hook），或需连带非失效副作用时使用；先于 onSuccess 执行 */
     invalidate?: () => void
     /** 成功时额外要做的事（回填缓存、关弹窗）；先于 toast 执行 */
     onSuccess?: (data: TData, input: TInput) => void
@@ -64,13 +65,20 @@ export function useWriteMutation<TInput, TData = unknown>({
     mutationFn,
     messages,
     silentSuccess,
+    invalidateKeys,
     invalidate,
     onSuccess,
     onError,
 }: WriteMutationOptions<TInput, TData>) {
+    const queryClient = useQueryClient()
     return useMutation({
         mutationFn,
         onSuccess: (data, input) => {
+            const keys =
+                typeof invalidateKeys === "function" ? invalidateKeys(data, input) : invalidateKeys
+            for (const queryKey of keys ?? []) {
+                void queryClient.invalidateQueries({ queryKey })
+            }
             invalidate?.()
             onSuccess?.(data, input)
             if (!silentSuccess && messages.success) notify.success(messages.success)

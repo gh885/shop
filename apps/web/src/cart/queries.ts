@@ -1,4 +1,4 @@
-import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery } from "@tanstack/react-query"
 import { CartApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
@@ -62,10 +62,9 @@ export function useCartCount() {
 
 /** 加购 mutation：成功 toast + 失效角标计数；导航到购物车由调用方决定 */
 export function useAddToCart() {
-    const qc = useQueryClient()
     return useWriteMutation<{ skuId: string; quantity: number }>({
         mutationFn: ({ skuId, quantity }) => CartApi.addCartItem({ body: { skuId, quantity } }),
-        invalidate: () => void qc.invalidateQueries({ queryKey: CART_COUNT_KEY }),
+        invalidateKeys: [CART_COUNT_KEY],
         messages: { success: "已加入购物车", error: "加入购物车失败" },
     })
 }

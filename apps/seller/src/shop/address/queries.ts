@@ -32,11 +32,9 @@ function useAddressMutation<TInput>(
     mutationFn: (input: TInput) => Promise<unknown>,
     success: string,
 ) {
-    const queryClient = useQueryClient()
     return useWriteMutation<TInput>({
         mutationFn,
-        invalidate: () =>
-            void queryClient.invalidateQueries({ queryKey: addressKeys.lists(shopId) }),
+        invalidateKeys: [addressKeys.lists(shopId)],
         messages: { success },
     })
 }

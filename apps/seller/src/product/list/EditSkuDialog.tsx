@@ -2,9 +2,8 @@ import { useEffect, useState } from "react"
 import { PackageCheck } from "lucide-react"
 
 import { fenToYuan, toApiError } from "@shop/common"
-import { notify, useWriteMutation } from "@shop/app-kit"
-import { ProductsAdminApi, type SkuResponse, type SkuUpdateItem } from "@shop/api/sdk"
-import { useQueryClient } from "@tanstack/react-query"
+import { notify } from "@shop/app-kit"
+import type { SkuResponse, SkuUpdateItem } from "@shop/api/sdk"
 import {
     Button,
     Dialog,
@@ -27,7 +26,7 @@ import {
 } from "@shop/ui-web"
 
 import { countInputSchema, yuanPriceSchema } from "#/product/draft-model"
-import { productKeys, useProductDetail } from "#/product/queries"
+import { useProductDetail, useUpdateProductSkus } from "#/product/queries"
 
 export type SkuEditKind = "price" | "stock"
 
@@ -91,7 +90,6 @@ export function EditSkuLineDialog({
 }) {
     const [rows, setRows] = useState<SkuRow[]>([])
     const meta = KIND_META[kind]
-    const queryClient = useQueryClient()
 
     // 详情走 query：与发布页回填同一份缓存（productKeys.detail）。
     // 关着弹窗、或没有 productId 时 skipToken 直接不发请求；打开即命中缓存（若发布页刚填过则零请求）。
@@ -119,20 +117,9 @@ export function EditSkuLineDialog({
         )
     }, [data])
 
-    // 提交走写操作接线：toast + 失效由工厂统一，失效范围由本域的 key 决定
-    const save = useWriteMutation<
-        SkuUpdateItem[],
-        Awaited<ReturnType<typeof ProductsAdminApi.updateProductSkus>>
-    >({
-        mutationFn: (items) =>
-            ProductsAdminApi.updateProductSkus({ path: { id: productId! }, body: { items } }),
-        invalidate: () => {
-            // 详情本身被改了（价格/库存/编码）→ 精确失效这一格，避免下次打开读到旧值
-            void queryClient.invalidateQueries({ queryKey: productKeys.detail(productId ?? "") })
-            onSaved()
-        },
-        messages: { success: meta.okMessage, error: "保存失败" },
-        onSuccess: () => onOpenChange(false),
+    const save = useUpdateProductSkus(meta.okMessage, () => {
+        onSaved()
+        onOpenChange(false)
     })
 
     const updateRow = (skuId: string, patch: Partial<SkuRow>) =>
@@ -182,7 +169,7 @@ export function EditSkuLineDialog({
             }
         })
         try {
-            await save.mutateAsync(items)
+            await save.mutateAsync({ productId, items })
         } catch {
             // 提示与失效已由 useWriteMutation 处理，这里只吞掉 rejection（unhandled 会被上报）
         }
@@ -214,7 +201,7 @@ export function EditSkuLineDialog({
                             retrying={isFetching}
                         />
                     ) : isPending ? (
-                        <div className="flex max-h-(--max-height-dialog-body) flex-col gap-2 overflow-hidden">
+                        <div className="flex max-h-dialog-body flex-col gap-2 overflow-hidden">
                             <Skeleton className="h-9 w-full rounded-sm" />
                             <Skeleton className="h-9 w-full rounded-sm" />
                             <Skeleton className="h-9 w-full rounded-sm" />
@@ -230,7 +217,7 @@ export function EditSkuLineDialog({
                             </div>
 
                             {/* 超出视口高度内部滚动，避免整卡撑高；overflow-hidden 防止内容溢出到半透明遮罩 */}
-                            <div className="max-h-(--max-height-dialog-body) overflow-y-auto overflow-x-hidden rounded-lg border border-border">
+                            <div className="max-h-dialog-body overflow-y-auto overflow-x-hidden rounded-lg border border-border">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>

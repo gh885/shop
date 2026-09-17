@@ -44,24 +44,20 @@ export function useCouponList(shopId: string, search: CouponListSearch) {
 
 /** 新建券：成功后失效本店列表（新建的券总在按创建时间倒序的第一页） */
 export function useCreateCoupon(shopId: string) {
-    const queryClient = useQueryClient()
     return useWriteMutation<CreateCouponTemplateRequest>({
         // 金额入参是「分」，元→分的换算在 form.ts 的投影里做
         mutationFn: (input) => SellerCouponsApi.createCoupon({ body: input }),
-        invalidate: () =>
-            void queryClient.invalidateQueries({ queryKey: couponKeys.lists(shopId) }),
+        invalidateKeys: [couponKeys.lists(shopId)],
         messages: { success: "优惠券已创建，买家现在可以领取了" },
     })
 }
 
 /** 停券：只停止继续领取，已领出的券不受影响 */
 export function useStopCoupon(shopId: string) {
-    const queryClient = useQueryClient()
     return useWriteMutation<string>({
         // 只停止继续领取，已领出的券照旧可用
         mutationFn: (id) => SellerCouponsApi.stopCoupon({ path: { id } }),
-        invalidate: () =>
-            void queryClient.invalidateQueries({ queryKey: couponKeys.lists(shopId) }),
+        invalidateKeys: [couponKeys.lists(shopId)],
         messages: { success: "优惠券已停用" },
     })
 }

@@ -41,6 +41,35 @@ const FormSchema = z.object({
 
 type FormValues = z.infer<typeof FormSchema>
 
+const CONTACT_FIELDS = [
+    { name: "contactName", label: "联系人姓名", placeholder: "请输入联系人", maxLength: 30 },
+    {
+        name: "phone",
+        label: "联系电话",
+        placeholder: "请输入手机号",
+        maxLength: 20,
+        inputMode: "tel",
+    },
+] as const
+
+const ADDRESS_FIELDS = [
+    {
+        name: "detail",
+        label: "详细地址",
+        placeholder: "不需要重复输入省/市/区",
+        maxLength: 120,
+        required: true,
+    },
+    { name: "postalCode", label: "邮政编码", placeholder: "填写邮政编码（可选）", maxLength: 6 },
+    {
+        name: "companyName",
+        label: "公司名称",
+        placeholder: "填写地址所属的公司名称（面单寄件人）",
+        maxLength: 60,
+    },
+    { name: "note", label: "备注", placeholder: "填写备注（可选）", maxLength: 200 },
+] as const
+
 function toDefaults(a?: MerchantAddressResponse): FormValues {
     return {
         contactName: a?.contactName ?? "",
@@ -142,30 +171,20 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
                         void form.handleSubmit()
                     }}
                 >
-                    <form.AppField name="contactName">
-                        {(field) => (
-                            <field.TextField
-                                label="联系人姓名"
-                                required
-                                layout="horizontal"
-                                placeholder="请输入联系人"
-                                maxLength={30}
-                            />
-                        )}
-                    </form.AppField>
-
-                    <form.AppField name="phone">
-                        {(field) => (
-                            <field.TextField
-                                label="联系电话"
-                                required
-                                layout="horizontal"
-                                placeholder="请输入手机号"
-                                inputMode="tel"
-                                maxLength={20}
-                            />
-                        )}
-                    </form.AppField>
+                    {CONTACT_FIELDS.map(({ name, ...props }) => (
+                        <form.AppField
+                            key={name}
+                            name={name}
+                        >
+                            {(field) => (
+                                <field.TextField
+                                    {...props}
+                                    required
+                                    layout="horizontal"
+                                />
+                            )}
+                        </form.AppField>
+                    ))}
 
                     {/* 地区：国标行政区划级联选择（web 端同款组件） */}
                     <form.AppField name="regionCode">
@@ -189,50 +208,19 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
                         )}
                     </form.AppField>
 
-                    <form.AppField name="detail">
-                        {(field) => (
-                            <field.TextField
-                                label="详细地址"
-                                required
-                                layout="horizontal"
-                                placeholder="不需要重复输入省/市/区"
-                                maxLength={120}
-                            />
-                        )}
-                    </form.AppField>
-
-                    <form.AppField name="postalCode">
-                        {(field) => (
-                            <field.TextField
-                                label="邮政编码"
-                                layout="horizontal"
-                                placeholder="填写邮政编码（可选）"
-                                maxLength={6}
-                            />
-                        )}
-                    </form.AppField>
-
-                    <form.AppField name="companyName">
-                        {(field) => (
-                            <field.TextField
-                                label="公司名称"
-                                layout="horizontal"
-                                placeholder="填写地址所属的公司名称（面单寄件人）"
-                                maxLength={60}
-                            />
-                        )}
-                    </form.AppField>
-
-                    <form.AppField name="note">
-                        {(field) => (
-                            <field.TextField
-                                label="备注"
-                                layout="horizontal"
-                                placeholder="填写备注（可选）"
-                                maxLength={200}
-                            />
-                        )}
-                    </form.AppField>
+                    {ADDRESS_FIELDS.map(({ name, ...props }) => (
+                        <form.AppField
+                            key={name}
+                            name={name}
+                        >
+                            {(field) => (
+                                <field.TextField
+                                    {...props}
+                                    layout="horizontal"
+                                />
+                            )}
+                        </form.AppField>
+                    ))}
 
                     <div className="flex items-center gap-6 pl-16">
                         <form.AppField name="defaultShip">

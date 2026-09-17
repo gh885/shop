@@ -2,7 +2,7 @@ import { useState } from "react"
 import { ShopReviewStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useWriteMutation } from "@shop/app-kit"
 import {
@@ -230,22 +230,19 @@ function ReviewPage() {
 }
 
 function ReviewActions({ item }: { item: ShopReviewItem }) {
-    const queryClient = useQueryClient()
     const [rejectOpen, setRejectOpen] = useState(false)
     const [approveOpen, setApproveOpen] = useState(false)
     const [reason, setReason] = useState("")
 
-    const invalidate = () => void queryClient.invalidateQueries({ queryKey: reviewKeys.all })
-
     const approve = useWriteMutation({
         mutationFn: () => adminApi.approve(item.id),
-        invalidate,
+        invalidateKeys: [reviewKeys.all],
         messages: { success: `已通过「${item.shopName}」的开店申请`, error: "审核操作失败" },
         onSuccess: () => setApproveOpen(false),
     })
     const reject = useWriteMutation({
         mutationFn: () => adminApi.reject(item.id, reason),
-        invalidate,
+        invalidateKeys: [reviewKeys.all],
         messages: { success: `已驳回「${item.shopName}」的开店申请`, error: "审核操作失败" },
         onSuccess: () => {
             setRejectOpen(false)

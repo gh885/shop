@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 
 import { useWriteMutation } from "@shop/app-kit"
@@ -66,7 +66,6 @@ export function useCheckoutPreview({
  *  重新进入结算页 = 新一次结算 = 新键。
  *  选中的券随单提交（后端不接受选了却不可用的券，UI 上只允许勾可用券）。 */
 export function useCreateOrder() {
-    const qc = useQueryClient()
     const [checkoutKey] = useState(() => crypto.randomUUID())
     return useWriteMutation<
         {
@@ -86,11 +85,8 @@ export function useCreateOrder() {
                 userCouponIds: couponIdsOf(args.coupons ?? {}),
                 buyerMessage: args.buyerMessage,
             }),
-        invalidate: () => {
-            void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
-            void qc.invalidateQueries({ queryKey: CART_ITEMS_KEY }) // 后端 OrderPlacedEvent 已删已购 SKU 的条目，缓存随之失效
-            void qc.invalidateQueries({ queryKey: CART_COUNT_KEY })
-        },
+        // 后端 OrderPlacedEvent 已删已购 SKU 的条目，购物车与角标一起失效
+        invalidateKeys: [MY_ORDERS_KEY, CART_ITEMS_KEY, CART_COUNT_KEY],
         messages: { success: "下单成功", error: "下单失败" },
     })
 }
@@ -111,13 +107,9 @@ export function useCreatePayment() {
 
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；成功后失效订单缓存 */
 export function useConfirmPayment() {
-    const qc = useQueryClient()
     return useWriteMutation<string, PaymentResponse>({
         mutationFn: (paymentId) => PaymentsApi.confirmPayment({ path: { id: paymentId } }),
-        invalidate: () => {
-            void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
-            void qc.invalidateQueries({ queryKey: ORDER_DETAIL_KEY })
-        },
+        invalidateKeys: [MY_ORDERS_KEY, ORDER_DETAIL_KEY],
         messages: { success: "支付成功", error: "确认支付失败" },
     })
 }

@@ -156,7 +156,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - 否 → 走 api/SDK 裸调或 mutation。典型：文件导出/下载、验证码、一次性提交（登录、反馈）、提交后即离开且无人读缓存的动作。
 - **判据是「缓存这份数据有没有收益」，不是「它是不是服务端数据」**：陈旧值比转圈更糟（结算预览、智能解析）、副作用不可缓存（上传凭证、直传）、一次性会话（登录/刷新 token）、体积大不该进缓存（SSR 期间的流式响应）——这四类即使"是服务端数据"也不进 query。
 - **404 不是「不进 query」的理由**：若已有「无数据」的合法 UI 表达（物流未发货 → 「暂无物流信息」），query + `retry: false` 就够（见 `logistics/queries.ts`）；只有当调用方要把 404 折叠成"没有"（售后单 → `null`）时才在 `queryFn` 里归一（见 `after-sale-queries.ts`）。真正该警惕的是**契约本身在"没有"与"出错"之间含糊**，那是后端要补语义，不是前端绕开 query 的借口。
-- **写操作一律有接线**（`useWriteMutation` / `useOptimisticListMutation`），但**不是每个写操作都需要失效**：`invalidate` 不传 = 显式声明"不改变任何已缓存查询"，不是漏写。失败要就地渲染在表单里、或终态才处理（登出 `onSettled`）的，继续用裸 `useMutation`——边界写在 `packages/app-kit/src/mutations.ts` 的文档注释里，新增写操作前先读那段。
+- **写操作一律有接线**（`useWriteMutation` / `useOptimisticListMutation`），但**不是每个写操作都需要失效**：`invalidateKeys` 不传 = 显式声明"不改变任何已缓存查询"，不是漏写。失败要就地渲染在表单里、或终态才处理（登出 `onSettled`）的，继续用裸 `useMutation`——边界写在 `packages/app-kit/src/mutations.ts` 的文档注释里，新增写操作前先读那段。
 
 ### 放哪个文件：key 归属 = 域，集中在域内 `queries.ts`
 

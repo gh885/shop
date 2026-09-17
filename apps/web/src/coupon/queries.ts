@@ -1,6 +1,6 @@
 import { CouponsApi, type ClaimableCouponResponse } from "@shop/api/sdk"
 import { notify, useWriteMutation } from "@shop/app-kit"
-import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery } from "@tanstack/react-query"
 
 import {
     COUPON_PAGE_SIZE,
@@ -85,10 +85,9 @@ export function useShopClaimableCoupons(shopId: string) {
  * 匿名通道拿不到当前用户），由调用方在 mutate 的回调里落，本 hook 不管 UI。
  */
 export function useClaimCoupon() {
-    const queryClient = useQueryClient()
     return useWriteMutation<string>({
         mutationFn: (templateId) => CouponsApi.claimCoupon({ path: { templateId } }),
-        invalidate: () => void queryClient.invalidateQueries({ queryKey: MY_COUPONS_KEY }),
+        invalidateKeys: [MY_COUPONS_KEY],
         messages: { success: "领取成功，已放入券包" },
         // 409 不是失败：券已在券包里，说「领取失败」会让用户反复点
         onError: (err) => {
