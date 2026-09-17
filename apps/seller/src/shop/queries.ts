@@ -1,9 +1,8 @@
 import { useSyncExternalStore } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
-import type { ShopResponse } from "@shop/api/sdk"
+import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
 
-import { myShops, shopMembers } from "./data"
 import { useAuthStatus } from "../shared/lib/api"
 import { getStoredShopId, subscribe, syncResolvedShopId } from "../shared/lib/shop-store"
 
@@ -26,7 +25,7 @@ export function useMyShops() {
     return {
         ...useQuery({
             queryKey: shopKeys.mine(),
-            queryFn: () => myShops(),
+            queryFn: () => ShopsApi.listMyShops(),
             enabled: status === "authed",
         }),
         /** 错误态重试：整棵店铺缓存标脏（我的店铺/邀请/成员都挂在这棵树上） */
@@ -42,7 +41,7 @@ export function useMyShopMembers(shopId: string) {
     return {
         ...useQuery({
             queryKey: shopKeys.members(shopId),
-            queryFn: () => shopMembers(shopId),
+            queryFn: () => ShopsApi.listShopMembers({ path: { shopId } }),
         }),
         /** 错误态重试：与邀请/移除同一条失效入口 */
         onRetry: () => void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),

@@ -8,17 +8,15 @@ import { productKeys, productListOptions, type ProductSort } from "#/product/que
 import type { ProductListSearch } from "#/product/queries"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import { useWriteMutation } from "@shop/app-kit"
-import { useCurrentShop } from "#/shop"
 
 export type { ProductListSearch } from "#/product/queries"
 
-export function useProductList(search: ProductListSearch) {
-    const shop = useCurrentShop()
+/** 商品列表视图模型：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
+export function useProductList(shopId: string, search: ProductListSearch) {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
     const { busyId, run } = useRowBusy()
 
-    const shopId = shop?.id
     const products = useQuery(productListOptions(shopId, search))
 
     // React Compiler 已接管缓存：回调不手动 memo，身份由编译器自动稳定
@@ -73,7 +71,6 @@ export function useProductList(search: ProductListSearch) {
     }
 
     return {
-        shop,
         products,
         records,
         total: products.data?.total ?? 0,

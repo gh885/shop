@@ -1,14 +1,12 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import type { CouponTemplateResponse, ShopResponse } from "@shop/api/sdk"
+import type { CouponTemplateResponse } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 
 import { renderWithProviders } from "#/test/render"
-import { tokenStore } from "#/shared/lib/api"
-import { setCurrentShopId } from "#/shop"
 
 import { CouponFormDialog } from "./CouponFormDialog"
 
@@ -20,16 +18,6 @@ import { CouponFormDialog } from "./CouponFormDialog"
  */
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"
-
-const shop: ShopResponse = {
-    id: SHOP_ID,
-    ownerId: "00000000-0000-4000-8000-0000000000dd",
-    name: "测试店",
-    logoKey: null,
-    status: "ACTIVE",
-    createdAt: "2026-01-01T00:00:00Z",
-    updatedAt: "2026-01-01T00:00:00Z",
-}
 
 /** 建券回执：字段形状必须过 SDK 的 zod 校验 */
 function makeCreated(overrides: Partial<CouponTemplateResponse> = {}): CouponTemplateResponse {
@@ -49,24 +37,11 @@ function makeCreated(overrides: Partial<CouponTemplateResponse> = {}): CouponTem
     }
 }
 
-/** 登录态 + 店铺上下文：失效 key 带 shopId，店铺没就位时失效的是另一棵树 */
-function useShopContext() {
-    tokenStore.set("test-access-token")
-    server.use(http.get("*/shops/mine", () => HttpResponse.json([shop])))
-    setCurrentShopId(SHOP_ID)
-}
-
 describe("CouponFormDialog", () => {
-    afterEach(() => {
-        tokenStore.clear()
-        setCurrentShopId(undefined)
-    })
-
     it("提交：元换算成分、本地时间转成带时区 ISO 时刻，弹窗关闭", async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn<(open: boolean) => void>()
         let body: unknown
-        useShopContext()
         server.use(
             http.post("*/seller/coupons", async ({ request }) => {
                 body = await request.json()
@@ -78,6 +53,7 @@ describe("CouponFormDialog", () => {
             <CouponFormDialog
                 open
                 onOpenChange={onOpenChange}
+                shopId={SHOP_ID}
             />,
         )
 
@@ -119,7 +95,6 @@ describe("CouponFormDialog", () => {
     it("门槛填 0：按无门槛原样提交 0，不是被当成缺填丢掉", async () => {
         const user = userEvent.setup()
         let body: unknown
-        useShopContext()
         server.use(
             http.post("*/seller/coupons", async ({ request }) => {
                 body = await request.json()
@@ -134,6 +109,7 @@ describe("CouponFormDialog", () => {
             <CouponFormDialog
                 open
                 onOpenChange={() => undefined}
+                shopId={SHOP_ID}
             />,
         )
 
@@ -154,7 +130,6 @@ describe("CouponFormDialog", () => {
     it("面额大于门槛：拦在本地并说明原因，不发请求", async () => {
         const user = userEvent.setup()
         const posted = vi.fn<() => void>()
-        useShopContext()
         server.use(
             http.post("*/seller/coupons", () => {
                 posted()
@@ -166,6 +141,7 @@ describe("CouponFormDialog", () => {
             <CouponFormDialog
                 open
                 onOpenChange={() => undefined}
+                shopId={SHOP_ID}
             />,
         )
 

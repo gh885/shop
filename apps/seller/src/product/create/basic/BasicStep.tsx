@@ -1,4 +1,3 @@
-import { uploadProductImage } from "#/product/data"
 import { editRules } from "#/product/edit-rules"
 import type { ProductStatus } from "@shop/api/sdk"
 
@@ -12,7 +11,7 @@ import type {
 import { BasicInfoSection } from "./BasicInfoSection"
 import { DetailImagesSection } from "./DetailImagesSection"
 import { SalesInfoSection } from "./SalesInfoSection"
-import { useLeafPaths } from "../../queries"
+import { uploadProductImage, useLeafPaths } from "../../queries"
 import { CheckCircle2, ChevronRight, Badge, ListTree } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { useAppForm, Tabs, TabsList, TabsTrigger, Skeleton, Button, Spinner } from "@shop/ui-web"

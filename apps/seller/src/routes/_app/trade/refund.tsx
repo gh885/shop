@@ -18,7 +18,7 @@ import { RefundTable, type RefundRowIdentity } from "#/order/refund/refund-table
 import { RefundTabs } from "#/order/refund/refund-tabs"
 import { RefundTabSchema, type RefundRowAction } from "#/order/refund/model"
 import { useRefundList } from "#/order/refund/use-refund-list"
-import { ShopRequired } from "#/shared/ui/ShopRequired"
+import { useShop } from "#/shop"
 
 /**
  * 退款售后工作台（/trade/refund）：本店售后单的待办与历史。
@@ -61,8 +61,8 @@ const ACTION_TO_KIND: Record<RefundRowAction, SaleDecisionKind> = {
 
 function RefundPage() {
     const search = Route.useSearch()
+    const shop = useShop()
     const {
-        shop,
         tickets,
         records,
         total,
@@ -73,13 +73,9 @@ function RefundPage() {
         agreeAfterSale,
         rejectAfterSale,
         receiveReturn,
-    } = useRefundList({ tab: search.status, page: search.page, size: search.size })
+    } = useRefundList(shop.id, { tab: search.status, page: search.page, size: search.size })
 
     const [decision, setDecision] = useState<RefundDecision | undefined>()
-
-    if (!shop) {
-        return <ShopRequired />
-    }
 
     // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）；这里只管把动作路由到对应 mutation
     const runDecision = () => {

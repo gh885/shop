@@ -1,8 +1,10 @@
 import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
+import { CmsPublicApi } from "@shop/api/sdk"
+
 import { withContractFallback } from "#/shared/lib/contract-fallback"
 
-import { fetchBanners, fetchFeedProducts, fetchHomeNav, fetchRecommendTabs } from "./actions"
+import { fetchBanners, fetchFeedProducts, fetchHomeNav } from "./actions"
 
 // 首页内容 5 分钟缓存（运营配置不常变）
 const CACHE = 5 * 60_000
@@ -30,8 +32,9 @@ export const bannersOptions = queryOptions({
 
 export const recommendTabsOptions = queryOptions({
     queryKey: ["home-recommend-tabs"],
+    // 契约字段同名同型，直接用 SDK 类型，不做恒等投影
     queryFn: withContractFallback(
-        () => fetchRecommendTabs(),
+        () => CmsPublicApi.getRecommendTabs(),
         () => [],
     ),
     staleTime: CACHE,

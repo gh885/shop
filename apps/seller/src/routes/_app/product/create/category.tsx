@@ -1,10 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
-import { Button } from "@shop/ui-web"
-
 import { CategoryStep } from "#/product"
-import { ShopRequired } from "#/shared/ui/ShopRequired"
-import { useCurrentShop } from "#/shop"
 
 interface CreateSearch {
     /** 已选末级类目 id：有值则进入第二步（填商品信息），空 = 第一步选类目 */
@@ -23,23 +19,8 @@ export const Route = createFileRoute("/_app/product/create/category")({
 
 /** 发布第一步：选类目（类目发布后不可改，单独成屏）。mode/categoryId 由 URL 驱动，刷新可恢复 */
 function NewProductCategoryStep() {
-    const shop = useCurrentShop()
     const navigate = useNavigate()
     const { mode, categoryId } = Route.useSearch()
-
-    if (!shop) {
-        return (
-            <ShopRequired>
-                <Button
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => void navigate({ to: "/shop/list" })}
-                >
-                    去店铺管理
-                </Button>
-            </ShopRequired>
-        )
-    }
 
     return (
         <div className="mx-auto w-full max-w-narrow">

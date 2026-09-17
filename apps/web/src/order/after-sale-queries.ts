@@ -57,8 +57,11 @@ async function applyAfterSale(
 }
 
 /** 撤销售后申请（仅待卖家处理可撤销） */
-async function cancelAfterSale(orderId: string): Promise<void> {
-    await OrdersApi.cancelAfterSale({ path: { id: orderId } })
+export function useCancelAfterSale(orderId: string) {
+    return useAfterSaleMutation(() => OrdersApi.cancelAfterSale({ path: { id: orderId } }), {
+        success: "已撤销申请",
+        error: "撤销失败",
+    })
 }
 
 /**
@@ -79,7 +82,7 @@ async function returnAfterSale(
 }
 /** 三个写操作共用：成功提示 + 失效售后单/订单详情/订单列表 */
 function useAfterSaleMutation<TInput>(
-    mutationFn: (input: TInput) => Promise<void>,
+    mutationFn: (input: TInput) => Promise<unknown>,
     messages: { success: string; error: string },
 ) {
     const qc = useQueryClient()
@@ -100,14 +103,6 @@ export function useApplyAfterSale(orderId: string) {
         (input: { type: TicketType; reason?: string }) => applyAfterSale(orderId, input),
         { success: "售后申请已提交，等待卖家处理", error: "申请售后失败" },
     )
-}
-
-/** 撤销售后申请 */
-export function useCancelAfterSale(orderId: string) {
-    return useAfterSaleMutation(() => cancelAfterSale(orderId), {
-        success: "已撤销申请",
-        error: "撤销失败",
-    })
 }
 
 /** 回寄退货填单 */

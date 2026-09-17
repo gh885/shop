@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { useQuery, type UseQueryResult } from "@tanstack/react-query"
+import type { TicketResponse } from "@shop/api/sdk"
 import { fenToYuan } from "@shop/common"
 import {
     Badge,
@@ -13,7 +14,6 @@ import {
 } from "@shop/ui-web"
 
 import { TICKET_STATUS_LABEL, TICKET_TYPE_LABEL } from "#/order/constants"
-import { getShopAfterSale } from "#/order/data"
 import { shopAfterSaleOptions } from "#/order/queries"
 
 /**
@@ -39,7 +39,7 @@ const TITLE: Record<SaleDecisionKind, string> = {
     receive: "确认收到退货",
 }
 
-type TicketData = Awaited<ReturnType<typeof getShopAfterSale>>
+type TicketData = TicketResponse | null
 
 /**
  * 一句话说明「点了会怎样」。
@@ -69,7 +69,7 @@ export function AfterSaleDecisionDialog({
     kind: SaleDecisionKind
     orderId?: string
     orderNo?: string
-    shopId?: string
+    shopId: string
     onConfirm: () => void
 }) {
     // 关着或没有订单就不查：决策弹窗是"按需展开上下文"，不是常驻数据

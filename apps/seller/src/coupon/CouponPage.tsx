@@ -16,8 +16,7 @@ import {
     StateError,
 } from "@shop/ui-web"
 
-import { useCurrentShop } from "#/shop"
-import { ShopRequired } from "#/shared/ui/ShopRequired"
+import { useShop } from "#/shop"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import { CouponFormDialog } from "./CouponFormDialog"
 import { CouponTable } from "./CouponTable"
@@ -31,19 +30,15 @@ import { useCouponList, useStopCoupon } from "./queries"
  * 想调整就停旧的、建新的。这个说明必须有，否则卖家会去找那个不存在的编辑按钮。
  */
 export function CouponPage({ search }: { search: CouponListSearch }) {
-    const shop = useCurrentShop()
+    const shop = useShop()
     const navigate = useNavigate()
-    const coupons = useCouponList(search)
-    const stop = useStopCoupon()
+    const coupons = useCouponList(shop.id, search)
+    const stop = useStopCoupon(shop.id)
     const { busyId, run } = useRowBusy()
     const [formOpen, setFormOpen] = useState(false)
     // 展示状态相对「现在」派生：一次挂载只取一个时刻，避免同一屏里各行跨秒判定不一致。
     // 取值走 useState 惰性初始化而不是在渲染里直接调 Date.now()：渲染必须是纯的（react/purity）。
     const [now] = useState(() => Date.now())
-
-    if (!shop) {
-        return <ShopRequired description="创建店铺或等待审核通过后，再来配置优惠券。" />
-    }
 
     const records = coupons.data?.records ?? []
     const total = coupons.data?.total ?? 0
@@ -125,6 +120,7 @@ export function CouponPage({ search }: { search: CouponListSearch }) {
             <CouponFormDialog
                 open={formOpen}
                 onOpenChange={setFormOpen}
+                shopId={shop.id}
             />
         </div>
     )

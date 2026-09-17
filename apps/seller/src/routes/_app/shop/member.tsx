@@ -2,9 +2,9 @@ import { Store, Trash2, UserPlus } from "lucide-react"
 
 import { toApiError } from "@shop/common"
 
-import { useCurrentShop, shopKeys, useMyShopMembers } from "#/shop"
+import { useShop, shopKeys, useMyShopMembers } from "#/shop"
 import { useMe } from "#/shared/lib/me"
-import { inviteMember, removeMember } from "#/shop/data"
+import { ShopsApi } from "@shop/api/sdk"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
@@ -30,7 +30,6 @@ import {
     Input,
     ConfirmDialog,
 } from "@shop/ui-web"
-import { ShopRequired } from "#/shared/ui/ShopRequired"
 import { z } from "zod"
 
 /** 邀请手机号校验：与后端手机号 @Pattern 对齐（就近放在表单旁） */
@@ -42,11 +41,7 @@ export const Route = createFileRoute("/_app/shop/member")({
 
 /** 店员管理：基于当前经营店铺（顶栏可切换） */
 function MembersPage() {
-    const shop = useCurrentShop()
-
-    if (!shop) {
-        return <ShopRequired />
-    }
+    const shop = useShop()
 
     return (
         <div className="mx-auto w-full max-w-3xl space-y-6">
@@ -74,7 +69,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     )
 
     const invite = useWriteMutation<string>({
-        mutationFn: (phone) => inviteMember(shopId, { phone }),
+        mutationFn: (phone) => ShopsApi.inviteShopMember({ path: { shopId }, body: { phone } }),
         invalidate: () =>
             void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),
         messages: { success: "邀请已发送", error: "邀请发送失败" },
@@ -86,7 +81,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     })
 
     const remove = useWriteMutation<string>({
-        mutationFn: (memberId) => removeMember(shopId, memberId),
+        mutationFn: (memberId) => ShopsApi.removeShopMember({ path: { shopId, memberId } }),
         invalidate: () =>
             void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),
         messages: { success: "已移除该成员", error: "移除成员失败" },

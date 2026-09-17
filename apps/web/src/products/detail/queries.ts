@@ -1,8 +1,14 @@
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
-import { PublicShopsApi } from "@shop/api/sdk"
+import { ProductsApi, PublicShopsApi } from "@shop/api/sdk"
 import type { PublicShopResponse } from "@shop/api/sdk"
 
-import { fetchProductDetail, fetchProducts } from "../data"
+import {
+    toProduct,
+    toProductDetail,
+    type Product,
+    type ProductDetail,
+    type ProductListQueryInput,
+} from "../product"
 
 /**
  * 商品详情数据 hooks：route loader 用 queryOptions 预热，组件 useQuery 读同一缓存
@@ -10,6 +16,39 @@ import { fetchProductDetail, fetchProducts } from "../data"
  *
  * queryKey 用生成 SDK 的 key 工厂（契约同步、参数类型受检），投影 queryFn 本地保留。
  */
+
+// ---------- 数据层（纯异步函数，非 hook） ----------
+// 规则/类型在 ../product.ts。真正的 React 接线（queryOptions）在本文件下方——
+// 商品列表/详情被首页商品流、详情推荐、类目/搜索等多处复用，不在模块内绑死
+// query key/缓存策略，由调用方决定（fetchProducts 经上级桶文件对外暴露）。
+
+/** 全站商品分页：卡片流/推荐/类目/搜索共用，返回领域形状 */
+export async function fetchProducts(
+    input: ProductListQueryInput,
+    signal?: AbortSignal,
+): Promise<{ records: Product[]; total: number }> {
+    const page = await ProductsApi.listPublicProducts({
+        query: {
+            pageParams: { page: input.page ?? 1, size: input.size ?? 20 },
+            query: {
+                categoryId: input.categoryId,
+                shopId: input.shopId,
+                keyword: input.keyword,
+                sort: input.sort,
+            },
+        },
+        signal,
+    })
+    return {
+        records: page.records.map(toProduct),
+        total: page.total,
+    }
+}
+
+/** 商品详情：匿名可访问（公开页），返回领域形状 */
+async function fetchProductDetail(id: string, signal?: AbortSignal): Promise<ProductDetail> {
+    return toProductDetail(await ProductsApi.getPublicProductDetail({ path: { id }, signal }))
+}
 
 // 商品详情缓存久一点：详情页停留期间不需要失效，改价靠刷新页面
 const CACHE = 5 * 60_000

@@ -26,8 +26,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { ShopRequired } from "#/shared/ui/ShopRequired"
-import { useCurrentShop } from "#/shop"
+import { useShop } from "#/shop"
 import { FeeTierInputs } from "./components/FeeTierInputs"
 import { RegionMultiPicker } from "./components/RegionMultiPicker"
 import {
@@ -135,10 +134,10 @@ function RegionRulesEditor({
     )
 }
 export function ShippingTemplatePage() {
-    const shop = useCurrentShop()
-    const shopId = shop?.id
-    const templateQuery = useShippingTemplate()
-    const save = useSaveShippingTemplate()
+    const shop = useShop()
+    const shopId = shop.id
+    const templateQuery = useShippingTemplate(shopId)
+    const save = useSaveShippingTemplate(shopId)
     const [serverError, setServerError] = useState<string>()
 
     const defaultValues = useMemo(() => shippingTemplateFormFromResponse(undefined), [])
@@ -168,15 +167,11 @@ export function ShippingTemplatePage() {
 
     // 当前店铺/远端模板变化时重新灌值；保存后 queryCache 回写也会走到这里
     useEffect(() => {
-        if (!shopId || templateQuery.isPending || templateQuery.isError) return
+        if (templateQuery.isPending || templateQuery.isError) return
         form.reset(shippingTemplateFormFromResponse(templateQuery.data ?? undefined))
         // form 实例稳定，重置只跟随店铺/远端模板变化
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopId, templateQuery.data, templateQuery.isPending, templateQuery.isError])
-
-    if (!shop) {
-        return <ShopRequired description="创建店铺或等待审核通过后，再来设置运费模板。" />
-    }
 
     if (templateQuery.isError) {
         return (

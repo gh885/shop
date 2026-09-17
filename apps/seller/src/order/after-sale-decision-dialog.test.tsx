@@ -133,6 +133,24 @@ describe("AfterSaleDecisionDialog", () => {
         await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1))
     })
 
+    it("服务端故障不能被当作无售后记录：展示读取失败，但仍允许确认", async () => {
+        server.use(
+            http.get("*/seller/orders/:id/after-sales", () =>
+                HttpResponse.json({ detail: "服务暂不可用" }, { status: 500 }),
+            ),
+        )
+
+        const { onConfirm } = renderDialog()
+
+        expect(
+            await screen.findByText("售后单读取失败，请先与买家确认售后内容再决定。"),
+        ).toBeInTheDocument()
+        expect(screen.queryByText("没有查到售后单，请谨慎处理。")).not.toBeInTheDocument()
+        await userEvent.setup().click(screen.getByRole("button", { name: "确认同意" }))
+
+        await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1))
+    })
+
     it("拒绝：文案说明买家窗口内可重新申请（后端确实允许，别说成一次定生死）", async () => {
         server.use(
             http.get("*/seller/orders/:id/after-sales", () =>

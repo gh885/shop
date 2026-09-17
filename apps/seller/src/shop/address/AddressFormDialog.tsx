@@ -61,14 +61,16 @@ function toDefaults(a?: MerchantAddressResponse): FormValues {
 export interface AddressFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
+    /** 当前经营店铺 id：新增/编辑的失效 key 挂在它下面（页面经 useShop() 传入） */
+    shopId: string
     /** 传入则为编辑模式；undefined/未传为新增 */
     editing?: MerchantAddressResponse
 }
 
 /** 新增/编辑商家地址表单弹窗（对齐淘宝地址库表单；地区用 web 端同款级联组件） */
-export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDialogProps) {
-    const create = useCreateAddress()
-    const update = useUpdateAddress()
+export function AddressFormDialog({ open, onOpenChange, shopId, editing }: AddressFormDialogProps) {
+    const create = useCreateAddress(shopId)
+    const update = useUpdateAddress(shopId)
     const isEdit = Boolean(editing)
 
     const [regionPath, setRegionPath] = useState<RegionNode[]>([])

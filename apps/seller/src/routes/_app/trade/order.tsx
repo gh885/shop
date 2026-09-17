@@ -17,7 +17,7 @@ import { OrderFilterBar } from "#/order/list/filter"
 import { ShipDialog } from "#/order/list/ship-dialog"
 import { AfterSaleDecisionDialog, type SaleDecisionKind } from "#/order/after-sale-decision-dialog"
 import { useOrderList, type OrderListSearch } from "#/order/list/use-order-list"
-import { ShopRequired } from "#/shared/ui/ShopRequired"
+import { useShop } from "#/shop"
 import { useState } from "react"
 
 const listSearchSchema = z.object({
@@ -46,8 +46,8 @@ type SaleConfirm = { orderId: string; orderNo: string; kind: SaleDecisionKind }
 
 function OrdersPage() {
     const search = Route.useSearch()
+    const shop = useShop()
     const {
-        shop,
         orders,
         records,
         total,
@@ -59,13 +59,9 @@ function OrdersPage() {
         agreeAfterSale,
         rejectAfterSale,
         receiveReturn,
-    } = useOrderList(search)
+    } = useOrderList(shop.id, search)
     const [shipTarget, setShipTarget] = useState<OrderIdentity | undefined>()
     const [confirm, setConfirm] = useState<SaleConfirm | undefined>()
-
-    if (!shop) {
-        return <ShopRequired />
-    }
 
     // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）：这里只管把动作路由到对应 mutation
     const runConfirm = () => {

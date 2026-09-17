@@ -1,4 +1,4 @@
-import { OrdersApi, PaymentsApi } from "@shop/api/sdk"
+import { OrdersApi } from "@shop/api/sdk"
 import type { PreviewResponse } from "@shop/api/sdk"
 
 import { statusToWire, toOrder, toOrderDetail } from "./order"
@@ -112,25 +112,8 @@ export async function createOrder(args: {
     })
 }
 
-/** 发起支付：V1 创建 PENDING 流水（不动订单状态），返回待确认流水 */
-export async function createPayment(orderId: string) {
-    return await PaymentsApi.createPayment({ body: { orderId } })
-}
-
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；返回成功流水 */
-export async function confirmPayment(paymentId: string) {
-    return await PaymentsApi.confirmPayment({ path: { id: paymentId } })
-}
-
-/** 取消订单 */
-async function cancelOrder(orderId: string) {
-    return await OrdersApi.cancelOrder({ path: { id: orderId }, body: { reason: "用户取消" } })
-}
-
-/** 确认收货 */
-async function receiveOrder(orderId: string) {
-    return await OrdersApi.receiveOrder({ path: { id: orderId } })
-}
+// 发起支付/确认支付直接在 checkout 的 mutation 里调 SDK（两段式流水消费方各自接线）
 
 // ---------- 订单操作 mutation（取消/确认收货共用一套失效 + 提示接线） ----------
 
@@ -156,10 +139,16 @@ function useOrderActionMutation(
 
 /** 取消订单：仅待付款/待发货可取消，成功后失效订单列表 + 详情缓存 */
 export function useCancelOrder() {
-    return useOrderActionMutation(cancelOrder, { success: "订单已取消", error: "取消订单失败" })
+    return useOrderActionMutation(
+        (orderId) => OrdersApi.cancelOrder({ path: { id: orderId }, body: { reason: "用户取消" } }),
+        { success: "订单已取消", error: "取消订单失败" },
+    )
 }
 
 /** 确认收货：已发货 → 已完成 */
 export function useReceiveOrder() {
-    return useOrderActionMutation(receiveOrder, { success: "确认收货成功", error: "确认收货失败" })
+    return useOrderActionMutation((orderId) => OrdersApi.receiveOrder({ path: { id: orderId } }), {
+        success: "确认收货成功",
+        error: "确认收货失败",
+    })
 }

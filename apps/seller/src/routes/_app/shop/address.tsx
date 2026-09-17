@@ -5,7 +5,7 @@ import { toApiError } from "@shop/common"
 import { Plus } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
-import { useCurrentShop } from "#/shop"
+import { useShop } from "#/shop"
 import {
     useAddressList,
     useDeleteAddress,
@@ -15,7 +15,6 @@ import {
 import { AddressTable } from "#/shop/address/AddressTable"
 import { AddressFormDialog } from "#/shop/address/AddressFormDialog"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
-import { ShopRequired } from "#/shared/ui/ShopRequired"
 
 export const Route = createFileRoute("/_app/shop/address")({
     component: AddressPage,
@@ -25,20 +24,16 @@ export const Route = createFileRoute("/_app/shop/address")({
 type PendingDelete = Pick<MerchantAddressResponse, "id" | "contactName"> | undefined
 
 function AddressPage() {
-    const shop = useCurrentShop()
-    const addresses = useAddressList()
-    const setDefaultShip = useSetDefaultShip()
-    const setDefaultReturn = useSetDefaultReturn()
-    const del = useDeleteAddress()
+    const shop = useShop()
+    const addresses = useAddressList(shop.id)
+    const setDefaultShip = useSetDefaultShip(shop.id)
+    const setDefaultReturn = useSetDefaultReturn(shop.id)
+    const del = useDeleteAddress(shop.id)
 
     const [formOpen, setFormOpen] = useState(false)
     const [editing, setEditing] = useState<MerchantAddressResponse | undefined>()
     const [pendingDelete, setPendingDelete] = useState<PendingDelete>()
     const { busyId, run } = useRowBusy()
-
-    if (!shop) {
-        return <ShopRequired />
-    }
 
     const rows = addresses.data ?? []
 
@@ -95,6 +90,7 @@ function AddressPage() {
                     if (!open) setEditing(undefined)
                 }}
                 editing={editing}
+                shopId={shop.id}
             />
 
             <ConfirmDialog

@@ -1,10 +1,9 @@
 import { useMyShops, useCurrentShop, shopKeys } from "#/shop"
 import { SHOP_STATUS_VARIANT, SHOP_STATUS_TEXT } from "#/shop/constants"
-import { myInvites, acceptInvite, createShop } from "#/shop/data"
 import { setCurrentShopId } from "#/shop"
 import { formatDate, useWriteMutation } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
-import type { ShopResponse } from "@shop/api/sdk"
+import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Store, MailPlus, CheckCircle2 } from "lucide-react"
@@ -145,11 +144,11 @@ function PendingInvites() {
     const queryClient = useQueryClient()
     const invites = useQuery({
         queryKey: shopKeys.invites(),
-        queryFn: () => myInvites(),
+        queryFn: () => ShopsApi.listShopInvites(),
     })
 
     const accept = useWriteMutation<string>({
-        mutationFn: (memberId) => acceptInvite(memberId),
+        mutationFn: (memberId) => ShopsApi.acceptShopInvite({ path: { memberId } }),
         invalidate: () => void queryClient.invalidateQueries({ queryKey: shopKeys.all }),
         messages: { success: "已加入店铺", error: "加入店铺失败" },
     })
@@ -195,7 +194,7 @@ function CreateShopForm() {
     const [done, setDone] = useState(false)
 
     const create = useMutation({
-        mutationFn: (value: string) => createShop({ name: value }),
+        mutationFn: (value: string) => ShopsApi.createShop({ body: { name: value } }),
         onSuccess: () => {
             setDone(true)
             void queryClient.invalidateQueries({ queryKey: shopKeys.all })

@@ -12,14 +12,12 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    Button,
 } from "@shop/ui-web"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
 import { useProductDraft } from "#/product/create/basic/use-product-draft"
 import { notify } from "@shop/app-kit"
-import { ShopRequired } from "#/shared/ui/ShopRequired"
-import { useCurrentShop } from "#/shop"
+import { useShop } from "#/shop"
 
 interface BasicSearch {
     /** 已选末级类目 id（第一步确认后跳转带入，必填） */
@@ -38,9 +36,9 @@ export const Route = createFileRoute("/_app/product/create/basic")({
 
 /** 发布第二步：填商品信息建档（新建/继续编辑共用）。categoryId 必填，缺失回第一步 */
 function NewProductBasicStep() {
-    const shop = useCurrentShop()
+    const shop = useShop()
     const navigate = useNavigate()
-    const shopId = shop?.id
+    const shopId = shop.id
     const { categoryId, productId } = Route.useSearch()
     const [serverError, setServerError] = useState<string | undefined>()
 
@@ -116,20 +114,6 @@ function NewProductBasicStep() {
         } catch (error) {
             setServerError(toApiError(error).detail)
         }
-    }
-
-    if (!shop) {
-        return (
-            <ShopRequired description="创建店铺或等待审核通过后，再来发布商品。">
-                <Button
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => void navigate({ to: "/shop/list" })}
-                >
-                    去店铺管理
-                </Button>
-            </ShopRequired>
-        )
     }
 
     if (!categoryId) return

@@ -9,13 +9,10 @@ import {
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
-import { afterEach, describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 
-import type { ShopResponse } from "@shop/api/sdk"
 import { createTestQueryClient, server } from "@shop/test-utils"
 
-import { tokenStore } from "#/shared/lib/api"
-import { setCurrentShopId } from "#/shop"
 import { afterSaleKeys, orderKeys } from "#/order/queries"
 
 import { useRefundList } from "./use-refund-list"
@@ -33,18 +30,8 @@ const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"
 const TICKET_ID = "00000000-0000-4000-8000-0000000000bb"
 const ORDER_ID = "00000000-0000-4000-8000-0000000000cc"
 
-const shop: ShopResponse = {
-    id: SHOP_ID,
-    ownerId: "00000000-0000-4000-8000-0000000000dd",
-    name: "测试店",
-    logoKey: null,
-    status: "ACTIVE",
-    createdAt: "2026-01-01T00:00:00Z",
-    updatedAt: "2026-01-01T00:00:00Z",
-}
-
 function Probe() {
-    const list = useRefundList({ tab: "APPLYING", page: 1, size: 10 })
+    const list = useRefundList(SHOP_ID, { tab: "APPLYING", page: 1, size: 10 })
     return (
         <div>
             <button
@@ -54,17 +41,11 @@ function Probe() {
                 agree
             </button>
             <span data-testid="busy">{list.busyId ?? "none"}</span>
-            <span data-testid="shop">{list.shop?.id ?? "none"}</span>
         </div>
     )
 }
 
 async function setup() {
-    // 登录态 + 店铺列表：useCurrentShop 只在 authed 时拉 /shops/mine，解析出当前店后失效 key 才带得上 shopId
-    tokenStore.set("test-access-token")
-    server.use(http.get("*/shops/mine", () => HttpResponse.json([shop])))
-    setCurrentShopId(SHOP_ID)
-
     const rootRoute = createRootRoute({ component: Probe })
     const refundRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -82,18 +63,10 @@ async function setup() {
         </QueryClientProvider>,
     )
     await screen.findByRole("button", { name: "agree" })
-    // 等店铺上下文解析出来：失效 key 带 shopId，店铺没就位时失效的是另一棵树
-    await waitFor(() => expect(screen.getByTestId("shop").textContent).toBe(SHOP_ID))
     return { user: userEvent.setup(), queryClient }
 }
 
 describe("useRefundList", () => {
-    // 登录态是模块级单例：用例之间必须复位，否则后一个用例继承了前一个的 authed
-    afterEach(() => {
-        tokenStore.clear()
-        setCurrentShopId(undefined)
-    })
-
     it("处理中_禁用态记在售后单 id 上，请求打到订单 id 上", async () => {
         let agreedOrderId: string | undefined
         let release: (() => void) | undefined

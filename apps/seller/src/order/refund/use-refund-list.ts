@@ -6,7 +6,6 @@ import { afterSaleKeys, afterSaleListKeys, afterSaleListOptions, orderKeys } fro
 import { refundTabToStatus, type RefundTab } from "#/order/refund/model"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import { useWriteMutation } from "@shop/app-kit"
-import { useCurrentShop } from "#/shop"
 
 /** 工作台的 URL 状态（页签 + 分页）：页签是 URL 词汇（ALL 也是一个页签），wire 词汇只活在数据层里 */
 export interface RefundListSearch {
@@ -25,17 +24,16 @@ export interface TicketActionArgs {
 
 /**
  * 退款售后工作台的视图模型：URL 同步的分页/页签 + 本店售后单列表 + 三个处理动作。
+ * shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入。
  *
  * 动作与订单列表里那套同源（同一个后端端点、同一套提示），差别只在失效范围：
  * 这里的处理会同时改变工作台列表、售后单详情（决策弹窗读它）与订单列表的售后徽章（投影列），
  * 所以三棵树一起失效——少一棵就会出现"这边处理完了、那边还显示待处理"。
  */
-export function useRefundList(search: RefundListSearch) {
-    const shop = useCurrentShop()
+export function useRefundList(shopId: string, search: RefundListSearch) {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
     const { busyId, run } = useRowBusy()
-    const shopId = shop?.id
 
     const tickets = useQuery(
         afterSaleListOptions(shopId, {
@@ -94,7 +92,6 @@ export function useRefundList(search: RefundListSearch) {
             run(() => action(args))(args.ticketId)
 
     return {
-        shop,
         tickets,
         records: tickets.data?.records ?? [],
         total: tickets.data?.total ?? 0,

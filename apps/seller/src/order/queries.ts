@@ -1,13 +1,13 @@
 import { queryOptions } from "@tanstack/react-query"
 
-import type { OrderStatus, TicketStatus } from "@shop/api/sdk"
-
-import { listAfterSaleTickets, listCarriers, listOrders, getShopAfterSale } from "./data"
-
-/**
- * orders 域的 TanStack Query 定义层：只放声明式、无状态的 query 定义与 key 工厂。
- * 有状态编排 hooks（useOrderList 这类视图模型）留在页面旁，内部消费本文件 options。
- */
+import {
+    SellerAfterSalesApi,
+    SellerLogisticsApi,
+    SellerOrdersApi,
+    type OrderStatus,
+    type TicketStatus,
+} from "@shop/api/sdk"
+import { toApiError } from "@shop/common"
 
 export interface OrderListSearch {
     status?: OrderStatus
@@ -22,10 +22,14 @@ export interface AfterSaleListSearch {
     size: number
 }
 
+// ---------- queryKey 工厂 ----------
+// shopId 由路由守卫（ShopGate）保证必有：渲染到这些页面时一定有 ACTIVE 店铺，
+// key 里不再出现 undefined，enabled 兜底也可省（守卫在店铺就绪前不渲染业务页）。
+
 export const orderKeys = {
     all: ["orders"] as const,
-    lists: (shopId?: string) => ["orders", shopId] as const,
-    list: (shopId: string | undefined, s: OrderListSearch) =>
+    lists: (shopId: string) => ["orders", shopId] as const,
+    list: (shopId: string, s: OrderListSearch) =>
         ["orders", shopId, s.status ?? "all", s.page, s.size] as const,
     detail: (id: string) => ["orders", "detail", id] as const,
 }
@@ -38,55 +42,62 @@ const carrierKeys = {
 /** 售后单（决策弹窗用）：orderId 为空即不发请求（弹窗关着不该拉数据） */
 export const afterSaleKeys = {
     /** 单张售后单详情前缀：[..., shopId] 可一发失效该店全部详情 */
-    details: (shopId?: string) => ["after-sale", shopId] as const,
-    detail: (shopId: string | undefined, orderId: string | undefined) =>
+    details: (shopId: string) => ["after-sale", shopId] as const,
+    detail: (shopId: string, orderId: string | undefined) =>
         ["after-sale", shopId, orderId] as const,
 }
 
-export const shopAfterSaleOptions = (shopId: string | undefined, orderId: string | undefined) =>
+export const shopAfterSaleOptions = (shopId: string, orderId: string | undefined) =>
     queryOptions({
         queryKey: afterSaleKeys.detail(shopId, orderId),
-        queryFn: () => {
+        queryFn: async ({ signal }) => {
             if (!orderId) throw new Error("缺少订单 ID")
-            return getShopAfterSale(orderId)
+            try {
+                return await SellerOrdersApi.getShopAfterSale({ path: { id: orderId }, signal })
+            } catch (error) {
+                // 404 表示当前店铺下查不到售后单，弹窗展示空态；其它错误仍进入错误态。
+                // oxlint-disable-next-line no-null -- Query 成功载荷不能是 undefined，用 null 表达查无数据
+                if (toApiError(error).status === 404) return null
+                throw error
+            }
         },
-        enabled: !!shopId && !!orderId,
+        enabled: !!orderId,
         retry: false,
     })
 
 /** 店铺订单分页列表（shopId 入 key：切店铺不串缓存） */
-export const orderListOptions = (shopId: string | undefined, s: OrderListSearch) =>
+export const orderListOptions = (shopId: string, s: OrderListSearch) =>
     queryOptions({
         queryKey: orderKeys.list(shopId, s),
         queryFn: () =>
-            listOrders({
-                page: s.page,
-                size: s.size,
-                status: s.status,
+            SellerOrdersApi.listShopOrders({
+                query: {
+                    pageParams: { page: s.page, size: s.size },
+                    query: { status: s.status },
+                },
             }),
-        enabled: !!shopId,
         placeholderData: (prev) => prev,
     })
 
 /** 退款售后工作台的列表 key：与订单列表分开两棵树（各失效各的，互不牵连） */
 export const afterSaleListKeys = {
     all: ["after-sales"] as const,
-    lists: (shopId?: string) => ["after-sales", shopId] as const,
-    list: (shopId: string | undefined, s: AfterSaleListSearch) =>
-        ["after-sales", shopId, s.status ?? "all", s.page, s.size] as const,
+    lists: (shopId: string) => ["after-sales", shopId] as const,
+    list: (shopId: string, search: AfterSaleListSearch) =>
+        ["after-sales", shopId, search.status ?? "all", search.page, search.size] as const,
 }
 
 /** 本店售后单分页列表（工作台） */
-export const afterSaleListOptions = (shopId: string | undefined, s: AfterSaleListSearch) =>
+export const afterSaleListOptions = (shopId: string, search: AfterSaleListSearch) =>
     queryOptions({
-        queryKey: afterSaleListKeys.list(shopId, s),
+        queryKey: afterSaleListKeys.list(shopId, search),
         queryFn: () =>
-            listAfterSaleTickets({
-                page: s.page,
-                size: s.size,
-                status: s.status,
+            SellerAfterSalesApi.listShopAfterSales({
+                query: {
+                    pageParams: { page: search.page, size: search.size },
+                    status: search.status,
+                },
             }),
-        enabled: !!shopId,
         placeholderData: (prev) => prev,
     })
 
@@ -94,6 +105,6 @@ export const afterSaleListOptions = (shopId: string | undefined, s: AfterSaleLis
 export const carrierListOptions = () =>
     queryOptions({
         queryKey: carrierKeys.all,
-        queryFn: listCarriers,
+        queryFn: () => SellerLogisticsApi.listCarriers(),
         staleTime: 10 * 60_000,
     })

@@ -22,11 +22,13 @@ import { useCreateCoupon } from "./queries"
 export function CouponFormDialog({
     open,
     onOpenChange,
+    shopId,
 }: {
     open: boolean
     onOpenChange: (open: boolean) => void
+    shopId: string
 }) {
-    const create = useCreateCoupon()
+    const create = useCreateCoupon(shopId)
 
     const form = useAppForm({
         defaultValues: emptyCouponForm(),

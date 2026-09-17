@@ -22,7 +22,7 @@ import { EditTitleDialog } from "#/product/list/EditTitleDialog"
 import { FilterBar } from "#/product/list/filter"
 import { useProductList, type ProductListSearch } from "#/product/list/use-product-list"
 import { PRODUCT_SORTS } from "#/product/queries"
-import { ShopRequired } from "#/shared/ui/ShopRequired"
+import { useShop } from "#/shop"
 
 // status 从生成的 ProductStatus 枚举派生（后端加状态时此处编译期跟进），脏值 catch 到默认 tab
 const listSearchSchema = z.object({
@@ -47,8 +47,8 @@ export const Route = createFileRoute("/_app/product/list")({
 // oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 商品列表页：搜索参数 + 列表 + 分页 + 行操作集中在页面是刻意结构，逻辑（查询/派生）全在域内；拆分需传 7+ props 的宽接口
 function ProductsPage() {
     const search = Route.useSearch()
+    const shop = useShop()
     const {
-        shop,
         products,
         records,
         total,
@@ -62,7 +62,7 @@ function ProductsPage() {
         onRetry,
         onPageChange,
         onSortChange,
-    } = useProductList(search)
+    } = useProductList(shop.id, search)
 
     // 编辑SKU/库存弹窗目标：记录当前行商品的 id + name（不背整行）与当前编辑维度（价格/库存）
     const [lineTarget, setLineTarget] = useState<
@@ -70,10 +70,6 @@ function ProductsPage() {
     >(undefined)
     // 编辑标题弹窗目标：直接用行内 name/subtitle 预填，不拉详情，也不背整行
     const [titleTarget, setTitleTarget] = useState<ProductTitleTarget | undefined>()
-
-    if (!shop) {
-        return <ShopRequired />
-    }
 
     return (
         <div className="space-y-5">

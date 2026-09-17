@@ -7,19 +7,17 @@ import { useWriteMutation } from "@shop/app-kit"
 
 import { orderKeys, orderListOptions, type OrderListSearch } from "#/order/queries"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
-import { useCurrentShop } from "#/shop"
 
 export type { OrderListSearch } from "#/order/queries"
 
 /** 发货入参：承运商字典 code + 运单号（供发货弹窗提交）。物流公司名由后端按 code 查字典归一，前端不传 */
 export type ShipInput = { carrierCode: string; trackingNo: string }
 
-export function useOrderList(search: OrderListSearch) {
-    const shop = useCurrentShop()
+/** 订单列表视图模型：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
+export function useOrderList(shopId: string, search: OrderListSearch) {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
     const { busyId, run } = useRowBusy()
-    const shopId = shop?.id
 
     const orders = useQuery(orderListOptions(shopId, search))
 
@@ -74,7 +72,6 @@ export function useOrderList(search: OrderListSearch) {
     })
 
     return {
-        shop,
         orders,
         records: orders.data?.records ?? [],
         total: orders.data?.total ?? 0,

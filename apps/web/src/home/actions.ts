@@ -1,4 +1,4 @@
-import { CmsPublicApi, type RecommendTabResponse } from "@shop/api/sdk"
+import { CmsPublicApi } from "@shop/api/sdk"
 
 import { toBanner, toNavEntry, type Banner, type NavEntry } from "./model"
 
@@ -22,11 +22,6 @@ export async function fetchHomeNav(): Promise<NavEntry[]> {
 export async function fetchBanners(): Promise<Banner[]> {
     const res = await CmsPublicApi.getHomeBanners({ query: { slot: "home_promo" } })
     return res.map(toBanner)
-}
-
-/** 首页推荐条词条：契约字段同名同型，直接用 SDK 类型，不做恒等投影 */
-export async function fetchRecommendTabs(): Promise<RecommendTabResponse[]> {
-    return await CmsPublicApi.getRecommendTabs()
 }
 
 /**

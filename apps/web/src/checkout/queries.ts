@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 
 import { useWriteMutation } from "@shop/app-kit"
+import { PaymentsApi, type PaymentResponse } from "@shop/api/sdk"
 
 import {
     couponIdsOf,
@@ -9,14 +10,7 @@ import {
     type CheckoutPreview,
     type CouponSelection,
 } from "./checkout"
-import {
-    confirmPayment,
-    createOrder,
-    createPayment,
-    fetchPreview,
-    MY_ORDERS_KEY,
-    ORDER_DETAIL_KEY,
-} from "#/order/queries"
+import { createOrder, fetchPreview, MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "#/order/queries"
 import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart/queries"
 
 /** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
@@ -103,10 +97,11 @@ export function useCreateOrder() {
 
 /** 发起支付：下单后创建 PENDING 流水（V1 两段式的第一段），不动订单状态。
  *  不做缓存失效：返回的流水由调用方（收银台）直接消费，且此步不改变任何已缓存查询
- *  （订单状态推进在 confirmPayment，由 useConfirmPayment 失效 my-orders / order-detail）。 */
+ *  （订单状态推进在确认支付，由 useConfirmPayment 失效 my-orders / order-detail）。 */
 export function useCreatePayment() {
-    return useWriteMutation<string, Awaited<ReturnType<typeof createPayment>>>({
-        mutationFn: (orderId) => createPayment(orderId),
+    return useWriteMutation<string, PaymentResponse>({
+        // 发起支付：V1 创建 PENDING 流水（不动订单状态），返回待确认流水
+        mutationFn: (orderId) => PaymentsApi.createPayment({ body: { orderId } }),
         // 不提示成功：调用方拿到流水会立刻 confirm（收银台一次点按串两段），
         // 这里弹「已发起」紧接着又弹「支付成功」，是两条互相覆盖的提示
         silentSuccess: true,
@@ -117,8 +112,8 @@ export function useCreatePayment() {
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；成功后失效订单缓存 */
 export function useConfirmPayment() {
     const qc = useQueryClient()
-    return useWriteMutation<string, Awaited<ReturnType<typeof confirmPayment>>>({
-        mutationFn: (paymentId) => confirmPayment(paymentId),
+    return useWriteMutation<string, PaymentResponse>({
+        mutationFn: (paymentId) => PaymentsApi.confirmPayment({ path: { id: paymentId } }),
         invalidate: () => {
             void qc.invalidateQueries({ queryKey: MY_ORDERS_KEY })
             void qc.invalidateQueries({ queryKey: ORDER_DETAIL_KEY })
