@@ -1,13 +1,12 @@
 import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop"
 import { SHOP_STATUS_VARIANT, SHOP_STATUS_TEXT } from "#/shop/constants"
 import { setCurrentShopId } from "#/shop"
-import { formatDate, useWriteMutation } from "@shop/app-kit"
+import { formatDate } from "@shop/app-kit"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
-import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
+import { useQuery, useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Store, MailPlus, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
-import { notify } from "@shop/app-kit"
 import {
     Skeleton,
     Empty,
@@ -132,10 +131,9 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
 function PendingInvites() {
     const invites = useQuery(shopInvitesOptions)
 
-    const accept = useWriteMutation<string>({
-        mutationFn: (memberId) => ShopsApi.acceptShopInvite({ path: { memberId } }),
-        invalidateKeys: [shopKeys.all],
-        messages: { success: "已加入店铺", error: "加入店铺失败" },
+    const accept = useMutation({
+        mutationFn: (memberId: string) => ShopsApi.acceptShopInvite({ path: { memberId } }),
+        meta: { success: "已加入店铺", error: "加入店铺失败", invalidates: [shopKeys.all] },
     })
 
     if (!invites.data || invites.data.length === 0) return
@@ -175,16 +173,12 @@ function PendingInvites() {
 
 /** 开店表单：提交后落 PENDING_REVIEW，等平台和核 */
 function CreateShopForm() {
-    const queryClient = useQueryClient()
     const [done, setDone] = useState(false)
 
     const create = useMutation({
         mutationFn: (value: string) => ShopsApi.createShop({ body: { name: value } }),
-        onSuccess: () => {
-            setDone(true)
-            void queryClient.invalidateQueries({ queryKey: shopKeys.all })
-        },
-        onError: (e) => notify.fromError(e, "创建店铺失败"),
+        meta: { error: "创建店铺失败", invalidates: [shopKeys.all] },
+        onSuccess: () => setDone(true),
     })
 
     const form = useAppForm({

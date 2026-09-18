@@ -3,9 +3,9 @@ import type { PreviewResponse } from "@shop/api/sdk"
 
 import { statusToWire, toOrder, toOrderDetail } from "./order"
 import type { Order, OrderDetail, OrderStatus } from "./model"
-import { queryOptions } from "@tanstack/react-query"
+import { queryOptions, useMutation } from "@tanstack/react-query"
 
-import { useWriteMutation } from "@shop/app-kit"
+import type { MutationMeta } from "@shop/app-kit"
 
 /**
  * order/queries —— 订单的数据层（fetch 纯函数 + queryOptions + hooks）。
@@ -117,12 +117,14 @@ export async function createOrder(args: {
 /** 订单动作 mutation 工厂：成功 toast + 失效订单列表与该单详情，错误统一文案 */
 function useOrderActionMutation(
     mutationFn: (orderId: string) => Promise<unknown>,
-    messages: { success: string; error: string },
+    meta: Pick<MutationMeta, "success" | "error">,
 ) {
-    return useWriteMutation<string>({
+    return useMutation({
         mutationFn,
-        invalidateKeys: (_data, orderId) => [MY_ORDERS_KEY, [...ORDER_DETAIL_KEY, orderId]],
-        messages,
+        meta: { ...meta, invalidates: [MY_ORDERS_KEY] },
+        // 详情 key 含 orderId（由变量算出），静态 meta 装不下 → 走库自己的 onSuccess（第 2 参即变量）
+        onSuccess: (_data, orderId, _ctx, { client }) =>
+            void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
     })
 }
 

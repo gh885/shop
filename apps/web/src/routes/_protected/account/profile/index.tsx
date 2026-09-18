@@ -1,10 +1,10 @@
 import { useEffect } from "react"
+import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { useMe } from "#/account"
 import { ME_QUERY_KEY } from "#/account/queries"
 import { AuthApi } from "@shop/api/sdk"
-import { useWriteMutation } from "@shop/app-kit"
 import { Button, Card, CardContent, Separator, Skeleton, Spinner, useAppForm } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/profile/")({
@@ -18,10 +18,9 @@ export const Route = createFileRoute("/_protected/account/profile/")({
 function ProfilePage() {
     const { data: me, isLoading } = useMe()
 
-    const update = useWriteMutation<string>({
-        mutationFn: (name) => AuthApi.updateProfile({ body: { nickname: name } }),
-        invalidateKeys: [ME_QUERY_KEY],
-        messages: { success: "资料已更新", error: "更新失败" },
+    const update = useMutation({
+        mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
+        meta: { success: "资料已更新", error: "更新失败", invalidates: [ME_QUERY_KEY] },
     })
 
     const form = useAppForm({

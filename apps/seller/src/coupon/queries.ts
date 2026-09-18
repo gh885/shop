@@ -1,8 +1,7 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions, useMutation, useQuery } from "@tanstack/react-query"
 
 import { SellerCouponsApi, type CreateCouponTemplateRequest } from "@shop/api/sdk"
 
-import { useWriteMutation } from "@shop/app-kit"
 import type { CouponListSearch } from "./model"
 
 /**
@@ -40,20 +39,22 @@ export function useCouponList(shopId: string, search: CouponListSearch) {
 
 /** 新建券：成功后失效本店列表（新建的券总在按创建时间倒序的第一页） */
 export function useCreateCoupon(shopId: string) {
-    return useWriteMutation<CreateCouponTemplateRequest>({
+    return useMutation({
         // 金额入参是「分」，元→分的换算在 form.ts 的投影里做
-        mutationFn: (input) => SellerCouponsApi.createCoupon({ body: input }),
-        invalidateKeys: [couponKeys.lists(shopId)],
-        messages: { success: "优惠券已创建，买家现在可以领取了" },
+        mutationFn: (input: CreateCouponTemplateRequest) =>
+            SellerCouponsApi.createCoupon({ body: input }),
+        meta: {
+            success: "优惠券已创建，买家现在可以领取了",
+            invalidates: [couponKeys.lists(shopId)],
+        },
     })
 }
 
 /** 停券：只停止继续领取，已领出的券不受影响 */
 export function useStopCoupon(shopId: string) {
-    return useWriteMutation<string>({
+    return useMutation({
         // 只停止继续领取，已领出的券照旧可用
-        mutationFn: (id) => SellerCouponsApi.stopCoupon({ path: { id } }),
-        invalidateKeys: [couponKeys.lists(shopId)],
-        messages: { success: "优惠券已停用" },
+        mutationFn: (id: string) => SellerCouponsApi.stopCoupon({ path: { id } }),
+        meta: { success: "优惠券已停用", invalidates: [couponKeys.lists(shopId)] },
     })
 }

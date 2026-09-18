@@ -46,7 +46,9 @@ function AccountChip() {
     const name = me?.nickname ?? me?.phone ?? "未登录"
     const logoutMutation = useMutation({
         mutationFn: () => logout(),
-        // 会话终结：无论接口成功失败都清除身份缓存。
+        // 会话终结：无论接口成功失败都清除身份缓存、回登录页，所以不让全局弹失败提示
+        // （本地身份已清、人已经在登录页，再弹一条「退出失败」只会让人以为没退掉）
+        meta: { silentError: true },
         onSettled: () => {
             queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
             void navigate({ to: "/login" })

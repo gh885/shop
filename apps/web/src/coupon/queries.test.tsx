@@ -5,7 +5,10 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
 import type { MyCouponResponse } from "@shop/api/sdk"
-import { createTestQueryClient, server } from "@shop/test-utils"
+import { Toaster } from "@shop/ui-web"
+import { server } from "@shop/test-utils"
+
+import { createAppTestQueryClient } from "#/test/render"
 
 import { COUPON_PAGE_SIZE, type CouponTab } from "./coupon"
 import { myCouponsOptions, shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
@@ -69,7 +72,7 @@ describe("myCouponsOptions", () => {
         )
 
         render(
-            <QueryClientProvider client={createTestQueryClient()}>
+            <QueryClientProvider client={createAppTestQueryClient()}>
                 <MyCouponsProbe
                     status="USED"
                     page={2}
@@ -105,7 +108,7 @@ describe("shopClaimableCouponsOptions", () => {
         )
 
         render(
-            <QueryClientProvider client={createTestQueryClient()}>
+            <QueryClientProvider client={createAppTestQueryClient()}>
                 <ClaimableProbe shopId={SHOP_ID} />
             </QueryClientProvider>,
         )
@@ -122,7 +125,7 @@ describe("useClaimCoupon", () => {
                 HttpResponse.json(makeMyCouponResponse(), { status: 201 }),
             ),
         )
-        const queryClient = createTestQueryClient()
+        const queryClient = createAppTestQueryClient()
         // 预置两棵券包缓存：另一页签、另一页码。少失效一棵就会出现「券包页还是旧列表」。
         // key 由 myCouponsOptions 生成 —— 手抄 ["my-coupons", …] 会在 key 形状变化时静默失配
         const unusedKey = myCouponsOptions("UNUSED", 2).queryKey
@@ -159,12 +162,39 @@ describe("useClaimCoupon", () => {
         const user = userEvent.setup()
 
         render(
-            <QueryClientProvider client={createTestQueryClient()}>
+            <QueryClientProvider client={createAppTestQueryClient()}>
                 <ClaimProbe />
             </QueryClientProvider>,
         )
         await user.click(screen.getByRole("button", { name: "claim" }))
 
         await waitFor(() => expect(path).toBe(`/coupons/${TEMPLATE_ID}/claim`))
+    })
+
+    it("409 已领过_只弹一条「该券已领取」，不叠加全局的错误提示", async () => {
+        server.use(
+            http.post("*/coupons/:templateId/claim", () =>
+                HttpResponse.json(
+                    { detail: "该优惠券已领取", code: "COUPON_ALREADY_CLAIMED" },
+                    { status: 409 },
+                ),
+            ),
+        )
+        const user = userEvent.setup()
+
+        render(
+            <QueryClientProvider client={createAppTestQueryClient()}>
+                {/* 挂真 Toaster：这条 bug 的症状就是「同一件事两条提示互相覆盖」，不渲染出来就看不见 */}
+                <Toaster />
+                <ClaimProbe />
+            </QueryClientProvider>,
+        )
+        await user.click(screen.getByRole("button", { name: "claim" }))
+
+        // 就地那一条 info
+        expect(await screen.findByText("该券已领取")).toBeInTheDocument()
+        // 全局那条按 detail 弹的错误 toast 必须没出现（`meta.silentError` 退出）。
+        // 曾经两条都弹：先一条「该优惠券已领取」的错误提示，紧跟着又一条「该券已领取」
+        expect(screen.queryByText("该优惠券已领取")).not.toBeInTheDocument()
     })
 })

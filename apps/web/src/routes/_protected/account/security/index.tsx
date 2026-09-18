@@ -1,6 +1,5 @@
 import { CircleAlert, LogOut, Monitor, Smartphone } from "lucide-react"
 
-import { notify } from "@shop/app-kit"
 import {
     Button,
     Card,
@@ -26,7 +25,7 @@ import {
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
 import { deviceKeys, devicesOptions } from "#/account"
-import { formatTimeShort, useWriteMutation } from "@shop/app-kit"
+import { formatTimeShort } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -58,8 +57,9 @@ function ChangePassword() {
     const change = useMutation({
         mutationFn: ({ current, next }: { current: string; next: string }) =>
             AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
+        // 后端 detail 要渲染在表单里（下方 error state），所以退出全局提示，自己 setError
+        meta: { success: "密码已修改", silentError: true },
         onSuccess: () => {
-            notify.success("密码已修改")
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
             window.location.href = "/"
         },
@@ -149,22 +149,24 @@ function DeviceManager() {
 
     const devices = useQuery(devicesOptions(currentDeviceId))
 
-    const deleteDevice = useWriteMutation<string>({
-        mutationFn: (deviceId) => AuthApi.deleteDevice({ path: { deviceId } }),
-        // 前缀失效：all 覆盖 list(currentDeviceId) 这条带设备 id 的 key
-        invalidateKeys: [deviceKeys.all],
-        messages: { success: "已退出该设备", error: "退出失败" },
+    const deleteDevice = useMutation({
+        mutationFn: (deviceId: string) => AuthApi.deleteDevice({ path: { deviceId } }),
+        meta: {
+            success: "已退出该设备",
+            error: "退出失败",
+            // 前缀失效：all 覆盖 list(currentDeviceId) 这条带设备 id 的 key
+            invalidates: [deviceKeys.all],
+        },
     })
 
     // 退出全部设备：成功后整页跳转（不做缓存失效），且不是「写一处数据」而是会话终结 ——
-    // 保持裸 useMutation，不套工厂（工厂的 success toast + invalidate 在这里都不适用）
+    // 因此只有提示走全局 meta，成功回调只负责跳转
     const logoutAll = useMutation({
         mutationFn: () => AuthApi.logoutAll(),
+        meta: { success: "已退出所有设备", error: "退出失败" },
         onSuccess: () => {
-            notify.success("已退出所有设备")
             window.location.href = "/"
         },
-        onError: (e) => notify.fromError(e, "退出失败"),
     })
 
     const [logoutAllOpen, setLogoutAllOpen] = useState(false)

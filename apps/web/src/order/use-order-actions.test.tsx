@@ -12,11 +12,13 @@ import { useEffect } from "react"
 import { http, HttpResponse } from "msw"
 import { describe, expect, it } from "vitest"
 
+import { server } from "@shop/test-utils"
+
+import { createAppTestQueryClient } from "#/test/render"
+
 import { useOrderActions } from "./use-order-actions"
 import type { Order } from "./model"
 import { myOrdersOptions } from "./queries"
-
-import { createTestQueryClient, server } from "@shop/test-utils"
 
 /**
  * useOrderActions 分发测试：pay 走导航、cancel 回调请求弹窗（弹窗归调用方）、
@@ -93,7 +95,7 @@ async function setup() {
         routeTree: rootRoute.addChildren([payRoute]),
         history: createMemoryHistory({ initialEntries: ["/"] }),
     })
-    const queryClient = createTestQueryClient()
+    const queryClient = createAppTestQueryClient()
     render(
         <QueryClientProvider client={queryClient}>
             <RouterProvider router={router} />

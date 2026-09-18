@@ -1,11 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { SellerOrdersApi } from "@shop/api/sdk"
 
 import { afterSaleKeys, afterSaleListKeys, afterSaleListOptions, orderKeys } from "#/order/queries"
 import { refundTabToStatus, type RefundTab } from "#/order/refund/model"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
-import { useWriteMutation } from "@shop/app-kit"
 
 /** 工作台的 URL 状态（页签 + 分页）：页签是 URL 词汇（ALL 也是一个页签），wire 词汇只活在数据层里 */
 export interface RefundListSearch {
@@ -32,7 +31,6 @@ export interface TicketActionArgs {
  */
 export function useRefundList(shopId: string, search: RefundListSearch) {
     const navigate = useNavigate()
-    const queryClient = useQueryClient()
     const { busyId, run } = useRowBusy()
 
     const tickets = useQuery(
@@ -59,28 +57,28 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
     }
 
     /** 处理完三处一起失效：工作台列表、售后单详情（决策弹窗读它）、订单列表的售后徽章（投影列） */
-    const invalidate = () => {
-        void queryClient.invalidateQueries({ queryKey: afterSaleListKeys.lists(shopId) })
-        void queryClient.invalidateQueries({ queryKey: afterSaleKeys.details(shopId) })
-        void queryClient.invalidateQueries({ queryKey: orderKeys.lists(shopId) })
-    }
+    const invalidates = [
+        afterSaleListKeys.lists(shopId),
+        afterSaleKeys.details(shopId),
+        orderKeys.lists(shopId),
+    ]
 
-    const agree = useWriteMutation<TicketActionArgs>({
-        mutationFn: (args) => SellerOrdersApi.agreeAfterSale({ path: { id: args.orderId } }),
-        invalidate,
-        messages: { success: "已同意售后" },
+    const agree = useMutation({
+        mutationFn: (args: TicketActionArgs) =>
+            SellerOrdersApi.agreeAfterSale({ path: { id: args.orderId } }),
+        meta: { success: "已同意售后", invalidates },
     })
 
-    const reject = useWriteMutation<TicketActionArgs>({
-        mutationFn: (args) => SellerOrdersApi.rejectAfterSale({ path: { id: args.orderId } }),
-        invalidate,
-        messages: { success: "已拒绝售后" },
+    const reject = useMutation({
+        mutationFn: (args: TicketActionArgs) =>
+            SellerOrdersApi.rejectAfterSale({ path: { id: args.orderId } }),
+        meta: { success: "已拒绝售后", invalidates },
     })
 
-    const receive = useWriteMutation<TicketActionArgs>({
-        mutationFn: (args) => SellerOrdersApi.receiveReturn({ path: { id: args.orderId } }),
-        invalidate,
-        messages: { success: "已确认收货并退款" },
+    const receive = useMutation({
+        mutationFn: (args: TicketActionArgs) =>
+            SellerOrdersApi.receiveReturn({ path: { id: args.orderId } }),
+        meta: { success: "已确认收货并退款", invalidates },
     })
 
     /**

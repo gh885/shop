@@ -17,7 +17,7 @@ import { useCreateCoupon } from "./queries"
  * 新建券弹窗。只有新建——接口没有「改券」，UI 也就不给编辑入口（原因见页面上的说明）。
  *
  * 提交成功即关闭：新建的券按创建时间倒序出现在列表第一页，用户马上能看到结果。
- * 失败不关闭：报错由 useWriteMutation 统一 toast，弹窗留着是为了别丢掉已填的内容。
+ * 失败不关闭：报错由全局写操作反馈统一 toast，弹窗留着是为了别丢掉已填的内容。
  */
 export function CouponFormDialog({
     open,
@@ -38,7 +38,7 @@ export function CouponFormDialog({
                 await create.mutateAsync(couponRequestFromForm(value))
                 onOpenChange(false)
             } catch {
-                // 错误已由 useWriteMutation 统一 toast，这里只负责让弹窗留在原地
+                // 错误已由全局写操作反馈统一 toast，这里只负责让弹窗留在原地
             }
         },
     })

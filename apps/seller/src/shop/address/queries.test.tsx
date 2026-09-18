@@ -3,7 +3,9 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
-import { createTestQueryClient, server } from "@shop/test-utils"
+import { server } from "@shop/test-utils"
+
+import { createAppTestQueryClient } from "#/test/render"
 
 import { useAddressList, useDeleteAddress } from "./queries"
 
@@ -13,7 +15,7 @@ const ADDRESS_ID = "00000000-0000-4000-8000-000000000003"
 
 // 通过实际读取方建立缓存，不在测试里复制领域 key。
 async function setup() {
-    const queryClient = createTestQueryClient()
+    const queryClient = createAppTestQueryClient()
     server.use(http.get("*/seller/addresses", () => HttpResponse.json([])))
     const wrapper = ({ children }: { children: React.ReactNode }) => (
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

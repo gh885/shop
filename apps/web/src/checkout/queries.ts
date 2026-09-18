@@ -1,8 +1,7 @@
-import { queryOptions } from "@tanstack/react-query"
+import { queryOptions, useMutation } from "@tanstack/react-query"
 import { useState } from "react"
 
-import { useWriteMutation } from "@shop/app-kit"
-import { PaymentsApi, type PaymentResponse } from "@shop/api/sdk"
+import { PaymentsApi } from "@shop/api/sdk"
 
 import {
     couponIdsOf,
@@ -72,17 +71,13 @@ export const checkoutPreviewOptions = ({
  *  选中的券随单提交（后端不接受选了却不可用的券，UI 上只允许勾可用券）。 */
 export function useCreateOrder() {
     const [checkoutKey] = useState(() => crypto.randomUUID())
-    return useWriteMutation<
-        {
+    return useMutation({
+        mutationFn: (args: {
             addressId: string
             source: CheckoutSource
             coupons?: CouponSelection
             buyerMessage?: string
-        },
-        // 显式给出 data 泛型：调用方在 mutate 的 onSuccess 里读 res.orders（拆单结果）
-        Awaited<ReturnType<typeof createOrder>>
-    >({
-        mutationFn: (args) =>
+        }) =>
             createOrder({
                 checkoutKey,
                 addressId: args.addressId,
@@ -91,8 +86,11 @@ export function useCreateOrder() {
                 buyerMessage: args.buyerMessage,
             }),
         // 后端 OrderPlacedEvent 已删已购 SKU 的条目，购物车与角标一起失效
-        invalidateKeys: [MY_ORDERS_KEY, CART_ITEMS_KEY, CART_COUNT_KEY],
-        messages: { success: "下单成功", error: "下单失败" },
+        meta: {
+            success: "下单成功",
+            error: "下单失败",
+            invalidates: [MY_ORDERS_KEY, CART_ITEMS_KEY, CART_COUNT_KEY],
+        },
     })
 }
 
@@ -100,21 +98,23 @@ export function useCreateOrder() {
  *  不做缓存失效：返回的流水由调用方（收银台）直接消费，且此步不改变任何已缓存查询
  *  （订单状态推进在确认支付，由 useConfirmPayment 失效 my-orders / order-detail）。 */
 export function useCreatePayment() {
-    return useWriteMutation<string, PaymentResponse>({
+    return useMutation({
         // 发起支付：V1 创建 PENDING 流水（不动订单状态），返回待确认流水
-        mutationFn: (orderId) => PaymentsApi.createPayment({ body: { orderId } }),
-        // 不提示成功：调用方拿到流水会立刻 confirm（收银台一次点按串两段），
+        mutationFn: (orderId: string) => PaymentsApi.createPayment({ body: { orderId } }),
+        // 不提示成功（meta.success 不填即静默）：调用方拿到流水会立刻 confirm（收银台一次点按串两段），
         // 这里弹「已发起」紧接着又弹「支付成功」，是两条互相覆盖的提示
-        silentSuccess: true,
-        messages: { error: "发起支付失败" },
+        meta: { error: "发起支付失败" },
     })
 }
 
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；成功后失效订单缓存 */
 export function useConfirmPayment() {
-    return useWriteMutation<string, PaymentResponse>({
-        mutationFn: (paymentId) => PaymentsApi.confirmPayment({ path: { id: paymentId } }),
-        invalidateKeys: [MY_ORDERS_KEY, ORDER_DETAIL_KEY],
-        messages: { success: "支付成功", error: "确认支付失败" },
+    return useMutation({
+        mutationFn: (paymentId: string) => PaymentsApi.confirmPayment({ path: { id: paymentId } }),
+        meta: {
+            success: "支付成功",
+            error: "确认支付失败",
+            invalidates: [MY_ORDERS_KEY, ORDER_DETAIL_KEY],
+        },
     })
 }

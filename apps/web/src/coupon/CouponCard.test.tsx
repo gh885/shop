@@ -11,7 +11,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 
-import { createTestQueryClient } from "@shop/test-utils"
+import { createAppTestQueryClient } from "#/test/render"
 
 import { CouponCard } from "./CouponCard"
 import type { MyCoupon } from "./coupon"
@@ -68,7 +68,7 @@ function renderCard(coupon: MyCoupon) {
         history: createMemoryHistory({ initialEntries: ["/"] }),
     })
     render(
-        <QueryClientProvider client={createTestQueryClient()}>
+        <QueryClientProvider client={createAppTestQueryClient()}>
             <RouterProvider router={router} />
         </QueryClientProvider>,
     )

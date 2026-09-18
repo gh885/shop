@@ -1,6 +1,6 @@
 import { CouponsApi, type ClaimableCouponResponse } from "@shop/api/sdk"
-import { notify, useWriteMutation } from "@shop/app-kit"
-import { queryOptions } from "@tanstack/react-query"
+import { notify } from "@shop/app-kit"
+import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import {
     COUPON_PAGE_SIZE,
@@ -76,14 +76,21 @@ export const shopClaimableCouponsOptions = (shopId: string) =>
  *   说「领取失败」会让用户以为没领到而反复点。
  * - 其余错误：走 notify.fromError 的后端 detail 优先策略。
  *
+ * `silentError` 是这条链路的关键：全局反馈先于逐点 `onError` 执行，不退出的活 409 会先被全局
+ * 按 detail 弹一条「该优惠券已领取」的**错误** toast，紧接着本 hook 再弹一条「该券已领取」——
+ * 同一件事两条互相覆盖的提示。退出后由本 hook 按 code 全权裁决。
+ *
  * 「把这张券就地标记为已领」是入口浮层的局部状态（可领券响应刻意不带「我领过没」，
  * 匿名通道拿不到当前用户），由调用方在 mutate 的回调里落，本 hook 不管 UI。
  */
 export function useClaimCoupon() {
-    return useWriteMutation<string>({
-        mutationFn: (templateId) => CouponsApi.claimCoupon({ path: { templateId } }),
-        invalidateKeys: [MY_COUPONS_KEY],
-        messages: { success: "领取成功，已放入券包" },
+    return useMutation({
+        mutationFn: (templateId: string) => CouponsApi.claimCoupon({ path: { templateId } }),
+        meta: {
+            success: "领取成功，已放入券包",
+            invalidates: [MY_COUPONS_KEY],
+            silentError: true,
+        },
         // 409 不是失败：券已在券包里，说「领取失败」会让用户反复点
         onError: (err) => {
             if (isCouponAlreadyClaimed(err)) notify.info("该券已领取")

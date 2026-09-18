@@ -1,4 +1,4 @@
-import { queryOptions, skipToken, useQuery } from "@tanstack/react-query"
+import { queryOptions, skipToken, useMutation, useQuery } from "@tanstack/react-query"
 
 import type {
     CategoryAttrNodeResponse,
@@ -6,7 +6,6 @@ import type {
     ProductStatus,
     SkuUpdateItem,
 } from "@shop/api/sdk"
-import { useWriteMutation } from "@shop/app-kit"
 import { CategoriesApi, ProductsAdminApi } from "@shop/api/sdk"
 
 import { type LeafPath, flattenLeafPaths, toApiError } from "@shop/common"
@@ -182,12 +181,15 @@ export function useProductDetail(productId: string | undefined) {
 
 /** 编辑 SKU 后只失效当前商品详情；列表刷新与关闭弹窗由 onSaved 通知消费方。 */
 export function useUpdateProductSkus(success: string, onSaved: () => void) {
-    return useWriteMutation({
+    return useMutation({
         mutationFn: ({ productId, items }: { productId: string; items: SkuUpdateItem[] }) =>
             ProductsAdminApi.updateProductSkus({ path: { id: productId }, body: { items } }),
-        invalidateKeys: (_data, { productId }) => [productKeys.detail(productId)],
-        messages: { success, error: "保存失败" },
-        onSuccess: onSaved,
+        meta: { success, error: "保存失败" },
+        // 详情 key 含 productId（由变量算出），静态 meta 装不下 → 走库自己的 onSuccess
+        onSuccess: (_data, { productId }, _ctx, { client }) => {
+            void client.invalidateQueries({ queryKey: productKeys.detail(productId) })
+            onSaved()
+        },
     })
 }
 

@@ -5,7 +5,9 @@ import { HttpResponse, http } from "msw"
 import { createElement, type ReactNode } from "react"
 import { describe, expect, it } from "vitest"
 
-import { createTestQueryClient, server } from "@shop/test-utils"
+import { server } from "@shop/test-utils"
+
+import { createAppTestQueryClient } from "#/test/render"
 
 import type { CheckoutGroup, CouponSelection } from "./checkout"
 import { couponIdsOf, defaultCouponId, toCheckoutPreview, withDefaultCoupons } from "./checkout"
@@ -118,7 +120,7 @@ const SOURCE = { lines: [{ skuId: SKU_1, quantity: 1 }] }
 
 /** 每个用例一个独立 QueryClient（禁 retry），由 renderHook 的 wrapper 挂上 */
 function hookWrapper() {
-    const client = createTestQueryClient()
+    const client = createAppTestQueryClient()
     return {
         client,
         wrapper: ({ children }: { children: ReactNode }) =>

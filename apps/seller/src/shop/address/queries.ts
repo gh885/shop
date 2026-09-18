@@ -1,7 +1,5 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions, useMutation, useQuery } from "@tanstack/react-query"
 import { SellerAddressesApi, type MerchantAddressRequest } from "@shop/api/sdk"
-
-import { useWriteMutation } from "@shop/app-kit"
 
 // ---------- address 域 queryKey 工厂（前缀结构一眼可见，invalidate 不漏 key） ----------
 
@@ -24,17 +22,16 @@ export function useAddressList(shopId: string) {
 
 /**
  * 本店地址的五个写操作只差 mutationFn 与成功文案：
- * 失效 key（含当前店铺）、toast 文案、错误归一全部走 useWriteMutation，不再逐个手写。
+ * 失效 key（含当前店铺）、toast 文案、错误归一全部由全局 meta 与 MutationCache 处理。
  */
 function useAddressMutation<TInput>(
     shopId: string,
     mutationFn: (input: TInput) => Promise<unknown>,
     success: string,
 ) {
-    return useWriteMutation<TInput>({
+    return useMutation({
         mutationFn,
-        invalidateKeys: [addressKeys.lists(shopId)],
-        messages: { success },
+        meta: { success, invalidates: [addressKeys.lists(shopId)] },
     })
 }
 

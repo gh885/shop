@@ -172,7 +172,7 @@ export function EditSkuLineDialog({
         try {
             await save.mutateAsync({ productId, items })
         } catch {
-            // 提示与失效已由 useWriteMutation 处理，这里只吞掉 rejection（unhandled 会被上报）
+            // 提示与失效已由全局写操作反馈处理，这里只吞掉 rejection（unhandled 会被上报）
         }
     }
 

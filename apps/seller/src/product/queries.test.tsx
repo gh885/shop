@@ -3,7 +3,9 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { describe, expect, it } from "vitest"
 
-import { createTestQueryClient, server } from "@shop/test-utils"
+import { server } from "@shop/test-utils"
+
+import { createAppTestQueryClient } from "#/test/render"
 
 import { productKeys, productListOptions, useUpdateProductSkus } from "./queries"
 
@@ -12,7 +14,7 @@ const OTHER_ID = "00000000-0000-4000-8000-000000000002"
 
 describe("商品数据接线", () => {
     it("SKU 保存只失效提交参数对应的商品，并在通知页面之前标记缓存", async () => {
-        const queryClient = createTestQueryClient()
+        const queryClient = createAppTestQueryClient()
         for (const id of [PRODUCT_ID, OTHER_ID]) {
             queryClient.setQueryData(productKeys.detail(id), { id })
         }
@@ -54,7 +56,7 @@ describe("商品数据接线", () => {
                 return HttpResponse.json({ records: [], total: 0 })
             }),
         )
-        const queryClient = createTestQueryClient()
+        const queryClient = createAppTestQueryClient()
         const data = await queryClient.fetchQuery(
             productListOptions(PRODUCT_ID, {
                 page: 2,

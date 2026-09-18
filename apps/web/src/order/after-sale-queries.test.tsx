@@ -4,7 +4,9 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
-import { createTestQueryClient, makeTicket, server } from "@shop/test-utils"
+import { makeTicket, server } from "@shop/test-utils"
+
+import { createAppTestQueryClient } from "#/test/render"
 
 import { afterSaleOptions, useApplyAfterSale } from "./after-sale-queries"
 import { myOrdersOptions, ORDER_DETAIL_KEY } from "./queries"
@@ -42,7 +44,7 @@ function ApplyProbe() {
 describe("afterSaleOptions（售后单读取）", () => {
     it("从未申请过售后_404 归零为「没有」而不是错误", async () => {
         render(
-            <QueryClientProvider client={createTestQueryClient()}>
+            <QueryClientProvider client={createAppTestQueryClient()}>
                 <TicketProbe orderId="o-1" />
             </QueryClientProvider>,
         )
@@ -57,7 +59,7 @@ describe("afterSaleOptions（售后单读取）", () => {
             ),
         )
         render(
-            <QueryClientProvider client={createTestQueryClient()}>
+            <QueryClientProvider client={createAppTestQueryClient()}>
                 <TicketProbe orderId="o-1" />
             </QueryClientProvider>,
         )
@@ -78,7 +80,7 @@ describe("afterSaleOptions（售后单读取）", () => {
             ),
         )
         render(
-            <QueryClientProvider client={createTestQueryClient()}>
+            <QueryClientProvider client={createAppTestQueryClient()}>
                 <TicketProbe orderId="o-1" />
             </QueryClientProvider>,
         )
@@ -96,7 +98,7 @@ describe("useApplyAfterSale（申请后的一致性）", () => {
                 HttpResponse.json(makeTicket({ id: crypto.randomUUID() }), { status: 201 }),
             ),
         )
-        const queryClient = createTestQueryClient()
+        const queryClient = createAppTestQueryClient()
         // 预置三棵缓存：售后单、订单详情（afterSaleStatus 投影在这）、订单列表。
         // key 一律由各域 options 工厂生成 —— 手抄字面量会在 key 形状变化时静默失配（测试照过、断言落空）
         const ticketKey = afterSaleOptions("o-1").queryKey

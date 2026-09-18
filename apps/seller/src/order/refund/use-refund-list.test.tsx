@@ -11,9 +11,10 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
-import { createTestQueryClient, server } from "@shop/test-utils"
+import { server } from "@shop/test-utils"
 
 import { afterSaleKeys, orderKeys } from "#/order/queries"
+import { createAppTestQueryClient } from "#/test/render"
 
 import { useRefundList } from "./use-refund-list"
 
@@ -56,7 +57,7 @@ async function setup() {
         routeTree: rootRoute.addChildren([refundRoute]),
         history: createMemoryHistory({ initialEntries: ["/trade/refund"] }),
     })
-    const queryClient = createTestQueryClient()
+    const queryClient = createAppTestQueryClient()
     render(
         <QueryClientProvider client={queryClient}>
             <RouterProvider router={router} />

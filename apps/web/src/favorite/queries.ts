@@ -2,8 +2,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import { FavoritesApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
-import { notify } from "@shop/app-kit"
-import { useOptimisticListMutation } from "@shop/app-kit"
+import { optimisticListMutationOptions } from "@shop/app-kit"
 
 import { toFavoriteItem, type FavoriteItem } from "./favorite"
 
@@ -31,18 +30,22 @@ export const favoriteItemsOptions = queryOptions({
 
 /** 移除收藏：单条与批量共用（按 productId，收藏是幂等开关、非行管理），乐观更新 */
 export function useRemoveFavorites() {
-    return useOptimisticListMutation<FavoriteItem, string[]>({
-        queryKey: KEY,
-        mutationFn: (productIds) =>
-            Promise.all(
-                productIds.map((id) => FavoritesApi.removeFavorite({ path: { productId: id } })),
-            ),
-        patch: (list, productIds) => {
-            const removed = new Set(productIds)
-            return list.filter((item) => !removed.has(item.productId))
-        },
-        messages: { error: "移出收藏失败" },
-    })
+    return useMutation(
+        optimisticListMutationOptions<FavoriteItem, string[]>({
+            queryKey: KEY,
+            mutationFn: (productIds) =>
+                Promise.all(
+                    productIds.map((id) =>
+                        FavoritesApi.removeFavorite({ path: { productId: id } }),
+                    ),
+                ),
+            patch: (list, productIds) => {
+                const removed = new Set(productIds)
+                return list.filter((item) => !removed.has(item.productId))
+            },
+            meta: { error: "移出收藏失败" },
+        }),
+    )
 }
 
 // ---------- 详情页心形（单商品） ----------
@@ -83,6 +86,8 @@ export function useToggleFavorite(productId: string) {
             else await FavoritesApi.addFavorite({ body: { productId } })
             return !favorited
         },
+        // 失败提示走全局（meta.error 是兜底文案，后端 detail 优先），这里只管回滚
+        meta: { error: "收藏操作失败，请重试" },
         onMutate: async () => {
             await qc.cancelQueries({ queryKey: favoritedOptions(productId).queryKey })
             const prev = qc.getQueryData<boolean>(favoritedOptions(productId).queryKey)
@@ -91,7 +96,6 @@ export function useToggleFavorite(productId: string) {
         },
         onError: (_e, _v, ctx) => {
             qc.setQueryData(favoritedOptions(productId).queryKey, ctx?.prev)
-            notify.fromError(_e, "收藏操作失败，请重试")
         },
         onSettled: () => qc.invalidateQueries({ queryKey: favoritedOptions(productId).queryKey }),
     })

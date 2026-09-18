@@ -1,9 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { OrderStatus } from "@shop/api/sdk"
 import { SellerLogisticsApi, SellerOrdersApi } from "@shop/api/sdk"
-
-import { useWriteMutation } from "@shop/app-kit"
 
 import { orderKeys, orderListOptions, type OrderListSearch } from "#/order/queries"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
@@ -16,7 +14,6 @@ export type ShipInput = { carrierCode: string; trackingNo: string }
 /** 订单列表视图模型：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
 export function useOrderList(shopId: string, search: OrderListSearch) {
     const navigate = useNavigate()
-    const queryClient = useQueryClient()
     const { busyId, run } = useRowBusy()
 
     const orders = useQuery(orderListOptions(shopId, search))
@@ -35,13 +32,12 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         })
     }
 
-    const invalidate = () => {
-        void queryClient.invalidateQueries({ queryKey: orderKeys.lists(shopId) })
-    }
+    // 四个动作共用失效范围：本店订单列表（前缀，一发命中所有页签/分页）
+    const invalidates = [orderKeys.lists(shopId)]
 
     // 发货入口归 logistics 模块（后端把发货当物流动作）：承运商走字典 code，后端据此归一展示名
-    const ship = useWriteMutation<ShipInput & { orderId: string }>({
-        mutationFn: (args) =>
+    const ship = useMutation({
+        mutationFn: (args: ShipInput & { orderId: string }) =>
             SellerLogisticsApi.createShipment({
                 body: {
                     orderId: args.orderId,
@@ -49,26 +45,22 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
                     trackingNo: args.trackingNo,
                 },
             }),
-        invalidate,
-        messages: { success: "已发货", error: "发货失败" },
+        meta: { success: "已发货", error: "发货失败", invalidates },
     })
 
-    const agreeAfterSale = useWriteMutation<string>({
-        mutationFn: (id) => SellerOrdersApi.agreeAfterSale({ path: { id } }),
-        invalidate,
-        messages: { success: "已同意售后" },
+    const agreeAfterSale = useMutation({
+        mutationFn: (id: string) => SellerOrdersApi.agreeAfterSale({ path: { id } }),
+        meta: { success: "已同意售后", invalidates },
     })
 
-    const rejectAfterSale = useWriteMutation<string>({
-        mutationFn: (id) => SellerOrdersApi.rejectAfterSale({ path: { id } }),
-        invalidate,
-        messages: { success: "已拒绝售后" },
+    const rejectAfterSale = useMutation({
+        mutationFn: (id: string) => SellerOrdersApi.rejectAfterSale({ path: { id } }),
+        meta: { success: "已拒绝售后", invalidates },
     })
 
-    const receiveReturn = useWriteMutation<string>({
-        mutationFn: (id) => SellerOrdersApi.receiveReturn({ path: { id } }),
-        invalidate,
-        messages: { success: "已确认收货并退款" },
+    const receiveReturn = useMutation({
+        mutationFn: (id: string) => SellerOrdersApi.receiveReturn({ path: { id } }),
+        meta: { success: "已确认收货并退款", invalidates },
     })
 
     return {

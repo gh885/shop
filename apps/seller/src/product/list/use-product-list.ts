@@ -1,13 +1,12 @@
 import type { ProductResponse } from "@shop/api/sdk"
 import { ProductsAdminApi } from "@shop/api/sdk"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 
 import type { ProductListFilter } from "#/product/list/filter"
 import { productKeys, productListOptions, type ProductSort } from "#/product/queries"
 import type { ProductListSearch } from "#/product/queries"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
-import { useWriteMutation } from "@shop/app-kit"
 
 export type { ProductListSearch } from "#/product/queries"
 
@@ -16,7 +15,6 @@ export function useProductList(shopId: string, search: ProductListSearch) {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
     const { busyId, run } = useRowBusy()
-
     const products = useQuery(productListOptions(shopId, search))
 
     // React Compiler 已接管缓存：回调不手动 memo，身份由编译器自动稳定
@@ -39,19 +37,16 @@ export function useProductList(shopId: string, search: ProductListSearch) {
         })
     }
 
-    const invalidate = () => {
-        void queryClient.invalidateQueries({ queryKey: productKeys.lists(shopId) })
-    }
+    // 本店列表 key：上下架（经 meta.invalidates）与「编辑弹窗保存后」（经 handleSaved）共用同一个入口
+    const listKey = productKeys.lists(shopId)
 
-    const off = useWriteMutation<string>({
-        mutationFn: (id) => ProductsAdminApi.offProduct({ path: { id } }),
-        invalidate,
-        messages: { success: "商品已下架", error: "下架失败" },
+    const off = useMutation({
+        mutationFn: (id: string) => ProductsAdminApi.offProduct({ path: { id } }),
+        meta: { success: "商品已下架", error: "下架失败", invalidates: [listKey] },
     })
-    const on = useWriteMutation<string>({
-        mutationFn: (id) => ProductsAdminApi.onProduct({ path: { id } }),
-        invalidate,
-        messages: { success: "商品已上架", error: "上架失败" },
+    const on = useMutation({
+        mutationFn: (id: string) => ProductsAdminApi.onProduct({ path: { id } }),
+        meta: { success: "商品已上架", error: "上架失败", invalidates: [listKey] },
     })
 
     const records: ProductResponse[] = products.data?.records ?? []
@@ -82,11 +77,11 @@ export function useProductList(shopId: string, search: ProductListSearch) {
         handleOff: run(off.mutateAsync),
         handleOn: run(on.mutateAsync),
         /**
-         * 列表内编辑弹窗保存后的同步：交给本域的 mutation 失效（`productKeys.lists`），
-         * 与上下架走同一条失效入口。不用 `products.refetch()` —— 它绕过 staleTime 强制打网络，
+         * 列表内编辑弹窗保存后的同步：失效本店列表，与上下架走同一个 key。
+         * 不用 `products.refetch()` —— 它绕过 staleTime 强制打网络，
          * 且把「这个弹窗改了列表数据」这件事绑在父组件的 query 实例上，失效范围会随列表结构漂移。
          */
-        handleSaved: invalidate,
+        handleSaved: () => void queryClient.invalidateQueries({ queryKey: listKey }),
         onPageChange: (page: number) => apply({ page }),
         onSortChange: (sort: ProductSort) => apply({ sort }),
     }

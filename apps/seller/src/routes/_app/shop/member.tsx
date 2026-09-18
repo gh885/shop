@@ -5,7 +5,7 @@ import { useMe } from "#/shared/lib/me"
 import { ShopsApi } from "@shop/api/sdk"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
-import { useWriteMutation } from "@shop/app-kit"
+import { useMutation } from "@tanstack/react-query"
 import {
     Empty,
     EmptyHeader,
@@ -63,10 +63,14 @@ function MemberPanel({ shopId }: { shopId: string }) {
         (m) => m.role === "OWNER" && m.status === "ACTIVE" && m.userId === me.data?.id,
     )
 
-    const invite = useWriteMutation<string>({
-        mutationFn: (phone) => ShopsApi.inviteShopMember({ path: { shopId }, body: { phone } }),
-        invalidateKeys: [shopKeys.members(shopId)],
-        messages: { success: "邀请已发送", error: "邀请发送失败" },
+    const invite = useMutation({
+        mutationFn: (phone: string) =>
+            ShopsApi.inviteShopMember({ path: { shopId }, body: { phone } }),
+        meta: {
+            success: "邀请已发送",
+            error: "邀请发送失败",
+            invalidates: [shopKeys.members(shopId)],
+        },
     })
 
     const inviteForm = useAppForm({
@@ -74,10 +78,13 @@ function MemberPanel({ shopId }: { shopId: string }) {
         onSubmit: ({ value }) => invite.mutate(value.phone),
     })
 
-    const remove = useWriteMutation<string>({
-        mutationFn: (memberId) => ShopsApi.removeShopMember({ path: { shopId, memberId } }),
-        invalidateKeys: [shopKeys.members(shopId)],
-        messages: { success: "已移除该成员", error: "移除成员失败" },
+    const remove = useMutation({
+        mutationFn: (memberId: string) => ShopsApi.removeShopMember({ path: { shopId, memberId } }),
+        meta: {
+            success: "已移除该成员",
+            error: "移除成员失败",
+            invalidates: [shopKeys.members(shopId)],
+        },
     })
 
     // 移除二次确认：记录目标成员，确认后才真正执行

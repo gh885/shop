@@ -1,8 +1,8 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions, useMutation, useQuery } from "@tanstack/react-query"
 import { CartApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
-import { notify, useOptimisticListMutation, useWriteMutation } from "@shop/app-kit"
+import { notify, optimisticListMutationOptions } from "@shop/app-kit"
 
 import {
     MAX_CART_QUANTITY,
@@ -61,66 +61,78 @@ export function useCartCount() {
 
 /** 加购 mutation：成功 toast + 失效角标计数；导航到购物车由调用方决定 */
 export function useAddToCart() {
-    return useWriteMutation<{ skuId: string; quantity: number }>({
-        mutationFn: ({ skuId, quantity }) => CartApi.addCartItem({ body: { skuId, quantity } }),
-        invalidateKeys: [CART_COUNT_KEY],
-        messages: { success: "已加入购物车", error: "加入购物车失败" },
+    return useMutation({
+        mutationFn: ({ skuId, quantity }: { skuId: string; quantity: number }) =>
+            CartApi.addCartItem({ body: { skuId, quantity } }),
+        meta: {
+            success: "已加入购物车",
+            error: "加入购物车失败",
+            invalidates: [CART_COUNT_KEY],
+        },
     })
 }
 
 /** 改数量（步进器 ±1）；patch 变换语义在 ./cart.ts，这里只接线 */
 function useUpdateCartQuantity() {
-    return useOptimisticListMutation<CartItem, { id: string; quantity: number }>({
-        queryKey: CART_ITEMS_KEY,
-        mutationFn: ({ id, quantity }) =>
-            CartApi.updateCartItem({ path: { id }, body: { quantity } }),
-        patch: (list, { id, quantity }) => patchItem(list, id, { quantity }),
-        messages: { error: "修改数量失败" },
-    })
+    return useMutation(
+        optimisticListMutationOptions<CartItem, { id: string; quantity: number }>({
+            queryKey: CART_ITEMS_KEY,
+            mutationFn: ({ id, quantity }) =>
+                CartApi.updateCartItem({ path: { id }, body: { quantity } }),
+            patch: (list, { id, quantity }) => patchItem(list, id, { quantity }),
+            meta: { error: "修改数量失败" },
+        }),
+    )
 }
 
 /** 单条勾选/取消 */
 export function useToggleCartItem() {
-    return useOptimisticListMutation<CartItem, { id: string; selected: boolean }>({
-        queryKey: CART_ITEMS_KEY,
-        mutationFn: ({ id, selected }) =>
-            CartApi.updateCartItem({ path: { id }, body: { selected } }),
-        patch: (list, { id, selected }) => patchItem(list, id, { selected }),
-        messages: { error: "勾选失败" },
-    })
+    return useMutation(
+        optimisticListMutationOptions<CartItem, { id: string; selected: boolean }>({
+            queryKey: CART_ITEMS_KEY,
+            mutationFn: ({ id, selected }) =>
+                CartApi.updateCartItem({ path: { id }, body: { selected } }),
+            patch: (list, { id, selected }) => patchItem(list, id, { selected }),
+            meta: { error: "勾选失败" },
+        }),
+    )
 }
 
 /** 批量勾选：itemIds 省略 = 整车（全选/取消全选），传列表 = 按店铺勾选 */
 export function useSelectCartItems() {
-    return useOptimisticListMutation<CartItem, { itemIds?: string[]; selected: boolean }>({
-        queryKey: CART_ITEMS_KEY,
-        mutationFn: ({ itemIds, selected }) =>
-            CartApi.updateCartSelected({ body: { itemIds, selected } }),
-        patch: (list, { itemIds, selected }) => setItemsSelected(list, itemIds, selected),
-        messages: { error: "勾选失败" },
-    })
+    return useMutation(
+        optimisticListMutationOptions<CartItem, { itemIds?: string[]; selected: boolean }>({
+            queryKey: CART_ITEMS_KEY,
+            mutationFn: ({ itemIds, selected }) =>
+                CartApi.updateCartSelected({ body: { itemIds, selected } }),
+            patch: (list, { itemIds, selected }) => setItemsSelected(list, itemIds, selected),
+            meta: { error: "勾选失败" },
+        }),
+    )
 }
 
 /** 删一条 */
 function useRemoveCartItem() {
-    return useOptimisticListMutation<CartItem, string>({
-        queryKey: CART_ITEMS_KEY,
-        invalidateKeys: [CART_COUNT_KEY],
-        mutationFn: (id) => CartApi.removeCartItem({ path: { id } }),
-        patch: (list, id) => removeItems(list, [id]),
-        messages: { error: "删除失败" },
-    })
+    return useMutation(
+        optimisticListMutationOptions<CartItem, string>({
+            queryKey: CART_ITEMS_KEY,
+            mutationFn: (id) => CartApi.removeCartItem({ path: { id } }),
+            patch: (list, id) => removeItems(list, [id]),
+            meta: { error: "删除失败", invalidates: [CART_COUNT_KEY] },
+        }),
+    )
 }
 
 /** 批量删（删除选中 / 清除失效共用） */
 export function useBatchRemoveCartItems() {
-    return useOptimisticListMutation<CartItem, string[]>({
-        queryKey: CART_ITEMS_KEY,
-        invalidateKeys: [CART_COUNT_KEY],
-        mutationFn: (itemIds) => CartApi.batchRemoveCartItems({ body: { itemIds } }),
-        patch: (list, itemIds) => removeItems(list, itemIds),
-        messages: { error: "删除失败" },
-    })
+    return useMutation(
+        optimisticListMutationOptions<CartItem, string[]>({
+            queryKey: CART_ITEMS_KEY,
+            mutationFn: (itemIds) => CartApi.batchRemoveCartItems({ body: { itemIds } }),
+            patch: (list, itemIds) => removeItems(list, itemIds),
+            meta: { error: "删除失败", invalidates: [CART_COUNT_KEY] },
+        }),
+    )
 }
 
 // ---------- 行内动作 ----------

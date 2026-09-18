@@ -1,7 +1,8 @@
+import { queryOptions, useMutation } from "@tanstack/react-query"
 import { OrdersApi, type TicketResponse, type TicketType } from "@shop/api/sdk"
-import { useWriteMutation } from "@shop/app-kit"
+
+import type { MutationMeta } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
-import { queryOptions } from "@tanstack/react-query"
 
 import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
 
@@ -82,12 +83,11 @@ async function returnAfterSale(
 /** 三个写操作共用：成功提示 + 失效售后单/订单详情/订单列表 */
 function useAfterSaleMutation<TInput>(
     mutationFn: (input: TInput) => Promise<unknown>,
-    messages: { success: string; error: string },
+    meta: Pick<MutationMeta, "success" | "error">,
 ) {
-    return useWriteMutation<TInput>({
+    return useMutation({
         mutationFn,
-        invalidateKeys: [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_ORDERS_KEY],
-        messages,
+        meta: { ...meta, invalidates: [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_ORDERS_KEY] },
     })
 }
 
