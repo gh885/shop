@@ -64,7 +64,7 @@ pnpm dev:admin        # 平台管理端（独立 SPA，4000 端口）
 # 检查
 pnpm lint             # oxlint + mvn compile
 pnpm format           # oxfmt + spotless:apply
-pnpm typecheck        # tsc --noEmit
+pnpm typecheck        # 递归跑所有 workspace 包的 typecheck 脚本（pnpm -r --if-present）
 
 # SDK 生成（需后端已启动）
 pnpm gen:sdk          # 拉取 /v3/api-docs 覆盖 openapi/api-docs.json，重新生成 packages/api/src/sdk
@@ -136,7 +136,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 
 原则：**状态在哪里产生（最先可观测），就在最近的消费者处理它**。可观测点由取数机制决定，不机械绑定组件层级：
 
-- query hook → 调用处组件：`isPending`/`isError` 就地渲染 loading/error 态，不往下传
+- query hook → **失败交给错误边界，挂起就地渲染**：`throwOnError` 已是全局默认，页面主体数据失败由路由 `errorComponent` 接管，区块失败由 `QueryBoundary` 接管（见下节「错误与重试」）；只有**头上没有边界可接的查询**（页头角标、收藏心形、弹窗/向导内部件，或消费方本就写「拿不到就不画」的附属区块）才显式 `throwOnError: false` 并在组件里渲染 `isError`
 - 派生态（如 empty：`data.length === 0`）→ 派生它的那一行所在组件
 - mutation 错误 → `onError` 即 `notify.fromError`（toast 的渲染点在根部，已是产生点最近的消费者）；乐观态 → 缓存 patch 层（`useOptimisticListMutation`），列表行只读缓存
 - 组件内部瞬时状态（上传进度/提交中按钮）→ 留在组件内；出现第二个消费者才上提为域内 `use-*.ts`（与 hook 上提规则同构）
@@ -164,17 +164,38 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - **失效规则写在 mutation 旁边**（谁改数据，谁声明影响范围），不写在调用点。跨域连带失效也归进 mutation（下单后失效购物车 + 角标 + 我的订单）。
 - **三端同形态的查询用 app-kit 的工厂，别复制**：`createAppQueryClient()`（默认值唯一真相源）、`createMeQuery()`（当前登录者）、写操作接线。新增一个"三端都会写"的查询时，先问能不能把它变成工厂参数。
 - **不造第二棵 key 树**：同一份服务端数据有两个 key = 两份缓存 + 两处失效，必然漂移（`useMe` 曾在三端各写一遍就是这形态）。发现即合并成一个 `xxxKeys`。
-- **不用 `refetch()` 当刷新**：它绕过 staleTime 强制打网络，且把"谁改了数据"绑在持有该 query 实例的组件上。要同步就 `invalidateQueries`（在 mutation 里）。**错误态的重试按钮也走 invalidate**，不是"用户显式要求重打"的例外——重试的语义是"这份缓存不再可信"，标记失效后由观察者重取；各域把这件事收敛成 hook 的 `onRetry`（域内 `queries.ts`/`use-*.ts` 提供），路由只透传给 `StateError`，不自己拼 key。
+- **不用 `refetch()` 当刷新**：它绕过 staleTime 强制打网络，且把"谁改了数据"绑在持有该 query 实例的组件上。**刷新（数据变了）走 `invalidateQueries`（在 mutation 里）**；**错误态重试**是另一回事，见下节「错误与重试」——两套语义不要混。
+- **loader 预取写 `queryClient.query({ ...options, staleTime: "static" })`，不用 `ensureQueryData`**：后者在 5.102 已废弃，官方给的替代口径就是这一句。语义正好是「有缓存就返回、没有才取数」——`fetchQuery` 走 `isStaleByTime('static')`，而它先判 `data === undefined` 再判 static，所以无缓存照样会取数（`ensureQueryData` 也是「无缓存即 fetch」）。这个 `staleTime` 只作用在这次 loader 读取上，不污染组件侧 observer 的新鲜度（`isStaleByTime` 用的是调用方自己那份 options，组件读的是 `xxxOptions`）。
 - 领域组件（弹窗/卡片）**不 import query key**：只通过 `onSaved` 这类回调通知外层"数据变了"，由域内 `queries.ts` / `use-*.ts` 决定失效范围。回调名说"发生了什么"，不说"去做什么"（`onSaved` 而非 `invalidateList`）。
 - **组件直接 `useQuery(xxxOptions)`，不给每个查询再包一层同名 hook**：`useHomeNav()` / `useOrderDetail(id)` 这类恒等透传只是给同一份东西起第二个名字（options 本来就得导出给 loader），且 hook 名看不出返回的是 `useQuery` 还是 `useSuspenseQuery`（`data` 的可空性不同）。
 - **hook 只在携带决策时存在**。判定线：options 负责「取什么」，hook 负责「怎么用」，至少命中一条才值得包——
     - 叠 `enabled`（登录态 gating）：`useCartCount` / `useFavoriteStatus`
-    - 加 `onRetry`（错误态重试 = 标脏，把失效范围留在域内，路由只透传）：`useShopQuery` / `useCouponList` / `useShippingTemplate` / `useProductDetail` / `useMyShops` / `useMyShopMembers` / `useAddressList` / `useReviewRetry`
     - 换变体：调用点写 `useSuspenseQuery(feedOptions)`（这一条不需要 hook，变体写在调用点更显眼）
     - 派生/编排视图模型（多个 query + mutation + 导航/URL 状态合成一个给页面用的口）：`useOrderList` / `useRefundList` / `useProductList` / `useCartItemActions` / `useOrderActions` / `useCurrentShop` / `useLeafPaths`
     - 跨端同形态的写操作接线：`useWriteMutation` / `useOptimisticListMutation` / `createMeQuery`
 - **写操作继续走 `useWriteMutation`（31 处）/ `useOptimisticListMutation`（11 处）**，裸 `useMutation` 只保留在文档注明的三类逃生口（就地渲染表单错误 / 终态才处理 / 成功即跳转无缓存可失效，现存 6 处），边界与理由见 `packages/app-kit/src/mutations.ts` 头注。
 - **lint 兜底**：官方 `@tanstack/eslint-plugin-query` / `-router` 经 oxlint 的 `jsPlugins` 加载（配置与逐条理由见 `packages/config/oxlint.config.ts`）。`exhaustive-deps`（漏 key）、`stable-query-client`、`no-unstable-deps`、两条 property-order（`--fix` 可重排）、`route-param-names` 为 error；`no-rest-destructuring`、`prefer-query-options` 为 warn。官方 `no-void-query-fn` **未启用**：它靠 `parserServices.program` 取 TS 类型，oxlint 的 JS 插件 API 不提供（`--type-aware` 也无效，实测静默空转）。
+
+### 错误与重试：全部走官方边界，不自造 onRetry
+
+**一句话**：失败态交给「谁渲染这一块」对应的官方边界，重试由边界的官方 reset 完成；`invalidateQueries` 只用于 mutation 之后的刷新，不再兼任重试。
+
+`throwOnError: throwWhenNoData` 是 `createAppQueryClient()` 的**全局默认**（判据：只在「一条数据都没有可展示」时抛，逐字等于官方给 suspense 用的内部默认），所以「失败抛给边界」是常态、不必逐条声明；**需要显式写的是退出**（`throwOnError: false`）。
+
+| 失败范围                                                          | 交给谁                                            | 怎么接                                                                                                                                                                                         |
+| ----------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 页面主体数据（详情 / 列表 / 结算 / 收银台 / 工作台 / 店铺守卫）   | 路由 `errorComponent`                             | 什么都不用写：全局默认把错误抛给该 match 的 `CatchBoundary`，由三端 router 的 `defaultErrorComponent`（`RouteErrorFallback`）渲染；重试 = Router `reset()` + `QueryErrorResetBoundary.reset()` |
+| 区块 / 弹窗内部件（店条、推荐流、首页 feed）                      | `QueryBoundary`（`@shop/app-kit`）                | 期望「整块替换」的用它：`pending` 骨架 + `fallback({ error, reset })`；suspense 查询自己会抛，非 suspense 查询靠全局默认抛到它的 `ErrorBoundary`（此时别传 `pending`）                         |
+| 无边界可接的附属件（页头角标、收藏心形、可领券、弹窗/向导内部件） | 就地错误态                                        | options 写 **`throwOnError: false`** 退出全局默认，失败就地渲染 `isError` 并用官方 `refetch()` 重试（官方 manual 写法）                                                                        |
+| 挂起                                                              | `pendingComponent` / `QueryBoundary` 的 `pending` | 路由级 `pendingComponent` 会被 Router 兼作该 match 的 Suspense fallback（见 `@tanstack/react-router` 的 `Match.js`），同时覆盖 loader 与 suspense 查询                                         |
+
+写新查询时的五条硬规矩：
+
+1. **该抛才抛**（这条已内建为全局默认，别改成 `true`）：直接写 `throwOnError: true` 会在「有旧数据的后台刷新失败」时把一屏能看的内容换成整页错误页。
+2. **退出默认的唯一判据是「头上有没有边界」**，不是「这份数据重不重要」。页头角标、收藏心形、可领券入口，以及消费方本就写「拿不到就不画这一块」的附属区块（如 seller 待确认邀请是 `if (!data) return`），都必须写 `throwOnError: false`——否则一个小挂件失败就炸掉整页。清单在各 options 的注释里。
+3. **`enabled` / `placeholderData` / `skipToken` 与 suspense 互斥**：这类查询挂不了 `pending`，但**仍然可以抛**给一个不传 `pending` 的 `QueryBoundary`，或抛给路由 `errorComponent`（列表带 `placeholderData` 就是这么做的）。只有当它同时也没有边界时，才落回第 2 条的 `throwOnError: false` + `refetch()`。
+4. **`useSuspenseQuery` 收不到 `throwOnError`**：官方把它从 `UseSuspenseQueryOptions` 的类型里 `Omit` 掉了（`@tanstack/react-query` 的 `types.ts`），运行时也会用自己的内部判据覆盖。所以**内联**写 `useSuspenseQuery({ ...opts, throwOnError: false })` 是类型错误，而**传一个带 `throwOnError` 的 options 变量**（真实代码的写法）是**静默失效**。推论：`orderDetailOptions` 这类「页面主体走 suspense、另有降级消费者」的共享 options，**降级那一处必须在调用点写** `useQuery({ ...options, throwOnError: false })`——「这份数据在这里只是降级」属于调用点，不属于 options。
+5. **`QueryErrorResetBoundary` 必须在树里**：suspense / 抛错查询失败后不重置它的标记，`retryOnMount` 会被官方强制为 false，重挂载不重取 —— 重试按钮形同虚设（三端 Provider 树已挂，`QueryBoundary` 自带一层）。这条在全局默认开启后**对所有查询生效**，所以第 2 条漏写一个就是一个「卡在错误页、怎么点都不回来」的角落。
 
 ## 前端测试（Vitest + Testing Library + MSW）
 
@@ -223,6 +244,11 @@ pnpm test:watch  # watch 模式
 - 列表页的 hook 测试要先把登录态与店铺上下文造出来：seller 侧 `useMyShops` 只在 `authed` 时拉
   `/shops/mine`（测试里 `tokenStore.set("...")`，别忘 `afterEach` 里 `clear()`），
   `useCurrentShop` 解析出的 shopId 进缓存 key，没就位时失效的是另一棵树
+- **`createTestQueryClient()` 不带应用默认值**：它是裸 `QueryClient`（只为确定性禁了 retry），
+  没有 `createAppQueryClient()` 的 `staleTime` 与全局 `throwOnError`。所以「区块查询漏写
+  `throwOnError: false` 会不会炸整页」这类问题在 app 测试里**测不出来**——要验这套默认值必须自己
+  `createAppQueryClient()`（见 `packages/app-kit/src/query-client.test.tsx`）。之所以不直接复用工厂：
+  `@shop/app-kit` 的 devDependencies 已经依赖 `@shop/test-utils`，反向依赖会成环。
 - pre-push 跑 `pnpm test`；admin 尚无用例，其 vitest 配置已开 `passWithNoTests`
 
 ## 开发规范
