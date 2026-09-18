@@ -1,5 +1,4 @@
 import { queryOptions } from "@tanstack/react-query"
-
 import {
     SellerAfterSalesApi,
     SellerLogisticsApi,
@@ -63,9 +62,13 @@ export const shopAfterSaleOptions = (shopId: string, orderId: string | undefined
         },
         enabled: !!orderId,
         retry: false,
+        // 退出全局的「失败抛给错误边界」：读它的只有售后决策弹窗，头上没有边界。
+        // 抛出去会把整个订单列表页换掉——弹窗里的失败不该毁掉背景页
+        throwOnError: false,
     })
 
-/** 店铺订单分页列表（shopId 入 key：切店铺不串缓存） */
+/** 店铺订单分页列表（shopId 入 key：切店铺不串缓存）。
+ *  带 placeholderData（不能走 suspense），失败冒到路由错误页由全局默认接管。 */
 export const orderListOptions = (shopId: string, s: OrderListSearch) =>
     queryOptions({
         queryKey: orderKeys.list(shopId, s),
@@ -87,7 +90,7 @@ export const afterSaleListKeys = {
         ["after-sales", shopId, search.status ?? "all", search.page, search.size] as const,
 }
 
-/** 本店售后单分页列表（工作台） */
+/** 本店售后单分页列表（工作台）：同 orderListOptions 的失败口径 */
 export const afterSaleListOptions = (shopId: string, search: AfterSaleListSearch) =>
     queryOptions({
         queryKey: afterSaleListKeys.list(shopId, search),
@@ -101,10 +104,12 @@ export const afterSaleListOptions = (shopId: string, search: AfterSaleListSearch
         placeholderData: (prev) => prev,
     })
 
-/** 发货下拉的快递公司字典：低频变更的公共字典，长缓存（字典维护是运维动作，不随页面来回拉） */
+/** 发货下拉的快递公司字典：低频变更的公共字典，长缓存（字典维护是运维动作，不随页面来回拉）。
+ *  它是发货弹窗里的一个下拉框，退出全局的「失败抛给错误边界」——字典拉不到顶多选不了承运商。 */
 export const carrierListOptions = () =>
     queryOptions({
         queryKey: carrierKeys.all,
         queryFn: () => SellerLogisticsApi.listCarriers(),
         staleTime: 10 * 60_000,
+        throwOnError: false,
     })

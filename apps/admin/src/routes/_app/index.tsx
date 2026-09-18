@@ -31,7 +31,7 @@ import {
     type DataTableFeatures,
 } from "@shop/ui-web"
 import { type ShopReviewItem, reviewListOptions, adminApi } from "#/shared/lib/api"
-import { reviewKeys, useReviewRetry } from "#/shared/lib/queries"
+import { reviewKeys } from "#/shared/lib/queries"
 import type { ColumnDef } from "@tanstack/react-table"
 import { isValid, format } from "date-fns"
 
@@ -133,8 +133,7 @@ function ReviewPage() {
     const { status, page, size } = Route.useSearch()
     const navigate = Route.useNavigate()
 
-    const onRetry = useReviewRetry({ status, page, size })
-    const { data, isPending, isError } = useQuery(reviewListOptions({ status, page, size }))
+    const { data, isPending } = useQuery(reviewListOptions({ status, page, size }))
 
     // 服务端模式：分页/筛选状态由 URL 接管，DataTable 内不自管
     const pagination = { pageIndex: page - 1, pageSize: size }
@@ -165,19 +164,6 @@ function ReviewPage() {
                     审核卖家开店申请，通过后店铺即可上架商品
                 </p>
             </div>
-
-            {isError ? (
-                <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive-subtle px-4 py-3 text-sm text-destructive-subtle-foreground">
-                    <span>审核列表加载失败，可能不是没有待审核的店铺。</span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={onRetry}
-                    >
-                        重新加载
-                    </Button>
-                </div>
-            ) : undefined}
 
             <DataTableToolbar
                 table={table}
@@ -215,15 +201,13 @@ function ReviewPage() {
             {isPending ? (
                 <DataTableSkeleton columns={columns.length} />
             ) : (
-                !isError && (
-                    <>
-                        <DataTable
-                            table={table}
-                            emptyContent="暂无符合条件的审核申请"
-                        />
-                        <DataTablePagination table={table} />
-                    </>
-                )
+                <>
+                    <DataTable
+                        table={table}
+                        emptyContent="暂无符合条件的审核申请"
+                    />
+                    <DataTablePagination table={table} />
+                </>
             )}
         </div>
     )

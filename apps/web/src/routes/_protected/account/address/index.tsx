@@ -2,46 +2,57 @@ import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
-import {
-    Button,
-    Card,
-    CardContent,
-    Dialog,
-    DialogContent,
-    DialogTitle,
-    Skeleton,
-    Spinner,
-} from "@shop/ui-web"
-import { CircleAlert } from "lucide-react"
+import { Button, Dialog, DialogContent, DialogTitle, Skeleton, Spinner } from "@shop/ui-web"
 
 import type { Address } from "#/address"
 import {
     AddressFormDialog,
     AddressTable,
     addressListOptions,
-    useAddressList,
     useDeleteAddress,
     useSetDefaultAddress,
     useUnsetDefaultAddress,
 } from "#/address"
-import { noop } from "@tanstack/react-query"
+import { useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/address/")({
-    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
-    // hover/导航先拉好地址列表缓存，组件挂载即命中。query() 失败会 reject —— 预热而已，吞掉；
-    // 错误仍由组件侧的就地错误态处理。
-    loader: ({ context }) => {
+    /**
+     * 数据在 loader 里读完再渲染（官方 loader-as-data-source）：
+     * 挂起 → `pendingComponent`，失败 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
+     */
+    loader: async ({ context }) => {
         if (import.meta.env.SSR) return
-        void context.queryClient.query(addressListOptions).catch(noop)
+        await context.queryClient.query({ ...addressListOptions, staleTime: "static" })
     },
+    pendingComponent: AddressListSkeleton,
     component: AddressPage,
     head: () => ({
         meta: [{ title: "收货地址 - 个人中心 - Shop" }],
     }),
 })
 
+/** 挂起占位：与地址表格同形的三行骨架 */
+function AddressListSkeleton() {
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h1 className="text-xl font-bold">收货地址</h1>
+            </div>
+            <div className="space-y-2">
+                {Array.from({ length: 3 }, (_, i) => (
+                    <Skeleton
+                        key={i}
+                        className="h-12 w-full"
+                    />
+                ))}
+            </div>
+        </div>
+    )
+}
+
 function AddressPage() {
-    const { data: addresses = [], isLoading, isError, onRetry } = useAddressList()
+    // 主体数据由 loader 读完（失败已由路由错误页接管）
+    const addresses = useSuspenseQuery(addressListOptions).data
     const del = useDeleteAddress()
     const setDefault = useSetDefaultAddress()
     const unsetDefault = useUnsetDefaultAddress()
@@ -78,41 +89,13 @@ function AddressPage() {
                 </Button>
             </div>
 
-            {isError ? (
-                <Card>
-                    <CardContent className="flex flex-col items-start gap-3">
-                        <div className="flex items-center gap-2 text-destructive">
-                            <CircleAlert className="size-5" />
-                            <span className="font-medium">地址列表加载失败</span>
-                        </div>
-                        <p className="text-muted-foreground">网络异常或服务暂时不可用，请重试。</p>
-                        <Button
-                            variant="outline"
-                            disabled={isLoading}
-                            onClick={onRetry}
-                        >
-                            重试
-                        </Button>
-                    </CardContent>
-                </Card>
-            ) : isLoading ? (
-                <div className="space-y-2">
-                    {Array.from({ length: 3 }, (_, i) => (
-                        <Skeleton
-                            key={i}
-                            className="h-12 w-full"
-                        />
-                    ))}
-                </div>
-            ) : (
-                <AddressTable
-                    addresses={addresses}
-                    onEdit={openEdit}
-                    onDelete={setDeleteTarget}
-                    onSetDefault={(id) => setDefault.mutate(id)}
-                    onUnsetDefault={(id) => unsetDefault.mutate(id)}
-                />
-            )}
+            <AddressTable
+                addresses={addresses}
+                onEdit={openEdit}
+                onDelete={setDeleteTarget}
+                onSetDefault={(id) => setDefault.mutate(id)}
+                onUnsetDefault={(id) => unsetDefault.mutate(id)}
+            />
 
             <AddressFormDialog
                 open={dialogOpen}

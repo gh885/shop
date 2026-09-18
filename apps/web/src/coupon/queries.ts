@@ -42,6 +42,7 @@ export const myCouponsOptions = (status: CouponTab, page: number) =>
         staleTime: 30_000,
         // 切页签/翻页保留上一份数据（isPlaceholderData），不重放 Skeleton
         placeholderData: (prev) => prev,
+        // 带 placeholderData 的列表不进 suspense；失败冒到路由错误页由全局默认 throwOnError 接管
     })
 
 // ---------- 店铺可领券（匿名） ----------
@@ -61,6 +62,8 @@ export const shopClaimableCouponsOptions = (shopId: string) =>
         staleTime: 60_000,
         // 领券入口是页面的附属件：拉失败就不给入口（不报警、不占位）。但**必须留默认重试**——
         // 一次瞬时抖动配上 60s 的 staleTime，等于让入口从现在起长时间消失，用户既看不到失败也无处重试。
+        // 退出全局的「失败抛给错误边界」：入口浮层头上没有边界，抛出去会把商品详情整页换成错误页
+        throwOnError: false,
     })
 
 // ---------- 领券 ----------

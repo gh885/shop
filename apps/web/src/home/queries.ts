@@ -9,6 +9,10 @@ import { fetchBanners, fetchFeedProducts, fetchHomeNav } from "./actions"
 // 首页内容 5 分钟缓存（运营配置不常变）
 const CACHE = 5 * 60_000
 
+// 首页壳区块（导航 / banner / 推荐词条）共用口径：5 分钟缓存 + 失败即报 + **不抛错误边界**。
+// 首页是门面，单个接口失败绝不能把整页换成错误页（loader 的 allSettled 就是同一条意图）：
+// 读不到就不画这一块。三个查询都是 useQuery 常规读取，所以必须逐条显式退出全局默认。
+
 /** 共享 queryOptions：route loader 用 query() 预热，组件 useQuery 读同一缓存（SSR-query 集成序列化缓存给客户端） */
 export const homeNavOptions = queryOptions({
     queryKey: ["home-nav"],
@@ -18,6 +22,7 @@ export const homeNavOptions = queryOptions({
     ),
     staleTime: CACHE,
     retry: false,
+    throwOnError: false,
 })
 
 export const bannersOptions = queryOptions({
@@ -28,6 +33,7 @@ export const bannersOptions = queryOptions({
     ),
     staleTime: CACHE,
     retry: false,
+    throwOnError: false,
 })
 
 export const recommendTabsOptions = queryOptions({
@@ -39,6 +45,7 @@ export const recommendTabsOptions = queryOptions({
     ),
     staleTime: CACHE,
     retry: false,
+    throwOnError: false,
 })
 
 /** 首页商品流：SSR 流式版。loader 不预热该查询，组件 useSuspenseQuery 挂起边界，

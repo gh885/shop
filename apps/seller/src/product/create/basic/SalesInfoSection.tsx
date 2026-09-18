@@ -9,7 +9,7 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { priceRangeText } from "@shop/common"
+import { toApiError, priceRangeText } from "@shop/common"
 
 import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
 import { useCategorySpecTemplate } from "#/product/queries"
@@ -55,20 +55,22 @@ export function SalesInfoSection({
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
     onListingTimeChange: (next: ListingTime) => void
 }) {
-    const { template, error: loadError, retry } = useCategorySpecTemplate(categoryId)
+    // 区块内聚的取数：失败就地渲染 + 官方 manual 重试（`refetch`），不拖垮整张发布表单
+    const templateQuery = useCategorySpecTemplate(categoryId)
 
-    // 加载中（首次）：Skeleton；失败：StateError（重试重新拉取）
-    if (loadError && !template) {
+    if (templateQuery.isError) {
         return (
             <StateError
-                message={loadError}
-                onRetry={retry}
+                message={toApiError(templateQuery.error).detail}
+                onRetry={() => void templateQuery.refetch()}
+                retrying={templateQuery.isFetching}
             />
         )
     }
-    if (!template) {
+    if (!templateQuery.data) {
         return <Skeleton className="h-40 w-full" />
     }
+    const template = templateQuery.data
 
     const hasSpecs = template.length > 0
 

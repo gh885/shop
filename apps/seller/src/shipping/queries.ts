@@ -31,19 +31,13 @@ const shippingTemplateOptions = (shopId: string) =>
     queryOptions({
         queryKey: shippingKeys.detail(shopId),
         queryFn: getShippingTemplate,
-        // 404 已由 getShippingTemplate 归一为 null；其他错误多与权限/网络有关，重试只在用户点刷新时发生
+        // 404 已由 getShippingTemplate 归一为 null；其他错误多与权限/网络有关，失败即报（全局默认抛给路由错误页）
         retry: false,
     })
 
 /** 运费模板：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
 export function useShippingTemplate(shopId: string) {
-    const queryClient = useQueryClient()
-    const options = shippingTemplateOptions(shopId)
-    return {
-        ...useQuery(options),
-        /** 错误态重试：标脏这一格（key 从 options 取，避免闭包里的 shopId 落后） */
-        onRetry: () => void queryClient.invalidateQueries({ queryKey: options.queryKey }),
-    }
+    return useQuery(shippingTemplateOptions(shopId))
 }
 
 export function useSaveShippingTemplate(shopId: string) {

@@ -21,7 +21,6 @@ import {
     Field,
     Skeleton,
     Spinner,
-    StateError,
     Switch,
     useAppForm,
 } from "@shop/ui-web"
@@ -173,16 +172,7 @@ export function ShippingTemplatePage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopId, templateQuery.data, templateQuery.isPending, templateQuery.isError])
 
-    if (templateQuery.isError) {
-        return (
-            <StateError
-                message={toApiError(templateQuery.error).detail}
-                onRetry={templateQuery.onRetry}
-                retrying={templateQuery.isFetching}
-            />
-        )
-    }
-
+    // 失败已由全局默认的 throwOnError 交给路由错误页
     if (templateQuery.isPending) {
         return (
             <div className="mx-auto w-full max-w-narrow space-y-4">

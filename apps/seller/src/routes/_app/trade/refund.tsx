@@ -6,11 +6,9 @@ import {
     EmptyMedia,
     EmptyTitle,
     Skeleton,
-    StateError,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
 import { z } from "zod"
-import { toApiError } from "@shop/common"
 import { useState } from "react"
 
 import { AfterSaleDecisionDialog, type SaleDecisionKind } from "#/order/after-sale-decision-dialog"
@@ -68,7 +66,6 @@ function RefundPage() {
         total,
         busyId,
         handleTabChange,
-        onRetry,
         onPageChange,
         agreeAfterSale,
         rejectAfterSale,
@@ -94,13 +91,7 @@ function RefundPage() {
                 onChange={handleTabChange}
             />
 
-            {tickets.isError ? (
-                <StateError
-                    message={toApiError(tickets.error).detail}
-                    onRetry={onRetry}
-                    retrying={tickets.isFetching}
-                />
-            ) : tickets.isLoading ? (
+            {tickets.isLoading ? (
                 <div className="space-y-2">
                     {[0, 1, 2, 3].map((i) => (
                         <Skeleton

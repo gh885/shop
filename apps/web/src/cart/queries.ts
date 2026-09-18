@@ -47,6 +47,9 @@ const cartCountOptions = queryOptions({
         return res.total
     },
     staleTime: 30_000,
+    // 退出全局的「失败抛给错误边界」：这是页头里一个数字角标，头上没有边界。
+    // 让它抛等于「角标接口抖一下就把整页换掉」
+    throwOnError: false,
 })
 
 export function useCartCount() {

@@ -7,7 +7,6 @@ import {
     type Order,
 } from "#/order"
 import { outOfRangePage, parseOrdersSearch, type OrderTab } from "#/order/orders-search"
-import { toApiError } from "@shop/common"
 
 import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { noop, useQuery } from "@tanstack/react-query"
@@ -29,7 +28,6 @@ import {
     PaginationLink,
     PaginationPrevious,
     PaginationNext,
-    StateError,
 } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/orders/")({
@@ -65,9 +63,7 @@ function OrdersPage() {
     const setTab = (tab: OrderTab) => void navigate({ search: { tab, page: 1 } })
     const setPage = (page: number) => void navigate({ search: { tab: search.tab, page } })
 
-    const { data, isLoading, isError, error, isFetching, refetch } = useQuery(
-        myOrdersOptions({ status: search.tab, page: search.page }),
-    )
+    const { data, isLoading } = useQuery(myOrdersOptions({ status: search.tab, page: search.page }))
     const [cancelTarget, setCancelTarget] = useState<Order | undefined>()
     const { handleAction, pendingAction, cancel } = useOrderActions(setCancelTarget)
 
@@ -117,12 +113,6 @@ function OrdersPage() {
                         />
                     ))}
                 </div>
-            ) : isError ? (
-                <StateError
-                    message={toApiError(error).detail}
-                    onRetry={() => void refetch()}
-                    retrying={isFetching}
-                />
             ) : orders.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>

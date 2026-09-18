@@ -43,7 +43,7 @@ export const Route = createFileRoute("/products/$id")({
     loader: async ({ context, params }) => {
         let detail: ProductDetail
         try {
-            // ensureQueryData 已废弃：query({ ..., staleTime: "static" }) 等价（有缓存即返回，不重复拉）
+            // 有缓存即返回、没有才取数（query + staleTime: "static" 是官方给 ensureQueryData 的替代口径）
             detail = await context.queryClient.query({
                 ...productDetailOptions(params.id),
                 staleTime: "static",

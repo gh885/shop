@@ -11,7 +11,6 @@ export { type Address } from "./address"
 
 export {
     addressListOptions,
-    useAddressList,
     useDeleteAddress,
     useSetDefaultAddress,
     useUnsetDefaultAddress,

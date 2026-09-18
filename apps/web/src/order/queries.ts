@@ -57,6 +57,8 @@ export const myOrdersOptions = ({
         staleTime: 30_000,
         // 切 Tab/翻页时保留上一份数据展示（isPlaceholderData），不重放 Skeleton
         placeholderData: (prev) => prev,
+        // 列表带 placeholderData（不能走 suspense），失败交给路由错误页——全局默认 throwOnError 已按
+        // 「一条数据都没有才抛」判据工作：切页签失败不会把上一页内容也换掉
     })
 }
 

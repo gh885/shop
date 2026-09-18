@@ -95,4 +95,6 @@ export const reviewListOptions = (input: {
         queryFn: () => adminApi.listReviews(input),
         // 服务端分页/筛选时保留上一份数据，避免每次翻页都闪整表加载态
         placeholderData: (prev) => prev,
+        // 带 placeholderData（不能走 suspense），失败冒到路由错误页（全局默认的官方判据：
+        // 只在「一条数据都没有」时抛，翻页失败不会把已有表格换掉）
     })

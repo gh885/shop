@@ -36,6 +36,9 @@ export const afterSaleOptions = (orderId: string) =>
         },
         staleTime: 30_000,
         retry: false,
+        // 售后卡是订单详情的附属件（见页面注释：失败就不画卡，与「从未申请过」同一呈现）。
+        // 退出全局的「失败抛给错误边界」：它头上没有 QueryBoundary，抛出去会把整张订单详情页换掉
+        throwOnError: false,
     })
 
 // ---------- 写操作（申请 / 撤销 / 回寄），纯 fetch 便于断言投影 ----------

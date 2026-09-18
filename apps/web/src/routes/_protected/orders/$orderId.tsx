@@ -20,30 +20,62 @@ import {
     type AfterSaleAction,
 } from "#/order"
 import { notify } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
 import { Card, CardContent, ConfirmDialog, Skeleton } from "@shop/ui-web"
-import { noop, useQuery } from "@tanstack/react-query"
+import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/orders/$orderId")({
-    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
-    // 详情 + 售后单一起预取（页面本来就并行拉这两路），hover/导航先拉好缓存，组件挂载即命中。
-    // query() 失败会 reject —— 预热而已，吞掉；404/失败仍由组件侧的就地错误态（notFound / 骨架）处理。
-    loader: ({ context, params }) => {
+    /**
+     * 数据在 loader 里读完再渲染（官方的 loader-as-data-source），页面组件不再有加载/错误分支：
+     * - 404 → `notFound()`：走 Router 的「不存在」语义，而不是「加载失败」；
+     * - 其它错误 → 抛出，由路由级 errorComponent 渲染错误页 + 官方双 reset 重试；
+     * - 挂起 → `pendingComponent`（Router 会给该 match 套 Suspense，见 Match.js 的 pendingElement）；
+     * - SSR 阶段服务端拿不到 token（见 _protected/route.tsx），直接跳过，由客户端补；
+     *   hover intent 预取命中时 loader 直接读缓存，导航不阻塞。
+     */
+    loader: async ({ context, params }) => {
         if (import.meta.env.SSR) return
-        void context.queryClient.query(orderDetailOptions(params.orderId)).catch(noop)
-        void context.queryClient.query(afterSaleOptions(params.orderId)).catch(noop)
+        await context.queryClient
+            .query({ ...orderDetailOptions(params.orderId), staleTime: "static" })
+            .catch((error: unknown) => {
+                if (toApiError(error).status === 404) throw notFound()
+                throw error
+            })
+        // 售后单是详情页的附属件：预取失败不挡整页（「从未申请过售后」后端给 404，已在 queryFn 归零为 null）
+        void context.queryClient
+            .query({ ...afterSaleOptions(params.orderId), staleTime: "static" })
+            .catch(noop)
     },
+    pendingComponent: OrderDetailSkeleton,
     component: OrderDetailPage,
     head: () => ({
         meta: [{ title: "订单详情 - Shop" }],
     }),
 })
 
+/** 挂起占位：与真实结构同形（页头 + 两张卡），避免加载完成时跳版 */
+function OrderDetailSkeleton() {
+    return (
+        <div className="flex flex-1 flex-col">
+            <AccountHeader
+                title="订单详情"
+                widthClass="max-w-narrow"
+            />
+            <div className="narrow-page space-y-8">
+                <Skeleton className="h-24 w-full rounded-xl" />
+                <Skeleton className="h-64 w-full rounded-xl" />
+            </div>
+        </div>
+    )
+}
+
 /** 订单详情页：独立页面（不走 account 侧边栏布局），左进度/状态/售后/商品，右侧信息卡。
- * 受保护路由，挂载时必已登录；数据由 route loader 在客户端预热（SSR 跳过），组件 useQuery 读同一缓存。 */
+ * 受保护路由，挂载时必已登录；详情在 loader 读完（见上），组件用 suspense 读同一份缓存。 */
 function OrderDetailPage() {
     const { orderId } = Route.useParams()
-    const { data: order, isLoading, isError } = useQuery(orderDetailOptions(orderId))
+    const order = useSuspenseQuery(orderDetailOptions(orderId)).data
     // 售后单与订单详情并行拉取：售后卡是订单的一部分，没必要等订单回来再串行请求
+    // （附属件，故非 suspense：失败就不画卡，与「从未申请过」同一呈现）
     const afterSale = useQuery(afterSaleOptions(orderId))
     const cancelAfterSale = useCancelAfterSale(orderId)
     const navigate = useNavigate()
@@ -70,22 +102,6 @@ function OrderDetailPage() {
         if (action === "cancel") return setCancelSaleOpen(true)
         if (action === "return") return setReturnOpen(true)
         void navigate({ to: "/logistics/$orderId", params: { orderId } })
-    }
-
-    if (isError) throw notFound()
-    if (isLoading || !order) {
-        return (
-            <div className="flex flex-1 flex-col">
-                <AccountHeader
-                    title="订单详情"
-                    widthClass="max-w-narrow"
-                />
-                <div className="narrow-page space-y-8">
-                    <Skeleton className="h-24 w-full rounded-xl" />
-                    <Skeleton className="h-64 w-full rounded-xl" />
-                </div>
-            </div>
-        )
     }
 
     return (

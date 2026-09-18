@@ -1,8 +1,9 @@
-import { Suspense } from "react"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { Skeleton } from "@shop/ui-web"
+import { QueryBoundary } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
+import { Skeleton, StateError } from "@shop/ui-web"
 
 import {
     bannersOptions,
@@ -87,21 +88,11 @@ function Home() {
                 </div>
             </section>
             <RecommendBar />
-            {/* 商品流流式边界：loader 未预热，useSuspenseQuery 在此挂起，SSR 吐骨架、resolve 后流式补全 */}
-            <Suspense
-                fallback={
-                    <section className="feed-section">
-                        <div className="grid-feed">
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <Skeleton
-                                    key={i}
-                                    // 骨架高度对齐商品卡（正方形图 + 92px 信息区）的整卡比例，避免加载完跳版
-                                    className="aspect-5/7 w-full rounded-lg"
-                                />
-                            ))}
-                        </div>
-                    </section>
-                }
+            {/* 商品流流式边界：loader 未预热，useSuspenseQuery 在此挂起，SSR 吐骨架、resolve 后流式补全。
+                失败也收敛在这一块（QueryBoundary 的官方重置链路），不再冒到根错误页把整页换掉 */}
+            <QueryBoundary
+                pending={<FeedSkeleton />}
+                fallback={feedErrorFallback}
             >
                 <section className="feed-section">
                     <div className="grid-feed">
@@ -113,7 +104,35 @@ function Home() {
                         ))}
                     </div>
                 </section>
-            </Suspense>
+            </QueryBoundary>
         </>
+    )
+}
+
+/** 商品流挂起占位：骨架高度对齐商品卡（正方形图 + 92px 信息区）的整卡比例，避免加载完跳版 */
+function FeedSkeleton() {
+    return (
+        <section className="feed-section">
+            <div className="grid-feed">
+                {Array.from({ length: 12 }, (_, i) => (
+                    <Skeleton
+                        key={i}
+                        className="aspect-5/7 w-full rounded-lg"
+                    />
+                ))}
+            </div>
+        </section>
+    )
+}
+
+/** 商品流失败态渲染函数（模块作用域：内联箭头会让每次渲染都新建一个组件） */
+function feedErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+    return (
+        <section className="feed-section">
+            <StateError
+                message={toApiError(error).detail || "商品流加载失败，请重试。"}
+                onRetry={reset}
+            />
+        </section>
     )
 }

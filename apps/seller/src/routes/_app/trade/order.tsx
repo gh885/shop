@@ -6,11 +6,9 @@ import {
     EmptyMedia,
     EmptyTitle,
     Skeleton,
-    StateError,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
 import { z } from "zod"
-import { toApiError } from "@shop/common"
 
 import { OrderTable, type OrderIdentity } from "#/order/list/table"
 import { OrderFilterBar } from "#/order/list/filter"
@@ -53,7 +51,6 @@ function OrdersPage() {
         total,
         busyId,
         handleFilterChange,
-        onRetry,
         onPageChange,
         ship,
         agreeAfterSale,
@@ -78,13 +75,7 @@ function OrdersPage() {
                 onChange={handleFilterChange}
             />
 
-            {orders.isError ? (
-                <StateError
-                    message={toApiError(orders.error).detail}
-                    onRetry={onRetry}
-                    retrying={orders.isFetching}
-                />
-            ) : orders.isLoading ? (
+            {orders.isLoading ? (
                 <div className="space-y-2">
                     {[0, 1, 2, 3].map((i) => (
                         <Skeleton

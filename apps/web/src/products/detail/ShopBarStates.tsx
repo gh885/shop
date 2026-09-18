@@ -33,16 +33,17 @@ export function ShopBarSkeleton() {
  * 失败：内联一行错误 + 重试。
  * 不用 ui-web 的 `StateError` —— 那是给整块内容区的（`py-16` 的空态卡），
  * 塞进 54px 高的店条会把页面撑变形。整块内容区的失败态（推荐流）才用它。
+ *
+ * 没有 `retrying` 态：重试由 `QueryBoundary` 的官方 reset 驱动 —— 点下去本区块即卸载、
+ * 由 `pending` 骨架接管，不需要按钮自己转圈。
  */
 export function ShopBarError({
     message,
     onRetry,
-    retrying,
 }: {
     /** 已归一化的错误描述（调用方用 `toApiError(error).detail` 传入） */
     message: string
     onRetry: () => void
-    retrying: boolean
 }) {
     return (
         <div
@@ -62,10 +63,9 @@ export function ShopBarError({
                 variant="outline"
                 size="sm"
                 shape="pill"
-                disabled={retrying}
                 onClick={onRetry}
             >
-                {retrying ? "重试中…" : "重试"}
+                重试
             </Button>
         </div>
     )

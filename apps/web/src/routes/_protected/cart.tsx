@@ -14,19 +14,51 @@ import {
 import { ShopGroupCard, Settlement, Toolbar, groupByShop, cartItemsOptions } from "#/cart"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
-import { noop, useQuery } from "@tanstack/react-query"
+import { useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/cart")({
-    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
-    // hover intent / 客户端导航先把缓存拉好，组件 useQuery 命中即渲染，不再闪骨架。
-    // query() 失败会 reject —— 预热而已，吞掉；错误仍由组件侧的就地错误态处理。
-    loader: ({ context }) => {
+    /**
+     * 数据在 loader 里读完再渲染（官方 loader-as-data-source）：
+     * 挂起 → `pendingComponent`，失败 → 路由错误页 + 官方重置重试；SSR 阶段服务端拿不到 token，直接跳过。
+     * hover intent 预取命中时 loader 直接读缓存，导航不阻塞。
+     */
+    loader: async ({ context }) => {
         if (import.meta.env.SSR) return
-        void context.queryClient.query(cartItemsOptions).catch(noop)
+        await context.queryClient.query({ ...cartItemsOptions, staleTime: "static" })
     },
+    pendingComponent: CartSkeleton,
     component: CartPage,
     head: () => ({ meta: [{ title: "购物车 - Shop" }] }),
 })
+
+/** 挂起占位：按分组卡片形状占位（头部行 + 两行商品），避免加载完成时跳版 */
+function CartSkeleton() {
+    return (
+        <>
+            <SearchHeader title="购物车" />
+            <div className="mx-auto w-full max-w-page px-6 pb-10">
+                <div className="space-y-4">
+                    {[0, 1].map((g) => (
+                        <div
+                            key={g}
+                            className="overflow-hidden rounded-xl border border-border/60"
+                        >
+                            <Skeleton className="h-12 rounded-none" />
+                            <div className="space-y-px">
+                                {[0, 1].map((r) => (
+                                    <Skeleton
+                                        key={r}
+                                        className="h-20 rounded-none"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </>
+    )
+}
 
 function CartPage() {
     // 登录守卫由 _protected layout 统一负责（beforeLoad 裁决 + authed 后才渲染子路由）
@@ -43,32 +75,9 @@ function CartPage() {
 
 function CartList() {
     const navigate = useNavigate()
-    const { data: items, isPending } = useQuery(cartItemsOptions)
-    const groups = groupByShop(items ?? [])
-    if (isPending) {
-        // 首次加载：按分组卡片形状占位（头部行 + 两行商品）
-        return (
-            <div className="space-y-4">
-                {[0, 1].map((g) => (
-                    <div
-                        key={g}
-                        className="overflow-hidden rounded-xl border border-border/60"
-                    >
-                        <Skeleton className="h-12 rounded-none" />
-                        <div className="space-y-px">
-                            {[0, 1].map((r) => (
-                                <Skeleton
-                                    /* eslint-disable-next-line react/no-array-index-key */
-                                    key={r}
-                                    className="h-20 rounded-none"
-                                />
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        )
-    }
+    // 主体数据由 loader 读完（失败已由路由错误页接管），这里只读缓存
+    const items = useSuspenseQuery(cartItemsOptions).data
+    const groups = groupByShop(items)
     if (groups.length === 0) {
         return (
             <Empty className="py-16">

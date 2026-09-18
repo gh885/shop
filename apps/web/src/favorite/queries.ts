@@ -60,6 +60,9 @@ const favoritedOptions = (productId: string) =>
             return res.productIds.includes(productId)
         },
         staleTime: 30_000,
+        // 退出全局的「失败抛给错误边界」：心形是详情页上的一个按钮，读不到就按未收藏渲染
+        // （调用方 `const { data: favorited = false }`）。抛出去会把商品详情整页换成错误页
+        throwOnError: false,
     })
 
 /** 该商品是否已收藏：详情页心形状态用；未登录不发请求（公开详情页可匿名访问） */

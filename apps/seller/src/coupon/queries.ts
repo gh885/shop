@@ -1,4 +1,4 @@
-import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery } from "@tanstack/react-query"
 
 import { SellerCouponsApi, type CreateCouponTemplateRequest } from "@shop/api/sdk"
 
@@ -30,16 +30,12 @@ const couponListOptions = (shopId: string, search: CouponListSearch) =>
             }),
         // 翻页时保留上一页数据，避免整表闪成骨架屏
         placeholderData: (prev) => prev,
+        // 带 placeholderData（不能走 suspense），失败冒到路由错误页由全局默认接管
     })
 
 /** 本店券模板分页列表 */
 export function useCouponList(shopId: string, search: CouponListSearch) {
-    const queryClient = useQueryClient()
-    return {
-        ...useQuery(couponListOptions(shopId, search)),
-        /** 错误态重试：与建券/停券同一条失效入口 */
-        onRetry: () => void queryClient.invalidateQueries({ queryKey: couponKeys.lists(shopId) }),
-    }
+    return useQuery(couponListOptions(shopId, search))
 }
 
 /** 新建券：成功后失效本店列表（新建的券总在按创建时间倒序的第一页） */

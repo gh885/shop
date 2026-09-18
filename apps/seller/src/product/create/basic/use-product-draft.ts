@@ -94,7 +94,7 @@ export function useProductDraft({
     const [hydrated, setHydrated] = useState(false)
     const [hydratedBasic, setHydratedBasic] = useState<ProductBasicForm | undefined>()
     /** 类目销售属性模板：前端本地算 SKU 组合用（完全显式模式，无需后端生成）；失败静默，组合留空 */
-    const { template } = useCategorySpecTemplate(categoryId)
+    const template = useCategorySpecTemplate(categoryId).data
     /** 商品 id（编辑已有商品进入即有；新建保存后回写） */
     const productRef = useRef(productId)
     /** 本会话内点保存创建（非续编）：表单即真相源，回填/值不应被 productDetail 回灌 reset */

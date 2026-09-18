@@ -87,8 +87,6 @@ export function useProductList(shopId: string, search: ProductListSearch) {
          * 且把「这个弹窗改了列表数据」这件事绑在父组件的 query 实例上，失效范围会随列表结构漂移。
          */
         handleSaved: invalidate,
-        /** 错误态重试：与 mutation 后的同步同一条失效入口（重试 = 这份缓存不再可信） */
-        onRetry: invalidate,
         onPageChange: (page: number) => apply({ page }),
         onSortChange: (sort: ProductSort) => apply({ sort }),
     }

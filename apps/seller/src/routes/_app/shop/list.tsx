@@ -2,7 +2,6 @@ import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop
 import { SHOP_STATUS_VARIANT, SHOP_STATUS_TEXT } from "#/shop/constants"
 import { setCurrentShopId } from "#/shop"
 import { formatDate, useWriteMutation } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
@@ -10,7 +9,6 @@ import { Store, MailPlus, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
 import { notify } from "@shop/app-kit"
 import {
-    StateError,
     Skeleton,
     Empty,
     Badge,
@@ -50,16 +48,7 @@ function ShopsPage() {
     const shops = useMyShops()
     const current = useCurrentShop()
 
-    if (shops.isError) {
-        return (
-            <StateError
-                message={toApiError(shops.error).detail}
-                onRetry={shops.onRetry}
-                retrying={shops.isFetching}
-            />
-        )
-    }
-
+    // 失败已由全局默认的 throwOnError 交给路由错误页（官方边界 + 重置重试）
     return (
         <div className="mx-auto w-full max-w-3xl space-y-8">
             <div>

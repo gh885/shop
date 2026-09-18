@@ -93,9 +93,10 @@ export function EditSkuLineDialog({
 
     // 详情走 query：与发布页回填同一份缓存（productKeys.detail）。
     // 关着弹窗、或没有 productId 时 skipToken 直接不发请求；打开即命中缓存（若发布页刚填过则零请求）。
-    // 变量名用 data 而非 detail：下面对它做 undefined 判定（渲染 loading 分支）时，
+    // 失败**不抛**（弹窗是列表页上的一个操作口，炸到路由会把整张列表换掉）：就地渲染错误态并用官方
+    // `refetch()` 重试。变量名用 data 而非 detail：下面对它做 undefined 判定（渲染 loading 分支）时，
     // tsgolint 只认 `data === undefined` 这种能收窄 UseQueryResult 的写法
-    const { data, isPending, isError, error, onRetry, isFetching } = useProductDetail(
+    const { data, isPending, isError, error, isFetching, refetch } = useProductDetail(
         open ? productId : undefined,
     )
 
@@ -197,7 +198,7 @@ export function EditSkuLineDialog({
                     {isError ? (
                         <StateError
                             message={toApiError(error).detail}
-                            onRetry={onRetry}
+                            onRetry={() => void refetch()}
                             retrying={isFetching}
                         />
                     ) : isPending ? (

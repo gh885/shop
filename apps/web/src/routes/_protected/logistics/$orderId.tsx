@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft, CircleAlert } from "lucide-react"
+import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
 import { AccountHeader } from "#/account"
 import {
@@ -12,9 +13,7 @@ import {
     orderTrackingOptions,
 } from "#/logistics"
 import { orderDetailOptions } from "#/order"
-import { toApiError } from "@shop/common"
 import {
-    Button,
     Empty,
     EmptyDescription,
     EmptyHeader,
@@ -22,46 +21,71 @@ import {
     EmptyTitle,
     Skeleton,
 } from "@shop/ui-web"
-import { noop, useQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/logistics/$orderId")({
-    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
-    // 轨迹 + 订单详情两路一起预取（页面本来就并行拉这两路）。query() 失败会 reject ——
-    // 预热而已，吞掉；「未发货 404」等语义仍由组件侧的就地状态处理。
-    loader: ({ context, params }) => {
+    /**
+     * 数据在 loader 里读完再渲染（官方 loader-as-data-source）：
+     * - 轨迹是页面主体 → 预取后失败抛出 → 路由错误页 + 官方重置重试；
+     *   「未发货」已由 queryFn 归零为 null，不走错误态；
+     * - 订单详情是降级数据（少它只少两条商家侧事件与一行收货信息）→ 预热即可，失败吞掉；
+     * - 挂起 → `pendingComponent`；SSR 阶段服务端拿不到 token，直接跳过。
+     */
+    loader: async ({ context, params }) => {
         if (import.meta.env.SSR) return
-        void context.queryClient.query(orderTrackingOptions(params.orderId)).catch(noop)
-        void context.queryClient.query(orderDetailOptions(params.orderId)).catch(noop)
+        await context.queryClient.query({
+            ...orderTrackingOptions(params.orderId),
+            staleTime: "static",
+        })
+        void context.queryClient
+            .query({ ...orderDetailOptions(params.orderId), staleTime: "static" })
+            .catch(noop)
     },
+    pendingComponent: LogisticsSkeleton,
     component: LogisticsPage,
     head: () => ({
         meta: [{ title: "物流详情 - Shop" }],
     }),
 })
 
+/** 挂起占位：与真实结构同形（页头 + 摘要卡 + 轨迹轴） */
+function LogisticsSkeleton() {
+    return (
+        <div className="flex flex-1 flex-col">
+            <AccountHeader
+                title="物流详情"
+                widthClass="max-w-narrow"
+            />
+            <div className="narrow-page space-y-6">
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-64 w-full rounded-lg" />
+            </div>
+        </div>
+    )
+}
+
 /**
  * 物流详情页（独立页，与订单详情同族页头）。
  *
- * 数据两路：轨迹（本模块）+ 订单详情（只借三样东西——收货地址、主图、下单/发货时刻）。
+ * 数据两路：轨迹（本模块，页面主体）+ 订单详情（只借三样东西——收货地址、主图、下单/发货时刻）。
  * 订单侧事件由 buildShipmentTracks 并进首个正向包裹的轴尾，页面只负责拼块。
  */
-// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染（加载/轨迹失败/未发货/数据）是受保护页的刻意结构，数据派生（tracks/primary/fullAddress）已扁平；拆分需传 6+ props 的宽接口
 function LogisticsPage() {
     const { orderId } = Route.useParams()
-    const tracking = useQuery(orderTrackingOptions(orderId))
-    const detail = useQuery(orderDetailOptions(orderId))
+    // 主体数据：loader 已读完（404 归零为 null = 「暂无物流信息」），失败已由路由错误页接管
+    const tracking = useSuspenseQuery(orderTrackingOptions(orderId)).data
+    // 降级数据：非 suspense，拿不到就少画那几块，不连累轨迹。
+    // 必须在调用点退出全局默认：orderDetailOptions 的另一个消费者是订单详情页的
+    // useSuspenseQuery（那处要抛给路由错误页，而 suspense 变体会忽略 options 里的 throwOnError），
+    // 所以「这份数据在这里只是降级」的决定属于本页，不属于 options
+    const detail = useQuery({ ...orderDetailOptions(orderId), throwOnError: false })
 
     const order = detail.data
-    const tracks = buildShipmentTracks(tracking.data?.shipments ?? [], order)
+    const tracks = buildShipmentTracks(tracking?.shipments ?? [], order)
     // 摘要卡口径 = 首个正向包裹（与订单列表里那条物流摘要同源）
     const primary = tracks.find((track) => track.direction === "FORWARD") ?? tracks[0]
     const fullAddress = order
         ? `${order.receiverProvince}${order.receiverCity}${order.receiverDistrict}${order.receiverDetail}`
         : ""
-
-    const loading = tracking.isLoading || detail.isLoading
-    // 未发货不是错误：后端 404 是「还没有物流」的正常语义，只有其它错误才算加载失败
-    const notShipped = tracking.isError && toApiError(tracking.error).status === 404
 
     return (
         <div className="flex flex-1 flex-col">
@@ -80,30 +104,8 @@ function LogisticsPage() {
                     返回订单详情
                 </Link>
 
-                {/* 只有轨迹失败才拦整页：订单详情挂了就降级（少两条商家侧事件、少一行收货信息），不连累轨迹 */}
-                {loading ? (
-                    <div className="space-y-6">
-                        <Skeleton className="h-24 w-full rounded-lg" />
-                        <Skeleton className="h-64 w-full rounded-lg" />
-                    </div>
-                ) : tracking.isError && !notShipped ? (
-                    <Empty className="py-16">
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <CircleAlert />
-                            </EmptyMedia>
-                            <EmptyTitle>加载失败</EmptyTitle>
-                            <EmptyDescription>请稍后重试或刷新页面。</EmptyDescription>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => void tracking.refetch()}
-                            >
-                                重新加载
-                            </Button>
-                        </EmptyHeader>
-                    </Empty>
-                ) : notShipped || !primary ? (
+                {/* 没有轨迹 = 未发货（404 已在数据层归零为 null）：这不是错误，给「暂无物流信息」 */}
+                {primary === undefined ? (
                     <Empty className="py-16">
                         <EmptyHeader>
                             <EmptyMedia variant="icon">

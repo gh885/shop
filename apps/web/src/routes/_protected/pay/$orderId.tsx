@@ -1,29 +1,53 @@
 import { useCreatePayment, useConfirmPayment } from "#/checkout"
 import { orderDetailOptions } from "#/order"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { Wallet, CheckCircle2 } from "lucide-react"
+
+import { toApiError } from "@shop/common"
 import { Card, CardContent, Spinner, Button } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
 
 export const Route = createFileRoute("/_protected/pay/$orderId")({
+    /**
+     * 订单详情在 loader 读完再渲染（收银台不能拿一份可能过期的金额去收钱）：
+     * 404 走 `notFound()`，其它错误 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
+     */
+    loader: async ({ context, params }) => {
+        if (import.meta.env.SSR) return
+        await context.queryClient
+            .query({ ...orderDetailOptions(params.orderId), staleTime: "static" })
+            .catch((error: unknown) => {
+                if (toApiError(error).status === 404) throw notFound()
+                throw error
+            })
+    },
+    pendingComponent: PaySkeleton,
     component: PayPage,
     head: () => ({ meta: [{ title: "收银台 - Shop" }] }),
 })
 
+/** 挂起占位：与收银台同形的居中卡片 */
+function PaySkeleton() {
+    return (
+        <div className="flex min-h-page-center flex-col items-center justify-center px-6">
+            <Card className="w-full max-w-md text-center">
+                <CardContent>
+                    <Spinner className="mx-auto size-12 text-primary" />
+                    <h2 className="mt-4 text-lg font-semibold text-foreground">正在加载订单…</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">请稍候。</p>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
 /**
- * 收银台阶段：detail-loading → ready → paying → success / confirm-error / create-error / detail-error
- * （收银台状态机，渲染分支与之一一对应）
+ * 收银台阶段：ready → paying → success / confirm-error / create-error
+ * （**订单详情本身的挂起与失败不再进状态机**：挂起由 `pendingComponent`、失败由路由错误页接管）
  */
-type PayPhase =
-    | "detail-loading"
-    | "detail-error"
-    | "ready"
-    | "paying"
-    | "success"
-    | "confirm-error"
-    | "create-error"
+type PayPhase = "ready" | "paying" | "success" | "confirm-error" | "create-error"
 
 /**
  * 收银台：V1 两段式（发起→确认），由用户一次点按串联 —— 「确认支付」先创建 PENDING 流水、
@@ -34,7 +58,8 @@ type PayPhase =
 function PayPage() {
     const navigate = useNavigate()
     const { orderId } = Route.useParams()
-    const order = useQuery(orderDetailOptions(orderId))
+    // 订单详情由 loader 读完（挂起/失败不再进状态机）
+    const order = useSuspenseQuery(orderDetailOptions(orderId)).data
     const create = useCreatePayment()
     const confirm = useConfirmPayment()
 
@@ -46,33 +71,29 @@ function PayPage() {
     const goDetail = () => void navigate({ to: "/orders/$orderId", params: { orderId } })
 
     const paying = create.isPending || confirm.isPending
-    // 已确认成功 / 确认失败 / 发起失败 / 订单详情失败 / 支付中 / 待点按（收银台状态机，渲染分支与之一一对应）
+    // 已确认成功 / 确认失败 / 发起失败 / 支付中 / 待点按（收银台状态机，渲染分支与之一一对应）
     const phase: PayPhase = confirm.isSuccess
         ? "success"
         : confirm.isError
           ? "confirm-error"
           : create.isError
             ? "create-error"
-            : order.isError
-              ? "detail-error"
-              : paying
-                ? "paying"
-                : order.data
-                  ? "ready"
-                  : "detail-loading"
+            : paying
+              ? "paying"
+              : "ready"
 
-    // 金额恒由后端按订单投影给出（Money 的 amount 非空），故只对可能不存在的订单做可选链
-    const amount = order.data?.payAmount.amount
+    // 金额恒由后端按订单投影给出（Money 的 amount 非空）
+    const amount = order.payAmount.amount
 
     return (
         <div className="flex min-h-page-center flex-col items-center justify-center px-6">
             <Card className="w-full max-w-md text-center">
                 <CardContent>
-                    {(phase === "detail-loading" || phase === "paying") && (
+                    {phase === "paying" && (
                         <>
                             <Spinner className="mx-auto size-12 text-primary" />
                             <h2 className="mt-4 text-lg font-semibold text-foreground">
-                                {phase === "detail-loading" ? "正在加载订单…" : "正在支付…"}
+                                正在支付…
                             </h2>
                             <p className="mt-2 text-sm text-muted-foreground">请稍候。</p>
                         </>
@@ -83,14 +104,12 @@ function PayPage() {
                             <Wallet className="mx-auto size-12 text-primary" />
                             <h2 className="mt-4 text-lg font-semibold text-foreground">收银台</h2>
                             <p className="mt-2 text-sm text-muted-foreground">
-                                订单号 {order.data?.orderNo}
+                                订单号 {order.orderNo}
                             </p>
-                            {amount !== undefined && (
-                                <Price
-                                    value={amount}
-                                    className="mt-4 text-4xl font-bold text-foreground"
-                                />
-                            )}
+                            <Price
+                                value={amount}
+                                className="mt-4 text-4xl font-bold text-foreground"
+                            />
                             <p className="mt-2 text-xs text-muted-foreground">
                                 模拟支付通道（MOCK），点击下方按钮确认支付
                             </p>
@@ -185,32 +204,6 @@ function PayPage() {
                                     onClick={goDetail}
                                 >
                                     查看订单详情
-                                </Button>
-                            </div>
-                        </>
-                    )}
-
-                    {phase === "detail-error" && (
-                        <>
-                            <h2 className="text-lg font-semibold text-destructive">订单加载失败</h2>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                                请重试或前往订单列表查看。
-                            </p>
-                            <div className="mt-6 flex flex-col gap-3">
-                                <Button
-                                    variant="cta"
-                                    className="h-11 w-full"
-                                    disabled={order.isFetching}
-                                    onClick={() => void order.refetch()}
-                                >
-                                    重新加载
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="h-11 w-full"
-                                    onClick={goOrders}
-                                >
-                                    返回我的订单
                                 </Button>
                             </div>
                         </>

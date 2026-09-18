@@ -1,7 +1,5 @@
 import { Store, Trash2, UserPlus } from "lucide-react"
 
-import { toApiError } from "@shop/common"
-
 import { useShop, shopKeys, useMyShopMembers } from "#/shop"
 import { useMe } from "#/shared/lib/me"
 import { ShopsApi } from "@shop/api/sdk"
@@ -16,7 +14,6 @@ import {
     EmptyTitle,
     EmptyDescription,
     useAppForm,
-    StateError,
     Skeleton,
     Card,
     CardHeader,
@@ -86,16 +83,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     // 移除二次确认：记录目标成员，确认后才真正执行
     const [removeTarget, setRemoveTarget] = useState<string | undefined>()
 
-    if (members.isError) {
-        return (
-            <StateError
-                message={toApiError(members.error).detail}
-                onRetry={members.onRetry}
-                retrying={members.isFetching}
-            />
-        )
-    }
-
+    // 失败已由全局默认的 throwOnError 交给路由错误页
     if (members.isLoading) {
         return (
             <div className="space-y-2">

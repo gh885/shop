@@ -1,4 +1,4 @@
-import { useAddressList, type Address } from "#/address"
+import { addressListOptions, type Address } from "#/address"
 import {
     CouponPicker,
     GroupAmountSentence,
@@ -12,7 +12,7 @@ import {
 } from "#/checkout"
 import { fenToYuan } from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
 import { notify } from "@shop/app-kit"
@@ -60,14 +60,41 @@ export const Route = createFileRoute("/_protected/checkout")({
     // 结算来源：一组 skuId + 件数，购物车勾选与立即购买在入口处归约成同一形状
     validateSearch: (search: Record<string, unknown>): CheckoutSource =>
         checkoutSearchSchema.parse(search),
+    /**
+     * 地址列表是页面主体（没有收货地址就没法提交）→ loader 读完再渲染；
+     * 预览依赖地址与选券的**本地状态**，不能进 loader，仍由组件侧 query 读取（带 enabled + placeholderData）。
+     * 挂起 → pendingComponent，失败 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
+     */
+    loader: async ({ context }) => {
+        if (import.meta.env.SSR) return
+        await context.queryClient.query({ ...addressListOptions, staleTime: "static" })
+    },
+    pendingComponent: CheckoutSkeleton,
     component: CheckoutPage,
     head: () => ({ meta: [{ title: "结算 - Shop" }] }),
 })
 
+/** 挂起占位：与结算页同形（地址卡 + 商品分组 + 右栏金额） */
+function CheckoutSkeleton() {
+    return (
+        <div className="mx-auto w-full max-w-page px-6 py-6">
+            <Skeleton className="h-8 w-40" />
+            <div className="mt-6 flex gap-6">
+                <div className="flex-1 space-y-4">
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-40 w-full rounded-xl" />
+                </div>
+                <Skeleton className="h-40 w-80 rounded-xl" />
+            </div>
+        </div>
+    )
+}
+
 function CheckoutPage() {
     const navigate = useNavigate()
     const source = Route.useSearch()
-    const { data: addresses } = useAddressList()
+    // 地址由 loader 读完（失败已由路由错误页接管）
+    const addresses = useSuspenseQuery(addressListOptions).data
     const createOrder = useCreateOrder()
 
     const [addressId, setAddressId] = useState("")
@@ -75,7 +102,7 @@ function CheckoutPage() {
     // 没表态的店由下面的 effect 补默认值——「未表态」与「选了不用」必须能分开，否则默认选券会覆盖用户。
     const [couponSelection, setCouponSelection] = useState<CouponSelection>({})
     // 默认选中：已勾选的，否则默认地址，兜底第一条——提交/预览都可用
-    const defaultAddress = addresses?.find((a) => a.isDefault) ?? addresses?.[0]
+    const defaultAddress = addresses.find((a) => a.isDefault) ?? addresses[0]
     const effectiveAddressId = addressId || defaultAddress?.id || ""
     const preview = useQuery(
         checkoutPreviewOptions({

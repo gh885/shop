@@ -1,4 +1,5 @@
 import { Headphones, Store } from "lucide-react"
+import { useSuspenseQuery } from "@tanstack/react-query"
 
 import {
     Avatar,
@@ -10,35 +11,44 @@ import {
     TooltipTrigger,
 } from "@shop/ui-web"
 
-import { notify } from "@shop/app-kit"
+import { notify, QueryBoundary } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 
 import { ShopCouponPopover } from "#/coupon"
 
 import { ShopBarError, ShopBarSkeleton } from "./ShopBarStates"
-import { useShopQuery } from "./queries"
+import { shopOptions } from "./queries"
 
 /**
  * 详情页顶部店铺条：头像 + 店名，右侧客服/进店（对齐参考图第一行）。
  *
- * 三态在这里收敛（见 ShopBarStates.tsx）：失败 → 内联错误 + 重试；未就绪 → 同形骨架；
+ * 三态交给框架：挂起 → `pending` 同形骨架；失败 → 块级错误 + 重试（官方 reset 链路）；
  * 成功 → 内容（其中「no logo」是成功态下的展示降级，退店名首字字母头像）。
+ * 店条是**区块**（详情失败才致命，店条失败只该影响这一条），所以用 `QueryBoundary` 而不是路由错误页。
  */
 export function ShopBar({ shopId }: { shopId: string }) {
-    const { data: shop, isError, error, onRetry, isFetching } = useShopQuery(shopId)
+    return (
+        <QueryBoundary
+            pending={<ShopBarSkeleton />}
+            fallback={shopBarErrorFallback}
+        >
+            <ShopBarContent shopId={shopId} />
+        </QueryBoundary>
+    )
+}
 
-    // 先判失败：失败时 data 可能为空，落到下面的骨架分支就永远转下去了（这是本次要修的坑）
-    if (isError) {
-        return (
-            <ShopBarError
-                message={toApiError(error).detail || "店铺信息加载失败"}
-                onRetry={onRetry}
-                retrying={isFetching}
-            />
-        )
-    }
+/** 失败态渲染函数（模块作用域：内联箭头会让每次渲染都新建一个组件） */
+function shopBarErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+    return (
+        <ShopBarError
+            message={toApiError(error).detail || "店铺信息加载失败"}
+            onRetry={reset}
+        />
+    )
+}
 
-    if (!shop) return <ShopBarSkeleton />
+function ShopBarContent({ shopId }: { shopId: string }) {
+    const shop = useSuspenseQuery(shopOptions(shopId)).data
 
     return (
         <div className="flex h-full items-center gap-3">

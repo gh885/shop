@@ -1,4 +1,4 @@
-import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions } from "@tanstack/react-query"
 import { AddressesApi } from "@shop/api/sdk"
 
 import { useOptimisticListMutation, useWriteMutation } from "@shop/app-kit"
@@ -17,18 +17,8 @@ async function listAddresses(): Promise<Address[]> {
     return res.map(toAddress)
 }
 
-/** 我的地址列表 queryOptions */
+/** 我的地址列表 queryOptions：组件经 loader 读完直接读缓存，失败由路由错误页接管 */
 export const addressListOptions = queryOptions({ queryKey: KEY, queryFn: listAddresses })
-
-/** 我的地址列表 */
-export function useAddressList() {
-    const qc = useQueryClient()
-    return {
-        ...useQuery(addressListOptions),
-        /** 错误态重试：与增改删/默认态同一条失效入口（重试 = 这份缓存不再可信） */
-        onRetry: () => void qc.invalidateQueries({ queryKey: KEY }),
-    }
-}
 
 /** 新增地址：成功后失效列表缓存 */
 export function useCreateAddress() {

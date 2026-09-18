@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { CircleAlert, TicketPercent } from "lucide-react"
+import { TicketPercent } from "lucide-react"
 
 import { couponStatusLabel } from "@shop/common"
 import {
@@ -55,7 +55,7 @@ function CouponsPage() {
     const [tab, setTab] = useState<CouponTab>("UNUSED")
     const [page, setPage] = useState(1)
     const navigate = useNavigate()
-    const { data, isLoading, isError, refetch } = useQuery(myCouponsOptions(tab, page))
+    const { data, isLoading } = useQuery(myCouponsOptions(tab, page))
 
     const coupons = data?.records ?? []
     const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / COUPON_PAGE_SIZE))
@@ -106,23 +106,6 @@ function CouponsPage() {
                                 />
                             ))}
                         </div>
-                    ) : isError ? (
-                        <Empty className="py-16">
-                            <EmptyHeader>
-                                <EmptyMedia variant="icon">
-                                    <CircleAlert />
-                                </EmptyMedia>
-                                <EmptyTitle>加载失败</EmptyTitle>
-                                <EmptyDescription>请稍后重试或刷新页面。</EmptyDescription>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => void refetch()}
-                                >
-                                    重新加载
-                                </Button>
-                            </EmptyHeader>
-                        </Empty>
                     ) : coupons.length === 0 ? (
                         <Empty className="py-16">
                             <EmptyHeader>

@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { Button, ConfirmDialog, Skeleton, StateError } from "@shop/ui-web"
-import { toApiError } from "@shop/common"
+import { Button, ConfirmDialog, Skeleton } from "@shop/ui-web"
 import { Plus } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
@@ -54,13 +53,7 @@ function AddressPage() {
                 </Button>
             </div>
 
-            {addresses.isError ? (
-                <StateError
-                    message={toApiError(addresses.error).detail}
-                    onRetry={addresses.onRetry}
-                    retrying={addresses.isFetching}
-                />
-            ) : addresses.isLoading ? (
+            {addresses.isLoading ? (
                 <div className="space-y-2">
                     {[0, 1, 2].map((i) => (
                         <Skeleton

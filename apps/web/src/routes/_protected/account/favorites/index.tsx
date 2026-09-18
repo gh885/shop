@@ -10,7 +10,6 @@ import {
     EmptyMedia,
     EmptyTitle,
     Skeleton,
-    StateError,
 } from "@shop/ui-web"
 import { HeartOff } from "lucide-react"
 
@@ -21,21 +20,40 @@ import {
     Toolbar,
     useRemoveFavorites,
 } from "#/favorite"
-import { noop, useQuery } from "@tanstack/react-query"
+import { useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/favorites/")({
-    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
-    // hover/导航先拉好收藏列表缓存，组件挂载即命中。query() 失败会 reject —— 预热而已，吞掉；
-    // 错误仍由组件侧的就地错误态处理。
-    loader: ({ context }) => {
+    /**
+     * 数据在 loader 里读完再渲染（官方 loader-as-data-source）：
+     * 挂起 → `pendingComponent`，失败 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
+     */
+    loader: async ({ context }) => {
         if (import.meta.env.SSR) return
-        void context.queryClient.query(favoriteItemsOptions).catch(noop)
+        await context.queryClient.query({ ...favoriteItemsOptions, staleTime: "static" })
     },
+    pendingComponent: FavoritesSkeleton,
     component: FavoritesPage,
     head: () => ({
         meta: [{ title: "我的收藏 - 个人中心 - Shop" }],
     }),
 })
+
+/** 挂起占位：按卡片网格形状占位，避免闪现误导性空态 */
+function FavoritesSkeleton() {
+    return (
+        <div className="space-y-5">
+            <Skeleton className="h-10 w-full" />
+            <div className="flex flex-wrap gap-3">
+                {Array.from({ length: 6 }, (_, i) => (
+                    <Skeleton
+                        key={i}
+                        className="h-72 w-60 rounded-xl"
+                    />
+                ))}
+            </div>
+        </div>
+    )
+}
 
 // oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染 + 批量操作状态（选择/模式/确认）集中在页面是刻意结构，派生（filtered）与 handlers 已扁平；拆分需传 7+ props 的宽接口
 function FavoritesPage() {
@@ -46,13 +64,8 @@ function FavoritesPage() {
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
     const [batchConfirmOpen, setBatchConfirmOpen] = useState(false)
 
-    const {
-        data: favorites = [],
-        isPending,
-        isError,
-        isFetching,
-        refetch,
-    } = useQuery(favoriteItemsOptions)
+    // 主体数据由 loader 读完（失败已由路由错误页接管）
+    const favorites = useSuspenseQuery(favoriteItemsOptions).data
     const removeFavorites = useRemoveFavorites()
 
     const filtered = filterFavorites(favorites, keyword)
@@ -110,24 +123,7 @@ function FavoritesPage() {
                 onBatchDelete={handleBatchDelete}
             />
 
-            {isPending ? (
-                /* 首次加载：按卡片网格形状占位，避免闪现误导性空态 */
-                <div className="flex flex-wrap gap-3">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                        <Skeleton
-                            /* eslint-disable-next-line react/no-array-index-key, react-doctor/no-array-index-key */
-                            key={i}
-                            className="h-72 w-60 rounded-xl"
-                        />
-                    ))}
-                </div>
-            ) : isError ? (
-                <StateError
-                    message="收藏列表加载失败，请稍后重试。"
-                    onRetry={() => void refetch()}
-                    retrying={isFetching}
-                />
-            ) : filtered.length === 0 ? (
+            {filtered.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>
                         <EmptyMedia variant="icon">

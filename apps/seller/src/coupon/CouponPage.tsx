@@ -2,7 +2,6 @@ import { useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { CircleAlert, Plus, TicketPercent } from "lucide-react"
 
-import { toApiError } from "@shop/common"
 import {
     Button,
     Card,
@@ -13,7 +12,6 @@ import {
     EmptyMedia,
     EmptyTitle,
     Skeleton,
-    StateError,
 } from "@shop/ui-web"
 
 import { useShop } from "#/shop"
@@ -66,13 +64,7 @@ export function CouponPage({ search }: { search: CouponListSearch }) {
                 </CardContent>
             </Card>
 
-            {coupons.isError ? (
-                <StateError
-                    message={toApiError(coupons.error).detail}
-                    onRetry={coupons.onRetry}
-                    retrying={coupons.isFetching}
-                />
-            ) : coupons.isLoading ? (
+            {coupons.isLoading ? (
                 <div className="space-y-2">
                     {[0, 1, 2, 3].map((i) => (
                         <Skeleton

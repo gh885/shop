@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query"
 import type { ShopReviewStatus } from "@shop/api/sdk"
 
 /**
@@ -19,8 +18,5 @@ export const reviewKeys = {
         ["admin", "reviews", input.status ?? "all", input.page, input.size] as const,
 } as const
 
-/** 错误重试同样标记缓存失效，不绕过缓存直接 refetch。 */
-export function useReviewRetry(input: { status?: ShopReviewStatus; page: number; size: number }) {
-    const queryClient = useQueryClient()
-    return () => void queryClient.invalidateQueries({ queryKey: reviewKeys.list(input) })
-}
+// 错误态重试不再由本文件提供：审核列表失败由全局默认的 throwOnError 抛给路由错误页，
+// 重试走官方边界重置（见 shared/ui/RouteError.tsx）。

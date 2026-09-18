@@ -96,8 +96,6 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         records: tickets.data?.records ?? [],
         total: tickets.data?.total ?? 0,
         busyId,
-        /** 错误态重试：与处理动作同一条失效入口（工作台列表 + 详情 + 订单列表三棵一起标脏） */
-        onRetry: invalidate,
         handleTabChange: (tab: RefundTab) => apply({ tab }),
         onPageChange: (page: number) => apply({ page }),
         agreeAfterSale: runTicketAction(agree.mutateAsync),

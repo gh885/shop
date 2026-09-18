@@ -1,4 +1,4 @@
-import { queryOptions, skipToken, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, skipToken, useQuery } from "@tanstack/react-query"
 
 import type {
     CategoryAttrNodeResponse,
@@ -116,7 +116,8 @@ const categoryKeys = {
 
 // ---------- query 定义 ----------
 
-/** 店铺商品分页列表（shopId 入 key：切店铺不串缓存） */
+/** 店铺商品分页列表（shopId 入 key：切店铺不串缓存）。
+ *  带 placeholderData（不能走 suspense），失败冒到路由错误页由全局默认接管。 */
 export const productListOptions = (shopId: string, s: ProductListSearch) =>
     queryOptions({
         queryKey: productKeys.list(shopId, s),
@@ -132,11 +133,14 @@ export const productListOptions = (shopId: string, s: ProductListSearch) =>
         placeholderData: (prev) => prev,
     })
 
-/** 类目树：低频变更公共数据，全量拉一次长缓存，页面内搜索/级联都在这份树上算 */
+/** 类目树：低频变更公共数据，全量拉一次长缓存，页面内搜索/级联都在这份树上算。
+ *  消费方是发布商品向导的类目/基本信息两步；退出全局的「失败抛给错误边界」——
+ *  向导跑在编辑会话里，把整页换成错误页会让已填的草稿一起丢掉。 */
 export const categoryTreeOptions = queryOptions({
     queryKey: categoryKeys.tree,
     queryFn: () => CategoriesApi.getCategoryTree(),
     staleTime: 10 * 60_000,
+    throwOnError: false,
 })
 
 /** 末级路径清单（搜索语料）：树没变编译器自动缓存，不重复展平 */
@@ -156,6 +160,10 @@ export function useLeafPaths(): LeafPath[] {
  *
  * 不设 staleTime 覆盖（吃全局 10s 兜底）：这是弹窗与回填的取数口，
  * 写操作后由调用方 invalidate 或 setQueryData 收敛（见 EditSkuDialog 的 update 接线）。
+ *
+ * `throwOnError: false`：两个消费方（列表页编辑弹窗、发布页草稿回填）都在区块里，
+ * 失败要就地渲染而不是炸掉背景页。它本就是 skipToken 查询（`enabled` 由调用方间接控制），
+ * 与 suspense 互斥。
  */
 const productDetailOptions = (productId: string | undefined) =>
     queryOptions({
@@ -164,17 +172,12 @@ const productDetailOptions = (productId: string | undefined) =>
             ? () => ProductsAdminApi.getShopProductDetail({ path: { id: productId } })
             : skipToken,
         retry: false,
+        throwOnError: false,
     })
 
 /** 商品详情（发布页回填 / 编辑弹窗）：无 productId 时不发请求 */
 export function useProductDetail(productId: string | undefined) {
-    const queryClient = useQueryClient()
-    const options = productDetailOptions(productId)
-    return {
-        ...useQuery(options),
-        /** 错误态重试：标脏这一格后由观察者重取（key 从 options 取，不依赖闭包里的 productId） */
-        onRetry: () => void queryClient.invalidateQueries({ queryKey: options.queryKey }),
-    }
+    return useQuery(productDetailOptions(productId))
 }
 
 /** 编辑 SKU 后只失效当前商品详情；列表刷新与关闭弹窗由 onSaved 通知消费方。 */
@@ -190,7 +193,8 @@ export function useUpdateProductSkus(success: string, onSaved: () => void) {
 
 // ---------- 类目销售属性模板（发布页两处共用） ----------
 
-/** 类目「销售属性」模板（kind === SPEC）：与类目树同为低频变更公共数据，长缓存 */
+/** 类目「销售属性」模板（kind === SPEC）：与类目树同为低频变更公共数据，长缓存。
+ *  同 categoryTreeOptions：消费方都在发布页区块里，退出全局默认，失败由消费方就地渲染。 */
 const categorySpecTemplateOptions = (categoryId: string | undefined) =>
     queryOptions({
         queryKey: categoryKeys.specTemplate(categoryId),
@@ -203,20 +207,14 @@ const categorySpecTemplateOptions = (categoryId: string | undefined) =>
               }
             : skipToken,
         staleTime: 10 * 60_000,
+        throwOnError: false,
     })
 
 /**
  * 类目销售属性模板的共享加载（发布页两处消费：草稿 hook 本地算 SKU 组合、销售信息区渲染编辑器）。
- * 差异只在「要不要把错误显示出来」——统一暴露 error，由使用方决定是否渲染。
+ * 返回标准 query 结果：失败**不抛**（`categorySpecTemplateOptions` 的 `throwOnError: false`），
+ * 由消费方就地渲染错误态并用官方的 `refetch()` 重试 —— 官方错误处理示例的写法。
  */
 export function useCategorySpecTemplate(categoryId: string | undefined) {
-    const queryClient = useQueryClient()
-    const options = categorySpecTemplateOptions(categoryId)
-    const { data, error } = useQuery(options)
-    return {
-        template: data,
-        error: error ? toApiError(error).detail : undefined,
-        /** 错误态重试：与其它查询同约定——标脏缓存，由观察者重取（不绕过 staleTime 强打） */
-        retry: () => void queryClient.invalidateQueries({ queryKey: options.queryKey }),
-    }
+    return useQuery(categorySpecTemplateOptions(categoryId))
 }

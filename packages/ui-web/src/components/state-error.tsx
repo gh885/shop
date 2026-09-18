@@ -17,9 +17,13 @@ import {
  * 调用方（web/seller）在 query isError 时渲染，并把已归一化的 message 与 refetch 传入。
  *
  * 用法（TanStack Query）：
+ *   // ① 区块内就地渲染（查询不能进边界：带 enabled / placeholderData / skipToken）
  *   if (query.isError)
  *     return <StateError message={toApiError(query.error).detail}
  *                        onRetry={() => void query.refetch()} retrying={query.isFetching} />
+ *   // ② 作为错误边界的 fallback（推荐）：`reset` 由边界注入，重试走官方的
+ *   //    QueryErrorResetBoundary + 边界复位链路（见 @shop/app-kit 的 QueryBoundary / RouteErrorFallback）
+ *   fallback={({ error, reset }) => <StateError message={toApiError(error).detail} onRetry={reset} />}
  */
 export function StateError({
     message,

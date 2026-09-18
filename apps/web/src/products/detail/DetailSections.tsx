@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { MessageSquareOff } from "lucide-react"
 
 import {
@@ -18,7 +18,8 @@ import {
 
 import { toProductCardData, type Product, type ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { QueryBoundary } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { ProductCard } from "../ProductCard"
 import { shopProductsOptions, alsoViewedOptions } from "./queries"
@@ -107,59 +108,21 @@ function RecoGrid({
     )
 }
 
-/** 推荐流商品列表的查询 key 类型（queryOptions 的 queryKey） */
-type RecoQueryKey = readonly unknown[]
-
 /**
  * 推荐流错误边界：suspense 模式下查询错误（且无数据）会抛向最近的 error boundary，
  * 没有边界会让推荐流失败连累整页 SSR/渲染。边界把错误收敛在本区块内 ——
  * 与流式改造前 RecoSection 四态中的失败态行为一致（内联错误 + 重试）。
+ *
+ * 现在直接用 app-kit 的 `QueryBoundary`（QueryErrorResetBoundary + react-error-boundary + Suspense
+ * 的官方组合），不再手写 class 边界与「invalidate + reset」：官方的 reset 只负责放行重挂载重取，
+ * 缓存是否可信属于 mutation 的失效范围，不该塞进重试。
  */
-class RecoErrorBoundary extends Component<
-    { queryKey: RecoQueryKey; children: ReactNode },
-    { error: unknown }
-> {
-    state: { error: unknown } = { error: undefined }
-
-    static getDerivedStateFromError(error: unknown) {
-        return { error }
-    }
-
-    render() {
-        const { error } = this.state
-        return error === undefined ? (
-            this.props.children
-        ) : (
-            <RecoErrorFallback
-                queryKey={this.props.queryKey}
-                error={error}
-                reset={() => this.setState({ error: undefined })}
-            />
-        )
-    }
-}
-
-/** 推荐流失败态：重试 = 标脏缓存（invalidate）后复位边界，重新挂起渲染；成功即出内容，再失败会被边界重新捕获 */
-function RecoErrorFallback({
-    queryKey,
-    error,
-    reset,
-}: {
-    queryKey: RecoQueryKey
-    error: unknown
-    reset: () => void
-}) {
-    const qc = useQueryClient()
+/** 推荐流失败态渲染函数（模块作用域：内联箭头会让每次渲染都新建一个组件） */
+function recoErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
     return (
         <StateError
             message={toApiError(error).detail}
-            onRetry={() => {
-                // invalidate（而非 refetchQueries 强打）后立刻 reset：边界只负责「显示哪一态」，
-                // 数据是否可信由缓存声明；reset 不能省 —— suspense 下边界不清 error 会永远停在失败态，
-                // 清了之后本组件即卸载（loading 态由 Suspense fallback 接管），无需 retrying 转圈
-                void qc.invalidateQueries({ queryKey })
-                reset()
-            }}
+            onRetry={reset}
         />
     )
 }
@@ -282,7 +245,7 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
                                 className="flex gap-6 text-sm sm:gap-0"
                             >
                                 <dt className="shrink-0 text-muted-foreground sm:w-35">{p.name}</dt>
-                                <dd className="min-w-0 break-words text-foreground sm:flex-1">
+                                <dd className="min-w-0 wrap-break-word text-foreground sm:flex-1">
                                     {p.value}
                                 </dd>
                             </div>
@@ -358,14 +321,15 @@ export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
             id="shop-reco"
             title="本店推荐"
         >
-            <RecoErrorBoundary queryKey={shopProductsOptions(shopId).queryKey}>
-                <Suspense fallback={<RecoGridSkeleton className="grid-cols-4" />}>
-                    <ShopRecommendGrid
-                        shopId={shopId}
-                        currentId={detail.product.id}
-                    />
-                </Suspense>
-            </RecoErrorBoundary>
+            <QueryBoundary
+                pending={<RecoGridSkeleton className="grid-cols-4" />}
+                fallback={recoErrorFallback}
+            >
+                <ShopRecommendGrid
+                    shopId={shopId}
+                    currentId={detail.product.id}
+                />
+            </QueryBoundary>
         </DetailSection>
     )
 }
@@ -393,11 +357,12 @@ export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
             id="also-viewed"
             title="看了又看"
         >
-            <RecoErrorBoundary queryKey={alsoViewedOptions.queryKey}>
-                <Suspense fallback={<RecoGridSkeleton className="grid-cols-6" />}>
-                    <AlsoViewedGrid currentId={detail.product.id} />
-                </Suspense>
-            </RecoErrorBoundary>
+            <QueryBoundary
+                pending={<RecoGridSkeleton className="grid-cols-6" />}
+                fallback={recoErrorFallback}
+            >
+                <AlsoViewedGrid currentId={detail.product.id} />
+            </QueryBoundary>
         </DetailSection>
     )
 }

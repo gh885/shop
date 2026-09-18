@@ -6,12 +6,10 @@ import {
     EmptyMedia,
     EmptyTitle,
     Skeleton,
-    StateError,
 } from "@shop/ui-web"
 import { Package } from "lucide-react"
 
 import { ProductStatus } from "@shop/api/sdk"
-import { toApiError } from "@shop/common"
 import { z } from "zod"
 
 import { useState } from "react"
@@ -59,7 +57,6 @@ function ProductsPage() {
         handleOff,
         handleOn,
         handleSaved,
-        onRetry,
         onPageChange,
         onSortChange,
     } = useProductList(shop.id, search)
@@ -78,13 +75,7 @@ function ProductsPage() {
                 onChange={handleFilterChange}
             />
 
-            {products.isError ? (
-                <StateError
-                    message={toApiError(products.error).detail}
-                    onRetry={onRetry}
-                    retrying={products.isFetching}
-                />
-            ) : products.isLoading ? (
+            {products.isLoading ? (
                 <div className="space-y-2">
                     {[0, 1, 2, 3].map((i) => (
                         <Skeleton

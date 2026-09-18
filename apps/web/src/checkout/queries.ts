@@ -59,6 +59,10 @@ export const checkoutPreviewOptions = ({
         // 换券/换地址都是新 key：保留上一份预览继续展示，否则整页会闪回骨架屏，
         // 正在选券的 Popover 也会被卸载 —— 换券是把价格重算一遍，不是重新进一次结算页。
         placeholderData: (prev) => prev,
+        // 退出全局的「失败抛给错误边界」：预览是页面里的价格面板，页面自己就地渲染了重试块
+        // （见 checkout.tsx 的 preview.isError 分支）。抛出去会连地址选择一起换掉，
+        // 用户刚选的地址与券就没了
+        throwOnError: false,
     })
 }
 
