@@ -166,6 +166,15 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - **不造第二棵 key 树**：同一份服务端数据有两个 key = 两份缓存 + 两处失效，必然漂移（`useMe` 曾在三端各写一遍就是这形态）。发现即合并成一个 `xxxKeys`。
 - **不用 `refetch()` 当刷新**：它绕过 staleTime 强制打网络，且把"谁改了数据"绑在持有该 query 实例的组件上。要同步就 `invalidateQueries`（在 mutation 里）。**错误态的重试按钮也走 invalidate**，不是"用户显式要求重打"的例外——重试的语义是"这份缓存不再可信"，标记失效后由观察者重取；各域把这件事收敛成 hook 的 `onRetry`（域内 `queries.ts`/`use-*.ts` 提供），路由只透传给 `StateError`，不自己拼 key。
 - 领域组件（弹窗/卡片）**不 import query key**：只通过 `onSaved` 这类回调通知外层"数据变了"，由域内 `queries.ts` / `use-*.ts` 决定失效范围。回调名说"发生了什么"，不说"去做什么"（`onSaved` 而非 `invalidateList`）。
+- **组件直接 `useQuery(xxxOptions)`，不给每个查询再包一层同名 hook**：`useHomeNav()` / `useOrderDetail(id)` 这类恒等透传只是给同一份东西起第二个名字（options 本来就得导出给 loader），且 hook 名看不出返回的是 `useQuery` 还是 `useSuspenseQuery`（`data` 的可空性不同）。
+- **hook 只在携带决策时存在**。判定线：options 负责「取什么」，hook 负责「怎么用」，至少命中一条才值得包——
+    - 叠 `enabled`（登录态 gating）：`useCartCount` / `useFavoriteStatus`
+    - 加 `onRetry`（错误态重试 = 标脏，把失效范围留在域内，路由只透传）：`useShopQuery` / `useCouponList` / `useShippingTemplate` / `useProductDetail` / `useMyShops` / `useMyShopMembers` / `useAddressList` / `useReviewRetry`
+    - 换变体：调用点写 `useSuspenseQuery(feedOptions)`（这一条不需要 hook，变体写在调用点更显眼）
+    - 派生/编排视图模型（多个 query + mutation + 导航/URL 状态合成一个给页面用的口）：`useOrderList` / `useRefundList` / `useProductList` / `useCartItemActions` / `useOrderActions` / `useCurrentShop` / `useLeafPaths`
+    - 跨端同形态的写操作接线：`useWriteMutation` / `useOptimisticListMutation` / `createMeQuery`
+- **写操作继续走 `useWriteMutation`（31 处）/ `useOptimisticListMutation`（11 处）**，裸 `useMutation` 只保留在文档注明的三类逃生口（就地渲染表单错误 / 终态才处理 / 成功即跳转无缓存可失效，现存 6 处），边界与理由见 `packages/app-kit/src/mutations.ts` 头注。
+- **lint 兜底**：官方 `@tanstack/eslint-plugin-query` / `-router` 经 oxlint 的 `jsPlugins` 加载（配置与逐条理由见 `packages/config/oxlint.config.ts`）。`exhaustive-deps`（漏 key）、`stable-query-client`、`no-unstable-deps`、两条 property-order（`--fix` 可重排）、`route-param-names` 为 error；`no-rest-destructuring`、`prefer-query-options` 为 warn。官方 `no-void-query-fn` **未启用**：它靠 `parserServices.program` 取 TS 类型，oxlint 的 JS 插件 API 不提供（`--type-aware` 也无效，实测静默空转）。
 
 ## 前端测试（Vitest + Testing Library + MSW）
 
