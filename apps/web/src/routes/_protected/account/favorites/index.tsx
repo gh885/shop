@@ -10,6 +10,7 @@ import {
     EmptyMedia,
     EmptyTitle,
     Skeleton,
+    StateError,
 } from "@shop/ui-web"
 import { HeartOff } from "lucide-react"
 
@@ -46,7 +47,7 @@ function FavoritesPage() {
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
     const [batchConfirmOpen, setBatchConfirmOpen] = useState(false)
 
-    const { data: favorites = [], isPending, isError, refetch } = useFavorites()
+    const { data: favorites = [], isPending, isError, isFetching, refetch } = useFavorites()
     const removeFavorites = useRemoveFavorites()
 
     const filtered = filterFavorites(favorites, keyword)
@@ -116,22 +117,11 @@ function FavoritesPage() {
                     ))}
                 </div>
             ) : isError ? (
-                <Empty className="py-16">
-                    <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                            <HeartOff />
-                        </EmptyMedia>
-                        <EmptyTitle>加载失败</EmptyTitle>
-                        <EmptyDescription>收藏列表加载失败，请重试。</EmptyDescription>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => void refetch()}
-                        >
-                            重新加载
-                        </Button>
-                    </EmptyHeader>
-                </Empty>
+                <StateError
+                    message="收藏列表加载失败，请稍后重试。"
+                    onRetry={() => void refetch()}
+                    retrying={isFetching}
+                />
             ) : filtered.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>

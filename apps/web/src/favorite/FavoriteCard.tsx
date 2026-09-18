@@ -45,7 +45,8 @@ export function FavoriteCard({
 
     return (
         // 容器用 div：避免 button 嵌套 button（键盘/读屏无法区分嵌套可交互控件）；
-        // 可点击区域是覆盖卡片的内层 button，「移出」是其兄弟节点
+        // 可点击区域是覆盖卡片的内层 button，「移出」是其兄弟节点。
+        // group 类在这里声明：子元素无 focus 样式替换，聚焦显隐由容器 group-focus-within 驱动
         <div className="group relative block w-60 shrink-0 transition-shadow duration-200 hover:shadow-lift">
             <button
                 type="button"
@@ -83,7 +84,9 @@ export function FavoriteCard({
                         e.stopPropagation()
                         onRemove(favorite.productId)
                     }}
-                    className="absolute top-2 right-2 hidden rounded bg-black/50 px-2 py-1 text-xs text-white group-hover:block"
+                    /* 常驻透明、hover/聚焦时显现：不能用 hidden（display:none），
+                       否则键盘 Tab 永远到不了，触屏更没有 hover */
+                    className="absolute top-2 right-2 rounded bg-black/50 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-100 group-focus-within:opacity-100 group-hover:opacity-100"
                 >
                     移出
                 </button>
