@@ -103,7 +103,7 @@ export function HomeCategoryNav({
 
             {/* hover 展开的 Mega Menu 面板：绝对定位盖在右侧内容上方，高度由内容撑开 */}
             {active?.subs && active.subs.length > 0 && (
-                <div className="absolute top-0 left-full z-50 hidden w-168 rounded-lg bg-background shadow-float md:block">
+                <div className="absolute top-0 left-full z-50 hidden w-2xl rounded-lg bg-background shadow-float md:block">
                     {/* 词条组：横向流式平铺，一行的组名后跟整排词条 */}
                     <div className="p-5">
                         <div className="flex flex-col gap-4">

@@ -19,7 +19,7 @@ export function HomeBannerItem({ banner }: { banner: Banner }) {
                 }}
                 className="inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4">
                 <div className="text-base font-bold text-white">{banner.title}</div>
                 {banner.subtitle && (
