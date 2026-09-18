@@ -138,7 +138,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 
 - query hook → **失败交给错误边界，挂起就地渲染**：`throwOnError` 已是全局默认，页面主体数据失败由路由 `errorComponent` 接管，区块失败由 `QueryBoundary` 接管（见下节「错误与重试」）；只有**头上没有边界可接的查询**（页头角标、收藏心形、弹窗/向导内部件，或消费方本就写「拿不到就不画」的附属区块）才显式 `throwOnError: false` 并在组件里渲染 `isError`
 - 派生态（如 empty：`data.length === 0`）→ 派生它的那一行所在组件
-- mutation 错误 → `onError` 即 `notify.fromError`（toast 的渲染点在根部，已是产生点最近的消费者）；乐观态 → 缓存 patch 层（`useOptimisticListMutation`），列表行只读缓存
+- mutation 错误 → 全局 `MutationCache` 按 `meta.error` 提示（渲染点在根部，已是产生点最近的消费者）；乐观态 → 缓存 patch 层（`optimisticListMutationOptions`），列表行只读缓存
 - 组件内部瞬时状态（上传进度/提交中按钮）→ 留在组件内；出现第二个消费者才上提为域内 `use-*.ts`（与 hook 上提规则同构）
 - route loader / `useSuspenseQuery` → 状态上移到 `pendingComponent`/`errorComponent`/Suspense 边界，父组件不再接触 query
 
@@ -156,13 +156,13 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - 否 → 走 api/SDK 裸调或 mutation。典型：文件导出/下载、验证码、一次性提交（登录、反馈）、提交后即离开且无人读缓存的动作。
 - **判据是「缓存这份数据有没有收益」，不是「它是不是服务端数据」**：陈旧值比转圈更糟（结算预览、智能解析）、副作用不可缓存（上传凭证、直传）、一次性会话（登录/刷新 token）、体积大不该进缓存（SSR 期间的流式响应）——这四类即使"是服务端数据"也不进 query。
 - **404 不是「不进 query」的理由**：若已有「无数据」的合法 UI 表达（物流未发货 → 「暂无物流信息」），query + `retry: false` 就够（见 `logistics/queries.ts`）；只有当调用方要把 404 折叠成"没有"（售后单 → `null`）时才在 `queryFn` 里归一（见 `after-sale-queries.ts`）。真正该警惕的是**契约本身在"没有"与"出错"之间含糊**，那是后端要补语义，不是前端绕开 query 的借口。
-- **写操作一律有接线**（`useWriteMutation` / `useOptimisticListMutation`），但**不是每个写操作都需要失效**：`invalidateKeys` 不传 = 显式声明"不改变任何已缓存查询"，不是漏写。失败要就地渲染在表单里、或终态才处理（登出 `onSettled`）的，继续用裸 `useMutation`——边界写在 `packages/app-kit/src/mutations.ts` 的文档注释里，新增写操作前先读那段。
+- **写操作一律有接线**（全局反馈 + `meta` 声明），但**不是每个写操作都需要失效**：`meta.invalidates` 不传 = 显式声明"不改变任何已缓存查询"，不是漏写。失败要就地渲染在表单里（`meta.silentError`）、或终态才处理（登出用 `onSettled`）的，`meta` 照写、回调照用。判据与字段见下节「写操作」。
 
 ### 放哪个文件：key 归属 = 域，集中在域内 `queries.ts`
 
 - **key 工厂集中在域内 `queries.ts`**（`productKeys` / `couponKeys` / `reviewKeys`…），一个域一棵树。key 散在组件或 `api.ts` 里 = 失效关系退化成"记在写代码的人脑子里"，新增读取方时没人会记得补失效点。
 - **失效规则写在 mutation 旁边**（谁改数据，谁声明影响范围），不写在调用点。跨域连带失效也归进 mutation（下单后失效购物车 + 角标 + 我的订单）。
-- **三端同形态的查询用 app-kit 的工厂，别复制**：`createAppQueryClient()`（默认值唯一真相源）、`createMeQuery()`（当前登录者）、写操作接线。新增一个"三端都会写"的查询时，先问能不能把它变成工厂参数。
+- **三端同形态的查询用 app-kit 的工厂，别复制**：`createAppQueryClient()`（默认值唯一真相源，读写两侧的全局默认都在里面）、`createMeQuery()`（当前登录者）、`MutationMeta`（写操作的声明面）。新增一个"三端都会写"的查询时，先问能不能把它变成工厂参数。
 - **不造第二棵 key 树**：同一份服务端数据有两个 key = 两份缓存 + 两处失效，必然漂移（`useMe` 曾在三端各写一遍就是这形态）。发现即合并成一个 `xxxKeys`。
 - **不用 `refetch()` 当刷新**：它绕过 staleTime 强制打网络，且把"谁改了数据"绑在持有该 query 实例的组件上。**刷新（数据变了）走 `invalidateQueries`（在 mutation 里）**；**错误态重试**是另一回事，见下节「错误与重试」——两套语义不要混。
 - **loader 预取写 `queryClient.query({ ...options, staleTime: "static" })`，不用 `ensureQueryData`**：后者在 5.102 已废弃，官方给的替代口径就是这一句。语义正好是「有缓存就返回、没有才取数」——`fetchQuery` 走 `isStaleByTime('static')`，而它先判 `data === undefined` 再判 static，所以无缓存照样会取数（`ensureQueryData` 也是「无缓存即 fetch」）。这个 `staleTime` 只作用在这次 loader 读取上，不污染组件侧 observer 的新鲜度（`isStaleByTime` 用的是调用方自己那份 options，组件读的是 `xxxOptions`）。
@@ -172,9 +172,44 @@ cd apps/server && mvn spring-boot:run  # 启动后端
     - 叠 `enabled`（登录态 gating）：`useCartCount` / `useFavoriteStatus`
     - 换变体：调用点写 `useSuspenseQuery(feedOptions)`（这一条不需要 hook，变体写在调用点更显眼）
     - 派生/编排视图模型（多个 query + mutation + 导航/URL 状态合成一个给页面用的口）：`useOrderList` / `useRefundList` / `useProductList` / `useCartItemActions` / `useOrderActions` / `useCurrentShop` / `useLeafPaths`
-    - 跨端同形态的写操作接线：`useWriteMutation` / `useOptimisticListMutation` / `createMeQuery`
-- **写操作继续走 `useWriteMutation`（31 处）/ `useOptimisticListMutation`（11 处）**，裸 `useMutation` 只保留在文档注明的三类逃生口（就地渲染表单错误 / 终态才处理 / 成功即跳转无缓存可失效，现存 6 处），边界与理由见 `packages/app-kit/src/mutations.ts` 头注。
+    - 跨端同形态的写操作接线：`createMeQuery`
+- **写操作不包 hook 工厂**：一律用库自己的 `useMutation`，反馈与失效经 `meta` 声明，由全局执行（见下节「写操作」——这是本仓唯一"不留包装"的一层）。
 - **lint 兜底**：官方 `@tanstack/eslint-plugin-query` / `-router` 经 oxlint 的 `jsPlugins` 加载（配置与逐条理由见 `packages/config/oxlint.config.ts`）。`exhaustive-deps`（漏 key）、`stable-query-client`、`no-unstable-deps`、两条 property-order（`--fix` 可重排）、`route-param-names` 为 error；`no-rest-destructuring`、`prefer-query-options` 为 warn。官方 `no-void-query-fn` **未启用**：它靠 `parserServices.program` 取 TS 类型，oxlint 的 JS 插件 API 不提供（`--type-aware` 也无效，实测静默空转）。
+
+### 写操作：反馈与失效走官方 meta 通道，不包 hook 工厂
+
+**一句话**：写操作一律写库自己的 `useMutation`，反馈（提示）与后果（失效）通过**官方的 `meta` 通道**声明，由 `createAppQueryClient()` 里的全局 `MutationCache` 一次执行。
+
+```ts
+useMutation({
+    mutationFn: (orderId: string) => OrdersApi.cancelOrder({ path: { id: orderId } }),
+    // 依赖变量的失效用库自己的 onSuccess（第 2 参即 variables，第 4 参带 client）
+    onSuccess: (_data, orderId, _ctx, { client }) =>
+        void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
+    meta: { success: "订单已取消", error: "取消订单失败", invalidates: [MY_ORDERS_KEY] },
+})
+```
+
+为什么是这个形态（而不是各域包一层 `useXxxMutation`）：
+
+- **官方对「mutation 该失效哪些 query」刻意不表态**。维护者 TkDodo 原话：_“Since there isn't a one-size-fits-all solution, React Query provides nothing out of the box”_（[Automatic Query Invalidation after Mutations](https://tkdodo.eu/blog/automatic-query-invalidation-after-mutations)）。但它把两个扩展点留了出来——**全局 `MutationCache` 回调**与**可用 `Register` 类型化的 `meta`**。两样都用：能全局的一律全局，逐点的只剩「这份回执改变了什么」。
+- **反馈必须走全局，而不是逐点 `onError` 兜**：官方 `Mutation.execute` 里全局回调**先于**逐点回调（`mutation.ts` 的 onError 279 行 vs 291 行），所以「先拦住默认提示」只能靠全局读得到的声明。曾经逐点 `onError` 里再弹一条，结果是同一件事两条互相覆盖的提示（领券 409 就是这么坏的）。
+- **没有 `useWriteMutation` 这类工厂**：它要自造 `messages` / `invalidateKeys` / `silentSuccess` 一套词汇，而库已经有 `meta`。「抽象的输入面贴着库自己的 API 走」是维护者 [Creating Query Abstractions](https://tkdodo.eu/blog/creating-query-abstractions) 的核心建议。乐观更新是唯一值得留包装的——它包的是一段顺序敏感的官方配方，且返回的是 options 对象而不是 hook。
+
+`MutationMeta` 只有四个字段（`packages/app-kit/src/mutation-meta.ts`）：
+
+| 字段          | 作用                                                           | 缺省行为                                                                |
+| ------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `success`     | 成功提示文案                                                   | **不填即不提示**（「要不要提示」由有/无承载，所以没有 `silentSuccess`） |
+| `error`       | 失败兜底文案                                                   | 后端 `detail` 优先，只有网络层错误（status 0）才用它                    |
+| `silentError` | 该写操作自己渲染/吞掉错误（表单内联报错、会话终结）            | 一律弹全局失败提示                                                      |
+| `invalidates` | 这份回执让哪些查询失效（**真实 query key**，前缀匹配一发命中） | 不失效任何缓存                                                          |
+
+写新写操作时的三条硬规矩：
+
+1. **`invalidates` 传真实 query key，不要发明 tag**：tag 表等于在 query key 之外再造一棵命名树，新增读取方时没人会记得补 tag（与「不造第二棵 key 树」同一条理由）；而且它表达不了「由变量算出的 key」——那种情况用库自己的 `onSuccess`。
+2. **`silentError` 是显式声明，不是逃生舱**：只有「错误已经在别处被用户看见了」才用它（表单把 detail 渲染在字段下、登出后本地身份已清且人已在登录页）。
+3. **乐观更新写 `useMutation(optimisticListMutationOptions({ ... }))`**：官方那三步（`onMutate` 取消在途 → 快照 → patch；`onError` 回滚；`onSettled` 失效）顺序写反了只在并发下偶发出错，所以固定在一次实现里，只把「怎么 patch」交给领域；反馈不在它里面（全局负责）。
 
 ### 错误与重试：全部走官方边界，不自造 onRetry
 
@@ -244,11 +279,7 @@ pnpm test:watch  # watch 模式
 - 列表页的 hook 测试要先把登录态与店铺上下文造出来：seller 侧 `useMyShops` 只在 `authed` 时拉
   `/shops/mine`（测试里 `tokenStore.set("...")`，别忘 `afterEach` 里 `clear()`），
   `useCurrentShop` 解析出的 shopId 进缓存 key，没就位时失效的是另一棵树
-- **`createTestQueryClient()` 不带应用默认值**：它是裸 `QueryClient`（只为确定性禁了 retry），
-  没有 `createAppQueryClient()` 的 `staleTime` 与全局 `throwOnError`。所以「区块查询漏写
-  `throwOnError: false` 会不会炸整页」这类问题在 app 测试里**测不出来**——要验这套默认值必须自己
-  `createAppQueryClient()`（见 `packages/app-kit/src/query-client.test.tsx`）。之所以不直接复用工厂：
-  `@shop/app-kit` 的 devDependencies 已经依赖 `@shop/test-utils`，反向依赖会成环。
+- **app 测试不要自己 `new QueryClient()` / 用裸的 `createTestQueryClient()`**：全局 `throwOnError`、写操作的全局 toast 与 `meta.invalidates` 失效都挂在 `createAppQueryClient()` 的默认值上，裸 client 会让它们「生产里一定发生、测试里从不发生」。三端 `src/test/render.tsx` 导出的 `renderWithProviders` / `createAppTestQueryClient` 就是「应用真实默认值 + 禁 retry」，一律走它们；`@shop/test-utils` 的 `createTestQueryClient` 只留给 app-kit 自己测库行为用（它不 import app-kit，反向依赖会成环）。改这套默认值时要同步跑全量测试——`pnpm test` 里那几条「成功后三棵缓存一起失效」的用例正是靠它才生效的。
 - pre-push 跑 `pnpm test`；admin 尚无用例，其 vitest 配置已开 `passWithNoTests`
 
 ## 开发规范
