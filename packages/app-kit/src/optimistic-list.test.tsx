@@ -1,27 +1,30 @@
-import { QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider, useMutation } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import { useOptimisticListMutation } from "@shop/app-kit"
-
-import { createTestQueryClient } from "@shop/test-utils"
+import { optimisticListMutationOptions } from "./optimistic-list"
+import { createAppQueryClient } from "./query-client"
 
 /**
- * 乐观列表 mutation 工厂测试：每个用例挂独立 QueryClient，直接断言缓存。
- * 不 mock notify——失败场景只关心「缓存回滚」，提示文案由 notify 自己的行为保证。
+ * 乐观列表配方的测试：每个用例挂独立 QueryClient，直接断言缓存。
  *
- * 工厂本体在 @shop/app-kit（seller/admin 也用它），用例留在 web 是因为 jsdom 测试装置
- * 装在这里（`src/test/setup.ts` 的 MSW + toast 桩）——被测对象是共享包，装置不重复造。
+ * 断言的是**顺序与回滚**这两件「错了就静默坏」的事：请求还挂着时乐观值要已经可见、
+ * 失败必须回到快照、落定后必须失效。提示文案不在这里测——它已经不属于本配方，
+ * 而是 `createAppQueryClient()` 全局反馈的职责（见 mutation-feedback.test.tsx）。
  */
 function setup<TData, TVars>(
-    options: Parameters<typeof useOptimisticListMutation<TData, TVars>>[0],
+    config: Parameters<typeof optimisticListMutationOptions<TData, TVars>>[0],
     initialCache: Record<string, unknown> = {},
 ) {
-    const queryClient = createTestQueryClient()
+    // 用真实工厂：meta.invalidates 要靠全局 MutationCache 落地，裸 QueryClient 测不到
+    const queryClient = createAppQueryClient({
+        queries: { retry: false },
+        mutations: { retry: false },
+    })
     for (const [key, value] of Object.entries(initialCache)) {
         queryClient.setQueryData([key], value)
     }
-    const utils = renderHook(() => useOptimisticListMutation(options), {
+    const utils = renderHook(() => useMutation(optimisticListMutationOptions(config)), {
         wrapper: ({ children }) => (
             <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         ),
@@ -29,22 +32,31 @@ function setup<TData, TVars>(
     return { queryClient, ...utils }
 }
 
-describe("useOptimisticListMutation", () => {
-    it("成功：乐观 patch 先生效，终态失效重取后仍包含新条目", async () => {
+describe("optimisticListMutationOptions", () => {
+    it("成功：乐观值在请求落定前就可见，终态失效重取后仍是新值", async () => {
+        let release!: () => void
+        const gate = new Promise<void>((resolve) => {
+            release = resolve
+        })
         const { result, queryClient } = setup<string, string>(
             {
                 queryKey: ["list"],
-                mutationFn: async (vars) => ({ data: vars }),
+                mutationFn: async (vars) => {
+                    await gate
+                    return { data: vars }
+                },
                 patch: (list, vars) => [...list, vars],
-                messages: { error: "操作失败" },
             },
             { list: ["a", "b"] },
         )
 
         act(() => result.current.mutate("c"))
-        // 乐观 patch 在 mutation 落定前就可见
-        await waitFor(() => expect(queryClient.getQueryData(["list"])).toEqual(["a", "b", "c"]))
 
+        // 请求还挂着（onMutate 已跑完），乐观值已经在缓存里
+        await waitFor(() => expect(queryClient.getQueryData(["list"])).toEqual(["a", "b", "c"]))
+        expect(result.current.isPending).toBe(true)
+
+        release()
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
         await waitFor(() => expect(queryClient.getQueryData(["list"])).toEqual(["a", "b", "c"]))
     })
@@ -58,7 +70,6 @@ describe("useOptimisticListMutation", () => {
                     throw { status: 409, detail: "冲突" }
                 },
                 patch: (list, vars) => [...list, vars],
-                messages: { error: "操作失败" },
             },
             { list: ["a"] },
         )
@@ -69,7 +80,7 @@ describe("useOptimisticListMutation", () => {
         expect(queryClient.getQueryData(["list"])).toEqual(["a"])
     })
 
-    it("mutationFn 直接抛错时同样回滚缓存", async () => {
+    it("patch 把整表改坏时，失败也回到快照（回滚不依赖 patch 是否可逆）", async () => {
         const { result, queryClient } = setup<string, string>(
             {
                 queryKey: ["list"],
@@ -77,7 +88,6 @@ describe("useOptimisticListMutation", () => {
                     throw { status: 500, detail: "服务器错误" }
                 },
                 patch: () => ["被错误 patch 覆盖的列表"],
-                messages: { error: "操作失败" },
             },
             { list: ["a"] },
         )
@@ -88,14 +98,13 @@ describe("useOptimisticListMutation", () => {
         expect(queryClient.getQueryData(["list"])).toEqual(["a"])
     })
 
-    it("终态连带失效 invalidateKeys（如头部角标计数）", async () => {
+    it("终态失效该列表自身与 meta.invalidates 里的关联缓存（如头部角标计数）", async () => {
         const { result, queryClient } = setup<string, string>(
             {
                 queryKey: ["list"],
-                invalidateKeys: [["badge"]],
                 mutationFn: async (vars) => ({ data: vars }),
                 patch: (list, vars) => [...list, vars],
-                messages: { error: "操作失败" },
+                meta: { invalidates: [["badge"]] },
             },
             { list: ["a"], badge: 1 },
         )

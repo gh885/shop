@@ -10,9 +10,9 @@
  * （端级业务规则仍归各 app；端级**装配参数**的差异由工厂参数吸收，见 createMeQuery）。
  *
  * 服务端状态接线的公共部分也在这里（两者都是「三端同一形态、只差装配参数」）：
- * - createAppQueryClient：QueryClient 默认值的唯一构造口
+ * - createAppQueryClient：QueryClient 默认值的唯一构造口（读侧 throwOnError + 写侧全局反馈）
  * - createMeQuery：当前登录者查询（key / 新鲜度 / enabled 条件三端统一）
- * - useWriteMutation / useOptimisticListMutation：写操作的 toast + 失效 + 回滚接线
+ * - MutationMeta / optimisticListMutationOptions：写操作的声明面与乐观更新配方
  */
 
 export { WorkbenchSidebar } from "./workbench/sidebar"
@@ -26,11 +26,13 @@ export { LoginForm } from "./login-form"
 export type { LoginFormProps, LoginTab } from "./login-form"
 export { createImgUrl } from "./image"
 export { createAppQueryClient, throwWhenNoData } from "./query-client"
+export type { AppQueryClientOverrides } from "./query-client"
 export { QueryBoundary } from "./query-boundary"
 export type { QueryBoundaryProps } from "./query-boundary"
 export { RouteErrorFallback } from "./route-error-fallback"
 export type { RouteErrorFallbackProps } from "./route-error-fallback"
 export { createMeQuery } from "./me-query"
 export type { MeQuery, MeQueryConfig } from "./me-query"
-export { useWriteMutation, useOptimisticListMutation } from "./mutations"
-export type { WriteMutationOptions, OptimisticListMutationOptions } from "./mutations"
+export type { MutationMeta } from "./mutation-meta"
+export { optimisticListMutationOptions } from "./optimistic-list"
+export type { OptimisticListMutationConfig } from "./optimistic-list"
