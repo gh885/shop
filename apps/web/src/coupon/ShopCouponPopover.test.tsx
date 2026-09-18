@@ -22,6 +22,16 @@ const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
 const TEMPLATE_A = "00000000-0000-4000-8000-0000000000c1"
 const TEMPLATE_B = "00000000-0000-4000-8000-0000000000c2"
 
+/**
+ * 显式等待预算。这里的 `findBy*` 每次等的是一个完整往返：MSW → SDK 拦截器 → 投影 → 渲染，
+ * 而 RTL 默认只等 1s —— 那是「UI 响应性」的假设，在 28 路并行的 jsdom 里并不成立
+ * （实测同一文件单跑整体 1.2s、满载时 4.9s，正好把 1s 卡在边界上，于是随机红）。
+ *
+ * 放大等待不等于放宽断言：断言内容一个没动，只是把「实现需要多久」与「多久算失败」解耦。
+ * 比降并发（拖慢全量）或 `sleep`（凑时间）都更贴近问题本身。
+ */
+const WAIT = { timeout: 5_000 } as const
+
 afterEach(() => {
     // 登录态是模块级单例，用例之间必须清干净，否则「已登录」会漏到下一个用例
     tokenStore.clear()
@@ -96,7 +106,7 @@ function renderEntry() {
 }
 
 async function openPopover(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(await screen.findByRole("button", { name: "领券" }))
+    await user.click(await screen.findByRole("button", { name: "领券" }, WAIT))
 }
 
 describe("ShopCouponPopover", () => {
@@ -114,7 +124,9 @@ describe("ShopCouponPopover", () => {
         renderEntry()
         await openPopover(user)
 
-        expect(await screen.findByRole("button", { name: "领取 满 ¥100 减 ¥10" })).toBeEnabled()
+        expect(
+            await screen.findByRole("button", { name: "领取 满 ¥100 减 ¥10" }, WAIT),
+        ).toBeEnabled()
         expect(screen.getByRole("button", { name: "领取 无门槛减 ¥5" })).toBeEnabled()
     })
 
@@ -132,10 +144,12 @@ describe("ShopCouponPopover", () => {
 
         renderEntry()
         await openPopover(user)
-        await user.click(await screen.findByRole("button", { name: "领取 满 ¥100 减 ¥10" }))
+        await user.click(await screen.findByRole("button", { name: "领取 满 ¥100 减 ¥10" }, WAIT))
 
         await waitFor(() => expect(claimedPath).toBe(`/coupons/${TEMPLATE_A}/claim`))
-        expect(await screen.findByRole("button", { name: "已领取 满 ¥100 减 ¥10" })).toBeDisabled()
+        expect(
+            await screen.findByRole("button", { name: "已领取 满 ¥100 减 ¥10" }, WAIT),
+        ).toBeDisabled()
     })
 
     it("已领完的券按钮上写着「已领完」并禁用_灰色本身说不出原因", async () => {
@@ -145,7 +159,9 @@ describe("ShopCouponPopover", () => {
         renderEntry()
         await openPopover(user)
 
-        expect(await screen.findByRole("button", { name: "已领完 满 ¥100 减 ¥10" })).toBeDisabled()
+        expect(
+            await screen.findByRole("button", { name: "已领完 满 ¥100 减 ¥10" }, WAIT),
+        ).toBeDisabled()
     })
 
     it("409 已领过_就地标成已领取而不是提示领取失败", async () => {
@@ -163,9 +179,11 @@ describe("ShopCouponPopover", () => {
 
         renderEntry()
         await openPopover(user)
-        await user.click(await screen.findByRole("button", { name: "领取 满 ¥100 减 ¥10" }))
+        await user.click(await screen.findByRole("button", { name: "领取 满 ¥100 减 ¥10" }, WAIT))
 
-        expect(await screen.findByRole("button", { name: "已领取 满 ¥100 减 ¥10" })).toBeDisabled()
+        expect(
+            await screen.findByRole("button", { name: "已领取 满 ¥100 减 ¥10" }, WAIT),
+        ).toBeDisabled()
     })
 
     it("未登录点领取_不发领券请求，改为拉起登录 Dialog（详情页是匿名通道）", async () => {
@@ -181,11 +199,11 @@ describe("ShopCouponPopover", () => {
 
         renderEntry()
         // 登录弹窗开关是模块级单例，先归零再验这一次点击真的把它打开了
-        await user.click(await screen.findByRole("button", { name: "关闭登录弹窗" }))
+        await user.click(await screen.findByRole("button", { name: "关闭登录弹窗" }, WAIT))
         await openPopover(user)
-        await user.click(await screen.findByRole("button", { name: "领取 满 ¥100 减 ¥10" }))
+        await user.click(await screen.findByRole("button", { name: "领取 满 ¥100 减 ¥10" }, WAIT))
 
-        expect(await screen.findByText("登录弹窗已打开")).toBeVisible()
+        expect(await screen.findByText("登录弹窗已打开", undefined, WAIT)).toBeVisible()
         expect(claimedPath).toBeUndefined()
     })
 
@@ -195,7 +213,7 @@ describe("ShopCouponPopover", () => {
         renderEntry()
 
         // 等数据真正落定（空列表）再断言入口不存在，否则只是「还在加载」
-        expect(await screen.findByText("券列表 0 张")).toBeVisible()
+        expect(await screen.findByText("券列表 0 张", undefined, WAIT)).toBeVisible()
         expect(screen.queryByRole("button", { name: "领券" })).toBeNull()
     })
 })
