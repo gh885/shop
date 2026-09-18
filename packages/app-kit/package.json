@@ -21,7 +21,15 @@
     },
     "devDependencies": {
         "@shop/config": "workspace:*",
+        "@shop/test-utils": "workspace:*",
+        "@testing-library/react": "catalog:",
+        "@testing-library/user-event": "catalog:",
         "@types/react": "catalog:",
-        "typescript": "catalog:"
+        "@types/react-dom": "catalog:",
+        "@vitejs/plugin-react": "catalog:",
+        "jsdom": "catalog:",
+        "react-dom": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
     }
 }

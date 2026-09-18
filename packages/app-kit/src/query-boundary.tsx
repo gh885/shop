@@ -12,12 +12,15 @@ import { ErrorBoundary } from "react-error-boundary"
  * 组合（`onReset` 接线、`resetErrorBoundary` 转交）每个区块抄一遍必然漂移，所以收成一处。
  *
  * 何时用它，何时不用：
- * - **用**：区块内的查询走 suspense 变体（`useSuspenseQuery`）或显式 `throwOnError`，
- *   失败时整个区块替换为 fallback，页面其余部分照常渲染（商品详情的推荐流、店铺条…）。
+ * - **用**：区块内的查询 —— 失败时整个区块替换为 fallback，页面其余部分照常渲染
+ *   （商品详情的推荐流、店铺条…）。区块内的 suspense 查询直接生效（`useSuspenseQuery`
+ *   自己会抛，并吃 `pending` 骨架）；非 suspense 查询靠全局默认的 `throwOnError` 抛到本组件
+ *   的 `ErrorBoundary`，这种形态**不要传 `pending`**。
  * - **不用**：页面主体数据失败 —— 那是路由级 `errorComponent` 的职责（`defaultErrorComponent`
  *   已在三端 router 上配好），页面里不该再写 `isError` 分支。
- * - **也不用**：查询带 `enabled` / `placeholderData` / `skipToken`（suspense 不支持这三者）——
- *   这类失败不会抛错，按官方 manual 重试用 result 的 `refetch()` 就地渲染。
+ * - **也可能不用**：区块里的查询若已显式 `throwOnError: false` 退出全局默认（带 `enabled` /
+ *   `placeholderData` / `skipToken` 的按需/降级读取），失败就不抛了 —— 那种形态就地渲染错误 UI
+ *   并用官方 `refetch()` 重试（官方 manual 的写法），见 AGENTS.md「错误与重试」。
  *
  * 注意 `reset` 的语义（官方实现）：它**不动缓存**，只清「错误已上报」的标记并放行下次挂载重取。
  * 因此如果失败原因需要连带刷新别的查询，那属于 mutation 之后的失效，写在 mutation 的

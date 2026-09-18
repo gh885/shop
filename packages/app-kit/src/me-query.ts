@@ -57,6 +57,10 @@ export function createMeQuery<TMe>({
             staleTime,
             retry: false,
             enabled: status === "authed",
+            // 退出全局的「失败抛给错误边界」：me 的消费者是页头/布局里的展示件
+            // （web SiteHeader/UserCard、seller AppTopBar、admin 侧栏），头上没有边界。
+            // 身份信息拿不到最多是「昵称不显示」，绝不能把整个应用外壳换成错误页
+            throwOnError: false,
         })
     }
 
