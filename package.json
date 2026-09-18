@@ -25,7 +25,7 @@
         "format": "pnpm format:web && pnpm format:server",
         "format:web": "oxfmt --config packages/config/oxfmt.config.ts --write .",
         "format:server": "mvn -f apps/server/pom.xml spotless:apply",
-        "typecheck": "pnpm --filter web exec tsc --noEmit && pnpm --filter admin exec tsc --noEmit && pnpm --filter seller exec tsc --noEmit",
+        "typecheck": "pnpm -r --if-present typecheck",
         "test": "vitest run",
         "test:watch": "vitest",
         "knip": "knip",
