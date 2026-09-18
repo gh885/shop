@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { TicketPercent } from "lucide-react"
 
 import type { ClaimableCouponResponse } from "@shop/api/sdk"
@@ -17,7 +18,7 @@ import {
 import { openLoginDialog, useIsLoggedIn } from "#/shared/api/auth"
 
 import { isCouponAlreadyClaimed } from "./coupon"
-import { useClaimCoupon, useShopClaimableCoupons } from "./queries"
+import { shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
 
 /**
  * 商品详情页的领券入口（店铺条上的「领券」按钮 + 浮层）。
@@ -31,7 +32,7 @@ import { useClaimCoupon, useShopClaimableCoupons } from "./queries"
  *    `soldOut` 来自后端先到先得闸门，置灰只能表达「不能点」。
  */
 export function ShopCouponPopover({ shopId }: { shopId: string }) {
-    const { data, isPending, isError } = useShopClaimableCoupons(shopId)
+    const { data, isPending, isError } = useQuery(shopClaimableCouponsOptions(shopId))
     const claim = useClaimCoupon()
     const isLoggedIn = useIsLoggedIn()
     // 可领券响应刻意不带「我领过没」（匿名通道拿不到当前用户），已领标记只能是本浮层的局部状态

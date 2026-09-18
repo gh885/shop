@@ -133,19 +133,15 @@ export const productListOptions = (shopId: string, s: ProductListSearch) =>
     })
 
 /** 类目树：低频变更公共数据，全量拉一次长缓存，页面内搜索/级联都在这份树上算 */
-const categoryTreeOptions = queryOptions({
+export const categoryTreeOptions = queryOptions({
     queryKey: categoryKeys.tree,
     queryFn: () => CategoriesApi.getCategoryTree(),
     staleTime: 10 * 60_000,
 })
 
-export function useCategoryTree() {
-    return useQuery(categoryTreeOptions)
-}
-
 /** 末级路径清单（搜索语料）：树没变编译器自动缓存，不重复展平 */
 export function useLeafPaths(): LeafPath[] {
-    const { data } = useCategoryTree()
+    const { data } = useQuery(categoryTreeOptions)
     return flattenLeafPaths(data ?? [])
 }
 

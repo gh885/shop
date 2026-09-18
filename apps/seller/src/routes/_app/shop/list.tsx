@@ -1,4 +1,4 @@
-import { useMyShops, useCurrentShop, shopKeys } from "#/shop"
+import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop"
 import { SHOP_STATUS_VARIANT, SHOP_STATUS_TEXT } from "#/shop/constants"
 import { setCurrentShopId } from "#/shop"
 import { formatDate, useWriteMutation } from "@shop/app-kit"
@@ -141,10 +141,7 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
 
 /** 待确认邀请：别人邀请我加入的店铺 */
 function PendingInvites() {
-    const invites = useQuery({
-        queryKey: shopKeys.invites(),
-        queryFn: () => ShopsApi.listShopInvites(),
-    })
+    const invites = useQuery(shopInvitesOptions)
 
     const accept = useWriteMutation<string>({
         mutationFn: (memberId) => ShopsApi.acceptShopInvite({ path: { memberId } }),

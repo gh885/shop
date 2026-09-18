@@ -1,6 +1,6 @@
 import { CouponsApi, type ClaimableCouponResponse } from "@shop/api/sdk"
 import { notify, useWriteMutation } from "@shop/app-kit"
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions } from "@tanstack/react-query"
 
 import {
     COUPON_PAGE_SIZE,
@@ -24,7 +24,8 @@ import {
 const MY_COUPONS_KEY = ["my-coupons"] as const
 
 /** 我的券包 queryOptions：queryKey 带全部分页/筛选入参，切页签与翻页各占一格缓存；
- *  导出供 route loader 客户端预热（券包页 loader 预取默认页签第一页） */
+ *  导出供 route loader 客户端预热（券包页 loader 预取默认页签第一页）；
+ *  组件直接 `useQuery(myCouponsOptions(tab, page))`，不为它再包一层同名 hook */
 export const myCouponsOptions = (status: CouponTab, page: number) =>
     queryOptions({
         queryKey: [...MY_COUPONS_KEY, status, page, COUPON_PAGE_SIZE],
@@ -43,16 +44,12 @@ export const myCouponsOptions = (status: CouponTab, page: number) =>
         placeholderData: (prev) => prev,
     })
 
-/** 我的券包（当前页签 + 页码） */
-export function useMyCoupons(status: CouponTab, page = 1) {
-    return useQuery(myCouponsOptions(status, page))
-}
-
 // ---------- 店铺可领券（匿名） ----------
 
 const SHOP_CLAIMABLE_COUPONS_KEY = ["shop-claimable-coupons"] as const
 
-const shopClaimableCouponsOptions = (shopId: string) =>
+/** 某店当前可领的券（先到先得，soldOut 由后端闸门算）；组件直接 useQuery(shopClaimableCouponsOptions(shopId)) */
+export const shopClaimableCouponsOptions = (shopId: string) =>
     queryOptions({
         queryKey: [...SHOP_CLAIMABLE_COUPONS_KEY, shopId],
         queryFn: async ({ signal }): Promise<ClaimableCouponResponse[]> => {
@@ -65,11 +62,6 @@ const shopClaimableCouponsOptions = (shopId: string) =>
         // 领券入口是页面的附属件：拉失败就不给入口（不报警、不占位）。但**必须留默认重试**——
         // 一次瞬时抖动配上 60s 的 staleTime，等于让入口从现在起长时间消失，用户既看不到失败也无处重试。
     })
-
-/** 某店当前可领的券（先到先得，soldOut 由后端闸门算） */
-export function useShopClaimableCoupons(shopId: string) {
-    return useQuery(shopClaimableCouponsOptions(shopId))
-}
 
 // ---------- 领券 ----------
 

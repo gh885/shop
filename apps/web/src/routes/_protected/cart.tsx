@@ -11,17 +11,10 @@ import {
     Skeleton,
 } from "@shop/ui-web"
 
-import {
-    ShopGroupCard,
-    Settlement,
-    Toolbar,
-    groupByShop,
-    cartItemsOptions,
-    useCartItems,
-} from "#/cart"
+import { ShopGroupCard, Settlement, Toolbar, groupByShop, cartItemsOptions } from "#/cart"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
-import { noop } from "@tanstack/react-query"
+import { noop, useQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/cart")({
     // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
@@ -50,7 +43,7 @@ function CartPage() {
 
 function CartList() {
     const navigate = useNavigate()
-    const { data: items, isPending } = useCartItems()
+    const { data: items, isPending } = useQuery(cartItemsOptions)
     const groups = groupByShop(items ?? [])
     if (isPending) {
         // 首次加载：按分组卡片形状占位（头部行 + 两行商品）

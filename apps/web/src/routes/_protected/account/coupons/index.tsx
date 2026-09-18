@@ -28,10 +28,9 @@ import {
     CouponCard,
     groupByStatus,
     myCouponsOptions,
-    useMyCoupons,
 } from "#/coupon"
 import type { CouponTab } from "#/coupon"
-import { noop } from "@tanstack/react-query"
+import { noop, useQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/coupons/")({
     // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
@@ -56,7 +55,7 @@ function CouponsPage() {
     const [tab, setTab] = useState<CouponTab>("UNUSED")
     const [page, setPage] = useState(1)
     const navigate = useNavigate()
-    const { data, isLoading, isError, refetch } = useMyCoupons(tab, page)
+    const { data, isLoading, isError, refetch } = useQuery(myCouponsOptions(tab, page))
 
     const coupons = data?.records ?? []
     const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / COUPON_PAGE_SIZE))

@@ -3,7 +3,7 @@ import type { PreviewResponse } from "@shop/api/sdk"
 
 import { statusToWire, toOrder, toOrderDetail } from "./order"
 import type { Order, OrderDetail, OrderStatus } from "./model"
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions } from "@tanstack/react-query"
 
 import { useWriteMutation } from "@shop/app-kit"
 
@@ -27,23 +27,27 @@ export const MY_ORDERS_KEY = ["my-orders"] as const
 export const ORDER_DETAIL_KEY = ["order-detail"] as const
 
 /** 仅客户端拉取（受保护页），queryKey 带 status/page/size 便于按 tab 缓存分片；
- *  导出供 route loader 客户端预热（account/orders 页 loader 预取默认 tab 第一页） */
+ *  导出供 route loader 客户端预热（account/orders 页 loader 预取默认 tab 第一页），
+ *  组件侧直接 `useQuery(myOrdersOptions({ status, page }))` —— 不为它再包一层同名 hook。 */
 export const myOrdersOptions = ({
     status,
     page = 1,
     size = 20,
 }: { status?: OrderStatus | "all"; page?: number; size?: number } = {}) => {
-    const wire = {
-        query: {
-            pageParams: { page, size },
-            query: {
-                status: status && status !== "all" ? statusToWire(status) : undefined,
-            },
-        },
-    } as const
+    // 变量一律在 queryFn 内部构造：外面留一个 `wire` 会被 tanstack-query/exhaustive-deps
+    // 判成「闭包变量没进 queryKey」——它的实际输入（status/page/size）三者都已入 key，
+    // 但这个单态对象本身不是缓存维度，写在外面只是给规则制造假阳性。
     return queryOptions({
         queryKey: [...MY_ORDERS_KEY, status ?? "all", page, size],
         queryFn: async ({ signal }): Promise<{ records: Order[]; total: number }> => {
+            const wire = {
+                query: {
+                    pageParams: { page, size },
+                    query: {
+                        status: status && status !== "all" ? statusToWire(status) : undefined,
+                    },
+                },
+            } as const
             const result = await OrdersApi.listMyOrders({ ...wire, signal })
             return {
                 records: result.records.map(toOrder),
@@ -56,14 +60,9 @@ export const myOrdersOptions = ({
     })
 }
 
-/** 我的订单列表（当前 tab + 页码） */
-export function useMyOrders(status: OrderStatus | "all" = "all", page = 1) {
-    return useQuery(myOrdersOptions({ status, page }))
-}
-
 // ---------- 订单详情 ----------
 
-/** 导出供 route loader 客户端预热（订单详情/物流页 loader 预取） */
+/** 导出供 route loader 客户端预热（订单详情/物流页 loader 预取）；组件直接 useQuery(orderDetailOptions(id)) */
 export const orderDetailOptions = (id: string) =>
     queryOptions({
         queryKey: [...ORDER_DETAIL_KEY, id],
@@ -72,10 +71,6 @@ export const orderDetailOptions = (id: string) =>
         staleTime: 30_000,
         retry: false,
     })
-
-export function useOrderDetail(id: string) {
-    return useQuery(orderDetailOptions(id))
-}
 
 // ---------- 结算预览 / 下单 / 支付（交互动作，mutation 由调用方 useMutation 接线） ----------
 

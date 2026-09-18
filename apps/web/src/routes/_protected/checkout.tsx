@@ -8,10 +8,11 @@ import {
     type CouponSelection,
     type UnavailableLine,
     useCreateOrder,
-    useCheckoutPreview,
+    checkoutPreviewOptions,
 } from "#/checkout"
 import { fenToYuan } from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
 import { notify } from "@shop/app-kit"
@@ -76,11 +77,13 @@ function CheckoutPage() {
     // 默认选中：已勾选的，否则默认地址，兜底第一条——提交/预览都可用
     const defaultAddress = addresses?.find((a) => a.isDefault) ?? addresses?.[0]
     const effectiveAddressId = addressId || defaultAddress?.id || ""
-    const preview = useCheckoutPreview({
-        source,
-        addressId: effectiveAddressId || undefined,
-        coupons: couponSelection,
-    })
+    const preview = useQuery(
+        checkoutPreviewOptions({
+            source,
+            addressId: effectiveAddressId || undefined,
+            coupons: couponSelection,
+        }),
+    )
 
     // 默认选券：后端不会替你选（appliedCouponId 只是回显传过去的 id），首屏拿到候选后取「第一张可用券」。
     // 只补用户还没表态的店、清掉已不在本次结算里的店；改过的选择（含明确选「不使用」）原样保留。

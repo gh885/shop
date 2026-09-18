@@ -1,16 +1,17 @@
 import { ChevronDown, Search } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { notify } from "@shop/app-kit"
 import { Checkbox, Button, ConfirmDialog } from "@shop/ui-web"
 import { deriveSelectedItems, deriveAllSelected } from "./cart"
-import { useCartItems, useSelectCartItems, useBatchRemoveCartItems } from "./queries"
+import { cartItemsOptions, useSelectCartItems, useBatchRemoveCartItems } from "./queries"
 
 /**
  * 购物车列表工具栏（左栏头部）：全选（读推导的全选态）+ 批量操作 + 车内搜索占位。
  * 分类、状态、搜索本期不做，点击 toast 占位；「删除」二次确认后批量删除已勾选。
  */
 export function Toolbar() {
-    const { data: items } = useCartItems()
+    const { data: items } = useQuery(cartItemsOptions)
     const selectItems = useSelectCartItems()
     const batchRemove = useBatchRemoveCartItems()
     const [confirmOpen, setConfirmOpen] = useState(false)

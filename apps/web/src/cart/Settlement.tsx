@@ -1,10 +1,11 @@
 import { useNavigate } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
 
 import { Button, Separator } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
 import { deriveCartItemView, deriveSelectedItems, deriveSelectedTotal } from "./cart"
-import { useCartItems, useToggleCartItem } from "./queries"
+import { cartItemsOptions, useToggleCartItem } from "./queries"
 
 /**
  * 购物车右栏结算明细（对齐参考图，但本期不做优惠/红包/满减）：
@@ -12,7 +13,7 @@ import { useCartItems, useToggleCartItem } from "./queries"
  * 派生（selectedItems/total）来自 ./cart.ts 纯函数，这里只负责展示。
  */
 export function Settlement() {
-    const { data: items } = useCartItems()
+    const { data: items } = useQuery(cartItemsOptions)
     const toggle = useToggleCartItem()
     const navigate = useNavigate()
     const selectedItems = deriveSelectedItems(items ?? [])

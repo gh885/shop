@@ -1,6 +1,7 @@
 import { useCreatePayment, useConfirmPayment } from "#/checkout"
-import { useOrderDetail } from "#/order"
+import { orderDetailOptions } from "#/order"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
 import { Wallet, CheckCircle2 } from "lucide-react"
 import { Card, CardContent, Spinner, Button } from "@shop/ui-web"
 
@@ -33,7 +34,7 @@ type PayPhase =
 function PayPage() {
     const navigate = useNavigate()
     const { orderId } = Route.useParams()
-    const order = useOrderDetail(orderId)
+    const order = useQuery(orderDetailOptions(orderId))
     const create = useCreatePayment()
     const confirm = useConfirmPayment()
 
@@ -64,7 +65,7 @@ function PayPage() {
     const amount = order.data?.payAmount.amount
 
     return (
-        <div className="flex min-h-(--min-height-page-center) flex-col items-center justify-center px-6">
+        <div className="flex min-h-page-center flex-col items-center justify-center px-6">
             <Card className="w-full max-w-md text-center">
                 <CardContent>
                     {(phase === "detail-loading" || phase === "paying") && (

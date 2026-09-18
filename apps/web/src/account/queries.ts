@@ -1,3 +1,5 @@
+import { queryOptions } from "@tanstack/react-query"
+
 import { AuthApi, type MeResponse } from "@shop/api/sdk"
 
 import { createMeQuery } from "@shop/app-kit"
@@ -27,3 +29,21 @@ export const useMe = me.useMe
 
 /** 登出等场景下清除缓存的用户信息 */
 export const useClearMe = me.useClearMe
+
+// ---------- 登录设备（安全设置页） ----------
+
+/** 设备列表 key 工厂：all 是失效入口（前缀匹配），list 额外带当前设备 id */
+export const deviceKeys = {
+    all: ["devices"] as const,
+    list: (currentDeviceId: string) => ["devices", currentDeviceId] as const,
+}
+
+/**
+ * 登录设备列表：`currentDeviceId` 必须进 key —— 后端据它给「本机」打标，
+ * 不入 key 的话换设备（同浏览器换账号/清了 localStorage）会读到上一台机器的 isCurrent。
+ */
+export const devicesOptions = (currentDeviceId: string) =>
+    queryOptions({
+        queryKey: deviceKeys.list(currentDeviceId),
+        queryFn: () => AuthApi.devices({ query: { currentDeviceId } }),
+    })

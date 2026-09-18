@@ -1,13 +1,14 @@
 import { useLayoutEffect, useRef, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 
 import { Button, cn, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
-import { useRecommendTabs } from "./queries"
+import { recommendTabsOptions } from "./queries"
 
 /** 首页第四层：吸顶推荐条，吸在顶栏下方。扁平数组（猜你喜欢是普通一项），每页显示数量由容器宽度自动决定，首末页隐藏对应翻页按钮 */
 export function RecommendBar() {
-    const tabs = useRecommendTabs()
+    const tabs = useQuery(recommendTabsOptions)
     const [page, setPage] = useState(0)
 
     // 测量一页能放多少个词：测量层与显示层同宽、单行，累计宽度（含 gap）直到放不下

@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 import { SellerAddressesApi, type MerchantAddressRequest } from "@shop/api/sdk"
 
 import { useWriteMutation } from "@shop/app-kit"
@@ -11,13 +11,16 @@ const addressKeys = {
 }
 
 /** 本店地址库列表：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
+const addressListOptions = (shopId: string) =>
+    queryOptions({
+        queryKey: addressKeys.lists(shopId),
+        queryFn: () => SellerAddressesApi.listAddresses1(),
+    })
+
 export function useAddressList(shopId: string) {
     const queryClient = useQueryClient()
     return {
-        ...useQuery({
-            queryKey: addressKeys.lists(shopId),
-            queryFn: () => SellerAddressesApi.listAddresses1(),
-        }),
+        ...useQuery(addressListOptions(shopId)),
         /** 错误态重试：与五个写操作同一条失效入口 */
         onRetry: () => void queryClient.invalidateQueries({ queryKey: addressKeys.lists(shopId) }),
     }

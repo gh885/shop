@@ -10,7 +10,7 @@ import { toFavoriteItem, type FavoriteItem } from "./favorite"
 /**
  * favorite/queries —— 收藏的 React 接线层。只管「读状态/写状态」，规则在 ./favorite.ts 纯函数里。
  * 状态分两块、互不直接同步：
- * - 列表（收藏页）：useFavorites + useRemoveFavorites（乐观移除，为它留 query）
+ * - 列表（收藏页）：favoriteItemsOptions + useRemoveFavorites（乐观移除，为它留 query）
  * - 详情页心形（useFavoriteStatus / useToggleFavorite）：按 productId 独立 query，乐观切换
  */
 
@@ -20,7 +20,7 @@ import { toFavoriteItem, type FavoriteItem } from "./favorite"
 const KEY = ["favorite-items"] as const
 const FAVORITES_QUERY = { query: { pageParams: { page: 1, size: 100 } } } as const
 
-/** 收藏页列表；导出供 route loader 客户端预热 */
+/** 收藏页列表；导出供 route loader 客户端预热，组件直接 `useQuery(favoriteItemsOptions)` */
 export const favoriteItemsOptions = queryOptions({
     queryKey: KEY,
     queryFn: async ({ signal }): Promise<FavoriteItem[]> => {
@@ -28,10 +28,6 @@ export const favoriteItemsOptions = queryOptions({
         return res.records.map(toFavoriteItem)
     },
 })
-
-export function useFavorites() {
-    return useQuery(favoriteItemsOptions)
-}
 
 /** 移除收藏：单条与批量共用（按 productId，收藏是幂等开关、非行管理），乐观更新 */
 export function useRemoveFavorites() {

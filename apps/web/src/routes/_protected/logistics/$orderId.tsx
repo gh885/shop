@@ -10,9 +10,8 @@ import {
     TrackingTimeline,
     buildShipmentTracks,
     orderTrackingOptions,
-    useOrderTracking,
 } from "#/logistics"
-import { orderDetailOptions, useOrderDetail } from "#/order"
+import { orderDetailOptions } from "#/order"
 import { toApiError } from "@shop/common"
 import {
     Button,
@@ -23,7 +22,7 @@ import {
     EmptyTitle,
     Skeleton,
 } from "@shop/ui-web"
-import { noop } from "@tanstack/react-query"
+import { noop, useQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/logistics/$orderId")({
     // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
@@ -49,8 +48,8 @@ export const Route = createFileRoute("/_protected/logistics/$orderId")({
 // oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染（加载/轨迹失败/未发货/数据）是受保护页的刻意结构，数据派生（tracks/primary/fullAddress）已扁平；拆分需传 6+ props 的宽接口
 function LogisticsPage() {
     const { orderId } = Route.useParams()
-    const tracking = useOrderTracking(orderId)
-    const detail = useOrderDetail(orderId)
+    const tracking = useQuery(orderTrackingOptions(orderId))
+    const detail = useQuery(orderDetailOptions(orderId))
 
     const order = detail.data
     const tracks = buildShipmentTracks(tracking.data?.shipments ?? [], order)

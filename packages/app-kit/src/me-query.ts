@@ -47,7 +47,10 @@ export function createMeQuery<TMe>({
     function useMe() {
         const status = useAuthStatus()
         // queryFn 在此处内联（不提升到工厂作用域）：key 元组形状要在 hook 调用点固定，
-        // 提前抽成独立函数会让 key 的推断跑偏，锁死与 useQuery 的兼容性
+        // 提前抽成独立函数会让 key 的推断跑偏，锁死与 useQuery 的兼容性。
+        // 实测：换成 queryOptions(...) 包一层后，queryKey 的 readonly [string] 与 useQuery<TMe>
+        // 的泛型推断打架（TS2769：readonly unknown[] 不可赋值给 readonly [string]），故保持内联并豁免。
+        // oxlint-disable-next-line tanstack-query/prefer-query-options -- 见上：wrapper 会破坏 key 元组推断
         return useQuery<TMe>({
             queryKey: ME_QUERY_KEY,
             queryFn,

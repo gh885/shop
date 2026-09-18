@@ -30,7 +30,7 @@ export const CART_COUNT_KEY = ["cart-count"] as const
 
 /** 购物车列表：仅在路由 /cart（_protected 内）使用。
  * 登录态由 _protected 布局 gate 保证（authed 后才渲染子路由），挂载时必已登录。
- * 导出供 route loader 客户端预热（hover intent 预取）。 */
+ * 导出供 route loader 客户端预热（hover intent 预取），组件直接 `useQuery(cartItemsOptions)`。 */
 export const cartItemsOptions = queryOptions({
     queryKey: CART_ITEMS_KEY,
     queryFn: async ({ signal }): Promise<CartItem[]> => {
@@ -38,10 +38,6 @@ export const cartItemsOptions = queryOptions({
         return res.map(toCartItem)
     },
 })
-
-export function useCartItems() {
-    return useQuery(cartItemsOptions)
-}
 
 /** 角标计数：免拉整车，头部角标用；可在公开页（SiteHeader/首页）使用，故必须保留 enabled gating */
 const cartCountOptions = queryOptions({
@@ -126,7 +122,7 @@ export function useBatchRemoveCartItems() {
 
 // ---------- 行内动作 ----------
 // 购物车的消费者都在「购物车页」这一棵子树里、没有跨路由复用，所以不用 context 广播派生状态；
-// 每个组件自己 `useCartItems()` 拿数据、调 `derive*` 算派生、按需调上面的 mutation。
+// 每个组件自己 `useQuery(cartItemsOptions)` 拿数据、调 `derive*` 算派生、按需调上面的 mutation。
 // 唯一的例外是条目行：整组共用一份实例（在 ShopGroupCard 调一次传给各 ItemRow），
 // 否则 N 行会各建 3 个 mutation observer。
 

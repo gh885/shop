@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { queryOptions } from "@tanstack/react-query"
 import { useState } from "react"
 
 import { useWriteMutation } from "@shop/app-kit"
@@ -24,8 +24,9 @@ export type CheckoutSource = { lines: CheckoutLine[] }
 const sourceKey = (s: CheckoutSource) => s.lines.map((l) => `${l.skuId}:${l.quantity}`).join(",")
 
 /** 结算预览：以来源 + 地址 + 每店选中的券为 key；任何一项变化都走新 key 重新预览，
- *  不手动 refetch —— 换券必须重算，这正是「预览价 ≠ 实付价」的来源。 */
-export function useCheckoutPreview({
+ *  不手动 refetch —— 换券必须重算，这正是「预览价 ≠ 实付价」的来源。
+ *  组件直接 `useQuery(checkoutPreviewOptions({ source, addressId, coupons }))`。 */
+export const checkoutPreviewOptions = ({
     source,
     addressId,
     coupons,
@@ -34,10 +35,9 @@ export function useCheckoutPreview({
     addressId?: string
     /** 每店选中的券；不传 = 本次预览不用券 */
     coupons?: CouponSelection
-}) {
-    const enabled = source.lines.length > 0
+}) => {
     const userCouponIds = couponIdsOf(coupons ?? {})
-    return useQuery({
+    return queryOptions({
         queryKey: [
             "checkout-preview",
             sourceKey(source),
@@ -52,7 +52,8 @@ export function useCheckoutPreview({
             })
             return toCheckoutPreview(res)
         },
-        enabled,
+        // 没有结算行就没什么可预览的：不开查询，而不是发了再丢掉
+        enabled: source.lines.length > 0,
         staleTime: 0,
         retry: false,
         // 换券/换地址都是新 key：保留上一份预览继续展示，否则整页会闪回骨架屏，

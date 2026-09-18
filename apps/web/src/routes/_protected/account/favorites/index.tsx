@@ -19,10 +19,9 @@ import {
     favoriteItemsOptions,
     filterFavorites,
     Toolbar,
-    useFavorites,
     useRemoveFavorites,
 } from "#/favorite"
-import { noop } from "@tanstack/react-query"
+import { noop, useQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/favorites/")({
     // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
@@ -47,7 +46,13 @@ function FavoritesPage() {
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
     const [batchConfirmOpen, setBatchConfirmOpen] = useState(false)
 
-    const { data: favorites = [], isPending, isError, isFetching, refetch } = useFavorites()
+    const {
+        data: favorites = [],
+        isPending,
+        isError,
+        isFetching,
+        refetch,
+    } = useQuery(favoriteItemsOptions)
     const removeFavorites = useRemoveFavorites()
 
     const filtered = filterFavorites(favorites, keyword)

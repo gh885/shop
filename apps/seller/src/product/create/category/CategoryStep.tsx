@@ -1,11 +1,12 @@
 import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { ImageIcon, ListTree, Search } from "lucide-react"
 import { Button, Input, Skeleton, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 
 import { nodesOf, searchLeafPaths, selectAt, selectedLeafId, type LeafPath } from "@shop/common"
 import { CategoryColumns } from "./CategoryColumns"
 import { CategorySearchResults } from "./CategorySearchResults"
-import { useCategoryTree, useLeafPaths } from "../../queries"
+import { categoryTreeOptions, useLeafPaths } from "../../queries"
 
 /**
  * 发布第一步：选类目（千牛「搜索发品 / 以图发品」那一屏）。
@@ -28,7 +29,7 @@ export function CategoryStep({
     value?: string
     onConfirm: (leafId: string) => void
 }) {
-    const { data: tree = [], isPending } = useCategoryTree()
+    const { data: tree = [], isPending } = useQuery(categoryTreeOptions)
     const leafPaths = useLeafPaths()
 
     // undefined = 还没手动点过，跟随 URL 上的 value 回填

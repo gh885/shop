@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider, useQuery } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 
 import { createTestQueryClient, makeTicket, server } from "@shop/test-utils"
 
-import { afterSaleOptions, useAfterSale, useApplyAfterSale } from "./after-sale-queries"
+import { afterSaleOptions, useApplyAfterSale } from "./after-sale-queries"
 import { myOrdersOptions, ORDER_DETAIL_KEY } from "./queries"
 
 /**
@@ -18,7 +18,7 @@ import { myOrdersOptions, ORDER_DETAIL_KEY } from "./queries"
 
 /** 探针：把 query 状态压成一个可断言的文本 */
 function TicketProbe({ orderId }: { orderId: string }) {
-    const ticket = useAfterSale(orderId)
+    const ticket = useQuery(afterSaleOptions(orderId))
     const state = ticket.isPending
         ? "loading"
         : ticket.isError
@@ -39,7 +39,7 @@ function ApplyProbe() {
     )
 }
 
-describe("useAfterSale（售后单读取）", () => {
+describe("afterSaleOptions（售后单读取）", () => {
     it("从未申请过售后_404 归零为「没有」而不是错误", async () => {
         render(
             <QueryClientProvider client={createTestQueryClient()}>

@@ -25,6 +25,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
+import { deviceKeys, devicesOptions } from "#/account"
 import { formatTimeShort, useWriteMutation } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
@@ -38,8 +39,6 @@ export const Route = createFileRoute("/_protected/account/security/")({
         meta: [{ title: "安全设置 - 个人中心 - Shop" }],
     }),
 })
-
-const DEVICES_KEY = ["devices"] as const
 
 /** 安全设置：修改登录密码 + 登录设备管理（列表/单设备退出/退出全部）。 */
 function SecurityPage() {
@@ -148,14 +147,12 @@ function ChangePassword() {
 function DeviceManager() {
     const currentDeviceId = getDeviceId()
 
-    const devices = useQuery({
-        queryKey: DEVICES_KEY,
-        queryFn: () => AuthApi.devices({ query: { currentDeviceId } }),
-    })
+    const devices = useQuery(devicesOptions(currentDeviceId))
 
     const deleteDevice = useWriteMutation<string>({
         mutationFn: (deviceId) => AuthApi.deleteDevice({ path: { deviceId } }),
-        invalidateKeys: [DEVICES_KEY],
+        // 前缀失效：all 覆盖 list(currentDeviceId) 这条带设备 id 的 key
+        invalidateKeys: [deviceKeys.all],
         messages: { success: "已退出该设备", error: "退出失败" },
     })
 

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
 
@@ -17,17 +17,33 @@ export const shopKeys = {
     members: (shopId: string) => ["shops", shopId, "members"] as const,
 }
 
+// ---------- queryOptions：key 与 queryFn 共置（hook 只负责叠 enabled / 加 onRetry） ----------
+
+export const myShopsOptions = queryOptions({
+    queryKey: shopKeys.mine(),
+    queryFn: () => ShopsApi.listMyShops(),
+})
+
+/** 本店成员列表：与商品的 shopId 入 key 同理——切店铺不串缓存 */
+export const shopMembersOptions = (shopId: string) =>
+    queryOptions({
+        queryKey: shopKeys.members(shopId),
+        queryFn: () => ShopsApi.listShopMembers({ path: { shopId } }),
+    })
+
+/** 待确认邀请（店铺列表页） */
+export const shopInvitesOptions = queryOptions({
+    queryKey: shopKeys.invites(),
+    queryFn: () => ShopsApi.listShopInvites(),
+})
+
 // ---------- 我的店铺列表 ----------
 
 export function useMyShops() {
     const status = useAuthStatus()
     const queryClient = useQueryClient()
     return {
-        ...useQuery({
-            queryKey: shopKeys.mine(),
-            queryFn: () => ShopsApi.listMyShops(),
-            enabled: status === "authed",
-        }),
+        ...useQuery({ ...myShopsOptions, enabled: status === "authed" }),
         /** 错误态重试：整棵店铺缓存标脏（我的店铺/邀请/成员都挂在这棵树上） */
         onRetry: () => void queryClient.invalidateQueries({ queryKey: shopKeys.all }),
     }
@@ -35,14 +51,11 @@ export function useMyShops() {
 
 // ---------- 店铺成员 ----------
 
-/** 本店成员列表（成员管理页）：与商品的 shopId 入 key 同理——切店铺不串缓存 */
+/** 本店成员列表（成员管理页） */
 export function useMyShopMembers(shopId: string) {
     const queryClient = useQueryClient()
     return {
-        ...useQuery({
-            queryKey: shopKeys.members(shopId),
-            queryFn: () => ShopsApi.listShopMembers({ path: { shopId } }),
-        }),
+        ...useQuery(shopMembersOptions(shopId)),
         /** 错误态重试：与邀请/移除同一条失效入口 */
         onRetry: () => void queryClient.invalidateQueries({ queryKey: shopKeys.members(shopId) }),
     }

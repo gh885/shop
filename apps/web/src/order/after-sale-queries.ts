@@ -1,7 +1,7 @@
 import { OrdersApi, type TicketResponse, type TicketType } from "@shop/api/sdk"
 import { useWriteMutation } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions } from "@tanstack/react-query"
 
 import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
 
@@ -18,7 +18,8 @@ import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
 /** 售后单缓存 key 前缀：精确 key 为 [AFTER_SALE_KEY, orderId] */
 const AFTER_SALE_KEY = ["after-sale"] as const
 
-/** 导出供 route loader 客户端预热（订单详情页 loader 一并预取售后单） */
+/** 导出供 route loader 客户端预热（订单详情页 loader 一并预取售后单）；
+ *  组件直接 `useQuery(afterSaleOptions(orderId))` —— 「从未申请过返回 null」这条语义在 options 里。 */
 export const afterSaleOptions = (orderId: string) =>
     queryOptions({
         queryKey: [...AFTER_SALE_KEY, orderId],
@@ -36,11 +37,6 @@ export const afterSaleOptions = (orderId: string) =>
         staleTime: 30_000,
         retry: false,
     })
-
-/** 某订单最近一张售后单（含终态）；从未申请过返回 null */
-export function useAfterSale(orderId: string) {
-    return useQuery(afterSaleOptions(orderId))
-}
 
 // ---------- 写操作（申请 / 撤销 / 回寄），纯 fetch 便于断言投影 ----------
 

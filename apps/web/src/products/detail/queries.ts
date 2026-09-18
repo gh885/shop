@@ -113,6 +113,10 @@ export function useShopQuery(shopId: string | undefined) {
     const queryClient = useQueryClient()
     return {
         ...useQuery({ ...shopOptions(shopId ?? "pending"), enabled: !!shopId }),
-        onRetry: () => void queryClient.invalidateQueries({ queryKey: ["shop-public", shopId] }),
+        // key 从 options 取，不手打数组：手打的字面量改一处必漏一处（也避开 prefer-query-options 报错）
+        onRetry: () =>
+            void queryClient.invalidateQueries({
+                queryKey: shopOptions(shopId ?? "pending").queryKey,
+            }),
     }
 }

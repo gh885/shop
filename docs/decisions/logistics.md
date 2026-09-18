@@ -353,7 +353,7 @@ platform/aftersale/
 apps/web/src/logistics/            ← domain（目录名 = 本端路由顶层业务段）
 ├── model.ts                       词表（状态/节点 → 中文）+ 纯规则（时间文案/跨年补年/折叠切分/标记最新/脱敏）
 ├── tracking.ts                    wire → 视图模型：排序（后端正序 → 轴倒序）、按状态分段、并商家侧事件
-├── queries.ts                     useOrderTracking（未发货 404 不重试）
+├── queries.ts                     orderTrackingOptions（未发货 404 不重试；组件直接 useQuery）
 ├── TrackingTimeline.tsx           轴主体（含折叠态）
 ├── CarrierBar.tsx                 承运商条 + 复制运单号
 ├── LogisticsSummaryCard.tsx       摘要卡（状态 + 目的地 + 脱敏收件人）

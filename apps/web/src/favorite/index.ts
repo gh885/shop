@@ -11,7 +11,6 @@ export { filterFavorites } from "./favorite"
 export {
     favoriteItemsOptions,
     useFavoriteStatus,
-    useFavorites,
     useRemoveFavorites,
     useToggleFavorite,
 } from "./queries"

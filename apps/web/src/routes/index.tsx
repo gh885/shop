@@ -1,15 +1,14 @@
 import { Suspense } from "react"
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { Skeleton } from "@shop/ui-web"
 
 import {
     bannersOptions,
+    feedOptions,
     homeNavOptions,
     recommendTabsOptions,
-    useBanners,
-    useFeedProducts,
-    useHomeNav,
     UserCard,
     HomeCategoryNav,
     HomeBannerItem,
@@ -54,11 +53,12 @@ export const Route = createFileRoute("/")({
     },
 })
 
-/** 首页：五个层级区块，数据各自经 use-home 的 hooks 取（loader 已预热缓存） */
+/** 首页：五个层级区块，数据各自读 options（loader 已预热缓存；feed 走 suspense 边界） */
 function Home() {
-    const feed = useFeedProducts()
-    const nav = useHomeNav()
-    const banners = useBanners()
+    // feed 是唯一用 suspense 变体的：无缓存预热，靠边界挂起后流式补发
+    const feed = useSuspenseQuery(feedOptions)
+    const nav = useQuery(homeNavOptions)
+    const banners = useQuery(bannersOptions)
     return (
         <>
             <HomeHeader />

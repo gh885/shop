@@ -1,5 +1,5 @@
 import type { Coupon, PreviewResponse } from "@shop/api/sdk"
-import { QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider, useQuery } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import { createElement, type ReactNode } from "react"
@@ -9,7 +9,7 @@ import { createTestQueryClient, server } from "@shop/test-utils"
 
 import type { CheckoutGroup, CouponSelection } from "./checkout"
 import { couponIdsOf, defaultCouponId, toCheckoutPreview, withDefaultCoupons } from "./checkout"
-import { useCheckoutPreview, useCreateOrder } from "./queries"
+import { checkoutPreviewOptions, useCreateOrder } from "./queries"
 
 /**
  * 测试夹具：PreviewResponse wire 形状的可控构造。
@@ -314,7 +314,7 @@ describe("withDefaultCoupons（首屏填默认，不覆盖用户改过的选择�
     })
 })
 
-describe("useCheckoutPreview（选券进请求与 queryKey）", () => {
+describe("checkoutPreviewOptions（选券进请求与 queryKey）", () => {
     it("不用券时不带 userCouponIds：空数组不是「传了选择」", async () => {
         const bodies: unknown[] = []
         server.use(
@@ -326,7 +326,10 @@ describe("useCheckoutPreview（选券进请求与 queryKey）", () => {
         const { wrapper } = hookWrapper()
 
         renderHook(
-            () => useCheckoutPreview({ source: SOURCE, addressId: ADDRESS_1, coupons: {} }),
+            () =>
+                useQuery(
+                    checkoutPreviewOptions({ source: SOURCE, addressId: ADDRESS_1, coupons: {} }),
+                ),
             { wrapper },
         )
 
@@ -347,7 +350,7 @@ describe("useCheckoutPreview（选券进请求与 queryKey）", () => {
 
         const { rerender } = renderHook(
             ({ coupons }: { coupons: CouponSelection }) =>
-                useCheckoutPreview({ source: SOURCE, addressId: ADDRESS_1, coupons }),
+                useQuery(checkoutPreviewOptions({ source: SOURCE, addressId: ADDRESS_1, coupons })),
             { wrapper, initialProps: { coupons: {} } },
         )
         await waitFor(() => expect(bodies).toHaveLength(1))
@@ -370,11 +373,13 @@ describe("useCheckoutPreview（选券进请求与 queryKey）", () => {
 
         renderHook(
             () =>
-                useCheckoutPreview({
-                    source: SOURCE,
-                    addressId: ADDRESS_1,
-                    coupons: { [SHOP_1]: COUPON_1, [SHOP_2]: COUPON_2 },
-                }),
+                useQuery(
+                    checkoutPreviewOptions({
+                        source: SOURCE,
+                        addressId: ADDRESS_1,
+                        coupons: { [SHOP_1]: COUPON_1, [SHOP_2]: COUPON_2 },
+                    }),
+                ),
             { wrapper },
         )
 

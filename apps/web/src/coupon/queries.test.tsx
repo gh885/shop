@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider, useQuery } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
@@ -8,7 +8,7 @@ import type { MyCouponResponse } from "@shop/api/sdk"
 import { createTestQueryClient, server } from "@shop/test-utils"
 
 import { COUPON_PAGE_SIZE, type CouponTab } from "./coupon"
-import { myCouponsOptions, useClaimCoupon, useMyCoupons, useShopClaimableCoupons } from "./queries"
+import { myCouponsOptions, shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
 
 /**
  * 券数据层：钉住两件容易出错、出错又很难看出来的事 ——
@@ -37,7 +37,7 @@ function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCoup
 }
 
 function MyCouponsProbe({ status, page }: { status: CouponTab; page: number }) {
-    const { data, isPending } = useMyCoupons(status, page)
+    const { data, isPending } = useQuery(myCouponsOptions(status, page))
     return <span data-testid="state">{isPending ? "loading" : String(data?.total ?? 0)}</span>
 }
 
@@ -54,11 +54,11 @@ function ClaimProbe() {
 }
 
 function ClaimableProbe({ shopId }: { shopId: string }) {
-    const { data } = useShopClaimableCoupons(shopId)
+    const { data } = useQuery(shopClaimableCouponsOptions(shopId))
     return <span data-testid="count">{String(data?.length ?? 0)}</span>
 }
 
-describe("useMyCoupons", () => {
+describe("myCouponsOptions", () => {
     it("请求带上页签状态与分页入参_切页签翻页不会拿到上一组合的数据", async () => {
         let search: URLSearchParams | undefined
         server.use(
@@ -84,7 +84,7 @@ describe("useMyCoupons", () => {
     })
 })
 
-describe("useShopClaimableCoupons", () => {
+describe("shopClaimableCouponsOptions", () => {
     it("按店铺 id 拉匿名端点并把可领券列表交给上层", async () => {
         let path: string | undefined
         server.use(

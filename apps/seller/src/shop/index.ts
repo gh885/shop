@@ -10,6 +10,13 @@
  * 桶文件只暴露外部真正消费的那几个；域内一律相对路径直连，不走这里。
  */
 
-export { shopKeys, useMyShops, useCurrentShop, setCurrentShopId, useMyShopMembers } from "./queries"
+export {
+    shopKeys,
+    shopInvitesOptions,
+    useMyShops,
+    useCurrentShop,
+    setCurrentShopId,
+    useMyShopMembers,
+} from "./queries"
 export { useShop } from "./shop-context"
 export { ShopGate } from "./ShopGate"

@@ -15,15 +15,13 @@ import {
     AfterSaleCard,
     AfterSaleReturnDialog,
     canApplyAfterSale,
-    useAfterSale,
     useCancelAfterSale,
     useOrderActions,
-    useOrderDetail,
     type AfterSaleAction,
 } from "#/order"
 import { notify } from "@shop/app-kit"
 import { Card, CardContent, ConfirmDialog, Skeleton } from "@shop/ui-web"
-import { noop } from "@tanstack/react-query"
+import { noop, useQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/orders/$orderId")({
     // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
@@ -44,9 +42,9 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
  * 受保护路由，挂载时必已登录；数据由 route loader 在客户端预热（SSR 跳过），组件 useQuery 读同一缓存。 */
 function OrderDetailPage() {
     const { orderId } = Route.useParams()
-    const { data: order, isLoading, isError } = useOrderDetail(orderId)
+    const { data: order, isLoading, isError } = useQuery(orderDetailOptions(orderId))
     // 售后单与订单详情并行拉取：售后卡是订单的一部分，没必要等订单回来再串行请求
-    const afterSale = useAfterSale(orderId)
+    const afterSale = useQuery(afterSaleOptions(orderId))
     const cancelAfterSale = useCancelAfterSale(orderId)
     const navigate = useNavigate()
 

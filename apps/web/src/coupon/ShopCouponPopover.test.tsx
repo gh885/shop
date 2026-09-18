@@ -1,4 +1,5 @@
 import { screen, waitFor } from "@testing-library/react"
+import { useQuery } from "@tanstack/react-query"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterEach, describe, expect, it } from "vitest"
@@ -10,7 +11,7 @@ import { tokenStore, useIsLoggedIn, useLoginDialogOpen } from "#/shared/api/auth
 import { renderWithProviders } from "#/test/render"
 
 import { ShopCouponPopover } from "./ShopCouponPopover"
-import { useShopClaimableCoupons } from "./queries"
+import { shopClaimableCouponsOptions } from "./queries"
 
 /**
  * 商品详情页的领券入口：可领券列表、领券请求、已领完/已领过的就地反馈、未登录拉起登录框、
@@ -80,7 +81,7 @@ function AuthProbe() {
 
 /** 可领券查询的落点探针：让「没有入口」的断言发生在数据已到位之后，而不是加载中 */
 function ClaimableStateProbe() {
-    const { data, isPending } = useShopClaimableCoupons(SHOP_ID)
+    const { data, isPending } = useQuery(shopClaimableCouponsOptions(SHOP_ID))
     return <span>{isPending ? "券列表加载中" : `券列表 ${data?.length ?? 0} 张`}</span>
 }
 

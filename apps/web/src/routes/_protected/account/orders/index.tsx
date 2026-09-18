@@ -1,6 +1,5 @@
 import {
     myOrdersOptions,
-    useMyOrders,
     useOrderActions,
     ORDER_STATUS_LABEL,
     ORDER_STATUS_TABS,
@@ -11,7 +10,7 @@ import { outOfRangePage, parseOrdersSearch, type OrderTab } from "#/order/orders
 import { toApiError } from "@shop/common"
 
 import { createFileRoute, useSearch } from "@tanstack/react-router"
-import { noop } from "@tanstack/react-query"
+import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
@@ -66,9 +65,8 @@ function OrdersPage() {
     const setTab = (tab: OrderTab) => void navigate({ search: { tab, page: 1 } })
     const setPage = (page: number) => void navigate({ search: { tab: search.tab, page } })
 
-    const { data, isLoading, isError, error, isFetching, refetch } = useMyOrders(
-        search.tab,
-        search.page,
+    const { data, isLoading, isError, error, isFetching, refetch } = useQuery(
+        myOrdersOptions({ status: search.tab, page: search.page }),
     )
     const [cancelTarget, setCancelTarget] = useState<Order | undefined>()
     const { handleAction, pendingAction, cancel } = useOrderActions(setCancelTarget)

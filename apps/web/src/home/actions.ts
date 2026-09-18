@@ -7,7 +7,7 @@ import { fetchProducts } from "#/products"
 
 /**
  * Home 数据层读写命令（纯逻辑，不含 React Query / React）。
- * widgets/home 在此之上再包 hooks（use-home.ts）。
+ * home/queries.ts 在此之上定义 queryOptions，route loader 预热、组件直接 useQuery 读。
  * 首页为公开读：cms /api/cms/* 与 /api/products 均匿名可访问（见后端 JwtProperties.skipPaths）。
  * 走生成 SDK 的 CmsPublicApi / ProductsApi（内置 SSR 双地址由 sdk-client 统一处理），不再自建客户端。
  */
