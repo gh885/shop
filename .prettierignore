@@ -1,5 +1,11 @@
 # oxfmt 在未显式 --ignore-path 时读取 .gitignore 与本文件（见 oxfmt --help 的 Ignore Options），
 # 且是相对当前目录（仓库根）解析——不像 oxlint 配置的 ignorePatterns 有 config 目录限制。
+#
+# 也别改名成 .oxfmtignore：默认名只有 .gitignore 与 .prettierignore，实测改名后下面的
+# 排除全部失效（生成物被重新格式化）。oxfmt 配置里的 ignorePatterns 同样按**配置文件所在
+# 目录**解析（实测：写在 packages/config/oxfmt.config.ts 里匹配不到仓库根的路径），
+# 所以排除只能落在这个根级文件里。真要改名，得在 `pnpm format:web` 与 lefthook 的
+# pre-commit `fmt-web` 两处都补 `--ignore-path=.oxfmtignore`。
 # 生成物不参与格式化——它们由工具重写，格式化只会制造 diff 噪音：
 #   - packages/api/src/sdk/**  由 @hey-api/openapi-ts 从 openapi/api-docs.json 生成（pnpm gen:sdk）
 #   - openapi/api-docs.json   由后端 /v3/api-docs 导出、gen:sdk 覆盖写入

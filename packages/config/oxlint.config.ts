@@ -21,6 +21,11 @@ export default defineConfig({
         // React Doctor：命名空间 react-doctor/*（287 条规则：架构/性能/正确性/安全/a11y/包体积 + react-builtins）。
         // 必须用 { name, specifier } 对象形式注册，否则 oxlint 认不出命名空间、静默不加载。
         { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
+        // ── TanStack 官方 ESLint 插件（经 oxlint JS plugin API 加载）──
+        // 官方命名空间是 @tanstack/query 与 @tanstack/router（带 `/`），oxlint 侧一律改成
+        // `tanstack-query` / `tanstack-router`。实测：8/9 条规则可用，no-void-query-fn 不可用（见 rules 段）。
+        { name: "tanstack-query", specifier: "@tanstack/eslint-plugin-query" },
+        { name: "tanstack-router", specifier: "@tanstack/eslint-plugin-router" },
     ],
     plugins: [
         "eslint",
@@ -228,6 +233,33 @@ export default defineConfig({
         "unicorn/require-array-join-separator": "error",
         "unicorn/require-number-to-fixed-digits-argument": "error",
         "unicorn/no-object-as-default-parameter": "error",
+
+        // ── @tanstack/eslint-plugin-query（官方 recommended 集合）──
+        // exhaustive-deps：queryFn 里引用了没写进 queryKey 的变量（错 key 缓存 + 不重取）
+        "tanstack-query/exhaustive-deps": "error",
+        // 组件体内 new QueryClient()（每次渲染新缓存，React Query 最常见的坑）
+        "tanstack-query/stable-query-client": "error",
+        // 把 useQuery 返回对象整个塞进依赖数组（该对象逐次渲染不稳定 → 无限循环）
+        "tanstack-query/no-unstable-deps": "error",
+        // 属性顺序：queryFn 必须排在 getNextPageParam 之前，否则类型推断失效（--fix 可自动重排）
+        "tanstack-query/infinite-query-property-order": "error",
+        // 属性顺序：onMutate 必须排在 onError / onSettled 之前（--fix 可自动重排）
+        "tanstack-query/mutation-property-order": "error",
+        // rest 解构整个 query 结果会观察所有变更 → 多余重渲染（官方 recommended 给 warn）
+        "tanstack-query/no-rest-destructuring": "warn",
+        // 要求 queryKey + queryFn 收进 queryOptions() 共置。官方只在 recommendedStrict 里给 error，
+        // 本仓库本就是 options 收敛口径（域内 queries.ts 一个真相源），故直接开 warn 当护栏。
+        "tanstack-query/prefer-query-options": "warn",
+        // no-void-query-fn 不注册：该规则靠 context.sourceCode.parserServices.program 拿 TS 类型，
+        // oxlint 的 JS plugin API 不提供类型信息（--type-aware 也无效，实测规则静默空转），
+        // 注册只会给人"已检查"的错觉。
+
+        // ── @tanstack/eslint-plugin-router（官方 recommended 集合：两条都开）──
+        // createFileRoute / createRoute 的属性顺序（beforeLoad → loader → …），顺序错会让
+        // loader 拿不到 beforeLoad 的上下文类型；--fix 可自动重排
+        "tanstack-router/create-route-property-order": "error",
+        // 路由参数名必须是合法 JS 标识符（`$bad-name` 这类在 param 解析处静默变 undefined）
+        "tanstack-router/route-param-names": "error",
 
         // React 19 自动 JSX 转换，不需要显式 import React
         "react/react-in-jsx-scope": "off",

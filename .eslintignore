@@ -3,6 +3,12 @@
 # 注意：oxlint 配置里的 `ignorePatterns` 是相对**配置文件所在目录**解析、且无法匹配
 # 配置文件目录之外的文件。所以真实项目路径（sdk/generated/*.gen.ts/routeTree 等）
 # 必须写在这个根级 .eslintignore，而不是 packages/config/oxlint.config.ts 里。
+#
+# 也别改名成 .oxlintignore：oxlint 的默认忽略文件名就是 .eslintignore（见 --help 的
+# Ignore Files 段），实测同内容放到 .oxlintignore 后完全不生效。真要改名，得在
+# `pnpm lint:web`、lefthook 的 pre-commit `lint-web` 与 pre-push `lint` 三处都补
+# `--ignore-path=.oxlintignore`；漏一处的后果是生成代码开始参与 lint（实测 sdk 目录
+# 会多出 2 error / 79 warning）。
 
 **/node_modules/**
 **/dist/**
