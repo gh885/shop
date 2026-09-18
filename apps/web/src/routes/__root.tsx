@@ -2,7 +2,7 @@ import { createRootRouteWithContext, HeadContent, Link, Scripts } from "@tanstac
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
-import { Button, buttonVariants, Toaster } from "@shop/ui-web"
+import { buttonVariants, Toaster } from "@shop/ui-web"
 
 import TanStackQueryDevtools from "#/app/tanstack-query/DevTools"
 import TanstackQueryProvider from "#/app/tanstack-query/TanstackQueryProvider"
@@ -48,35 +48,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         ],
     }),
     notFoundComponent: NotFound,
-    errorComponent: RouteError,
     shellComponent: RootDocument,
 })
-
-/** 全局错误边界：路由渲染抛错时给友好错误页 + 重试，避免白屏 */
-function RouteError({ error, reset }: { error: Error; reset: () => void }) {
-    return (
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-24">
-            <p className="text-sm font-medium text-destructive">出错了</p>
-            <h1 className="text-3xl font-bold tracking-tight">页面暂时无法加载</h1>
-            <p className="text-muted-foreground">{error.message || "发生了意外错误，请重试。"}</p>
-            <div className="flex gap-2">
-                <Button
-                    onClick={() => {
-                        reset()
-                    }}
-                >
-                    重试
-                </Button>
-                <Button
-                    variant="outline"
-                    render={<Link to="/" />}
-                >
-                    回到首页
-                </Button>
-            </div>
-        </div>
-    )
-}
 
 /** 品牌化的 404：给出回首页的出口，不做死胡同 */
 function NotFound() {

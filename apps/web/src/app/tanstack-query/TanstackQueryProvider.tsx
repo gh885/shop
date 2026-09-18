@@ -1,4 +1,8 @@
-import { QueryClientProvider, type QueryClient } from "@tanstack/react-query"
+import {
+    QueryClientProvider,
+    QueryErrorResetBoundary,
+    type QueryClient,
+} from "@tanstack/react-query"
 
 import { createAppQueryClient } from "@shop/app-kit"
 
@@ -17,6 +21,10 @@ export function getContext() {
 /**
  * TanStack Query 提供者：为整个应用（含 shell）注入 QueryClientProvider。
  * 在 __root 的 RootDocument 中包裹 children。
+ *
+ * 外层还套了官方 `QueryErrorResetBoundary`：路由级错误页（`defaultErrorComponent`）与区块级
+ * `QueryBoundary` 都要靠它提供「重置查询错误」的 reset —— suspense / throwOnError 查询失败后
+ * 不重置这个标记，重挂载不会重新取数，重试按钮就是死的。
  */
 export default function TanstackQueryProvider({
     queryClient,
@@ -25,5 +33,9 @@ export default function TanstackQueryProvider({
     queryClient: QueryClient
     children: React.ReactNode
 }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    return (
+        <QueryClientProvider client={queryClient}>
+            <QueryErrorResetBoundary>{children}</QueryErrorResetBoundary>
+        </QueryClientProvider>
+    )
 }

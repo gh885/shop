@@ -1,6 +1,6 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
-import { QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider, QueryErrorResetBoundary } from "@tanstack/react-query"
 import { RouterProvider } from "@tanstack/react-router"
 
 import { createAppQueryClient } from "@shop/app-kit"
@@ -17,7 +17,10 @@ const queryClient = createAppQueryClient()
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
         <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
+            {/* 官方重置链路：路由级/区块级错误页的重试都要靠它清「错误已上报」标记 */}
+            <QueryErrorResetBoundary>
+                <RouterProvider router={router} />
+            </QueryErrorResetBoundary>
         </QueryClientProvider>
     </StrictMode>,
 )

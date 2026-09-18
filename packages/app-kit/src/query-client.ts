@@ -23,3 +23,15 @@ export function createAppQueryClient(): QueryClient {
         },
     })
 }
+
+/**
+ * `throwOnError` 的官方语义化写法：**只在「一条数据都没有可展示」时**才把错误抛给错误边界。
+ *
+ * 直接用 `true` 会在「有旧数据的后台重取失败」时也抛——把一屏本来能看的旧内容换成整页错误页。
+ * TanStack Query 对 suspense 查询的默认判据正是这一条（`typeof query.state.data === 'undefined'`），
+ * 这里抽出来供两处复用：逐 query 写在 `queryOptions` 里，或作为
+ * `defaultOptions.queries.throwOnError` 全局默认（当前按页面迁移进度逐个显式开启，见 AGENTS.md）。
+ */
+export function throwWhenNoData(_error: unknown, query: { state: { data: unknown } }): boolean {
+    return query.state.data === undefined
+}

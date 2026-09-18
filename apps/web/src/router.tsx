@@ -3,6 +3,7 @@ import { routeTree } from "./routeTree.gen"
 
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query"
 import { getContext } from "#/app/tanstack-query/TanstackQueryProvider"
+import { RouteError } from "#/shared/ui/RouteError"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 import { reportError } from "#/shared/lib/report-error"
 
@@ -34,6 +35,12 @@ export function getRouter() {
          * 语义上换了实体就是新页面，按 params 重挂载。
          */
         defaultRemountDeps: ({ params }) => params,
+        /**
+         * 每个 route match 的兜底错误页：路由渲染/loader 抛错时渲染在**该 match 的位置**，
+         * 所以叶子路由失败时导航壳仍在（不再整页白屏）。叶子要自己的错误 UI 就配 `errorComponent` 覆盖。
+         * 重试由 RouteError 内的官方双 reset（Router reset + QueryErrorResetBoundary reset）完成。
+         */
+        defaultErrorComponent: RouteError,
         // 渲染期未捕获错误的遥测出口（UI 反馈由各路由的 errorComponent 负责）
         defaultOnCatch: reportError,
     })
