@@ -35,12 +35,15 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 
 type PaginationLinkProps = {
   isActive?: boolean
+  /** 禁用态（首/末页的上一页/下一页）：置灰且不响应点击，语义交给 aria-disabled */
+  disabled?: boolean
 } & Pick<React.ComponentProps<typeof Button>, "size"> &
   React.ComponentProps<"a">
 
 function PaginationLink({
   className,
   isActive,
+  disabled,
   size = "icon",
   ...props
 }: PaginationLinkProps) {
@@ -48,11 +51,12 @@ function PaginationLink({
     <Button
       variant={isActive ? "outline" : "ghost"}
       size={size}
-      className={cn("tabular-nums", className)}
+      className={cn("tabular-nums", disabled && "pointer-events-none opacity-50", className)}
       nativeButton={false}
       render={
         <a
           aria-current={isActive ? "page" : undefined}
+          aria-disabled={disabled || undefined}
           data-slot="pagination-link"
           data-active={isActive}
           {...props}

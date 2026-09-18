@@ -1,10 +1,10 @@
 import {
+    Badge,
     Button,
     Item,
     ItemActions,
     ItemContent,
     ItemDescription,
-    ItemGroup,
     ItemMedia,
     ItemTitle,
     Panel,
@@ -12,7 +12,9 @@ import {
     PanelHeader,
 } from "@shop/ui-web"
 
-import { ORDER_STATUS_COLOR, ORDER_STATUS_LABEL } from "./constants"
+import { ChevronRight, Package, Store } from "lucide-react"
+
+import { ORDER_CARD_STATUS_META, ORDER_STATUS_LABEL } from "./constants"
 import { deriveOrderActions, type Order, type OrderAction } from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
@@ -27,6 +29,7 @@ import { Price } from "#/shared/ui/Price"
  * 结构：
  *   顶部订单信息条：时间 · 订单号（不截断）· 店铺 | 右侧 状态 + 订单详情按钮
  *   下方逐行订单项：主图 · 标题 · 单价×数量 · 行小计
+ *   底部整单金额与操作：只渲染一次，窄容器内自动换行，避免按钮被面板裁切。
  *
  * 操作按钮按订单可执行动作渲染（后端算的，见 deriveOrderActions）。纯展示，回调交给外部。
  * 行项无独立 id（订单快照只留 productId/skuId），渲染 key 用 `productId+skuId+quantity`。
@@ -50,74 +53,98 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
     // 待付款订单展示付款截止倒计时（其余状态不显示）
     const pending = order.status === "pending_payment"
     const { seconds } = useCountdown(pending ? order.payExpireAt : "")
+    const statusMeta = ORDER_CARD_STATUS_META[order.status]
+    const quantity = order.items.reduce((sum, item) => sum + item.quantity, 0)
+    // 列表 itemAmount 是净额占位；商品总额只能从成交快照的行小计求和。
+    const itemTotal = order.items.reduce((sum, item) => sum + item.amount.amount, 0)
 
     return (
-        <Panel>
+        <Panel className="@container/order">
             {/* 顶部订单信息条 */}
-            <PanelHeader variant="muted">
-                <span className="text-muted-foreground">{formatDateTime(order.createdAt)}</span>
-                <span className="text-muted-foreground">
-                    订单号：<span className="text-foreground">{order.orderNo}</span>
-                </span>
-                <span className="text-foreground">{order.shopName ?? "店铺已关闭"}</span>
+            <PanelHeader
+                variant="muted"
+                className="flex-wrap"
+            >
+                <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Store
+                            aria-hidden="true"
+                            className="size-4 shrink-0 text-muted-foreground"
+                        />
+                        <span className="min-w-0 font-medium wrap-anywhere">
+                            {order.shopName ?? "店铺已关闭"}
+                        </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span className="tabular-nums">
+                            下单时间：{formatDateTime(order.createdAt)}
+                        </span>
+                        <span className="min-w-0 wrap-anywhere">订单号：{order.orderNo}</span>
+                    </div>
+                </div>
 
-                <div className="ml-auto flex items-center gap-4">
+                <div className="ms-auto flex flex-wrap items-center gap-4">
                     {pending && (
                         <span className="text-xs font-medium text-destructive tabular-nums">
                             剩 {formatCountdown(seconds)}
                         </span>
                     )}
-                    <span className={ORDER_STATUS_COLOR[order.status]}>
-                        {ORDER_STATUS_LABEL[order.status]}
-                    </span>
+                    <Badge variant={statusMeta.tone}>{ORDER_STATUS_LABEL[order.status]}</Badge>
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => onDetail?.()}
                     >
                         订单详情
+                        <ChevronRight
+                            aria-hidden="true"
+                            data-icon="inline-end"
+                        />
                     </Button>
                 </div>
             </PanelHeader>
 
             {/* 订单项逐行 */}
             <PanelContent>
-                <ItemGroup>
+                <div>
                     {order.items.map((item) => (
                         <Item
                             key={orderItemKey(item)}
                             size="lg"
-                            className="flex-nowrap"
+                            variant="plain"
                         >
-                            {/* 主图 */}
-                            <ItemMedia variant="thumbnail">
-                                {item.image && (
-                                    <img
-                                        src={item.image}
-                                        alt={item.title}
-                                        className="object-cover"
-                                    />
-                                )}
-                            </ItemMedia>
+                            <div className="flex min-w-0 flex-1 basis-full items-center gap-3 @2xl/order:basis-0">
+                                {/* 主图 */}
+                                <ItemMedia
+                                    variant="thumbnail"
+                                    className="size-20"
+                                >
+                                    {item.image && (
+                                        <img
+                                            src={item.image}
+                                            alt={item.title}
+                                            className="object-cover"
+                                        />
+                                    )}
+                                </ItemMedia>
 
-                            {/* 描述：标题 */}
-                            <ItemContent>
-                                <ItemTitle
-                                    lines={2}
-                                    className="w-full"
-                                >
-                                    {item.title}
-                                </ItemTitle>
-                                <ItemDescription
-                                    lines={1}
-                                    className="w-full"
-                                >
-                                    规格：{item.skuId ? "已选规格" : "默认规格"}
-                                </ItemDescription>
-                            </ItemContent>
+                                {/* 描述：标题 */}
+                                <ItemContent className="min-w-0">
+                                    <ItemTitle
+                                        lines={2}
+                                        className="w-full wrap-anywhere"
+                                    >
+                                        {item.title}
+                                    </ItemTitle>
+                                    <ItemDescription lines={1}>
+                                        购买数量：{item.quantity} 件
+                                    </ItemDescription>
+                                </ItemContent>
+                            </div>
 
                             {/* 金额：单价 · 划线原价 · 数量 */}
-                            <div className="w-24 shrink-0 text-right">
+                            <div className="ms-auto w-24 shrink-0 space-y-1 text-end tabular-nums">
+                                <p className="text-xs text-muted-foreground">成交单价</p>
                                 <Price
                                     value={item.price.amount}
                                     className="text-sm text-foreground"
@@ -128,31 +155,55 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                                             ¥{fenToYuan(item.originalPrice.amount)}
                                         </p>
                                     )}
-                                <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                             </div>
 
                             {/* 行小计 */}
-                            <div className="w-28 shrink-0 text-right">
+                            <div className="w-28 shrink-0 text-end">
                                 <p className="text-sm font-bold text-foreground">
                                     小计{" "}
                                     <Price
                                         value={item.amount.amount}
-                                        className="text-sm font-bold text-primary"
+                                        className="text-sm text-foreground"
                                     />
                                 </p>
                             </div>
-
-                            {/* 订单操作：按状态动态渲染 */}
-                            <ItemActions className="w-36">
-                                <OrderActionButtons
-                                    actions={deriveOrderActions(order, "card")}
-                                    disabledKey={pendingAction}
-                                    onAction={onAction}
-                                />
-                            </ItemActions>
                         </Item>
                     ))}
-                </ItemGroup>
+                </div>
+
+                {/* 操作与结算金额属于整单，不能随商品行重复。 */}
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-4 px-5 py-4">
+                    <div className="min-w-0 flex-1 basis-full space-y-2 @3xl/order:basis-0">
+                        <p className="flex items-center gap-2 text-sm">
+                            <Package
+                                aria-hidden="true"
+                                className="size-4 shrink-0 text-muted-foreground"
+                            />
+                            <span className="tabular-nums">共 {quantity} 件商品</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">{statusMeta.hint}</p>
+                    </div>
+                    <div className="ms-auto space-y-1 text-end">
+                        <p className="flex flex-wrap justify-end gap-2 text-xs text-muted-foreground tabular-nums">
+                            <span>商品合计</span>
+                            <span>¥{fenToYuan(itemTotal)}</span>
+                        </p>
+                        <p className="flex flex-wrap items-baseline gap-2">
+                            <span className="text-muted-foreground">订单金额</span>
+                            <Price
+                                value={order.payAmount.amount}
+                                className="text-lg font-medium text-primary"
+                            />
+                        </p>
+                    </div>
+                    <ItemActions className="ms-auto max-w-full flex-wrap justify-end @3xl/order:ms-0">
+                        <OrderActionButtons
+                            actions={deriveOrderActions(order, "card")}
+                            disabledKey={pendingAction}
+                            onAction={onAction}
+                        />
+                    </ItemActions>
+                </div>
             </PanelContent>
         </Panel>
     )

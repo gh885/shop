@@ -1,5 +1,6 @@
 import type { TicketStatus, TicketType } from "@shop/api/sdk"
 
+import type { OrderTab } from "./orders-search"
 import type { OrderAction, OrderActionSurface, OrderStatus } from "./model"
 import type { AfterSaleAction } from "./after-sale"
 
@@ -33,12 +34,21 @@ export const ORDER_STATUS_COLOR: Record<OrderStatus, string> = {
     cancelled: "text-muted-foreground",
 }
 
+/** 订单卡片只描述履约状态，不推断支付退款、售后资格或承运商进度。 */
+export const ORDER_CARD_STATUS_META = {
+    pending_payment: { tone: "warning", hint: "请在付款截止前完成支付" },
+    pending_shipment: { tone: "info", hint: "等待商家发货，发货后可查看物流" },
+    pending_receipt: { tone: "info", hint: "可查看物流，收到商品后再确认收货" },
+    completed: { tone: "success", hint: "订单已完成，售后信息可在详情中查看" },
+    cancelled: { tone: "secondary", hint: "订单已关闭，取消及退款信息请查看详情" },
+} as const satisfies Record<OrderStatus, { tone: string; hint: string }>
+
 /**
  * 订单列表页签：全部 + 有筛选价值的四个状态。
  * 标签取 ORDER_STATUS_LABEL，不另写一份中文——页签与卡片说同一句话。
  * 「已取消」不进页签（买家找它的方式是往下翻，而不是把它当一类待办）。
  */
-export const ORDER_STATUS_TABS: ReadonlyArray<{ key: OrderStatus | "all"; label: string }> = [
+export const ORDER_STATUS_TABS: ReadonlyArray<{ key: OrderTab; label: string }> = [
     { key: "all", label: "全部" },
     { key: "pending_payment", label: ORDER_STATUS_LABEL.pending_payment },
     { key: "pending_shipment", label: ORDER_STATUS_LABEL.pending_shipment },

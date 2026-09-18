@@ -56,9 +56,9 @@ export const myOrdersOptions = ({
     })
 }
 
-/** 我的订单列表（当前 tab） */
-export function useMyOrders(status: OrderStatus | "all" = "all") {
-    return useQuery(myOrdersOptions({ status }))
+/** 我的订单列表（当前 tab + 页码） */
+export function useMyOrders(status: OrderStatus | "all" = "all", page = 1) {
+    return useQuery(myOrdersOptions({ status, page }))
 }
 
 // ---------- 订单详情 ----------
