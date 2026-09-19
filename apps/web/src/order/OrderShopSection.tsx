@@ -69,6 +69,7 @@ export function OrderShopSection({
                                 <img
                                     src={item.image}
                                     alt={item.title}
+                                    loading="lazy"
                                     className="size-full object-cover"
                                 />
                             )}

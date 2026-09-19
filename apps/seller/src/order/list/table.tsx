@@ -96,6 +96,7 @@ function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
                     <img
                         src={imgUrl(first.image)}
                         alt={first.name}
+                        loading="lazy"
                         className="size-full object-cover"
                     />
                 ) : undefined}

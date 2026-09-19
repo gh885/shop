@@ -123,6 +123,7 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                                         <img
                                             src={item.image}
                                             alt={item.title}
+                                            loading="lazy"
                                             className="object-cover"
                                         />
                                     )}

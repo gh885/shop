@@ -2,21 +2,17 @@ import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
+function subscribe(callback: () => void) {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    mql.addEventListener("change", callback)
+    return () => mql.removeEventListener("change", callback)
+}
+
+const getSnapshot = () => window.innerWidth < MOBILE_BREAKPOINT
+// 服务端快照恒 false（桌面布局）；hydration 用服务端值，挂载后由 store 机制切到真实值，
+// 不会像 useState 惰性初始化那样造成 SSR 与客户端首帧渲染不一致
+const getServerSnapshot = () => false
+
 export function useIsMobile() {
-    // SSR 安全：服务端渲染时没有 window，先给 false（桌面布局），客户端首次渲染再取真实值。
-    // 不能用 useEffect 里二次校正——那会造成 SSR 输出与客户端首帧不一致的闪烁。
-    const [isMobile, setIsMobile] = React.useState(
-        () => typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT,
-    )
-
-    React.useEffect(() => {
-        const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-        const onChange = () => {
-            setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-        }
-        mql.addEventListener("change", onChange)
-        return () => mql.removeEventListener("change", onChange)
-    }, [])
-
-    return isMobile
+    return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }

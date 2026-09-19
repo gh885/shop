@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { Plus } from "lucide-react"
 import { Badge, Button } from "@shop/ui-web"
 
@@ -106,27 +106,25 @@ export function SalesAttrsEditor({
     /** 取值配图上传（绑定当前店铺，凭证需 X-Shop-Id） */
     uploadImage: (file: File) => Promise<string>
 }) {
-    const [drafts, setDrafts] = useState<AttrDraft[]>(() => toDrafts(attrs, value))
-    const draftsRef = useRef(drafts)
-    // 渲染期不写 ref（React Compiler 禁止）：本 effect 声明在前，后面的同步 effect 读到的已是最新 drafts
-    useEffect(() => {
-        draftsRef.current = drafts
-    }, [drafts])
-
-    // 外部 selections（编辑回显/父级 hydrate）变化 → 重建本地 drafts 行的已选值。
-    // 归一化比较：仅当「当前 drafts 已表达不出这个 value」才重建（清掉本地正在输入的空行会丢焦点）。
-    // 自回声（本组件 emit → 父级 setSelections → value 回传）时 toSelections(drafts) 与 value 一致，会跳过。
-    useEffect(() => {
-        const key = JSON.stringify(value)
-        const draftKey = JSON.stringify(toSelections(draftsRef.current))
-        if (draftKey === key) return // 自回声或已同步，不动本地行
-        setDrafts(toDrafts(attrs, value))
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value])
+    // drafts 与「其来源 value 引用」同存一体：外部灌值（编辑回显 hydrate）必然带来新引用 → 渲染期重建；
+    // 自回声（emit 上抛的同一数组经父级回传）引用未变，不触发，无需序列化比较。
+    const [draftState, setDraftState] = useState(() => ({
+        source: value,
+        drafts: toDrafts(attrs, value),
+    }))
+    if (
+        value !== draftState.source &&
+        JSON.stringify(value) !== JSON.stringify(draftState.source)
+    ) {
+        // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- 渲染期识别外部灌值并重建，是 React 官方的 adjusting state during render 模式
+        setDraftState({ source: value, drafts: toDrafts(attrs, value) })
+    }
+    const drafts = draftState.drafts
 
     function emit(next: AttrDraft[]) {
-        setDrafts(next)
-        onChange(toSelections(next))
+        const selections = toSelections(next)
+        setDraftState({ source: selections, drafts: next })
+        onChange(selections)
     }
 
     function updateValue(attrIdx: number, rowIdx: number, text: string) {

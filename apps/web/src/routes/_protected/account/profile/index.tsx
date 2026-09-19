@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
@@ -18,13 +17,27 @@ export const Route = createFileRoute("/_protected/account/profile/")({
 function ProfilePage() {
     const { data: me, isLoading } = useMe()
 
+    if (isLoading || !me) {
+        return (
+            <div className="space-y-3">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+            </div>
+        )
+    }
+
+    // 数据到达后才挂载表单：昵称初值直接取 me，不需要 effect 二次灌值
+    return <ProfileForm me={me} />
+}
+
+function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]> }) {
     const update = useMutation({
         mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
         meta: { success: "资料已更新", error: "更新失败", invalidates: [ME_QUERY_KEY] },
     })
 
     const form = useAppForm({
-        defaultValues: { nickname: me?.nickname ?? "" },
+        defaultValues: { nickname: me.nickname ?? "" },
         validators: {
             onSubmit: ({ value }) =>
                 value.nickname.trim().length === 0
@@ -34,22 +47,7 @@ function ProfilePage() {
         onSubmit: ({ value }) => update.mutate(value.nickname.trim()),
     })
 
-    // me 数据到达后把昵称预填进表单（用户可直接改）
-    useEffect(() => {
-        if (me?.nickname) form.setFieldValue("nickname", me.nickname)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [me?.nickname])
-
-    if (isLoading) {
-        return (
-            <div className="space-y-3">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-            </div>
-        )
-    }
-
-    const displayName = me?.nickname ?? undefined
+    const displayName = me.nickname ?? undefined
 
     return (
         <Card>
@@ -61,7 +59,7 @@ function ProfilePage() {
                     </div>
                     <div>
                         <p className="text-lg font-semibold">{displayName ?? "未设置昵称"}</p>
-                        <p className="text-sm text-muted-foreground">{me?.phone}</p>
+                        <p className="text-sm text-muted-foreground">{me.phone}</p>
                     </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useReducer, useRef, useState } from "react"
 import { CircleAlert } from "lucide-react"
 
 import {
@@ -82,6 +82,50 @@ function isCaptchaError(e: ApiError | undefined): boolean {
  *  不划算，也挡住了 lint 对类名的检查（require-static-classes 读不到查表里的变量）。
  *  类名一律就地写成字面量，别再收敛回常量——收敛回去规则就又看不见了 */
 
+/** Tab 切换/错误清除/提交失败是联动状态机，收进一个 reducer，避免多处 setState 各自为政 */
+interface LoginUiState {
+    tab: LoginTab
+    submitError?: ApiError
+    submitFailCount: number
+}
+type LoginUiAction =
+    | { type: "switchTab"; tab: LoginTab }
+    | { type: "submitStarted" }
+    | { type: "submitFailed"; error: ApiError }
+    | { type: "submitSucceeded" }
+    | { type: "sendCodeFailed"; error: ApiError }
+    | { type: "sendCodeSucceeded" }
+    /** 重新输入图形验证码：只清验证码类错误，其余保留到下次提交 */
+    | { type: "dismissCaptchaError" }
+    /** 重新输入短信验证码：只清发码类错误（抖动随之消失） */
+    | { type: "dismissCodeError" }
+
+function loginUiReducer(state: LoginUiState, action: LoginUiAction): LoginUiState {
+    switch (action.type) {
+        case "switchTab":
+            return { ...state, tab: action.tab, submitError: undefined }
+        case "submitStarted":
+            return { ...state, submitError: undefined }
+        case "submitFailed":
+            return {
+                ...state,
+                submitError: action.error,
+                submitFailCount: state.submitFailCount + 1,
+            }
+        case "submitSucceeded":
+            return { tab: "sms", submitError: undefined, submitFailCount: state.submitFailCount }
+        case "sendCodeFailed":
+            // 发码失败不动 failCount：错误提示不触发「聚焦错误节点」的提交语义
+            return { ...state, submitError: action.error }
+        case "sendCodeSucceeded":
+            return { ...state, submitError: undefined }
+        case "dismissCaptchaError":
+            return isCaptchaError(state.submitError) ? { ...state, submitError: undefined } : state
+        case "dismissCodeError":
+            return isCodeError(state.submitError) ? { ...state, submitError: undefined } : state
+    }
+}
+
 // oxlint-disable-next-line react-doctor/no-giant-component -- TanStack Form 的 AppField 渲染 prop 结构决定行数（每字段 30-60 行）；抽子组件需传 form 实例与 6+ 回调，接口更宽，违背高内聚
 export function LoginForm({
     getCaptcha,
@@ -91,10 +135,11 @@ export function LoginForm({
     active = true,
     footer,
 }: LoginFormProps) {
-    const [tab, setTab] = useState<LoginTab>("sms")
-    // 服务端错误统一存一个状态；codeInvalid / captchaInvalid 由 code 推导，不另立状态
-    const [submitError, setSubmitError] = useState<ApiError>()
-    const [submitFailCount, setSubmitFailCount] = useState(0)
+    const [ui, dispatch] = useReducer(loginUiReducer, {
+        tab: "sms",
+        submitFailCount: 0,
+    })
+    const { tab, submitError, submitFailCount } = ui
     const serverErrorRef = useRef<HTMLParagraphElement>(null)
     const [countdown, setCountdown] = useCountdown()
     const [sendingCode, setSendingCode] = useState(false)
@@ -110,7 +155,7 @@ export function LoginForm({
         defaultValues: { phone: "", code: "", password: "", captchaCode: "" },
         validators: { onSubmit: tab === "sms" ? SmsFormSchema : PasswordFormSchema },
         onSubmit: async ({ value }) => {
-            setSubmitError(undefined)
+            dispatch({ type: "submitStarted" })
             try {
                 await submit({
                     tab,
@@ -119,13 +164,12 @@ export function LoginForm({
                     password: value.password,
                 })
                 form.reset()
-                setTab("sms")
+                dispatch({ type: "submitSucceeded" })
                 setCountdown(0)
                 notify.success("登录成功", "欢迎回来")
                 onSuccess()
             } catch (error) {
-                setSubmitError(toApiError(error))
-                setSubmitFailCount((c) => c + 1)
+                dispatch({ type: "submitFailed", error: toApiError(error) })
             }
         },
         // 校验失败：焦点移到第一个报错字段（aria-invalid 由下方 InputGroupInput 承接）
@@ -153,7 +197,7 @@ export function LoginForm({
             captchaCode: form.getFieldValue("captchaCode"),
         })
             .then(() => {
-                setSubmitError(undefined)
+                dispatch({ type: "sendCodeSucceeded" })
                 setCountdown(60)
                 notify.success("验证码已发送")
                 // 验证码 token 一次性：发码成功即换新图，下次发码需重新人机验证
@@ -163,7 +207,7 @@ export function LoginForm({
             })
             .catch((error) => {
                 const err = toApiError(error)
-                setSubmitError(err)
+                dispatch({ type: "sendCodeFailed", error: err })
                 // 图形验证码类失败：刷新验证码图，引导用户重输（其余错误保留原图避免无谓请求）
                 if (isCaptchaError(err)) {
                     resetCaptcha()
@@ -185,8 +229,7 @@ export function LoginForm({
     }, [submitFailCount])
 
     function switchTab(next: LoginTab) {
-        setTab(next)
-        setSubmitError(undefined)
+        dispatch({ type: "switchTab", tab: next })
         // 切到短信 Tab 时确保图形验证码图存在（避免发码按钮可用但无图）
         if (next === "sms" && !captcha.image) void refreshCaptcha()
     }
@@ -272,9 +315,7 @@ export function LoginForm({
                                     onChange={(e) => {
                                         field.handleChange(e.target.value.toUpperCase())
                                         // 重新输入时只清验证码类错误，其余保留到下次提交
-                                        setSubmitError((prev) =>
-                                            isCaptchaError(prev) ? undefined : prev,
-                                        )
+                                        dispatch({ type: "dismissCaptchaError" })
                                     }}
                                 />
                                 {/* 验证码图：点击刷新；加载/无图时占位 */}
@@ -329,9 +370,7 @@ export function LoginForm({
                                     onChange={(e) => {
                                         field.handleChange(e.target.value.replaceAll(/\D/g, ""))
                                         // 重新输入时只清验证码类错误（抖动随之消失），其余服务端错误保留到下次提交
-                                        setSubmitError((prev) =>
-                                            isCodeError(prev) ? undefined : prev,
-                                        )
+                                        dispatch({ type: "dismissCodeError" })
                                     }}
                                 />
                                 <form.Subscribe

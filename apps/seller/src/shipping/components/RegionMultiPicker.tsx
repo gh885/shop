@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import { useDeferredValue, useMemo, useState, type CSSProperties } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { ChevronRight, MapPin, Search, X } from "lucide-react"
 
-import { loadRegionTree, type RegionTreeNode } from "@shop/common"
+import type { RegionTreeNode } from "@shop/common"
 import {
     Badge,
     Button,
@@ -16,6 +17,8 @@ import {
     Skeleton,
     cn,
 } from "@shop/ui-web"
+
+import { regionTreeOptions } from "#/shipping/queries"
 
 interface FlatRegion {
     code: string
@@ -123,42 +126,31 @@ export function RegionMultiPicker({
     onChange: (value: string[]) => void
     placeholder?: string
 }) {
-    const [tree, setTree] = useState<RegionTreeNode[]>()
+    const { data: tree } = useQuery(regionTreeOptions)
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState("")
+    // 搜索输入不阻塞按键回显：过滤大树的工作让给非紧急渲染
+    const deferredQuery = useDeferredValue(query)
     const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
     // 选中集转 Set：搜索结果遍历里 includes 是 O(n×m)
     const valueSet = useMemo(() => new Set(value), [value])
 
-    useEffect(() => {
-        let cancelled = false
-        void (async () => {
-            const next = await loadRegionTree()
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
-            if (!cancelled) setTree(next)
-        })()
-        return () => {
-            cancelled = true
-        }
-    }, [])
+    // 一次拍平，标签回显与搜索共用（此前 labelByCode / searchResults 各 flatten 一遍全树）
+    const flatRegions = useMemo(() => (tree ? flattenRegions(tree) : []), [tree])
 
     const labelByCode = useMemo(() => {
         const labels = new Map<string, string>()
-        if (tree) {
-            for (const item of flattenRegions(tree)) {
-                labels.set(item.code, item.path.join(" / "))
-            }
+        for (const item of flatRegions) {
+            labels.set(item.code, item.path.join(" / "))
         }
         return labels
-    }, [tree])
+    }, [flatRegions])
 
     const searchResults = useMemo(() => {
-        const keyword = query.trim()
+        const keyword = deferredQuery.trim()
         if (!tree || !keyword) return []
-        return flattenRegions(tree)
-            .filter((item) => item.name.includes(keyword))
-            .slice(0, 200)
-    }, [tree, query])
+        return flatRegions.filter((item) => item.name.includes(keyword)).slice(0, 200)
+    }, [tree, deferredQuery, flatRegions])
 
     function toggleRegion(code: string) {
         onChange(value.includes(code) ? value.filter((item) => item !== code) : [...value, code])

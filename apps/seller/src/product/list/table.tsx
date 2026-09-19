@@ -228,6 +228,7 @@ function ProductRow({
                             <img
                                 src={imgUrl(p.mainImage)}
                                 alt={p.name}
+                                loading="lazy"
                                 className="size-full object-cover"
                             />
                         ) : undefined}

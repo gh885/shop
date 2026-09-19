@@ -35,6 +35,7 @@ export function LogisticsSummaryCard({
                     <img
                         src={thumbnail}
                         alt=""
+                        loading="lazy"
                         className="size-full object-cover"
                     />
                 )}

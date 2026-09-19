@@ -55,6 +55,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 <img
                     src={view.image || undefined}
                     alt={view.title}
+                    loading="lazy"
                     className="object-cover"
                 />
             </ItemMedia>

@@ -5,7 +5,7 @@ const ShopContext = createContext<ShopResponse | undefined>(undefined)
 
 /** 由 ShopGate（路由守卫）注入：渲染子树时才提供，见 useShop 的契约 */
 export function ShopProvider({ shop, children }: { shop: ShopResponse; children: ReactNode }) {
-    return <ShopContext.Provider value={shop}>{children}</ShopContext.Provider>
+    return <ShopContext value={shop}>{children}</ShopContext>
 }
 
 /**

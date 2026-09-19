@@ -388,6 +388,7 @@ function GroupCard({
                                 <img
                                     src={l.image}
                                     alt={l.name}
+                                    loading="lazy"
                                 />
                             )}
                         </ItemMedia>

@@ -6,12 +6,14 @@ import { useEffect, useState } from "react"
  */
 export function useCountdown(initial = 0): [number, (seconds: number) => void] {
     const [countdown, setCountdown] = useState(initial)
+    // 只跟随「是否在跑」：依赖写成 countdown 会让 interval 每秒销毁重建
+    const running = countdown > 0
 
     useEffect(() => {
-        if (countdown <= 0) return
-        const timer = setInterval(() => setCountdown((s) => s - 1), 1000)
+        if (!running) return
+        const timer = setInterval(() => setCountdown((s) => (s > 1 ? s - 1 : 0)), 1000)
         return () => clearInterval(timer)
-    }, [countdown])
+    }, [running])
 
     return [countdown, setCountdown]
 }

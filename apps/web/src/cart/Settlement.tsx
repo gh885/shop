@@ -44,6 +44,7 @@ export function Settlement() {
                                 <img
                                     src={view.image ?? undefined}
                                     alt={view.title}
+                                    loading="lazy"
                                     className="size-full object-cover"
                                 />
                                 <button
