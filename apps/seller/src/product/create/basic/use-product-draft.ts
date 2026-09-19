@@ -1,5 +1,6 @@
 import { ProductsAdminApi } from "@shop/api/sdk"
 import { useEffect, useReducer, useRef, useState } from "react"
+import { useMutation } from "@tanstack/react-query"
 
 import { publishGateError, willPublish, type SaveMode } from "#/product/edit-rules"
 import { useCategorySpecTemplate, useProductDetail } from "#/product/queries"
@@ -45,20 +46,6 @@ function draftReducer(state: DraftState, action: DraftAction): DraftState {
     }
 }
 
-/** 编辑态 SKU 对账（纯数据，不碰组件状态）：后端对账出 fresh 行，把本地已填的价格/库存/编码按组合合并进去。
- *  current 用 getter 传入：合并发生在 await 之后，保证读到请求期间最新的本地行（与原实现一致）。 */
-async function reconcileSpecSkus(
-    id: string,
-    selections: SpecSelection[],
-    getCurrent: () => SkuDraftRow[],
-): Promise<SkuDraftRow[]> {
-    const fresh = await ProductsAdminApi.updateProductSpecs({
-        path: { id },
-        body: { specs: selections },
-    })
-    return mergeSkuRows(getCurrent(), fresh)
-}
-
 /**
  * 发布流程的「草稿持久化」hook —— 显式保存模式。
  *
@@ -100,7 +87,6 @@ export function useProductDraft({
     /** 本会话内点保存创建（非续编）：表单即真相源，回填/值不应被 productDetail 回灌 reset */
     const createdThisSessionRef = useRef(false)
     const [creating, setCreating] = useState(false)
-    const [submitting, setSubmitting] = useState(false)
 
     // 编辑回填的数据源：与列表页编辑弹窗共用一份缓存（productKeys.detail），
     // 不再自己 useEffect + useState 拉一份拷贝 —— 否则弹窗改完 SKU，发布页看到的还是旧值
@@ -116,6 +102,24 @@ export function useProductDraft({
         skuRowsRef.current = skuRows
         selectionsRef.current = selections
     }, [skuRows, selections])
+
+    // ---- 写通道：本 hook 的两个用户级写操作一律库 useMutation + meta 声明（见 frontend.md「写操作」）----
+    // 保存/发布整条编排是**一个**用户级写操作（建档→basic→规格→门槛→SKU→发布），失败由调用方
+    // 渲染成页内 serverError 横幅（错误已被用户看见），故 meta 显式 silentError。
+    const save = useMutation({
+        mutationFn: ({ basic, mode }: { basic: ProductBasicForm; mode: SaveMode }) =>
+            saveAndPublish(basic, mode),
+        meta: { silentError: true },
+    })
+    // 编辑态改选值 → 后端对账 SKU 是独立小写操作：失败全局按 meta.error 提示。
+    // 合并发生在 await 之后读 skuRowsRef，保证拿到请求期间最新的本地行（原 getCurrent 语义）。
+    const reconcileSkus = useMutation({
+        mutationFn: ({ id, specs }: { id: string; specs: SpecSelection[] }) =>
+            ProductsAdminApi.updateProductSpecs({ path: { id }, body: { specs } }).then((fresh) =>
+                mergeSkuRows(skuRowsRef.current, fresh),
+            ),
+        meta: { error: "生成商品规格失败，请重试" },
+    })
 
     // ---- 建档（幂等）：只在保存/提交时创建。无 shop/category 则跳过 ----
     async function ensureDraft(basic: ProductBasicForm): Promise<string> {
@@ -191,11 +195,10 @@ export function useProductDraft({
             return
         }
         try {
-            const rows = await reconcileSpecSkus(id, next, () => skuRowsRef.current)
+            const rows = await reconcileSkus.mutateAsync({ id, specs: next })
             dispatch({ type: "setSkuRows", rows })
         } catch {
-            // 生成失败：保留原行，toast 提示避免无感知
-            notify.error("生成商品规格失败，请重试")
+            // 失败提示已由全局 MutationCache 按 meta.error 执行，这里只吞掉 rejection
         }
     }
 
@@ -215,14 +218,12 @@ export function useProductDraft({
         let cancelled = false
         void (async () => {
             try {
-                const rows = await reconcileSpecSkus(id, selections, () => skuRowsRef.current)
+                const rows = await reconcileSkus.mutateAsync({ id, specs: selections })
                 // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
                 if (cancelled) return
                 dispatch({ type: "setSkuRows", rows })
             } catch {
-                // oxlint-disable-next-line typescript/no-unnecessary-condition -- tsgolint 不追踪跨闭包的 cancelled 赋值窄化，此处守卫必要
-                if (cancelled) return
-                notify.error("生成商品规格失败，请重试")
+                // 失败提示由全局 MutationCache 按 meta.error 执行；cancelled 只拦状态写入
             }
         })()
         return () => {
@@ -231,36 +232,29 @@ export function useProductDraft({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hydrated, productId])
 
-    // ---- 保存/发布的编排（显式保存唯一落库入口）。草稿=完整持久化但不发布（无门槛），提交=完整+发布 ----
+    // ---- 保存/发布的编排（显式保存唯一落库入口）。草稿=完整持久化但不发布（无门槛），提交=完整+发布。
+    // 本函数是 save mutation 的 mutationFn：一次用户级写操作，失败统一由调用方内联展示（meta.silentError）。
     // 每一步是一个语义化小函数，各自携带「为什么」；主流程只读意图不读实现。
     async function saveAndPublish(basic: ProductBasicForm, mode: SaveMode): Promise<void> {
         if (!shopId) return
-        setSubmitting(true)
-        // 注：React Compiler 暂不支持 try/finally，失败路径用 catch + throw 等价上抛；成功/失败各自复位 submitting
-        try {
-            // 1. 建档（首次才 POST；编辑态复用）——拿到可落库的 productId（草稿/提交都需先有商品）
-            const id = await ensureDraft(basic)
-            if (!id) return
-            // 2. 落 basic（标题/图片/卖点）——草稿与提交都存
-            await persistBasic(id, basic)
-            // 3. 落规格拿真实 skuId + 本地已填价搬回（草稿降级跳过，提交严格）
-            await persistSpecs(id, mode)
-            // 4. 门槛绑定「动作目标」而非「商品状态」（规则见 edit-rules；保存≠发布，后端 ensurePublishable 仍兜底 409）
-            const gate = publishGateError(skuRowsRef.current, mode, productStatus)
-            if (gate) throw new BusinessError(gate)
-            // 5. 只回传「已设价」的 SKU（净空价不发——草稿无门槛的关键：没设价的 SKU 不写 0，留着下次补）
-            await persistPricedSkus(id)
-            // 6. 发布：仅「本次操作会发布」（新建/草稿会话点提交/入库）才 publish；仓库/上架会话保存变更不回退状态
-            if (willPublish(mode, productStatus)) {
-                await ProductsAdminApi.publishProduct({
-                    path: { id },
-                    query: { target: mode === "warehouse" ? "WAREHOUSE" : "PUBLISHED" },
-                })
-            }
-            setSubmitting(false)
-        } catch (error) {
-            setSubmitting(false)
-            throw error
+        // 1. 建档（首次才 POST；编辑态复用）——拿到可落库的 productId（草稿/提交都需先有商品）
+        const id = await ensureDraft(basic)
+        if (!id) return
+        // 2. 落 basic（标题/图片/卖点）——草稿与提交都存
+        await persistBasic(id, basic)
+        // 3. 落规格拿真实 skuId + 本地已填价搬回（草稿降级跳过，提交严格）
+        await persistSpecs(id, mode)
+        // 4. 门槛绑定「动作目标」而非「商品状态」（规则见 edit-rules；保存≠发布，后端 ensurePublishable 仍兜底 409）
+        const gate = publishGateError(skuRowsRef.current, mode, productStatus)
+        if (gate) throw new BusinessError(gate)
+        // 5. 只回传「已设价」的 SKU（净空价不发——草稿无门槛的关键：没设价的 SKU 不写 0，留着下次补）
+        await persistPricedSkus(id)
+        // 6. 发布：仅「本次操作会发布」（新建/草稿会话点提交/入库）才 publish；仓库/上架会话保存变更不回退状态
+        if (willPublish(mode, productStatus)) {
+            await ProductsAdminApi.publishProduct({
+                path: { id },
+                query: { target: mode === "warehouse" ? "WAREHOUSE" : "PUBLISHED" },
+            })
         }
     }
 
@@ -306,9 +300,9 @@ export function useProductDraft({
         skuRows,
         setSkuRows: (rows: SkuDraftRow[]) => dispatch({ type: "setSkuRows", rows }),
         ensureDraft,
-        /** 显式保存：草稿只落库，submit/warehouse 才发布 */
-        submit: saveAndPublish,
-        submitting,
+        /** 显式保存：草稿只落库，submit/warehouse 才发布（失败 reject 给调用方内联展示） */
+        submit: (basic: ProductBasicForm, mode: SaveMode) => save.mutateAsync({ basic, mode }),
+        submitting: save.isPending,
         creating,
         hydrated,
         /** 编辑回填：有 productId 时 basic 字段的初值（供调用方 form.reset 灌值）；新建时为 undefined */

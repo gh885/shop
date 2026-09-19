@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Lightbulb } from "lucide-react"
+import { useMutation } from "@tanstack/react-query"
 
-import { notify } from "@shop/app-kit"
 import { ProductsAdminApi } from "@shop/api/sdk"
 import {
     Button,
@@ -45,7 +45,21 @@ export function EditTitleDialog({
     const [submitError, setSubmitError] = useState<string>()
     // 共享错误文案对应的出错字段：aria-describedby 与提交失败聚焦都靠它定位
     const [errorField, setErrorField] = useState<"name" | "subtitle">()
-    const [submitting, setSubmitting] = useState(false)
+
+    // 写通道走库 useMutation：反馈（成功/失败 toast）由全局 MutationCache 按 meta 执行，
+    // 失效范围仍由外层决定（onSaved），本层不 import query key。
+    const save = useMutation({
+        mutationFn: (vars: { id: string; name: string; subtitle: string }) =>
+            ProductsAdminApi.updateProduct({
+                path: { id: vars.id },
+                body: { name: vars.name, subtitle: vars.subtitle },
+            }),
+        meta: { success: "标题已更新", error: "保存失败" },
+        onSuccess: () => {
+            onSaved()
+            onOpenChange(false)
+        },
+    })
 
     // 打开时预填当前值（subtitle 为 null 视作空卖点）
     // oxlint-disable react-doctor/no-adjust-state-on-prop-change -- 打开即预填编辑值是有意为之（复用组件实例，避免 key 重挂载）
@@ -60,7 +74,7 @@ export function EditTitleDialog({
     }, [open, product])
     // oxlint-enable react-doctor/no-adjust-state-on-prop-change
 
-    const submit = async () => {
+    const submit = () => {
         if (!product) return
         const trimmedName = name.trim()
         const trimmedSub = subtitle.trim()
@@ -76,20 +90,11 @@ export function EditTitleDialog({
         if (trimmedSub && (trimmedSub.length < SUBTITLE_MIN || trimmedSub.length > SUBTITLE_MAX)) {
             return fail(`导购标题需为 ${SUBTITLE_MIN}~${SUBTITLE_MAX} 个字，或留空`, "subtitle")
         }
-        setSubmitting(true)
-        try {
-            await ProductsAdminApi.updateProduct({
-                path: { id: product.id },
-                body: { name: trimmedName, subtitle: trimmedSub },
-            })
-            notify.success("标题已更新")
-            onSaved()
-            onOpenChange(false)
-        } catch (error) {
-            notify.fromError(error, "保存失败")
-        } finally {
-            setSubmitting(false)
-        }
+        // 服务端失败提示走全局 meta.error；这里吞掉 rejection（unhandled 会被上报）
+        save.mutate(
+            { id: product.id, name: trimmedName, subtitle: trimmedSub },
+            { onError: () => {} },
+        )
     }
 
     return (
@@ -183,15 +188,15 @@ export function EditTitleDialog({
                     <Button
                         variant="secondary"
                         onClick={() => onOpenChange(false)}
-                        disabled={submitting}
+                        disabled={save.isPending}
                     >
                         取消
                     </Button>
                     <Button
-                        onClick={() => void submit()}
-                        disabled={submitting}
+                        onClick={submit}
+                        disabled={save.isPending}
                     >
-                        {submitting ? "提交中…" : "提交"}
+                        {save.isPending ? "提交中…" : "提交"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
