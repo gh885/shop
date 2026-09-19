@@ -88,8 +88,9 @@ export interface AppQueryClientOverrides {
  *
  * 直接用 `true` 会在「有旧数据的后台重取失败」时也抛——把一屏本来能看的旧内容换成整页错误页。
  * 这不是自创判据：它逐字等于 TanStack Query 给 suspense 查询用的内部默认
- * （`@tanstack/react-query` 的 `suspense.ts`：`(_error, query) => query.state.data === undefined`），
- * 我们只是把它从库内部搬出来复用（那个符号没有公开导出）。
+ * （`@tanstack/react-query` 的 `suspense.ts`：`defaultThrowOnError = (_error, query) => query.state.data === undefined`，
+ * 由 `useSuspenseQuery` 塞进 options 覆盖客户端默认值）。该符号虽从库内部模块导出，
+ * 但包入口的 exports 只放行 `"."`，深路径 import 不可行，所以只能复制复用（5.101 源码实测）。
  *
  * **本函数是全局默认**（`createAppQueryClient` 的 `defaultOptions.queries`）。两条推论：
  *
