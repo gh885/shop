@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import {
     SellerShippingApi,
     type ShippingTemplateRequest,
@@ -41,9 +41,11 @@ const shippingTemplateOptions = (shopId: string) =>
         retry: false,
     })
 
-/** 运费模板：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
+/** 运费模板：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入。
+ *  suspense 形态：加载中由路由 pendingComponent 兜骨架，失败抛给路由错误页；
+ *  404 已归一为 null（新建态），不是错误、不会抛。 */
 export function useShippingTemplate(shopId: string) {
-    return useQuery(shippingTemplateOptions(shopId))
+    return useSuspenseQuery(shippingTemplateOptions(shopId))
 }
 
 export function useSaveShippingTemplate(shopId: string) {

@@ -17,7 +17,22 @@ import { useRowBusy } from "#/shared/lib/use-row-busy"
 
 export const Route = createFileRoute("/_app/shop/address")({
     component: AddressPage,
+    pendingComponent: AddressListPending,
 })
+
+/** 地址列表是本页主体数据：suspense 加载中整页由路由边界兜骨架（useSuspenseQuery 在页面顶层挂起） */
+function AddressListPending() {
+    return (
+        <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+                <Skeleton
+                    key={i}
+                    className="h-14 w-full rounded-xl"
+                />
+            ))}
+        </div>
+    )
+}
 
 /** 待确认删除的地址：只要「是哪条 + 怎么念」（地址本身由 useAddressList 持有） */
 type PendingDelete = Pick<MerchantAddressResponse, "id" | "contactName"> | undefined
@@ -34,7 +49,7 @@ function AddressPage() {
     const [pendingDelete, setPendingDelete] = useState<PendingDelete>()
     const { busyId, run } = useRowBusy()
 
-    const rows = addresses.data ?? []
+    const rows = addresses.data
 
     return (
         <div className="space-y-5">
@@ -53,28 +68,17 @@ function AddressPage() {
                 </Button>
             </div>
 
-            {addresses.isLoading ? (
-                <div className="space-y-2">
-                    {[0, 1, 2].map((i) => (
-                        <Skeleton
-                            key={i}
-                            className="h-14 w-full rounded-xl"
-                        />
-                    ))}
-                </div>
-            ) : (
-                <AddressTable
-                    rows={rows}
-                    busyId={busyId}
-                    onEdit={(a) => {
-                        setEditing(a)
-                        setFormOpen(true)
-                    }}
-                    onDelete={setPendingDelete}
-                    onSetDefaultShip={(id) => run(setDefaultShip.mutateAsync)(id)}
-                    onSetDefaultReturn={(id) => run(setDefaultReturn.mutateAsync)(id)}
-                />
-            )}
+            <AddressTable
+                rows={rows}
+                busyId={busyId}
+                onEdit={(a) => {
+                    setEditing(a)
+                    setFormOpen(true)
+                }}
+                onDelete={setPendingDelete}
+                onSetDefaultShip={(id) => run(setDefaultShip.mutateAsync)(id)}
+                onSetDefaultReturn={(id) => run(setDefaultReturn.mutateAsync)(id)}
+            />
 
             <AddressFormDialog
                 open={formOpen}

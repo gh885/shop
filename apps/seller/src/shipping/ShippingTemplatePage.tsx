@@ -19,7 +19,6 @@ import {
     CardHeader,
     CardTitle,
     Field,
-    Skeleton,
     Spinner,
     Switch,
     useAppForm,
@@ -164,24 +163,13 @@ export function ShippingTemplatePage() {
         withResolver: true,
     })
 
-    // 当前店铺/远端模板变化时重新灌值；保存后 queryCache 回写也会走到这里
+    // 当前店铺/远端模板变化时重新灌值；保存后 queryCache 回写也会走到这里。
+    // suspense 形态下渲染到这里必有数据（加载中挂在路由 pendingComponent，失败在错误页）
     useEffect(() => {
-        if (templateQuery.isPending || templateQuery.isError) return
         form.reset(shippingTemplateFormFromResponse(templateQuery.data ?? undefined))
         // form 实例稳定，重置只跟随店铺/远端模板变化
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [shopId, templateQuery.data, templateQuery.isPending, templateQuery.isError])
-
-    // 失败已由全局默认的 throwOnError 交给路由错误页
-    if (templateQuery.isPending) {
-        return (
-            <div className="mx-auto w-full max-w-narrow space-y-4">
-                <Skeleton className="h-28 w-full rounded-xl" />
-                <Skeleton className="h-44 w-full rounded-xl" />
-                <Skeleton className="h-44 w-full rounded-xl" />
-            </div>
-        )
-    }
+    }, [shopId, templateQuery.data])
 
     const isNew = templateQuery.data == undefined
     return (
