@@ -60,17 +60,22 @@ function Home() {
     const feed = useSuspenseQuery(feedOptions)
     const nav = useQuery(homeNavOptions)
     const banners = useQuery(bannersOptions)
+    // 区块降级口径（见 home/queries.ts）：失败且无缓存 → 当「读不到」，不画 / 走空态；有旧数据照常渲染。
+    // 不能只看 isError：后台刷新失败时 isError 为真但 data 还在，清空等于把能看的内容换成骨架。
+    // 空数组是「明确的空态」而不是加载中——这正是子组件区分 undefined 与 [] 的用意。
+    const navEntries = nav.data ?? (nav.isError ? [] : undefined)
+    const bannerList = banners.data ?? (banners.isError ? [] : undefined)
     return (
         <>
             <HomeHeader />
             <section className="mx-auto flex max-w-page flex-col gap-4 px-6 py-6 lg:flex-row">
                 <HomeCategoryNav
                     defaultHeight={200}
-                    entries={nav.data}
+                    entries={navEntries}
                 />
                 <div className="grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {banners.data
-                        ? banners.data.slice(0, 3).map((banner) => (
+                    {bannerList
+                        ? bannerList.slice(0, 3).map((banner) => (
                               <HomeBannerItem
                                   key={banner.id}
                                   banner={banner}

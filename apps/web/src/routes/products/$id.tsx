@@ -1,4 +1,4 @@
-import { fenToYuan, isContractViolation, toApiError } from "@shop/common"
+import { fenToYuan, toApiError } from "@shop/common"
 import { useState } from "react"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 
@@ -51,8 +51,9 @@ export const Route = createFileRoute("/products/$id")({
         } catch (error) {
             // 详情不存在/非上架由后端 404；数据层已把错误归一化为 ApiError（status/detail）
             if (toApiError(error).status === 404) throw notFound()
-            // 契约漂移：详情无法伪造合法形状兜底，生产降级为 notFound 页（dev 强抛）
-            if (isContractViolation(error) && import.meta.env.PROD) throw notFound()
+            // 其余失败（含「2xx 但不符合契约」的 zod 校验失败）照常抛：
+            // 详情页伪造不出合法的 ProductDetail，伪装成 notFound 只会把后端契约漂移藏成一个假的「商品不存在」。
+            // 交给路由 errorComponent（router.tsx 的 defaultErrorComponent）渲染错误页 + 官方重试链路。
             throw error
         }
         await context.queryClient

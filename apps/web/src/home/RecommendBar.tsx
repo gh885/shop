@@ -54,6 +54,10 @@ export function RecommendBar() {
     const refresh = () => setPage(0)
 
     if (!tabs.data) {
+        // 失败且无缓存（含 2xx 契约漂移）→ 不画这一块，别让失败永远停在骨架。
+        // 有旧数据时不走这里：后台刷新失败不该把已有内容换成骨架（语义同 queries.ts 的降级口径）
+        if (tabs.isError) return undefined
+
         return (
             <div className="sticky top-(--home-header-height) z-30">
                 <div className="bg-background/95 backdrop-blur">
