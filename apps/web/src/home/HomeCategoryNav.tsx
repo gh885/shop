@@ -19,12 +19,12 @@ import {
 
 import { Button, Skeleton } from "@shop/ui-web"
 
-import type { NavEntry, NavGroup } from "./model"
+import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"
 
 /**
  * 首页导航入口：主菜单分区词条（合并名），子层为 hover 展开的导航组。
  *
- * <p>数据来自 /api/cms/nav（NavEntry），iconKey 为后端返回的字符串 key，前端映射到 lucide。
+ * <p>数据来自 /api/cms/nav（NavEntryResponse），iconKey 为后端返回的字符串 key，前端映射到 lucide。
  * 未完按时渲染骨架占位，避免布局跳动。
  */
 export function HomeCategoryNav({
@@ -32,7 +32,7 @@ export function HomeCategoryNav({
     entries,
 }: {
     defaultHeight?: number
-    entries?: NavEntry[]
+    entries?: NavEntryResponse[]
 }) {
     const [activeId, setActiveId] = useState<string | undefined>()
 
@@ -135,7 +135,8 @@ function NavGroupRow({ group }: { group: NavGroup }) {
                 </span>
             </Link>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                {group.items.map((item) => (
+                {/* 契约里 items 可选：缺省即「这组没有词条」，与 [] 同义（不做投影归一，省一个中间类型） */}
+                {group.items?.map((item) => (
                     // 暂无分类路由，先用 button 保证键盘可操作与控件语义
                     <button
                         key={item}

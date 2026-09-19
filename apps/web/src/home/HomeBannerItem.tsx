@@ -1,9 +1,13 @@
 import { Link } from "@tanstack/react-router"
 
-import type { Banner } from "./model"
+import type { BannerResponse } from "@shop/api/sdk"
 
 /** 单个 banner 位：图 + 底部渐变标题，hover 微缩放 */
-export function HomeBannerItem({ banner }: { banner: Banner }) {
+export function HomeBannerItem({
+    banner,
+}: {
+    banner: Pick<BannerResponse, "imageUrl" | "title" | "subtitle">
+}) {
     return (
         // TODO: banner 规划了跳转链路（活动页/商品聚合页），暂无对应路由，先落回首页
         <Link
@@ -11,7 +15,7 @@ export function HomeBannerItem({ banner }: { banner: Banner }) {
             className="group relative h-50 min-w-0 flex-1 overflow-hidden rounded-lg bg-sunken/50 text-left"
         >
             <img
-                src={banner.image}
+                src={banner.imageUrl}
                 alt={banner.title}
                 loading="lazy"
                 onError={(e) => {

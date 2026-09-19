@@ -2,7 +2,6 @@ import { queryOptions } from "@tanstack/react-query"
 
 import { CmsPublicApi } from "@shop/api/sdk"
 
-import { toBanner, toNavEntry } from "./model"
 import { fetchProducts } from "#/products"
 
 // 首页内容 5 分钟缓存（运营配置不常变）
@@ -15,14 +14,13 @@ const CACHE = 5 * 60_000
 // 失败（含「2xx 但不符合契约」的 zod 校验失败）统一以 error 态交给消费点，
 // 由消费点按 isError 渲染空态/不画——不在 queryFn 里伪造兜底数据：
 // 那会在 dev/prod 之间分叉行为（dev 抛、生产吞），且只挡契约漂移一种失败，5xx/网络照样漏网。
+//
+// 三个壳查询的 payload 契约字段同名同型，直接用 SDK 生成类型，不做镜像类型与恒等投影。
 
 /** 共享 queryOptions：route loader 用 query() 预热，组件 useQuery 读同一缓存（SSR-query 集成序列化缓存给客户端） */
 export const homeNavOptions = queryOptions({
     queryKey: ["home-nav"],
-    queryFn: async () => {
-        const res = await CmsPublicApi.getHomeNav({ query: { navKey: "home" } })
-        return res.map(toNavEntry)
-    },
+    queryFn: () => CmsPublicApi.getHomeNav({ query: { navKey: "home" } }),
     staleTime: CACHE,
     retry: false,
     throwOnError: false,
@@ -30,10 +28,7 @@ export const homeNavOptions = queryOptions({
 
 export const bannersOptions = queryOptions({
     queryKey: ["home-banners"],
-    queryFn: async () => {
-        const res = await CmsPublicApi.getHomeBanners({ query: { slot: "home_promo" } })
-        return res.map(toBanner)
-    },
+    queryFn: () => CmsPublicApi.getHomeBanners({ query: { slot: "home_promo" } }),
     staleTime: CACHE,
     retry: false,
     throwOnError: false,
@@ -41,7 +36,6 @@ export const bannersOptions = queryOptions({
 
 export const recommendTabsOptions = queryOptions({
     queryKey: ["home-recommend-tabs"],
-    // 契约字段同名同型，直接用 SDK 类型，不做恒等投影
     queryFn: () => CmsPublicApi.getRecommendTabs(),
     staleTime: CACHE,
     retry: false,
