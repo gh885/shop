@@ -33,17 +33,6 @@ export function zodIssuesText(err: z.ZodError): string {
     return err.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ")
 }
 
-/** 判断错误是否为响应契约校验失败（含已归一化的 ApiError 形态），读路径可据此降级兜底 */
-export function isContractViolation(err: unknown): boolean {
-    if (isZodError(err)) return true
-    return (
-        typeof err === "object" &&
-        err !== null &&
-        "code" in err &&
-        err.code === RESPONSE_VALIDATION_FAILED
-    )
-}
-
 function fromZodError(status: number): ApiError {
     return {
         status,

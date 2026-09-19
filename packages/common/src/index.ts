@@ -28,7 +28,6 @@ export {
     ApiErrorSchema,
     type ApiError,
     RESPONSE_VALIDATION_FAILED,
-    isContractViolation,
     isZodError,
     toApiError,
     zodIssuesText,

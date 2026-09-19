@@ -2,12 +2,7 @@ import { z } from "zod"
 
 import { describe, expect, it } from "vitest"
 
-import {
-    RESPONSE_VALIDATION_FAILED,
-    isContractViolation,
-    toApiError,
-    zodIssuesText,
-} from "./api-error"
+import { RESPONSE_VALIDATION_FAILED, toApiError, zodIssuesText } from "./api-error"
 
 /** 契约级假数据：ApiError 形状的合法构造（过 ApiErrorSchema 的 zod 语义） */
 function makeApiError(
@@ -24,27 +19,6 @@ function invalidTypeIssue(
 ): z.ZodIssue {
     return { code: "invalid_type", expected, path, message }
 }
-
-describe("isContractViolation", () => {
-    it("裸 ZodError 是契约漂移", () => {
-        const err = new z.ZodError([invalidTypeIssue(["name"])])
-        expect(isContractViolation(err)).toBe(true)
-    })
-
-    it("已归一化的 RESPONSE_VALIDATION_FAILED ApiError 是契约漂移", () => {
-        expect(
-            isContractViolation({ status: 200, detail: "x", code: RESPONSE_VALIDATION_FAILED }),
-        ).toBe(true)
-    })
-
-    it("普通业务错误与其它 code 不是契约漂移", () => {
-        expect(isContractViolation(makeApiError())).toBe(false)
-        expect(isContractViolation({ status: 404, detail: "x", code: "OTHER_CODE" })).toBe(false)
-        expect(isContractViolation(new Error("boom"))).toBe(false)
-        expect(isContractViolation(null)).toBe(false)
-        expect(isContractViolation(undefined)).toBe(false)
-    })
-})
 
 describe("zodIssuesText", () => {
     it("把 issues 压成一行：path + message，空 path 显示 (root)", () => {
