@@ -32,6 +32,7 @@
         "@shop/config": "workspace:*",
         "@shop/test-utils": "workspace:*",
         "@tanstack/router-cli": "catalog:",
+        "@tanstack/router-plugin": "catalog:",
         "@testing-library/react": "catalog:",
         "@testing-library/user-event": "catalog:",
         "@types/node": "catalog:",

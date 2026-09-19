@@ -22,6 +22,7 @@ catalog:
     "@tanstack/react-router": ^1.170.32
     "@tanstack/react-table": ^9.2.4
     "@tanstack/router-cli": ^1.167.33
+    "@tanstack/router-plugin": ^1.168.40
     lucide-react: ^1.41.0
     "@types/node": ^26.4.1
     vitest: ^4.0.0
