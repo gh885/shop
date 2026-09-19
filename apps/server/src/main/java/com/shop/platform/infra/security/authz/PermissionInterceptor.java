@@ -22,7 +22,7 @@ import tools.jackson.databind.ObjectMapper;
  *
  * <p>默认拒绝：受保护命名空间（/admin/**、/seller/**）的 handler 缺注解一律拒绝；/admin/auth/** 自服务
  * 端点（登录/刷新/me/登出只吃认证不吃授权）豁免。配合启动自检测试把漏标炸在开发期
- * （docs/permission-details.md ENF-02/05）。运行在过滤器链之后，StaffContext / ShopMemberContext 已就绪；
+ * （docs/conventions/permission-codes.md）。运行在过滤器链之后，StaffContext / ShopMemberContext 已就绪；
  * 注册顺序在日志拦截器之后，拒绝响应仍会被 http.request 事件记录。
  */
 @Component

@@ -88,7 +88,7 @@ shop/
 - 未做过多实例部署与压测；已知的单机假设都在代码注释里标了出处
   （如订单号的进程内序列、超时关单不加分布式锁的理由见 `OrderTimeoutCloser`）
 
-详细开发规范（模块组织、错误码、UI 组件接入等）见 [AGENTS.md](AGENTS.md)。
+详细开发规范（常用命令、错误码流程、各领域规范入口）见 [AGENTS.md](AGENTS.md)。
 
 ## 数据库与 Redis
 
@@ -103,15 +103,14 @@ Redis：localhost:6379
 
 | 文档                                                   | 内容                                                                              |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| [AGENTS.md](AGENTS.md)                                 | 开发操作规范：结构/规则/命令/测试/错误码流程（AI 与开发者的入口）                 |
+| [AGENTS.md](AGENTS.md)                                 | 通用入口：命令/开发规范/错误码流程/高频硬规则 + 各领域规范索引（AI 与开发者的入口） |
 | [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应                  |
 | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                              |
 | [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                              |
 | [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                  |
-| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（权限码表、业务事件日志）                                          |
-| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机、物流四期、售后闭环、优惠券定案、模块边界改造路线） |
-| [docs/reference/](docs/reference/)                     | 收编的外部设计清单                                                                |
-| [apps/server/docs/](apps/server/docs/)                 | 后端模块实现对照（快照）                                                          |
+| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志）                  |
+| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机、物流四期、售后闭环、优惠券、类目与规格值、订单动作） |
+| [docs/reference/](docs/reference/)                     | 外部调研资料（券平台做法对照）                                                    |
 
 ## 开发规范
 

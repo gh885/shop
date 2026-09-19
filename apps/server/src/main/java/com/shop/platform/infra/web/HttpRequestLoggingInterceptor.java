@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 每次 HTTP 请求完成后自动打一条结构化日志（对应 observability-checklist.md EVT-01）。 路径用路由模板（/orders/:id），非实际
- * URL（EVT-02）。
+ * 每次 HTTP 请求完成后自动打一条结构化日志（事件目录见 docs/conventions/business-event-logging.md）。 路径用路由模板（/orders/:id），非实际
+ * URL。
  */
 @Component
 @RequiredArgsConstructor

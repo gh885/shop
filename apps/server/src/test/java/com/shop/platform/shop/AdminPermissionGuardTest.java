@@ -17,7 +17,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * 管理端判权矩阵（docs/permission-implementation.md「权限码表」）：拦截器 + StaffPermissionResolver 的
+ * 管理端判权矩阵（docs/conventions/permission-codes.md）：拦截器 + StaffPermissionResolver 的
  * HTTP 契约——无权 403 PERMISSION_DENIED、有权放行、禁用员工即时失权（TIME-01）、通配放行。
  * 业务逻辑归 service 测试，这里只测判权边界。
  */

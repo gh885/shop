@@ -13,7 +13,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
- * 启动自检（docs/permission-details.md ENF-05）：受保护命名空间（/admin、/seller）的每个 handler 必须显式声明
+ * 启动自检（docs/conventions/permission-codes.md）：受保护命名空间（/admin、/seller）的每个 handler 必须显式声明
  * {@link RequirePermission}（/admin/auth/** 自服务端点豁免）。与 PermissionInterceptor 的运行时
  * 默认拒绝构成双保险——漏标炸在开发期，而不是生产期莫名 403。
  *

@@ -45,7 +45,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
         }
     }
 
-    /** 从入站头读取或生成请求 ID。格式规则见 docs/observability-checklist.md REQ-01/02。 */
+    /** 从入站头读取或生成请求 ID。格式为 32 位 hex UUID v4，不合法则自生成。 */
     private static String resolveRequestId(HttpServletRequest request) {
         String incoming = request.getHeader(HEADER_NAME);
         if (incoming != null) {

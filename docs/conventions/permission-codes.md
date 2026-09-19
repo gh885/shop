@@ -22,4 +22,5 @@
 - 卖家可授予白名单 = `shop/service/SellerGrants`（防自我繁殖：OWNER 固有码不入集合）；
 - 全部为 MANAGE 型合并码（读随写权）；拆分触发器 = 第一个「能看不能改」岗位出现。
 
-实现进度与测试资产见 [apps/server/docs/permission-implementation.md](../../apps/server/docs/permission-implementation.md)（快照）。
+测试资产：`AdminEndpointGuardTest`（启动自检，缺注解启动失败）、`shop/AdminPermissionGuardTest`（判权矩阵）、`shop/SellerMemberPermissionIT`（收权即时生效）。
+P2 未做：员工管理 CRUD（STAFF_MANAGE 消费端，含自指禁令与末位保护）、admin 前端 nav 消费 me 出参的 permission 字段。

@@ -10,7 +10,7 @@
 2. **token 分层**：业务代码只允许 Layer 2 语义类（`bg-card`、`text-muted-foreground`、`rounded-lg`…）；Layer 1 原始色阶（`--neutral-*`/`--orange-*`…）只有 styles.css 与端级主题覆盖可写。
 3. **primary 纪律**：品牌橙只留给转化引导（登录/加购/下单/开店）。选中/激活走 `accent` 或 `foreground`，焦点环走 `ring`，装饰图标走 `muted-foreground`，内联链接走 `link`。豁免：web 端商品标题/店铺名等内容链接 hover 可变 primary（淘宝实拍同款转化信号），仅 C 端豁免；选中态、图标、焦点环仍禁。
 4. **仅浅色模式**：全站固定浅色，`light-dark()` 已移除；不引入暗色 token 与 `dark:` 变体。
-5. **新组件来源**：shadcn CLI 生成到 ui-web（命令见根 AGENTS.md），不手写底层组件；图标一律 `lucide-react`。
+5. **新组件来源**：shadcn CLI 生成到 ui-web（命令见 §9），不手写底层组件；图标一律 `lucide-react`。
 
 ## 1. 设计基调
 
@@ -106,3 +106,15 @@ Sidebar 族（`--color-sidebar-*`）：sidebar 组件专用语义，默认与全
 | 状态提示 `bg-warning-subtle text-warning-subtle-foreground` | 状态提示用 cta-alt 琥珀金        |
 | 浮层 `rounded-xl shadow-lg`                                 | 自写 box-shadow / 大圆角         |
 | 缺组件 → 扩展 ui-web                                        | 业务内包一层 div 假装是新组件    |
+
+## 9. 组件生成（CLI）
+
+所有组件由 shadcn CLI 生成到 `packages/ui-web`，不手写底层组件：
+
+```bash
+# 必须用 npx（pnpm dlx 会因 store 里 zod v4 冲突而报错）
+# 注意：npm 11+ 会读根 package.json 的 devEngines，在项目目录内跑 npx 直接报 EBADDEVENGINES——
+# 需先 cd 到项目外任意目录再执行，--cwd 用绝对路径指向 ui-web
+"yes" | npx -y shadcn@latest add <component-name> --cwd /绝对路径/packages/ui-web
+# 示例："yes" | npx -y shadcn@latest add button input dialog --cwd packages/ui-web
+```

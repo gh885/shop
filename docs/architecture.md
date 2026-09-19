@@ -1,6 +1,6 @@
 # 架构总览
 
-> 本文回答"为什么这样设计、东西在哪、怎么流动"。可执行的硬规则在 [AGENTS.md](../AGENTS.md)（前端）与 [apps/server/AGENTS.md](../apps/server/AGENTS.md)（后端），本文不重复执法条款。
+> 本文回答"为什么这样设计、东西在哪、怎么流动"。可执行的硬规则在 [AGENTS.md](../AGENTS.md)（通用）与 [docs/conventions/frontend.md](conventions/frontend.md)（前端细则）、[apps/server/AGENTS.md](../apps/server/AGENTS.md)（后端），本文不重复执法条款。
 
 ## 1. 系统组成
 
@@ -81,7 +81,7 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 ### 4.3 认证链路
 
-双 token 域隔离：`kind=user`（买家）与 `kind=staff`（员工/卖家/管理员）两套 JWT 过滤链。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`）。设计动机与攻击面：[docs/decisions/auth.md](decisions/auth.md)；实现对照：apps/server/docs/auth-implementation.md。
+双 token 域隔离：`kind=user`（买家）与 `kind=staff`（员工/卖家/管理员）两套 JWT 过滤链。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`）。设计动机与攻击面：[docs/decisions/auth.md](decisions/auth.md)。
 
 ### 4.4 下单数据流（示意，以代码为准）
 
@@ -136,7 +136,6 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 ## 7. 文档地图
 
 - 操作规范：[AGENTS.md](../AGENTS.md)、[apps/server/AGENTS.md](../apps/server/AGENTS.md)
-- 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志）
-- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记、物流四期、售后闭环、[优惠券定案](decisions/coupon.md)——**设计已定案、未编码**）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
-- 依据清单（收编的外部文档）：[docs/reference/](reference/)
-- 模块实现对照（快照）：[apps/server/docs/](../apps/server/docs/)
+- 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志、取数口径论证）
+- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记、物流四期、售后闭环、[优惠券](decisions/coupon.md)——一期已闭环、二期候选见其 §16、类目体系与规格值 ID 化）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
+- 外部调研资料：[docs/reference/](reference/)（券平台做法对照）
