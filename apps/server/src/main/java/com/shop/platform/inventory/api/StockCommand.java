@@ -71,10 +71,11 @@ public class StockCommand {
     public void capture(UUID orderId, List<StockLine> lines) {
         for (StockLine line : ordered(lines)) {
             StockFrames frames = skuStockMapper.captureOne(line.skuId(), line.quantity());
-            // 扣实失败的规范化响应交给调用方（订单已被取消时 markPaid 早已拒绝），此处仍兜底防御
+            // 扣实失败的规范化响应交给调用方（订单已被取消时 markPaid 早已拒绝），此处仍兜底防御。
+            // 不带 code：前端无按此区分的分支逻辑，409 + detail 已承载全部用户提示（登记进 error-codes.md 才允许加 code）
             if (frames == null) {
                 log.warn("[INVENTORY] 扣实失败: 冻结量不足, skuId={}, need={}", line.skuId(), line.quantity());
-                throw BusinessException.conflict("STOCK_NOT_FROZEN", "订单库存冻结状态异常，请联系客服");
+                throw BusinessException.conflict(null, "订单库存冻结状态异常，请联系客服");
             }
             // 记账（总库存 -n，冻结 -n，可用不变）
             recordMovement(frames, orderId, StockMovement.TYPE_CAPTURE);
@@ -91,7 +92,7 @@ public class StockCommand {
             StockFrames frames = skuStockMapper.releaseOne(line.skuId(), line.quantity());
             if (frames == null) {
                 log.warn("[INVENTORY] 释放失败: 冻结量不足, skuId={}, need={}", line.skuId(), line.quantity());
-                throw BusinessException.conflict("STOCK_NOT_FROZEN", "订单库存冻结状态异常，请联系客服");
+                throw BusinessException.conflict(null, "订单库存冻结状态异常，请联系客服");
             }
             // 记账（总库存不变，冻结 -n，可用 +n——货还给可卖池）
             recordMovement(frames, orderId, StockMovement.TYPE_RELEASE);
