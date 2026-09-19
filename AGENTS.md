@@ -9,7 +9,7 @@
 ## 项目结构
 
 ```
-shop/                    ← monorepo, 不用 monorepo 工具
+shop/                    ← monorepo（pnpm workspace + catalog；除 workspace 外不上 turbo/nx）
 apps/server/             ← Spring Boot 模块化单体, 不参与 pnpm workspace
 apps/web/                ← 买家端 SSR
 apps/seller/             ← 卖家工作台 SPA
@@ -36,7 +36,7 @@ pnpm typecheck        # 递归跑所有 workspace 包的 typecheck 脚本（pnpm
 pnpm test             # 前端全量测试（vitest projects：apps/* + packages/*）
 
 # SDK 生成（需后端已启动）
-pnpm gen:sdk          # 拉取 /v3/api-docs 覆盖 openapi/api-docs.json，重新生成 packages/api/src/sdk
+pnpm gen:sdk          # 拉取 /v3/api-docs 覆盖 openapi/api-docs.json，重新生成 packages/api/src/sdk，末尾跑 contract:audit
 
 # 构建
 pnpm build            # vite build + mvn compile

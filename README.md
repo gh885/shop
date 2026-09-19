@@ -116,6 +116,6 @@ Redis：localhost:6379
 
 提交信息（Conventional Commits）、常用命令、前端测试写法、UI 组件接入等规范统一见 [AGENTS.md](AGENTS.md)，此处不再重复维护。
 
-后端测试分快慢两环：`mvn test` 只跑 `*Test`（单元 + MockMvc 接口层，不碰数据库），`mvn verify` 追加 `*IT`（真库集成测试，需 shop_test 库可达）。CI 门禁必须用 `mvn verify`。
+后端测试分快慢两环：`mvn test` 只跑 `*Test`（单元 + MockMvc 接口层，不碰数据库），`mvn verify` 追加 `*IT`（真库集成测试，需 shop_test 库可达）。CI 门禁应以 `mvn verify` 为准；当前 workflow 只跑 `mvn compile`（后端 job 未配 PG/Redis 服务，接入时再放开，见 `.github/workflows/ci.yml` 注与 [TODO](TODO.md)）。
 
 Lefthook：pre-commit 自动格式化并跑 lint，commit-msg 校验提交信息，pre-push 跑全量 lint / typecheck / 测试 / Java 编译 / SDK 契约漂移检查。
