@@ -126,7 +126,10 @@ export function RegionMultiPicker({
     onChange: (value: string[]) => void
     placeholder?: string
 }) {
-    const { data: tree } = useQuery(regionTreeOptions)
+    // 调用点显式退出全局默认：本组件是表单里的行内控件，头上没有边界可接；
+    // 数据虽是本仓库内动态 import 的静态 JSON（失败≈只在发版后旧 chunk 404），
+    // 真炸了也不该把整张运费模板页换成错误页，退化成选项空着、重开即重取
+    const { data: tree } = useQuery({ ...regionTreeOptions, throwOnError: false })
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState("")
     // 搜索输入不阻塞按键回显：过滤大树的工作让给非紧急渲染

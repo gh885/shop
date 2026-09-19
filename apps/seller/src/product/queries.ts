@@ -133,18 +133,20 @@ export const productListOptions = (shopId: string, s: ProductListSearch) =>
     })
 
 /** 类目树：低频变更公共数据，全量拉一次长缓存，页面内搜索/级联都在这份树上算。
- *  消费方是发布商品向导的类目/基本信息两步；退出全局的「失败抛给错误边界」——
- *  向导跑在编辑会话里，把整页换成错误页会让已填的草稿一起丢掉。 */
+ *  消费方是发布向导第一步（选类目），失败走全局默认抛给该步外层的路由级 QueryBoundary：
+ *  整块换成错误 UI + 官方 reset 重试，比静默降级成空树（看不见也点不动）诚实。
+ *  外围读取（BasicStep 的回填/语料）走 useLeafPaths，单独退出。 */
 export const categoryTreeOptions = queryOptions({
     queryKey: categoryKeys.tree,
     queryFn: () => CategoriesApi.getCategoryTree(),
     staleTime: 10 * 60_000,
-    throwOnError: false,
 })
 
-/** 末级路径清单（搜索语料）：树没变编译器自动缓存，不重复展平 */
+/** 末级路径清单（搜索语料）：树没变编译器自动缓存，不重复展平。
+ *  调用点显式 `throwOnError: false`：消费方（发布第二步的类目名回填、BasicStep）头上
+ *  没有边界可接，树取不到就退化成不显示，不能把已填的草稿一起炸掉。 */
 export function useLeafPaths(): LeafPath[] {
-    const { data } = useQuery(categoryTreeOptions)
+    const { data } = useQuery({ ...categoryTreeOptions, throwOnError: false })
     return flattenLeafPaths(data ?? [])
 }
 
