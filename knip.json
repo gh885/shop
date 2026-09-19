@@ -5,7 +5,7 @@
     "workspaces": {
         "apps/admin": {
             "ignore": ["src/test/render.tsx"],
-            "ignoreDependencies": ["@testing-library/react", "@testing-library/user-event", "msw"]
+            "ignoreDependencies": ["msw"]
         }
     }
 }

@@ -25,15 +25,6 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
     cancelled: "已取消",
 }
 
-/** 状态 → 卡片顶部状态文字色（颜色随语义：待办橙、终态灰） */
-export const ORDER_STATUS_COLOR: Record<OrderStatus, string> = {
-    pending_payment: "text-warning-foreground",
-    pending_shipment: "text-warning-foreground",
-    pending_receipt: "text-warning-foreground",
-    completed: "text-muted-foreground",
-    cancelled: "text-muted-foreground",
-}
-
 /** 订单卡片只描述履约状态，不推断支付退款、售后资格或承运商进度。 */
 export const ORDER_CARD_STATUS_META = {
     pending_payment: { tone: "warning", hint: "请在付款截止前完成支付" },

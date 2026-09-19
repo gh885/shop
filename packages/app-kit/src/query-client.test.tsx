@@ -70,7 +70,7 @@ describe("createAppQueryClient 的全局 throwOnError", () => {
                     retry: false,
                 }),
             )
-            return <span>data:{String(data)}</span>
+            return <span>data:{data ? "ok" : "none"}</span>
         }
 
         renderInBoundary(createAppQueryClient(), <Probe />)

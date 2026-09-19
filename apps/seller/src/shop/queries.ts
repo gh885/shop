@@ -19,14 +19,14 @@ export const shopKeys = {
 
 // ---------- queryOptions：key 与 queryFn 共置（失败冒到路由错误页，不再包 onRetry） ----------
 
-export const myShopsOptions = queryOptions({
+const myShopsOptions = queryOptions({
     queryKey: shopKeys.mine(),
     queryFn: () => ShopsApi.listMyShops(),
     // 店铺上下文是整个工作台的前提：没有它就是路由级错误（失败按全局默认抛给官方边界 + 重置重试）
 })
 
 /** 本店成员列表：与商品的 shopId 入 key 同理——切店铺不串缓存 */
-export const shopMembersOptions = (shopId: string) =>
+const shopMembersOptions = (shopId: string) =>
     queryOptions({
         queryKey: shopKeys.members(shopId),
         queryFn: () => ShopsApi.listShopMembers({ path: { shopId } }),

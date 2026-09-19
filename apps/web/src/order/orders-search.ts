@@ -37,7 +37,7 @@ export type OrdersSearchInput = SearchSchemaInput & {
     page?: unknown
 }
 
-export const ordersSearchSchema = z.object({
+const ordersSearchSchema = z.object({
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise.catch（脏页签收敛到「全部」）
     tab: z.enum(TAB_VALUES).catch("all"),
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- 同上（脏页码收敛到第 1 页）

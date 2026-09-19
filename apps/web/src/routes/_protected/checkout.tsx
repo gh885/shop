@@ -176,7 +176,7 @@ function CheckoutPage() {
                         {/* 左：地址 + 商品分组 + 失效行 */}
                         <div className="min-w-0 flex-1 space-y-5">
                             <AddressPicker
-                                addresses={addresses ?? []}
+                                addresses={addresses}
                                 value={addressId}
                                 onChange={setAddressId}
                             />

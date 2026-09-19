@@ -10,6 +10,9 @@
         ".": "./src/index.ts",
         "./sdk": "./src/sdk/index.ts"
     },
+    "scripts": {
+        "typecheck": "tsc --noEmit"
+    },
     "dependencies": {
         "ky": "^2.1.0",
         "zod": "catalog:"
