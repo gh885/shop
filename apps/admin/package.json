@@ -28,7 +28,6 @@
         "zod": "catalog:"
     },
     "devDependencies": {
-        "@rolldown/plugin-babel": "catalog:",
         "@shop/config": "workspace:*",
         "@shop/test-utils": "workspace:*",
         "@tanstack/router-cli": "catalog:",
@@ -41,6 +40,7 @@
         "@vitejs/plugin-react": "catalog:",
         "jsdom": "catalog:",
         "msw": "catalog:",
+        "oxc-transform-react": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:"
     }

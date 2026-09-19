@@ -1,9 +1,4 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs))
-}
+export { cn } from "cn"
 
 /** 页码压缩：1 … 3 4 5 … 20（首尾固定，当前页前后各一） */
 export function getPageNumbers(current: number, total: number): (number | "...")[] {

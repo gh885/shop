@@ -1,8 +1,7 @@
 import { defineConfig, loadEnv } from "vite"
 
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
-import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react"
-import babel from "@rolldown/plugin-babel"
+import viteReact from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig(({ mode }) => {
@@ -25,8 +24,7 @@ export default defineConfig(({ mode }) => {
             // 拆进独立 chunk（低频页如发布向导不再进首屏包）；配合 defaultPreload:"intent" 悬停预取
             tanstackRouter({ target: "react", autoCodeSplitting: true }),
             tailwindcss(),
-            viteReact(),
-            babel({ presets: [reactCompilerPreset()] }),
+            viteReact({ compiler: true }),
         ],
     }
 })
