@@ -16,7 +16,7 @@ import lombok.experimental.SuperBuilder;
 @TableName("cms.recommend_tabs")
 public class RecommendTab extends AuditedEntity {
 
-    /** 词条名，如「猜你喜欢」/「运动户外」/「+更多」 */
+    /** 词条名，如「猜你喜欢」/「食品生鲜」/「智能手机」；CATEGORY 型须与目标类目同名（V59 口径） */
     private String name;
 
     /** 跳转目标，软关联 */
