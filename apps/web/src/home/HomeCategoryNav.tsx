@@ -1,9 +1,10 @@
-import { useState, type CSSProperties } from "react"
 import { Link } from "@tanstack/react-router"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import {
     Armchair,
     Baby,
     ChefHat,
+    CircleAlert,
     Dumbbell,
     Gamepad2,
     HandPlatter,
@@ -17,41 +18,102 @@ import {
     type LucideIcon,
 } from "lucide-react"
 
-import { Button, Skeleton } from "@shop/ui-web"
+import {
+    Button,
+    NavigationMenu,
+    NavigationMenuContent,
+    NavigationMenuItem,
+    NavigationMenuList,
+    NavigationMenuTrigger,
+    Skeleton,
+    cn,
+} from "@shop/ui-web"
+import { QueryBoundary } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
 
 import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"
+
+import { homeNavOptions } from "./queries"
 
 /**
  * 首页导航入口：主菜单分区词条（合并名），子层为 hover 展开的导航组。
  *
  * <p>数据来自 /api/cms/nav（NavEntryResponse），iconKey 为后端返回的字符串 key，前端映射到 lucide。
- * 未完按时渲染骨架占位，避免布局跳动。
+ * 三态与 ShopBar 同形（骨架 / 块级错误+重试 / 内容）：失败**不**折叠成「即将上线」空态——
+ * 那句话只属于真正的空配置，读不到就该亮错误 + 官方 reset 重试。loader 已预热本查询，
+ * 常规路径不挂起，pending 只是保险。
  */
-export function HomeCategoryNav({
-    defaultHeight = 320,
-    entries,
+export function HomeCategoryNav() {
+    return (
+        <QueryBoundary
+            pending={<HomeCategoryNavSkeleton />}
+            fallback={homeNavErrorFallback}
+        >
+            <HomeCategoryNavContent />
+        </QueryBoundary>
+    )
+}
+
+/** 失败态渲染函数放模块作用域：内联箭头会让每次渲染都新建一个组件（ShopBar 同款理由） */
+function homeNavErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+    return (
+        <HomeCategoryNavError
+            message={toApiError(error).detail || "商品分类加载失败"}
+            onRetry={reset}
+        />
+    )
+}
+
+/** 列壳：与同行的 banner/UserCard（h-50）等高对齐，三态同形避免布局跳动。
+ *  宽 w-67（268px）：文字区 210px = 268 - px-2.5×2(20) - 图标 16 - gap 6 - chevron(16) */
+const NAV_WIDTH_CLASS = "lg:w-67 lg:shrink-0"
+const navColumnClass = `flex h-50 w-full items-center justify-center rounded-xl bg-background shadow-sm ${NAV_WIDTH_CLASS}`
+
+function HomeCategoryNavSkeleton() {
+    return (
+        <Skeleton
+            className={`h-50 w-full rounded-xl ${NAV_WIDTH_CLASS}`}
+            aria-hidden
+        />
+    )
+}
+
+function HomeCategoryNavError({
+    message,
+    onRetry,
 }: {
-    defaultHeight?: number
-    entries?: NavEntryResponse[]
+    /** 已归一化的错误描述（调用方用 `toApiError(error).detail` 传入） */
+    message: string
+    onRetry: () => void
 }) {
-    const [activeId, setActiveId] = useState<string | undefined>()
+    return (
+        <div
+            role="alert"
+            className={navColumnClass}
+        >
+            <div className="flex flex-col items-center gap-3 px-4 text-center">
+                <CircleAlert className="size-5 text-destructive" />
+                <p className="text-sm text-muted-foreground">{message}</p>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    shape="pill"
+                    onClick={onRetry}
+                >
+                    重试
+                </Button>
+            </div>
+        </div>
+    )
+}
 
-    // 高度由调用方给（index.tsx 传 200，其余场景默认 320）：走 CSS 变量交给 h-(--nav-height)，
-    // 不用内联 height。断言与仓库既有写法一致（ui-web 的 sidebar/topbar/toggle-group 同款）
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
-    const navHeightStyle = { "--nav-height": `${defaultHeight}px` } as CSSProperties
+function HomeCategoryNavContent() {
+    const { data: entries } = useSuspenseQuery(homeNavOptions)
 
-    // 未加载（undefined）→ 骨架占位；后端返回空数组 → 明确的空态，避免永远停在骨架
-    if (entries === undefined) {
-        return <Skeleton className="h-full w-full rounded-xl" />
-    }
-
+    // 空数组是运营侧真正的空配置 → 明确的空态，不是「读不到」
     if (entries.length === 0) {
         return (
-            <div
-                className="flex h-(--nav-height) w-full items-center justify-center rounded-xl bg-background shadow-sm lg:w-64 lg:shrink-0"
-                style={navHeightStyle}
-            >
+            <div className={navColumnClass}>
                 <p className="px-4 text-center text-sm text-muted-foreground">
                     商品分类即将上线，敬请期待
                 </p>
@@ -59,65 +121,107 @@ export function HomeCategoryNav({
         )
     }
 
-    const active = entries.find((e) => e.id === activeId) ?? undefined
+    return (
+        // 纵向 NavigationMenu（base-ui）：mega 面板锚在列右侧（side=right + align start），
+        // hover 意图延时、点击开合（触屏由此可达）、方向键漫游、Escape/焦点移出收起、
+        // aria-expanded 全部归组件库——旧的手写 activeId + mouseleave/blur 状态机整体退场。
+        // h-50 与同行的 banner/UserCard（h-50）对齐；行高 h-8，收起态 6 行（192px）不切半行，
+        // hover 列（或 mega 面板打开时，指针可能已不在列上）整列展开盖住下方内容露出剩余行
+        <NavigationMenu
+            aria-label="商品分类"
+            orientation="vertical"
+            side="right"
+            align="start"
+            sideOffset={0}
+            className={cn(
+                "h-50 w-full max-w-none flex-none flex-col items-stretch justify-start",
+                NAV_WIDTH_CLASS,
+            )}
+        >
+            <div className="no-scrollbar absolute inset-x-0 top-0 z-50 max-h-50 overflow-y-auto rounded-lg bg-background shadow-sm transition-all duration-200 ease-out group-hover/navigation-menu:max-h-125 group-data-open/navigation-menu:max-h-125">
+                <NavigationMenuList className="flex-col items-stretch justify-start">
+                    {entries.map((entry) => (
+                        <NavEntry
+                            key={entry.id}
+                            entry={entry}
+                        />
+                    ))}
+                </NavigationMenuList>
+            </div>
+        </NavigationMenu>
+    )
+}
+
+/**
+ * 行内显示名：合并标题按「 / 」整组装进文字区宽度预算，装不下的组不显示——
+ * 不切半字、不画省略号；完整名在 title tooltip 与右侧 mega 面板里。
+ * 预算 210px；汉字按 text-sm 14px、分隔符 " / " 约 11px 估
+ */
+const NAV_TITLE_MAX_WIDTH = 210
+
+function navTitle(title: string): string {
+    const [first = "", ...rest] = title.split(" / ")
+    let shown = first
+    let width = first.length * 14
+    for (const part of rest) {
+        const next = width + 11 + part.length * 14
+        if (next > NAV_TITLE_MAX_WIDTH) break
+        shown += ` / ${part}`
+        width = next
+    }
+    return shown
+}
+
+/** 词条行：有子组的走 NavigationMenuTrigger（hover/点击展开右侧面板）；无子组的只是普通按钮——给它挂个开了没内容的假面板更怪 */
+function NavEntry({ entry }: { entry: NavEntryResponse }) {
+    const Icon = (entry.iconKey ? ICON_BY_KEY[entry.iconKey] : undefined) ?? ShoppingBag
+    const label = (
+        <span className="flex min-w-0 flex-1 items-center gap-1.5">
+            <Icon className="size-4 shrink-0" />
+            <span
+                className="min-w-0 overflow-hidden text-clip whitespace-nowrap"
+                title={entry.title}
+            >
+                {navTitle(entry.title)}
+            </span>
+        </span>
+    )
+
+    if (entry.subs.length === 0) {
+        return (
+            <li>
+                {/* Button 默认 size 即 h-8 px-2.5 gap-1.5，与 Trigger 行对齐，不再叠 triggerStyle */}
+                <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                >
+                    {label}
+                </Button>
+            </li>
+        )
+    }
 
     return (
-        <div
-            className="relative h-(--nav-height) w-full lg:w-64 lg:shrink-0"
-            style={navHeightStyle}
-            onMouseLeave={() => setActiveId(undefined)}
-            onBlur={(e) => {
-                // 焦点移出整个导航区域（含 Mega 面板）时收起，键盘可达的关键
-                if (!e.currentTarget.contains(e.relatedTarget)) {
-                    setActiveId(undefined)
-                }
-            }}
+        <NavigationMenuItem
+            value={entry.id}
+            className="w-full"
         >
-            {/** 单列表：始终完整显示，hover 仅切换行高亮 + 右侧展开 Mega 面板，不做 absolute 跳动 */}
-            <div className="h-full overflow-hidden rounded-lg bg-background shadow-sm">
-                <ul>
-                    {entries.map((entry) => {
-                        const Icon =
-                            (entry.iconKey ? ICON_BY_KEY[entry.iconKey] : undefined) ?? ShoppingBag
-                        return (
-                            <li key={entry.id}>
-                                <Button
-                                    variant={activeId === entry.id ? "secondary" : "ghost"}
-                                    onMouseEnter={() => setActiveId(entry.id)}
-                                    onFocus={() => setActiveId(entry.id)}
-                                    className="w-full justify-start"
-                                >
-                                    <Icon className="size-4 shrink-0" />
-                                    <span
-                                        className="truncate"
-                                        title={entry.title}
-                                    >
-                                        {entry.title}
-                                    </span>
-                                </Button>
-                            </li>
-                        )
-                    })}
-                </ul>
-            </div>
-
-            {/* hover 展开的 Mega Menu 面板：绝对定位盖在右侧内容上方，高度由内容撑开 */}
-            {active?.subs && active.subs.length > 0 && (
-                <div className="absolute top-0 left-full z-50 hidden w-2xl rounded-lg bg-background shadow-float md:block">
-                    {/* 词条组：横向流式平铺，一行的组名后跟整排词条 */}
-                    <div className="p-5">
-                        <div className="flex flex-col gap-4">
-                            {active.subs.map((group) => (
-                                <NavGroupRow
-                                    key={group.name}
-                                    group={group}
-                                />
-                            ))}
-                        </div>
-                    </div>
+            {/* chevrons 由 Trigger 自带（data-open 时旋转）；ml-auto 把它顶到行尾，与行首分类图标对齐 */}
+            <NavigationMenuTrigger className="h-8 w-full justify-start [&_svg:last-child]:ml-auto">
+                {label}
+            </NavigationMenuTrigger>
+            <NavigationMenuContent className="w-2xl">
+                {/* 词条组：横向流式平铺，一行的组名后跟整排词条 */}
+                <div className="flex flex-col gap-4 p-4">
+                    {entry.subs.map((group, i) => (
+                        <NavGroupRow
+                            key={`${group.name}-${i}`}
+                            group={group}
+                        />
+                    ))}
                 </div>
-            )}
-        </div>
+            </NavigationMenuContent>
+        </NavigationMenuItem>
     )
 }
 

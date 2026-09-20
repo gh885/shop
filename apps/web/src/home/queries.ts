@@ -7,23 +7,24 @@ import { toProduct, type Product } from "#/products"
 // 首页内容 5 分钟缓存（运营配置不常变）
 const CACHE = 5 * 60_000
 
-// 首页壳区块（导航 / banner / 推荐词条）共用口径：5 分钟缓存 + 失败即报 + **不抛错误边界**。
-// 首页是门面，单个接口失败绝不能把整页换成错误页（loader 的 allSettled 就是同一条意图）：
-// 读不到就不画这一块。三个查询都是 useQuery 常规读取，所以必须逐条显式退出全局默认。
+// 首页壳区块的降级口径正在收敛到「块级三态」：导航与 banner 走 QueryBoundary 的
+// pending/fallback（见 HomeCategoryNav / HomeBanners），失败不再折叠成空态/静默留白。
+// 推荐词条是例外，维持「读不到就不画」+ 显式退出全局默认：RecommendBar 有就地降级 UI
+// （词条挂了 feed 照常全站流），换成块级错误块反而会把可逛的一栏顶掉。
+// 首页是门面，单个接口失败绝不能把整页换成错误页（loader 的 allSettled 就是同一条意图）。
 //
-// 失败（含「2xx 但不符合契约」的 zod 校验失败）统一以 error 态交给消费点，
-// 由消费点按 isError 渲染空态/不画——不在 queryFn 里伪造兜底数据：
+// 失败（含「2xx 但不符合契约」的 zod 校验失败）统一以 error 态交给消费点（抛给边界或
+// 按 isError 就地处理）——不在 queryFn 里伪造兜底数据：
 // 那会在 dev/prod 之间分叉行为（dev 抛、生产吞），且只挡契约漂移一种失败，5xx/网络照样漏网。
 //
 // 三个壳查询的 payload 契约字段同名同型，直接用 SDK 生成类型，不做镜像类型与恒等投影。
 
-/** 共享 queryOptions：route loader 用 query() 预热，组件 useQuery 读同一缓存（SSR-query 集成序列化缓存给客户端） */
+/** 共享 queryOptions：route loader 用 query() 预热，组件 useSuspenseQuery 读同一缓存（SSR-query 集成序列化缓存给客户端） */
 export const homeNavOptions = queryOptions({
     queryKey: ["home-nav"],
     queryFn: () => CmsPublicApi.getHomeNav({ query: { navKey: "home" } }),
     staleTime: CACHE,
     retry: false,
-    throwOnError: false,
 })
 
 export const bannersOptions = queryOptions({
@@ -31,7 +32,6 @@ export const bannersOptions = queryOptions({
     queryFn: () => CmsPublicApi.getHomeBanners({ query: { slot: "home_promo" } }),
     staleTime: CACHE,
     retry: false,
-    throwOnError: false,
 })
 
 export const recommendTabsOptions = queryOptions({

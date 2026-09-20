@@ -270,6 +270,15 @@
     font-size: 0.65em;
 }
 
+/* 隐藏滚动条但保留滚动（combobox/sidebar/首页导航浮层）。
+   Tailwind 无内置类，Firefox 与 WebKit 两端写法收在一处 */
+@utility no-scrollbar {
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
 /* ---------- 无障碍：尊重系统减弱动态偏好 ----------
    tw-animate-css 不自带 motion-reduce 降级，这里统一兜底：
    覆盖组件库动画与项目自定义 keyframes（route-progress、shake 等）。 */

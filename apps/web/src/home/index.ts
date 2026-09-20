@@ -1,4 +1,4 @@
-export { HomeBannerItem } from "./HomeBannerItem"
+export { HomeBanners } from "./HomeBanners"
 export { HomeHeader } from "./HomeHeader"
 export { RecommendBar } from "./RecommendBar"
 export { HomeCategoryNav } from "./HomeCategoryNav"
