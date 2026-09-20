@@ -1,9 +1,21 @@
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react"
 import { useQuery, useQueryClient, useSuspenseInfiniteQuery } from "@tanstack/react-query"
+import { PackageSearch } from "lucide-react"
 
 import { QueryBoundary } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
-import { Button, cn, Skeleton, Spinner, StateError } from "@shop/ui-web"
+import {
+    Button,
+    cn,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Skeleton,
+    Spinner,
+    StateError,
+} from "@shop/ui-web"
 
 import { ProductCard, toProductCardData } from "#/products"
 
@@ -85,10 +97,28 @@ function FeedGrid({ categoryId, switching }: { categoryId?: string; switching: b
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } =
         useSuspenseInfiniteQuery(feedOptions(categoryId))
     const sentinelRef = useRef<HTMLDivElement>(null)
+    const sectionRef = useRef<HTMLElement>(null)
+    const lastCategory = useRef(categoryId)
     const capped = data.pageCount >= MAX_AUTO_PAGES
     // 切词条中：屏上还是上一个词条的卡片（transition 保留的旧内容），这段窗口里 hasNextPage / capped
     // 说的都是上一个词条的处境，不能拿它去翻页或收口
     const busy = switching
+    const empty = data.items.length === 0
+
+    /**
+     * 切词条后把列表锚回吸顶条下方。不做这件事的后果实测过：从「一页商品」切到「空词条」，
+     * 文档高度 1987 → 988（≈视口高），浏览器把滚动位置从 900 直接钳回 0 —— 用户看到页面跳一下。
+     *
+     * <p>只在「词条真的换了」且「列表顶部已滚出视口」时锚（用户在顶部时不打扰），
+     * 且在 useLayoutEffect 里做：绘帧前对齐，不留中间帧。
+     */
+    useLayoutEffect(() => {
+        if (lastCategory.current === categoryId) return
+        lastCategory.current = categoryId
+        const el = sectionRef.current
+        if (!el || el.getBoundingClientRect().top >= 0) return
+        el.scrollIntoView({ block: "start", behavior: "instant" })
+    }, [categoryId])
 
     useEffect(() => {
         const el = sentinelRef.current
@@ -112,25 +142,39 @@ function FeedGrid({ categoryId, switching }: { categoryId?: string; switching: b
 
     return (
         <section
-            className="feed-section"
+            ref={sectionRef}
+            // 锚回时让吸顶栈（站点头 + 推荐条）压住的位置：scrollIntoView 认 scroll-margin
+            className="feed-section scroll-mt-(--home-sticky-offset)"
             aria-busy={busy}
         >
-            <div className={cn("grid-feed transition-opacity duration-200", busy && "opacity-60")}>
-                {data.items.map((product) => (
-                    <ProductCard
-                        key={product.id}
-                        product={toProductCardData(product)}
-                    />
-                ))}
-            </div>
-            <FeedTail
-                capped={capped}
-                hasNextPage={hasNextPage}
-                isFetchingNextPage={isFetchingNextPage}
-                isError={isFetchNextPageError}
-                busy={busy}
-                onLoadMore={loadMore}
-            />
+            {empty ? (
+                <FeedEmpty />
+            ) : (
+                <div
+                    className={cn(
+                        "grid-feed transition-opacity duration-200",
+                        busy && "opacity-60",
+                    )}
+                >
+                    {data.items.map((product) => (
+                        <ProductCard
+                            key={product.id}
+                            product={toProductCardData(product)}
+                        />
+                    ))}
+                </div>
+            )}
+            {/* 空结果由空态收口：再挂一句「没有更多了」读起来像「前面还有，只是到底了」 */}
+            {empty ? undefined : (
+                <FeedTail
+                    capped={capped}
+                    hasNextPage={hasNextPage}
+                    isFetchingNextPage={isFetchingNextPage}
+                    isError={isFetchNextPageError}
+                    busy={busy}
+                    onLoadMore={loadMore}
+                />
+            )}
             {/* 哨兵：贴在网格末尾，rootMargin 提前一屏触发；封顶后它不再触发 */}
             <div
                 ref={sentinelRef}
@@ -212,6 +256,25 @@ function FeedTailLoading() {
             <Spinner className="size-4" />
             <span className="text-sm text-muted-foreground">加载中…</span>
         </div>
+    )
+}
+
+/**
+ * 该词条一件商品都没有时的空态。刻意区别于「没有更多了」：后者是「翻到底了」，
+ * 这里的语义是「这个类目下现在没有商品」，并且要占住 `feed-section` 的保底高度
+ * （否则切到空词条时页面塌成视口高，滚动位置被钳回顶部）。
+ */
+function FeedEmpty() {
+    return (
+        <Empty>
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <PackageSearch className="size-4 text-muted-foreground" />
+                </EmptyMedia>
+                <EmptyTitle>这个分类暂时没有商品</EmptyTitle>
+                <EmptyDescription>换个词条逛逛，或稍后再回来看看。</EmptyDescription>
+            </EmptyHeader>
+        </Empty>
     )
 }
 

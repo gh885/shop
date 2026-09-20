@@ -54,6 +54,9 @@ body {
 @theme {
     --animate-route-progress: route-progress 1.1s ease-in-out infinite;
     --home-header-height: 4rem;
+    /* 首页吸顶栈的总高：站点头 + 推荐条。feed 的 scroll-mt（锚回位置）与保底高度都吃它，
+       写两处就迟早对不上（推荐条高度改一次、锚点偏一次） */
+    --home-sticky-offset: calc(var(--home-header-height) + 3.5rem);
 }
 
 /* ---------- 本端布局工具类 ---------- */
@@ -74,9 +77,13 @@ body {
    `w-full` 不能省：main 是 flex 列容器，而 `mx-auto`（auto 外边距）会取消 flex 子项的 stretch，
    于是本节变成 shrink-to-fit —— 骨架里是空 div、没有固有宽度，整节会塌成 ~100px（实测 .grid-feed 只剩 60px、
    每格 0×0），文档高度跟着塌到视口高，滚动位置被浏览器钳回顶部。真实 feed 只是恰好被卡片内容的固有宽度撑住，
-   所以只有骨架态暴露这个毛病。 */
+   所以只有骨架态暴露这个毛病。
+   `min-h` 是给「切词条」兜底：空词条/只有一两件时本节会缩到 ~100px，而一页商品是 ~1350px，
+   页面高度随词条剧烈变化（实测空词条 docH 988、一页 1973），滚动位置会被浏览器钳回顶部。
+   保底高度取「吸顶条以下的整屏」= 100vh − 吸顶栈（`--home-sticky-offset`）：这样切词条后锚点（见 home/Feed.tsx 的
+   scrollIntoView）在任何视口高度下都够得着，不会被钳；写 50vh 之类固定值在矮视口够、高视口就不够了。 */
 @utility feed-section {
-    @apply mx-auto w-full max-w-page px-6 pb-6;
+    @apply mx-auto flex w-full max-w-page flex-col px-6 pb-6 min-h-[calc(100vh-var(--home-sticky-offset))];
 }
 
 /* 推荐条与内容区之间的版心分隔线（骨架态与正常态各一处） */

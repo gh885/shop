@@ -307,6 +307,79 @@ describe("首页商品流", () => {
         expect(screen.queryByText("商品 1")).not.toBeInTheDocument()
     })
 
+    it("空结果_给空态而不是到底文案", async () => {
+        server.use(
+            tabsHandler,
+            http.get("*/api/feed", () => HttpResponse.json({ items: [], nextCursor: null })),
+        )
+
+        renderFeed()
+
+        expect(await screen.findByText("这个分类暂时没有商品")).toBeInTheDocument()
+        // 「没有更多了」是「翻到底了」，空类目不是这个意思
+        expect(screen.queryByText("没有更多了")).not.toBeInTheDocument()
+    })
+
+    it("切词条时列表已滚出视口_锚回吸顶条下方", async () => {
+        // jsdom 没有布局：先把列表的矩形伪装成「顶部已滚出视口」，再盯住 scrollIntoView。
+        // 锚定不做的话，空/短词条落地时文档高度塌下去，浏览器会把滚动位置钳回顶部（真浏览器实测 900 → 0）
+        const scrollIntoView = vi.fn<() => void>()
+        Object.defineProperty(Element.prototype, "scrollIntoView", {
+            value: scrollIntoView,
+            writable: true,
+            configurable: true,
+        })
+        const rectSpy = vi
+            .spyOn(Element.prototype, "getBoundingClientRect")
+            .mockImplementation(function (this: Element) {
+                const top =
+                    this instanceof HTMLElement && this.classList.contains("feed-section")
+                        ? -300
+                        : 0
+                return new DOMRect(0, top, 1400, 1000)
+            })
+
+        try {
+            server.use(
+                // 类目词条放第一位：jsdom 没有布局，推荐条一页只量得出 1 个词条
+                http.get("*/api/cms/recommend-tabs", () =>
+                    HttpResponse.json([
+                        makeTab({
+                            id: "00000000-0000-4000-8000-0000000000f2",
+                            name: "智能手机",
+                            targetType: "CATEGORY",
+                            target: CATEGORY_ID,
+                            isDefault: false,
+                        }),
+                        makeTab(),
+                    ]),
+                ),
+                http.get("*/api/feed", ({ request }) =>
+                    HttpResponse.json({
+                        items: [
+                            makeItem(
+                                new URL(request.url).searchParams.get("categoryId") ? "cat" : "1",
+                            ),
+                        ],
+                        nextCursor: null,
+                    }),
+                ),
+            )
+
+            renderFeed()
+            // 首屏（首次挂载）不锚：用户在顶部时不该被动滚动
+            expect(await screen.findByText("商品 1")).toBeInTheDocument()
+            expect(scrollIntoView).not.toHaveBeenCalled()
+
+            await userEvent.click(screen.getByRole("button", { name: "智能手机" }))
+
+            expect(await screen.findByText("商品 cat")).toBeInTheDocument()
+            expect(scrollIntoView).toHaveBeenCalledTimes(1)
+        } finally {
+            rectSpy.mockRestore()
+        }
+    })
+
     it("点类目词条_按该类目召回", async () => {
         const categoryParams: (string | null)[] = []
         server.use(
