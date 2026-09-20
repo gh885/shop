@@ -10,3 +10,8 @@ insert_final_newline = true
 
 [*.md]
 trim_trailing_whitespace = false
+
+# pnpm 自己写的文件用它自己的 2 空格缩进（见 .prettierignore 的说明：不参与 oxfmt 格式化），
+# 编辑器跟着它走，别让手改一次又把整篇重排回 4 空格
+[pnpm-workspace.yaml]
+indent_size = 2

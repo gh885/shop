@@ -19,3 +19,15 @@ openapi/api-docs.json
 
 # shadcn/base-ui 组装组件库：CLI 生成、vendor 代码，不参与项目 format
 **/components/ui/**
+
+# 工具自有的配置文件：谁写的谁排版，格式化脚本不去改它的风格
+#   - pnpm-workspace.yaml 由 pnpm 维护（catalog 等），它按 2 空格序列化；oxfmt 是 tabWidth 4，
+#     跑一次 pnpm format:web 就会把这个文件整篇重排（实测），pre-commit 的 fmt-web 还会 stage_fixed
+#     把它带进提交——diff 与本意无关，且下次 pnpm 改动该文件时会再翻回去。
+#     这一条同时挡住两条路径：`oxfmt --write .` 与 pre-commit 显式传暂存文件（实测后者也按本文件过滤，
+#     oxfmt 报 "No files found matching the given patterns"，靠 --no-error-on-unmatched-pattern 退出 0）。
+#     别改成写进 oxfmt.config.ts 的 ignorePatterns：那里按**配置文件所在目录**解析，匹配不到仓库根
+#     路径（实测：加进去后文件数不变，该文件照样被格式化），--ignore-path 指的也是本文件。
+#   - pnpm-lock.yaml 同类，但它实测不被 `oxfmt --write .` 改写（lefthook 侧另有 exclude，见 lefthook.yml），
+#     这里不重复声明。
+pnpm-workspace.yaml
