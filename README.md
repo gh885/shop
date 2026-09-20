@@ -101,16 +101,16 @@ Redis：localhost:6379
 
 ## 文档地图
 
-| 文档                                                   | 内容                                                                              |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| [AGENTS.md](AGENTS.md)                                 | 通用入口：命令/开发规范/错误码流程/高频硬规则 + 各领域规范索引（AI 与开发者的入口） |
-| [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应                  |
-| [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                              |
-| [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                              |
-| [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                  |
-| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志）                  |
-| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机、物流四期、售后闭环、优惠券、类目与规格值、订单动作） |
-| [docs/reference/](docs/reference/)                     | 外部调研资料（券平台做法对照）                                                    |
+| 文档                                                   | 内容                                                                                              |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| [AGENTS.md](AGENTS.md)                                 | 通用入口：命令/开发规范/错误码流程/高频硬规则 + 各领域规范索引（AI 与开发者的入口）               |
+| [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应                                  |
+| [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                                              |
+| [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                                              |
+| [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                                  |
+| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志）                                  |
+| [docs/decisions/](docs/decisions/)                     | 设计决策与笔记（auth 设计动机、物流四期、售后闭环、优惠券、类目与规格值、订单动作、首页 feed 流） |
+| [docs/reference/](docs/reference/)                     | 外部调研资料（券平台做法对照）                                                                    |
 
 ## 开发规范
 

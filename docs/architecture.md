@@ -157,5 +157,5 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 - 操作规范：[AGENTS.md](../AGENTS.md)、[apps/server/AGENTS.md](../apps/server/AGENTS.md)
 - 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志、取数口径论证）
-- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记、物流四期、售后闭环、[优惠券](decisions/coupon.md)——一期已闭环、二期候选见其 §16、类目体系与规格值 ID 化）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
+- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记、物流四期、售后闭环、[优惠券](decisions/coupon.md)——一期已闭环、二期候选见其 §16、类目体系与规格值 ID 化、[首页 feed 流](decisions/home-feed.md)——V1 已落地、V2/V3 设计稿）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
 - 外部调研资料：[docs/reference/](reference/)（券平台做法对照）
