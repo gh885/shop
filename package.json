@@ -14,6 +14,7 @@
         "dev:server": "concurrently -k -s first -n db,srv -c yellow,green \"node scripts/ensure-datastore.mjs --hold\" \"mvn -f apps/server/pom.xml spring-boot:run\"",
         "db:up": "node scripts/ensure-datastore.mjs",
         "db:down": "node scripts/ensure-datastore.mjs --down",
+        "seed:demo": "node scripts/seed-demo.mjs",
         "build": "pnpm build:web && pnpm build:server",
         "build:web": "pnpm --filter web build",
         "build:admin": "pnpm --filter admin build",

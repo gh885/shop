@@ -29,6 +29,10 @@ pnpm dev:web          # 买家端（Vite 开发服务器，3000 端口）
 pnpm dev:seller       # 卖家工作台（独立 SPA，5000 端口）
 pnpm dev:admin        # 平台管理端（独立 SPA，4000 端口）
 
+# 造数（仅本地 shop 库，只增不改人工数据）
+pnpm seed:demo        # 灌演示店/买家/券/运费/活单等浏览器可流转场景（scripts/seed-demo.mjs，二次运行幂等）
+node scripts/seed-demo.mjs --dry-run   # 只打印将执行的 SQL
+
 # 检查
 pnpm lint             # oxlint + mvn compile
 pnpm format           # oxfmt + spotless:apply
