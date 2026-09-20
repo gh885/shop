@@ -9,6 +9,7 @@ import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 class CategoryIT extends IntegrationTestSupport {
 
     private static final UUID L1_DIGITAL = UUID.fromString("01900000-0000-7000-8000-000000000101");
+    private static final UUID L1_COMPUTER = UUID.fromString("01900000-0000-7000-8000-000000000102");
+    private static final UUID L2_PHONE_COMM = UUID.fromString("01900000-0000-7000-8000-000000000201");
     private static final UUID L3_PHONE = UUID.fromString("01900000-0000-7000-8000-000000000301");
 
     /** 种子数据里的 6 个一级类目，测试可能产生脏根时用它做基线清理 */
@@ -93,6 +96,44 @@ class CategoryIT extends IntegrationTestSupport {
         assertTrue(roots.stream().noneMatch(n -> n.id().equals(created.getId())));
         // 管理端树仍可见（含禁用子树）
         assertTrue(categoryService.adminTree().stream().anyMatch(n -> n.id().equals(created.getId())));
+    }
+
+    /** 召回用：tab 可能指向一级类目，而商品挂在三级，所以要「含自身 + 全部后代」 */
+    @Test
+    void 子树展开_含自身与全部后代() {
+        Set<UUID> subtree = categoryService.descendantIds(L1_DIGITAL);
+
+        assertTrue(subtree.contains(L1_DIGITAL), "含自身");
+        assertTrue(subtree.contains(L2_PHONE_COMM), "含二级后代");
+        assertTrue(subtree.contains(L3_PHONE), "含三级后代");
+        assertFalse(subtree.contains(L1_COMPUTER), "不含兄弟一级类目");
+    }
+
+    /** 禁用中间节点：整支剪掉（与公开树同口径），否则 feed 会召回隐藏类目下的商品 */
+    @Test
+    void 禁用中间节点_整支剪掉() {
+        String uniqueName = "子树类目" + UUID.randomUUID().toString().substring(0, 8);
+        Category root = categoryService.create(null, uniqueName, 99, null);
+        Category middle = categoryService.create(root.getId(), "中间层", null, null);
+        Category leaf = categoryService.create(middle.getId(), "叶子层", null, null);
+        db.onDelete(
+                "DELETE FROM product.categories WHERE id IN (?::uuid, ?::uuid, ?::uuid)",
+                leaf.getId().toString(),
+                middle.getId().toString(),
+                root.getId().toString());
+
+        categoryService.updateStatus(middle.getId(), CategoryStatus.DISABLED);
+
+        Set<UUID> subtree = categoryService.descendantIds(root.getId());
+        assertTrue(subtree.contains(root.getId()), "根自身仍可见");
+        assertFalse(subtree.contains(middle.getId()), "禁用节点本身不可见");
+        assertFalse(subtree.contains(leaf.getId()), "父链断了，后代一起剪掉");
+        assertTrue(categoryService.descendantIds(middle.getId()).isEmpty(), "从禁用节点出发取子树 = 空集");
+    }
+
+    @Test
+    void 未知类目_空集() {
+        assertTrue(categoryService.descendantIds(UUID.randomUUID()).isEmpty());
     }
 
     /** 禁用闸门：类目下仍有商品引用（含草稿）拒绝禁用，移出后放行 */

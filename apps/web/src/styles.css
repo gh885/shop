@@ -70,9 +70,13 @@ body {
     @apply grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6;
 }
 
-/* 商品流外层版心 section：fallback 骨架与真实 feed 同容器（mx-auto max-w-page px-6 pb-6） */
+/* 商品流外层版心 section：fallback 骨架与真实 feed 同容器（mx-auto w-full max-w-page px-6 pb-6）。
+   `w-full` 不能省：main 是 flex 列容器，而 `mx-auto`（auto 外边距）会取消 flex 子项的 stretch，
+   于是本节变成 shrink-to-fit —— 骨架里是空 div、没有固有宽度，整节会塌成 ~100px（实测 .grid-feed 只剩 60px、
+   每格 0×0），文档高度跟着塌到视口高，滚动位置被浏览器钳回顶部。真实 feed 只是恰好被卡片内容的固有宽度撑住，
+   所以只有骨架态暴露这个毛病。 */
 @utility feed-section {
-    @apply mx-auto max-w-page px-6 pb-6;
+    @apply mx-auto w-full max-w-page px-6 pb-6;
 }
 
 /* 推荐条与内容区之间的版心分隔线（骨架态与正常态各一处） */

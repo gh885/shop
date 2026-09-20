@@ -1,27 +1,40 @@
 import { useLayoutEffect, useRef, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 
+import type { RecommendTabResponse } from "@shop/api/sdk"
 import { Button, cn, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
-import { recommendTabsOptions } from "./queries"
+/**
+ * 首页第四层：吸顶推荐条，吸在顶栏下方。扁平数组（猜你喜欢是普通一项），每页显示数量由容器宽度自动决定，首末页隐藏对应翻页按钮。
+ *
+ * <p>受控组件：选中项与「换一批」都归 feed 区块（`home/Feed.tsx`）——切 tab 要换召回范围，
+ * 状态留在这里就得往上抛回调，反而多一层。这里只负责「词条怎么排、怎么翻页、点了谁」。
+ */
+export type RecommendBarProps = {
+    /** 词条：undefined = 还没读到（画骨架），[] = 运营没配（不画词条） */
+    tabs: RecommendTabResponse[] | undefined
+    /** 读词条失败：整块不画（首页是门面，单个接口失败不该把整页换成错误页） */
+    isError: boolean
+    /** 当前选中的词条 id（由 feed 区块按「用户点过 → 默认项 → 首项」推导） */
+    activeId?: string
+    onSelect: (tabId: string) => void
+    /** 「换一批」：换的是下面那屏商品，不是词条本身 */
+    onRefresh: () => void
+}
 
-/** 首页第四层：吸顶推荐条，吸在顶栏下方。扁平数组（猜你喜欢是普通一项），每页显示数量由容器宽度自动决定，首末页隐藏对应翻页按钮 */
-export function RecommendBar() {
-    const tabs = useQuery(recommendTabsOptions)
+export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: RecommendBarProps) {
     const [page, setPage] = useState(0)
 
     // 测量一页能放多少个词：测量层与显示层同宽、单行，累计宽度（含 gap）直到放不下
     const measureRef = useRef<HTMLDivElement>(null)
     const [pageSize, setPageSize] = useState(0)
 
-    const items = tabs.data?.map((t) => t.name) ?? []
-    // 默认选中项：is_default 标"猜你喜欢"；前端仍以首项为高亮兜底
-    const defaultName = tabs.data?.find((t) => t.isDefault)?.name ?? items[0]
+    const items = tabs ?? []
 
     useLayoutEffect(() => {
         const el = measureRef.current
-        if (!el) return
+        // 词条没到就没有测量层可量（首帧是骨架）：拿到词条后再量，否则一页算成 0 个、整条推荐栏空着
+        if (!el || !tabs) return
 
         const measure = () => {
             const containerWidth = el.clientWidth
@@ -43,20 +56,19 @@ export function RecommendBar() {
         const ro = new ResizeObserver(measure)
         ro.observe(el)
         return () => ro.disconnect()
-    }, [])
+    }, [tabs])
 
-    const totalPages = Math.max(1, Math.ceil(items.length / pageSize))
+    const totalPages = Math.max(1, Math.ceil(items.length / Math.max(1, pageSize)))
     const clampedPage = Math.min(page, totalPages - 1)
     const visible = items.slice(clampedPage * pageSize, (clampedPage + 1) * pageSize)
 
     const prevPage = () => setPage((p) => Math.max(0, p - 1))
     const nextPage = () => setPage((p) => Math.min(totalPages - 1, p + 1))
-    const refresh = () => setPage(0)
 
-    if (!tabs.data) {
+    if (!tabs) {
         // 失败且无缓存（含 2xx 契约漂移）→ 不画这一块，别让失败永远停在骨架。
         // 有旧数据时不走这里：后台刷新失败不该把已有内容换成骨架（语义同 queries.ts 的降级口径）
-        if (tabs.isError) return undefined
+        if (isError) return undefined
 
         return (
             <div className="sticky top-(--home-header-height) z-30">
@@ -102,26 +114,28 @@ export function RecommendBar() {
                         >
                             {items.map((tab) => (
                                 <span
-                                    key={tab}
+                                    key={tab.id}
                                     className="shrink-0 whitespace-nowrap text-base"
                                 >
-                                    {tab}
+                                    {tab.name}
                                 </span>
                             ))}
                         </div>
                         {/* 当前页可见项 */}
                         {visible.map((tab) => (
                             <button
-                                key={tab}
+                                key={tab.id}
                                 type="button"
+                                onClick={() => onSelect(tab.id)}
+                                aria-pressed={tab.id === activeId}
                                 className={cn(
                                     "shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-base transition-colors",
-                                    tab === defaultName
+                                    tab.id === activeId
                                         ? "font-medium text-foreground"
                                         : "text-muted-foreground hover:text-primary",
                                 )}
                             >
-                                {tab}
+                                {tab.name}
                             </button>
                         ))}
                     </div>
@@ -143,21 +157,21 @@ export function RecommendBar() {
                             <TooltipContent>下一组</TooltipContent>
                         </Tooltip>
                     )}
-                    {/* 刷新 */}
+                    {/* 换一批：换的是下面那屏商品（重置 feed 查询，服务端发新种子） */}
                     <Tooltip>
                         <TooltipTrigger
                             render={
                                 <Button
                                     variant="ghost"
                                     size="icon-sm"
-                                    onClick={refresh}
-                                    aria-label="刷新"
+                                    onClick={onRefresh}
+                                    aria-label="换一批"
                                 >
                                     <RefreshCw className="size-4" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>刷新推荐</TooltipContent>
+                        <TooltipContent>换一批</TooltipContent>
                     </Tooltip>
                 </div>
                 <div className="feed-divider" />

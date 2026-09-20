@@ -27,6 +27,7 @@ function detailWith(specs: SpecItem[]): ProductDetail {
             image: null,
             priceMin: MONEY,
             priceMax: MONEY,
+            soldCount: 0,
         },
         detailImages: [],
         images: [],

@@ -62,6 +62,7 @@ function makeDetail(skus: Sku[]): ProductDetail {
             image: null,
             priceMin: MONEY,
             priceMax: MONEY,
+            soldCount: 0,
         },
         detailImages: [],
         images: [],

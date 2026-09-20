@@ -1,5 +1,6 @@
 import { type Money } from "@shop/common"
 import type {
+    FeedItemResponse,
     ParamItem,
     PublicProductDetailResponse,
     PublicProductResponse,
@@ -28,6 +29,8 @@ export type Product = {
     image: string | null
     priceMin: Money
     priceMax: Money
+    /** 累计销量（已完成订单成交件数，后端投影列）。0 = 从没卖过，文案层不显示 */
+    soldCount: number
 }
 
 /**
@@ -66,8 +69,13 @@ export type ProductListQueryInput = {
 
 // ---------- wire → 投影 ----------
 
-/** wire → 业务形状：required 字段不再兜底；subtitle/mainImage 可空如实透传 null */
-export function toProduct(dto: PublicProductResponse): Product {
+/**
+ * wire → 业务形状：required 字段不再兜底；subtitle/mainImage 可空如实透传 null。
+ *
+ * 入参收 `PublicProductResponse | FeedItemResponse` 的联合：货架卡与列表项是同一张卡片的两个契约
+ * （feed 自建出参，不复用列表的那个 record），字段同名同义，所以只留这一个投影，不写第二份。
+ */
+export function toProduct(dto: PublicProductResponse | FeedItemResponse): Product {
     return {
         id: dto.id,
         shopId: dto.shopId,
@@ -77,6 +85,7 @@ export function toProduct(dto: PublicProductResponse): Product {
         image: dto.mainImage,
         priceMin: dto.minPrice,
         priceMax: dto.maxPrice,
+        soldCount: dto.soldCount,
     }
 }
 
@@ -184,15 +193,32 @@ export type ProductCardData = {
     title: string
     /** 起售价 */
     price: Money
-    /** 销量描述。后端 ProductResponse 暂未提供 sales 聚合字段，接上后直接给 */
+    /** 销量文案，undefined = 这一格不画（见 formatSoldText） */
     sales?: string
     /** 标签排，如 自营 / 放心购 */
     tags?: string[]
 }
 
+/**
+ * 销量文案：0 件不显示——「已售 0」是负资产，新品不必自证冷清；
+ * 一万以上折成「已售 1.2万」（整数万去掉小数点，写「1万」而不是「1.0万」）。
+ */
+export function formatSoldText(soldCount: number): string | undefined {
+    if (soldCount <= 0) return undefined
+    if (soldCount < 10000) return `已售 ${soldCount}`
+    const wan = (soldCount / 10000).toFixed(1).replace(/\.0$/, "")
+    return `已售 ${wan}万`
+}
+
 /** Product → 卡片视图投影（首页 feed 与详情页推荐流共用一份，不再各写一遍） */
 export function toProductCardData(p: Product): ProductCardData {
-    return { id: p.id, image: p.image, title: p.title, price: p.priceMin }
+    return {
+        id: p.id,
+        image: p.image,
+        title: p.title,
+        price: p.priceMin,
+        sales: formatSoldText(p.soldCount),
+    }
 }
 
 /** 全部规格维度都已选择（有规格组时才允许加购/购买） */

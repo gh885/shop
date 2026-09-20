@@ -8,11 +8,15 @@ import com.shop.platform.product.mapper.CategoryMapper;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.model.CategoryStatus;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +41,51 @@ public class CategoryService {
     /** 管理端类目树：全量，含禁用节点 */
     public List<CategoryNode> adminTree() {
         return buildTree(true);
+    }
+
+    /**
+     * 可见子树 id 集：自身 + 全部后代，禁用节点整支剪掉（与 {@link #publicTree()} 同一裁剪口径——
+     * 父链上有一个不可见，后代就不可达）。
+     *
+     * <p>给召回用：feed 的 tab 可能指向一级类目，而商品挂在三级类目，所以要按子树召回而不是精确匹配。
+     * 类目表不到百行，每次请求内存展开即可，不缓存。未知 / 隐藏类目返回空集——召回侧按空流处理，
+     * 不 404（脏 tab 不该把首页打成错误页）。
+     */
+    public Set<UUID> descendantIds(UUID categoryId) {
+        if (categoryId == null) {
+            return Set.of();
+        }
+        // 1. 启用节点按 parentId 组成邻接表（禁用节点不进去，它的整支自然断开）
+        Map<UUID, List<UUID>> childrenByParent = new HashMap<>();
+        for (Category c : categoryMapper.selectList(new LambdaQueryWrapper<Category>())) {
+            if (c.isEnabled()) {
+                childrenByParent
+                        .computeIfAbsent(c.getParentId(), key -> new ArrayList<>())
+                        .add(c.getId());
+            }
+        }
+        // 2. 从根逐层展开可达集：只有父链完整可见的节点才算可见（禁用中间节点挡住整支）
+        Set<UUID> reachable = new LinkedHashSet<>();
+        Deque<UUID> queue = new ArrayDeque<>(childrenByParent.getOrDefault(Category.ROOT_PARENT_ID, List.of()));
+        while (!queue.isEmpty()) {
+            UUID id = queue.poll();
+            if (reachable.add(id)) {
+                queue.addAll(childrenByParent.getOrDefault(id, List.of()));
+            }
+        }
+        // 3. 目标不可达 → 空集；可达则从它向下收集（含自身）
+        if (!reachable.contains(categoryId)) {
+            return Set.of();
+        }
+        Set<UUID> subtree = new LinkedHashSet<>();
+        Deque<UUID> pending = new ArrayDeque<>(List.of(categoryId));
+        while (!pending.isEmpty()) {
+            UUID id = pending.poll();
+            if (subtree.add(id)) {
+                pending.addAll(childrenByParent.getOrDefault(id, List.of()));
+            }
+        }
+        return subtree;
     }
 
     /** 创建类目，level 由父级推导，最多三级 */

@@ -1,28 +1,24 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { QueryBoundary } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
-import { Skeleton, StateError } from "@shop/ui-web"
+import { Skeleton } from "@shop/ui-web"
 
 import {
     bannersOptions,
-    feedOptions,
+    Feed,
     homeNavOptions,
     recommendTabsOptions,
     UserCard,
     HomeCategoryNav,
     HomeBannerItem,
     HomeHeader,
-    RecommendBar,
 } from "#/home"
-import { ProductCard, toProductCardData } from "#/products"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 
 export const Route = createFileRoute("/")({
     /**
      * SSR 首屏：只预热「首帧必须有」的轻量数据 —— 导航 / banner / 推荐条词条（都带 5min 缓存，用户感知强，属于壳的一部分）。
-     * 商品流 feed 刻意不在这里预热：它最重且无缓存，交给组件侧 useSuspenseQuery + <Suspense> 边界 ——
+     * 商品流 feed 刻意不在这里预热：它最重且无缓存，交给 `home/Feed` 自己的 QueryBoundary ——
      * SSR 先吐骨架壳，feed resolve 后经 SSR-query 的 queryStream 流式补发给客户端水合（真正的流式，而不是等全部数据到齐再吐 HTML）。
      * allSettled：单个接口失败不拖垮整页。
      */
@@ -54,10 +50,13 @@ export const Route = createFileRoute("/")({
     },
 })
 
-/** 首页：五个层级区块，数据各自读 options（loader 已预热缓存；feed 走 suspense 边界） */
+/**
+ * 首页：壳区块与商品流。
+ *
+ * 这里只留布局与区块顺序：推荐条 + 商品流（tab、无限滚动、哨兵、尾部四态）整体归 `#/home` 的 Feed，
+ * 路由文件不承载业务状态（否则它会被撑成第二个页面文件）。
+ */
 function Home() {
-    // feed 是唯一用 suspense 变体的：无缓存预热，靠边界挂起后流式补发
-    const feed = useSuspenseQuery(feedOptions)
     const nav = useQuery(homeNavOptions)
     const banners = useQuery(bannersOptions)
     // 区块降级口径（见 home/queries.ts）：失败且无缓存 → 当「读不到」，不画 / 走空态；有旧数据照常渲染。
@@ -92,52 +91,7 @@ function Home() {
                     <UserCard />
                 </div>
             </section>
-            <RecommendBar />
-            {/* 商品流流式边界：loader 未预热，useSuspenseQuery 在此挂起，SSR 吐骨架、resolve 后流式补全。
-                失败也收敛在这一块（QueryBoundary 的官方重置链路），不再冒到根错误页把整页换掉 */}
-            <QueryBoundary
-                pending={<FeedSkeleton />}
-                fallback={feedErrorFallback}
-            >
-                <section className="feed-section">
-                    <div className="grid-feed">
-                        {feed.data.map((product) => (
-                            <ProductCard
-                                key={product.id}
-                                product={toProductCardData(product)}
-                            />
-                        ))}
-                    </div>
-                </section>
-            </QueryBoundary>
+            <Feed />
         </>
-    )
-}
-
-/** 商品流挂起占位：骨架高度对齐商品卡（正方形图 + 92px 信息区）的整卡比例，避免加载完跳版 */
-function FeedSkeleton() {
-    return (
-        <section className="feed-section">
-            <div className="grid-feed">
-                {Array.from({ length: 12 }, (_, i) => (
-                    <Skeleton
-                        key={i}
-                        className="aspect-5/7 w-full rounded-lg"
-                    />
-                ))}
-            </div>
-        </section>
-    )
-}
-
-/** 商品流失败态渲染函数（模块作用域：内联箭头会让每次渲染都新建一个组件） */
-function feedErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
-    return (
-        <section className="feed-section">
-            <StateError
-                message={toApiError(error).detail || "商品流加载失败，请重试。"}
-                onRetry={reset}
-            />
-        </section>
     )
 }

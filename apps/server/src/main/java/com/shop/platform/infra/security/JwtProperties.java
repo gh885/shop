@@ -36,6 +36,7 @@ public class JwtProperties {
      */
     private List<String> skipPaths = List.of(
             "/api/products",
+            "/api/feed",
             "/api/categories",
             "/api/shops",
             "/api/cms",

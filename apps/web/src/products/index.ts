@@ -8,8 +8,8 @@
  * 桶文件只暴露外部真正消费的那几个；模块内部一律相对路径直连，不走这里。
  */
 
-export { toProductCardData } from "./product"
-export type { ProductDetail } from "./product"
+export { toProduct, toProductCardData } from "./product"
+export type { Product, ProductDetail } from "./product"
 
 export { fetchProducts } from "./detail/queries"
 

@@ -1158,7 +1158,8 @@ export const zPublicProductResponse = z.object({
     subtitle: z.string().nullable(),
     mainImage: z.string().nullable(),
     minPrice: zMoney,
-    maxPrice: zMoney
+    maxPrice: zMoney,
+    soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zPageResultPublicProductResponse = z.object({
@@ -1183,6 +1184,29 @@ export const zPublicProductDetailResponse = z.object({
     specs: z.array(zSpecItem),
     params: z.array(zParamItem),
     skus: z.array(zPublicSkuResponse)
+});
+
+export const zFeedQuery = z.object({
+    categoryId: z.uuid().optional(),
+    cursor: z.string().optional(),
+    size: z.int().gte(1).lte(48).optional()
+});
+
+export const zFeedItemResponse = z.object({
+    id: z.uuid(),
+    shopId: z.uuid(),
+    categoryId: z.uuid(),
+    name: z.string(),
+    subtitle: z.string().nullable(),
+    mainImage: z.string().nullable(),
+    minPrice: zMoney,
+    maxPrice: zMoney,
+    soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zFeedResponse = z.object({
+    items: z.array(zFeedItemResponse),
+    nextCursor: z.string().nullable()
 });
 
 export const zCategoryAttrNodeResponse = z.object({
@@ -2139,6 +2163,15 @@ export const zGetPublicProductDetailPath = z.object({
  * OK
  */
 export const zGetPublicProductDetailResponse = zPublicProductDetailResponse;
+
+export const zListHomeFeedQuery = z.object({
+    query: zFeedQuery
+});
+
+/**
+ * OK
+ */
+export const zListHomeFeedResponse = zFeedResponse;
 
 /**
  * OK

@@ -1214,6 +1214,7 @@ export type PublicProductResponse = {
     mainImage: string | null;
     minPrice: Money;
     maxPrice: Money;
+    soldCount: number;
 };
 
 export type PublicProductDetailResponse = {
@@ -1233,6 +1234,29 @@ export type PublicSkuResponse = {
     price: Money;
     originalPrice: Money | null;
     stock: number;
+};
+
+export type FeedQuery = {
+    categoryId?: string;
+    cursor?: string;
+    size?: number;
+};
+
+export type FeedItemResponse = {
+    id: string;
+    shopId: string;
+    categoryId: string;
+    name: string;
+    subtitle: string | null;
+    mainImage: string | null;
+    minPrice: Money;
+    maxPrice: Money;
+    soldCount: number;
+};
+
+export type FeedResponse = {
+    items: Array<FeedItemResponse>;
+    nextCursor: string | null;
 };
 
 export type CategoryAttrNodeResponse = {
@@ -3317,6 +3341,24 @@ export type GetPublicProductDetailResponses = {
 };
 
 export type GetPublicProductDetailResponse = GetPublicProductDetailResponses[keyof GetPublicProductDetailResponses];
+
+export type ListHomeFeedData = {
+    body?: never;
+    path?: never;
+    query: {
+        query: FeedQuery;
+    };
+    url: '/api/feed';
+};
+
+export type ListHomeFeedResponses = {
+    /**
+     * OK
+     */
+    200: FeedResponse;
+};
+
+export type ListHomeFeedResponse = ListHomeFeedResponses[keyof ListHomeFeedResponses];
 
 export type GetRecommendTabsData = {
     body?: never;

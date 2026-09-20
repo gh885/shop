@@ -37,6 +37,7 @@ import com.shop.platform.product.service.CategoryService;
 import com.shop.platform.product.service.ProductQueryService;
 import com.shop.platform.product.service.ProductService;
 import com.shop.platform.product.service.SkuService;
+import com.shop.platform.recommend.service.FeedService;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
@@ -124,6 +125,9 @@ public abstract class WebControllerTestSupport {
 
     @MockitoBean
     protected CategoryAttrService categoryAttrService;
+
+    @MockitoBean
+    protected FeedService feedService;
 
     @MockitoBean
     protected OrderService orderService;

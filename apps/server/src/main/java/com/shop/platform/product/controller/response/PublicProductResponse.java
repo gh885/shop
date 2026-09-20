@@ -25,7 +25,8 @@ public record PublicProductResponse(
         @Schema(requiredMode = REQUIRED, nullable = true) String subtitle,
         @Schema(requiredMode = REQUIRED, nullable = true) String mainImage,
         @Schema(requiredMode = REQUIRED) Money minPrice,
-        @Schema(requiredMode = REQUIRED) Money maxPrice) {
+        @Schema(requiredMode = REQUIRED) Money maxPrice,
+        @Schema(requiredMode = REQUIRED) long soldCount) {
 
     public static PublicProductResponse from(Product p) {
         return new PublicProductResponse(
@@ -36,6 +37,7 @@ public record PublicProductResponse(
                 p.getSubtitle(),
                 p.getMainImage(),
                 p.minPriceAsMoney(),
-                p.maxPriceAsMoney());
+                p.maxPriceAsMoney(),
+                p.getSoldCount());
     }
 }

@@ -5,7 +5,7 @@
 ## 关键架构规则
 
 1. **模块隔离**：模块之间不 import 对方的 service/repo。模块间通信 = **api 包接口**（`@NamedInterface("api")`，查询与命令，同步同事务调用）+ **events 包事件**（`@NamedInterface("events")`，纯通知）。消费方在 `@ApplicationModule(allowedDependencies = …)` 显式登记
-2. **Schema 隔离**：每个模块拥有自己的 PG schema（`product.products`）；跨 schema 只读按 ID 查询一律收进 owning 模块的 api 包（JdbcTemplate 只允许 infra.db 与各模块 api 包引用，ArchUnit 强制）
+2. **Schema 隔离**：每个模块拥有自己的 PG schema（`product.products`）；跨 schema 只读一律收进 owning 模块的 api 包，只有两类：**按 ID 点查**（`XxxReadQuery`）与**有序扫描**（`XxxRecallQuery`——谓词/排序键跑在 owning 模块的表上，别人代劳不了，如 `ProductRecallQuery` 的种子序 keyset 翻页），除此之外不开口子（JdbcTemplate 只允许 infra.db 与各模块 api 包引用，ArchUnit 强制）
 3. **不许跨 schema JOIN**
 4. **`common/` 与 `infra/` 属于共享纯包**，不属于任何业务模块，无`@ApplicationModule`，经 `@Modulithic(sharedModules = {"common","infra"})` 显式登记为共享模块，任何模块可引用
 5. **@Modulithic 强制校验模块边界**，测试期跨模块 import 直接报错
@@ -41,7 +41,7 @@ src/main/java/com/shop/platform/
 机制（api/events 两通道、schema 隔离、Modulith 登记）见上节「关键架构规则」；本节是**怎么切、往哪个方向依赖**的判据。
 
 - **按领域切，不按角色切。** 角色只出现在 controller 层的入口前缀（`/api` 匿名、买家裸前缀、`/seller`、`/admin`），不再有 admin / user 这类按角色命名的模块
-- **模块 = 顶层包 = schema。** 唯一登记在案的例外：order 模块用 `orders` schema
+- **模块 = 顶层包 = schema。** 两条登记的例外：order 模块用 `orders` schema；模块可以暂时没有自己的表（recommend V1 就没有——它的第一张表 V3 才来），但一旦有表就必须独占自己的 schema，不与他人共表
 - **事件归生产方。** 事件类只放生产方 `events/` 包，不允许"放消费方避免成环"；有成环冲动时改的是依赖方向，不是事件归属
 - **api 命令只用于同事务原子。** 下单冻结库存、支付推进订单并扣实、售后写回订单投影列；其余跨模块影响走事件
 - **Modulith 的环检测在模块级，命名接口不拆环。** A 已依赖 B::api，B 再监听 A::events 也是环。反向影响顺着已有方向走 api 命令：销量由 order 完成时调 `ProductCommand.addSold`，而不是 product 监听订单事件
