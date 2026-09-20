@@ -1,6 +1,7 @@
 package com.shop.platform.order.api;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.inventory.api.StockCommand;
@@ -108,14 +109,18 @@ public class OrderCommand {
 
     /**
      * 售后投影写回：afterSaleStatus 取 aftersale 售后单状态的 name()（与 {@link AfterSaleStatus} 同词表，NONE 除外），
-     * refundAmount 仅在退款完成时传入（分），其余传 null 不动。
+     * refundAmount 仅在退款完成时传入，其余传 null 不动。
+     *
+     * <p>退款额必须与本单同币种：orders 的币种列是本单既定的（一单一个币种），换币种的退款落不进这一行，
+     * 于是连 WHERE 一起挡掉（币种不符即视为未命中）。
      */
-    public void syncAfterSale(UUID orderId, String afterSaleStatus, Long refundAmount) {
+    public void syncAfterSale(UUID orderId, String afterSaleStatus, Money refundAmount) {
         LambdaUpdateWrapper<Order> update = new LambdaUpdateWrapper<Order>()
                 .eq(Order::getId, orderId)
                 .set(Order::getAfterSaleStatus, AfterSaleStatus.valueOf(afterSaleStatus));
         if (refundAmount != null) {
-            update.set(Order::getRefundAmount, refundAmount);
+            update.eq(Order::getCurrency, refundAmount.currency());
+            update.set(Order::getRefundAmount, refundAmount.amount());
         }
         Validate.isTrue(orderMapper.update(null, update) == 1, "订单不存在");
     }

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 
 import { formatDate } from "@shop/app-kit"
-import { couponRuleText, couponSourceLabel, couponStatusLabel, couponYuanText } from "@shop/common"
+import { couponMoneyText, couponRuleText, couponSourceLabel, couponStatusLabel } from "@shop/common"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import type { MyCoupon } from "./coupon"
@@ -20,19 +20,19 @@ import type { MyCoupon } from "./coupon"
 export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     /** 未使用/结算中 = 还在手上；已使用/已过期/已作废 = 已经不承担转化 */
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
-    const rule = couponRuleText(coupon.threshold.amount, coupon.discount.amount)
+    const rule = couponRuleText(coupon.threshold, coupon.discount)
     const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt)} 至 ${formatDate(coupon.expireAt)}`
 
     return (
         <article className="flex items-center gap-4 rounded-lg border border-border bg-card p-4">
-            {/* ① 面额大字：券面额是整元语义，不走商品价的 splitFen 分段（角分在这里只是噪声） */}
+            {/* ① 面额大字：券面额是整元语义，不走商品价的分段排版（角分在这里只是噪声） */}
             <p
                 className={cn(
                     "w-24 shrink-0 border-r border-dashed border-border pr-4 text-center text-3xl font-bold leading-none tabular-nums",
                     usable ? "text-primary" : "text-muted-foreground",
                 )}
             >
-                ¥{couponYuanText(coupon.discount.amount)}
+                {couponMoneyText(coupon.discount)}
             </p>
 
             <div className="min-w-0 flex-1 space-y-1">

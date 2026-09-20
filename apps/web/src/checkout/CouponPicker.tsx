@@ -1,4 +1,4 @@
-import { couponRuleText, couponUnavailableReasonText, couponYuanText } from "@shop/common"
+import { couponMoneyText, couponRuleText, couponUnavailableReasonText } from "@shop/common"
 import { formatDate } from "@shop/app-kit"
 import { ChevronDown, TicketPercent } from "lucide-react"
 
@@ -49,7 +49,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
             ? usableCount > 0
                 ? `${usableCount} 张可用，未使用`
                 : "本店暂无可用优惠券"
-            : `已减 ¥${couponYuanText(group.discountAmount.amount)}`
+            : `已减 ${couponMoneyText(group.discountAmount)}`
 
     // 一张券候选都没有：没有可解释的东西，不开 Popover（开了也是空壳）
     if (group.coupons.length === 0) {
@@ -89,10 +89,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                     >
                         {group.coupons.map((c) => {
                             const reason = couponUnavailableReasonText(c.unavailableReason)
-                            const title = `${c.name} ${couponRuleText(
-                                c.threshold.amount,
-                                c.discount.amount,
-                            )}`
+                            const title = `${c.name} ${couponRuleText(c.threshold, c.discount)}`
                             return (
                                 <Item
                                     key={c.userCouponId}

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { yuanToFen } from "@shop/common"
+import { type Money, yuanToMoney } from "@shop/common"
 
 import type {
     CategoryAttrNodeResponse,
@@ -17,7 +17,7 @@ import type {
  * 1. **能派生的类型不手写**：与 wire 同形状的字段一律从 SDK 类型派生
  *    （Required<Pick<…>> / T["field"] / 直接别名），手写只补本地新增语义
  *    （label 快照、skuId 未建档为 null、stock 可未填为 null）。
- * 2. **模型只存「分」与 null，不存字符串**：金额换算（分↔元）发生在 UI 输入/展示
+ * 2. **模型只存 Money 与 null，不存字符串**：金额换算（分↔元）发生在 UI 输入/展示
  *    边界（SkuGridEditor），0 兜底发生在 wire 投影（toSkuUpdateItems）——
  *    模型与 merge 里没有 Number(text)/trim/||0 这类魔法。
  *    null = 未设置（区别于 0：0 元是合法价，price!==null 才可保存）。
@@ -50,7 +50,7 @@ export type SpecSelection = Required<
 export type ListingTime = "now" | "warehouse"
 
 /**
- * SKU 网格行（编辑工作区镜像，值域与 SkuResponse 同单位——金额一律「分」）。
+ * SKU 网格行（编辑工作区镜像，值域与 SkuResponse 同形状——金额就是 Money）。
  * 字段尽量从 SkuResponse 派生（status/skuCode/price 类型随契约自动同步）；
  * 本地语义只有：skuId null = 未建档组合、stock null = 未填（wire 必填，发送时 ?? 0）。
  */
@@ -59,7 +59,7 @@ export interface SkuDraftRow {
     skuId: string | null
     /** 规格组合显示名，SKU 生成时快照 */
     label: string
-    /** 单价（分）；null = 未设价（≠ 0 分：保存门槛与发送只认非 null） */
+    /** 单价（Money）；null = 未设价（≠ 0 元：保存门槛与发送只认非 null） */
     price: SkuResponse["price"]
     /** 库存（件）；null = 未填（发送投影时才 ?? 0，模型不存魔法 0） */
     stock: number | null
@@ -71,7 +71,8 @@ export interface SkuDraftRow {
 // ---------- 单元格输入规则（元文本 → 分；单元格/批量填写共用） ----------
 
 /**
- * 价格单元格的输入格式：非负「元」、最多两位小数 → 分。
+ * 价格单元格的输入格式：非负「元」、最多两位小数 → Money。
+ *
  * 只验格式 + 换算，**空串不在 schema 内**——空 = 用户清空（置 null）是产品语义，
  * 由调用方先判空再校验；非法输入由此与清空区分开（UI 提示而不静默丢值）。
  */
@@ -79,9 +80,10 @@ export const yuanPriceSchema = z
     .string()
     .trim()
     .regex(/^\d+(\.\d{1,2})?$/, "价格需为非负数字，最多两位小数")
-    // 换算委托 yuanToFen（唯一真相源）；regex 已保证格式，undefined 分支不可达，由 z.number() 兜型
-    .transform((v) => yuanToFen(v))
-    .pipe(z.number())
+    // 换算委托 yuanToMoney（唯一真相源，币种取平台定价币种）；regex 已保证格式，
+    // undefined 分支不可达，这里只做一次运行时收口与类型收窄（不用契约的 zMoney：它把 int64 校成 bigint）
+    .transform((v) => yuanToMoney(v))
+    .pipe(z.custom<Money>((v) => v !== undefined, "价格格式不正确"))
 
 /** 库存/数量单元格输入：非负整数（换算就是 Number，格式保证后直接取） */
 export const countInputSchema = z

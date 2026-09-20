@@ -2,6 +2,7 @@ package com.shop.platform.product.controller.response;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.SpecItem;
@@ -12,7 +13,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/** SPU 全字段出参：草稿期 minPrice/maxPrice 可为 null */
+/** SPU 全字段出参：价格区间以 Money 出参，草稿期 minPrice/maxPrice 可为 null */
 public record ProductResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID id,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID shopId,
@@ -24,8 +25,8 @@ public record ProductResponse(
         @Schema(requiredMode = REQUIRED) List<String> images,
         @Schema(requiredMode = REQUIRED) List<SpecItem> specs,
         @Schema(requiredMode = REQUIRED) List<ParamItem> params,
-        @Schema(requiredMode = REQUIRED, nullable = true) Long minPrice,
-        @Schema(requiredMode = REQUIRED, nullable = true) Long maxPrice,
+        @Schema(requiredMode = REQUIRED, nullable = true) Money minPrice,
+        @Schema(requiredMode = REQUIRED, nullable = true) Money maxPrice,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Long soldCount,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductStatus status,
@@ -44,8 +45,8 @@ public record ProductResponse(
                 p.getImages(),
                 p.getSpecs(),
                 p.getParams(),
-                p.getMinPrice(),
-                p.getMaxPrice(),
+                p.minPriceAsMoney(),
+                p.maxPriceAsMoney(),
                 0,
                 p.getSoldCount(),
                 p.getStatus(),
@@ -67,8 +68,8 @@ public record ProductResponse(
                 p.getImages(),
                 p.getSpecs(),
                 p.getParams(),
-                p.getMinPrice(),
-                p.getMaxPrice(),
+                p.minPriceAsMoney(),
+                p.maxPriceAsMoney(),
                 row.stock(),
                 row.soldCount(),
                 p.getStatus(),

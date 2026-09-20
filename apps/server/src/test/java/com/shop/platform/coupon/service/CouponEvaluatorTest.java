@@ -50,7 +50,7 @@ class CouponEvaluatorTest {
     }
 
     private List<CouponAvailabilityView> evaluate(List<UserCoupon> candidates, long baseAmountFen) {
-        return evaluator.evaluate(candidates, baseAmountFen, "CNY", now);
+        return evaluator.evaluate(candidates, Money.cny(baseAmountFen), now);
     }
 
     // ---- 门槛 ----
@@ -176,7 +176,7 @@ class CouponEvaluatorTest {
                 .status(UserCouponStatus.UNUSED)
                 .build();
 
-        var result = evaluator.evaluate(List.of(usd), 10000, "CNY", now);
+        var result = evaluator.evaluate(List.of(usd), Money.cny(10000), now);
         assertThat(result.getFirst().unavailableReason()).isEqualTo(CouponUnavailableReason.CURRENCY_MISMATCH);
     }
 

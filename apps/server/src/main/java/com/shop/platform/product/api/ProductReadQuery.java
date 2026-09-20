@@ -1,8 +1,11 @@
 package com.shop.platform.product.api;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.infra.db.IdBatchReader;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -35,9 +38,8 @@ public class ProductReadQuery {
                         rs.getObject("product_id", UUID.class),
                         rs.getString("name"),
                         rs.getString("image"),
-                        rs.getObject("price", Long.class),
-                        rs.getObject("original_price", Long.class),
-                        rs.getString("currency"),
+                        money(rs, "price"),
+                        money(rs, "original_price"),
                         SkuStatus.valueOf(rs.getString("status"))));
     }
 
@@ -45,7 +47,7 @@ public class ProductReadQuery {
     public Map<UUID, ProductView> productsByIds(Collection<UUID> ids) {
         return IdBatchReader.byIds(
                 jdbc,
-                "SELECT id, shop_id, name, main_image, min_price, max_price, status "
+                "SELECT id, shop_id, name, main_image, min_price, max_price, currency, status "
                         + "FROM product.products WHERE id IN (:ids)",
                 ids,
                 (rs, i) -> rs.getObject("id", UUID.class),
@@ -54,8 +56,8 @@ public class ProductReadQuery {
                         rs.getObject("shop_id", UUID.class),
                         rs.getString("name"),
                         rs.getString("main_image"),
-                        rs.getObject("min_price", Long.class),
-                        rs.getObject("max_price", Long.class),
+                        money(rs, "min_price"),
+                        money(rs, "max_price"),
                         ProductStatus.valueOf(rs.getString("status"))));
     }
 
@@ -67,5 +69,10 @@ public class ProductReadQuery {
     /** 单个 SPU 点查（上架校验等单对象消费用），无行返回 empty */
     public Optional<ProductView> productById(UUID productId) {
         return Optional.ofNullable(productsByIds(List.of(productId)).get(productId));
+    }
+
+    /** 金额列 + 本行 currency 列 → Money；金额列为 NULL（未定价、无划线价）时给 null 而不是 0 */
+    private static Money money(ResultSet rs, String amountColumn) throws SQLException {
+        return Money.ofFenOrNull(rs.getObject(amountColumn, Long.class), rs.getString("currency"));
     }
 }

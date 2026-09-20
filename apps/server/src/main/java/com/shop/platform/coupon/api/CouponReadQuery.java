@@ -1,5 +1,6 @@
 package com.shop.platform.coupon.api;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.coupon.mapper.UserCouponMapper;
 import com.shop.platform.coupon.service.CouponEvaluator;
 import java.time.OffsetDateTime;
@@ -28,11 +29,10 @@ public class CouponReadQuery {
      * 本店可用券评估：返回<b>全部未使用券</b>的评估结果（含不可用者的原因码），已按结算页默认次序排好
      * （可用在前、优惠大的在前、同额快到期的在前）。
      *
-     * @param itemAmountFen 本店商品小计（分），不含运费 —— 门槛判定的基数
-     * @param currency 本单币种：与券币种不一致判不可用，不做汇率换算
+     * @param itemAmount 本店商品小计，不含运费 —— 门槛判定的基数；币种即本单币种，与券币种不一致判不可用（不做汇率换算）
      */
-    public List<CouponAvailabilityView> evaluateForShop(UUID userId, UUID shopId, long itemAmountFen, String currency) {
+    public List<CouponAvailabilityView> evaluateForShop(UUID userId, UUID shopId, Money itemAmount) {
         return evaluator.evaluate(
-                userCouponMapper.selectUnusedInShop(userId, shopId), itemAmountFen, currency, OffsetDateTime.now());
+                userCouponMapper.selectUnusedInShop(userId, shopId), itemAmount, OffsetDateTime.now());
     }
 }

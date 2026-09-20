@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
-import { fenToYuan } from "@shop/common"
+import { type Money, moneyToYuan, sameMoney } from "@shop/common"
 import { notify } from "@shop/app-kit"
 import {
     Button,
@@ -40,17 +40,17 @@ function rejectInput(message: string | undefined): void {
     notify.error(message ?? "输入格式不正确")
 }
 
-/** 价格单元格：文本态只在输入期间驻留，blur 走 yuanPriceSchema 校验并换算回分 */
+/** 价格单元格：文本态只在输入期间驻留，blur 走 yuanPriceSchema 校验并换算回 Money */
 function PriceCell({
     value,
     onCommit,
 }: {
-    value: number | null
-    onCommit: (fen: number | null) => void
+    value: Money | null
+    onCommit: (price: Money | null) => void
 }) {
     const [text, setText] = useState<string | undefined>(undefined)
-    // 非编辑期显示模型值（分 → 元两位小数）；编辑期显示用户正在输入的文本
-    const shown = text ?? (value === null ? "" : fenToYuan(value))
+    // 非编辑期显示模型值（Money → 元两位小数，无符号：输入框后面有「元」单位）；编辑期显示用户正在输入的文本
+    const shown = text ?? moneyToYuan(value)
     return (
         <InputGroup className="h-9 w-fit">
             <InputGroupInput
@@ -74,7 +74,8 @@ function PriceCell({
                         rejectInput(parsed.error.issues[0]?.message)
                         return
                     }
-                    if (parsed.data !== value) onCommit(parsed.data)
+                    // Money 是普通对象，重新解析必得新引用——判「有没有改动」得按值比
+                    if (!sameMoney(parsed.data, value)) onCommit(parsed.data)
                 }}
             />
             <InputGroupAddon
@@ -157,7 +158,7 @@ export function SkuGridEditor({
     function applyBatch() {
         const priceText = batchPrice.trim()
         const stockText = batchStock.replaceAll(/\D/g, "")
-        let price: number | undefined = undefined
+        let price: Money | undefined = undefined
         let stock: number | undefined = undefined
         if (priceText) {
             const parsed = yuanPriceSchema.safeParse(priceText)

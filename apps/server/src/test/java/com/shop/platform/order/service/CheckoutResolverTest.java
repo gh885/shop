@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -80,9 +79,7 @@ class CheckoutResolverTest {
                 shippingFeeReadQuery,
                 couponReadQuery);
         // 默认无券：绝大多数用例关心的是行解析与运费，券在这里是「不存在」的常态
-        lenient()
-                .when(couponReadQuery.evaluateForShop(any(), any(), anyLong(), any()))
-                .thenReturn(List.of());
+        lenient().when(couponReadQuery.evaluateForShop(any(), any(), any())).thenReturn(List.of());
     }
 
     /** 造一张评估好的券：本店、可用、减 discount 分 */
@@ -102,12 +99,12 @@ class CheckoutResolverTest {
         return List.of(new OrderLineRequest(skuId, quantity));
     }
 
-    private SkuView sku(Long price, SkuStatus status) {
-        return new SkuView(skuId, productId, "黑色 S", null, price, 1200L, "CNY", status);
+    private SkuView sku(long priceFen, SkuStatus status) {
+        return new SkuView(skuId, productId, "黑色 S", null, Money.cny(priceFen), Money.cny(1200), status);
     }
 
     private ProductView product(ProductStatus status) {
-        return new ProductView(productId, shopId, "测试手机", "spu.png", 1000L, 1000L, status);
+        return new ProductView(productId, shopId, "测试手机", "spu.png", Money.cny(1000), Money.cny(1000), status);
     }
 
     private void stubSellable(long price, int available) {
@@ -278,7 +275,7 @@ class CheckoutResolverTest {
         UUID couponId = UUID.randomUUID();
         ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 2, 9);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
-        when(couponReadQuery.evaluateForShop(userId, shopA(), 2000L, "CNY"))
+        when(couponReadQuery.evaluateForShop(userId, shopA(), Money.cny(2000)))
                 .thenReturn(List.of(usableCoupon(couponId, 1500L, 300L)));
 
         CheckoutPreview.Group group =
@@ -296,7 +293,7 @@ class CheckoutResolverTest {
         ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         // 券按商品额 1000（而不是 1000+800）判定与计算
-        when(couponReadQuery.evaluateForShop(userId, shopA(), 1000L, "CNY"))
+        when(couponReadQuery.evaluateForShop(userId, shopA(), Money.cny(1000)))
                 .thenReturn(List.of(usableCoupon(couponId, 0L, 200L)));
         when(shippingFeeReadQuery.quote(shopA(), "440305", 1, Money.cny(1000)))
                 .thenReturn(new ShippingQuote(templateId, true, Money.cny(800)));
@@ -314,7 +311,7 @@ class CheckoutResolverTest {
         ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         // 未达门槛：券在候选里但 usable=false
-        when(couponReadQuery.evaluateForShop(userId, shopA(), 1000L, "CNY"))
+        when(couponReadQuery.evaluateForShop(userId, shopA(), Money.cny(1000)))
                 .thenReturn(List.of(new CouponAvailabilityView(
                         couponId,
                         "满 2000 减 300",
@@ -339,7 +336,7 @@ class CheckoutResolverTest {
         ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         // 本店候选里没有这张券（跨店券 / 已核销 / 非本人）——不能落地就必须拒绝
-        when(couponReadQuery.evaluateForShop(userId, shopA(), 1000L, "CNY")).thenReturn(List.of());
+        when(couponReadQuery.evaluateForShop(userId, shopA(), Money.cny(1000))).thenReturn(List.of());
 
         assertThatThrownBy(() -> resolver.groupByShop(List.of(a), null, userId, List.of(couponId)))
                 .isInstanceOfSatisfying(BusinessException.class, ex -> {

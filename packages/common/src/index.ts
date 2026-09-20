@@ -22,7 +22,27 @@
  * - coupon.ts    ：优惠券文案与规则换算（门槛/面额一句话、原因码与状态标签）
  */
 
-export { type Money, fenToYuan, priceRangeText, splitFen, yuanToFen } from "./money"
+export {
+    currencySymbol,
+    fenToYuan,
+    formatMoney,
+    groupYuan,
+    money,
+    moneyToYuan,
+    minusMoney,
+    type Money,
+    PLATFORM_CURRENCY,
+    plusMoney,
+    priceRangeText,
+    sameMoney,
+    splitFen,
+    splitMoney,
+    sumMoney,
+    timesMoney,
+    yuanToFen,
+    yuanToMoney,
+    zeroMoney,
+} from "./money"
 
 export {
     ApiErrorSchema,
@@ -64,6 +84,7 @@ export {
     couponSourceLabel,
     couponStatusLabel,
     couponThresholdText,
+    couponMoneyText,
     couponUnavailableReasonText,
     couponYuanText,
 } from "./coupon"

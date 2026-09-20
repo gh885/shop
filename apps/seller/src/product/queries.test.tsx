@@ -1,3 +1,4 @@
+import { money } from "@shop/common"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
@@ -40,7 +41,7 @@ describe("商品数据接线", () => {
                 ),
             },
         )
-        const items = [{ skuId: OTHER_ID, price: 1200, stock: 3 }]
+        const items = [{ skuId: OTHER_ID, price: money(1200), stock: 3 }]
         act(() => result.current.mutate({ productId: PRODUCT_ID, items }))
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
         expect(body).toEqual({ items })

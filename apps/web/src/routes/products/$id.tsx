@@ -70,7 +70,7 @@ export const Route = createFileRoute("/products/$id")({
     head: ({ match }) => {
         const d = match.loaderData?.detail
         const p = d?.product
-        const price = p?.priceMin.amount
+        const price = p?.priceMin
         const ogImage = p?.image || d?.images[0]
         // canonical 取 match.pathname（不含查询串）：规格选择进了 URL，?spec=... 会产生大量等价副本，
         // 全部收敛到一个权威地址；也不依赖 loaderData，加载失败/降级时不会拼出 /products/undefined
@@ -106,9 +106,10 @@ export const Route = createFileRoute("/products/$id")({
                         offers:
                             p && price
                                 ? {
+                                      // schema.org 规定价格与币种是两个字段：这里从 Money 拆开，链路内部不拆
                                       "@type": "Offer",
-                                      price: fenToYuan(price),
-                                      priceCurrency: p.priceMin.currency,
+                                      price: fenToYuan(price.amount),
+                                      priceCurrency: price.currency,
                                       availability: "https://schema.org/InStock",
                                   }
                                 : undefined,

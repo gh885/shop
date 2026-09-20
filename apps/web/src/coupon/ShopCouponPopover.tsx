@@ -85,7 +85,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                 <ul className="flex max-h-72 flex-col gap-3 overflow-y-auto">
                     {coupons.map((coupon) => {
                         const claimed = claimedIdSet.has(coupon.id)
-                        const rule = couponRuleText(coupon.threshold.amount, coupon.discount.amount)
+                        const rule = couponRuleText(coupon.threshold, coupon.discount)
                         const label = claimed ? "已领取" : coupon.soldOut ? "已领完" : "领取"
                         return (
                             <li

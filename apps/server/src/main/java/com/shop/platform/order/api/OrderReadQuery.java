@@ -1,7 +1,10 @@
 package com.shop.platform.order.api;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.infra.db.IdBatchReader;
 import com.shop.platform.order.model.OrderStatus;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -32,8 +35,7 @@ public class OrderReadQuery {
                                 rs.getObject("user_id", UUID.class),
                                 // DB 存枚举 name()（varchar + 默认 EnumTypeHandler），这里按契约还原
                                 OrderStatus.valueOf(rs.getString("status")),
-                                rs.getObject("pay_amount", Long.class),
-                                rs.getString("currency")),
+                                money(rs, "pay_amount")),
                         orderId)
                 .stream()
                 .findFirst();
@@ -49,8 +51,7 @@ public class OrderReadQuery {
                                 rs.getObject("shop_id", UUID.class),
                                 OrderStatus.valueOf(rs.getString("status")),
                                 rs.getObject("apply_expire_at", OffsetDateTime.class),
-                                rs.getObject("pay_amount", Long.class),
-                                rs.getString("currency")),
+                                money(rs, "pay_amount")),
                         orderId)
                 .stream()
                 .findFirst();
@@ -104,5 +105,10 @@ public class OrderReadQuery {
                         rs.getString("receiver_name"),
                         rs.getLong("item_count"),
                         rs.getString("first_item_name")));
+    }
+
+    /** 金额列 + 本行 currency 列 → Money */
+    private static Money money(ResultSet rs, String amountColumn) throws SQLException {
+        return Money.ofFenOrNull(rs.getObject(amountColumn, Long.class), rs.getString("currency"));
     }
 }

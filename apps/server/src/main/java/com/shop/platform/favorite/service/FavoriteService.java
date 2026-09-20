@@ -1,6 +1,5 @@
 package com.shop.platform.favorite.service;
 
-import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
 import com.shop.platform.favorite.mapper.FavoriteItem;
@@ -102,12 +101,7 @@ public class FavoriteService {
         }
         boolean available = p.published();
         FavoriteItemView.ProductInfo info = new FavoriteItemView.ProductInfo(
-                p.id(),
-                p.name(),
-                p.mainImage(),
-                Money.cnyOrNull(p.minPrice()),
-                Money.cnyOrNull(p.maxPrice()),
-                collectCount);
+                p.id(), p.name(), p.mainImage(), p.minPrice(), p.maxPrice(), collectCount);
         return new FavoriteItemView(item.getId(), item.getProductId(), item.getCreatedAt(), info, available);
     }
 }

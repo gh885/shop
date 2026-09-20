@@ -10,7 +10,7 @@ import {
     useCreateOrder,
     checkoutPreviewOptions,
 } from "#/checkout"
-import { fenToYuan } from "@shop/common"
+import { formatMoney, sumMoney, timesMoney } from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
@@ -123,9 +123,9 @@ function CheckoutPage() {
     }, [previewGroups])
 
     const summaryGroups = preview.data?.groups ?? []
-    const totalItemAmount = summaryGroups.reduce((s, g) => s + g.itemAmount.amount, 0)
-    const totalShippingFee = summaryGroups.reduce((s, g) => s + g.shippingFee.amount, 0)
-    const totalDiscountAmount = summaryGroups.reduce((s, g) => s + g.discountAmount.amount, 0)
+    const totalItemAmount = sumMoney(summaryGroups.map((g) => g.itemAmount))
+    const totalShippingFee = sumMoney(summaryGroups.map((g) => g.shippingFee))
+    const totalDiscountAmount = sumMoney(summaryGroups.map((g) => g.discountAmount))
 
     const submit = () => {
         if (!effectiveAddressId) {
@@ -218,7 +218,7 @@ function CheckoutPage() {
                                             className="text-sm"
                                         />
                                     </Row>
-                                    {totalDiscountAmount > 0 && (
+                                    {totalDiscountAmount.amount > 0 && (
                                         <Row label="优惠">
                                             <DiscountPrice
                                                 value={totalDiscountAmount}
@@ -229,10 +229,17 @@ function CheckoutPage() {
                                     <Separator />
                                     <div className="flex items-end justify-between">
                                         <span className="text-muted-foreground">应付总额：</span>
-                                        <Price
-                                            value={preview.data?.totalPayAmount.amount ?? 0}
-                                            className="text-2xl font-bold text-primary"
-                                        />
+                                        {preview.data ? (
+                                            <Price
+                                                value={preview.data.totalPayAmount}
+                                                className="text-2xl font-bold text-primary"
+                                            />
+                                        ) : (
+                                            /* 预览没回来：没有应付可说，显式占位而不是摆一个 ¥0.00 像免单 */
+                                            <span className="text-2xl font-bold text-primary">
+                                                —
+                                            </span>
+                                        )}
                                     </div>
                                 </CardContent>
                                 <CardFooter>
@@ -402,14 +409,14 @@ function GroupCard({
                         </ItemContent>
                         <ItemActions className="gap-6 self-center">
                             <div className="w-20 text-right">
-                                <span className="font-bold">{fenToYuan(l.price.amount)}</span>
+                                <span className="font-bold">{formatMoney(l.price)}</span>
                                 <span className="ml-1 text-xs text-muted-foreground">
                                     x{l.quantity}
                                 </span>
                             </div>
                             <div className="w-20 text-right font-bold tabular-nums">
                                 <Price
-                                    value={l.price.amount * l.quantity}
+                                    value={timesMoney(l.price, l.quantity)}
                                     className="text-sm"
                                 />
                             </div>
@@ -431,7 +438,7 @@ function GroupCard({
                 <span className="text-muted-foreground">
                     应付{" "}
                     <Price
-                        value={group.payAmount.amount}
+                        value={group.payAmount}
                         className="text-sm font-bold text-primary"
                     />
                 </span>

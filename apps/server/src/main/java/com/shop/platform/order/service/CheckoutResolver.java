@@ -94,8 +94,8 @@ class CheckoutResolver {
                     product.shopId(),
                     sku.name(),
                     sku.image() != null ? sku.image() : product.mainImage(),
-                    Money.ofFen(sku.price(), sku.currency()),
-                    Money.ofFenOrNull(sku.originalPrice(), sku.currency()),
+                    sku.price(),
+                    sku.originalPrice(),
                     line.quantity(),
                     available));
         }
@@ -151,8 +151,7 @@ class CheckoutResolver {
             int quantity = lines.stream().mapToInt(ValidLine::quantity).sum();
 
             // 1. 本店券评估（含不可用者的原因码）：门槛基数是同店商品额
-            List<CouponAvailabilityView> coupons =
-                    couponReadQuery.evaluateForShop(userId, shopId, itemAmount.amount(), itemAmount.currency());
+            List<CouponAvailabilityView> coupons = couponReadQuery.evaluateForShop(userId, shopId, itemAmount);
 
             // 2. 挑出买家在本店选的那张：选了却不可用要当场说明原因。
             //    刻意写成 if + throw 而不是 Validate.isTrue(...)：后者的文案参数会被即时求值，
@@ -175,11 +174,10 @@ class CheckoutResolver {
             ShippingQuote quote = address == null
                     ? null
                     : shippingFeeReadQuery.quote(shopId, address.regionCode(), quantity, itemAmount);
-            Money shippingFee = quote == null ? Money.ofFen(0, itemAmount.currency()) : quote.shippingFee();
+            Money shippingFee = quote == null ? Money.zero(itemAmount.currency()) : quote.shippingFee();
 
             // 4. 金额定型：应付 = 商品 + 运费 − 券（与 orders 表的 CHECK 同口径，落地与预览同源）
-            Money discountAmount =
-                    appliedCoupon == null ? Money.ofFen(0, itemAmount.currency()) : appliedCoupon.discount();
+            Money discountAmount = appliedCoupon == null ? Money.zero(itemAmount.currency()) : appliedCoupon.discount();
             groups.add(new CheckoutPreview.Group(
                     shopId,
                     shopNames.get(shopId),
@@ -200,7 +198,9 @@ class CheckoutResolver {
     }
 
     Money sumLines(List<ValidLine> lines) {
-        return lines.stream().map(l -> l.price().times(l.quantity())).reduce(Money.cny(0), Money::plus);
+        // 求和起点取行上的币种（同店同行的单子同币种，跨币种在 plus 里就挡了），不替平台预设 CNY
+        String currency = lines.isEmpty() ? Money.CNY : lines.get(0).price().currency();
+        return lines.stream().map(l -> l.price().times(l.quantity())).reduce(Money.zero(currency), Money::plus);
     }
 
     /** 地址快照来源（account :: api）：归属本人且未删除，否则 404（预览与创建共用一道门） */

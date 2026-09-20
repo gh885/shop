@@ -8,7 +8,6 @@ import com.shop.platform.cart.dto.UpdateCartSelectedRequest;
 import com.shop.platform.cart.mapper.CartItem;
 import com.shop.platform.cart.mapper.CartItemMapper;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
@@ -185,8 +184,8 @@ public class CartService {
                 sku.id(),
                 sku.name(),
                 sku.image(),
-                money(sku.price(), sku.currency()),
-                money(sku.originalPrice(), sku.currency()),
+                sku.price(),
+                sku.originalPrice(),
                 stock == null ? 0 : stock.availableStock(),
                 sku.onSale());
     }
@@ -195,10 +194,5 @@ public class CartService {
     private static CartItemView.ProductInfo productInfo(ProductView product, Map<UUID, String> shopNames) {
         return new CartItemView.ProductInfo(
                 product.id(), product.name(), product.mainImage(), product.shopId(), shopNames.get(product.shopId()));
-    }
-
-    private static Money money(Long fen, String currency) {
-        if (fen == null) return null;
-        return Money.ofFen(fen, currency != null ? currency : Money.CNY);
     }
 }

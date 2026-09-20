@@ -36,33 +36,33 @@ export type UpdateMemberPermissionsRequest = {
     permissions?: Array<string>;
 };
 
+export type Money = {
+    amount: number;
+    currency: string;
+};
+
 export type RegionalRule = {
     regionPrefixes: Array<string>;
     firstQuantity: number;
-    firstFee: number;
+    firstFee: Money;
     addQuantity: number;
-    addFee: number;
+    addFee: Money;
 };
 
 export type ShippingFeeTier = {
     firstQuantity: number;
-    firstFee: number;
+    firstFee: Money;
     addQuantity: number;
-    addFee: number;
+    addFee: Money;
 };
 
 export type ShippingTemplateRequest = {
     freeShipping: boolean;
     freeOverQuantity?: number;
-    freeOverAmount?: number;
+    freeOverAmount?: Money;
     defaultRule: ShippingFeeTier;
     regionRules?: Array<RegionalRule>;
     excludedRegions?: Array<string>;
-};
-
-export type Money = {
-    amount: number;
-    currency: string;
 };
 
 /**
@@ -122,8 +122,8 @@ export type ProductResponse = {
     images: Array<string>;
     specs: Array<SpecItem>;
     params: Array<ParamItem>;
-    minPrice: number | null;
-    maxPrice: number | null;
+    minPrice: Money | null;
+    maxPrice: Money | null;
     stock: number;
     soldCount: number;
     status: ProductStatus;
@@ -182,9 +182,8 @@ export type SkuResponse = {
     name: string;
     attributes: Array<SkuAttr>;
     image: string | null;
-    price: number | null;
-    originalPrice: number | null;
-    currency: string;
+    price: Money | null;
+    originalPrice: Money | null;
     stock: number;
     status: SkuStatus;
     createdAt: string;
@@ -199,8 +198,8 @@ export type SkuUpdateItem = {
     skuId: string;
     name?: string;
     image?: string;
-    price: number;
-    originalPrice?: number;
+    price: Money;
+    originalPrice?: Money;
     stock: number;
     skuCode?: string;
     status?: SkuStatus;
@@ -559,8 +558,8 @@ export type ImageTicketResponse = {
 
 export type CreateCouponTemplateRequest = {
     name: string;
-    thresholdAmount: number;
-    discountAmount: number;
+    thresholdAmount: Money;
+    discountAmount: Money;
     totalQuantity: number;
     validFrom: string;
     validTo: string;

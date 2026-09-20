@@ -83,7 +83,7 @@ export function OrderShopSection({
                         {/* 单价 × 数量 */}
                         <div className="w-20 shrink-0 text-right text-sm">
                             <Price
-                                value={item.price.amount}
+                                value={item.price}
                                 className="text-foreground"
                             />
                             <span className="ml-1 text-xs text-muted-foreground">
@@ -94,7 +94,7 @@ export function OrderShopSection({
                         {/* 行小计 */}
                         <div className="w-20 shrink-0 text-right text-sm">
                             <Price
-                                value={item.amount.amount}
+                                value={item.amount}
                                 className="text-foreground"
                             />
                         </div>

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { useQuery, type UseQueryResult } from "@tanstack/react-query"
 import type { TicketResponse } from "@shop/api/sdk"
-import { fenToYuan } from "@shop/common"
+import { formatMoney } from "@shop/common"
 import {
     Badge,
     Button,
@@ -157,7 +157,7 @@ function TicketFacts({
                         </Badge>
                     </Row>
                     <Row label="退款金额">
-                        {data.refundAmount ? `¥${fenToYuan(data.refundAmount.amount)}` : "—"}
+                        {formatMoney(data.refundAmount)}
                         <span className="ml-1 text-xs text-muted-foreground">（整单实付）</span>
                     </Row>
                     <Row label="买家理由">{data.reason ?? "买家未填写"}</Row>

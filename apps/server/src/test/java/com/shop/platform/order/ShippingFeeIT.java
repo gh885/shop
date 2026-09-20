@@ -57,8 +57,8 @@ class ShippingFeeIT extends IntegrationTestSupport {
                         false,
                         freeOverQuantity,
                         null,
-                        new ShippingFeeTier(1, 1000L, 1, 500L),
-                        List.of(new RegionalRule(List.of("44"), 1, 2000L, 1, 800L)),
+                        new ShippingFeeTier(1, Money.cny(1000), 1, Money.cny(500)),
+                        List.of(new RegionalRule(List.of("44"), 1, Money.cny(2000), 1, Money.cny(800))),
                         List.of("65")));
         UUID templateId = saved.template().getId();
         db.onDelete("DELETE FROM shop.shipping_templates WHERE id = ?::uuid", templateId.toString());

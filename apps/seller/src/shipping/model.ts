@@ -4,7 +4,7 @@ import type {
     ShippingTemplateRequest,
     ShippingTemplateResponse,
 } from "@shop/api/sdk"
-import { fenToYuan, yuanToFen } from "@shop/common"
+import { type Money, moneyToYuan, yuanToMoney } from "@shop/common"
 
 export interface FeeTierFormValue {
     firstQuantity: string
@@ -49,9 +49,9 @@ function emptyShippingTemplateForm(): ShippingTemplateFormValues {
 function feeTierFromWire(rule: ShippingTemplateFeeTier): FeeTierFormValue {
     return {
         firstQuantity: String(rule.firstQuantity),
-        firstFee: fenToYuan(rule.firstFee.amount),
+        firstFee: moneyToYuan(rule.firstFee),
         addQuantity: String(rule.addQuantity),
-        addFee: fenToYuan(rule.addFee.amount),
+        addFee: moneyToYuan(rule.addFee),
     }
 }
 
@@ -65,8 +65,7 @@ export function shippingTemplateFormFromResponse(
         freeShipping: response.freeShipping,
         freeOverQuantity:
             response.freeOverQuantity == undefined ? "" : String(response.freeOverQuantity),
-        freeOverAmount:
-            response.freeOverAmount == undefined ? "" : fenToYuan(response.freeOverAmount.amount),
+        freeOverAmount: moneyToYuan(response.freeOverAmount),
         defaultRule: feeTierFromWire(response.defaultRule),
         regionRules: response.regionRules.map((item) => ({
             id: item.rule.id,
@@ -85,8 +84,8 @@ function parseQuantity(value: string, label: string): number {
     return quantity
 }
 
-function parseFee(value: string, label: string): number {
-    const fee = yuanToFen(value)
+function parseFee(value: string, label: string): Money {
+    const fee = yuanToMoney(value)
     if (fee === undefined) {
         throw new Error(`${label}格式不正确，请输入不小于 0 的金额`)
     }

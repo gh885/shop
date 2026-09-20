@@ -88,8 +88,8 @@ public class AfterSaleService {
                 .type(type)
                 .status(TicketStatus.APPLYING)
                 .reason(trimmed)
-                .refundAmount(order.payAmount())
-                .currency(order.currency())
+                .refundAmount(order.payAmount().amount())
+                .currency(order.payAmount().currency())
                 .build();
         // uk_tickets_open_per_order：并发重复申请只能有一张进行中
         DuplicateKeys.conflictOnDuplicate(() -> ticketMapper.insert(ticket), "该订单已有进行中的售后");
@@ -267,7 +267,7 @@ public class AfterSaleService {
         orderCommand.syncAfterSale(
                 ticket.getOrderId(),
                 action.target().name(),
-                action.target() == TicketStatus.REFUNDED ? ticket.getRefundAmount() : null);
+                action.target() == TicketStatus.REFUNDED ? ticket.refundAmountAsMoney() : null);
     }
 
     private void record(Ticket ticket, TicketAction action, String note) {

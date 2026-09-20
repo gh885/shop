@@ -27,20 +27,14 @@ public record PublicSkuResponse(
         @Schema(requiredMode = REQUIRED, nullable = true) Money originalPrice,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock) {
 
-    /** 币种取 Sku.currency，缺省回退本平台默认币种 CNY；null 金额不构造成 Money */
-    private static Money money(Long fen, String currency) {
-        if (fen == null) return null;
-        return Money.ofFen(fen, currency != null ? currency : Money.CNY);
-    }
-
     public static PublicSkuResponse from(Sku s, StockView stock) {
         return new PublicSkuResponse(
                 s.getId(),
                 s.getName(),
                 s.getAttributes(),
                 s.getImage(),
-                money(s.getPrice(), s.getCurrency()),
-                money(s.getOriginalPrice(), s.getCurrency()),
+                s.priceAsMoney(),
+                s.originalPriceAsMoney(),
                 stock == null ? 0 : stock.availableStock());
     }
 }

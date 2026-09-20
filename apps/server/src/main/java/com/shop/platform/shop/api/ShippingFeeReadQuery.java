@@ -33,13 +33,13 @@ public class ShippingFeeReadQuery {
      * 若在这里拒绝下单等于把存量店铺全部锁死。
      *
      * @param regionCode 收货地址的国标区划码（6 位），计费比对的键；缺失即 400（无地址不算运费）
-     * @param itemAmount 同店商品总额（不含运费自身），满额包邮门槛的判定基数
+     * @param itemAmount 同店商品总额（不含运费自身），满额包邮门槛的判定基数；币种与模板不一致即 400
      */
     public ShippingQuote quote(UUID shopId, String regionCode, int totalQuantity, Money itemAmount) {
         Validate.isTrue(regionCode != null && !regionCode.isBlank(), "收货地区不能为空");
         return shippingTemplateService
                 .findPricing(shopId)
                 .map(pricing -> shippingFeeCalculator.quote(pricing, regionCode, totalQuantity, itemAmount))
-                .orElseGet(() -> new ShippingQuote(null, true, Money.ofFen(0, itemAmount.currency())));
+                .orElseGet(() -> new ShippingQuote(null, true, Money.zero(itemAmount.currency())));
     }
 }

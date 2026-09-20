@@ -1,5 +1,6 @@
 package com.shop.platform.order.api;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.order.model.OrderStatus;
 import java.util.UUID;
 
@@ -8,7 +9,7 @@ import java.util.UUID;
  * 状态判定用 {@link #pendingPayment()}，不要读 {@link #status()} 自行比较字面量 ——
  * 状态词表归 order 模块（{@link OrderStatus}），消费方只吃谓词。
  */
-public record OrderPaymentView(String orderNo, UUID userId, OrderStatus status, Long payAmount, String currency) {
+public record OrderPaymentView(String orderNo, UUID userId, OrderStatus status, Money payAmount) {
 
     /** 是否待付款（可支付的订单态闸门） */
     public boolean pendingPayment() {

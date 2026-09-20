@@ -9,7 +9,7 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { toApiError, priceRangeText } from "@shop/common"
+import { type Money, toApiError, priceRangeText } from "@shop/common"
 
 import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
 import { useCategorySpecTemplate } from "#/product/queries"
@@ -175,9 +175,11 @@ export function SalesInfoSection({
 
 /** 一口价（价格区间）+ 总库存（库存之和）：纯派生展示，随 SKU 编辑实时联动 */
 function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
-    const prices = skuRows.map((r) => r.price).filter((n): n is number => n !== null)
-    const min = prices.length > 0 ? Math.min(...prices) : undefined
-    const max = prices.length > 0 ? Math.max(...prices) : undefined
+    const prices = skuRows.map((r) => r.price).filter((m): m is Money => m !== null)
+    const byAmount = (pickLower: boolean) =>
+        prices.reduce((a, b) => (b.amount < a.amount === pickLower ? b : a))
+    const min = prices.length > 0 ? byAmount(true) : undefined
+    const max = prices.length > 0 ? byAmount(false) : undefined
     // 展示侧兜底：null（未填）的库存按 0 计入合计（与 wire 投影落库的 ?? 0 一致）
     const totalStock = skuRows.reduce((sum, r) => sum + (r.stock ?? 0), 0)
 

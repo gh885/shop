@@ -1,4 +1,5 @@
 import type { CartItemView } from "@shop/api/sdk"
+import { money, zeroMoney } from "@shop/common"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -122,22 +123,22 @@ describe("deriveSelectedItems / deriveSelectedTotal", () => {
         expect(deriveSelectedItems(list).map((i) => i.id)).toEqual(["a"])
     })
 
-    it("合计 = 单价 × 数量 逐条累加（分）", () => {
+    it("合计 = 单价 × 数量 逐条累加，币种跟着单价", () => {
         const selected = items(
             makeDto({ id: "a", price: 19900, quantity: 2 }),
             makeDto({ id: "b", price: 550 }),
         )
-        expect(deriveSelectedTotal(deriveSelectedItems(selected))).toBe(19900 * 2 + 550)
+        expect(deriveSelectedTotal(deriveSelectedItems(selected))).toEqual(money(19900 * 2 + 550))
     })
 
     it("商品已删的条目即使曾被勾选也不进合计（快照都没了，无价可算）", () => {
         const list = items(makeDto({ id: "a", price: 19900 }), makeDto({ id: "b", deleted: true }))
         expect(deriveSelectedItems(list).map((i) => i.id)).toEqual(["a"])
-        expect(deriveSelectedTotal(deriveSelectedItems(list))).toBe(19900)
+        expect(deriveSelectedTotal(deriveSelectedItems(list))).toEqual(money(19900))
     })
 
-    it("空列表合计为 0", () => {
-        expect(deriveSelectedTotal([])).toBe(0)
+    it("空列表合计为该币种的零", () => {
+        expect(deriveSelectedTotal([])).toEqual(zeroMoney())
     })
 })
 
@@ -242,8 +243,12 @@ describe("deriveCartItemView", () => {
     })
 
     it("现价来自 SKU，划线价缺省时不画那行删除线", () => {
-        expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).price).toBe(19900)
-        expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).original).toBe(20900)
+        expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).price).toEqual(
+            money(19900),
+        )
+        expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).original).toEqual(
+            money(20900),
+        )
     })
 })
 

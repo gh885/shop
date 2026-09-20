@@ -46,13 +46,11 @@ public class CouponEvaluator {
     /**
      * 批量评估并排序。
      *
-     * @param baseAmountFen 本券适用范围的商品小计（分），不含运费
-     * @param currency 本单币种：与券币种不一致的券判为不可用，不做汇率换算
+     * @param baseAmount 本券适用范围的商品小计，不含运费；其币种即本单币种，与券币种不一致的券判为不可用
      */
-    public List<CouponAvailabilityView> evaluate(
-            List<UserCoupon> candidates, long baseAmountFen, String currency, OffsetDateTime now) {
+    public List<CouponAvailabilityView> evaluate(List<UserCoupon> candidates, Money baseAmount, OffsetDateTime now) {
         return candidates.stream()
-                .map(coupon -> evaluateOne(coupon, baseAmountFen, currency, now))
+                .map(coupon -> evaluateOne(coupon, baseAmount, now))
                 .sorted(ORDER)
                 .toList();
     }
@@ -61,18 +59,18 @@ public class CouponEvaluator {
      * 单张券评估。不可用原因的判定次序 = 用户最可能问起的次序：
      * 先时间（券还没生效 / 已经过期），再币种，最后门槛。
      */
-    private static CouponAvailabilityView evaluateOne(
-            UserCoupon coupon, long baseAmountFen, String currency, OffsetDateTime now) {
+    private static CouponAvailabilityView evaluateOne(UserCoupon coupon, Money baseAmount, OffsetDateTime now) {
         // 1. 时间窗：以绝对时刻为准，不看状态列
         CouponUnavailableReason reason = null;
         if (now.isBefore(coupon.getEffectiveAt())) {
             reason = CouponUnavailableReason.NOT_EFFECTIVE;
         } else if (!now.isBefore(coupon.getExpireAt())) {
             reason = CouponUnavailableReason.EXPIRED;
-        } else if (!coupon.getCurrency().equals(currency)) {
-            // 2. 币种：不支持跨币种用券（一期恒 CNY，护栏先立住）
+        } else if (!baseAmount.currency().equals(coupon.getCurrency())) {
+            // 2. 币种：不支持跨币种用券（一期恒 CNY，护栏先立住）。比的是币种码而不是拿 Money 相加，
+            //    这里「不一致」是正常分支，不该走成运算护栏那次 400
             reason = CouponUnavailableReason.CURRENCY_MISMATCH;
-        } else if (baseAmountFen < coupon.getThresholdAmount()) {
+        } else if (!baseAmount.atLeast(coupon.thresholdAsMoney())) {
             // 3. 门槛：基数是不含运费的商品小计
             reason = CouponUnavailableReason.THRESHOLD_NOT_MET;
         }
@@ -82,7 +80,7 @@ public class CouponEvaluator {
                     coupon.getId(),
                     coupon.getName(),
                     coupon.thresholdAsMoney(),
-                    Money.ofFen(0, coupon.getCurrency()),
+                    Money.zero(coupon.getCurrency()),
                     coupon.getBearer(),
                     coupon.getExpireAt(),
                     false,
@@ -90,12 +88,12 @@ public class CouponEvaluator {
         }
 
         // 4. 可减金额 = min(面额, 基数)：封顶见类注释
-        long discountFen = Math.min(coupon.getDiscountAmount(), baseAmountFen);
+        Money face = coupon.discountAsMoney();
         return new CouponAvailabilityView(
                 coupon.getId(),
                 coupon.getName(),
                 coupon.thresholdAsMoney(),
-                Money.ofFen(discountFen, coupon.getCurrency()),
+                face.atLeast(baseAmount) ? baseAmount : face,
                 coupon.getBearer(),
                 coupon.getExpireAt(),
                 true,

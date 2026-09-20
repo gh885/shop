@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Money;
 import com.shop.platform.shop.dto.ShippingTemplateRequest;
 import com.shop.platform.shop.dto.ShippingTemplateRequest.RegionalRule;
 import com.shop.platform.shop.dto.ShippingTemplateRequest.ShippingFeeTier;
@@ -30,7 +31,7 @@ class ShippingTemplateIT extends IntegrationTestSupport {
 
     private final UUID shopId = UUID.randomUUID();
 
-    private static final ShippingFeeTier DEFAULT_TIER = new ShippingFeeTier(1, 1000L, 1, 500L);
+    private static final ShippingFeeTier DEFAULT_TIER = new ShippingFeeTier(1, Money.cny(1000), 1, Money.cny(500));
 
     private static ShippingTemplateRequest request(
             Boolean freeShipping,
@@ -42,7 +43,7 @@ class ShippingTemplateIT extends IntegrationTestSupport {
     }
 
     private static RegionalRule region(String[] prefixes, long firstFee, long addFee) {
-        return new RegionalRule(List.of(prefixes), 1, firstFee, 1, addFee);
+        return new RegionalRule(List.of(prefixes), 1, Money.cny(firstFee), 1, Money.cny(addFee));
     }
 
     /** 保存并登记清理（登记顺序 = 插入顺序：模板 → 规则 → 区域 → 不配送，purge 逆序先子后父） */
@@ -102,7 +103,12 @@ class ShippingTemplateIT extends IntegrationTestSupport {
         shippingTemplateService.save(
                 shopId,
                 new ShippingTemplateRequest(
-                        false, null, null, new ShippingFeeTier(2, 1200L, 2, 600L), List.of(), List.of("65", "63")));
+                        false,
+                        null,
+                        null,
+                        new ShippingFeeTier(2, Money.cny(1200), 2, Money.cny(600)),
+                        List.of(),
+                        List.of("65", "63")));
 
         ShippingPricing pricing = shippingTemplateService.require(shopId);
         assertThat(pricing.template().getId()).isEqualTo(templateId); // 原地更新，不是新建一份

@@ -24,12 +24,12 @@ export function GroupAmountSentence({
         <span className="text-muted-foreground">
             商品总价{" "}
             <Price
-                value={itemAmount.amount}
+                value={itemAmount}
                 className="text-sm text-foreground"
             />{" "}
             + 运费{" "}
             <Price
-                value={shippingFee.amount}
+                value={shippingFee}
                 className="text-sm text-foreground"
             />
             {discountAmount.amount > 0 && (
@@ -37,7 +37,7 @@ export function GroupAmountSentence({
                     {" "}
                     − 优惠{" "}
                     <Price
-                        value={discountAmount.amount}
+                        value={discountAmount}
                         className="text-sm text-foreground"
                     />
                 </>

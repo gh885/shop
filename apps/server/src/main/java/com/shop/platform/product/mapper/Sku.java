@@ -2,6 +2,7 @@ package com.shop.platform.product.mapper;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.common.Money;
 import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.product.model.SkuStatus;
 import java.util.List;
@@ -92,4 +93,16 @@ public class Sku extends AuditedEntity {
 
     /** 在售 / 停用。注意与缺货区分：缺货可补可恢复，停用是「这个卖法不卖了」。概念归 {@link SkuStatus} */
     private SkuStatus status;
+
+    // ---- 派生：金额两列（分 + 币种）在这一处收成 Money，消费方不再各自拼 ----
+
+    /** 成交价为 Money；草稿期未定价时为 null */
+    public Money priceAsMoney() {
+        return Money.ofFenOrNull(price, currency);
+    }
+
+    /** 划线价为 Money；没挂划线价时为 null */
+    public Money originalPriceAsMoney() {
+        return Money.ofFenOrNull(originalPrice, currency);
+    }
 }

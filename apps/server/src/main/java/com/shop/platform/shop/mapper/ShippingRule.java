@@ -1,6 +1,7 @@
 package com.shop.platform.shop.mapper;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.common.Money;
 import com.shop.platform.infra.db.AuditedEntity;
 import java.util.UUID;
 import lombok.Data;
@@ -42,17 +43,30 @@ public class ShippingRule extends AuditedEntity {
     /** 续费（分） */
     private Long addFee;
 
+    /** 本档费用的币种（如 CNY）：随模板一同落，一行的两个金额同币种 */
+    private String currency;
+
+    /** 首费为 Money */
+    public Money firstFeeAsMoney() {
+        return Money.ofFen(firstFee, currency);
+    }
+
+    /** 续费为 Money */
+    public Money addFeeAsMoney() {
+        return Money.ofFen(addFee, currency);
+    }
+
     /**
      * 按件计费：首费 + 超出首件部分的「续费档数 × 续费」。
      *
      * <p>不足一档按一档 —— 与淘宝一致（按重量的「不足续重按续重」是同一规则的另一种单位）；
      * 整除向上取整用整数运算表达，避免浮点。
      */
-    public long feeOf(int totalQuantity) {
+    public Money feeOf(int totalQuantity) {
         if (totalQuantity <= firstQuantity) {
-            return firstFee;
+            return firstFeeAsMoney();
         }
         long tiers = (long) Math.ceil((totalQuantity - firstQuantity) / (double) addQuantity);
-        return firstFee + tiers * addFee;
+        return Money.ofFen(firstFee + tiers * addFee, currency);
     }
 }

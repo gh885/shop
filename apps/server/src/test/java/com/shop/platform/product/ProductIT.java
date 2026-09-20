@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.product.api.ProductCommand;
@@ -132,7 +133,7 @@ class ProductIT extends IntegrationTestSupport {
 
         // 2. 给 6 个 SKU 填价 100
         List<SkuUpdateItem> priceAll = six.stream()
-                .map(s -> new SkuUpdateItem(s.getId(), null, null, 100L, null, 10, null, null))
+                .map(s -> new SkuUpdateItem(s.getId(), null, null, Money.cny(100), null, 10, null, null))
                 .toList();
         skuService.updateSkus(draft.getId(), priceAll);
 
@@ -150,7 +151,7 @@ class ProductIT extends IntegrationTestSupport {
         // 4. 给新增 3 个填价 300
         List<SkuUpdateItem> priceNew = nine.stream()
                 .filter(s -> s.getPrice() == null)
-                .map(s -> new SkuUpdateItem(s.getId(), null, null, 300L, null, 5, null, null))
+                .map(s -> new SkuUpdateItem(s.getId(), null, null, Money.cny(300), null, 5, null, null))
                 .toList();
         assertEquals(3, priceNew.size());
         skuService.updateSkus(draft.getId(), priceNew);
@@ -174,7 +175,8 @@ class ProductIT extends IntegrationTestSupport {
         assertEquals(1, skus.size());
         UUID skuId = skus.getFirst().getId();
         String specKey = skus.getFirst().getSpecKey();
-        skuService.updateSkus(draft.getId(), List.of(new SkuUpdateItem(skuId, null, null, 100L, null, 10, null, null)));
+        skuService.updateSkus(
+                draft.getId(), List.of(new SkuUpdateItem(skuId, null, null, Money.cny(100), null, 10, null, null)));
 
         // 2. 规格值改名：黑 → 曜石黑
         categoryAttrService.updateValue(blackId, "曜石黑", null, null);
@@ -258,7 +260,7 @@ class ProductIT extends IntegrationTestSupport {
                 List.of(spec(color.getId(), List.of(valueIds(color.getId()).get(0)), null)));
         skuService.updateSkus(
                 draft.getId(),
-                List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, 100L, null, 1, null, null)));
+                List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, Money.cny(100), null, 1, null, null)));
         productService.publish(draft.getId(), ProductStatus.PUBLISHED);
 
         BusinessException ex = assertThrows(
@@ -278,7 +280,7 @@ class ProductIT extends IntegrationTestSupport {
         List<Sku> skus = skuService.updateSpecs(draft.getId(), List.of(spec(color.getId(), List.of(ids.get(0)), null)));
         skuService.updateSkus(
                 draft.getId(),
-                List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, 100L, null, 1, null, null)));
+                List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, Money.cny(100), null, 1, null, null)));
         productService.publish(draft.getId(), ProductStatus.PUBLISHED);
 
         // 1. 下架：上架 → 下架
@@ -307,8 +309,8 @@ class ProductIT extends IntegrationTestSupport {
         skuService.updateSkus(
                 draft.getId(),
                 List.of(
-                        new SkuUpdateItem(s1.getId(), null, null, 100L, null, 3, null, null),
-                        new SkuUpdateItem(s2.getId(), null, null, 200L, null, 7, null, null)));
+                        new SkuUpdateItem(s1.getId(), null, null, Money.cny(100), null, 3, null, null),
+                        new SkuUpdateItem(s2.getId(), null, null, Money.cny(200), null, 7, null, null)));
         productService.publish(draft.getId(), ProductStatus.PUBLISHED);
 
         UUID shopId = ShopIdHolder.get();

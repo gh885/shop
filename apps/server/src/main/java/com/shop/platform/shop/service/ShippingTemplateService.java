@@ -1,6 +1,7 @@
 package com.shop.platform.shop.service;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.region.RegionRegistry;
 import com.shop.platform.shop.dto.ShippingTemplateRequest;
@@ -139,7 +140,8 @@ public class ShippingTemplateService {
         }
         template.setFreeShipping(free);
         template.setFreeOverQuantity(free ? null : req.freeOverQuantity());
-        template.setFreeOverAmount(free ? null : req.freeOverAmount());
+        template.setFreeOverAmount(free ? null : fen(req.freeOverAmount()));
+        template.setCurrency(req.currency());
         if (created) {
             // 并发首次保存由 uk_shipping_templates_shop 兜底（撞键即整体回滚，卖家重试）
             templateMapper.insert(template);
@@ -172,9 +174,11 @@ public class ShippingTemplateService {
                 .templateId(templateId)
                 .isDefault(isDefault)
                 .firstQuantity(tier.firstQuantity())
-                .firstFee(tier.firstFee())
+                .firstFee(tier.firstFee().amount())
                 .addQuantity(tier.addQuantity())
-                .addFee(tier.addFee())
+                .addFee(tier.addFee().amount())
+                // 币种与费用同批落：一行的两个金额共用一个币种（入参已各自收口到平台币种）
+                .currency(tier.firstFee().currency())
                 .build();
         ruleMapper.insert(rule);
         return rule.getId();
@@ -197,7 +201,7 @@ public class ShippingTemplateService {
     }
 
     /** 两种入参（默认规则 / 指定地区规则）归一成一档运费，共用同一段落库逻辑 */
-    private record FeeTier(int firstQuantity, long firstFee, int addQuantity, long addFee) {}
+    private record FeeTier(int firstQuantity, Money firstFee, int addQuantity, Money addFee) {}
 
     private static FeeTier tierOf(ShippingFeeTier tier) {
         return new FeeTier(tier.firstQuantity(), tier.firstFee(), tier.addQuantity(), tier.addFee());
@@ -205,5 +209,10 @@ public class ShippingTemplateService {
 
     private static FeeTier tierOf(RegionalRule rule) {
         return new FeeTier(rule.firstQuantity(), rule.firstFee(), rule.addQuantity(), rule.addFee());
+    }
+
+    /** 可空金额 → 分值：未设条件是 NULL，不是 0（0 元门槛意味着「满 0 元包邮」，两回事） */
+    private static Long fen(Money amount) {
+        return amount == null ? null : amount.amount();
     }
 }

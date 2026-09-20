@@ -141,18 +141,14 @@ export function isImageSpecGroup(skus: Sku[], spec: SpecItem): boolean {
 
 // ---------- 价格 / 库存展示 ----------
 
-// 金额格式化用 @shop/api 的 fenToYuan（与 Money 契约同源），不在本模块重复定义
-
 export interface PriceView {
-    /** 主价（分）：选全规格 → SKU 价；未选全 → 价格区间下限。
-     * 给分值而非元字符串，展示层经共享 Price 组件走 splitFen 分段排版 */
-    primary: number
-    /** 区间上限（分）：与 primary 相同则不显示区间（undefined） */
-    rangeTo?: number
-    /** 划线价（分）：仅选中 SKU 且有 originalPrice 时给 */
-    original?: number
-    /** 币种（当前只有 CNY，透传给展示层备用） */
-    currency: string
+    /** 主价：选全规格 → SKU 价；未选全 → 价格区间下限。
+     * 给 Money 而非元字符串也不拆 amount/currency，展示层经共享 Price 组件分段排版 */
+    primary: Money
+    /** 区间上限：与 primary 相同则不显示区间（undefined） */
+    rangeTo?: Money
+    /** 划线价：仅选中 SKU 且有 originalPrice 时给 */
+    original?: Money
 }
 
 /** 价格展示策略：优先选中 SKU 的价，未选全回退商品价格区间（priceMin/priceMax） */
@@ -160,17 +156,15 @@ export function derivePriceView(detail: ProductDetail, selection: SkuSelection):
     const matched = findMatchingSku(detail.skus, selection)
     if (matched) {
         return {
-            primary: matched.price.amount,
-            original: matched.originalPrice?.amount,
-            currency: matched.price.currency,
+            primary: matched.price,
+            original: matched.originalPrice ?? undefined,
         }
     }
 
     const { priceMin, priceMax } = detail.product
     return {
-        primary: priceMin.amount,
-        rangeTo: priceMax.amount === priceMin.amount ? undefined : priceMax.amount,
-        currency: priceMin.currency,
+        primary: priceMin,
+        rangeTo: priceMax.amount === priceMin.amount ? undefined : priceMax,
     }
 }
 
@@ -181,15 +175,15 @@ export function deriveStockText(detail: ProductDetail, selection: SkuSelection):
     return detail.skus.some((s) => s.stock > 0) ? "有货" : "暂时缺货"
 }
 
-/** 商品卡片视图投影（首页 feed/推荐流/搜索/类目通用）：金额按分给展示层拆分 */
+/** 商品卡片视图投影（首页 feed/推荐流/搜索/类目通用） */
 export type ProductCardData = {
     id: string
     /** 主图：可空，无图时卡片用占位图 */
     image: string | null
     /** 商品标题 */
     title: string
-    /** 价格（分） */
-    price: number
+    /** 起售价 */
+    price: Money
     /** 销量描述。后端 ProductResponse 暂未提供 sales 聚合字段，接上后直接给 */
     sales?: string
     /** 标签排，如 自营 / 放心购 */
@@ -198,7 +192,7 @@ export type ProductCardData = {
 
 /** Product → 卡片视图投影（首页 feed 与详情页推荐流共用一份，不再各写一遍） */
 export function toProductCardData(p: Product): ProductCardData {
-    return { id: p.id, image: p.image, title: p.title, price: p.priceMin.amount }
+    return { id: p.id, image: p.image, title: p.title, price: p.priceMin }
 }
 
 /** 全部规格维度都已选择（有规格组时才允许加购/购买） */

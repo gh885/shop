@@ -1,5 +1,5 @@
 import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
-import { fenToYuan } from "@shop/common"
+import { formatMoney } from "@shop/common"
 import { formatDate } from "@shop/app-kit"
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
 
@@ -160,9 +160,7 @@ function OrderRow({
                     )}
                 </div>
             </TableCell>
-            <TableCell className="text-right tabular-nums">
-                ¥{fenToYuan(o.payAmount.amount)}
-            </TableCell>
+            <TableCell className="text-right tabular-nums">{formatMoney(o.payAmount)}</TableCell>
             <TableCell>
                 <div className="flex flex-wrap items-center gap-1.5">
                     <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>

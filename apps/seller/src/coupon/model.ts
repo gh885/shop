@@ -93,7 +93,7 @@ export function couponRowFromWire(template: CouponTemplateResponse, now: number)
     return {
         id: template.id,
         name: template.name,
-        ruleText: couponRuleText(template.threshold.amount, template.discount.amount),
+        ruleText: couponRuleText(template.threshold, template.discount),
         periodText: `${formatDate(template.validFrom)} ~ ${formatDate(template.validTo)}`,
         issuedQuantity: template.issuedQuantity,
         totalQuantity: template.totalQuantity,

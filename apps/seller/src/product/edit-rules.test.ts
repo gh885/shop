@@ -1,12 +1,20 @@
 import type { ProductStatus } from "@shop/api/sdk"
+import { money } from "@shop/common"
 import { describe, expect, it } from "vitest"
 
 import { publishGateError, willPublish, type SaveMode } from "./edit-rules"
 import type { SkuDraftRow } from "./draft-model"
 
-/** 夹具：SkuDraftRow 可控构造（只关心 price 是否 null；其余字段与本规则无关） */
+/** 夹具：SkuDraftRow 可控构造（只关心 price 是否 null；价格按分书写，夹具内换 Money） */
 function makeRow(price: number | null): SkuDraftRow {
-    return { skuId: "s1", label: "单规格", price, stock: 0, skuCode: null, status: "ON_SALE" }
+    return {
+        skuId: "s1",
+        label: "单规格",
+        price: price === null ? null : money(price),
+        stock: 0,
+        skuCode: null,
+        status: "ON_SALE",
+    }
 }
 
 const UNPRICED = [makeRow(null)]

@@ -34,33 +34,33 @@ export const zUpdateMemberPermissionsRequest = z.object({
     permissions: z.array(z.string()).optional()
 });
 
+export const zMoney = z.object({
+    amount: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    currency: z.string()
+});
+
 export const zRegionalRule = z.object({
     regionPrefixes: z.array(z.string()).min(1),
     firstQuantity: z.int().gte(1).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    firstFee: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    firstFee: zMoney,
     addQuantity: z.int().gte(1).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    addFee: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+    addFee: zMoney
 });
 
 export const zShippingFeeTier = z.object({
     firstQuantity: z.int().gte(1).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    firstFee: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    firstFee: zMoney,
     addQuantity: z.int().gte(1).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    addFee: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+    addFee: zMoney
 });
 
 export const zShippingTemplateRequest = z.object({
     freeShipping: z.boolean(),
     freeOverQuantity: z.int().gte(1).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    freeOverAmount: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
+    freeOverAmount: zMoney.optional(),
     defaultRule: zShippingFeeTier,
     regionRules: z.array(zRegionalRule).min(0).max(50).optional(),
     excludedRegions: z.array(z.string().regex(/\d{2}|\d{4}|\d{6}/)).min(0).max(100).optional()
-});
-
-export const zMoney = z.object({
-    amount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    currency: z.string()
 });
 
 /**
@@ -138,8 +138,8 @@ export const zProductResponse = z.object({
     images: z.array(z.string()),
     specs: z.array(zSpecItem),
     params: z.array(zParamItem),
-    minPrice: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).nullable(),
-    maxPrice: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).nullable(),
+    minPrice: zMoney.nullable(),
+    maxPrice: zMoney.nullable(),
     stock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     status: zProductStatus,
@@ -176,9 +176,8 @@ export const zSkuResponse = z.object({
     name: z.string(),
     attributes: z.array(zSkuAttr),
     image: z.string().nullable(),
-    price: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).nullable(),
-    originalPrice: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).nullable(),
-    currency: z.string(),
+    price: zMoney.nullable(),
+    originalPrice: zMoney.nullable(),
     stock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     status: zSkuStatus,
     createdAt: z.iso.datetime({ offset: true }),
@@ -189,8 +188,8 @@ export const zSkuUpdateItem = z.object({
     skuId: z.uuid(),
     name: z.string().min(0).max(160).optional(),
     image: z.string().min(0).max(255).optional(),
-    price: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    originalPrice: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
+    price: zMoney,
+    originalPrice: zMoney.optional(),
     stock: z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     skuCode: z.string().min(0).max(64).optional(),
     status: zSkuStatus.optional()
@@ -531,8 +530,8 @@ export const zImageTicketResponse = z.object({
 
 export const zCreateCouponTemplateRequest = z.object({
     name: z.string().min(0).max(60),
-    thresholdAmount: z.coerce.bigint().gte(BigInt(0)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    discountAmount: z.coerce.bigint().gte(BigInt(1)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    thresholdAmount: zMoney,
+    discountAmount: zMoney,
     totalQuantity: z.int().gte(1).lte(1000000),
     validFrom: z.iso.datetime({ offset: true }),
     validTo: z.iso.datetime({ offset: true })

@@ -51,13 +51,13 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                 <CardContent className="space-y-1">
                     <InfoRow label="商品总价">
                         <Price
-                            value={order.itemAmount.amount}
+                            value={order.itemAmount}
                             className="text-sm"
                         />
                     </InfoRow>
                     <InfoRow label="运费(快递)">
                         <Price
-                            value={order.shippingFee.amount}
+                            value={order.shippingFee}
                             className="text-sm"
                         />
                     </InfoRow>
@@ -65,7 +65,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                     {order.discountAmount.amount > 0 && (
                         <InfoRow label="优惠">
                             <DiscountPrice
-                                value={order.discountAmount.amount}
+                                value={order.discountAmount}
                                 className="text-sm"
                             />
                         </InfoRow>
@@ -73,7 +73,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                     <Separator className="my-2" />
                     <InfoRow label="实付款">
                         <Price
-                            value={order.payAmount.amount}
+                            value={order.payAmount}
                             className="text-lg font-bold text-foreground"
                         />
                     </InfoRow>

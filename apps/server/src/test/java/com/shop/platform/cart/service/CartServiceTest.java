@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.mapper.CartItem;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Money;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.product.api.ProductReadQuery;
 import com.shop.platform.product.api.ProductView;
@@ -62,7 +63,7 @@ class CartServiceTest {
     private void stubSellable() {
         when(productReadQuery.skuById(skuId))
                 .thenReturn(Optional.of(
-                        new SkuView(skuId, productId, "黑色 S", null, 1000L, null, "CNY", SkuStatus.ON_SALE)));
+                        new SkuView(skuId, productId, "黑色 S", null, Money.cny(1000), null, SkuStatus.ON_SALE)));
         when(productReadQuery.productById(productId))
                 .thenReturn(Optional.of(new ProductView(
                         productId, UUID.randomUUID(), "测试手机", null, null, null, ProductStatus.PUBLISHED)));
@@ -129,8 +130,8 @@ class CartServiceTest {
     @Test
     void SPU已下架_拒收() {
         when(productReadQuery.skuById(skuId))
-                .thenReturn(
-                        Optional.of(new SkuView(skuId, productId, "x", null, 1000L, null, "CNY", SkuStatus.ON_SALE)));
+                .thenReturn(Optional.of(
+                        new SkuView(skuId, productId, "x", null, Money.cny(1000), null, SkuStatus.ON_SALE)));
         // status=0 下架
         when(productReadQuery.productById(productId))
                 .thenReturn(Optional.of(new ProductView(

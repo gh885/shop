@@ -66,7 +66,7 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
                 <Row label="退款金额">
                     {ticket.refundAmount ? (
                         <Price
-                            value={ticket.refundAmount.amount}
+                            value={ticket.refundAmount}
                             className="text-sm text-primary"
                         />
                     ) : (

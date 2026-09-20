@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import type { CreateCouponTemplateRequest } from "@shop/api/sdk"
-import { yuanToFen } from "@shop/common"
+import { yuanToFen, yuanToMoney } from "@shop/common"
 
 /**
  * coupon 域 · 表单层：Zod 校验 + 表单形状 → 后端请求的投影。
@@ -100,13 +100,14 @@ function localDateTimeToIso(value: string): string | undefined {
     return new Date(ms).toISOString()
 }
 
-/** 表单形状 → 后端请求：元转分、本地时间转 ISO 时刻、文本 trim */
+/** 表单形状 → 后端请求：元转 Money（币种取平台定价币种）、本地时间转 ISO 时刻、文本 trim */
 export function couponRequestFromForm(values: CouponFormValues): CreateCouponTemplateRequest {
-    const thresholdAmount = yuanToFen(values.thresholdYuan)
+    const thresholdAmount = yuanToMoney(values.thresholdYuan)
     if (thresholdAmount === undefined) throw new Error("门槛金额格式不正确")
 
-    const discountAmount = yuanToFen(values.discountYuan)
-    if (discountAmount === undefined || discountAmount <= 0) throw new Error("面额格式不正确")
+    const discountAmount = yuanToMoney(values.discountYuan)
+    if (discountAmount === undefined || discountAmount.amount <= 0)
+        throw new Error("面额格式不正确")
 
     const totalQuantity = Number(values.totalQuantity)
     if (!Number.isInteger(totalQuantity) || totalQuantity < 1) {

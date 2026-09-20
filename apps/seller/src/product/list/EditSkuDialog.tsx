@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { PackageCheck } from "lucide-react"
 
-import { fenToYuan, toApiError } from "@shop/common"
+import { type Money, moneyToYuan, toApiError } from "@shop/common"
 import { notify } from "@shop/app-kit"
 import type { SkuResponse, SkuUpdateItem } from "@shop/api/sdk"
 import {
@@ -38,12 +38,12 @@ function skuLabel(s: SkuResponse): string {
 }
 
 /** 编辑器内可变的 SKU 行：价格/库存/编码都以文本态承接输入，提交时才统一换算校验。
- *  priceFen/stock 存原始值：编辑价格时原样回传库存、编辑库存时原样回传价格（updateSkus 两者都必填）。 */
+ *  price/stock 存原始值：编辑价格时原样回传库存、编辑库存时原样回传价格（updateSkus 两者都必填）。 */
 interface SkuRow {
     skuId: string
     label: string
-    /** 当前价格（分），空/未定价为 null —— 编辑库存时需原样回传，故必存原始值 */
-    priceFen: number | null
+    /** 当前价格（Money），未定价为 null —— 编辑库存时需原样回传，故必存原始值 */
+    price: Money | null
     priceText: string
     stockText: string
     /** 当前库存（编辑价格时原样回传，避免绝对量被误清零） */
@@ -109,8 +109,8 @@ export function EditSkuLineDialog({
             data.skus.map((s) => ({
                 skuId: s.id,
                 label: skuLabel(s),
-                priceFen: s.price,
-                priceText: s.price === null ? "" : fenToYuan(s.price),
+                price: s.price,
+                priceText: moneyToYuan(s.price),
                 stockText: String(s.stock),
                 stock: s.stock,
                 skuCodeText: s.skuCode ?? "",
@@ -146,7 +146,7 @@ export function EditSkuLineDialog({
                     )
                     return
                 }
-                if (r.priceFen === null) {
+                if (r.price === null) {
                     notify.error(`「${r.label}」尚未定价，请先在价格列设置价格再调整库存`)
                     return
                 }
@@ -165,7 +165,7 @@ export function EditSkuLineDialog({
             }
             return {
                 skuId: r.skuId,
-                price: r.priceFen!,
+                price: r.price!,
                 stock: countInputSchema.parse(r.stockText),
             }
         })

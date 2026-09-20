@@ -1,5 +1,6 @@
 package com.shop.platform.order.api;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -9,7 +10,7 @@ import java.util.UUID;
  * 可否申请用 {@link #afterSaleOpenAt}，不要读 {@link #status()} 自行比较字面量——状态词表归 order 模块，消费方只吃谓词。
  */
 public record OrderAfterSaleView(
-        UUID userId, UUID shopId, OrderStatus status, OffsetDateTime applyExpireAt, Long payAmount, String currency) {
+        UUID userId, UUID shopId, OrderStatus status, OffsetDateTime applyExpireAt, Money payAmount) {
 
     /** 售后申请窗口是否开着：已完成（确认收货 / 自动收货）且申请截止未过 */
     public boolean afterSaleOpenAt(OffsetDateTime now) {

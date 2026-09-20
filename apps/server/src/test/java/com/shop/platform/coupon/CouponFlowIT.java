@@ -120,8 +120,8 @@ class CouponFlowIT extends IntegrationTestSupport {
                         shopId,
                         new CreateCouponTemplateRequest(
                                 "满%s减%s".formatted(threshold, discount),
-                                threshold,
-                                discount,
+                                Money.cny(threshold),
+                                Money.cny(discount),
                                 total,
                                 now.minusMinutes(1),
                                 now.plusDays(7)))
@@ -453,7 +453,10 @@ class CouponFlowIT extends IntegrationTestSupport {
         OffsetDateTime now = OffsetDateTime.now();
         // 明天才开始：领券页也不会列它（selectClaimable 过滤 validFrom），所以「领了但不能用」在一期没有可达路径
         UUID templateId = couponTemplateService
-                .create(shopId, new CreateCouponTemplateRequest("预告券", 0L, 300L, 10, now.plusDays(1), now.plusDays(8)))
+                .create(
+                        shopId,
+                        new CreateCouponTemplateRequest(
+                                "预告券", Money.cny(0), Money.cny(300), 10, now.plusDays(1), now.plusDays(8)))
                 .template()
                 .getId();
 
@@ -470,7 +473,8 @@ class CouponFlowIT extends IntegrationTestSupport {
         UUID templateId = couponTemplateService
                 .create(
                         shopId,
-                        new CreateCouponTemplateRequest("过期活动", 0L, 300L, 10, now.minusDays(2), now.minusDays(1)))
+                        new CreateCouponTemplateRequest(
+                                "过期活动", Money.cny(0), Money.cny(300), 10, now.minusDays(2), now.minusDays(1)))
                 .template()
                 .getId();
 
@@ -492,7 +496,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                 OffsetDateTime.now().plusDays(1),
                 couponId.toString());
 
-        var candidates = couponReadQuery.evaluateForShop(userId, shopId, 2000L, "CNY");
+        var candidates = couponReadQuery.evaluateForShop(userId, shopId, Money.cny(2000));
 
         assertEquals(1, candidates.size());
         assertEquals(couponId, candidates.getFirst().userCouponId());
@@ -511,7 +515,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                 OffsetDateTime.now().minusSeconds(1),
                 couponId.toString());
 
-        var candidates = couponReadQuery.evaluateForShop(userId, shopId, 2000L, "CNY");
+        var candidates = couponReadQuery.evaluateForShop(userId, shopId, Money.cny(2000));
 
         assertEquals(CouponUnavailableReason.EXPIRED, candidates.getFirst().unavailableReason());
         assertEquals("UNUSED", couponStatus(couponId)); // 状态列没被改：正确性不依赖收敛任务

@@ -1,6 +1,6 @@
 import type { SellerTicketItem } from "@shop/api/sdk"
 import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
-import { fenToYuan } from "@shop/common"
+import { formatMoney } from "@shop/common"
 import { formatDateTime } from "@shop/app-kit"
 
 import { TICKET_STATUS_LABEL, TICKET_TYPE_LABEL } from "#/order/constants"
@@ -106,9 +106,7 @@ export function RefundTable({
                         <TableCell>{ticket.receiverName}</TableCell>
 
                         <TableCell className="text-right tabular-nums">
-                            {ticket.refundAmount
-                                ? `¥${fenToYuan(ticket.refundAmount.amount)}`
-                                : "—"}
+                            {formatMoney(ticket.refundAmount)}
                         </TableCell>
 
                         <TableCell>

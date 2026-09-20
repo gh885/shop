@@ -12,8 +12,7 @@ import java.util.UUID;
 /**
  * 运费模板出参，镜像 service 形状 ShippingPricing（内嵌 mapper 实体不得越过 HTTP 边界，故这里逐层转换）。
  *
- * <p>费用以 Money 出参（内部存储是分）：本平台定价币种为 CNY，模板不存币种，故这里固定 CNY，
- * 与 {@code Money.cny} 的既有用法一致。{@code freeOverAmount} 同理。
+ * <p>费用以 Money 出参：模板与规则各自存了币种，派生方法在原行上配齐（报价合同上的钱是什么币种，读出来就是什么币种）。
  *
  * <p><b>子 record 的 {@code @Schema(name)} 不是装饰</b>：springdoc 默认用嵌套类简单名当 schema 名，
  * 而本模块的入参 {@code ShippingTemplateRequest.RegionalRule} 与这里的同名 record <b>字段不同</b>
@@ -37,9 +36,7 @@ public record ShippingTemplateResponse(
                 pricing.template().getShopId(),
                 Boolean.TRUE.equals(pricing.template().getFreeShipping()),
                 pricing.template().getFreeOverQuantity(),
-                pricing.template().getFreeOverAmount() == null
-                        ? null
-                        : Money.cny(pricing.template().getFreeOverAmount()),
+                pricing.template().freeOverAmountAsMoney(),
                 FeeTier.from(pricing.defaultRule()),
                 pricing.regionRules().stream()
                         .map(rule -> new RegionalRule(FeeTier.from(rule.rule()), rule.regionPrefixes()))
@@ -60,9 +57,9 @@ public record ShippingTemplateResponse(
             return new FeeTier(
                     rule.getId(),
                     rule.getFirstQuantity(),
-                    Money.cny(rule.getFirstFee()),
+                    rule.firstFeeAsMoney(),
                     rule.getAddQuantity(),
-                    Money.cny(rule.getAddFee()));
+                    rule.addFeeAsMoney());
         }
     }
 

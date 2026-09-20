@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Money;
 import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderPaymentView;
 import com.shop.platform.order.api.OrderReadQuery;
@@ -59,7 +60,7 @@ class PaymentServiceTest {
 
     private void stubOrder(OrderStatus status) {
         when(orderReadQuery.paymentViewById(orderId))
-                .thenReturn(Optional.of(new OrderPaymentView("20260101120000001", userId, status, 2000L, "CNY")));
+                .thenReturn(Optional.of(new OrderPaymentView("20260101120000001", userId, status, Money.cny(2000))));
     }
 
     // ========== 发起（PENDING） ==========

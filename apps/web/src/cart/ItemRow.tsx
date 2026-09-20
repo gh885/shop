@@ -2,7 +2,7 @@ import { deriveCartItemView, type CartItem } from "./cart"
 import type { CartItemActions } from "./queries"
 import { Minus, Plus } from "lucide-react"
 
-import { fenToYuan } from "@shop/common"
+import { formatMoney } from "@shop/common"
 import { useState } from "react"
 import { notify } from "@shop/app-kit"
 
@@ -80,8 +80,8 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                     />
                 )}
                 {view.original !== undefined && (
-                    <p className="text-xs text-muted-foreground line-through">
-                        ¥{fenToYuan(view.original)}
+                    <p className="text-xs text-muted-foreground line-through tabular-nums">
+                        {formatMoney(view.original)}
                     </p>
                 )}
             </div>

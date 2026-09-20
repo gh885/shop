@@ -3,6 +3,7 @@ package com.shop.platform.common;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import java.util.Locale;
 
 /**
@@ -11,9 +12,14 @@ import java.util.Locale;
  * <p>amount 以「分」为计量单位（避免浮点误差），currency 为 ISO 4217 币种码（如 CNY）。
  * 单位与币种嵌进类型，而非散成两个孤立字段靠注释维系——这正是「不裸传 int64」要防的场景。
  *
+ * <p><b>全链路唯一金额类型</b>：入参、出参、跨模块 api 视图都用它，只有 mapper 实体按列存
+ * （{@code long} 分 + {@code currency} 列），由实体派生方法换算成 Money。所以「哪儿该是 Money」
+ * 不需要判断：不在 mapper 包、又是金额的，就是 Money——ArchUnit 与契约审计各挡一道。
+ *
  * <p>业务语义：这是一个商品/交易金额，非负；运算只在同币种间进行，跨币种相加直接拒绝，从编译期之外再多一道运行时护栏。
  */
-public record Money(@Schema(requiredMode = REQUIRED) long amount, @Schema(requiredMode = REQUIRED) String currency) {
+public record Money(
+        @Schema(requiredMode = REQUIRED) @Min(0) long amount, @Schema(requiredMode = REQUIRED) String currency) {
 
     /** 常见币种常量。业务侧默认本平台定价货币为 CNY */
     public static final String CNY = "CNY";
@@ -44,6 +50,27 @@ public record Money(@Schema(requiredMode = REQUIRED) long amount, @Schema(requir
         return amountFen == null ? null : cny(amountFen);
     }
 
+    /**
+     * 零金额：聚合的起点、以及「这一项没有钱」的表达。
+     *
+     * <p>币种由调用方从旁边的钱里拿（{@code itemAmount.currency()}），而不是在这里替平台决定——
+     * 零也是有个币种的零，凭空造一个 CNY 等于让「零运费」混进非 CNY 的单子。
+     */
+    public static Money zero(String currency) {
+        return new Money(0, currency);
+    }
+
+    /**
+     * 入参护栏：币种必须是平台定价币种，否则 400（原对象返回自己，方便嵌进构造器）。
+     *
+     * <p>「一期只有 CNY」这件事在 DB 侧以 {@code CHECK (currency = 'CNY')} 钉死，但那道闸门撞上就是
+     * 500；入参先挡一次，卖家收到的是「填错了」而不是「服务器坏了」。
+     */
+    public Money requirePlatformCurrency() {
+        Validate.isTrue(CNY.equals(currency), "暂不支持 " + CNY + " 之外的定价币种");
+        return this;
+    }
+
     /** 相加：仅同币种，跨币种抛业务异常（400），避免把 CNY 和 USD 当一回事 */
     public Money plus(Money other) {
         requireSameCurrency(other);
@@ -54,6 +81,15 @@ public record Money(@Schema(requiredMode = REQUIRED) long amount, @Schema(requir
     public Money times(long factor) {
         Validate.isTrue(factor >= 0, "金额倍数不能为负");
         return new Money(this.amount * factor, this.currency);
+    }
+
+    /**
+     * 是否不小于另一笔钱（门槛判定、封顶取值都用它）。跨币种抛 400 —— 拿 CNY 的单去判 USD 券的门槛
+     * 本身就是错的，静默给个比较结果比报错贵。
+     */
+    public boolean atLeast(Money other) {
+        requireSameCurrency(other);
+        return this.amount >= other.amount;
     }
 
     /**

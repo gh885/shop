@@ -76,8 +76,8 @@ public class PaymentService {
                 .orderId(orderId)
                 .orderNo(order.orderNo())
                 .userId(userId)
-                .amount(order.payAmount())
-                .currency(order.currency())
+                .amount(order.payAmount().amount())
+                .currency(order.payAmount().currency())
                 .channel(Payment.CHANNEL_MOCK)
                 .status(PaymentStatus.PENDING)
                 .build();

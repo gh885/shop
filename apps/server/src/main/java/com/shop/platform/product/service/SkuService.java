@@ -154,6 +154,9 @@ public class SkuService {
         DuplicateKeys.conflictOnDuplicate(
                 () -> {
                     for (SkuUpdateItem item : items) {
+                        Long originalFen = item.originalPrice() == null
+                                ? null
+                                : item.originalPrice().amount();
                         int affected = skuMapper.update(
                                 null,
                                 new LambdaUpdateWrapper<Sku>()
@@ -161,10 +164,12 @@ public class SkuService {
                                         .eq(Sku::getProductId, productId)
                                         .set(item.name() != null, Sku::getName, item.name())
                                         .set(item.image() != null, Sku::getImage, item.image())
-                                        .set(item.originalPrice() != null, Sku::getOriginalPrice, item.originalPrice())
+                                        .set(originalFen != null, Sku::getOriginalPrice, originalFen)
                                         .set(item.skuCode() != null, Sku::getSkuCode, item.skuCode())
                                         .set(item.status() != null, Sku::getStatus, item.status())
-                                        .set(Sku::getPrice, item.price()));
+                                        .set(Sku::getPrice, item.price().amount())
+                                        // 币种与价格同批落：两列是一笔钱的两个半边，只写一边就是让币种说谎
+                                        .set(Sku::getCurrency, item.price().currency()));
                         Validate.isTrue(affected == 1, "SKU 不存在或不属于该商品");
                         // 3. 库存绝对量设定（读-改-写，乐观锁）：同一事务内同步调用 inventory :: api
                         stockCommand.setTotal(item.skuId(), item.stock());

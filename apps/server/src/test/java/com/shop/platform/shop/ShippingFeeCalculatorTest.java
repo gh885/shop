@@ -40,6 +40,7 @@ class ShippingFeeCalculatorTest {
                 .firstFee(firstFee)
                 .addQuantity(addQuantity)
                 .addFee(addFee)
+                .currency(Money.CNY)
                 .build();
     }
 
@@ -53,6 +54,7 @@ class ShippingFeeCalculatorTest {
                 .freeShipping(freeShipping)
                 .freeOverQuantity(freeOverQuantity)
                 .freeOverAmount(freeOverAmount)
+                .currency(Money.CNY)
                 .build();
     }
 

@@ -82,9 +82,6 @@ function PayPage() {
               ? "paying"
               : "ready"
 
-    // 金额恒由后端按订单投影给出（Money 的 amount 非空）
-    const amount = order.payAmount.amount
-
     return (
         <div className="flex min-h-page-center flex-col items-center justify-center px-6">
             <Card className="w-full max-w-md text-center">
@@ -107,7 +104,7 @@ function PayPage() {
                                 订单号 {order.orderNo}
                             </p>
                             <Price
-                                value={amount}
+                                value={order.payAmount}
                                 className="mt-4 text-4xl font-bold text-foreground"
                             />
                             <p className="mt-2 text-xs text-muted-foreground">

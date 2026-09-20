@@ -3,6 +3,7 @@ import type {
     CartProductInfo as SdkCartProductInfo,
     SkuInfo,
 } from "@shop/api/sdk"
+import { type Money, sumMoney, timesMoney } from "@shop/common"
 
 /** 购物车嵌入的商品缩略信息 —— 契约同 SDK CartProductInfo，仅重命名投影（name→title、mainImage→image） */
 type CartItemProduct = Omit<SdkCartProductInfo, "name" | "mainImage"> & {
@@ -93,10 +94,10 @@ export type CartItemView = {
     title: string
     /** SKU 规格名（无 SKU 快照时为空） */
     skuName?: string
-    /** 现价（分）：SKU 已删则无价可展示 */
-    price?: number
-    /** 划线价（分）：无划线价时为空 */
-    original?: number
+    /** 现价：SKU 已删则无价可展示 */
+    price?: Money
+    /** 划线价：无划线价时为空 */
+    original?: Money
     stock: number
     outOfStock: boolean
     disabled: boolean
@@ -112,9 +113,9 @@ export function deriveSelectedItems(items: CartItem[]): SellableCartItem[] {
     return items.filter(isSellable)
 }
 
-/** 选中条目合计金额（分） */
-export function deriveSelectedTotal(selectedItems: SellableCartItem[]): number {
-    return selectedItems.reduce((sum, i) => sum + i.sku.price.amount * i.quantity, 0)
+/** 选中条目合计：单价 × 件数逐条累加，全程不离开 Money */
+export function deriveSelectedTotal(selectedItems: SellableCartItem[]): Money {
+    return sumMoney(selectedItems.map((i) => timesMoney(i.sku.price, i.quantity)))
 }
 
 /**
@@ -159,8 +160,8 @@ export function deriveCartItemView(item: CartItem): CartItemView {
         image: item.sku.image ?? item.product.image,
         title: item.product.title,
         skuName: item.sku.name || undefined,
-        price: item.sku.price.amount,
-        original: item.sku.originalPrice?.amount,
+        price: item.sku.price,
+        original: item.sku.originalPrice ?? undefined,
         stock,
         outOfStock: item.available && stock === 0,
         disabled: !item.available,

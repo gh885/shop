@@ -4,6 +4,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
 
 import type { CouponTemplateResponse } from "@shop/api/sdk"
+import { money } from "@shop/common"
 import { server } from "@shop/test-utils"
 
 import { renderWithProviders } from "#/test/render"
@@ -78,8 +79,8 @@ describe("CouponFormDialog", () => {
         await waitFor(() => expect(body).toBeDefined())
         expect(body).toMatchObject({
             name: "新春满减券",
-            thresholdAmount: 10000,
-            discountAmount: 1000,
+            thresholdAmount: money(10000),
+            discountAmount: money(1000),
             totalQuantity: 50,
         })
         // 本地 10:00 是同一个瞬间，但必须以带时区的 ISO 发给 OffsetDateTime
@@ -124,7 +125,7 @@ describe("CouponFormDialog", () => {
         await user.click(screen.getByRole("button", { name: "创建" }))
 
         await waitFor(() => expect(body).toBeDefined())
-        expect(body).toMatchObject({ thresholdAmount: 0 })
+        expect(body).toMatchObject({ thresholdAmount: money(0) })
     })
 
     it("面额大于门槛：拦在本地并说明原因，不发请求", async () => {

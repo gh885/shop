@@ -3,6 +3,7 @@ package com.shop.platform.product.mapper;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.infra.db.JsonbStringListHandler;
@@ -89,15 +90,32 @@ public class Product extends AuditedEntity {
      * 一次算好 min/max 价格冗余副本（真实成交价永远以 skus.price 为准；全部未定价时两端为 null）。
      * 只反映「在售 SKU」（买家实际可购集）：停用 SKU 的价不计入，否则列表「¥299 起」可能摘自已停用 SKU，
      * 点进去买不到（publicDetail 只返在售）。
+     *
+     * <p>币种跟着价格走：区间是从 SKU 的价格聚合出来的，币种也就取那些 SKU 的币种（同为 null 时落平台默认币种，
+     * 此时两列都不写值，币种只是占住 NOT NULL）。
      */
     public void applyPriceRange(List<Sku> skus) {
-        List<Long> prices = skus.stream()
+        List<Sku> priced = skus.stream()
                 .filter(Sku::isOnSale)
-                .map(Sku::getPrice)
-                .filter(Objects::nonNull)
+                .filter(s -> s.getPrice() != null)
                 .toList();
-        minPrice = prices.stream().min(Long::compare).orElse(null);
-        maxPrice = prices.stream().max(Long::compare).orElse(null);
+        minPrice = priced.stream().map(Sku::getPrice).min(Long::compare).orElse(null);
+        maxPrice = priced.stream().map(Sku::getPrice).max(Long::compare).orElse(null);
+        currency = priced.stream()
+                .map(Sku::getCurrency)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(Money.CNY);
+    }
+
+    /** 区间下限为 Money；草稿期未定价时为 null */
+    public Money minPriceAsMoney() {
+        return Money.ofFenOrNull(minPrice, currency);
+    }
+
+    /** 区间上限为 Money；草稿期未定价时为 null */
+    public Money maxPriceAsMoney() {
+        return Money.ofFenOrNull(maxPrice, currency);
     }
 
     /** 规格模板的笛卡尔积：specs 为空时返回 [[]]，恰好对应单规格商品的 1 个隐藏 SKU；各维取值按 valueId 去重 */
@@ -192,6 +210,9 @@ public class Product extends AuditedEntity {
      * <p>来源同样是各 SKU 的 price，单规格商品时 minPrice == maxPrice。
      */
     private Long maxPrice;
+
+    /** 价格区间的币种（如 CNY），与 min/max 一起组成 Money；由 {@link #applyPriceRange} 随价格一同落 */
+    private String currency;
 
     /**
      * 累计销量（已完成订单成交件数之和）——product 自持的投影列，订单完成时经 product.api :: ProductCommand 单语句自增。

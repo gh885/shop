@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Money;
 import com.shop.platform.shop.dto.ShippingTemplateRequest;
 import com.shop.platform.shop.mapper.ShippingRule;
 import com.shop.platform.shop.mapper.ShippingTemplate;
@@ -42,7 +43,11 @@ class SellerShippingTemplateControllerTest extends WebControllerTestSupport {
     /** 一份最小可用的 service 出参（controller 只做形状转换，内容不是本测试的断言对象） */
     private ShippingPricing pricing() {
         return new ShippingPricing(
-                ShippingTemplate.builder().id(UUID.randomUUID()).shopId(shopId).build(),
+                ShippingTemplate.builder()
+                        .id(UUID.randomUUID())
+                        .shopId(shopId)
+                        .currency(Money.CNY)
+                        .build(),
                 ShippingRule.builder()
                         .id(UUID.randomUUID())
                         .isDefault(true)
@@ -50,6 +55,7 @@ class SellerShippingTemplateControllerTest extends WebControllerTestSupport {
                         .firstFee(1000L)
                         .addQuantity(1)
                         .addFee(500L)
+                        .currency(Money.CNY)
                         .build(),
                 List.of(),
                 List.of());
@@ -100,9 +106,9 @@ class SellerShippingTemplateControllerTest extends WebControllerTestSupport {
                 {
                   "freeShipping": false,
                   "freeOverQuantity": 3,
-                  "defaultRule": {"firstQuantity": 1, "firstFee": 1000, "addQuantity": 1, "addFee": 500},
+                  "defaultRule": {"firstQuantity": 1, "firstFee": {"amount": 1000, "currency": "CNY"}, "addQuantity": 1, "addFee": {"amount": 500, "currency": "CNY"}},
                   "regionRules": [
-                    {"regionPrefixes": ["4403"], "firstQuantity": 1, "firstFee": 2000, "addQuantity": 1, "addFee": 800}
+                    {"regionPrefixes": ["4403"], "firstQuantity": 1, "firstFee": {"amount": 2000, "currency": "CNY"}, "addQuantity": 1, "addFee": {"amount": 800, "currency": "CNY"}}
                   ],
                   "excludedRegions": ["65"]
                 }
@@ -138,7 +144,7 @@ class SellerShippingTemplateControllerTest extends WebControllerTestSupport {
                                     .content(
                                             """
                                     {"freeShipping": false,
-                                     "defaultRule": {"firstQuantity": 0, "firstFee": 1000, "addQuantity": 1, "addFee": 500}}
+                                     "defaultRule": {"firstQuantity": 0, "firstFee": {"amount": 1000, "currency": "CNY"}, "addQuantity": 1, "addFee": {"amount": 500, "currency": "CNY"}}}
                                     """))
                     .andExpect(status().isUnprocessableEntity());
         }
@@ -152,9 +158,9 @@ class SellerShippingTemplateControllerTest extends WebControllerTestSupport {
                                     .content(
                                             """
                                     {"freeShipping": false,
-                                     "defaultRule": {"firstQuantity": 1, "firstFee": 1000, "addQuantity": 1, "addFee": 500},
+                                     "defaultRule": {"firstQuantity": 1, "firstFee": {"amount": 1000, "currency": "CNY"}, "addQuantity": 1, "addFee": {"amount": 500, "currency": "CNY"}},
                                      "regionRules": [
-                                       {"regionPrefixes": [], "firstQuantity": 1, "firstFee": 2000, "addQuantity": 1, "addFee": 800}
+                                       {"regionPrefixes": [], "firstQuantity": 1, "firstFee": {"amount": 2000, "currency": "CNY"}, "addQuantity": 1, "addFee": {"amount": 800, "currency": "CNY"}}
                                      ]}
                                     """))
                     .andExpect(status().isUnprocessableEntity());
@@ -174,9 +180,25 @@ class SellerShippingTemplateControllerTest extends WebControllerTestSupport {
             verify(shippingTemplateService).save(org.mockito.ArgumentMatchers.eq(shopId), captured.capture());
             ShippingTemplateRequest req = captured.getValue();
             assertEquals(3, req.freeOverQuantity().intValue());
-            assertEquals(1000L, req.defaultRule().firstFee().longValue());
+            assertEquals(1000L, req.defaultRule().firstFee().amount());
+            assertEquals(Money.CNY, req.defaultRule().firstFee().currency());
             assertEquals(List.of("4403"), req.regionRules().getFirst().regionPrefixes());
             assertEquals(List.of("65"), req.excludedRegions());
+        }
+
+        @Test
+        void 非平台定价币种_400() throws Exception {
+            // 绑定阶段就被 Money 的构造器挡下：库里 CHECK (currency='CNY') 撞上会是 500，入参先给「填错了」
+            mockMvc.perform(
+                            put("/seller/shipping-template")
+                                    .with(userAuth(userId))
+                                    .header("X-Shop-Id", shopId.toString())
+                                    .content(
+                                            """
+                            {"freeShipping": false,
+                             "defaultRule": {"firstQuantity": 1, "firstFee": {"amount": 1000, "currency": "USD"}, "addQuantity": 1, "addFee": {"amount": 500, "currency": "CNY"}}}
+                            """))
+                    .andExpect(status().isBadRequest());
         }
     }
 }

@@ -1,4 +1,5 @@
 import type { CategoryAttrNodeResponse, SkuResponse } from "@shop/api/sdk"
+import { money } from "@shop/common"
 
 import { describe, expect, it } from "vitest"
 
@@ -48,7 +49,10 @@ function makeSelection(attrId: string, valueIds: string[] = [], customValues: st
     return { attrId, valueIds, customValues }
 }
 
-/** 夹具 2：SkuResponse 可控构造（关心维度：label 拼接、价格分/null、库存、编码、状态） */
+/**
+ * 夹具 2：SkuResponse 可控构造（关心维度：label 拼接、价格/null、库存、编码、状态）。
+ * 价格按「分」书写，夹具内换成 Money——测试正文不必到处写对象字面量。
+ */
 function makeSku(
     id: string,
     attrs: string[],
@@ -60,6 +64,7 @@ function makeSku(
     } = {},
 ): SkuResponse {
     const { price = 19900, stock = 5, skuCode = null, status = "ON_SALE" } = opts
+    const priced = price === null ? null : money(price)
     return {
         id,
         productId: "p1",
@@ -72,9 +77,8 @@ function makeSku(
             value,
         })),
         image: null,
-        price,
-        originalPrice: price,
-        currency: "CNY",
+        price: priced,
+        originalPrice: priced,
         stock,
         status,
         createdAt: "2026-01-01T00:00:00Z",
@@ -82,27 +86,31 @@ function makeSku(
     }
 }
 
-function makeRow(label: string, opts: Partial<SkuDraftRow> = {}): SkuDraftRow {
+function makeRow(
+    label: string,
+    opts: Partial<Omit<SkuDraftRow, "price">> & { price?: number | null } = {},
+): SkuDraftRow {
+    const { price, ...rest } = opts
     return {
         skuId: null,
         label,
-        price: null,
+        price: typeof price === "number" ? money(price) : (price ?? null),
         stock: null,
         skuCode: null,
         status: "ON_SALE",
-        ...opts,
+        ...rest,
     }
 }
 
-// ---------- 单元格输入规则（元文本 → 分） ----------
+// ---------- 单元格输入规则（元文本 → Money） ----------
 
 describe("yuanPriceSchema", () => {
-    it("合法输入换算到分（两位小数内），首尾空白被裁剪", () => {
-        expect(yuanPriceSchema.parse("12.34")).toBe(1234)
-        expect(yuanPriceSchema.parse("0.1")).toBe(10)
-        expect(yuanPriceSchema.parse("0")).toBe(0)
-        expect(yuanPriceSchema.parse("0.00")).toBe(0)
-        expect(yuanPriceSchema.parse("  5  ")).toBe(500)
+    it("合法输入换算成 Money（两位小数内，币种取平台定价币种），首尾空白被裁剪", () => {
+        expect(yuanPriceSchema.parse("12.34")).toEqual(money(1234))
+        expect(yuanPriceSchema.parse("0.1")).toEqual(money(10))
+        expect(yuanPriceSchema.parse("0")).toEqual(money(0))
+        expect(yuanPriceSchema.parse("0.00")).toEqual(money(0))
+        expect(yuanPriceSchema.parse("  5  ")).toEqual(money(500))
     })
 
     it("非法格式被拒：负数/超两位小数/科学计数/纯符号", () => {
@@ -211,13 +219,13 @@ describe("buildSkuRowsFromSelections", () => {
 // ---------- wire → 可编辑行 ----------
 
 describe("rowFromSku", () => {
-    it("label 按属性值拼接；金额不分/元互转（模型即分），库存透传", () => {
+    it("label 按属性值拼接；金额原样透传 Money（不做分/元互转），库存透传", () => {
         const row = rowFromSku(makeSku("s1", ["红", "M"], { price: 19900, stock: 3 }))
 
         expect(row).toMatchObject({
             skuId: "s1",
             label: "红 / M",
-            price: 19900,
+            price: money(19900),
             stock: 3,
         })
     })
@@ -248,7 +256,7 @@ describe("mergeSkuRows", () => {
         const fresh = [makeSku("s1", ["红"], { price: 19900, stock: 5, skuCode: null })]
 
         expect(mergeSkuRows(previous, fresh)[0]).toMatchObject({
-            price: 2500,
+            price: money(2500),
             stock: 9,
             skuCode: "C1",
         })
@@ -259,7 +267,7 @@ describe("mergeSkuRows", () => {
         const fresh = [makeSku("s1", ["红"], { stock: 5 })]
 
         expect(mergeSkuRows(previous, fresh)[0]).toMatchObject({
-            price: 2500,
+            price: money(2500),
             stock: 5,
         })
     })
@@ -268,20 +276,20 @@ describe("mergeSkuRows", () => {
         const previous = [makeRow("红", { skuId: "s1", price: 0 })]
         const fresh = [makeSku("s1", ["红"], { price: 19900 })]
 
-        expect(mergeSkuRows(previous, fresh)[0]?.price).toBe(0)
+        expect(mergeSkuRows(previous, fresh)[0]?.price).toEqual(money(0))
     })
 
     it("新组合（无 skuId 匹配）不残留旧行数据", () => {
         const previous = [makeRow("红", { skuId: "s1", price: 2500 })]
         const fresh = [makeSku("s2", ["蓝"])]
 
-        expect(mergeSkuRows(previous, fresh)[0]).toMatchObject({ skuId: "s2", price: 19900 })
+        expect(mergeSkuRows(previous, fresh)[0]).toMatchObject({ skuId: "s2", price: money(19900) })
     })
 
     it("上一轮为空时全部用服务端行", () => {
         const fresh = [makeSku("s1", ["红"])]
 
-        expect(mergeSkuRows(undefined, fresh)[0]).toMatchObject({ price: 19900, stock: 5 })
+        expect(mergeSkuRows(undefined, fresh)[0]).toMatchObject({ price: money(19900), stock: 5 })
     })
 })
 
@@ -294,7 +302,7 @@ describe("mergeLocalPricedRows", () => {
 
         expect(mergeLocalPricedRows(local, serverRows)[0]).toMatchObject({
             skuId: "s1",
-            price: 2500,
+            price: money(2500),
             stock: 9,
         })
     })
@@ -304,7 +312,7 @@ describe("mergeLocalPricedRows", () => {
         const serverRows = [makeRow("红", { skuId: "s1", price: 19900, stock: 5, skuCode: "C1" })]
 
         expect(mergeLocalPricedRows(local, serverRows)[0]).toMatchObject({
-            price: 2500,
+            price: money(2500),
             stock: 5,
             skuCode: "C1",
         })
@@ -322,7 +330,7 @@ describe("mergeLocalPricedRows", () => {
 
         expect(mergeLocalPricedRows([], serverRows)[0]).toMatchObject({
             skuId: "s2",
-            price: 19900,
+            price: money(19900),
         })
     })
 })
@@ -350,7 +358,11 @@ describe("toSkuUpdateItems", () => {
         ]
 
         expect(toSkuUpdateItems(rows)).toHaveLength(1)
-        expect(toSkuUpdateItems(rows)[0]).toMatchObject({ skuId: "s1", price: 2500, stock: 9 })
+        expect(toSkuUpdateItems(rows)[0]).toMatchObject({
+            skuId: "s1",
+            price: money(2500),
+            stock: 9,
+        })
     })
 
     it("库存 null → 0（产品决策：没填库存的 SKU 落 0），编码空/空白 → 省略，只在此边界兜底", () => {

@@ -10,25 +10,39 @@
  * 凡是需要用户理解"顺序 / 叠加 / 分摊"的券，都不该出现在这一层。
  */
 import type { CouponUnavailableReason } from "@shop/api"
+import type { Money } from "./money"
+import { currencySymbol, groupYuan } from "./money"
 
-/** 分 → 元文案：去掉无意义的尾随 0（1000 → "10"、990 → "9.9"、1050 → "10.5"） */
-export function couponYuanText(fen: number): string {
-    const text = (fen / 100).toFixed(2)
-    if (text.endsWith(".00")) return text.slice(0, -3)
-    if (text.endsWith("0")) return text.slice(0, -1)
-    return text
+/**
+ * 分 → 元（券文案专用）：去掉无意义的尾随 0（1000 → "10"、990 → "9.9"、1050 → "10.5"）。
+ *
+ * 「满 1000 减 100」写成「满 ¥1000.00」会挤爆卡片，也会让人误以为角分是券的一部分——券面额是整元语义。
+ */
+export function couponYuanText(m: Money): string {
+    const text = (m.amount / 100).toFixed(2)
+    const trimmed = text.endsWith(".00")
+        ? text.slice(0, -3)
+        : text.endsWith("0")
+          ? text.slice(0, -1)
+          : text
+    return groupYuan(trimmed)
+}
+
+/** 金额文案（含币种符号）：券面上出现的那笔钱 */
+export function couponMoneyText(m: Money): string {
+    return `${currencySymbol(m.currency)}${couponYuanText(m)}`
 }
 
 /** 门槛文案：0 是「无门槛」而不是「满 ¥0」，后者会被读成一句废话 */
-export function couponThresholdText(thresholdFen: number): string {
-    return thresholdFen <= 0 ? "无门槛" : `满 ¥${couponYuanText(thresholdFen)} 可用`
+export function couponThresholdText(threshold: Money): string {
+    return threshold.amount <= 0 ? "无门槛" : `满 ${couponMoneyText(threshold)} 可用`
 }
 
 /** 一句话规则："满 ¥100 减 ¥10" / "无门槛减 ¥10" */
-export function couponRuleText(thresholdFen: number, discountFen: number): string {
-    return thresholdFen <= 0
-        ? `无门槛减 ¥${couponYuanText(discountFen)}`
-        : `满 ¥${couponYuanText(thresholdFen)} 减 ¥${couponYuanText(discountFen)}`
+export function couponRuleText(threshold: Money, discount: Money): string {
+    return threshold.amount <= 0
+        ? `无门槛减 ${couponMoneyText(discount)}`
+        : `满 ${couponMoneyText(threshold)} 减 ${couponMoneyText(discount)}`
 }
 
 /**

@@ -1,7 +1,6 @@
 package com.shop.platform.coupon.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
@@ -58,19 +57,22 @@ public class CouponTemplateService {
      */
     @Transactional
     public ShopCoupon create(UUID shopId, CreateCouponTemplateRequest req) {
-        // 1. 业务条款校验（@Min/@NotNull 只挡住形状，语义条款在这里）
+        // 1. 业务条款校验（@NotNull 只挡住形状，语义条款在这里）
         Validate.isTrue(req.validTo().isAfter(req.validFrom()), "有效期终点必须晚于起点");
+        Validate.isTrue(req.discountAmount().amount() > 0, "减免额必须大于 0");
         // 「满 100 减 200」这类配置几乎一定是笔误：门槛以内的减免不该超过门槛本身（无门槛券不受此限）
         Validate.isTrue(
-                req.thresholdAmount() == 0 || req.discountAmount() <= req.thresholdAmount(), "减免额不能超过使用门槛，请检查是否填反");
+                req.thresholdAmount().amount() == 0 || req.thresholdAmount().atLeast(req.discountAmount()),
+                "减免额不能超过使用门槛，请检查是否填反");
 
         // 2. 落模板：规则的定义。issued_quantity 从 0 起，由领券的条件更新推进
+        //    两个金额必同币种（入参已按平台币种收口），模板一份币种列即代表这两个金额
         CouponTemplate template = CouponTemplate.builder()
                 .shopId(shopId)
                 .name(req.name().trim())
-                .thresholdAmount(req.thresholdAmount())
-                .discountAmount(req.discountAmount())
-                .currency(Money.CNY)
+                .thresholdAmount(req.thresholdAmount().amount())
+                .discountAmount(req.discountAmount().amount())
+                .currency(req.discountAmount().currency())
                 .bearer(CouponBearer.SELLER)
                 .validFrom(req.validFrom())
                 .validTo(req.validTo())
@@ -83,8 +85,8 @@ public class CouponTemplateService {
                 "[COUPON] 新建券模板, shopId={}, templateId={}, 满{}减{}, 总量={}",
                 shopId,
                 template.getId(),
-                req.thresholdAmount(),
-                req.discountAmount(),
+                req.thresholdAmount().amount(),
+                req.discountAmount().amount(),
                 req.totalQuantity());
         return new ShopCoupon(template, 0);
     }

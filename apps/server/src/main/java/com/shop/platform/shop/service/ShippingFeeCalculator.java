@@ -1,6 +1,7 @@
 package com.shop.platform.shop.service;
 
 import com.shop.platform.common.Money;
+import com.shop.platform.common.Validate;
 import com.shop.platform.shop.api.ShippingQuote;
 import com.shop.platform.shop.mapper.ShippingRule;
 import java.util.List;
@@ -25,18 +26,19 @@ public class ShippingFeeCalculator {
 
     /** 按件计费报价：收货区码 + 同店合计件数/商品额 → 运费 */
     public ShippingQuote quote(ShippingPricing pricing, String regionCode, int totalQuantity, Money itemAmount) {
+        // 币种先对齐：模板报的是它自己的币种，与商品额不同币种就没有「够不够包邮」可谈（一期恒 CNY）
+        Validate.isTrue(itemAmount.currency().equals(pricing.template().getCurrency()), "运费模板币种与本单不一致");
         // 1. 不配送：命中即送不到，运费无意义（给 0 而不是给个哨兵金额，order 看 deliverable 决定拒绝下单）
         if (excluded(pricing.excludedRegions(), regionCode)) {
-            return new ShippingQuote(pricing.template().getId(), false, zero(itemAmount));
+            return new ShippingQuote(pricing.template().getId(), false, zero(pricing));
         }
         // 2. 模板级包邮：整店包邮或满件/满额（判定基数是同店商品总额，运费是待求的结果，不能拿它判条件）
-        if (pricing.template().freeAt(totalQuantity, itemAmount.amount())) {
-            return new ShippingQuote(pricing.template().getId(), true, zero(itemAmount));
+        if (pricing.template().freeAt(totalQuantity, itemAmount)) {
+            return new ShippingQuote(pricing.template().getId(), true, zero(pricing));
         }
         // 3. 选规则：最长前缀胜；无任何指定地区命中则回落默认规则
         ShippingRule rule = longestMatch(pricing.regionRules(), regionCode).orElse(pricing.defaultRule());
-        return new ShippingQuote(
-                pricing.template().getId(), true, Money.ofFen(rule.feeOf(totalQuantity), itemAmount.currency()));
+        return new ShippingQuote(pricing.template().getId(), true, rule.feeOf(totalQuantity));
     }
 
     /** 收货区码是否落在不配送前缀下（前缀命中，粒度不看长短：排除一个省与排除一个区县同样直接） */
@@ -59,8 +61,8 @@ public class ShippingFeeCalculator {
         return Optional.ofNullable(best);
     }
 
-    /** 零运费：币种跟订单走，不能凭空造一个 CNY（模板本身不存币种） */
-    private static Money zero(Money itemAmount) {
-        return Money.ofFen(0, itemAmount.currency());
+    /** 零运费：币种跟模板走 —— 模板才是这笔运费的报价方 */
+    private static Money zero(ShippingPricing pricing) {
+        return Money.zero(pricing.template().getCurrency());
     }
 }

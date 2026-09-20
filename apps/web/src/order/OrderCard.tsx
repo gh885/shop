@@ -19,7 +19,7 @@ import { deriveOrderActions, type Order, type OrderAction } from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 import { formatDateTime } from "@shop/app-kit"
-import { fenToYuan } from "@shop/common"
+import { formatMoney, sumMoney } from "@shop/common"
 
 import { Price } from "#/shared/ui/Price"
 
@@ -56,7 +56,7 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
     const statusMeta = ORDER_CARD_STATUS_META[order.status]
     const quantity = order.items.reduce((sum, item) => sum + item.quantity, 0)
     // 列表 itemAmount 是净额占位；商品总额只能从成交快照的行小计求和。
-    const itemTotal = order.items.reduce((sum, item) => sum + item.amount.amount, 0)
+    const itemTotal = sumMoney(order.items.map((item) => item.amount))
 
     return (
         <Panel className="@container/order">
@@ -147,13 +147,13 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                             <div className="ms-auto w-24 shrink-0 space-y-1 text-end tabular-nums">
                                 <p className="text-xs text-muted-foreground">成交单价</p>
                                 <Price
-                                    value={item.price.amount}
+                                    value={item.price}
                                     className="text-sm text-foreground"
                                 />
                                 {item.originalPrice !== null &&
                                     item.originalPrice.amount > item.price.amount && (
                                         <p className="text-xs text-muted-foreground line-through">
-                                            ¥{fenToYuan(item.originalPrice.amount)}
+                                            {formatMoney(item.originalPrice)}
                                         </p>
                                     )}
                             </div>
@@ -163,7 +163,7 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                                 <p className="text-sm font-bold text-foreground">
                                     小计{" "}
                                     <Price
-                                        value={item.amount.amount}
+                                        value={item.amount}
                                         className="text-sm text-foreground"
                                     />
                                 </p>
@@ -187,12 +187,12 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                     <div className="ms-auto space-y-1 text-end">
                         <p className="flex flex-wrap justify-end gap-2 text-xs text-muted-foreground tabular-nums">
                             <span>商品合计</span>
-                            <span>¥{fenToYuan(itemTotal)}</span>
+                            <span>{formatMoney(itemTotal)}</span>
                         </p>
                         <p className="flex flex-wrap items-baseline gap-2">
                             <span className="text-muted-foreground">订单金额</span>
                             <Price
-                                value={order.payAmount.amount}
+                                value={order.payAmount}
                                 className="text-lg font-medium text-primary"
                             />
                         </p>
