@@ -85,6 +85,16 @@ src/main/java/com/shop/platform/
 
 摆放两轴：**谁读它**（跨模块 → 根共享层；仅模块内 → `<module>.infra`）；**换技术重写吗**（重写 → infra；不重写 → common）。镜像示例：`UserIdHolder`（跨模块，common）vs `ShopMemberContext`（仅 shop，shop.infra）。
 
+## 金额（Money）
+
+**判据：一笔钱在链路上只有一个形状 —— `common/Money`（`amount` 分 + `currency`）。** 裸 `long`/`BigDecimal` 出现在契约里，那一刻币种就丢了（前端只能替平台猜一个）。所以「哪儿该是 Money」不需要判断：**不在 mapper 包、又是金额的，就是 Money。**
+
+- **落库存列对**：金额列（`price` / `pay_amount` / `first_fee`…）配一个本表自己的 `currency` 列，`CHECK (currency = 'CNY')` 把「一期只有 CNY」钉成 DB 不变式（V58）。币种按行存而不是随父行：派生视图要在自己这一行闭合，跨表继承币种得 JOIN 才说得出口
+- **闸门分三层，各挡一类事故**：DB `CHECK`（脏数据写不进）＋ `Money.requirePlatformCurrency()`（入参币种错时给 400 而不是撞 CHECK 变 500）＋ 金额非负 / 区间不自相矛盾的 `CHECK`（`min_price <= max_price`）
+- **实体只负责换算**：mapper 实体留 `price` + `currency` 两列（MyBatis 按列映射），对外给派生视图 `priceAsMoney()` / `originalPriceAsMoney()`（可空列走 `Money.ofFenOrNull`）；`currency` 字段不得出现在 mapper 实体与 Money 之外任何地方
+- **运算不脱离 Money**：`plus` / `minus` / `times` / `atLeast` 只在同币种间成立，跨币种抛 400 而不是静默算；零金额用 `Money.zero(手上这笔钱的币种)`，不凭空造 CNY
+- 由 `MoneyTypeRulesTest`（ArchUnit）强制：契约层（dto / api / controller / service / events / common）的金额命名字段类型必须是 Money；`currency` 字段只允许出现在 mapper 实体与 Money（含 `infra.db` 造数器）里
+
 ## 命名规范（三层契约）
 
 后缀只标方向，不标层次；出参能复用就复用，变形才新建。

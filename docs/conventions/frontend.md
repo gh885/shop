@@ -129,6 +129,23 @@ useMutation({
 4. **`useSuspenseQuery` 收不到 `throwOnError`**（类型里被 `Omit`，运行时被内部判据覆盖）：降级消费者要退出全局默认时，**必须在调用点写** `useQuery({ ...options, throwOnError: false })`，写在共享 options 里是静默失效。
 5. **`QueryErrorResetBoundary` 必须在树里**（三端 Provider 树已挂，`QueryBoundary` 自带一层），否则重试按钮形同虚设。
 
+## 金额（Money）
+
+**一句话**：`Money { amount(分), currency }` 是链路上唯一的金额形状，「元」只活在输入框和展示文本里；运算和展示都不许脱离 Money，否则币种在那一刻就丢了。
+
+| 要做的事           | 用什么（都在 `@shop/common` 的 `money.ts`）                                      | 不要                               |
+| ------------------ | -------------------------------------------------------------------------------- | ---------------------------------- |
+| 展示一笔钱         | `formatMoney(m, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种）       | 各处手写 `¥${fenToYuan(m.amount)}` |
+| 加减乘件数求和     | `plusMoney` / `minusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加） | `.amount` 抠出来做算术             |
+| 表单回填           | `moneyToYuan(m)`（无符号、不分组、补齐两位）                                     | 拿 `formatMoney` 的结果塞进 input  |
+| 元输入 → Money     | `yuanToMoney` / `yuanPriceSchema`（币种取 `PLATFORM_CURRENCY`）                  | 自己 `Number(v) * 100`             |
+| 判两笔钱是否同一笔 | `sameMoney`（Money 是值对象，`===` 比的是引用）                                  | `a.price !== b.price`              |
+
+- 缺席的钱显式给占位符（`formatMoney(undefined)` → `—`）：`¥0.00` 和「没有数」是两件事，前者会被读成免单。
+- 造零值不凭空预设币种：`sumMoney` 非空时起点币种跟第一笔钱，`zeroMoney(currency)` 的币种从手上这批钱里拿。
+- 不用契约生成的 `zMoney` 做校验收口：hey-api 把 `int64` 生成成 `z.coerce.bigint()`，输出 `bigint` 与 `Money.amount: number` 不兼容。
+- 千分位分组固定在 `groupYuan`，不吃运行机器的区域设置（同一笔钱不该在中文 Windows 和控制台上长得不一样）。
+
 ## 前端测试（Vitest + Testing Library + MSW）
 
 ```bash

@@ -49,17 +49,17 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 
 ## 规范在哪（动对应代码前先读）
 
-| 你要动的东西                                       | 必读                                                     |
-| -------------------------------------------------- | -------------------------------------------------------- |
-| 后端（apps/server）：架构规则、模块组织、命名、测试 | `apps/server/AGENTS.md`（本目录自动加载）                |
-| 前端（apps/*、packages/*）：目录、状态、取数、测试  | [docs/conventions/frontend.md](docs/conventions/frontend.md)；改取数条款前先读其论证 [query-convergence.md](docs/conventions/query-convergence.md) |
-| UI / 视觉 / 加组件                                  | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md)   |
-| 架构总览、模块依赖图、关键链路、全库 ID 策略        | [docs/architecture.md](docs/architecture.md)             |
-| 当前进行中的事                                      | [TODO.md](TODO.md)                                       |
+| 你要动的东西                                           | 必读                                                                                                                                               |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 后端（apps/server）：架构规则、模块组织、命名、测试    | `apps/server/AGENTS.md`（本目录自动加载）                                                                                                          |
+| 前端（`apps/*`、`packages/*`）：目录、状态、取数、测试 | [docs/conventions/frontend.md](docs/conventions/frontend.md)；改取数条款前先读其论证 [query-convergence.md](docs/conventions/query-convergence.md) |
+| UI / 视觉 / 加组件                                     | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md)                                                                                             |
+| 架构总览、模块依赖图、关键链路、全库 ID 与金额策略     | [docs/architecture.md](docs/architecture.md)                                                                                                       |
+| 当前进行中的事                                         | [TODO.md](TODO.md)                                                                                                                                 |
 
 ## 高频硬规则速览（细则与完整版见上表对应文件）
 
-- **Money**：所有金额用 `Money` 类型（amount + currency），不裸传 int64（前后端皆然）
+- **Money**：金额全链路只有一个形状 `Money { amount(分), currency }`——DB 存 `(amount, currency)` 列对 + `CHECK (currency='CNY')`，Java / OpenAPI 契约 / TS 同名同形，不裸传 int64；运算与展示都不脱离 Money（前端展示只走 `formatMoney` / 共享 `Price`，符号跟币种，不各处手写 `¥${fenToYuan(m.amount)}`）。编译期门禁见 `MoneyTypeRulesTest`：契约层金额字段必须是 Money、币种列只允许出现在 mapper 实体与 Money 里
 - **后端**：模块间只走 api 包同步调用或 events 事件，不 import 对方 service/repo；不许跨 schema JOIN；跨 schema 裸 SQL 只允许 infra.db 与各模块 api 包
 - **前端取数**：TanStack Query 是唯一服务端状态通道，不裸 fetch；key 工厂集中域内 `queries.ts`，不造第二棵 key 树；loader 预取用 `query({ ...options, staleTime: "static" })`
 - **前端写操作**：库 `useMutation` + `meta`（success/error/silentError/invalidates）声明，反馈与失效由全局 MutationCache 执行，不包 hook 工厂，`invalidates` 传真实 query key
