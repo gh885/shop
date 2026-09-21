@@ -53,6 +53,7 @@ function makeListDto(
         availableActions: opts.availableActions ?? ["PAY", "CANCEL"],
         payAmount: MONEY,
         payExpireAt: "2026-09-06T12:00:00Z",
+        shipExpireAt: null,
         createdAt: "2026-09-06T11:30:00Z",
         items: opts.items ?? [makeItemDto()],
     }
@@ -240,10 +241,10 @@ describe("deriveOrderActions（按钮排 = 后端动作 + 前端附加）", () =
         availableActions: OrderAvailableAction[],
     ) => toOrder(makeListDto({ status, availableActions }))
 
-    it("待发货_后端的取消 + 前端的提醒发货都在（曾经只给了提醒，取消了没入口）", () => {
+    it("待发货_只有后端的取消（提醒发货按钮已删：没有消息通道，点了什么都不发生）", () => {
         const items = deriveOrderActions(orderOf("PAID", ["CANCEL"]), "card")
 
-        expect(items.map((i) => i.key)).toEqual(["cancel", "remind"])
+        expect(items.map((i) => i.key)).toEqual(["cancel"])
     })
 
     it("已发货_查看物流在后端的确认收货之前，且确认收货是主操作", () => {

@@ -13,6 +13,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
         createdAt: "2026-09-17T12:00:00Z",
         status: "pending_shipment",
         payExpireAt: "",
+        shipExpireAt: null,
         shopId: "shop-1",
         shopName: "演示服饰店",
         availableActions: ["cancel"],
@@ -43,9 +44,26 @@ describe("OrderCard 订单级操作", () => {
         )
 
         expect(screen.getAllByRole("button", { name: "取消订单" })).toHaveLength(1)
-        expect(screen.getAllByRole("button", { name: "提醒发货" })).toHaveLength(1)
         await user.click(screen.getByRole("button", { name: "取消订单" }))
         expect(onAction).toHaveBeenCalledExactlyOnceWith("cancel")
+    })
+
+    it("待发货且已过发货时限_提示改成可取消退款，不写「系统会自动取消」", () => {
+        renderWithProviders(
+            <OrderCard order={makeOrder({ shipExpireAt: "2000-01-01T00:00:00Z" })} />,
+        )
+
+        expect(screen.getByText(/已超过发货时限/)).toBeInTheDocument()
+        expect(screen.getByText(/可取消订单并退款/)).toBeInTheDocument()
+        expect(screen.queryByText("等待商家发货，发货后可查看物流")).not.toBeInTheDocument()
+    })
+
+    it("待发货且未超时_给出商家该发货的时刻", () => {
+        renderWithProviders(
+            <OrderCard order={makeOrder({ shipExpireAt: "2099-01-01T00:00:00Z" })} />,
+        )
+
+        expect(screen.getByText(/^商家需在 .+ 前发货$/)).toBeInTheDocument()
     })
 
     it("展示优惠后的整单金额，不把商品小计之和当作应付金额", () => {

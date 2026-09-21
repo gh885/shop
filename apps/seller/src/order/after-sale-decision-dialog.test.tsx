@@ -36,6 +36,7 @@ function makeOrder(
         receiverPhone: "13800000000",
         itemCount: 1,
         items: [],
+        shipExpireAt: null,
         createdAt: "2026-09-12T10:00:00Z",
         ...overrides,
     }

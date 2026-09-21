@@ -41,6 +41,7 @@ function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDet
         trackingNo: null,
         payExpireAt: "2026-09-06T12:00:00Z",
         paidAt: "2026-09-06T12:05:00Z",
+        shipExpireAt: "2026-09-09T12:05:00Z",
         shippedAt: null,
         completedAt: null,
         cancelledAt: null,

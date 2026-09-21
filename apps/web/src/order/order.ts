@@ -67,6 +67,7 @@ export function toOrder(dto: OrderListItemResponse): Order {
         createdAt: dto.createdAt,
         status: toStatusFromWire(dto.status),
         payExpireAt: dto.payExpireAt,
+        shipExpireAt: dto.shipExpireAt,
         shopId: dto.shopId,
         shopName: dto.shopName,
         items: dto.items.map(toOrderItem),

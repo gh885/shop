@@ -65,17 +65,20 @@ const OPEN_STATUS: ReadonlySet<AfterSaleStatus> = new Set(["APPLYING", "RETURNIN
 /**
  * 能否发起售后申请（订单详情上的「申请售后」入口；有历史售后单时同一资格也由票据的 REAPPLY 下发）。
  * 三项同时成立：
- * 1. 订单已完成（确认收货或自动收货后窗口才开）；
- * 2. 申请窗口没过（applyExpireAt 由后端算出，前端只比时刻——窗口天数归后端，前端不复制规则）；
+ * 1. 订单已发货或已完成——待收货是包裹在路上、买家唯一讲理的地方，窗口不等到确认收货才开；
+ *    待发货不给（那时买家的出口是取消退款，不必再开一条退款通道）；
+ * 2. 申请窗口没过（`applyExpireAt` 只在完成时回填，待收货阶段还没有它，视为窗口开着；
+ *    完成之后由后端算出截止时刻，前端只比时刻——窗口天数归后端，前端不复制规则）；
  * 3. 没有进行中的售后单。
  *
  * 已退款不给入口：后端已用 AFTER_SALE_ALREADY_REFUNDED 挡住二次申请（AFS-05），前端同样不引导。
  * 已拒绝/已撤销则允许重新申请——窗口内这是买家的正当权利。
  */
 export function canApplyAfterSale(gate: ApplyGate, now: number = Date.now()): boolean {
-    if (gate.status !== "completed") return false
+    if (gate.status !== "completed" && gate.status !== "pending_receipt") return false
     if (OPEN_STATUS.has(gate.afterSaleStatus)) return false
     if (gate.afterSaleStatus === "REFUNDED") return false
+    if (gate.status === "pending_receipt") return true
     if (!gate.applyExpireAt) return false
     const expire = Date.parse(gate.applyExpireAt)
     return Number.isFinite(expire) && expire > now

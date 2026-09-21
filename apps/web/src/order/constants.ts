@@ -71,7 +71,6 @@ export const ORDER_PROGRESS_STEP: Record<OrderStatus, number> = {
 export const ORDER_ACTION_META: Record<OrderAction, { label: string }> = {
     pay: { label: "去付款" },
     cancel: { label: "取消订单" },
-    remind: { label: "提醒发货" },
     logistics: { label: "查看物流" },
     confirm: { label: "确认收货" },
     rebuy: { label: "再买一单" },
@@ -89,7 +88,6 @@ export const ORDER_ACTION_META: Record<OrderAction, { label: string }> = {
 export const ORDER_ACTION_ORDER: readonly OrderAction[] = [
     "pay",
     "cancel",
-    "remind",
     "logistics",
     "confirm",
     "rebuy",
@@ -98,13 +96,12 @@ export const ORDER_ACTION_ORDER: readonly OrderAction[] = [
 ]
 
 /**
- * 前端附加动作：后端状态机不会产生的那些（导航/加购/占位提醒），按页面 + 状态追加。
+ * 前端附加动作：后端状态机不会产生的那些（导航/加购），按页面 + 状态追加。
  *
- * 与后端动作分开写是故意的："待发货除了取消，还多给一个提醒发货"是我们自己的产品决定，
+ * 与后端动作分开写是故意的：「已完成多给一个再买一单」是我们自己的产品决定，
  * 不该掺进后端动作集；反过来后端给的新动作也不需要改这里。
  */
 const CARD_UI_ACTIONS: Partial<Record<OrderStatus, readonly OrderAction[]>> = {
-    pending_shipment: ["remind"],
     pending_receipt: ["logistics"],
     completed: ["rebuy"],
     cancelled: ["rebuy"],

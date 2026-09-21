@@ -16,7 +16,7 @@ import {
 import { ChevronRight, Package, Store } from "lucide-react"
 
 import { ORDER_CARD_STATUS_META, ORDER_STATUS_LABEL } from "./constants"
-import { deriveOrderActions, type Order, type OrderAction } from "./model"
+import { deriveOrderActions, isShipOverdue, type Order, type OrderAction } from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
 import { formatDateTime } from "@shop/app-kit"
@@ -55,6 +55,15 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
     const pending = order.status === "pending_payment"
     const { seconds } = useCountdown(pending ? order.payExpireAt : "")
     const statusMeta = ORDER_CARD_STATUS_META[order.status]
+    // 发货时限提醒（待发货单）：过点不由系统代关单，只把「你可以取消退款」摆到买家眼前（ORD-27）
+    const shipDeadline = order.status === "pending_shipment" ? order.shipExpireAt : null
+    const shipOverdue = shipDeadline !== null && isShipOverdue({ shipExpireAt: shipDeadline })
+    const shipHint =
+        shipDeadline === null
+            ? null
+            : shipOverdue
+              ? `商家已超过发货时限（${formatDateTime(shipDeadline)}），可取消订单并退款`
+              : `商家需在 ${formatDateTime(shipDeadline)} 前发货`
     const quantity = order.items.reduce((sum, item) => sum + item.quantity, 0)
     // 列表 itemAmount 是净额占位；商品总额只能从成交快照的行小计求和。
     const itemTotal = sumMoney(order.items.map((item) => item.amount))
@@ -180,7 +189,15 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                             />
                             <span className="tabular-nums">共 {quantity} 件商品</span>
                         </p>
-                        <p className="text-xs text-muted-foreground">{statusMeta.hint}</p>
+                        <p
+                            className={
+                                shipOverdue
+                                    ? "text-xs font-medium text-destructive"
+                                    : "text-xs text-muted-foreground"
+                            }
+                        >
+                            {shipHint ?? statusMeta.hint}
+                        </p>
                     </div>
                     <div className="ms-auto space-y-1 text-end">
                         <p className="flex flex-wrap justify-end gap-2 text-xs text-muted-foreground tabular-nums">

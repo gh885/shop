@@ -47,6 +47,8 @@ export type Order = {
     status: OrderStatus
     /** 付款截止（待付款订单倒计时用；已付款为空） */
     payExpireAt: string
+    /** 发货时限（付款时回填；未付款为 null）。只用于提醒——到期不由系统代关单，取消权在买家手上（ORD-27） */
+    shipExpireAt: string | null
     shopId: string
     /** 店铺注销时后端诚实返回 null（@Schema nullable），UI 显示「店铺已关闭」 */
     shopName: string | null
@@ -77,22 +79,30 @@ export type Order = {
 export type OrderDetail = Order & Omit<OrderDetailResponse, "status" | "items" | "availableActions">
 
 /**
+ * 待发货单是否已过发货时限。
+ *
+ * 过点**不**触发任何系统动作（ORD-27：到期自动取消会误杀买家还想要的单）——它只把一句话变得该说：
+ * 「商家已超时，你可以取消并退款」。没有时限数据（未付款单）一律 false。
+ */
+export function isShipOverdue(
+    order: Pick<Order, "shipExpireAt">,
+    now: number = Date.now(),
+): boolean {
+    return order.shipExpireAt !== null && new Date(order.shipExpireAt).getTime() < now
+}
+
+/**
  * 订单按钮上的动作。
  *
  * 前四个是后端状态机给的（`availableActions`，wire 大写，经 ./order.ts 投影成小写）：
  * pay/cancel/confirm 对应 PAY/CANCEL/RECEIVE；ship 只出现在卖家视角，买家页面不会渲染。
- * 后四个是纯前端交互词汇，后端永远不会产生：remind（提醒发货占位）、rebuy（导航去商品）、
- * add_cart（跳加购）、logistics（跳物流页）。
+ * 后三个是纯前端交互词汇，后端永远不会产生：rebuy（导航去商品）、add_cart（跳加购）、
+ * logistics（跳物流页）。
+ *
+ * 这里曾有 `remind`（提醒发货）——**已删**：全站没有消息通道，那个按钮点了什么都不发生；
+ * 发货时限的提醒改由卡片文案承担（ORD-27），不再挂一个做不到的动作。
  */
-export type OrderAction =
-    | "pay"
-    | "cancel"
-    | "confirm"
-    | "ship"
-    | "remind"
-    | "rebuy"
-    | "add_cart"
-    | "logistics"
+export type OrderAction = "pay" | "cancel" | "confirm" | "ship" | "rebuy" | "add_cart" | "logistics"
 
 /** 哪个页面在画按钮排：卡片与详情页的动作集差异写在 constants 的表里，不埋在副本里 */
 export type OrderActionSurface = "card" | "detail"

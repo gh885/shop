@@ -34,6 +34,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
         createdAt: "2026-09-06T11:30:00Z",
         status: "pending_receipt",
         payExpireAt: "2026-09-06T12:00:00Z",
+        shipExpireAt: null,
         shopId: "shop-1",
         shopName: "测试店",
         items: [],

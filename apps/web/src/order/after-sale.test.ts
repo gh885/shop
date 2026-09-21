@@ -58,8 +58,16 @@ describe("canApplyAfterSale（申请入口的门槛）", () => {
         expect(canApplyAfterSale(makeGate(), NOW)).toBe(true)
     })
 
-    it("订单还在履约中_不能申请：售后窗口从确认收货才开", () => {
-        expect(canApplyAfterSale(makeGate({ status: "pending_receipt" }), NOW)).toBe(false)
+    it("待收货_给入口：包裹在路上/已签收未确认，买家不必等确认收货才能讲理", () => {
+        expect(canApplyAfterSale(makeGate({ status: "pending_receipt" }), NOW)).toBe(true)
+        // 待收货阶段申请截止列还没回填，缺列也算窗口开着
+        expect(
+            canApplyAfterSale(makeGate({ status: "pending_receipt", applyExpireAt: null }), NOW),
+        ).toBe(true)
+    })
+
+    it("待发货与已取消_不能申请：待发货的出口是取消退款，不必再开一条退款通道", () => {
+        expect(canApplyAfterSale(makeGate({ status: "pending_shipment" }), NOW)).toBe(false)
         expect(canApplyAfterSale(makeGate({ status: "cancelled" }), NOW)).toBe(false)
     })
 

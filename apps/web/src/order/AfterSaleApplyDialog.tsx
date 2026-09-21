@@ -8,7 +8,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    Field,
+    FieldShell,
     firstFieldError,
     Item,
     ItemContent,
@@ -99,7 +99,7 @@ export function AfterSaleApplyDialog({
                 >
                     <form.AppField name="type">
                         {(field) => (
-                            <Field
+                            <FieldShell
                                 label="售后类型"
                                 required
                                 error={firstFieldError(field)}
@@ -134,7 +134,7 @@ export function AfterSaleApplyDialog({
                                         </Item>
                                     ))}
                                 </RadioGroup>
-                            </Field>
+                            </FieldShell>
                         )}
                     </form.AppField>
 

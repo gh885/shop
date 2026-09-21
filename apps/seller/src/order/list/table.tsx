@@ -11,6 +11,7 @@ import {
 import { formatMoney } from "@shop/common"
 import { formatDate } from "@shop/app-kit"
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
+import { useState } from "react"
 
 import { imgUrl } from "#/shared/lib/image"
 import { CopyableText } from "#/shared/ui/CopyableText"
@@ -142,6 +143,11 @@ function OrderRow({
 }) {
     const statusMeta = ORDER_STATUS_META[o.status]
     const saleMeta = o.afterSaleStatus === "NONE" ? undefined : AFTER_SALE_META[o.afterSaleStatus]
+    // 取值走 useState 惰性初始化而不是在渲染里直接调 Date.now()：渲染必须是纯的（react/purity）
+    const [now] = useState(() => Date.now())
+    /** 过了发货时限：系统不代关单（ORD-60），这里只给卖家一枚催办标记 */
+    const shipOverdue =
+        o.status === "PAID" && o.shipExpireAt !== null && new Date(o.shipExpireAt).getTime() < now
 
     return (
         <TableRow>
@@ -170,6 +176,7 @@ function OrderRow({
             <TableCell>
                 <div className="flex flex-wrap items-center gap-1.5">
                     <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                    {shipOverdue && <Badge variant="warning">超时未发货</Badge>}
                     {saleMeta && <Badge variant={saleMeta.variant}>{saleMeta.label}</Badge>}
                 </div>
             </TableCell>
