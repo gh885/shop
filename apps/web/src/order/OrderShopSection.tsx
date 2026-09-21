@@ -1,4 +1,4 @@
-import { Button, Panel, PanelContent, PanelHeader } from "@shop/ui-web"
+import { Button, Image, Panel, PanelContent, PanelHeader } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
 
@@ -65,14 +65,11 @@ export function OrderShopSection({
                     >
                         {/* 主图 */}
                         <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                            {item.image && (
-                                <img
-                                    src={item.image}
-                                    alt={item.title}
-                                    loading="lazy"
-                                    className="size-full object-cover"
-                                />
-                            )}
+                            <Image
+                                src={item.image}
+                                alt={item.title}
+                                className="size-full"
+                            />
                         </div>
 
                         {/* 标题 */}

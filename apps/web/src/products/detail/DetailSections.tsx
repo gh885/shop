@@ -14,6 +14,7 @@ import {
     CardContent,
     Skeleton,
     StateError,
+    Image,
 } from "@shop/ui-web"
 
 import { toProductCardData, type Product, type ProductDetail } from "../product"
@@ -282,12 +283,12 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
         >
             <div className="flex flex-col items-center gap-2">
                 {detail.detailImages.map((img) => (
-                    <img
+                    <Image
                         key={img}
                         src={imgUrl(img)}
                         alt="商品详情图"
-                        loading="lazy"
-                        className="w-full max-w-2xl rounded-lg object-contain"
+                        radius="lg"
+                        className="w-full max-w-2xl object-contain"
                     />
                 ))}
             </div>

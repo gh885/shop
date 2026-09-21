@@ -12,7 +12,7 @@ import {
 // LazyMotion + m：按需加载动画特性（domAnimation 含 variants/whileInView/AnimatePresence），省约 30kb 全量 motion 包
 import { AnimatePresence, m, useReducedMotion } from "motion/react"
 
-import { Button, buttonVariants, Card, CardContent, cn } from "@shop/ui-web"
+import { Button, buttonVariants, Card, CardContent, Image, cn } from "@shop/ui-web"
 
 import { useAuthStatus, useLoginDialogOpen } from "../../shared/api/auth"
 import { SELLER_URL } from "../../shared/lib/external"
@@ -208,10 +208,12 @@ function BusinessModes() {
                                         </p>
                                         <OpenShopCta />
                                     </div>
-                                    <img
+                                    <Image
                                         src={mode.img}
                                         alt={mode.alt}
-                                        className="aspect-3/2 w-full rounded-xl object-cover"
+                                        ratio={3 / 2}
+                                        radius="xl"
+                                        className="w-full"
                                     />
                                 </CardContent>
                             </Card>

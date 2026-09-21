@@ -45,6 +45,7 @@ import {
     PanelContent,
     ItemMedia,
     ItemActions,
+    Image,
 } from "@shop/ui-web"
 import { z } from "zod"
 
@@ -391,13 +392,11 @@ function GroupCard({
                         size="lg"
                     >
                         <ItemMedia variant="thumbnail">
-                            {l.image && (
-                                <img
-                                    src={l.image}
-                                    alt={l.name}
-                                    loading="lazy"
-                                />
-                            )}
+                            <Image
+                                src={l.image}
+                                alt={l.name}
+                                className="size-full"
+                            />
                         </ItemMedia>
                         <ItemContent>
                             <ItemTitle

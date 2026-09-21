@@ -1,4 +1,13 @@
-import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
+import {
+    Badge,
+    Button,
+    Image,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@shop/ui-web"
 import { formatMoney } from "@shop/common"
 import { formatDate } from "@shop/app-kit"
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
@@ -92,14 +101,11 @@ function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
     return (
         <div className="flex items-start gap-3">
             <div className="size-14 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-                {first?.image ? (
-                    <img
-                        src={imgUrl(first.image)}
-                        alt={first.name}
-                        loading="lazy"
-                        className="size-full object-cover"
-                    />
-                ) : undefined}
+                <Image
+                    src={imgUrl(first?.image ?? undefined)}
+                    alt={first?.name}
+                    className="size-full"
+                />
             </div>
             <div className="min-w-0 flex-1 space-y-0.5">
                 <p

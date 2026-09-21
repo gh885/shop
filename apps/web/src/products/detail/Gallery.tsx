@@ -7,6 +7,7 @@ import {
     Empty,
     EmptyHeader,
     EmptyTitle,
+    Image,
     Tabs,
     TabsList,
     TabsTrigger,
@@ -89,10 +90,10 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                     : "border-transparent",
                             )}
                         >
-                            <img
+                            <Image
                                 src={img}
                                 alt=""
-                                className="aspect-square w-full object-cover"
+                                className="aspect-square w-full"
                             />
                         </button>
                     ))}
@@ -176,10 +177,12 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                         }}
                                         onPointerLeave={() => setIsZooming(false)}
                                     >
-                                        <img
+                                        <Image
                                             src={img}
                                             alt="商品主图"
-                                            className="size-full rounded-xl object-cover"
+                                            priority
+                                            radius="xl"
+                                            className="size-full"
                                         />
                                         {/* 蒙层挂在当前图片框内：坐标就是框内百分比，尺寸由 pointermove 写 */}
                                         {i === current && (

@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 
-import { Button, Separator } from "@shop/ui-web"
+import { Button, Image, Separator } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
 import { deriveCartItemView, deriveSelectedItems, deriveSelectedTotal } from "./cart"
@@ -41,11 +41,10 @@ export function Settlement() {
                                 key={item.id}
                                 className="group relative size-16 overflow-hidden rounded-md"
                             >
-                                <img
-                                    src={view.image ?? undefined}
+                                <Image
+                                    src={view.image}
                                     alt={view.title}
-                                    loading="lazy"
-                                    className="size-full object-cover"
+                                    className="size-full"
                                 />
                                 <button
                                     type="button"

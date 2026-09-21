@@ -1,6 +1,7 @@
 import {
     Badge,
     Button,
+    Image,
     Item,
     ItemActions,
     ItemContent,
@@ -119,14 +120,11 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                                     variant="thumbnail"
                                     className="size-20"
                                 >
-                                    {item.image && (
-                                        <img
-                                            src={item.image}
-                                            alt={item.title}
-                                            loading="lazy"
-                                            className="object-cover"
-                                        />
-                                    )}
+                                    <Image
+                                        src={item.image}
+                                        alt={item.title}
+                                        className="size-full"
+                                    />
                                 </ItemMedia>
 
                                 {/* 描述：标题 */}

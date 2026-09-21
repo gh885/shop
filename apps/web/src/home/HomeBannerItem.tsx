@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router"
 
+import { Image } from "@shop/ui-web"
+
 import type { BannerResponse } from "@shop/api/sdk"
 
 /** 单个 banner 位：图 + 底部渐变标题，hover 微缩放 */
@@ -14,14 +16,12 @@ export function HomeBannerItem({
             to="/"
             className="group relative h-50 min-w-0 flex-1 overflow-hidden rounded-lg bg-sunken/50 text-left"
         >
-            <img
+            <Image
                 src={banner.imageUrl}
                 alt={banner.title}
-                loading="lazy"
-                onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                }}
-                className="inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                priority
+                hoverScale
+                className="h-full w-full"
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4">

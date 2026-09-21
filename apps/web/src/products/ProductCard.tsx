@@ -1,9 +1,8 @@
 import { Link } from "@tanstack/react-router"
 
-import { Badge, cn } from "@shop/ui-web"
+import { Badge, Image, cn } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
-import { ProductImage } from "#/shared/ui/ProductImage"
 import type { ProductCardData } from "./product"
 
 /**
@@ -44,9 +43,12 @@ export function ProductCard({
             className="group flex flex-col overflow-hidden rounded-lg transition-transform duration-200 hover:-translate-y-1"
         >
             {/* 图片出血铺满卡片上边缘（图即卡片，货架观感）；无图渲染灰底占位 */}
-            <ProductImage
+            <Image
                 src={product.image}
                 alt={product.title}
+                ratio={1}
+                hoverScale
+                className="w-full"
             />
 
             <div className={cn(compact ? "mt-2 flex flex-col" : "flex flex-col pt-2 pb-3")}>

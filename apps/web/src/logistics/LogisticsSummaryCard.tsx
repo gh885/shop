@@ -1,3 +1,5 @@
+import { Image } from "@shop/ui-web"
+
 import { maskName, maskPhone } from "./model"
 
 /**
@@ -31,14 +33,11 @@ export function LogisticsSummaryCard({
     return (
         <div className="flex items-center gap-4 rounded-lg bg-muted/60 p-4">
             <div className="size-14 shrink-0 overflow-hidden rounded-md bg-background">
-                {thumbnail && (
-                    <img
-                        src={thumbnail}
-                        alt=""
-                        loading="lazy"
-                        className="size-full object-cover"
-                    />
-                )}
+                <Image
+                    src={thumbnail}
+                    alt=""
+                    className="size-full"
+                />
             </div>
             <div className="min-w-0 space-y-0.5">
                 <p className="text-base font-bold text-foreground">

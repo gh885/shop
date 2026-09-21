@@ -1,9 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
 import { Check } from "lucide-react"
 
-import { Item, ItemContent, ItemDescription, ItemHeader, ItemTitle } from "@shop/ui-web"
-
-import { ProductImage } from "#/shared/ui/ProductImage"
+import { Image, Item, ItemContent, ItemDescription, ItemHeader, ItemTitle } from "@shop/ui-web"
 
 import { collectText, type FavoriteItem } from "./favorite"
 
@@ -58,9 +56,12 @@ export function FavoriteCard({
                     <Item variant="outline">
                         <ItemHeader>
                             <div className="relative">
-                                <ProductImage
+                                <Image
                                     src={favorite.image}
                                     alt={favorite.title}
+                                    ratio={1}
+                                    hoverScale
+                                    className="w-full"
                                 />
                                 {batchMode && selected && (
                                     <span className="absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">

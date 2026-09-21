@@ -1,6 +1,6 @@
 import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
-import { Separator, ToggleGroup, ToggleGroupItem, cn } from "@shop/ui-web"
+import { Image, Separator, ToggleGroup, ToggleGroupItem, cn } from "@shop/ui-web"
 
 import { formatMoney } from "@shop/common"
 
@@ -183,10 +183,11 @@ function SpecButton({
                 selected ? "border-primary" : "border-border",
             )}
         >
-            <img
+            <Image
                 src={image}
                 alt={value}
-                className="h-16 w-full object-cover"
+                ratio={3 / 2}
+                className="w-full"
             />
             <span
                 title={value}
