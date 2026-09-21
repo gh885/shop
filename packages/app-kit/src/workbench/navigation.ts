@@ -6,6 +6,13 @@ export interface SidebarTarget {
     search?: Record<string, string | number | boolean>
 }
 
+/**
+ * Link 消费 SidebarTarget 时的 search 透传：to 是宽至 string 的存储值，
+ * 路由联合变大后 router 无法再把宽 Record 收窄到具体路由的 search reducer，
+ * 匹配性由装配侧的 linkOptions 在数据源头保证，这里只放行运行时形状。
+ */
+export const sidebarLinkSearch = (search?: SidebarTarget["search"]) => search as never
+
 export interface SubLeaf extends SidebarTarget {
     key: string
     label: string

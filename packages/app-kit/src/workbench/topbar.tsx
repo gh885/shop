@@ -22,7 +22,7 @@ import {
     TopBarSearch,
 } from "@shop/ui-web"
 
-import type { SidebarTarget } from "./navigation"
+import { sidebarLinkSearch, type SidebarTarget } from "./navigation"
 
 /** 顶栏：透明浮于 canvas 画布，无分割线。minimal（内容区需大空间的页面）下
     隐去搜索，只留「品牌 + 当前页名 + 动作群 + 账号」。
@@ -52,7 +52,7 @@ export function WorkbenchTopBar({
         >
             <Link
                 to={home.to}
-                search={home.search}
+                search={sidebarLinkSearch(home.search)}
             >
                 <TopBarBrand className="mr-0 gap-2.5">
                     <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">

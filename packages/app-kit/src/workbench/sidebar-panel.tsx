@@ -2,7 +2,12 @@ import { Link } from "@tanstack/react-router"
 import { ChevronUp } from "lucide-react"
 import { cn, Collapsible, CollapsibleContent, CollapsibleTrigger, MenuTree } from "@shop/ui-web"
 
-import { matchesSidebarPath, type SidebarGroup, type SubLeaf } from "./navigation"
+import {
+    matchesSidebarPath,
+    sidebarLinkSearch,
+    type SidebarGroup,
+    type SubLeaf,
+} from "./navigation"
 
 /** 二级面板（受控，无状态，视觉自持）：置于白色浮面容器内，无 header，直接列分组。
     菜单结构由 headless MenuTree 驱动（折叠状态 + activeKey 联动展开），
@@ -138,7 +143,7 @@ function LeafRow({ leaf, isActive }: { leaf: SubLeaf; isActive: boolean }) {
     return (
         <Link
             to={leaf.to}
-            search={leaf.search}
+            search={sidebarLinkSearch(leaf.search)}
             className={cls}
             aria-current={isActive ? "page" : undefined}
         >

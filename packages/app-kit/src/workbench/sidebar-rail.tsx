@@ -4,6 +4,7 @@ import { Button, cn } from "@shop/ui-web"
 import {
     activeSectionOf,
     matchesSidebarPath,
+    sidebarLinkSearch,
     type SidebarGroup,
     type SidebarItem,
     type SidebarLeaf,
@@ -71,7 +72,7 @@ function LeafItem({ item, isShown }: { item: SidebarLeaf; isShown: boolean }) {
     return (
         <Link
             to={item.to}
-            search={item.search}
+            search={sidebarLinkSearch(item.search)}
             aria-current={isShown ? "page" : undefined}
             className={rowCls(isShown)}
         >
@@ -93,7 +94,7 @@ function GroupItem({ item, isShown }: { item: SidebarGroup; isShown: boolean }) 
                 target ? (
                     <Link
                         to={target}
-                        search={firstLeaf.search}
+                        search={sidebarLinkSearch(firstLeaf.search)}
                         aria-current={isShown ? "true" : undefined}
                         className={rowCls(isShown)}
                     />

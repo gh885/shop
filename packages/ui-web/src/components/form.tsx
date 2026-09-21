@@ -156,12 +156,15 @@ type BaseFieldProps = {
     className?: string
     /** 透传给 Field 布局：vertical=label 在控件上方（默认），horizontal=label 固定左列 */
     layout?: "vertical" | "horizontal"
+    /** 控件下方灰字说明（写作建议、格式要求）；error 存在时优先显示 error */
+    hint?: React.ReactNode
 }
 
 export function TextField({
     label,
     required,
     layout,
+    hint,
     ...props
 }: BaseFieldProps &
     Omit<React.ComponentProps<"input">, "value" | "onBlur" | "onChange" | "defaultValue">) {
@@ -174,6 +177,7 @@ export function TextField({
             layout={layout}
             htmlFor={field.name}
             error={error}
+            hint={hint}
         >
             <Input
                 id={field.name}
@@ -191,6 +195,7 @@ export function TextareaField({
     label,
     required,
     layout,
+    hint,
     ...props
 }: BaseFieldProps &
     Omit<React.ComponentProps<"textarea">, "value" | "onBlur" | "onChange" | "defaultValue">) {
@@ -203,6 +208,7 @@ export function TextareaField({
             layout={layout}
             htmlFor={field.name}
             error={error}
+            hint={hint}
         >
             <Textarea
                 id={field.name}
@@ -222,6 +228,7 @@ export function SelectField({
     placeholder,
     layout,
     className,
+    hint,
     children,
 }: BaseFieldProps & {
     placeholder?: string
@@ -236,6 +243,7 @@ export function SelectField({
             layout={layout}
             htmlFor={field.name}
             error={error}
+            hint={hint}
         >
             <Select
                 value={field.state.value}
@@ -257,6 +265,7 @@ export function SelectField({
 export function CheckboxField({
     label,
     className,
+    hint,
     ...props
 }: BaseFieldProps &
     Omit<React.ComponentProps<typeof Checkbox>, "checked" | "onCheckedChange" | "defaultChecked">) {
@@ -273,6 +282,7 @@ export function CheckboxField({
                 />
                 {label}
             </label>
+            {!error && hint && <p className="text-xs text-muted-foreground">{hint}</p>}
             <FieldError error={error} />
         </div>
     )
