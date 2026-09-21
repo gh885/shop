@@ -199,10 +199,10 @@ function psql(sql, { tuplesOnly = false } = {}) {
     })
     if (r.error) throw r.error
     if (r.status !== 0) {
-        process.stderr.write(`${r.stderr ?? ""}\n`)
+        process.stderr.write(`${r.stderr}\n`)
         throw new Error(`psql 退出码 ${r.status}`)
     }
-    return (r.stdout ?? "").trim()
+    return r.stdout.trim()
 }
 
 function queryJson(sql) {
@@ -397,8 +397,10 @@ function buildCatalog({ cats, bands }) {
     const stock = []
 
     for (const [si, seller] of SELLERS.entries()) {
-        const own = bands.filter((b) => b.shop_id === seller.shop).map((b) => b.category_id)
-        const pool = usable.filter((c) => own.includes(c.id))
+        const own = new Set(
+            bands.filter((b) => b.shop_id === seller.shop).map((b) => b.category_id),
+        )
+        const pool = usable.filter((c) => own.has(c.id))
         const shopCats = pool.length > 0 ? pool : usable.slice(si).concat(usable.slice(0, si))
         for (const [pi, form] of PRODUCT_FORMS.entries()) {
             const cat = shopCats[(pi + si) % shopCats.length]
@@ -628,42 +630,44 @@ function buildShipping() {
             for (const p of form.exclude ?? [])
                 exclusions.push([sid("shipping-exclusion", tid, p), tid, p, now])
         }
-        addresses.push([
-            sid("merchant-address", seller.shop, "ship"),
-            seller.shop,
-            "演示发货仓",
-            "13800000010",
-            code,
-            province,
-            city,
-            district,
-            detail,
-            null,
-            "ACTIVE",
-            ago("20 days"),
-            now,
-            true,
-            false,
-            `${seller.brand}官方旗舰店`,
-        ])
-        addresses.push([
-            sid("merchant-address", seller.shop, "return"),
-            seller.shop,
-            "售后收件组",
-            "13800000011",
-            "310115",
-            "上海市",
-            "上海市",
-            "浦东新区",
-            "张江路演示退货仓 3 号门（虚构地址）",
-            null,
-            "ACTIVE",
-            ago("20 days"),
-            now,
-            false,
-            true,
-            `${seller.brand}官方旗舰店`,
-        ])
+        addresses.push(
+            [
+                sid("merchant-address", seller.shop, "ship"),
+                seller.shop,
+                "演示发货仓",
+                "13800000010",
+                code,
+                province,
+                city,
+                district,
+                detail,
+                null,
+                "ACTIVE",
+                ago("20 days"),
+                now,
+                true,
+                false,
+                `${seller.brand}官方旗舰店`,
+            ],
+            [
+                sid("merchant-address", seller.shop, "return"),
+                seller.shop,
+                "售后收件组",
+                "13800000011",
+                "310115",
+                "上海市",
+                "上海市",
+                "浦东新区",
+                "张江路演示退货仓 3 号门（虚构地址）",
+                null,
+                "ACTIVE",
+                ago("20 days"),
+                now,
+                false,
+                true,
+                `${seller.brand}官方旗舰店`,
+            ],
+        )
     }
     return [
         insert(
@@ -736,54 +740,56 @@ function buildShipping() {
 function buildCoupons() {
     const rows = []
     SELLERS.forEach((s, i) => {
-        rows.push([
-            sid("coupon", s.shop, "full"),
-            s.shop,
-            `满 99 减 ${10 + i}`,
-            9900,
-            1000 + i * 100,
-            "CNY",
-            "SELLER",
-            ago("1 day"),
-            ahead("30 days"),
-            500,
-            0,
-            "ACTIVE",
-            ago("10 days"),
-            now,
-        ])
-        rows.push([
-            sid("coupon", s.shop, "noThreshold"),
-            s.shop,
-            "无门槛 5 元券",
-            0,
-            500,
-            "CNY",
-            "SELLER",
-            ago("1 day"),
-            ahead("7 days"),
-            200,
-            0,
-            "ACTIVE",
-            ago("10 days"),
-            now,
-        ])
-        rows.push([
-            sid("coupon", s.shop, "stopped"),
-            s.shop,
-            "已停发的活动券",
-            19900,
-            3000,
-            "CNY",
-            "SELLER",
-            ago("30 days"),
-            ahead("30 days"),
-            100,
-            0,
-            "STOPPED",
-            ago("30 days"),
-            now,
-        ])
+        rows.push(
+            [
+                sid("coupon", s.shop, "full"),
+                s.shop,
+                `满 99 减 ${10 + i}`,
+                9900,
+                1000 + i * 100,
+                "CNY",
+                "SELLER",
+                ago("1 day"),
+                ahead("30 days"),
+                500,
+                0,
+                "ACTIVE",
+                ago("10 days"),
+                now,
+            ],
+            [
+                sid("coupon", s.shop, "noThreshold"),
+                s.shop,
+                "无门槛 5 元券",
+                0,
+                500,
+                "CNY",
+                "SELLER",
+                ago("1 day"),
+                ahead("7 days"),
+                200,
+                0,
+                "ACTIVE",
+                ago("10 days"),
+                now,
+            ],
+            [
+                sid("coupon", s.shop, "stopped"),
+                s.shop,
+                "已停发的活动券",
+                19900,
+                3000,
+                "CNY",
+                "SELLER",
+                ago("30 days"),
+                ahead("30 days"),
+                100,
+                0,
+                "STOPPED",
+                ago("30 days"),
+                now,
+            ],
+        )
     })
     return insert(
         "coupon.coupon_templates",
@@ -1563,8 +1569,9 @@ function buildLiveOrders(catalog) {
             const completedAt =
                 scn.status === "COMPLETED" ? x(`(${deliveredAt.sql}) + interval '2 hours'`) : null
 
-            statements.push(`-- ${seller.brand} · ${scn.note}`)
-            statements.push(`INSERT INTO orders.orders
+            statements.push(
+                `-- ${seller.brand} · ${scn.note}`,
+                `INSERT INTO orders.orders
     (id, order_no, user_id, shop_id, status, item_amount, shipping_fee, pay_amount, discount_amount, user_coupon_id, coupon_bearer, currency,
      receiver_name, receiver_phone, receiver_province, receiver_city, receiver_district, receiver_detail, receiver_region_code, buyer_message,
      paid_at, shipped_at, delivered_at, completed_at, pay_expire_at, ship_expire_at, receive_expire_at, apply_expire_at, after_sale_status, created_at, updated_at)
@@ -1580,7 +1587,8 @@ VALUES
      ${lit(scn.status === "SHIPPED" ? ahead("5 days") : null)},
      ${lit(scn.status === "COMPLETED" ? ahead("4 days") : null)},
      ${lit(scn.ticket ? (scn.ticket === "REFUND_ONLY" ? "APPLYING" : "RETURNING") : "NONE")},
-     ${lit(created)}, now());`)
+     ${lit(created)}, now());`,
+            )
 
             for (const l of lines) {
                 statements.push(
@@ -1803,7 +1811,7 @@ SELECT pg_advisory_xact_lock(hashtext('seed-demo-v1'));`
     printSummary()
 }
 
-main().catch((e) => {
-    console.error(String(e?.message ?? e))
+main().catch((error) => {
+    console.error(String(error?.message ?? error))
     process.exit(1)
 })
