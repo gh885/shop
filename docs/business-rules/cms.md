@@ -27,7 +27,7 @@
 - **[BAN-01]** 前台 banner 生效条件 = status=ENABLED **且** 命中时间窗口：`startAt` 为 null 视为立即生效、`endAt` 为 null 视为长期有效；窗口判定按请求时刻服务端（Java 侧）现算——定时上下线不需要任何任务，到点自动生效/失效。
 - **[BAN-02]** 后台表单口径：定时上线留空 = 立即生效、定时下线留空 = 长期有效；「下线时间需晚于上线时间」前后端同口径——后端 create/update 校验：起止两端齐全时 `endAt` 必须晚于 `startAt`，否则 400 + code `BANNER_TIME_RANGE_INVALID`（任一端为 null 不受约束）。update 时 null = 该端不改，与库中原窗口**合并后**再判定，防止分两次 PATCH 拼出自相矛盾的窗口。
 - **[BAN-03]** 字段上限：slot ≤32 必填、title ≤64 必填、subtitle ≤128、imageUrl ≤512 必填、link ≤512（仅 targetType=URL 使用）、target ≤255。
-- **[BAN-04]** 首页首屏 banner 条最多展示 3 个（按排序取前 3）；返回空数组时整块不画——「今天没配 banner」是正常状态不是异常；请求失败则显示块级错误 + 重试。
+- **[BAN-04]** 首页首屏 banner 条最多展示 3 个（按排序取前 3）；返回空数组 = 运营当天没配置，前台回退到内置的 3 张静态默认 banner（无图渐变文案卡）——首屏运营位不留白、不塌版式；请求失败则显示块级错误 + 重试，**不**静默回退默认 banner。
 
 ## 四、推荐条词条（RecommendTab）
 

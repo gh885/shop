@@ -20,11 +20,11 @@ import { createAppTestQueryClient } from "#/test/render"
 import { HomeCategoryNav } from "./HomeCategoryNav"
 
 /**
- * 首页导航区块的三态口径（ShopBar 同形）：
- * 1. 失败 → 块级错误 + 重试（QueryBoundary 官方 reset 链路），**不**伪装成「即将上线」；
- * 2. 空数组 → 真正的运营空配置才给「即将上线」；
- * 3. 成功 → 词条列表，hover 有子组的词条展开 Mega 面板。
+ * 导航组件值得钉死的是两条自己的规则（[NAV-05]、[NAV-01]）：
+ * 1. 行内合并名按宽度预算整组截断——装不下的整组不显示、不切半字，完整名留给 title tooltip；
+ * 2. 有子组的词条 hover 展开右侧 Mega 面板，无子组的渲染为普通按钮——不挂假面板。
  *
+ * 三态不在此复制：错误 + 重试链路归 QueryBoundary（packages/app-kit/query-boundary.test）。
  * 词条里有 Link，照 Feed.test 自带内存路由。
  */
 
@@ -88,43 +88,7 @@ afterEach(() => {
     vi.unstubAllGlobals()
 })
 
-describe("首页分类导航三态", () => {
-    it("接口失败_块级错误可重试_重试成功后恢复列表", async () => {
-        let failing = true
-        server.use(
-            http.get(NAV_URL, () => {
-                if (failing) {
-                    failing = false
-                    return HttpResponse.json(
-                        { status: 500, detail: "服务开小差了" },
-                        { status: 500 },
-                    )
-                }
-                return HttpResponse.json([makeEntry()])
-            }),
-        )
-
-        renderNav()
-        const alert = await screen.findByRole("alert")
-        expect(alert).toHaveTextContent("服务开小差了")
-        // 失败不许伪装成空态文案
-        expect(screen.queryByText("商品分类即将上线，敬请期待")).not.toBeInTheDocument()
-
-        await userEvent.click(screen.getByRole("button", { name: "重试" }))
-
-        expect(await screen.findByText("家用电器")).toBeInTheDocument()
-        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
-    })
-
-    it("空配置_即将上线空态_不是错误态", async () => {
-        server.use(http.get(NAV_URL, () => HttpResponse.json([])))
-
-        renderNav()
-
-        expect(await screen.findByText("商品分类即将上线，敬请期待")).toBeInTheDocument()
-        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
-    })
-
+describe("首页分类导航", () => {
     it("成功_hover 有子组的词条展开 Mega 面板_移开收起", async () => {
         server.use(
             http.get(NAV_URL, () =>
@@ -156,5 +120,16 @@ describe("首页分类导航三态", () => {
         await userEvent.unhover(entry)
         await waitFor(() => expect(entry).toHaveAttribute("aria-expanded", "false"))
         // 收起后的卸载要等浮层收束动画，jsdom 不跑 transition——aria-expanded 已钉住「收起」语义
+    })
+
+    it("合并名超宽度预算_整组不显示不切半字_完整名留给tooltip", async () => {
+        const fullTitle = "家用电器 / 厨房小电 / 大家电 / 个护小家电"
+        server.use(http.get(NAV_URL, () => HttpResponse.json([makeEntry({ title: fullTitle })])))
+
+        renderNav()
+        const label = await screen.findByTitle(fullTitle)
+        // 预算 210px：前三组（4+4+3 字 + 两个分隔符）187px 装得下，第四组要 257px → 整组出局
+        expect(label).toHaveTextContent("家用电器 / 厨房小电 / 大家电")
+        expect(label).not.toHaveTextContent("个护小家电")
     })
 })
