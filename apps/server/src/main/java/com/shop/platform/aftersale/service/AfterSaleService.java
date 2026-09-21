@@ -28,6 +28,8 @@ import com.shop.platform.order.api.OrderAfterSaleView;
 import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderReadQuery;
 import com.shop.platform.order.api.OrderSummaryView;
+import com.shop.platform.shop.api.AddressSnapshot;
+import com.shop.platform.shop.api.MerchantAddressReadQuery;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +74,9 @@ public class AfterSaleService {
 
     /** 券命令（coupon :: api）：退款完成时退券（另发新券），同事务 */
     private final CouponCommand couponCommand;
+
+    /** 商家地址只读点查（shop :: api）：买家回寄地址在详情查询时实时解析，不落快照列 */
+    private final MerchantAddressReadQuery merchantAddressReadQuery;
 
     // 买家
     /** 申请售后：仅「已完成 + 申请窗口未过 + 无进行中的单 + 最新单非已退款」可发起；退款口径 = 整单实付（V1 整单售后） */
@@ -136,6 +141,27 @@ public class AfterSaleService {
     public Optional<Ticket> latestForBuyer(UUID userId, UUID orderId) {
         return Optional.ofNullable(ticketMapper.selectLatestByOrder(orderId))
                 .filter(t -> t.getUserId().equals(userId));
+    }
+
+    /**
+     * 买家回寄地址（售后详情查询时实时解析，不存快照）：本店默认退货地址折成一行
+     * 「收件人 电话 · 省市区详址」；卖家没配默认退货地址返回 null，由前端引导联系客服。
+     *
+     * <p>查询时解析而不是申请时定格：卖家改了退货地址，买家看到的就是新地址；退地址不是资金口径，
+     * 不需要「当时说了什么」的审计语义，快照列因此不值得为它开一场 migration。
+     */
+    public String resolveReturnAddress(UUID shopId) {
+        return merchantAddressReadQuery
+                .resolveReturnTo(shopId)
+                .map(AfterSaleService::formatReturnAddress)
+                .orElse(null);
+    }
+
+    /** 一行串是展示口径不是存储契约；省/市/详址的必填性由 AddressSnapshot 构造期校验兜底，这里只处理可空的区 */
+    private static String formatReturnAddress(AddressSnapshot address) {
+        String district = address.district() == null ? "" : address.district();
+        return address.contactName() + " " + address.phone() + " · " + address.province() + address.city() + district
+                + address.detail();
     }
 
     /**

@@ -42,11 +42,14 @@ public class AfterSaleController {
         return TicketResponse.from(ticket, afterSaleService.buyerActions(ticket));
     }
 
-    /** 最近一张售后单（含终态）：无售后记录 404 */
+    /** 最近一张售后单（含终态）：无售后记录 404。买家详情独占地回寄地址——查询时实时解析卖家默认退货地址 */
     @GetMapping
     public TicketResponse getAfterSale(@CurrentUser UUID userId, @PathVariable UUID id) {
         Ticket ticket = Validate.present(afterSaleService.latestForBuyer(userId, id), "暂无售后记录");
-        return TicketResponse.from(ticket, afterSaleService.buyerActions(ticket));
+        return TicketResponse.from(
+                ticket,
+                afterSaleService.buyerActions(ticket),
+                afterSaleService.resolveReturnAddress(ticket.getShopId()));
     }
 
     /** 撤销售后申请：APPLYING → CLOSED */

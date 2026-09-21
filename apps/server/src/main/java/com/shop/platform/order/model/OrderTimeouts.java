@@ -21,7 +21,7 @@ public final class OrderTimeouts {
      */
     public static final Duration RECEIVE = Duration.ofDays(7);
 
-    /** 收货起算：售后申请窗口，过期不再受理（apply_expire_at，申请时的条件更新即闸门） */
+    /** 完成起算（买家确认收货或 RECEIVE 到期自动确认，同一时刻）：售后申请窗口，过期不再受理（apply_expire_at，申请时的条件更新即闸门） */
     public static final Duration AFTER_SALE_APPLY = Duration.ofDays(15);
 
     private OrderTimeouts() {}

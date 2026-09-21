@@ -2,6 +2,7 @@ package com.shop.platform.aftersale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.shop.platform.aftersale.mapper.Ticket;
@@ -353,5 +354,31 @@ class AfterSaleIT extends IntegrationTestSupport {
         afterSale.agree(shopId, orderId);
         Ticket refunded = afterSale.latestForBuyer(userId, orderId).orElseThrow();
         assertEquals(List.of(), afterSale.buyerActions(refunded));
+    }
+
+    /** 回寄地址（详情查询时下发）：无默认退货地址为 null；配了实时解析成一行「收件人 电话 · 地址行」 */
+    @Test
+    void 退货退款进入RETURNING_回寄地址随查询解析_无默认退货地址为null() {
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.agree(shopId, orderId); // → RETURNING，买家从此要往卖家地址寄
+
+        // 种子只有默认发货地址（default_ship），默认退货地址缺席 → null，前端据此引导联系客服
+        assertNull(afterSale.resolveReturnAddress(shopId));
+
+        UUID returnAddressId = UUID.randomUUID();
+        jdbc.update(
+                "INSERT INTO shop.addresses (id, shop_id, contact_name, phone, region_code, province, city, district, detail, default_return) "
+                        + "VALUES (?::uuid, ?::uuid, '退件员', '13800001234', '330106', '浙江省', '杭州市', '西湖区', '文一路 100 号', TRUE)",
+                returnAddressId.toString(),
+                shopId.toString());
+        db.onDelete("DELETE FROM shop.addresses WHERE id = ?::uuid", returnAddressId.toString());
+
+        assertEquals("退件员 13800001234 · 浙江省杭州市西湖区文一路 100 号", afterSale.resolveReturnAddress(shopId));
+
+        // 实时解析而不是快照：卖家换掉默认退货地址，买家看到的就是新的
+        jdbc.update(
+                "UPDATE shop.addresses SET contact_name = '新收件人', default_return = FALSE WHERE id = ?::uuid",
+                returnAddressId.toString());
+        assertNull(afterSale.resolveReturnAddress(shopId), "默认标记被摘掉即回到 null，不留下定格旧值");
     }
 }
