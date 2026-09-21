@@ -162,4 +162,51 @@ class CategoryIT extends IntegrationTestSupport {
         jdbc.update("DELETE FROM product.products WHERE id = ?::uuid", productId.toString()); // 被测行为：移出商品
         categoryService.updateStatus(created.getId(), CategoryStatus.DISABLED); // 移出后可禁用
     }
+
+    /** 建一棵临时三级类目链（根→二级→叶子）并登记自清，返回 [根, 二级, 叶子] */
+    private List<Category> seedMountableChain() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        Category root = categoryService.create(null, "闸门根" + suffix, 99, null);
+        Category middle = categoryService.create(root.getId(), "闸门的二级" + suffix, null, null);
+        Category leaf = categoryService.create(middle.getId(), "闸门的叶子" + suffix, null, null);
+        db.onDelete(
+                "DELETE FROM product.categories WHERE id IN (?::uuid, ?::uuid, ?::uuid)",
+                leaf.getId().toString(),
+                middle.getId().toString(),
+                root.getId().toString());
+        return List.of(root, middle, leaf);
+    }
+
+    /** 禁用闸门按子树统计：商品只挂三级叶子，禁一级时「直挂引用数」恒 0，必须展开子树才拦得住 */
+    @Test
+    void 禁用一级类目_三级子树挂着商品_拒绝() {
+        List<Category> chain = seedMountableChain();
+        Category root = chain.getFirst();
+        Category leaf = chain.getLast();
+        UUID productId = UUID.randomUUID();
+        jdbc.update(
+                "INSERT INTO product.products (id, shop_id, category_id, name, status) VALUES (?::uuid, ?::uuid, ?::uuid, '子树占位商品', 'WAREHOUSE')",
+                productId.toString(),
+                UUID.randomUUID().toString(),
+                leaf.getId().toString());
+        db.onDelete("DELETE FROM product.skus WHERE product_id = ?::uuid", productId.toString());
+        db.onDelete("DELETE FROM product.products WHERE id = ?::uuid", productId.toString());
+
+        BusinessException ex = assertThrows(
+                BusinessException.class, () -> categoryService.updateStatus(root.getId(), CategoryStatus.DISABLED));
+        assertEquals(400, ex.getHttpStatus());
+        assertTrue(ex.getMessage().contains("该类目或其子分类"), "文案要说出波及范围是子树，不只是本类目");
+    }
+
+    /** 空子树可禁：子孙都没挂商品时闸门放行，一级整支从公开侧消失；启用方向不受闸门约束可恢复 */
+    @Test
+    void 禁用一级类目_子树为空_放行且可再启用() {
+        Category root = seedMountableChain().getFirst();
+
+        categoryService.updateStatus(root.getId(), CategoryStatus.DISABLED);
+        assertTrue(categoryService.publicTree().stream().noneMatch(n -> n.id().equals(root.getId())), "禁用后公开树整支剪掉");
+
+        categoryService.updateStatus(root.getId(), CategoryStatus.ENABLED);
+        assertEquals(3, categoryService.descendantIds(root.getId()).size(), "重新启用后子树恢复可达");
+    }
 }

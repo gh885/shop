@@ -77,8 +77,13 @@ public class CategoryService {
         if (!reachable.contains(categoryId)) {
             return Set.of();
         }
+        return expandSubtree(categoryId, childrenByParent);
+    }
+
+    /** 在给定邻接表上从 root 向下展开子树（含自身）；root 不在邻接表里时就是它自己一个点 */
+    private static Set<UUID> expandSubtree(UUID root, Map<UUID, List<UUID>> childrenByParent) {
         Set<UUID> subtree = new LinkedHashSet<>();
-        Deque<UUID> pending = new ArrayDeque<>(List.of(categoryId));
+        Deque<UUID> pending = new ArrayDeque<>(List.of(root));
         while (!pending.isEmpty()) {
             UUID id = pending.poll();
             if (subtree.add(id)) {
@@ -86,6 +91,23 @@ public class CategoryService {
             }
         }
         return subtree;
+    }
+
+    /**
+     * 全量子树（含自身，不按启用过滤）：禁用闸门专用。
+     *
+     * <p>与 {@link #descendantIds} 的「禁用整支剪掉」口径刻意不同——那是给召回看「买家此刻可达哪些」，
+     * 这是关门前清点「这次禁用会波及谁」：子树里已有禁用分支下的商品同样在这个类目治下，
+     * 禁祖先不会让它们更可见，也必须一并移走，所以展开时不掺启用过滤。
+     */
+    private Set<UUID> wholeSubtreeIds(UUID root) {
+        Map<UUID, List<UUID>> childrenByParent = new HashMap<>();
+        for (Category c : categoryMapper.selectList(new LambdaQueryWrapper<Category>())) {
+            childrenByParent
+                    .computeIfAbsent(c.getParentId(), key -> new ArrayList<>())
+                    .add(c.getId());
+        }
+        return expandSubtree(root, childrenByParent);
     }
 
     /**
@@ -146,16 +168,18 @@ public class CategoryService {
     }
 
     /**
-     * 启用/禁用。禁用采用查询侧裁剪，不写扩散，可无损恢复；仍被商品引用的类目禁止禁用——
+     * 启用/禁用。禁用采用查询侧裁剪，不写扩散，可无损恢复；子树内仍被商品引用的类目禁止禁用——
      * 否则商品会悬在一个买家侧不可见的类目里。
      */
     @Transactional
     public void updateStatus(UUID id, CategoryStatus status) {
         Category category = requireCategory(id);
-        // 禁用闸门：类目下仍有商品引用（含草稿/下架——软删语义的商品仍占类目位）则拒绝
+        // 禁用闸门：子树（含自身）内仍有商品引用（含草稿/下架——软删语义的商品仍占类目位）则拒绝。
+        // 商品只挂三级叶子，对一级/二级数直挂引用恒为 0，必须按全量子树统计（口径见 wholeSubtreeIds）
         if (status == CategoryStatus.DISABLED) {
-            Long refs = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getCategoryId, id));
-            Validate.isTrue(refs == 0, "类目下仍有 " + refs + " 个商品，移出后才能禁用");
+            Long refs = productMapper.selectCount(
+                    new LambdaQueryWrapper<Product>().in(Product::getCategoryId, wholeSubtreeIds(id)));
+            Validate.isTrue(refs == 0, "该类目或其子分类下仍有 " + refs + " 个商品，移出后才能禁用");
         }
         category.setStatus(status);
         categoryMapper.updateById(category);

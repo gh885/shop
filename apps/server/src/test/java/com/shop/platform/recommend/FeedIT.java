@@ -11,7 +11,6 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.product.api.ProductCardView;
 import com.shop.platform.product.mapper.Category;
-import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.product.service.CategoryService;
 import com.shop.platform.recommend.dto.FeedQuery;
 import com.shop.platform.recommend.service.FeedPage;
@@ -171,8 +170,8 @@ class FeedIT extends IntegrationTestSupport {
 
     @Test
     void 父类目被禁用_子类目商品不再召回() {
-        // 禁用闸门只管「直接引用」：父类目自己不挂商品，所以禁得掉，而子类目下的商品还留在库里——
-        // 「父链断了整支剪掉」因此是真会发生的场景，不是纸面推演
+        // 禁用闸门已扩到子树（子树挂商品的父类目经 service 已禁不掉），这里 SQL 直改 status 造存量脏数据——
+        // 「父链断了整支剪掉」仍要成立：库里历史遗留的隐藏分支不能从 feed 漏出去
         UUID rootId = seedRootCategory();
         Category child = categoryService.create(rootId, "子类目", null, null);
         db.onDelete(
@@ -182,7 +181,7 @@ class FeedIT extends IntegrationTestSupport {
 
         assertTrue(drain(rootId, 24).contains(productId), "禁用前：一级 tab 应召回子类目下的商品");
 
-        categoryService.updateStatus(rootId, CategoryStatus.DISABLED);
+        jdbc.update("UPDATE product.categories SET status = 'DISABLED' WHERE id = ?::uuid", rootId.toString());
 
         FeedPage page = feedService.page(new FeedQuery(rootId, null, 24));
         assertTrue(page.items().isEmpty(), "父链断了：隐藏类目不给流，但也不该 404");

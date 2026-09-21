@@ -479,7 +479,8 @@ class ProductIT extends IntegrationTestSupport {
 
     /**
      * 挂启用叶子但父级禁用 → 买家列表搜不到：pagePublic 的 categoryId 过滤经 CategoryService 展开启用子树，
-     * 父链断则整支不可见 → 空页不报错。中间层自身无商品直接引用，[PRD-07] 的禁用闸门挡不住它——
+     * 父链断则整支不可见 → 空页不报错。[PRD-07] 的禁用闸门已扩到子树（子树挂商品的一级/二级禁不掉），
+     * 这里要的是「父禁用 + 子树有商品」的脏库存量形态，只能 SQL 直改 status 造出来——
      * 这正是列表必须跟随「父链启用」而非只查挂载类目自身的原因。
      */
     @Test
@@ -500,7 +501,8 @@ class ProductIT extends IntegrationTestSupport {
                 "SELECT parent_id FROM product.categories WHERE id = ?::uuid",
                 UUID.class,
                 leaf.getId().toString());
-        categoryService.updateStatus(middleId, CategoryStatus.DISABLED);
+        // SQL 直改而不是 service：子树已挂商品，updateStatus 的禁用闸门会 400（闸门只管正常运营路径）
+        jdbc.update("UPDATE product.categories SET status = 'DISABLED' WHERE id = ?::uuid", middleId.toString());
 
         assertEquals(0, productQueryService.pagePublic(query, 1, 10).total());
         assertTrue(productQueryService.pagePublic(query, 1, 10).records().isEmpty());
