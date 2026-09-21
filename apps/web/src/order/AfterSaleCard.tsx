@@ -1,9 +1,11 @@
-import type { TicketResponse } from "@shop/api/sdk"
 import type { ReactNode } from "react"
+
 import { Badge, Button, Panel, PanelContent, PanelHeader, Spinner } from "@shop/ui-web"
 import { formatDateTime } from "@shop/app-kit"
 
 import { Price } from "#/shared/ui/Price"
+
+import type { TicketResponse } from "@shop/api/sdk"
 
 import {
     AFTER_SALE_ACTION_LABEL,
@@ -21,6 +23,9 @@ import { buyerAfterSaleActions, type AfterSaleAction } from "./after-sale"
  * 卡片不认识订单状态，也不自己发请求（弹窗与 mutation 都归页面持有）。
  * 时间线不做完整历史（后端 ticket_events 没开接口）：只把「当前状态 + 关键时刻」讲清楚，
  * 免得前端凭当前状态编造一条看似权威的轨迹。
+ *
+ * 回寄引导区（RETURNING 待寄回时才有）：退货地址随详情下发（returnAddress，查询时实时解析的卖家默认
+ * 退货地址）；null 时不编地址，直说「联系客服」——寄错地方比少一步引导糟糕得多。
  */
 
 export interface AfterSaleCardProps {
@@ -78,6 +83,13 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
                 <Row label="售后理由">{ticket.reason ?? "买家未填写"}</Row>
 
                 <Row label="申请时间">{formatDateTime(ticket.createdAt)}</Row>
+
+                {/* 回寄引导区：待寄回（RETURN_GOODS 下发，含已填过单号可改单的情况）才给地址 */}
+                {actions.includes("return") && (
+                    <Row label="退货地址">
+                        {ticket.returnAddress ?? "卖家未设置退货地址，请先联系客服"}
+                    </Row>
+                )}
 
                 {ticket.refundedAt && (
                     <Row label="退款时间">{formatDateTime(ticket.refundedAt)}</Row>

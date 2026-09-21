@@ -15,7 +15,11 @@ import {
 import { useReturnAfterSale } from "./after-sale-queries"
 
 /**
- * 回寄退货弹窗：填快递公司 + 运单号。
+ * 回寄退货弹窗：先看寄到哪，再填快递公司 + 运单号。
+ *
+ * 退货地址吃售后详情下发的 returnAddress（查询时实时解析的卖家默认退货地址）：
+ * null 时不挡提交——地址缺失是卖家侧配置问题，单号登记本身仍是买家该做的事，
+ * 但要直说「先联系客服」，别让买家凭「请把商品寄回」四个字猜目的地。
  *
  * 这一步只落物流单（售后单状态不变）：后端把它登记成 logistics 的 RETURN 包裹，
  * 之后承运商推送、轮询兜底、买家「查看物流」都自动认得它——所以这里填错/填漏要能改，
@@ -38,6 +42,11 @@ export interface AfterSaleReturnDialogProps {
     /** 已有回寄单则回填（允许改） */
     defaultLogisticsCompany?: string | null
     defaultTrackingNo?: string | null
+    /**
+     * 卖家默认退货地址（一行串，来自售后详情 returnAddress）。
+     * undefined = 详情还没拿到（不渲染引导区）；null = 卖家未配置（渲染联系客服提示）。
+     */
+    returnAddress?: string | null
 }
 
 export function AfterSaleReturnDialog({
@@ -46,6 +55,7 @@ export function AfterSaleReturnDialog({
     orderId,
     defaultLogisticsCompany,
     defaultTrackingNo,
+    returnAddress,
 }: AfterSaleReturnDialogProps) {
     const submitReturn = useReturnAfterSale(orderId)
 
@@ -91,6 +101,26 @@ export function AfterSaleReturnDialog({
                         void form.handleSubmit()
                     }}
                 >
+                    {/* 回寄引导：有地址就给一行（寄错的代价比多读一行字高得多）；null 不编地址，直说联系客服 */}
+                    {returnAddress !== undefined && (
+                        <div className="rounded-lg bg-muted px-4 py-3 text-sm">
+                            {returnAddress ? (
+                                <>
+                                    <span className="text-muted-foreground">
+                                        请把商品寄回以下地址
+                                    </span>
+                                    <p className="mt-1 font-medium text-foreground">
+                                        {returnAddress}
+                                    </p>
+                                </>
+                            ) : (
+                                <span className="text-muted-foreground">
+                                    卖家未设置退货地址，请先联系客服
+                                </span>
+                            )}
+                        </div>
+                    )}
+
                     <form.AppField name="logisticsCompany">
                         {(field) => (
                             <field.TextField

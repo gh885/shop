@@ -177,6 +177,7 @@ function OrderDetailPage() {
                 orderId={orderId}
                 defaultLogisticsCompany={ticket?.returnLogisticsCompany}
                 defaultTrackingNo={ticket?.returnTrackingNo}
+                returnAddress={ticket?.returnAddress}
             />
         </div>
     )

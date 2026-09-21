@@ -13,6 +13,8 @@ import { AfterSaleReturnDialog } from "./AfterSaleReturnDialog"
 /**
  * 回寄退货填单测试：这一步把退货物流登记成 logistics 的 RETURN 包裹，
  * 所以「填了什么 → wire 上是什么」必须准（首尾空格要清掉，否则承运商推送按运单号匹配不上）。
+ * 另一半责任是「寄到哪」：地址来自售后详情的 returnAddress（查询时实时解析），
+ * 有就原样给买家，没有就说「联系客服」——不编地址，也不因此卡住单号登记。
  */
 
 type Captured = unknown
@@ -79,5 +81,31 @@ describe("AfterSaleReturnDialog", () => {
 
         expect(screen.getByLabelText("快递公司")).toHaveValue("中通快递")
         expect(screen.getByLabelText("运单号")).toHaveValue("ZT999")
+    })
+
+    it("卖家配了默认退货地址_寄回目的地原样展示", async () => {
+        renderDialog({ returnAddress: "退件员 13800001234 · 浙江省杭州市西湖区文一路 100 号" })
+
+        expect(screen.getByText("请把商品寄回以下地址")).toBeInTheDocument()
+        expect(
+            screen.getByText("退件员 13800001234 · 浙江省杭州市西湖区文一路 100 号"),
+        ).toBeInTheDocument()
+        // 地址缺失与否都不该挡住登记本身：表单照常可提交
+        expect(screen.getByRole("button", { name: "提交" })).toBeEnabled()
+    })
+
+    it("卖家未设置退货地址_提示联系客服，但不挡单号登记", async () => {
+        const user = userEvent.setup()
+        const captured: Captured[] = []
+        useCaptureReturn(captured)
+        renderDialog({ returnAddress: null })
+
+        expect(screen.getByText("卖家未设置退货地址，请先联系客服")).toBeInTheDocument()
+
+        // null 语义只关乎「寄到哪」，不关乎「能不能登记」：填完照样能提交
+        await user.type(screen.getByLabelText("快递公司"), "顺丰速运")
+        await user.type(screen.getByLabelText("运单号"), "SF12345678")
+        await user.click(screen.getByRole("button", { name: "提交" }))
+        await waitFor(() => expect(captured).toHaveLength(1))
     })
 })
