@@ -42,6 +42,7 @@ export const Route = createFileRoute("/_protected/account/favorites/")({
 function FavoritesSkeleton() {
     return (
         <div className="space-y-5">
+            <h2 className="text-xl font-bold">我的收藏</h2>
             <Skeleton className="h-10 w-full" />
             <div className="flex flex-wrap gap-3">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -113,6 +114,7 @@ function FavoritesPage() {
 
     return (
         <div className="space-y-5">
+            <h2 className="text-xl font-bold">我的收藏</h2>
             <Toolbar
                 total={filtered.length}
                 keyword={keyword}

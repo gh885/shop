@@ -42,9 +42,13 @@ export const Route = createFileRoute("/_protected/account/security/")({
 /** 安全设置：修改登录密码 + 登录设备管理（列表/单设备退出/退出全部）。 */
 function SecurityPage() {
     return (
-        <div className="space-y-6">
-            <ChangePassword />
-            <DeviceManager />
+        <div className="space-y-4">
+            <h2 className="text-xl font-bold">安全设置</h2>
+
+            <div className="space-y-6">
+                <ChangePassword />
+                <DeviceManager />
+            </div>
         </div>
     )
 }

@@ -78,7 +78,7 @@ function OrdersPage() {
 
     return (
         <div className="space-y-4">
-            <h1 className="text-xl font-bold">我的订单</h1>
+            <h2 className="text-xl font-bold">我的订单</h2>
 
             {/* 取消订单弹窗（原因 + 备注）：状态由 useOrderActions 持有，这里只挂渲染位 */}
             {cancelDialog}

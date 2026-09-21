@@ -36,7 +36,7 @@ function AddressListSkeleton() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold">收货地址</h1>
+                <h2 className="text-xl font-bold">收货地址</h2>
             </div>
             <div className="space-y-2">
                 {Array.from({ length: 3 }, (_, i) => (
@@ -82,7 +82,7 @@ function AddressPage() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold">收货地址</h1>
+                <h2 className="text-xl font-bold">收货地址</h2>
                 <Button onClick={openCreate}>
                     <Plus />
                     新增收货地址

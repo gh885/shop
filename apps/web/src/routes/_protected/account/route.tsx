@@ -10,7 +10,7 @@ import {
     SidebarMenuItem,
     SidebarProvider,
 } from "@shop/ui-web"
-import { AccountHeader } from "#/account"
+import { SearchHeader } from "#/shared/ui/SearchHeader"
 
 /**
  * 个人中心侧边栏菜单（数据驱动，路径驱动）。
@@ -80,7 +80,7 @@ function AccountLayout() {
 
     return (
         <div className="flex flex-1 flex-col">
-            <AccountHeader />
+            <SearchHeader title="个人中心" />
 
             <div className="mx-auto flex w-full max-w-page flex-1 gap-6 px-6 py-8">
                 <div className="shrink-0 self-start">

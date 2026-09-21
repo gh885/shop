@@ -17,17 +17,21 @@ export const Route = createFileRoute("/_protected/account/profile/")({
 function ProfilePage() {
     const { data: me, isLoading } = useMe()
 
-    if (isLoading || !me) {
-        return (
-            <div className="space-y-3">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-            </div>
-        )
-    }
+    return (
+        <div className="space-y-4">
+            <h2 className="text-xl font-bold">个人资料</h2>
 
-    // 数据到达后才挂载表单：昵称初值直接取 me，不需要 effect 二次灌值
-    return <ProfileForm me={me} />
+            {isLoading || !me ? (
+                <>
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                </>
+            ) : (
+                // 数据到达后才挂载表单：昵称初值直接取 me，不需要 effect 二次灌值
+                <ProfileForm me={me} />
+            )}
+        </div>
+    )
 }
 
 function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]> }) {
@@ -66,7 +70,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                 <Separator />
 
                 <div className="space-y-4">
-                    <h2 className="text-base font-semibold">昵称</h2>
+                    <h3 className="text-base font-semibold">昵称</h3>
                     {/* React 19 form action：React 自动接管提交（无需 preventDefault），校验仍走 TanStack Form */}
                     <form
                         className="max-w-md space-y-3"

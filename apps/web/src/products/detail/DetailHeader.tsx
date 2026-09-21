@@ -11,7 +11,6 @@ import { DETAIL_LAYOUT } from "./constants"
 export function DetailHeader() {
     return (
         <SearchHeader
-            className="border-b border-border/60"
             containerClassName={DETAIL_LAYOUT.container}
             extra={
                 <button

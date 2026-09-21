@@ -9,7 +9,7 @@ import {
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
-import { AccountHeader } from "#/account"
+import { SearchHeader } from "#/shared/ui/SearchHeader"
 import {
     AfterSaleApplyDialog,
     AfterSaleCard,
@@ -57,9 +57,9 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
 function OrderDetailSkeleton() {
     return (
         <div className="flex flex-1 flex-col">
-            <AccountHeader
+            <SearchHeader
                 title="订单详情"
-                widthClass="max-w-narrow"
+                containerClassName="max-w-narrow"
             />
             <div className="narrow-page space-y-8">
                 <Skeleton className="h-24 w-full rounded-xl" />
@@ -115,9 +115,9 @@ function OrderDetailPage() {
 
     return (
         <div className="flex flex-1 flex-col">
-            <AccountHeader
+            <SearchHeader
                 title="订单详情"
-                widthClass="max-w-narrow"
+                containerClassName="max-w-narrow"
             />
 
             <div className="narrow-page">

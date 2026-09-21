@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft, CircleAlert } from "lucide-react"
 import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
-import { AccountHeader } from "#/account"
+import { SearchHeader } from "#/shared/ui/SearchHeader"
 import {
     CarrierBar,
     LogisticsSummaryCard,
@@ -51,9 +51,9 @@ export const Route = createFileRoute("/_protected/logistics/$orderId")({
 function LogisticsSkeleton() {
     return (
         <div className="flex flex-1 flex-col">
-            <AccountHeader
+            <SearchHeader
                 title="物流详情"
-                widthClass="max-w-narrow"
+                containerClassName="max-w-narrow"
             />
             <div className="narrow-page space-y-6">
                 <Skeleton className="h-24 w-full rounded-lg" />
@@ -89,9 +89,9 @@ function LogisticsPage() {
 
     return (
         <div className="flex flex-1 flex-col">
-            <AccountHeader
+            <SearchHeader
                 title="物流详情"
-                widthClass="max-w-narrow"
+                containerClassName="max-w-narrow"
             />
 
             <div className="narrow-page">

@@ -63,7 +63,7 @@ function CouponsPage() {
 
     return (
         <div className="space-y-4">
-            <h1 className="text-xl font-bold">我的优惠券</h1>
+            <h2 className="text-xl font-bold">我的优惠券</h2>
 
             {/* 页签：ui-web Tabs（BaseUI）自带方向键切换与 roving tabindex，不手搓 div 按钮 */}
             <Tabs
