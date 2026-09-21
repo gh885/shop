@@ -28,7 +28,7 @@ import { FEED_PAGE_SIZE, feedCategoryId, feedOptions, recommendTabsOptions } fro
  * <p>为什么整块独立成组件、不写在路由里：tab 选中、已加载页数、哨兵、四种尾部状态都只属于这一块，
  * 写进 `routes/index.tsx` 会把它撑成第二个页面文件，且无限滚动没法单测（frontend.md：route 文件保持薄）。
  *
- * <p>tab 状态刻意留在组件内、不进 URL（理由见 docs/decisions/home-feed.md §4.6）：商品卡在新标签页打开，
+ * <p>tab 状态刻意留在组件内、不进 URL（理由见 docs/business-rules/cms.md WEB-01）：商品卡在新标签页打开，
  * 首页从不被离开；刷新回默认 tab 是淘宝 / 京东的既定行为。查询 key 仍含 tab（转成 categoryId），各 tab 各自缓存，切回不重拉。
  *
  * <p>切 tab 走 {@code startTransition}：feed 是**已揭示的** Suspense 边界，transition 期间 React 保留旧内容，

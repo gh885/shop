@@ -1,5 +1,5 @@
 -- V51: Logistics 二期 —— 发货入口归一（承运商字典 + 面单信息归包裹 + 一单多包裹 + 签收时刻）
--- 设计见 docs/decisions/logistics.md §4 二期。五处变更与动机：
+-- 规则见 docs/business-rules/logistics.md（LOG-01、LOG-02、LOG-27–LOG-29）。五处变更与动机：
 --   1. 发货本质是物流动作，命令入口从 order 搬到 logistics：logistics 经 order :: api 的
 --      OrderCommand.markShipped 推进订单状态。一期那条 OrderShippedEvent 随之删除——
 --      单向依赖从 order :: events 换成 order :: api（仍是单向，不成环），因为发货方已是 logistics 自己，

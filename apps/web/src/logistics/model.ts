@@ -8,7 +8,7 @@ import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/
  * - 本文件（model.ts）：业务类型 + 纯规则，不知道 wire 的一切。
  * - wire 拼接 / 投影在 ./tracking.ts（数据层），从生成 SDK 取，不手写 zod。
  *
- * 词表是纯展示决策，后端只给标准词表（见 docs/decisions/logistics.md「后端只给标准词表」），
+ * 词表是纯展示决策，后端只给标准词表（规则见 docs/business-rules/logistics.md LOG-37、LOG-38），
  * 所以「节点码 → 中文名」只在这里有一份，组件不 import SDK 枚举。
  */
 

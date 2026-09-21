@@ -1,7 +1,7 @@
 /**
  * Coupon 模块 — 优惠券（营销域）：券模板（运营配置的规则）+ 用户券（领取后的实例）+ 核销流水
  *
- * <p>schema: coupon。设计与取舍见 docs/decisions/coupon.md。
+ * <p>schema: coupon。生效规则见 docs/business-rules/coupon.md。
  * 模板与实例分离：规则在模板，用户券在领取时把券名/面额/门槛/有效期固化成绝对值——运营改配置不影响已发出的券。
  * 一期只有店铺券（范围 = 本店全部商品，与 order 的「按店拆单」天然对齐，零分摊）与「满 X 减 Y」一种玩法。
  *

@@ -55,7 +55,7 @@ const OPEN_STATUS: ReadonlySet<AfterSaleStatus> = new Set(["APPLYING", "RETURNIN
  * 3. 没有进行中的售后单。
  *
  * 已退款不再提供入口：后端 V1 未拦「退款后二次申请」，前端不主动把用户送到重复退款那条路上
- * （见 docs/decisions/aftersale.md「已知边界」）。已拒绝/已撤销则允许重新申请——窗口内这是买家的正当权利。
+ * （已知敞口见 docs/business-rules/aftersale.md AFS-05）。已拒绝/已撤销则允许重新申请——窗口内这是买家的正当权利。
  */
 export function canApplyAfterSale(gate: ApplyGate, now: number = Date.now()): boolean {
     if (gate.status !== "completed") return false

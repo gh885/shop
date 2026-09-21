@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 越店发货在 service 层按 shop_id 校验，一律 404。
  *
  * <p>发货入口在物流模块而不是订单模块：发货是物流动作，包裹与运单号是它的产物，
- * 订单状态是它经 {@code order :: api} 推着走的（设计见 docs/decisions/logistics.md §4 二期）。
+ * 订单状态是它经 {@code order :: api} 推着走的（规则见 docs/business-rules/logistics.md LOG-01、LOG-02）。
  * 路径前缀仍是 /seller，与角色分端一致——模块按领域切，不按角色切。
  */
 @Tag(name = "seller-logistics", description = "卖家发货作业")

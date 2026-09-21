@@ -1,5 +1,5 @@
 -- V50: Logistics 模块 —— 包裹与轨迹从 orders 的两个裸字符串列升格为独立模块
--- 设计见 docs/decisions/logistics.md。边界：logistics 是 order 的下游（单向消费 OrderShippedEvent 落包裹），
+-- 现行规则见 docs/business-rules/logistics.md（本行为一期建模块时的边界，后续以 V51 起的规则为准）。边界：logistics 是 order 的下游（单向消费 OrderShippedEvent 落包裹），
 -- order 不认识本模块——故本 schema 是轨迹的唯一真相源，orders.logistics_company / tracking_no 仍是发货快照，
 -- 二期发货入口归一后才改为本模块经 order :: api 写回的投影。
 -- 一期不建承运商字典（发货仍是自由文本、无消费者），二期随发货入口归一并加。

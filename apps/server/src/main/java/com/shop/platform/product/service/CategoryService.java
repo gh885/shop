@@ -153,7 +153,7 @@ public class CategoryService {
                 visible.put(c.getId(), c);
             }
         }
-        // 2. 父级不可见则整支剪掉（禁用级联的实现方式，见 docs/decisions/product-categories.md）
+        // 2. 父级不可见则整支剪掉（禁用级联口径，规则见 docs/business-rules/product.md PRD-06）
         List<Category> attachable = new ArrayList<>();
         for (Category c : visible.values()) {
             if (Category.ROOT_PARENT_ID.equals(c.getParentId()) || visible.containsKey(c.getParentId())) {

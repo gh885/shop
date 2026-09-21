@@ -59,6 +59,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 | 前端（`apps/*`、`packages/*`）：目录、状态、取数、测试 | [docs/conventions/frontend.md](docs/conventions/frontend.md)；改取数条款前先读其论证 [query-convergence.md](docs/conventions/query-convergence.md) |
 | UI / 视觉 / 加组件                                     | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md)                                                                                             |
 | 架构总览、模块依赖图、关键链路、全库 ID 与金额策略     | [docs/architecture.md](docs/architecture.md)                                                                                                       |
+| 业务规则（订单/券/物流/售后/支付/账号…的生效规则清单） | [docs/business-rules/](docs/business-rules/)（逐条带编号；改代码里的规则要同步改对应条目）                                                         |
 | 当前进行中的事                                         | [TODO.md](TODO.md)                                                                                                                                 |
 
 ## 高频硬规则速览（细则与完整版见上表对应文件）

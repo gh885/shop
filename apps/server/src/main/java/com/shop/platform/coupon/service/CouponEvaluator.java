@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * <p>无 IO、无事务、无状态，因此可以被结算预览与真实下单<b>同一条链路</b>复用。
  * 「预览一个价、下单另一个价」是最经典的客诉来源，这个类不碰数据库就是为了让它不可能发生。
  *
- * <p>口径全部是定案（改动等于改线上金额，见 docs/decisions/coupon.md §5）：
+ * <p>口径全部是定案（改动等于改线上金额，规则见 docs/business-rules/coupon.md CPN-18–CPN-22）：
  *
  * <ul>
  *   <li><b>门槛基数 = 适用商品的销售价小计</b>：不含运费、不含划线价、不含其他优惠。一期券范围 = 本店全部商品，

@@ -41,7 +41,7 @@ aftersale → order::api, inventory::api, logistics::api, coupon::api（退款�
 payment → order::api, order::events, aftersale::events
 ```
 
-券的两个方向都是同事务 api 命令：order 下单占用/支付核销/取消释放、aftersale 退款退券——券与订单/资金要么一起成立要么一起不成。设计见 [docs/decisions/coupon.md](decisions/coupon.md)。
+券的两个方向都是同事务 api 命令：order 下单占用/支付核销/取消释放、aftersale 退款退券——券与订单/资金要么一起成立要么一起不成。规则见 [docs/business-rules/coupon.md](business-rules/coupon.md)（占用/核销/释放/退券的同事务口径：CPN-35、CPN-37–CPN-39、CPN-46）。
 
 事件流：`order.OrderPlacedEvent`（下单）→ cart 消费清理已购 SKU；`order.OrderCancelledEvent`（已付款单取消）与 `aftersale.AfterSaleRefundedEvent`（售后退款）→ payment 消费落退款单据。三条都是同事务同步监听；`kernel.event_publication` 登记表与 `infra/events/EventPublicationRecoveryJob` 保留给将来的 AFTER_COMMIT 消费方（如接真实支付网关后的退款），当前没有消费方在用。
 
@@ -81,7 +81,7 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 ### 4.3 认证链路
 
-双 token 域隔离：`kind=user`（买家）与 `kind=staff`（员工/卖家/管理员）两套 JWT 过滤链。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`）。设计动机与攻击面：[docs/decisions/auth.md](decisions/auth.md)。
+双 token 域隔离：`kind=user`（买家）与 `kind=staff`（员工/卖家/管理员）两套 JWT 过滤链。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`）。生效规则与「故意不做」边界见 [docs/business-rules/account.md](business-rules/account.md)（ACC-19、ACC-21、ACC-25、ACC-59、ACC-61–ACC-63）；设计动机与攻击面的原始论证见 git 历史（原设计笔记已归档）。
 
 ### 4.4 下单数据流（示意，以代码为准）
 
@@ -95,7 +95,7 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
   → 卖家发货入口在 logistics（POST /seller/shipments）：同事务落包裹 + 经 order::api 推进 PAID → 已发货，
     一单可多包裹；签收节点把 delivered_at 写回订单，收货倒计时从签收起算。
     轨迹节点由承运商推送（/logistics/webhooks，签名校验后落库）、轮询兜底或运营补录写入，
-    包裹状态是轨迹的投影（设计见 docs/decisions/logistics.md）
+    包裹状态是轨迹的投影（规则见 docs/business-rules/logistics.md LOG-11）
 ```
 
 ## 5. 全库 ID 策略（所有模块通用）
@@ -157,5 +157,5 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 - 操作规范：[AGENTS.md](../AGENTS.md)、[apps/server/AGENTS.md](../apps/server/AGENTS.md)
 - 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志、取数口径论证）
-- 设计决策：[docs/decisions/](decisions/)（auth 设计笔记、物流四期、售后闭环、[优惠券](decisions/coupon.md)——一期已闭环、二期候选见其 §16、类目体系与规格值 ID 化、[首页 feed 流](decisions/home-feed.md)——V1 已落地、V2/V3 设计稿）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
+- 业务规则库：[docs/business-rules/](business-rules/)（按领域的生效规则，逐条带编号，源自代码；优惠券一期已闭环、二期候选见 coupon.md「已定案未实现」节，首页 feed V1 已落地、V2/V3 设计稿见 cms.md FUT-*；原 docs/decisions/ 设计笔记已并入本库，原始论证归档 git 历史）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
 - 外部调研资料：[docs/reference/](reference/)（券平台做法对照）

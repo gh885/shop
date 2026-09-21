@@ -1,6 +1,6 @@
 -- V57: 订单接入优惠券 —— 金额构成加 discount_amount，并把 V17 的应付 CHECK 换成含优惠的口径
 --
--- 与 docs/decisions/coupon.md §5.4 一致：pay_amount = item_amount + shipping_fee - discount_amount。
+-- 与 docs/business-rules/order.md ORD-21 一致：pay_amount = item_amount + shipping_fee - discount_amount。
 -- 三列都是下单瞬间的快照，不是外键引用：
 -- * discount_amount：券实际减免额（分）。满减券一次用完，面额即减免额，故不再单独存券面额。
 -- * user_coupon_id：核销的券（跨 schema 裸引用不加 FK）。券后续被删也不影响订单自证减了多少、凭哪张券减的。

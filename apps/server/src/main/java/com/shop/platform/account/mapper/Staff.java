@@ -11,7 +11,7 @@ import lombok.experimental.SuperBuilder;
 /**
  * 平台员工 —— 平台官方人员（apps/admin 的受众），与买家/卖家（account.users）是两套独立账号体系。
  *
- * <p>登录凭证是工号 + 密码，不走手机验证码；登录入口、token 范围与 C 端隔离（token 设计见 docs/decisions/auth.md）。
+ * <p>登录凭证是工号 + 密码，不走手机验证码；登录入口、token 范围与 C 端隔离（token 规则见 docs/business-rules/account.md ACC-19、ACC-25）。
  */
 @Data
 @SuperBuilder

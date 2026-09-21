@@ -24,7 +24,7 @@ import { carrierListOptions } from "#/order/queries"
  * 卖家发货弹窗：选承运商（字典下拉）+ 填运单号。提交经 onShip 上抛（mutation 在容器持有）。
  *
  * <p>承运商是自由文本升级来的：同一个顺丰曾能写出五种字，落库后既没法统计也没法对接物流商接口，
- * 现在只传字典 code，展示名由后端按字典归一（见 docs/decisions/logistics.md §4 二期）。
+ * 现在只传字典 code，展示名由后端按字典归一（规则见 docs/business-rules/logistics.md LOG-70）。
  * 字典是弹窗自己拉的——加载/失败态就地渲染，不必让调用方认识"快递公司还没到"这件事。
  */
 export function ShipDialog({
