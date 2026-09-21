@@ -498,6 +498,10 @@ export type ShopResponse = {
     status: ShopStatus;
     createdAt: string;
     updatedAt: string;
+    /**
+     * 最近一次审核驳回理由；仅被驳回的店铺非空
+     */
+    rejectReason: string | null;
 };
 
 export const ShopStatus = {
@@ -999,6 +1003,7 @@ export type SellerOrderListItemResponse = {
     receiverPhone: string | null;
     itemCount: number;
     items: Array<OrderItemResponse>;
+    shipExpireAt: string | null;
     createdAt: string;
 };
 
@@ -1025,6 +1030,7 @@ export type OrderDetailResponse = {
     trackingNo: string | null;
     payExpireAt: string;
     paidAt: string | null;
+    shipExpireAt: string | null;
     shippedAt: string | null;
     completedAt: string | null;
     cancelledAt: string | null;
@@ -1118,6 +1124,7 @@ export type OrderListItemResponse = {
     availableActions: Array<OrderAvailableAction>;
     payAmount: Money;
     payExpireAt: string;
+    shipExpireAt: string | null;
     createdAt: string;
     items: Array<OrderItemResponse>;
 };
@@ -2138,6 +2145,24 @@ export type CreateShopResponses = {
 };
 
 export type CreateShopResponse = CreateShopResponses[keyof CreateShopResponses];
+
+export type ResubmitShopReviewData = {
+    body: CreateShopRequest;
+    path: {
+        shopId: string;
+    };
+    query?: never;
+    url: '/shops/{shopId}/resubmit';
+};
+
+export type ResubmitShopReviewResponses = {
+    /**
+     * OK
+     */
+    200: ShopResponse;
+};
+
+export type ResubmitShopReviewResponse = ResubmitShopReviewResponses[keyof ResubmitShopReviewResponses];
 
 export type InviteShopMemberData = {
     body: InviteMemberRequest;

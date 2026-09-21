@@ -482,7 +482,8 @@ export const zShopResponse = z.object({
     logoKey: z.string().nullable(),
     status: zShopStatus,
     createdAt: z.iso.datetime({ offset: true }),
-    updatedAt: z.iso.datetime({ offset: true })
+    updatedAt: z.iso.datetime({ offset: true }),
+    rejectReason: z.string().nullable()
 });
 
 export const zInviteMemberRequest = z.object({
@@ -605,7 +606,7 @@ export const zOrderLineRequest = z.object({
 
 export const zPreviewOrderRequest = z.object({
     addressId: z.uuid().optional(),
-    lines: z.array(zOrderLineRequest).min(1),
+    lines: z.array(zOrderLineRequest).min(1).max(99),
     userCouponIds: z.array(z.uuid()).min(0).max(20).optional()
 });
 
@@ -678,7 +679,7 @@ export const zPreviewResponse = z.object({
 export const zCreateOrderRequest = z.object({
     checkoutKey: z.uuid(),
     addressId: z.uuid(),
-    lines: z.array(zOrderLineRequest).min(1),
+    lines: z.array(zOrderLineRequest).min(1).max(99),
     userCouponIds: z.array(z.uuid()).min(0).max(20).optional(),
     buyerMessage: z.string().min(0).max(200).optional()
 });
@@ -939,6 +940,7 @@ export const zSellerOrderListItemResponse = z.object({
     receiverPhone: z.string().nullable(),
     itemCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     items: z.array(zOrderItemResponse),
+    shipExpireAt: z.iso.datetime({ offset: true }).nullable(),
     createdAt: z.iso.datetime({ offset: true })
 });
 
@@ -970,6 +972,7 @@ export const zOrderDetailResponse = z.object({
     trackingNo: z.string().nullable(),
     payExpireAt: z.iso.datetime({ offset: true }),
     paidAt: z.iso.datetime({ offset: true }).nullable(),
+    shipExpireAt: z.iso.datetime({ offset: true }).nullable(),
     shippedAt: z.iso.datetime({ offset: true }).nullable(),
     completedAt: z.iso.datetime({ offset: true }).nullable(),
     cancelledAt: z.iso.datetime({ offset: true }).nullable(),
@@ -1059,6 +1062,7 @@ export const zOrderListItemResponse = z.object({
     availableActions: z.array(zOrderAvailableAction),
     payAmount: zMoney,
     payExpireAt: z.iso.datetime({ offset: true }),
+    shipExpireAt: z.iso.datetime({ offset: true }).nullable(),
     createdAt: z.iso.datetime({ offset: true }),
     items: z.array(zOrderItemResponse)
 });
@@ -1642,6 +1646,17 @@ export const zCreateShopBody = zCreateShopRequest;
  * OK
  */
 export const zCreateShopResponse = zShopResponse;
+
+export const zResubmitShopReviewBody = zCreateShopRequest;
+
+export const zResubmitShopReviewPath = z.object({
+    shopId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zResubmitShopReviewResponse = zShopResponse;
 
 export const zInviteShopMemberBody = zInviteMemberRequest;
 
