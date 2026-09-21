@@ -136,6 +136,11 @@ function PendingInvites() {
         meta: { success: "已加入店铺", error: "加入店铺失败", invalidates: [shopKeys.all] },
     })
 
+    const decline = useMutation({
+        mutationFn: (memberId: string) => ShopsApi.declineShopInvite({ path: { memberId } }),
+        meta: { success: "已拒绝邀请", error: "拒绝邀请失败", invalidates: [shopKeys.all] },
+    })
+
     if (!invites.data || invites.data.length === 0) return
 
     return (
@@ -156,6 +161,14 @@ function PendingInvites() {
                             <span className="text-sm">「{invite.shopName}」邀请你成为店铺成员</span>
                         </div>
                         <ItemActions>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={decline.isPending}
+                                onClick={() => decline.mutate(invite.memberId)}
+                            >
+                                拒绝
+                            </Button>
                             <Button
                                 size="sm"
                                 disabled={accept.isPending}
