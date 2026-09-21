@@ -4,13 +4,14 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterEach, describe, expect, it } from "vitest"
 
-import type { ClaimableCouponResponse, MyCouponResponse } from "@shop/api/sdk"
+import type { MyCouponResponse } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 
 import { tokenStore, useIsLoggedIn, useLoginDialogOpen } from "#/shared/api/auth"
 import { renderWithProviders } from "#/test/render"
 
 import { ShopCouponPopover } from "./ShopCouponPopover"
+import type { ClaimableCoupon } from "./coupon"
 import { shopClaimableCouponsOptions } from "./queries"
 
 /**
@@ -37,7 +38,7 @@ afterEach(() => {
     tokenStore.clear()
 })
 
-function makeClaimable(overrides: Partial<ClaimableCouponResponse> = {}): ClaimableCouponResponse {
+function makeClaimable(overrides: Partial<ClaimableCoupon> = {}): ClaimableCoupon {
     return {
         id: TEMPLATE_A,
         name: "满100减10",
@@ -46,6 +47,7 @@ function makeClaimable(overrides: Partial<ClaimableCouponResponse> = {}): Claima
         validFrom: "2026-01-01T00:00:00Z",
         validTo: "2026-01-31T00:00:00Z",
         soldOut: false,
+        claimable: true,
         ...overrides,
     }
 }
@@ -63,11 +65,12 @@ function makeClaimedCoupon(overrides: Partial<MyCouponResponse> = {}): MyCouponR
         status: "UNUSED",
         source: "CLAIM",
         orderId: null,
+        unavailableReason: null,
         ...overrides,
     }
 }
 
-function useClaimableList(coupons: ClaimableCouponResponse[]) {
+function useClaimableList(coupons: ClaimableCoupon[]) {
     server.use(http.get("*/api/shops/:shopId/coupons", () => HttpResponse.json(coupons)))
 }
 
@@ -162,6 +165,27 @@ describe("ShopCouponPopover", () => {
         expect(
             await screen.findByRole("button", { name: "已领完 满 ¥100 减 ¥10" }, WAIT),
         ).toBeDisabled()
+    })
+
+    it("未到点的预告券也列出来_按钮写开抢时刻并禁用_点击不发领取请求", async () => {
+        const user = userEvent.setup()
+        // claimable=false 且 soldOut=false = 还没开抢（C9）；开抢时刻文案跟着 validFrom，时区无关的断言用后缀
+        useClaimableList([makeClaimable({ validFrom: "2099-01-02T13:00:00Z", claimable: false })])
+        let claimedPath: string | undefined
+        server.use(
+            http.post("*/coupons/:templateId/claim", ({ request }) => {
+                claimedPath = new URL(request.url).pathname
+                return HttpResponse.json(makeClaimedCoupon(), { status: 201 })
+            }),
+        )
+
+        renderEntry()
+        await openPopover(user)
+
+        const button = await screen.findByRole("button", { name: /开抢 满 ¥100 减 ¥10/ }, WAIT)
+        expect(button).toBeDisabled()
+        await user.click(button)
+        expect(claimedPath).toBeUndefined()
     })
 
     it("409 已领过_就地标成已领取而不是提示领取失败", async () => {

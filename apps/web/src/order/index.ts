@@ -1,5 +1,6 @@
 export { myOrdersOptions, orderDetailOptions } from "./queries"
 export { useOrderActions } from "./use-order-actions"
+export { CancelOrderDialog } from "./CancelOrderDialog"
 
 export { ORDER_STATUS_LABEL, ORDER_STATUS_TABS } from "./constants"
 export type { Order, OrderDetail } from "./model"

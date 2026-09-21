@@ -59,6 +59,8 @@ export function makeTicket(
         orderId: "00000000-0000-4000-8000-000000000002", // 需为合法 v4 UUID（SDK zod schema 校验响应）
         type: "REFUND_ONLY",
         status: "APPLYING",
+        // 默认口径与 status 一致：APPLYING 的买家动作只有撤销（C5b，契约必填）
+        availableActions: ["CANCEL"],
         reason: "尺码不合适",
         refundAmount: { amount: 19900, currency: "CNY" },
         returnLogisticsCompany: null,
@@ -81,6 +83,8 @@ export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}):
         firstItemName: "测试SKU",
         type: "REFUND_ONLY",
         status: "APPLYING",
+        // 默认口径与 status 一致：APPLYING 的卖家动作是同意/拒绝（C5b，契约必填）
+        availableActions: ["AGREE", "REJECT"],
         reason: "尺码不合适",
         refundAmount: { amount: 19900, currency: "CNY" },
         returnLogisticsCompany: null,

@@ -5,6 +5,7 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 import com.shop.platform.common.Money;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.OrderWithItems;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,6 +22,9 @@ public record SellerOrderListItemResponse(
         @Schema(requiredMode = REQUIRED) String orderNo,
         @Schema(requiredMode = REQUIRED) OrderStatus status,
         @Schema(requiredMode = REQUIRED) AfterSaleStatus afterSaleStatus,
+        /** 行内按钮组：与详情同一套动作来源（后端状态机的卖家视角），前端不按状态另推一张表。
+         *  SHIPPED 行也带 SHIP —— 多包裹追加发货的入口（见 OrderStatus 转移表的 SHIPPED 自环） */
+        @Schema(requiredMode = REQUIRED) List<OrderAvailableAction> availableActions,
         @Schema(requiredMode = REQUIRED) Money payAmount,
         @Schema(requiredMode = REQUIRED) String receiverName,
         @Schema(requiredMode = REQUIRED, nullable = true) String receiverPhone,
@@ -35,6 +39,7 @@ public record SellerOrderListItemResponse(
                 order.getOrderNo(),
                 order.getStatus(),
                 order.getAfterSaleStatus(),
+                order.sellerActions(),
                 order.payAmountAsMoney(),
                 order.getReceiverName(),
                 order.getReceiverPhone(),

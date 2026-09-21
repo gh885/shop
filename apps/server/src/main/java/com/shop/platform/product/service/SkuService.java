@@ -139,7 +139,8 @@ public class SkuService {
 
     /** 批量更新 SKU。任何状态都允许：上架后补货/改价/停用是日常运营操作。price 必填，其余只 set 非空字段。
      *  库存归 inventory 模块：seller 传的 stock 是「绝对量设定」，经 inventory :: StockCommand.setTotal 走乐观锁，不写 product 表。
-     *  仅一条额外守卫：上架商品不允许被存成「全部在售 SKU 库存 = 0」（整链接无货必须先下架）。 */
+     *  两条额外守卫：上架商品不允许被存成「全部在售 SKU 库存 = 0」（整链接无货必须先下架）；
+     *  划线价（本次提交或存量）不允许低于本次提交的现价（DB CHECK 兜底，这里给 400 不冒 500）。 */
     @Transactional
     public List<Sku> updateSkus(UUID productId, List<SkuUpdateItem> items) {
         // 1. 商品必须存在且属于当前店铺（任何状态都允许改价/补货，是日常运营操作）；实体留作价格区间回填
@@ -147,6 +148,14 @@ public class SkuService {
         // 1.5 上架商品：预检本次更新后仍须至少一个在售 SKU 有货（对齐「架上商品不能全 0」，改 0 需先下架）
         if (product.isPublished()) {
             ensureNotAllOutOfStock(productId, items);
+        }
+
+        // 1.8 划线价闸门：本次更新后每行仍须满足 original_price >= price（DB CHECK ck_skus_original_price_ge_price
+        //     是最后防线，但撞上去冒 500；这里把「本次提交的现价」与「本次划线价，未提交则比存量划线价」放在一起先判，友好 400）
+        Map<UUID, Sku> existingById = skuMapper.selectByProductId(productId).stream()
+                .collect(Collectors.toMap(Sku::getId, Function.identity()));
+        for (SkuUpdateItem item : items) {
+            ensureStrikethroughNotInverted(existingById.get(item.skuId()), item);
         }
 
         // 2. 逐条更新：WHERE 同时校验 SKU 归属，只 set 非空字段（skuCode/status 传 null 即不改）
@@ -284,6 +293,19 @@ public class SkuService {
                     combo.get(i).value()));
         }
         return entries;
+    }
+
+    /** 划线价闸门：更新后的终值划线价（本次提交值；传 null 不改则比存量划线价）不得低于本次提交的现价。
+     *  SKU 不存在 / 不属于该商品时放行——由步骤 2 的 affected 判定报「SKU 不存在或不属于该商品」，不在此抢跑。 */
+    private static void ensureStrikethroughNotInverted(Sku current, SkuUpdateItem item) {
+        // 两个局部量都是 Long：混着 long 分支的三元会被数值提升成 long，null 分支当场拆箱 NPE
+        Long submittedStrikethrough =
+                item.originalPrice() == null ? null : item.originalPrice().amount();
+        Long finalStrikethrough = submittedStrikethrough != null
+                ? submittedStrikethrough
+                : (current == null ? null : current.getOriginalPrice());
+        Validate.isTrue(
+                finalStrikethrough == null || finalStrikethrough >= item.price().amount(), "划线价不能低于现价，请调整后再保存");
     }
 
     /** 上架商品不允许被存成「全部在售 SKU 库存 = 0」（对齐淘宝 API：最后一个 SKU 改 0 需先下架）。

@@ -9,15 +9,19 @@ import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.product.api.ProductCommand;
+import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.dto.SkuUpdateItem;
+import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.mapper.CategoryAttr;
 import com.shop.platform.product.mapper.CategoryAttrValue;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.model.AttrKind;
+import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.service.CategoryAttrService;
+import com.shop.platform.product.service.CategoryService;
 import com.shop.platform.product.service.ProductListRow;
 import com.shop.platform.product.service.ProductQueryService;
 import com.shop.platform.product.service.ProductService;
@@ -44,6 +48,9 @@ class ProductIT extends IntegrationTestSupport {
     /** V5 种子数据里的三级类目「手机」 */
     private static final UUID SEED_CATEGORY = UUID.fromString("01900000-0000-7000-8000-000000000301");
 
+    /** V5 种子数据里的二级类目「手机通讯」（非叶子） */
+    private static final UUID SEED_CATEGORY_L2 = UUID.fromString("01900000-0000-7000-8000-000000000201");
+
     /** V43 模板里「手机」的必填参数「屏幕尺寸」（attr 430103，值域 6.1/6.4/6.7 英寸）：建草稿必须带上 */
     private static final ParamItem REQUIRED_PARAM =
             new ParamItem(UUID.fromString("01900000-0000-7000-8000-000000430103"), "屏幕尺寸", "6.1英寸");
@@ -59,6 +66,9 @@ class ProductIT extends IntegrationTestSupport {
 
     @Autowired
     private CategoryAttrService categoryAttrService;
+
+    @Autowired
+    private CategoryService categoryService;
 
     @Autowired
     private ProductCommand productCommand;
@@ -346,5 +356,153 @@ class ProductIT extends IntegrationTestSupport {
         assertEquals("新标题", updated.getName());
         assertEquals(List.of("product/a.jpg", "product/b.jpg"), updated.getDetailImages());
         assertEquals(List.of("product/c.jpg"), updated.getImages());
+    }
+
+    // ===== 商品挂载闸门：叶子 + 启用（父链完整） =====
+
+    /** 建一棵临时三级类目链（根→中间→叶子）并登记自清，返回叶子 id */
+    private Category seedCategoryChain(boolean disableMiddle, boolean disableLeaf) {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        Category root = categoryService.create(null, "挂载根" + suffix, 99, null);
+        Category middle = categoryService.create(root.getId(), "挂载中间" + suffix, null, null);
+        Category leaf = categoryService.create(middle.getId(), "挂载叶子" + suffix, null, null);
+        db.onDelete(
+                "DELETE FROM product.categories WHERE id IN (?::uuid, ?::uuid, ?::uuid)",
+                leaf.getId().toString(),
+                middle.getId().toString(),
+                root.getId().toString());
+        if (disableMiddle) {
+            categoryService.updateStatus(middle.getId(), CategoryStatus.DISABLED);
+        }
+        if (disableLeaf) {
+            categoryService.updateStatus(leaf.getId(), CategoryStatus.DISABLED);
+        }
+        return leaf;
+    }
+
+    private CreateProductCommand mountCommand(UUID categoryId) {
+        UUID shopId = UUID.randomUUID();
+        db.onDelete("DELETE FROM product.products WHERE shop_id = ?::uuid", shopId.toString());
+        return new CreateProductCommand(shopId, categoryId, "挂载闸门机", null, null, null, List.of(), List.of());
+    }
+
+    @Test
+    void 创建商品_挂父链全部启用的叶子类目_放行() {
+        // 正例对照：与禁用用例只差一个 disable 开关，证明挡的是禁用而不是临时类目本身
+        Category leaf = seedCategoryChain(false, false);
+        Product draft = productService.create(mountCommand(leaf.getId()));
+        assertEquals(leaf.getId(), draft.getCategoryId());
+    }
+
+    @Test
+    void 创建商品_挂二级类目_拒绝() {
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> productService.create(mountCommand(SEED_CATEGORY_L2)));
+        assertEquals(400, ex.getHttpStatus());
+        assertEquals("CATEGORY_NOT_LEAF", ex.getCode());
+    }
+
+    @Test
+    void 创建商品_挂禁用叶子类目_拒绝() {
+        Category leaf = seedCategoryChain(false, true);
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> productService.create(mountCommand(leaf.getId())));
+        assertEquals(400, ex.getHttpStatus());
+        assertEquals("CATEGORY_DISABLED", ex.getCode());
+    }
+
+    @Test
+    void 创建商品_挂父级禁用的启用叶子_拒绝() {
+        // 叶子自身启用，但中间层禁用 → 公开树整支剪掉，商品会悬在买家不可见的类目里
+        Category leaf = seedCategoryChain(true, false);
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> productService.create(mountCommand(leaf.getId())));
+        assertEquals(400, ex.getHttpStatus());
+        assertEquals("CATEGORY_DISABLED", ex.getCode());
+    }
+
+    @Test
+    void 草稿改挂非叶子类目_拒绝() {
+        Product draft = createDraft("改挂拦截机"); // createDraft 已落 ShopIdHolder 上下文
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> productService.updateBasic(
+                        draft.getId(), new UpdateBasicCommand(SEED_CATEGORY_L2, null, null, null, null, null, null)));
+        assertEquals(400, ex.getHttpStatus());
+        assertEquals("CATEGORY_NOT_LEAF", ex.getCode());
+    }
+
+    // ===== 划线价闸门：original_price >= price =====
+
+    /**
+     * 划线价不得低于现价（不变式由 DB CHECK ck_skus_original_price_ge_price 钉死，service 先给友好 400）：
+     * 当场画低、降价穿到存量划线价之下是同一不变式的两个入口；相等合法。
+     */
+    @Test
+    void 划线价低于现价_拒绝() {
+        CategoryAttr color = seedSpecAttr("颜色", "黑");
+        Product draft = createDraft("划线价闸门机");
+        UUID skuId = skuService
+                .updateSpecs(
+                        draft.getId(),
+                        List.of(spec(
+                                color.getId(), List.of(valueIds(color.getId()).getFirst()), null)))
+                .getFirst()
+                .getId();
+
+        // 1. 当场画低：提交的划线价 50 < 提交的现价 100
+        BusinessException lower = assertThrows(
+                BusinessException.class,
+                () -> skuService.updateSkus(
+                        draft.getId(),
+                        List.of(new SkuUpdateItem(skuId, null, null, Money.cny(100), Money.cny(50), 5, null, null))));
+        assertEquals(400, lower.getHttpStatus());
+
+        // 2. 合法保存：划线 200 > 现价 100；相等（100 = 100）也在边界内
+        skuService.updateSkus(
+                draft.getId(),
+                List.of(new SkuUpdateItem(skuId, null, null, Money.cny(100), Money.cny(200), 5, null, null)));
+        skuService.updateSkus(
+                draft.getId(),
+                List.of(new SkuUpdateItem(skuId, null, null, Money.cny(100), Money.cny(100), 5, null, null)));
+
+        // 3. 只抬现价、不带划线价字段（划线价「不改」仍存量 100）：现价 150 穿过线，service 比的是存量
+        BusinessException drop = assertThrows(
+                BusinessException.class,
+                () -> skuService.updateSkus(
+                        draft.getId(),
+                        List.of(new SkuUpdateItem(skuId, null, null, Money.cny(150), null, 5, null, null))));
+        assertEquals(400, drop.getHttpStatus());
+    }
+
+    // ===== 买家列表类目可见性（与 feed 召回同口径） =====
+
+    /**
+     * 挂启用叶子但父级禁用 → 买家列表搜不到：pagePublic 的 categoryId 过滤经 CategoryService 展开启用子树，
+     * 父链断则整支不可见 → 空页不报错。中间层自身无商品直接引用，[PRD-07] 的禁用闸门挡不住它——
+     * 这正是列表必须跟随「父链启用」而非只查挂载类目自身的原因。
+     */
+    @Test
+    void 挂启用叶子但父级禁用_买家列表_搜不到() {
+        Category leaf = seedCategoryChain(false, false);
+        Product product = productService.create(mountCommand(leaf.getId()));
+        // 上架与类目可见性正交，直改 SQL 置 PUBLISHED，不必为读路径测试搭规格/定价/库存全链路
+        jdbc.update(
+                "UPDATE product.products SET status = 'PUBLISHED', min_price = 100, max_price = 100 WHERE id = ?::uuid",
+                product.getId().toString());
+        ProductQuery query = new ProductQuery(leaf.getId(), null, null, null);
+
+        // 正例对照：父链全部启用时该叶子类目能搜到（差异只在中间层是否禁用）
+        assertTrue(productQueryService.pagePublic(query, 1, 10).records().stream()
+                .anyMatch(p -> p.getId().equals(product.getId())));
+
+        UUID middleId = jdbc.queryForObject(
+                "SELECT parent_id FROM product.categories WHERE id = ?::uuid",
+                UUID.class,
+                leaf.getId().toString());
+        categoryService.updateStatus(middleId, CategoryStatus.DISABLED);
+
+        assertEquals(0, productQueryService.pagePublic(query, 1, 10).total());
+        assertTrue(productQueryService.pagePublic(query, 1, 10).records().isEmpty());
     }
 }

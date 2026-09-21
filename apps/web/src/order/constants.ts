@@ -175,4 +175,5 @@ export const AFTER_SALE_ACTION_LABEL: Record<AfterSaleAction, string> = {
     cancel: "撤销申请",
     return: "填写退货物流",
     track: "查看退货物流",
+    reapply: "重新申请",
 }

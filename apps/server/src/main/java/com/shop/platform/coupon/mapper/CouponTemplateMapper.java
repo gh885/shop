@@ -32,14 +32,15 @@ public interface CouponTemplateMapper extends BaseMapper<CouponTemplate> {
     }
 
     /**
-     * 本店可领的券（店铺领券页）：ACTIVE 且在有效期内。
+     * 本店可领的券（店铺领券页）：ACTIVE 且未过发放期。
      * 刻意不按 issued_quantity 过滤 —— 领完的券仍要露出来（置灰显示「已领完」），而不是从列表里消失让用户以为没办活动。
+     * 也刻意不滤掉「未到发放起点」的券（C9）—— 预告券是营销资产：让用户看到「x 点开抢」才有蹲点领取，
+     * 消失反而像没办活动。能不能领由 claimable 回传（起点/名额都闸在它上面），领券端点仍拒未开始。
      */
     default List<CouponTemplate> selectClaimable(UUID shopId, OffsetDateTime now) {
         return selectList(new LambdaQueryWrapper<CouponTemplate>()
                 .eq(CouponTemplate::getShopId, shopId)
                 .eq(CouponTemplate::getStatus, CouponTemplateStatus.ACTIVE)
-                .le(CouponTemplate::getValidFrom, now)
                 .gt(CouponTemplate::getValidTo, now)
                 .orderByDesc(CouponTemplate::getCreatedAt));
     }

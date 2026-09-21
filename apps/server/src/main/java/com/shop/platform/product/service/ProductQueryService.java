@@ -34,6 +34,7 @@ public class ProductQueryService {
     private final ProductMapper productMapper;
     private final SkuMapper skuMapper;
     private final StockReadQuery stockReadQuery;
+    private final CategoryService categoryService;
 
     // 卖家侧
     /**
@@ -89,13 +90,25 @@ public class ProductQueryService {
      *
      * <p>与 pageList 的关键差别：status 写死上架，不接受前端指定，草稿/下架商品对买家不存在。 价格排序直接吃 minPrice/maxPrice 冗余副本，免查 SKU
      * 表——这两个字段的存在意义就在此。
+     *
+     * <p>categoryId 过滤与 feed 召回（ProductRecallQuery）同口径：经 CategoryService 展开启用子树
+     * （tab/筛选可指一级类目、商品挂三级叶子），父链上任一节点禁用即整支不可见——未知/禁用类目得到空集，
+     * 直接返回空页而不是报错（脏链接不该把列表页打成错误页），不 JOIN 类目表（同模块也不跨 schema 裸 SQL）。
      */
     public PageResult<Product> pagePublic(ProductQuery query, long page, long size) {
         // StringBuilder.blankToNull 与 pageList 同口径：no keyword 时归一为 null，免 NPE；hasText 再兜底
         String keyword = query.keyword() == null ? null : query.keyword().trim();
+        // 类目条件先过可见性展开：空集 = 该类目对买家不存在，短路空页，不发商品表查询
+        List<UUID> visibleCategoryIds = null;
+        if (query.categoryId() != null) {
+            visibleCategoryIds = List.copyOf(categoryService.descendantIds(query.categoryId()));
+            if (visibleCategoryIds.isEmpty()) {
+                return new PageResult<>(List.of(), 0);
+            }
+        }
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
                 .eq(Product::getStatus, ProductStatus.PUBLISHED)
-                .eq(query.categoryId() != null, Product::getCategoryId, query.categoryId())
+                .in(visibleCategoryIds != null, Product::getCategoryId, visibleCategoryIds)
                 .eq(query.shopId() != null, Product::getShopId, query.shopId())
                 .like(StringUtils.hasText(keyword), Product::getName, keyword);
         // 每种排序都补 id 兜底，保证翻页时同值记录顺序稳定（否则第 2 页可能重复第 1 页的行）

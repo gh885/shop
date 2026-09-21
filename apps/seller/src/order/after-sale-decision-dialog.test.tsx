@@ -30,6 +30,7 @@ function makeOrder(
         orderNo: "NO20260912001",
         status: "COMPLETED",
         afterSaleStatus: "APPLYING",
+        availableActions: [],
         payAmount: { amount: 19900, currency: "CNY" },
         receiverName: "张三",
         receiverPhone: "13800000000",

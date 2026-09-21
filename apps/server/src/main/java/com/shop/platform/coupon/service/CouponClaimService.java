@@ -42,7 +42,11 @@ public class CouponClaimService {
     /** 券包行要带店名：与券包列表同一套拼装口径（shop :: api 点查，跨 schema 不 JOIN） */
     private final ShopReadQuery shopReadQuery;
 
-    /** 本店可领的券（店铺领券页，匿名可访问）：ACTIVE 且在有效期内，领完的也露出来（前端置灰「已领完」） */
+    /**
+     * 本店可展示的「领券列表」（店铺领券页，匿名可访问）：ACTIVE 且未过发放期的券，按创建时间倒序。
+     * 领完的（前端置灰「已领完」）与未到起点的（「x 点开抢」，C9）都在列表里——露出不是放行的承诺，
+     * 真正能不能领由领券端点按时间窗/名额闸住（issueOne 的条件更新仍要求 now ∈ [validFrom, validTo)）。
+     */
     @Transactional(readOnly = true)
     public List<CouponTemplate> claimable(UUID shopId) {
         return templateMapper.selectClaimable(shopId, OffsetDateTime.now());

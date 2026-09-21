@@ -35,6 +35,7 @@ function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCoup
         status: "UNUSED",
         source: "CLAIM",
         orderId: null,
+        unavailableReason: null,
         ...overrides,
     }
 }
@@ -102,6 +103,8 @@ describe("shopClaimableCouponsOptions", () => {
                         validFrom: "2026-01-01T00:00:00Z",
                         validTo: "2026-01-31T00:00:00Z",
                         soldOut: false,
+                        // C9 新增：未到发放起点的券也进列表（claimable=false），已开抢的为 true
+                        claimable: true,
                     },
                 ])
             }),

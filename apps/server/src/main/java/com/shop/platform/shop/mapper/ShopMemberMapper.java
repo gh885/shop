@@ -67,4 +67,11 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
                         .eq(ShopMember::getStatus, MemberStatus.ACTIVE))
                 > 0;
     }
+
+    /** 用户名下已拥有的店主身份数（一人一店闸门口径：OWNER 行数，被拒/被封店仍计数；不做状态豁免） */
+    default long countOwnedShops(UUID userId) {
+        return selectCount(new LambdaQueryWrapper<ShopMember>()
+                .eq(ShopMember::getUserId, userId)
+                .eq(ShopMember::getRole, MemberRole.OWNER));
+    }
 }

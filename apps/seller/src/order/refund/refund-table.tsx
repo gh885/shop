@@ -124,7 +124,7 @@ export function RefundTable({
 
                         <TableCell className="text-right">
                             <RowActions
-                                status={ticket.status}
+                                ticket={ticket}
                                 busy={busyId === ticket.id}
                                 onAction={(action) => onAction(rowIdentity(ticket), action)}
                             />
@@ -136,17 +136,17 @@ export function RefundTable({
     )
 }
 
-/** 行内动作：按售后单状态给按钮（终态行没有动作，给一条说明而不是留白） */
+/** 行内动作：吃后端下发的动作集（终态行没有动作，给一条说明而不是留白） */
 function RowActions({
-    status,
+    ticket,
     busy,
     onAction,
 }: {
-    status: SellerTicketItem["status"]
+    ticket: SellerTicketItem
     busy: boolean
     onAction: (action: RefundRowAction) => void
 }) {
-    const actions = refundRowActions(status)
+    const actions = refundRowActions(ticket)
     if (actions.length === 0) {
         return <span className="text-xs text-muted-foreground">已处理</span>
     }

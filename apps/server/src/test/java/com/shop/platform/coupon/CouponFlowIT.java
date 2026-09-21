@@ -15,7 +15,9 @@ import com.shop.platform.coupon.api.CouponBearer;
 import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.coupon.api.CouponReadQuery;
 import com.shop.platform.coupon.api.CouponUnavailableReason;
+import com.shop.platform.coupon.controller.response.ClaimableCouponResponse;
 import com.shop.platform.coupon.dto.CreateCouponTemplateRequest;
+import com.shop.platform.coupon.service.CouponAdminService;
 import com.shop.platform.coupon.service.CouponClaimService;
 import com.shop.platform.coupon.service.CouponTemplateService;
 import com.shop.platform.coupon.service.CouponWalletService;
@@ -60,6 +62,9 @@ class CouponFlowIT extends IntegrationTestSupport {
     private CouponWalletService couponWalletService;
 
     @Autowired
+    private CouponAdminService couponAdminService;
+
+    @Autowired
     private CouponReadQuery couponReadQuery;
 
     @Autowired
@@ -94,6 +99,8 @@ class CouponFlowIT extends IntegrationTestSupport {
     /** 建一个在售 SKU（单价 1000 分）并登记清理 */
     private void seed(int stock) {
         // 登记顺序 = 插入顺序（父表在前），purge 逆序执行 → 先删子表
+        db.onDelete(
+                "DELETE FROM account.users WHERE id IN (?::uuid, ?::uuid)", userId.toString(), otherUserId.toString());
         db.onDelete("DELETE FROM coupon.coupon_templates WHERE shop_id = ?::uuid", shopId.toString());
         db.onDelete("DELETE FROM coupon.user_coupons WHERE shop_id = ?::uuid", shopId.toString());
         db.onDelete("DELETE FROM coupon.coupon_usages WHERE shop_id = ?::uuid", shopId.toString());
@@ -108,8 +115,19 @@ class CouponFlowIT extends IntegrationTestSupport {
                 userId.toString());
         db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
         db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
+        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
+        seedActiveUser(userId);
+        seedActiveUser(otherUserId);
         skuId = db.seedOnSaleSku(shopId, 1000, stock);
         addressId = db.seedAddress(userId);
+    }
+
+    /** 造一个真实 ACTIVE 买家账号：id 用测试的固定 uuid，手机号按 uuid 派生避免并发跑撞唯一索引 */
+    private void seedActiveUser(UUID id) {
+        jdbc.update(
+                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
+                id.toString(),
+                "139" + Math.abs(id.getMostSignificantBits() % 100_000_000L));
     }
 
     /** 建模板：满 threshold 减 discount（分），总量 total，此刻生效、7 天后到期 */
@@ -446,7 +464,7 @@ class CouponFlowIT extends IntegrationTestSupport {
     void 未开始发放的券_领券被拒且提示可等待() {
         seed(5);
         OffsetDateTime now = OffsetDateTime.now();
-        // 明天才开始：领券页也不会列它（selectClaimable 过滤 validFrom），所以「领了但不能用」在一期没有可达路径
+        // 明天才开始：领券页会列它并标「未开始」（C9），但领取仍被时间窗闸住——露出是预告，不是放行
         UUID templateId = couponTemplateService
                 .create(
                         shopId,
@@ -587,5 +605,157 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .filter(row -> row.template().getId().equals(templateId))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    // 运营作废（C7）
+    @Test
+    void 作废_未使用券_转VOID_并退出券包未使用页签与结算候选() {
+        seed(5);
+        UUID couponId = couponClaimService
+                .claim(userId, seedTemplate(1500, 300, 10))
+                .coupon()
+                .getId();
+
+        couponAdminService.voidCoupon(couponId);
+
+        assertEquals("VOID", couponStatus(couponId));
+        // VOID 行 order_id 必空（DB CHECK 兜底，这里验我们没把半份状态写进去）
+        assertNull(couponOrderRef(couponId));
+        // 结算候选只收 UNUSED：作废的券不会再出现在结算页
+        assertTrue(
+                couponReadQuery.evaluateForShop(userId, shopId, Money.cny(2000)).isEmpty());
+        // 券包如实展示已作废（VOID 页签筛选值合法），而不是让它凭空消失
+        var voided = couponWalletService.pageMine(userId, "VOID", new PageParams(1, 10));
+        assertEquals(
+                1,
+                voided.records().stream()
+                        .filter(c -> c.coupon().getId().equals(couponId))
+                        .count());
+    }
+
+    @Test
+    void 作废_被未付款订单占用的券_拒绝并给出解绑方向() {
+        seed(5);
+        UUID couponId = couponClaimService
+                .claim(userId, seedTemplate(1500, 300, 10))
+                .coupon()
+                .getId();
+        createOrder(2, couponId);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId));
+        assertEquals(409, ex.getHttpStatus());
+        assertTrue(ex.getDetail().contains("占用"));
+        // 拒绝是彻底的：状态与占用关系原样不动
+        assertEquals("LOCKED", couponStatus(couponId));
+        assertNotNull(couponOrderRef(couponId));
+    }
+
+    @Test
+    void 作废_已核销券_拒绝并指向退款() {
+        seed(5);
+        UUID couponId = couponClaimService
+                .claim(userId, seedTemplate(1500, 300, 10))
+                .coupon()
+                .getId();
+        Order order = createOrder(2, couponId);
+        Payment pending = paymentService.pay(userId, order.getId());
+        paymentService.confirm(userId, pending.getId());
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId));
+        assertEquals(409, ex.getHttpStatus());
+        assertTrue(ex.getDetail().contains("已核销"));
+        assertEquals("USED", couponStatus(couponId));
+    }
+
+    @Test
+    void 作废_重复作废与不存在的券_分别409与404() {
+        seed(5);
+        UUID couponId = couponClaimService
+                .claim(userId, seedTemplate(0, 300, 10))
+                .coupon()
+                .getId();
+        couponAdminService.voidCoupon(couponId);
+
+        BusinessException again = assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId));
+        assertEquals(409, again.getHttpStatus());
+        assertTrue(again.getDetail().contains("已作废"));
+
+        BusinessException missing =
+                assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(UUID.randomUUID()));
+        assertEquals(404, missing.getHttpStatus());
+    }
+
+    // 未开始券可见（C9）
+    @Test
+    void 可领列表_未开始券_带validFrom且claimable为false() {
+        seed(5);
+        OffsetDateTime now = OffsetDateTime.now();
+        // 一张明天开抢的预告券 + 一张当下可领的
+        UUID upcoming = couponTemplateService
+                .create(
+                        shopId,
+                        new CreateCouponTemplateRequest(
+                                "预告券", Money.cny(0), Money.cny(300), 10, now.plusDays(1), now.plusDays(8)))
+                .template()
+                .getId();
+        UUID live = seedTemplate(0, 300, 10);
+
+        List<ClaimableCouponResponse> rows = couponClaimService.claimable(shopId).stream()
+                .map(t -> ClaimableCouponResponse.from(t, OffsetDateTime.now()))
+                .toList();
+
+        var upcomingRow =
+                rows.stream().filter(r -> r.id().equals(upcoming)).findFirst().orElseThrow();
+        // 未到点 ≠ 不可领完：claimable=false 且 soldOut=false，前端据此出「x 点开抢」而非「已领完」
+        assertEquals(false, upcomingRow.claimable());
+        assertEquals(false, upcomingRow.soldOut());
+        assertTrue(upcomingRow.validFrom().isAfter(now));
+        assertTrue(rows.stream().anyMatch(r -> r.id().equals(live) && r.claimable()));
+    }
+
+    // 券包时间原因（C8）
+    @Test
+    void 券包_领了但未生效的券_透出未开始原因() {
+        seed(5);
+        UUID couponId = couponClaimService
+                .claim(userId, seedTemplate(0, 300, 10))
+                .coupon()
+                .getId();
+        // 一期没有「领了但未生效」的自然路径（CPN-07 的领券时间窗），直改成未来生效时刻模拟未来的相对有效期机制
+        jdbc.update(
+                "UPDATE coupon.user_coupons SET effective_at = ? WHERE id = ?::uuid",
+                OffsetDateTime.now().plusDays(1),
+                couponId.toString());
+
+        var row = couponWalletService.pageMine(userId, "UNUSED", new PageParams(1, 10)).records().stream()
+                .filter(c -> c.coupon().getId().equals(couponId))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("UNUSED", row.displayStatus().name());
+        assertEquals(CouponUnavailableReason.NOT_EFFECTIVE, row.timeReason());
+    }
+
+    @Test
+    void 券包_过期未被任务收敛的券_页签与徽章已说清_不再重复挂原因() {
+        seed(5);
+        UUID couponId = couponClaimService
+                .claim(userId, seedTemplate(0, 300, 10))
+                .coupon()
+                .getId();
+        jdbc.update(
+                "UPDATE coupon.user_coupons SET expire_at = ? WHERE id = ?::uuid",
+                OffsetDateTime.now().minusSeconds(1),
+                couponId.toString());
+
+        // 「已过期」页签收得进（展示口径筛选），展示状态即 EXPIRED，时间原因是 null：徽章本身就是解释
+        var row = couponWalletService.pageMine(userId, "EXPIRED", new PageParams(1, 10)).records().stream()
+                .filter(c -> c.coupon().getId().equals(couponId))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("EXPIRED", row.displayStatus().name());
+        assertNull(row.timeReason());
+        assertEquals("UNUSED", couponStatus(couponId)); // 库里状态列没动：正确性仍在读时判定一侧
     }
 }

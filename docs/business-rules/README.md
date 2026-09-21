@@ -8,14 +8,14 @@
 
 | 文件                         | 领域                                                | 前缀               | 条数 |
 | ---------------------------- | --------------------------------------------------- | ------------------ | ---- |
-| [order.md](order.md)         | 订单 / 购物车 / 收藏                                | ORD / CART / FAV   | 67   |
-| [aftersale.md](aftersale.md) | 售后 / 退款                                         | AFS                | 30   |
+| [order.md](order.md)         | 订单 / 购物车 / 收藏                                | ORD / CART / FAV   | 72   |
+| [aftersale.md](aftersale.md) | 售后 / 退款                                         | AFS                | 32   |
 | [logistics.md](logistics.md) | 物流 / 运费（含运费模板）                           | LOG                | 69   |
 | [payment.md](payment.md)     | 支付 / 资金（含退款流水）                           | PAY                | 41   |
-| [coupon.md](coupon.md)       | 优惠券 / 营销                                       | CPN（N=未实现）    | 64   |
-| [product.md](product.md)     | 商品 / 类目 / 库存                                  | PRD                | 74   |
-| [account.md](account.md)     | 店铺 / 账号 / 权限（含全局会话行为）                | ACC                | 67   |
-| [cms.md](cms.md)             | 内容 / 首页 / 推荐                                  | CMS 等（N=未实现） | 57   |
+| [coupon.md](coupon.md)       | 优惠券 / 营销                                       | CPN（N=未实现）    | 68   |
+| [product.md](product.md)     | 商品 / 类目 / 库存                                  | PRD                | 75   |
+| [account.md](account.md)     | 店铺 / 账号 / 权限（含全局会话行为）                | ACC                | 68   |
+| [cms.md](cms.md)             | 内容 / 首页 / 推荐                                  | CMS 等（N=未实现） | 58   |
 | [money.md](money.md)         | 金额与币种（Money 全链路）                          | MONEY              | 12   |
 | [crosscut.md](crosscut.md)   | 横切全局行为（错误信封 / 传输 / 写反馈 / 事件日志） | GEN                | 20   |
 
@@ -27,7 +27,5 @@
 
 ## 已知留白（不是遗漏）
 
-- 售后卖家审核无时限、无超时自动同意（AFS-23）；`RETURNING` 悬挂无兜底。
-- 回寄历史包裹的展示/对账口径未定（LOG-72）。
 - 券的自动促销半边引擎、叠加字段、事件发券幂等均未落（coupon.md 未实现节）。
-- 封号（DISABLED）只有闸门没有管理端点（account.md 未实现节）。
+- 封号/作废的管理端点已落（ACC-71、CPN-62），但 admin 侧无列表查询端点，运营页面缺位（TODO.md「admin 运营入口」行）。

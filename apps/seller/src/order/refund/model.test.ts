@@ -13,17 +13,21 @@ import {
  * 这些分支错了不会报错，只会让卖家在错的单上点错的按钮，或者看到一份"不知怎么筛出来的"列表。
  */
 
-describe("refundRowActions（卖家对一行能做什么）", () => {
-    it("待处理_给同意与拒绝：这一步是资金决定，两个方向都得有出口", () => {
-        expect(refundRowActions("APPLYING")).toEqual(["agree", "reject"])
+describe("refundRowActions（卖家对一行能做什么——消费行上下发的 availableActions）", () => {
+    it("待处理_契约给同意与拒绝_两个方向都有出口", () => {
+        expect(
+            refundRowActions({ status: "APPLYING", availableActions: ["AGREE", "REJECT"] }),
+        ).toEqual(["agree", "reject"])
     })
 
-    it("退货中_只给确认收货：货没回来之前没有第二个选项", () => {
-        expect(refundRowActions("RETURNING")).toEqual(["receive"])
+    it("退货中_契约只给确认收货：货没回来之前没有第二个选项", () => {
+        expect(
+            refundRowActions({ status: "RETURNING", availableActions: ["RECEIVE_RETURN"] }),
+        ).toEqual(["receive"])
     })
 
-    it.each(["REFUNDED", "REJECTED", "CLOSED"] as const)("终态_%s 不给动作", (status) => {
-        expect(refundRowActions(status)).toEqual([])
+    it("终态_后端给空集_这里就空", () => {
+        expect(refundRowActions({ status: "REFUNDED", availableActions: [] })).toEqual([])
     })
 })
 

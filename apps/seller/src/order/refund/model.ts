@@ -1,11 +1,12 @@
 import { z } from "zod"
-import { TicketStatus } from "@shop/api/sdk"
+import { TicketStatus, type SellerTicketItem, type TicketAvailableAction } from "@shop/api/sdk"
 
 /**
  * 退款售后工作台 —— 纯规则：页签定义 + 「一行此刻能做什么」。
  *
- * 与售后状态机的关系：状态机唯一真相在后端（aftersale 的 TicketAction 转移表），
- * 这里只把「卖家视角的动作」按状态读出来，不复制转移合法性——点了发请求，被 409 拒了按后端提示。
+ * 与售后状态机的关系：转移合法性与动作集的唯一真相都在后端（aftersale 的 TicketAction 转移表），
+ * 行内动作直接消费工作台下发的 availableActions（C5b），前端不再按状态推按钮表；
+ * 点了发请求，被 409 拒了按后端提示。
  */
 
 /** 工作台页签值：售后单状态之外多一个 ALL（全部） */
@@ -41,16 +42,30 @@ export const REFUND_TABS: ReadonlyArray<{ value: RefundTab; label: string }> = [
 /** 卖家对一行售后单能做的动作 */
 export type RefundRowAction = "agree" | "reject" | "receive"
 
+/** 契约动作 → 行内按钮：「能做什么」吃后端下发（C5b），这里只留文案与展示映射。动作枚举用 SDK 生成的 TicketAvailableAction（契约必填） */
+const ROW_ACTION_UI: Partial<Record<TicketAvailableAction, RefundRowAction>> = {
+    AGREE: "agree",
+    REJECT: "reject",
+    RECEIVE_RETURN: "receive",
+}
+
 /**
- * 按售后单状态给出可执行动作：
- * - 待处理 → 同意 / 拒绝（仅退款同意即退款，退货退款同意后转「退货中」）
- * - 退货中 → 确认收货（之后才退款并回补库存）
- * - 终态 → 无动作（已退款/已拒绝/已撤销都是历史）
+ * 一行售后的动作视图：SellerTicketItem 上消费动作所需的两列（都是契约必填，直接 Pick）。
+ * status 不参与判定，只是契约形状在这里保持完整。
  */
-export function refundRowActions(status: TicketStatus): RefundRowAction[] {
-    if (status === "APPLYING") return ["agree", "reject"]
-    if (status === "RETURNING") return ["receive"]
-    return []
+export type RefundRowView = Pick<SellerTicketItem, "status" | "availableActions">
+
+/**
+ * 卖家对一行售后单能做的动作——读行上下发的 availableActions，不按状态自推：
+ * - 待处理 → 同意 / 拒绝（仅退款同意即退款，退货退款同意后转「退货中」，分派也在后端）
+ * - 退货中 → 确认收货（之后才退款并回补库存）
+ * - 终态 → 后端给空集，这里就空（已退款/已拒绝/已撤销都是历史）
+ */
+export function refundRowActions(ticket: RefundRowView): RefundRowAction[] {
+    return ticket.availableActions.flatMap((action) => {
+        const ui = ROW_ACTION_UI[action]
+        return ui ? [ui] : []
+    })
 }
 
 /** 动作按钮文案（工作台上的动作比订单列表更明确：那里是「同意」，这里是「同意退款」） */

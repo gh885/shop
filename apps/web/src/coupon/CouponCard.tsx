@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 
-import { formatDate } from "@shop/app-kit"
+import { formatDate, formatDateTime } from "@shop/app-kit"
 import { couponMoneyText, couponRuleText, couponSourceLabel, couponStatusLabel } from "@shop/common"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
@@ -9,19 +9,24 @@ import type { MyCoupon } from "./coupon"
 /**
  * 券卡片 —— 券包里的一张券。
  *
- * **只有三行信息**：面额大字 / 一句话规则 / 店名 + 有效期。判据见
+ * **券面只有三行信息**：面额大字 / 一句话规则 / 店名 + 有效期。判据见
  * `docs/reference/coupon-platform-practices.md` §6.1：一张券要能被一句话解释完
  * （减多少 + 满多少 + 能在哪用）。多出来的每一行都在逼用户做交叉判定，
  * 所以券模板名、承担方之类的字段一律不在这里出现（需要时去券详情）。
  *
  * 状态与来源各给一个小标签：两者都是「这张券为什么和别的不一样」的解释，
  * 只靠颜色区分等于没解释（读屏用户与色觉障碍用户都拿不到）。
+ *
+ * 三行之外只有两类条件行（有则出、无则不占位）：订单回链与 C8 时间原因灰字。
+ * 后者只在「还在手上却用不了」时出现（未开始 / 结算中但已过期）——
+ * 徽章说的状态没解释「为什么点不动」，这一行补上；过期徽章已解释的（EXPIRED 页签里的行）不再重复。
  */
 export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     /** 未使用/结算中 = 还在手上；已使用/已过期/已作废 = 已经不承担转化 */
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
     const rule = couponRuleText(coupon.threshold, coupon.discount)
     const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt)} 至 ${formatDate(coupon.expireAt)}`
+    const timeHint = timeReasonHint(coupon)
 
     return (
         <article className="flex items-center gap-4 rounded-lg border border-border bg-card p-4">
@@ -58,6 +63,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
                     </TooltipTrigger>
                     <TooltipContent>{scope}</TooltipContent>
                 </Tooltip>
+                {timeHint && <p className="text-xs text-muted-foreground">{timeHint}</p>}
                 {coupon.orderId && (
                     <Link
                         to="/orders/$orderId"
@@ -89,4 +95,21 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "secondary" | "outl
     USED: "secondary",
     EXPIRED: "outline",
     VOID: "outline",
+}
+
+/**
+ * 时间原因灰字（C8）：只对「还在手上却暂时/永远用不了」的行给出。
+ * 未使用且已过期不会走到 EXPIRED 分支 —— 后端展示状态已把它折叠成 EXPIRED 徽章；
+ * 到得了这里的过期是 LOCKED（被未付款订单占用、收敛任务不碰它），状态徽章不会解释这个。
+ */
+function timeReasonHint(coupon: MyCoupon): string | null {
+    if (coupon.status !== "UNUSED" && coupon.status !== "LOCKED") return null
+    switch (coupon.unavailableReason) {
+        case "NOT_EFFECTIVE":
+            return `尚未开始，${formatDateTime(coupon.effectiveAt)} 起可用`
+        case "EXPIRED":
+            return "使用时间已过，本单之外不能再使用"
+        default:
+            return null
+    }
 }

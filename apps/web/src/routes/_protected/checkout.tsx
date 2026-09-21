@@ -46,6 +46,7 @@ import {
     ItemMedia,
     ItemActions,
     Image,
+    Textarea,
 } from "@shop/ui-web"
 import { z } from "zod"
 
@@ -99,6 +100,8 @@ function CheckoutPage() {
     const createOrder = useCreateOrder()
 
     const [addressId, setAddressId] = useState("")
+    // 买家留言：整次结算一份，随下单透传给后端（按店拆单时逐单落 buyerMessage 快照，可空、最长 200 字）
+    const [buyerMessage, setBuyerMessage] = useState("")
     // 每店选中的券：键存在 = 用户已表态（值可为 null = 明确不用券）。这一层只装「用户的决定」，
     // 没表态的店由下面的 effect 补默认值——「未表态」与「选了不用」必须能分开，否则默认选券会覆盖用户。
     const [couponSelection, setCouponSelection] = useState<CouponSelection>({})
@@ -134,7 +137,12 @@ function CheckoutPage() {
             return
         }
         createOrder.mutate(
-            { addressId: effectiveAddressId, source, coupons: couponSelection },
+            {
+                addressId: effectiveAddressId,
+                source,
+                coupons: couponSelection,
+                buyerMessage: buyerMessage.trim() || undefined,
+            },
             {
                 onSuccess: (res) => {
                     const orders = res.orders
@@ -196,6 +204,22 @@ function CheckoutPage() {
                                 />
                             ))}
                             {preview.data && <UnavailableCard lines={preview.data.unavailable} />}
+
+                            {/* 买家留言：整次结算一份（按店拆单时逐单落同一句），给卖家交代发货相关的小要求 */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>买家留言</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Textarea
+                                        value={buyerMessage}
+                                        onChange={(e) => setBuyerMessage(e.target.value)}
+                                        maxLength={200}
+                                        rows={2}
+                                        placeholder="选填，最多 200 字，如发货时间、包装上的要求"
+                                    />
+                                </CardContent>
+                            </Card>
                         </div>
 
                         {/* 右：金额结算卡 */}

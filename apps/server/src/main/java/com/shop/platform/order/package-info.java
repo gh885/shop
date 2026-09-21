@@ -8,6 +8,7 @@
  * （门槛基数是同店商品额，不含运费），下单经 CouponCommand.lock 同事务占用、支付时核销、取消时释放或补发，
  * 券 id 与承担方随金额一起落订单快照。库存冻结/扣实/释放经 inventory :: api 的 StockCommand 同步同事务调用，
  * 完成（确认收货/超时自动收货）经 product :: api 的 ProductCommand.addSold 同事务累加销量投影，
+ * 下单入口先经 account :: api 的 UserReadQuery.isActive 账号闸门（买家状态非 ACTIVE 一律 403 USER_DISABLED 拒单），
  * 下单成功发布 OrderPlacedEvent、cart 同步监听清理已购 SKU（order 不认识购物车，结算入参就是 SKU 行）；
  * 支付推进由 payment 经 order :: api 的
  * OrderCommand.markPaid 同步调用完成（同事务扣实冻结库存）。已付款单取消时发布 events 命名接口的

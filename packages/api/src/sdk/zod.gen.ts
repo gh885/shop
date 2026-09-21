@@ -565,6 +565,15 @@ export const zApplyAfterSaleRequest = z.object({
     reason: z.string().min(0).max(200).optional()
 });
 
+export const zTicketAvailableAction = z.enum([
+    'CANCEL',
+    'RETURN_GOODS',
+    'REAPPLY',
+    'AGREE',
+    'REJECT',
+    'RECEIVE_RETURN'
+]);
+
 export const zTicketStatus = z.enum([
     'APPLYING',
     'RETURNING',
@@ -578,6 +587,7 @@ export const zTicketResponse = z.object({
     orderId: z.uuid(),
     type: zTicketType,
     status: zTicketStatus,
+    availableActions: z.array(zTicketAvailableAction),
     reason: z.string().nullable(),
     refundAmount: zMoney.nullable(),
     returnLogisticsCompany: z.string().nullable(),
@@ -718,7 +728,8 @@ export const zMyCouponResponse = z.object({
     expireAt: z.iso.datetime({ offset: true }),
     status: z.string(),
     source: z.string(),
-    orderId: z.uuid().nullable()
+    orderId: z.uuid().nullable(),
+    unavailableReason: zCouponUnavailableReason.nullable()
 });
 
 export const zAddCartItemRequest = z.object({
@@ -834,6 +845,18 @@ export const zLoginRequest = z.object({
     deviceId: z.string().min(0).max(100)
 });
 
+export const zUserStatus = z.enum(['ACTIVE', 'DISABLED']);
+
+export const zUpdateUserStatusRequest = z.object({
+    status: zUserStatus
+});
+
+export const zStaffStatus = z.enum(['ACTIVE', 'DISABLED']);
+
+export const zUpdateStaffStatusRequest = z.object({
+    status: zStaffStatus
+});
+
 export const zShopMemberItem = z.object({
     memberId: z.uuid(),
     userId: z.uuid(),
@@ -878,6 +901,13 @@ export const zAfterSaleStatus = z.enum([
     'CLOSED'
 ]);
 
+export const zOrderAvailableAction = z.enum([
+    'PAY',
+    'CANCEL',
+    'SHIP',
+    'RECEIVE'
+]);
+
 export const zOrderItemResponse = z.object({
     productId: z.uuid(),
     skuId: z.uuid(),
@@ -902,6 +932,7 @@ export const zSellerOrderListItemResponse = z.object({
     orderNo: z.string(),
     status: zOrderStatus,
     afterSaleStatus: zAfterSaleStatus,
+    availableActions: z.array(zOrderAvailableAction),
     payAmount: zMoney,
     receiverName: z.string(),
     receiverPhone: z.string().nullable(),
@@ -914,13 +945,6 @@ export const zPageResultSellerOrderListItemResponse = z.object({
     records: z.array(zSellerOrderListItemResponse),
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
-
-export const zOrderAvailableAction = z.enum([
-    'PAY',
-    'CANCEL',
-    'SHIP',
-    'RECEIVE'
-]);
 
 export const zOrderDetailResponse = z.object({
     id: z.uuid(),
@@ -975,6 +999,7 @@ export const zSellerTicketItem = z.object({
     firstItemName: z.string(),
     type: zTicketType,
     status: zTicketStatus,
+    availableActions: z.array(zTicketAvailableAction),
     reason: z.string().nullable(),
     refundAmount: zMoney.nullable(),
     returnLogisticsCompany: z.string().nullable(),
@@ -1133,7 +1158,8 @@ export const zClaimableCouponResponse = z.object({
     discount: zMoney,
     validFrom: z.iso.datetime({ offset: true }),
     validTo: z.iso.datetime({ offset: true }),
-    soldOut: z.boolean()
+    soldOut: z.boolean(),
+    claimable: z.boolean()
 });
 
 export const zPublicShopResponse = z.object({
@@ -1905,6 +1931,15 @@ export const zRecordTrackingNodePath = z.object({
     id: z.uuid()
 });
 
+export const zVoidUserCouponPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * No Content
+ */
+export const zVoidUserCouponResponse = z.void();
+
 /**
  * OK
  */
@@ -2002,6 +2037,18 @@ export const zStaffLoginBody = zLoginRequest;
  * OK
  */
 export const zStaffLoginResponse = zTokenPair;
+
+export const zAdminUpdateUserStatusBody = zUpdateUserStatusRequest;
+
+export const zAdminUpdateUserStatusPath = z.object({
+    id: z.uuid()
+});
+
+export const zAdminUpdateStaffStatusBody = zUpdateStaffStatusRequest;
+
+export const zAdminUpdateStaffStatusPath = z.object({
+    id: z.uuid()
+});
 
 export const zListShopMembersPath = z.object({
     shopId: z.uuid()

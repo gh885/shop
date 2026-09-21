@@ -2,6 +2,7 @@ package com.shop.platform.account.service;
 
 import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
+import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
@@ -63,6 +64,29 @@ public class StaffService {
     /** 登出：删除当前设备 refresh token */
     public void logout(UUID staffId, String deviceId) {
         refreshTokenStore.revokeDevice(staffId.toString(), deviceId);
+    }
+
+    // 管理端封号（PATCH /admin/staff/{id}/status）
+    /**
+     * 设置员工状态（禁用/启用）。禁用比买家侧多一步「吊销全端会话」：员工 access token 寿命 8 小时
+     * （ACC-19），只靠登录/刷新闸门（STAFF_DISABLED）收场太慢，禁用即清光 Redis 里全部 refresh，
+     * 8 小时内在途 access 也被吊销（刷新必然失败）；权限层 effectivePermissions 实时查库，
+     * 禁用当个请求起判权即空集，双保险。启用即恢复（status 回 ACTIVE，需重新登录取新会话）。
+     */
+    public void updateStaffStatus(UUID staffId, StaffStatus status) {
+        // 1. 校验员工存在
+        Staff staff = staffMapper.selectById(staffId);
+        if (staff == null) throw BusinessException.notFound("员工不存在");
+
+        // 2. 落状态
+        staff.setStatus(status);
+        staffMapper.updateById(staff);
+
+        // 3. 禁用同步吊销全端 refresh token（封号即时生效，不等 8 小时 access 自然过期）
+        if (!status.isActive()) {
+            refreshTokenStore.revokeAll(staffId.toString());
+        }
+        log.info("[STAFF] 管理端变更员工状态, staffId={}, status={}", staffId, status);
     }
 
     /** 当前登录员工信息（含岗位与有效权限码，前端菜单/按钮显隐用） */

@@ -1,4 +1,4 @@
-import type { MyCouponResponse } from "@shop/api/sdk"
+import type { ClaimableCouponResponse, MyCouponResponse } from "@shop/api/sdk"
 import { ErrorCodes, couponStatusLabel, toApiError } from "@shop/common"
 
 /**
@@ -6,7 +6,6 @@ import { ErrorCodes, couponStatusLabel, toApiError } from "@shop/common"
  *
  * 只归一形状（可空 → undefined），不造假默认值：契约说 `orderId` 可空，就用 undefined 表达「没关联订单」，
  * 不补一个空串；反之必填字段也不兜底 —— 契约收紧后兜底只会掩盖漂移。
- * 店铺可领券没有需要归一的字段，直接用 SDK `ClaimableCouponResponse`，不造镜像类型。
  *
  * 规则文案与状态/来源标签一律取 `@shop/common` 的共享文案层，本文件不重复一份：
  * 同一张券在券包、店铺领券、结算选券三处说法不同，用户会以为是三张不同的券。
@@ -14,26 +13,37 @@ import { ErrorCodes, couponStatusLabel, toApiError } from "@shop/common"
 
 // 业务类型
 /**
- * 券包业务形状（`GET /coupons/mine` 的一条）：契约之上只改一处 —— 可空的 `orderId` 归一成 undefined。
- * 其余字段同名同型，用 Omit 组合，不逐字段抄书。
+ * 券包业务形状（`GET /coupons/mine` 的一条）：契约之上只改一处 ——
+ * 可空的 `orderId` 归一成 undefined。`unavailableReason`（C8）按契约如实透传；
+ * 按后端行为这里只会出现时间类两值（NOT_EFFECTIVE / EXPIRED，门槛/币种原因只在结算给出），
+ * 但类型不为此收窄——契约说什么就是什么。其余字段同名同型，用 Omit 组合，不逐字段抄书。
  *
  * 契约读不出的几条语义：
  * - `threshold` / `discount`：分为单位，`threshold.amount <= 0` 即无门槛；
  * - `effectiveAt` / `expireAt`：ISO 绝对时间（领取时已固化，不再随模板改动）；
- * - `shopName`：店铺注销时后端诚实返回 null（与订单同一口径，UI 显示「店铺已关闭」）；
+ * - `shopName`：契约非空（店铺注销时的 null 口径见订单侧，券包这条契约上不给）；
  * - `status`：后端 `MyCoupon.displayStatus` 算出来的值（库里可能还是 UNUSED 而事实已过期），
  *   不是用户券的原始 status。取值 UNUSED / LOCKED / USED / EXPIRED / VOID；
- * - `source`：CLAIM / REFUND_RETURN（退款补发必须让用户看见，否则像凭空多出来的券）。
+ * - `source`：CLAIM / REFUND_RETURN（退款补发必须让用户看见，否则像凭空多出来的券）；
+ * - `unavailableReason`：只对「还在手上」的券（UNUSED/LOCKED）给出的时间原因，其余为 null。
  */
 export type MyCoupon = Omit<MyCouponResponse, "orderId"> & {
     /** 核销/占用的订单；未用掉的券没有订单（契约可空） */
     orderId?: string
 }
 
+/** 店铺可领券业务形状：契约（C9 起）已带必填的 `claimable`，形状与 wire 完全一致，不再造镜像类型 */
+export type ClaimableCoupon = ClaimableCouponResponse
+
 // wire → 领域
-/** 券包 wire → 业务：唯一需要归一的是可空的 orderId（null → undefined） */
+/** 券包 wire → 业务：唯一需要归一的是可空的 orderId（null → undefined）；unavailableReason 随展开透传 */
 export function toMyCoupon(dto: MyCouponResponse): MyCoupon {
     return { ...dto, orderId: dto.orderId ?? undefined }
+}
+
+/** 可领券 wire → 业务：现零归一，函数存在的意义是守住「wire → 领域」这一道边界 */
+export function toClaimableCoupon(dto: ClaimableCouponResponse): ClaimableCoupon {
+    return { ...dto }
 }
 
 // 页签

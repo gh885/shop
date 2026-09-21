@@ -4,8 +4,8 @@
 
 ## 一、店铺（开店 / 状态 / 资料）
 
-- **[ACC-01]** 任何已登录的统一账号用户（account.users，手机号即身份）都可开店，无需额外资格；开店即建店并自动进入待审核态 `PENDING_REVIEW`，平台审核通过才 `ACTIVE`。同一用户开店数量无上限校验。
-- **[ACC-02]** 店名必填、trim 后最长 50 字符（DB `VARCHAR(50)`）；店名不要求全局唯一，无重名校验；logoKey 可选、最长 255。
+- **[ACC-01]** 任何已登录的统一账号用户（account.users，手机号即身份）都可开店，无需额外资格；开店即建店并自动进入待审核态 `PENDING_REVIEW`，平台审核通过才 `ACTIVE`。**一人一店**（拍板）：开店时该用户在 `shop_members` 已持有 ≥1 条 OWNER 记录即拒（400 + code `SHOP_LIMIT_EXCEEDED`）；判定口径取 OWNER 行数（与授权同源，不看 `shops.owner_id` 冗余列），被拒/被封的店仍占名额（店铺不物理删除、无释放通道）；子账号同闸——别人店的 MEMBER 身份既不占名额、也不额外拦人。
+- **[ACC-02]** 店名必填、trim 后最长 50 字符（DB `VARCHAR(50)`）；**店名全平台唯一**：被任一既有店铺（含待审/被拒/被封——不看状态）占用即拒（400 + code `SHOP_NAME_TAKEN`），并发由唯一索引 `uk_shops_name`（V61）兜底成同一 400；logoKey 可选、最长 255。
 - **[ACC-03]** 开店是同事务三写：建店（PENDING_REVIEW）+ 店主自动成为本店 `OWNER` 角色、`ACTIVE` 状态的成员 + 入队一条 `PENDING` 审核记录；授权判断以 `shop_members` 为准，`shops.owner_id` 只是冗余并存。
 - **[ACC-04]** 店铺状态机：`PENDING_REVIEW → ACTIVE / REJECTED`；`ACTIVE ⇄ DISABLED`（枚举含 4 态：PENDING_REVIEW / ACTIVE / REJECTED / DISABLED）；唯一可营业态是 ACTIVE，不做物理删除。
 - **[ACC-05]** 买家侧公开查看店铺（`GET /api/shops/{id}`，匿名可达）只对 `ACTIVE` 店铺返回；待审核/被拒/封禁的店一律 404「店铺不存在」，不泄露"存在但不可用"。公开出参仅 id/店名/logoKey/createdAt。
@@ -42,9 +42,10 @@
 
 ## 五、员工（Staff）账号
 
-- **[ACC-29]** 平台员工是独立于买/卖家的第二套账号体系（`account.staff`）：登录凭证 = 工号 + 密码，不走手机验证码；员工不能自助注册，由管理员创建（员工管理 CRUD 即 P2 尚未实现）。工号全局唯一（varchar(50)，唯一索引 `uk_staff_employee_no`），密码 BCrypt 必填。
+- **[ACC-29]** 平台员工是独立于买/卖家的第二套账号体系（`account.staff`）：登录凭证 = 工号 + 密码，不走手机验证码；员工不能自助注册，由管理员创建（员工管理 CRUD 仍属 P2，仅「禁用/启用」入口已随封号端点落地，见 ACC-71）。工号全局唯一（varchar(50)，唯一索引 `uk_staff_employee_no`），密码 BCrypt 必填。
 - **[ACC-30]** 员工登录失败对外统一「工号或密码错误」（工号不存在与密码错误不区分）；`StaffStatus` 非 ACTIVE → 403 + code `STAFF_DISABLED`。员工登录入口 `/admin/auth/login`，refresh 与 C 端复用同一套轮换/重放检测机制（RefreshTokenStore），但员工侧不采集 UA/IP 设备元数据，设备名固定「管理端」。
 - **[ACC-31]** 员工 `me` 出参含岗位与有效权限码列表：禁用员工或未知/为空岗位一律给空权限集（如实呈现，拦截由判权层负责）；SUPER_ADMIN 展示时把通配符展开为全量具体码。
+- **[ACC-71]** 封号端点（C12 产品化）：admin 侧 `PATCH /admin/users/{id}/status`（买家）与 `PATCH /admin/staff/{id}/status`（员工），body `{status: ACTIVE|DISABLED}`，授权统一 `STAFF_MANAGE`（仅 SUPER_ADMIN）。禁用后的闭合链路两侧不同：买家侧**不**同步吊销 refresh——在途 access 无黑名单最长剩 10 分钟（ACC-19/25 取舍），随后刷新撞 `refresh` 状态闸门（旧码已被 rotate 消费、新码不签发）+ 重登被 `USER_DISABLED` 拦，封号在 10 分钟窗口后自然等效全端下线；员工 access 寿命 8 小时，禁用在落状态之外同步 `RefreshTokenStore.revokeAll` 吊销全端会话，即时收场。启用＝状态回 ACTIVE，闸门实时查库，恢复登录/刷新（判权下一请求即生效）。不做物理删除（ACC-16）。
 
 ## 六、验证码规则（短信 OTP）
 
@@ -78,18 +79,19 @@
 - **[ACC-50]** 地址字段校验：收件人 ≤30、电话 `^[0-9+\-]{5,20}$`（可代收≠账号手机号）、行政区划码 6 位数字且必须是 RegionRegistry 合法国标码（「行政区划代码无效」）、省/市/区各 ≤30 必填、详址 ≤120、标签 ≤20。前端 zod 镜像同样规则（不复刻默认唯一性等业务规则）。
 - **[ACC-51]** 地址标签：内置枚举 HOME/WORK/SCHOOL/PARENTS/FRIEND（未指定默认 HOME），其余非空字符串视为用户自定义文案原样入库（前端自定义标签限 4 字）；前端按已知 code 渲染图标，未知值按纯文本展示。
 - **[ACC-52]** 智能粘贴：一段非结构化收货文本可解析为结构化字段（第三方分词库 + RegionRegistry 区划名→国标码映射），解析不入库；收件人清洗尾部标点杂讯；收件人/手机号可能解析失败，由前端回填让用户确认。
-- **[ACC-53]** 买家地址条数无上限：后端 create 不做数量校验（查询未发现任何条数闸门）。
+- **[ACC-53]** 买家地址条数上限 20 条：新增（create）时未删地址已达 20 条即拒（400 + code `ADDRESS_LIMIT_EXCEEDED`，「最多保存 20 条收货地址」）；软删不占名额（计数只算未删行）。
 
 ## 十、地址簿（商家发货/退货地址）
 
 - **[ACC-54]** 商家地址归 shop 模块（`shop.merchant_addresses`，表迁自 merchant_address schema），授权 = `ADDRESS_MANAGE` 权限码 + 成员身份（X-Shop-Id 上下文），shopId 前端不传；越店访问一律 404。单表模型：一条地址 = 地址本体 + 「默认发货」「默认退货」两个布尔，一条地址可同时承担两者；面单寄件人 = companyName（公司名称）。
 - **[ACC-55]** 每店默认发货/默认退货各至多一个：设默认先清本店同类默认，部分唯一索引（未删且为默认的行）兜底并发；列表排序默认发货/默认退货置顶、其余按更新时间倒序；删除/取消默认不静默顶替，允许该店暂时无默认。
 - **[ACC-56]** 商家地址字段：联系人 ≤30、电话 `^[0-9+\-]{5,20}$`、区划码 6 位国标校验、省/市必填、区/县可空（直辖市/直筒子市）、详址 ≤120、邮编可空 6 位数字、公司名 ≤60、备注 ≤200；默认标记 null 时新增视为 false、编辑保持原值。地址有 ACTIVE/DISABLED 状态维度（停用不参与快照解析，软删归 deletedAt）；api 快照解析只认「未删 + ACTIVE」。
+- **[ACC-70]** 商家地址条数上限每店 200 条：新增（create）时本店未删地址已达 200 条即拒（400 + code `MERCHANT_ADDRESS_LIMIT_EXCEEDED`，「最多添加 200 条地址」，与卖家工作台文案同口径）；软删不占名额。
 
 ## 全局会话与鉴权行为（横切）
 
 - **[ACC-61]** 前端会话（三端共用 auth-kit）：access token 只存内存（auth-kit 闭包变量），不落 localStorage；refresh token 走 httpOnly cookie——cookie 安全属性见 ACC-21，买家/卖家共享会话见 ACC-27。启动时 `bootstrapAuth()` 用 refresh cookie 静默刷新一次裁决登录态：单例 Promise（多处 await 只发一次请求），refresh cookie 有效 → 换 accessToken 并裁决 authed，失败 → clear 裁决 guest；登录态三值 unknown/authed/guest 经 `useSyncExternalStore` 订阅广播，tokenStore 写入即 authed、清除即 guest。
-- **[ACC-62]** 401 自动续期重发：SDK 响应拦截器收到 401 且非 refresh 端点自身时，用原生 fetch POST 各自前缀下的 refresh 端点（C 端默认 `auth/refresh`，admin 装配时传自己的），成功则写入 tokenStore 并重建重发原请求（用户无感）；refresh 失败/响应无 accessToken → 原始 401 正常冒泡。刷新失败不弹提示、不清态由消费方按 401 自行处理。
+- **[ACC-62]** 401 自动续期重发：SDK 响应拦截器收到 401 且非 refresh 端点自身时，用原生 fetch POST 各自前缀下的 refresh 端点（C 端默认 `auth/refresh`，admin 装配时传自己的），成功则写入 tokenStore 并重建重发原请求（用户无感）；refresh 失败/响应无 accessToken → 原始 401 正常冒泡。刷新失败不弹提示、不清态由消费方按 401 自行处理。**410 例外（C14 已实现）**：refresh 返回 410 且 code `REFRESH_TOKEN_REUSED`（后端已全端吊销，ACC-22）时，拦截器就地 `tokenStore.clear()` 清登录态，并把该 410 原样冒泡——detail（「全部设备已下线」语义）经错误拦截器归一成 ApiError，toast 由消费方全局错误通道呈现，拦截器不直造 UI。
 - **[ACC-63]** 设备 ID：首次 `crypto.randomUUID()` 生成并持久化 localStorage（默认键 `shop_device_id`，各端可换键隔离会话——admin 用独立键隔离），随 refresh 上报支撑多端设备列表与按设备吊销。
 - **[ACC-64]** 未登录访问受保护路由：客户端导航 `beforeLoad: requireAuth()` 先 await bootstrap 裁决，未登录拉起全局登录 Dialog 并 redirect 首页（web）；SSR 首屏不裁决登录态（cookie 只在浏览器端刷），由客户端守卫（`_protected` 布局 gate）兜底。
 
@@ -97,13 +99,12 @@
 
 - **[ACC-65]** Token 类错误：`TOKEN_EXPIRED`（401，access token 过期——买家 10 分钟 / 员工 8 小时）→ 前端静默 refresh 续期，用户无感；`INVALID_TOKEN`（401，未携带/格式错/类型错/受众错/签名失败）→ 清用户状态回未登录；`REFRESH_TOKEN_REUSED`（410，重放超宽限期）→ 后端同步吊销该主体所有设备会话，前端呈现「所有设备已下线」。
 - **[ACC-66]** `USER_DISABLED` / `STAFF_DISABLED`（403）：登录与鉴权时账号状态非 ACTIVE 即抛，前端展示后端 detail「账号已被禁用」；`PERMISSION_DENIED`（403）：已认证主体缺权限码（PermissionInterceptor 判权失败），前端按 403/无权限呈现，不引导重新登录。
-- **[ACC-67]** 短信码错误的前端行为：`SMS_CODE_INVALID`/`SMS_CODE_EXPIRED` 使验证码输入框标红（invalid 态），用户重新输入即清错；发码按钮成功后本地起 60s 倒计时（「Ns 后重发」），倒计时/手机号合法/图形码 4 位三者齐备才可发码。
+- **[ACC-67]** 短信码错误的前端行为：`SMS_CODE_INVALID`/`SMS_CODE_EXPIRED` 使验证码输入框标红（invalid 态），用户重新输入即清错；发码按钮成功后本地起 60s 倒计时（「Ns 后重发」），倒计时/手机号合法/图形码 4 位三者齐备才可发码。429 `SMS_RATE_LIMIT` 命中时同样起 60s 倒计时（C14 已实现：服务端窗口就是 60s，连点只会再撞限流；`SMS_DAILY_LIMIT` 等其余失败不起）。
 - **[ACC-68]** 图形验证码错误的前端行为：前端（共享 LoginForm）对三类图形验证码错误（`CAPTCHA_REQUIRED`/`CAPTCHA_EXPIRED`/`CAPTCHA_INVALID`，后端规则见 ACC-35）统一处理：标红输入框、刷新验证码图、清空重输；重输时只清除验证码类错误。
 
 ## 十一、已定案未实现（文档已写、代码没有）
 
-- **[ACC-57]** 员工管理 CRUD（创建员工/分配岗位/禁用，即 `STAFF_MANAGE` 消费端，含自指禁令与末位保护）——permission-codes.md 明确标注 P2 未做；代码确无任何端点使用 STAFF_MANAGE，员工只能手工写库。
+- **[ACC-57]** 员工管理 CRUD 的「创建员工/分配岗位」仍未实现（含自指禁令与末位保护），员工建档仍只能手工写库；「禁用」半边已随封号端点落地（ACC-71，`STAFF_MANAGE` 首个消费点）。
 - **[ACC-58]** admin 前端导航消费 me 出参 permission 字段——文档 P2 未做。
 - **[ACC-59]** auth.md §5 边界声明中仍属"故意不做"且代码确未实现：泄露密码库比对（黑名单仅硬编码 14 条占位）、短信异步化+双通道、登录风控（异地提醒/设备指纹）、Redis 故障降级、密码哈希升级检测（登录时重写旧 cost）、CSRF Token（现靠 SameSite=Lax）、access 主动登出限制（access 过期时点登出会 401，refresh cookie 等自然过期）、跨标签页登录态同步（多标签页输家显示未登录，属前端已知边界）。
 - **[ACC-60]** 店铺「注销/禁用」操作端点不存在：`ShopStatus.DISABLED` 与 ACTIVE⇄DISABLED 转换在状态机注释中定义，但 shop 模块没有任何封禁/解禁/注销店铺的 service 方法或端点（封禁目前只能改库）；被拒店铺也无重新提交审核的通道。
-- **[ACC-69]** DISABLED（封号）状态只有枚举与校验闸门，无禁用/启用管理端点——执行动作无产品化通道。

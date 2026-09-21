@@ -60,17 +60,13 @@ public class CouponEvaluator {
      * 先时间（券还没生效 / 已经过期），再币种，最后门槛。
      */
     private static CouponAvailabilityView evaluateOne(UserCoupon coupon, Money baseAmount, OffsetDateTime now) {
-        // 1. 时间窗：以绝对时刻为准，不看状态列
-        CouponUnavailableReason reason = null;
-        if (now.isBefore(coupon.getEffectiveAt())) {
-            reason = CouponUnavailableReason.NOT_EFFECTIVE;
-        } else if (!now.isBefore(coupon.getExpireAt())) {
-            reason = CouponUnavailableReason.EXPIRED;
-        } else if (!baseAmount.currency().equals(coupon.getCurrency())) {
+        // 1. 时间窗：与券包展示同一口径（复用 timeReason）
+        CouponUnavailableReason reason = timeReason(coupon, now);
+        if (reason == null && !baseAmount.currency().equals(coupon.getCurrency())) {
             // 2. 币种：不支持跨币种用券（一期恒 CNY，护栏先立住）。比的是币种码而不是拿 Money 相加，
             //    这里「不一致」是正常分支，不该走成运算护栏那次 400
             reason = CouponUnavailableReason.CURRENCY_MISMATCH;
-        } else if (!baseAmount.atLeast(coupon.thresholdAsMoney())) {
+        } else if (reason == null && !baseAmount.atLeast(coupon.thresholdAsMoney())) {
             // 3. 门槛：基数是不含运费的商品小计
             reason = CouponUnavailableReason.THRESHOLD_NOT_MET;
         }
@@ -98,5 +94,20 @@ public class CouponEvaluator {
                 coupon.getExpireAt(),
                 true,
                 null);
+    }
+
+    /**
+     * 时间类可用性原因（未生效 / 已过期）—— <b>判定口径的唯一出处</b>（CPN-21）：以绝对时刻为准，
+     * 不看状态列；未生效优先于已过期。结算评估与券包展示（C8）共用这一个方法，两处「为什么不能用」
+     * 不允许各写一份时间比较。时间窗通过返回 null（门槛 / 币种需要基数上下文，券包给不出，不归这里判）。
+     */
+    public static CouponUnavailableReason timeReason(UserCoupon coupon, OffsetDateTime now) {
+        if (now.isBefore(coupon.getEffectiveAt())) {
+            return CouponUnavailableReason.NOT_EFFECTIVE;
+        }
+        if (coupon.expiredAt(now)) {
+            return CouponUnavailableReason.EXPIRED;
+        }
+        return null;
     }
 }

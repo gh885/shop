@@ -2,11 +2,13 @@ package com.shop.platform.aftersale.service;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
+import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.common.Money;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -28,6 +30,8 @@ public record SellerTicketItem(
         @Schema(requiredMode = REQUIRED) String firstItemName,
         @Schema(requiredMode = REQUIRED) TicketType type,
         @Schema(requiredMode = REQUIRED) TicketStatus status,
+        /** 卖家视角当前可执行动作（C5b 下发）：行内按钮只吃这个字段，不在前端按状态推导 */
+        @Schema(requiredMode = REQUIRED) List<TicketAvailableAction> availableActions,
         /** 买家申请理由：选填，未填为空 */
         @Schema(requiredMode = REQUIRED, nullable = true) String reason,
         /** 退款口径：申请时定格为整单实付；历史/脏数据下可能为空 */

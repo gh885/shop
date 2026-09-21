@@ -1,5 +1,6 @@
 package com.shop.platform.account.api;
 
+import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.infra.db.IdBatchReader;
 import java.util.Collection;
 import java.util.List;
@@ -34,5 +35,15 @@ public class UserReadQuery {
         List<UUID> ids = jdbc.query(
                 "SELECT id FROM account.users WHERE phone = ?", (rs, i) -> rs.getObject("id", UUID.class), phone);
         return ids.isEmpty() ? Optional.empty() : Optional.of(ids.getFirst());
+    }
+
+    /**
+     * 账号闸门谓词（下单等交易入口消费）：用户存在且状态 ACTIVE 才放行，用户缺失同样给 false。
+     * 只吐谓词不吐 {@code UserStatus} 枚举——状态词表留在本模块，消费方不必（也不允许）import account.model。
+     */
+    public boolean isActive(UUID userId) {
+        List<String> statuses =
+                jdbc.query("SELECT status FROM account.users WHERE id = ?", (rs, i) -> rs.getString(1), userId);
+        return !statuses.isEmpty() && UserStatus.ACTIVE.name().equals(statuses.getFirst());
     }
 }

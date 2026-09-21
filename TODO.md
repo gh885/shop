@@ -5,8 +5,8 @@
 
 ## 近期要做
 
-- [ ] 后端补一条：售后申请时若该订单已有 REFUNDED 单则拒绝（V1 只挡「进行中」，重复退款敞着口）
 - [ ] E2E：Playwright 接入，先覆盖一条下单主路径（真实后端，storageState 缓存登录态）
+- [ ] admin 运营入口两处（C 档端点已就绪、页面缺）：① 用户/员工列表查询端点 + 封号管理页（PATCH status 已挂在 `AdminAccountController`，缺可发现的列表来源）；② 按用户/店铺查券列表端点 + 作废入口（`POST /admin/coupons/{id}/void` 暂借 CMS_MANAGE，落地时换独立 COUPON_OPS 权限码）
 - [ ] CI：现有远端门禁（前端 lint/typecheck/test + 后端 compile + 契约审计）上补 `mvn verify`（需给 job 配 PG + Redis 服务）与 Playwright
 - [ ] 搜索方案选型（当前 `name LIKE '%kw%'`，量级上去必须换，README「已知边界」已标注）
 - [ ] ui-web 共享层两处（不要只改单个调用点）：① 单选行整行不可点（`Item` + `RadioGroupItem` 的

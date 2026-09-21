@@ -27,7 +27,7 @@
 
 ## 三、商品（SPU）与草稿
 
-- **[PRD-18]** 商品创建即草稿（DRAFT）：只落基本信息，specs=[]、无 SKU、价格区间为空；shopId 由店铺上下文（X-Shop-Id + 成员校验）注入，不由前端传入；创建只校验类目存在。
+- **[PRD-18]** 商品创建即草稿（DRAFT）：只落基本信息，specs=[]、无 SKU、价格区间为空；shopId 由店铺上下文（X-Shop-Id + 成员校验）注入，不由前端传入；创建必过类目挂载闸门（[PRD-82]）。
 - **[PRD-19]** 商品标题上限 30 字（入库前 trim）；草稿阶段允许空名（落空串满足 NOT NULL），发布（无论上架还是入库）时必须非空（"请先填写商品标题再发布"）。
 - **[PRD-20]** 一句话卖点（subtitle）要么不填/空串清空，要么 10~30 字（正则 `^$|^[\s\S]{10,30}$`）；空串=清空、null=不改（PATCH 语义区分）。
 - **[PRD-21]** 商品图片（mainImage/images/detailImages）存对象存储 key（非完整 URL），单张 key ≤255 字；详情图为按序铺开的图片流，代替富文本（无 HTML、无 XSS 面）。图片经卖家端申请票据（/seller/products/image-ticket）直传对象存储 product/ 前缀后回填 key。
@@ -35,6 +35,7 @@
 - **[PRD-23]** SPU 改名（name 实际变化时）同事务重刷全部存量 SKU 的显示名快照（组合不变、只重拼字符串，价格/库存/spec_key 不动），使购物车/订单/列表不留旧标题。
 - **[PRD-24]** 商品只支持单主分类（挂一个 categoryId），多分类需求出现时再拆关联表。
 - **[PRD-25]** 商品归属店铺后不可变更；卖家一切读写都以 X-Shop-Id 圈定归属（requireShopOwned），非本店商品按不存在处理（404）。
+- **[PRD-82]** 商品类目挂载闸门（`requireMountableCategory`，创建与草稿改挂同一道，不区分入口）：目标类目必须存在、是叶子类目（level=3，非叶子 400 + code `CATEGORY_NOT_LEAF`）、自身启用且父链上任一祖先启用（任一禁用 400 + code `CATEGORY_DISABLED`）——与公开类目树「父级不可见整支剪掉」同口径，防止商品挂进买家不可达的类目；判定顺序取「自身禁用 → 非叶子 → 父链禁用」，自身禁用是最致命的原因先报。
 
 ## 四、规格与 SKU 生成
 
@@ -51,10 +52,10 @@
 
 ## 五、价格
 
-- **[PRD-36]** 价格全链路 Money {amount(分), currency}：入参出参同口径，非平台币种（一期仅 CNY）在入参即 400，DB 层 CHECK (currency='CNY') 兜底；售价与划线价均不得为负（CHECK price/original_price >= 0）。
+- **[PRD-36]** 价格全链路 Money {amount(分), currency}：入参出参同口径，非平台币种（一期仅 CNY）在入参即 400，DB 层 CHECK (currency='CNY') 兜底；售价与划线价均不得为负（CHECK price/original_price >= 0），且划线价不得倒挂低于售价（CHECK original_price IS NULL OR original_price >= price，ck_skus_original_price_ge_price，V62；存量倒挂行迁移时清空划线价抹平）。
 - **[PRD-37]** 草稿期 SKU 允许未定价（price NULL）；发布 / 重新上架的门槛是每个在售 SKU 都已设价（"所有在售 SKU 都需设置价格后才能发布"），停用 SKU 不计入门槛也不被索取价格。
 - **[PRD-38]** SPU 的 minPrice/maxPrice 是刻意冗余的聚合副本（真实成交价只认 skus.price），只统计在售且已定价 SKU；全部未定价时两端为 null；在发布、改规格、改 SKU 时同事务重算回填。价格排序/列表"¥xx 起"消费的就是这对副本。
-- **[PRD-39]** 划线价（originalPrice）可空=不画删除线；传 null 表示不修改。
+- **[PRD-39]** 划线价（originalPrice）可空=不画删除线；传 null 表示不修改。不变式「划线价 ≥ 现价」在 SkuService.updateSkus 前置校验给友好 400（"划线价不能低于现价…"，无 code，不冒 500/撞 DB CHECK）：比的是「本次提交的现价」与「划线价终值」——划线价终值 = 本次提交值，未提交则取存量划线价（只抬现价抬过存量划线价同样被拦）；相等合法；SKU 不属于该商品时不抢跑，由归属校验报「SKU 不存在或不属于该商品」。
 
 ## 六、上下架状态机与可见性
 
@@ -82,7 +83,7 @@
 
 ## 八、搜索 / 列表 / 浏览
 
-- **[PRD-62]** 买家商品列表筛选：categoryId 精确匹配、shopId 精确匹配、keyword 对商品名 LIKE 包含匹配（≤128 字、trim 后为空视为无关键词）；都不传 = 全站上架商品按新品排。
+- **[PRD-62]** 买家商品列表筛选：categoryId 与 feed 召回同口径——经 CategoryService.descendantIds 展开**启用子树**后按 IN 匹配（tab/筛选可指一级类目、商品挂三级叶子；父链上任一节点禁用即整支不可见），未知/禁用类目得到空集、直接返回空页 total=0，不报错不查商品表（禁用不查挂载类目自身，父级禁用同样挡，与 [PRD-06]/[PRD-82] 同一条级联口径）；shopId 精确匹配、keyword 对商品名 LIKE 包含匹配（≤128 字、trim 后为空视为无关键词）；都不传 = 全站上架商品按新品排。
 - **[PRD-63]** 买家列表排序白名单：newest（默认，createdAt 降）/ price_asc（按 minPrice 升）/ price_desc（按 maxPrice 降），价格排序直接吃 SPU 冗余价格副本免查 SKU 表；非法 sort 值 400。每种排序都追加 id 降序兜底，保证翻页同值行顺序稳定不重复。
 - **[PRD-64]** 分页契约：page ≥1（默认 1）、size 1~100（默认 10）。
 - **[PRD-67]** 买家侧不拼店铺名、跨模块各取各的：商品响应只给 shopId，前端另查店铺详情；商品卡价格取 minPrice（"¥xx 起"）。

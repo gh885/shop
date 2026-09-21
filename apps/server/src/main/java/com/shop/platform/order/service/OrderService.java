@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.f4b6a3.uuid.UuidCreator;
+import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
@@ -62,6 +63,9 @@ public class OrderService {
 
     private final CheckoutResolver checkoutResolver;
 
+    /** 账号闸门（account :: api）：下单先验买家状态，禁用/注销账号不进交易 */
+    private final UserReadQuery userReadQuery;
+
     private final StockCommand stockCommand;
 
     /** 券命令（coupon :: api）：下单占用在同事务内完成，抢不到回滚整笔下单 */
@@ -98,7 +102,7 @@ public class OrderService {
 
     // 创建订单
     /**
-     * 创建订单：一次结算按店铺拆成 N 单，全成全败。
+     * 创建订单：一次结算按店铺拆成 N 单，全成全败。入口先过账号闸门（禁用账号 403 USER_DISABLED）。
      * 库存最终闸门在 product :: api 的同步条件扣减里（失败 → 本事务整体回滚）。
      *
      * <p>幂等由 uk_orders_user_checkout_shop 唯一索引承担：同一 checkoutKey 的重复提交在第一条主表 insert 就撞键，
@@ -107,14 +111,19 @@ public class OrderService {
      */
     @Transactional
     public List<Order> create(UUID userId, CreateOrderRequest req) {
-        // 1. 校验收货地址归属并取快照（下单定格，之后改/删地址不影响本单）
+        // 1. 账号闸门：买家状态非 ACTIVE 一律 403 拒单（复用登录闸门同一份语义与 code，token 未过期不等于账号还能交易）
+        if (!userReadQuery.isActive(userId)) {
+            throw new BusinessException(403, "USER_DISABLED", "账号已被禁用");
+        }
+
+        // 2. 校验收货地址归属并取快照（下单定格，之后改/删地址不影响本单）
         AddressSnapshot address = checkoutResolver.loadAddressSnapshot(userId, req.addressId());
 
-        // 2. 全量有效才允许下单：任一行失效或缺货直接拒绝（预览页已提示过，这里兜底并发变化）
+        // 3. 全量有效才允许下单：任一行失效或缺货直接拒绝（预览页已提示过，这里兜底并发变化）
         ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
         Validate.isTrue(resolved.unavailable().isEmpty(), "部分商品已下架或库存不足，请重新确认结算");
 
-        // 3. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用分组结果免重查。
+        // 4. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用分组结果免重查。
         //    分组顺序（shopId 升序）由 CheckoutResolver.groupByShop 保证，不是勾选顺序：逐店冻结时
         //    StockCommand 只在单店内按 skuId 排序，店间顺序若跟用户走，两笔店序相反的多店订单会互相等锁
         //    （A 持店1等店2，B 持店2等店1）。一个 SKU 只属一家店，(shopId, skuId) 升序即全局锁序，环不可能成立。
@@ -128,7 +137,7 @@ public class OrderService {
             staged.add(Map.entry(persistOrder(userId, req, address, group), group));
         }
 
-        // 4. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU；
+        // 5. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU；
         //    券在同一事务内占用（UNUSED → LOCKED），抢不到同样回滚——券被别的未付款单占着时不会走到这一步还成立
         for (Map.Entry<Order, CheckoutPreview.Group> entry : staged) {
             Order order = entry.getKey();

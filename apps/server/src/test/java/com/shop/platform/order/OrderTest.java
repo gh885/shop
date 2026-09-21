@@ -39,9 +39,9 @@ class OrderTest {
     }
 
     @Test
-    void 已发货_买家可确认收货_卖家无动作() {
+    void 已发货_买家可确认收货_卖家仍可追加发货() {
         assertThat(orderOf(OrderStatus.SHIPPED).buyerActions()).containsExactly(RECEIVE);
-        assertThat(orderOf(OrderStatus.SHIPPED).sellerActions()).isEmpty();
+        assertThat(orderOf(OrderStatus.SHIPPED).sellerActions()).containsExactly(SHIP);
     }
 
     @Test

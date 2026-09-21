@@ -5,7 +5,7 @@ import { configureSdkClient } from "@shop/common"
 import { setupTests } from "@shop/test-utils"
 
 /**
- * 测试期 SDK 装配 —— 与线上同一套拦截器（错误归一化为 ApiError、401 refresh、correlation id）。
+ * 测试期 SDK 装配 —— 与线上同一套拦截器（错误归一化为 ApiError、401 refresh、x-request-id）。
  *
  * 两个必须写死的点：
  * 1. **绝对 baseUrl**：线上浏览器走同源相对路径（`""`），而 jsdom 的 `new Request()` 来自

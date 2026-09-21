@@ -129,7 +129,13 @@ class LogisticsIT extends IntegrationTestSupport {
                 userId.toString());
         db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
         db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
+        db.onDelete("DELETE FROM account.users WHERE id = ?::uuid", userId.toString());
 
+        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 拒单）；手机号按 uuid 派生避免并发跑撞唯一索引
+        jdbc.update(
+                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
+                userId.toString(),
+                "139" + Math.abs(userId.getMostSignificantBits() % 100_000_000L));
         skuId = db.seedOnSaleSku(shopId, 1000, 5);
         addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);

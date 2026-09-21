@@ -21,24 +21,35 @@ function makeGate(overrides: Partial<ApplyGate> = {}): ApplyGate {
 
 const NOW = Date.parse("2026-01-05T00:00:00Z")
 
-describe("buyerAfterSaleActions（买家此刻能做什么）", () => {
-    it("待卖家处理_给撤销入口：一旦卖家同意，货/钱已在途，撤销口子就关了", () => {
-        expect(buyerAfterSaleActions({ status: "APPLYING", returnTrackingNo: null })).toEqual([
-            "cancel",
-        ])
+describe("buyerAfterSaleActions（买家此刻能做什么——消费后端下发的 availableActions）", () => {
+    it("待卖家处理_契约给撤销_就给撤销入口", () => {
+        expect(
+            buyerAfterSaleActions({ availableActions: ["CANCEL"], returnTrackingNo: null }),
+        ).toEqual(["cancel"])
     })
 
-    it("待寄回商品_给填物流入口；已填过再加一个查看，免得买家以为没填成功", () => {
-        expect(buyerAfterSaleActions({ status: "RETURNING", returnTrackingNo: null })).toEqual([
-            "return",
-        ])
+    it("待寄回商品_契约给回寄_已填过运单号再加一个查看（导航是前端的事，状态机不是）", () => {
         expect(
-            buyerAfterSaleActions({ status: "RETURNING", returnTrackingNo: "SF123456" }),
+            buyerAfterSaleActions({ availableActions: ["RETURN_GOODS"], returnTrackingNo: null }),
+        ).toEqual(["return"])
+        expect(
+            buyerAfterSaleActions({
+                availableActions: ["RETURN_GOODS"],
+                returnTrackingNo: "SF123456",
+            }),
         ).toEqual(["return", "track"])
     })
 
-    it.each(["REFUNDED", "REJECTED", "CLOSED"] as const)("终态_%s 不给任何操作", (status) => {
-        expect(buyerAfterSaleActions({ status, returnTrackingNo: "SF123456" })).toEqual([])
+    it("被拒/已撤销且在窗口内_契约下发重新申请_卡片给入口（AFS-04）", () => {
+        expect(
+            buyerAfterSaleActions({ availableActions: ["REAPPLY"], returnTrackingNo: null }),
+        ).toEqual(["reapply"])
+    })
+
+    it("已退款终态_契约什么都不下发_不给任何操作（二次退款敞口由后端封死）", () => {
+        expect(
+            buyerAfterSaleActions({ availableActions: [], returnTrackingNo: "SF123456" }),
+        ).toEqual([])
     })
 })
 
@@ -69,7 +80,7 @@ describe("canApplyAfterSale（申请入口的门槛）", () => {
         },
     )
 
-    it("已退款_仍不给入口：V1 后端未拦二次申请，前端不主动把用户送到重复退款那条路", () => {
+    it("已退款_不给入口：后端已挡二次申请（AFTER_SALE_ALREADY_REFUNDED），前端同样不引导", () => {
         expect(canApplyAfterSale(makeGate({ afterSaleStatus: "REFUNDED" }), NOW)).toBe(false)
     })
 

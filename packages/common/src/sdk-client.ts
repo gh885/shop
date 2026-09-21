@@ -2,10 +2,12 @@ import { client } from "@shop/api"
 
 import type { ApiError } from "./api-error"
 import { isZodError, RESPONSE_VALIDATION_FAILED, zodIssuesText } from "./api-error"
+import { ErrorCodes } from "./error-codes"
 
 /**
  * 生成 SDK（@shop/api）的传输层装配：给 hey-api 生成的 ky client 挂上
- * 拦截 —— token 注入、Correlation ID、401 自动 refresh 重发、错误归一化为
+ * 拦截 —— token 注入、请求 ID（x-request-id）、401 自动 refresh 重发、
+ * refresh 遇 410 REFRESH_TOKEN_REUSED 清登录态并冒泡、错误归一化为
  * ApiError；超时与（幂等 GET）重试直接交给 ky 原生能力，不再手写 fetch 策略。
  *
  * 各 app 在装配处调用一次（模块初始化）：
@@ -20,6 +22,8 @@ import { isZodError, RESPONSE_VALIDATION_FAILED, zodIssuesText } from "./api-err
 export interface TokenStore {
     get: () => string | null
     set: (token: string) => void
+    /** 清空登录态（auth-kit 的 tokenStore 都有）；410 重放裁决时用它就地登出 */
+    clear?: () => void
 }
 
 export interface SdkClientOptions {
@@ -91,14 +95,15 @@ export function configureSdkClient(
         },
     })
 
-    // 请求前：token + 全链路 ID + 计时起点
+    // 请求前：token + 请求 ID（x-request-id） + 计时起点
     client.interceptors.request.use((request) => {
         const token = tokens?.get()
         if (token) {
             request.headers.set("Authorization", `Bearer ${token}`)
         }
-        if (!request.headers.has("X-Correlation-Id")) {
-            request.headers.set("X-Correlation-Id", crypto.randomUUID())
+        // 后端 RequestIdFilter 只认 x-request-id，且要求 32 位 hex（不合法它会自生成）
+        if (!request.headers.has("x-request-id")) {
+            request.headers.set("x-request-id", crypto.randomUUID().replaceAll("-", ""))
         }
         const contextHeaders = options?.contextHeaders?.()
         if (contextHeaders) {
@@ -136,7 +141,28 @@ export function configureSdkClient(
                 method: "POST",
                 credentials: "include",
             })
-            if (!res.ok) return response
+            if (!res.ok) {
+                // 410 + REFRESH_TOKEN_REUSED = refresh 重放裁决：后端已吊销该主体全部设备会话。
+                // 清本地登录态（与 401 失败冒泡后消费方兜底清态同效，这里就地做省得各端再补），
+                // 并把 410 原样冒泡——其 detail（「全部设备已下线」）经错误拦截器归一成 ApiError，
+                // toast 由消费方全局错误处理呈现，拦截器不直造 UI。clone 读 body 是为了比对 code，
+                // 原体保持未消费给下游解析。
+                if (res.status === 410) {
+                    const body: unknown = await res
+                        .clone()
+                        .json()
+                        .catch(() => null)
+                    if (
+                        typeof body === "object" &&
+                        body !== null &&
+                        (body as { code?: unknown }).code === ErrorCodes.REFRESH_TOKEN_REUSED
+                    ) {
+                        tokens.clear?.()
+                        return res
+                    }
+                }
+                return response
+            }
             const body: unknown = await res.json()
             if (
                 typeof body !== "object" ||

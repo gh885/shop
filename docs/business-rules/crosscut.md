@@ -14,7 +14,7 @@
 
 ## 传输与链路
 
-- **[GEN-35]** 传输层全局策略：请求超时 10s；仅幂等 GET 在 408/429/502/503/504 自动重试 2 次（ky 原生）；所有请求自动注入 `Authorization: Bearer`（有 token 时）、`X-Correlation-Id`（UUID，业务未显式传入时）、动态上下文头（如 seller `X-Shop-Id`，业务同名头优先）；请求一律 `credentials: "include"`。
+- **[GEN-35]** 传输层全局策略：请求超时 10s；仅幂等 GET 在 408/429/502/503/504 自动重试 2 次（ky 原生）；所有请求自动注入 `Authorization: Bearer`（有 token 时）、`x-request-id`（值为 UUID 去横线的 32 位 hex，业务未显式传入时——与 GEN-36 后端 `RequestIdFilter` 的校验规则对齐，不合规格式会被后端丢弃重生成）、动态上下文头（如 seller `X-Shop-Id`，业务同名头优先）；请求一律 `credentials: "include"`。
 - **[GEN-36]** 后端链路 ID：`RequestIdFilter` 读入站 `x-request-id`（须为 32 位 hex，不合法则自生成 UUID 去横线），回写同名响应头并注入 MDC `trace_id`（进错误信封 `requestId` 与全部日志）；`@Async/@Scheduled` 经 `MdcTaskDecorator` 延续或新起 trace_id。
 
 ## 写操作反馈

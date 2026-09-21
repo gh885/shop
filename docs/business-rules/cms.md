@@ -7,7 +7,7 @@
 - **[CMS-01]** 三类内容（导航条目、banner、推荐词条）都只有「启用 ENABLED / 停用 DISABLED」两态，不做物理删除；停用即前台不展示，可无损恢复。
 - **[CMS-02]** 三类内容新建时（create）状态一律强制置为 ENABLED，不接受入参传 status；状态变更只能走独立的 PUT `/{id}/status/{ENABLED|DISABLED}` 通道。
 - **[CMS-03]** 所有列表（前台启用集与后台全量）排序口径一致：`sortOrder` 升序，同值再按 `id` 升序；sortOrder 越小越靠前，入参缺省时落 0。
-- **[CMS-04]** update 是全量覆写展示字段，但「归属键」不可改：导航的 navKey、banner 的 slot 在更新时被后端忽略（Request 里仍要求传但只用于校验形状）；后台表单编辑态直接把该字段置 disabled。
+- **[CMS-04]** update 逐字段覆写展示字段但 **null 字段 = 保持原值**（MyBatis-Plus NOT_NULL 策略跳过 null 列，PATCH 语义而非全量覆写——传 null 清不掉任何字段），且「归属键」不可改：导航的 navKey、banner 的 slot 在更新时被后端忽略（Request 里仍要求传但只用于校验形状）；后台表单编辑态直接把该字段置 disabled。
 - **[CMS-05]** 跳转 target 一律软关联（存字符串：商品/类目 ID、活动名、搜索词或 URL），CMS 不 join 任何业务模块、不校验目标是否存在；目标不存在时前台按「脏数据」降级而不是报错。targetType 枚举固定五种：`PRODUCT | CATEGORY | CAMPAIGN | SEARCH | URL`（后端 @Pattern 校验，前台「不跳转」提交为缺省）。
 - **[CMS-06]** 管理端 CMS 全部路由挂在 `/admin/cms`，要求 `CMS_MANAGE` 权限（岗位 OPS）；前台读接口 `/api/cms/*` 与 `/api/feed` 匿名可访问（在 JwtProperties.skipPaths 中）。
 - **[CMS-07]** 前台三个只读接口按「导航位 / 运营位」取数且都有默认位：`GET /api/cms/nav` 默认 `navKey=home`、`GET /api/cms/banners` 默认 `slot=home_promo`、`GET /api/cms/recommend-tabs` 无位置参数（全局一份）；当前前台实际消费的导航位只有 `home`、运营位只有 `home_promo`（新增位需扩前台常量表）。
@@ -25,14 +25,14 @@
 ## 三、运营位 Banner
 
 - **[BAN-01]** 前台 banner 生效条件 = status=ENABLED **且** 命中时间窗口：`startAt` 为 null 视为立即生效、`endAt` 为 null 视为长期有效；窗口判定按请求时刻服务端（Java 侧）现算——定时上下线不需要任何任务，到点自动生效/失效。
-- **[BAN-02]** 后台表单口径：定时上线留空 = 立即生效、定时下线留空 = 长期有效；且有「下线时间需晚于上线时间」的前端校验。注意校验缺口：后端 `BannerRequest` 无 startAt<endAt 校验、DB 也无 CHECK——经 API 直发反序时间会得到一条永不可见的 banner，属可写入的死配置。
+- **[BAN-02]** 后台表单口径：定时上线留空 = 立即生效、定时下线留空 = 长期有效；「下线时间需晚于上线时间」前后端同口径——后端 create/update 校验：起止两端齐全时 `endAt` 必须晚于 `startAt`，否则 400 + code `BANNER_TIME_RANGE_INVALID`（任一端为 null 不受约束）。update 时 null = 该端不改，与库中原窗口**合并后**再判定，防止分两次 PATCH 拼出自相矛盾的窗口。
 - **[BAN-03]** 字段上限：slot ≤32 必填、title ≤64 必填、subtitle ≤128、imageUrl ≤512 必填、link ≤512（仅 targetType=URL 使用）、target ≤255。
 - **[BAN-04]** 首页首屏 banner 条最多展示 3 个（按排序取前 3）；返回空数组时整块不画——「今天没配 banner」是正常状态不是异常；请求失败则显示块级错误 + 重试。
 
 ## 四、推荐条词条（RecommendTab）
 
 - **[REC-01]** 推荐条是扁平词条数组（「猜你喜欢」只是其中一个 is_default=true 的普通项，不是特殊结构）；前台默认选中项按「用户点过的 → isDefault 项 → 首项」三级兜底推导。
-- **[REC-02]** 「猜你喜欢」（默认词条）同一时刻应唯一；后端不强制，唯一性由 admin 编辑页维护——勾选默认保存后，页面连带把其他所有默认词条的 isDefault 取消（逐条 PUT）。
+- **[REC-02]** 「猜你喜欢」（默认词条）全局唯一由 DB 部分唯一索引 `uk_recommend_tabs_default`（WHERE is_default = TRUE）钉死：create/update 把第二个词条设为默认时撞键转 409「已存在默认推荐词条，请先取消原默认再设置」，不做静默顶替；admin 编辑页保存时协作取消其余默认（逐条 PUT）只是 UX，闸门在库。
 - **[REC-03]** 词条名 ≤32 必填；isDefault 缺省为 false（create 时）；启停即时影响前台推荐条。
 - **[REC-04]** CATEGORY 型词条的 name 必须与目标类目同名（V59 定下的数据规范，同时落进 seed-demo 断言）：CATEGORY 型 target 必须命中真实且启用的类目，不造指向不存在对象的行；「+更多」这类动作型伪词条已从种子数据删除。
 - **[REC-05]** 词条读不到（失败）时整个推荐条不画，feed 照常走全站流——首页是门面，词条挂了这个可降级 UI 退出全局错误边界（throwOnError:false 是唯一显式就地降级的壳查询）。
@@ -84,3 +84,4 @@
 - **[FUT-02]** V3 行为埋点与运营位混排：曝光/点击批量上报（商品 id、tab、位置、seed；匿名 cookie id）append-only 落库滚动清理、「看过不推」、CTR 评估；CMS banners 加 feed slot，FeedItem 变商品/运营卡联合类型按固定位插入；recommend 的第一张表到 V3 才来（V1 无表）。
 - **[FUT-03]** 候选未采纳项：热销加权（Efraimidis–Spirakis 抽样）与同店打散**都不进 V1**，代码中无此逻辑；量级上去后的 Redis 预热（tab×seed 有序 id 列表 + productsByIds，退役 ProductRecallQuery，HTTP 契约不变）也只是写下的路，未落地。
 - **[FUT-04]** tab 深链进 URL 的触发条件（站外投放/运营位入口）尚未出现，现状是 [WEB-01] 的本地 state；将来落地时 `replace: true` 且脏值收敛为默认 tab。
+- **[FUT-05]** ~~独立 `/search` 分类搜索页~~：原首页设计稿有此页，**已定案撤回（C15，2026-09）——feed tab 即现状，无独立搜索页规划**；商品列表的 keyword 筛选（[PRD-62]）承接搜索需求，搜索后端另议。

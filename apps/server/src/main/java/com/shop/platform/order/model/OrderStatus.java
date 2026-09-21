@@ -36,11 +36,18 @@ public enum OrderStatus {
     /** 已取消/关闭 */
     CANCELLED;
 
-    /** 状态图（源态 → 目标态）：合法转移的唯一真相 */
+    /**
+     * 状态图（源态 → 目标态）：合法转移的唯一真相。
+     *
+     * <p>SHIPPED 的自环是<b>多包裹追加发货</b>：已发货单再落一个包裹时状态不变（SHIPPED → SHIPPED），
+     * 但它是合法转移——{@code OrderMapper.markShippedReturningPrevious} 的条件更新本来就认
+     * {@code status IN ('PAID','SHIPPED')}，这张表与那道闸门是同一份事实的两个投影。
+     * 自环同时让 {@link #sellerActions()} 在 SHIPPED 态继续派生 SHIP（按钮语义 = 「追加包裹」）。
+     */
     private static final Map<OrderStatus, Set<OrderStatus>> TRANSITIONS = Map.of(
             PENDING_PAYMENT, Set.of(PAID, CANCELLED),
             PAID, Set.of(SHIPPED, CANCELLED),
-            SHIPPED, Set.of(COMPLETED),
+            SHIPPED, Set.of(COMPLETED, SHIPPED),
             COMPLETED, Set.of(),
             CANCELLED, Set.of());
 

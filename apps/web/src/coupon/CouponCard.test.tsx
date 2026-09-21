@@ -39,6 +39,7 @@ function makeCoupon(overrides: Partial<MyCoupon> = {}): MyCoupon {
         expireAt: "2026-01-31T12:00:00Z",
         status: "UNUSED",
         source: "CLAIM",
+        unavailableReason: null,
         ...overrides,
     }
 }
@@ -135,5 +136,27 @@ describe("CouponCard", () => {
 
         await screen.findByText("满 ¥100 减 ¥10")
         expect(screen.queryByRole("link", { name: "查看订单" })).toBeNull()
+    })
+
+    it("领了但未开始的券给出灰字解释_状态徽章说未使用、这行说为什么现在还不能用", async () => {
+        renderCard(makeCoupon({ unavailableReason: "NOT_EFFECTIVE" }))
+
+        // 开抢时刻按时区渲染，断言只钉文案骨架不钉 HH（同文件对 formatDate 的时区处理同一思路）
+        expect(await screen.findByText(/尚未开始，.* 起可用/)).toBeVisible()
+    })
+
+    it("结算中的券已过使用时间_如实补一行不能再用于新单", async () => {
+        renderCard(makeCoupon({ status: "LOCKED", unavailableReason: "EXPIRED" }))
+
+        expect(await screen.findByText("使用时间已过，本单之外不能再使用")).toBeVisible()
+    })
+
+    it("徽章已经解释清楚的行不重复挂时间灰字_EXPIRED与USED只看到状态本身", async () => {
+        renderCard(makeCoupon({ status: "EXPIRED", unavailableReason: "EXPIRED" }))
+        renderCard(makeCoupon({ status: "USED", unavailableReason: null }))
+
+        await screen.findByText("已过期")
+        expect(screen.queryByText(/使用时间已过/)).toBeNull()
+        expect(screen.queryByText(/尚未开始/)).toBeNull()
     })
 })

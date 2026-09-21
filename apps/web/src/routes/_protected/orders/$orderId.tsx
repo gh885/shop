@@ -80,8 +80,8 @@ function OrderDetailPage() {
     const cancelAfterSale = useCancelAfterSale(orderId)
     const navigate = useNavigate()
 
-    // 状态区客户操作分发（取消走全局二次确认）；商品区的加购/售后走 handleItemAction
-    const { handleAction, pendingAction } = useOrderActions()
+    // 状态区客户操作分发（取消走取消原因弹窗，由本页渲染 cancelDialog）；商品区的加购/售后走 handleItemAction
+    const { handleAction, pendingAction, cancelDialog } = useOrderActions()
 
     // 售后两个弹窗入口的状态：申请、回寄
     const [applyOpen, setApplyOpen] = useState(false)
@@ -95,7 +95,7 @@ function OrderDetailPage() {
         notify.info(`「${action}」即将上线`)
     }
 
-    /** 售后卡操作：撤销走全局二次确认，回寄开弹窗，查看退货物流跳物流详情页（退货包裹与正向共用一套轨迹） */
+    /** 售后卡操作：撤销走全局二次确认，回寄/重新申请开弹窗，查看退货物流跳物流详情页（退货包裹与正向共用一套轨迹） */
     const handleAfterSaleAction = (action: AfterSaleAction) => {
         if (action === "cancel") {
             void confirm({
@@ -108,6 +108,8 @@ function OrderDetailPage() {
             return
         }
         if (action === "return") return setReturnOpen(true)
+        // reapply = 后端在终态单上下发的「重新申请」（C5b），走的还是那张申请弹窗
+        if (action === "reapply") return setApplyOpen(true)
         void navigate({ to: "/logistics/$orderId", params: { orderId } })
     }
 
@@ -158,6 +160,9 @@ function OrderDetailPage() {
                     </aside>
                 </div>
             </div>
+
+            {/* 取消订单弹窗（原因 + 备注）：状态由 useOrderActions 持有 */}
+            {cancelDialog}
 
             <AfterSaleApplyDialog
                 open={applyOpen}

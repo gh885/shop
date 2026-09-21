@@ -63,7 +63,7 @@ function OrdersPage() {
     const setPage = (page: number) => void navigate({ search: { tab: search.tab, page } })
 
     const { data, isLoading } = useQuery(myOrdersOptions({ status: search.tab, page: search.page }))
-    const { handleAction, pendingAction } = useOrderActions()
+    const { handleAction, pendingAction, cancelDialog } = useOrderActions()
 
     // 按后端返回直接渲染（后端已按 status 过滤）
     const orders: Order[] = data?.records ?? []
@@ -79,6 +79,9 @@ function OrdersPage() {
     return (
         <div className="space-y-4">
             <h1 className="text-xl font-bold">我的订单</h1>
+
+            {/* 取消订单弹窗（原因 + 备注）：状态由 useOrderActions 持有，这里只挂渲染位 */}
+            {cancelDialog}
 
             {/* 状态 Tab 导航 */}
             <div className="flex gap-1 border-b border-border/60">

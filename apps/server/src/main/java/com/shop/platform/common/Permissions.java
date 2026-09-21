@@ -21,7 +21,7 @@ public final class Permissions {
     /** 平台类目维护，岗位 OPS */
     public static final String CATEGORY_MANAGE = "CATEGORY_MANAGE";
 
-    /** 员工与岗位管理（创建员工、分配岗位、禁用），仅 SUPER_ADMIN。消费端 P2（员工管理 CRUD） */
+    /** 员工与岗位管理（创建员工、分配岗位、禁用），仅 SUPER_ADMIN。禁用半边已由 AdminAccountController 消费；创建/分配岗位仍 P2 */
     public static final String STAFF_MANAGE = "STAFF_MANAGE";
 
     /** 物流轨迹维护（补录节点、纠错），岗位 OPS */

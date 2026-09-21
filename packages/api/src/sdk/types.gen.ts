@@ -597,11 +597,23 @@ export const TicketType = { REFUND_ONLY: 'REFUND_ONLY', RETURN_REFUND: 'RETURN_R
 
 export type TicketType = typeof TicketType[keyof typeof TicketType];
 
+export const TicketAvailableAction = {
+    CANCEL: 'CANCEL',
+    RETURN_GOODS: 'RETURN_GOODS',
+    REAPPLY: 'REAPPLY',
+    AGREE: 'AGREE',
+    REJECT: 'REJECT',
+    RECEIVE_RETURN: 'RECEIVE_RETURN'
+} as const;
+
+export type TicketAvailableAction = typeof TicketAvailableAction[keyof typeof TicketAvailableAction];
+
 export type TicketResponse = {
     id: string;
     orderId: string;
     type: TicketType;
     status: TicketStatus;
+    availableActions: Array<TicketAvailableAction>;
     reason: string | null;
     refundAmount: Money | null;
     returnLogisticsCompany: string | null;
@@ -755,6 +767,7 @@ export type MyCouponResponse = {
     status: string;
     source: string;
     orderId: string | null;
+    unavailableReason: CouponUnavailableReason | null;
 };
 
 export type AddCartItemRequest = {
@@ -874,6 +887,22 @@ export type LoginRequest = {
     deviceId: string;
 };
 
+export type UpdateUserStatusRequest = {
+    status: UserStatus;
+};
+
+export const UserStatus = { ACTIVE: 'ACTIVE', DISABLED: 'DISABLED' } as const;
+
+export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
+
+export const StaffStatus = { ACTIVE: 'ACTIVE', DISABLED: 'DISABLED' } as const;
+
+export type StaffStatus = typeof StaffStatus[keyof typeof StaffStatus];
+
+export type UpdateStaffStatusRequest = {
+    status: StaffStatus;
+};
+
 export type ShopMemberItem = {
     memberId: string;
     userId: string;
@@ -920,6 +949,15 @@ export const AfterSaleStatus = {
 
 export type AfterSaleStatus = typeof AfterSaleStatus[keyof typeof AfterSaleStatus];
 
+export const OrderAvailableAction = {
+    PAY: 'PAY',
+    CANCEL: 'CANCEL',
+    SHIP: 'SHIP',
+    RECEIVE: 'RECEIVE'
+} as const;
+
+export type OrderAvailableAction = typeof OrderAvailableAction[keyof typeof OrderAvailableAction];
+
 export type OrderItemResponse = {
     productId: string;
     skuId: string;
@@ -951,6 +989,7 @@ export type SellerOrderListItemResponse = {
     orderNo: string;
     status: OrderStatus;
     afterSaleStatus: AfterSaleStatus;
+    availableActions: Array<OrderAvailableAction>;
     payAmount: Money;
     receiverName: string;
     receiverPhone: string | null;
@@ -958,15 +997,6 @@ export type SellerOrderListItemResponse = {
     items: Array<OrderItemResponse>;
     createdAt: string;
 };
-
-export const OrderAvailableAction = {
-    PAY: 'PAY',
-    CANCEL: 'CANCEL',
-    SHIP: 'SHIP',
-    RECEIVE: 'RECEIVE'
-} as const;
-
-export type OrderAvailableAction = typeof OrderAvailableAction[keyof typeof OrderAvailableAction];
 
 export type OrderDetailResponse = {
     id: string;
@@ -1026,6 +1056,7 @@ export type SellerTicketItem = {
     firstItemName: string;
     type: TicketType;
     status: TicketStatus;
+    availableActions: Array<TicketAvailableAction>;
     reason: string | null;
     refundAmount: Money | null;
     returnLogisticsCompany: string | null;
@@ -1184,6 +1215,7 @@ export type ClaimableCouponResponse = {
     validFrom: string;
     validTo: string;
     soldOut: boolean;
+    claimable: boolean;
 };
 
 export type PublicShopResponse = {
@@ -2773,6 +2805,24 @@ export type RecordTrackingNodeResponses = {
     201: unknown;
 };
 
+export type VoidUserCouponData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/coupons/{id}/void';
+};
+
+export type VoidUserCouponResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type VoidUserCouponResponse = VoidUserCouponResponses[keyof VoidUserCouponResponses];
+
 export type ListAdminRecommendTabsData = {
     body?: never;
     path?: never;
@@ -2988,6 +3038,38 @@ export type StaffLoginResponses = {
 };
 
 export type StaffLoginResponse = StaffLoginResponses[keyof StaffLoginResponses];
+
+export type AdminUpdateUserStatusData = {
+    body: UpdateUserStatusRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/users/{id}/status';
+};
+
+export type AdminUpdateUserStatusResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type AdminUpdateStaffStatusData = {
+    body: UpdateStaffStatusRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/staff/{id}/status';
+};
+
+export type AdminUpdateStaffStatusResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type ListShopMembersData = {
     body?: never;

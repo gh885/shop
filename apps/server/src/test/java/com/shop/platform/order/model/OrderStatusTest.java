@@ -22,8 +22,10 @@ class OrderStatusTest {
     }
 
     @Test
-    void 只有待发货能发货() {
-        assertThat(OrderStatus.sourcesOf(OrderStatus.SHIPPED)).containsExactly(OrderStatus.PAID);
+    void 待发货可首次发货_已发货可追加包裹() {
+        // SHIPPED → SHIPPED 自环 = 多包裹追加发货（与 OrderMapper 条件更新的 IN ('PAID','SHIPPED') 同一份事实）
+        assertThat(OrderStatus.sourcesOf(OrderStatus.SHIPPED))
+                .containsExactlyInAnyOrder(OrderStatus.PAID, OrderStatus.SHIPPED);
     }
 
     @Test
@@ -69,9 +71,10 @@ class OrderStatusTest {
 
     // 卖家动作集：发货作业按钮
     @Test
-    void 只有待发货态对卖家开放发货动作() {
+    void 待发货与已发货都对卖家开放发货动作() {
         assertThat(OrderStatus.PAID.sellerActions()).containsExactly(SHIP);
+        // 已发货仍给 SHIP：多包裹下单据的追加发货入口（目标态不变，见转移表 SHIPPED 自环）
+        assertThat(OrderStatus.SHIPPED.sellerActions()).containsExactly(SHIP);
         assertThat(OrderStatus.PENDING_PAYMENT.sellerActions()).isEmpty();
-        assertThat(OrderStatus.SHIPPED.sellerActions()).isEmpty();
     }
 }

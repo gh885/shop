@@ -1,11 +1,13 @@
-import { CouponsApi, type ClaimableCouponResponse } from "@shop/api/sdk"
+import { CouponsApi } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import {
     COUPON_PAGE_SIZE,
     isCouponAlreadyClaimed,
+    toClaimableCoupon,
     toMyCoupon,
+    type ClaimableCoupon,
     type CouponTab,
     type MyCoupon,
 } from "./coupon"
@@ -47,15 +49,17 @@ export const myCouponsOptions = (status: CouponTab, page: number) =>
 // 店铺可领券（匿名）
 const SHOP_CLAIMABLE_COUPONS_KEY = ["shop-claimable-coupons"] as const
 
-/** 某店当前可领的券（先到先得，soldOut 由后端闸门算）；组件直接 useQuery(shopClaimableCouponsOptions(shopId)) */
+/** 某店当前可领的券（先到先得，soldOut 由后端闸门算；未到发放起点的券也在列表里，claimable=false）；
+ *  组件直接 useQuery(shopClaimableCouponsOptions(shopId)) */
 export const shopClaimableCouponsOptions = (shopId: string) =>
     queryOptions({
         queryKey: [...SHOP_CLAIMABLE_COUPONS_KEY, shopId],
-        queryFn: async ({ signal }): Promise<ClaimableCouponResponse[]> => {
-            return await CouponsApi.listShopClaimableCoupons({
+        queryFn: async ({ signal }): Promise<ClaimableCoupon[]> => {
+            const coupons = await CouponsApi.listShopClaimableCoupons({
                 path: { shopId },
                 signal,
             })
+            return coupons.map(toClaimableCoupon)
         },
         staleTime: 60_000,
         // 领券入口是页面的附属件：拉失败就不给入口（不报警、不占位）。但**必须留默认重试**——

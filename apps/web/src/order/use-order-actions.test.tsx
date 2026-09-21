@@ -11,7 +11,6 @@ import userEvent from "@testing-library/user-event"
 import { http, HttpResponse } from "msw"
 import { describe, expect, it } from "vitest"
 
-import { ConfirmDialogHost } from "@shop/ui-web"
 import { server } from "@shop/test-utils"
 
 import { createAppTestQueryClient } from "#/test/render"
@@ -21,12 +20,13 @@ import type { Order } from "./model"
 import { myOrdersOptions } from "./queries"
 
 /**
- * useOrderActions 分发测试：pay 走导航、cancel 起全局二次确认（确认后才发取消请求）、
+ * useOrderActions 分发测试：pay 走导航、cancel 起取消原因弹窗（选原因/填备注后确认才发请求，
+ * 快捷原因与备注拼成自由文本透传；什么都不选则 reason 缺席）、
  * confirm 发确认收货请求、pendingAction 防重复提交。
  * 导航用 MemoryRouter 断言地址；网络层用 MSW 局部覆盖并捕获请求，不 mock 内部模块。
  */
 
-/** 测试夹具：领域形状 Order 的最小构造（handleAction 只读 id，其余字段求合法） */
+/** 测试夹具：领域形状 Order 的最小构造（handleAction 只读 id/orderNo，其余字段求合法） */
 function makeOrder(overrides: Partial<Order> = {}): Order {
     return {
         id: "o-1",
@@ -44,9 +44,9 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     }
 }
 
-/** 探针：Probe 组件在路由上下文内渲染三个动作按钮，pending 态读 data-testid */
+/** 探针：Probe 组件在路由上下文内渲染三个动作按钮 + 取消弹窗，pending 态读 data-testid */
 function Probe() {
-    const { handleAction, pendingAction } = useOrderActions()
+    const { handleAction, pendingAction, cancelDialog } = useOrderActions()
     return (
         <div>
             <button
@@ -68,19 +68,13 @@ function Probe() {
                 confirm
             </button>
             <span data-testid="pending">{pendingAction ?? "none"}</span>
+            {cancelDialog}
         </div>
     )
 }
 
 async function setup() {
-    const rootRoute = createRootRoute({
-        component: () => (
-            <>
-                <Probe />
-                <ConfirmDialogHost />
-            </>
-        ),
-    })
+    const rootRoute = createRootRoute({ component: Probe })
     const payRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: "/pay/$orderId",
@@ -101,10 +95,15 @@ async function setup() {
     return { user: userEvent.setup(), queryClient, router }
 }
 
-/** 取消确认弹窗里的「取消订单」按钮（标题同名，按 role 区分） */
-async function findConfirmButton() {
-    await screen.findByText("确定取消订单 NO20260906001 吗？该操作不可恢复。")
-    return screen.findByRole("button", { name: "取消订单" })
+/** 点 cancel 打开取消弹窗（等弹窗文案出现），返回 user 便于继续交互 */
+async function openCancel(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: "cancel" }))
+    await screen.findByText(/该操作不可恢复/)
+}
+
+/** 弹窗里的「确认取消」按钮 */
+function confirmButton() {
+    return screen.getByRole("button", { name: "确认取消" })
 }
 
 describe("useOrderActions", () => {
@@ -116,7 +115,7 @@ describe("useOrderActions", () => {
         await waitFor(() => expect(router.state.location.pathname).toBe("/pay/o-pay"))
     })
 
-    it("cancel 起二次确认，点「取消」不发请求", async () => {
+    it("cancel 起取消原因弹窗，点「再想想」关闭且不发请求", async () => {
         let requested = false
         server.use(
             http.put("*/orders/:id/cancel", () => {
@@ -126,15 +125,14 @@ describe("useOrderActions", () => {
         )
         const { user } = await setup()
 
-        await user.click(screen.getByRole("button", { name: "cancel" }))
-        await findConfirmButton()
-        await user.click(screen.getByRole("button", { name: "取消" }))
+        await openCancel(user)
+        await user.click(screen.getByRole("button", { name: "再想想" }))
 
-        await waitFor(() => expect(screen.queryByText("取消订单")).toBeNull())
+        await waitFor(() => expect(screen.queryByText(/该操作不可恢复/)).toBeNull())
         expect(requested).toBe(false)
     })
 
-    it("cancel 在确认弹窗点确认后发取消请求（PUT /orders/{id}/cancel），成功后失效订单列表缓存", async () => {
+    it("cancel 选原因 + 填备注后确认，拼成自由文本透传 PUT /orders/{id}/cancel，成功后失效列表缓存并关闭弹窗", async () => {
         let cancelBody: unknown
         server.use(
             http.put("*/orders/:id/cancel", async ({ request }) => {
@@ -147,13 +145,31 @@ describe("useOrderActions", () => {
         const listKey = myOrdersOptions().queryKey
         queryClient.setQueryData(listKey, { records: [], total: 0 })
 
-        await user.click(screen.getByRole("button", { name: "cancel" }))
-        await user.click(await findConfirmButton())
+        await openCancel(user)
+        await user.click(await screen.findByRole("radio", { name: "不想买了" }))
+        await user.type(screen.getByPlaceholderText("想对卖家说的话（选填）"), "临时用不到了")
+        await user.click(confirmButton())
 
-        await waitFor(() => expect(cancelBody).toMatchObject({ reason: "用户取消" }))
+        await waitFor(() => expect(cancelBody).toMatchObject({ reason: "不想买了：临时用不到了" }))
         await waitFor(() => expect(queryClient.getQueryState(listKey)?.isInvalidated).toBe(true))
-        // 成功后确认面关闭
-        await waitFor(() => expect(screen.queryByText("取消订单")).toBeNull())
+        await waitFor(() => expect(screen.queryByText(/该操作不可恢复/)).toBeNull())
+    })
+
+    it("cancel 不选原因不填备注时 reason 缺席，不硬造占位文案", async () => {
+        let cancelBody: Record<string, unknown> | undefined
+        server.use(
+            http.put("*/orders/:id/cancel", async ({ request }) => {
+                cancelBody = (await request.json()) as Record<string, unknown>
+                return new HttpResponse(null, { status: 204 })
+            }),
+        )
+        const { user } = await setup()
+
+        await openCancel(user)
+        await user.click(confirmButton())
+
+        await waitFor(() => expect(cancelBody).toBeDefined())
+        expect(cancelBody?.reason).toBeUndefined()
     })
 
     it("请求进行中 pendingAction 是 cancel，完成后回到 none", async () => {
@@ -168,8 +184,9 @@ describe("useOrderActions", () => {
         )
         const { user } = await setup()
 
-        await user.click(screen.getByRole("button", { name: "cancel" }))
-        await user.click(await findConfirmButton())
+        await openCancel(user)
+        await user.click(screen.getByRole("radio", { name: "信息填错" }))
+        await user.click(confirmButton())
 
         await waitFor(() => expect(screen.getByTestId("pending").textContent).toBe("cancel"))
 
@@ -177,7 +194,7 @@ describe("useOrderActions", () => {
         await waitFor(() => expect(screen.getByTestId("pending").textContent).toBe("none"))
     })
 
-    it("confirm 发起确认收货请求（PUT /orders/{id}/receive）", async () => {
+    it("confirm 直接发起确认收货请求（PUT /orders/{id}/receive），无需弹窗", async () => {
         let receivedOrderId: string | undefined
         server.use(
             http.put("*/orders/:id/receive", ({ params }) => {

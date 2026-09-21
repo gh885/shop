@@ -4,6 +4,7 @@ import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.infra.UserAgentParser;
 import com.shop.platform.account.mapper.User;
 import com.shop.platform.account.mapper.UserMapper;
+import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
@@ -240,6 +241,24 @@ public class AuthService {
     /** 登出：删除当前设备 refresh token */
     public void logout(UUID userId, String deviceId) {
         refreshTokenStore.revokeDevice(userId.toString(), deviceId);
+    }
+
+    // 管理端封号（PATCH /admin/users/{id}/status）
+    /**
+     * 设置买家账号状态（禁用/启用，ACC-16 两态）。
+     *
+     * <p>禁用刻意<b>不同步</b>吊销 refresh——既有闸门链已自然闭合，验证如下： 1) 在途 access token 无黑名单，最长剩 10 分钟寿命
+     * 后过期（ACC-19/ACC-25 已接受的取舍）； 2) 之后任何刷新都会先消费旧 refresh（rotate）再撞
+     * {@link #refresh} 里的 ensureUserActive——旧码已废、新码不签发， 全部会话在 10 分钟窗口后自然死亡；被消费的旧码若重放还会触发
+     * REFRESH_TOKEN_REUSED 全端吊销（ACC-22），无复活路径； 3) 重新登录（短信/密码）被 USER_DISABLED
+     * 闸门直接拦（短信通道不能绕过）。 启用即恢复：闸门查实时状态，status 回 ACTIVE 后登录/刷新恢复放行。
+     */
+    public void updateUserStatus(UUID userId, UserStatus status) {
+        User user = userMapper.selectById(userId);
+        if (user == null) throw BusinessException.notFound("用户不存在");
+        user.setStatus(status);
+        userMapper.updateById(user);
+        log.info("[AUTH] 管理端变更账号状态, userId={}, status={}", userId, status);
     }
 
     // 限流

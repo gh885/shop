@@ -2,9 +2,7 @@ import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { TicketPercent } from "lucide-react"
 
-import type { ClaimableCouponResponse } from "@shop/api/sdk"
-
-import { formatDate } from "@shop/app-kit"
+import { formatDate, formatTimeShort } from "@shop/app-kit"
 import { couponRuleText } from "@shop/common"
 import {
     Button,
@@ -17,19 +15,22 @@ import {
 
 import { openLoginDialog, useIsLoggedIn } from "#/shared/api/auth"
 
-import { isCouponAlreadyClaimed } from "./coupon"
+import { isCouponAlreadyClaimed, type ClaimableCoupon } from "./coupon"
 import { shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
 
 /**
  * 商品详情页的领券入口（店铺条上的「领券」按钮 + 浮层）。
  *
- * 三件事在这里落定：
+ * 四件事在这里落定：
  * 1. **无券不给空浮层**：该店没有可领券（或还没拉到/拉失败）时整块不渲染 ——
  *    点开一个空浮层比看不到入口更让人困惑。
  * 2. **领券要登录**：可领券接口是 `/api/*` 匿名通道，但领券不是。未登录时拉起全局登录 Dialog，
  *    与 `PurchaseCta` 同一套做法（`openLoginDialog`），不另造一套。
  * 3. **已领完 / 已领取是文案不是灰**：按钮被禁用时按钮上就写着原因；
  *    `soldOut` 来自后端先到先得闸门，置灰只能表达「不能点」。
+ * 4. **未到点的预告券也露出（C9）**：后端用 `claimable=false`（契约必填）标未开抢，
+ *    按钮写「MM-dd HH:mm 开抢」并禁用——看得到才有蹲点领取，
+ *    消失等于用户以为没办活动。领取端点仍会拒未开始，双保险。
  */
 export function ShopCouponPopover({ shopId }: { shopId: string }) {
     const { data, isPending, isError } = useQuery(shopClaimableCouponsOptions(shopId))
@@ -47,7 +48,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
         setClaimedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
     }
 
-    function handleClaim(coupon: ClaimableCouponResponse) {
+    function handleClaim(coupon: ClaimableCoupon) {
         if (!isLoggedIn) {
             openLoginDialog()
             return
@@ -86,7 +87,15 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                     {coupons.map((coupon) => {
                         const claimed = claimedIdSet.has(coupon.id)
                         const rule = couponRuleText(coupon.threshold, coupon.discount)
-                        const label = claimed ? "已领取" : coupon.soldOut ? "已领完" : "领取"
+                        // claimable=false 且没领完 = 未到发放起点（C9，契约必填布尔，不再回退本地比较 validFrom）
+                        const notStarted = !coupon.soldOut && !coupon.claimable
+                        const label = claimed
+                            ? "已领取"
+                            : coupon.soldOut
+                              ? "已领完"
+                              : notStarted
+                                ? `${formatTimeShort(coupon.validFrom)} 开抢`
+                                : "领取"
                         return (
                             <li
                                 key={coupon.id}
@@ -103,7 +112,9 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                                 <Button
                                     size="sm"
                                     variant={label === "领取" ? "default" : "outline"}
-                                    disabled={claimed || coupon.soldOut || claim.isPending}
+                                    disabled={
+                                        claimed || coupon.soldOut || notStarted || claim.isPending
+                                    }
                                     aria-label={`${label} ${rule}`}
                                     onClick={() => handleClaim(coupon)}
                                 >

@@ -177,8 +177,8 @@ function OrderRow({
 
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
-                    {/* 待发货 → 发货 */}
-                    {o.status === "PAID" && (
+                    {/* 发货按钮看契约下发的动作集，不按 status 硬推：PAID 首单发货、SHIPPED 追加包裹都带 SHIP */}
+                    {o.availableActions.includes("SHIP") && (
                         <Button
                             variant="ghost"
                             size="sm"
@@ -220,7 +220,7 @@ function OrderRow({
                             确认收货
                         </Button>
                     )}
-                    {o.status !== "PAID" &&
+                    {!o.availableActions.includes("SHIP") &&
                         o.afterSaleStatus !== "APPLYING" &&
                         o.afterSaleStatus !== "RETURNING" && (
                             <span className="text-xs text-muted-foreground">—</span>

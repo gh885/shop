@@ -30,7 +30,23 @@ public enum TicketAction {
     REJECT(TicketStatus.APPLYING, TicketStatus.REJECTED, TicketActor.SELLER, "售后单状态已变更，当前不可拒绝"),
 
     /** 买家撤销售后申请 */
-    CLOSE(TicketStatus.APPLYING, TicketStatus.CLOSED, TicketActor.BUYER, "售后单状态已变更，当前不可撤销");
+    CLOSE(TicketStatus.APPLYING, TicketStatus.CLOSED, TicketActor.BUYER, "售后单状态已变更，当前不可撤销"),
+
+    /**
+     * 系统超时自动同意<b>仅退款</b>：APPLYING → REFUNDED（C11，{@code AfterSaleTimeouts#SELLER_RESPONSE} 到期）。
+     * 与手动 {@link #REFUND} 分列而不是复用：时间线的 actor 要说真话（这不是卖家点的），
+     * 而副作用走<b>同一个</b> {@code AfterSaleService#refund} 落点，不存在第二套退款逻辑。
+     */
+    AUTO_REFUND(TicketStatus.APPLYING, TicketStatus.REFUNDED, TicketActor.SYSTEM, "售后单状态已变更，自动同意未执行"),
+
+    /** 系统超时自动同意<b>退货退款</b>：APPLYING → RETURNING（同上，暂不退款，等买家回寄） */
+    AUTO_AGREE_RETURN(TicketStatus.APPLYING, TicketStatus.RETURNING, TicketActor.SYSTEM, "售后单状态已变更，自动同意未执行"),
+
+    /**
+     * 系统超时自动关闭<b>悬挂回寄</b>：RETURNING → CLOSED（C11，{@code AfterSaleTimeouts#BUYER_RETURN} 到期且买家
+     * 始终未填回寄运单号）。转终态即释放「一单一进行中」名额（uk 部分索引随行状态自动让位）并写回订单投影。
+     */
+    AUTO_CLOSE(TicketStatus.RETURNING, TicketStatus.CLOSED, TicketActor.SYSTEM, "售后单状态已变更，自动关闭未执行");
 
     private final TicketStatus from;
 

@@ -22,13 +22,16 @@
 - **[ORD-14]** 一次结算（预览与创建皆然）最多选 20 张券（`@Size(max=20)`，语义=一店至多一张）；同店传同一张券两次去重后只用一次。买家选中的券随请求提交，后端逐张判定：**选了却不可用、或不属于本单任何一家店，一律 400 并说明原因，绝不静默忽略**（不可用时把券名和不可用原因码翻成话术返回）。
 - **[ORD-15]** 券的候选顺序由后端定（可用优先 → 减免额大 → 先过期 → id），预览回传整份候选（含不可用者及原因码）供结算页渲染；**后端不自动替用户选券**，`appliedCouponId` 只回显请求里传来的 id，「默认选中第一张可用券」是前端行为（见 ORD-41）。
 - **[ORD-16]** 店铺不配送到收货地区（运费模板命中不配送名单）时预览给 `deliverable=false`，结算页拦截提示；脚本绕过预览直接下单在创建处硬拒（400「部分商品不支持配送到所选地区，请更换收货地址」）。不配送优先于一切——包邮条件也救不了它。
+- **[ORD-54]** 下单账号闸门：`OrderService.create` 入口先经 account::api 的 `UserReadQuery.isActive` 校验买家状态，非 ACTIVE（含用户缺失）一律 403 + code `USER_DISABLED`「账号已被禁用」，与登录闸门同一份语义——token 未过期不等于账号还能交易。闸门在地址校验/库存冻结/券占用之前，被拦时不触达任何数据动作；结算预览是只读接口，不设此闸门。
 
 ## 二、状态机与可执行动作
 
 - **[ORD-17]** 履约主状态机五态单路径：`PENDING_PAYMENT（待付款）→ PAID（待发货）→ SHIPPED（已发货）→ COMPLETED（已完成）`；`PENDING_PAYMENT` 与 `PAID` 均可 → `CANCELLED`；`COMPLETED` / `CANCELLED` 是终态无出边（**已完成不可取消**——终态没有到 `CANCELLED` 的边）。完成之后的交易纠葛走售后线（AfterSaleStatus），不再改主状态。转移合法性唯一真相是 `OrderStatus.TRANSITIONS` 表。
 - **[ORD-18]** 一切状态变更走条件更新（`WHERE status IN (sourcesOf(目标态))`），影响行数即并发闸门：买家/卖家入口抢不到转移报 **409**（如「订单状态已变更，当前不可取消」），系统超时入口返回 false 让位——正确性不依赖锁。每次变更落一行审计流水（`orders.order_status_log`：前态/后态/动作/发起方 BUYER|SELLER|SYSTEM/原因）。
-- **[ORD-19]** 可执行动作（按钮组唯一真相）由后端算：动作集 = 当前态出边 ∩ 角色允许的目标态。买家：PENDING_PAYMENT → `PAY, CANCEL`；PAID → `CANCEL`；SHIPPED → `RECEIVE`；终态 → 空。卖家：仅 PAID → `SHIP`；其余为空。输出按枚举声明序（PAY, CANCEL, SHIP, RECEIVE）保证 JSON 稳定。列表与详情两个契约都下发 `availableActions`，前端只定文案、顺序、主次，不再按状态另推一张按钮表。
+- **[ORD-19]** 可执行动作（按钮组唯一真相）由后端算：动作集 = 当前态出边 ∩ 角色允许的目标态。买家：PENDING_PAYMENT → `PAY, CANCEL`；PAID → `CANCEL`；SHIPPED → `RECEIVE`；终态 → 空。卖家：PAID → `SHIP`；**SHIPPED → `SHIP`（追加包裹，转移表带 SHIPPED 自环，见 ORD-54）**；其余为空。输出按枚举声明序（PAY, CANCEL, SHIP, RECEIVE）保证 JSON 稳定。买家列表/详情与卖家列表/详情**四个契约都下发 `availableActions`**，前端只定文案、顺序、主次，不再按状态另推一张按钮表。
 - **[ORD-20]** **待发货（PAID）的买家可以取消**（`PAID → CANCELLED` 是合法转移，且回补库存 + 退款）——这是产品口径，不是漏洞；历史上前端只给「提醒发货」造成漂移，已收敛为消费后端动作集。
+- **[ORD-55]** 多包裹动作暴露：转移表给 SHIPPED 加**自环**（SHIPPED → SHIPPED），与 `OrderMapper.markShippedReturningPrevious` 条件更新的 `status IN ('PAID','SHIPPED')` 是同一份事实的两个投影——追加包裹本就是合法转移，此前只是没进动作推导。效果：SHIPPED 态的 `sellerActions()` 继续派生 `SHIP`（按钮语义 = 追加包裹，目标状态不变），卖家列表/详情都能看到再发货入口；买家侧不受影响（SHIP 不在买家目标态集）。SHIP 动作语义随之扩展：同一动作两次落点不同（首发货落流水，追加只刷物流摘要，见 ORD-37）。
+- **[ORD-56]** 卖家列表行契约（`SellerOrderListItemResponse`）下发 `availableActions`（复用 `Order::sellerActions`，与买家列表同一先例同口径）；卖家列表行内「发货」按钮改为消费该动作集，不再按 `status === PAID` 硬推（收敛原则同 ORD-19：前端只定「怎么画」，不定「有没有」）。
 
 ## 三、金额构成与计费口径
 
@@ -56,7 +59,8 @@
 
 - **[ORD-33]** 取消唯一落点按**真实前态**分流（条件更新 RETURNING OLD 取回，不靠 CAS 前的陈旧读）：付款前（PENDING_PAYMENT）取消 = 只释放冻结库存 + 券 LOCKED→UNUSED 回买家手上可再用；付款后（PAID）取消 = 回补总库存（restock）+ 退券补偿（原券已 USED，**另发新券**）+ 发 `OrderCancelledEvent` 令 payment 同事务落退款单据——「已付款订单取消了必定留下退款单据」，取消不成则退款不落。
 - **[ORD-34]** 退款（资金置 REFUNDED）只有两个触发来源：① 已付款订单被取消（买家手点 或 ORD-27 待发货超时）→ `OrderCancelledEvent`；② 售后退款成立 → `AfterSaleRefundedEvent`。未付款单取消不发退款事件。payment 侧对两类事件的监听处置取舍见 payment.md。
-- **[ORD-35]** 买家取消原因可选、最长 200 字（`@Size(max=200)`），trim 后落 `cancel_reason`；超时关单/自动取消由系统写固定文案，不走该入参。当前买家端前端固定传「用户取消」，未做输入框。
+- **[ORD-35]** 买家取消原因可选、最长 200 字（`@Size(max=200)`），trim 后落 `cancel_reason`；超时关单/自动取消由系统写固定文案，不走该入参。买家端取消弹层收集原因并透传（见 ORD-57），不再固定传「用户取消」。
+- **[ORD-57]** 买家取消原因弹层（列表/详情共用，`useOrderActions` 持有状态、页面渲染 `cancelDialog`）：快捷原因**不想买了 / 信息填错 / 其他**（单选、可跳过）+ 备注（选填，封顶 180 字），提交时拼成一句自由文本（`原因：备注`）透传 PUT `/orders/{id}/cancel` 的 `reason`——后端本就是自由文本，**不造枚举 code**；一个都没填则 `reason` 缺席（不硬造「用户取消」占位）。换单重挂载弹窗，已填内容不跨单残留。
 
 ## 七、发货与收货（跨 logistics）
 
@@ -67,7 +71,7 @@
 ## 八、售后投影
 
 - **[ORD-39]** 订单持有售后投影列：`afterSaleStatus`（NONE/APPLYING/RETURNING/REFUNDED/REJECTED/CLOSED，NONE=从未申请）与 `refund_amount`（仅退款完成时写回，须与本单同币种否则 WHERE 挡掉），由 aftersale 每次转移经 `order::api syncAfterSale` 同事务写回；售后单真相在 aftersale.tickets，order 不反向读。售后线与履约主状态**正交**（完成单可同时展示主状态 + 售后徽章）。
-- **[ORD-40]** 售后申请门槛（三项同时成立）：订单已完成（COMPLETED）、`apply_expire_at` 未过（申请时的条件更新即闸门）、无进行中的售后单（`uk_tickets_open_per_order` 并发下也只容一张）。退款口径 V1 = 整单实付（`refund_amount = 订单 pay_amount`），不支持部分退。买家撤销仅 APPLYING 可做；卖家同意仅退款=一步退成，同意退货退款=转 RETURNING，确认收到退货才退款+回补库存；被拒/撤销后窗口内可重新申请。
+- **[ORD-40]** 售后申请门槛（四项同时成立）：订单已完成（COMPLETED）、`apply_expire_at` 未过（申请时的条件更新即闸门）、无进行中的售后单（`uk_tickets_open_per_order` 并发下也只容一张）、最新一张售后单非 `REFUNDED`（已退款禁止再次申请，409 + code `AFTER_SALE_ALREADY_REFUNDED`，见 AFS-05）。退款口径 V1 = 整单实付（`refund_amount = 订单 pay_amount`），不支持部分退。买家撤销仅 APPLYING 可做；卖家同意仅退款=一步退成，同意退货退款=转 RETURNING，确认收到退货才退款+回补库存；被拒/撤销后窗口内可重新申请。
 
 ## 九、买家/卖家侧前端规则（web / seller）
 
@@ -77,11 +81,12 @@
 - **[ORD-44]** 结算页金额展示恒按「商品总价 + 运费 − 优惠 = 应付总额」口径，优惠为 0 不渲染该行；应付以预览净额为准，预览未回来显示占位「—」而不是 ¥0.00。行小计前端本地算（单价×件数）仅展示用，成交以服务端为准。
 - **[ORD-45]** 前端状态投影：后端 PAID → 领域「待发货」、SHIPPED →「待收货」、COMPLETED → 展示文案「交易成功」；无「待评价/退款中」主状态阶段；未知 wire 值兜底显示为待付款。列表筛选传回后端大写枚举。
 - **[ORD-46]** 待付款订单在列表卡片与详情页展示「付款剩余 mm:ss」倒计时（取契约的 `payExpireAt`，其余状态不显示）。
-- **[ORD-47]** 订单按钮排 = 后端动作（PAY/CANCEL/RECEIVE → pay/cancel/confirm，SHIP 买家侧丢弃）∪ 前端附加动作：待发货追加「提醒发货」（纯占位，点击 toast「即将上线」）；待收货追加「查看物流」；终态卡片追加「再买一单」，详情页 completed 额外给「加入购物车」并把「再买一单」升为主操作。主操作每屏唯一：待付款=去付款、待收货=确认收货。顺序固定（pay→cancel→remind→logistics→confirm→rebuy→add_cart→ship）。取消与确认收货都带全局二次确认，进行中按钮禁用防重复提交。
+- **[ORD-47]** 订单按钮排 = 后端动作（PAY/CANCEL/RECEIVE → pay/cancel/confirm，SHIP 买家侧丢弃）∪ 前端附加动作：待发货追加「提醒发货」（纯占位，点击 toast「即将上线」）；待收货追加「查看物流」；终态卡片追加「再买一单」，详情页 completed 额外给「加入购物车」并把「再买一单」升为主操作。主操作每屏唯一：待付款=去付款、待收货=确认收货。顺序固定（pay→cancel→remind→logistics→confirm→rebuy→add_cart→ship）。取消走取消原因弹窗（ORD-57），确认收货带全局二次确认；进行中按钮禁用防重复提交。
 - **[ORD-48]** 买家订单列表页签：全部/待付款/待发货/待收货/已完成，**「已取消」不设页签**；列表分页按下单时间倒序，非法状态筛选值 400。店铺已注销时店名为 null，UI 显示「店铺已关闭」。
 - **[ORD-49]** 列表契约只有净额 `payAmount`（商品额/运费/优惠拆分只在详情），金额三行必须在详情页用详情契约覆盖才加得起来；列表卡片内嵌行项目免二次请求。
-- **[ORD-50]** 售后入口（订单行上「申请售后」）前端门槛三项与 ORD-40 对齐：已完成 + `applyExpireAt` 未到 + 无进行中单；**已退款（REFUNDED）不再提供入口**（后端 V1 未拦二次申请，前端不主动引导）。类型二选一：仅退款（不寄回，同意即退）在前、退货退款（寄回，卖家收货后退）在后。买家售后动作按单状态直读：APPLYING→撤销；RETURNING→填/改退货物流（已填再多一个「查看」）；终态→无。
-- **[ORD-51]** 卖家工作台订单列表：五个主状态页签（含已取消）+ 售后状态第二徽章线；行内动作按状态直读——「发货」仅在 status===PAID 时给（卖家列表契约不下发动作集）；售后 APPLYING→同意/拒绝、RETURNING→确认收货；三者都不满足显示「—」。售后工作台默认停在「待处理(APPLYING)」页签。
+- **[ORD-50]** 售后入口（订单行上「申请售后」）前端门槛与 ORD-40 对齐：已完成 + `applyExpireAt` 未到 + 无进行中单；**已退款（REFUNDED）不再提供入口**（后端同拦二次申请，409 `AFTER_SALE_ALREADY_REFUNDED`，见 AFS-05）。类型二选一：仅退款（不寄回，同意即退）在前、退货退款（寄回，卖家收货后退）在后。买家售后动作按单状态直读：APPLYING→撤销；RETURNING→填/改退货物流（已填再多一个「查看」）；终态→无。
+- **[ORD-51]** 卖家工作台订单列表：五个主状态页签（含已取消）+ 售后状态第二徽章线；行内「发货」消费契约下发的 `availableActions`（含 SHIP 即给，PAID 首发货与 SHIPPED 追加包裹同按钮，见 ORD-55/56），**不再按 status 硬推**；售后 APPLYING→同意/拒绝、RETURNING→确认收货；动作与售后条件都不满足显示「—」。售后工作台默认停在「待处理(APPLYING)」页签。
+- **[ORD-58]** 结算页买家留言：左栏「买家留言」输入框（Textarea，选填、封顶 200 字对齐 `@Size(max=200)`），随下单 mutation 透传 `buyerMessage`（trim 后空串按未填处理，不传占位）；整次结算一份，按店拆单时逐单落同一句快照（契约与落库口径见 ORD-08）。
 - **[ORD-52]** 收银台金额取自订单详情（loader 强制读最新，「不能拿一份可能过期的金额去收钱」），前端不报价；「确认支付」一次点按串联两段（发起→确认）。
 
 ## 十、购物车

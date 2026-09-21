@@ -21,6 +21,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,22 +35,35 @@ public class ShopService {
     private final ShopReviewMapper shopReviewMapper;
     private final UserReadQuery userReadQuery;
 
-    /** 开店：建店（PENDING_REVIEW）+ 店主成为 OWNER 成员 + 同事务入队一条待审记录 */
+    /** 开店：一人一店 + 店名全局唯一闸门通过后，建店（PENDING_REVIEW）+ 店主成为 OWNER 成员 + 同事务入队一条待审记录 */
     @Transactional
     public Shop createShop(UUID ownerId, String name, String logoKey) {
         // 1. 校验店名（controller 已 @Valid，service 兜底）
         Validate.isTrue(name != null && !name.isBlank(), "店名不能为空");
 
-        // 2. 建店：先落 PENDING_REVIEW，平台审核通过才 ACTIVE
+        // 2. 开店闸门（拍板：一人一店）：
+        //  2.1 数量：口径取 shop_members 的 OWNER 行数（与授权同源，不看 shops.owner_id 冗余列）；
+        //      子账号同闸——别人店的 MEMBER 不占名额也不算资格，判定只看自己名下的 OWNER 身份。
+        //      被拒/被封的店仍计数（店铺不物理删除，名额不自动释放），与店名占位同一套存续口径。
+        Validate.isTrue(shopMemberMapper.countOwnedShops(ownerId) == 0, "SHOP_LIMIT_EXCEEDED", "每人最多开 1 家店铺，你已开过店了");
+        //  2.2 店名：全局唯一（被拒/被封店名仍占位）；先查后插挡不住并发，撞 uk_shops_name 在下面兜成同一个 400
+        Validate.isTrue(!shopMapper.existsByName(name), "SHOP_NAME_TAKEN", "店名已被使用，请换一个");
+
+        // 3. 建店：先落 PENDING_REVIEW，平台审核通过才 ACTIVE
         Shop shop = Shop.builder()
                 .ownerId(ownerId)
                 .name(name)
                 .logoKey(logoKey)
                 .status(ShopStatus.PENDING_REVIEW)
                 .build();
-        shopMapper.insert(shop);
+        try {
+            shopMapper.insert(shop);
+        } catch (DuplicateKeyException e) {
+            // 并发下两请求同时过了 2.2 的预检：唯一索引是真相，给和预检一致的 400 而不是冒 500
+            throw BusinessException.badRequest("SHOP_NAME_TAKEN", "店名已被使用，请换一个");
+        }
 
-        // 3. 店主自动成为 OWNER 成员（授权判断以 shop_members 为准）
+        // 4. 店主自动成为 OWNER 成员（授权判断以 shop_members 为准）
         ShopMember owner = ShopMember.builder()
                 .shopId(shop.getId())
                 .userId(ownerId)
@@ -58,7 +72,7 @@ public class ShopService {
                 .build();
         shopMemberMapper.insert(owner);
 
-        // 4. 入队审核：与建店同事务落一条 PENDING（审核在本模块闭环）
+        // 5. 入队审核：与建店同事务落一条 PENDING（审核在本模块闭环）
         shopReviewMapper.insert(ShopReview.builder()
                 .shopId(shop.getId())
                 .status(ShopReviewStatus.PENDING)

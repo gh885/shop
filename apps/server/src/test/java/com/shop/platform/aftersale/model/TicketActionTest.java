@@ -22,10 +22,11 @@ class TicketActionTest {
     }
 
     @Test
-    void REFUNDED_双来源_仅退款与退货退款各自可达() {
-        // 仅退款：卖家同意即 REFUNDED（货不退、无回补）；退货退款：收货确认后 REFUNDED（回补库存）。
+    void REFUNDED_多来源_手动与超时自动各自可达() {
+        // 仅退款：卖家同意即 REFUNDED（货不退、无回补）；退货退款：收货确认后 REFUNDED（回补库存）；
+        // 超时自动同意（C11）落 AUTO_REFUND，与手动 REFUND 同一目标态、不同 actor。
         assertThat(actionsTo(TicketStatus.REFUNDED))
-                .containsExactlyInAnyOrder(TicketAction.REFUND, TicketAction.RECEIVE_RETURN);
+                .containsExactlyInAnyOrder(TicketAction.REFUND, TicketAction.RECEIVE_RETURN, TicketAction.AUTO_REFUND);
         assertThat(TicketAction.REFUND.from()).isEqualTo(TicketStatus.APPLYING);
         assertThat(TicketAction.RECEIVE_RETURN.from()).isEqualTo(TicketStatus.RETURNING);
         assertThat(TicketAction.REFUND.actor()).isEqualTo(TicketActor.SELLER);

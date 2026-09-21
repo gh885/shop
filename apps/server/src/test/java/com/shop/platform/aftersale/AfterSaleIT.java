@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.shop.platform.aftersale.mapper.Ticket;
+import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.aftersale.service.AfterSaleService;
@@ -78,6 +80,9 @@ class AfterSaleIT extends IntegrationTestSupport {
                 userId.toString());
         db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
         db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
+        db.onDelete("DELETE FROM account.users WHERE id = ?::uuid", userId.toString());
+        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
+        seedActiveUser();
         skuId = db.seedOnSaleSku(shopId, 1000, 5);
         UUID addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);
@@ -95,6 +100,14 @@ class AfterSaleIT extends IntegrationTestSupport {
         shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", "SF111"));
         transitions.receive(userId, orderId);
         assertEquals(3, totalStock());
+    }
+
+    /** 造一个真实 ACTIVE 买家账号：手机号按 uuid 派生避免并发跑撞唯一索引（与 coupon 测试同一写法） */
+    private void seedActiveUser() {
+        jdbc.update(
+                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
+                userId.toString(),
+                "139" + Math.abs(userId.getMostSignificantBits() % 100_000_000L));
     }
 
     private int totalStock() {
@@ -194,6 +207,36 @@ class AfterSaleIT extends IntegrationTestSupport {
     }
 
     @Test
+    void 已退款订单_再次申请售后_拒绝() {
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.agree(shopId, orderId);
+        assertEquals(TicketStatus.REFUNDED.name(), ticketStatus());
+
+        // REFUNDED 终态：换类型重新申请也被挡（闸门看的是最新单的态，不是 type）
+        BusinessException ex = assertThrows(
+                BusinessException.class, () -> afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "还想退"));
+        assertEquals(409, ex.getHttpStatus());
+        assertEquals("AFTER_SALE_ALREADY_REFUNDED", ex.getCode());
+        // 不多造单：最新一张仍是原来那张 REFUNDED
+        assertEquals(
+                2000L,
+                jdbc.queryForObject(
+                        "SELECT refund_amount FROM aftersale.tickets WHERE order_id = ?::uuid ORDER BY created_at DESC LIMIT 1",
+                        Long.class,
+                        orderId.toString()));
+    }
+
+    @Test
+    void 撤销后_再次申请售后_放行() {
+        // 闸门只挡 REFUNDED：撤销（CLOSED 终态）不伤买家利益，窗口内可重新申请
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.cancel(userId, orderId);
+
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "换个理由再来");
+        assertEquals(TicketStatus.APPLYING.name(), ticketStatus());
+    }
+
+    @Test
     void 卖家工作台列表_带订单摘要_按状态筛选且不串店() {
         afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "质量不行");
 
@@ -244,5 +287,71 @@ class AfterSaleIT extends IntegrationTestSupport {
                 404,
                 assertThrows(BusinessException.class, () -> afterSale.reject(UUID.randomUUID(), orderId))
                         .getHttpStatus());
+    }
+
+    @Test
+    void 回寄覆盖更新_重复提交只留一张有效包裹_旧轨迹随旧包裹作废() {
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.agree(shopId, orderId);
+
+        // 首次提交：落 RETURN 包裹，并模拟旧单号已被承运商推出在途轨迹
+        afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
+        String oldShipmentId =
+                jdbc.queryForObject("SELECT id FROM logistics.shipments WHERE tracking_no = 'ZT999'", String.class);
+        jdbc.update(
+                "INSERT INTO logistics.tracking_nodes (shipment_id, node_code, description, occurred_at, dedupe_key)"
+                        + " VALUES (?::uuid, 'ARRIVED_HUB', '到达分拨中心', NOW(), ?)",
+                oldShipmentId,
+                "it-hub|" + oldShipmentId);
+
+        // 重交同一运单号：旧包裹先作废，不再撞自己的唯一索引（改单号的经典误操作路径）
+        afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
+        // 再换单号提交：覆盖生效
+        afterSale.returnGoods(userId, orderId, "SF", "顺丰快递", "SF888");
+
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM logistics.shipments WHERE order_id = ?::uuid AND direction = 'RETURN'",
+                        Integer.class,
+                        orderId.toString()),
+                "买家侧售后卡与物流页从此只见最新一条有效回寄");
+        assertEquals(
+                "SF888",
+                jdbc.queryForObject(
+                        "SELECT return_tracking_no FROM aftersale.tickets WHERE order_id = ?::uuid",
+                        String.class,
+                        orderId.toString()));
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM logistics.tracking_nodes WHERE shipment_id = ?::uuid",
+                        Integer.class,
+                        oldShipmentId),
+                "旧单号的轨迹跟着旧包裹一起作废，不挂到新单号上");
+    }
+
+    @Test
+    void 动作下发_工作台行带卖家动作集_被拒单带重新申请_已退款单什么都不给() {
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+
+        // 卖家工作台行：APPLYING 下发 同意/拒绝（顺序即声明序，前端照单渲染）
+        SellerTicketItem row = afterSale
+                .pageShop(shopId, null, new PageParams(1, 10))
+                .records()
+                .getFirst();
+        assertEquals(List.of(TicketAvailableAction.AGREE, TicketAvailableAction.REJECT), row.availableActions());
+
+        // 卖家拒绝后：卖家侧终态无动作；买家侧下发「重新申请」（申请窗口未过，AFS-04）
+        afterSale.reject(shopId, orderId);
+        Ticket rejected = afterSale.latestForShop(shopId, orderId).orElseThrow();
+        assertEquals(List.of(), TicketAvailableAction.sellerActions(rejected.getStatus()));
+        assertEquals(List.of(TicketAvailableAction.REAPPLY), afterSale.buyerActions(rejected));
+
+        // 退款终态：什么都不下发（与 apply 的二次退款闸门同源，AFS-05）
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.agree(shopId, orderId);
+        Ticket refunded = afterSale.latestForBuyer(userId, orderId).orElseThrow();
+        assertEquals(List.of(), afterSale.buyerActions(refunded));
     }
 }

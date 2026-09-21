@@ -82,6 +82,29 @@ class ShopGovernanceIT extends IntegrationTestSupport {
         assertEquals(1, pending);
     }
 
+    /** 店名全局唯一（uk_shops_name + service 预检）：新用户撞已占用的店名被拒，文案带 SHOP_NAME_TAKEN 供前端定位到名输入框 */
+    @Test
+    void 开店_店名重复_拒绝() {
+        openShop("全局唯一店名");
+        UUID anotherOwner = UUID.randomUUID();
+
+        BusinessException dup =
+                assertThrows(BusinessException.class, () -> shopService.createShop(anotherOwner, "全局唯一店名", null));
+        assertEquals(400, dup.getHttpStatus());
+        assertEquals("SHOP_NAME_TAKEN", dup.getCode());
+    }
+
+    /** 一人一店：判定口径是 shop_members 的 OWNER 行数（子账号同闸——MEMBER 身份不占名额，但自己当过店主就不能再开） */
+    @Test
+    void 开店_已有店再开_拒绝() {
+        openShop("一人一店首店");
+
+        BusinessException again =
+                assertThrows(BusinessException.class, () -> shopService.createShop(ownerId, "换个名的第二家店", null));
+        assertEquals(400, again.getHttpStatus());
+        assertEquals("SHOP_LIMIT_EXCEEDED", again.getCode());
+    }
+
     @Test
     void 审核通过_店铺转ACTIVE_公开可见() {
         Shop shop = openShop("受审通过店铺");

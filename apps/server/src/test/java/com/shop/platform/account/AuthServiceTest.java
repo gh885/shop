@@ -253,4 +253,61 @@ class AuthServiceTest {
             assertEquals("rt:new", result.refreshToken());
         }
     }
+
+    @Nested
+    class 管理端封号 { // AuthService.updateUserStatus（PATCH /admin/users/{id}/status）
+
+        @Test
+        void 禁用_落DISABLED状态_不同步吊销refresh() {
+            User user = new User();
+            user.setId(USER_ID);
+            user.setStatus(UserStatus.ACTIVE);
+            when(userMapper.selectById(USER_ID)).thenReturn(user);
+
+            authService.updateUserStatus(USER_ID, UserStatus.DISABLED);
+
+            verify(userMapper).updateById(userCaptor.capture());
+            assertEquals(UserStatus.DISABLED, userCaptor.getValue().getStatus());
+            // 封号闭合靠既有闸门链（刷新撞 ensureUserActive + 登录拦 USER_DISABLED），不主动 revokeAll
+            verify(refreshTokenStore, never()).revokeAll(anyString());
+        }
+
+        @Test
+        void 启用_恢复ACTIVE() {
+            User user = new User();
+            user.setId(USER_ID);
+            user.setStatus(UserStatus.DISABLED);
+            when(userMapper.selectById(USER_ID)).thenReturn(user);
+
+            authService.updateUserStatus(USER_ID, UserStatus.ACTIVE);
+
+            verify(userMapper).updateById(userCaptor.capture());
+            assertEquals(UserStatus.ACTIVE, userCaptor.getValue().getStatus());
+        }
+
+        @Test
+        void 用户不存在_404() {
+            when(userMapper.selectById(USER_ID)).thenReturn(null);
+
+            var ex = assertThrows(
+                    BusinessException.class, () -> authService.updateUserStatus(USER_ID, UserStatus.DISABLED));
+            assertEquals(404, ex.getHttpStatus());
+        }
+
+        @Test
+        void 禁用账号_刷新旧码已消费_新码不签发_403() {
+            // 封号链路验证：rotate 已消费旧 refresh → 状态闸门抛 403，新令牌不签发
+            String token = "rt:consumed";
+            when(refreshTokenStore.rotate(token, "dev1", "[AUTH]")).thenReturn(USER_ID.toString());
+            User disabled = new User();
+            disabled.setId(USER_ID);
+            disabled.setStatus(UserStatus.DISABLED);
+            when(userMapper.selectById(USER_ID)).thenReturn(disabled);
+
+            var ex = assertThrows(BusinessException.class, () -> authService.refresh(token, "dev1", "127.0.0.1", "UA"));
+            assertEquals(403, ex.getHttpStatus());
+            assertEquals("USER_DISABLED", ex.getCode());
+            verify(jwtProvider, never()).createAccessToken(any());
+        }
+    }
 }

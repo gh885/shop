@@ -109,7 +109,7 @@ export async function createOrder(args: {
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；返回成功流水 */
 // 发起支付/确认支付直接在 checkout 的 mutation 里调 SDK（两段式流水消费方各自接线）
 
-// 订单操作 mutation（取消/确认收货共用一套失效 + 提示接线）
+// 订单操作 mutation（确认收货；取消因带 reason 变量单独声明，失效与提示同口径）
 /** 订单动作 mutation 工厂：成功 toast + 失效订单列表与该单详情，错误统一文案 */
 function useOrderActionMutation(
     mutationFn: (orderId: string) => Promise<unknown>,
@@ -124,12 +124,20 @@ function useOrderActionMutation(
     })
 }
 
-/** 取消订单：仅待付款/待发货可取消，成功后失效订单列表 + 详情缓存 */
+/** 取消订单：仅待付款/待发货可取消，成功后失效订单列表 + 详情缓存。
+ *  reason 是取消弹窗「快捷原因 + 备注」拼出的自由文本（后端可空、@Size(max=200)），空输入不硬造占位文案；
+ *  详情失效由变量算出、静态 meta 装不下 → 走库自己的 onSuccess（第 2 参即变量） */
 export function useCancelOrder() {
-    return useOrderActionMutation(
-        (orderId) => OrdersApi.cancelOrder({ path: { id: orderId }, body: { reason: "用户取消" } }),
-        { success: "订单已取消", error: "取消订单失败" },
-    )
+    return useMutation({
+        mutationFn: ({ orderId, reason }: { orderId: string; reason?: string }) =>
+            OrdersApi.cancelOrder({
+                path: { id: orderId },
+                body: { reason: reason?.trim() || undefined },
+            }),
+        meta: { success: "订单已取消", error: "取消订单失败", invalidates: [MY_ORDERS_KEY] },
+        onSuccess: (_data, { orderId }, _ctx, { client }) =>
+            void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
+    })
 }
 
 /** 确认收货：已发货 → 已完成 */

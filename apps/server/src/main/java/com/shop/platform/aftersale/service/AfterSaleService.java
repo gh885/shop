@@ -9,6 +9,7 @@ import com.shop.platform.aftersale.mapper.TicketEvent;
 import com.shop.platform.aftersale.mapper.TicketEventMapper;
 import com.shop.platform.aftersale.mapper.TicketMapper;
 import com.shop.platform.aftersale.model.TicketAction;
+import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.common.BusinessException;
@@ -28,6 +29,7 @@ import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderReadQuery;
 import com.shop.platform.order.api.OrderSummaryView;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -72,12 +74,18 @@ public class AfterSaleService {
     private final CouponCommand couponCommand;
 
     // 买家
-    /** 申请售后：仅「已完成 + 申请窗口未过 + 无进行中的单」可发起；退款口径 = 整单实付（V1 整单售后） */
+    /** 申请售后：仅「已完成 + 申请窗口未过 + 无进行中的单 + 最新单非已退款」可发起；退款口径 = 整单实付（V1 整单售后） */
     @Transactional
     public Ticket apply(UUID userId, UUID orderId, TicketType type, String reason) {
         OrderAfterSaleView order = Validate.present(orderReadQuery.afterSaleViewById(orderId), "订单不存在");
         Validate.isTrue(order.userId().equals(userId), 404, "订单不存在");
         Validate.isTrue(order.afterSaleOpenAt(OffsetDateTime.now()), 409, TicketAction.APPLY.conflictMessage());
+        // 最新一张售后单已是 REFUNDED（终态）：整单退款只允许发生一次，堵住「退了再申请」的二次退款敞口。
+        // 只挡 REFUNDED：REJECTED/CLOSED（被拒/撤销）不伤买家利益，仍可在窗口内重新申请
+        Ticket latest = ticketMapper.selectLatestByOrder(orderId);
+        if (latest != null && latest.getStatus() == TicketStatus.REFUNDED) {
+            throw BusinessException.conflict("AFTER_SALE_ALREADY_REFUNDED", "该订单已完成退款，不能再次申请售后");
+        }
 
         String trimmed = Text.trimToNull(reason);
         Ticket ticket = Ticket.builder()
@@ -107,14 +115,17 @@ public class AfterSaleService {
     /**
      * 回寄并填写退货物流单（仅退货退款、处于 RETURNING）：态不变，只落物流单并记时间线。
      *
-     * <p>回寄包裹落在 logistics（{@link ReturnShipmentCommand}，同事务）：它之后自动享有正向包裹的一切
+     * <p>回寄包裹落在 logistics（{@link ReturnShipmentCommand#replace}，同事务）：它之后自动享有正向包裹的一切
      * ——承运商推送按运单号就能匹配到它、轮询兜底会扫它、买家「查看物流」里会看到它的轨迹。
      * 售后单上的两列是<b>投影</b>（拿命令返回值写回，展示用），轨迹真相在 logistics。
+     *
+     * <p><b>覆盖更新（C10）</b>：买家可重复提交改运单号，每次提交作废旧 RETURN 包裹（含其轨迹节点）再新建，
+     * 一单同一时刻至多一张有效回寄包裹——售后卡与物流页从此只见最新一条，旧单号的迟到轨迹不再串到新单上。
      */
     @Transactional
     public void returnGoods(UUID userId, UUID orderId, String carrierCode, String carrierName, String trackingNo) {
         Ticket ticket = requireBuyerOpen(userId, orderId, TicketAction.RETURN_GOODS);
-        ReturnShipmentView shipment = returnShipmentCommand.record(
+        ReturnShipmentView shipment = returnShipmentCommand.replace(
                 orderId, ticket.getUserId(), ticket.getShopId(), carrierCode, carrierName, trackingNo);
         transition(ticket, TicketAction.RETURN_GOODS, shipment.carrierName() + " " + shipment.trackingNo(), u -> u.set(
                         Ticket::getReturnLogisticsCompany, shipment.carrierName())
@@ -125,6 +136,26 @@ public class AfterSaleService {
     public Optional<Ticket> latestForBuyer(UUID userId, UUID orderId) {
         return Optional.ofNullable(ticketMapper.selectLatestByOrder(orderId))
                 .filter(t -> t.getUserId().equals(userId));
+    }
+
+    /**
+     * 买家视角的当前可执行动作（C5b 下发用）：撤销 / 回寄从售后单状态推导，「重新申请」不是本单上的转移、
+     * 吃的是订单申请窗口——售后单看不见订单，故由本服务经 order :: api 点查后把谓词喂给推导。
+     */
+    public List<TicketAvailableAction> buyerActions(Ticket ticket) {
+        return TicketAvailableAction.buyerActions(ticket.getStatus(), reapplyAllowed(ticket));
+    }
+
+    /** 能否重新申请（AFS-04/05 口径，与 {@link #apply} 的闸门同款）：本单已到终态且非已退款，且订单申请窗口未过 */
+    private boolean reapplyAllowed(Ticket ticket) {
+        TicketStatus status = ticket.getStatus();
+        if (status.open() || status == TicketStatus.REFUNDED) {
+            return false;
+        }
+        return orderReadQuery
+                .afterSaleViewById(ticket.getOrderId())
+                .map(order -> order.afterSaleOpenAt(OffsetDateTime.now()))
+                .orElse(false);
     }
 
     // 卖家
@@ -169,6 +200,47 @@ public class AfterSaleService {
                 .filter(t -> t.getShopId().equals(shopId));
     }
 
+    // 超时（C11）：单笔事务落点，由 AfterSaleTimeoutService 逐笔委托（不同 bean，@Transactional 才生效）
+    /**
+     * 卖家超 48h 未处理 → 自动同意：与 {@link #agree} 同款分派、同款副作用（仅退款即退、退货退款进 RETURNING
+     * 等回寄），差别只是走 AUTO_* 动作让时间线记 actor=SYSTEM——超时放行不是卖家点出来的，账不说谎。
+     *
+     * @return 是否真的落成；条件更新抢不到行（卖家恰好也处理了）= false，让位给人工
+     */
+    @Transactional
+    public boolean autoAgree(UUID ticketId) {
+        Ticket ticket = ticketMapper.selectById(ticketId);
+        if (ticket == null || ticket.getStatus() != TicketStatus.APPLYING) {
+            return false;
+        }
+        if (ticket.getType() == TicketType.RETURN_REFUND) {
+            transition(ticket, TicketAction.AUTO_AGREE_RETURN, "卖家超时未处理，系统自动同意", u -> {});
+            return true;
+        }
+        refund(ticket, TicketAction.AUTO_REFUND, "卖家超时未处理，系统自动同意");
+        return true;
+    }
+
+    /**
+     * 买家回寄超 7 天未填运单号 → 自动关闭（CLOSED）：转终态即联动释放「一单一进行中」名额
+     * （uk 部分索引随行状态让位，窗口内可重新申请），投影写回由 {@link #transition} 统一负责。
+     *
+     * <p>条件更新额外挂 {@code return_tracking_no IS NULL}：扫描与落点之间买家刚提交了回寄，就让位给他——
+     * 货已在途的单绝不关。
+     *
+     * @return 是否真的落成；已填回寄 / 已被处理 = false
+     */
+    @Transactional
+    public boolean autoCloseReturn(UUID ticketId) {
+        Ticket ticket = ticketMapper.selectById(ticketId);
+        if (ticket == null || ticket.getStatus() != TicketStatus.RETURNING || ticket.getReturnTrackingNo() != null) {
+            return false;
+        }
+        transition(
+                ticket, TicketAction.AUTO_CLOSE, "买家超时未回寄，系统自动关闭", u -> {}, u -> u.isNull(Ticket::getReturnTrackingNo));
+        return true;
+    }
+
     /**
      * 卖家售后工作台：本店售后单分页，时间倒序（最新的申请/处理在最上面）。
      *
@@ -210,6 +282,7 @@ public class AfterSaleService {
                 order.firstItemName(),
                 ticket.getType(),
                 ticket.getStatus(),
+                TicketAvailableAction.sellerActions(ticket.getStatus()),
                 ticket.getReason(),
                 ticket.refundAmountAsMoney(),
                 ticket.getReturnLogisticsCompany(),
@@ -232,10 +305,15 @@ public class AfterSaleService {
     }
 
     // 私有
-    /** 退款落点（仅退款同意 / 退货收货共用）：转 REFUNDED 回填时刻，再通知 payment 同事务落退款单据 */
+    /** 退款落点（仅退款同意 / 退货收货 / 超时自动同意共用）：转 REFUNDED 回填时刻，再通知 payment 同事务落退款单据 */
     private void refund(Ticket ticket, TicketAction action) {
+        refund(ticket, action, null);
+    }
+
+    /** note 给时间线补充动作上下文（超时自动同意要说明是谁做的决定）；人工路径传 null */
+    private void refund(Ticket ticket, TicketAction action, String note) {
         OffsetDateTime now = OffsetDateTime.now();
-        transition(ticket, action, null, u -> u.set(Ticket::getRefundedAt, now));
+        transition(ticket, action, note, u -> u.set(Ticket::getRefundedAt, now));
         events.publishEvent(new AfterSaleRefundedEvent(
                 ticket.getOrderId(), ticket.getUserId(), Money.ofFen(ticket.getRefundAmount(), ticket.getCurrency())));
         // 退券：整单退款要把券还给买家（另发新券，原券保持 USED）。没用券、或券已过期时无副作用。
@@ -254,10 +332,21 @@ public class AfterSaleService {
      */
     private void transition(
             Ticket ticket, TicketAction action, String note, Consumer<LambdaUpdateWrapper<Ticket>> extraSets) {
+        transition(ticket, action, note, extraSets, u -> {});
+    }
+
+    /** extraWhere 给并发闸门加列级条件（超时关闭要再确认「还没回寄」）；扫描-落点竞态同样靠影响行数让位 */
+    private void transition(
+            Ticket ticket,
+            TicketAction action,
+            String note,
+            Consumer<LambdaUpdateWrapper<Ticket>> extraSets,
+            Consumer<LambdaUpdateWrapper<Ticket>> extraWhere) {
         LambdaUpdateWrapper<Ticket> update = new LambdaUpdateWrapper<Ticket>()
                 .eq(Ticket::getId, ticket.getId())
                 .eq(Ticket::getStatus, action.from())
                 .set(Ticket::getStatus, action.target());
+        extraWhere.accept(update);
         extraSets.accept(update);
         Validate.isTrue(ticketMapper.update(null, update) == 1, 409, action.conflictMessage());
         record(ticket, action, note);

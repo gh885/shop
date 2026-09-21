@@ -35,6 +35,7 @@ function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCoup
         status: "UNUSED",
         source: "CLAIM",
         orderId: null,
+        unavailableReason: null,
         ...overrides,
     }
 }

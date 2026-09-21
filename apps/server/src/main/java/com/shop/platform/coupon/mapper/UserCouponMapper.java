@@ -178,6 +178,24 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
     }
 
     /**
+     * 运营作废（C7）：UNUSED → VOID 的条件更新，返回影响行数（并发闸门，与 lockOne 同一套路）。
+     *
+     * <p>一期只放 UNUSED：LOCKED 的券优惠已定格在未付款订单上，作废它等于让已展示的成交价凭空变贵——
+     * 要处理得先解绑（取消/超时释放回 UNUSED 后再作废），不做强行抽走；USED 不可逆（核销流水断链），
+     * 逆向只能走退款退券。VOID 后 order_id/locked_at/applied_discount 必空的不变式由 DB CHECK 保证
+     * （UNUSED 天然满足，无需在这里清列）。
+     */
+    default int voidUnused(UUID userCouponId, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<UserCoupon>()
+                        .eq(UserCoupon::getId, userCouponId)
+                        .eq(UserCoupon::getStatus, UserCouponStatus.UNUSED)
+                        .set(UserCoupon::getStatus, UserCouponStatus.VOID)
+                        .set(UserCoupon::getUpdatedAt, now));
+    }
+
+    /**
      * 过期收敛（定时任务）：把已过失效时刻的未使用券刷成 EXPIRED，批量限流避免一次锁太多行。
      *
      * <p>只服务于展示与统计 —— <b>正确性不押在它身上</b>：可用性判定一律读时比 expire_at。

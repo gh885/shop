@@ -1,21 +1,24 @@
 import { useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 
 import { notify } from "@shop/app-kit"
-import { confirm } from "@shop/ui-web"
 
+import { CancelOrderDialog } from "./CancelOrderDialog"
 import type { Order, OrderAction } from "./model"
 import { useCancelOrder, useReceiveOrder } from "./queries"
 
 /**
  * 订单操作分发（我的订单列表 / 订单详情共用）：
- * pay → 收银台；cancel → 全局二次确认后取消；
+ * pay → 收银台；cancel → 取消原因弹窗（快捷原因 + 备注，确认后带 reason 发请求）；
  * confirm → 确认收货；logistics → 物流详情页；其余 toast 占位。一并给出按钮 pending 态（cancel/confirm 进行中）。
- * 二次确认在这里发起（两处入口文案一致，弹窗状态由全局 ConfirmDialogHost 持有），调用方只接线 handleAction。
+ * 弹窗状态由本 hook 持有（两处入口共用一份），调用方解构 cancelDialog 渲染即可，handleAction 只负责开。
  */
 export function useOrderActions() {
     const navigate = useNavigate()
     const cancel = useCancelOrder()
     const receive = useReceiveOrder()
+    // 取消目标单：null = 弹窗关闭。整单进 state 是为了弹窗里能展示单号
+    const [cancelTarget, setCancelTarget] = useState<Order | null>(null)
 
     const handleAction = (order: Order, action: OrderAction) => {
         switch (action) {
@@ -23,12 +26,7 @@ export function useOrderActions() {
                 void navigate({ to: "/pay/$orderId", params: { orderId: order.id } })
                 break
             case "cancel":
-                void confirm({
-                    title: "取消订单",
-                    description: `确定取消订单 ${order.orderNo} 吗？该操作不可恢复。`,
-                    confirmText: "取消订单",
-                    action: () => cancel.mutateAsync(order.id),
-                })
+                setCancelTarget(order)
                 break
             case "confirm":
                 receive.mutate(order.id)
@@ -42,6 +40,25 @@ export function useOrderActions() {
         }
     }
 
+    // key = 单号：换单重挂载，弹窗内「已选原因/备注」的本地状态不跨单残留
+    const cancelDialog = (
+        <CancelOrderDialog
+            key={cancelTarget?.id ?? "none"}
+            order={cancelTarget}
+            onOpenChange={(open) => {
+                if (!open) setCancelTarget(null)
+            }}
+            pending={cancel.isPending}
+            onConfirm={(reason) =>
+                cancelTarget &&
+                cancel.mutate(
+                    { orderId: cancelTarget.id, reason },
+                    { onSuccess: () => setCancelTarget(null) },
+                )
+            }
+        />
+    )
+
     /** 进行中的操作 key：对应按钮禁用，防重复提交 */
     const pendingAction: OrderAction | undefined = cancel.isPending
         ? "cancel"
@@ -49,5 +66,5 @@ export function useOrderActions() {
           ? "confirm"
           : undefined
 
-    return { handleAction, pendingAction }
+    return { handleAction, pendingAction, cancelDialog }
 }

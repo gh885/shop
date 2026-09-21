@@ -213,6 +213,11 @@ export function LoginForm({
                     resetCaptcha()
                     form.setFieldValue("captchaCode", "")
                 }
+                // 429 限频（SMS_RATE_LIMIT）：服务端窗口就是 60s，命中时本地同样起倒计时——
+                // 连点只会再撞一次限流，倒计时无损失地兜住（发码成功的本地倒计时逻辑不变）
+                if (err.status === 429 && err.code === ErrorCodes.SMS_RATE_LIMIT) {
+                    setCountdown(60)
+                }
                 notify.error(err.detail)
             })
             .finally(() => setSendingCode(false))

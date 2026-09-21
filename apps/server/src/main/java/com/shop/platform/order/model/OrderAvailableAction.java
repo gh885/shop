@@ -22,7 +22,7 @@ public enum OrderAvailableAction {
     /** 取消订单（待付款/待发货 → 已取消，回补库存） */
     CANCEL(OrderStatus.CANCELLED),
 
-    /** 发货（待发货 → 已发货；仅卖家视角） */
+    /** 发货（待发货 → 已发货；已发货单上语义 = 追加包裹，见 {@link OrderStatus} 转移表的 SHIPPED 自环；仅卖家视角） */
     SHIP(OrderStatus.SHIPPED),
 
     /** 确认收货（已发货 → 已完成） */
