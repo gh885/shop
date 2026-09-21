@@ -8,7 +8,6 @@ import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
-import com.shop.platform.product.mapper.CategoryMapper;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.ProductMapper;
@@ -34,7 +33,7 @@ import org.springframework.util.StringUtils;
 public class ProductService {
 
     private final ProductMapper productMapper;
-    private final CategoryMapper categoryMapper;
+    private final CategoryService categoryService;
     private final SkuMapper skuMapper;
     private final CategoryAttrService categoryAttrService;
     private final SkuService skuService;
@@ -43,7 +42,8 @@ public class ProductService {
 
     /** 创建商品草稿：只落基本信息，specs/SKU 由后续接口补充。shopId 由 controller 从店铺上下文（X-Shop-Id）注入 */
     public Product create(CreateProductCommand command) {
-        Validate.isTrue(categoryMapper.selectById(command.categoryId()) != null, "分类不存在");
+        // 1. 挂载闸门：必须是存在、启用、父链完整的叶子类目（CATEGORY_NOT_LEAF / CATEGORY_DISABLED）
+        categoryService.requireMountableCategory(command.categoryId());
         // 类目有参数模板时校验 params（required 必填、attrId 归属、值域约束）；无模板维持自由文本
         categoryAttrService.validateParams(command.categoryId(), command.params());
         Product draft = toDraftEntity(command);
@@ -72,7 +72,8 @@ public class ProductService {
         boolean categoryChanged = targetCategory != null && !targetCategory.equals(product.getCategoryId());
         if (categoryChanged) {
             Validate.isTrue(product.isDraft(), 409, "只有草稿可以修改类目，上架/仓库中商品请先下架");
-            Validate.isTrue(categoryMapper.selectById(targetCategory) != null, "分类不存在");
+            // 改挂与创建同一挂载闸门（叶子 + 启用 + 父链完整）
+            categoryService.requireMountableCategory(targetCategory);
         }
         // 2. params 模板校验：传了 params 用新值校验，没传（不改）则拿存量对有效类目复检（换类目可能撞上必填模板）
         UUID effectiveCategory = targetCategory != null ? targetCategory : product.getCategoryId();

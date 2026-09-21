@@ -88,6 +88,27 @@ public class CategoryService {
         return subtree;
     }
 
+    /**
+     * 商品挂载闸门（创建 / 编辑改挂共用）：类目必须存在、启用、叶子（level=3，同 {@link CategoryAttrService}
+     * 属性模板的挂载规则）。违例 code：CATEGORY_DISABLED / CATEGORY_NOT_LEAF（400，前端 toast 显示 detail）。
+     *
+     * <p>禁用判定与 {@link #publicTree()} 的「父级不可见整支剪掉」同一口径：父链上任一节点禁用，
+     * 挂上去的商品就会悬在买家侧不可见的类目里，所以逐级上溯检查整条父链——类目至多三级，
+     * 最多再两次按主键点查，比展开整棵树便宜，不必只查挂载类目自身。
+     * 顺序取「自身禁用 → 非叶子 → 父链禁用」：类目自身禁用是最致命的原因，先报它。
+     */
+    public void requireMountableCategory(UUID categoryId) {
+        Category category = Validate.notNull(categoryMapper.selectById(categoryId), "分类不存在");
+        Validate.isTrue(category.isEnabled(), "CATEGORY_DISABLED", "不能挂载到已禁用的类目");
+        Validate.isTrue(category.getLevel() == MAX_LEVEL, "CATEGORY_NOT_LEAF", "商品只能挂载到叶子类目（三级）");
+        // 父链向上走：ROOT_PARENT_ID 占位即到头；断链（父不存在）由创建侧唯一约束保证，不在此拦
+        for (UUID parentId = category.getParentId(); parentId != null && !Category.ROOT_PARENT_ID.equals(parentId); ) {
+            Category parent = categoryMapper.selectById(parentId);
+            Validate.isTrue(parent == null || parent.isEnabled(), "CATEGORY_DISABLED", "不能挂载到父级已禁用的类目");
+            parentId = parent == null ? null : parent.getParentId();
+        }
+    }
+
     /** 创建类目，level 由父级推导，最多三级 */
     @Transactional
     public Category create(UUID parentId, String name, Integer sort, String iconUrl) {

@@ -2,6 +2,8 @@ package com.shop.platform.shop;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,6 +60,7 @@ class MerchantAddressServiceTest {
     // create：标记默认发货会先清本店其他默认发货，保证每店至多一个
     @Test
     void create_withDefaultShip_clearsSameShopDefaultShipBeforeInsert() {
+        when(addressMapper.selectCount(any())).thenReturn(0L);
         when(regionRegistry.isValidCode("440305")).thenReturn(true);
 
         MerchantAddress created = addressService.create(shopId, req(true, false));
@@ -73,6 +76,7 @@ class MerchantAddressServiceTest {
     // create：区划非国标码直接 400
     @Test
     void create_withInvalidRegionCode_throwsBadRequest() {
+        when(addressMapper.selectCount(any())).thenReturn(0L);
         when(regionRegistry.isValidCode("999999")).thenReturn(false);
         MerchantAddressRequest invalid = new MerchantAddressRequest(
                 "陈仓", "13800138000", "999999", "广东省", "深圳市", "南山区", "科技园1号", "518000", "深圳店铺", null, false, false);
@@ -81,6 +85,30 @@ class MerchantAddressServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getHttpStatus())
                 .isEqualTo(400);
+    }
+
+    // create：地址条数已达 200 上限直接 400（code 供前端区分 toast 文案）
+    @Test
+    void create_whenAddressLimitReached_throwsBadRequestWithCode() {
+        when(addressMapper.selectCount(any())).thenReturn(200L);
+
+        assertThatThrownBy(() -> addressService.create(shopId, req(false, false)))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getHttpStatus() == 400
+                        && "MERCHANT_ADDRESS_LIMIT_EXCEEDED".equals(((BusinessException) e).getCode()));
+        verify(addressMapper, never()).insert(any(MerchantAddress.class));
+    }
+
+    // create：未达上限（199 条）正常放行
+    @Test
+    void create_whenBelowAddressLimit_inserts() {
+        when(addressMapper.selectCount(any())).thenReturn(199L);
+        when(regionRegistry.isValidCode("440305")).thenReturn(true);
+
+        MerchantAddress created = addressService.create(shopId, req(false, false));
+
+        assertThat(created.getShopId()).isEqualTo(shopId);
+        verify(addressMapper).insert(any(MerchantAddress.class));
     }
 
     // update：越店访问一律 404（不暴露他人地址存在性）

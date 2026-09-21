@@ -45,7 +45,7 @@ public class User extends AuditedEntity {
         return User.builder().phone(phone).status(UserStatus.ACTIVE).build();
     }
 
-    /** 是否正常账号（登录/刷新/下单的通用闸门）；禁用/注销返回 false */
+    /** 是否正常账号（登录/刷新的闸门）；禁用/注销返回 false。下单同样查此状态（order 经 {@code UserReadQuery.isActive} 闸门） */
     public boolean isActive() {
         return status != null && status.isActive();
     }

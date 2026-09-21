@@ -11,8 +11,11 @@ import java.util.regex.Pattern;
  *   <li>校验：格式非法时在构造期就报错，而不是等到别处才炸。</li>
  * </ul>
  *
- * <p>与 strict 电话校验的区别：这里只保证「可归一化且基本合法」，不锁定某一国区号规则。
- * 业务要强校验（如必须是大陆手机号）时，在调用处叠加 {@link #isChinaMobile()}。
+ * <p>手机号校验口径全库统一为两档：<b>短信目标号强校验</b>——必须是大陆手机号，在 DTO 上叠
+ * {@code @Pattern(regexp = PhoneNumber.CHINA_MOBILE_PATTERN)}（如邀请店员填的接收号）；
+ * <b>登录标识弱校验</b>——登录族 DTO（PasswordLoginRequest 等）只挡长度 {@code @Size(7,20)}，
+ * 不锁国区号（历史数据/海外号可登录，但收不到短信即走不通短信通道，由发码侧的强校验兜住）。
+ * 本值对象本身只保证「可归一化且基本合法」，不承担档位判定。
  */
 public record PhoneNumber(String value) {
 
@@ -21,9 +24,6 @@ public record PhoneNumber(String value) {
 
     /** 大陆手机号正则（编译期常量）：@Pattern 等注解场景直接引用本常量，规则单点化 */
     public static final String CHINA_MOBILE_PATTERN = "^1[3-9]\\d{9}$";
-
-    /** 大陆手机号：1 开头、第二位 3-9、共 11 位 */
-    private static final Pattern CHINA_MOBILE = Pattern.compile(CHINA_MOBILE_PATTERN);
 
     public PhoneNumber {
         Validate.isTrue(value != null && NORMALIZABLE.matcher(value).matches(), "手机号格式不正确");
@@ -36,11 +36,6 @@ public record PhoneNumber(String value) {
         }
         String normalized = raw.replaceAll("[\\s\\-().]", "");
         return new PhoneNumber(normalized);
-    }
-
-    /** 是否大陆手机号（业务需要强地区校验时用） */
-    public boolean isChinaMobile() {
-        return CHINA_MOBILE.matcher(value).matches();
     }
 
     /** 脱敏展示：138****8000。日志、异步通知里避免明文落盘 */

@@ -2,6 +2,7 @@ package com.shop.platform.account.service;
 
 import com.alotuser.address.SmartAgent;
 import com.alotuser.address.assets.UserInfo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.dto.AddressRequest;
 import com.shop.platform.account.mapper.Address;
 import com.shop.platform.account.mapper.AddressMapper;
@@ -22,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AddressService {
 
+    /** 每买家收货地址条数上限（软删不占名额，@TableLogic 自动过滤） */
+    private static final int MAX_ADDRESS_PER_USER = 20;
+
     private final AddressMapper addressMapper;
 
     private final RegionRegistry regionRegistry;
@@ -36,9 +40,14 @@ public class AddressService {
         return requireOwned(userId, id);
     }
 
-    /** 新增地址；标记默认时先清掉其他默认，保证每用户至多一个默认 */
+    /** 新增地址；条数超限拒绝。标记默认时先清掉其他默认，保证每用户至多一个默认 */
     @Transactional
     public Address create(UUID userId, AddressRequest req) {
+        // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）
+        long owned = addressMapper.selectCount(new LambdaQueryWrapper<Address>().eq(Address::getUserId, userId));
+        Validate.isTrue(
+                owned < MAX_ADDRESS_PER_USER, "ADDRESS_LIMIT_EXCEEDED", "最多保存 " + MAX_ADDRESS_PER_USER + " 条收货地址");
+        // 2. 区划校验 + 默认位让位，再落库
         validateRegion(req.regionCode());
         boolean asDefault = Boolean.TRUE.equals(req.isDefault());
         if (asDefault) {

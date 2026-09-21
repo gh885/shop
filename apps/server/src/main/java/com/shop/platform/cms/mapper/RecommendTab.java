@@ -25,7 +25,7 @@ public class RecommendTab extends AuditedEntity {
     /** 目标类型：PRODUCT/CATEGORY/CAMPAIGN/SEARCH/URL */
     private String targetType;
 
-    /** 是否默认选中项（"猜你喜欢"），同一时刻应唯一 */
+    /** 是否默认选中项（"猜你喜欢"）；全局至多一个（部分唯一索引 uk_recommend_tabs_default 兜底） */
     private Boolean isDefault;
 
     /** 同级排序权重 */

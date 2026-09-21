@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 轨迹写入 —— 承运商推进入口的唯一落点（现阶段由平台运营补录，三期 webhook 落同一个方法）。
+ * 轨迹写入 —— 承运商推进入口的唯一落点（现阶段由平台运营补录）。
  *
  * <p>两条不变式在这里落地，且都由库约束兜底而非靠调用方守规矩：<b>节点不重复</b>（dedupe_key 唯一索引）、
  * <b>状态只前进</b>（条件更新 WHERE status IN sourcesOf(target)）。乱序、迟到、重推都是常态，不是异常。

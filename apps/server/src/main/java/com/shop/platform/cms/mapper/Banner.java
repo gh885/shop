@@ -49,4 +49,9 @@ public class Banner extends AuditedEntity {
 
     /** 定时失效：null 表示不失效 */
     private OffsetDateTime endAt;
+
+    /** 生效窗口是否自洽：两端齐时 endAt 必须晚于 startAt（相等即零窗口）；任一端 null 不受该端约束 */
+    public boolean isTimeRangeValid() {
+        return startAt == null || endAt == null || endAt.isAfter(startAt);
+    }
 }

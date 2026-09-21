@@ -11,7 +11,9 @@ import com.shop.platform.cms.mapper.NavEntryMapper;
 import com.shop.platform.cms.mapper.RecommendTab;
 import com.shop.platform.cms.mapper.RecommendTabMapper;
 import com.shop.platform.cms.model.CmsStatus;
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -91,18 +93,18 @@ public class ContentService {
         return entry;
     }
 
-    /** 更新导航条目：navKey 不可改，其余全量覆写 */
+    /** 更新导航条目：navKey 不可改，其余字段逐个覆写（null 字段保持原值） */
     @Transactional
     public NavEntry updateNav(UUID id, NavRequest req) {
         // 1. 存在校验
         NavEntry entry = requireNav(id);
-        // 2. 全量覆写展示字段
+        // 2. 覆写展示字段：null 交由 MyBatis-Plus NOT_NULL 策略跳过，保持原值
         entry.setTitle(req.title());
         entry.setIconKey(req.iconKey());
         entry.setTarget(req.target());
         entry.setTargetType(req.targetType());
         entry.setSubs(req.subs());
-        entry.setSortOrder(req.sortOrder() != null ? req.sortOrder() : 0);
+        entry.setSortOrder(req.sortOrder());
         navEntryMapper.updateById(entry);
         return entry;
     }
@@ -119,6 +121,7 @@ public class ContentService {
     /** 创建 banner：默认启用。slot 是运营位归属，创建后不可改 */
     @Transactional
     public Banner createBanner(BannerRequest req) {
+        // 1. 组装实体（默认启用，未指定排序归零）
         Banner banner = Banner.builder()
                 .slot(req.slot())
                 .title(req.title())
@@ -132,25 +135,34 @@ public class ContentService {
                 .startAt(req.startAt())
                 .endAt(req.endAt())
                 .build();
+        // 2. 生效窗口校验：起止都给了时 endAt 必须晚于 startAt
+        if (!banner.isTimeRangeValid()) {
+            throw new BusinessException(400, "BANNER_TIME_RANGE_INVALID", "banner 失效时间必须晚于生效时间");
+        }
+        // 3. 落库
         bannerMapper.insert(banner);
         return banner;
     }
 
-    /** 更新 banner：slot 不可改，其余全量覆写 */
+    /** 更新 banner：slot 不可改，其余字段逐个覆写（null 字段保持原值） */
     @Transactional
     public Banner updateBanner(UUID id, BannerRequest req) {
         // 1. 存在校验
         Banner banner = requireBanner(id);
-        // 2. 全量覆写展示字段
+        // 2. 覆写展示字段：null 交由 MyBatis-Plus NOT_NULL 策略跳过，保持原值
         banner.setTitle(req.title());
         banner.setSubtitle(req.subtitle());
         banner.setImageUrl(req.imageUrl());
         banner.setTarget(req.target());
         banner.setTargetType(req.targetType());
         banner.setLink(req.link());
-        banner.setSortOrder(req.sortOrder() != null ? req.sortOrder() : 0);
-        banner.setStartAt(req.startAt());
-        banner.setEndAt(req.endAt());
+        banner.setSortOrder(req.sortOrder());
+        // 3. 生效窗口：时间字段 null 表示不改，与库中原窗口合并后再校验，防止拼出自相矛盾的窗口
+        banner.setStartAt(req.startAt() != null ? req.startAt() : banner.getStartAt());
+        banner.setEndAt(req.endAt() != null ? req.endAt() : banner.getEndAt());
+        if (!banner.isTimeRangeValid()) {
+            throw new BusinessException(400, "BANNER_TIME_RANGE_INVALID", "banner 失效时间必须晚于生效时间");
+        }
         bannerMapper.updateById(banner);
         return banner;
     }
@@ -175,20 +187,24 @@ public class ContentService {
                 .sortOrder(req.sortOrder() != null ? req.sortOrder() : 0)
                 .status(CmsStatus.ENABLED)
                 .build();
-        recommendTabMapper.insert(tab);
+        // 全局至多一个默认词条由部分唯一索引 uk_recommend_tabs_default 钉死，撞键转 409（admin 前端已协作取消其余默认）
+        DuplicateKeys.conflictOnDuplicate(() -> recommendTabMapper.insert(tab), "已存在默认推荐词条，请先取消原默认再设置");
         return tab;
     }
 
-    /** 更新词条：全量覆写展示字段 */
+    /** 更新词条：字段逐个覆写，null 保持原值（isDefault 为 null 即不改默认标记） */
     @Transactional
     public RecommendTab updateTab(UUID id, RecommendTabRequest req) {
+        // 1. 存在校验
         RecommendTab tab = requireTab(id);
+        // 2. 覆写展示字段：null 交由 MyBatis-Plus NOT_NULL 策略跳过，保持原值
         tab.setName(req.name());
         tab.setTarget(req.target());
         tab.setTargetType(req.targetType());
         tab.setIsDefault(req.isDefault());
-        tab.setSortOrder(req.sortOrder() != null ? req.sortOrder() : 0);
-        recommendTabMapper.updateById(tab);
+        tab.setSortOrder(req.sortOrder());
+        // 3. 落库：把本词条设为默认时若另一行仍是默认，撞部分唯一索引 uk_recommend_tabs_default 转 409
+        DuplicateKeys.conflictOnDuplicate(() -> recommendTabMapper.updateById(tab), "已存在默认推荐词条，请先取消原默认再设置");
         return tab;
     }
 

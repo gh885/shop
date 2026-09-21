@@ -1,5 +1,6 @@
 package com.shop.platform.shop.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
@@ -31,6 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MerchantAddressService {
 
+    /** 每店地址条数上限（对齐卖家工作台文案「您最多可添加 200 条地址」；软删不占名额，@TableLogic 自动过滤） */
+    private static final int MAX_ADDRESS_PER_SHOP = 200;
+
     private final MerchantAddressMapper addressMapper;
 
     private final RegionRegistry regionRegistry;
@@ -45,9 +49,17 @@ public class MerchantAddressService {
         return requireOwnedAddress(shopId, id);
     }
 
-    /** 新增地址：可同时标记默认发货/默认退货（各至多一个） */
+    /** 新增地址：条数超限拒绝；可同时标记默认发货/默认退货（各至多一个） */
     @Transactional
     public MerchantAddress create(UUID shopId, MerchantAddressRequest req) {
+        // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）
+        long owned = addressMapper.selectCount(
+                new LambdaQueryWrapper<MerchantAddress>().eq(MerchantAddress::getShopId, shopId));
+        Validate.isTrue(
+                owned < MAX_ADDRESS_PER_SHOP,
+                "MERCHANT_ADDRESS_LIMIT_EXCEEDED",
+                "最多添加 " + MAX_ADDRESS_PER_SHOP + " 条地址");
+        // 2. 区划校验 + 默认位让位，再落库
         validateRegion(req.regionCode());
         boolean asShipDefault = Boolean.TRUE.equals(req.defaultShip());
         boolean asReturnDefault = Boolean.TRUE.equals(req.defaultReturn());

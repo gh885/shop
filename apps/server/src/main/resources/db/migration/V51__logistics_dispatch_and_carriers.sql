@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS logistics.carriers (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 一期种子的七家主流承运商（管理端维护通道未开，改字典暂走迁移）
+-- 一期种子的八家主流承运商（管理端维护通道未开，改字典暂走迁移）
 INSERT INTO logistics.carriers (code, name, sort_no) VALUES
     ('SF', '顺丰速运', 10),
     ('ZTO', '中通快递', 20),

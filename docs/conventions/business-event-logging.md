@@ -5,17 +5,16 @@
 ## 格式
 
 ```java
-// 框架已自动注入到 MDC：trace_id, version, env
-// 业务填 event（MDC 单独 key） + 场景字段（MDC）
-MDC.put("event", "order.created");
-MDC.put("order_id", "12345");
-try {
+// 框架已自动注入到 MDC：trace_id, version, env（RequestIdFilter）
+// 业务用 MdcScope（com.shop.platform.infra.observability.MdcScope）填 event + 场景字段
+try (var scope = MdcScope.of("event", "order.created", "order_id", "12345")) {
     log.info("");  // message 留空，event 和字段都在 MDC 中
-} finally {
-    MDC.remove("event");
-    MDC.remove("order_id");
 }
 ```
+
+`MdcScope.of` 键值成对传入，值为 null 的键自动跳过（条件字段不必写 if 分支）；
+作用域关闭时**精确回滚为外层原值**而不是清空 MDC——嵌套作用域自动恢复外层值，
+外层的 trace_id 等不受影响，也不会有字段泄露到作用域之外的日志。
 
 输出（ECS 格式 JSON）：
 
@@ -72,7 +71,7 @@ try {
 
 ## 注意事项
 
-- 用 `MDC.put/remove` + try-finally 包裹，防止字段泄露到其他日志
+- 用 `MdcScope` try-with-resources 包裹业务字段（替代手写 `MDC.put/remove` + try-finally），作用域结束精确回滚，嵌套作用域自动恢复外层值，防止字段泄露到其他日志
 - 不要往 MDC 放敏感信息（密码、token、身份证号等）
 - `event` 是检索/聚合/告警的唯一依据，`message` 留空或放给人读的描述
 - 失败事件（`*.failed`）必有 `reason` 字段（枚举值，非自由文本）

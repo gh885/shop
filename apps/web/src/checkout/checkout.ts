@@ -31,7 +31,7 @@ export type CheckoutPreview = {
     groups: CheckoutGroup[]
     /** 失效行（售罄/下架），前端置灰不可选 */
     unavailable: UnavailableLine[]
-    /** 回显的地址（后端默认取默认地址，前端持列表自行选） */
+    /** 回显的地址（后端缺省返回 null，前端自选） */
     address?: Address
     /** 全部应付总额（后端已算净额 = Σ payAmount） */
     totalPayAmount: Money

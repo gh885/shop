@@ -23,12 +23,6 @@ class PhoneNumberTest {
     }
 
     @Test
-    void 大陆手机号判定() {
-        assertThat(PhoneNumber.of("13812345678").isChinaMobile()).isTrue();
-        assertThat(PhoneNumber.of("+8613812345678").isChinaMobile()).isFalse();
-    }
-
-    @Test
     void 脱敏展示() {
         assertThat(PhoneNumber.of("13812345678").masked()).isEqualTo("138****5678");
     }
