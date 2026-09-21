@@ -618,6 +618,10 @@ export type TicketResponse = {
     refundAmount: Money | null;
     returnLogisticsCompany: string | null;
     returnTrackingNo: string | null;
+    /**
+     * 买家回寄地址（仅买家详情下发，查询时实时解析；null = 卖家未配默认退货地址）
+     */
+    returnAddress?: string | null;
     refundedAt: string | null;
     createdAt: string;
     updatedAt: string;
@@ -2152,6 +2156,22 @@ export type InviteShopMemberResponses = {
 };
 
 export type InviteShopMemberResponse = InviteShopMemberResponses[keyof InviteShopMemberResponses];
+
+export type DeclineShopInviteData = {
+    body?: never;
+    path: {
+        memberId: string;
+    };
+    query?: never;
+    url: '/shops/invites/{memberId}/decline';
+};
+
+export type DeclineShopInviteResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type AcceptShopInviteData = {
     body?: never;

@@ -592,6 +592,7 @@ export const zTicketResponse = z.object({
     refundAmount: zMoney.nullable(),
     returnLogisticsCompany: z.string().nullable(),
     returnTrackingNo: z.string().nullable(),
+    returnAddress: z.string().nullish(),
     refundedAt: z.iso.datetime({ offset: true }).nullable(),
     createdAt: z.iso.datetime({ offset: true }),
     updatedAt: z.iso.datetime({ offset: true })
@@ -742,7 +743,7 @@ export const zBatchDeleteCartItemsRequest = z.object({
 });
 
 export const zSmsCodeRequest = z.object({
-    phone: z.string().min(7).max(20),
+    phone: z.string().min(1).regex(/^1[3-9]\d{9}$/),
     captchaId: z.string().min(1),
     captchaCode: z.string().min(1).max(10)
 });
@@ -784,7 +785,7 @@ export const zPasswordLoginRequest = z.object({
 });
 
 export const zForgotPasswordRequest = z.object({
-    phone: z.string().min(7).max(20)
+    phone: z.string().min(1).regex(/^1[3-9]\d{9}$/)
 });
 
 export const zAvatarTicketResponse = z.object({
@@ -1652,6 +1653,10 @@ export const zInviteShopMemberPath = z.object({
  * OK
  */
 export const zInviteShopMemberResponse = zShopMemberResponse;
+
+export const zDeclineShopInvitePath = z.object({
+    memberId: z.uuid()
+});
 
 export const zAcceptShopInvitePath = z.object({
     memberId: z.uuid()
