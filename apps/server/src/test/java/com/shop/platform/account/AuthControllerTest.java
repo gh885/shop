@@ -47,8 +47,9 @@ class AuthControllerTest extends WebControllerTestSupport {
     class 发送验证码 { // POST /auth/sms-code
 
         @ParameterizedTest(name = "非法手机号[{0}]_422字段级拦截")
-        @ValueSource(strings = {"", "123"})
+        @ValueSource(strings = {"", "123", "1234567", "23800138000", "138001380001", "+8613800138000", "1380013800a"})
         void 非法手机号_422字段级拦截(String phone) throws Exception {
+            // 发码入口触发真实发短信：只收大陆手机号（强校验卡「号形」，不只是长度）
             mockMvc.perform(post("/auth/sms-code")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(smsBody(phone)))
@@ -120,6 +121,23 @@ class AuthControllerTest extends WebControllerTestSupport {
                     .andExpect(status().is(422))
                     // 每个字段触发 @NotBlank + @Size → phone(2) + password(2) + deviceId(1) = 5
                     .andExpect(jsonPath("$.errors.length()").value(5));
+        }
+
+        @Test
+        void 海外号回归_非大陆号形不拦截() throws Exception {
+            // 强校验只卡发短信的入口；登录族维持 7–20 宽松（历史数据/海外号可密码登录）
+            when(authService.loginByPassword(
+                            eq("+8613800138000"), anyString(), anyString(), anyString(), nullable(String.class)))
+                    .thenReturn(new TokenPair("at-overseas", "rt-overseas"));
+
+            mockMvc.perform(
+                            post("/auth/login/password")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "+8613800138000", "password": "correctPass123", "deviceId": "dev1"}
+                                """))
+                    .andExpect(status().isOk());
         }
 
         @Test
@@ -341,15 +359,17 @@ class AuthControllerTest extends WebControllerTestSupport {
     @Nested
     class 忘记密码 { // POST /auth/forgot-password
 
-        @Test
-        void 手机号过短_422() throws Exception {
-            mockMvc.perform(
-                            post("/auth/forgot-password")
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(
-                                            """
-                                {"phone": "123"}
-                                """))
+        @ParameterizedTest(name = "非法手机号[{0}]_422")
+        @ValueSource(strings = {"123", "1234567", "23800138000", "+8613800138000"})
+        void 非法手机号_422(String phone) throws Exception {
+            // 重置密码发码同样触发真实发短信：与 /auth/sms-code 同一强校验口径
+            mockMvc.perform(post("/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(
+                                    """
+                                {"phone": "%s"}
+                                """
+                                            .formatted(phone)))
                     .andExpect(status().is(422))
                     .andExpect(jsonPath("$.errors[0].field").value("phone"));
         }

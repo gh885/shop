@@ -74,9 +74,56 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
     void rotate_有效旧码_返回属主并清旧设备索引() {
         store.issue(subject, device, token, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
 
-        assertEquals(subject, store.rotate(token, device, "[IT]"));
+        assertEquals(subject, store.rotate(token, device, "[IT]").subjectId());
         assertFalse(redis.hasKey("refresh:user:" + subject + ":" + device));
         assertTrue(store.listDevices(subject, null).isEmpty());
+
+        store.revokeAll(subject);
+    }
+
+    /**
+     * web/seller 共享 refresh cookie 的场景：token 登记在设备 A，刷新时提交设备 B。
+     * 设备身份以 token 绑定为准——轮换返回 A 并只清 A 的索引，B 不落新条目，
+     * 按绑定设备吊销能真杀会话。
+     */
+    @Test
+    void rotate_提交异设备ID_沿用绑定设备不迁移会话() {
+        String boundDevice = device;
+        String foreignDevice = UUID.randomUUID().toString();
+        store.issue(subject, boundDevice, token, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
+
+        var rotated = store.rotate(token, foreignDevice, "[IT]");
+        assertEquals(subject, rotated.subjectId());
+        assertEquals(boundDevice, rotated.deviceId());
+        // 绑定设备索引已清，外来设备 ID 从未登记
+        assertFalse(redis.hasKey("refresh:user:" + subject + ":" + boundDevice));
+        assertFalse(redis.hasKey("refresh:user:" + subject + ":" + foreignDevice));
+
+        // 调用方按返回的 deviceId 重签发 → 双端交替刷新后设备列表仍只有一条
+        String newToken = UUID.randomUUID().toString();
+        store.issue(subject, rotated.deviceId(), newToken, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
+        var again = store.rotate(newToken, foreignDevice, "[IT]");
+        assertEquals(boundDevice, again.deviceId());
+        store.issue(subject, again.deviceId(), UUID.randomUUID().toString());
+        assertEquals(1, store.listDevices(subject, null).size());
+        assertEquals(boundDevice, store.listDevices(subject, null).getFirst().deviceId());
+
+        // 按绑定设备吊销即杀掉全部会话（外来 deviceId 无从躲藏）
+        store.revokeDevice(subject, boundDevice);
+        assertTrue(store.listDevices(subject, null).isEmpty());
+        store.revokeAll(subject);
+    }
+
+    /** 无绑定的 token（历史数据）：回退用提交值清索引/登记，不报错 */
+    @Test
+    void rotate_无绑定设备_回退提交值() {
+        // 只写权威键不写设备索引，模拟绑定丢失
+        String orphanToken = UUID.randomUUID().toString();
+        redis.opsForValue().set("refresh:" + secretHasher.hash(orphanToken), subject);
+
+        var rotated = store.rotate(orphanToken, "submitted-device", "[IT]");
+        assertEquals(subject, rotated.subjectId());
+        assertEquals("submitted-device", rotated.deviceId());
 
         store.revokeAll(subject);
     }
@@ -87,7 +134,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
         String otherDevice = UUID.randomUUID().toString();
         store.issue(subject, device, token, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
         store.issue(subject, otherDevice, UUID.randomUUID().toString());
-        assertEquals(subject, store.rotate(token, device, "[IT]"));
+        assertEquals(subject, store.rotate(token, device, "[IT]").subjectId());
 
         BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
         assertEquals(401, ex.getHttpStatus());

@@ -48,16 +48,16 @@ public class StaffService {
     // Token 刷新（复用 RefreshTokenStore 轮换机制）
     /** 刷新双 token（一次一换 + 重放检测，与 C 端同一套凭证逻辑） */
     public TokenPair refresh(String refreshToken, String deviceId) {
-        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引
-        String storedStaffId = refreshTokenStore.rotate(refreshToken, deviceId, "[STAFF]");
+        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引；设备身份以 token 绑定为准（见 rotate）
+        RefreshTokenStore.Rotation rotated = refreshTokenStore.rotate(refreshToken, deviceId, "[STAFF]");
 
         // 5. 查员工并签发全新 Token；禁用员工在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
-        Staff staff = staffMapper.selectById(UUID.fromString(storedStaffId));
+        Staff staff = staffMapper.selectById(UUID.fromString(rotated.subjectId()));
         if (staff == null) throw BusinessException.notFound("员工不存在");
         if (!staff.isActive()) {
             throw new BusinessException(403, "STAFF_DISABLED", "账号已被禁用");
         }
-        return issueTokens(staff, deviceId);
+        return issueTokens(staff, rotated.deviceId());
     }
 
     // 登出 / 当前员工

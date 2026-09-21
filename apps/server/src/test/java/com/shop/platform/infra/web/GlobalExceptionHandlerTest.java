@@ -26,6 +26,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * 全局异常映射契约：BusinessException/校验/未知字段/缺参/兜底 → RFC 9457 ProblemDetail。
@@ -190,6 +191,21 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(400, pd.getStatus());
         assertEquals("缺少请求参数: skuId", pd.getDetail());
+    }
+
+    @Test
+    void 请求参数类型转换失败_400不落兜底() {
+        // @RequestParam 枚举值非法（如 target=NOT_A_STATUS）：转换失败此前落 Exception 兜底变 500
+        MethodArgumentTypeMismatchException ex =
+                new MethodArgumentTypeMismatchException("NOT_A_STATUS", String.class, "target", null, null);
+
+        ProblemDetail pd = handler.handleTypeMismatch(ex).getBody();
+
+        assertEquals(400, pd.getStatus());
+        assertEquals("请求参数不合法: target=NOT_A_STATUS", pd.getDetail());
+        // 与既有 400 形状一致：只有 detail，不带 code / errors
+        assertFalse(pd.getProperties().containsKey("code"));
+        assertFalse(pd.getProperties().containsKey("errors"));
     }
 
     // 兜底

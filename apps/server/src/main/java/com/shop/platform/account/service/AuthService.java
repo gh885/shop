@@ -186,14 +186,15 @@ public class AuthService {
     // Token 刷新（Rotation）
     /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测） */
     public TokenPair refresh(String refreshToken, String deviceId, String clientIp, String userAgent) {
-        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引
-        String storedUserId = refreshTokenStore.rotate(refreshToken, deviceId, "[AUTH]");
+        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引；设备身份以 token 绑定为准（web/seller
+        //      共享 refresh cookie 会交替提交不同 deviceId，见 RefreshTokenStore.rotate），新码沿用同一条
+        RefreshTokenStore.Rotation rotated = refreshTokenStore.rotate(refreshToken, deviceId, "[AUTH]");
 
         // 5. 查用户并签发全新 Token；禁用账号在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
-        User user = userMapper.selectById(UUID.fromString(storedUserId));
+        User user = userMapper.selectById(UUID.fromString(rotated.subjectId()));
         if (user == null) throw BusinessException.notFound("用户不存在");
         ensureUserActive(user);
-        return issueTokens(user, deviceId, clientIp, userAgent);
+        return issueTokens(user, rotated.deviceId(), clientIp, userAgent);
     }
 
     // 当前用户

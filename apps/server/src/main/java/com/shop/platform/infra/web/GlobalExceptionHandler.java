@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 @Slf4j
@@ -69,6 +70,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> handleMessageNotReadable(HttpMessageNotReadableException ex) {
         // ERR-03: JSON 格式非法、未知字段等解析失败 → 400
         return noStore(problem(HttpStatus.BAD_REQUEST, "请求体格式错误"));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ProblemDetail> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        // @RequestParam 类型转换失败（枚举值非法如 target=NOT_A_STATUS、非 UUID 的路径参数）→ 400，
+        // 不能落进兜底的 500。与相邻两个 400 handler 同形状：只有 detail，不带 code / errors
+        Object value = ex.getValue();
+        String shown = value == null ? "null" : String.valueOf(value);
+        if (shown.length() > 100) {
+            shown = shown.substring(0, 100) + "…";
+        }
+        return noStore(problem(HttpStatus.BAD_REQUEST, "请求参数不合法: " + ex.getName() + "=" + shown));
     }
 
     @ExceptionHandler(Exception.class)

@@ -12,9 +12,11 @@ import java.util.regex.Pattern;
  * </ul>
  *
  * <p>手机号校验口径全库统一为两档：<b>短信目标号强校验</b>——必须是大陆手机号，在 DTO 上叠
- * {@code @Pattern(regexp = PhoneNumber.CHINA_MOBILE_PATTERN)}（如邀请店员填的接收号）；
+ * {@code @Pattern(regexp = PhoneNumber.CHINA_MOBILE_PATTERN)}，凡触发真实发短信的入站端点都卡
+ * （/auth/sms-code、/auth/forgot-password、店员邀请接收号）；
  * <b>登录标识弱校验</b>——登录族 DTO（PasswordLoginRequest 等）只挡长度 {@code @Size(7,20)}，
- * 不锁国区号（历史数据/海外号可登录，但收不到短信即走不通短信通道，由发码侧的强校验兜住）。
+ * 不锁国区号（历史数据/海外号可登录；这类号收不到短信，但短信路径必先从强校验的发码入口进入，
+ * 所以走不通短信不影响密码路径）。
  * 本值对象本身只保证「可归一化且基本合法」，不承担档位判定。
  */
 public record PhoneNumber(String value) {

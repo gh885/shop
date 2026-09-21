@@ -56,6 +56,9 @@ public class RefreshTokenStore {
     /** 重放裁决结果：consumed = 见过消费痕迹；withinGrace = 是否仍在并发宽限期内；subjectId = 属主 */
     public record ReplayCheck(boolean consumed, boolean withinGrace, String subjectId) {}
 
+    /** 轮换结果：属主 + 该会话绑定的设备 ID（调用方签发新 token 时必须沿用，见 {@link #rotate}） */
+    public record Rotation(String subjectId, String deviceId) {}
+
     /** 签发：无设备元数据的简版（admin 端暂不采集 UA/IP）；委托完整版并生成默认 DeviceInfo */
     public void issue(String subjectId, String deviceId, String rawToken) {
         issue(subjectId, deviceId, rawToken, new DeviceInfo("管理端", null, OffsetDateTime.now()));
@@ -94,13 +97,21 @@ public class RefreshTokenStore {
      * 刷新轮换的统一入口（C 端用户与平台员工共用）：一次性消费旧码 → 重放裁决 → 标记已消费 → 清旧设备索引。
      *
      * <p>重放裁决的两个失败面（宽限期内并发竞争静默拒绝 / 超期盗用全端吊销）在此一处裁决，
-     * 调用方拿到 subjectId 后只需查实体、签发新 token。
+     * 调用方拿到 {@link Rotation} 后只需查实体、按 {@code rotation.deviceId()} 签发新 token。
+     *
+     * <p><b>设备身份以 token 绑定的设备为准，不信任本次提交的新 deviceId</b>：买家端(web)与卖家端(seller)
+     * 共享同一个 refresh cookie（生产为父域 httpOnly cookie），但两端 localStorage 各持一份 deviceId，
+     * 同一 token 会被两个号交替提交。若按提交值清旧索引并按提交值重新登记，会话每换一端刷新就迁移到一个
+     * 新设备条目——设备列表堆假活跃条目、按设备吊销永远打不中真正持有 token 的那条。故轮换时先在设备
+     * 集合里找「当前指向本 token 摘要」的 deviceId（首次登录登记的那个），吊销与重签发都沿用同一条；
+     * 找不到（历史数据/绑定丢失）才回退用提交值登记。语义变化：吊销粒度 = 浏览器，同浏览器双端合并成一台设备。
      *
      * @param logTag 日志前缀（[AUTH] / [STAFF]），供按端检索
-     * @return token 属主 subjectId（调用方决定它是 userId 还是 staffId）
+     * @return 属主 subjectId（调用方决定它是 userId 还是 staffId）+ 会话绑定的设备 ID
      */
-    public String rotate(String rawToken, String deviceId, String logTag) {
+    public Rotation rotate(String rawToken, String deviceId, String logTag) {
         // 1. 消费旧 Refresh Token（getAndDelete = 一次性；哈希化收敛在存储层内部）
+        String hash = secretHasher.hash(rawToken);
         String subjectId = consume(rawToken);
         if (subjectId == null) {
             // 2. 重放裁决：宽限期内算多标签页并发重复（静默拒绝），超期才算盗用（全端吊销）
@@ -119,9 +130,30 @@ public class RefreshTokenStore {
 
         // 3. 标记已消费（带时间戳，供重放裁决区分并发竞争与盗用）
         markConsumed(rawToken, subjectId);
-        // 4. 清除旧设备索引
-        revokeDevice(subjectId, deviceId);
-        return subjectId;
+        // 4. 设备身份以 token 绑定为准（此时设备索引仍持有旧摘要，可反查）；无绑定才回退提交值
+        String boundDevice = findDeviceByTokenHash(subjectId, hash);
+        String effectiveDevice = boundDevice != null ? boundDevice : deviceId;
+        // 5. 清除该设备的旧索引（新 token 由调用方按同一 deviceId 重新签发）
+        revokeDevice(subjectId, effectiveDevice);
+        return new Rotation(subjectId, effectiveDevice);
+    }
+
+    /**
+     * 反查「当前索引指向该 token 摘要」的 deviceId：只扫本主体的设备集合（个位数成员），不碰 KEYS。
+     * 消费旧码删除的是权威键 refresh:&lt;hmac&gt;，设备索引 refresh:user:&lt;subject&gt;:&lt;deviceId&gt; 此时仍在，
+     * 其值即旧 token 摘要。找不到返回 null（无绑定的历史 token）。
+     */
+    private String findDeviceByTokenHash(String subjectId, String tokenHash) {
+        Set<String> devices = redis.opsForSet().members(KEY_DEVICES + subjectId);
+        if (devices == null) {
+            return null;
+        }
+        for (String candidate : devices) {
+            if (tokenHash.equals(redis.opsForValue().get(KEY_USER_DEVICE + subjectId + ":" + candidate))) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     /**

@@ -92,7 +92,8 @@ class StaffServiceTest {
         void 禁用员工_刷新被状态闸门拦_403() {
             // 封号闸门验证：rotate 消费旧码后撞状态检查，STAFF_DISABLED 403，新令牌不签发
             String token = "rt:consumed";
-            when(refreshTokenStore.rotate(token, "dev1", "[STAFF]")).thenReturn(STAFF_ID.toString());
+            when(refreshTokenStore.rotate(token, "dev1", "[STAFF]"))
+                    .thenReturn(new RefreshTokenStore.Rotation(STAFF_ID.toString(), "dev1"));
             Staff disabled = new Staff();
             disabled.setId(STAFF_ID);
             disabled.setStatus(StaffStatus.DISABLED);

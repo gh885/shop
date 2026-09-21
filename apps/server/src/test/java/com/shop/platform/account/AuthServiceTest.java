@@ -238,7 +238,8 @@ class AuthServiceTest {
             String token = "rt:valid";
 
             // 这里只验拿到 subjectId 后的签发路径
-            when(refreshTokenStore.rotate(token, "dev1", "[AUTH]")).thenReturn(USER_ID.toString());
+            when(refreshTokenStore.rotate(token, "dev1", "[AUTH]"))
+                    .thenReturn(new RefreshTokenStore.Rotation(USER_ID.toString(), "dev1"));
             when(userMapper.selectById(USER_ID)).thenReturn(new User() {
                 {
                     setId(USER_ID);
@@ -298,7 +299,8 @@ class AuthServiceTest {
         void 禁用账号_刷新旧码已消费_新码不签发_403() {
             // 封号链路验证：rotate 已消费旧 refresh → 状态闸门抛 403，新令牌不签发
             String token = "rt:consumed";
-            when(refreshTokenStore.rotate(token, "dev1", "[AUTH]")).thenReturn(USER_ID.toString());
+            when(refreshTokenStore.rotate(token, "dev1", "[AUTH]"))
+                    .thenReturn(new RefreshTokenStore.Rotation(USER_ID.toString(), "dev1"));
             User disabled = new User();
             disabled.setId(USER_ID);
             disabled.setStatus(UserStatus.DISABLED);

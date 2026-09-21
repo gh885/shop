@@ -9,6 +9,10 @@ import type { TokenStore } from "./sdk-client"
  * - refresh：各自的刷新端点（C 端 authApi.refresh({deviceId})，admin adminApi.refresh(deviceId)）
  * - deviceKey：localStorage 键隔离多端会话
  *
+ * 设备 ID 语义：web 与 seller 共享同一 refresh cookie（同浏览器不同 origin，localStorage 各一份），
+ * 交替提交的两个 deviceId 由后端裁决——refresh token 首次登记的设备为准，轮换时不随提交值迁移
+ * （见 RefreshTokenStore.rotate），吊销粒度是浏览器。前端照常上报即可，isCurrent 标记在非登录端可能不中。
+ *
  * 路由守卫（requireAuth/requireGuest）与登录 UI（Dialog/跳页）是应用关注点，留在各 app。
  */
 
