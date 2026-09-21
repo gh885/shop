@@ -7,7 +7,7 @@ import { createTestQueryClient } from "./query"
 /**
  * 测试用 render：挂独立的 QueryClientProvider（每个 render 一个新 client，互不串缓存）。
  *
- * 三个 app 的组件测试都走这里（各 app 的 `src/test/render.tsx` 是薄包装，
+ * 三个 app 的组件测试都走这里（各 app 各有一层薄包装，
  * 需要路由上下文、或要换成**应用真实默认值**时改那一处，不动每个用例）。
  *
  * `queryClient` 参数是给各 app 传 `createAppQueryClient({ queries: { retry: false } })` 用的：

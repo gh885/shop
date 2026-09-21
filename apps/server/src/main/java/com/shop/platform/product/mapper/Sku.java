@@ -17,7 +17,7 @@ import lombok.experimental.SuperBuilder;
  * 商品 SKU —— 具体卖法，存"卖多少钱、有多少货"。
  *
  * <p>一个 SPU 挂 0..N 个 SKU，靠 productId 连线。买家下单扣的是 SKU 的 price；售价与展示归本模块，
- * 库存不归本模块（V19 起唯一真相源在 inventory.sku_stock，见 inventory 模块）。
+ * 库存不归本模块（V19 起唯一真相源在 inventory.sku_stock）。
  */
 @Data
 @SuperBuilder
@@ -94,8 +94,7 @@ public class Sku extends AuditedEntity {
     /** 在售 / 停用。注意与缺货区分：缺货可补可恢复，停用是「这个卖法不卖了」。概念归 {@link SkuStatus} */
     private SkuStatus status;
 
-    // ---- 派生：金额两列（分 + 币种）在这一处收成 Money，消费方不再各自拼 ----
-
+    // 派生：金额两列（分 + 币种）在这一处收成 Money，消费方不再各自拼
     /** 成交价为 Money；草稿期未定价时为 null */
     public Money priceAsMoney() {
         return Money.ofFenOrNull(price, currency);

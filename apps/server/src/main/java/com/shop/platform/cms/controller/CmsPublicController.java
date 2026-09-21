@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * CMS 前台只读（匿名可访问，见 JwtProperties.skipPaths）。
+ * CMS 前台只读（匿名可访问）。
  *
  * <p>首页 SSR loader 并发拉这三块；数据量小，全量返回由前端缓存。跳转 target 软关联，前端携 ID 另调业务接口。
  */

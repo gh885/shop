@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 
 /**
  * 类目属性模板条目入参，create/update 共用（字段完全相同）。kind 只在创建时生效，更新忽略
- * （销售属性改参数会让存量 SKU 失去出处，见 CategoryAttrService.updateAttr）。
+ * （销售属性改参数会让存量 SKU 失去出处）。
  */
 public record CategoryAttrRequest(
         @NotBlank @Size(max = 32) String name,

@@ -149,8 +149,7 @@ public class AddressService {
         return s == null ? null : s.replaceAll("[\\s,，。;；、]+$", "");
     }
 
-    // ========== 内部 ==========
-
+    // 内部
     /** 业务层归一化标签：内置枚举 code 原样保留，空白当默认；其余按自定义文案入库 */
     private String normalizeLabel(String label) {
         if (label == null || label.isBlank()) {

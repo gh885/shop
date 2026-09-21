@@ -14,8 +14,7 @@ import java.util.UUID;
  * 不是命名接口），而且 feed 的 item 契约本来就要能独立长大——V3 混排运营卡时这里会变成联合类型，
  * 不该和 /api/products 绑在同一个 record 上。
  *
- * <p>minPrice / maxPrice 刻意不标 nullable：召回只发上架商品，上架门槛保证每个在售 SKU 都已设价
- * （口径同 PublicProductResponse）。
+ * <p>minPrice / maxPrice 刻意不标 nullable：召回只发上架商品，上架门槛保证每个在售 SKU 都已设价。
  */
 @Schema(name = "FeedItemResponse")
 public record FeedItemResponse(

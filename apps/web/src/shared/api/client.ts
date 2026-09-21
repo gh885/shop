@@ -2,7 +2,7 @@ import { BACKEND_URL } from "#/shared/lib/env"
 import { configureSdkClient, createAuthKit } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 
-// 浏览器端走 Vite proxy（同源相对路径），见 vite.config.ts
+// 浏览器端走 Vite proxy（同源相对路径）
 // 本文件只做「依赖装配」，不对外暴露认证成员（tokenStore/bootstrapAuth/hooks 等）——
 // 认证逻辑统一从 #/shared/api/auth 出，避免同一概念两个入口。
 export const authKit = createAuthKit({

@@ -39,8 +39,7 @@ public class ShopReviewService {
     private final ShopMapper shopMapper;
     private final UserReadQuery userReadQuery;
 
-    // ========== 审核队列 ==========
-
+    // 审核队列
     /** 审核列表（按 status 筛选分页，含店名/店主手机号） */
     public PageResult<ShopReviewItem> pageList(PageParams pageParams, String status) {
         // 1. 分页查审核记录，PENDING 优先、新店在前
@@ -81,8 +80,7 @@ public class ShopReviewService {
         return new PageResult<>(items, rows.getTotal());
     }
 
-    // ========== 审批 ==========
-
+    // 审批
     @Transactional
     public ShopReview approve(UUID reviewId, UUID staffId) {
         return decide(reviewId, staffId, ShopReviewStatus.APPROVED, null);
@@ -126,8 +124,7 @@ public class ShopReviewService {
         return review;
     }
 
-    // ========== 跨模块只读拼装（经 account 的 api 包，禁止 JOIN） ==========
-
+    // 跨模块只读拼装（经 account 的 api 包，禁止 JOIN）
     /** shopId → 店主手机号：先取 shop.owner_id，再按 account.users.id 查 phone（两步，禁止 JOIN） */
     private Map<UUID, String> loadOwnerPhones(Map<UUID, Shop> shops) {
         if (shops.isEmpty()) return Map.of();

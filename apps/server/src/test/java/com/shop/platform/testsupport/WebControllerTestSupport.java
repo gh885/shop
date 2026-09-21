@@ -91,8 +91,7 @@ public abstract class WebControllerTestSupport {
 
     protected MockMvc mockMvc;
 
-    // ---- 全量 service mock：一个上下文服务所有控制器测试 ----
-
+    // 全量 service mock：一个上下文服务所有控制器测试
     @MockitoBean
     protected AuthService authService;
 

@@ -22,7 +22,7 @@ public record CreateCouponTemplateRequest(
         @NotBlank @Size(max = 60, message = "券名最多 60 字") String name,
         /** 使用门槛，0 元 = 无门槛 */
         @NotNull Money thresholdAmount,
-        /** 减免额（必须大于 0，语义条款见 CouponTemplateService.create） */
+        /** 减免额（必须大于 0） */
         @NotNull Money discountAmount,
         /** 发放总量 */
         @NotNull @Min(1) @Max(1_000_000) Integer totalQuantity,

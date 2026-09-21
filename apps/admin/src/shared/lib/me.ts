@@ -5,8 +5,7 @@ import { createMeQuery } from "@shop/app-kit"
 import { useAuthStatus } from "./api"
 
 /**
- * 「当前登录员工」查询的 admin 接线：查询本体（key / 新鲜度 / enabled 条件）
- * 在 @shop/app-kit 的 createMeQuery，与 web/seller 同源；本文件只有两端装配参数 ——
+ * 「当前登录员工」查询的 admin 接线：本文件只有装配参数 ——
  * 请求方法（AdminAuthApi.getStaffMe）与本端 authKit 的登录态 hook。
  *
  * scope 保留 "admin/me"：与后端端点 /admin/auth/me 一一对应，与其他端的 me 不同源。

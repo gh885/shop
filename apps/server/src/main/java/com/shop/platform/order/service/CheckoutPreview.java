@@ -32,7 +32,7 @@ public record CheckoutPreview(
             /**
              * 本店选中的券（没用券为 null）：下单据此占用并落订单快照。
              * 它是<b>已经过可用性判定</b>的候选，不是用户的原始入参——原始入参在这里就被判过了，
-             * 不可用会当场 400（见 CheckoutResolver），不会留到落库才发现。
+             * 不可用会当场 400，不会留到落库才发现。
              */
             CouponAvailabilityView appliedCoupon,
             /** 本店可用券评估（含不可用者与原因码）：结算页据此渲染选券区与「为什么不能用」 */

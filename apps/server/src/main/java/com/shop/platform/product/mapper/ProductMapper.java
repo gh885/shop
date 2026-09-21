@@ -13,7 +13,7 @@ public interface ProductMapper extends BaseMapper<Product> {
 
     /**
      * 归属校验：商品存在（404）且属于店铺上下文（X-Shop-Id 对应的 shopId，否则 403）。
-     * 卖家侧一切按 ID 操作商品的入口统一走这里，防止跨店读写——「越权说什么」只该定义一处（同 OrderMapper.requireShopOwned）。
+     * 卖家侧一切按 ID 操作商品的入口统一走这里，防止跨店读写——「越权说什么」只该定义一处。
      */
     default Product requireShopOwned(UUID shopId, UUID productId) {
         Product product = Validate.notNull(selectById(productId), "商品不存在");

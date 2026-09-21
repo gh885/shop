@@ -2,7 +2,7 @@ import { Outlet } from "@tanstack/react-router"
 import { AppSidebar } from "./app-sidebar"
 import { AppTopBar } from "./app-topbar"
 
-/** 与 seller 同一布局：通栏顶栏 + 双列侧栏 + 独立滚动内容区。 */
+/** 通栏顶栏 + 双列侧栏 + 独立滚动内容区。 */
 export function AdminLayout() {
     return (
         <div className="flex h-svh w-full flex-col bg-canvas">

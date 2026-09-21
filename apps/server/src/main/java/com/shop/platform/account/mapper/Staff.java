@@ -37,6 +37,6 @@ public class Staff extends AuditedEntity {
         return status != null && status.isActive();
     }
 
-    /** 岗位：StaffRole 枚举名（SUPER_ADMIN/REVIEWER/OPS）。岗位→权限码映射见 admin/service/StaffRole，库里只存岗位名 */
+    /** 岗位：StaffRole 枚举名（SUPER_ADMIN/REVIEWER/OPS），库里只存岗位名 */
     private String role;
 }

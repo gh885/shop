@@ -36,7 +36,7 @@ public class FavoriteService {
                 .isPresent();
         Validate.isTrue(published, "商品不存在或已下架");
 
-        // 2. 一条 upsert 落库（见 FavoriteItemMapper#upsertIdempotent）：未收藏则插入，已收藏原样返回既有行。
+        // 2. 一条 upsert 落库：未收藏则插入，已收藏原样返回既有行。
         //    不能靠 catch DuplicateKeyException 回读：PG 撞唯一索引即中止整个事务，catch 后发不出任何语句
         FavoriteItem item = favoriteItemMapper.upsertIdempotent(userId, productId);
         log.info("[FAVORITE] 收藏, userId={}, productId={}", userId, productId);
@@ -89,8 +89,7 @@ public class FavoriteService {
                 .toList();
     }
 
-    // ========== 内部 ==========
-
+    // 内部
     /** 拼装单条视图：商品缺失 → 全空视图置灰 */
     private FavoriteItemView assemble(
             FavoriteItem item, Map<UUID, ProductView> products, Map<UUID, Long> collectCounts) {

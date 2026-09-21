@@ -42,8 +42,7 @@ export const afterSaleOptions = (orderId: string) =>
         throwOnError: false,
     })
 
-// ---------- 写操作（申请 / 撤销 / 回寄），纯 fetch 便于断言投影 ----------
-
+// 写操作（申请 / 撤销 / 回寄），纯 fetch 便于断言投影
 /** 申请售后：type 必填，理由空串按「没填」处理（后端 reason 可空，别把空白当理由存下来） */
 async function applyAfterSale(
     orderId: string,

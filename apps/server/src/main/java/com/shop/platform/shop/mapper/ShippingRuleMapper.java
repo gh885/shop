@@ -14,7 +14,7 @@ public interface ShippingRuleMapper extends BaseMapper<ShippingRule> {
         return selectList(new LambdaQueryWrapper<ShippingRule>().eq(ShippingRule::getTemplateId, templateId));
     }
 
-    /** 模板更新时整批重建规则，先清空（子表区域随规则 ID 一起清，见 ShippingRuleRegionMapper） */
+    /** 模板更新时整批重建规则，先清空（子表区域随规则 ID 一起清） */
     default int deleteByTemplate(UUID templateId) {
         return delete(new LambdaQueryWrapper<ShippingRule>().eq(ShippingRule::getTemplateId, templateId));
     }

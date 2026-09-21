@@ -5,8 +5,7 @@ import { createMeQuery } from "@shop/app-kit"
 import { useAuthStatus } from "./api"
 
 /**
- * 「当前登录用户」查询的 seller 接线：查询本体（key / 新鲜度 / enabled 条件）
- * 在 @shop/app-kit 的 createMeQuery，与 web/admin 同源；本文件只有两端装配参数 ——
+ * 「当前登录用户」查询的 seller 接线：本文件只有装配参数 ——
  * 请求方法（AuthApi.me）与本端 authKit 的登录态 hook。
  */
 

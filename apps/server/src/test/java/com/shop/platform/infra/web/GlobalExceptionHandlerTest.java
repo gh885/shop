@@ -60,8 +60,7 @@ class GlobalExceptionHandlerTest {
         MDC.clear();
     }
 
-    // ========== 业务异常：code 可选分支 ==========
-
+    // 业务异常：code 可选分支
     @Test
     void 业务异常_带code_映射状态码与横切契约() {
         BusinessException ex = new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期");
@@ -98,8 +97,7 @@ class GlobalExceptionHandlerTest {
                 pd.getProperties().get("errors"));
     }
 
-    // ========== 状态码映射（工厂方法代表各业务状态） ==========
-
+    // 状态码映射（工厂方法代表各业务状态）
     @Test
     void 各业务状态_映射正确状态码() {
         assertEquals(
@@ -129,8 +127,7 @@ class GlobalExceptionHandlerTest {
                         .getStatus());
     }
 
-    // ========== 横切契约：no-store 缓存头 ==========
-
+    // 横切契约：no-store 缓存头
     @Test
     void 业务异常_响应带头_NO_STORE_防缓存() {
         ResponseEntity<ProblemDetail> response = handler.handleBusiness(BusinessException.badRequest("x"));
@@ -138,8 +135,7 @@ class GlobalExceptionHandlerTest {
         assertEquals("no-store", response.getHeaders().getFirst(HttpHeaders.CACHE_CONTROL));
     }
 
-    // ========== 校验异常 ==========
-
+    // 校验异常
     @Test
     void 参数校验_422_errors字段级明细() {
         BeanPropertyBindingResult binding = new BeanPropertyBindingResult(new Object(), "body");
@@ -175,8 +171,7 @@ class GlobalExceptionHandlerTest {
                 pd.getProperties().get("errors"));
     }
 
-    // ========== 请求体/参数解析失败 ==========
-
+    // 请求体/参数解析失败
     @Test
     void 请求体解析失败_400() {
         HttpMessageNotReadableException ex = new HttpMessageNotReadableException("bad json", null);
@@ -197,8 +192,7 @@ class GlobalExceptionHandlerTest {
         assertEquals("缺少请求参数: skuId", pd.getDetail());
     }
 
-    // ========== 兜底 ==========
-
+    // 兜底
     @Test
     void 未捕获异常_500() {
         ProblemDetail pd =

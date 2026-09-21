@@ -34,8 +34,7 @@ public class CmsContentAdminController {
 
     private final ContentService contentService;
 
-    // ========== 导航 ==========
-
+    // 导航
     @GetMapping("/nav")
     public List<NavEntryResponse> listAdminNav(@RequestParam(required = false) String navKey) {
         return contentService.navAll(navKey).stream()
@@ -59,8 +58,7 @@ public class CmsContentAdminController {
         contentService.setNavStatus(id, status);
     }
 
-    // ========== banner ==========
-
+    // banner
     @GetMapping("/banners")
     public List<BannerResponse> listAdminBanners(@RequestParam(required = false) String slot) {
         return contentService.bannersAll(slot).stream()
@@ -83,8 +81,7 @@ public class CmsContentAdminController {
         contentService.setBannerStatus(id, status);
     }
 
-    // ========== 推荐条 ==========
-
+    // 推荐条
     @GetMapping("/recommend-tabs")
     public List<RecommendTabResponse> listAdminRecommendTabs() {
         return contentService.tabsAll().stream().map(RecommendTabResponse::from).toList();

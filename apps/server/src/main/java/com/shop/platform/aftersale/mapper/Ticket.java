@@ -37,7 +37,7 @@ public class Ticket extends AuditedEntity {
 
     private TicketType type;
 
-    /** 售后状态机（转移表见 TicketAction） */
+    /** 售后状态机 */
     private TicketStatus status;
 
     /** 买家申请理由，可空 */

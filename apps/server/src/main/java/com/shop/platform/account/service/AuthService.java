@@ -41,7 +41,7 @@ public class AuthService {
     private static final int RATE_USER_MAX = 5;
     private static final int RATE_USER_WINDOW = 600; // 秒
 
-    // Password reset（验证码签发/校验收敛在 SmsCodeService，这里只做业务编排）
+    // Password reset（这里只做业务编排）
 
     // Common password blacklist (REG-03)
     private static final Set<String> COMMON_PASSWORDS = Set.of(
@@ -80,8 +80,7 @@ public class AuthService {
     private final StringRedisTemplate redis;
     private final RefreshTokenStore refreshTokenStore;
 
-    // ========== 短信登录/注册 ==========
-
+    // 短信登录/注册
     /**
      * 不加事务：并发首登时 insert 撞唯一索引后 PG 会中止当前事务，catch 后无法回读；
      * 且本方法只有单行 insert 与 lastLoginAt 更新，无多表一致性诉求。
@@ -109,8 +108,7 @@ public class AuthService {
         return issueTokens(user, deviceId, clientIp, userAgent);
     }
 
-    // ========== 密码登录 ==========
-
+    // 密码登录
     public TokenPair loginByPassword(
             String phone, String password, String deviceId, String clientIp, String userAgent) {
 
@@ -130,8 +128,7 @@ public class AuthService {
         return issueTokens(user, deviceId, clientIp, userAgent);
     }
 
-    // ========== 设置/修改密码 ==========
-
+    // 设置/修改密码
     /** 首次设置密码（无旧密码校验）或修改密码（需当前密码） */
     public void setPassword(UUID userId, String currentPassword, String newPassword) {
         // 1. 检查用户存在
@@ -158,9 +155,8 @@ public class AuthService {
         log.info("[AUTH] 密码修改成功, userId={}", userId);
     }
 
-    // ========== 密码重置 ==========
-
-    /** 发送重置密码验证码（RESET-01/02）。频控与 OTP 生命周期收敛在 SmsCodeService */
+    // 密码重置
+    /** 发送重置密码验证码（RESET-01/02） */
     public void forgotPassword(String phone, String clientIp) {
         smsCodeService.sendResetCode(phone, clientIp);
         log.info("[AUTH] 重置密码验证码已发送, phone={}", PhoneNumber.mask(phone));
@@ -186,11 +182,10 @@ public class AuthService {
         }
     }
 
-    // ========== Token 刷新（Rotation） ==========
-
-    /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测）。Redis 机制见 RefreshTokenStore */
+    // Token 刷新（Rotation）
+    /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测） */
     public TokenPair refresh(String refreshToken, String deviceId, String clientIp, String userAgent) {
-        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引（机制收敛在 RefreshTokenStore.rotate）
+        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引
         String storedUserId = refreshTokenStore.rotate(refreshToken, deviceId, "[AUTH]");
 
         // 5. 查用户并签发全新 Token；禁用账号在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
@@ -200,8 +195,7 @@ public class AuthService {
         return issueTokens(user, deviceId, clientIp, userAgent);
     }
 
-    // ========== 当前用户 ==========
-
+    // 当前用户
     /** 获取当前登录用户实体；手机号脱敏等展示变形由 controller 组装 MeResponse 时完成 */
     public User getMe(UUID userId) {
         User user = userMapper.selectById(userId);
@@ -226,8 +220,7 @@ public class AuthService {
         return user;
     }
 
-    // ========== 设备管理 ==========
-
+    // 设备管理
     /** 枚举当前有效的登录设备（含元数据），供安全设置页展示 */
     public List<RefreshTokenStore.DeviceEntry> listDevices(UUID userId, String currentDeviceId) {
         return refreshTokenStore.listDevices(userId.toString(), currentDeviceId);
@@ -243,15 +236,13 @@ public class AuthService {
         refreshTokenStore.revokeAll(userId.toString());
     }
 
-    // ========== 登出 ==========
-
+    // 登出
     /** 登出：删除当前设备 refresh token */
     public void logout(UUID userId, String deviceId) {
         refreshTokenStore.revokeDevice(userId.toString(), deviceId);
     }
 
-    // ========== 限流 ==========
-
+    // 限流
     /** 双维度限流（IP + 账号），被限流时走 dummy hash 保持时序一致（LOGIN-05, LOGIN-01） */
     private void rejectIfRateLimited(String phone, String password, String ip) {
         boolean ipLimited =
@@ -271,8 +262,7 @@ public class AuthService {
         redis.delete(RATE_USER_PWD + phone);
     }
 
-    // ========== 凭证验证 ==========
-
+    // 凭证验证
     /** 查询用户并比对密码（查用户与比密码之间不做分支，走到底） */
     private User authenticate(String phone, String password, String clientIp) {
         // LOGIN-01/02: 查用户与比密码之间不做分支，走到底
@@ -318,8 +308,7 @@ public class AuthService {
         }
     }
 
-    // ========== Token 签发 ==========
-
+    // Token 签发
     private TokenPair issueTokens(User user, String deviceId, String clientIp, String userAgent) {
         String accessToken = jwtProvider.createAccessToken(user.getId());
         String refreshToken = jwtProvider.generateRefreshToken();
@@ -341,15 +330,13 @@ public class AuthService {
         return new TokenPair(accessToken, refreshToken);
     }
 
-    // ========== Token 吊销 ==========
-
+    // Token 吊销
     /** 清除用户所有设备的 refresh token */
     public void deleteAllRefreshTokens(UUID userId) {
         refreshTokenStore.revokeAll(userId.toString());
     }
 
-    // ========== 密码校验 ==========
-
+    // 密码校验
     private void validatePassword(String password, String phone) {
         // REG-01: 最小长度 8 位
         if (password == null || password.length() < 8) {
@@ -369,5 +356,5 @@ public class AuthService {
         }
     }
 
-    // ========== 工具方法 ==========
+    // 工具方法
 }

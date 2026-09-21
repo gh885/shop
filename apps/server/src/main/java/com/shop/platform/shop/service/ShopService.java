@@ -58,7 +58,7 @@ public class ShopService {
                 .build();
         shopMemberMapper.insert(owner);
 
-        // 4. 入队审核：与建店同事务落一条 PENDING（审核在本模块闭环，见 ShopReviewService）
+        // 4. 入队审核：与建店同事务落一条 PENDING（审核在本模块闭环）
         shopReviewMapper.insert(ShopReview.builder()
                 .shopId(shop.getId())
                 .status(ShopReviewStatus.PENDING)
@@ -67,8 +67,7 @@ public class ShopService {
         return shop;
     }
 
-    // ========== 我的店铺与邀请 ==========
-
+    // 我的店铺与邀请
     /** 我的店铺列表：当前用户 ACTIVE 成员身份对应的全部店铺，新店在前 */
     public List<Shop> myShops(UUID userId) {
         List<UUID> shopIds = shopMemberMapper.selectActiveByUser(userId).stream()
@@ -114,8 +113,7 @@ public class ShopService {
         return member;
     }
 
-    // ========== 买家侧公开读 ==========
-
+    // 买家侧公开读
     /** 店铺公开信息：仅 ACTIVE 可见。待审核/被拒/封禁的店对买家一律 404，不泄露"存在但不可用" */
     public Shop publicShop(UUID shopId) {
         Shop shop = Validate.notNull(shopMapper.selectById(shopId), "店铺不存在");
@@ -123,8 +121,7 @@ public class ShopService {
         return shop;
     }
 
-    // ========== 成员管理（店主操作） ==========
-
+    // 成员管理（店主操作）
     /** 店铺成员列表：仅本店 ACTIVE 成员可见，拼上成员手机号（跨 schema 只读按 ID 查，禁止 JOIN） */
     public List<ShopMemberItem> members(UUID shopId, UUID operatorId) {
         requireActiveMember(shopId, operatorId);
@@ -203,8 +200,7 @@ public class ShopService {
         log.info("[SHOP] 移除成员, shopId={}, memberId={}", shopId, memberId);
     }
 
-    // ========== 内部 ==========
-
+    // 内部
     /** 当前用户是否为该店店主，不是则 403 */
     private void requireOwner(UUID shopId, UUID userId) {
         if (!shopMemberMapper.isActiveOwner(shopId, userId)) {

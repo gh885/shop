@@ -42,7 +42,7 @@ public class Order extends AuditedEntity {
     /** 结算幂等键（前端生成）：同一 (user_id, checkout_key, shop_id) 唯一，重复提交撞键回读原单；历史单与 dev 种子为 null */
     private UUID checkoutKey;
 
-    /** 履约主状态机：待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消（规则见 OrderStatus） */
+    /** 履约主状态机：待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消 */
     private OrderStatus status;
 
     /** 售后投影（aftersale 每次转移经 order :: api 写回）：最近一张售后单的状态，NONE = 从未售后；单据真相在 aftersale.tickets */
@@ -76,8 +76,7 @@ public class Order extends AuditedEntity {
     /** 币种（如 CNY），与各金额字段组成代码里的 Money 类型 */
     private String currency;
 
-    // ---- 收货快照：镜像 account.addresses，下单定格，永不更新 ----
-
+    // 收货快照：镜像 account.addresses，下单定格，永不更新
     private String receiverName;
 
     private String receiverPhone;
@@ -96,14 +95,12 @@ public class Order extends AuditedEntity {
     /** 买家留言，可空 */
     private String buyerMessage;
 
-    // ---- 物流（发货时回填；一单一包裹，多包裹时再拆 shipments 表） ----
-
+    // 物流（发货时回填；一单一包裹，多包裹时再拆 shipments 表）
     private String logisticsCompany;
 
     private String trackingNo;
 
-    // ---- 状态时间戳：单路径流转，列比流水表够用 ----
-
+    // 状态时间戳：单路径流转，列比流水表够用
     private OffsetDateTime paidAt;
 
     private OffsetDateTime shippedAt;
@@ -118,8 +115,7 @@ public class Order extends AuditedEntity {
     /** 取消原因：买家填写或系统自动取消的固定文案 */
     private String cancelReason;
 
-    // ---- 到期时刻：各由对应动作回填，定时任务按部分索引扫到期（窗口长度见 OrderTimeouts） ----
-
+    // 到期时刻：各由对应动作回填，定时任务按部分索引扫到期
     /** 待付款截止（下单时回填），到期自动关单 */
     private OffsetDateTime payExpireAt;
 
@@ -132,8 +128,7 @@ public class Order extends AuditedEntity {
     /** 售后申请截止（收货时回填），过期不再受理售后申请（aftersale 经 order :: api 读此窗口） */
     private OffsetDateTime applyExpireAt;
 
-    // ---- 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段） ----
-
+    // 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段）
     public Money itemAmountAsMoney() {
         return Money.ofFen(itemAmount, currency);
     }

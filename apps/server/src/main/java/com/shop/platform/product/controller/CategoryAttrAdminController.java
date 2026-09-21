@@ -52,7 +52,7 @@ public class CategoryAttrAdminController {
                 id, req.name(), req.kind(), req.required(), req.allowCustom(), req.allowImage(), req.sort()));
     }
 
-    /** 更新属性定义（kind 创建后不可改，见 service） */
+    /** 更新属性定义（kind 创建后不可改） */
     @PutMapping("/category-attrs/{attrId}")
     public CategoryAttrResponse updateCategoryAttr(
             @PathVariable UUID attrId, @Valid @RequestBody CategoryAttrRequest req) {

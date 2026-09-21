@@ -32,8 +32,7 @@ public class ContentService {
     private final BannerMapper bannerMapper;
     private final RecommendTabMapper recommendTabMapper;
 
-    // ========== 前台只读 ==========
-
+    // 前台只读
     /** 前台首页导航：指定导航位下启用条目，按排序返回。subs 为 JSONB 整段带出 */
     public List<NavEntry> nav(String navKey) {
         return navEntryMapper.selectEnabledByKey(navKey);
@@ -53,8 +52,7 @@ public class ContentService {
         return recommendTabMapper.selectEnabled();
     }
 
-    // ========== 后台读 ==========
-
+    // 后台读
     public List<NavEntry> navAll(String navKey) {
         return navEntryMapper.selectList(new LambdaQueryWrapper<NavEntry>()
                 .eq(navKey != null, NavEntry::getNavKey, navKey)
@@ -75,8 +73,7 @@ public class ContentService {
                 .orderByAsc(RecommendTab::getId));
     }
 
-    // ========== 后台导航 ==========
-
+    // 后台导航
     /** 创建导航条目：默认启用。navKey 是导航位归属，创建后不可改 */
     @Transactional
     public NavEntry createNav(NavRequest req) {
@@ -118,8 +115,7 @@ public class ContentService {
         navEntryMapper.updateById(entry);
     }
 
-    // ========== 后台 banner ==========
-
+    // 后台 banner
     /** 创建 banner：默认启用。slot 是运营位归属，创建后不可改 */
     @Transactional
     public Banner createBanner(BannerRequest req) {
@@ -167,8 +163,7 @@ public class ContentService {
         bannerMapper.updateById(banner);
     }
 
-    // ========== 后台推荐条 ==========
-
+    // 后台推荐条
     /** 创建词条：默认启用 */
     @Transactional
     public RecommendTab createTab(RecommendTabRequest req) {

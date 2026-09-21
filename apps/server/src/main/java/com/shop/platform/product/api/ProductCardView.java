@@ -11,7 +11,7 @@ import java.util.UUID;
  * 不带 status：能出现在召回结果里的都是上架商品，可用性在这里没有问题可问。
  *
  * <p>价格是 Money（币种随行读出，不靠消费方补）。召回只发上架商品，而上架门槛保证每个在售 SKU 都已设价，
- * 所以两端在契约层是非空（见 PublicProductResponse 的口径说明）。
+ * 所以两端在契约层是非空。
  */
 public record ProductCardView(
         UUID id,

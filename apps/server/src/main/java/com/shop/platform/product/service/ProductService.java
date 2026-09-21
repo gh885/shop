@@ -111,7 +111,7 @@ public class ProductService {
                             .set(Product::getSubtitle, null));
         }
         productMapper.updateById(product);
-        // 5. SKU 名是「SPU名+规格值」的快照（见 Sku.nameOf）：SPU 改名后刷一遍存量 SKU 名，
+        // 5. SKU 名是「SPU名+规格值」的快照：SPU 改名后刷一遍存量 SKU 名，
         //    避免购物车/订单/列表里留旧标题。规格值不变则组合不变，name 只是拼串，刷新安全。
         if (nameChanged) {
             skuService.refreshNames(product);
@@ -147,7 +147,7 @@ public class ProductService {
     @Transactional
     public Product off(UUID productId) {
         Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
-        // 守卫 + 置下架（仅上架可下架的规则在实体内），乐观锁条件更新，见 requireTransition
+        // 守卫 + 置下架（仅上架可下架的规则在实体内），乐观锁条件更新
         product.off();
         requireTransition(productId, ProductStatus.PUBLISHED, ProductStatus.WAREHOUSE, "商品状态已变化，请刷新后重试");
         return product;
@@ -157,7 +157,7 @@ public class ProductService {
     @Transactional
     public Product on(UUID productId) {
         Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
-        // 1. 复检发布门槛：下架期间 SKU 可能被改（在售 SKU 口径，见 ensurePublishable）
+        // 1. 复检发布门槛：下架期间 SKU 可能被改（在售 SKU 口径）
         ensurePublishable(productId);
         // 1.5 上架须有货：仓库中的售罄商品需先补货再上架
         ensureOnShelfStock(productId);
@@ -174,7 +174,7 @@ public class ProductService {
         // 1. 归属 + 守卫：商品存在且属于当前店铺、仅草稿可放弃（规则在实体内）
         Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
         product.ensureAbandonable();
-        // 2. 同事务清 SKU + 库存主体行（对齐 updateSpecs 删除组合的先例：先清库存行再删 SKU）
+        // 2. 同事务清 SKU + 库存主体行（先清库存行再删 SKU）
         List<Sku> skus = skuMapper.selectByProductId(productId);
         for (Sku sku : skus) {
             stockCommand.removeRow(sku.getId());
@@ -184,10 +184,9 @@ public class ProductService {
         productMapper.deleteById(productId);
     }
 
-    // ========== 私有：发布门槛与状态迁移 ==========
-
+    // 私有：发布门槛与状态迁移
     /** 发布/重上门槛：必须有 SKU，且所有在售 SKU 都设了价。publish 与 on 共用。
-     *  注：库存 0 是否可上架不在此判断（见 ensureOnShelfStock：整链接无货不可上架/需先下架）。 */
+     *  注：库存 0 是否可上架不在此判断（整链接无货不可上架/需先下架）。 */
     private List<Sku> ensurePublishable(UUID productId) {
         List<Sku> skus = skuMapper.selectByProductId(productId);
         // 发布/重上门槛只看「在售 SKU」：停用 SKU 不计入（停用 SKU 不该阻塞上架，也不该被索取价格）
@@ -246,8 +245,7 @@ public class ProductService {
                 .build();
     }
 
-    // ========== 入参 ==========
-
+    // 入参
     /** 创建商品草稿的业务入参聚合 */
     public record CreateProductCommand(
             UUID shopId,

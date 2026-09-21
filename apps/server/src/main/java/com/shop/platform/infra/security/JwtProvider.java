@@ -112,8 +112,7 @@ public class JwtProvider {
         return audience;
     }
 
-    // ---- private ----
-
+    // private
     private String buildToken(UUID subjectId, String kind) {
         long expMs = KIND_STAFF.equals(kind) ? staffExp : accessExp;
         var builder = Jwts.builder()

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 /**
  * 超时任务调度：定时把 {@link OrderTimeout} 的每条规则交给 {@link OrderTimeoutService} 扫一遍。
  * 本类只管「多久扫一次、扫完记什么日志」，超时契约与并发让位机制都在 service 侧。
- * 调度线程池与 MDC 见 infra/observability/SchedulingConfig。
  */
 @Component
 @Slf4j

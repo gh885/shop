@@ -13,8 +13,7 @@ import { toFavoriteItem, type FavoriteItem } from "./favorite"
  * - 详情页心形（useFavoriteStatus / useToggleFavorite）：按 productId 独立 query，乐观切换
  */
 
-// ---------- 列表（收藏页） ----------
-
+// 列表（收藏页）
 /** 收藏页列表缓存 key（乐观移除的 patch 目标） */
 const KEY = ["favorite-items"] as const
 const FAVORITES_QUERY = { query: { pageParams: { page: 1, size: 100 } } } as const
@@ -48,8 +47,7 @@ export function useRemoveFavorites() {
     )
 }
 
-// ---------- 详情页心形（单商品） ----------
-
+// 详情页心形（单商品）
 /** 心形状态 query：key 与 options 同源（useToggleFavorite 的乐观更新复用同一 key）。
  * checkFavoriteExists 是 POST，生成器不产出 queryKey，故本地定义。 */
 const favoritedOptions = (productId: string) =>

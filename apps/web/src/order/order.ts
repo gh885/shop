@@ -19,8 +19,7 @@ import type { Order, OrderAction, OrderDetail, OrderItem } from "./model"
  * 入参直接用 SDK 生成的 DTO 类型（行项形状单一事实来源在 types.gen，不手抄）。
  */
 
-// ---------- 状态映射（后端枚举大写 → 前端领域枚举小写，双向） ----------
-// 状态机唯一真相在 #/shared/order-status（toStatusFromWire / statusToWire）
+// 状态映射（后端枚举大写 → 前端领域枚举小写，双向）// 状态机唯一真相在 #/shared/order-status（toStatusFromWire / statusToWire）
 
 export { statusToWire } from "#/shared/order-status"
 

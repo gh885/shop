@@ -24,12 +24,10 @@ import type {
  * 3. **兜底只在边界做一次**：wire 契约的 optional/nullable 由各投影归一；
  *    行内不再用 "" 哨兵，判断一律 null 比较。
  *
- * 文件内聚：类型 + 笛卡尔积组合 + 行投影/合并 + 保存载荷（均纯函数，可单测）；
- * 网络（拉模板/对账/落库/上传）在 data.ts，副作用编排在 use-product-draft。
+ * 文件内聚：类型 + 笛卡尔积组合 + 行投影/合并 + 保存载荷（均纯函数，可单测）。
  */
 
-// ---------- 值类型（能派生的派生，只写本地语义） ----------
-
+// 值类型（能派生的派生，只写本地语义）
 /** 表单编辑的「基本信息」字段（白名单派生自 UpdateProductRequest，其余字段服务端生成/推导） */
 export type ProductBasicForm = Required<
     Pick<UpdateProductRequest, "name" | "subtitle" | "images" | "detailImages">
@@ -68,8 +66,7 @@ export interface SkuDraftRow {
     status: SkuResponse["status"]
 }
 
-// ---------- 单元格输入规则（元文本 → 分；单元格/批量填写共用） ----------
-
+// 单元格输入规则（元文本 → 分；单元格/批量填写共用）
 /**
  * 价格单元格的输入格式：非负「元」、最多两位小数 → Money。
  *
@@ -92,16 +89,14 @@ export const countInputSchema = z
     .regex(/^\d+$/, "数量需为非负整数")
     .transform(Number)
 
-// ---------- 行构造 ----------
-
+// 行构造
 /** 空白行（新建态组合/单规格共用一份默认值，避免各处手写 {price:null…}） */
 function blankDraftRow(label: string): SkuDraftRow {
     // oxlint-disable-next-line no-null -- 设计契约：模型存 null（见文件头「模型只存分与 null」，rowFromSku 不对 wire null 归一）
     return { skuId: null, label, price: null, stock: null, skuCode: null, status: "ON_SALE" }
 }
 
-// ---------- SKU 组合：模板选值 → 笛卡尔积行（新建态完全显式，不调后端不建档） ----------
-
+// SKU 组合：模板选值 → 笛卡尔积行（新建态完全显式，不调后端不建档）
 interface SpecValueDraft {
     valueId?: string
     value: string
@@ -163,8 +158,7 @@ export function buildSkuRowsFromSelections(
     )
 }
 
-// ---------- 行投影与合并（服务端行 ↔ 编辑行） ----------
-
+// 行投影与合并（服务端行 ↔ 编辑行）
 /** 服务端 SKU → 编辑行：label 拼规格名；金额不换算（模型即「分」），可空字段原样透传 */
 export function rowFromSku(sku: SkuResponse): SkuDraftRow {
     return {
@@ -228,8 +222,7 @@ export function mergeLocalPricedRows(
     })
 }
 
-// ---------- 保存门槛与 wire 载荷（边界投影） ----------
-
+// 保存门槛与 wire 载荷（边界投影）
 /** 发布门槛只读守卫：未设价的 SKU 行（提交/入库前必须补全；草稿模式可跳过） */
 export function unpricedRows(rows: SkuDraftRow[]): SkuDraftRow[] {
     return rows.filter((r) => r.price === null)

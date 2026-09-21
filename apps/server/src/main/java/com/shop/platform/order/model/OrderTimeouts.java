@@ -4,7 +4,7 @@ import java.time.Duration;
 
 /**
  * 订单四个时间窗口的唯一出处。每个窗口都是「某动作回填截止列 → 定时任务扫到期 → 自动落下一态」的三件套，
- * 天数散写在各转移点必然漂移，故集中在此。到期后果与扫描规则见 order.service 的 OrderTimeout。
+ * 天数散写在各转移点必然漂移，故集中在此。
  */
 public final class OrderTimeouts {
 

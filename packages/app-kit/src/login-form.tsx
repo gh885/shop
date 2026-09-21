@@ -34,7 +34,7 @@ import { notify } from "./notify"
  *
  * 为什么在 app-kit：它同时知道契约（SmsFormSchema / ApiError 错误码语义）与 UI（ui-web 控件），
  * 且「输错验证码抖动、图形验证码失效换图、发码倒计时」这套交互两端必须一致 —— 正是 app-kit
- * 的职责边界（同 notify 的文案策略）。端差异只留两处入参：动作装配（getCaptcha/sendCode/submit）
+ * 的职责边界。端差异只留两处入参：动作装配（getCaptcha/sendCode/submit）
  * 与壳（web 是 Dialog + 扫码占位，seller 是 Card）。
  *
  * 自有状态全部是表单瞬时态：Tab、服务端错误、倒计时、发码中、图形验证码。

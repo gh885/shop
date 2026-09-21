@@ -1,8 +1,7 @@
 import { queryOptions, useMutation, useSuspenseQuery } from "@tanstack/react-query"
 import { SellerAddressesApi, type MerchantAddressRequest } from "@shop/api/sdk"
 
-// ---------- address 域 queryKey 工厂（前缀结构一眼可见，invalidate 不漏 key） ----------
-
+// address 域 queryKey 工厂（前缀结构一眼可见，invalidate 不漏 key）
 const addressKeys = {
     all: ["addresses"] as const,
     lists: (shopId: string) => ["addresses", shopId, "list"] as const,

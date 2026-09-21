@@ -22,7 +22,7 @@
  * 售后已独立为 aftersale 模块：订单只留 after_sale_status（最近一张售后单的状态）与 refund_amount（退款口径）两列投影，
  * 由 aftersale 经 order :: api 的 OrderCommand.syncAfterSale 写回；apply_expire_at 是订单自己的售后申请窗口。
  * 资金态归 payment（payments.status）。
- * 三条时间驱动的超时契约（窗口见 OrderTimeouts，规则表见 OrderTimeout）：待付款超时关单、
+ * 三条时间驱动的超时契约：待付款超时关单、
  * 待发货超时自动取消+退款、已发货超时未确认自动收货（确认收货窗口由发货先铺兜底、签收后重算）。
  * 本模块不自己算运费：模板与计费规则都属 shop，order 只提供订单侧事实（收货区码、同店合计件数
  * 与商品额）并消费报价，不复制 prefix / 默认规则 / 包邮门槛那套领域知识。

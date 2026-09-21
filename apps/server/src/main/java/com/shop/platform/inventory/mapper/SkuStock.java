@@ -14,7 +14,7 @@ import lombok.experimental.SuperBuilder;
  *
  * <p>半充血（见 AGENTS.md）：不变式与派生归实体，并发闸门与持久化归 service。
  * 真正的原子扣减/冻结/扣实/释放一律条件更新（WHERE 可用量 >= n + 影响行数判 0，
- * 见 SkuStockMapper 的单语句 RETURNING OLD/NEW），不因实体有状态方法而改读-改-写。
+ * 单语句 RETURNING OLD/NEW），不因实体有状态方法而改读-改-写。
  *
  * <p>{@code @Version} 乐观锁只服务于「绝对量调整」这条读-改-写路径（后台把总库存 set 成某值，
  * 两个并发调整会互相覆盖）——updateById 时 MP 自动带 version 比较 + version+1，冲突则影响行数为 0。

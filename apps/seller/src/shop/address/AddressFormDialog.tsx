@@ -96,7 +96,7 @@ export interface AddressFormDialogProps {
     editing?: MerchantAddressResponse
 }
 
-/** 新增/编辑商家地址表单弹窗（对齐淘宝地址库表单；地区用 web 端同款级联组件） */
+/** 新增/编辑商家地址表单弹窗（对齐淘宝地址库表单） */
 export function AddressFormDialog({ open, onOpenChange, shopId, editing }: AddressFormDialogProps) {
     const create = useCreateAddress(shopId)
     const update = useUpdateAddress(shopId)
@@ -186,7 +186,7 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
                         </form.AppField>
                     ))}
 
-                    {/* 地区：国标行政区划级联选择（web 端同款组件） */}
+                    {/* 地区：国标行政区划级联选择 */}
                     <form.AppField name="regionCode">
                         {(field) => (
                             <Field

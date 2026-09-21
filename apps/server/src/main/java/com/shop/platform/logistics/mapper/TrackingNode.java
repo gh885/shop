@@ -17,7 +17,7 @@ import lombok.experimental.SuperBuilder;
  * 原始描述留在 {@link #description} 供人看（不参与状态推导）。
  *
  * <p>{@link #dedupeKey} 是重推的拦截器：投递方重推会换 message id，只有业务唯一键可靠，
- * 插入走 {@code ON CONFLICT DO NOTHING}（见 TrackingNodeMapper）。
+ * 插入走 {@code ON CONFLICT DO NOTHING}。
  */
 @Data
 @SuperBuilder
@@ -29,7 +29,7 @@ public class TrackingNode extends BaseEntity {
     /** 所属包裹，logistics.shipments.id */
     private UUID shipmentId;
 
-    /** 归一化节点码（承运商无关的词表），映射规则见 TrackingNodeCode */
+    /** 归一化节点码（承运商无关的词表） */
     private TrackingNodeCode nodeCode;
 
     /** 承运商原始描述（展示用） */

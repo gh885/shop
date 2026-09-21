@@ -2,8 +2,7 @@ import { CmsAdminApi } from "@shop/api/sdk"
 import type { BannerRequest, CmsStatus } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-// ---------- banner 域 queryKey 工厂 + 取数 + 写操作（SDK 直调；范式同 seller shop/address/queries.ts） ----------
-
+// banner 域 queryKey 工厂 + 取数 + 写操作（SDK 直调）
 export const bannerKeys = {
     all: ["admin", "cms", "banners"] as const,
     list: (slot: string | undefined) => ["admin", "cms", "banners", slot ?? "all"] as const,

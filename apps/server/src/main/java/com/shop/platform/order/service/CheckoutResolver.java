@@ -115,7 +115,7 @@ class CheckoutResolver {
     }
 
     /** 有效行按店铺分组算钱；店铺名经 shop :: api 只读拼装（一组对应一笔待创建订单）。
-     *  分组按 shopId 升序，与 OrderService.create 的拆单顺序一致（那边是为锁序，见其第 3 步注释），预览与实际成单同序。
+     *  分组按 shopId 升序，与 OrderService.create 的拆单顺序一致（那边是为锁序），预览与实际成单同序。
      *
      * <p>运费也在这里定格，且与订单落库同源（预览与下单走同一个方法）：一个店铺一份模板一份运费，
      * 口径是<b>同店合计</b>（件数/商品额）而不是按行 —— 首件+续件的「件数」是整单的件数。
@@ -123,7 +123,7 @@ class CheckoutResolver {
      * <p>优惠券同样在这条链路上定格，理由也一样：<b>预览与下单必须共用同一次计算</b>，
      * 「预览一个价、下单另一个价」是最经典的客诉来源。两条与券有关的定案：
      * <ul>
-     *   <li>门槛基数 = <b>同店商品额</b>（不含运费、不含其他优惠），口径见 CouponEvaluator；
+     *   <li>门槛基数 = <b>同店商品额</b>（不含运费、不含其他优惠）；
      *   <li>包邮门槛仍按<b>优惠前</b>商品额判定 —— 运费先算、券后减，用户用了券不会反而丢掉包邮。
      * </ul>
      *
@@ -170,7 +170,7 @@ class CheckoutResolver {
                 break;
             }
 
-            // 3. 运费按优惠前商品额与件数报价（包邮门槛不看优惠，见 ShippingTemplate.freeAt）
+            // 3. 运费按优惠前商品额与件数报价（包邮门槛不看优惠）
             ShippingQuote quote = address == null
                     ? null
                     : shippingFeeReadQuery.quote(shopId, address.regionCode(), quantity, itemAmount);
@@ -227,8 +227,7 @@ class CheckoutResolver {
                 cause);
     }
 
-    // ---- 内部投影 record：结算链路上的一站一形状，仅在本包内流通 ----
-
+    // 内部投影 record：结算链路上的一站一形状，仅在本包内流通
     /** 结算请求行：同 SKU 合并后的 skuId + 件数 */
     record RequestedLine(UUID skuId, int quantity) {}
 

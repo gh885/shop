@@ -18,8 +18,7 @@ import type { MutationMeta } from "@shop/app-kit"
  * - 结算预览/下单/支付是交互动作，不设缓存，走 mutation。
  */
 
-// ---------- 我的订单列表 ----------
-
+// 我的订单列表
 /** 列表失效 key：前缀部分匹配，一发命中所有 tab/分页（checkout 等跨模块失效也引用它） */
 export const MY_ORDERS_KEY = ["my-orders"] as const
 
@@ -62,8 +61,7 @@ export const myOrdersOptions = ({
     })
 }
 
-// ---------- 订单详情 ----------
-
+// 订单详情
 /** 导出供 route loader 客户端预热（订单详情/物流页 loader 预取）；组件直接 useQuery(orderDetailOptions(id)) */
 export const orderDetailOptions = (id: string) =>
     queryOptions({
@@ -74,8 +72,7 @@ export const orderDetailOptions = (id: string) =>
         retry: false,
     })
 
-// ---------- 结算预览 / 下单 / 支付（交互动作，mutation 由调用方 useMutation 接线） ----------
-
+// 结算预览 / 下单 / 支付（交互动作，mutation 由调用方 useMutation 接线）
 /** 结算预览：只读幂等，返回分组明细/失效行/地址/应付总额的 wire 形状（页面再投影）。
  *  `userCouponIds` 为每店选中的券（后端按店核销，至多一张）；不传 = 不用券。 */
 export async function fetchPreview(args: {
@@ -112,8 +109,7 @@ export async function createOrder(args: {
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；返回成功流水 */
 // 发起支付/确认支付直接在 checkout 的 mutation 里调 SDK（两段式流水消费方各自接线）
 
-// ---------- 订单操作 mutation（取消/确认收货共用一套失效 + 提示接线） ----------
-
+// 订单操作 mutation（取消/确认收货共用一套失效 + 提示接线）
 /** 订单动作 mutation 工厂：成功 toast + 失效订单列表与该单详情，错误统一文案 */
 function useOrderActionMutation(
     mutationFn: (orderId: string) => Promise<unknown>,

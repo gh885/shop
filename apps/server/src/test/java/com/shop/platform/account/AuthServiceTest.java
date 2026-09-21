@@ -237,8 +237,7 @@ class AuthServiceTest {
         void 成功_轮换新令牌() {
             String token = "rt:valid";
 
-            // 轮换（消费 + 重放裁决 + 清旧设备索引）收敛在 RefreshTokenStore.rotate，
-            // 其裁决分支由 RefreshTokenStoreIT 用真 Redis 覆盖；这里只验 AuthService 拿到 subjectId 后的签发路径
+            // 这里只验拿到 subjectId 后的签发路径
             when(refreshTokenStore.rotate(token, "dev1", "[AUTH]")).thenReturn(USER_ID.toString());
             when(userMapper.selectById(USER_ID)).thenReturn(new User() {
                 {

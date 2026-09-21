@@ -35,7 +35,7 @@ export interface OptimisticListMutationConfig<TData, TVars> {
     mutationFn: (vars: TVars) => Promise<unknown>
     /** 给定旧列表与变量，返回乐观 patch 后的列表——领域自己的规则 */
     patch: (list: TData[], vars: TVars) => TData[]
-    /** 反馈与连带失效的声明，见 MutationMeta */
+    /** 反馈与连带失效的声明 */
     meta?: MutationMeta
 }
 

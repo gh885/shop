@@ -67,8 +67,7 @@ class ShippingFeeCalculatorTest {
                 rule(UUID.randomUUID(), false, 1, firstFee, 1, addFee), List.of(prefixes));
     }
 
-    // ---- 默认规则：没有地区规则命中时的兜底 ----
-
+    // 默认规则：没有地区规则命中时的兜底
     @Test
     void 无地区规则命中_用默认规则且只收首费() {
         ShippingQuote quote = calculator.quote(pricing(List.of(), List.of()), "110105", 1, Money.cny(9999));
@@ -103,8 +102,7 @@ class ShippingFeeCalculatorTest {
                 .isEqualTo(Money.cny(2000));
     }
 
-    // ---- 指定地区：最长前缀胜（更具体的粒度优先） ----
-
+    // 指定地区：最长前缀胜（更具体的粒度优先）
     @Test
     void 省级与市级规则同时命中_取更具体的市级() {
         // 省规则 1500 / 市规则 2500：费用故意不同，才能看出到底选了哪条（同价时这条测试是假的）
@@ -133,8 +131,7 @@ class ShippingFeeCalculatorTest {
                 .isEqualTo(Money.cny(1500)); // 默认 1000 + 500
     }
 
-    // ---- 不配送：优先于一切，连包邮条件也救不回来 ----
-
+    // 不配送：优先于一切，连包邮条件也救不回来
     @Test
     void 命中不配送地区_不可达且不看运费() {
         ShippingPricing pricing = new ShippingPricing(
@@ -159,8 +156,7 @@ class ShippingFeeCalculatorTest {
                 .isTrue();
     }
 
-    // ---- 模板级包邮：整店包邮 / 满件 / 满额 ----
-
+    // 模板级包邮：整店包邮 / 满件 / 满额
     @Test
     void 整店包邮_任何地区任何件数都零运费() {
         ShippingPricing pricing =

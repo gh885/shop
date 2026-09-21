@@ -21,8 +21,7 @@ public class BusinessException extends RuntimeException {
      */
     private final transient List<Map<String, String>> errors;
 
-    // ---- 核心构造器 ----
-
+    // 核心构造器
     public BusinessException(int httpStatus, String code, String detail) {
         this(httpStatus, code, detail, null);
     }
@@ -39,8 +38,7 @@ public class BusinessException extends RuntimeException {
         this.errors = errors;
     }
 
-    // ---- 常用工厂方法 ----
-
+    // 常用工厂方法
     public static BusinessException notFound(String detail) {
         return new BusinessException(404, detail);
     }

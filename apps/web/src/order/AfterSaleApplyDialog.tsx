@@ -28,7 +28,7 @@ import { useApplyAfterSale } from "./after-sale-queries"
  *
  * 两类售后对买家的承诺完全不同（仅退款=不用寄回，退货退款=要寄回），所以类型用带说明的单选，
  * 不用下拉——把「要不要寄回」这句话摆在选择项里，比选完再解释便宜。
- * 理由是选填（后端 reason 可空），空串按没填处理，见 after-sale-queries 的投影。
+ * 理由是选填（后端 reason 可空），空串按没填处理。
  */
 
 /** 表单入参校验（与后端 @Size(max = 200) 对齐；表单局部 schema，非领域契约） */

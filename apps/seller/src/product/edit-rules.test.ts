@@ -21,8 +21,7 @@ const UNPRICED = [makeRow(null)]
 const ALL_PRICED = [makeRow(100), makeRow(200)]
 const SOME_UNPRICED = [makeRow(100), makeRow(null)]
 
-// ---------- willPublish：动作是否会把商品移出草稿 ----------
-
+// willPublish：动作是否会把商品移出草稿
 describe("willPublish", () => {
     it.each<[SaveMode, ProductStatus | undefined, boolean]>([
         // 草稿态会发布——只有「打草稿 → 出草稿」的迁移动作才算
@@ -40,8 +39,7 @@ describe("willPublish", () => {
     })
 })
 
-// ---------- publishGateError：保存/发布前门槛（草稿无门槛；将发布要求全设价；保存变更要求价格必填） ----------
-
+// publishGateError：保存/发布前门槛（草稿无门槛；将发布要求全设价；保存变更要求价格必填）
 describe("publishGateError", () => {
     it("有未设价 SKU 且本次将发布（新建/草稿会话点提交/入库）→ 拒绝并提示补全", () => {
         expect(publishGateError(UNPRICED, "submit", "DRAFT")).toBe(

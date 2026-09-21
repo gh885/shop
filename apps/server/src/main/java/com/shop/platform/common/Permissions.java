@@ -11,8 +11,7 @@ import java.util.List;
  */
 public final class Permissions {
 
-    // ---- admin 域（平台员工，kind=staff） ----
-
+    // admin 域（平台员工，kind=staff）
     /** 入驻审核（通过与拒绝），岗位 REVIEWER */
     public static final String SHOP_REVIEW = "SHOP_REVIEW";
 
@@ -28,8 +27,7 @@ public final class Permissions {
     /** 物流轨迹维护（补录节点、纠错），岗位 OPS */
     public static final String LOGISTICS_MANAGE = "LOGISTICS_MANAGE";
 
-    // ---- seller 域（店铺子账号，P1 启用标注） ----
-
+    // seller 域（店铺子账号，P1 启用标注）
     /** 商品增删改、规格 SKU、上下架 */
     public static final String PRODUCT_MANAGE = "PRODUCT_MANAGE";
 
@@ -47,7 +45,7 @@ public final class Permissions {
 
     /**
      * 全量权限码（文档顺序）。SUPER_ADMIN 在 me 出参展开成这份清单给前端；
-     * 判权内部仍用通配符（见 PermissionResolver.WILDCARD），两处新增码要同步。
+     * 判权内部仍用通配符，两处新增码要同步。
      */
     public static List<String> all() {
         return List.of(

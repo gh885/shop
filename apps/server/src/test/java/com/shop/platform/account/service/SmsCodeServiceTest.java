@@ -86,8 +86,7 @@ class SmsCodeServiceTest {
         lenient().when(devProvider.getIfAvailable()).thenReturn(null);
     }
 
-    // ---- 发送 ----
-
+    // 发送
     @Test
     void 发送验证码_存HMAC摘要_下发短信_给全新尝试机会() {
         service.sendCode(phone, ip);
@@ -167,8 +166,7 @@ class SmsCodeServiceTest {
                         BusinessException.class, ex -> assertThat(ex.getCode()).isEqualTo("SMS_DAILY_LIMIT"));
     }
 
-    // ---- 校验 ----
-
+    // 校验
     @Test
     void 校验通过_一次性消费() {
         String code = "123456";

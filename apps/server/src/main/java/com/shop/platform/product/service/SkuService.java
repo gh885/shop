@@ -46,7 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SkuService {
 
-    /** 单商品 SKU 组合数上限（笛卡尔积总量校验，见 updateSpecs） */
+    /** 单商品 SKU 组合数上限（笛卡尔积总量校验） */
     private static final int MAX_SKU_COMBINATIONS = 500;
 
     private final ProductMapper productMapper;
@@ -61,10 +61,10 @@ public class SkuService {
      * 按类目属性模板提交规格选择，并按 valueId 组合（spec_key）对账 SKU：
      * 组合没变的保留（价格库存不丢）、组合消失的停用保留（不物理删，见步骤 6）、组合新增的按笛卡尔积生成。
      *
-     * <p>规格值 ID 化后，规格值改名只是改快照（见 CategoryAttrService.updateValue），不再被视为新组合—— 消除了旧版"改名即丢价"的已知限制。spec_key = valueId
+     * <p>规格值 ID 化后，规格值改名只是改快照，不再被视为新组合—— 消除了旧版"改名即丢价"的已知限制。spec_key = valueId
      * 按模板维度顺序 ':' join，uk_skus_product_spec_key 唯一索引兜底重复组合。
      *
-     * <p>仅非上架状态可改规格（守卫在实体 ensureSpecsEditable）：改规格必须先下架——
+     * <p>仅非上架状态可改规格（守卫在实体）：改规格必须先下架——
      * 对账停用而不是删除被移除组合，避免买家购物车/订单里裸引用（无 FK）的 sku 行悬空。
      */
     @Transactional
@@ -139,7 +139,7 @@ public class SkuService {
 
     /** 批量更新 SKU。任何状态都允许：上架后补货/改价/停用是日常运营操作。price 必填，其余只 set 非空字段。
      *  库存归 inventory 模块：seller 传的 stock 是「绝对量设定」，经 inventory :: StockCommand.setTotal 走乐观锁，不写 product 表。
-     *  仅一条额外守卫：上架商品不允许被存成「全部在售 SKU 库存 = 0」（整链接无货必须先下架，见 ensureNotAllOutOfStock）。 */
+     *  仅一条额外守卫：上架商品不允许被存成「全部在售 SKU 库存 = 0」（整链接无货必须先下架）。 */
     @Transactional
     public List<Sku> updateSkus(UUID productId, List<SkuUpdateItem> items) {
         // 1. 商品必须存在且属于当前店铺（任何状态都允许改价/补货，是日常运营操作）；实体留作价格区间回填
@@ -198,8 +198,7 @@ public class SkuService {
         }
     }
 
-    // ========== 私有：规格选择解析 ==========
-
+    // 私有：规格选择解析
     /** 规格选择 → 模板解析：校验 attr/value 归属与状态，受理卖家自定义值，产出落库的 specs 快照 */
     private List<SpecItem> resolveSelections(Product product, List<SpecSelection> selections) {
         // 属性与值域一次批量捞进 Map，循环体退化为纯内存谓词——旧版逐条 selectById 在
@@ -308,8 +307,7 @@ public class SkuService {
         Validate.isTrue(anyOnSaleWithStock, "上架商品的库存不能全为 0，请先下架商品或补充库存");
     }
 
-    // ========== 入参 ==========
-
+    // 入参
     /**
      * 一个规格维度的选择：attrId 定位模板属性，valueIds 选值域内值，customValues 提交值域外新值
      * （仅当 attr.allow_custom 时受理，自动建档 source=2）。两列表至少一非空（HTTP 层 @AssertTrue 先拦）。

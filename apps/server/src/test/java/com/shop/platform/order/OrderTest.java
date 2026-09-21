@@ -33,7 +33,7 @@ class OrderTest {
 
     @Test
     void 已付款_买家仍可取消_卖家可发货() {
-        // 已付款待发货：取消回补库存是合法转移（见 OrderFlowIT），发货按钮此时亮起
+        // 已付款待发货：取消回补库存是合法转移，发货按钮此时亮起
         assertThat(orderOf(OrderStatus.PAID).buyerActions()).containsExactly(CANCEL);
         assertThat(orderOf(OrderStatus.PAID).sellerActions()).containsExactly(SHIP);
     }

@@ -35,8 +35,7 @@ public class ProductQueryService {
     private final SkuMapper skuMapper;
     private final StockReadQuery stockReadQuery;
 
-    // ========== 卖家侧 ==========
-
+    // 卖家侧
     /**
      * 卖家工作台商品列表：分页 + 每行补库存指标，可按 库存/销量/创建时间 排序。
      *
@@ -84,8 +83,7 @@ public class ProductQueryService {
         return new ProductDetail(product, skus);
     }
 
-    // ========== 买家侧公开读 ==========
-
+    // 买家侧公开读
     /**
      * 买家侧商品列表：可按类目/店铺/关键词筛选并排序。
      *
@@ -118,8 +116,7 @@ public class ProductQueryService {
         return new ProductDetail(product, skus);
     }
 
-    // ========== 私有：卖家列表辅助 ==========
-
+    // 私有：卖家列表辅助
     /** 商家后台商品列表：按店铺分页，可按状态/名称筛选。createdAt / soldCount 都是表列，排序直接走 DB 分页（升降序由 sort 后缀控制） */
     private PageResult<Product> pageList(
             UUID shopId, ProductStatus status, String keyword, long page, long size, String sort) {

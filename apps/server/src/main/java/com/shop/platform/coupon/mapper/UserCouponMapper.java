@@ -133,7 +133,7 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
 
     /**
      * 支付成功核销：LOCKED → USED。返回 0 表示本单没有待核销的券（没用券，或已核销过的重放），都不是错误。
-     * USED 不可逆：退款不把它改回去，而是补发新券（见 UserCouponStatus）。
+     * USED 不可逆：退款不把它改回去，而是补发新券。
      */
     default int useByOrder(UUID orderId, OffsetDateTime now) {
         return update(

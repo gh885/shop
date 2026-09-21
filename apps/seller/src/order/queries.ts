@@ -21,8 +21,7 @@ export interface AfterSaleListSearch {
     size: number
 }
 
-// ---------- queryKey 工厂 ----------
-// shopId 由路由守卫（ShopGate）保证必有：渲染到这些页面时一定有 ACTIVE 店铺，
+// queryKey 工厂// shopId 由路由守卫（ShopGate）保证必有：渲染到这些页面时一定有 ACTIVE 店铺，
 // key 里不再出现 undefined，enabled 兜底也可省（守卫在店铺就绪前不渲染业务页）。
 
 export const orderKeys = {
@@ -90,7 +89,7 @@ export const afterSaleListKeys = {
         ["after-sales", shopId, search.status ?? "all", search.page, search.size] as const,
 }
 
-/** 本店售后单分页列表（工作台）：同 orderListOptions 的失败口径 */
+/** 本店售后单分页列表（工作台） */
 export const afterSaleListOptions = (shopId: string, search: AfterSaleListSearch) =>
     queryOptions({
         queryKey: afterSaleListKeys.list(shopId, search),

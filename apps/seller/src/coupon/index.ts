@@ -1,5 +1,5 @@
 /**
- * coupon —— 卖家优惠券域（扁形态，同 shipping）。
+ * coupon —— 卖家优惠券域（扁形态）。
  *
  * - model.ts   ：列表 URL 状态 schema、展示状态派生（纯函数）、wire → 领域投影
  * - form.ts    ：新建表单的 Zod 校验与「表单形状 → 后端请求」投影（元 → 分、本地时间 → ISO 时刻）

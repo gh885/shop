@@ -57,8 +57,7 @@ public class Shipment extends AuditedEntity {
     /** 签收时刻（DELIVERED 节点回填），未签收为 null */
     private OffsetDateTime deliveredAt;
 
-    // ---- 面单寄件人快照（发货时刻定格）：从 orders 搬来，它本质是面单 = 包裹的属性 ----
-
+    // 面单寄件人快照（发货时刻定格）：从 orders 搬来，它本质是面单 = 包裹的属性
     private String shipFromContactName;
 
     private String shipFromPhone;

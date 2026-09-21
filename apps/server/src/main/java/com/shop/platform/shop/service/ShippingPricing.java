@@ -10,7 +10,7 @@ import java.util.List;
  * <p>把「散在四张表里的模板」聚成一个整体交给 {@link ShippingFeeCalculator}：计费器是纯函数
  * （只吃这个形状 + 收货区码 + 订单件数/金额），可以脱离数据库单测——运费算错的代价比多一个 record 大得多。
  *
- * <p>装的是 mapper 实体（形状类内嵌实体的先例见 ProductDetail），故不得越过 HTTP 边界，
+ * <p>装的是 mapper 实体，故不得越过 HTTP 边界，
  * controller 出参一律经 {@code ShippingTemplateResponse} 转换。
  */
 public record ShippingPricing(

@@ -31,7 +31,7 @@ public class CartItem extends AuditedEntity {
     /** 加购的卖法（product.skus.id），跨 schema 裸引用不加 FK；同用户同 SKU 唯一（uk_cart_items_user_sku） */
     private UUID skuId;
 
-    /** 数量。DB CHECK 兜底 1~999，真实限购（秒杀限件）在 service/order 校验；同 SKU 再加的累加封顶在 CartItemMapper#upsertMerging */
+    /** 数量。DB CHECK 兜底 1~999，真实限购（秒杀限件）在 service/order 校验 */
     private Integer quantity;
 
     /** 结算勾选位：结算页只提交勾选条目。落库保证跨设备一致 */

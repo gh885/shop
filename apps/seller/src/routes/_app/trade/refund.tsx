@@ -25,7 +25,7 @@ import { useShop } from "#/shop"
  * 这里是「按售后作业」——待处理多少、退货中多少一眼看清，不必在订单堆里翻。
  * 决策复用的是同一个 AfterSaleDecisionDialog：同一个不可逆决定，不该有两套说法。
  *
- * 页签默认「待处理」（见 model 的 DEFAULT_REFUND_TAB）；页签与页码都进 URL，可分享可回退。
+ * 页签默认「待处理」；页签与页码都进 URL，可分享可回退。
  */
 
 const listSearchSchema = z.object({
@@ -77,7 +77,7 @@ function RefundPage() {
     // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）；这里只管把动作路由到对应 mutation
     const runDecision = () => {
         if (!decision) return
-        // 两个 id 各归其位：busy 态与请求路径（处理端点挂在订单资源下，见 use-refund-list 的说明）
+        // 两个 id 各归其位：busy 态与请求路径（处理端点挂在订单资源下）
         const args = { ticketId: decision.ticket.id, orderId: decision.ticket.orderId }
         if (decision.kind === "agree") agreeAfterSale(args)
         else if (decision.kind === "reject") rejectAfterSale(args)

@@ -55,8 +55,7 @@ class MerchantAddressServiceTest {
                 returnDefault);
     }
 
-    // ---- create：标记默认发货会先清本店其他默认发货，保证每店至多一个 ----
-
+    // create：标记默认发货会先清本店其他默认发货，保证每店至多一个
     @Test
     void create_withDefaultShip_clearsSameShopDefaultShipBeforeInsert() {
         when(regionRegistry.isValidCode("440305")).thenReturn(true);
@@ -71,8 +70,7 @@ class MerchantAddressServiceTest {
         assertThat(created.getStatus()).isEqualTo(AddressStatus.ACTIVE);
     }
 
-    // ---- create：区划非国标码直接 400 ----
-
+    // create：区划非国标码直接 400
     @Test
     void create_withInvalidRegionCode_throwsBadRequest() {
         when(regionRegistry.isValidCode("999999")).thenReturn(false);
@@ -85,8 +83,7 @@ class MerchantAddressServiceTest {
                 .isEqualTo(400);
     }
 
-    // ---- update：越店访问一律 404（不暴露他人地址存在性） ----
-
+    // update：越店访问一律 404（不暴露他人地址存在性）
     @Test
     void update_whenAddressBelongsToOtherShop_throwsNotFound() {
         when(regionRegistry.isValidCode("440305")).thenReturn(true);
@@ -101,8 +98,7 @@ class MerchantAddressServiceTest {
                 .isEqualTo(404);
     }
 
-    // ---- setDefaultShip：置默认前清本店其他默认发货，并发布默认切换事件 ----
-
+    // setDefaultShip：置默认前清本店其他默认发货，并发布默认切换事件
     @Test
     void setDefaultShip_clearsShopDefaultShip_andPublishesSwitchedEvent() {
         UUID addrId = UUID.randomUUID();
@@ -122,8 +118,7 @@ class MerchantAddressServiceTest {
         assertThat(address.getDefaultShip()).isTrue();
     }
 
-    // ---- delete：软删，api 快照解析永不命中 ----
-
+    // delete：软删，api 快照解析永不命中
     @Test
     void delete_softDeletesAddress() {
         UUID addrId = UUID.randomUUID();

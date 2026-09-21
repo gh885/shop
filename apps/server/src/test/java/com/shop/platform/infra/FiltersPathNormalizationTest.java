@@ -91,8 +91,7 @@ class FiltersPathNormalizationTest {
                 .andExpect(jsonPath("$.ok").value(true));
     }
 
-    // ---------- RequestPaths 单测：MockMvc 会预规范化点号段/双斜杠，只能在这里控制原始 URI ----------
-
+    // RequestPaths 单测：MockMvc 会预规范化点号段/双斜杠，只能在这里控制原始 URI
     @Test
     void 非规范路径_路由判空() {
         assertThat(routeOf("/api/../admin/secret")).isNull(); // 容器归一化后命中 /admin

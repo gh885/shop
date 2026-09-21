@@ -52,7 +52,7 @@ public class TrackingService {
         // 1. 定位包裹：不存在给 404（越权由调用侧的权限闸门负责，这里是运营补录入口）
         Shipment shipment = Validate.notNull(shipmentMapper.selectById(shipmentId), "包裹不存在");
 
-        // 2. 归一化：节点码 → 目标状态。这是状态推导的唯一入口，承运商原始码不进领域（见 TrackingNodeCode）
+        // 2. 归一化：节点码 → 目标状态。这是状态推导的唯一入口，承运商原始码不进领域
         ShipmentStatus target = req.nodeCode().status();
 
         // 3. 去重落库：撞唯一键 = 同一事实已记录过（重推/补录），静默返回，状态不动

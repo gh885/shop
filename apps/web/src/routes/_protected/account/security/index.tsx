@@ -49,8 +49,7 @@ function SecurityPage() {
     )
 }
 
-// ---------- 修改密码 ----------
-
+// 修改密码
 function ChangePassword() {
     const [error, setError] = useState<string | undefined>()
 
@@ -142,8 +141,7 @@ function ChangePassword() {
     )
 }
 
-// ---------- 设备管理 ----------
-
+// 设备管理
 function DeviceManager() {
     const currentDeviceId = getDeviceId()
 
@@ -264,8 +262,7 @@ function DeviceManager() {
     )
 }
 
-// ---------- 工具 ----------
-
+// 工具
 function isMobileName(name: string | null): boolean {
     if (!name) return false
     const n = name.toLowerCase()

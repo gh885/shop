@@ -15,7 +15,7 @@ public enum SkuStatus {
 
     /** 在售（可加购/下单；缺货是可售罄态，不属本枚举）。
      *  商品级约束（不在此枚举表达）：上架/发布要求至少一个在售 SKU 有货；
-     *  上架商品不允许被存成全部售罄（见 ProductService.ensureOnShelfStock / SkuService.ensureNotAllOutOfStock）。 */
+     *  上架商品不允许被存成全部售罄。 */
     ON_SALE;
 
     public boolean onSale() {

@@ -59,7 +59,7 @@ public class CartService {
                     cartItemMapper.countByUser(userId) < MAX_ITEMS_PER_USER, "购物车最多存放 " + MAX_ITEMS_PER_USER + " 种商品");
         }
 
-        // 3. 一条 upsert 落库（见 CartItemMapper#upsertMerging）：新条目插入，同 SKU 累加封顶，
+        // 3. 一条 upsert 落库：新条目插入，同 SKU 累加封顶，
         //    并发重复加购由 ON CONFLICT 在行锁下合并——不能靠 catch DuplicateKeyException 回退，
         //    PG 撞唯一索引即中止整个事务，catch 后发不出任何语句
         CartItem item = cartItemMapper.upsertMerging(userId, req.skuId(), req.quantity());
@@ -145,8 +145,7 @@ public class CartService {
         cartItemMapper.deleteByUserAndIds(userId, req.itemIds());
     }
 
-    // ========== 内部 ==========
-
+    // 内部
     /** 取本人条目：不存在或不属于当前用户一律 404，不泄露他人数据存在性 */
     private CartItem requireOwned(UUID userId, UUID id) {
         CartItem item = Validate.notNull(cartItemMapper.selectById(id), "购物车条目不存在");

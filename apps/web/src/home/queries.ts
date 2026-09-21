@@ -8,7 +8,7 @@ import { toProduct, type Product } from "#/products"
 const CACHE = 5 * 60_000
 
 // 首页壳区块的降级口径正在收敛到「块级三态」：导航与 banner 走 QueryBoundary 的
-// pending/fallback（见 HomeCategoryNav / HomeBanners），失败不再折叠成空态/静默留白。
+// pending/fallback，失败不再折叠成空态/静默留白。
 // 推荐词条是例外，维持「读不到就不画」+ 显式退出全局默认：RecommendBar 有就地降级 UI
 // （词条挂了 feed 照常全站流），换成块级错误块反而会把可逛的一栏顶掉。
 // 首页是门面，单个接口失败绝不能把整页换成错误页（loader 的 allSettled 就是同一条意图）。
@@ -42,8 +42,7 @@ export const recommendTabsOptions = queryOptions({
     throwOnError: false,
 })
 
-// ---------- 首页商品流（feed）----------
-
+// 首页商品流（feed）
 /**
  * tab → 召回范围：只有 `CATEGORY` 型词条才圈定类目，其余（搜索型 / 无目标）一律全站。
  * 纯函数放在数据层、由区块组件调用：这个词条在测试里被断得最细，而它在组件里就一行三元表达式。
@@ -81,7 +80,7 @@ export async function fetchFeed(
  *
  * <p>切 tab 的「不闪」不在这里：{@code useSuspenseInfiniteQuery} 在实现里硬写了
  * {@code placeholderData: void 0}（suspense 版刻意不吃占位数据），所以「保留上一批卡片」只能靠
- * React 的 transition 完成——见 home/Feed.tsx 的 startTransition。
+ * React 的 transition 完成。
  */
 export const feedOptions = (categoryId?: string) =>
     infiniteQueryOptions({

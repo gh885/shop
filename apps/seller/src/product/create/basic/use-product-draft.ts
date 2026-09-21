@@ -58,7 +58,7 @@ function draftReducer(state: DraftState, action: DraftAction): DraftState {
  *  2. 选值级联（完全显式双模式）：
  *     - 新建态（无 productId）：本地笛卡尔积 buildSkuRowsFromSelections 生成组合行，skuId 留空，不落库不建档；
  *     - 编辑态（有 productId）：后端 applyProductSpecs 对账 SKU（组合未变保留 skuId 与新价格）。
- *  3. 保存/发布（见 saveAndPublish：建档 → basic → 规格 → 门槛 → 已设价 SKU → 发布）。
+ *  3. 保存/发布（建档 → basic → 规格 → 门槛 → 已设价 SKU → 发布）。
  *
  * 完全显式：编辑过程（标题/图片/价格/选值）都在本地，0 写库请求；只有点「保存草稿/提交/放入仓库」才真正落库。
  */
@@ -103,7 +103,7 @@ export function useProductDraft({
         selectionsRef.current = selections
     }, [skuRows, selections])
 
-    // ---- 写通道：本 hook 的两个用户级写操作一律库 useMutation + meta 声明（见 frontend.md「写操作」）----
+    // 写通道：本 hook 的两个用户级写操作一律库 useMutation + meta 声明（见 frontend.md「写操作」）
     // 保存/发布整条编排是**一个**用户级写操作（建档→basic→规格→门槛→SKU→发布），失败由调用方
     // 渲染成页内 serverError 横幅（错误已被用户看见），故 meta 显式 silentError。
     const save = useMutation({
@@ -121,7 +121,7 @@ export function useProductDraft({
         meta: { error: "生成商品规格失败，请重试" },
     })
 
-    // ---- 建档（幂等）：只在保存/提交时创建。无 shop/category 则跳过 ----
+    // 建档（幂等）：只在保存/提交时创建。无 shop/category 则跳过
     async function ensureDraft(basic: ProductBasicForm): Promise<string> {
         if (productRef.current) return productRef.current
         if (!shopId || !categoryId) throw new BusinessError("请先选择店铺和类目")
@@ -142,7 +142,7 @@ export function useProductDraft({
         }
     }
 
-    // ---- 商品回填：详情到达后灌值（selections/skuRows 入 reducer，basic 入 hydratedBasic 供 form.reset） ----
+    // 商品回填：详情到达后灌值（selections/skuRows 入 reducer，basic 入 hydratedBasic 供 form.reset）
     // 仅当「进入时即存在 productId（续编/编辑已有商品）」才回填；本会话点保存创建的，表单数据已是真相源，跳过回灌避免冲掉用户输入。
     const detailError = detailQuery.error
     useEffect(() => {
@@ -176,7 +176,7 @@ export function useProductDraft({
         // 不追踪 detailPending：它是「还没到」不是「变了」，不该触发 hydrate
     }, [shopId, productId, detail, detailError])
 
-    // ---- 选值变化 → 生成 SKU 组合行（完全显式双模式） ----
+    // 选值变化 → 生成 SKU 组合行（完全显式双模式）
     //  - 新建态（无 productId）：纯本地笛卡尔积（buildSkuRowsFromSelections），skuId 留空，不调后端、不建档；
     //  - 编辑态（有 productId，续编/已保存）：走后端 applyProductSpecs 对账 SKU（组合未变的保留 skuId 与新价格）——
     //    因为编辑态 SKU 已有真实 skuId，落库对账才能保住价格/库存/编码。
@@ -207,7 +207,7 @@ export function useProductDraft({
         void applySelectionsToSkus(next)
     }
 
-    // ---- 编辑回填后边界修正：有选值但无 SKU（草稿已含 specs），补齐一次级联 ----
+    // 编辑回填后边界修正：有选值但无 SKU（草稿已含 specs），补齐一次级联
     // 依赖用 productId（productRef.current 与其同步变化）：ref 不能进依赖数组。
     // 异步逻辑内联并带 cancelled 门控：effect 重跑/卸载后，在途请求的结果被丢弃，不乱序写状态。
     useEffect(() => {
@@ -232,7 +232,7 @@ export function useProductDraft({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hydrated, productId])
 
-    // ---- 保存/发布的编排（显式保存唯一落库入口）。草稿=完整持久化但不发布（无门槛），提交=完整+发布。
+    // 保存/发布的编排（显式保存唯一落库入口）。草稿=完整持久化但不发布（无门槛），提交=完整+发布。
     // 本函数是 save mutation 的 mutationFn：一次用户级写操作，失败统一由调用方内联展示（meta.silentError）。
     // 每一步是一个语义化小函数，各自携带「为什么」；主流程只读意图不读实现。
     async function saveAndPublish(basic: ProductBasicForm, mode: SaveMode): Promise<void> {
@@ -244,7 +244,7 @@ export function useProductDraft({
         await persistBasic(id, basic)
         // 3. 落规格拿真实 skuId + 本地已填价搬回（草稿降级跳过，提交严格）
         await persistSpecs(id, mode)
-        // 4. 门槛绑定「动作目标」而非「商品状态」（规则见 edit-rules；保存≠发布，后端 ensurePublishable 仍兜底 409）
+        // 4. 门槛绑定「动作目标」而非「商品状态」（保存≠发布，后端 ensurePublishable 仍兜底 409）
         const gate = publishGateError(skuRowsRef.current, mode, productStatus)
         if (gate) throw new BusinessError(gate)
         // 5. 只回传「已设价」的 SKU（净空价不发——草稿无门槛的关键：没设价的 SKU 不写 0，留着下次补）

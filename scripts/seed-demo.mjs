@@ -90,7 +90,7 @@ function insert(table, cols, rows) {
     return `INSERT INTO ${table} (${cols.join(", ")})\nVALUES\n${body.join(",\n")}\nON CONFLICT (id) DO NOTHING;`
 }
 
-// ---------------------------------------------------------------- 演示账号矩阵
+// 演示账号矩阵
 
 const BUYERS = [
     {
@@ -172,7 +172,7 @@ const ALL_ACCOUNTS = [...BUYERS, ...SELLERS, CLERK]
 const userId = (phone) => sid("user", phone)
 const DEMO_SHOP_IDS = SELLERS.map((s) => s.shop)
 
-// ---------------------------------------------------------------- psql 通道
+// psql 通道
 
 function portOpen(port) {
     return new Promise((resolve) => {
@@ -210,7 +210,7 @@ function queryJson(sql) {
     return text ? JSON.parse(text) : null
 }
 
-// ---------------------------------------------------------------- 读地基
+// 读地基
 
 /** 商品必须长在 V43 类目模板上（attrId/valueId 对得上），否则卖家工作台一编辑就报错 */
 function readFoundation() {
@@ -240,7 +240,7 @@ function readFoundation() {
     return { cats, bands }
 }
 
-// ---------------------------------------------------------------- A 账号
+// A 账号
 
 function buildAccounts() {
     const phones = ALL_ACCOUNTS.map((u) => u.phone)
@@ -305,7 +305,7 @@ END $guard$;`,
     ].join("\n\n")
 }
 
-// ---------------------------------------------------------------- B 店铺归属 + 目录
+// B 店铺归属 + 目录
 
 const OWNER_PLACEHOLDER = (i) => `01900000-0000-7000-8000-0000000007d${i + 1}`
 
@@ -547,7 +547,7 @@ function buildCatalog({ cats, bands }) {
     }
 }
 
-// ---------------------------------------------------------------- C 运费 + 商家地址
+// C 运费 + 商家地址
 
 /** 一家店一种运费口径；最后一家故意不配——运费回落 0 也得有人演 */
 const SHIPPING_FORMS = [
@@ -731,7 +731,7 @@ function buildShipping() {
     ].join("\n\n")
 }
 
-// ---------------------------------------------------------------- D 券
+// D 券
 
 function buildCoupons() {
     const rows = []
@@ -910,7 +910,7 @@ function couponRow(w, i) {
     }
 }
 
-// ---------------------------------------------------------------- D 买家侧
+// D 买家侧
 
 const ADDRESS_BOOK = {
     林小满: [
@@ -1085,7 +1085,7 @@ function buildBuyerSide(catalog) {
     ].join("\n\n")
 }
 
-// ---------------------------------------------------------------- F 审核队列
+// F 审核队列
 
 function buildReviewQueue() {
     const queue = [
@@ -1194,7 +1194,7 @@ function buildReviewQueue() {
     ].join("\n\n")
 }
 
-// ---------------------------------------------------------------- G 首页内容
+// G 首页内容
 
 /**
  * 首页导航与推荐条补形状。V13（经 V59 规范化后）全是「正常长相」，浏览器里只演得出有内容一种；
@@ -1390,7 +1390,7 @@ function buildCms(anchors) {
     ].join("\n\n")
 }
 
-// ---------------------------------------------------------------- E 活单
+// E 活单
 
 /** 只造「还能动」的单：买家能付/能收/能申，卖家能发/能审。终态历史交给 seed-buyer-demo.sql，两边不重复。 */
 const LIVE_ORDERS = [
@@ -1651,7 +1651,7 @@ ON CONFLICT (id) DO NOTHING;`,
     return statements.join("\n")
 }
 
-// ---------------------------------------------------------------- 断言
+// 断言
 
 function buildAssertions() {
     const ids = ALL_ACCOUNTS.map((u) => userId(u.phone))
@@ -1742,7 +1742,7 @@ function printSummary() {
   名实不符的 V13 种子由 V59 迁移校正，脏 target 一类不合规范的行由脚本断言挡在库外。`)
 }
 
-// ---------------------------------------------------------------- main
+// main
 
 async function main() {
     const dryRun = process.argv.includes("--dry-run")

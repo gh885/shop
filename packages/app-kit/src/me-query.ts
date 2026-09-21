@@ -7,8 +7,7 @@ import type { AuthStatus } from "@shop/common"
  *
  * 为什么在 app-kit 而不是各 app 的 shared/lib：三端的 me 查询**形态完全相同**
  * （authed 才发请求、5 分钟新鲜度、失败不重试），差异只有两处装配参数 ——
- * 请求方法（C 端 `AuthApi.me` / admin `AdminAuthApi.getStaffMe`）与登录态 hook
- * （各 app 自建 authKit 的 `useAuthStatus`）。这种「同一份数据在多个应用里各写一遍」
+ * 请求方法与登录态 hook。这种「同一份数据在多个应用里各写一遍」
  * 是缓存漂移的温床：staleTime、retry、enabled 条件任一处复制时写错，表现是
  * 「登出后 seller 还显示昵称」这类只在单端出现、且极难定位的问题。
  *

@@ -139,8 +139,7 @@ public class ProductAdminController {
         productService.abandon(id);
     }
 
-    // ========== HTTP 出参（与买家侧 ProductController 的同名 record 互不共享：方向不同契约不同） ==========
-
+    // HTTP 出参（与买家侧 ProductController 的同名 record 互不共享：方向不同契约不同）
     private List<SkuResponse> skuResponses(List<Sku> skus) {
         Map<UUID, StockView> stocks = stocks(skus);
         return skus.stream()

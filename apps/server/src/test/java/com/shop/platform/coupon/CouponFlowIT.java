@@ -172,8 +172,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .getFirst();
     }
 
-    // ========== 领券 ==========
-
+    // 领券
     @Test
     void 领券_进入券包且状态为未使用() {
         seed(5);
@@ -232,8 +231,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                         templateId.toString()));
     }
 
-    // ========== 预览算钱 ==========
-
+    // 预览算钱
     @Test
     void 预览_达门槛_应付减券额() {
         seed(5);
@@ -297,8 +295,7 @@ class CouponFlowIT extends IntegrationTestSupport {
         assertEquals(Money.cny(0), group.payAmount());
     }
 
-    // ========== 下单占用与支付核销 ==========
-
+    // 下单占用与支付核销
     @Test
     void 下单_占券并落快照_支付后核销() {
         seed(5);
@@ -376,8 +373,7 @@ class CouponFlowIT extends IntegrationTestSupport {
         assertTrue(ex.getDetail().contains("超过券面额"));
     }
 
-    // ========== 取消：未付款释放 / 已付款补发 ==========
-
+    // 取消：未付款释放 / 已付款补发
     @Test
     void 未付款取消_券释放回未使用_可再次使用() {
         seed(5);
@@ -445,8 +441,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                 shopId.toString()));
     }
 
-    // ========== 有效期 ==========
-
+    // 有效期
     @Test
     void 未开始发放的券_领券被拒且提示可等待() {
         seed(5);
@@ -543,8 +538,7 @@ class CouponFlowIT extends IntegrationTestSupport {
         assertEquals("COUPON_ALREADY_CLAIMED", ex.getCode());
     }
 
-    // ========== 状态口径与卖家统计 ==========
-
+    // 状态口径与卖家统计
     @Test
     void 券包未使用页签_收下被未付款单占用的券() {
         seed(5);

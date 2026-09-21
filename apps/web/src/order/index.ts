@@ -14,8 +14,7 @@ export { OrderShopSection } from "./OrderShopSection"
 
 export { OrderSummaryCard } from "./OrderSummaryCard"
 
-// ---------- 售后（逆向环：申请 → 卖家处理 → 回寄 → 收货退款） ----------
-
+// 售后（逆向环：申请 → 卖家处理 → 回寄 → 收货退款）
 export { canApplyAfterSale } from "./after-sale"
 export type { AfterSaleAction } from "./after-sale"
 

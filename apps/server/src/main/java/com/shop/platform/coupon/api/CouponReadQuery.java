@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * <p>刻意不提供的能力：写、以及「按任意条件查券」——越界查询无处可写。券的核销动作在 {@link CouponCommand}。
  *
  * <p>范围口径：一期券范围 = 本店全部商品，所以 base 就是该店的<b>商品小计</b>（order 分组算钱时已算好），
- * 不含运费、不含其他优惠（平行优惠，见 CouponEvaluator）。
+ * 不含运费、不含其他优惠（平行优惠）。
  */
 @Component
 @RequiredArgsConstructor

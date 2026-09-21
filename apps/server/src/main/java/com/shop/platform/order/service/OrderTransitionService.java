@@ -69,8 +69,7 @@ public class OrderTransitionService {
 
     private final ApplicationEventPublisher events;
 
-    // ========== 履约主状态机：买家 ==========
-
+    // 履约主状态机：买家
     /** 买家取消：仅待付款/待发货可取消（源态由状态机反推），库存与退款按真实前态分流 */
     @Transactional
     public void cancel(UUID userId, UUID orderId, String reason) {
@@ -88,10 +87,8 @@ public class OrderTransitionService {
         Validate.isTrue(completed, 409, "订单状态已变更，当前不可确认收货");
     }
 
-    // ========== 履约主状态机：卖家 ==========
-
-    // ========== 履约主状态机：系统超时（单笔事务落点，批量扫描见 OrderTimeoutService） ==========
-
+    // 履约主状态机：卖家
+    // 履约主状态机：系统超时（单笔事务落点）
     /** 待付款超时关单：只认 PENDING_PAYMENT，释放冻结库存（前态必未付款，故不发退款事件） */
     @Transactional
     public boolean closeUnpaid(Order order) {
@@ -110,8 +107,7 @@ public class OrderTransitionService {
         return complete(order.getId(), OrderAction.AUTO_RECEIVE, OrderActor.SYSTEM);
     }
 
-    // ========== 私有：两个共用落点 ==========
-
+    // 私有：两个共用落点
     /**
      * 取消的唯一落点（买家取消 / 待付款超时 / 待发货超时共用）。
      *
@@ -162,14 +158,13 @@ public class OrderTransitionService {
             return false;
         }
         statusLogWriter.record(orderId, SHIPPED, COMPLETED, action, actor, null);
-        // 销量投影：完成即成交，同事务经 product :: api 累加（同 SPU 多 SKU 先合并；口径见 ProductCommand）
+        // 销量投影：完成即成交，同事务经 product :: api 累加（同 SPU 多 SKU 先合并）
         productCommand.addSold(orderItemMapper.selectByOrderId(orderId).stream()
                 .collect(Collectors.toMap(OrderItem::getProductId, OrderItem::getQuantity, Integer::sum)));
         return true;
     }
 
-    // ========== 私有：更新辅助 ==========
-
+    // 私有：更新辅助
     /** 更新起点：主键定位 + 影响行数即乐观闸门 */
     private static LambdaUpdateWrapper<Order> condition(UUID orderId) {
         return new LambdaUpdateWrapper<Order>().eq(Order::getId, orderId);

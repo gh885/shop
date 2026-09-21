@@ -12,11 +12,10 @@ import type { OrderStatus } from "#/shared/order-status"
  *   2. 这张售后单此刻对买家露出哪些操作（由售后单自身状态直接读出）。
  *
  * 展示文案 / 徽章语义在 ./constants.ts；转账与退款的合法性一律不在前端判定——
- * 点了发请求，被后端 409 拒了就是拒了（见 queries 的统一提示）。
+ * 点了发请求，被后端 409 拒了就是拒了。
  */
 
-// ---------- 买家可执行操作（由售后单状态读出） ----------
-
+// 买家可执行操作（由售后单状态读出）
 export type AfterSaleAction = "cancel" | "return" | "track"
 
 /**
@@ -36,8 +35,7 @@ export function buyerAfterSaleActions(ticket: {
     return []
 }
 
-// ---------- 能否发起申请 ----------
-
+// 能否发起申请
 export interface ApplyGate {
     /** 前端领域订单状态 */
     status: OrderStatus

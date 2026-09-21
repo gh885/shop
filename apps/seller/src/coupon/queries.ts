@@ -40,7 +40,7 @@ export function useCouponList(shopId: string, search: CouponListSearch) {
 /** 新建券：成功后失效本店列表（新建的券总在按创建时间倒序的第一页） */
 export function useCreateCoupon(shopId: string) {
     return useMutation({
-        // 金额入参是「分」，元→分的换算在 form.ts 的投影里做
+        // 金额入参是「分」
         mutationFn: (input: CreateCouponTemplateRequest) =>
             SellerCouponsApi.createCoupon({ body: input }),
         meta: {

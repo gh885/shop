@@ -27,14 +27,13 @@ import type { SkuDraftRow } from "#/product/draft-model"
  *
  * rows 由外层(use-product-draft)持有，本组件不存值；任何编辑都 onChange 上抛新的行数组。
  *
- * 分/元换算的边界在此：模型存「分」与 null（见 draft-model），单元格内用本地文本态
+ * 分/元换算的边界在此：模型存「分」与 null，单元格内用本地文本态
  * 承接输入（PriceCell/QuantityCell），失焦才解析回分提交——编辑中途不打断输入。
  *
  * 说明：SKU分类 后端模型尚无对应字段，先渲染禁用占位；删除为移除该行（不随更新上报）。
  */
 
-// ---- 输入边界：元/件字符串 ↔ 分/null，仅出现在本文件 ----
-
+// 输入边界：元/件字符串 ↔ 分/null，仅出现在本文件
 /** 单元格文本校验失败时：提示 + 不提交（与“空 = 清空”区分开，输入不会被静默吞掉） */
 function rejectInput(message: string | undefined): void {
     notify.error(message ?? "输入格式不正确")

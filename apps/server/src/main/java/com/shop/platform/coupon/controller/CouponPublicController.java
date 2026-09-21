@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 店铺可领券（匿名可访问，路径在 /api/shops 下，见 JwtProperties.skipPaths）。
+ * 店铺可领券（匿名可访问，路径在 /api/shops 下）。
  *
  * <p>与买家券包（/coupons/mine，需登录）分开：<b>浏览和持有是两件事</b>——把店铺活动页锁在登录后面
  * 会让未登录用户看不到任何营销信息。这也是唯一一个刻意不返「我领过没领过」的券端点：匿名通道里

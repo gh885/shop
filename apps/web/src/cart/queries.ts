@@ -20,8 +20,7 @@ import {
  * queryKey 用生成 SDK 的 key 工厂（契约同步、参数类型受检），投影 queryFn 本地保留。
  */
 
-// ---------- 读：查询 + 缓存 ----------
-
+// 读：查询 + 缓存
 /** 购物车列表缓存 key（并发 query 与所有 mutation 共享，是唯一失效入口；checkout 下单后也引用它失效） */
 export const CART_ITEMS_KEY = ["cart-items"] as const
 
@@ -57,8 +56,7 @@ export function useCartCount() {
     return useQuery({ ...cartCountOptions, enabled: isLoggedIn })
 }
 
-// ---------- 写：乐观 mutation ----------
-
+// 写：乐观 mutation
 /** 加购 mutation：成功 toast + 失效角标计数；导航到购物车由调用方决定 */
 export function useAddToCart() {
     return useMutation({
@@ -135,8 +133,7 @@ export function useBatchRemoveCartItems() {
     )
 }
 
-// ---------- 行内动作 ----------
-// 购物车的消费者都在「购物车页」这一棵子树里、没有跨路由复用，所以不用 context 广播派生状态；
+// 行内动作// 购物车的消费者都在「购物车页」这一棵子树里、没有跨路由复用，所以不用 context 广播派生状态；
 // 每个组件自己 `useQuery(cartItemsOptions)` 拿数据、调 `derive*` 算派生、按需调上面的 mutation。
 // 唯一的例外是条目行：整组共用一份实例（在 ShopGroupCard 调一次传给各 ItemRow），
 // 否则 N 行会各建 3 个 mutation observer。

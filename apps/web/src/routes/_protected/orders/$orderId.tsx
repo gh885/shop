@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
      * - 404 → `notFound()`：走 Router 的「不存在」语义，而不是「加载失败」；
      * - 其它错误 → 抛出，由路由级 errorComponent 渲染错误页 + 官方双 reset 重试；
      * - 挂起 → `pendingComponent`（Router 会给该 match 套 Suspense，见 Match.js 的 pendingElement）；
-     * - SSR 阶段服务端拿不到 token（见 _protected/route.tsx），直接跳过，由客户端补；
+     * - SSR 阶段服务端拿不到 token，直接跳过，由客户端补；
      *   hover intent 预取命中时 loader 直接读缓存，导航不阻塞。
      */
     loader: async ({ context, params }) => {
@@ -80,7 +80,7 @@ function OrderDetailPage() {
     const cancelAfterSale = useCancelAfterSale(orderId)
     const navigate = useNavigate()
 
-    // 状态区客户操作分发（取消走全局二次确认，见 use-order-actions）；商品区的加购/售后走 handleItemAction
+    // 状态区客户操作分发（取消走全局二次确认）；商品区的加购/售后走 handleItemAction
     const { handleAction, pendingAction } = useOrderActions()
 
     // 售后两个弹窗入口的状态：申请、回寄

@@ -15,8 +15,7 @@ import {
     type SkuDraftRow,
 } from "./draft-model"
 
-// ---------- 夹具 ----------
-
+// 夹具
 /** 夹具 1：类目属性模板节点与选值的可控构造（模板节点顺序即维度顺序；金额/库存等字段与本模块无关，取合法默认值） */
 function makeNode(attrId: string, name: string, values: string[]): CategoryAttrNodeResponse {
     return {
@@ -102,8 +101,7 @@ function makeRow(
     }
 }
 
-// ---------- 单元格输入规则（元文本 → Money） ----------
-
+// 单元格输入规则（元文本 → Money）
 describe("yuanPriceSchema", () => {
     it("合法输入换算成 Money（两位小数内，币种取平台定价币种），首尾空白被裁剪", () => {
         expect(yuanPriceSchema.parse("12.34")).toEqual(money(1234))
@@ -140,8 +138,7 @@ describe("countInputSchema", () => {
     })
 })
 
-// ---------- SKU 组合：模板选值 → 笛卡尔积行 ----------
-
+// SKU 组合：模板选值 → 笛卡尔积行
 describe("buildSkuRowsFromSelections", () => {
     it("无任何选值时生成单规格一行", () => {
         const rows = buildSkuRowsFromSelections([makeNode("a1", "颜色", ["红"])], [])
@@ -216,8 +213,7 @@ describe("buildSkuRowsFromSelections", () => {
     })
 })
 
-// ---------- wire → 可编辑行 ----------
-
+// wire → 可编辑行
 describe("rowFromSku", () => {
     it("label 按属性值拼接；金额原样透传 Money（不做分/元互转），库存透传", () => {
         const row = rowFromSku(makeSku("s1", ["红", "M"], { price: 19900, stock: 3 }))
@@ -248,8 +244,7 @@ describe("rowFromSku", () => {
     })
 })
 
-// ---------- 对账合并（编辑态按稳定 skuId 保留已填值） ----------
-
+// 对账合并（编辑态按稳定 skuId 保留已填值）
 describe("mergeSkuRows", () => {
     it("组合没变（skuId 稳定）时带回上一轮已填的价格/库存/编码", () => {
         const previous = [makeRow("红", { skuId: "s1", price: 2500, stock: 9, skuCode: "C1" })]
@@ -293,8 +288,7 @@ describe("mergeSkuRows", () => {
     })
 })
 
-// ---------- 保存合并（新建态按 label 搬回已填值） ----------
-
+// 保存合并（新建态按 label 搬回已填值）
 describe("mergeLocalPricedRows", () => {
     it("新建态按 label 匹配，把本地已填值搬回带 skuId 的服务端行", () => {
         const local = [makeRow("红 / M", { price: 2500, stock: 9 })]
@@ -335,8 +329,7 @@ describe("mergeLocalPricedRows", () => {
     })
 })
 
-// ---------- 保存门槛与 wire 载荷 ----------
-
+// 保存门槛与 wire 载荷
 describe("unpricedRows", () => {
     it("price 为 null 即未设价（0 分是合法价，不算未设）", () => {
         const rows = [

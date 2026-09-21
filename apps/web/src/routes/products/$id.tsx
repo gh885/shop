@@ -53,7 +53,7 @@ export const Route = createFileRoute("/products/$id")({
             if (toApiError(error).status === 404) throw notFound()
             // 其余失败（含「2xx 但不符合契约」的 zod 校验失败）照常抛：
             // 详情页伪造不出合法的 ProductDetail，伪装成 notFound 只会把后端契约漂移藏成一个假的「商品不存在」。
-            // 交给路由 errorComponent（router.tsx 的 defaultErrorComponent）渲染错误页 + 官方重试链路。
+            // 交给路由 errorComponent 渲染错误页 + 官方重试链路。
             throw error
         }
         await context.queryClient
@@ -128,7 +128,7 @@ function ProductDetailPage() {
     /**
      * 规格选择的读写接线：读 URL、写 URL。push / replace 的分工在这里落地 ——
      * `select`（用户动作）push 进历史，后退能撤回一次选择；
-     * 自愈修正 replace 掉脏值，不进历史（详见 use-sku-selection.ts）。
+     * 自愈修正 replace 掉脏值，不进历史。
      */
     const sel = useSkuSelection({
         detail,

@@ -12,7 +12,7 @@ export const PhoneSchema = z.string().regex(PHONE_PATTERN, "请输入正确的�
 
 /**
  * 短信/密码双 Tab 共用一套表单值，schema 按 Tab 切换；非当前 Tab 的字段原样透传不校验。
- * 提交时按 Tab 取对应字段（见各 app 登录页）。
+ * 提交时按 Tab 取对应字段。
  */
 export const SmsFormSchema = z.object({
     phone: PhoneSchema,

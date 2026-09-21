@@ -18,7 +18,7 @@ public class MyBatisConfig {
         return configuration -> configuration.getTypeHandlerRegistry().register(UUID.class, new UuidTypeHandler());
     }
 
-    /** 分页 + 乐观锁插件：selectPage 改写靠分页；@Version 字段更新依赖乐观锁（见 SkuStock.version） */
+    /** 分页 + 乐观锁插件：selectPage 改写靠分页；@Version 字段更新依赖乐观锁 */
     @Bean
     MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();

@@ -98,8 +98,7 @@ public class CaptchaService {
         }
     }
 
-    // ---------- 图片渲染 ----------
-
+    // 图片渲染
     private static final int WIDTH = 120;
     private static final int HEIGHT = 44;
 

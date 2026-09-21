@@ -67,7 +67,7 @@ public record PreviewResponse(
     /**
      * 券候选（本店）：可用性与可减金额 + 不可用原因码。
      *
-     * <p>reason 是枚举 name()，前端按码出文案（后端也给了一句兜底文案，见 CouponUnavailableReason.message）——
+     * <p>reason 是枚举 name()，前端按码出文案（后端也给了一句兜底文案）——
      * 只回 boolean 会让结算页无法解释，用户只能去投诉。
      */
     public record Coupon(

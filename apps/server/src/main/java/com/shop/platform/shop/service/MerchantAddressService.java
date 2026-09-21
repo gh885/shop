@@ -125,8 +125,7 @@ public class MerchantAddressService {
         return setDefault(shopId, id, false);
     }
 
-    // ========== 内部 ==========
-
+    // 内部
     private MerchantAddress setDefault(UUID shopId, UUID id, boolean ship) {
         MerchantAddress address = requireOwnedAddress(shopId, id);
         applyDefaultFlag(shopId, address, true, ship);

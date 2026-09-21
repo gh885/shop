@@ -30,8 +30,7 @@ export const useMe = me.useMe
 /** 登出等场景下清除缓存的用户信息 */
 export const useClearMe = me.useClearMe
 
-// ---------- 登录设备（安全设置页） ----------
-
+// 登录设备（安全设置页）
 /** 设备列表 key 工厂：all 是失效入口（前缀匹配），list 额外带当前设备 id */
 export const deviceKeys = {
     all: ["devices"] as const,

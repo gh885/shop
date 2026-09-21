@@ -33,8 +33,7 @@ import lombok.experimental.SuperBuilder;
 @TableName(value = "product.products", autoResultMap = true)
 public class Product extends AuditedEntity {
 
-    // ---- 状态谓词：委托领域枚举的状态机（{@link ProductStatus}），service 读起来像业务语言而非魔法数字比较 ----
-
+    // 状态谓词：委托领域枚举的状态机（{@link ProductStatus}），service 读起来像业务语言而非魔法数字比较
     public boolean isPublished() {
         return status != null && status.isPublished();
     }
@@ -47,8 +46,7 @@ public class Product extends AuditedEntity {
         return status != null && status.isDraft();
     }
 
-    // ---- 状态流转：守卫 + 变更一体，不变式在实体内不可绕过；持久化（updateById）留在 service ----
-
+    // 状态流转：守卫 + 变更一体，不变式在实体内不可绕过；持久化（updateById）留在 service
     /** 上架：仅草稿可发布（跨聚合门槛「SKU 全部设价」由 service 复检，不在此处） */
     public void publish() {
         publishTo(ProductStatus.PUBLISHED);
@@ -84,8 +82,7 @@ public class Product extends AuditedEntity {
         Validate.isTrue(isDraft(), 409, "只有草稿可以放弃，已发布/下架商品需走下架");
     }
 
-    // ---- 派生：价格区间与规格组合——数据自己说得出口的话，service 只编排持久化 ----
-
+    // 派生：价格区间与规格组合——数据自己说得出口的话，service 只编排持久化
     /**
      * 一次算好 min/max 价格冗余副本（真实成交价永远以 skus.price 为准；全部未定价时两端为 null）。
      * 只反映「在售 SKU」（买家实际可购集）：停用 SKU 的价不计入，否则列表「¥299 起」可能摘自已停用 SKU，

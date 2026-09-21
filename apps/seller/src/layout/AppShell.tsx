@@ -34,7 +34,7 @@ function crumbsOf(pathname: string): Crumb[] {
     侧边栏选中态（一级分组 + 二级叶子）完全由 pathname 两段推导，路径即状态，
     天然支持刷新保持 / 前进后退 / 深链分享，无任何显式状态。
     fullWidth 页（发布流程）例外：改用窗口级滚动，顶栏不吸顶随内容滚走，
-    页面内的锚点页签才能吸到视口最顶（见 BasicStep 的 sticky）。 */
+    页面内的锚点页签才能吸到视口最顶。 */
 export function AppShell() {
     const { pathname } = useLocation()
     const fullWidth = FULL_WIDTH_PATHS.has(pathname)

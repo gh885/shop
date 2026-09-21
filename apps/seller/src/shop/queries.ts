@@ -8,8 +8,7 @@ import { getStoredShopId, subscribe, syncResolvedShopId } from "../shared/lib/sh
 
 export { setCurrentShopId } from "../shared/lib/shop-store"
 
-// ---------- shop 域 queryKey 工厂（与 products 域的 productKeys 同范式：前缀结构一眼可见，invalidate 不漏 key） ----------
-
+// shop 域 queryKey 工厂（前缀结构一眼可见，invalidate 不漏 key）
 export const shopKeys = {
     all: ["shops"] as const,
     mine: () => ["shops", "mine"] as const,
@@ -17,8 +16,7 @@ export const shopKeys = {
     members: (shopId: string) => ["shops", shopId, "members"] as const,
 }
 
-// ---------- queryOptions：key 与 queryFn 共置（失败冒到路由错误页，不再包 onRetry） ----------
-
+// queryOptions：key 与 queryFn 共置（失败冒到路由错误页，不再包 onRetry）
 const myShopsOptions = queryOptions({
     queryKey: shopKeys.mine(),
     queryFn: () => ShopsApi.listMyShops(),
@@ -40,23 +38,20 @@ export const shopInvitesOptions = queryOptions({
     throwOnError: false,
 })
 
-// ---------- 我的店铺列表 ----------
-
+// 我的店铺列表
 export function useMyShops() {
     const status = useAuthStatus()
     // 守卫在 requireAuth 之后渲染，enabled 恒真；失败由路由错误页接管
     return useQuery({ ...myShopsOptions, enabled: status === "authed" })
 }
 
-// ---------- 店铺成员 ----------
-
+// 店铺成员
 /** 本店成员列表（成员管理页） */
 export function useMyShopMembers(shopId: string) {
     return useQuery(shopMembersOptions(shopId))
 }
 
-// ---------- 当前店铺上下文（X-Shop-Id 的来源，存储在 ./shop-store） ----------
-
+// 当前店铺上下文（X-Shop-Id 的来源，存储在 ./shop-store）
 /**
  * 当前经营店铺：取本地记忆，要求仍是我的 ACTIVE 店铺；否则落到第一家 ACTIVE 店。
  * 商品/店员等卖家侧页面都以它为上下文（请求头 X-Shop-Id 由 SDK client 自动注入）。

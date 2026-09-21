@@ -34,8 +34,7 @@ export interface SdkClientOptions {
     contextHeaders?: () => Record<string, string | undefined>
 }
 
-// ---- 超时 + 重试（对齐原 ky 版/之前的 fetch 版策略：timeout 10s；仅幂等 GET 遇 408/429/5xx 重试 2 次） ----
-
+// 超时 + 重试（对齐原 ky 版/之前的 fetch 版策略：timeout 10s；仅幂等 GET 遇 408/429/5xx 重试 2 次）
 const TIMEOUT_MS = 10_000
 const RETRY_LIMIT = 2
 const RETRY_METHODS = ["GET"] as const
@@ -92,7 +91,7 @@ export function configureSdkClient(
         },
     })
 
-    // ---- 请求前：token + 全链路 ID + 计时起点 ----
+    // 请求前：token + 全链路 ID + 计时起点
     client.interceptors.request.use((request) => {
         const token = tokens?.get()
         if (token) {
@@ -113,7 +112,7 @@ export function configureSdkClient(
         return request
     })
 
-    // ---- 响应后：日志 + 401 自动 refresh 并重发原请求 ----
+    // 响应后：日志 + 401 自动 refresh 并重发原请求
     // 401 重发用原生 fetch（request.url 已含 baseUrl），绕过 ky 避免触发拦截器递归。
     client.interceptors.response.use(async (response, request, opts) => {
         const path = new URL(request.url).pathname
@@ -166,9 +165,9 @@ export function configureSdkClient(
         }
     })
 
-    // ---- 错误归一化：SDK 调用方拿到的 error 即 ApiError ----
+    // 错误归一化：SDK 调用方拿到的 error 即 ApiError
     // 响应契约校验（zod responseValidator）抛出的 ZodError 也走这里：
-    // 客户端 catch 后会送进 error 拦截器（sdk/client.gen.ts），借 request 拿到方法与路径。
+    // 客户端 catch 后会送进 error 拦截器，借 request 拿到方法与路径。
     client.interceptors.error.use((error, response, request) => {
         if (isZodError(error)) {
             const where = request

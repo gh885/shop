@@ -163,7 +163,7 @@ public class CategoryAttrService {
      * 卖家扩充值：值域外新值自动建档（source=2），同名复用（含平台预置值，不改其 source）。
      * 供 SkuService.updateSpecs 受理 customValues。
      *
-     * <p>一条 upsert 落库（见 CategoryAttrValueMapper#upsertSellerValue）——不能靠 catch
+     * <p>一条 upsert 落库——不能靠 catch
      * DuplicateKeyException 回读：PG 撞唯一索引即中止整个事务，catch 后发不出任何语句。
      */
     @Transactional

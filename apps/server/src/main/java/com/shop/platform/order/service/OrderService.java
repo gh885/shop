@@ -73,8 +73,7 @@ public class OrderService {
 
     private static final DateTimeFormatter ORDER_NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
 
-    // ========== 结算预览 ==========
-
+    // 结算预览
     /** 结算预览：只读。有效行按店铺分组算钱（含运费），失效/缺货行平铺置灰，地址可选回显 */
     @Transactional(readOnly = true)
     public CheckoutPreview preview(UUID userId, PreviewOrderRequest req) {
@@ -97,8 +96,7 @@ public class OrderService {
         return new CheckoutPreview(groups, resolved.unavailable(), address, totalPayAmount);
     }
 
-    // ========== 创建订单 ==========
-
+    // 创建订单
     /**
      * 创建订单：一次结算按店铺拆成 N 单，全成全败。
      * 库存最终闸门在 product :: api 的同步条件扣减里（失败 → 本事务整体回滚）。
@@ -153,8 +151,7 @@ public class OrderService {
         return created;
     }
 
-    // ========== 买家侧查询 ==========
-
+    // 买家侧查询
     /** 我的订单分页：每单内嵌行项，列表页免 N+1 */
     @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageMine(UUID userId, String status, PageParams page) {
@@ -167,8 +164,7 @@ public class OrderService {
         return withItems(orderMapper.requireOwned(userId, orderId));
     }
 
-    // ========== 卖家侧查询 ==========
-
+    // 卖家侧查询
     /** 卖家订单分页：ShopIdHolder 圈定本店 */
     @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageSeller(UUID shopId, String status, PageParams page) {
@@ -181,8 +177,7 @@ public class OrderService {
         return withItems(orderMapper.requireShopOwned(shopId, orderId));
     }
 
-    // ========== 内部：落单 ==========
-
+    // 内部：落单
     /** 落一笔订单：主表快照 + 行项目快照（单号生成见 {@link #insertOrder}）。
      *  金额与计费/用券快照直接吃分组结果（itemAmount / shippingFee / discountAmount / payAmount / templateId
      *  都是同一次计费的产物），不重算——重算就会漂移 */
@@ -263,8 +258,7 @@ public class OrderService {
         return template;
     }
 
-    // ========== 内部：查询与装配辅助 ==========
-
+    // 内部：查询与装配辅助
     /** 列表筛选状态：空 = 全部；非法值给 400（枚举自己就是合法值表，不另维护一份） */
     private static OrderStatus parseStatusFilter(String status) {
         if (status == null || status.isBlank()) {

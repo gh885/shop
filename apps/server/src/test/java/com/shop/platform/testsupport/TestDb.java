@@ -42,8 +42,7 @@ public final class TestDb {
         }
     }
 
-    // ========== 常用种子（自动登记清理） ==========
-
+    // 常用种子（自动登记清理）
     /**
      * 在售商品（草稿类目占位）+ 单 SKU（priceFen 分，CNY）+ inventory 库存行（stock 件，无冻结）。
      *

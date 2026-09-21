@@ -71,8 +71,7 @@ public class AfterSaleService {
     /** 券命令（coupon :: api）：退款完成时退券（另发新券），同事务 */
     private final CouponCommand couponCommand;
 
-    // ========== 买家 ==========
-
+    // 买家
     /** 申请售后：仅「已完成 + 申请窗口未过 + 无进行中的单」可发起；退款口径 = 整单实付（V1 整单售后） */
     @Transactional
     public Ticket apply(UUID userId, UUID orderId, TicketType type, String reason) {
@@ -128,8 +127,7 @@ public class AfterSaleService {
                 .filter(t -> t.getUserId().equals(userId));
     }
 
-    // ========== 卖家 ==========
-
+    // 卖家
     /**
      * 同意售后，按已申请的 type 分派：仅退款 APPLYING → REFUNDED 一步到位（同意即退款，无「已同意待退款」悬挂态）；
      * 退货退款 APPLYING → RETURNING（进入退货流程，暂不退款），等买家回寄、卖家收货后再退。
@@ -233,8 +231,7 @@ public class AfterSaleService {
         }
     }
 
-    // ========== 私有 ==========
-
+    // 私有
     /** 退款落点（仅退款同意 / 退货收货共用）：转 REFUNDED 回填时刻，再通知 payment 同事务落退款单据 */
     private void refund(Ticket ticket, TicketAction action) {
         OffsetDateTime now = OffsetDateTime.now();

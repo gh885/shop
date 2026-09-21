@@ -54,7 +54,7 @@ function NewProductBasicStep() {
             }),
     })
 
-    // ---- 未保存更改离开提醒 ----
+    // 未保存更改离开提醒
     // onBasicChange 会在表单值每次变化（含回填）时触发：以回填完成后的首个观测值为基线，
     // 其后内容变化即视为脏。hydratedBasic 变化（编辑回填完成）时重置基线，避免把程序性回填误判为用户编辑。
     const [dirty, setDirty] = useState(false)

@@ -50,8 +50,7 @@ import { cn } from "src/lib/utils"
 
 const { fieldContext, formContext, useFormContext, useFieldContext } = createFormHookContexts()
 
-// ---------- 错误归一化（zod issue / string / 其他） ----------
-
+// 错误归一化（zod issue / string / 其他）
 function errorMessage(error: unknown): string {
     if (typeof error === "string") return error
     if (typeof error === "object" && error !== null && "message" in error) {
@@ -68,8 +67,7 @@ export function firstFieldError(field: {
     return error === undefined ? undefined : errorMessage(error)
 }
 
-// ---------- 布局与错误展示 ----------
-
+// 布局与错误展示
 export function FieldError({ error, className }: { error?: string; className?: string }) {
     if (!error) return
     return <p className={cn("text-xs text-destructive", className)}>{error}</p>
@@ -148,8 +146,7 @@ export function Field({
     )
 }
 
-// ---------- 字段组件（注册到 fieldComponents，自动注入 field context） ----------
-
+// 字段组件（注册到 fieldComponents，自动注入 field context）
 type BaseFieldProps = {
     label?: string
     required?: boolean
@@ -288,8 +285,7 @@ export function CheckboxField({
     )
 }
 
-// ---------- 表单级组件 ----------
-
+// 表单级组件
 function SubmitButton({ children, className }: { children: React.ReactNode; className?: string }) {
     const form = useFormContext()
     return (
@@ -307,8 +303,7 @@ function SubmitButton({ children, className }: { children: React.ReactNode; clas
     )
 }
 
-// ---------- 导出 ----------
-
+// 导出
 export const { useAppForm, withForm } = createFormHook({
     fieldContext,
     formContext,

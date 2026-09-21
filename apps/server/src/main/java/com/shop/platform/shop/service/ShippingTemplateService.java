@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 运费模板管理 —— 每店一份模板（商品级绑定见将来，见 V53），覆盖式保存，整批重建规则与区域。
+ * 运费模板管理 —— 每店一份模板（商品级绑定留给将来，见 V53），覆盖式保存，整批重建规则与区域。
  *
  * <p>为什么是覆盖式而不是逐条 CRUD：模板是一个<b>整体承诺</b>（默认规则 + 地区差异 + 不配送），
  * 改一条规则的关系（区域挂了几个前缀）无法用「改一行」表达。整批重建把「保存后模板是什么样」
@@ -96,8 +96,7 @@ public class ShippingTemplateService {
         return require(shopId);
     }
 
-    // ========== 内部：装配 ==========
-
+    // 内部：装配
     /** 四张表装配成计费口径：默认规则必在（缺了就是数据损坏，宁可响亮失败也不静默按包邮算） */
     private ShippingPricing assemble(ShippingTemplate template) {
         List<ShippingRule> rules = ruleMapper.selectByTemplate(template.getId());
@@ -128,8 +127,7 @@ public class ShippingTemplateService {
                         .toList());
     }
 
-    // ========== 内部：写入 ==========
-
+    // 内部：写入
     /** 模板本体更新或新建：整店包邮时抹掉满件/满额门槛（那两列在包邮下是死配置，落库即噪音） */
     private ShippingTemplate upsertTemplate(UUID shopId, ShippingTemplateRequest req) {
         boolean free = Boolean.TRUE.equals(req.freeShipping());

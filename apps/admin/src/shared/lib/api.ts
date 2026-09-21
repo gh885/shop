@@ -64,8 +64,7 @@ export const adminApi = {
 /** 店铺审核行：直接复用生成契约（reason/decidedAt 契约可空 = PENDING 时无值，UI 显示「—」） */
 export type { ShopReviewItem } from "@shop/api/sdk"
 
-// ---------- 路由守卫 ----------
-
+// 路由守卫
 /** 受保护路由：未登录跳登录页 */
 export async function requireAuth(): Promise<void> {
     await bootstrapAuth()
@@ -82,8 +81,7 @@ export async function requireGuest(): Promise<void> {
     }
 }
 
-// ---------- queryOptions：参数化列表的 key/请求同源（与 seller 的 productListOptions 同形态） ----------
-// key 不在这里定义：全部集中在 ./queries 的 key 工厂（失效关系的唯一入口）
+// queryOptions：参数化列表的 key/请求同源// key 不在这里定义：全部集中在 key 工厂（失效关系的唯一入口）
 
 export const reviewListOptions = (input: {
     status?: ShopReviewStatus

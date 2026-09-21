@@ -5,7 +5,7 @@ import { Button, ConfirmDialogHost, Toaster } from "@shop/ui-web"
 
 /** 全局兜底：404（未匹配路径）。
     错误态由 `createRouter({ defaultErrorComponent })` 在每个 route match 上接管，
-    见 shared/ui/RouteError.tsx —— 叶子路由失败时布局壳仍保留。 */
+    叶子路由失败时布局壳仍保留。 */
 export const Route = createRootRoute({
     notFoundComponent: NotFound,
     component: () => (

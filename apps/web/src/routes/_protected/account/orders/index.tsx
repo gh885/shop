@@ -30,9 +30,9 @@ import {
 } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/orders/")({
-    /** 页签与页码进 URL：脏值收敛为初态（见 order/orders-search.ts），不把用户挡在错误页外 */
+    /** 页签与页码进 URL：脏值收敛为初态，不把用户挡在错误页外 */
     validateSearch: parseOrdersSearch,
-    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过，见 _protected/route.tsx）：
+    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过）：
     // 只预取默认「全部」页签第一页；切页签/翻页是新 queryKey，由组件侧按需拉取。
     // query() 失败会 reject —— 预热而已，吞掉；错误仍由组件侧的就地错误态处理。
     loader: ({ context }) => {

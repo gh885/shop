@@ -8,8 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * <p>结算页与券包都要回答「为什么这张券不能用」：用户看不懂就只能投诉。原因码是<b>契约的一部分</b>
  * （前端按码出文案），因此放在 api 包，与 {@code CouponAvailabilityView} 同域。
  *
- * <p>这里自带一句兜底文案（{@link #message()}），供后端直接拼 400 detail 用；
- * 同 TicketAction 每行带冲突文案的做法。
+ * <p>这里自带一句兜底文案（{@link #message()}），供后端直接拼 400 detail 用。
  *
  * <p>{@code enumAsRef} 让 springdoc 输出 {@code $ref} 组件而不是内联枚举：可空枚举被内联成
  * {@code type:["string","null"] + enum} 时，openapi-ts 生成的 zod 会拒绝 null（脚本 contract-audit 会拦下）。

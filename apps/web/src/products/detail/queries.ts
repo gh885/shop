@@ -17,8 +17,7 @@ import {
  * queryKey 用生成 SDK 的 key 工厂（契约同步、参数类型受检），投影 queryFn 本地保留。
  */
 
-// ---------- 数据层（纯异步函数，非 hook） ----------
-// 规则/类型在 ../product.ts。真正的 React 接线（queryOptions）在本文件下方——
+// 数据层（纯异步函数，非 hook）// 规则/类型在 ../product.ts。真正的 React 接线（queryOptions）在本文件下方——
 // 商品列表/详情被首页商品流、详情推荐、类目/搜索等多处复用，不在模块内绑死
 // query key/缓存策略，由调用方决定（fetchProducts 经上级桶文件对外暴露）。
 
@@ -61,8 +60,7 @@ export const productDetailOptions = (id: string) =>
         retry: false,
     })
 
-// ---------- 店铺公开信息（GET /api/shops/{id}，匿名可访问） ----------
-
+// 店铺公开信息（GET /api/shops/{id}，匿名可访问）
 /** 店铺公开信息：仅对外可展示字段（logoKey 归一可选，UI 显示字母头像） */
 export type PublicShop = Pick<PublicShopResponse, "id" | "name"> & { logoKey?: string }
 
@@ -77,8 +75,7 @@ export const shopOptions = (shopId: string) =>
         retry: false,
     })
 
-// ---------- 推荐流：本店推荐（同店商品）/ 看了又看（全站上新占位）----------
-
+// 推荐流：本店推荐（同店商品）/ 看了又看（全站上新占位）
 /** 后端暂无推荐接口，先复用全站商品列表按条件拉取。
  *  由推荐区块经 useSuspenseQuery + Suspense 走区块级流式（SSR 吐骨架、queryStream 补发），不进 route loader */
 export const shopProductsOptions = (shopId: string) =>
@@ -96,6 +93,6 @@ export const alsoViewedOptions = queryOptions({
     retry: false,
 })
 
-// ---------- hooks ----------
+// hooks
 // 店铺条的读取在 ShopBar 里直接 useSuspenseQuery(shopOptions(shopId)) + QueryBoundary：
 // 挂起/失败/重试全走官方边界，不再需要「返回完整 query 结果 + onRetry」的包装 hook。

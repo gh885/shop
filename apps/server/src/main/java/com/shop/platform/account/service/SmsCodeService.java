@@ -74,7 +74,7 @@ public class SmsCodeService {
 
     /**
      * OTP 发送通用路径：限流防线（IP / 单 IP 去重号码 / 60s 冷却 / 日限）→ 生成 6 位码 → HMAC 摘要落 Redis → 发送。
-     * 登录与重置两套验证码只有 key 前缀不同；校验侧的对称收敛见 consumeOtp。
+     * 登录与重置两套验证码只有 key 前缀不同。
      *
      * @param text 文案定型：登录裸码直发，重置带用途前缀（可人工输入的短码，而非长随机 token）
      */

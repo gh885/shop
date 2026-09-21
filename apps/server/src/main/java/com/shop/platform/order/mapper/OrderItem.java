@@ -52,8 +52,7 @@ public class OrderItem extends BaseEntity {
     /** 行小计，分，落库固化免读时重算；DB CHECK 钉死 amount = price × quantity */
     private Long amount;
 
-    // ---- 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段） ----
-
+    // 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段）
     public Money priceAsMoney() {
         return Money.ofFen(price, currency);
     }

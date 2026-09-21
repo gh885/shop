@@ -80,8 +80,8 @@ body {
    所以只有骨架态暴露这个毛病。
    `min-h` 是给「切词条」兜底：空词条/只有一两件时本节会缩到 ~100px，而一页商品是 ~1350px，
    页面高度随词条剧烈变化（实测空词条 docH 988、一页 1973），滚动位置会被浏览器钳回顶部。
-   保底高度取「吸顶条以下的整屏」= 100vh − 吸顶栈（`--home-sticky-offset`）：这样切词条后锚点（见 home/Feed.tsx 的
-   scrollIntoView）在任何视口高度下都够得着，不会被钳；写 50vh 之类固定值在矮视口够、高视口就不够了。 */
+   保底高度取「吸顶条以下的整屏」= 100vh − 吸顶栈（`--home-sticky-offset`）：这样切词条后的滚动锚点
+   在任何视口高度下都够得着，不会被钳；写 50vh 之类固定值在矮视口够、高视口就不够了。 */
 @utility feed-section {
     @apply mx-auto flex w-full max-w-page flex-col px-6 pb-6 min-h-[calc(100vh-var(--home-sticky-offset))];
 }

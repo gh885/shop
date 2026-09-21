@@ -289,8 +289,7 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         return affected;
     }
 
-    // ---- 确定性 key：order_no 派生 UUID，天然幂等 ----
-
+    // 确定性 key：order_no 派生 UUID，天然幂等
     private UUID orderId(Spec spec) {
         return UUID.nameUUIDFromBytes(("orders:" + orderNo(spec)).getBytes());
     }

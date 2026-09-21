@@ -55,7 +55,7 @@ public class ShippingTemplate extends AuditedEntity {
      * 本模板是否免运费 —— 模板级包邮条件判定（同店订单合计口径）。
      *
      * <p>满额基数是<b>商品总额</b>而非应付额：运费是待求的结果，拿结果判条件会绕成死循环。
-     * 将来接优惠券时，这里的基数要跟「优惠后金额」对齐（见 order 的金额构成口径）。
+     * 将来接优惠券时，这里的基数要跟「优惠后金额」对齐。
      */
     public boolean freeAt(int totalQuantity, Money itemAmount) {
         if (Boolean.TRUE.equals(freeShipping)) {

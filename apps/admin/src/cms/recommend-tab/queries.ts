@@ -2,8 +2,7 @@ import { CmsAdminApi } from "@shop/api/sdk"
 import type { CmsStatus, RecommendTabRequest } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-// ---------- 推荐条域 queryKey 工厂 + 取数 + 写操作 ----------
-
+// 推荐条域 queryKey 工厂 + 取数 + 写操作
 export const tabKeys = {
     all: ["admin", "cms", "recommend-tabs"] as const,
     list: () => ["admin", "cms", "recommend-tabs", "list"] as const,

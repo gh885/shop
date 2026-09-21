@@ -1,7 +1,7 @@
 import type { ShopReviewStatus } from "@shop/api/sdk"
 
 /**
- * admin 端 queryKey 工厂（与 seller 各域的 `xxxKeys` 同范式）。
+ * admin 端 queryKey 工厂。
  *
  * 为什么必须集中：key 是失效关系的唯一入口，散落在 api.ts / me.ts / 各路由里时
  * 「谁失效了谁」只存在于写代码的人脑内 —— 新增一个读取方时没人会记得同步失效点。
@@ -19,4 +19,4 @@ export const reviewKeys = {
 } as const
 
 // 错误态重试不再由本文件提供：审核列表失败由全局默认的 throwOnError 抛给路由错误页，
-// 重试走官方边界重置（见 shared/ui/RouteError.tsx）。
+// 重试走官方边界重置。

@@ -16,7 +16,7 @@ import { buyerAfterSaleActions, type AfterSaleAction } from "./after-sale"
 /**
  * 售后卡：订单详情里那张「这单售后到哪一步了」的卡片。
  *
- * 纯展示 + 回调：状态从售后单自身读出（见 after-sale.ts），操作按钮由 buyerAfterSaleActions 推导——
+ * 纯展示 + 回调：状态从售后单自身读出，操作按钮由 buyerAfterSaleActions 推导——
  * 卡片不认识订单状态，也不自己发请求（弹窗与 mutation 都归页面持有）。
  * 时间线不做完整历史（后端 ticket_events 没开接口）：只把「当前状态 + 关键时刻」讲清楚，
  * 免得前端凭当前状态编造一条看似权威的轨迹。

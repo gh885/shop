@@ -68,8 +68,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
         assertFalse(redis.hasKey("refresh:devices:" + subject));
     }
 
-    // ========== rotate：一次性消费 + 重放裁决 ==========
-
+    // rotate：一次性消费 + 重放裁决
     /** 有效旧码：返回属主，且旧设备索引被清（后续登出/列表不再看到它） */
     @Test
     void rotate_有效旧码_返回属主并清旧设备索引() {

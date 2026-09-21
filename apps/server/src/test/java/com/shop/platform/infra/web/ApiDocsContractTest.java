@@ -36,7 +36,7 @@ import tools.jackson.databind.node.ObjectNode;
  * </ul>
  *
  * <p>两处刻意的规范化：{@code servers} 由运行端口决定（dev=:8080，测试上下文无固定端口），
- * 属环境而非契约；测试探针控制器已不再注册为 bean（见 FiltersPathNormalizationTest），
+ * 属环境而非契约；测试探针控制器已不再注册为 bean，
  * 故无需再排除。
  *
  * <p>比对失败时的修法是唯一的一条：起后端、跑 {@code pnpm gen:sdk} 覆盖 {@code openapi/api-docs.json}。

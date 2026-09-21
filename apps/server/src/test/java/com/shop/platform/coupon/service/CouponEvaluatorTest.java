@@ -53,8 +53,7 @@ class CouponEvaluatorTest {
         return evaluator.evaluate(candidates, Money.cny(baseAmountFen), now);
     }
 
-    // ---- 门槛 ----
-
+    // 门槛
     @Test
     void 达到门槛_可用且减面额() {
         var result = evaluate(List.of(coupon(10000, 2000)), 10000);
@@ -84,8 +83,7 @@ class CouponEvaluatorTest {
         assertThat(result.getFirst().discount()).isEqualTo(Money.cny(1));
     }
 
-    // ---- 封顶 ----
-
+    // 封顶
     @Test
     void 面额超过基数_封顶到基数_保证实付不为负() {
         // 100 元券用在 50 元单上：只减 50，余额作废（满减券是一次性权益，不是可找零的余额）
@@ -95,8 +93,7 @@ class CouponEvaluatorTest {
         assertThat(result.getFirst().discount()).isEqualTo(Money.cny(5000));
     }
 
-    // ---- 时间窗（以绝对时刻为准，不看状态列） ----
-
+    // 时间窗（以绝对时刻为准，不看状态列）
     @Test
     void 尚未生效_不可用且原因为未生效() {
         UserCoupon notYet = UserCoupon.builder()
@@ -158,8 +155,7 @@ class CouponEvaluatorTest {
         assertThat(evaluate(List.of(atBoundary), 10000).getFirst().usable()).isFalse();
     }
 
-    // ---- 币种护栏 ----
-
+    // 币种护栏
     @Test
     void 币种不一致_不可用且不折算() {
         UserCoupon usd = UserCoupon.builder()
@@ -201,8 +197,7 @@ class CouponEvaluatorTest {
                 .isEqualTo(CouponUnavailableReason.EXPIRED);
     }
 
-    // ---- 排序（= 结算页默认选券次序） ----
-
+    // 排序（= 结算页默认选券次序）
     @Test
     void 排序_可用在前_优惠大的在前_同额快到期的在前() {
         UserCoupon big = coupon(0, 3000); // 减 30

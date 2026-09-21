@@ -25,7 +25,7 @@ function buildSrcSet(src: string, widths: number[]): string | undefined {
     return widths.map((w) => `${withMogr2(src, w)} ${w}w`).join(", ")
 }
 
-/** ratio 经 --ratio 变量给 aspect-(--ratio) 占位（同 ui/aspect-ratio 的姿势），img 与占位共用 */
+/** ratio 经 --ratio 变量给 aspect-(--ratio) 占位，img 与占位共用 */
 const RATIO_CLASS = "aspect-(--ratio)"
 
 export interface ImageProps extends Omit<React.ComponentProps<"img">, "src"> {

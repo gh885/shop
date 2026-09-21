@@ -10,7 +10,7 @@
  * order 不认识物流——单向故不成环。一期曾是反向的事件（OrderShippedEvent），二期入口归一时删除：
  * 发货方已是本模块自己，再发事件给自己听没有意义。
  *
- * <p>对外只开一条 api 命令：aftersale 回寄时经 ReturnShipmentCommand 落 RETURN 包裹（详见 api 包注释）。
+ * <p>对外只开一条 api 命令：aftersale 回寄时经 ReturnShipmentCommand 落 RETURN 包裹。
  * 承运商字典（carriers）与面单寄件人（ship_from_*，二期从 orders 归位）都归本模块；
  * 包裹状态是轨迹的投影，一单可多包裹（首次发货推进订单状态，之后只追加包裹）。
  * 不做取号/面单模板/计费对账——那属于承运商适配层，不属于领域模型。

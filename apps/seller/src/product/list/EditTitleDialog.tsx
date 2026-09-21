@@ -23,7 +23,7 @@ const SUBTITLE_MAX = 30
  * 编辑标题 弹窗：改「商品标题 + 导购标题（卖点）」两项。
  *
  * - 数据直接来自列表行（列表行已含 name/subtitle），无需再拉详情；
- * - 后端约束：name ≤ 30 字；subtitle 留空或 10~30 字（见 UpdateProductRequest）；
+ * - 后端约束：name ≤ 30 字；subtitle 留空或 10~30 字；
  * - 提交走 updateProduct（PATCH：传空串 subtitle 即「清空卖点」，name 必填）。
  * - 生命周期：受控（open/product 由外层持有）。保存成功后调用 onSaved 通知外层「列表数据变了」，
  *   由外层（useProductList 的 handleSaved）决定失效哪个 key —— 本层不 import 任何 query key。

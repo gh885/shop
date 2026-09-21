@@ -15,8 +15,7 @@ import type {
  * 金额一律 Money（分 + 币种），不裸传 number；后端已直接差分 Money 对象（币种含在 Money 里），投影直接透传。
  */
 
-// ---------- 业务类型 ----------
-
+// 业务类型
 /** 商品列表项：卡片/推荐流通用。价格区间保留 Money 由展示层决定拼不拼 */
 export type Product = {
     id: string
@@ -52,8 +51,7 @@ export type ProductDetail = {
     skus: Sku[]
 }
 
-// ---------- 列表查询入参 ----------
-
+// 列表查询入参
 /** 排序方式（与后端 ProductQuery 的 @Pattern 对齐，非法值后端 400） */
 type ProductSort = "newest" | "price_asc" | "price_desc"
 
@@ -67,8 +65,7 @@ export type ProductListQueryInput = {
     sort?: ProductSort
 }
 
-// ---------- wire → 投影 ----------
-
+// wire → 投影
 /**
  * wire → 业务形状：required 字段不再兜底；subtitle/mainImage 可空如实透传 null。
  *
@@ -101,8 +98,7 @@ export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail
     }
 }
 
-// ---------- 规格选择 ----------
-
+// 规格选择
 /** 规格选择状态：维度名 → 已选值。未选的维度不出现在记录里（允许部分选择） */
 export type SkuSelection = Record<string, string>
 
@@ -148,8 +144,7 @@ export function isImageSpecGroup(skus: Sku[], spec: SpecItem): boolean {
     return spec.values.some((v) => specValueImage(skus, spec.name, v.value) !== undefined)
 }
 
-// ---------- 价格 / 库存展示 ----------
-
+// 价格 / 库存展示
 export interface PriceView {
     /** 主价：选全规格 → SKU 价；未选全 → 价格区间下限。
      * 给 Money 而非元字符串也不拆 amount/currency，展示层经共享 Price 组件分段排版 */
@@ -193,7 +188,7 @@ export type ProductCardData = {
     title: string
     /** 起售价 */
     price: Money
-    /** 销量文案，undefined = 这一格不画（见 formatSoldText） */
+    /** 销量文案，undefined = 这一格不画 */
     sales?: string
     /** 标签排，如 自营 / 放心购 */
     tags?: string[]

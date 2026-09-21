@@ -327,7 +327,7 @@ class OrderFlowIT extends IntegrationTestSupport {
 
     /**
      * 发货收货腿：状态机后半段 PAID → SHIPPED → COMPLETED 只有真库能验条件更新影响行数。
-     * 发货动作本身已归 logistics（见 LogisticsIT），这里盯的是<b>订单侧后果</b>：
+     * 发货动作本身已归 logistics，这里盯的是<b>订单侧后果</b>：
      * 越店不发、已取消不发、物流摘要投影回填、_shipped_at 与收货窗口只回填一次、重复收货 409。
      */
     @Test

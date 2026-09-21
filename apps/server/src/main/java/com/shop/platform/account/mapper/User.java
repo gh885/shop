@@ -39,8 +39,7 @@ public class User extends AuditedEntity {
     /** 最近一次登录时间，用于安全提醒/活跃度统计，可空 */
     private OffsetDateTime lastLoginAt;
 
-    // ---- 工厂 ----
-
+    // 工厂
     /** 短信验证码自动注册的新用户：状态固定 ACTIVE，密码后补。phone 为唯一必填，由构造签名编译期强制 */
     public static User autoRegister(String phone) {
         return User.builder().phone(phone).status(UserStatus.ACTIVE).build();

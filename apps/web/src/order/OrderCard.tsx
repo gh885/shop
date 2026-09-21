@@ -32,7 +32,7 @@ import { Price } from "#/shared/ui/Price"
  *   下方逐行订单项：主图 · 标题 · 单价×数量 · 行小计
  *   底部整单金额与操作：只渲染一次，窄容器内自动换行，避免按钮被面板裁切。
  *
- * 操作按钮按订单可执行动作渲染（后端算的，见 deriveOrderActions）。纯展示，回调交给外部。
+ * 操作按钮按订单可执行动作渲染（后端算的）。纯展示，回调交给外部。
  * 行项无独立 id（订单快照只留 productId/skuId），渲染 key 用 `productId+skuId+quantity`。
  */
 

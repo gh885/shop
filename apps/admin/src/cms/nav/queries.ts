@@ -2,8 +2,7 @@ import { CmsAdminApi } from "@shop/api/sdk"
 import type { CmsStatus, NavRequest } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-// ---------- nav 域 queryKey 工厂 + 取数 + 写操作 ----------
-
+// nav 域 queryKey 工厂 + 取数 + 写操作
 export const navKeys = {
     all: ["admin", "cms", "nav"] as const,
     list: (navKey: string | undefined) => ["admin", "cms", "nav", navKey ?? "all"] as const,

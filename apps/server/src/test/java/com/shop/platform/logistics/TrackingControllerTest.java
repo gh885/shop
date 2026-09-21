@@ -48,7 +48,7 @@ class TrackingControllerTest extends WebControllerTestSupport {
 
         @Test
         void 登录_绑定当前用户与订单ID且404透传() throws Exception {
-            // 归属判定在 service（见 LogisticsIT）：controller 只负责把路径变量与登录态一起递下去
+            // 归属判定在 service：controller 只负责把路径变量与登录态一起递下去
             when(shipmentService.trackingOfOrder(any(), any())).thenThrow(BusinessException.notFound("暂无物流信息"));
 
             mockMvc.perform(get("/orders/{id}/tracking", orderId).with(userAuth(userId)))

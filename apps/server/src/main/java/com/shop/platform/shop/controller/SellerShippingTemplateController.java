@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 运费模板设置（授权要求 SHIPPING_MANAGE）。shopId 从店铺上下文（X-Shop-Id，ShopMembershipFilter
  * 校验成员身份）取，前端不传店 ID。
  *
- * <p>只有 GET / PUT 两个端点：模板是每店一份的整体承诺（见 ShippingTemplateService 的覆盖式说明），
+ * <p>只有 GET / PUT 两个端点：模板是每店一份的整体承诺（覆盖式保存），
  * 没有「再建一个模板」这回事，故不是列表资源。未设置时 GET 返回 404，卖家侧据此进入新建态。
  */
 @Tag(name = "seller-shipping", description = "运费模板（按收货地区与件数计费）")

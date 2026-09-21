@@ -34,7 +34,7 @@ public class ShopMember extends AuditedEntity {
     /** 角色：店主/成员，概念归 {@link MemberRole}。OWNER 只有开店时写入那一条；邀请加入的都是 MEMBER */
     private MemberRole role;
 
-    /** 子账号被授予的权限码（白名单见 shop/service/SellerGrants，默认空集=最小权限）；
+    /** 子账号被授予的权限码（默认空集=最小权限）；
      *  OWNER 全权由角色判定不读此列。jsonb 存储，读写经 JsonbStringListHandler */
     @TableField(typeHandler = JsonbStringListHandler.class)
     private java.util.List<String> permissions;

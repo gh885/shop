@@ -17,7 +17,7 @@ export interface OrderShopSectionProps {
     order: { shopName: string | null }
     items: OrderItem[]
     /**
-     * 是否给出「申请售后」入口：由订单详情页按售后申请门槛推导（见 after-sale.ts canApplyAfterSale）。
+     * 是否给出「申请售后」入口：由订单详情页按售后申请门槛推导。
      * 门槛不成立时按钮整条不渲染，而不是渲染成禁用灰——买家问的是「这单还能不能申请」，
      * 一个永远点不动的按钮只会逼他猜原因。
      */

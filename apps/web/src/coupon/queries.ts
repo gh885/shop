@@ -18,8 +18,7 @@ import {
  * 两端都不进 route loader —— 领券入口在商品详情页，SSR 阶段多打一个接口只为渲染一个按钮不划算。
  */
 
-// ---------- 我的券包 ----------
-
+// 我的券包
 /** 券包缓存前缀：状态页签 × 分页都是同一份数据的切片，失效一发命中整棵子树 */
 const MY_COUPONS_KEY = ["my-coupons"] as const
 
@@ -45,8 +44,7 @@ export const myCouponsOptions = (status: CouponTab, page: number) =>
         // 带 placeholderData 的列表不进 suspense；失败冒到路由错误页由全局默认 throwOnError 接管
     })
 
-// ---------- 店铺可领券（匿名） ----------
-
+// 店铺可领券（匿名）
 const SHOP_CLAIMABLE_COUPONS_KEY = ["shop-claimable-coupons"] as const
 
 /** 某店当前可领的券（先到先得，soldOut 由后端闸门算）；组件直接 useQuery(shopClaimableCouponsOptions(shopId)) */
@@ -66,8 +64,7 @@ export const shopClaimableCouponsOptions = (shopId: string) =>
         throwOnError: false,
     })
 
-// ---------- 领券 ----------
-
+// 领券
 /**
  * 领券。
  *

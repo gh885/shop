@@ -10,7 +10,7 @@ import { createAppQueryClient } from "./query-client"
  *
  * 断言的是**顺序与回滚**这两件「错了就静默坏」的事：请求还挂着时乐观值要已经可见、
  * 失败必须回到快照、落定后必须失效。提示文案不在这里测——它已经不属于本配方，
- * 而是 `createAppQueryClient()` 全局反馈的职责（见 mutation-feedback.test.tsx）。
+ * 而是 `createAppQueryClient()` 全局反馈的职责。
  */
 function setup<TData, TVars>(
     config: Parameters<typeof optimisticListMutationOptions<TData, TVars>>[0],

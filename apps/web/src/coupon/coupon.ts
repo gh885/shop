@@ -12,8 +12,7 @@ import { ErrorCodes, couponStatusLabel, toApiError } from "@shop/common"
  * 同一张券在券包、店铺领券、结算选券三处说法不同，用户会以为是三张不同的券。
  */
 
-// ---------- 业务类型 ----------
-
+// 业务类型
 /**
  * 券包业务形状（`GET /coupons/mine` 的一条）：契约之上只改一处 —— 可空的 `orderId` 归一成 undefined。
  * 其余字段同名同型，用 Omit 组合，不逐字段抄书。
@@ -31,15 +30,13 @@ export type MyCoupon = Omit<MyCouponResponse, "orderId"> & {
     orderId?: string
 }
 
-// ---------- wire → 领域 ----------
-
+// wire → 领域
 /** 券包 wire → 业务：唯一需要归一的是可空的 orderId（null → undefined） */
 export function toMyCoupon(dto: MyCouponResponse): MyCoupon {
     return { ...dto, orderId: dto.orderId ?? undefined }
 }
 
-// ---------- 页签 ----------
-
+// 页签
 /** 券包页签值 = 后端 `MyCouponQuery.status` 的筛选值 */
 export type CouponTab = "UNUSED" | "USED" | "EXPIRED"
 
@@ -59,8 +56,7 @@ export const COUPON_TABS: readonly { value: CouponTab; label: string }[] = [
 /** 券包一页的默认条数：与分页控件共用一个常量，避免两处各写一个数导致总页数算错 */
 export const COUPON_PAGE_SIZE = 10
 
-// ---------- 按展示状态分组 ----------
-
+// 按展示状态分组
 export type CouponGroup = { status: string; coupons: MyCoupon[] }
 
 /**
@@ -91,8 +87,7 @@ export function groupByStatus(coupons: MyCoupon[]): CouponGroup[] {
         .map(([status, list]) => ({ status, coupons: list }))
 }
 
-// ---------- 错误判定 ----------
-
+// 错误判定
 /**
  * 领券撞「已领过」。
  *

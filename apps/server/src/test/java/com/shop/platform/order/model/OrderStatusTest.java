@@ -15,8 +15,7 @@ import org.junit.jupiter.api.Test;
  */
 class OrderStatusTest {
 
-    // ========== sourcesOf：条件更新的合法前置集 ==========
-
+    // sourcesOf：条件更新的合法前置集
     @Test
     void 只有待付款能转移到已支付() {
         assertThat(OrderStatus.sourcesOf(OrderStatus.PAID)).containsExactly(OrderStatus.PENDING_PAYMENT);
@@ -46,8 +45,7 @@ class OrderStatusTest {
         assertThat(OrderStatus.sourcesOf(OrderStatus.COMPLETED)).doesNotContain(OrderStatus.CANCELLED);
     }
 
-    // ========== 买家动作集：详情页按钮组渲染 ==========
-
+    // 买家动作集：详情页按钮组渲染
     @Test
     void 买家在待付款态可支付和取消() {
         assertThat(OrderStatus.PENDING_PAYMENT.buyerActions()).containsExactly(PAY, CANCEL);
@@ -69,8 +67,7 @@ class OrderStatusTest {
         assertThat(OrderStatus.CANCELLED.buyerActions()).isEmpty();
     }
 
-    // ========== 卖家动作集：发货作业按钮 ==========
-
+    // 卖家动作集：发货作业按钮
     @Test
     void 只有待发货态对卖家开放发货动作() {
         assertThat(OrderStatus.PAID.sellerActions()).containsExactly(SHIP);

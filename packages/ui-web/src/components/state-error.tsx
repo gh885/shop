@@ -22,7 +22,7 @@ import {
  *     return <StateError message={toApiError(query.error).detail}
  *                        onRetry={() => void query.refetch()} retrying={query.isFetching} />
  *   // ② 作为错误边界的 fallback（推荐）：`reset` 由边界注入，重试走官方的
- *   //    QueryErrorResetBoundary + 边界复位链路（见 @shop/app-kit 的 QueryBoundary / RouteErrorFallback）
+ *   //    QueryErrorResetBoundary + 边界复位链路
  *   fallback={({ error, reset }) => <StateError message={toApiError(error).detail} onRetry={reset} />}
  */
 export function StateError({

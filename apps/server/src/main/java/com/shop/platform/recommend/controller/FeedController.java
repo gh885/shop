@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 首页推荐流（匿名可访问，见 JwtProperties.skipPaths）。
+ * 首页推荐流（匿名可访问）。
  *
  * <p>与 {@code GET /api/products} 的分工（决策二）：那边是确定性列表（类目 / 店铺 / 搜索要 total 与排序），
  * 这边是随机批次的货架流（要种子、要游标、不要 total）——响应形状不同，所以是两个端点、两套出参。

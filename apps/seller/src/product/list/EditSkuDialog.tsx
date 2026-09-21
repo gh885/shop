@@ -101,7 +101,7 @@ export function EditSkuLineDialog({
     )
 
     // 详情到达（或换了商品）时灌进可编辑行：本地行状态仍是编辑会话的真相源，query 只负责喂初值。
-    // 用 effect 灌值是有意为之（同 EditTitleDialog 的打开即预填）：行要能改，不能直接读缓存渲染
+    // 用 effect 灌值是有意为之：行要能改，不能直接读缓存渲染
     useEffect(() => {
         if (!data) return
         // oxlint-disable-next-line react/set-state-in-effect -- 服务端初值 → 本地编辑会话是有意的单向灌值

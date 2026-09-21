@@ -49,7 +49,7 @@ public class JwtProperties {
             "/auth/reset-password",
             "/admin",
             // 承运商轨迹推送：调用方是外部系统（没有我们的用户令牌），安全边界靠报文签名
-            // （见 logistics/infra/kdniao/KdniaoPushReceiver：未配置密钥一律 403，不 fail-open）
+            // （未配置密钥一律 403，不 fail-open）
             "/logistics/webhooks",
             // 运维端点匿名可达（Prometheus 抓取无 token）；生产由网关限制来源
             "/actuator",

@@ -12,8 +12,7 @@ import lombok.experimental.SuperBuilder;
 /**
  * 商品分类 —— 邻接表实现的类目树。
  *
- * <p>同一张表通过 parentId 指向父分类（根节点用 ROOT_PARENT_ID 占位），level 1/2/3。 禁用不做物理删除：查询时把禁用节点整支剪掉，可无损恢复（见
- * CategoryService.buildTree）。
+ * <p>同一张表通过 parentId 指向父分类（根节点用 ROOT_PARENT_ID 占位），level 1/2/3。 禁用不做物理删除：查询时把禁用节点整支剪掉，可无损恢复。
  */
 @Data
 @SuperBuilder
@@ -37,7 +36,7 @@ public class Category extends AuditedEntity {
     /** 同级排序权重 */
     private Integer sort;
 
-    /** 启用 / 禁用，不做物理删除。禁用节点查询时整支剪掉（不写扩散，可无损恢复），见 buildTree */
+    /** 启用 / 禁用，不做物理删除。禁用节点查询时整支剪掉（不写扩散，可无损恢复） */
     private CategoryStatus status;
 
     public boolean isEnabled() {

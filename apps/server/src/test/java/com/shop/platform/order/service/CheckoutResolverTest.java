@@ -119,8 +119,7 @@ class CheckoutResolverTest {
                 .thenReturn(Map.of(productId, product(ProductStatus.PUBLISHED)));
     }
 
-    // ---- 结算行归约 ----
-
+    // 结算行归约
     @Test
     void 空结算行_400拒绝() {
         assertThatThrownBy(() -> resolver.resolve(List.of())).isInstanceOfSatisfying(BusinessException.class, ex -> {
@@ -139,8 +138,7 @@ class CheckoutResolverTest {
         assertThat(resolved.valid().getFirst().quantity()).isEqualTo(999);
     }
 
-    // ---- 可售三道判定与失效归因 ----
-
+    // 可售三道判定与失效归因
     @Test
     void 可售_进有效行_SPU主图回落() {
         stubSellable(500L, 5);
@@ -209,8 +207,7 @@ class CheckoutResolverTest {
                 .isEqualTo(CheckoutPreview.UnavailableLine.CAUSE_STOCK_SHORTAGE);
     }
 
-    // ---- 分组算钱 ----
-
+    // 分组算钱
     @Test
     void 按店分组_金额为行小计之和_未选地址时运费预告零() {
         Money p1 = Money.cny(1000);
@@ -268,8 +265,7 @@ class CheckoutResolverTest {
         assertThat(group.shippingFee()).isEqualTo(Money.cny(0));
     }
 
-    // ---- 券接入结算链路 ----
-
+    // 券接入结算链路
     @Test
     void 用券_应付减券额_且券信息随分组带出() {
         UUID couponId = UUID.randomUUID();
@@ -368,8 +364,7 @@ class CheckoutResolverTest {
         return shopB;
     }
 
-    // ---- 地址快照门 ----
-
+    // 地址快照门
     @Test
     void 地址快照_本人未删才放行() {
         AddressSnapshotView mine =

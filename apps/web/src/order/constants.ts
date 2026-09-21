@@ -14,8 +14,7 @@ import type { AfterSaleAction } from "./after-sale"
  * 只放纯数据/查表：不 import 组件、不含规则（规则在 model.ts / after-sale.ts）。
  */
 
-// ---------- 履约主状态 ----------
-
+// 履约主状态
 /** 状态 → 中文展示名（卡片、状态区、详情信息卡、列表页签共用一份，不各写各的） */
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
     pending_payment: "待付款",
@@ -47,8 +46,7 @@ export const ORDER_STATUS_TABS: ReadonlyArray<{ key: OrderTab; label: string }> 
     { key: "completed", label: ORDER_STATUS_LABEL.completed },
 ]
 
-// ---------- 进度条 ----------
-
+// 进度条
 /** 进度条步骤名（固定四步，与截图一致） */
 export const ORDER_PROGRESS_STEPS = ["拍下宝贝", "买家付款", "卖家发货", "确认收货"] as const
 
@@ -61,8 +59,7 @@ export const ORDER_PROGRESS_STEP: Record<OrderStatus, number> = {
     cancelled: -1, // 取消：不按进度展示
 }
 
-// ---------- 订单可执行动作 ----------
-// 「能做什么」由后端状态机说了算（order.availableActions）；这里只定三件设计决策：
+// 订单可执行动作// 「能做什么」由后端状态机说了算（order.availableActions）；这里只定三件设计决策：
 // 文案、展示顺序、哪个是主操作。
 
 /**
@@ -132,16 +129,14 @@ export const ORDER_PRIMARY_ACTION: Record<
 }
 
 /**
- * 订单内商品行上的操作。`after_sale` 要过 canApplyAfterSale 这道门槛才渲染
- * （见 OrderShopSection：门槛不成立时整条不给，而不是渲染成点不动的禁用灰）。
+ * 订单内商品行上的操作。`after_sale` 要过 canApplyAfterSale 这道门槛才渲染。
  */
 export const ORDER_ITEM_ACTIONS: ReadonlyArray<{ key: string; label: string }> = [
     { key: "add_cart", label: "加入购物车" },
     { key: "after_sale", label: "申请售后" },
 ]
 
-// ---------- 售后 ----------
-
+// 售后
 /** 售后类型 → 展示名（申请时买家二选一：货留不留） */
 export const AFTER_SALE_TYPE_LABEL: Record<TicketType, string> = {
     REFUND_ONLY: "仅退款",

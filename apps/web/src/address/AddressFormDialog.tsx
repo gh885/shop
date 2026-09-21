@@ -207,7 +207,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                         </div>
                     </div>
 
-                    {/* 地区：国标行政区划级联选择（数据源懒加载，见 ./regions） */}
+                    {/* 地区：国标行政区划级联选择（数据源懒加载） */}
                     <form.AppField name="regionCode">
                         {(field) => (
                             <Field

@@ -10,8 +10,7 @@ import { CategoriesApi, ProductsAdminApi } from "@shop/api/sdk"
 
 import { type LeafPath, flattenLeafPaths, toApiError } from "@shop/common"
 
-// ---------- 商品列表排序契约 ----------
-
+// 商品列表排序契约
 /** 卖家商品列表支持的全部排序方式（与后端 listShopProducts 的 sort 枚举一一对应） */
 export const PRODUCT_SORTS = [
     "createdAt_desc",
@@ -24,9 +23,8 @@ export const PRODUCT_SORTS = [
 
 export type ProductSort = (typeof PRODUCT_SORTS)[number]
 
-// ---------- SDK 调用封装（数据函数） ----------
-// seller 端 /seller/** 请求的 X-Shop-Id 店铺上下文头由 SDK client 拦截自动注入
-//（见 shared/lib/api.ts 的 contextHeaders），此处不再手动携带。
+// SDK 调用封装（数据函数）// seller 端 /seller/** 请求的 X-Shop-Id 店铺上下文头由 SDK client 拦截自动注入，
+// 此处不再手动携带。
 
 /**
  * 商品图上传：取七牛直传凭证 → 浏览器直传（不经过应用服务器）→ 返回**对象存储 key（相对路径）**供入库。
@@ -70,7 +68,7 @@ export async function uploadProductImage(file: File): Promise<string> {
         const detail = await res.text().catch(() => "")
         throw new Error(`图片直传七牛失败（${res.status}）${detail}`)
     }
-    // 返回相对 key：展示时由 imgUrl(key) 拼当前域名（见 #/shared/lib/image）
+    // 返回相对 key：展示时由 imgUrl(key) 拼当前域名
     return ticket.key
 }
 
@@ -82,8 +80,7 @@ export async function uploadProductImage(file: File): Promise<string> {
  *   内部消费本文件的 options，不放进来。
  */
 
-// ---------- queryKey 工厂 ----------
-
+// queryKey 工厂
 export interface ProductListSearch {
     status?: ProductStatus
     keyword?: string
@@ -113,8 +110,7 @@ const categoryKeys = {
     specTemplate: (categoryId?: string) => ["categories", "spec-template", categoryId] as const,
 }
 
-// ---------- query 定义 ----------
-
+// query 定义
 /** 店铺商品分页列表（shopId 入 key：切店铺不串缓存）。
  *  带 placeholderData（不能走 suspense），失败冒到路由错误页由全局默认接管。 */
 export const productListOptions = (shopId: string, s: ProductListSearch) =>
@@ -150,8 +146,7 @@ export function useLeafPaths(): LeafPath[] {
     return flattenLeafPaths(data ?? [])
 }
 
-// ---------- 商品详情（列表页编辑弹窗 / 发布页回填共用一份缓存） ----------
-
+// 商品详情（列表页编辑弹窗 / 发布页回填共用一份缓存）
 /**
  * 店铺商品详情：跳过了就整个不发请求（skipToken），不是「发了再丢掉」。
  *
@@ -160,7 +155,7 @@ export function useLeafPaths(): LeafPath[] {
  * 弹窗改完 SKU 后发布页看不到、发布页保存后弹窗里还是旧价格，且两处各写一套 loading/error。
  *
  * 不设 staleTime 覆盖（吃全局 10s 兜底）：这是弹窗与回填的取数口，
- * 写操作后由调用方 invalidate 或 setQueryData 收敛（见 EditSkuDialog 的 update 接线）。
+ * 写操作后由调用方 invalidate 或 setQueryData 收敛。
  *
  * `throwOnError: false`：两个消费方（列表页编辑弹窗、发布页草稿回填）都在区块里，
  * 失败要就地渲染而不是炸掉背景页。它本就是 skipToken 查询（`enabled` 由调用方间接控制），
@@ -195,10 +190,9 @@ export function useUpdateProductSkus(success: string, onSaved: () => void) {
     })
 }
 
-// ---------- 类目销售属性模板（发布页两处共用） ----------
-
+// 类目销售属性模板（发布页两处共用）
 /** 类目「销售属性」模板（kind === SPEC）：与类目树同为低频变更公共数据，长缓存。
- *  同 categoryTreeOptions：消费方都在发布页区块里，退出全局默认，失败由消费方就地渲染。 */
+ *  消费方都在发布页区块里，退出全局默认，失败由消费方就地渲染。 */
 const categorySpecTemplateOptions = (categoryId: string | undefined) =>
     queryOptions({
         queryKey: categoryKeys.specTemplate(categoryId),

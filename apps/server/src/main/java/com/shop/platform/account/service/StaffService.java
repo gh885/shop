@@ -25,8 +25,7 @@ public class StaffService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenStore refreshTokenStore;
 
-    // ========== 登录 ==========
-
+    // 登录
     /** 工号 + 密码登录（平台员工独立账号体系，不走手机验证码） */
     public TokenPair login(String employeeNo, String password, String deviceId) {
         // 1. 查员工并比对密码（不存在与密码错误统一提示，不暴露账号存在性）
@@ -45,11 +44,10 @@ public class StaffService {
         return issueTokens(staff, deviceId);
     }
 
-    // ========== Token 刷新（复用 RefreshTokenStore 轮换机制） ==========
-
+    // Token 刷新（复用 RefreshTokenStore 轮换机制）
     /** 刷新双 token（一次一换 + 重放检测，与 C 端同一套凭证逻辑） */
     public TokenPair refresh(String refreshToken, String deviceId) {
-        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引（机制收敛在 RefreshTokenStore.rotate）
+        // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引
         String storedStaffId = refreshTokenStore.rotate(refreshToken, deviceId, "[STAFF]");
 
         // 5. 查员工并签发全新 Token；禁用员工在此拦截——旧码已消费、新码不签发，封号即等于吊销全部会话
@@ -61,8 +59,7 @@ public class StaffService {
         return issueTokens(staff, deviceId);
     }
 
-    // ========== 登出 / 当前员工 ==========
-
+    // 登出 / 当前员工
     /** 登出：删除当前设备 refresh token */
     public void logout(UUID staffId, String deviceId) {
         refreshTokenStore.revokeDevice(staffId.toString(), deviceId);
@@ -101,13 +98,12 @@ public class StaffService {
         return role.permissions();
     }
 
-    // ========== Token 签发 ==========
-
+    // Token 签发
     private TokenPair issueTokens(Staff staff, String deviceId) {
         String accessToken = jwtProvider.createStaffAccessToken(staff.getId());
         String refreshToken = jwtProvider.generateRefreshToken();
 
-        // 只存 HMAC 摘要不落明文；摘要算法与存储结构收敛在 RefreshTokenStore/SecretHasher
+        // 只存 HMAC 摘要不落明文
         refreshTokenStore.issue(staff.getId().toString(), deviceId, refreshToken);
         return new TokenPair(accessToken, refreshToken);
     }

@@ -77,8 +77,7 @@ public class GlobalExceptionHandler {
         return noStore(problem(HttpStatus.INTERNAL_SERVER_ERROR, "服务器内部错误"));
     }
 
-    // ---- 组装辅助 ----
-
+    // 组装辅助
     /** 统一 ProblemDetail 组装：title 取状态码 reason phrase，requestId 从 MDC 带出 */
     private static ProblemDetail problem(HttpStatus status, String detail) {
         ProblemDetail pd = ProblemDetail.forStatus(status);

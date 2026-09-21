@@ -74,7 +74,7 @@ public class AuthController {
         smsCodeService.sendCode(req.phone(), clientIp.of(servletRequest));
     }
 
-    /** 发放图形验证码（匿名可达，见 JwtProperties.skipPaths） */
+    /** 发放图形验证码（匿名可达） */
     @GetMapping("/captcha")
     public CaptchaResponse getCaptcha() {
         CaptchaService.Captcha captcha = captchaService.generate();
@@ -195,6 +195,5 @@ public class AuthController {
         return req == null || req.deviceId() == null ? "default" : req.deviceId();
     }
 
-    // ---- Response DTOs ----
-
+    // Response DTOs
 }

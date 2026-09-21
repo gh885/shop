@@ -83,8 +83,7 @@ function items(...dtos: CartItemView[]): CartItem[] {
     return dtos.map(toCartItem)
 }
 
-// ---------- toCartItem：wire → 投影 ----------
-
+// toCartItem：wire → 投影
 describe("toCartItem", () => {
     it("重命名 name→title、mainImage→image，sku 原样透传", () => {
         const item = toCartItem(
@@ -111,8 +110,7 @@ describe("toCartItem", () => {
     })
 })
 
-// ---------- 派生：选中/合计/全选 ----------
-
+// 派生：选中/合计/全选
 describe("deriveSelectedItems / deriveSelectedTotal", () => {
     it("只保留可售且勾选的条目", () => {
         const list = items(
@@ -164,8 +162,7 @@ describe("deriveAllSelected", () => {
     })
 })
 
-// ---------- 派生：分组与条目视图 ----------
-
+// 派生：分组与条目视图
 describe("groupByShop", () => {
     it("按店铺分组且保持服务端返回顺序", () => {
         const list = items(
@@ -252,8 +249,7 @@ describe("deriveCartItemView", () => {
     })
 })
 
-// ---------- 缓存变换语义 ----------
-
+// 缓存变换语义
 describe("patchItem / setItemsSelected / removeItems", () => {
     const list = items(makeDto({ id: "a" }), makeDto({ id: "b" }), makeDto({ id: "c" }))
 

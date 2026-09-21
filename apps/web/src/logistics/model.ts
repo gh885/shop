@@ -12,8 +12,7 @@ import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/
  * 所以「节点码 → 中文名」只在这里有一份，组件不 import SDK 枚举。
  */
 
-// ---------- 词表 ----------
-
+// 词表
 /**
  * 包裹状态 → 展示名。既做摘要卡大标题，也做轨迹段标题。
  * 刻意粗粒度：到达/离开分拨都归「运输中」——轨迹要细、状态要粗（与后端 TrackingNodeCode.status() 同构）。
@@ -46,8 +45,7 @@ export function isAbnormalStatus(status: ShipmentStatus): boolean {
     return ABNORMAL_STATUS.has(status)
 }
 
-// ---------- 业务类型 ----------
-
+// 业务类型
 /** 轨迹节点（视图模型）：时间已格式化、分级已判定，组件拿到即画 */
 export type TrackingNode = {
     key: string
@@ -80,8 +78,7 @@ export type ShipmentTrack = {
     groups: TrackingGroup[]
 }
 
-// ---------- 纯规则 ----------
-
+// 纯规则
 /**
  * ISO 时间 → 节点时间文案「MM-dd HH:mm」。
  * 与 app-kit 的 formatTimeShort 不同：**跨年补年份**——只给月日时，去年 12 月与今年 12 月在

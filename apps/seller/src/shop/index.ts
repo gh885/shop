@@ -1,5 +1,5 @@
 /**
- * shop —— 卖家店铺域（扁形态，同 product 域）：
+ * shop —— 卖家店铺域（扁形态）：
  * - queries.ts      ：TanStack Query 定义层（key 工厂 + 我的店铺 / 当前店铺 hooks + SDK 调用封装）
  * - ShopGate.tsx    ：路由级店铺守卫（无 ACTIVE 店铺 → 开店引导页，业务页不再各自兜底）
  * - shop-context.tsx：守卫注入的当前店 context（useShop 非空契约）

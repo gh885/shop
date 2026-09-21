@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 买家侧店铺信息（匿名可访问，见 JwtProperties.skipPaths）。
+ * 买家侧店铺信息（匿名可访问）。
  *
  * <p>与 ShopController（/shops，需登录、卖家自己管自己的店）分开：这里只读、只返对外可展示的字段。 存在的理由是让 product
  * 模块不必去碰店铺数据——商详页要显示店名，前端拿 shopId 单独调这里。

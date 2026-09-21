@@ -10,7 +10,7 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 /**
  * 定时任务配置：@Scheduled 默认单线程调度器，且不带 MDC（trace_id 断链）。
  * 这里换成显式 ThreadPoolTaskScheduler + MdcTaskDecorator——无上游上下文时装饰器自动生成新 trace_id，
- * 让超时关单等任务在日志里是完整链路（见 AsyncConfig 注释的约定）。
+ * 让超时关单等任务在日志里是完整链路。
  */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling

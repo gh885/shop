@@ -2,12 +2,11 @@ import type { ProductStatus } from "@shop/api/sdk"
 
 import { unpricedRows, type SkuDraftRow } from "./draft-model"
 
-/** 保存/发布的动作模式（与 create/basic/BasicStep 的 SubmitMode 同构，此处为本模块独立真相源） */
+/** 保存/发布的动作模式（本模块独立真相源） */
 export type SaveMode = "submit" | "warehouse" | "draft"
 
 /**
- * 「商品状态 × 编辑会话能力」规则表 —— 后端 SPU 状态机（product/ProductStatus.java +
- * ProductService 守卫）的**声明式镜像**：真值在后端（状态迁移合法性 / ensurePublishable
+ * 「商品状态 × 编辑会话能力」规则表 —— 后端 SPU 状态机的**声明式镜像**：真值在后端（状态迁移合法性 / ensurePublishable
  * 门槛由 409 兜底），这里只驱动 UX（禁用/显隐/文案）与前端预检，不裁决、不发明规则。
  *
  * 对齐千牛的编辑心智：
@@ -16,9 +15,6 @@ export type SaveMode = "submit" | "warehouse" | "draft"
  *  - 规格组合：PUBLISHED 冻结（要改先下架）；
  *  - 「发布/上架」是迁移动作（带门槛）；「保存」不是——已出草稿商品用 priceRequired
  *    （表单必填语义）保证永远不会被存成「有组合但未设价」，而非在保存动作上做全局门槛。
- *
- * 真值出处：DRAFT→{PUBLISHED,WAREHOUSE}、WAREHOUSE→PUBLISHED、PUBLISHED→WAREHOUSE
- * （ProductStatus.TRANSITIONS）；「上架冻结规格」ensureSpecsEditable；「全设价」ensurePublishable。
  */
 export interface EditCapability {
     /** 能否切换类目（结构性字段：仅草稿可改，发布后需重新发布） */

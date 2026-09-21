@@ -3,7 +3,7 @@ import { Button } from "@shop/ui-web"
 import type { OrderAction, OrderActionItem } from "./model"
 
 /**
- * 订单操作按钮排：动作清单由调用方给（后端动作 + 前端附加动作，见 model.ts 的 deriveOrderActions），
+ * 订单操作按钮排：动作清单由调用方给（后端动作 + 前端附加动作），
  * 本组件只负责画按钮与禁用态。
  */
 

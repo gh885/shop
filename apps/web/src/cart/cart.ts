@@ -50,8 +50,7 @@ const DELETED_SHOP_ID = "__deleted__"
  * 数量越界/库存这个 UX 预判在 use-cart 的 useCartItemActions 里（仍以后端裁决为准）。
  */
 
-// ---------- 投影映射（wire → 领域） ----------
-
+// 投影映射（wire → 领域）
 /**
  * 轻量映射：只做组件真正需要的两个重命名（wire name/mainImage → 域 title/image）
  * 与 available 默认 true，其余字段原样透传。不做逐字段造假兜底（`?? ""` 一律避免）。
@@ -78,8 +77,7 @@ export function toCartItem(dto: ApiCartItemView): CartItem {
     }
 }
 
-// ---------- 派生（缓存 → 视图读模型） ----------
-
+// 派生（缓存 → 视图读模型）
 /** 按店铺分组的展示单元：店铺信息取自组内首条（同一车同店字段一致） */
 export type CartShopGroup = {
     shopId: string
@@ -168,8 +166,7 @@ export function deriveCartItemView(item: CartItem): CartItemView {
     }
 }
 
-// ---------- 缓存变换语义（乐观 patch 的唯一来源） ----------
-
+// 缓存变换语义（乐观 patch 的唯一来源）
 /** 单条数量上限（后端裁决，这里仅用于前端预判，避免多打一个往返） */
 export const MAX_CART_QUANTITY = 999
 

@@ -63,8 +63,7 @@ class PaymentServiceTest {
                 .thenReturn(Optional.of(new OrderPaymentView("20260101120000001", userId, status, Money.cny(2000))));
     }
 
-    // ========== 发起（PENDING） ==========
-
+    // 发起（PENDING）
     @Test
     void 正常发起_落待确认流水_不推进订单状态机() {
         stubOrder(OrderStatus.PENDING_PAYMENT);
@@ -140,8 +139,7 @@ class PaymentServiceTest {
         });
     }
 
-    // ========== 确认（PENDING→SUCCESS） ==========
-
+    // 确认（PENDING→SUCCESS）
     private Payment pendingPayment(UUID paymentId, PaymentStatus status) {
         Payment p = new Payment();
         p.setId(paymentId);

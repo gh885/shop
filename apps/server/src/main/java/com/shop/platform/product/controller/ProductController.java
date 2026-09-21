@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 买家侧商品浏览（匿名可访问，见 JwtProperties.skipPaths）。
+ * 买家侧商品浏览（匿名可访问）。
  *
  * <p>与 ProductAdminController 的分工：那边按 X-Shop-Id 操作自己店的全状态商品，这边只读全站上架商品。 出参一律走本类的 Response
  * 内部类，不直接返实体——实体带 status/updatedAt/skuCode 等买家不该看的字段。

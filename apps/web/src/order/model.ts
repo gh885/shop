@@ -15,8 +15,7 @@ import {
  * 金额一律 Money（分 + 币种），不裸传 number。
  */
 
-// ---------- 业务类型 ----------
-
+// 业务类型
 // 订单状态类型与 wire↔领域映射收在包级 shared（#/shared/order-status），此处复用
 import type { OrderStatus } from "#/shared/order-status"
 
@@ -57,7 +56,7 @@ export type Order = {
      *
      * 前端不再按 status 另推一张「状态 → 按钮」表：那张表曾经与后端漂移
      * （后端认为待发货可 CANCEL，前端只给了「提醒发货」），
-     * 这里只负责文案、顺序与主次（见 ./constants.ts）。
+     * 这里只负责文案、顺序与主次。
      */
     availableActions: OrderAction[]
     /** 商品总额（若干行合计） */

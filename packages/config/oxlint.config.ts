@@ -5,7 +5,7 @@ import { defineConfig } from "oxlint"
  *  - space-*：`space-y-*` / `space-x-*` 改的是**子元素之间的间隔**（给子元素加 margin），
  *    永远不可能是在描述元素自己的外观，所以它就是布局原语，和 `flex` / `w-*` 同类。
  *    注意 `gap-*` 不在此列：`gap-1` 在 Button 上就是"图标与文字的距离"，那是自身外观，
- *    只有「连 display 都不自己定的容器」才另开（见 CardContent 的 contract）。
+ *    只有「连 display 都不自己定的容器」才另开。
  *  - required-mark：ui-web 自带的必填星号伪元素 utility（styles.css @utility），
  *    属设计系统提供的类名（语义同 sr-only），不是调用方手搓的样式
  *  - tabular-nums：只让数字等宽，改不了字号/字重/字族，DESIGN.md 第 70 行
@@ -96,13 +96,13 @@ export default defineConfig({
                     // ItemActions 只有一处要更宽的横向间隔：结账页把两列 w-20 的金额并排放在
                     // 动作槽里，基类 gap-2 会把两列挤成一块。为 1 处加 variant 不值得，按类名开口子。
                     { pattern: "^ItemActions$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-6"] },
-                    // CardContent 的基类**只有左右内边距**（`px-(--card-spacing)`，见 card.tsx），
+                    // CardContent 的基类**只有左右内边距**（`px-(--card-spacing)`），
                     // 既没有 display 也没有 gap —— 调用方必然要自己给 `flex`/`grid`，给了 display
                     // 就必然要自己给 `gap`。`flex` 是 layout 已放行、`gap` 却要拦，这两者是同一件事，
                     // 所以 CardContent 上的 gap-* 同属 layout。
                     // （`Card` 不在此列：它自己是 `flex flex-col gap-(--card-spacing)`，gap 归它管。）
                     { pattern: "^CardContent$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
-                    // DropdownMenuTrigger 在 dropdown-menu.tsx 里是**纯透传**
+                    // DropdownMenuTrigger 自身是**纯透传**
                     // （`<MenuPrimitive.Trigger {...props} />`，无 cva、无基类 className），
                     // 它没有任何自己的皮肤可"拥有"——插件的「<X> owns its shape」这句话在这里是空的，
                     // 于是调用方写的每一个类都被判成越权。而调用方本来就该是它的皮肤：

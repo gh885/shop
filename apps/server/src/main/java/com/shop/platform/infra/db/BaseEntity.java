@@ -27,7 +27,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public abstract class BaseEntity {
 
-    /** 主键。应用层生成 uuidv7（见 infra/MyBatisPlusMetaObjectHandler），一旦创建不可变 */
+    /** 主键。应用层生成 uuidv7，一旦创建不可变 */
     @TableId(type = IdType.INPUT)
     private UUID id;
 

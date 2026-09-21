@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>都在调用方事务内同步同事务执行（order 下单、payment 支付回调）：
  * <ul>
  *   <li><b>冻结/扣实/释放/补货</b> —— 存量增减走<b>条件更新单语句</b>（WHERE 闸门在行锁下原子求值，
- *       RETURNING OLD/NEW 直接带回前后两帧，见 SkuStockMapper）。无行返回即闸门未过，
+ *       RETURNING OLD/NEW 直接带回前后两帧）。无行返回即闸门未过，
  *       抛 409 令调用方事务整体回滚：冻结防超卖，扣实防冻结量不足，释放防重复释放。
  *   <li><b>绝对量调整</b>（后台 set 总库存）= 读-改-写，走 {@code @Version} 乐观锁（两并发调整互相覆盖时 one 让位）。
  * </ul>
@@ -187,8 +187,7 @@ public class StockCommand {
         skuStockMapper.deleteBySkuId(skuId);
     }
 
-    // ========== 内部：流水记账 ==========
-
+    // 内部：流水记账
     /**
      * 流水统一写入口：前后两帧由更新语句 RETURNING OLD/NEW 原子带回（绝对量调整路径由 CAS 成功保证前帧可信），
      * 字段全部由帧推导：quantity = 总库存增量；各前后列取帧实际值。

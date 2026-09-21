@@ -5,7 +5,7 @@ import { AuthApi } from "@shop/api/sdk"
 
 import { getCurrentShopId } from "./shop-store"
 
-// 浏览器端走 Vite proxy（同源相对路径），见 vite.config.ts
+// 浏览器端走 Vite proxy（同源相对路径）
 const authKit = createAuthKit({
     // 引用下方 AuthApi：调用发生在模块初始化后，安全
     // SDK 出错即 throw（responseStyle: data + throwOnError），失败由 createAuthKit 裁决为 guest
@@ -24,8 +24,7 @@ configureSdkClient("", tokenStore, {
     contextHeaders: () => ({ "X-Shop-Id": getCurrentShopId() }),
 })
 
-// ---------- 登出 ----------
-
+// 登出
 export async function logout(): Promise<void> {
     try {
         await AuthApi.logout({ body: { deviceId: getDeviceId() } })
@@ -36,8 +35,7 @@ export async function logout(): Promise<void> {
     }
 }
 
-// ---------- 路由守卫 ----------
-
+// 路由守卫
 /** 受保护路由的 beforeLoad 守卫：确保登录态已裁决，未登录跳登录页 */
 export async function requireAuth(): Promise<void> {
     await bootstrapAuth()

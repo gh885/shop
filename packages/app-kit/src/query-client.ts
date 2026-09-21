@@ -50,7 +50,7 @@ export function createAppQueryClient(overrides: AppQueryClientOverrides = {}): Q
             },
             onError: (error, _variables, _onMutateResult, mutation) => {
                 const meta = mutation.options.meta
-                // 表单内联报错这类自己处理错误的写操作显式退出（见 MutationMeta.silentError）
+                // 表单内联报错这类自己处理错误的写操作显式退出
                 if (meta?.silentError) return
                 notify.fromError(error, meta?.error)
             },
@@ -71,7 +71,7 @@ export function createAppQueryClient(overrides: AppQueryClientOverrides = {}): Q
  *
  * 存在的原因：测试要确定性（禁 retry），但**不能因此丢掉应用默认值**——否则
  * `throwOnError`、写操作的全局 toast 这些「生产里一定生效」的行为在测试里根本走不到，
- * 于是测试只能证明「这套默认值不存在时一切正常」。各 app 的 `src/test/render.tsx` 用
+ * 于是测试只能证明「这套默认值不存在时一切正常」。各 app 的测试装置用
  * `createAppQueryClient({ queries: { retry: false }, mutations: { retry: false } })` 建测试客户端，
  * 拿到的是真实默认值 + 确定的重试策略。
  *

@@ -11,9 +11,8 @@ import { formatDate } from "@shop/app-kit"
  * 有效期区间共同决定，是一条有边界的判定规则，必须能脱离渲染被单测钉住。
  */
 
-// ---------- 列表 URL 状态 ----------
-
-/** 券列表的 URL 状态：页码/每页条数进 URL，可分享可回退（与商品/售后列表同范式） */
+// 列表 URL 状态
+/** 券列表的 URL 状态：页码/每页条数进 URL，可分享可回退 */
 export const couponListSearchSchema = z.object({
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     page: z.coerce.number().int().min(1).catch(1),
@@ -23,8 +22,7 @@ export const couponListSearchSchema = z.object({
 
 export type CouponListSearch = z.infer<typeof couponListSearchSchema>
 
-// ---------- 展示状态 ----------
-
+// 展示状态
 /** 列表展示状态：由模板 status 与有效期区间相对当前时刻派生（不是 wire 里的 status 原样透传） */
 export type CouponStatus = "NOT_STARTED" | "ONGOING" | "ENDED" | "STOPPED"
 
@@ -66,8 +64,7 @@ export function deriveCouponStatus(
     return "ONGOING"
 }
 
-// ---------- wire → 领域投影 ----------
-
+// wire → 领域投影
 /** 列表一行：wire 的 Money / ISO 时间在这里翻译成展示文案，组件只负责画 */
 export interface CouponRow {
     id: string

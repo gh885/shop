@@ -3,7 +3,7 @@ import type { ShopResponse } from "@shop/api/sdk"
 
 const ShopContext = createContext<ShopResponse | undefined>(undefined)
 
-/** 由 ShopGate（路由守卫）注入：渲染子树时才提供，见 useShop 的契约 */
+/** 由 ShopGate（路由守卫）注入：渲染子树时才提供 */
 export function ShopProvider({ shop, children }: { shop: ShopResponse; children: ReactNode }) {
     return <ShopContext value={shop}>{children}</ShopContext>
 }

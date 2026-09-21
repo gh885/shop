@@ -8,8 +8,8 @@ import java.util.Set;
  * SPU 履约状态机（product 模块状态规则的唯一真相）：草稿 → 上架 ⇄ 仓库中，草稿 → 仓库中。
  *
  * <p>仓库中（{@link #WAREHOUSE}）是「不在售但填完了」的汇聚态，容纳两类商品：
- * ① 填完但主动选择放入仓库（草稿 → 仓库中，见 publish(target=WAREHOUSE)）；
- * ② 上架后又下架（上架 → 仓库中，见 off）。
+ * ① 填完但主动选择放入仓库（草稿 → 仓库中）；
+ * ② 上架后又下架（上架 → 仓库中）。
  * 从仓库中随时可重新上架。
  *
  * <p>DB 存 {@code name()}（varchar），不存 ordinal——改枚举名不影响存量数据，name 本身即语义。
@@ -33,8 +33,7 @@ public enum ProductStatus {
             WAREHOUSE, Set.of(PUBLISHED),
             PUBLISHED, Set.of(WAREHOUSE));
 
-    // ---- 谓词 ----
-
+    // 谓词
     public boolean isPublished() {
         return this == PUBLISHED;
     }
