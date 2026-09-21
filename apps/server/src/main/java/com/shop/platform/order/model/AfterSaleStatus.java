@@ -28,4 +28,9 @@ public enum AfterSaleStatus {
 
     /** 买家撤销售后申请（终态） */
     CLOSED;
+
+    /** 争议未决（售后单还挂着）：此时系统不该替买家宣布「已收货」 */
+    public boolean unresolved() {
+        return this == APPLYING || this == RETURNING;
+    }
 }

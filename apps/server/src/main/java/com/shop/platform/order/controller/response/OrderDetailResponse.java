@@ -44,6 +44,8 @@ public record OrderDetailResponse(
         @Schema(requiredMode = REQUIRED, nullable = true) String trackingNo,
         @Schema(requiredMode = REQUIRED) OffsetDateTime payExpireAt,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime paidAt,
+        /** 发货时限（付款时回填，未付款为 null）：两侧只拿它做「该发货了 / 超时未发货」提醒，到期不自动关单（ORD-27） */
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime shipExpireAt,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime shippedAt,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime completedAt,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime cancelledAt,
@@ -96,6 +98,7 @@ public record OrderDetailResponse(
                 // 时间戳留痕：付款截止 + 各状态时刻
                 order.getPayExpireAt(),
                 order.getPaidAt(),
+                order.getShipExpireAt(),
                 order.getShippedAt(),
                 order.getCompletedAt(),
                 order.getCancelledAt(),

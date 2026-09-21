@@ -95,21 +95,18 @@ public class OrderTransitionService {
         return cancelFrom(order, Set.of(PENDING_PAYMENT), "超时未支付，自动关闭", OrderAction.AUTO_CANCEL, OrderActor.SYSTEM);
     }
 
-    /** 待发货超时自动取消：只认 PAID，回补总库存并落退款单据 */
-    @Transactional
-    public boolean cancelUnshipped(Order order) {
-        return cancelFrom(order, Set.of(PAID), "超时未发货，自动取消并退款", OrderAction.AUTO_CANCEL, OrderActor.SYSTEM);
-    }
-
-    /** 已发货超时未确认：自动确认收货（无库存/退款动作） */
+    /** 已发货超时未确认：自动确认收货（无库存/退款动作）；争议未决时让位给售后线 */
     @Transactional
     public boolean completeUnreceived(Order order) {
+        if (order.getAfterSaleStatus().unresolved()) {
+            return false;
+        }
         return complete(order.getId(), OrderAction.AUTO_RECEIVE, OrderActor.SYSTEM);
     }
 
     // 私有：两个共用落点
     /**
-     * 取消的唯一落点（买家取消 / 待付款超时 / 待发货超时共用）。
+     * 取消的唯一落点（买家取消 / 待付款超时共用）。
      *
      * @param sources 各入口刻意不同的合法前态集：买家两态皆可取消，系统各只认自己那一态
      * @return 是否真的改到了行；抢不到（已支付/已发货/已关闭）由调用方决定报 409 还是让位

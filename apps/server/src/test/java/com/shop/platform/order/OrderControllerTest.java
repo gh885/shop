@@ -20,8 +20,10 @@ import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -58,6 +60,12 @@ class OrderControllerTest extends WebControllerTestSupport {
         o.setPayExpireAt(OffsetDateTime.now().plusMinutes(30));
         o.setCreatedAt(OffsetDateTime.now());
         return o;
+    }
+
+    /** n 行同 SKU 的结算行 JSON：@Size 闸门在行合并之前，重复 skuId 不影响触发 */
+    private String linesJson(int n) {
+        String line = "{\"skuId\": \"%s\", \"quantity\": 1}".formatted(skuId);
+        return Collections.nCopies(n, line).stream().collect(Collectors.joining(","));
     }
 
     @Nested
@@ -102,6 +110,20 @@ class OrderControllerTest extends WebControllerTestSupport {
                     .andExpect(status().is(422))
                     .andExpect(jsonPath("$.errors[0].field").value("checkoutKey"));
         }
+
+        @Test
+        void 结算行超99_422() throws Exception {
+            mockMvc.perform(post("/orders/create")
+                            .with(userAuth(userId))
+                            .content(
+                                    """
+                                {"checkoutKey": "%s", "addressId": "%s", "lines": [%s]}
+                                """
+                                            .formatted(UUID.randomUUID(), UUID.randomUUID(), linesJson(100))))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("lines"))
+                    .andExpect(jsonPath("$.errors[0].message").value("结算条目需 1 到 99 行"));
+        }
     }
 
     @Nested
@@ -129,6 +151,18 @@ class OrderControllerTest extends WebControllerTestSupport {
                                 """))
                     .andExpect(status().is(422))
                     .andExpect(jsonPath("$.errors[0].field").value("lines"));
+        }
+
+        @Test
+        void 结算行超99_422() throws Exception {
+            mockMvc.perform(post("/orders/preview")
+                            .with(userAuth(userId))
+                            .content("""
+                                    {"lines": [%s]}"""
+                                    .formatted(linesJson(100))))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("lines"))
+                    .andExpect(jsonPath("$.errors[0].message").value("结算条目需 1 到 99 行"));
         }
 
         /** 预览的地址可选（前端未选地址时传 null），但行必填：入参得原样递到 service */

@@ -8,13 +8,13 @@
 
 | 文件                         | 领域                                                | 前缀             | 生效 | 待落地 |
 | ---------------------------- | --------------------------------------------------- | ---------------- | ---- | ------ |
-| [order.md](order.md)         | 订单 / 购物车 / 收藏                                | ORD / CART / FAV | 72   | —      |
-| [aftersale.md](aftersale.md) | 售后 / 退款                                         | AFS              | 33   | —      |
+| [order.md](order.md)         | 订单 / 购物车 / 收藏                                | ORD / CART / FAV | 73   | —      |
+| [aftersale.md](aftersale.md) | 售后 / 退款                                         | AFS              | 34   | —      |
 | [logistics.md](logistics.md) | 物流 / 运费（含运费模板）                           | LOG              | 69   | —      |
 | [payment.md](payment.md)     | 支付 / 资金（含退款流水）                           | PAY              | 29   | —      |
 | [coupon.md](coupon.md)       | 优惠券 / 营销                                       | CPN              | 61   | 7      |
 | [product.md](product.md)     | 商品 / 类目 / 库存                                  | PRD              | 76   | —      |
-| [account.md](account.md)     | 店铺 / 账号 / 权限（含全局会话行为）                | ACC              | 66   | 4      |
+| [account.md](account.md)     | 店铺 / 账号 / 权限（含全局会话行为）                | ACC              | 67   | 4      |
 | [cms.md](cms.md)             | 内容 / 首页 / 推荐                                  | CMS 等           | 53   | 5      |
 | [money.md](money.md)         | 金额与币种（Money 全链路）                          | MONEY            | 12   | —      |
 | [crosscut.md](crosscut.md)   | 横切全局行为（错误信封 / 传输 / 写反馈 / 事件日志） | GEN              | 20   | —      |

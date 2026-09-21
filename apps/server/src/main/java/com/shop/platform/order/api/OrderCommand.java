@@ -108,6 +108,14 @@ public class OrderCommand {
     }
 
     /**
+     * 包裹退回落库（logistics 在轨迹推进到退回后同步调用，同事务）：货没到买家手上，收货窗口从退回时刻重算，
+     * 不让「发货起 7 天」在包裹已退回时把单转完成（LOG-17）。只认 SHIPPED + 未签收，已签收/已完成的单不动。
+     */
+    public void markReturned(UUID orderId, OffsetDateTime returnedAt) {
+        orderMapper.markReturned(orderId, returnedAt.plus(OrderTimeouts.RECEIVE));
+    }
+
+    /**
      * 售后投影写回：afterSaleStatus 取 aftersale 售后单状态的 name()（与 {@link AfterSaleStatus} 同词表，NONE 除外），
      * refundAmount 仅在退款完成时传入，其余传 null 不动。
      *

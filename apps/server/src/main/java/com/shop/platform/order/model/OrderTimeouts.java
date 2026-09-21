@@ -11,7 +11,10 @@ public final class OrderTimeouts {
     /** 下单起算：待付款窗口，到期自动关单（pay_expire_at） */
     public static final Duration PAY = Duration.ofMinutes(15);
 
-    /** 付款起算：卖家发货窗口，到期自动取消并退款（ship_expire_at） */
+    /**
+     * 付款起算：卖家发货窗口（ship_expire_at）。<b>只作提醒依据，不驱动任何自动转移</b>——
+     * 到期自动取消会误杀买家仍想要的单，买家的选择权是他自己的取消按钮（ORD-20/27）。
+     */
     public static final Duration SHIP = Duration.ofDays(3);
 
     /**

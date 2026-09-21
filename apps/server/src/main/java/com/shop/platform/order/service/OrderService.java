@@ -29,6 +29,7 @@ import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.model.OrderTimeouts;
 import com.shop.platform.order.service.CheckoutResolver.ResolvedCheckout;
 import com.shop.platform.shop.api.ShopReadQuery;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -107,6 +108,7 @@ public class OrderService {
     // 创建订单
     /**
      * 创建订单：一次结算按店铺拆成 N 单，全成全败。入口先过账号闸门（禁用账号 403 USER_DISABLED），
+     * 再过恶拍闸门（在途待付款与拍下不付各自封顶，429 无 code），
      * 再过营业闸门（本店非 ACTIVE 一律 409「店铺已停止营业」，无 code——前端只需按 status 分支）。
      * 库存最终闸门在 product :: api 的同步条件扣减里（失败 → 本事务整体回滚）。
      *
@@ -121,14 +123,18 @@ public class OrderService {
             throw new BusinessException(403, "USER_DISABLED", "账号已被禁用");
         }
 
-        // 2. 校验收货地址归属并取快照（下单定格，之后改/删地址不影响本单）
+        // 2. 恶拍闸门：拍下即冻结库存（ORD-11），没有这道闸，一个账号可以每 15 分钟锁一次全店库存。
+        //    排在地址与结算行解析之前——它是两条计数查询，是这道门口最便宜的检查，先把脚本挡在重活之外
+        assertNotMaliciousBidder(userId);
+
+        // 3. 校验收货地址归属并取快照（下单定格，之后改/删地址不影响本单）
         AddressSnapshot address = checkoutResolver.loadAddressSnapshot(userId, req.addressId());
 
-        // 3. 全量有效才允许下单：任一行失效或缺货直接拒绝（预览页已提示过，这里兜底并发变化）
+        // 4. 全量有效才允许下单：任一行失效或缺货直接拒绝（预览页已提示过，这里兜底并发变化）
         ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
         Validate.isTrue(resolved.unavailable().isEmpty(), "部分商品已下架或库存不足，请重新确认结算");
 
-        // 4. 营业闸门：本单涉及的每一家店都须 ACTIVE（shop :: api 的谓词，状态词表不外泄）。
+        // 5. 营业闸门：本单涉及的每一家店都须 ACTIVE（shop :: api 的谓词，状态词表不外泄）。
         //    店被驳回/禁用时其上架商品已由事件级联下架，走不到这一步；此处挡的是「商品还在架上、店刚好停了」
         //    的并发窗口，以及直接下单（不经购物车）的脚本 —— 409：资源当前状态冲突，与下架/售罄同一口径
         for (UUID shopId :
@@ -138,7 +144,7 @@ public class OrderService {
             }
         }
 
-        // 5. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用分组结果免重查。
+        // 6. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用分组结果免重查。
         //    分组顺序（shopId 升序）由 CheckoutResolver.groupByShop 保证，不是勾选顺序：逐店冻结时
         //    StockCommand 只在单店内按 skuId 排序，店间顺序若跟用户走，两笔店序相反的多店订单会互相等锁
         //    （A 持店1等店2，B 持店2等店1）。一个 SKU 只属一家店，(shopId, skuId) 升序即全局锁序，环不可能成立。
@@ -152,7 +158,7 @@ public class OrderService {
             staged.add(Map.entry(persistOrder(userId, req, address, group), group));
         }
 
-        // 6. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU；
+        // 7. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU；
         //    券在同一事务内占用（UNUSED → LOCKED），抢不到同样回滚——券被别的未付款单占着时不会走到这一步还成立
         for (Map.Entry<Order, CheckoutPreview.Group> entry : staged) {
             Order order = entry.getKey();
@@ -173,6 +179,31 @@ public class OrderService {
                 groups.stream().map(CheckoutPreview.Group::payAmount).reduce(Money.cny(0), Money::plus);
         log.info("[ORDER] 下单成功, userId={}, 单数={}, 总应付={}", userId, created.size(), totalPayAmount);
         return created;
+    }
+
+    // 恶拍闸门
+    /** 在途待付款单数上限。一次多店结算本身就产出 N 单，故阈值按「单」计不按「次」计，留出多店余量 */
+    private static final int MAX_PENDING_PAYMENT_ORDERS = 10;
+
+    /** 窗口内「拍下不付即关闭」的单数上限 */
+    private static final int MAX_UNPAID_CANCELLED_ORDERS = 10;
+
+    /** 拍下不付的统计窗口 */
+    private static final Duration UNPAID_CANCEL_WINDOW = Duration.ofHours(24);
+
+    /**
+     * 恶意拍下的两道计数闸：在途待付款太多 = 锁着不放；24 小时内拍下不付太多 = 反复锁了又退。
+     * 两个阈值都远超正常买家的量级，命中即脚本。429 不释库存也不关单——只是不再接受新单，
+     * 在途的那几单照常按 ORD-26 自行超时关闭。
+     */
+    private void assertNotMaliciousBidder(UUID userId) {
+        if (orderMapper.countPendingPayment(userId) >= MAX_PENDING_PAYMENT_ORDERS) {
+            throw BusinessException.rateLimited("待付款订单过多，请先完成支付或取消部分订单");
+        }
+        if (orderMapper.countUnpaidCancelledSince(userId, OffsetDateTime.now().minus(UNPAID_CANCEL_WINDOW))
+                >= MAX_UNPAID_CANCELLED_ORDERS) {
+            throw BusinessException.rateLimited("近期取消的未付款订单过多，请稍后再试");
+        }
     }
 
     // 买家侧查询

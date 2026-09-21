@@ -4,12 +4,13 @@
 
 ## 准入与窗口
 
-- **[AFS-01]** 买家发起售后申请须同时满足四项：订单主状态为 `COMPLETED`（确认收货或超时自动收货之后）、申请截止时刻 `apply_expire_at` 未过、该订单当前没有进行中的售后单（`APPLYING` / `RETURNING`）、最新一张售后单不是 `REFUNDED`（见 AFS-05）；前三项任一不成立拒绝申请（409「当前不可申请售后」），末项撞 409 + code `AFTER_SALE_ALREADY_REFUNDED`。
-- **[AFS-02]** 售后申请窗口 = 订单完成时刻起 **15 天**（`OrderTimeouts.AFTER_SALE_APPLY = Duration.ofDays(15)`），在订单转 `COMPLETED` 时（买家确认收货或系统超时自动收货）由完成时刻 +15 天回填 `apply_expire_at`。
+- **[AFS-01]** 买家发起售后申请须同时满足四项：订单主状态为 `SHIPPED`（待收货）或 `COMPLETED`（确认收货 / 超时自动收货之后）、申请窗口未过（口径见 AFS-02）、该订单当前没有进行中的售后单（`APPLYING` / `RETURNING`）、最新一张售后单不是 `REFUNDED`（见 AFS-05）；前三项任一不成立拒绝申请（409「当前不可申请售后」），末项撞 409 + code `AFTER_SALE_ALREADY_REFUNDED`。谓词落在 `order::api` 的 `OrderAfterSaleView.afterSaleOpenAt`，消费方不自己比状态字面量。
+- **[AFS-02]** 售后申请窗口分两段：**待收货期间随时可申**（`apply_expire_at` 此时还没回填，缺列即视为窗口开着）；订单转 `COMPLETED` 时由完成时刻 +**15 天**回填 `apply_expire_at`（`OrderTimeouts.AFTER_SALE_APPLY`），此后按该截止时刻判。前端 `canApplyAfterSale` 与后端同一口径（含「待收货缺列也算开着」）。
 - **[AFS-03]** 同一订单同一时刻至多一张进行中的售后单，由部分唯一索引 `uk_tickets_open_per_order ... WHERE status IN ('APPLYING','RETURNING')` 在 DB 层兜底，并发重复申请只能有一张成功（另一单收 409「该订单已有进行中的售后」）。
-- **[AFS-04]** 售后单被拒绝（`REJECTED`）或买家撤销（`CLOSED`)后，只要仍在 15 天窗口内允许重新申请——后端挡「进行中」与「最新单已退款」（AFS-05）两类，被拒/撤销不伤买家利益不挡；一单历史上有几张售后单不限（只要最新一张不是 REFUNDED）。
+- **[AFS-04]** 售后单被拒绝（`REJECTED`）或买家撤销（`CLOSED`)后，只要仍在申请窗口内（AFS-02）允许重新申请——后端挡「进行中」与「最新单已退款」（AFS-05）两类，被拒/撤销不伤买家利益不挡；一单历史上有几张售后单不限（只要最新一张不是 REFUNDED）。
 - **[AFS-05]** 最新一张售后单为 `REFUNDED` 时禁止再次申请：后端 `apply` 直接拒绝（409 + code `AFTER_SALE_ALREADY_REFUNDED`，「该订单已完成退款，不能再次申请售后」）——V1 整单售后，一笔订单的整单退款只允许发生一次；前端同步不给已退款订单露出申请入口。
 - **[AFS-06]** 售后申请只能由订单归属买家本人发起，非本人访问一律 404「订单不存在」（不泄露单据存在性）。
+- **[AFS-43]** 待收货是买家唯一讲理的地方，售后出口开在这一段（拍板，补原「售后须等 COMPLETED」的流程断点）：包裹丢失、破损、拒收都要等 7 天自动确认收货再走售后，等于把「没收到」伪装成「已收货」。三条落地：① `afterSaleOpenAt` 认 `SHIPPED`（AFS-01/02）；② **不挡类型**——订单状态区分不了「包裹在路上」和「已签收没点确认」，退货退款在后者是正当诉求，谁该同意交给卖家判断（卖家可拒，走 AFS-23 时限）；③ **争议未决时自动确认收货让位**：`completeUnreceived` 见 `afterSaleStatus ∈ {APPLYING, RETURNING}` 直接返回 false，系统不替买家宣布收货；售后单自己有 AFS-23 的超时兜底，落到终态后同一轮扫描自愈（`receive_expire_at` 已过期仍匹配扫描条件，订单随即转完成并回填申请窗口）。买家手点确认收货不受此限——那是他自己的决定。待发货（PAID）仍不给售后入口：那一段买家的出口是取消退款（ORD-20），不必再开第二条退款通道。
 
 ## 类型与申请内容
 

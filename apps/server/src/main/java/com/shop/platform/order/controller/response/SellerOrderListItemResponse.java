@@ -30,6 +30,8 @@ public record SellerOrderListItemResponse(
         @Schema(requiredMode = REQUIRED, nullable = true) String receiverPhone,
         @Schema(requiredMode = REQUIRED) long itemCount,
         @Schema(requiredMode = REQUIRED) List<OrderItemResponse> items,
+        /** 发货时限（付款时回填）：过点即「超时未发货」，是催办标记而不是系统代关单的凭据（ORD-27） */
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime shipExpireAt,
         @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt) {
 
     public static SellerOrderListItemResponse from(OrderWithItems o) {
@@ -45,6 +47,7 @@ public record SellerOrderListItemResponse(
                 order.getReceiverPhone(),
                 o.items().size(),
                 o.items().stream().map(OrderItemResponse::from).toList(),
+                order.getShipExpireAt(),
                 order.getCreatedAt());
     }
 }

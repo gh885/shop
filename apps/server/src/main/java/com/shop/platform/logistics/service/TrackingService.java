@@ -1,6 +1,7 @@
 package com.shop.platform.logistics.service;
 
 import static com.shop.platform.logistics.model.ShipmentStatus.DELIVERED;
+import static com.shop.platform.logistics.model.ShipmentStatus.RETURNED;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.shop.platform.common.Validate;
@@ -23,8 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>两条不变式在这里落地，且都由库约束兜底而非靠调用方守规矩：<b>节点不重复</b>（dedupe_key 唯一索引）、
  * <b>状态只前进</b>（条件更新 WHERE status IN sourcesOf(target)）。乱序、迟到、重推都是常态，不是异常。
  *
- * <p>签收是唯一会牵动订单的节点：推进到 DELIVERED 时经 {@code order :: api} 把签收时刻写进订单
- * （同事务），让「确认收货倒计时」从签收起算；订单侧只认 SHIPPED + 未签收，重复签收幂等。
+ * <p>两个终态会牵动订单，且都由 order 自己重算窗口（同事务）：推进到 DELIVERED 写签收投影、让「确认收货倒计时」
+ * 从签收起算；推进到 RETURNED 不写签收、只把倒计时从退回时刻重算——货没到买家手上，不该按发货到期完成订单。
+ * 订单侧只认 SHIPPED + 未签收，重复回写幂等。
  */
 @Service
 @Slf4j
@@ -76,6 +78,9 @@ public class TrackingService {
         // 5. 终态的两件收尾（同事务）：签收回写订单 + 结掉未结异常单
         if (advanced == 1 && target == DELIVERED) {
             orderCommand.markDelivered(shipment.getOrderId(), req.occurredAt());
+        }
+        if (advanced == 1 && target == RETURNED) {
+            orderCommand.markReturned(shipment.getOrderId(), req.occurredAt());
         }
         if (advanced == 1 && target.terminal()) {
             shipmentIssueService.resolveOnTerminal(shipmentId, "包裹已到终态（" + target + "），异常自动结单");

@@ -3,6 +3,7 @@ package com.shop.platform.order.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -26,8 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 /**
- * 下单入口的两道闸门（全 mock 单测，不碰库）：买家状态非 ACTIVE 一律 403 + code USER_DISABLED，
- * 与登录闸门同一份语义——token 未过期不等于账号还能交易；店铺非 ACTIVE 一律 409「店铺已停止营业」（无 code）。
+ * 下单入口的四道闸门（全 mock 单测，不碰库）：买家状态非 ACTIVE 一律 403 + code USER_DISABLED，
+ * 与登录闸门同一份语义——token 未过期不等于账号还能交易；恶拍两道计数闸（在途待付款、24h 内拍下不付）
+ * 各自封顶 429；店铺非 ACTIVE 一律 409「店铺已停止营业」（无 code）。
  * 闸门必须挡在一切数据动作之前：地址、库存、券、事件都要在放行之后才被触达。
  * 下钻到 service 包：协作者 {@link CheckoutResolver} 是包私有类型，构造被测服务需要引用它。
  */
@@ -151,7 +153,51 @@ class OrderCreateGateTest {
                     assertThat(e.getCode()).isNull(); // 不新增 error code
                 });
 
-        verifyNoInteractions(orderMapper, orderItemMapper, stockCommand, couponCommand, statusLogWriter, events);
+        verifyNoInteractions(orderItemMapper, stockCommand, couponCommand, statusLogWriter, events);
+    }
+
+    /**
+     * 恶拍闸门①（在途待付款单数）：拍下即冻结库存，锁着不放的人多了全店就卖不动，
+     * 故封到 10 单一律 429（无 code，与营业闸门同一姿态）。闸门排在地址解析之前——
+     * orderMapper 只被两条计数读触达，不落单、不冻结、不占券。
+     */
+    @Test
+    void 待付款单已满10_下单拒绝_429() {
+        when(userReadQuery.isActive(userId)).thenReturn(true);
+        when(orderMapper.countPendingPayment(userId)).thenReturn(10L);
+
+        assertThatThrownBy(() -> service.create(userId, 最小下单请求()))
+                .isInstanceOfSatisfying(BusinessException.class, e -> {
+                    assertThat(e.getHttpStatus()).isEqualTo(429);
+                    assertThat(e.getCode()).isNull();
+                });
+
+        verifyNoInteractions(checkoutResolver, orderItemMapper, stockCommand, couponCommand, statusLogWriter, events);
+    }
+
+    /** 恶拍闸门②（24h 内拍下不付次数）：只数 paid_at 为空的关闭单，已付款后取消不算恶意 */
+    @Test
+    void 当日拍下不付已满10_下单拒绝_429() {
+        when(userReadQuery.isActive(userId)).thenReturn(true);
+        when(orderMapper.countPendingPayment(userId)).thenReturn(2L);
+        when(orderMapper.countUnpaidCancelledSince(eq(userId), any())).thenReturn(10L);
+
+        assertThatThrownBy(() -> service.create(userId, 最小下单请求()))
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
+                        .isEqualTo(429));
+
+        verifyNoInteractions(checkoutResolver, orderItemMapper, stockCommand, couponCommand, statusLogWriter, events);
+    }
+
+    /** 阈值之下（9 单 / 9 次）放行：闸门不能把正常多店结算挡在外面 */
+    @Test
+    void 未达阈值_继续走地址校验() {
+        when(userReadQuery.isActive(userId)).thenReturn(true);
+        when(orderMapper.countPendingPayment(userId)).thenReturn(9L);
+        when(orderMapper.countUnpaidCancelledSince(eq(userId), any())).thenReturn(9L);
+        when(checkoutResolver.loadAddressSnapshot(any(), any())).thenThrow(BusinessException.notFound("收货地址不存在"));
+
+        assertThatThrownBy(() -> service.create(userId, 最小下单请求())).hasMessage("收货地址不存在");
     }
 
     /** 测试用收货快照（闸门只关心走没走到落库，字段内容无所谓） */

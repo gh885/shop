@@ -119,7 +119,7 @@ public class Order extends AuditedEntity {
     /** 待付款截止（下单时回填），到期自动关单 */
     private OffsetDateTime payExpireAt;
 
-    /** 待发货截止（付款时回填），到期自动取消并退款 */
+    /** 发货时限（付款时回填）：不进超时扫描，只下发给两侧做提醒（ORD-27） */
     private OffsetDateTime shipExpireAt;
 
     /** 确认收货截止（发货时回填），到期自动确认收货 */

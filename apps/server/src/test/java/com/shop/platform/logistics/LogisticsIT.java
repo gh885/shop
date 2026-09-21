@@ -289,6 +289,37 @@ class LogisticsIT extends IntegrationTestSupport {
     }
 
     @Test
+    void 包裹退回_收货窗口从退回时刻重算_已签收过的单不再被退回改动() {
+        // 未签收过的单被退回：货没到买家手上，倒计时不能按发货时刻到期就把单转完成
+        UUID returned = seedPaidOrder();
+        UUID parcel = dispatch(returned, "SF", "SF" + returned.toString().substring(0, 10) + "R");
+        OffsetDateTime returnedAt = OffsetDateTime.now().minusHours(1).truncatedTo(ChronoUnit.MILLIS);
+        recordNode(parcel, TrackingNodeCode.RETURNED, returnedAt, "发件人所在网点");
+        assertEquals(ShipmentStatus.RETURNED, statusOf(parcel));
+        assertEquals(
+                returnedAt.plus(OrderTimeouts.RECEIVE).toInstant(),
+                orderColumn(returned, "receive_expire_at").toInstant(),
+                "收货倒计时从退回时刻重算");
+        assertNull(orderColumn(returned, "delivered_at"), "退回不是签收，不写签收投影");
+        assertEquals(
+                "SHIPPED",
+                jdbc.queryForObject(
+                        "SELECT status FROM orders.orders WHERE id = ?::uuid", String.class, returned.toString()));
+
+        // 同单另一件已签收：签收是「买家拿到货」的更权威事实，之后另一件退回不重算窗口
+        UUID signed = seedPaidOrder();
+        UUID kept = dispatch(signed, "SF", "SF" + signed.toString().substring(0, 10) + "K");
+        UUID back = dispatch(signed, "ZTO", "ZT" + signed.toString().substring(0, 10) + "B");
+        OffsetDateTime deliveredAt = OffsetDateTime.now().minusHours(2).truncatedTo(ChronoUnit.MILLIS);
+        recordNode(kept, TrackingNodeCode.DELIVERED, deliveredAt, "上海浦东网点");
+        recordNode(back, TrackingNodeCode.RETURNED, deliveredAt.plusHours(1), "发件人所在网点");
+        assertEquals(
+                deliveredAt.plus(OrderTimeouts.RECEIVE).toInstant(),
+                orderColumn(signed, "receive_expire_at").toInstant(),
+                "已签收的单不再被退回重算");
+    }
+
+    @Test
     void 异常节点_可被后续前向节点离开_不会永久卡死() {
         UUID orderId = seedPaidOrder();
         UUID shipmentId = dispatch(orderId, "SF", "SFIT" + orderId.toString().substring(0, 10));

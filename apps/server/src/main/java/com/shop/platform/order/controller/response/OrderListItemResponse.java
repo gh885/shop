@@ -23,6 +23,8 @@ public record OrderListItemResponse(
         @Schema(requiredMode = REQUIRED) List<OrderAvailableAction> availableActions,
         @Schema(requiredMode = REQUIRED) Money payAmount,
         @Schema(requiredMode = REQUIRED) OffsetDateTime payExpireAt,
+        /** 发货时限（付款时回填，未付款为 null）：只用于两侧的「卖家该发货了」提醒，系统不代做决定（ORD-27） */
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime shipExpireAt,
         @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt,
         @Schema(requiredMode = REQUIRED) List<OrderItemResponse> items) {
 
@@ -37,6 +39,7 @@ public record OrderListItemResponse(
                 o.order().buyerActions(),
                 o.order().payAmountAsMoney(),
                 o.order().getPayExpireAt(),
+                o.order().getShipExpireAt(),
                 o.order().getCreatedAt(),
                 o.items().stream().map(OrderItemResponse::from).toList());
     }

@@ -20,6 +20,8 @@ import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.service.OrderService;
+import com.shop.platform.order.service.OrderTimeout;
+import com.shop.platform.order.service.OrderTimeoutService;
 import com.shop.platform.order.service.OrderTransitionService;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.model.PaymentStatus;
@@ -56,6 +58,10 @@ class AfterSaleIT extends IntegrationTestSupport {
     @Autowired
     private AfterSaleService afterSale;
 
+    /** 自动确认收货那条超时线：待收货售后与它的先后关系由本类钉住 */
+    @Autowired
+    private OrderTimeoutService timeouts;
+
     private final UUID userId = UUID.randomUUID();
 
     private final UUID shopId = UUID.randomUUID();
@@ -63,6 +69,8 @@ class AfterSaleIT extends IntegrationTestSupport {
     private UUID skuId;
 
     private UUID orderId;
+
+    private UUID addressId;
 
     @BeforeEach
     void seed() {
@@ -85,7 +93,7 @@ class AfterSaleIT extends IntegrationTestSupport {
         // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
         seedActiveUser();
         skuId = db.seedOnSaleSku(shopId, 1000, 5);
-        UUID addressId = db.seedAddress(userId);
+        addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);
 
         // 走到履约闭环（COMPLETED）：下单冻结 → 支付扣实 → 发货 → 确认收货
@@ -131,6 +139,22 @@ class AfterSaleIT extends IntegrationTestSupport {
     private String paymentStatus() {
         return jdbc.queryForObject(
                 "SELECT status FROM payment.payments WHERE order_id = ?::uuid", String.class, orderId.toString());
+    }
+
+    private String orderStatus(UUID id) {
+        return jdbc.queryForObject("SELECT status FROM orders.orders WHERE id = ?::uuid", String.class, id.toString());
+    }
+
+    private String ticketStatus(UUID id) {
+        return jdbc.queryForObject(
+                "SELECT status FROM aftersale.tickets WHERE order_id = ?::uuid ORDER BY created_at DESC LIMIT 1",
+                String.class,
+                id.toString());
+    }
+
+    private String paymentStatus(UUID id) {
+        return jdbc.queryForObject(
+                "SELECT status FROM payment.payments WHERE order_id = ?::uuid", String.class, id.toString());
     }
 
     private int eventCount() {
@@ -205,6 +229,42 @@ class AfterSaleIT extends IntegrationTestSupport {
         assertEquals("REFUNDED", orderProjection());
         assertEquals(PaymentStatus.REFUNDED.name(), paymentStatus());
         assertEquals(3, totalStock()); // 货不退，库存不动
+    }
+
+    @Test
+    void 待收货期间可申请售后_争议未决时自动确认收货让位_售后结了才落完成() {
+        // 再下一单，只走到发货：不点确认收货，让「待收货」成为买家唯一讲理的阶段
+        Order shipped = orderService
+                .create(
+                        userId,
+                        new CreateOrderRequest(
+                                UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, 1)), null, null))
+                .getFirst();
+        UUID shippedId = shipped.getId();
+        Payment unpaid = paymentService.pay(userId, shippedId);
+        paymentService.confirm(userId, unpaid.getId());
+        shipmentService.dispatch(new DispatchShipmentCommand(shopId, shippedId, "SF", "SF222"));
+        assertEquals("SHIPPED", orderStatus(shippedId));
+
+        // 待收货即可申请，不必等 7 天自动确认收货把「没收到」伪装成「已收货」
+        afterSale.apply(userId, shippedId, TicketType.REFUND_ONLY, "包裹在路上，我已经拒收");
+        assertEquals(TicketStatus.APPLYING.name(), ticketStatus(shippedId));
+
+        // 争议未决：到期扫描该跑，但不该替买家宣布收货
+        jdbc.update(
+                "UPDATE orders.orders SET receive_expire_at = now() - interval '1 minute' WHERE id = ?::uuid",
+                shippedId.toString());
+        timeouts.sweep(OrderTimeout.RECEIVE);
+        assertEquals("SHIPPED", orderStatus(shippedId));
+
+        // 卖家同意仅退款：钱退了，履约主线不动（退款不推进订单状态）
+        afterSale.agree(shopId, shippedId);
+        assertEquals(PaymentStatus.REFUNDED.name(), paymentStatus(shippedId));
+        assertEquals("SHIPPED", orderStatus(shippedId));
+
+        // 售后单落到终态后，同一轮扫描自愈：订单转完成并回填售后申请窗口
+        timeouts.sweep(OrderTimeout.RECEIVE);
+        assertEquals("COMPLETED", orderStatus(shippedId));
     }
 
     @Test

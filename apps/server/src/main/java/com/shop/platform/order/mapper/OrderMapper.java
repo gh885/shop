@@ -81,12 +81,46 @@ public interface OrderMapper extends BaseMapper<Order> {
                         .set(Order::getReceiveExpireAt, receiveExpireAt));
     }
 
+    /**
+     * 包裹退回事实落库（物流模块推进到退回时经 order :: api 调用）：只把收货窗口从退回时刻重算，不写签收投影。
+     * 限定 SHIPPED 且 delivered_at 为空——只要有任何一件签收过，签收就是「买家拿到货」的更权威事实，不再被退回改动；
+     * 已完成/已取消的单同样不命中（幂等无副作用）。
+     */
+    default int markReturned(UUID orderId, OffsetDateTime receiveExpireAt) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Order>()
+                        .eq(Order::getId, orderId)
+                        .eq(Order::getStatus, OrderStatus.SHIPPED)
+                        .isNull(Order::getDeliveredAt)
+                        .set(Order::getReceiveExpireAt, receiveExpireAt));
+    }
+
     /** 同一次结算已落的全部订单（幂等重放回读）；按 shopId 升序，与 OrderService.create 的拆单顺序一致 */
     default List<Order> selectByCheckoutKey(UUID userId, UUID checkoutKey) {
         return selectList(new LambdaQueryWrapper<Order>()
                 .eq(Order::getUserId, userId)
                 .eq(Order::getCheckoutKey, checkoutKey)
                 .orderByAsc(Order::getShopId));
+    }
+
+    /** 恶拍闸门①：买家当前在途的待付款单数（走 idx_orders_user_created 的 user_id 前缀） */
+    default long countPendingPayment(UUID userId) {
+        return selectCount(new LambdaQueryWrapper<Order>()
+                .eq(Order::getUserId, userId)
+                .eq(Order::getStatus, OrderStatus.PENDING_PAYMENT));
+    }
+
+    /**
+     * 恶拍闸门②：窗口内「拍下不付即关闭」的单数。paid_at 为空是判据——已付款后取消（含 3 天未发货的
+     * 系统关单）与「拍下不付」是两回事，不该算进恶意次数。
+     */
+    default long countUnpaidCancelledSince(UUID userId, OffsetDateTime since) {
+        return selectCount(new LambdaQueryWrapper<Order>()
+                .eq(Order::getUserId, userId)
+                .eq(Order::getStatus, OrderStatus.CANCELLED)
+                .isNull(Order::getPaidAt)
+                .ge(Order::getCancelledAt, since));
     }
 
     /**
