@@ -2,6 +2,7 @@ package com.shop.platform.shop;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.model.MemberRole;
@@ -155,6 +157,37 @@ class ShopControllerTest extends WebControllerTestSupport {
                     .andExpect(status().isOk());
 
             verify(shopService).acceptInvite(memberId, userId);
+        }
+    }
+
+    @Nested
+    class 拒绝邀请 { // POST /shops/invites/{memberId}/decline
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(post("/shops/invites/{memberId}/decline", UUID.randomUUID()))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 空响应_绑定当前用户与路径变量() throws Exception {
+            UUID memberId = UUID.randomUUID();
+
+            mockMvc.perform(post("/shops/invites/{memberId}/decline", memberId).with(userAuth(userId)))
+                    .andExpect(status().isOk());
+
+            verify(shopService).declineInvite(memberId, userId);
+        }
+
+        @Test
+        void 已同意后拒绝_409透传() throws Exception {
+            UUID memberId = UUID.randomUUID();
+            doThrow(BusinessException.conflict(null, "该邀请已处理"))
+                    .when(shopService)
+                    .declineInvite(memberId, userId);
+
+            mockMvc.perform(post("/shops/invites/{memberId}/decline", memberId).with(userAuth(userId)))
+                    .andExpect(status().isConflict());
         }
     }
 

@@ -55,6 +55,16 @@ public class ShopController {
         return ShopMemberResponse.from(shopService.acceptInvite(memberId, userId));
     }
 
+    /**
+     * 拒绝邀请：被邀请人本人拒掉发给自己的待确认邀请，成员行直接删除（不留 DECLINED 态），
+     * 因此该用户之后可被再次邀请。空响应（200）；重复拒绝拿 404「邀请不存在或已失效」，
+     * 已同意后拒绝拿 409「该邀请已处理」。
+     */
+    @PostMapping("/invites/{memberId}/decline")
+    public void declineShopInvite(@CurrentUser UUID userId, @PathVariable UUID memberId) {
+        shopService.declineInvite(memberId, userId);
+    }
+
     /** 店铺成员列表（本店成员可见） */
     @GetMapping("/{shopId}/members")
     public List<ShopMemberItem> listShopMembers(@CurrentUser UUID userId, @PathVariable UUID shopId) {

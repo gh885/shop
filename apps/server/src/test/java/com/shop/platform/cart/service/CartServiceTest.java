@@ -40,6 +40,8 @@ class CartServiceTest {
 
     private final UUID productId = UUID.randomUUID();
 
+    private final UUID shopId = UUID.randomUUID();
+
     @Mock
     private com.shop.platform.cart.mapper.CartItemMapper cartItemMapper;
 
@@ -59,14 +61,15 @@ class CartServiceTest {
         return new AddCartItemRequest(skuId, quantity);
     }
 
-    /** SKU 在售 + SPU 上架的可购组合 */
+    /** SKU 在售 + SPU 上架 + 店铺营业中的可加购组合 */
     private void stubSellable() {
         when(productReadQuery.skuById(skuId))
                 .thenReturn(Optional.of(
                         new SkuView(skuId, productId, "黑色 S", null, Money.cny(1000), null, SkuStatus.ON_SALE)));
         when(productReadQuery.productById(productId))
-                .thenReturn(Optional.of(new ProductView(
-                        productId, UUID.randomUUID(), "测试手机", null, null, null, ProductStatus.PUBLISHED)));
+                .thenReturn(Optional.of(
+                        new ProductView(productId, shopId, "测试手机", null, null, null, ProductStatus.PUBLISHED)));
+        when(shopReadQuery.isActive(shopId)).thenReturn(true);
     }
 
     @Test
@@ -151,5 +154,26 @@ class CartServiceTest {
         assertThatThrownBy(() -> service.add(userId, request(1)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("最多存放");
+    }
+
+    /** 营业闸门：店非 ACTIVE（驳回/禁用/查无此店）一律 409「店铺已停止营业」，与下单同一口径，不落条目 */
+    @Test
+    void 店铺已停业_409拒收() {
+        when(productReadQuery.skuById(skuId))
+                .thenReturn(Optional.of(
+                        new SkuView(skuId, productId, "黑色 S", null, Money.cny(1000), null, SkuStatus.ON_SALE)));
+        when(productReadQuery.productById(productId))
+                .thenReturn(Optional.of(
+                        new ProductView(productId, shopId, "测试手机", null, null, null, ProductStatus.PUBLISHED)));
+        when(shopReadQuery.isActive(shopId)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.add(userId, request(1)))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(409);
+                    assertThat(ex.getDetail()).isEqualTo("店铺已停止营业");
+                    assertThat(ex.getCode()).isNull(); // 不新增 error code
+                });
+
+        verify(cartItemMapper, never()).upsertMerging(userId, skuId, 1);
     }
 }

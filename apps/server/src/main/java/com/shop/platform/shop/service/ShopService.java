@@ -92,7 +92,7 @@ public class ShopService {
                 new LambdaQueryWrapper<Shop>().in(Shop::getId, shopIds).orderByDesc(Shop::getCreatedAt));
     }
 
-    /** 我的待确认邀请：别人邀我、等我同意的成员记录，拼上店名 */
+    /** 我的待确认邀请：别人邀我、等我同意的成员记录，拼上店名。只查 PENDING —— 被拒/被撤回的邀请不留行，天然不会挂在这个列表上 */
     public List<ShopInviteItem> myInvites(UUID userId) {
         List<ShopMember> pending = shopMemberMapper.selectPendingByUser(userId);
         if (pending.isEmpty()) return List.of();
@@ -125,6 +125,36 @@ public class ShopService {
         shopMemberMapper.updateById(member);
         log.info("[SHOP] 成员确认加入, shopId={}, userId={}", member.getShopId(), userId);
         return member;
+    }
+
+    /**
+     * 拒绝邀请：被邀请人本人拒掉发给自己的 PENDING 邀请 —— 与店主撤回（{@link #removeMember}）走同一条删除路径，
+     * 不留 DECLINED 行。
+     *
+     * <p>为什么删行而不是加一个终态：成员表的 {@code uk_shop_members_shop_user} 是 (shop_id, user_id) 单行唯一，
+     * 保留 DECLINED 行会让「再次邀请」必须先改成 PENDING 的更新分支（连带并发口径），而删行后再邀天然可用（无行可撞），
+     * 「我的待确认邀请」也只按 PENDING 查——拒绝的行不会挂在列表上，两处目标一次到位，状态词表也不必扩。
+     *
+     * <p>口径（三条，前端与规则文档以此为准）：
+     * <ol>
+     *   <li>行不存在（含「已被自己拒掉」——删行后无从区分从未存在）→ 404「邀请不存在或已失效」，与 accept 同一缺席文案，
+     *       不返回 204：204 等于对任意 id 承认「这条邀请存在且已被你拒绝」，泄露他人邀请的存在性；
+     *   <li>行存在但不是发给自己的 → 400，与 accept 的「不能确认发给别人的邀请」对称；
+     *   <li>行存在且已生效（先 accept 再 decline）→ 409「该邀请已处理」，绝不删：拒绝不是退店通道，
+     *       ACTIVE 成员离开本店只有店主移除（{@link #removeMember}）这一条路。
+     * </ol>
+     * 删除带 {@code status = PENDING} 条件（并发闸门）：与并发的 accept 相撞时后到者拿 409，不会把刚生效的成员删掉。
+     */
+    @Transactional
+    public void declineInvite(UUID memberId, UUID userId) {
+        // 1. 只能处理发给自己的邀请（缺席与越权同一口径：不泄露别人邀请的存在性）
+        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "邀请不存在或已失效");
+        Validate.isTrue(member.getUserId().equals(userId), "不能拒绝发给别人的邀请");
+        // 2. 已生效的成员不能被「拒绝」顶掉（409 与 accept 的重复处理同口径）
+        Validate.isTrue(MemberStatus.PENDING.equals(member.getStatus()), 409, "该邀请已处理");
+        // 3. 条件删除：状态仍是 PENDING 才删得掉，并发下被抢先 accept 则影响 0 行 → 409
+        Validate.isTrue(shopMemberMapper.deletePendingById(memberId) == 1, 409, "该邀请已处理");
+        log.info("[SHOP] 成员拒绝邀请, shopId={}, userId={}", member.getShopId(), userId);
     }
 
     // 买家侧公开读
@@ -165,7 +195,8 @@ public class ShopService {
             throw BusinessException.badRequest("不能邀请自己");
         }
 
-        // 3. 防重：同店同人只能有一条成员记录（唯一索引 uk_shop_members_shop_user 兜底并发）
+        // 3. 防重：同店同人只能有一条成员记录（唯一索引 uk_shop_members_shop_user 兜底并发）。
+        //    被拒/被撤回的邀请不留行（见 declineInvite / removeMember），所以「拒过的人」天然可以再邀，不占坑
         if (shopMemberMapper.existsByShopAndUser(shopId, inviteeId)) {
             throw BusinessException.conflict(null, "对方已是店铺成员或已有待确认邀请");
         }
@@ -201,7 +232,14 @@ public class ShopService {
         log.info("[SHOP] 调整成员权限, shopId={}, memberId={}, permissions={}", shopId, memberId, member.getPermissions());
     }
 
-    /** 店主移除成员：不能移除自己（店主身份随店铺存续） */
+    /**
+     * 店主移除成员：不能移除自己（店主身份随店铺存续）。
+     *
+     * <p>一次删除动作承载两种声明式语义，按目标行的状态分：删 ACTIVE 行 = 移除子账号（下一请求即失去卖家权限）；
+     * 删 PENDING 行 = <b>撤回邀请</b>——对方还没确认，撤回后这条邀请对它而言就不存在了，「我的待确认邀请」不再列出、
+     * 店主可重新邀请（这是店主撤回邀请的唯一通道，不另开端点）。要区分两者看目标行状态，接口语义只有「删掉这一行」。
+     * OWNER 行不可删（400），所以店主既移不掉自己，也删不掉店。
+     */
     @Transactional
     public void removeMember(UUID shopId, UUID memberId, UUID ownerId) {
         requireOwner(shopId, ownerId);

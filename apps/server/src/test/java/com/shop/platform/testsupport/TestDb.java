@@ -44,11 +44,56 @@ public final class TestDb {
 
     // 常用种子（自动登记清理）
     /**
+     * 造一家指定状态的店铺（status 传 {@code ShopStatus.name()}：ACTIVE / PENDING_REVIEW / REJECTED / DISABLED）。
+     *
+     * <p>下单与加购有营业闸门（{@code ShopReadQuery.isActive}），交易相关用例的 shopId 必须在 shop.shops 有行；
+     * 店主与店名都是占位派生值（店名有全局唯一索引，按 shopId 取唯一后缀）。
+     */
+    public UUID seedShop(UUID shopId, String status) {
+        jdbc.update(
+                "INSERT INTO shop.shops (id, owner_id, name, status) VALUES (?::uuid, ?::uuid, ?, ?)",
+                shopId.toString(),
+                UUID.randomUUID().toString(),
+                "测试店-" + shopId,
+                status);
+        onDelete("DELETE FROM shop.shops WHERE id = ?::uuid", shopId.toString());
+        return shopId;
+    }
+
+    /** 造一家 ACTIVE 店铺（已存在则原样保留，便于与 {@link #seedOnSaleSku} 的隐式造店共存）。 */
+    public UUID seedActiveShop(UUID shopId) {
+        jdbc.update(
+                "INSERT INTO shop.shops (id, owner_id, name, status) VALUES (?::uuid, ?::uuid, ?, 'ACTIVE') ON CONFLICT (id) DO NOTHING",
+                shopId.toString(),
+                UUID.randomUUID().toString(),
+                "测试店-" + shopId);
+        onDelete("DELETE FROM shop.shops WHERE id = ?::uuid", shopId.toString());
+        return shopId;
+    }
+
+    /**
+     * 造一个真实 ACTIVE 买家账号：下单入口的账号闸门（{@code UserReadQuery.isActive}）要求 account.users 有行，
+     * 幽灵 uuid 会被 403 USER_DISABLED 拒单。手机号按 uuid 派生，避免并发跑撞唯一索引。
+     */
+    public UUID seedActiveUser(UUID userId) {
+        jdbc.update(
+                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE') ON CONFLICT (id) DO NOTHING",
+                userId.toString(),
+                "139" + Math.abs(userId.getMostSignificantBits() % 100_000_000L));
+        onDelete("DELETE FROM account.users WHERE id = ?::uuid", userId.toString());
+        return userId;
+    }
+
+    /**
      * 在售商品（草稿类目占位）+ 单 SKU（priceFen 分，CNY）+ inventory 库存行（stock 件，无冻结）。
+     *
+     * <p>顺带保证店铺存在且 ACTIVE：下单/加购的营业闸门（{@code ShopReadQuery.isActive}）要求 shop.shops 有行，
+     * 已存在则不动（要先造 DISABLED/REJECTED 店的用例，先 {@code seedShop} 再调本方法即可）。
      *
      * @return skuId
      */
     public UUID seedOnSaleSku(UUID shopId, long priceFen, int stock) {
+        seedActiveShop(shopId);
         UUID productId = UUID.randomUUID();
         UUID skuId = UUID.randomUUID();
         jdbc.update(

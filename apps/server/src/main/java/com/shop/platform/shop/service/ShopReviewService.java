@@ -8,6 +8,7 @@ import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.observability.MdcScope;
+import com.shop.platform.shop.events.ShopTradingSuspendedEvent;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopReview;
@@ -23,12 +24,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 店铺入驻审核（平台员工侧）：待审队列 + 通过/拒绝留痕并同事务推进店铺状态。
  * 入队由 ShopService.createShop 与建店同事务完成；店主手机号经 account :: api 只读拼装（禁止 JOIN）。
+ *
+ * <p>驳回即店铺停止营业：与状态推进同事务发布 {@link ShopTradingSuspendedEvent}，product 监听把该店在架商品级联下架。
+ * 将来若加「平台禁用店铺」的入口（DISABLED 目前无写入方），那条流转必须发布同一个事件——级联的判据是「店不营业了」，
+ * 不是「审核被拒」这条具体路径。
  */
 @Service
 @Slf4j
@@ -38,6 +44,7 @@ public class ShopReviewService {
     private final ShopReviewMapper shopReviewMapper;
     private final ShopMapper shopMapper;
     private final UserReadQuery userReadQuery;
+    private final ApplicationEventPublisher events;
 
     // 审核队列
     /** 审核列表（按 status 筛选分页，含店名/店主手机号） */
@@ -111,6 +118,12 @@ public class ShopReviewService {
         Shop shop = Validate.notNull(shopMapper.selectById(review.getShopId()), "店铺不存在");
         shop.setStatus(newStatus == ShopReviewStatus.APPROVED ? ShopStatus.ACTIVE : ShopStatus.REJECTED);
         shopMapper.updateById(shop);
+
+        // 3.5 不可营业 → 同事务播报停业主事件（当前只有驳回会走到这里；判据是「不营业」而不是「被驳回」），
+        //     product 监听把该店在架商品级联下架，审核与下架一起成或一起回滚
+        if (!shop.isActive()) {
+            events.publishEvent(new ShopTradingSuspendedEvent(shop.getId(), "REVIEW_REJECTED"));
+        }
 
         // 4. L3 审计留痕（结构化事件，约定见 docs/business-event-logging.md）
         try (MdcScope _ = MdcScope.of(

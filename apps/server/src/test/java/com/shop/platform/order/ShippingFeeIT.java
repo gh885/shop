@@ -70,13 +70,19 @@ class ShippingFeeIT extends IntegrationTestSupport {
         return templateId;
     }
 
-    /** 下单链路的数据登记（订单/行项/事件登记表），与 OrderFlowIT 同款兜底圈删 */
-    private void registerOrderCleanup() {
+    /**
+     * 下单链路的数据登记（买家行 + 订单/行项/事件表），与 OrderFlowIT 同款兜底圈删。
+     *
+     * <p>买家必须显式补一条 ACTIVE 账号行：下单入口的账号闸门只认 account.users 里真实存在的可用账号，
+     * 幽灵 uuid 会被 403 拒单，那样这几条用例测的就不是计运费了。
+     */
+    private void registerBuyerAndOrderCleanup() {
         db.onDelete(
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
                 userId.toString());
         db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
         db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
+        db.seedActiveUser(userId);
     }
 
     private CreateOrderRequest createRequest(UUID addressId, UUID skuId, int quantity) {
@@ -89,7 +95,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
         UUID templateId = seedTemplate(null);
         UUID skuId = db.seedOnSaleSku(shopId, 1000L, 9);
         UUID addressId = db.seedAddress(userId, "440305", "广东省", "深圳市", "南山区");
-        registerOrderCleanup();
+        registerBuyerAndOrderCleanup();
 
         var preview = orderService.preview(
                 userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 2)), null));
@@ -123,7 +129,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
         seedTemplate(null);
         UUID skuId = db.seedOnSaleSku(shopId, 1000L, 9);
         UUID addressId = db.seedAddress(userId, "110105", "北京市", "北京市", "朝阳区");
-        registerOrderCleanup();
+        registerBuyerAndOrderCleanup();
 
         var preview = orderService.preview(
                 userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 3)), null));
@@ -138,7 +144,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
         seedTemplate(null);
         UUID skuId = db.seedOnSaleSku(shopId, 1000L, 9);
         UUID addressId = db.seedAddress(userId, "653101", "新疆维吾尔自治区", "喀什地区", "喀什市");
-        registerOrderCleanup();
+        registerBuyerAndOrderCleanup();
 
         var preview = orderService.preview(
                 userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 1)), null));
@@ -162,7 +168,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
         seedTemplate(3);
         UUID skuId = db.seedOnSaleSku(shopId, 1000L, 9);
         UUID addressId = db.seedAddress(userId, "440305", "广东省", "深圳市", "南山区");
-        registerOrderCleanup();
+        registerBuyerAndOrderCleanup();
 
         var reached = orderService.preview(
                 userId, new PreviewOrderRequest(addressId, List.of(new OrderLineRequest(skuId, 3)), null));
@@ -179,7 +185,7 @@ class ShippingFeeIT extends IntegrationTestSupport {
         UUID bareShop = UUID.randomUUID();
         UUID skuId = db.seedOnSaleSku(bareShop, 1500L, 5);
         UUID addressId = db.seedAddress(userId, "440305", "广东省", "深圳市", "南山区");
-        registerOrderCleanup();
+        registerBuyerAndOrderCleanup();
 
         List<Order> orders = orderService.create(userId, createRequest(addressId, skuId, 2));
 

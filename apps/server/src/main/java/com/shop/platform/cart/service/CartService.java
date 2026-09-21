@@ -39,27 +39,30 @@ public class CartService {
 
     private final ShopReadQuery shopReadQuery;
 
-    /** 加购：同 SKU 幂等合并为数量累加。停售/下架拒收，库存不足放行（闸门在下单） */
+    /** 加购：同 SKU 幂等合并为数量累加。停售/下架拒收，店铺停止营业拒收，库存不足放行（闸门在下单） */
     @Transactional
     public CartItem add(UUID userId, AddCartItemRequest req) {
         // 1. 校验可加购：SKU 存在且在售、其 SPU 已上架（product :: api 按 ID 只读查，禁止 JOIN）
         SkuView sku =
                 Validate.present(productReadQuery.skuById(req.skuId()).filter(SkuView::onSale), 400, "商品规格不存在或已停售");
-        Validate.isTrue(
-                productReadQuery
-                        .productById(sku.productId())
-                        .filter(ProductView::published)
-                        .isPresent(),
-                "商品已下架");
+        ProductView product = Validate.present(
+                productReadQuery.productById(sku.productId()).filter(ProductView::published), 400, "商品已下架");
 
-        // 2. 条目数上限防刷：车里已有该 SKU 时只累加数量、不占新坑，故不计入闸门
+        // 2. 营业闸门：店非 ACTIVE 不进购物车（shop :: api 的谓词，状态词表不外泄给本模块）。
+        //    店被驳回/禁用时其上架商品已由事件级联下架、第 1 步就挡下；此处兜的是「车里已有条目 + 店刚好停了」的并发窗口。
+        //    409 与下单同一口径：不是入参非法（400），是资源当前状态不允许这笔操作
+        if (!shopReadQuery.isActive(product.shopId())) {
+            throw BusinessException.conflict(null, "店铺已停止营业");
+        }
+
+        // 3. 条目数上限防刷：车里已有该 SKU 时只累加数量、不占新坑，故不计入闸门
         //    （并发窗口内微小越界可容忍：非资金安全线，唯一索引才是硬兜底）
         if (cartItemMapper.selectByUserAndSku(userId, req.skuId()) == null) {
             Validate.isTrue(
                     cartItemMapper.countByUser(userId) < MAX_ITEMS_PER_USER, "购物车最多存放 " + MAX_ITEMS_PER_USER + " 种商品");
         }
 
-        // 3. 一条 upsert 落库：新条目插入，同 SKU 累加封顶，
+        // 4. 一条 upsert 落库：新条目插入，同 SKU 累加封顶，
         //    并发重复加购由 ON CONFLICT 在行锁下合并——不能靠 catch DuplicateKeyException 回退，
         //    PG 撞唯一索引即中止整个事务，catch 后发不出任何语句
         CartItem item = cartItemMapper.upsertMerging(userId, req.skuId(), req.quantity());

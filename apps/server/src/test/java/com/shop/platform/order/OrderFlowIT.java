@@ -90,6 +90,8 @@ class OrderFlowIT extends IntegrationTestSupport {
                 userId.toString());
         db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
         db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
+        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
+        db.seedActiveUser(userId);
         skuId = db.seedOnSaleSku(shopId, 1000, stock);
         addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);

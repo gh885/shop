@@ -41,6 +41,18 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
                 > 0;
     }
 
+    /**
+     * 删待确认邀请（被邀请人拒绝 / 店主撤回的共用动作）：状态条件写在 WHERE 里，是并发闸门——
+     * 与同时发生的 accept 相撞时只有一个是删除成功的那一个（影响行数 0 即对方已确认或邀请不在了，调用方给 409）。
+     *
+     * @return 影响行数（1=撤回/拒绝成功，0=行不存在或已不是 PENDING）
+     */
+    default int deletePendingById(UUID memberId) {
+        return delete(new LambdaQueryWrapper<ShopMember>()
+                .eq(ShopMember::getId, memberId)
+                .eq(ShopMember::getStatus, MemberStatus.PENDING));
+    }
+
     /** 是否该店 ACTIVE 成员：成员可见性校验用（过滤链已改用 findActiveMember 装载角色与权限） */
     default boolean isActiveMember(UUID shopId, UUID userId) {
         return selectCount(new LambdaQueryWrapper<ShopMember>()
