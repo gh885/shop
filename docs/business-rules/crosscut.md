@@ -4,12 +4,12 @@
 
 ## 错误码体系
 
-- **[GEN-17]** 错误码定义原则：只有当 HTTP status 不足以让前端区分处理时才加 code；404/403 类不复述状态码，表单校验错误由 `errors[]` 列表承载、不造 code。唯一真相源 `docs/error-codes.md`，TS 侧同步至 `error-codes.ts`（当前两边 16 个 code 完全一致，无漂移）。
+- **[GEN-17]** 错误码定义原则：只有当 HTTP status 不足以让前端区分处理时才加 code；404/403 类不复述状态码，表单校验错误由 `errors[]` 列表承载、不造 code。唯一真相源 `docs/error-codes.md`，TS 侧手工逐条同步至 `error-codes.ts`（无一致性测试兜底，改一处必须改另一处；条数不在本条写死，以文件为准）。「前端行为」列允许是**无专属分支**那一档（如 `SHOP_NAME_TAKEN`/`USER_DISABLED`/`INSUFFICIENT_STOCK` 只是如实 toast detail）——这类 code 的价值在让文案可预期、可 grep、可测，不因「不驱动 if 分支」就违反定义原则；但该列必须写实际行为，不写承诺。
 
 ## 错误信封
 
 - **[GEN-18]** 后端错误统一 RFC ProblemDetail 信封：`{ title, status, detail, code?, requestId, errors? }`，`requestId` 取链路 trace_id；所有错误响应带 `Cache-Control: no-store`。前端 SDK 错误拦截器把任意失败归一化为 `ApiError { status, detail, code?, requestId? }`；响应体无 `detail` 时兜底「请求失败，请稍后重试」，网络层错误（无响应）为 `status: 0` +「网络错误，请检查连接」。
-- **[GEN-19]** 字段级校验失败统一 422 + `errors[{field,message}]`（`@RequestBody` 与 `@RequestParam` 约束同一契约），不带 code；前端表单被 Zod 拦截的不产生后端 code。
+- **[GEN-19]** 入参错误分三条线，形状各不相同：① **Bean Validation 失败 → 422 + `errors[{field,message}]`，不带 code**——`@RequestBody`（`MethodArgumentNotValidException`）与 `@RequestParam`/`@Validated` 约束（`ConstraintViolationException`）走同一个 `unprocessable` 组装，两处字段口径一致；② **请求根本解析不成参数 → 400，只有 detail 没有 errors**——缺必填查询参数、请求体不可解析（`HttpMessageNotReadableException`）、参数类型/枚举转换失败（`MethodArgumentTypeMismatchException`，回显值超 100 字符截断），三者同形状；③ **业务代码自判的非法筛选值 → service 层 400 带人话 detail**（订单 status、售后 tab 等，见 ORD-48 / AFS-28），不经 Spring 类型转换。前端表单被 Zod 拦下的不产生后端 code。
 - **[GEN-28]** `RESPONSE_VALIDATION_FAILED` 是前端独有错误（后端 2xx 但 payload 不符合 OpenAPI 契约，zod responseValidator 抛出）：dev 完整打印 issues 到 console.warn；生产 console.error 打可 grep 上报锚点（不吞）；归一化 ApiError 的 status 取响应状态（toApiError 兜底路径为 200）。读路径按查询错误交给渲染层降级，写路径强抛。
 
 ## 传输与链路
@@ -37,5 +37,5 @@
 
 - **[GEN-48]** 业务事件日志 = 手动埋 event + 框架自动补信封（trace_id/version/env 由 RequestIdFilter 进 MDC），ECS JSON 输出；`event` 是检索/聚合/告警唯一依据，message 留空或人读描述；场景字段进 MDC，作用域结束自动回滚（实现为 `MdcScope` try-with-resources，嵌套恢复外层原值）。
 - **[GEN-49]** 事件命名：`领域实体.动词过去式`（成功/中性）与 `领域实体.动词.failed`（失败）；短标识、非中文、非函数名、非蛇形。失败事件必带枚举化 `reason`（及 `error.type`/`error.message`）；成功事件必带实体 ID。
-- **[GEN-50]** 现行事件目录：`http.request`——每请求自动打（`method/path(路由模板)/status/latency_ms/client_ip`，status≥500 升 ERROR 级）；`auth.login.succeeded`——带 `user_id`（AuthService.issueTokens）；`auth.login.failed`——带 `reason`（user_not_found/no_password/wrong_password）+ `client_ip`，user_id 可选。新增公共出站依赖必须先补埋点再上线。
-- **[GEN-51]** 日志红线：不往 MDC 放密码/token/身份证号等敏感信息；手机号目前仅 `maskPhone()` 一处脱敏（全局敏感字段审计列为延后项）。
+- **[GEN-50]** 现行事件目录（完整表在 [business-event-logging.md](../conventions/business-event-logging.md)，此处列业务埋点，新增公共出站依赖必须先补埋点再上线）：`http.request`——每请求自动打（`method/path(路由模板)/status/latency_ms/client_ip`，status≥500 升 ERROR 级）；`auth.login.succeeded`——带 `user_id`（AuthService.issueTokens）；`auth.login.failed`——带 `reason`（user_not_found/no_password/wrong_password）+ `client_ip`，user_id 可选；`shop_review.decided`——店铺审核落点，带 `review_id/shop_id/decision/staff_id`（ShopReviewService）；`payment.refund.failed`——取消退款的两个放行分支（`reason` ∈ no_success_payment / gateway_rejected）带 `order_id`，拒退分支按 GEN-49 补 `error.type/error.message`（PaymentRefundListener）。售后退款失败不埋事件——它随异常回滚，失败已在异常通道里。
+- **[GEN-51]** 日志红线：不往 MDC 放密码/token/身份证号等敏感信息。手机号后 4 位掩码的唯一后端出口是 `PhoneNumber.mask()`，现行 4 个调用点（`/me` 出参、开发态短信日志、重置密码与登录失败日志）；店铺审核队列与成员列表**刻意给明文**——店主联系买家/成员要能拨号。前端另有一份 `maskPhone`（apps/web/src/logistics/model.ts）是重复实现，待收敛进 `packages/common`（全局敏感字段审计仍列为延后项）。

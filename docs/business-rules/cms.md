@@ -34,7 +34,7 @@
 - **[REC-01]** 推荐条是扁平词条数组（「猜你喜欢」只是其中一个 is_default=true 的普通项，不是特殊结构）；前台默认选中项按「用户点过的 → isDefault 项 → 首项」三级兜底推导。
 - **[REC-02]** 「猜你喜欢」（默认词条）全局唯一由 DB 部分唯一索引 `uk_recommend_tabs_default`（WHERE is_default = TRUE）钉死：create/update 把第二个词条设为默认时撞键转 409「已存在默认推荐词条，请先取消原默认再设置」，不做静默顶替；admin 编辑页保存时协作取消其余默认（逐条 PUT）只是 UX，闸门在库。
 - **[REC-03]** 词条名 ≤32 必填；isDefault 缺省为 false（create 时）；启停即时影响前台推荐条。
-- **[REC-04]** CATEGORY 型词条的 name 必须与目标类目同名（V59 定下的数据规范，同时落进 seed-demo 断言）：CATEGORY 型 target 必须命中真实且启用的类目，不造指向不存在对象的行；「+更多」这类动作型伪词条已从种子数据删除。
+- **[REC-04]** CATEGORY 型词条的 name 必须与目标类目同名、target 必须命中真实且启用的类目——这是**数据规范**（V59 定下，由 seed-demo 断言钉住），服务端写入时不校验（admin 表单可填任意 target，接口也不拦）；运行时真出现脏 target（类目后来被禁用/删除）就按 CMS-05 的软关联降级口径走：前台推不出可用类目 → 回落全站流（FED-10）。「+更多」这类动作型伪词条已从种子数据删除。
 - **[REC-05]** 词条读不到（失败）时整个推荐条不画，feed 照常走全站流——首页是门面，词条挂了这个可降级 UI 退出全局错误边界（throwOnError:false 是唯一显式就地降级的壳查询）。
 
 ## 五、首页 feed 分页与召回
@@ -50,7 +50,7 @@
 - **[FED-09]** 脏 tab 不报错：未知 / 隐藏 / 禁用类目 → 召回空集 → feed 返回**空流而非 404**；未知游标才 400。
 - **[FED-10]** tab → 召回范围的映射在前端做：词条 `targetType === "CATEGORY"` 才把 target 作为 categoryId 传（含子树召回），其余类型（SEARCH / 无目标 / 脏数据）一律全站流。
 - **[FED-11]** feed 卡片字段固定为：id、shopId、categoryId、name、subtitle(可空)、mainImage(可空)、minPrice、maxPrice（Money；召回只发上架商品，上架门槛保证已设价，故契约层非空）、soldCount(long)。**不回店铺名**（跨模块且货架卡不显示）；item 契约不复用 `/api/products` 的 PublicProductResponse，为 V3 混排运营卡独立演进。
-- **[FED-12]** 销量展示文案：0 不显示（「已售 0」是负资产）；<1 万显示「已售 N」；≥1 万折成「已售 1.2万」，整万去尾（「1万」而非「1.0万」）。
+- **[FED-12]** 销量文案不是 feed 自己的一份规则：feed 卡片与详情页推荐流共用 `formatSoldText`（口径见 PRD-68），feed 只是它的消费方。
 
 ## 六、首页展示与交互（web）
 

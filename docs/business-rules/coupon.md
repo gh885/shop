@@ -61,7 +61,7 @@
 - **[CPN-40]** 状态与订单引用自洽由 DB 强制（ck_user_coupons_order_ref）：LOCKED 必 order_id/locked_at/applied_discount 齐非空；USED 必 order_id/used_at/applied_discount 齐非空；UNUSED/EXPIRED/VOID 三者必空——半份状态写不进去。
 - **[CPN-41]** 过期收敛任务：每 10 分钟一轮、每批 500 张循环到刷完，只把 `UNUSED 且 expire_at<=now` 刷成 EXPIRED；LOCKED 的券不收敛（优惠已定格在订单上，不能因券过期让已下单的支付失败）；任务只为展示/统计/索引服务，券可用与否一律读时比 expire_at。
 - **[CPN-42]** 核销流水 `coupon_usages` 是 append-only 账本：LOCK/USE/RELEASE/RETURN 每次动作一行（含券 id、订单、用户、店、动作、金额），永不更新；记的金额是<b>本单实际减免额</b>（锁定即定格、封顶后可能小于面额）而非面额，对账按流水。
-- **[CPN-43]** 订单落三件券快照：`user_coupon_id` + `coupon_bearer` + `discount_amount`；快照要么全有要么全无（ck_orders_coupon_snapshot_complete：user_coupon_id 与 coupon_bearer 同空同非空）；券规则会改、券会被停用，订单必须能自证「当时减了多少、凭哪张券」。
+- **[CPN-43]** 订单侧落三件券快照（`user_coupon_id` + `coupon_bearer` + `discount_amount`，列口径与 DB CHECK 见 ORD-24）：券规则会改、券会被停用，订单必须能自证「当时减了多少、凭哪张券」；减免额取**封顶后实减**（`applied_discount` 同值），不是面额。
 - **[CPN-44]** `order_id` 单列承载「本券当前关联订单」，随状态换义（LOCKED=占用的单 / USED=核销的单），刻意不分 locked_order_id/used_order_id 两列（避免两个真相）；历史轨迹归流水。
 - **[CPN-61]** 支付失败（confirm 失败）**不释券**——规则而非疏漏：confirm 失败后订单仍停留在待付款，若此刻即时释券（LOCKED→UNUSED），券回到买家口袋，而订单还挂着这张券的折扣快照；买家对同一订单重试支付成功时，核销走 `LOCKED→USED` 条件更新会命中 0 行（券已不在 LOCKED）——结果是**折扣生效了但券没被消耗**，同一张券还能在别的订单二次使用。因此待付款期间券必须保持 LOCKED，释券只由取消/超时关单两条路收口（CPN-38/39）。
 - **[CPN-62]** 运营作废的执行入口（C7 转正，CPN-34 状态机里 VOID 那条边自此落地）：`POST /admin/coupons/{id}/void`（staff 域，204）。**一期只放 UNUSED→VOID**；LOCKED（被未付款单占用，先取消该单释放再作废）/ USED（已核销，逆向走退款退券）/ EXPIRED / VOID 一律 409 并逐类给可理解的 detail，券不存在 404——不新增 error code（status + detail 足够，无按码分支）；强行抽走 LOCKED 的券等于让已展示的成交价凭空变贵，CPN-34 里 `LOCKED→VOID` 那条设计边刻意未开。作废走 `status='UNUSED'` 条件更新做并发闸门（抢不到 0 行按 409 冲突报「状态已变化」）；不写 coupon_usages 流水（action 枚举无 VOID，作废也不是金额动作），留 `[COUPON] 运营作废` 结构化日志。
@@ -77,10 +77,10 @@
 
 ## 券包与前端展示
 
-- **[CPN-51]** 券包「未使用」页签同时收 LOCKED（未过期）：对用户它就是没花掉的券（展示仍如实标 LOCKED=「结算中」），否则这类券三个页签都查不到、用户以为丢了；EXPIRED 页签收「已收敛的 EXPIRED ∪ 库里还 UNUSED 但已过 expire_at 的」。筛选按展示口径不按库列。
+- **[CPN-51]** 券包「未使用」页签同时收 LOCKED（未过期）：对用户它就是没花掉的券（展示仍如实标 LOCKED=「结算中」），否则这类券三个页签都查不到、用户以为丢了；EXPIRED 页签收「已收敛的 EXPIRED ∪ 库里还 UNUSED 但已过 expire_at 的」。筛选按展示口径不按库列。**已知瞬时盲区**：LOCKED 且已过期（下单冻结后一直不支付、又跨过 expire_at）三签都查不到，但待付款窗口封顶 15 分钟（ORD-26），超时关单把券释放回 UNUSED 后 EXPIRED 页签就收得到；过期任务只扫 UNUSED、不碰 LOCKED 是同一取舍的另一面（口径见 CPN-41），不单独处理。
 - **[CPN-52]** 券包行状态是读时算的展示状态：库里 UNUSED 但已过失效时刻 → 出参 EXPIRED；非法状态筛选值 400（合法值表即枚举 name：UNUSED|LOCKED|USED|EXPIRED|VOID）。
 - **[CPN-53]** 券包每行带：店名（跨 schema 点查拼装）、orderId（未使用为 null，有则给「查看订单」链接）、来源徽章——REFUND_RETURN 必须明示「退款补发」（凭空多一张券没有解释会被当成故障）；状态标签「未使用/结算中/已使用/已过期/已作废」。
-- **[CPN-54]** 券面只出三行：面额大字 / 一句话规则（「满 ¥X 减 ¥Y」，threshold=0 出「无门槛减 ¥Y」，不写「满 ¥0」）/ 店名+有效期区间；券模板名、承担方等字段上卡面即噪音，一律不展示；金额文案去无意义尾零（整元语义）。
+- **[CPN-54]** 券面只出三行：面额大字 / 一句话规则（「满 ¥X 减 ¥Y」，threshold=0 出「无门槛减 ¥Y」，不写「满 ¥0」）/ 店名+有效期区间；券模板名、承担方等字段上卡面即噪音，一律不展示；金额文案去无意义尾零（整元语义），走共享 `couponMoneyText` / `couponYuanText`（`packages/common/coupon.ts`）——这是 MONEY-11「展示只经 formatMoney」的唯一受控例外，且仍不裸算分、币种符号照查表。
 - **[CPN-55]** 前端零重算：券能不能用、能减多少一律以后端评估结果为准（usable/discount/discountAmount 均为后端回显值），共享文案层不含任何业务判定；「已减 ¥X」取预览回显的券减免，不拿面额自减。
 - **[CPN-56]** 商品详情页领券浮层：该店无可领券时整块不渲染；未登录点领取拉起全局登录 Dialog；soldOut 按钮文案「已领完」置灰；领撞 409 COUPON_ALREADY_CLAIMED 就地改标「已领取」（不当失败处理）；「已领取」是浮层局部状态、刷新即丢（匿名端点刻意无个人标记，一期不根治）。
 - **[CPN-57]** 结算选券行文案：已选券 →「已减 ¥X」（后端值）；未选但有可用券 →「N 张可用，未使用」；无候选 →「本店暂无可用优惠券」且不开候选弹层；不可用券置灰且行内灰字写明原因（不只靠颜色）。

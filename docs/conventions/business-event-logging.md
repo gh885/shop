@@ -49,11 +49,13 @@ try (var scope = MdcScope.of("event", "order.created", "order_id", "12345")) {
 
 ## 已有事件目录
 
-| event                  | 必带字段                                                                                       | 来源                                       |
-| ---------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `http.request`         | `method`, `path`, `status`, `latency_ms`, `client_ip`                                          | HttpRequestLoggingInterceptor 每个请求自动 |
-| `auth.login.succeeded` | `user_id`                                                                                      | AuthService.issueTokens                    |
-| `auth.login.failed`    | `reason`（枚举值: user_not_found / no_password / wrong_password）, `client_ip`; `user_id` 可选 | AuthService.authenticate                   |
+| event                   | 必带字段                                                                                                                                      | 来源                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `http.request`          | `method`, `path`, `status`, `latency_ms`, `client_ip`                                                                                         | HttpRequestLoggingInterceptor 每个请求自动                   |
+| `auth.login.succeeded`  | `user_id`                                                                                                                                     | AuthService.issueTokens                                      |
+| `auth.login.failed`     | `reason`（枚举值: user_not_found / no_password / wrong_password）, `client_ip`; `user_id` 可选                                                | AuthService.authenticate                                     |
+| `shop_review.decided`   | `review_id`, `shop_id`, `decision`, `staff_id`                                                                                                | ShopReviewService.decide                                     |
+| `payment.refund.failed` | `reason`（枚举值: no_success_payment / gateway_rejected）, `order_id`; `user_id` 可选；gateway_rejected 分支带 `error.type` / `error.message` | PaymentRefundListener（取消放行分支：无流水可退 / 渠道拒退） |
 
 ## 新增事件规则
 

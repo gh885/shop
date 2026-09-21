@@ -22,13 +22,13 @@
 - **[ORD-14]** 一次结算（预览与创建皆然）最多选 20 张券（`@Size(max=20)`，语义=一店至多一张）；同店传同一张券两次去重后只用一次。买家选中的券随请求提交，后端逐张判定：**选了却不可用、或不属于本单任何一家店，一律 400 并说明原因，绝不静默忽略**（不可用时把券名和不可用原因码翻成话术返回）。
 - **[ORD-15]** 券的候选顺序由后端定（可用优先 → 减免额大 → 先过期 → id），预览回传整份候选（含不可用者及原因码）供结算页渲染；**后端不自动替用户选券**，`appliedCouponId` 只回显请求里传来的 id，「默认选中第一张可用券」是前端行为（见 ORD-41）。
 - **[ORD-16]** 店铺不配送到收货地区（运费模板命中不配送名单）时预览给 `deliverable=false`，结算页拦截提示；脚本绕过预览直接下单在创建处硬拒（400「部分商品不支持配送到所选地区，请更换收货地址」）。不配送优先于一切——包邮条件也救不了它。
-- **[ORD-54]** 下单账号闸门：`OrderService.create` 入口先经 account::api 的 `UserReadQuery.isActive` 校验买家状态，非 ACTIVE（含用户缺失）一律 403 + code `USER_DISABLED`「账号已被禁用」，与登录闸门同一份语义——token 未过期不等于账号还能交易。闸门在地址校验/库存冻结/券占用之前，被拦时不触达任何数据动作；结算预览是只读接口，不设此闸门。
+- **[ORD-54]** 下单入口两道状态闸门（顺序即代码顺序）：① 账号闸门——经 account::api 的 `UserReadQuery.isActive` 校验买家状态，非 ACTIVE（含用户缺失）一律 403 + code `USER_DISABLED`「账号已被禁用」，与登录闸门同一份语义——token 未过期不等于账号还能交易；② 营业闸门——本单涉及的**每一家店**（按有效行的 shopId 去重）过 `ShopReadQuery.isActive`，非 ACTIVE 一律 409「店铺已停止营业」（无 code，前端只按 status 分支），细则见 ACC-72。营业闸排在地址快照与有效行校验之后、拆单冻结之前，被拦时不触达任何数据动作。409 而不是 400：不是入参非法，是资源当前状态不允许这笔操作，与「商品已下架/售罄」同一口径。结算预览是只读接口，两道闸都不设（预览不是成交）。
 
 ## 二、状态机与可执行动作
 
 - **[ORD-17]** 履约主状态机五态单路径：`PENDING_PAYMENT（待付款）→ PAID（待发货）→ SHIPPED（已发货）→ COMPLETED（已完成）`；`PENDING_PAYMENT` 与 `PAID` 均可 → `CANCELLED`；`COMPLETED` / `CANCELLED` 是终态无出边（**已完成不可取消**——终态没有到 `CANCELLED` 的边）。完成之后的交易纠葛走售后线（AfterSaleStatus），不再改主状态。转移合法性唯一真相是 `OrderStatus.TRANSITIONS` 表。
 - **[ORD-18]** 一切状态变更走条件更新（`WHERE status IN (sourcesOf(目标态))`），影响行数即并发闸门：买家/卖家入口抢不到转移报 **409**（如「订单状态已变更，当前不可取消」），系统超时入口返回 false 让位——正确性不依赖锁。每次变更落一行审计流水（`orders.order_status_log`：前态/后态/动作/发起方 BUYER|SELLER|SYSTEM/原因）。
-- **[ORD-19]** 可执行动作（按钮组唯一真相）由后端算：动作集 = 当前态出边 ∩ 角色允许的目标态。买家：PENDING_PAYMENT → `PAY, CANCEL`；PAID → `CANCEL`；SHIPPED → `RECEIVE`；终态 → 空。卖家：PAID → `SHIP`；**SHIPPED → `SHIP`（追加包裹，转移表带 SHIPPED 自环，见 ORD-54）**；其余为空。输出按枚举声明序（PAY, CANCEL, SHIP, RECEIVE）保证 JSON 稳定。买家列表/详情与卖家列表/详情**四个契约都下发 `availableActions`**，前端只定文案、顺序、主次，不再按状态另推一张按钮表。
+- **[ORD-19]** 可执行动作（按钮组唯一真相）由后端算：动作集 = 当前态出边 ∩ 角色允许的目标态。买家：PENDING_PAYMENT → `PAY, CANCEL`；PAID → `CANCEL`；SHIPPED → `RECEIVE`；终态 → 空。卖家：PAID → `SHIP`；**SHIPPED → `SHIP`（追加包裹，转移表带 SHIPPED 自环，见 ORD-55）**；其余为空。输出按枚举声明序（PAY, CANCEL, SHIP, RECEIVE）保证 JSON 稳定。买家列表/详情与卖家列表/详情**四个契约都下发 `availableActions`**，前端只定文案、顺序、主次，不再按状态另推一张按钮表。
 - **[ORD-20]** **待发货（PAID）的买家可以取消**（`PAID → CANCELLED` 是合法转移，且回补库存 + 退款）——这是产品口径，不是漏洞；历史上前端只给「提醒发货」造成漂移，已收敛为消费后端动作集。
 - **[ORD-55]** 多包裹动作暴露：转移表给 SHIPPED 加**自环**（SHIPPED → SHIPPED），与 `OrderMapper.markShippedReturningPrevious` 条件更新的 `status IN ('PAID','SHIPPED')` 是同一份事实的两个投影——追加包裹本就是合法转移，此前只是没进动作推导。效果：SHIPPED 态的 `sellerActions()` 继续派生 `SHIP`（按钮语义 = 追加包裹，目标状态不变），卖家列表/详情都能看到再发货入口；买家侧不受影响（SHIP 不在买家目标态集）。SHIP 动作语义随之扩展：同一动作两次落点不同（首发货落流水，追加只刷物流摘要，见 ORD-37）。
 - **[ORD-56]** 卖家列表行契约（`SellerOrderListItemResponse`）下发 `availableActions`（复用 `Order::sellerActions`，与买家列表同一先例同口径）；卖家列表行内「发货」按钮改为消费该动作集，不再按 `status === PAID` 硬推（收敛原则同 ORD-19：前端只定「怎么画」，不定「有没有」）。
@@ -38,8 +38,8 @@
 - **[ORD-21]** 订单金额四件套恒等式：`pay_amount = item_amount + shipping_fee − discount_amount`（单位分），由 DB 约束 `ck_orders_pay_amount`（V57）与 service 计费双钉；另 `0 ≤ discount_amount ≤ item_amount + shipping_fee`（不得减穿为负）、各金额列 `≥ 0`。行项目小计 `amount = price × quantity`（`ck_order_items_amount`）。
 - **[ORD-22]** 商品额 = Σ(成交单价 × 件数)，价格取**下单瞬间 SKU 快照**（现价 + 划线价原样定格）；图片在解析时定格（SKU 图空回落 SPU 主图），读端零逻辑。
 - **[ORD-23]** 运费由 shop::api 运费模板报价得出，订单侧按**同店合计**整单取一份、不是按行累加；店铺未配运费模板 → 运费恒 0。落库同时定格计费快照：模板 id + 收货区划码。（运费门槛/包邮判定/报价细则归 logistics.md，券门槛基数归 coupon.md）
-- **[ORD-24]** 用券快照三列随订单定格：`user_coupon_id`、`coupon_bearer`（承担方 SELLER/PLATFORM）、`discount_amount`——要么全有要么全无（DB CHECK）；券规则事后被改、券被删除都不影响本单自证「减了多少、凭哪张券」，承担方是将来结算拆账依据。
-- **[ORD-25]** 金额与预览同源：订单落库的金额四件套直接吃分组计费结果，**不重算**（重算必漂移）；「预览一个价、下单另一个价」被当作最经典客诉来源专门防。币种随行落库（一单一币种），全链路 Money。
+- **[ORD-24]** 用券快照三列随订单定格：`user_coupon_id`、`coupon_bearer`（承担方 SELLER/PLATFORM）、`discount_amount`——前两者**同空同非空**（DB CHECK `ck_orders_coupon_snapshot_complete`），`discount_amount` 恒非空、不用券为 0；`coupon_bearer` 取值限 SELLER/PLATFORM。券规则事后被改、券被删除都不影响本单自证「减了多少、凭哪张券」，承担方是将来结算拆账依据。
+- **[ORD-25]** 金额与预览同源：订单落库的金额四件套直接吃分组计费结果，**不重算**（重算必漂移）；「预览一个价、下单另一个价」被当作最经典客诉来源专门防。币种成对落库：订单 `currency` 取 `item_amount` 的币种（一单恒单币种），行项币种跟成交价，全链路 Money。
 
 ## 四、生命周期时限（超时）
 
@@ -57,7 +57,7 @@
 
 ## 六、取消与退款触发来源
 
-- **[ORD-33]** 取消唯一落点按**真实前态**分流（条件更新 RETURNING OLD 取回，不靠 CAS 前的陈旧读）：付款前（PENDING_PAYMENT）取消 = 只释放冻结库存 + 券 LOCKED→UNUSED 回买家手上可再用；付款后（PAID）取消 = 回补总库存（restock）+ 退券补偿（原券已 USED，**另发新券**）+ 发 `OrderCancelledEvent` 令 payment 同事务落退款单据——「已付款订单取消了必定留下退款单据」，取消不成则退款不落。
+- **[ORD-33]** 取消唯一落点按**真实前态**分流（条件更新 RETURNING OLD 取回，不靠 CAS 前的陈旧读）：付款前（PENDING_PAYMENT）取消 = 只释放冻结库存 + 券 LOCKED→UNUSED 回买家手上可再用；付款后（PAID）取消 = 回补总库存（`stockCommand.restock`，流水类型 RETURN）+ 退券补偿（原券已 USED，**另发新券**）+ 发 `OrderCancelledEvent` 委托 payment 同事务落退款单（该单唯一 SUCCESS 流水原地转 REFUNDED，不新建行）。两条路径的失败姿态刻意不同：**取消是买家既得权利，退款写不成不阻塞取消**——无成功流水或渠道拒退时取消照成、退款留缺口走人工对账（对账兜底见 PAY-13），只有售后路径才是「退款失败连带回滚」（PAY-24）。取消本身失败则什么都不落。
 - **[ORD-34]** 退款（资金置 REFUNDED）只有两个触发来源：① 已付款订单被取消（买家手点 或 ORD-27 待发货超时）→ `OrderCancelledEvent`；② 售后退款成立 → `AfterSaleRefundedEvent`。未付款单取消不发退款事件。payment 侧对两类事件的监听处置取舍见 payment.md。
 - **[ORD-35]** 买家取消原因可选、最长 200 字（`@Size(max=200)`），trim 后落 `cancel_reason`；超时关单/自动取消由系统写固定文案，不走该入参。买家端取消弹层收集原因并透传（见 ORD-57），不再固定传「用户取消」。
 - **[ORD-57]** 买家取消原因弹层（列表/详情共用，`useOrderActions` 持有状态、页面渲染 `cancelDialog`）：快捷原因**不想买了 / 信息填错 / 其他**（单选、可跳过）+ 备注（选填，封顶 180 字），提交时拼成一句自由文本（`原因：备注`）透传 PUT `/orders/{id}/cancel` 的 `reason`——后端本就是自由文本，**不造枚举 code**；一个都没填则 `reason` 缺席（不硬造「用户取消」占位）。换单重挂载弹窗，已填内容不跨单残留。
@@ -65,7 +65,7 @@
 ## 七、发货与收货（跨 logistics）
 
 - **[ORD-36]** 发货入口在 logistics（`POST /seller/shipments`；老路径 `PUT /seller/orders/{id}/ship` 兼容承接），需 ORDER_FULFILL 权限，店 ID 取 X-Shop-Id 上下文，前端不传；越店与不存在同为 404。发货必须给启用字典内的承运商 code + 非空运单号（自由文本名已废），且店铺已设默认发货地址（否则 400「请先设置默认发货地址」），寄件人快照定格进包裹。
-- **[ORD-37]** 一单可多次发货（多包裹）：首次 PAID→SHIPPED 落审计流水并回填 `shipped_at/receive_expire_at`；追加包裹 SHIPPED→SHIPPED 无状态转移、不落流水，只把订单上的物流摘要（公司/单号）刷成**最新包裹**口径。包裹落不下则订单不推进（同事务），反之亦然。一个运单号只能属于一个订单（唯一索引，撞键报「该运单号已录入」）。可发货状态 = PAID 或 SHIPPED，其余（已取消/已完成）409「订单当前状态不可发货」。
+- **[ORD-37]** 一单可多次发货（多包裹）：首次 PAID→SHIPPED 落审计流水并回填 `shipped_at/receive_expire_at`；追加包裹 SHIPPED→SHIPPED 无状态转移、不落流水（自环见 ORD-55，`sellerActions` 因此继续下发 `SHIP`），只把订单上的物流摘要（公司/单号）刷成**最新包裹**口径。包裹落不下则订单不推进（同事务），反之亦然。一个运单号只能属于一个订单（唯一索引，撞键报「该运单号已录入」）。可发货状态 = PAID 或 SHIPPED，其余（已取消/已完成）409「订单当前状态不可发货」。
 - **[ORD-38]** 确认收货：仅 SHIPPED→COMPLETED（买家 RECEIVE 或系统 AUTO_RECEIVE 共用落点），转完成时回填 `completed_at` 并开通售后申请窗口（`apply_expire_at = +15 天`），同事务经 product::api 累加销量投影（行项按 productId 合并）。抢不到转移 409。
 
 ## 八、售后投影
@@ -82,7 +82,7 @@
 - **[ORD-45]** 前端状态投影：后端 PAID → 领域「待发货」、SHIPPED →「待收货」、COMPLETED → 展示文案「交易成功」；无「待评价/退款中」主状态阶段；未知 wire 值兜底显示为待付款。列表筛选传回后端大写枚举。
 - **[ORD-46]** 待付款订单在列表卡片与详情页展示「付款剩余 mm:ss」倒计时（取契约的 `payExpireAt`，其余状态不显示）。
 - **[ORD-47]** 订单按钮排 = 后端动作（PAY/CANCEL/RECEIVE → pay/cancel/confirm，SHIP 买家侧丢弃）∪ 前端附加动作：待发货追加「提醒发货」（纯占位，点击 toast「即将上线」）；待收货追加「查看物流」；终态卡片追加「再买一单」，详情页 completed 额外给「加入购物车」并把「再买一单」升为主操作。主操作每屏唯一：待付款=去付款、待收货=确认收货。顺序固定（pay→cancel→remind→logistics→confirm→rebuy→add_cart→ship）。取消走取消原因弹窗（ORD-57），确认收货带全局二次确认；进行中按钮禁用防重复提交。
-- **[ORD-48]** 买家订单列表页签：全部/待付款/待发货/待收货/已完成，**「已取消」不设页签**；列表分页按下单时间倒序，非法状态筛选值 400。店铺已注销时店名为 null，UI 显示「店铺已关闭」。
+- **[ORD-48]** 买家订单列表页签：全部/待付款/待发货/待收货/已完成，**「已取消」不设页签**；列表分页按下单时间倒序，非法状态筛选值 400（`status` 以字符串收，service 层 `valueOf` 失败即 `badRequest`，不走 Spring 类型转换的 400 兜底，见 GEN-19）。店铺已注销时店名为 null，UI 显示「店铺已关闭」。
 - **[ORD-49]** 列表契约只有净额 `payAmount`（商品额/运费/优惠拆分只在详情），金额三行必须在详情页用详情契约覆盖才加得起来；列表卡片内嵌行项目免二次请求。
 - **[ORD-50]** 售后入口（订单行上「申请售后」）前端门槛与 ORD-40 对齐：已完成 + `applyExpireAt` 未到 + 无进行中单；**已退款（REFUNDED）不再提供入口**（后端同拦二次申请，409 `AFTER_SALE_ALREADY_REFUNDED`，见 AFS-05）。类型二选一：仅退款（不寄回，同意即退）在前、退货退款（寄回，卖家收货后退）在后。买家售后动作按单状态直读：APPLYING→撤销；RETURNING→填/改退货物流（已填再多一个「查看」）；终态→无。
 - **[ORD-51]** 卖家工作台订单列表：五个主状态页签（含已取消）+ 售后状态第二徽章线；行内「发货」消费契约下发的 `availableActions`（含 SHIP 即给，PAID 首发货与 SHIPPED 追加包裹同按钮，见 ORD-55/56），**不再按 status 硬推**；售后 APPLYING→同意/拒绝、RETURNING→确认收货；动作与售后条件都不满足显示「—」。售后工作台默认停在「待处理(APPLYING)」页签。
@@ -91,7 +91,7 @@
 
 ## 十、购物车
 
-- **[CART-01]** 加购门槛：SKU 存在且在售（否则 400「商品规格不存在或已停售」）、其 SPU 已上架（否则「商品已下架」）；**库存不足不拦加购**（闸门后移到下单）。
+- **[CART-01]** 加购门槛按序三道：SKU 存在且在售（否则 400「商品规格不存在或已停售」）、其 SPU 已上架（否则 400「商品已下架」）、**商品所属店铺在营业**（`ShopReadQuery.isActive`，非 ACTIVE 一律 409「店铺已停止营业」，与下单同一口径，见 ACC-72）；**库存不足不拦加购**（闸门后移到下单）。第三道挡的是「车里已有条目 + 店刚好停了」的并发窗口——店被驳回/禁用时其上架商品已被事件级联下架，第二道就先挡下了。
 - **[CART-02]** 单用户购物车最多 **99 种不同 SKU**（条目坑位上限，防刷）；车里已有该 SKU 时只累加数量、不占新坑、不计入该闸门。
 - **[CART-03]** 同 SKU 重复加购**幂等合并为数量累加**（不是新增行），累加封顶 999（upsert `LEAST(旧+新, 999)` 在行锁下由 DB 完成；DB 列 CHECK 1..999 兜底）；单行入参数量 1..999。
 - **[CART-04]** 新条目默认勾选（`selected DEFAULT TRUE`，落库保证跨设备一致）；列表按加入时间倒序（新加的在前）。
