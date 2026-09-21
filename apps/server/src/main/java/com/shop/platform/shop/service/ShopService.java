@@ -81,15 +81,64 @@ public class ShopService {
         return shop;
     }
 
+    /**
+     * 被驳回的店铺重新提交审核：改店名 / logo 后把状态推回 PENDING_REVIEW，同事务再入队一条待审记录
+     * （上一轮那条 REJECTED 留痕不动，一店多条 review 本就是常态）。
+     *
+     * <p>为什么原地重提而不是「释放名额再开一家」：一人一店闸门数的是 OWNER 身份（ACC-01），被拒的店仍占名额；
+     * 只放开名额等于让卖家丢掉店名占位与已上传的 logo，也让平台丢掉上一次审核的记录。原地重提把「补材料」
+     * 这件事留在同一行店铺上，代价只是审核队列多一条 PENDING。
+     *
+     * <p>重提不复活营业：驳回时该店在架商品已级联下架（ACC-72），之后即便审核通过也只把店推回 ACTIVE，
+     * 商品仍要卖家自己重新上架（ACC-72 的反向刻意不回上架）。
+     */
+    @Transactional
+    public Shop resubmitReview(UUID shopId, UUID ownerId, String name, String logoKey) {
+        requireOwner(shopId, ownerId);
+        Validate.isTrue(name != null && !name.isBlank(), "店名不能为空");
+        Shop shop = Validate.notNull(shopMapper.selectById(shopId), "店铺不存在");
+        // 只有被驳回的店能重提：待审的店已经在队列里，ACTIVE 店无需重审，被封的店走平台解封（ACC-60 仍未落）
+        Validate.isTrue(shop.getStatus() == ShopStatus.REJECTED, 409, "只有审核未通过的店铺可以重新提交");
+        // 改名要重新过全局唯一闸（本店自己那一行不算冲突）
+        Validate.isTrue(!shopMapper.existsOtherNamed(shopId, name), "SHOP_NAME_TAKEN", "店名已被使用，请换一个");
+
+        // 条件更新（WHERE status = REJECTED）是并发闸门：预检与写之间被并发的重提/审核抢先，这里影响 0 行 → 409
+        try {
+            Validate.isTrue(shopMapper.resubmit(shopId, name, logoKey) == 1, 409, "店铺状态已变化，请刷新后重试");
+        } catch (DuplicateKeyException e) {
+            // 并发下两家店同时改成同一个名字：uk_shops_name 是真相，给和预检一致的 400
+            throw BusinessException.badRequest("SHOP_NAME_TAKEN", "店名已被使用，请换一个");
+        }
+
+        // 重新入队：新落一条 PENDING，审核员看到的仍是「店名 + logo + 上一轮驳回理由」那条历史链
+        shopReviewMapper.insert(ShopReview.builder()
+                .shopId(shopId)
+                .status(ShopReviewStatus.PENDING)
+                .build());
+        shop.setStatus(ShopStatus.PENDING_REVIEW);
+        shop.setName(name);
+        shop.setLogoKey(logoKey);
+        log.info("[SHOP] 被拒店铺重新提交审核, shopId={}, ownerId={}", shopId, ownerId);
+        return shop;
+    }
+
     // 我的店铺与邀请
-    /** 我的店铺列表：当前用户 ACTIVE 成员身份对应的全部店铺，新店在前 */
-    public List<Shop> myShops(UUID userId) {
+    /** 我的店铺列表：当前用户 ACTIVE 成员身份对应的全部店铺，新店在前；被驳回的店带上最近一次驳回理由 */
+    public List<ShopListItem> myShops(UUID userId) {
         List<UUID> shopIds = shopMemberMapper.selectActiveByUser(userId).stream()
                 .map(ShopMember::getShopId)
                 .toList();
         if (shopIds.isEmpty()) return List.of();
-        return shopMapper.selectList(
+        List<Shop> shops = shopMapper.selectList(
                 new LambdaQueryWrapper<Shop>().in(Shop::getId, shopIds).orderByDesc(Shop::getCreatedAt));
+        // 理由只查被驳回的那几家：一次 list 里通常 0 或 1 条，不必为没驳回的店翻审核历史
+        Map<UUID, String> reasons = shopReviewMapper.latestRejectReasons(shops.stream()
+                .filter(s -> s.getStatus() == ShopStatus.REJECTED)
+                .map(Shop::getId)
+                .toList());
+        return shops.stream()
+                .map(s -> new ShopListItem(s, reasons.get(s.getId())))
+                .toList();
     }
 
     /** 我的待确认邀请：别人邀我、等我同意的成员记录，拼上店名。只查 PENDING —— 被拒/被撤回的邀请不留行，天然不会挂在这个列表上 */

@@ -7,7 +7,7 @@
 - **[ACC-01]** 任何已登录的统一账号用户（account.users，手机号即身份）都可开店，无需额外资格；开店即建店并自动进入待审核态 `PENDING_REVIEW`，平台审核通过才 `ACTIVE`。**一人一店**（拍板）：开店时该用户在 `shop_members` 已持有 ≥1 条 OWNER 记录即拒（400 + code `SHOP_LIMIT_EXCEEDED`）；判定口径取 OWNER 行数（与授权同源，不看 `shops.owner_id` 冗余列），被拒/被封的店仍占名额（店铺不物理删除、无释放通道）；子账号同闸——别人店的 MEMBER 身份既不占名额、也不额外拦人。
 - **[ACC-02]** 店名必填、trim 后最长 50 字符（DB `VARCHAR(50)`）；**店名全平台唯一**：被任一既有店铺（含待审/被拒/被封——不看状态）占用即拒（400 + code `SHOP_NAME_TAKEN`），并发由唯一索引 `uk_shops_name`（V61）兜底成同一 400；logoKey 可选、最长 255。
 - **[ACC-03]** 开店是同事务三写：建店（PENDING_REVIEW）+ 店主自动成为本店 `OWNER` 角色、`ACTIVE` 状态的成员 + 入队一条 `PENDING` 审核记录；授权判断以 `shop_members` 为准，`shops.owner_id` 只是冗余并存。
-- **[ACC-04]** 店铺状态机：`PENDING_REVIEW → ACTIVE / REJECTED`；`ACTIVE ⇄ DISABLED`（枚举含 4 态：PENDING_REVIEW / ACTIVE / REJECTED / DISABLED）；唯一可营业态是 ACTIVE（谓词 `ShopStatus.isActive()`），不做物理删除。状态一旦进入不可营业（驳回/禁用），推进与「全店在架商品级联下架」同事务发生，见 ACC-72。
+- **[ACC-04]** 店铺状态机：`PENDING_REVIEW → ACTIVE / REJECTED`；`REJECTED →（卖家补材料原地重提）PENDING_REVIEW`（ACC-74）；`ACTIVE ⇄ DISABLED`（枚举含 4 态：PENDING_REVIEW / ACTIVE / REJECTED / DISABLED）；唯一可营业态是 ACTIVE（谓词 `ShopStatus.isActive()`），不做物理删除。状态一旦进入不可营业（驳回/禁用），推进与「全店在架商品级联下架」同事务发生，见 ACC-72。
 - **[ACC-05]** 买家侧公开查看店铺（`GET /api/shops/{id}`，匿名可达）只对 `ACTIVE` 店铺返回；待审核/被拒/封禁的店一律 404「店铺不存在」，不泄露"存在但不可用"。公开出参仅 id/店名/logoKey/createdAt。
 - **[ACC-06]** 卖家侧接口（`/seller/**`）必须携带 `X-Shop-Id` 头，缺失或非法（非 UUID）→ 403「缺少店铺上下文」；店铺必须存在且状态为 `PENDING_REVIEW` 或 `ACTIVE` 才放行（REJECTED/DISABLED 不可经营，403「店铺不存在或不可用」）；当前用户必须是该店 `ACTIVE` 成员，否则 403「你不是该店铺成员」。产物接口的 shopId 一律取过滤器装载的上下文，不信任请求体/参数里的 shopId。**放行经营 ≠ 放行成交**：待审店能备货建商品，但买家侧交易只认 ACTIVE（ACC-05 店页 404 + ACC-72 交易闸），商品上架了也卖不出去。
 - **[ACC-07]** 「是卖家」= 在 `shop.shop_members` 有 ACTIVE 记录；一个用户可同时是买家 + 多店成员。我的店铺列表返回全部 ACTIVE 成员身份对应的店，新店在前。
@@ -15,11 +15,18 @@
     - **级联下架**：审核驳回（及将来任何进入不可营业态）在店铺状态推进的**同一事务**发布 `shop::events` 的 `ShopTradingSuspendedEvent(shopId, reason)`，product 侧同步 `@EventListener` 一条条件 UPDATE 把该店全部 `PUBLISHED` 商品置 `WAREHOUSE`——店都不能营业了，架上留着只让买家点得进买不下。只动在架：草稿与「仓库中」的商品原样不动；不逐个走 `ProductService#off`（那条路径带 X-Shop-Id 归属校验与读-改-写，卖家语境专用）。**反向不自动回上架**：恢复 ACTIVE 不发布事件也不补逻辑——恢复营业 ≠ 平台背书这批历史商品仍满足上架门槛，卖家自己在后台重上、重上时复检（`off` 已收为包内方法，级联不借用）。
     - **交易闸**：买家侧成交路径逐店校验营业态——加购（按商品所属店）与下单（本单任一家店）在其余闸门之后过 `ShopReadQuery.isActive`，非 ACTIVE 一律 **409「店铺已停止营业」（不带 code）**：不是入参非法（400），是资源当前状态不允许这笔操作，前端只需按 status 分支。结算预览**不查**（预览不是成交，见 ORD 侧口径）。加购这道闸兜的是「车里已有条目 + 店刚好停了」的并发窗口——级联下架已让第 1 步「商品已下架」先挡下多数情况。
     - **依赖口径**：`ShopReadQuery.isActive` 是 shop :: api 里唯一「按状态过滤」的读出口，只吐 boolean、`ShopStatus` 词表不外泄给 cart/order；给布尔而不是抛异常，是因为它同时服务「拒绝成交」与「列表灰显」两种消费。`DISABLED` 目前无写入方（ACC-60），但立约：**将来任何让店进入不可营业态的入口必须发布同一个事件**，否则级联漏一处即静默失守。
+- **[ACC-74]** 被驳回的店铺可以**原地重新提交审核**（卖家自助，对标「资质补齐再来」）：`POST /shops/{shopId}/resubmit`，入参与开店同形状（复用 `CreateShopRequest`，不另立 DTO）。
+    - **谁能提**：只有该店 `OWNER`（复用 ACC-12 的 `requireOwner`，外人 403）；**能提的只有当前态 = REJECTED 这一格**——待审的店已经在队列里、ACTIVE 店无需重审、被封的店要等平台解封（ACC-60 仍未落），三者一律 409「只有审核未通过的店铺可以重新提交」。
+    - **改什么**：店名与 logoKey 按提交值整体覆盖，改名重新过全局唯一闸（本店自己那行不算冲突：`existsOtherNamed` 带 `id <> ?`；并发撞 `uk_shops_name` 兜成同一个 400 `SHOP_NAME_TAKEN`）。
+    - **怎么落**：条件更新（`WHERE status = REJECTED`）是并发真相——预检与写之间被并发的重提/审核抢先则影响 0 行 → 409「店铺状态已变化，请刷新后重试」；成功后同事务再入队一条 `PENDING` 审核记录，**上一轮那条 REJECTED 留痕不动**（一店多条 review 是常态，审核员看到的仍是完整历史链）。
+    - **为什么不释放名额再开一家**：一人一店数的是 OWNER 身份（ACC-01），被拒的店仍占名额；只放开名额等于让卖家丢掉店名占位与已上传 logo，也让平台丢掉上一轮审核记录。原地重提把「补材料」留在同一行店铺上，代价只是队列多一条 PENDING。
+    - **重提不复活营业**：驳回时全店在架商品已级联下架（ACC-72），这次重提只把店推回 `PENDING_REVIEW`；即便日后审核通过也只到 ACTIVE，商品仍要卖家自己重新上架（ACC-72 反向刻意不回上架）。
+    - **驳回理由下发**：`ShopResponse.rejectReason`（可空）= 该店 REJECTED 行里 `decidedAt` 最新那条的 reason，**只在店铺当前状态为 REJECTED 时装配**（已通过/已封禁的店不挂历史批注）；`reason` 为空则不下发，前端不显示空标题。这只出现在卖家侧 `/shops`，买家侧 `PublicShopResponse`（ACC-05）字段另有一只，不受影响。
 
 ## 二、店铺审核（平台侧）
 
 - **[ACC-08]** 审核队列 `GET /admin/reviews` 需 `SHOP_REVIEW` 权限（岗位 REVIEWER / SUPER_ADMIN）；列表按 status 筛选分页，PENDING 优先、新店在前；出参拼装店名与店主手机号（跨 schema 按 ID 两步查，禁止 JOIN）。
-- **[ACC-09]** 仅 `PENDING` 的审核记录可被处置，重复审核报错「该店铺已审核，请刷新列表」；通过 → 店铺转 `ACTIVE`，拒绝 → 转 `REJECTED` 且理由必填（≤255 字符）；审批留痕（审批员工 ID、理由、decidedAt）与店铺状态推进同事务原子生效。**驳回的副作用链不止改状态**：同事务发布 `ShopTradingSuspendedEvent` 触发全店在架商品级联下架（ACC-72），且这家店继续占着店主的「一人一店」名额（ACC-01）——卖家自助「重开一家店」无路。审核记录不做二次开放（拒绝后无重新申诉/再审通道）。处置落一条业务事件 `shop_review.decided`（GEN-50）。
+- **[ACC-09]** 仅 `PENDING` 的审核记录可被处置，重复审核报错「该店铺已审核，请刷新列表」；通过 → 店铺转 `ACTIVE`，拒绝 → 转 `REJECTED` 且理由必填（≤255 字符）；审批留痕（审批员工 ID、理由、decidedAt）与店铺状态推进同事务原子生效。**驳回的副作用链不止改状态**：同事务发布 `ShopTradingSuspendedEvent` 触发全店在架商品级联下架（ACC-72），且这家店继续占着店主的「一人一店」名额（ACC-01）——卖家自助「重开一家店」无路，自助路是原地重提（ACC-74）。已处置的审核记录本身不翻案（不做二次开放、不改写历史行），但被驳回的店可由卖家补材料重新入队一条 PENDING（ACC-74）。处置落一条业务事件 `shop_review.decided`（GEN-50）。
 
 ## 三、店铺成员与邀请
 
@@ -112,4 +119,4 @@
 - **[ACC-57]** 员工管理 CRUD 的「创建员工/分配岗位」仍未实现（含自指禁令与末位保护），员工建档仍只能手工写库；「禁用」半边已随封号端点落地（ACC-71，`STAFF_MANAGE` 首个消费点）。
 - **[ACC-58]** admin 前端导航消费 me 出参 permission 字段——文档 P2 未做。
 - **[ACC-59]** auth.md §5 边界声明中仍属"故意不做"且代码确未实现：泄露密码库比对（黑名单仅硬编码 14 条占位）、短信异步化+双通道、登录风控（异地提醒/设备指纹）、Redis 故障降级、密码哈希升级检测（登录时重写旧 cost）、CSRF Token（现靠 SameSite=Lax）、access 主动登出限制（access 过期时点登出会 401，refresh cookie 等自然过期）、跨标签页登录态同步（多标签页输家显示未登录，属前端已知边界）。
-- **[ACC-60]** 店铺「注销/禁用」操作端点不存在：`ShopStatus.DISABLED` 与 ACTIVE⇄DISABLED 转换在状态机注释中定义，但 shop 模块没有任何封禁/解禁/注销店铺的 service 方法或端点（封禁目前只能改库）；被拒店铺也无重新提交审核的通道。**改库时的立约**：直接 UPDATE 成 DISABLED 不会发布 `ShopTradingSuspendedEvent`，级联下架因此漏做（交易闸 ACC-72 仍兜得住成交，但架上商品不会自动撤）——将来落封禁端点必须复用审核驳回那条「状态推进 + 发事件」的同事务路径，不另起第二套下架逻辑。
+- **[ACC-60]** 店铺「注销/禁用」操作端点不存在：`ShopStatus.DISABLED` 与 ACTIVE⇄DISABLED 转换在状态机注释中定义，但 shop 模块没有任何封禁/解禁/注销店铺的 service 方法或端点（封禁目前只能改库）；被拒店铺的重提通道已落（ACC-74），被封的店仍无自助路。**改库时的立约**：直接 UPDATE 成 DISABLED 不会发布 `ShopTradingSuspendedEvent`，级联下架因此漏做（交易闸 ACC-72 仍兜得住成交，但架上商品不会自动撤）——将来落封禁端点必须复用审核驳回那条「状态推进 + 发事件」的同事务路径，不另起第二套下架逻辑。

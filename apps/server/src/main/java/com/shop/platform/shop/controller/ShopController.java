@@ -37,10 +37,22 @@ public class ShopController {
         return ShopResponse.from(shopService.createShop(ownerId, req.name(), req.logoKey()));
     }
 
-    /** 我的店铺列表（ACTIVE 成员身份） */
+    /** 我的店铺列表（ACTIVE 成员身份）；被驳回的店带上驳回理由，供「补材料重新提交」表单 */
     @GetMapping("/mine")
     public List<ShopResponse> listMyShops(@CurrentUser UUID userId) {
-        return shopService.myShops(userId).stream().map(ShopResponse::from).toList();
+        return shopService.myShops(userId).stream()
+                .map(item -> ShopResponse.from(item.shop(), item.rejectReason()))
+                .toList();
+    }
+
+    /**
+     * 被驳回的店铺重新提交审核：店主补材料（改店名 / logo）后把店推回待审核队列，入参与开店同形状。
+     * 非被驳回的店拿 409，改名撞店名唯一闸拿 400 SHOP_NAME_TAKEN。
+     */
+    @PostMapping("/{shopId}/resubmit")
+    public ShopResponse resubmitShopReview(
+            @CurrentUser UUID userId, @PathVariable UUID shopId, @Valid @RequestBody CreateShopRequest req) {
+        return ShopResponse.from(shopService.resubmitReview(shopId, userId, req.name(), req.logoKey()));
     }
 
     /** 我的待确认邀请 */

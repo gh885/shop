@@ -20,6 +20,7 @@ import {
     ItemTitle,
     ItemDescription,
     ItemActions,
+    ItemFooter,
     Button,
     ItemMedia,
     useAppForm,
@@ -28,7 +29,7 @@ import {
     CardTitle,
     CardDescription,
     CardContent,
-    Field,
+    FieldShell,
     firstFieldError,
     ButtonGroup,
     Input,
@@ -123,7 +124,39 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
                     </Button>
                 </ItemActions>
             ) : undefined}
+            {shop.status === "REJECTED" ? <RejectedRow shop={shop} /> : undefined}
         </Item>
+    )
+}
+
+/** 被驳回的店铺行：亮出驳回理由 + 原地重提入口（改店名或沿用原名，重新进审核队列） */
+function RejectedRow({ shop }: { shop: ShopResponse }) {
+    const resubmit = useMutation({
+        mutationFn: (name: string) =>
+            ShopsApi.resubmitShopReview({
+                path: { shopId: shop.id },
+                body: { name },
+            }),
+        meta: {
+            success: "已重新提交，等待平台审核",
+            error: "重新提交审核失败",
+            invalidates: [shopKeys.all],
+        },
+    })
+
+    return (
+        <ItemFooter className="flex-col items-start">
+            <ItemDescription lines={3}>
+                驳回理由：{shop.rejectReason || "审核员未填写，可直接重新提交或换个店名"}
+            </ItemDescription>
+            <ShopNameForm
+                label="重新提交用的店铺名称"
+                submitText="重新提交"
+                defaultValue={shop.name}
+                pending={resubmit.isPending}
+                onSubmit={(name) => resubmit.mutate(name)}
+            />
+        </ItemFooter>
     )
 }
 
@@ -184,7 +217,7 @@ function PendingInvites() {
     )
 }
 
-/** 开店表单：提交后落 PENDING_REVIEW，等平台和核 */
+/** 开店表单：提交后落 PENDING_REVIEW，等平台审核 */
 function CreateShopForm() {
     const [done, setDone] = useState(false)
 
@@ -192,14 +225,6 @@ function CreateShopForm() {
         mutationFn: (value: string) => ShopsApi.createShop({ body: { name: value } }),
         meta: { error: "创建店铺失败", invalidates: [shopKeys.all] },
         onSuccess: () => setDone(true),
-    })
-
-    const form = useAppForm({
-        defaultValues: { name: "" },
-        onSubmit: ({ value }) => {
-            setDone(false)
-            create.mutate(value.name)
-        },
     })
 
     return (
@@ -211,39 +236,16 @@ function CreateShopForm() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        void form.handleSubmit()
+                <ShopNameForm
+                    label="店铺名称"
+                    submitText="提交申请"
+                    defaultValue=""
+                    pending={create.isPending}
+                    onSubmit={(name) => {
+                        setDone(false)
+                        create.mutate(name)
                     }}
-                >
-                    <form.AppField
-                        name="name"
-                        validators={{ onChange: CreateShopNameSchema }}
-                    >
-                        {(field) => (
-                            <Field error={firstFieldError(field)}>
-                                <ButtonGroup className="w-full">
-                                    <Input
-                                        id="create-shop-name"
-                                        aria-label="店铺名称"
-                                        placeholder="给你的店铺起个名字"
-                                        maxLength={50}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                    />
-                                    <Button
-                                        type="submit"
-                                        disabled={create.isPending}
-                                    >
-                                        {create.isPending && <Spinner />}提交申请
-                                    </Button>
-                                </ButtonGroup>
-                            </Field>
-                        )}
-                    </form.AppField>
-                </form>
+                />
                 <div className="mt-2 min-h-5">
                     {done ? (
                         <p className="flex items-center gap-1 text-sm text-success">
@@ -254,5 +256,62 @@ function CreateShopForm() {
                 </div>
             </CardContent>
         </Card>
+    )
+}
+
+/** 店名一行表单（「输入 + 提交」）：开店与被拒重提共用，提交动作由调用方的 mutation 决定 */
+function ShopNameForm({
+    label,
+    submitText,
+    defaultValue,
+    pending,
+    onSubmit,
+}: {
+    label: string
+    submitText: string
+    defaultValue: string
+    pending: boolean
+    onSubmit: (name: string) => void
+}) {
+    const form = useAppForm({
+        defaultValues: { name: defaultValue },
+        onSubmit: ({ value }) => onSubmit(value.name),
+    })
+
+    return (
+        <form
+            className="w-full"
+            onSubmit={(e) => {
+                e.preventDefault()
+                void form.handleSubmit()
+            }}
+        >
+            <form.AppField
+                name="name"
+                validators={{ onChange: CreateShopNameSchema }}
+            >
+                {(field) => (
+                    <FieldShell error={firstFieldError(field)}>
+                        <ButtonGroup className="w-full">
+                            <Input
+                                aria-label={label}
+                                placeholder="给你的店铺起个名字"
+                                maxLength={50}
+                                value={field.state.value}
+                                onBlur={field.handleBlur}
+                                onChange={(e) => field.handleChange(e.target.value)}
+                            />
+                            <Button
+                                type="submit"
+                                disabled={pending}
+                            >
+                                {pending && <Spinner />}
+                                {submitText}
+                            </Button>
+                        </ButtonGroup>
+                    </FieldShell>
+                )}
+            </form.AppField>
+        </form>
     )
 }

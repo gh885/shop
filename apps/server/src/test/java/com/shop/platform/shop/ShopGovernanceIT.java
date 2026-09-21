@@ -3,6 +3,7 @@ package com.shop.platform.shop;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,6 +12,7 @@ import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopReview;
 import com.shop.platform.shop.model.ShopReviewStatus;
 import com.shop.platform.shop.model.ShopStatus;
+import com.shop.platform.shop.service.ShopListItem;
 import com.shop.platform.shop.service.ShopReviewService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.UUID;
@@ -36,9 +38,14 @@ class ShopGovernanceIT extends IntegrationTestSupport {
 
     private final UUID staffId = UUID.randomUUID();
 
-    /** 开店并登记全套清理：店铺 + 成员 + 审核记录 */
+    /** 开店并登记全套清理：店铺 + 成员 + 审核记录（默认以本测试的店主身份开） */
     private Shop openShop(String name) {
-        Shop shop = shopService.createShop(ownerId, name, null);
+        return openShop(ownerId, name);
+    }
+
+    /** 同上，指定店主——一人一店闸在，一个场景里要两家店就得换人开 */
+    private Shop openShop(UUID owner, String name) {
+        Shop shop = shopService.createShop(owner, name, null);
         db.onDelete("DELETE FROM shop.shop_reviews WHERE shop_id = ?", shop.getId());
         db.onDelete("DELETE FROM shop.shop_members WHERE shop_id = ?", shop.getId());
         db.onDelete("DELETE FROM shop.shops WHERE id = ?", shop.getId());
@@ -141,6 +148,94 @@ class ShopGovernanceIT extends IntegrationTestSupport {
                 assertThrows(BusinessException.class, () -> shopReviewService.reject(reviewId, staffId, "再试一次"));
         assertTrue(again.getHttpStatus() >= 400 && again.getHttpStatus() < 500);
         assertEquals(ShopStatus.ACTIVE.name(), shopStatus(shop.getId())); // 状态不被二次改写
+    }
+
+    private int reviewCount(UUID shopId, ShopReviewStatus status) {
+        Integer count = jdbc.queryForObject(
+                "SELECT count(*) FROM shop.shop_reviews WHERE shop_id = ?::uuid AND status = ?",
+                Integer.class,
+                shopId.toString(),
+                status.name());
+        assertNotNull(count);
+        return count;
+    }
+
+    /** 被驳回的店补材料重新提交：状态回 PENDING_REVIEW、队列多一条 PENDING、上一轮 REJECTED 留痕不动 */
+    @Test
+    void 被拒店铺重新提交_回到待审并再入队() {
+        Shop shop = openShop("被拒可重提店铺");
+        shopReviewService.reject(reviewId(shop.getId()), staffId, "资质不全");
+
+        Shop resubmitted = shopService.resubmitReview(shop.getId(), ownerId, "被拒可重提店铺", null);
+
+        assertEquals(ShopStatus.PENDING_REVIEW.name(), shopStatus(shop.getId()));
+        assertEquals(ShopStatus.PENDING_REVIEW, resubmitted.getStatus());
+        assertEquals(1, reviewCount(shop.getId(), ShopReviewStatus.PENDING));
+        assertEquals(1, reviewCount(shop.getId(), ShopReviewStatus.REJECTED));
+    }
+
+    /** 重提只对「当前被驳回」这一态成立：第二次重提拿 409，条件更新的影响行数才是并发真相 */
+    @Test
+    void 重新提交后再提交_拒绝() {
+        Shop shop = openShop("重复重提店铺");
+        shopReviewService.reject(reviewId(shop.getId()), staffId, "资质不全");
+        shopService.resubmitReview(shop.getId(), ownerId, "重复重提店铺", null);
+
+        BusinessException again = assertThrows(
+                BusinessException.class, () -> shopService.resubmitReview(shop.getId(), ownerId, "重复重提店铺", null));
+        assertEquals(409, again.getHttpStatus());
+        assertEquals(1, reviewCount(shop.getId(), ShopReviewStatus.PENDING)); // 没多入队一条
+    }
+
+    /** 审核通过的店不能重提（要改店名走的是另一件事，不是重新审核） */
+    @Test
+    void 已通过的店铺重提_拒绝() {
+        Shop shop = openShop("已通过店铺");
+        shopReviewService.approve(reviewId(shop.getId()), staffId);
+
+        BusinessException rejected = assertThrows(
+                BusinessException.class, () -> shopService.resubmitReview(shop.getId(), ownerId, "已通过店铺", null));
+        assertEquals(409, rejected.getHttpStatus());
+        assertEquals(ShopStatus.ACTIVE.name(), shopStatus(shop.getId()));
+    }
+
+    /** 只有店主能重提：成员（非 OWNER）拿 403，与自己那家店的状态无关 */
+    @Test
+    void 外人重提_拒绝() {
+        Shop shop = openShop("外人重提店铺");
+        shopReviewService.reject(reviewId(shop.getId()), staffId, "资质不全");
+
+        BusinessException forbidden = assertThrows(
+                BusinessException.class,
+                () -> shopService.resubmitReview(shop.getId(), UUID.randomUUID(), "外人重提店铺", null));
+        assertEquals(403, forbidden.getHttpStatus());
+    }
+
+    /** 重提可以改名，但店名全局唯一闸照旧：撞别家店名 400 SHOP_NAME_TAKEN，用自己的原名不冲突 */
+    @Test
+    void 重提改名撞他店店名_拒绝() {
+        openShop(UUID.randomUUID(), "已被占用的名字");
+        Shop mine = openShop("我的被拒店铺");
+        shopReviewService.reject(reviewId(mine.getId()), staffId, "资质不全");
+
+        BusinessException dup = assertThrows(
+                BusinessException.class, () -> shopService.resubmitReview(mine.getId(), ownerId, "已被占用的名字", null));
+        assertEquals(400, dup.getHttpStatus());
+        assertEquals("SHOP_NAME_TAKEN", dup.getCode());
+    }
+
+    /** 驳回理由下发给卖家：被驳回的店在「我的店铺」里带上最近一次理由，重提回待审后就不带了 */
+    @Test
+    void 我的店铺_被拒带驳回理由_重提后不带() {
+        Shop shop = openShop("带驳回理由店铺");
+        shopReviewService.reject(reviewId(shop.getId()), staffId, "资质不全");
+
+        ShopListItem row = shopService.myShops(ownerId).getFirst();
+        assertEquals(ShopStatus.REJECTED, row.shop().getStatus());
+        assertEquals("资质不全", row.rejectReason());
+
+        shopService.resubmitReview(shop.getId(), ownerId, "带驳回理由店铺", null);
+        assertNull(shopService.myShops(ownerId).getFirst().rejectReason());
     }
 
     @Test

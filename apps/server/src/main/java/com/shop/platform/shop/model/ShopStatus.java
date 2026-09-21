@@ -3,7 +3,8 @@ package com.shop.platform.shop.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 店铺状态机：待审核 → 通过(ACTIVE) / 驳回(REJECTED)；ACTIVE ⇄ DISABLED。
+ * 店铺状态机：待审核 → 通过(ACTIVE) / 驳回(REJECTED)；REJECTED →（卖家补材料重新提交）PENDING_REVIEW；
+ * ACTIVE ⇄ DISABLED。
  *
  * <p>DB 存 {@code name()}（varchar）。唯一可营业态是 {@link #isActive()}。
  */

@@ -58,6 +58,71 @@ class ShopControllerTest extends WebControllerTestSupport {
     }
 
     @Nested
+    class 重新提交审核 { // POST /shops/{shopId}/resubmit
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(
+                            post("/shops/" + shopId + "/resubmit")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"name": "改了名的店"}
+                                """))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        /** 路径上的 shopId 与登录者一起递到 service，店名与 logo 原样透传（logo 可缺省 = 不改） */
+        @Test
+        void 绑定店铺与操作者() throws Exception {
+            when(shopService.resubmitReview(eq(shopId), eq(userId), eq("改了名的店"), isNull()))
+                    .thenReturn(shop(ShopStatus.PENDING_REVIEW));
+
+            mockMvc.perform(
+                            post("/shops/" + shopId + "/resubmit")
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"name": "改了名的店"}
+                                """))
+                    .andExpect(status().isOk());
+
+            verify(shopService).resubmitReview(eq(shopId), eq(userId), eq("改了名的店"), isNull());
+        }
+
+        @Test
+        void 空店名_422() throws Exception {
+            mockMvc.perform(
+                            post("/shops/" + shopId + "/resubmit")
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"name": ""}
+                                """))
+                    .andExpect(status().is(422));
+        }
+
+        /** 非被驳回的店重提 → 409（原话由 service 给，接口只负责把状态码带出去） */
+        @Test
+        void 店铺不是在审状态_409() throws Exception {
+            when(shopService.resubmitReview(eq(shopId), eq(userId), eq("随便"), isNull()))
+                    .thenThrow(BusinessException.conflict(null, "只有审核未通过的店铺可以重新提交"));
+
+            mockMvc.perform(
+                            post("/shops/" + shopId + "/resubmit")
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"name": "随便"}
+                                """))
+                    .andExpect(status().isConflict());
+        }
+    }
+
+    @Nested
     class 开店 { // POST /shops
 
         @Test
