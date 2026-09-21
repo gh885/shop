@@ -21,7 +21,7 @@ import {
 } from "#/order"
 import { notify } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
-import { Card, CardContent, ConfirmDialog, Skeleton } from "@shop/ui-web"
+import { Card, CardContent, confirm, Skeleton } from "@shop/ui-web"
 import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/orders/$orderId")({
@@ -80,14 +80,12 @@ function OrderDetailPage() {
     const cancelAfterSale = useCancelAfterSale(orderId)
     const navigate = useNavigate()
 
-    // 状态区客户操作分发（取消确认弹窗由本页持有）；商品区的加购/售后走 handleItemAction
-    const [cancelOpen, setCancelOpen] = useState(false)
-    const { handleAction, pendingAction, cancel } = useOrderActions(() => setCancelOpen(true))
+    // 状态区客户操作分发（取消走全局二次确认，见 use-order-actions）；商品区的加购/售后走 handleItemAction
+    const { handleAction, pendingAction } = useOrderActions()
 
-    // 售后三个入口的状态：申请弹窗、回寄弹窗、撤销确认
+    // 售后两个弹窗入口的状态：申请、回寄
     const [applyOpen, setApplyOpen] = useState(false)
     const [returnOpen, setReturnOpen] = useState(false)
-    const [cancelSaleOpen, setCancelSaleOpen] = useState(false)
 
     const ticket = afterSale.data ?? undefined
 
@@ -97,9 +95,18 @@ function OrderDetailPage() {
         notify.info(`「${action}」即将上线`)
     }
 
-    /** 售后卡操作：撤销走二次确认，回寄开弹窗，查看退货物流跳物流详情页（退货包裹与正向共用一套轨迹） */
+    /** 售后卡操作：撤销走全局二次确认，回寄开弹窗，查看退货物流跳物流详情页（退货包裹与正向共用一套轨迹） */
     const handleAfterSaleAction = (action: AfterSaleAction) => {
-        if (action === "cancel") return setCancelSaleOpen(true)
+        if (action === "cancel") {
+            void confirm({
+                // 撤销后这张单就终态了，窗口内还能重新申请，所以文案说清「可以再来」
+                title: "撤销售后申请",
+                description: "撤销后本次售后结束；在申请窗口内你还可以重新提交。",
+                confirmText: "撤销申请",
+                action: () => cancelAfterSale.mutateAsync(),
+            })
+            return
+        }
         if (action === "return") return setReturnOpen(true)
         void navigate({ to: "/logistics/$orderId", params: { orderId } })
     }
@@ -152,17 +159,6 @@ function OrderDetailPage() {
                 </div>
             </div>
 
-            {/* 取消订单二次确认 */}
-            <ConfirmDialog
-                open={cancelOpen}
-                onOpenChange={setCancelOpen}
-                title="取消订单"
-                description={<>确定取消订单 {order.orderNo} 吗？该操作不可恢复。</>}
-                confirmText="取消订单"
-                pending={cancel.isPending}
-                onConfirm={() => cancel.mutate(order.id, { onSuccess: () => setCancelOpen(false) })}
-            />
-
             <AfterSaleApplyDialog
                 open={applyOpen}
                 onOpenChange={setApplyOpen}
@@ -176,21 +172,6 @@ function OrderDetailPage() {
                 orderId={orderId}
                 defaultLogisticsCompany={ticket?.returnLogisticsCompany}
                 defaultTrackingNo={ticket?.returnTrackingNo}
-            />
-
-            {/* 撤销售后二次确认：撤销后这张单就终态了，窗口内还能重新申请，所以文案说清「可以再来」 */}
-            <ConfirmDialog
-                open={cancelSaleOpen}
-                onOpenChange={setCancelSaleOpen}
-                title="撤销售后申请"
-                description="撤销后本次售后结束；在申请窗口内你还可以重新提交。"
-                confirmText="撤销申请"
-                pending={cancelAfterSale.isPending}
-                onConfirm={() =>
-                    cancelAfterSale.mutate(undefined, {
-                        onSuccess: () => setCancelSaleOpen(false),
-                    })
-                }
             />
         </div>
     )

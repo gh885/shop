@@ -1,17 +1,18 @@
 import { useNavigate } from "@tanstack/react-router"
 
 import { notify } from "@shop/app-kit"
+import { confirm } from "@shop/ui-web"
 
 import type { Order, OrderAction } from "./model"
 import { useCancelOrder, useReceiveOrder } from "./queries"
 
 /**
  * 订单操作分发（我的订单列表 / 订单详情共用）：
- * pay → 收银台；cancel → 二次确认（弹窗由调用方持有，这里只回调请求）；
+ * pay → 收银台；cancel → 全局二次确认后取消；
  * confirm → 确认收货；logistics → 物流详情页；其余 toast 占位。一并给出按钮 pending 态（cancel/confirm 进行中）。
- * 调用方还需要 cancel.mutate 去接确认弹窗，故一并返回。
+ * 二次确认在这里发起（两处入口文案一致，弹窗状态由全局 ConfirmDialogHost 持有），调用方只接线 handleAction。
  */
-export function useOrderActions(onRequestCancel: (order: Order) => void) {
+export function useOrderActions() {
     const navigate = useNavigate()
     const cancel = useCancelOrder()
     const receive = useReceiveOrder()
@@ -22,7 +23,12 @@ export function useOrderActions(onRequestCancel: (order: Order) => void) {
                 void navigate({ to: "/pay/$orderId", params: { orderId: order.id } })
                 break
             case "cancel":
-                onRequestCancel(order)
+                void confirm({
+                    title: "取消订单",
+                    description: `确定取消订单 ${order.orderNo} 吗？该操作不可恢复。`,
+                    confirmText: "取消订单",
+                    action: () => cancel.mutateAsync(order.id),
+                })
                 break
             case "confirm":
                 receive.mutate(order.id)
@@ -43,5 +49,5 @@ export function useOrderActions(onRequestCancel: (order: Order) => void) {
           ? "confirm"
           : undefined
 
-    return { handleAction, pendingAction, cancel }
+    return { handleAction, pendingAction }
 }

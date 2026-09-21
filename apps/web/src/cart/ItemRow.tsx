@@ -3,7 +3,6 @@ import type { CartItemActions } from "./queries"
 import { Minus, Plus } from "lucide-react"
 
 import { formatMoney } from "@shop/common"
-import { useState } from "react"
 import { notify } from "@shop/app-kit"
 
 import { Price } from "#/shared/ui/Price"
@@ -19,10 +18,11 @@ import {
     ButtonGroup,
     Button,
     ButtonGroupText,
-    ConfirmDialog,
+    confirm,
     Tooltip,
     TooltipContent,
     TooltipTrigger,
+    Image,
 } from "@shop/ui-web"
 
 /**
@@ -32,7 +32,16 @@ import {
  */
 export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemActions }) {
     const view = deriveCartItemView(item)
-    const [confirmOpen, setConfirmOpen] = useState(false)
+
+    async function removeWithConfirm() {
+        const ok = await confirm({
+            title: "删除商品",
+            description: <>确定从购物车删除「{view.title}」吗？</>,
+            confirmText: "删除",
+        })
+        // 乐观更新：点确认即删（列表先行），无需等接口回包
+        if (ok) actions.removeItem(item.id)
+    }
 
     return (
         <Item
@@ -52,11 +61,10 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 variant="thumbnail"
                 className="size-20"
             >
-                <img
-                    src={view.image || undefined}
+                <Image
+                    src={view.image}
                     alt={view.title}
-                    loading="lazy"
-                    className="object-cover"
+                    className="size-full"
                 />
             </ItemMedia>
 
@@ -139,25 +147,13 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                     variant="ghost"
                     size="xs"
                     disabled={view.disabled}
-                    onClick={() => setConfirmOpen(true)}
+                    onClick={() => {
+                        void removeWithConfirm()
+                    }}
                 >
                     删除
                 </Button>
             </div>
-
-            {/* 删除确认 */}
-            <ConfirmDialog
-                open={confirmOpen}
-                onOpenChange={setConfirmOpen}
-                title="删除商品"
-                description={<>确定从购物车删除「{view.title}」吗？</>}
-                confirmText="删除"
-                pending={actions.removingId === item.id}
-                onConfirm={() => {
-                    actions.removeItem(item.id)
-                    setConfirmOpen(false)
-                }}
-            />
         </Item>
     )
 }

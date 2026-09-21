@@ -3,7 +3,7 @@ import type { BannerResponse } from "@shop/api/sdk"
 import { format, isValid } from "date-fns"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Badge, Button, ConfirmDialog, Spinner, type DataTableFeatures } from "@shop/ui-web"
+import { Badge, Button, confirm, Image, Spinner, type DataTableFeatures } from "@shop/ui-web"
 import { PencilIcon } from "lucide-react"
 
 import { STATUS_BADGE } from "../constants"
@@ -23,10 +23,22 @@ const windowText = (startAt: string | null, endAt: string | null) => {
 
 function BannerActions({ banner }: { banner: BannerResponse }) {
     const [editOpen, setEditOpen] = useState(false)
-    const [confirmOpen, setConfirmOpen] = useState(false)
     const enabled = banner.status === "ENABLED"
     const nextStatus = enabled ? "DISABLED" : "ENABLED"
     const setStatus = useSetBannerStatus()
+
+    /** 启停二次确认：确认即改状态，失败保持打开（错误提示走全局 mutation 反馈） */
+    function toggleStatus() {
+        void confirm({
+            title: enabled ? `停用「${banner.title}」` : `启用「${banner.title}」`,
+            description: enabled
+                ? "停用后前台立即不再展示该运营位，确认执行？"
+                : "启用后按生效时间窗口在前台展示，确认执行？",
+            confirmText: enabled ? "确认停用" : "确认启用",
+            tone: enabled ? "destructive" : "default",
+            action: () => setStatus.mutateAsync({ id: banner.id, status: nextStatus }),
+        })
+    }
 
     return (
         <div className="flex justify-end gap-2">
@@ -43,25 +55,11 @@ function BannerActions({ banner }: { banner: BannerResponse }) {
                 onOpenChange={setEditOpen}
                 editing={banner}
             />
-            <ConfirmDialog
-                open={confirmOpen}
-                onOpenChange={setConfirmOpen}
-                title={enabled ? `停用「${banner.title}」` : `启用「${banner.title}」`}
-                description={
-                    enabled
-                        ? "停用后前台立即不再展示该运营位，确认执行？"
-                        : "启用后按生效时间窗口在前台展示，确认执行？"
-                }
-                confirmText={enabled ? "确认停用" : "确认启用"}
-                tone={enabled ? "destructive" : "default"}
-                pending={setStatus.isPending}
-                onConfirm={() => setStatus.mutate({ id: banner.id, status: nextStatus })}
-            />
             <Button
                 variant="outline"
                 size="sm"
                 disabled={setStatus.isPending}
-                onClick={() => setConfirmOpen(true)}
+                onClick={toggleStatus}
             >
                 {setStatus.isPending && <Spinner />}
                 {enabled ? "停用" : "启用"}
@@ -76,10 +74,11 @@ export const bannerColumns: ColumnDef<DataTableFeatures, BannerResponse>[] = [
         header: "图片",
         enableHiding: false,
         cell: ({ row }) => (
-            <img
+            <Image
                 src={row.original.imageUrl}
                 alt={row.original.title}
-                className="h-10 w-20 rounded-md bg-muted object-cover"
+                radius="md"
+                className="h-10 w-20"
             />
         ),
     },

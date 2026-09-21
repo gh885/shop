@@ -1,7 +1,7 @@
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router"
 import { FileQuestion } from "lucide-react"
 
-import { Button, Toaster } from "@shop/ui-web"
+import { Button, ConfirmDialogHost, Toaster } from "@shop/ui-web"
 
 /** 全局兜底：404（未匹配路径）。
     错误态由 `createRouter({ defaultErrorComponent })` 在每个 route match 上接管，
@@ -11,6 +11,7 @@ export const Route = createRootRoute({
     component: () => (
         <>
             <Toaster />
+            <ConfirmDialogHost />
             <Outlet />
         </>
     ),

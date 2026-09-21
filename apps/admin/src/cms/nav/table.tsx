@@ -3,7 +3,7 @@ import type { NavEntryResponse } from "@shop/api/sdk"
 import { PencilIcon } from "lucide-react"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Badge, Button, ConfirmDialog, Spinner, type DataTableFeatures } from "@shop/ui-web"
+import { Badge, Button, confirm, Spinner, type DataTableFeatures } from "@shop/ui-web"
 
 import { STATUS_BADGE } from "../constants"
 import { useSetNavStatus } from "./queries"
@@ -11,9 +11,22 @@ import { NavFormDialog } from "./form-dialog"
 
 function NavActions({ entry }: { entry: NavEntryResponse }) {
     const [editOpen, setEditOpen] = useState(false)
-    const [confirmOpen, setConfirmOpen] = useState(false)
     const enabled = entry.status === "ENABLED"
     const setStatus = useSetNavStatus()
+
+    /** 启停二次确认：确认即改状态，失败保持打开（错误提示走全局 mutation 反馈） */
+    function toggleStatus() {
+        const nextStatus = enabled ? "DISABLED" : "ENABLED"
+        void confirm({
+            title: enabled ? `停用「${entry.title}」` : `启用「${entry.title}」`,
+            description: enabled
+                ? "停用后前台导航立即不再展示该条目，确认执行？"
+                : "启用后前台导航展示该条目，确认执行？",
+            confirmText: enabled ? "确认停用" : "确认启用",
+            tone: enabled ? "destructive" : "default",
+            action: () => setStatus.mutateAsync({ id: entry.id, status: nextStatus }),
+        })
+    }
 
     return (
         <div className="flex justify-end gap-2">
@@ -30,30 +43,11 @@ function NavActions({ entry }: { entry: NavEntryResponse }) {
                 onOpenChange={setEditOpen}
                 editing={entry}
             />
-            <ConfirmDialog
-                open={confirmOpen}
-                onOpenChange={setConfirmOpen}
-                title={enabled ? `停用「${entry.title}」` : `启用「${entry.title}」`}
-                description={
-                    enabled
-                        ? "停用后前台导航立即不再展示该条目，确认执行？"
-                        : "启用后前台导航展示该条目，确认执行？"
-                }
-                confirmText={enabled ? "确认停用" : "确认启用"}
-                tone={enabled ? "destructive" : "default"}
-                pending={setStatus.isPending}
-                onConfirm={() =>
-                    setStatus.mutate({
-                        id: entry.id,
-                        status: enabled ? "DISABLED" : "ENABLED",
-                    })
-                }
-            />
             <Button
                 variant="outline"
                 size="sm"
                 disabled={setStatus.isPending}
-                onClick={() => setConfirmOpen(true)}
+                onClick={toggleStatus}
             >
                 {setStatus.isPending && <Spinner />}
                 {enabled ? "停用" : "启用"}

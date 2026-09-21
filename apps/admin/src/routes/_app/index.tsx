@@ -7,7 +7,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import {
     Badge,
     Button,
-    ConfirmDialog,
+    confirm,
     DataTable,
     DataTableToolbar,
     DataTablePagination,
@@ -214,7 +214,6 @@ function ReviewPage() {
 
 function ReviewActions({ item }: { item: ShopReviewItem }) {
     const [rejectOpen, setRejectOpen] = useState(false)
-    const [approveOpen, setApproveOpen] = useState(false)
     const [reason, setReason] = useState("")
 
     const approve = useMutation({
@@ -224,7 +223,6 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
             error: "审核操作失败",
             invalidates: [reviewKeys.all],
         },
-        onSuccess: () => setApproveOpen(false),
     })
     const reject = useMutation({
         mutationFn: () => adminApi.reject(item.id, reason),
@@ -241,25 +239,25 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
 
     const busy = approve.isPending || reject.isPending
 
+    /** 通过二次确认：确认即审核通过，失败保持打开（错误提示走全局 mutation 反馈） */
+    function confirmApprove() {
+        void confirm({
+            title: `通过「${item.shopName}」的开店申请`,
+            description: "通过后店铺即可上架商品，确认执行？",
+            confirmText: "确认通过",
+            action: () => approve.mutateAsync(),
+        })
+    }
+
     return (
         <div className="flex justify-end gap-2">
             <Button
                 variant="outline"
                 disabled={busy}
-                onClick={() => setApproveOpen(true)}
+                onClick={confirmApprove}
             >
                 {approve.isPending && <Spinner />}通过
             </Button>
-            <ConfirmDialog
-                open={approveOpen}
-                onOpenChange={setApproveOpen}
-                title={`通过「${item.shopName}」的开店申请`}
-                description="通过后店铺即可上架商品，确认执行？"
-                confirmText="确认通过"
-                tone="default"
-                pending={approve.isPending}
-                onConfirm={() => approve.mutate()}
-            />
             <Dialog
                 open={rejectOpen}
                 onOpenChange={setRejectOpen}

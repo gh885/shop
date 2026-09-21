@@ -149,8 +149,6 @@ export function useCartItemActions() {
     const remove = useRemoveCartItem()
 
     return {
-        /** 正在删除的条目 id（行内删除按钮的 pending 态来源） */
-        removingId: remove.isPending ? remove.variables : undefined,
         toggleItem: (id: string, selected: boolean) => toggle.mutate({ id, selected }),
         /** 改数量：越界静默拦下、超库存提示（仍以后端裁决为准）；库存取自调用方手上的 item，不回查列表 */
         updateQuantity: (item: CartItem, quantity: number) => {

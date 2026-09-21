@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import {
     Button,
-    ConfirmDialog,
+    confirm,
     Empty,
     EmptyDescription,
     EmptyHeader,
@@ -55,14 +55,13 @@ function FavoritesSkeleton() {
     )
 }
 
-// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染 + 批量操作状态（选择/模式/确认）集中在页面是刻意结构，派生（filtered）与 handlers 已扁平；拆分需传 7+ props 的宽接口
+// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染 + 批量操作状态（选择/模式）集中在页面是刻意结构，派生（filtered）与 handlers 已扁平；拆分需传 7+ props 的宽接口
 function FavoritesPage() {
     const navigate = useNavigate()
     // 页面局部 UI 状态（真实源在客户端）→ useState，不进 query
     const [keyword, setKeyword] = useState("")
     const [batchMode, setBatchMode] = useState(false)
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
-    const [batchConfirmOpen, setBatchConfirmOpen] = useState(false)
 
     // 主体数据由 loader 读完（失败已由路由错误页接管）
     const favorites = useSuspenseQuery(favoriteItemsOptions).data
@@ -82,9 +81,12 @@ function FavoritesPage() {
 
     function handleBatchDelete() {
         if (selected.size === 0) return
-        removeFavorites.mutate([...selected], {
-            onSuccess: () => {
-                setBatchConfirmOpen(false)
+        void confirm({
+            title: "取消收藏",
+            description: `确定移除选中的 ${selected.size} 件商品收藏吗？`,
+            confirmText: "移除",
+            action: async () => {
+                await removeFavorites.mutateAsync([...selected])
                 setSelected(new Set())
             },
         })
@@ -169,17 +171,6 @@ function FavoritesPage() {
                     ))}
                 </div>
             )}
-
-            {/* 批量删除二次确认 */}
-            <ConfirmDialog
-                open={batchConfirmOpen}
-                onOpenChange={setBatchConfirmOpen}
-                title="取消收藏"
-                description={<>确定移除选中的 {selected.size} 件商品收藏吗？</>}
-                confirmText="移除"
-                pending={removeFavorites.isPending}
-                onConfirm={handleBatchDelete}
-            />
         </div>
     )
 }

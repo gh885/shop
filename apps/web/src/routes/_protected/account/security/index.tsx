@@ -8,7 +8,7 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
-    ConfirmDialog,
+    confirm,
     Empty,
     EmptyDescription,
     EmptyHeader,
@@ -169,7 +169,6 @@ function DeviceManager() {
         },
     })
 
-    const [logoutAllOpen, setLogoutAllOpen] = useState(false)
     // 行级删除指示：记录正在退出的设备， Spinner 只显示在对应行
     const [deletingId, setDeletingId] = useState<string | undefined>()
 
@@ -182,7 +181,14 @@ function DeviceManager() {
                     <Button
                         variant="outline"
                         disabled={logoutAll.isPending || devices.data?.length === 0}
-                        onClick={() => setLogoutAllOpen(true)}
+                        onClick={() => {
+                            void confirm({
+                                title: "退出所有设备",
+                                description: "将退出包括本机在内的所有登录会话，确定继续吗？",
+                                confirmText: "退出所有设备",
+                                action: () => logoutAll.mutateAsync(),
+                            })
+                        }}
                     >
                         {logoutAll.isPending ? <Spinner /> : "退出所有设备"}
                     </Button>
@@ -253,17 +259,6 @@ function DeviceManager() {
                         ))
                     )}
                 </div>
-
-                {/* 退出所有设备二次确认 */}
-                <ConfirmDialog
-                    open={logoutAllOpen}
-                    onOpenChange={setLogoutAllOpen}
-                    title="退出所有设备"
-                    description="将退出包括本机在内的所有登录会话，确定继续吗？"
-                    confirmText="退出所有设备"
-                    pending={logoutAll.isPending}
-                    onConfirm={() => logoutAll.mutate()}
-                />
             </CardContent>
         </Card>
     )

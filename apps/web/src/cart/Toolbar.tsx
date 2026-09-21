@@ -1,8 +1,7 @@
 import { ChevronDown, Search } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
 import { notify } from "@shop/app-kit"
-import { Checkbox, Button, ConfirmDialog } from "@shop/ui-web"
+import { Checkbox, Button, confirm } from "@shop/ui-web"
 import { deriveSelectedItems, deriveAllSelected } from "./cart"
 import { cartItemsOptions, useSelectCartItems, useBatchRemoveCartItems } from "./queries"
 
@@ -14,8 +13,17 @@ export function Toolbar() {
     const { data: items } = useQuery(cartItemsOptions)
     const selectItems = useSelectCartItems()
     const batchRemove = useBatchRemoveCartItems()
-    const [confirmOpen, setConfirmOpen] = useState(false)
     const selectedIds = deriveSelectedItems(items ?? []).map((item) => item.id)
+
+    /** 批量删除二次确认：确认即批量删（乐观更新），失败保持打开等重试 */
+    function confirmBatchRemove() {
+        void confirm({
+            title: "删除商品",
+            description: `确定从购物车删除选中的 ${selectedIds.length} 件商品吗？`,
+            confirmText: "删除",
+            action: () => batchRemove.mutateAsync(selectedIds),
+        })
+    }
 
     return (
         <div className="flex h-12 items-center justify-between border-b border-border/60">
@@ -45,7 +53,7 @@ export function Toolbar() {
                     variant="outline"
                     size="sm"
                     disabled={selectedIds.length === 0}
-                    onClick={() => setConfirmOpen(true)}
+                    onClick={confirmBatchRemove}
                 >
                     删除
                 </Button>
@@ -78,17 +86,6 @@ export function Toolbar() {
                     <Search className="size-4" />
                 </Button>
             </div>
-
-            {/* 批量删除二次确认 */}
-            <ConfirmDialog
-                open={confirmOpen}
-                onOpenChange={setConfirmOpen}
-                title="删除商品"
-                description={<>确定从购物车删除选中的 {selectedIds.length} 件商品吗？</>}
-                confirmText="删除"
-                pending={batchRemove.isPending}
-                onConfirm={() => batchRemove.mutate(selectedIds)}
-            />
         </div>
     )
 }

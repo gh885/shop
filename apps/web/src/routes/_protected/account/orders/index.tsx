@@ -11,7 +11,7 @@ import { outOfRangePage, parseOrdersSearch, type OrderTab } from "#/order/orders
 import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import {
     Skeleton,
     Empty,
@@ -20,7 +20,6 @@ import {
     EmptyTitle,
     EmptyDescription,
     Button,
-    ConfirmDialog,
     cn,
     Pagination,
     PaginationContent,
@@ -64,8 +63,7 @@ function OrdersPage() {
     const setPage = (page: number) => void navigate({ search: { tab: search.tab, page } })
 
     const { data, isLoading } = useQuery(myOrdersOptions({ status: search.tab, page: search.page }))
-    const [cancelTarget, setCancelTarget] = useState<Order | undefined>()
-    const { handleAction, pendingAction, cancel } = useOrderActions(setCancelTarget)
+    const { handleAction, pendingAction } = useOrderActions()
 
     // 按后端返回直接渲染（后端已按 status 过滤）
     const orders: Order[] = data?.records ?? []
@@ -195,22 +193,6 @@ function OrdersPage() {
                     )}
                 </>
             )}
-
-            {/* 取消订单二次确认 */}
-            <ConfirmDialog
-                open={Boolean(cancelTarget)}
-                onOpenChange={(open) => !open && setCancelTarget(undefined)}
-                title="取消订单"
-                description={<>确定取消订单 {cancelTarget?.orderNo ?? ""} 吗？该操作不可恢复。</>}
-                confirmText="取消订单"
-                pending={cancel.isPending}
-                onConfirm={() => {
-                    if (cancelTarget)
-                        cancel.mutate(cancelTarget.id, {
-                            onSuccess: () => setCancelTarget(undefined),
-                        })
-                }}
-            />
         </div>
     )
 }

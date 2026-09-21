@@ -7,6 +7,7 @@ import {
     RouterProvider,
 } from "@tanstack/react-router"
 import { createAppQueryClient } from "@shop/app-kit"
+import { ConfirmDialogHost } from "@shop/ui-web"
 import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
 
 /** 需要自己持有 client 实例的测试用（下面的 renderWithProviders 内部也是它） */
@@ -24,7 +25,14 @@ export function renderWithProviders(
     ui: ReactElement,
     { initialEntry = "/" }: { initialEntry?: string } = {},
 ) {
-    const root = createRootRoute({ component: () => ui })
+    const root = createRootRoute({
+        component: () => (
+            <>
+                {ui}
+                <ConfirmDialogHost />
+            </>
+        ),
+    })
     const index = createRoute({ getParentRoute: () => root, path: "/" })
     const fallback = createRoute({ getParentRoute: () => root, path: "$" })
     const router = createRouter({

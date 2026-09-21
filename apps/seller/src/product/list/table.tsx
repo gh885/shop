@@ -1,11 +1,11 @@
-import { useState } from "react"
 import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil } from "lucide-react"
 
 import { formatDate } from "@shop/app-kit"
 import {
     Badge,
     Button,
-    ConfirmDialog,
+    confirm,
+    Image,
     TableBody,
     TableCell,
     TableHead,
@@ -83,74 +83,66 @@ export function ProductTable({
     onPageChange,
     onSortChange,
 }: ProductTableProps) {
-    // 下架二次确认：记录目标商品，确认后才真正执行 onOff
-    const [offTarget, setOffTarget] = useState<ProductResponse | undefined>()
+    /** 下架二次确认：确认后才真正执行 onOff（动作本身由容器持有，含 busyId 记账） */
+    async function confirmOff(p: ProductResponse) {
+        const ok = await confirm({
+            title: "下架商品",
+            description: `确定下架「${p.name}」吗？买家将无法再购买该商品。`,
+            confirmText: "下架",
+        })
+        if (ok) onOff(p.id)
+    }
 
     return (
-        <>
-            <TableCard
-                total={total}
-                unit="件商品"
-                page={page}
-                pageSize={pageSize}
-                onPageChange={onPageChange}
-            >
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="min-w-72">商品名称</TableHead>
-                        <TableHead>单价</TableHead>
-                        <SortableHeader
-                            field="stock"
-                            label="库存"
-                            sort={sort}
-                            onSortChange={onSortChange}
-                        />
-                        <SortableHeader
-                            field="soldCount"
-                            label="累计销量"
-                            sort={sort}
-                            onSortChange={onSortChange}
-                        />
-                        <SortableHeader
-                            field="createdAt"
-                            label="创建时间"
-                            sort={sort}
-                            onSortChange={onSortChange}
-                            className="min-w-52"
-                        />
-                        <TableHead className="text-right">操作</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {rows.map((p) => (
-                        <ProductRow
-                            key={p.id}
-                            product={p}
-                            busy={p.id === busyId}
-                            onEdit={() => onEdit(p.id)}
-                            onEditTitle={() => onEditTitle(titleTarget(p))}
-                            onEditPrice={() => onEditPrice(lineTarget(p))}
-                            onEditStock={() => onEditStock(lineTarget(p))}
-                            onOff={() => setOffTarget(p)}
-                            onOn={() => onOn(p.id)}
-                        />
-                    ))}
-                </TableBody>
-            </TableCard>
-
-            {/* 下架二次确认 */}
-            <ConfirmDialog
-                open={Boolean(offTarget)}
-                onOpenChange={(open) => !open && setOffTarget(undefined)}
-                title="下架商品"
-                description={<>确定下架「{offTarget?.name ?? ""}」吗？买家将无法再购买该商品。</>}
-                confirmText="下架"
-                onConfirm={() => {
-                    if (offTarget) onOff(offTarget.id)
-                    setOffTarget(undefined)
-                }}
-            />
-        </>
+        <TableCard
+            total={total}
+            unit="件商品"
+            page={page}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+        >
+            <TableHeader>
+                <TableRow>
+                    <TableHead className="min-w-72">商品名称</TableHead>
+                    <TableHead>单价</TableHead>
+                    <SortableHeader
+                        field="stock"
+                        label="库存"
+                        sort={sort}
+                        onSortChange={onSortChange}
+                    />
+                    <SortableHeader
+                        field="soldCount"
+                        label="累计销量"
+                        sort={sort}
+                        onSortChange={onSortChange}
+                    />
+                    <SortableHeader
+                        field="createdAt"
+                        label="创建时间"
+                        sort={sort}
+                        onSortChange={onSortChange}
+                        className="min-w-52"
+                    />
+                    <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {rows.map((p) => (
+                    <ProductRow
+                        key={p.id}
+                        product={p}
+                        busy={p.id === busyId}
+                        onEdit={() => onEdit(p.id)}
+                        onEditTitle={() => onEditTitle(titleTarget(p))}
+                        onEditPrice={() => onEditPrice(lineTarget(p))}
+                        onEditStock={() => onEditStock(lineTarget(p))}
+                        onOff={() => confirmOff(p)}
+                        onOn={() => onOn(p.id)}
+                    />
+                ))}
+            </TableBody>
+        </TableCard>
     )
 }
 
@@ -224,14 +216,11 @@ function ProductRow({
             <TableCell>
                 <div className="flex items-start gap-3">
                     <div className="size-14 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-                        {p.mainImage ? (
-                            <img
-                                src={imgUrl(p.mainImage)}
-                                alt={p.name}
-                                loading="lazy"
-                                className="size-full object-cover"
-                            />
-                        ) : undefined}
+                        <Image
+                            src={imgUrl(p.mainImage ?? undefined)}
+                            alt={p.name}
+                            className="size-full"
+                        />
                     </div>
                     <div className="group/name min-w-0 flex-1 space-y-0.5">
                         {/* 第一项：商品名称（copyable，hover 连接样式可复制）+ 编辑图标，图标紧贴标题（不 flex-1，避免被推到列右端） */}

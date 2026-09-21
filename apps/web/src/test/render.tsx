@@ -1,6 +1,7 @@
 import type { ReactElement } from "react"
 
 import { createAppQueryClient } from "@shop/app-kit"
+import { ConfirmDialogHost } from "@shop/ui-web"
 import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
 
 /**
@@ -15,9 +16,16 @@ export function createAppTestQueryClient() {
 }
 
 /**
- * web 侧测试 render：在 test-utils 的统一实现上补一样东西——应用真实的 QueryClient 默认值。
+ * web 侧测试 render：在 test-utils 的统一实现上补两样东西——应用真实的 QueryClient 默认值、
+ * 全局确认弹窗挂载层（命令式 confirm 的渲染宿主，与生产根布局 <Toaster /> 旁挂法一致）。
  * 需要路由上下文的组件测试，在本文件追加 MemoryRouter/RouterProvider —— 改这一处，不动用例。
  */
 export function renderWithProviders(ui: ReactElement) {
-    return renderWithQuery(ui, { queryClient: createAppTestQueryClient() })
+    return renderWithQuery(
+        <>
+            {ui}
+            <ConfirmDialogHost />
+        </>,
+        { queryClient: createAppTestQueryClient() },
+    )
 }

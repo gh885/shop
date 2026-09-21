@@ -2,7 +2,7 @@ import { createRootRouteWithContext, HeadContent, Link, Scripts } from "@tanstac
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
-import { buttonVariants, Toaster } from "@shop/ui-web"
+import { buttonVariants, ConfirmDialogHost, Toaster } from "@shop/ui-web"
 
 import TanStackQueryDevtools from "#/app/tanstack-query/DevTools"
 import TanstackQueryProvider from "#/app/tanstack-query/TanstackQueryProvider"
@@ -88,6 +88,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             </head>
             <body className="flex min-h-screen flex-col supports-[height:100dvh]:min-h-dvh">
                 <Toaster />
+                <ConfirmDialogHost />
                 <RouteProgressBar />
                 <TanstackQueryProvider queryClient={queryClient}>
                     <SiteHeader />

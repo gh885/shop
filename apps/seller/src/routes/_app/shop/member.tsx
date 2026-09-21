@@ -4,7 +4,6 @@ import { useShop, shopKeys, useMyShopMembers } from "#/shop"
 import { useMe } from "#/shared/lib/me"
 import { ShopsApi } from "@shop/api/sdk"
 import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import {
     Empty,
@@ -24,7 +23,7 @@ import {
     firstFieldError,
     ButtonGroup,
     Input,
-    ConfirmDialog,
+    confirm,
 } from "@shop/ui-web"
 import { z } from "zod"
 
@@ -87,8 +86,15 @@ function MemberPanel({ shopId }: { shopId: string }) {
         },
     })
 
-    // 移除二次确认：记录目标成员，确认后才真正执行
-    const [removeTarget, setRemoveTarget] = useState<string | undefined>()
+    /** 移除二次确认：确认即移出，失败保持打开（错误提示走全局 mutation 反馈） */
+    function confirmRemove(memberId: string) {
+        void confirm({
+            title: "移除成员",
+            description: "确定将该成员移出店铺吗？移除后对方将无法访问本店铺。",
+            confirmText: "移除",
+            action: () => remove.mutateAsync(memberId),
+        })
+    }
 
     // 失败已由全局默认的 throwOnError 交给路由错误页
     if (members.isLoading) {
@@ -142,7 +148,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                             variant="ghost"
                                             size="icon-sm"
                                             disabled={remove.isPending}
-                                            onClick={() => setRemoveTarget(m.memberId)}
+                                            onClick={() => confirmRemove(m.memberId)}
                                             aria-label="移除成员"
                                         >
                                             <Trash2 className="size-4 text-muted-foreground" />
@@ -209,19 +215,6 @@ function MemberPanel({ shopId }: { shopId: string }) {
                         只有店主可以邀请或移除成员。
                     </p>
                 )}
-
-                {/* 移除成员二次确认 */}
-                <ConfirmDialog
-                    open={Boolean(removeTarget)}
-                    onOpenChange={(open) => !open && setRemoveTarget(undefined)}
-                    title="移除成员"
-                    description="确定将该成员移出店铺吗？移除后对方将无法访问本店铺。"
-                    confirmText="移除"
-                    onConfirm={() => {
-                        if (removeTarget) remove.mutate(removeTarget)
-                        setRemoveTarget(undefined)
-                    }}
-                />
             </CardContent>
         </Card>
     )

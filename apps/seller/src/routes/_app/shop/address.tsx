@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { Button, ConfirmDialog, Skeleton } from "@shop/ui-web"
+import { Button, confirm, Skeleton } from "@shop/ui-web"
 import { Plus } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
@@ -34,9 +34,6 @@ function AddressListPending() {
     )
 }
 
-/** 待确认删除的地址：只要「是哪条 + 怎么念」（地址本身由 useAddressList 持有） */
-type PendingDelete = Pick<MerchantAddressResponse, "id" | "contactName"> | undefined
-
 function AddressPage() {
     const shop = useShop()
     const addresses = useAddressList(shop.id)
@@ -46,10 +43,18 @@ function AddressPage() {
 
     const [formOpen, setFormOpen] = useState(false)
     const [editing, setEditing] = useState<MerchantAddressResponse | undefined>()
-    const [pendingDelete, setPendingDelete] = useState<PendingDelete>()
     const { busyId, run } = useRowBusy()
 
     const rows = addresses.data
+
+    /** 删除地址二次确认：确认即删，失败保持打开（错误提示走全局 mutation 反馈） */
+    function confirmDelete(address: Pick<MerchantAddressResponse, "id" | "contactName">) {
+        void confirm({
+            title: "删除地址",
+            description: `确定删除「${address.contactName}」的地址吗？删除后该地址不再用于发货/退货。`,
+            action: () => del.mutateAsync(address.id),
+        })
+    }
 
     return (
         <div className="space-y-5">
@@ -75,7 +80,7 @@ function AddressPage() {
                     setEditing(a)
                     setFormOpen(true)
                 }}
-                onDelete={setPendingDelete}
+                onDelete={confirmDelete}
                 onSetDefaultShip={(id) => run(setDefaultShip.mutateAsync)(id)}
                 onSetDefaultReturn={(id) => run(setDefaultReturn.mutateAsync)(id)}
             />
@@ -88,22 +93,6 @@ function AddressPage() {
                 }}
                 editing={editing}
                 shopId={shop.id}
-            />
-
-            <ConfirmDialog
-                open={Boolean(pendingDelete)}
-                onOpenChange={(open) => !open && setPendingDelete(undefined)}
-                title="删除地址"
-                description={
-                    <>
-                        确定删除「{pendingDelete?.contactName}
-                        」的地址吗？删除后该地址不再用于发货/退货。
-                    </>
-                }
-                onConfirm={() => {
-                    if (pendingDelete) del.mutate(pendingDelete.id)
-                    setPendingDelete(undefined)
-                }}
             />
         </div>
     )
