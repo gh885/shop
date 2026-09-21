@@ -13,7 +13,7 @@ import {
 import {
     Button,
     cn,
-    Field,
+    FieldShell,
     firstFieldError,
     InputGroup,
     InputGroupAddon,
@@ -268,7 +268,7 @@ export function LoginForm({
                 validators={{ onChange: PhoneSchema }}
             >
                 {(field) => (
-                    <Field error={firstFieldError(field)}>
+                    <FieldShell error={firstFieldError(field)}>
                         <InputGroup
                             size="lg"
                             variant="filled"
@@ -292,7 +292,7 @@ export function LoginForm({
                                 }
                             />
                         </InputGroup>
-                    </Field>
+                    </FieldShell>
                 )}
             </form.AppField>
 
@@ -300,7 +300,7 @@ export function LoginForm({
                 /* 图形验证码：发码前先人机验证（点击图片刷新） */
                 <form.AppField name="captchaCode">
                     {(field) => (
-                        <Field error={firstFieldError(field)}>
+                        <FieldShell error={firstFieldError(field)}>
                             <InputGroup
                                 size="lg"
                                 variant="filled"
@@ -345,7 +345,7 @@ export function LoginForm({
                                     )}
                                 </button>
                             </InputGroup>
-                        </Field>
+                        </FieldShell>
                     )}
                 </form.AppField>
             ) : undefined}
@@ -354,7 +354,7 @@ export function LoginForm({
                 /* 验证码 + 内嵌发送按钮 */
                 <form.AppField name="code">
                     {(field) => (
-                        <Field error={firstFieldError(field)}>
+                        <FieldShell error={firstFieldError(field)}>
                             <InputGroup
                                 size="lg"
                                 variant="filled"
@@ -411,13 +411,13 @@ export function LoginForm({
                                     )}
                                 </form.Subscribe>
                             </InputGroup>
-                        </Field>
+                        </FieldShell>
                     )}
                 </form.AppField>
             ) : (
                 <form.AppField name="password">
                     {(field) => (
-                        <Field error={firstFieldError(field)}>
+                        <FieldShell error={firstFieldError(field)}>
                             <InputGroup
                                 size="lg"
                                 variant="filled"
@@ -434,7 +434,7 @@ export function LoginForm({
                                     onChange={(e) => field.handleChange(e.target.value)}
                                 />
                             </InputGroup>
-                        </Field>
+                        </FieldShell>
                     )}
                 </form.AppField>
             )}

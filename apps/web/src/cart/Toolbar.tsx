@@ -1,7 +1,7 @@
 import { ChevronDown, Search } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { notify } from "@shop/app-kit"
-import { Checkbox, Button, confirm } from "@shop/ui-web"
+import { Checkbox, Button, confirm, Label } from "@shop/ui-web"
 import { deriveSelectedItems, deriveAllSelected } from "./cart"
 import { cartItemsOptions, useSelectCartItems, useBatchRemoveCartItems } from "./queries"
 
@@ -29,9 +29,9 @@ export function Toolbar() {
         <div className="flex h-12 items-center justify-between border-b border-border/60">
             {/* 左：全选 + 批量操作 */}
             <div className="flex items-center gap-3">
-                <label
+                <Label
                     htmlFor="cart-select-all"
-                    className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                    className="cursor-pointer"
                 >
                     <Checkbox
                         id="cart-select-all"
@@ -40,7 +40,7 @@ export function Toolbar() {
                         aria-label="全选"
                     />
                     <span>全选</span>
-                </label>
+                </Label>
                 <Button
                     variant="outline"
                     size="sm"

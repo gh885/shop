@@ -18,7 +18,10 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
-    Field,
+    FieldContent,
+    FieldDescription,
+    FieldShell,
+    FieldTitle,
     Spinner,
     Switch,
     useAppForm,
@@ -108,7 +111,7 @@ function RegionRulesEditor({
                                 </Button>
                             </div>
                             <div className="space-y-4">
-                                <Field
+                                <FieldShell
                                     label="覆盖地区"
                                     required
                                 >
@@ -118,7 +121,7 @@ function RegionRulesEditor({
                                             update(index, { regionPrefixes })
                                         }
                                     />
-                                </Field>
+                                </FieldShell>
                                 <FeeTierInputs
                                     value={rule}
                                     onChange={(next) => update(index, next)}
@@ -204,12 +207,12 @@ export function ShippingTemplatePage() {
                             <form.AppField name="freeShipping">
                                 {(field) => (
                                     <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
-                                        <div className="space-y-0.5">
-                                            <p className="text-sm font-medium">全店包邮</p>
-                                            <p className="text-xs text-muted-foreground">
+                                        <FieldContent>
+                                            <FieldTitle>全店包邮</FieldTitle>
+                                            <FieldDescription>
                                                 卖家承担全部运费，不看地区和件数。
-                                            </p>
-                                        </div>
+                                            </FieldDescription>
+                                        </FieldContent>
                                         <Switch
                                             checked={field.state.value}
                                             onCheckedChange={field.handleChange}
@@ -286,13 +289,13 @@ export function ShippingTemplatePage() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Field label="选择地区">
+                                    <FieldShell label="选择地区">
                                         <RegionMultiPicker
                                             value={field.state.value}
                                             onChange={field.handleChange}
                                             placeholder="选择不配送的省 / 市 / 区"
                                         />
-                                    </Field>
+                                    </FieldShell>
                                 </CardContent>
                             </Card>
                         )}

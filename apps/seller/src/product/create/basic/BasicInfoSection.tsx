@@ -3,7 +3,7 @@ import {
     CardContent,
     CardHeader,
     CardTitle,
-    Field,
+    FieldShell,
     ImageUploadGrid,
     InputGroup,
     InputGroupAddon,
@@ -63,7 +63,7 @@ export function BasicInfoSection({
                     }}
                 >
                     {(field) => (
-                        <Field
+                        <FieldShell
                             label="商品图片"
                             required
                             layout="horizontal"
@@ -81,7 +81,7 @@ export function BasicInfoSection({
                                 upload={uploadImage}
                                 resolveSrc={imgUrl}
                             />
-                        </Field>
+                        </FieldShell>
                     )}
                 </form.AppField>
 
@@ -93,7 +93,7 @@ export function BasicInfoSection({
                     }}
                 >
                     {(field) => (
-                        <Field
+                        <FieldShell
                             label="商品标题"
                             required
                             htmlFor="pf-name"
@@ -121,7 +121,7 @@ export function BasicInfoSection({
                                     </InputGroupAddon>
                                 )}
                             </InputGroup>
-                        </Field>
+                        </FieldShell>
                     )}
                 </form.AppField>
 
@@ -133,7 +133,7 @@ export function BasicInfoSection({
                     }}
                 >
                     {(field) => (
-                        <Field
+                        <FieldShell
                             label="商品卖点"
                             htmlFor="pf-subtitle"
                             layout="horizontal"
@@ -160,7 +160,7 @@ export function BasicInfoSection({
                                     </InputGroupAddon>
                                 )}
                             </InputGroup>
-                        </Field>
+                        </FieldShell>
                     )}
                 </form.AppField>
             </CardContent>

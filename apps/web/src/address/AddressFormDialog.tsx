@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import { z } from "zod"
 
 import { notify } from "@shop/app-kit"
 import { findPath, loadChildren } from "@shop/common"
@@ -9,7 +8,7 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
-    Field,
+    FieldShell,
     firstFieldError,
     Input,
     InputGroup,
@@ -21,40 +20,16 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { ADDRESS_LABELS, type Address, type AddressInput } from "./address"
+import type { Address } from "./address"
+import {
+    AddressInputSchema,
+    CUSTOM_LABEL_MAX,
+    isBuiltinLabel,
+    isCustomLabel,
+    LABEL_OPTIONS,
+    toDefaults,
+} from "./address-form"
 import { parseAddressText, useCreateAddress, useUpdateAddress } from "./queries"
-
-/** 表单入参校验（form validators 用；表单局部 zchema，非领域契约） */
-const AddressInputSchema = z.object({
-    receiver: z.string().trim().min(1, "请输入收货人").max(30, "收货人最长 30 字"),
-    phone: z.string().regex(/^[0-9+-]{5,20}$/, "手机号格式不正确"),
-    regionCode: z.string().trim().min(1, "请选择所在地区").max(12),
-    province: z.string().trim().min(1, "请选择所在地区").max(30),
-    city: z.string().trim().min(1, "请选择所在地区").max(30),
-    district: z.string().trim().min(1, "请选择所在地区").max(30),
-    detail: z.string().trim().min(1, "请输入详细地址").max(120, "详细地址最长 120 字"),
-    label: z.string().max(20).optional(),
-    isDefault: z.boolean().optional(),
-})
-
-/** 内置标签选项（code/展示名单一来源在 ./address 的 ADDRESS_LABELS） */
-const LABELS = Object.entries(ADDRESS_LABELS).map(([value, label]) => ({ value, label }))
-
-const CUSTOM_LABEL_MAX = 4
-
-function toDefaults(a?: Address): AddressInput {
-    return {
-        receiver: a?.receiver ?? "",
-        phone: a?.phone ?? "",
-        regionCode: a?.regionCode ?? "",
-        province: a?.province ?? "",
-        city: a?.city ?? "",
-        district: a?.district ?? "",
-        detail: a?.detail ?? "",
-        label: a?.label ?? "HOME",
-        isDefault: a?.isDefault ?? false,
-    }
-}
 
 export interface AddressFormDialogProps {
     open: boolean
@@ -102,9 +77,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
             setRegionPath([])
             setRegionReady(!editing)
             // 编辑值是非内置标签时直接展开自定义输入框
-            setCustomLabel(
-                Boolean(editing?.label) && !LABELS.some((l) => l.value === editing?.label),
-            )
+            setCustomLabel(isCustomLabel(editing?.label))
         }
     }
 
@@ -172,45 +145,41 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                         void form.handleSubmit()
                     }}
                 >
-                    {/* 智能粘贴：左标签 + 右侧圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}
-                    <div className="flex items-start gap-4">
-                        <label
-                            htmlFor="smart-paste"
-                            className="w-16 shrink-0 pt-2.5 text-sm"
-                        >
-                            智能粘贴
-                        </label>
-                        <div className="min-w-0 flex-1">
-                            <InputGroup>
-                                <InputGroupTextarea
-                                    id="smart-paste"
-                                    className="h-24 resize-none p-3"
-                                    placeholder="粘贴文本到此处，将自动识别收货信息,例：淘宝，139********，浙江省杭州市西湖区某小区"
-                                    maxLength={500}
-                                    value={smartText}
-                                    onChange={(e) => setSmartText(e.target.value)}
-                                />
-                                <InputGroupAddon
-                                    align="block-end"
-                                    className="justify-end"
+                    {/* 智能粘贴：FieldShell 横排 + 右侧圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}
+                    <FieldShell
+                        label="智能粘贴"
+                        htmlFor="smart-paste"
+                        layout="horizontal"
+                    >
+                        <InputGroup>
+                            <InputGroupTextarea
+                                id="smart-paste"
+                                className="h-24 resize-none p-3"
+                                placeholder="粘贴文本到此处，将自动识别收货信息,例：淘宝，139********，浙江省杭州市西湖区某小区"
+                                maxLength={500}
+                                value={smartText}
+                                onChange={(e) => setSmartText(e.target.value)}
+                            />
+                            <InputGroupAddon
+                                align="block-end"
+                                className="justify-end"
+                            >
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={parsing || !smartText.trim()}
+                                    onClick={() => void handleSmartParse()}
                                 >
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        disabled={parsing || !smartText.trim()}
-                                        onClick={() => void handleSmartParse()}
-                                    >
-                                        {parsing && <Spinner />}粘贴并识别
-                                    </Button>
-                                </InputGroupAddon>
-                            </InputGroup>
-                        </div>
-                    </div>
+                                    {parsing && <Spinner />}粘贴并识别
+                                </Button>
+                            </InputGroupAddon>
+                        </InputGroup>
+                    </FieldShell>
 
                     {/* 地区：国标行政区划级联选择（数据源懒加载） */}
                     <form.AppField name="regionCode">
                         {(field) => (
-                            <Field
+                            <FieldShell
                                 label="所在地区"
                                 required
                                 layout="horizontal"
@@ -225,7 +194,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                         placeholder="请选择省/市/区"
                                     />
                                 )}
-                            </Field>
+                            </FieldShell>
                         )}
                     </form.AppField>
 
@@ -273,16 +242,14 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                     <form.AppField name="label">
                         {(field) => {
                             const value = field.state.value ?? ""
-                            const showCustomInput =
-                                customLabel ||
-                                (value !== "" && !LABELS.some((l) => l.value === value))
+                            const showCustomInput = customLabel || isCustomLabel(value)
                             return (
-                                <Field
+                                <FieldShell
                                     label="地址标签"
                                     layout="horizontal"
                                 >
                                     <div className="flex flex-wrap items-center gap-2">
-                                        {LABELS.map((l) => (
+                                        {LABEL_OPTIONS.map((l) => (
                                             <button
                                                 key={l.value}
                                                 type="button"
@@ -304,8 +271,7 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                             type="button"
                                             onClick={() => {
                                                 setCustomLabel(true)
-                                                if (LABELS.some((l) => l.value === value))
-                                                    field.handleChange("")
+                                                if (isBuiltinLabel(value)) field.handleChange("")
                                             }}
                                             className={cn(
                                                 "rounded-md border px-4 py-1.5 text-sm transition-colors",
@@ -323,22 +289,16 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                                 aria-label="自定义标签名称"
                                                 placeholder="请输入标签名称"
                                                 maxLength={CUSTOM_LABEL_MAX}
-                                                value={
-                                                    LABELS.some((l) => l.value === value)
-                                                        ? ""
-                                                        : value
-                                                }
+                                                value={isBuiltinLabel(value) ? "" : value}
                                                 onChange={(e) => field.handleChange(e.target.value)}
                                             />
                                             <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground">
-                                                {LABELS.some((l) => l.value === value)
-                                                    ? 0
-                                                    : value.length}
-                                                /{CUSTOM_LABEL_MAX}
+                                                {isBuiltinLabel(value) ? 0 : value.length}/
+                                                {CUSTOM_LABEL_MAX}
                                             </span>
                                         </div>
                                     )}
-                                </Field>
+                                </FieldShell>
                             )
                         }}
                     </form.AppField>

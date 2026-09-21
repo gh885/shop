@@ -6,7 +6,7 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
-    Field,
+    FieldShell,
     firstFieldError,
     RegionPicker,
     type RegionNode,
@@ -189,7 +189,7 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
                     {/* 地区：国标行政区划级联选择 */}
                     <form.AppField name="regionCode">
                         {(field) => (
-                            <Field
+                            <FieldShell
                                 label="所在地区"
                                 required
                                 layout="horizontal"
@@ -204,7 +204,7 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
                                         placeholder="请选择省/市/区"
                                     />
                                 )}
-                            </Field>
+                            </FieldShell>
                         )}
                     </form.AppField>
 

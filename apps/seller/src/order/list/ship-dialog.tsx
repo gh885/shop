@@ -11,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
     Input,
+    Label,
     Select,
     SelectContent,
     SelectItem,
@@ -82,12 +83,7 @@ export function ShipDialog({
                         <span className="font-medium tabular-nums">{order?.orderNo}</span>
                     </div>
                     <div className="space-y-1.5">
-                        <label
-                            htmlFor="ship-carrier"
-                            className="text-sm font-medium"
-                        >
-                            快递公司
-                        </label>
+                        <Label htmlFor="ship-carrier">快递公司</Label>
                         {carriers.isPending ? (
                             <div className="h-8 w-full animate-pulse rounded-lg bg-muted" />
                         ) : carriers.isError ? (
@@ -138,12 +134,7 @@ export function ShipDialog({
                         )}
                     </div>
                     <div className="space-y-1.5">
-                        <label
-                            htmlFor="ship-tracking"
-                            className="text-sm font-medium"
-                        >
-                            运单号
-                        </label>
+                        <Label htmlFor="ship-tracking">运单号</Label>
                         <Input
                             id="ship-tracking"
                             value={trackingNo}

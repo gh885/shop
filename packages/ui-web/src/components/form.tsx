@@ -3,6 +3,8 @@ import { createFormHook, createFormHookContexts } from "@tanstack/react-form"
 
 import { Button } from "src/components/ui/button"
 import { Input } from "src/components/ui/input"
+import { FieldDescription, FieldError, FieldLabel } from "src/components/ui/field"
+import { Label } from "src/components/ui/label"
 import { Textarea } from "src/components/ui/textarea"
 import { Select, SelectContent, SelectTrigger, SelectValue } from "src/components/ui/select"
 import { Checkbox } from "src/components/ui/checkbox"
@@ -45,7 +47,7 @@ import { cn } from "src/lib/utils"
  * - 校验统一放在 `form.AppField name="x" validators={...}`，错误文案取自 Zod message
  * - 字段组件封装了 value / onChange / onBlur 接线、label、必填红星、行内错误
  * - 高度定制化的字段（登录页 `+86` 前缀、内嵌按钮等）退回裸 `form.AppField` render-prop，
- *   `firstFieldError(field)` + `<Field>` 组合即可，不必硬套字段组件
+ *   `firstFieldError(field)` + `<FieldShell>` 组合即可，不必硬套字段组件
  */
 
 const { fieldContext, formContext, useFormContext, useFieldContext } = createFormHookContexts()
@@ -67,17 +69,18 @@ export function firstFieldError(field: {
     return error === undefined ? undefined : errorMessage(error)
 }
 
-// 布局与错误展示
-export function FieldError({ error, className }: { error?: string; className?: string }) {
-    if (!error) return
-    return <p className={cn("text-xs text-destructive", className)}>{error}</p>
-}
+// 布局与错误展示：label / 说明 / 错误三片皮肤归 ui/field，这一层只剩容器和密度
 
 /**
  * 字段布局壳：label（必填红星）+ 控件 + 行内错误。
  * 字段组件默认用它渲染；自定义 render-prop 场景也可单独复用。
+ *
+ * 名字族约定：`Field*`（ui/field）= 展示原语，`XxxField` = 接了表单的控件，
+ * 这一层既不是原语也不是控件，是两者的组装品，故叫 Shell 而不占 `Field`。
+ * 容器（gap / flex 方向）留在本层：间距是三端共同的密度选择，原语里的
+ * `gap-2` + `*:w-full` 换过来会在几十个调用点上盲改视觉。
  */
-export function Field({
+export function FieldShell({
     label,
     required,
     htmlFor,
@@ -99,35 +102,36 @@ export function Field({
     children: React.ReactNode
 }) {
     const labelNode = label ? (
-        <label
+        <FieldLabel
             htmlFor={htmlFor}
             className={cn(
-                layout === "horizontal"
-                    ? "w-16 shrink-0 pt-2.5 text-sm"
-                    : "text-sm font-medium text-foreground",
-                // 必填星号走伪元素：不进 label 的文本内容（label 文本保持纯净，供
-                // 屏幕阅读器与测试查询精确匹配；必填语义由表单校验/aria 传达）
-                required && "before:mr-0.5 before:text-destructive before:content-['*']",
+                // 必填星号走伪元素 utility（styles.css 的 @utility required-mark）：
+                // 不进 label 的文本内容（label 文本保持纯净，供屏幕阅读器与测试查询精确匹配；
+                // 必填语义由表单校验/aria 传达）
+                required && "required-mark",
+                // 左列定宽，顶对齐贴住控件首行
+                layout === "horizontal" && "w-16 shrink-0 pt-2.5",
             )}
         >
             {label}
-        </label>
+        </FieldLabel>
+    ) : undefined
+
+    // error 优先于 hint：同一个位置只讲一件事
+    const message = error ? (
+        <FieldError>{error}</FieldError>
+    ) : hint ? (
+        <FieldDescription>{hint}</FieldDescription>
     ) : undefined
 
     if (layout === "horizontal") {
         return (
             <div className={cn("flex items-start gap-4", className)}>
                 {labelNode}
-                <div className="min-w-0 flex-1">
+                {/* gap 承担消息行与控件的间距：原语里的 last:mt-0 会盖掉自带的 mt-* */}
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     {children}
-                    {error ? (
-                        <FieldError
-                            error={error}
-                            className="mt-1.5"
-                        />
-                    ) : hint ? (
-                        <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
-                    ) : undefined}
+                    {message}
                 </div>
             </div>
         )
@@ -137,11 +141,7 @@ export function Field({
         <div className={cn("flex flex-col gap-1.5", className)}>
             {labelNode}
             {children}
-            {error ? (
-                <FieldError error={error} />
-            ) : hint ? (
-                <p className="text-xs text-muted-foreground">{hint}</p>
-            ) : undefined}
+            {message}
         </div>
     )
 }
@@ -151,7 +151,7 @@ type BaseFieldProps = {
     label?: string
     required?: boolean
     className?: string
-    /** 透传给 Field 布局：vertical=label 在控件上方（默认），horizontal=label 固定左列 */
+    /** 透传给 FieldShell 布局：vertical=label 在控件上方（默认），horizontal=label 固定左列 */
     layout?: "vertical" | "horizontal"
     /** 控件下方灰字说明（写作建议、格式要求）；error 存在时优先显示 error */
     hint?: React.ReactNode
@@ -168,7 +168,7 @@ export function TextField({
     const field = useFieldContext<string>()
     const error = firstFieldError(field)
     return (
-        <Field
+        <FieldShell
             label={label}
             required={required}
             layout={layout}
@@ -184,7 +184,7 @@ export function TextField({
                 aria-invalid={Boolean(error)}
                 {...props}
             />
-        </Field>
+        </FieldShell>
     )
 }
 
@@ -199,7 +199,7 @@ export function TextareaField({
     const field = useFieldContext<string>()
     const error = firstFieldError(field)
     return (
-        <Field
+        <FieldShell
             label={label}
             required={required}
             layout={layout}
@@ -215,7 +215,7 @@ export function TextareaField({
                 aria-invalid={Boolean(error)}
                 {...props}
             />
-        </Field>
+        </FieldShell>
     )
 }
 
@@ -234,7 +234,7 @@ export function SelectField({
     const field = useFieldContext<string>()
     const error = firstFieldError(field)
     return (
-        <Field
+        <FieldShell
             label={label}
             required={required}
             layout={layout}
@@ -255,7 +255,7 @@ export function SelectField({
                 </SelectTrigger>
                 <SelectContent>{children}</SelectContent>
             </Select>
-        </Field>
+        </FieldShell>
     )
 }
 
@@ -270,7 +270,7 @@ export function CheckboxField({
     const error = firstFieldError(field)
     return (
         <div className={cn("flex flex-col gap-1.5", className)}>
-            <label className="flex h-9 cursor-pointer items-center gap-2 text-sm">
+            <Label className="h-9 cursor-pointer">
                 <Checkbox
                     checked={field.state.value}
                     onCheckedChange={(checked) => field.handleChange(checked)}
@@ -278,9 +278,9 @@ export function CheckboxField({
                     {...props}
                 />
                 {label}
-            </label>
-            {!error && hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-            <FieldError error={error} />
+            </Label>
+            {!error && hint && <FieldDescription>{hint}</FieldDescription>}
+            <FieldError>{error}</FieldError>
         </div>
     )
 }

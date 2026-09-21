@@ -1,4 +1,4 @@
-import { Field, Input } from "@shop/ui-web"
+import { FieldShell, Input } from "@shop/ui-web"
 
 import type { FeeTierFormValue } from "../model"
 
@@ -15,7 +15,7 @@ export function FeeTierInputs({
 
     return (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Field
+            <FieldShell
                 label="首件（件）"
                 required
             >
@@ -24,8 +24,8 @@ export function FeeTierInputs({
                     inputMode="numeric"
                     onChange={(event) => patch("firstQuantity", event.target.value)}
                 />
-            </Field>
-            <Field
+            </FieldShell>
+            <FieldShell
                 label="首费（元）"
                 required
             >
@@ -34,8 +34,8 @@ export function FeeTierInputs({
                     inputMode="decimal"
                     onChange={(event) => patch("firstFee", event.target.value)}
                 />
-            </Field>
-            <Field
+            </FieldShell>
+            <FieldShell
                 label="续件（件）"
                 required
             >
@@ -44,8 +44,8 @@ export function FeeTierInputs({
                     inputMode="numeric"
                     onChange={(event) => patch("addQuantity", event.target.value)}
                 />
-            </Field>
-            <Field
+            </FieldShell>
+            <FieldShell
                 label="续费（元）"
                 required
             >
@@ -54,7 +54,7 @@ export function FeeTierInputs({
                     inputMode="decimal"
                     onChange={(event) => patch("addFee", event.target.value)}
                 />
-            </Field>
+            </FieldShell>
         </div>
     )
 }

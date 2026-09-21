@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle, Field, ImageUploadGrid } from "@shop/ui-web"
+import { Card, CardContent, CardHeader, CardTitle, FieldShell, ImageUploadGrid } from "@shop/ui-web"
 
 import { imgUrl } from "#/shared/lib/image"
 
@@ -31,7 +31,7 @@ export function DetailImagesSection({
             <CardContent className="space-y-5">
                 <form.AppField name="detailImages">
                     {(field) => (
-                        <Field
+                        <FieldShell
                             label="详情图"
                             layout="horizontal"
                             hint="按顺序铺开渲染，可拖拽排序；建议 750 宽竖长图、单张 5MB 以内"
@@ -46,7 +46,7 @@ export function DetailImagesSection({
                                 resolveSrc={imgUrl}
                                 className="max-w-132"
                             />
-                        </Field>
+                        </FieldShell>
                     )}
                 </form.AppField>
             </CardContent>

@@ -31,6 +31,45 @@ interface FilterBarProps {
 }
 
 /**
+ * 筛选栏的紧凑输入项：小字灰标签在上、输入框在下。
+ *
+ * 不复用 ui-web 的 FieldShell：它的标签是表单档（FieldLabel = text-sm font-medium），
+ * 筛选栏要的是更轻的一档。三个筛选项共用这一处定义，宽度差由 className 传。
+ */
+function FilterField({
+    id,
+    label,
+    className,
+    placeholder,
+    value,
+    onChange,
+}: {
+    id: string
+    label: string
+    /** 输入框宽度档（筛选栏按内容给宽窄，属布局，归调用方） */
+    className?: string
+    placeholder: string
+    value: string
+    onChange: (next: string) => void
+}) {
+    return (
+        <label
+            htmlFor={id}
+            className="flex flex-col gap-1 text-xs text-muted-foreground"
+        >
+            {label}
+            <Input
+                id={id}
+                className={className}
+                placeholder={placeholder}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+            />
+        </label>
+    )
+}
+
+/**
  * 商品列表筛选栏（页签 + 三个搜索框）。
  *
  * 受控组件：筛选值由容器经 props 传入（容器负责 URL 读写），本组件只发变更。
@@ -91,45 +130,30 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                 className="flex flex-wrap items-end gap-2"
                 onSubmit={handleSubmit}
             >
-                <label
-                    htmlFor="filter-title"
-                    className="flex flex-col gap-1 text-xs text-muted-foreground"
-                >
-                    商品标题
-                    <Input
-                        id="filter-title"
-                        className="min-w-40 flex-1 max-w-56"
-                        placeholder="如：无线蓝牙耳机"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                    />
-                </label>
-                <label
-                    htmlFor="filter-product-id"
-                    className="flex flex-col gap-1 text-xs text-muted-foreground"
-                >
-                    商品 ID
-                    <Input
-                        id="filter-product-id"
-                        className="min-w-32 flex-1 max-w-44"
-                        placeholder="输入完整 ID 精确匹配"
-                        value={productId}
-                        onChange={(e) => setProductId(e.target.value)}
-                    />
-                </label>
-                <label
-                    htmlFor="filter-merchant-code"
-                    className="flex flex-col gap-1 text-xs text-muted-foreground"
-                >
-                    商家编号
-                    <Input
-                        id="filter-merchant-code"
-                        className="min-w-32 flex-1 max-w-44"
-                        placeholder="输入完整编号精确匹配"
-                        value={merchantCode}
-                        onChange={(e) => setMerchantCode(e.target.value)}
-                    />
-                </label>
+                <FilterField
+                    id="filter-title"
+                    label="商品标题"
+                    className="min-w-40 flex-1 max-w-56"
+                    placeholder="如：无线蓝牙耳机"
+                    value={title}
+                    onChange={setTitle}
+                />
+                <FilterField
+                    id="filter-product-id"
+                    label="商品 ID"
+                    className="min-w-32 flex-1 max-w-44"
+                    placeholder="输入完整 ID 精确匹配"
+                    value={productId}
+                    onChange={setProductId}
+                />
+                <FilterField
+                    id="filter-merchant-code"
+                    label="商家编号"
+                    className="min-w-32 flex-1 max-w-44"
+                    placeholder="输入完整编号精确匹配"
+                    value={merchantCode}
+                    onChange={setMerchantCode}
+                />
                 <Button type="submit">
                     <Search className="size-4" />
                     搜索

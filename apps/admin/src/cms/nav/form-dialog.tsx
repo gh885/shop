@@ -6,6 +6,8 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
+    FieldDescription,
+    FieldTitle,
     SelectItem,
     Spinner,
     useAppForm,
@@ -141,11 +143,12 @@ export function NavFormDialog({ open, onOpenChange, editing, defaultNavKey }: Na
                     </form.AppField>
 
                     <div className="col-span-2 flex flex-col gap-2">
+                        {/* 不用 FieldContent：它带 flex-1，在纵向容器里会去抢空白 */}
                         <div>
-                            <p className="text-sm font-medium">分组与词条</p>
-                            <p className="text-xs text-muted-foreground">
+                            <FieldTitle>分组与词条</FieldTitle>
+                            <FieldDescription>
                                 mega 面板内容：每个分组含名称与词条列表，词条留空提交时自动剔除
-                            </p>
+                            </FieldDescription>
                         </div>
                         <SubsEditor
                             value={subs}

@@ -19,7 +19,7 @@ import {
     CardTitle,
     CardContent,
     Button,
-    Field,
+    FieldShell,
     firstFieldError,
     ButtonGroup,
     Input,
@@ -174,7 +174,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                 validators={{ onChange: InvitePhoneSchema }}
                             >
                                 {(field) => (
-                                    <Field error={firstFieldError(field)}>
+                                    <FieldShell error={firstFieldError(field)}>
                                         <ButtonGroup className="w-full">
                                             <Input
                                                 id="invite-phone"
@@ -205,7 +205,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                                 )}
                                             </inviteForm.Subscribe>
                                         </ButtonGroup>
-                                    </Field>
+                                    </FieldShell>
                                 )}
                             </inviteForm.AppField>
                         </form>

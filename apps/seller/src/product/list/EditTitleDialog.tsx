@@ -11,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
     Input,
+    Label,
 } from "@shop/ui-web"
 
 import type { ProductTitleTarget } from "./table"
@@ -110,12 +111,12 @@ export function EditTitleDialog({
                 <div className="space-y-6">
                     {/* 商品标题：必填 */}
                     <div className="space-y-2">
-                        <label
+                        <Label
                             htmlFor="edit-title-name"
-                            className="text-sm font-medium"
+                            className="required-mark"
                         >
-                            <span className="text-destructive">*</span> 商品标题
-                        </label>
+                            商品标题
+                        </Label>
                         <Input
                             id="edit-title-name"
                             value={name}
@@ -141,12 +142,7 @@ export function EditTitleDialog({
 
                     {/* 导购标题（卖点）：选填，标题结构提示 */}
                     <div className="space-y-2">
-                        <label
-                            htmlFor="edit-title-subtitle"
-                            className="text-sm font-medium"
-                        >
-                            导购标题
-                        </label>
+                        <Label htmlFor="edit-title-subtitle">导购标题</Label>
                         <p className="text-xs text-muted-foreground">
                             <Lightbulb className="mr-1 inline size-3.5 text-warning" />
                             标题结构推荐：品牌 + 品类词 + 利益点

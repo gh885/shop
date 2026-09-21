@@ -11,6 +11,7 @@
 3. **primary 纪律**：品牌橙只留给转化引导（登录/加购/下单/开店）。选中/激活走 `accent` 或 `foreground`，焦点环走 `ring`，装饰图标走 `muted-foreground`，内联链接走 `link`。豁免：web 端商品标题/店铺名等内容链接 hover 可变 primary（淘宝实拍同款转化信号），仅 C 端豁免；选中态、图标、焦点环仍禁。
 4. **仅浅色模式**：全站固定浅色，`light-dark()` 已移除；不引入暗色 token 与 `dark:` 变体。
 5. **新组件来源**：shadcn CLI 生成到 ui-web（命令见 §9），不手写底层组件；图标一律 `lucide-react`。
+6. **字段族命名与分工**：`Field*`（[`src/components/ui/field.tsx`](src/components/ui/field.tsx)）= 展示原语，不接表单（`FieldLabel` / `FieldTitle` / `FieldDescription` / `FieldError` / `FieldSet` / `FieldLegend` / `FieldGroup` / `FieldContent`）；`XxxField`（[`src/components/form.tsx`](src/components/form.tsx)）= 接了 TanStack Form 的控件（`TextField` / `SelectField` / …）；`FieldShell` = 两者的组装品（label + 控件 + 行内错误的布局壳），自定义 render-prop 场景直接用它。分工边界：文字密度（字号、hover、必填星号、`role="alert"`）住原语，容器间距（gap、flex 方向）住 `FieldShell`——两边都不许在调用点 `className` 互相盖。
 
 ## 1. 设计基调
 

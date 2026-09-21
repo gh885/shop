@@ -3,7 +3,8 @@ import {
     CardContent,
     CardHeader,
     CardTitle,
-    Field,
+    FieldShell,
+    Label,
     RadioGroup,
     RadioGroupItem,
     Skeleton,
@@ -87,7 +88,7 @@ export function SalesInfoSection({
             </CardHeader>
             <CardContent className="space-y-6">
                 {hasSpecs ? (
-                    <Field
+                    <FieldShell
                         label="销售属性"
                         layout="horizontal"
                         hint="规范配置销售属性有助于商品转化"
@@ -99,7 +100,7 @@ export function SalesInfoSection({
                             onChange={onSelectionsChange}
                             uploadImage={fileUpload}
                         />
-                    </Field>
+                    </FieldShell>
                 ) : (
                     <p className="text-sm text-muted-foreground">
                         该类目没有可配置的销售属性，SKU 保持单规格。
@@ -107,7 +108,7 @@ export function SalesInfoSection({
                 )}
 
                 {skuRows.length > 0 && (
-                    <Field
+                    <FieldShell
                         label="销售规格"
                         layout="horizontal"
                         required
@@ -116,7 +117,7 @@ export function SalesInfoSection({
                             rows={skuRows}
                             onChange={onSkuRowsChange}
                         />
-                    </Field>
+                    </FieldShell>
                 )}
 
                 {/* 一口价/总库存是只读派生汇总，与上方编辑区用分隔线区隔 */}
@@ -131,7 +132,7 @@ export function SalesInfoSection({
                         商品已在上架/仓库状态：此处修改只保存变更、不回退状态；上架、入库请到商品列表操作。
                     </p>
                 ) : (
-                    <Field
+                    <FieldShell
                         label="上架时间"
                         layout="horizontal"
                         required
@@ -145,28 +146,22 @@ export function SalesInfoSection({
                                 }
                             }}
                         >
-                            <label
-                                className="flex items-center gap-2 text-sm"
-                                htmlFor="rt-now"
-                            >
+                            <Label htmlFor="rt-now">
                                 <RadioGroupItem
                                     value="now"
                                     id="rt-now"
                                 />
                                 立即上架
-                            </label>
-                            <label
-                                className="flex items-center gap-2 text-sm"
-                                htmlFor="rt-warehouse"
-                            >
+                            </Label>
+                            <Label htmlFor="rt-warehouse">
                                 <RadioGroupItem
                                     value="warehouse"
                                     id="rt-warehouse"
                                 />
                                 放入仓库
-                            </label>
+                            </Label>
                         </RadioGroup>
-                    </Field>
+                    </FieldShell>
                 )}
             </CardContent>
         </Card>
@@ -185,7 +180,7 @@ function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
 
     return (
         <>
-            <Field
+            <FieldShell
                 label="一口价"
                 layout="horizontal"
                 hint="由全部 SKU 价格区间推导；单规格同价只显示一个价"
@@ -193,14 +188,14 @@ function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
                 <p className="pt-2 text-sm text-foreground tabular-nums">
                     {priceRangeText(min, max)}
                 </p>
-            </Field>
-            <Field
+            </FieldShell>
+            <FieldShell
                 label="总库存"
                 layout="horizontal"
                 hint="全部 SKU 库存之和，销售属性/规格变更后自动重算"
             >
                 <p className="pt-2 text-sm text-foreground tabular-nums">{totalStock} 件</p>
-            </Field>
+            </FieldShell>
         </>
     )
 }

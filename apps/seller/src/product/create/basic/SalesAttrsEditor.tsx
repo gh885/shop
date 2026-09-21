@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Plus } from "lucide-react"
-import { Badge, Button } from "@shop/ui-web"
+import { Badge, Button, FieldSet } from "@shop/ui-web"
 
 import type { SpecSelection } from "#/product/draft-model"
 import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
@@ -168,9 +168,9 @@ export function SalesAttrsEditor({
     }
 
     return (
-        <fieldset
+        <FieldSet
             disabled={disabled}
-            className="m-0 min-w-0 border-0 p-0"
+            className="min-w-0"
         >
             <div className="divide-y divide-border">
                 {drafts.map((d, ai) => (
@@ -215,6 +215,6 @@ export function SalesAttrsEditor({
                     </div>
                 ))}
             </div>
-        </fieldset>
+        </FieldSet>
     )
 }

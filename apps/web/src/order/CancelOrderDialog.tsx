@@ -8,7 +8,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    Field,
+    FieldShell,
     Item,
     ItemContent,
     ItemTitle,
@@ -68,7 +68,7 @@ export function CancelOrderDialog({
                 </DialogHeader>
 
                 <div className="mt-4 flex flex-col gap-5">
-                    <Field label="取消原因（选填）">
+                    <FieldShell label="取消原因（选填）">
                         <RadioGroup
                             value={selected ?? ""}
                             onValueChange={(v: string) => setSelected(v)}
@@ -90,9 +90,9 @@ export function CancelOrderDialog({
                                 </Item>
                             ))}
                         </RadioGroup>
-                    </Field>
+                    </FieldShell>
 
-                    <Field
+                    <FieldShell
                         label="备注"
                         hint="补充说明（选填），如「地址填错了想改单」"
                     >
@@ -103,7 +103,7 @@ export function CancelOrderDialog({
                             rows={3}
                             placeholder="想对卖家说的话（选填）"
                         />
-                    </Field>
+                    </FieldShell>
                 </div>
 
                 <DialogFooter>

@@ -81,13 +81,5 @@ export function useUnsetDefaultAddress() {
  *  wire 的 receiverName → receiver 归一，与 toAddress 同一投影规则 —— 不归一则表单永远收不到收货人。 */
 export async function parseAddressText(text: string): Promise<AddressParse> {
     const res = await AddressesApi.parseAddress({ body: { text } })
-    return {
-        receiver: res.receiverName,
-        phone: res.phone,
-        regionCode: res.regionCode,
-        province: res.province,
-        city: res.city,
-        district: res.district,
-        detail: res.detail,
-    }
+    return { ...res, receiver: res.receiverName }
 }

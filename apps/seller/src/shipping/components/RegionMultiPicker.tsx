@@ -14,6 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
     Input,
+    Label,
     Skeleton,
     cn,
 } from "@shop/ui-web"
@@ -92,13 +93,17 @@ function RegionTree({
                             ) : (
                                 <span className="size-5 shrink-0" />
                             )}
-                            <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-1 text-sm">
+                            <Label
+                                variant="row"
+                                size="compact"
+                                className="flex-1"
+                            >
                                 <Checkbox
                                     checked={checked}
                                     onCheckedChange={() => onToggleRegion(node.code)}
                                 />
                                 <span className="truncate">{node.name}</span>
-                            </label>
+                            </Label>
                         </div>
                         {hasChildren && isExpanded ? (
                             <RegionTree
@@ -242,9 +247,9 @@ export function RegionMultiPicker({
                                 searchResults.length > 0 ? (
                                     <div className="space-y-0.5">
                                         {searchResults.map((item) => (
-                                            <label
+                                            <Label
                                                 key={item.code}
-                                                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
+                                                variant="row"
                                             >
                                                 <Checkbox
                                                     checked={valueSet.has(item.code)}
@@ -253,7 +258,7 @@ export function RegionMultiPicker({
                                                 <span className="min-w-0 truncate">
                                                     {item.path.join(" / ")}
                                                 </span>
-                                            </label>
+                                            </Label>
                                         ))}
                                     </div>
                                 ) : (

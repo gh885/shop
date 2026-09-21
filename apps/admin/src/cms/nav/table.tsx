@@ -86,7 +86,7 @@ export const navColumns: ColumnDef<DataTableFeatures, NavEntryResponse>[] = [
         id: "subs",
         header: "分组/词条",
         cell: ({ row }) => {
-            const groups = row.original.subs ?? []
+            const groups = row.original.subs
             const itemCount = groups.reduce((sum, g) => sum + (g.items?.length ?? 0), 0)
             return (
                 <span className="tabular-nums text-muted-foreground">
