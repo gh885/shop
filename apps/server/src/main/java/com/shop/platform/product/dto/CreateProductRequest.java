@@ -28,7 +28,12 @@ public record CreateProductRequest(
         @Size(max = 255) String mainImage,
         List<@Size(max = 255) String> images,
         /** 非销售参数，可空：[] */
-        List<@Valid ParamItem> params) {
+        List<@Valid ParamItem> params,
+        /**
+         * 是否支持七天无理由退货（消保法第 25 条）。null = 用默认（支持）；FALSE = 声明属法定除外商品。
+         * 用包装类型而不是裸 boolean：PATCH 语义下「不传」与「传 false」必须分得开。
+         */
+        Boolean sevenDayReturn) {
     public CreateProductRequest {
         if (name != null) name = name.trim();
         if (name == null) name = ""; // 草稿允许空名，落空串满足 NOT NULL；发布时再校验
@@ -37,6 +42,7 @@ public record CreateProductRequest(
 
     /** 映射为 service 入参，shopId 由店铺上下文（X-Shop-Id + 成员校验）注入 */
     public CreateProductCommand toCommand(UUID shopId) {
-        return new CreateProductCommand(shopId, categoryId, name, subtitle, detailImages, mainImage, images, params);
+        return new CreateProductCommand(
+                shopId, categoryId, name, subtitle, detailImages, mainImage, images, params, sevenDayReturn);
     }
 }

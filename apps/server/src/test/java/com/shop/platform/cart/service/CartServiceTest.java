@@ -68,7 +68,7 @@ class CartServiceTest {
                         new SkuView(skuId, productId, "黑色 S", null, Money.cny(1000), null, SkuStatus.ON_SALE)));
         when(productReadQuery.productById(productId))
                 .thenReturn(Optional.of(
-                        new ProductView(productId, shopId, "测试手机", null, null, null, ProductStatus.PUBLISHED)));
+                        new ProductView(productId, shopId, "测试手机", null, null, null, ProductStatus.PUBLISHED, true)));
         when(shopReadQuery.isActive(shopId)).thenReturn(true);
     }
 
@@ -138,7 +138,7 @@ class CartServiceTest {
         // status=0 下架
         when(productReadQuery.productById(productId))
                 .thenReturn(Optional.of(new ProductView(
-                        productId, UUID.randomUUID(), "测试手机", null, null, null, ProductStatus.WAREHOUSE)));
+                        productId, UUID.randomUUID(), "测试手机", null, null, null, ProductStatus.WAREHOUSE, true)));
 
         assertThatThrownBy(() -> service.add(userId, request(1)))
                 .isInstanceOf(BusinessException.class)
@@ -164,7 +164,7 @@ class CartServiceTest {
                         new SkuView(skuId, productId, "黑色 S", null, Money.cny(1000), null, SkuStatus.ON_SALE)));
         when(productReadQuery.productById(productId))
                 .thenReturn(Optional.of(
-                        new ProductView(productId, shopId, "测试手机", null, null, null, ProductStatus.PUBLISHED)));
+                        new ProductView(productId, shopId, "测试手机", null, null, null, ProductStatus.PUBLISHED, true)));
         when(shopReadQuery.isActive(shopId)).thenReturn(false);
 
         assertThatThrownBy(() -> service.add(userId, request(1)))

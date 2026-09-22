@@ -82,7 +82,7 @@ class ProductIT extends IntegrationTestSupport {
                 "DELETE FROM product.skus WHERE product_id IN (SELECT id FROM product.products WHERE shop_id = ?::uuid)",
                 shopId.toString());
         return productService.create(new CreateProductCommand(
-                shopId, SEED_CATEGORY, name, null, null, null, List.of(), List.of(REQUIRED_PARAM)));
+                shopId, SEED_CATEGORY, name, null, null, null, List.of(), List.of(REQUIRED_PARAM), null));
     }
 
     /** 在种子类目上建销售属性 + 平台预置值（唯一名防重复跑撞 uk_category_attrs_category_name），自建自清 */
@@ -364,6 +364,7 @@ class ProductIT extends IntegrationTestSupport {
                         List.of("product/a.jpg", "product/b.jpg"),
                         "product/main.jpg",
                         List.of("product/c.jpg"),
+                        null,
                         null));
         assertEquals("新标题", updated.getName());
         assertEquals(List.of("product/a.jpg", "product/b.jpg"), updated.getDetailImages());
@@ -395,7 +396,7 @@ class ProductIT extends IntegrationTestSupport {
     private CreateProductCommand mountCommand(UUID categoryId) {
         UUID shopId = UUID.randomUUID();
         db.onDelete("DELETE FROM product.products WHERE shop_id = ?::uuid", shopId.toString());
-        return new CreateProductCommand(shopId, categoryId, "挂载闸门机", null, null, null, List.of(), List.of());
+        return new CreateProductCommand(shopId, categoryId, "挂载闸门机", null, null, null, List.of(), List.of(), null);
     }
 
     @Test
@@ -441,7 +442,7 @@ class ProductIT extends IntegrationTestSupport {
                 () -> productService.updateBasic(
                         draft.getShopId(),
                         draft.getId(),
-                        new UpdateBasicCommand(SEED_CATEGORY_L2, null, null, null, null, null, null)));
+                        new UpdateBasicCommand(SEED_CATEGORY_L2, null, null, null, null, null, null, null)));
         assertEquals(400, ex.getHttpStatus());
         assertEquals("CATEGORY_NOT_LEAF", ex.getCode());
     }

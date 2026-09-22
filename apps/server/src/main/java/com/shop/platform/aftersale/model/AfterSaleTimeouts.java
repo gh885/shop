@@ -3,8 +3,11 @@ package com.shop.platform.aftersale.model;
 import java.time.Duration;
 
 /**
- * 售后三个超时窗口的唯一出处（C11，卖家确认收货窗口补自 AFS-23 的留白）。与订单侧 {@code OrderTimeouts} 同一理由：
+ * 售后时间窗口的唯一出处（C11，卖家确认收货窗口补自 AFS-23 的留白）。与订单侧 {@code OrderTimeouts} 同一理由：
  * 天数散写在扫描器、文档与前端提示里必然漂移，集中一处。
+ *
+ * <p>前三条是「到期有定时器接手」的超时窗口；{@link #NO_REASON} 不是——它是买家的法定资格窗口，
+ * 到期不触发任何动作，只是不再强制卖家接受退货。放同一处是因为它们都是「几天」这个唯一真相。
  */
 public final class AfterSaleTimeouts {
 
@@ -28,6 +31,14 @@ public final class AfterSaleTimeouts {
      * 没有这条超时，卖家只要不点确认收货就能把「已同意退货」悬成无限期（订单也因争议未决不自动完成）。
      */
     public static final Duration SELLER_RECEIVE = Duration.ofDays(10);
+
+    /**
+     * 签收起算（未签收而买家已确认收货则按完成时刻，见 {@code OrderAfterSaleView#receivedAt}）：
+     * 七天无理由退货的<b>资格</b>窗口（消保法第 25 条「自收到商品之日起七日内」）。到期没有任何定时器动作——
+     * 变的只是这张单子的性质：窗口内以「无理由」申请的退货退款，卖家不得拒绝（AFS-45）；窗口外照旧可申请，
+     * 但走的是普通售后，卖家有权拒绝。
+     */
+    public static final Duration NO_REASON = Duration.ofDays(7);
 
     private AfterSaleTimeouts() {}
 }

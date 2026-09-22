@@ -51,26 +51,36 @@ class TicketAvailableActionTest {
 
         @Test
         void 申请中_同意与拒绝_同意是合一个按钮的类型分岔() {
-            assertEquals(List.of(AGREE, REJECT), TicketAvailableAction.sellerActions(TicketStatus.APPLYING));
+            assertEquals(List.of(AGREE, REJECT), TicketAvailableAction.sellerActions(TicketStatus.APPLYING, false));
         }
 
         @Test
         void 退货中_确认收货在前拒绝在后_验货不通过也有出口() {
             // 正常推进的动作在前、破坏性的在后：RETURNING 一态两个按钮都亮，默认该走的是确认收货
-            assertEquals(List.of(RECEIVE_RETURN, REJECT), TicketAvailableAction.sellerActions(TicketStatus.RETURNING));
+            assertEquals(
+                    List.of(RECEIVE_RETURN, REJECT),
+                    TicketAvailableAction.sellerActions(TicketStatus.RETURNING, false));
         }
 
         @Test
         void 终态_没有任何动作() {
             for (TicketStatus status : List.of(TicketStatus.REFUNDED, TicketStatus.REJECTED, TicketStatus.CLOSED)) {
-                assertEquals(List.of(), TicketAvailableAction.sellerActions(status), status.name());
+                assertEquals(List.of(), TicketAvailableAction.sellerActions(status, false), status.name());
             }
+        }
+
+        @Test
+        void 无理由强制单_申请阶段收走拒绝_退货阶段的验货拒绝照旧() {
+            // 消保法第 25 条禁止的是「以不属于质量问题为由拒绝受理」；寄回的东西不对是另一回事，留争议空间
+            assertEquals(List.of(AGREE), TicketAvailableAction.sellerActions(TicketStatus.APPLYING, true));
+            assertEquals(
+                    List.of(RECEIVE_RETURN, REJECT), TicketAvailableAction.sellerActions(TicketStatus.RETURNING, true));
         }
     }
 
     @Test
     void 下发顺序恒定_同一数据两次请求必须给出同一份JSON() {
         // 顺序来自枚举声明序而不是集合迭代序：契约快照与前端 diff 都依赖这个
-        assertEquals(List.of(AGREE, REJECT), TicketAvailableAction.sellerActions(TicketStatus.APPLYING));
+        assertEquals(List.of(AGREE, REJECT), TicketAvailableAction.sellerActions(TicketStatus.APPLYING, false));
     }
 }

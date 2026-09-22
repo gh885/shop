@@ -212,6 +212,14 @@ public class Product extends AuditedEntity {
     private String currency;
 
     /**
+     * 是否支持七天无理由退货（消保法第 25 条）：TRUE = 支持（法条默认），FALSE = 卖家声明属法定除外商品
+     * （定作、鲜活易腐、在线下载、拆封后不宜退货…）。
+     *
+     * <p>下单瞬间快照进 orders.items，售后强制判定只读快照——本列事后被改，不追溯已卖出的单。
+     */
+    private boolean sevenDayReturn;
+
+    /**
      * 累计销量（已完成订单成交件数之和）——product 自持的投影列，订单完成时经 product.api :: ProductCommand 单语句自增。
      * 实体插入/回写永不带这一列（DB 默认 0；updateById 若把读到的旧值写回，会覆盖并发累加），只由 addSoldCount 改。
      */

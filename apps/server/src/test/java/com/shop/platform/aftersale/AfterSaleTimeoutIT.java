@@ -3,6 +3,7 @@ package com.shop.platform.aftersale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.shop.platform.aftersale.model.AfterSaleReason;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.aftersale.service.AfterSaleService;
@@ -180,7 +181,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @Test
     void 超时自动同意_仅退款_卖家48小时未处理_到期转已退款并记系统动作() {
-        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, "不想要了");
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, "不想要了");
         ageTicketHours(49);
 
         assertTrue(timeoutService.sweepSellerResponse() >= 1);
@@ -192,7 +193,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @Test
     void 超时自动同意_退货退款_到期只进退货流程_退款等收货() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "质量不行");
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "质量不行");
         ageTicketHours(49);
 
         assertTrue(timeoutService.sweepSellerResponse() >= 1);
@@ -208,7 +209,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @Test
     void 超时自动同意_未满48小时_不动() {
-        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, null);
         ageTicketHours(47);
 
         timeoutService.sweepSellerResponse();
@@ -217,7 +218,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @Test
     void 超时自动同意_卖家已抢先处理_定时器不重复动作() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         ageTicketHours(999); // 就算回拨到远古，状态已不在 APPLYING，扫描集里没有它
 
@@ -228,7 +229,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @Test
     void 悬挂回寄_到期未填运单号_自动关闭并释放进行中名额() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         ageAgreeReturnEventDays(8);
 
@@ -238,13 +239,13 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
         assertEquals(List.of("SYSTEM|AUTO_CLOSE|买家超时未回寄，系统自动关闭"), latestEvents("AUTO_CLOSE"));
 
         // 名额释放：同单可以再开一张（进行中唯一索引让位，申请窗口未过）
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "换个理由再来");
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "换个理由再来");
         assertEquals(TicketStatus.APPLYING.name(), ticketStatus());
     }
 
     @Test
     void 悬挂回寄_已填回寄运单号_到期也不关_货在途等卖家收货() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
         ageAgreeReturnEventDays(8);
@@ -255,7 +256,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @Test
     void 悬挂回寄_未满7天_不动() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         ageAgreeReturnEventDays(6);
 
@@ -266,7 +267,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
     // 卖家确认收货超时（AFS-23 第③条）：买家已寄回，卖家的沉默不能悬着钱和订单
     @Test
     void 已回寄_卖家超10天未确认收货_自动退款回补并记系统动作() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "质量不行");
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "质量不行");
         afterSale.agree(shopId, orderId);
         afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
         assertEquals(3, totalStock());
@@ -282,7 +283,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @Test
     void 已回寄_未满10天_不动() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
         ageReturnGoodsEventDays(9);
@@ -294,7 +295,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @Test
     void 改过运单号_从最后一次寄出重新起算_不被老事件提前判死() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
         ageReturnGoodsEventDays(11); // 第一次寄出已在 11 天前（填错单号、快递退回的场景）
@@ -307,7 +308,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
     @Test
     void 两条退货超时线互斥_未寄回归自动关闭_已寄回归自动退款() {
         // 未填运单号：确认收货扫描不该碰它（货根本没在路上）
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         ageAgreeReturnEventDays(30);
         ageTicketHours(30 * 24);

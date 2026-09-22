@@ -37,7 +37,8 @@ public class SellerAfterSaleController {
     @GetMapping
     public TicketResponse getShopAfterSale(@CurrentShop UUID shopId, @PathVariable UUID id) {
         Ticket ticket = Validate.present(afterSaleService.latestForShop(shopId, id), "暂无售后记录");
-        return TicketResponse.from(ticket, TicketAvailableAction.sellerActions(ticket.getStatus()));
+        return TicketResponse.from(
+                ticket, TicketAvailableAction.sellerActions(ticket.getStatus(), ticket.isNoReasonEnforced()));
     }
 
     /** 同意售后：按售后类型分派——仅退款 APPLYING→REFUNDED 一步退；退货退款 APPLYING→RETURNING 进入退货流程 */

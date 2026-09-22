@@ -97,7 +97,8 @@ class CheckoutResolver {
                     sku.price(),
                     sku.originalPrice(),
                     line.quantity(),
-                    available));
+                    available,
+                    product.sevenDayReturn()));
         }
         return new ResolvedCheckout(valid, unavailable);
     }

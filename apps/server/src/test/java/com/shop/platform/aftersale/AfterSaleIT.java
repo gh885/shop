@@ -1,11 +1,14 @@
 package com.shop.platform.aftersale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.shop.platform.aftersale.mapper.Ticket;
+import com.shop.platform.aftersale.model.AfterSaleReason;
 import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
@@ -167,14 +170,15 @@ class AfterSaleIT extends IntegrationTestSupport {
     @Test
     void 退货退款全链路_同意后未退款_回寄后收货退款并回补库存() {
         // 申请退货退款 → APPLYING；订单投影同步；时间线一条
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "质量不行");
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "质量不行");
         assertEquals(TicketStatus.APPLYING.name(), ticketStatus());
         assertEquals("APPLYING", orderProjection());
         assertEquals(1, eventCount());
 
         // 同一订单不能再开一张进行中的单
         BusinessException dup = assertThrows(
-                BusinessException.class, () -> afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null));
+                BusinessException.class,
+                () -> afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, null));
         assertEquals(409, dup.getHttpStatus());
 
         // 卖家同意 → 进入退货流程 RETURNING（此时未退款，流水仍 SUCCESS）
@@ -222,7 +226,7 @@ class AfterSaleIT extends IntegrationTestSupport {
 
     @Test
     void 仅退款_同意即退款_不回补库存() {
-        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
 
         assertEquals(TicketStatus.REFUNDED.name(), ticketStatus());
@@ -247,7 +251,7 @@ class AfterSaleIT extends IntegrationTestSupport {
         assertEquals("SHIPPED", orderStatus(shippedId));
 
         // 待收货即可申请，不必等 7 天自动确认收货把「没收到」伪装成「已收货」
-        afterSale.apply(userId, shippedId, TicketType.REFUND_ONLY, "包裹在路上，我已经拒收");
+        afterSale.apply(userId, shippedId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, "包裹在路上，我已经拒收");
         assertEquals(TicketStatus.APPLYING.name(), ticketStatus(shippedId));
 
         // 争议未决：到期扫描该跑，但不该替买家宣布收货
@@ -269,13 +273,14 @@ class AfterSaleIT extends IntegrationTestSupport {
 
     @Test
     void 已退款订单_再次申请售后_拒绝() {
-        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         assertEquals(TicketStatus.REFUNDED.name(), ticketStatus());
 
         // REFUNDED 终态：换类型重新申请也被挡（闸门看的是最新单的态，不是 type）
         BusinessException ex = assertThrows(
-                BusinessException.class, () -> afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "还想退"));
+                BusinessException.class,
+                () -> afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "还想退"));
         assertEquals(409, ex.getHttpStatus());
         assertEquals("AFTER_SALE_ALREADY_REFUNDED", ex.getCode());
         // 不多造单：最新一张仍是原来那张 REFUNDED
@@ -290,16 +295,16 @@ class AfterSaleIT extends IntegrationTestSupport {
     @Test
     void 撤销后_再次申请售后_放行() {
         // 闸门只挡 REFUNDED：撤销（CLOSED 终态）不伤买家利益，窗口内可重新申请
-        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.cancel(userId, orderId);
 
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "换个理由再来");
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "换个理由再来");
         assertEquals(TicketStatus.APPLYING.name(), ticketStatus());
     }
 
     @Test
     void 卖家工作台列表_带订单摘要_按状态筛选且不串店() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "质量不行");
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "质量不行");
 
         PageResult<SellerTicketItem> all = afterSale.pageShop(shopId, null, new PageParams(1, 10));
         assertEquals(1, all.total());
@@ -341,9 +346,14 @@ class AfterSaleIT extends IntegrationTestSupport {
                 404,
                 assertThrows(
                                 BusinessException.class,
-                                () -> afterSale.apply(UUID.randomUUID(), orderId, TicketType.REFUND_ONLY, null))
+                                () -> afterSale.apply(
+                                        UUID.randomUUID(),
+                                        orderId,
+                                        TicketType.REFUND_ONLY,
+                                        AfterSaleReason.QUALITY_ISSUE,
+                                        null))
                         .getHttpStatus());
-        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, null);
         assertEquals(
                 404,
                 assertThrows(BusinessException.class, () -> afterSale.reject(UUID.randomUUID(), orderId, "不是我的单"))
@@ -352,7 +362,7 @@ class AfterSaleIT extends IntegrationTestSupport {
 
     @Test
     void 回寄覆盖更新_重复提交只留一张有效包裹_旧轨迹随旧包裹作废() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
 
         // 首次提交：落 RETURN 包裹，并模拟旧单号已被承运商推出在途轨迹
@@ -398,7 +408,7 @@ class AfterSaleIT extends IntegrationTestSupport {
      */
     @Test
     void 退货已寄回_卖家验货不通过拒绝退款_钱与库存都不动_买家仍能重申() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "尺码不合");
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "尺码不合");
         afterSale.agree(shopId, orderId);
         afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
 
@@ -415,7 +425,7 @@ class AfterSaleIT extends IntegrationTestSupport {
     /** 拒绝理由（AFS-30/44）：必填、只落在时间线那行 note 上，买家详情读它而不是读 tickets 的复制列 */
     @Test
     void 拒绝理由落时间线并随买家详情下发_未被拒时不给理由() {
-        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, "不想要了");
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, "不想要了");
         Ticket applying = afterSale.latestForBuyer(userId, orderId).orElseThrow();
         assertNull(afterSale.buyerDetail(applying).rejectReason(), "没被拒过就不该有一行拒绝理由");
 
@@ -434,9 +444,101 @@ class AfterSaleIT extends IntegrationTestSupport {
                 "理由的真相只有一处：ticket_events.note");
     }
 
+    /**
+     * 七天无理由强制（消保法第 25 条）：买家以「无理由」申请退货退款、且在收到商品七天内、订单快照里每件都支持
+     * 无理由时，受理阶段卖家只剩「同意」——拒绝受理是违法的，连售后单的 fate 都不该被它动一下。
+     * 退货阶段的验货不通过是另一件事：那条边照旧留着（买家寄回来的东西可以有问题）。
+     */
+    @Test
+    void 七天无理由退货_受理阶段只下发同意_拒绝落点409_退货阶段验货拒绝照旧() {
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.NO_REASON, "尺码不合");
+
+        Ticket enforcing = afterSale.latestForBuyer(userId, orderId).orElseThrow();
+        assertTrue(enforcing.isNoReasonEnforced());
+        assertEquals(
+                "NO_REASON",
+                jdbc.queryForObject(
+                        "SELECT reason_code FROM aftersale.tickets WHERE id = ?::uuid",
+                        String.class,
+                        enforcing.getId().toString()));
+
+        // 工作台行与订单行内按钮一起收走「拒绝」：下发的是动作集，不是「按钮点了再报错」
+        assertEquals(
+                List.of(TicketAvailableAction.AGREE),
+                afterSale
+                        .pageShop(shopId, null, new PageParams(1, 10))
+                        .records()
+                        .getFirst()
+                        .availableActions());
+        assertEquals(
+                List.of(TicketAvailableAction.AGREE),
+                afterSale
+                        .sellerActionsByOrders(shopId, List.of(orderId))
+                        .getFirst()
+                        .availableActions());
+
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> afterSale.reject(shopId, orderId, "拆封影响二次销售"));
+        assertEquals(409, ex.getHttpStatus());
+        assertEquals(TicketStatus.APPLYING.name(), ticketStatus(), "违法的拒绝连落点都进不去");
+        assertEquals(3, totalStock());
+
+        // 同意 → 回寄 → RETURNING：强制只管受理这一段，验货拒绝的出口回来
+        afterSale.agree(shopId, orderId);
+        afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT998");
+        assertEquals(
+                List.of(TicketAvailableAction.RECEIVE_RETURN, TicketAvailableAction.REJECT),
+                afterSale
+                        .pageShop(shopId, null, new PageParams(1, 10))
+                        .records()
+                        .getFirst()
+                        .availableActions());
+        afterSale.reject(shopId, orderId, "退回商品与下单型号不符");
+        assertEquals(TicketStatus.REJECTED.name(), ticketStatus());
+    }
+
+    /** 强制的三条腿缺一条就不成立（宁可少强制，不可错强制）：收到商品已过七天，卖家的拒绝权跟着回来 */
+    @Test
+    void 无理由退货超七天窗口_不再强制_卖家可拒绝受理() {
+        jdbc.update(
+                "UPDATE orders.orders SET completed_at = now() - interval '8 days' WHERE id = ?::uuid",
+                orderId.toString());
+
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.NO_REASON, "不喜欢了");
+
+        assertFalse(afterSale.latestForBuyer(userId, orderId).orElseThrow().isNoReasonEnforced());
+        afterSale.reject(shopId, orderId, "无理由退货已过七天期限");
+        assertEquals(TicketStatus.REJECTED.name(), ticketStatus());
+    }
+
+    /** 第二条腿：下单时这一单就不支持无理由——判定读订单快照，也要求快照里每件都支持（拼单只有一件可退则不强制） */
+    @Test
+    void 订单快照不支持无理由_不再强制_卖家可拒绝受理() {
+        jdbc.update("UPDATE orders.items SET seven_day_return = FALSE WHERE order_id = ?::uuid", orderId.toString());
+
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.NO_REASON, "不喜欢了");
+
+        assertFalse(afterSale.latestForBuyer(userId, orderId).orElseThrow().isNoReasonEnforced());
+        afterSale.reject(shopId, orderId, "定制商品，下单页已明示不支持七天无理由退货");
+        assertEquals(TicketStatus.REJECTED.name(), ticketStatus());
+    }
+
+    /** 权利在下单那一刻定终身：卖家事后把商品的七天无理由关掉，抹不掉买家买到时手上的那份（读快照不读商品现值） */
+    @Test
+    void 卖家事后关掉商品开关_订单快照仍保留买家的无理由权利() {
+        jdbc.update(
+                "UPDATE product.products SET seven_day_return = FALSE"
+                        + " WHERE id = (SELECT product_id FROM product.skus WHERE id = ?::uuid)",
+                skuId.toString());
+
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.NO_REASON, null);
+
+        assertTrue(afterSale.latestForBuyer(userId, orderId).orElseThrow().isNoReasonEnforced());
+    }
+
     @Test
     void 动作下发_工作台行带卖家动作集_被拒单带重新申请_已退款单什么都不给() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
 
         // 卖家工作台行：APPLYING 下发 同意/拒绝（顺序即声明序，前端照单渲染）
         SellerTicketItem row = afterSale
@@ -448,11 +550,11 @@ class AfterSaleIT extends IntegrationTestSupport {
         // 卖家拒绝后：卖家侧终态无动作；买家侧下发「重新申请」（申请窗口未过，AFS-04）
         afterSale.reject(shopId, orderId, "商品无质量问题，鉴定通过");
         Ticket rejected = afterSale.latestForShop(shopId, orderId).orElseThrow();
-        assertEquals(List.of(), TicketAvailableAction.sellerActions(rejected.getStatus()));
+        assertEquals(List.of(), TicketAvailableAction.sellerActions(rejected.getStatus(), false));
         assertEquals(List.of(TicketAvailableAction.REAPPLY), afterSale.buyerActions(rejected));
 
         // 退款终态：什么都不下发（与 apply 的二次退款闸门同源，AFS-05）
-        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, null);
+        afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
         Ticket refunded = afterSale.latestForBuyer(userId, orderId).orElseThrow();
         assertEquals(List.of(), afterSale.buyerActions(refunded));
@@ -464,7 +566,7 @@ class AfterSaleIT extends IntegrationTestSupport {
         // 无售后单：这一行压根不出现在结果里（前端取不到 = 无动作，不下发空集合）
         assertEquals(List.of(), afterSale.sellerActionsByOrders(shopId, List.of(orderId)));
 
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         assertEquals(
                 List.of(TicketAvailableAction.AGREE, TicketAvailableAction.REJECT),
                 afterSale
@@ -493,7 +595,7 @@ class AfterSaleIT extends IntegrationTestSupport {
     /** 回寄地址（详情查询时下发）：无默认退货地址为 null；配了实时解析成一行「收件人 电话 · 地址行」 */
     @Test
     void 退货退款进入RETURNING_回寄地址随查询解析_无默认退货地址为null() {
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId); // → RETURNING，买家从此要往卖家地址寄
 
         // 种子只有默认发货地址（default_ship），默认退货地址缺席 → null，前端据此引导联系客服

@@ -41,17 +41,20 @@ public class OrderReadQuery {
                 .findFirst();
     }
 
-    /** 单笔订单的售后视图：aftersale 申请前置校验（归属 / 已完成 / 窗口未过）与退款口径，查无此单返回 empty */
+    /** 单笔订单的售后视图：aftersale 申请前置校验（归属 / 已完成 / 窗口未过）、退款口径与无理由窗口起算，查无此单返回 empty */
     public Optional<OrderAfterSaleView> afterSaleViewById(UUID orderId) {
         return jdbc
                 .query(
-                        "SELECT user_id, shop_id, status, apply_expire_at, pay_amount, currency FROM orders.orders WHERE id = ?",
+                        "SELECT user_id, shop_id, status, apply_expire_at, pay_amount, currency, delivered_at, completed_at "
+                                + "FROM orders.orders WHERE id = ?",
                         (rs, i) -> new OrderAfterSaleView(
                                 rs.getObject("user_id", UUID.class),
                                 rs.getObject("shop_id", UUID.class),
                                 OrderStatus.valueOf(rs.getString("status")),
                                 rs.getObject("apply_expire_at", OffsetDateTime.class),
-                                money(rs, "pay_amount")),
+                                money(rs, "pay_amount"),
+                                rs.getObject("delivered_at", OffsetDateTime.class),
+                                rs.getObject("completed_at", OffsetDateTime.class)),
                         orderId)
                 .stream()
                 .findFirst();
@@ -72,11 +75,12 @@ public class OrderReadQuery {
                 .findFirst();
     }
 
-    /** 订单行项（SKU + 件数）：aftersale 退货收货回补库存用 */
+    /** 订单行项（SKU + 件数 + 无理由退货声明快照）：aftersale 回补库存与判七天无理由强制用 */
     public List<OrderLineView> linesById(UUID orderId) {
         return jdbc.query(
-                "SELECT sku_id, quantity FROM orders.items WHERE order_id = ?",
-                (rs, i) -> new OrderLineView(rs.getObject("sku_id", UUID.class), rs.getInt("quantity")),
+                "SELECT sku_id, quantity, seven_day_return FROM orders.items WHERE order_id = ?",
+                (rs, i) -> new OrderLineView(
+                        rs.getObject("sku_id", UUID.class), rs.getInt("quantity"), rs.getBoolean("seven_day_return")),
                 orderId);
     }
 

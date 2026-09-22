@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.shop.platform.aftersale.model.AfterSaleReason;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.aftersale.service.AfterSaleService;
 import com.shop.platform.common.BusinessException;
@@ -449,7 +450,7 @@ class CouponFlowIT extends IntegrationTestSupport {
         orderTransitionService.receive(userId, order.getId());
 
         // 仅退款：卖家同意即退款完成
-        afterSaleService.apply(userId, order.getId(), TicketType.REFUND_ONLY, "不想要了");
+        afterSaleService.apply(userId, order.getId(), TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, "不想要了");
         afterSaleService.agree(shopId, order.getId());
 
         assertEquals(1, usageCount(couponId, "RETURN"));

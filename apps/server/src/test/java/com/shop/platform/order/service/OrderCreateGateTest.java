@@ -142,7 +142,16 @@ class OrderCreateGateTest {
         when(checkoutResolver.resolve(any()))
                 .thenReturn(new CheckoutResolver.ResolvedCheckout(
                         List.of(new ValidLine(
-                                UUID.randomUUID(), UUID.randomUUID(), shopId, "x", null, Money.cny(100), null, 1, 5)),
+                                UUID.randomUUID(),
+                                UUID.randomUUID(),
+                                shopId,
+                                "x",
+                                null,
+                                Money.cny(100),
+                                null,
+                                1,
+                                5,
+                                true)),
                         List.of()));
         when(shopReadQuery.isActive(shopId)).thenReturn(false);
 

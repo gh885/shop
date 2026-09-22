@@ -104,7 +104,7 @@ class CheckoutResolverTest {
     }
 
     private ProductView product(ProductStatus status) {
-        return new ProductView(productId, shopId, "测试手机", "spu.png", Money.cny(1000), Money.cny(1000), status);
+        return new ProductView(productId, shopId, "测试手机", "spu.png", Money.cny(1000), Money.cny(1000), status, true);
     }
 
     private void stubSellable(long price, int available) {
@@ -212,9 +212,9 @@ class CheckoutResolverTest {
     void 按店分组_金额为行小计之和_未选地址时运费预告零() {
         Money p1 = Money.cny(1000);
         Money p2 = Money.cny(250);
-        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, p1, null, 2, 9);
-        ValidLine b = new ValidLine(UUID.randomUUID(), productId, shopA(), "B", null, p2, null, 1, 9);
-        ValidLine c = new ValidLine(UUID.randomUUID(), productId, shopB(), "C", null, p2, null, 4, 9);
+        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, p1, null, 2, 9, true);
+        ValidLine b = new ValidLine(UUID.randomUUID(), productId, shopA(), "B", null, p2, null, 1, 9, true);
+        ValidLine c = new ValidLine(UUID.randomUUID(), productId, shopB(), "C", null, p2, null, 4, 9, true);
 
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店", shopB(), "乙店"));
 
@@ -237,7 +237,8 @@ class CheckoutResolverTest {
 
     @Test
     void 有地址_运费入应付并与报价一致() {
-        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 2, 9);
+        ValidLine a =
+                new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 2, 9, true);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         when(shippingFeeReadQuery.quote(shopA(), "440305", 2, Money.cny(2000)))
                 .thenReturn(new ShippingQuote(templateId, true, Money.cny(800)));
@@ -253,7 +254,8 @@ class CheckoutResolverTest {
 
     @Test
     void 不配送地区_分组标记不可达且运费零() {
-        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
+        ValidLine a =
+                new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9, true);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         when(shippingFeeReadQuery.quote(any(), any(), anyInt(), any()))
                 .thenReturn(new ShippingQuote(templateId, false, Money.cny(0)));
@@ -269,7 +271,8 @@ class CheckoutResolverTest {
     @Test
     void 用券_应付减券额_且券信息随分组带出() {
         UUID couponId = UUID.randomUUID();
-        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 2, 9);
+        ValidLine a =
+                new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 2, 9, true);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         when(couponReadQuery.evaluateForShop(userId, shopA(), Money.cny(2000)))
                 .thenReturn(List.of(usableCoupon(couponId, 1500L, 300L)));
@@ -286,7 +289,8 @@ class CheckoutResolverTest {
     @Test
     void 用券_门槛基数不含运费_运费照收且不参与打折() {
         UUID couponId = UUID.randomUUID();
-        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
+        ValidLine a =
+                new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9, true);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         // 券按商品额 1000（而不是 1000+800）判定与计算
         when(couponReadQuery.evaluateForShop(userId, shopA(), Money.cny(1000)))
@@ -304,7 +308,8 @@ class CheckoutResolverTest {
     @Test
     void 选了不可用的券_400并说明原因() {
         UUID couponId = UUID.randomUUID();
-        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
+        ValidLine a =
+                new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9, true);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         // 未达门槛：券在候选里但 usable=false
         when(couponReadQuery.evaluateForShop(userId, shopA(), Money.cny(1000)))
@@ -329,7 +334,8 @@ class CheckoutResolverTest {
     @Test
     void 选了不属于本单的券_400拒绝() {
         UUID couponId = UUID.randomUUID();
-        ValidLine a = new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9);
+        ValidLine a =
+                new ValidLine(UUID.randomUUID(), productId, shopA(), "A", null, Money.cny(1000), null, 1, 9, true);
         when(shopReadQuery.namesByIds(any())).thenReturn(Map.of(shopA(), "甲店"));
         // 本店候选里没有这张券（跨店券 / 已核销 / 非本人）——不能落地就必须拒绝
         when(couponReadQuery.evaluateForShop(userId, shopA(), Money.cny(1000))).thenReturn(List.of());

@@ -109,8 +109,8 @@ class CategoryAttrIT extends IntegrationTestSupport {
 
         BusinessException ex = assertThrows(
                 BusinessException.class,
-                () -> productService.create(
-                        new CreateProductCommand(shopId, L3_PHONE, "必填参数测试机", null, null, null, List.of(), List.of())));
+                () -> productService.create(new CreateProductCommand(
+                        shopId, L3_PHONE, "必填参数测试机", null, null, null, List.of(), List.of(), null)));
         assertEquals(400, ex.getHttpStatus());
 
         // 补上必填参数后放行（连同 V43 模板里手机类目自带的必填「屏幕尺寸」）
@@ -122,7 +122,8 @@ class CategoryAttrIT extends IntegrationTestSupport {
                 null,
                 null,
                 List.of(),
-                List.of(new ParamItem(param.getId(), "产地", "广东"), SCREEN_SIZE))));
+                List.of(new ParamItem(param.getId(), "产地", "广东"), SCREEN_SIZE),
+                null)));
     }
 
     @Test
@@ -143,7 +144,8 @@ class CategoryAttrIT extends IntegrationTestSupport {
                         null,
                         null,
                         List.of(),
-                        List.of(new ParamItem(param.getId(), "网络制式", "6G")))));
+                        List.of(new ParamItem(param.getId(), "网络制式", "6G")),
+                        null)));
         assertEquals(400, ex.getHttpStatus());
 
         // 值域内的值放行
@@ -155,7 +157,8 @@ class CategoryAttrIT extends IntegrationTestSupport {
                 null,
                 null,
                 List.of(),
-                List.of(new ParamItem(param.getId(), "网络制式", "5G"), SCREEN_SIZE))));
+                List.of(new ParamItem(param.getId(), "网络制式", "5G"), SCREEN_SIZE),
+                null)));
     }
 
     @Test
@@ -175,7 +178,8 @@ class CategoryAttrIT extends IntegrationTestSupport {
                         null,
                         null,
                         List.of(),
-                        List.of(new ParamItem(null, "产地", "广东")))));
+                        List.of(new ParamItem(null, "产地", "广东")),
+                        null)));
         assertEquals(400, ex.getHttpStatus());
     }
 }

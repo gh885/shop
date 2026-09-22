@@ -3,6 +3,7 @@ package com.shop.platform.aftersale.controller.response;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.aftersale.mapper.Ticket;
+import com.shop.platform.aftersale.model.AfterSaleReason;
 import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
@@ -30,7 +31,10 @@ public record TicketResponse(
         @Schema(requiredMode = REQUIRED) TicketType type,
         @Schema(requiredMode = REQUIRED) TicketStatus status,
         @Schema(requiredMode = REQUIRED) List<TicketAvailableAction> availableActions,
+        @Schema(requiredMode = REQUIRED, nullable = true) AfterSaleReason reasonCode,
         @Schema(requiredMode = REQUIRED, nullable = true) String reason,
+        /** 无理由强制单（AFS-45）：申请瞬间定格，卖家不可拒绝。买家侧读它是「为什么这单卖家拒不了」的说明 */
+        @Schema(requiredMode = REQUIRED) boolean noReasonEnforced,
         @Schema(requiredMode = REQUIRED, nullable = true) Money refundAmount,
         @Schema(requiredMode = REQUIRED, nullable = true) String returnLogisticsCompany,
         @Schema(requiredMode = REQUIRED, nullable = true) String returnTrackingNo,
@@ -53,7 +57,9 @@ public record TicketResponse(
                 t.getType(),
                 t.getStatus(),
                 availableActions,
+                t.getReasonCode(),
                 t.getReason(),
+                t.isNoReasonEnforced(),
                 t.refundAmountAsMoney(),
                 t.getReturnLogisticsCompany(),
                 t.getReturnTrackingNo(),

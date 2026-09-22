@@ -106,7 +106,8 @@ export const zUpdateProductRequest = z.object({
     detailImages: z.array(z.string().min(0).max(255)).optional(),
     mainImage: z.string().min(0).max(255).optional(),
     images: z.array(z.string().min(0).max(255)).optional(),
-    params: z.array(zParamItem).optional()
+    params: z.array(zParamItem).optional(),
+    sevenDayReturn: z.boolean().optional()
 });
 
 export const zProductStatus = z.enum([
@@ -143,6 +144,7 @@ export const zProductResponse = z.object({
     stock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     status: zProductStatus,
+    sevenDayReturn: z.boolean(),
     createdAt: z.iso.datetime({ offset: true }),
     updatedAt: z.iso.datetime({ offset: true })
 });
@@ -523,7 +525,8 @@ export const zCreateProductRequest = z.object({
     detailImages: z.array(z.string().min(0).max(255)).optional(),
     mainImage: z.string().min(0).max(255).optional(),
     images: z.array(z.string().min(0).max(255)).optional(),
-    params: z.array(zParamItem).optional()
+    params: z.array(zParamItem).optional(),
+    sevenDayReturn: z.boolean().optional()
 });
 
 export const zUploadTicket = z.object({
@@ -563,10 +566,21 @@ export const zPaymentResponse = z.object({
     paidAt: z.iso.datetime({ offset: true }).nullable()
 });
 
+export const zAfterSaleReason = z.enum([
+    'NO_REASON',
+    'QUALITY_ISSUE',
+    'NOT_AS_DESCRIBED',
+    'DAMAGED',
+    'WRONG_ITEM',
+    'MISSING_ITEM',
+    'OTHER'
+]);
+
 export const zTicketType = z.enum(['REFUND_ONLY', 'RETURN_REFUND']);
 
 export const zApplyAfterSaleRequest = z.object({
     type: zTicketType,
+    reasonCode: zAfterSaleReason,
     reason: z.string().min(0).max(200).optional()
 });
 
@@ -593,7 +607,9 @@ export const zTicketResponse = z.object({
     type: zTicketType,
     status: zTicketStatus,
     availableActions: z.array(zTicketAvailableAction),
+    reasonCode: zAfterSaleReason.nullable(),
     reason: z.string().nullable(),
+    noReasonEnforced: z.boolean(),
     refundAmount: zMoney.nullable(),
     returnLogisticsCompany: z.string().nullable(),
     returnTrackingNo: z.string().nullable(),
@@ -1002,7 +1018,9 @@ export const zSellerTicketItem = z.object({
     type: zTicketType,
     status: zTicketStatus,
     availableActions: z.array(zTicketAvailableAction),
+    reasonCode: zAfterSaleReason.nullable(),
     reason: z.string().nullable(),
+    noReasonEnforced: z.boolean(),
     refundAmount: zMoney.nullable(),
     returnLogisticsCompany: z.string().nullable(),
     returnTrackingNo: z.string().nullable(),
@@ -1193,7 +1211,8 @@ export const zPublicProductResponse = z.object({
     mainImage: z.string().nullable(),
     minPrice: zMoney,
     maxPrice: zMoney,
-    soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+    soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    sevenDayReturn: z.boolean()
 });
 
 export const zPageResultPublicProductResponse = z.object({

@@ -47,7 +47,7 @@ public class ProductReadQuery {
     public Map<UUID, ProductView> productsByIds(Collection<UUID> ids) {
         return IdBatchReader.byIds(
                 jdbc,
-                "SELECT id, shop_id, name, main_image, min_price, max_price, currency, status "
+                "SELECT id, shop_id, name, main_image, min_price, max_price, currency, status, seven_day_return "
                         + "FROM product.products WHERE id IN (:ids)",
                 ids,
                 (rs, i) -> rs.getObject("id", UUID.class),
@@ -58,7 +58,8 @@ public class ProductReadQuery {
                         rs.getString("main_image"),
                         money(rs, "min_price"),
                         money(rs, "max_price"),
-                        ProductStatus.valueOf(rs.getString("status"))));
+                        ProductStatus.valueOf(rs.getString("status")),
+                        rs.getBoolean("seven_day_return")));
     }
 
     /** 单个 SKU 点查（在售校验等单对象消费用），无行返回 empty —— api 包缺席语义统一走 Optional */

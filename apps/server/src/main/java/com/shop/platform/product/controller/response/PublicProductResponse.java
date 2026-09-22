@@ -26,7 +26,9 @@ public record PublicProductResponse(
         @Schema(requiredMode = REQUIRED, nullable = true) String mainImage,
         @Schema(requiredMode = REQUIRED) Money minPrice,
         @Schema(requiredMode = REQUIRED) Money maxPrice,
-        @Schema(requiredMode = REQUIRED) long soldCount) {
+        @Schema(requiredMode = REQUIRED) long soldCount,
+        /** 是否支持七天无理由退货：详情页那枚服务徽标吃这个字段，不再由前端写死一句承诺 */
+        @Schema(requiredMode = REQUIRED) boolean sevenDayReturn) {
 
     public static PublicProductResponse from(Product p) {
         return new PublicProductResponse(
@@ -38,6 +40,7 @@ public record PublicProductResponse(
                 p.getMainImage(),
                 p.minPriceAsMoney(),
                 p.maxPriceAsMoney(),
-                p.getSoldCount());
+                p.getSoldCount(),
+                p.isSevenDayReturn());
     }
 }

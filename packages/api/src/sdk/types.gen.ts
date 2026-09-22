@@ -109,6 +109,7 @@ export type UpdateProductRequest = {
     mainImage?: string;
     images?: Array<string>;
     params?: Array<ParamItem>;
+    sevenDayReturn?: boolean;
 };
 
 export type ProductResponse = {
@@ -127,6 +128,7 @@ export type ProductResponse = {
     stock: number;
     soldCount: number;
     status: ProductStatus;
+    sevenDayReturn: boolean;
     createdAt: string;
     updatedAt: string;
 };
@@ -555,6 +557,7 @@ export type CreateProductRequest = {
     mainImage?: string;
     images?: Array<string>;
     params?: Array<ParamItem>;
+    sevenDayReturn?: boolean;
 };
 
 export type UploadTicket = {
@@ -596,8 +599,21 @@ export const PaymentStatus = {
 
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
 
+export const AfterSaleReason = {
+    NO_REASON: 'NO_REASON',
+    QUALITY_ISSUE: 'QUALITY_ISSUE',
+    NOT_AS_DESCRIBED: 'NOT_AS_DESCRIBED',
+    DAMAGED: 'DAMAGED',
+    WRONG_ITEM: 'WRONG_ITEM',
+    MISSING_ITEM: 'MISSING_ITEM',
+    OTHER: 'OTHER'
+} as const;
+
+export type AfterSaleReason = typeof AfterSaleReason[keyof typeof AfterSaleReason];
+
 export type ApplyAfterSaleRequest = {
     type: TicketType;
+    reasonCode: AfterSaleReason;
     reason?: string;
 };
 
@@ -622,7 +638,9 @@ export type TicketResponse = {
     type: TicketType;
     status: TicketStatus;
     availableActions: Array<TicketAvailableAction>;
+    reasonCode: AfterSaleReason | null;
     reason: string | null;
+    noReasonEnforced: boolean;
     refundAmount: Money | null;
     returnLogisticsCompany: string | null;
     returnTrackingNo: string | null;
@@ -1068,7 +1086,9 @@ export type SellerTicketItem = {
     type: TicketType;
     status: TicketStatus;
     availableActions: Array<TicketAvailableAction>;
+    reasonCode: AfterSaleReason | null;
     reason: string | null;
+    noReasonEnforced: boolean;
     refundAmount: Money | null;
     returnLogisticsCompany: string | null;
     returnTrackingNo: string | null;
@@ -1264,6 +1284,7 @@ export type PublicProductResponse = {
     minPrice: Money;
     maxPrice: Money;
     soldCount: number;
+    sevenDayReturn: boolean;
 };
 
 export type PublicProductDetailResponse = {

@@ -290,6 +290,7 @@ public class OrderService {
                     .currency(line.price().currency())
                     .quantity(line.quantity())
                     .amount(lineAmount.amount())
+                    .sevenDayReturn(line.sevenDayReturn())
                     .build());
         }
         return order;

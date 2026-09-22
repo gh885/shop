@@ -37,6 +37,7 @@ public enum TicketAvailableAction {
     /**
      * 拒绝售后（卖家）：申请阶段落 {@link TicketAction#REJECT}、退货阶段落
      * {@link TicketAction#REJECT_RETURN}（验货不通过），两个方向一个按钮——与 {@link #AGREE} 同款多对一。
+     * 申请阶段那半边在无理由强制单上不下发（见 {@link #sellerActions} 的 noReasonEnforced，AFS-45）。
      */
     REJECT(TicketAction.REJECT, TicketAction.REJECT_RETURN),
 
@@ -75,9 +76,21 @@ public enum TicketAvailableAction {
                 .toList();
     }
 
-    /** 卖家视角当前可执行的动作（工作台行与详情共用；终态返回空） */
-    public static List<TicketAvailableAction> sellerActions(TicketStatus status) {
-        return SELLER.stream().filter(action -> action.usableFrom(status)).toList();
+    /**
+     * 卖家视角当前可执行的动作（工作台行与详情共用；终态返回空）。
+     *
+     * @param noReasonEnforced 本单是否为无理由强制单（AFS-45）。是则 {@link #REJECT} 在<b>申请阶段</b>不下发：
+     *                         消保法第 25 条禁止的是「以不属于质量问题为由拒绝受理无理由退货」，
+     *                         而退货阶段验货不通过（寄回的不是原件、商品已不完好）是另一件事，
+     *                         规章留了争议空间——那条边照旧给，否则买家寄回一块砖头卖家也只能收货退款。
+     *                         强制标记由申请瞬间定格在单上，不随窗口过期而改变
+     */
+    public static List<TicketAvailableAction> sellerActions(TicketStatus status, boolean noReasonEnforced) {
+        boolean rejectBlocked = noReasonEnforced && status == TicketStatus.APPLYING;
+        return SELLER.stream()
+                .filter(action -> !action.equals(REJECT) || !rejectBlocked)
+                .filter(action -> action.usableFrom(status))
+                .toList();
     }
 
     /** 本动作在当前状态下是否可用：转移表里存在一条 from = 当前态的出边 */

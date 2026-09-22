@@ -38,7 +38,7 @@ public class AfterSaleController {
     @ResponseStatus(HttpStatus.CREATED)
     public TicketResponse applyAfterSale(
             @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody ApplyAfterSaleRequest req) {
-        Ticket ticket = afterSaleService.apply(userId, id, req.type(), req.reason());
+        Ticket ticket = afterSaleService.apply(userId, id, req.type(), req.reasonCode(), req.reason());
         return TicketResponse.from(ticket, afterSaleService.buyerActions(ticket));
     }
 

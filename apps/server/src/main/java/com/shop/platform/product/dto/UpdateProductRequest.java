@@ -20,7 +20,9 @@ public record UpdateProductRequest(
         List<@Size(max = 255) String> detailImages,
         @Size(max = 255) String mainImage,
         List<@Size(max = 255) String> images,
-        List<@Valid ParamItem> params) {
+        List<@Valid ParamItem> params,
+        /** 七天无理由退货声明。PATCH：null＝不改（不传与传 false 必须分得开，故用包装类型） */
+        Boolean sevenDayReturn) {
     public UpdateProductRequest {
         if (name != null) name = name.trim();
         if (subtitle != null) subtitle = subtitle.trim();
@@ -28,6 +30,7 @@ public record UpdateProductRequest(
 
     /** 映射为 service 入参 */
     public UpdateBasicCommand toCommand() {
-        return new UpdateBasicCommand(categoryId, name, subtitle, detailImages, mainImage, images, params);
+        return new UpdateBasicCommand(
+                categoryId, name, subtitle, detailImages, mainImage, images, params, sevenDayReturn);
     }
 }

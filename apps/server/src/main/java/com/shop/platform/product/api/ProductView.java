@@ -11,7 +11,15 @@ import java.util.UUID;
  * <p>价格区间是 Money（未定价的草稿两端为 null）：跨模块只传 Money，币种不靠消费方补。
  */
 public record ProductView(
-        UUID id, UUID shopId, String name, String mainImage, Money minPrice, Money maxPrice, ProductStatus status) {
+        UUID id,
+        UUID shopId,
+        String name,
+        String mainImage,
+        Money minPrice,
+        Money maxPrice,
+        ProductStatus status,
+        /** 是否支持七天无理由退货（下单时快照进 orders.items，售后判定读快照） */
+        boolean sevenDayReturn) {
 
     /** 是否已上架（对买家可见的 SPU 态闸门） */
     public boolean published() {

@@ -16,4 +16,6 @@ public record ValidLine(
         Money price,
         Money originalPrice,
         int quantity,
-        int stock) {}
+        int stock,
+        /** 无理由退货声明快照（取自 SPU 当前值）：与 name/price/image 同一批定格，售后判定只读落库后的快照 */
+        boolean sevenDayReturn) {}

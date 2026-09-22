@@ -30,6 +30,8 @@ public record ProductResponse(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Long soldCount,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductStatus status,
+        /** 是否支持七天无理由退货（卖家可声明除外；改它只影响之后的订单，历史订单行的快照不变） */
+        @Schema(requiredMode = REQUIRED) boolean sevenDayReturn,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 
@@ -50,6 +52,7 @@ public record ProductResponse(
                 0,
                 p.getSoldCount(),
                 p.getStatus(),
+                p.isSevenDayReturn(),
                 p.getCreatedAt(),
                 p.getUpdatedAt());
     }
@@ -73,6 +76,7 @@ public record ProductResponse(
                 row.stock(),
                 row.soldCount(),
                 p.getStatus(),
+                p.isSevenDayReturn(),
                 p.getCreatedAt(),
                 p.getUpdatedAt());
     }

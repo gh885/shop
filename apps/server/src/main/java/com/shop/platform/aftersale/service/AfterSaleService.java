@@ -8,6 +8,8 @@ import com.shop.platform.aftersale.mapper.Ticket;
 import com.shop.platform.aftersale.mapper.TicketEvent;
 import com.shop.platform.aftersale.mapper.TicketEventMapper;
 import com.shop.platform.aftersale.mapper.TicketMapper;
+import com.shop.platform.aftersale.model.AfterSaleReason;
+import com.shop.platform.aftersale.model.AfterSaleTimeouts;
 import com.shop.platform.aftersale.model.TicketAction;
 import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
@@ -26,6 +28,7 @@ import com.shop.platform.logistics.api.ReturnShipmentCommand;
 import com.shop.platform.logistics.api.ReturnShipmentView;
 import com.shop.platform.order.api.OrderAfterSaleView;
 import com.shop.platform.order.api.OrderCommand;
+import com.shop.platform.order.api.OrderLineView;
 import com.shop.platform.order.api.OrderReadQuery;
 import com.shop.platform.order.api.OrderSummaryView;
 import com.shop.platform.shop.api.AddressSnapshot;
@@ -79,9 +82,14 @@ public class AfterSaleService {
     private final MerchantAddressReadQuery merchantAddressReadQuery;
 
     // 买家
-    /** 申请售后：仅「已完成 + 申请窗口未过 + 无进行中的单 + 最新单非已退款」可发起；退款口径 = 整单实付（V1 整单售后） */
+    /**
+     * 申请售后：仅「已完成 + 申请窗口未过 + 无进行中的单 + 最新单非已退款」可发起；退款口径 = 整单实付（V1 整单售后）。
+     *
+     * <p>申请瞬间顺手判定这张单是否为<b>无理由强制单</b>（{@link #noReasonEnforced}，AFS-45）并把结论落列：
+     * 法定权利是否成立取决于「申请那一刻」的主张、快照声明与窗口位置，事后现算会随卖家处理时长漂移。
+     */
     @Transactional
-    public Ticket apply(UUID userId, UUID orderId, TicketType type, String reason) {
+    public Ticket apply(UUID userId, UUID orderId, TicketType type, AfterSaleReason reasonCode, String reason) {
         OrderAfterSaleView order = Validate.present(orderReadQuery.afterSaleViewById(orderId), "订单不存在");
         Validate.isTrue(order.userId().equals(userId), 404, "订单不存在");
         Validate.isTrue(order.afterSaleOpenAt(OffsetDateTime.now()), 409, TicketAction.APPLY.conflictMessage());
@@ -99,7 +107,9 @@ public class AfterSaleService {
                 .shopId(order.shopId())
                 .type(type)
                 .status(TicketStatus.APPLYING)
+                .reasonCode(reasonCode)
                 .reason(trimmed)
+                .noReasonEnforced(enforceNoReason(type, reasonCode, order, orderId))
                 .refundAmount(order.payAmount().amount())
                 .currency(order.payAmount().currency())
                 .build();
@@ -107,8 +117,39 @@ public class AfterSaleService {
         DuplicateKeys.conflictOnDuplicate(() -> ticketMapper.insert(ticket), "该订单已有进行中的售后");
         record(ticket, TicketAction.APPLY, trimmed);
         orderCommand.syncAfterSale(orderId, TicketStatus.APPLYING.name(), null);
-        log.info("[AFTERSALE] 申请售后, orderId={}, ticketId={}, type={}", orderId, ticket.getId(), type);
+        log.info(
+                "[AFTERSALE] 申请售后, orderId={}, ticketId={}, type={}, reasonCode={}, noReasonEnforced={}",
+                orderId,
+                ticket.getId(),
+                type,
+                reasonCode,
+                ticket.isNoReasonEnforced());
         return ticket;
+    }
+
+    /**
+     * 七天无理由强制是否成立（消保法第 25 条）：三个条件全中才算——
+     * ① 买家主张的是「无理由退货」（换成质量等原因走普通售后，卖家有权拒绝）；
+     * ② 整单每一行的无理由声明快照都支持；③ 此刻仍在「收到商品起 7 天」内。
+     *
+     * <p>②读订单行快照而不是 SPU 当前值：卖家事后关掉开关抹不掉买家买到手时手上的权利。
+     * 整单粒度（AFS-09）下取 allMatch——一张单里混进一件除外商品，就不整体强退，
+     * 退回普通售后台阶（卖家可拒），而不是给一个整单做不到的承诺。
+     *
+     * <p>③的起算时刻拿不到（既没签收也没完成）时不成立：法定窗口自收到之日起算，
+     * 连「收到」都无从证明时不该把卖家的拒绝权拿走——宁可少强制，不可错强制。
+     */
+    private boolean enforceNoReason(
+            TicketType type, AfterSaleReason reasonCode, OrderAfterSaleView order, UUID orderId) {
+        if (type != TicketType.RETURN_REFUND || reasonCode != AfterSaleReason.NO_REASON) {
+            return false;
+        }
+        OffsetDateTime receivedAt = order.receivedAt();
+        if (receivedAt == null || receivedAt.plus(AfterSaleTimeouts.NO_REASON).isBefore(OffsetDateTime.now())) {
+            return false;
+        }
+        List<OrderLineView> lines = orderReadQuery.linesById(orderId);
+        return !lines.isEmpty() && lines.stream().allMatch(OrderLineView::sevenDayReturn);
     }
 
     /** 撤销申请：APPLYING → CLOSED（终态） */
@@ -205,10 +246,18 @@ public class AfterSaleService {
      *
      * <p>理由<b>必填</b>并原样落时间线 note（AFS-30）：拒绝是卖家单方面的终局决定，买家看不到理由就不知道该
      * 改什么、该不该重新申请，日后有争议也无从判断责任在谁。
+     *
+     * <p>无理由强制单（AFS-45）在<b>申请阶段</b>直接挡掉：消保法第 25 条禁止的是「以不属于质量问题为由拒绝受理」，
+     * 卖家侧本来就不会下发那颗按钮，但按钮的缺席不是授权——不信任前端的第二道门落在单上那个定格的标记列。
+     * 退货阶段（RETURNING）的验货不通过不在此列：寄回的不是原件、商品已不完好，规章留了争议空间。
      */
     @Transactional
     public void reject(UUID shopId, UUID orderId, String reason) {
         Ticket ticket = requireSellerOpen(shopId, orderId, TicketAction.REJECT);
+        Validate.isTrue(
+                !ticket.isNoReasonEnforced() || ticket.getStatus() == TicketStatus.RETURNING,
+                409,
+                "该申请为七天无理由退货，不可拒绝受理");
         TicketAction action =
                 ticket.getStatus() == TicketStatus.RETURNING ? TicketAction.REJECT_RETURN : TicketAction.REJECT;
         transition(ticket, action, Text.trimToNull(reason), u -> {});
@@ -354,7 +403,7 @@ public class AfterSaleService {
         }
         return ticketMapper.selectOpenByOrders(shopId, orderIds).stream()
                 .map(t -> new SellerOrderTicketActions(
-                        t.getOrderId(), TicketAvailableAction.sellerActions(t.getStatus())))
+                        t.getOrderId(), TicketAvailableAction.sellerActions(t.getStatus(), t.isNoReasonEnforced())))
                 .toList();
     }
 
@@ -370,8 +419,10 @@ public class AfterSaleService {
                 order.firstItemName(),
                 ticket.getType(),
                 ticket.getStatus(),
-                TicketAvailableAction.sellerActions(ticket.getStatus()),
+                TicketAvailableAction.sellerActions(ticket.getStatus(), ticket.isNoReasonEnforced()),
+                ticket.getReasonCode(),
                 ticket.getReason(),
+                ticket.isNoReasonEnforced(),
                 ticket.refundAmountAsMoney(),
                 ticket.getReturnLogisticsCompany(),
                 ticket.getReturnTrackingNo(),

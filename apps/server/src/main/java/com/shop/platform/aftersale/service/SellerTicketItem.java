@@ -2,6 +2,7 @@ package com.shop.platform.aftersale.service;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
+import com.shop.platform.aftersale.model.AfterSaleReason;
 import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
@@ -32,8 +33,12 @@ public record SellerTicketItem(
         @Schema(requiredMode = REQUIRED) TicketStatus status,
         /** 卖家视角当前可执行动作（C5b 下发）：行内按钮只吃这个字段，不在前端按状态推导 */
         @Schema(requiredMode = REQUIRED) List<TicketAvailableAction> availableActions,
-        /** 买家申请理由：选填，未填为空 */
+        /** 买家申请原因枚举（判定依据）；V63 前的历史单为 null */
+        @Schema(requiredMode = REQUIRED, nullable = true) AfterSaleReason reasonCode,
+        /** 买家补充说明：选填，未填为空 */
         @Schema(requiredMode = REQUIRED, nullable = true) String reason,
+        /** 无理由强制单（AFS-45）：卖家不可拒绝。随 availableActions 一起下发是为了有话可说——按钮不见了要能解释为什么 */
+        @Schema(requiredMode = REQUIRED) boolean noReasonEnforced,
         /** 退款口径：申请时定格为整单实付；历史/脏数据下可能为空 */
         @Schema(requiredMode = REQUIRED, nullable = true) Money refundAmount,
         /** 退货物流（仅退货退款且买家已回寄后有值） */

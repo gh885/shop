@@ -104,6 +104,9 @@ public class ProductService {
         if (command.params() != null) {
             product.setParams(command.params());
         }
+        if (command.sevenDayReturn() != null) {
+            product.setSevenDayReturn(command.sevenDayReturn());
+        }
         // 4. subtitle「清空调」：空串传进来 = 想清空卖点，而 updateById 忽略 null 字段，用 wrapper 子句单独写 null
         if (command.subtitle() != null && Text.blankToNull(command.subtitle()) == null) {
             productMapper.update(
@@ -243,6 +246,8 @@ public class ProductService {
                 .images(command.images() == null ? List.of() : command.images())
                 .specs(List.of())
                 .params(command.params() == null ? List.of() : command.params())
+                // 未声明 = 支持（消保法默认支持退货，除外得卖家自己说明），不把 null 落库
+                .sevenDayReturn(command.sevenDayReturn() == null || command.sevenDayReturn())
                 .status(ProductStatus.DRAFT)
                 .build();
     }
@@ -257,7 +262,9 @@ public class ProductService {
             List<String> detailImages,
             String mainImage,
             List<String> images,
-            List<ParamItem> params) {}
+            List<ParamItem> params,
+            /** null = 未声明，取法定默认（支持七天无理由退货） */
+            Boolean sevenDayReturn) {}
 
     /** 编辑商品基本信息的业务入参聚合（specs/SKU 之外的字段，与创建同字段去掉 shopId） */
     public record UpdateBasicCommand(
@@ -267,5 +274,7 @@ public class ProductService {
             List<String> detailImages,
             String mainImage,
             List<String> images,
-            List<ParamItem> params) {}
+            List<ParamItem> params,
+            /** null = 不改（PATCH） */
+            Boolean sevenDayReturn) {}
 }

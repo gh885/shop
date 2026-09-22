@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.aftersale.model.AfterSaleReason;
 import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
@@ -55,7 +56,9 @@ class SellerAfterSaleListControllerTest extends WebControllerTestSupport {
                 TicketType.REFUND_ONLY,
                 TicketStatus.APPLYING,
                 List.of(TicketAvailableAction.AGREE, TicketAvailableAction.REJECT),
+                AfterSaleReason.QUALITY_ISSUE,
                 "包装破损",
+                false,
                 Money.ofFen(19900L, "CNY"),
                 null,
                 null,

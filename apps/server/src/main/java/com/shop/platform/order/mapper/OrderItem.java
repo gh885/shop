@@ -13,6 +13,7 @@ import lombok.experimental.SuperBuilder;
  * 订单行项目 —— 下单瞬间的商品快照，存"这一行卖的是什么、单价多少、买了几件"。
  *
  * <p>name/price/image 全部定格：之后 SPU 改名、SKU 调价都不影响旧订单展示与对账。
+ * seven_day_return 同理由定格：它决定买家买到手时有多少退货权利，不能跟着 SPU 后来的设置变。
  * 行落库后永不 UPDATE（改数量 = 取消重下），故无 updated_at。
  */
 @Data
@@ -51,6 +52,12 @@ public class OrderItem extends BaseEntity {
 
     /** 行小计，分，落库固化免读时重算；DB CHECK 钉死 amount = price × quantity */
     private Long amount;
+
+    /**
+     * 七天无理由退货声明快照（下单瞬间取自 SPU）：售后判「卖家能不能拒」只读这一列——
+     * 卖家事后关掉开关，抹不掉买家买到时手上的权利（AFS-45）
+     */
+    private boolean sevenDayReturn;
 
     // 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段）
     public Money priceAsMoney() {
