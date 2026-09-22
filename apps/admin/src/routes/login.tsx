@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { z } from "zod"
 import { useState } from "react"
 
-import { Button, Card, CardContent, Spinner, useAppForm } from "@shop/ui-web"
+import { Button, Card, CardContent, FormError, Spinner, useAppForm } from "@shop/ui-web"
 
 import { adminApi, requireGuest } from "../shared/lib/api"
 import { getDeviceId, tokenStore } from "../shared/lib/api"
@@ -59,47 +59,46 @@ function LoginPage() {
                             <div className="text-xs text-muted-foreground">请使用员工账号登录</div>
                         </div>
                     </div>
-                    <form.AppForm>
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault()
-                                void form.handleSubmit()
-                            }}
-                            className="space-y-4"
-                        >
-                            <form.AppField name="employeeNo">
-                                {(field) => (
-                                    <field.TextField
-                                        label="工号"
-                                        autoComplete="username"
-                                        required
-                                    />
-                                )}
-                            </form.AppField>
-                            <form.AppField name="password">
-                                {(field) => (
-                                    <field.TextField
-                                        label="密码"
-                                        type="password"
-                                        autoComplete="current-password"
-                                        required
-                                    />
-                                )}
-                            </form.AppField>
-                            {loginError && <p className="text-sm text-destructive">{loginError}</p>}
-                            <form.Subscribe selector={(s) => s.isSubmitting}>
-                                {(isSubmitting) => (
-                                    <Button
-                                        type="submit"
-                                        className="w-full"
-                                        disabled={isSubmitting}
-                                    >
-                                        {isSubmitting && <Spinner />}登录
-                                    </Button>
-                                )}
-                            </form.Subscribe>
-                        </form>
-                    </form.AppForm>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            void form.handleSubmit()
+                        }}
+                        className="space-y-4"
+                    >
+                        <form.AppField name="employeeNo">
+                            {(field) => (
+                                <field.TextField
+                                    label="工号"
+                                    autoComplete="username"
+                                    required
+                                />
+                            )}
+                        </form.AppField>
+                        <form.AppField name="password">
+                            {(field) => (
+                                <field.TextField
+                                    label="密码"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    required
+                                />
+                            )}
+                        </form.AppField>
+                        <FormError>{loginError}</FormError>
+                        {/* 登录不是 mutation（token 直接落本地），加载态只能读表单自己的 isSubmitting */}
+                        <form.Subscribe selector={(s) => s.isSubmitting}>
+                            {(isSubmitting) => (
+                                <Button
+                                    type="submit"
+                                    className="w-full"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting && <Spinner />}登录
+                                </Button>
+                            )}
+                        </form.Subscribe>
+                    </form>
                 </CardContent>
             </Card>
         </div>

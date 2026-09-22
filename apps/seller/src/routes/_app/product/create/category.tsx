@@ -1,8 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import { QueryBoundary } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
-import { StateError } from "@shop/ui-web"
 
 import { CategoryStep } from "#/product"
 
@@ -31,7 +29,7 @@ function NewProductCategoryStep() {
             {/* 类目树是本步的全部原料：失败整块换成错误 UI + 官方 reset（与 web 店条同口径），
                 页面外壳与「上一步」不受影响。查询非 suspense 形态，所以不传 pending——
                 加载骨架由 CategoryStep 就地渲染 */}
-            <QueryBoundary fallback={categoryStepErrorFallback}>
+            <QueryBoundary fallback="类目加载失败">
                 <CategoryStep
                     mode={mode ?? "search"}
                     onModeChange={(next) =>
@@ -53,15 +51,5 @@ function NewProductCategoryStep() {
                 />
             </QueryBoundary>
         </div>
-    )
-}
-
-/** 失败态渲染函数（模块作用域：内联箭头会让每次渲染都新建一个组件） */
-function categoryStepErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
-    return (
-        <StateError
-            message={toApiError(error).detail || "类目加载失败"}
-            onRetry={reset}
-        />
     )
 }

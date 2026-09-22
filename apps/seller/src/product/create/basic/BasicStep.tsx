@@ -197,153 +197,151 @@ export function BasicStep({
     }
 
     return (
-        <form.AppForm>
-            <form
-                className="pb-24"
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    submitAs(mode.current)
-                }}
-            >
-                <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight">填写商品信息</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            带 <span className="text-destructive">*</span>{" "}
-                            为必填；点「保存草稿」或「提交商品信息」时才会保存
-                        </p>
-                    </div>
-                    {/* 流程步骤：第一步已完成，当前停在第二步 */}
-                    <ol className="flex items-center gap-1.5 text-sm">
-                        <li className="flex items-center gap-1.5 text-muted-foreground">
-                            <CheckCircle2 className="size-4 text-success" />
-                            选择类目
-                        </li>
-                        <li aria-hidden="true">
-                            <ChevronRight className="size-4 text-muted-foreground/40" />
-                        </li>
-                        <li className="flex items-center gap-1.5 font-medium text-foreground">
-                            <Badge>2</Badge>
-                            填写商品信息
-                        </li>
-                    </ol>
-                </header>
-
-                <div className="sticky top-0 z-30 -mx-6 mb-4 px-6">
-                    <div className="flex h-12 w-full items-center rounded-xl bg-background px-2 shadow-sm">
-                        <Tabs
-                            value={active}
-                            onValueChange={(next) => scrollToSection(String(next))}
-                            className="w-full"
-                        >
-                            <TabsList
-                                variant="line"
-                                className="h-full w-full justify-start"
-                            >
-                                {SECTIONS.map((section) => (
-                                    <TabsTrigger
-                                        key={section.id}
-                                        value={section.id}
-                                        size="lg"
-                                        className="flex-none"
-                                    >
-                                        {section.label}
-                                    </TabsTrigger>
-                                ))}
-                            </TabsList>
-                        </Tabs>
-                    </div>
+        <form
+            className="pb-24"
+            onSubmit={(e) => {
+                e.preventDefault()
+                submitAs(mode.current)
+            }}
+        >
+            <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+                <div>
+                    <h1 className="text-xl font-bold tracking-tight">填写商品信息</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        带 <span className="text-destructive">*</span>{" "}
+                        为必填；点「保存草稿」或「提交商品信息」时才会保存
+                    </p>
                 </div>
+                {/* 流程步骤：第一步已完成，当前停在第二步 */}
+                <ol className="flex items-center gap-1.5 text-sm">
+                    <li className="flex items-center gap-1.5 text-muted-foreground">
+                        <CheckCircle2 className="size-4 text-success" />
+                        选择类目
+                    </li>
+                    <li aria-hidden="true">
+                        <ChevronRight className="size-4 text-muted-foreground/40" />
+                    </li>
+                    <li className="flex items-center gap-1.5 font-medium text-foreground">
+                        <Badge>2</Badge>
+                        填写商品信息
+                    </li>
+                </ol>
+            </header>
 
-                <div className="space-y-6">
-                    {/* 当前类目：千牛式紧凑单项条（白底薄卡 + 面包屑 + 右侧切换），不走大头卡片 */}
-                    <div
-                        id="section-category"
-                        className="flex scroll-mt-16 items-center gap-3 rounded-xl bg-background px-4 py-3 shadow-sm"
+            <div className="sticky top-0 z-30 -mx-6 mb-4 px-6">
+                <div className="flex h-12 w-full items-center rounded-xl bg-background px-2 shadow-sm">
+                    <Tabs
+                        value={active}
+                        onValueChange={(next) => scrollToSection(String(next))}
+                        className="w-full"
                     >
-                        <ListTree className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="shrink-0 text-sm text-muted-foreground">当前类目</span>
-                        {categoryNames.length > 0 ? (
-                            <Breadcrumb className="min-w-0 flex-1">
-                                <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
-                                    {categoryNames.map((name, i) => (
-                                        <Fragment key={name}>
-                                            {i > 0 && <BreadcrumbSeparator />}
-                                            <BreadcrumbItem>
-                                                {i === categoryNames.length - 1 ? (
-                                                    <BreadcrumbPage>{name}</BreadcrumbPage>
-                                                ) : (
-                                                    name
-                                                )}
-                                            </BreadcrumbItem>
-                                        </Fragment>
-                                    ))}
-                                </BreadcrumbList>
-                            </Breadcrumb>
-                        ) : (
-                            <Skeleton className="h-4 w-40 shrink-0" />
-                        )}
-                        <Tooltip disabled={canSwitchCategory}>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={!canSwitchCategory}
-                                        className="shrink-0"
-                                        onClick={onSwitchCategory}
-                                    >
-                                        切换类目
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>类目在发布时确定，发布后不可修改</TooltipContent>
-                        </Tooltip>
-                    </div>
-
-                    <BasicInfoSection
-                        form={form}
-                        uploadImage={uploadImage}
-                    />
-
-                    {editingNotice ? (
-                        <div
-                            role="note"
-                            className="rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground"
+                        <TabsList
+                            variant="line"
+                            className="h-full w-full justify-start"
                         >
-                            {editingNotice}
-                        </div>
-                    ) : undefined}
+                            {SECTIONS.map((section) => (
+                                <TabsTrigger
+                                    key={section.id}
+                                    value={section.id}
+                                    size="lg"
+                                    className="flex-none"
+                                >
+                                    {section.label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+                </div>
+            </div>
 
-                    <SalesInfoSection
-                        fileUpload={uploadImage}
-                        categoryId={categoryId}
-                        selections={selections}
-                        skuRows={skuRows}
-                        listingTime={listingTime}
-                        specsLocked={specsLocked}
-                        listingTimeEditable={listingTimeEditable}
-                        onSelectionsChange={onSelectionsChange}
-                        onSkuRowsChange={onSkuRowsChange}
-                        onListingTimeChange={setListingTime}
-                    />
-
-                    <DetailImagesSection
-                        form={form}
-                        uploadImage={uploadImage}
-                    />
+            <div className="space-y-6">
+                {/* 当前类目：千牛式紧凑单项条（白底薄卡 + 面包屑 + 右侧切换），不走大头卡片 */}
+                <div
+                    id="section-category"
+                    className="flex scroll-mt-16 items-center gap-3 rounded-xl bg-background px-4 py-3 shadow-sm"
+                >
+                    <ListTree className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="shrink-0 text-sm text-muted-foreground">当前类目</span>
+                    {categoryNames.length > 0 ? (
+                        <Breadcrumb className="min-w-0 flex-1">
+                            <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
+                                {categoryNames.map((name, i) => (
+                                    <Fragment key={name}>
+                                        {i > 0 && <BreadcrumbSeparator />}
+                                        <BreadcrumbItem>
+                                            {i === categoryNames.length - 1 ? (
+                                                <BreadcrumbPage>{name}</BreadcrumbPage>
+                                            ) : (
+                                                name
+                                            )}
+                                        </BreadcrumbItem>
+                                    </Fragment>
+                                ))}
+                            </BreadcrumbList>
+                        </Breadcrumb>
+                    ) : (
+                        <Skeleton className="h-4 w-40 shrink-0" />
+                    )}
+                    <Tooltip disabled={canSwitchCategory}>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={!canSwitchCategory}
+                                    className="shrink-0"
+                                    onClick={onSwitchCategory}
+                                >
+                                    切换类目
+                                </Button>
+                            }
+                        />
+                        <TooltipContent>类目在发布时确定，发布后不可修改</TooltipContent>
+                    </Tooltip>
                 </div>
 
-                <ActionBar
-                    submitting={submitting}
-                    creating={creating}
-                    onSubmit={() => submitAsListing(listingTime)}
-                    onSaveDraft={() => submitAs("draft")}
-                    draftEditable={canSaveDraft}
+                <BasicInfoSection
+                    form={form}
+                    uploadImage={uploadImage}
                 />
-            </form>
-        </form.AppForm>
+
+                {editingNotice ? (
+                    <div
+                        role="note"
+                        className="rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground"
+                    >
+                        {editingNotice}
+                    </div>
+                ) : undefined}
+
+                <SalesInfoSection
+                    fileUpload={uploadImage}
+                    categoryId={categoryId}
+                    selections={selections}
+                    skuRows={skuRows}
+                    listingTime={listingTime}
+                    specsLocked={specsLocked}
+                    listingTimeEditable={listingTimeEditable}
+                    onSelectionsChange={onSelectionsChange}
+                    onSkuRowsChange={onSkuRowsChange}
+                    onListingTimeChange={setListingTime}
+                />
+
+                <DetailImagesSection
+                    form={form}
+                    uploadImage={uploadImage}
+                />
+            </div>
+
+            <ActionBar
+                submitting={submitting}
+                creating={creating}
+                onSubmit={() => submitAsListing(listingTime)}
+                onSaveDraft={() => submitAs("draft")}
+                draftEditable={canSaveDraft}
+            />
+        </form>
     )
 }
 

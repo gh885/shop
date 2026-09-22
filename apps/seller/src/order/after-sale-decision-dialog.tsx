@@ -95,7 +95,7 @@ export function AfterSaleDecisionDialog({
 
                 <DialogFooter>
                     <Button
-                        variant="secondary"
+                        variant="outline"
                         onClick={() => onOpenChange(false)}
                     >
                         取消

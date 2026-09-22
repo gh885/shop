@@ -1,4 +1,4 @@
-import { CircleAlert, LogOut, Monitor, Smartphone } from "lucide-react"
+import { LogOut, Monitor, Smartphone } from "lucide-react"
 
 import {
     Button,
@@ -13,6 +13,7 @@ import {
     EmptyDescription,
     EmptyHeader,
     EmptyTitle,
+    FormError,
     Item,
     ItemActions,
     ItemContent,
@@ -89,10 +90,12 @@ function ChangePassword() {
                 <CardDescription>修改后所有设备将退出登录，需重新验证。</CardDescription>
             </CardHeader>
             <CardContent>
-                {/* React 19 form action：React 自动接管提交（无需 preventDefault），校验仍走 TanStack Form */}
                 <form
                     className="max-w-md space-y-3"
-                    action={() => void form.handleSubmit()}
+                    onSubmit={(e) => {
+                        e.preventDefault()
+                        void form.handleSubmit()
+                    }}
                 >
                     <form.AppField name="current">
                         {(field) => (
@@ -125,19 +128,14 @@ function ChangePassword() {
                         )}
                     </form.AppField>
 
-                    {error && (
-                        <p className="flex items-center gap-1.5 text-2xs text-destructive">
-                            <CircleAlert className="size-3.5 shrink-0" />
-                            {error}
-                        </p>
-                    )}
+                    <FormError>{error}</FormError>
 
                     <Button
                         type="submit"
                         disabled={change.isPending}
                         className="w-28"
                     >
-                        {change.isPending ? <Spinner /> : "确认修改"}
+                        {change.isPending && <Spinner />}确认修改
                     </Button>
                 </form>
             </CardContent>

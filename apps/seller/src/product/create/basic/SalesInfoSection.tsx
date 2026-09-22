@@ -3,7 +3,9 @@ import {
     CardContent,
     CardHeader,
     CardTitle,
-    FieldShell,
+    Field,
+    FieldDescription,
+    FieldLabel,
     Label,
     RadioGroup,
     RadioGroupItem,
@@ -11,9 +13,10 @@ import {
     StateError,
 } from "@shop/ui-web"
 import { type Money, toApiError, priceRangeText } from "@shop/common"
+import { useQuery } from "@tanstack/react-query"
 
 import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
-import { useCategorySpecTemplate } from "#/product/queries"
+import { categorySpecTemplateOptions } from "#/product/queries"
 
 import { SalesAttrsEditor } from "./SalesAttrsEditor"
 import { SkuGridEditor } from "./SkuGridEditor"
@@ -57,7 +60,7 @@ export function SalesInfoSection({
     onListingTimeChange: (next: ListingTime) => void
 }) {
     // 区块内聚的取数：失败就地渲染 + 官方 manual 重试（`refetch`），不拖垮整张发布表单
-    const templateQuery = useCategorySpecTemplate(categoryId)
+    const templateQuery = useQuery(categorySpecTemplateOptions(categoryId))
 
     if (templateQuery.isError) {
         return (
@@ -88,11 +91,8 @@ export function SalesInfoSection({
             </CardHeader>
             <CardContent className="space-y-6">
                 {hasSpecs ? (
-                    <FieldShell
-                        label="销售属性"
-                        layout="horizontal"
-                        hint="规范配置销售属性有助于商品转化"
-                    >
+                    <Field orientation="horizontal">
+                        <FieldLabel>销售属性</FieldLabel>
                         <SalesAttrsEditor
                             attrs={template}
                             value={selections}
@@ -100,7 +100,8 @@ export function SalesInfoSection({
                             onChange={onSelectionsChange}
                             uploadImage={fileUpload}
                         />
-                    </FieldShell>
+                        <FieldDescription>规范配置销售属性有助于商品转化</FieldDescription>
+                    </Field>
                 ) : (
                     <p className="text-sm text-muted-foreground">
                         该类目没有可配置的销售属性，SKU 保持单规格。
@@ -108,16 +109,13 @@ export function SalesInfoSection({
                 )}
 
                 {skuRows.length > 0 && (
-                    <FieldShell
-                        label="销售规格"
-                        layout="horizontal"
-                        required
-                    >
+                    <Field orientation="horizontal">
+                        <FieldLabel required>销售规格</FieldLabel>
                         <SkuGridEditor
                             rows={skuRows}
                             onChange={onSkuRowsChange}
                         />
-                    </FieldShell>
+                    </Field>
                 )}
 
                 {/* 一口价/总库存是只读派生汇总，与上方编辑区用分隔线区隔 */}
@@ -132,11 +130,8 @@ export function SalesInfoSection({
                         商品已在上架/仓库状态：此处修改只保存变更、不回退状态；上架、入库请到商品列表操作。
                     </p>
                 ) : (
-                    <FieldShell
-                        label="上架时间"
-                        layout="horizontal"
-                        required
-                    >
+                    <Field orientation="horizontal">
+                        <FieldLabel required>上架时间</FieldLabel>
                         <RadioGroup
                             className="flex items-center gap-8"
                             value={listingTime}
@@ -161,7 +156,7 @@ export function SalesInfoSection({
                                 放入仓库
                             </Label>
                         </RadioGroup>
-                    </FieldShell>
+                    </Field>
                 )}
             </CardContent>
         </Card>
@@ -180,22 +175,18 @@ function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
 
     return (
         <>
-            <FieldShell
-                label="一口价"
-                layout="horizontal"
-                hint="由全部 SKU 价格区间推导；单规格同价只显示一个价"
-            >
+            <Field orientation="horizontal">
+                <FieldLabel>一口价</FieldLabel>
                 <p className="pt-2 text-sm text-foreground tabular-nums">
                     {priceRangeText(min, max)}
                 </p>
-            </FieldShell>
-            <FieldShell
-                label="总库存"
-                layout="horizontal"
-                hint="全部 SKU 库存之和，销售属性/规格变更后自动重算"
-            >
+                <FieldDescription>由全部 SKU 价格区间推导；单规格同价只显示一个价</FieldDescription>
+            </Field>
+            <Field orientation="horizontal">
+                <FieldLabel>总库存</FieldLabel>
                 <p className="pt-2 text-sm text-foreground tabular-nums">{totalStock} 件</p>
-            </FieldShell>
+                <FieldDescription>全部 SKU 库存之和，销售属性/规格变更后自动重算</FieldDescription>
+            </Field>
         </>
     )
 }

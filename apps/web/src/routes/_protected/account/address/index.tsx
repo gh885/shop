@@ -61,7 +61,7 @@ function AddressPage() {
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editing, setEditing] = useState<Address | undefined>()
 
-    // 删除确认目标：只需「是哪条 + 怎么念」（地址本身由 useAddressList 持有）
+    // 删除确认目标：只需「是哪条 + 怎么念」（地址本身由上方 useSuspenseQuery 持有）
     const [deleteTarget, setDeleteTarget] = useState<Pick<Address, "id" | "receiver"> | undefined>()
 
     function openCreate() {

@@ -1,16 +1,8 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { CircleAlert, Plus, Trash2 } from "lucide-react"
-import { useBlocker } from "@tanstack/react-router"
-import { toApiError } from "@shop/common"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { useUnsavedLeaveGuard } from "@shop/app-kit"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
     Button,
     Card,
     CardAction,
@@ -18,10 +10,12 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
+    Field,
     FieldContent,
     FieldDescription,
-    FieldShell,
+    FieldLabel,
     FieldTitle,
+    FormError,
     Spinner,
     Switch,
     useAppForm,
@@ -38,7 +32,7 @@ import {
     type ShippingTemplateFormValues,
     validateShippingTemplateForm,
 } from "./model"
-import { useSaveShippingTemplate, useShippingTemplate } from "./queries"
+import { shippingTemplateOptions, useSaveShippingTemplate } from "./queries"
 function RegionRulesEditor({
     value,
     onChange,
@@ -111,17 +105,15 @@ function RegionRulesEditor({
                                 </Button>
                             </div>
                             <div className="space-y-4">
-                                <FieldShell
-                                    label="覆盖地区"
-                                    required
-                                >
+                                <Field>
+                                    <FieldLabel required>覆盖地区</FieldLabel>
                                     <RegionMultiPicker
                                         value={rule.regionPrefixes}
                                         onChange={(regionPrefixes) =>
                                             update(index, { regionPrefixes })
                                         }
                                     />
-                                </FieldShell>
+                                </Field>
                                 <FeeTierInputs
                                     value={rule}
                                     onChange={(next) => update(index, next)}
@@ -137,34 +129,22 @@ function RegionRulesEditor({
 export function ShippingTemplatePage() {
     const shop = useShop()
     const shopId = shop.id
-    const templateQuery = useShippingTemplate(shopId)
+    const templateQuery = useSuspenseQuery(shippingTemplateOptions(shopId))
     const save = useSaveShippingTemplate(shopId)
-    const [serverError, setServerError] = useState<string>()
 
     const defaultValues = useMemo(() => shippingTemplateFormFromResponse(undefined), [])
     const form = useAppForm({
         defaultValues,
+        // 跨字段条款（地区重复、包邮门槛格式等）是表单级校验：错误挂在 errorMap.onSubmit，底部统一渲染
+        validators: { onSubmit: ({ value }) => validateShippingTemplateForm(value) },
+        // 保存失败由全局写操作反馈 toast，这里不再自己接
         onSubmit: async ({ value }: { value: ShippingTemplateFormValues }) => {
-            setServerError(undefined)
-            const validationError = validateShippingTemplateForm(value)
-            if (validationError) {
-                setServerError(validationError)
-                return
-            }
-
-            try {
-                await save.mutateAsync(shippingTemplateRequestFromForm(value))
-                form.reset(value)
-            } catch (error) {
-                setServerError(toApiError(error).detail)
-            }
+            await save.mutateAsync(shippingTemplateRequestFromForm(value))
+            form.reset(value)
         },
     })
 
-    const blocker = useBlocker({
-        shouldBlockFn: () => form.state.isDirty && !save.isPending,
-        withResolver: true,
-    })
+    useUnsavedLeaveGuard(() => form.state.isDirty && !save.isPending)
 
     // 当前店铺/远端模板变化时重新灌值；保存后 queryCache 回写也会走到这里。
     // suspense 形态下渲染到这里必有数据（加载中挂在路由 pendingComponent，失败在错误页）
@@ -289,27 +269,22 @@ export function ShippingTemplatePage() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <FieldShell label="选择地区">
+                                    <Field>
+                                        <FieldLabel>选择地区</FieldLabel>
                                         <RegionMultiPicker
                                             value={field.state.value}
                                             onChange={field.handleChange}
                                             placeholder="选择不配送的省 / 市 / 区"
                                         />
-                                    </FieldShell>
+                                    </Field>
                                 </CardContent>
                             </Card>
                         )}
                     </form.AppField>
                 </div>
-                {serverError ? (
-                    <p
-                        role="alert"
-                        className="mt-4 flex items-center gap-2 rounded-lg bg-destructive-subtle px-4 py-2.5 text-sm text-destructive-subtle-foreground"
-                    >
-                        <CircleAlert className="size-4 shrink-0" />
-                        {serverError}
-                    </p>
-                ) : undefined}
+                <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+                    {(error) => <FormError className="mt-4">{error}</FormError>}
+                </form.Subscribe>
 
                 <div className="sticky bottom-0 z-30 mt-4 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur">
                     <p className="text-xs text-muted-foreground">
@@ -319,37 +294,11 @@ export function ShippingTemplatePage() {
                         type="submit"
                         disabled={save.isPending}
                     >
-                        {save.isPending ? <Spinner /> : undefined}
+                        {save.isPending && <Spinner />}
                         {isNew ? "创建运费模板" : "保存"}
                     </Button>
                 </div>
             </form>
-            {blocker.status === "blocked" ? (
-                <AlertDialog
-                    open
-                    onOpenChange={(open) => {
-                        if (!open) blocker.reset()
-                    }}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>有未保存的更改</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                离开后当前页面的修改将丢失，确定要离开吗？
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>继续编辑</AlertDialogCancel>
-                            <AlertDialogAction
-                                variant="destructive"
-                                onClick={blocker.proceed}
-                            >
-                                放弃修改
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            ) : undefined}
         </div>
     )
 }

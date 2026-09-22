@@ -1,22 +1,12 @@
 import { useEffect, useRef, useState } from "react"
-import { createFileRoute, useBlocker, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { CircleAlert } from "lucide-react"
 
 import { toApiError } from "@shop/common"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@shop/ui-web"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
 import { useProductDraft } from "#/product/create/basic/use-product-draft"
-import { notify } from "@shop/app-kit"
+import { notify, useUnsavedLeaveGuard } from "@shop/app-kit"
 import { useShop } from "#/shop"
 
 interface BasicSearch {
@@ -54,7 +44,7 @@ function NewProductBasicStep() {
             }),
     })
 
-    // 未保存更改离开提醒
+    // 未保存更改离开提醒（脏判定 + 基线复位归本页，拦截与确认面见 useUnsavedLeaveGuard）
     // onBasicChange 会在表单值每次变化（含回填）时触发：以回填完成后的首个观测值为基线，
     // 其后内容变化即视为脏。hydratedBasic 变化（编辑回填完成）时重置基线，避免把程序性回填误判为用户编辑。
     const [dirty, setDirty] = useState(false)
@@ -74,18 +64,7 @@ function NewProductBasicStep() {
         }
     }
 
-    const blocker = useBlocker({
-        shouldBlockFn: () => dirty,
-        withResolver: true,
-    })
-    const leaveOpen = blocker.status === "blocked"
-    // 关闭页面/刷新兜底（路由内跳转由 blocker 处理）
-    useEffect(() => {
-        if (!dirty) return
-        const handler = (e: BeforeUnloadEvent) => e.preventDefault()
-        window.addEventListener("beforeunload", handler)
-        return () => window.removeEventListener("beforeunload", handler)
-    }, [dirty])
+    useUnsavedLeaveGuard(() => dirty, { onLeave: () => setDirty(false) })
 
     // 编辑已有商品时把状态带到发布页（BasicStep 据此决定能否切类目 / 规格是否冻结）；新建无。
     // 类型即 useProductDraft 返回的 ProductStatus | undefined（DraftProductStatus 别名已在重构中删除）
@@ -147,37 +126,6 @@ function NewProductBasicStep() {
                         {serverError}
                     </p>
                 </div>
-            ) : undefined}
-
-            {/* 未保存更改：拦截路由内跳转（含切类目/侧边栏），确认丢弃才继续 */}
-            {leaveOpen ? (
-                <AlertDialog
-                    open
-                    onOpenChange={(open) => {
-                        if (!open) blocker.reset()
-                    }}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>有未保存的更改</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                离开后当前页面的修改将丢失，确定要离开吗？
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>继续编辑</AlertDialogCancel>
-                            <AlertDialogAction
-                                variant="destructive"
-                                onClick={() => {
-                                    setDirty(false)
-                                    blocker.proceed()
-                                }}
-                            >
-                                丢弃更改并离开
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             ) : undefined}
         </div>
     )

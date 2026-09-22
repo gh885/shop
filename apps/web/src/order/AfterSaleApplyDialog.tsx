@@ -8,14 +8,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    FieldShell,
-    firstFieldError,
-    Item,
-    ItemContent,
-    ItemDescription,
-    ItemTitle,
-    RadioGroup,
-    RadioGroupItem,
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
@@ -29,6 +21,7 @@ import { useApplyAfterSale } from "./after-sale-queries"
  * 两类售后对买家的承诺完全不同（仅退款=不用寄回，退货退款=要寄回），所以类型用带说明的单选，
  * 不用下拉——把「要不要寄回」这句话摆在选择项里，比选完再解释便宜。
  * 理由是选填（后端 reason 可空），空串按没填处理。
+ * 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，每次打开都回到默认值。
  */
 
 /** 表单入参校验（与后端 @Size(max = 200) 对齐；表单局部 schema，非领域契约） */
@@ -43,8 +36,11 @@ const DEFAULT_VALUES: { type: TicketType; reason: string } = {
     reason: "",
 }
 
-/** 单选回传的是 string，收窄成契约枚举再进表单：非法值不进表单状态，也就不必在提交时兜底 */
-const isTicketType = (value: string): value is TicketType => value in TicketType
+const TYPE_OPTIONS = AFTER_SALE_TYPE_ORDER.map((type) => ({
+    value: type,
+    label: AFTER_SALE_TYPE_LABEL[type],
+    description: AFTER_SALE_TYPE_HINT[type],
+}))
 
 export interface AfterSaleApplyDialogProps {
     open: boolean
@@ -54,12 +50,23 @@ export interface AfterSaleApplyDialogProps {
     orderNo: string
 }
 
-export function AfterSaleApplyDialog({
-    open,
-    onOpenChange,
-    orderId,
-    orderNo,
-}: AfterSaleApplyDialogProps) {
+export function AfterSaleApplyDialog({ open, onOpenChange, ...props }: AfterSaleApplyDialogProps) {
+    return (
+        <Dialog
+            open={open}
+            onOpenChange={onOpenChange}
+        >
+            <DialogContent className="sm:max-w-lg">
+                <ApplyForm
+                    {...props}
+                    onOpenChange={onOpenChange}
+                />
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialogProps, "open">) {
     const apply = useApplyAfterSale(orderId)
 
     const form = useAppForm({
@@ -68,104 +75,63 @@ export function AfterSaleApplyDialog({
         // 用 mutate 而不是 mutateAsync：失败已在 mutation 的 onError 里统一提示（notify.fromError），
         // 这里再 await 一个必然 reject 的 promise 只会得到一个没人接的 unhandled rejection
         onSubmit: ({ value }) => {
-            apply.mutate(value, {
-                onSuccess: () => {
-                    onOpenChange(false)
-                    form.reset()
-                },
-            })
+            apply.mutate(value, { onSuccess: () => onOpenChange(false) })
         },
     })
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={onOpenChange}
-        >
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>申请售后</DialogTitle>
-                    <DialogDescription>
-                        订单号 {orderNo}。提交后由卖家处理，处理前你可以随时撤销。
-                    </DialogDescription>
-                </DialogHeader>
+        <>
+            <DialogHeader>
+                <DialogTitle>申请售后</DialogTitle>
+                <DialogDescription>
+                    订单号 {orderNo}。提交后由卖家处理，处理前你可以随时撤销。
+                </DialogDescription>
+            </DialogHeader>
 
-                <form
-                    className="mt-4 flex flex-col gap-5"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        void form.handleSubmit()
-                    }}
-                >
-                    <form.AppField name="type">
-                        {(field) => (
-                            <FieldShell
-                                label="售后类型"
-                                required
-                                error={firstFieldError(field)}
-                            >
-                                <RadioGroup
-                                    value={field.state.value}
-                                    onValueChange={(v: string) => {
-                                        if (isTicketType(v)) field.handleChange(v)
-                                    }}
-                                >
-                                    {AFTER_SALE_TYPE_ORDER.map((type) => (
-                                        <Item
-                                            key={type}
-                                            variant={
-                                                field.state.value === type
-                                                    ? "selected"
-                                                    : "selectable"
-                                            }
-                                            size="sm"
-                                        >
-                                            {/* 可访问名与可见标题同词（label-in-name）：类型名短，说明留在行内灰字里 */}
-                                            <RadioGroupItem
-                                                value={type}
-                                                aria-label={AFTER_SALE_TYPE_LABEL[type]}
-                                            />
-                                            <ItemContent>
-                                                <ItemTitle>{AFTER_SALE_TYPE_LABEL[type]}</ItemTitle>
-                                                <ItemDescription lines={1}>
-                                                    {AFTER_SALE_TYPE_HINT[type]}
-                                                </ItemDescription>
-                                            </ItemContent>
-                                        </Item>
-                                    ))}
-                                </RadioGroup>
-                            </FieldShell>
-                        )}
-                    </form.AppField>
+            <form
+                className="mt-4 flex flex-col gap-5"
+                onSubmit={(e) => {
+                    e.preventDefault()
+                    void form.handleSubmit()
+                }}
+            >
+                <form.AppField name="type">
+                    {(field) => (
+                        <field.RadioGroupField
+                            label="售后类型"
+                            required
+                            options={TYPE_OPTIONS}
+                        />
+                    )}
+                </form.AppField>
 
-                    <form.AppField name="reason">
-                        {(field) => (
-                            <field.TextareaField
-                                label="售后理由"
-                                placeholder="说明问题，便于卖家判断（选填）"
-                                maxLength={200}
-                                rows={3}
-                            />
-                        )}
-                    </form.AppField>
+                <form.AppField name="reason">
+                    {(field) => (
+                        <field.TextareaField
+                            label="售后理由"
+                            placeholder="说明问题，便于卖家判断（选填）"
+                            maxLength={200}
+                            rows={3}
+                        />
+                    )}
+                </form.AppField>
 
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                        >
-                            取消
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={apply.isPending}
-                        >
-                            {apply.isPending && <Spinner />}提交申请
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        取消
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={apply.isPending}
+                    >
+                        {apply.isPending && <Spinner />}提交申请
+                    </Button>
+                </DialogFooter>
+            </form>
+        </>
     )
 }

@@ -1,6 +1,15 @@
-import { FieldShell, Input } from "@shop/ui-web"
+import { useId } from "react"
+
+import { Field, FieldLabel, Input } from "@shop/ui-web"
 
 import type { FeeTierFormValue } from "../model"
+
+const TIERS = [
+    { key: "firstQuantity", label: "首件（件）", inputMode: "numeric" },
+    { key: "firstFee", label: "首费（元）", inputMode: "decimal" },
+    { key: "addQuantity", label: "续件（件）", inputMode: "numeric" },
+    { key: "addFee", label: "续费（元）", inputMode: "decimal" },
+] as const
 
 export function FeeTierInputs({
     value,
@@ -9,52 +18,25 @@ export function FeeTierInputs({
     value: FeeTierFormValue
     onChange: (value: FeeTierFormValue) => void
 }) {
-    function patch<Key extends keyof FeeTierFormValue>(key: Key, next: FeeTierFormValue[Key]) {
-        onChange({ ...value, [key]: next })
-    }
-
+    const id = useId()
     return (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <FieldShell
-                label="首件（件）"
-                required
-            >
-                <Input
-                    value={value.firstQuantity}
-                    inputMode="numeric"
-                    onChange={(event) => patch("firstQuantity", event.target.value)}
-                />
-            </FieldShell>
-            <FieldShell
-                label="首费（元）"
-                required
-            >
-                <Input
-                    value={value.firstFee}
-                    inputMode="decimal"
-                    onChange={(event) => patch("firstFee", event.target.value)}
-                />
-            </FieldShell>
-            <FieldShell
-                label="续件（件）"
-                required
-            >
-                <Input
-                    value={value.addQuantity}
-                    inputMode="numeric"
-                    onChange={(event) => patch("addQuantity", event.target.value)}
-                />
-            </FieldShell>
-            <FieldShell
-                label="续费（元）"
-                required
-            >
-                <Input
-                    value={value.addFee}
-                    inputMode="decimal"
-                    onChange={(event) => patch("addFee", event.target.value)}
-                />
-            </FieldShell>
+            {TIERS.map((tier) => (
+                <Field key={tier.key}>
+                    <FieldLabel
+                        htmlFor={id + tier.key}
+                        required
+                    >
+                        {tier.label}
+                    </FieldLabel>
+                    <Input
+                        id={id + tier.key}
+                        value={value[tier.key]}
+                        inputMode={tier.inputMode}
+                        onChange={(event) => onChange({ ...value, [tier.key]: event.target.value })}
+                    />
+                </Field>
+            ))}
         </div>
     )
 }

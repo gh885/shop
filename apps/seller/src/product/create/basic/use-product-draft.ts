@@ -1,9 +1,9 @@
 import { ProductsAdminApi } from "@shop/api/sdk"
 import { useEffect, useReducer, useRef, useState } from "react"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 
 import { publishGateError, willPublish, type SaveMode } from "#/product/edit-rules"
-import { useCategorySpecTemplate, useProductDetail } from "#/product/queries"
+import { categorySpecTemplateOptions, productDetailOptions } from "#/product/queries"
 import { notify } from "@shop/app-kit"
 import {
     buildSkuRowsFromSelections,
@@ -81,7 +81,7 @@ export function useProductDraft({
     const [hydrated, setHydrated] = useState(false)
     const [hydratedBasic, setHydratedBasic] = useState<ProductBasicForm | undefined>()
     /** 类目销售属性模板：前端本地算 SKU 组合用（完全显式模式，无需后端生成）；失败静默，组合留空 */
-    const template = useCategorySpecTemplate(categoryId).data
+    const template = useQuery(categorySpecTemplateOptions(categoryId)).data
     /** 商品 id（编辑已有商品进入即有；新建保存后回写） */
     const productRef = useRef(productId)
     /** 本会话内点保存创建（非续编）：表单即真相源，回填/值不应被 productDetail 回灌 reset */
@@ -90,7 +90,9 @@ export function useProductDraft({
 
     // 编辑回填的数据源：与列表页编辑弹窗共用一份缓存（productKeys.detail），
     // 不再自己 useEffect + useState 拉一份拷贝 —— 否则弹窗改完 SKU，发布页看到的还是旧值
-    const detailQuery = useProductDetail(createdThisSessionRef.current ? undefined : productId)
+    const detailQuery = useQuery(
+        productDetailOptions(createdThisSessionRef.current ? undefined : productId),
+    )
     const detail = detailQuery.data
     /** 编辑已有商品时的当前状态（新建为 undefined）：决定能否切类目/规格是否冻结 */
     const productStatus = detail?.product.status

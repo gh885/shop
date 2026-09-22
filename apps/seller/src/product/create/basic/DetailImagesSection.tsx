@@ -1,4 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle, FieldShell, ImageUploadGrid } from "@shop/ui-web"
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    Field,
+    FieldDescription,
+    FieldLabel,
+    ImageUploadGrid,
+} from "@shop/ui-web"
 
 import { imgUrl } from "#/shared/lib/image"
 
@@ -31,11 +40,8 @@ export function DetailImagesSection({
             <CardContent className="space-y-5">
                 <form.AppField name="detailImages">
                     {(field) => (
-                        <FieldShell
-                            label="详情图"
-                            layout="horizontal"
-                            hint="按顺序铺开渲染，可拖拽排序；建议 750 宽竖长图、单张 5MB 以内"
-                        >
+                        <Field orientation="horizontal">
+                            <FieldLabel>详情图</FieldLabel>
                             <ImageUploadGrid
                                 value={field.state.value}
                                 onChange={(imgs) => field.handleChange(imgs)}
@@ -46,7 +52,10 @@ export function DetailImagesSection({
                                 resolveSrc={imgUrl}
                                 className="max-w-132"
                             />
-                        </FieldShell>
+                            <FieldDescription>
+                                按顺序铺开渲染，可拖拽排序；建议 750 宽竖长图、单张 5MB 以内
+                            </FieldDescription>
+                        </Field>
                     )}
                 </form.AppField>
             </CardContent>

@@ -1,20 +1,17 @@
-import { useEffect, useState } from "react"
 import { z } from "zod"
 
+import { RegionField } from "@shop/app-kit"
 import {
     Button,
     Dialog,
     DialogContent,
+    DialogFooter,
     DialogTitle,
-    FieldShell,
-    firstFieldError,
-    RegionPicker,
     type RegionNode,
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
-import { findPath, loadChildren } from "@shop/common"
 
 import { useCreateAddress, useUpdateAddress } from "./queries"
 
@@ -96,15 +93,28 @@ export interface AddressFormDialogProps {
     editing?: MerchantAddressResponse
 }
 
-/** 新增/编辑商家地址表单弹窗（对齐淘宝地址库表单） */
+/** 新增/编辑商家地址表单弹窗（对齐淘宝地址库表单）。表单体挂在 DialogContent 里：
+    BaseUI 关闭即卸载，每次打开重挂载让默认值从当前 editing 重算，无需 effect 手动重置。 */
 export function AddressFormDialog({ open, onOpenChange, shopId, editing }: AddressFormDialogProps) {
+    return (
+        <Dialog
+            open={open}
+            onOpenChange={onOpenChange}
+        >
+            <DialogContent className="sm:max-w-xl">
+                <AddressForm
+                    shopId={shopId}
+                    editing={editing}
+                    onOpenChange={onOpenChange}
+                />
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogProps, "open">) {
     const create = useCreateAddress(shopId)
     const update = useUpdateAddress(shopId)
-    const isEdit = Boolean(editing)
-
-    const [regionPath, setRegionPath] = useState<RegionNode[]>([])
-    // 编辑回填需异步反查路径，路径就绪后再渲染 RegionPicker（它只在挂载时加载）
-    const [regionReady, setRegionReady] = useState(!editing)
 
     const form = useAppForm({
         defaultValues: toDefaults(editing),
@@ -116,38 +126,11 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
                 await create.mutateAsync(value)
             }
             onOpenChange(false)
-            form.reset()
         },
     })
 
-    // 打开/切换编辑目标时重置本地状态：渲染期状态调整模式（对 React Compiler 友好）
-    const editKey = open ? (editing?.id ?? "new") : "closed"
-    const [prevEditKey, setPrevEditKey] = useState(editKey)
-    if (prevEditKey !== editKey) {
-        setPrevEditKey(editKey)
-        if (open) {
-            setRegionPath([])
-            setRegionReady(!editing)
-        }
-    }
-
-    // form.reset 同步外部表单 store + 编辑回填异步反查地区路径
-    useEffect(() => {
-        if (!open) return
-        form.reset(toDefaults(editing))
-        if (editing) {
-            // oxlint-disable-next-line promise/always-return -- 终态副作用,链尾无下一环,无需返回值
-            void findPath(editing.regionCode).then((path) => {
-                setRegionPath(path)
-                setRegionReady(true)
-            })
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, editing])
-
     /** 地区路径 → 表单四字段同步（province/city/district/regionCode） */
     function applyRegion(path: RegionNode[]) {
-        setRegionPath(path)
         form.setFieldValue("province", path[0]?.label ?? "")
         form.setFieldValue("city", path[1]?.label ?? "")
         form.setFieldValue("district", path[2]?.label ?? "")
@@ -157,97 +140,76 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
     const busy = create.isPending || update.isPending
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={onOpenChange}
-        >
-            <DialogContent className="sm:max-w-xl">
-                <DialogTitle>{isEdit ? "编辑地址" : "新增地址"}</DialogTitle>
+        <>
+            <DialogTitle>{editing ? "编辑地址" : "新增地址"}</DialogTitle>
 
-                <form
-                    className="mt-4 flex flex-col gap-5"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        void form.handleSubmit()
-                    }}
-                >
-                    {CONTACT_FIELDS.map(({ name, ...props }) => (
-                        <form.AppField
-                            key={name}
-                            name={name}
-                        >
-                            {(field) => (
-                                <field.TextField
-                                    {...props}
-                                    required
-                                    layout="horizontal"
-                                />
-                            )}
-                        </form.AppField>
-                    ))}
-
-                    {/* 地区：国标行政区划级联选择 */}
-                    <form.AppField name="regionCode">
+            <form
+                className="mt-4 flex flex-col gap-5"
+                onSubmit={(e) => {
+                    e.preventDefault()
+                    void form.handleSubmit()
+                }}
+            >
+                {CONTACT_FIELDS.map(({ name, ...props }) => (
+                    <form.AppField
+                        key={name}
+                        name={name}
+                    >
                         {(field) => (
-                            <FieldShell
-                                label="所在地区"
+                            <field.TextField
+                                {...props}
                                 required
-                                layout="horizontal"
-                                error={firstFieldError(field)}
-                            >
-                                {regionReady && (
-                                    <RegionPicker
-                                        value={regionPath}
-                                        onChange={applyRegion}
-                                        loadChildren={loadChildren}
-                                        levelLabels={["省", "市", "区"]}
-                                        placeholder="请选择省/市/区"
-                                    />
-                                )}
-                            </FieldShell>
+                            />
                         )}
                     </form.AppField>
+                ))}
 
-                    {ADDRESS_FIELDS.map(({ name, ...props }) => (
-                        <form.AppField
-                            key={name}
-                            name={name}
-                        >
-                            {(field) => (
-                                <field.TextField
-                                    {...props}
-                                    layout="horizontal"
-                                />
-                            )}
-                        </form.AppField>
-                    ))}
+                {/* 地区：国标行政区划级联选择 */}
+                <form.AppField name="regionCode">
+                    {(field) => (
+                        <RegionField
+                            code={field.state.value}
+                            onChange={applyRegion}
+                            errors={field.state.meta.errors}
+                            required
+                        />
+                    )}
+                </form.AppField>
 
-                    <div className="flex items-center gap-6 pl-16">
-                        <form.AppField name="defaultShip">
-                            {(field) => <field.CheckboxField label="默认发货地址" />}
-                        </form.AppField>
-                        <form.AppField name="defaultReturn">
-                            {(field) => <field.CheckboxField label="默认退货地址" />}
-                        </form.AppField>
-                    </div>
+                {ADDRESS_FIELDS.map(({ name, ...props }) => (
+                    <form.AppField
+                        key={name}
+                        name={name}
+                    >
+                        {(field) => <field.TextField {...props} />}
+                    </form.AppField>
+                ))}
 
-                    <div className="mt-2 flex justify-end gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                        >
-                            放弃
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={busy}
-                        >
-                            {busy && <Spinner />}保存
-                        </Button>
-                    </div>
-                </form>
-            </DialogContent>
-        </Dialog>
+                <div className="flex items-center gap-6">
+                    <form.AppField name="defaultShip">
+                        {(field) => <field.CheckboxField label="默认发货地址" />}
+                    </form.AppField>
+                    <form.AppField name="defaultReturn">
+                        {(field) => <field.CheckboxField label="默认退货地址" />}
+                    </form.AppField>
+                </div>
+
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        取消
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={busy}
+                    >
+                        {busy && <Spinner />}保存
+                    </Button>
+                </DialogFooter>
+            </form>
+        </>
     )
 }

@@ -71,10 +71,12 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
 
                 <div className="space-y-4">
                     <h3 className="text-base font-semibold">昵称</h3>
-                    {/* React 19 form action：React 自动接管提交（无需 preventDefault），校验仍走 TanStack Form */}
                     <form
                         className="max-w-md space-y-3"
-                        action={() => void form.handleSubmit()}
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            void form.handleSubmit()
+                        }}
                     >
                         <form.AppField name="nickname">
                             {(field) => (
@@ -90,7 +92,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                             disabled={update.isPending}
                             className="w-28"
                         >
-                            {update.isPending ? <Spinner /> : "保存"}
+                            {update.isPending && <Spinner />}保存
                         </Button>
                     </form>
                     <p className="text-xs text-muted-foreground">

@@ -1,10 +1,10 @@
 import { Store, Trash2, UserPlus } from "lucide-react"
 
-import { useShop, shopKeys, useMyShopMembers } from "#/shop"
+import { useShop, shopKeys, shopMembersOptions } from "#/shop"
 import { useMe } from "#/shared/lib/me"
 import { ShopsApi } from "@shop/api/sdk"
 import { createFileRoute } from "@tanstack/react-router"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import {
     Empty,
     EmptyHeader,
@@ -19,8 +19,8 @@ import {
     CardTitle,
     CardContent,
     Button,
-    FieldShell,
-    firstFieldError,
+    Field,
+    FieldError,
     ButtonGroup,
     Input,
     confirm,
@@ -28,7 +28,7 @@ import {
 import { z } from "zod"
 
 /** 邀请手机号校验：与后端手机号 @Pattern 对齐（就近放在表单旁） */
-const InvitePhoneSchema = z.string().regex(/^1\d{10}$/, "请输入正确的手机号")
+const InviteFormSchema = z.object({ phone: z.string().regex(/^1\d{10}$/, "请输入正确的手机号") })
 
 export const Route = createFileRoute("/_app/shop/member")({
     component: MembersPage,
@@ -54,8 +54,8 @@ function MembersPage() {
 function MemberPanel({ shopId }: { shopId: string }) {
     const me = useMe()
 
-    // 成员列表走域内 query hook（key 与失效规则同源，路由不直接拼 key）
-    const members = useMyShopMembers(shopId)
+    // 成员列表走域内 queryOptions（key 与失效规则同源，路由不直接拼 key）
+    const members = useQuery(shopMembersOptions(shopId))
 
     // 身份判定比 userId（uuid），不比 phone：phone 可空且可变更
     const isOwner = members.data?.some(
@@ -74,6 +74,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
 
     const inviteForm = useAppForm({
         defaultValues: { phone: "" },
+        validators: { onSubmit: InviteFormSchema },
         onSubmit: ({ value }) => invite.mutate(value.phone),
     })
 
@@ -161,55 +162,51 @@ function MemberPanel({ shopId }: { shopId: string }) {
                 )}
 
                 {isOwner ? (
-                    <inviteForm.AppForm>
-                        <form
-                            className="mt-5"
-                            onSubmit={(e) => {
-                                e.preventDefault()
-                                void inviteForm.handleSubmit()
-                            }}
-                        >
-                            <inviteForm.AppField
-                                name="phone"
-                                validators={{ onChange: InvitePhoneSchema }}
-                            >
-                                {(field) => (
-                                    <FieldShell error={firstFieldError(field)}>
-                                        <ButtonGroup className="w-full">
-                                            <Input
-                                                id="invite-phone"
-                                                aria-label="被邀请人手机号"
-                                                placeholder="输入对方手机号，邀请加入店铺"
-                                                inputMode="tel"
-                                                maxLength={11}
-                                                value={field.state.value}
-                                                onBlur={field.handleBlur}
-                                                onChange={(e) =>
-                                                    field.handleChange(
-                                                        e.target.value.replaceAll(/\D/g, ""),
-                                                    )
-                                                }
-                                            />
-                                            <inviteForm.Subscribe selector={(s) => s.values.phone}>
-                                                {(phone) => (
-                                                    <Button
-                                                        type="submit"
-                                                        variant="outline"
-                                                        disabled={
-                                                            invite.isPending || phone.length !== 11
-                                                        }
-                                                    >
-                                                        <UserPlus className="size-4" />
-                                                        邀请
-                                                    </Button>
-                                                )}
-                                            </inviteForm.Subscribe>
-                                        </ButtonGroup>
-                                    </FieldShell>
-                                )}
-                            </inviteForm.AppField>
-                        </form>
-                    </inviteForm.AppForm>
+                    <form
+                        className="mt-5"
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            void inviteForm.handleSubmit()
+                        }}
+                    >
+                        <inviteForm.AppField name="phone">
+                            {(field) => (
+                                <Field>
+                                    <ButtonGroup>
+                                        <Input
+                                            aria-label="被邀请人手机号"
+                                            aria-invalid={!field.state.meta.isValid}
+                                            placeholder="输入对方手机号，邀请加入店铺"
+                                            inputMode="tel"
+                                            maxLength={11}
+                                            value={field.state.value}
+                                            onBlur={field.handleBlur}
+                                            onChange={(e) =>
+                                                field.handleChange(
+                                                    e.target.value.replaceAll(/\D/g, ""),
+                                                )
+                                            }
+                                        />
+                                        <inviteForm.Subscribe selector={(s) => s.values.phone}>
+                                            {(phone) => (
+                                                <Button
+                                                    type="submit"
+                                                    variant="outline"
+                                                    disabled={
+                                                        invite.isPending || phone.length !== 11
+                                                    }
+                                                >
+                                                    <UserPlus className="size-4" />
+                                                    邀请
+                                                </Button>
+                                            )}
+                                        </inviteForm.Subscribe>
+                                    </ButtonGroup>
+                                    <FieldError errors={field.state.meta.errors} />
+                                </Field>
+                            )}
+                        </inviteForm.AppField>
+                    </form>
                 ) : (
                     <p className="mt-5 text-sm text-muted-foreground">
                         只有店主可以邀请或移除成员。

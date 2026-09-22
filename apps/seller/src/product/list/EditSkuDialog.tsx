@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react"
 import { PackageCheck } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 
 import { type Money, moneyToYuan, toApiError } from "@shop/common"
-import { notify } from "@shop/app-kit"
-import type { SkuResponse, SkuUpdateItem } from "@shop/api/sdk"
+import type { ProductDetailResponse, SkuResponse, SkuUpdateItem } from "@shop/api/sdk"
 import {
     Button,
     Dialog,
@@ -11,7 +10,8 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    Input,
+    Field,
+    FieldError,
     InputGroup,
     InputGroupAddon,
     InputGroupInput,
@@ -24,10 +24,11 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    useAppForm,
 } from "@shop/ui-web"
 
 import { countInputSchema, yuanPriceSchema } from "#/product/draft-model"
-import { useProductDetail, useUpdateProductSkus } from "#/product/queries"
+import { productDetailOptions, useUpdateProductSkus } from "#/product/queries"
 
 export type SkuEditKind = "price" | "stock"
 
@@ -73,6 +74,7 @@ const KIND_META: Record<SkuEditKind, { title: string; notice: string; okMessage:
  * - 商家编码只有 price 模式可改，留空视为不改（后端 set 非空字段）；提交批量走 updateProductSkus。
  * - 生命周期：受控（open/productId 由外层持有）。保存成功后调用 onSaved 通知外层「列表数据变了」，
  *   由外层决定失效哪个 key —— 本层不 import 任何 query key。
+ * - 详情到达后才挂载表单（默认值直接取详情，不需要 effect 二次灌值）；弹窗关闭即卸载。
  */
 export function EditSkuLineDialog({
     open,
@@ -89,7 +91,6 @@ export function EditSkuLineDialog({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
-    const [rows, setRows] = useState<SkuRow[]>([])
     const meta = KIND_META[kind]
 
     // 详情走 query：与发布页回填同一份缓存（productKeys.detail）。
@@ -97,85 +98,9 @@ export function EditSkuLineDialog({
     // 失败**不抛**（弹窗是列表页上的一个操作口，炸到路由会把整张列表换掉）：就地渲染错误态并用官方
     // `refetch()` 重试。变量名用 data 而非 detail：下面对它做 undefined 判定（渲染 loading 分支）时，
     // tsgolint 只认 `data === undefined` 这种能收窄 UseQueryResult 的写法
-    const { data, isPending, isError, error, isFetching, refetch } = useProductDetail(
-        open ? productId : undefined,
+    const { data, isPending, isError, error, isFetching, refetch } = useQuery(
+        productDetailOptions(open ? productId : undefined),
     )
-
-    // 详情到达（或换了商品）时灌进可编辑行：本地行状态仍是编辑会话的真相源，query 只负责喂初值。
-    // 用 effect 灌值是有意为之：行要能改，不能直接读缓存渲染
-    useEffect(() => {
-        if (!data) return
-        // oxlint-disable-next-line react/set-state-in-effect -- 服务端初值 → 本地编辑会话是有意的单向灌值
-        setRows(
-            data.skus.map((s) => ({
-                skuId: s.id,
-                label: skuLabel(s),
-                price: s.price,
-                priceText: moneyToYuan(s.price),
-                stockText: String(s.stock),
-                stock: s.stock,
-                skuCodeText: s.skuCode ?? "",
-            })),
-        )
-    }, [data])
-
-    const save = useUpdateProductSkus(meta.okMessage, () => {
-        onSaved()
-        onOpenChange(false)
-    })
-
-    const updateRow = (skuId: string, patch: Partial<SkuRow>) =>
-        setRows((prev) => prev.map((r) => (r.skuId === skuId ? { ...r, ...patch } : r)))
-
-    const submit = async () => {
-        if (!productId || !data) return
-        // 校验当前维度的输入（价格/库存必须填写合法；库存模式的回传价格必须已设置）
-        for (const r of rows) {
-            if (kind === "price") {
-                const parsed = yuanPriceSchema.safeParse(r.priceText)
-                if (!parsed.success) {
-                    notify.error(
-                        `「${r.label}」价格${parsed.error.issues[0]?.message ?? "格式不正确"}`,
-                    )
-                    return
-                }
-            } else {
-                const parsed = countInputSchema.safeParse(r.stockText)
-                if (!parsed.success) {
-                    notify.error(
-                        `「${r.label}」库存${parsed.error.issues[0]?.message ?? "格式不正确"}`,
-                    )
-                    return
-                }
-                if (r.price === null) {
-                    notify.error(`「${r.label}」尚未定价，请先在价格列设置价格再调整库存`)
-                    return
-                }
-            }
-        }
-        // 校验通过后交给写操作接线；失败提示已在 mutation 的 onError 里统一弹出
-        const items: SkuUpdateItem[] = rows.map((r) => {
-            if (kind === "price") {
-                const skuCode = r.skuCodeText.trim()
-                return {
-                    skuId: r.skuId,
-                    price: yuanPriceSchema.parse(r.priceText),
-                    stock: r.stock,
-                    ...(skuCode ? { skuCode } : {}),
-                }
-            }
-            return {
-                skuId: r.skuId,
-                price: r.price!,
-                stock: countInputSchema.parse(r.stockText),
-            }
-        })
-        try {
-            await save.mutateAsync({ productId, items })
-        } catch {
-            // 提示与失效已由全局写操作反馈处理，这里只吞掉 rejection（unhandled 会被上报）
-        }
-    }
 
     return (
         <Dialog
@@ -189,148 +114,238 @@ export function EditSkuLineDialog({
                     <DialogTitle>{meta.title}</DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4">
-                    {/* 提示条：只改当前维度，另一维度去对应列 */}
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                        <PackageCheck className="size-4 shrink-0" />
-                        {meta.notice}
-                    </div>
-
-                    {isError ? (
-                        <StateError
-                            message={toApiError(error).detail}
-                            onRetry={() => void refetch()}
-                            retrying={isFetching}
-                        />
-                    ) : isPending ? (
-                        <div className="flex max-h-dialog-body flex-col gap-2 overflow-hidden">
-                            <Skeleton className="h-9 w-full rounded-sm" />
-                            <Skeleton className="h-9 w-full rounded-sm" />
-                            <Skeleton className="h-9 w-full rounded-sm" />
-                            <Skeleton className="h-9 w-2/3 rounded-sm" />
-                        </div>
-                    ) : (
-                        <>
-                            <div className="text-sm">
-                                <span className="text-muted-foreground">商品标题：</span>
-                                <span className="font-medium">
-                                    {productName ?? data.product.name}
-                                </span>
-                            </div>
-
-                            {/* 超出视口高度内部滚动，避免整卡撑高；overflow-hidden 防止内容溢出到半透明遮罩 */}
-                            <div className="max-h-dialog-body overflow-y-auto overflow-x-hidden rounded-lg border border-border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="min-w-28">SKU</TableHead>
-                                            <TableHead>
-                                                {kind === "price" ? "价格" : "库存"}
-                                            </TableHead>
-                                            {kind === "price" && (
-                                                <TableHead>SKU 商家编码</TableHead>
-                                            )}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {rows.map((r) => (
-                                            <TableRow key={r.skuId}>
-                                                <TableCell
-                                                    variant="muted"
-                                                    className="whitespace-nowrap"
-                                                >
-                                                    {r.label}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {kind === "price" ? (
-                                                        <InputGroup className="h-9 w-fit">
-                                                            <InputGroupInput
-                                                                aria-label={`${r.label} 价格`}
-                                                                inputMode="decimal"
-                                                                placeholder="0.00"
-                                                                className="w-32 flex-none text-right tabular-nums"
-                                                                value={r.priceText}
-                                                                onChange={(e) =>
-                                                                    updateRow(r.skuId, {
-                                                                        priceText: e.target.value,
-                                                                    })
-                                                                }
-                                                            />
-                                                            <InputGroupAddon
-                                                                align="inline-end"
-                                                                variant="quiet"
-                                                            >
-                                                                元
-                                                            </InputGroupAddon>
-                                                        </InputGroup>
-                                                    ) : (
-                                                        <InputGroup className="h-9 w-fit">
-                                                            <InputGroupInput
-                                                                aria-label={`${r.label} 库存`}
-                                                                inputMode="numeric"
-                                                                placeholder="0"
-                                                                className="w-24 flex-none text-right tabular-nums"
-                                                                value={r.stockText}
-                                                                onChange={(e) =>
-                                                                    updateRow(r.skuId, {
-                                                                        stockText:
-                                                                            e.target.value.replaceAll(
-                                                                                /\D/g,
-                                                                                "",
-                                                                            ),
-                                                                    })
-                                                                }
-                                                            />
-                                                            <InputGroupAddon
-                                                                align="inline-end"
-                                                                variant="quiet"
-                                                            >
-                                                                件
-                                                            </InputGroupAddon>
-                                                        </InputGroup>
-                                                    )}
-                                                </TableCell>
-                                                {kind === "price" && (
-                                                    <TableCell>
-                                                        <Input
-                                                            aria-label={`${r.label} 商家编码`}
-                                                            value={r.skuCodeText}
-                                                            onChange={(e) =>
-                                                                updateRow(r.skuId, {
-                                                                    skuCodeText: e.target.value,
-                                                                })
-                                                            }
-                                                            maxLength={64}
-                                                            className="w-48 tabular-nums"
-                                                            placeholder="选填，最多 64 位"
-                                                        />
-                                                    </TableCell>
-                                                )}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </>
-                    )}
+                {/* 提示条：只改当前维度，另一维度去对应列 */}
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                    <PackageCheck className="size-4 shrink-0" />
+                    {meta.notice}
                 </div>
 
-                <DialogFooter>
-                    <Button
-                        variant="secondary"
-                        onClick={() => onOpenChange(false)}
-                        disabled={save.isPending}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        onClick={() => void submit()}
-                        disabled={save.isPending || isPending || isError}
-                    >
-                        {save.isPending && <Spinner />}提交
-                    </Button>
-                </DialogFooter>
+                {isError ? (
+                    <StateError
+                        message={toApiError(error).detail}
+                        onRetry={() => void refetch()}
+                        retrying={isFetching}
+                    />
+                ) : isPending || !productId ? (
+                    <div className="flex max-h-dialog-body flex-col gap-2 overflow-hidden">
+                        <Skeleton className="h-9 w-full rounded-sm" />
+                        <Skeleton className="h-9 w-full rounded-sm" />
+                        <Skeleton className="h-9 w-full rounded-sm" />
+                        <Skeleton className="h-9 w-2/3 rounded-sm" />
+                    </div>
+                ) : (
+                    <SkuLineForm
+                        kind={kind}
+                        productId={productId}
+                        productName={productName ?? data.product.name}
+                        detail={data}
+                        onOpenChange={onOpenChange}
+                        onSaved={onSaved}
+                    />
+                )}
             </DialogContent>
         </Dialog>
+    )
+}
+
+function SkuLineForm({
+    kind,
+    productId,
+    productName,
+    detail,
+    onOpenChange,
+    onSaved,
+}: {
+    kind: SkuEditKind
+    productId: string
+    productName: string
+    detail: ProductDetailResponse
+    onOpenChange: (open: boolean) => void
+    onSaved: () => void
+}) {
+    const meta = KIND_META[kind]
+    const save = useUpdateProductSkus(meta.okMessage, () => {
+        onSaved()
+        onOpenChange(false)
+    })
+
+    const form = useAppForm({
+        defaultValues: {
+            rows: detail.skus.map((s): SkuRow => ({
+                skuId: s.id,
+                label: skuLabel(s),
+                price: s.price,
+                priceText: moneyToYuan(s.price),
+                stockText: String(s.stock),
+                stock: s.stock,
+                skuCodeText: s.skuCode ?? "",
+            })),
+        },
+        onSubmit: ({ value }) => {
+            // 行内校验已在字段级 onSubmit 通过；这里只做换算与投影
+            const items: SkuUpdateItem[] = value.rows.map((r) => {
+                if (kind === "price") {
+                    const skuCode = r.skuCodeText.trim()
+                    return {
+                        skuId: r.skuId,
+                        price: yuanPriceSchema.parse(r.priceText),
+                        stock: r.stock,
+                        ...(skuCode ? { skuCode } : {}),
+                    }
+                }
+                return {
+                    skuId: r.skuId,
+                    price: r.price!,
+                    stock: countInputSchema.parse(r.stockText),
+                }
+            })
+            save.mutate({ productId, items })
+        },
+    })
+
+    return (
+        <form
+            className="flex flex-col gap-4"
+            onSubmit={(e) => {
+                e.preventDefault()
+                void form.handleSubmit()
+            }}
+        >
+            <div className="text-sm">
+                <span className="text-muted-foreground">商品标题：</span>
+                <span className="font-medium">{productName}</span>
+            </div>
+
+            {/* 超出视口高度内部滚动，避免整卡撑高；overflow-hidden 防止内容溢出到半透明遮罩 */}
+            <div className="max-h-dialog-body overflow-y-auto overflow-x-hidden rounded-lg border border-border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="min-w-28">SKU</TableHead>
+                            <TableHead>{kind === "price" ? "价格" : "库存"}</TableHead>
+                            {kind === "price" && <TableHead>SKU 商家编码</TableHead>}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {form.state.values.rows.map((r, i) => (
+                            <TableRow key={r.skuId}>
+                                <TableCell
+                                    variant="muted"
+                                    className="whitespace-nowrap"
+                                >
+                                    {r.label}
+                                </TableCell>
+                                <TableCell>
+                                    {kind === "price" ? (
+                                        <form.AppField
+                                            name={`rows[${i}].priceText`}
+                                            validators={{ onSubmit: yuanPriceSchema }}
+                                        >
+                                            {(field) => (
+                                                <Field className="w-fit">
+                                                    <InputGroup className="h-9">
+                                                        <InputGroupInput
+                                                            aria-label={`${r.label} 价格`}
+                                                            aria-invalid={!field.state.meta.isValid}
+                                                            inputMode="decimal"
+                                                            placeholder="0.00"
+                                                            className="w-32 flex-none text-right tabular-nums"
+                                                            value={field.state.value}
+                                                            onChange={(e) =>
+                                                                field.handleChange(e.target.value)
+                                                            }
+                                                        />
+                                                        <InputGroupAddon
+                                                            align="inline-end"
+                                                            variant="quiet"
+                                                        >
+                                                            元
+                                                        </InputGroupAddon>
+                                                    </InputGroup>
+                                                    <FieldError errors={field.state.meta.errors} />
+                                                </Field>
+                                            )}
+                                        </form.AppField>
+                                    ) : (
+                                        <form.AppField
+                                            name={`rows[${i}].stockText`}
+                                            validators={{
+                                                onSubmit: ({ value }) =>
+                                                    // 库存模式回传的价格必须已设置：未定价的 SKU 先去价格列
+                                                    r.price === null
+                                                        ? "尚未定价，请先在价格列设置价格再调整库存"
+                                                        : countInputSchema.safeParse(value).error
+                                                              ?.issues[0]?.message,
+                                            }}
+                                        >
+                                            {(field) => (
+                                                <Field className="w-fit">
+                                                    <InputGroup className="h-9">
+                                                        <InputGroupInput
+                                                            aria-label={`${r.label} 库存`}
+                                                            aria-invalid={!field.state.meta.isValid}
+                                                            inputMode="numeric"
+                                                            placeholder="0"
+                                                            className="w-24 flex-none text-right tabular-nums"
+                                                            value={field.state.value}
+                                                            onChange={(e) =>
+                                                                field.handleChange(
+                                                                    e.target.value.replaceAll(
+                                                                        /\D/g,
+                                                                        "",
+                                                                    ),
+                                                                )
+                                                            }
+                                                        />
+                                                        <InputGroupAddon
+                                                            align="inline-end"
+                                                            variant="quiet"
+                                                        >
+                                                            件
+                                                        </InputGroupAddon>
+                                                    </InputGroup>
+                                                    <FieldError errors={field.state.meta.errors} />
+                                                </Field>
+                                            )}
+                                        </form.AppField>
+                                    )}
+                                </TableCell>
+                                {kind === "price" && (
+                                    <TableCell>
+                                        <form.AppField name={`rows[${i}].skuCodeText`}>
+                                            {(field) => (
+                                                <field.TextField
+                                                    aria-label={`${r.label} 商家编码`}
+                                                    maxLength={64}
+                                                    className="w-48"
+                                                    placeholder="选填，最多 64 位"
+                                                />
+                                            )}
+                                        </form.AppField>
+                                    </TableCell>
+                                )}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+
+            <DialogFooter>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={save.isPending}
+                >
+                    取消
+                </Button>
+                <Button
+                    type="submit"
+                    disabled={save.isPending}
+                >
+                    {save.isPending && <Spinner />}提交
+                </Button>
+            </DialogFooter>
+        </form>
     )
 }

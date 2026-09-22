@@ -29,8 +29,8 @@ import {
     CardTitle,
     CardDescription,
     CardContent,
-    FieldShell,
-    firstFieldError,
+    Field,
+    FieldError,
     ButtonGroup,
     Input,
     Spinner,
@@ -38,7 +38,9 @@ import {
 import { z } from "zod"
 
 /** 开店表单校验：店名长度与后端 @Size 对齐（就近放在表单旁） */
-const CreateShopNameSchema = z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字")
+const CreateShopFormSchema = z.object({
+    name: z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字"),
+})
 
 export const Route = createFileRoute("/_app/shop/list")({
     component: ShopsPage,
@@ -275,6 +277,7 @@ function ShopNameForm({
 }) {
     const form = useAppForm({
         defaultValues: { name: defaultValue },
+        validators: { onSubmit: CreateShopFormSchema },
         onSubmit: ({ value }) => onSubmit(value.name),
     })
 
@@ -286,15 +289,13 @@ function ShopNameForm({
                 void form.handleSubmit()
             }}
         >
-            <form.AppField
-                name="name"
-                validators={{ onChange: CreateShopNameSchema }}
-            >
+            <form.AppField name="name">
                 {(field) => (
-                    <FieldShell error={firstFieldError(field)}>
-                        <ButtonGroup className="w-full">
+                    <Field>
+                        <ButtonGroup>
                             <Input
                                 aria-label={label}
+                                aria-invalid={!field.state.meta.isValid}
                                 placeholder="给你的店铺起个名字"
                                 maxLength={50}
                                 value={field.state.value}
@@ -309,7 +310,8 @@ function ShopNameForm({
                                 {submitText}
                             </Button>
                         </ButtonGroup>
-                    </FieldShell>
+                        <FieldError errors={field.state.meta.errors} />
+                    </Field>
                 )}
             </form.AppField>
         </form>

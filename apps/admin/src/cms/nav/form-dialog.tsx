@@ -5,15 +5,15 @@ import {
     Button,
     Dialog,
     DialogContent,
+    DialogFooter,
     DialogTitle,
     FieldDescription,
     FieldTitle,
-    SelectItem,
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
 
-import { CMS_NAV_KEYS, TARGET_TYPE_LABEL } from "../constants"
+import { CMS_NAV_KEYS, TARGET_TYPE_ITEMS } from "../constants"
 import { NavFormSchema, navDefaults, SubsSchema, toNavRequest, type SubsValue } from "./form"
 import { useCreateNav, useUpdateNav } from "./queries"
 import { SubsEditor } from "./subs-editor"
@@ -136,17 +136,10 @@ function NavFormDialogBody({
 
                 <form.AppField name="targetType">
                     {(field) => (
-                        <field.SelectField label="跳转类型">
-                            <SelectItem value="NONE">不跳转</SelectItem>
-                            {Object.entries(TARGET_TYPE_LABEL).map(([value, label]) => (
-                                <SelectItem
-                                    key={value}
-                                    value={value}
-                                >
-                                    {label}
-                                </SelectItem>
-                            ))}
-                        </field.SelectField>
+                        <field.SelectField
+                            label="跳转类型"
+                            items={TARGET_TYPE_ITEMS}
+                        />
                     )}
                 </form.AppField>
                 <form.AppField name="target">
@@ -173,7 +166,7 @@ function NavFormDialogBody({
                     />
                 </div>
 
-                <div className="col-span-2 mt-2 flex justify-end gap-2">
+                <DialogFooter className="col-span-2">
                     <Button
                         type="button"
                         variant="outline"
@@ -185,10 +178,9 @@ function NavFormDialogBody({
                         type="submit"
                         disabled={busy}
                     >
-                        {busy && <Spinner />}
-                        保存
+                        {busy && <Spinner />}保存
                     </Button>
-                </div>
+                </DialogFooter>
             </form>
         </>
     )

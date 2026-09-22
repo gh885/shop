@@ -25,7 +25,7 @@ import {
     DialogHeader,
     DialogTitle,
     Spinner,
-    Textarea,
+    useAppForm,
     useDataTable,
     type DataTableFeatures,
 } from "@shop/ui-web"
@@ -214,7 +214,6 @@ function ReviewPage() {
 
 function ReviewActions({ item }: { item: ShopReviewItem }) {
     const [rejectOpen, setRejectOpen] = useState(false)
-    const [reason, setReason] = useState("")
 
     const approve = useMutation({
         mutationFn: () => adminApi.approve(item.id),
@@ -225,16 +224,13 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
         },
     })
     const reject = useMutation({
-        mutationFn: () => adminApi.reject(item.id, reason),
+        mutationFn: (reason: string) => adminApi.reject(item.id, reason),
         meta: {
             success: `已驳回「${item.shopName}」的开店申请`,
             error: "审核操作失败",
             invalidates: [reviewKeys.all],
         },
-        onSuccess: () => {
-            setRejectOpen(false)
-            setReason("")
-        },
+        onSuccess: () => setRejectOpen(false),
     })
 
     const busy = approve.isPending || reject.isPending
@@ -276,30 +272,68 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
                             驳回理由会通知申请人，请填写具体原因。
                         </DialogDescription>
                     </DialogHeader>
-                    <Textarea
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        placeholder="例如：营业执照信息与店铺主体不一致"
-                        rows={3}
+                    {/* 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，重开即空白 */}
+                    <RejectForm
+                        pending={reject.isPending}
+                        onCancel={() => setRejectOpen(false)}
+                        onSubmit={(reason) => reject.mutate(reason)}
                     />
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setRejectOpen(false)}
-                        >
-                            取消
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            disabled={!reason.trim() || reject.isPending}
-                            onClick={() => reject.mutate()}
-                        >
-                            {reject.isPending && <Spinner />}确认驳回
-                        </Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
+    )
+}
+
+const RejectSchema = z.object({ reason: z.string().trim().min(1, "请填写驳回理由") })
+
+function RejectForm({
+    pending,
+    onCancel,
+    onSubmit,
+}: {
+    pending: boolean
+    onCancel: () => void
+    onSubmit: (reason: string) => void
+}) {
+    const form = useAppForm({
+        defaultValues: { reason: "" },
+        validators: { onSubmit: RejectSchema },
+        onSubmit: ({ value }) => onSubmit(value.reason.trim()),
+    })
+    return (
+        <form
+            className="flex flex-col gap-4"
+            onSubmit={(e) => {
+                e.preventDefault()
+                void form.handleSubmit()
+            }}
+        >
+            <form.AppField name="reason">
+                {(field) => (
+                    <field.TextareaField
+                        aria-label="驳回理由"
+                        placeholder="例如：营业执照信息与店铺主体不一致"
+                        rows={3}
+                    />
+                )}
+            </form.AppField>
+            <DialogFooter>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancel}
+                >
+                    取消
+                </Button>
+                <Button
+                    type="submit"
+                    variant="destructive"
+                    disabled={pending}
+                >
+                    {pending && <Spinner />}确认驳回
+                </Button>
+            </DialogFooter>
+        </form>
     )
 }
 

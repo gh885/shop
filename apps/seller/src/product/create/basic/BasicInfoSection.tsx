@@ -3,12 +3,11 @@ import {
     CardContent,
     CardHeader,
     CardTitle,
-    FieldShell,
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
     ImageUploadGrid,
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput,
-    firstFieldError,
 } from "@shop/ui-web"
 
 import { imgUrl } from "#/shared/lib/image"
@@ -63,13 +62,8 @@ export function BasicInfoSection({
                     }}
                 >
                     {(field) => (
-                        <FieldShell
-                            label="商品图片"
-                            required
-                            layout="horizontal"
-                            error={firstFieldError(field)}
-                            hint="第一张即主图（列表/详情首图），拖拽句柄可调顺序；建议 1:1、800×800 以上"
-                        >
+                        <Field orientation="horizontal">
+                            <FieldLabel required>商品图片</FieldLabel>
                             {/* 直传七牛：upload 取凭证后浏览器 PUT，落公网 URL；失败回退本地预览由 ImageUpload 提示 */}
                             <ImageUploadGrid
                                 value={field.state.value}
@@ -81,86 +75,48 @@ export function BasicInfoSection({
                                 upload={uploadImage}
                                 resolveSrc={imgUrl}
                             />
-                        </FieldShell>
+                            {field.state.meta.isValid ? (
+                                <FieldDescription>
+                                    第一张即主图（列表/详情首图），拖拽句柄可调顺序；建议
+                                    1:1、800×800 以上
+                                </FieldDescription>
+                            ) : (
+                                <FieldError errors={field.state.meta.errors} />
+                            )}
+                        </Field>
                     )}
                 </form.AppField>
 
                 <form.AppField
                     name="name"
-                    validators={{
-                        onBlur: ProductNameSchema,
-                        onSubmit: ProductNameSchema,
-                    }}
+                    validators={{ onSubmit: ProductNameSchema }}
                 >
                     {(field) => (
-                        <FieldShell
+                        <field.TextField
                             label="商品标题"
                             required
-                            htmlFor="pf-name"
-                            layout="horizontal"
-                            error={firstFieldError(field)}
+                            orientation="horizontal"
+                            counter
+                            maxLength={30}
+                            placeholder="如：宠物智能喂食器 定时定量 大容量"
                             hint="买家搜索靠它命中，把品牌、品类、核心属性写进去"
-                        >
-                            <InputGroup className="h-10">
-                                <InputGroupInput
-                                    id="pf-name"
-                                    value={field.state.value}
-                                    maxLength={30}
-                                    placeholder="如：宠物智能喂食器 定时定量 大容量"
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                    aria-invalid={Boolean(firstFieldError(field)) || undefined}
-                                />
-                                {field.state.value.length > 0 && (
-                                    <InputGroupAddon
-                                        align="inline-end"
-                                        variant="counter"
-                                        className="tabular-nums"
-                                    >
-                                        {field.state.value.length}/30
-                                    </InputGroupAddon>
-                                )}
-                            </InputGroup>
-                        </FieldShell>
+                        />
                     )}
                 </form.AppField>
 
                 <form.AppField
                     name="subtitle"
-                    validators={{
-                        onBlur: SellingPointSchema,
-                        onSubmit: SellingPointSchema,
-                    }}
+                    validators={{ onSubmit: SellingPointSchema }}
                 >
                     {(field) => (
-                        <FieldShell
+                        <field.TextField
                             label="商品卖点"
-                            htmlFor="pf-subtitle"
-                            layout="horizontal"
-                            error={firstFieldError(field)}
+                            orientation="horizontal"
+                            counter
+                            maxLength={30}
+                            placeholder="如：定时定量不撑食，断电续航 72 小时"
                             hint="选填；填了就写 10~30 字，展示在商品详情页标题下方"
-                        >
-                            <InputGroup className="h-10">
-                                <InputGroupInput
-                                    id="pf-subtitle"
-                                    value={field.state.value}
-                                    maxLength={30}
-                                    placeholder="如：定时定量不撑食，断电续航 72 小时"
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                    onBlur={field.handleBlur}
-                                    aria-invalid={Boolean(firstFieldError(field)) || undefined}
-                                />
-                                {field.state.value.length > 0 && (
-                                    <InputGroupAddon
-                                        align="inline-end"
-                                        variant="counter"
-                                        className="tabular-nums"
-                                    >
-                                        {field.state.value.length}/30
-                                    </InputGroupAddon>
-                                )}
-                            </InputGroup>
-                        </FieldShell>
+                        />
                     )}
                 </form.AppField>
             </CardContent>

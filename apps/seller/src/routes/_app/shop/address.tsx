@@ -1,12 +1,13 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { Button, confirm, Skeleton } from "@shop/ui-web"
 import { Plus } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 import { useShop } from "#/shop"
 import {
-    useAddressList,
+    addressListOptions,
     useDeleteAddress,
     useSetDefaultReturn,
     useSetDefaultShip,
@@ -36,7 +37,7 @@ function AddressListPending() {
 
 function AddressPage() {
     const shop = useShop()
-    const addresses = useAddressList(shop.id)
+    const addresses = useSuspenseQuery(addressListOptions(shop.id))
     const setDefaultShip = useSetDefaultShip(shop.id)
     const setDefaultReturn = useSetDefaultReturn(shop.id)
     const del = useDeleteAddress(shop.id)

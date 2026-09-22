@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { z } from "zod"
 import {
     Button,
@@ -23,7 +22,8 @@ import { useReturnAfterSale } from "./after-sale-queries"
  *
  * 这一步只落物流单（售后单状态不变）：后端把它登记成 logistics 的 RETURN 包裹，
  * 之后承运商推送、轮询兜底、买家「查看物流」都自动认得它——所以这里填错/填漏要能改，
- * 弹窗每次都按现有值回填，允许覆盖。
+ * 表单体挂在 DialogContent 里（BaseUI 关闭即卸载），每次打开都按现有值回填，允许覆盖：
+ * 先撤单再申请会拿到新的空值，改单会拿到上一次填的号。
  *
  * 快递公司是手输而不是字典下拉：买家回寄是线下行为，他手上只有面单上的名字，
  * 强制从字典里选只会把人挡在门外（后端按名字匹配字典，匹配不上也照实记）。
@@ -52,11 +52,30 @@ export interface AfterSaleReturnDialogProps {
 export function AfterSaleReturnDialog({
     open,
     onOpenChange,
+    ...props
+}: AfterSaleReturnDialogProps) {
+    return (
+        <Dialog
+            open={open}
+            onOpenChange={onOpenChange}
+        >
+            <DialogContent className="sm:max-w-md">
+                <ReturnForm
+                    {...props}
+                    onOpenChange={onOpenChange}
+                />
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function ReturnForm({
+    onOpenChange,
     orderId,
     defaultLogisticsCompany,
     defaultTrackingNo,
     returnAddress,
-}: AfterSaleReturnDialogProps) {
+}: Omit<AfterSaleReturnDialogProps, "open">) {
     const submitReturn = useReturnAfterSale(orderId)
 
     const form = useAppForm({
@@ -71,95 +90,76 @@ export function AfterSaleReturnDialog({
         },
     })
 
-    // 每次打开都按最新值回填：先撤单再申请会拿到新的空值，改单会拿到上一次填的号
-    useEffect(() => {
-        if (!open) return
-        form.reset({
-            logisticsCompany: defaultLogisticsCompany ?? "",
-            trackingNo: defaultTrackingNo ?? "",
-        })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, defaultLogisticsCompany, defaultTrackingNo])
-
     return (
-        <Dialog
-            open={open}
-            onOpenChange={onOpenChange}
-        >
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>填写退货物流</DialogTitle>
-                    <DialogDescription>
-                        卖家同意退货后，请把商品寄回并在此登记运单号，方便卖家查收。
-                    </DialogDescription>
-                </DialogHeader>
+        <>
+            <DialogHeader>
+                <DialogTitle>填写退货物流</DialogTitle>
+                <DialogDescription>
+                    卖家同意退货后，请把商品寄回并在此登记运单号，方便卖家查收。
+                </DialogDescription>
+            </DialogHeader>
 
-                <form
-                    className="mt-4 flex flex-col gap-4"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        void form.handleSubmit()
-                    }}
-                >
-                    {/* 回寄引导：有地址就给一行（寄错的代价比多读一行字高得多）；null 不编地址，直说联系客服 */}
-                    {returnAddress !== undefined && (
-                        <div className="rounded-lg bg-muted px-4 py-3 text-sm">
-                            {returnAddress ? (
-                                <>
-                                    <span className="text-muted-foreground">
-                                        请把商品寄回以下地址
-                                    </span>
-                                    <p className="mt-1 font-medium text-foreground">
-                                        {returnAddress}
-                                    </p>
-                                </>
-                            ) : (
-                                <span className="text-muted-foreground">
-                                    卖家未设置退货地址，请先联系客服
-                                </span>
-                            )}
-                        </div>
+            <form
+                className="mt-4 flex flex-col gap-4"
+                onSubmit={(e) => {
+                    e.preventDefault()
+                    void form.handleSubmit()
+                }}
+            >
+                {/* 回寄引导：有地址就给一行（寄错的代价比多读一行字高得多）；null 不编地址，直说联系客服 */}
+                {returnAddress !== undefined && (
+                    <div className="rounded-lg bg-muted px-4 py-3 text-sm">
+                        {returnAddress ? (
+                            <>
+                                <span className="text-muted-foreground">请把商品寄回以下地址</span>
+                                <p className="mt-1 font-medium text-foreground">{returnAddress}</p>
+                            </>
+                        ) : (
+                            <span className="text-muted-foreground">
+                                卖家未设置退货地址，请先联系客服
+                            </span>
+                        )}
+                    </div>
+                )}
+
+                <form.AppField name="logisticsCompany">
+                    {(field) => (
+                        <field.TextField
+                            label="快递公司"
+                            required
+                            placeholder="例如：顺丰速运"
+                            maxLength={50}
+                        />
                     )}
+                </form.AppField>
 
-                    <form.AppField name="logisticsCompany">
-                        {(field) => (
-                            <field.TextField
-                                label="快递公司"
-                                required
-                                placeholder="例如：顺丰速运"
-                                maxLength={50}
-                            />
-                        )}
-                    </form.AppField>
+                <form.AppField name="trackingNo">
+                    {(field) => (
+                        <field.TextField
+                            label="运单号"
+                            required
+                            placeholder="面单上的运单号"
+                            maxLength={64}
+                        />
+                    )}
+                </form.AppField>
 
-                    <form.AppField name="trackingNo">
-                        {(field) => (
-                            <field.TextField
-                                label="运单号"
-                                required
-                                placeholder="面单上的运单号"
-                                maxLength={64}
-                            />
-                        )}
-                    </form.AppField>
-
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                        >
-                            取消
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={submitReturn.isPending}
-                        >
-                            {submitReturn.isPending && <Spinner />}提交
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        取消
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={submitReturn.isPending}
+                    >
+                        {submitReturn.isPending && <Spinner />}提交
+                    </Button>
+                </DialogFooter>
+            </form>
+        </>
     )
 }
