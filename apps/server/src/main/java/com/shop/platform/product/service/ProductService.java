@@ -2,7 +2,6 @@ package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
@@ -27,6 +26,8 @@ import org.springframework.util.StringUtils;
  *
  * <p>本类只管状态机与发布门槛。规格与 SKU 对账在 {@link SkuService}，卖家 / 买家侧查询在 {@link ProductQueryService}，
  * 类目参数模板校验在 {@link CategoryAttrService}；状态规则本身在实体 {@link Product}（publishTo / off / relist / ensureAbandonable）。
+ *
+ * <p>卖家侧方法一律显式收 shopId 形参（controller 经 @CurrentShop 从 X-Shop-Id 注入），不在方法体读 ShopIdHolder ThreadLocal。
  */
 @Service
 @RequiredArgsConstructor
@@ -63,9 +64,9 @@ public class ProductService {
      * 显式写给 null（blankToNull），因为 updateById 默认忽略 null 字段，故 subtitle 单独用 wrapper 子句。
      */
     @Transactional
-    public Product updateBasic(UUID productId, UpdateBasicCommand command) {
+    public Product updateBasic(UUID shopId, UUID productId, UpdateBasicCommand command) {
         // 1. 校验：商品存在且属于当前店铺
-        Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
+        Product product = productMapper.requireShopOwned(shopId, productId);
         // 1.1 类目变更（结构性操作）：PATCH 下 categoryId=null 表示不改；非 null 且与当前不同时仅草稿允许——
         //     上架/仓库中是经营资产（在售/已填完并关联 SKU 规格快照），换类目会错配规格/重新生产，需先下架再改。
         UUID targetCategory = command.categoryId();
@@ -124,8 +125,8 @@ public class ProductService {
      *  门槛：商品有名 + 每个在售 SKU 都已设价（两目标同门槛）；**立即上架**另须至少一个在售 SKU 有库存——
      *  对齐「架上商品不能全 0」（仓库中不售，允许售罄入库，届时列表「上架」动作会再拦）。 */
     @Transactional
-    public Product publish(UUID productId, ProductStatus target) {
-        Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
+    public Product publish(UUID shopId, UUID productId, ProductStatus target) {
+        Product product = productMapper.requireShopOwned(shopId, productId);
         // 0. 草稿阶段允许空名，但发布（无论上架还是入库）必须有名（买家搜索/展示依赖）
         Validate.isTrue(StringUtils.hasText(product.getName()), "请先填写商品标题再发布");
         // 1. 复检发布门槛：每个在售 SKU 都已设价（跨聚合校验留 service）
@@ -146,8 +147,8 @@ public class ProductService {
 
     /** 下架：仅上架商品可下架。不做物理删除，下架即"删除"语义，可无损恢复 */
     @Transactional
-    public Product off(UUID productId) {
-        Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
+    public Product off(UUID shopId, UUID productId) {
+        Product product = productMapper.requireShopOwned(shopId, productId);
         // 守卫 + 置下架（仅上架可下架的规则在实体内），乐观锁条件更新
         product.off();
         requireTransition(productId, ProductStatus.PUBLISHED, ProductStatus.WAREHOUSE, "商品状态已变化，请刷新后重试");
@@ -156,8 +157,8 @@ public class ProductService {
 
     /** 重新上架：仅仓库中商品可上架，复检发布门槛（下架期间 SKU 可能被改）+ 有货（对齐「架上不能全 0」） */
     @Transactional
-    public Product on(UUID productId) {
-        Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
+    public Product on(UUID shopId, UUID productId) {
+        Product product = productMapper.requireShopOwned(shopId, productId);
         // 1. 复检发布门槛：下架期间 SKU 可能被改（在售 SKU 口径）
         ensurePublishable(productId);
         // 1.5 上架须有货：仓库中的售罄商品需先补货再上架
@@ -171,9 +172,9 @@ public class ProductService {
     /** 放弃（删除）草稿：仅草稿可删，同事务清 SKU + 库存行，避免草稿箱堆积废弃草稿。
      *  上架/下架商品是经营资产，不做物理删除（走 off）——此删除入口只服务「不发了，扔掉这个草稿」。 */
     @Transactional
-    public void abandon(UUID productId) {
+    public void abandon(UUID shopId, UUID productId) {
         // 1. 归属 + 守卫：商品存在且属于当前店铺、仅草稿可放弃（规则在实体内）
-        Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
+        Product product = productMapper.requireShopOwned(shopId, productId);
         product.ensureAbandonable();
         // 2. 同事务清 SKU + 库存主体行（先清库存行再删 SKU）
         List<Sku> skus = skuMapper.selectByProductId(productId);

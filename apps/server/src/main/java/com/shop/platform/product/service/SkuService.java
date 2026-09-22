@@ -2,7 +2,6 @@ package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.inventory.api.StockCommand;
@@ -68,9 +67,9 @@ public class SkuService {
      * 对账停用而不是删除被移除组合，避免买家购物车/订单里裸引用（无 FK）的 sku 行悬空。
      */
     @Transactional
-    public List<Sku> updateSpecs(UUID productId, List<SpecSelection> selections) {
+    public List<Sku> updateSpecs(UUID shopId, UUID productId, List<SpecSelection> selections) {
         // 1. 归属 + 规格可编辑性守卫（上架冻结规格，要改先下架）
-        Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
+        Product product = productMapper.requireShopOwned(shopId, productId);
         product.ensureSpecsEditable();
         long distinctAttrs =
                 selections.stream().map(SpecSelection::attrId).distinct().count();
@@ -142,9 +141,9 @@ public class SkuService {
      *  两条额外守卫：上架商品不允许被存成「全部在售 SKU 库存 = 0」（整链接无货必须先下架）；
      *  划线价（本次提交或存量）不允许低于本次提交的现价（DB CHECK 兜底，这里给 400 不冒 500）。 */
     @Transactional
-    public List<Sku> updateSkus(UUID productId, List<SkuUpdateItem> items) {
+    public List<Sku> updateSkus(UUID shopId, UUID productId, List<SkuUpdateItem> items) {
         // 1. 商品必须存在且属于当前店铺（任何状态都允许改价/补货，是日常运营操作）；实体留作价格区间回填
-        Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
+        Product product = productMapper.requireShopOwned(shopId, productId);
         // 1.5 上架商品：预检本次更新后仍须至少一个在售 SKU 有货（对齐「架上商品不能全 0」，改 0 需先下架）
         if (product.isPublished()) {
             ensureNotAllOutOfStock(productId, items);

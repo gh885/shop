@@ -120,7 +120,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
             sku.setId(UUID.randomUUID());
             sku.setName("卖家商品 黑色");
             sku.setStatus(SkuStatus.ON_SALE);
-            when(productQueryService.detail(productId)).thenReturn(new ProductDetail(draft(), List.of(sku)));
+            when(productQueryService.detail(shopId, productId)).thenReturn(new ProductDetail(draft(), List.of(sku)));
             when(stockReadQuery.availableBySkuIds(any()))
                     .thenReturn(Map.of(sku.getId(), new StockView(sku.getId(), 5, 0, 5)));
 
@@ -129,7 +129,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                             .header("X-Shop-Id", shopId.toString()))
                     .andExpect(status().isOk());
 
-            verify(productQueryService).detail(productId);
+            verify(productQueryService).detail(shopId, productId);
         }
     }
 
@@ -146,7 +146,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
             sku.setPrice(1000L);
             sku.setCurrency("CNY");
             sku.setStatus(SkuStatus.ON_SALE);
-            when(skuService.updateSpecs(eq(productId), any())).thenReturn(List.of(sku));
+            when(skuService.updateSpecs(eq(shopId), eq(productId), any())).thenReturn(List.of(sku));
             when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of());
 
             mockMvc.perform(put("/seller/products/{id}/specs", productId)
@@ -159,7 +159,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                                             .formatted(UUID.randomUUID(), UUID.randomUUID())))
                     .andExpect(status().isOk());
 
-            verify(skuService).updateSpecs(eq(productId), any());
+            verify(skuService).updateSpecs(eq(shopId), eq(productId), any());
         }
 
         @Test
@@ -219,21 +219,23 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
             Product published = draft();
             published.setStatus(ProductStatus.PUBLISHED);
             // 默认 target=PUBLISHED（立即上架）
-            when(productService.publish(productId, ProductStatus.PUBLISHED)).thenReturn(published);
+            when(productService.publish(shopId, productId, ProductStatus.PUBLISHED))
+                    .thenReturn(published);
 
             mockMvc.perform(post("/seller/products/{id}/publish", productId)
                             .with(userAuth(userId))
                             .header("X-Shop-Id", shopId.toString()))
                     .andExpect(status().isOk());
 
-            verify(productService).publish(productId, ProductStatus.PUBLISHED);
+            verify(productService).publish(shopId, productId, ProductStatus.PUBLISHED);
         }
 
         @Test
         void 发布_放入仓库() throws Exception {
             Product stored = draft();
             stored.setStatus(ProductStatus.WAREHOUSE);
-            when(productService.publish(productId, ProductStatus.WAREHOUSE)).thenReturn(stored);
+            when(productService.publish(shopId, productId, ProductStatus.WAREHOUSE))
+                    .thenReturn(stored);
 
             mockMvc.perform(post("/seller/products/{id}/publish", productId)
                             .param("target", "WAREHOUSE")
@@ -242,21 +244,21 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value("WAREHOUSE"));
 
-            verify(productService).publish(productId, ProductStatus.WAREHOUSE);
+            verify(productService).publish(shopId, productId, ProductStatus.WAREHOUSE);
         }
 
         @Test
         void 下架() throws Exception {
             Product off = draft();
             off.setStatus(ProductStatus.WAREHOUSE);
-            when(productService.off(productId)).thenReturn(off);
+            when(productService.off(shopId, productId)).thenReturn(off);
 
             mockMvc.perform(post("/seller/products/{id}/off", productId)
                             .with(userAuth(userId))
                             .header("X-Shop-Id", shopId.toString()))
                     .andExpect(status().isOk());
 
-            verify(productService).off(productId);
+            verify(productService).off(shopId, productId);
         }
     }
 }

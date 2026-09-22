@@ -3,7 +3,6 @@ package com.shop.platform.product.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.PageResult;
-import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
@@ -75,8 +74,8 @@ public class ProductQueryService {
     }
 
     /** 商品详情：SPU 全字段 + SKU（卖家编辑只回显「当前 spec 组合」的行——对账停用的历史残留不打扰卖家，行保留不物理删） */
-    public ProductDetail detail(UUID productId) {
-        Product product = productMapper.requireShopOwned(ShopIdHolder.get(), productId);
+    public ProductDetail detail(UUID shopId, UUID productId) {
+        Product product = productMapper.requireShopOwned(shopId, productId);
         Set<String> currentSpecKeys = product.currentSpecKeys();
         List<Sku> skus = skuMapper.selectByProductId(productId).stream()
                 .filter(s -> currentSpecKeys.contains(s.getSpecKey()))

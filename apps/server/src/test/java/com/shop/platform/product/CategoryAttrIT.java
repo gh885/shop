@@ -3,7 +3,6 @@ package com.shop.platform.product;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.product.mapper.CategoryAttr;
 import com.shop.platform.product.mapper.CategoryAttrValue;
 import com.shop.platform.product.mapper.ParamItem;
@@ -16,7 +15,6 @@ import com.shop.platform.product.service.ProductService.CreateProductCommand;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -57,11 +55,6 @@ class CategoryAttrIT extends IntegrationTestSupport {
                 "DELETE FROM product.category_attr_values WHERE attr_id = ?::uuid",
                 attr.getId().toString());
         return attr;
-    }
-
-    @AfterEach
-    void clearShopContext() {
-        ShopIdHolder.clear();
     }
 
     @Test
@@ -112,7 +105,6 @@ class CategoryAttrIT extends IntegrationTestSupport {
     void 必填参数缺失_400() {
         CategoryAttr param = seedAttr(L3_PHONE, "产地", AttrKind.PARAM, true, null);
         UUID shopId = UUID.randomUUID();
-        ShopIdHolder.set(shopId);
         db.onDelete("DELETE FROM product.products WHERE shop_id = ?::uuid", shopId.toString());
 
         BusinessException ex = assertThrows(
@@ -138,7 +130,6 @@ class CategoryAttrIT extends IntegrationTestSupport {
         CategoryAttr param = seedAttr(L3_PHONE, "网络制式", AttrKind.PARAM, null, false);
         categoryAttrService.addValue(param.getId(), "5G", null, null);
         UUID shopId = UUID.randomUUID();
-        ShopIdHolder.set(shopId);
         db.onDelete("DELETE FROM product.products WHERE shop_id = ?::uuid", shopId.toString());
 
         // allow_custom=false 且有值域：域外自由文本拒绝
@@ -171,7 +162,6 @@ class CategoryAttrIT extends IntegrationTestSupport {
     void 参数attrId不属于模板_400() {
         seedAttr(L3_PHONE, "产地", AttrKind.PARAM, null, null);
         UUID shopId = UUID.randomUUID();
-        ShopIdHolder.set(shopId);
         db.onDelete("DELETE FROM product.products WHERE shop_id = ?::uuid", shopId.toString());
 
         // 类目已有模板时，自由文本（attrId=null）与外来 attrId 都拒绝

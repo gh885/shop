@@ -4,11 +4,11 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.qiniu.QiniuClient;
+import com.shop.platform.infra.qiniu.UploadTicket;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
-import com.shop.platform.product.controller.response.ImageTicketResponse;
 import com.shop.platform.product.controller.response.ProductDetailResponse;
 import com.shop.platform.product.controller.response.ProductResponse;
 import com.shop.platform.product.controller.response.SkuResponse;
@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 卖家商品管理（授权要求 PRODUCT_MANAGE，读随写权）。出参一律 Response record：卖家端 zod schema 逐字段严格校验，字段镜像实体现状只减不增 */
+/** 卖家商品管理（授权要求 PRODUCT_MANAGE，读随写权）。业务出参一律 Response record：卖家端 zod schema 逐字段严格校验，字段镜像实体现状只减不增；上传凭证直出 infra 值对象 UploadTicket */
 @Tag(name = "products-admin", description = "卖家商品管理")
 @RestController
 @RequestMapping("/seller/products")
@@ -55,10 +55,10 @@ public class ProductAdminController {
     private final StockReadQuery stockReadQuery;
     private final QiniuClient qiniuClient;
 
-    /** 商品图上传凭证：前端拿 ticket 后直传七牛，传完把 key 写进商品的 mainImage / images / detailImages */
+    /** 商品图上传凭证：前端拿 ticket 后直传七牛，传完把 key 写进商品的 mainImage / images / detailImages；出参即 infra 值对象 UploadTicket */
     @PostMapping("/image-ticket")
-    public ImageTicketResponse issueImageTicket(@RequestParam String ext) {
-        return ImageTicketResponse.from(qiniuClient.issueTicket("product", ext));
+    public UploadTicket issueImageTicket(@RequestParam String ext) {
+        return qiniuClient.issueTicket("product", ext);
     }
 
     /** 创建商品草稿，返回含 id/createdAt 的出参。shopId 从店铺上下文（X-Shop-Id）取，不由前端传入 */
@@ -69,23 +69,27 @@ public class ProductAdminController {
 
     /** 提交规格选择并按 valueId 组合（spec_key）对账 SKU，返回当前全部 SKU（含新 id，供 updateSku 定位） */
     @PutMapping("/{id}/specs")
-    public List<SkuResponse> updateProductSpecs(@PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
-        List<Sku> skus = skuService.updateSpecs(id, request.toSelections());
+    public List<SkuResponse> updateProductSpecs(
+            @CurrentShop UUID shopId, @PathVariable UUID id, @Valid @RequestBody UpdateSpecsRequest request) {
+        List<Sku> skus = skuService.updateSpecs(shopId, id, request.toSelections());
         return skuResponses(skus);
     }
 
     /** 批量更新 SKU 价格/库存，返回更新后的 SKU 列表 */
     @PutMapping("/{id}/skus")
-    public List<SkuResponse> updateProductSkus(@PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
-        List<Sku> skus = skuService.updateSkus(id, request.items());
+    public List<SkuResponse> updateProductSkus(
+            @CurrentShop UUID shopId, @PathVariable UUID id, @Valid @RequestBody UpdateSkusRequest request) {
+        List<Sku> skus = skuService.updateSkus(shopId, id, request.items());
         return skuResponses(skus);
     }
 
     /** 发布草稿：可立即上架（默认）或放入仓库（放入仓库=落 WAREHOUSE，不在售）。返回回填过价格区间的商品 */
     @PostMapping("/{id}/publish")
     public ProductResponse publishProduct(
-            @PathVariable UUID id, @RequestParam(defaultValue = "PUBLISHED") ProductStatus target) {
-        return ProductResponse.from(productService.publish(id, target));
+            @CurrentShop UUID shopId,
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "PUBLISHED") ProductStatus target) {
+        return ProductResponse.from(productService.publish(shopId, id, target));
     }
 
     /**
@@ -110,33 +114,34 @@ public class ProductAdminController {
 
     /** 商品详情：SPU 全字段 + 全部 SKU，任何状态可查 */
     @GetMapping("/{id}")
-    public ProductDetailResponse getShopProductDetail(@PathVariable UUID id) {
-        ProductDetail d = productQueryService.detail(id);
+    public ProductDetailResponse getShopProductDetail(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        ProductDetail d = productQueryService.detail(shopId, id);
         return ProductDetailResponse.from(d, stocks(d.skus()));
     }
 
     /** 编辑基本信息（specs/SKU 之外的字段）；改规格走 PUT /{id}/specs */
     @PutMapping("/{id}")
-    public ProductResponse updateProduct(@PathVariable UUID id, @Valid @RequestBody UpdateProductRequest request) {
-        return ProductResponse.from(productService.updateBasic(id, request.toCommand()));
+    public ProductResponse updateProduct(
+            @CurrentShop UUID shopId, @PathVariable UUID id, @Valid @RequestBody UpdateProductRequest request) {
+        return ProductResponse.from(productService.updateBasic(shopId, id, request.toCommand()));
     }
 
     /** 下架：仅上架商品可下架。不做物理删除，下架即"删除"语义 */
     @PostMapping("/{id}/off")
-    public ProductResponse offProduct(@PathVariable UUID id) {
-        return ProductResponse.from(productService.off(id));
+    public ProductResponse offProduct(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        return ProductResponse.from(productService.off(shopId, id));
     }
 
     /** 重新上架：仅下架商品可上架，复检发布门槛（全部 SKU 已设价） */
     @PostMapping("/{id}/on")
-    public ProductResponse onProduct(@PathVariable UUID id) {
-        return ProductResponse.from(productService.on(id));
+    public ProductResponse onProduct(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        return ProductResponse.from(productService.on(shopId, id));
     }
 
     /** 放弃草稿：仅草稿可删（同事务清 SKU+库存），供草稿箱「扔掉这个草稿」。无 body，成功即 204。 */
     @DeleteMapping("/{id}")
-    public void abandonProduct(@PathVariable UUID id) {
-        productService.abandon(id);
+    public void abandonProduct(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        productService.abandon(shopId, id);
     }
 
     // HTTP 出参（与买家侧 ProductController 的同名 record 互不共享：方向不同契约不同）

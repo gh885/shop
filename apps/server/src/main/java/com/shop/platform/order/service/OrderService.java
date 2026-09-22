@@ -220,7 +220,7 @@ public class OrderService {
     }
 
     // 卖家侧查询
-    /** 卖家订单分页：ShopIdHolder 圈定本店 */
+    /** 卖家订单分页：shopId 入参圈定本店（controller 经 @CurrentShop 注入） */
     @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageSeller(UUID shopId, String status, PageParams page) {
         return pageOrders(Order::getShopId, shopId, status, page);
