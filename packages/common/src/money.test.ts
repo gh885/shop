@@ -5,7 +5,6 @@ import {
     formatMoney,
     money,
     moneyToYuan,
-    minusMoney,
     plusMoney,
     priceRangeText,
     splitFen,
@@ -29,19 +28,16 @@ describe("money 构造", () => {
 })
 
 describe("金额运算", () => {
-    it("相加/相减/乘倍都在同币种内进行", () => {
+    it("相加/乘倍都在同币种内进行", () => {
         expect(plusMoney(money(100), money(250))).toEqual(money(350))
-        expect(minusMoney(money(350), money(250))).toEqual(money(100))
         expect(timesMoney(money(1000), 3)).toEqual(money(3000))
     })
 
     it("跨币种运算抛错：把 CNY 和 USD 加成一个数是算错钱，不是精度问题", () => {
         expect(() => plusMoney(money(100, "CNY"), money(100, "USD"))).toThrow(/币种不一致/)
-        expect(() => minusMoney(money(100, "CNY"), money(100, "USD"))).toThrow(/币种不一致/)
     })
 
-    it("减穿与非法倍数抛错：负金额与小数倍数都不该在链路里漂流", () => {
-        expect(() => minusMoney(money(100), money(200))).toThrow(/不能为负/)
+    it("非法倍数抛错：负金额与小数倍数都不该在链路里漂流", () => {
         expect(() => timesMoney(money(100), 1.5)).toThrow(/非负整数/)
         expect(() => timesMoney(money(100), -1)).toThrow(/非负整数/)
     })

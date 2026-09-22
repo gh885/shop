@@ -1,0 +1,75 @@
+/* ==========================================================================
+   工作台主题（seller/admin 共用）—— 只覆盖 ui-web 的【同名语义 token】，不新增 token 名。
+
+   需要不同值时才写同名覆盖；与 ui-web 默认值相同的（cta-alt、反馈色等）不重复声明，
+   直接继承 ui-web。primitive（--neutral-/--orange- 等）一律不动。
+
+   调性：千牛式商家经营工具 —— 冷蓝灰 canvas 画布（hue 227）上，「二级面板 +
+   内容」作为白色浮面带大圆角浮起，层次靠底色差、不用分割线。
+   平台端身份色（品牌、CTA）走 primary，覆盖为靛蓝冷相
+   （ui-web 注释：平台端 primary 用 indigo，与 C 端橙红区分）；
+   导航激活态走 accent/foreground。
+   密度高于 C 端，固定浅色。
+
+   与 app-kit 的 workbench 组件（sidebar/topbar）配套：端里 @import 本文件即启用。
+   ========================================================================== */
+
+:root {
+    /* 固定浅色 */
+    color-scheme: light;
+}
+
+@theme {
+    /* ── 表面 ── canvas 是页面"地面"（冷蓝灰），顶栏/一级轨透明浮于其上；
+       background/card 是浮在 canvas 上的白色浮面（大圆角，无分割线） */
+    --color-canvas: hsl(227 33% 96%);
+    --color-background: hsl(0 0% 100%);
+    --color-card: hsl(0 0% 100%);
+    --color-popover: hsl(0 0% 100%);
+    --color-sunken: hsl(227 25% 94%);
+
+    /* ── 内容（冷灰文字阶梯：主文字 → 次要） ── */
+    --color-foreground: hsl(228 18% 14%);
+    --color-card-foreground: hsl(228 18% 14%);
+    --color-popover-foreground: hsl(228 18% 14%);
+    --color-muted-foreground: hsl(228 8% 46%);
+    --color-link: hsl(219 90% 58%);
+
+    /* ── 主操作 = 平台身份色（千牛蓝，比 #3177f6 稍亮）── 覆盖 ui-web 的转化橙。
+       品牌标识、CTA 走 primary；hue 219、明度 62% 亮蓝 */
+    --color-primary: hsl(219 90% 62%);
+    --color-primary-foreground: var(--neutral-0);
+    --color-primary-hover: hsl(219 90% 55%);
+    --color-primary-active: hsl(219 92% 46%);
+    --color-primary-subtle: hsl(219 100% 96%);
+    --color-primary-subtle-foreground: hsl(219 78% 42%);
+
+    /* ── 次级/弱化表面（冷蓝灰阶梯） ── */
+    --color-secondary: hsl(227 25% 94%);
+    --color-secondary-foreground: hsl(228 18% 20%);
+    --color-muted: hsl(227 25% 94%);
+    --color-accent: hsl(227 28% 93%);
+    --color-accent-foreground: hsl(228 18% 20%);
+
+    /* ── 结构与焦点（冷灰描边；焦点环走靛蓝） ── */
+    --color-border: hsl(227 18% 89%);
+    --color-input: hsl(227 18% 89%);
+    --color-ring: hsl(219 88% 60%);
+
+    /* ── Sidebar（一级轨与 canvas 同色无缝，浮面白） ── */
+    --color-sidebar: var(--color-canvas);
+    --color-sidebar-foreground: hsl(228 18% 14%);
+    --color-sidebar-primary: hsl(219 90% 62%);
+    --color-sidebar-primary-foreground: var(--neutral-0);
+    --color-sidebar-accent: hsl(227 28% 93%);
+    --color-sidebar-accent-foreground: hsl(228 18% 20%);
+    --color-sidebar-border: transparent;
+    --color-sidebar-ring: hsl(219 88% 60%);
+}
+
+body {
+    /* 后台密度：14px 档，中文屏显优先 */
+    font-size: 14px;
+    /* 整站地面 = 冷蓝灰 canvas，顶栏/一级轨透明浮于其上 */
+    background-color: var(--color-canvas);
+}

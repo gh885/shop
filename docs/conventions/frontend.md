@@ -31,7 +31,7 @@
 - 登录态：`apps/web/src/lib/auth.ts`（access token 只存内存，refresh token 走后端 httpOnly cookie）
 - 启动时 `bootstrapAuth()` 静默刷新（`lib/api.ts`），root 布局挂载处调用；受保护路由用 `beforeLoad: () => requireAuth()` 守卫，未登录自动拉起全局登录 Dialog
 - 用户信息：`useMe()`（web 在 `account/queries.ts`、seller/admin 在 `shared/lib/me.ts`，三者都由 `@shop/app-kit` 的 `createMeQuery` 生成，未登录不发请求）
-- 表单：用 `useAppForm`（`@shop/ui-web`，TanStack Form + Zod validators），不手写裸 state 表单
+- 表单：用 `useAppForm`（`@shop/ui-web`，TanStack Form + Zod validators），不手写裸 state 表单。周边一并统一：校验放表单级 `validators.onSubmit`（不用字段级 onChange）；提交接线 `onSubmit={(e) => { e.preventDefault(); void form.handleSubmit() }}`；服务端/表单级错误用 `<FormError>`；弹窗表单体挂在 `DialogContent` 里（关闭即卸载、打开即按 props 重算默认值，不写 effect + `form.reset`）；页脚用 `DialogFooter`，取消按钮 `variant="outline"`，提交按钮 `{pending && <Spinner />}文字`、pending 读 mutation 的 `isPending`；弹窗内字段竖排、整页表单 label 左列（`orientation="horizontal"`）
 
 ## 状态归属（前端）
 
@@ -107,7 +107,7 @@ useMutation({
 1. **`invalidates` 传真实 query key，不要发明 tag**：tag 表等于在 query key 之外再造一棵命名树，新增读取方时没人会记得补 tag（与「不造第二棵 key 树」同一条理由）；而且它表达不了「由变量算出的 key」——那种情况用库自己的 `onSuccess`。
 2. **`silentError` 是显式声明，不是逃生舱**：只有「错误已经在别处被用户看见了」才用它（表单把 detail 渲染在字段下、登出后本地身份已清且人已在登录页）。
 3. **乐观更新写 `useMutation(optimisticListMutationOptions({ ... }))`**：官方那三步（`onMutate` 取消在途 → 快照 → patch；`onError` 回滚；`onSettled` 失效）顺序写反了只在并发下偶发出错，所以固定在一次实现里，只把「怎么 patch」交给领域；反馈不在它里面（全局负责）。
-4. **危险操作的二次确认走全局 `confirm()`（`@shop/ui-web`）**：`const ok = await confirm({ title, description, confirmText, action })`，与 `notify` 同级的全局收口——调用点不再持 `open` state、不铺弹窗骨架，根布局只挂一份 `<ConfirmDialogHost />`（与 `<Toaster />` 并排）。`action` 传 `mutation.mutateAsync(...)`：promise 期间确认按钮转圈，成功关面，失败保持打开等重试（错误提示已由全局 mutation 反馈弹过，这里不重复）。只在客户端事件回调里调，不要在渲染期/SSR 阶段调。
+4. **危险操作的二次确认走全局 `confirm()`（`@shop/ui-web`）**：`const ok = await confirm({ title, description, confirmText, action })`，与 `notify` 同级的全局收口——调用点不再持 `open` state、不铺弹窗骨架，根布局只挂一份 `<ConfirmDialogHost />`（与 `<Toaster />` 并排）。`action` 传 `mutation.mutateAsync(...)`：promise 期间确认按钮转圈，成功关面，失败保持打开等重试（错误提示已由全局 mutation 反馈弹过，这里不重复）。只在客户端事件回调里调，不要在渲染期/SSR 阶段调。**表单页的「未保存离开」守卫不自己拼 `useBlocker` + 弹窗**：用 `useUnsavedLeaveGuard(when, { beforeUnload, onLeave })`（`@shop/app-kit`），它把路由拦截、关页/刷新兜底和这同一个确认面一次接好。
 
 ### 错误与重试：全部走官方边界，不自造 onRetry
 
@@ -115,12 +115,12 @@ useMutation({
 
 `throwOnError: throwWhenNoData` 是 `createAppQueryClient()` 的**全局默认**，所以「失败抛给边界」是常态、不必逐条声明；**需要显式写的是退出**（`throwOnError: false`）。机制依据见 query-convergence.md §4。
 
-| 失败范围                                                          | 交给谁                                            | 怎么接                                                                                                                                                                                         |
-| ----------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 页面主体数据（详情 / 列表 / 结算 / 收银台 / 工作台 / 店铺守卫）   | 路由 `errorComponent`                             | 什么都不用写：全局默认把错误抛给该 match 的 `CatchBoundary`，由三端 router 的 `defaultErrorComponent`（`RouteErrorFallback`）渲染；重试 = Router `reset()` + `QueryErrorResetBoundary.reset()` |
-| 区块 / 弹窗内部件（店条、推荐流、首页 feed）                      | `QueryBoundary`（`@shop/app-kit`）                | 期望「整块替换」的用它：`pending` 骨架 + `fallback({ error, reset })`；suspense 查询自己会抛，非 suspense 查询靠全局默认抛到它的 `ErrorBoundary`（此时别传 `pending`）                         |
-| 无边界可接的附属件（页头角标、收藏心形、可领券、弹窗/向导内部件） | 就地错误态                                        | options 写 **`throwOnError: false`** 退出全局默认，失败就地渲染 `isError` 并用官方 `refetch()` 重试（官方 manual 写法）                                                                        |
-| 挂起                                                              | `pendingComponent` / `QueryBoundary` 的 `pending` | 路由级 `pendingComponent` 会被 Router 兼作该 match 的 Suspense fallback（见 `@tanstack/react-router` 的 `Match.js`），同时覆盖 loader 与 suspense 查询                                         |
+| 失败范围                                                          | 交给谁                                            | 怎么接                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 页面主体数据（详情 / 列表 / 结算 / 收银台 / 工作台 / 店铺守卫）   | 路由 `errorComponent`                             | 什么都不用写：全局默认把错误抛给该 match 的 `CatchBoundary`，由三端 router 的 `defaultErrorComponent`（`RouteErrorFallback`）渲染；重试 = Router `reset()` + `QueryErrorResetBoundary.reset()`                                         |
+| 区块 / 弹窗内部件（店条、推荐流、首页 feed）                      | `QueryBoundary`（`@shop/app-kit`）                | 期望「整块替换」的用它：`pending` 骨架 + `fallback`（字符串 = 默认 `StateError` 错误态 + 官方 reset 重试；函数 = 自定义布局的失败态）；suspense 查询自己会抛，非 suspense 查询靠全局默认抛到它的 `ErrorBoundary`（此时别传 `pending`） |
+| 无边界可接的附属件（页头角标、收藏心形、可领券、弹窗/向导内部件） | 就地错误态                                        | options 写 **`throwOnError: false`** 退出全局默认，失败就地渲染 `isError` 并用官方 `refetch()` 重试（官方 manual 写法）                                                                                                                |
+| 挂起                                                              | `pendingComponent` / `QueryBoundary` 的 `pending` | 路由级 `pendingComponent` 会被 Router 兼作该 match 的 Suspense fallback（见 `@tanstack/react-router` 的 `Match.js`），同时覆盖 loader 与 suspense 查询                                                                                 |
 
 写新查询时的五条硬规矩（完整机制依据见 query-convergence.md §4）：
 
@@ -134,13 +134,13 @@ useMutation({
 
 **一句话**：`Money { amount(分), currency }` 是链路上唯一的金额形状，「元」只活在输入框和展示文本里；运算和展示都不许脱离 Money，否则币种在那一刻就丢了。
 
-| 要做的事           | 用什么（都在 `@shop/common` 的 `money.ts`）                                      | 不要                               |
-| ------------------ | -------------------------------------------------------------------------------- | ---------------------------------- |
-| 展示一笔钱         | `formatMoney(m, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种）       | 各处手写 `¥${fenToYuan(m.amount)}` |
-| 加减乘件数求和     | `plusMoney` / `minusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加） | `.amount` 抠出来做算术             |
-| 表单回填           | `moneyToYuan(m)`（无符号、不分组、补齐两位）                                     | 拿 `formatMoney` 的结果塞进 input  |
-| 元输入 → Money     | `yuanToMoney` / `yuanPriceSchema`（币种取 `PLATFORM_CURRENCY`）                  | 自己 `Number(v) * 100`             |
-| 判两笔钱是否同一笔 | `sameMoney`（Money 是值对象，`===` 比的是引用）                                  | `a.price !== b.price`              |
+| 要做的事           | 用什么（都在 `@shop/common` 的 `money.ts`）                                | 不要                               |
+| ------------------ | -------------------------------------------------------------------------- | ---------------------------------- |
+| 展示一笔钱         | `formatMoney(m, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种） | 各处手写 `¥${fenToYuan(m.amount)}` |
+| 加减乘件数求和     | `plusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加）          | `.amount` 抠出来做算术             |
+| 表单回填           | `moneyToYuan(m)`（无符号、不分组、补齐两位）                               | 拿 `formatMoney` 的结果塞进 input  |
+| 元输入 → Money     | `yuanToMoney` / `yuanPriceSchema`（币种默认平台定价币种 CNY）              | 自己 `Number(v) * 100`             |
+| 判两笔钱是否同一笔 | `sameMoney`（Money 是值对象，`===` 比的是引用）                            | `a.price !== b.price`              |
 
 - 缺席的钱显式给占位符（`formatMoney(undefined)` → `—`）：`¥0.00` 和「没有数」是两件事，前者会被读成免单。
 - 造零值不凭空预设币种：`sumMoney` 非空时起点币种跟第一笔钱，`zeroMoney(currency)` 的币种从手上这批钱里拿。
@@ -172,7 +172,7 @@ pnpm test:watch  # watch 模式
 
 - **只 mock HTTP 网络层（MSW），禁止 `vi.mock` 业务模块/内部函数**——mock 实现会让测试跟实现绑死
 - 默认 handler 集中在 `packages/test-utils`，按 openapi 契约 mock；用例内用 `server.use(http.xxx(...))` 局部覆盖并捕获请求体，断言「业务形状 → wire 形状」投影（如 receiver → receiverName）
-- 组件测试一律走 `renderWithProviders`（各 app `src/test/render.tsx`，挂独立 QueryClientProvider；需路由上下文只改这个文件），不裸用 `render`
+- 组件测试一律走 `renderWithProviders`（`@shop/app-kit/test`，三端统一薄包装，挂独立 QueryClientProvider；需真实路由上下文的用同处的 `renderWithRouter`），不裸用 `render`
 - 查询用可访问性语义：`getByRole` / `getByLabelText`，禁 className 查询；label 文本必须纯净（必填星号走伪元素，不进 textContent）
 
 ### 什么测 / 什么不测
@@ -185,8 +185,8 @@ pnpm test:watch  # watch 模式
 ### 已知坑
 
 - MSW handler path 必须写 `*/user/...` 通配形式（裸 `/user/...` 按 jsdom origin 解析，匹配不上 SDK 打到 8080 的请求）
-- 要测「非 2xx 按 status 分支」的行为（如 404 = 没有记录），必须先在 app 的 `src/test/setup.ts` 里
-  `configureSdkClient("http://localhost:8080")`：不装配时非 2xx 走 ky 自己的抛错路径（会预读 body），
+- 要测「非 2xx 按 status 分支」的行为（如 404 = 没有记录），依赖 `@shop/app-kit/test/setup` 里
+  `configureSdkClient("http://localhost:8080")`（各 app 的 `setupFiles` 都指向它）：不装配时非 2xx 走 ky 自己的抛错路径（会预读 body），
   hey-api 解析时报 "Body is unusable"，调用方只拿到 `{status: 0}` 网络错误，404 分支永远测不到。
   baseUrl 必须是绝对地址——jsdom 的 `new Request()` 来自 undici，相对 URL（线上的同源 `""`）直接抛错。
   还要在 `beforeAll` 里**再压一次** `client.setConfig({ baseUrl: "http://localhost:8080" })`：
@@ -195,5 +195,5 @@ pnpm test:watch  # watch 模式
 - 列表页的 hook 测试要先把登录态与店铺上下文造出来：seller 侧 `useMyShops` 只在 `authed` 时拉
   `/shops/mine`（测试里 `tokenStore.set("...")`，别忘 `afterEach` 里 `clear()`），
   `useCurrentShop` 解析出的 shopId 进缓存 key，没就位时失效的是另一棵树
-- **app 测试不要自己 `new QueryClient()` / 用裸的 `createTestQueryClient()`**：全局 `throwOnError`、写操作的全局 toast 与 `meta.invalidates` 失效都挂在 `createAppQueryClient()` 的默认值上，裸 client 会让它们「生产里一定发生、测试里从不发生」。三端 `src/test/render.tsx` 导出的 `renderWithProviders` / `createAppTestQueryClient` 就是「应用真实默认值 + 禁 retry」，一律走它们；`@shop/test-utils` 的 `createTestQueryClient` 只留给 app-kit 自己测库行为用（它不 import app-kit，反向依赖会成环）。改这套默认值时要同步跑全量测试——`pnpm test` 里那几条「成功后三棵缓存一起失效」的用例正是靠它才生效的。
-- pre-push 跑 `pnpm test`；admin 尚无用例，其 vitest 配置已开 `passWithNoTests`
+- **app 测试不要自己 `new QueryClient()` / 用裸的 `createTestQueryClient()`**：全局 `throwOnError`、写操作的全局 toast 与 `meta.invalidates` 失效都挂在 `createAppQueryClient()` 的默认值上，裸 client 会让它们「生产里一定发生、测试里从不发生」。`@shop/app-kit/test` 导出的 `renderWithProviders` / `createAppTestQueryClient` 就是「应用真实默认值 + 禁 retry」，一律走它们；`@shop/test-utils` 的 `createTestQueryClient` 只留给底层包自己测库行为用（它不 import app-kit，反向依赖会成环）。改这套默认值时要同步跑全量测试——`pnpm test` 里那几条「成功后三棵缓存一起失效」的用例正是靠它才生效的。
+- pre-push 跑 `pnpm test`；各 app 的 vitest 配置都不开 `passWithNoTests`：用例被误删要能被 CI 发现

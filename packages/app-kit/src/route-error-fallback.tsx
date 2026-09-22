@@ -18,7 +18,7 @@ import { Button } from "@shop/ui-web"
  * 布局刻意保持「块级中性」：它按 `defaultErrorComponent` 挂在**每一个** route match 上，
  * 叶子路由失败时渲染在父级布局（侧边栏/导航壳）内部，不能假设自己占满整屏。
  */
-export interface RouteErrorFallbackProps {
+interface RouteErrorFallbackProps {
     error: unknown
     /** Router 注入的边界重置 */
     reset: () => void

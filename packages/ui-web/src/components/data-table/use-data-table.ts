@@ -4,7 +4,7 @@ import { useTable, type RowData, type TableOptions } from "@tanstack/react-table
 
 import { dataTableFeatures, type DataTableFeatures } from "./data-table-features"
 
-export type UseDataTableOptions<TData extends RowData> = Omit<
+type UseDataTableOptions<TData extends RowData> = Omit<
     TableOptions<DataTableFeatures, TData>,
     "features"
 >

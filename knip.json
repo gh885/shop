@@ -4,7 +4,6 @@
     "ignoreBinaries": ["mvn", "wsl.exe"],
     "workspaces": {
         "apps/admin": {
-            "ignore": ["src/test/render.tsx"],
             "ignoreDependencies": ["msw"]
         }
     }

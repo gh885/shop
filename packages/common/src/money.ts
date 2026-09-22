@@ -21,7 +21,7 @@ export type { Money } from "@shop/api"
  * 前端造 Money（表单提交）时的币种来源，与后端入参护栏、DB 的 `CHECK (currency = 'CNY')` 同一条口径；
  * 真上多币种时这里和那两处要一起数一遍。
  */
-export const PLATFORM_CURRENCY = "CNY"
+const PLATFORM_CURRENCY = "CNY"
 
 const SYMBOLS: Record<string, string> = {
     CNY: "¥",
@@ -62,13 +62,6 @@ export function sameMoney(a: Money | null | undefined, b: Money | null | undefin
 export function plusMoney(a: Money, b: Money): Money {
     assertSameCurrency(a, b)
     return money(a.amount + b.amount, a.currency)
-}
-
-/** 相减：仅同币种。结果不得为负——本类型语义是「交易金额」，负值没有意义 */
-export function minusMoney(a: Money, b: Money): Money {
-    assertSameCurrency(a, b)
-    if (a.amount < b.amount) throw new Error("金额相减结果不能为负")
-    return money(a.amount - b.amount, a.currency)
 }
 
 /** 乘以非负整数倍（单价 × 件数）：结果仍是同币种的钱，单位不漂移 */

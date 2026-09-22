@@ -16,7 +16,7 @@ import {
 
 import type { DataTableFeatures } from "./data-table-features"
 
-export type DataTableProps<TData extends RowData> = {
+type DataTableProps<TData extends RowData> = {
     table: ReactTable<DataTableFeatures, TData>
     emptyContent?: ReactNode
     className?: string

@@ -28,7 +28,7 @@ import type { MutationMeta } from "./mutation-meta"
  * 于是这个工厂只管缓存编排，`meta.invalidates` 只管「这份回执还连带影响谁」（如头部角标计数），
  * 两件事不再混在一个 `messages` 里。
  */
-export interface OptimisticListMutationConfig<TData, TVars> {
+interface OptimisticListMutationConfig<TData, TVars> {
     /** 要乐观 patch 的那个列表缓存 key（同时也是终态失效的目标） */
     queryKey: QueryKey
     /** 调服务端；失败即抛（SDK 已配 throwOnError，不存在「返回 { error }」的路径） */

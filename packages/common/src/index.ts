@@ -14,28 +14,20 @@
  * - money.ts     ：金额 re-export（契约 Money）+ 分/元换算与区间展示
  * - api-error.ts ：后端统一错误形状 ApiError + 归一化（含 zod 契约校验语义）
  * - error-codes.ts：错误码常量（与 docs/error-codes.md 同步）
- * - forms.ts     ：跨 app 的表单字段级校验 schema（手机号/登录）
  * - sdk-client.ts：生成 SDK 的传输层装配（token 注入 / 401 刷新 / 错误归一化）
  * - auth-kit.ts  ：应用无关的登录态套件（内存 token + 静默刷新 + 设备 ID + 订阅）
- * - category.ts  ：类目树的纯算法（末级路径语料 / 级联列 / 路径推导）
  * - regions.ts   ：国标行政区划树的纯算法 + 数据（级联取孩子 / 6 位码反查路径）
  * - coupon.ts    ：优惠券文案与规则换算（门槛/面额一句话、原因码与状态标签）
  */
 
 export {
-    currencySymbol,
     fenToYuan,
     formatMoney,
-    groupYuan,
     money,
     moneyToYuan,
-    minusMoney,
     type Money,
-    PLATFORM_CURRENCY,
-    plusMoney,
     priceRangeText,
     sameMoney,
-    splitFen,
     splitMoney,
     sumMoney,
     timesMoney,
@@ -54,25 +46,12 @@ export {
 } from "./api-error"
 
 export * from "./error-codes"
-export * from "./forms"
 
 export { configureSdkClient } from "./sdk-client"
 export type { SdkClientOptions, TokenStore } from "./sdk-client"
 
 export { createAuthKit } from "./auth-kit"
 export type { AuthKit, AuthKitOptions, AuthStatus } from "./auth-kit"
-
-export {
-    columnsOf,
-    filterByName,
-    flattenLeafPaths,
-    isLeaf,
-    nodesOf,
-    searchLeafPaths,
-    selectAt,
-    selectedLeafId,
-} from "./category"
-export type { LeafPath } from "./category"
 
 export { findPath, loadChildren, loadRegionTree } from "./regions"
 export type { RegionOption, RegionTreeNode } from "./regions"

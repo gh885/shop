@@ -2,6 +2,9 @@ import { Suspense, type ReactNode } from "react"
 import { QueryErrorResetBoundary } from "@tanstack/react-query"
 import { ErrorBoundary } from "react-error-boundary"
 
+import { ApiErrorSchema } from "@shop/common"
+import { StateError } from "@shop/ui-web"
+
 /**
  * 区块级「挂起 + 失败」边界 —— **官方三件套的组合，不是替代品**：
  * `QueryErrorResetBoundary`（Query）+ `ErrorBoundary`（react-error-boundary，官方文档示例同款）
@@ -26,12 +29,39 @@ import { ErrorBoundary } from "react-error-boundary"
  * 因此如果失败原因需要连带刷新别的查询，那属于 mutation 之后的失效，写在 mutation 的
  * `invalidateKeys` 里，不要塞进这个 `reset`。
  */
-export interface QueryBoundaryProps {
+interface QueryBoundaryProps {
     children: ReactNode
-    /** 失败态渲染；`reset` 已接好官方重置链路，直接交给错误 UI 的重试按钮 */
-    fallback: (args: { error: unknown; reset: () => void }) => ReactNode
+    /**
+     * 失败态渲染：传字符串 = 默认渲染 StateError——错误能解析成 ApiError 时优先展示接口 detail，
+     * 字符串作缺文案兜底；区块需要自定义布局（紧凑条/骨架同尺寸卡片）时传渲染函数。
+     * `reset` 已接好官方重置链路，直接交给错误 UI 的重试按钮。
+     */
+    fallback: string | ((args: { error: unknown; reset: () => void }) => ReactNode)
     /** 挂起占位：仅当子树的查询是 suspense 变体时传入（区块级流式）；不传则不套 Suspense */
     pending?: ReactNode
+}
+
+/**
+ * 失败面渲染：字符串 → 默认 StateError；函数 → 自定义布局。
+ * 定义在模块作用域：在渲染期就地写这段 JSX 会被 react/no-unstable-nested-components 判成每次渲染新建组件。
+ */
+function renderFallback(
+    fallback: QueryBoundaryProps["fallback"],
+    error: unknown,
+    reset: () => void,
+): ReactNode {
+    if (typeof fallback === "string") {
+        // 只有能解析成 ApiError 时才用接口 detail；否则（网络层异常、契约校验等）toApiError 给的是
+        // 通用兜底文案，不如站点自己给的字符串贴合这一块（别把「推荐加载失败」写成「请求失败」）
+        const parsed = ApiErrorSchema.safeParse(error)
+        return (
+            <StateError
+                message={parsed.success ? parsed.data.detail : fallback}
+                onRetry={reset}
+            />
+        )
+    }
+    return fallback({ error, reset })
 }
 
 export function QueryBoundary({ children, fallback, pending }: QueryBoundaryProps) {
@@ -41,7 +71,7 @@ export function QueryBoundary({ children, fallback, pending }: QueryBoundaryProp
                 <ErrorBoundary
                     onReset={reset}
                     fallbackRender={({ error, resetErrorBoundary }) =>
-                        fallback({ error, reset: resetErrorBoundary })
+                        renderFallback(fallback, error, resetErrorBoundary)
                     }
                 >
                     {pending === undefined ? (

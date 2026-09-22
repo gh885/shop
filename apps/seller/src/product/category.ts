@@ -4,14 +4,14 @@ import type { CategoryNode } from "@shop/api/sdk"
  * category —— 类目树（wire 形状）之上的纯算法层。不碰 React / 网络 / UI。
  *
  * 类目树接口全量返回且各端长期缓存，所以「搜索」「级联」「路径回填」都在这份
- * 公共树上算，不额外开接口；三个端（seller 发布选类目、admin 类目管理、web 类目
- * 浏览）若出现同类 UI，算法只此一份，避免各 app 复制漂移：
+ * 公共树上算，不额外开接口：
  * - flattenLeafPaths ：树 → 末级路径清单（搜索的语料）
  * - searchLeafPaths  ：关键词 → 候选末级类目（末级名命中排前）
  * - columnsOf        ：选中路径 → 级联列（千牛式三列）
  * - nodesOf          ：选中路径 → 节点链（面包屑与「是否末级」都由它推）
- * 契约类型来自 @shop/api/sdk（生成物），与算法同仓不同包：契约演进时类型与算法
- * 各自版本化，但算法只认 wire 树的 id/name/children 三个字段，漂移面很小。
+ * 原住 @shop/common（当时的理由是「三端若出现同类 UI 只此一份」），实际消费者一直只有
+ * seller 发布选类目——按「共享 = ≥2 消费者」的门槛收进商品域。契约类型来自 @shop/api/sdk
+ * （生成物），算法只认 wire 树的 id/name/children 三个字段，漂移面很小。
  */
 
 /** 一条末级类目路径：id = 末级 id，ids/names 为根 → 末级 */

@@ -1,90 +1,14 @@
 "use client"
 
 /* oxlint-disable react/immutability, jsx-a11y/prefer-tag-over-role, jsx-a11y/role-supports-aria-props */
-import {
-    FileArchiveIcon,
-    FileAudioIcon,
-    FileCodeIcon,
-    FileCogIcon,
-    FileIcon,
-    FileTextIcon,
-    FileVideoIcon,
-} from "lucide-react"
 import * as React from "react"
 
-import { cn, type CSSVars } from "src/lib/utils"
+import { cn } from "src/lib/utils"
 import { useAsRef } from "src/hooks/use-as-ref"
 import { useLazyRef } from "src/hooks/use-lazy-ref"
 
 const ROOT_NAME = "FileUpload"
 const DROPZONE_NAME = "FileUploadDropzone"
-const TRIGGER_NAME = "FileUploadTrigger"
-const LIST_NAME = "FileUploadList"
-const ITEM_NAME = "FileUploadItem"
-const ITEM_PREVIEW_NAME = "FileUploadItemPreview"
-const ITEM_METADATA_NAME = "FileUploadItemMetadata"
-const ITEM_PROGRESS_NAME = "FileUploadItemProgress"
-const ITEM_DELETE_NAME = "FileUploadItemDelete"
-const CLEAR_NAME = "FileUploadClear"
-
-function formatBytes(bytes: number) {
-    if (bytes === 0) return "0 B"
-    const sizes = ["B", "KB", "MB", "GB", "TB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    return `${(bytes / 1024 ** i).toFixed(i ? 1 : 0)} ${sizes[i]}`
-}
-
-function getFileIcon(file: File) {
-    const type = file.type
-    const extension = file.name.split(".").pop()?.toLowerCase() ?? ""
-
-    if (type.startsWith("video/")) {
-        return <FileVideoIcon />
-    }
-
-    if (type.startsWith("audio/")) {
-        return <FileAudioIcon />
-    }
-
-    if (type.startsWith("text/") || ["txt", "md", "rtf", "pdf"].includes(extension)) {
-        return <FileTextIcon />
-    }
-
-    if (
-        [
-            "html",
-            "css",
-            "js",
-            "jsx",
-            "ts",
-            "tsx",
-            "json",
-            "xml",
-            "php",
-            "py",
-            "rb",
-            "java",
-            "c",
-            "cpp",
-            "cs",
-        ].includes(extension)
-    ) {
-        return <FileCodeIcon />
-    }
-
-    if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(extension)) {
-        return <FileArchiveIcon />
-    }
-
-    if (
-        ["exe", "msi", "app", "apk", "deb", "rpm"].includes(extension) ||
-        type.startsWith("application/")
-    ) {
-        return <FileCogIcon />
-    }
-
-    return <FileIcon />
-}
 
 type Direction = "ltr" | "rtl"
 
@@ -107,10 +31,8 @@ type StoreAction =
     | { type: "SET_PROGRESS"; file: File; progress: number }
     | { type: "SET_SUCCESS"; file: File }
     | { type: "SET_ERROR"; file: File; error: string }
-    | { type: "REMOVE_FILE"; file: File }
     | { type: "SET_DRAG_OVER"; dragOver: boolean }
     | { type: "SET_INVALID"; invalid: boolean }
-    | { type: "CLEAR" }
 
 type Store = {
     getState: () => StoreState
@@ -152,12 +74,10 @@ function useStore<T>(selector: (state: StoreState) => T): T {
 interface FileUploadContextValue {
     inputId: string
     dropzoneId: string
-    listId: string
     labelId: string
     disabled: boolean
     dir: Direction
     inputRef: React.RefObject<HTMLInputElement | null>
-    urlCache: Map<File, string>
 }
 
 const FileUploadContext = React.createContext<FileUploadContextValue | undefined>(undefined)
@@ -200,19 +120,18 @@ interface FileUploadProps extends Omit<React.ComponentProps<"div">, "defaultValu
 }
 
 /**
- * store reducer 的运行上下文：files/urlCache 是与 state 同生的引用 Map（reducer 直接 mutate 后返回新引用），
+ * store reducer 的运行上下文：files 是与 state 同生的引用 Map（reducer 直接 mutate 后返回新引用），
  * onValueChange 用闭包包装、dispatch 时读 propsRef 最新值（等价于原来 dispatch 内读 propsRef.current）。
  */
 interface StoreReducerCtx {
     files: Map<File, FileState>
-    urlCache: Map<File, string>
     onValueChange?: (files: File[]) => void
 }
 
 function storeReducer(
     prevState: StoreState,
     action: StoreAction,
-    { files, urlCache, onValueChange }: StoreReducerCtx,
+    { files, onValueChange }: StoreReducerCtx,
 ): StoreState {
     switch (action.type) {
         case "ADD_FILES": {
@@ -287,43 +206,12 @@ function storeReducer(
             return { ...prevState, files }
         }
 
-        case "REMOVE_FILE": {
-            const cachedUrl = urlCache.get(action.file)
-            if (cachedUrl) {
-                URL.revokeObjectURL(cachedUrl)
-                urlCache.delete(action.file)
-            }
-
-            files.delete(action.file)
-
-            if (onValueChange) {
-                onValueChange([...files.values()].map((fileState) => fileState.file))
-            }
-            return { ...prevState, files }
-        }
-
         case "SET_DRAG_OVER": {
             return { ...prevState, dragOver: action.dragOver }
         }
 
         case "SET_INVALID": {
             return { ...prevState, invalid: action.invalid }
-        }
-
-        case "CLEAR": {
-            for (const file of files.keys()) {
-                const cachedUrl = urlCache.get(file)
-                if (cachedUrl) {
-                    URL.revokeObjectURL(cachedUrl)
-                    urlCache.delete(file)
-                }
-            }
-
-            files.clear()
-            if (onValueChange) {
-                onValueChange([])
-            }
-            return { ...prevState, files, invalid: false }
         }
 
         default:
@@ -493,15 +381,11 @@ function FileUpload(props: FileUploadProps) {
 
     const inputId = React.useId()
     const dropzoneId = React.useId()
-    const listId = React.useId()
     const labelId = React.useId()
 
     const dir = dirProp ?? "ltr"
     const listeners = useLazyRef(() => new Set<() => void>()).current
     const files = useLazyRef<Map<File, FileState>>(() => new Map()).current
-    // 用 Map 而非 WeakMap：预览 objectURL 需要在组件卸载时统一 revoke（WeakMap 不可枚举）；
-    // File 生命周期本就跟随 files Map，这里强引用不延长其存活
-    const urlCache = useLazyRef(() => new Map<File, string>()).current
     const inputRef = React.useRef<HTMLInputElement>(null)
     const isControlled = value !== undefined
 
@@ -523,7 +407,6 @@ function FileUpload(props: FileUploadProps) {
 
         const reducerCtx: StoreReducerCtx = {
             files,
-            urlCache,
             // 闭包包装：dispatch 时读 propsRef.current 拿到最新 onValueChange（与原来的 dispatch 内读等价）
             onValueChange: (next) => propsRef.current.onValueChange?.(next),
         }
@@ -541,7 +424,7 @@ function FileUpload(props: FileUploadProps) {
                 return () => listeners.delete(listener)
             },
         }
-    }, [listeners, files, invalid, propsRef, urlCache])
+    }, [listeners, files, invalid, propsRef])
 
     const acceptTypes = React.useMemo(
         () => accept?.split(",").map((t) => t.trim()) ?? undefined,
@@ -570,16 +453,6 @@ function FileUpload(props: FileUploadProps) {
             store.dispatch({ type: "SET_FILES", files: defaultValue })
         }
     }, [value, defaultValue, isControlled, store])
-
-    React.useEffect(() => {
-        // 卸载时统一 revoke 所有预览 objectURL（含已 REMOVE/CLEAR 漏网的），避免内存泄漏
-        return () => {
-            for (const url of urlCache.values()) {
-                URL.revokeObjectURL(url)
-            }
-            urlCache.clear()
-        }
-    }, [urlCache])
 
     const onFilesUpload = React.useCallback(
         async (filesToUpload: File[]) => {
@@ -655,14 +528,12 @@ function FileUpload(props: FileUploadProps) {
         () => ({
             dropzoneId,
             inputId,
-            listId,
             labelId,
             dir,
             disabled,
             inputRef,
-            urlCache,
         }),
-        [dropzoneId, inputId, listId, labelId, dir, disabled, urlCache],
+        [dropzoneId, inputId, labelId, dir, disabled],
     )
 
     const RootPrimitive = "div"
@@ -877,7 +748,7 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
         <DropzonePrimitive
             role="region"
             id={context.dropzoneId}
-            aria-controls={`${context.inputId} ${context.listId}`}
+            aria-controls={context.inputId}
             aria-disabled={context.disabled}
             aria-invalid={invalid}
             data-disabled={context.disabled ? "" : undefined}
@@ -902,540 +773,4 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
     )
 }
 
-interface FileUploadTriggerProps extends React.ComponentProps<"button"> {}
-
-function FileUploadTrigger(props: FileUploadTriggerProps) {
-    const { onClick: onClickProp, ...triggerProps } = props
-
-    const context = useFileUploadContext(TRIGGER_NAME)
-
-    const propsRef = useAsRef({
-        onClick: onClickProp,
-    })
-
-    const onClick = React.useCallback(
-        (event: React.MouseEvent<HTMLButtonElement>) => {
-            propsRef.current.onClick?.(event)
-
-            if (event.defaultPrevented) return
-
-            context.inputRef.current?.click()
-        },
-        [context.inputRef, propsRef],
-    )
-
-    const TriggerPrimitive = "button"
-
-    return (
-        <TriggerPrimitive
-            type="button"
-            aria-controls={context.inputId}
-            data-disabled={context.disabled ? "" : undefined}
-            data-slot="file-upload-trigger"
-            {...triggerProps}
-            disabled={context.disabled}
-            onClick={onClick}
-        />
-    )
-}
-
-interface FileUploadListProps extends React.ComponentProps<"ul"> {
-    orientation?: "horizontal" | "vertical"
-
-    forceMount?: boolean
-}
-
-function FileUploadList(props: FileUploadListProps) {
-    const {
-        className,
-        orientation = "vertical",
-
-        forceMount,
-        ...listProps
-    } = props
-
-    const context = useFileUploadContext(LIST_NAME)
-    const fileCount = useStore((state) => state.files.size)
-    const shouldRender = forceMount || fileCount > 0
-
-    if (!shouldRender) return undefined
-
-    // 用 ul/li 原生语义（Tailwind preflight 已重置 ul/li 默认样式，视觉零变化），
-    // 比 div role="list"/"listitem" 的读屏语义更可靠
-    const ListPrimitive = "ul"
-
-    return (
-        <ListPrimitive
-            id={context.listId}
-            data-orientation={orientation}
-            data-slot="file-upload-list"
-            data-state="active"
-            dir={context.dir}
-            {...listProps}
-            className={cn(
-                "flex flex-col gap-2 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-top-2 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 data-[state=inactive]:slide-out-to-top-2",
-                orientation === "horizontal" && "flex-row overflow-x-auto p-1.5",
-                className,
-            )}
-        />
-    )
-}
-
-interface FileUploadItemContextValue {
-    id: string
-    fileState: FileState | undefined
-    nameId: string
-    sizeId: string
-    statusId: string
-    messageId: string
-}
-
-const FileUploadItemContext = React.createContext<FileUploadItemContextValue | undefined>(undefined)
-
-function useFileUploadItemContext(consumerName: string) {
-    const context = React.useContext(FileUploadItemContext)
-    if (!context) {
-        throw new Error(`\`${consumerName}\` must be used within \`${ITEM_NAME}\``)
-    }
-    return context
-}
-
-// value 是上传组件的「文件」语义，与 li 元素类型里的 value（string|number）冲突，需 Omit 后重声明
-interface FileUploadItemProps extends Omit<React.ComponentProps<"li">, "value"> {
-    value: File
-}
-
-function FileUploadItem(props: FileUploadItemProps) {
-    const { value, className, ...itemProps } = props
-
-    const id = React.useId()
-    const statusId = `${id}-status`
-    const nameId = `${id}-name`
-    const sizeId = `${id}-size`
-    const messageId = `${id}-message`
-
-    const context = useFileUploadContext(ITEM_NAME)
-    const fileState = useStore((state) => state.files.get(value))
-    const fileCount = useStore((state) => state.files.size)
-    const fileIndex = useStore((state) => {
-        const files = [...state.files.keys()]
-        return files.indexOf(value) + 1
-    })
-
-    const itemContext = React.useMemo(
-        () => ({
-            id,
-            fileState,
-            nameId,
-            sizeId,
-            statusId,
-            messageId,
-        }),
-        [id, fileState, statusId, nameId, sizeId, messageId],
-    )
-
-    if (!fileState) return undefined
-
-    const statusText = fileState.error
-        ? `Error: ${fileState.error}`
-        : fileState.status === "uploading"
-          ? `Uploading: ${fileState.progress}% complete`
-          : fileState.status === "success"
-            ? "Upload complete"
-            : "Ready to upload"
-
-    const ItemPrimitive = "li"
-
-    return (
-        <FileUploadItemContext.Provider value={itemContext}>
-            <ItemPrimitive
-                id={id}
-                aria-setsize={fileCount}
-                aria-posinset={fileIndex}
-                aria-describedby={`${nameId} ${sizeId} ${statusId} ${
-                    fileState.error ? messageId : ""
-                }`}
-                aria-labelledby={nameId}
-                data-slot="file-upload-item"
-                dir={context.dir}
-                {...itemProps}
-                className={cn(
-                    "relative flex items-center gap-2.5 rounded-md border p-3",
-                    className,
-                )}
-            >
-                {props.children}
-                <span
-                    id={statusId}
-                    className="sr-only"
-                >
-                    {statusText}
-                </span>
-            </ItemPrimitive>
-        </FileUploadItemContext.Provider>
-    )
-}
-
-interface FileUploadItemPreviewProps extends React.ComponentProps<"div"> {
-    render?: (file: File, fallback: () => React.ReactNode) => React.ReactNode
-}
-
-function FileUploadItemPreview(props: FileUploadItemPreviewProps) {
-    const { render, children, className, ...previewProps } = props
-
-    const itemContext = useFileUploadItemContext(ITEM_PREVIEW_NAME)
-    const context = useFileUploadContext(ITEM_PREVIEW_NAME)
-
-    const file = itemContext.fileState?.file
-    const isImage = file?.type.startsWith("image/") ?? false
-
-    // objectURL 生命周期由本组件独占：effect 内创建、同一 effect 的 cleanup 内 revoke（配对可见，避免泄漏）。
-    // urlCache 只作「file → 已 revoke」的登记，供 REMOVE_FILE/CLEAR 兜底清理。
-    const [imageUrl, setImageUrl] = React.useState<string | undefined>(undefined)
-    React.useEffect(() => {
-        if (!file || !isImage) {
-            // oxlint-disable-next-line react/set-state-in-effect -- 非图片/换文件时复位预览，与下方 createObjectURL 的清理配对
-            setImageUrl(undefined)
-            return
-        }
-        const url = URL.createObjectURL(file)
-        context.urlCache.set(file, url)
-        setImageUrl(url)
-        return () => {
-            URL.revokeObjectURL(url)
-            context.urlCache.delete(file)
-            setImageUrl(undefined)
-        }
-    }, [file, isImage, context])
-
-    const getDefaultRender = React.useCallback(
-        (previewFile: File) => {
-            if (previewFile.type.startsWith("image/") && imageUrl) {
-                return (
-                    <img
-                        src={imageUrl}
-                        alt={previewFile.name}
-                        className="size-full object-cover"
-                    />
-                )
-            }
-
-            return getFileIcon(previewFile)
-        },
-        [imageUrl],
-    )
-
-    const onPreviewRender = React.useCallback(
-        (previewFile: File) => {
-            if (render) {
-                return render(previewFile, () => getDefaultRender(previewFile))
-            }
-
-            return getDefaultRender(previewFile)
-        },
-        [render, getDefaultRender],
-    )
-
-    if (!itemContext.fileState) return undefined
-
-    const ItemPreviewPrimitive = "div"
-
-    return (
-        <ItemPreviewPrimitive
-            aria-labelledby={itemContext.nameId}
-            data-slot="file-upload-preview"
-            {...previewProps}
-            className={cn(
-                "relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-accent/50 [&>svg]:size-10",
-                className,
-            )}
-        >
-            {onPreviewRender(itemContext.fileState.file)}
-            {children}
-        </ItemPreviewPrimitive>
-    )
-}
-
-interface FileUploadItemMetadataProps extends React.ComponentProps<"div"> {
-    size?: "default" | "sm"
-}
-
-function FileUploadItemMetadata(props: FileUploadItemMetadataProps) {
-    const { size = "default", children, className, ...metadataProps } = props
-
-    const context = useFileUploadContext(ITEM_METADATA_NAME)
-    const itemContext = useFileUploadItemContext(ITEM_METADATA_NAME)
-
-    if (!itemContext.fileState) return undefined
-
-    const ItemMetadataPrimitive = "div"
-
-    return (
-        <ItemMetadataPrimitive
-            data-slot="file-upload-metadata"
-            dir={context.dir}
-            {...metadataProps}
-            className={cn("flex min-w-0 flex-1 flex-col", className)}
-        >
-            {children ?? (
-                <>
-                    <span
-                        id={itemContext.nameId}
-                        className={cn(
-                            "truncate text-sm font-medium",
-                            size === "sm" && "text-2xs leading-snug font-normal",
-                        )}
-                    >
-                        {itemContext.fileState.file.name}
-                    </span>
-                    <span
-                        id={itemContext.sizeId}
-                        className={cn(
-                            "truncate text-xs text-muted-foreground",
-                            size === "sm" && "text-3xs leading-snug",
-                        )}
-                    >
-                        {formatBytes(itemContext.fileState.file.size)}
-                    </span>
-                    {itemContext.fileState.error && (
-                        <span
-                            id={itemContext.messageId}
-                            className="text-xs text-destructive"
-                        >
-                            {itemContext.fileState.error}
-                        </span>
-                    )}
-                </>
-            )}
-        </ItemMetadataPrimitive>
-    )
-}
-interface FileUploadItemProgressProps extends React.ComponentProps<"div"> {
-    variant?: "linear" | "circular" | "fill"
-    size?: number
-
-    forceMount?: boolean
-}
-
-// oxlint-disable jsx-a11y/prefer-tag-over-role, react-doctor/prefer-tag-over-role -- progressbar 无原生等价物：fill 分支是绝对定位覆盖层（clip-path 揭示进度），
-// circular/linear 分支需自定义绘制，progress 元素的 UA 默认样式无法被 className 干净覆盖；ARIA 进度语义（valuemin/max/now/text）已完整声明
-function FileUploadItemProgress(props: FileUploadItemProgressProps) {
-    const {
-        variant = "linear",
-        size = 40,
-
-        forceMount,
-        className,
-        ...progressProps
-    } = props
-
-    const itemContext = useFileUploadItemContext(ITEM_PROGRESS_NAME)
-
-    if (!itemContext.fileState) return undefined
-
-    const shouldRender = forceMount || itemContext.fileState.progress !== 100
-
-    if (!shouldRender) return undefined
-
-    const ItemProgressPrimitive = "div"
-
-    switch (variant) {
-        case "circular": {
-            const circumference = 2 * Math.PI * ((size - 4) / 2)
-            const strokeDashoffset =
-                circumference - (itemContext.fileState.progress / 100) * circumference
-
-            return (
-                <ItemProgressPrimitive
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={itemContext.fileState.progress}
-                    aria-valuetext={`${itemContext.fileState.progress}%`}
-                    aria-labelledby={itemContext.nameId}
-                    data-slot="file-upload-progress"
-                    {...progressProps}
-                    className={cn(
-                        "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-                        className,
-                    )}
-                >
-                    <svg
-                        className="-rotate-90 transform"
-                        width={size}
-                        height={size}
-                        viewBox={`0 0 ${size} ${size}`}
-                        fill="none"
-                        stroke="currentColor"
-                    >
-                        <circle
-                            className="text-primary/20"
-                            strokeWidth="2"
-                            cx={size / 2}
-                            cy={size / 2}
-                            r={(size - 4) / 2}
-                        />
-                        <circle
-                            className="text-primary transition-[stroke-dashoffset] duration-300 ease-linear"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeDasharray={circumference}
-                            strokeDashoffset={strokeDashoffset}
-                            cx={size / 2}
-                            cy={size / 2}
-                            r={(size - 4) / 2}
-                        />
-                    </svg>
-                </ItemProgressPrimitive>
-            )
-        }
-
-        case "fill": {
-            const progressPercentage = itemContext.fileState.progress
-            const topInset = 100 - progressPercentage
-            const clipStyle: CSSVars = { "--progress-clip": `inset(${topInset}% 0% 0% 0%)` }
-
-            return (
-                <ItemProgressPrimitive
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={progressPercentage}
-                    aria-valuetext={`${progressPercentage}%`}
-                    aria-labelledby={itemContext.nameId}
-                    data-slot="file-upload-progress"
-                    {...progressProps}
-                    className={cn(
-                        "absolute inset-0 bg-primary/50 transition-[clip-path] duration-300 ease-linear [clip-path:var(--progress-clip)]",
-                        className,
-                    )}
-                    style={clipStyle}
-                />
-            )
-        }
-
-        default: {
-            const shiftStyle: CSSVars = {
-                "--progress-shift": `-${100 - itemContext.fileState.progress}%`,
-            }
-            return (
-                <ItemProgressPrimitive
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={itemContext.fileState.progress}
-                    aria-valuetext={`${itemContext.fileState.progress}%`}
-                    aria-labelledby={itemContext.nameId}
-                    data-slot="file-upload-progress"
-                    {...progressProps}
-                    className={cn(
-                        "relative h-1.5 w-full overflow-hidden rounded-full bg-primary/20",
-                        className,
-                    )}
-                >
-                    <div
-                        className="h-full w-full flex-1 bg-primary transition-transform duration-300 ease-linear [transform:translateX(var(--progress-shift))]"
-                        style={shiftStyle}
-                    />
-                </ItemProgressPrimitive>
-            )
-        }
-    }
-}
-// oxlint-enable jsx-a11y/prefer-tag-over-role, react-doctor/prefer-tag-over-role
-
-interface FileUploadItemDeleteProps extends React.ComponentProps<"button"> {}
-
-function FileUploadItemDelete(props: FileUploadItemDeleteProps) {
-    const { onClick: onClickProp, ...deleteProps } = props
-
-    const store = useStoreContext(ITEM_DELETE_NAME)
-    const itemContext = useFileUploadItemContext(ITEM_DELETE_NAME)
-
-    const onClick = React.useCallback(
-        (event: React.MouseEvent<HTMLButtonElement>) => {
-            onClickProp?.(event)
-
-            if (!itemContext.fileState || event.defaultPrevented) return
-
-            store.dispatch({
-                type: "REMOVE_FILE",
-                file: itemContext.fileState.file,
-            })
-        },
-        [store, itemContext.fileState, onClickProp],
-    )
-
-    if (!itemContext.fileState) return undefined
-
-    const ItemDeletePrimitive = "button"
-
-    return (
-        <ItemDeletePrimitive
-            type="button"
-            aria-controls={itemContext.id}
-            aria-describedby={itemContext.nameId}
-            data-slot="file-upload-item-delete"
-            {...deleteProps}
-            onClick={onClick}
-        />
-    )
-}
-
-interface FileUploadClearProps extends React.ComponentProps<"button"> {
-    forceMount?: boolean
-}
-
-function FileUploadClear(props: FileUploadClearProps) {
-    const { forceMount, disabled, onClick: onClickProp, ...clearProps } = props
-
-    const context = useFileUploadContext(CLEAR_NAME)
-    const store = useStoreContext(CLEAR_NAME)
-    const fileCount = useStore((state) => state.files.size)
-
-    const isDisabled = disabled || context.disabled
-
-    const onClick = React.useCallback(
-        (event: React.MouseEvent<HTMLButtonElement>) => {
-            onClickProp?.(event)
-
-            if (event.defaultPrevented) return
-
-            store.dispatch({ type: "CLEAR" })
-        },
-        [store, onClickProp],
-    )
-
-    const shouldRender = forceMount || fileCount > 0
-
-    if (!shouldRender) return undefined
-
-    const ClearPrimitive = "button"
-
-    return (
-        <ClearPrimitive
-            type="button"
-            aria-controls={context.listId}
-            data-slot="file-upload-clear"
-            data-disabled={isDisabled ? "" : undefined}
-            {...clearProps}
-            disabled={isDisabled}
-            onClick={onClick}
-        />
-    )
-}
-
-export {
-    FileUpload,
-    FileUploadClear,
-    FileUploadDropzone,
-    FileUploadItem,
-    FileUploadItemDelete,
-    FileUploadItemMetadata,
-    FileUploadItemPreview,
-    FileUploadItemProgress,
-    FileUploadList,
-    type FileUploadProps,
-    FileUploadTrigger,
-    useStore as useFileUpload,
-}
+export { FileUpload, FileUploadDropzone }

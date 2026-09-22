@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { ErrorCodes } from "./error-codes"
+
 /** 后端统一错误响应（对等后端错误结构；契约漂移时由 toApiError 归一） */
 export const ApiErrorSchema = z.object({
     title: z.string().optional(),
@@ -22,7 +24,7 @@ export type ApiError = z.infer<typeof ApiErrorSchema>
  * 响应契约校验失败（生成 SDK 的 zod responseValidator 抛出）。
  * 这是前端独有的错误来源：HTTP 本身成功，但 payload 不符合 OpenAPI 契约（后端契约漂移）。
  */
-export const RESPONSE_VALIDATION_FAILED = "RESPONSE_VALIDATION_FAILED"
+export const RESPONSE_VALIDATION_FAILED = ErrorCodes.RESPONSE_VALIDATION_FAILED
 
 export function isZodError(err: unknown): err is z.ZodError {
     return err instanceof z.ZodError

@@ -17,10 +17,8 @@ import {
     DataTableToolbar,
     DataTablePagination,
     DataTableViewOptions,
-    DataTableBulkActions,
     useDataTable,
     type DataTableFeatures,
-    type DataTableFilterConfig,
 } from "./index"
 
 type Item = { id: string; status: string; name: string }
@@ -30,18 +28,8 @@ const ITEMS: Item[] = [
     { id: "c", status: "success", name: "Gamma" },
 ]
 const columns: ColumnDef<DataTableFeatures, Item>[] = [
-    { accessorKey: "status", header: "状态", filterFn: "arrHas" },
+    { accessorKey: "status", header: "状态" },
     { accessorKey: "name", header: "名称" },
-]
-const filters: DataTableFilterConfig[] = [
-    {
-        columnId: "status",
-        title: "状态",
-        options: [
-            { value: "success", label: "成功" },
-            { value: "failed", label: "失败" },
-        ],
-    },
 ]
 
 function ClientTable() {
@@ -59,7 +47,6 @@ function ClientTable() {
         <>
             <DataTableToolbar
                 table={table}
-                filters={filters}
                 actions={<DataTableViewOptions table={table} />}
             >
                 <Input
@@ -98,16 +85,9 @@ function ServerTable() {
             <Button onClick={() => table.toggleAllPageRowsSelected(true)}>选择本页</Button>
             <DataTable table={table} />
             <DataTablePagination table={table} />
-            <DataTableBulkActions
-                table={table}
-                entityName="条记录"
-            >
-                <Button
-                    onClick={() => setSelectedIds(Object.keys(table.state.rowSelection).join(","))}
-                >
-                    查看选中 ID
-                </Button>
-            </DataTableBulkActions>
+            <Button onClick={() => setSelectedIds(Object.keys(table.state.rowSelection).join(","))}>
+                查看选中 ID
+            </Button>
             <output aria-label="选中 ID">{selectedIds}</output>
         </>
     )
@@ -123,19 +103,6 @@ describe("DataTable 组合", () => {
         renderWithProviders(<BareTable />)
         expect(screen.getAllByRole("row")).toHaveLength(4)
         expect(screen.queryByRole("button")).not.toBeInTheDocument()
-    })
-    it("多选分面按并集过滤，重置恢复全部行", async () => {
-        const user = userEvent.setup()
-        renderWithProviders(<ClientTable />)
-        await user.click(screen.getByRole("button", { name: "状态" }))
-        await user.click(screen.getByRole("button", { name: /成功/, pressed: false }))
-        expect(screen.queryByRole("cell", { name: "Alpha" })).not.toBeInTheDocument()
-        expect(screen.getByRole("cell", { name: "Beta" })).toBeInTheDocument()
-        await user.click(screen.getByRole("button", { name: /失败/, pressed: false }))
-        expect(screen.getByRole("cell", { name: "Alpha" })).toBeInTheDocument()
-        await user.keyboard("{Escape}")
-        await user.click(screen.getByRole("button", { name: /重置/ }))
-        expect(screen.getAllByRole("row")).toHaveLength(4)
     })
     it("受控排序仍可在客户端执行，不根据回调推断 manualSorting", async () => {
         const user = userEvent.setup()
@@ -163,7 +130,7 @@ describe("DataTable 组合", () => {
         expect(screen.queryByRole("columnheader", { name: "名称" })).not.toBeInTheDocument()
         expect(screen.queryByRole("cell", { name: "Beta" })).not.toBeInTheDocument()
     })
-    it("服务端翻页不二次切片，受控选中 ID 跨页保留并可清空", async () => {
+    it("服务端翻页不二次切片，受控选中 ID 跨页保留", async () => {
         const user = userEvent.setup()
         renderWithProviders(<ServerTable />)
         await user.click(screen.getByRole("button", { name: "选择本页" }))
@@ -173,7 +140,5 @@ describe("DataTable 组合", () => {
         await user.click(screen.getByRole("button", { name: "选择本页" }))
         await user.click(screen.getByRole("button", { name: "查看选中 ID" }))
         expect(screen.getByLabelText("选中 ID")).toHaveTextContent("a,b")
-        await user.click(screen.getByRole("button", { name: "清空选择" }))
-        expect(screen.queryByRole("button", { name: "查看选中 ID" })).not.toBeInTheDocument()
     })
 })

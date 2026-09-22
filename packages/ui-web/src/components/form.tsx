@@ -1,12 +1,20 @@
 import * as React from "react"
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form"
+import { CircleAlert } from "lucide-react"
 
-import { Button } from "src/components/ui/button"
 import { Input } from "src/components/ui/input"
-import { FieldDescription, FieldError, FieldLabel } from "src/components/ui/field"
-import { Label } from "src/components/ui/label"
+import { Field, FieldDescription, FieldError, FieldLabel } from "src/components/ui/field"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "src/components/ui/input-group"
+import { Item, ItemContent, ItemDescription, ItemTitle } from "src/components/ui/item"
+import { RadioGroup, RadioGroupItem } from "src/components/ui/radio-group"
 import { Textarea } from "src/components/ui/textarea"
-import { Select, SelectContent, SelectTrigger, SelectValue } from "src/components/ui/select"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "src/components/ui/select"
 import { Checkbox } from "src/components/ui/checkbox"
 import { cn } from "src/lib/utils"
 
@@ -17,294 +25,311 @@ import { cn } from "src/lib/utils"
  * 业务侧只剩声明式 JSX：
  *
  * ```tsx
- * const form = useAppForm({ defaultValues: {...}, onSubmit: ... });
+ * const form = useAppForm({ defaultValues: {...}, validators: { onSubmit: Schema }, onSubmit: ... });
  *
- * <form.AppForm>
- *     <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
- *         <form.AppField name="receiver">
- *             {(field) => (
- *                 <field.TextField label="收货人姓名" required placeholder="请输入" />
- *             )}
- *         </form.AppField>
- *         <form.AppField name="regionCode">
- *             {(field) => (
- *                 <field.SelectField label="所在地区" required>
- *                     <SelectItem value="..." ... />
- *                 </field.SelectField>
- *             )}
- *         </form.AppField>
- *         <form.AppField name="isDefault">
- *             {(field) => (
- *                 <field.CheckboxField label="设置为默认收货地址" />
- *             )}
- *         </form.AppField>
- *         <form.SubmitButton>保存</form.SubmitButton>
- *     </form>
- * </form.AppForm>
+ * <form onSubmit={(e) => { e.preventDefault(); void form.handleSubmit(); }}>
+ *     <form.AppField name="receiver">
+ *         {(field) => <field.TextField label="收货人姓名" required placeholder="请输入" />}
+ *     </form.AppField>
+ *     <form.AppField name="targetType">
+ *         {(field) => <field.SelectField label="跳转类型" items={[{ value: "NONE", label: "不跳转" }]} />}
+ *     </form.AppField>
+ *     <form.AppField name="isDefault">
+ *         {(field) => <field.CheckboxField label="设置为默认收货地址" />}
+ *     </form.AppField>
+ *     <Button type="submit">保存</Button>
+ * </form>
  * ```
  *
  * 约定：
- * - 校验统一放在 `form.AppField name="x" validators={...}`，错误文案取自 Zod message
- * - 字段组件封装了 value / onChange / onBlur 接线、label、必填红星、行内错误
+ * - 校验统一放在表单级 `validators: { onSubmit: ZodSchema }`，错误文案取自 Zod message
+ * - 字段组件封装了 value / onChange / onBlur 接线、label、必填红星、行内错误；布局全部由 ui/field 的
+ *   `Field` 承担（这里不再另起容器）
  * - 高度定制化的字段（登录页 `+86` 前缀、内嵌按钮等）退回裸 `form.AppField` render-prop，
- *   `firstFieldError(field)` + `<FieldShell>` 组合即可，不必硬套字段组件
+ *   直接用 `<Field>` + `<FieldError errors={field.state.meta.errors} />` 组合即可，不必硬套字段组件
+ * - 服务端/表单级错误用 `<FormError>` 渲染，不各自写红字
  */
 
-const { fieldContext, formContext, useFormContext, useFieldContext } = createFormHookContexts()
+const { fieldContext, formContext, useFieldContext } = createFormHookContexts()
 
-// 错误归一化（zod issue / string / 其他）
-function errorMessage(error: unknown): string {
-    if (typeof error === "string") return error
-    if (typeof error === "object" && error !== null && "message" in error) {
-        return String(error.message)
-    }
-    return String(error)
-}
-
-/** 取字段首个校验错误的用户可读文案（无错误返回 undefined）。供 AppField / 字段组件渲染行内错误用 */
-export function firstFieldError(field: {
-    state: { meta: { errors: unknown[] } }
-}): string | undefined {
-    const error = field.state.meta.errors[0]
-    return error === undefined ? undefined : errorMessage(error)
-}
-
-// 布局与错误展示：label / 说明 / 错误三片皮肤归 ui/field，这一层只剩容器和密度
-
-/**
- * 字段布局壳：label（必填红星）+ 控件 + 行内错误。
- * 字段组件默认用它渲染；自定义 render-prop 场景也可单独复用。
- *
- * 名字族约定：`Field*`（ui/field）= 展示原语，`XxxField` = 接了表单的控件，
- * 这一层既不是原语也不是控件，是两者的组装品，故叫 Shell 而不占 `Field`。
- * 容器（gap / flex 方向）留在本层：间距是三端共同的密度选择，原语里的
- * `gap-2` + `*:w-full` 换过来会在几十个调用点上盲改视觉。
- */
-export function FieldShell({
-    label,
-    required,
-    htmlFor,
-    error,
-    hint,
-    className,
-    layout = "vertical",
-    children,
-}: {
-    label?: string
-    required?: boolean
-    htmlFor?: string
-    error?: string
-    /** 控件下方灰字说明（写作建议、格式要求）；error 存在时优先显示 error */
-    hint?: React.ReactNode
-    className?: string
-    /** vertical = label 在控件上方；horizontal = label 固定左列（w-16） */
-    layout?: "vertical" | "horizontal"
-    children: React.ReactNode
-}) {
-    const labelNode = label ? (
-        <FieldLabel
-            htmlFor={htmlFor}
-            className={cn(
-                // 必填星号走伪元素 utility（styles.css 的 @utility required-mark）：
-                // 不进 label 的文本内容（label 文本保持纯净，供屏幕阅读器与测试查询精确匹配；
-                // 必填语义由表单校验/aria 传达）
-                required && "required-mark",
-                // 左列定宽，顶对齐贴住控件首行
-                layout === "horizontal" && "w-16 shrink-0 pt-2.5",
-            )}
-        >
-            {label}
-        </FieldLabel>
-    ) : undefined
-
-    // error 优先于 hint：同一个位置只讲一件事
-    const message = error ? (
-        <FieldError>{error}</FieldError>
-    ) : hint ? (
-        <FieldDescription>{hint}</FieldDescription>
-    ) : undefined
-
-    if (layout === "horizontal") {
-        return (
-            <div className={cn("flex items-start gap-4", className)}>
-                {labelNode}
-                {/* gap 承担消息行与控件的间距：原语里的 last:mt-0 会盖掉自带的 mt-* */}
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    {children}
-                    {message}
-                </div>
-            </div>
-        )
-    }
-
+/** 服务端错误 / 表单级校验错误：一行带图标的红字，`role="alert"` 播报。空内容不渲染。
+    可聚焦（登录表单提交失败后把焦点移过来），焦点环不画：它不是交互控件，播报已由 role 完成 */
+export function FormError({ className, children, ...props }: React.ComponentProps<"p">) {
+    if (!children) return
     return (
-        <div className={cn("flex flex-col gap-1.5", className)}>
-            {labelNode}
+        <p
+            role="alert"
+            className={cn(
+                "flex items-center gap-1.5 text-xs text-destructive outline-none",
+                className,
+            )}
+            {...props}
+        >
+            <CircleAlert className="size-3.5 shrink-0" />
             {children}
-            {message}
-        </div>
+        </p>
     )
 }
 
 // 字段组件（注册到 fieldComponents，自动注入 field context）
-type BaseFieldProps = {
+type FieldProps = {
     label?: string
     required?: boolean
     className?: string
-    /** 透传给 FieldShell 布局：vertical=label 在控件上方（默认），horizontal=label 固定左列 */
-    layout?: "vertical" | "horizontal"
+    /** vertical=label 在控件上方（默认），horizontal=label 固定左列 */
+    orientation?: "vertical" | "horizontal"
     /** 控件下方灰字说明（写作建议、格式要求）；error 存在时优先显示 error */
     hint?: React.ReactNode
 }
 
-export function TextField({
+type FieldState = { state: { meta: { errors: ReadonlyArray<unknown>; isValid: boolean } } }
+
+/** 字段组件共用的组装：Field 容器 + label + 控件 + 错误（优先）/说明。error 优先于 hint：同一个位置只讲一件事 */
+function FieldFrame({
+    field,
+    id,
     label,
     required,
-    layout,
     hint,
-    ...props
-}: BaseFieldProps &
-    Omit<React.ComponentProps<"input">, "value" | "onBlur" | "onChange" | "defaultValue">) {
-    const field = useFieldContext<string>()
-    const error = firstFieldError(field)
+    orientation,
+    className,
+    children,
+}: FieldProps & { field: FieldState; id?: string; children: React.ReactNode }) {
     return (
-        <FieldShell
-            label={label}
-            required={required}
-            layout={layout}
-            htmlFor={field.name}
-            error={error}
-            hint={hint}
+        <Field
+            orientation={orientation}
+            className={className}
         >
-            <Input
-                id={field.name}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={Boolean(error)}
-                {...props}
-            />
-        </FieldShell>
+            {label && (
+                <FieldLabel
+                    htmlFor={id}
+                    required={required}
+                >
+                    {label}
+                </FieldLabel>
+            )}
+            {children}
+            {field.state.meta.isValid ? (
+                hint && <FieldDescription>{hint}</FieldDescription>
+            ) : (
+                <FieldError errors={field.state.meta.errors} />
+            )}
+        </Field>
     )
 }
 
-export function TextareaField({
+function TextField({
     label,
     required,
-    layout,
+    orientation,
     hint,
+    className,
+    counter,
     ...props
-}: BaseFieldProps &
+}: FieldProps & {
+    /** 右侧显示 `已输入/maxLength` 字数计数（需同时传 maxLength） */
+    counter?: boolean
+} & Omit<React.ComponentProps<"input">, "value" | "onBlur" | "onChange" | "defaultValue">) {
+    const field = useFieldContext<string>()
+    // label↔控件关联 id 必须页内唯一：field.name 只保证表单内唯一，同页两个表单会撞 id
+    const id = React.useId()
+    const control = {
+        id,
+        value: field.state.value,
+        onBlur: field.handleBlur,
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => field.handleChange(e.target.value),
+        "aria-invalid": !field.state.meta.isValid,
+        ...props,
+    }
+    return (
+        <FieldFrame
+            field={field}
+            id={id}
+            label={label}
+            required={required}
+            orientation={orientation}
+            hint={hint}
+            className={className}
+        >
+            {counter ? (
+                <InputGroup>
+                    <InputGroupInput {...control} />
+                    <InputGroupAddon
+                        align="inline-end"
+                        variant="counter"
+                        className="tabular-nums"
+                    >
+                        {field.state.value.length}/{props.maxLength}
+                    </InputGroupAddon>
+                </InputGroup>
+            ) : (
+                <Input {...control} />
+            )}
+        </FieldFrame>
+    )
+}
+
+function TextareaField({
+    label,
+    required,
+    orientation,
+    hint,
+    className,
+    ...props
+}: FieldProps &
     Omit<React.ComponentProps<"textarea">, "value" | "onBlur" | "onChange" | "defaultValue">) {
     const field = useFieldContext<string>()
-    const error = firstFieldError(field)
+    const id = React.useId()
     return (
-        <FieldShell
+        <FieldFrame
+            field={field}
+            id={id}
             label={label}
             required={required}
-            layout={layout}
-            htmlFor={field.name}
-            error={error}
+            orientation={orientation}
             hint={hint}
+            className={className}
         >
             <Textarea
-                id={field.name}
+                id={id}
                 value={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={Boolean(error)}
+                aria-invalid={!field.state.meta.isValid}
                 {...props}
             />
-        </FieldShell>
+        </FieldFrame>
     )
 }
 
-export function SelectField({
+type Option = { value: string; label: string }
+
+/** 下拉：选项走 `items`（Base UI 用它把选中值解析成展示文案），空串 = 未选、显示占位 */
+function SelectField({
     label,
     required,
-    placeholder,
-    layout,
-    className,
+    orientation,
     hint,
-    children,
-}: BaseFieldProps & {
-    placeholder?: string
-    children: React.ReactNode
-}) {
+    className,
+    placeholder = "请选择",
+    items,
+}: FieldProps & { placeholder?: string; items: ReadonlyArray<Option> }) {
     const field = useFieldContext<string>()
-    const error = firstFieldError(field)
+    const id = React.useId()
     return (
-        <FieldShell
+        <FieldFrame
+            field={field}
+            id={id}
             label={label}
             required={required}
-            layout={layout}
-            htmlFor={field.name}
-            error={error}
+            orientation={orientation}
             hint={hint}
+            className={className}
         >
             <Select
+                items={items}
                 value={field.state.value}
                 onValueChange={(value) => field.handleChange(value ?? "")}
             >
                 <SelectTrigger
-                    id={field.name}
-                    className={cn("w-full", className)}
-                    aria-invalid={Boolean(error)}
+                    id={id}
+                    className="w-full"
+                    aria-invalid={!field.state.meta.isValid}
                 >
-                    <SelectValue placeholder={placeholder ?? "请选择"} />
+                    <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
-                <SelectContent>{children}</SelectContent>
+                <SelectContent>
+                    {items.map((item) => (
+                        <SelectItem
+                            key={item.value}
+                            value={item.value}
+                        >
+                            {item.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
             </Select>
-        </FieldShell>
+        </FieldFrame>
     )
 }
 
-export function CheckboxField({
+function CheckboxField({
     label,
-    className,
     hint,
+    orientation,
+    className,
     ...props
-}: BaseFieldProps &
+}: FieldProps &
     Omit<React.ComponentProps<typeof Checkbox>, "checked" | "onCheckedChange" | "defaultChecked">) {
     const field = useFieldContext<boolean>()
-    const error = firstFieldError(field)
     return (
-        <div className={cn("flex flex-col gap-1.5", className)}>
-            <Label className="h-9 cursor-pointer">
+        <FieldFrame
+            field={field}
+            hint={hint}
+            orientation={orientation}
+            className={className}
+        >
+            <FieldLabel>
                 <Checkbox
                     checked={field.state.value}
                     onCheckedChange={(checked) => field.handleChange(checked)}
-                    aria-invalid={Boolean(error)}
+                    aria-invalid={!field.state.meta.isValid}
                     {...props}
                 />
                 {label}
-            </Label>
-            {!error && hint && <FieldDescription>{hint}</FieldDescription>}
-            <FieldError>{error}</FieldError>
-        </div>
+            </FieldLabel>
+        </FieldFrame>
     )
 }
 
-// 表单级组件
-function SubmitButton({ children, className }: { children: React.ReactNode; className?: string }) {
-    const form = useFormContext()
+/** 单选：每个选项一张可选卡（Item selected/selectable），可访问名与可见标题同词（label-in-name） */
+function RadioGroupField({
+    label,
+    required,
+    orientation,
+    hint,
+    className,
+    options,
+}: FieldProps & { options: ReadonlyArray<Option & { description?: string }> }) {
+    const field = useFieldContext<string>()
     return (
-        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-            {([canSubmit, isSubmitting]) => (
-                <Button
-                    type="submit"
-                    className={className}
-                    disabled={!canSubmit || isSubmitting}
-                >
-                    {isSubmitting ? "提交中…" : children}
-                </Button>
-            )}
-        </form.Subscribe>
+        <FieldFrame
+            field={field}
+            label={label}
+            required={required}
+            orientation={orientation}
+            hint={hint}
+            className={className}
+        >
+            <RadioGroup
+                value={field.state.value}
+                onValueChange={(value: string) => field.handleChange(value)}
+            >
+                {options.map((option) => (
+                    <Item
+                        key={option.value}
+                        variant={field.state.value === option.value ? "selected" : "selectable"}
+                        size="sm"
+                    >
+                        <RadioGroupItem
+                            value={option.value}
+                            aria-label={option.label}
+                        />
+                        <ItemContent>
+                            <ItemTitle>{option.label}</ItemTitle>
+                            {option.description && (
+                                <ItemDescription lines={1}>{option.description}</ItemDescription>
+                            )}
+                        </ItemContent>
+                    </Item>
+                ))}
+            </RadioGroup>
+        </FieldFrame>
     )
 }
 
 // 导出
-export const { useAppForm, withForm } = createFormHook({
+export const { useAppForm } = createFormHook({
     fieldContext,
     formContext,
     fieldComponents: {
@@ -312,8 +337,7 @@ export const { useAppForm, withForm } = createFormHook({
         TextareaField,
         SelectField,
         CheckboxField,
+        RadioGroupField,
     },
-    formComponents: {
-        SubmitButton,
-    },
+    formComponents: {},
 })

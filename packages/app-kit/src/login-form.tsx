@@ -1,20 +1,12 @@
 import { useEffect, useReducer, useRef, useState } from "react"
-import { CircleAlert } from "lucide-react"
 
-import {
-    type ApiError,
-    ErrorCodes,
-    PasswordFormSchema,
-    PHONE_PATTERN,
-    PhoneSchema,
-    SmsFormSchema,
-    toApiError,
-} from "@shop/common"
+import { type ApiError, ErrorCodes, toApiError } from "@shop/common"
 import {
     Button,
     cn,
-    FieldShell,
-    firstFieldError,
+    Field,
+    FieldError,
+    FormError,
     InputGroup,
     InputGroupAddon,
     InputGroupButton,
@@ -23,11 +15,12 @@ import {
     Skeleton,
     Spinner,
     useAppForm,
-    useCaptcha,
-    useCountdown,
 } from "@shop/ui-web"
 
 import { notify } from "./notify"
+import { PasswordFormSchema, PHONE_PATTERN, SmsFormSchema } from "./login-schema"
+import { useCaptcha } from "./use-captcha"
+import { useCountdown } from "./use-countdown"
 
 /**
  * LoginForm —— 短信/密码双 Tab 登录表单（web 弹窗与 seller 登录页共用的应用层组件）。
@@ -41,7 +34,7 @@ import { notify } from "./notify"
  * 登录态写入（tokenStore）与跳转/关闭弹窗由调用方在 submit / onSuccess 里做。
  */
 
-export type LoginTab = "sms" | "password"
+type LoginTab = "sms" | "password"
 
 export interface LoginFormProps {
     /** 拉取图形验证码（web 走 server action，seller 走 SDK） */
@@ -263,12 +256,9 @@ export function LoginForm({
             </div>
 
             {/* 手机号 */}
-            <form.AppField
-                name="phone"
-                validators={{ onChange: PhoneSchema }}
-            >
+            <form.AppField name="phone">
                 {(field) => (
-                    <FieldShell error={firstFieldError(field)}>
+                    <Field>
                         <InputGroup
                             size="lg"
                             variant="filled"
@@ -279,7 +269,7 @@ export function LoginForm({
                             <InputGroupInput
                                 id="login-phone"
                                 aria-label="手机号"
-                                aria-invalid={Boolean(firstFieldError(field))}
+                                aria-invalid={!field.state.meta.isValid}
                                 className="tabular-nums"
                                 placeholder="11 位手机号"
                                 inputMode="tel"
@@ -292,7 +282,8 @@ export function LoginForm({
                                 }
                             />
                         </InputGroup>
-                    </FieldShell>
+                        <FieldError errors={field.state.meta.errors} />
+                    </Field>
                 )}
             </form.AppField>
 
@@ -300,7 +291,7 @@ export function LoginForm({
                 /* 图形验证码：发码前先人机验证（点击图片刷新） */
                 <form.AppField name="captchaCode">
                     {(field) => (
-                        <FieldShell error={firstFieldError(field)}>
+                        <Field>
                             <InputGroup
                                 size="lg"
                                 variant="filled"
@@ -309,7 +300,7 @@ export function LoginForm({
                                 <InputGroupInput
                                     id="login-captchaCode"
                                     aria-label="图形验证码"
-                                    aria-invalid={Boolean(firstFieldError(field))}
+                                    aria-invalid={!field.state.meta.isValid}
                                     variant="code"
                                     className="px-3.5"
                                     placeholder="输入右图 4 位字符"
@@ -345,7 +336,8 @@ export function LoginForm({
                                     )}
                                 </button>
                             </InputGroup>
-                        </FieldShell>
+                            <FieldError errors={field.state.meta.errors} />
+                        </Field>
                     )}
                 </form.AppField>
             ) : undefined}
@@ -354,7 +346,7 @@ export function LoginForm({
                 /* 验证码 + 内嵌发送按钮 */
                 <form.AppField name="code">
                     {(field) => (
-                        <FieldShell error={firstFieldError(field)}>
+                        <Field>
                             <InputGroup
                                 size="lg"
                                 variant="filled"
@@ -363,7 +355,7 @@ export function LoginForm({
                                 <InputGroupInput
                                     id="login-code"
                                     aria-label="短信验证码"
-                                    aria-invalid={Boolean(firstFieldError(field))}
+                                    aria-invalid={!field.state.meta.isValid}
                                     variant="code"
                                     className="px-3.5 tabular-nums"
                                     placeholder="请输入验证码"
@@ -411,13 +403,14 @@ export function LoginForm({
                                     )}
                                 </form.Subscribe>
                             </InputGroup>
-                        </FieldShell>
+                            <FieldError errors={field.state.meta.errors} />
+                        </Field>
                     )}
                 </form.AppField>
             ) : (
                 <form.AppField name="password">
                     {(field) => (
-                        <FieldShell error={firstFieldError(field)}>
+                        <Field>
                             <InputGroup
                                 size="lg"
                                 variant="filled"
@@ -425,7 +418,7 @@ export function LoginForm({
                                 <InputGroupInput
                                     id="login-password"
                                     aria-label="密码"
-                                    aria-invalid={Boolean(firstFieldError(field))}
+                                    aria-invalid={!field.state.meta.isValid}
                                     type="password"
                                     placeholder="请输入密码"
                                     autoComplete="current-password"
@@ -434,24 +427,20 @@ export function LoginForm({
                                     onChange={(e) => field.handleChange(e.target.value)}
                                 />
                             </InputGroup>
-                        </FieldShell>
+                            <FieldError errors={field.state.meta.errors} />
+                        </Field>
                     )}
                 </form.AppField>
             )}
 
             {/* 服务端错误：预留高度，避免抖动；role="alert" 播报 + 提交失败时聚焦 */}
             <div className="min-h-4">
-                {serverError && (
-                    <p
-                        ref={serverErrorRef}
-                        role="alert"
-                        tabIndex={-1}
-                        className="flex items-center gap-1.5 text-2xs text-destructive outline-none"
-                    >
-                        <CircleAlert className="size-3.5 shrink-0" />
-                        {serverError}
-                    </p>
-                )}
+                <FormError
+                    ref={serverErrorRef}
+                    tabIndex={-1}
+                >
+                    {serverError}
+                </FormError>
             </div>
 
             <form.Subscribe selector={(state) => ({ isSubmitting: state.isSubmitting })}>
@@ -462,14 +451,7 @@ export function LoginForm({
                         className="h-11 w-full"
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? (
-                            <>
-                                <Spinner />
-                                登录
-                            </>
-                        ) : (
-                            "登录"
-                        )}
+                        {isSubmitting && <Spinner />}登录
                     </Button>
                 )}
             </form.Subscribe>

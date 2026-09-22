@@ -3,7 +3,6 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "src/lib/utils"
 
 import { Label } from "src/components/ui/label"
-import { Separator } from "src/components/ui/separator"
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
@@ -18,54 +17,23 @@ function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   )
 }
 
-function FieldLegend({
-  className,
-  variant = "legend",
-  ...props
-}: React.ComponentProps<"legend"> & { variant?: "legend" | "label" }) {
-  return (
-    <legend
-      data-slot="field-legend"
-      data-variant={variant}
-      className={cn(
-        "mb-1.5 font-medium data-[variant=label]:text-sm data-[variant=legend]:text-base",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="field-group"
-      className={cn(
-        "group/field-group @container/field-group flex w-full flex-col gap-5 data-[slot=checkbox-group]:gap-3 *:data-[slot=field-group]:gap-4",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-const fieldVariants = cva(
-  "group/field flex w-full gap-2 data-[invalid=true]:text-destructive",
-  {
-    variants: {
-      orientation: {
-        vertical: "flex-col *:w-full [&>.sr-only]:w-auto",
-        horizontal:
-          "flex-row items-center has-[>[data-slot=field-content]]:items-start *:data-[slot=field-label]:flex-auto has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-        responsive:
-          "flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center @md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-      },
+/**
+ * 字段布局容器：label + 控件 + 行内错误/说明，三端唯一的字段排版来源（间距密度住这里，调用点不盖）。
+ * vertical = label 在控件上方；horizontal = label 固定左列（w-16、顶对齐贴住控件首行），
+ * 其余子元素（控件、错误、说明）依次落在右列。
+ */
+const fieldVariants = cva("group/field w-full", {
+  variants: {
+    orientation: {
+      vertical: "flex flex-col gap-1.5 *:w-full [&>.sr-only]:w-auto",
+      horizontal:
+        "grid grid-cols-[4rem_1fr] items-start gap-x-4 gap-y-1.5 *:min-w-0 *:not-data-[slot=field-label]:col-start-2 *:data-[slot=field-label]:pt-2.5",
     },
-    defaultVariants: {
-      orientation: "vertical",
-    },
-  }
-)
+  },
+  defaultVariants: {
+    orientation: "vertical",
+  },
+})
 
 function Field({
   className,
@@ -96,16 +64,20 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/** `required`：必填星号走伪元素 utility（styles.css 的 @utility required-mark），不进 label 的文本内容
+    （label 文本保持纯净，供屏幕阅读器与测试查询精确匹配；必填语义由表单校验/aria 传达） */
 function FieldLabel({
   className,
+  required,
   ...props
-}: React.ComponentProps<typeof Label>) {
+}: React.ComponentProps<typeof Label> & { required?: boolean }) {
   return (
     <Label
       data-slot="field-label"
       className={cn(
         "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border has-[>[data-slot=field]]:not-has-[:disabled,[data-disabled]]:hover:bg-muted/50 has-[>[data-slot=field]]:has-[:focus-visible]:border-ring has-[>[data-slot=field]]:has-[:focus-visible]:ring-3 has-[>[data-slot=field]]:has-[:focus-visible]:ring-ring/50 *:data-[slot=field]:p-2.5 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10",
         "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col",
+        required && "required-mark",
         className
       )}
       {...props}
@@ -135,7 +107,7 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="field-description"
       className={cn(
-        "text-left text-xs leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
+        "text-left text-xs leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance",
         "last:mt-0 nth-last-2:-mt-1",
         "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
         className
@@ -145,34 +117,13 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   )
 }
 
-function FieldSeparator({
-  children,
-  className,
-  ...props
-}: React.ComponentProps<"div"> & {
-  children?: React.ReactNode
-}) {
-  return (
-    <div
-      data-slot="field-separator"
-      data-content={!!children}
-      className={cn(
-        "relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
-        className
-      )}
-      {...props}
-    >
-      <Separator className="absolute inset-0 top-1/2" />
-      {children && (
-        <span
-          className="relative mx-auto block w-fit bg-background px-2 text-muted-foreground"
-          data-slot="field-separator-content"
-        >
-          {children}
-        </span>
-      )}
-    </div>
-  )
+/** 错误归一化：TanStack Form 的 errors 里既有 zod issue（{ message }）也有校验函数直接返回的字符串 */
+function errorMessage(error: unknown): string | undefined {
+  if (typeof error === "string") return error
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String(error.message)
+  }
+  return undefined
 }
 
 /** 行内错误：`role="alert"` 让校验失败被读屏播报，多条 message 去重后单条直出、多条成列表 */
@@ -182,31 +133,28 @@ function FieldError({
   errors,
   ...props
 }: React.ComponentProps<"div"> & {
-  errors?: Array<{ message?: string } | undefined>
+  errors?: ReadonlyArray<unknown>
 }) {
   const content = useMemo(() => {
     if (children) {
       return children
     }
 
-    if (!errors?.length) {
+    const messages = [...new Set((errors ?? []).map(errorMessage).filter(Boolean))]
+
+    if (messages.length === 0) {
       return null
     }
 
-    const uniqueErrors = [
-      ...new Map(errors.map((error) => [error?.message, error])).values(),
-    ]
-
-    if (uniqueErrors?.length == 1) {
-      return uniqueErrors[0]?.message
+    if (messages.length === 1) {
+      return messages[0]
     }
 
     return (
       <ul className="ml-4 flex list-disc flex-col gap-1">
-        {uniqueErrors.map(
-          (error, index) =>
-            error?.message && <li key={index}>{error.message}</li>
-        )}
+        {messages.map((message) => (
+          <li key={message}>{message}</li>
+        ))}
       </ul>
     )
   }, [children, errors])
@@ -232,9 +180,6 @@ export {
   FieldLabel,
   FieldDescription,
   FieldError,
-  FieldGroup,
-  FieldLegend,
-  FieldSeparator,
   FieldSet,
   FieldContent,
   FieldTitle,

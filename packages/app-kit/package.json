@@ -4,12 +4,16 @@
     "private": true,
     "type": "module",
     "exports": {
-        ".": "./src/index.ts"
+        ".": "./src/index.ts",
+        "./test": "./src/test/index.tsx",
+        "./test/setup": "./src/test/setup.ts",
+        "./workbench.css": "./src/workbench/theme.css"
     },
     "scripts": {
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
+        "@shop/api": "workspace:*",
         "@shop/common": "workspace:*",
         "@shop/ui-web": "workspace:*",
         "@tanstack/react-query": "catalog:",
@@ -17,7 +21,9 @@
         "date-fns": "catalog:",
         "lucide-react": "catalog:",
         "react": "catalog:",
-        "react-error-boundary": "catalog:"
+        "react-dom": "catalog:",
+        "react-error-boundary": "catalog:",
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@shop/config": "workspace:*",
@@ -28,7 +34,6 @@
         "@types/react-dom": "catalog:",
         "@vitejs/plugin-react": "catalog:",
         "jsdom": "catalog:",
-        "react-dom": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
     }

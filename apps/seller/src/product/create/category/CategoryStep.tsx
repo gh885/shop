@@ -18,7 +18,13 @@ import {
     TooltipTrigger,
 } from "@shop/ui-web"
 
-import { nodesOf, searchLeafPaths, selectAt, selectedLeafId, type LeafPath } from "@shop/common"
+import {
+    nodesOf,
+    searchLeafPaths,
+    selectAt,
+    selectedLeafId,
+    type LeafPath,
+} from "#/product/category"
 import { CategoryColumns } from "./CategoryColumns"
 import { CategorySearchResults } from "./CategorySearchResults"
 import { categoryTreeOptions, useLeafPaths } from "../../queries"

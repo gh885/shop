@@ -379,9 +379,6 @@ importers:
       '@shop/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@shop/test-utils':
-        specifier: workspace:*
-        version: link:../../packages/test-utils
       '@tanstack/router-cli':
         specifier: 'catalog:'
         version: 1.167.38(supports-color@10.2.2)
@@ -631,6 +628,9 @@ importers:
 
   packages/app-kit:
     dependencies:
+      '@shop/api':
+        specifier: workspace:*
+        version: link:../api
       '@shop/common':
         specifier: workspace:*
         version: link:../common
@@ -652,9 +652,15 @@ importers:
       react:
         specifier: 'catalog:'
         version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
       react-error-boundary:
         specifier: 'catalog:'
         version: 6.1.5(@types/react@19.3.0)(react@19.3.0)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
     devDependencies:
       '@shop/config':
         specifier: workspace:*
@@ -680,9 +686,6 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 27.4.0(supports-color@10.2.2)
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

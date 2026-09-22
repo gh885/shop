@@ -19,20 +19,22 @@ import { RouteErrorFallback } from "./route-error-fallback"
  * suspense 查询抛错 → 错误边界接住 → 边界 `onReset` 调 `QueryErrorResetBoundary.reset`
  * → 重挂载后查询重新取数。这条链断在哪一环，「重试」按钮都会变成死按钮，
  * 而它在肉眼上只表现为「点了没反应」，所以必须有测试守着。
+ * 另外钉住 `fallback` 两种形态的取舍：字符串 = 默认 StateError（能解析成 ApiError 时用接口
+ * detail，否则用站点文案），函数 = 自定义布局。
  */
 
-const KEY = ["query-boundary-probe"] as const
+const KEY = (n: number) => ["query-boundary-probe", n] as const
 
 /** 第一次失败、之后成功的查询；计数用来断言「重试真的重新发了请求」 */
-function makeFlakyProbe() {
+function makeFlakyProbe(err: unknown, n: number) {
     let calls = 0
     const queryFn = async (): Promise<{ ok: boolean }> => {
         calls++
-        if (calls === 1) throw new Error("boom")
+        if (calls === 1) throw err
         return { ok: true }
     }
     function Probe() {
-        const { data } = useSuspenseQuery(queryOptions({ queryKey: KEY, queryFn, retry: false }))
+        const { data } = useSuspenseQuery(queryOptions({ queryKey: KEY(n), queryFn, retry: false }))
         return <span>data:{String(data.ok)}</span>
     }
     return { Probe, calls: () => calls }
@@ -60,7 +62,7 @@ function makeDeferredProbe() {
 
 describe("QueryBoundary", () => {
     it("suspense 查询失败落到 fallback，点重试后走官方 reset 重新取数并出内容", async () => {
-        const { Probe, calls } = makeFlakyProbe()
+        const { Probe, calls } = makeFlakyProbe(new Error("boom"), 1)
         const user = userEvent.setup()
 
         render(
@@ -95,9 +97,49 @@ describe("QueryBoundary", () => {
         expect(calls()).toBe(2)
     })
 
+    it("fallback 给字符串：默认渲染 StateError，API 错误的 detail 优先于它", async () => {
+        const { Probe } = makeFlakyProbe({ status: 500, detail: "该店铺已歇业" }, 2)
+
+        render(
+            <QueryClientProvider client={createTestQueryClient()}>
+                <QueryBoundary
+                    pending={<span>加载中</span>}
+                    fallback="店条加载失败"
+                >
+                    <Probe />
+                </QueryBoundary>
+            </QueryClientProvider>,
+        )
+
+        expect(await screen.findByText("该店铺已歇业")).toBeInTheDocument()
+        expect(screen.queryByText("店条加载失败")).not.toBeInTheDocument()
+    })
+
+    it("fallback 给字符串：非 API 形状的抛错用站点文案，不拿 toApiError 的通用兜底糊弄", async () => {
+        const user = userEvent.setup()
+        const { Probe, calls } = makeFlakyProbe(new Error("boom"), 3)
+
+        render(
+            <QueryClientProvider client={createTestQueryClient()}>
+                <QueryBoundary
+                    pending={<span>加载中</span>}
+                    fallback="推荐商品加载失败，请重试。"
+                >
+                    <Probe />
+                </QueryBoundary>
+            </QueryClientProvider>,
+        )
+
+        expect(await screen.findByText("推荐商品加载失败，请重试。")).toBeInTheDocument()
+        expect(calls()).toBe(1)
+
+        await user.click(screen.getByRole("button", { name: "重试" }))
+        await waitFor(() => expect(screen.getByText("data:true")).toBeInTheDocument())
+        expect(calls()).toBe(2)
+    })
+
     it("挂起期间显示 pending 占位（区块级流式：数据到位后替换为内容）", async () => {
         const { Probe, release } = makeDeferredProbe()
-
         render(
             <QueryClientProvider client={createTestQueryClient()}>
                 <QueryBoundary

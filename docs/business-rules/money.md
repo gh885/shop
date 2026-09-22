@@ -20,7 +20,7 @@
 
 ## 运算规则
 
-- **[MONEY-08]** 金额运算不脱离 Money 且仅同币种成立：`plus`/`minus`/`times`/`atLeast`（Java）与 `plusMoney`/`minusMoney`/`timesMoney`/`sumMoney`（TS）跨币种一律抛错（Java 抛 400 业务异常，TS 抛 Error），不静默算；`times` 的倍数必须是非负整数。
+- **[MONEY-08]** 金额运算不脱离 Money 且仅同币种成立：`plus`/`minus`/`times`/`atLeast`（Java）与 `plusMoney`/`timesMoney`/`sumMoney`（TS）跨币种一律抛错（Java 抛 400 业务异常，TS 抛 Error），不静默算；`times` 的倍数必须是非负整数。
 - **[MONEY-09]** 零金额不凭空预设币种：`Money.zero(currency)` / `zeroMoney(currency)` 的币种从手上这批钱里拿；TS `sumMoney` 非空集合时起点零跟随第一笔钱的币种。
 - **[MONEY-10]** Money 是值对象，判「同一笔钱」用 `sameMoney`（amount+currency 全等），不用 `===`（引用比较会把重新解析出的相等值误判成已改动）。
 

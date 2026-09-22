@@ -29,5 +29,3 @@ export const ErrorCodes = {
     BANNER_TIME_RANGE_INVALID: "BANNER_TIME_RANGE_INVALID",
     RESPONSE_VALIDATION_FAILED: "RESPONSE_VALIDATION_FAILED",
 } as const
-
-export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]

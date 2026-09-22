@@ -1,8 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { mergeProps } from "@base-ui/react/merge-props"
-import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Search as SearchIcon } from "lucide-react"
 
@@ -44,7 +42,7 @@ const topBarVariants = cva(
     },
 )
 
-/** 顶栏容器：三段式横排「品牌区 + 导航区 + 动作区」，尺寸/变体经 props 声明 */
+/** 顶栏容器：横排「品牌区 + 动作区」，尺寸/变体经 props 声明 */
 function TopBar({
     variant,
     sticky,
@@ -83,61 +81,6 @@ function TopBarBrand({ className, ...props }: React.ComponentProps<"div">) {
     )
 }
 
-/** 主导航区：一级 Tab 横排，溢出时横向滚动 */
-function TopBarNav({ className, ...props }: React.ComponentProps<"nav">) {
-    return (
-        <nav
-            data-slot="topbar-nav"
-            data-topbar="nav"
-            className={cn("flex min-w-0 flex-1 items-center gap-1 overflow-x-auto", className)}
-            {...props}
-        />
-    )
-}
-
-const topBarNavItemVariants = cva(
-    "flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground ring-ring outline-hidden transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-2 data-active:bg-accent data-active:font-medium data-active:text-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
-    {
-        variants: {
-            variant: {
-                default: "hover:bg-accent hover:text-accent-foreground",
-                ghost: "hover:bg-transparent hover:text-foreground",
-            },
-        },
-        defaultVariants: {
-            variant: "default",
-        },
-    },
-)
-
-/** 单条一级 Tab：render 注入路由 Link，激活态走 data-active（isActive=false 不输出该属性） */
-function TopBarNavItem({
-    render,
-    isActive = false,
-    variant,
-    className,
-    ...props
-}: useRender.ComponentProps<"a"> &
-    React.ComponentProps<"a"> & {
-        isActive?: boolean
-    } & VariantProps<typeof topBarNavItemVariants>) {
-    return useRender({
-        defaultTagName: "a",
-        props: mergeProps<"a">(
-            {
-                className: cn(topBarNavItemVariants({ variant }), className),
-            },
-            props,
-        ),
-        render,
-        state: {
-            slot: "topbar-nav-item",
-            topbar: "nav-item",
-            active: isActive,
-        },
-    })
-}
-
 /** 右侧动作区：员工信息、通知、退出等 */
 function TopBarActions({ className, ...props }: React.ComponentProps<"div">) {
     return (
@@ -174,4 +117,4 @@ function TopBarSearch({ className, ...props }: React.ComponentProps<"input">) {
     )
 }
 
-export { TopBar, TopBarActions, TopBarBrand, TopBarNav, TopBarNavItem, TopBarSearch }
+export { TopBar, TopBarActions, TopBarBrand, TopBarSearch }

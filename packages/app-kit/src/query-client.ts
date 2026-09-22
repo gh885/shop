@@ -78,7 +78,7 @@ export function createAppQueryClient(overrides: AppQueryClientOverrides = {}): Q
  * 放在这里而不是 `@shop/test-utils`：那会让 test-utils 反向依赖 app-kit，
  * 而 `@shop/app-kit` 的 devDependencies 已经依赖 test-utils，成环。
  */
-export interface AppQueryClientOverrides {
+interface AppQueryClientOverrides {
     queries?: DefaultOptions["queries"]
     mutations?: DefaultOptions["mutations"]
 }
@@ -106,6 +106,6 @@ export interface AppQueryClientOverrides {
  *
  * 判据与例外清单见 AGENTS.md「错误与重试」。
  */
-export function throwWhenNoData(_error: unknown, query: { state: { data: unknown } }): boolean {
+function throwWhenNoData(_error: unknown, query: { state: { data: unknown } }): boolean {
     return query.state.data === undefined
 }

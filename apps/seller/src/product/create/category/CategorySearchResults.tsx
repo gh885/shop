@@ -1,7 +1,7 @@
 import { CornerDownLeft, SearchX } from "lucide-react"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, cn } from "@shop/ui-web"
 
-import type { LeafPath } from "@shop/common"
+import type { LeafPath } from "#/product/category"
 
 /**
  * 搜索发品的候选类目列表：命中的是「末级类目路径」，

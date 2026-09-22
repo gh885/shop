@@ -15,7 +15,7 @@ import type { AuthStatus } from "@shop/common"
  * 它与后端端点一一对应（/user/me vs /admin/auth/me），未来若把三端放进同一个
  * QueryClient（例如微前端式装配），不同端点的 me 不会串成一份缓存。
  */
-export interface MeQueryConfig<TMe> {
+interface MeQueryConfig<TMe> {
     /** 查询 key 的业务前缀（"me" / "admin/me"）：与后端端点一一对应 */
     scope: string
     /** 拉取当前登录者；401 由 SDK 归一为抛错，工厂按失败处理 */
@@ -26,7 +26,7 @@ export interface MeQueryConfig<TMe> {
     staleTime?: number
 }
 
-export interface MeQuery<TMe> {
+interface MeQuery<TMe> {
     /** 缓存前缀：登录/登出/资料更新后的失效入口 */
     ME_QUERY_KEY: readonly [string]
     /** 当前登录者（未登录不发请求） */
