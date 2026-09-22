@@ -212,4 +212,21 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
             )
             """)
     int expireDue(@Param("now") OffsetDateTime now, @Param("batchSize") int batchSize);
+
+    /**
+     * 账号注销清理（UserDeletedEvent 监听）：把本人<b>未使用</b>的券刷成 VOID（ACC-76）。
+     *
+     * <p>只收 UNUSED，与运营作废同一档位：LOCKED 的券优惠已定格在某一笔未付款订单上，抽走会让那笔单的
+     * 成交价凭空变贵；USED 不可逆（核销流水断链）。EXPIRED 无需再动——它已经没有使用资格，留着反而是
+     * 「这个人领过券」的历史事实，与券码发放统计同源。
+     */
+    default int voidAllUnused(UUID userId, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<UserCoupon>()
+                        .eq(UserCoupon::getUserId, userId)
+                        .eq(UserCoupon::getStatus, UserCouponStatus.UNUSED)
+                        .set(UserCoupon::getStatus, UserCouponStatus.VOID)
+                        .set(UserCoupon::getUpdatedAt, now));
+    }
 }

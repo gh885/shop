@@ -39,13 +39,32 @@ public class User extends AuditedEntity {
     /** 最近一次登录时间，用于安全提醒/活跃度统计，可空 */
     private OffsetDateTime lastLoginAt;
 
+    /**
+     * 注销申请时刻（冷静期起点，可空＝无待生效申请）。申请后账号照常可用，期内可撤销；
+     * 期满由 {@code AccountDeletionJob} 执行。窗口见 {@code AccountDeletionTimeouts}
+     */
+    private OffsetDateTime deletionRequestedAt;
+
+    /**
+     * 注销生效时刻（可空＝未注销）。此刻该行的个人信息已被匿名化：手机号换成占位串（号码就此释放）、
+     * 密码与头像清空、昵称换成系统文案、状态推进 DISABLED。
+     *
+     * <p>行保留不删：全库十余处裸 {@code user_id} 指向这里，交易记录另有法定留存义务。
+     * 也刻意不贴 {@code @TableLogic}——注销主体要被管理端与审核看见，不是「用户自己删掉的一条数据」那种隐身语义
+     */
+    private OffsetDateTime deletedAt;
+
     // 工厂
     /** 短信验证码自动注册的新用户：状态固定 ACTIVE，密码后补。phone 为唯一必填，由构造签名编译期强制 */
     public static User autoRegister(String phone) {
         return User.builder().phone(phone).status(UserStatus.ACTIVE).build();
     }
 
-    /** 是否正常账号（登录/刷新的闸门）；禁用/注销返回 false。下单同样查此状态（order 经 {@code UserReadQuery.isActive} 闸门） */
+    /**
+     * 是否正常账号（登录/刷新的闸门）；禁用/注销返回 false。下单同样查此状态（order 经 {@code UserReadQuery.isActive} 闸门）。
+     *
+     * <p>注销走 status → DISABLED 这条路，故这里不必再判 deletedAt；两者不共存于 ACTIVE 由 DB CHECK 钉死
+     */
     public boolean isActive() {
         return status != null && status.isActive();
     }

@@ -36,4 +36,19 @@ public interface ShopMapper extends BaseMapper<Shop> {
                         .set(Shop::getLogoKey, logoKey)
                         .set(Shop::getStatus, ShopStatus.PENDING_REVIEW));
     }
+
+    /**
+     * 店主注销 → 本店停止营业：只推 ACTIVE 行（待审核/已驳回/已停的店本就不营业，不重复推进）。
+     *
+     * <p>{@code WHERE status = ACTIVE} 同时是并发闸门：与并发的审核处置/封禁相撞时后到者 0 行，
+     * 由调用方据返回值决定是否播报停营业事件——事件不许为一家没被自己改变的店发。
+     */
+    default int suspend(UUID shopId) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Shop>()
+                        .eq(Shop::getId, shopId)
+                        .eq(Shop::getStatus, ShopStatus.ACTIVE)
+                        .set(Shop::getStatus, ShopStatus.DISABLED));
+    }
 }

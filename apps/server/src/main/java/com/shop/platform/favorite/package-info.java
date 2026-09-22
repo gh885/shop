@@ -8,7 +8,7 @@
  */
 @ApplicationModule(
         displayName = "Favorite",
-        allowedDependencies = {"product :: api"})
+        allowedDependencies = {"product :: api", "account :: events"})
 package com.shop.platform.favorite;
 
 import org.springframework.modulith.ApplicationModule;

@@ -86,4 +86,25 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
                 .eq(ShopMember::getUserId, userId)
                 .eq(ShopMember::getRole, MemberRole.OWNER));
     }
+
+    /** 用户名下的店主身份对应哪些店（注销时逐个停营业；口径同 {@link #countOwnedShops}：OWNER 行，不看 shops.owner_id 冗余列） */
+    default List<UUID> selectOwnedShopIds(UUID userId) {
+        return selectList(new LambdaQueryWrapper<ShopMember>()
+                        .eq(ShopMember::getUserId, userId)
+                        .eq(ShopMember::getRole, MemberRole.OWNER))
+                .stream()
+                .map(ShopMember::getShopId)
+                .toList();
+    }
+
+    /**
+     * 账号注销清理（UserDeletedEvent 监听）：删本人全部成员行——店主身份、子账号身份、待确认邀请一起走。
+     *
+     * <p>与「店主移除成员」「被邀请人拒绝邀请」同为硬删（ACC-11/13 的既有语义就是离开即删行）。
+     * 子账号那一侧尤其没有别的路：ACTIVE 成员离开本店只有店主移除一条通道（ACC-13），
+     * 人已经注销了再要求「先由店主点移除」等于给他留一扇打不开的门。
+     */
+    default int deleteByUser(UUID userId) {
+        return delete(new LambdaQueryWrapper<ShopMember>().eq(ShopMember::getUserId, userId));
+    }
 }

@@ -69,6 +69,14 @@ public interface FavoriteItemMapper extends BaseMapper<FavoriteItem> {
     }
 
     /**
+     * 账号注销清理（UserDeletedEvent 监听）：收藏是「我喜欢什么」的偏好数据，人走了不留（ACC-76）。
+     * 与取消收藏同为硬删——本表是纯追加删除表，行永远不被 UPDATE。
+     */
+    default int deleteByUser(UUID userId) {
+        return delete(new LambdaQueryWrapper<FavoriteItem>().eq(FavoriteItem::getUserId, userId));
+    }
+
+    /**
      * uuid 列经 selectMaps 返回的值，PG JDBC 驱动可能给 {@link UUID} 或 {@link String}（取决版本/配置），
      * 两者都收口成 {@link UUID}，避免 {@code (String)} 强转在 UUID 类型下抛 ClassCastException。
      */

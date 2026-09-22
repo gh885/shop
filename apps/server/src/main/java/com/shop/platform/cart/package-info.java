@@ -11,7 +11,13 @@
  */
 @ApplicationModule(
         displayName = "Cart",
-        allowedDependencies = {"product :: api", "inventory :: api", "shop :: api", "order :: events"})
+        allowedDependencies = {
+            "product :: api",
+            "inventory :: api",
+            "shop :: api",
+            "order :: events",
+            "account :: events"
+        })
 package com.shop.platform.cart;
 
 import org.springframework.modulith.ApplicationModule;

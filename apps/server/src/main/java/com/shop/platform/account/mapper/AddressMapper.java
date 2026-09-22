@@ -31,4 +31,16 @@ public interface AddressMapper extends BaseMapper<Address> {
                         .eq(Address::getUserId, userId)
                         .set(Address::getIsDefault, false));
     }
+
+    /**
+     * 清掉本人全部地址（注销时用，ACC-76）：地址簿里是收件人姓名 + 电话 + 详址，是本人数据里最实的一部分，
+     * 注销必须带走。
+     *
+     * <p>走 {@code delete} 而不是手写 SET：Address 的 deletedAt 贴了 {@code @TableLogic}，
+     * MyBatis-Plus 会把这条翻译成软删（delval=NOW()）并自动带上「未删」条件——与用户自己删地址同一条路，
+     * 不出现第二套删除口径。
+     */
+    default int softDeleteByUser(UUID userId) {
+        return delete(new LambdaQueryWrapper<Address>().eq(Address::getUserId, userId));
+    }
 }

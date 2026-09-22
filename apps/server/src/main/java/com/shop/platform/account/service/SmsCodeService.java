@@ -31,6 +31,12 @@ public class SmsCodeService {
     private static final String KEY_RESET_RATE = "reset:rate:";
     private static final String KEY_RESET_ATTEMPT = "reset:attempt:";
 
+    // 注销验证码：第三套用途。注销是不可逆的毁灭动作，凭证不能只是「当前会话还活着」——
+    // 令牌被盗即可远程删号，故必须再向绑定手机号要一次性码（防线同登录/重置，只有 key 前缀与文案不同）
+    private static final String KEY_DELETION_CODE = "deletion:code:";
+    private static final String KEY_DELETION_RATE = "deletion:rate:";
+    private static final String KEY_DELETION_ATTEMPT = "deletion:attempt:";
+
     private static final long CODE_TTL = 5; // 验证码有效 5 分钟
     private static final long RATE_TTL = 60; // 重发间隔 60 秒
     private static final int DAILY_LIMIT = 20; // 每手机号每日上限
@@ -73,10 +79,24 @@ public class SmsCodeService {
     }
 
     /**
+     * 发送注销验证码：只发给<b>已登录本人</b>绑定的手机号（号码取自 token，不由请求方自报），
+     * 所以这条路径不需要图形验证码——人机验证防的是未认证端点的号码轰炸（ACC-35），此处认证已过、
+     * IP 与日限两层频控照旧生效（sendOtp 共用）。
+     */
+    public void sendDeletionCode(String phone, String clientIp) {
+        sendOtp(KEY_DELETION_CODE, KEY_DELETION_RATE, KEY_DELETION_ATTEMPT, phone, clientIp, code -> "注销验证码: " + code);
+    }
+
+    /** 校验注销验证码；防线与登录/重置一致 */
+    public void verifyDeletionCode(String phone, String code) {
+        consumeOtp(KEY_DELETION_CODE, KEY_DELETION_ATTEMPT, phone, code);
+    }
+
+    /**
      * OTP 发送通用路径：限流防线（IP / 单 IP 去重号码 / 60s 冷却 / 日限）→ 生成 6 位码 → HMAC 摘要落 Redis → 发送。
-     * 登录与重置两套验证码只有 key 前缀不同。
+     * 登录、重置、注销三套验证码只有 key 前缀不同。
      *
-     * @param text 文案定型：登录裸码直发，重置带用途前缀（可人工输入的短码，而非长随机 token）
+     * @param text 文案定型：登录裸码直发，重置与注销带用途前缀（可人工输入的短码，而非长随机 token）
      */
     private void sendOtp(
             String codePrefix,

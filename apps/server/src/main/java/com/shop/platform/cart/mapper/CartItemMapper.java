@@ -74,4 +74,12 @@ public interface CartItemMapper extends BaseMapper<CartItem> {
                 .eq(CartItem::getUserId, userId)
                 .in(CartItem::getSkuId, skuIds));
     }
+
+    /**
+     * 账号注销清理（UserDeletedEvent 监听）：车里是「想买什么」的意愿数据，人走了不留（ACC-76）。
+     * 与下单清理同为硬删——购物车本来就没有回收站语义。
+     */
+    default int deleteByUser(UUID userId) {
+        return delete(new LambdaQueryWrapper<CartItem>().eq(CartItem::getUserId, userId));
+    }
 }
