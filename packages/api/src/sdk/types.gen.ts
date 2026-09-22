@@ -859,6 +859,10 @@ export type ForgotPasswordRequest = {
     phone: string;
 };
 
+export type ConfirmDeletionRequest = {
+    code: string;
+};
+
 export type RejectRequest = {
     reason: string;
 };
@@ -1237,6 +1241,11 @@ export type DeviceEntryResponse = {
     ip: string | null;
     lastLoginAt: string;
     isCurrent: boolean;
+};
+
+export type DeletionResponse = {
+    requested?: boolean;
+    effectiveAt?: string;
 };
 
 export type Captcha = {
@@ -2801,6 +2810,64 @@ export type ForgotPasswordData = {
 };
 
 export type ForgotPasswordResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type CancelDeletionData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/deletion';
+};
+
+export type CancelDeletionResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type DeletionStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/deletion';
+};
+
+export type DeletionStatusResponses = {
+    /**
+     * OK
+     */
+    200: DeletionResponse;
+};
+
+export type DeletionStatusResponse = DeletionStatusResponses[keyof DeletionStatusResponses];
+
+export type RequestDeletionData = {
+    body: ConfirmDeletionRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/deletion';
+};
+
+export type RequestDeletionResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type SendDeletionCodeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/deletion/code';
+};
+
+export type SendDeletionCodeResponses = {
     /**
      * OK
      */

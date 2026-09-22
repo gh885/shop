@@ -25,7 +25,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
-import { deviceKeys, devicesOptions } from "#/account"
+import { DeletionCard, deviceKeys, devicesOptions } from "#/account"
 import { formatTimeShort } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_protected/account/security/")({
     }),
 })
 
-/** 安全设置：修改登录密码 + 登录设备管理（列表/单设备退出/退出全部）。 */
+/** 安全设置：修改登录密码 + 登录设备管理（列表/单设备退出/退出全部）+ 账号注销（申请/撤销）。 */
 function SecurityPage() {
     return (
         <div className="space-y-4">
@@ -49,6 +49,7 @@ function SecurityPage() {
             <div className="space-y-6">
                 <ChangePassword />
                 <DeviceManager />
+                <DeletionCard />
             </div>
         </div>
     )

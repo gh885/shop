@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query"
 
-import { AuthApi, type MeResponse } from "@shop/api/sdk"
+import { AccountDeletionApi, AuthApi, type MeResponse } from "@shop/api/sdk"
 
 import { createMeQuery } from "@shop/app-kit"
 
@@ -45,4 +45,23 @@ export const devicesOptions = (currentDeviceId: string) =>
     queryOptions({
         queryKey: deviceKeys.list(currentDeviceId),
         queryFn: () => AuthApi.devices({ query: { currentDeviceId } }),
+    })
+
+// 账号注销（安全设置页底部那张卡）
+/**
+ * 注销状态只有一条 key（后端按 token 认人，没有参数），所以 `all` 就是本体：
+ * 提交申请与撤销都从前缀失效它。
+ */
+export const deletionKeys = {
+    all: ["account-deletion"] as const,
+}
+
+/**
+ * 注销状态：有没有待生效的申请、哪一刻生效。
+ * 不进 loader 预取——它是页尾的销毁性入口，为一个可能一辈子不点的东西挡首屏不值。
+ */
+export const deletionStatusOptions = () =>
+    queryOptions({
+        queryKey: deletionKeys.all,
+        queryFn: () => AccountDeletionApi.deletionStatus(),
     })

@@ -810,6 +810,10 @@ export const zForgotPasswordRequest = z.object({
     phone: z.string().min(1).regex(/^1[3-9]\d{9}$/)
 });
 
+export const zConfirmDeletionRequest = z.object({
+    code: z.string().min(1).regex(/\d{6}/)
+});
+
 export const zRejectRequest = z.object({
     reason: z.string().min(0).max(255)
 });
@@ -1170,6 +1174,11 @@ export const zDeviceEntryResponse = z.object({
     ip: z.string().nullable(),
     lastLoginAt: z.iso.datetime({ offset: true }),
     isCurrent: z.boolean()
+});
+
+export const zDeletionResponse = z.object({
+    requested: z.boolean().optional(),
+    effectiveAt: z.iso.datetime({ offset: true }).optional()
 });
 
 export const zCaptcha = z.object({
@@ -1939,6 +1948,13 @@ export const zLoginByPasswordHeaders = z.object({
 export const zLoginByPasswordResponse = zTokenPair;
 
 export const zForgotPasswordBody = zForgotPasswordRequest;
+
+/**
+ * OK
+ */
+export const zDeletionStatusResponse = zDeletionResponse;
+
+export const zRequestDeletionBody = zConfirmDeletionRequest;
 
 export const zIssueAvatarTicketQuery = z.object({
     ext: z.string()
