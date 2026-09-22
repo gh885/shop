@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import * as React from "react"
 
-import { cn } from "src/lib/utils"
+import { cn, type CSSVars } from "src/lib/utils"
 import { useAsRef } from "src/hooks/use-as-ref"
 import { useLazyRef } from "src/hooks/use-lazy-ref"
 
@@ -1293,6 +1293,7 @@ function FileUploadItemProgress(props: FileUploadItemProgressProps) {
         case "fill": {
             const progressPercentage = itemContext.fileState.progress
             const topInset = 100 - progressPercentage
+            const clipStyle: CSSVars = { "--progress-clip": `inset(${topInset}% 0% 0% 0%)` }
 
             return (
                 <ItemProgressPrimitive
@@ -1308,17 +1309,15 @@ function FileUploadItemProgress(props: FileUploadItemProgressProps) {
                         "absolute inset-0 bg-primary/50 transition-[clip-path] duration-300 ease-linear [clip-path:var(--progress-clip)]",
                         className,
                     )}
-                    style={
-                        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
-                        {
-                            "--progress-clip": `inset(${topInset}% 0% 0% 0%)`,
-                        } as React.CSSProperties
-                    }
+                    style={clipStyle}
                 />
             )
         }
 
-        default:
+        default: {
+            const shiftStyle: CSSVars = {
+                "--progress-shift": `-${100 - itemContext.fileState.progress}%`,
+            }
             return (
                 <ItemProgressPrimitive
                     role="progressbar"
@@ -1336,15 +1335,11 @@ function FileUploadItemProgress(props: FileUploadItemProgressProps) {
                 >
                     <div
                         className="h-full w-full flex-1 bg-primary transition-transform duration-300 ease-linear [transform:translateX(var(--progress-shift))]"
-                        style={
-                            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
-                            {
-                                "--progress-shift": `-${100 - itemContext.fileState.progress}%`,
-                            } as React.CSSProperties
-                        }
+                        style={shiftStyle}
                     />
                 </ItemProgressPrimitive>
             )
+        }
     }
 }
 // oxlint-enable jsx-a11y/prefer-tag-over-role, react-doctor/prefer-tag-over-role

@@ -157,10 +157,10 @@ describe("useOrderActions", () => {
     })
 
     it("cancel 不选原因不填备注时 reason 缺席，不硬造占位文案", async () => {
-        let cancelBody: Record<string, unknown> | undefined
+        let cancelBody: unknown
         server.use(
             http.put("*/orders/:id/cancel", async ({ request }) => {
-                cancelBody = (await request.json()) as Record<string, unknown>
+                cancelBody = await request.json()
                 return new HttpResponse(null, { status: 204 })
             }),
         )
@@ -170,7 +170,7 @@ describe("useOrderActions", () => {
         await user.click(confirmButton())
 
         await waitFor(() => expect(cancelBody).toBeDefined())
-        expect(cancelBody?.reason).toBeUndefined()
+        expect(cancelBody).not.toHaveProperty("reason")
     })
 
     it("请求进行中 pendingAction 是 cancel，完成后回到 none", async () => {

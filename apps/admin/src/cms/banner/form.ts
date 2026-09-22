@@ -4,6 +4,7 @@ import { z } from "zod"
 import {
     blankToUndefined as blank,
     fromDateTimeLocal,
+    parseTargetType,
     TargetTypeSchema,
     toDateTimeLocal,
 } from "../constants"
@@ -35,7 +36,7 @@ export function bannerDefaults(banner?: BannerResponse, slot?: string): BannerFo
         title: banner?.title ?? "",
         subtitle: banner?.subtitle ?? "",
         imageUrl: banner?.imageUrl ?? "",
-        targetType: banner?.targetType as BannerFormValues["targetType"],
+        targetType: parseTargetType(banner?.targetType),
         target: banner?.target ?? "",
         link: banner?.link ?? "",
         sortOrder: String(banner?.sortOrder ?? 0),

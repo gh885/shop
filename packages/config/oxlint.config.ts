@@ -384,6 +384,31 @@ export default defineConfig({
             files: ["**/*.test.ts", "**/*.test.tsx", "**/packages/test-utils/**"],
             rules: { "no-null": "off" },
         },
+        {
+            // 造数脚本的列值数组直接拼进 SQL VALUES，null 就是字面量 NULL 的唯一写法
+            // （undefined 会被序列化丢失语义）；领域层的 no-null 约定不适用。
+            files: ["**/scripts/**/*"],
+            rules: { "no-null": "off" },
+        },
+        {
+            // subs 分组/词条在契约（NavGroup）里没有行身份，编辑器又是受控输入 +
+            // 整段有序移动：内容 key 会撞名重挂载丢焦点，索引 key 在这里是正确选择
+            // （值全部受控，重排后渲染仍对得上数据）。与 image-upload 豁免同理。
+            files: ["**/apps/admin/src/cms/nav/subs-editor.tsx"],
+            rules: {
+                "react/no-array-index-key": "off",
+                "react-doctor/no-array-index-key": "off",
+            },
+        },
+        {
+            // 前台导航是纯展示（无输入状态、会话内不重排），分组同样没有行身份；
+            // 内容 key 反而可能在重名分组上撞 key。索引 key 按展示语义豁免。
+            files: ["**/apps/web/src/home/HomeCategoryNav.tsx"],
+            rules: {
+                "react/no-array-index-key": "off",
+                "react-doctor/no-array-index-key": "off",
+            },
+        },
     ],
 
     // ignorePatterns 相对本配置文件目录解析，无法匹配 config 目录之外的真实项目路径

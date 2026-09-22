@@ -32,8 +32,8 @@ const REASON_OPTIONS = ["不想买了", "信息填错", "其他"] as const
 const NOTE_MAX_LENGTH = 180
 
 export interface CancelOrderDialogProps {
-    /** 待取消的单（含 id 与展示用单号）；null = 关闭 */
-    order: { id: string; orderNo: string } | null
+    /** 待取消的单（含 id 与展示用单号）；未传 = 关闭 */
+    order?: { id: string; orderNo: string }
     onOpenChange: (open: boolean) => void
     /** 取消请求进行中：确认按钮转圈并禁用 */
     pending: boolean
@@ -48,14 +48,14 @@ export function CancelOrderDialog({
     onConfirm,
 }: CancelOrderDialogProps) {
     // key 挂在 order.id 上重挂载（见调用方），所以这里的本地状态天然是一份干净的
-    const [selected, setSelected] = useState<string | null>(null)
+    const [selected, setSelected] = useState<string>()
     const [note, setNote] = useState("")
 
     const reason = [selected, note.trim()].filter(Boolean).join("：") || undefined
 
     return (
         <Dialog
-            open={order !== null}
+            open={order !== undefined}
             onOpenChange={onOpenChange}
         >
             <DialogContent className="sm:max-w-lg">

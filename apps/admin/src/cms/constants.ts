@@ -5,6 +5,14 @@ import { z } from "zod"
 export const TargetTypeSchema = z.enum(["PRODUCT", "CATEGORY", "CAMPAIGN", "SEARCH", "URL"])
 export type TargetType = z.infer<typeof TargetTypeSchema>
 
+/** 表单 targetType 档位：契约里响应字段是 string | null 的宽松存储值，
+    初始值不许裸断言收窄——过 schema 解析，脏值/缺省一律落回「NONE = 不跳转」。 */
+const TargetTypeFieldSchema = TargetTypeSchema.or(z.literal("NONE"))
+export function parseTargetType(value?: string | null): TargetType | "NONE" {
+    const parsed = TargetTypeFieldSchema.safeParse(value)
+    return parsed.success ? parsed.data : "NONE"
+}
+
 export const TARGET_TYPE_LABEL: Record<TargetType, string> = {
     PRODUCT: "商品",
     CATEGORY: "类目",

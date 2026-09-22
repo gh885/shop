@@ -1,7 +1,7 @@
 import type { RecommendTabRequest, RecommendTabResponse } from "@shop/api/sdk"
 import { z } from "zod"
 
-import { blankToUndefined as blank, TargetTypeSchema } from "../constants"
+import { blankToUndefined as blank, parseTargetType, TargetTypeSchema } from "../constants"
 
 export const TabFormSchema = z.object({
     name: z.string().trim().min(1, "请输入词条名").max(32, "词条名最长 32 字"),
@@ -16,7 +16,7 @@ export type TabFormValues = z.infer<typeof TabFormSchema>
 export function tabDefaults(tab?: RecommendTabResponse): TabFormValues {
     return {
         name: tab?.name ?? "",
-        targetType: tab?.targetType as TabFormValues["targetType"],
+        targetType: parseTargetType(tab?.targetType),
         target: tab?.target ?? "",
         isDefault: tab?.isDefault ?? false,
         sortOrder: String(tab?.sortOrder ?? 0),

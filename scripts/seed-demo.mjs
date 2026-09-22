@@ -401,7 +401,7 @@ function buildCatalog({ cats, bands }) {
             bands.filter((b) => b.shop_id === seller.shop).map((b) => b.category_id),
         )
         const pool = usable.filter((c) => own.has(c.id))
-        const shopCats = pool.length > 0 ? pool : usable.slice(si).concat(usable.slice(0, si))
+        const shopCats = pool.length > 0 ? pool : [...usable.slice(si), ...usable.slice(0, si)]
         for (const [pi, form] of PRODUCT_FORMS.entries()) {
             const cat = shopCats[(pi + si) % shopCats.length]
             const base =
@@ -1040,6 +1040,8 @@ function buildBuyerSide(catalog) {
         })
     }
     const wallet = WALLET.map(couponRow)
+    const walletRows = []
+    for (const w of wallet) walletRows.push([w.id, ...w.row])
 
     return [
         insert(
@@ -1086,7 +1088,7 @@ function buildBuyerSide(catalog) {
                 "created_at",
                 "updated_at",
             ],
-            wallet.map((w) => [w.id, ...w.row]),
+            walletRows,
         ),
     ].join("\n\n")
 }
@@ -1235,23 +1237,24 @@ function readCmsAnchors() {
     )
 }
 
+const pub = (a) => (a ? a.pub : 0)
+
 function buildCms(anchors) {
     const byName = (name, level) => anchors.find((a) => a.name === name && a.level === level)
-    const pub = (a) => (a ? a.pub : 0)
     /** 一级类目里 V13 词条没配到的三个 */
     const topLevel = ["电脑办公", "家居家装", "美妆个护"].map((n) => byName(n, 1)).filter(Boolean)
     /** 二级类目按上架数取前二：演「词条指二级、召回靠子树展开」 */
     const midLevel = anchors
         .filter((a) => a.level === 2 && pub(a) >= 2)
-        .sort((a, b) => b.pub - a.pub || a.name.localeCompare(b.name))
+        .toSorted((a, b) => b.pub - a.pub || a.name.localeCompare(b.name))
         .slice(0, 2)
     const leaves = anchors.filter((a) => a.level === 3)
     const oneLeaf = leaves
         .filter((a) => a.pub === 1)
-        .sort((a, b) => a.name.localeCompare(b.name))[0]
+        .toSorted((a, b) => a.name.localeCompare(b.name))[0]
     const emptyLeaf = leaves
         .filter((a) => a.pub === 0)
-        .sort((a, b) => a.name.localeCompare(b.name))[0]
+        .toSorted((a, b) => a.name.localeCompare(b.name))[0]
     const longCat = byName("休闲食品", 2) ?? midLevel[0]
     const offCat = byName("数码配件", 2) ?? midLevel[1] ?? longCat
 
@@ -1727,8 +1730,9 @@ BEGIN
 END $check$;`
 }
 
+const row = (role, who, note) => console.log(`  ${role.padEnd(4)}  ${who.padEnd(22)}  ${note}`)
+
 function printSummary() {
-    const row = (role, who, note) => console.log(`  ${role.padEnd(4)}  ${who.padEnd(22)}  ${note}`)
     console.log(`\n演示账号（统一密码 ${PASSWORD}；admin 端仍是 admin/admin123）`)
     BUYERS.forEach((b) => row("买家", `${b.phone} ${b.nickname}`, `${b.tag} —— ${b.unlocks}`))
     SELLERS.forEach((s) =>
@@ -1811,7 +1815,9 @@ SELECT pg_advisory_xact_lock(hashtext('seed-demo-v1'));`
     printSummary()
 }
 
-main().catch((error) => {
+try {
+    await main()
+} catch (error) {
     console.error(String(error?.message ?? error))
     process.exit(1)
-})
+}

@@ -1,7 +1,7 @@
 import type { NavRequest, NavEntryResponse } from "@shop/api/sdk"
 import { z } from "zod"
 
-import { blankToUndefined as blank, TargetTypeSchema } from "../constants"
+import { blankToUndefined as blank, parseTargetType, TargetTypeSchema } from "../constants"
 
 /** subs = JSONB 整段的组/项两级配置（对齐后端 NavGroup 校验：组名 ≤64、词条 ≤64、≤30 组） */
 export const SubsSchema = z
@@ -32,7 +32,7 @@ export function navDefaults(entry?: NavEntryResponse, navKey?: string): NavFormV
         navKey: entry?.navKey ?? navKey ?? "",
         title: entry?.title ?? "",
         iconKey: entry?.iconKey ?? "",
-        targetType: entry?.targetType as NavFormValues["targetType"],
+        targetType: parseTargetType(entry?.targetType),
         target: entry?.target ?? "",
         sortOrder: String(entry?.sortOrder ?? 0),
     }

@@ -138,6 +138,10 @@ function HomeCategoryNavContent() {
                 NAV_WIDTH_CLASS,
             )}
         >
+            {/* 只 max-height 在动，但 Tailwind 没有对应 transition token，写
+                `transition-[max-height]` 又撞 shadcn/no-arbitrary-values（error）——
+                两条规则互斥，这里取 all：面板里没有别的属性在变。 */}
+            {/* oxlint-disable-next-line react-doctor/no-transition-all */}
             <div className="no-scrollbar absolute inset-x-0 top-0 z-50 max-h-50 overflow-y-auto rounded-lg bg-background shadow-sm transition-all duration-200 ease-out group-hover/navigation-menu:max-h-125 group-data-open/navigation-menu:max-h-125">
                 <NavigationMenuList className="flex-col items-stretch justify-start">
                     {entries.map((entry) => (

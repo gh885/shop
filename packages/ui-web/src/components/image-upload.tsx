@@ -18,7 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, ImagePlus, X } from "lucide-react"
 
-import { cn } from "src/lib/utils"
+import { cn, type CSSVars } from "src/lib/utils"
 import { Spinner } from "src/components/ui/spinner"
 import { FileUpload, FileUploadDropzone } from "./file-upload"
 
@@ -220,18 +220,15 @@ function SortableTile({
         id,
     })
 
+    const dragStyle: CSSVars = {
+        "--sortable-transform": transform ? CSS.Transform.toString(transform) : undefined,
+        "--sortable-transition": transition,
+    }
+
     return (
         <div
             ref={setNodeRef}
-            style={
-                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
-                {
-                    "--sortable-transform": transform
-                        ? CSS.Transform.toString(transform)
-                        : undefined,
-                    "--sortable-transition": transition,
-                } as React.CSSProperties
-            }
+            style={dragStyle}
             {...attributes}
             className={cn(
                 "relative shrink-0 touch-none [transform:var(--sortable-transform)] [transition:var(--sortable-transition)]",

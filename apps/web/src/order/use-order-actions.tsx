@@ -17,8 +17,8 @@ export function useOrderActions() {
     const navigate = useNavigate()
     const cancel = useCancelOrder()
     const receive = useReceiveOrder()
-    // 取消目标单：null = 弹窗关闭。整单进 state 是为了弹窗里能展示单号
-    const [cancelTarget, setCancelTarget] = useState<Order | null>(null)
+    // 取消目标单：未设置 = 弹窗关闭。整单进 state 是为了弹窗里能展示单号
+    const [cancelTarget, setCancelTarget] = useState<Order>()
 
     const handleAction = (order: Order, action: OrderAction) => {
         switch (action) {
@@ -46,14 +46,14 @@ export function useOrderActions() {
             key={cancelTarget?.id ?? "none"}
             order={cancelTarget}
             onOpenChange={(open) => {
-                if (!open) setCancelTarget(null)
+                if (!open) setCancelTarget(undefined)
             }}
             pending={cancel.isPending}
             onConfirm={(reason) =>
                 cancelTarget &&
                 cancel.mutate(
                     { orderId: cancelTarget.id, reason },
-                    { onSuccess: () => setCancelTarget(null) },
+                    { onSuccess: () => setCancelTarget(undefined) },
                 )
             }
         />

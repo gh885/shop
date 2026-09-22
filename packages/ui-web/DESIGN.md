@@ -12,6 +12,7 @@
 4. **仅浅色模式**：全站固定浅色，`light-dark()` 已移除；不引入暗色 token 与 `dark:` 变体。
 5. **新组件来源**：shadcn CLI 生成到 ui-web（命令见 §9），不手写底层组件；图标一律 `lucide-react`。
 6. **字段族命名与分工**：`Field*`（[`src/components/ui/field.tsx`](src/components/ui/field.tsx)）= 展示原语，不接表单（`FieldLabel` / `FieldTitle` / `FieldDescription` / `FieldError` / `FieldSet` / `FieldLegend` / `FieldGroup` / `FieldContent`）；`XxxField`（[`src/components/form.tsx`](src/components/form.tsx)）= 接了 TanStack Form 的控件（`TextField` / `SelectField` / …）；`FieldShell` = 两者的组装品（label + 控件 + 行内错误的布局壳），自定义 render-prop 场景直接用它。分工边界：文字密度（字号、hover、必填星号、`role="alert"`）住原语，容器间距（gap、flex 方向）住 `FieldShell`——两边都不许在调用点 `className` 互相盖。
+7. **动态值的唯一通路是 CSS 变量**：`style` 里只允许 `--x` 键（`shadcn/no-inline-styles` 禁一切普通属性内联样式，运行时包装函数也算「动态」）。React 的 `CSSProperties` 不认 `--` 键，用 `@shop/ui-web` 导出的 `CSSVars` 类型补上：`const ratioStyle: CSSVars = { "--ratio": r }` → `style={ratioStyle}`，或 `{{ "--ratio": r } as CSSVars}`。不写 `as CSSProperties`（那是被 `no-unsafe-type-assertion` 判的不安全断言）。
 
 ## 1. 设计基调
 

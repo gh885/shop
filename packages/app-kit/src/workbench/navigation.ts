@@ -11,7 +11,9 @@ export interface SidebarTarget {
  * 路由联合变大后 router 无法再把宽 Record 收窄到具体路由的 search reducer，
  * 匹配性由装配侧的 linkOptions 在数据源头保证，这里只放行运行时形状。
  */
-export const sidebarLinkSearch = (search?: SidebarTarget["search"]) => search as never
+export const sidebarLinkSearch = (search?: SidebarTarget["search"]) =>
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 见上注释：匹配性在数据源头保证，这里只能按运行时形状放行
+    search as never
 
 export interface SubLeaf extends SidebarTarget {
     key: string

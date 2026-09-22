@@ -56,14 +56,13 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
     const { seconds } = useCountdown(pending ? order.payExpireAt : "")
     const statusMeta = ORDER_CARD_STATUS_META[order.status]
     // 发货时限提醒（待发货单）：过点不由系统代关单，只把「你可以取消退款」摆到买家眼前（ORD-27）
-    const shipDeadline = order.status === "pending_shipment" ? order.shipExpireAt : null
-    const shipOverdue = shipDeadline !== null && isShipOverdue({ shipExpireAt: shipDeadline })
-    const shipHint =
-        shipDeadline === null
-            ? null
-            : shipOverdue
-              ? `商家已超过发货时限（${formatDateTime(shipDeadline)}），可取消订单并退款`
-              : `商家需在 ${formatDateTime(shipDeadline)} 前发货`
+    const shipDeadline = order.status === "pending_shipment" ? order.shipExpireAt : undefined
+    const shipOverdue = !!shipDeadline && isShipOverdue({ shipExpireAt: shipDeadline })
+    const shipHint = shipDeadline
+        ? shipOverdue
+            ? `商家已超过发货时限（${formatDateTime(shipDeadline)}），可取消订单并退款`
+            : `商家需在 ${formatDateTime(shipDeadline)} 前发货`
+        : undefined
     const quantity = order.items.reduce((sum, item) => sum + item.quantity, 0)
     // 列表 itemAmount 是净额占位；商品总额只能从成交快照的行小计求和。
     const itemTotal = sumMoney(order.items.map((item) => item.amount))

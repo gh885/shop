@@ -102,14 +102,14 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "secondary" | "outl
  * 未使用且已过期不会走到 EXPIRED 分支 —— 后端展示状态已把它折叠成 EXPIRED 徽章；
  * 到得了这里的过期是 LOCKED（被未付款订单占用、收敛任务不碰它），状态徽章不会解释这个。
  */
-function timeReasonHint(coupon: MyCoupon): string | null {
-    if (coupon.status !== "UNUSED" && coupon.status !== "LOCKED") return null
+function timeReasonHint(coupon: MyCoupon): string | undefined {
+    if (coupon.status !== "UNUSED" && coupon.status !== "LOCKED") return undefined
     switch (coupon.unavailableReason) {
         case "NOT_EFFECTIVE":
             return `尚未开始，${formatDateTime(coupon.effectiveAt)} 起可用`
         case "EXPIRED":
             return "使用时间已过，本单之外不能再使用"
         default:
-            return null
+            return undefined
     }
 }

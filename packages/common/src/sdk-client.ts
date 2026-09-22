@@ -151,7 +151,7 @@ export function configureSdkClient(
                     const body: unknown = await res
                         .clone()
                         .json()
-                        .catch(() => null)
+                        .catch(() => undefined)
                     if (
                         typeof body === "object" &&
                         body !== null &&

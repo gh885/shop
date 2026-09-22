@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
     Button,
     Carousel,
@@ -15,6 +15,7 @@ import {
     TooltipContent,
     TooltipTrigger,
     cn,
+    type CSSVars,
     type CarouselApi,
 } from "@shop/ui-web"
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
@@ -69,6 +70,10 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
     }, [api])
 
     const isParams = current === paramsIndex
+    const currentImage = images[current]
+    const zoomStyle: CSSVars | undefined = currentImage
+        ? { "--zoom-image": `url(${currentImage})`, "--zoom-size": `${ZOOM * 100}%` }
+        : undefined
 
     return (
         <div>
@@ -252,7 +257,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                         常驻挂载、只切显隐：这样 pointermove 能直接写它的样式。
                         pointer-events-none：它只是一张「画」，指针始终属于主图——
                         否则鼠标往右去点「加入购物车」会先被它挡住，预览反而不肯关。 */}
-                    {!isParams && images[current] && (
+                    {!isParams && currentImage && (
                         <div
                             ref={previewRef}
                             aria-hidden
@@ -260,13 +265,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                 "pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-xl border border-border bg-background bg-(image:--zoom-image) bg-size-(--zoom-size) bg-no-repeat shadow-lg transition-opacity duration-150 lg:block",
                                 isZooming ? "opacity-100" : "opacity-0",
                             )}
-                            style={
-                                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- CSS 变量键不在 CSSProperties 内，断言是仓库既有写法
-                                {
-                                    "--zoom-image": `url(${images[current]})`,
-                                    "--zoom-size": `${ZOOM * 100}%`,
-                                } as CSSProperties
-                            }
+                            style={zoomStyle}
                         />
                     )}
                 </div>

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "src/lib/utils"
+import { cn, type CSSVars } from "src/lib/utils"
 
 /** srcset 默认生成的处理宽度档（px）。七牛 thumbnail 只缩不放，超出原图宽度的档位无害退化为原图 */
 const DEFAULT_WIDTHS = [120, 240, 480, 960, 1440]
@@ -85,7 +85,7 @@ function ImageTag({
 }: ImageProps & { src: string; onFailed: () => void }) {
     void fallback // 占位内容只在 ImageFallback 分支消费，这里丢弃防止漏进 img 属性
     const ratioClass = ratio === undefined ? undefined : RATIO_CLASS
-    const styleProp = ratio === undefined ? style : ({ "--ratio": ratio } as React.CSSProperties)
+    const styleProp = ratio === undefined ? style : ({ "--ratio": ratio } as CSSVars)
     return (
         <img
             {...props}
@@ -113,7 +113,7 @@ function ImageTag({
 
 function ImageFallback({ alt, ratio, radius, className, style, fallback }: ImageProps) {
     const ratioClass = ratio === undefined ? undefined : RATIO_CLASS
-    const styleProp = ratio === undefined ? style : ({ "--ratio": ratio } as React.CSSProperties)
+    const styleProp = ratio === undefined ? style : ({ "--ratio": ratio } as CSSVars)
     return (
         <div
             // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- 占位盒不是真 img；role+aria-label 让 AT 按图播报 alt
