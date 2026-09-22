@@ -38,6 +38,7 @@
 
 - **[ORD-21]** 订单金额四件套恒等式：`pay_amount = item_amount + shipping_fee − discount_amount`（单位分），由 DB 约束 `ck_orders_pay_amount`（V57）与 service 计费双钉；另 `0 ≤ discount_amount ≤ item_amount + shipping_fee`（不得减穿为负）、各金额列 `≥ 0`。行项目小计 `amount = price × quantity`（`ck_order_items_amount`）。
 - **[ORD-22]** 商品额 = Σ(成交单价 × 件数)，价格取**下单瞬间 SKU 快照**（现价 + 划线价原样定格）；图片在解析时定格（SKU 图空回落 SPU 主图），读端零逻辑。
+- **[ORD-61]** 行项快照再加一项服务声明：`orders.items.seven_day_return`（NOT NULL DEFAULT TRUE，V63）在下单瞬间从 `product.products.seven_day_return` 定格（`ValidLine` 的最后一个分量 → 落库），与 name/price/image 同族「成交即定格」。**售后判定读它而不读商品现值**（AFS-45）：买家那份七天无理由在下单那一刻定终身，卖家后来改勾选抹不掉已成交的单。整单售后取「**每个行项都为 true** 才算这单支持无理由」——拼单里有一件不支持，就不把强制加到卖家头上（宁可少强制，不可错强制）；行项为空同样按不成立处理。列不给 NULL 第三种语义：不支持是显式声明，缺省即支持，历史行回填 TRUE 与法定默认一致。
 - **[ORD-23]** 运费由 shop::api 运费模板报价得出，订单侧按**同店合计**整单取一份、不是按行累加；店铺未配运费模板 → 运费恒 0。落库同时定格计费快照：模板 id + 收货区划码。（运费门槛/包邮判定/报价细则归 logistics.md，券门槛基数归 coupon.md）
 - **[ORD-24]** 用券快照三列随订单定格：`user_coupon_id`、`coupon_bearer`（承担方 SELLER/PLATFORM）、`discount_amount`——前两者**同空同非空**（DB CHECK `ck_orders_coupon_snapshot_complete`），`discount_amount` 恒非空、不用券为 0；`coupon_bearer` 取值限 SELLER/PLATFORM。券规则事后被改、券被删除都不影响本单自证「减了多少、凭哪张券」，承担方是将来结算拆账依据。
 - **[ORD-25]** 金额与预览同源：订单落库的金额四件套直接吃分组计费结果，**不重算**（重算必漂移）；「预览一个价、下单另一个价」被当作最经典客诉来源专门防。币种成对落库：订单 `currency` 取 `item_amount` 的币种（一单恒单币种），行项币种跟成交价，全链路 Money。
