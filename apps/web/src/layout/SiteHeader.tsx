@@ -4,7 +4,9 @@ import { LogOut, ShoppingCart, UserRound } from "lucide-react"
 import {
     Avatar,
     AvatarFallback,
+    buttonVariants,
     Button,
+    cn,
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuGroup,
@@ -12,6 +14,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
+    Skeleton,
 } from "@shop/ui-web"
 
 import { useCartCount } from "#/cart"
@@ -39,7 +42,14 @@ export function SiteHeader() {
                     <Link
                         to="/cart"
                         aria-label="购物车"
-                        className="relative flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                        className={cn(
+                            buttonVariants({
+                                variant: "ghost",
+                                size: "icon-sm",
+                                shape: "pill",
+                            }),
+                            "relative text-muted-foreground hover:text-foreground",
+                        )}
                     >
                         <ShoppingCart className="size-4.5" />
                         {status === "authed" && (cartCount.data ?? 0) > 0 && (
@@ -50,7 +60,7 @@ export function SiteHeader() {
                     </Link>
 
                     {status === "unknown" ? (
-                        <span className="h-4 w-12 animate-pulse rounded bg-muted" />
+                        <Skeleton className="h-4 w-12" />
                     ) : status === "authed" ? (
                         <UserMenu />
                     ) : (

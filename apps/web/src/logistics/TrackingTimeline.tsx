@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react"
 import { useState } from "react"
 
-import { cn } from "@shop/ui-web"
+import { cn, Collapsible, CollapsibleTrigger } from "@shop/ui-web"
 
 import { countNodes, sliceGroups, type TrackingGroup, type TrackingNode } from "./model"
 
@@ -73,78 +73,76 @@ export function TrackingTimeline({
     const rows = toRows(collapsible && !expanded ? sliceGroups(groups, collapsedCount) : groups)
 
     return (
-        <ol className={className}>
-            {rows.map((row, index) => (
-                <li
-                    key={row.key}
-                    className="relative pb-4 pl-6 last:pb-0"
-                >
-                    <Axis
-                        dot={row.abnormal ? "abnormal" : row.node.latest ? "current" : "plain"}
-                        /** 上段连线只在第一行省略：其余行的圆点都要连到上一行 */
-                        hasLineAbove={index > 0}
-                        /** 下段连线在最后一行省略；有折叠开关时由开关那一行当末行 */
-                        hasLineBelow={index < rows.length - 1 || collapsible}
-                    />
-                    {row.head ? (
-                        <p className="text-sm leading-6">
-                            <span
-                                className={cn(
-                                    row.node.latest ? "font-bold" : "font-medium",
-                                    row.abnormal ? "text-destructive" : "text-foreground",
-                                )}
-                            >
-                                {row.label}
-                            </span>
-                            <span
-                                className={cn(
-                                    "ml-2",
-                                    row.node.latest
-                                        ? "font-medium text-foreground"
-                                        : "text-muted-foreground",
-                                )}
-                            >
-                                {row.node.time}
-                            </span>
-                        </p>
-                    ) : (
-                        <p className="text-sm leading-6 text-muted-foreground">{row.node.time}</p>
-                    )}
-                    <p className="mt-0.5 text-sm leading-5 text-muted-foreground">
-                        {/* 位置前缀加深；不加【】——承运商推来的描述本身常常已经带了一个 */}
-                        {row.node.location && (
-                            <span className="mr-1 text-foreground">{row.node.location}</span>
-                        )}
-                        {row.node.text}
-                    </p>
-                </li>
-            ))}
-
-            {/* 折叠开关也是轴上的一个节点（淘宝同款形态），所以复用同一套轴列布局 */}
-            {collapsible && (
-                <li className="relative pl-6">
-                    <Axis
-                        dot="plain"
-                        hasLineAbove
-                        hasLineBelow={false}
-                    />
-                    <button
-                        type="button"
-                        aria-expanded={expanded}
-                        onClick={() => setExpanded((value) => !value)}
-                        className="flex items-center gap-1 text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
+        <Collapsible
+            open={expanded}
+            onOpenChange={setExpanded}
+        >
+            <ol className={className}>
+                {rows.map((row, index) => (
+                    <li
+                        key={row.key}
+                        className="relative pb-4 pl-6 last:pb-0"
                     >
-                        {expanded ? "收起全部" : "展开更多物流明细"}
-                        <ChevronDown
-                            className={cn(
-                                "size-3.5 transition-transform",
-                                expanded && "rotate-180",
-                            )}
+                        <Axis
+                            dot={row.abnormal ? "abnormal" : row.node.latest ? "current" : "plain"}
+                            /** 上段连线只在第一行省略：其余行的圆点都要连到上一行 */
+                            hasLineAbove={index > 0}
+                            /** 下段连线在最后一行省略；有折叠开关时由开关那一行当末行 */
+                            hasLineBelow={index < rows.length - 1 || collapsible}
                         />
-                    </button>
-                </li>
-            )}
-        </ol>
+                        {row.head ? (
+                            <p className="text-sm leading-6">
+                                <span
+                                    className={cn(
+                                        row.node.latest ? "font-bold" : "font-medium",
+                                        row.abnormal ? "text-destructive" : "text-foreground",
+                                    )}
+                                >
+                                    {row.label}
+                                </span>
+                                <span
+                                    className={cn(
+                                        "ml-2",
+                                        row.node.latest
+                                            ? "font-medium text-foreground"
+                                            : "text-muted-foreground",
+                                    )}
+                                >
+                                    {row.node.time}
+                                </span>
+                            </p>
+                        ) : (
+                            <p className="text-sm leading-6 text-muted-foreground">
+                                {row.node.time}
+                            </p>
+                        )}
+                        <p className="mt-0.5 text-sm leading-5 text-muted-foreground">
+                            {/* 位置前缀加深；不加【】——承运商推来的描述本身常常已经带了一个 */}
+                            {row.node.location && (
+                                <span className="mr-1 text-foreground">{row.node.location}</span>
+                            )}
+                            {row.node.text}
+                        </p>
+                    </li>
+                ))}
+
+                {/* 折叠开关也是轴上的一个节点（淘宝同款形态），所以复用同一套轴列布局 */}
+                {collapsible && (
+                    <li className="relative pl-6">
+                        <Axis
+                            dot="plain"
+                            hasLineAbove
+                            hasLineBelow={false}
+                        />
+                        <CollapsibleTrigger className="group flex items-center">
+                            <span className="group-data-open:hidden">展开更多物流明细</span>
+                            <span className="hidden group-data-open:inline">收起全部</span>
+                            <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
+                        </CollapsibleTrigger>
+                    </li>
+                )}
+            </ol>
+        </Collapsible>
     )
 }
 

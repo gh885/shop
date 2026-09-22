@@ -17,6 +17,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
+    Skeleton,
 } from "@shop/ui-web"
 
 import { carrierListOptions } from "#/order/queries"
@@ -85,7 +86,7 @@ export function ShipDialog({
                     <div className="space-y-1.5">
                         <Label htmlFor="ship-carrier">快递公司</Label>
                         {carriers.isPending ? (
-                            <div className="h-8 w-full animate-pulse rounded-lg bg-muted" />
+                            <Skeleton className="h-8 w-full rounded-lg" />
                         ) : carriers.isError ? (
                             <div className="flex items-center justify-between gap-2">
                                 <span className="text-sm text-destructive">

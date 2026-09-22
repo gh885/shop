@@ -6,8 +6,17 @@ import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 import { ORDER_STATUS_LABEL } from "./constants"
 import type { OrderDetail } from "./model"
 import { Copy, ChevronDown } from "lucide-react"
-import { useState } from "react"
-import { Card, CardHeader, CardTitle, CardContent, Separator, Button, cn } from "@shop/ui-web"
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardContent,
+    Separator,
+    Button,
+    Collapsible,
+    CollapsibleTrigger,
+    CollapsibleContent,
+} from "@shop/ui-web"
 
 /**
  * 详情页右侧信息卡：两大块 —— 付款详情、订单信息。
@@ -35,9 +44,6 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
-    // 「更多订单信息」折叠：默认收起，点击展开交易号等次要字段
-    const [moreOpen, setMoreOpen] = useState(false)
-
     const fullAddress =
         order.receiverProvince + order.receiverCity + order.receiverDistrict + order.receiverDetail
 
@@ -114,28 +120,21 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                         <InfoRow label="发货时间">{dateStr(order.shippedAt)}</InfoRow>
                         <InfoRow label="成交时间">{dateStr(order.completedAt)}</InfoRow>
 
-                        {/* 物流 / 留言等次要字段可折叠 */}
-                        <button
-                            type="button"
-                            onClick={() => setMoreOpen((o) => !o)}
-                            className="flex w-full items-center justify-center gap-1 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                            {moreOpen ? "收起更多订单信息" : "展开更多订单信息"}
-                            <ChevronDown
-                                className={cn(
-                                    "size-3.5 transition-transform",
-                                    moreOpen && "rotate-180",
-                                )}
-                            />
-                        </button>
-
-                        {moreOpen && (
-                            <div className="py-1">
+                        {/* 「更多订单信息」折叠：默认收起，物流/留言等次要字段按需展开 */}
+                        <Collapsible>
+                            <CollapsibleTrigger className="group my-2 flex w-full items-center justify-center">
+                                <span className="group-data-open:hidden">展开更多订单信息</span>
+                                <span className="hidden group-data-open:inline">
+                                    收起更多订单信息
+                                </span>
+                                <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="my-1">
                                 <InfoRow label="物流公司">{order.logisticsCompany || "—"}</InfoRow>
                                 <InfoRow label="运单号">{order.trackingNo || "—"}</InfoRow>
                                 <InfoRow label="买家留言">{order.buyerMessage || "—"}</InfoRow>
-                            </div>
-                        )}
+                            </CollapsibleContent>
+                        </Collapsible>
                     </div>
                 </CardContent>
             </Card>

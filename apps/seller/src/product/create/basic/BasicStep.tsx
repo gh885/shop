@@ -13,8 +13,24 @@ import { DetailImagesSection } from "./DetailImagesSection"
 import { SalesInfoSection } from "./SalesInfoSection"
 import { uploadProductImage, useLeafPaths } from "../../queries"
 import { CheckCircle2, ChevronRight, Badge, ListTree } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
-import { useAppForm, Tabs, TabsList, TabsTrigger, Skeleton, Button, Spinner } from "@shop/ui-web"
+import { useState, useRef, useEffect, Fragment } from "react"
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+    Button,
+    Skeleton,
+    Spinner,
+    Tabs,
+    TabsList,
+    TabsTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+    useAppForm,
+} from "@shop/ui-web"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
     锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
@@ -247,37 +263,43 @@ export function BasicStep({
                     >
                         <ListTree className="size-4 shrink-0 text-muted-foreground" />
                         <span className="shrink-0 text-sm text-muted-foreground">当前类目</span>
-                        <p
-                            className="min-w-0 flex-1 truncate text-sm"
-                            title={categoryNames.length > 0 ? categoryNames.join(" > ") : undefined}
-                        >
-                            {categoryNames.length > 0 ? (
-                                categoryNames.map((name, i) => (
-                                    <span key={name}>
-                                        {i > 0 && (
-                                            <span className="mx-1.5 text-muted-foreground">
-                                                &gt;
-                                            </span>
-                                        )}
-                                        {name}
-                                    </span>
-                                ))
-                            ) : (
-                                <Skeleton className="h-4 w-40 align-middle" />
-                            )}
-                        </p>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={!canSwitchCategory}
-                            title={
-                                canSwitchCategory ? undefined : "类目在发布时确定，发布后不可修改"
-                            }
-                            onClick={onSwitchCategory}
-                        >
-                            切换类目
-                        </Button>
+                        {categoryNames.length > 0 ? (
+                            <Breadcrumb className="min-w-0 flex-1">
+                                <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
+                                    {categoryNames.map((name, i) => (
+                                        <Fragment key={name}>
+                                            {i > 0 && <BreadcrumbSeparator />}
+                                            <BreadcrumbItem>
+                                                {i === categoryNames.length - 1 ? (
+                                                    <BreadcrumbPage>{name}</BreadcrumbPage>
+                                                ) : (
+                                                    name
+                                                )}
+                                            </BreadcrumbItem>
+                                        </Fragment>
+                                    ))}
+                                </BreadcrumbList>
+                            </Breadcrumb>
+                        ) : (
+                            <Skeleton className="h-4 w-40 shrink-0" />
+                        )}
+                        <Tooltip disabled={canSwitchCategory}>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={!canSwitchCategory}
+                                        className="shrink-0"
+                                        onClick={onSwitchCategory}
+                                    >
+                                        切换类目
+                                    </Button>
+                                }
+                            />
+                            <TooltipContent>类目在发布时确定，发布后不可修改</TooltipContent>
+                        </Tooltip>
                     </div>
 
                     <BasicInfoSection

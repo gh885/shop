@@ -13,6 +13,8 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    Empty,
+    EmptyTitle,
     Input,
     Label,
     Skeleton,
@@ -262,9 +264,9 @@ export function RegionMultiPicker({
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="p-6 text-center text-sm text-muted-foreground">
-                                        没有匹配的地区
-                                    </p>
+                                    <Empty className="gap-0 py-6">
+                                        <EmptyTitle>没有匹配的地区</EmptyTitle>
+                                    </Empty>
                                 )
                             ) : (
                                 <RegionTree

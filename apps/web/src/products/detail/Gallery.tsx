@@ -325,18 +325,22 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
 
             <div className="mt-4 flex justify-center">
                 {/* 全部参数：滚动到左栏「参数信息」区块（锚点由 DetailSection 提供） */}
-                <button
+                <Button
                     type="button"
+                    variant="outline"
+                    shape="pill"
                     onClick={() =>
                         document
                             .getElementById("params")
                             ?.scrollIntoView({ behavior: "smooth", block: "start" })
                     }
-                    className="flex items-center gap-1 rounded-full border border-border bg-background px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary"
                 >
                     全部参数
-                    <ChevronRight className="size-4" />
-                </button>
+                    <ChevronRight
+                        className="size-4"
+                        data-icon="inline-end"
+                    />
+                </Button>
             </div>
         </div>
     )

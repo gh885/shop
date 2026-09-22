@@ -20,13 +20,15 @@ import {
     EmptyTitle,
     EmptyDescription,
     Button,
-    cn,
     Pagination,
     PaginationContent,
     PaginationItem,
     PaginationLink,
     PaginationPrevious,
     PaginationNext,
+    Tabs,
+    TabsList,
+    TabsTrigger,
 } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/orders/")({
@@ -84,24 +86,28 @@ function OrdersPage() {
             {cancelDialog}
 
             {/* 状态 Tab 导航 */}
-            <div className="flex gap-1 border-b border-border/60">
-                {ORDER_STATUS_TABS.map((t) => (
-                    <button
-                        key={t.key}
-                        type="button"
-                        onClick={() => setTab(t.key)}
-                        aria-current={search.tab === t.key ? "page" : undefined}
-                        className={cn(
-                            "-mb-px border-b-2 px-4 pb-2.5 text-sm transition-colors",
-                            search.tab === t.key
-                                ? "border-foreground font-medium text-foreground"
-                                : "border-transparent text-muted-foreground hover:text-foreground",
-                        )}
-                    >
-                        {t.label}
-                    </button>
-                ))}
-            </div>
+            <Tabs
+                value={search.tab}
+                onValueChange={(value) => {
+                    const next = ORDER_STATUS_TABS.find((t) => t.key === value)?.key
+                    if (next) setTab(next)
+                }}
+            >
+                <TabsList
+                    variant="line"
+                    className="min-h-10 w-full justify-start"
+                >
+                    {ORDER_STATUS_TABS.map((t) => (
+                        <TabsTrigger
+                            key={t.key}
+                            value={t.key}
+                            size="lg"
+                        >
+                            {t.label}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+            </Tabs>
 
             {isLoading ? (
                 <div className="space-y-4">

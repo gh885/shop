@@ -1,7 +1,22 @@
-import { useState } from "react"
+import { Fragment, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { ImageIcon, ListTree, Search } from "lucide-react"
-import { Button, Input, Skeleton, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+    Button,
+    Input,
+    Skeleton,
+    Tabs,
+    TabsList,
+    TabsTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@shop/ui-web"
 
 import { nodesOf, searchLeafPaths, selectAt, selectedLeafId, type LeafPath } from "@shop/common"
 import { CategoryColumns } from "./CategoryColumns"
@@ -66,14 +81,20 @@ export function CategoryStep({
                             <Search />
                             搜索发品
                         </TabsTrigger>
-                        <TabsTrigger
-                            value="image"
-                            disabled
-                            title="以图发品即将上线"
-                        >
-                            <ImageIcon />
-                            以图发品
-                        </TabsTrigger>
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <TabsTrigger
+                                        value="image"
+                                        disabled
+                                    >
+                                        <ImageIcon />
+                                        以图发品
+                                    </TabsTrigger>
+                                }
+                            />
+                            <TooltipContent>以图发品即将上线</TooltipContent>
+                        </Tooltip>
                     </TabsList>
                 </Tabs>
 
@@ -156,19 +177,22 @@ function ConfirmBar({
                         搜索或逐级选择，选到末级类目才能继续
                     </span>
                 ) : (
-                    <span
-                        className="min-w-0 flex-1 truncate text-sm font-medium"
-                        title={pathNames.join(" > ")}
-                    >
-                        {pathNames.map((name, i) => (
-                            <span key={name}>
-                                {i > 0 && (
-                                    <span className="mx-1.5 text-muted-foreground">&gt;</span>
-                                )}
-                                {name}
-                            </span>
-                        ))}
-                    </span>
+                    <Breadcrumb className="min-w-0 flex-1">
+                        <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
+                            {pathNames.map((name, i) => (
+                                <Fragment key={name}>
+                                    {i > 0 && <BreadcrumbSeparator />}
+                                    <BreadcrumbItem>
+                                        {i === pathNames.length - 1 ? (
+                                            <BreadcrumbPage>{name}</BreadcrumbPage>
+                                        ) : (
+                                            name
+                                        )}
+                                    </BreadcrumbItem>
+                                </Fragment>
+                            ))}
+                        </BreadcrumbList>
+                    </Breadcrumb>
                 )}
                 <Button
                     disabled={!canNext}

@@ -12,6 +12,7 @@ import {
     DialogTitle,
     Input,
     Label,
+    Spinner,
 } from "@shop/ui-web"
 
 import type { ProductTitleTarget } from "./table"
@@ -192,7 +193,7 @@ export function EditTitleDialog({
                         onClick={submit}
                         disabled={save.isPending}
                     >
-                        {save.isPending ? "提交中…" : "提交"}
+                        {save.isPending && <Spinner />}提交
                     </Button>
                 </DialogFooter>
             </DialogContent>

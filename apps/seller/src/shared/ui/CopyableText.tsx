@@ -1,5 +1,5 @@
 import { notify } from "@shop/app-kit"
-import { cn } from "@shop/ui-web"
+import { cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 /**
  * 可点击复制的文本：点击把「复制值」写入剪贴板，成功/失败用全局 toast 反馈。
@@ -36,20 +36,26 @@ export function CopyableText({
     }
 
     return (
-        <button
-            type="button"
-            onClick={copy}
-            title={`点击复制${label}`}
-            aria-label={`复制${label}：${value}`}
-            className={cn(
-                // block + 占满可用宽度：同一纵列内多个 CopyableText 各占一行，不会挤到同一行
-                "block w-full min-w-0 max-w-full cursor-pointer text-left",
-                // 链接式 hover 提示（下划线暗示可点击复制），focus 同样体现
-                "underline-offset-2 decoration-dotted hover:underline focus-visible:underline focus-visible:outline-none",
-                className,
-            )}
-        >
-            <span className={cn("block truncate")}>{children}</span>
-        </button>
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <button
+                        type="button"
+                        onClick={copy}
+                        aria-label={`复制${label}：${value}`}
+                        className={cn(
+                            // block + 占满可用宽度：同一纵列内多个 CopyableText 各占一行，不会挤到同一行
+                            "block w-full min-w-0 max-w-full cursor-pointer text-left",
+                            // 链接式 hover 提示（下划线暗示可点击复制），focus 同样体现
+                            "underline-offset-2 decoration-dotted hover:underline focus-visible:underline focus-visible:outline-none",
+                            className,
+                        )}
+                    >
+                        <span className={cn("block truncate")}>{children}</span>
+                    </button>
+                }
+            />
+            <TooltipContent>点击复制{label}</TooltipContent>
+        </Tooltip>
     )
 }

@@ -4,6 +4,8 @@ import { type Money, moneyToYuan, sameMoney } from "@shop/common"
 import { notify } from "@shop/app-kit"
 import {
     Button,
+    Empty,
+    EmptyTitle,
     Input,
     InputGroup,
     InputGroupAddon,
@@ -15,6 +17,9 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
     cn,
 } from "@shop/ui-web"
 
@@ -330,11 +335,17 @@ export function SkuGridEditor({
                                 />
                             </TableCell>
                             <TableCell>
-                                <Input
-                                    disabled
-                                    value="单品"
-                                    title="SKU分类待后端支持"
-                                />
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Input
+                                                disabled
+                                                value="单品"
+                                            />
+                                        }
+                                    />
+                                    <TooltipContent>SKU分类待后端支持</TooltipContent>
+                                </Tooltip>
                             </TableCell>
                             <TableCell>
                                 <Switch
@@ -360,7 +371,9 @@ export function SkuGridEditor({
                 </TableBody>
             </Table>
             {visible.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">没有匹配的规格</p>
+                <Empty className="gap-0 py-6">
+                    <EmptyTitle>没有匹配的规格</EmptyTitle>
+                </Empty>
             )}
         </div>
     )

@@ -1,6 +1,15 @@
 import { Minus, Plus, ShieldCheck, Truck } from "lucide-react"
 
-import { Image, Separator, ToggleGroup, ToggleGroupItem, cn } from "@shop/ui-web"
+import {
+    Button,
+    ButtonGroup,
+    ButtonGroupText,
+    Image,
+    Separator,
+    ToggleGroup,
+    ToggleGroupItem,
+    cn,
+} from "@shop/ui-web"
 
 import { formatMoney } from "@shop/common"
 
@@ -214,29 +223,29 @@ function QuantityStepper({
     return (
         <div className="flex items-center gap-3">
             <p className="text-sm text-muted-foreground">数量</p>
-            <div className="flex h-9 items-center overflow-hidden rounded-lg border border-border">
-                <button
-                    type="button"
+            <ButtonGroup>
+                <Button
+                    variant="outline"
+                    size="icon-sm"
                     aria-label="减少数量"
                     disabled={quantity <= 1}
                     onClick={() => onChange(Math.max(1, quantity - 1))}
-                    className="flex h-full w-9 items-center justify-center text-muted-foreground transition-colors hover:text-primary disabled:opacity-30"
                 >
                     <Minus className="size-4" />
-                </button>
-                <span className="w-10 border-x border-border text-center text-sm tabular-nums">
+                </Button>
+                <ButtonGroupText className="w-10 justify-center tabular-nums">
                     {quantity}
-                </span>
-                <button
-                    type="button"
+                </ButtonGroupText>
+                <Button
+                    variant="outline"
+                    size="icon-sm"
                     aria-label="增加数量"
                     disabled={quantity >= upper}
                     onClick={() => onChange(Math.min(upper, quantity + 1))}
-                    className="flex h-full w-9 items-center justify-center text-muted-foreground transition-colors hover:text-primary disabled:opacity-30"
                 >
                     <Plus className="size-4" />
-                </button>
-            </div>
+                </Button>
+            </ButtonGroup>
         </div>
     )
 }

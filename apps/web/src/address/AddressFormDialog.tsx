@@ -4,7 +4,6 @@ import { notify } from "@shop/app-kit"
 import { findPath, loadChildren } from "@shop/common"
 import {
     Button,
-    cn,
     Dialog,
     DialogContent,
     DialogTitle,
@@ -17,6 +16,8 @@ import {
     RegionPicker,
     type RegionNode,
     Spinner,
+    ToggleGroup,
+    ToggleGroupItem,
     useAppForm,
 } from "@shop/ui-web"
 
@@ -248,41 +249,31 @@ export function AddressFormDialog({ open, onOpenChange, editing }: AddressFormDi
                                     label="地址标签"
                                     layout="horizontal"
                                 >
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        {LABEL_OPTIONS.map((l) => (
-                                            <button
-                                                key={l.value}
-                                                type="button"
-                                                onClick={() => {
-                                                    setCustomLabel(false)
-                                                    field.handleChange(l.value)
-                                                }}
-                                                className={cn(
-                                                    "rounded-md border px-4 py-1.5 text-sm transition-colors",
-                                                    value === l.value
-                                                        ? "border-foreground bg-accent text-accent-foreground"
-                                                        : "border-border text-muted-foreground hover:border-foreground/40",
-                                                )}
-                                            >
-                                                {l.label}
-                                            </button>
-                                        ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
+                                    <ToggleGroup
+                                        value={showCustomInput ? ["custom"] : value ? [value] : []}
+                                        onValueChange={(v) => {
+                                            const next = v[0]
+                                            if (next === "custom") {
                                                 setCustomLabel(true)
                                                 if (isBuiltinLabel(value)) field.handleChange("")
-                                            }}
-                                            className={cn(
-                                                "rounded-md border px-4 py-1.5 text-sm transition-colors",
-                                                showCustomInput
-                                                    ? "border-foreground bg-accent text-accent-foreground"
-                                                    : "border-border text-muted-foreground hover:border-foreground/40",
-                                            )}
-                                        >
-                                            自定义
-                                        </button>
-                                    </div>
+                                            } else if (next !== undefined) {
+                                                setCustomLabel(false)
+                                                field.handleChange(next)
+                                            }
+                                        }}
+                                        variant="outline"
+                                        className="flex-wrap"
+                                    >
+                                        {LABEL_OPTIONS.map((l) => (
+                                            <ToggleGroupItem
+                                                key={l.value}
+                                                value={l.value}
+                                            >
+                                                {l.label}
+                                            </ToggleGroupItem>
+                                        ))}
+                                        <ToggleGroupItem value="custom">自定义</ToggleGroupItem>
+                                    </ToggleGroup>
                                     {showCustomInput && (
                                         <div className="relative mt-2">
                                             <Input

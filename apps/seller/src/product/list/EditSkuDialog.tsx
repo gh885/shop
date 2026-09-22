@@ -16,6 +16,7 @@ import {
     InputGroupAddon,
     InputGroupInput,
     Skeleton,
+    Spinner,
     StateError,
     Table,
     TableBody,
@@ -326,7 +327,7 @@ export function EditSkuLineDialog({
                         onClick={() => void submit()}
                         disabled={save.isPending || isPending || isError}
                     >
-                        {save.isPending ? "提交中…" : "提交"}
+                        {save.isPending && <Spinner />}提交
                     </Button>
                 </DialogFooter>
             </DialogContent>

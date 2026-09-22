@@ -11,6 +11,9 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from "@shop/ui-web"
 
 import { priceRangeText } from "@shop/common"
@@ -230,15 +233,23 @@ function ProductRow({
                                 label="商品名称"
                                 className="w-auto min-w-0 max-w-full shrink font-medium"
                             />
-                            <button
-                                type="button"
-                                onClick={onEditTitle}
-                                title="编辑标题/卖点"
-                                aria-label="编辑标题/卖点"
-                                className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground opacity-40 transition-opacity hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-                            >
-                                <Pencil className="size-3.5" />
-                            </button>
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            className="size-5"
+                                            onClick={onEditTitle}
+                                            aria-label="编辑标题/卖点"
+                                        >
+                                            <Pencil className="size-3.5" />
+                                        </Button>
+                                    }
+                                />
+                                <TooltipContent>编辑标题/卖点</TooltipContent>
+                            </Tooltip>
                         </div>
                         {/* 第二项：商品卖点（导购标题），空则不展示 */}
                         {p.subtitle ? (
@@ -252,30 +263,46 @@ function ProductRow({
             <TableCell className="tabular-nums">
                 <div className="group/price inline-flex items-center gap-1.5">
                     {priceRangeText(p.minPrice ?? undefined, p.maxPrice ?? undefined)}
-                    <button
-                        type="button"
-                        onClick={onEditPrice}
-                        title="编辑价格/SKU编码"
-                        aria-label="编辑价格/SKU编码"
-                        className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-40 transition-opacity hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-                    >
-                        <Pencil className="size-3.5" />
-                    </button>
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="size-5"
+                                    onClick={onEditPrice}
+                                    aria-label="编辑价格/SKU编码"
+                                >
+                                    <Pencil className="size-3.5" />
+                                </Button>
+                            }
+                        />
+                        <TooltipContent>编辑价格/SKU编码</TooltipContent>
+                    </Tooltip>
                 </div>
             </TableCell>
             {/* 库存：hover 出现编辑图标，点击打开编辑库存弹窗 */}
             <TableCell className="tabular-nums">
                 <div className="group/stock inline-flex w-fit items-center gap-1.5">
                     {p.stock}
-                    <button
-                        type="button"
-                        onClick={onEditStock}
-                        title="编辑库存"
-                        aria-label="编辑库存"
-                        className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-40 transition-opacity hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-                    >
-                        <Pencil className="size-3.5" />
-                    </button>
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="size-5"
+                                    onClick={onEditStock}
+                                    aria-label="编辑库存"
+                                >
+                                    <Pencil className="size-3.5" />
+                                </Button>
+                            }
+                        />
+                        <TooltipContent>编辑库存</TooltipContent>
+                    </Tooltip>
                 </div>
             </TableCell>
             <TableCell className="tabular-nums">{p.soldCount}</TableCell>
