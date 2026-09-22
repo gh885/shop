@@ -416,6 +416,38 @@ class AfterSaleIT extends IntegrationTestSupport {
         assertEquals(List.of(), afterSale.buyerActions(refunded));
     }
 
+    /** 订单列表行内按钮的动作集（批查）：只回有进行中单的订单，动作与工作台同源，越店不参与 */
+    @Test
+    void 按订单批查卖家售后动作_进行中才回_终态与他店不回() {
+        // 无售后单：这一行压根不出现在结果里（前端取不到 = 无动作，不下发空集合）
+        assertEquals(List.of(), afterSale.sellerActionsByOrders(shopId, List.of(orderId)));
+
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        assertEquals(
+                List.of(TicketAvailableAction.AGREE, TicketAvailableAction.REJECT),
+                afterSale
+                        .sellerActionsByOrders(shopId, List.of(orderId))
+                        .getFirst()
+                        .availableActions());
+
+        // 同意后进 RETURNING：动作换成确认收货，仍只有这一张进行中的单
+        afterSale.agree(shopId, orderId);
+        assertEquals(
+                List.of(TicketAvailableAction.RECEIVE_RETURN),
+                afterSale
+                        .sellerActionsByOrders(shopId, List.of(orderId))
+                        .getFirst()
+                        .availableActions());
+
+        // 归属闸门 + 空入参：递别人的 shopId 拿不到本店的单，递空列表不发查询
+        assertEquals(
+                0,
+                afterSale
+                        .sellerActionsByOrders(UUID.randomUUID(), List.of(orderId))
+                        .size());
+        assertEquals(List.of(), afterSale.sellerActionsByOrders(shopId, List.of()));
+    }
+
     /** 回寄地址（详情查询时下发）：无默认退货地址为 null；配了实时解析成一行「收件人 电话 · 地址行」 */
     @Test
     void 退货退款进入RETURNING_回寄地址随查询解析_无默认退货地址为null() {

@@ -296,6 +296,24 @@ public class AfterSaleService {
                 rows.getTotal());
     }
 
+    /**
+     * 一批订单的卖家售后可执行动作（卖家订单列表行内按钮）：与工作台同一套算法
+     * （{@link TicketAvailableAction#sellerActions}），前端不再按订单上的售后投影另推一张按钮表。
+     *
+     * <p>没有进行中售后单的订单不出现在结果里（前端按 orderId 取，取不到 = 无动作）：
+     * 一行都没必要下发空集合，一页十几行乘一个空数组纯属噪音。
+     */
+    @Transactional(readOnly = true)
+    public List<SellerOrderTicketActions> sellerActionsByOrders(UUID shopId, List<UUID> orderIds) {
+        if (orderIds.isEmpty()) {
+            return List.of();
+        }
+        return ticketMapper.selectOpenByOrders(shopId, orderIds).stream()
+                .map(t -> new SellerOrderTicketActions(
+                        t.getOrderId(), TicketAvailableAction.sellerActions(t.getStatus())))
+                .toList();
+    }
+
     /** 卖家工作台行 = 售后单 + 订单摘要；拼不出摘要说明数据被外力改坏，直接失败而不是给出一行缺订单号的售后单 */
     private SellerTicketItem toSellerItem(Ticket ticket, OrderSummaryView order) {
         Validate.isTrue(order != null, 500, "售后单对应的订单不存在，数据不一致");

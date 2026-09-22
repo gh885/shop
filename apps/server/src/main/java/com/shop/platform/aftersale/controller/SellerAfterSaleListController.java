@@ -1,6 +1,7 @@
 package com.shop.platform.aftersale.controller;
 
 import com.shop.platform.aftersale.service.AfterSaleService;
+import com.shop.platform.aftersale.service.SellerOrderTicketActions;
 import com.shop.platform.aftersale.service.SellerTicketItem;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
@@ -9,6 +10,7 @@ import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -39,5 +41,18 @@ public class SellerAfterSaleListController {
     public PageResult<SellerTicketItem> listShopAfterSales(
             @CurrentShop UUID shopId, @Valid PageParams pageParams, @RequestParam(required = false) String status) {
         return afterSaleService.pageShop(shopId, status, pageParams);
+    }
+
+    /**
+     * 一页订单的售后可执行动作（卖家订单列表行内按钮）：按本页 orderId 批查，动作集与工作台同源。
+     *
+     * <p>为什么不并进 {@code GET /seller/orders} 的行：动作由售后单状态机算出，而订单模块是本模块的下游
+     * （依赖方向 aftersale → order :: api），让订单列表反向带上售后动作会成环。前端两次请求换模块边界干净。
+     * 参数按 {@code List} 收：重复参数与单个逗号分隔值都能绑成列表，SDK 的数组序列化怎么选都不挑。
+     */
+    @GetMapping("/actions")
+    public List<SellerOrderTicketActions> listAfterSaleActionsByOrders(
+            @CurrentShop UUID shopId, @RequestParam List<UUID> orderIds) {
+        return afterSaleService.sellerActionsByOrders(shopId, orderIds);
     }
 }

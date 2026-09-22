@@ -1,6 +1,7 @@
 package com.shop.platform.aftersale;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
+import com.shop.platform.aftersale.service.SellerOrderTicketActions;
 import com.shop.platform.aftersale.service.SellerTicketItem;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
@@ -64,6 +66,32 @@ class SellerAfterSaleListControllerTest extends WebControllerTestSupport {
 
     private MockHttpServletRequestBuilder sellerGet(String path, Object... vars) {
         return get(path, vars).with(userAuth(userId)).header("X-Shop-Id", shopId.toString());
+    }
+
+    @Nested
+    class 一页订单的售后动作 { // GET /seller/after-sales/actions
+
+        @Test
+        void 成员放行_200_orderIds绑定成列表并带上下文店铺() throws Exception {
+            UUID orderId = UUID.randomUUID();
+            when(afterSaleService.sellerActionsByOrders(eq(shopId), any()))
+                    .thenReturn(List.of(new SellerOrderTicketActions(
+                            orderId, List.of(TicketAvailableAction.AGREE, TicketAvailableAction.REJECT))));
+
+            mockMvc.perform(sellerGet("/seller/after-sales/actions")
+                            .param("orderIds", orderId.toString())
+                            .param("orderIds", UUID.randomUUID().toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].orderId").value(orderId.toString()))
+                    .andExpect(jsonPath("$[0].availableActions[0]").value("AGREE"));
+
+            verify(afterSaleService).sellerActionsByOrders(eq(shopId), argThat(ids -> ids.size() == 2));
+        }
+
+        @Test
+        void 不传orderIds_400() throws Exception {
+            mockMvc.perform(sellerGet("/seller/after-sales/actions")).andExpect(status().isBadRequest());
+        }
     }
 
     @Nested

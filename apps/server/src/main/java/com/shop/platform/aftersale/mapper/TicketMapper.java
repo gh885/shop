@@ -29,6 +29,18 @@ public interface TicketMapper extends BaseMapper<Ticket> {
     }
 
     /**
+     * 一批订单各自进行中的售后单（APPLYING / RETURNING）：卖家订单列表行内按钮的动作集来源。
+     *
+     * <p>shopId 参与条件而不是「查出来再过滤」：越店的单不该出现在响应里，哪怕调用方递来了别人的 orderId。
+     */
+    default List<Ticket> selectOpenByOrders(UUID shopId, List<UUID> orderIds) {
+        return selectList(new LambdaQueryWrapper<Ticket>()
+                .eq(Ticket::getShopId, shopId)
+                .in(Ticket::getOrderId, orderIds)
+                .in(Ticket::getStatus, TicketStatus.APPLYING, TicketStatus.RETURNING));
+    }
+
+    /**
      * 超时扫描①（C11）：APPLYING 且入态已久的单，创建时间升序（最老的先处理），批上限由调用方给。
      *
      * <p>入态时刻为什么敢用 created_at：售后单生下来就是 APPLYING（apply 唯一入口），且转移表里
