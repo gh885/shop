@@ -53,6 +53,7 @@ function OrdersPage() {
         handleFilterChange,
         onPageChange,
         ship,
+        afterSaleActionsOf,
         agreeAfterSale,
         rejectAfterSale,
         receiveReturn,
@@ -103,14 +104,9 @@ function OrdersPage() {
                     busyId={busyId}
                     onPageChange={onPageChange}
                     onShip={setShipTarget}
-                    onAgreeAfterSale={(o) =>
-                        setConfirm({ orderId: o.id, orderNo: o.orderNo, kind: "agree" })
-                    }
-                    onRejectAfterSale={(o) =>
-                        setConfirm({ orderId: o.id, orderNo: o.orderNo, kind: "reject" })
-                    }
-                    onReceiveReturn={(o) =>
-                        setConfirm({ orderId: o.id, orderNo: o.orderNo, kind: "receive" })
+                    afterSaleActionsOf={afterSaleActionsOf}
+                    onAfterSaleAction={(o, action) =>
+                        setConfirm({ orderId: o.id, orderNo: o.orderNo, kind: action })
                     }
                 />
             )}

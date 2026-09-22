@@ -10,13 +10,14 @@ import {
 } from "@shop/ui-web"
 import { formatMoney } from "@shop/common"
 import { formatDate } from "@shop/app-kit"
-import type { SellerOrderListItemResponse } from "@shop/api/sdk"
+import type { SellerOrderListItemResponse, TicketAvailableAction } from "@shop/api/sdk"
 import { useState } from "react"
 
 import { imgUrl } from "#/shared/lib/image"
 import { CopyableText } from "#/shared/ui/CopyableText"
 import { TableCard } from "#/shared/ui/TableCard"
 import { AFTER_SALE_META, ORDER_STATUS_META } from "#/order/constants"
+import { REFUND_ACTION_LABEL, refundRowActions, type RefundRowAction } from "#/order/refund/model"
 
 interface OrderTableProps {
     rows: SellerOrderListItemResponse[]
@@ -28,12 +29,10 @@ interface OrderTableProps {
     onPageChange: (page: number) => void
     /** 待发货 → 发货（打开发货弹窗）：只回传所需的两项，不回传整行 */
     onShip: (order: OrderIdentity) => void
-    /** 售后申请中 → 同意 */
-    onAgreeAfterSale: (order: OrderIdentity) => void
-    /** 售后申请中 → 拒绝 */
-    onRejectAfterSale: (order: OrderIdentity) => void
-    /** 退货退款 · 退货中 → 确认收货 */
-    onReceiveReturn: (order: OrderIdentity) => void
+    /** 一行订单可做的售后动作（aftersale 按本页订单批查下发；无进行中的单 = 空集） */
+    afterSaleActionsOf: (orderId: string) => TicketAvailableAction[]
+    /** 售后动作上抛：动作种类即后端下发的契约值，页面只负责路由到对应 mutation */
+    onAfterSaleAction: (order: OrderIdentity, action: RefundRowAction) => void
 }
 
 /** 行操作需要的订单身份：订单 id（请求）+ 单号（展示/确认文案） */
@@ -51,9 +50,8 @@ export function OrderTable({
     busyId,
     onPageChange,
     onShip,
-    onAgreeAfterSale,
-    onRejectAfterSale,
-    onReceiveReturn,
+    afterSaleActionsOf,
+    onAfterSaleAction,
 }: OrderTableProps) {
     return (
         <TableCard
@@ -80,10 +78,9 @@ export function OrderTable({
                         key={o.id}
                         order={o}
                         busy={o.id === busyId}
+                        afterSaleActions={afterSaleActionsOf(o.id)}
                         onShip={() => onShip(orderIdentity(o))}
-                        onAgreeAfterSale={() => onAgreeAfterSale(orderIdentity(o))}
-                        onRejectAfterSale={() => onRejectAfterSale(orderIdentity(o))}
-                        onReceiveReturn={() => onReceiveReturn(orderIdentity(o))}
+                        onAfterSaleAction={(action) => onAfterSaleAction(orderIdentity(o), action)}
                     />
                 ))}
             </TableBody>
@@ -129,17 +126,16 @@ function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
 function OrderRow({
     order: o,
     busy,
+    afterSaleActions,
     onShip,
-    onAgreeAfterSale,
-    onRejectAfterSale,
-    onReceiveReturn,
+    onAfterSaleAction,
 }: {
     order: SellerOrderListItemResponse
     busy: boolean
+    /** 契约下发的售后动作（AGREE / REJECT / RECEIVE_RETURN…），空集 = 这一行没有可点的售后按钮 */
+    afterSaleActions: TicketAvailableAction[]
     onShip: () => void
-    onAgreeAfterSale: () => void
-    onRejectAfterSale: () => void
-    onReceiveReturn: () => void
+    onAfterSaleAction: (action: RefundRowAction) => void
 }) {
     const statusMeta = ORDER_STATUS_META[o.status]
     const saleMeta = o.afterSaleStatus === "NONE" ? undefined : AFTER_SALE_META[o.afterSaleStatus]
@@ -148,6 +144,8 @@ function OrderRow({
     /** 过了发货时限：系统不代关单（ORD-60），这里只给卖家一枚催办标记 */
     const shipOverdue =
         o.status === "PAID" && o.shipExpireAt !== null && new Date(o.shipExpireAt).getTime() < now
+    const canShip = o.availableActions.includes("SHIP")
+    const saleRowActions = refundRowActions({ availableActions: afterSaleActions })
 
     return (
         <TableRow>
@@ -185,7 +183,7 @@ function OrderRow({
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
                     {/* 发货按钮看契约下发的动作集，不按 status 硬推：PAID 首单发货、SHIPPED 追加包裹都带 SHIP */}
-                    {o.availableActions.includes("SHIP") && (
+                    {canShip && (
                         <Button
                             variant="ghost"
                             size="sm"
@@ -195,43 +193,22 @@ function OrderRow({
                             发货
                         </Button>
                     )}
-                    {/* 售后申请中 → 同意 / 拒绝（退货退款同意后进入退货流程） */}
-                    {o.afterSaleStatus === "APPLYING" && (
-                        <>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={busy}
-                                onClick={onAgreeAfterSale}
-                            >
-                                同意
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={busy}
-                                onClick={onRejectAfterSale}
-                            >
-                                拒绝
-                            </Button>
-                        </>
-                    )}
-                    {/* 退货退款 · 退货中 → 确认收货（回补库存并退款） */}
-                    {o.afterSaleStatus === "RETURNING" && (
+                    {/* 售后按钮同口径：动作集由 aftersale 批查下发（与工作台同源），
+                        不按订单上的售后投影另推一张按钮表（ORD-51） */}
+                    {saleRowActions.map((action) => (
                         <Button
+                            key={action}
                             variant="ghost"
                             size="sm"
                             disabled={busy}
-                            onClick={onReceiveReturn}
+                            onClick={() => onAfterSaleAction(action)}
                         >
-                            确认收货
+                            {REFUND_ACTION_LABEL[action]}
                         </Button>
+                    ))}
+                    {!canShip && saleRowActions.length === 0 && (
+                        <span className="text-xs text-muted-foreground">—</span>
                     )}
-                    {!o.availableActions.includes("SHIP") &&
-                        o.afterSaleStatus !== "APPLYING" &&
-                        o.afterSaleStatus !== "RETURNING" && (
-                            <span className="text-xs text-muted-foreground">—</span>
-                        )}
                 </div>
             </TableCell>
         </TableRow>

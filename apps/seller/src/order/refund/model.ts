@@ -1,5 +1,7 @@
 import { z } from "zod"
-import { TicketStatus, type SellerTicketItem, type TicketAvailableAction } from "@shop/api/sdk"
+import { TicketStatus, type TicketAvailableAction } from "@shop/api/sdk"
+
+import type { SaleDecisionKind } from "#/order/after-sale-decision-dialog"
 
 /**
  * 退款售后工作台 —— 纯规则：页签定义 + 「一行此刻能做什么」。
@@ -39,8 +41,8 @@ export const REFUND_TABS: ReadonlyArray<{ value: RefundTab; label: string }> = [
     { value: "ALL", label: "全部" },
 ]
 
-/** 卖家对一行售后单能做的动作 */
-export type RefundRowAction = "agree" | "reject" | "receive"
+/** 卖家对一行售后单能做的动作——就是决策弹窗的动作种类，同一份词表不在两处各写一遍 */
+export type RefundRowAction = SaleDecisionKind
 
 /** 契约动作 → 行内按钮：「能做什么」吃后端下发（C5b），这里只留文案与展示映射。动作枚举用 SDK 生成的 TicketAvailableAction（契约必填） */
 const ROW_ACTION_UI: Partial<Record<TicketAvailableAction, RefundRowAction>> = {
@@ -50,10 +52,9 @@ const ROW_ACTION_UI: Partial<Record<TicketAvailableAction, RefundRowAction>> = {
 }
 
 /**
- * 一行售后的动作视图：SellerTicketItem 上消费动作所需的两列（都是契约必填，直接 Pick）。
- * status 不参与判定，只是契约形状在这里保持完整。
+ * 一行售后的动作视图：工作台的行与订单列表批查出来的动作集都只要这一列（契约必填）。
  */
-export type RefundRowView = Pick<SellerTicketItem, "status" | "availableActions">
+export type RefundRowView = { availableActions: TicketAvailableAction[] }
 
 /**
  * 卖家对一行售后单能做的动作——读行上下发的 availableActions，不按状态自推：

@@ -32,6 +32,12 @@ export const orderKeys = {
     detail: (id: string) => ["orders", "detail", id] as const,
 }
 
+/** 订单列表行内的售后动作集（按本页订单批查）：与售后工作台同一份契约下发，前端不按 afterSaleStatus 另推 */
+export const afterSaleActionKeys = {
+    lists: (shopId: string) => ["after-sale-actions", shopId] as const,
+    list: (shopId: string, orderIds: string[]) => ["after-sale-actions", shopId, orderIds] as const,
+}
+
 /** 承运商字典与店铺无关，单独一棵 key 树，不进 orders 前缀（失效订单不影响它） */
 const carrierKeys = {
     all: ["carriers"] as const,
@@ -79,6 +85,21 @@ export const orderListOptions = (shopId: string, s: OrderListSearch) =>
                 },
             }),
         placeholderData: (prev) => prev,
+    })
+
+/** 一页订单的售后动作集（一次批查，行内按钮的唯一真相）。
+ *  附属读取：失败只意味着「这一行暂时不给售后按钮」，不该把整页换成错误页，故退出全局默认。 */
+export const orderAfterSaleActionsOptions = (shopId: string, orderIds: string[]) =>
+    queryOptions({
+        queryKey: afterSaleActionKeys.list(shopId, orderIds),
+        queryFn: ({ signal }) =>
+            SellerAfterSalesApi.listAfterSaleActionsByOrders({
+                query: { orderIds },
+                signal,
+            }),
+        enabled: orderIds.length > 0,
+        placeholderData: (prev) => prev,
+        throwOnError: false,
     })
 
 /** 退款售后工作台的列表 key：与订单列表分开两棵树（各失效各的，互不牵连） */

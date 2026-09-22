@@ -15,19 +15,18 @@ import {
 
 describe("refundRowActions（卖家对一行能做什么——消费行上下发的 availableActions）", () => {
     it("待处理_契约给同意与拒绝_两个方向都有出口", () => {
-        expect(
-            refundRowActions({ status: "APPLYING", availableActions: ["AGREE", "REJECT"] }),
-        ).toEqual(["agree", "reject"])
+        expect(refundRowActions({ availableActions: ["AGREE", "REJECT"] })).toEqual([
+            "agree",
+            "reject",
+        ])
     })
 
     it("退货中_契约只给确认收货：货没回来之前没有第二个选项", () => {
-        expect(
-            refundRowActions({ status: "RETURNING", availableActions: ["RECEIVE_RETURN"] }),
-        ).toEqual(["receive"])
+        expect(refundRowActions({ availableActions: ["RECEIVE_RETURN"] })).toEqual(["receive"])
     })
 
     it("终态_后端给空集_这里就空", () => {
-        expect(refundRowActions({ status: "REFUNDED", availableActions: [] })).toEqual([])
+        expect(refundRowActions({ availableActions: [] })).toEqual([])
     })
 })
 
