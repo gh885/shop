@@ -10,8 +10,9 @@ import { AfterSaleCard } from "./AfterSaleCard"
 import type { AfterSaleAction } from "./after-sale"
 
 /**
- * 售后卡回寄引导区与拒绝理由测试：这两块内容都只有详情那一份（returnAddress 查询时实时解析、
- * rejectReason 取自时间线 note），卡片的责任是「下发才渲染、没下发就整行不出现」，不自己编。
+ * 售后卡回寄引导区、售后原因与拒绝理由测试：这三块内容都只有详情那一份（returnAddress 查询时实时解析、
+ * reasonCode/noReasonEnforced 申请那一刻算定、rejectReason 取自时间线 note），卡片的责任是
+ * 「下发才渲染、没下发就整行不出现」，不自己编。
  */
 
 function returningTicket(overrides: Partial<TicketResponse> = {}): TicketResponse {
@@ -68,6 +69,51 @@ describe("AfterSaleCard（回寄引导区）", () => {
 
         expect(screen.queryByText("退货地址")).not.toBeInTheDocument()
         expect(screen.queryByText("不该出现的地址")).not.toBeInTheDocument()
+    })
+})
+
+describe("AfterSaleCard（售后原因）", () => {
+    it("下发原因枚举_原因与补充说明各占一行", () => {
+        renderWithProviders(
+            <AfterSaleCard
+                ticket={makeTicket({
+                    id: crypto.randomUUID(),
+                    reasonCode: "NO_REASON",
+                    reason: "尺码偏小",
+                })}
+                onAction={vi.fn<(action: AfterSaleAction) => void>()}
+            />,
+        )
+
+        expect(screen.getByText("七天无理由退货")).toBeInTheDocument()
+        expect(screen.getByText("尺码偏小")).toBeInTheDocument()
+    })
+
+    it("强制受理的单_把「不可拒绝受理」讲给买家看", () => {
+        renderWithProviders(
+            <AfterSaleCard
+                ticket={makeTicket({
+                    id: crypto.randomUUID(),
+                    type: "RETURN_REFUND",
+                    reasonCode: "NO_REASON",
+                    noReasonEnforced: true,
+                })}
+                onAction={vi.fn<(action: AfterSaleAction) => void>()}
+            />,
+        )
+
+        expect(screen.getByText("收货七天内无理由退货，卖家不可拒绝受理")).toBeInTheDocument()
+    })
+
+    it("历史单没下发原因枚举_写「未选择」而不是编一个原因", () => {
+        renderWithProviders(
+            <AfterSaleCard
+                ticket={makeTicket({ id: crypto.randomUUID(), reasonCode: null })}
+                onAction={vi.fn<(action: AfterSaleAction) => void>()}
+            />,
+        )
+
+        expect(screen.getByText("未选择")).toBeInTheDocument()
     })
 })
 

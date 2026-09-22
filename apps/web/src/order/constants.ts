@@ -1,4 +1,4 @@
-import type { TicketStatus, TicketType } from "@shop/api/sdk"
+import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
 
 import type { OrderTab } from "./orders-search"
 import type { OrderAction, OrderActionSurface, OrderStatus } from "./model"
@@ -148,6 +148,34 @@ export const AFTER_SALE_TYPE_HINT: Record<TicketType, string> = {
 
 /** 类型单选的展示顺序：仅退款在前（更轻的那条路先给） */
 export const AFTER_SALE_TYPE_ORDER: TicketType[] = ["REFUND_ONLY", "RETURN_REFUND"]
+
+/**
+ * 售后原因 → 展示名。
+ *
+ * 原因从自由文本改成枚举必选，不是为了好看：「无理由退货」是消保法第 25 条给买家的权利，
+ * 而权利要落地就得可判定——「不想要了」和「质量不好」写进同一格文本时，系统谁也分不清
+ * 卖家能不能拒绝这一单。文本降级为补充说明（人看，不参与判定）。
+ */
+export const AFTER_SALE_REASON_LABEL: Record<AfterSaleReason, string> = {
+    NO_REASON: "七天无理由退货",
+    QUALITY_ISSUE: "质量问题",
+    NOT_AS_DESCRIBED: "与描述不符",
+    DAMAGED: "破损或污渍",
+    WRONG_ITEM: "卖家发错货",
+    MISSING_ITEM: "少件或漏发",
+    OTHER: "其他",
+}
+
+/** 原因下拉的展示顺序：无理由在最前（不需要举证的那条路先给），「其他」垫底 */
+export const AFTER_SALE_REASON_ORDER: AfterSaleReason[] = [
+    "NO_REASON",
+    "QUALITY_ISSUE",
+    "NOT_AS_DESCRIBED",
+    "DAMAGED",
+    "WRONG_ITEM",
+    "MISSING_ITEM",
+    "OTHER",
+]
 
 /** 售后单状态 → 买家视角文案（APPLYING/RETURNING 是进行中，其余为终态） */
 export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {

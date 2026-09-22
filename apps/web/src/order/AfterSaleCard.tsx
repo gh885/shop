@@ -9,6 +9,7 @@ import type { TicketResponse } from "@shop/api/sdk"
 
 import {
     AFTER_SALE_ACTION_LABEL,
+    AFTER_SALE_REASON_LABEL,
     AFTER_SALE_TYPE_LABEL,
     TICKET_STATUS_LABEL,
     TICKET_STATUS_TONE,
@@ -81,7 +82,17 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
                     )}
                 </Row>
 
-                <Row label="售后理由">{ticket.reason ?? "买家未填写"}</Row>
+                <Row label="售后原因">
+                    {/* 历史单没有原因枚举（改动前只有自由文本），不替它编一个原因 */}
+                    {ticket.reasonCode ? AFTER_SALE_REASON_LABEL[ticket.reasonCode] : "未选择"}
+                </Row>
+
+                <Row label="补充说明">{ticket.reason ?? "买家未填写"}</Row>
+
+                {/* 强制受理是后端在申请那一刻算定并随单下发的结论（AFS-45），卡片照抄不自己推日期 */}
+                {ticket.noReasonEnforced && (
+                    <Row label="无理由保障">收货七天内无理由退货，卖家不可拒绝受理</Row>
+                )}
 
                 {/* 被拒才有这一行：卖家的理由取自时间线那行 note（AFS-44），买家据此决定补什么再来、还是另行协商 */}
                 {ticket.rejectReason && <Row label="拒绝理由">{ticket.rejectReason}</Row>}

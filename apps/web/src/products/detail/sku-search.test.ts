@@ -29,6 +29,7 @@ function detailWith(specs: SpecItem[]): ProductDetail {
             priceMax: MONEY,
             soldCount: 0,
         },
+        sevenDayReturn: true,
         detailImages: [],
         images: [],
         specs,

@@ -22,6 +22,7 @@ function publicProduct(overrides: Partial<PublicProductResponse> = {}): PublicPr
         minPrice: MONEY,
         maxPrice: MONEY,
         soldCount: 0,
+        sevenDayReturn: true,
         ...overrides,
     }
 }

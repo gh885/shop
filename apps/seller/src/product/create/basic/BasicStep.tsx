@@ -62,6 +62,7 @@ const BASIC_DEFAULT_VALUES: BasicStepValues = {
     name: "",
     subtitle: "",
     detailImages: [],
+    sevenDayReturn: true,
 }
 
 /**

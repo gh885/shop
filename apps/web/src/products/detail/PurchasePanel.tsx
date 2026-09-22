@@ -84,7 +84,8 @@ export function PurchasePanel({
                 )}
             </div>
 
-            {/* 服务承诺：静态占位，后续接店铺服务配置（发货时效/运费模板） */}
+            {/* 服务承诺：无理由退货跟商品自己的声明走（消保法第 25 条把「除外类目」交给卖家勾，
+                不支持就得在下单页说明白，而不是不吭声）；发货时效/运费仍是静态占位 */}
             <div className="space-y-1.5 text-sm text-muted-foreground">
                 <p className="flex items-center gap-2">
                     <Truck className="size-4" />
@@ -92,7 +93,9 @@ export function PurchasePanel({
                 </p>
                 <p className="flex items-center gap-2">
                     <ShieldCheck className="size-4" />
-                    7天无理由退货
+                    {detail.sevenDayReturn
+                        ? "7天无理由退货"
+                        : "本商品不支持七天无理由退货（下单即视为已知悉）"}
                 </p>
             </div>
 

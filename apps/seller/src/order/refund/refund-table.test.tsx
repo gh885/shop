@@ -70,7 +70,7 @@ describe("RefundTable", () => {
         expect(screen.queryByRole("button", { name: "确认收货" })).not.toBeInTheDocument()
     })
 
-    it("理由与快递名都为空_如实显示「未填写」与「—」，不画空气", () => {
+    it("补充说明与快递名都为空_如实显示「未填写」与「—」，不画空气", () => {
         renderTable([
             makeSellerTicketItem({
                 reason: null,
@@ -80,8 +80,26 @@ describe("RefundTable", () => {
             }),
         ])
 
-        expect(screen.getByText("买家未填写")).toBeInTheDocument()
+        expect(screen.getByText("买家未填写补充说明")).toBeInTheDocument()
         expect(screen.getByText("—")).toBeInTheDocument()
+    })
+
+    /** 七天无理由强制（AFS-45）：拒绝这个按钮压根不下发，所以那一行要把「为什么少了一个」讲出来 */
+    it("无理由强制单_只下发同意_并写明不可拒绝受理", () => {
+        renderTable([
+            makeSellerTicketItem({
+                type: "RETURN_REFUND",
+                status: "APPLYING",
+                reasonCode: "NO_REASON",
+                noReasonEnforced: true,
+                availableActions: ["AGREE"],
+            }),
+        ])
+
+        expect(screen.getByText("七天无理由")).toBeInTheDocument()
+        expect(screen.getByText("七天无理由退货，不可拒绝受理")).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "同意" })).toBeInTheDocument()
+        expect(screen.queryByRole("button", { name: "拒绝" })).not.toBeInTheDocument()
     })
 
     it("每行的动作与它自己下发的动作集一致（多行混排不串位）", () => {

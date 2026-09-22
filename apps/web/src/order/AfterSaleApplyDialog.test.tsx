@@ -12,8 +12,9 @@ import { AfterSaleApplyDialog } from "./AfterSaleApplyDialog"
 /**
  * 申请售后弹窗集成测试：真实 TanStack Form + React Query + MSW，只 mock HTTP。
  *
- * 关心的是「买家填的东西 → wire 请求体」这段投影：空白理由不能以空串落库，
- * 类型必须原样带上（后端按 type 分派仅退款 / 退货退款两条完全不同的路）。
+ * 关心的是「买家填的东西 → wire 请求体」这段投影：空白补充说明不能以空串落库，
+ * 类型必须原样带上（后端按 type 分派仅退款 / 退货退款两条完全不同的路），
+ * 而原因必选——它是后端判定「七天无理由不可拒绝受理」的唯一依据，没选就连请求都不该发出去。
  */
 
 type Captured = { orderId: string; body: unknown }
@@ -42,8 +43,14 @@ function renderDialog(onOpenChange = vi.fn<(open: boolean) => void>()) {
     return onOpenChange
 }
 
+/** 选售后原因：Base UI 的下拉是「触发器 + Portal 里的 listbox」，两步点出来 */
+async function pickReason(user: ReturnType<typeof userEvent.setup>, label: string) {
+    await user.click(screen.getByRole("combobox"))
+    await user.click(await screen.findByRole("option", { name: label }))
+}
+
 describe("AfterSaleApplyDialog", () => {
-    it("默认仅退款且理由留空_提交只带 type、不带空 reason（空白不算理由）", async () => {
+    it("没选售后原因_提交被校验拦下：一条请求都不发", async () => {
         const user = userEvent.setup()
         const captured: Captured[] = []
         useCaptureApply(captured)
@@ -51,11 +58,27 @@ describe("AfterSaleApplyDialog", () => {
         renderDialog()
         await user.click(screen.getByRole("button", { name: "提交申请" }))
 
-        await waitFor(() => expect(captured).toHaveLength(1))
-        expect(captured[0]).toEqual({ orderId: "o-1", body: { type: "REFUND_ONLY" } })
+        await waitFor(() => expect(screen.getByText("请选择售后原因")).toBeInTheDocument())
+        expect(captured).toHaveLength(0)
     })
 
-    it("选退货退款并填理由_按 wire 形状提交并关闭弹窗", async () => {
+    it("仅退款 + 选原因、补充说明留空_提交不带空 reason（空白不算说明）", async () => {
+        const user = userEvent.setup()
+        const captured: Captured[] = []
+        useCaptureApply(captured)
+
+        renderDialog()
+        await pickReason(user, "质量问题")
+        await user.click(screen.getByRole("button", { name: "提交申请" }))
+
+        await waitFor(() => expect(captured).toHaveLength(1))
+        expect(captured[0]).toEqual({
+            orderId: "o-1",
+            body: { type: "REFUND_ONLY", reasonCode: "QUALITY_ISSUE" },
+        })
+    })
+
+    it("选退货退款与七天无理由并填补充说明_按 wire 形状提交并关闭弹窗", async () => {
         const user = userEvent.setup()
         const captured: Captured[] = []
         useCaptureApply(captured)
@@ -63,13 +86,18 @@ describe("AfterSaleApplyDialog", () => {
         const onOpenChange = renderDialog()
 
         await user.click(screen.getByRole("radio", { name: "退货退款" }))
-        await user.type(screen.getByLabelText("售后理由"), "尺码偏小，想寄回换大一号")
+        await pickReason(user, "七天无理由退货")
+        await user.type(screen.getByLabelText("补充说明"), "尺码偏小，想寄回换大一号")
         await user.click(screen.getByRole("button", { name: "提交申请" }))
 
         await waitFor(() => expect(captured).toHaveLength(1))
         expect(captured[0]).toEqual({
             orderId: "o-1",
-            body: { type: "RETURN_REFUND", reason: "尺码偏小，想寄回换大一号" },
+            body: {
+                type: "RETURN_REFUND",
+                reasonCode: "NO_REASON",
+                reason: "尺码偏小，想寄回换大一号",
+            },
         })
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     })
@@ -86,6 +114,7 @@ describe("AfterSaleApplyDialog", () => {
         )
 
         const onOpenChange = renderDialog()
+        await pickReason(user, "质量问题")
         await user.click(screen.getByRole("button", { name: "提交申请" }))
 
         await waitFor(() => expect(onOpenChange).not.toHaveBeenCalledWith(false))

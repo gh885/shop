@@ -3,13 +3,13 @@ import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow }
 import { formatMoney } from "@shop/common"
 import { formatDateTime } from "@shop/app-kit"
 
-import { TICKET_STATUS_LABEL, TICKET_TYPE_LABEL } from "#/order/constants"
+import { TICKET_REASON_LABEL, TICKET_STATUS_LABEL, TICKET_TYPE_LABEL } from "#/order/constants"
 import { REFUND_ACTION_LABEL, refundRowActions, type RefundRowAction } from "#/order/refund/model"
 import { CopyableText } from "#/shared/ui/CopyableText"
 import { TableCard } from "#/shared/ui/TableCard"
 
 /**
- * 退款售后工作台表格：售后单（类型 + 状态）/ 商品 / 订单号 / 买家 / 退款金额 / 买家理由 / 申请时间 / 操作。
+ * 退款售后工作台表格：售后单（类型 + 状态）/ 商品 / 订单号 / 买家 / 退款金额 / 买家原因与补充说明 / 申请时间 / 操作。
  *
  * 纯展示 + 事件上抛：不拉数据、不写 URL、不发请求（容器持有分页状态与 mutation）。
  * 卡片式排布而不是压成一行：工作台的每一行都要被"读"（理由 + 类型 + 金额）才能决定，不是扫一眼就过。
@@ -71,7 +71,7 @@ export function RefundTable({
                     <TableHead>订单号</TableHead>
                     <TableHead>买家</TableHead>
                     <TableHead className="text-right">退款金额</TableHead>
-                    <TableHead className="min-w-40">买家理由</TableHead>
+                    <TableHead className="min-w-40">买家原因</TableHead>
                     <TableHead className="min-w-36">申请时间</TableHead>
                     <TableHead className="text-right">操作</TableHead>
                 </TableRow>
@@ -110,9 +110,25 @@ export function RefundTable({
                         </TableCell>
 
                         <TableCell>
-                            <span className="line-clamp-2 text-muted-foreground">
-                                {ticket.reason ?? "买家未填写"}
-                            </span>
+                            <div className="flex flex-col items-start gap-1">
+                                {ticket.reasonCode && (
+                                    <Badge
+                                        variant={ticket.noReasonEnforced ? "warning" : "outline"}
+                                    >
+                                        {TICKET_REASON_LABEL[ticket.reasonCode]}
+                                    </Badge>
+                                )}
+                                <span className="line-clamp-2 text-muted-foreground">
+                                    {ticket.reason ?? "买家未填写补充说明"}
+                                </span>
+                                {/* 强制受理是后端在申请那一刻算定的结论（AFS-45）：
+                                    「拒绝」这个按钮此刻就是不下发，得说清为什么少了一个 */}
+                                {ticket.noReasonEnforced && ticket.status === "APPLYING" && (
+                                    <span className="text-xs text-muted-foreground">
+                                        七天无理由退货，不可拒绝受理
+                                    </span>
+                                )}
+                            </div>
                         </TableCell>
 
                         <TableCell

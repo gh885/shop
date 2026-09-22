@@ -43,6 +43,10 @@ export type Sku = PublicSkuResponse
 /** 商品详情：内嵌 wire → 业务塑形后的 product（sku 与契约同形直接透传），渲染层无需再判空 */
 export type ProductDetail = {
     product: Product
+    /** 七天无理由退货的商品声明（详情页那张服务承诺的来源，也是下单时快照进订单项的那一位）。
+     *  挂在 detail 而不挂进 `Product`：列表卡与 feed 卡都不讲服务承诺，
+     *  为了一个详情页徽章去扩两个卡片契约（FeedItemResponse 里根本没这项）不划算 */
+    sevenDayReturn: boolean
     /** 详情图流：对象存储 key 数组，按序铺开渲染（代替富文本 HTML）；展示时用 imgUrl 拼 CDN 域名 */
     detailImages: string[]
     images: string[]
@@ -90,6 +94,7 @@ export function toProduct(dto: PublicProductResponse | FeedItemResponse): Produc
 export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail {
     return {
         product: toProduct(dto.product),
+        sevenDayReturn: dto.product.sevenDayReturn,
         detailImages: dto.detailImages,
         images: dto.images,
         specs: dto.specs,

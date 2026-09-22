@@ -1,5 +1,10 @@
 import { queryOptions, useMutation } from "@tanstack/react-query"
-import { OrdersApi, type TicketResponse, type TicketType } from "@shop/api/sdk"
+import {
+    OrdersApi,
+    type AfterSaleReason,
+    type TicketResponse,
+    type TicketType,
+} from "@shop/api/sdk"
 
 import type { MutationMeta } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
@@ -43,15 +48,15 @@ export const afterSaleOptions = (orderId: string) =>
     })
 
 // 写操作（申请 / 撤销 / 回寄），纯 fetch 便于断言投影
-/** 申请售后：type 必填，理由空串按「没填」处理（后端 reason 可空，别把空白当理由存下来） */
+/** 申请售后：类型与原因必选（原因枚举是判定「七天无理由」的唯一依据），补充说明空串按「没填」处理 */
 async function applyAfterSale(
     orderId: string,
-    input: { type: TicketType; reason?: string },
+    input: { type: TicketType; reasonCode: AfterSaleReason; reason?: string },
 ): Promise<void> {
     const reason = input.reason?.trim()
     await OrdersApi.applyAfterSale({
         path: { id: orderId },
-        body: { type: input.type, reason: reason || undefined },
+        body: { type: input.type, reasonCode: input.reasonCode, reason: reason || undefined },
     })
 }
 
@@ -93,7 +98,8 @@ function useAfterSaleMutation<TInput>(
 /** 申请售后 */
 export function useApplyAfterSale(orderId: string) {
     return useAfterSaleMutation(
-        (input: { type: TicketType; reason?: string }) => applyAfterSale(orderId, input),
+        (input: { type: TicketType; reasonCode: AfterSaleReason; reason?: string }) =>
+            applyAfterSale(orderId, input),
         { success: "售后申请已提交，等待卖家处理", error: "申请售后失败" },
     )
 }

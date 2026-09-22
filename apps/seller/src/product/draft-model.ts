@@ -28,9 +28,10 @@ import type {
  */
 
 // 值类型（能派生的派生，只写本地语义）
-/** 表单编辑的「基本信息」字段（白名单派生自 UpdateProductRequest，其余字段服务端生成/推导） */
+/** 表单编辑的「基本信息」字段（白名单派生自 UpdateProductRequest，其余字段服务端生成/推导）。
+ *  sevenDayReturn 在这一格里是因为它是商品的一次性声明（法定默认支持，特殊类目才关），跟着基本信息一起存 */
 export type ProductBasicForm = Required<
-    Pick<UpdateProductRequest, "name" | "subtitle" | "images" | "detailImages">
+    Pick<UpdateProductRequest, "name" | "subtitle" | "images" | "detailImages" | "sevenDayReturn">
 >
 
 /**
@@ -228,7 +229,8 @@ export function unpricedRows(rows: SkuDraftRow[]): SkuDraftRow[] {
     return rows.filter((r) => r.price === null)
 }
 
-/** basic 表单值 → 商品基本信息载荷（create/update 两入口共用；主图取首图；空值不传由 wire optional 表达） */
+/** basic 表单值 → 商品基本信息载荷（create/update 两入口共用；主图取首图；空值不传由 wire optional 表达）。
+ *  sevenDayReturn 恒传：它是「默认支持、特殊类目才关」的开关，不传就等于每次编辑都把关掉过的重新打开 */
 export function toBasicPayload(categoryId: string, basic: ProductBasicForm): CreateProductRequest {
     return {
         categoryId,
@@ -237,6 +239,7 @@ export function toBasicPayload(categoryId: string, basic: ProductBasicForm): Cre
         mainImage: basic.images[0],
         images: basic.images,
         detailImages: basic.detailImages,
+        sevenDayReturn: basic.sevenDayReturn,
     }
 }
 

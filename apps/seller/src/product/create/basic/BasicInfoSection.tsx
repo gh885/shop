@@ -119,6 +119,16 @@ export function BasicInfoSection({
                         />
                     )}
                 </form.AppField>
+                {/* 七天无理由：法定权利默认给，只有特殊类目才关掉（关掉后详情页要说明白，所以默认勾选） */}
+                <form.AppField name="sevenDayReturn">
+                    {(field) => (
+                        <field.CheckboxField
+                            label="支持七天无理由退货"
+                            orientation="horizontal"
+                            hint="定制、鲜活易腐、数字化商品等法定除外类目才取消；取消后买家详情页会明示「不支持七天无理由退货」"
+                        />
+                    )}
+                </form.AppField>
             </CardContent>
         </Card>
     )

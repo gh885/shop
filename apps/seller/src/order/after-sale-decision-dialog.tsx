@@ -15,7 +15,7 @@ import {
 } from "@shop/ui-web"
 import { z } from "zod"
 
-import { TICKET_STATUS_LABEL, TICKET_TYPE_LABEL } from "#/order/constants"
+import { TICKET_REASON_LABEL, TICKET_STATUS_LABEL, TICKET_TYPE_LABEL } from "#/order/constants"
 import { shopAfterSaleOptions } from "#/order/queries"
 
 /**
@@ -174,7 +174,18 @@ function TicketFacts({
                         {formatMoney(data.refundAmount)}
                         <span className="ml-1 text-xs text-muted-foreground">（整单实付）</span>
                     </Row>
-                    <Row label="买家理由">{data.reason ?? "买家未填写"}</Row>
+                    <Row label="售后原因">
+                        <span className="flex flex-wrap items-center gap-2">
+                            {/* 历史单没有原因枚举（改动前只有自由文本），不补编一个原因给卖家看 */}
+                            {data.reasonCode ? TICKET_REASON_LABEL[data.reasonCode] : "买家未选择"}
+                            {/* 强制受理已经体现在下发的工作台动作集里（这里根本没有「拒绝」那一项），
+                                但少了一个按钮得给说法，否则卖家会以为是界面坏了 */}
+                            {data.noReasonEnforced && data.status === "APPLYING" && (
+                                <Badge variant="warning">七天无理由，不可拒绝受理</Badge>
+                            )}
+                        </span>
+                    </Row>
+                    <Row label="补充说明">{data.reason ?? "买家未填写"}</Row>
                     {/* 退货物流按态给而不按动作给：确认收货要核对单号，拒绝寄回件同样得先看清寄的是哪一单 */}
                     {data.status === "RETURNING" && (
                         <Row label="退货物流">

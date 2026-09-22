@@ -61,6 +61,9 @@ export function makeTicket(
         status: "APPLYING",
         // 默认口径与 status 一致：APPLYING 的买家动作只有撤销（C5b，契约必填）
         availableActions: ["CANCEL"],
+        reasonCode: "QUALITY_ISSUE",
+        // 无理由强制（AFS-45）默认不成立：要测「卖家只剩同意」的用例自己覆盖这两项
+        noReasonEnforced: false,
         reason: "尺码不合适",
         refundAmount: { amount: 19900, currency: "CNY" },
         returnLogisticsCompany: null,
@@ -85,6 +88,8 @@ export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}):
         status: "APPLYING",
         // 默认口径与 status 一致：APPLYING 的卖家动作是同意/拒绝（C5b，契约必填）
         availableActions: ["AGREE", "REJECT"],
+        reasonCode: "QUALITY_ISSUE",
+        noReasonEnforced: false,
         reason: "尺码不合适",
         refundAmount: { amount: 19900, currency: "CNY" },
         returnLogisticsCompany: null,

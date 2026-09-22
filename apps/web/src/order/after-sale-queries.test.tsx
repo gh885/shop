@@ -34,7 +34,13 @@ function ApplyProbe() {
     return (
         <button
             type="button"
-            onClick={() => apply.mutate({ type: "REFUND_ONLY", reason: "  " })}
+            onClick={() =>
+                apply.mutate({
+                    type: "REFUND_ONLY",
+                    reasonCode: "QUALITY_ISSUE",
+                    reason: "  ",
+                })
+            }
         >
             apply
         </button>

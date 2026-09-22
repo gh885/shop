@@ -15,6 +15,7 @@ const ANCHOR_DEFAULT_VALUES: ProductBasicForm = {
     name: "",
     subtitle: "",
     detailImages: [],
+    sevenDayReturn: true,
 }
 
 function useBasicForm() {

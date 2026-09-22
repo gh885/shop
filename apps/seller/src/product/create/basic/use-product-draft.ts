@@ -171,6 +171,7 @@ export function useProductDraft({
             name: detail.product.name,
             subtitle: detail.product.subtitle ?? "",
             detailImages: detail.product.detailImages,
+            sevenDayReturn: detail.product.sevenDayReturn,
         })
         // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- 详情到达后灌值进表单是刻意数据流（异步数据不能渲染期派生）
         setHydrated(true)

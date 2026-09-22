@@ -64,6 +64,7 @@ function makeDetail(skus: Sku[]): ProductDetail {
             priceMax: MONEY,
             soldCount: 0,
         },
+        sevenDayReturn: true,
         detailImages: [],
         images: [],
         specs: specsOf(skus),

@@ -1,4 +1,10 @@
-import type { AfterSaleStatus, OrderStatus, TicketStatus, TicketType } from "@shop/api/sdk"
+import type {
+    AfterSaleReason,
+    AfterSaleStatus,
+    OrderStatus,
+    TicketStatus,
+    TicketType,
+} from "@shop/api/sdk"
 
 /** 订单履约主状态徽章色板（Badge 的 variant） */
 export const ORDER_STATUS_META: Record<
@@ -42,6 +48,22 @@ export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
     REFUNDED: "已退款",
     REJECTED: "已拒绝",
     CLOSED: "已撤销",
+}
+
+/**
+ * 售后原因（买家选的那一项）。
+ *
+ * 「七天无理由」在这里被单独立出来是有代价的：它是消保法第 25 条给买家的权利，卖家在这一单的
+ * 受理阶段只剩「同意」——所以工作台必须把它显眼地讲出来，而不是让卖家对着一个不见了的按钮猜。
+ */
+export const TICKET_REASON_LABEL: Record<AfterSaleReason, string> = {
+    NO_REASON: "七天无理由",
+    QUALITY_ISSUE: "质量问题",
+    NOT_AS_DESCRIBED: "与描述不符",
+    DAMAGED: "破损或污渍",
+    WRONG_ITEM: "发错货",
+    MISSING_ITEM: "少件或漏发",
+    OTHER: "其他",
 }
 
 /** 顶部 tab：全部（空串）+ 五个履约主状态；空串=不过滤 */ export const ORDER_STATUS_TABS: ReadonlyArray<{
