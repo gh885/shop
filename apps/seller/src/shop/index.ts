@@ -13,10 +13,10 @@
 export {
     shopKeys,
     shopInvitesOptions,
+    shopMembersOptions,
     useMyShops,
     useCurrentShop,
     setCurrentShopId,
-    useMyShopMembers,
 } from "./queries"
 export { useShop } from "./shop-context"
 export { ShopGate } from "./ShopGate"

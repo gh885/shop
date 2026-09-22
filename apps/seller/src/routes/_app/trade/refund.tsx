@@ -14,7 +14,7 @@ import { useState } from "react"
 import { AfterSaleDecisionDialog, type SaleDecisionKind } from "#/order/after-sale-decision-dialog"
 import { RefundTable, type RefundRowIdentity } from "#/order/refund/refund-table"
 import { RefundTabs } from "#/order/refund/refund-tabs"
-import { RefundTabSchema, type RefundRowAction } from "#/order/refund/model"
+import { RefundTabSchema } from "#/order/refund/model"
 import { useRefundList } from "#/order/refund/use-refund-list"
 import { useShop } from "#/shop"
 
@@ -44,17 +44,11 @@ export const Route = createFileRoute("/_app/trade/refund")({
 /**
  * 决策目标：动作种类 + 这一行所需的三项——弹窗自己按 kind 组织文案与走向说明，
  * 并按 orderId 重拉一次售后单（列表可能是几分钟前拉的），所以不留整行售后单。
+ * 动作种类直接用工作台下发的契约值（RefundRowAction 即弹窗的 kind，同一份词表）。
  */
 type RefundDecision = {
     ticket: RefundRowIdentity
     kind: SaleDecisionKind
-}
-
-/** 行内动作 → 决策弹窗的动作种类（确认收货也在同一个弹窗里，只是说明不同） */
-const ACTION_TO_KIND: Record<RefundRowAction, SaleDecisionKind> = {
-    agree: "agree",
-    reject: "reject",
-    receive: "receive",
 }
 
 function RefundPage() {
@@ -118,9 +112,7 @@ function RefundPage() {
                     total={total}
                     busyId={busyId}
                     onPageChange={onPageChange}
-                    onAction={(ticket, action) =>
-                        setDecision({ ticket, kind: ACTION_TO_KIND[action] })
-                    }
+                    onAction={(ticket, action) => setDecision({ ticket, kind: action })}
                 />
             )}
 

@@ -13,7 +13,6 @@ import {
     Card,
     CardContent,
     Skeleton,
-    StateError,
     Image,
 } from "@shop/ui-web"
 
@@ -21,7 +20,6 @@ import { toProductCardData, type Product, type ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { QueryBoundary } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
 import { ProductCard } from "../ProductCard"
 import { shopProductsOptions, alsoViewedOptions } from "./queries"
 
@@ -106,25 +104,6 @@ function RecoGrid({
                 </Empty>
             )}
         </div>
-    )
-}
-
-/**
- * 推荐流错误边界：suspense 模式下查询错误（且无数据）会抛向最近的 error boundary，
- * 没有边界会让推荐流失败连累整页 SSR/渲染。边界把错误收敛在本区块内 ——
- * 与流式改造前 RecoSection 四态中的失败态行为一致（内联错误 + 重试）。
- *
- * 现在直接用 app-kit 的 `QueryBoundary`（QueryErrorResetBoundary + react-error-boundary + Suspense
- * 的官方组合），不再手写 class 边界与「invalidate + reset」：官方的 reset 只负责放行重挂载重取，
- * 缓存是否可信属于 mutation 的失效范围，不该塞进重试。
- */
-/** 推荐流失败态渲染函数（模块作用域：内联箭头会让每次渲染都新建一个组件） */
-function recoErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
-    return (
-        <StateError
-            message={toApiError(error).detail}
-            onRetry={reset}
-        />
     )
 }
 
@@ -314,6 +293,7 @@ function ShopRecommendGrid({ shopId, currentId }: { shopId: string; currentId: s
  * 4 列 / 间距 16 / 卡宽 199 → 紧凑卡 199×271，对齐淘宝店铺推荐（左栏 844 铺满）。
  * 外壳（锚点）立即渲染 —— scrollspy 观察不受影响；只让网格走流式：SSR 先吐骨架，
  * resolve 后经 queryStream 流式补发，不再等客户端挂载后才发请求。
+ * 查询失败由 QueryBoundary 收敛在本区块内（StateError + 官方 reset 重试），不连累整页。
  */
 export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
     const shopId = detail.product.shopId
@@ -324,7 +304,7 @@ export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
         >
             <QueryBoundary
                 pending={<RecoGridSkeleton className="grid-cols-4" />}
-                fallback={recoErrorFallback}
+                fallback="推荐商品加载失败，请重试。"
             >
                 <ShopRecommendGrid
                     shopId={shopId}
@@ -360,7 +340,7 @@ export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
         >
             <QueryBoundary
                 pending={<RecoGridSkeleton className="grid-cols-6" />}
-                fallback={recoErrorFallback}
+                fallback="推荐商品加载失败，请重试。"
             >
                 <AlsoViewedGrid currentId={detail.product.id} />
             </QueryBoundary>

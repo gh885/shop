@@ -23,8 +23,8 @@ const myShopsOptions = queryOptions({
     // 店铺上下文是整个工作台的前提：没有它就是路由级错误（失败按全局默认抛给官方边界 + 重置重试）
 })
 
-/** 本店成员列表：与商品的 shopId 入 key 同理——切店铺不串缓存 */
-const shopMembersOptions = (shopId: string) =>
+/** 本店成员列表：与商品的 shopId 入 key 同理——切店铺不串缓存。（成员管理页 useQuery 直接消费） */
+export const shopMembersOptions = (shopId: string) =>
     queryOptions({
         queryKey: shopKeys.members(shopId),
         queryFn: () => ShopsApi.listShopMembers({ path: { shopId } }),
@@ -43,12 +43,6 @@ export function useMyShops() {
     const status = useAuthStatus()
     // 守卫在 requireAuth 之后渲染，enabled 恒真；失败由路由错误页接管
     return useQuery({ ...myShopsOptions, enabled: status === "authed" })
-}
-
-// 店铺成员
-/** 本店成员列表（成员管理页） */
-export function useMyShopMembers(shopId: string) {
-    return useQuery(shopMembersOptions(shopId))
 }
 
 // 当前店铺上下文（X-Shop-Id 的来源，存储在 ./shop-store）

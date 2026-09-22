@@ -1,17 +1,17 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { WorkbenchAccount } from "@shop/app-kit"
 import { Button, Spinner } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 import { AdminAuthApi } from "@shop/api/sdk"
 import { getDeviceId, tokenStore } from "../shared/lib/api"
-import { ME_QUERY_KEY, useMe } from "../shared/lib/me"
+import { useClearMe, useMe } from "../shared/lib/me"
 
 /** 管理员身份与会话逻辑留在本端，账号呈现复用工作台组件。 */
 export function Account() {
     const navigate = useNavigate()
     const { data: me } = useMe()
-    const queryClient = useQueryClient()
+    const clearMe = useClearMe()
     const logout = useMutation({
         mutationFn: () => AdminAuthApi.staffLogout({ body: { deviceId: getDeviceId() } }),
         // 会话终结：无论接口成功失败都清本地态、回登录页，所以不让全局弹失败提示
@@ -19,7 +19,7 @@ export function Account() {
         meta: { silentError: true },
         onSettled: () => {
             tokenStore.clear()
-            queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
+            clearMe()
             void navigate({ to: "/login" })
         },
     })

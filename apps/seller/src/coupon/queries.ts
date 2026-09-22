@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query"
+import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import { SellerCouponsApi, type CreateCouponTemplateRequest } from "@shop/api/sdk"
 
@@ -18,7 +18,8 @@ const couponKeys = {
     list: (shopId: string, s: CouponListSearch) => ["coupons", shopId, s.page, s.size] as const,
 }
 
-const couponListOptions = (shopId: string, search: CouponListSearch) =>
+/** 本店券模板分页列表（页面 useQuery 直用） */
+export const couponListOptions = (shopId: string, search: CouponListSearch) =>
     queryOptions({
         queryKey: couponKeys.list(shopId, search),
         // 端点用店铺上下文取 shopId（传输层注入 X-Shop-Id），前端不传店 ID——
@@ -31,11 +32,6 @@ const couponListOptions = (shopId: string, search: CouponListSearch) =>
         placeholderData: (prev) => prev,
         // 带 placeholderData（不能走 suspense），失败冒到路由错误页由全局默认接管
     })
-
-/** 本店券模板分页列表 */
-export function useCouponList(shopId: string, search: CouponListSearch) {
-    return useQuery(couponListOptions(shopId, search))
-}
 
 /** 新建券：成功后失效本店列表（新建的券总在按创建时间倒序的第一页） */
 export function useCreateCoupon(shopId: string) {

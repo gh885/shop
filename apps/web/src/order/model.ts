@@ -16,10 +16,10 @@ import {
  */
 
 // 业务类型
-// 订单状态类型与 wire↔领域映射收在包级 shared（#/shared/order-status），此处复用
-import type { OrderStatus } from "#/shared/order-status"
+// 订单状态类型与 wire↔领域映射收在 order 域内（./order-status），此处复用
+import type { OrderStatus } from "./order-status"
 
-export type { OrderStatus } from "#/shared/order-status"
+export type { OrderStatus } from "./order-status"
 
 /** 订单项业务形状（快照字段原样透出；amount 为行小计 = 单价 × 数量）。
  * 注意：后端行项无 id（订单快照只留 productId/skuId），渲染 key 用 `productId + skuId + quantity`。 */

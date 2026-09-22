@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider, useSuspenseQuery } from "@tanstack/react-query"
 import { Suspense } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
@@ -6,9 +6,9 @@ import { describe, expect, it } from "vitest"
 
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "#/test/render"
+import { createAppTestQueryClient } from "@shop/app-kit/test"
 
-import { useAddressList, useDeleteAddress } from "./queries"
+import { addressListOptions, useDeleteAddress } from "./queries"
 
 const SHOP_ID = "00000000-0000-4000-8000-000000000001"
 const OTHER_SHOP_ID = "00000000-0000-4000-8000-000000000002"
@@ -20,13 +20,17 @@ async function setup() {
     server.use(http.get("*/seller/addresses", () => HttpResponse.json([])))
     const wrapper = ({ children }: { children: React.ReactNode }) => (
         <QueryClientProvider client={queryClient}>
-            {/* useAddressList 是 suspense 形态：测试里挂的这层等价于应用侧的路由 pendingComponent */}
+            {/* 页面侧是 useSuspenseQuery 形态：测试里挂的这层等价于应用侧的路由 pendingComponent */}
             <Suspense fallback={null}>{children}</Suspense>
         </QueryClientProvider>
     )
-    const lists = renderHook(() => [useAddressList(SHOP_ID), useAddressList(OTHER_SHOP_ID)], {
-        wrapper,
-    })
+    const lists = renderHook(
+        () => [
+            useSuspenseQuery(addressListOptions(SHOP_ID)),
+            useSuspenseQuery(addressListOptions(OTHER_SHOP_ID)),
+        ],
+        { wrapper },
+    )
     // 挂起未提交前 result.current 尚未填充，waitFor 会重试到数据提交后再断言
     await waitFor(() => expect(lists.result.current.every((query) => query.isSuccess)).toBe(true))
     lists.unmount()

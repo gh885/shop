@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
     SellerShippingApi,
     type ShippingTemplateRequest,
@@ -33,20 +33,16 @@ async function getShippingTemplate(): Promise<ShippingTemplateResponse | null> {
     }
 }
 
-const shippingTemplateOptions = (shopId: string) =>
+/** 运费模板：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入。
+ *  suspense 形态：页面用 useSuspenseQuery 消费——加载中由路由 pendingComponent 兜骨架，失败抛给路由错误页；
+ *  404 已归一为 null（新建态），不是错误、不会抛。 */
+export const shippingTemplateOptions = (shopId: string) =>
     queryOptions({
         queryKey: shippingKeys.detail(shopId),
         queryFn: getShippingTemplate,
         // 404 已由 getShippingTemplate 归一为 null；其他错误多与权限/网络有关，失败即报（全局默认抛给路由错误页）
         retry: false,
     })
-
-/** 运费模板：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入。
- *  suspense 形态：加载中由路由 pendingComponent 兜骨架，失败抛给路由错误页；
- *  404 已归一为 null（新建态），不是错误、不会抛。 */
-export function useShippingTemplate(shopId: string) {
-    return useSuspenseQuery(shippingTemplateOptions(shopId))
-}
 
 export function useSaveShippingTemplate(shopId: string) {
     const queryClient = useQueryClient()

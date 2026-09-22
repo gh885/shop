@@ -13,13 +13,19 @@ export function parseTargetType(value?: string | null): TargetType | "NONE" {
     return parsed.success ? parsed.data : "NONE"
 }
 
-export const TARGET_TYPE_LABEL: Record<TargetType, string> = {
+const TARGET_TYPE_LABEL: Record<TargetType, string> = {
     PRODUCT: "商品",
     CATEGORY: "类目",
     CAMPAIGN: "活动",
     SEARCH: "搜索词",
     URL: "外链",
 }
+
+/** 跳转类型下拉选项（三张 CMS 表单共用）：首项 NONE = 不跳转 */
+export const TARGET_TYPE_ITEMS = [
+    { value: "NONE", label: "不跳转" },
+    ...Object.entries(TARGET_TYPE_LABEL).map(([value, label]) => ({ value, label })),
+]
 
 /** 前台已消费的导航位 / 运营位（筛选下拉选项；新增位时在此扩充） */
 export const CMS_NAV_KEYS = ["home"] as const

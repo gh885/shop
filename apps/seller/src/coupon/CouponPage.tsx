@@ -13,13 +13,14 @@ import {
     EmptyTitle,
     Skeleton,
 } from "@shop/ui-web"
+import { useQuery } from "@tanstack/react-query"
 
 import { useShop } from "#/shop"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import { CouponFormDialog } from "./CouponFormDialog"
 import { CouponTable } from "./CouponTable"
 import { couponRowFromWire, type CouponListSearch } from "./model"
-import { useCouponList, useStopCoupon } from "./queries"
+import { couponListOptions, useStopCoupon } from "./queries"
 
 /**
  * 优惠券管理页：本店券模板的发放总览与建券入口。
@@ -30,7 +31,7 @@ import { useCouponList, useStopCoupon } from "./queries"
 export function CouponPage({ search }: { search: CouponListSearch }) {
     const shop = useShop()
     const navigate = useNavigate()
-    const coupons = useCouponList(shop.id, search)
+    const coupons = useQuery(couponListOptions(shop.id, search))
     const stop = useStopCoupon(shop.id)
     const { busyId, run } = useRowBusy()
     const [formOpen, setFormOpen] = useState(false)

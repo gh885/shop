@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useSuspenseQuery } from "@tanstack/react-query"
+import { queryOptions, useMutation } from "@tanstack/react-query"
 import { SellerAddressesApi, type MerchantAddressRequest } from "@shop/api/sdk"
 
 // address 域 queryKey 工厂（前缀结构一眼可见，invalidate 不漏 key）
@@ -8,17 +8,13 @@ const addressKeys = {
 }
 
 /** 本店地址库列表：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入。
- *  suspense 形态：加载中由路由 pendingComponent 兜住，失败抛给路由错误页（官方边界 + 重置重试），
- *  页面不再手写 isLoading 骨架与错误态。 */
-const addressListOptions = (shopId: string) =>
+ *  suspense 形态：页面用 useSuspenseQuery 消费——加载中由路由 pendingComponent 兜住，
+ *  失败抛给路由错误页（官方边界 + 重置重试），页面不再手写 isLoading 骨架与错误态。 */
+export const addressListOptions = (shopId: string) =>
     queryOptions({
         queryKey: addressKeys.lists(shopId),
         queryFn: () => SellerAddressesApi.listAddresses1(),
     })
-
-export function useAddressList(shopId: string) {
-    return useSuspenseQuery(addressListOptions(shopId))
-}
 
 /**
  * 本店地址的五个写操作只差 mutationFn 与成功文案：

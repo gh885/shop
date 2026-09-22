@@ -17,8 +17,8 @@ const me = createMeQuery({
     useAuthStatus,
 })
 
-/** 当前员工缓存 key（登出等场景的失效入口） */
-export const ME_QUERY_KEY = me.ME_QUERY_KEY
-
 /** 当前登录员工信息（未登录时不发请求）；Account 头像与侧栏账号共用同一份缓存 */
 export const useMe = me.useMe
+
+/** 登出时清除员工信息缓存（removeQueries 走工厂自带的 key，端里不复制 ME_QUERY_KEY） */
+export const useClearMe = me.useClearMe

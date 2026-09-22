@@ -2,13 +2,15 @@ import { queryOptions, skipToken, useMutation, useQuery } from "@tanstack/react-
 
 import type {
     CategoryAttrNodeResponse,
-    ImageTicketResponse,
     ProductStatus,
     SkuUpdateItem,
+    UploadTicket,
 } from "@shop/api/sdk"
 import { CategoriesApi, ProductsAdminApi } from "@shop/api/sdk"
 
-import { type LeafPath, flattenLeafPaths, toApiError } from "@shop/common"
+import { toApiError } from "@shop/common"
+
+import { flattenLeafPaths, type LeafPath } from "#/product/category"
 
 // 商品列表排序契约
 /** 卖家商品列表支持的全部排序方式（与后端 listShopProducts 的 sort 枚举一一对应） */
@@ -37,7 +39,7 @@ export type ProductSort = (typeof PRODUCT_SORTS)[number]
  */
 export async function uploadProductImage(file: File): Promise<string> {
     const ext = (file.name.split(".").pop() ?? "").toLowerCase().replaceAll(/[^a-z0-9]/g, "")
-    let ticket: ImageTicketResponse | undefined
+    let ticket: UploadTicket | undefined
     try {
         // issueImageTicket 走 /seller/**（Vite proxy），ShopMembershipFilter 强制店铺上下文——
         // X-Shop-Id 已由 SDK client 拦截注入。若后端未带七牛配置/凭证失败，detail 会揭示（如「文件存储未配置」）。
@@ -161,7 +163,8 @@ export function useLeafPaths(): LeafPath[] {
  * 失败要就地渲染而不是炸掉背景页。它本就是 skipToken 查询（`enabled` 由调用方间接控制），
  * 与 suspense 互斥。
  */
-const productDetailOptions = (productId: string | undefined) =>
+/** 商品详情（发布页回填 / 编辑弹窗）：无 productId 时不发请求；消费方 useQuery 直用（失败就地渲染）。 */
+export const productDetailOptions = (productId: string | undefined) =>
     queryOptions({
         queryKey: productKeys.detail(productId ?? ""),
         queryFn: productId
@@ -170,11 +173,6 @@ const productDetailOptions = (productId: string | undefined) =>
         retry: false,
         throwOnError: false,
     })
-
-/** 商品详情（发布页回填 / 编辑弹窗）：无 productId 时不发请求 */
-export function useProductDetail(productId: string | undefined) {
-    return useQuery(productDetailOptions(productId))
-}
 
 /** 编辑 SKU 后只失效当前商品详情；列表刷新与关闭弹窗由 onSaved 通知消费方。 */
 export function useUpdateProductSkus(success: string, onSaved: () => void) {
@@ -191,9 +189,13 @@ export function useUpdateProductSkus(success: string, onSaved: () => void) {
 }
 
 // 类目销售属性模板（发布页两处共用）
-/** 类目「销售属性」模板（kind === SPEC）：与类目树同为低频变更公共数据，长缓存。
- *  消费方都在发布页区块里，退出全局默认，失败由消费方就地渲染。 */
-const categorySpecTemplateOptions = (categoryId: string | undefined) =>
+/**
+ * 类目「销售属性」模板（kind === SPEC）：与类目树同为低频变更公共数据，长缓存。
+ * 发布页两处消费（草稿 hook 本地算 SKU 组合、销售信息区渲染编辑器）直接 useQuery(本 options)。
+ * 失败**不抛**（`throwOnError: false`），由消费方就地渲染错误态并用官方的 `refetch()` 重试
+ * —— 官方错误处理示例的写法。
+ */
+export const categorySpecTemplateOptions = (categoryId: string | undefined) =>
     queryOptions({
         queryKey: categoryKeys.specTemplate(categoryId),
         queryFn: categoryId
@@ -207,12 +209,3 @@ const categorySpecTemplateOptions = (categoryId: string | undefined) =>
         staleTime: 10 * 60_000,
         throwOnError: false,
     })
-
-/**
- * 类目销售属性模板的共享加载（发布页两处消费：草稿 hook 本地算 SKU 组合、销售信息区渲染编辑器）。
- * 返回标准 query 结果：失败**不抛**（`categorySpecTemplateOptions` 的 `throwOnError: false`），
- * 由消费方就地渲染错误态并用官方的 `refetch()` 重试 —— 官方错误处理示例的写法。
- */
-export function useCategorySpecTemplate(categoryId: string | undefined) {
-    return useQuery(categorySpecTemplateOptions(categoryId))
-}

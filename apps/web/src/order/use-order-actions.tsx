@@ -40,10 +40,8 @@ export function useOrderActions() {
         }
     }
 
-    // key = 单号：换单重挂载，弹窗内「已选原因/备注」的本地状态不跨单残留
     const cancelDialog = (
         <CancelOrderDialog
-            key={cancelTarget?.id ?? "none"}
             order={cancelTarget}
             onOpenChange={(open) => {
                 if (!open) setCancelTarget(undefined)

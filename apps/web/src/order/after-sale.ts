@@ -1,6 +1,6 @@
 import type { AfterSaleStatus, TicketAvailableAction } from "@shop/api/sdk"
 
-import type { OrderStatus } from "#/shared/order-status"
+import type { OrderStatus } from "./order-status"
 
 /**
  * 售后领域层 —— 纯规则 + 类型。售后单数据形状直接用 SDK `TicketResponse`

@@ -8,7 +8,7 @@ import { OrderStatus as WireOrderStatus } from "@shop/api/sdk"
  * 两侧映射表的 key/value 都从 SDK 生成的 OrderStatus const 派生：
  * 后端新增/删改状态时这里编译期即报错，不会静默漏映射。
  *
- * 类型放在这里（包级 shared），订单各组件/model 都引用它；展示辅助（label/色板/进度表）
+ * 类型放在这里（order 域内逻辑层），订单各组件/model 都引用它；展示辅助（label/色板/进度表）
  * 在 order/constants.ts，此处只保留状态语义本身。
  */
 

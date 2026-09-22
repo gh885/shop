@@ -15,8 +15,8 @@ const me = createMeQuery<MeResponse | undefined>({
     useAuthStatus,
 })
 
-/** 当前用户缓存 key（登录/登出场景的失效入口） */
-export const ME_QUERY_KEY = me.ME_QUERY_KEY
-
 /** 当前登录用户信息（未登录时不发请求） */
 export const useMe = me.useMe
+
+/** 登出时清除用户信息缓存（removeQueries 走工厂自带的 key，端里不复制 ME_QUERY_KEY） */
+export const useClearMe = me.useClearMe
