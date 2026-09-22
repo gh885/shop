@@ -27,11 +27,6 @@ public class ShopReadQuery {
         return columnByIds("name", ids, (rs, i) -> rs.getString("name"));
     }
 
-    /** shopId → 店主 userId（审核队列拼店主联系方式等用），缺失的 id 不在 Map 中 */
-    public Map<UUID, UUID> ownerIdsByShops(Collection<UUID> ids) {
-        return columnByIds("owner_id", ids, (rs, i) -> rs.getObject("owner_id", UUID.class));
-    }
-
     /**
      * 营业闸门谓词（下单/加购等交易入口消费）：店铺存在且状态 ACTIVE 才放行，店铺缺失同样给 false。
      * 只吐谓词不吐 {@code ShopStatus} 枚举——状态词表留在本模块，消费方不必（也不允许）import shop.model。

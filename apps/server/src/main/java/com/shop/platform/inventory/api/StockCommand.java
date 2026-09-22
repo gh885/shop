@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 库存命令（跨模块消费）：下单冻结、支付成功扣实、取消/关单释放、后台补货/绝对量调整。
+ * 库存命令（跨模块消费）：下单冻结、支付成功扣实、取消/关单释放、退款回补、后台绝对量调整。
  *
  * <p>都在调用方事务内同步同事务执行（order 下单、payment 支付回调）：
  * <ul>
@@ -114,17 +114,6 @@ public class StockCommand {
             // 记账（总库存 +n，可用 +n；类型 RETURN，见方法注释）
             recordMovement(frames, orderId, StockMovement.TYPE_RETURN);
         }
-    }
-
-    /** 后台补货（单 SKU 增量）：stock += n。幂等安全，不依赖冻结状态 */
-    @Transactional
-    public void restock(UUID skuId, int quantity) {
-        validatePositive(quantity);
-        StockFrames frames = skuStockMapper.restockOne(skuId, quantity);
-        if (frames == null) {
-            throw BusinessException.notFound("SKU 不存在或无库存记录");
-        }
-        recordMovement(frames, null, StockMovement.TYPE_RESTOCK);
     }
 
     /**

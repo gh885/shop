@@ -18,11 +18,6 @@ public class MerchantAddressReadQuery {
 
     private final JdbcTemplate jdbc;
 
-    /** 按主键取快照：不存在/已删/停用返回 empty */
-    public Optional<AddressSnapshot> byId(UUID addressId) {
-        return query(" AND a.id = ? ", addressId);
-    }
-
     /** 本店默认发货地址快照：无默认（或已删/停用）返回 empty —— 发货无寄件人即硬失败，由消费方决定上报 */
     public Optional<AddressSnapshot> resolveShipFrom(UUID shopId) {
         return query(" AND a.shop_id = ? AND a.default_ship = TRUE LIMIT 1 ", shopId);

@@ -45,11 +45,6 @@ public record Money(
         return amountFen == null ? null : ofFen(amountFen, currency);
     }
 
-    /** 可空便捷工厂：人民币；金额列为 null 时透传 null */
-    public static Money cnyOrNull(Long amountFen) {
-        return amountFen == null ? null : cny(amountFen);
-    }
-
     /**
      * 零金额：聚合的起点、以及「这一项没有钱」的表达。
      *
