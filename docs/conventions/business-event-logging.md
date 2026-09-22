@@ -56,6 +56,7 @@ try (var scope = MdcScope.of("event", "order.created", "order_id", "12345")) {
 | `auth.login.failed`     | `reason`（枚举值: user_not_found / no_password / wrong_password）, `client_ip`; `user_id` 可选                                                | AuthService.authenticate                                     |
 | `shop_review.decided`   | `review_id`, `shop_id`, `decision`, `staff_id`                                                                                                | ShopReviewService.decide                                     |
 | `payment.refund.failed` | `reason`（枚举值: no_success_payment / gateway_rejected）, `order_id`; `user_id` 可选；gateway_rejected 分支带 `error.type` / `error.message` | PaymentRefundListener（取消放行分支：无流水可退 / 渠道拒退） |
+| `user.deleted`          | `user_id`, `address_count`                                                                                                                    | AccountDeletionExecutor（注销冷静期满生效，个保法第 47 条）  |
 
 ## 新增事件规则
 
