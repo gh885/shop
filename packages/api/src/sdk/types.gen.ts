@@ -553,7 +553,7 @@ export type CreateProductRequest = {
     params?: Array<ParamItem>;
 };
 
-export type ImageTicketResponse = {
+export type UploadTicket = {
     uploadUrl: string;
     key: string;
     token: string;
@@ -833,13 +833,6 @@ export type ForgotPasswordRequest = {
     phone: string;
 };
 
-export type AvatarTicketResponse = {
-    uploadUrl: string;
-    key: string;
-    token: string;
-    url: string;
-};
-
 export type RejectRequest = {
     reason: string;
 };
@@ -1076,6 +1069,11 @@ export type SellerTicketItem = {
     updatedAt: string;
 };
 
+export type SellerOrderTicketActions = {
+    orderId: string;
+    availableActions: Array<TicketAvailableAction>;
+};
+
 export type OrderTrackingResponse = {
     orderId: string;
     shipments: Array<ShipmentTrackingResponse>;
@@ -1213,7 +1211,7 @@ export type DeviceEntryResponse = {
     isCurrent: boolean;
 };
 
-export type CaptchaResponse = {
+export type Captcha = {
     captchaId: string;
     image: string;
 };
@@ -2336,7 +2334,7 @@ export type IssueImageTicketResponses = {
     /**
      * OK
      */
-    200: ImageTicketResponse;
+    200: UploadTicket;
 };
 
 export type IssueImageTicketResponse = IssueImageTicketResponses[keyof IssueImageTicketResponses];
@@ -2793,7 +2791,7 @@ export type IssueAvatarTicketResponses = {
     /**
      * OK
      */
-    200: AvatarTicketResponse;
+    200: UploadTicket;
 };
 
 export type IssueAvatarTicketResponse = IssueAvatarTicketResponses[keyof IssueAvatarTicketResponses];
@@ -3256,6 +3254,24 @@ export type ListShopAfterSalesResponses = {
 
 export type ListShopAfterSalesResponse = ListShopAfterSalesResponses[keyof ListShopAfterSalesResponses];
 
+export type ListAfterSaleActionsByOrdersData = {
+    body?: never;
+    path?: never;
+    query: {
+        orderIds: Array<string>;
+    };
+    url: '/seller/after-sales/actions';
+};
+
+export type ListAfterSaleActionsByOrdersResponses = {
+    /**
+     * OK
+     */
+    200: Array<SellerOrderTicketActions>;
+};
+
+export type ListAfterSaleActionsByOrdersResponse = ListAfterSaleActionsByOrdersResponses[keyof ListAfterSaleActionsByOrdersResponses];
+
 export type GetOrderDetailData = {
     body?: never;
     path: {
@@ -3391,7 +3407,7 @@ export type GetCaptchaResponses = {
     /**
      * OK
      */
-    200: CaptchaResponse;
+    200: Captcha;
 };
 
 export type GetCaptchaResponse = GetCaptchaResponses[keyof GetCaptchaResponses];

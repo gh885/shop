@@ -522,7 +522,7 @@ export const zCreateProductRequest = z.object({
     params: z.array(zParamItem).optional()
 });
 
-export const zImageTicketResponse = z.object({
+export const zUploadTicket = z.object({
     uploadUrl: z.string(),
     key: z.string(),
     token: z.string(),
@@ -789,13 +789,6 @@ export const zForgotPasswordRequest = z.object({
     phone: z.string().min(1).regex(/^1[3-9]\d{9}$/)
 });
 
-export const zAvatarTicketResponse = z.object({
-    uploadUrl: z.string(),
-    key: z.string(),
-    token: z.string(),
-    url: z.string()
-});
-
 export const zRejectRequest = z.object({
     reason: z.string().min(0).max(255)
 });
@@ -1018,6 +1011,11 @@ export const zPageResultSellerTicketItem = z.object({
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
+export const zSellerOrderTicketActions = z.object({
+    orderId: z.uuid(),
+    availableActions: z.array(zTicketAvailableAction)
+});
+
 export const zShipmentDirection = z.enum(['FORWARD', 'RETURN']);
 
 export const zShipmentStatus = z.enum([
@@ -1151,7 +1149,7 @@ export const zDeviceEntryResponse = z.object({
     isCurrent: z.boolean()
 });
 
-export const zCaptchaResponse = z.object({
+export const zCaptcha = z.object({
     captchaId: z.string(),
     image: z.string()
 });
@@ -1741,7 +1739,7 @@ export const zIssueImageTicketQuery = z.object({
 /**
  * OK
  */
-export const zIssueImageTicketResponse = zImageTicketResponse;
+export const zIssueImageTicketResponse = zUploadTicket;
 
 export const zListShopCouponsQuery = z.object({
     pageParams: zPageParams
@@ -1923,7 +1921,7 @@ export const zIssueAvatarTicketQuery = z.object({
 /**
  * OK
  */
-export const zIssueAvatarTicketResponse = zAvatarTicketResponse;
+export const zIssueAvatarTicketResponse = zUploadTicket;
 
 export const zRejectShopReviewBody = zRejectRequest;
 
@@ -2132,6 +2130,15 @@ export const zListShopAfterSalesQuery = z.object({
  */
 export const zListShopAfterSalesResponse = zPageResultSellerTicketItem;
 
+export const zListAfterSaleActionsByOrdersQuery = z.object({
+    orderIds: z.array(z.uuid())
+});
+
+/**
+ * OK
+ */
+export const zListAfterSaleActionsByOrdersResponse = z.array(zSellerOrderTicketActions);
+
 export const zGetOrderDetailPath = z.object({
     id: z.uuid()
 });
@@ -2192,7 +2199,7 @@ export const zDevicesResponse = z.array(zDeviceEntryResponse);
 /**
  * OK
  */
-export const zGetCaptchaResponse = zCaptchaResponse;
+export const zGetCaptchaResponse = zCaptcha;
 
 export const zListShopClaimableCouponsPath = z.object({
     shopId: z.uuid()
