@@ -22,7 +22,8 @@ import { buyerAfterSaleActions, type AfterSaleAction } from "./after-sale"
  * （经 buyerAfterSaleActions 投影成 UI 动作，C5b）——
  * 卡片不认识订单状态，也不自己发请求（弹窗与 mutation 都归页面持有）。
  * 时间线不做完整历史（后端 ticket_events 没开接口）：只把「当前状态 + 关键时刻」讲清楚，
- * 免得前端凭当前状态编造一条看似权威的轨迹。
+ * 免得前端凭当前状态编造一条看似权威的轨迹。唯一的例外是拒绝理由——那是后端从时间线读出来随详情
+ * 下发的一行（AFS-44），卡片照抄，不自己推。
  *
  * 回寄引导区（RETURNING 待寄回时才有）：退货地址随详情下发（returnAddress，查询时实时解析的卖家默认
  * 退货地址）；null 时不编地址，直说「联系客服」——寄错地方比少一步引导糟糕得多。
@@ -81,6 +82,9 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
                 </Row>
 
                 <Row label="售后理由">{ticket.reason ?? "买家未填写"}</Row>
+
+                {/* 被拒才有这一行：卖家的理由取自时间线那行 note（AFS-44），买家据此决定补什么再来、还是另行协商 */}
+                {ticket.rejectReason && <Row label="拒绝理由">{ticket.rejectReason}</Row>}
 
                 <Row label="申请时间">{formatDateTime(ticket.createdAt)}</Row>
 

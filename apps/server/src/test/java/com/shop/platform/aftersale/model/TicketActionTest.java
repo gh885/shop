@@ -24,13 +24,18 @@ class TicketActionTest {
     @Test
     void REFUNDED_多来源_手动与超时自动各自可达() {
         // 仅退款：卖家同意即 REFUNDED（货不退、无回补）；退货退款：收货确认后 REFUNDED（回补库存）；
-        // 超时自动同意（C11）落 AUTO_REFUND，与手动 REFUND 同一目标态、不同 actor。
+        // 超时自动同意（C11）落 AUTO_REFUND，卖家超时未确认收货落 AUTO_RECEIVE——同一目标态、不同 actor。
         assertThat(actionsTo(TicketStatus.REFUNDED))
-                .containsExactlyInAnyOrder(TicketAction.REFUND, TicketAction.RECEIVE_RETURN, TicketAction.AUTO_REFUND);
+                .containsExactlyInAnyOrder(
+                        TicketAction.REFUND,
+                        TicketAction.RECEIVE_RETURN,
+                        TicketAction.AUTO_REFUND,
+                        TicketAction.AUTO_RECEIVE);
         assertThat(TicketAction.REFUND.from()).isEqualTo(TicketStatus.APPLYING);
         assertThat(TicketAction.RECEIVE_RETURN.from()).isEqualTo(TicketStatus.RETURNING);
         assertThat(TicketAction.REFUND.actor()).isEqualTo(TicketActor.SELLER);
         assertThat(TicketAction.RECEIVE_RETURN.actor()).isEqualTo(TicketActor.SELLER);
+        assertThat(TicketAction.AUTO_RECEIVE.actor()).isEqualTo(TicketActor.SYSTEM);
     }
 
     @Test
@@ -47,13 +52,18 @@ class TicketActionTest {
     }
 
     @Test
-    void 拒绝与撤销都只能从申请中态离开且是终态动作() {
-        for (TicketAction action : new TicketAction[] {TicketAction.REJECT, TicketAction.CLOSE}) {
-            assertThat(action.from()).isEqualTo(TicketStatus.APPLYING);
-            assertThat(action.target().open()).isFalse();
-        }
+    void 拒绝有两条边_申请阶段与退货验货不通过_撤销仍只在工作开始() {
+        assertThat(TicketAction.REJECT.from()).isEqualTo(TicketStatus.APPLYING);
+        // 同意退货不是不可撤销的支票：货退回来才发现是调包/少件/损毁，卖家得有「拒绝退款」这条出口
+        assertThat(TicketAction.REJECT_RETURN.from()).isEqualTo(TicketStatus.RETURNING);
+        assertThat(TicketAction.CLOSE.from()).isEqualTo(TicketStatus.APPLYING);
         assertThat(TicketAction.REJECT.actor()).isEqualTo(TicketActor.SELLER);
+        assertThat(TicketAction.REJECT_RETURN.actor()).isEqualTo(TicketActor.SELLER);
         assertThat(TicketAction.CLOSE.actor()).isEqualTo(TicketActor.BUYER);
+        assertThat(TicketAction.REJECT.target()).isEqualTo(TicketStatus.REJECTED);
+        assertThat(TicketAction.REJECT_RETURN.target()).isEqualTo(TicketStatus.REJECTED);
+        assertThat(TicketAction.CLOSE.target()).isEqualTo(TicketStatus.CLOSED);
+        assertThat(TicketAction.REJECT.target().open()).isFalse();
     }
 
     @Test

@@ -10,8 +10,8 @@ import { AfterSaleCard } from "./AfterSaleCard"
 import type { AfterSaleAction } from "./after-sale"
 
 /**
- * 售后卡回寄引导区测试：退货地址只有详情那一份（returnAddress，查询时实时解析），
- * 卡片的两条责任——RETURNING 时把地址/「联系客服」提示给到买家；非待寄回态不硬塞这一块。
+ * 售后卡回寄引导区与拒绝理由测试：这两块内容都只有详情那一份（returnAddress 查询时实时解析、
+ * rejectReason 取自时间线 note），卡片的责任是「下发才渲染、没下发就整行不出现」，不自己编。
  */
 
 function returningTicket(overrides: Partial<TicketResponse> = {}): TicketResponse {
@@ -68,5 +68,36 @@ describe("AfterSaleCard（回寄引导区）", () => {
 
         expect(screen.queryByText("退货地址")).not.toBeInTheDocument()
         expect(screen.queryByText("不该出现的地址")).not.toBeInTheDocument()
+    })
+})
+
+describe("AfterSaleCard（拒绝理由）", () => {
+    it("被拒_下发理由_摆在买家自己那条理由旁边", () => {
+        renderWithProviders(
+            <AfterSaleCard
+                ticket={makeTicket({
+                    id: crypto.randomUUID(),
+                    status: "REJECTED",
+                    availableActions: [],
+                    reason: "尺码不合适",
+                    rejectReason: "退回商品缺少吊牌，影响二次销售",
+                })}
+                onAction={vi.fn<(action: AfterSaleAction) => void>()}
+            />,
+        )
+
+        expect(screen.getByText("拒绝理由")).toBeInTheDocument()
+        expect(screen.getByText("退回商品缺少吊牌，影响二次销售")).toBeInTheDocument()
+    })
+
+    it("进行中的单_没下发拒绝理由_整行不出现", () => {
+        renderWithProviders(
+            <AfterSaleCard
+                ticket={returningTicket()}
+                onAction={vi.fn<(action: AfterSaleAction) => void>()}
+            />,
+        )
+
+        expect(screen.queryByText("拒绝理由")).not.toBeInTheDocument()
     })
 })

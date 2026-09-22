@@ -59,7 +59,7 @@ export type RefundRowView = { availableActions: TicketAvailableAction[] }
 /**
  * 卖家对一行售后单能做的动作——读行上下发的 availableActions，不按状态自推：
  * - 待处理 → 同意 / 拒绝（仅退款同意即退款，退货退款同意后转「退货中」，分派也在后端）
- * - 退货中 → 确认收货（之后才退款并回补库存）
+ * - 退货中 → 确认收货 / 拒绝（后者是「货退回来了但验货不通过」，退款不打出去）
  * - 终态 → 后端给空集，这里就空（已退款/已拒绝/已撤销都是历史）
  */
 export function refundRowActions(ticket: RefundRowView): RefundRowAction[] {

@@ -25,10 +25,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * 售后超时 Closer（C11）集成验证（真库）：两条超时线各自「到期落成 / 未到期不动 / 条件不满足让位」。
+ * 售后超时 Closer（C11）集成验证（真库）：三条超时线各自「到期落成 / 未到期不动 / 条件不满足让位」。
  *
  * <p>时间推进用 SQL 回拨 created_at / 时间线事件时刻，而不是把窗口常量改小：扫的就是生产同一条判定
- * （APPLYING 看单行 created_at，RETURNING 看同意事件时刻 + 未填回寄单号），常量改小测的是另一个系统。
+ * （APPLYING 看单行 created_at，RETURNING 两条线看同意 / 回寄事件时刻 + 是否登记过运单号），
+ * 常量改小测的是另一个系统。
  * 断言吃「这笔单的最终状态」而不是 sweep 返回值——测试库共享，别的用例会混进同一批扫描。
  */
 @SpringBootTest
@@ -57,6 +58,8 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     private final UUID shopId = UUID.randomUUID();
 
+    private UUID skuId;
+
     private UUID orderId;
 
     @BeforeEach
@@ -78,7 +81,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
         db.onDelete("DELETE FROM account.users WHERE id = ?::uuid", userId.toString());
         // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
         seedActiveUser();
-        UUID skuId = db.seedOnSaleSku(shopId, 1000, 5);
+        skuId = db.seedOnSaleSku(shopId, 1000, 5);
         UUID addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);
 
@@ -134,11 +137,32 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
                 action);
     }
 
+    /** 库存余量：超时确认收货的回补副作用要与人工同落点，这里数得出来（下单扣 2，回补后回到 5） */
+    private int totalStock() {
+        return jdbc.queryForObject(
+                "SELECT stock FROM inventory.sku_stock WHERE sku_id = ?::uuid", Integer.class, skuId.toString());
+    }
+
     /** 把售后单出生时刻回拨（= APPLYING 已停留 n 小时）：扫描判定吃的是 created_at，见 TicketMapper 注释 */
     private void ageTicketHours(int hours) {
         jdbc.update(
                 "UPDATE aftersale.tickets SET created_at = created_at - make_interval(hours => ?) WHERE order_id = ?::uuid",
                 hours,
+                orderId.toString());
+    }
+
+    /**
+     * 把「买家寄回」的时刻回拨 n 天（时间线里的 RETURN_GOODS 事件）：确认收货线的入态时钟。
+     * 只回拨事件、不回拨 tickets.created_at——那会让同一条单同时满足卖家审核超时，测的不是这一步。
+     */
+    private void ageReturnGoodsEventDays(int days) {
+        jdbc.update(
+                """
+                UPDATE aftersale.ticket_events SET created_at = created_at - make_interval(days => ?)
+                WHERE action = 'RETURN_GOODS'
+                  AND ticket_id IN (SELECT id FROM aftersale.tickets WHERE order_id = ?::uuid)
+                """,
+                days,
                 orderId.toString());
     }
 
@@ -237,5 +261,61 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
         timeoutService.sweepReturnShip();
         assertEquals(TicketStatus.RETURNING.name(), ticketStatus());
+    }
+
+    // 卖家确认收货超时（AFS-23 第③条）：买家已寄回，卖家的沉默不能悬着钱和订单
+    @Test
+    void 已回寄_卖家超10天未确认收货_自动退款回补并记系统动作() {
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, "质量不行");
+        afterSale.agree(shopId, orderId);
+        afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
+        assertEquals(3, totalStock());
+        ageReturnGoodsEventDays(11);
+
+        assertTrue(timeoutService.sweepReturnReceive() >= 1);
+        assertEquals(TicketStatus.REFUNDED.name(), ticketStatus());
+        assertEquals("REFUNDED", orderProjection());
+        assertEquals(PaymentStatus.REFUNDED.name(), paymentStatus(), "自动确认收货退的是同一条退款落点");
+        assertEquals(5, totalStock(), "货已寄回，回补与人工确认收货同口径");
+        assertEquals(List.of("SYSTEM|AUTO_RECEIVE|卖家超时未确认收货，系统自动退款"), latestEvents("AUTO_RECEIVE"));
+    }
+
+    @Test
+    void 已回寄_未满10天_不动() {
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.agree(shopId, orderId);
+        afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
+        ageReturnGoodsEventDays(9);
+
+        timeoutService.sweepReturnReceive();
+        assertEquals(TicketStatus.RETURNING.name(), ticketStatus());
+        assertEquals(PaymentStatus.SUCCESS.name(), paymentStatus());
+    }
+
+    @Test
+    void 改过运单号_从最后一次寄出重新起算_不被老事件提前判死() {
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.agree(shopId, orderId);
+        afterSale.returnGoods(userId, orderId, "ZTO", "中通快递", "ZT999");
+        ageReturnGoodsEventDays(11); // 第一次寄出已在 11 天前（填错单号、快递退回的场景）
+        afterSale.returnGoods(userId, orderId, "SF", "顺丰快递", "SF888"); // 重新寄出，时钟该从这里再起
+
+        timeoutService.sweepReturnReceive();
+        assertEquals(TicketStatus.RETURNING.name(), ticketStatus());
+    }
+
+    @Test
+    void 两条退货超时线互斥_未寄回归自动关闭_已寄回归自动退款() {
+        // 未填运单号：确认收货扫描不该碰它（货根本没在路上）
+        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, null);
+        afterSale.agree(shopId, orderId);
+        ageAgreeReturnEventDays(30);
+        ageTicketHours(30 * 24);
+
+        timeoutService.sweepReturnReceive();
+        assertEquals(TicketStatus.RETURNING.name(), ticketStatus(), "确认收货线认的是「已寄回」，此单不入库");
+
+        assertTrue(timeoutService.sweepReturnShip() >= 1, "它归自动关闭管");
+        assertEquals(TicketStatus.CLOSED.name(), ticketStatus());
     }
 }

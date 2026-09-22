@@ -12,7 +12,8 @@ import java.util.Set;
  * 前端只保留文案与展示顺序，不再按状态复刻一遍按钮表（两处真相必然漂移）。
  *
  * <p>与 {@link TicketAction} 的关系是<b>多对一映射</b>：一个界面动作可以对应转移表里的多条边——
- * 「同意」按售后类型落在 REFUND 或 AGREE_RETURN 上，买家看到的就是一个按钮。超时自动动作
+ * 「同意」按售后类型落在 REFUND 或 AGREE_RETURN 上、「拒绝」按当前态落在 REJECT 或 REJECT_RETURN 上，
+ * 卖家看到的就是一个按钮。超时自动动作
  * （AUTO_*，actor=SYSTEM）刻意不在这里出现：那是定时器吃的词表，不是给人点的按钮。
  */
 @Schema(enumAsRef = true)
@@ -33,8 +34,11 @@ public enum TicketAvailableAction {
     /** 同意售后（卖家，仅 APPLYING；按类型落 REFUND 或 AGREE_RETURN，两个方向一个按钮） */
     AGREE(TicketAction.REFUND, TicketAction.AGREE_RETURN),
 
-    /** 拒绝售后（卖家，仅 APPLYING） */
-    REJECT(TicketAction.REJECT),
+    /**
+     * 拒绝售后（卖家）：申请阶段落 {@link TicketAction#REJECT}、退货阶段落
+     * {@link TicketAction#REJECT_RETURN}（验货不通过），两个方向一个按钮——与 {@link #AGREE} 同款多对一。
+     */
+    REJECT(TicketAction.REJECT, TicketAction.REJECT_RETURN),
 
     /** 确认收到退货（卖家，仅 RETURNING；此时才退款并回补库存） */
     RECEIVE_RETURN(TicketAction.RECEIVE_RETURN);
@@ -49,8 +53,11 @@ public enum TicketAvailableAction {
     /** 买家视角的动作全集与声明序（列表按此序下发，响应体要稳定） */
     private static final List<TicketAvailableAction> BUYER = List.of(CANCEL, RETURN_GOODS, REAPPLY);
 
-    /** 卖家视角的动作全集 */
-    private static final List<TicketAvailableAction> SELLER = List.of(AGREE, REJECT, RECEIVE_RETURN);
+    /**
+     * 卖家视角的动作全集（列表按此序下发）：正常推进的动作在前、破坏性的在后——RETURNING 一态同时给出
+     * 「确认收货」和「拒绝」时，买家货已寄回，默认该走的是前者。
+     */
+    private static final List<TicketAvailableAction> SELLER = List.of(AGREE, RECEIVE_RETURN, REJECT);
 
     /**
      * 买家视角当前可执行的动作。

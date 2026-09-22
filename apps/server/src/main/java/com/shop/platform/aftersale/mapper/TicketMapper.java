@@ -78,4 +78,26 @@ public interface TicketMapper extends BaseMapper<Ticket> {
             """)
     List<Ticket> selectReturnShipExpired(
             @Param("expiredBefore") OffsetDateTime expiredBefore, @Param("limit") int limit);
+
+    /**
+     * 超时扫描③（AFS-23）：RETURNING、买家<b>已填过</b>回寄运单号、且最后一次回寄已过期已久的单
+     * → 卖家确认收货超时，系统自动退款。与扫描② 靠 {@code return_tracking_no} 的是否为空严格互斥。
+     *
+     * <p>计时起点取 MAX(RETURN_GOODS 事件时刻) 而不是「存在一条过期事件」：运单号可重复提交覆盖
+     * （AFS-41），买家改单号等于重新寄一次，钟该从他最后一次寄出起算，否则改个错单号的单会被老事件提前判死。
+     * 子查询取不到行（从未回寄）时 NULL 比较为假，天然被排除；投影列条件因此是冗余的第二道保险，
+     * 留着是因为它可读——扫的是「货在路上的单」。
+     */
+    @Select(
+            """
+            SELECT t.* FROM aftersale.tickets t
+            WHERE t.status = 'RETURNING'
+              AND t.return_tracking_no IS NOT NULL
+              AND (SELECT MAX(e.created_at) FROM aftersale.ticket_events e
+                   WHERE e.ticket_id = t.id AND e.action = 'RETURN_GOODS') < #{expiredBefore}
+            ORDER BY t.created_at
+            LIMIT #{limit}
+            """)
+    List<Ticket> selectReturnReceiveExpired(
+            @Param("expiredBefore") OffsetDateTime expiredBefore, @Param("limit") int limit);
 }

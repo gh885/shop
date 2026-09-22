@@ -199,10 +199,19 @@ public class AfterSaleService {
         refund(ticket, TicketAction.REFUND);
     }
 
-    /** 拒绝申请：APPLYING → REJECTED（终态） */
+    /**
+     * 拒绝售后：申请阶段 APPLYING → REJECTED，退货阶段 RETURNING → REJECTED（货退回来了但验货不通过）。
+     * 走哪条边由当前态决定——卖家侧从头到尾只有一个「拒绝」按钮（AFS-40 的多对一映射）。
+     *
+     * <p>理由<b>必填</b>并原样落时间线 note（AFS-30）：拒绝是卖家单方面的终局决定，买家看不到理由就不知道该
+     * 改什么、该不该重新申请，日后有争议也无从判断责任在谁。
+     */
     @Transactional
-    public void reject(UUID shopId, UUID orderId) {
-        transition(requireSellerOpen(shopId, orderId, TicketAction.REJECT), TicketAction.REJECT, null, u -> {});
+    public void reject(UUID shopId, UUID orderId, String reason) {
+        Ticket ticket = requireSellerOpen(shopId, orderId, TicketAction.REJECT);
+        TicketAction action =
+                ticket.getStatus() == TicketStatus.RETURNING ? TicketAction.REJECT_RETURN : TicketAction.REJECT;
+        transition(ticket, action, Text.trimToNull(reason), u -> {});
     }
 
     /**
@@ -211,13 +220,28 @@ public class AfterSaleService {
      */
     @Transactional
     public void receiveReturn(UUID shopId, UUID orderId) {
-        Ticket ticket = requireSellerOpen(shopId, orderId, TicketAction.RECEIVE_RETURN);
-        refund(ticket, TicketAction.RECEIVE_RETURN);
+        receive(requireSellerOpen(shopId, orderId, TicketAction.RECEIVE_RETURN), TicketAction.RECEIVE_RETURN, null);
+    }
+
+    /** 确认收货的落点（人工与超时自动共用）：退款 + 按整单行项回补，两个动作之间不存在第二套逻辑 */
+    private void receive(Ticket ticket, TicketAction action, String note) {
+        refund(ticket, action, note);
         stockCommand.restock(
-                orderId,
-                orderReadQuery.linesById(orderId).stream()
+                ticket.getOrderId(),
+                orderReadQuery.linesById(ticket.getOrderId()).stream()
                         .map(l -> new StockLine(l.skuId(), l.quantity()))
                         .toList());
+    }
+
+    /**
+     * 买家详情的附加视图（唯一消费点是 {@code GET /orders/{id}/after-sales}）：回寄地址 + 拒绝理由，
+     * 两件事都不落 tickets 列、各自查真相源，且都只在买家这一侧解析（卖家看得到时间线的上下文，列表更不该 N+1）。
+     */
+    public BuyerTicketDetail buyerDetail(Ticket ticket) {
+        String rejectReason = ticket.getStatus() == TicketStatus.REJECTED
+                ? ticketEventMapper.selectLatestRejectNote(ticket.getId())
+                : null;
+        return new BuyerTicketDetail(resolveReturnAddress(ticket.getShopId()), rejectReason);
     }
 
     /** 卖家视角最近一张售后单（含终态）；非本店的订单同不存在 */
@@ -264,6 +288,26 @@ public class AfterSaleService {
         }
         transition(
                 ticket, TicketAction.AUTO_CLOSE, "买家超时未回寄，系统自动关闭", u -> {}, u -> u.isNull(Ticket::getReturnTrackingNo));
+        return true;
+    }
+
+    /**
+     * 卖家超 10 天未确认收货 → 自动退款并回补（AFS-23）：买家已经把货寄回、运单号已登记，卖家的沉默
+     * 不能把「已同意退货」悬成无限期——那条路上买家既拿不到钱、订单也因为争议未决不自动完成（AFS-43）。
+     * 副作用与人工确认收货走 {@link #receive} 同一落点，只是动作换成 AUTO_RECEIVE 让时间线记 actor=SYSTEM。
+     *
+     * <p>落点前再读一次投影列而不是只信扫描结果：{@code return_tracking_no} 为 null 说明这条单归自动关闭
+     * 管（AFS-23 第②条），两条超时线必须互斥，否则会出现「已关闭的单被退款」这种对不上的账。
+     *
+     * @return 是否真的落成；卖家恰好在这之前处理了 = false，让位给人工
+     */
+    @Transactional
+    public boolean autoReceiveReturn(UUID ticketId) {
+        Ticket ticket = ticketMapper.selectById(ticketId);
+        if (ticket == null || ticket.getStatus() != TicketStatus.RETURNING || ticket.getReturnTrackingNo() == null) {
+            return false;
+        }
+        receive(ticket, TicketAction.AUTO_RECEIVE, "卖家超时未确认收货，系统自动退款");
         return true;
     }
 

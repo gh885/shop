@@ -355,7 +355,11 @@ export class SellerOrdersApi {
         return (options.client ?? client).put<RejectAfterSaleResponses, unknown, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/seller/orders/{id}/after-sales/reject',
-            ...options
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
     

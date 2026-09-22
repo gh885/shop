@@ -209,6 +209,10 @@ export type UpdateSkusRequest = {
     items: Array<SkuUpdateItem>;
 };
 
+export type RejectAfterSaleRequest = {
+    reason: string;
+};
+
 export type CouponTemplateResponse = {
     id: string;
     name: string;
@@ -626,6 +630,10 @@ export type TicketResponse = {
      * 买家回寄地址（仅买家详情下发，查询时实时解析；null = 卖家未配默认退货地址）
      */
     returnAddress?: string | null;
+    /**
+     * 卖家拒绝理由（仅买家详情下发，取自拒绝动作的时间线 note；null = 本单未被拒绝）
+     */
+    rejectReason?: string | null;
     refundedAt: string | null;
     createdAt: string;
     updatedAt: string;
@@ -1590,7 +1598,7 @@ export type UpdateProductSkusResponses = {
 export type UpdateProductSkusResponse = UpdateProductSkusResponses[keyof UpdateProductSkusResponses];
 
 export type RejectAfterSaleData = {
-    body?: never;
+    body: RejectAfterSaleRequest;
     path: {
         id: string;
     };

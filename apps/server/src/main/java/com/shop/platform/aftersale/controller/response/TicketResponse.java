@@ -6,6 +6,7 @@ import com.shop.platform.aftersale.mapper.Ticket;
 import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
+import com.shop.platform.aftersale.service.BuyerTicketDetail;
 import com.shop.platform.common.Money;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
@@ -18,8 +19,9 @@ import java.util.UUID;
  * <p>{@link #availableActions} 是<b>当前视角</b>的可执行动作集（买家端点给买家口径、卖家端点给卖家口径，
  * 与订单侧 availableActions 同款约定）：按钮组只吃这一个字段，不再按状态在前端复刻转移表。
  *
- * <p>{@link #returnAddress} 只在<b>买家售后详情</b>（GET /orders/{id}/after-sales）回填：查询时经 shop :: api
- * 实时解析本店默认退货地址，折成「收件人 电话 · 地址行」一行串；null = 卖家未配默认退货地址（前端引导联系客服）。
+ * <p>{@link #returnAddress} 与 {@link #rejectReason} 只在<b>买家售后详情</b>（GET /orders/{id}/after-sales）回填：
+ * 前者查询时经 shop :: api 实时解析本店默认退货地址，折成「收件人 电话 · 地址行」一行串（null = 卖家未配，
+ * 前端引导联系客服）；后者是被拒时卖家填的理由（null = 本单没被拒过），真相在 ticket_events 的时间线那行 note。
  * 列表与其余端点不下发（避免逐行跨 schema 解析），恒为 null。
  */
 public record TicketResponse(
@@ -33,6 +35,7 @@ public record TicketResponse(
         @Schema(requiredMode = REQUIRED, nullable = true) String returnLogisticsCompany,
         @Schema(requiredMode = REQUIRED, nullable = true) String returnTrackingNo,
         @Schema(description = "买家回寄地址（仅买家详情下发，查询时实时解析；null = 卖家未配默认退货地址）", nullable = true) String returnAddress,
+        @Schema(description = "卖家拒绝理由（仅买家详情下发，取自拒绝动作的时间线 note；null = 本单未被拒绝）", nullable = true) String rejectReason,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime refundedAt,
         @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt,
         @Schema(requiredMode = REQUIRED) OffsetDateTime updatedAt) {
@@ -41,8 +44,9 @@ public record TicketResponse(
         return from(t, availableActions, null);
     }
 
-    /** returnAddress 由详情端点查询时实时解析后传入；其余构造路径走上面的两参重载（恒 null） */
-    public static TicketResponse from(Ticket t, List<TicketAvailableAction> availableActions, String returnAddress) {
+    /** detail = 买家详情独有两项（回寄地址、拒绝理由），由 service 查询时解析；其余构造路径传 null */
+    public static TicketResponse from(
+            Ticket t, List<TicketAvailableAction> availableActions, BuyerTicketDetail detail) {
         return new TicketResponse(
                 t.getId(),
                 t.getOrderId(),
@@ -53,7 +57,8 @@ public record TicketResponse(
                 t.refundAmountAsMoney(),
                 t.getReturnLogisticsCompany(),
                 t.getReturnTrackingNo(),
-                returnAddress,
+                detail == null ? null : detail.returnAddress(),
+                detail == null ? null : detail.rejectReason(),
                 t.getRefundedAt(),
                 t.getCreatedAt(),
                 t.getUpdatedAt());

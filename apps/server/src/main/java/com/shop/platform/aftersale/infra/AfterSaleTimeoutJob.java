@@ -7,7 +7,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 售后超时任务调度（C11）：定时把两条超时线（卖家审核 / 买家回寄）交给 {@link AfterSaleTimeoutService} 扫一遍。
+ * 售后超时任务调度（C11）：定时把三条超时线（卖家审核 / 买家回寄 / 卖家确认收货）交给
+ * {@link AfterSaleTimeoutService} 扫一遍。
  * 本类只管「多久扫一次、扫完记什么日志」，窗口常量与并发让位机制都在 service / model 侧。
  */
 @Component
@@ -15,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AfterSaleTimeoutJob {
 
-    /** 扫描间隔 30s：与订单侧 OrderTimeoutJob 同值——售后窗口是 48h/7d 量级，分钟级延迟都无感，扫快只费库 */
+    /** 扫描间隔 30s：与订单侧 OrderTimeoutJob 同值——售后窗口是 48h/7d/10d 量级，分钟级延迟都无感，扫快只费库 */
     private static final long SCAN_INTERVAL_MS = 30_000;
 
     private final AfterSaleTimeoutService afterSaleTimeoutService;
@@ -29,6 +30,10 @@ public class AfterSaleTimeoutJob {
         int closed = afterSaleTimeoutService.sweepReturnShip();
         if (closed > 0) {
             log.info("[AFTERSALE] 买家超时未回寄自动关闭 {} 笔", closed);
+        }
+        int received = afterSaleTimeoutService.sweepReturnReceive();
+        if (received > 0) {
+            log.info("[AFTERSALE] 卖家超时未确认收货自动退款 {} 笔", received);
         }
     }
 }

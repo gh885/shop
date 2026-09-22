@@ -61,11 +61,12 @@ function OrdersPage() {
     const [shipTarget, setShipTarget] = useState<OrderIdentity | undefined>()
     const [confirm, setConfirm] = useState<SaleConfirm | undefined>()
 
-    // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）：这里只管把动作路由到对应 mutation
-    const runConfirm = () => {
+    // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）：这里只管把动作路由到对应 mutation，
+    // 拒绝那一路把弹窗收的必填理由一起带过去
+    const runConfirm = (reason: string) => {
         if (!confirm) return
         if (confirm.kind === "agree") agreeAfterSale(confirm.orderId)
-        else if (confirm.kind === "reject") rejectAfterSale(confirm.orderId)
+        else if (confirm.kind === "reject") rejectAfterSale(confirm.orderId, reason)
         else receiveReturn(confirm.orderId)
     }
 

@@ -26,8 +26,18 @@ public enum TicketAction {
     /** 卖家确认收到退货：RETURNING → REFUNDED，退款并回补库存 */
     RECEIVE_RETURN(TicketStatus.RETURNING, TicketStatus.REFUNDED, TicketActor.SELLER, "售后单状态已变更，当前不可确认收货"),
 
-    /** 卖家拒绝售后申请 */
+    /** 卖家拒绝售后申请（申请阶段）：APPLYING → REJECTED */
     REJECT(TicketStatus.APPLYING, TicketStatus.REJECTED, TicketActor.SELLER, "售后单状态已变更，当前不可拒绝"),
+
+    /**
+     * 卖家拒绝<b>退货退款</b>（退货阶段）：RETURNING → REJECTED，不退款、不回补。
+     *
+     * <p>开这条边的理由是「同意退货」不是不可撤销的空白支票：卖家同意时只见过买家填的理由，货真退回来才发现
+     * 是调包件 / 少件 / 已损毁，此时唯一的选择是继续拒绝——原来只有 APPLYING 能拒（AFS-20），等于把
+     * 「验货不通过」逼成「只能确认收货退款」，卖家只能靠不点确认收货拖延，而拖的代价落在买家身上
+     * （订单因争议未决不自动完成，见 AFS-43）。买家这边的兜底是申请窗口内重新申请（AFS-04）+ 拒绝理由留痕。
+     */
+    REJECT_RETURN(TicketStatus.RETURNING, TicketStatus.REJECTED, TicketActor.SELLER, "售后单状态已变更，当前不可拒绝退款"),
 
     /** 买家撤销售后申请 */
     CLOSE(TicketStatus.APPLYING, TicketStatus.CLOSED, TicketActor.BUYER, "售后单状态已变更，当前不可撤销"),
@@ -46,7 +56,15 @@ public enum TicketAction {
      * 系统超时自动关闭<b>悬挂回寄</b>：RETURNING → CLOSED（C11，{@code AfterSaleTimeouts#BUYER_RETURN} 到期且买家
      * 始终未填回寄运单号）。转终态即释放「一单一进行中」名额（uk 部分索引随行状态自动让位）并写回订单投影。
      */
-    AUTO_CLOSE(TicketStatus.RETURNING, TicketStatus.CLOSED, TicketActor.SYSTEM, "售后单状态已变更，自动关闭未执行");
+    AUTO_CLOSE(TicketStatus.RETURNING, TicketStatus.CLOSED, TicketActor.SYSTEM, "售后单状态已变更，自动关闭未执行"),
+
+    /**
+     * 系统超时自动<b>确认收货并退款</b>：RETURNING → REFUNDED（买家已回寄、卖家超
+     * {@code AfterSaleTimeouts#SELLER_RECEIVE} 未处理）。与手动 {@link #RECEIVE_RETURN} 分列而同款副作用
+     * （走同一个 {@code AfterSaleService#refund} + 同一次回补）：卖家的沉默不能悬着买家的钱，
+     * 但时间线要说真话——这不是卖家点的。
+     */
+    AUTO_RECEIVE(TicketStatus.RETURNING, TicketStatus.REFUNDED, TicketActor.SYSTEM, "售后单状态已变更，自动确认收货未执行");
 
     private final TicketStatus from;
 

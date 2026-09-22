@@ -69,9 +69,13 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         meta: { success: "已同意售后", invalidates },
     })
 
+    /** 拒绝多带一项必填理由（AFS-30）：入参形状与另外两个动作不同，但 busy / 失效口径同一套 */
     const reject = useMutation({
-        mutationFn: (args: TicketActionArgs) =>
-            SellerOrdersApi.rejectAfterSale({ path: { id: args.orderId } }),
+        mutationFn: (args: TicketActionArgs & { reason: string }) =>
+            SellerOrdersApi.rejectAfterSale({
+                path: { id: args.orderId },
+                body: { reason: args.reason },
+            }),
         meta: { success: "已拒绝售后", invalidates },
     })
 
@@ -84,9 +88,11 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
     /**
      * busy 以**售后单 id** 为准（表格按 ticket.id 判断该行是否禁用），请求用订单 id。
      * 两个 id 在这里分流，别让表格去猜「行标识」到底是哪一个。
+     * 泛型而不是固定 TicketActionArgs：拒绝那一路多带一个 reason，入参形状不该逼三个动作统一。
      */
     const runTicketAction =
-        (action: (args: TicketActionArgs) => Promise<unknown>) => (args: TicketActionArgs) =>
+        <A extends TicketActionArgs>(action: (args: A) => Promise<unknown>) =>
+        (args: A) =>
             run(() => action(args))(args.ticketId)
 
     return {

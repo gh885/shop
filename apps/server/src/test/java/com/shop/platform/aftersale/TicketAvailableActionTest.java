@@ -55,8 +55,9 @@ class TicketAvailableActionTest {
         }
 
         @Test
-        void 退货中_只给确认收货() {
-            assertEquals(List.of(RECEIVE_RETURN), TicketAvailableAction.sellerActions(TicketStatus.RETURNING));
+        void 退货中_确认收货在前拒绝在后_验货不通过也有出口() {
+            // 正常推进的动作在前、破坏性的在后：RETURNING 一态两个按钮都亮，默认该走的是确认收货
+            assertEquals(List.of(RECEIVE_RETURN, REJECT), TicketAvailableAction.sellerActions(TicketStatus.RETURNING));
         }
 
         @Test

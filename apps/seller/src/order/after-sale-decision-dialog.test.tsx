@@ -45,11 +45,11 @@ function makeOrder(
 function renderDialog({
     kind = "agree",
     order = makeOrder(),
-    onConfirm = vi.fn<() => void>(),
+    onConfirm = vi.fn<(reason: string) => void>(),
 }: {
     kind?: SaleDecisionKind
     order?: SellerOrderListItemResponse
-    onConfirm?: () => void
+    onConfirm?: (reason: string) => void
 } = {}) {
     renderWithProviders(
         <AfterSaleDecisionDialog
@@ -166,5 +166,68 @@ describe("AfterSaleDecisionDialog", () => {
             await screen.findByText("拒绝后买家仍可在申请窗口内重新提交申请。"),
         ).toBeInTheDocument()
         expect(screen.getByRole("button", { name: "确认拒绝" })).toBeInTheDocument()
+    })
+
+    it("拒绝：理由空着点确认只得到一行提示，请求发不出去", async () => {
+        server.use(
+            http.get("*/seller/orders/:id/after-sales", () =>
+                HttpResponse.json(makeTicket({ id: crypto.randomUUID() })),
+            ),
+        )
+
+        const { onConfirm } = renderDialog({ kind: "reject" })
+        await screen.findByRole("button", { name: "确认拒绝" })
+
+        await userEvent.setup().click(screen.getByRole("button", { name: "确认拒绝" }))
+
+        expect(await screen.findByText("请填写拒绝理由")).toBeInTheDocument()
+        expect(onConfirm).not.toHaveBeenCalled()
+    })
+
+    it("拒绝：填了理由才提交，交出去的是 trimmed 后的文本", async () => {
+        server.use(
+            http.get("*/seller/orders/:id/after-sales", () =>
+                HttpResponse.json(makeTicket({ id: crypto.randomUUID() })),
+            ),
+        )
+
+        const { onConfirm } = renderDialog({ kind: "reject" })
+        await screen.findByRole("button", { name: "确认拒绝" })
+        const user = userEvent.setup()
+
+        await user.type(
+            screen.getByRole("textbox", { name: "拒绝理由" }),
+            "  退回商品缺少吊牌，影响二次销售  ",
+        )
+        await user.click(screen.getByRole("button", { name: "确认拒绝" }))
+
+        await waitFor(() =>
+            expect(onConfirm).toHaveBeenCalledWith("退回商品缺少吊牌，影响二次销售"),
+        )
+    })
+
+    it("退货中的拒绝：说清「退款不会打出、库存不回补」，并把寄回的运单号摆出来核对", async () => {
+        server.use(
+            http.get("*/seller/orders/:id/after-sales", () =>
+                HttpResponse.json(
+                    makeTicket({
+                        id: crypto.randomUUID(),
+                        type: "RETURN_REFUND",
+                        status: "RETURNING",
+                        returnLogisticsCompany: "顺丰速运",
+                        returnTrackingNo: "SF123456",
+                    }),
+                ),
+            ),
+        )
+
+        renderDialog({ kind: "reject" })
+
+        expect(
+            await screen.findByText(
+                "拒绝后这笔退款不会打出、库存也不回补；买家仍可在申请窗口内重新提交申请。",
+            ),
+        ).toBeInTheDocument()
+        expect(screen.getByText("顺丰速运 SF123456")).toBeInTheDocument()
     })
 })

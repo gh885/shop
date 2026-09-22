@@ -68,7 +68,11 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     })
 
     const rejectAfterSale = useMutation({
-        mutationFn: (id: string) => SellerOrdersApi.rejectAfterSale({ path: { id } }),
+        mutationFn: (args: { id: string; reason: string }) =>
+            SellerOrdersApi.rejectAfterSale({
+                path: { id: args.id },
+                body: { reason: args.reason },
+            }),
         meta: { success: "已拒绝售后", invalidates: afterSaleInvalidates },
     })
 
@@ -98,7 +102,9 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         ship: (orderId: string, input: ShipInput) =>
             run((id) => ship.mutateAsync({ orderId: id, ...input }))(orderId),
         agreeAfterSale: run(agreeAfterSale.mutateAsync),
-        rejectAfterSale: run(rejectAfterSale.mutateAsync),
+        // 拒绝要带上弹窗填的理由（必填，落点售后时间线）：包一层把 reason 折进行 id
+        rejectAfterSale: (orderId: string, reason: string) =>
+            run((id) => rejectAfterSale.mutateAsync({ id, reason }))(orderId),
         receiveReturn: run(receiveReturn.mutateAsync),
     }
 }

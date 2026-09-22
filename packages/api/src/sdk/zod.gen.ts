@@ -199,6 +199,10 @@ export const zUpdateSkusRequest = z.object({
     items: z.array(zSkuUpdateItem).min(1)
 });
 
+export const zRejectAfterSaleRequest = z.object({
+    reason: z.string().min(0).max(200)
+});
+
 export const zCouponTemplateResponse = z.object({
     id: z.uuid(),
     name: z.string(),
@@ -594,6 +598,7 @@ export const zTicketResponse = z.object({
     returnLogisticsCompany: z.string().nullable(),
     returnTrackingNo: z.string().nullable(),
     returnAddress: z.string().nullish(),
+    rejectReason: z.string().nullish(),
     refundedAt: z.iso.datetime({ offset: true }).nullable(),
     createdAt: z.iso.datetime({ offset: true }),
     updatedAt: z.iso.datetime({ offset: true })
@@ -1407,6 +1412,8 @@ export const zUpdateProductSkusPath = z.object({
  * OK
  */
 export const zUpdateProductSkusResponse = z.array(zSkuResponse);
+
+export const zRejectAfterSaleBody = zRejectAfterSaleRequest;
 
 export const zRejectAfterSalePath = z.object({
     id: z.uuid()

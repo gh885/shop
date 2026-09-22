@@ -68,13 +68,14 @@ function RefundPage() {
 
     const [decision, setDecision] = useState<RefundDecision | undefined>()
 
-    // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）；这里只管把动作路由到对应 mutation
-    const runDecision = () => {
+    // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）；这里只管把动作路由到对应 mutation，
+    // 拒绝那一路把弹窗收的必填理由一起带过去
+    const runDecision = (reason: string) => {
         if (!decision) return
         // 两个 id 各归其位：busy 态与请求路径（处理端点挂在订单资源下）
         const args = { ticketId: decision.ticket.id, orderId: decision.ticket.orderId }
         if (decision.kind === "agree") agreeAfterSale(args)
-        else if (decision.kind === "reject") rejectAfterSale(args)
+        else if (decision.kind === "reject") rejectAfterSale({ ...args, reason })
         else receiveReturn(args)
     }
 

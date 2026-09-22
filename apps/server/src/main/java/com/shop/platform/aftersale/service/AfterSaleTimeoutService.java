@@ -52,4 +52,20 @@ public class AfterSaleTimeoutService {
         }
         return handled;
     }
+
+    /**
+     * 扫 RETURNING 且<b>已回寄</b>、超 {@link AfterSaleTimeouts#SELLER_RECEIVE} 卖家未确认收货 → 自动退款并回补。
+     * 与上一条靠「运单号是否登记」严格互斥：同一张单不会既被判放弃退货、又被判卖家拖延。
+     */
+    public int sweepReturnReceive() {
+        List<Ticket> expired = ticketMapper.selectReturnReceiveExpired(
+                OffsetDateTime.now().minus(AfterSaleTimeouts.SELLER_RECEIVE), BATCH_LIMIT);
+        int handled = 0;
+        for (Ticket ticket : expired) {
+            if (afterSaleService.autoReceiveReturn(ticket.getId())) {
+                handled++;
+            }
+        }
+        return handled;
+    }
 }

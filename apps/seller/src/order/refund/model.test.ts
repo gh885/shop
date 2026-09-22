@@ -21,8 +21,11 @@ describe("refundRowActions（卖家对一行能做什么——消费行上下发
         ])
     })
 
-    it("退货中_契约只给确认收货：货没回来之前没有第二个选项", () => {
-        expect(refundRowActions({ availableActions: ["RECEIVE_RETURN"] })).toEqual(["receive"])
+    it("退货中_契约给确认收货与拒绝_验货不通过也有出口且正常动作在前", () => {
+        expect(refundRowActions({ availableActions: ["RECEIVE_RETURN", "REJECT"] })).toEqual([
+            "receive",
+            "reject",
+        ])
     })
 
     it("终态_后端给空集_这里就空", () => {
