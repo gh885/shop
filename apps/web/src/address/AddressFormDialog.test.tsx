@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { makeAddress, server } from "@shop/test-utils"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { AddressFormDialog } from "./AddressFormDialog"
 
@@ -42,7 +42,7 @@ describe("AddressFormDialog", () => {
             />,
         )
 
-        await user.click(screen.getByRole("button", { name: "确定" }))
+        await user.click(screen.getByRole("button", { name: "保存" }))
 
         expect(await screen.findByText("请输入收货人")).toBeInTheDocument()
         expect(screen.getByText("请输入详细地址")).toBeInTheDocument()
@@ -73,7 +73,7 @@ describe("AddressFormDialog", () => {
         // 地区用权威区划数据反查路径（RegionPicker trigger 显示 summary）
         await screen.findByText("浙江省 / 杭州市 / 西湖区")
 
-        await user.click(screen.getByRole("button", { name: "确定" }))
+        await user.click(screen.getByRole("button", { name: "保存" }))
 
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
         expect(created).toHaveLength(1)

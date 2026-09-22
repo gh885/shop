@@ -2,7 +2,7 @@ import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 import type { Order, OrderAction } from "./model"
 import { OrderCard } from "./OrderCard"
 

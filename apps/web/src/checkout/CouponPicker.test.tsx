@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { toCheckoutPreview, type CheckoutGroup } from "./checkout"
 import { CouponPicker } from "./CouponPicker"

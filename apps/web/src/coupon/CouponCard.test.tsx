@@ -11,7 +11,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 
-import { createAppTestQueryClient } from "#/test/render"
+import { createAppTestQueryClient } from "@shop/app-kit/test"
 
 import { CouponCard } from "./CouponCard"
 import type { MyCoupon } from "./coupon"

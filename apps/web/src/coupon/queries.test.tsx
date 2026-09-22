@@ -8,7 +8,7 @@ import type { MyCouponResponse } from "@shop/api/sdk"
 import { Toaster } from "@shop/ui-web"
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "#/test/render"
+import { createAppTestQueryClient } from "@shop/app-kit/test"
 
 import { COUPON_PAGE_SIZE, type CouponTab } from "./coupon"
 import { myCouponsOptions, shopClaimableCouponsOptions, useClaimCoupon } from "./queries"

@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { CouponTable } from "./CouponTable"
 import type { CouponRow } from "./model"

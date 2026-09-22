@@ -8,7 +8,7 @@ import type { MyCouponResponse } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 
 import { tokenStore, useIsLoggedIn, useLoginDialogOpen } from "#/shared/api/auth"
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { ShopCouponPopover } from "./ShopCouponPopover"
 import type { ClaimableCoupon } from "./coupon"

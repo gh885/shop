@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest"
 
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "#/test/render"
+import { createAppTestQueryClient } from "@shop/app-kit/test"
 
 import type { CheckoutGroup, CouponSelection } from "./checkout"
 import { couponIdsOf, defaultCouponId, toCheckoutPreview, withDefaultCoupons } from "./checkout"

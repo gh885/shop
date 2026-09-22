@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest"
 import { server } from "@shop/test-utils"
 
 import { afterSaleKeys, orderKeys } from "#/order/queries"
-import { createAppTestQueryClient } from "#/test/render"
+import { createAppTestQueryClient } from "@shop/app-kit/test"
 
 import { useRefundList } from "./use-refund-list"
 

@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { server } from "@shop/test-utils"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { AfterSaleReturnDialog } from "./AfterSaleReturnDialog"
 

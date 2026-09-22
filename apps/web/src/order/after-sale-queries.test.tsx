@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 
 import { makeTicket, server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "#/test/render"
+import { createAppTestQueryClient } from "@shop/app-kit/test"
 
 import { afterSaleOptions, useApplyAfterSale } from "./after-sale-queries"
 import { myOrdersOptions, ORDER_DETAIL_KEY } from "./queries"

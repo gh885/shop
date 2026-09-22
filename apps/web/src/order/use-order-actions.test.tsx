@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest"
 
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "#/test/render"
+import { createAppTestQueryClient } from "@shop/app-kit/test"
 
 import { useOrderActions } from "./use-order-actions"
 import type { Order } from "./model"

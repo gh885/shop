@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { NavEntryResponse } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "#/test/render"
+import { createAppTestQueryClient } from "@shop/app-kit/test"
 
 import { HomeCategoryNav } from "./HomeCategoryNav"
 

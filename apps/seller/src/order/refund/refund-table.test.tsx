@@ -6,7 +6,7 @@ import { makeSellerTicketItem } from "@shop/test-utils"
 
 import type { SellerTicketItem } from "@shop/api/sdk"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { refundRowActions, type RefundRowAction } from "./model"
 import { RefundTable } from "./refund-table"

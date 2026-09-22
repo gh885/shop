@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { TicketResponse } from "@shop/api/sdk"
 import { makeTicket } from "@shop/test-utils"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { AfterSaleCard } from "./AfterSaleCard"
 import type { AfterSaleAction } from "./after-sale"

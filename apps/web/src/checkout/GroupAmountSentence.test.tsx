@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { GroupAmountSentence } from "./GroupAmountSentence"
 

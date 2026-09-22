@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
 import { makeTicket, server } from "@shop/test-utils"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { AfterSaleDecisionDialog, type SaleDecisionKind } from "./after-sale-decision-dialog"
 

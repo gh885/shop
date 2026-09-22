@@ -7,7 +7,7 @@ import type { CouponTemplateResponse } from "@shop/api/sdk"
 import { money } from "@shop/common"
 import { server } from "@shop/test-utils"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import { CouponFormDialog } from "./CouponFormDialog"
 

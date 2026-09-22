@@ -2,7 +2,7 @@ import type { OrderDetailResponse } from "@shop/api/sdk"
 import { screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import { renderWithProviders } from "#/test/render"
+import { renderWithProviders } from "@shop/app-kit/test"
 
 import type { OrderDetail } from "./model"
 import { toOrderDetail } from "./order"

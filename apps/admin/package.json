@@ -29,7 +29,6 @@
     },
     "devDependencies": {
         "@shop/config": "workspace:*",
-        "@shop/test-utils": "workspace:*",
         "@tanstack/router-cli": "catalog:",
         "@tanstack/router-plugin": "catalog:",
         "@testing-library/react": "catalog:",
