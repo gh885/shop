@@ -17,8 +17,6 @@ export const TARGET_TYPE_LABEL: Record<TargetType, string> = {
 export const CMS_NAV_KEYS = ["home"] as const
 export const CMS_BANNER_SLOTS = ["home_promo"] as const
 
-export const CmsStatusSchema = z.enum(CmsStatus)
-
 export const STATUS_BADGE: Record<CmsStatus, { label: string; variant: "success" | "secondary" }> =
     {
         ENABLED: { label: "启用中", variant: "success" },

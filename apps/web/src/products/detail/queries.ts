@@ -18,11 +18,10 @@ import {
  */
 
 // 数据层（纯异步函数，非 hook）// 规则/类型在 ../product.ts。真正的 React 接线（queryOptions）在本文件下方——
-// 商品列表/详情被首页商品流、详情推荐、类目/搜索等多处复用，不在模块内绑死
-// query key/缓存策略，由调用方决定（fetchProducts 经上级桶文件对外暴露）。
+// 纯函数只在下方 queryOptions 里消费，对外一律暴露 options，不再裸导出取数函数。
 
 /** 全站商品分页：卡片流/推荐/类目/搜索共用，返回领域形状 */
-export async function fetchProducts(
+async function fetchProducts(
     input: ProductListQueryInput,
     signal?: AbortSignal,
 ): Promise<{ records: Product[]; total: number }> {

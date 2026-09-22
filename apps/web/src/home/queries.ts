@@ -59,7 +59,7 @@ export const FEED_PAGE_SIZE = 24
  * 取数函数与它的 query key 同住本文件（frontend.md：key 归属 = 域）：首页商品流不是商品域的取数，
  * 放进 products/detail 只会让那份文件变成第三个推荐取数的堆放处。
  */
-export async function fetchFeed(
+async function fetchFeed(
     input: { categoryId?: string; cursor?: string; size?: number },
     signal?: AbortSignal,
 ): Promise<{ items: Product[]; nextCursor: string | null }> {

@@ -11,6 +11,4 @@
 export { toProduct, toProductCardData } from "./product"
 export type { Product, ProductDetail } from "./product"
 
-export { fetchProducts } from "./detail/queries"
-
 export { ProductCard } from "./ProductCard"
