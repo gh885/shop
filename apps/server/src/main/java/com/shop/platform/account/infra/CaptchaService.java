@@ -1,6 +1,9 @@
 package com.shop.platform.account.infra;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
 import com.shop.platform.common.BusinessException;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -164,6 +167,7 @@ public class CaptchaService {
         return new Color(r, gr, b);
     }
 
-    /** 生成结果：前端渲染图 + 校验回传 token */
-    public record Captcha(String captchaId, String image) {}
+    /** 生成结果：前端渲染图 + 校验回传 token。本 record 即 /auth/captcha 的 HTTP 出参（无独立 Response 镜像） */
+    public record Captcha(
+            @Schema(requiredMode = REQUIRED) String captchaId, @Schema(requiredMode = REQUIRED) String image) {}
 }

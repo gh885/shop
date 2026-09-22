@@ -5,7 +5,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
-import com.shop.platform.infra.security.TokenPair;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethod;
@@ -20,6 +19,7 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 
@@ -137,10 +137,11 @@ class NamingRulesTest {
             .as("controller 出参禁止 mapper 实体（HTTP 契约用 Response record）");
 
     /**
-     * HTTP handler 出参必须为 <名词>Response / service 形状类（或它们的 List/PageResult 包装）；void 与共享层值对象 TokenPair 豁免。
+     * HTTP handler 出参必须为 <名词>Response / 契约形状类（service 形状类或 infra 值对象，或它们的 List/PageResult 包装）；void 豁免。
      *
-     * <p>service 形状类（CartItemView/ShopReviewItem/CategoryNode 等）直出：形状类即 wire 契约，
-     * 字段变更 = 接口变更，由 openapi 契约与前端 SDK 编译期兜底（理由见 apps/server/AGENTS.md「命名规范」）。
+     * <p>service 形状类与 infra 值对象（CartItemView/ShopReviewItem/CategoryNode/TokenPair/UploadTicket 等）直出：
+     * 带 @Schema 的形状即 wire 契约，字段变更 = 接口变更，由 openapi 契约与前端 SDK 编译期兜底，
+     * 恒等镜像 Response 一律禁止（理由见 apps/server/AGENTS.md「命名规范」）。
      * 仍然禁止直出 mapper 实体（另有 controllers_return_no_mapper_types 兜底）。
      */
     @ArchTest
@@ -151,16 +152,17 @@ class NamingRulesTest {
 
     private static DescribedPredicate<JavaMethod> httpHandlers() {
         DescribedPredicate<JavaMethod> predicate = DescribedPredicate.describe(
-                "标注了 @GetMapping/@PostMapping/@PutMapping/@DeleteMapping",
+                "标注了 @GetMapping/@PostMapping/@PutMapping/@PatchMapping/@DeleteMapping",
                 m -> m.isAnnotatedWith(GetMapping.class)
                         || m.isAnnotatedWith(PostMapping.class)
                         || m.isAnnotatedWith(PutMapping.class)
+                        || m.isAnnotatedWith(PatchMapping.class)
                         || m.isAnnotatedWith(DeleteMapping.class));
         return predicate;
     }
 
     private static ArchCondition<JavaMethod> haveResponseShapedReturnTypes() {
-        return new ArchCondition<>("返回 XxxResponse / service 形状类 / 其 List/PageResult 包装 / void") {
+        return new ArchCondition<>("返回 XxxResponse / service 形状类 / infra 值对象 / 其 List/PageResult 包装 / void") {
             @Override
             public void check(JavaMethod method, ConditionEvents events) {
                 String violation = responseShapeViolationOf(method);
@@ -175,10 +177,6 @@ class NamingRulesTest {
     private static String responseShapeViolationOf(JavaMethod method) {
         if (method.getRawReturnType().isEquivalentTo(void.class)) {
             return null; // 动作型端点无出参，204 即契约
-        }
-        // 共享层值对象豁免（见 AGENTS.md）：auth/admin 登录端点共用 infra 的 TokenPair
-        if (method.getRawReturnType().isEquivalentTo(TokenPair.class)) {
-            return null;
         }
         String rawName = method.getRawReturnType().getName();
         if (isContractShape(method.getRawReturnType())) {
@@ -197,15 +195,15 @@ class NamingRulesTest {
             }
             return "handler " + method.getFullName() + " 返回裸容器类型: " + rawName;
         }
-        return "handler " + method.getFullName() + " 出参未贴 Response 后缀也不是 service 形状类: " + rawName;
+        return "handler " + method.getFullName() + " 出参未贴 Response 后缀也不是契约形状类（service 形状/infra 值对象）: " + rawName;
     }
 
-    /** 合法出参形状：XxxResponse，或 service 包里的形状类（XxxView / XxxItem / XxxNode / XxxInfo / XxxCount / XxxResult） */
+    /** 合法出参形状：XxxResponse，service 包形状类（CartItemView/CategoryNode 等），或 infra 值对象（TokenPair/UploadTicket 等共享技术形状） */
     private static boolean isContractShape(JavaType type) {
         String name = type.getName();
         if (name.endsWith("Response")) {
             return true;
         }
-        return name.startsWith("com.shop.platform.") && name.contains(".service.");
+        return name.startsWith("com.shop.platform.") && (name.contains(".service.") || name.contains(".infra."));
     }
 }

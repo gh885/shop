@@ -1,8 +1,6 @@
 package com.shop.platform.account.controller;
 
 import com.shop.platform.account.AuthProperties;
-import com.shop.platform.account.controller.response.AvatarTicketResponse;
-import com.shop.platform.account.controller.response.CaptchaResponse;
 import com.shop.platform.account.controller.response.DeviceEntryResponse;
 import com.shop.platform.account.controller.response.MeResponse;
 import com.shop.platform.account.dto.ForgotPasswordRequest;
@@ -19,6 +17,7 @@ import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.qiniu.QiniuClient;
+import com.shop.platform.infra.qiniu.UploadTicket;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.CurrentUser;
@@ -74,11 +73,10 @@ public class AuthController {
         smsCodeService.sendCode(req.phone(), clientIp.of(servletRequest));
     }
 
-    /** 发放图形验证码（匿名可达） */
+    /** 发放图形验证码（匿名可达）；出参即 CaptchaService.Captcha（infra 值对象直出） */
     @GetMapping("/captcha")
-    public CaptchaResponse getCaptcha() {
-        CaptchaService.Captcha captcha = captchaService.generate();
-        return new CaptchaResponse(captcha.captchaId(), captcha.image());
+    public CaptchaService.Captcha getCaptcha() {
+        return captchaService.generate();
     }
 
     /** 短信验证码登录/注册 */
@@ -150,10 +148,10 @@ public class AuthController {
         return MeResponse.from(authService.getMe(userId));
     }
 
-    /** 头像上传凭证：前端拿 ticket 后直传七牛，传完把 key 随更新资料（avatarKey）保存 */
+    /** 头像上传凭证：前端拿 ticket 后直传七牛，传完把 key 随更新资料（avatarKey）保存；出参即 infra 值对象 UploadTicket */
     @PostMapping("/avatar-ticket")
-    public AvatarTicketResponse issueAvatarTicket(@RequestParam String ext) {
-        return AvatarTicketResponse.from(qiniuClient.issueTicket("user/avatar", ext));
+    public UploadTicket issueAvatarTicket(@RequestParam String ext) {
+        return qiniuClient.issueTicket("user/avatar", ext);
     }
 
     /** 登出（STORE-02: 清除 Cookie） */

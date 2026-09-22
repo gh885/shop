@@ -1,7 +1,13 @@
 package com.shop.platform.infra.qiniu;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 浏览器直传凭证（共享层值对象，与 {@code TokenPair} 同一性质：多模块 controller 复用的技术形状）。
+ *
+ * <p>本 record 即 HTTP 出参（avatar-ticket / image-ticket 直接返回，无独立 Response 镜像）。
  *
  * <p>前端拿到后 POST {@code multipart/form-data} 到 {@code uploadUrl}，表单含 {@code token}（凭证）与
  * {@code file}（文件字节）两个字段（key 已编码进 token，无需单独传）；不能走浏览器 PUT——七牛 Kodo
@@ -14,4 +20,8 @@ package com.shop.platform.infra.qiniu;
  * @param token 上传凭证，一次一 key
  * @param url 公网访问地址
  */
-public record UploadTicket(String uploadUrl, String key, String token, String url) {}
+public record UploadTicket(
+        @Schema(requiredMode = REQUIRED) String uploadUrl,
+        @Schema(requiredMode = REQUIRED) String key,
+        @Schema(requiredMode = REQUIRED) String token,
+        @Schema(requiredMode = REQUIRED) String url) {}
