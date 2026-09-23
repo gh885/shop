@@ -49,14 +49,15 @@ try (var scope = MdcScope.of("event", "order.created", "order_id", "12345")) {
 
 ## 已有事件目录
 
-| event                   | 必带字段                                                                                                                                      | 来源                                                         |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `http.request`          | `method`, `path`, `status`, `latency_ms`, `client_ip`                                                                                         | HttpRequestLoggingInterceptor 每个请求自动                   |
-| `auth.login.succeeded`  | `user_id`                                                                                                                                     | AuthService.issueTokens                                      |
-| `auth.login.failed`     | `reason`（枚举值: user_not_found / no_password / wrong_password）, `client_ip`; `user_id` 可选                                                | AuthService.authenticate                                     |
-| `shop_review.decided`   | `review_id`, `shop_id`, `decision`, `staff_id`                                                                                                | ShopReviewService.decide                                     |
-| `payment.refund.failed` | `reason`（枚举值: no_success_payment / gateway_rejected）, `order_id`; `user_id` 可选；gateway_rejected 分支带 `error.type` / `error.message` | PaymentRefundListener（取消放行分支：无流水可退 / 渠道拒退） |
-| `user.deleted`          | `user_id`, `address_count`                                                                                                                    | AccountDeletionExecutor（注销冷静期满生效，个保法第 47 条）  |
+| event                           | 必带字段                                                                                                                                      | 来源                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `http.request`                  | `method`, `path`, `status`, `latency_ms`, `client_ip`                                                                                         | HttpRequestLoggingInterceptor 每个请求自动                                           |
+| `auth.login.succeeded`          | `user_id`                                                                                                                                     | AuthService.issueTokens                                                              |
+| `auth.login.failed`             | `reason`（枚举值: user_not_found / no_password / wrong_password）, `client_ip`; `user_id` 可选                                                | AuthService.authenticate                                                             |
+| `shop_review.decided`           | `review_id`, `shop_id`, `decision`, `staff_id`                                                                                                | ShopReviewService.decide                                                             |
+| `payment.refund.failed`         | `reason`（枚举值: no_success_payment / gateway_rejected）, `order_id`; `user_id` 可选；gateway_rejected 分支带 `error.type` / `error.message` | PaymentRefundListener（取消放行分支：无流水可退 / 渠道拒退）                         |
+| `user.deleted`                  | `user_id`, `address_count`                                                                                                                    | AccountDeletionExecutor（注销冷静期满生效，个保法第 47 条）                          |
+| `order.receiver_phone_revealed` | `shop_id`, `order_id`, `operator_id`                                                                                                          | OrderService.sellerReceiverPhone（卖家逐单取买家电话明文；号码本身不入日志，ORD-62） |
 
 ## 新增事件规则
 
@@ -69,7 +70,7 @@ try (var scope = MdcScope.of("event", "order.created", "order_id", "12345")) {
 
 - **DB 查询埋点与 DB 指标**：待 MyBatis-Plus 拦截器或数据源代理实现；当前用 PG 慢查询日志兜底
 - **告警**：需要 Prometheus + Alertmanager 部署环境；`/actuator/prometheus` 指标已可获取
-- **全局敏感字段审计**：当前仅 `maskPhone()` 处理手机号；接真实支付/更多个人数据前做一次全局审查
+- **全局敏感字段审计**：手机号靠 `PhoneNumber.mask()` 在出参与日志调用点逐个掩（卖家侧口径见 ORD-62），但没有一次覆盖全部字段的全局审查；接真实支付/更多个人数据前做
 - **出站调用 trace 传播**：暂无出站 HTTP/MQ；Micrometer Tracing 已就绪，接入时配拦截器即可
 
 ## 注意事项
