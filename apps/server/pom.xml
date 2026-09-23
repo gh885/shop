@@ -191,6 +191,22 @@
 	</dependencyManagement>
 
 	<build>
+		<!-- 行政区划数据只存一份：packages/common/src/data/regions.json（前端 loadRegionTree 的静态依赖）。
+		     这里把它按 regions/ 路径复制进 classpath，供 RegionRegistry 的 ClassPathResource 读取。
+		     曾长期存在第二份逐字节相同的副本且没有任何同步机制，两份的直筒子市规则各自实现，改一处漏一处。
+		     方向选「Java 读前端包」而不是反过来：TS 的 import 必须落在自己包内，Maven 的资源路径可以跨目录。 -->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>../../packages/common/src/data</directory>
+				<targetPath>regions</targetPath>
+				<includes>
+					<include>regions.json</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

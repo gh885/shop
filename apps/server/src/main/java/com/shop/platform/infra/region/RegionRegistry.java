@@ -15,9 +15,11 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * 国标行政区划码注册表（共享纯包 infra 下的通用能力，buyer/seller 两端共用）：
- * 启动时加载 regions/regions.json（与前端 shared/data/regions.json 同源），
- * 扁平化为合法 6 位区划码集合，用于校验 address.regionCode；并提供「省/市/区名称 → 国标码」解析，
- * 供智能粘贴把第三方解析出的区划名称映射回本平台权威码。
+ * 启动时加载 regions/regions.json，扁平化为合法 6 位区划码集合，用于校验 address.regionCode；
+ * 并提供「省/市/区名称 → 国标码」解析，供智能粘贴把第三方解析出的区划名称映射回本平台权威码。
+ *
+ * <p>数据只有一份，在 {@code packages/common/src/data/regions.json}（前端 loadRegionTree 的静态依赖）；
+ * 由 pom 的 &lt;resources&gt; 按 {@code regions/} 复制进 classpath，别在这里放第二份。
  *
  * <p>数据结构：省(2位) → 市(4位) → 区县(6位)。直筒子市（东莞/中山/儋州/嘉峪关等）没有 6 位区级
  * children（其 children 是 9 位街道码），按惯例把该市本身作为区级，码为 cityCode+"00"（如东莞 441900）。
