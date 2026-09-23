@@ -391,7 +391,8 @@ const cartesian = (dims) =>
 
 function buildCatalog({ cats, bands }) {
     const usable = cats.filter((c) => (c.spec_attrs?.length ?? 0) > 0)
-    if (usable.length === 0) throw new Error("类目规格模板为空：先起一次后端，让 V33/V43 迁移落地")
+    if (usable.length === 0)
+        throw new Error("类目规格模板为空：先起一次后端，让 V33 与 db/seed 里的 V43 种子落地")
     const products = []
     const skus = []
     const stock = []

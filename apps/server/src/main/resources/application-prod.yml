@@ -17,6 +17,9 @@ spring:
     flyway:
         # 生产库非空且历史表可能缺失的场景已在 dev 阶段消化；生产首次接管已有库时人工评估 baseline
         baseline-on-migrate: false
+        # 演示种子（db/seed：类目属性模板全量重建 + 五个旗舰店的商品）不进生产——
+        # 那两条脚本带 TRUNCATE，且会把 picsum 占位商品灌进真店。类目属性模板由运营在管理端配置。
+        locations: classpath:db/migration
 
 shop:
     web:
