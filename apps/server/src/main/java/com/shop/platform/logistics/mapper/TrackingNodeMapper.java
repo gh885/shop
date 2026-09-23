@@ -3,9 +3,12 @@ package com.shop.platform.logistics.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -39,11 +42,21 @@ public interface TrackingNodeMapper extends BaseMapper<TrackingNode> {
                 .map(TrackingNode::getOccurredAt);
     }
 
-    /** 某包裹的全部轨迹节点：按承运商事件时刻正序，同时刻按 id（uuidv7）稳定排序 */
-    default List<TrackingNode> selectByShipment(UUID shipmentId) {
+    /**
+     * 一批包裹的轨迹节点，按 shipmentId 分组：轨迹页一单多包裹，逐包裹点查就是 N+1。
+     *
+     * <p>组内顺序与单包裹版一致——全局按 (occurred_at, id) 升序取出后 groupingBy，
+     * 同一组的遭遇顺序即时间序，不再二次排。无节点的包裹不出现在 Map 里，调用方自己兜空。
+     */
+    default Map<UUID, List<TrackingNode>> groupedByShipments(Collection<UUID> shipmentIds) {
+        if (shipmentIds.isEmpty()) {
+            return Map.of();
+        }
         return selectList(new LambdaQueryWrapper<TrackingNode>()
-                .eq(TrackingNode::getShipmentId, shipmentId)
-                .orderByAsc(TrackingNode::getOccurredAt)
-                .orderByAsc(TrackingNode::getId));
+                        .in(TrackingNode::getShipmentId, shipmentIds)
+                        .orderByAsc(TrackingNode::getOccurredAt)
+                        .orderByAsc(TrackingNode::getId))
+                .stream()
+                .collect(Collectors.groupingBy(TrackingNode::getShipmentId));
     }
 }

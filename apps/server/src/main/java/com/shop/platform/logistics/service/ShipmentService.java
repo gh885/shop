@@ -6,6 +6,7 @@ import com.shop.platform.logistics.mapper.Carrier;
 import com.shop.platform.logistics.mapper.CarrierMapper;
 import com.shop.platform.logistics.mapper.Shipment;
 import com.shop.platform.logistics.mapper.ShipmentMapper;
+import com.shop.platform.logistics.mapper.TrackingNode;
 import com.shop.platform.logistics.mapper.TrackingNodeMapper;
 import com.shop.platform.logistics.model.ShipmentDirection;
 import com.shop.platform.logistics.model.ShipmentStatus;
@@ -16,6 +17,7 @@ import com.shop.platform.shop.api.AddressSnapshot;
 import com.shop.platform.shop.api.MerchantAddressReadQuery;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -111,10 +113,13 @@ public class ShipmentService {
     public OrderTracking trackingOfOrder(UUID userId, UUID orderId) {
         List<Shipment> shipments = shipmentMapper.selectByOrderAndUser(orderId, userId);
         Validate.isTrue(!shipments.isEmpty(), 404, "暂无物流信息");
+        // 一次取全部包裹的轨迹再分组：逐包裹点查在一单多包裹（含退货回寄）时就是 N+1
+        Map<UUID, List<TrackingNode>> nodesByShipment = trackingNodeMapper.groupedByShipments(
+                shipments.stream().map(Shipment::getId).toList());
         return new OrderTracking(
                 orderId,
                 shipments.stream()
-                        .map(s -> new ShipmentTracking(s, trackingNodeMapper.selectByShipment(s.getId())))
+                        .map(s -> new ShipmentTracking(s, nodesByShipment.getOrDefault(s.getId(), List.of())))
                         .toList());
     }
 }
