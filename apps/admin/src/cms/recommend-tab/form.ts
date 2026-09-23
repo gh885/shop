@@ -1,40 +1,30 @@
 import type { RecommendTabRequest, RecommendTabResponse } from "@shop/api/sdk"
 import { z } from "zod"
 
-import {
-    blankToUndefined as blank,
-    parseTargetType,
-    submitTargetType,
-    TargetTypeSchema,
-} from "../constants"
+import { CmsTargetSortSchema, targetSortDefaults, toTargetSortFields } from "../constants"
 
-export const TabFormSchema = z.object({
-    name: z.string().trim().min(1, "请输入词条名").max(32, "词条名最长 32 字"),
-    targetType: TargetTypeSchema.or(z.literal("NONE")).optional(),
-    target: z.string().trim().max(255).optional(),
-    isDefault: z.boolean(),
-    sortOrder: z.string().trim().regex(/^\d*$/, "排序需为非负整数"),
-})
+export const TabFormSchema = z
+    .object({
+        name: z.string().trim().min(1, "请输入词条名").max(32, "词条名最长 32 字"),
+        isDefault: z.boolean(),
+    })
+    .merge(CmsTargetSortSchema)
 
 export type TabFormValues = z.infer<typeof TabFormSchema>
 
 export function tabDefaults(tab?: RecommendTabResponse): TabFormValues {
     return {
         name: tab?.name ?? "",
-        targetType: parseTargetType(tab?.targetType),
-        target: tab?.target ?? "",
         isDefault: tab?.isDefault ?? false,
-        sortOrder: String(tab?.sortOrder ?? 0),
+        ...targetSortDefaults(tab),
     }
 }
 
 export function toTabRequest(v: TabFormValues): RecommendTabRequest {
     return {
         name: v.name.trim(),
-        targetType: submitTargetType(v.targetType),
-        target: blank(v.target),
         isDefault: v.isDefault,
-        sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,
+        ...toTargetSortFields(v),
     }
 }
 

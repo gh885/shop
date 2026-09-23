@@ -3,9 +3,9 @@ import { z } from "zod"
 
 import {
     blankToUndefined as blank,
-    parseTargetType,
-    submitTargetType,
-    TargetTypeSchema,
+    CmsTargetSortSchema,
+    targetSortDefaults,
+    toTargetSortFields,
 } from "../constants"
 
 /** subs = JSONB 整段的组/项两级配置（对齐后端 NavGroup 校验：组名 ≤64、词条 ≤64、≤30 组） */
@@ -21,14 +21,13 @@ export const SubsSchema = z
 export type SubsGroup = z.infer<typeof SubsSchema>[number]
 export type SubsValue = SubsGroup[]
 
-export const NavFormSchema = z.object({
-    navKey: z.string().trim().min(1, "请输入导航位").max(32),
-    title: z.string().trim().min(1, "请输入标题").max(64),
-    iconKey: z.string().trim().max(32).optional(),
-    targetType: TargetTypeSchema.or(z.literal("NONE")).optional(),
-    target: z.string().trim().max(255).optional(),
-    sortOrder: z.string().trim().regex(/^\d*$/, "排序需为非负整数"),
-})
+export const NavFormSchema = z
+    .object({
+        navKey: z.string().trim().min(1, "请输入导航位").max(32),
+        title: z.string().trim().min(1, "请输入标题").max(64),
+        iconKey: z.string().trim().max(32).optional(),
+    })
+    .merge(CmsTargetSortSchema)
 
 export type NavFormValues = z.infer<typeof NavFormSchema>
 
@@ -37,9 +36,7 @@ export function navDefaults(entry?: NavEntryResponse, navKey?: string): NavFormV
         navKey: entry?.navKey ?? navKey ?? "",
         title: entry?.title ?? "",
         iconKey: entry?.iconKey ?? "",
-        targetType: parseTargetType(entry?.targetType),
-        target: entry?.target ?? "",
-        sortOrder: String(entry?.sortOrder ?? 0),
+        ...targetSortDefaults(entry),
     }
 }
 
@@ -49,9 +46,7 @@ export function toNavRequest(v: NavFormValues, subs: SubsValue): NavRequest {
         navKey: v.navKey.trim(),
         title: v.title.trim(),
         iconKey: blank(v.iconKey),
-        targetType: submitTargetType(v.targetType),
-        target: blank(v.target),
-        sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,
+        ...toTargetSortFields(v),
         // 空词条在提交时剔除；整组无词条发缺省而不是 null（前端契约：items 缺省 = 无词条）
         subs: subs.map((g) => {
             const items = g.items?.filter((i) => i.trim()) ?? []

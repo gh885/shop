@@ -1,12 +1,17 @@
-import { useState } from "react"
 import type { BannerResponse } from "@shop/api/sdk"
 import { formatTimeShort } from "@shop/app-kit"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Badge, Button, confirm, Image, Spinner, type DataTableFeatures } from "@shop/ui-web"
-import { PencilIcon } from "lucide-react"
+import { Image, type DataTableFeatures } from "@shop/ui-web"
 
-import { STATUS_BADGE } from "../constants"
+import {
+    actionsColumn,
+    codeColumn,
+    cmsStatusColumn,
+    sortOrderColumn,
+    targetTypeColumn,
+} from "../list-columns"
+import { CmsRowActions } from "../row-actions"
 import { useSetBannerStatus } from "./queries"
 import { BannerFormDialog } from "./form-dialog"
 
@@ -17,49 +22,21 @@ const windowText = (startAt: string | null, endAt: string | null) => {
 }
 
 function BannerActions({ banner }: { banner: BannerResponse }) {
-    const [editOpen, setEditOpen] = useState(false)
-    const enabled = banner.status === "ENABLED"
-    const nextStatus = enabled ? "DISABLED" : "ENABLED"
     const setStatus = useSetBannerStatus()
 
-    /** 启停二次确认：确认即改状态，失败保持打开（错误提示走全局 mutation 反馈） */
-    function toggleStatus() {
-        void confirm({
-            title: enabled ? `停用「${banner.title}」` : `启用「${banner.title}」`,
-            description: enabled
-                ? "停用后前台立即不再展示该运营位，确认执行？"
-                : "启用后按生效时间窗口在前台展示，确认执行？",
-            confirmText: enabled ? "确认停用" : "确认启用",
-            tone: enabled ? "destructive" : "default",
-            action: () => setStatus.mutateAsync({ id: banner.id, status: nextStatus }),
-        })
-    }
-
     return (
-        <div className="flex justify-end gap-2">
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditOpen(true)}
-            >
-                <PencilIcon data-slot="icon" />
-                编辑
-            </Button>
-            <BannerFormDialog
-                open={editOpen}
-                onOpenChange={setEditOpen}
-                editing={banner}
-            />
-            <Button
-                variant="outline"
-                size="sm"
-                disabled={setStatus.isPending}
-                onClick={toggleStatus}
-            >
-                {setStatus.isPending && <Spinner />}
-                {enabled ? "停用" : "启用"}
-            </Button>
-        </div>
+        <CmsRowActions
+            row={banner}
+            status={banner.status}
+            label={banner.title}
+            hints={{
+                disable: "停用后前台立即不再展示该运营位，确认执行？",
+                enable: "启用后按生效时间窗口在前台展示，确认执行？",
+            }}
+            pending={setStatus.isPending}
+            submit={(status) => setStatus.mutateAsync({ id: banner.id, status })}
+            Dialog={BannerFormDialog}
+        />
     )
 }
 
@@ -77,11 +54,7 @@ export const bannerColumns: ColumnDef<DataTableFeatures, BannerResponse>[] = [
             />
         ),
     },
-    {
-        accessorKey: "slot",
-        header: "运营位",
-        cell: ({ row }) => <span className="font-mono text-xs">{row.original.slot}</span>,
-    },
+    codeColumn("slot", "运营位", (banner) => banner.slot),
     {
         accessorKey: "title",
         header: "标题",
@@ -96,16 +69,7 @@ export const bannerColumns: ColumnDef<DataTableFeatures, BannerResponse>[] = [
             </div>
         ),
     },
-    {
-        accessorKey: "targetType",
-        header: "跳转",
-        cell: ({ row }) =>
-            row.original.targetType ? (
-                <Badge variant="info">{row.original.targetType}</Badge>
-            ) : (
-                <span className="text-muted-foreground">—</span>
-            ),
-    },
+    targetTypeColumn(),
     {
         accessorKey: "startAt",
         header: "生效窗口",
@@ -115,23 +79,7 @@ export const bannerColumns: ColumnDef<DataTableFeatures, BannerResponse>[] = [
             </span>
         ),
     },
-    {
-        accessorKey: "sortOrder",
-        header: "排序",
-        cell: ({ row }) => <span className="tabular-nums">{row.original.sortOrder}</span>,
-    },
-    {
-        accessorKey: "status",
-        header: "状态",
-        cell: ({ row }) => {
-            const badge = STATUS_BADGE[row.original.status]
-            return <Badge variant={badge.variant}>{badge.label}</Badge>
-        },
-    },
-    {
-        id: "actions",
-        header: () => <span className="flex justify-end">操作</span>,
-        enableHiding: false,
-        cell: ({ row }) => <BannerActions banner={row.original} />,
-    },
+    sortOrderColumn(),
+    cmsStatusColumn(),
+    actionsColumn((banner) => <BannerActions banner={banner} />),
 ]

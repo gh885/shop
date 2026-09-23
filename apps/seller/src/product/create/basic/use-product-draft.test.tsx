@@ -202,8 +202,11 @@ function stubApi({
         }),
         http.put("*/seller/products/:id/skus", async ({ request }) => {
             calls.skus += 1
-            const body = (await request.json()) as { items?: unknown[] }
-            calls.skuItems = body.items ?? []
+            // 断言只看「发没发出这一笔、带了几条 sku」，所以就地收窄 items 而不 as 到期望形状：
+            // 形状不符时拿到空数组，用例照样会红，不会把错数据洗成对
+            const body: unknown = await request.json()
+            const items = body && typeof body === "object" ? Reflect.get(body, "items") : undefined
+            calls.skuItems = Array.isArray(items) ? items : []
             return HttpResponse.json(specsResponse)
         }),
         http.post("*/seller/products/:id/publish", ({ request }) => {

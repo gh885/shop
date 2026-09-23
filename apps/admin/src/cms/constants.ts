@@ -34,6 +34,44 @@ export const TARGET_TYPE_ITEMS = [
     ...Object.entries(TARGET_TYPE_LABEL).map(([value, label]) => ({ value, label })),
 ]
 
+/**
+ * 「跳转 + 排序」三个字段的公共片段：三张表单里同形同校验（target 上限 255、排序非负整数）。
+ * 抄三份的坏处不是行数，是将来放宽 target 长度时只改了一张表——同一个业务规则在系统里
+ * 有两种答案。
+ */
+export const CmsTargetSortSchema = z.object({
+    targetType: TargetTypeSchema.or(z.literal("NONE")).optional(),
+    target: z.string().trim().max(255).optional(),
+    sortOrder: z.string().trim().regex(/^\d*$/, "排序需为非负整数"),
+})
+
+export type CmsTargetSortValues = z.infer<typeof CmsTargetSortSchema>
+
+/** 契约行里的这三列（响应侧 target/targetType 恒为 string | null） */
+type CmsTargetSortRow = {
+    target?: string | null
+    targetType?: string | null
+    sortOrder?: number
+}
+
+/** 响应行 → 表单初值（脏 targetType 落回 NONE，缺排序落回 "0"） */
+export function targetSortDefaults(row?: CmsTargetSortRow): CmsTargetSortValues {
+    return {
+        targetType: parseTargetType(row?.targetType),
+        target: row?.target ?? "",
+        sortOrder: String(row?.sortOrder ?? 0),
+    }
+}
+
+/** 表单值 → 请求体三字段：NONE 与空串都折成缺省（见 submitTargetType） */
+export function toTargetSortFields(values: CmsTargetSortValues) {
+    return {
+        targetType: submitTargetType(values.targetType),
+        target: blankToUndefined(values.target),
+        sortOrder: values.sortOrder ? Number(values.sortOrder) : 0,
+    }
+}
+
 /** 前台已消费的导航位 / 运营位（筛选下拉选项；新增位时在此扩充） */
 export const CMS_NAV_KEYS = ["home"] as const
 export const CMS_BANNER_SLOTS = ["home_promo"] as const

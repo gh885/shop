@@ -2,14 +2,17 @@ import { describe, expect, it, vi } from "vitest"
 
 import {
     blankToUndefined,
+    CmsTargetSortSchema,
     fromDateTimeLocal,
     parseTargetType,
+    targetSortDefaults,
     toDateTimeLocal,
+    toTargetSortFields,
     TARGET_TYPE_ITEMS,
 } from "./constants"
 
 /**
- * CMS 三张表单共用的四个小工具：契约里响应字段是宽松的 `string | null`，表单只认收窄后的
+ * CMS 三张表单共用的工具：契约里响应字段是宽松的 `string | null`，表单只认收窄后的
  * 枚举，中间这道「脏值不许裸断言进表单」的收口必须只有一份。
  *
  * 时间那两个函数只在本地时区下才有意义（datetime-local 输入框读写的是本地墙上时钟），
@@ -73,5 +76,61 @@ describe("datetime-local ↔ ISO", () => {
 
     it("脏值不当成时刻：解析不出来就留空，别让输入框显示 Invalid Date", () => {
         expect(toDateTimeLocal("not-a-date")).toBe("")
+    })
+})
+
+describe("跳转 + 排序公共片段", () => {
+    it("回填：响应行按 parse/提交的反向折成表单初值，脏 targetType 落回 NONE", () => {
+        expect(
+            targetSortDefaults({ targetType: "CATEGORY", target: "shoes", sortOrder: 12 }),
+        ).toEqual({ targetType: "CATEGORY", target: "shoes", sortOrder: "12" })
+        expect(targetSortDefaults({ targetType: "MINI_PROGRAM", target: null })).toEqual({
+            targetType: "NONE",
+            target: "",
+            sortOrder: "0",
+        })
+        expect(targetSortDefaults()).toEqual({ targetType: "NONE", target: "", sortOrder: "0" })
+    })
+
+    it("提交：NONE 与空目标都折成缺省，排序空串按 0 发", () => {
+        expect(toTargetSortFields({ targetType: "NONE", target: "  ", sortOrder: "" })).toEqual({
+            targetType: undefined,
+            target: undefined,
+            sortOrder: 0,
+        })
+        expect(
+            toTargetSortFields({ targetType: "URL", target: " https://a.cn ", sortOrder: "3" }),
+        ).toEqual({ targetType: "URL", target: "https://a.cn", sortOrder: 3 })
+    })
+
+    it("片段校验与三张表单同源：排序只认非负整数，target 有上限", () => {
+        expect(
+            CmsTargetSortSchema.safeParse({ targetType: "NONE", target: "", sortOrder: "-1" })
+                .success,
+        ).toBe(false)
+        expect(
+            CmsTargetSortSchema.safeParse({ targetType: "NONE", target: "", sortOrder: "1.5" })
+                .success,
+        ).toBe(false)
+        expect(
+            CmsTargetSortSchema.safeParse({ targetType: "NONE", target: "", sortOrder: "" })
+                .success,
+        ).toBe(true)
+        expect(
+            CmsTargetSortSchema.safeParse({
+                targetType: "PRODUCT",
+                target: "x".repeat(256),
+                sortOrder: "1",
+            }).success,
+        ).toBe(false)
+    })
+
+    it("往返闭合：响应行 → 表单 → 请求体，不认识的跳转类型不会原样发回后端", () => {
+        const row = { targetType: "MINI_PROGRAM", target: "abc", sortOrder: 5 }
+        expect(toTargetSortFields(targetSortDefaults(row))).toEqual({
+            targetType: undefined,
+            target: "abc",
+            sortOrder: 5,
+        })
     })
 })
