@@ -32,6 +32,8 @@ function makeDto(
         shopName?: string
         mainImage?: string | null
         skuImage?: string | null
+        /** 划线价（分）：默认比现价高 10 元；null = 没有划线价，等于现价 = 挂着但不打折 */
+        originalPrice?: number | null
         /** 商品/SKU 已被删除：后端连快照都不返回（product 与 sku 同生共死），不是下架 */
         deleted?: boolean
     } = {},
@@ -47,6 +49,7 @@ function makeDto(
         shopName = "数码旗舰店",
         mainImage = null,
         skuImage = null,
+        originalPrice = price + 1000,
         deleted = false,
     } = opts
     return {
@@ -72,7 +75,8 @@ function makeDto(
                   name: "默认规格",
                   image: skuImage,
                   price: { amount: price, currency: "CNY" },
-                  originalPrice: { amount: price + 1000, currency: "CNY" },
+                  originalPrice:
+                      originalPrice === null ? null : { amount: originalPrice, currency: "CNY" },
                   stock,
                   onSale: available,
               },
@@ -239,13 +243,25 @@ describe("deriveCartItemView", () => {
         expect(view.skuName).toBeUndefined()
     })
 
-    it("现价来自 SKU，划线价缺省时不画那行删除线", () => {
+    it("现价来自 SKU，划线价高于现价才留：让过的钱才配一条删除线", () => {
         expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).price).toEqual(
             money(19900),
         )
         expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).original).toEqual(
             money(20900),
         )
+    })
+
+    it("划线价与现价相等 ⇒ 不画：那是「没打折」，画出来就成了假折扣", () => {
+        const view = deriveCartItemView(toCartItem(makeDto({ price: 19900, originalPrice: 19900 })))
+        expect(view.price).toEqual(money(19900))
+        expect(view.original).toBeUndefined()
+    })
+
+    it("契约里没有划线价 ⇒ 视图里也没有（后端允许 originalPrice 为 null）", () => {
+        expect(
+            deriveCartItemView(toCartItem(makeDto({ price: 19900, originalPrice: null }))).original,
+        ).toBeUndefined()
     })
 })
 

@@ -10,7 +10,7 @@ import {
     useCreateOrder,
     checkoutPreviewOptions,
 } from "#/checkout"
-import { formatMoney, sumMoney, timesMoney } from "@shop/common"
+import { formatMoney, isPositiveMoney, sumMoney, timesMoney } from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
@@ -243,7 +243,7 @@ function CheckoutPage() {
                                             className="text-sm"
                                         />
                                     </Row>
-                                    {totalDiscountAmount.amount > 0 && (
+                                    {isPositiveMoney(totalDiscountAmount) && (
                                         <Row label="优惠">
                                             <DiscountPrice
                                                 value={totalDiscountAmount}

@@ -24,7 +24,6 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
             skuId: `sku-${index}`,
             title,
             price: { amount: 10000, currency: "CNY" },
-            originalPrice: null,
             quantity: 1,
             amount: { amount: 10000, currency: "CNY" },
         })),

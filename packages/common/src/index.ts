@@ -21,14 +21,19 @@
  */
 
 export {
+    compareMoney,
     fenToYuan,
     formatMoney,
+    isPositiveMoney,
+    maxMoney,
+    minMoney,
     money,
     moneyToYuan,
     type Money,
     priceRangeText,
     sameMoney,
     splitMoney,
+    strikethroughPrice,
     sumMoney,
     timesMoney,
     yuanToFen,

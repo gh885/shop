@@ -1,4 +1,5 @@
 import { formatDateTime } from "@shop/app-kit"
+import { isPositiveMoney } from "@shop/common"
 
 import { Price } from "#/shared/ui/Price"
 import { DiscountPrice } from "#/shared/ui/DiscountPrice"
@@ -68,7 +69,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                         />
                     </InfoRow>
                     {/* 优惠是减项，只在真的减过钱时才出现；出现时三行必须加得起来：商品总价 + 运费 − 优惠 = 实付款 */}
-                    {order.discountAmount.amount > 0 && (
+                    {isPositiveMoney(order.discountAmount) && (
                         <InfoRow label="优惠">
                             <DiscountPrice
                                 value={order.discountAmount}

@@ -156,12 +156,11 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                                     value={item.price}
                                     className="text-sm text-foreground"
                                 />
-                                {item.originalPrice !== null &&
-                                    item.originalPrice.amount > item.price.amount && (
-                                        <p className="text-xs text-muted-foreground line-through">
-                                            {formatMoney(item.originalPrice)}
-                                        </p>
-                                    )}
+                                {item.originalPrice !== undefined && (
+                                    <p className="text-xs text-muted-foreground line-through">
+                                        {formatMoney(item.originalPrice)}
+                                    </p>
+                                )}
                             </div>
 
                             {/* 行小计 */}

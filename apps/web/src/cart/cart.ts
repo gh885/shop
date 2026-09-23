@@ -3,7 +3,7 @@ import type {
     CartProductInfo as SdkCartProductInfo,
     SkuInfo,
 } from "@shop/api/sdk"
-import { type Money, sumMoney, timesMoney } from "@shop/common"
+import { type Money, strikethroughPrice, sumMoney, timesMoney } from "@shop/common"
 
 /** 购物车嵌入的商品缩略信息 —— 契约同 SDK CartProductInfo，仅重命名投影（name→title、mainImage→image） */
 type CartItemProduct = Omit<SdkCartProductInfo, "name" | "mainImage"> & {
@@ -159,7 +159,7 @@ export function deriveCartItemView(item: CartItem): CartItemView {
         title: item.product.title,
         skuName: item.sku.name || undefined,
         price: item.sku.price,
-        original: item.sku.originalPrice ?? undefined,
+        original: strikethroughPrice(item.sku.originalPrice, item.sku.price),
         stock,
         outOfStock: item.available && stock === 0,
         disabled: !item.available,

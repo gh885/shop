@@ -21,7 +21,13 @@ import { statusToWire, toOrder, toOrderActions, toOrderDetail } from "./order"
 const MONEY = { amount: 19900, currency: "CNY" }
 
 function makeItemDto(
-    opts: { name?: string; image?: string | null; quantity?: number } = {},
+    opts: {
+        name?: string
+        image?: string | null
+        quantity?: number
+        /** 下单瞬间定格的划线价；默认与成交价相等（没让钱是常态） */
+        originalPrice?: typeof MONEY | null
+    } = {},
 ): OrderListItemResponse["items"][number] {
     return {
         productId: "p-1",
@@ -29,7 +35,7 @@ function makeItemDto(
         name: opts.name ?? "测试商品",
         image: opts.image ?? null,
         price: MONEY,
-        originalPrice: MONEY,
+        originalPrice: "originalPrice" in opts ? (opts.originalPrice ?? null) : MONEY,
         quantity: opts.quantity ?? 1,
         amount: MONEY,
     }
@@ -105,6 +111,22 @@ describe("toOrder（列表项投影）", () => {
 
         expect(order.items[0]).toMatchObject({ title: "测试商品", image: "img/a.png" })
         expect(toOrder(makeListDto()).items[0]?.image).toBeUndefined()
+    })
+
+    it("划线价等于成交价 ⇒ 投影成「没有」：卡片上不画那条假折扣删除线", () => {
+        expect(
+            toOrder(makeListDto({ items: [makeItemDto()] })).items[0]?.originalPrice,
+        ).toBeUndefined()
+    })
+
+    it("划线价确实更高才留：让过的钱才配一行原价", () => {
+        const order = toOrder(
+            makeListDto({
+                items: [makeItemDto({ originalPrice: { amount: 29900, currency: "CNY" } })],
+            }),
+        )
+
+        expect(order.items[0]?.originalPrice).toEqual({ amount: 29900, currency: "CNY" })
     })
 
     it("店铺注销时 shopName 如实透传 null，不造假名", () => {

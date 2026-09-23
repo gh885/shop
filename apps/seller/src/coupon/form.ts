@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import type { CreateCouponTemplateRequest } from "@shop/api/sdk"
-import { yuanToFen, yuanToMoney } from "@shop/common"
+import { isPositiveMoney, yuanToFen, yuanToMoney } from "@shop/common"
 
 /**
  * coupon 域 · 表单层：Zod 校验 + 表单形状 → 后端请求的投影。
@@ -106,7 +106,7 @@ export function couponRequestFromForm(values: CouponFormValues): CreateCouponTem
     if (thresholdAmount === undefined) throw new Error("门槛金额格式不正确")
 
     const discountAmount = yuanToMoney(values.discountYuan)
-    if (discountAmount === undefined || discountAmount.amount <= 0)
+    if (discountAmount === undefined || !isPositiveMoney(discountAmount))
         throw new Error("面额格式不正确")
 
     const totalQuantity = Number(values.totalQuantity)

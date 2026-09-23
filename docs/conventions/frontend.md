@@ -134,13 +134,16 @@ useMutation({
 
 **一句话**：`Money { amount(分), currency }` 是链路上唯一的金额形状，「元」只活在输入框和展示文本里；运算和展示都不许脱离 Money，否则币种在那一刻就丢了。
 
-| 要做的事           | 用什么（都在 `@shop/common` 的 `money.ts`）                                | 不要                               |
-| ------------------ | -------------------------------------------------------------------------- | ---------------------------------- |
-| 展示一笔钱         | `formatMoney(m, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种） | 各处手写 `¥${fenToYuan(m.amount)}` |
-| 加减乘件数求和     | `plusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加）          | `.amount` 抠出来做算术             |
-| 表单回填           | `moneyToYuan(m)`（无符号、不分组、补齐两位）                               | 拿 `formatMoney` 的结果塞进 input  |
-| 元输入 → Money     | `yuanToMoney` / `yuanPriceSchema`（币种默认平台定价币种 CNY）              | 自己 `Number(v) * 100`             |
-| 判两笔钱是否同一笔 | `sameMoney`（Money 是值对象，`===` 比的是引用）                            | `a.price !== b.price`              |
+| 要做的事            | 用什么（都在 `@shop/common` 的 `money.ts`）                                | 不要                               |
+| ------------------- | -------------------------------------------------------------------------- | ---------------------------------- |
+| 展示一笔钱          | `formatMoney(m, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种） | 各处手写 `¥${fenToYuan(m.amount)}` |
+| 加减乘件数求和      | `plusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加）          | `.amount` 抠出来做算术             |
+| 表单回填            | `moneyToYuan(m)`（无符号、不分组、补齐两位）                               | 拿 `formatMoney` 的结果塞进 input  |
+| 元输入 → Money      | `yuanToMoney` / `yuanPriceSchema`（币种默认平台定价币种 CNY）              | 自己 `Number(v) * 100`             |
+| 判两笔钱是否同一笔  | `sameMoney`（Money 是值对象，`===` 比的是引用）                            | `a.price !== b.price`              |
+| 比大小 / 取最低最高 | `compareMoney` / `minMoney` / `maxMoney`（跨币种抛错，空集合给 undefined） | `.amount < .amount`、自己写 reduce |
+| 判这笔钱有没有值    | `isPositiveMoney`（优惠为 0、门槛为 0 都是「没有这一项」）                 | `m.amount > 0`                     |
+| 划线价该不该画      | `strikethroughPrice(original, price)`（等于成交价就是不打折）              | 每个渲染点各判一次大小             |
 
 - 缺席的钱显式给占位符（`formatMoney(undefined)` → `—`）：`¥0.00` 和「没有数」是两件事，前者会被读成免单。
 - 造零值不凭空预设币种：`sumMoney` 非空时起点币种跟第一笔钱，`zeroMoney(currency)` 的币种从手上这批钱里拿。

@@ -1,4 +1,4 @@
-import type { Money } from "@shop/common"
+import { type Money, isPositiveMoney } from "@shop/common"
 
 import { Price } from "#/shared/ui/Price"
 
@@ -32,7 +32,7 @@ export function GroupAmountSentence({
                 value={shippingFee}
                 className="text-sm text-foreground"
             />
-            {discountAmount.amount > 0 && (
+            {isPositiveMoney(discountAmount) && (
                 <>
                     {" "}
                     − 优惠{" "}

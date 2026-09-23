@@ -19,7 +19,7 @@ import { ErrorCodes, couponStatusLabel, toApiError } from "@shop/common"
  * 但类型不为此收窄——契约说什么就是什么。其余字段同名同型，用 Omit 组合，不逐字段抄书。
  *
  * 契约读不出的几条语义：
- * - `threshold` / `discount`：分为单位，`threshold.amount <= 0` 即无门槛；
+ * - `threshold` / `discount`：Money（分 + 币种），门槛为 0 即「无门槛」（文案见 @shop/common 的 couponRuleText）；
  * - `effectiveAt` / `expireAt`：ISO 绝对时间（领取时已固化，不再随模板改动）；
  * - `shopName`：契约非空（店铺注销时的 null 口径见订单侧，券包这条契约上不给）；
  * - `status`：后端 `MyCoupon.displayStatus` 算出来的值（库里可能还是 UNUSED 而事实已过期），

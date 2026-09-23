@@ -1,4 +1,4 @@
-import { type Money } from "@shop/common"
+import { type Money, sameMoney, strikethroughPrice } from "@shop/common"
 import type {
     FeedItemResponse,
     ParamItem,
@@ -156,7 +156,7 @@ export interface PriceView {
     primary: Money
     /** 区间上限：与 primary 相同则不显示区间（undefined） */
     rangeTo?: Money
-    /** 划线价：仅选中 SKU 且有 originalPrice 时给 */
+    /** 划线价：仅选中 SKU 且原价确实高于成交价时给（相等是不打折，画出来就是假折扣） */
     original?: Money
 }
 
@@ -166,14 +166,14 @@ export function derivePriceView(detail: ProductDetail, selection: SkuSelection):
     if (matched) {
         return {
             primary: matched.price,
-            original: matched.originalPrice ?? undefined,
+            original: strikethroughPrice(matched.originalPrice, matched.price),
         }
     }
 
     const { priceMin, priceMax } = detail.product
     return {
         primary: priceMin,
-        rangeTo: priceMax.amount === priceMin.amount ? undefined : priceMax,
+        rangeTo: sameMoney(priceMin, priceMax) ? undefined : priceMax,
     }
 }
 

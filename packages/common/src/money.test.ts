@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest"
 
 import {
+    compareMoney,
     fenToYuan,
     formatMoney,
+    isPositiveMoney,
+    maxMoney,
+    minMoney,
     money,
     moneyToYuan,
     plusMoney,
     priceRangeText,
     splitFen,
     splitMoney,
+    strikethroughPrice,
     sumMoney,
     timesMoney,
     yuanToFen,
@@ -48,8 +53,45 @@ describe("金额运算", () => {
         expect(sumMoney([money(100), money(200), money(300)])).toEqual(money(600))
     })
 
-    it("求和的起点币种跟第一笔钱：一叠 USD 不会撞上 CNY 的零", () => {
+    it("求和的起点币种跟第一笔钱：一叠 USD 不该撞上 CNY 的零", () => {
         expect(sumMoney([money(100, "USD"), money(200, "USD")])).toEqual(money(300, "USD"))
+    })
+})
+
+describe("金额比较与判定", () => {
+    it("比较大小：只给先后，不拆出裸分去比", () => {
+        expect(compareMoney(money(200), money(100))).toBe(1)
+        expect(compareMoney(money(100), money(200))).toBe(-1)
+        expect(compareMoney(money(100), money(100))).toBe(0)
+    })
+
+    it("跨币种比较抛错：和相加同一口径，不静默排个错的序", () => {
+        expect(() => compareMoney(money(100, "CNY"), money(100, "USD"))).toThrow(/币种不一致/)
+    })
+
+    it("「真有钱」把 0 判在外面：优惠为 0、门槛为 0 都是「没有这一项」", () => {
+        expect(isPositiveMoney(money(1))).toBe(true)
+        expect(isPositiveMoney(money(0))).toBe(false)
+    })
+
+    it("最低/最高：空集合给 undefined，调用方不必先判长度", () => {
+        expect(minMoney([])).toBeUndefined()
+        expect(maxMoney([])).toBeUndefined()
+        const prices = [money(300), money(100), money(200)]
+        expect(minMoney(prices)).toEqual(money(100))
+        expect(maxMoney(prices)).toEqual(money(300))
+    })
+
+    it("划线价只在原价严格高于成交价时才画：相等是「没让钱」，画出来就是假折扣", () => {
+        expect(strikethroughPrice(money(20000), money(19900))).toEqual(money(20000))
+        expect(strikethroughPrice(money(19900), money(19900))).toBeUndefined()
+        expect(strikethroughPrice(money(10000), money(19900))).toBeUndefined()
+    })
+
+    it("划线价容忍缺席：契约里 originalPrice 可空，没价的商品也不该抛", () => {
+        expect(strikethroughPrice(null, money(19900))).toBeUndefined()
+        expect(strikethroughPrice(undefined, money(19900))).toBeUndefined()
+        expect(strikethroughPrice(money(20000), undefined)).toBeUndefined()
     })
 })
 

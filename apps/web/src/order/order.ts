@@ -5,6 +5,8 @@ import type {
     OrderListItemResponse,
 } from "@shop/api/sdk"
 
+import { strikethroughPrice } from "@shop/common"
+
 import { toStatusFromWire } from "./order-status"
 import type { Order, OrderAction, OrderDetail, OrderItem } from "./model"
 
@@ -15,7 +17,8 @@ import type { Order, OrderAction, OrderDetail, OrderItem } from "./model"
  * 自后端收紧 OpenAPI 契约（response 字段已标 required / nullable）后：
  *   - required 字段：契约保证必有，mapping 不再兜底（去掉 ?? "" / ?? 0）。
  *   - nullable 字段：契约明确可空，如实透传 null，由 UI 层处理「无」的展示（不再 ?? "" 造假）。
- * 金额一律 Money；成交价/小计等由契约保证非空，只有划线价 originalPrice 可空（无划线价是常态）。
+ * 金额一律 Money；成交价/小计等由契约保证非空。划线价是唯一被投影改写的金额字段：
+ * 契约可空，且「等于成交价」（后端允许相等，PRD-39）在这里一并折成「没有」——只有让过钱的原价才配删除线。
  * 入参直接用 SDK 生成的 DTO 类型（行项形状单一事实来源在 types.gen，不手抄）。
  */
 
@@ -51,7 +54,7 @@ function toOrderItem(dto: OrderItemResponse): OrderItem {
         title: dto.name,
         image: dto.image ?? undefined,
         price: dto.price,
-        originalPrice: dto.originalPrice,
+        originalPrice: strikethroughPrice(dto.originalPrice, dto.price),
         quantity: dto.quantity,
         amount: dto.amount,
     }

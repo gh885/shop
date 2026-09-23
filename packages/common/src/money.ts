@@ -58,6 +58,22 @@ export function sameMoney(a: Money | null | undefined, b: Money | null | undefin
     return a.amount === b.amount && a.currency === b.currency
 }
 
+/** 比较两笔钱（-1/0/1）：跨币种抛错，与 {@link plusMoney} 同一口径——不硬比，也不静默给个错的先后 */
+export function compareMoney(a: Money, b: Money): number {
+    assertSameCurrency(a, b)
+    return Math.sign(a.amount - b.amount)
+}
+
+/**
+ * 这笔钱是不是「真有钱」（> 0）。
+ *
+ * 几处问的是同一件事：账单里的减项（优惠为 0 不该出现一行「− 优惠 ¥0.00」）、券门槛（0 是
+ * 「无门槛」）、表单里的面额。写 `m.amount > 0` 就是把 Money 拆回裸数字比大小。
+ */
+export function isPositiveMoney(m: Money): boolean {
+    return m.amount > 0
+}
+
 /** 相加：仅同币种，跨币种抛错（拿 CNY 的钱加 USD 的钱本身就是错的，静默给个和比报错贵） */
 export function plusMoney(a: Money, b: Money): Money {
     assertSameCurrency(a, b)
@@ -77,6 +93,23 @@ export function timesMoney(m: Money, factor: number): Money {
 export function sumMoney(items: readonly Money[], zero: Money = zeroMoney()): Money {
     if (items.length === 0) return zero
     return items.reduce((acc, item) => plusMoney(acc, item), money(0, items[0]!.currency))
+}
+
+/** 一组价里的最低/最高（区间展示的两端）：空集合给 undefined，调用方不必先判长度 */
+export function minMoney(items: readonly Money[]): Money | undefined {
+    return extremumMoney(items, -1)
+}
+
+export function maxMoney(items: readonly Money[]): Money | undefined {
+    return extremumMoney(items, 1)
+}
+
+function extremumMoney(items: readonly Money[], want: -1 | 1): Money | undefined {
+    let best: Money | undefined
+    for (const item of items) {
+        if (best === undefined || compareMoney(item, best) === want) best = item
+    }
+    return best
 }
 
 function assertSameCurrency(a: Money, b: Money): void {
@@ -143,6 +176,22 @@ export function splitMoney(m: Money): { symbol: string; yuan: string; cents: str
 /** 价格区间展示：单规格同价时只显示一个价；缺席视为「未定价」 */
 export function priceRangeText(min?: Money | null, max?: Money | null): string {
     if (!min) return "未定价"
-    if (!max || max.amount === min.amount) return formatMoney(min)
+    if (!max || sameMoney(min, max)) return formatMoney(min)
     return `${formatMoney(min)} ~ ${formatMoney(max)}`
+}
+
+/**
+ * 划线价：只有原价**严格**高于成交价才画。
+ *
+ * 后端保证 `originalPrice ≥ price`（PRD-39 的前置校验 + DB CHECK），相等是合法数据——但那是
+ * 「没让一分钱」，画出来就成了「原价 ¥19.00」压着「¥19.00」，把没让过的钱画成让过的钱。
+ * 判据只放这一处：同一个商品在详情页/购物车划线、到订单里不划，用户会以为价格变了。
+ * 不可画返回 undefined（把 null 契约值一起归一），调用方直接拿它渲染。
+ */
+export function strikethroughPrice(
+    original: Money | null | undefined,
+    price: Money | undefined,
+): Money | undefined {
+    if (!original || !price) return undefined
+    return compareMoney(original, price) > 0 ? original : undefined
 }

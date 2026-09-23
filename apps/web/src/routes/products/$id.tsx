@@ -1,4 +1,4 @@
-import { fenToYuan, toApiError } from "@shop/common"
+import { moneyToYuan, toApiError } from "@shop/common"
 import { useState } from "react"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 
@@ -108,7 +108,7 @@ export const Route = createFileRoute("/products/$id")({
                                 ? {
                                       // schema.org 规定价格与币种是两个字段：这里从 Money 拆开，链路内部不拆
                                       "@type": "Offer",
-                                      price: fenToYuan(price.amount),
+                                      price: moneyToYuan(price),
                                       priceCurrency: price.currency,
                                       availability: "https://schema.org/InStock",
                                   }
