@@ -22,8 +22,11 @@ import { ErrorCodes } from "./error-codes"
 export interface TokenStore {
     get: () => string | null
     set: (token: string) => void
-    /** 清空登录态（auth-kit 的 tokenStore 都有）；410 重放裁决时用它就地登出 */
-    clear?: () => void
+    /**
+     * 清空登录态。必给：410 重放裁决靠它就地登出，可选就意味着某个装配漏实现时
+     * 后端已经吊销了全部会话、前端还自以为登录着（清态静默变成 no-op）。
+     */
+    clear: () => void
 }
 
 export interface SdkClientOptions {
@@ -43,6 +46,22 @@ const TIMEOUT_MS = 10_000
 const RETRY_LIMIT = 2
 const RETRY_METHODS = ["GET"] as const
 const RETRY_STATUSES = [408, 429, 502, 503, 504]
+
+/** 401 刷新的三种结局：换新 token / 会话被吊销（带 410 响应体）/ 没刷上（undefined = 原 401 冒泡） */
+type Refreshed = { accessToken: string } | { revokedBody: string } | undefined
+
+/** 从 JSON 文本取一个顶层字符串字段：解析不出来或不是字符串都给 undefined（不猜形状） */
+const jsonStringField = (text: string, field: string): string | undefined => {
+    try {
+        const parsed: unknown = JSON.parse(text)
+        if (typeof parsed !== "object" || parsed === null) return undefined
+        // 用 Reflect.get 而不是 as Record：JSON.parse 的返回是 any，断言过去等于给自己发通行证
+        const value: unknown = Reflect.get(parsed, field)
+        return typeof value === "string" ? value : undefined
+    } catch {
+        return undefined
+    }
+}
 
 /**
  * 扁平化 query 序列化：Spring 模块入参多为 `@Valid XxxQuery`（如 PageParams/ProductQuery），
@@ -76,6 +95,56 @@ export function configureSdkClient(
     options?: SdkClientOptions,
 ) {
     const startTimes = new WeakMap<Request, number>()
+
+    /**
+     * 401 → 刷新：单飞。同一时刻只发一次 refresh，并发 401 共用结果。
+     *
+     * refresh token 一次一换（ACC-22），并发 401 各刷一次就是让第二次提交去拿已被轮换掉的旧码：
+     * 15 秒宽限期内后端按多标签页竞争给 401 不吊销 —— 那一次刷新算失败，兄弟请求早已换到新 token，
+     * 本请求却只能冒泡一个假的「登录已过期」；超出宽限期就判成盗用 → 410 吊销该主体全部设备会话。
+     * 两种都不是用户该看到的：工作台首屏并发几个查询，恰好是最容易凑齐并发的场景。
+     * （auth-kit 的 bootstrapAuth 早就去重了，这条 401 路径此前没有。）
+     */
+    let refreshing: Promise<Refreshed> | undefined
+
+    function refreshOnce(refreshPath: string): Promise<Refreshed> {
+        refreshing ??= doRefresh(refreshPath).finally(() => {
+            refreshing = undefined
+        })
+        return refreshing
+    }
+
+    async function doRefresh(refreshPath: string): Promise<Refreshed> {
+        try {
+            const res = await fetch(`${baseUrl || ""}/${refreshPath}`, {
+                method: "POST",
+                credentials: "include",
+            })
+            const text = await res.text()
+            if (!res.ok) {
+                // 410 + REFRESH_TOKEN_REUSED = refresh 重放裁决：后端已吊销该主体全部设备会话。
+                // 就地清登录态（与「401 冒泡后消费方兜底清态」同效，省得各端再补一遍），响应体交回
+                // 调用方原样冒泡 —— 其 detail（「全部设备已下线」）经错误拦截器归一成 ApiError，
+                // toast 由消费方全局错误通道呈现，拦截器不直造 UI。
+                if (
+                    res.status !== 410 ||
+                    jsonStringField(text, "code") !== ErrorCodes.REFRESH_TOKEN_REUSED
+                ) {
+                    return undefined
+                }
+                tokens?.clear()
+                return { revokedBody: text }
+            }
+            const accessToken = jsonStringField(text, "accessToken")
+            if (!accessToken) return undefined
+            // 写入只做这一次：并发等待者各自 set 一遍，就是拿同一个 token 反复通知订阅者
+            tokens?.set(accessToken)
+            return { accessToken }
+        } catch {
+            // 刷新请求本身失败（网络/解析）→ 当作没刷上
+            return undefined
+        }
+    }
 
     client.setConfig({
         baseUrl: baseUrl || "/",
@@ -135,48 +204,24 @@ export function configureSdkClient(
             return response
         }
 
-        try {
-            const prefix = baseUrl || ""
-            const res = await fetch(`${prefix}/${refreshPath}`, {
-                method: "POST",
-                credentials: "include",
+        const refreshed = await refreshOnce(refreshPath)
+        if (!refreshed) {
+            // 刷新没成（cookie 过期）→ 原始 401 正常冒泡
+            return response
+        }
+        if (!("accessToken" in refreshed)) {
+            // 吊销裁决：并发请求各拿一份同体的 410（真实 Response 的 body 只能消费一次），
+            // 谁先落地 toast 都是后端那句「全部设备已下线」。
+            return new Response(refreshed.revokedBody, {
+                status: 410,
+                headers: { "content-type": "application/json" },
             })
-            if (!res.ok) {
-                // 410 + REFRESH_TOKEN_REUSED = refresh 重放裁决：后端已吊销该主体全部设备会话。
-                // 清本地登录态（与 401 失败冒泡后消费方兜底清态同效，这里就地做省得各端再补），
-                // 并把 410 原样冒泡——其 detail（「全部设备已下线」）经错误拦截器归一成 ApiError，
-                // toast 由消费方全局错误处理呈现，拦截器不直造 UI。clone 读 body 是为了比对 code，
-                // 原体保持未消费给下游解析。
-                if (res.status === 410) {
-                    const body: unknown = await res
-                        .clone()
-                        .json()
-                        .catch(() => undefined)
-                    if (
-                        typeof body === "object" &&
-                        body !== null &&
-                        (body as { code?: unknown }).code === ErrorCodes.REFRESH_TOKEN_REUSED
-                    ) {
-                        tokens.clear?.()
-                        return res
-                    }
-                }
-                return response
-            }
-            const body: unknown = await res.json()
-            if (
-                typeof body !== "object" ||
-                body === null ||
-                !("accessToken" in body) ||
-                typeof body.accessToken !== "string"
-            ) {
-                return response
-            }
-            tokens.set(body.accessToken)
+        }
 
+        try {
             // 重发原请求：重建 Request（原 body 已消费，从序列化结果取）
             const headers = new Headers(request.headers)
-            headers.set("Authorization", `Bearer ${body.accessToken}`)
+            headers.set("Authorization", `Bearer ${refreshed.accessToken}`)
             const retry = new Request(request.url, {
                 method: request.method,
                 headers,
@@ -186,7 +231,7 @@ export function configureSdkClient(
             })
             return await fetch(retry)
         } catch {
-            // refresh 失败 → 原始 401 正常冒泡
+            // 重发本身失败 → 原始 401 冒泡
             return response
         }
     })

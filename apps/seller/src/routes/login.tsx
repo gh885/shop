@@ -1,5 +1,4 @@
-import { useEffect } from "react"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { Store } from "lucide-react"
 
 import { AuthApi } from "@shop/api/sdk"
@@ -9,18 +8,23 @@ import { Card, CardContent } from "@shop/ui-web"
 import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
 
 export const Route = createFileRoute("/login")({
+    /**
+     * 已登录（refresh cookie 有效）不进登录页：交给守卫在渲染前裁决。
+     * 之前在组件里用 effect 判，等于先让表单闪一帧再把人赶走。
+     */
+    beforeLoad: async () => {
+        await bootstrapAuth()
+        if (authState.getStatus() === "authed") throw redirect({ to: "/" })
+    },
     component: LoginPage,
 })
 
 /**
- * 图形验证码（匿名公开接口）。**必须是模块级函数**：LoginForm 把它透给 useCaptcha，
- * 行内闭包每次渲染都是新引用，useCaptcha 的 refresh 随之变新，「显现即拉验证码」的 effect
+ * 图形验证码（匿名公开接口）。**必须是模块级稳定引用**：LoginForm 把它透给 useCaptcha，
+ * 行内闭包每次渲染都是新函数，useCaptcha 的 refresh 随之变新，「显现即拉验证码」的 effect
  * 就会每渲染一次打一次后端（web 端同源做法见 apps/web/src/auth/actions.ts 的 getCaptcha）。
  */
-async function getCaptcha(): Promise<{ captchaId: string; image: string }> {
-    const data = await AuthApi.getCaptcha()
-    return { captchaId: data.captchaId, image: data.image }
-}
+const getCaptcha = () => AuthApi.getCaptcha()
 
 /**
  * 卖家中心登录页：壳（Card + 品牌头）+ app-kit 的 LoginForm。
@@ -28,16 +32,6 @@ async function getCaptcha(): Promise<{ captchaId: string; image: string }> {
  */
 function LoginPage() {
     const navigate = useNavigate()
-
-    // 已登录（refresh cookie 有效）直接进入工作台
-    useEffect(() => {
-        void (async () => {
-            await bootstrapAuth()
-            if (authState.getStatus() === "authed") {
-                await navigate({ to: "/", replace: true })
-            }
-        })()
-    }, [navigate])
 
     return (
         <div className="flex min-h-dvh items-center justify-center bg-sunken px-4">

@@ -47,8 +47,9 @@ export async function logout(): Promise<void> {
     }
 }
 
-/** 图形验证码：SDK 返回 { captchaId, image }，供 useCaptcha 使用（匿名公开接口） */
-export async function getCaptcha(): Promise<{ captchaId: string; image: string }> {
-    const data = await AuthApi.getCaptcha()
-    return { captchaId: data.captchaId, image: data.image }
-}
+/**
+ * 图形验证码（匿名公开接口）：SDK 已给 `{ captchaId, image }`，不再套一层同名转接。
+ * 必须是模块级稳定引用 —— LoginForm 把它透给 useCaptcha，行内闭包每次渲染都是新函数，
+ * useCaptcha 的 refresh 随之变新，「显现即拉验证码」的 effect 就会每渲染一次打一次后端。
+ */
+export const getCaptcha = () => AuthApi.getCaptcha()

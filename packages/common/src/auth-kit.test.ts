@@ -6,8 +6,9 @@ import { createAuthKit } from "./auth-kit"
  * 登录态套件：三端共用的一份 token 存储 + 启动静默刷新。
  *
  * 钉住两件只有这份实现能负责的事：**三态怎么裁决**（unknown 只能被一次写入或一轮刷新终结，
- * 卡住就是守卫永远放行或永远拦），以及**刷新请求的去重**（root 挂载、路由守卫、登录页都会
- * await 它——各发一次就是三次 refresh token 轮换，第二次起全被判重放）。
+ * 卡住就是守卫永远放行或永远拦），以及**刷新请求的去重与作废**（root 挂载、路由守卫、登录页都会
+ * await 它——各发一次就是三次 refresh token 轮换，第二次起全被判重放；而登出后这次缓存必须作废，
+ * 否则「guest」会永远生效）。
  *
  * useAuthStatus / useIsLoggedIn 是 useSyncExternalStore 的直连转发；本包跑在 node 环境、
  * 不带渲染器，订阅链路交给 app-kit 的组件测试（基建只测一次）。
@@ -102,6 +103,41 @@ describe("bootstrapAuth", () => {
         await kit.bootstrapAuth()
 
         expect(refresh).toHaveBeenCalledWith(deviceId)
+    })
+
+    it("登出后重新静默刷新：cookie 还有效就不必整页重载才能再进来", async () => {
+        // 缓存那次 bootstrapPromise 若不清，登出裁决会永远生效 ——
+        // 同一浏览器重新登录（或直接被 401 清态）后，守卫仍照着旧的 guest 把人挡在门外
+        const { kit, refresh } = makeKit()
+        await kit.bootstrapAuth()
+        kit.tokenStore.clear()
+
+        await kit.bootstrapAuth()
+
+        expect(refresh).toHaveBeenCalledTimes(2)
+        expect(kit.authState.getStatus()).toBe("authed")
+    })
+
+    it("自己裁决出的 guest 保留结论：未登录时每次受保护导航都重打刷新，纯属白请求", async () => {
+        const { kit, refresh } = makeKit(async () => {
+            throw new Error("401")
+        })
+
+        await kit.bootstrapAuth()
+        await kit.bootstrapAuth()
+
+        expect(refresh).toHaveBeenCalledTimes(1)
+        expect(kit.authState.getStatus()).toBe("guest")
+    })
+
+    it("已登录直接放行：登录成功后守卫不该再打一次刷新", async () => {
+        const { kit, refresh } = makeKit()
+        kit.tokenStore.set("at-from-login")
+
+        await kit.bootstrapAuth()
+
+        expect(refresh).not.toHaveBeenCalled()
+        expect(kit.authState.getStatus()).toBe("authed")
     })
 })
 

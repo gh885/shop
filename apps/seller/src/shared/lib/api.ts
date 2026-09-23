@@ -3,7 +3,7 @@ import { redirect } from "@tanstack/react-router"
 import { configureSdkClient, createAuthKit } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 
-import { getCurrentShopId } from "./shop-store"
+import { getCurrentShopId, setCurrentShopId } from "./shop-store"
 
 // 浏览器端走 Vite proxy（同源相对路径）
 const authKit = createAuthKit({
@@ -32,6 +32,9 @@ export async function logout(): Promise<void> {
         // 登出接口失败也强制清本地状态
     } finally {
         tokenStore.clear()
+        // 当前店铺也属于登录态（ACC-80）：它持久在 localStorage 并由拦截器注入 X-Shop-Id，
+        // 不清就是下一个用同一浏览器登录的账号替上一个人发请求（哪怕他不在那家店）
+        setCurrentShopId(undefined)
     }
 }
 

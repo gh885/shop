@@ -31,14 +31,15 @@ export interface AuthKitOptions {
 
 export interface AuthKit {
     /** access token 只存内存；写入即裁决为 authed，清除即 guest */
-    tokenStore: TokenStore & { clear: () => void }
+    tokenStore: TokenStore
     /** 登录态只读访问 */
     authState: {
         getStatus: () => AuthStatus
     }
     /**
      * 启动时静默刷新：refresh cookie 有效则换新 access token，否则按未登录处理。
-     * 去重为单例 Promise，可在多处安全 await（root 挂载、路由守卫、登录页）。
+     * 去重为单例 Promise，可在多处安全 await（root 挂载、路由守卫、登录页）；已 authed 直接返回，
+     * 而登出/被吊销清态会作废这份缓存 —— 下一次 await 重新裁决，不必整页重载才能再登录。
      */
     bootstrapAuth: () => Promise<void>
     /** 持久化设备 ID（localStorage，首次生成 UUID），用于多端会话管理 */
@@ -73,22 +74,34 @@ export function createAuthKit(options: AuthKitOptions): AuthKit {
         getStatus: () => status,
     }
 
-    const tokenStore: TokenStore & { clear: () => void } = {
+    const tokenStore: TokenStore = {
         get: () => accessToken,
         set: (token: string) => {
             accessToken = token
             status = "authed"
             emit()
         },
-        clear: () => {
-            // oxlint-disable-next-line no-null -- TokenStore.get 接口契约返回 string | null
-            accessToken = null
-            status = "guest"
-            emit()
-        },
+        clear: () => toGuest(true),
+    }
+
+    /**
+     * 落为未登录。`invalidateBootstrap` 决定要不要作废静默刷新缓存：
+     * 外部清态（登出、401/410 裁决）要作废 —— 否则缓存里那次「guest」会永远生效，
+     * 刷新 cookie 明明有效（同一浏览器重新登录、或 access token 被单独吊销）也进不去，
+     * 用户只能整页重载；而 bootstrapAuth 自己裁决出的 guest 不作废 —— 未登录时每次受保护
+     * 导航都重打一次刷新接口，白白多一个请求。
+     */
+    function toGuest(invalidateBootstrap: boolean): void {
+        // oxlint-disable-next-line no-null -- TokenStore.get 接口契约返回 string | null
+        accessToken = null
+        status = "guest"
+        if (invalidateBootstrap) bootstrapPromise = undefined
+        emit()
     }
 
     function bootstrapAuth(): Promise<void> {
+        // 已登录不再刷新：登录成功后守卫每次都重打刷新接口，等于把 refresh 变成常态请求
+        if (status === "authed") return Promise.resolve()
         bootstrapPromise ??= bootstrap()
         return bootstrapPromise
     }
@@ -98,7 +111,7 @@ export function createAuthKit(options: AuthKitOptions): AuthKit {
             const result = await options.refresh(getDeviceId())
             tokenStore.set(result.accessToken)
         } catch {
-            tokenStore.clear()
+            toGuest(false)
         }
     }
 

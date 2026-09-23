@@ -7,7 +7,8 @@ import { configureSdkClient, type TokenStore } from "./sdk-client"
  * sdk-client 拦截器的 refresh 失败面契约（node 环境，fetch 全桩）：
  * - 410 + REFRESH_TOKEN_REUSED（refresh 重放裁决，后端已全端吊销）→ 清登录态 + 410 原样冒泡
  *   （detail 交给消费方全局错误通道 toast，拦截器只归一不展示）；
- * - 其它刷新失败维持既有 401 处理模式：原请求的 401 冒泡，不清登录态。
+ * - 其它刷新失败维持既有 401 处理模式：原请求的 401 冒泡，不清登录态；
+ * - 并发 401 共用一次刷新（refresh token 一次性轮换，各刷一次 = 第二次起全被判重放）。
  */
 
 const BASE = "http://api.test"
@@ -81,5 +82,68 @@ describe("refresh 遇 410 REFRESH_TOKEN_REUSED", () => {
 
         await expect(AuthApi.logoutAll()).rejects.toMatchObject({ status: 401 })
         expect(tokens.clear).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * 并发 401（首屏多个查询同时到期）：refresh 必须只发一次。
+ * refresh token 一次一换（ACC-22），各刷一次就是让第二次提交拿已被轮换掉的旧码 ——
+ * 宽限期内后端回 401（那次刷新白做，请求跟着冒泡假的「登录已过期」），
+ * 超出宽限期判盗用 → 410 吊销该主体全部设备会话（真下线）。
+ */
+function stubSlowRefresh(response: () => Response) {
+    const refreshCalls: string[] = []
+    vi.stubGlobal(
+        "fetch",
+        vi.fn<(input: RequestInfo | URL) => Promise<Response>>(async (input: RequestInfo | URL) => {
+            const url =
+                typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+            if (url.includes("auth/refresh")) {
+                refreshCalls.push(url)
+                // 挂住一会儿：让其余并发请求都到达拦截器，这才叫并发
+                await new Promise((resolve) => setTimeout(resolve, 20))
+                return response()
+            }
+            return json(401, { status: 401, detail: "登录已过期" })
+        }),
+    )
+    return () => refreshCalls.length
+}
+
+describe("并发 401 的刷新单飞", () => {
+    it("三个请求同时 401 只刷一次，各自拿新 token 重发", async () => {
+        const calls = stubSlowRefresh(() => json(200, { accessToken: "at-new" }))
+
+        await Promise.allSettled([AuthApi.logoutAll(), AuthApi.logoutAll(), AuthApi.logoutAll()])
+
+        expect(calls()).toBe(1)
+        expect(tokens.set).toHaveBeenCalledTimes(1)
+        expect(tokens.set).toHaveBeenCalledWith("at-new")
+        expect(tokens.clear).not.toHaveBeenCalled()
+    })
+
+    it("刷新被判吊销：每个并发请求都拿到同一句 410 detail，不因响应体被抢读而退化", async () => {
+        const calls = stubSlowRefresh(() =>
+            json(410, {
+                status: 410,
+                code: "REFRESH_TOKEN_REUSED",
+                detail: "账号已在其他设备登录，您已被迫下线",
+            }),
+        )
+
+        const errors = await Promise.all([
+            AuthApi.logoutAll().catch((error: unknown) => error),
+            AuthApi.logoutAll().catch((error: unknown) => error),
+        ])
+
+        expect(calls()).toBe(1)
+        expect(tokens.clear).toHaveBeenCalledTimes(1)
+        for (const error of errors) {
+            expect(error).toMatchObject({
+                status: 410,
+                code: "REFRESH_TOKEN_REUSED",
+                detail: "账号已在其他设备登录，您已被迫下线",
+            })
+        }
     })
 })
