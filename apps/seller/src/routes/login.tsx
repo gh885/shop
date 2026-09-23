@@ -13,6 +13,16 @@ export const Route = createFileRoute("/login")({
 })
 
 /**
+ * 图形验证码（匿名公开接口）。**必须是模块级函数**：LoginForm 把它透给 useCaptcha，
+ * 行内闭包每次渲染都是新引用，useCaptcha 的 refresh 随之变新，「显现即拉验证码」的 effect
+ * 就会每渲染一次打一次后端（web 端同源做法见 apps/web/src/auth/actions.ts 的 getCaptcha）。
+ */
+async function getCaptcha(): Promise<{ captchaId: string; image: string }> {
+    const data = await AuthApi.getCaptcha()
+    return { captchaId: data.captchaId, image: data.image }
+}
+
+/**
  * 卖家中心登录页：壳（Card + 品牌头）+ app-kit 的 LoginForm。
  * 表单交互一律在 LoginForm 里，这里只装配 seller 的 SDK 动作与登录后的跳转。
  */
@@ -41,7 +51,7 @@ function LoginPage() {
                     </div>
 
                     <LoginForm
-                        getCaptcha={() => AuthApi.getCaptcha()}
+                        getCaptcha={getCaptcha}
                         sendCode={async (input) => {
                             await AuthApi.sendSmsCode({ body: input })
                         }}

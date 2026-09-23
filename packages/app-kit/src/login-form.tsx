@@ -37,7 +37,7 @@ import { useCountdown } from "./use-countdown"
 type LoginTab = "sms" | "password"
 
 export interface LoginFormProps {
-    /** 拉取图形验证码（web 走 server action，seller 走 SDK） */
+    /** 拉取图形验证码（web 走 server action，seller 走 SDK）。**引用必须稳定**：传模块级函数，不要传行内闭包 */
     getCaptcha: () => Promise<{ captchaId: string; image: string }>
     /** 发送短信验证码（captchaId + captchaCode 一起上报做人机验证） */
     sendCode: (input: { phone: string; captchaId: string; captchaCode: string }) => Promise<void>
@@ -137,7 +137,8 @@ export function LoginForm({
     const [countdown, setCountdown] = useCountdown()
     const [sendingCode, setSendingCode] = useState(false)
     const captcha = useCaptcha(getCaptcha)
-    // useCaptcha 的 refresh/reset 都是 useCallback 稳定引用；提取出来供依赖数组与回调使用
+    // refresh/reset 的稳定性来自入参 getCaptcha 的稳定性（useCaptcha 把它放进了 useCallback 依赖），
+    // 所以调用方必须传模块级函数——传行内闭包会让下面「显现即拉验证码」的 effect 每渲染打一次后端
     const { refresh: refreshCaptcha, reset: resetCaptcha } = captcha
 
     const serverError = submitError?.detail
