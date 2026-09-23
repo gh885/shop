@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { BannerResponse } from "@shop/api/sdk"
-import { format, isValid } from "date-fns"
+import { formatTimeShort } from "@shop/app-kit"
 
 import type { ColumnDef } from "@tanstack/react-table"
 import { Badge, Button, confirm, Image, Spinner, type DataTableFeatures } from "@shop/ui-web"
@@ -10,15 +10,10 @@ import { STATUS_BADGE } from "../constants"
 import { useSetBannerStatus } from "./queries"
 import { BannerFormDialog } from "./form-dialog"
 
-const formatTime = (iso: string) => {
-    const d = new Date(iso)
-    return isValid(d) ? format(d, "MM-dd HH:mm") : iso
-}
-
 /** 生效窗口：双空 = 立即上线、长期有效 */
 const windowText = (startAt: string | null, endAt: string | null) => {
     if (!startAt && !endAt) return "立即 · 长期"
-    return `${startAt ? formatTime(startAt) : "立即"} ~ ${endAt ? formatTime(endAt) : "长期"}`
+    return `${startAt ? formatTimeShort(startAt) : "立即"} ~ ${endAt ? formatTimeShort(endAt) : "长期"}`
 }
 
 function BannerActions({ banner }: { banner: BannerResponse }) {

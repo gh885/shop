@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router"
 import { z } from "zod"
 import { useState } from "react"
 
+import { AdminAuthApi } from "@shop/api/sdk"
+import { toApiError } from "@shop/common"
 import { Button, Card, CardContent, FormError, Spinner, useAppForm } from "@shop/ui-web"
 
-import { adminApi, requireGuest } from "../shared/lib/api"
-import { getDeviceId, tokenStore } from "../shared/lib/api"
-import { toApiError } from "@shop/common"
+import { getDeviceId, requireGuest, tokenStore } from "../shared/lib/api"
 
 export const Route = createFileRoute("/login")({
     beforeLoad: requireGuest,
@@ -29,12 +29,14 @@ function LoginPage() {
         onSubmit: async ({ value }) => {
             setLoginError(undefined)
             try {
-                const result = await adminApi.login({
-                    employeeNo: value.employeeNo.trim(),
-                    password: value.password,
-                    deviceId: getDeviceId(),
+                const session = await AdminAuthApi.staffLogin({
+                    body: {
+                        employeeNo: value.employeeNo.trim(),
+                        password: value.password,
+                        deviceId: getDeviceId(),
+                    },
                 })
-                tokenStore.set(result.accessToken)
+                tokenStore.set(session.accessToken)
                 void navigate({ to: "/", search: { page: 1, size: 20 } })
             } catch (error) {
                 // 401 才是凭证错误；网络错误/服务端故障如实提示，避免误导成密码错误

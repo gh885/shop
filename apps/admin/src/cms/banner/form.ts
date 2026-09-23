@@ -5,6 +5,7 @@ import {
     blankToUndefined as blank,
     fromDateTimeLocal,
     parseTargetType,
+    submitTargetType,
     TargetTypeSchema,
     toDateTimeLocal,
 } from "../constants"
@@ -51,7 +52,7 @@ export function toBannerRequest(v: BannerFormValues): BannerRequest {
         title: v.title.trim(),
         subtitle: blank(v.subtitle),
         imageUrl: v.imageUrl.trim(),
-        targetType: v.targetType,
+        targetType: submitTargetType(v.targetType),
         target: blank(v.target),
         link: blank(v.link),
         sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,

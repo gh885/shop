@@ -16,32 +16,29 @@ export const navListOptions = (navKey?: string) =>
         placeholderData: (prev) => prev,
     })
 
-function useNavMutation<TInput>(mutationFn: (input: TInput) => Promise<unknown>, success: string) {
+export function useCreateNav() {
     return useMutation({
-        mutationFn,
-        meta: { success, error: "导航保存失败", invalidates: [navKeys.all] },
+        mutationFn: (input: NavRequest) => CmsAdminApi.createNav({ body: input }),
+        meta: { success: "导航条目已创建", error: "导航保存失败", invalidates: [navKeys.all] },
     })
 }
 
-export function useCreateNav() {
-    return useNavMutation(
-        (input: NavRequest) => CmsAdminApi.createNav({ body: input }),
-        "导航条目已创建",
-    )
-}
-
 export function useUpdateNav() {
-    return useNavMutation(
-        ({ id, input }: { id: string; input: NavRequest }) =>
+    return useMutation({
+        mutationFn: ({ id, input }: { id: string; input: NavRequest }) =>
             CmsAdminApi.updateNav({ path: { id }, body: input }),
-        "导航条目已更新",
-    )
+        meta: { success: "导航条目已更新", error: "导航保存失败", invalidates: [navKeys.all] },
+    })
 }
 
 export function useSetNavStatus() {
-    return useNavMutation(
-        ({ id, status }: { id: string; status: CmsStatus }) =>
+    return useMutation({
+        mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setNavStatus({ path: { id, status } }),
-        "导航状态已更新",
-    )
+        meta: {
+            success: "导航状态已更新",
+            error: "导航状态更新失败",
+            invalidates: [navKeys.all],
+        },
+    })
 }

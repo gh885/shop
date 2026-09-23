@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react"
-import { ShopReviewStatus } from "@shop/api/sdk"
+import { AdminReviewsApi, ShopReviewStatus } from "@shop/api/sdk"
+import type { ShopReviewItem } from "@shop/api/sdk"
+import { formatDateTime } from "@shop/app-kit"
 import { z } from "zod"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -29,10 +31,8 @@ import {
     useDataTable,
     type DataTableFeatures,
 } from "@shop/ui-web"
-import { type ShopReviewItem, reviewListOptions, adminApi } from "#/shared/lib/api"
-import { reviewKeys } from "#/shared/lib/queries"
+import { reviewKeys, reviewListOptions } from "#/shared/lib/queries"
 import type { ColumnDef } from "@tanstack/react-table"
-import { isValid, format } from "date-fns"
 
 /** 店铺审核状态（与后端枚举对齐） */
 const ShopReviewStatusSchema = z.enum(ShopReviewStatus)
@@ -122,7 +122,7 @@ function useReviewColumns({
                 header: "申请时间",
                 cell: ({ row }) => (
                     <span className="tabular-nums text-muted-foreground">
-                        {formatTime(row.original.createdAt)}
+                        {formatDateTime(row.original.createdAt)}
                     </span>
                 ),
             },
@@ -132,7 +132,7 @@ function useReviewColumns({
                 cell: ({ row }) =>
                     row.original.decidedAt ? (
                         <span className="tabular-nums text-muted-foreground">
-                            {formatTime(row.original.decidedAt)}
+                            {formatDateTime(row.original.decidedAt)}
                         </span>
                     ) : (
                         <span className="text-muted-foreground">—</span>
@@ -190,7 +190,10 @@ function ReviewPage() {
     // 店主电话明文逐条索取（ACC-79）：取到写回这一行，故意不失效列表——失效会立刻把刚拿到的明文冲掉，
     // 下次重新拉取自然又回掩码，明文不长期驻留
     const revealPhone = useMutation({
-        mutationFn: (item: ShopReviewItem) => adminApi.revealOwnerPhone(item.id),
+        mutationFn: async (item: ShopReviewItem) => {
+            const res = await AdminReviewsApi.revealOwnerPhone({ path: { id: item.id } })
+            return res.phone
+        },
         meta: { error: "查看店主电话失败" },
         onSuccess: (phone, item) =>
             queryClient.setQueryData<NonNullable<typeof data>>(
@@ -293,7 +296,7 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
     const [rejectOpen, setRejectOpen] = useState(false)
 
     const approve = useMutation({
-        mutationFn: () => adminApi.approve(item.id),
+        mutationFn: () => AdminReviewsApi.approveShopReview({ path: { id: item.id } }),
         meta: {
             success: `已通过「${item.shopName}」的开店申请`,
             error: "审核操作失败",
@@ -301,7 +304,8 @@ function ReviewActions({ item }: { item: ShopReviewItem }) {
         },
     })
     const reject = useMutation({
-        mutationFn: (reason: string) => adminApi.reject(item.id, reason),
+        mutationFn: (reason: string) =>
+            AdminReviewsApi.rejectShopReview({ path: { id: item.id }, body: { reason } }),
         meta: {
             success: `已驳回「${item.shopName}」的开店申请`,
             error: "审核操作失败",
@@ -412,9 +416,4 @@ function RejectForm({
             </DialogFooter>
         </form>
     )
-}
-
-const formatTime = (iso: string) => {
-    const d = new Date(iso)
-    return isValid(d) ? format(d, "yyyy-MM-dd HH:mm") : iso
 }

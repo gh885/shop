@@ -16,35 +16,29 @@ export const bannerListOptions = (slot?: string) =>
         placeholderData: (prev) => prev,
     })
 
-function useBannerMutation<TInput>(
-    mutationFn: (input: TInput) => Promise<unknown>,
-    success: string,
-) {
+export function useCreateBanner() {
     return useMutation({
-        mutationFn,
-        meta: { success, error: "运营位保存失败", invalidates: [bannerKeys.all] },
+        mutationFn: (input: BannerRequest) => CmsAdminApi.createBanner({ body: input }),
+        meta: { success: "运营位已创建", error: "运营位保存失败", invalidates: [bannerKeys.all] },
     })
 }
 
-export function useCreateBanner() {
-    return useBannerMutation(
-        (input: BannerRequest) => CmsAdminApi.createBanner({ body: input }),
-        "运营位已创建",
-    )
-}
-
 export function useUpdateBanner() {
-    return useBannerMutation(
-        ({ id, input }: { id: string; input: BannerRequest }) =>
+    return useMutation({
+        mutationFn: ({ id, input }: { id: string; input: BannerRequest }) =>
             CmsAdminApi.updateBanner({ path: { id }, body: input }),
-        "运营位已更新",
-    )
+        meta: { success: "运营位已更新", error: "运营位保存失败", invalidates: [bannerKeys.all] },
+    })
 }
 
 export function useSetBannerStatus() {
-    return useBannerMutation(
-        ({ id, status }: { id: string; status: CmsStatus }) =>
+    return useMutation({
+        mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setBannerStatus({ path: { id, status } }),
-        "运营位状态已更新",
-    )
+        meta: {
+            success: "运营位状态已更新",
+            error: "运营位状态更新失败",
+            invalidates: [bannerKeys.all],
+        },
+    })
 }

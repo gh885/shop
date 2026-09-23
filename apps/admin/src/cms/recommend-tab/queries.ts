@@ -15,32 +15,25 @@ export const tabListOptions = () =>
         queryFn: () => CmsAdminApi.listAdminRecommendTabs(),
     })
 
-function useTabMutation<TInput>(mutationFn: (input: TInput) => Promise<unknown>, success: string) {
+export function useCreateTab() {
     return useMutation({
-        mutationFn,
-        meta: { success, error: "词条保存失败", invalidates: [tabKeys.all] },
+        mutationFn: (input: RecommendTabRequest) => CmsAdminApi.createTab({ body: input }),
+        meta: { success: "词条已创建", error: "词条保存失败", invalidates: [tabKeys.all] },
     })
 }
 
-export function useCreateTab() {
-    return useTabMutation(
-        (input: RecommendTabRequest) => CmsAdminApi.createTab({ body: input }),
-        "词条已创建",
-    )
-}
-
 export function useUpdateTab() {
-    return useTabMutation(
-        ({ id, input }: { id: string; input: RecommendTabRequest }) =>
+    return useMutation({
+        mutationFn: ({ id, input }: { id: string; input: RecommendTabRequest }) =>
             CmsAdminApi.updateTab({ path: { id }, body: input }),
-        "词条已更新",
-    )
+        meta: { success: "词条已更新", error: "词条保存失败", invalidates: [tabKeys.all] },
+    })
 }
 
 export function useSetTabStatus() {
-    return useTabMutation(
-        ({ id, status }: { id: string; status: CmsStatus }) =>
+    return useMutation({
+        mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setTabStatus({ path: { id, status } }),
-        "词条状态已更新",
-    )
+        meta: { success: "词条状态已更新", error: "词条状态更新失败", invalidates: [tabKeys.all] },
+    })
 }

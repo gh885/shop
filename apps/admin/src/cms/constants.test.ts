@@ -62,10 +62,16 @@ describe("datetime-local ↔ ISO", () => {
         expect(toDateTimeLocal(undefined)).toBe("")
     })
 
-    // 已知缺陷：回填取的是 toISOString()（UTC 墙上时钟），而输入框读的是本地时钟。
-    // 提交方向认本地、回填方向认 UTC，两者不对称——每「打开并保存」一次，
-    // 上下线时间就往前挪一个时区差（+08 就是 8 小时）。修 toDateTimeLocal 后这条自动转绿。
-    it.fails("回填方向按本地时区显示：后端说北京 09:00 上线，输入框就该写着 09:00", () => {
+    it("回填方向按本地时区显示：后端说北京 09:00 上线，输入框就该写着 09:00", () => {
         expect(toDateTimeLocal("2026-08-15T09:00:00+08:00")).toBe("2026-08-15T09:00")
+    })
+
+    it("往返闭合：排好的档期打开再保存一次，不该漂移一个时区差", () => {
+        const submitted = fromDateTimeLocal("2026-08-15T09:00")!
+        expect(toDateTimeLocal(submitted)).toBe("2026-08-15T09:00")
+    })
+
+    it("脏值不当成时刻：解析不出来就留空，别让输入框显示 Invalid Date", () => {
+        expect(toDateTimeLocal("not-a-date")).toBe("")
     })
 })

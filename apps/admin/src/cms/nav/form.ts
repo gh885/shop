@@ -1,7 +1,12 @@
 import type { NavRequest, NavEntryResponse } from "@shop/api/sdk"
 import { z } from "zod"
 
-import { blankToUndefined as blank, parseTargetType, TargetTypeSchema } from "../constants"
+import {
+    blankToUndefined as blank,
+    parseTargetType,
+    submitTargetType,
+    TargetTypeSchema,
+} from "../constants"
 
 /** subs = JSONB 整段的组/项两级配置（对齐后端 NavGroup 校验：组名 ≤64、词条 ≤64、≤30 组） */
 export const SubsSchema = z
@@ -44,7 +49,7 @@ export function toNavRequest(v: NavFormValues, subs: SubsValue): NavRequest {
         navKey: v.navKey.trim(),
         title: v.title.trim(),
         iconKey: blank(v.iconKey),
-        targetType: v.targetType === "NONE" ? undefined : v.targetType,
+        targetType: submitTargetType(v.targetType),
         target: blank(v.target),
         sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,
         // 空词条在提交时剔除；整组无词条发缺省而不是 null（前端契约：items 缺省 = 无词条）

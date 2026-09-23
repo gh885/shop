@@ -50,10 +50,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
         defaultValues: bannerDefaults(editing, defaultSlot),
         validators: { onSubmit: BannerFormSchema },
         onSubmit: async ({ value }) => {
-            const input = toBannerRequest({
-                ...value,
-                targetType: value.targetType === "NONE" ? undefined : value.targetType,
-            })
+            const input = toBannerRequest(value)
             if (editing) {
                 await update.mutateAsync({ id: editing.id, input })
             } else {

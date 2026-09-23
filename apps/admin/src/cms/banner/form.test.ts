@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import type { BannerResponse } from "@shop/api/sdk"
 
@@ -10,7 +10,11 @@ import { bannerDefaults, toBannerRequest } from "./form"
  * 表单里全是字符串（输入框只能装字符串），契约要的是 number | undefined 与 ISO。
  * 这道「什么时候算填了、什么时候算没填」的判据就是这里一次投影，写错了后端会收到
  * 一个它没法解释的值。
+ *
+ * 档期回填按本地墙上时钟显示，故把时区钉成 Asia/Shanghai 再断言字面量（同 constants.test.ts）——
+ * 不钉的话同一个时刻在 UTC 机器与 +08 机器上会渲染出两个不同的输入框值。
  */
+vi.stubEnv("TZ", "Asia/Shanghai")
 
 function makeBanner(overrides: Partial<BannerResponse> = {}): BannerResponse {
     return {
@@ -61,10 +65,10 @@ describe("bannerDefaults", () => {
         expect(bannerDefaults(undefined, "home_promo").slot).toBe("home_promo")
     })
 
-    it("编辑：响应里的 ISO 档期回填成 datetime-local 能显示的形态", () => {
+    it("编辑：响应里的 ISO 档期回填成本地墙上时钟，而不是 UTC 时刻", () => {
         const values = bannerDefaults(makeBanner({ startAt: "2026-08-15T01:00:00Z" }))
 
-        expect(values.startAt).toBe("2026-08-15T01:00")
+        expect(values.startAt).toBe("2026-08-15T09:00")
         expect(values.endAt).toBe("")
     })
 
@@ -102,9 +106,7 @@ describe("toBannerRequest", () => {
         expect(toBannerRequest(values)).toMatchObject({ targetType: "PRODUCT", target: "12345" })
     })
 
-    // 已知缺陷：banner 忘了像 nav / recommend-tab 那样把表单里的 NONE 折成缺省，
-    // 于是 "NONE" 会原样发给后端，而契约只收 PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL。
-    it.fails("「不跳转」提交时是缺省而不是字符串 NONE：三个表单同一口径", () => {
+    it("「不跳转」提交时是缺省而不是字符串 NONE：三个表单同一口径", () => {
         expect(toBannerRequest(blankForm()).targetType).toBeUndefined()
     })
 })
