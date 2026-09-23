@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * 包裹状态机 —— 由轨迹节点推导出来的<b>投影</b>，不是独立写入的状态。
  *
- * <p><b>单调性</b>：每态一个 {@link #rank()}，只允许 rank 前进；{@link #sourcesOf} 反推合法前态给条件更新
+ * <p><b>单调性</b>：每态一个 rank（构造参数），只允许 rank 前进；{@link #sourcesOf} 反推合法前态给条件更新
  * （{@code WHERE status IN (...)}），与 {@code OrderStatus.sourcesOf} 同一套路，正确性不依赖加锁。
  * 理由是承运商的推送乱序、迟到、重推是必然：<b>已签收不可能被后来的「运输中」覆盖</b>，
  * 迟到的旧节点只落库不改状态。
@@ -48,11 +48,6 @@ public enum ShipmentStatus {
 
     ShipmentStatus(int rank) {
         this.rank = rank;
-    }
-
-    /** 单调性量级；EXCEPTION 为 0（不参与前进比较） */
-    public int rank() {
-        return rank;
     }
 
     /**

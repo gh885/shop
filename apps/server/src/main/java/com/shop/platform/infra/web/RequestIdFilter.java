@@ -18,7 +18,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestIdFilter extends OncePerRequestFilter {
 
-    private static final String REQUEST_ID_ATTR = "__requestId__";
     private static final String HEADER_NAME = "x-request-id";
 
     private final String version;
@@ -38,7 +37,6 @@ public class RequestIdFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String requestId = resolveRequestId(request);
-        request.setAttribute(REQUEST_ID_ATTR, requestId);
         response.setHeader(HEADER_NAME, requestId);
         try (MdcScope _ = MdcScope.of("trace_id", requestId, "version", version, "env", env)) {
             chain.doFilter(request, response);
@@ -55,9 +53,5 @@ public class RequestIdFilter extends OncePerRequestFilter {
             }
         }
         return UUID.randomUUID().toString().replace("-", "");
-    }
-
-    public static String getRequestId(HttpServletRequest request) {
-        return (String) request.getAttribute(REQUEST_ID_ATTR);
     }
 }

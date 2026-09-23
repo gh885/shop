@@ -15,8 +15,4 @@ public enum AttrKind {
 
     /** 非销售参数（详情页展示的分类字段，如材质/产地） */
     PARAM;
-
-    public boolean isSpec() {
-        return this == SPEC;
-    }
 }

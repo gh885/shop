@@ -15,8 +15,4 @@ public enum MemberRole {
 
     /** 成员（子账号，权限由店主授与被授予码集） */
     MEMBER;
-
-    public boolean isOwner() {
-        return this == OWNER;
-    }
 }
