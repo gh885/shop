@@ -5,9 +5,10 @@ import { Field, FieldError, FieldLabel, RegionPicker, type RegionNode } from "@s
 
 /**
  * 省/市/区级联字段：RegionPicker（ui-web）+ 国标区划数据（common）的接线，web 收货地址与
- * seller 商家地址共用。受控于 6 位 `code`：外部把 code 灌进来（编辑回填、智能粘贴）时
- * 自动反查成路径；RegionPicker 只在挂载时按路径加载各级列表，所以路径与 code 未对齐期间
- * 先不渲染它，对齐后再挂载。用户手选则经 onChange 把完整路径交回调用方落表单字段。
+ * seller 商家地址共用。受控于 6 位 `code`，交出去的也只有 `code`——省市区名不是表单字段，
+ * 提交时由 @shop/common 的 regionNamesByCode 按同一个码反查（见 business-rules/account ACC-81）。
+ * 外部把 code 灌进来（编辑回填、智能粘贴）时先反查成路径：RegionPicker 只在挂载时按路径加载
+ * 各级列表，所以路径与 code 未对齐期间不渲染它，对齐后再挂载。
  */
 export function RegionField({
     code,
@@ -18,7 +19,7 @@ export function RegionField({
     orientation,
 }: {
     code: string
-    onChange: (path: RegionNode[]) => void
+    onChange: (code: string) => void
     errors?: ReadonlyArray<unknown>
     label?: string
     required?: boolean
@@ -41,7 +42,7 @@ export function RegionField({
                     value={path}
                     onChange={(next) => {
                         setPath(next)
-                        onChange(next)
+                        onChange(next.at(-1)?.code ?? "")
                     }}
                     loadChildren={loadChildren}
                     levelLabels={["省", "市", "区"]}

@@ -3,6 +3,7 @@ import { HttpResponse, http, type RequestHandler } from "msw"
 import type {
     AddressParseResult,
     AddressResponse,
+    MerchantAddressResponse,
     SellerTicketItem,
     TicketResponse,
 } from "@shop/api/sdk"
@@ -31,6 +32,31 @@ export function makeAddress(
         detail: "文一路 1 号",
         label: "HOME",
         isDefault: false,
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        ...overrides,
+    }
+}
+
+/** MerchantAddressResponse 假数据（商家地址库；地区码 441900 是直筒子市东莞的合成区级码） */
+export function makeMerchantAddress(
+    overrides: Partial<MerchantAddressResponse> & Pick<MerchantAddressResponse, "id">,
+): MerchantAddressResponse {
+    return {
+        shopId: "00000000-0000-4000-8000-000000000001",
+        contactName: "李四",
+        phone: "13900000000",
+        regionCode: "441900",
+        province: "广东省",
+        city: "东莞市",
+        district: "东莞市",
+        detail: "松山湖大道 1 号",
+        postalCode: null,
+        companyName: null,
+        note: null,
+        defaultShip: false,
+        defaultReturn: false,
+        status: "ACTIVE",
         createdAt: "2026-01-01T00:00:00Z",
         updatedAt: "2026-01-01T00:00:00Z",
         ...overrides,

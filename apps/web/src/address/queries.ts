@@ -1,5 +1,6 @@
 import { queryOptions, useMutation } from "@tanstack/react-query"
-import { AddressesApi } from "@shop/api/sdk"
+import { regionNamesByCode } from "@shop/common"
+import { AddressesApi, type AddressRequest } from "@shop/api/sdk"
 
 import { optimisticListMutationOptions } from "@shop/app-kit"
 
@@ -20,11 +21,25 @@ async function listAddresses(): Promise<Address[]> {
 /** 我的地址列表 queryOptions：组件经 loader 读完直接读缓存，失败由路由错误页接管 */
 export const addressListOptions = queryOptions({ queryKey: KEY, queryFn: listAddresses })
 
+/** 表单值 → wire 形状：receiver → receiverName，省市区名按 regionCode 现查（表单不存名字）。
+ *  查名字用的 findPath 与级联选择器显示路径同一个，故「看到的三级」与「落库的三级」不可能分家。 */
+async function toAddressRequest(values: AddressInput): Promise<AddressRequest> {
+    return {
+        ...(await regionNamesByCode(values.regionCode)),
+        receiverName: values.receiver,
+        phone: values.phone,
+        regionCode: values.regionCode,
+        detail: values.detail,
+        label: values.label,
+        isDefault: values.isDefault,
+    }
+}
+
 /** 新增地址：成功后失效列表缓存 */
 export function useCreateAddress() {
     return useMutation({
-        mutationFn: (input: AddressInput) =>
-            AddressesApi.createAddress({ body: { ...input, receiverName: input.receiver } }),
+        mutationFn: async (input: AddressInput) =>
+            AddressesApi.createAddress({ body: await toAddressRequest(input) }),
         meta: { success: "地址已添加", error: "添加地址失败", invalidates: [KEY] },
     })
 }
@@ -32,10 +47,10 @@ export function useCreateAddress() {
 /** 修改地址 */
 export function useUpdateAddress() {
     return useMutation({
-        mutationFn: ({ id, input }: { id: string; input: AddressInput }) =>
+        mutationFn: async ({ id, input }: { id: string; input: AddressInput }) =>
             AddressesApi.updateAddress({
                 path: { id },
-                body: { ...input, receiverName: input.receiver },
+                body: await toAddressRequest(input),
             }),
         meta: { success: "地址已更新", error: "更新地址失败", invalidates: [KEY] },
     })
@@ -78,8 +93,14 @@ export function useUnsetDefaultAddress() {
 }
 
 /** 智能粘贴：解析文本 → 业务形状（表单「粘贴并识别」用）。
- *  wire 的 receiverName → receiver 归一，与 toAddress 同一投影规则 —— 不归一则表单永远收不到收货人。 */
+ *  wire 的 receiverName → receiver 归一，与 toAddress 同一投影规则 —— 不归一则表单永远收不到收货人。
+ *  回包里那份省市区名是逐字段挑出来的、不带进来：表单只认 regionCode，名字提交时现查。 */
 export async function parseAddressText(text: string): Promise<AddressParse> {
     const res = await AddressesApi.parseAddress({ body: { text } })
-    return { ...res, receiver: res.receiverName }
+    return {
+        receiver: res.receiverName,
+        phone: res.phone,
+        regionCode: res.regionCode,
+        detail: res.detail,
+    }
 }

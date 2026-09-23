@@ -5,8 +5,9 @@ import type { Address } from "./address"
 import { AddressInputSchema, isBuiltinLabel, isCustomLabel, toDefaults } from "./address-form"
 
 /**
- * 地址表单的入参侧逻辑：初值怎么来、标签算不算自定义。
- * 弹窗那层已经测过接线（AddressFormDialog），这里只钉这两个判断。
+ * 地址表单的入参侧逻辑：初值怎么来、标签算不算自定义、地区要填到哪一步。
+ * 弹窗那层已经测过接线（AddressFormDialog），这里只钉这三个判断。
+ * 单个字段的口径（号码几位、详址多长）在 @shop/common 测，这里测的是买家侧拼出来的那份 schema。
  */
 
 function makeAddress(overrides: Partial<Address> = {}): Address {
@@ -31,20 +32,19 @@ describe("toDefaults", () => {
             receiver: "",
             phone: "",
             regionCode: "",
-            province: "",
-            city: "",
-            district: "",
             detail: "",
             label: "HOME",
             isDefault: false,
         })
     })
 
-    it("编辑模式带回原值，但不带 id：表单只管可改的部分", () => {
+    it("编辑模式带回原值，但不带 id 也不带省市区名：表单只管用户填的那几项", () => {
         const values = toDefaults(makeAddress())
 
         expect(values).toMatchObject({ receiver: "张三", isDefault: true })
         expect(values).not.toHaveProperty("id")
+        expect(values).not.toHaveProperty("province")
+        expect(values).not.toHaveProperty("district")
     })
 
     it("没贴标签的旧地址，编辑时初值会被填成内置「家」：保存即补上标签（当前口径）", () => {
@@ -78,6 +78,22 @@ describe("手机号口径", () => {
 
     it("太短的一串数字仍然拒：那不是号码", () => {
         expect(AddressInputSchema.safeParse(phoneCase("1234")).success).toBe(false)
+    })
+})
+
+describe("地区只填到码", () => {
+    it("初值里没有省市区名也过得了校验：名字是提交时按 regionCode 反查的派生值", () => {
+        const values = toDefaults(makeAddress())
+
+        expect(values).not.toHaveProperty("province")
+        expect(AddressInputSchema.safeParse(values).success).toBe(true)
+    })
+
+    it("缺一位就拦：4 位市码存进表单，反查会少一级，落库的三级名就说不清是谁的", () => {
+        expect(
+            AddressInputSchema.safeParse({ ...toDefaults(makeAddress()), regionCode: "3101" })
+                .success,
+        ).toBe(false)
     })
 })
 

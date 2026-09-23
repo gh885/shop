@@ -1,5 +1,3 @@
-import { z } from "zod"
-
 import { RegionField } from "@shop/app-kit"
 import {
     Button,
@@ -7,82 +5,13 @@ import {
     DialogContent,
     DialogFooter,
     DialogTitle,
-    type RegionNode,
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
+import { ADDRESS_FIELDS, AddressFormSchema, CONTACT_FIELDS, toDefaults } from "./address-form"
 import { useCreateAddress, useUpdateAddress } from "./queries"
-
-/** 表单入参校验（form validators 用；表单局部 schema，非领域契约） */
-const FormSchema = z.object({
-    contactName: z.string().trim().min(1, "请输入联系人").max(30, "联系人最长 30 字"),
-    phone: z.string().regex(/^[0-9+-]{5,20}$/, "手机号格式不正确"),
-    regionCode: z.string().trim().min(1, "请选择所在地区").max(12),
-    province: z.string().trim().min(1, "请选择所在地区").max(30),
-    city: z.string().trim().min(1, "请选择所在地区").max(30),
-    district: z.string().trim().max(30).optional(),
-    detail: z.string().trim().min(1, "请输入详细地址").max(120, "详细地址最长 120 字"),
-    postalCode: z
-        .string()
-        .trim()
-        .regex(/^\d{6}$/, "邮编格式不正确")
-        .optional()
-        .or(z.literal("")),
-    companyName: z.string().trim().max(60, "公司名称最长 60 字").optional(),
-    note: z.string().trim().max(200, "备注最长 200 字").optional(),
-    defaultShip: z.boolean(),
-    defaultReturn: z.boolean(),
-})
-
-type FormValues = z.infer<typeof FormSchema>
-
-const CONTACT_FIELDS = [
-    { name: "contactName", label: "联系人姓名", placeholder: "请输入联系人", maxLength: 30 },
-    {
-        name: "phone",
-        label: "联系电话",
-        placeholder: "请输入手机号",
-        maxLength: 20,
-        inputMode: "tel",
-    },
-] as const
-
-const ADDRESS_FIELDS = [
-    {
-        name: "detail",
-        label: "详细地址",
-        placeholder: "不需要重复输入省/市/区",
-        maxLength: 120,
-        required: true,
-    },
-    { name: "postalCode", label: "邮政编码", placeholder: "填写邮政编码（可选）", maxLength: 6 },
-    {
-        name: "companyName",
-        label: "公司名称",
-        placeholder: "填写地址所属的公司名称（面单寄件人）",
-        maxLength: 60,
-    },
-    { name: "note", label: "备注", placeholder: "填写备注（可选）", maxLength: 200 },
-] as const
-
-function toDefaults(a?: MerchantAddressResponse): FormValues {
-    return {
-        contactName: a?.contactName ?? "",
-        phone: a?.phone ?? "",
-        regionCode: a?.regionCode ?? "",
-        province: a?.province ?? "",
-        city: a?.city ?? "",
-        district: a?.district ?? "",
-        detail: a?.detail ?? "",
-        postalCode: a?.postalCode ?? "",
-        companyName: a?.companyName ?? "",
-        note: a?.note ?? "",
-        defaultShip: a?.defaultShip ?? false,
-        defaultReturn: a?.defaultReturn ?? false,
-    }
-}
 
 export interface AddressFormDialogProps {
     open: boolean
@@ -118,7 +47,7 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
 
     const form = useAppForm({
         defaultValues: toDefaults(editing),
-        validators: { onSubmit: FormSchema },
+        validators: { onSubmit: AddressFormSchema },
         onSubmit: async ({ value }) => {
             if (editing) {
                 await update.mutateAsync({ id: editing.id, input: value })
@@ -128,14 +57,6 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
             onOpenChange(false)
         },
     })
-
-    /** 地区路径 → 表单四字段同步（province/city/district/regionCode） */
-    function applyRegion(path: RegionNode[]) {
-        form.setFieldValue("province", path[0]?.label ?? "")
-        form.setFieldValue("city", path[1]?.label ?? "")
-        form.setFieldValue("district", path[2]?.label ?? "")
-        form.setFieldValue("regionCode", path.at(-1)?.code ?? "")
-    }
 
     const busy = create.isPending || update.isPending
 
@@ -164,12 +85,12 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                     </form.AppField>
                 ))}
 
-                {/* 地区：国标行政区划级联选择 */}
+                {/* 地区：国标行政区划级联选择。表单里只有那个 6 位码，省市区名提交时按码反查 */}
                 <form.AppField name="regionCode">
                     {(field) => (
                         <RegionField
                             code={field.state.value}
-                            onChange={applyRegion}
+                            onChange={field.handleChange}
                             errors={field.state.meta.errors}
                             required
                         />

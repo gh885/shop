@@ -1,5 +1,5 @@
 import { notify, RegionField } from "@shop/app-kit"
-import { findPath } from "@shop/common"
+import { ADDRESS_DETAIL_MAX, ADDRESS_NAME_MAX, regionNamesByCode } from "@shop/common"
 import {
     Button,
     Dialog,
@@ -12,7 +12,6 @@ import {
     InputGroupAddon,
     InputGroupInput,
     InputGroupTextarea,
-    type RegionNode,
     Spinner,
     ToggleGroup,
     ToggleGroupItem,
@@ -85,15 +84,9 @@ function AddressForm({
         },
     })
 
-    /** 地区路径 → 表单四字段同步（province/city/district/regionCode）。手动选择与智能粘贴共用，保证两条入口行为一致 */
-    function applyRegion(path: RegionNode[]) {
-        form.setFieldValue("province", path[0]?.label ?? "")
-        form.setFieldValue("city", path[1]?.label ?? "")
-        form.setFieldValue("district", path[2]?.label ?? "")
-        form.setFieldValue("regionCode", path.at(-1)?.code ?? "")
-    }
-
     /** 智能粘贴：解析文本 → 预填表单（收件人/手机号/区划/详细地址）。
+     *  地区只填 regionCode，且先确认区划库认得它：认不出三级就把地区留着让用户手选，
+     *  而不是把服务端的写法抄进表单——名字最终按码反查落库，两套写法迟早对不上。
      *  不用 try/finally（React Compiler 暂不支持 finally 块）：成功/失败路径各自复位 parsing。 */
     async function handleSmartParse() {
         if (!smartText.trim()) return
@@ -103,9 +96,10 @@ function AddressForm({
             form.setFieldValue("receiver", parsed.receiver ?? "")
             form.setFieldValue("phone", parsed.phone ?? "")
             form.setFieldValue("detail", parsed.detail ?? "")
-            if (parsed.regionCode) {
-                // 用权威区划数据反查路径，regionCode/省市区 以路径为准（避免库与本地命名差异）
-                applyRegion(await findPath(parsed.regionCode))
+            const code = parsed.regionCode ?? ""
+            const names = await regionNamesByCode(code)
+            if (names.district) {
+                form.setFieldValue("regionCode", code)
             } else {
                 notify.warning("未能识别所在地区，请手动选择")
             }
@@ -158,12 +152,12 @@ function AddressForm({
                     </InputGroup>
                 </Field>
 
-                {/* 地区：国标行政区划级联选择（数据源懒加载） */}
+                {/* 地区：国标行政区划级联选择（数据源懒加载）。表单里只有那个 6 位码，省市区名提交时按码反查 */}
                 <form.AppField name="regionCode">
                     {(field) => (
                         <RegionField
                             code={field.state.value}
-                            onChange={applyRegion}
+                            onChange={field.handleChange}
                             errors={field.state.meta.errors}
                             required
                         />
@@ -176,7 +170,7 @@ function AddressForm({
                             label="详细地址"
                             required
                             placeholder="请输入详细地址信息，如道路、小区、单元等"
-                            maxLength={120}
+                            maxLength={ADDRESS_DETAIL_MAX}
                         />
                     )}
                 </form.AppField>
@@ -187,7 +181,7 @@ function AddressForm({
                             label="收货人姓名"
                             required
                             placeholder="长度不超过 30 个字符"
-                            maxLength={30}
+                            maxLength={ADDRESS_NAME_MAX}
                         />
                     )}
                 </form.AppField>

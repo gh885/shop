@@ -17,6 +17,7 @@
  * - sdk-client.ts：生成 SDK 的传输层装配（token 注入 / 401 刷新 / 错误归一化）
  * - auth-kit.ts  ：应用无关的登录态套件（内存 token + 静默刷新 + 设备 ID + 订阅）
  * - regions.ts   ：国标行政区划树的纯算法 + 数据（级联取孩子 / 6 位码反查路径）
+ * - address.ts   ：地址字段口径（号码/区划码/详址）+ 省市区名按码派生，两端地址表单共用
  * - coupon.ts    ：优惠券文案与规则换算（门槛/面额一句话、原因码与状态标签）
  */
 
@@ -60,6 +61,16 @@ export type { AuthKit, AuthKitOptions, AuthStatus } from "./auth-kit"
 
 export { findPath, loadChildren, loadRegionTree } from "./regions"
 export type { RegionOption, RegionTreeNode } from "./regions"
+
+export {
+    ADDRESS_DETAIL_MAX,
+    ADDRESS_NAME_MAX,
+    AddressDetailSchema,
+    AddressPhoneSchema,
+    AddressRegionCodeSchema,
+    regionNamesByCode,
+    type RegionNames,
+} from "./address"
 
 export {
     COUPON_SOURCE_LABEL,

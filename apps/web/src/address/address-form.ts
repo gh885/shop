@@ -1,21 +1,30 @@
 import { z } from "zod"
 
+import {
+    ADDRESS_NAME_MAX,
+    AddressDetailSchema,
+    AddressPhoneSchema,
+    AddressRegionCodeSchema,
+} from "@shop/common"
+
 import { ADDRESS_LABELS, type Address, type AddressInput } from "./address"
 
 /**
  * address/address-form —— 地址表单的纯逻辑：入参校验、初值、标签判定。
  * 与组件同域但不碰 React：弹窗只负责渲染与编排，这些决定单独可测。
+ *
+ * 号码/区划码/详址的口径与商家地址同源（@shop/common 的 address），这里只补买家侧特有的那几项：
+ * 收货人、标签、默认地址。省市区名**不是表单字段**——它们由 regionCode 在提交时反查（queries.ts）。
  */
-
-/** 表单入参校验（form validators 用；表单局部 schema，非领域契约） */
 export const AddressInputSchema = z.object({
-    receiver: z.string().trim().min(1, "请输入收货人").max(30, "收货人最长 30 字"),
-    phone: z.string().regex(/^[0-9+-]{5,20}$/, "手机号格式不正确"),
-    regionCode: z.string().trim().min(1, "请选择所在地区").max(12),
-    province: z.string().trim().min(1, "请选择所在地区").max(30),
-    city: z.string().trim().min(1, "请选择所在地区").max(30),
-    district: z.string().trim().min(1, "请选择所在地区").max(30),
-    detail: z.string().trim().min(1, "请输入详细地址").max(120, "详细地址最长 120 字"),
+    receiver: z
+        .string()
+        .trim()
+        .min(1, "请输入收货人")
+        .max(ADDRESS_NAME_MAX, `收货人最长 ${ADDRESS_NAME_MAX} 字`),
+    phone: AddressPhoneSchema,
+    regionCode: AddressRegionCodeSchema,
+    detail: AddressDetailSchema,
     label: z.string().max(20).optional(),
     isDefault: z.boolean().optional(),
 })
@@ -32,15 +41,13 @@ export const CUSTOM_LABEL_MAX = 4
 /**
  * 编辑目标 → 表单初值：TanStack Form 要完整形状，故新增模式（undefined）逐字段落空串，
  * 并带上新建的两个默认决定——标签默认「家」、默认不设为默认地址。
+ * 省市区名不进来：初值只需要 regionCode，名字在提交时反查。
  */
 export function toDefaults(a?: Address): AddressInput {
     return {
         receiver: a?.receiver ?? "",
         phone: a?.phone ?? "",
         regionCode: a?.regionCode ?? "",
-        province: a?.province ?? "",
-        city: a?.city ?? "",
-        district: a?.district ?? "",
         detail: a?.detail ?? "",
         label: a?.label ?? "HOME",
         isDefault: a?.isDefault ?? false,

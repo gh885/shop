@@ -5,7 +5,8 @@
  * - queries.ts           ：列表 query + 增删改/默认态 mutation + 智能粘贴 parseAddressText
  * - AddressTable.tsx / AddressFormDialog.tsx ：受控组件（只渲染与编排，逻辑在上两个 .ts）
  *
- * 国标行政区划数据源与级联选择器都是共享件：算法在 @shop/common 的 regions，组件在 @shop/ui-web。
+ * 国标行政区划数据源与级联选择器都是共享件：算法在 @shop/common 的 regions / address，组件在 @shop/ui-web。
+ * 表单只存 regionCode，省市区名提交时按码反查（queries.ts 的 toAddressRequest，见 ACC-81）。
  */
 
 export { type Address } from "./address"

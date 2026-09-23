@@ -3,6 +3,7 @@ export {
     defaultHandlers,
     makeAddress,
     makeAddressParse,
+    makeMerchantAddress,
     makeSellerTicketItem,
     makeTicket,
 } from "./handlers"

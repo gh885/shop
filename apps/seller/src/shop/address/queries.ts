@@ -1,5 +1,8 @@
 import { queryOptions, useMutation } from "@tanstack/react-query"
+import { regionNamesByCode } from "@shop/common"
 import { SellerAddressesApi, type MerchantAddressRequest } from "@shop/api/sdk"
+
+import type { AddressFormValues } from "./address-form"
 
 // address 域 queryKey 工厂（前缀结构一眼可见，invalidate 不漏 key）
 const addressKeys = {
@@ -21,11 +24,23 @@ export const addressListOptions = (shopId: string) =>
  * 错误归一与提示由全局 MutationCache 负责，这里不写 onError。
  */
 
+/** 表单值 → wire：省市区名按 regionCode 现查（用的就是级联选择器那条路径，看到的=落库的） */
+async function toMerchantAddressRequest(
+    values: AddressFormValues,
+): Promise<MerchantAddressRequest> {
+    const { regionCode, ...rest } = values
+    return {
+        ...(await regionNamesByCode(regionCode)),
+        regionCode,
+        ...rest,
+    }
+}
+
 /** 新增地址（可同时标记默认发货/默认退货） */
 export function useCreateAddress(shopId: string) {
     return useMutation({
-        mutationFn: (input: MerchantAddressRequest) =>
-            SellerAddressesApi.createAddress1({ body: input }),
+        mutationFn: async (input: AddressFormValues) =>
+            SellerAddressesApi.createAddress1({ body: await toMerchantAddressRequest(input) }),
         meta: { success: "地址已保存", invalidates: [addressKeys.lists(shopId)] },
     })
 }
@@ -33,8 +48,11 @@ export function useCreateAddress(shopId: string) {
 /** 编辑地址（保留原 id） */
 export function useUpdateAddress(shopId: string) {
     return useMutation({
-        mutationFn: ({ id, input }: { id: string; input: MerchantAddressRequest }) =>
-            SellerAddressesApi.updateAddress1({ path: { id }, body: input }),
+        mutationFn: async ({ id, input }: { id: string; input: AddressFormValues }) =>
+            SellerAddressesApi.updateAddress1({
+                path: { id },
+                body: await toMerchantAddressRequest(input),
+            }),
         meta: { success: "地址已更新", invalidates: [addressKeys.lists(shopId)] },
     })
 }

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
 
-import { makeAddress, server } from "@shop/test-utils"
+import { makeAddress, makeAddressParse, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
@@ -12,6 +12,9 @@ import { AddressFormDialog } from "./AddressFormDialog"
 /**
  * AddressFormDialog 集成测试：走真实 TanStack Form + React Query + MSW 网络层，
  * 只 mock HTTP（handler 遵循 openapi 契约），不断言内部实现。
+ *
+ * 钉住三件事：必填拦截；地区只认一个 6 位码（能认出的码走区划库反查、认不出的码留着等手选），
+ * 提交出去的 wire 体里那三份省市区名是派生出来的；编辑模式按 regionCode 反查回填。
  */
 
 type CreateBody = unknown
@@ -89,6 +92,42 @@ describe("AddressFormDialog", () => {
             label: "HOME",
             isDefault: false,
         })
+    })
+
+    it("粘贴认出个区划库不认的码：地区留空等手选，服务端那份名字也不抄进表单", async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn<(open: boolean) => void>()
+        const created: CreateBody[] = []
+        useCaptureCreate(created)
+        // 区划码查不出三级，但回包里带着一份看着挺像话的省市区名——两者都不该进表单
+        server.use(
+            http.post("*/user/addresses/parse", () =>
+                HttpResponse.json(
+                    makeAddressParse({
+                        regionCode: "999999",
+                    }),
+                ),
+            ),
+        )
+
+        renderWithProviders(
+            <AddressFormDialog
+                open
+                onOpenChange={onOpenChange}
+            />,
+        )
+
+        await user.type(screen.getByLabelText("智能粘贴"), PASTE_TEXT)
+        await user.click(screen.getByRole("button", { name: "粘贴并识别" }))
+
+        await waitFor(() => expect(screen.getByLabelText("详细地址")).toHaveValue("文一路 1 号"))
+        expect(screen.getByText("请选择省/市/区")).toBeInTheDocument()
+
+        await user.click(screen.getByRole("button", { name: "保存" }))
+
+        expect(await screen.findByText("请选择所在地区")).toBeInTheDocument()
+        expect(created).toHaveLength(0)
+        expect(onOpenChange).not.toHaveBeenCalled()
     })
 
     it("编辑模式：标题切换、已有值回填", async () => {
