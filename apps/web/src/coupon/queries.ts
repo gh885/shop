@@ -21,8 +21,10 @@ import {
  */
 
 // 我的券包
-/** 券包缓存前缀：状态页签 × 分页都是同一份数据的切片，失效一发命中整棵子树 */
-const MY_COUPONS_KEY = ["my-coupons"] as const
+/** 券包缓存前缀：状态页签 × 分页都是同一份数据的切片，失效一发命中整棵子树。
+ *  导出给**跨域**失效用（下单会核销券，checkout 的 useCreateOrder 要失效它）：
+ *  invalidates 传真实 key，不导出就只能在外域抄一遍字面量，那等于第二棵 key 树。 */
+export const MY_COUPONS_KEY = ["my-coupons"] as const
 
 /** 我的券包 queryOptions：queryKey 带全部分页/筛选入参，切页签与翻页各占一格缓存；
  *  导出供 route loader 客户端预热（券包页 loader 预取默认页签第一页）；

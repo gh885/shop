@@ -77,12 +77,14 @@ export const shopAfterSaleOptions = (shopId: string, orderId: string | undefined
 export const orderListOptions = (shopId: string, s: OrderListSearch) =>
     queryOptions({
         queryKey: orderKeys.list(shopId, s),
-        queryFn: () =>
+        // 透传 signal：筛选/翻页换 key 后，旧请求不该留在后端跑完（也不该在组件卸载后无人接收）
+        queryFn: ({ signal }) =>
             SellerOrdersApi.listShopOrders({
                 query: {
                     pageParams: { page: s.page, size: s.size },
                     query: { status: s.status },
                 },
+                signal,
             }),
         placeholderData: (prev) => prev,
     })
@@ -114,12 +116,13 @@ export const afterSaleListKeys = {
 export const afterSaleListOptions = (shopId: string, search: AfterSaleListSearch) =>
     queryOptions({
         queryKey: afterSaleListKeys.list(shopId, search),
-        queryFn: () =>
+        queryFn: ({ signal }) =>
             SellerAfterSalesApi.listShopAfterSales({
                 query: {
                     pageParams: { page: search.page, size: search.size },
                     status: search.status,
                 },
+                signal,
             }),
         placeholderData: (prev) => prev,
     })

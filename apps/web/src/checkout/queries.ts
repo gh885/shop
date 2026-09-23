@@ -11,8 +11,12 @@ import {
 } from "./checkout"
 import { createOrder, fetchPreview, MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "#/order/queries"
 import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart/queries"
+import { MY_COUPONS_KEY } from "#/coupon/queries"
 
 /** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
+
+/** 结算预览缓存前缀（key 工厂留在域内，不外流）：地址/选券/结算行都是它的后缀段 */
+const CHECKOUT_PREVIEW_KEY = ["checkout-preview"] as const
 
 /** 结算行：skuId + 件数。购物车勾选与立即购买在入口处归约成同一形状，后端不再区分来源 */
 type CheckoutLine = { skuId: string; quantity: number }
@@ -38,7 +42,7 @@ export const checkoutPreviewOptions = ({
     const userCouponIds = couponIdsOf(coupons ?? {})
     return queryOptions({
         queryKey: [
-            "checkout-preview",
+            ...CHECKOUT_PREVIEW_KEY,
             sourceKey(source),
             addressId ?? "",
             userCouponIds.join(","),
@@ -85,11 +89,12 @@ export function useCreateOrder() {
                 userCouponIds: couponIdsOf(args.coupons ?? {}),
                 buyerMessage: args.buyerMessage,
             }),
-        // 后端 OrderPlacedEvent 已删已购 SKU 的条目，购物车与角标一起失效
+        // 后端 OrderPlacedEvent 已删已购 SKU 的条目，购物车与角标一起失效；
+        // 所选券被本单核销，券包不失效就还能在钱包页看到它「未使用」
         meta: {
             success: "下单成功",
             error: "下单失败",
-            invalidates: [MY_ORDERS_KEY, CART_ITEMS_KEY, CART_COUNT_KEY],
+            invalidates: [MY_ORDERS_KEY, CART_ITEMS_KEY, CART_COUNT_KEY, MY_COUPONS_KEY],
         },
     })
 }

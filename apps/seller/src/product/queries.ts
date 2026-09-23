@@ -118,7 +118,8 @@ const categoryKeys = {
 export const productListOptions = (shopId: string, s: ProductListSearch) =>
     queryOptions({
         queryKey: productKeys.list(shopId, s),
-        queryFn: () =>
+        // 透传 signal：筛选/排序/翻页换 key 后，旧请求不该留在后端跑完
+        queryFn: ({ signal }) =>
             ProductsAdminApi.listShopProducts({
                 query: {
                     pageParams: { page: s.page, size: s.size },
@@ -126,6 +127,7 @@ export const productListOptions = (shopId: string, s: ProductListSearch) =>
                     keyword: s.keyword,
                     sort: s.sort,
                 },
+                signal,
             }),
         placeholderData: (prev) => prev,
     })

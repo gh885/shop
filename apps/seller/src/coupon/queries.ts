@@ -24,9 +24,10 @@ export const couponListOptions = (shopId: string, search: CouponListSearch) =>
         queryKey: couponKeys.list(shopId, search),
         // 端点用店铺上下文取 shopId（传输层注入 X-Shop-Id），前端不传店 ID——
         // 传了就多一个能与登录态不一致的来源。权限由后端 COUPON_MANAGE 校验（403 归一成 ApiError）。
-        queryFn: () =>
+        queryFn: ({ signal }) =>
             SellerCouponsApi.listShopCoupons({
                 query: { pageParams: { page: search.page, size: search.size } },
+                signal,
             }),
         // 翻页时保留上一页数据，避免整表闪成骨架屏
         placeholderData: (prev) => prev,
