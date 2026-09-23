@@ -1,6 +1,7 @@
 package com.shop.platform.shop.controller;
 
 import com.shop.platform.infra.web.CurrentUser;
+import com.shop.platform.shop.controller.response.PhoneRevealResponse;
 import com.shop.platform.shop.controller.response.ShopMemberResponse;
 import com.shop.platform.shop.controller.response.ShopResponse;
 import com.shop.platform.shop.dto.CreateShopRequest;
@@ -77,10 +78,20 @@ public class ShopController {
         shopService.declineInvite(memberId, userId);
     }
 
-    /** 店铺成员列表（本店成员可见） */
+    /** 店铺成员列表（本店成员可见）：手机号除本人那行外都是掩码 */
     @GetMapping("/{shopId}/members")
     public List<ShopMemberItem> listShopMembers(@CurrentUser UUID userId, @PathVariable UUID shopId) {
         return shopService.members(shopId, userId);
+    }
+
+    /**
+     * 查看成员电话明文：列表里别人的号恒为掩码，真要拨号的场景走这一跳，逐条索取且每次留痕。
+     * 闸门与列表同档（本店 ACTIVE 成员），越店与不存在同为 404。
+     */
+    @PostMapping("/{shopId}/members/{memberId}/phone")
+    public PhoneRevealResponse revealMemberPhone(
+            @CurrentUser UUID userId, @PathVariable UUID shopId, @PathVariable UUID memberId) {
+        return new PhoneRevealResponse(shopService.memberPhone(shopId, memberId, userId));
     }
 
     /** 店主按手机号邀请成员（可选携带可授予权限码），对方登录后确认才生效 */

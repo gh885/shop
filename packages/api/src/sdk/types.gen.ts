@@ -519,6 +519,13 @@ export const ShopStatus = {
 
 export type ShopStatus = typeof ShopStatus[keyof typeof ShopStatus];
 
+export type PhoneRevealResponse = {
+    /**
+     * 手机号明文（未掩码）
+     */
+    phone: string;
+};
+
 export type InviteMemberRequest = {
     phone: string;
     permissions?: Array<string>;
@@ -944,6 +951,9 @@ export type UpdateStaffStatusRequest = {
 export type ShopMemberItem = {
     memberId: string;
     userId: string;
+    /**
+     * 成员手机号：本人明文，他人掩码（前 3 后 4），他人明文需 POST /shops/{shopId}/members/{memberId}/phone 逐条索取
+     */
     phone: string | null;
     role: MemberRole;
     status: MemberStatus;
@@ -1376,6 +1386,9 @@ export type ShopReviewItem = {
     id: string;
     shopId: string;
     shopName: string;
+    /**
+     * 店主手机号，掩码（前 3 后 4）；明文需 POST /admin/reviews/{id}/owner-phone 逐条索取
+     */
     ownerPhone: string;
     status: ShopReviewStatus;
     reason: string | null;
@@ -2213,6 +2226,25 @@ export type ResubmitShopReviewResponses = {
 
 export type ResubmitShopReviewResponse = ResubmitShopReviewResponses[keyof ResubmitShopReviewResponses];
 
+export type RevealMemberPhoneData = {
+    body?: never;
+    path: {
+        shopId: string;
+        memberId: string;
+    };
+    query?: never;
+    url: '/shops/{shopId}/members/{memberId}/phone';
+};
+
+export type RevealMemberPhoneResponses = {
+    /**
+     * OK
+     */
+    200: PhoneRevealResponse;
+};
+
+export type RevealMemberPhoneResponse = RevealMemberPhoneResponses[keyof RevealMemberPhoneResponses];
+
 export type InviteShopMemberData = {
     body: InviteMemberRequest;
     path: {
@@ -2940,6 +2972,24 @@ export type RejectShopReviewResponses = {
 };
 
 export type RejectShopReviewResponse = RejectShopReviewResponses[keyof RejectShopReviewResponses];
+
+export type RevealOwnerPhoneData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/reviews/{id}/owner-phone';
+};
+
+export type RevealOwnerPhoneResponses = {
+    /**
+     * OK
+     */
+    200: PhoneRevealResponse;
+};
+
+export type RevealOwnerPhoneResponse = RevealOwnerPhoneResponses[keyof RevealOwnerPhoneResponses];
 
 export type ApproveShopReviewData = {
     body?: never;

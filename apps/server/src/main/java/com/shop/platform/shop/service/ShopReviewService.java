@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.observability.MdcScope;
@@ -47,7 +48,7 @@ public class ShopReviewService {
     private final ApplicationEventPublisher events;
 
     // 审核队列
-    /** 审核列表（按 status 筛选分页，含店名/店主手机号） */
+    /** 审核列表（按 status 筛选分页，含店名/店主手机号；号码恒为掩码，明文走 {@link #ownerPhone}） */
     public PageResult<ShopReviewItem> pageList(PageParams pageParams, String status) {
         // 1. 分页查审核记录，PENDING 优先、新店在前
         ShopReviewStatus filter = Text.blankToNull(status) == null ? null : ShopReviewStatus.valueOf(status);
@@ -78,13 +79,36 @@ public class ShopReviewService {
                         shops.containsKey(r.getShopId())
                                 ? shops.get(r.getShopId()).getName()
                                 : null,
-                        ownerPhones.get(r.getShopId()),
+                        PhoneNumber.mask(ownerPhones.get(r.getShopId())),
                         r.getStatus(),
                         r.getReason(),
                         r.getDecidedAt(),
                         r.getCreatedAt()))
                 .toList();
         return new PageResult<>(items, rows.getTotal());
+    }
+
+    /**
+     * 平台查看店主电话明文：审核队列是批量出口，号码恒为掩码（GEN-51），真要打电话核实资质的场景走这一跳，
+     * 逐条索取、每次留痕（记「哪个员工看了哪家店的店主号」，号码本身不进日志）。
+     * 审核记录/店铺/店主账号任一缺席同为 404，不给「存在但拿不到号」的中间态。
+     */
+    @Transactional(readOnly = true)
+    public String ownerPhone(UUID reviewId, UUID staffId) {
+        // 1. 审核记录 → 店铺 → 店主账号，三步都按主键点查（不 JOIN）
+        ShopReview review = Validate.notNull(shopReviewMapper.selectById(reviewId), "审核记录不存在");
+        Shop shop = Validate.notNull(shopMapper.selectById(review.getShopId()), "店铺不存在");
+        String phone = Validate.present(userReadQuery.phoneById(shop.getOwnerId()), "店主账号不存在");
+
+        // 2. L3 取用留痕（结构化事件，约定见 docs/business-event-logging.md）
+        try (MdcScope scope = MdcScope.of(
+                        "event", "shop_review.owner_phone_revealed",
+                        "review_id", reviewId.toString(),
+                        "shop_id", shop.getId().toString())
+                .put("staff_id", staffId.toString())) {
+            log.info("[SHOP] 平台查看店主电话明文, reviewId={}, shopId={}, staffId={}", reviewId, shop.getId(), staffId);
+        }
+        return phone;
     }
 
     // 审批

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.common.BusinessException;
@@ -253,6 +254,30 @@ class ShopControllerTest extends WebControllerTestSupport {
 
             mockMvc.perform(post("/shops/invites/{memberId}/decline", memberId).with(userAuth(userId)))
                     .andExpect(status().isConflict());
+        }
+    }
+
+    @Nested
+    class 查看成员号码明文 { // POST /shops/{shopId}/members/{memberId}/phone
+
+        /** 列表里别人的号是掩码，明文只从这一跳出，且带上操作人（service 侧打点留痕）；非本店成员 403 归 service 门 */
+        @Test
+        void 返回200_明文带操作人() throws Exception {
+            UUID memberId = UUID.randomUUID();
+            when(shopService.memberPhone(shopId, memberId, userId)).thenReturn("13900005678");
+
+            mockMvc.perform(post("/shops/{shopId}/members/{memberId}/phone", shopId, memberId)
+                            .with(userAuth(userId)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.phone").value("13900005678"));
+
+            verify(shopService).memberPhone(shopId, memberId, userId);
+        }
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(post("/shops/{shopId}/members/{memberId}/phone", shopId, UUID.randomUUID()))
+                    .andExpect(status().isUnauthorized());
         }
     }
 

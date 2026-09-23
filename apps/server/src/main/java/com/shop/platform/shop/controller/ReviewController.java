@@ -5,6 +5,7 @@ import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.shop.controller.response.PhoneRevealResponse;
 import com.shop.platform.shop.controller.response.ShopReviewResponse;
 import com.shop.platform.shop.dto.RejectRequest;
 import com.shop.platform.shop.service.ShopReviewItem;
@@ -32,11 +33,20 @@ public class ReviewController {
 
     private final ShopReviewService shopReviewService;
 
-    /** 审核队列：按 status 筛选分页（PENDING 待审 / APPROVED 已通过 / REJECTED 已拒绝） */
+    /** 审核队列：按 status 筛选分页（PENDING 待审 / APPROVED 已通过 / REJECTED 已拒绝），店主手机号只给掩码 */
     @GetMapping
     public PageResult<ShopReviewItem> listShopReviews(
             @Valid PageParams pageParams, @RequestParam(required = false) String status) {
         return shopReviewService.pageList(pageParams, status);
+    }
+
+    /**
+     * 查看店主电话明文：队列是批量出口，号码恒为掩码，真要打电话核实资质的场景走这一跳，
+     * 逐条索取且每次留痕（做成动作端点而不是把明文塞回队列，是为了让「看号码」在契约上就是一个动作）。
+     */
+    @PostMapping("/{id}/owner-phone")
+    public PhoneRevealResponse revealOwnerPhone(@PathVariable UUID id) {
+        return new PhoneRevealResponse(shopReviewService.ownerPhone(id, StaffContext.get()));
     }
 
     /** 审核通过：店铺状态 → ACTIVE */

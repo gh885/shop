@@ -36,7 +36,7 @@ export const adminApi = {
         return { accessToken: data.accessToken }
     },
 
-    /** 店铺审核分页列表（wire 透传，无字段变换——形状单一来源是 SDK 的 ShopReviewItem） */
+    /** 店铺审核分页列表（wire 透传，无字段变换——形状单一来源是 SDK 的 ShopReviewItem，联系电话是掩码） */
     async listReviews(input: { status?: ShopReviewStatus; page: number; size: number }) {
         const page = await AdminReviewsApi.listShopReviews({
             query: {
@@ -48,6 +48,12 @@ export const adminApi = {
             records: page.records,
             total: page.total,
         }
+    },
+
+    /** 查看某一条申请的店主电话明文：列表只给掩码，明文逐条索取且后端留痕（ACC-79） */
+    async revealOwnerPhone(id: string) {
+        const res = await AdminReviewsApi.revealOwnerPhone({ path: { id } })
+        return res.phone
     },
 
     /** 审核通过 */

@@ -51,6 +51,29 @@ class ReviewControllerTest extends WebControllerTestSupport {
     }
 
     @Nested
+    class 查看店主电话 { // POST /admin/reviews/{id}/owner-phone
+
+        /** 队列里是掩码，明文只从这一跳出，且带上是哪一个员工索取的（service 侧打点留痕） */
+        @Test
+        void 返回200_明文带员工身份() throws Exception {
+            when(shopReviewService.ownerPhone(reviewId, staffId)).thenReturn("13800001234");
+
+            mockMvc.perform(post("/admin/reviews/{id}/owner-phone", reviewId).with(staffAuth(staffId)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.phone").value("13800001234"));
+
+            verify(shopReviewService).ownerPhone(reviewId, staffId);
+        }
+
+        @Test
+        void 用户令牌_401() throws Exception {
+            mockMvc.perform(post("/admin/reviews/{id}/owner-phone", reviewId)
+                            .header("Authorization", "Bearer " + userToken(UUID.randomUUID())))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Nested
     class 审核通过 { // POST /admin/reviews/{id}/approve
 
         @Test

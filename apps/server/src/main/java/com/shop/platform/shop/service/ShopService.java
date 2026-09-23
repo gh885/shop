@@ -3,8 +3,10 @@ package com.shop.platform.shop.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.cache.CacheNames;
+import com.shop.platform.infra.observability.MdcScope;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
@@ -224,7 +226,10 @@ public class ShopService {
     }
 
     // 成员管理（店主操作）
-    /** 店铺成员列表：仅本店 ACTIVE 成员可见，拼上成员手机号（跨 schema 只读按 ID 查，禁止 JOIN） */
+    /**
+     * 店铺成员列表：仅本店 ACTIVE 成员可见，拼上成员手机号（跨 schema 只读按 ID 查，禁止 JOIN）。
+     * 号码只有本人那行给明文，其余一律掩码（GEN-51）——要看别人的号走 {@link #memberPhone} 逐条索取并留痕。
+     */
     public List<ShopMemberItem> members(UUID shopId, UUID operatorId) {
         requireActiveMember(shopId, operatorId);
         List<ShopMember> members = shopMemberMapper.selectByShop(shopId);
@@ -234,11 +239,41 @@ public class ShopService {
                 .map(m -> new ShopMemberItem(
                         m.getId(),
                         m.getUserId(),
-                        phones.get(m.getUserId()),
+                        phoneForView(phones.get(m.getUserId()), m.getUserId(), operatorId),
                         m.getRole(),
                         m.getStatus(),
                         m.getPermissions()))
                 .toList();
+    }
+
+    /**
+     * 查看成员电话明文：列表里除本人外都是掩码，真要拨号的场景走这一跳，逐条索取、每次留痕
+     * （记「谁看了谁的号」，号码本身不进日志）。闸门与列表同档：本店 ACTIVE 成员，越店与不存在同为 404。
+     */
+    public String memberPhone(UUID shopId, UUID memberId, UUID operatorId) {
+        // 1. 与列表同一道门（非本店成员连「这行存在」都问不出来）
+        requireActiveMember(shopId, operatorId);
+        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "成员不存在");
+        Validate.isTrue(member.getShopId().equals(shopId), 404, "成员不存在");
+
+        // 2. 号码经 account :: api 点查（禁止 JOIN）
+        String phone = Validate.present(userReadQuery.phoneById(member.getUserId()), "该成员账号不存在");
+
+        // 3. L3 取用留痕（结构化事件，约定见 docs/business-event-logging.md）
+        try (MdcScope scope = MdcScope.of(
+                        "event", "shop_member.phone_revealed",
+                        "shop_id", shopId.toString(),
+                        "member_id", memberId.toString())
+                .put("operator_id", operatorId.toString())) {
+            log.info("[SHOP] 查看成员电话明文, shopId={}, memberId={}, operatorId={}", shopId, memberId, operatorId);
+        }
+        return phone;
+    }
+
+    /** 本人那行给明文（自己的号没必要瞒自己），其余按最小必要掩码；查不到号（账号行已不在）保持 null，不编造掩码 */
+    private static String phoneForView(String phone, UUID userId, UUID operatorId) {
+        if (phone == null || userId.equals(operatorId)) return phone;
+        return PhoneNumber.mask(phone);
     }
 
     /** 店主邀请成员：按手机号找人，落 PENDING 等对方登录后确认（可选携带可授予权限码，默认空集） */

@@ -492,6 +492,10 @@ export const zShopResponse = z.object({
     rejectReason: z.string().nullable()
 });
 
+export const zPhoneRevealResponse = z.object({
+    phone: z.string()
+});
+
 export const zInviteMemberRequest = z.object({
     phone: z.string().min(1).regex(/^1[3-9]\d{9}$/),
     permissions: z.array(z.string()).optional()
@@ -1695,6 +1699,16 @@ export const zResubmitShopReviewPath = z.object({
  */
 export const zResubmitShopReviewResponse = zShopResponse;
 
+export const zRevealMemberPhonePath = z.object({
+    shopId: z.uuid(),
+    memberId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zRevealMemberPhoneResponse = zPhoneRevealResponse;
+
 export const zInviteShopMemberBody = zInviteMemberRequest;
 
 export const zInviteShopMemberPath = z.object({
@@ -1988,6 +2002,15 @@ export const zRejectShopReviewPath = z.object({
  * OK
  */
 export const zRejectShopReviewResponse = zShopReviewResponse;
+
+export const zRevealOwnerPhonePath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zRevealOwnerPhoneResponse = zPhoneRevealResponse;
 
 export const zApproveShopReviewPath = z.object({
     id: z.uuid()

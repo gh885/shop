@@ -20,7 +20,7 @@ public class UserReadQuery {
 
     private final JdbcTemplate jdbc;
 
-    /** userId → 手机号（成员列表/审核队列等展示字段拼装），缺失的 id 不在 Map 中 */
+    /** userId → 手机号（成员列表/审核队列等批量拼装，出参一律先过 PhoneNumber.mask），缺失的 id 不在 Map 中 */
     public Map<UUID, String> phonesByIds(Collection<UUID> ids) {
         return IdBatchReader.byIds(
                 jdbc,
@@ -35,6 +35,16 @@ public class UserReadQuery {
         List<UUID> ids = jdbc.query(
                 "SELECT id FROM account.users WHERE phone = ?", (rs, i) -> rs.getObject("id", UUID.class), phone);
         return ids.isEmpty() ? Optional.empty() : Optional.of(ids.getFirst());
+    }
+
+    /**
+     * 单个 userId 的手机号点查：拿到的就是明文，只给「逐条索取号码」那类显式动作调用方用（调用方负责留痕），
+     * 批量展示一律走 {@link #phonesByIds} 再掩码出参。账号不存在返回 empty。
+     */
+    public Optional<String> phoneById(UUID userId) {
+        List<String> phones =
+                jdbc.query("SELECT phone FROM account.users WHERE id = ?", (rs, i) -> rs.getString(1), userId);
+        return phones.isEmpty() ? Optional.empty() : Optional.ofNullable(phones.getFirst());
     }
 
     /**

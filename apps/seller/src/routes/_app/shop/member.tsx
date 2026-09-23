@@ -4,7 +4,7 @@ import { useShop, shopKeys, shopMembersOptions } from "#/shop"
 import { useMe } from "#/shared/lib/me"
 import { ShopsApi } from "@shop/api/sdk"
 import { createFileRoute } from "@tanstack/react-router"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
     Empty,
     EmptyHeader,
@@ -23,6 +23,7 @@ import {
     FieldError,
     ButtonGroup,
     Input,
+    Spinner,
     confirm,
 } from "@shop/ui-web"
 import { z } from "zod"
@@ -53,6 +54,7 @@ function MembersPage() {
 
 function MemberPanel({ shopId }: { shopId: string }) {
     const me = useMe()
+    const queryClient = useQueryClient()
 
     // 成员列表走域内 queryOptions（key 与失效规则同源，路由不直接拼 key）
     const members = useQuery(shopMembersOptions(shopId))
@@ -97,6 +99,20 @@ function MemberPanel({ shopId }: { shopId: string }) {
         })
     }
 
+    // 别人的号码后端只给掩码，明文逐条索取且在后端留痕（ACC-79）。取到写回列表缓存这一行、故意不失效
+    // 列表：失效会立刻把刚拿到的明文冲掉，下次重新拉取自然又回掩码，明文不长期驻留
+    const revealPhone = useMutation({
+        mutationFn: (memberId: string) =>
+            ShopsApi.revealMemberPhone({ path: { shopId, memberId } }),
+        meta: { error: "查看成员电话失败" },
+        onSuccess: (res, memberId) =>
+            queryClient.setQueryData<NonNullable<typeof members.data>>(
+                shopKeys.members(shopId),
+                (prev) =>
+                    prev?.map((m) => (m.memberId === memberId ? { ...m, phone: res.phone } : m)),
+            ),
+    })
+
     // 失败已由全局默认的 throwOnError 交给路由错误页
     if (members.isLoading) {
         return (
@@ -136,7 +152,14 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                 key={m.memberId}
                                 className="flex items-center justify-between py-3 text-sm"
                             >
-                                <span className="tabular-nums">{m.phone ?? m.userId}</span>
+                                <MemberPhoneCell
+                                    phone={m.phone ?? m.userId}
+                                    revealing={
+                                        revealPhone.isPending &&
+                                        revealPhone.variables === m.memberId
+                                    }
+                                    onReveal={() => revealPhone.mutate(m.memberId)}
+                                />
                                 <span className="flex items-center gap-2">
                                     <Badge variant={m.role === "OWNER" ? "default" : "secondary"}>
                                         {m.role === "OWNER" ? "店主" : "店员"}
@@ -214,5 +237,37 @@ function MemberPanel({ shopId }: { shopId: string }) {
                 )}
             </CardContent>
         </Card>
+    )
+}
+
+/**
+ * 成员号码：后端出参里只有本人那行是明文，别人的是掩码（前 3 后 4），点「查看」逐条取明文——
+ * 这次取用会在后端留痕（ACC-79）。取到的明文由容器写回列表缓存，于是掩码判断只看这一个字符串里
+ * 还有没有 `****`（掩码的唯一形状）。号码缺席时调用方退回显示 userId（与改前一致），所以这里恒有值。
+ */
+function MemberPhoneCell({
+    phone,
+    revealing,
+    onReveal,
+}: {
+    phone: string
+    revealing: boolean
+    onReveal: () => void
+}) {
+    return (
+        <span className="flex items-center gap-1.5">
+            <span className="tabular-nums">{phone}</span>
+            {phone.includes("****") ? (
+                <Button
+                    variant="link"
+                    size="xs"
+                    disabled={revealing}
+                    onClick={onReveal}
+                >
+                    {revealing && <Spinner />}
+                    查看
+                </Button>
+            ) : undefined}
+        </span>
     )
 }

@@ -16,7 +16,13 @@ import java.util.UUID;
 public record ShopMemberItem(
         @Schema(requiredMode = REQUIRED) UUID memberId,
         @Schema(requiredMode = REQUIRED) UUID userId,
-        @Schema(requiredMode = REQUIRED, nullable = true) String phone,
+        /** 本人那行是明文，其余成员是掩码（前 3 后 4）：看别人的号走 {@code POST /shops/{shopId}/members/{memberId}/phone} 逐条索取并留痕 */
+        @Schema(
+                        requiredMode = REQUIRED,
+                        nullable = true,
+                        description = "成员手机号：本人明文，他人掩码（前 3 后 4），"
+                                + "他人明文需 POST /shops/{shopId}/members/{memberId}/phone 逐条索取")
+                String phone,
         @Schema(requiredMode = REQUIRED) MemberRole role,
         @Schema(requiredMode = REQUIRED) MemberStatus status,
         @Schema(requiredMode = REQUIRED) List<String> permissions) {}

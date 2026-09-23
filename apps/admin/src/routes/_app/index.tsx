@@ -1,8 +1,8 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { ShopReviewStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import {
     Badge,
@@ -68,71 +68,148 @@ const STATUS_BADGE: Record<
 
 const EMPTY_REVIEWS: ShopReviewItem[] = []
 
-const columns: ColumnDef<DataTableFeatures, ShopReviewItem>[] = [
-    {
-        accessorKey: "shopName",
-        header: "店铺名称",
-        cell: ({ row }) => <span className="font-medium">{row.original.shopName}</span>,
-    },
-    {
-        accessorKey: "ownerPhone",
-        header: "联系电话",
-        cell: ({ row }) => <span className="tabular-nums">{row.original.ownerPhone}</span>,
-    },
-    {
-        accessorKey: "status",
-        header: "状态",
-        cell: ({ row }) => {
-            const badge = STATUS_BADGE[row.original.status]
-            return <Badge variant={badge.variant}>{badge.label}</Badge>
-        },
-    },
-    {
-        accessorKey: "reason",
-        header: "驳回理由",
-        cell: ({ row }) =>
-            row.original.reason ? (
-                <span className="max-w-48 truncate text-muted-foreground">
-                    {row.original.reason}
-                </span>
-            ) : (
-                <span className="text-muted-foreground">—</span>
-            ),
-    },
-    {
-        accessorKey: "createdAt",
-        header: "申请时间",
-        cell: ({ row }) => (
-            <span className="tabular-nums text-muted-foreground">
-                {formatTime(row.original.createdAt)}
-            </span>
-        ),
-    },
-    {
-        accessorKey: "decidedAt",
-        header: "处理时间",
-        cell: ({ row }) =>
-            row.original.decidedAt ? (
-                <span className="tabular-nums text-muted-foreground">
-                    {formatTime(row.original.decidedAt)}
-                </span>
-            ) : (
-                <span className="text-muted-foreground">—</span>
-            ),
-    },
-    {
-        id: "actions",
-        header: () => <span className="flex justify-end">操作</span>,
-        enableHiding: false,
-        cell: ({ row }) => <ReviewActions item={row.original} />,
-    },
-]
+/**
+ * 列定义。联系电话那一行要能触发「取明文」，所以列跟着页面状态走（不是模块级常量）：
+ * 后端出参恒为掩码，点「查看」逐条索取，取到的号码写回列表缓存的这一行（ACC-79）。
+ */
+function useReviewColumns({
+    onRevealPhone,
+    revealingId,
+}: {
+    onRevealPhone: (item: ShopReviewItem) => void
+    revealingId: string | undefined
+}) {
+    return useMemo<ColumnDef<DataTableFeatures, ShopReviewItem>[]>(
+        () => [
+            {
+                accessorKey: "shopName",
+                header: "店铺名称",
+                cell: ({ row }) => <span className="font-medium">{row.original.shopName}</span>,
+            },
+            {
+                accessorKey: "ownerPhone",
+                header: "联系电话",
+                cell: ({ row }) => (
+                    <OwnerPhoneCell
+                        phone={row.original.ownerPhone}
+                        revealing={revealingId === row.original.id}
+                        onReveal={() => onRevealPhone(row.original)}
+                    />
+                ),
+            },
+            {
+                accessorKey: "status",
+                header: "状态",
+                cell: ({ row }) => {
+                    const badge = STATUS_BADGE[row.original.status]
+                    return <Badge variant={badge.variant}>{badge.label}</Badge>
+                },
+            },
+            {
+                accessorKey: "reason",
+                header: "驳回理由",
+                cell: ({ row }) =>
+                    row.original.reason ? (
+                        <span className="max-w-48 truncate text-muted-foreground">
+                            {row.original.reason}
+                        </span>
+                    ) : (
+                        <span className="text-muted-foreground">—</span>
+                    ),
+            },
+            {
+                accessorKey: "createdAt",
+                header: "申请时间",
+                cell: ({ row }) => (
+                    <span className="tabular-nums text-muted-foreground">
+                        {formatTime(row.original.createdAt)}
+                    </span>
+                ),
+            },
+            {
+                accessorKey: "decidedAt",
+                header: "处理时间",
+                cell: ({ row }) =>
+                    row.original.decidedAt ? (
+                        <span className="tabular-nums text-muted-foreground">
+                            {formatTime(row.original.decidedAt)}
+                        </span>
+                    ) : (
+                        <span className="text-muted-foreground">—</span>
+                    ),
+            },
+            {
+                id: "actions",
+                header: () => <span className="flex justify-end">操作</span>,
+                enableHiding: false,
+                cell: ({ row }) => <ReviewActions item={row.original} />,
+            },
+        ],
+        [onRevealPhone, revealingId],
+    )
+}
+
+/**
+ * 联系电话：后端出参是掩码（前 3 后 4），点「查看」逐条取明文——这次取用会在后端留痕（ACC-79）。
+ * 取到的明文由页面写回列表缓存，于是掩码判断只看这一个字符串里还有没有 `****`（掩码的唯一形状）。
+ */
+function OwnerPhoneCell({
+    phone,
+    revealing,
+    onReveal,
+}: {
+    phone: string
+    revealing: boolean
+    onReveal: () => void
+}) {
+    return (
+        <div className="flex items-center gap-1.5">
+            <span className="tabular-nums">{phone}</span>
+            {phone.includes("****") && (
+                <Button
+                    variant="link"
+                    size="xs"
+                    disabled={revealing}
+                    onClick={onReveal}
+                >
+                    {revealing && <Spinner />}
+                    查看
+                </Button>
+            )}
+        </div>
+    )
+}
 
 function ReviewPage() {
     const { status, page, size } = Route.useSearch()
     const navigate = Route.useNavigate()
+    const queryClient = useQueryClient()
 
     const { data, isPending } = useQuery(reviewListOptions({ status, page, size }))
+
+    // 店主电话明文逐条索取（ACC-79）：取到写回这一行，故意不失效列表——失效会立刻把刚拿到的明文冲掉，
+    // 下次重新拉取自然又回掩码，明文不长期驻留
+    const revealPhone = useMutation({
+        mutationFn: (item: ShopReviewItem) => adminApi.revealOwnerPhone(item.id),
+        meta: { error: "查看店主电话失败" },
+        onSuccess: (phone, item) =>
+            queryClient.setQueryData<NonNullable<typeof data>>(
+                reviewKeys.list({ status, page, size }),
+                (prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              records: prev.records.map((r) =>
+                                  r.id === item.id ? { ...r, ownerPhone: phone } : r,
+                              ),
+                          }
+                        : prev,
+            ),
+    })
+    const columns = useReviewColumns({
+        onRevealPhone: revealPhone.mutate,
+        revealingId: revealPhone.isPending ? revealPhone.variables.id : undefined,
+    })
 
     // 服务端模式：分页/筛选状态由 URL 接管，DataTable 内不自管
     const pagination = { pageIndex: page - 1, pageSize: size }
