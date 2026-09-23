@@ -202,7 +202,7 @@ function stubApi({
         }),
         http.put("*/seller/products/:id/skus", async ({ request }) => {
             calls.skus += 1
-            const body: { items?: unknown[] } = await request.json()
+            const body = (await request.json()) as { items?: unknown[] }
             calls.skuItems = body.items ?? []
             return HttpResponse.json(specsResponse)
         }),
