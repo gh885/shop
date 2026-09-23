@@ -130,5 +130,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         receiveReturn: run(receiveReturn.mutateAsync),
         /** 取这一行买家的电话明文（一次一单，后端留痕） */
         revealPhone: (orderId: string) => revealPhone.mutate(orderId),
+        /** 正在索取明文的订单：那一行的入口要禁掉，每次索取都留下一条取用记录 */
+        revealPhoneFor: revealPhone.isPending ? revealPhone.variables : undefined,
     }
 }

@@ -58,6 +58,7 @@ function OrdersPage() {
         rejectAfterSale,
         receiveReturn,
         revealPhone,
+        revealPhoneFor,
     } = useOrderList(shop.id, search)
     const [shipTarget, setShipTarget] = useState<OrderIdentity | undefined>()
     const [confirm, setConfirm] = useState<SaleConfirm | undefined>()
@@ -111,6 +112,7 @@ function OrdersPage() {
                         setConfirm({ orderId: o.id, orderNo: o.orderNo, kind: action })
                     }
                     onRevealPhone={(o) => revealPhone(o.id)}
+                    revealingId={revealPhoneFor}
                 />
             )}
 

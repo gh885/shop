@@ -3,13 +3,8 @@ import type { RecommendTabResponse } from "@shop/api/sdk"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 
-import {
-    actionsColumn,
-    cmsStatusColumn,
-    sortOrderColumn,
-    targetColumn,
-    targetTypeColumn,
-} from "../list-columns"
+import { cmsStatusColumn, sortOrderColumn, targetColumn, targetTypeColumn } from "../list-columns"
+import { actionsColumn } from "#/shared/ui/columns"
 import { CmsRowActions } from "../row-actions"
 import { useSetTabStatus } from "./queries"
 import { TabFormDialog } from "./form-dialog"

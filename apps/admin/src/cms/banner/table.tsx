@@ -4,13 +4,8 @@ import { formatTimeShort } from "@shop/app-kit"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Image, type DataTableFeatures } from "@shop/ui-web"
 
-import {
-    actionsColumn,
-    codeColumn,
-    cmsStatusColumn,
-    sortOrderColumn,
-    targetTypeColumn,
-} from "../list-columns"
+import { codeColumn, cmsStatusColumn, sortOrderColumn, targetTypeColumn } from "../list-columns"
+import { actionsColumn } from "#/shared/ui/columns"
 import { CmsRowActions } from "../row-actions"
 import { useSetBannerStatus } from "./queries"
 import { BannerFormDialog } from "./form-dialog"

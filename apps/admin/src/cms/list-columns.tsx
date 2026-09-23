@@ -1,6 +1,4 @@
-import type { ReactNode } from "react"
 import type { CmsStatus } from "@shop/api/sdk"
-
 import type { ColumnDef, RowData } from "@tanstack/react-table"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 
@@ -15,6 +13,8 @@ import { STATUS_BADGE } from "./constants"
  *
  * 一律用 `id` + 读 `row.original`：这些列都不参与排序与筛选（后端按 sortOrder 返回全量），
  * 挂 accessorKey 只是给 TanStack 一个它用不上的取值路径。
+ *
+ * 操作列不在这里：它不认任何业务字段，已经上收到 `#/shared/ui/columns`，和审核队列共用一份。
  */
 
 /** 状态列：ENABLED / DISABLED 两态徽标 */
@@ -86,17 +86,5 @@ export function codeColumn<T extends RowData>(
         id,
         header,
         cell: ({ row }) => <span className="font-mono text-xs">{value(row.original)}</span>,
-    }
-}
-
-/** 操作列：右对齐、不参与列显隐 */
-export function actionsColumn<T extends RowData>(
-    render: (row: T) => ReactNode,
-): ColumnDef<DataTableFeatures, T> {
-    return {
-        id: "actions",
-        header: () => <span className="flex justify-end">操作</span>,
-        enableHiding: false,
-        cell: ({ row }) => <>{render(row.original)}</>,
     }
 }

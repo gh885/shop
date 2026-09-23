@@ -23,7 +23,7 @@ import {
     FieldError,
     ButtonGroup,
     Input,
-    Spinner,
+    MaskedValueCell,
     confirm,
 } from "@shop/ui-web"
 import { z } from "zod"
@@ -152,8 +152,9 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                 key={m.memberId}
                                 className="flex items-center justify-between py-3 text-sm"
                             >
-                                <MemberPhoneCell
-                                    phone={m.phone ?? m.userId}
+                                {/* 本人那行给的是明文，入口自然不出现；号码缺席时退回显示 userId，值恒有 */}
+                                <MaskedValueCell
+                                    value={m.phone ?? m.userId}
                                     revealing={
                                         revealPhone.isPending &&
                                         revealPhone.variables === m.memberId
@@ -237,37 +238,5 @@ function MemberPanel({ shopId }: { shopId: string }) {
                 )}
             </CardContent>
         </Card>
-    )
-}
-
-/**
- * 成员号码：后端出参里只有本人那行是明文，别人的是掩码（前 3 后 4），点「查看」逐条取明文——
- * 这次取用会在后端留痕（ACC-79）。取到的明文由容器写回列表缓存，于是掩码判断只看这一个字符串里
- * 还有没有 `****`（掩码的唯一形状）。号码缺席时调用方退回显示 userId（与改前一致），所以这里恒有值。
- */
-function MemberPhoneCell({
-    phone,
-    revealing,
-    onReveal,
-}: {
-    phone: string
-    revealing: boolean
-    onReveal: () => void
-}) {
-    return (
-        <span className="flex items-center gap-1.5">
-            <span className="tabular-nums">{phone}</span>
-            {phone.includes("****") ? (
-                <Button
-                    variant="link"
-                    size="xs"
-                    disabled={revealing}
-                    onClick={onReveal}
-                >
-                    {revealing && <Spinner />}
-                    查看
-                </Button>
-            ) : undefined}
-        </span>
     )
 }

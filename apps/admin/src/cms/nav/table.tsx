@@ -3,13 +3,8 @@ import type { NavEntryResponse } from "@shop/api/sdk"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 
-import {
-    actionsColumn,
-    codeColumn,
-    cmsStatusColumn,
-    sortOrderColumn,
-    targetTypeColumn,
-} from "../list-columns"
+import { codeColumn, cmsStatusColumn, sortOrderColumn, targetTypeColumn } from "../list-columns"
+import { actionsColumn } from "#/shared/ui/columns"
 import { CmsRowActions } from "../row-actions"
 import { useSetNavStatus } from "./queries"
 import { NavFormDialog } from "./form-dialog"

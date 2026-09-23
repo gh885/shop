@@ -379,6 +379,9 @@ importers:
       '@shop/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@tanstack/router-cli':
         specifier: 'catalog:'
         version: 1.167.38(supports-color@10.2.2)

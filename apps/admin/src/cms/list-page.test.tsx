@@ -9,7 +9,8 @@ import { describe, expect, it, vi } from "vitest"
 
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 
-import { actionsColumn, cmsStatusColumn, sortOrderColumn } from "./list-columns"
+import { cmsStatusColumn, sortOrderColumn } from "./list-columns"
+import { actionsColumn } from "#/shared/ui/columns"
 import { CmsListPage } from "./list-page"
 
 /**
