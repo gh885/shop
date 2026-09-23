@@ -20,6 +20,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +39,9 @@ class StaffServiceTest {
     @Mock
     RefreshTokenStore refreshTokenStore;
 
+    @Mock
+    StringRedisTemplate redis;
+
     @InjectMocks
     StaffService staffService;
 
@@ -44,6 +49,29 @@ class StaffServiceTest {
 
     @Captor
     ArgumentCaptor<Staff> staffCaptor;
+
+    @Nested
+    class 登录 { // StaffService.login（POST /admin/auth/login）
+
+        @Test
+        void 工号不存在_仍比对占位哈希_防按时序枚举() {
+            when(staffMapper.selectByEmployeeNo("E404")).thenReturn(null);
+            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+            assertThrows(BusinessException.class, () -> staffService.login("E404", "pwd", "dev1", "1.1.1.1"));
+            // 查无此工号也要跑一次 KDF，否则响应耗时直接说出「有没有这个工号」（LOGIN-01）
+            verify(passwordEncoder).matches(eq("pwd"), anyString());
+        }
+
+        @Test
+        void 超限流窗口_401_不碰员工表() {
+            when(redis.execute(any(RedisScript.class), anyList(), any())).thenReturn(11L);
+
+            var ex = assertThrows(BusinessException.class, () -> staffService.login("E001", "pwd", "dev1", "1.1.1.1"));
+            assertEquals(401, ex.getHttpStatus());
+            verify(staffMapper, never()).selectByEmployeeNo(anyString());
+        }
+    }
 
     @Nested
     class 管理端封号 { // StaffService.updateStaffStatus（PATCH /admin/staff/{id}/status）

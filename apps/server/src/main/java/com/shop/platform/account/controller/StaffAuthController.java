@@ -8,6 +8,7 @@ import com.shop.platform.account.service.StaffService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.TokenPair;
+import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.RefreshCookies;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,11 +36,14 @@ public class StaffAuthController {
 
     private final StaffService staffService;
     private final RefreshCookies refreshCookies;
+    private final ClientIp clientIp;
 
     /** 工号 + 密码登录，返回独立于 C 端的 token（kind=staff），refresh 落 httpOnly cookie */
     @PostMapping("/login")
-    public TokenPair staffLogin(@Valid @RequestBody LoginRequest req, HttpServletResponse response) {
-        TokenPair result = staffService.login(req.employeeNo(), req.password(), req.deviceId());
+    public TokenPair staffLogin(
+            @Valid @RequestBody LoginRequest req, HttpServletRequest servletRequest, HttpServletResponse response) {
+        TokenPair result =
+                staffService.login(req.employeeNo(), req.password(), req.deviceId(), clientIp.of(servletRequest));
         refreshCookies.issue(response, COOKIE, result.refreshToken());
         return result;
     }

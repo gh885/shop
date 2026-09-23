@@ -30,7 +30,8 @@ class StaffAuthControllerTest extends WebControllerTestSupport {
 
         @Test
         void 成功_下发HttpOnly刷新Cookie() throws Exception {
-            when(staffService.login("E001", "password123", "dev1")).thenReturn(new TokenPair("staff-at", "staff-rt"));
+            when(staffService.login("E001", "password123", "dev1", "127.0.0.1"))
+                    .thenReturn(new TokenPair("staff-at", "staff-rt"));
 
             mockMvc.perform(
                             post("/admin/auth/login")
@@ -45,7 +46,7 @@ class StaffAuthControllerTest extends WebControllerTestSupport {
                     .andExpect(cookie().httpOnly("staff_refresh_token", true))
                     .andExpect(cookie().path("staff_refresh_token", "/admin/auth/refresh"));
 
-            verify(staffService).login("E001", "password123", "dev1");
+            verify(staffService).login("E001", "password123", "dev1", "127.0.0.1");
         }
 
         @Test

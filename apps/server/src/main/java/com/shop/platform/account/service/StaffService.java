@@ -1,5 +1,6 @@
 package com.shop.platform.account.service;
 
+import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
 import com.shop.platform.account.model.StaffStatus;
@@ -7,11 +8,13 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,28 +24,87 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class StaffService {
 
+    /** 员工口令爆破限流（与买家侧 LOGIN-05 同档位，独立键空间） */
+    private static final String RATE_IP_STAFF_PWD = "rl:ip:staff-pwd:";
+
+    private static final String RATE_STAFF_PWD = "rl:staff:pwd:";
+    private static final int RATE_IP_MAX = 10;
+    private static final int RATE_IP_WINDOW = 60; // 秒
+    private static final int RATE_STAFF_MAX = 5;
+    private static final int RATE_STAFF_WINDOW = 600; // 秒
+
     private final StaffMapper staffMapper;
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenStore refreshTokenStore;
+    private final StringRedisTemplate redis;
 
     // 登录
-    /** 工号 + 密码登录（平台员工独立账号体系，不走手机验证码） */
-    public TokenPair login(String employeeNo, String password, String deviceId) {
-        // 1. 查员工并比对密码（不存在与密码错误统一提示，不暴露账号存在性）
+    /**
+     * 工号 + 密码登录（平台员工独立账号体系，不走手机验证码）。
+     *
+     * <p>限流与等时对比两道防护与买家侧密码登录同一套口径（LOGIN-05 / LOGIN-01）：本端点匿名可达，
+     * 打的又是权限最高的账号库，缺任一道它就是爆破性价比最高的入口——缺限流可按线速试口令，
+     * 缺等时对比则「工号存在」与「不存在」的响应耗时差一次 BCrypt，等于白送一个枚举口。
+     */
+    public TokenPair login(String employeeNo, String password, String deviceId, String clientIp) {
+        // 1. 限流检查（被限流时走 dummy hash 保持时序一致）
+        rejectIfRateLimited(employeeNo, password, clientIp);
+
+        // 2. 验证凭证：查员工与比密码之间不做分支，工号不存在也用占位哈希跑满 KDF（LOGIN-01）
         Staff staff = staffMapper.selectByEmployeeNo(employeeNo);
-        if (staff == null || !passwordEncoder.matches(password, staff.getPasswordHash())) {
-            log.warn("[STAFF] 登录失败：工号或密码错误, employeeNo={}", employeeNo);
+        String storedHash = staff != null ? staff.getPasswordHash() : AuthService.DUMMY_PASSWORD_HASH;
+        // 必须先算进变量再判：写成 staff == null || !matches(...) 会短路掉 KDF，等时防护形同虚设
+        boolean matched = passwordEncoder.matches(password, storedHash);
+        if (staff == null || !matched) {
+            logRejected(staff, employeeNo, clientIp);
             throw BusinessException.unauthorized("工号或密码错误");
         }
 
-        // 2. 检查账号状态
+        // 3. 检查账号状态
         if (!staff.isActive()) {
             throw new BusinessException(403, "STAFF_DISABLED", "账号已被禁用");
         }
 
-        // 3. 签发 Token（kind=staff，与 C 端用户 token 隔离）
+        // 4. 登录成功清除失败计数（LOGIN-08）
+        clearPasswordRateLimit(employeeNo, clientIp);
+
+        // 5. 签发 Token（kind=staff，与 C 端用户 token 隔离）
         return issueTokens(staff, deviceId);
+    }
+
+    /** 双维度限流（IP + 工号），被限流时仍跑一次 BCrypt，防按返回时长探测是否已被限 */
+    private void rejectIfRateLimited(String employeeNo, String password, String ip) {
+        boolean ipLimited =
+                RateLimiter.exceeded(redis, RATE_IP_STAFF_PWD + ip, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW));
+        boolean staffLimited = RateLimiter.exceeded(
+                redis, RATE_STAFF_PWD + employeeNo, RATE_STAFF_MAX, Duration.ofSeconds(RATE_STAFF_WINDOW));
+
+        if (ipLimited || staffLimited) {
+            passwordEncoder.matches(password, AuthService.DUMMY_PASSWORD_HASH);
+            throw BusinessException.unauthorized("工号或密码错误");
+        }
+    }
+
+    private void clearPasswordRateLimit(String employeeNo, String ip) {
+        redis.delete(RATE_IP_STAFF_PWD + ip);
+        redis.delete(RATE_STAFF_PWD + employeeNo);
+    }
+
+    /** 失败统一出口：对外同一句话，对内记可定位原因供运营揪撞库者；工号是半标识符，明文不整串落日志 */
+    private void logRejected(Staff staff, String employeeNo, String clientIp) {
+        if (staff == null) {
+            log.warn("[STAFF] 登录失败：工号不存在, employeeNo={}, ip={}", maskEmployeeNo(employeeNo), clientIp);
+        } else {
+            log.warn("[STAFF] 登录失败：密码错误, staffId={}, ip={}", staff.getId(), clientIp);
+        }
+    }
+
+    private static String maskEmployeeNo(String employeeNo) {
+        if (employeeNo == null || employeeNo.length() < 4) {
+            return "****";
+        }
+        return employeeNo.charAt(0) + "***" + employeeNo.substring(employeeNo.length() - 2);
     }
 
     // Token 刷新（复用 RefreshTokenStore 轮换机制）
