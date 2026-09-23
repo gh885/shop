@@ -17,62 +17,48 @@ export const addressListOptions = (shopId: string) =>
     })
 
 /**
- * 本店地址的五个写操作只差 mutationFn 与成功文案：
- * 失效 key（含当前店铺）、toast 文案、错误归一全部由全局 meta 与 MutationCache 处理。
+ * 本店地址的五个写操作：各自声明成功文案与失效范围（当前店的列表）。
+ * 错误归一与提示由全局 MutationCache 负责，这里不写 onError。
  */
-function useAddressMutation<TInput>(
-    shopId: string,
-    mutationFn: (input: TInput) => Promise<unknown>,
-    success: string,
-) {
-    return useMutation({
-        mutationFn,
-        meta: { success, invalidates: [addressKeys.lists(shopId)] },
-    })
-}
 
 /** 新增地址（可同时标记默认发货/默认退货） */
 export function useCreateAddress(shopId: string) {
-    return useAddressMutation(
-        shopId,
-        (input: MerchantAddressRequest) => SellerAddressesApi.createAddress1({ body: input }),
-        "地址已保存",
-    )
+    return useMutation({
+        mutationFn: (input: MerchantAddressRequest) =>
+            SellerAddressesApi.createAddress1({ body: input }),
+        meta: { success: "地址已保存", invalidates: [addressKeys.lists(shopId)] },
+    })
 }
 
 /** 编辑地址（保留原 id） */
 export function useUpdateAddress(shopId: string) {
-    return useAddressMutation(
-        shopId,
-        ({ id, input }: { id: string; input: MerchantAddressRequest }) =>
+    return useMutation({
+        mutationFn: ({ id, input }: { id: string; input: MerchantAddressRequest }) =>
             SellerAddressesApi.updateAddress1({ path: { id }, body: input }),
-        "地址已更新",
-    )
+        meta: { success: "地址已更新", invalidates: [addressKeys.lists(shopId)] },
+    })
 }
 
 /** 删除地址（软删） */
 export function useDeleteAddress(shopId: string) {
-    return useAddressMutation(
-        shopId,
-        (id: string) => SellerAddressesApi.deleteAddress1({ path: { id } }),
-        "地址已删除",
-    )
+    return useMutation({
+        mutationFn: (id: string) => SellerAddressesApi.deleteAddress1({ path: { id } }),
+        meta: { success: "地址已删除", invalidates: [addressKeys.lists(shopId)] },
+    })
 }
 
 /** 设为默认发货 */
 export function useSetDefaultShip(shopId: string) {
-    return useAddressMutation(
-        shopId,
-        (id: string) => SellerAddressesApi.setDefaultShip({ path: { id } }),
-        "已设为默认发货地址",
-    )
+    return useMutation({
+        mutationFn: (id: string) => SellerAddressesApi.setDefaultShip({ path: { id } }),
+        meta: { success: "已设为默认发货地址", invalidates: [addressKeys.lists(shopId)] },
+    })
 }
 
 /** 设为默认退货 */
 export function useSetDefaultReturn(shopId: string) {
-    return useAddressMutation(
-        shopId,
-        (id: string) => SellerAddressesApi.setDefaultReturn({ path: { id } }),
-        "已设为默认退货地址",
-    )
+    return useMutation({
+        mutationFn: (id: string) => SellerAddressesApi.setDefaultReturn({ path: { id } }),
+        meta: { success: "已设为默认退货地址", invalidates: [addressKeys.lists(shopId)] },
+    })
 }

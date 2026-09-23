@@ -6,7 +6,6 @@ import {
     type TicketType,
 } from "@shop/api/sdk"
 
-import type { MutationMeta } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 
 import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
@@ -47,7 +46,7 @@ export const afterSaleOptions = (orderId: string) =>
         throwOnError: false,
     })
 
-// 写操作（申请 / 撤销 / 回寄），纯 fetch 便于断言投影
+// 写操作（申请 / 撤销 / 回寄）：请求拼装留成纯函数便于断言投影，接线各自一个 useMutation
 /** 申请售后：类型与原因必选（原因枚举是判定「七天无理由」的唯一依据），补充说明空串按「没填」处理 */
 async function applyAfterSale(
     orderId: string,
@@ -57,14 +56,6 @@ async function applyAfterSale(
     await OrdersApi.applyAfterSale({
         path: { id: orderId },
         body: { type: input.type, reasonCode: input.reasonCode, reason: reason || undefined },
-    })
-}
-
-/** 撤销售后申请（仅待卖家处理可撤销） */
-export function useCancelAfterSale(orderId: string) {
-    return useAfterSaleMutation(() => OrdersApi.cancelAfterSale({ path: { id: orderId } }), {
-        success: "已撤销申请",
-        error: "撤销失败",
     })
 }
 
@@ -84,31 +75,44 @@ async function returnAfterSale(
         },
     })
 }
-/** 三个写操作共用：成功提示 + 失效售后单/订单详情/订单列表 */
-function useAfterSaleMutation<TInput>(
-    mutationFn: (input: TInput) => Promise<unknown>,
-    meta: Pick<MutationMeta, "success" | "error">,
-) {
-    return useMutation({
-        mutationFn,
-        meta: { ...meta, invalidates: [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_ORDERS_KEY] },
-    })
-}
+
+/** 三个写操作改变了同一批缓存（见文件头）：抽成一个常量是为了加第四棵树时不漏一处 */
+const AFTER_SALE_WRITE_INVALIDATES = [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_ORDERS_KEY]
 
 /** 申请售后 */
 export function useApplyAfterSale(orderId: string) {
-    return useAfterSaleMutation(
-        (input: { type: TicketType; reasonCode: AfterSaleReason; reason?: string }) =>
+    return useMutation({
+        mutationFn: (input: { type: TicketType; reasonCode: AfterSaleReason; reason?: string }) =>
             applyAfterSale(orderId, input),
-        { success: "售后申请已提交，等待卖家处理", error: "申请售后失败" },
-    )
+        meta: {
+            success: "售后申请已提交，等待卖家处理",
+            error: "申请售后失败",
+            invalidates: AFTER_SALE_WRITE_INVALIDATES,
+        },
+    })
+}
+
+/** 撤销售后申请（仅待卖家处理可撤销） */
+export function useCancelAfterSale(orderId: string) {
+    return useMutation({
+        mutationFn: () => OrdersApi.cancelAfterSale({ path: { id: orderId } }),
+        meta: {
+            success: "已撤销申请",
+            error: "撤销失败",
+            invalidates: AFTER_SALE_WRITE_INVALIDATES,
+        },
+    })
 }
 
 /** 回寄退货填单 */
 export function useReturnAfterSale(orderId: string) {
-    return useAfterSaleMutation(
-        (input: { logisticsCompany: string; trackingNo: string }) =>
+    return useMutation({
+        mutationFn: (input: { logisticsCompany: string; trackingNo: string }) =>
             returnAfterSale(orderId, input),
-        { success: "退货物流已提交", error: "提交退货物流失败" },
-    )
+        meta: {
+            success: "退货物流已提交",
+            error: "提交退货物流失败",
+            invalidates: AFTER_SALE_WRITE_INVALIDATES,
+        },
+    })
 }

@@ -5,8 +5,6 @@ import { statusToWire, toOrder, toOrderDetail } from "./order"
 import type { Order, OrderDetail, OrderStatus } from "./model"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-import type { MutationMeta } from "@shop/app-kit"
-
 /**
  * order/queries —— 订单的数据层（fetch 纯函数 + queryOptions + hooks）。
  * 规则/类型在 ./order.ts（投影）与 ./model.ts（领域类型）。
@@ -109,21 +107,7 @@ export async function createOrder(args: {
 /** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；返回成功流水 */
 // 发起支付/确认支付直接在 checkout 的 mutation 里调 SDK（两段式流水消费方各自接线）
 
-// 订单操作 mutation（确认收货；取消因带 reason 变量单独声明，失效与提示同口径）
-/** 订单动作 mutation 工厂：成功 toast + 失效订单列表与该单详情，错误统一文案 */
-function useOrderActionMutation(
-    mutationFn: (orderId: string) => Promise<unknown>,
-    meta: Pick<MutationMeta, "success" | "error">,
-) {
-    return useMutation({
-        mutationFn,
-        meta: { ...meta, invalidates: [MY_ORDERS_KEY] },
-        // 详情 key 含 orderId（由变量算出），静态 meta 装不下 → 走库自己的 onSuccess（第 2 参即变量）
-        onSuccess: (_data, orderId, _ctx, { client }) =>
-            void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
-    })
-}
-
+// 订单操作 mutation（确认收货 / 取消：同一套失效口径，各自声明文案与变量形状）
 /** 取消订单：仅待付款/待发货可取消，成功后失效订单列表 + 详情缓存。
  *  reason 是取消弹窗「快捷原因 + 备注」拼出的自由文本（后端可空、@Size(max=200)），空输入不硬造占位文案；
  *  详情失效由变量算出、静态 meta 装不下 → 走库自己的 onSuccess（第 2 参即变量） */
@@ -140,10 +124,12 @@ export function useCancelOrder() {
     })
 }
 
-/** 确认收货：已发货 → 已完成 */
+/** 确认收货：已发货 → 已完成。详情 key 含 orderId（由变量算出），静态 meta 装不下 → 走 onSuccess */
 export function useReceiveOrder() {
-    return useOrderActionMutation((orderId) => OrdersApi.receiveOrder({ path: { id: orderId } }), {
-        success: "确认收货成功",
-        error: "确认收货失败",
+    return useMutation({
+        mutationFn: (orderId: string) => OrdersApi.receiveOrder({ path: { id: orderId } }),
+        meta: { success: "确认收货成功", error: "确认收货失败", invalidates: [MY_ORDERS_KEY] },
+        onSuccess: (_data, orderId, _ctx, { client }) =>
+            void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
     })
 }
