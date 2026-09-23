@@ -536,6 +536,10 @@ export const zUploadTicket = z.object({
     url: z.string()
 });
 
+export const zReceiverPhoneResponse = z.object({
+    phone: z.string()
+});
+
 export const zCreateCouponTemplateRequest = z.object({
     name: z.string().min(0).max(60),
     thresholdAmount: zMoney,
@@ -955,7 +959,7 @@ export const zSellerOrderListItemResponse = z.object({
     availableActions: z.array(zOrderAvailableAction),
     payAmount: zMoney,
     receiverName: z.string(),
-    receiverPhone: z.string().nullable(),
+    receiverPhone: z.string(),
     itemCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     items: z.array(zOrderItemResponse),
     shipExpireAt: z.iso.datetime({ offset: true }).nullable(),
@@ -1775,6 +1779,15 @@ export const zIssueImageTicketQuery = z.object({
  * OK
  */
 export const zIssueImageTicketResponse = zUploadTicket;
+
+export const zRevealReceiverPhonePath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zRevealReceiverPhoneResponse = zReceiverPhoneResponse;
 
 export const zListShopCouponsQuery = z.object({
     pageParams: zPageParams

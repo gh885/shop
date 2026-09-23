@@ -567,6 +567,13 @@ export type UploadTicket = {
     url: string;
 };
 
+export type ReceiverPhoneResponse = {
+    /**
+     * 买家收件人电话明文（未掩码）
+     */
+    phone: string;
+};
+
 export type CreateCouponTemplateRequest = {
     name: string;
     thresholdAmount: Money;
@@ -1023,7 +1030,10 @@ export type SellerOrderListItemResponse = {
     availableActions: Array<OrderAvailableAction>;
     payAmount: Money;
     receiverName: string;
-    receiverPhone: string | null;
+    /**
+     * 收件人电话，掩码（前 3 后 4）；明文需 POST /seller/orders/{id}/receiver-phone 逐单索取
+     */
+    receiverPhone: string;
     itemCount: number;
     items: Array<OrderItemResponse>;
     shipExpireAt: string | null;
@@ -1044,6 +1054,9 @@ export type OrderDetailResponse = {
     userCouponId: string | null;
     buyerMessage: string | null;
     receiverName: string;
+    /**
+     * 收件人电话：买家侧是本人号码明文，卖家侧是掩码（前 3 后 4），卖家取明文需 POST /seller/orders/{id}/receiver-phone
+     */
     receiverPhone: string;
     receiverProvince: string;
     receiverCity: string;
@@ -2376,6 +2389,24 @@ export type IssueImageTicketResponses = {
 };
 
 export type IssueImageTicketResponse = IssueImageTicketResponses[keyof IssueImageTicketResponses];
+
+export type RevealReceiverPhoneData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/orders/{id}/receiver-phone';
+};
+
+export type RevealReceiverPhoneResponses = {
+    /**
+     * OK
+     */
+    200: ReceiverPhoneResponse;
+};
+
+export type RevealReceiverPhoneResponse = RevealReceiverPhoneResponses[keyof RevealReceiverPhoneResponses];
 
 export type ListShopCouponsData = {
     body?: never;

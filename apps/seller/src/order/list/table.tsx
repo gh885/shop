@@ -33,6 +33,8 @@ interface OrderTableProps {
     afterSaleActionsOf: (orderId: string) => TicketAvailableAction[]
     /** 售后动作上抛：动作种类即后端下发的契约值，页面只负责路由到对应 mutation */
     onAfterSaleAction: (order: OrderIdentity, action: RefundRowAction) => void
+    /** 查看这一行买家的电话明文：出参只有掩码，明文逐单索取且留痕（ORD-62） */
+    onRevealPhone: (order: OrderIdentity) => void
 }
 
 /** 行操作需要的订单身份：订单 id（请求）+ 单号（展示/确认文案） */
@@ -52,6 +54,7 @@ export function OrderTable({
     onShip,
     afterSaleActionsOf,
     onAfterSaleAction,
+    onRevealPhone,
 }: OrderTableProps) {
     return (
         <TableCard
@@ -81,6 +84,7 @@ export function OrderTable({
                         afterSaleActions={afterSaleActionsOf(o.id)}
                         onShip={() => onShip(orderIdentity(o))}
                         onAfterSaleAction={(action) => onAfterSaleAction(orderIdentity(o), action)}
+                        onRevealPhone={() => onRevealPhone(orderIdentity(o))}
                     />
                 ))}
             </TableBody>
@@ -122,6 +126,27 @@ function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
     )
 }
 
+/**
+ * 收件人电话：后端出参是掩码（前 3 后 4），点「查看」逐单取明文——这次取用会在后端留痕（ORD-62）。
+ * 取到的明文由容器写回列表缓存，于是掩码判断只看这一个字符串里还有没有 `****`（掩码的唯一形状）。
+ */
+function ReceiverPhoneCell({ phone, onReveal }: { phone: string; onReveal: () => void }) {
+    return (
+        <div className="flex items-center gap-1.5">
+            <p className="truncate text-xs text-muted-foreground tabular-nums">{phone}</p>
+            {phone.includes("****") && (
+                <Button
+                    variant="link"
+                    size="xs"
+                    onClick={onReveal}
+                >
+                    查看
+                </Button>
+            )}
+        </div>
+    )
+}
+
 /** 单行：商品 / 单号 / 买家 / 实付 / 状态（主+售后）/ 下单时间 / 行内操作 */
 function OrderRow({
     order: o,
@@ -129,6 +154,7 @@ function OrderRow({
     afterSaleActions,
     onShip,
     onAfterSaleAction,
+    onRevealPhone,
 }: {
     order: SellerOrderListItemResponse
     busy: boolean
@@ -136,6 +162,7 @@ function OrderRow({
     afterSaleActions: TicketAvailableAction[]
     onShip: () => void
     onAfterSaleAction: (action: RefundRowAction) => void
+    onRevealPhone: () => void
 }) {
     const statusMeta = ORDER_STATUS_META[o.status]
     const saleMeta = o.afterSaleStatus === "NONE" ? undefined : AFTER_SALE_META[o.afterSaleStatus]
@@ -159,15 +186,14 @@ function OrderRow({
                     className="font-medium tabular-nums"
                 />
             </TableCell>
-            {/* 买家：收货人 + 手机（手机可空） */}
+            {/* 买家：收货人 + 电话（出参恒为掩码，明文要显式点一下） */}
             <TableCell>
                 <div className="space-y-0.5">
                     <p className="truncate font-medium">{o.receiverName}</p>
-                    {o.receiverPhone && (
-                        <p className="text-xs text-muted-foreground tabular-nums">
-                            {o.receiverPhone}
-                        </p>
-                    )}
+                    <ReceiverPhoneCell
+                        phone={o.receiverPhone}
+                        onReveal={onRevealPhone}
+                    />
                 </div>
             </TableCell>
             <TableCell className="text-right tabular-nums">{formatMoney(o.payAmount)}</TableCell>

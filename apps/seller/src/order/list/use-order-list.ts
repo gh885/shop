@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { OrderStatus } from "@shop/api/sdk"
 import { SellerLogisticsApi, SellerOrdersApi } from "@shop/api/sdk"
@@ -21,6 +21,7 @@ export type ShipInput = { carrierCode: string; trackingNo: string }
 /** 订单列表视图模型：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
 export function useOrderList(shopId: string, search: OrderListSearch) {
     const navigate = useNavigate()
+    const queryClient = useQueryClient()
     const { busyId, run } = useRowBusy()
 
     const orders = useQuery(orderListOptions(shopId, search))
@@ -81,6 +82,27 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         meta: { success: "已确认收货并退款", invalidates: afterSaleInvalidates },
     })
 
+    // 收件人电话：列表出参只有掩码，明文逐单索取（ORD-62）。取到就写回这一行，不另立一份状态——
+    // 列表缓存是这一屏数据的唯一真相；下次重新拉取自然又变回掩码，明文不长期驻留。
+    // 故意不失效列表：失效会立刻把刚拿到的明文冲掉
+    const revealPhone = useMutation({
+        mutationFn: (id: string) => SellerOrdersApi.revealReceiverPhone({ path: { id } }),
+        meta: { error: "查看买家电话失败" },
+        onSuccess: (res, id) =>
+            queryClient.setQueryData<NonNullable<typeof orders.data>>(
+                orderKeys.list(shopId, search),
+                (prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              records: prev.records.map((r) =>
+                                  r.id === id ? { ...r, receiverPhone: res.phone } : r,
+                              ),
+                          }
+                        : prev,
+            ),
+    })
+
     // 行内售后按钮的动作集由 aftersale 按本页订单批查下发（与工作台同一份契约），
     // 不按订单上的售后投影推：两处推一张按钮表必然漂移
     const rowIds = (orders.data?.records ?? []).map((r) => r.id)
@@ -106,5 +128,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         rejectAfterSale: (orderId: string, reason: string) =>
             run((id) => rejectAfterSale.mutateAsync({ id, reason }))(orderId),
         receiveReturn: run(receiveReturn.mutateAsync),
+        /** 取这一行买家的电话明文（一次一单，后端留痕） */
+        revealPhone: (orderId: string) => revealPhone.mutate(orderId),
     }
 }
