@@ -36,6 +36,15 @@ public class TrackingPollJob {
     /** 单轮上限：一个包裹一次查询，别让一轮扫描把配额打满 */
     private static final int BATCH_LIMIT = 50;
 
+    /**
+     * 单轮时间预算：用完就收尾，剩下的下一轮再捞。
+     *
+     * <p>不设这道闸时，网关按连接超时逐个拖满就是几分钟——全部 @Scheduled 共用一条调度线程池，
+     * 一个慢任务能把 30s 一档的超时关单扫描挤掉（超期单一直占着冻结库存）。停滞阈值本身是小时级，
+     * 晚几轮不影响正确性，本来就有「下一轮重试」的兜底语义。
+     */
+    private static final Duration ROUND_BUDGET = Duration.ofSeconds(60);
+
     private final CarrierTrackingGateway gateway;
 
     private final TrackingSyncService trackingSyncService;
@@ -52,10 +61,16 @@ public class TrackingPollJob {
         if (stale.isEmpty()) {
             return;
         }
+        long deadline = System.nanoTime() + ROUND_BUDGET.toNanos();
+        int polled = 0;
         int recorded = 0;
         for (Shipment shipment : stale) {
+            if (System.nanoTime() - deadline >= 0) {
+                break;
+            }
             recorded += trackingSyncService.sync(shipment);
+            polled++;
         }
-        log.info("[LOGISTICS] 轮询轨迹, 扫描={}, 新增节点={}", stale.size(), recorded);
+        log.info("[LOGISTICS] 轮询轨迹, 命中={}, 本轮已查={}, 新增节点={}", stale.size(), polled, recorded);
     }
 }

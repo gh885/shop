@@ -26,7 +26,11 @@ public class SchedulingConfig implements SchedulingConfigurer {
     public void configureTasks(ScheduledTaskRegistrar registrar) {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setThreadNamePrefix("sched-");
-        scheduler.setPoolSize(2);
+        // 全部 @Scheduled 共用这一个池（Spring 的 registrar 只有一个 TaskScheduler，没有「按任务分池」这档）。
+        // 2 太紧：OrderTimeoutJob / AfterSaleTimeoutJob / EventPublicationRecoveryJob 都是 30s 一档的
+        // 时间闸门（超期单占着冻结库存），而 TrackingPollJob 一轮里最多 50 次串行外部 HTTP——
+        // 网关慢或超时的时候它一条线程能占几分钟。留 4 条，慢任务最多挤掉一半容量，挤不停扫描。
+        scheduler.setPoolSize(4);
         scheduler.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         scheduler.setTaskDecorator(mdcTaskDecorator);
         scheduler.initialize();
