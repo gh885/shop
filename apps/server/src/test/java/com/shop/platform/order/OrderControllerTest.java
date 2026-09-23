@@ -58,6 +58,7 @@ class OrderControllerTest extends WebControllerTestSupport {
         o.setDiscountAmount(0L);
         o.setPayAmount(2000L);
         o.setPayExpireAt(OffsetDateTime.now().plusMinutes(30));
+        o.setReceiverPhone("13800001234");
         o.setCreatedAt(OffsetDateTime.now());
         return o;
     }
@@ -230,6 +231,15 @@ class OrderControllerTest extends WebControllerTestSupport {
             mockMvc.perform(get("/orders/{id}", orderId).with(userAuth(userId))).andExpect(status().isOk());
 
             verify(orderService).detail(userId, orderId);
+        }
+
+        /** 买家看自己的号仍是明文：脱敏只针对卖家侧出参，别把刀落在本人视图上（ORD-62） */
+        @Test
+        void 收件人电话_买家侧不掩码() throws Exception {
+            when(orderService.detail(userId, orderId)).thenReturn(new OrderWithItems(pendingOrder(), List.of()));
+
+            mockMvc.perform(get("/orders/{id}", orderId).with(userAuth(userId)))
+                    .andExpect(jsonPath("$.receiverPhone").value("13800001234"));
         }
     }
 

@@ -13,6 +13,7 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.api.CouponCommand;
+import com.shop.platform.infra.observability.MdcScope;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
@@ -230,6 +231,21 @@ public class OrderService {
     @Transactional(readOnly = true)
     public OrderWithItems sellerDetail(UUID shopId, UUID orderId) {
         return withItems(orderMapper.requireShopOwned(shopId, orderId));
+    }
+
+    /**
+     * 卖家取收件人明文电话：卖家侧所有列表与详情出参都是掩码（ORD-62），明文只有这一个逐单出口，
+     * 每次取用打一条业务事件留痕（记「谁看了哪一单」，号码本身不进日志）。非本店 404。
+     */
+    @Transactional(readOnly = true)
+    public String sellerReceiverPhone(UUID shopId, UUID orderId, UUID operatorId) {
+        Order order = orderMapper.requireShopOwned(shopId, orderId);
+        try (MdcScope scope = MdcScope.of("event", "order.receiver_phone_revealed", "shop_id", shopId.toString())
+                .put("order_id", orderId.toString())
+                .put("operator_id", operatorId.toString())) {
+            log.info("[ORDER] 卖家查看收件人电话明文, shopId={}, orderId={}, operatorId={}", shopId, orderId, operatorId);
+        }
+        return order.getReceiverPhone();
     }
 
     // 内部：落单

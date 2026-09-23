@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,6 +53,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         o.setDiscountAmount(0L);
         o.setPayAmount(2000L);
         o.setReceiverName("张三");
+        o.setReceiverPhone("13800001234");
         o.setCreatedAt(OffsetDateTime.now());
         return o;
     }
@@ -73,6 +75,16 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
                     .andExpect(status().isOk());
 
             verify(orderService).pageSeller(eq(shopId), any(), any());
+        }
+
+        /** 一行列表就带一屏号码是批量出口，所以列表列同样是掩码（ORD-62） */
+        @Test
+        void 收件人电话_出参是掩码() throws Exception {
+            when(orderService.pageSeller(eq(shopId), any(), any()))
+                    .thenReturn(new PageResult<>(List.of(new OrderWithItems(paidOrder(), List.of())), 1));
+
+            mockMvc.perform(sellerGet("/seller/orders").param("page", "1").param("size", "10"))
+                    .andExpect(jsonPath("$.records[0].receiverPhone").value("138****1234"));
         }
 
         @Test
@@ -112,6 +124,43 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
             mockMvc.perform(sellerGet("/seller/orders/{id}", order.getId())).andExpect(status().isOk());
 
             verify(orderService).sellerDetail(shopId, order.getId());
+        }
+
+        /** 收件人电话是掩码：卖家侧任何批量出参都不带明文（ORD-62） */
+        @Test
+        void 收件人电话_出参是掩码() throws Exception {
+            Order order = paidOrder();
+            when(orderService.sellerDetail(shopId, order.getId())).thenReturn(new OrderWithItems(order, List.of()));
+
+            mockMvc.perform(sellerGet("/seller/orders/{id}", order.getId()))
+                    .andExpect(jsonPath("$.receiverPhone").value("138****1234"));
+        }
+    }
+
+    @Nested
+    class 查看买家电话 { // POST /seller/orders/{id}/receiver-phone
+
+        /** 明文只从这一跳出，且带操作人（service 侧打点留痕）；越店与不存在同为 404，归 service 门 */
+        @Test
+        void 返回200_明文带操作人() throws Exception {
+            Order order = paidOrder();
+            when(orderService.sellerReceiverPhone(shopId, order.getId(), userId))
+                    .thenReturn("13800001234");
+
+            mockMvc.perform(post("/seller/orders/{id}/receiver-phone", order.getId())
+                            .with(userAuth(userId))
+                            .header("X-Shop-Id", shopId.toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.phone").value("13800001234"));
+
+            verify(orderService).sellerReceiverPhone(shopId, order.getId(), userId);
+        }
+
+        @Test
+        void 缺店铺上下文_403() throws Exception {
+            mockMvc.perform(post("/seller/orders/{id}/receiver-phone", UUID.randomUUID())
+                            .with(userAuth(userId)))
+                    .andExpect(status().isForbidden());
         }
     }
 }

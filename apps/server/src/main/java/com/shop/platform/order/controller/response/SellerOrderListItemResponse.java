@@ -3,6 +3,7 @@ package com.shop.platform.order.controller.response;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.common.Money;
+import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderAvailableAction;
@@ -27,7 +28,11 @@ public record SellerOrderListItemResponse(
         @Schema(requiredMode = REQUIRED) List<OrderAvailableAction> availableActions,
         @Schema(requiredMode = REQUIRED) Money payAmount,
         @Schema(requiredMode = REQUIRED) String receiverName,
-        @Schema(requiredMode = REQUIRED, nullable = true) String receiverPhone,
+        /** 掩码形态（前 3 后 4）：列表是批量出口，明文只经 {@code POST /seller/orders/{id}/receiver-phone} 逐单索取（ORD-62） */
+        @Schema(
+                        requiredMode = REQUIRED,
+                        description = "收件人电话，掩码（前 3 后 4）；明文需 POST /seller/orders/{id}/receiver-phone 逐单索取")
+                String receiverPhone,
         @Schema(requiredMode = REQUIRED) long itemCount,
         @Schema(requiredMode = REQUIRED) List<OrderItemResponse> items,
         /** 发货时限（付款时回填）：过点即「超时未发货」，是催办标记而不是系统代关单的凭据（ORD-27） */
@@ -44,7 +49,7 @@ public record SellerOrderListItemResponse(
                 order.sellerActions(),
                 order.payAmountAsMoney(),
                 order.getReceiverName(),
-                order.getReceiverPhone(),
+                PhoneNumber.mask(order.getReceiverPhone()),
                 o.items().size(),
                 o.items().stream().map(OrderItemResponse::from).toList(),
                 order.getShipExpireAt(),
