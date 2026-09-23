@@ -12,6 +12,7 @@
 - **[CMS-06]** 管理端 CMS 全部路由挂在 `/admin/cms`，要求 `CMS_MANAGE` 权限（岗位 OPS）；前台读接口 `/api/cms/*` 与 `/api/feed` 匿名可访问（在 JwtProperties.skipPaths 中）。
 - **[CMS-07]** 前台三个只读接口按「导航位 / 运营位」取数且都有默认位：`GET /api/cms/nav` 默认 `navKey=home`、`GET /api/cms/banners` 默认 `slot=home_promo`、`GET /api/cms/recommend-tabs` 无位置参数（全局一份）；当前前台实际消费的导航位只有 `home`、运营位只有 `home_promo`（新增位需扩前台常量表）。
 - **[CMS-08]** 出参形状（NavEntryResponse / BannerResponse / RecommendTabResponse）管理端与公开端共用同一 record、逐字段严格校验「只减不增」；后台列表全量返回（小表不分页），带 status / createdAt / updatedAt 等治理字段。
+- **[CMS-09]** 前台三块读走 Redis 读缓存（`cms:nav` / `cms:banner` / `cms:recommend-tab`，按导航位/运营位分键），九个后台写方法各挂一道 `@CacheEvict(allEntries)`——运营改完下一请求即生效，TTL 5 分钟只兜漏接的写路径。banner 的生效时间窗口**不在缓存里筛**（缓存的是该运营位的启用行，一起筛等于把定时上下线冻进缓存）。与前端那 5 分钟壳缓存（WEB-12）是两层、互不失效：后台改完最坏仍有一个前端 TTL 的窗口，浏览器拿着自己那份旧壳。
 
 ## 二、首页分类导航（Nav）
 

@@ -8,7 +8,7 @@
 - **[ACC-02]** 店名必填、trim 后最长 50 字符（DB `VARCHAR(50)`）；**店名全平台唯一**：被任一既有店铺（含待审/被拒/被封——不看状态）占用即拒（400 + code `SHOP_NAME_TAKEN`），并发由唯一索引 `uk_shops_name`（V61）兜底成同一 400；logoKey 可选、最长 255。
 - **[ACC-03]** 开店是同事务三写：建店（PENDING_REVIEW）+ 店主自动成为本店 `OWNER` 角色、`ACTIVE` 状态的成员 + 入队一条 `PENDING` 审核记录；授权判断以 `shop_members` 为准，`shops.owner_id` 只是冗余并存。
 - **[ACC-04]** 店铺状态机：`PENDING_REVIEW → ACTIVE / REJECTED`；`REJECTED →（卖家补材料原地重提）PENDING_REVIEW`（ACC-74）；`ACTIVE ⇄ DISABLED`（枚举含 4 态：PENDING_REVIEW / ACTIVE / REJECTED / DISABLED）；唯一可营业态是 ACTIVE（谓词 `ShopStatus.isActive()`），不做物理删除。状态一旦进入不可营业（驳回/禁用），推进与「全店在架商品级联下架」同事务发生，见 ACC-72。
-- **[ACC-05]** 买家侧公开查看店铺（`GET /api/shops/{id}`，匿名可达）只对 `ACTIVE` 店铺返回；待审核/被拒/封禁的店一律 404「店铺不存在」，不泄露"存在但不可用"。公开出参仅 id/店名/logoKey/createdAt。
+- **[ACC-05]** 买家侧公开查看店铺（`GET /api/shops/{id}`，匿名可达）只对 `ACTIVE` 店铺返回；待审核/被拒/封禁的店一律 404「店铺不存在」，不泄露"存在但不可用"。公开出参仅 id/店名/logoKey/createdAt。这份读进 Redis 缓存（`shop:public`，按店铺 id）：只有 ACTIVE 行会入缓存——404 是抛异常而异常不入缓存，所以「审核通过」不需要失效；反向离开 ACTIVE 的唯一路径是店主注销时的 `suspend`，它显式 evict（缓存口径见 apps/server/AGENTS.md「读缓存」）。
 - **[ACC-06]** 卖家侧接口（`/seller/**`）必须携带 `X-Shop-Id` 头，缺失或非法（非 UUID）→ 403「缺少店铺上下文」；店铺必须存在且状态为 `PENDING_REVIEW` 或 `ACTIVE` 才放行（REJECTED/DISABLED 不可经营，403「店铺不存在或不可用」）；当前用户必须是该店 `ACTIVE` 成员，否则 403「你不是该店铺成员」。产物接口的 shopId 一律取过滤器装载的上下文，不信任请求体/参数里的 shopId。**放行经营 ≠ 放行成交**：待审店能备货建商品，但买家侧交易只认 ACTIVE（ACC-05 店页 404 + ACC-72 交易闸），商品上架了也卖不出去。
 - **[ACC-07]** 「是卖家」= 在 `shop.shop_members` 有 ACTIVE 记录；一个用户可同时是买家 + 多店成员。我的店铺列表返回全部 ACTIVE 成员身份对应的店，新店在前。
 - **[ACC-72]** 店铺停止营业的级联与交易闸（拍板）：

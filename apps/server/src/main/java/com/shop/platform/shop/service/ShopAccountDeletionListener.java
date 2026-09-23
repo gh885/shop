@@ -1,6 +1,7 @@
 package com.shop.platform.shop.service;
 
 import com.shop.platform.account.events.UserDeletedEvent;
+import com.shop.platform.infra.cache.CacheNames;
 import com.shop.platform.shop.events.ShopTradingSuspendedEvent;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -34,6 +36,7 @@ public class ShopAccountDeletionListener {
     private final ShopMemberMapper shopMemberMapper;
     private final ShopMapper shopMapper;
     private final ApplicationEventPublisher events;
+    private final CacheManager cacheManager;
 
     @EventListener
     public void onUserDeleted(UserDeletedEvent event) {
@@ -52,6 +55,8 @@ public class ShopAccountDeletionListener {
         if (shopMapper.suspend(shopId) == 0) {
             return 0;
         }
+        // 这家店此前对买家可见，很可能正躺在公开信息缓存里：不 evict 就等于注销后它还能被读到一整个 TTL
+        cacheManager.getCache(CacheNames.SHOP_PUBLIC).evict(shopId);
         events.publishEvent(new ShopTradingSuspendedEvent(shopId, REASON_OWNER_DELETED));
         return 1;
     }

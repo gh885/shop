@@ -85,6 +85,19 @@ src/main/java/com/shop/platform/
 
 摆放两轴：**谁读它**（跨模块 → 根共享层；仅模块内 → `<module>.infra`）；**换技术重写吗**（重写 → infra；不重写 → common）。镜像示例：`UserIdHolder`（跨模块，common）vs `ShopMemberContext`（仅 shop，shop.infra）。
 
+## 读缓存（infra.cache）
+
+**判据三条同时成立才上：读得极频、改得极少、且改动必须下一请求生效。** 现有名单就这三块（首页三块配置 / 类目树与子树 / 店铺公开信息），名字汇总在 `infra.cache.CacheNames`：
+
+- **名单在 infra，值类型由拥有数据的模块声明**：各模块 `<module>.infra` 交一个 `infra.cache.CacheSpec` bean（`CmsCacheConfig` / `ProductCacheConfig` / `ShopCacheConfig`），`CacheConfig` 只定策略并核对登记是否齐——齐则启动通过，不齐直接启动失败，好过线上静默不缓存（运行期真遇到没登记的名字也是**直接不缓存**：`disableCreateOnMissingCache`，绝不退回默认序列化往 Redis 里写读不出来的字节）。`infra` 一旦 import 得动 `cms.mapper.NavEntry`，模块边界就漏了（Modulith 校验会判违规）
+- 值按缓存给定具体 `JavaType` 序列化，不开 Jackson 多态类型标记；序列化器用 Jackson 3 的 `JacksonJsonRedisSerializer` + 注入 `tools.jackson.databind.ObjectMapper`（本项目的 mapper bean 是 Jackson 3，`com.fasterxml` 那个类型没有 bean，注入它启动即 `NoSuchBeanDefinition`）；键前缀 `cache:<名字>:`，与会话/限流键分段，`redis-cli` 上能按前缀扫到整组
+- **读回用一份放过未知属性的 mapper 副本**（`CacheConfig.lenientReader`）：实体上的派生 getter（`Banner.isTimeRangeValid()` / `Shop.isActive()`）会被写成一个读不回去的属性，照 web 的严格口径缓存自己就 500；无参读的 key 显式给一个（`'tree'` / `'all'`），否则 Redis 里落下的是 `SimpleKey []` 那种带空格的键
+- **写侧必须接失效**（`@CacheEvict` 或显式 evict）：TTL 5 分钟只兜漏接的写路径，不是新鲜度口径。判权、库存、订单状态这类闸门/账本一律不进缓存（ACC-43）
+- 缓存靠代理生效，**同类自调用不命中**：所以「可以缓存的读」与「每次现算的推导」分成两个 bean（`CmsPublicReader` 是样板——banner 的生效时间窗口若跟着缓存，定时上下线就被冻住）
+- `setTransactionAware(true)`：失效推迟到事务提交之后，否则「提交前就 evict」会被并发读用旧值填回，一 stale 就是一整个 TTL
+- 只入缓存的正常返回：404 是抛异常、异常不入缓存，所以「未过审 → 审核通过」这条路天然不需要失效
+- 测试上下文 `shop.cache.enabled=false`（注解全空转，用例不依赖 Redis、不跨用例串味）；缓存语义由 `infra/cache/ReadCacheTest` 用内存缓存器验「mapper 被打了几次」
+
 ## 金额（Money）
 
 **判据：一笔钱在链路上只有一个形状 —— `common/Money`（`amount` 分 + `currency`）。** 裸 `long`/`BigDecimal` 出现在契约里，那一刻币种就丢了（前端只能替平台猜一个）。所以「哪儿该是 Money」不需要判断：**不在 mapper 包、又是金额的，就是 Money。**
@@ -119,7 +132,7 @@ src/main/java/com/shop/platform/
 
 - 测试统一**平铺在模块包根**（account/XxxTest），不按 controller/service 再分层；仅当测试要触达被测类 package-private 成员时才下钻到其精确包
 - **方法名 = 失败时的诊断书**：一律中文，下划线分段「动作/场景_条件_预期」（如 类目被商品引用_禁用拒绝_移除后放行、密码登录_全空字段_422、超时关单_回补库存_转已取消）；说公开行为不说实现细节；@Nested 组内可省略重复主语；值对象的单一场景允许一句话连读（非法手机号被拒绝）
-- **类名分类**：`*Test` = 快环（单元 / MockMvc 接口层），surefire 在 `mvn test` 跑、不碰数据库；集成测试一律 `XxxIT`（如 OrderFlowIT / ProductIT），failsafe 在 `mvn verify` 跑真库。CI 门禁用 `mvn verify` 才覆盖集成测试
+- **类名分类**：`*Test` = 快环（单元 / MockMvc 接口层），surefire 在 `mvn test` 跑；注意 MockMvc 那批（继承 `WebControllerTestSupport`）跑的是**全量 Spring 上下文**，会连 shop_test 让 Flyway 迁移整条链——`mvn test` 需要先有库（`pnpm db:up`），不是「不碰数据库」。集成测试一律 `XxxIT`（如 OrderFlowIT / ProductIT），failsafe 在 `mvn verify` 跑真库。CI 门禁用 `mvn verify` 才覆盖集成测试
 - 集成测试继承 `IntegrationTestSupport`：获得 `jdbc` 字段与每用例一个 `db: TestDb`，`@AfterEach` 自动 `purge()`
 - 种子数据走 `db.seedOnSaleSku(shopId, priceFen, stock)` / `db.seedAddress(userId)`，清理自动登记
 - service 调用产生的数据（无法预知主键）：建出后立即 `db.onDelete(sql, args…)` 登记，按自有 ID/userId/shopId 圈定；下单等发领域事件的路径要连 `kernel.event_publication` 一起登记（serialized_event LIKE %id%）

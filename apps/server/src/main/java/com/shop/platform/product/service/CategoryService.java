@@ -2,6 +2,7 @@ package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.cache.CacheNames;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.mapper.CategoryMapper;
@@ -20,9 +21,18 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 类目读写。前台两份读（类目树、子树 id 集）走 Redis 读缓存，三个后台写各挂一道失效。
+ *
+ * <p>失效一律 allEntries：缓存里既有「整棵树」一份，又有「每个类目 id 一份」子树集，改任一行都会波及不确定的
+ * 多个键（禁一个父级，它整支的子树键全变），而写侧是运营手点——整组清比算该清哪几个键便宜得多。
+ */
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
@@ -33,7 +43,11 @@ public class CategoryService {
 
     private final ProductMapper productMapper;
 
-    /** 前台类目树：仅启用节点，禁用节点整支剪掉 */
+    /**
+     * 前台类目树：仅启用节点，禁用节点整支剪掉。进 Redis 读缓存（首页/分类页每次都读，改动是运营偶尔为之），
+     * 失效挂在下面的三个后台写上。管理端看的 {@link #adminTree()} 不缓存——运营要立刻看到自己刚改的东西。
+     */
+    @Cacheable(cacheNames = CacheNames.CATEGORY_TREE, key = "'tree'")
     public List<CategoryNode> publicTree() {
         return buildTree(false);
     }
@@ -48,9 +62,11 @@ public class CategoryService {
      * 父链上有一个不可见，后代就不可达）。
      *
      * <p>给召回用：feed 的 tab 可能指向一级类目，而商品挂在三级类目，所以要按子树召回而不是精确匹配。
-     * 类目表不到百行，每次请求内存展开即可，不缓存。未知 / 隐藏类目返回空集——召回侧按空流处理，
-     * 不 404（脏 tab 不该把首页打成错误页）。
+     * 类目表不到百行，展开本身不值钱，值钱的是那次全表读——feed 每刷一次就是一次，所以按类目 id 缓存展开结果
+     * （{@link CacheNames#CATEGORY_SUBTREE}），类目一改整组清。未知 / 隐藏类目返回空集——召回侧按空流处理，
+     * 不 404（脏 tab 不该把首页打成错误页）；空集同样入缓存，否则脏 tab 每次都白打一次库。
      */
+    @Cacheable(cacheNames = CacheNames.CATEGORY_SUBTREE, key = "#categoryId", condition = "#categoryId != null")
     public Set<UUID> descendantIds(UUID categoryId) {
         if (categoryId == null) {
             return Set.of();
@@ -133,6 +149,11 @@ public class CategoryService {
 
     /** 创建类目，level 由父级推导，最多三级 */
     @Transactional
+    @Caching(
+            evict = {
+                @CacheEvict(cacheNames = CacheNames.CATEGORY_TREE, allEntries = true),
+                @CacheEvict(cacheNames = CacheNames.CATEGORY_SUBTREE, allEntries = true)
+            })
     public Category create(UUID parentId, String name, Integer sort, String iconUrl) {
         // 1. 推导层级：根节点 level=1；有父则校验父存在、启用且不超三级
         int level = 1;
@@ -158,6 +179,11 @@ public class CategoryService {
 
     /** 更新名称/排序/图标。parentId 创建后不可改（不支持移动节点，见架构文档） */
     @Transactional
+    @Caching(
+            evict = {
+                @CacheEvict(cacheNames = CacheNames.CATEGORY_TREE, allEntries = true),
+                @CacheEvict(cacheNames = CacheNames.CATEGORY_SUBTREE, allEntries = true)
+            })
     public Category update(UUID id, String name, Integer sort, String iconUrl) {
         Category category = requireCategory(id);
         category.setName(name);
@@ -172,6 +198,11 @@ public class CategoryService {
      * 否则商品会悬在一个买家侧不可见的类目里。
      */
     @Transactional
+    @Caching(
+            evict = {
+                @CacheEvict(cacheNames = CacheNames.CATEGORY_TREE, allEntries = true),
+                @CacheEvict(cacheNames = CacheNames.CATEGORY_SUBTREE, allEntries = true)
+            })
     public void updateStatus(UUID id, CategoryStatus status) {
         Category category = requireCategory(id);
         // 禁用闸门：子树（含自身）内仍有商品引用（含草稿/下架——软删语义的商品仍占类目位）则拒绝。

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.cache.CacheNames;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
@@ -21,6 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -207,7 +209,14 @@ public class ShopService {
     }
 
     // 买家侧公开读
-    /** 店铺公开信息：仅 ACTIVE 可见。待审核/被拒/封禁的店对买家一律 404，不泄露"存在但不可用" */
+    /**
+     * 店铺公开信息：仅 ACTIVE 可见。待审核/被拒/封禁的店对买家一律 404，不泄露"存在但不可用"。
+     *
+     * <p>这份读进 Redis 缓存（商详页每次都读它，而店名/logo 几乎不改）。入缓存的只有 ACTIVE 行：404 是抛异常，
+     * 异常不入缓存，所以「审核通过」天然不需要失效。反向的「离开 ACTIVE」只有一条路——店主注销时
+     * {@code suspend}，它显式 evict（见 ShopAccountDeletionListener）。
+     */
+    @Cacheable(cacheNames = CacheNames.SHOP_PUBLIC, key = "#shopId")
     public Shop publicShop(UUID shopId) {
         Shop shop = Validate.notNull(shopMapper.selectById(shopId), "店铺不存在");
         Validate.isTrue(shop.isActive(), 404, "店铺不存在");

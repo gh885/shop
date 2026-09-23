@@ -15,7 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * CMS 前台只读（匿名可访问）。
  *
- * <p>首页 SSR loader 并发拉这三块；数据量小，全量返回由前端缓存。跳转 target 软关联，前端携 ID 另调业务接口。
+ * <p>首页 SSR loader 并发拉这三块；跳转 target 软关联，前端携 ID 另调业务接口。三块都是 Redis 读缓存的服务端那一层
+ * （失效挂在后台写上，见 CMS-09），前端另有一层 5 分钟壳缓存（WEB-12）。
  */
 @Tag(name = "cms-public", description = "CMS 前台只读（匿名可访问）")
 @RestController

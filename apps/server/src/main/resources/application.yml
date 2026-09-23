@@ -21,10 +21,20 @@ spring:
 
     flyway:
         enabled: true
-        locations: classpath:db/migration
+        # db/seed 不是 schema 迁移而是演示数据装载（V43 类目属性模板全量重建、V44 演示商品，都带 TRUNCATE）：
+        # 留在迁移目录里 = 每个新建库（CI、生产首发、测试库）都被迫吃一遍「五个旗舰店 + picsum 图」。
+        # dev 与 test（IT 断言依赖 V43 模板行）加载它，prod 覆盖成只读 db/migration。
+        locations: classpath:db/migration,classpath:db/seed
         baseline-on-migrate: true
         # 库结构已到 V10 但历史表丢失时，按当前版本基线，避免重放旧迁移失败（V4 DROP IDENTITY）
         baseline-version: 10
+        # 不加载 db/seed 的环境里 V43/V44 成了「已应用但本地没有文件」，validate 要放过
+        ignore-missing-migrations: true
+        # 建索引要能 CONCURRENTLY（见 V65）：它不能进事务，而默认 true 时 Flyway 用两条连接——
+        # 迁移跑在第二条上，第一条上未提交的 schema history 事务成了它等待的目标，启动直接自锁挂死。
+        # false 让 Flyway 复用单连接并按迁移切换 autoCommit，普通迁移照旧各自一个事务。
+        postgresql:
+            transactional-lock: false
 
     jackson:
         deserialization:
@@ -78,6 +88,10 @@ mybatis-plus:
         map-underscore-to-camel-case: true
 
 shop:
+    cache:
+        # 配置类读数据（首页三块 / 类目树与子树 / 店铺公开信息）的 Redis 读缓存，名单与 TTL 见
+        # infra/cache。关掉只是排障或测试用的开关：写侧失效已接在每条后台写上，生产没有关的理由
+        enabled: true
     web:
         # 客户端 IP 取法：默认只信 TCP 对端地址（remoteAddr）。仅当部署在会覆写
         # X-Forwarded-For 的可信反向代理（nginx 等）之后才改 true，否则 IP 限流可被伪造头绕过

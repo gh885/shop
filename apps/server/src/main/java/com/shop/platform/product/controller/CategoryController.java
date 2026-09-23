@@ -23,7 +23,7 @@ public class CategoryController {
 
     private final CategoryAttrService categoryAttrService;
 
-    /** 前台类目树（仅启用节点），数据量小，全量返回由前端缓存 */
+    /** 前台类目树（仅启用节点）：服务端读缓存 + 前端缓存两层（PRD-09），管理端看的树不缓存 */
     @GetMapping("/tree")
     public List<CategoryNode> getCategoryTree() {
         return categoryService.publicTree();

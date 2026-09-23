@@ -8,7 +8,9 @@ spring:
 
     flyway:
         enabled: true
-        locations: classpath:db/migration
+        # 测试库同样全量跑种子：CategoryAttrIT / ProductIT 断言的是 V43 模板里的必填参数（attr 430103），
+        # 从零迁移出来的库必须有它，否则「建草稿必带屏幕尺寸」这类用例无从构造
+        locations: classpath:db/migration,classpath:db/seed
         # 测试库从零全量迁移（V1→最新），不继承主配置的 baseline-version:10
         baseline-on-migrate: false
         # 钉死默认 schema：用户名与模块 schema 同名（shop），PG 的 "$user" search_path 会把
@@ -29,3 +31,9 @@ mybatis-plus:
     global-config:
         db-config:
             id-type: AUTO
+
+shop:
+    # 测试上下文关掉读缓存：一是这些用例不该需要 Redis，二是缓存会把「写完立刻读」的断言变成读到旧值，
+    # 串到下一个用例上。缓存自身的语义由 infra/cache/ReadCacheTest 那类专项用例用内存缓存器验。
+    cache:
+        enabled: false
