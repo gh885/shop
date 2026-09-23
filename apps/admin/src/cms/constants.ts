@@ -1,3 +1,4 @@
+import { statusOptions } from "@shop/common"
 import { CmsStatus } from "@shop/api/sdk"
 import { format, isValid } from "date-fns"
 import { z } from "zod"
@@ -28,10 +29,10 @@ const TARGET_TYPE_LABEL: Record<TargetType, string> = {
     URL: "外链",
 }
 
-/** 跳转类型下拉选项（三张 CMS 表单共用）：首项 NONE = 不跳转 */
+/** 跳转类型下拉选项（三张 CMS 表单共用）：首项 NONE = 不跳转，其余全量取自词表 */
 export const TARGET_TYPE_ITEMS = [
     { value: "NONE", label: "不跳转" },
-    ...Object.entries(TARGET_TYPE_LABEL).map(([value, label]) => ({ value, label })),
+    ...statusOptions(TARGET_TYPE_LABEL),
 ]
 
 /**

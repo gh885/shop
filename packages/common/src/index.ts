@@ -18,8 +18,11 @@
  * - auth-kit.ts  ：应用无关的登录态套件（内存 token + 静默刷新 + 设备 ID + 订阅）
  * - regions.ts   ：国标行政区划树的纯算法 + 数据（级联取孩子 / 6 位码反查路径）
  * - address.ts   ：地址字段口径（号码/区划码/详址）+ 省市区名按码派生，两端地址表单共用
+ * - status-options.ts：状态表 → 页签/下拉选项（同一状态的中文只写一遍）
  * - coupon.ts    ：优惠券文案与规则换算（门槛/面额一句话、原因码与状态标签）
  */
+
+export { statusOptions, type StatusOption } from "./status-options"
 
 export {
     compareMoney,

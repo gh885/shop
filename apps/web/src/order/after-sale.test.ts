@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { AFTER_SALE_TYPE_LABEL, TICKET_STATUS_LABEL } from "./constants"
+import { AFTER_SALE_TYPE_LABEL, TICKET_STATUS_META } from "./constants"
 import { buyerAfterSaleActions, canApplyAfterSale } from "./after-sale"
 import type { ApplyGate } from "./after-sale"
 
@@ -103,7 +103,7 @@ describe("canApplyAfterSale（申请入口的门槛）", () => {
 describe("展示辅助", () => {
     it("两类售后与两种进行中态都有买家看得懂的中文", () => {
         expect(AFTER_SALE_TYPE_LABEL.RETURN_REFUND).toBe("退货退款")
-        expect(TICKET_STATUS_LABEL.APPLYING).toBe("待卖家处理")
-        expect(TICKET_STATUS_LABEL.RETURNING).toBe("待寄回商品")
+        expect(TICKET_STATUS_META.APPLYING.label).toBe("待卖家处理")
+        expect(TICKET_STATUS_META.RETURNING.label).toBe("待寄回商品")
     })
 })

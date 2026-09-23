@@ -1,5 +1,5 @@
 import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop"
-import { SHOP_STATUS_VARIANT, SHOP_STATUS_TEXT } from "#/shop/constants"
+import { SHOP_STATUS_META } from "#/shop/constants"
 import { setCurrentShopId } from "#/shop"
 import { formatDate } from "@shop/app-kit"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
@@ -108,8 +108,8 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
             <ItemContent>
                 <ItemTitle className="flex items-center">
                     {shop.name}
-                    <Badge variant={SHOP_STATUS_VARIANT[shop.status]}>
-                        {SHOP_STATUS_TEXT[shop.status]}
+                    <Badge variant={SHOP_STATUS_META[shop.status].variant}>
+                        {SHOP_STATUS_META[shop.status].label}
                     </Badge>
                     {isCurrent ? <Badge variant="outline">当前经营</Badge> : undefined}
                 </ItemTitle>

@@ -1,3 +1,5 @@
+import { statusOptions } from "@shop/common"
+
 import type {
     AfterSaleReason,
     AfterSaleStatus,
@@ -41,13 +43,19 @@ export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
     RETURN_REFUND: "退货退款",
 }
 
-/** 售后单状态（决策弹窗顶部的一行事实） */
-export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
-    APPLYING: "待处理",
-    RETURNING: "退货中",
-    REFUNDED: "已退款",
-    REJECTED: "已拒绝",
-    CLOSED: "已撤销",
+/**
+ * 售后单状态（卖家口径）：文案与徽章色同表一处——工作台的页签、行内徽章、决策弹窗顶部
+ * 读的都是这张表，不再各自抄一份中文和一份色板。
+ */
+export const TICKET_STATUS_META: Record<
+    TicketStatus,
+    { label: string; variant: "warning" | "success" | "destructive" | "secondary" }
+> = {
+    APPLYING: { label: "待处理", variant: "warning" },
+    RETURNING: { label: "退货中", variant: "warning" },
+    REFUNDED: { label: "已退款", variant: "success" },
+    REJECTED: { label: "已拒绝", variant: "destructive" },
+    CLOSED: { label: "已撤销", variant: "secondary" },
 }
 
 /**
@@ -66,14 +74,11 @@ export const TICKET_REASON_LABEL: Record<AfterSaleReason, string> = {
     OTHER: "其他",
 }
 
-/** 顶部 tab：全部（空串）+ 五个履约主状态；空串=不过滤 */ export const ORDER_STATUS_TABS: ReadonlyArray<{
-    value: OrderStatus | ""
-    label: string
-}> = [
+/**
+ * 顶部 tab：全部（空串）+ 五个履约主状态；空串=不过滤。
+ * 标签从 ORDER_STATUS_META 派生，不另写一份中文——页签与徽章说的是同一个状态。
+ */
+export const ORDER_STATUS_TABS: ReadonlyArray<{ value: OrderStatus | ""; label: string }> = [
     { value: "", label: "全部" },
-    { value: "PENDING_PAYMENT", label: "待付款" },
-    { value: "PAID", label: "待发货" },
-    { value: "SHIPPED", label: "已发货" },
-    { value: "COMPLETED", label: "已完成" },
-    { value: "CANCELLED", label: "已取消" },
+    ...statusOptions(ORDER_STATUS_META),
 ]

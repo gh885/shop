@@ -12,7 +12,7 @@ export interface ProductListFilter {
     title?: string
 }
 
-/** 默认筛选：在售 */
+/** 默认筛选：上架中 */
 const DEFAULT_FILTER: ProductListFilter = {
     status: "PUBLISHED",
 }

@@ -1,18 +1,12 @@
 import type { ShopResponse } from "@shop/api/sdk"
 
-export const SHOP_STATUS_TEXT: Record<ShopResponse["status"], string> = {
-    PENDING_REVIEW: "审核中",
-    ACTIVE: "正常营业",
-    REJECTED: "审核未通过",
-    DISABLED: "已封禁",
-}
-
-export const SHOP_STATUS_VARIANT: Record<
+/** 店铺状态：文案与徽章色一张表（分成两张平行表就是两份必须同步的真相） */
+export const SHOP_STATUS_META: Record<
     ShopResponse["status"],
-    "secondary" | "default" | "destructive" | "outline"
+    { label: string; variant: "secondary" | "default" | "destructive" | "outline" }
 > = {
-    PENDING_REVIEW: "secondary",
-    ACTIVE: "default",
-    REJECTED: "destructive",
-    DISABLED: "outline",
+    PENDING_REVIEW: { label: "审核中", variant: "secondary" },
+    ACTIVE: { label: "正常营业", variant: "default" },
+    REJECTED: { label: "审核未通过", variant: "destructive" },
+    DISABLED: { label: "已封禁", variant: "outline" },
 }

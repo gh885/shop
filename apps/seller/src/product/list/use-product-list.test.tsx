@@ -22,7 +22,7 @@ import { useProductList, type ProductListSearch } from "./use-product-list"
  * 上下架与「编辑弹窗保存后」共用同一个失效入口。
  *
  * 钉住三条会静默变味的行为：改了筛选条件却留在第 3 页（用户看到的是一个莫名其妙 empties 的页）、
- * 下架成功但列表不重拉（按钮文案停在「在售」），以及点一个已经不在列表里的行。
+ * 下架成功但列表不重拉（按钮文案停在「上架中」），以及点一个已经不在列表里的行。
  */
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"
@@ -146,7 +146,7 @@ function createTestRouter(initialSearch: ProductListSearch) {
 }
 
 describe("useProductList 的筛选与翻页", () => {
-    it("URL 没带状态时按「在售」画页签：列表请求本身不带 status，缺省口径只在这一处定", async () => {
+    it("URL 没带状态时按「上架中」画页签：列表请求本身不带 status，缺省口径只在这一处定", async () => {
         useProductRoutes()
         createTestRouter({ page: 1, size: 10 })
 
@@ -194,7 +194,7 @@ describe("useProductList 的筛选与翻页", () => {
 describe("useProductList 的行内动作", () => {
     const FIRST_PAGE = { page: 1, size: 10 }
 
-    it("下架成功后本店列表重拉一次：不重拉的话这一行还写着「在售」", async () => {
+    it("下架成功后本店列表重拉一次：不重拉的话这一行还写着「上架中」", async () => {
         useProductRoutes()
         const { user } = createTestRouter(FIRST_PAGE)
         await screen.findByTestId("total")

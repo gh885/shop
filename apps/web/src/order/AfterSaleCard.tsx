@@ -11,8 +11,7 @@ import {
     AFTER_SALE_ACTION_LABEL,
     AFTER_SALE_REASON_LABEL,
     AFTER_SALE_TYPE_LABEL,
-    TICKET_STATUS_LABEL,
-    TICKET_STATUS_TONE,
+    TICKET_STATUS_META,
 } from "./constants"
 import { buyerAfterSaleActions, type AfterSaleAction } from "./after-sale"
 
@@ -50,8 +49,8 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
             <PanelHeader>
                 <span className="text-sm font-medium text-foreground">售后</span>
                 <Badge variant="outline">{AFTER_SALE_TYPE_LABEL[ticket.type]}</Badge>
-                <Badge variant={TICKET_STATUS_TONE[ticket.status]}>
-                    {TICKET_STATUS_LABEL[ticket.status]}
+                <Badge variant={TICKET_STATUS_META[ticket.status].tone}>
+                    {TICKET_STATUS_META[ticket.status].label}
                 </Badge>
 
                 <div className="ml-auto flex items-center gap-2">

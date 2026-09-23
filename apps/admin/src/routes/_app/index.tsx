@@ -18,7 +18,7 @@ import {
     useDataTable,
 } from "@shop/ui-web"
 import { reviewKeys, reviewListOptions } from "#/shared/lib/queries"
-import { ShopReviewStatusSchema, STATUS_BADGE } from "#/shop-review/constants"
+import { ShopReviewStatusSchema, STATUS_OPTIONS } from "#/shop-review/constants"
 import { useReviewColumns } from "#/shop-review/columns"
 
 export const Route = createFileRoute("/_app/")({
@@ -126,12 +126,12 @@ function ReviewPage() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">全部状态</SelectItem>
-                        {Object.entries(STATUS_BADGE).map(([value, badge]) => (
+                        {STATUS_OPTIONS.map((option) => (
                             <SelectItem
-                                key={value}
-                                value={value}
+                                key={option.value}
+                                value={option.value}
                             >
-                                {badge.label}
+                                {option.label}
                             </SelectItem>
                         ))}
                     </SelectContent>

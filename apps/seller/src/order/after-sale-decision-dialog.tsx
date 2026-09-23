@@ -15,7 +15,7 @@ import {
 } from "@shop/ui-web"
 import { z } from "zod"
 
-import { TICKET_REASON_LABEL, TICKET_STATUS_LABEL, TICKET_TYPE_LABEL } from "#/order/constants"
+import { TICKET_REASON_LABEL, TICKET_STATUS_META, TICKET_TYPE_LABEL } from "#/order/constants"
 import { shopAfterSaleOptions } from "#/order/queries"
 
 /**
@@ -154,7 +154,7 @@ function TicketFacts({
             <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">订单号</span>
                 <span className="font-medium tabular-nums">{orderNo}</span>
-                {data && <Badge variant="outline">{TICKET_STATUS_LABEL[data.status]}</Badge>}
+                {data && <Badge variant="outline">{TICKET_STATUS_META[data.status].label}</Badge>}
             </div>
 
             {ticket.isPending ? (

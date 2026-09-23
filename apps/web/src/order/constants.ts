@@ -177,22 +177,19 @@ export const AFTER_SALE_REASON_ORDER: AfterSaleReason[] = [
     "OTHER",
 ]
 
-/** 售后单状态 → 买家视角文案（APPLYING/RETURNING 是进行中，其余为终态） */
-export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
-    APPLYING: "待卖家处理",
-    RETURNING: "待寄回商品",
-    REFUNDED: "退款成功",
-    REJECTED: "卖家已拒绝",
-    CLOSED: "已撤销申请",
-}
-
-/** 售后单状态 → 徽章语义（进行中用 default，成功用 success 系，拒绝用 destructive，撤销用 secondary） */
-export const TICKET_STATUS_TONE: Record<TicketStatus, "default" | "secondary" | "destructive"> = {
-    APPLYING: "default",
-    RETURNING: "default",
-    REFUNDED: "secondary",
-    REJECTED: "destructive",
-    CLOSED: "secondary",
+/**
+ * 售后单状态 → 买家视角文案与徽章（APPLYING/RETURNING 是进行中，其余为终态）。
+ * 一张表两件事：文案与色板分成两张平行表，加状态时就少得改两处——漏一处就是徽章没色或文案缺失。
+ */
+export const TICKET_STATUS_META: Record<
+    TicketStatus,
+    { label: string; tone: "default" | "secondary" | "destructive" }
+> = {
+    APPLYING: { label: "待卖家处理", tone: "default" },
+    RETURNING: { label: "待寄回商品", tone: "default" },
+    REFUNDED: { label: "退款成功", tone: "secondary" },
+    REJECTED: { label: "卖家已拒绝", tone: "destructive" },
+    CLOSED: { label: "已撤销申请", tone: "secondary" },
 }
 
 /** 买家对售后单能做的动作 → 按钮文案（「填写/修改退货物流」的差别在组件里按是否已填单判定） */

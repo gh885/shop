@@ -1,6 +1,8 @@
 import { z } from "zod"
+import { statusOptions } from "@shop/common"
 import { TicketStatus, type TicketAvailableAction } from "@shop/api/sdk"
 
+import { TICKET_STATUS_META } from "#/order/constants"
 import type { SaleDecisionKind } from "#/order/after-sale-decision-dialog"
 
 /**
@@ -31,13 +33,12 @@ export function refundTabToStatus(tab: RefundTab) {
     return tab === "ALL" ? undefined : tab
 }
 
-/** 页签：待办在前、历史在后（工作台默认停在「待处理」），「全部」放最后当总览 */
+/**
+ * 页签：待办在前、历史在后（工作台默认停在「待处理」），「全部」放最后当总览。
+ * 文案吃 TICKET_STATUS_META，不在此另写一份——页签说的就是那一行的状态。
+ */
 export const REFUND_TABS: ReadonlyArray<{ value: RefundTab; label: string }> = [
-    { value: "APPLYING", label: "待处理" },
-    { value: "RETURNING", label: "退货中" },
-    { value: "REFUNDED", label: "已退款" },
-    { value: "REJECTED", label: "已拒绝" },
-    { value: "CLOSED", label: "已撤销" },
+    ...statusOptions(TICKET_STATUS_META),
     { value: "ALL", label: "全部" },
 ]
 
