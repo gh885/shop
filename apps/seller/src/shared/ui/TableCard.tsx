@@ -1,6 +1,5 @@
+import { PaginationBar } from "@shop/app-kit"
 import { Table } from "@shop/ui-web"
-
-import { TablePagination } from "./Pagination"
 
 /**
  * TableCard —— 卖家列表页表格的通用外壳：圆角卡片包表格 + 底部「共 N 条」+ 分页。
@@ -24,18 +23,22 @@ export function TableCard({
     onPageChange: (page: number) => void
     children: React.ReactNode
 }) {
+    const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
     return (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
             <Table>{children}</Table>
 
-            <div className="border-t border-border px-4 py-3">
-                <div className="mb-2 text-sm text-muted-foreground tabular-nums">
+            {/* 一行两栏：计数在左、分页在右。只有一页时分页整条不渲染，靠 flex 而不是条件类维持间距 */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+                <span className="text-sm text-muted-foreground tabular-nums">
                     共 {total} {unit}
-                </div>
-                <TablePagination
+                </span>
+                <PaginationBar
                     page={page}
-                    totalPages={Math.max(1, Math.ceil(total / pageSize))}
+                    totalPages={totalPages}
                     onPageChange={onPageChange}
+                    className="mx-0 w-auto"
                 />
             </div>
         </div>

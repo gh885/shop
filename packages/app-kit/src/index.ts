@@ -13,6 +13,7 @@
  * - createAppQueryClient：QueryClient 默认值的唯一构造口（读侧 throwOnError + 写侧全局反馈）
  * - createMeQuery：当前登录者查询（key / 新鲜度 / enabled 条件三端统一）
  * - MutationMeta / optimisticListMutationOptions：写操作的声明面与乐观更新配方
+ * - PaginationBar：列表分页条（页码算法 + ui-web 原语渲染，页码存哪由调用方决定）
  */
 
 export { WorkbenchSidebar } from "./workbench/sidebar"
@@ -22,6 +23,7 @@ export type { SidebarItem } from "./workbench/navigation"
 
 export { notify } from "./notify"
 export { formatDate, formatDateTime, formatTimeShort } from "./format"
+export { PaginationBar, paged, type PagedItems } from "./pagination-bar"
 export { LoginForm } from "./login-form"
 export { RegionField } from "./region-field"
 export { createImgUrl } from "./image"

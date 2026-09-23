@@ -12,6 +12,7 @@ import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import { useEffect } from "react"
+import { PaginationBar } from "@shop/app-kit"
 import {
     Skeleton,
     Empty,
@@ -20,12 +21,6 @@ import {
     EmptyTitle,
     EmptyDescription,
     Button,
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationPrevious,
-    PaginationNext,
     Tabs,
     TabsList,
     TabsTrigger,
@@ -46,16 +41,6 @@ export const Route = createFileRoute("/_protected/account/orders/")({
         meta: [{ title: "我的订单 - 个人中心 - Shop" }],
     }),
 })
-
-/** 分页窗口：最多显示 5 个页码（大列表时中间收缩，不铺满全量页码） */
-const PAGE_WINDOW = 5
-
-/** 收敛分页窗口：靠边时偏移到两端，让窗口始终有 5 个可见页（尾部不足时前置补齐） */
-function pageWindow(current: number, totalPages: number): number[] {
-    const start = Math.min(Math.max(1, current - 2), Math.max(1, totalPages - PAGE_WINDOW + 1))
-    const end = Math.min(totalPages, start + PAGE_WINDOW - 1)
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
-}
 
 function OrdersPage() {
     const search = useSearch({ from: "/_protected/account/orders/" })
@@ -158,48 +143,11 @@ function OrdersPage() {
                             />
                         ))}
                     </div>
-                    {totalPages > 1 && (
-                        <Pagination>
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <PaginationPrevious
-                                        text="上一页"
-                                        href="#"
-                                        disabled={search.page <= 1}
-                                        onClick={(e) => {
-                                            e.preventDefault()
-                                            if (search.page > 1) setPage(search.page - 1)
-                                        }}
-                                    />
-                                </PaginationItem>
-                                {pageWindow(search.page, totalPages).map((p) => (
-                                    <PaginationItem key={p}>
-                                        <PaginationLink
-                                            href="#"
-                                            isActive={p === search.page}
-                                            onClick={(e) => {
-                                                e.preventDefault()
-                                                setPage(p)
-                                            }}
-                                        >
-                                            {p}
-                                        </PaginationLink>
-                                    </PaginationItem>
-                                ))}
-                                <PaginationItem>
-                                    <PaginationNext
-                                        text="下一页"
-                                        href="#"
-                                        disabled={search.page >= totalPages}
-                                        onClick={(e) => {
-                                            e.preventDefault()
-                                            if (search.page < totalPages) setPage(search.page + 1)
-                                        }}
-                                    />
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
-                    )}
+                    <PaginationBar
+                        page={search.page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                    />
                 </>
             )}
         </div>

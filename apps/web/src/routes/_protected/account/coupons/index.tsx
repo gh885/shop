@@ -156,7 +156,7 @@ function CouponsPage() {
                                             <PaginationPrevious
                                                 text="上一页"
                                                 aria-label="上一页"
-                                                aria-disabled={page <= 1}
+                                                disabled={page <= 1}
 
                                                 // href 只为让 <a> 可聚焦可回车；跳转由 onClick 接管（分页是本地状态，不是路由）
                                                 href={page > 1 ? "#" : undefined}
@@ -175,7 +175,7 @@ function CouponsPage() {
                                             <PaginationNext
                                                 text="下一页"
                                                 aria-label="下一页"
-                                                aria-disabled={page >= totalPages}
+                                                disabled={page >= totalPages}
 
                                                 href={page < totalPages ? "#" : undefined}
                                                 onClick={(e) => {
