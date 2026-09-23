@@ -1,5 +1,7 @@
 import { MutationCache, QueryClient, type DefaultOptions } from "@tanstack/react-query"
 
+import { toApiError } from "@shop/common"
+
 import { notify } from "./notify"
 
 /**
@@ -26,8 +28,10 @@ import { notify } from "./notify"
  * 另外定：`queries` 只做保守兜底，不是全局新鲜度策略：
  * - `staleTime: 10s` 挡住 mount 即重拉，同时短到不会让列表明显过期；需要即时性的查询
  *   （结算预览这类）在自己的 queryOptions 里显式写 `staleTime: 0`，per-query 覆盖优先于此处。
- * - `retry` 保持库默认（3 次指数退避）：字典/列表类查询的瞬时抖动应能自愈；要「失败即报」
- *   的查询（404 有业务含义的详情）在自己的 queryOptions 里写 `retry: false`。
+ * - `retry` 只重 1 次，且 4xx 一次都不重：传输层（`@shop/common` 的 sdk-client）已经对
+ *   408/429/502/503/504 重了 2 次，这里再按库默认重 3 次就是最多 12 次请求打后端——429
+ *   被限流时尤其讽刺。要「失败即报」的查询（404 有业务含义的详情）仍可在自己的 queryOptions
+ *   里写 `retry: false`。
  */
 export function createAppQueryClient(overrides: AppQueryClientOverrides = {}): QueryClient {
     return new QueryClient({
@@ -59,6 +63,13 @@ export function createAppQueryClient(overrides: AppQueryClientOverrides = {}): Q
             queries: {
                 staleTime: 10_000,
                 throwOnError: throwWhenNoData,
+                // 4xx 是确定性失败（参数/权限/资源不存在），重一次也只是再打后端一次；
+                // 其余（网络抖动、5xx）留 1 次——传输层已重 2 次，库默认的 3 次会叠上去
+                retry: (failureCount: number, error: unknown) => {
+                    const { status } = toApiError(error)
+                    if (status >= 400 && status < 500) return false
+                    return failureCount < 1
+                },
                 ...overrides.queries,
             },
             mutations: { ...overrides.mutations },
