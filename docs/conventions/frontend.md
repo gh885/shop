@@ -197,3 +197,9 @@ pnpm test:watch  # watch 模式
   `useCurrentShop` 解析出的 shopId 进缓存 key，没就位时失效的是另一棵树
 - **app 测试不要自己 `new QueryClient()` / 用裸的 `createTestQueryClient()`**：全局 `throwOnError`、写操作的全局 toast 与 `meta.invalidates` 失效都挂在 `createAppQueryClient()` 的默认值上，裸 client 会让它们「生产里一定发生、测试里从不发生」。`@shop/app-kit/test` 导出的 `renderWithProviders` / `createAppTestQueryClient` 就是「应用真实默认值 + 禁 retry」，一律走它们；`@shop/test-utils` 的 `createTestQueryClient` 只留给底层包自己测库行为用（它不 import app-kit，反向依赖会成环）。改这套默认值时要同步跑全量测试——`pnpm test` 里那几条「成功后三棵缓存一起失效」的用例正是靠它才生效的。
 - pre-push 跑 `pnpm test`；各 app 的 vitest 配置都不开 `passWithNoTests`：用例被误删要能被 CI 发现
+
+## 打包体积（判据是产物，不是 import 形状）
+
+「barrel（`index.ts` 汇总出口）挡住 tree-shaking」在本仓库不成立：实测把 `packages/ui-web` 与 `packages/app-kit` 两个 barrel 改成调用点直连子模块，产物字节数几乎没变（≈0），改动已回滚。要动体积，顺序只能是**先量后改**——`pnpm build` 后看 `dist` 里每个 chunk 归属谁（产物可视化或 `--sourcemap`），别拿 import 形状当证据。
+
+量到的现状：Embla（约 45KB raw）落在 `/welcome` 也会加载的共享 chunk 里，欢迎页首屏 JS 1.37MB raw / 418KB gz。把它挪出共享 chunk 需要在商详页给图库位加 `lazy` + Suspense 骨架，属可感知的行为变化，是否值得另判（挂在 TODO）。
