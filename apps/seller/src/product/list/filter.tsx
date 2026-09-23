@@ -10,10 +10,6 @@ export interface ProductListFilter {
     status: ProductStatus
     /** 商品标题关键词 */
     title?: string
-    /** 商品 ID（精确） */
-    productId?: string
-    /** 商家编码（精确） */
-    merchantCode?: string
 }
 
 /** 默认筛选：在售 */
@@ -70,23 +66,22 @@ function FilterField({
 }
 
 /**
- * 商品列表筛选栏（页签 + 三个搜索框）。
+ * 商品列表筛选栏（页签 + 标题关键词搜索框）。
  *
  * 受控组件：筛选值由容器经 props 传入（容器负责 URL 读写），本组件只发变更。
- * 三个文本搜索框用本地草稿暂存，点「搜索」才一次性提交，避免每击键都写 URL / 发请求；
- * 页签切换为即时提交（切了就要刷新列表）。「重置」把三个草稿清空并恢复默认页签。
+ * 只留后端真支持的维度：列表查询（`/seller/products` 的 `keyword`）走的是商品名 LIKE，
+ * 曾经这里还有「商品 ID」「商家编号」两个框，输入后在 `use-product-list` 的 apply() 处被静默丢掉
+ * ——填了拿到的是未过滤列表，比没有这个框更糟。要按编号检索得先加后端查询参数，不是这里补 UI。
+ * 文本框用本地草稿暂存，点「搜索」才提交，避免每击键都写 URL / 发请求；
+ * 页签切换为即时提交（切了就要刷新列表）。「重置」清空草稿并恢复默认页签。
  */
 export function FilterBar({ value, onChange }: FilterBarProps) {
     const [title, setTitle] = useState(value.title ?? "")
-    const [productId, setProductId] = useState(value.productId ?? "")
-    const [merchantCode, setMerchantCode] = useState(value.merchantCode ?? "")
 
     function apply(next: ProductListFilter) {
         onChange(next)
         // 意图一致的当前草稿跟随（切页签也会把当前打字内容带过去，避免已输入却丢）
         setTitle(next.title ?? "")
-        setProductId(next.productId ?? "")
-        setMerchantCode(next.merchantCode ?? "")
     }
 
     function handleSubmit(e: React.FormEvent) {
@@ -94,15 +89,11 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
         apply({
             status: value.status,
             title: title.trim() || undefined,
-            productId: productId.trim() || undefined,
-            merchantCode: merchantCode.trim() || undefined,
         })
     }
 
     function reset() {
         setTitle("")
-        setProductId("")
-        setMerchantCode("")
         onChange({ ...DEFAULT_FILTER })
     }
 
@@ -137,22 +128,6 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                     placeholder="如：无线蓝牙耳机"
                     value={title}
                     onChange={setTitle}
-                />
-                <FilterField
-                    id="filter-product-id"
-                    label="商品 ID"
-                    className="min-w-32 flex-1 max-w-44"
-                    placeholder="输入完整 ID 精确匹配"
-                    value={productId}
-                    onChange={setProductId}
-                />
-                <FilterField
-                    id="filter-merchant-code"
-                    label="商家编号"
-                    className="min-w-32 flex-1 max-w-44"
-                    placeholder="输入完整编号精确匹配"
-                    value={merchantCode}
-                    onChange={setMerchantCode}
                 />
                 <Button type="submit">
                     <Search className="size-4" />
