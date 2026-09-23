@@ -370,7 +370,7 @@ public class AfterSaleService {
     @Transactional(readOnly = true)
     public PageResult<SellerTicketItem> pageShop(UUID shopId, String status, PageParams page) {
         // 1. 筛选值先校验：列表参数写错要立刻 400，静默忽略等于给出一份不知怎么筛出来的数据
-        TicketStatus filter = parseStatusFilter(status);
+        TicketStatus filter = Validate.enumFilter(TicketStatus.class, status, "非法的售后状态筛选值");
         // 2. 本店售后单分页：shop_id 是归属闸门，越店看不到（不是先查再过滤）
         Page<Ticket> rows = ticketMapper.selectPage(
                 new Page<>(page.page(), page.size()),
@@ -429,18 +429,6 @@ public class AfterSaleService {
                 ticket.getRefundedAt(),
                 ticket.getCreatedAt(),
                 ticket.getUpdatedAt());
-    }
-
-    /** 状态筛选值：空 = 全部；非法值 400（与订单列表的 status 口径一致） */
-    private static TicketStatus parseStatusFilter(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-        try {
-            return TicketStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw BusinessException.badRequest("非法的售后状态筛选值");
-        }
     }
 
     // 私有

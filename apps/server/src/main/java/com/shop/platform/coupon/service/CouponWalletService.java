@@ -1,9 +1,9 @@
 package com.shop.platform.coupon.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.mapper.UserCoupon;
 import com.shop.platform.coupon.mapper.UserCouponMapper;
 import com.shop.platform.coupon.model.UserCouponStatus;
@@ -33,8 +33,11 @@ public class CouponWalletService {
     @Transactional(readOnly = true)
     public PageResult<MyCoupon> pageMine(UUID userId, String status, PageParams page) {
         OffsetDateTime now = OffsetDateTime.now();
-        Page<UserCoupon> rows =
-                userCouponMapper.selectPageMine(new Page<>(page.page(), page.size()), userId, parseStatus(status), now);
+        Page<UserCoupon> rows = userCouponMapper.selectPageMine(
+                new Page<>(page.page(), page.size()),
+                userId,
+                Validate.enumFilter(UserCouponStatus.class, status, "非法的券状态筛选值"),
+                now);
         List<UserCoupon> records = rows.getRecords();
         if (records.isEmpty()) {
             return new PageResult<>(List.of(), rows.getTotal());
@@ -46,17 +49,5 @@ public class CouponWalletService {
                         .map(coupon -> MyCoupon.of(coupon, shopNames.get(coupon.getShopId()), now))
                         .toList(),
                 rows.getTotal());
-    }
-
-    /** 筛选值解析：空 = 全部；非法值给 400（枚举自己就是合法值表，不另维护一份） */
-    private static UserCouponStatus parseStatus(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-        try {
-            return UserCouponStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw BusinessException.badRequest("非法的券状态筛选值");
-        }
     }
 }

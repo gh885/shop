@@ -31,6 +31,23 @@ public final class Validate {
         return value.trim();
     }
 
+    /**
+     * 列表接口的枚举筛选值：空白（含 null）= 不过滤，非法值 400。
+     *
+     * <p>枚举自己就是合法值表，不另维护一份。各处曾各写一份 try/{@code valueOf}/catch——少抄 catch 的那一份
+     * 会把 {@code ?status=bogus} 抛成 IllegalArgumentException，而 {@code GlobalExceptionHandler} 不认它，
+     * 于是同一个筛选参数在一堆接口里 400、在另一堆里 500。
+     */
+    public static <E extends Enum<E>> E enumFilter(Class<E> type, String raw, String detail) {
+        String value = Text.blankToNull(raw);
+        if (value == null) return null;
+        try {
+            return Enum.valueOf(type, value);
+        } catch (IllegalArgumentException e) {
+            throw BusinessException.badRequest(detail);
+        }
+    }
+
     /** 引用必须存在，否则 404；返回引用本身方便链式使用 */
     public static <T> T notNull(T reference, String detail) {
         if (reference == null) throw BusinessException.notFound(detail);

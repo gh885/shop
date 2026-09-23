@@ -6,7 +6,6 @@ import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.PhoneNumber;
-import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.observability.MdcScope;
 import com.shop.platform.shop.events.ShopTradingSuspendedEvent;
@@ -51,7 +50,7 @@ public class ShopReviewService {
     /** 审核列表（按 status 筛选分页，含店名/店主手机号；号码恒为掩码，明文走 {@link #ownerPhone}） */
     public PageResult<ShopReviewItem> pageList(PageParams pageParams, String status) {
         // 1. 分页查审核记录，PENDING 优先、新店在前
-        ShopReviewStatus filter = Text.blankToNull(status) == null ? null : ShopReviewStatus.valueOf(status);
+        ShopReviewStatus filter = Validate.enumFilter(ShopReviewStatus.class, status, "非法的审核状态筛选值");
         Page<ShopReview> rows = shopReviewMapper.selectPage(
                 new Page<>(pageParams.page(), pageParams.size()),
                 new LambdaQueryWrapper<ShopReview>()

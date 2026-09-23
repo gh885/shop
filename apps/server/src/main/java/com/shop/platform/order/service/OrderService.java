@@ -331,22 +331,10 @@ public class OrderService {
     }
 
     // 内部：查询与装配辅助
-    /** 列表筛选状态：空 = 全部；非法值给 400（枚举自己就是合法值表，不另维护一份） */
-    private static OrderStatus parseStatusFilter(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-        try {
-            return OrderStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw BusinessException.badRequest("非法的订单状态筛选值");
-        }
-    }
-
     /** 买卖两侧分页共用：只有归属列（买家 user_id / 卖家 shop_id）不同 */
     private PageResult<OrderWithItems> pageOrders(
             SFunction<Order, ?> ownerColumn, UUID ownerId, String status, PageParams page) {
-        OrderStatus filter = parseStatusFilter(status);
+        OrderStatus filter = Validate.enumFilter(OrderStatus.class, status, "非法的订单状态筛选值");
         Page<Order> rows = orderMapper.selectPage(
                 new Page<>(page.page(), page.size()),
                 new LambdaQueryWrapper<Order>()

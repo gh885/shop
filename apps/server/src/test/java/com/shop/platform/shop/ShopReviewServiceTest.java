@@ -131,4 +131,18 @@ class ShopReviewServiceTest {
                             .isEqualTo(404));
         }
     }
+
+    @Nested
+    class 队列状态筛选 {
+
+        /** 这一格钉的是 500 → 400：筛选值写错是调用方的错，不该变成服务端异常 */
+        @Test
+        void 非法筛选值_400() {
+            assertThatThrownBy(() -> shopReviewService.pageList(new PageParams(1, 20), "BOGUS"))
+                    .isInstanceOfSatisfying(BusinessException.class, e -> {
+                        assertThat(e.getHttpStatus()).isEqualTo(400);
+                        assertThat(e.getDetail()).isEqualTo("非法的审核状态筛选值");
+                    });
+        }
+    }
 }

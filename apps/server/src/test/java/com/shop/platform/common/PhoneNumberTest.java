@@ -24,6 +24,6 @@ class PhoneNumberTest {
 
     @Test
     void 脱敏展示() {
-        assertThat(PhoneNumber.of("13812345678").masked()).isEqualTo("138****5678");
+        assertThat(PhoneNumber.mask("13812345678")).isEqualTo("138****5678");
     }
 }

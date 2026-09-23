@@ -6,8 +6,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-/** service 层校验收口三件套：isTrue / notNull / present。失败即抛对应状态码的业务异常。 */
+/** service 层校验收口：isTrue / notNull / present / enumFilter。失败即抛对应状态码的业务异常。 */
 class ValidateTest {
+
+    private enum Color {
+        RED
+    }
+
+    @Test
+    void enumFilter_空白不过滤_命中给值() {
+        assertThat(Validate.enumFilter(Color.class, null, "非法的颜色筛选值")).isNull();
+        assertThat(Validate.enumFilter(Color.class, "  ", "非法的颜色筛选值")).isNull();
+        assertThat(Validate.enumFilter(Color.class, "RED", "非法的颜色筛选值")).isEqualTo(Color.RED);
+    }
+
+    /** 这一格钉的是 500 → 400：筛选值写错是调用方的错，枚举就是合法值表 */
+    @Test
+    void enumFilter_不在枚举内_400() {
+        assertThatThrownBy(() -> Validate.enumFilter(Color.class, "BOGUS", "非法的颜色筛选值"))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> assertThat(ex.getHttpStatus())
+                        .isEqualTo(400));
+    }
 
     @Test
     void isTrue_条件成立_静默通过() {

@@ -40,11 +40,6 @@ public record PhoneNumber(String value) {
         return new PhoneNumber(normalized);
     }
 
-    /** 脱敏展示：138****8000。日志、异步通知里避免明文落盘 */
-    public String masked() {
-        return mask(value);
-    }
-
     /** 脱敏任意手机号字符串（不校验格式，null/过短一律 ****）：日志与展示层脱敏的统一出口 */
     public static String mask(String rawPhone) {
         if (rawPhone == null || rawPhone.length() < 7) return "****";
