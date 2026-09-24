@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.dto.AddressRequest;
 import com.shop.platform.account.mapper.Address;
 import com.shop.platform.account.mapper.AddressMapper;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
@@ -45,7 +46,9 @@ public class AddressService {
         // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）
         long owned = addressMapper.selectCount(new LambdaQueryWrapper<Address>().eq(Address::getUserId, userId));
         Validate.isTrue(
-                owned < MAX_ADDRESS_PER_USER, "ADDRESS_LIMIT_EXCEEDED", "最多保存 " + MAX_ADDRESS_PER_USER + " 条收货地址");
+                owned < MAX_ADDRESS_PER_USER,
+                ErrorCodes.ADDRESS_LIMIT_EXCEEDED,
+                "最多保存 " + MAX_ADDRESS_PER_USER + " 条收货地址");
         // 2. 区划校验 + 默认位让位，再落库
         regionRegistry.requireValidCode(req.regionCode());
         boolean asDefault = Boolean.TRUE.equals(req.isDefault());

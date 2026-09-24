@@ -1,6 +1,7 @@
 package com.shop.platform.inventory.api;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.inventory.mapper.SkuStock;
 import com.shop.platform.inventory.mapper.SkuStockMapper;
 import com.shop.platform.inventory.mapper.StockFrames;
@@ -56,7 +57,7 @@ public class StockCommand {
             StockFrames frames = skuStockMapper.freezeOne(line.skuId(), line.quantity());
             if (frames == null) {
                 log.warn("[INVENTORY] 冻结失败: 可用库存不足, skuId={}, need={}", line.skuId(), line.quantity());
-                throw BusinessException.conflict("INSUFFICIENT_STOCK", "商品库存不足，请调整数量");
+                throw BusinessException.conflict(ErrorCodes.INSUFFICIENT_STOCK, "商品库存不足，请调整数量");
             }
             // 2. 记账（总库存不变，冻结 +n，可用 -n）
             recordMovement(frames, orderId, StockMovement.TYPE_FREEZE);

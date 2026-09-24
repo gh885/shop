@@ -1,6 +1,7 @@
 package com.shop.platform.coupon.service;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.mapper.CouponTemplate;
 import com.shop.platform.coupon.mapper.CouponTemplateMapper;
@@ -75,7 +76,7 @@ public class CouponClaimService {
         //    必须带上与撞键路径同一个 code —— 两条路径是同一个业务情形，出参不能时有时无
         //    （Validate.isTrue 的带 code 重载是 400，这里要的是 409，故显式抛）
         if (userCouponMapper.claimedBy(templateId, userId)) {
-            throw BusinessException.conflict("COUPON_ALREADY_CLAIMED", "您已领取过该优惠券");
+            throw BusinessException.conflict(ErrorCodes.COUPON_ALREADY_CLAIMED, "您已领取过该优惠券");
         }
 
         // 3. 名额条件扣减：并发超发被这一条语句闸住
@@ -100,7 +101,7 @@ public class CouponClaimService {
             userCouponMapper.insert(coupon);
         } catch (DuplicateKeyException e) {
             // 并发重复领取：唯一索引兜住。此处不可再做任何查库（事务已被 PG 标记 aborted），只抛异常回滚
-            throw BusinessException.conflict("COUPON_ALREADY_CLAIMED", "您已领取过该优惠券");
+            throw BusinessException.conflict(ErrorCodes.COUPON_ALREADY_CLAIMED, "您已领取过该优惠券");
         }
         log.info("[COUPON] 领券成功, userId={}, templateId={}, userCouponId={}", userId, templateId, coupon.getId());
         String shopName = shopReadQuery.namesByIds(List.of(coupon.getShopId())).get(coupon.getShopId());

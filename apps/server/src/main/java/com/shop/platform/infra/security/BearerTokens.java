@@ -1,5 +1,6 @@
 package com.shop.platform.infra.security;
 
+import com.shop.platform.common.ErrorCodes;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
@@ -45,20 +46,20 @@ public final class BearerTokens {
         Claims claims =
                 jwtProvider.parse(header.substring(BEARER_PREFIX.length()).trim());
         if (claims == null) {
-            return Verification.fail("INVALID_TOKEN", "Token 格式无效");
+            return Verification.fail(ErrorCodes.INVALID_TOKEN, "Token 格式无效");
         }
         if (!jwtProvider.isAccessToken(claims)) {
-            return Verification.fail("INVALID_TOKEN", "Token 类型错误");
+            return Verification.fail(ErrorCodes.INVALID_TOKEN, "Token 类型错误");
         }
         if (jwtProvider.isStaff(claims) != requireStaff) {
-            return Verification.fail("INVALID_TOKEN", "Token 类型错误");
+            return Verification.fail(ErrorCodes.INVALID_TOKEN, "Token 类型错误");
         }
         // VERIFY-01: 校验 audience（手动兜底，配合 JwtProvider 的 requireIssuer）
         if (claims.getAudience() == null || !claims.getAudience().contains(jwtProvider.getExpectedAudience())) {
-            return Verification.fail("INVALID_TOKEN", "Token 受众无效");
+            return Verification.fail(ErrorCodes.INVALID_TOKEN, "Token 受众无效");
         }
         if (jwtProvider.isExpired(claims)) {
-            return Verification.fail("TOKEN_EXPIRED", "Token 已过期");
+            return Verification.fail(ErrorCodes.TOKEN_EXPIRED, "Token 已过期");
         }
         return Verification.pass(jwtProvider.getUserId(claims));
     }

@@ -12,6 +12,7 @@ import com.shop.platform.cms.mapper.RecommendTab;
 import com.shop.platform.cms.mapper.RecommendTabMapper;
 import com.shop.platform.cms.model.CmsStatus;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.cache.CacheNames;
 import com.shop.platform.infra.db.DuplicateKeys;
@@ -152,7 +153,7 @@ public class ContentService {
                 .build();
         // 2. 生效窗口校验：起止都给了时 endAt 必须晚于 startAt
         if (!banner.isTimeRangeValid()) {
-            throw new BusinessException(400, "BANNER_TIME_RANGE_INVALID", "banner 失效时间必须晚于生效时间");
+            throw new BusinessException(400, ErrorCodes.BANNER_TIME_RANGE_INVALID, "banner 失效时间必须晚于生效时间");
         }
         // 3. 落库
         bannerMapper.insert(banner);
@@ -177,7 +178,7 @@ public class ContentService {
         banner.setStartAt(req.startAt() != null ? req.startAt() : banner.getStartAt());
         banner.setEndAt(req.endAt() != null ? req.endAt() : banner.getEndAt());
         if (!banner.isTimeRangeValid()) {
-            throw new BusinessException(400, "BANNER_TIME_RANGE_INVALID", "banner 失效时间必须晚于生效时间");
+            throw new BusinessException(400, ErrorCodes.BANNER_TIME_RANGE_INVALID, "banner 失效时间必须晚于生效时间");
         }
         bannerMapper.updateById(banner);
         return banner;

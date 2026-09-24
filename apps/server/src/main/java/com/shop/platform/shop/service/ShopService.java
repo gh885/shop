@@ -3,6 +3,7 @@ package com.shop.platform.shop.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.cache.CacheNames;
@@ -49,9 +50,10 @@ public class ShopService {
         //  2.1 数量：口径取 shop_members 的 OWNER 行数（与授权同源，不看 shops.owner_id 冗余列）；
         //      子账号同闸——别人店的 MEMBER 不占名额也不算资格，判定只看自己名下的 OWNER 身份。
         //      被拒/被封的店仍计数（店铺不物理删除，名额不自动释放），与店名占位同一套存续口径。
-        Validate.isTrue(shopMemberMapper.countOwnedShops(ownerId) == 0, "SHOP_LIMIT_EXCEEDED", "每人最多开 1 家店铺，你已开过店了");
+        Validate.isTrue(
+                shopMemberMapper.countOwnedShops(ownerId) == 0, ErrorCodes.SHOP_LIMIT_EXCEEDED, "每人最多开 1 家店铺，你已开过店了");
         //  2.2 店名：全局唯一（被拒/被封店名仍占位）；先查后插挡不住并发，撞 uk_shops_name 在下面兜成同一个 400
-        Validate.isTrue(!shopMapper.existsByName(name), "SHOP_NAME_TAKEN", "店名已被使用，请换一个");
+        Validate.isTrue(!shopMapper.existsByName(name), ErrorCodes.SHOP_NAME_TAKEN, "店名已被使用，请换一个");
 
         // 3. 建店：先落 PENDING_REVIEW，平台审核通过才 ACTIVE
         Shop shop = Shop.builder()
@@ -64,7 +66,7 @@ public class ShopService {
             shopMapper.insert(shop);
         } catch (DuplicateKeyException e) {
             // 并发下两请求同时过了 2.2 的预检：唯一索引是真相，给和预检一致的 400 而不是冒 500
-            throw BusinessException.badRequest("SHOP_NAME_TAKEN", "店名已被使用，请换一个");
+            throw BusinessException.badRequest(ErrorCodes.SHOP_NAME_TAKEN, "店名已被使用，请换一个");
         }
 
         // 4. 店主自动成为 OWNER 成员（授权判断以 shop_members 为准）
@@ -104,14 +106,14 @@ public class ShopService {
         // 只有被驳回的店能重提：待审的店已经在队列里，ACTIVE 店无需重审，被封的店走平台解封（ACC-60 仍未落）
         Validate.isTrue(shop.getStatus() == ShopStatus.REJECTED, 409, "只有审核未通过的店铺可以重新提交");
         // 改名要重新过全局唯一闸（本店自己那一行不算冲突）
-        Validate.isTrue(!shopMapper.existsOtherNamed(shopId, name), "SHOP_NAME_TAKEN", "店名已被使用，请换一个");
+        Validate.isTrue(!shopMapper.existsOtherNamed(shopId, name), ErrorCodes.SHOP_NAME_TAKEN, "店名已被使用，请换一个");
 
         // 条件更新（WHERE status = REJECTED）是并发闸门：预检与写之间被并发的重提/审核抢先，这里影响 0 行 → 409
         try {
             Validate.isTrue(shopMapper.resubmit(shopId, name, logoKey) == 1, 409, "店铺状态已变化，请刷新后重试");
         } catch (DuplicateKeyException e) {
             // 并发下两家店同时改成同一个名字：uk_shops_name 是真相，给和预检一致的 400
-            throw BusinessException.badRequest("SHOP_NAME_TAKEN", "店名已被使用，请换一个");
+            throw BusinessException.badRequest(ErrorCodes.SHOP_NAME_TAKEN, "店名已被使用，请换一个");
         }
 
         // 重新入队：新落一条 PENDING，审核员看到的仍是「店名 + logo + 上一轮驳回理由」那条历史链

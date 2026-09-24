@@ -87,7 +87,7 @@ src/main/java/com/shop/platform/
 
 ## 入站校验词表：一条规则一个名字
 
-**同一个形状不许在两个文件里各抄一遍字面量。** 规则的定义住在持有该概念的领域类型里，DTO 的 `@Pattern`/`@Size` 只引用常量（`PhoneNumber.*` / `RegionRegistry.CODE_PATTERN` / `cms.dto.LinkTarget.PATTERN` / `UserCouponStatus.PATTERN` / `ProductSort.PATTERN` / `ProductFieldRules.*`）；存在性与语义判定也收在同一个类型里（`RegionRegistry.requireValidCode`/`requirePrefix` 是 400 话术的唯一出口，service 不各写一份 `validateRegion`）。细则见 GEN-52~61。
+**同一个形状不许在两个文件里各抄一遍字面量。** 规则的定义住在持有该概念的领域类型里，DTO 的 `@Pattern`/`@Size` 只引用常量（`PhoneNumber.*` / `RegionRegistry.CODE_PATTERN` / `cms.dto.LinkTarget.PATTERN` / `UserCouponStatus.PATTERN` / `ProductSort.PATTERN` / `ProductFieldRules.*`）；存在性与语义判定也收在同一个类型里（`RegionRegistry.requireValidCode`/`requirePrefix` 是 400 话术的唯一出口，service 不各写一份 `validateRegion`）。细则见 GEN-52~62。
 
 - **注解元素值必须是编译期常量表达式**——`String.join`、stream 推导都编不过。所以「常量等于枚举名 / wire 值 / 真实区划码」这条等式编译期查不了，由 `ValidationVocabularyTest`（无库，反射 + 扫 `src/main/java`）在测试期钉住，含 switch 分支穷尽性（Java 对 switch 语句不做穷尽检查）和「反证不空转」断言
 - **商品词表在前端另有一份，两份都得是常量**（GEN-58）：`@Size(max = 30, message = "商品标题最长 30 字")` 那个数字在卖家端出现三次（发布表单的 `maxLength` 与校验、改标题弹窗的校验），其中一处还把上限拼进提示语，上限一改就有一句谎报。owner 是 `packages/common/product-fields.ts`，由 `FieldRuleVocabularyTest` 拿它比 Java 常量与契约那一格（数字与规则文案都比，不比各处的字段标签）
@@ -98,6 +98,7 @@ src/main/java/com/shop/platform/
 - **迁移回放必须跟着搬家改键**：`dbNumbers()` 认识 `ADD COLUMN IF NOT EXISTS x VARCHAR(n)`、`ALTER TABLE x.y SET SCHEMA z`、`ALTER SCHEMA a RENAME TO b`、`RENAME COLUMN`，靠 `rekey` 把已收的宽度搬到今天的名字下。判据：门禁读的是历史脚本，而历史脚本会搬家——不改键，登记表里那些「落点」会停在已经不存在的表上（V42/V46/V48 之后有 18 条），下次真名那格被改窄时方向核对整个失明。同理，注释里 `{@code schema.table.column}` 形式的落点写的是搬家前的名字也要跟着改（迁移脚本里的历史名字不动，那是事实发生过的地方）
 - **一个概念不许各说一半**：同一组件上「位数」与「形状」此前分居 `@Size(max = 6)` 和 `@Pattern("^\d{6}$")`，现在形状由位数拼出（`ShopFieldRules.POSTAL_CODE_PATTERN`），由 `邮编的位数与形状不许各说一半` 三向核对（注解上限、契约 pattern 原文、从形状反推的位数）。取不到位数或那是区间量词就直接抛，不回一个默认值——回默认值会让这条门禁在形状变复杂后悄悄失效
 - **注释里宣称的数字等式要有门禁**：订单与售后批上限同值、车条目数与下单行数同值，这类「两个数为什么相等」的散文由 `SweepTest` / `FieldRuleVocabularyTest` 从源码里把两个数各自读出来比对，改一处不改另一处会红。注销批上限 20 刻意不等（毁灭性动作每轮少动几笔），没有等式就核对不了，只在注释里交代理由。**文档里的条数也算数字等式**：`docs/business-rules/README.md` 索引表「生效 / 待落地」两列由 `BusinessRulesIndexTest`（无库、纯文本）按顶格 `- **[编号]**` bullet 重数，尺子写死在测试里，同时要求索引覆盖规则目录每个 `.md`、无死链、编号全库唯一，并把全仓（含迁移与文档）引用的 `前缀-数字` 比对到真实条目——526 处引用零悬空。起这道闸门前五域合起来少写 9 条
+- **错误码与数字同罪，但不进契约（GEN-62）**：`code` 也是裸 `String` 词汇，抛出点只许写 `common.ErrorCodes.X`，字面量在本仓库只住在 owner 里（41 处站点 / 19 个文件收一次；同一个码最多被抄 6 遍）。与 `@Size` 那一族的关键差别是 `code` 由 `GlobalExceptionHandler` 挂成 ProblemDetail 扩展属性、**不进** `openapi/api-docs.json`，所以改码不需要 `pnpm gen:sdk`（六个码在契约文件里出现次数实测全为 0），也不许拿「契约没它」当不核对的理由。三边（Java 常量 ⇄ `docs/error-codes.md` ⇄ `packages/common/src/error-codes.ts`）、每一处站点的状态码、以及文档「谁在读」那一列，全由 `ErrorCodeVocabularyTest`（无库、不起 Spring）核对：状态码不抄表而从 `BusinessException` 工厂的签名与函数体读出来，前端落点不抄表而从生产源码里真实的 `ErrorCodes.X` 引用反查（两向相等，`—` 是合法值、含义是「今天没人按这个码分叉」）。码位允许「从变量来」的导管是三处（`Validate.isTrue` 形参、两个鉴权过滤器的 `verification.code()`），白名单写成等式，新起一条第四处就红——变量码静态扫不到，等于对门禁不存在
 - 落点归属跟着「门装在哪一层」走，不跟着语义走：DTO 上挂了 `@Pattern` 的筛选值 → 422（GEN-19 ①），service 用 `Validate.enumFilter` 自判的 → 400（GEN-19 ③）。别靠猜，`ProductControllerTest.非法排序_422带字段名` 是实测锚点
 
 ## 业务事件：一个出口、一行、一份目录

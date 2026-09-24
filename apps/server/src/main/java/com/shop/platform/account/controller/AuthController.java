@@ -16,6 +16,7 @@ import com.shop.platform.account.infra.CaptchaService;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.qiniu.QiniuClient;
 import com.shop.platform.infra.qiniu.UploadTicket;
 import com.shop.platform.infra.security.TokenPair;
@@ -134,7 +135,7 @@ public class AuthController {
         String fromCookie = refreshCookies.read(request, cookieSpec());
         String refreshToken = fromCookie != null ? fromCookie : (req == null ? null : req.refreshToken());
         if (refreshToken == null) {
-            throw new BusinessException(401, "INVALID_TOKEN", "Refresh Token 未提供");
+            throw new BusinessException(401, ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
         }
 
         TokenPair result = authService.refresh(refreshToken, deviceIdOrDefault(req), clientIp.of(request), userAgent);

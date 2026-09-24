@@ -1,5 +1,6 @@
 package com.shop.platform.infra.security.authz;
 
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.infra.web.UnauthorizedWriter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -89,7 +90,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
     }
 
     private boolean deny(HttpServletRequest request, HttpServletResponse response, String detail) throws Exception {
-        UnauthorizedWriter.write(response, objectMapper, 403, "PERMISSION_DENIED", detail);
+        UnauthorizedWriter.write(response, objectMapper, 403, ErrorCodes.PERMISSION_DENIED, detail);
         return false;
     }
 

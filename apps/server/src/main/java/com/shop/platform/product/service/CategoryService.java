@@ -1,6 +1,7 @@
 package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.cache.CacheNames;
 import com.shop.platform.infra.db.DuplicateKeys;
@@ -137,12 +138,12 @@ public class CategoryService {
      */
     public void requireMountableCategory(UUID categoryId) {
         Category category = Validate.notNull(categoryMapper.selectById(categoryId), "分类不存在");
-        Validate.isTrue(category.isEnabled(), "CATEGORY_DISABLED", "不能挂载到已禁用的类目");
-        Validate.isTrue(category.getLevel() == MAX_LEVEL, "CATEGORY_NOT_LEAF", "商品只能挂载到叶子类目（三级）");
+        Validate.isTrue(category.isEnabled(), ErrorCodes.CATEGORY_DISABLED, "不能挂载到已禁用的类目");
+        Validate.isTrue(category.getLevel() == MAX_LEVEL, ErrorCodes.CATEGORY_NOT_LEAF, "商品只能挂载到叶子类目（三级）");
         // 父链向上走：ROOT_PARENT_ID 占位即到头；断链（父不存在）由创建侧唯一约束保证，不在此拦
         for (UUID parentId = category.getParentId(); parentId != null && !Category.ROOT_PARENT_ID.equals(parentId); ) {
             Category parent = categoryMapper.selectById(parentId);
-            Validate.isTrue(parent == null || parent.isEnabled(), "CATEGORY_DISABLED", "不能挂载到父级已禁用的类目");
+            Validate.isTrue(parent == null || parent.isEnabled(), ErrorCodes.CATEGORY_DISABLED, "不能挂载到父级已禁用的类目");
             parentId = parent == null ? null : parent.getParentId();
         }
     }

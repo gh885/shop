@@ -7,6 +7,7 @@ import com.shop.platform.account.mapper.User;
 import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
 import com.shop.platform.infra.observability.BizEvent;
@@ -364,7 +365,7 @@ public class AuthService {
 
     private void ensureUserActive(User user) {
         if (!user.isActive()) {
-            throw BusinessException.forbidden("USER_DISABLED", "账号已被禁用");
+            throw BusinessException.forbidden(ErrorCodes.USER_DISABLED, "账号已被禁用");
         }
     }
 
@@ -382,7 +383,7 @@ public class AuthService {
                 .put("client_ip", clientIp)
                 .put("user_id", user.getId())
                 .warn();
-        throw BusinessException.forbidden("USER_DISABLED", "账号已被禁用");
+        throw BusinessException.forbidden(ErrorCodes.USER_DISABLED, "账号已被禁用");
     }
 
     // Token 签发

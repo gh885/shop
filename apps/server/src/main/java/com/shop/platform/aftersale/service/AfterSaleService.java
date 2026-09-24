@@ -15,6 +15,7 @@ import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Text;
@@ -96,7 +97,7 @@ public class AfterSaleService {
         // 只挡 REFUNDED：REJECTED/CLOSED（被拒/撤销）不伤买家利益，仍可在窗口内重新申请
         Ticket latest = ticketMapper.selectLatestByOrder(orderId);
         if (latest != null && latest.getStatus() == TicketStatus.REFUNDED) {
-            throw BusinessException.conflict("AFTER_SALE_ALREADY_REFUNDED", "该订单已完成退款，不能再次申请售后");
+            throw BusinessException.conflict(ErrorCodes.AFTER_SALE_ALREADY_REFUNDED, "该订单已完成退款，不能再次申请售后");
         }
 
         String trimmed = Text.trimToNull(reason);

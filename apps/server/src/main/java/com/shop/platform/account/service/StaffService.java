@@ -5,6 +5,7 @@ import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
@@ -67,7 +68,7 @@ public class StaffService {
                     .put("client_ip", clientIp)
                     .put("staff_id", staff.getId())
                     .warn();
-            throw BusinessException.forbidden("STAFF_DISABLED", "账号已被禁用");
+            throw BusinessException.forbidden(ErrorCodes.STAFF_DISABLED, "账号已被禁用");
         }
 
         // 4. 登录成功清除失败计数（LOGIN-08）
@@ -134,7 +135,7 @@ public class StaffService {
         Staff staff = staffMapper.selectById(UUID.fromString(rotated.subjectId()));
         if (staff == null) throw BusinessException.notFound("员工不存在");
         if (!staff.isActive()) {
-            throw BusinessException.forbidden("STAFF_DISABLED", "账号已被禁用");
+            throw BusinessException.forbidden(ErrorCodes.STAFF_DISABLED, "账号已被禁用");
         }
         return issueTokens(staff, rotated.deviceId());
     }

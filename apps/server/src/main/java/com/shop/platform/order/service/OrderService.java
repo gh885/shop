@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
@@ -119,7 +120,7 @@ public class OrderService {
     public List<Order> create(UUID userId, CreateOrderRequest req) {
         // 1. 账号闸门：买家状态非 ACTIVE 一律 403 拒单（复用登录闸门同一份语义与 code，token 未过期不等于账号还能交易）
         if (!userReadQuery.isActive(userId)) {
-            throw BusinessException.forbidden("USER_DISABLED", "账号已被禁用");
+            throw BusinessException.forbidden(ErrorCodes.USER_DISABLED, "账号已被禁用");
         }
 
         // 2. 恶拍闸门：拍下即冻结库存（ORD-11），没有这道闸，一个账号可以每 15 分钟锁一次全店库存。

@@ -6,6 +6,7 @@ import com.shop.platform.account.infra.DevSmsChannel;
 import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.infra.SmsChannel;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.security.SecretHasher;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -108,17 +109,17 @@ public class SmsCodeService {
             UnaryOperator<String> text) {
         // 1. 限流检查：IP 维度（OTP-06）+ 单 IP 每日不同手机号数（防横扫轰炸）
         if (RateLimiter.exceeded(redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
-            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
+            throw new BusinessException(429, ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
         }
         enforceDistinctPhonesPerIp(clientIp, phone);
 
         // 2. 限流检查：60s 重发间隔 + 每日上限（INCR 原子操作消除 TOCTOU 竞争）
         String rateKey = ratePrefix + phone;
         if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
-            throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
+            throw new BusinessException(429, ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
         }
         if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
-            throw new BusinessException(429, "SMS_DAILY_LIMIT", "今日验证码已达上限");
+            throw new BusinessException(429, ErrorCodes.SMS_DAILY_LIMIT, "今日验证码已达上限");
         }
 
         // 3. 生成验证码，存 HMAC 摘要（pepper 在应用配置，拖库不可离线枚举）
@@ -149,13 +150,13 @@ public class SmsCodeService {
         String attemptKey = attemptPrefix + phone;
         String storedHash = redis.opsForValue().get(codeKey);
         if (storedHash == null) {
-            throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期");
+            throw new BusinessException(400, ErrorCodes.SMS_CODE_EXPIRED, "验证码已过期");
         }
         String attemptStr = redis.opsForValue().get(attemptKey);
         int attempts = attemptStr != null ? Integer.parseInt(attemptStr) : 0;
         if (attempts >= MAX_ATTEMPTS) {
             redis.delete(codeKey);
-            throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期，请重新发送");
+            throw new BusinessException(400, ErrorCodes.SMS_CODE_EXPIRED, "验证码已过期，请重新发送");
         }
 
         // 2. 开发环境固定码优先放行（DevSmsChannel 不存在时跳过）
@@ -172,7 +173,7 @@ public class SmsCodeService {
             if (hits != null && hits >= MAX_ATTEMPTS) {
                 redis.delete(codeKey); // 第 5 次错误即焚，后续输入直接走「已过期」
             }
-            throw new BusinessException(400, "SMS_CODE_INVALID", "验证码错误");
+            throw new BusinessException(400, ErrorCodes.SMS_CODE_INVALID, "验证码错误");
         }
 
         // 4. 校验通过：消费验证码 + 清除尝试计数
@@ -195,7 +196,7 @@ public class SmsCodeService {
         if (!Boolean.TRUE.equals(redis.opsForSet().isMember(key, phone))) {
             Long size = redis.opsForSet().size(key);
             if (size != null && size >= authProperties.smsIpDistinctPhonesMax()) {
-                throw new BusinessException(429, "SMS_RATE_LIMIT", "发送过于频繁，请稍后再试");
+                throw new BusinessException(429, ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
             }
         }
         if (Long.valueOf(1L).equals(redis.opsForSet().add(key, phone))) {

@@ -4,6 +4,7 @@ import com.shop.platform.account.mapper.User;
 import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.account.model.AccountDeletionTimeouts;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Sweep;
 import com.shop.platform.common.Validate;
 import java.time.OffsetDateTime;
@@ -109,7 +110,7 @@ public class AccountDeletionService {
             throw BusinessException.notFound("用户不存在");
         }
         if (!user.isActive()) {
-            throw BusinessException.forbidden("USER_DISABLED", "账号已被禁用，请联系平台客服");
+            throw BusinessException.forbidden(ErrorCodes.USER_DISABLED, "账号已被禁用，请联系平台客服");
         }
         return user;
     }

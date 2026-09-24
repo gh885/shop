@@ -6,6 +6,7 @@ import com.shop.platform.account.dto.RefreshRequest;
 import com.shop.platform.account.service.StaffInfo;
 import com.shop.platform.account.service.StaffService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
@@ -56,7 +57,7 @@ public class StaffAuthController {
             @RequestBody(required = false) RefreshRequest req) {
         String refreshToken = refreshCookies.read(request, COOKIE);
         if (refreshToken == null) {
-            throw new BusinessException(401, "INVALID_TOKEN", "Refresh Token 未提供");
+            throw new BusinessException(401, ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
         }
         String deviceId = req == null || req.deviceId() == null ? "default" : req.deviceId();
         TokenPair result = staffService.refresh(refreshToken, deviceId);

@@ -1,6 +1,7 @@
 package com.shop.platform.shop.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.region.RegionRegistry;
@@ -56,7 +57,7 @@ public class MerchantAddressService {
                 new LambdaQueryWrapper<MerchantAddress>().eq(MerchantAddress::getShopId, shopId));
         Validate.isTrue(
                 owned < MAX_ADDRESS_PER_SHOP,
-                "MERCHANT_ADDRESS_LIMIT_EXCEEDED",
+                ErrorCodes.MERCHANT_ADDRESS_LIMIT_EXCEEDED,
                 "最多添加 " + MAX_ADDRESS_PER_SHOP + " 条地址");
         // 2. 区划校验 + 默认位让位，再落库
         regionRegistry.requireValidCode(req.regionCode());
