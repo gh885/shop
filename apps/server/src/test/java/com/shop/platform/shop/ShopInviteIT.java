@@ -21,8 +21,8 @@ import org.springframework.boot.test.context.SpringBootTest;
  * （removeMember 删 PENDING 行），两条路都是<b>删行</b>不留 DECLINED 态——同店同人受
  * {@code uk_shop_members_shop_user} 唯一索引约束，删行后「再次邀请」天然可用，「我的待确认邀请」也不再挂。
  *
- * <p>拒绝只能本人（400 与 accept 对称）、只能拒 PENDING（已同意后 decline 拿 409，拒绝不是退店通道）、
- * 行不存在（含已被自己拒过）拿 404「邀请不存在或已失效」。
+ * <p>拒绝只能本人（别人的邀请 ID 与不存在的行同为 404「邀请不存在或已失效」，不给两种答案）、只能拒 PENDING
+ * （已同意后 decline 拿 409，拒绝不是退店通道）。
  */
 @SpringBootTest
 class ShopInviteIT extends IntegrationTestSupport {
@@ -94,15 +94,24 @@ class ShopInviteIT extends IntegrationTestSupport {
         assertEquals(1, shopService.myInvites(inviteeId).size());
     }
 
+    /**
+     * 别人替我裁决：accept 与 decline 都拿「邀请不存在或已失效」404，且邀请仍是 PENDING。
+     * 钉的是同一句话、同一个状态码——只要有一侧给出 400/403，就把「这行存在」说给了探测者。
+     */
     @Test
-    void 拒绝邀请_他人代拒被拒_邀请仍待确认() {
+    void 他人代裁决_与缺席同一句话_邀请仍待确认() {
         seed();
         UUID memberId = invite();
 
-        BusinessException ex =
+        BusinessException declined =
                 assertThrows(BusinessException.class, () -> shopService.declineInvite(memberId, strangerId));
+        BusinessException accepted =
+                assertThrows(BusinessException.class, () -> shopService.acceptInvite(memberId, strangerId));
 
-        assertEquals(400, ex.getHttpStatus());
+        assertEquals(404, declined.getHttpStatus());
+        assertEquals(404, accepted.getHttpStatus());
+        assertEquals("邀请不存在或已失效", declined.getDetail());
+        assertEquals(accepted.getDetail(), declined.getDetail()); // 两条路的回答一字不差
         assertEquals("PENDING", memberStatus(memberId)); // 别人碰不掉发给我的邀请
     }
 
@@ -120,7 +129,7 @@ class ShopInviteIT extends IntegrationTestSupport {
         assertEquals("ACTIVE", memberStatus(memberId));
     }
 
-    /** 重复拒绝：行已删，无从区分「我拒过」与「这条不是我的」→ 与 accept 同一缺席口径 404（不返 204，那等于承认存在过） */
+    /** 重复拒绝：行已删，无从区分「我拒过」与「从来没有这条」→ 与 accept 同一缺席口径 404（不返 204，那等于承认存在过） */
     @Test
     void 重复拒绝_404() {
         seed();

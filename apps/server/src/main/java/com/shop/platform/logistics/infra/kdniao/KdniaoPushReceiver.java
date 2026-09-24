@@ -33,11 +33,11 @@ public class KdniaoPushReceiver implements CarrierPushReceiver {
     @Override
     public CarrierPush receive(String carrierCode, String requestData, String dataSign) {
         if (!StringUtils.hasText(props.getAppKey())) {
-            throw new BusinessException(403, "物流推送未启用");
+            throw BusinessException.forbidden("物流推送未启用");
         }
         if (!KdniaoSign.verify(requestData, dataSign, props.getAppKey())) {
             log.warn("[LOGISTICS] 推送验签失败, carrierCode={}", carrierCode);
-            throw new BusinessException(403, "签名校验失败");
+            throw BusinessException.forbidden("签名校验失败");
         }
 
         JsonNode root = objectMapper.readTree(requestData);

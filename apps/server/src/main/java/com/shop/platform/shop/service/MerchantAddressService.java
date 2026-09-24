@@ -1,7 +1,6 @@
 package com.shop.platform.shop.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.region.RegionRegistry;
@@ -171,12 +170,8 @@ public class MerchantAddressService {
         Validate.isTrue(regionRegistry.isValidCode(regionCode), "行政区划代码无效");
     }
 
-    /** 取本店未删地址：不存在或不属于当前店铺一律 404，不泄露他人地址存在性 */
+    /** 取本店地址（删除是硬删，没有「已删但仍能查到」的中间态）：不存在或不属于当前店铺一律 404，不泄露他人地址存在性 */
     private MerchantAddress requireOwnedAddress(UUID shopId, UUID id) {
-        MerchantAddress address = Validate.notNull(addressMapper.selectById(id), "地址不存在");
-        if (!address.getShopId().equals(shopId)) {
-            throw BusinessException.notFound("地址不存在");
-        }
-        return address;
+        return Validate.requireOwned(addressMapper.selectById(id), MerchantAddress::getShopId, shopId, "地址不存在");
     }
 }

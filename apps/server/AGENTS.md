@@ -75,6 +75,16 @@ src/main/java/com/shop/platform/
 - 不给实体加无调用者的方法：谓词/视图先有消费点再上实体（YAGNI）
 - **主键与时间列继承共享基类**：`infra.db.BaseEntity`（id + createdAt）/ `AuditedEntity`（多 updatedAt）。继承哪一种看表有没有 `updated_at` 列，不看业务可变性——append-only 账本（流水/轨迹/状态日志）不记 updatedAt。子类用 `@SuperBuilder` + `@EqualsAndHashCode(callSuper = true)`（字段在父类，二者少一就会丢字段或丢等价性），别再自己声明 id/createdAt/updatedAt
 
+## 越权口径：归属闸门 vs 上下文闸门
+
+**「这条资源不归你」与「没有这条资源」必须是同一句话、同一个 404。** 给 403/400 就是说漏了嘴——那等于替调用方确认「这行存在、只是别家的」，脚本拿状态码差就能枚举别人名下的 ID。
+
+- 归属判定只走 `common/Validate` 那道门：`owned(判定式, 缺席文案)`、`requireOwned(行, Entity::getShopId, 主体, 缺席文案)`、`presentOwned(Optional 形状, 同上)`。取行 + 判归属 + 交回这一行一句写完，调用点没有可写错的地方（等值判断与状态码都不在调用点）
+- 403 只属于**上下文与角色**：缺 `X-Shop-Id`、不是本店成员、不是店主、账号被禁用、webhook 验签不过。那些挡的是「你有没有资格在这里操作」，不是「这条归谁」
+- **403 只有一个具名出口 `BusinessException.forbidden(...)`**，不写 `new BusinessException(403, ...)`——构造器里的状态码常量在字节码里只是个 int，门禁扫不到
+- 口径**没有例外清单**。要靠例外维持的口径，下一个人就会照清单抄第二份
+- 编译期门禁：`OwnershipDoorTest`（403 出口白名单 + 「owner 列取值 + `equals` + `Validate.isTrue`」这种门外手搓形状）。业务条款散在 PRD-25 / ORD-01 / CART-05 / CPN-10 / AFS-06 / ACC-47 / ACC-79 / ACC-10
+
 ## 共享层语义（common / infra）
 
 判据：**换技术会不会重写？** 会 → 技术适配；不会 → 框架无关契约。

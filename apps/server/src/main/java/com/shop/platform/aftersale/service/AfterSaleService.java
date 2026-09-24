@@ -90,8 +90,8 @@ public class AfterSaleService {
      */
     @Transactional
     public Ticket apply(UUID userId, UUID orderId, TicketType type, AfterSaleReason reasonCode, String reason) {
-        OrderAfterSaleView order = Validate.present(orderReadQuery.afterSaleViewById(orderId), "订单不存在");
-        Validate.isTrue(order.userId().equals(userId), 404, "订单不存在");
+        OrderAfterSaleView order = Validate.presentOwned(
+                orderReadQuery.afterSaleViewById(orderId), OrderAfterSaleView::userId, userId, "订单不存在");
         Validate.isTrue(order.afterSaleOpenAt(OffsetDateTime.now()), 409, TicketAction.APPLY.conflictMessage());
         // 最新一张售后单已是 REFUNDED（终态）：整单退款只允许发生一次，堵住「退了再申请」的二次退款敞口。
         // 只挡 REFUNDED：REJECTED/CLOSED（被拒/撤销）不伤买家利益，仍可在窗口内重新申请
@@ -494,15 +494,11 @@ public class AfterSaleService {
 
     /** 进行中的单：没有 → 409（用该动作的冲突文案）；不属于该买家 → 404，不泄露单据存在性 */
     private Ticket requireBuyerOpen(UUID userId, UUID orderId, TicketAction action) {
-        Ticket ticket = requireOpen(orderId, action);
-        Validate.isTrue(ticket.getUserId().equals(userId), 404, "订单不存在");
-        return ticket;
+        return Validate.requireOwned(requireOpen(orderId, action), Ticket::getUserId, userId, "订单不存在");
     }
 
     private Ticket requireSellerOpen(UUID shopId, UUID orderId, TicketAction action) {
-        Ticket ticket = requireOpen(orderId, action);
-        Validate.isTrue(ticket.getShopId().equals(shopId), 404, "订单不存在");
-        return ticket;
+        return Validate.requireOwned(requireOpen(orderId, action), Ticket::getShopId, shopId, "订单不存在");
     }
 
     private Ticket requireOpen(UUID orderId, TicketAction action) {

@@ -324,7 +324,7 @@ public class AuthService {
 
     private void ensureUserActive(User user) {
         if (!user.isActive()) {
-            throw new BusinessException(403, "USER_DISABLED", "账号已被禁用");
+            throw BusinessException.forbidden("USER_DISABLED", "账号已被禁用");
         }
     }
 

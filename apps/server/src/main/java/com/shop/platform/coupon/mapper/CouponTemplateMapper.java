@@ -17,9 +17,7 @@ public interface CouponTemplateMapper extends BaseMapper<CouponTemplate> {
 
     /** 取本店模板：卖家侧一切读写动作的同一道门。越店与不存在不区分（同为 404），不泄露券的存在性 */
     default CouponTemplate requireShopOwned(UUID shopId, UUID id) {
-        CouponTemplate template = Validate.notNull(selectById(id), "优惠券不存在");
-        Validate.isTrue(template.getShopId().equals(shopId), 404, "优惠券不存在");
-        return template;
+        return Validate.requireOwned(selectById(id), CouponTemplate::getShopId, shopId, "优惠券不存在");
     }
 
     /** 本店券管理列表：按创建时间倒序（与订单/售后工作台同口径） */

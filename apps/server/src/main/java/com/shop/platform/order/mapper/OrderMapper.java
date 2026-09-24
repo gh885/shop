@@ -24,16 +24,12 @@ public interface OrderMapper extends BaseMapper<Order> {
      * 与 AfterSale/ShipmentService 的同一个门的口径保持一致（曾因 isTrue 默认 400 而不一致）。
      */
     default Order requireOwned(UUID userId, UUID orderId) {
-        Order order = Validate.notNull(selectById(orderId), "订单不存在");
-        Validate.isTrue(order.getUserId().equals(userId), 404, "订单不存在");
-        return order;
+        return Validate.requireOwned(selectById(orderId), Order::getUserId, userId, "订单不存在");
     }
 
     /** 取本店订单：卖家侧同一道门，越店与不存在同样不区分（同为 404） */
     default Order requireShopOwned(UUID shopId, UUID orderId) {
-        Order order = Validate.notNull(selectById(orderId), "订单不存在");
-        Validate.isTrue(order.getShopId().equals(shopId), 404, "订单不存在");
-        return order;
+        return Validate.requireOwned(selectById(orderId), Order::getShopId, shopId, "订单不存在");
     }
 
     /**

@@ -1,7 +1,6 @@
 package com.shop.platform.product.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -13,15 +12,14 @@ import org.apache.ibatis.annotations.Update;
 public interface ProductMapper extends BaseMapper<Product> {
 
     /**
-     * 归属校验：商品存在（404）且属于店铺上下文（X-Shop-Id 对应的 shopId，否则 403）。
-     * 卖家侧一切按 ID 操作商品的入口统一走这里，防止跨店读写——「越权说什么」只该定义一处。
+     * 归属校验：商品存在且属于店铺上下文（X-Shop-Id 对应的 shopId）。卖家侧一切按 ID 操作商品的入口统一走这里，
+     * 防止跨店读写——「越权说什么」只该定义一处。
+     *
+     * <p>非本店商品按<b>不存在</b>回答（404「商品不存在」，PRD-25）：这里曾是 403「商品不属于当前店铺」，
+     * 等于替调用方确认「这个 productId 存在、只是别家的」，商品 ID 因此可被枚举。
      */
     default Product requireShopOwned(UUID shopId, UUID productId) {
-        Product product = Validate.notNull(selectById(productId), "商品不存在");
-        if (!product.getShopId().equals(shopId)) {
-            throw BusinessException.forbidden("商品不属于当前店铺");
-        }
-        return product;
+        return Validate.requireOwned(selectById(productId), Product::getShopId, shopId, "商品不存在");
     }
 
     /** 销量投影累加（订单完成时经 product.api :: ProductCommand 调用）：单语句自增，并发完成不丢加 */

@@ -151,11 +151,7 @@ public class CartService {
     // 内部
     /** 取本人条目：不存在或不属于当前用户一律 404，不泄露他人数据存在性 */
     private CartItem requireOwned(UUID userId, UUID id) {
-        CartItem item = Validate.notNull(cartItemMapper.selectById(id), "购物车条目不存在");
-        if (!item.getUserId().equals(userId)) {
-            throw BusinessException.notFound("购物车条目不存在");
-        }
-        return item;
+        return Validate.requireOwned(cartItemMapper.selectById(id), CartItem::getUserId, userId, "购物车条目不存在");
     }
 
     /** 拼装单条视图：SKU/SPU 缺失时对应段置 null，前端据此置灰；available = SPU 上架且 SKU 在售 */

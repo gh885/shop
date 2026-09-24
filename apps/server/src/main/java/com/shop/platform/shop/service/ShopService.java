@@ -168,11 +168,17 @@ public class ShopService {
                 .toList();
     }
 
-    /** 同意邀请：只能确认发给自己的 PENDING 邀请，确认后 ACTIVE 生效 */
+    /**
+     * 同意邀请：只能确认发给自己的 PENDING 邀请，确认后 ACTIVE 生效。
+     *
+     * <p>「不是发给你的」与「没有这条邀请」走同一句话（{@code Validate.requireOwned} → 404「邀请不存在或已失效」）：
+     * 曾给 400「不能确认发给别人的邀请」，那等于对任意 memberId 承认「这行存在、只是发给别人的」，邀请 ID 因此可被枚举。
+     * 被转发的链接点进来同样只该听到这句话——那句 400 对当事人并没有多出可用的信息（他手上没有任何入口指向别人的邀请）。
+     */
     @Transactional
     public ShopMember acceptInvite(UUID memberId, UUID userId) {
-        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "邀请不存在或已失效");
-        Validate.isTrue(member.getUserId().equals(userId), "不能确认发给别人的邀请");
+        ShopMember member = Validate.requireOwned(
+                shopMemberMapper.selectById(memberId), ShopMember::getUserId, userId, "邀请不存在或已失效");
         Validate.isTrue(MemberStatus.PENDING.equals(member.getStatus()), "该邀请已处理");
         member.setStatus(MemberStatus.ACTIVE);
         shopMemberMapper.updateById(member);
@@ -188,21 +194,21 @@ public class ShopService {
      * 保留 DECLINED 行会让「再次邀请」必须先改成 PENDING 的更新分支（连带并发口径），而删行后再邀天然可用（无行可撞），
      * 「我的待确认邀请」也只按 PENDING 查——拒绝的行不会挂在列表上，两处目标一次到位，状态词表也不必扩。
      *
-     * <p>口径（三条，前端与规则文档以此为准）：
+     * <p>口径（两条，前端与规则文档以此为准）：
      * <ol>
-     *   <li>行不存在（含「已被自己拒掉」——删行后无从区分从未存在）→ 404「邀请不存在或已失效」，与 accept 同一缺席文案，
-     *       不返回 204：204 等于对任意 id 承认「这条邀请存在且已被你拒绝」，泄露他人邀请的存在性；
-     *   <li>行存在但不是发给自己的 → 400，与 accept 的「不能确认发给别人的邀请」对称；
-     *   <li>行存在且已生效（先 accept 再 decline）→ 409「该邀请已处理」，绝不删：拒绝不是退店通道，
+     *   <li>行不存在（含「已被自己拒掉」——删行后无从区分从未存在）或行存在但不是发给自己的 → 同一句 404
+     *       「邀请不存在或已失效」，与 accept 同口径：缺席与越权不给两种答案，否则等于替调用方确认「这条邀请存在」；
+     *       不返回 204：204 等于对任意 id 承认「这条邀请存在且已被你拒绝」；
+     *   <li>行存在、发给本人且已生效（先 accept 再 decline）→ 409「该邀请已处理」，绝不删：拒绝不是退店通道，
      *       ACTIVE 成员离开本店只有店主移除（{@link #removeMember}）这一条路。
      * </ol>
      * 删除带 {@code status = PENDING} 条件（并发闸门）：与并发的 accept 相撞时后到者拿 409，不会把刚生效的成员删掉。
      */
     @Transactional
     public void declineInvite(UUID memberId, UUID userId) {
-        // 1. 只能处理发给自己的邀请（缺席与越权同一口径：不泄露别人邀请的存在性）
-        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "邀请不存在或已失效");
-        Validate.isTrue(member.getUserId().equals(userId), "不能拒绝发给别人的邀请");
+        // 1. 只能处理发给自己的邀请：别人的行与没有行回答同一句话
+        ShopMember member = Validate.requireOwned(
+                shopMemberMapper.selectById(memberId), ShopMember::getUserId, userId, "邀请不存在或已失效");
         // 2. 已生效的成员不能被「拒绝」顶掉（409 与 accept 的重复处理同口径）
         Validate.isTrue(MemberStatus.PENDING.equals(member.getStatus()), 409, "该邀请已处理");
         // 3. 条件删除：状态仍是 PENDING 才删得掉，并发下被抢先 accept 则影响 0 行 → 409
@@ -253,8 +259,8 @@ public class ShopService {
     public String memberPhone(UUID shopId, UUID memberId, UUID operatorId) {
         // 1. 与列表同一道门（非本店成员连「这行存在」都问不出来）
         requireActiveMember(shopId, operatorId);
-        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "成员不存在");
-        Validate.isTrue(member.getShopId().equals(shopId), 404, "成员不存在");
+        ShopMember member =
+                Validate.requireOwned(shopMemberMapper.selectById(memberId), ShopMember::getShopId, shopId, "成员不存在");
 
         // 2. 号码经 account :: api 点查（禁止 JOIN）
         String phone = Validate.present(userReadQuery.phoneById(member.getUserId()), "该成员账号不存在");
@@ -315,8 +321,9 @@ public class ShopService {
         requireOwner(shopId, operatorId);
 
         // 2. 目标必须是本店 MEMBER（OWNER 权限固有，不存在“改店主权限”）
-        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "成员不存在");
-        Validate.isTrue(member.getShopId().equals(shopId), "成员不属于该店铺");
+        //    别店的成员行与不存在的行同一句 404（ACC-79 的口径，与 memberPhone 同门）：400 会把「这行存在、是别家的」说出来
+        ShopMember member =
+                Validate.requireOwned(shopMemberMapper.selectById(memberId), ShopMember::getShopId, shopId, "成员不存在");
         Validate.isTrue(MemberRole.MEMBER.equals(member.getRole()), "不能修改店主的权限");
 
         // 3. 白名单校验后全量替换
@@ -336,8 +343,8 @@ public class ShopService {
     @Transactional
     public void removeMember(UUID shopId, UUID memberId, UUID ownerId) {
         requireOwner(shopId, ownerId);
-        ShopMember member = Validate.notNull(shopMemberMapper.selectById(memberId), "成员不存在");
-        Validate.isTrue(member.getShopId().equals(shopId), "成员不属于该店铺");
+        ShopMember member =
+                Validate.requireOwned(shopMemberMapper.selectById(memberId), ShopMember::getShopId, shopId, "成员不存在");
         if (MemberRole.OWNER.equals(member.getRole())) {
             throw BusinessException.badRequest("不能移除店主");
         }

@@ -24,9 +24,7 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
 
     /** 取本人券：券包与所有券动作的同一道门。不属于本人给 404，不泄露券的存在性 */
     default UserCoupon requireOwned(UUID userId, UUID id) {
-        UserCoupon coupon = Validate.notNull(selectById(id), "优惠券不存在");
-        Validate.isTrue(coupon.getUserId().equals(userId), 404, "优惠券不存在");
-        return coupon;
+        return Validate.requireOwned(selectById(id), UserCoupon::getUserId, userId, "优惠券不存在");
     }
 
     /**

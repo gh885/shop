@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.dto.AddressRequest;
 import com.shop.platform.account.mapper.Address;
 import com.shop.platform.account.mapper.AddressMapper;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
@@ -169,10 +168,6 @@ public class AddressService {
 
     /** 取本人地址：不存在或不属于当前用户一律 404，不泄露他人数据存在性 */
     private Address requireOwned(UUID userId, UUID id) {
-        Address address = Validate.notNull(addressMapper.selectById(id), "地址不存在");
-        if (!address.getUserId().equals(userId)) {
-            throw BusinessException.notFound("地址不存在");
-        }
-        return address;
+        return Validate.requireOwned(addressMapper.selectById(id), Address::getUserId, userId, "地址不存在");
     }
 }

@@ -62,8 +62,11 @@ public class ShipmentService {
     @Transactional
     public UUID dispatch(DispatchShipmentCommand command) {
         // 1. 订单前置：不存在给 404；归属先于一切（不泄露他店订单是否存在），状态不可发（已取消/已完成）给 409
-        OrderShipmentView order = Validate.present(orderReadQuery.shipmentViewById(command.orderId()), "订单不存在");
-        Validate.isTrue(order.shopId().equals(command.shopId()), 404, "订单不存在");
+        OrderShipmentView order = Validate.presentOwned(
+                orderReadQuery.shipmentViewById(command.orderId()),
+                OrderShipmentView::shopId,
+                command.shopId(),
+                "订单不存在");
         Validate.isTrue(order.shippable(), 409, "订单当前状态不可发货");
 
         // 2. 承运商：code 走字典并校验启用（不存在/已停用就是 400）——卖家路径必须给 code，没有名字兜底

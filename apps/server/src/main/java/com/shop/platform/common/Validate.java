@@ -1,6 +1,8 @@
 package com.shop.platform.common;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -20,6 +22,38 @@ public final class Validate {
     /** 条件必须为真，否则指定状态码的业务异常（如 409 状态冲突） */
     public static void isTrue(boolean condition, int httpStatus, String detail) {
         if (!condition) throw new BusinessException(httpStatus, detail);
+    }
+
+    /**
+     * 归属闸门（判定式已在手边时用）：不是你的资源一律「不存在」。
+     *
+     * <p>为什么只能是 404：403/400 会把「这行存在，只是不归你」说出来，脚本拿状态码差就能枚举别人名下的 id。
+     * 各域规则条目写的是同一条口径（PRD-25 / ORD-01 / CART-05 / CPN-10 / AFS-06 / ACC-47 / ACC-79…），
+     * 但此前每处各写一遍、各挑一个状态码——于是「越权说什么」有了十几种说法。收成一个方法，
+     * 状态码与「缺席用同一句话」这件事从此只有一处可改。
+     *
+     * <p>反面口径（越权给 403）只属于<b>上下文与角色</b>：缺 X-Shop-Id、不是本店成员、权限码不够、
+     * 账号被禁用——那些不是「某个资源归谁」，仍走 {@link BusinessException#forbidden}。
+     */
+    public static void owned(boolean belongs, String absentDetail) {
+        if (!belongs) throw BusinessException.notFound(absentDetail);
+    }
+
+    /**
+     * 取行 + 归属闸门一句完成：行缺席（null）与 owner 列不是调用方主体，回答同一句 {@code absentDetail}（404）。
+     *
+     * <p>返回该行方便继续用。owner 列用方法引用给出（{@code Order::getUserId}），等值判断与状态码都不在调用点，
+     * 所以调用点想写错也没有可写的地方。
+     */
+    public static <T, I> T requireOwned(T row, Function<T, I> ownerField, I callerId, String absentDetail) {
+        T present = notNull(row, absentDetail);
+        owned(Objects.equals(ownerField.apply(present), callerId), absentDetail);
+        return present;
+    }
+
+    /** {@link #requireOwned(Object, Function, Object, String)} 的 Optional 形状：跨模块 api 点查走这一条 */
+    public static <T, I> T presentOwned(Optional<T> row, Function<T, I> ownerField, I callerId, String absentDetail) {
+        return requireOwned(row.orElse(null), ownerField, callerId, absentDetail);
     }
 
     /**

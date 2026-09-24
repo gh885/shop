@@ -111,7 +111,7 @@ public class AccountDeletionService {
             throw BusinessException.notFound("用户不存在");
         }
         if (!user.isActive()) {
-            throw new BusinessException(403, "USER_DISABLED", "账号已被禁用，请联系平台客服");
+            throw BusinessException.forbidden("USER_DISABLED", "账号已被禁用，请联系平台客服");
         }
         return user;
     }

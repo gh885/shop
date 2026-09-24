@@ -55,6 +55,11 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(403, detail);
     }
 
+    /** 403 + 业务 code（禁用、权限不足那类），见 docs/error-codes.md */
+    public static BusinessException forbidden(String code, String detail) {
+        return new BusinessException(403, code, detail);
+    }
+
     public static BusinessException badRequest(String detail) {
         return new BusinessException(400, detail);
     }

@@ -63,7 +63,7 @@ public class StaffService {
 
         // 3. 检查账号状态
         if (!staff.isActive()) {
-            throw new BusinessException(403, "STAFF_DISABLED", "账号已被禁用");
+            throw BusinessException.forbidden("STAFF_DISABLED", "账号已被禁用");
         }
 
         // 4. 登录成功清除失败计数（LOGIN-08）
@@ -117,7 +117,7 @@ public class StaffService {
         Staff staff = staffMapper.selectById(UUID.fromString(rotated.subjectId()));
         if (staff == null) throw BusinessException.notFound("员工不存在");
         if (!staff.isActive()) {
-            throw new BusinessException(403, "STAFF_DISABLED", "账号已被禁用");
+            throw BusinessException.forbidden("STAFF_DISABLED", "账号已被禁用");
         }
         return issueTokens(staff, rotated.deviceId());
     }
