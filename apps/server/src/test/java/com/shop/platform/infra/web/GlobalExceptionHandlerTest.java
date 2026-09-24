@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -216,5 +217,38 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(500, pd.getStatus());
         assertEquals("服务器内部错误", pd.getDetail());
+    }
+
+    // 路由不存在：匿名前缀放行后没有 handler，不能算服务器错了
+    // （异常→本 handler 的交接由 UnmappedRouteTest 走真过滤器链钉，这里只测映射形状）
+    @Test
+    void 路由不存在_404不落兜底500() {
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getRequestURI()).thenReturn("/api/cms/typo");
+
+        ProblemDetail pd = handler.handleNoResource(request).getBody();
+
+        assertEquals(404, pd.getStatus());
+        assertEquals("Not Found", pd.getTitle());
+        // 不回显路径：detail 会被前端原样 toast，而路径是客户端可控串
+        assertEquals("接口不存在", pd.getDetail());
+        assertFalse(pd.getProperties().containsKey("code"));
+        assertEquals("no-store", handler.handleNoResource(request).getHeaders().getFirst(HttpHeaders.CACHE_CONTROL));
+    }
+
+    @Test
+    void 回显截断的阈值与下刀位置是同一个数() throws Exception {
+        // 两个数写成分开的字面量时，一旦只改其一：阈值 < 下刀 → substring 越界，本 handler 自己落进
+        // 兜底 500（一个非法参数换来一条堆栈）；阈值 > 下刀 → 少截但没人报错。所以期望值只由常量算。
+        Field max = GlobalExceptionHandler.class.getDeclaredField("ECHOED_VALUE_MAX");
+        max.setAccessible(true);
+        int echoedMax = max.getInt(null);
+        String longValue = "x".repeat(echoedMax + 30);
+
+        ProblemDetail pd = handler.handleTypeMismatch(
+                        new MethodArgumentTypeMismatchException(longValue, String.class, "target", null, null))
+                .getBody();
+
+        assertEquals("请求参数不合法: target=" + "x".repeat(echoedMax) + "…", pd.getDetail());
     }
 }

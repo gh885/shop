@@ -18,6 +18,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 @Slf4j
@@ -86,10 +87,20 @@ public class GlobalExceptionHandler {
         // 不能落进兜底的 500。与相邻两个 400 handler 同形状：只有 detail，不带 code / errors
         Object value = ex.getValue();
         String shown = value == null ? "null" : String.valueOf(value);
-        if (shown.length() > 100) {
-            shown = shown.substring(0, 100) + "…";
+        if (shown.length() > ECHOED_VALUE_MAX) {
+            shown = shown.substring(0, ECHOED_VALUE_MAX) + "…";
         }
         return noStore(problem(HttpStatus.BAD_REQUEST, "请求参数不合法: " + ex.getName() + "=" + shown));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ProblemDetail> handleNoResource(HttpServletRequest request) {
+        // 匿名白名单是按前缀放行（JwtProperties.skipPaths 用 startsWith），于是 /api/cms/typo
+        // 过得了认证、又没有对应的 handler，落到静态资源处理器抛这个异常——此前它进 Exception 兜底：
+        // 客户端拼错一个 URL 换来一个 500 加一条堆栈，还把「未捕获异常」打进错误日志与告警面。
+        // 路由不存在是请求的问题，404 且不回显路径（detail 会被前端原样 toast）。
+        log.warn("路由不存在: {} {}", request.getMethod(), request.getRequestURI());
+        return noStore(problem(HttpStatus.NOT_FOUND, "接口不存在"));
     }
 
     @ExceptionHandler(Exception.class)
