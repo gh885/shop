@@ -10,7 +10,7 @@
 2. **token 分层**：业务代码只允许 Layer 2 语义类（`bg-card`、`text-muted-foreground`、`rounded-lg`…）；Layer 1 原始色阶（`--neutral-*`/`--orange-*`…）只有 styles.css 与端级主题覆盖可写。
 3. **primary 纪律**：品牌橙只留给转化引导（登录/加购/下单/开店）。选中/激活走 `accent` 或 `foreground`，焦点环走 `ring`，装饰图标走 `muted-foreground`，内联链接走 `link`。豁免：web 端商品标题/店铺名等内容链接 hover 可变 primary（淘宝实拍同款转化信号），仅 C 端豁免；选中态、图标、焦点环仍禁。
 4. **仅浅色模式**：全站固定浅色，`light-dark()` 已移除；不引入暗色 token 与 `dark:` 变体。
-5. **新组件来源**：shadcn CLI 生成到 ui-web（命令见 §9），不手写底层组件；图标一律 `lucide-react`。
+5. **新组件来源**：shadcn CLI 生成到 ui-web（命令见 §10），不手写底层组件；图标一律 `lucide-react`。
 6. **字段族两层，布局只有一个来源**：[`src/components/ui/field.tsx`](src/components/ui/field.tsx) = 展示原语：`Field`（唯一的布局容器，`orientation` 决定 label 在上方还是固定左列，间距密度住这里）+ 零件（`FieldLabel` / `FieldTitle` / `FieldDescription` / `FieldError` / `FieldSet` / `FieldContent`）；[`src/components/form.tsx`](src/components/form.tsx) = 接了 TanStack Form 的控件 `XxxField`（`TextField` / `TextareaField` / `SelectField` / `CheckboxField` / `RadioGroupField`）+ 服务端/表单级错误 `FormError`，控件内部只组合原语、不另起容器。自定义 render-prop 场景直接写 `<Field><FieldLabel/>控件<FieldError errors={field.state.meta.errors}/></Field>`。分工边界：文字密度（字号、hover、必填星号、`role="alert"`）住零件，容器间距（gap、方向）住 `Field`——两边都不许在调用点 `className` 互相盖。`XxxField` 的 label↔控件 id 用 `React.useId()`，不用 `field.name`（name 只保证表单内唯一，同页两个表单会撞 id）。
 7. **动态值的唯一通路是 CSS 变量**：`style` 里只允许 `--x` 键（`shadcn/no-inline-styles` 禁一切普通属性内联样式，运行时包装函数也算「动态」）。React 的 `CSSProperties` 不认 `--` 键，用 `@shop/ui-web` 导出的 `CSSVars` 类型补上：`const ratioStyle: CSSVars = { "--ratio": r }` → `style={ratioStyle}`，或 `{{ "--ratio": r } as CSSVars}`。不写 `as CSSProperties`（那是被 `no-unsafe-type-assertion` 判的不安全断言）。
 
@@ -26,7 +26,7 @@
 | --------------------------------- | ------------------------------ | --------------------------------------------- |
 | `canvas`                          | 页面最底                       | body 底色；与卡片形成第一层对比               |
 | `background` / `card` / `popover` | 页面 / 卡片 / 浮层表面         | 浮层内容比页面重一档靠 shadow，不靠加深底色   |
-| `sunken`                          | 凹陷区（表格头、内嵌块）       | "比所在表面低一级"的场景专用                  |
+| `sunken`                          | 凹陷区（内嵌块）               | "比所在表面低一级"的场景专用                  |
 | `secondary` / `muted` / `accent`  | 次级按钮 / 弱化文字底 / 选中底 | 当前三值相同是预留，勿合并；选中态用 `accent` |
 | `foreground` / `muted-foreground` | 主文字 / 次文字                | 次要说明、占位、装饰图标一律 muted-foreground |
 
@@ -101,7 +101,25 @@ Sidebar 族（`--color-sidebar-*`）：sidebar 组件专用语义，默认与全
 - 掩码索取入口只有一个：`MaskedValueCell`（值 + 「查看」+ 索取中禁用），三端掩码列都组它，不在业务侧再拼一遍；
 - 底层组件来自 BaseUI，WAI-ARIA 行为不要手动覆盖。
 
-## 8. Do / Don't
+## 8. 表格
+
+**选型**：有分页 / 排序 / 筛选 / 行选择 / 列显隐 → `DataTable`（`useDataTable` + 列定义）；表单格子（每格是输入框）、固定小表、跨行合并等不规则结构 → `Table*` 原语。**禁止用 div 网格拼表格**（丢表格语义，还会逼出手写皮肤类）。已有的 seller 手写列表（`TableCard`）不强迁，新写的带分页/排序的列表一律 DataTable。
+
+**外壳与状态**（两种写法都一样）：
+
+- 外壳只有 `TableShell`（圆角 lg + 描边 + card 底），计数与分页放它的 `footer` 底栏，不放卡片外；DataTable 用 `footer` prop。
+- 加载态一律 `DataTableSkeleton`（表格形状），不堆长条 Skeleton。
+- 空态一律 `Empty` 组件：DataTable 的 `emptyContent` 自动包进 `Empty`；整页无数据时可用带图标的 `Empty` 替换整张表。
+- 分页页码算法只有 ui-web `paged` 一份；客户端分页（DataTable 默认 10 行一页）**必须渲染分页条**，否则第 11 行起静默消失。
+
+**单元格**：
+
+- 列语义走 `TableCell variant`（strong 标识列 / muted 次要列）；DataTable 写在列定义 `meta: { variant, className }`，`className` 同时作用于表头和单元格（`text-right`、`tabular-nums`、`min-w-*`）。不在 cell 里包 span 模拟字重、弱化色、右对齐。
+- 时间列：`formatDateTime`（精确到分钟）+ `muted` + `tabular-nums`。金额/数量：`tabular-nums`，金额右对齐。
+- 截断：`TableCell` 基类 `whitespace-nowrap`，表格自动布局会被长内容撑开——截断元素必须**块级 + 显式 `max-w-*`**（`block max-w-48 truncate`，配 `title` 露全文）；多行 `line-clamp-*` 还要加 `whitespace-normal`。只写 `truncate` / 行内 span 上的 `max-w-*` 不生效。需要看全文的（地址）用 `whitespace-normal` 换行而不是截断。
+- 操作列：表头「操作」右对齐，按钮一律 `size="sm"`、`gap-1`；主次用 `ghost` / `outline`，危险动作 `destructive` 并二次确认。
+
+## 9. Do / Don't
 
 | ✅                                                          | ❌                               |
 | ----------------------------------------------------------- | -------------------------------- |
@@ -111,7 +129,7 @@ Sidebar 族（`--color-sidebar-*`）：sidebar 组件专用语义，默认与全
 | 浮层 `rounded-xl shadow-lg`                                 | 自写 box-shadow / 大圆角         |
 | 缺组件 → 扩展 ui-web                                        | 业务内包一层 div 假装是新组件    |
 
-## 9. 组件生成（CLI）
+## 10. 组件生成（CLI）
 
 所有组件由 shadcn CLI 生成到 `packages/ui-web`，不手写底层组件：
 
