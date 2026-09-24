@@ -317,6 +317,39 @@ class ProductIT extends IntegrationTestSupport {
         assertEquals(400, ex.getHttpStatus());
     }
 
+    /** PRD-43：重上复检的是「全部」发布门槛，标题也算——曾只有 publish 卡标题，这条路径能把空标题推上架 */
+    @Test
+    void 下架清空标题_重上架复检标题门槛() {
+        CategoryAttr color = seedSpecAttr("颜色", "黑", "白");
+        Product draft = createDraft("标题门槛");
+        List<Sku> skus = skuService.updateSpecs(
+                draft.getShopId(),
+                draft.getId(),
+                List.of(spec(color.getId(), List.of(valueIds(color.getId()).get(0)), null)));
+        skuService.updateSkus(
+                draft.getShopId(),
+                draft.getId(),
+                List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, Money.cny(100), null, 1, null, null)));
+        productService.publish(draft.getShopId(), draft.getId(), ProductStatus.PUBLISHED);
+        productService.off(draft.getShopId(), draft.getId());
+
+        // 仓库中改基本信息：标题按 PATCH 语义可清空（空串＝清空，非「不改」）
+        productService.updateBasic(
+                draft.getShopId(), draft.getId(), new UpdateBasicCommand(null, "", null, null, null, null, null, null));
+        // 回读确认前置条件真的成立（标题确实空进了库），否则这条用例什么都没测
+        assertEquals(
+                "",
+                productQueryService
+                        .detail(draft.getShopId(), draft.getId())
+                        .product()
+                        .getName());
+
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> productService.on(draft.getShopId(), draft.getId()));
+        assertEquals(400, ex.getHttpStatus());
+        assertEquals("请先填写商品标题再发布", ex.getDetail());
+    }
+
     /** 列表指标：pageListWithMetrics 聚合库存（SKU 可用量之和）；销量读 products.sold_count 投影列（经 product.api :: ProductCommand 累加） */
     @Test
     void 列表指标_库存求和_销量读投影列() {

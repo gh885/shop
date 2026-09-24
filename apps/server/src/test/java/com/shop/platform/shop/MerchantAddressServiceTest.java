@@ -61,7 +61,6 @@ class MerchantAddressServiceTest {
     @Test
     void create_withDefaultShip_clearsSameShopDefaultShipBeforeInsert() {
         when(addressMapper.selectCount(any())).thenReturn(0L);
-        when(regionRegistry.isValidCode("440305")).thenReturn(true);
 
         MerchantAddress created = addressService.create(shopId, req(true, false));
 
@@ -73,19 +72,8 @@ class MerchantAddressServiceTest {
         assertThat(created.getStatus()).isEqualTo(AddressStatus.ACTIVE);
     }
 
-    // create：区划非国标码直接 400
-    @Test
-    void create_withInvalidRegionCode_throwsBadRequest() {
-        when(addressMapper.selectCount(any())).thenReturn(0L);
-        when(regionRegistry.isValidCode("999999")).thenReturn(false);
-        MerchantAddressRequest invalid = new MerchantAddressRequest(
-                "陈仓", "13800138000", "999999", "广东省", "深圳市", "南山区", "科技园1号", "518000", "深圳店铺", null, false, false);
-
-        assertThatThrownBy(() -> addressService.create(shopId, invalid))
-                .isInstanceOf(BusinessException.class)
-                .extracting(e -> ((BusinessException) e).getHttpStatus())
-                .isEqualTo(400);
-    }
+    // create：区划码「形状对但不存在」的 400 不在这里测——那道判定已收进 RegionRegistry.requireValidCode，
+    // 拿 mock 的注册表测只会测出「mock 抛了就抛」。真话术见 SellerAddressControllerTest（真上下文 + 真数据）。
 
     // create：地址条数已达 200 上限直接 400（code 供前端区分 toast 文案）
     @Test
@@ -103,7 +91,6 @@ class MerchantAddressServiceTest {
     @Test
     void create_whenBelowAddressLimit_inserts() {
         when(addressMapper.selectCount(any())).thenReturn(199L);
-        when(regionRegistry.isValidCode("440305")).thenReturn(true);
 
         MerchantAddress created = addressService.create(shopId, req(false, false));
 
@@ -114,7 +101,6 @@ class MerchantAddressServiceTest {
     // update：越店访问一律 404（不暴露他人地址存在性）
     @Test
     void update_whenAddressBelongsToOtherShop_throwsNotFound() {
-        when(regionRegistry.isValidCode("440305")).thenReturn(true);
         UUID addrId = UUID.randomUUID();
         when(addressMapper.selectById(addrId))
                 .thenReturn(

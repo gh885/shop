@@ -85,6 +85,15 @@ src/main/java/com/shop/platform/
 - 口径**没有例外清单**。要靠例外维持的口径，下一个人就会照清单抄第二份
 - 编译期门禁：`OwnershipDoorTest`（403 出口白名单 + 「owner 列取值 + `equals` + `Validate.isTrue`」这种门外手搓形状）。业务条款散在 PRD-25 / ORD-01 / CART-05 / CPN-10 / AFS-06 / ACC-47 / ACC-79 / ACC-10
 
+## 入站校验词表：一条规则一个名字
+
+**同一个形状不许在两个文件里各抄一遍字面量。** 规则的定义住在持有该概念的领域类型里，DTO 的 `@Pattern`/`@Size` 只引用常量（`PhoneNumber.*` / `RegionRegistry.CODE_PATTERN` / `cms.dto.LinkTarget.PATTERN` / `UserCouponStatus.PATTERN` / `ProductSort.PATTERN` / `ProductFieldRules.*`）；存在性与语义判定也收在同一个类型里（`RegionRegistry.requireValidCode`/`requirePrefix` 是 400 话术的唯一出口，service 不各写一份 `validateRegion`）。细则见 GEN-52~54。
+
+- **注解元素值必须是编译期常量表达式**——`String.join`、stream 推导都编不过。所以「常量等于枚举名 / wire 值 / 真实区划码」这条等式编译期查不了，由 `ValidationVocabularyTest`（无库，反射 + 扫 `src/main/java`）在测试期钉住，含 switch 分支穷尽性（Java 对 switch 语句不做穷尽检查）和「反证不空转」断言
+- **改词表 = 改契约**：值会导出进 `openapi/api-docs.json` 与生成的 zod，动一个字符就得先起后端跑 `pnpm gen:sdk`（`ApiDocsContractTest` 会先把不一致判红）。内部收口时替换值必须与被替换字面量**逐字节相同**，含 message 文案
+- **形似而概念不同不许合并**：邮编与区划码同为 6 位数字，各留一份常量
+- 落点归属跟着「门装在哪一层」走，不跟着语义走：DTO 上挂了 `@Pattern` 的筛选值 → 422（GEN-19 ①），service 用 `Validate.enumFilter` 自判的 → 400（GEN-19 ③）。别靠猜，`ProductControllerTest.非法排序_422带字段名` 是实测锚点
+
 ## 共享层语义（common / infra）
 
 判据：**换技术会不会重写？** 会 → 技术适配；不会 → 框架无关契约。

@@ -46,7 +46,6 @@ class AddressServiceTest {
     @Test
     void 新增地址_已有条数未达上限_放行() {
         when(addressMapper.selectCount(any())).thenReturn(19L);
-        when(regionRegistry.isValidCode("110105")).thenReturn(true);
 
         Address created = addressService.create(userId, req());
 

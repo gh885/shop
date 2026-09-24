@@ -20,7 +20,7 @@ const NAME_MAX = 30
 const SUBTITLE_MIN = 10
 const SUBTITLE_MAX = 30
 
-/** 后端约束：name ≤ 30 字；subtitle 留空或 10~30 字 */
+/** 镜像后端约束的权威定义 `ProductFieldRules`（NAME_MAX / SELL_POINT_PATTERN，GEN-52）：name ≤ 30 字；subtitle 留空或 10~30 字。后端改词表要走 gen:sdk，这里的常数不会自动跟着变 */
 const TitleSchema = z.object({
     name: z.string().trim().min(1, "请填写商品标题").max(NAME_MAX, `商品标题最长 ${NAME_MAX} 字`),
     subtitle: z

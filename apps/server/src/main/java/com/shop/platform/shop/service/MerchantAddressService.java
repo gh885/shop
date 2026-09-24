@@ -59,7 +59,7 @@ public class MerchantAddressService {
                 "MERCHANT_ADDRESS_LIMIT_EXCEEDED",
                 "最多添加 " + MAX_ADDRESS_PER_SHOP + " 条地址");
         // 2. 区划校验 + 默认位让位，再落库
-        validateRegion(req.regionCode());
+        regionRegistry.requireValidCode(req.regionCode());
         boolean asShipDefault = Boolean.TRUE.equals(req.defaultShip());
         boolean asReturnDefault = Boolean.TRUE.equals(req.defaultReturn());
         if (asShipDefault) {
@@ -97,7 +97,7 @@ public class MerchantAddressService {
     /** 编辑地址：默认发货/退货为 null 时保持原值，为 true 时清同类默认后置 */
     @Transactional
     public MerchantAddress update(UUID shopId, UUID id, MerchantAddressRequest req) {
-        validateRegion(req.regionCode());
+        regionRegistry.requireValidCode(req.regionCode());
         MerchantAddress address = requireOwnedAddress(shopId, id);
         address.setContactName(req.contactName());
         address.setPhone(PhoneNumber.of(req.phone()).value());
@@ -163,11 +163,6 @@ public class MerchantAddressService {
         } else {
             address.setDefaultReturn(false);
         }
-    }
-
-    /** 校验行政区划码为合法国标 6 位码 */
-    private void validateRegion(String regionCode) {
-        Validate.isTrue(regionRegistry.isValidCode(regionCode), "行政区划代码无效");
     }
 
     /** 取本店地址（删除是硬删，没有「已删但仍能查到」的中间态）：不存在或不属于当前店铺一律 404，不泄露他人地址存在性 */

@@ -1,14 +1,17 @@
 package com.shop.platform.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.alotuser.address.SmartAgent;
 import com.alotuser.address.assets.UserInfo;
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.region.RegionRegistry;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-/** RegionRegistry 名称→区划码映射 + 智能粘贴解析 联调 */
+/** RegionRegistry 名称→区划码映射 + 区划码闸门 + 智能粘贴解析 联调 */
 class RegionResolveTest {
 
     private final RegionRegistry registry = new RegionRegistry(new ObjectMapper());
@@ -50,5 +53,16 @@ class RegionResolveTest {
         String code = registry.resolveCode(info.getProvince(), info.getCity(), info.getCounty());
         assertThat(code).isNotBlank();
         assertThat(registry.isValidCode(code)).isTrue();
+    }
+
+    @Test
+    void 区划码闸门_形状对但不存在同样按无效() {
+        init();
+        assertDoesNotThrow(() -> registry.requireValidCode("330106"));
+        // 「6 位数字」的门在 DTO 上（非 6 位是 422），这里管的是「有没有这么个区划」：99 开头不存在，但仍是一句 400
+        BusinessException bogus = assertThrows(BusinessException.class, () -> registry.requireValidCode("990101"));
+        assertThat(bogus.getHttpStatus()).isEqualTo(400);
+        assertThat(bogus.getDetail()).isEqualTo("行政区划代码无效");
+        assertThrows(BusinessException.class, () -> registry.requireValidCode(null));
     }
 }

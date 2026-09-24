@@ -1,11 +1,13 @@
 package com.shop.platform.infra.region;
 
+import com.shop.platform.common.Validate;
 import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
@@ -28,6 +30,17 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 @RequiredArgsConstructor
 public class RegionRegistry {
+
+    /** 国标 6 位区划码的形：入站 DTO 的 {@code @Pattern} 直接引用，权威判定（形 + 存在性）在 {@link #requireValidCode} */
+    public static final String CODE_PATTERN = "^\\d{6}$";
+
+    /**
+     * 区域前缀的形：省(2) / 市(4) / 区县(6) 三级。运费模板存的是<b>前缀</b>而不是成员表，
+     * 所以入站校验（{@code @Pattern}）与 {@link #hasRegionPrefix} 的存在性判定共用这一份形状定义。
+     */
+    public static final String PREFIX_PATTERN = "\\d{2}|\\d{4}|\\d{6}";
+
+    private static final Pattern PREFIX = Pattern.compile("^" + PREFIX_PATTERN + "$");
 
     private final ObjectMapper objectMapper;
 
@@ -90,19 +103,29 @@ public class RegionRegistry {
     }
 
     /**
+     * 区划码闸门（形 + 存在性）：不合法即 400。
+     *
+     * <p>话术也归这里，是因为它同属「区划码这条规则」的一部分：买家地址与商家地址两个入口各自写过一遍
+     * {@code Validate.isTrue(isValidCode(...), "行政区划代码无效")}，改一处就会让两端对同一件事说两种话。
+     */
+    public void requireValidCode(String regionCode) {
+        Validate.isTrue(isValidCode(regionCode), "行政区划代码无效");
+    }
+
+    /** 前缀闸门：2/4/6 位且落在真实区划码空间里，否则 400（话术带上前缀，卖家才看得出是运费模板的哪一条） */
+    public void requirePrefix(String prefix) {
+        Validate.isTrue(hasRegionPrefix(prefix), "行政区划前缀无效：" + prefix);
+    }
+
+    /**
      * 前缀是否落在国标区划码空间里（2 位省 / 4 位市 / 6 位区县）。
      *
      * <p>运费模板的区域规则存<b>前缀</b>而不是枚举成员表：{@code 44} 即广东全省、{@code 4403} 即深圳市。
      * 判据是「至少有一个区划码以它开头」，所以不会出现指向不存在省市的悬空前缀。
      */
     public boolean hasRegionPrefix(String prefix) {
-        if (prefix == null || prefix.isEmpty() || prefix.length() % 2 != 0 || prefix.length() > 6) {
+        if (prefix == null || !PREFIX.matcher(prefix).matches()) {
             return false;
-        }
-        for (int i = 0; i < prefix.length(); i++) {
-            if (!Character.isDigit(prefix.charAt(i))) {
-                return false;
-            }
         }
         return validCodes.stream().anyMatch(code -> code.startsWith(prefix));
     }

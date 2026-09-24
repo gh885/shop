@@ -187,12 +187,12 @@ public class ShippingTemplateService {
         Set<String> charged = new HashSet<>();
         for (RegionalRule regional : regionRules) {
             for (String prefix : regional.regionPrefixes()) {
-                Validate.isTrue(regionRegistry.hasRegionPrefix(prefix), "行政区划前缀无效：" + prefix);
+                regionRegistry.requirePrefix(prefix);
                 Validate.isTrue(charged.add(prefix), "同一地区只能配置一条运费规则");
             }
         }
         for (String prefix : excludedRegions) {
-            Validate.isTrue(regionRegistry.hasRegionPrefix(prefix), "行政区划前缀无效：" + prefix);
+            regionRegistry.requirePrefix(prefix);
             // 更细粒度的不配送是合法用法（广东计费、深圳不配送），故只挡完全相同的那个前缀
             Validate.isTrue(!charged.contains(prefix), "该地区已配置运费规则，不能再设为不配送");
         }

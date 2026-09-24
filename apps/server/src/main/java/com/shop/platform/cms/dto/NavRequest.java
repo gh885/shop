@@ -13,6 +13,6 @@ public record NavRequest(
         @NotBlank @Size(max = 64) String title,
         @Size(max = 32) String iconKey,
         @Size(max = 255) String target,
-        @Pattern(regexp = "PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL", message = "目标类型不支持") String targetType,
+        @Pattern(regexp = LinkTarget.PATTERN, message = "目标类型不支持") String targetType,
         @Valid @Size(max = 30) List<NavGroup> subs,
         Integer sortOrder) {}

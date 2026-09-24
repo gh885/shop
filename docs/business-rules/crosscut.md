@@ -1,6 +1,6 @@
 # 横切全局行为
 
-> 代码入口：packages/common（sdk-client、error-codes）、app-kit（QueryBoundary/notify/confirm）、createAppQueryClient、infra RequestIdFilter/GlobalExceptionHandler。规则以代码为准沉淀，改代码请同步本文件。
+> 代码入口：packages/common（sdk-client、error-codes）、app-kit（QueryBoundary/notify/confirm）、createAppQueryClient、infra RequestIdFilter/GlobalExceptionHandler；入站校验词表在各领域类型（PhoneNumber、RegionRegistry、cms.dto.LinkTarget、UserCouponStatus、ProductSort、ProductFieldRules），门禁是 ValidationVocabularyTest。规则以代码为准沉淀，改代码请同步本文件。
 
 ## 错误码体系
 
@@ -9,7 +9,7 @@
 ## 错误信封
 
 - **[GEN-18]** 后端错误统一 RFC ProblemDetail 信封：`{ title, status, detail, code?, requestId, errors? }`，`requestId` 取链路 trace_id；所有错误响应带 `Cache-Control: no-store`。前端 SDK 错误拦截器把任意失败归一化为 `ApiError { status, detail, code?, requestId? }`；响应体无 `detail` 时兜底「请求失败，请稍后重试」，网络层错误（无响应）为 `status: 0` +「网络错误，请检查连接」。
-- **[GEN-19]** 入参错误分三条线，形状各不相同：① **Bean Validation 失败 → 422 + `errors[{field,message}]`，不带 code**——`@RequestBody`（`MethodArgumentNotValidException`）与 `@RequestParam`/`@Validated` 约束（`ConstraintViolationException`）走同一个 `unprocessable` 组装，两处字段口径一致；② **请求根本解析不成参数 → 400，只有 detail 没有 errors**——缺必填查询参数、请求体不可解析（`HttpMessageNotReadableException`）、参数类型/枚举转换失败（`MethodArgumentTypeMismatchException`，回显值超 100 字符截断），三者同形状；③ **业务代码自判的非法筛选值 → service 层 400 带人话 detail**（订单 status、售后 tab 等，见 ORD-48 / AFS-28），不经 Spring 类型转换。前端表单被 Zod 拦下的不产生后端 code。
+- **[GEN-19]** 入参错误分三条线，形状各不相同：① **Bean Validation 失败 → 422 + `errors[{field,message}]`，不带 code**——`@RequestBody`（`MethodArgumentNotValidException`）与 `@RequestParam`/`@Validated` 约束（`ConstraintViolationException`）走同一个 `unprocessable` 组装，两处字段口径一致；② **请求根本解析不成参数 → 400，只有 detail 没有 errors**——缺必填查询参数、请求体不可解析（`HttpMessageNotReadableException`）、参数类型/枚举转换失败（`MethodArgumentTypeMismatchException`，回显值超 100 字符截断），三者同形状；③ **业务代码自判的非法筛选值 → service 层 400 带人话 detail**（订单 status、售后 tab 等，见 ORD-48 / AFS-28），不经 Spring 类型转换。前端表单被 Zod 拦下的不产生后端 code。**同一个「值不在合法表里」落哪条线，取决于门装在哪一层**：查询 DTO 上挂了 `@Pattern` 的（券包 status、商品 sort）走①＝422，字符串直收、service 用 `Validate.enumFilter` 自判的（订单/售后/审核）走③＝400。落点由 `ProductControllerTest.非法排序_422带字段名` 实测钉住，不是从注释推的（该注释曾错写 400）。
 - **[GEN-28]** `RESPONSE_VALIDATION_FAILED` 是前端独有错误（后端 2xx 但 payload 不符合 OpenAPI 契约，zod responseValidator 抛出）：dev 完整打印 issues 到 console.warn；生产 console.error 打可 grep 上报锚点（不吞）；归一化 ApiError 的 status 取响应状态（toApiError 兜底路径为 200）。读路径按查询错误交给渲染层降级，写路径强抛。
 
 ## 传输与链路
@@ -39,3 +39,9 @@
 - **[GEN-49]** 事件命名：`领域实体.动词过去式`（成功/中性）与 `领域实体.动词.failed`（失败）；短标识、非中文、非函数名、非蛇形。失败事件必带枚举化 `reason`（及 `error.type`/`error.message`）；成功事件必带实体 ID。
 - **[GEN-50]** 现行事件目录（完整表在 [business-event-logging.md](../conventions/business-event-logging.md)，此处列业务埋点，新增公共出站依赖必须先补埋点再上线）：`http.request`——每请求自动打（`method/path(路由模板)/status/latency_ms/client_ip`，status≥500 升 ERROR 级）；`auth.login.succeeded`——带 `user_id`（AuthService.issueTokens）；`auth.login.failed`——带 `reason`（user_not_found/no_password/wrong_password）+ `client_ip`，user_id 可选；`shop_review.decided`——店铺审核落点，带 `review_id/shop_id/decision/staff_id`（ShopReviewService）；`payment.refund.failed`——取消退款的两个放行分支（`reason` ∈ no_success_payment / gateway_rejected）带 `order_id`，拒退分支按 GEN-49 补 `error.type/error.message`（PaymentRefundListener）。售后退款失败不埋事件——它随异常回滚，失败已在异常通道里；`order.receiver_phone_revealed`——卖家逐单取买家电话明文的动作，带 `shop_id/order_id/operator_id`（OrderService.sellerReceiverPhone，号码本身不入日志，ORD-62）；`shop_review.owner_phone_revealed` / `shop_member.phone_revealed`——平台逐条取店主号、成员逐条取他人号的同一类动作，带 `review_id/shop_id/staff_id` 与 `shop_id/member_id/operator_id`（ACC-79，同样不入号码）。
 - **[GEN-51]** 日志红线：不往 MDC 放密码/token/身份证号等敏感信息。手机号后 4 位掩码的唯一后端出口是 `PhoneNumber.mask()`，现行 8 个调用点（`/me` 出参、开发态短信日志、重置密码与登录失败日志、卖家订单列表行、卖家订单详情的卖家视角、平台审核队列出参、店铺成员列表的他人行）；口径只有一条：**任何批量出参都不带别人或买家的手机号明文**，明文只能逐条显式索取且取用留痕（买家侧 ORD-62，店主/成员侧 ACC-79）。唯一保留的明文是**操作者自己的号**（成员列表本人那行）。前端另有一份 `maskPhone`（apps/web/src/logistics/model.ts）是重复实现，待收敛进 `packages/common`（全局敏感字段审计仍列为延后项）。
+
+## 入站校验词表
+
+- **[GEN-52]** 一条形状规则只有一处定义，且定义住在**持有该概念的领域类型**里：DTO 的 `@Pattern`/`@Size` 引用常量、不抄字面量。现行词表出口——`PhoneNumber.CHINA_MOBILE_PATTERN` / `PhoneNumber.CONTACT_PATTERN`（ACC-40）、`RegionRegistry.CODE_PATTERN` / `PREFIX_PATTERN`（LOG-48）、`cms.dto.LinkTarget.PATTERN`（CMS-05）、`UserCouponStatus.PATTERN`（CPN-52）、`ProductSort.PATTERN`（PRD-63）、`ProductFieldRules.{NAME_MAX,NAME_MESSAGE,SELL_POINT_PATTERN,SELL_POINT_MESSAGE}`（PRD-20/42）。`LinkTarget`、`ProductSort` 是为持词表新建的类型，但**字段类型仍是 String**——换成枚举会改 OpenAPI 形状；它们另提供 `fromWire` 把词表解析收成一处（`ProductSort` 顺带替掉 switch 里散落的字符串字面量）。
+- **[GEN-53]** 注解元素值必须是编译期常量表达式（`String.join`、stream 推导都非法），所以「常量逐字节等于枚举名 / wire 值 / 真实区划码」这条等式编译期查不了，改由 `ValidationVocabularyTest`（无库、反射+扫源码）在测试期钉：词表与枚举名逐字对齐、排序词表与 `ProductQueryService` 的 switch 分支一一对应（Java 对 switch **语句**不做穷尽检查，加了枚举值忘了加分支只有这里能红）、手机号三档放行的号 `PhoneNumber.of()` 必接得住、区划码形状与 `regions.json` 真值同形。该测试自带反空转断言（常量引用数为 0 就红），并规定「同一个字面量不许出现在两个文件里」。**它与契约无重叠**：形状对不对由 `ApiDocsContractTest` 判，本条只判定义在哪。
+- **[GEN-54]** 改词表 = 改接口：`@Pattern`/`@Size` 的值会导出进 `openapi/api-docs.json` 和生成的 zod（`packages/api/src/sdk/zod.gen.ts`），动一个字符就得先起后端跑 `pnpm gen:sdk`，否则 `ApiDocsContractTest` 把不一致判红。因此「内部收口」级别的改动，替换值必须与被替换字面量**逐字节相同**（含 message 文案）。形似而概念不同的规则**不许合并**：商家地址邮编与区划码同为 6 位数字，各留一份，合并会让一处放宽静默改掉另一处。声明式形状门与权威判定按概念分层而不是各写一遍——区划码「形对但不存在」（`RegionRegistry.requireValidCode`/`requirePrefix`，400 话术唯一出口，service 不再各写 `validateRegion`）、联系电话「形松但归一化后不是号」（`PhoneNumber.of()`）都由领域类型补第二道门；空格/括号不在联系人档门内是**现行契约**而非疏漏，放宽属接口变更。

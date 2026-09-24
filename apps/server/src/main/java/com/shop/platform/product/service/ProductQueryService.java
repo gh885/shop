@@ -7,6 +7,7 @@ import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
 import com.shop.platform.product.dto.ProductQuery;
+import com.shop.platform.product.dto.ProductSort;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.mapper.Sku;
@@ -127,10 +128,10 @@ public class ProductQueryService {
                 .eq(query.shopId() != null, Product::getShopId, query.shopId())
                 .like(StringUtils.hasText(keyword), Product::getName, keyword);
         // 每种排序都补 id 兜底，保证翻页时同值记录顺序稳定（否则第 2 页可能重复第 1 页的行）
-        switch (query.sort() == null ? "newest" : query.sort()) {
-            case "price_asc" -> wrapper.orderByAsc(Product::getMinPrice).orderByDesc(Product::getId);
-            case "price_desc" -> wrapper.orderByDesc(Product::getMaxPrice).orderByDesc(Product::getId);
-            default -> wrapper.orderByDesc(Product::getCreatedAt).orderByDesc(Product::getId);
+        switch (ProductSort.fromWire(query.sort())) {
+            case PRICE_ASC -> wrapper.orderByAsc(Product::getMinPrice).orderByDesc(Product::getId);
+            case PRICE_DESC -> wrapper.orderByDesc(Product::getMaxPrice).orderByDesc(Product::getId);
+            case NEWEST -> wrapper.orderByDesc(Product::getCreatedAt).orderByDesc(Product::getId);
         }
         Page<Product> result = productMapper.selectPage(new Page<>(page, size), wrapper);
         return new PageResult<>(result.getRecords(), result.getTotal());

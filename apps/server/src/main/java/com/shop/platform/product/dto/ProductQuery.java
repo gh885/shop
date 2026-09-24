@@ -13,5 +13,5 @@ public record ProductQuery(
         UUID categoryId,
         UUID shopId,
         @Size(max = 128) String keyword,
-        /** 排序：newest 新品（默认）/ price_asc 价格升 / price_desc 价格降；非法值被 @Pattern 拦成 400 */
-        @Pattern(regexp = "newest|price_asc|price_desc", message = "排序方式不支持") String sort) {}
+        /** 排序：取值与分支见 {@link ProductSort}；非法值被 @Pattern 拦成 422（GEN-19 第①条线） */
+        @Pattern(regexp = ProductSort.PATTERN, message = "排序方式不支持") String sort) {}

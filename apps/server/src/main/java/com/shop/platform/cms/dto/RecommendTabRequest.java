@@ -8,6 +8,6 @@ import jakarta.validation.constraints.Size;
 public record RecommendTabRequest(
         @NotBlank @Size(max = 32) String name,
         @Size(max = 255) String target,
-        @Pattern(regexp = "PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL", message = "目标类型不支持") String targetType,
+        @Pattern(regexp = LinkTarget.PATTERN, message = "目标类型不支持") String targetType,
         Boolean isDefault,
         Integer sortOrder) {}

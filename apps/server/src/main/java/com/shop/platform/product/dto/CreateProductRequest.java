@@ -17,12 +17,13 @@ public record CreateProductRequest(
          * 搜索标题：参与搜索召回的关键词位，写长了在卡片里也是被截断，上限 30 字。
          * 草稿阶段允许空（先建档再边填边存），发布时由 ensurePublishable 统校验非空。
          */
-        @Size(max = 30, message = "商品标题最长 30 字") String name,
+        @Size(max = ProductFieldRules.NAME_MAX, message = ProductFieldRules.NAME_MESSAGE) String name,
         /**
-         * 一句话卖点：可不填；填了就得写够一句（10~30 字）。空串＝清空（PATCH 语义下要与「不传」区分），
-         * 故用 Pattern 而非 Size —— Size(min) 会把空串一起判死。
+         * 一句话卖点：可不填；填了就得写够一句（规则见 {@link ProductFieldRules#SELL_POINT_PATTERN}）。
+         * 空串＝清空（PATCH 语义下要与「不传」区分），故用 Pattern 而非 Size —— Size(min) 会把空串一起判死。
          */
-        @Pattern(regexp = "^$|^[\\s\\S]{10,30}$", message = "卖点填了就写 10~30 字，不想写可以留空") String subtitle,
+        @Pattern(regexp = ProductFieldRules.SELL_POINT_PATTERN, message = ProductFieldRules.SELL_POINT_MESSAGE)
+                String subtitle,
         /** 详情图流（对象存储 key 数组，按序铺开渲染，代替富文本 HTML）；为空 [] 时详情无图 */
         List<@Size(max = 255) String> detailImages,
         @Size(max = 255) String mainImage,

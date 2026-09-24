@@ -22,7 +22,7 @@ public class RecommendTab extends AuditedEntity {
     /** 跳转目标，软关联 */
     private String target;
 
-    /** 目标类型：PRODUCT/CATEGORY/CAMPAIGN/SEARCH/URL */
+    /** 目标类型，词表见 {@link com.shop.platform.cms.dto.LinkTarget} */
     private String targetType;
 
     /** 是否默认选中项（"猜你喜欢"）；全局至多一个（部分唯一索引 uk_recommend_tabs_default 兜底） */

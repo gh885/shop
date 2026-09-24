@@ -78,7 +78,7 @@
 ## 券包与前端展示
 
 - **[CPN-51]** 券包「未使用」页签同时收 LOCKED（未过期）：对用户它就是没花掉的券（展示仍如实标 LOCKED=「结算中」），否则这类券三个页签都查不到、用户以为丢了；EXPIRED 页签收「已收敛的 EXPIRED ∪ 库里还 UNUSED 但已过 expire_at 的」。筛选按展示口径不按库列。**已知瞬时盲区**：LOCKED 且已过期（下单冻结后一直不支付、又跨过 expire_at）三签都查不到，但待付款窗口封顶 15 分钟（ORD-26），超时关单把券释放回 UNUSED 后 EXPIRED 页签就收得到；过期任务只扫 UNUSED、不碰 LOCKED 是同一取舍的另一面（口径见 CPN-41），不单独处理。
-- **[CPN-52]** 券包行状态是读时算的展示状态：库里 UNUSED 但已过失效时刻 → 出参 EXPIRED；非法状态筛选值 400（合法值表即枚举 name：UNUSED|LOCKED|USED|EXPIRED|VOID）。
+- **[CPN-52]** 券包行状态是读时算的展示状态：库里 UNUSED 但已过失效时刻 → 出参 EXPIRED；非法状态筛选值 **422**（合法值表即 `UserCouponStatus.PATTERN` = 枚举 name：UNUSED|LOCKED|USED|EXPIRED|VOID）。门装在 DTO 的 @Pattern 上，走 GEN-19 第①条线，不是订单/售后那种 service 自判 400（GEN-52/53、`ProductControllerTest.非法排序_422带字段名` 实测过同一形状的门）；`CouponWalletService.pageMine` 里的 `Validate.enumFilter` 400 守的是直接调 service 的调用方，HTTP 到不了。
 - **[CPN-53]** 券包每行带：店名（跨 schema 点查拼装）、orderId（未使用为 null，有则给「查看订单」链接）、来源徽章——REFUND_RETURN 必须明示「退款补发」（凭空多一张券没有解释会被当成故障）；状态标签「未使用/结算中/已使用/已过期/已作废」。
 - **[CPN-54]** 券面只出三行：面额大字 / 一句话规则（「满 ¥X 减 ¥Y」，threshold=0 出「无门槛减 ¥Y」，不写「满 ¥0」）/ 店名+有效期区间；券模板名、承担方等字段上卡面即噪音，一律不展示；金额文案去无意义尾零（整元语义），走共享 `couponMoneyText` / `couponYuanText`（`packages/common/coupon.ts`）——这是 MONEY-11「展示只经 formatMoney」的唯一受控例外，且仍不裸算分、币种符号照查表。
 - **[CPN-55]** 前端零重算：券能不能用、能减多少一律以后端评估结果为准（usable/discount/discountAmount 均为后端回显值），共享文案层不含任何业务判定；「已减 ¥X」取预览回显的券减免，不拿面额自减。

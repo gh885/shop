@@ -32,7 +32,7 @@ public class Banner extends AuditedEntity {
     /** 跳转目标，软关联 */
     private String target;
 
-    /** 目标类型：PRODUCT/CATEGORY/CAMPAIGN/SEARCH/URL */
+    /** 目标类型，词表见 {@link com.shop.platform.cms.dto.LinkTarget} */
     private String targetType;
 
     /** 仅 targetType=URL 用 */

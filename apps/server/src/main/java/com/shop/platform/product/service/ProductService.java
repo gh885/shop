@@ -125,15 +125,14 @@ public class ProductService {
     }
 
     /** 发布：目标态 = 立即上架（PUBLISHED）或放入仓库（WAREHOUSE），由入参 target 决定。
-     *  门槛：商品有名 + 每个在售 SKU 都已设价（两目标同门槛）；**立即上架**另须至少一个在售 SKU 有库存——
+     *  门槛见 {@link #ensurePublishable}（商品有名 + 每个在售 SKU 都已设价，两目标同门槛）；
+     *  **立即上架**另须至少一个在售 SKU 有库存——
      *  对齐「架上商品不能全 0」（仓库中不售，允许售罄入库，届时列表「上架」动作会再拦）。 */
     @Transactional
     public Product publish(UUID shopId, UUID productId, ProductStatus target) {
         Product product = productMapper.requireShopOwned(shopId, productId);
-        // 0. 草稿阶段允许空名，但发布（无论上架还是入库）必须有名（买家搜索/展示依赖）
-        Validate.isTrue(StringUtils.hasText(product.getName()), "请先填写商品标题再发布");
-        // 1. 复检发布门槛：每个在售 SKU 都已设价（跨聚合校验留 service）
-        product.applyPriceRange(ensurePublishable(productId));
+        // 1. 发布门槛：标题非空 + 每个在售 SKU 都已设价（与重上同一条，见 ensurePublishable）
+        product.applyPriceRange(ensurePublishable(product));
         // 1.5 立即上架另须有货（放入仓库允许售罄入库）
         if (target == ProductStatus.PUBLISHED) {
             ensureOnShelfStock(productId);
@@ -158,12 +157,12 @@ public class ProductService {
         return product;
     }
 
-    /** 重新上架：仅仓库中商品可上架，复检发布门槛（下架期间 SKU 可能被改）+ 有货（对齐「架上不能全 0」） */
+    /** 重新上架：仅仓库中商品可上架，复检发布门槛（下架期间 SKU 与标题可能被改）+ 有货（对齐「架上不能全 0」） */
     @Transactional
     public Product on(UUID shopId, UUID productId) {
         Product product = productMapper.requireShopOwned(shopId, productId);
-        // 1. 复检发布门槛：下架期间 SKU 可能被改（在售 SKU 口径）
-        ensurePublishable(productId);
+        // 1. 复检发布门槛：下架期间 SKU 可能被改（在售 SKU 口径），标题也可能被编辑清空（PRD-43 全部门槛）
+        ensurePublishable(product);
         // 1.5 上架须有货：仓库中的售罄商品需先补货再上架
         ensureOnShelfStock(productId);
         // 2. 守卫 + 置上架（仅下架可重上的规则在实体内），乐观锁条件更新
@@ -190,10 +189,16 @@ public class ProductService {
     }
 
     // 私有：发布门槛与状态迁移
-    /** 发布/重上门槛：必须有 SKU，且所有在售 SKU 都设了价。publish 与 on 共用。
-     *  注：库存 0 是否可上架不在此判断（整链接无货不可上架/需先下架）。 */
-    private List<Sku> ensurePublishable(UUID productId) {
-        List<Sku> skus = skuMapper.selectByProductId(productId);
+    /**
+     * 发布门槛（PRD-42）：标题非空 + 有在售 SKU + 每个在售 SKU 都设了价。publish 与 on 共用这一条（PRD-43 要求
+     * 重上复检「全部门槛」，标题也在这道门里——曾经只有 publish 卡标题，于是「下架 → 清空标题 → 重新上架」
+     * 能把一张空标题的卡片推上架）。
+     * 注：库存 0 是否可上架不在此判断（整链接无货不可上架/需先下架）。
+     */
+    private List<Sku> ensurePublishable(Product product) {
+        // 0. 草稿阶段允许空名，但要出门（上架或入库）就必须有名——买家搜索与展示都靠它
+        Validate.isTrue(StringUtils.hasText(product.getName()), "请先填写商品标题再发布");
+        List<Sku> skus = skuMapper.selectByProductId(product.getId());
         // 发布/重上门槛只看「在售 SKU」：停用 SKU 不计入（停用 SKU 不该阻塞上架，也不该被索取价格）
         List<Sku> onSale = skus.stream().filter(Sku::isOnSale).toList();
         Validate.isTrue(!onSale.isEmpty(), "请先设置商品规格");

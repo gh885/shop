@@ -1,6 +1,7 @@
 package com.shop.platform.shop.dto;
 
 import com.shop.platform.common.Money;
+import com.shop.platform.infra.region.RegionRegistry;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
@@ -25,7 +26,12 @@ public record ShippingTemplateRequest(
         Money freeOverAmount,
         @NotNull @Valid ShippingFeeTier defaultRule,
         @Size(max = 50) List<@Valid RegionalRule> regionRules,
-        @Size(max = 100) List<@Pattern(regexp = "\\d{2}|\\d{4}|\\d{6}") String> excludedRegions) {
+        /**
+         * 不配送地区前缀。这里的 {@code @Pattern} 只是形状门（省 2 / 市 4 / 区县 6），
+         * 权威判定在 service 的 {@code validateRegions → RegionRegistry.requirePrefix}（还要落在真实区划码空间里），
+         * 它同时覆盖 {@link RegionalRule#regionPrefixes} —— 那条字段没有形状门，因为它一路走的就是那道有名字的 400。
+         */
+        @Size(max = 100) List<@Pattern(regexp = RegionRegistry.PREFIX_PATTERN) String> excludedRegions) {
 
     public ShippingTemplateRequest {
         if (freeOverAmount != null) {

@@ -47,7 +47,7 @@ public class AddressService {
         Validate.isTrue(
                 owned < MAX_ADDRESS_PER_USER, "ADDRESS_LIMIT_EXCEEDED", "最多保存 " + MAX_ADDRESS_PER_USER + " 条收货地址");
         // 2. 区划校验 + 默认位让位，再落库
-        validateRegion(req.regionCode());
+        regionRegistry.requireValidCode(req.regionCode());
         boolean asDefault = Boolean.TRUE.equals(req.isDefault());
         if (asDefault) {
             addressMapper.clearDefault(userId);
@@ -72,7 +72,7 @@ public class AddressService {
     /** 修改地址：仅本人地址；isDefault 为 null 时保持原值 */
     @Transactional
     public Address update(UUID userId, UUID id, AddressRequest req) {
-        validateRegion(req.regionCode());
+        regionRegistry.requireValidCode(req.regionCode());
         Address address = requireOwned(userId, id);
         address.setReceiverName(req.receiverName());
         address.setPhone(PhoneNumber.of(req.phone()).value());
@@ -144,11 +144,6 @@ public class AddressService {
                 city,
                 district,
                 Text.trimToNull(info.getAddress()));
-    }
-
-    /** 校验行政区划码为合法国标 6 位码 */
-    private void validateRegion(String regionCode) {
-        Validate.isTrue(regionRegistry.isValidCode(regionCode), "行政区划代码无效");
     }
 
     /** 收件人清洗：去掉尾部逗号/句号/空白等杂讯（如 "淘宝,"） */

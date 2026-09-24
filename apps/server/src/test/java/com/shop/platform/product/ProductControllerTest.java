@@ -2,6 +2,7 @@ package com.shop.platform.product;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -70,6 +71,20 @@ class ProductControllerTest extends WebControllerTestSupport {
             mockMvc.perform(get("/api/products")).andExpect(status().isOk());
 
             verify(productQueryService).pagePublic(any(), anyLong(), anyLong());
+        }
+
+        /**
+         * 非法 sort 的落点：形状门在 DTO 的 {@code @Pattern} 上，属 GEN-19 第①条线（422 + {@code errors[]}），
+         * 不是 service 层自判的 400（那条线归订单/售后/审核筛）。此前注释与规则清单都写「400」，无人验证过。
+         */
+        @Test
+        void 非法排序_422带字段名() throws Exception {
+            mockMvc.perform(get("/api/products").param("sort", "sales_desc"))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.errors[0].field").value("sort"))
+                    .andExpect(jsonPath("$.errors[0].message").value("排序方式不支持"));
+
+            verify(productQueryService, never()).pagePublic(any(), anyLong(), anyLong());
         }
     }
 

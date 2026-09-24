@@ -1,5 +1,7 @@
 package com.shop.platform.account.dto;
 
+import com.shop.platform.common.PhoneNumber;
+import com.shop.platform.infra.region.RegionRegistry;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -7,8 +9,9 @@ import jakarta.validation.constraints.Size;
 /** 收货地址入参：新增/修改复用。isDefault 为 null 时修改场景保持原值、新增场景视为 false */
 public record AddressRequest(
         @NotBlank @Size(max = 30) String receiverName,
-        @NotBlank @Pattern(regexp = "^[0-9+\\-]{5,20}$", message = "手机号格式不正确") String phone,
-        @NotBlank @Pattern(regexp = "^\\d{6}$", message = "行政区划代码格式不正确") String regionCode,
+        @NotBlank @Pattern(regexp = PhoneNumber.CONTACT_PATTERN, message = "手机号格式不正确") String phone,
+        /** 形状门（6 位数字）；是不是真有这么个区划，由 service 拿 {@link RegionRegistry} 判，两处同为 400 */
+        @NotBlank @Pattern(regexp = RegionRegistry.CODE_PATTERN, message = "行政区划代码格式不正确") String regionCode,
         @NotBlank @Size(max = 30) String province,
         @NotBlank @Size(max = 30) String city,
         @NotBlank @Size(max = 30) String district,

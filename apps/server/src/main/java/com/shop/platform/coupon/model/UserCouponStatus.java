@@ -31,5 +31,14 @@ public enum UserCouponStatus {
     EXPIRED,
 
     /** 已作废：运营下架/风控封禁 */
-    VOID
+    VOID;
+
+    /**
+     * 券包筛选的合法值表，给 {@code MyCouponQuery.status} 的 {@code @Pattern} 引用。
+     *
+     * <p>写成字面量是因为注解元素值必须是编译期常量表达式（{@code String.join} 不算）；
+     * 「枚举才是词表」这条由 {@code ValidationVocabularyTest} 断言本常量逐字节等于枚举名按声明序拼接，
+     * 加状态忘了同步就红。
+     */
+    public static final String PATTERN = "UNUSED|LOCKED|USED|EXPIRED|VOID";
 }

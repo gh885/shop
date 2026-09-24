@@ -12,7 +12,7 @@ public record BannerRequest(
         @Size(max = 128) String subtitle,
         @NotBlank @Size(max = 512) String imageUrl,
         @Size(max = 255) String target,
-        @Pattern(regexp = "PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL", message = "目标类型不支持") String targetType,
+        @Pattern(regexp = LinkTarget.PATTERN, message = "目标类型不支持") String targetType,
         @Size(max = 512) String link,
         Integer sortOrder,
         OffsetDateTime startAt,

@@ -8,7 +8,7 @@
 - **[CMS-02]** 三类内容新建时（create）状态一律强制置为 ENABLED，不接受入参传 status；状态变更只能走独立的 PUT `/{id}/status/{ENABLED|DISABLED}` 通道。
 - **[CMS-03]** 所有列表（前台启用集与后台全量）排序口径一致：`sortOrder` 升序，同值再按 `id` 升序；sortOrder 越小越靠前，入参缺省时落 0。
 - **[CMS-04]** update 逐字段覆写展示字段但 **null 字段 = 保持原值**（MyBatis-Plus NOT_NULL 策略跳过 null 列，PATCH 语义而非全量覆写——传 null 清不掉任何字段），且「归属键」不可改：导航的 navKey、banner 的 slot 在更新时被后端忽略（Request 里仍要求传但只用于校验形状）；后台表单编辑态直接把该字段置 disabled。
-- **[CMS-05]** 跳转 target 一律软关联（存字符串：商品/类目 ID、活动名、搜索词或 URL），CMS 不 join 任何业务模块、不校验目标是否存在；目标不存在时前台按「脏数据」降级而不是报错。targetType 枚举固定五种：`PRODUCT | CATEGORY | CAMPAIGN | SEARCH | URL`（后端 @Pattern 校验，前台「不跳转」提交为缺省）。
+- **[CMS-05]** 跳转 target 一律软关联（存字符串：商品/类目 ID、活动名、搜索词或 URL），CMS 不 join 任何业务模块、不校验目标是否存在；目标不存在时前台按「脏数据」降级而不是报错。targetType 枚举固定五种：`PRODUCT | CATEGORY | CAMPAIGN | SEARCH | URL`（词表是 `cms.dto.LinkTarget.PATTERN` 一处，三处 DTO 的 @Pattern 只引用它，GEN-52；前台「不跳转」提交为缺省）。
 - **[CMS-06]** 管理端 CMS 全部路由挂在 `/admin/cms`，要求 `CMS_MANAGE` 权限（岗位 OPS）；前台读接口 `/api/cms/*` 与 `/api/feed` 匿名可访问（在 JwtProperties.skipPaths 中）。
 - **[CMS-07]** 前台三个只读接口按「导航位 / 运营位」取数且都有默认位：`GET /api/cms/nav` 默认 `navKey=home`、`GET /api/cms/banners` 默认 `slot=home_promo`、`GET /api/cms/recommend-tabs` 无位置参数（全局一份）；当前前台实际消费的导航位只有 `home`、运营位只有 `home_promo`（新增位需扩前台常量表）。
 - **[CMS-08]** 出参形状（NavEntryResponse / BannerResponse / RecommendTabResponse）管理端与公开端共用同一 record、逐字段严格校验「只减不增」；后台列表全量返回（小表不分页），带 status / createdAt / updatedAt 等治理字段。

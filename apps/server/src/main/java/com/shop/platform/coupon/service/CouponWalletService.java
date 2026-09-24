@@ -29,7 +29,12 @@ public class CouponWalletService {
 
     private final ShopReadQuery shopReadQuery;
 
-    /** 我的券包分页：status 对应页签，空 = 全部。展示状态见 {@link MyCoupon} */
+    /**
+     * 我的券包分页：status 对应页签，空 = 全部。展示状态见 {@link MyCoupon}
+     *
+     * <p>HTTP 侧非法值到不了这里的 {@code Validate.enumFilter}——{@code MyCouponQuery.status} 的 @Pattern
+     * 先按 GEN-19 第①条线拦成 422；这条判据守的是直接调 service 的调用方（与订单/售后筛的 400 不同线）。
+     */
     @Transactional(readOnly = true)
     public PageResult<MyCoupon> pageMine(UUID userId, String status, PageParams page) {
         OffsetDateTime now = OffsetDateTime.now();
