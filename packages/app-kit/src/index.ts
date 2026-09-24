@@ -27,7 +27,7 @@ export type { SidebarItem } from "./workbench/navigation"
 export { notify } from "./notify"
 export { copyWithNotify } from "./copy-text"
 export { formatDate, formatDateTime, formatTimeShort } from "./format"
-export { PaginationBar, paged, type PagedItems } from "./pagination-bar"
+export { PaginationBar } from "./pagination-bar"
 export { LoginForm } from "./login-form"
 export {
     CAPTCHA_CODE_DIGITS,

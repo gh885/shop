@@ -1,4 +1,5 @@
 import {
+    paged,
     Pagination,
     PaginationContent,
     PaginationEllipsis,
@@ -9,42 +10,13 @@ import {
 } from "@shop/ui-web"
 
 /**
- * 三端列表分页条 —— 页码算法与渲染都在这一处。
+ * 三端列表分页条 —— 渲染在这一处，页码算法 `paged` 在 ui-web（与 DataTablePagination 共用）。
  *
  * 之前有四份：卖家端（编号页码 + 省略号）、买家订单页（5 页滑动窗口，无省略号）、
- * 买家券包页（只有上一页/下一页）、ui-web 的 DataTablePagination（表格专用，带页大小选择，
- * 它自己那份 `getPageNumbers` 属纯 UI 包、不能反向依赖本包，故留在原处）。
+ * 买家券包页（只有上一页/下一页）、ui-web 的 DataTablePagination（表格专用，带页大小选择）。
  * 前两份是同一件事的两种做法，滑动窗口那份在尾页会「1 2 3 4 5」一路平推到中段才收敛，
  * 用户看不见总共有多少页，也跳不到最后。
  */
-
-/** 页码序列项：页码或省略号占位 */
-export type PagedItems = (number | "...")[]
-
-const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i)
-
-/**
- * 页码序列：当前页 ±2 + 首尾 + 省略号。
- *
- * 只钉两件事：省略号**不能出现在只差一页的缝隙上**（`1 … 3` 那种，中间其实没漏页，
- * 却让用户以为列表被折断了），以及首尾页任何时刻都在（不点到底就翻不完）。
- */
-export function paged(current: number, total: number): PagedItems {
-    if (total <= 7) return range(1, total)
-    const pages = new Set<number>([1, total])
-    for (let p = current - 2; p <= current + 2; p++) {
-        if (p >= 1 && p <= total) pages.add(p)
-    }
-    const sorted = [...pages].toSorted((a, b) => a - b)
-    const out: PagedItems = []
-    let prev = 0
-    for (const p of sorted) {
-        if (p - prev > 1) out.push("...")
-        out.push(p)
-        prev = p
-    }
-    return out
-}
 
 /**
  * 编号页码分页条：上一页 / 页码（带省略号）/ 下一页。

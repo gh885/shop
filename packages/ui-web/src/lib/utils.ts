@@ -8,19 +8,31 @@ import type { CSSProperties } from "react"
     或就地 `{{ "--ratio": r } as CSSVars}`。 */
 export type CSSVars = CSSProperties & Record<`--${string}`, string | number | undefined>
 
-/** 页码压缩：1 … 3 4 5 … 20（首尾固定，当前页前后各一） */
-export function getPageNumbers(current: number, total: number): (number | "...")[] {
-    if (total <= 7) {
-        return Array.from({ length: total }, (_, i) => i + 1)
+/** 页码序列项：页码或省略号占位 */
+export type PagedItems = (number | "...")[]
+
+const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i)
+
+/**
+ * 页码序列：当前页 ±2 + 首尾 + 省略号。三端两种分页条（app-kit `PaginationBar`、
+ * `DataTablePagination`）共用这一份——以前各有一份，窗口一个 ±1 一个 ±2。
+ *
+ * 只钉两件事：省略号**不能出现在只差一页的缝隙上**（`1 … 3` 那种，中间其实没漏页，
+ * 却让用户以为列表被折断了），以及首尾页任何时刻都在（不点到底就翻不完）。
+ */
+export function paged(current: number, total: number): PagedItems {
+    if (total <= 7) return range(1, total)
+    const pages = new Set<number>([1, total])
+    for (let p = current - 2; p <= current + 2; p++) {
+        if (p >= 1 && p <= total) pages.add(p)
     }
-    const nums = new Set<number>([1, total, current - 1, current, current + 1])
-    const sorted = [...nums].filter((n) => n >= 1 && n <= total).toSorted((a, b) => a - b)
-    const result: (number | "...")[] = []
+    const sorted = [...pages].toSorted((a, b) => a - b)
+    const out: PagedItems = []
     let prev = 0
-    for (const n of sorted) {
-        if (prev && n - prev > 1) result.push("...")
-        result.push(n)
-        prev = n
+    for (const p of sorted) {
+        if (p - prev > 1) out.push("...")
+        out.push(p)
+        prev = p
     }
-    return result
+    return out
 }

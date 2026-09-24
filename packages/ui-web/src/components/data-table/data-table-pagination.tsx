@@ -8,7 +8,7 @@ import {
     ChevronsRightIcon,
 } from "lucide-react"
 
-import { cn, getPageNumbers } from "src/lib/utils"
+import { cn, paged } from "src/lib/utils"
 import { Button } from "src/components/ui/button"
 import {
     Select,
@@ -32,7 +32,7 @@ export function DataTablePagination<TData extends RowData>({
 }: DataTablePaginationProps<TData>) {
     const totalPages = table.getPageCount()
     const currentPage = totalPages === 0 ? 0 : table.state.pagination.pageIndex + 1
-    const pageNumbers = getPageNumbers(currentPage, totalPages)
+    const pageNumbers = paged(currentPage, totalPages)
 
     return (
         <div className={cn("flex flex-wrap items-center justify-between gap-3 px-2", className)}>
