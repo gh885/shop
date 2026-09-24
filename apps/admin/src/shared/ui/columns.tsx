@@ -16,8 +16,9 @@ export function actionsColumn<T extends RowData>(
 ): ColumnDef<DataTableFeatures, T> {
     return {
         id: "actions",
-        header: () => <span className="flex justify-end">操作</span>,
+        header: "操作",
         enableHiding: false,
+        meta: { className: "text-right" },
         cell: ({ row }) => <>{render(row.original)}</>,
     }
 }

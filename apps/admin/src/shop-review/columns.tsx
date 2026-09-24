@@ -26,7 +26,8 @@ export function useReviewColumns({
             {
                 accessorKey: "shopName",
                 header: "店铺名称",
-                cell: ({ row }) => <span className="font-medium">{row.original.shopName}</span>,
+                meta: { variant: "strong" },
+                cell: ({ row }) => row.original.shopName,
             },
             {
                 accessorKey: "ownerPhone",
@@ -51,38 +52,31 @@ export function useReviewColumns({
             {
                 accessorKey: "reason",
                 header: "驳回理由",
+                meta: { variant: "muted" },
                 cell: ({ row }) =>
                     row.original.reason ? (
                         <span
-                            className="block max-w-48 truncate text-muted-foreground"
+                            className="block max-w-48 truncate"
                             title={row.original.reason}
                         >
                             {row.original.reason}
                         </span>
                     ) : (
-                        <span className="text-muted-foreground">—</span>
+                        "—"
                     ),
             },
             {
                 accessorKey: "createdAt",
                 header: "申请时间",
-                cell: ({ row }) => (
-                    <span className="tabular-nums text-muted-foreground">
-                        {formatDateTime(row.original.createdAt)}
-                    </span>
-                ),
+                meta: { variant: "muted", className: "tabular-nums" },
+                cell: ({ row }) => formatDateTime(row.original.createdAt),
             },
             {
                 accessorKey: "decidedAt",
                 header: "处理时间",
+                meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) =>
-                    row.original.decidedAt ? (
-                        <span className="tabular-nums text-muted-foreground">
-                            {formatDateTime(row.original.decidedAt)}
-                        </span>
-                    ) : (
-                        <span className="text-muted-foreground">—</span>
-                    ),
+                    row.original.decidedAt ? formatDateTime(row.original.decidedAt) : "—",
             },
             actionsColumn((item) => <ReviewActions item={item} />),
         ],

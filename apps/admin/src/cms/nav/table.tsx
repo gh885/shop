@@ -44,14 +44,11 @@ export const navColumns: ColumnDef<DataTableFeatures, NavEntryResponse>[] = [
     {
         id: "subs",
         header: "分组/词条",
+        meta: { variant: "muted", className: "tabular-nums" },
         cell: ({ row }) => {
             const groups = row.original.subs
             const itemCount = groups.reduce((sum, g) => sum + (g.items?.length ?? 0), 0)
-            return (
-                <span className="tabular-nums text-muted-foreground">
-                    {groups.length} 组 / {itemCount} 项
-                </span>
-            )
+            return `${groups.length} 组 / ${itemCount} 项`
         },
     },
     sortOrderColumn(),

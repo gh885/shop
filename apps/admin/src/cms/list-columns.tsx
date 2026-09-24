@@ -38,7 +38,8 @@ export function sortOrderColumn<T extends { sortOrder: number }>(
     return {
         id: "sortOrder",
         header,
-        cell: ({ row }) => <span className="tabular-nums">{row.original.sortOrder}</span>,
+        meta: { className: "tabular-nums" },
+        cell: ({ row }) => row.original.sortOrder,
     }
 }
 

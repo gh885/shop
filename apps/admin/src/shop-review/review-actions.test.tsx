@@ -3,7 +3,7 @@ import type { ShopReviewItem } from "@shop/api/sdk"
 import { renderWithProviders } from "@shop/app-kit/test"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { delay, HttpResponse, http } from "msw"
+import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
 import { server } from "@shop/test-utils"
@@ -28,8 +28,11 @@ const ITEM: ShopReviewItem = {
     createdAt: "2026-09-23T10:00:00Z",
 }
 
-function useReviewRoutes({ decideDelayMs = 0 }: { decideDelayMs?: number } = {}) {
-    const calls: { approve: number; rejectedWith: string[] } = { approve: 0, rejectedWith: [] }
+/** `hold`：决定请求挂起直到调用 `calls.release()`——「在途」由测试说了算，不赌定时器（全量并行下 60ms 会先跑完） */
+function useReviewRoutes({ hold = false }: { hold?: boolean } = {}) {
+    let release = () => {}
+    const gate = hold ? new Promise<void>((resolve) => (release = resolve)) : undefined
+    const calls = { approve: 0, rejectedWith: [] as string[], release: () => release() }
     const decided = (status: "APPROVED" | "REJECTED") => ({
         id: ITEM.id,
         shopId: ITEM.shopId,
@@ -43,7 +46,7 @@ function useReviewRoutes({ decideDelayMs = 0 }: { decideDelayMs?: number } = {})
     server.use(
         http.post("*/admin/reviews/:id/approve", async () => {
             calls.approve += 1
-            if (decideDelayMs) await delay(decideDelayMs)
+            await gate
             return HttpResponse.json(decided("APPROVED"))
         }),
         http.post("*/admin/reviews/:id/reject", async ({ request }) => {
@@ -51,7 +54,7 @@ function useReviewRoutes({ decideDelayMs = 0 }: { decideDelayMs?: number } = {})
             const reason =
                 body && typeof body === "object" ? Reflect.get(body, "reason") : undefined
             calls.rejectedWith.push(typeof reason === "string" ? reason : "")
-            if (decideDelayMs) await delay(decideDelayMs)
+            await gate
             return HttpResponse.json(decided("REJECTED"))
         }),
     )
@@ -95,7 +98,7 @@ describe("ReviewActions", () => {
 
     it("处理中：另一颗决定按住，通过和驳回不会同时落库", async () => {
         const user = renderActions()
-        const calls = useReviewRoutes({ decideDelayMs: 60 })
+        const calls = useReviewRoutes({ hold: true })
 
         await user.click(screen.getByRole("button", { name: "通过" }))
         await user.click(screen.getByRole("button", { name: "确认通过" }))
@@ -104,6 +107,7 @@ describe("ReviewActions", () => {
         const reject = screen.getByRole("button", { name: "驳回", hidden: true })
         expect(reject).toBeDisabled()
         await user.click(reject)
+        calls.release()
 
         await waitFor(() => expect(calls.approve).toBe(1))
         expect(calls.rejectedWith).toEqual([])

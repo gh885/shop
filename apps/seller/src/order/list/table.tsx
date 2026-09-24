@@ -10,7 +10,7 @@ import {
     TableRow,
 } from "@shop/ui-web"
 import { formatMoney } from "@shop/common"
-import { formatDate } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit"
 import type { SellerOrderListItemResponse, TicketAvailableAction } from "@shop/api/sdk"
 import { useState } from "react"
 
@@ -199,7 +199,12 @@ function OrderRow({
                     {saleMeta && <Badge variant={saleMeta.variant}>{saleMeta.label}</Badge>}
                 </div>
             </TableCell>
-            <TableCell className="tabular-nums">{formatDate(o.createdAt)}</TableCell>
+            <TableCell
+                variant="muted"
+                className="tabular-nums"
+            >
+                {formatDateTime(o.createdAt)}
+            </TableCell>
 
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">

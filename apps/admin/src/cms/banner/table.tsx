@@ -71,11 +71,8 @@ export const bannerColumns: ColumnDef<DataTableFeatures, BannerResponse>[] = [
     {
         accessorKey: "startAt",
         header: "生效窗口",
-        cell: ({ row }) => (
-            <span className="text-xs tabular-nums text-muted-foreground">
-                {windowText(row.original.startAt, row.original.endAt)}
-            </span>
-        ),
+        meta: { variant: "muted", className: "tabular-nums" },
+        cell: ({ row }) => windowText(row.original.startAt, row.original.endAt),
     },
     sortOrderColumn(),
     cmsStatusColumn(),

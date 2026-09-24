@@ -93,6 +93,9 @@ const tableCellVariants = cva("", {
     },
 })
 
+/** 单元格列语义，DataTable 列定义经 `meta.variant` 传入 */
+export type TableCellVariant = NonNullable<VariantProps<typeof tableCellVariants>["variant"]>
+
 function TableCell({
     className,
     variant = "default",

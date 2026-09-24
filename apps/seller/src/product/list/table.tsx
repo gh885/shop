@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil } from "lucide-react"
 
-import { formatDate } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit"
 import {
     Badge,
     Button,
@@ -310,7 +310,9 @@ function ProductRow({
             {/* 创建时间：日期 + 状态徽章 */}
             <TableCell>
                 <div className="space-y-0.5">
-                    <span className="block text-sm tabular-nums">{formatDate(p.createdAt)}</span>
+                    <span className="block text-muted-foreground tabular-nums">
+                        {formatDateTime(p.createdAt)}
+                    </span>
                     <Badge variant={meta.variant}>{meta.label}</Badge>
                 </div>
             </TableCell>

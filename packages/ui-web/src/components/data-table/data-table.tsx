@@ -1,7 +1,14 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { FlexRender, Subscribe, type ReactTable, type RowData } from "@tanstack/react-table"
+import {
+    FlexRender,
+    Subscribe,
+    type CellData,
+    type ReactTable,
+    type RowData,
+    type TableFeatures,
+} from "@tanstack/react-table"
 
 import { Empty, EmptyHeader, EmptyTitle } from "src/components/ui/empty"
 import { Skeleton } from "src/components/ui/skeleton"
@@ -12,10 +19,29 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    type TableCellVariant,
 } from "src/components/ui/table"
 
 import type { DataTableFeatures } from "./data-table-features"
 import { TableShell } from "./table-shell"
+
+/**
+ * 列级展示约定：写在列定义的 `meta` 里，DataTable 统一交给 TableHead/TableCell，
+ * 不在 cell 里包一层 span 模拟字重、弱化色或右对齐。
+ *  - `variant`：列语义（strong 标识列 / muted 次要列），同 TableCell
+ *  - `className`：表头与单元格同时生效（`text-right`、`tabular-nums`、`min-w-*`）
+ */
+declare module "@tanstack/react-table" {
+    // oxlint-disable-next-line no-unused-vars -- 泛型参数须与 TanStack 声明一致才能合并
+    interface ColumnMeta<
+        TFeatures extends TableFeatures,
+        TData extends RowData,
+        TValue extends CellData = CellData,
+    > {
+        variant?: TableCellVariant
+        className?: string
+    }
+}
 
 type DataTableProps<TData extends RowData> = {
     table: ReactTable<DataTableFeatures, TData>
@@ -48,6 +74,7 @@ export function DataTable<TData extends RowData>({
                                 <TableHead
                                     key={header.id}
                                     colSpan={header.colSpan}
+                                    className={header.column.columnDef.meta?.className}
                                 >
                                     {header.isPlaceholder ? undefined : (
                                         <FlexRender header={header} />
@@ -84,7 +111,13 @@ export function DataTable<TData extends RowData>({
                                             .getAllCells()
                                             .filter((cell) => visibility[cell.column.id] !== false)
                                             .map((cell) => (
-                                                <TableCell key={cell.id}>
+                                                <TableCell
+                                                    key={cell.id}
+                                                    variant={cell.column.columnDef.meta?.variant}
+                                                    className={
+                                                        cell.column.columnDef.meta?.className
+                                                    }
+                                                >
                                                     <FlexRender cell={cell} />
                                                 </TableCell>
                                             ))}

@@ -60,7 +60,7 @@ export function CmsRowActions<T>({
     }
 
     return (
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-1">
             <Button
                 variant="ghost"
                 size="sm"

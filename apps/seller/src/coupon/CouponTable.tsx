@@ -9,7 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from "@shop/ui-web"
-import { formatDate } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit"
 
 import { TableCard } from "#/shared/ui/TableCard"
 import type { CouponRow } from "./model"
@@ -97,8 +97,11 @@ export function CouponTable({
                             <TableCell>
                                 <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
                             </TableCell>
-                            <TableCell className="tabular-nums">
-                                {formatDate(row.createdAt)}
+                            <TableCell
+                                variant="muted"
+                                className="tabular-nums"
+                            >
+                                {formatDateTime(row.createdAt)}
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button

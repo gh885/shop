@@ -60,9 +60,10 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
     }
 
     return (
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-1">
             <Button
                 variant="outline"
+                size="sm"
                 disabled={busy}
                 onClick={confirmApprove}
             >
@@ -74,6 +75,7 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
             >
                 <Button
                     variant="destructive"
+                    size="sm"
                     disabled={busy}
                     onClick={() => setRejectOpen(true)}
                 >
