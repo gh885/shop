@@ -54,7 +54,7 @@ describe("DeletionDialog", () => {
         const onOpenChange = renderDialog()
         await user.click(screen.getByRole("button", { name: "提交注销申请" }))
 
-        await waitFor(() => expect(screen.getByText("验证码为 6 位数字")).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText("请输入 6 位验证码")).toBeInTheDocument())
         expect(captured.codePath).toBe(0)
         expect(captured.submitBodies).toHaveLength(0)
         expect(onOpenChange).not.toHaveBeenCalledWith(false)

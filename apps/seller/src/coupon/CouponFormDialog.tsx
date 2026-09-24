@@ -9,6 +9,8 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
+import { COUPON_NAME_MAX } from "@shop/common"
+
 import { couponRequestFromForm, CouponFormSchema, emptyCouponForm } from "./form"
 import { useCreateCoupon } from "./queries"
 
@@ -85,7 +87,7 @@ function CouponForm({
                             label="券名"
                             required
                             placeholder="例如：新春满减券"
-                            maxLength={60}
+                            maxLength={COUPON_NAME_MAX}
                         />
                     )}
                 </form.AppField>

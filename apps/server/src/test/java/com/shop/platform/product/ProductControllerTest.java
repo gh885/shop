@@ -95,7 +95,7 @@ class ProductControllerTest extends WebControllerTestSupport {
         void 聚合SKU与库存_不吐仓管字段() throws Exception {
             ProductDetail detail = new ProductDetail(product(), List.of(sku()));
             when(productQueryService.publicDetail(productId)).thenReturn(detail);
-            when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of(skuId, new StockView(skuId, 5, 2, 3)));
+            when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of(skuId, new StockView(skuId, 5, 3)));
 
             mockMvc.perform(get("/api/products/{id}", productId))
                     .andExpect(status().isOk())

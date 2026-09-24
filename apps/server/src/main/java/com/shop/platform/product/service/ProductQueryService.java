@@ -184,7 +184,7 @@ public class ProductQueryService {
         Map<UUID, Integer> stock = new HashMap<>();
         skus.forEach(s -> {
             StockView v = stocks.get(s.getId());
-            stock.merge(s.getProductId(), v == null ? 0 : v.availableStock(), Integer::sum);
+            stock.merge(s.getProductId(), StockView.availableOrZero(v), Integer::sum);
         });
         return stock;
     }

@@ -183,7 +183,7 @@ public class CartService {
                 sku.image(),
                 sku.price(),
                 sku.originalPrice(),
-                stock == null ? 0 : stock.availableStock(),
+                StockView.availableOrZero(stock),
                 sku.onSale());
     }
 

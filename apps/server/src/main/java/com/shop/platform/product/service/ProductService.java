@@ -214,10 +214,7 @@ public class ProductService {
                 .toList();
         Map<UUID, StockView> stocks =
                 stockReadQuery.availableBySkuIds(onSale.stream().map(Sku::getId).toList());
-        boolean anyInStock = onSale.stream()
-                .anyMatch(s -> stocks.getOrDefault(s.getId(), new StockView(s.getId(), 0, 0, 0))
-                                .stock()
-                        > 0);
+        boolean anyInStock = onSale.stream().anyMatch(s -> StockView.stockOrZero(stocks.get(s.getId())) > 0);
         Validate.isTrue(anyInStock, "商品全部在售 SKU 库存为 0，请补充库存后再上架");
     }
 

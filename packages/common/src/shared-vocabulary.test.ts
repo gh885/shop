@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest"
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 
+import { CONTACT_PHONE_PATTERN } from "./address"
+
 /**
  * 共享词表门禁：一个概念在前端只许有一个出口，且那个出口住在它该住的包里。
  *
@@ -10,14 +12,19 @@ import { join, relative } from "node:path"
  * 导入 `useCountdown`（相对秒数递减），同 app 的 `OrderCard` 从本地 `#/shared/lib/use-countdown`
  * 导入同名 hook（按绝对时刻倒数）——同名不同义，跨文件复制粘贴就会静默换语义。
  *
- * 四条规则各自挡一种漂移：
+ * 五条规则各自挡一种漂移：
  * 1. **app 不遮蔽包导出**：app 本地导出的符号名不得与 `packages/*` 的导出名相同
- * 2. **形状的写法只有一份**：掩码段 / 折万算式 / 剪贴板调用，字面量只许出现在 owner 里
+ * 2. **形状的写法只有一份**：掩码段 / 折万算式 / 剪贴板调用 / 手机号形状 / 写进提示语里的那句话，
+ *    字面量只许出现在 owner 里
  * 3. **owner 之间不互相漂移**：ui-web 刻意不依赖 common（纯 UI 包零内部依赖），
  *    它那两份字面量必须与 common 的 owner **逐字节相等**——常量等式编译期查不了，测试期钉
  * 4. **owner 不是摆设**：每个 owner 至少有一个真实调用点（顺带证明扫描确实扫到了代码）
+ * 5. **一个概念不许各说一半**：位数常量与它旁边那条正则必须由同一个数推出来
+ *    （`PHONE_DIGITS = 11` 与 `/^1[3-9]\d{9}$/` 是两处，改形状不改位数=框里能敲 11 位、提交必 400）
  *
  * 与 `contract:audit` 一样，它不拥有契约：这些是展示层内部约定，改它们不触发 `pnpm gen:sdk`。
+ * 跨语言那一半（Java / OpenAPI / 迁移列宽）在 `apps/server` 的 `FieldRuleVocabularyTest`，
+ * 本文件只管「前端内部不许有第二份」。
  */
 
 const REPO_ROOT = findRepoRoot()
@@ -157,6 +164,29 @@ describe("形状的写法只有一份", () => {
             pattern: /navigator\.clipboard\.writeText/,
             allowed: ["packages/app-kit/src/copy-text.ts"],
         },
+        // —— 字段规则：形状与提示语各只有一份，owner 就是那条规则在前端的出口
+        手机号形状: {
+            pattern: /1\[3-9\]\\d\{9\}/,
+            allowed: ["packages/app-kit/src/login-schema.ts"],
+        },
+        联系电话形状: {
+            // `.{5}` 盖的是 `+\\-]` 那几个字符：这里要挡的是「同一条形状被抄第二遍」，
+            // 逐字节相等那一半由 FieldRuleVocabularyTest 拿 Java 的常量来比，不在本文件重复。
+            pattern: /\[0-9.{5}\{5,20\}/,
+            allowed: ["packages/common/src/address.ts"],
+        },
+        商品标题文案: {
+            pattern: /商品标题最长/,
+            allowed: ["packages/common/src/product-fields.ts"],
+        },
+        卖点文案: {
+            pattern: /卖点填了就写/,
+            allowed: ["packages/common/src/product-fields.ts"],
+        },
+        券名文案: {
+            pattern: /券名最多/,
+            allowed: ["packages/common/src/coupon.ts"],
+        },
     }
 
     for (const [what, { pattern, allowed }] of Object.entries(owners)) {
@@ -199,17 +229,100 @@ describe("零内部依赖的包与 owner 不漂移", () => {
 describe("owner 不是孤儿", () => {
     // 聚合入口 re-export 不算调用点，否则「owner 还在但没人用」也能蒙过这条
     // 判定在剥注释后的文本上做：注释里提一嘴 `maskPhone` 不等于有人在调
-    const importedBy = (symbol: string): string[] =>
+    const callsites = (symbol: string, owner: string): string[] =>
         files
-            .filter((f) => !/\/(mask|count|copy-text)\.ts$/.test(f) && !f.endsWith("src/index.ts"))
+            .filter((f) => f !== owner && !f.endsWith("src/index.ts"))
             .filter((f) => new RegExp(`\\b${symbol}\\b`).test(code.get(f) ?? ""))
 
-    for (const symbol of ["maskPhone", "MASK_SEGMENT", "compactCount", "copyWithNotify"]) {
+    /** `[符号, 它住在哪个文件]`：owner 自己的定义不算调用点，所以逐个点名（与上一条的 allowed 同源） */
+    const OWNED: [string, string][] = [
+        ["maskPhone", "packages/common/src/mask.ts"],
+        ["MASK_SEGMENT", "packages/common/src/mask.ts"],
+        ["compactCount", "packages/common/src/count.ts"],
+        ["copyWithNotify", "packages/app-kit/src/copy-text.ts"],
+        ["PhoneSchema", "packages/app-kit/src/login-schema.ts"],
+        ["SmsCodeSchema", "packages/app-kit/src/login-schema.ts"],
+        ["CAPTCHA_CODE_DIGITS", "packages/app-kit/src/login-schema.ts"],
+        ["NICKNAME_MAX", "packages/app-kit/src/login-schema.ts"],
+        ["NOTE_MAX", "packages/common/src/note-fields.ts"],
+        ["ProductNameSchema", "packages/common/src/product-fields.ts"],
+        ["SellPointSchema", "packages/common/src/product-fields.ts"],
+        // PRODUCT_NAME_MESSAGE / SELL_POINT_MESSAGE 不在列：它们不是 app 侧的出口，而是被同文件的
+        // schema 吃掉的一句文案（出口是 schema）。要挡「这句话被抄第二遍」由上一条 owners 负责。
+        ["COUPON_NAME_MESSAGE", "packages/common/src/coupon.ts"],
+        ["AddressPhoneSchema", "packages/common/src/address.ts"],
+        ["ADDRESS_LABEL_MAX", "packages/common/src/address.ts"],
+        ["CUSTOM_LABEL_MAX", "apps/web/src/address/address-form.ts"],
+    ]
+
+    for (const [symbol, owner] of OWNED) {
         it(`${symbol} 有真实调用点`, () => {
             expect(
-                importedBy(symbol).length,
-                `${symbol} 没有任何调用点：owner 已无人用，或扫描没扫到`,
+                callsites(symbol, owner).length,
+                `${symbol} 在 ${owner} 之外没有任何调用点：owner 已无人用，或扫描没扫到`,
             ).toBeGreaterThan(0)
         })
     }
+})
+
+/**
+ * 定长/区间正则的字符数：只认本仓库这几条形状用得上的构造（`\d` / 字符类，可选 `{m}` `{m,n}`，
+ * 以及单个字面或转义字符）。遇到别的构造（分组、或、量词 `*+?`）直接抛——
+ * 返回 undefined 会让这条门禁在形状变复杂后**悄悄失效**，那正是本文件要挡的东西。
+ */
+function spanOf(shape: string): { min: number; max: number } {
+    let rest = shape.replace(/^\^/, "").replace(/\$$/, "")
+    let min = 0
+    let max = 0
+    while (rest.length > 0) {
+        const atom = /^(?<atom>\[[^\]]+\]|\\d|\\.)(?<q>\{\d+(?:,\d*)?\})?|(?<lit>[\w -])/.exec(rest)
+        if (!atom) throw new Error(`认不出的正则构造（本门禁只认字符类、\\d、单字符）：${rest}`)
+        const token = atom.groups?.atom ?? atom.groups?.lit ?? ""
+        const quant = atom.groups?.q
+        const consumed = token.length + (quant?.length ?? 0)
+        if (quant) {
+            const [lo, hi] = quant.slice(1, -1).split(",")
+            if (hi === "") throw new Error(`开区间量词无法给出上界，本门禁不猜：${quant}`)
+            min += Number(lo)
+            max += Number(hi ?? lo)
+        } else {
+            // 字符类、`\d` 与单个字面字符都定长贡献一位。字面字符后面若真跟了量词（`1{2}`），
+            // 下一轮会从上面那条「认不出的正则构造」抛出去。
+            min += 1
+            max += 1
+        }
+        rest = rest.slice(consumed)
+    }
+    return { min, max }
+}
+
+describe("一个概念不许各说一半", () => {
+    /** 从（已剥注释的）owner 源码里取一个常量：正则字面量取它的 source，数字常量取它的值 */
+    function sourceOf(file: string, constant: string): string {
+        const text = code.get(file) ?? ""
+        const pattern = new RegExp(`^export const ${constant} = /(.*)/$`, "m").exec(text)
+        const value = new RegExp(`^export const ${constant} = (\\d+)$`, "m").exec(text)
+        const found = pattern?.[1] ?? value?.[1]
+        expect(found, `${file} 里找不到具名常量 ${constant}，门禁不能空转`).toBeTruthy()
+        return found ?? ""
+    }
+
+    it("手机号位数常量等于它旁边那条正则的长度", () => {
+        const owner = "packages/app-kit/src/login-schema.ts"
+        const { min, max } = spanOf(sourceOf(owner, "PHONE_PATTERN"))
+        const digits = Number(sourceOf(owner, "PHONE_DIGITS"))
+        expect([min, max], "正则已不是定长，位数常量那个单值对不上").toEqual([digits, digits])
+    })
+
+    it("联系电话的 maxLength 上限等于那条形状的 {5,20} 上界", () => {
+        const owner = "packages/common/src/address.ts"
+        const { max } = spanOf(CONTACT_PHONE_PATTERN)
+        expect(
+            Number(sourceOf(owner, "CONTACT_PHONE_MAX")),
+            "输入框能敲进去的位数与校验放行的是两个数：改了形状不改这一格，多敲的字符提交必 400",
+        ).toBe(max)
+    })
+
+    // 验证码位数（SMS_CODE_DIGITS）不在此列：那条形状是由它自己拼出来的（`^\\d{${…}}$`），
+    // 两边不可能各说一半，重复断言只会多一条会一起红的空话。
 })

@@ -23,7 +23,7 @@ public record PaymentResponse(
                 p.getId(),
                 p.getOrderId(),
                 p.getOrderNo(),
-                Money.ofFen(p.getAmount(), p.getCurrency()),
+                p.amountAsMoney(),
                 p.getChannel(),
                 p.getStatus(),
                 p.getPaidAt());

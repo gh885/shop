@@ -22,5 +22,21 @@ public final class AddressFieldRules {
     /** 详细地址上限（字）：不含省市区（占位文案就写着「不需要重复输入省/市/区」） */
     public static final int DETAIL_MAX = 120;
 
+    /**
+     * 智能粘贴那一框的上限（字）：整段文本（姓名+电话+省市区+详址）一次贴进来，比任何单字段都宽。
+     *
+     * <p>它不落库（解析完即弃），所以没有列宽可对齐——但卖家端/买家端那个 textarea 的 {@code maxLength}
+     * 抄的是同一个数，两处不一致时表现为「粘得进去、提交必 400」，由 {@code FieldRuleVocabularyTest} 核对。
+     */
+    public static final int PARSE_TEXT_MAX = 500;
+
+    /**
+     * 地址标签上限（字）：内置枚举码（HOME/WORK/…）或用户自填的短文案，落点 {@code user_profile.addresses.label}。
+     *
+     * <p>它与 {@link #NAME_MAX} 都是「短文本」但不同档：一个是给地址起的别名（卡片上单行显示），
+     * 一个是收货人姓名。合并成一个常量，日后放宽姓名就会连带放宽标签那一格。
+     */
+    public static final int LABEL_MAX = 20;
+
     private AddressFieldRules() {}
 }

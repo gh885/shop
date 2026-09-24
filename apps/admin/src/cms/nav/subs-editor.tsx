@@ -2,6 +2,7 @@ import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from "lucide-react"
 
 import { Button, Input } from "@shop/ui-web"
 
+import { CMS_SUB_GROUPS_MAX, CMS_TITLE_MAX } from "../constants"
 import type { SubsGroup, SubsValue } from "./form"
 
 /**
@@ -43,7 +44,7 @@ export function SubsEditor({
                             value={group.name}
                             onChange={(e) => setGroup(gi, { ...group, name: e.target.value })}
                             placeholder={`分组 ${gi + 1} 名称，如「手机数码」`}
-                            maxLength={64}
+                            maxLength={CMS_TITLE_MAX}
                         />
                         <GroupControls
                             onUp={() => moveGroup(gi, -1)}
@@ -66,7 +67,7 @@ export function SubsEditor({
                                     setGroup(gi, { ...group, items })
                                 }}
                                 placeholder="词条文案"
-                                maxLength={64}
+                                maxLength={CMS_TITLE_MAX}
                             />
                             <Button
                                 variant="ghost"
@@ -100,11 +101,11 @@ export function SubsEditor({
                 <Button
                     variant="outline"
                     size="sm"
-                    disabled={value.length >= 30}
+                    disabled={value.length >= CMS_SUB_GROUPS_MAX}
                     onClick={() => onChange([...value, { name: "", items: [] }])}
                 >
                     <PlusIcon data-slot="icon" />
-                    添加分组（{value.length}/30）
+                    添加分组（{value.length}/{CMS_SUB_GROUPS_MAX}）
                 </Button>
                 {error && <p className="text-xs text-destructive">{error}</p>}
             </div>

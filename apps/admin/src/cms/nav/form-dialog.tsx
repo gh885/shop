@@ -13,7 +13,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { CMS_NAV_KEYS, TARGET_TYPE_ITEMS } from "../constants"
+import { CMS_NAV_KEYS, CMS_TARGET_MAX, CMS_TITLE_MAX, TARGET_TYPE_ITEMS } from "../constants"
 import { NavFormSchema, navDefaults, SubsSchema, toNavRequest, type SubsValue } from "./form"
 import { useCreateNav, useUpdateNav } from "./queries"
 import { SubsEditor } from "./subs-editor"
@@ -120,7 +120,7 @@ function NavFormDialogBody({
                         <field.TextField
                             label="标题"
                             required
-                            maxLength={64}
+                            maxLength={CMS_TITLE_MAX}
                         />
                     )}
                 </form.AppField>
@@ -147,6 +147,7 @@ function NavFormDialogBody({
                         <field.TextField
                             label="跳转目标"
                             placeholder="商品/类目 ID、活动名或搜索词"
+                            maxLength={CMS_TARGET_MAX}
                         />
                     )}
                 </form.AppField>

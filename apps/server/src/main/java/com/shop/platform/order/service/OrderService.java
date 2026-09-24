@@ -182,7 +182,7 @@ public class OrderService {
                     .put("user_id", order.getUserId())
                     .put("shop_id", order.getShopId())
                     // Money 整体入字段，不拆 amount/currency（口径同 payment.refunded）
-                    .put("pay_amount", Money.ofFen(order.getPayAmount(), order.getCurrency()))
+                    .put("pay_amount", order.payAmountAsMoney())
                     .emit();
         }
         return created;

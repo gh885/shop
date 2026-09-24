@@ -1,5 +1,6 @@
 package com.shop.platform.aftersale.dto;
 
+import com.shop.platform.common.NoteFieldRules;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -12,4 +13,6 @@ import jakarta.validation.constraints.Size;
  * <p>长度 200 与落点 {@code ticket_events.note} 同宽——不另开列，也就不会出现截断后两处不一致。
  */
 public record RejectAfterSaleRequest(
-        @NotBlank(message = "请填写拒绝理由") @Size(max = 200, message = "拒绝理由最长 200 字") String reason) {}
+        @NotBlank(message = "请填写拒绝理由")
+                @Size(max = NoteFieldRules.FREE_TEXT_MAX, message = "拒绝理由最长 " + NoteFieldRules.FREE_TEXT_MAX + " 字")
+                String reason) {}

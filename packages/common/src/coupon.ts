@@ -14,6 +14,20 @@ import type { Money } from "./money"
 import { currencySymbol, fenToYuan, groupYuan, isPositiveMoney } from "./money"
 
 /**
+ * 券名上限（字）：卖家建券表单的 `maxLength`，镜像后端 `coupon/dto/CouponFieldRules.NAME_MAX`
+ * 与契约 `CreateCouponTemplateRequest.name.maxLength`（落点 `coupon.coupon_templates.name` 同宽）。
+ *
+ * 与商家「公司名称」那格同为 60 但是两个概念，刻意不共用常量——按数字合并会把两件不相干的事绑成一次改动。
+ */
+export const COUPON_NAME_MAX = 60
+
+/**
+ * 券名超限提示（后端 `CouponFieldRules.NAME_MESSAGE`，逐字节）：文案里那个数就是它约束的那个数，
+ * 由 `${COUPON_NAME_MAX}` 插值而来，改上限时提示语跟着走，不必再回头改第二处。
+ */
+export const COUPON_NAME_MESSAGE = `券名最多 ${COUPON_NAME_MAX} 字`
+
+/**
  * 分 → 元（券文案专用）：去掉无意义的尾随 0（1000 → "10"、990 → "9.9"、1050 → "10.5"）。
  *
  * 「满 1000 减 100」写成「满 ¥1000.00」会挤爆卡片，也会让人误以为角分是券的一部分——券面额是整元语义。

@@ -6,12 +6,12 @@ import { createFileRoute } from "@tanstack/react-router"
 import { BannerFormDialog } from "#/cms/banner/form-dialog"
 import { bannerListOptions } from "#/cms/banner/queries"
 import { bannerColumns } from "#/cms/banner/table"
-import { CMS_BANNER_SLOTS } from "#/cms/constants"
+import { CMS_BANNER_SLOTS, CMS_KEY_MAX } from "#/cms/constants"
 import { CmsListPage } from "#/cms/list-page"
 
 export const Route = createFileRoute("/_app/cms/banner")({
     validateSearch: z.object({
-        slot: z.string().trim().min(1).max(32).optional(),
+        slot: z.string().trim().min(1).max(CMS_KEY_MAX).optional(),
     }),
     component: BannerPage,
 })

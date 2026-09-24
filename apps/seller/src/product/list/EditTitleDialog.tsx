@@ -4,6 +4,13 @@ import { z } from "zod"
 
 import { ProductsAdminApi } from "@shop/api/sdk"
 import {
+    PRODUCT_NAME_MAX,
+    ProductNameSchema,
+    SELL_POINT_MAX,
+    SELL_POINT_MIN,
+    SellPointSchema,
+} from "@shop/common"
+import {
     Button,
     Dialog,
     DialogContent,
@@ -16,20 +23,10 @@ import {
 
 import type { ProductTitleTarget } from "./table"
 
-const NAME_MAX = 30
-const SUBTITLE_MIN = 10
-const SUBTITLE_MAX = 30
-
-/** 镜像后端约束的权威定义 `ProductFieldRules`（NAME_MAX / SELL_POINT_PATTERN，GEN-52）：name ≤ 30 字；subtitle 留空或 10~30 字。后端改词表要走 gen:sdk，这里的常数不会自动跟着变 */
+/** 两个字段的规则是 owner 的（`@shop/common/product-fields` ↔ Java `ProductFieldRules`），这里只组形状 */
 const TitleSchema = z.object({
-    name: z.string().trim().min(1, "请填写商品标题").max(NAME_MAX, `商品标题最长 ${NAME_MAX} 字`),
-    subtitle: z
-        .string()
-        .trim()
-        .refine(
-            (v) => v.length === 0 || (v.length >= SUBTITLE_MIN && v.length <= SUBTITLE_MAX),
-            `导购标题需为 ${SUBTITLE_MIN}~${SUBTITLE_MAX} 个字，或留空`,
-        ),
+    name: ProductNameSchema,
+    subtitle: SellPointSchema,
 })
 
 /**
@@ -119,7 +116,7 @@ function TitleForm({
                             label="商品标题"
                             required
                             counter
-                            maxLength={NAME_MAX}
+                            maxLength={PRODUCT_NAME_MAX}
                             placeholder="请输入商品标题"
                             className="tabular-nums"
                         />
@@ -131,8 +128,8 @@ function TitleForm({
                         <field.TextField
                             label="导购标题"
                             counter
-                            maxLength={SUBTITLE_MAX}
-                            placeholder={`选填，${SUBTITLE_MIN}~${SUBTITLE_MAX} 字，留空即不展示卖点`}
+                            maxLength={SELL_POINT_MAX}
+                            placeholder={`选填，${SELL_POINT_MIN}~${SELL_POINT_MAX} 字，留空即不展示卖点`}
                             hint={
                                 <>
                                     <Lightbulb className="mr-1 inline size-3.5 text-warning" />

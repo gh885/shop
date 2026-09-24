@@ -11,7 +11,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { TARGET_TYPE_ITEMS } from "../constants"
+import { CMS_TAB_NAME_MAX, CMS_TARGET_MAX, TARGET_TYPE_ITEMS } from "../constants"
 import { tabDefaults, TabFormSchema, tabRowToRequest, toTabRequest } from "./form"
 import { tabListOptions, useCreateTab, useUpdateTab } from "./queries"
 
@@ -92,7 +92,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                             label="词条名"
                             required
                             placeholder="如「数码好物」"
-                            maxLength={32}
+                            maxLength={CMS_TAB_NAME_MAX}
                         />
                     )}
                 </form.AppField>
@@ -111,6 +111,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                             <field.TextField
                                 label="跳转目标"
                                 placeholder="类目 ID 等（可选）"
+                                maxLength={CMS_TARGET_MAX}
                             />
                         )}
                     </form.AppField>

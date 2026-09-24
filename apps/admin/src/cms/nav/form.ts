@@ -3,29 +3,34 @@ import { z } from "zod"
 
 import {
     blankToUndefined as blank,
+    CMS_KEY_MAX,
+    CMS_SUB_GROUPS_MAX,
+    CMS_TITLE_MAX,
     CmsTargetSortSchema,
     targetSortDefaults,
     toTargetSortFields,
 } from "../constants"
 
-/** subs = JSONB 整段的组/项两级配置（对齐后端 NavGroup 校验：组名 ≤64、词条 ≤64、≤30 组） */
+/** subs = JSONB 整段的组/项两级配置（上限全部来自 `../constants`，与后端 CmsFieldRules 同值由门禁核对） */
 export const SubsSchema = z
     .array(
         z.object({
-            name: z.string().trim().min(1, "分组名不能为空").max(64),
-            items: z.array(z.string().trim().max(64, "词条最长 64 字")).optional(),
+            name: z.string().trim().min(1, "分组名不能为空").max(CMS_TITLE_MAX),
+            items: z
+                .array(z.string().trim().max(CMS_TITLE_MAX, `词条最长 ${CMS_TITLE_MAX} 字`))
+                .optional(),
         }),
     )
-    .max(30, "分组上限 30 个")
+    .max(CMS_SUB_GROUPS_MAX, `分组上限 ${CMS_SUB_GROUPS_MAX} 个`)
 
 export type SubsGroup = z.infer<typeof SubsSchema>[number]
 export type SubsValue = SubsGroup[]
 
 export const NavFormSchema = z
     .object({
-        navKey: z.string().trim().min(1, "请输入导航位").max(32),
-        title: z.string().trim().min(1, "请输入标题").max(64),
-        iconKey: z.string().trim().max(32).optional(),
+        navKey: z.string().trim().min(1, "请输入导航位").max(CMS_KEY_MAX),
+        title: z.string().trim().min(1, "请输入标题").max(CMS_TITLE_MAX),
+        iconKey: z.string().trim().max(CMS_KEY_MAX).optional(),
     })
     .merge(CmsTargetSortSchema)
 

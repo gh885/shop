@@ -2,6 +2,7 @@ package com.shop.platform.aftersale.dto;
 
 import com.shop.platform.aftersale.model.AfterSaleReason;
 import com.shop.platform.aftersale.model.TicketType;
+import com.shop.platform.common.NoteFieldRules;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -15,4 +16,5 @@ import jakarta.validation.constraints.Size;
 public record ApplyAfterSaleRequest(
         @NotNull TicketType type,
         @NotNull(message = "请选择售后原因") AfterSaleReason reasonCode,
-        @Size(max = 200, message = "补充说明最长 200 字") String reason) {}
+        @Size(max = NoteFieldRules.FREE_TEXT_MAX, message = "补充说明最长 " + NoteFieldRules.FREE_TEXT_MAX + " 字")
+                String reason) {}

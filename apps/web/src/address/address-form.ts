@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import {
+    ADDRESS_LABEL_MAX,
     ADDRESS_NAME_MAX,
     AddressDetailSchema,
     AddressPhoneSchema,
@@ -25,7 +26,7 @@ export const AddressInputSchema = z.object({
     phone: AddressPhoneSchema,
     regionCode: AddressRegionCodeSchema,
     detail: AddressDetailSchema,
-    label: z.string().max(20).optional(),
+    label: z.string().max(ADDRESS_LABEL_MAX).optional(),
     isDefault: z.boolean().optional(),
 })
 

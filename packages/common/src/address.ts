@@ -24,8 +24,38 @@ export const ADDRESS_NAME_MAX = 30
 /** 详细地址上限（后端 `AddressFieldRules.DETAIL_MAX`） */
 export const ADDRESS_DETAIL_MAX = 120
 
+/**
+ * 联系电话形状：与后端 `common/PhoneNumber.CONTACT_PATTERN` **逐字节**同串。
+ *
+ * 写成字符串而不是正则字面量，是为了让门禁能按字符串比：此前这里是 `/^[0-9+-]{5,20}$/`，
+ * 与 Java 的 `^[0-9+\-]{5,20}$` 差一个反斜杠——语义相同、文本不同，任何逐字节核对都会红，
+ * 于是这道闸门只能退化成「人看一眼，差不多」。形状本身没改（改它即改契约那一格）。
+ */
+export const CONTACT_PHONE_PATTERN = "^[0-9+\\-]{5,20}$"
+
+/** 联系电话位数：输入框的 `maxLength` 拿不到正则，只能另起一个名字，而它由门禁核对等于上面那条的 `{5,20}` 上界 */
+export const CONTACT_PHONE_MAX = 20
+
+/** 智能粘贴那一框的上限（后端 `AddressFieldRules.PARSE_TEXT_MAX`）：整段文本，解析完即弃，不落库 */
+export const ADDRESS_PARSE_TEXT_MAX = 500
+
+/**
+ * 邮编位数（后端 `MerchantAddressRequest.postalCode`）。
+ *
+ * 与区划码同样是 6 位，但**刻意不共用常量**：邮编不参与区划存在性判定，放宽其一不该连带改掉另一格。
+ */
+export const POSTAL_CODE_MAX = 6
+
+/** 面单寄件人公司名上限（契约 `MerchantAddressRequest.companyName`）：印在电子面单上，超了会被承运商截断 */
+export const COMPANY_NAME_MAX = 60
+
 /** 地址上的号码：不卡大陆手机号格式——收件地址里填带区号的固话是常态，地址不是登录账号 */
-export const AddressPhoneSchema = z.string().regex(/^[0-9+-]{5,20}$/, "手机号格式不正确")
+export const AddressPhoneSchema = z
+    .string()
+    .regex(new RegExp(CONTACT_PHONE_PATTERN), "手机号格式不正确")
+
+/** 地址标签上限（字），对齐后端 `AddressFieldRules.LABEL_MAX`：内置码（HOME/WORK）或自填短文案 */
+export const ADDRESS_LABEL_MAX = 20
 
 /** 6 位国标区划码（直筒子市是区划库合成的 `市码+00`，见 regions.loadChildren） */
 export const AddressRegionCodeSchema = z.string().regex(/^\d{6}$/, "请选择所在地区")

@@ -78,9 +78,7 @@ class CheckoutResolver {
                 unavailable.add(unavailableLine(line, sku, CheckoutPreview.UnavailableLine.CAUSE_UNAVAILABLE));
                 continue;
             }
-            int available = stocks.get(line.skuId()) == null
-                    ? 0
-                    : stocks.get(line.skuId()).availableStock();
+            int available = StockView.availableOrZero(stocks.get(line.skuId()));
             if (available < line.quantity()) {
                 unavailable.add(unavailableLine(line, sku, CheckoutPreview.UnavailableLine.CAUSE_STOCK_SHORTAGE));
                 continue;

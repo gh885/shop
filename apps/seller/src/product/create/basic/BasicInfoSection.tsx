@@ -9,24 +9,17 @@ import {
     FieldLabel,
     ImageUploadGrid,
 } from "@shop/ui-web"
+import {
+    PRODUCT_NAME_MAX,
+    ProductNameSchema,
+    SELL_POINT_MAX,
+    SELL_POINT_MIN,
+    SellPointSchema,
+} from "@shop/common"
 
 import { imgUrl } from "#/shared/lib/image"
 
 import type { BasicForm } from "./form-instance"
-
-import { z } from "zod"
-
-/** 商品标题（搜索标题）：参与搜索召回的关键词位，上限 30 字 */
-const ProductNameSchema = z.string().trim().min(1, "请输入商品标题").max(30, "商品标题最长 30 字")
-
-/** 一句话卖点：可不填；填了就得写够一句（10~30 字），与后端 @Pattern 校验对齐 */
-const SellingPointSchema = z
-    .string()
-    .trim()
-    .refine(
-        (v) => v.length === 0 || (v.length >= 10 && v.length <= 30),
-        "卖点填了就写 10~30 字，不想写可以留空",
-    )
 
 /**
  * 发布第二步「基础信息」区块（section-basic）：主图 / 商品标题 / 商品卖点。
@@ -97,7 +90,7 @@ export function BasicInfoSection({
                             required
                             orientation="horizontal"
                             counter
-                            maxLength={30}
+                            maxLength={PRODUCT_NAME_MAX}
                             placeholder="如：宠物智能喂食器 定时定量 大容量"
                             hint="买家搜索靠它命中，把品牌、品类、核心属性写进去"
                         />
@@ -106,16 +99,16 @@ export function BasicInfoSection({
 
                 <form.AppField
                     name="subtitle"
-                    validators={{ onSubmit: SellingPointSchema }}
+                    validators={{ onSubmit: SellPointSchema }}
                 >
                     {(field) => (
                         <field.TextField
                             label="商品卖点"
                             orientation="horizontal"
                             counter
-                            maxLength={30}
+                            maxLength={SELL_POINT_MAX}
                             placeholder="如：定时定量不撑食，断电续航 72 小时"
-                            hint="选填；填了就写 10~30 字，展示在商品详情页标题下方"
+                            hint={`选填；填了就写 ${SELL_POINT_MIN}~${SELL_POINT_MAX} 字，展示在商品详情页标题下方`}
                         />
                     )}
                 </form.AppField>

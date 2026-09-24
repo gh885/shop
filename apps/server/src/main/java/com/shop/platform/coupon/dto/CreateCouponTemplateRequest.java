@@ -19,7 +19,7 @@ import java.time.OffsetDateTime;
  * 折扣券/运费券是二期，届时以判别列区分，不靠本入参的字段空缺来猜。
  */
 public record CreateCouponTemplateRequest(
-        @NotBlank @Size(max = 60, message = "券名最多 60 字") String name,
+        @NotBlank @Size(max = CouponFieldRules.NAME_MAX, message = CouponFieldRules.NAME_MESSAGE) String name,
         /** 使用门槛，0 元 = 无门槛 */
         @NotNull Money thresholdAmount,
         /** 减免额（必须大于 0） */

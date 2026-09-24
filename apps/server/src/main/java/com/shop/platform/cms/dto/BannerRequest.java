@@ -7,13 +7,13 @@ import java.time.OffsetDateTime;
 
 /** 创建/更新运营位 banner 的入参（更新时忽略 slot，不可改）。crud 复用同一形状 */
 public record BannerRequest(
-        @NotBlank @Size(max = 32) String slot,
-        @NotBlank @Size(max = 64) String title,
-        @Size(max = 128) String subtitle,
-        @NotBlank @Size(max = 512) String imageUrl,
-        @Size(max = 255) String target,
+        @NotBlank @Size(max = CmsFieldRules.KEY_MAX) String slot,
+        @NotBlank @Size(max = CmsFieldRules.TITLE_MAX) String title,
+        @Size(max = CmsFieldRules.SUBTITLE_MAX) String subtitle,
+        @NotBlank @Size(max = CmsFieldRules.URL_MAX) String imageUrl,
+        @Size(max = CmsFieldRules.TARGET_MAX) String target,
         @Pattern(regexp = LinkTarget.PATTERN, message = "目标类型不支持") String targetType,
-        @Size(max = 512) String link,
+        @Size(max = CmsFieldRules.URL_MAX) String link,
         Integer sortOrder,
         OffsetDateTime startAt,
         OffsetDateTime endAt) {}

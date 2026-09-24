@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
+import { NICKNAME_MAX } from "@shop/app-kit"
 import { useMe } from "#/account"
 import { ME_QUERY_KEY } from "#/account/queries"
 import { AuthApi } from "@shop/api/sdk"
@@ -83,7 +84,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                                 <field.TextField
                                     label="昵称"
                                     placeholder="请输入昵称"
-                                    maxLength={30}
+                                    maxLength={NICKNAME_MAX}
                                 />
                             )}
                         </form.AppField>

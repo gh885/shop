@@ -28,5 +28,17 @@ public final class Quantities {
     /** 一次结算最多用几张券：按店拆单，一店一张，所以这是「一单最多涉及几家店」的实际上限 */
     public static final int COUPONS_PER_CHECKOUT_MAX = 20;
 
+    /**
+     * 结算行数区间的报错文案：数字由 {@link #ORDER_LINES_MAX} 拼出，预览与创建两个入口共用这一句。
+     *
+     * <p>此前两条 message 各写一遍 {@code "结算条目需 1 到 99 行"}，上限改了文案还留着旧数——
+     * 用户按提示删到 99 行仍然 400（或反过来：提示写着 99，实际放行 200 行）。
+     * 文案与数字同值这件事现在由构造保证，而不是由「改的时候记得改两处」保证。
+     */
+    public static final String ORDER_LINES_MESSAGE = "结算条目需 1 到 " + ORDER_LINES_MAX + " 行";
+
+    /** 用券张数上限的报错文案，同上：数字从 {@link #COUPONS_PER_CHECKOUT_MAX} 来 */
+    public static final String COUPONS_PER_CHECKOUT_MESSAGE = "一次结算最多选择 " + COUPONS_PER_CHECKOUT_MAX + " 张优惠券";
+
     private Quantities() {}
 }

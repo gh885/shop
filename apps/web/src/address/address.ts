@@ -2,7 +2,7 @@
  * address 模块 —— 纯逻辑（类型 + wire→投影）。不碰 React / 网络。
  * 地址的「规则」（默认唯一性、完整性、手机号合法性）由后端裁决，前端不复刻；
  * 表单侧唯一镜像的是字段口径，那份和商家地址共用，在 @shop/common 的 address。
- * 这里只有投影映射与类型。
+ * 这里只有投影映射、类型，和一条不写第二遍的「选中哪一条」判据。
  */
 
 import type { AddressResponse } from "@shop/api/sdk"
@@ -58,3 +58,25 @@ export const ADDRESS_LABELS = {
     PARENTS: "父母家",
     FRIEND: "朋友家",
 } as const
+
+/**
+ * 默认地址：打了标记的那条，没有则列表第一条。
+ *
+ * 顺序权在后端（`AddressMapper` 按 `is_default desc, created_at desc` 返回，即默认在前、其次最新），
+ * 所以「没有标记就取第一条」用的就是那份顺序，不在这里再排一次——在这里排序等于把同一条规则的第二份
+ * 答案写进投影层。
+ */
+function defaultAddress(addresses: Address[]): Address | undefined {
+    return addresses.find((a) => a.isDefault) ?? addresses[0]
+}
+
+/**
+ * 当前选中的地址 id：用户勾的 > 默认地址 > 空串（= 一条都没有）。
+ *
+ * 结算页此前把这条规则写了两遍：页面顶部算 `effectiveAddressId`，地址卡片里再算一遍 `effectiveId`，
+ * 而第二遍写的是 `addresses[0]!`——列表为空时它不是「没选中」而是抛异常，只靠组件头上那个 early return
+ * 兜着。一条规则两个答案，改了一边就会出现「预览按 A 算运费、卡片高亮 B」。
+ */
+export function pickedAddressId(addresses: Address[], chosen?: string): string {
+    return chosen || defaultAddress(addresses)?.id || ""
+}

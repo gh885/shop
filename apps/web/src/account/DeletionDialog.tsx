@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { useCountdown } from "@shop/app-kit"
+import { SMS_CODE_DIGITS, SmsCodeSchema, useCountdown } from "@shop/app-kit"
 import { ErrorCodes, toApiError } from "@shop/common"
 import { AccountDeletionApi } from "@shop/api/sdk"
 import {
@@ -39,7 +39,7 @@ import { deletionKeys } from "./queries"
 /** 冷静期天数，与后端 AccountDeletionTimeouts.COOLING_OFF 同值（只用于文案；确切生效时刻由接口给） */
 const COOLING_OFF_DAYS = 15
 
-const CodeSchema = z.object({ code: z.string().regex(/^\d{6}$/, "验证码为 6 位数字") })
+const CodeSchema = z.object({ code: SmsCodeSchema })
 
 /** 三档处置：标题就是「你能拿回什么」，所以按不可逆程度从重到轻排 */
 const DISPOSITIONS: { title: string; items: string; tone: "lost" | "kept" | "legal" }[] = [
@@ -172,8 +172,8 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                     aria-invalid={codeInvalid}
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
-                                    maxLength={6}
-                                    placeholder="6 位数字"
+                                    maxLength={SMS_CODE_DIGITS}
+                                    placeholder={`${SMS_CODE_DIGITS} 位数字`}
                                     value={field.state.value}
                                     onBlur={field.handleBlur}
                                     onChange={(e) => {

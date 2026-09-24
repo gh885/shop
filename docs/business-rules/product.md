@@ -29,7 +29,7 @@
 
 - **[PRD-18]** 商品创建即草稿（DRAFT）：只落基本信息，specs=[]、无 SKU、价格区间为空；shopId 由店铺上下文（X-Shop-Id + 成员校验）注入，不由前端传入；创建必过类目挂载闸门（[PRD-82]）。
 - **[PRD-19]** 商品标题上限 30 字（`ProductFieldRules.NAME_MAX`，创建/编辑两个 DTO 共用同一常量与同一句话术，GEN-52；入库前 trim）；草稿阶段允许空名（落空串满足 NOT NULL），发布（无论上架还是入库）时必须非空（"请先填写商品标题再发布"）。非空判定只有一处：`ProductService.ensurePublishable`——publish 与重新上架 `on()` 共用（此前标题门只挂在 publish 上，「发布→下架→清空标题→重新上架」能把无名商品放上线，PRD-43 的复检漏了它，已修并配 `ProductIT.下架清空标题_重上架复检标题门槛`）。
-- **[PRD-20]** 一句话卖点（subtitle）要么不填/空串清空，要么 10~30 字（`ProductFieldRules.SELL_POINT_PATTERN` = `^$|^[\s\S]{10,30}$`，含同一句提示文案；用 Pattern 而非 `@Size(min)` 正因为空串要放行）；空串=清空、null=不改（PATCH 语义区分）。
+- **[PRD-20]** 一句话卖点（subtitle）要么不填/空串清空，要么 10~30 字（`ProductFieldRules.SELL_POINT_PATTERN` = `^$|^[\s\S]{10,30}$`，含同一句提示文案；用 Pattern 而非 `@Size(min)` 正因为空串要放行）；空串=清空、null=不改（PATCH 语义区分）。卖家端两处表单（发布基础信息、列表改标题）此前各抄一份数字与提示语、两份文案已分家，现在口径与文案同源 `packages/common/product-fields.ts` 的 `SellPointSchema` / `ProductNameSchema`，由 `FieldRuleVocabularyTest` 对到 Java 常量与契约那一格（GEN-58）；字段标签不强统一（发布页「商品卖点」、列表「导购标题」）。
 - **[PRD-21]** 商品图片（mainImage/images/detailImages）存对象存储 key（非完整 URL），单张 key ≤255 字；详情图为按序铺开的图片流，代替富文本（无 HTML、无 XSS 面）。图片经卖家端申请票据（/seller/products/image-ticket）直传对象存储 product/ 前缀后回填 key。
 - **[PRD-22]** 基本信息（标题/卖点/图片/参数）任何状态可编辑、在售实时生效（PATCH：null 不改）；但改类目是结构性操作——只有草稿可改，上架/仓库中商品换类目直接 409（"只有草稿可以修改类目，上架/仓库中商品请先下架"）。
 - **[PRD-23]** SPU 改名（name 实际变化时）同事务重刷全部存量 SKU 的显示名快照（组合不变、只重拼字符串，价格/库存/spec_key 不动），使购物车/订单/列表不留旧标题。

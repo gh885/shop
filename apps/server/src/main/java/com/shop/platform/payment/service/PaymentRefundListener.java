@@ -1,7 +1,6 @@
 package com.shop.platform.payment.service;
 
 import com.shop.platform.aftersale.events.AfterSaleRefundedEvent;
-import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.order.events.OrderCancelledEvent;
@@ -72,11 +71,7 @@ public class PaymentRefundListener {
         PaymentGateway.RefundOutcome outcome;
         try {
             outcome = paymentGateway.refund(new PaymentGateway.RefundParams(
-                    success.getId(),
-                    success.getOrderId(),
-                    success.getOrderNo(),
-                    Money.ofFen(success.getAmount(), success.getCurrency()),
-                    reason));
+                    success.getId(), success.getOrderId(), success.getOrderNo(), success.amountAsMoney(), reason));
         } catch (PaymentGatewayException e) {
             if (strict) {
                 throw e;
@@ -96,7 +91,7 @@ public class PaymentRefundListener {
         BizEvent.of("payment.refunded")
                 .put("order_id", success.getOrderId())
                 .put("user_id", userId)
-                .put("amount", Money.ofFen(success.getAmount(), success.getCurrency()))
+                .put("amount", success.amountAsMoney())
                 .put("refund_no", outcome.refundNo())
                 .emit();
     }

@@ -1,7 +1,13 @@
 import { z } from "zod"
 
 import type { CreateCouponTemplateRequest } from "@shop/api/sdk"
-import { isPositiveMoney, yuanToFen, yuanToMoney } from "@shop/common"
+import {
+    COUPON_NAME_MAX,
+    COUPON_NAME_MESSAGE,
+    isPositiveMoney,
+    yuanToFen,
+    yuanToMoney,
+} from "@shop/common"
 
 /**
  * coupon 域 · 表单层：Zod 校验 + 表单形状 → 后端请求的投影。
@@ -22,7 +28,7 @@ const yuanField = (label: string) =>
 
 export const CouponFormSchema = z
     .object({
-        name: z.string().trim().min(1, "请输入券名").max(60, "券名最多 60 字"),
+        name: z.string().trim().min(1, "请输入券名").max(COUPON_NAME_MAX, COUPON_NAME_MESSAGE),
         /** 使用门槛（元）：0 = 无门槛 */
         thresholdYuan: yuanField("门槛金额"),
         /** 减免额（元） */

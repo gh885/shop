@@ -1,11 +1,20 @@
 import type { RecommendTabRequest, RecommendTabResponse } from "@shop/api/sdk"
 import { z } from "zod"
 
-import { CmsTargetSortSchema, targetSortDefaults, toTargetSortFields } from "../constants"
+import {
+    CMS_TAB_NAME_MAX,
+    CmsTargetSortSchema,
+    targetSortDefaults,
+    toTargetSortFields,
+} from "../constants"
 
 export const TabFormSchema = z
     .object({
-        name: z.string().trim().min(1, "请输入词条名").max(32, "词条名最长 32 字"),
+        name: z
+            .string()
+            .trim()
+            .min(1, "请输入词条名")
+            .max(CMS_TAB_NAME_MAX, `词条名最长 ${CMS_TAB_NAME_MAX} 字`),
         isDefault: z.boolean(),
     })
     .merge(CmsTargetSortSchema)

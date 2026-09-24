@@ -17,7 +17,7 @@ public record AddressRequest(
         @NotBlank @Size(max = AddressFieldRules.NAME_MAX) String city,
         @NotBlank @Size(max = AddressFieldRules.NAME_MAX) String district,
         @NotBlank @Size(max = AddressFieldRules.DETAIL_MAX) String detail,
-        @Size(max = 20) String label,
+        @Size(max = AddressFieldRules.LABEL_MAX) String label,
         Boolean isDefault) {
     public AddressRequest {
         if (receiverName != null) receiverName = receiverName.trim();

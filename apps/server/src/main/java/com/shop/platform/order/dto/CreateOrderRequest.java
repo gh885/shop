@@ -1,5 +1,6 @@
 package com.shop.platform.order.dto;
 
+import com.shop.platform.common.NoteFieldRules;
 import com.shop.platform.common.Quantities;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -25,7 +26,9 @@ import java.util.UUID;
 public record CreateOrderRequest(
         @NotNull UUID checkoutKey,
         @NotNull UUID addressId,
-        @NotNull @Size(min = 1, max = Quantities.ORDER_LINES_MAX, message = "结算条目需 1 到 99 行")
+        @NotNull @Size(min = 1, max = Quantities.ORDER_LINES_MAX, message = Quantities.ORDER_LINES_MESSAGE)
                 List<@Valid OrderLineRequest> lines,
-        @Size(max = Quantities.COUPONS_PER_CHECKOUT_MAX, message = "一次结算最多选择 20 张优惠券") List<UUID> userCouponIds,
-        @Size(max = 200, message = "留言最多 200 字") String buyerMessage) {}
+        @Size(max = Quantities.COUPONS_PER_CHECKOUT_MAX, message = Quantities.COUPONS_PER_CHECKOUT_MESSAGE)
+                List<UUID> userCouponIds,
+        @Size(max = NoteFieldRules.FREE_TEXT_MAX, message = "留言最多 " + NoteFieldRules.FREE_TEXT_MAX + " 字")
+                String buyerMessage) {}

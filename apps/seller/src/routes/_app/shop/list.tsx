@@ -1,5 +1,5 @@
 import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop"
-import { SHOP_STATUS_META } from "#/shop/constants"
+import { SHOP_NAME_MAX, SHOP_STATUS_META } from "#/shop/constants"
 import { setCurrentShopId } from "#/shop"
 import { formatDate } from "@shop/app-kit"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
@@ -39,7 +39,11 @@ import { z } from "zod"
 
 /** 开店表单校验：店名长度与后端 @Size 对齐（就近放在表单旁） */
 const CreateShopFormSchema = z.object({
-    name: z.string().trim().min(1, "请输入店铺名称").max(50, "店名最长 50 字"),
+    name: z
+        .string()
+        .trim()
+        .min(1, "请输入店铺名称")
+        .max(SHOP_NAME_MAX, `店名最长 ${SHOP_NAME_MAX} 字`),
 })
 
 export const Route = createFileRoute("/_app/shop/list")({
@@ -297,7 +301,7 @@ function ShopNameForm({
                                 aria-label={label}
                                 aria-invalid={!field.state.meta.isValid}
                                 placeholder="给你的店铺起个名字"
-                                maxLength={50}
+                                maxLength={SHOP_NAME_MAX}
                                 value={field.state.value}
                                 onBlur={field.handleBlur}
                                 onChange={(e) => field.handleChange(e.target.value)}

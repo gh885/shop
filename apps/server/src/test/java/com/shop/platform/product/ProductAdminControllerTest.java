@@ -122,7 +122,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
             sku.setStatus(SkuStatus.ON_SALE);
             when(productQueryService.detail(shopId, productId)).thenReturn(new ProductDetail(draft(), List.of(sku)));
             when(stockReadQuery.availableBySkuIds(any()))
-                    .thenReturn(Map.of(sku.getId(), new StockView(sku.getId(), 5, 0, 5)));
+                    .thenReturn(Map.of(sku.getId(), new StockView(sku.getId(), 5, 5)));
 
             mockMvc.perform(get("/seller/products/{id}", productId)
                             .with(userAuth(userId))

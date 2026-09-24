@@ -19,6 +19,7 @@ import java.util.UUID;
  */
 public record PreviewOrderRequest(
         UUID addressId,
-        @NotNull @Size(min = 1, max = Quantities.ORDER_LINES_MAX, message = "结算条目需 1 到 99 行")
+        @NotNull @Size(min = 1, max = Quantities.ORDER_LINES_MAX, message = Quantities.ORDER_LINES_MESSAGE)
                 List<@Valid OrderLineRequest> lines,
-        @Size(max = Quantities.COUPONS_PER_CHECKOUT_MAX, message = "一次结算最多选择 20 张优惠券") List<UUID> userCouponIds) {}
+        @Size(max = Quantities.COUPONS_PER_CHECKOUT_MAX, message = Quantities.COUPONS_PER_CHECKOUT_MESSAGE)
+                List<UUID> userCouponIds) {}

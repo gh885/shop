@@ -1,5 +1,6 @@
 package com.shop.platform.logistics.dto;
 
+import com.shop.platform.common.NoteFieldRules;
 import com.shop.platform.logistics.model.TrackingNodeCode;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -14,5 +15,5 @@ import java.time.OffsetDateTime;
 public record TrackingNodeRequest(
         @NotNull TrackingNodeCode nodeCode,
         @NotNull OffsetDateTime occurredAt,
-        @Size(max = 200) String description,
+        @Size(max = NoteFieldRules.FREE_TEXT_MAX) String description,
         @Size(max = 100) String location) {}

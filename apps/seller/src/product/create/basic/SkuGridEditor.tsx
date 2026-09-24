@@ -24,6 +24,7 @@ import {
 } from "@shop/ui-web"
 
 import { countInputSchema, yuanPriceSchema } from "#/product/draft-model"
+import { SKU_CODE_MAX } from "#/product/constants"
 import type { SkuDraftRow } from "#/product/draft-model"
 
 /**
@@ -323,7 +324,7 @@ export function SkuGridEditor({
                             <TableCell>
                                 <Input
                                     placeholder="可空"
-                                    maxLength={64}
+                                    maxLength={SKU_CODE_MAX}
                                     value={d.skuCode ?? ""}
                                     onChange={(e) =>
                                         update(i, {

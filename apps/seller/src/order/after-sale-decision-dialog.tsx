@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { useQuery, type UseQueryResult } from "@tanstack/react-query"
 import type { TicketResponse } from "@shop/api/sdk"
-import { formatMoney } from "@shop/common"
+import { formatMoney, NOTE_MAX } from "@shop/common"
 import {
     Badge,
     Button,
@@ -65,7 +65,7 @@ function describeDecision(kind: SaleDecisionKind, data: TicketData | undefined):
 
 /** 拒绝理由：与后端 @NotBlank @Size(max = 200) 同宽（落点是 ticket_events.note 那一列，不给它第二份真相） */
 const RejectSchema = z.object({
-    reason: z.string().trim().min(1, "请填写拒绝理由").max(200, "拒绝理由最长 200 字"),
+    reason: z.string().trim().min(1, "请填写拒绝理由").max(NOTE_MAX, `拒绝理由最长 ${NOTE_MAX} 字`),
 })
 
 export function AfterSaleDecisionDialog({
@@ -232,7 +232,7 @@ function RejectReasonForm({
                         aria-label="拒绝理由"
                         placeholder="例如：退回商品缺少吊牌，影响二次销售"
                         rows={3}
-                        maxLength={200}
+                        maxLength={NOTE_MAX}
                     />
                 )}
             </form.AppField>

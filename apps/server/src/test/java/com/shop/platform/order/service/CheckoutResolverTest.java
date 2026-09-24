@@ -113,7 +113,7 @@ class CheckoutResolverTest {
                 .thenReturn(Map.of(skuId, sku(price, SkuStatus.ON_SALE)));
         lenient()
                 .when(stockReadQuery.availableBySkuIds(anyCollection()))
-                .thenReturn(Map.of(skuId, new StockView(skuId, 10, 0, available)));
+                .thenReturn(Map.of(skuId, new StockView(skuId, 10, available)));
         lenient()
                 .when(productReadQuery.productsByIds(anyCollection()))
                 .thenReturn(Map.of(productId, product(ProductStatus.PUBLISHED)));

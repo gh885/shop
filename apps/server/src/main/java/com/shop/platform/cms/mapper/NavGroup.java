@@ -1,6 +1,7 @@
 package com.shop.platform.cms.mapper;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.shop.platform.cms.dto.CmsFieldRules;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
@@ -14,4 +15,6 @@ import java.util.List;
  * JSONB 整段由运营自由配，DB 里存 {"name":"…"} 完全合法，缺的 components 若按默认发成 null，首页导航整块就读不到了。
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record NavGroup(@NotBlank @Size(max = 64) String name, List<@Size(max = 64) String> items) {}
+public record NavGroup(
+        @NotBlank @Size(max = CmsFieldRules.TITLE_MAX) String name,
+        List<@Size(max = CmsFieldRules.TITLE_MAX) String> items) {}

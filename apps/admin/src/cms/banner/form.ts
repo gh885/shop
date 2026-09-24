@@ -3,6 +3,10 @@ import { z } from "zod"
 
 import {
     blankToUndefined as blank,
+    CMS_KEY_MAX,
+    CMS_SUBTITLE_MAX,
+    CMS_TITLE_MAX,
+    CMS_URL_MAX,
     CmsTargetSortSchema,
     fromDateTimeLocal,
     targetSortDefaults,
@@ -13,11 +17,11 @@ import {
 /** banner 表单值（datetime-local 字符串态；提交时投影成 BannerRequest 的 ISO） */
 export const BannerFormSchema = z
     .object({
-        slot: z.string().trim().min(1, "请输入运营位").max(32),
-        title: z.string().trim().min(1, "请输入标题").max(64),
-        subtitle: z.string().trim().max(128).optional(),
-        imageUrl: z.string().trim().min(1, "请输入图片地址").max(512),
-        link: z.string().trim().max(512).optional(),
+        slot: z.string().trim().min(1, "请输入运营位").max(CMS_KEY_MAX),
+        title: z.string().trim().min(1, "请输入标题").max(CMS_TITLE_MAX),
+        subtitle: z.string().trim().max(CMS_SUBTITLE_MAX).optional(),
+        imageUrl: z.string().trim().min(1, "请输入图片地址").max(CMS_URL_MAX),
+        link: z.string().trim().max(CMS_URL_MAX).optional(),
         startAt: z.string().optional(),
         endAt: z.string().optional(),
     })

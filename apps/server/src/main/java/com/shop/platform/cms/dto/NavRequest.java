@@ -9,10 +9,10 @@ import java.util.List;
 
 /** 创建/更新首页导航条目的入参（更新时忽略 navKey，不可改）。crud 复用同一形状 */
 public record NavRequest(
-        @NotBlank @Size(max = 32) String navKey,
-        @NotBlank @Size(max = 64) String title,
-        @Size(max = 32) String iconKey,
-        @Size(max = 255) String target,
+        @NotBlank @Size(max = CmsFieldRules.KEY_MAX) String navKey,
+        @NotBlank @Size(max = CmsFieldRules.TITLE_MAX) String title,
+        @Size(max = CmsFieldRules.KEY_MAX) String iconKey,
+        @Size(max = CmsFieldRules.TARGET_MAX) String target,
         @Pattern(regexp = LinkTarget.PATTERN, message = "目标类型不支持") String targetType,
-        @Valid @Size(max = 30) List<NavGroup> subs,
+        @Valid @Size(max = CmsFieldRules.SUB_GROUPS_MAX) List<NavGroup> subs,
         Integer sortOrder) {}

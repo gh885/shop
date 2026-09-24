@@ -1,5 +1,11 @@
 import { notify, RegionField } from "@shop/app-kit"
-import { ADDRESS_DETAIL_MAX, ADDRESS_NAME_MAX, regionNamesByCode } from "@shop/common"
+import {
+    ADDRESS_DETAIL_MAX,
+    ADDRESS_NAME_MAX,
+    ADDRESS_PARSE_TEXT_MAX,
+    CONTACT_PHONE_MAX,
+    regionNamesByCode,
+} from "@shop/common"
 import {
     Button,
     Dialog,
@@ -132,7 +138,7 @@ function AddressForm({
                             id="smart-paste"
                             className="h-24 resize-none p-3"
                             placeholder="粘贴文本到此处，将自动识别收货信息,例：淘宝，139********，浙江省杭州市西湖区某小区"
-                            maxLength={500}
+                            maxLength={ADDRESS_PARSE_TEXT_MAX}
                             value={smartText}
                             onChange={(e) => setSmartText(e.target.value)}
                         />
@@ -193,7 +199,7 @@ function AddressForm({
                             required
                             placeholder="请输入手机号"
                             inputMode="tel"
-                            maxLength={20}
+                            maxLength={CONTACT_PHONE_MAX}
                         />
                     )}
                 </form.AppField>

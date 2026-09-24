@@ -1,4 +1,4 @@
-import { addressListOptions, type Address } from "#/address"
+import { addressListOptions, pickedAddressId, type Address } from "#/address"
 import {
     CouponPicker,
     GroupAmountSentence,
@@ -10,7 +10,7 @@ import {
     useCreateOrder,
     checkoutPreviewOptions,
 } from "#/checkout"
-import { formatMoney, isPositiveMoney, sumMoney, timesMoney } from "@shop/common"
+import { formatMoney, isPositiveMoney, NOTE_MAX, sumMoney, timesMoney } from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
@@ -105,9 +105,8 @@ function CheckoutPage() {
     // 每店选中的券：键存在 = 用户已表态（值可为 null = 明确不用券）。这一层只装「用户的决定」，
     // 没表态的店由下面的 effect 补默认值——「未表态」与「选了不用」必须能分开，否则默认选券会覆盖用户。
     const [couponSelection, setCouponSelection] = useState<CouponSelection>({})
-    // 默认选中：已勾选的，否则默认地址，兜底第一条——提交/预览都可用
-    const defaultAddress = addresses.find((a) => a.isDefault) ?? addresses[0]
-    const effectiveAddressId = addressId || defaultAddress?.id || ""
+    // 默认选中：已勾选的，否则默认地址，兜底第一条——判据在 #/address，与下面地址卡片是同一个答案
+    const effectiveAddressId = pickedAddressId(addresses, addressId)
     const preview = useQuery(
         checkoutPreviewOptions({
             source,
@@ -214,7 +213,7 @@ function CheckoutPage() {
                                     <Textarea
                                         value={buyerMessage}
                                         onChange={(e) => setBuyerMessage(e.target.value)}
-                                        maxLength={200}
+                                        maxLength={NOTE_MAX}
                                         rows={2}
                                         placeholder="选填，最多 200 字，如发货时间、包装上的要求"
                                     />
@@ -348,8 +347,7 @@ function AddressPicker({
             </Card>
         )
     }
-    // 默认选中：已勾选的，否则默认地址
-    const effectiveId = value || addresses.find((a) => a.isDefault)?.id || addresses[0]!.id
+    const effectiveId = pickedAddressId(addresses, value)
     return (
         <Card>
             <CardHeader>

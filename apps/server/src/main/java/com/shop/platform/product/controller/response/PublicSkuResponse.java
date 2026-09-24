@@ -35,6 +35,6 @@ public record PublicSkuResponse(
                 s.getImage(),
                 s.priceAsMoney(),
                 s.originalPriceAsMoney(),
-                stock == null ? 0 : stock.availableStock());
+                StockView.availableOrZero(stock));
     }
 }

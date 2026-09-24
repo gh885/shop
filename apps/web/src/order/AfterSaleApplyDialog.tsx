@@ -12,6 +12,8 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
+import { NOTE_MAX } from "@shop/common"
+
 import {
     AFTER_SALE_REASON_LABEL,
     AFTER_SALE_REASON_ORDER,
@@ -35,7 +37,7 @@ import { useApplyAfterSale } from "./after-sale-queries"
 const ApplySchema = z.object({
     type: z.enum(TicketType),
     reasonCode: z.enum(AfterSaleReason, { error: "请选择售后原因" }),
-    reason: z.string().max(200, "补充说明最长 200 字"),
+    reason: z.string().max(NOTE_MAX, `补充说明最长 ${NOTE_MAX} 字`),
 })
 
 /** 默认选「仅退款」：更轻的那条路先给，要寄回得自己切过去（两项各有说明，切错成本低）；原因没有默认值（必选） */
@@ -137,7 +139,7 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
                         <field.TextareaField
                             label="补充说明"
                             placeholder="再补一句细节，便于卖家判断（选填）"
-                            maxLength={200}
+                            maxLength={NOTE_MAX}
                             rows={3}
                         />
                     )}

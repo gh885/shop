@@ -28,6 +28,7 @@ import {
 } from "@shop/ui-web"
 
 import { countInputSchema, yuanPriceSchema } from "#/product/draft-model"
+import { SKU_CODE_MAX } from "#/product/constants"
 import { productDetailOptions, useUpdateProductSkus } from "#/product/queries"
 
 export type SkuEditKind = "price" | "stock"
@@ -316,7 +317,7 @@ function SkuLineForm({
                                             {(field) => (
                                                 <field.TextField
                                                     aria-label={`${r.label} 商家编码`}
-                                                    maxLength={64}
+                                                    maxLength={SKU_CODE_MAX}
                                                     className="w-48"
                                                     placeholder="选填，最多 64 位"
                                                 />

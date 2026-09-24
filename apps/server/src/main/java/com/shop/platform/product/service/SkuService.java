@@ -319,10 +319,7 @@ public class SkuService {
             // 本次操作会置停用的行不参与「在售」；未涉及的 SKU 用当前状态与当前库存
             SkuStatus finalStatus = item != null && item.status() != null ? item.status() : s.getStatus();
             if (finalStatus != SkuStatus.ON_SALE) return false;
-            int finalStock = item != null
-                    ? item.stock()
-                    : stocks.getOrDefault(s.getId(), new StockView(s.getId(), 0, 0, 0))
-                            .stock();
+            int finalStock = item != null ? item.stock() : StockView.stockOrZero(stocks.get(s.getId()));
             return finalStock > 0;
         });
         Validate.isTrue(anyOnSaleWithStock, "上架商品的库存不能全为 0，请先下架商品或补充库存");

@@ -29,7 +29,7 @@ public class StockReadQuery {
                     UUID skuId = rs.getObject("sku_id", UUID.class);
                     int stock = rs.getObject("stock", Integer.class);
                     int frozen = rs.getObject("frozen_stock", Integer.class);
-                    return new StockView(skuId, stock, frozen, stock - frozen);
+                    return new StockView(skuId, stock, stock - frozen);
                 });
     }
 }

@@ -10,7 +10,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { TARGET_TYPE_ITEMS } from "../constants"
+import { CMS_SUBTITLE_MAX, CMS_TARGET_MAX, CMS_TITLE_MAX, TARGET_TYPE_ITEMS } from "../constants"
 import { bannerDefaults, BannerFormSchema, toBannerRequest } from "./form"
 import { useCreateBanner, useUpdateBanner } from "./queries"
 
@@ -98,7 +98,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                             className="col-span-2"
                             label="主标题"
                             required
-                            maxLength={64}
+                            maxLength={CMS_TITLE_MAX}
                         />
                     )}
                 </form.AppField>
@@ -107,7 +107,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                         <field.TextField
                             className="col-span-2"
                             label="副标题"
-                            maxLength={128}
+                            maxLength={CMS_SUBTITLE_MAX}
                         />
                     )}
                 </form.AppField>
@@ -135,6 +135,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                         <field.TextField
                             label="跳转目标"
                             placeholder="商品/类目 ID、活动名或搜索词"
+                            maxLength={CMS_TARGET_MAX}
                         />
                     )}
                 </form.AppField>

@@ -14,6 +14,9 @@
  * - createMeQuery：当前登录者查询（key / 新鲜度 / enabled 条件三端统一）
  * - MutationMeta / optimisticListMutationOptions：写操作的声明面与乐观更新配方
  * - PaginationBar：列表分页条（页码算法 + ui-web 原语渲染，页码存哪由调用方决定）
+ *
+ * 账号侧表单格式规则（手机号形状/位数、验证码位数、密码下限）的 owner 也在本包
+ * （`login-schema.ts`）：登录框在这里，而邀请成员、注销确认这些入口复用同一条规则。
  */
 
 export { WorkbenchSidebar } from "./workbench/sidebar"
@@ -26,6 +29,16 @@ export { copyWithNotify } from "./copy-text"
 export { formatDate, formatDateTime, formatTimeShort } from "./format"
 export { PaginationBar, paged, type PagedItems } from "./pagination-bar"
 export { LoginForm } from "./login-form"
+export {
+    CAPTCHA_CODE_DIGITS,
+    NICKNAME_MAX,
+    PHONE_DIGITS,
+    PHONE_PATTERN,
+    PASSWORD_MIN,
+    PhoneSchema,
+    SMS_CODE_DIGITS,
+    SmsCodeSchema,
+} from "./login-schema"
 export { RegionField } from "./region-field"
 export { createImgUrl } from "./image"
 export { createAppQueryClient } from "./query-client"

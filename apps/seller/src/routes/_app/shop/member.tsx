@@ -28,8 +28,14 @@ import {
 } from "@shop/ui-web"
 import { z } from "zod"
 
-/** 邀请手机号校验：与后端手机号 @Pattern 对齐（就近放在表单旁） */
-const InviteFormSchema = z.object({ phone: z.string().regex(/^1\d{10}$/, "请输入正确的手机号") })
+import { PHONE_DIGITS, PhoneSchema } from "@shop/app-kit"
+
+/**
+ * 邀请手机号校验：形状 owner 是登录那一侧的 `PhoneSchema`（app-kit），不是「就近再写一份正则」。
+ * 此前这里写的是 `^1\d{10}$`，比登录的 `^1[3-9]\d{9}$` 宽——后果不是报错而是「邀请进去的手机号登录不了」，
+ * 且两处规则对任何门禁都不可见（GEN-58）。
+ */
+const InviteFormSchema = z.object({ phone: PhoneSchema })
 
 export const Route = createFileRoute("/_app/shop/member")({
     component: MembersPage,
@@ -202,7 +208,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                             aria-invalid={!field.state.meta.isValid}
                                             placeholder="输入对方手机号，邀请加入店铺"
                                             inputMode="tel"
-                                            maxLength={11}
+                                            maxLength={PHONE_DIGITS}
                                             value={field.state.value}
                                             onBlur={field.handleBlur}
                                             onChange={(e) =>

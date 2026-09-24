@@ -3,11 +3,14 @@ import { z } from "zod"
 import {
     ADDRESS_DETAIL_MAX,
     ADDRESS_NAME_MAX,
+    COMPANY_NAME_MAX,
+    CONTACT_PHONE_MAX,
+    NOTE_MAX,
+    POSTAL_CODE_MAX,
     AddressDetailSchema,
     AddressPhoneSchema,
     AddressRegionCodeSchema,
 } from "@shop/common"
-
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 /**
@@ -30,11 +33,15 @@ export const AddressFormSchema = z.object({
     postalCode: z
         .string()
         .trim()
-        .regex(/^\d{6}$/, "邮编格式不正确")
+        .regex(new RegExp(`^\\d{${POSTAL_CODE_MAX}}$`), "邮编格式不正确")
         .optional()
         .or(z.literal("")),
-    companyName: z.string().trim().max(60, "公司名称最长 60 字").optional(),
-    note: z.string().trim().max(200, "备注最长 200 字").optional(),
+    companyName: z
+        .string()
+        .trim()
+        .max(COMPANY_NAME_MAX, `公司名称最长 ${COMPANY_NAME_MAX} 字`)
+        .optional(),
+    note: z.string().trim().max(NOTE_MAX, `备注最长 ${NOTE_MAX} 字`).optional(),
     defaultShip: z.boolean(),
     defaultReturn: z.boolean(),
 })
@@ -53,7 +60,7 @@ export const CONTACT_FIELDS = [
         name: "phone",
         label: "联系电话",
         placeholder: "请输入手机号",
-        maxLength: 20,
+        maxLength: CONTACT_PHONE_MAX,
         inputMode: "tel",
     },
 ] as const
@@ -66,14 +73,19 @@ export const ADDRESS_FIELDS = [
         maxLength: ADDRESS_DETAIL_MAX,
         required: true,
     },
-    { name: "postalCode", label: "邮政编码", placeholder: "填写邮政编码（可选）", maxLength: 6 },
+    {
+        name: "postalCode",
+        label: "邮政编码",
+        placeholder: "填写邮政编码（可选）",
+        maxLength: POSTAL_CODE_MAX,
+    },
     {
         name: "companyName",
         label: "公司名称",
         placeholder: "填写地址所属的公司名称（面单寄件人）",
-        maxLength: 60,
+        maxLength: COMPANY_NAME_MAX,
     },
-    { name: "note", label: "备注", placeholder: "填写备注（可选）", maxLength: 200 },
+    { name: "note", label: "备注", placeholder: "填写备注（可选）", maxLength: NOTE_MAX },
 ] as const
 
 /** 编辑目标 → 表单初值（新增模式逐字段落空串、两个默认标记落 false） */

@@ -18,7 +18,14 @@ import {
 } from "@shop/ui-web"
 
 import { notify } from "./notify"
-import { PasswordFormSchema, PHONE_PATTERN, SmsFormSchema } from "./login-schema"
+import {
+    CAPTCHA_CODE_DIGITS,
+    PHONE_DIGITS,
+    PHONE_PATTERN,
+    PasswordFormSchema,
+    SMS_CODE_DIGITS,
+    SmsFormSchema,
+} from "./login-schema"
 import { useCaptcha } from "./use-captcha"
 import { useCountdown } from "./use-countdown"
 
@@ -275,7 +282,7 @@ export function LoginForm({
                                 placeholder="11 位手机号"
                                 inputMode="tel"
                                 autoComplete="tel"
-                                maxLength={11}
+                                maxLength={PHONE_DIGITS}
                                 value={field.state.value}
                                 onBlur={field.handleBlur}
                                 onChange={(e) =>
@@ -306,7 +313,7 @@ export function LoginForm({
                                     className="px-3.5"
                                     placeholder="输入右图 4 位字符"
                                     autoComplete="off"
-                                    maxLength={4}
+                                    maxLength={CAPTCHA_CODE_DIGITS}
                                     value={field.state.value}
                                     onBlur={field.handleBlur}
                                     onChange={(e) => {
@@ -362,7 +369,7 @@ export function LoginForm({
                                     placeholder="请输入验证码"
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
-                                    maxLength={6}
+                                    maxLength={SMS_CODE_DIGITS}
                                     value={field.state.value}
                                     onBlur={field.handleBlur}
                                     onChange={(e) => {

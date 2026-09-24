@@ -15,7 +15,6 @@ import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Text;
@@ -441,8 +440,8 @@ public class AfterSaleService {
     private void refund(Ticket ticket, TicketAction action, String note) {
         OffsetDateTime now = OffsetDateTime.now();
         transition(ticket, action, note, u -> u.set(Ticket::getRefundedAt, now));
-        events.publishEvent(new AfterSaleRefundedEvent(
-                ticket.getOrderId(), ticket.getUserId(), Money.ofFen(ticket.getRefundAmount(), ticket.getCurrency())));
+        events.publishEvent(
+                new AfterSaleRefundedEvent(ticket.getOrderId(), ticket.getUserId(), ticket.refundAmountAsMoney()));
         // 退券：整单退款要把券还给买家（另发新券，原券保持 USED）。没用券、或券已过期时无副作用。
         // 与退款同事务：退款成立而券没退（或反之）都是对不上账的半成品
         couponCommand.returnOnRefund(ticket.getOrderId());

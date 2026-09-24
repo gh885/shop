@@ -1,6 +1,7 @@
 package com.shop.platform.shop.dto;
 
 import com.shop.platform.common.AddressFieldRules;
+import com.shop.platform.common.NoteFieldRules;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
 import com.shop.platform.infra.region.RegionRegistry;
@@ -32,7 +33,7 @@ public record MerchantAddressRequest(
          */
         @Schema(nullable = true) @Size(max = 6) @Pattern(regexp = "^\\d{6}$", message = "邮编格式不正确") String postalCode,
         @Schema(nullable = true) @Size(max = 60) String companyName,
-        @Schema(nullable = true) @Size(max = 200) String note,
+        @Schema(nullable = true) @Size(max = NoteFieldRules.FREE_TEXT_MAX) String note,
         Boolean defaultShip,
         Boolean defaultReturn) {
     public MerchantAddressRequest {

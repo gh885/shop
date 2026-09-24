@@ -163,23 +163,30 @@ useMutation({
 - `apps/seller/src/layout/Sidebar.tsx` 是个只转发的包装，却和 `@shop/ui-web` 的 `Sidebar` 重名——本地能 import 到的那个遮蔽了包里的那个。包装已删，`AppShell` 直接用 `WorkbenchSidebar`。
 - 同一张卡片上「已售 1234」和「1.2千人收藏」并存：销量只折万、收藏多一条千位折档，**同一个数两种读法**。折万算式收进 `compactCount` 后收藏数弃用了千档。
 
-| 概念         | 唯一出口                                                                     | 落在哪                                                                                              |
-| ------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 手机号掩码   | `maskPhone` / `MASK_SEGMENT`（`mask.ts`）                                    | `@shop/common`；`ui-web` 的 `MaskedValue` 持同形常量                                                |
-| 大数折万     | `compactCount`（`count.ts`）                                                 | `@shop/common`                                                                                      |
-| 复制 + 反馈  | `copyWithNotify`（`copy-text.ts`）                                           | `@shop/app-kit`（要弹 toast，属展示胶水）                                                           |
-| 金额         | `money.ts` 一族（见上一节）                                                  | `@shop/common`                                                                                      |
-| 地址字段口径 | `ADDRESS_NAME_MAX` / `ADDRESS_DETAIL_MAX` / 三个 schema（`address.ts`）      | `@shop/common`；数字的对端在 Java `common/AddressFieldRules`                                        |
-| 运单字段口径 | `CARRIER_NAME_MAX` / `TRACKING_NO_MAX` / `TrackingNoSchema`（`tracking.ts`） | `@shop/common`；数字的对端在 Java `common/TrackingFieldRules`（承运商 code 不镜像：它不是用户输入） |
+| 概念         | 唯一出口                                                                                      | 落在哪                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 手机号掩码   | `maskPhone` / `MASK_SEGMENT`（`mask.ts`）                                                     | `@shop/common`；`ui-web` 的 `MaskedValue` 持同形常量                                                                |
+| 大数折万     | `compactCount`（`count.ts`）                                                                  | `@shop/common`                                                                                                      |
+| 复制 + 反馈  | `copyWithNotify`（`copy-text.ts`）                                                            | `@shop/app-kit`（要弹 toast，属展示胶水）                                                                           |
+| 金额         | `money.ts` 一族（见上一节）                                                                   | `@shop/common`                                                                                                      |
+| 地址字段口径 | `ADDRESS_NAME_MAX` / `ADDRESS_DETAIL_MAX` / 三个 schema（`address.ts`）                       | `@shop/common`；数字的对端在 Java `common/AddressFieldRules`                                                        |
+| 运单字段口径 | `CARRIER_NAME_MAX` / `TRACKING_NO_MAX` / `TrackingNoSchema`（`tracking.ts`）                  | `@shop/common`；数字的对端在 Java `common/TrackingFieldRules`（承运商 code 不镜像：它不是用户输入）                 |
+| 商品字段口径 | `PRODUCT_NAME_MAX` / `SELL_POINT_MIN` / `SELL_POINT_MAX` / 两个 schema（`product-fields.ts`） | `@shop/common`；对端在 Java `product.dto.ProductFieldRules`，含提示语逐字节相同                                     |
+| 备注字数预算 | `NOTE_MAX`（`note-fields.ts`）                                                                | `@shop/common`；对端在 Java `common/NoteFieldRules`——买卖家备注、售后理由、运营补录轨迹描述等七个入参共用这一份预算 |
+| 券名口径     | `COUPON_NAME_MAX` / `COUPON_NAME_MESSAGE`（`coupon.ts`）                                      | `@shop/common`；对端在 Java `coupon.dto.CouponFieldRules`，提示语由数字派生                                         |
+| 地址标签     | `ADDRESS_LABEL_MAX`（`address.ts`）                                                           | `@shop/common`；对端在 Java `common/AddressFieldRules`，app 侧可更严（见下面第 5 条）                               |
+| 登录手机号   | `PHONE_PATTERN` / `PHONE_DIGITS`（`login-schema.ts`）                                         | `@shop/app-kit`；位数与形状谁改都当场红（门禁第 5 条互推）                                                          |
+| CMS 定位值   | `CMS_TARGET_MAX` / `CMS_URL_MAX`（`apps/admin/src/cms/constants.ts`）                         | **app 本地** owner：只有 admin 三页用，不必进 `common`；对端在 Java `cms.dto.CmsFieldRules`                         |
 
-后两行不归下面这个门禁管：它们是**跨语言**的等式（TS ↔ Java ↔ 已发布契约 ↔ 迁移列宽），由后端的 `FieldRuleVocabularyTest` 核对——前端门禁只能扫到前端，用它守三边相等会永远绿。
+凡写着「对端在 Java …」的行都不归下面这个门禁管：它们是**跨语言**的等式（TS ↔ Java ↔ 已发布契约 ↔ 迁移列宽），由后端的 `FieldRuleVocabularyTest` 核对——前端门禁只能扫到前端，用它守三边相等会永远绿。
 
-**门禁**：`packages/common/src/shared-vocabulary.test.ts`（node 环境，扫 `apps/*/src` + `packages/*/src` 全部源码），四条规则各挡一种漂移：
+**门禁**：`packages/common/src/shared-vocabulary.test.ts`（node 环境，扫 `apps/*/src` + `packages/*/src` 全部源码），五条规则各挡一种漂移：
 
 1. **app 不遮蔽包导出**——app 本地导出的符号名不得与 `packages/*` 的导出名相同
 2. **形状的写法只有一份**——`****` / `/ 10000` / `navigator.clipboard.writeText` 这些字面量只许出现在 owner 文件里（判定在**剥掉块注释**后的文本上做：注释里写 `138****0000` 是给人看的示例，不是第二份实现；行注释不剥，宁可误报不空转）
 3. **owner 之间不漂移**——`ui-web` 刻意零内部依赖（纯 UI 包），它的 `MASK_SEGMENT` 必须与 common 的那份**逐字节相等**；常量等式编译期查不了，测试期钉
 4. **owner 不是孤儿**——每个 owner 至少有一个真实调用点，且聚合入口 `src/index.ts` 的 re-export 不算调用点
+5. **一个概念不许各说一半**——同一件事写成两个数时（位数 `PHONE_DIGITS` 与正则 `1[3-9]\d{9}`、上限 `CONTACT_PHONE_MAX` 与正则 `{5,20}`），后者的长度由源码解析出来与前者的值比对，改一个忘另一个当场红。app 侧自设的上限只许**等于或严于**契约，严于必须在表里登记理由（如自定义标签 4 字而契约 20 字：chip 只显示四个字）。判据按**概念**索引，不按数字索引——`64 / 30 / 6 / 200` 这些数在互不相干的概念里撞车，按数字扫会把门禁做成噪音。
 
 外加两条反空转断言：扫描必须真扫到 >300 个文件 / >200 个导出名，每个 owner 剥完注释后仍命中自己的形状。这两条是本门禁自己踩出来的——`sourceFiles()` 早版先判后缀再递归，只扫到 41 个顶层文件，四条规则全绿却是假绿。
 

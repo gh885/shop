@@ -1,6 +1,7 @@
 package com.shop.platform.payment.mapper;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.shop.platform.common.Money;
 import com.shop.platform.infra.db.BaseEntity;
 import com.shop.platform.payment.model.PaymentStatus;
 import java.time.OffsetDateTime;
@@ -56,4 +57,9 @@ public class Payment extends BaseEntity {
 
     /** 渠道侧退款单号：调网关退款受理后回填，对账/客服凭它对得上渠道侧那笔退款 */
     private String refundGatewayNo;
+
+    /** 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段） */
+    public Money amountAsMoney() {
+        return Money.ofFen(amount, currency);
+    }
 }
