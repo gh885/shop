@@ -13,7 +13,7 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.api.CouponCommand;
-import com.shop.platform.infra.observability.MdcScope;
+import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.dto.CreateOrderRequest;
@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,7 +55,6 @@ import org.springframework.transaction.annotation.Transactional;
  * 的审计由 {@link OrderTransitionService} 负责，改变状态的口子全部留痕。
  */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class OrderService {
 
@@ -176,9 +174,17 @@ public class OrderService {
         events.publishEvent(new OrderPlacedEvent(
                 userId, resolved.valid().stream().map(ValidLine::skuId).toList()));
         List<Order> created = staged.stream().map(Map.Entry::getKey).toList();
-        Money totalPayAmount =
-                groups.stream().map(CheckoutPreview.Group::payAmount).reduce(Money.cny(0), Money::plus);
-        log.info("[ORDER] 下单成功, userId={}, 单数={}, 总应付={}", userId, created.size(), totalPayAmount);
+        // 一单一行：多店结算一次产出 N 条，同一批共享 checkout_key（订单表可查），trace_id 天然归组。
+        // 不再另打「单数 / 总应付」的汇总行——那是同一批事实的第二份拷贝，聚合由检索侧做
+        for (Order order : created) {
+            BizEvent.of("order.created")
+                    .put("order_id", order.getId())
+                    .put("user_id", order.getUserId())
+                    .put("shop_id", order.getShopId())
+                    // Money 整体入字段，不拆 amount/currency（口径同 payment.refunded）
+                    .put("pay_amount", Money.ofFen(order.getPayAmount(), order.getCurrency()))
+                    .emit();
+        }
         return created;
     }
 
@@ -240,11 +246,11 @@ public class OrderService {
     @Transactional(readOnly = true)
     public String sellerReceiverPhone(UUID shopId, UUID orderId, UUID operatorId) {
         Order order = orderMapper.requireShopOwned(shopId, orderId);
-        try (MdcScope scope = MdcScope.of("event", "order.receiver_phone_revealed", "shop_id", shopId.toString())
-                .put("order_id", orderId.toString())
-                .put("operator_id", operatorId.toString())) {
-            log.info("[ORDER] 卖家查看收件人电话明文, shopId={}, orderId={}, operatorId={}", shopId, orderId, operatorId);
-        }
+        BizEvent.of("order.receiver_phone_revealed")
+                .put("shop_id", shopId)
+                .put("order_id", orderId)
+                .put("operator_id", operatorId)
+                .emit();
         return order.getReceiverPhone();
     }
 

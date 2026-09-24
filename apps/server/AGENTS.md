@@ -94,6 +94,15 @@ src/main/java/com/shop/platform/
 - **形似而概念不同不许合并**：邮编与区划码同为 6 位数字，各留一份常量
 - 落点归属跟着「门装在哪一层」走，不跟着语义走：DTO 上挂了 `@Pattern` 的筛选值 → 422（GEN-19 ①），service 用 `Validate.enumFilter` 自判的 → 400（GEN-19 ③）。别靠猜，`ProductControllerTest.非法排序_422带字段名` 是实测锚点
 
+## 业务事件：一个出口、一行、一份目录
+
+**埋点只经 `infra.observability.BizEvent`**：`of("name").put(k, v)…emit()`（另有 `warn()` / `error()` / `error(cause)`）一次调用同时写完字段并打出那行，`message` 由字段表生成，值为 `null` 即跳过。`MdcScope` 只管信封（`trace_id` / `version` / `env`），不拿来手写 `event`。细则见 [business-event-logging.md](../../docs/conventions/business-event-logging.md) 与 GEN-48~51、GEN-55。
+
+- **一条业务事实只打一行**：汇总行、复述上一行的 warn、"顺便也记一下"的第二份拷贝都要删。判据是第二行有没有新信息——只是换措辞或计数/求和就没有（聚合交给检索侧）
+- **多条路径汇到一个方法时，事件打在各自入口**：`issueTokens` 同时服务登录与刷新，打在里面就把「续期」计成「登录」；共用同一后果的两条路径则共用一个事件名，用 `via` / `reason` 区分，不另起事件名
+- **目录只有一份，且是核对出来的不是抄出来的**：`BusinessEventCatalogTest`（无库，纯文本扫描）拿代码和文档表逐条对——名字双向相等、必带字段双向包含、可选字段至少有人写、`*.failed` 带 `reason`、成功事件带实体 ID、规则文档反引号点名的名字目录里得有。埋点断言用 `testsupport.EventCapture`（挂根 logger，不挂被测类 logger：落点 logger 是实现细节，换出口会全线误红）
+- **日志文本不是契约**：改事件名、字段、级别不导出进 OpenAPI，不需要 `pnpm gen:sdk`，但目录表得同批改；敏感面例外——手机号只能以 `PhoneNumber.mask()` 的形状入字段，号码明文不入日志（GEN-51）
+
 ## 共享层语义（common / infra）
 
 判据：**换技术会不会重写？** 会 → 技术适配；不会 → 框架无关契约。

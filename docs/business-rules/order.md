@@ -15,7 +15,7 @@
 - **[ORD-07]** 收货地址：下单必填 `addressId`（预览可缺省），必须归属本人且未软删，否则一律 404「收货地址不存在」；下单瞬间把地址展开成订单上的收货快照列（收件人/电话/区划码/省市区/详址），之后改/删地址不影响本单。快照列**存明文**，脱敏只发生在出参（卖家侧看买家号码是掩码，ORD-62）。
 - **[ORD-08]** 买家留言 `buyerMessage` 最长 200 字，可空；落库前 trim，全空白按 null 存。订单详情原样透出，空显示「—」。
 - **[ORD-09]** 业务单号 `orderNo`（对外展示/客服对账用，与 UUID 主键分离）= 17 位毫秒时间戳(yyyyMMddHHmmssSSS) + 6 位主键随机段派生十进制，共 23 字符，全局唯一（`uk_orders_order_no`）；不做撞号重试，靠构造不撞。
-- **[ORD-10]** 新单初始态 `PENDING_PAYMENT`，`afterSaleStatus=NONE`，`payExpireAt = 下单时刻 + 15 分钟`；落一行审计流水（无前态 → PENDING_PAYMENT，动作 CREATE，发起方 BUYER）。
+- **[ORD-10]** 新单初始态 `PENDING_PAYMENT`，`afterSaleStatus=NONE`，`payExpireAt = 下单时刻 + 15 分钟`；落一行审计流水（无前态 → PENDING_PAYMENT，动作 CREATE，发起方 BUYER）。可观测侧一单一行 `order.created`（`order_id`/`user_id`/`shop_id`/`pay_amount`）：一次结算拆出 N 笔就打 N 条，同批共享 `checkout_key`（订单表可查）+ `trace_id` 归组；**不另打「本次几单 / 总应付」的汇总行**——那是同一批事实的第二份拷贝，聚合归检索侧（GEN-55）。
 - **[ORD-11]** 下单在事务内同步冻结库存（`stockCommand.freeze`，inventory::api）：库存不足抛 409 → 整笔下单（含全部拆单）回滚；同时逐单占用选中的券（`couponCommand.lock`，UNUSED→LOCKED），抢不到同样回滚。
 - **[ORD-12]** 下单成功在事务内发布 `OrderPlacedEvent(userId, skuIds)`，cart 同步监听删已购 SKU 条目（见 CART-09）；**立即购买同样发布**——买家已买下该 SKU，车里同款条目一并清掉。
 - **[ORD-13]** 结算预览是只读幂等接口，与创建走**同一条计费路径同一个方法**（同源同口径）；地址可缺省——无地址时运费只能预告 0，且这份预告不能当成交口径（创建必须带真实地址）。预览出参：按店分组（每组=一笔待创建订单）+ 失效行平铺 + 地址回显（可 null）+ 应付总额。

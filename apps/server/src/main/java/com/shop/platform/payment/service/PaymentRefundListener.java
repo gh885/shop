@@ -3,7 +3,7 @@ package com.shop.platform.payment.service;
 import com.shop.platform.aftersale.events.AfterSaleRefundedEvent;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
-import com.shop.platform.infra.observability.MdcScope;
+import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.order.events.OrderCancelledEvent;
 import com.shop.platform.payment.gateway.PaymentGateway;
 import com.shop.platform.payment.gateway.PaymentGatewayException;
@@ -12,7 +12,6 @@ import com.shop.platform.payment.mapper.PaymentMapper;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +29,6 @@ import org.springframework.stereotype.Component;
  * </ul>
  */
 @Component
-@Slf4j
 @RequiredArgsConstructor
 public class PaymentRefundListener {
 
@@ -43,47 +41,34 @@ public class PaymentRefundListener {
         Payment success = paymentMapper.selectSuccessByOrder(event.orderId());
         if (success == null) {
             // 对账缺口埋点（事件规范 docs/conventions/business-event-logging.md）：放行的退款失败必须留下可聚合的 event
-            try (MdcScope _ = MdcScope.of(
-                    "event",
-                    "payment.refund.failed",
-                    "reason",
-                    "no_success_payment",
-                    "order_id",
-                    text(event.orderId()),
-                    "user_id",
-                    text(event.userId()))) {
-                log.error("[PAYMENT] 已付款订单取消但无成功流水可退, orderId={}, userId={}", event.orderId(), event.userId());
-            }
+            BizEvent.of("payment.refund.failed")
+                    .put("reason", "no_success_payment")
+                    .put("order_id", event.orderId())
+                    .put("user_id", event.userId())
+                    .error();
             return;
         }
-        String refundNo = backendRefund(success, "订单取消退款", false, event.userId());
-        if (refundNo == null) {
-            return; // 渠道拒退且不阻塞取消：失败已在 backendRefund 里埋点并打过 ERROR，这里不能再报「已退款」
-        }
-        log.info("[PAYMENT] 订单取消退款, orderId={}, userId={}, refundNo={}", event.orderId(), event.userId(), refundNo);
+        // 渠道拒退也不在这里另报：backendRefund 的放行分支已经埋过 payment.refund.failed，
+        // 调用点再打一句「已退款」就是假报
+        backendRefund(success, "订单取消退款", false, event.userId());
     }
 
     @EventListener
     public void onAfterSaleRefunded(AfterSaleRefundedEvent event) {
         Payment success = Validate.notNull(paymentMapper.selectSuccessByOrder(event.orderId()), "该订单没有可退款的支付流水");
-        String refundNo = backendRefund(success, "售后退款", true, event.userId());
-        log.info(
-                "[PAYMENT] 售后退款到账, orderId={}, userId={}, amount={}, refundNo={}",
-                event.orderId(),
-                event.userId(),
-                event.refundAmount(),
-                refundNo);
+        backendRefund(success, "售后退款", true, event.userId());
     }
 
     /**
-     * 提交渠道退款并落本地退款单。渠道拒退时按 {@code strict} 取舍：{@code false}=放行人工对账（取消），
-     * {@code true}=抛异常回滚（售后）。
+     * 提交渠道退款并落本地退款单，成败各埋一条事件（{@code payment.refunded} / {@code payment.refund.failed}）——
+     * 钱出去了这个动作本身就是对账依据，两条通知共用这一个出口，字段口径才不会分叉。
      *
-     * @param userId 场景字段：退款失败事件（payment.refund.failed / gateway_rejected）里的 user_id，可为 null
-     * @return 渠道侧退款单号（对账凭据）；放行的失败返回 null。不能读 {@code success.getRefundGatewayNo()}
-     *     ——refundByOrder 是条件更新语句，不回写内存实体，那里恒为退款前的 null
+     * <p>拒退时按 {@code strict} 取舍：{@code false}=放行人工对账（取消），{@code true}=抛异常回滚（售后）。
+     *
+     * @param reason 送渠道的退款原因文案，两条通知各报自己的场景（对账时看得懂这笔钱为什么退）
+     * @param userId 事件里的 user_id，可为 null
      */
-    private String backendRefund(Payment success, String reason, boolean strict, UUID userId) {
+    private void backendRefund(Payment success, String reason, boolean strict, UUID userId) {
         PaymentGateway.RefundOutcome outcome;
         try {
             outcome = paymentGateway.refund(new PaymentGateway.RefundParams(
@@ -97,29 +82,22 @@ public class PaymentRefundListener {
                 throw e;
             }
             // 放行分支同样是对账缺口：埋失败事件，reason=gateway_rejected，error.* 按规范带上渠道异常
-            try (MdcScope _ = MdcScope.of(
-                    "event",
-                    "payment.refund.failed",
-                    "reason",
-                    "gateway_rejected",
-                    "order_id",
-                    text(success.getOrderId()),
-                    "user_id",
-                    text(userId),
-                    "error.type",
-                    e.getClass().getSimpleName(),
-                    "error.message",
-                    e.getMessage())) {
-                log.error("[PAYMENT] 渠道退款失败但不阻塞取消, orderId={}, reason={}", success.getOrderId(), reason, e);
-            }
-            return null;
+            BizEvent.of("payment.refund.failed")
+                    .put("reason", "gateway_rejected")
+                    .put("order_id", success.getOrderId())
+                    .put("user_id", userId)
+                    .put("error.type", e.getClass().getSimpleName())
+                    .put("error.message", e.getMessage())
+                    .error(e);
+            return;
         }
         paymentMapper.refundByOrder(success.getOrderId(), OffsetDateTime.now(), outcome.refundNo());
-        return outcome.refundNo();
-    }
-
-    /** MDC 值适配：null 归 null 而非 "null" 字面量（MdcScope 对 null 值跳过该键） */
-    private static String text(Object value) {
-        return value == null ? null : value.toString();
+        // 金额以 Money 形状进事件：amount 与 currency 拆成两格就会有人只抄到一半
+        BizEvent.of("payment.refunded")
+                .put("order_id", success.getOrderId())
+                .put("user_id", userId)
+                .put("amount", Money.ofFen(success.getAmount(), success.getCurrency()))
+                .put("refund_no", outcome.refundNo())
+                .emit();
     }
 }

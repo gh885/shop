@@ -8,7 +8,7 @@ import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
-import com.shop.platform.infra.observability.MdcScope;
+import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.infra.security.DeviceInfo;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
@@ -103,10 +103,16 @@ public class AuthService {
         }
 
         // 3. 账号状态检查：与密码登录同门槛，禁用账号不得借短信通道绕过
-        ensureUserActive(user);
+        ensureLoginActive(user, clientIp);
 
-        // 4. 签发 Token
-        return issueTokens(user, deviceId, clientIp, userAgent);
+        // 4. 签发 Token；登录成功事件打在入口而不是 issueTokens 里——刷新也走同一个签发方法，
+        //    打在里面会把「续期」计成「登录」，登录量与漏斗都失真
+        TokenPair tokens = issueTokens(user, deviceId, clientIp, userAgent);
+        BizEvent.of("auth.login.succeeded")
+                .put("user_id", user.getId())
+                .put("via", "sms")
+                .emit();
+        return tokens;
     }
 
     // 密码登录
@@ -120,13 +126,18 @@ public class AuthService {
         User user = authenticate(phone, password, clientIp);
 
         // 3. 检查账号状态
-        ensureUserActive(user);
+        ensureLoginActive(user, clientIp);
 
         // 4. 登录成功清除失败计数（LOGIN-08）
         clearPasswordRateLimit(phone, clientIp);
 
         // 5. 签发 Token
-        return issueTokens(user, deviceId, clientIp, userAgent);
+        TokenPair tokens = issueTokens(user, deviceId, clientIp, userAgent);
+        BizEvent.of("auth.login.succeeded")
+                .put("user_id", user.getId())
+                .put("via", "password")
+                .emit();
+        return tokens;
     }
 
     // 设置/修改密码
@@ -153,7 +164,11 @@ public class AuthService {
         // 5. 改密后吊销该用户所有 device 的 refresh token（REVOKE-02）
         deleteAllRefreshTokens(userId);
 
-        log.info("[AUTH] 密码修改成功, userId={}", userId);
+        // 口令被更换 + 全端会话被吊销，是一次账号接管里最需要被检索到的那行
+        BizEvent.of("auth.password.changed")
+                .put("user_id", userId)
+                .put("via", "self")
+                .emit();
     }
 
     // 密码重置
@@ -180,6 +195,12 @@ public class AuthService {
 
             // RESET-03: 重置后吊销该用户所有 session
             deleteAllRefreshTokens(user.getId());
+            // 与 setPassword 同一个事件：走短信码改密和走当前密码改密是同一后果（口令更换 + 全端下线），
+            // 只有 via 不同——取证时按 user_id 串起来看的是「谁在什么时候换掉了这个号」
+            BizEvent.of("auth.password.changed")
+                    .put("user_id", user.getId())
+                    .put("via", "reset_code")
+                    .emit();
         }
     }
 
@@ -194,7 +215,10 @@ public class AuthService {
         User user = userMapper.selectById(UUID.fromString(rotated.subjectId()));
         if (user == null) throw BusinessException.notFound("用户不存在");
         ensureUserActive(user);
-        return issueTokens(user, rotated.deviceId(), clientIp, userAgent);
+        TokenPair tokens = issueTokens(user, rotated.deviceId(), clientIp, userAgent);
+        // 续期不是登录（登录量只在两个 login* 入口打），但它同样是一次会话易主，值得单独可检索
+        BizEvent.of("auth.token.refreshed").put("user_id", user.getId()).emit();
+        return tokens;
     }
 
     // 当前用户
@@ -254,12 +278,17 @@ public class AuthService {
      * REFRESH_TOKEN_REUSED 全端吊销（ACC-22），无复活路径； 3) 重新登录（短信/密码）被 USER_DISABLED
      * 闸门直接拦（短信通道不能绕过）。 启用即恢复：闸门查实时状态，status 回 ACTIVE 后登录/刷新恢复放行。
      */
-    public void updateUserStatus(UUID userId, UserStatus status) {
+    public void updateUserStatus(UUID userId, UserStatus status, UUID staffId) {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
         user.setStatus(status);
         userMapper.updateById(user);
-        log.info("[AUTH] 管理端变更账号状态, userId={}, status={}", userId, status);
+        // 封号是人对人做的动作，操作人必须落在同一条事件里（口径同 shop_review.decided）
+        BizEvent.of("account.status.changed")
+                .put("user_id", userId)
+                .put("status", status)
+                .put("staff_id", staffId)
+                .emit();
     }
 
     // 限流
@@ -273,6 +302,12 @@ public class AuthService {
         if (ipLimited || userLimited) {
             // 限流时仍执行 BCrypt 对比，防止通过返回时长探测账号是否存在（LOGIN-01）
             passwordEncoder.matches(password, DUMMY_PASSWORD_HASH);
+            // 命中限流 = 爆破正在进行，这是最该被检索到的一次失败；对外文案仍与凭证失败同一句
+            BizEvent.of("auth.login.failed")
+                    .put("reason", "rate_limited")
+                    .put("client_ip", ip)
+                    .put("phone", PhoneNumber.mask(phone))
+                    .warn();
             throw BusinessException.unauthorized("手机号或密码错误");
         }
     }
@@ -302,23 +337,25 @@ public class AuthService {
         return user;
     }
 
-    /** 登录失败的统一出口：内部分支记精确原因（供运营排查），对外一律同一句话；MDC 供日志检索聚合 */
+    /**
+     * 登录失败的统一出口：对外一律同一句话，精确原因只进事件（{@code reason} 供运营揪撞库与聚合，
+     * GEN-49 要求枚举值）；未注册那支没有 user_id 可记，改带掩码号——身份仍是不可反推的形状。
+     */
     private BusinessException loginRejected(User user, String phone, String clientIp) {
         String reason;
         if (user == null) {
             reason = "user_not_found";
-            log.warn("[AUTH] 登录失败：用户不存在, phone={}, ip={}", PhoneNumber.mask(phone), clientIp);
         } else if (user.getPasswordHash() == null) {
             reason = "no_password";
-            log.warn("[AUTH] 登录失败：未设置密码, userId={}, ip={}", user.getId(), clientIp);
         } else {
             reason = "wrong_password";
-            log.warn("[AUTH] 登录失败：密码错误, userId={}, ip={}", user.getId(), clientIp);
         }
-        try (MdcScope scope = MdcScope.of("event", "auth.login.failed", "reason", reason, "client_ip", clientIp)) {
-            scope.put("user_id", user == null ? null : user.getId().toString());
-            log.warn("[AUTH] 登录失败, reason={}, client_ip={}", reason, clientIp);
-        }
+        BizEvent.of("auth.login.failed")
+                .put("reason", reason)
+                .put("client_ip", clientIp)
+                .put("user_id", user == null ? null : user.getId())
+                .put("phone", user == null ? PhoneNumber.mask(phone) : null)
+                .warn();
         return BusinessException.unauthorized("手机号或密码错误");
     }
 
@@ -326,6 +363,23 @@ public class AuthService {
         if (!user.isActive()) {
             throw BusinessException.forbidden("USER_DISABLED", "账号已被禁用");
         }
+    }
+
+    /**
+     * 登录路径的禁用闸门：对外仍是同一个 USER_DISABLED 403，但「已封的号还在试口令」本身是审计信号，
+     * 过去只有响应体、日志里查不到（reason=disabled 与凭证层的三种失败同名不同值）。
+     * 刷新路径不打它——那是一次续期，不是一次登录尝试。
+     */
+    private void ensureLoginActive(User user, String clientIp) {
+        if (user.isActive()) {
+            return;
+        }
+        BizEvent.of("auth.login.failed")
+                .put("reason", "disabled")
+                .put("client_ip", clientIp)
+                .put("user_id", user.getId())
+                .warn();
+        throw BusinessException.forbidden("USER_DISABLED", "账号已被禁用");
     }
 
     // Token 签发
@@ -341,12 +395,7 @@ public class AuthService {
         user.setLastLoginAt(OffsetDateTime.now());
         userMapper.updateById(user);
 
-        // EVT-12: 登录成功事件
-        try (MdcScope _ = MdcScope.of(
-                "event", "auth.login.succeeded", "user_id", user.getId().toString())) {
-            log.info("[AUTH] 登录成功, userId={}", user.getId());
-        }
-
+        // 这里不打业务事件：登录/刷新两条路径都汇到本方法，事件归入口（见 loginBySms 注释）
         return new TokenPair(accessToken, refreshToken);
     }
 

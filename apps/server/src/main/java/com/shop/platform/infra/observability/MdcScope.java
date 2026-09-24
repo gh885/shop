@@ -8,8 +8,8 @@ import org.slf4j.MDC;
  * 一段带结构化字段的日志作用域：进入时写 MDC，离开时精确回滚。
  *
  * <pre>{@code
- * try (var scope = MdcScope.of("event", "auth.login.failed", "reason", reason)) {
- *     log.warn("[AUTH] 登录失败, reason={}", reason);
+ * try (var scope = MdcScope.of("trace_id", id, "env", env)) {
+ *     log.info("...");
  * }
  * }</pre>
  *
@@ -18,6 +18,10 @@ import org.slf4j.MDC;
  * MDC 污染，表现为另一个请求的日志上莫名挂着别人的 user_id，几乎无法排查。
  *
  * <p>回滚而非清空：嵌套作用域下恢复外层原值（RequestIdFilter 的 trace_id 等不受影响）。
+ *
+ * <p><b>业务事件不要用它</b>，走 {@link BizEvent}：这个形状把「埋字段」和「打那行日志」交给调用方分两步做，
+ * 忘了第二步就是一个静默丢失的事件；而且 {@code BusinessEventCatalogTest} 挡着绕过出口手写 {@code event}。
+ * 本类留下的是信封与上下文字段的写法（RequestIdFilter 的 trace_id/version/env）。
  */
 public final class MdcScope implements AutoCloseable {
 

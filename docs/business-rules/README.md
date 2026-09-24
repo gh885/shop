@@ -17,7 +17,7 @@
 | [account.md](account.md)     | 店铺 / 账号 / 权限（含全局会话行为）                               | ACC              | 71   | 4      |
 | [cms.md](cms.md)             | 内容 / 首页 / 推荐                                                 | CMS 等           | 53   | 5      |
 | [money.md](money.md)         | 金额与币种（Money 全链路）                                         | MONEY            | 12   | —      |
-| [crosscut.md](crosscut.md)   | 横切全局行为（错误信封 / 传输 / 写反馈 / 事件日志 / 入站校验词表） | GEN              | 23   | —      |
+| [crosscut.md](crosscut.md)   | 横切全局行为（错误信封 / 传输 / 写反馈 / 事件日志 / 入站校验词表） | GEN              | 24   | —      |
 
 「生效」= 代码已落的规则条数；「待落地」= 文件末「已定案未实现」节里已拍板、代码还没有的条数（`CPN-N*` / `ACC-57~60` / `FUT-*`）。
 

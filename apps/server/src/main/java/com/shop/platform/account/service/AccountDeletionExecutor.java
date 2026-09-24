@@ -4,12 +4,11 @@ import com.shop.platform.account.events.UserDeletedEvent;
 import com.shop.platform.account.mapper.AddressMapper;
 import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.account.model.AccountDeletionTimeouts;
-import com.shop.platform.infra.observability.MdcScope;
+import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
  * 不会出现「号已注销、购物车还挂在那个手机号上」这种半截状态。
  */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class AccountDeletionExecutor {
 
@@ -58,10 +56,10 @@ public class AccountDeletionExecutor {
         // 会话吊销排在最后：Redis 不在事务里，回滚了也退不回来——宁可多踢一次，不要注销失败却把人留着
         refreshTokenStore.revokeAll(userId.toString());
 
-        try (MdcScope scope = MdcScope.of("event", "user.deleted", "user_id", userId.toString())) {
-            scope.put("address_count", String.valueOf(addresses));
-            log.info("[ACCOUNT] 账号注销生效, userId={}, addresses={}", userId, addresses);
-        }
+        BizEvent.of("user.deleted")
+                .put("user_id", userId)
+                .put("address_count", addresses)
+                .emit();
         return true;
     }
 

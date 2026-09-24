@@ -8,8 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.StaffContext;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -18,13 +20,19 @@ import org.springframework.http.MediaType;
  * 管理端封号接口契约。分组 = 接口路径（{@code @Nested} 一层一条路由），方法 = HTTP 语义场景。
  *
  * <p>HTTP 独有：守卫（401，kind=user token 进不了 /admin 链）、校验（422 缺 status / 400 非法枚举值）、
- * 路由与参数绑定（verify 透传 id + status）、service 错误码冒泡（404）。
+ * 路由与参数绑定（verify 透传 id + status + 当前员工）、service 错误码冒泡（404）。
  * 状态变更与会话吊销规则归 AuthServiceTest / StaffServiceTest。
  */
 class AdminAccountControllerTest extends WebControllerTestSupport {
 
     private final UUID targetId = UUID.randomUUID();
     private final UUID staffId = UUID.randomUUID();
+
+    /** 测试里手动 set 的操作人上下文不随请求结束，不清会漏给同一个线程后面的用例 */
+    @AfterEach
+    void clearStaffContext() {
+        StaffContext.clear();
+    }
 
     // PATCH /admin/users/{id}/status
     @Nested
@@ -48,14 +56,16 @@ class AdminAccountControllerTest extends WebControllerTestSupport {
         }
 
         @Test
-        void 禁用_透传id与状态() throws Exception {
+        void 禁用_透传id状态与操作人() throws Exception {
+            // 操作人取当前登录员工（StaffContext），审计事件 account.status.changed 靠它落 staff_id
+            StaffContext.set(staffId);
             mockMvc.perform(patch("/admin/users/{id}/status", targetId)
                             .with(staffAuth(staffId))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"status\": \"DISABLED\"}"))
                     .andExpect(status().isOk());
 
-            verify(authService).updateUserStatus(targetId, UserStatus.DISABLED);
+            verify(authService).updateUserStatus(targetId, UserStatus.DISABLED, staffId);
         }
 
         @Test
@@ -80,7 +90,7 @@ class AdminAccountControllerTest extends WebControllerTestSupport {
         void 用户不存在_404冒泡() throws Exception {
             doThrow(BusinessException.notFound("用户不存在"))
                     .when(authService)
-                    .updateUserStatus(eq(targetId), any(UserStatus.class));
+                    .updateUserStatus(eq(targetId), any(UserStatus.class), any());
 
             mockMvc.perform(patch("/admin/users/{id}/status", targetId)
                             .with(staffAuth(staffId))
@@ -95,14 +105,15 @@ class AdminAccountControllerTest extends WebControllerTestSupport {
     class 封禁员工 {
 
         @Test
-        void 禁用_透传id与状态() throws Exception {
+        void 禁用_透传id状态与操作人() throws Exception {
+            StaffContext.set(staffId);
             mockMvc.perform(patch("/admin/staff/{id}/status", targetId)
                             .with(staffAuth(staffId))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"status\": \"DISABLED\"}"))
                     .andExpect(status().isOk());
 
-            verify(staffService).updateStaffStatus(targetId, StaffStatus.DISABLED);
+            verify(staffService).updateStaffStatus(targetId, StaffStatus.DISABLED, staffId);
         }
 
         @Test
@@ -118,7 +129,7 @@ class AdminAccountControllerTest extends WebControllerTestSupport {
         void 员工不存在_404冒泡() throws Exception {
             doThrow(BusinessException.notFound("员工不存在"))
                     .when(staffService)
-                    .updateStaffStatus(eq(targetId), any(StaffStatus.class));
+                    .updateStaffStatus(eq(targetId), any(StaffStatus.class), any());
 
             mockMvc.perform(patch("/admin/staff/{id}/status", targetId)
                             .with(staffAuth(staffId))

@@ -11,6 +11,7 @@ import com.shop.platform.account.service.StaffService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
+import com.shop.platform.testsupport.EventCapture;
 import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ class StaffServiceTest {
     StaffService staffService;
 
     private static final UUID STAFF_ID = UUID.randomUUID();
+    private static final UUID OPERATOR_ID = UUID.randomUUID();
 
     @Captor
     ArgumentCaptor<Staff> staffCaptor;
@@ -61,6 +63,44 @@ class StaffServiceTest {
             assertThrows(BusinessException.class, () -> staffService.login("E404", "pwd", "dev1", "1.1.1.1"));
             // 查无此工号也要跑一次 KDF，否则响应耗时直接说出「有没有这个工号」（LOGIN-01）
             verify(passwordEncoder).matches(eq("pwd"), anyString());
+        }
+
+        @Test
+        void 工号不存在_事件带掩码工号不带staff_id() {
+            when(staffMapper.selectByEmployeeNo("E404")).thenReturn(null);
+            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+            var events = new EventCapture();
+            try (events) {
+                assertThrows(BusinessException.class, () -> staffService.login("E404", "pwd", "dev1", "1.1.1.1"));
+            }
+
+            var fields = events.fields("staff.login.failed");
+            assertEquals("staff_not_found", fields.get("reason"));
+            assertNull(fields.get("staff_id"));
+            // 工号是半标识符：只落掩码，且不能整串进字段
+            assertEquals("E***04", fields.get("employee_no"));
+        }
+
+        @Test
+        void 已禁用员工试登录_事件记disabled() {
+            var disabled = new Staff();
+            disabled.setId(STAFF_ID);
+            disabled.setPasswordHash("$2a$12$hash");
+            disabled.setStatus(StaffStatus.DISABLED);
+            when(staffMapper.selectByEmployeeNo("E001")).thenReturn(disabled);
+            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+
+            var events = new EventCapture();
+            try (events) {
+                var ex = assertThrows(
+                        BusinessException.class, () -> staffService.login("E001", "pwd", "dev1", "1.1.1.1"));
+                assertEquals(403, ex.getHttpStatus());
+            }
+            // 口令对上了但人被封着——这条要是记不下来，就没人知道被封的员工还在试
+            var fields = events.fields("staff.login.failed");
+            assertEquals("disabled", fields.get("reason"));
+            assertEquals(STAFF_ID.toString(), fields.get("staff_id"));
         }
 
         @Test
@@ -83,12 +123,31 @@ class StaffServiceTest {
             staff.setStatus(StaffStatus.ACTIVE);
             when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
 
-            staffService.updateStaffStatus(STAFF_ID, StaffStatus.DISABLED);
+            staffService.updateStaffStatus(STAFF_ID, StaffStatus.DISABLED, OPERATOR_ID);
 
             verify(staffMapper).updateById(staffCaptor.capture());
             assertEquals(StaffStatus.DISABLED, staffCaptor.getValue().getStatus());
             // 员工 access 寿命 8 小时，禁用必须同步清 refresh 才能即时收场
             verify(refreshTokenStore).revokeAll(STAFF_ID.toString());
+        }
+
+        @Test
+        void 封号事件分清被禁员工与操作人() {
+            Staff staff = new Staff();
+            staff.setId(STAFF_ID);
+            staff.setStatus(StaffStatus.ACTIVE);
+            when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
+
+            var events = new EventCapture();
+            try (events) {
+                staffService.updateStaffStatus(STAFF_ID, StaffStatus.DISABLED, OPERATOR_ID);
+            }
+
+            // 两个都是 staff id，共用一个键名就再也分不出「谁被封」和「谁干的」
+            var fields = events.fields("staff.status.changed");
+            assertEquals(STAFF_ID.toString(), fields.get("staff_id"));
+            assertEquals(OPERATOR_ID.toString(), fields.get("operator_id"));
+            assertEquals("DISABLED", fields.get("status"));
         }
 
         @Test
@@ -98,7 +157,7 @@ class StaffServiceTest {
             staff.setStatus(StaffStatus.DISABLED);
             when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
 
-            staffService.updateStaffStatus(STAFF_ID, StaffStatus.ACTIVE);
+            staffService.updateStaffStatus(STAFF_ID, StaffStatus.ACTIVE, OPERATOR_ID);
 
             verify(staffMapper).updateById(staffCaptor.capture());
             assertEquals(StaffStatus.ACTIVE, staffCaptor.getValue().getStatus());
@@ -106,14 +165,21 @@ class StaffServiceTest {
         }
 
         @Test
-        void 员工不存在_404_不动会话() {
+        void 员工不存在_404_不动会话_不留事件() {
             when(staffMapper.selectById(STAFF_ID)).thenReturn(null);
 
-            var ex = assertThrows(
-                    BusinessException.class, () -> staffService.updateStaffStatus(STAFF_ID, StaffStatus.DISABLED));
+            var events = new EventCapture();
+            BusinessException ex;
+            try (events) {
+                ex = assertThrows(
+                        BusinessException.class,
+                        () -> staffService.updateStaffStatus(STAFF_ID, StaffStatus.DISABLED, OPERATOR_ID));
+            }
             assertEquals(404, ex.getHttpStatus());
             verify(staffMapper, never()).updateById(any(Staff.class));
             verify(refreshTokenStore, never()).revokeAll(anyString());
+            // 404 冒泡的同时不留事件，否则审计里就多出一条「封了一个不存在的员工」
+            assertFalse(events.emitted("staff.status.changed"));
         }
 
         @Test

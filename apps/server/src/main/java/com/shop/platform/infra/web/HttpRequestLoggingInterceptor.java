@@ -1,10 +1,9 @@
 package com.shop.platform.infra.web;
 
-import com.shop.platform.infra.observability.MdcScope;
+import com.shop.platform.infra.observability.BizEvent;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.event.Level;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -15,8 +14,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 @RequiredArgsConstructor
 public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
-
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger("http.request");
 
     private final ClientIp clientIp;
 
@@ -47,22 +44,16 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
         // 客户端 IP
         String resolvedIp = clientIp.of(request);
 
-        // 场景字段放 MDC（作用域结束自动回滚），event 用单独 key
-        try (MdcScope _ = MdcScope.of(
-                "event",
-                "http.request",
-                "method",
-                method,
-                "path",
-                bestMatchPattern,
-                "status",
-                String.valueOf(status),
-                "latency_ms",
-                String.valueOf(latencyMs),
-                "client_ip",
-                resolvedIp)) {
-            log.atLevel(status >= 500 ? Level.ERROR : Level.INFO)
-                    .log("{} {} -> {} ({}ms) client={}", method, bestMatchPattern, status, latencyMs, resolvedIp);
+        BizEvent event = BizEvent.of("http.request")
+                .put("method", method)
+                .put("path", bestMatchPattern)
+                .put("status", status)
+                .put("latency_ms", latencyMs)
+                .put("client_ip", resolvedIp);
+        if (status >= 500) {
+            event.error();
+        } else {
+            event.emit();
         }
     }
 }

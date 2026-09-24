@@ -5,6 +5,7 @@ import com.shop.platform.account.dto.UpdateUserStatusRequest;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.StaffService;
 import com.shop.platform.common.Permissions;
+import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,12 +34,12 @@ public class AdminAccountController {
     /** PATCH /admin/users/{id}/status —— 禁用/启用买家（封号闸门链见 AuthService.updateUserStatus 注释） */
     @PatchMapping("/users/{id}/status")
     public void adminUpdateUserStatus(@PathVariable UUID id, @Valid @RequestBody UpdateUserStatusRequest req) {
-        authService.updateUserStatus(id, req.status());
+        authService.updateUserStatus(id, req.status(), StaffContext.get());
     }
 
     /** PATCH /admin/staff/{id}/status —— 禁用/启用员工；禁用同时吊销其全端会话 */
     @PatchMapping("/staff/{id}/status")
     public void adminUpdateStaffStatus(@PathVariable UUID id, @Valid @RequestBody UpdateStaffStatusRequest req) {
-        staffService.updateStaffStatus(id, req.status());
+        staffService.updateStaffStatus(id, req.status(), StaffContext.get());
     }
 }

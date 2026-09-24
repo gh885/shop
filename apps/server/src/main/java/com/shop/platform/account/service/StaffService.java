@@ -5,6 +5,7 @@ import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
@@ -13,14 +14,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /** 平台员工认证：工号 + 密码登录，token 与 C 端隔离（kind=staff），凭证轮换复用 RefreshTokenStore。 */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class StaffService {
 
@@ -57,12 +56,17 @@ public class StaffService {
         // 必须先算进变量再判：写成 staff == null || !matches(...) 会短路掉 KDF，等时防护形同虚设
         boolean matched = passwordEncoder.matches(password, storedHash);
         if (staff == null || !matched) {
-            logRejected(staff, employeeNo, clientIp);
-            throw BusinessException.unauthorized("工号或密码错误");
+            throw loginRejected(staff, employeeNo, clientIp);
         }
 
         // 3. 检查账号状态
         if (!staff.isActive()) {
+            // 被禁员工还在试工号口令，本身就是最该留下记录的一次失败登录（reason=disabled）
+            BizEvent.of("staff.login.failed")
+                    .put("reason", "disabled")
+                    .put("client_ip", clientIp)
+                    .put("staff_id", staff.getId())
+                    .warn();
             throw BusinessException.forbidden("STAFF_DISABLED", "账号已被禁用");
         }
 
@@ -70,7 +74,9 @@ public class StaffService {
         clearPasswordRateLimit(employeeNo, clientIp);
 
         // 5. 签发 Token（kind=staff，与 C 端用户 token 隔离）
-        return issueTokens(staff, deviceId);
+        TokenPair tokens = issueTokens(staff, deviceId);
+        BizEvent.of("staff.login.succeeded").put("staff_id", staff.getId()).emit();
+        return tokens;
     }
 
     /** 双维度限流（IP + 工号），被限流时仍跑一次 BCrypt，防按返回时长探测是否已被限 */
@@ -82,6 +88,11 @@ public class StaffService {
 
         if (ipLimited || staffLimited) {
             passwordEncoder.matches(password, AuthService.DUMMY_PASSWORD_HASH);
+            BizEvent.of("staff.login.failed")
+                    .put("reason", "rate_limited")
+                    .put("client_ip", ip)
+                    .put("employee_no", maskEmployeeNo(employeeNo))
+                    .warn();
             throw BusinessException.unauthorized("工号或密码错误");
         }
     }
@@ -91,13 +102,19 @@ public class StaffService {
         redis.delete(RATE_STAFF_PWD + employeeNo);
     }
 
-    /** 失败统一出口：对外同一句话，对内记可定位原因供运营揪撞库者；工号是半标识符，明文不整串落日志 */
-    private void logRejected(Staff staff, String employeeNo, String clientIp) {
-        if (staff == null) {
-            log.warn("[STAFF] 登录失败：工号不存在, employeeNo={}, ip={}", maskEmployeeNo(employeeNo), clientIp);
-        } else {
-            log.warn("[STAFF] 登录失败：密码错误, staffId={}, ip={}", staff.getId(), clientIp);
-        }
+    /**
+     * 登录失败的统一出口：对外同一句话（防工号枚举），精确原因只进事件。工号是半标识符，
+     * 明文不整串落字段（未命中那支才带掩码工号——没有 staff_id 可指）。口径同
+     * {@code AuthService.loginRejected}。
+     */
+    private BusinessException loginRejected(Staff staff, String employeeNo, String clientIp) {
+        BizEvent.of("staff.login.failed")
+                .put("reason", staff == null ? "staff_not_found" : "wrong_password")
+                .put("client_ip", clientIp)
+                .put("staff_id", staff == null ? null : staff.getId())
+                .put("employee_no", staff == null ? maskEmployeeNo(employeeNo) : null)
+                .warn();
+        return BusinessException.unauthorized("工号或密码错误");
     }
 
     private static String maskEmployeeNo(String employeeNo) {
@@ -135,7 +152,7 @@ public class StaffService {
      * 8 小时内在途 access 也被吊销（刷新必然失败）；权限层 effectivePermissions 实时查库，
      * 禁用当个请求起判权即空集，双保险。启用即恢复（status 回 ACTIVE，需重新登录取新会话）。
      */
-    public void updateStaffStatus(UUID staffId, StaffStatus status) {
+    public void updateStaffStatus(UUID staffId, StaffStatus status, UUID operatorId) {
         // 1. 校验员工存在
         Staff staff = staffMapper.selectById(staffId);
         if (staff == null) throw BusinessException.notFound("员工不存在");
@@ -148,7 +165,12 @@ public class StaffService {
         if (!status.isActive()) {
             refreshTokenStore.revokeAll(staffId.toString());
         }
-        log.info("[STAFF] 管理端变更员工状态, staffId={}, status={}", staffId, status);
+        // operator_id 是被禁员工之外的另一个 staff_id，两者不能共用一个键名（口径同 shop_member.phone_revealed）
+        BizEvent.of("staff.status.changed")
+                .put("staff_id", staffId)
+                .put("status", status)
+                .put("operator_id", operatorId)
+                .emit();
     }
 
     /** 当前登录员工信息（含岗位与有效权限码，前端菜单/按钮显隐用） */

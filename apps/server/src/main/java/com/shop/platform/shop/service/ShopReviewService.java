@@ -7,7 +7,7 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
-import com.shop.platform.infra.observability.MdcScope;
+import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.shop.events.ShopTradingSuspendedEvent;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +36,6 @@ import org.springframework.transaction.annotation.Transactional;
  * 不是「审核被拒」这条具体路径。
  */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class ShopReviewService {
 
@@ -99,14 +97,12 @@ public class ShopReviewService {
         Shop shop = Validate.notNull(shopMapper.selectById(review.getShopId()), "店铺不存在");
         String phone = Validate.present(userReadQuery.phoneById(shop.getOwnerId()), "店主账号不存在");
 
-        // 2. L3 取用留痕（结构化事件，约定见 docs/business-event-logging.md）
-        try (MdcScope scope = MdcScope.of(
-                        "event", "shop_review.owner_phone_revealed",
-                        "review_id", reviewId.toString(),
-                        "shop_id", shop.getId().toString())
-                .put("staff_id", staffId.toString())) {
-            log.info("[SHOP] 平台查看店主电话明文, reviewId={}, shopId={}, staffId={}", reviewId, shop.getId(), staffId);
-        }
+        // 2. L3 取用留痕（结构化事件，约定见 docs/conventions/business-event-logging.md）
+        BizEvent.of("shop_review.owner_phone_revealed")
+                .put("review_id", reviewId)
+                .put("shop_id", shop.getId())
+                .put("staff_id", staffId)
+                .emit();
         return phone;
     }
 
@@ -148,15 +144,13 @@ public class ShopReviewService {
             events.publishEvent(new ShopTradingSuspendedEvent(shop.getId(), "REVIEW_REJECTED"));
         }
 
-        // 4. L3 审计留痕（结构化事件，约定见 docs/business-event-logging.md）
-        try (MdcScope _ = MdcScope.of(
-                "event", "shop_review.decided",
-                "review_id", review.getId().toString(),
-                "shop_id", review.getShopId().toString(),
-                "decision", newStatus.name(),
-                "staff_id", staffId.toString())) {
-            log.info("[SHOP] 店铺审核决定, shopId={}, status={}", shop.getId(), shop.getStatus());
-        }
+        // 4. L3 审计留痕（结构化事件，约定见 docs/conventions/business-event-logging.md）
+        BizEvent.of("shop_review.decided")
+                .put("review_id", review.getId())
+                .put("shop_id", review.getShopId())
+                .put("decision", newStatus)
+                .put("staff_id", staffId)
+                .emit();
         return review;
     }
 

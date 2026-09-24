@@ -13,6 +13,7 @@ import com.shop.platform.account.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
+import com.shop.platform.testsupport.EventCapture;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -58,6 +59,7 @@ class AuthServiceTest {
     AuthService authService;
 
     private static final UUID USER_ID = UUID.randomUUID();
+    private static final UUID OPERATOR_ID = UUID.randomUUID();
 
     @Captor
     ArgumentCaptor<User> userCaptor;
@@ -176,10 +178,20 @@ class AuthServiceTest {
             when(userMapper.selectByPhone("13800138000")).thenReturn(user);
             when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
-            var ex = assertThrows(
-                    BusinessException.class,
-                    () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1", "UA"));
+            var events = new EventCapture();
+            BusinessException ex;
+            try (events) {
+                ex = assertThrows(
+                        BusinessException.class,
+                        () -> authService.loginByPassword("13800138000", "pwd", "dev1", "127.0.0.1", "UA"));
+            }
             assertEquals(403, ex.getHttpStatus());
+
+            // 对外仍是同一句 USER_DISABLED；对内「已封的号还在试口令」必须可检索
+            var fields = events.fields("auth.login.failed");
+            assertEquals("disabled", fields.get("reason"));
+            assertEquals(USER_ID.toString(), fields.get("user_id"));
+            assertEquals("127.0.0.1", fields.get("client_ip"));
         }
     }
 
@@ -194,10 +206,17 @@ class AuthServiceTest {
             when(userMapper.selectById(USER_ID)).thenReturn(user);
             when(passwordEncoder.encode("newPassword123")).thenReturn("$2a$12$encoded");
 
-            authService.setPassword(USER_ID, null, "newPassword123");
+            var events = new EventCapture();
+            try (events) {
+                authService.setPassword(USER_ID, null, "newPassword123");
+            }
 
             verify(userMapper).updateById(userCaptor.capture());
             assertEquals("$2a$12$encoded", userCaptor.getValue().getPasswordHash());
+            // 换密与吊销全端会话是同一件事的两半，事件里必须看得到是哪半条路径干的
+            var fields = events.fields("auth.password.changed");
+            assertEquals(USER_ID.toString(), fields.get("user_id"));
+            assertEquals("self", fields.get("via"));
         }
 
         @Test
@@ -232,6 +251,46 @@ class AuthServiceTest {
     }
 
     @Nested
+    class 密码重置 { // AuthService.resetPassword（POST /auth/password/reset）
+
+        @Test
+        void 有账号_换密并吊销全端会话_事件带via() {
+            var user = new User();
+            user.setId(USER_ID);
+            user.setPhone("13800138000");
+            user.setPasswordHash("$2a$12$oldhash");
+            when(userMapper.selectByPhone("13800138000")).thenReturn(user);
+            when(passwordEncoder.encode("newPassword123")).thenReturn("$2a$12$encoded");
+
+            var events = new EventCapture();
+            try (events) {
+                authService.resetPassword("13800138000", "123456", "newPassword123");
+            }
+
+            verify(smsCodeService).verifyResetCode("13800138000", "123456");
+            // RESET-03：走过短信码换密，旧会话一律不作数
+            verify(refreshTokenStore).revokeAll(USER_ID.toString());
+            var fields = events.fields("auth.password.changed");
+            assertEquals(USER_ID.toString(), fields.get("user_id"));
+            assertEquals("reset_code", fields.get("via"));
+        }
+
+        @Test
+        void 无账号_静默成功_不凭空记一次换密() {
+            when(userMapper.selectByPhone("13800138000")).thenReturn(null);
+
+            var events = new EventCapture();
+            try (events) {
+                assertDoesNotThrow(() -> authService.resetPassword("13800138000", "123456", "newPassword123"));
+            }
+
+            // 对外不能暴露「这个号存不存在」（RESET-02），对内也不能留一条无中生有的换密记录
+            assertFalse(events.emitted("auth.password.changed"));
+            verify(userMapper, never()).updateById(any(User.class));
+        }
+    }
+
+    @Nested
     class TokenRefresh {
         @Test
         void 成功_轮换新令牌() {
@@ -253,6 +312,30 @@ class AuthServiceTest {
             assertEquals("new-at", result.accessToken());
             assertEquals("rt:new", result.refreshToken());
         }
+
+        @Test
+        void 续期是refreshed不是登录() {
+            // 登录成功事件曾打在共用的签发方法里：一次在线会话每 10 分钟刷新一次，
+            // 登录量就被放大成百倍，漏斗与「谁在这台设备上登录过」都读不出真相
+            String token = "rt:valid";
+            when(refreshTokenStore.rotate(token, "dev1", "[AUTH]"))
+                    .thenReturn(new RefreshTokenStore.Rotation(USER_ID.toString(), "dev1"));
+            var active = new User();
+            active.setId(USER_ID);
+            active.setStatus(UserStatus.ACTIVE);
+            when(userMapper.selectById(USER_ID)).thenReturn(active);
+            when(jwtProvider.createAccessToken(USER_ID)).thenReturn("new-at");
+            when(jwtProvider.generateRefreshToken()).thenReturn("rt:new");
+
+            var events = new EventCapture();
+            try (events) {
+                authService.refresh(token, "dev1", "127.0.0.1", "UA");
+            }
+
+            assertFalse(events.emitted("auth.login.succeeded"));
+            assertEquals(
+                    USER_ID.toString(), events.fields("auth.token.refreshed").get("user_id"));
+        }
     }
 
     @Nested
@@ -265,7 +348,7 @@ class AuthServiceTest {
             user.setStatus(UserStatus.ACTIVE);
             when(userMapper.selectById(USER_ID)).thenReturn(user);
 
-            authService.updateUserStatus(USER_ID, UserStatus.DISABLED);
+            authService.updateUserStatus(USER_ID, UserStatus.DISABLED, OPERATOR_ID);
 
             verify(userMapper).updateById(userCaptor.capture());
             assertEquals(UserStatus.DISABLED, userCaptor.getValue().getStatus());
@@ -280,10 +363,29 @@ class AuthServiceTest {
             user.setStatus(UserStatus.DISABLED);
             when(userMapper.selectById(USER_ID)).thenReturn(user);
 
-            authService.updateUserStatus(USER_ID, UserStatus.ACTIVE);
+            authService.updateUserStatus(USER_ID, UserStatus.ACTIVE, OPERATOR_ID);
 
             verify(userMapper).updateById(userCaptor.capture());
             assertEquals(UserStatus.ACTIVE, userCaptor.getValue().getStatus());
+        }
+
+        @Test
+        void 封号事件记下被禁账号与操作人() {
+            User user = new User();
+            user.setId(USER_ID);
+            user.setStatus(UserStatus.ACTIVE);
+            when(userMapper.selectById(USER_ID)).thenReturn(user);
+
+            var events = new EventCapture();
+            try (events) {
+                authService.updateUserStatus(USER_ID, UserStatus.DISABLED, OPERATOR_ID);
+            }
+
+            var fields = events.fields("account.status.changed");
+            assertEquals(USER_ID.toString(), fields.get("user_id"));
+            assertEquals("DISABLED", fields.get("status"));
+            // 没有 staff_id 的封号日志等于「有人封了号，不知道是谁」
+            assertEquals(OPERATOR_ID.toString(), fields.get("staff_id"));
         }
 
         @Test
@@ -291,7 +393,8 @@ class AuthServiceTest {
             when(userMapper.selectById(USER_ID)).thenReturn(null);
 
             var ex = assertThrows(
-                    BusinessException.class, () -> authService.updateUserStatus(USER_ID, UserStatus.DISABLED));
+                    BusinessException.class,
+                    () -> authService.updateUserStatus(USER_ID, UserStatus.DISABLED, OPERATOR_ID));
             assertEquals(404, ex.getHttpStatus());
         }
 

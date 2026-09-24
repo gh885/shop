@@ -6,7 +6,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.cache.CacheNames;
-import com.shop.platform.infra.observability.MdcScope;
+import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
@@ -265,14 +265,12 @@ public class ShopService {
         // 2. 号码经 account :: api 点查（禁止 JOIN）
         String phone = Validate.present(userReadQuery.phoneById(member.getUserId()), "该成员账号不存在");
 
-        // 3. L3 取用留痕（结构化事件，约定见 docs/business-event-logging.md）
-        try (MdcScope scope = MdcScope.of(
-                        "event", "shop_member.phone_revealed",
-                        "shop_id", shopId.toString(),
-                        "member_id", memberId.toString())
-                .put("operator_id", operatorId.toString())) {
-            log.info("[SHOP] 查看成员电话明文, shopId={}, memberId={}, operatorId={}", shopId, memberId, operatorId);
-        }
+        // 3. L3 取用留痕（结构化事件，约定见 docs/conventions/business-event-logging.md）
+        BizEvent.of("shop_member.phone_revealed")
+                .put("shop_id", shopId)
+                .put("member_id", memberId)
+                .put("operator_id", operatorId)
+                .emit();
         return phone;
     }
 
