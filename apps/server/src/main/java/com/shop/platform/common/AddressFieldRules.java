@@ -31,7 +31,7 @@ public final class AddressFieldRules {
     public static final int PARSE_TEXT_MAX = 500;
 
     /**
-     * 地址标签上限（字）：内置枚举码（HOME/WORK/…）或用户自填的短文案，落点 {@code user_profile.addresses.label}。
+     * 地址标签上限（字）：内置枚举码（HOME/WORK/…）或用户自填的短文案，落点 {@code account.addresses.label}。
      *
      * <p>它与 {@link #NAME_MAX} 都是「短文本」但不同档：一个是给地址起的别名（卡片上单行显示），
      * 一个是收货人姓名。合并成一个常量，日后放宽姓名就会连带放宽标签那一格。

@@ -20,5 +20,14 @@ public final class CouponFieldRules {
     /** 券名超限提示：数字从 {@link #NAME_MAX} 来，不另抄一遍 */
     public static final String NAME_MESSAGE = "券名最多 " + NAME_MAX + " 字";
 
+    /**
+     * 一张券模板最多发多少张：入口侧的防误填闸门（本想填 1 万、多敲三个 0）。
+     *
+     * <p>{@code coupon.coupon_templates.total_quantity} 是 INT，库上那道 CHECK 只管 {@code > 0}
+     * （防超发靠领券时的条件更新 {@code issued < total}，见 V56），所以上界只存在于入口这一侧。
+     * 它与 {@code Quantities} 那几条不是一回事：那几条量的是「一笔交易塞得下几行」，这一条量的是发行总量。
+     */
+    public static final int TOTAL_QUANTITY_MAX = 1_000_000;
+
     private CouponFieldRules() {}
 }

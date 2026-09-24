@@ -247,6 +247,10 @@ describe("owner 不是孤儿", () => {
         ["NOTE_MAX", "packages/common/src/note-fields.ts"],
         ["ProductNameSchema", "packages/common/src/product-fields.ts"],
         ["SellPointSchema", "packages/common/src/product-fields.ts"],
+        // 规格那一档的两个数各自有人用才算 owner：编辑器停在 20 个取值、输入框卡 64 字，
+        // 只在包导出里挂个名字而没人引用，就还是一份「看着对称」的死码。
+        ["SPEC_VALUES_MAX", "packages/common/src/product-fields.ts"],
+        ["SPEC_VALUE_MAX", "packages/common/src/product-fields.ts"],
         // PRODUCT_NAME_MESSAGE / SELL_POINT_MESSAGE 不在列：它们不是 app 侧的出口，而是被同文件的
         // schema 吃掉的一句文案（出口是 schema）。要挡「这句话被抄第二遍」由上一条 owners 负责。
         ["COUPON_NAME_MESSAGE", "packages/common/src/coupon.ts"],

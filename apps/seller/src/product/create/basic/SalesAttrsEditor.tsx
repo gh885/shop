@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Plus } from "lucide-react"
+import { SPEC_VALUES_MAX } from "@shop/common"
 import { Badge, Button, FieldSet } from "@shop/ui-web"
 
 import type { SpecSelection } from "#/product/draft-model"
@@ -147,7 +148,7 @@ export function SalesAttrsEditor({
 
     function addRow(attrIdx: number) {
         const d = drafts[attrIdx]
-        if (!d) return
+        if (!d || d.rows.length >= SPEC_VALUES_MAX) return
         const rows = [...d.rows, { id: nextId(), value: "", note: "" }]
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
@@ -173,47 +174,61 @@ export function SalesAttrsEditor({
             className="min-w-0"
         >
             <div className="divide-y divide-border">
-                {drafts.map((d, ai) => (
-                    <div
-                        key={d.attrId}
-                        className="py-4 first:pt-0 last:pb-0"
-                    >
-                        {/* 维度头：名 + 取值数 + 重要徽标*/}
-                        <div className="mb-3 flex items-center gap-2">
-                            <span className="text-sm">{d.name}</span>
-                            <span className="text-xs text-muted-foreground">({d.rows.length})</span>
-                            <Badge variant="secondary">重要</Badge>
-                        </div>
+                {drafts.map((d, ai) => {
+                    const valuesFull = d.rows.length >= SPEC_VALUES_MAX
+                    return (
+                        <div
+                            key={d.attrId}
+                            className="py-4 first:pt-0 last:pb-0"
+                        >
+                            {/* 维度头：名 + 取值数 + 重要徽标*/}
+                            <div className="mb-3 flex items-center gap-2">
+                                <span className="text-sm">{d.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {valuesFull
+                                        ? `${d.rows.length}/${SPEC_VALUES_MAX}`
+                                        : `(${d.rows.length})`}
+                                </span>
+                                <Badge variant="secondary">重要</Badge>
+                            </div>
 
-                        {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            {d.rows.map((row, ri) => (
-                                <AttrValueRow
-                                    key={row.id}
-                                    row={row}
-                                    showImage={d.allowImage}
-                                    allowCustom={d.allowCustom}
-                                    values={d.values.map((v) => v.value)}
-                                    removable={d.rows.length > 1}
-                                    onValueChange={(text) => updateValue(ai, ri, text)}
-                                    onNoteChange={(note) => updateNote(ai, ri, note)}
-                                    onImageChange={(img) => updateImage(ai, ri, img)}
-                                    onRemove={() => removeRow(ai, ri)}
-                                    upload={uploadImage}
-                                />
-                            ))}
+                            {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}
+                            <div className="flex flex-wrap items-center gap-2">
+                                {d.rows.map((row, ri) => (
+                                    <AttrValueRow
+                                        key={row.id}
+                                        row={row}
+                                        showImage={d.allowImage}
+                                        allowCustom={d.allowCustom}
+                                        values={d.values.map((v) => v.value)}
+                                        removable={d.rows.length > 1}
+                                        onValueChange={(text) => updateValue(ai, ri, text)}
+                                        onNoteChange={(note) => updateNote(ai, ri, note)}
+                                        onImageChange={(img) => updateImage(ai, ri, img)}
+                                        onRemove={() => removeRow(ai, ri)}
+                                        upload={uploadImage}
+                                    />
+                                ))}
 
-                            <Button
-                                variant="outline"
-                                size="icon-lg"
-                                onClick={() => addRow(ai)}
-                                aria-label="添加取值"
-                            >
-                                <Plus className="size-4" />
-                            </Button>
+                                {/* 到档就停手：再加一个取值不是「再来一个」，是提交必 400（后端同一档在 SpecSelectionRequest） */}
+                                <Button
+                                    variant="outline"
+                                    size="icon-lg"
+                                    onClick={() => addRow(ai)}
+                                    disabled={valuesFull}
+                                    title={
+                                        valuesFull
+                                            ? `一个维度最多 ${SPEC_VALUES_MAX} 个取值`
+                                            : undefined
+                                    }
+                                    aria-label="添加取值"
+                                >
+                                    <Plus className="size-4" />
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    )
+                })}
             </div>
         </FieldSet>
     )

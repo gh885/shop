@@ -1,5 +1,5 @@
 /**
- * product-fields —— 商品标题与卖点的字段口径，卖家端两处表单共用一份。
+ * product-fields —— 商品标题、卖点与规格取值的字段口径，卖家端各处表单共用一份。
  *
  * 后端权威是 `product/dto/ProductFieldRules`（创建与编辑两个 DTO 共用），它的数字与提示语经 springdoc
  * 进 OpenAPI 契约；这里镜像的是**同一套规则**，不是「差不多长的输入框」。三边（这里 / Java / 契约那一格）
@@ -50,3 +50,20 @@ export const SellPointSchema = z
         (v) => v.length === 0 || (v.length >= SELL_POINT_MIN && v.length <= SELL_POINT_MAX),
         SELL_POINT_MESSAGE,
     )
+
+/**
+ * 一个规格维度的取值数上限（后端 `ProductFieldRules.SPEC_VALUES_MAX`）：值域内勾选与自填共用这一档。
+ *
+ * 它是编辑器的「＋」该在几个取值时停手的依据，不只是提交后才晓得的报错：取值数决定 SKU 矩阵的宽度，
+ * 后端还按维度的乘卡总量另设一道校验，所以让卖家一个维度刷出 21 个取值再吃 400，等于把闸门推给报错。
+ */
+export const SPEC_VALUES_MAX = 20
+
+/**
+ * 规格取值文本上限（字，后端 `CategoryFieldRules.ATTR_VALUE_MAX`）：自定义取值以此文本建档进
+ * `product.category_attr_values.value` 那一列。
+ *
+ * 输入框卡长度而不是提交后红字：取值会进 SKU 名（`product.skus.name` 160 = 标题 + 各维度取值拼接），
+ * 单个取值写长了不是它自己那一格的事，会把整行的组合名一起挤掉。
+ */
+export const SPEC_VALUE_MAX = 64

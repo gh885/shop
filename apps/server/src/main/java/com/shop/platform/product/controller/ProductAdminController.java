@@ -13,6 +13,7 @@ import com.shop.platform.product.controller.response.ProductDetailResponse;
 import com.shop.platform.product.controller.response.ProductResponse;
 import com.shop.platform.product.controller.response.SkuResponse;
 import com.shop.platform.product.dto.CreateProductRequest;
+import com.shop.platform.product.dto.ProductFieldRules;
 import com.shop.platform.product.dto.UpdateProductRequest;
 import com.shop.platform.product.dto.UpdateSkusRequest;
 import com.shop.platform.product.dto.UpdateSpecsRequest;
@@ -101,7 +102,7 @@ public class ProductAdminController {
             @CurrentShop UUID shopId,
             @Valid PageParams pageParams,
             @RequestParam(required = false) ProductStatus status,
-            @RequestParam(required = false) @Size(max = 128) String keyword,
+            @RequestParam(required = false) @Size(max = ProductFieldRules.KEYWORD_MAX) String keyword,
             @Pattern(
                             regexp = "createdAt_desc|createdAt_asc|stock_asc|stock_desc|soldCount_asc|soldCount_desc",
                             message = "排序方式不支持")

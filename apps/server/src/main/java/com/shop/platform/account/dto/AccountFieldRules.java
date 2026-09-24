@@ -54,5 +54,30 @@ public final class AccountFieldRules {
     /** 昵称上限（字）：与 {@code AddressFieldRules.NAME_MAX} 同数是巧合，不同概念是事实——一个管人名，一个管账号显示名 */
     public static final int NICKNAME_MAX = 30;
 
+    /** 平台员工工号上限（字）：{@code account.staff.employee_no VARCHAR(50)}，工号即登录账号，唯一索引 */
+    public static final int EMPLOYEE_NO_MAX = 50;
+
+    /**
+     * 图形人机验证码的容量档（字）：只管「别把 10KB 塞进登录请求」，不管码上印了几个字符。
+     *
+     * <p>刻意与前端那一格不对称：{@code packages/app-kit/src/login-schema.ts} 的
+     * {@code CAPTCHA_CODE_DIGITS} 是图形码实际生成的位数（4），比这一档紧。收紧属于接口变更
+     * （{@code maxLength} 会导出进契约），故这里保留宽松容量，紧的那一侧由 {@code FieldRuleVocabularyTest}
+     * 的镜像表按「只许等于或严于契约 + 已登记理由」核对。
+     */
+    public static final int CAPTCHA_CODE_MAX = 10;
+
+    /**
+     * 刷新令牌上限（字）：它是 Redis 里的一条不透明串，不落任何表，所以这一格<b>不是</b>列宽而是容量闸门。
+     *
+     * <p>它与 {@code NoteFieldRules.FREE_TEXT_MAX}（200，一段人写的说明的字数预算）同数纯属巧合。
+     * 此前正是这个巧合让门禁的例外清单里挂着 {@code RefreshRequest.java} 一行：扫描器按「有没有把 200 写进
+     * 注解」找人，于是那条真正该走 owner 的字段被当成同名豁免。有了名字，例外清单可以空掉。
+     */
+    public static final int REFRESH_TOKEN_MAX = 200;
+
+    /** 头像的对象存储 key 上限：{@code account.users.avatar_key VARCHAR(255)}（存 key 不存 URL，见 V39 的约定） */
+    public static final int AVATAR_KEY_MAX = 255;
+
     private AccountFieldRules() {}
 }

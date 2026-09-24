@@ -12,6 +12,6 @@ import java.util.UUID;
 public record ProductQuery(
         UUID categoryId,
         UUID shopId,
-        @Size(max = 128) String keyword,
+        @Size(max = ProductFieldRules.KEYWORD_MAX) String keyword,
         /** 排序：取值与分支见 {@link ProductSort}；非法值被 @Pattern 拦成 422（GEN-19 第①条线） */
         @Pattern(regexp = ProductSort.PATTERN, message = "排序方式不支持") String sort) {}

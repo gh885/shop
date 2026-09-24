@@ -1,5 +1,6 @@
 package com.shop.platform.product.mapper;
 
+import com.shop.platform.product.dto.ProductFieldRules;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -13,5 +14,5 @@ import java.util.UUID;
  */
 public record ParamItem(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) UUID attrId,
-        @NotBlank @Size(max = 32) String name,
-        @NotBlank @Size(max = 64) String value) {}
+        @NotBlank @Size(max = ProductFieldRules.PARAM_NAME_MAX) String name,
+        @NotBlank @Size(max = ProductFieldRules.PARAM_VALUE_MAX) String value) {}

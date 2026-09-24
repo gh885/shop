@@ -25,9 +25,9 @@ public record CreateProductRequest(
         @Pattern(regexp = ProductFieldRules.SELL_POINT_PATTERN, message = ProductFieldRules.SELL_POINT_MESSAGE)
                 String subtitle,
         /** 详情图流（对象存储 key 数组，按序铺开渲染，代替富文本 HTML）；为空 [] 时详情无图 */
-        List<@Size(max = 255) String> detailImages,
-        @Size(max = 255) String mainImage,
-        List<@Size(max = 255) String> images,
+        List<@Size(max = ProductFieldRules.IMAGE_KEY_MAX) String> detailImages,
+        @Size(max = ProductFieldRules.IMAGE_KEY_MAX) String mainImage,
+        List<@Size(max = ProductFieldRules.IMAGE_KEY_MAX) String> images,
         /** 非销售参数，可空：[] */
         List<@Valid ParamItem> params,
         /**

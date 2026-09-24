@@ -15,7 +15,7 @@ import jakarta.validation.constraints.Size;
 public record SmsCodeRequest(
         @NotBlank @Pattern(regexp = PhoneNumber.CHINA_MOBILE_PATTERN, message = "手机号格式不正确") String phone,
         @NotBlank String captchaId,
-        @NotBlank @Size(min = 1, max = 10) String captchaCode) {
+        @NotBlank @Size(min = 1, max = AccountFieldRules.CAPTCHA_CODE_MAX) String captchaCode) {
     public SmsCodeRequest {
         if (phone != null) phone = phone.trim();
         if (captchaCode != null) captchaCode = captchaCode.trim();

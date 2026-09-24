@@ -18,9 +18,9 @@ public record UpdateProductRequest(
         @Pattern(regexp = ProductFieldRules.SELL_POINT_PATTERN, message = ProductFieldRules.SELL_POINT_MESSAGE)
                 String subtitle,
         /** 详情图流（对象存储 key 数组）；空串/空数组语义见 PATCH。null＝不改 */
-        List<@Size(max = 255) String> detailImages,
-        @Size(max = 255) String mainImage,
-        List<@Size(max = 255) String> images,
+        List<@Size(max = ProductFieldRules.IMAGE_KEY_MAX) String> detailImages,
+        @Size(max = ProductFieldRules.IMAGE_KEY_MAX) String mainImage,
+        List<@Size(max = ProductFieldRules.IMAGE_KEY_MAX) String> images,
         List<@Valid ParamItem> params,
         /** 七天无理由退货声明。PATCH：null＝不改（不传与传 false 必须分得开，故用包装类型） */
         Boolean sevenDayReturn) {

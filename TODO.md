@@ -14,3 +14,6 @@
       行样式暗示可点，实际只有 16px 的圆点可点；结算地址选择、选券都是这个结构）——需要 `Item` 支持
       把行做成 label；② 状态徽章用 `variant="default"`（品牌橙实色）违反 DESIGN §0.3「品牌橙只留给
       转化引导」，应改用 subtle 弱底，涉及 `product/constants.ts`、`order/constants.ts`、`coupon/model.ts` 三处
+- [ ] V66（回寄公司名 32 → 50）尚未在任何库上跑过：那道闸门（`FieldRuleVocabularyTest`）是无库能跑的静态核对，
+      写迁移的人当时没起 datastore。下次拉起本地库时 Flyway 会自动补上，之后这条即可删；在那之前本地仍会
+      在「回寄公司填过 32 字」时吃 500

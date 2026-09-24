@@ -25,7 +25,7 @@ public record CreateCouponTemplateRequest(
         /** 减免额（必须大于 0） */
         @NotNull Money discountAmount,
         /** 发放总量 */
-        @NotNull @Min(1) @Max(1_000_000) Integer totalQuantity,
+        @NotNull @Min(1) @Max(CouponFieldRules.TOTAL_QUANTITY_MAX) Integer totalQuantity,
         @NotNull OffsetDateTime validFrom,
         @NotNull OffsetDateTime validTo) {
 

@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react"
+import { SPEC_VALUE_MAX } from "@shop/common"
 import {
     Button,
     Combobox,
@@ -93,6 +94,7 @@ export function AttrValueRow({
                 <ComboboxInput
                     placeholder={allowCustom ? "输入或选择取值" : "请选择取值"}
                     className="h-9! w-56 shrink-0"
+                    maxLength={SPEC_VALUE_MAX}
                 />
                 <ComboboxContent>
                     <ComboboxEmpty>无匹配取值，可直接输入</ComboboxEmpty>

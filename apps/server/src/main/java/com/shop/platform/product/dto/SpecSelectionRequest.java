@@ -14,8 +14,9 @@ import java.util.UUID;
  */
 public record SpecSelectionRequest(
         @NotNull UUID attrId,
-        @Size(max = 20) List<UUID> valueIds,
-        @Size(max = 20) List<@Size(max = 64) String> customValues,
+        @Size(max = ProductFieldRules.SPEC_VALUES_MAX) List<UUID> valueIds,
+        @Size(max = ProductFieldRules.SPEC_VALUES_MAX)
+                List<@Size(max = CategoryFieldRules.ATTR_VALUE_MAX) String> customValues,
         /** 模板取值（valueId）→ 取值图 */
         Map<UUID, String> valueImages,
         /** 自定义取值文本 → 取值图 */

@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size;
  * （销售属性改参数会让存量 SKU 失去出处）。
  */
 public record CategoryAttrRequest(
-        @NotBlank @Size(max = 32) String name,
+        @NotBlank @Size(max = CategoryFieldRules.ATTR_NAME_MAX) String name,
         /** 销售属性 / 非销售参数 */
         @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED) AttrKind kind,
         /** param 是否必填（对 spec 无意义），缺省 false */

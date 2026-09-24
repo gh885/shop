@@ -30,9 +30,15 @@ public record MerchantAddressRequest(
          * 邮政编码：形状与 {@link RegionRegistry#CODE_PATTERN} 撞车（同为 6 位数字），但它是另一个概念——
          * 邮编不参与区划校验、也不进 {@code regionCode} 那套存在性判定，所以刻意不引用同一个常量，
          * 免得一处放宽就改了另一处。
+         *
+         * <p>而它<b>自己</b>那一格此前是同一个 6 写两遍：{@code @Size(max = 6)} 与 {@code ^\d{6}$}。
+         * 现在两格都由 {@link ShopFieldRules#POSTAL_CODE_DIGITS} 来（形状由它拼出），改了位数不会只剩一半。
          */
-        @Schema(nullable = true) @Size(max = 6) @Pattern(regexp = "^\\d{6}$", message = "邮编格式不正确") String postalCode,
-        @Schema(nullable = true) @Size(max = 60) String companyName,
+        @Schema(nullable = true)
+                @Size(max = ShopFieldRules.POSTAL_CODE_DIGITS)
+                @Pattern(regexp = ShopFieldRules.POSTAL_CODE_PATTERN, message = "邮编格式不正确")
+                String postalCode,
+        @Schema(nullable = true) @Size(max = ShopFieldRules.COMPANY_NAME_MAX) String companyName,
         @Schema(nullable = true) @Size(max = NoteFieldRules.FREE_TEXT_MAX) String note,
         Boolean defaultShip,
         Boolean defaultReturn) {

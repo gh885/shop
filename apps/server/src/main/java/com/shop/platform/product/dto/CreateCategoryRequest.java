@@ -5,7 +5,10 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public record CreateCategoryRequest(
-        UUID parentId, @NotBlank @Size(max = 64) String name, Integer sort, @Size(max = 255) String iconUrl) {
+        UUID parentId,
+        @NotBlank @Size(max = CategoryFieldRules.NAME_MAX) String name,
+        Integer sort,
+        @Size(max = CategoryFieldRules.ICON_MAX) String iconUrl) {
     public CreateCategoryRequest {
         if (name != null) name = name.trim();
     }

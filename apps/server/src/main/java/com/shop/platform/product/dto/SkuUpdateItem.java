@@ -17,14 +17,14 @@ import java.util.UUID;
  */
 public record SkuUpdateItem(
         @NotNull UUID skuId,
-        @Size(max = 160) String name,
-        @Size(max = 255) String image,
+        @Size(max = ProductFieldRules.SKU_NAME_MAX) String name,
+        @Size(max = ProductFieldRules.IMAGE_KEY_MAX) String image,
         @NotNull Money price,
         /** 划线价，可空（不画删除线）；传 null 不改 */
         Money originalPrice,
         @NotNull @Min(0) Integer stock,
         /** 业务编码（仓管/ERP 对账用），全局唯一；传 null 不改，重复会 409 */
-        @Size(max = 64) String skuCode,
+        @Size(max = ProductFieldRules.SKU_CODE_MAX) String skuCode,
         /** 在售 / 停用；传 null 不改 */
         @Schema SkuStatus status) {
 

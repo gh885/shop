@@ -11,6 +11,7 @@ import com.shop.platform.account.dto.PasswordLoginRequest;
 import com.shop.platform.account.dto.RefreshRequest;
 import com.shop.platform.account.dto.ResetPasswordRequest;
 import com.shop.platform.account.dto.SetPasswordRequest;
+import com.shop.platform.account.dto.SmsCodeRequest;
 import com.shop.platform.account.dto.SmsLoginRequest;
 import com.shop.platform.account.dto.UpdateProfileRequest;
 import com.shop.platform.aftersale.dto.ApplyAfterSaleRequest;
@@ -24,6 +25,7 @@ import com.shop.platform.cms.dto.NavRequest;
 import com.shop.platform.cms.dto.RecommendTabRequest;
 import com.shop.platform.common.AddressFieldRules;
 import com.shop.platform.common.NoteFieldRules;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Quantities;
 import com.shop.platform.common.TrackingFieldRules;
@@ -36,22 +38,41 @@ import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
+import com.shop.platform.product.dto.CategoryAttrRequest;
+import com.shop.platform.product.dto.CategoryAttrValueRequest;
+import com.shop.platform.product.dto.CategoryFieldRules;
+import com.shop.platform.product.dto.CreateCategoryRequest;
 import com.shop.platform.product.dto.CreateProductRequest;
 import com.shop.platform.product.dto.ProductFieldRules;
+import com.shop.platform.product.dto.ProductQuery;
+import com.shop.platform.product.dto.SkuUpdateItem;
+import com.shop.platform.product.dto.SpecSelectionRequest;
+import com.shop.platform.product.dto.UpdateCategoryRequest;
 import com.shop.platform.product.dto.UpdateProductRequest;
+import com.shop.platform.product.dto.UpdateSpecsRequest;
+import com.shop.platform.product.mapper.ParamItem;
+import com.shop.platform.recommend.dto.FeedQuery;
+import com.shop.platform.shop.dto.CreateShopRequest;
 import com.shop.platform.shop.dto.MerchantAddressRequest;
+import com.shop.platform.shop.dto.RejectRequest;
+import com.shop.platform.shop.dto.ShippingTemplateRequest;
+import com.shop.platform.shop.dto.ShopFieldRules;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Size;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedParameterizedType;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -84,7 +105,8 @@ import tools.jackson.databind.json.JsonMapper;
  * 因此也是没有本地数据源时唯一还能跑的契约核对。两者互补：那条管"整份契约没变"，这条管"这四个数还是同一个数、
  * 且只有一个定义处"。改数字是有意的接口变更时，先跑 {@code pnpm gen:sdk} 再改词表，两边一起红才是正常流程。
  *
- * <p>方向刻意不对称：入站上限<b>允许比列宽更紧</b>（昵称 30 而 {@code auth.users.nickname} 是 50——
+ * <p>方向刻意不对称：入站上限<b>允许比列宽更紧</b>（昵称走 {@link AccountFieldRules#NICKNAME_MAX}，
+ * 而 {@code account.users.nickname} 那一格更宽——
  * 早一步在 400 挡住比让脏值撞列宽好），但不允许更松（越过列宽就是 500）。DB 兜底那一格
  * （件数 CHECK）则要求<b>相等</b>：入口比 DB 宽时，超出的件数会被 {@code LEAST} 静默改写而不是被拒。
  */
@@ -110,8 +132,19 @@ class FieldRuleVocabularyTest {
     private static final Pattern INLINE_BOUND =
             Pattern.compile("maxLength\\s*(?:=\\{|:)\\s*\\d|(?s)\\.max\\(\\s*\\d{2,}\\s*[,)]");
 
-    /** Java 侧把字数预算直接写进注解的形态 */
-    private static final Pattern BARE_NOTE_LIMIT = Pattern.compile("\\bmax\\s*=\\s*200\\b");
+    /**
+     * Java 侧把数字直接写进校验注解的形态：{@code @Size} / {@code @Min} / {@code @Max} 的边界，
+     * 以及 {@code @Pattern} 的形状（正则里的位数同样是这个数字规则）。
+     */
+    private static final Pattern NUMERIC_VALIDATION =
+            Pattern.compile("@(Size|Min|Max|Pattern|DecimalMin|DecimalMax)\\(([^)]*)\\)");
+
+    /**
+     * 允许在校验注解上直接写数字的类——<b>今天为空</b>，这是刻意的：owner 是纯常量类，它们的数字不在注解里，
+     * 而所有<b>用</b>数字的地方都只许引用它们。留这一个口子是为了不必把某个类改造成 owner 也能登记例外
+     * （加进来要在 {@code docs/business-rules/crosscut.md} 写明为什么）。
+     */
+    private static final Set<String> RULE_OWNERS = Set.of();
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final JsonNode SPEC = readSpec();
@@ -144,70 +177,70 @@ class FieldRuleVocabularyTest {
                     AddressFieldRules.NAME_MAX,
                     "AddressFieldRules.NAME_MAX",
                     "maxLength",
-                    "user_profile.addresses.receiver_name"),
+                    "account.addresses.receiver_name"),
             new Rule(
                     AddressRequest.class,
                     "province",
                     AddressFieldRules.NAME_MAX,
                     "AddressFieldRules.NAME_MAX",
                     "maxLength",
-                    "user_profile.addresses.province"),
+                    "account.addresses.province"),
             new Rule(
                     AddressRequest.class,
                     "city",
                     AddressFieldRules.NAME_MAX,
                     "AddressFieldRules.NAME_MAX",
                     "maxLength",
-                    "user_profile.addresses.city"),
+                    "account.addresses.city"),
             new Rule(
                     AddressRequest.class,
                     "district",
                     AddressFieldRules.NAME_MAX,
                     "AddressFieldRules.NAME_MAX",
                     "maxLength",
-                    "user_profile.addresses.district"),
+                    "account.addresses.district"),
             new Rule(
                     AddressRequest.class,
                     "detail",
                     AddressFieldRules.DETAIL_MAX,
                     "AddressFieldRules.DETAIL_MAX",
                     "maxLength",
-                    "user_profile.addresses.detail"),
+                    "account.addresses.detail"),
             new Rule(
                     AddressRequest.class,
                     "label",
                     AddressFieldRules.LABEL_MAX,
                     "AddressFieldRules.LABEL_MAX",
                     "maxLength",
-                    "user_profile.addresses.label"),
+                    "account.addresses.label"),
             new Rule(
                     MerchantAddressRequest.class,
                     "contactName",
                     AddressFieldRules.NAME_MAX,
                     "AddressFieldRules.NAME_MAX",
                     "maxLength",
-                    "merchant_address.addresses.contact_name"),
+                    "shop.addresses.contact_name"),
             new Rule(
                     MerchantAddressRequest.class,
                     "province",
                     AddressFieldRules.NAME_MAX,
                     "AddressFieldRules.NAME_MAX",
                     "maxLength",
-                    "merchant_address.addresses.province"),
+                    "shop.addresses.province"),
             new Rule(
                     MerchantAddressRequest.class,
                     "district",
                     AddressFieldRules.NAME_MAX,
                     "AddressFieldRules.NAME_MAX",
                     "maxLength",
-                    "merchant_address.addresses.district"),
+                    "shop.addresses.district"),
             new Rule(
                     MerchantAddressRequest.class,
                     "detail",
                     AddressFieldRules.DETAIL_MAX,
                     "AddressFieldRules.DETAIL_MAX",
                     "maxLength",
-                    "merchant_address.addresses.detail"),
+                    "shop.addresses.detail"),
             // —— 账号：一个数被四个登录/改密入口共用
             new Rule(
                     PasswordLoginRequest.class,
@@ -215,14 +248,14 @@ class FieldRuleVocabularyTest {
                     AccountFieldRules.PHONE_MAX,
                     "AccountFieldRules.PHONE_MAX",
                     "maxLength",
-                    "auth.users.phone"),
+                    "account.users.phone"),
             new Rule(
                     PasswordLoginRequest.class,
                     "phone",
                     AccountFieldRules.PHONE_MIN,
                     "AccountFieldRules.PHONE_MIN",
                     "minLength",
-                    "auth.users.phone"),
+                    "account.users.phone"),
             new Rule(
                     SmsLoginRequest.class,
                     "code",
@@ -277,7 +310,7 @@ class FieldRuleVocabularyTest {
                     AccountFieldRules.NICKNAME_MAX,
                     "AccountFieldRules.NICKNAME_MAX",
                     "maxLength",
-                    "auth.users.nickname"),
+                    "account.users.nickname"),
             // —— 交易数量：入口门与 DB 兜底同一数
             new Rule(
                     OrderLineRequest.class,
@@ -420,7 +453,7 @@ class FieldRuleVocabularyTest {
                     NoteFieldRules.FREE_TEXT_MAX,
                     "NoteFieldRules.FREE_TEXT_MAX",
                     "maxLength",
-                    "merchant_address.addresses.note"),
+                    "shop.addresses.note"),
             new Rule(
                     TrackingNodeRequest.class,
                     "description",
@@ -523,7 +556,263 @@ class FieldRuleVocabularyTest {
                     CouponFieldRules.NAME_MAX,
                     "CouponFieldRules.NAME_MAX",
                     "maxLength",
-                    "coupon.coupon_templates.name"));
+                    "coupon.coupon_templates.name"),
+            // —— 券发行总量：库上那道 CHECK 只管 >0，上界只存在于入口这一侧，所以没有列可对
+            new Rule(
+                    CreateCouponTemplateRequest.class,
+                    "totalQuantity",
+                    CouponFieldRules.TOTAL_QUANTITY_MAX,
+                    "CouponFieldRules.TOTAL_QUANTITY_MAX",
+                    "maximum"),
+            // —— 账号：工号是登录账号（唯一索引），图形码那一格只有容量档
+            new Rule(
+                    LoginRequest.class,
+                    "employeeNo",
+                    AccountFieldRules.EMPLOYEE_NO_MAX,
+                    "AccountFieldRules.EMPLOYEE_NO_MAX",
+                    "maxLength",
+                    "account.staff.employee_no"),
+            new Rule(
+                    SmsCodeRequest.class,
+                    "captchaCode",
+                    AccountFieldRules.CAPTCHA_CODE_MAX,
+                    "AccountFieldRules.CAPTCHA_CODE_MAX",
+                    "maxLength"),
+            // 这两格曾是 owner 之外仅存的「带数字的入站注解」：一个撞在 200 上、一个撞在 255 上
+            new Rule(
+                    RefreshRequest.class,
+                    "refreshToken",
+                    AccountFieldRules.REFRESH_TOKEN_MAX,
+                    "AccountFieldRules.REFRESH_TOKEN_MAX",
+                    "maxLength"),
+            new Rule(
+                    UpdateProfileRequest.class,
+                    "avatarKey",
+                    AccountFieldRules.AVATAR_KEY_MAX,
+                    "AccountFieldRules.AVATAR_KEY_MAX",
+                    "maxLength",
+                    "account.users.avatar_key"),
+            // —— 运单：补录节点的「发生地」是手打的一句网点名，落点是它自己那一列
+            new Rule(
+                    TrackingNodeRequest.class,
+                    "location",
+                    TrackingFieldRules.LOCATION_MAX,
+                    "TrackingFieldRules.LOCATION_MAX",
+                    "maxLength",
+                    "logistics.tracking_nodes.location"),
+            // —— 类目与它的属性模板：运营两个弹窗，条目落各自那一列
+            new Rule(
+                    CreateCategoryRequest.class,
+                    "name",
+                    CategoryFieldRules.NAME_MAX,
+                    "CategoryFieldRules.NAME_MAX",
+                    "maxLength",
+                    "product.categories.name"),
+            new Rule(
+                    CreateCategoryRequest.class,
+                    "iconUrl",
+                    CategoryFieldRules.ICON_MAX,
+                    "CategoryFieldRules.ICON_MAX",
+                    "maxLength",
+                    "product.categories.icon_url"),
+            new Rule(
+                    UpdateCategoryRequest.class,
+                    "name",
+                    CategoryFieldRules.NAME_MAX,
+                    "CategoryFieldRules.NAME_MAX",
+                    "maxLength",
+                    "product.categories.name"),
+            new Rule(
+                    UpdateCategoryRequest.class,
+                    "iconUrl",
+                    CategoryFieldRules.ICON_MAX,
+                    "CategoryFieldRules.ICON_MAX",
+                    "maxLength",
+                    "product.categories.icon_url"),
+            new Rule(
+                    CategoryAttrRequest.class,
+                    "name",
+                    CategoryFieldRules.ATTR_NAME_MAX,
+                    "CategoryFieldRules.ATTR_NAME_MAX",
+                    "maxLength",
+                    "product.category_attrs.name"),
+            new Rule(
+                    CategoryAttrValueRequest.class,
+                    "value",
+                    CategoryFieldRules.ATTR_VALUE_MAX,
+                    "CategoryFieldRules.ATTR_VALUE_MAX",
+                    "maxLength",
+                    "product.category_attr_values.value"),
+            // 这一格是全部门禁里唯一由「ADD COLUMN IF NOT EXISTS」加出来的列：扫描器漏了那段写法它就静默不存在
+            new Rule(
+                    CategoryAttrValueRequest.class,
+                    "image",
+                    CategoryFieldRules.ATTR_VALUE_IMAGE_MAX,
+                    "CategoryFieldRules.ATTR_VALUE_IMAGE_MAX",
+                    "maxLength",
+                    "product.category_attr_values.image"),
+            // —— 商品：图片那一格三个入口（主图 + 两个数组的条目）同一个数
+            new Rule(
+                    CreateProductRequest.class,
+                    "mainImage",
+                    ProductFieldRules.IMAGE_KEY_MAX,
+                    "ProductFieldRules.IMAGE_KEY_MAX",
+                    "maxLength",
+                    "product.products.main_image"),
+            new Rule(
+                    CreateProductRequest.class,
+                    "images",
+                    ProductFieldRules.IMAGE_KEY_MAX,
+                    "ProductFieldRules.IMAGE_KEY_MAX",
+                    "itemsMaxLength",
+                    "product.products.main_image"),
+            new Rule(
+                    CreateProductRequest.class,
+                    "detailImages",
+                    ProductFieldRules.IMAGE_KEY_MAX,
+                    "ProductFieldRules.IMAGE_KEY_MAX",
+                    "itemsMaxLength"),
+            new Rule(
+                    UpdateProductRequest.class,
+                    "mainImage",
+                    ProductFieldRules.IMAGE_KEY_MAX,
+                    "ProductFieldRules.IMAGE_KEY_MAX",
+                    "maxLength",
+                    "product.products.main_image"),
+            new Rule(
+                    UpdateProductRequest.class,
+                    "images",
+                    ProductFieldRules.IMAGE_KEY_MAX,
+                    "ProductFieldRules.IMAGE_KEY_MAX",
+                    "itemsMaxLength"),
+            new Rule(
+                    UpdateProductRequest.class,
+                    "detailImages",
+                    ProductFieldRules.IMAGE_KEY_MAX,
+                    "ProductFieldRules.IMAGE_KEY_MAX",
+                    "itemsMaxLength"),
+            // —— SKU 批量更新：三个数各落 skus 的三列
+            new Rule(
+                    SkuUpdateItem.class,
+                    "name",
+                    ProductFieldRules.SKU_NAME_MAX,
+                    "ProductFieldRules.SKU_NAME_MAX",
+                    "maxLength",
+                    "product.skus.name"),
+            new Rule(
+                    SkuUpdateItem.class,
+                    "image",
+                    ProductFieldRules.IMAGE_KEY_MAX,
+                    "ProductFieldRules.IMAGE_KEY_MAX",
+                    "maxLength",
+                    "product.skus.image"),
+            new Rule(
+                    SkuUpdateItem.class,
+                    "skuCode",
+                    ProductFieldRules.SKU_CODE_MAX,
+                    "ProductFieldRules.SKU_CODE_MAX",
+                    "maxLength",
+                    "product.skus.sku_code"),
+            // —— 规格选择：条目上限是「一个维度展开多宽」，自填值最终建档进 attr_values 那一列
+            new Rule(
+                    SpecSelectionRequest.class,
+                    "valueIds",
+                    ProductFieldRules.SPEC_VALUES_MAX,
+                    "ProductFieldRules.SPEC_VALUES_MAX",
+                    "maxItems"),
+            new Rule(
+                    SpecSelectionRequest.class,
+                    "customValues",
+                    ProductFieldRules.SPEC_VALUES_MAX,
+                    "ProductFieldRules.SPEC_VALUES_MAX",
+                    "maxItems"),
+            new Rule(
+                    SpecSelectionRequest.class,
+                    "customValues",
+                    CategoryFieldRules.ATTR_VALUE_MAX,
+                    "CategoryFieldRules.ATTR_VALUE_MAX",
+                    "itemsMaxLength",
+                    "product.category_attr_values.value"),
+            new Rule(
+                    UpdateSpecsRequest.class,
+                    "specs",
+                    ProductFieldRules.SPECS_MAX,
+                    "ProductFieldRules.SPECS_MAX",
+                    "maxItems"),
+            // —— 参数条目：JSONB 里的形状，没有列宽可对（数字是产品口径，见 ProductFieldRules）
+            new Rule(
+                    ParamItem.class,
+                    "name",
+                    ProductFieldRules.PARAM_NAME_MAX,
+                    "ProductFieldRules.PARAM_NAME_MAX",
+                    "maxLength"),
+            new Rule(
+                    ParamItem.class,
+                    "value",
+                    ProductFieldRules.PARAM_VALUE_MAX,
+                    "ProductFieldRules.PARAM_VALUE_MAX",
+                    "maxLength"),
+            // —— 搜索关键词：上限的权威出处是<b>被搜</b>那一列，不是「给关键词留多少」
+            new Rule(
+                    ProductQuery.class,
+                    "keyword",
+                    ProductFieldRules.KEYWORD_MAX,
+                    "ProductFieldRules.KEYWORD_MAX",
+                    "maxLength",
+                    "product.products.name"),
+            // —— 店铺：开店两格、审核备注一格
+            new Rule(
+                    CreateShopRequest.class,
+                    "name",
+                    ShopFieldRules.NAME_MAX,
+                    "ShopFieldRules.NAME_MAX",
+                    "maxLength",
+                    "shop.shops.name"),
+            new Rule(
+                    CreateShopRequest.class,
+                    "logoKey",
+                    ShopFieldRules.LOGO_KEY_MAX,
+                    "ShopFieldRules.LOGO_KEY_MAX",
+                    "maxLength",
+                    "shop.shops.logo_key"),
+            new Rule(
+                    RejectRequest.class,
+                    "reason",
+                    ShopFieldRules.REVIEW_REASON_MAX,
+                    "ShopFieldRules.REVIEW_REASON_MAX",
+                    "maxLength",
+                    "shop.shop_reviews.reason"),
+            // —— 商家地址：邮编的位数与它的形状是同一个数（见 ShopFieldRules.POSTAL_CODE_DIGITS）
+            new Rule(
+                    MerchantAddressRequest.class,
+                    "postalCode",
+                    ShopFieldRules.POSTAL_CODE_DIGITS,
+                    "ShopFieldRules.POSTAL_CODE_DIGITS",
+                    "maxLength",
+                    "shop.addresses.postal_code"),
+            new Rule(
+                    MerchantAddressRequest.class,
+                    "companyName",
+                    ShopFieldRules.COMPANY_NAME_MAX,
+                    "ShopFieldRules.COMPANY_NAME_MAX",
+                    "maxLength",
+                    "shop.addresses.company_name"),
+            // —— 运费模板：两个列表条数是防刷闸门，模板本身存 JSONB
+            new Rule(
+                    ShippingTemplateRequest.class,
+                    "regionRules",
+                    ShopFieldRules.REGION_RULES_MAX,
+                    "ShopFieldRules.REGION_RULES_MAX",
+                    "maxItems"),
+            new Rule(
+                    ShippingTemplateRequest.class,
+                    "excludedRegions",
+                    ShopFieldRules.EXCLUDED_REGIONS_MAX,
+                    "ShopFieldRules.EXCLUDED_REGIONS_MAX",
+                    "maxItems"),
+            // —— 分页与 feed：一次最多要几条，只对入口，不对库
+            new Rule(PageParams.class, "size", PageParams.SIZE_MAX, "PageParams.SIZE_MAX", "maximum"),
+            new Rule(FeedQuery.class, "size", FeedQuery.SIZE_MAX, "FeedQuery.SIZE_MAX", "maximum"));
 
     /**
      * app 侧镜像：前端某个<b>具名常量</b>声明的数，镜像的是契约里的哪一格。
@@ -615,6 +904,20 @@ class FieldRuleVocabularyTest {
                     "maxLength",
                     ""),
             new Mirror(
+                    "packages/common/src/product-fields.ts",
+                    "SPEC_VALUES_MAX",
+                    "SpecSelectionRequest",
+                    "valueIds",
+                    "maxItems",
+                    ""),
+            new Mirror(
+                    "packages/common/src/product-fields.ts",
+                    "SPEC_VALUE_MAX",
+                    "SpecSelectionRequest",
+                    "customValues",
+                    "itemsMaxLength",
+                    ""),
+            new Mirror(
                     "apps/seller/src/shop/constants.ts", "SHOP_NAME_MAX", "CreateShopRequest", "name", "maxLength", ""),
             new Mirror(
                     "packages/app-kit/src/login-schema.ts",
@@ -655,18 +958,22 @@ class FieldRuleVocabularyTest {
         List<Rule> withColumn =
                 RULES.stream().filter(r -> r.columns().length > 0).toList();
         assertThat(withColumn).as("没有任何规则登记落库列，列名多半写错了").isNotEmpty();
+        // 一次跑完再报：登记表里落库列名写错往往是一批（搬家、改名），逐条失败会让人修一条跑一次
+        List<String> drifted = new ArrayList<>();
         for (Rule rule : withColumn) {
             for (String column : rule.columns()) {
                 Integer bound = DB.get(column);
-                assertThat(bound)
-                        .as("%s：迁移里找不到 %s 这一格的宽度/约束（列改名或登记写错）", rule, column)
-                        .isNotNull();
+                if (bound == null) {
+                    drifted.add(rule + " → 迁移里找不到 " + column + " 这一格的宽度/约束（列改名或登记写错）");
+                    continue;
+                }
                 // 入口比列宽紧是允许的（早点 400），比列宽松则是 500
-                assertThat(rule.ownerValue())
-                        .as("%s：入站上限越过 %s 的那一格（列宽 %s），超出部分会撞库而不是撞校验", rule, column, bound)
-                        .isLessThanOrEqualTo(bound);
+                if (rule.ownerValue() > bound) {
+                    drifted.add(rule + " → 入站上限越过 " + column + " 的那一格（列宽 " + bound + "），超出部分会撞库而不是撞校验");
+                }
             }
         }
+        assertThat(drifted).as("入站上限与库上那一格对不上").isEmpty();
     }
 
     @Test
@@ -790,40 +1097,44 @@ class FieldRuleVocabularyTest {
     }
 
     @Test
-    void 一段说明的上限不退回字面量() throws IOException {
-        List<String> owners;
+    void 入站注解里的数字字面量只许住在owner里() throws IOException {
+        List<Path> sources;
         try (Stream<Path> walk = Files.walk(MAIN_JAVA)) {
-            owners = walk.filter(p -> p.toString().endsWith(".java"))
-                    .filter(p -> {
-                        try {
-                            return stripComments(Files.readString(p, StandardCharsets.UTF_8))
-                                    .contains("NoteFieldRules.FREE_TEXT_MAX");
-                        } catch (IOException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    })
-                    .map(p -> MAIN_JAVA.relativize(p).toString().replace('\\', '/'))
-                    .toList();
+            sources = walk.filter(p -> p.toString().endsWith(".java")).sorted().toList();
         }
-        assertThat(owners).as("引用字数预算 owner 的入口数：一个概念散回七个字面量就是本条要挡的").hasSizeGreaterThanOrEqualTo(7);
-        List<String> literals;
-        try (Stream<Path> walk = Files.walk(MAIN_JAVA)) {
-            literals = walk.filter(p -> p.toString().endsWith(".java"))
-                    .filter(p -> {
-                        try {
-                            return BARE_NOTE_LIMIT
-                                    .matcher(stripComments(Files.readString(p, StandardCharsets.UTF_8)))
-                                    .find();
-                        } catch (IOException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    })
-                    .map(p -> p.getFileName().toString())
-                    .toList();
+        assertThat(sources).as("主源码一个 java 文件都没扫到 = 路径或 working dir 变了，本条会假绿").isNotEmpty();
+        List<String> citations = new ArrayList<>();
+        List<String> offenders = new ArrayList<>();
+        for (Path source : sources) {
+            String code = stripComments(Files.readString(source, StandardCharsets.UTF_8));
+            if (code.contains("NoteFieldRules.FREE_TEXT_MAX")) {
+                citations.add(MAIN_JAVA.relativize(source).toString().replace('\\', '/'));
+            }
+            if (RULE_OWNERS.contains(source.getFileName().toString())) {
+                continue;
+            }
+            Matcher annotation = NUMERIC_VALIDATION.matcher(code);
+            while (annotation.find()) {
+                Matcher number = Pattern.compile("\\d+").matcher(annotation.group(2));
+                boolean onlySemantics = true;
+                while (number.find()) {
+                    if (!"0".equals(number.group()) && !"1".equals(number.group())) {
+                        onlySemantics = false;
+                        break;
+                    }
+                }
+                // 0 与 1 不是容量档，是「不为负」与「非空」这两句语义；给它们造名字等于把语义换成一个可漂移的数
+                if (!onlySemantics) {
+                    offenders.add(
+                            source.getFileName() + " → " + annotation.group().strip());
+                }
+            }
         }
-        assertThat(literals)
-                .as("又有人把 200 直接写进 @Size：那是一列 VARCHAR(200) 的字数预算，走 NoteFieldRules.FREE_TEXT_MAX")
-                .containsExactly("RefreshRequest.java");
+        assertThat(citations).as("引用字数预算 owner 的入口数：一个概念散回七个字面量就是本条要挡的").hasSizeGreaterThanOrEqualTo(7);
+        assertThat(offenders)
+                .as("入站校验注解里写进了数字字面量：一个上限只许有一个定义处。漏了这一格就会长成「DTO 放宽了，契约、列宽、"
+                        + "前端镜像各留一份旧数」——此前本类只能核对已登记的约 40 条，登记面之外的字面量看不见")
+                .isEmpty();
     }
 
     @Test
@@ -886,6 +1197,11 @@ class FieldRuleVocabularyTest {
                 .as("契约文件没读到几何时，比对就是假绿")
                 .isGreaterThan(100);
         assertThat(DB).as("迁移里一个列宽/约束数字都没扫到 = 扫描器或路径失效").hasSizeGreaterThan(80);
+        // 这一格只能由「ADD COLUMN IF NOT EXISTS 列名 VARCHAR(n)」那种写法进来：扫描器漏掉那段写法时它是无声的
+        // ——那一格只是不在表里，于是「不许越过列宽」那条断言对它整体失明。钉住它，等于钉住扫描器本身。
+        assertThat(DB)
+                .as("V36 后加的规格值配图列没进这张表 = 回放迁移的扫描器又对某种写法失明了")
+                .containsEntry("product.category_attr_values.image", CategoryFieldRules.ATTR_VALUE_IMAGE_MAX);
         // 每条登记都还指得着东西：反射、契约、源码三边都要能取到值
         for (Rule rule : RULES) {
             annotationNumber(rule);
@@ -893,11 +1209,27 @@ class FieldRuleVocabularyTest {
         }
     }
 
+    @Test
+    void 邮编的位数与形状不许各说一半() {
+        // 同一个组件上两条规则各写一遍同一个数：@Size(max = 6) 与 ^\d{6}$。
+        // 改了正则忘改长度，就是「输入框能敲 7 位、提交必 400」的成因（前端那条同族规则见 shared-vocabulary）。
+        assertThat(patternOf(MerchantAddressRequest.class, "postalCode"))
+                .as("注解里的形状就是 owner 拼出来的那一条")
+                .isEqualTo(ShopFieldRules.POSTAL_CODE_PATTERN);
+        assertThat(contractPattern(MerchantAddressRequest.class, "postalCode"))
+                .as("契约里邮编那一格的形状")
+                .isEqualTo(ShopFieldRules.POSTAL_CODE_PATTERN);
+        assertThat(annotationNumber(ruleOf(MerchantAddressRequest.class, "postalCode", "maxLength")))
+                .as("输入框拦的位数与形状放行的位数不再是同一个数")
+                .isEqualTo(digitsOf(patternOf(MerchantAddressRequest.class, "postalCode")));
+    }
+
     /** 读编译进字节码的注解值——不是源码文本，反射取到的就是 springdoc 看到的同一个数 */
     private static int annotationNumber(Rule rule) {
         Field field = field(rule.dto(), rule.component());
         return switch (rule.contractKey()) {
             case "maxLength", "maxItems" -> size(field, rule).max();
+            case "itemsMaxLength" -> itemSize(field, rule).max();
             case "minLength" -> size(field, rule).min();
             case "maximum" ->
                 (int) require(field.getAnnotation(Max.class), Max.class, rule).value();
@@ -909,11 +1241,27 @@ class FieldRuleVocabularyTest {
         return require(field.getAnnotation(Size.class), Size.class, rule);
     }
 
+    /**
+     * 数组<b>条目</b>上的上限：{@code List<@Size(max = 255) String>} 的注解挂在泛型参数上，字段本身没有。
+     *
+     * <p>这一格非读不可：图片数组的条目上限与主图那一格是同一个数，只看字段上的注解会漏掉三个入口里的两个，
+     * 于是「主图收紧、图集没跟」在契约上是看得见的、在门禁里是看不见的。
+     */
+    private static Size itemSize(Field field, Rule rule) {
+        AnnotatedType generic = field.getAnnotatedType();
+        assertThat(generic instanceof AnnotatedParameterizedType)
+                .as("%s：字段不是带泛型参数的容器，条目上限无处可取", rule)
+                .isTrue();
+        AnnotatedType element = ((AnnotatedParameterizedType) generic).getAnnotatedActualTypeArguments()[0];
+        return require(element.getAnnotation(Size.class), Size.class, rule);
+    }
+
     /** 注解上那句 message（默认占位串原样返回，其中不含数字，比对自会跳过） */
     private static String annotationMessage(Rule rule) {
         Field field = field(rule.dto(), rule.component());
         return switch (rule.contractKey()) {
             case "maxLength", "minLength", "maxItems" -> size(field, rule).message();
+            case "itemsMaxLength" -> itemSize(field, rule).message();
             case "maximum" ->
                 require(field.getAnnotation(Max.class), Max.class, rule).message();
             default -> "";
@@ -928,6 +1276,7 @@ class FieldRuleVocabularyTest {
                 Size size = size(field, rule);
                 yield List.of(size.min(), size.max());
             }
+            case "itemsMaxLength" -> List.of(itemSize(field, rule).max());
             case "maximum" ->
                 List.of((int)
                         require(field.getAnnotation(Max.class), Max.class, rule).value());
@@ -964,8 +1313,34 @@ class FieldRuleVocabularyTest {
         return contractBound(rule.schema(), rule.component(), rule.contractKey());
     }
 
+    /** 按 (DTO, 组件, 契约键) 取回登记项：比对「同一组件上的两条规则」时要的就是那一条，不是又造一份数 */
+    private static Rule ruleOf(Class<?> dto, String component, String contractKey) {
+        return RULES.stream()
+                .filter(r -> r.dto() == dto
+                        && r.component().equals(component)
+                        && r.contractKey().equals(contractKey))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "登记表里没有 " + dto.getSimpleName() + "." + component + "." + contractKey + "，比对不能空转"));
+    }
+
+    /**
+     * 从定长正则里取位数（{@code ^\d{6}$} → 6）。
+     *
+     * <p>取不到、或那是个区间量词，都直接抛而不是回一个默认值：回默认值会让这条门禁在形状变复杂后<b>悄悄失效</b>，
+     * 而那正是本类要挡的东西。
+     */
+    private static int digitsOf(String pattern) {
+        Matcher span = Pattern.compile("\\{(\\d+)(?:,(\\d+))?}").matcher(pattern);
+        assertThat(span.find()).as("正则里没有位数边界：%s", pattern).isTrue();
+        assertThat(span.group(2)).as("位数不是定长，单个常量表达不了，本门禁不猜：%s", pattern).isNull();
+        return Integer.parseInt(span.group(1));
+    }
+
     private static int contractBound(String schema, String component, String contractKey) {
-        JsonNode bound = contractProperty(schema, component).path(contractKey);
+        JsonNode bound = "itemsMaxLength".equals(contractKey)
+                ? contractProperty(schema, component).path("items").path("maxLength")
+                : contractProperty(schema, component).path(contractKey);
         assertThat(bound.isNumber())
                 .as("契约里没有 %s.%s.%s（字段改名、注解去掉了上限，或契约没重新导出）", schema, component, contractKey)
                 .isTrue();
@@ -1081,8 +1456,16 @@ class FieldRuleVocabularyTest {
         Pattern alterTable = Pattern.compile("^ALTER TABLE (\\w+\\.\\w+)");
         Pattern varchar = Pattern.compile("^(\\w+)\\s+VARCHAR\\((\\d+)\\)");
         Pattern widen = Pattern.compile("ALTER COLUMN (\\w+) TYPE VARCHAR\\((\\d+)\\)");
-        Pattern addColumn = Pattern.compile("ADD COLUMN (\\w+)\\s+VARCHAR\\((\\d+)\\)");
+        /**
+         * 后加的列也带宽度。{@code IF NOT EXISTS} 那一段曾经漏掉，而漏法是无声的：正则只认
+         * {@code ADD COLUMN 列名 VARCHAR(n)}，于是全部「后加的列」（V36 的 {@code category_attr_values.image}
+         * 等 19 处）不进这张表，「入站上限不越过库上那一格」对那些格子整体失明——包括被人引用最多的一批。
+         */
+        Pattern addColumn = Pattern.compile("ADD COLUMN (?:IF NOT EXISTS )?(\\w+)\\s+VARCHAR\\((\\d+)\\)");
         Pattern between = Pattern.compile("CHECK \\((\\w+) BETWEEN \\d+ AND (\\d+)\\)");
+        Pattern moveTable = Pattern.compile("^ALTER TABLE (\\w+\\.(\\w+)) SET SCHEMA (\\w+)");
+        Pattern renameSchema = Pattern.compile("^ALTER SCHEMA (\\w+) RENAME TO (\\w+)");
+        Pattern renameColumn = Pattern.compile("^ALTER TABLE (\\w+\\.\\w+) RENAME COLUMN (\\w+) TO (\\w+)");
         String table = null;
         boolean inCreate = false;
         try {
@@ -1115,6 +1498,27 @@ class FieldRuleVocabularyTest {
                         inCreate = false;
                         continue;
                     }
+                    // 搬家与改名：不改键名，登记在词表里的那些「落点」就会停在旧库结构上——列宽还是对的（宽度跟着列走），
+                    // 但登记表写的那个名字在库里已经不存在了，下一次迁移改到真名那一格就再也对不上。
+                    Matcher moved = moveTable.matcher(line);
+                    if (moved.find()) {
+                        rekey(numbers, moved.group(1) + ".", moved.group(3) + "." + moved.group(2) + ".");
+                        continue;
+                    }
+                    Matcher renamedSchema = renameSchema.matcher(line);
+                    if (renamedSchema.find()) {
+                        rekey(numbers, renamedSchema.group(1) + ".", renamedSchema.group(2) + ".");
+                        continue;
+                    }
+                    Matcher renamedColumn = renameColumn.matcher(line);
+                    if (renamedColumn.find()) {
+                        String column = renamedColumn.group(2);
+                        rekey(
+                                numbers,
+                                renamedColumn.group(1) + "." + column,
+                                renamedColumn.group(1) + "." + renamedColumn.group(3));
+                        continue;
+                    }
                     Matcher altered = alterTable.matcher(line);
                     if (altered.find()) {
                         table = altered.group(1);
@@ -1135,6 +1539,21 @@ class FieldRuleVocabularyTest {
             throw new IllegalStateException("回放迁移失败", e);
         }
         return numbers;
+    }
+
+    /**
+     * 换前缀：表搬 schema、schema 改名、列改名之后，登记表要用<b>今天</b>那个名字。
+     *
+     * <p>不改键名的话漂移是双向的：登记在词表里的那个落点在库里已经不存在（列宽倒是还跟着列走，所以数字
+     * 仍然对得上，看起来一切正常），而真名那一格日后被 {@code ALTER COLUMN TYPE} 改窄时，扫描器写进新键、
+     * 登记表还指着旧键——「不许越过列宽」那条断言当场失明。
+     */
+    private static void rekey(Map<String, Integer> numbers, String from, String to) {
+        List<String> hits =
+                numbers.keySet().stream().filter(key -> key.startsWith(from)).toList();
+        for (String key : hits) {
+            numbers.put(to + key.substring(from.length()), numbers.remove(key));
+        }
     }
 
     private static void put(Map<String, Integer> out, Pattern pattern, String line, String table, boolean enabled) {
