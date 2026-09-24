@@ -140,13 +140,11 @@ function ReviewPage() {
             {isPending ? (
                 <DataTableSkeleton columns={columns.length} />
             ) : (
-                <>
-                    <DataTable
-                        table={table}
-                        emptyContent="暂无符合条件的审核申请"
-                    />
-                    <DataTablePagination table={table} />
-                </>
+                <DataTable
+                    table={table}
+                    emptyContent="暂无符合条件的审核申请"
+                    footer={<DataTablePagination table={table} />}
+                />
             )}
         </div>
     )

@@ -11,7 +11,7 @@ import {
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
-    Skeleton,
+    DataTableSkeleton,
 } from "@shop/ui-web"
 import { useQuery } from "@tanstack/react-query"
 
@@ -66,14 +66,7 @@ export function CouponPage({ search }: { search: CouponListSearch }) {
             </Card>
 
             {coupons.isLoading ? (
-                <div className="space-y-2">
-                    {[0, 1, 2, 3].map((i) => (
-                        <Skeleton
-                            key={i}
-                            className="h-14 w-full rounded-xl"
-                        />
-                    ))}
-                </div>
+                <DataTableSkeleton columns={7} />
             ) : rows.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>

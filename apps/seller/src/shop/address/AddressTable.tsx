@@ -12,6 +12,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    TableShell,
 } from "@shop/ui-web"
 import { MapPin, Pencil, Trash2 } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
@@ -56,7 +57,7 @@ export function AddressTable({
     }
 
     return (
-        <div className="rounded-lg border border-border bg-card">
+        <TableShell>
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -131,6 +132,6 @@ export function AddressTable({
                     ))}
                 </TableBody>
             </Table>
-        </div>
+        </TableShell>
     )
 }

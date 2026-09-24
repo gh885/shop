@@ -122,13 +122,11 @@ export function CmsListPage<T extends { id: string } & RowData>({
             {isPending ? (
                 <DataTableSkeleton columns={columns.length} />
             ) : (
-                <>
-                    <DataTable
-                        table={table}
-                        emptyContent={emptyText}
-                    />
-                    <DataTablePagination table={table} />
-                </>
+                <DataTable
+                    table={table}
+                    emptyContent={emptyText}
+                    footer={<DataTablePagination table={table} />}
+                />
             )}
 
             {renderCreate({ open: createOpen, onOpenChange: setCreateOpen })}

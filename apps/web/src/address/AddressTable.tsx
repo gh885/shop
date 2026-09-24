@@ -14,6 +14,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    TableShell,
 } from "@shop/ui-web"
 
 import { ADDRESS_LABELS, type Address } from "./address"
@@ -50,7 +51,7 @@ export function AddressTable({
     onUnsetDefault,
 }: AddressTableProps) {
     return (
-        <div className="rounded-lg border border-border bg-card">
+        <TableShell>
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -139,6 +140,6 @@ export function AddressTable({
                     )}
                 </TableBody>
             </Table>
-        </div>
+        </TableShell>
     )
 }

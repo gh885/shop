@@ -3,7 +3,7 @@
 import type { ReactNode } from "react"
 import { FlexRender, Subscribe, type ReactTable, type RowData } from "@tanstack/react-table"
 
-import { cn } from "src/lib/utils"
+import { Empty, EmptyHeader, EmptyTitle } from "src/components/ui/empty"
 import { Skeleton } from "src/components/ui/skeleton"
 import {
     Table,
@@ -15,10 +15,13 @@ import {
 } from "src/components/ui/table"
 
 import type { DataTableFeatures } from "./data-table-features"
+import { TableShell } from "./table-shell"
 
 type DataTableProps<TData extends RowData> = {
     table: ReactTable<DataTableFeatures, TData>
     emptyContent?: ReactNode
+    /** 外壳底栏：一般放 DataTablePagination */
+    footer?: ReactNode
     className?: string
 }
 
@@ -26,13 +29,17 @@ type DataTableProps<TData extends RowData> = {
 export function DataTable<TData extends RowData>({
     table,
     emptyContent = "暂无数据",
+    footer,
     className,
 }: DataTableProps<TData>) {
     const rows = table.getRowModel().rows
     const colSpan = Math.max(1, table.getVisibleLeafColumns().length)
 
     return (
-        <div className={cn("rounded-lg border border-border bg-card", className)}>
+        <TableShell
+            footer={footer}
+            className={className}
+        >
             <Table>
                 <TableHeader>
                     {table.getHeaderGroups().map((group) => (
@@ -53,11 +60,12 @@ export function DataTable<TData extends RowData>({
                 <TableBody>
                     {rows.length === 0 ? (
                         <TableRow>
-                            <TableCell
-                                colSpan={colSpan}
-                                className="h-24 text-center text-muted-foreground"
-                            >
-                                {emptyContent}
+                            <TableCell colSpan={colSpan}>
+                                <Empty className="py-10">
+                                    <EmptyHeader>
+                                        <EmptyTitle>{emptyContent}</EmptyTitle>
+                                    </EmptyHeader>
+                                </Empty>
                             </TableCell>
                         </TableRow>
                     ) : (
@@ -87,14 +95,14 @@ export function DataTable<TData extends RowData>({
                     )}
                 </TableBody>
             </Table>
-        </div>
+        </TableShell>
     )
 }
 
 /** query 调用处选择骨架或数据，不把 isPending 传入数据表。 */
 export function DataTableSkeleton({ columns = 5, rows = 5 }: { columns?: number; rows?: number }) {
     return (
-        <div className="rounded-lg border border-border bg-card">
+        <TableShell>
             <output className="sr-only">正在加载列表</output>
             <Table>
                 <TableBody>
@@ -109,6 +117,6 @@ export function DataTableSkeleton({ columns = 5, rows = 5 }: { columns?: number;
                     ))}
                 </TableBody>
             </Table>
-        </div>
+        </TableShell>
     )
 }

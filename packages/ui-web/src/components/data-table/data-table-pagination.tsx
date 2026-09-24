@@ -35,7 +35,7 @@ export function DataTablePagination<TData extends RowData>({
     const pageNumbers = paged(currentPage, totalPages)
 
     return (
-        <div className={cn("flex flex-wrap items-center justify-between gap-3 px-2", className)}>
+        <div className={cn("flex w-full flex-wrap items-center justify-between gap-3", className)}>
             <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">每页</span>
                 <Select

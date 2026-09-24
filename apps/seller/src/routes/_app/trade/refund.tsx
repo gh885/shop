@@ -5,7 +5,7 @@ import {
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
-    Skeleton,
+    DataTableSkeleton,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
 import { z } from "zod"
@@ -87,14 +87,7 @@ function RefundPage() {
             />
 
             {tickets.isLoading ? (
-                <div className="space-y-2">
-                    {[0, 1, 2, 3].map((i) => (
-                        <Skeleton
-                            key={i}
-                            className="h-14 w-full rounded-xl"
-                        />
-                    ))}
-                </div>
+                <DataTableSkeleton columns={8} />
             ) : records.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>
