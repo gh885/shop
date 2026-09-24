@@ -44,7 +44,7 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         // 非规范路径（含编码等）不跳过，进 doFilterInternal 统一 400
         String path = RequestPaths.routePath(request);
-        return path != null && !RequestPaths.inNamespace(path, "/seller");
+        return path != null && !RequestPaths.inNamespace(path, RequestPaths.SELLER_NAMESPACE);
     }
 
     @Override

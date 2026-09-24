@@ -11,6 +11,7 @@ import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.RefreshCookies;
+import com.shop.platform.infra.web.RequestPaths;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,7 +34,7 @@ public class StaffAuthController {
      * 作用路径收窄到本端 refresh 端点；不设 domain —— staff 账号体系与 C 端隔离，不参与跨子域共享。
      */
     private static final RefreshCookies.Spec COOKIE =
-            new RefreshCookies.Spec("staff_refresh_token", "/admin/auth/refresh", null);
+            new RefreshCookies.Spec("staff_refresh_token", RequestPaths.ADMIN_SELF_SERVICE_PREFIX + "refresh", null);
 
     private final StaffService staffService;
     private final RefreshCookies refreshCookies;

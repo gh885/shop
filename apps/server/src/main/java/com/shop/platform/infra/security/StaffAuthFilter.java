@@ -35,9 +35,11 @@ public class StaffAuthFilter extends OncePerRequestFilter {
         if (path == null) {
             return false;
         }
-        // 只处理平台员工命名空间，登录/刷新入口放行（命名空间判定与判权拦截器共用 RequestPaths.inNamespace）
-        if (!RequestPaths.inNamespace(path, "/admin")) return true;
-        return path.startsWith("/admin/auth/login") || path.startsWith("/admin/auth/refresh");
+        // 只处理平台员工命名空间，两个发token的入口放行（命名空间判定与判权拦截器共用 RequestPaths）。
+        // 豁免刻意比 ADMIN_SELF_SERVICE_PREFIX 窄：me / 登出必须带员工 token 才谈得上「自服务」
+        if (!RequestPaths.inNamespace(path, RequestPaths.ADMIN_NAMESPACE)) return true;
+        return path.startsWith(RequestPaths.ADMIN_SELF_SERVICE_PREFIX + "login")
+                || path.startsWith(RequestPaths.ADMIN_SELF_SERVICE_PREFIX + "refresh");
     }
 
     @Override

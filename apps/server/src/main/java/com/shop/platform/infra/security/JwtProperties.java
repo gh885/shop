@@ -1,5 +1,6 @@
 package com.shop.platform.infra.security;
 
+import com.shop.platform.infra.web.RequestPaths;
 import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -47,7 +48,8 @@ public class JwtProperties {
             "/auth/refresh",
             "/auth/forgot-password",
             "/auth/reset-password",
-            "/admin",
+            // 管理端不是匿名：/admin 的认证由 StaffAuthFilter 只收员工令牌，买家侧过滤器在此让位
+            RequestPaths.ADMIN_NAMESPACE,
             // 承运商轨迹推送：调用方是外部系统（没有我们的用户令牌），安全边界靠报文签名
             // （未配置密钥一律 403，不 fail-open）
             "/logistics/webhooks",

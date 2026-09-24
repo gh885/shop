@@ -31,7 +31,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (path == null) {
             return false;
         }
-        // /admin/** 走平台员工过滤链（StaffAuthFilter），用户 token 不在此生效
+        // 匿名白名单按前缀匹配（比判权的命名空间匹配更宽）：/admin 走员工过滤链，用户 token 不在此生效。
+        // 两种匹配在真实路由上的分歧必须为零：落在「前缀命中而命名空间不命中」缝里的路由（如 /administrators）
+        // 既匿名又无判权，由 PermissionVocabularyTest 逐条核对（docs/conventions/permission-codes.md）
         return jwtProperties.getSkipPaths().stream().anyMatch(path::startsWith);
     }
 
