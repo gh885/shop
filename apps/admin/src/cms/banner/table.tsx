@@ -54,7 +54,10 @@ export const bannerColumns: ColumnDef<DataTableFeatures, BannerResponse>[] = [
         accessorKey: "title",
         header: "标题",
         cell: ({ row }) => (
-            <div className="min-w-0">
+            <div
+                className="max-w-60"
+                title={row.original.title}
+            >
                 <div className="truncate font-medium">{row.original.title}</div>
                 {row.original.subtitle && (
                     <div className="truncate text-xs text-muted-foreground">

@@ -5,6 +5,7 @@ import { PlusIcon } from "lucide-react"
 import {
     Button,
     DataTable,
+    DataTablePagination,
     DataTableSkeleton,
     DataTableToolbar,
     DataTableViewOptions,
@@ -47,7 +48,8 @@ export interface CmsListPageProps<T extends RowData> {
 /**
  * CMS 列表页骨架：标题说明 + 工具栏（筛选 / 新增 / 列显隐）+ 表格 + 新增对话框。
  *
- * 这些表都是后端不分页的全量小配置表，所以分页/筛选交给 DataTable 的客户端默认行为、
+ * 这些表都是后端不分页的全量小配置表，所以分页/筛选交给 DataTable 的客户端默认行为
+ * （客户端分页默认 10 行一页，分页条必须渲染，否则第 11 行起静默消失）、
  * 行 ID 一律取 id；行内动作（编辑 / 启停）在各域的列定义里。
  * 唯一需要 URL 接管的是筛选值本身——它要能被分享出去，也决定新增时的预填。
  */
@@ -120,10 +122,13 @@ export function CmsListPage<T extends { id: string } & RowData>({
             {isPending ? (
                 <DataTableSkeleton columns={columns.length} />
             ) : (
-                <DataTable
-                    table={table}
-                    emptyContent={emptyText}
-                />
+                <>
+                    <DataTable
+                        table={table}
+                        emptyContent={emptyText}
+                    />
+                    <DataTablePagination table={table} />
+                </>
             )}
 
             {renderCreate({ open: createOpen, onOpenChange: setCreateOpen })}

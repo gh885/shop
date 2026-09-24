@@ -114,7 +114,7 @@ function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
                     className="size-full"
                 />
             </div>
-            <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="min-w-0 max-w-64 flex-1 space-y-0.5">
                 <p
                     className="truncate font-medium"
                     title={first?.name}

@@ -1,5 +1,19 @@
-import { Button, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@shop/ui-web"
-import { MapPin, MoreHorizontal, Trash2 } from "lucide-react"
+import {
+    Badge,
+    Button,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@shop/ui-web"
+import { MapPin, Pencil, Trash2 } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 export interface AddressTableProps {
@@ -42,77 +56,81 @@ export function AddressTable({
     }
 
     return (
-        <div className="divide-y rounded-xl border">
-            <div className="grid grid-address-list items-center gap-4 px-4 py-2.5 text-sm font-medium text-muted-foreground">
-                <span>地址</span>
-                <span>联系人</span>
-                <span>备注</span>
-                <span>状态</span>
-                <span className="text-right">操作</span>
-            </div>
-            {rows.map((a) => (
-                <div
-                    key={a.id}
-                    className="grid grid-address-list items-center gap-4 px-4 py-3"
-                >
-                    <div className="min-w-0">
-                        <p className="truncate">{fullAddress(a)}</p>
-                        <div className="mt-1 flex gap-1.5">
-                            {a.defaultShip && (
-                                <span className="rounded-sm bg-info-subtle px-1.5 py-0.5 text-xs text-info-subtle-foreground">
-                                    默认发货
+        <div className="rounded-lg border border-border bg-card">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>地址</TableHead>
+                        <TableHead>联系人</TableHead>
+                        <TableHead>备注</TableHead>
+                        <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {rows.map((a) => (
+                        <TableRow key={a.id}>
+                            <TableCell className="max-w-96 whitespace-normal">
+                                <p className="break-all">{fullAddress(a)}</p>
+                                <div className="mt-1 flex gap-1.5">
+                                    {a.defaultShip && <Badge variant="info">默认发货</Badge>}
+                                    {a.defaultReturn && <Badge variant="success">默认退货</Badge>}
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <p>{a.contactName}</p>
+                                <p className="text-muted-foreground tabular-nums">{a.phone}</p>
+                            </TableCell>
+                            <TableCell variant="muted">
+                                <span
+                                    className="block max-w-48 truncate"
+                                    title={a.note || undefined}
+                                >
+                                    {a.note || "—"}
                                 </span>
-                            )}
-                            {a.defaultReturn && (
-                                <span className="rounded-sm bg-success-subtle px-1.5 py-0.5 text-xs text-success-subtle-foreground">
-                                    默认退货
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                    <div className="min-w-0">
-                        <p className="truncate">{a.contactName}</p>
-                        <p className="truncate text-sm text-muted-foreground">{a.phone}</p>
-                    </div>
-                    <span className="truncate text-sm text-muted-foreground">{a.note || "—"}</span>
-                    <span className="text-sm">正常</span>
-                    <div className="flex items-center justify-end gap-1">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={busyId === a.id}
-                            onClick={() => onSetDefaultShip(a.id)}
-                        >
-                            设为发货
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={busyId === a.id}
-                            onClick={() => onSetDefaultReturn(a.id)}
-                        >
-                            设为退货
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="编辑"
-                            onClick={() => onEdit(a)}
-                        >
-                            <MoreHorizontal className="size-4" />
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            size="icon"
-                            aria-label="删除"
-                            disabled={busyId === a.id}
-                            onClick={() => onDelete({ id: a.id, contactName: a.contactName })}
-                        >
-                            <Trash2 className="size-4" />
-                        </Button>
-                    </div>
-                </div>
-            ))}
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center justify-end gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={busyId === a.id}
+                                        onClick={() => onSetDefaultShip(a.id)}
+                                    >
+                                        设为发货
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={busyId === a.id}
+                                        onClick={() => onSetDefaultReturn(a.id)}
+                                    >
+                                        设为退货
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label="编辑"
+                                        onClick={() => onEdit(a)}
+                                    >
+                                        <Pencil />
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="icon-sm"
+                                        aria-label="删除"
+                                        disabled={busyId === a.id}
+                                        onClick={() =>
+                                            onDelete({ id: a.id, contactName: a.contactName })
+                                        }
+                                    >
+                                        <Trash2 />
+                                    </Button>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     )
 }

@@ -88,14 +88,10 @@ export function AddressTable({
                                     <TableCell className="whitespace-nowrap">
                                         {[a.province, a.city, a.district].filter(Boolean).join(" ")}
                                     </TableCell>
-                                    <TableCell className="max-w-80">
+                                    {/* 地址要看全：换行而不是截断（nowrap 下的 truncate 会压到操作列上） */}
+                                    <TableCell className="max-w-80 whitespace-normal">
                                         <span className="inline-flex flex-wrap items-center gap-1.5">
-                                            <span
-                                                className="truncate"
-                                                title={a.detail}
-                                            >
-                                                {a.detail}
-                                            </span>
+                                            <span className="break-all">{a.detail}</span>
                                             {label && <Badge variant="secondary">{label}</Badge>}
                                             {a.isDefault && <Badge>默认</Badge>}
                                         </span>

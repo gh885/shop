@@ -225,7 +225,7 @@ function ProductRow({
                             className="size-full"
                         />
                     </div>
-                    <div className="group/name min-w-0 flex-1 space-y-0.5">
+                    <div className="group/name min-w-0 max-w-72 flex-1 space-y-0.5">
                         {/* 第一项：商品名称（copyable，hover 连接样式可复制）+ 编辑图标，图标紧贴标题（不 flex-1，避免被推到列右端） */}
                         <div className="flex min-w-0 items-center gap-1.5">
                             <CopyableText

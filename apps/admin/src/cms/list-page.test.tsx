@@ -93,6 +93,21 @@ describe("CmsListPage", () => {
         expect(screen.getByText("暂无符合条件的导航条目")).toBeInTheDocument()
     })
 
+    it("超过一页的全量数据能翻到：第 11 行不静默消失", async () => {
+        const user = userEvent.setup()
+        const many: Entry[] = Array.from({ length: 15 }, (_, i) => ({
+            id: `m${i + 1}`,
+            name: `条目${i + 1}`,
+            sortOrder: i + 1,
+            status: "ENABLED",
+        }))
+        renderPage({ rows: many })
+
+        expect(screen.queryByText("条目11")).toBeNull()
+        await user.click(screen.getByRole("button", { name: "下一页" }))
+        expect(screen.getByText("条目11")).toBeInTheDocument()
+    })
+
     it("新增按钮打开页面自己交进来的对话框", async () => {
         const user = userEvent.setup()
         renderPage()

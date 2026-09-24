@@ -53,7 +53,10 @@ export function useReviewColumns({
                 header: "驳回理由",
                 cell: ({ row }) =>
                     row.original.reason ? (
-                        <span className="max-w-48 truncate text-muted-foreground">
+                        <span
+                            className="block max-w-48 truncate text-muted-foreground"
+                            title={row.original.reason}
+                        >
                             {row.original.reason}
                         </span>
                     ) : (

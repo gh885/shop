@@ -107,7 +107,7 @@ export function RefundTable({
                                         {TICKET_REASON_LABEL[ticket.reasonCode]}
                                     </Badge>
                                 )}
-                                <span className="line-clamp-2 text-muted-foreground">
+                                <span className="line-clamp-2 max-w-60 whitespace-normal text-muted-foreground">
                                     {ticket.reason ?? "买家未填写补充说明"}
                                 </span>
                                 {/* 强制受理是后端在申请那一刻算定的结论（AFS-45）：
