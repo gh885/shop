@@ -1,4 +1,4 @@
-import { type Money, sameMoney, strikethroughPrice } from "@shop/common"
+import { compactCount, type Money, sameMoney, strikethroughPrice } from "@shop/common"
 import type {
     FeedItemResponse,
     ParamItem,
@@ -201,13 +201,11 @@ export type ProductCardData = {
 
 /**
  * 销量文案：0 件不显示——「已售 0」是负资产，新品不必自证冷清；
- * 一万以上折成「已售 1.2万」（整数万去掉小数点，写「1万」而不是「1.0万」）。
+ * 折万口径（含整数万去尾）收在 `compactCount`，与收藏数共用一份（PRD-68）。
  */
 export function formatSoldText(soldCount: number): string | undefined {
     if (soldCount <= 0) return undefined
-    if (soldCount < 10000) return `已售 ${soldCount}`
-    const wan = (soldCount / 10000).toFixed(1).replace(/\.0$/, "")
-    return `已售 ${wan}万`
+    return `已售 ${compactCount(soldCount)}`
 }
 
 /** Product → 卡片视图投影（首页 feed 与详情页推荐流共用一份，不再各写一遍） */

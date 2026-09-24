@@ -153,6 +153,34 @@ useMutation({
 - 不用契约生成的 `zMoney` 做校验收口：hey-api 把 `int64` 生成成 `z.coerce.bigint()`，输出 `bigint` 与 `Money.amount: number` 不兼容。
 - 千分位分组固定在 `groupYuan`，不吃运行机器的区域设置（同一笔钱不该在中文 Windows 和控制台上长得不一样）。
 
+## 共享词表：一个概念一个出口
+
+**一句话**：一个概念在前端只许有一个出口，且那个出口住在它该住的包里；「另一处也这么写」不是复制的理由，是把它请进 owner 的理由。
+
+后端用 `ValidationVocabularyTest` 钉住「一条规则一个具名常量」，前端此前只靠人记得住。记不住的三份现场证据：
+
+- `apps/web` 里 `DeletionDialog` 从 `@shop/app-kit` 导入 `useCountdown`（相对秒数递减），同 app 的 `OrderCard` 从本地 `#/shared/lib/use-countdown` 导入同名 hook（按绝对时刻倒数）——**同名不同义**，跨文件复制粘贴会静默换语义。后者已改名 `useDeadline`。
+- `apps/seller/src/layout/Sidebar.tsx` 是个只转发的包装，却和 `@shop/ui-web` 的 `Sidebar` 重名——本地能 import 到的那个遮蔽了包里的那个。包装已删，`AppShell` 直接用 `WorkbenchSidebar`。
+- 同一张卡片上「已售 1234」和「1.2千人收藏」并存：销量只折万、收藏多一条千位折档，**同一个数两种读法**。折万算式收进 `compactCount` 后收藏数弃用了千档。
+
+| 概念        | 唯一出口                                  | 落在哪                                               |
+| ----------- | ----------------------------------------- | ---------------------------------------------------- |
+| 手机号掩码  | `maskPhone` / `MASK_SEGMENT`（`mask.ts`） | `@shop/common`；`ui-web` 的 `MaskedValue` 持同形常量 |
+| 大数折万    | `compactCount`（`count.ts`）              | `@shop/common`                                       |
+| 复制 + 反馈 | `copyWithNotify`（`copy-text.ts`）        | `@shop/app-kit`（要弹 toast，属展示胶水）            |
+| 金额        | `money.ts` 一族（见上一节）               | `@shop/common`                                       |
+
+**门禁**：`packages/common/src/shared-vocabulary.test.ts`（node 环境，扫 `apps/*/src` + `packages/*/src` 全部源码），四条规则各挡一种漂移：
+
+1. **app 不遮蔽包导出**——app 本地导出的符号名不得与 `packages/*` 的导出名相同
+2. **形状的写法只有一份**——`****` / `/ 10000` / `navigator.clipboard.writeText` 这些字面量只许出现在 owner 文件里（判定在**剥掉块注释**后的文本上做：注释里写 `138****0000` 是给人看的示例，不是第二份实现；行注释不剥，宁可误报不空转）
+3. **owner 之间不漂移**——`ui-web` 刻意零内部依赖（纯 UI 包），它的 `MASK_SEGMENT` 必须与 common 的那份**逐字节相等**；常量等式编译期查不了，测试期钉
+4. **owner 不是孤儿**——每个 owner 至少有一个真实调用点，且聚合入口 `src/index.ts` 的 re-export 不算调用点
+
+外加两条反空转断言：扫描必须真扫到 >300 个文件 / >200 个导出名，每个 owner 剥完注释后仍命中自己的形状。这两条是本门禁自己踩出来的——`sourceFiles()` 早版先判后缀再递归，只扫到 41 个顶层文件，四条规则全绿却是假绿。
+
+新增一个共享概念时的顺序：先想清楚它该住哪（不依赖框架的逻辑进 `common`，要弹提示 / 格式化时间的进 `app-kit`，纯视觉的进 `ui-web`），落 owner，再把形状加进门禁的 `owners` 表。**放宽 allowlist 必须写明理由**（现有唯一一条：`AddressFormDialog` 的 `139********` 是「智能粘贴」输入框的占位示例文案，不产出掩码，也不与 `MASK_SEGMENT` 同形）。
+
 ## 前端测试（Vitest + Testing Library + MSW）
 
 ```bash

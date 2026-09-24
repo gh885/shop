@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { formatCountdown, useCountdown } from "./use-countdown"
+import { formatCountdown, useDeadline } from "./use-deadline"
 
 /**
  * 倒计时用 fake timers 驱动确定性信号（不 sleep 凑时间）：
@@ -15,33 +15,33 @@ afterEach(() => {
     vi.useRealTimers()
 })
 
-describe("useCountdown", () => {
+describe("useDeadline", () => {
     it("未来时刻返回剩余秒数且未过期", () => {
-        const { result } = renderHook(() => useCountdown("2026-09-06T12:00:30Z"))
+        const { result } = renderHook(() => useDeadline("2026-09-06T12:00:30Z"))
 
         expect(result.current).toEqual({ seconds: 30, expired: false })
     })
 
     it("已过期时刻归零兜底为 0，不显示负数", () => {
-        const { result } = renderHook(() => useCountdown("2026-09-06T11:00:00Z"))
+        const { result } = renderHook(() => useDeadline("2026-09-06T11:00:00Z"))
 
         expect(result.current).toEqual({ seconds: 0, expired: true })
     })
 
     it("非法时刻串直接过期，不 NaN 扩散", () => {
-        const { result } = renderHook(() => useCountdown("not-a-date"))
+        const { result } = renderHook(() => useDeadline("not-a-date"))
 
         expect(result.current).toEqual({ seconds: 0, expired: true })
     })
 
     it("空串视为无目标，直接过期", () => {
-        const { result } = renderHook(() => useCountdown(""))
+        const { result } = renderHook(() => useDeadline(""))
 
         expect(result.current).toEqual({ seconds: 0, expired: true })
     })
 
     it("每秒递减，归零后停在 0 不再继续走", () => {
-        const { result } = renderHook(() => useCountdown("2026-09-06T12:00:02Z"))
+        const { result } = renderHook(() => useDeadline("2026-09-06T12:00:02Z"))
 
         act(() => {
             vi.advanceTimersByTime(1000)
@@ -61,7 +61,7 @@ describe("useCountdown", () => {
 
     it("目标时刻变化时立即按新目标重算", () => {
         const { result, rerender } = renderHook(
-            ({ target }: { target: string }) => useCountdown(target),
+            ({ target }: { target: string }) => useDeadline(target),
             { initialProps: { target: "2026-09-06T12:00:30Z" } },
         )
 

@@ -1,4 +1,5 @@
 import type { FavoriteItemView, Money } from "@shop/api/sdk"
+import { compactCount } from "@shop/common"
 
 /**
  * favorite 模块 —— 纯逻辑（投影映射 + 过滤 + 文案），不碰 React / 网络。
@@ -42,9 +43,7 @@ export function filterFavorites(favorites: FavoriteItem[], keyword: string): Fav
     return favorites.filter((f) => f.title.toLowerCase().includes(kw))
 }
 
-/** 人数展示：>=10000 转「x.x万」，>=1000 转「x.x千」，否则原样。与截图「1000+人收藏」对齐 */
+/** 人数展示：折万口径与销量同一份（`compactCount`，PRD-68）——同一张卡片上「已售」和「收藏」不该各折各的 */
 export function collectText(count: number): string {
-    if (count >= 10000) return `${(count / 10000).toFixed(1)}万人收藏`
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}千人收藏`
-    return `${count}人收藏`
+    return `${compactCount(count)}人收藏`
 }

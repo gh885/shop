@@ -1,4 +1,4 @@
-import { notify } from "@shop/app-kit"
+import { copyWithNotify } from "@shop/app-kit"
 import { cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 /**
@@ -8,7 +8,7 @@ import { cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
  * - 默认保持普通文本形态（不显式摆复制图标），hover/focus 出现链接式下划线提示「可点击复制」
  * - 块级元素、占满可用宽度，子级 truncate 截断——同一容器内多个 CopyableText 能自然换行堆叠（名称一行、ID 一行）
  * - 复制的是 value（原始值）；children 只控制展示（名称截断、加 "ID:" 前缀等可随意）
- * - 反馈走全局 notify（@shop/app-kit 胶水，纯 UI 包不感知 toast 策略，故本级实现）
+ * - 复制与反馈不在这里：走 `@shop/app-kit` 的 `copyWithNotify`，三端同一句话术（物流页复制运单号共用它）
  */
 export function CopyableText({
     value,
@@ -27,12 +27,7 @@ export function CopyableText({
     const copy = async (e: React.MouseEvent<HTMLButtonElement>) => {
         // 阻止冒泡：避免表格行内其他点击处理（如选中）被误触发
         e.stopPropagation()
-        try {
-            await navigator.clipboard.writeText(value)
-            notify.success(`${label}已复制`)
-        } catch {
-            notify.error("复制失败，请手动选中复制")
-        }
+        await copyWithNotify(value, label)
     }
 
     return (

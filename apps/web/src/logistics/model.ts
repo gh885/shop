@@ -124,12 +124,11 @@ export function markLatest(groups: TrackingGroup[]): TrackingGroup[] {
     }))
 }
 
-/** 手机号脱敏：19551001956 → 195****1956（位数不足原样返回，不伪造掩码） */
-export function maskPhone(phone: string): string {
-    return phone.length >= 7 ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : phone
-}
-
-/** 姓名脱敏：张三 → 张**（首字保留，其余掩掉；单字姓名原样返回） */
+/**
+ * 姓名脱敏：张三 → 张**（首字保留，其余掩掉；单字姓名原样返回）。
+ * 号码的掩码不在这份文件里——它的形状归 `@shop/common` 的 `maskPhone`（GEN-51 的前端半边），
+ * 姓名这一档只有物流页用，是本页的展示决定。
+ */
 export function maskName(name: string): string {
     return name.length > 1 ? `${name.slice(0, 1)}${"*".repeat(name.length - 1)}` : name
 }

@@ -2,9 +2,8 @@ import { Outlet, useLocation } from "@tanstack/react-router"
 import { cn } from "@shop/ui-web"
 
 import { PageBreadcrumb, type Crumb } from "#/shared/ui/PageBreadcrumb"
-import { Sidebar } from "./Sidebar"
 import { AppTopBar } from "./AppTopBar"
-import { activeSectionOf } from "@shop/app-kit"
+import { activeSectionOf, WorkbenchSidebar } from "@shop/app-kit"
 import { NAV_ITEMS } from "./SidebarMenu"
 
 // 内容区需要大空间的页面：隐藏侧边栏与面包屑，顶栏收成「品牌 + 页名 + 动作」，内容通栏铺满
@@ -49,7 +48,12 @@ export function AppShell() {
             />
             <div className="flex min-h-0 flex-1">
                 {/* 侧边栏两列都落在 canvas 画布上（蓝灰），内容才进白色浮面 */}
-                {!fullWidth && <Sidebar />}
+                {!fullWidth && (
+                    <WorkbenchSidebar
+                        items={NAV_ITEMS}
+                        pathname={pathname}
+                    />
+                )}
                 {/* 白色浮面：只有内容，rounded-tl 浮于 canvas */}
                 <div
                     className={cn(

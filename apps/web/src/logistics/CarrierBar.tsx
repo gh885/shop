@@ -1,6 +1,6 @@
 import { Truck } from "lucide-react"
 
-import { notify } from "@shop/app-kit"
+import { copyWithNotify } from "@shop/app-kit"
 import { Button } from "@shop/ui-web"
 
 /**
@@ -18,15 +18,6 @@ export interface CarrierBarProps {
 }
 
 export function CarrierBar({ carrierName, trackingNo, title }: CarrierBarProps) {
-    async function copyTrackingNo() {
-        try {
-            await navigator.clipboard.writeText(trackingNo)
-            notify.success("运单号已复制")
-        } catch {
-            notify.error("复制失败，请手动选择运单号")
-        }
-    }
-
     return (
         <div className="flex items-center gap-2 py-3 text-sm">
             <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -38,7 +29,7 @@ export function CarrierBar({ carrierName, trackingNo, title }: CarrierBarProps) 
             <Button
                 variant="ghost"
                 size="xs"
-                onClick={() => void copyTrackingNo()}
+                onClick={() => void copyWithNotify(trackingNo, "运单号")}
             >
                 复制
             </Button>

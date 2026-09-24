@@ -5,7 +5,6 @@ import {
     formatNodeTime,
     markLatest,
     maskName,
-    maskPhone,
     sliceGroups,
     type TrackingGroup,
     type TrackingNode,
@@ -102,16 +101,6 @@ describe("countNodes", () => {
                 makeGroup("b", "运输中", [makeNode({ key: "b-1" }), makeNode({ key: "b-2" })]),
             ]),
         ).toBe(3)
-    })
-})
-
-describe("maskPhone", () => {
-    it("掩掉中间四位", () => {
-        expect(maskPhone("19551001956")).toBe("195****1956")
-    })
-
-    it("位数不足原样返回：宁可不掩也不挪错位置伪造掩码", () => {
-        expect(maskPhone("95543")).toBe("95543")
     })
 })
 

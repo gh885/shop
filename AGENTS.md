@@ -71,7 +71,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - **前端错误态**：`throwOnError` 全局默认 `throwWhenNoData`（失败抛给边界）；只有头上没有边界可接的查询才显式 `throwOnError: false` 就地渲染
 - **前端测试**：MSW 只 mock 网络层（禁 `vi.mock` 业务模块）；组件测试走各 app 的 `renderWithProviders`（应用真实 QueryClient 默认值），不裸 `new QueryClient()`
 - **Tailwind 跨包**：给 ui-web / app-kit 加带类名的组件时，确认三端 `styles.css` 的 `@source` 已覆盖（漏了是静默掉样式，不报错）
-- **共享逻辑**：手写共享逻辑一律 `packages/common`，禁止在 `@shop/api` 内新增手写文件（那里全是生成物）
+- **共享逻辑**：手写共享逻辑一律 `packages/common`，禁止在 `@shop/api` 内新增手写文件（那里全是生成物）；一个概念在前端只许有一个出口，由 `packages/common/src/shared-vocabulary.test.ts` 门禁钉住（详见 `docs/conventions/frontend.md`「共享词表」）
 
 ## 开发规范
 

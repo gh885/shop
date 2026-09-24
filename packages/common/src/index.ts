@@ -2,7 +2,10 @@
  * @shop/common —— 契约之上、UI 之下的共享逻辑层。
  *
  * 放进来的标准：被 ≥2 个 app 使用 + **不依赖任何 UI 包**（ui-web/app-kit）+ 不含端级
- * 业务规则。依赖方向：common → @shop/api（生成 SDK，唯一被依赖方），不得反向。
+ * 业务规则。例外是「口径类」逻辑（脱敏形状 mask.ts、大数折位 count.ts）：它们即使
+ * 暂时只有一个 app 在调也该进来——收口本身就是理由，「一个概念只许有一个出口」由
+ * shared-vocabulary.test.ts 钉住，第二个调用点出现时不需要重新决定住哪。
+ * 依赖方向：common → @shop/api（生成 SDK，唯一被依赖方），不得反向。
  *
  * 与相邻包的分工：
  * - @shop/api   ：生成 SDK（openapi-ts 产物），包内除聚合入口外一律是生成物；
@@ -20,6 +23,9 @@
  * - address.ts   ：地址字段口径（号码/区划码/详址）+ 省市区名按码派生，两端地址表单共用
  * - status-options.ts：状态表 → 页签/下拉选项（同一状态的中文只写一遍）
  * - coupon.ts    ：优惠券文案与规则换算（门槛/面额一句话、原因码与状态标签）
+ * - mask.ts      ：脱敏形状的唯一前端出口（号码掩码段与 maskPhone）
+ * - count.ts     ：计数折万（销量/收藏数共用的「这个大数怎么念」）
+ * - shared-vocabulary.test.ts：前端共享词表门禁（一个概念一个出口，扫全仓源码）
  */
 
 export { statusOptions, type StatusOption } from "./status-options"
@@ -86,3 +92,7 @@ export {
     couponUnavailableReasonText,
     couponYuanText,
 } from "./coupon"
+
+export { MASK_SEGMENT, maskPhone } from "./mask"
+
+export { compactCount } from "./count"

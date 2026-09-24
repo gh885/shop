@@ -3,7 +3,7 @@ import { MapPin } from "lucide-react"
 import { ORDER_STATUS_LABEL } from "./constants"
 import { deriveOrderActions, type OrderAction, type OrderDetail } from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
-import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
+import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
 
 /**
  * 订单状态区：状态大标题 + 收货地址 + 操作按钮排。
@@ -34,7 +34,7 @@ export interface OrderStatusSectionProps {
 export function OrderStatusSection({ order, onAction, pendingAction }: OrderStatusSectionProps) {
     // 待付款订单展示付款截止倒计时
     const pending = order.status === "pending_payment"
-    const { seconds } = useCountdown(pending ? order.payExpireAt : "")
+    const { seconds } = useDeadline(pending ? order.payExpireAt : "")
     const fullAddress =
         order.receiverProvince + order.receiverCity + order.receiverDistrict + order.receiverDetail
 

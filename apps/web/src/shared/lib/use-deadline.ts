@@ -7,8 +7,15 @@ function remainingMs(targetIso: string): number {
     return Math.max(0, target - Date.now())
 }
 
-/** 秒级倒计时：返回距 targetIso 的剩余秒数；每秒刷新，归零后停在 0。targetIso 空则返回 { seconds: 0, expired: true } */
-export function useCountdown(targetIso: string): { seconds: number; expired: boolean } {
+/**
+ * 倒数到某个绝对时刻：返回距 targetIso 的剩余秒数，每秒刷新，归零后停在 0。
+ * targetIso 空则返回 `{ seconds: 0, expired: true }`。
+ *
+ * 名字刻意不叫 `useCountdown`：`@shop/app-kit` 已经有一个 `useCountdown`，那是「从 n 秒往下递减」
+ * 的相对计时器（验证码重发用），与本 hook 的「倒数到某时刻」不同义。同一个 app 里两种用法都出现过，
+ * 复制粘贴就会静默换语义——`shared-vocabulary.test.ts` 钉住 app 本地不得与包导出重名。
+ */
+export function useDeadline(targetIso: string): { seconds: number; expired: boolean } {
     const [seconds, setSeconds] = useState(() => Math.ceil(remainingMs(targetIso) / 1000))
 
     // targetIso 变化时在渲染期调整状态（React 文档推荐的 props→state 模式，避免 effect 内同步 setState）

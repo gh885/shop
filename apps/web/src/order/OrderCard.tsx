@@ -18,7 +18,7 @@ import { ChevronRight, Package, Store } from "lucide-react"
 import { ORDER_CARD_STATUS_META, ORDER_STATUS_LABEL } from "./constants"
 import { deriveOrderActions, isShipOverdue, type Order, type OrderAction } from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
-import { formatCountdown, useCountdown } from "#/shared/lib/use-countdown"
+import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
 import { formatDateTime } from "@shop/app-kit"
 import { formatMoney, sumMoney } from "@shop/common"
 
@@ -53,7 +53,7 @@ export interface OrderCardProps {
 export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCardProps) {
     // 待付款订单展示付款截止倒计时（其余状态不显示）
     const pending = order.status === "pending_payment"
-    const { seconds } = useCountdown(pending ? order.payExpireAt : "")
+    const { seconds } = useDeadline(pending ? order.payExpireAt : "")
     const statusMeta = ORDER_CARD_STATUS_META[order.status]
     // 发货时限提醒（待发货单）：过点不由系统代关单，只把「你可以取消退款」摆到买家眼前（ORD-27）
     const shipDeadline = order.status === "pending_shipment" ? order.shipExpireAt : undefined
