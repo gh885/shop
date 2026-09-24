@@ -1,9 +1,13 @@
 /**
  * address —— 地址字段口径 + 「省市区名」派生，web 收货地址与 seller 商家地址共用一份。
  *
- * 两端最终落到同一套后端校验（人名/地名 @Size(max=30)、号码 ^[0-9+\-]{5,20}$、区划码 ^\d{6}$、
- * 详址 @Size(max=120)），所以这些片段只在这里写一次；各端按自己那侧的必填差异拼 object schema
+ * 两端最终落到同一套后端校验（人名/地名 30、号码 `^[0-9+\-]{5,20}$`、区划码 `^\d{6}$`、详址 120），
+ * 所以这些片段只在这里写一次；各端按自己那侧的必填差异拼 object schema
  * （收货人 vs 联系人、买家区级必填而商家区级可空）。
+ *
+ * 那两个长度数字后端有一份同名 owner（`common/AddressFieldRules`：收货地址与商家地址两个 DTO 共用），
+ * 三边（这里 / Java / 迁移列宽）是否还相等由 `FieldRuleVocabularyTest` 逐条核对。原先这里只留了一句
+ * 散文「@Size(max=30)」当作对齐依据——散文不会报错，改了一边另一边没人知道，所以换成门禁。
  *
  * 省/市/区是三个**派生列**，不是用户输入：用户选的是一个 6 位区划码，名字在提交时按区划库反查
  * （regionNamesByCode）。表单里再存三份名字，等于让同一事实有两个来源——展示走反查、落库走手填，
@@ -14,10 +18,10 @@ import { z } from "zod"
 
 import { findPath } from "./regions"
 
-/** 人名/地名上限（后端 @Size(max = 30)）：收货人、联系人共用 */
+/** 人名/地名上限（后端 `AddressFieldRules.NAME_MAX`）：收货人、联系人共用 */
 export const ADDRESS_NAME_MAX = 30
 
-/** 详细地址上限（后端 @Size(max = 120)） */
+/** 详细地址上限（后端 `AddressFieldRules.DETAIL_MAX`） */
 export const ADDRESS_DETAIL_MAX = 120
 
 /** 地址上的号码：不卡大陆手机号格式——收件地址里填带区号的固话是常态，地址不是登录账号 */

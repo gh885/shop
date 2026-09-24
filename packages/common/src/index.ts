@@ -25,6 +25,7 @@
  * - coupon.ts    ：优惠券文案与规则换算（门槛/面额一句话、原因码与状态标签）
  * - mask.ts      ：脱敏形状的唯一前端出口（号码掩码段与 maskPhone）
  * - count.ts     ：计数折万（销量/收藏数共用的「这个大数怎么念」）
+ * - tracking.ts  ：运单字段口径（承运商展示名 / 运单号上限），发货与回寄两份表单共用
  * - shared-vocabulary.test.ts：前端共享词表门禁（一个概念一个出口，扫全仓源码）
  */
 
@@ -96,3 +97,5 @@ export {
 export { MASK_SEGMENT, maskPhone } from "./mask"
 
 export { compactCount } from "./count"
+
+export { CARRIER_NAME_MAX, TRACKING_NO_MAX, TrackingNoSchema } from "./tracking"

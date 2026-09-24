@@ -4,7 +4,7 @@ import { format, isValid } from "date-fns"
 import { z } from "zod"
 
 /** 跳转目标类型：与后端三个 Request 的 @Pattern("PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL") 对齐 */
-export const TargetTypeSchema = z.enum(["PRODUCT", "CATEGORY", "CAMPAIGN", "SEARCH", "URL"])
+const TargetTypeSchema = z.enum(["PRODUCT", "CATEGORY", "CAMPAIGN", "SEARCH", "URL"])
 export type TargetType = z.infer<typeof TargetTypeSchema>
 
 /** 表单 targetType 档位：契约里响应字段是 string | null 的宽松存储值，
@@ -17,7 +17,7 @@ export function parseTargetType(value?: string | null): TargetType | "NONE" {
 
 /** 提交方向与 parseTargetType 互为镜像：表单多出的 NONE 档位契约不认（只收五种类型），
     折成缺省 = 「不跳转」。三张表单各自折一次迟早会有一张忘折，把 "NONE" 原样发出去。 */
-export function submitTargetType(value?: TargetType | "NONE"): TargetType | undefined {
+function submitTargetType(value?: TargetType | "NONE"): TargetType | undefined {
     return value && value !== "NONE" ? value : undefined
 }
 

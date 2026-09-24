@@ -4,6 +4,7 @@ import com.shop.platform.account.mapper.User;
 import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.account.model.AccountDeletionTimeouts;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Sweep;
 import com.shop.platform.common.Validate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -80,19 +81,16 @@ public class AccountDeletionService {
     /**
      * 扫描并执行到期的注销申请（定时任务入口），返回本轮真正落地笔数。
      *
-     * <p>逐笔独立事务（在 {@link AccountDeletionExecutor} 上），一批里第 3 笔失败不牵连前 2 笔；
+     * <p>逐笔独立事务（在 {@link AccountDeletionExecutor} 上），且逐笔走 {@link Sweep#each}：一句「第 3 笔失败
+     * 不牵连前 2 笔」只有配上中断隔离才是真的——查询按申请时刻取头部一批，没有隔离时第 3 笔抛异常会让第 4 笔
+     * 起每轮都排在它后面而永远执行不到，而注销是毁灭性动作，卡住的那批恰恰是冷静期早已满期的那批。
      * 无分布式锁——资格判定全在 {@code anonymize} 的条件更新里，多实例并发扫描同一行只有一个赢。
      */
     public int sweep() {
         OffsetDateTime now = OffsetDateTime.now();
         List<UUID> due = userMapper.selectDeletionDue(now.minus(AccountDeletionTimeouts.COOLING_OFF), BATCH_LIMIT);
-        int executed = 0;
-        for (UUID userId : due) {
-            if (executor.execute(userId, OffsetDateTime.now())) {
-                executed++;
-            }
-        }
-        return executed;
+        return Sweep.each(
+                log, "到期注销申请", due, userId -> userId, userId -> executor.execute(userId, OffsetDateTime.now()));
     }
 
     /**

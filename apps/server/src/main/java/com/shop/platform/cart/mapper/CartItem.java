@@ -22,16 +22,13 @@ import lombok.experimental.SuperBuilder;
 @TableName("cart.items")
 public class CartItem extends AuditedEntity {
 
-    /** 单行购买数量上限，与 DB CHECK 兜底同值 */
-    public static final int MAX_QUANTITY_PER_ITEM = 999;
-
     /** 归属买家（account.users.id），跨 schema 裸引用不加 FK */
     private UUID userId;
 
     /** 加购的卖法（product.skus.id），跨 schema 裸引用不加 FK；同用户同 SKU 唯一（uk_cart_items_user_sku） */
     private UUID skuId;
 
-    /** 数量。DB CHECK 兜底 1~999，真实限购（秒杀限件）在 service/order 校验 */
+    /** 数量。上限见 {@link com.shop.platform.common.Quantities#LINE_QUANTITY_MAX}（入口 400 与 DB CHECK 同值），真实限购（秒杀限件）在 service/order 校验 */
     private Integer quantity;
 
     /** 结算勾选位：结算页只提交勾选条目。落库保证跨设备一致 */

@@ -20,7 +20,7 @@ import {
 /** Select 不接受空值，「不筛」用这个哨兵占位，回调时再折回 undefined */
 const ALL = "all"
 
-export interface CmsListFilter {
+interface CmsListFilter {
     /** 筛什么：同时用作触发器的无障碍名与「全部 X」选项文案 */
     label: string
     /** 当前值，缺省 = 不筛 */

@@ -1,6 +1,7 @@
 package com.shop.platform.account.service;
 
 import com.shop.platform.account.AuthProperties;
+import com.shop.platform.account.dto.AccountFieldRules;
 import com.shop.platform.account.infra.DevSmsChannel;
 import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.infra.SmsChannel;
@@ -120,8 +121,10 @@ public class SmsCodeService {
             throw new BusinessException(429, "SMS_DAILY_LIMIT", "今日验证码已达上限");
         }
 
-        // 3. 生成 6 位验证码，存 HMAC 摘要（pepper 在应用配置，拖库不可离线枚举）
-        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        // 3. 生成验证码，存 HMAC 摘要（pepper 在应用配置，拖库不可离线枚举）
+        //    宽度取词表那位（AccountFieldRules.SMS_CODE_LENGTH）：发码几位与入口校验几位必须是同一个数，
+        //    否则会出现「发得出、填不进」。值域 10^6 与宽度不成比例也无妨——不足位由 %0 补前导零。
+        String code = String.format("%0" + AccountFieldRules.SMS_CODE_LENGTH + "d", SECURE_RANDOM.nextInt(1_000_000));
         redis.opsForValue()
                 .set(codePrefix + phone, secretHasher.hash(phone + ":" + code), Duration.ofMinutes(CODE_TTL));
 

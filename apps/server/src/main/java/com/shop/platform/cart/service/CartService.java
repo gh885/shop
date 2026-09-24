@@ -8,6 +8,7 @@ import com.shop.platform.cart.dto.UpdateCartSelectedRequest;
 import com.shop.platform.cart.mapper.CartItem;
 import com.shop.platform.cart.mapper.CartItemMapper;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Quantities;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
@@ -27,9 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @RequiredArgsConstructor
 public class CartService {
-
-    /** 单用户购物车不同 SKU 条目上限，防刷；合并不受限 */
-    private static final int MAX_ITEMS_PER_USER = 99;
 
     private final CartItemMapper cartItemMapper;
 
@@ -59,7 +57,8 @@ public class CartService {
         //    （并发窗口内微小越界可容忍：非资金安全线，唯一索引才是硬兜底）
         if (cartItemMapper.selectByUserAndSku(userId, req.skuId()) == null) {
             Validate.isTrue(
-                    cartItemMapper.countByUser(userId) < MAX_ITEMS_PER_USER, "购物车最多存放 " + MAX_ITEMS_PER_USER + " 种商品");
+                    cartItemMapper.countByUser(userId) < Quantities.CART_ITEMS_MAX,
+                    "购物车最多存放 " + Quantities.CART_ITEMS_MAX + " 种商品");
         }
 
         // 4. 一条 upsert 落库：新条目插入，同 SKU 累加封顶，

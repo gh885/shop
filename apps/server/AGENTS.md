@@ -91,7 +91,9 @@ src/main/java/com/shop/platform/
 
 - **注解元素值必须是编译期常量表达式**——`String.join`、stream 推导都编不过。所以「常量等于枚举名 / wire 值 / 真实区划码」这条等式编译期查不了，由 `ValidationVocabularyTest`（无库，反射 + 扫 `src/main/java`）在测试期钉住，含 switch 分支穷尽性（Java 对 switch 语句不做穷尽检查）和「反证不空转」断言
 - **改词表 = 改契约**：值会导出进 `openapi/api-docs.json` 与生成的 zod，动一个字符就得先起后端跑 `pnpm gen:sdk`（`ApiDocsContractTest` 会先把不一致判红）。内部收口时替换值必须与被替换字面量**逐字节相同**，含 message 文案
-- **形似而概念不同不许合并**：邮编与区划码同为 6 位数字，各留一份常量
+- **形似而概念不同不许合并**：邮编与区划码同为 6 位数字、昵称与收件人同为 30 字，各留一份常量
+- **数字规则和形状规则同罪同判（GEN-56）**：`@Size`/`@Max` 的长度、件数、条数上限同样只引用常量，owner 是 `common.Quantities`（件数 999 / 车 99 / 行 99 / 券 20）、`common.AddressFieldRules`（30 / 120）、`common.TrackingFieldRules`（code 32 / 名字 50 / 运单号 64）、`account.dto.AccountFieldRules`（密码 8~~72 / 电话 7~~20 / 验证码 6 / 设备 ID 100 / 昵称 30）、`product.dto.ProductFieldRules`。一个数字在这个仓库里最多同时住四边——Java 常量 → 编译进注解的那格 → 已发布契约 `openapi/api-docs.json` → 迁移里的列宽/CHECK（外加 `packages/common` 抄的那一份 TS），四边由 `FieldRuleVocabularyTest`（无库、不起 Spring，反射 record 字段 + 扫迁移和 TS 源）逐条核对。**方向是不对称的**：入站上限允许比落库那一格更紧（早一步 400 好过脏数据），绝不允许更松（松出去的那几个字符是 500，本门禁引入时抓到的第一个真 bug 就是回寄公司门 50 对列宽 32）；而 DB 是**第二道闸**的那几格（件数走 `CHECK` + `LEAST`）必须与入口**相等**——入口更宽时超出的件数会被 `LEAST` 静默改小而没人报错
+- **注释里宣称的数字等式要有门禁**：订单与售后批上限同值、车条目数与下单行数同值，这类「两个数为什么相等」的散文由 `SweepTest` / `FieldRuleVocabularyTest` 从源码里把两个数各自读出来比对，改一处不改另一处会红。注销批上限 20 刻意不等（毁灭性动作每轮少动几笔），没有等式就核对不了，只在注释里交代理由
 - 落点归属跟着「门装在哪一层」走，不跟着语义走：DTO 上挂了 `@Pattern` 的筛选值 → 422（GEN-19 ①），service 用 `Validate.enumFilter` 自判的 → 400（GEN-19 ③）。别靠猜，`ProductControllerTest.非法排序_422带字段名` 是实测锚点
 
 ## 业务事件：一个出口、一行、一份目录
@@ -112,6 +114,15 @@ src/main/java/com/shop/platform/
 - **`<module>.infra/`（模块内部）**：单模块内的技术管道 —— `shop.infra.ShopMembershipFilter`、`account.infra.StaffPermissionResolver`。Modulith 规定子包类型即模块内部，天然不被跨模块访问。
 
 摆放两轴：**谁读它**（跨模块 → 根共享层；仅模块内 → `<module>.infra`）；**换技术重写吗**（重写 → infra；不重写 → common）。镜像示例：`UserIdHolder`（跨模块，common）vs `ShopMemberContext`（仅 shop，shop.infra）。
+
+## 定时扫描：逐笔隔离
+
+**一批里有一笔抛异常，只丢那一笔。** 所有「扫一批到期行 → 逐笔推进状态」的作业，逐笔循环都经唯一出口 `common.Sweep.each(log, 线名, rows, 行标识, 落点)`：catch `RuntimeException`、单笔一行 error 带上行标识、批末一行 warn 交代「本批几笔里失败了几笔」；返回值仍只算真正落成的笔数（条件更新没抢到＝让位，不算失败）。细则见 GEN-57。
+
+- **判据是查询形状，不是「出错概率低」**：扫描一律按到期时刻升序 + `LIMIT` 取头部，所以一笔稳定失败的行**每轮都排在队首**，它后面的行永远轮不到——调度照跑、每轮照打一行堆栈，而这条线已经停摆，日志里没有任何一句「停摆」。注销线尤其要命：卡住的正是冷静期早已满期的那批
+- **隔离不等于吞异常，也不引入死信/重试计数**：下一轮同批重扫就是重试通道；行标识必传给 `Sweep` 而不是让它 `toString` 整行——实体是 `@Data`，把一行打进日志会把自由文本备注和号码一起写出去（GEN-51）
+- **刻意不走 `Sweep` 的两处**：`TrackingPollJob`（外呼可用性与截止时刻的钩子不同形，套模板要配的开关比省下的代码长）、`ShipmentIssueService`（它要把 `DuplicateKeyException` 折成「已登记」这条正常路径，通用 catch 会把它误判成失败）。新增扫描线时先判是否落在这两类里，否则一律走 `Sweep`
+- `SweepTest` 除机制单测外还扫源码：三条超时线里再出现「不带隔离的裸 for + 计数」就红（它挡的是「以后又有人就地写循环」，不是现在这三处）
 
 ## 读缓存（infra.cache）
 

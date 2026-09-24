@@ -24,6 +24,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
+    /**
+     * 回显给客户端的请求参数值截断宽度：类型不匹配的 value 是客户端可控的任意长串，原样写进 400 detail
+     * 等于给日志膨胀和反射型信息泄露开门。判断越界与下刀必须是同一个数——写成两个字面量后，一旦只改其一，
+     * 「阈值小于下刀位置」那侧会让 {@code substring} 越界抛 {@code StringIndexOutOfBoundsException}，
+     * 于是这个 handler 自己落进兜底 500：一个非法参数换来一条堆栈。
+     */
+    private static final int ECHOED_VALUE_MAX = 100;
+
     private final ClientIp clientIp;
 
     @ExceptionHandler(BusinessException.class)

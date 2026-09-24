@@ -2,7 +2,7 @@ import { z } from "zod"
 import { useQuery } from "@tanstack/react-query"
 
 import type { OrderIdentity } from "./table"
-import { toApiError } from "@shop/common"
+import { TRACKING_NO_MAX, toApiError, TrackingNoSchema } from "@shop/common"
 import {
     Button,
     Dialog,
@@ -18,10 +18,10 @@ import {
 
 import { carrierListOptions } from "#/order/queries"
 
-/** 承运商走字典 code；运单号首尾空格清掉，承运商推送按运单号精确匹配 */
+/** 承运商走字典 code；运单号首尾空格清掉，承运商推送按运单号精确匹配（口径见 @shop/common 的 tracking.ts） */
 const ShipSchema = z.object({
     carrierCode: z.string().min(1, "请选择快递公司"),
-    trackingNo: z.string().trim().min(1, "请填写运单号").max(64, "运单号最长 64 字"),
+    trackingNo: TrackingNoSchema,
 })
 
 /**
@@ -149,7 +149,7 @@ function ShipForm({
                         <field.TextField
                             label="运单号"
                             required
-                            maxLength={64}
+                            maxLength={TRACKING_NO_MAX}
                             placeholder="快递运单号"
                         />
                     )}

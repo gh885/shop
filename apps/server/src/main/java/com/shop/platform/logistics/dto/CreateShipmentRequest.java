@@ -1,5 +1,6 @@
 package com.shop.platform.logistics.dto;
 
+import com.shop.platform.common.TrackingFieldRules;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -13,5 +14,5 @@ import java.util.UUID;
  */
 public record CreateShipmentRequest(
         @NotNull(message = "订单不能为空") UUID orderId,
-        @NotBlank(message = "请选择快递公司") @Size(max = 32) String carrierCode,
-        @NotBlank(message = "运单号不能为空") @Size(max = 64) String trackingNo) {}
+        @NotBlank(message = "请选择快递公司") @Size(max = TrackingFieldRules.CARRIER_CODE_MAX) String carrierCode,
+        @NotBlank(message = "运单号不能为空") @Size(max = TrackingFieldRules.TRACKING_NO_MAX) String trackingNo) {}

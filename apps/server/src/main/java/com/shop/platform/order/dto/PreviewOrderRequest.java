@@ -1,5 +1,6 @@
 package com.shop.platform.order.dto;
 
+import com.shop.platform.common.Quantities;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -18,5 +19,6 @@ import java.util.UUID;
  */
 public record PreviewOrderRequest(
         UUID addressId,
-        @NotNull @Size(min = 1, max = 99, message = "结算条目需 1 到 99 行") List<@Valid OrderLineRequest> lines,
-        @Size(max = 20, message = "一次结算最多选择 20 张优惠券") List<UUID> userCouponIds) {}
+        @NotNull @Size(min = 1, max = Quantities.ORDER_LINES_MAX, message = "结算条目需 1 到 99 行")
+                List<@Valid OrderLineRequest> lines,
+        @Size(max = Quantities.COUPONS_PER_CHECKOUT_MAX, message = "一次结算最多选择 20 张优惠券") List<UUID> userCouponIds) {}

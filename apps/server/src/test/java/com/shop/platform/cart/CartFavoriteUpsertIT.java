@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.cart.mapper.CartItem;
 import com.shop.platform.cart.mapper.CartItemMapper;
+import com.shop.platform.common.Quantities;
 import com.shop.platform.favorite.mapper.FavoriteItem;
 import com.shop.platform.favorite.mapper.FavoriteItemMapper;
 import com.shop.platform.testsupport.IntegrationTestSupport;
@@ -66,7 +67,7 @@ class CartFavoriteUpsertIT extends IntegrationTestSupport {
         CartItem capped = cartItemMapper.upsertMerging(userId, skuId, 10);
 
         // LEAST(...) 封顶在 SQL 里，995 + 10 顶到 999 而不是撞 CHECK (quantity BETWEEN 1 AND 999)
-        assertThat(capped.getQuantity()).isEqualTo(CartItem.MAX_QUANTITY_PER_ITEM);
+        assertThat(capped.getQuantity()).isEqualTo(Quantities.LINE_QUANTITY_MAX);
     }
 
     @Test

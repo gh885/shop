@@ -4,6 +4,7 @@ import com.shop.platform.account.api.AddressReadQuery;
 import com.shop.platform.account.api.AddressSnapshotView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
+import com.shop.platform.common.Quantities;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.api.CouponAvailabilityView;
 import com.shop.platform.coupon.api.CouponReadQuery;
@@ -36,9 +37,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 class CheckoutResolver {
-
-    /** 单行购买数量上限，与 cart.items 的 CHECK 同值兜底（同 SKU 多行合并后封顶） */
-    private static final int MAX_QUANTITY_PER_LINE = 999;
 
     private final ProductReadQuery productReadQuery;
 
@@ -103,12 +101,12 @@ class CheckoutResolver {
         return new ResolvedCheckout(valid, unavailable);
     }
 
-    /** 阶段一：结算行归约——同 SKU 合并件数并封顶；空集合 400（HTTP 层 @NotEmpty 先拦，这里兜 service 直调） */
+    /** 阶段一：结算行归约——同 SKU 合并件数并封顶（{@link Quantities#LINE_QUANTITY_MAX}，与加购累加同一档）；空集合 400（HTTP 层 @NotEmpty 先拦，这里兜 service 直调） */
     private static List<RequestedLine> requestedLines(List<OrderLineRequest> lines) {
         Validate.isTrue(lines != null && !lines.isEmpty(), "结算条目不能为空");
         Map<UUID, Integer> merged = new LinkedHashMap<>();
         for (OrderLineRequest line : lines) {
-            merged.merge(line.skuId(), line.quantity(), (a, b) -> Math.min(a + b, MAX_QUANTITY_PER_LINE));
+            merged.merge(line.skuId(), line.quantity(), (a, b) -> Math.min(a + b, Quantities.LINE_QUANTITY_MAX));
         }
         return merged.entrySet().stream()
                 .map(e -> new RequestedLine(e.getKey(), e.getValue()))

@@ -2,6 +2,7 @@ package com.shop.platform.cart.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.common.Quantities;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +15,7 @@ public interface CartItemMapper extends BaseMapper<CartItem> {
 
     /**
      * 加购落库的唯一语句：新条目插入，同 SKU 已在车里则数量累加、封顶
-     * {@link CartItem#MAX_QUANTITY_PER_ITEM}（DB CHECK 同值兜底），返回落库后的整行。
+     * {@link com.shop.platform.common.Quantities#LINE_QUANTITY_MAX}（DB CHECK 同值兜底），返回落库后的整行。
      *
      * <p>做成 upsert 而不是「先查再插、撞唯一索引后 catch 回退合并」：PG 一旦因唯一索引报错就把整个
      * 事务标记为 aborted，catch 之后的任何语句都会 25P02 失败（pgjdbc 默认 autosave=never，不打 savepoint），
@@ -26,7 +27,7 @@ public interface CartItemMapper extends BaseMapper<CartItem> {
     @Select("INSERT INTO cart.items AS c (user_id, sku_id, quantity, selected)"
             + " VALUES (#{userId}, #{skuId}, #{quantity}, TRUE)"
             + " ON CONFLICT (user_id, sku_id) DO UPDATE"
-            + " SET quantity = LEAST(c.quantity + EXCLUDED.quantity, " + CartItem.MAX_QUANTITY_PER_ITEM + "),"
+            + " SET quantity = LEAST(c.quantity + EXCLUDED.quantity, " + Quantities.LINE_QUANTITY_MAX + "),"
             + "     updated_at = NOW()"
             + " RETURNING *")
     CartItem upsertMerging(@Param("userId") UUID userId, @Param("skuId") UUID skuId, @Param("quantity") int quantity);

@@ -4,4 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record SetPasswordRequest(
-        @Size(max = 72) String currentPassword, @NotBlank @Size(min = 8, max = 72) String newPassword) {}
+        @Size(max = AccountFieldRules.PASSWORD_MAX) String currentPassword,
+        @NotBlank @Size(min = AccountFieldRules.PASSWORD_MIN, max = AccountFieldRules.PASSWORD_MAX)
+                String newPassword) {}

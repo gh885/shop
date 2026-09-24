@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { CARRIER_NAME_MAX, TRACKING_NO_MAX, TrackingNoSchema } from "@shop/common"
 import {
     Button,
     Dialog,
@@ -29,10 +30,14 @@ import { useReturnAfterSale } from "./after-sale-queries"
  * 强制从字典里选只会把人挡在门外（后端按名字匹配字典，匹配不上也照实记）。
  */
 
-/** 表单入参校验（与后端 @Size 对齐；表单局部 schema，非领域契约） */
+/** 表单入参校验：三个上限取自 @shop/common 的运单口径，与后端词表、库上列宽同源（见 tracking.ts） */
 const ReturnSchema = z.object({
-    logisticsCompany: z.string().trim().min(1, "请填写快递公司").max(50, "快递公司最长 50 字"),
-    trackingNo: z.string().trim().min(1, "请填写运单号").max(64, "运单号最长 64 字"),
+    logisticsCompany: z
+        .string()
+        .trim()
+        .min(1, "请填写快递公司")
+        .max(CARRIER_NAME_MAX, `快递公司最长 ${CARRIER_NAME_MAX} 字`),
+    trackingNo: TrackingNoSchema,
 })
 
 export interface AfterSaleReturnDialogProps {
@@ -128,7 +133,7 @@ function ReturnForm({
                             label="快递公司"
                             required
                             placeholder="例如：顺丰速运"
-                            maxLength={50}
+                            maxLength={CARRIER_NAME_MAX}
                         />
                     )}
                 </form.AppField>
@@ -139,7 +144,7 @@ function ReturnForm({
                             label="运单号"
                             required
                             placeholder="面单上的运单号"
-                            maxLength={64}
+                            maxLength={TRACKING_NO_MAX}
                         />
                     )}
                 </form.AppField>

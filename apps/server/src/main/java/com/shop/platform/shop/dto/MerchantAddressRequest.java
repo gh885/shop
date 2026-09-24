@@ -1,5 +1,6 @@
 package com.shop.platform.shop.dto;
 
+import com.shop.platform.common.AddressFieldRules;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
 import com.shop.platform.infra.region.RegionRegistry;
@@ -16,14 +17,14 @@ import jakarta.validation.constraints.Size;
  * defaultShip/defaultReturn 为 null 时：新增场景视为 false，编辑场景保持原值；为 true 时清掉本店同类默认。
  */
 public record MerchantAddressRequest(
-        @NotBlank @Size(max = 30) String contactName,
+        @NotBlank @Size(max = AddressFieldRules.NAME_MAX) String contactName,
         @NotBlank @Pattern(regexp = PhoneNumber.CONTACT_PATTERN, message = "手机号格式不正确") String phone,
         /** 形状门（6 位数字）；是不是真有这么个区划，由 service 拿 {@link RegionRegistry} 判，两处同为 400 */
         @NotBlank @Pattern(regexp = RegionRegistry.CODE_PATTERN, message = "行政区划代码格式不正确") String regionCode,
-        @NotBlank @Size(max = 30) String province,
-        @NotBlank @Size(max = 30) String city,
-        @Size(max = 30) String district,
-        @NotBlank @Size(max = 120) String detail,
+        @NotBlank @Size(max = AddressFieldRules.NAME_MAX) String province,
+        @NotBlank @Size(max = AddressFieldRules.NAME_MAX) String city,
+        @Size(max = AddressFieldRules.NAME_MAX) String district,
+        @NotBlank @Size(max = AddressFieldRules.DETAIL_MAX) String detail,
         /**
          * 邮政编码：形状与 {@link RegionRegistry#CODE_PATTERN} 撞车（同为 6 位数字），但它是另一个概念——
          * 邮编不参与区划校验、也不进 {@code regionCode} 那套存在性判定，所以刻意不引用同一个常量，

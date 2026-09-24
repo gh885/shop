@@ -149,7 +149,7 @@ class CartServiceTest {
     void 条目数达上限_防刷拦截() {
         stubSellable();
         when(cartItemMapper.selectByUserAndSku(userId, skuId)).thenReturn(null);
-        when(cartItemMapper.countByUser(userId)).thenReturn(99L); // MAX_ITEMS_PER_USER
+        when(cartItemMapper.countByUser(userId)).thenReturn(99L); // Quantities.CART_ITEMS_MAX
 
         assertThatThrownBy(() -> service.add(userId, request(1)))
                 .isInstanceOf(BusinessException.class)

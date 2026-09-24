@@ -4,9 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record SmsLoginRequest(
-        @NotBlank @Size(min = 7, max = 20) String phone,
-        @NotBlank @Size(min = 6, max = 6) String code,
-        @NotBlank @Size(max = 100) String deviceId) {
+        @NotBlank @Size(min = AccountFieldRules.PHONE_MIN, max = AccountFieldRules.PHONE_MAX) String phone,
+        @NotBlank @Size(min = AccountFieldRules.SMS_CODE_LENGTH, max = AccountFieldRules.SMS_CODE_LENGTH) String code,
+        @NotBlank @Size(max = AccountFieldRules.DEVICE_ID_MAX) String deviceId) {
     public SmsLoginRequest {
         if (phone != null) phone = phone.trim();
     }

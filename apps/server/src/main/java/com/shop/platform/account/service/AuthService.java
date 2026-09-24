@@ -1,5 +1,6 @@
 package com.shop.platform.account.service;
 
+import com.shop.platform.account.dto.AccountFieldRules;
 import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.infra.UserAgentParser;
 import com.shop.platform.account.mapper.User;
@@ -236,7 +237,9 @@ public class AuthService {
         if (nickname != null) {
             String trimmed = nickname.trim();
             if (trimmed.isEmpty()) throw BusinessException.badRequest("昵称不能为空");
-            if (trimmed.length() > 30) throw BusinessException.badRequest("昵称不能超过 30 字");
+            if (trimmed.length() > AccountFieldRules.NICKNAME_MAX) {
+                throw BusinessException.badRequest("昵称不能超过 " + AccountFieldRules.NICKNAME_MAX + " 字");
+            }
             user.setNickname(trimmed);
         }
         if (avatarKey != null) {
@@ -407,13 +410,14 @@ public class AuthService {
 
     // 密码校验
     private void validatePassword(String password, String phone) {
-        // REG-01: 最小长度 8 位
-        if (password == null || password.length() < 8) {
-            throw BusinessException.badRequest("密码长度至少 8 位");
+        // REG-01: 最小长度与 DTO 那一格同一个数（AccountFieldRules.PASSWORD_MIN）
+        if (password == null || password.length() < AccountFieldRules.PASSWORD_MIN) {
+            throw BusinessException.badRequest("密码长度至少 " + AccountFieldRules.PASSWORD_MIN + " 位");
         }
         // REG-06: BCrypt 的 72 是「字节」上限，不是字符数（多字节字符会超 72 字节导致编码失败/截断失配）
-        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
-            throw BusinessException.badRequest("密码长度不能超过 72 位");
+        //         ——所以 DTO 的字符档（PASSWORD_MAX）放得进来的，这里还要再过一道字节档
+        if (password.getBytes(StandardCharsets.UTF_8).length > AccountFieldRules.BCRYPT_INPUT_MAX_BYTES) {
+            throw BusinessException.badRequest("密码长度不能超过 " + AccountFieldRules.BCRYPT_INPUT_MAX_BYTES + " 位");
         }
         // REG-05: 不与手机号相同
         if (password.equals(phone)) {
