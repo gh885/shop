@@ -51,7 +51,7 @@ export function feedCategoryId(tab: RecommendTabResponse | undefined): string | 
     return tab?.targetType === "CATEGORY" ? (tab.target ?? undefined) : undefined
 }
 
-/** 一页 24 条（六列四行）；48 的上限由后端 @Max 兜底，前端不重复表达 */
+/** 一页 24 条（六列四行）；48 那个上限由后端 @Max 兜底、前端不重复表达，但「24 ≤ 48」这条登记在 FieldRuleVocabularyTest 的镜像表里 */
 export const FEED_PAGE_SIZE = 24
 
 /**

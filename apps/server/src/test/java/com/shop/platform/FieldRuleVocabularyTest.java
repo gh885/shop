@@ -73,6 +73,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.function.IntSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -109,6 +112,15 @@ import tools.jackson.databind.json.JsonMapper;
  * 而 {@code account.users.nickname} 那一格更宽——
  * 早一步在 400 挡住比让脏值撞列宽好），但不允许更松（越过列宽就是 500）。DB 兜底那一格
  * （件数 CHECK）则要求<b>相等</b>：入口比 DB 宽时，超出的件数会被 {@code LEAST} 静默改写而不是被拒。
+ *
+ * <p><b>第五边：前端</b>。这一族原本只核 Java 常量 ⇄ 注解 ⇄ 契约 ⇄ 迁移，前端那一边的核对是一份手写的
+ * 镜像清单——清单只证明「登记过的都对」，不证明「没有漏登记的」。本轮就是这么露馅的：
+ * {@code MAX_CART_QUANTITY = 999}、{@code PDP_MAX_QUANTITY = 99}、{@code COUPON_MAX_TOTAL = 1_000_000}
+ * 三个从 Java 手抄过来的数既不在清单里，也不被「扫裸字面量」那条看见（{@link #INLINE_BOUND} 只认
+ * {@code maxLength={N}} 与 {@code .max(N)} 那几种写法，起了名字的抄它看不见）。现在
+ * {@code 前端数值边界只许登记成三种对边之一} 从源码扫出全部具名边界，要求它与
+ * {@link #APP_MIRRORS}（对契约）∪ {@link #JAVA_TWINS}（对 Java 常量）∪ {@link #POLICY_NUMBERS}
+ * （登记在案的无对边策略，必须写理由）<b>双向相等</b>：新增不登记就红，删掉或改名而不销登记也红。
  */
 class FieldRuleVocabularyTest {
 
@@ -131,6 +143,38 @@ class FieldRuleVocabularyTest {
      */
     private static final Pattern INLINE_BOUND =
             Pattern.compile("maxLength\\s*(?:=\\{|:)\\s*\\d|(?s)\\.max\\(\\s*\\d{2,}\\s*[,)]");
+
+    /**
+     * 前端把数字边界写成具名常量的名字形状：{@code *_MAX} / {@code MAX_*} / {@code *_MIN} / {@code *_LIMIT}
+     * / {@code *_DIGITS} / {@code *_COUNT} / {@code *_SIZE} / {@code *_LENGTH}。
+     *
+     * <p>{@link #INLINE_BOUND} 只拦「数字直接写在校验调用上」那三种写法，<b>看不见</b>
+     * {@code export const MAX_CART_QUANTITY = 999} 这种「先起个名字再抄一遍」的形态——本轮就是被这三个数
+     * （车 999、详情页 99、券发行量 100 万）证明的洞：名字看着像 owner，值却是手抄的，契约改了它不跟着改。
+     * 于是这里把这类名字全数扫出来，要求每一个都登记成三张表之一，见
+     * {@code 前端数值边界只许登记成三种对边之一}。
+     */
+    private static final Pattern BOUND_NAME = Pattern.compile("(^|_)(MAX|MIN|LIMIT|DIGITS|COUNT|SIZE|LENGTH)(_|$)");
+
+    /** 名字带单位的量的是展示与传输策略（px / MB / 秒），契约里没有可比的那一边，不进 census */
+    private static final Pattern BOUND_UNIT_SUFFIX =
+            Pattern.compile("(PIXELS?|WIDTH|HEIGHT|PX|REM|MB|KB|GB|MS|SECONDS?|MINUTES?|HOURS?|DAYS?|AGE)$");
+
+    /** {@code const NAME[: number] = 123[_456]}，容忍 {@code as const}；右值必须是裸整数，算式不算 */
+    private static final Pattern BOUND_DECL = Pattern.compile(
+            "^[ \\t]*(?:export[ \\t]+)?const[ \\t]+([A-Z][A-Z0-9_]*)"
+                    + "[ \\t]*(?::[ \\t]*number)?[ \\t]*=[ \\t]*([0-9][0-9_]*)"
+                    + "[ \\t]*(?:as[ \\t]+const)?[ \\t]*(?:[,;)]|$)",
+            Pattern.MULTILINE);
+
+    /** census 扫的六个 TS 根，与 {@link #INLINE_BOUND} 那条同一把尺子 */
+    private static final List<String> TS_ROOTS = List.of(
+            "apps/web/src",
+            "apps/seller/src",
+            "apps/admin/src",
+            "packages/common/src",
+            "packages/app-kit/src",
+            "packages/ui-web/src");
 
     /**
      * Java 侧把数字直接写进校验注解的形态：{@code @Size} / {@code @Min} / {@code @Max} 的边界，
@@ -932,7 +976,148 @@ class FieldRuleVocabularyTest {
                     "SmsCodeRequest",
                     "captchaCode",
                     "maxLength",
-                    "这一格是图形码上印了几个字符，契约那 10 位是给换更长码留的容量"));
+                    "这一格是图形码上印了几个字符，契约那 10 位是给换更长码留的容量"),
+            // —— 交易数量的前端预判：Java 侧的 owner 是 common.Quantities，但镜像对的是契约那一格（同一层的其它数字都从它走）
+            new Mirror(
+                    "apps/web/src/cart/cart.ts", "MAX_CART_QUANTITY", "AddCartItemRequest", "quantity", "maximum", ""),
+            new Mirror(
+                    "apps/web/src/products/detail/constants.ts",
+                    "PDP_MAX_QUANTITY",
+                    "AddCartItemRequest",
+                    "quantity",
+                    "maximum",
+                    "PRD-72 写明了两个数不是一条约束：详情页未选全规格时步进器给的是展示上界（防一格灌进离谱数字），"
+                            + "服务端硬闸门仍是 1..999，选全规格后收紧为 min(数量, 该 SKU 可用库存)。刻意不对齐成一个。"),
+            new Mirror(
+                    "apps/seller/src/coupon/form.ts",
+                    "COUPON_MAX_TOTAL",
+                    "CreateCouponTemplateRequest",
+                    "totalQuantity",
+                    "maximum",
+                    ""),
+            new Mirror(
+                    "apps/web/src/home/queries.ts",
+                    "FEED_PAGE_SIZE",
+                    "FeedQuery",
+                    "size",
+                    "maximum",
+                    "一屏 24 条是版式决定（六列四行），契约的 48 是接口一次能给的容量；前端刻意少要，但不得多要"),
+            new Mirror(
+                    "apps/web/src/coupon/coupon.ts",
+                    "COUPON_PAGE_SIZE",
+                    "PageParams",
+                    "size",
+                    "maximum",
+                    "券包一页 10 条与分页控件共用一个数（两个数就两套总页数），契约的 100 是所有分页接口的公共上界"));
+
+    /**
+     * 前端数值边界的第二种对边：与某个 Java 词表常量同值（该格<b>没有</b>对应的契约数字，或 Java 才是唯一出处）。
+     *
+     * <p>{@code javaValue} 用 lambda 而不是「类名 + 字段名」的字符串，是为了让编译期就吃掉拼错——反射取字段的
+     * 写法在这里只会把一个不存在的规则登记成一条无声跳过的断言。
+     *
+     * <p>它同时是 {@code 前端数值边界只许登记成三种对边之一} 的登记表：过去这一族的核对散在两条测试里逐条手写，
+     * 扫不到也补不上，本轮改成表驱动。
+     *
+     * @param javaRule 对边那一格的具名写法，只用于失败信息
+     */
+    private record Twin(String file, String constant, String javaRule, IntSupplier javaValue) {
+
+        @Override
+        public String toString() {
+            return file + " " + constant + " ↔ " + javaRule;
+        }
+    }
+
+    private static final List<Twin> JAVA_TWINS = List.of(
+            new Twin(
+                    "packages/common/src/address.ts",
+                    "ADDRESS_NAME_MAX",
+                    "AddressFieldRules.NAME_MAX",
+                    () -> AddressFieldRules.NAME_MAX),
+            new Twin(
+                    "packages/common/src/address.ts",
+                    "ADDRESS_DETAIL_MAX",
+                    "AddressFieldRules.DETAIL_MAX",
+                    () -> AddressFieldRules.DETAIL_MAX),
+            new Twin(
+                    "packages/common/src/address.ts",
+                    "CONTACT_PHONE_MAX",
+                    "PhoneNumber.CONTACT_PATTERN 的 {5,20} 上界",
+                    // 输入框的 maxLength 拿不到正则，只能另起一个名字，但数得从同一条规则来
+                    () -> boundOf(PhoneNumber.CONTACT_PATTERN, false)),
+            new Twin(
+                    "packages/common/src/tracking.ts",
+                    "CARRIER_NAME_MAX",
+                    "TrackingFieldRules.CARRIER_NAME_MAX",
+                    () -> TrackingFieldRules.CARRIER_NAME_MAX),
+            new Twin(
+                    "packages/common/src/tracking.ts",
+                    "TRACKING_NO_MAX",
+                    "TrackingFieldRules.TRACKING_NO_MAX",
+                    () -> TrackingFieldRules.TRACKING_NO_MAX),
+            new Twin(
+                    "packages/common/src/product-fields.ts",
+                    "PRODUCT_NAME_MAX",
+                    "ProductFieldRules.NAME_MAX",
+                    () -> ProductFieldRules.NAME_MAX),
+            new Twin(
+                    "packages/common/src/product-fields.ts",
+                    "SELL_POINT_MIN",
+                    "ProductFieldRules.SELL_POINT_PATTERN 的 {10,30} 下界",
+                    // 卖点的 10 与 30 在 Java 侧只以正则存在，所以从正则里取数，而不是两边各写一遍字面量
+                    () -> boundOf(ProductFieldRules.SELL_POINT_PATTERN, true)),
+            new Twin(
+                    "packages/common/src/product-fields.ts",
+                    "SELL_POINT_MAX",
+                    "ProductFieldRules.SELL_POINT_PATTERN 的 {10,30} 上界",
+                    () -> boundOf(ProductFieldRules.SELL_POINT_PATTERN, false)),
+            new Twin(
+                    "packages/app-kit/src/login-schema.ts",
+                    "SMS_CODE_DIGITS",
+                    "AccountFieldRules.SMS_CODE_LENGTH",
+                    () -> AccountFieldRules.SMS_CODE_LENGTH),
+            new Twin(
+                    "packages/app-kit/src/login-schema.ts",
+                    "PASSWORD_MIN",
+                    "AccountFieldRules.PASSWORD_MIN",
+                    () -> AccountFieldRules.PASSWORD_MIN),
+            new Twin(
+                    "packages/app-kit/src/login-schema.ts",
+                    "NICKNAME_MAX",
+                    "AccountFieldRules.NICKNAME_MAX",
+                    () -> AccountFieldRules.NICKNAME_MAX));
+
+    /**
+     * 第三种对边：压根没有对边。值是这一处的产品或传输策略，写清楚<b>为什么</b>没有第二处比它。
+     *
+     * <p>这一格不许空着：census 逼着每个新边界要么找到契约/Java 的另一边，要么在这儿登记「它就是我这一处的事」。
+     * 空理由等于没登记。
+     */
+    private record Policy(String file, String constant, String reason) {
+
+        @Override
+        public String toString() {
+            return file + " " + constant;
+        }
+    }
+
+    private static final List<Policy> POLICY_NUMBERS = List.of(
+            new Policy(
+                    "apps/web/src/home/Feed.tsx", "MAX_AUTO_PAGES", "自动加载封顶页数：8 页约 192 张卡之后换成「继续加载」按钮，防止一次浏览把接口与内存拉满"),
+            new Policy(
+                    "apps/web/src/logistics/TrackingTimeline.tsx",
+                    "DEFAULT_COLLAPSED_COUNT",
+                    "时间线收起态保留几个节点，纯展示，服务端不读它"),
+            new Policy(
+                    "packages/common/src/sdk-client.ts",
+                    "RETRY_LIMIT",
+                    "传输策略（GEN-35：幂等 GET 遇 408/429/5xx 重试 2 次），不是入参边界"),
+            new Policy(
+                    "packages/app-kit/src/login-schema.ts",
+                    "PHONE_DIGITS",
+                    "登录那一格只收大陆手机号，11 位与自家正则的位数由 shared-vocabulary.test.ts 的 digits==span 钉住；"
+                            + "Java 侧的 7..20 是联系电话那条，不是同一个约束（电话允许座机与分隔符）"));
 
     @Test
     void 注解里的数字等于词表常量() {
@@ -993,30 +1178,13 @@ class FieldRuleVocabularyTest {
 
     @Test
     void 前端表单词表与Java同一份数字() throws IOException {
-        assertThat(tsNumber("address.ts", "ADDRESS_NAME_MAX"))
-                .as("packages/common/src/address.ts 的人名上限")
-                .isEqualTo(AddressFieldRules.NAME_MAX);
-        assertThat(tsNumber("address.ts", "ADDRESS_DETAIL_MAX")).as("详址上限").isEqualTo(AddressFieldRules.DETAIL_MAX);
+        assertThat(JAVA_TWINS).as("Java 同值那一族的登记表空了说明本条已失效").isNotEmpty();
+        for (Twin twin : JAVA_TWINS) {
+            assertThat(tsNumber(twin.file(), twin.constant()))
+                    .as("%s：前端抄的这份数字与 Java 侧那条不再是同一个数", twin)
+                    .isEqualTo(twin.javaValue().getAsInt());
+        }
         // 承运商 code 不镜像到前端：它不是用户输入（两端从字典选），抄一份没人读的常量就是孤儿
-        assertThat(tsNumber("tracking.ts", "CARRIER_NAME_MAX")).isEqualTo(TrackingFieldRules.CARRIER_NAME_MAX);
-        assertThat(tsNumber("tracking.ts", "TRACKING_NO_MAX")).isEqualTo(TrackingFieldRules.TRACKING_NO_MAX);
-        assertThat(tsNumber("product-fields.ts", "PRODUCT_NAME_MAX")).isEqualTo(ProductFieldRules.NAME_MAX);
-        // 卖点的 10 与 30 在 Java 侧只以正则存在，所以从正则里取数比较，而不是两边各写一遍字面量
-        assertThat(tsNumber("product-fields.ts", "SELL_POINT_MIN"))
-                .as("卖点下限（Java 侧只在 SELL_POINT_PATTERN 的 {10,30} 里）")
-                .isEqualTo(boundOf(ProductFieldRules.SELL_POINT_PATTERN, true));
-        assertThat(tsNumber("product-fields.ts", "SELL_POINT_MAX"))
-                .isEqualTo(boundOf(ProductFieldRules.SELL_POINT_PATTERN, false));
-        // 账号侧形状住在 app-kit（登录框在那），注销与邀请成员复用同一条
-        assertThat(tsNumber("packages/app-kit/src/login-schema.ts", "SMS_CODE_DIGITS"))
-                .as("验证码位数：前端 owner 与 AccountFieldRules 是否还是同一个数")
-                .isEqualTo(AccountFieldRules.SMS_CODE_LENGTH);
-        assertThat(tsNumber("packages/app-kit/src/login-schema.ts", "PASSWORD_MIN"))
-                .as("密码下限：注册/改密表单的控件位数与登录侧词表")
-                .isEqualTo(AccountFieldRules.PASSWORD_MIN);
-        assertThat(tsNumber("packages/app-kit/src/login-schema.ts", "NICKNAME_MAX"))
-                .as("昵称上限：资料页的 maxLength 与 AccountFieldRules.NICKNAME_MAX")
-                .isEqualTo(AccountFieldRules.NICKNAME_MAX);
     }
 
     @Test
@@ -1049,17 +1217,24 @@ class FieldRuleVocabularyTest {
         }
     }
 
+    /**
+     * PRD-72 那句「两个数不是同一个约束、不要对齐成一个」此前只是散文，这里钉成不等式。
+     *
+     * <p>方向只有一个会出错：有人看见 99 与 999 不相等，以为是漏对齐，把展示上界提到 999（或把闸门降到 99）。
+     * 前者让详情页一格能灌进离谱数字，后者让服务端少卖一档——相等就是那条产品决定被改没了。
+     */
+    @Test
+    void 详情页的展示上界必须严于服务端闸门() throws IOException {
+        assertThat(tsNumber("apps/web/src/products/detail/constants.ts", "PDP_MAX_QUANTITY"))
+                .as("详情页步进器的展示上界（未选全规格时）与服务端硬闸门 AddCartItemRequest.quantity.maximum")
+                .isLessThan(contractBound("AddCartItemRequest", "quantity", "maximum"));
+    }
+
     @Test
     void app里不许有裸的字数上限字面量() throws IOException {
         // 镜像必须是指向 owner 的具名引用：写成 maxLength={200} 就没人知道它是契约的哪一格，改了契约也不会红
         List<String> inline;
-        try (Stream<Path> walk = Stream.of(
-                        "apps/web/src",
-                        "apps/seller/src",
-                        "apps/admin/src",
-                        "packages/common/src",
-                        "packages/app-kit/src",
-                        "packages/ui-web/src")
+        try (Stream<Path> walk = TS_ROOTS.stream()
                 .filter(p -> Files.isDirectory(REPO_ROOT.resolve(p)))
                 .flatMap(p -> streamOf(p))) {
             inline = walk.filter(
@@ -1076,6 +1251,78 @@ class FieldRuleVocabularyTest {
                     .toList();
         }
         assertThat(inline).as("这些文件里还有裸的字数上限（换成 owner 的具名常量）").isEmpty();
+    }
+
+    /**
+     * 前端每一个具名的数值边界都必须有一个对边：契约那一格（{@link #APP_MIRRORS}）、某个 Java 词表常量
+     * （{@link #JAVA_TWINS}），或登记在案的「这就是我这一处的策略」（{@link #POLICY_NUMBERS}）。
+     *
+     * <p><b>为什么是等式而不是清单</b>：清单只证明「登记过的都对」，不证明「没有漏登记的就没事」——
+     * 本轮的三个漏网数（车 999、详情页 99、券发行量 100 万）正是这么漏的：它们的名字长得像 owner，
+     * 值却是从 Java 手抄过来的，而 {@link #INLINE_BOUND} 那种「扫裸字面量」的写法看不见起了名字的抄。
+     * 现在 census 从源码扫出全部具名边界，两向都必须与三张表的并集相等：
+     * 新增一个不登记就红，删掉或改名而不销登记也红（清单会自己烂掉这件事同样得红）。
+     */
+    @Test
+    void 前端数值边界只许登记成三种对边之一() throws IOException {
+        Map<String, String> found = new TreeMap<>();
+        Map<String, String> skippedByUnit = new TreeMap<>();
+        try (Stream<Path> walk = TS_ROOTS.stream()
+                .filter(p -> Files.isDirectory(REPO_ROOT.resolve(p)))
+                .flatMap(p -> streamOf(p))) {
+            walk.filter(p -> p.toString().endsWith(".ts") || p.toString().endsWith(".tsx"))
+                    .filter(p -> !p.getFileName().toString().matches(".+\\.(test|spec|gen)\\.[cm]?[jt]sx?"))
+                    .forEach(p -> {
+                        try {
+                            String code = stripComments(Files.readString(p, StandardCharsets.UTF_8));
+                            String rel = REPO_ROOT
+                                    .relativize(p.normalize())
+                                    .toString()
+                                    .replace('\\', '/');
+                            Matcher m = BOUND_DECL.matcher(code);
+                            while (m.find()) {
+                                String name = m.group(1);
+                                if (!BOUND_NAME.matcher(name).find()) {
+                                    continue;
+                                }
+                                String key = rel + " " + name;
+                                if (BOUND_UNIT_SUFFIX.matcher(name).find()) {
+                                    skippedByUnit.put(key, m.group(2));
+                                } else {
+                                    found.put(key, m.group(2));
+                                }
+                            }
+                        } catch (IOException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    });
+        }
+        assertThat(found).as("一个具名数值边界都没扫到 = census 的扫描器或路径已失效").hasSizeGreaterThan(30);
+
+        Set<String> registered = new TreeSet<>();
+        APP_MIRRORS.forEach(mirror -> registered.add(mirror.file() + " " + mirror.constant()));
+        JAVA_TWINS.forEach(twin -> registered.add(twin.file() + " " + twin.constant()));
+        POLICY_NUMBERS.forEach(policy -> registered.add(policy.file() + " " + policy.constant()));
+
+        Set<String> unregistered = new TreeSet<>(found.keySet());
+        unregistered.removeAll(registered);
+        Set<String> stale = new TreeSet<>(registered);
+        stale.removeAll(found.keySet());
+
+        assertThat(unregistered)
+                .as("这些前端数值边界没有对边：给它找一个契约镜像或 Java 同值，实在没有就登记成策略并写明理由")
+                .isEmpty();
+        assertThat(stale).as("登记过的前端边界在源码里已经扫不到了（改名、删掉，或把裸整数换成了算式）").isEmpty();
+        for (Policy policy : POLICY_NUMBERS) {
+            assertThat(policy.reason().trim())
+                    .as("%s：登记成「没有对边」却不写为什么，这张表就成了免检通道", policy)
+                    .isNotEmpty();
+        }
+        // 尺子的另一侧：带单位的确实被放行了（放行规则失效时，本类会在没人改前端的情况下突然要求登记一堆 px 与秒）
+        assertThat(skippedByUnit.keySet())
+                .as("名字带单位的策略数字。MAX_SIZE_MB 这一格同时是注释扫描器的回归样本：它写在 "
+                        + "const ACCEPT_IMAGE = \"image/*\" 的下一行，把串里的星号当注释结尾就看不见它了")
+                .contains("packages/ui-web/src/components/image-upload.tsx MAX_SIZE_MB");
     }
 
     @Test
@@ -1164,13 +1411,10 @@ class FieldRuleVocabularyTest {
                     .as("%s 的卖点在契约里那一格", dto.getSimpleName())
                     .isEqualTo(ProductFieldRules.SELL_POINT_PATTERN);
         }
-        // 联系电话的形状在前端也只许有一份，且与 Java 逐字节同串
+        // 联系电话的形状在前端也只许有一份，且与 Java 逐字节同串（它那个 maxLength 的数走 JAVA_TWINS 那条）
         assertThat(tsString("address.ts", "CONTACT_PHONE_PATTERN"))
                 .as("packages/common/src/address.ts 里那份联系电话正则")
                 .isEqualTo(PhoneNumber.CONTACT_PATTERN);
-        assertThat(tsNumber("address.ts", "CONTACT_PHONE_MAX"))
-                .as("联系电话位数：input 的 maxLength 拿不到正则，只能另起一个名字，但数得从同一条规则来")
-                .isEqualTo(boundOf(PhoneNumber.CONTACT_PATTERN, false));
     }
 
     @Test
@@ -1380,10 +1624,12 @@ class FieldRuleVocabularyTest {
 
     /** 前端词表就住在 TS 源码里，正则取出它自己声明的那个数（不 import、不跑 node） */
     private static int tsNumber(String file, String constant) throws IOException {
-        Matcher m =
-                Pattern.compile("(?:export )?const " + constant + " = (\\d+)").matcher(tsSource(file));
+        // 容忍分节符与类型标注：`const COUPON_MAX_TOTAL = 1_000_000` 与 `= 999 as const` 都是同一个数，
+        // 早先这里只认 `= (\d+)`，于是写成分节形式的边界会从所有比对里无声漏掉
+        Matcher m = Pattern.compile("(?:export )?const " + constant + "\\s*(?::\\s*number)?\\s*=\\s*([0-9][0-9_]*)\\b")
+                .matcher(tsSource(file));
         assertThat(m.find()).as("%s 里没声明 %s", file, constant).isTrue();
-        return Integer.parseInt(m.group(1));
+        return Integer.parseInt(m.group(1).replace("_", ""));
     }
 
     /**
@@ -1571,7 +1817,63 @@ class FieldRuleVocabularyTest {
         return m.matches() ? Integer.parseInt(m.group(1)) : 0;
     }
 
+    /**
+     * 去掉注释、<b>保留换行</b>（行号不飘，行级锚点照旧能用），并且<b>认字符串</b>。
+     *
+     * <p>不认字符串会瞎：{@code packages/ui-web/src/components/image-upload.tsx} 里
+     * {@code const ACCEPT_IMAGE = "image/*"} 之后紧跟 {@code const MAX_SIZE_MB = 10}，再下一行才是
+     * 一个正常的块注释。早先那串 replaceAll 用「斜杠星号 … 星号斜杠」的非贪婪匹配扫注释，
+     * 从字符串里那个斜杠星号开始一路吞到下一个星号斜杠，中间这一行代码在扫描器眼里就不存在了——
+     * 本轮的 census 正是靠这条才发现自己瞎（{@code MAX_SIZE_MB} 一开始既不在 found 也不在 skipped）。
+     *
+     * <p>代价是反方向的：JSX 文本里的裸撇号（{@code don't}）会被当成开引号。所以这里对 {@code '} 与
+     * {@code "} 只认到行尾为止（JS 里它们本来也不许跨行），最坏只遮住半行；模板串允许跨行，按引号闭合。
+     */
     private static String stripComments(String text) {
-        return text.replaceAll("/\\*[\\s\\S]*?\\*/", " ").replaceAll("//[^\\n]*", " ");
+        StringBuilder out = new StringBuilder(text.length());
+        char quote = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            char next = i + 1 < text.length() ? text.charAt(i + 1) : 0;
+            if (quote != 0) {
+                if (c == '\\' && next != 0) {
+                    out.append(c).append(next);
+                    i++;
+                    continue;
+                }
+                out.append(c);
+                if (c == quote || (c == '\n' && quote != '`')) {
+                    quote = 0;
+                }
+                continue;
+            }
+            if (c == '"' || c == '\'' || c == '`') {
+                quote = c;
+                out.append(c);
+                continue;
+            }
+            if (c == '/' && next == '/') {
+                while (i < text.length() && text.charAt(i) != '\n') {
+                    i++;
+                }
+                i--;
+                continue;
+            }
+            if (c == '/' && next == '*') {
+                i += 2;
+                while (i < text.length()
+                        && !(text.charAt(i) == '*' && i + 1 < text.length() && text.charAt(i + 1) == '/')) {
+                    if (text.charAt(i) == '\n') {
+                        out.append('\n');
+                    }
+                    i++;
+                }
+                i++;
+                out.append(' ');
+                continue;
+            }
+            out.append(c);
+        }
+        return out.toString();
     }
 }
