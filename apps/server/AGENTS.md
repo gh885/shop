@@ -75,6 +75,22 @@ src/main/java/com/shop/platform/
 - 不给实体加无调用者的方法：谓词/视图先有消费点再上实体（YAGNI）
 - **主键与时间列继承共享基类**：`infra.db.BaseEntity`（id + createdAt）/ `AuditedEntity`（多 updatedAt）。继承哪一种看表有没有 `updated_at` 列，不看业务可变性——append-only 账本（流水/轨迹/状态日志）不记 updatedAt。子类用 `@SuperBuilder` + `@EqualsAndHashCode(callSuper = true)`（字段在父类，二者少一就会丢字段或丢等价性），别再自己声明 id/createdAt/updatedAt
 
+## mapper 层职责：怎么取，以及怎么在一条语句里原子地改
+
+**判据一句话：mapper 管「怎么取」和「怎么在一条语句里原子地改」，本模块 service 管「做什么、按什么规则做、按什么顺序做」。** 分界不看代码长短，看**放错层之后会不会有人在别处抄第二份**——条件抄第二份就有两个答案，流转抄第二份就有一条绕过闸门的路。
+
+- **该放**：查询条件、排序、批量 `IN` 的取值域、投影与聚合、常用查询的具名薄封装（`UserMapper.selectByPhone` / `TicketMapper.selectOpenByOrders` / `TicketEventMapper.selectLatestRejectNote` 直接回标量）。聚合在 SQL 里闭合、交出结果形状，不把裸 row 抛回 service 再拼：`FavoriteItemMapper.collectCountByProductIds` 与 `UserCouponMapper.countUsedByTemplateIds` 都回 `Map<UUID,Long>`，前者注释写死「只 count 不 join，跨模块读商品信息在 service 层拼装」
+- **条件更新的守卫默认写死在 mapper，不由参数传入**：`UserCouponMapper.lockOne`（`UNUSED → LOCKED`，CPN-35）、`OrderMapper.markDelivered`（`SHIPPED` + `delivered_at IS NULL`）、`UserMapper.markDeletionRequested`（`ACTIVE` + 两个 `isNull`，ACC-75）、`ProductMapper.takedownPublished`（只碰 `PUBLISHED`）。方法名就是那条流转，守卫是这条语句的**适用域**——把守卫做成参数等于把「注销只碰 ACTIVE」这类裁决交给调用方，传错一个值洞就开了。只有两种情况该传参：① 起点是实体状态机推导出来的（`Order` 私有 TRANSITIONS 表那种），service 定从哪到哪、mapper 只保证「不是那一行就不改」；② 把上游已判过、但两步之间可能变掉的谓词在同一语句里重跑一遍（`UserMapper.anonymize` 的 `requestedBefore`，防冷静期内被撤销）
+- **mapper 交出「改到了没有」的信号，不决定后果**：条件更新回影响行数，`SkuStockMapper.freezeOne` / `captureOne` / `releaseOne` 用 PG18 的 `WHERE` 闸门 + `RETURNING OLD/NEW` 一条语句拿回前后两帧（无行 = 闸门没过）。409 还是重试、要不要记流水，一律在 service 判；「0 行即没发生，不报错也不重试」是 `anonymize` 头注释里的既定口径
+- **一切「读到再写回」的量都必须是一条语句**：禁的是 `selectById` 之后接 `updateById`——两步之间的窗口只有并发来了才看得见，看不见不等于没有。原子手段按需挑：`WHERE` 闸门（`lockOne`）、`ON CONFLICT DO NOTHING`（`SkuStockMapper.insertIgnoreConflict`）、`ON CONFLICT ... DO UPDATE ... RETURNING`（`FavoriteItemMapper.upsertIdempotent`，头注释写了为什么不能「先查再插、撞唯一索引后 catch 回读」：PG 一报唯一索引错就把整个事务标成 aborted，catch 之后的回读根本执行不到，25P02）
+- **「根据查询结果决定下一步」这句要拆开看，否则会误杀两类正当代码**：正当的是 `ProductMapper.requireShopOwned` / `OrderMapper.requireOwned`——「取行 + 判归属 + 交回这一行」一句写完的薄封装，它不在分岔，只是把 404 的口径收在取数点（见下节，`OwnershipDoorTest` 背书）；不正当的是在 `default` 方法里连调两条语句、按第一条的结果决定第二条（要不要补发、锁哪张券、跳到哪个状态），那是编排，一旦住进 mapper，本模块的规则就没有一个读得到的地方了
+- **有一条例外必须写出来，否则下一个人会去补 JOIN**：跨表聚合出来的排序键进不了 SQL。库存两档（PRD-79）不在 `products` 的列上，只能 service 把整店商品取回内存按聚合值排、再手动分页，mapper 只负责那一次批量取。不许为了「合规」写跨 schema JOIN，那条禁令更硬（见模块边界规范）
+- **复杂条件里含业务口径时，口径要在名字或注释上现身**：`ShopReviewMapper.QUEUE_ORDER_BY` 把「待审记 0、已处置记 1」写成常量并注明排的不是列而是一句档位表达式（ACC-08）；`UserCouponMapper.selectPageMine` 的「UNUSED 那一档含 LOCKED、EXPIRED 那一档含库里还没收敛但已过 `expire_at` 的行」是券包页签的展示口径（CPN-51）。这类口径从注释里丢了，下一个人就会在 service 里再判一次状态，两处答案从此开始漂移
+- **方向：MyBatis-Plus 的类型不往上一层外泄，`Page` 的翻译只有一处**。出参那半边已经闭合——没有任何 service/api 方法把 `Page<Entity>` 交出去，一律在 service 折成 `common.PageResult<T>`。入参那半边也已闭合：现拼条件容器、就地 `new Page<>`、裸 `.last(...)` 在 `src/main/java` 里只出现在 mapper 包，service/api 递进去的是 `PageParams` 与筛选值、接回来的是一个 `Page<T>` 局部变量（`AuthService.pageAdminUsers` 曾把「关键字命中手机号或昵称」这条列表规则住在 service，现在在 `UserMapper.selectPageAdmin`）。范本是 `ShopReviewMapper.selectQueuePage(PageParams, filter)`——入参给基本类型或 `PageParams`，`Page` 只在 mapper 内部成形；曾经的两个反形（`selectPageMine(Page<UserCoupon> page, …)` / `CouponTemplateMapper.selectPageByShop(Page<CouponTemplate> page, …)`）已改成收 `PageParams`
+- **只碰本模块那张表**：mapper 不 import 他模块的 service / api / mapper，也不跨 schema JOIN（Modulith 校验、`NamingRulesTest` 的 `JdbcTemplate` 白名单、`MoneyTypeRulesTest` 的 `currency` 列白名单都假定这一条）；跨 schema 裸 SQL 只允许出现在 `infra.db` 与各模块 `api` 包
+- **编译期门禁两道，钉的就是上面那条方向**（都在 `NamingRulesTest`）：`mybatis_conditions_only_in_mapper` 用 ArchUnit 挡住 `com.baomidou.mybatisplus.core.conditions..` 被任何非 mapper 包引用；`分页构造与裸SQL尾巴只住在mapper包` 扫 `src/main/java`，非 mapper 文件里出现 `new Page<` 或 `.last(` 即红。谁把一句查询条件留在 service，`mvn test` 当场拦
+- **本节钉不住的那半边由 code review 维持**：「有没有副作用」「有没有按结果决定下一步」这类语义静态判不了，与 controller 编排那条撞在同一道障碍上（见 [TODO.md](../../TODO.md) 那条待定形的门禁）；`requireShopOwned` 那种正当薄封装的口径由 `OwnershipDoorTest` 背书（见下节）。写新的语句型 mapper 方法前先回答一句「这条能不能一条语句做完」；答案是不能的，就该搬到 service 或改状态机，而不是在 mapper 里堆步骤
+
 ## 越权口径：归属闸门 vs 上下文闸门
 
 **「这条资源不归你」与「没有这条资源」必须是同一句话、同一个 404。** 给 403/400 就是说漏了嘴——那等于替调用方确认「这行存在、只是别家的」，脚本拿状态码差就能枚举别人名下的 ID。

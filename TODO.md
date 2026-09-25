@@ -14,4 +14,4 @@
 - [ ] 买家评价一期：已完成订单按商品行评价（星级 + 文字 + 图），一单一评不可改、可追评一次；商详展示评价列表与好评率，卖家可回复一次；先在 `docs/business-rules/` 立规则再建模块
 - [ ] 优惠券二期（CPN-N1 子集）：折扣券（必须带封顶）+ 领取后 N 天相对有效期；运费券与叠加（CPN-N2）另开，不在本条
 - [ ] README「已知边界」对账：售后徽章与重复退款已由 AFS-39/AFS-05 收口、CI 已跑 `mvn verify` + Playwright、admin 已有 CMS/账号/券运营，删掉过期描述
-- [ ] Controller 编排门禁：静态判不了「带副作用」，这类真违规目前只有一例（`AuthController.sendSmsCode` 曾自己调人机验证再调发码，已收进 `AuthService`），无可归纳的共同形状；出现第二例真违规再回来定规则形状（按 HTTP 方法计数会误伤已把装配收进 service 的正常形态，白名单只会只增不减）
+- [ ] Controller 编排门禁：静态判不了「带副作用」，这类真违规目前只有一例（`AuthController.sendSmsCode` 曾自己调人机验证再调发码，已收进 `AuthService`），无可归纳的共同形状；出现第二例真违规再回来定规则形状（按 HTTP 方法计数会误伤已把装配收进 service 的正常形态，白名单只会只增不减）。mapper 层撞在同一道障碍上，其「位置」那半边已由 `NamingRulesTest` 钉住，语义那半边等这一条

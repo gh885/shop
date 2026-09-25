@@ -18,7 +18,7 @@
 ## 一期实现
 
 - Flyway `V67` 启用 `pg_trgm`，分别给 `name`、`subtitle` 建 GIN trigram 索引。
-- `ProductQueryService` 用绑定参数执行 `ILIKE '%keyword%'`，名称或副标题任一命中即可。
+- `ProductMapper.selectPublicPage` 用绑定参数执行 `ILIKE '%keyword%'`，名称或副标题任一命中即可；service 只把关键词递进去，不自己拼条件。
 - 空关键词仍不添加搜索条件，保留原列表排序和分页语义。
 - 重建索引：在维护窗口执行 `REINDEX INDEX CONCURRENTLY product.idx_products_name_trgm` 和 `product.idx_products_subtitle_trgm`；PostgreSQL 会在重建期间继续读写。
 
