@@ -1,6 +1,3 @@
-import type { ReactNode } from "react"
-
-import { QueryClientProvider } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
@@ -9,7 +6,7 @@ import type { CategoryAttrNodeResponse, ProductResponse, SkuResponse } from "@sh
 import { money } from "@shop/common"
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { createAppTestHookClient } from "@shop/app-kit/test"
 
 import type { ProductBasicForm } from "#/product/draft-model"
 import { categorySpecTemplateOptions, productKeys } from "#/product/queries"
@@ -219,7 +216,7 @@ function stubApi({
 }
 
 function setup(props: { productId?: string } = {}) {
-    const queryClient = createAppTestQueryClient()
+    const { client: queryClient, wrapper } = createAppTestHookClient()
     const onCreated = vi.fn<(id: string) => void>()
     const initialProps = {
         shopId: SHOP_ID,
@@ -229,9 +226,7 @@ function setup(props: { productId?: string } = {}) {
     }
     const view = renderHook((p: typeof initialProps) => useProductDraft(p), {
         initialProps,
-        wrapper: ({ children }: { children: ReactNode }) => (
-            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-        ),
+        wrapper,
     })
     /**
      * 等类目模板到手：本地算组合的输入，没到就选值只会得到一行「单规格」。
@@ -334,7 +329,12 @@ describe("useProductDraft 的写请求编排", () => {
 
         // 调用方拿到 id 后写回 URL，下一次渲染就带着 productId 了（续编的形状）
         await act(async () => {
-            rerender({ shopId: SHOP_ID, categoryId: CATEGORY_ID, onCreated, productId: PRODUCT_ID })
+            rerender({
+                shopId: SHOP_ID,
+                categoryId: CATEGORY_ID,
+                onCreated,
+                productId: PRODUCT_ID,
+            })
         })
         // 续编才会拉详情；本会话刚创建的，表单即真相源，拉回来 reset 就是冲掉用户输入
         expect(queryClient.getQueryState(productKeys.detail(PRODUCT_ID))).toBeUndefined()

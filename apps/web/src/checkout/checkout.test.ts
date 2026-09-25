@@ -1,13 +1,12 @@
 import type { Coupon, PreviewResponse } from "@shop/api/sdk"
-import { QueryClientProvider, useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
-import { createElement, type ReactNode } from "react"
 import { describe, expect, it } from "vitest"
 
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { createAppTestHookClient } from "@shop/app-kit/test"
 
 import type { CheckoutGroup, CouponSelection } from "./checkout"
 import { couponIdsOf, defaultCouponId, toCheckoutPreview, withDefaultCoupons } from "./checkout"
@@ -117,16 +116,6 @@ function firstGroup(overrides: Partial<GroupDto> = {}): CheckoutGroup {
 }
 
 const SOURCE = { lines: [{ skuId: SKU_1, quantity: 1 }] }
-
-/** 每个用例一个独立 QueryClient（禁 retry），由 renderHook 的 wrapper 挂上 */
-function hookWrapper() {
-    const client = createAppTestQueryClient()
-    return {
-        client,
-        wrapper: ({ children }: { children: ReactNode }) =>
-            createElement(QueryClientProvider, { client }, children),
-    }
-}
 
 describe("toCheckoutPreview", () => {
     it("行明细与失效行的主图 null 归一为 undefined，UI 层无需再判 null", () => {
@@ -325,7 +314,7 @@ describe("checkoutPreviewOptions（选券进请求与 queryKey）", () => {
                 return HttpResponse.json(makeDto())
             }),
         )
-        const { wrapper } = hookWrapper()
+        const { wrapper } = createAppTestHookClient()
 
         renderHook(
             () =>
@@ -348,7 +337,7 @@ describe("checkoutPreviewOptions（选券进请求与 queryKey）", () => {
                 return HttpResponse.json(makeDto())
             }),
         )
-        const { wrapper } = hookWrapper()
+        const { wrapper } = createAppTestHookClient()
 
         const { rerender } = renderHook(
             ({ coupons }: { coupons: CouponSelection }) =>
@@ -371,7 +360,7 @@ describe("checkoutPreviewOptions（选券进请求与 queryKey）", () => {
                 return HttpResponse.json(makeDto())
             }),
         )
-        const { wrapper } = hookWrapper()
+        const { wrapper } = createAppTestHookClient()
 
         renderHook(
             () =>
@@ -409,7 +398,7 @@ describe("useCreateOrder（下单带上选中的券）", () => {
                 })
             }),
         )
-        const { wrapper } = hookWrapper()
+        const { wrapper } = createAppTestHookClient()
         const { result } = renderHook(() => useCreateOrder(), { wrapper })
 
         await result.current.mutateAsync({
@@ -434,7 +423,7 @@ describe("useCreateOrder（下单带上选中的券）", () => {
                 return HttpResponse.json({ orders: [] })
             }),
         )
-        const { wrapper } = hookWrapper()
+        const { wrapper } = createAppTestHookClient()
         const { result } = renderHook(() => useCreateOrder(), { wrapper })
 
         await result.current.mutateAsync({ addressId: ADDRESS_1, source: SOURCE, coupons: {} })

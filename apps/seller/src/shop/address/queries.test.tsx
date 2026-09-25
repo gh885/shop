@@ -1,4 +1,4 @@
-import { QueryClientProvider, useSuspenseQuery } from "@tanstack/react-query"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { Suspense } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { createAppTestHookClient } from "@shop/app-kit/test"
 
 import { addressListOptions, useDeleteAddress } from "./queries"
 
@@ -16,13 +16,10 @@ const ADDRESS_ID = "00000000-0000-4000-8000-000000000003"
 
 // 通过实际读取方建立缓存，不在测试里复制领域 key。
 async function setup() {
-    const queryClient = createAppTestQueryClient()
+    const { client: queryClient, wrapper: withClient } = createAppTestHookClient()
     server.use(http.get("*/seller/addresses", () => HttpResponse.json([])))
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <QueryClientProvider client={queryClient}>
-            {/* 页面侧是 useSuspenseQuery 形态：测试里挂的这层等价于应用侧的路由 pendingComponent */}
-            <Suspense fallback={null}>{children}</Suspense>
-        </QueryClientProvider>
+        <Suspense fallback={null}>{withClient({ children })}</Suspense>
     )
     const lists = renderHook(
         () => [
