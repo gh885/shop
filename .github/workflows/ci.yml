@@ -127,21 +127,25 @@ jobs:
               run: |
                   mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
                   pnpm --filter web dev > /tmp/shop-web.log 2>&1 &
+                  pnpm --filter seller dev > /tmp/shop-seller.log 2>&1 &
                   for i in $(seq 1 60); do
-                    if curl -sf http://localhost:8080/v3/api-docs >/dev/null && curl -sf http://localhost:3000 >/dev/null; then
+                    if curl -sf http://localhost:8080/v3/api-docs >/dev/null && curl -sf http://localhost:3000 >/dev/null && curl -sf http://localhost:5000 >/dev/null; then
                       exit 0
                     fi
                     sleep 2
                   done
                   cat /tmp/shop-server.log
                   cat /tmp/shop-web.log
+                  cat /tmp/shop-seller.log
                   exit 1
             - name: 准备演示数据
               run: pnpm seed:demo
             - name: 运营数据健康扫描
               run: pnpm health:scan
-            - name: 运行下单主路径
+            - name: 运行下单主路径与卖家冒烟
               run: pnpm test:e2e
+              env:
+                  E2E_SELLER_URL: http://localhost:5000
             - name: 上传 Playwright 报告
               if: always()
               uses: actions/upload-artifact@v4

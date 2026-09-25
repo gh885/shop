@@ -20,14 +20,32 @@ export default defineConfig({
         {
             name: "auth",
             testMatch: /auth\.setup\.ts/,
+            testIgnore: /seller-auth\.setup\.ts/,
             use: { ...devices["Desktop Chrome"] },
         },
         {
             name: "chromium",
             dependencies: ["auth"],
+            testIgnore: /seller-/,
             use: {
                 ...devices["Desktop Chrome"],
                 storageState: "e2e/playwright/.auth/buyer.json",
+            },
+        },
+        {
+            name: "seller-auth",
+            testMatch: /seller-auth\.setup\.ts/,
+            use: { ...devices["Desktop Chrome"] },
+        },
+        {
+            name: "seller",
+            dependencies: ["seller-auth"],
+            testMatch: /seller-smoke\.spec\.ts/,
+            use: {
+                ...devices["Desktop Chrome"],
+                storageState: process.env.E2E_SELLER_URL
+                    ? "e2e/playwright/.auth/seller.json"
+                    : undefined,
             },
         },
     ],

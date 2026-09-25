@@ -41,7 +41,9 @@ test.describe("下单主路径", () => {
         await expect(page).toHaveURL(/\/pay\/[0-9a-f-]{36}/)
         await expect(page.getByRole("button", { name: "确认支付" })).toBeVisible()
         await page.getByRole("button", { name: "确认支付" }).click()
-        await expect(page.getByRole("heading", { name: "支付成功" })).toBeVisible()
+        await expect(
+            page.getByRole("main").getByRole("heading", { name: "支付成功" }),
+        ).toBeVisible()
         await expect(page.getByText("订单已支付，等待商家发货。")).toBeVisible()
     })
 })
