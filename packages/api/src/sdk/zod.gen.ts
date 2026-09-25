@@ -1295,6 +1295,34 @@ export const zCategoryNode = z.object({
     children: z.array(z.lazy((): any => zCategoryNode))
 });
 
+export const zAdminUserItem = z.object({
+    id: z.uuid(),
+    phone: z.string(),
+    nickname: z.string().nullable(),
+    status: zUserStatus,
+    lastLoginAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
+export const zPageResultAdminUserItem = z.object({
+    records: z.array(zAdminUserItem),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zAdminStaffItem = z.object({
+    id: z.uuid(),
+    employeeNo: z.string(),
+    displayName: z.string().nullable(),
+    status: zStaffStatus,
+    role: z.string().nullable(),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
+export const zPageResultAdminStaffItem = z.object({
+    records: z.array(zAdminStaffItem),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
 export const zShopReviewItem = z.object({
     id: z.uuid(),
     shopId: z.uuid(),
@@ -2361,6 +2389,28 @@ export const zGetPublicCategoryAttrTemplateResponse = z.array(zCategoryAttrNodeR
  * OK
  */
 export const zGetCategoryTreeResponse = z.array(zCategoryNode);
+
+export const zListAdminUsersQuery = z.object({
+    pageParams: zPageParams,
+    status: z.string().optional(),
+    keyword: z.string().min(0).max(50).optional()
+});
+
+/**
+ * OK
+ */
+export const zListAdminUsersResponse = zPageResultAdminUserItem;
+
+export const zListAdminStaffQuery = z.object({
+    pageParams: zPageParams,
+    status: z.string().optional(),
+    keyword: z.string().min(0).max(50).optional()
+});
+
+/**
+ * OK
+ */
+export const zListAdminStaffResponse = zPageResultAdminStaffItem;
 
 export const zListShopReviewsQuery = z.object({
     pageParams: zPageParams,

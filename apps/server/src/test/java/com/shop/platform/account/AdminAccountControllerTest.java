@@ -2,14 +2,19 @@ package com.shop.platform.account;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.account.dto.AdminStaffQuery;
+import com.shop.platform.account.dto.AdminUserQuery;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.common.StaffContext;
 import com.shop.platform.testsupport.WebControllerTestSupport;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
@@ -32,6 +37,64 @@ class AdminAccountControllerTest extends WebControllerTestSupport {
     @AfterEach
     void clearStaffContext() {
         StaffContext.clear();
+    }
+
+    // GET /admin/users
+    @Nested
+    class 买家列表 {
+
+        @Test
+        void 匿名_401() throws Exception {
+            mockMvc.perform(get("/admin/users")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 关键字超长_422() throws Exception {
+            mockMvc.perform(get("/admin/users").with(staffAuth(staffId)).param("keyword", "a".repeat(51)))
+                    .andExpect(status().is(422));
+        }
+
+        @Test
+        void 筛选与分页_透传service() throws Exception {
+            when(authService.pageAdminUsers(any(), any()))
+                    .thenReturn(new com.shop.platform.common.PageResult<>(List.of(), 0));
+
+            mockMvc.perform(get("/admin/users")
+                            .with(staffAuth(staffId))
+                            .param("status", "DISABLED")
+                            .param("keyword", "138")
+                            .param("page", "2")
+                            .param("size", "30"))
+                    .andExpect(status().isOk());
+
+            verify(authService).pageAdminUsers(eq(new PageParams(2, 30)), eq(new AdminUserQuery("DISABLED", "138")));
+        }
+    }
+
+    // GET /admin/staff
+    @Nested
+    class 员工列表 {
+
+        @Test
+        void 匿名_401() throws Exception {
+            mockMvc.perform(get("/admin/staff")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 筛选与分页_透传service() throws Exception {
+            when(staffService.pageAdminStaff(any(), any()))
+                    .thenReturn(new com.shop.platform.common.PageResult<>(List.of(), 0));
+
+            mockMvc.perform(get("/admin/staff")
+                            .with(staffAuth(staffId))
+                            .param("status", "ACTIVE")
+                            .param("keyword", "E001")
+                            .param("page", "3")
+                            .param("size", "20"))
+                    .andExpect(status().isOk());
+
+            verify(staffService).pageAdminStaff(eq(new PageParams(3, 20)), eq(new AdminStaffQuery("ACTIVE", "E001")));
+        }
     }
 
     // PATCH /admin/users/{id}/status

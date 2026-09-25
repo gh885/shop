@@ -72,7 +72,7 @@ SUPER_ADMIN 的 `me` 出参把通配符展开成 `all()`，判权内部仍用通
   两者都是搬家前的地址（现为本文档与 `account/service/StaffRole`）。V24 那句「可授予白名单
   `{PRODUCT_MANAGE, ORDER_FULFILL}`」也已落后于 `SellerGrants`（现为五码）。**迁移脚本不改**——
   那是事实发生过的地方，改了 Flyway 校验和对不上；本表与门禁读的是今天的名字；
-- P2 未做：员工管理 CRUD 剩余半边——创建员工 / 分配岗位（`STAFF_MANAGE` 消费端「禁用」半边已随封号端点落地，
-  自指禁令与末位保护随创建/调权一起做）、admin 前端 nav 消费 `me` 出参的 permission 字段。
-  三端目前**零消费点**，因此 TS 侧不预建权限码常量——这一句也是门禁核对的（前端源码里出现权限码字面量即红，
-  真要落地时它会红着告诉你该建 owner 了）。
+- P2 未做：员工管理 CRUD 剩余半边——创建员工 / 分配岗位（`STAFF_MANAGE` 消费端「查询 + 禁用」已随账号治理落地，
+  自指禁令与末位保护随创建/调权一起做）。admin 前端已为账号治理消费 `me.permissions`：只有持
+  `STAFF_MANAGE` 时才展示用户/员工管理入口；前端码值统一从 `packages/common/permission-codes.ts` 的
+  `PermissionCodes.STAFF_MANAGE` 取，app 不再自写字符串。

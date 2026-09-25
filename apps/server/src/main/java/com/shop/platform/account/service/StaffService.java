@@ -1,11 +1,18 @@
 package com.shop.platform.account.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.dto.AdminStaffQuery;
 import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.common.PageParams;
+import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Text;
+import com.shop.platform.common.Validate;
 import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
@@ -18,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /** 平台员工认证：工号 + 密码登录，token 与 C 端隔离（kind=staff），凭证轮换复用 RefreshTokenStore。 */
 @Service
@@ -144,6 +152,40 @@ public class StaffService {
     /** 登出：删除当前设备 refresh token */
     public void logout(UUID staffId, String deviceId) {
         refreshTokenStore.revokeDevice(staffId.toString(), deviceId);
+    }
+
+    /** 管理端员工列表：支持岗位账号按工号/姓名检索，手机号等敏感凭证不进入出参。 */
+    @Transactional(readOnly = true)
+    public PageResult<AdminStaffItem> pageAdminStaff(PageParams pageParams, AdminStaffQuery query) {
+        // 1. 状态筛选与买家列表保持同一错误口径；未知岗位在出参时按空值展示，不把库内脏值升级成 500。
+        StaffStatus status = Validate.enumFilter(StaffStatus.class, query.status(), "非法的员工状态筛选值");
+        String keyword = Text.blankToNull(query.keyword());
+
+        // 2. 员工列表只查工号和展示名，创建时间倒序让新员工先出现。
+        Page<Staff> rows = staffMapper.selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<Staff>()
+                        .eq(status != null, Staff::getStatus, status)
+                        .and(
+                                keyword != null,
+                                q -> q.like(Staff::getEmployeeNo, keyword).or().like(Staff::getDisplayName, keyword))
+                        .orderByDesc(Staff::getCreatedAt));
+
+        // 3. 岗位在 service 边界解析，HTTP 出参只带稳定的枚举名/空值。
+        return new PageResult<>(
+                rows.getRecords().stream()
+                        .map(staff -> {
+                            StaffRole role = StaffRole.parseOrNull(staff.getRole());
+                            return new AdminStaffItem(
+                                    staff.getId(),
+                                    staff.getEmployeeNo(),
+                                    staff.getDisplayName(),
+                                    staff.getStatus(),
+                                    role == null ? null : role.name(),
+                                    staff.getCreatedAt());
+                        })
+                        .toList(),
+                rows.getTotal());
     }
 
     // 管理端封号（PATCH /admin/staff/{id}/status）

@@ -4,14 +4,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.dto.AdminStaffQuery;
 import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.account.service.StaffService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.testsupport.EventCapture;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,6 +57,58 @@ class StaffServiceTest {
 
     @Captor
     ArgumentCaptor<Staff> staffCaptor;
+
+    @Nested
+    class 管理端列表 {
+        @Test
+        void 合法筛选_岗位转稳定枚举名() {
+            Staff staff = new Staff();
+            staff.setId(STAFF_ID);
+            staff.setEmployeeNo("E001");
+            staff.setDisplayName("张三");
+            staff.setStatus(StaffStatus.ACTIVE);
+            staff.setRole("OPS");
+            staff.setCreatedAt(OffsetDateTime.parse("2026-01-01T00:00:00Z"));
+            Page<Staff> page = new Page<>(1, 10);
+            page.setRecords(List.of(staff));
+            page.setTotal(1);
+            when(staffMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+                    .thenReturn(page);
+
+            var result = staffService.pageAdminStaff(new PageParams(1, 10), new AdminStaffQuery("ACTIVE", "E001"));
+
+            assertEquals(1, result.total());
+            assertEquals("OPS", result.records().getFirst().role());
+            assertEquals("E001", result.records().getFirst().employeeNo());
+        }
+
+        @Test
+        void 未知岗位_出参为空且列表不中断() {
+            Staff staff = new Staff();
+            staff.setId(STAFF_ID);
+            staff.setEmployeeNo("E404");
+            staff.setStatus(StaffStatus.ACTIVE);
+            staff.setRole("LEGACY");
+            Page<Staff> page = new Page<>(1, 10);
+            page.setRecords(List.of(staff));
+            page.setTotal(1);
+            when(staffMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+                    .thenReturn(page);
+
+            var result = staffService.pageAdminStaff(new PageParams(1, 10), new AdminStaffQuery(null, null));
+
+            assertNull(result.records().getFirst().role());
+        }
+
+        @Test
+        void 非法状态_400且不查库() {
+            var ex = assertThrows(
+                    BusinessException.class,
+                    () -> staffService.pageAdminStaff(new PageParams(1, 10), new AdminStaffQuery("LOCKED", null)));
+            assertEquals(400, ex.getHttpStatus());
+            verifyNoInteractions(staffMapper);
+        }
+    }
 
     @Nested
     class 登录 { // StaffService.login（POST /admin/auth/login）

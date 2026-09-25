@@ -57,6 +57,9 @@ public final class AccountFieldRules {
     /** 平台员工工号上限（字）：{@code account.staff.employee_no VARCHAR(50)}，工号即登录账号，唯一索引 */
     public static final int EMPLOYEE_NO_MAX = 50;
 
+    /** 管理端账号列表关键字上限（字）：与工号/昵称列宽同档，拦住无界字符串进入 LIKE 查询。 */
+    public static final int ADMIN_LIST_KEYWORD_MAX = 50;
+
     /**
      * 图形人机验证码的容量档（字）：只管「别把 10KB 塞进登录请求」，不管码上印了几个字符。
      *

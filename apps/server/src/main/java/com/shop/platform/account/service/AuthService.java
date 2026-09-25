@@ -1,6 +1,9 @@
 package com.shop.platform.account.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.dto.AccountFieldRules;
+import com.shop.platform.account.dto.AdminUserQuery;
 import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.infra.UserAgentParser;
 import com.shop.platform.account.mapper.User;
@@ -8,8 +11,11 @@ import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.common.PageParams;
+import com.shop.platform.common.PageResult;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
+import com.shop.platform.common.Validate;
 import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.infra.security.DeviceInfo;
 import com.shop.platform.infra.security.JwtProvider;
@@ -270,6 +276,37 @@ public class AuthService {
     /** 登出：删除当前设备 refresh token */
     public void logout(UUID userId, String deviceId) {
         refreshTokenStore.revokeDevice(userId.toString(), deviceId);
+    }
+
+    /** 管理端买家列表：手机号/昵称关键字与状态筛选，手机号只出脱敏值。 */
+    @Transactional(readOnly = true)
+    public PageResult<AdminUserItem> pageAdminUsers(PageParams pageParams, AdminUserQuery query) {
+        // 1. 枚举筛选在 service 入口归一，非法值与项目其他管理列表同为 400。
+        UserStatus status = Validate.enumFilter(UserStatus.class, query.status(), "非法的用户状态筛选值");
+        String keyword = Text.blankToNull(query.keyword());
+
+        // 2. 关键字同时命中手机号与昵称；手机号按原值前缀/包含匹配，列表出参再统一脱敏。
+        Page<User> rows = userMapper.selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<User>()
+                        .eq(status != null, User::getStatus, status)
+                        .and(
+                                keyword != null,
+                                q -> q.like(User::getPhone, keyword).or().like(User::getNickname, keyword))
+                        .orderByDesc(User::getCreatedAt));
+
+        // 3. mapper 行只出治理所需字段，避免把密码哈希、头像 key、注销内部状态带进 HTTP 契约。
+        return new PageResult<>(
+                rows.getRecords().stream()
+                        .map(user -> new AdminUserItem(
+                                user.getId(),
+                                PhoneNumber.mask(user.getPhone()),
+                                user.getNickname(),
+                                user.getStatus(),
+                                user.getLastLoginAt(),
+                                user.getCreatedAt()))
+                        .toList(),
+                rows.getTotal());
     }
 
     // 管理端封号（PATCH /admin/users/{id}/status）

@@ -64,6 +64,7 @@ export {
 } from "./api-error"
 
 export * from "./error-codes"
+export * from "./permission-codes"
 
 export { configureSdkClient } from "./sdk-client"
 export type { SdkClientOptions, TokenStore } from "./sdk-client"

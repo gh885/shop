@@ -1,6 +1,6 @@
 import { createElement } from "react"
 import { linkOptions } from "@tanstack/react-router"
-import { LayoutTemplateIcon, StoreIcon } from "lucide-react"
+import { LayoutTemplateIcon, StoreIcon, UserRoundIcon } from "lucide-react"
 import type { SidebarItem } from "@shop/app-kit"
 
 /** 审核页位于根路径；显式保留分页初始值。 */
@@ -8,6 +8,20 @@ export const HOME_LINK = linkOptions({ to: "/", search: { page: 1, size: 20 } })
 
 /** 只列已实现的功能；两级菜单消费同一份数据。 */
 export const NAV_ITEMS: SidebarItem[] = [
+    {
+        key: "account",
+        label: "账号",
+        icon: createElement(UserRoundIcon),
+        sections: [
+            {
+                title: "账号治理",
+                items: [
+                    { key: "users", label: "用户管理", to: "/accounts/users" },
+                    { key: "staff", label: "员工管理", to: "/accounts/staff" },
+                ],
+            },
+        ],
+    },
     {
         key: "merchant",
         label: "商家",

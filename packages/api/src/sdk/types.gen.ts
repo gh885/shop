@@ -1377,6 +1377,34 @@ export type CategoryNode = {
     children: Array<CategoryNode>;
 };
 
+export type AdminUserItem = {
+    id: string;
+    phone: string;
+    nickname: string | null;
+    status: UserStatus;
+    lastLoginAt: string | null;
+    createdAt: string;
+};
+
+export type PageResultAdminUserItem = {
+    records: Array<AdminUserItem>;
+    total: number;
+};
+
+export type AdminStaffItem = {
+    id: string;
+    employeeNo: string;
+    displayName: string | null;
+    status: StaffStatus;
+    role: string | null;
+    createdAt: string;
+};
+
+export type PageResultAdminStaffItem = {
+    records: Array<AdminStaffItem>;
+    total: number;
+};
+
 export type PageResultShopReviewItem = {
     records: Array<ShopReviewItem>;
     total: number;
@@ -3765,6 +3793,46 @@ export type GetCategoryTreeResponses = {
 };
 
 export type GetCategoryTreeResponse = GetCategoryTreeResponses[keyof GetCategoryTreeResponses];
+
+export type ListAdminUsersData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        status?: string;
+        keyword?: string;
+    };
+    url: '/admin/users';
+};
+
+export type ListAdminUsersResponses = {
+    /**
+     * OK
+     */
+    200: PageResultAdminUserItem;
+};
+
+export type ListAdminUsersResponse = ListAdminUsersResponses[keyof ListAdminUsersResponses];
+
+export type ListAdminStaffData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        status?: string;
+        keyword?: string;
+    };
+    url: '/admin/staff';
+};
+
+export type ListAdminStaffResponses = {
+    /**
+     * OK
+     */
+    200: PageResultAdminStaffItem;
+};
+
+export type ListAdminStaffResponse = ListAdminStaffResponses[keyof ListAdminStaffResponses];
 
 export type ListShopReviewsData = {
     body?: never;

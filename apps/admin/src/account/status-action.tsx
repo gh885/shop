@@ -1,0 +1,53 @@
+import { AdminAccountApi, type AdminStaffItem, type AdminUserItem } from "@shop/api/sdk"
+import { useMutation } from "@tanstack/react-query"
+import { Button, confirm } from "@shop/ui-web"
+import { accountKeys } from "./queries"
+
+export function AccountStatusAction({
+    kind,
+    item,
+}: {
+    kind: "user" | "staff"
+    item: AdminUserItem | AdminStaffItem
+}) {
+    const mutation = useMutation({
+        mutationFn: async (status: "ACTIVE" | "DISABLED") => {
+            if (kind === "user") {
+                await AdminAccountApi.adminUpdateUserStatus({
+                    path: { id: item.id },
+                    body: { status },
+                })
+            } else {
+                await AdminAccountApi.adminUpdateStaffStatus({
+                    path: { id: item.id },
+                    body: { status },
+                })
+            }
+        },
+        meta: {
+            success: "账号状态已更新",
+            error: "账号状态更新失败",
+            invalidates: [kind === "user" ? accountKeys.users.all : accountKeys.staff.all],
+        },
+    })
+    const disabled = item.status === "DISABLED"
+    const label = disabled ? "启用" : "禁用"
+
+    return (
+        <Button
+            variant="outline"
+            size="sm"
+            disabled={mutation.isPending}
+            onClick={() => {
+                void confirm({
+                    title: `${label}账号`,
+                    description: `确认${label} ${kind === "user" ? (item as AdminUserItem).phone : ((item as AdminStaffItem).employeeNo ?? "该账号")}？`,
+                    confirmText: label,
+                    action: () => mutation.mutateAsync(disabled ? "ACTIVE" : "DISABLED"),
+                })
+            }}
+        >
+            {label}
+        </Button>
+    )
+}

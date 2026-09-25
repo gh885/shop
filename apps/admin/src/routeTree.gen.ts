@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAccountsStaffRouteImport } from './routes/_app/accounts/staff'
+import { Route as AppAccountsUsersRouteImport } from './routes/_app/accounts/users'
 import { Route as AppCmsBannerRouteImport } from './routes/_app/cms/banner'
 import { Route as AppCmsNavRouteImport } from './routes/_app/cms/nav'
 import { Route as AppCmsRecommendTabRouteImport } from './routes/_app/cms/recommend-tab'
@@ -28,6 +30,16 @@ const LoginRoute = LoginRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccountsStaffRoute = AppAccountsStaffRouteImport.update({
+  id: '/accounts/staff',
+  path: '/accounts/staff',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccountsUsersRoute = AppAccountsUsersRouteImport.update({
+  id: '/accounts/users',
+  path: '/accounts/users',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCmsBannerRoute = AppCmsBannerRouteImport.update({
@@ -49,6 +61,8 @@ const AppCmsRecommendTabRoute = AppCmsRecommendTabRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/accounts/staff': typeof AppAccountsStaffRoute
+  '/accounts/users': typeof AppAccountsUsersRoute
   '/cms/banner': typeof AppCmsBannerRoute
   '/cms/nav': typeof AppCmsNavRoute
   '/cms/recommend-tab': typeof AppCmsRecommendTabRoute
@@ -56,6 +70,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof AppIndexRoute
+  '/accounts/staff': typeof AppAccountsStaffRoute
+  '/accounts/users': typeof AppAccountsUsersRoute
   '/cms/banner': typeof AppCmsBannerRoute
   '/cms/nav': typeof AppCmsNavRoute
   '/cms/recommend-tab': typeof AppCmsRecommendTabRoute
@@ -65,20 +81,38 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/accounts/staff': typeof AppAccountsStaffRoute
+  '/_app/accounts/users': typeof AppAccountsUsersRoute
   '/_app/cms/banner': typeof AppCmsBannerRoute
   '/_app/cms/nav': typeof AppCmsNavRoute
   '/_app/cms/recommend-tab': typeof AppCmsRecommendTabRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/cms/banner' | '/cms/nav' | '/cms/recommend-tab'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/accounts/staff'
+    | '/accounts/users'
+    | '/cms/banner'
+    | '/cms/nav'
+    | '/cms/recommend-tab'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/cms/banner' | '/cms/nav' | '/cms/recommend-tab'
+  to:
+    | '/login'
+    | '/'
+    | '/accounts/staff'
+    | '/accounts/users'
+    | '/cms/banner'
+    | '/cms/nav'
+    | '/cms/recommend-tab'
   id:
     | '__root__'
     | '/_app'
     | '/login'
     | '/_app/'
+    | '/_app/accounts/staff'
+    | '/_app/accounts/users'
     | '/_app/cms/banner'
     | '/_app/cms/nav'
     | '/_app/cms/recommend-tab'
@@ -112,6 +146,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/accounts/staff': {
+      id: '/_app/accounts/staff'
+      path: '/accounts/staff'
+      fullPath: '/accounts/staff'
+      preLoaderRoute: typeof AppAccountsStaffRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/accounts/users': {
+      id: '/_app/accounts/users'
+      path: '/accounts/users'
+      fullPath: '/accounts/users'
+      preLoaderRoute: typeof AppAccountsUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/cms/banner': {
       id: '/_app/cms/banner'
       path: '/cms/banner'
@@ -138,6 +186,8 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
+  AppAccountsStaffRoute: typeof AppAccountsStaffRoute
+  AppAccountsUsersRoute: typeof AppAccountsUsersRoute
   AppCmsBannerRoute: typeof AppCmsBannerRoute
   AppCmsNavRoute: typeof AppCmsNavRoute
   AppCmsRecommendTabRoute: typeof AppCmsRecommendTabRoute
@@ -145,6 +195,8 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
+  AppAccountsStaffRoute: AppAccountsStaffRoute,
+  AppAccountsUsersRoute: AppAccountsUsersRoute,
   AppCmsBannerRoute: AppCmsBannerRoute,
   AppCmsNavRoute: AppCmsNavRoute,
   AppCmsRecommendTabRoute: AppCmsRecommendTabRoute,

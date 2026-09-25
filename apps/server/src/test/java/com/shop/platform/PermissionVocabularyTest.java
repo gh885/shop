@@ -58,7 +58,14 @@ class PermissionVocabularyTest {
     /** 没有任何岗位授予、只有 SUPER_ADMIN 通配可达的码 */
     private static final Set<String> WILDCARD_ONLY_CODES = Set.of("STAFF_MANAGE");
 
-    /** 前端源码目录：权限码在此零消费点（docs/conventions/permission-codes.md「P2 未做」） */
+    /** 前端权限码唯一 owner；其余前端源码只许引用这里的值。 */
+    private static final Path FRONTEND_PERMISSION_OWNER =
+            REPO_ROOT.resolve(Path.of("packages", "common", "src", "permission-codes.ts"));
+
+    /** 已在 packages/common 建 owner 的权限码；新增消费点时两向核对。 */
+    private static final Set<String> FRONTEND_PERMISSION_CODES = Set.of("STAFF_MANAGE");
+
+    /** 前端源码目录：权限码字面量只许住在 FRONTEND_PERMISSION_OWNER。 */
     private static final List<Path> FRONTEND_SOURCE = List.of(
             REPO_ROOT.resolve("apps/web/src"),
             REPO_ROOT.resolve("apps/seller/src"),
@@ -386,6 +393,7 @@ class PermissionVocabularyTest {
                 for (Path file : walk.filter(p ->
                                 p.toString().endsWith(".ts") || p.toString().endsWith(".tsx"))
                         .filter(p -> !p.getFileName().toString().contains(".test."))
+                        .filter(p -> !p.equals(FRONTEND_PERMISSION_OWNER))
                         .toList()) {
                     for (String literal : quotedLiterals(withoutComments(Files.readString(file)))) {
                         if (declared.contains(literal)) {
@@ -395,9 +403,17 @@ class PermissionVocabularyTest {
                 }
             }
         }
-        assertThat(inFrontend)
-                .as("前端目前没有权限码消费点：真要按码隐藏入口，先在 packages/common 建 owner 并进门禁登记")
-                .isEmpty();
+        assertThat(inFrontend).as("前端权限码字面量只许住在 packages/common 的唯一 owner").isEmpty();
+
+        Set<String> ownerCodes = new LinkedHashSet<>();
+        for (String literal : quotedLiterals(withoutComments(Files.readString(FRONTEND_PERMISSION_OWNER)))) {
+            if (declared.contains(literal)) {
+                ownerCodes.add(literal);
+            }
+        }
+        assertThat(ownerCodes)
+                .as("前端权限码 owner 与已登记消费集合双向相等")
+                .containsExactlyInAnyOrderElementsOf(FRONTEND_PERMISSION_CODES);
     }
 
     // ---------- owner 读取 ----------

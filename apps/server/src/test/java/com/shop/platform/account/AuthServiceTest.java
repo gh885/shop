@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.dto.AdminUserQuery;
 import com.shop.platform.account.infra.SmsChannel;
 import com.shop.platform.account.mapper.User;
 import com.shop.platform.account.mapper.UserMapper;
@@ -11,9 +14,12 @@ import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.testsupport.EventCapture;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -67,6 +73,37 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         lenient().when(redis.opsForValue()).thenReturn(valueOps);
+    }
+
+    @Nested
+    class 管理端列表 {
+        @Test
+        void 合法筛选_手机号脱敏后返回() {
+            User user = User.autoRegister("13800138000");
+            user.setId(USER_ID);
+            user.setNickname("张三");
+            user.setCreatedAt(OffsetDateTime.parse("2026-01-01T00:00:00Z"));
+            Page<User> page = new Page<>(1, 10);
+            page.setRecords(List.of(user));
+            page.setTotal(1);
+            when(userMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+                    .thenReturn(page);
+
+            var result = authService.pageAdminUsers(new PageParams(1, 10), new AdminUserQuery("ACTIVE", "138"));
+
+            assertEquals(1, result.total());
+            assertEquals("138****8000", result.records().getFirst().phone());
+            assertEquals("张三", result.records().getFirst().nickname());
+        }
+
+        @Test
+        void 非法状态_400且不查库() {
+            var ex = assertThrows(
+                    BusinessException.class,
+                    () -> authService.pageAdminUsers(new PageParams(1, 10), new AdminUserQuery("BANNED", null)));
+            assertEquals(400, ex.getHttpStatus());
+            verifyNoInteractions(userMapper);
+        }
     }
 
     @Nested
