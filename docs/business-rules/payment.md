@@ -43,7 +43,7 @@
 ## 六、mock 与真实网关边界
 
 - **[PAY-32]** `PaymentGateway` 是 payment 与技术渠道交互的唯一边界，V1 只抽象「现在真实存在的动作」= 退款（`refund`）。约定：`channel()` 返回值即 `payment.channel` 落库值；`refund` 是「提交」退款请求、返回渠道受理结果与渠道退款单号（受理 ≠ 完成）；渠道侧失败抛 `PaymentGatewayException` 由调用方按语义取舍。MOCK 实现受理即完成、无外部 IO，渠道单号取 `MOCK-REFUND-<paymentId>`。
-- **[PAY-33]** 接真实网关时的演进（当前为设计意图，未实现）：发起改为「建 PENDING 流水 + 返回收银台跳转参数」；确认端点 `/payments/{id}/confirm`（现由前端一次点按串联）替换为网关通知回调；失败通知在 confirm 的兄弟方法走 `transition(id, FAILED)`；若退款结果异步（如微信退款回调），「本地流水置 REFUNDED」的时机应移到退款结果回调。换网关 = 换 `PaymentGateway` 实现并切换注入，模块内部与监听器逻辑不动。`kernel.event_publication` 登记表与 `EventPublicationRecoveryJob` 保留给将来的 AFTER_COMMIT 消费方（如接真实网关后的退款），当前无消费方在用。
+- **[PAY-33]** 接真实网关时的演进（当前为设计意图，未实现）：发起改为「建 PENDING 流水 + 返回收银台跳转参数」；确认端点 `/payments/{id}/confirm`（现由前端一次点按串联，PAY-36）**不是换个实现继续跑，而是下线**——网关回调来自渠道服务器，带不上买家 JWT，入口身份只能是「匿名路由 + 报文验签 + 按渠道凭据定位流水」（先例 `CarrierWebhookController`：匿名可达，验签不过按上下文闸门 403），能平移的只有状态机与事务口径（条件转移 + 同事务 `markPaid`）；失败通知在 confirm 的兄弟方法走 `transition(id, FAILED)`；若退款结果异步（如微信退款回调），「本地流水置 REFUNDED」的时机应移到退款结果回调。退款方向也不止换实现：监听时机要从同步同事务改成 AFTER_COMMIT + outbox（`kernel.event_publication` 登记表与 `EventPublicationRecoveryJob` 就是留给它的，当前无消费方在用）。落地前置两件：`payment.payments` 补渠道交易号列（V27 明写那批随网关落库，今天没有列就没有「按渠道凭据定位流水」）；匿名白名单只放比 `/payments` 更长的一段（如 `/payments/callbacks/...`）——`JwtProperties.skipPaths` 按前缀匹配，写 `/payments` 会连带买家那两条自助路由一起跳过认证过滤器，等于把「没付也确认」这条路留在原地。
 - **[PAY-34]** 发起支付入参只报单不报价（`CreatePaymentRequest{@NotNull orderId}`），金额、归属由后端从订单投影取；确认端点无 body，仅带路径 `{id}`。这保证前端无法篡改金额。
 
 ## 七、前端支付流程（apps/web 收银台）

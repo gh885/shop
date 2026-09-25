@@ -65,8 +65,9 @@ SUPER_ADMIN 的 `me` 出参把通配符展开成 `all()`，判权内部仍用通
 
 ## 已知留白与历史
 
-- `AdminCouponController` 挂的是 `CMS_MANAGE`——admin 域没有券运营专用码，独立授权点等增补 `COUPON_OPS` 后替换
-  （见 [CPN-58](../business-rules/coupon.md)、`TODO.md`）。这一格借权在 `消费端点` 列里看得见，不再只活在注释里；
+- 券运营历史上借过 `CMS_MANAGE`：`COUPON_OPS` 码落地后 `AdminCouponController` 已改挂它（OPS 岗位授予，
+  见 [CPN-58](../business-rules/coupon.md)），上表那两行就是这件事的现在时。**本节散文不受门禁核对**——
+  这条谎曾经活了很久而表一直是对的，所以「谁挂在哪个码上」要写就写进 `消费端点` 那一列，别只写在这里；
 - `MEMBER_MANAGE` / `SHOP_MANAGE` 是文档占位：成员管理端点实际由 `ShopService.requireOwner` 把关（仅店主，
   否则 403），「店铺设置 / 注销」端点当前不存在。OWNER 固有能力不入可授予集合；
 - 迁移脚本 V23 / V24 的头注释指向 `docs/permission-implementation.md` 并写着 `admin/service/StaffRole`，
