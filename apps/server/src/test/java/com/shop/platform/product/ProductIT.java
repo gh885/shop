@@ -406,6 +406,28 @@ class ProductIT extends IntegrationTestSupport {
         assertEquals(7L, row.soldCount());
     }
 
+    /**
+     * 单商品与详情出参的库存口径：与列表行同一个数（曾是写死 0——列表 10、创建/发布/详情响应 0，
+     * 前端同名字段两个答案）。装配收在 {@code ProductQueryService}，故这一条只能在真库上验。
+     */
+    @Test
+    void 单商品与详情出参_库存取真实值_不再写死0() {
+        CategoryAttr color = seedSpecAttr("颜色", "黑");
+        Product draft = createDraft("库存口径机");
+        List<Sku> skus = skuService.updateSpecs(
+                draft.getShopId(), draft.getId(), List.of(spec(color.getId(), valueIds(color.getId()), null)));
+        skuService.updateSkus(
+                draft.getShopId(),
+                draft.getId(),
+                List.of(new SkuUpdateItem(skus.getFirst().getId(), null, null, Money.cny(100), null, 6, null, null)));
+
+        assertEquals(6, productQueryService.sellerView(draft).stock());
+
+        var detail = productQueryService.sellerDetailView(draft.getShopId(), draft.getId());
+        assertEquals(6, detail.product().stock());
+        assertEquals(6, detail.skus().getFirst().stock());
+    }
+
     /** 编辑基本信息：detailImages/images 是 JSONB 列，必须经实体 typeHandler 序列化，不得走 wrapper（回归：MP 数组参数 500） */
     @Test
     void 编辑基本信息_JSONB图片数组正常落库() {

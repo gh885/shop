@@ -9,11 +9,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.common.Quantities;
 import com.shop.platform.favorite.mapper.FavoriteItem;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -99,6 +102,21 @@ class FavoriteControllerTest extends WebControllerTestSupport {
                                             """
                                 {"productIds": []}
                                 """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("productIds"));
+        }
+
+        @Test
+        void 候选集合超上限_422() throws Exception {
+            // 这个入口问的就是「刚取到的那一页」收藏没收藏：比一页更宽的请求不是它的用法，不是拦掉一次多选
+            String ids = IntStream.range(0, Quantities.BATCH_IDS_MAX + 1)
+                    .mapToObj(i -> "\"" + UUID.randomUUID() + "\"")
+                    .collect(Collectors.joining(","));
+
+            mockMvc.perform(post("/favorites/exists")
+                            .with(userAuth(userId))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"productIds\": [" + ids + "]}"))
                     .andExpect(status().is(422))
                     .andExpect(jsonPath("$.errors[0].field").value("productIds"));
         }

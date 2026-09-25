@@ -27,6 +27,7 @@ public record ProductView(
         @Schema(requiredMode = REQUIRED) List<ParamItem> params,
         @Schema(requiredMode = REQUIRED, nullable = true) Money minPrice,
         @Schema(requiredMode = REQUIRED, nullable = true) Money maxPrice,
+        /** 可售库存：该商品全部 SKU 可用量之和（表上没有这一列，由 ProductQueryService 经 inventory 批查补齐） */
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Integer stock,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Long soldCount,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) ProductStatus status,
@@ -35,7 +36,14 @@ public record ProductView(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime createdAt,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) OffsetDateTime updatedAt) {
 
-    public static ProductView from(Product p) {
+    /**
+     * 单商品投影：库存由调用方给真实值，不在这里回默认为 0。
+     *
+     * <p>{@code products} 表没有库存列（库存在 inventory 模块），所以这一个数只能问出来、不能从实体读。
+     * 这里曾写死 0：同一个 {@code stock} 字段在卖家列表里是真实可售量、在创建/编辑/发布/上下架的响应里恒 0，
+     * 前端无从分辨哪个是真的。取数口收在 {@code ProductQueryService}（与列表行同一口径）。
+     */
+    public static ProductView from(Product p, int stock) {
         return new ProductView(
                 p.getId(),
                 p.getShopId(),
@@ -49,7 +57,7 @@ public record ProductView(
                 p.getParams(),
                 p.minPriceAsMoney(),
                 p.maxPriceAsMoney(),
-                0,
+                stock,
                 p.getSoldCount(),
                 p.getStatus(),
                 p.isSevenDayReturn(),

@@ -15,13 +15,13 @@ import java.util.Set;
 @Schema(enumAsRef = true)
 public enum StaffRole {
 
-    /** 超管：通配所有权限码，含员工管理（STAFF_MANAGE 的消费端 P2 提供） */
+    /** 超管：通配所有权限码，含员工管理（STAFF_MANAGE 的消费端是 AdminAccountController） */
     SUPER_ADMIN,
 
     /** 入驻审核 */
     REVIEWER,
 
-    /** 运营：CMS 内容 + 平台类目 + 物流轨迹维护 */
+    /** 运营：CMS 内容 + 平台类目 + 物流轨迹维护 + 平台优惠券运营 */
     OPS;
 
     /**

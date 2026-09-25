@@ -9,8 +9,8 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * 推荐条出参：管理端与公开端共用。
- * 字段镜像实体现状，前端 RecommendTabDtoSchema 逐字段严格校验，只减不增。
+ * 推荐条出参：管理端与公开端共用（与 {@link BannerView} 同一个理由：service 包形状类，直出即契约）。
+ * 字段镜像实体现状：删字段或改类型会让前端生成的 responseValidator（由契约生成，未开 strict）当场拒。
  */
 @Schema(name = "RecommendTabResponse")
 public record RecommendTabView(

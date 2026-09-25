@@ -57,6 +57,6 @@ public class SellerOrderController {
         return new ReceiverPhoneResponse(orderService.sellerReceiverPhone(shopId, id, userId));
     }
 
-    // 发货不在本控制器：它是物流动作，入口归 logistics（POST /seller/shipments，
-    // 老路径 PUT /seller/orders/{id}/ship 由 SellerLogisticsController 兼容承接）。
+    // 发货不在本控制器：它是物流动作，入口归 logistics（POST /seller/shipments）。
+    // 卖家工作台搬过去之后，过渡用的老路径 PUT /seller/orders/{id}/ship 已删除——发货只有那一个入口。
 }

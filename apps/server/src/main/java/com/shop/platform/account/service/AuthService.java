@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.dto.AccountFieldRules;
 import com.shop.platform.account.dto.AdminUserQuery;
+import com.shop.platform.account.infra.CaptchaService;
 import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.infra.UserAgentParser;
 import com.shop.platform.account.mapper.User;
@@ -86,6 +87,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final SmsCodeService smsCodeService;
+    private final CaptchaService captchaService;
     private final StringRedisTemplate redis;
     private final RefreshTokenStore refreshTokenStore;
 
@@ -179,9 +181,23 @@ public class AuthService {
                 .emit();
     }
 
+    // 发码（ACC-35：入参格式 → 人机验证 → 频控 → OTP，四道防线的顺序是本用例的内部条款，不由 controller 编排）
+    /**
+     * 发送登录短信验证码。图形验证码先消费再发码：被频控拒掉时那一枚图形码已经没了，这是刻意的——
+     * 廉价凭证先失败，才轮到按条计费的短信，顺序反过来就等于让脚本白拿一次发码。
+     */
+    public void sendSmsCode(String phone, String captchaId, String captchaCode, String clientIp) {
+        captchaService.verify(captchaId, captchaCode);
+        smsCodeService.sendCode(phone, clientIp);
+    }
+
     // 密码重置
-    /** 发送重置密码验证码（RESET-01/02） */
-    public void forgotPassword(String phone, String clientIp) {
+    /**
+     * 发送重置密码验证码（RESET-01/02）。与登录发码同一个人机验证前置：本端点同样是匿名、按自报手机号
+     * 发真短信的入口，只靠 IP/号码频控挡不住横扫（ACC-35）。
+     */
+    public void forgotPassword(String phone, String captchaId, String captchaCode, String clientIp) {
+        captchaService.verify(captchaId, captchaCode);
         smsCodeService.sendResetCode(phone, clientIp);
         log.info("[AUTH] 重置密码验证码已发送, phone={}", PhoneNumber.mask(phone));
     }
@@ -213,7 +229,11 @@ public class AuthService {
     }
 
     // Token 刷新（Rotation）
-    /** 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测） */
+    /**
+     * 刷新双 token（MAINT-03: 一次一换；MAINT-04: 重放检测）。
+     *
+     * @param deviceId 本次提交的设备标识，可为 null（web 只带 cookie）；缺省归哪个桶由 {@link RefreshTokenStore} 裁决（ACC-21）
+     */
     public TokenPair refresh(String refreshToken, String deviceId, String clientIp, String userAgent) {
         // 1~4. 消费旧码 + 重放裁决 + 标记消费 + 清旧设备索引；设备身份以 token 绑定为准（web/seller
         //      共享 refresh cookie 会交替提交不同 deviceId，见 RefreshTokenStore.rotate），新码沿用同一条
@@ -257,9 +277,9 @@ public class AuthService {
     }
 
     // 设备管理
-    /** 枚举当前有效的登录设备（含元数据），供安全设置页展示 */
-    public List<RefreshTokenStore.DeviceEntry> listDevices(UUID userId, String currentDeviceId) {
-        return refreshTokenStore.listDevices(userId.toString(), currentDeviceId);
+    /** 枚举当前有效的登录设备（含元数据），供安全设置页展示。「哪台是本机」由前端带回，不在服务端判定 */
+    public List<RefreshTokenStore.DeviceEntry> listDevices(UUID userId) {
+        return refreshTokenStore.listDevices(userId.toString());
     }
 
     /** 登出单个设备 */

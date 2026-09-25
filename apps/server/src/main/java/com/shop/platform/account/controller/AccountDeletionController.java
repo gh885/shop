@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,17 +32,10 @@ public class AccountDeletionController {
     private final AccountDeletionService deletionService;
     private final ClientIp clientIp;
 
-    /**
-     * @param requested 是否处于冷静期（已申请、未生效）
-     * @param effectiveAt 预计生效时刻；未申请为 null
-     */
-    public record DeletionResponse(boolean requested, OffsetDateTime effectiveAt) {}
-
     @Operation(summary = "注销状态")
     @GetMapping
-    public DeletionResponse deletionStatus(@CurrentUser UUID userId) {
-        var state = deletionService.status(userId);
-        return new DeletionResponse(state.requested(), state.effectiveAt());
+    public AccountDeletionService.DeletionState deletionStatus(@CurrentUser UUID userId) {
+        return deletionService.status(userId);
     }
 
     @Operation(summary = "发送注销验证码")

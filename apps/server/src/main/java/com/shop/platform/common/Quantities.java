@@ -1,7 +1,7 @@
 package com.shop.platform.common;
 
 /**
- * 交易数量的三条线：一行买几件、一单写几行、一单用几张券。
+ * 数量闸门的公共出处：一行买几件、一单写几行、一单用几张券，以及一次批量查询最多几个 ID。
  *
  * <p><b>为什么住 common 而不是各自模块</b>：同一个数由 cart 与 order 两侧共同守——下单行数上限就是购物车条目上限
  * （购物车全选必须能一次下完，否则界面上能勾 100 条、提交必 400），单行件数上限就是 {@code cart.items} 的
@@ -27,6 +27,14 @@ public final class Quantities {
 
     /** 一次结算最多用几张券：按店拆单，一店一张，所以这是「一单最多涉及几家店」的实际上限 */
     public static final int COUPONS_PER_CHECKOUT_MAX = 20;
+
+    /**
+     * 一次批量查询最多几个 ID（售后批量状态、收藏状态等「把刚取到的那一页拿回来问」的入口）。
+     *
+     * <p>取 {@link PageParams#SIZE_MAX} 的<b>引用</b>而不是再抄一个 100：这些入口的输入就是上一次分页的输出，
+     * 比一页更宽的请求不是「用户多选了几个」，是拿列表接口当导出用。两处独立写 100，改一页上限时另一处会静默失联。
+     */
+    public static final int BATCH_IDS_MAX = PageParams.SIZE_MAX;
 
     /**
      * 结算行数区间的报错文案：数字由 {@link #ORDER_LINES_MAX} 拼出，预览与创建两个入口共用这一句。

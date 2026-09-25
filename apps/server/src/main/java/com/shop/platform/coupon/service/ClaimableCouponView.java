@@ -30,8 +30,8 @@ public record ClaimableCouponView(
         /** 当下就能领：已到发放起点且未领完。false 时前端据 soldOut/validFrom 区分「已领完」与「未开始」 */
         @Schema(requiredMode = REQUIRED) Boolean claimable) {
 
+    /** 装配一行：两个标记都取 {@link CouponTemplate} 上的判定，本类不再自己写比较式 */
     public static ClaimableCouponView from(CouponTemplate t, OffsetDateTime now) {
-        boolean soldOut = t.getIssuedQuantity() >= t.getTotalQuantity();
         return new ClaimableCouponView(
                 t.getId(),
                 t.getName(),
@@ -39,8 +39,9 @@ public record ClaimableCouponView(
                 t.discountAsMoney(),
                 t.getValidFrom(),
                 t.getValidTo(),
-                soldOut,
-                // 列表查询已保证 ACTIVE 且 validTo 未到，起点与名额之外没有第三种不可领
-                !soldOut && !now.isBefore(t.getValidFrom()));
+                t.fullyIssued(),
+                // 与领券端点是同一个式子（CouponTemplate.claimableAt）；列表内 ACTIVE 且未结束由查询保证，
+                // 所以这里为 false 的只剩「未到起点」与「已领完」两种
+                t.claimableAt(now));
     }
 }

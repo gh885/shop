@@ -67,7 +67,7 @@ class CategoryAdminControllerTest extends WebControllerTestSupport {
                                             """
                                 {"name": "新类目", "sort": 99}
                                 """))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isCreated());
 
             verify(categoryService).create(any(), eq("新类目"), eq(99), eq(null));
         }

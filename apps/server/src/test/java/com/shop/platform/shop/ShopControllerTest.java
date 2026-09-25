@@ -138,7 +138,7 @@ class ShopControllerTest extends WebControllerTestSupport {
                                             """
                                 {"name": "新店铺"}
                                 """))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isCreated());
 
             verify(shopService).createShop(eq(userId), eq("新店铺"), isNull());
         }
@@ -290,7 +290,7 @@ class ShopControllerTest extends WebControllerTestSupport {
 
             mockMvc.perform(delete("/shops/{shopId}/members/{memberId}", shopId, memberId)
                             .with(userAuth(userId)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             verify(shopService).removeMember(shopId, memberId, userId);
         }

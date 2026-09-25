@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 导航出参：管理端与公开端共用。subs 为 JSONB 整段（NavGroup 列表），原样透传。
- * 字段镜像实体现状，前端 NavEntryDtoSchema 逐字段严格校验，只减不增。
+ * 导航出参：管理端与公开端共用（与 {@link BannerView} 同一个理由：service 包形状类，直出即契约）。
+ * subs 为 JSONB 整段（NavGroup 列表），原样透传。
+ * 字段镜像实体现状：删字段或改类型会让前端生成的 responseValidator（由契约生成，未开 strict）当场拒。
  */
 @Schema(name = "NavEntryResponse")
 public record NavEntryView(

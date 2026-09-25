@@ -35,6 +35,13 @@ public final class RequestPaths {
     /** 管理端自服务前缀（登录 / 刷新 / me / 登出）：只吃认证，豁免授权 */
     public static final String ADMIN_SELF_SERVICE_PREFIX = ADMIN_NAMESPACE + "/auth/";
 
+    /**
+     * 买家认证端点前缀。refresh cookie 的 {@code path} 由它拼出（ACC-21 收窄到刷新端点），
+     * 与 {@code @RequestMapping("/auth")} 同源：路由前缀挪了而 cookie path 还写死字面量时，
+     * 凭证不会再随请求发出——症状是「登录后刷新一律 401」，不在任何一处编译期可见。
+     */
+    public static final String BUYER_AUTH_PREFIX = "/auth/";
+
     /** 路径是否落在受判权保护的命名空间内 */
     public static boolean inGuardedNamespace(String path) {
         return GUARDED_NAMESPACES.stream().anyMatch(prefix -> inNamespace(path, prefix));

@@ -8,13 +8,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopReview;
 import com.shop.platform.shop.model.ShopReviewStatus;
 import com.shop.platform.shop.model.ShopStatus;
 import com.shop.platform.shop.service.ShopListItem;
+import com.shop.platform.shop.service.ShopReviewItem;
 import com.shop.platform.shop.service.ShopReviewService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -250,5 +254,46 @@ class ShopGovernanceIT extends IntegrationTestSupport {
         assertFalse(outsiderActive);
         // owner 本人在册：闸门只拦外人
         assertTrue(isOwnerActiveMember(shop.getId()));
+    }
+
+    /**
+     * 队列排序（ACC-08「PENDING 优先、新店在前」）。status 列存的是枚举名字符串，照列升序排出来是字母序
+     * ——APPROVED 顶在队首、真正等人处理的待审行沉到尾部，所以这一档只能显式给（见
+     * {@code ShopReviewMapper.QUEUE_ORDER_BY}；此前就是照列排的）。
+     *
+     * <p>判据取整页的<b>相对</b>次序而不是绝对位置：这一页里也有别的用例留下的行，位置钉不住，档位先后钉得住。
+     */
+    @Test
+    void 审核队列_待审优先_同档新入队在前() {
+        Shop decided = openShop("队列已处置店");
+        shopReviewService.approve(reviewId(decided.getId()), staffId);
+        openShop(UUID.randomUUID(), "队列待审甲店");
+        openShop(UUID.randomUUID(), "队列待审乙店");
+
+        List<ShopReviewItem> rows = shopReviewService
+                .pageList(new PageParams(1, PageParams.SIZE_MAX), null)
+                .records();
+
+        int lastPending = -1;
+        int firstDecided = rows.size();
+        for (int i = 0; i < rows.size(); i++) {
+            if (rows.get(i).status().isPending()) {
+                lastPending = i;
+            } else {
+                firstDecided = Math.min(firstDecided, i);
+            }
+        }
+        assertTrue(lastPending >= 0, "这一页里没有待审行，用例没跑到队列");
+        assertTrue(firstDecided < rows.size(), "这一页里没有已处置行，档位先后没被核对到");
+        assertTrue(lastPending < firstDecided, "待审行没有整体排在已处置之前");
+
+        // 同档内新店在前：待审段的入队时刻只许不增
+        List<OffsetDateTime> pendingTimes = rows.stream()
+                .filter(r -> r.status().isPending())
+                .map(ShopReviewItem::createdAt)
+                .toList();
+        for (int i = 1; i < pendingTimes.size(); i++) {
+            assertFalse(pendingTimes.get(i).isAfter(pendingTimes.get(i - 1)), "待审段里旧店排在新店之前");
+        }
     }
 }

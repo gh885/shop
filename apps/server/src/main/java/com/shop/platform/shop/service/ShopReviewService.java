@@ -1,6 +1,5 @@
 package com.shop.platform.shop.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.PageParams;
@@ -47,14 +46,9 @@ public class ShopReviewService {
     // 审核队列
     /** 审核列表（按 status 筛选分页，含店名/店主手机号；号码恒为掩码，明文走 {@link #ownerPhone}） */
     public PageResult<ShopReviewItem> pageList(PageParams pageParams, String status) {
-        // 1. 分页查审核记录，PENDING 优先、新店在前
+        // 1. 分页查审核记录：待审优先、同档新店在前（档位口径见 ACC-08，排序键在 mapper）
         ShopReviewStatus filter = Validate.enumFilter(ShopReviewStatus.class, status, "非法的审核状态筛选值");
-        Page<ShopReview> rows = shopReviewMapper.selectPage(
-                new Page<>(pageParams.page(), pageParams.size()),
-                new LambdaQueryWrapper<ShopReview>()
-                        .eq(filter != null, ShopReview::getStatus, filter)
-                        .orderByAsc(ShopReview::getStatus)
-                        .orderByDesc(ShopReview::getCreatedAt));
+        Page<ShopReview> rows = shopReviewMapper.selectQueuePage(pageParams, filter);
 
         // 2. 空页直接返回（避免拼空 IN 列表）
         if (rows.getRecords().isEmpty()) {

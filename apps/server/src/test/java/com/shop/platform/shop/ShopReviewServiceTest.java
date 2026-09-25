@@ -86,7 +86,7 @@ class ShopReviewServiceTest {
             Page<ShopReview> page = new Page<>(1, 10);
             page.setRecords(List.of(pendingReview()));
             page.setTotal(1);
-            when(shopReviewMapper.selectPage(any(), any())).thenReturn(page);
+            when(shopReviewMapper.selectQueuePage(any(), any())).thenReturn(page);
             when(shopMapper.selectBatchIds(anyList())).thenReturn(List.of(shop()));
             when(userReadQuery.phonesByIds(anyList())).thenReturn(Map.of(ownerId, "13800001234"));
 

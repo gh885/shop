@@ -13,12 +13,14 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 管理端类目维护（认证由 StaffAuthFilter 统一处理，授权要求 CATEGORY_MANAGE，岗位 OPS） */
@@ -38,6 +40,7 @@ public class CategoryAdminController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public CategoryView createCategory(@Valid @RequestBody CreateCategoryRequest req) {
         return CategoryView.from(categoryService.create(req.parentId(), req.name(), req.sort(), req.iconUrl()));
     }

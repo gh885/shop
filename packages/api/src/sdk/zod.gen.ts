@@ -741,7 +741,7 @@ export const zFavoriteItemResponse = z.object({
 });
 
 export const zFavoriteExistsRequest = z.object({
-    productIds: z.array(z.uuid()).min(1)
+    productIds: z.array(z.uuid()).min(0).max(100)
 });
 
 export const zFavoriteExistsResponse = z.object({
@@ -815,7 +815,9 @@ export const zPasswordLoginRequest = z.object({
 });
 
 export const zForgotPasswordRequest = z.object({
-    phone: z.string().min(1).regex(/^1[3-9]\d{9}$/)
+    phone: z.string().min(1).regex(/^1[3-9]\d{9}$/),
+    captchaId: z.string().min(1),
+    captchaCode: z.string().min(1).max(10)
 });
 
 export const zConfirmDeletionRequest = z.object({
@@ -1184,7 +1186,7 @@ export const zDeviceEntryResponse = z.object({
     isCurrent: z.boolean()
 });
 
-export const zDeletionResponse = z.object({
+export const zDeletionState = z.object({
     requested: z.boolean().optional(),
     effectiveAt: z.iso.datetime({ offset: true }).optional()
 });
@@ -1470,6 +1472,11 @@ export const zAbandonProductPath = z.object({
     id: z.uuid()
 });
 
+/**
+ * No Content
+ */
+export const zAbandonProductResponse = z.void();
+
 export const zGetShopProductDetailPath = z.object({
     id: z.uuid()
 });
@@ -1605,6 +1612,11 @@ export const zCancelAfterSalePath = z.object({
 export const zRemoveCartItemPath = z.object({
     id: z.uuid()
 });
+
+/**
+ * No Content
+ */
+export const zRemoveCartItemResponse = z.void();
 
 export const zUpdateCartItemBody = zUpdateCartItemRequest;
 
@@ -1747,7 +1759,7 @@ export const zParseAddressResponse = zAddressParseResult;
 export const zCreateShopBody = zCreateShopRequest;
 
 /**
- * OK
+ * Created
  */
 export const zCreateShopResponse = zShopResponse;
 
@@ -1813,7 +1825,7 @@ export const zListShopProductsResponse = zPageResultProductResponse;
 export const zCreateProductBody = zCreateProductRequest;
 
 /**
- * OK
+ * Created
  */
 export const zCreateProductResponse = zProductResponse;
 
@@ -2042,7 +2054,7 @@ export const zForgotPasswordBody = zForgotPasswordRequest;
 /**
  * OK
  */
-export const zDeletionStatusResponse = zDeletionResponse;
+export const zDeletionStatusResponse = zDeletionState;
 
 export const zRequestDeletionBody = zConfirmDeletionRequest;
 
@@ -2107,7 +2119,7 @@ export const zListAdminRecommendTabsResponse = z.array(zRecommendTabResponse);
 export const zCreateTabBody = zRecommendTabRequest;
 
 /**
- * OK
+ * Created
  */
 export const zCreateTabResponse = zRecommendTabResponse;
 
@@ -2123,7 +2135,7 @@ export const zListAdminNavResponse = z.array(zNavEntryResponse);
 export const zCreateNavBody = zNavRequest;
 
 /**
- * OK
+ * Created
  */
 export const zCreateNavResponse = zNavEntryResponse;
 
@@ -2139,7 +2151,7 @@ export const zListAdminBannersResponse = z.array(zBannerResponse);
 export const zCreateBannerBody = zBannerRequest;
 
 /**
- * OK
+ * Created
  */
 export const zCreateBannerResponse = zBannerResponse;
 
@@ -2150,14 +2162,14 @@ export const zCreateCategoryAttrValuePath = z.object({
 });
 
 /**
- * OK
+ * Created
  */
 export const zCreateCategoryAttrValueResponse = zCategoryAttrValueResponse;
 
 export const zCreateCategoryBody = zCreateCategoryRequest;
 
 /**
- * OK
+ * Created
  */
 export const zCreateCategoryResponse = zCategoryResponse;
 
@@ -2177,7 +2189,7 @@ export const zCreateCategoryAttrPath = z.object({
 });
 
 /**
- * OK
+ * Created
  */
 export const zCreateCategoryAttrResponse = zCategoryAttrResponse;
 
@@ -2272,7 +2284,7 @@ export const zListShopAfterSalesQuery = z.object({
 export const zListShopAfterSalesResponse = zPageResultSellerTicketItem;
 
 export const zListAfterSaleActionsByOrdersQuery = z.object({
-    orderIds: z.array(z.uuid())
+    orderIds: z.array(z.uuid()).min(0).max(100)
 });
 
 /**
@@ -2486,6 +2498,11 @@ export const zRemoveShopMemberPath = z.object({
     shopId: z.uuid(),
     memberId: z.uuid()
 });
+
+/**
+ * No Content
+ */
+export const zRemoveShopMemberResponse = z.void();
 
 export const zRemoveFavoritePath = z.object({
     productId: z.uuid()

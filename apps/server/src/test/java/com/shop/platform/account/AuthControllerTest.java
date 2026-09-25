@@ -11,7 +11,6 @@ import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import jakarta.servlet.http.Cookie;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,12 +34,6 @@ class AuthControllerTest extends WebControllerTestSupport {
             {"phone": "%s", "captchaId": "c1", "captchaCode": "A1B2"}
             """
                 .formatted(phone);
-    }
-
-    // 人机验证为发码前置防线：契约测试默认放行，verify 逻辑归 account.infra.CaptchaServiceTest
-    @BeforeEach
-    void stubCaptcha() {
-        doNothing().when(captchaService).verify(any(), any());
     }
 
     @Nested
@@ -71,14 +64,29 @@ class AuthControllerTest extends WebControllerTestSupport {
         }
 
         @Test
-        void 成功_人机校验后发码() throws Exception {
+        void 成功_手机号与人机码透传() throws Exception {
+            // 人机验证 → 频控 → OTP 的先后是 AuthService 的内部条款（ACC-35，断言在 AuthServiceTest）；
+            // 这里只保住三枚入参与 IP 确实从 HTTP 边界送到了那个用例
             mockMvc.perform(post("/auth/sms-code")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(smsBody("13800138000")))
                     .andExpect(status().isOk());
 
-            verify(smsCodeService).sendCode(eq("13800138000"), anyString());
-            verify(captchaService).verify(eq("c1"), eq("A1B2"));
+            verify(authService).sendSmsCode("13800138000", "c1", "A1B2", "127.0.0.1");
+        }
+
+        @Test
+        void 缺人机码_422() throws Exception {
+            // 人机码是入站必填，不是「前端记得带就行」——缺了要在方法体之前挡下
+            mockMvc.perform(
+                            post("/auth/sms-code")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "13800138000", "captchaCode": "A1B2"}
+                                """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("captchaId"));
         }
 
         @Test
@@ -90,7 +98,7 @@ class AuthControllerTest extends WebControllerTestSupport {
                             .content(smsBody("13800138000")))
                     .andExpect(status().isOk());
 
-            verify(smsCodeService).sendCode(eq("13800138000"), eq("127.0.0.1"));
+            verify(authService).sendSmsCode(eq("13800138000"), anyString(), anyString(), eq("127.0.0.1"));
         }
 
         @Test
@@ -182,6 +190,9 @@ class AuthControllerTest extends WebControllerTestSupport {
                     // refresh token 只走 httpOnly cookie，@JsonIgnore 不落响应体（防 XSS 读走凭证）
                     .andExpect(jsonPath("$.refreshToken").doesNotExist())
                     .andExpect(cookie().exists("refresh_token"));
+
+            // deviceId 原样交出去（这里就是 null）：缺省归哪个桶由会话存储裁决，入口不翻译（ACC-21）
+            verify(authService).refresh("rt:cookie", null, "127.0.0.1", null);
         }
 
         @Test
@@ -198,6 +209,8 @@ class AuthControllerTest extends WebControllerTestSupport {
                                 """))
                     .andExpect(status().isOk())
                     .andExpect(cookie().exists("refresh_token"));
+
+            verify(authService).refresh("rt:body", "dev1", "127.0.0.1", null);
         }
 
         @Test
@@ -367,7 +380,7 @@ class AuthControllerTest extends WebControllerTestSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(
                                     """
-                                {"phone": "%s"}
+                                {"phone": "%s", "captchaId": "c1", "captchaCode": "A1B2"}
                                 """
                                             .formatted(phone)))
                     .andExpect(status().is(422))
@@ -375,17 +388,31 @@ class AuthControllerTest extends WebControllerTestSupport {
         }
 
         @Test
-        void 成功_手机号与来源IP透传() throws Exception {
+        void 成功_手机号与人机码与来源IP透传() throws Exception {
+            // 本端点与 /auth/sms-code 同为匿名发码入口，人机验证前置（ACC-35）；先后顺序归 AuthServiceTest
             mockMvc.perform(
                             post("/auth/forgot-password")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(
                                             """
-                                {"phone": "13800138000"}
+                                {"phone": "13800138000", "captchaId": "c1", "captchaCode": "A1B2"}
                                 """))
                     .andExpect(status().isOk());
 
-            verify(authService).forgotPassword("13800138000", "127.0.0.1");
+            verify(authService).forgotPassword("13800138000", "c1", "A1B2", "127.0.0.1");
+        }
+
+        @Test
+        void 缺人机码_422() throws Exception {
+            mockMvc.perform(
+                            post("/auth/forgot-password")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"phone": "13800138000", "captchaCode": "A1B2"}
+                                """))
+                    .andExpect(status().is(422))
+                    .andExpect(jsonPath("$.errors[0].field").value("captchaId"));
         }
     }
 

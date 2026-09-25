@@ -13,16 +13,14 @@ import com.shop.platform.account.dto.SmsLoginRequest;
 import com.shop.platform.account.dto.UpdateProfileRequest;
 import com.shop.platform.account.infra.CaptchaService;
 import com.shop.platform.account.service.AuthService;
-import com.shop.platform.account.service.SmsCodeService;
 import com.shop.platform.account.service.UserView;
-import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.qiniu.QiniuClient;
 import com.shop.platform.infra.qiniu.UploadTicket;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.CurrentUser;
 import com.shop.platform.infra.web.RefreshCookies;
+import com.shop.platform.infra.web.RequestPaths;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -48,7 +46,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final SmsCodeService smsCodeService;
     private final AuthService authService;
     private final CaptchaService captchaService;
     private final QiniuClient qiniuClient;
@@ -63,15 +60,14 @@ public class AuthController {
      * 注意：admin 走独立 staff 账号体系与 C 端隔离，不纳入共享。
      */
     private RefreshCookies.Spec cookieSpec() {
-        return new RefreshCookies.Spec("refresh_token", "/auth/refresh", authProperties.refreshCookieDomain());
+        return new RefreshCookies.Spec(
+                "refresh_token", RequestPaths.BUYER_AUTH_PREFIX + "refresh", authProperties.refreshCookieDomain());
     }
 
-    /** 发送短信验证码 */
+    /** 发送短信验证码（人机验证 → 频控 → OTP 的防线顺序在 AuthService，见 ACC-35） */
     @PostMapping("/sms-code")
     public void sendSmsCode(@Valid @RequestBody SmsCodeRequest req, HttpServletRequest servletRequest) {
-        // 人机验证前置：脚本直调 /sms-code 短信轰炸前必须过图形验证码（防线顺序：人机验证 → 频控 → OTP）
-        captchaService.verify(req.captchaId(), req.captchaCode());
-        smsCodeService.sendCode(req.phone(), clientIp.of(servletRequest));
+        authService.sendSmsCode(req.phone(), req.captchaId(), req.captchaCode(), clientIp.of(servletRequest));
     }
 
     /** 发放图形验证码（匿名可达）；出参即 CaptchaService.Captcha（infra 值对象直出） */
@@ -112,10 +108,10 @@ public class AuthController {
         authService.setPassword(userId, req.currentPassword(), req.newPassword());
     }
 
-    /** 发送重置密码验证码 */
+    /** 发送重置密码验证码（同样先过人机验证，见 ACC-35） */
     @PostMapping("/forgot-password")
     public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest req, HttpServletRequest servletRequest) {
-        authService.forgotPassword(req.phone(), clientIp.of(servletRequest));
+        authService.forgotPassword(req.phone(), req.captchaId(), req.captchaCode(), clientIp.of(servletRequest));
     }
 
     /** 使用重置 token 设置新密码 */
@@ -131,14 +127,11 @@ public class AuthController {
             HttpServletResponse response,
             @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
             @RequestBody(required = false) RefreshRequest req) {
-        // Cookie 优先、Body 兜底：web 走 httpOnly cookie，原生端无 cookie 容器只能走 body
-        String fromCookie = refreshCookies.read(request, cookieSpec());
-        String refreshToken = fromCookie != null ? fromCookie : (req == null ? null : req.refreshToken());
-        if (refreshToken == null) {
-            throw BusinessException.unauthorized(ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
-        }
-
-        TokenPair result = authService.refresh(refreshToken, deviceIdOrDefault(req), clientIp.of(request), userAgent);
+        String refreshToken =
+                refreshCookies.requireToken(request, cookieSpec(), req == null ? null : req.refreshToken());
+        // deviceId 可以是 null：缺省归哪个桶是会话存储的口径（ACC-21），不在入口翻译一次
+        TokenPair result =
+                authService.refresh(refreshToken, req == null ? null : req.deviceId(), clientIp.of(request), userAgent);
         refreshCookies.issue(response, cookieSpec(), result.refreshToken());
         return result;
     }
@@ -178,7 +171,7 @@ public class AuthController {
     @GetMapping("/devices")
     public List<DeviceEntryResponse> devices(
             @CurrentUser UUID userId, @RequestParam(required = false) String currentDeviceId) {
-        return authService.listDevices(userId, currentDeviceId).stream()
+        return authService.listDevices(userId).stream()
                 .map(entry -> DeviceEntryResponse.from(entry, currentDeviceId))
                 .toList();
     }
@@ -188,11 +181,4 @@ public class AuthController {
     public void deleteDevice(@CurrentUser UUID userId, @PathVariable String deviceId) {
         authService.deleteDevice(userId, deviceId);
     }
-
-    /** 刷新请求可不带 body（web 走 cookie），deviceId 缺省归入 "default" 桶 */
-    private static String deviceIdOrDefault(RefreshRequest req) {
-        return req == null || req.deviceId() == null ? "default" : req.deviceId();
-    }
-
-    // Response DTOs
 }

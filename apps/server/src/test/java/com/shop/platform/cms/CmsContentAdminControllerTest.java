@@ -66,7 +66,7 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
                                             """
                                 {"navKey": "home", "title": "新导航"}
                                 """))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isCreated());
 
             verify(contentService).createNav(any());
         }
@@ -129,7 +129,7 @@ class CmsContentAdminControllerTest extends WebControllerTestSupport {
                                             """
                                 {"name": "猜你喜欢"}
                                 """))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isCreated());
 
             verify(contentService).createTab(any());
         }

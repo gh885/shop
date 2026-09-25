@@ -166,7 +166,11 @@ public class MerchantAddressService {
         }
     }
 
-    /** 取本店地址（删除是硬删，没有「已删但仍能查到」的中间态）：不存在或不属于当前店铺一律 404，不泄露他人地址存在性 */
+    /**
+     * 取本店地址：删除是<b>软删</b>（{@code MerchantAddress.deletedAt} 贴 {@code @TableLogic}，查询自动滤掉已删行），
+     * 所以这里没有「已删但仍能查到」的中间态可读——行还在库里（面单/售后拿的是当时解析的快照，不受影响），
+     * 但对卖家与 api 解析都当它不存在。不存在或不属于当前店铺一律 404，不泄露他人地址存在性。
+     */
     private MerchantAddress requireOwnedAddress(UUID shopId, UUID id) {
         return Validate.requireOwned(addressMapper.selectById(id), MerchantAddress::getShopId, shopId, "地址不存在");
     }

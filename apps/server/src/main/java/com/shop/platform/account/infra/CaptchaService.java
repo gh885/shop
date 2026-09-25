@@ -30,11 +30,14 @@ import org.springframework.util.StringUtils;
 
 /**
  * 图形验证码（人机验证）：生成 4 位字符图，答案 SHA-256 摘要落 Redis（5 分钟一次性消费），
- * 校验后即焚。跨模块共享技术能力 → 根 infra，任何入口（登录发码 / 注册 / 找回密码 / 下单防刷）
- * 都可复用。
+ * 校验后即焚。
  *
- * <p>防御定位：拦截「脚本直调 /auth/sms-code 短信轰炸」这类前端裸接口滥用。防线顺序：
- * 人机验证（本类） → 频控（SmsCodeService）→ OTP。仅凭图形验证码不足以对抗高级黑产
+ * <p>位置：本类是认证模块自己的技术管道，住在 {@code account.infra}（Modulith 规定子包类型即模块内部，
+ * 别的模块 import 不到）。今天只有 {@code /auth/captcha} 与 {@code AuthService} 的两个发码用例消费它，
+ * 所以不上移根 infra——真有第二个模块要人机验证时，再按「换技术会不会重写」搬到根 infra 或开 api 口子。
+ *
+ * <p>防御定位：拦截「脚本直调匿名发码端点短信轰炸」这类裸接口滥用。防线顺序：
+ * 人机验证（本类） → 频控（SmsCodeService）→ OTP，见 ACC-35。仅凭图形验证码不足以对抗高级黑产
  * （滑块/行为指纹/设备指纹由 SaaS 承担），C 端登录的目标是挡普通脚本，此处够用。
  */
 @Service

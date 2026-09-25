@@ -1,5 +1,7 @@
 package com.shop.platform.infra.web;
 
+import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
@@ -47,6 +49,23 @@ public class RefreshCookies {
     public String read(HttpServletRequest request, Spec spec) {
         var cookie = WebUtils.getCookie(request, spec.name());
         return cookie == null ? null : cookie.getValue();
+    }
+
+    /**
+     * 读取 refresh token 的唯一出口（ACC-21）：cookie 优先、body 兜底，两者皆无 → 401
+     * {@code INVALID_TOKEN}。买家端两个来源都用（原生端无 cookie 容器只能走 body），纯 web 端
+     * （管理端）把 {@code bodyToken} 传 null 即为「只认 cookie」。
+     *
+     * <p>「取不到怎么办」收在这里而不是各 controller 写一遍：这条是安全口径，一处松一档（比如漏掉
+     * 401 直接进 service）就是拿 null token 去轮换。
+     */
+    public String requireToken(HttpServletRequest request, Spec spec, String bodyToken) {
+        String fromCookie = read(request, spec);
+        String token = fromCookie != null ? fromCookie : bodyToken;
+        if (token == null) {
+            throw BusinessException.unauthorized(ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
+        }
+        return token;
     }
 
     private void write(HttpServletResponse response, Spec spec, String value, Duration maxAge) {

@@ -184,7 +184,7 @@ function stubApi({
         }),
         http.post("*/seller/products", () => {
             calls.create += 1
-            return HttpResponse.json(product)
+            return HttpResponse.json(product, { status: 201 })
         }),
         http.put("*/seller/products/:id", () => {
             calls.basic += 1

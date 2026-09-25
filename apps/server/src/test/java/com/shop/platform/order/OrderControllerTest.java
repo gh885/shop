@@ -17,6 +17,7 @@ import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.CheckoutPreview;
+import com.shop.platform.order.service.OrderDetailView;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
@@ -226,20 +227,12 @@ class OrderControllerTest extends WebControllerTestSupport {
 
         @Test
         void 返回200_绑定id() throws Exception {
-            when(orderService.detail(userId, orderId)).thenReturn(new OrderWithItems(pendingOrder(), List.of()));
+            OrderWithItems order = new OrderWithItems(pendingOrder(), List.of());
+            when(orderService.detail(userId, orderId)).thenReturn(OrderDetailView.buyerView(order, null));
 
             mockMvc.perform(get("/orders/{id}", orderId).with(userAuth(userId))).andExpect(status().isOk());
 
             verify(orderService).detail(userId, orderId);
-        }
-
-        /** 买家看自己的号仍是明文：脱敏只针对卖家侧出参，别把刀落在本人视图上（ORD-62） */
-        @Test
-        void 收件人电话_买家侧不掩码() throws Exception {
-            when(orderService.detail(userId, orderId)).thenReturn(new OrderWithItems(pendingOrder(), List.of()));
-
-            mockMvc.perform(get("/orders/{id}", orderId).with(userAuth(userId)))
-                    .andExpect(jsonPath("$.receiverPhone").value("13800001234"));
         }
     }
 

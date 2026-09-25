@@ -32,7 +32,13 @@ public class AdminShipmentIssueController {
 
     private final ShipmentIssueService issueService;
 
-    /** 待处理异常单（客服待办）：按发现时间倒序 */
+    /**
+     * 待处理异常单（客服待办）：按发现时间倒序，<b>最多 {@code PageParams.SIZE_MAX} 条</b>（口径见 LOG-33）。
+     *
+     * <p>这一格不做分页：待办的用法是「把最卡人的那批处理掉」，不是翻历史；做成 PageResult 只会多出一个
+     * 没人查的第二页。封顶的意义在于它不是导出接口——扫描每类异常单轮可开 200 张，不封顶时一次阈值调错
+     * 就能把整表灌进一个响应里。被截掉的是最老的未结单，行还在库里，等前面的被处理完自然浮上来。
+     */
     @GetMapping
     public List<ShipmentIssueView> listOpenIssues() {
         return issueService.openIssues().stream().map(ShipmentIssueView::from).toList();

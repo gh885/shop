@@ -871,6 +871,8 @@ export type PasswordLoginRequest = {
 
 export type ForgotPasswordRequest = {
     phone: string;
+    captchaId: string;
+    captchaCode: string;
 };
 
 export type ConfirmDeletionRequest = {
@@ -1266,7 +1268,7 @@ export type DeviceEntryResponse = {
     isCurrent: boolean;
 };
 
-export type DeletionResponse = {
+export type DeletionState = {
     requested?: boolean;
     effectiveAt?: string;
 };
@@ -1633,10 +1635,12 @@ export type AbandonProductData = {
 
 export type AbandonProductResponses = {
     /**
-     * OK
+     * No Content
      */
-    200: unknown;
+    204: void;
 };
+
+export type AbandonProductResponse = AbandonProductResponses[keyof AbandonProductResponses];
 
 export type GetShopProductDetailData = {
     body?: never;
@@ -1941,10 +1945,12 @@ export type RemoveCartItemData = {
 
 export type RemoveCartItemResponses = {
     /**
-     * OK
+     * No Content
      */
-    200: unknown;
+    204: void;
 };
+
+export type RemoveCartItemResponse = RemoveCartItemResponses[keyof RemoveCartItemResponses];
 
 export type UpdateCartItemData = {
     body: UpdateCartItemRequest;
@@ -2258,9 +2264,9 @@ export type CreateShopData = {
 
 export type CreateShopResponses = {
     /**
-     * OK
+     * Created
      */
-    200: ShopResponse;
+    201: ShopResponse;
 };
 
 export type CreateShopResponse = CreateShopResponses[keyof CreateShopResponses];
@@ -2398,9 +2404,9 @@ export type CreateProductData = {
 
 export type CreateProductResponses = {
     /**
-     * OK
+     * Created
      */
-    200: ProductResponse;
+    201: ProductResponse;
 };
 
 export type CreateProductResponse = CreateProductResponses[keyof CreateProductResponses];
@@ -2961,7 +2967,7 @@ export type DeletionStatusResponses = {
     /**
      * OK
      */
-    200: DeletionResponse;
+    200: DeletionState;
 };
 
 export type DeletionStatusResponse = DeletionStatusResponses[keyof DeletionStatusResponses];
@@ -3125,9 +3131,9 @@ export type CreateTabData = {
 
 export type CreateTabResponses = {
     /**
-     * OK
+     * Created
      */
-    200: RecommendTabResponse;
+    201: RecommendTabResponse;
 };
 
 export type CreateTabResponse = CreateTabResponses[keyof CreateTabResponses];
@@ -3159,9 +3165,9 @@ export type CreateNavData = {
 
 export type CreateNavResponses = {
     /**
-     * OK
+     * Created
      */
-    200: NavEntryResponse;
+    201: NavEntryResponse;
 };
 
 export type CreateNavResponse = CreateNavResponses[keyof CreateNavResponses];
@@ -3193,9 +3199,9 @@ export type CreateBannerData = {
 
 export type CreateBannerResponses = {
     /**
-     * OK
+     * Created
      */
-    200: BannerResponse;
+    201: BannerResponse;
 };
 
 export type CreateBannerResponse = CreateBannerResponses[keyof CreateBannerResponses];
@@ -3211,9 +3217,9 @@ export type CreateCategoryAttrValueData = {
 
 export type CreateCategoryAttrValueResponses = {
     /**
-     * OK
+     * Created
      */
-    200: CategoryAttrValueResponse;
+    201: CategoryAttrValueResponse;
 };
 
 export type CreateCategoryAttrValueResponse = CreateCategoryAttrValueResponses[keyof CreateCategoryAttrValueResponses];
@@ -3227,9 +3233,9 @@ export type CreateCategoryData = {
 
 export type CreateCategoryResponses = {
     /**
-     * OK
+     * Created
      */
-    200: CategoryResponse;
+    201: CategoryResponse;
 };
 
 export type CreateCategoryResponse = CreateCategoryResponses[keyof CreateCategoryResponses];
@@ -3263,9 +3269,9 @@ export type CreateCategoryAttrData = {
 
 export type CreateCategoryAttrResponses = {
     /**
-     * OK
+     * Created
      */
-    200: CategoryAttrResponse;
+    201: CategoryAttrResponse;
 };
 
 export type CreateCategoryAttrResponse = CreateCategoryAttrResponses[keyof CreateCategoryAttrResponses];
@@ -3961,10 +3967,12 @@ export type RemoveShopMemberData = {
 
 export type RemoveShopMemberResponses = {
     /**
-     * OK
+     * No Content
      */
-    200: unknown;
+    204: void;
 };
+
+export type RemoveShopMemberResponse = RemoveShopMemberResponses[keyof RemoveShopMemberResponses];
 
 export type RemoveFavoriteData = {
     body?: never;

@@ -1,5 +1,7 @@
 package com.shop.platform.account;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -68,13 +70,15 @@ class StaffAuthControllerTest extends WebControllerTestSupport {
 
         @Test
         void 只认Cookie_解码续签() throws Exception {
-            when(staffService.refresh("rt:cookie", "default")).thenReturn(new TokenPair("new-at", "new-rt"));
+            when(staffService.refresh(eq("rt:cookie"), nullable(String.class)))
+                    .thenReturn(new TokenPair("new-at", "new-rt"));
 
             mockMvc.perform(post("/admin/auth/refresh")
                             .cookie(new jakarta.servlet.http.Cookie("staff_refresh_token", "rt:cookie")))
                     .andExpect(status().isOk());
 
-            verify(staffService).refresh("rt:cookie", "default");
+            // 没有 body 就没有 deviceId：入口不替存储翻译缺省值，归桶口径见 RefreshTokenStore（ACC-21）
+            verify(staffService).refresh("rt:cookie", null);
         }
 
         @Test

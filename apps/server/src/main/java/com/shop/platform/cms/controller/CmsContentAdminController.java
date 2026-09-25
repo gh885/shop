@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,9 +23,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 管理端 CMS 内容维护（认证由 StaffAuthFilter 统一处理，授权要求 CMS_MANAGE，岗位 OPS） */
+/**
+ * 管理端 CMS 内容维护（认证由 StaffAuthFilter 统一处理，授权要求 CMS_MANAGE，岗位 OPS）。
+ *
+ * <p>状态码按全仓口径：<b>新建</b>条目（nav / banner / 词条）给 201，改内容与启停给 200（启停是状态推进，
+ * 不新建资源；它也没有 body 可返回，返回 200 空体而非 204——204 在本仓库留给「删掉了一行」的 DELETE）。
+ */
 @Tag(name = "cms-admin", description = "管理端 CMS 内容维护")
 @RestController
 @RequestMapping("/admin/cms")
@@ -41,6 +48,7 @@ public class CmsContentAdminController {
     }
 
     @PostMapping("/nav")
+    @ResponseStatus(HttpStatus.CREATED)
     public NavEntryView createNav(@Valid @RequestBody NavRequest req) {
         return NavEntryView.from(contentService.createNav(req));
     }
@@ -63,6 +71,7 @@ public class CmsContentAdminController {
     }
 
     @PostMapping("/banners")
+    @ResponseStatus(HttpStatus.CREATED)
     public BannerView createBanner(@Valid @RequestBody BannerRequest req) {
         return BannerView.from(contentService.createBanner(req));
     }
@@ -84,6 +93,7 @@ public class CmsContentAdminController {
     }
 
     @PostMapping("/recommend-tabs")
+    @ResponseStatus(HttpStatus.CREATED)
     public RecommendTabView createTab(@Valid @RequestBody RecommendTabRequest req) {
         return RecommendTabView.from(contentService.createTab(req));
     }

@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,8 +24,22 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 卖家店铺管理（需登录）。
+ *
+ * <p>成功状态码按全仓既有口径给（与券 / 支付 / 地址 / 收藏等模块同一套，不新立第三套）：
+ * <ul>
+ *   <li><b>建出「店铺」这个资源</b> → 201（开店）。审核通过的店之后重提、改名都不再新建资源，所以 {@code /resubmit} 是 200。</li>
+ *   <li><b>删一行</b>的 DELETE → 204（移除成员），与地址 / 商家地址 / 收藏 / 商品那几道删除同口径（软删还是硬删不改状态码，改的是行还在不在）。</li>
+ *   <li><b>状态推进与逐条索取</b>（发起邀请、接受 / 拒绝邀请、改权限、取电话明文）→ 200。邀请那一组刻意不给 204：
+ *       204 等于对任意 memberId 承认「这行存在、而且已被你处理」，邀请 ID 因此可被枚举——ACC-10 把 accept / decline
+ *       钉在同一档（缺席与越权同为 404「邀请不存在或已失效」，重复处理 409），{@code invites} 与它们同一条流，
+ *       把一对拆成两种码比全都留 200 更糟。</li>
+ * </ul>
+ */
 @Tag(name = "shops", description = "卖家店铺管理（需登录）")
 @RestController
 @RequestMapping("/shops")
@@ -35,6 +50,7 @@ public class ShopController {
 
     /** 开店：当前登录用户（统一账号）创建店铺，落 PENDING_REVIEW 待平台审核 */
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public ShopView createShop(@CurrentUser UUID ownerId, @Valid @RequestBody CreateShopRequest req) {
         return ShopView.from(shopService.createShop(ownerId, req.name(), req.logoKey()));
     }
@@ -112,6 +128,7 @@ public class ShopController {
 
     /** 店主移除成员 */
     @DeleteMapping("/{shopId}/members/{memberId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeShopMember(@CurrentUser UUID userId, @PathVariable UUID shopId, @PathVariable UUID memberId) {
         shopService.removeMember(shopId, memberId, userId);
     }

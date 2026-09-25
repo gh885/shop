@@ -69,13 +69,21 @@ public class CartController {
         cartService.updateSelected(userId, req);
     }
 
-    /** 删一条 */
+    /**
+     * 删一条：204 无体，与买家地址 / 商家地址 / 收藏 / 商品的 DELETE 同口径（这四个都已标 NO_CONTENT）。
+     * 不存在或不是你的条目同为 404，不给「存在但删不掉」的中间态。
+     */
     @DeleteMapping("/items/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeCartItem(@CurrentUser UUID userId, @PathVariable UUID id) {
         cartService.remove(userId, id);
     }
 
-    /** 批量删：「清除失效商品」「删除选中」共用 */
+    /**
+     * 批量删：「清除失效商品」「删除选中」共用。POST 动作型入口（DELETE 带 body 语义太别扭），
+     * 与 {@code /items/selected} 同为 200 空体——本模块的 RPC 动作一律 200，只有 DELETE 语义的那一条给 204，
+     * 不给仓库长出第三套口径（券的 {@code /void} 是唯一例外，它有 CPN-62 那条款）。
+     */
     @PostMapping("/items/batch-delete")
     public void batchRemoveCartItems(@CurrentUser UUID userId, @Valid @RequestBody BatchDeleteCartItemsRequest req) {
         cartService.batchRemove(userId, req);

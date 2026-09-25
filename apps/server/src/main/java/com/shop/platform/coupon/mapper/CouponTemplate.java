@@ -69,4 +69,31 @@ public class CouponTemplate extends AuditedEntity {
     public Money discountAsMoney() {
         return Money.ofFen(discountAmount, currency);
     }
+
+    /** 发放名额是否已用满（CPN-13/16：issued ≥ total）——「已领完」在这个仓库里的唯一定义处 */
+    public boolean fullyIssued() {
+        return issuedQuantity >= totalQuantity;
+    }
+
+    /** 发放是否还没到起点（CPN-07）：未到起点的券照样进可领列表当预告位（C9），但领不到 */
+    public boolean issuanceNotStarted(OffsetDateTime now) {
+        return now.isBefore(validFrom);
+    }
+
+    /** 发放是否已结束（CPN-13）：终点是开区间，now 正好等于 validTo 即已结束 */
+    public boolean issuanceEnded(OffsetDateTime now) {
+        return !now.isBefore(validTo);
+    }
+
+    /**
+     * 此刻领不领得到（CPN-13/14）：名额未用满且落在发放窗口内。<b>可领列表的 claimable 与领券端点的
+     * 时间/名额闸门同读这一个式子</b>——两处各写一遍比较式，就会出现「列表说可领、点了被拒」。
+     *
+     * <p>状态列刻意不在式子里：列表那侧由查询只取 ACTIVE，领取那侧要单独给出「已停止发放」这句 400 文案。
+     * 名额与窗口的<b>并发</b>判定也不在此：这里是读时的一次快照判定，写入时由
+     * {@code CouponTemplateMapper.issueOne} 的条件 UPDATE 以同一条款原子重算。
+     */
+    public boolean claimableAt(OffsetDateTime now) {
+        return !fullyIssued() && !issuanceNotStarted(now) && !issuanceEnded(now);
+    }
 }

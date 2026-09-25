@@ -15,12 +15,8 @@ import com.shop.platform.order.service.OrderListItemView;
 import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
-import com.shop.platform.order.service.OrderWithItems;
-import com.shop.platform.shop.api.ShopReadQuery;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -38,7 +34,11 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>支付入口不在本控制器——POST /payments 由 payment 模块承接，本模块经事件感知支付结果。
  * 售后入口也不在本控制器——/orders/{id}/after-sales 由 aftersale 模块承接（同 tag，SDK 里仍归 OrdersApi）。
- * 出参一律 Response record：快照字段只减不增，实体内部状态（updatedAt 等）不外泄。
+ *
+ * <p>出参按「二选一」分两堆，都不碰 mapper 实体（实体内部状态如 updatedAt 不外泄）：结算预览与创建订单要变形
+ * （跨服务聚合派生）故用本类的 Response record；列表与详情直出 service 包形状
+ * （{@code OrderListItemView} / {@code OrderDetailView}，无独立 Response 镜像）——它们本身就是 wire 契约，
+ * 字段只减不增，变更等于改接口，靠 openapi 契约 + 前端 SDK 编译期兜底。
  */
 @Tag(name = "orders", description = "买家订单（全部需登录）")
 @RestController
@@ -51,8 +51,6 @@ public class OrderController {
     private final OrderPlacementService orderPlacementService;
 
     private final OrderTransitionService orderTransitionService;
-
-    private final ShopReadQuery shopReadQuery;
 
     /** 结算预览：按店分组算钱（拆单预告）+ 失效行置灰 + 地址可选回显。只读幂等 */
     @PostMapping("/preview")
@@ -74,21 +72,13 @@ public class OrderController {
     @GetMapping("/mine")
     public PageResult<OrderListItemView> listMyOrders(
             @CurrentUser UUID userId, @Valid PageParams pageParams, @Valid OrderQuery query) {
-        PageResult<OrderWithItems> page = orderService.pageMine(userId, query.status(), pageParams);
-        // 店名批量点查（shop :: api）：列表多单多店，集中拼一次
-        Map<UUID, String> shopNames = shopReadQuery.namesByIds(
-                page.records().stream().map(o -> o.order().getShopId()).toList());
-        return page.map(o -> OrderListItemView.from(o, shopNames));
+        return orderService.pageMine(userId, query.status(), pageParams);
     }
 
     /** 订单详情：含收货快照、物流、各状态时间戳 */
     @GetMapping("/{id}")
     public OrderDetailView getOrderDetail(@CurrentUser UUID userId, @PathVariable UUID id) {
-        OrderWithItems detail = orderService.detail(userId, id);
-        String shopName = shopReadQuery
-                .namesByIds(List.of(detail.order().getShopId()))
-                .get(detail.order().getShopId());
-        return OrderDetailView.buyerView(detail, shopName);
+        return orderService.detail(userId, id);
     }
 
     /** 取消订单：仅待付款/待发货可取消，取消即回补库存 */

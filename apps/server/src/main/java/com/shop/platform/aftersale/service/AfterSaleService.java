@@ -50,7 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>转移合法性在 {@link TicketAction} 一张表；本类只负责驱动：取进行中的单 → 归属校验 → 条件更新
  * （WHERE status = action.from()，影响行数即并发闸门）→ 时间线 → 写回订单投影 → 副作用（退款事件 / 回补库存）。
- * 申请前置（订单已完成且申请窗口未过）与回补所需行项经 order :: api 只读点查，不碰 orders schema。
+ * 申请前置（待收货随时可申、已完成看申请窗口，AFS-01/02/43）与回补所需行项经 order :: api 只读点查，不碰 orders schema。
  *
  * <p>退款：payment 同步监听 {@link AfterSaleRefundedEvent} 经网关落退款单据（同事务），落不成整体回滚、
  * 售后单停回原态——不假报「已退款」。
@@ -83,13 +83,18 @@ public class AfterSaleService {
 
     // 买家
     /**
-     * 申请售后：仅「已完成 + 申请窗口未过 + 无进行中的单 + 最新单非已退款」可发起；退款口径 = 整单实付（V1 整单售后）。
+     * 申请售后（AFS-01 的四道闸门）：订单在主状态 + 申请窗口内——<b>待收货（SHIPPED）随时可申</b>，
+     * 已完成（COMPLETED）按完成时刻 +15 天的截止时刻（AFS-02/43）；该订单没有进行中的单；最新一张不是已退款
+     * （AFS-05）；只有订单归属本人能发起（AFS-06）。退款口径 = 整单实付（V1 整单售后）。
      *
-     * <p>申请瞬间顺手判定这张单是否为<b>无理由强制单</b>（{@link #noReasonEnforced}，AFS-45）并把结论落列：
+     * <p>出参是买家视角的售后单（动作集随响应下发，AFS-40）：动作集要吃订单上的申请窗口，只有本服务装配得出来。
+     * 详情独有的两项（回寄地址、拒绝理由）不在这里解析（AFS-42/44）。
+     *
+     * <p>申请瞬间顺手判定这张单是否为<b>无理由强制单</b>（{@link #enforceNoReason}，AFS-45）并把结论落列：
      * 法定权利是否成立取决于「申请那一刻」的主张、快照声明与窗口位置，事后现算会随卖家处理时长漂移。
      */
     @Transactional
-    public Ticket apply(UUID userId, UUID orderId, TicketType type, AfterSaleReason reasonCode, String reason) {
+    public TicketView apply(UUID userId, UUID orderId, TicketType type, AfterSaleReason reasonCode, String reason) {
         OrderAfterSaleView order = Validate.presentOwned(
                 orderReadQuery.afterSaleViewById(orderId), OrderAfterSaleView::userId, userId, "订单不存在");
         Validate.conflict(order.afterSaleOpenAt(OffsetDateTime.now()), TicketAction.APPLY.conflictMessage());
@@ -124,7 +129,7 @@ public class AfterSaleService {
                 type,
                 reasonCode,
                 ticket.isNoReasonEnforced());
-        return ticket;
+        return TicketView.from(ticket, buyerActions(ticket));
     }
 
     /**
@@ -178,10 +183,16 @@ public class AfterSaleService {
                 .set(Ticket::getReturnTrackingNo, shipment.trackingNo()));
     }
 
-    /** 买家视角最近一张售后单（含终态）；非本人的订单同不存在 */
-    public Optional<Ticket> latestForBuyer(UUID userId, UUID orderId) {
-        return Optional.ofNullable(ticketMapper.selectLatestByOrder(orderId))
-                .filter(t -> t.getUserId().equals(userId));
+    /**
+     * 买家售后详情（{@code GET /orders/{id}/after-sales}）：最近一张单（含终态）+ 买家动作集 + 详情独有两项。
+     *
+     * <p>「没有售后记录」与「这一单不归你」是同一句话同一个 404（AFS-06），由 {@link Validate#presentOwned} 说出口。
+     */
+    @Transactional(readOnly = true)
+    public TicketView buyerDetailView(UUID userId, UUID orderId) {
+        Ticket ticket = Validate.presentOwned(
+                Optional.ofNullable(ticketMapper.selectLatestByOrder(orderId)), Ticket::getUserId, userId, "暂无售后记录");
+        return TicketView.from(ticket, buyerActions(ticket), buyerDetail(ticket));
     }
 
     /**
@@ -291,10 +302,17 @@ public class AfterSaleService {
         return new BuyerTicketDetail(resolveReturnAddress(ticket.getShopId()), rejectReason);
     }
 
-    /** 卖家视角最近一张售后单（含终态）；非本店的订单同不存在 */
-    public Optional<Ticket> latestForShop(UUID shopId, UUID orderId) {
-        return Optional.ofNullable(ticketMapper.selectLatestByOrder(orderId))
-                .filter(t -> t.getShopId().equals(shopId));
+    /** 卖家视角最近一张售后单的详情（{@code GET /seller/orders/{id}/after-sales}）：动作集为卖家口径；非本店与无记录同一句 404（AFS-06） */
+    @Transactional(readOnly = true)
+    public TicketView sellerDetailView(UUID shopId, UUID orderId) {
+        Ticket ticket = Validate.presentOwned(
+                Optional.ofNullable(ticketMapper.selectLatestByOrder(orderId)), Ticket::getShopId, shopId, "暂无售后记录");
+        return TicketView.from(ticket, sellerActions(ticket));
+    }
+
+    /** 卖家视角的当前可执行动作（AFS-40 下发口径）：强制单的申请阶段不给「拒绝」（AFS-45）——工作台行、订单行内按钮、详情共用这一处推导 */
+    public List<TicketAvailableAction> sellerActions(Ticket ticket) {
+        return TicketAvailableAction.sellerActions(ticket.getStatus(), ticket.isNoReasonEnforced());
     }
 
     // 超时（C11）：单笔事务落点，由 AfterSaleTimeoutService 逐笔委托（不同 bean，@Transactional 才生效）
@@ -400,8 +418,7 @@ public class AfterSaleService {
             return List.of();
         }
         return ticketMapper.selectOpenByOrders(shopId, orderIds).stream()
-                .map(t -> new SellerOrderTicketActions(
-                        t.getOrderId(), TicketAvailableAction.sellerActions(t.getStatus(), t.isNoReasonEnforced())))
+                .map(t -> new SellerOrderTicketActions(t.getOrderId(), sellerActions(t)))
                 .toList();
     }
 
@@ -419,7 +436,7 @@ public class AfterSaleService {
                 order.firstItemName(),
                 ticket.getType(),
                 ticket.getStatus(),
-                TicketAvailableAction.sellerActions(ticket.getStatus(), ticket.isNoReasonEnforced()),
+                sellerActions(ticket),
                 ticket.getReasonCode(),
                 ticket.getReason(),
                 ticket.isNoReasonEnforced(),

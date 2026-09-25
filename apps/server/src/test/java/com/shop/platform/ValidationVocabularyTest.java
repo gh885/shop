@@ -9,13 +9,16 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.coupon.model.UserCouponStatus;
 import com.shop.platform.infra.region.RegionRegistry;
+import com.shop.platform.product.dto.ProductAdminSort;
 import com.shop.platform.product.dto.ProductSort;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -57,6 +60,10 @@ class ValidationVocabularyTest {
      * 而这个元素名在 main 下只用于 {@code @Pattern}（javadoc 里提到的那些行按注释跳过）。
      */
     private static final Pattern REGEXP_ELEMENT = Pattern.compile("regexp\\s*=\\s*([^,)]+)");
+
+    /** switch 分支里的枚举名清单：多值 case（{@code case STOCK_ASC, STOCK_DESC ->}）一次收下全部标签 */
+    private static final Pattern CASE_LABELS =
+            Pattern.compile("case\\s+([A-Z][A-Z_]*(?:\\s*,\\s*[A-Z][A-Z_]*)*)\\s*->");
 
     @Test
     void 同一条正则不在两个文件里各抄一遍() throws Exception {
@@ -132,6 +139,24 @@ class ValidationVocabularyTest {
     }
 
     @Test
+    void 卖家排序词表等于枚举wire值_且每个取值都有分支() throws Exception {
+        assertThat(ProductAdminSort.PATTERN)
+                .isEqualTo(alternation(Arrays.stream(ProductAdminSort.values()).map(ProductAdminSort::wireName)));
+
+        // 与买家侧同一口径，差别在这里必须认多值 case（case STOCK_ASC, STOCK_DESC ->）：
+        // 库存两档在聚合分支里成对出现，按单值匹配会把已经写了分支的值误判成缺失。
+        String service = Files.readString(
+                MAIN_SOURCE.resolve(Path.of("com/shop/platform/product/service/ProductQueryService.java")),
+                StandardCharsets.UTF_8);
+        Set<String> labels = caseLabels(service);
+        List<String> missingBranch = Arrays.stream(ProductAdminSort.values())
+                .filter(sort -> !labels.contains(sort.name()))
+                .map(Enum::name)
+                .toList();
+        assertThat(missingBranch).as("这些卖家排序值没有分支（漏一支会静默退化成默认排序）").isEmpty();
+    }
+
+    @Test
     void 区划码形状与权威数据同形() {
         RegionRegistry registry = new RegionRegistry(JsonMapper.builder().build());
         registry.load();
@@ -193,6 +218,16 @@ class ValidationVocabularyTest {
 
     private static String alternation(Stream<String> names) {
         return names.collect(Collectors.joining("|"));
+    }
+
+    /** 一个源文件里所有 switch 分支标签（枚举常量名） */
+    private static Set<String> caseLabels(String source) {
+        Set<String> labels = new HashSet<>();
+        Matcher cases = CASE_LABELS.matcher(source);
+        while (cases.find()) {
+            Arrays.stream(cases.group(1).split(",")).map(String::trim).forEach(labels::add);
+        }
+        return labels;
     }
 
     /** 直接读 classpath 上那份 regions.json（与 RegionRegistry 同一份数据），取出所有 6 位码 */

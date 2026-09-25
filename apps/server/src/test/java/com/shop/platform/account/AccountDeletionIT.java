@@ -197,7 +197,7 @@ class AccountDeletionIT extends IntegrationTestSupport {
                 "device-1",
                 "raw-" + UUID.randomUUID(),
                 new DeviceInfo("买家端", null, OffsetDateTime.now()));
-        assertEquals(1, refreshTokenStore.listDevices(userId.toString(), null).size(), "注销前有一台设备在线");
+        assertEquals(1, refreshTokenStore.listDevices(userId.toString()).size(), "注销前有一台设备在线");
 
         ageRequestDays(16);
         assertEquals(1, deletion.sweep(), "16 > 15：这一笔到期了");
@@ -235,7 +235,7 @@ class AccountDeletionIT extends IntegrationTestSupport {
         assertEquals("WAREHOUSE", productStatus(), "店主注销与审核驳回同一停营业口径（ACC-72）");
 
         // 6. 会话：refresh token 全端吊销（Redis 不在事务里，所以排在最后）
-        assertEquals(0, refreshTokenStore.listDevices(userId.toString(), null).size(), "注销后没有任何设备还能刷新");
+        assertEquals(0, refreshTokenStore.listDevices(userId.toString()).size(), "注销后没有任何设备还能刷新");
     }
 
     // ==================== 场景 5：号码释放 ====================

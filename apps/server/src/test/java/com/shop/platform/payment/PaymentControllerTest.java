@@ -102,5 +102,15 @@ class PaymentControllerTest extends WebControllerTestSupport {
 
             verify(paymentService).confirm(userId, paymentId);
         }
+
+        /**
+         * 确认端点的身份是买家 JWT（MOCK 渠道没有渠道侧凭据，这是它唯一的闸）。
+         * 接真实网关时放匿名白名单的只能是比 /payments 更长的一段前缀——名单按 startsWith 匹配，
+         * 写 /payments 会把这条路由一起放成匿名，本用例当场红。
+         */
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(post("/payments/{id}/confirm", UUID.randomUUID())).andExpect(status().isUnauthorized());
+        }
     }
 }

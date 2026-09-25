@@ -215,16 +215,30 @@ public class OrderService {
     }
 
     // 买家侧查询
-    /** 我的订单分页：每单内嵌行项，列表页免 N+1 */
+    /**
+     * 我的订单分页：每单内嵌行项，列表页免 N+1。
+     *
+     * <p>店名在本类拼而不是 controller：列表多单多店，一次 IN 批查（shop :: api）集中补，
+     * 与整车/券夹同口径——跨模块只读的补字段是读用例的一部分，不是入口的活。
+     */
     @Transactional(readOnly = true)
-    public PageResult<OrderWithItems> pageMine(UUID userId, String status, PageParams page) {
-        return pageOrders(Order::getUserId, userId, status, page);
+    public PageResult<OrderListItemView> pageMine(UUID userId, String status, PageParams page) {
+        PageResult<OrderWithItems> rows = pageOrders(Order::getUserId, userId, status, page);
+        List<UUID> shopIds = rows.records().stream()
+                .map(o -> o.order().getShopId())
+                .distinct()
+                .toList();
+        Map<UUID, String> shopNames = shopReadQuery.namesByIds(shopIds);
+        return rows.map(o -> OrderListItemView.from(o, shopNames));
     }
 
-    /** 订单详情：非本人一律 404，不泄露单据存在性 */
+    /** 订单详情：非本人一律 404，不泄露单据存在性；店名同口径单点补入 */
     @Transactional(readOnly = true)
-    public OrderWithItems detail(UUID userId, UUID orderId) {
-        return withItems(orderMapper.requireOwned(userId, orderId));
+    public OrderDetailView detail(UUID userId, UUID orderId) {
+        OrderWithItems detail = withItems(orderMapper.requireOwned(userId, orderId));
+        UUID shopId = detail.order().getShopId();
+        String shopName = shopReadQuery.namesByIds(List.of(shopId)).get(shopId);
+        return OrderDetailView.buyerView(detail, shopName);
     }
 
     // 卖家侧查询

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.dto.AdminUserQuery;
+import com.shop.platform.account.infra.CaptchaService;
 import com.shop.platform.account.infra.SmsChannel;
 import com.shop.platform.account.mapper.User;
 import com.shop.platform.account.mapper.UserMapper;
@@ -14,6 +15,7 @@ import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,6 +51,9 @@ class AuthServiceTest {
 
     @Mock
     SmsCodeService smsCodeService;
+
+    @Mock
+    CaptchaService captchaService;
 
     @Mock
     SmsChannel smsChannel;
@@ -73,6 +79,59 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         lenient().when(redis.opsForValue()).thenReturn(valueOps);
+    }
+
+    /**
+     * 发码防线顺序（ACC-35）：人机验证 → 频控 → OTP。这条顺序原本散在 controller 里，两个匿名发码入口
+     * 各说一半；收进 service 后，「谁先谁后」是这里唯一一处断言。
+     */
+    @Nested
+    class 发码 {
+
+        @Test
+        void 登录发码_人机验证先于频控与发送() {
+            InOrder order = inOrder(captchaService, smsCodeService);
+
+            authService.sendSmsCode("13800138000", "c1", "A1B2", "127.0.0.1");
+
+            order.verify(captchaService).verify("c1", "A1B2");
+            order.verify(smsCodeService).sendCode("13800138000", "127.0.0.1");
+        }
+
+        @Test
+        void 人机验证不过_一条短信都不发() {
+            doThrow(BusinessException.badRequest(ErrorCodes.CAPTCHA_INVALID, "图形验证码错误"))
+                    .when(captchaService)
+                    .verify("c1", "WRONG");
+
+            assertThrows(
+                    BusinessException.class, () -> authService.sendSmsCode("13800138000", "c1", "WRONG", "127.0.0.1"));
+
+            verify(smsCodeService, never()).sendCode(anyString(), anyString());
+        }
+
+        @Test
+        void 找回密码发码_同样先过人机验证() {
+            InOrder order = inOrder(captchaService, smsCodeService);
+
+            authService.forgotPassword("13800138000", "c1", "A1B2", "127.0.0.1");
+
+            order.verify(captchaService).verify("c1", "A1B2");
+            order.verify(smsCodeService).sendResetCode("13800138000", "127.0.0.1");
+        }
+
+        @Test
+        void 找回密码_人机验证不过不发重置码() {
+            doThrow(BusinessException.badRequest(ErrorCodes.CAPTCHA_EXPIRED, "图形验证码已过期"))
+                    .when(captchaService)
+                    .verify(anyString(), anyString());
+
+            assertThrows(
+                    BusinessException.class,
+                    () -> authService.forgotPassword("13800138000", "c1", "A1B2", "127.0.0.1"));
+
+            verify(smsCodeService, never()).sendResetCode(anyString(), anyString());
+        }
     }
 
     @Nested

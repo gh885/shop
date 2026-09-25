@@ -1,12 +1,9 @@
 package com.shop.platform.aftersale.controller;
 
 import com.shop.platform.aftersale.dto.RejectAfterSaleRequest;
-import com.shop.platform.aftersale.mapper.Ticket;
-import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.service.AfterSaleService;
 import com.shop.platform.aftersale.service.TicketView;
 import com.shop.platform.common.Permissions;
-import com.shop.platform.common.Validate;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,9 +33,7 @@ public class SellerAfterSaleController {
     /** 本店某订单最近一张售后单（含终态）：无售后记录 404；动作集为卖家视角（C5b 下发） */
     @GetMapping
     public TicketView getShopAfterSale(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        Ticket ticket = Validate.present(afterSaleService.latestForShop(shopId, id), "暂无售后记录");
-        return TicketView.from(
-                ticket, TicketAvailableAction.sellerActions(ticket.getStatus(), ticket.isNoReasonEnforced()));
+        return afterSaleService.sellerDetailView(shopId, id);
     }
 
     /** 同意售后：按售后类型分派——仅退款 APPLYING→REFUNDED 一步退；退货退款 APPLYING→RETURNING 进入退货流程 */

@@ -51,6 +51,13 @@ public class RefreshTokenStore {
      */
     private static final long REPLAY_GRACE_MS = 15_000;
 
+    /**
+     * 无设备标识时的归桶（ACC-21）：web 端没有 deviceId 容器（refresh 只带 cookie，登录也可不带设备名），
+     * 这类会话统一落这一个桶。口径住在本类，因为只有本类知道 deviceId 是键的一部分——买家端与员工端
+     * 两个 controller 各写一份字面量时，同一次刷新在两端可能归到两个不同的桶。
+     */
+    public static final String DEFAULT_DEVICE_ID = "default";
+
     private final StringRedisTemplate redis;
     private final SecretHasher secretHasher;
 
@@ -67,9 +74,10 @@ public class RefreshTokenStore {
 
     /** 签发：存 HMAC 摘要（不落明文）+ 设备索引 + 设备集合（供全量吊销枚举）+ 设备元数据 */
     public void issue(String subjectId, String deviceId, String rawToken, DeviceInfo deviceInfo) {
+        String effectiveDevice = orDefault(deviceId);
         String hash = secretHasher.hash(rawToken);
         Duration ttl = Duration.ofMillis(REFRESH_TTL_MS);
-        String metaKey = KEY_DEVICE_META + subjectId + ":" + deviceId;
+        String metaKey = KEY_DEVICE_META + subjectId + ":" + effectiveDevice;
         // 设备元数据：设备名（UA 解析）、登录 IP、最近活跃时间，随签发写入（ip 可空，Redis hash 不收 null 值）
         Map<String, String> meta = new HashMap<>();
         meta.put("name", deviceInfo.deviceName());
@@ -78,10 +86,10 @@ public class RefreshTokenStore {
         // MULTI/EXEC 原子提交：五个键全落或全不落。权威键 refresh:<hash> 放最后——即便 EXEC 前中断，
         // 留下的是「有索引没 token」（登出/列表按空值跳过即无害），而不是「有 token 没索引」的吊销不掉的会话。
         atomically(tx -> {
-            tx.opsForValue().set(KEY_USER_DEVICE + subjectId + ":" + deviceId, hash, ttl);
+            tx.opsForValue().set(KEY_USER_DEVICE + subjectId + ":" + effectiveDevice, hash, ttl);
             // 设备集合随签发滑动续期。单个 refresh:<hash> 的 TTL 才是权威过期时间；
             // 集合里滞留的陈旧 deviceId 在吊销/登出时按空值跳过即可
-            tx.opsForSet().add(KEY_DEVICES + subjectId, deviceId);
+            tx.opsForSet().add(KEY_DEVICES + subjectId, effectiveDevice);
             tx.expire(KEY_DEVICES + subjectId, ttl);
             tx.opsForHash().putAll(metaKey, meta);
             tx.expire(metaKey, ttl);
@@ -131,9 +139,9 @@ public class RefreshTokenStore {
 
         // 3. 标记已消费（带时间戳，供重放裁决区分并发竞争与盗用）
         markConsumed(rawToken, subjectId);
-        // 4. 设备身份以 token 绑定为准（此时设备索引仍持有旧摘要，可反查）；无绑定才回退提交值
+        // 4. 设备身份以 token 绑定为准（此时设备索引仍持有旧摘要，可反查）；无绑定才回退提交值（ACC-63）
         String boundDevice = findDeviceByTokenHash(subjectId, hash);
-        String effectiveDevice = boundDevice != null ? boundDevice : deviceId;
+        String effectiveDevice = boundDevice != null ? boundDevice : orDefault(deviceId);
         // 5. 清除该设备的旧索引（新 token 由调用方按同一 deviceId 重新签发）
         revokeDevice(subjectId, effectiveDevice);
         return new Rotation(subjectId, effectiveDevice);
@@ -155,6 +163,11 @@ public class RefreshTokenStore {
             }
         }
         return null;
+    }
+
+    /** 提交值缺省时归入 {@link #DEFAULT_DEVICE_ID}（ACC-21）；键拼装只用归一后的值，不让 null 混进键名 */
+    private static String orDefault(String deviceId) {
+        return deviceId == null ? DEFAULT_DEVICE_ID : deviceId;
     }
 
     /**
@@ -231,9 +244,10 @@ public class RefreshTokenStore {
      * 枚举当前有效（仍在会话）的设备列表，含元数据与最后活跃时间，供安全设置页展示。
      * 仅返回仍有有效 refresh token 索引的设备；stale deviceId（token 已过期但集合残留）被跳过。
      *
-     * @param currentDeviceId 前端当前设备（用于标记「本机」，可为 null）
+     * <p>本方法只回答「有哪些设备」。「哪台是本机」要拿前端这次提交的 deviceId 比，是提交方的视角，
+     * 服务端没有答案（同一次刷新在 web 与 seller 两侧各有各的设备名，见 {@link #rotate}），故不在这里标记。
      */
-    public List<DeviceEntry> listDevices(String subjectId, String currentDeviceId) {
+    public List<DeviceEntry> listDevices(String subjectId) {
         Set<String> devices = redis.opsForSet().members(KEY_DEVICES + subjectId);
         if (devices == null || devices.isEmpty()) {
             return List.of();

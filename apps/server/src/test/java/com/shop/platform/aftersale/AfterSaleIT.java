@@ -7,13 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.shop.platform.aftersale.mapper.Ticket;
 import com.shop.platform.aftersale.model.AfterSaleReason;
 import com.shop.platform.aftersale.model.TicketAvailableAction;
 import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.aftersale.service.AfterSaleService;
 import com.shop.platform.aftersale.service.SellerTicketItem;
+import com.shop.platform.aftersale.service.TicketView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
@@ -170,8 +170,11 @@ class AfterSaleIT extends IntegrationTestSupport {
     @Test
     void 退货退款全链路_同意后未退款_回寄后收货退款并回补库存() {
         // 申请退货退款 → APPLYING；订单投影同步；时间线一条
-        afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "质量不行");
+        TicketView applied =
+                afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.QUALITY_ISSUE, "质量不行");
         assertEquals(TicketStatus.APPLYING.name(), ticketStatus());
+        // 申请响应自带买家动作集（AFS-40）：进行中的单给「撤销」，不给「重新申请」
+        assertEquals(List.of(TicketAvailableAction.CANCEL), applied.availableActions());
         assertEquals("APPLYING", orderProjection());
         assertEquals(1, eventCount());
 
@@ -418,21 +421,20 @@ class AfterSaleIT extends IntegrationTestSupport {
         assertEquals("REJECTED", orderProjection());
         assertEquals(PaymentStatus.SUCCESS.name(), paymentStatus(), "拒绝退款不该把钱退出去");
         assertEquals(3, totalStock(), "货没通过验收，不算回补");
-        Ticket rejected = afterSale.latestForBuyer(userId, orderId).orElseThrow();
-        assertEquals(List.of(TicketAvailableAction.REAPPLY), afterSale.buyerActions(rejected));
+        assertEquals(
+                List.of(TicketAvailableAction.REAPPLY),
+                afterSale.buyerDetailView(userId, orderId).availableActions());
     }
 
     /** 拒绝理由（AFS-30/44）：必填、只落在时间线那行 note 上，买家详情读它而不是读 tickets 的复制列 */
     @Test
     void 拒绝理由落时间线并随买家详情下发_未被拒时不给理由() {
         afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, "不想要了");
-        Ticket applying = afterSale.latestForBuyer(userId, orderId).orElseThrow();
-        assertNull(afterSale.buyerDetail(applying).rejectReason(), "没被拒过就不该有一行拒绝理由");
+        assertNull(afterSale.buyerDetailView(userId, orderId).rejectReason(), "没被拒过就不该有一行拒绝理由");
 
         afterSale.reject(shopId, orderId, "生鲜类目不支持无理由退货");
 
-        Ticket rejected = afterSale.latestForBuyer(userId, orderId).orElseThrow();
-        assertEquals("生鲜类目不支持无理由退货", afterSale.buyerDetail(rejected).rejectReason());
+        assertEquals("生鲜类目不支持无理由退货", afterSale.buyerDetailView(userId, orderId).rejectReason());
         assertEquals(
                 "SELLER|REJECT|生鲜类目不支持无理由退货",
                 jdbc.queryForObject(
@@ -453,14 +455,14 @@ class AfterSaleIT extends IntegrationTestSupport {
     void 七天无理由退货_受理阶段只下发同意_拒绝落点409_退货阶段验货拒绝照旧() {
         afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.NO_REASON, "尺码不合");
 
-        Ticket enforcing = afterSale.latestForBuyer(userId, orderId).orElseThrow();
-        assertTrue(enforcing.isNoReasonEnforced());
+        TicketView enforcing = afterSale.buyerDetailView(userId, orderId);
+        assertTrue(enforcing.noReasonEnforced());
         assertEquals(
                 "NO_REASON",
                 jdbc.queryForObject(
                         "SELECT reason_code FROM aftersale.tickets WHERE id = ?::uuid",
                         String.class,
-                        enforcing.getId().toString()));
+                        enforcing.id().toString()));
 
         // 工作台行与订单行内按钮一起收走「拒绝」：下发的是动作集，不是「按钮点了再报错」
         assertEquals(
@@ -506,7 +508,7 @@ class AfterSaleIT extends IntegrationTestSupport {
 
         afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.NO_REASON, "不喜欢了");
 
-        assertFalse(afterSale.latestForBuyer(userId, orderId).orElseThrow().isNoReasonEnforced());
+        assertFalse(afterSale.buyerDetailView(userId, orderId).noReasonEnforced());
         afterSale.reject(shopId, orderId, "无理由退货已过七天期限");
         assertEquals(TicketStatus.REJECTED.name(), ticketStatus());
     }
@@ -518,7 +520,7 @@ class AfterSaleIT extends IntegrationTestSupport {
 
         afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.NO_REASON, "不喜欢了");
 
-        assertFalse(afterSale.latestForBuyer(userId, orderId).orElseThrow().isNoReasonEnforced());
+        assertFalse(afterSale.buyerDetailView(userId, orderId).noReasonEnforced());
         afterSale.reject(shopId, orderId, "定制商品，下单页已明示不支持七天无理由退货");
         assertEquals(TicketStatus.REJECTED.name(), ticketStatus());
     }
@@ -533,7 +535,7 @@ class AfterSaleIT extends IntegrationTestSupport {
 
         afterSale.apply(userId, orderId, TicketType.RETURN_REFUND, AfterSaleReason.NO_REASON, null);
 
-        assertTrue(afterSale.latestForBuyer(userId, orderId).orElseThrow().isNoReasonEnforced());
+        assertTrue(afterSale.buyerDetailView(userId, orderId).noReasonEnforced());
     }
 
     @Test
@@ -549,15 +551,15 @@ class AfterSaleIT extends IntegrationTestSupport {
 
         // 卖家拒绝后：卖家侧终态无动作；买家侧下发「重新申请」（申请窗口未过，AFS-04）
         afterSale.reject(shopId, orderId, "商品无质量问题，鉴定通过");
-        Ticket rejected = afterSale.latestForShop(shopId, orderId).orElseThrow();
-        assertEquals(List.of(), TicketAvailableAction.sellerActions(rejected.getStatus(), false));
-        assertEquals(List.of(TicketAvailableAction.REAPPLY), afterSale.buyerActions(rejected));
+        assertEquals(List.of(), afterSale.sellerDetailView(shopId, orderId).availableActions());
+        assertEquals(
+                List.of(TicketAvailableAction.REAPPLY),
+                afterSale.buyerDetailView(userId, orderId).availableActions());
 
         // 退款终态：什么都不下发（与 apply 的二次退款闸门同源，AFS-05）
         afterSale.apply(userId, orderId, TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, null);
         afterSale.agree(shopId, orderId);
-        Ticket refunded = afterSale.latestForBuyer(userId, orderId).orElseThrow();
-        assertEquals(List.of(), afterSale.buyerActions(refunded));
+        assertEquals(List.of(), afterSale.buyerDetailView(userId, orderId).availableActions());
     }
 
     /** 订单列表行内按钮的动作集（批查）：只回有进行中单的订单，动作与工作台同源，越店不参与 */

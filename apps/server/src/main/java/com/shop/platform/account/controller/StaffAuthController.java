@@ -5,8 +5,6 @@ import com.shop.platform.account.dto.LogoutRequest;
 import com.shop.platform.account.dto.RefreshRequest;
 import com.shop.platform.account.service.StaffInfo;
 import com.shop.platform.account.service.StaffService;
-import com.shop.platform.common.BusinessException;
-import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.CurrentStaff;
@@ -57,12 +55,9 @@ public class StaffAuthController {
             HttpServletRequest request,
             HttpServletResponse response,
             @RequestBody(required = false) RefreshRequest req) {
-        String refreshToken = refreshCookies.read(request, COOKIE);
-        if (refreshToken == null) {
-            throw BusinessException.unauthorized(ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
-        }
-        String deviceId = req == null || req.deviceId() == null ? "default" : req.deviceId();
-        TokenPair result = staffService.refresh(refreshToken, deviceId);
+        String refreshToken = refreshCookies.requireToken(request, COOKIE, null);
+        // deviceId 可以是 null：缺省归哪个桶是会话存储的口径（ACC-21），不在入口翻译一次
+        TokenPair result = staffService.refresh(refreshToken, req == null ? null : req.deviceId());
         refreshCookies.issue(response, COOKIE, result.refreshToken());
         return result;
     }

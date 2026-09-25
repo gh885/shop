@@ -239,7 +239,8 @@ class PermissionVocabularyTest {
             Set<String> expected = scanned.getOrDefault(row.code(), Set.of());
             assertThat(row.consumers()).as("%s 的「消费端点」这一格", row.code()).isEqualTo(expected);
         }
-        // 每一处挂点都必须在表上现身：借权（如券运营暂借 CMS_MANAGE）不再是只活在注释里的事实
+        // 每一处挂点都必须在表上现身：挂错码、或借用别的域的码（历史上券运营借过 CMS_MANAGE，
+        // 现改挂 COUPON_OPS）都会在这一格里露出来——散文可以撒谎，扫描结果不行
         assertThat(scanned.values().stream().mapToInt(Set::size).sum())
                 .as("表上出现的控制器数 = 扫描出的挂点数")
                 .isEqualTo(sites().size());

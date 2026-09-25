@@ -6,6 +6,7 @@ import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
+import com.shop.platform.product.dto.ProductAdminSort;
 import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.dto.ProductSort;
 import com.shop.platform.product.mapper.Product;
@@ -50,11 +51,11 @@ public class ProductQueryService {
      */
     public PageResult<ProductListRow> pageListWithMetrics(
             UUID shopId, ProductStatus status, String keyword, long page, long size, String sort) {
-        boolean sortByStock = "stock_asc".equals(sort) || "stock_desc".equals(sort);
+        ProductAdminSort effectiveSort = ProductAdminSort.fromWire(sort);
 
         // 默认/创建时间/销量：走 DB 分页，库存只对本页补
-        if (!sortByStock) {
-            PageResult<Product> result = pageList(shopId, status, keyword, page, size, sort);
+        if (!effectiveSort.byAggregatedStock()) {
+            PageResult<Product> result = pageList(shopId, status, keyword, page, size, effectiveSort);
             return new PageResult<>(rowsFrom(result.records(), stockFor(result.records())), result.total());
         }
 
@@ -63,15 +64,42 @@ public class ProductQueryService {
         Map<UUID, Integer> stock = stockFor(all);
         Comparator<Product> byStock = Comparator.comparingInt((Product p) -> stock.getOrDefault(p.getId(), 0));
         Comparator<Product> byId = Comparator.comparing(Product::getId);
-        Comparator<Product> order = "stock_asc".equals(sort)
-                ? byStock.thenComparing(byId)
-                : byStock.reversed().thenComparing(byId.reversed());
+        // switch 表达式（不是语句）强制穷尽：新增排序值忘了补这里编不过
+        Comparator<Product> order =
+                switch (effectiveSort) {
+                    case STOCK_ASC -> byStock.thenComparing(byId);
+                    case STOCK_DESC -> byStock.reversed().thenComparing(byId.reversed());
+                    case CREATED_AT_DESC, CREATED_AT_ASC, SOLD_COUNT_ASC, SOLD_COUNT_DESC ->
+                        throw new IllegalStateException("该排序键走 DB 分页，不进库存聚合分支");
+                };
         List<Product> pageProducts = all.stream()
                 .sorted(order)
                 .skip(Math.max(0, (page - 1) * size))
                 .limit(size)
                 .toList();
         return new PageResult<>(rowsFrom(pageProducts, stock), all.size());
+    }
+
+    /**
+     * 卖家详情出参：SPU 全字段 + 全部 SKU，两处库存都在这里补齐。
+     *
+     * <p>SPU 那一栏走 {@link #stockFor}（与列表行同一算法：全部 SKU 行求和），不复用详情展示行的库存——详情按
+     * 当前 spec 组合过滤过行（对账停用的残留不打扰卖家），就地求和会和列表里的同名字段两个数。
+     */
+    public ProductDetailView sellerDetailView(UUID shopId, UUID productId) {
+        ProductDetail d = detail(shopId, productId);
+        return ProductDetailView.from(d, stocks(d.skus()), stockOf(d.product()));
+    }
+
+    /** 卖家单商品出参：库存按列表行同一口径补齐，不由调用方回默认为 0（曾经恒 0，同一个字段两种答案） */
+    public ProductView sellerView(Product product) {
+        return ProductView.from(product, stockOf(product));
+    }
+
+    /** SKU 行出参：批查一次可用库存后逐行补上（卖家提交规格 / 改 SKU 后的回显） */
+    public List<SkuView> skuViews(List<Sku> skus) {
+        Map<UUID, StockView> stocks = stocks(skus);
+        return skus.stream().map(s -> SkuView.from(s, stocks.get(s.getId()))).toList();
     }
 
     /** 商品详情：SPU 全字段 + SKU（卖家编辑只回显「当前 spec 组合」的行——对账停用的历史残留不打扰卖家，行保留不物理删） */
@@ -145,16 +173,24 @@ public class ProductQueryService {
         return new ProductDetail(product, skus);
     }
 
+    /** 买家侧商品详情出参：在售 SKU 行带可用库存（装配收在查询服务，此前两个 controller 各抄一遍） */
+    public PublicProductDetailView publicDetailView(UUID productId) {
+        ProductDetail d = publicDetail(productId);
+        return PublicProductDetailView.from(d, stocks(d.skus()));
+    }
+
     // 私有：卖家列表辅助
-    /** 商家后台商品列表：按店铺分页，可按状态/名称筛选。createdAt / soldCount 都是表列，排序直接走 DB 分页（升降序由 sort 后缀控制） */
+    /** 商家后台商品列表：按店铺分页，可按状态/名称筛选。createdAt / soldCount 都是表列，排序直接走 DB 分页（升降序由 wire 后缀控制） */
     private PageResult<Product> pageList(
-            UUID shopId, ProductStatus status, String keyword, long page, long size, String sort) {
+            UUID shopId, ProductStatus status, String keyword, long page, long size, ProductAdminSort sort) {
         LambdaQueryWrapper<Product> wrapper = filter(shopId, status, keyword);
-        switch (sort == null ? "" : sort) {
-            case "createdAt_asc" -> wrapper.orderByAsc(Product::getCreatedAt);
-            case "soldCount_asc" -> wrapper.orderByAsc(Product::getSoldCount);
-            case "soldCount_desc" -> wrapper.orderByDesc(Product::getSoldCount);
-            default -> wrapper.orderByDesc(Product::getCreatedAt);
+        // 六个取值全列出、不写 default：switch 语句不做穷尽检查，漏一支会静默退化成「只剩 id 兜底序」
+        switch (sort) {
+            case CREATED_AT_ASC -> wrapper.orderByAsc(Product::getCreatedAt);
+            case CREATED_AT_DESC -> wrapper.orderByDesc(Product::getCreatedAt);
+            case SOLD_COUNT_ASC -> wrapper.orderByAsc(Product::getSoldCount);
+            case SOLD_COUNT_DESC -> wrapper.orderByDesc(Product::getSoldCount);
+            case STOCK_ASC, STOCK_DESC -> throw new IllegalStateException("库存排序走全量聚合分支，不进 DB 分页");
         }
         wrapper.orderByDesc(Product::getId);
         Page<Product> result = productMapper.selectPage(new Page<>(page, size), wrapper);
@@ -187,14 +223,23 @@ public class ProductQueryService {
         // 批次捞全部 SKU → 批查库存可用量（缺省 0）→ 按商品求和
         List<Sku> skus = skuMapper.selectByProductIds(
                 products.stream().map(Product::getId).toList());
-        Map<UUID, StockView> stocks =
-                stockReadQuery.availableBySkuIds(skus.stream().map(Sku::getId).toList());
+        Map<UUID, StockView> stocks = stocks(skus);
         Map<UUID, Integer> stock = new HashMap<>();
         skus.forEach(s -> {
             StockView v = stocks.get(s.getId());
             stock.merge(s.getProductId(), StockView.availableOrZero(v), Integer::sum);
         });
         return stock;
+    }
+
+    /** 单个商品的库存总量：与列表行同一条口径（走 {@link #stockFor}），详情与写响应都用它，不再各算各的 */
+    private int stockOf(Product product) {
+        return stockFor(List.of(product)).getOrDefault(product.getId(), 0);
+    }
+
+    /** 跨模块批查 SKU 可用库存：skuId → StockView。全模块唯一的库存取数口，controller 不自己拼 */
+    private Map<UUID, StockView> stocks(List<Sku> skus) {
+        return stockReadQuery.availableBySkuIds(skus.stream().map(Sku::getId).toList());
     }
 
     /** 用已聚合的库存把商品实体映射为列表行，销量直接取投影列 */

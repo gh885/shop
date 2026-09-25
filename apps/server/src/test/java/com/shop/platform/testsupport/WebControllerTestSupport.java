@@ -180,7 +180,7 @@ public abstract class WebControllerTestSupport {
     @MockitoBean
     protected QiniuClient qiniuClient;
 
-    /** 跨模块库存查询接口（product 控制器拼装 SKU 库存展示用） */
+    /** 跨模块库存查询接口：消费方（product 的各 service、未被 mock 的 order CheckoutResolver）在基类里都被换成 mock，真实现要连 inventory 库 */
     @MockitoBean
     protected StockReadQuery stockReadQuery;
 

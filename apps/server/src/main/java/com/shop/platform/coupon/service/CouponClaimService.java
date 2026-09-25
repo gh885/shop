@@ -44,13 +44,21 @@ public class CouponClaimService {
     private final ShopReadQuery shopReadQuery;
 
     /**
-     * 本店可展示的「领券列表」（店铺领券页，匿名可访问）：ACTIVE 且未过发放期的券，按创建时间倒序。
-     * 领完的（前端置灰「已领完」）与未到起点的（「x 点开抢」，C9）都在列表里——露出不是放行的承诺，
+     * 本店「领券列表」读用例（店铺领券页，匿名可访问）：ACTIVE 且未过发放期的券，按创建时间倒序，装配成出参行。
+     *
+     * <p>时间只在这里取一次，并同喂给查询过滤与每行的 claimable：两处各取一次 now，窗口边界上就会给出
+     * 互相矛盾的一页（同一份响应里，「未结束」按 A 时刻判、claimable 按 B 时刻判）。
+     *
+     * <p>领完的（前端置灰「已领完」）与未到起点的（「x 点开抢」，C9）都在列表里——露出不是放行的承诺，
      * 真正能不能领由领券端点按时间窗/名额闸住（issueOne 的条件更新仍要求 now ∈ [validFrom, validTo)）。
+     * 两处的判定是同一条（{@link CouponTemplate#claimableAt}），所以「列表可领但点了被拒」只剩并发抢完这一种可能。
      */
     @Transactional(readOnly = true)
-    public List<CouponTemplate> claimable(UUID shopId) {
-        return templateMapper.selectClaimable(shopId, OffsetDateTime.now());
+    public List<ClaimableCouponView> claimableViews(UUID shopId) {
+        OffsetDateTime now = OffsetDateTime.now();
+        return templateMapper.selectClaimable(shopId, now).stream()
+                .map(template -> ClaimableCouponView.from(template, now))
+                .toList();
     }
 
     /**
@@ -69,8 +77,9 @@ public class CouponClaimService {
         CouponTemplate template = Validate.notNull(templateMapper.selectById(templateId), "优惠券不存在");
         Validate.isTrue(template.getStatus() == CouponTemplateStatus.ACTIVE, "该优惠券已停止发放");
         // 起止分开报：还没开始和已经结束，对用户是两件事（前者可以等等，后者没救了）
-        Validate.isTrue(!now.isBefore(template.getValidFrom()), "该优惠券尚未开始发放");
-        Validate.isTrue(now.isBefore(template.getValidTo()), "该优惠券已结束发放");
+        // 判定式与可领列表共用 CouponTemplate 上的那三条（CPN-13/14），不在这里另抄一遍比较式
+        Validate.isTrue(!template.issuanceNotStarted(now), "该优惠券尚未开始发放");
+        Validate.isTrue(!template.issuanceEnded(now), "该优惠券已结束发放");
 
         // 2. 友好判重（真正的闸门是第 4 步的唯一索引）：已领过就直接说清楚，不做无谓的名额扣减。
         //    必须带上与撞键路径同一个 code —— 两条路径是同一个业务情形，出参不能时有时无
@@ -79,7 +88,8 @@ public class CouponClaimService {
             throw BusinessException.conflict(ErrorCodes.COUPON_ALREADY_CLAIMED, "您已领取过该优惠券");
         }
 
-        // 3. 名额条件扣减：并发超发被这一条语句闸住
+        // 3. 名额条件扣减：并发超发被这一条语句闸住。名额不在这里做内存预判——
+        //    fullyIssued() 读到的瞬间就可能被抢完，抢在判重之前判它还会把「已领完」报在「已领过」前面
         Validate.conflict(templateMapper.issueOne(templateId, now) == 1, "该优惠券已被领完");
 
         // 4. 发券：规则整份快照（金额/门槛/有效期折算成绝对值），读券从此不碰模板

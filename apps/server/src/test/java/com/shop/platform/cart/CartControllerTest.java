@@ -150,10 +150,10 @@ class CartControllerTest extends WebControllerTestSupport {
     class 删除单条 { // DELETE /cart/items/{id}
 
         @Test
-        void 返回200_绑定id() throws Exception {
+        void 返回204_绑定id() throws Exception {
             UUID itemId = UUID.randomUUID();
             mockMvc.perform(delete("/cart/items/{id}", itemId).with(userAuth(userId)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
             verify(cartService).remove(userId, itemId);
         }

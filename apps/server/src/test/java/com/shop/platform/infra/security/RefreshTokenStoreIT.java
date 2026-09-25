@@ -41,7 +41,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
     void 签发_设备可枚举_消费一次性_吊销后零残留() {
         store.issue(subject, device, token, new DeviceInfo("Chrome on Windows", "127.0.0.1", OffsetDateTime.now()));
 
-        var devices = store.listDevices(subject, device);
+        var devices = store.listDevices(subject);
         assertEquals(1, devices.size());
         assertEquals("Chrome on Windows", devices.getFirst().info().deviceName());
         assertEquals("127.0.0.1", devices.getFirst().info().ip());
@@ -50,7 +50,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
         assertNull(store.consume(token)); // getAndDelete 一次性
 
         store.revokeDevice(subject, device);
-        assertTrue(store.listDevices(subject, null).isEmpty());
+        assertTrue(store.listDevices(subject).isEmpty());
         assertFalse(redis.hasKey("refresh:user:" + subject + ":" + device));
         assertFalse(redis.hasKey("refresh:meta:" + subject + ":" + device));
         assertEquals(0, redis.opsForSet().size("refresh:devices:" + subject));
@@ -61,7 +61,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
     void 管理端签发_无IP_照常可消费() {
         store.issue(subject, device, token);
 
-        assertNull(store.listDevices(subject, null).getFirst().info().ip());
+        assertNull(store.listDevices(subject).getFirst().info().ip());
         assertEquals(subject, store.consume(token));
 
         store.revokeAll(subject);
@@ -76,7 +76,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
 
         assertEquals(subject, store.rotate(token, device, "[IT]").subjectId());
         assertFalse(redis.hasKey("refresh:user:" + subject + ":" + device));
-        assertTrue(store.listDevices(subject, null).isEmpty());
+        assertTrue(store.listDevices(subject).isEmpty());
 
         store.revokeAll(subject);
     }
@@ -105,12 +105,12 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
         var again = store.rotate(newToken, foreignDevice, "[IT]");
         assertEquals(boundDevice, again.deviceId());
         store.issue(subject, again.deviceId(), UUID.randomUUID().toString());
-        assertEquals(1, store.listDevices(subject, null).size());
-        assertEquals(boundDevice, store.listDevices(subject, null).getFirst().deviceId());
+        assertEquals(1, store.listDevices(subject).size());
+        assertEquals(boundDevice, store.listDevices(subject).getFirst().deviceId());
 
         // 按绑定设备吊销即杀掉全部会话（外来 deviceId 无从躲藏）
         store.revokeDevice(subject, boundDevice);
-        assertTrue(store.listDevices(subject, null).isEmpty());
+        assertTrue(store.listDevices(subject).isEmpty());
         store.revokeAll(subject);
     }
 
@@ -128,6 +128,23 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
         store.revokeAll(subject);
     }
 
+    /** 缺省设备归桶（ACC-21）：没有 deviceId 的会话统一落 default，签发与轮换回退同一条 */
+    @Test
+    void 缺省deviceId_归入default桶() {
+        String webToken = UUID.randomUUID().toString();
+        store.issue(subject, null, webToken);
+
+        assertEquals(
+                RefreshTokenStore.DEFAULT_DEVICE_ID,
+                store.listDevices(subject).getFirst().deviceId());
+        // 轮换提交值同样为 null：绑定反查命中 default，仍是一条会话而不是多出一个 null 桶
+        assertEquals(
+                RefreshTokenStore.DEFAULT_DEVICE_ID,
+                store.rotate(webToken, null, "[IT]").deviceId());
+
+        store.revokeAll(subject);
+    }
+
     /** 宽限期内重复（多标签页并发启动）：静默拒绝 401，不判盗用、不吊销其他设备 */
     @Test
     void rotate_宽限期内重复_401不吊销其他设备() {
@@ -139,7 +156,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
         BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
         assertEquals(401, ex.getHttpStatus());
         // 并发重复不是盗用：另一设备仍在线
-        assertEquals(otherDevice, store.listDevices(subject, null).getFirst().deviceId());
+        assertEquals(otherDevice, store.listDevices(subject).getFirst().deviceId());
 
         store.revokeAll(subject);
     }
@@ -156,7 +173,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
 
         BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
         assertEquals(410, ex.getHttpStatus());
-        assertTrue(store.listDevices(subject, null).isEmpty());
+        assertTrue(store.listDevices(subject).isEmpty());
     }
 
     /** 从未见过的码：401，且不误判盗用 */

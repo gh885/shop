@@ -64,7 +64,7 @@ public record OrderDetailView(
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime applyExpireAt,
         @Schema(requiredMode = REQUIRED) List<OrderItemView> items) {
 
-    /** 买家视角：可执行动作按买家状态机推导；shopName 由调用方（order controller）经 shop :: api 拼入 */
+    /** 买家视角：可执行动作按买家状态机推导；shopName 由 {@link OrderService#detail} 经 shop :: api 拼入 */
     public static OrderDetailView buyerView(OrderWithItems o, String shopName) {
         return from(o, shopName, Order::buyerActions, Order::getReceiverPhone);
     }

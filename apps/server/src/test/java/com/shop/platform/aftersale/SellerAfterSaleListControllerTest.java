@@ -18,6 +18,7 @@ import com.shop.platform.aftersale.service.SellerOrderTicketActions;
 import com.shop.platform.aftersale.service.SellerTicketItem;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Quantities;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -94,6 +95,16 @@ class SellerAfterSaleListControllerTest extends WebControllerTestSupport {
         @Test
         void 不传orderIds_400() throws Exception {
             mockMvc.perform(sellerGet("/seller/after-sales/actions")).andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void 批量id超上限_422() throws Exception {
+            // 这个入口吃的就是「刚取到的那一页订单」，比一页更宽的请求不是它的用法
+            MockHttpServletRequestBuilder request = sellerGet("/seller/after-sales/actions");
+            for (int i = 0; i <= Quantities.BATCH_IDS_MAX; i++) {
+                request.param("orderIds", UUID.randomUUID().toString());
+            }
+            mockMvc.perform(request).andExpect(status().isUnprocessableEntity());
         }
     }
 

@@ -22,8 +22,8 @@ public interface CarrierMapper extends BaseMapper<Carrier> {
     }
 
     /**
-     * 按展示名反查（老端点的兼容路径）：卖家手填「顺丰速运」时尝试归一到字典 code，
-     * 匹配不上返回 null——调用方保留原文并让 code 留空，不因此拒绝发货（不破坏老前端）。
+     * 按展示名反查（只有名字、没有 code 时的兜底路径）：买家回寄手填「顺丰速运」时尝试归一到字典名，
+     * 匹配不上返回 null——调用方保留原文，不因此拒绝（不逼用户去猜字典）。
      */
     default Carrier selectByName(String name) {
         return selectOne(new LambdaQueryWrapper<Carrier>()

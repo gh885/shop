@@ -18,12 +18,13 @@ import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.CheckoutPreview;
+import com.shop.platform.order.service.OrderDetailView;
+import com.shop.platform.order.service.OrderListItemView;
 import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTimeout;
 import com.shop.platform.order.service.OrderTimeoutService;
 import com.shop.platform.order.service.OrderTransitionService;
-import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.model.PaymentStatus;
 import com.shop.platform.payment.service.PaymentService;
@@ -318,13 +319,27 @@ class OrderFlowIT extends IntegrationTestSupport {
     }
 
     @Test
-    void 分页我的订单_带商品明细() {
+    void 分页我的订单_带商品明细与店名() {
         seedSku(5);
         orderService.create(userId, buyNow(1));
 
-        PageResult<OrderWithItems> page = orderService.pageMine(userId, null, new PageParams(1, 10));
+        PageResult<OrderListItemView> page = orderService.pageMine(userId, null, new PageParams(1, 10));
         assertEquals(1, page.total());
         assertEquals(1, page.records().getFirst().items().size());
+        // 店名由 service 经 shop :: api 批查补入（不跨 schema JOIN，也不由入口去别的模块取数）
+        assertEquals("测试店-" + shopId, page.records().getFirst().shopName());
+    }
+
+    /** 买家详情装配（真库）：店名同口径补入；本人号码不脱敏——脱敏只落在卖家视角（ORD-62） */
+    @Test
+    void 买家详情_带店名且本人电话不脱敏() {
+        seedSku(5);
+        UUID orderId = orderService.create(userId, buyNow(1)).getFirst().getId();
+
+        OrderDetailView detail = orderService.detail(userId, orderId);
+
+        assertEquals("测试店-" + shopId, detail.shopName());
+        assertEquals("13800000000", detail.receiverPhone());
     }
 
     /**

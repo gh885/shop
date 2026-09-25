@@ -3,6 +3,7 @@ package com.shop.platform.logistics.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.logistics.model.ShipmentIssueStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -13,11 +14,18 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface ShipmentIssueMapper extends BaseMapper<ShipmentIssue> {
 
-    /** 未结单列表（客服待办）：按发现时间倒序，最新卡住的排前面 */
+    /**
+     * 未结单列表（客服待办）：按发现时间倒序，最新卡住的排前面。
+     *
+     * <p>条数封顶 {@link PageParams#SIZE_MAX}：这个列表是「一眼看得过来的待办」，不是导出接口——不封顶的话
+     * 一次阈值调错（扫描每类单轮上限 200，多类叠加）就能把整张表灌进一次响应。取最新那一档，因为客服待办
+     * 本来就是倒序看的；被截掉的是最老的未结单，而它们仍在库里，下一轮也不会被自动结掉（只有包裹到终态才结）。
+     */
     default List<ShipmentIssue> selectOpen() {
         return selectList(new LambdaQueryWrapper<ShipmentIssue>()
                 .eq(ShipmentIssue::getStatus, ShipmentIssueStatus.OPEN)
-                .orderByDesc(ShipmentIssue::getDetectedAt));
+                .orderByDesc(ShipmentIssue::getDetectedAt)
+                .last("LIMIT " + PageParams.SIZE_MAX));
     }
 
     /**

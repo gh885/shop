@@ -17,6 +17,7 @@ import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
+import com.shop.platform.product.service.PublicProductDetailView;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.Map;
@@ -91,11 +92,12 @@ class ProductControllerTest extends WebControllerTestSupport {
     @Nested
     class 商品详情 { // GET /api/products/{id}
 
+        /** 出参由 {@code ProductQueryService} 装配（含跨模块库存），本组只测 HTTP 边界：不吐仓管字段、非上架 404。 */
         @Test
-        void 聚合SKU与库存_不吐仓管字段() throws Exception {
+        void 不吐仓管字段() throws Exception {
             ProductDetail detail = new ProductDetail(product(), List.of(sku()));
-            when(productQueryService.publicDetail(productId)).thenReturn(detail);
-            when(stockReadQuery.availableBySkuIds(any())).thenReturn(Map.of(skuId, new StockView(skuId, 5, 3)));
+            when(productQueryService.publicDetailView(productId))
+                    .thenReturn(PublicProductDetailView.from(detail, Map.of(skuId, new StockView(skuId, 5, 3))));
 
             mockMvc.perform(get("/api/products/{id}", productId))
                     .andExpect(status().isOk())
@@ -103,12 +105,12 @@ class ProductControllerTest extends WebControllerTestSupport {
                     .andExpect(jsonPath("$.skus[0].skuCode").doesNotExist())
                     .andExpect(jsonPath("$.skus[0].status").doesNotExist());
 
-            verify(productQueryService).publicDetail(productId);
+            verify(productQueryService).publicDetailView(productId);
         }
 
         @Test
         void 非上架_404() throws Exception {
-            when(productQueryService.publicDetail(productId))
+            when(productQueryService.publicDetailView(productId))
                     .thenThrow(new BusinessException(404, "PRODUCT_NOT_FOUND", "商品不存在或未上架"));
 
             mockMvc.perform(get("/api/products/{id}", productId))

@@ -701,9 +701,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .getId();
         UUID live = seedTemplate(0, 300, 10);
 
-        List<ClaimableCouponView> rows = couponClaimService.claimable(shopId).stream()
-                .map(t -> ClaimableCouponView.from(t, OffsetDateTime.now()))
-                .toList();
+        List<ClaimableCouponView> rows = couponClaimService.claimableViews(shopId);
 
         var upcomingRow =
                 rows.stream().filter(r -> r.id().equals(upcoming)).findFirst().orElseThrow();

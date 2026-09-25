@@ -2,10 +2,8 @@ package com.shop.platform.aftersale.controller;
 
 import com.shop.platform.aftersale.dto.ApplyAfterSaleRequest;
 import com.shop.platform.aftersale.dto.ReturnGoodsRequest;
-import com.shop.platform.aftersale.mapper.Ticket;
 import com.shop.platform.aftersale.service.AfterSaleService;
 import com.shop.platform.aftersale.service.TicketView;
-import com.shop.platform.common.Validate;
 import com.shop.platform.infra.web.CurrentUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,13 +31,12 @@ public class AfterSaleController {
 
     private final AfterSaleService afterSaleService;
 
-    /** 申请售后：仅「已完成」且申请窗口未过可发起，返回新建的售后单（带买家视角动作集，C5b） */
+    /** 申请售后：待收货随时可申、已完成看申请窗口（AFS-01/02），返回新建的售后单（带买家视角动作集，C5b） */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TicketView applyAfterSale(
             @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody ApplyAfterSaleRequest req) {
-        Ticket ticket = afterSaleService.apply(userId, id, req.type(), req.reasonCode(), req.reason());
-        return TicketView.from(ticket, afterSaleService.buyerActions(ticket));
+        return afterSaleService.apply(userId, id, req.type(), req.reasonCode(), req.reason());
     }
 
     /**
@@ -48,8 +45,7 @@ public class AfterSaleController {
      */
     @GetMapping
     public TicketView getAfterSale(@CurrentUser UUID userId, @PathVariable UUID id) {
-        Ticket ticket = Validate.present(afterSaleService.latestForBuyer(userId, id), "暂无售后记录");
-        return TicketView.from(ticket, afterSaleService.buyerActions(ticket), afterSaleService.buyerDetail(ticket));
+        return afterSaleService.buyerDetailView(userId, id);
     }
 
     /** 撤销售后申请：APPLYING → CLOSED */
