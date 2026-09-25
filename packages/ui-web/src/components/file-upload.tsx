@@ -240,87 +240,57 @@ interface FilesChangeCtx {
     triggerUpload: (files: File[]) => void
 }
 
+/** accept 匹配：精确 MIME、扩展名（.pdf）或通配 MIME（image/*） */
+function matchesAccept(file: File, acceptTypes: string[]): boolean {
+    const fileType = file.type
+    const fileExtension = `.${file.name.split(".").pop()}`
+
+    return acceptTypes.some(
+        (type) =>
+            type === fileType ||
+            type === fileExtension ||
+            (type.includes("/*") && fileType.startsWith(type.replace("/*", "/"))),
+    )
+}
+
+/** 单文件的拒绝信息：onFileValidate 命中即短路；accept 与 maxSize 同时不符时两条都报 */
+function getRejectionMessages(file: File, ctx: FilesChangeCtx): string[] {
+    const validationMessage = ctx.onFileValidate?.(file)
+    if (validationMessage) return [validationMessage]
+
+    const messages: string[] = []
+    if (ctx.acceptTypes && !matchesAccept(file, ctx.acceptTypes)) {
+        messages.push("File type not accepted")
+    }
+    if (ctx.maxSize && file.size > ctx.maxSize) {
+        messages.push("File too large")
+    }
+    return messages
+}
+
 function handleFilesChange(originalFiles: File[], ctx: FilesChangeCtx): void {
     if (ctx.disabled) return
 
-    let filesToProcess = [...originalFiles]
-    let hasError = false
+    // 超出 maxFiles 剩余名额的先拒（onFileValidate 有信息时优先用它）
+    const remainingSlotCount = ctx.maxFiles
+        ? Math.max(0, ctx.maxFiles - ctx.store.getState().files.size)
+        : originalFiles.length
+    const overflowFiles = originalFiles.slice(remainingSlotCount)
+    overflowFiles.forEach((file) => {
+        const rejectionMessage =
+            ctx.onFileValidate?.(file) || `Maximum ${ctx.maxFiles} files allowed`
+        ctx.onFileReject?.(file, rejectionMessage)
+    })
 
-    if (ctx.maxFiles) {
-        const currentCount = ctx.store.getState().files.size
-        const remainingSlotCount = Math.max(0, ctx.maxFiles - currentCount)
-
-        if (remainingSlotCount < filesToProcess.length) {
-            const rejectedFiles = filesToProcess.slice(remainingSlotCount)
-            hasError = true
-
-            filesToProcess = filesToProcess.slice(0, remainingSlotCount)
-
-            for (const file of rejectedFiles) {
-                let rejectionMessage = `Maximum ${ctx.maxFiles} files allowed`
-
-                if (ctx.onFileValidate) {
-                    const validationMessage = ctx.onFileValidate(file)
-                    if (validationMessage) {
-                        rejectionMessage = validationMessage
-                    }
-                }
-
-                ctx.onFileReject?.(file, rejectionMessage)
-            }
+    const filesToProcess = originalFiles.slice(0, remainingSlotCount)
+    const acceptedFiles = filesToProcess.filter((file) => {
+        const rejectionMessages = getRejectionMessages(file, ctx)
+        for (const message of rejectionMessages) {
+            ctx.onFileReject?.(file, message)
         }
-    }
-
-    const acceptedFiles: File[] = []
-    const rejectedFiles: { file: File; message: string }[] = []
-
-    for (const file of filesToProcess) {
-        let rejected = false
-        let rejectionMessage = ""
-
-        if (ctx.onFileValidate) {
-            const validationMessage = ctx.onFileValidate(file)
-            if (validationMessage) {
-                rejectionMessage = validationMessage
-                ctx.onFileReject?.(file, rejectionMessage)
-                rejected = true
-                hasError = true
-                continue
-            }
-        }
-
-        if (ctx.acceptTypes) {
-            const fileType = file.type
-            const fileExtension = `.${file.name.split(".").pop()}`
-
-            if (
-                !ctx.acceptTypes.some(
-                    (type) =>
-                        type === fileType ||
-                        type === fileExtension ||
-                        (type.includes("/*") && fileType.startsWith(type.replace("/*", "/"))),
-                )
-            ) {
-                rejectionMessage = "File type not accepted"
-                ctx.onFileReject?.(file, rejectionMessage)
-                rejected = true
-                hasError = true
-            }
-        }
-
-        if (ctx.maxSize && file.size > ctx.maxSize) {
-            rejectionMessage = "File too large"
-            ctx.onFileReject?.(file, rejectionMessage)
-            rejected = true
-            hasError = true
-        }
-
-        if (rejected) {
-            rejectedFiles.push({ file, message: rejectionMessage })
-        } else {
-            acceptedFiles.push(file)
-        }
-    }
+        return rejectionMessages.length === 0
+    })
+    const hasError = overflowFiles.length > 0 || acceptedFiles.length < filesToProcess.length
 
     if (hasError) {
         ctx.store.dispatch({ type: "SET_INVALID", invalid: hasError })
@@ -330,26 +300,31 @@ function handleFilesChange(originalFiles: File[], ctx: FilesChangeCtx): void {
     }
 
     if (acceptedFiles.length > 0) {
-        ctx.store.dispatch({ type: "ADD_FILES", files: acceptedFiles })
+        addAcceptedFiles(acceptedFiles, ctx)
+    }
+}
 
-        if (ctx.isControlled && ctx.onValueChange) {
-            const currentFiles = [...ctx.store.getState().files.values()].map((f) => f.file)
-            ctx.onValueChange([...currentFiles])
-        }
+/** 通过校验的文件：入 store、上抛各回调，有 onUpload 时下一帧开始上传 */
+function addAcceptedFiles(acceptedFiles: File[], ctx: FilesChangeCtx): void {
+    ctx.store.dispatch({ type: "ADD_FILES", files: acceptedFiles })
 
-        if (ctx.onAccept) {
-            ctx.onAccept(acceptedFiles)
-        }
+    if (ctx.isControlled && ctx.onValueChange) {
+        const currentFiles = [...ctx.store.getState().files.values()].map((f) => f.file)
+        ctx.onValueChange([...currentFiles])
+    }
 
-        for (const file of acceptedFiles) {
-            ctx.onFileAccept?.(file)
-        }
+    if (ctx.onAccept) {
+        ctx.onAccept(acceptedFiles)
+    }
 
-        if (ctx.onUpload) {
-            requestAnimationFrame(() => {
-                ctx.triggerUpload(acceptedFiles)
-            })
-        }
+    for (const file of acceptedFiles) {
+        ctx.onFileAccept?.(file)
+    }
+
+    if (ctx.onUpload) {
+        requestAnimationFrame(() => {
+            ctx.triggerUpload(acceptedFiles)
+        })
     }
 }
 
