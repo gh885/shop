@@ -1,16 +1,9 @@
 import type { BannerResponse } from "@shop/api/sdk"
 
-import {
-    Button,
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogTitle,
-    Spinner,
-    useAppForm,
-} from "@shop/ui-web"
+import { Dialog, DialogContent, useAppForm } from "@shop/ui-web"
 
-import { CMS_SUBTITLE_MAX, CMS_TARGET_MAX, CMS_TITLE_MAX, TARGET_TYPE_ITEMS } from "../constants"
+import { CMS_SUBTITLE_MAX, CMS_TITLE_MAX } from "../constants"
+import { CmsFormBody, sortOrderField, targetField, targetTypeField } from "../form-dialog"
 import { bannerDefaults, BannerFormSchema, toBannerRequest } from "./form"
 import { useCreateBanner, useUpdateBanner } from "./queries"
 
@@ -51,139 +44,92 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
         validators: { onSubmit: BannerFormSchema },
         onSubmit: async ({ value }) => {
             const input = toBannerRequest(value)
-            if (editing) {
-                await update.mutateAsync({ id: editing.id, input })
-            } else {
-                await create.mutateAsync(input)
-            }
+            await (editing
+                ? update.mutateAsync({ id: editing.id, input })
+                : create.mutateAsync(input))
             onOpenChange(false)
         },
     })
 
     return (
-        <>
-            <DialogTitle>{editing ? "编辑运营位" : "新增运营位"}</DialogTitle>
+        <CmsFormBody
+            title={editing ? "编辑运营位" : "新增运营位"}
+            busy={busy}
+            onSubmit={() => form.handleSubmit()}
+            onCancel={() => onOpenChange(false)}
+        >
+            <form.AppField name="slot">
+                {(field) => (
+                    <field.TextField
+                        label="运营位"
+                        required
+                        placeholder="如 home_promo"
+                        disabled={Boolean(editing)}
+                    />
+                )}
+            </form.AppField>
+            <form.AppField name="sortOrder">{sortOrderField}</form.AppField>
 
-            <form
-                className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5"
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    void form.handleSubmit()
-                }}
-            >
-                <form.AppField name="slot">
-                    {(field) => (
-                        <field.TextField
-                            label="运营位"
-                            required
-                            placeholder="如 home_promo"
-                            disabled={Boolean(editing)}
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="sortOrder">
-                    {(field) => (
-                        <field.TextField
-                            label="排序值"
-                            placeholder="0"
-                            inputMode="numeric"
-                            hint="越小越靠前"
-                        />
-                    )}
-                </form.AppField>
+            <form.AppField name="title">
+                {(field) => (
+                    <field.TextField
+                        className="col-span-2"
+                        label="主标题"
+                        required
+                        maxLength={CMS_TITLE_MAX}
+                    />
+                )}
+            </form.AppField>
+            <form.AppField name="subtitle">
+                {(field) => (
+                    <field.TextField
+                        className="col-span-2"
+                        label="副标题"
+                        maxLength={CMS_SUBTITLE_MAX}
+                    />
+                )}
+            </form.AppField>
+            <form.AppField name="imageUrl">
+                {(field) => (
+                    <field.TextField
+                        className="col-span-2"
+                        label="图片地址"
+                        required
+                        placeholder="https://…"
+                    />
+                )}
+            </form.AppField>
 
-                <form.AppField name="title">
-                    {(field) => (
-                        <field.TextField
-                            className="col-span-2"
-                            label="主标题"
-                            required
-                            maxLength={CMS_TITLE_MAX}
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="subtitle">
-                    {(field) => (
-                        <field.TextField
-                            className="col-span-2"
-                            label="副标题"
-                            maxLength={CMS_SUBTITLE_MAX}
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="imageUrl">
-                    {(field) => (
-                        <field.TextField
-                            className="col-span-2"
-                            label="图片地址"
-                            required
-                            placeholder="https://…"
-                        />
-                    )}
-                </form.AppField>
+            <form.AppField name="targetType">{targetTypeField}</form.AppField>
+            <form.AppField name="target">{targetField}</form.AppField>
+            <form.AppField name="link">
+                {(field) => (
+                    <field.TextField
+                        className="col-span-2"
+                        label="兜底链接"
+                        placeholder="URL 型跳转时填写（可选）"
+                    />
+                )}
+            </form.AppField>
 
-                <form.AppField name="targetType">
-                    {(field) => (
-                        <field.SelectField
-                            label="跳转类型"
-                            items={TARGET_TYPE_ITEMS}
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="target">
-                    {(field) => (
-                        <field.TextField
-                            label="跳转目标"
-                            placeholder="商品/类目 ID、活动名或搜索词"
-                            maxLength={CMS_TARGET_MAX}
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="link">
-                    {(field) => (
-                        <field.TextField
-                            className="col-span-2"
-                            label="兜底链接"
-                            placeholder="URL 型跳转时填写（可选）"
-                        />
-                    )}
-                </form.AppField>
-
-                <form.AppField name="startAt">
-                    {(field) => (
-                        <field.TextField
-                            label="定时上线"
-                            type="datetime-local"
-                            hint="留空 = 立即生效"
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="endAt">
-                    {(field) => (
-                        <field.TextField
-                            label="定时下线"
-                            type="datetime-local"
-                            hint="留空 = 长期有效"
-                        />
-                    )}
-                </form.AppField>
-
-                <DialogFooter className="col-span-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={busy}
-                    >
-                        {busy && <Spinner />}保存
-                    </Button>
-                </DialogFooter>
-            </form>
-        </>
+            <form.AppField name="startAt">
+                {(field) => (
+                    <field.TextField
+                        label="定时上线"
+                        type="datetime-local"
+                        hint="留空 = 立即生效"
+                    />
+                )}
+            </form.AppField>
+            <form.AppField name="endAt">
+                {(field) => (
+                    <field.TextField
+                        label="定时下线"
+                        type="datetime-local"
+                        hint="留空 = 长期有效"
+                    />
+                )}
+            </form.AppField>
+        </CmsFormBody>
     )
 }
