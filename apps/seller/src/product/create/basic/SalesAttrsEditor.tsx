@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Plus } from "lucide-react"
 import { SPEC_VALUES_MAX } from "@shop/common"
 import { Badge, Button, FieldSet } from "@shop/ui-web"
@@ -31,10 +31,16 @@ function toDrafts(nodes: CategoryAttrNodeResponse[], selected: SpecSelection[]):
         const rows: ValueDraft[] = []
         for (const vid of sel?.valueIds ?? []) {
             const v = valueById.get(vid)
-            rows.push({ id: nextId(), valueId: vid, value: v?.value ?? "", note: "" })
+            rows.push({
+                id: nextId(),
+                valueId: vid,
+                value: v?.value ?? "",
+                image: sel?.valueImages?.[vid],
+                note: "",
+            })
         }
         for (const cv of sel?.customValues ?? []) {
-            rows.push({ id: nextId(), value: cv, note: "" })
+            rows.push({ id: nextId(), value: cv, image: sel?.customValueImages?.[cv], note: "" })
         }
         if (rows.length === 0) rows.push({ id: nextId(), value: "", note: "" })
         return {
@@ -121,9 +127,16 @@ export function SalesAttrsEditor({
         setDraftState({ source: value, drafts: toDrafts(attrs, value) })
     }
     const drafts = draftState.drafts
+    // 上传完成是异步回调，渲染期闭包里的 drafts 已过期：拿它重建会吞掉上传期间的其他改动
+    // （含并发上传的别的行），故 updateImage 经 ref 取最新草稿
+    const latestDrafts = useRef(drafts)
+    useEffect(() => {
+        latestDrafts.current = drafts
+    }, [drafts])
 
     function emit(next: AttrDraft[]) {
         const selections = toSelections(next)
+        latestDrafts.current = next
         setDraftState({ source: selections, drafts: next })
         onChange(selections)
     }
@@ -153,12 +166,16 @@ export function SalesAttrsEditor({
         emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 
-    function updateImage(attrIdx: number, rowIdx: number, image: string | undefined) {
-        const d = drafts[attrIdx]
+    function updateImage(attrId: string, rowId: string, image: string | undefined) {
+        // 按 id 定位：上传期间行可能被删/挪，下标不可信
+        const latest = latestDrafts.current
+        const attrIdx = latest.findIndex((a) => a.attrId === attrId)
+        const d = latest[attrIdx]
         if (!d) return
         // oxlint-disable-next-line oxc/no-map-spread -- React 状态不可变更新（copy-on-write），对象展开是唯一写法
-        const rows = d.rows.map((r, i) => (i === rowIdx ? { ...r, image: image ?? "" } : r))
-        emit(drafts.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
+        const rows = d.rows.map((r) => (r.id === rowId ? { ...r, image: image ?? "" } : r))
+        // oxlint-disable-next-line oxc/no-map-spread -- 同上
+        emit(latest.map((a, i) => (i === attrIdx ? { ...a, rows } : a)))
     }
 
     function removeRow(attrIdx: number, rowIdx: number) {
@@ -204,7 +221,7 @@ export function SalesAttrsEditor({
                                         removable={d.rows.length > 1}
                                         onValueChange={(text) => updateValue(ai, ri, text)}
                                         onNoteChange={(note) => updateNote(ai, ri, note)}
-                                        onImageChange={(img) => updateImage(ai, ri, img)}
+                                        onImageChange={(img) => updateImage(d.attrId, row.id, img)}
                                         onRemove={() => removeRow(ai, ri)}
                                         upload={uploadImage}
                                     />

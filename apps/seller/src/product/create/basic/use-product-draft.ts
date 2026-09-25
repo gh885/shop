@@ -163,6 +163,9 @@ export function useProductDraft({
                 attrId: s.attrId,
                 valueIds: s.values.map((v) => v.valueId),
                 customValues: [],
+                valueImages: Object.fromEntries(
+                    s.values.flatMap((v) => (v.image ? [[v.valueId, v.image]] : [])),
+                ),
             })),
             skuRows: detail.skus.map(rowFromSku),
         })

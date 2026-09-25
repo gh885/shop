@@ -37,10 +37,12 @@ export type ProductBasicForm = Required<
 /**
  * 一个销售属性的选择：契约同 SpecSelectionRequest，valueIds/customValues 在本流程
  * 永远成对给数组（收紧必填免去各调用点 ?? []），不做手写镜像。
+ * 取值图（valueImages/customValueImages）保持可选：编辑回显要靠它灌回图片，否则重进编辑图就丢了。
  */
 export type SpecSelection = Required<
     Pick<SpecSelectionRequest, "attrId" | "valueIds" | "customValues">
->
+> &
+    Pick<SpecSelectionRequest, "valueImages" | "customValueImages">
 
 /**
  * 上架时间：决定「提交商品信息」落哪个状态（now → 发布 PUBLISHED；warehouse → WAREHOUSE；
