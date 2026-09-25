@@ -14,7 +14,7 @@ export interface RefundListSearch {
 }
 
 /** 工作台一个动作的入参：列表行是售后单，但处理端点挂在订单资源下（/seller/orders/{id}/after-sales）——两个 id 都要 */
-export interface TicketActionArgs {
+interface TicketActionArgs {
     /** 售后单 id：只用于「这一行正在处理」的禁用态 */
     ticketId: string
     /** 订单 id：请求要传的那个 */

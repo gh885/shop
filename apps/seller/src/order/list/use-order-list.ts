@@ -16,7 +16,7 @@ import { useRowBusy } from "#/shared/lib/use-row-busy"
 export type { OrderListSearch } from "#/order/queries"
 
 /** 发货入参：承运商字典 code + 运单号（供发货弹窗提交）。物流公司名由后端按 code 查字典归一，前端不传 */
-export type ShipInput = { carrierCode: string; trackingNo: string }
+type ShipInput = { carrierCode: string; trackingNo: string }
 
 /** 订单列表视图模型：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
 export function useOrderList(shopId: string, search: OrderListSearch) {

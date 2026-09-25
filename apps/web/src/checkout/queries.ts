@@ -9,9 +9,9 @@ import {
     type CheckoutPreview,
     type CouponSelection,
 } from "./checkout"
-import { createOrder, fetchPreview, MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "#/order/queries"
-import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart/queries"
-import { MY_COUPONS_KEY } from "#/coupon/queries"
+import { createOrder, fetchPreview, MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "#/order"
+import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart"
+import { MY_COUPONS_KEY } from "#/coupon"
 
 /** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
 

@@ -12,7 +12,7 @@
 export { COUPON_PAGE_SIZE, COUPON_TABS, groupByStatus } from "./coupon"
 export type { CouponTab } from "./coupon"
 
-export { myCouponsOptions } from "./queries"
+export { myCouponsOptions, MY_COUPONS_KEY } from "./queries"
 
 export { CouponCard } from "./CouponCard"
 export { ShopCouponPopover } from "./ShopCouponPopover"
