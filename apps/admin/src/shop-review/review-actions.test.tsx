@@ -30,7 +30,7 @@ const ITEM: ShopReviewItem = {
 
 /** `hold`：决定请求挂起直到调用 `calls.release()`——「在途」由测试说了算，不赌定时器（全量并行下 60ms 会先跑完） */
 function useReviewRoutes({ hold = false }: { hold?: boolean } = {}) {
-    let release = () => {}
+    let release!: () => void
     const gate = hold ? new Promise<void>((resolve) => (release = resolve)) : undefined
     const calls = { approve: 0, rejectedWith: [] as string[], release: () => release() }
     const decided = (status: "APPROVED" | "REJECTED") => ({

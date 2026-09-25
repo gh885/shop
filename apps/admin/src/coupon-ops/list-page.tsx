@@ -38,7 +38,7 @@ export function CouponOpsPage({ search, navigate }: { search: Search; navigate: 
         state: { pagination },
         onPaginationChange: (updater) => {
             const next = typeof updater === "function" ? updater(pagination) : updater
-            void navigate({ search: { ...search, page: next.pageIndex + 1, size: next.pageSize } })
+            navigate({ search: { ...search, page: next.pageIndex + 1, size: next.pageSize } })
         },
     })
 

@@ -63,7 +63,7 @@ function UserTable({
 }) {
     const query = useQuery(
         adminUsersOptions({
-            status: search.status as UserStatus | undefined,
+            status: search.status,
             keyword: search.keyword,
             page: search.page,
             size: search.size,
@@ -78,7 +78,7 @@ function UserTable({
                 query={query}
                 columns={userColumns}
                 statusOptions={USER_STATUS_OPTIONS}
-                parse={UserStatusSchema.safeParse}
+                parse={(value) => UserStatusSchema.safeParse(value)}
             />
         </>
     )
@@ -94,7 +94,7 @@ function StaffTable({
 }) {
     const query = useQuery(
         adminStaffOptions({
-            status: search.status as StaffStatus | undefined,
+            status: search.status,
             keyword: search.keyword,
             page: search.page,
             size: search.size,
@@ -109,7 +109,7 @@ function StaffTable({
                 query={query}
                 columns={staffColumns}
                 statusOptions={STAFF_STATUS_OPTIONS}
-                parse={StaffStatusSchema.safeParse}
+                parse={(value) => StaffStatusSchema.safeParse(value)}
             />
         </>
     )
@@ -125,7 +125,7 @@ function AccountTableView<T extends AccountRow>({
 }: {
     search: AccountSearch
     navigate: AccountNavigate
-    query: UseQueryResult<{ records: T[]; total: number }, Error>
+    query: UseQueryResult<{ records: T[]; total: number }>
     columns: ColumnDef<DataTableFeatures, T>[]
     statusOptions: typeof USER_STATUS_OPTIONS
     parse: StatusParser
@@ -177,7 +177,7 @@ function AccountDataTable<T extends AccountRow>({
     table,
     columns,
 }: {
-    query: UseQueryResult<{ records: T[]; total: number }, Error>
+    query: UseQueryResult<{ records: T[]; total: number }>
     table: ReturnType<typeof useDataTable<T>>["table"]
     columns: ColumnDef<DataTableFeatures, T>[]
 }) {

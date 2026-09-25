@@ -17,7 +17,7 @@ export const userColumns: ColumnDef<DataTableFeatures, AdminUserItem>[] = [
         accessorKey: "status",
         header: "状态",
         cell: ({ row }) => {
-            const meta = USER_STATUS_META[row.original.status ?? "DISABLED"]
+            const meta = USER_STATUS_META[row.original.status]
             return <Badge variant={meta.variant}>{meta.label}</Badge>
         },
     },
@@ -32,7 +32,7 @@ export const userColumns: ColumnDef<DataTableFeatures, AdminUserItem>[] = [
         accessorKey: "createdAt",
         header: "注册时间",
         meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => formatDateTime(row.original.createdAt ?? ""),
+        cell: ({ row }) => formatDateTime(row.original.createdAt),
     },
     actionsColumn((item) => (
         <AccountStatusAction
@@ -59,7 +59,7 @@ export const staffColumns: ColumnDef<DataTableFeatures, AdminStaffItem>[] = [
         accessorKey: "status",
         header: "状态",
         cell: ({ row }) => {
-            const meta = STAFF_STATUS_META[row.original.status ?? "DISABLED"]
+            const meta = STAFF_STATUS_META[row.original.status]
             return <Badge variant={meta.variant}>{meta.label}</Badge>
         },
     },
@@ -67,7 +67,7 @@ export const staffColumns: ColumnDef<DataTableFeatures, AdminStaffItem>[] = [
         accessorKey: "createdAt",
         header: "创建时间",
         meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => formatDateTime(row.original.createdAt ?? ""),
+        cell: ({ row }) => formatDateTime(row.original.createdAt),
     },
     actionsColumn((item) => (
         <AccountStatusAction

@@ -3,13 +3,11 @@ import { useMutation } from "@tanstack/react-query"
 import { Button, confirm } from "@shop/ui-web"
 import { accountKeys } from "./queries"
 
-export function AccountStatusAction({
-    kind,
-    item,
-}: {
-    kind: "user" | "staff"
-    item: AdminUserItem | AdminStaffItem
-}) {
+type AccountStatusActionProps =
+    | { kind: "user"; item: AdminUserItem }
+    | { kind: "staff"; item: AdminStaffItem }
+
+export function AccountStatusAction({ kind, item }: AccountStatusActionProps) {
     const mutation = useMutation({
         mutationFn: async (status: "ACTIVE" | "DISABLED") => {
             if (kind === "user") {
@@ -41,7 +39,7 @@ export function AccountStatusAction({
             onClick={() => {
                 void confirm({
                     title: `${label}账号`,
-                    description: `确认${label} ${kind === "user" ? (item as AdminUserItem).phone : ((item as AdminStaffItem).employeeNo ?? "该账号")}？`,
+                    description: `确认${label} ${kind === "user" ? item.phone : item.employeeNo}？`,
                     confirmText: label,
                     action: () => mutation.mutateAsync(disabled ? "ACTIVE" : "DISABLED"),
                 })

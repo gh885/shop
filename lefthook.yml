@@ -50,8 +50,8 @@ pre-commit:
         - name: lint-web
           tags: [lint]
           glob: "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
-          run: pnpm oxlint --no-error-on-unmatched-pattern --config packages/config/oxlint.config.ts {staged_files}
-          fail_text: "oxlint 未通过；可自动修复的部分跑 pnpm lint:web"
+          run: pnpm oxlint --type-aware --no-error-on-unmatched-pattern --config packages/config/oxlint.config.ts {staged_files}
+          fail_text: "oxlint 未通过；可自动修复的部分跑 pnpm lint:web:fix"
 
         # 以下两项不按暂存文件过滤，但带缓存各 ~1s 内，放 pre-commit 而非 pre-push：仓库没有 remote 时
         # pre-push 永不触发。代价是审的是工作区（含未暂存改动），不严格等于本次提交
@@ -84,7 +84,7 @@ pre-push:
         # 不带 --fix：push 前只校验，不改工作区
         - name: lint
           tags: [lint]
-          run: pnpm oxlint --config packages/config/oxlint.config.ts .
+          run: pnpm oxlint --type-aware --config packages/config/oxlint.config.ts .
 
         - name: typecheck
           tags: [types]
