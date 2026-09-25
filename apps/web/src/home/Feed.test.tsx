@@ -1,13 +1,5 @@
-import { QueryClientProvider } from "@tanstack/react-query"
-import {
-    Outlet,
-    RouterProvider,
-    createMemoryHistory,
-    createRootRoute,
-    createRoute,
-    createRouter,
-} from "@tanstack/react-router"
-import { act, render, screen, waitFor } from "@testing-library/react"
+import { Outlet } from "@tanstack/react-router"
+import { act, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -15,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { FeedItemResponse, RecommendTabResponse } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { renderWithRouter } from "@shop/app-kit/test"
 
 import { Feed } from "./Feed"
 
@@ -25,7 +17,7 @@ import { Feed } from "./Feed"
  * 2. 追加页失败就地重试（保留第一页），不整块换成错误态；
  * 3. 「换一批」丢页重拉（无游标 → 新种子），而不是把已加载页串行重拉。
  *
- * 卡片里有指向 /products/$id 的 Link，所以自带内存路由（共享 renderWithProviders 不带路由上下文）。
+ * 卡片里有指向 /products/$id 的 Link，使用共享内存路由装置承接真实导航。
  * jsdom 没有 IntersectionObserver / ResizeObserver，这里补最小实现（补浏览器 API，不 mock 业务模块）。
  */
 
@@ -75,14 +67,6 @@ class TestIntersectionObserver implements IntersectionObserver {
 beforeEach(() => {
     TestIntersectionObserver.instances = []
     vi.stubGlobal("IntersectionObserver", TestIntersectionObserver)
-    vi.stubGlobal(
-        "ResizeObserver",
-        class {
-            observe() {}
-            unobserve() {}
-            disconnect() {}
-        },
-    )
 })
 
 afterEach(() => {
@@ -131,33 +115,11 @@ function makeTab(overrides: Partial<RecommendTabResponse> = {}): RecommendTabRes
 const tabsHandler = http.get("*/api/cms/recommend-tabs", () => HttpResponse.json([makeTab()]))
 
 function renderFeed() {
-    const rootRoute = createRootRoute({
-        component: () => (
-            <>
-                <Feed />
-                <Outlet />
-            </>
-        ),
-    })
-    const productRoute = createRoute({
-        getParentRoute: () => rootRoute,
-        path: "/products/$id",
-        component: () => <div>商品详情页</div>,
-    })
-    // 显式的首页子路由：不配它，内存路由落在 "/" 会走 notFound 分支，控制台一片告警
-    const indexRoute = createRoute({
-        getParentRoute: () => rootRoute,
-        path: "/",
-        component: () => null,
-    })
-    const router = createRouter({
-        routeTree: rootRoute.addChildren([indexRoute, productRoute]),
-        history: createMemoryHistory({ initialEntries: ["/"] }),
-    })
-    render(
-        <QueryClientProvider client={createAppTestQueryClient()}>
-            <RouterProvider router={router} />
-        </QueryClientProvider>,
+    renderWithRouter(
+        <>
+            <Feed />
+            <Outlet />
+        </>,
     )
 }
 

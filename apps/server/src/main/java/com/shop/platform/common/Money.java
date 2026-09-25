@@ -73,7 +73,7 @@ public record Money(
     /** 相加：仅同币种，跨币种说明内部不变量被破坏 */
     public Money plus(Money other) {
         requireSameCurrency(other);
-        return new Money(this.amount + other.amount, this.currency);
+        return new Money(exactAdd(this.amount, other.amount), this.currency);
     }
 
     /** 乘以非负整数倍（如单价 × 数量）。乘法方向明确：结果仍是同币种的金额，单位不漂移 */
@@ -81,7 +81,7 @@ public record Money(
         if (factor < 0) {
             throw new IllegalStateException("金额倍数不能为负");
         }
-        return new Money(this.amount * factor, this.currency);
+        return new Money(exactMultiply(this.amount, factor), this.currency);
     }
 
     /**
@@ -104,6 +104,22 @@ public record Money(
             throw new IllegalStateException("金额相减结果不能为负");
         }
         return new Money(this.amount - other.amount, this.currency);
+    }
+
+    private long exactAdd(long left, long right) {
+        try {
+            return Math.addExact(left, right);
+        } catch (ArithmeticException e) {
+            throw new IllegalStateException("金额相加溢出", e);
+        }
+    }
+
+    private long exactMultiply(long value, long factor) {
+        try {
+            return Math.multiplyExact(value, factor);
+        } catch (ArithmeticException e) {
+            throw new IllegalStateException("金额相乘溢出", e);
+        }
     }
 
     private void requireSameCurrency(Money other) {

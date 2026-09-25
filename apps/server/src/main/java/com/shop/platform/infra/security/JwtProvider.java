@@ -48,7 +48,12 @@ public class JwtProvider {
         this.audience = props.getAudience();
 
         // ES256 优先；未配置则开发环境自动生成临时密钥对
-        if (StringUtils.hasText(props.getPrivateKey()) && StringUtils.hasText(props.getPublicKey())) {
+        boolean hasPrivateKey = StringUtils.hasText(props.getPrivateKey());
+        boolean hasPublicKey = StringUtils.hasText(props.getPublicKey());
+        if (hasPrivateKey != hasPublicKey) {
+            throw new IllegalArgumentException("JWT privateKey and publicKey must be configured together");
+        }
+        if (hasPrivateKey) {
             this.ecPrivateKey = parseEcPrivateKey(props.getPrivateKey());
             this.ecPublicKey = parseEcPublicKey(props.getPublicKey());
         } else {

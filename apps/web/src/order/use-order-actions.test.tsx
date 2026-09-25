@@ -1,19 +1,11 @@
-import { QueryClientProvider } from "@tanstack/react-query"
-import {
-    createMemoryHistory,
-    createRootRoute,
-    createRoute,
-    createRouter,
-    RouterProvider,
-} from "@tanstack/react-router"
-import { render, screen, waitFor } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { http, HttpResponse } from "msw"
 import { describe, expect, it } from "vitest"
 
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { renderWithRouter } from "@shop/app-kit/test"
 
 import { useOrderActions } from "./use-order-actions"
 import type { Order } from "./model"
@@ -75,22 +67,7 @@ function Probe() {
 }
 
 async function setup() {
-    const rootRoute = createRootRoute({ component: Probe })
-    const payRoute = createRoute({
-        getParentRoute: () => rootRoute,
-        path: "/pay/$orderId",
-        component: () => <div>收银台页</div>,
-    })
-    const router = createRouter({
-        routeTree: rootRoute.addChildren([payRoute]),
-        history: createMemoryHistory({ initialEntries: ["/"] }),
-    })
-    const queryClient = createAppTestQueryClient()
-    render(
-        <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-        </QueryClientProvider>,
-    )
+    const { queryClient, router } = renderWithRouter(<Probe />)
     // router 异步挂载，等探针按钮出现再交互
     await screen.findByRole("button", { name: "pay" })
     return { user: userEvent.setup(), queryClient, router }

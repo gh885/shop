@@ -32,6 +32,16 @@ class MoneyTest {
     }
 
     @Test
+    void 运算溢出不能静默变成负金额() {
+        assertThatThrownBy(() -> Money.cny(Long.MAX_VALUE).plus(Money.cny(1)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("溢出");
+        assertThatThrownBy(() -> Money.cny(Long.MAX_VALUE).times(2))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("溢出");
+    }
+
+    @Test
     void 负数金额与空币种被拒绝() {
         assertThatThrownBy(() -> new Money(-1, "CNY")).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new Money(1, "  ")).isInstanceOf(IllegalStateException.class);

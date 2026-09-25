@@ -1,6 +1,7 @@
 package com.shop.platform.infra.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.jsonwebtoken.Claims;
 import java.util.UUID;
@@ -72,6 +73,21 @@ class JwtProviderTest {
 
         assertThat(rt1).startsWith("rt:").hasSize("rt:".length() + 64); // 32 字节 hex
         assertThat(rt1).isNotEqualTo(rt2); // 随机性
+    }
+
+    @Test
+    void 密钥配置不完整_启动即拒绝避免悄悄退回临时密钥() {
+        JwtProperties onlyPrivate = new JwtProperties();
+        onlyPrivate.setPrivateKey("private");
+        JwtProperties onlyPublic = new JwtProperties();
+        onlyPublic.setPublicKey("public");
+
+        assertThatThrownBy(() -> new JwtProvider(onlyPrivate))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("configured together");
+        assertThatThrownBy(() -> new JwtProvider(onlyPublic))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("configured together");
     }
 
     @Test

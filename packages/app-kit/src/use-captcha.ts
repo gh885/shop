@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 /**
  * 图形验证码加载/刷新（人机验证，对应后端 infra/captcha.CaptchaService）。
@@ -15,21 +15,34 @@ export function useCaptcha(getCaptcha: () => Promise<{ captchaId: string; image:
     const [loading, setLoading] = useState(false)
     // 防止重复点击并发刷新
     const inflight = useRef(false)
+    const mounted = useRef(true)
+
+    useEffect(() => {
+        mounted.current = true
+        return () => {
+            mounted.current = false
+        }
+    }, [])
 
     const refresh = useCallback(async () => {
         if (inflight.current) return
         inflight.current = true
-        setLoading(true)
+        if (mounted.current) setLoading(true)
         try {
             const res = await getCaptcha()
-            setCaptchaId(res.captchaId)
-            setImage(res.image)
+            if (mounted.current) {
+                setCaptchaId(res.captchaId)
+                setImage(res.image)
+            }
         } catch {
-            // 获取失败不致命：清空图触发重试，用户可再次点击
-            setImage("")
+            // 获取失败不致命：图与一次性 id 一起清掉，避免旧 id 与空图形成可提交的错配
+            if (mounted.current) {
+                setCaptchaId("")
+                setImage("")
+            }
         } finally {
             inflight.current = false
-            setLoading(false)
+            if (mounted.current) setLoading(false)
         }
     }, [getCaptcha])
 

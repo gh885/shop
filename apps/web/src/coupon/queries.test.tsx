@@ -1,5 +1,5 @@
-import { QueryClientProvider, useQuery } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { useQuery } from "@tanstack/react-query"
+import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
@@ -8,7 +8,7 @@ import type { MyCouponResponse } from "@shop/api/sdk"
 import { Toaster } from "@shop/ui-web"
 import { server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/test"
 
 import { COUPON_PAGE_SIZE, type CouponTab } from "./coupon"
 import { myCouponsOptions, shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
@@ -72,13 +72,11 @@ describe("myCouponsOptions", () => {
             }),
         )
 
-        render(
-            <QueryClientProvider client={createAppTestQueryClient()}>
-                <MyCouponsProbe
-                    status="USED"
-                    page={2}
-                />
-            </QueryClientProvider>,
+        renderWithProviders(
+            <MyCouponsProbe
+                status="USED"
+                page={2}
+            />,
         )
 
         await waitFor(() => expect(search).toBeDefined())
@@ -110,11 +108,7 @@ describe("shopClaimableCouponsOptions", () => {
             }),
         )
 
-        render(
-            <QueryClientProvider client={createAppTestQueryClient()}>
-                <ClaimableProbe shopId={SHOP_ID} />
-            </QueryClientProvider>,
-        )
+        renderWithProviders(<ClaimableProbe shopId={SHOP_ID} />)
 
         await waitFor(() => expect(screen.getByTestId("count").textContent).toBe("1"))
         expect(path).toBe(`/api/shops/${SHOP_ID}/coupons`)
@@ -143,11 +137,7 @@ describe("useClaimCoupon", () => {
         })
         const user = userEvent.setup()
 
-        render(
-            <QueryClientProvider client={queryClient}>
-                <ClaimProbe />
-            </QueryClientProvider>,
-        )
+        renderWithProviders(<ClaimProbe />, { queryClient })
         await user.click(screen.getByRole("button", { name: "claim" }))
 
         await waitFor(() => expect(queryClient.getQueryState(unusedKey)?.isInvalidated).toBe(true))
@@ -164,11 +154,7 @@ describe("useClaimCoupon", () => {
         )
         const user = userEvent.setup()
 
-        render(
-            <QueryClientProvider client={createAppTestQueryClient()}>
-                <ClaimProbe />
-            </QueryClientProvider>,
-        )
+        renderWithProviders(<ClaimProbe />)
         await user.click(screen.getByRole("button", { name: "claim" }))
 
         await waitFor(() => expect(path).toBe(`/coupons/${TEMPLATE_ID}/claim`))
@@ -185,12 +171,12 @@ describe("useClaimCoupon", () => {
         )
         const user = userEvent.setup()
 
-        render(
-            <QueryClientProvider client={createAppTestQueryClient()}>
+        renderWithProviders(
+            <>
                 {/* 挂真 Toaster：这条 bug 的症状就是「同一件事两条提示互相覆盖」，不渲染出来就看不见 */}
                 <Toaster />
                 <ClaimProbe />
-            </QueryClientProvider>,
+            </>,
         )
         await user.click(screen.getByRole("button", { name: "claim" }))
 

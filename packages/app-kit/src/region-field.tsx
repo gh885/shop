@@ -30,8 +30,15 @@ export function RegionField({
 
     useEffect(() => {
         if (synced) return
-        // oxlint-disable-next-line promise/always-return -- 终态副作用,链尾无下一环,无需返回值
-        void findPath(code).then(setPath)
+        let cancelled = false
+        void (async () => {
+            const next = await findPath(code)
+            // oxlint-disable-next-line typescript/no-unnecessary-condition -- cleanup 会在异步查询期间改变取消标记
+            if (!cancelled) setPath(next)
+        })()
+        return () => {
+            cancelled = true
+        }
     }, [code, synced])
 
     return (

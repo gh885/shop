@@ -1,12 +1,12 @@
-import { QueryClientProvider, useQuery } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { useQuery } from "@tanstack/react-query"
+import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
 import { makeTicket, server } from "@shop/test-utils"
 
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/test"
 
 import { afterSaleOptions, useApplyAfterSale } from "./after-sale-queries"
 import { myOrdersOptions, ORDER_DETAIL_KEY } from "./queries"
@@ -49,11 +49,7 @@ function ApplyProbe() {
 
 describe("afterSaleOptions（售后单读取）", () => {
     it("从未申请过售后_404 归零为「没有」而不是错误", async () => {
-        render(
-            <QueryClientProvider client={createAppTestQueryClient()}>
-                <TicketProbe orderId="o-1" />
-            </QueryClientProvider>,
-        )
+        renderWithProviders(<TicketProbe orderId="o-1" />)
 
         await waitFor(() => expect(screen.getByTestId("ticket-state").textContent).toBe("none"))
     })
@@ -64,11 +60,7 @@ describe("afterSaleOptions（售后单读取）", () => {
                 HttpResponse.json({ status: 500, detail: "服务器开小差了" }, { status: 500 }),
             ),
         )
-        render(
-            <QueryClientProvider client={createAppTestQueryClient()}>
-                <TicketProbe orderId="o-1" />
-            </QueryClientProvider>,
-        )
+        renderWithProviders(<TicketProbe orderId="o-1" />)
 
         await waitFor(() => expect(screen.getByTestId("ticket-state").textContent).toBe("error"))
     })
@@ -85,11 +77,7 @@ describe("afterSaleOptions（售后单读取）", () => {
                 ),
             ),
         )
-        render(
-            <QueryClientProvider client={createAppTestQueryClient()}>
-                <TicketProbe orderId="o-1" />
-            </QueryClientProvider>,
-        )
+        renderWithProviders(<TicketProbe orderId="o-1" />)
 
         await waitFor(() =>
             expect(screen.getByTestId("ticket-state").textContent).toBe("RETURNING"),
@@ -117,11 +105,7 @@ describe("useApplyAfterSale（申请后的一致性）", () => {
         queryClient.setQueryData(listKey, { records: [], total: 0 })
 
         const user = userEvent.setup()
-        render(
-            <QueryClientProvider client={queryClient}>
-                <ApplyProbe />
-            </QueryClientProvider>,
-        )
+        renderWithProviders(<ApplyProbe />, { queryClient })
         await user.click(screen.getByRole("button", { name: "apply" }))
 
         await waitFor(() => expect(queryClient.getQueryState(ticketKey)?.isInvalidated).toBe(true))

@@ -77,13 +77,17 @@ export function isPositiveMoney(m: Money): boolean {
 /** 相加：仅同币种，跨币种抛错（拿 CNY 的钱加 USD 的钱本身就是错的，静默给个和比报错贵） */
 export function plusMoney(a: Money, b: Money): Money {
     assertSameCurrency(a, b)
-    return money(a.amount + b.amount, a.currency)
+    const amount = a.amount + b.amount
+    if (!Number.isSafeInteger(amount)) throw new Error("金额相加超出安全整数范围")
+    return money(amount, a.currency)
 }
 
 /** 乘以非负整数倍（单价 × 件数）：结果仍是同币种的钱，单位不漂移 */
 export function timesMoney(m: Money, factor: number): Money {
-    if (!Number.isInteger(factor) || factor < 0) throw new Error("金额倍数必须是非负整数")
-    return money(m.amount * factor, m.currency)
+    if (!Number.isSafeInteger(factor) || factor < 0) throw new Error("金额倍数必须是非负安全整数")
+    const amount = m.amount * factor
+    if (!Number.isSafeInteger(amount)) throw new Error("金额相乘超出安全整数范围")
+    return money(amount, m.currency)
 }
 
 /**
@@ -136,8 +140,9 @@ export function yuanToMoney(yuan: string, currency: string = PLATFORM_CURRENCY):
 /** 元输入（字符串）→ 分；非法输入返回 undefined 由调用方拦截 */
 export function yuanToFen(yuan: string): number | undefined {
     const value = Number(yuan)
-    if (!yuan.trim() || Number.isNaN(value) || value < 0) return undefined
-    return Math.round(value * 100)
+    if (!yuan.trim() || !Number.isFinite(value) || value < 0) return undefined
+    const fen = Math.round(value * 100)
+    return Number.isSafeInteger(fen) ? fen : undefined
 }
 
 /**

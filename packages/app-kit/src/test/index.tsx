@@ -40,13 +40,18 @@ export function createAppTestHookClient() {
  * 组件/hook 测试的标准 render：应用真实 QueryClient 默认值 + 全局确认弹窗挂载层
  * （命令式 confirm 的渲染宿主，与生产根布局 <Toaster /> 旁挂法一致）。
  */
-export function renderWithProviders(ui: ReactElement) {
+export function renderWithProviders(
+    ui: ReactElement,
+    {
+        queryClient = createAppTestQueryClient(),
+    }: { queryClient?: ReturnType<typeof createAppTestQueryClient> } = {},
+) {
     return renderWithQuery(
         <>
             {ui}
             <ConfirmDialogHost />
         </>,
-        { queryClient: createAppTestQueryClient() },
+        { queryClient },
     )
 }
 
@@ -72,10 +77,10 @@ export function renderWithRouter(
         routeTree: root.addChildren([index, fallback]),
         history: createMemoryHistory({ initialEntries: [initialEntry] }),
     })
+    const queryClient = createAppTestQueryClient()
     return {
-        ...renderWithQuery(<RouterProvider router={router} />, {
-            queryClient: createAppTestQueryClient(),
-        }),
+        ...renderWithQuery(<RouterProvider router={router} />, { queryClient }),
+        queryClient,
         router,
     }
 }

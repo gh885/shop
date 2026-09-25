@@ -1,4 +1,5 @@
-import { renderHook, waitFor } from "@testing-library/react"
+import { StrictMode } from "react"
+import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { useRowBusy } from "./use-row-busy"
@@ -37,6 +38,57 @@ describe("useRowBusy", () => {
         const { result } = renderHook(() => useRowBusy())
         const run = result.current.run(
             vi.fn<(id: string) => Promise<unknown>>(async () => undefined),
+        )
+
+        run("row-1")
+
+        await waitFor(() => expect(result.current.busyId).toBeUndefined())
+    })
+
+    it("StrictMode 重挂载后仍能接收动作完成状态", async () => {
+        const { result } = renderHook(() => useRowBusy(), { wrapper: StrictMode })
+        const run = result.current.run(
+            vi.fn<(id: string) => Promise<unknown>>(async () => undefined),
+        )
+
+        run("row-1")
+
+        await waitFor(() => expect(result.current.busyId).toBeUndefined())
+    })
+
+    it("并发动作只有最后一次接管忙碌态：旧请求完成不能提前解锁新请求", async () => {
+        const first = deferred()
+        const second = deferred()
+        const { result } = renderHook(() => useRowBusy())
+        const run = result.current.run(
+            vi.fn<(id: string) => Promise<unknown>>((id) =>
+                id === "row-1" ? first.promise : second.promise,
+            ),
+        )
+
+        run("row-1")
+        run("row-2")
+        await waitFor(() => expect(result.current.busyId).toBe("row-2"))
+
+        await act(async () => {
+            first.resolve(undefined)
+            await first.promise
+        })
+        expect(result.current.busyId).toBe("row-2")
+
+        await act(async () => {
+            second.resolve(undefined)
+            await second.promise
+        })
+        await waitFor(() => expect(result.current.busyId).toBeUndefined())
+    })
+
+    it("动作同步抛错也复位：异步链建立前的异常不能把行永久锁死", async () => {
+        const { result } = renderHook(() => useRowBusy())
+        const run = result.current.run(
+            vi.fn<(id: string) => Promise<unknown>>(() => {
+                throw new Error("下架失败")
+            }),
         )
 
         run("row-1")

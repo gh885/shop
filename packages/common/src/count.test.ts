@@ -19,4 +19,11 @@ describe("compactCount", () => {
     it("四舍五入由 toFixed 定，不自己截断", () => {
         expect(compactCount(19999)).toBe("2万")
     })
+
+    it("异常数值不把 NaN 或负数渲染到卡片上", () => {
+        expect(compactCount(Number.NaN)).toBe("0")
+        expect(compactCount(Number.POSITIVE_INFINITY)).toBe("0")
+        expect(compactCount(-1)).toBe("0")
+        expect(compactCount(12.9)).toBe("12")
+    })
 })

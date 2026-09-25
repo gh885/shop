@@ -1,18 +1,10 @@
-import {
-    createMemoryHistory,
-    createRootRoute,
-    createRoute,
-    createRouter,
-    RouterProvider,
-} from "@tanstack/react-router"
-import { render, screen, waitFor } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
 import type { ProductResponse } from "@shop/api/sdk"
-import { QueryClientProvider } from "@tanstack/react-query"
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { renderWithRouter } from "@shop/app-kit/test"
 import { server } from "@shop/test-utils"
 
 import { useProductList, type ProductListSearch } from "./use-product-list"
@@ -122,26 +114,9 @@ function Probe({ search }: { search: ProductListSearch }) {
  * 每次点击后 hook 读到的仍是那一份输入，断言因此只有一处真相（router.state.location）。
  */
 function createTestRouter(initialSearch: ProductListSearch) {
-    const rootRoute = createRootRoute({ component: () => <Probe search={initialSearch} /> })
-    const listRoute = createRoute({
-        getParentRoute: () => rootRoute,
-        path: "/product/list",
+    const { router } = renderWithRouter(<Probe search={initialSearch} />, {
+        initialEntry: "/product/list",
     })
-    const editRoute = createRoute({
-        getParentRoute: () => rootRoute,
-        path: "/product/create/basic",
-        component: () => <div>发布商品</div>,
-    })
-    const router = createRouter({
-        routeTree: rootRoute.addChildren([listRoute, editRoute]),
-        history: createMemoryHistory({ initialEntries: ["/product/list"] }),
-    })
-    const queryClient = createAppTestQueryClient()
-    render(
-        <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-        </QueryClientProvider>,
-    )
     return { router, user: userEvent.setup() }
 }
 

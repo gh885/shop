@@ -1,12 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query"
-import {
-    createMemoryHistory,
-    createRootRoute,
-    createRoute,
-    createRouter,
-    RouterProvider,
-} from "@tanstack/react-router"
-import { render, screen, waitFor } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
@@ -14,7 +6,7 @@ import { describe, expect, it } from "vitest"
 import { server } from "@shop/test-utils"
 
 import { afterSaleKeys, orderKeys } from "#/order/queries"
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { renderWithRouter } from "@shop/app-kit/test"
 
 import { useRefundList } from "./use-refund-list"
 
@@ -47,22 +39,7 @@ function Probe() {
 }
 
 async function setup() {
-    const rootRoute = createRootRoute({ component: Probe })
-    const refundRoute = createRoute({
-        getParentRoute: () => rootRoute,
-        path: "/trade/refund",
-        component: () => <div>工作台</div>,
-    })
-    const router = createRouter({
-        routeTree: rootRoute.addChildren([refundRoute]),
-        history: createMemoryHistory({ initialEntries: ["/trade/refund"] }),
-    })
-    const queryClient = createAppTestQueryClient()
-    render(
-        <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-        </QueryClientProvider>,
-    )
+    const { queryClient } = renderWithRouter(<Probe />, { initialEntry: "/trade/refund" })
     await screen.findByRole("button", { name: "agree" })
     return { user: userEvent.setup(), queryClient }
 }

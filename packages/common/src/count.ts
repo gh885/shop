@@ -8,6 +8,8 @@
 
 /** ≥1 万折成「1.2万」（整数万去尾写「1万」），小于 1 万原样——千位分组交给 `groupYuan` 那类口径，不混进来 */
 export function compactCount(count: number): string {
-    if (count < 10000) return String(count)
-    return `${(count / 10000).toFixed(1).replace(/\.0$/, "")}万`
+    if (!Number.isFinite(count) || count < 0) return "0"
+    const normalized = Math.trunc(count)
+    if (normalized < 10000) return String(normalized)
+    return `${(normalized / 10000).toFixed(1).replace(/\.0$/, "")}万`
 }

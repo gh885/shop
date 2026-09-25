@@ -1,3 +1,4 @@
+import { StrictMode } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
@@ -72,6 +73,49 @@ describe("useCaptcha", () => {
         })
 
         expect(result.current).toMatchObject({ captchaId: "c2", image: "img2" })
+    })
+
+    it("StrictMode 重挂载后仍能接收刷新结果", async () => {
+        const getCaptcha = vi.fn<GetCaptcha>().mockResolvedValue({ captchaId: "c1", image: "img1" })
+        const { result } = renderHook(() => useCaptcha(getCaptcha), {
+            wrapper: StrictMode,
+        })
+
+        await act(async () => {
+            await result.current.refresh()
+        })
+
+        expect(result.current).toMatchObject({ captchaId: "c1", image: "img1", loading: false })
+    })
+
+    it("刷新失败会同时丢弃旧的一次性 id，不让空图保留可提交的旧凭证", async () => {
+        const getCaptcha = vi
+            .fn<GetCaptcha>()
+            .mockResolvedValueOnce({ captchaId: "c1", image: "img1" })
+            .mockRejectedValueOnce(new Error("网络错误"))
+        const { result } = mount(getCaptcha)
+
+        await act(async () => {
+            await result.current.refresh()
+        })
+        await act(async () => {
+            await result.current.refresh()
+        })
+
+        expect(result.current).toMatchObject({ captchaId: "", image: "" })
+    })
+
+    it("组件卸载后忽略迟到的响应，不把一次性验证码写回已销毁界面", async () => {
+        const gate = deferredCaptcha()
+        const getCaptcha = vi.fn<GetCaptcha>(() => gate.promise)
+        const { result, unmount } = mount(getCaptcha)
+
+        void result.current.refresh()
+        unmount()
+        await act(async () => gate.resolve({ captchaId: "c1", image: "img1" }))
+
+        expect(result.current.captchaId).toBe("")
+        expect(result.current.image).toBe("")
     })
 
     it("换到一张新图：旧 id 已被发码请求消费掉，留着它再发一次必失败", async () => {

@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react"
 
+function targetTime(targetIso: string): number | undefined {
+    if (!targetIso) return undefined
+    const target = new Date(targetIso).getTime()
+    return Number.isNaN(target) ? undefined : target
+}
+
 /** 距目标时刻的剩余毫秒数；已过期/非法返回 0（倒计时归零兜底，不显示负数） */
 function remainingMs(targetIso: string): number {
-    const target = new Date(targetIso).getTime()
-    if (Number.isNaN(target)) return 0
-    return Math.max(0, target - Date.now())
+    const target = targetTime(targetIso)
+    return target === undefined ? 0 : Math.max(0, target - Date.now())
 }
 
 /**
@@ -26,7 +31,7 @@ export function useDeadline(targetIso: string): { seconds: number; expired: bool
     }
 
     useEffect(() => {
-        if (!targetIso) return
+        if (targetTime(targetIso) === undefined) return
         const timer = setInterval(() => {
             const s = Math.ceil(remainingMs(targetIso) / 1000)
             setSeconds(s)
@@ -42,9 +47,10 @@ export function useDeadline(targetIso: string): { seconds: number; expired: bool
 const pad = (n: number) => String(n).padStart(2, "0")
 
 export function formatCountdown(totalSeconds: number): string {
-    if (totalSeconds <= 0) return "00:00"
-    const h = Math.floor(totalSeconds / 3600)
-    const m = Math.floor((totalSeconds % 3600) / 60)
-    const s = totalSeconds % 60
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return "00:00"
+    const normalized = Math.trunc(totalSeconds)
+    const h = Math.floor(normalized / 3600)
+    const m = Math.floor((normalized % 3600) / 60)
+    const s = normalized % 60
     return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
 }

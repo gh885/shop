@@ -1,19 +1,11 @@
-import {
-    createMemoryHistory,
-    createRootRoute,
-    createRoute,
-    createRouter,
-    RouterProvider,
-} from "@tanstack/react-router"
-import { render, screen, waitFor } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { delay, HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
 
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
-import { QueryClientProvider } from "@tanstack/react-query"
-import { createAppTestQueryClient } from "@shop/app-kit/test"
+import { renderWithRouter } from "@shop/app-kit/test"
 
 import { OrderTable, type OrderIdentity } from "./table"
 import { useOrderList } from "./use-order-list"
@@ -97,22 +89,7 @@ function Probe() {
 }
 
 async function setup() {
-    const rootRoute = createRootRoute({ component: Probe })
-    const orderRoute = createRoute({
-        getParentRoute: () => rootRoute,
-        path: "/trade/order",
-        component: () => <div>订单</div>,
-    })
-    const router = createRouter({
-        routeTree: rootRoute.addChildren([orderRoute]),
-        history: createMemoryHistory({ initialEntries: ["/trade/order"] }),
-    })
-    const queryClient = createAppTestQueryClient()
-    render(
-        <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-        </QueryClientProvider>,
-    )
+    renderWithRouter(<Probe />, { initialEntry: "/trade/order" })
     return { user: userEvent.setup() }
 }
 

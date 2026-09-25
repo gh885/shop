@@ -40,11 +40,13 @@ describe("金额运算", () => {
 
     it("跨币种运算抛错：把 CNY 和 USD 加成一个数是算错钱，不是精度问题", () => {
         expect(() => plusMoney(money(100, "CNY"), money(100, "USD"))).toThrow(/币种不一致/)
+        expect(() => plusMoney(money(Number.MAX_SAFE_INTEGER), money(1))).toThrow(/安全整数范围/)
     })
 
     it("非法倍数抛错：负金额与小数倍数都不该在链路里漂流", () => {
-        expect(() => timesMoney(money(100), 1.5)).toThrow(/非负整数/)
-        expect(() => timesMoney(money(100), -1)).toThrow(/非负整数/)
+        expect(() => timesMoney(money(100), 1.5)).toThrow(/非负安全整数/)
+        expect(() => timesMoney(money(100), -1)).toThrow(/非负安全整数/)
+        expect(() => timesMoney(money(Number.MAX_SAFE_INTEGER), 2)).toThrow(/安全整数范围/)
     })
 
     it("求和：空集合取传入的零值，非空按同币种累加", () => {
@@ -144,6 +146,8 @@ describe("表单输入 → 契约", () => {
         expect(yuanToMoney("  ")).toBeUndefined()
         expect(yuanToMoney("abc")).toBeUndefined()
         expect(yuanToMoney("-5")).toBeUndefined()
+        expect(yuanToMoney("Infinity")).toBeUndefined()
+        expect(yuanToMoney("1e309")).toBeUndefined()
     })
 
     it("元输入 → 分（四舍五入到分）", () => {

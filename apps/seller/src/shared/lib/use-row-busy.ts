@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 /**
  * useRowBusy —— 列表行内动作的「正在处理哪一行」状态。
@@ -9,14 +9,31 @@ import { useState } from "react"
  */
 export function useRowBusy() {
     const [busyId, setBusyId] = useState<string | undefined>()
+    const activeRun = useRef<symbol | undefined>(undefined)
+    const mounted = useRef(true)
+
+    useEffect(() => {
+        mounted.current = true
+        return () => {
+            mounted.current = false
+        }
+    }, [])
 
     /** 包一层：返回「传行 id 就能执行」的函数，自动维护 busyId */
     function run(action: (id: string) => Promise<unknown>) {
         return (id: string) => {
+            const runId = Symbol(id)
+            activeRun.current = runId
             setBusyId(id)
-            action(id)
+            void Promise.resolve()
+                .then(() => action(id))
                 .catch(() => undefined)
-                .finally(() => setBusyId(undefined))
+                .finally(() => {
+                    if (mounted.current && activeRun.current === runId) {
+                        activeRun.current = undefined
+                        setBusyId(undefined)
+                    }
+                })
         }
     }
 

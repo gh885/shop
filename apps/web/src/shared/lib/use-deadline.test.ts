@@ -32,6 +32,7 @@ describe("useDeadline", () => {
         const { result } = renderHook(() => useDeadline("not-a-date"))
 
         expect(result.current).toEqual({ seconds: 0, expired: true })
+        expect(vi.getTimerCount()).toBe(0)
     })
 
     it("空串视为无目标，直接过期", () => {
@@ -75,6 +76,9 @@ describe("formatCountdown", () => {
     it("不足 1 小时省略小时段", () => {
         expect(formatCountdown(0)).toBe("00:00")
         expect(formatCountdown(-5)).toBe("00:00")
+        expect(formatCountdown(Number.NaN)).toBe("00:00")
+        expect(formatCountdown(Number.POSITIVE_INFINITY)).toBe("00:00")
+        expect(formatCountdown(61.9)).toBe("01:01")
         expect(formatCountdown(59)).toBe("00:59")
         expect(formatCountdown(60)).toBe("01:00")
         expect(formatCountdown(3661)).toBe("01:01:01")
