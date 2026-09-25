@@ -5,7 +5,6 @@
 
 ## 近期要做
 
-- [ ] CI：现有远端门禁（前端 lint/typecheck/test + 后端 compile + 契约审计）上补 `mvn verify`（需给 job 配 PG + Redis 服务）与 Playwright
 - [ ] 商详图库（Embla，约 45KB raw）挪出 `/welcome` 也加载的共享 chunk：`lazy` + 图库位骨架，属可感知行为变化，动前先按 docs/conventions/frontend.md「打包体积」量收益
 - [ ] 搜索方案选型（当前 `name LIKE '%kw%'`，量级上去必须换，README「已知边界」已标注）
 - [ ] ui-web 共享层两处（不要只改单个调用点）：① 单选行整行不可点（`Item` + `RadioGroupItem` 的

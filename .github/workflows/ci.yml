@@ -41,7 +41,7 @@ jobs:
               run: pnpm test
 
     backend:
-        name: 后端编译 + 单测 (Java 25)
+        name: 后端 verify（Java 25）
         runs-on: ubuntu-latest
         # *Test 里的接口测试跑的是全量上下文（WebControllerTestSupport 刻意不 exclude 数据源，
         # 见其类注释），要连 shop_test 并由 Flyway 从零跑全量迁移建库，所以快环也必须有 PG。
@@ -60,6 +60,15 @@ jobs:
                     --health-interval 10s
                     --health-timeout 5s
                     --health-retries 10
+            redis:
+                image: redis:7
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-java@v4
@@ -67,13 +76,77 @@ jobs:
                   distribution: temurin
                   java-version: "25"
                   cache: maven
-            # mvn test 只跑 *Test（单元 / MockMvc）：ArchUnit 那几道架构门禁
-            # （MoneyTypeRulesTest / NamingRulesTest / ModularityTests）此前在 CI 上从未执行过。
-            # 集成测试（*IT）还缺 Redis 与 shop_test 的清理约定，接入时再放开 mvn verify。
-            - name: compile
-              run: mvn -f apps/server/pom.xml compile -q
-            - name: test
-              run: mvn -f apps/server/pom.xml test -q
+            # verify 覆盖 *Test 与 *IT：真实 PG/Redis、Flyway 全量迁移、事务后事件和模块边界都在门禁内。
+            - name: verify
+              run: mvn -f apps/server/pom.xml verify -q
+
+    e2e:
+        name: Playwright 下单主路径
+        runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres:18
+                env:
+                    POSTGRES_USER: shop
+                    POSTGRES_PASSWORD: shop_dev
+                    POSTGRES_DB: shop
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U shop -d shop"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
+            redis:
+                image: redis:7
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 12.4.1
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: pnpm
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: "25"
+                  cache: maven
+            - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm exec playwright install --with-deps chromium
+            - name: 启动后端与 web
+              run: |
+                  mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
+                  pnpm --filter web dev > /tmp/shop-web.log 2>&1 &
+                  for i in $(seq 1 60); do
+                    if curl -sf http://localhost:8080/v3/api-docs >/dev/null && curl -sf http://localhost:3000 >/dev/null; then
+                      exit 0
+                    fi
+                    sleep 2
+                  done
+                  cat /tmp/shop-server.log
+                  cat /tmp/shop-web.log
+                  exit 1
+            - name: 准备演示数据
+              run: pnpm seed:demo
+            - name: 运行下单主路径
+              run: pnpm test:e2e
+            - name: 上传 Playwright 报告
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-report
+                  path: e2e/playwright-report
+                  if-no-files-found: ignore
 
     contract:
         name: SDK 契约一致性
