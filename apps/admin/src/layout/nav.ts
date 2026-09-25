@@ -1,6 +1,6 @@
 import { createElement } from "react"
 import { linkOptions } from "@tanstack/react-router"
-import { LayoutTemplateIcon, StoreIcon, UserRoundIcon } from "lucide-react"
+import { LayoutTemplateIcon, PercentIcon, StoreIcon, UserRoundIcon } from "lucide-react"
 import type { SidebarItem } from "@shop/app-kit"
 
 /** 审核页位于根路径；显式保留分页初始值。 */
@@ -30,6 +30,17 @@ export const NAV_ITEMS: SidebarItem[] = [
             {
                 title: "商家管理",
                 items: [{ key: "review", label: "入驻审核", ...HOME_LINK }],
+            },
+        ],
+    },
+    {
+        key: "coupon-ops",
+        label: "优惠券",
+        icon: createElement(PercentIcon),
+        sections: [
+            {
+                title: "营销运营",
+                items: [{ key: "coupon-ops", label: "优惠券运营", to: "/coupon-ops" }],
             },
         ],
     },

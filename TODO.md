@@ -6,7 +6,6 @@
 ## 近期要做
 
 - [ ] E2E：Playwright 接入，先覆盖一条下单主路径（真实后端，storageState 缓存登录态）
-- [ ] admin 券运营入口：`POST /admin/coupons/{id}/void` 已就绪；补按用户/店铺查券列表端点 + 作废页面，并换独立 `COUPON_OPS` 权限码（当前暂借 `CMS_MANAGE`）
 - [ ] CI：现有远端门禁（前端 lint/typecheck/test + 后端 compile + 契约审计）上补 `mvn verify`（需给 job 配 PG + Redis 服务）与 Playwright
 - [ ] 商详图库（Embla，约 45KB raw）挪出 `/welcome` 也加载的共享 chunk：`lazy` + 图库位骨架，属可感知行为变化，动前先按 docs/conventions/frontend.md「打包体积」量收益
 - [ ] 搜索方案选型（当前 `name LIKE '%kw%'`，量级上去必须换，README「已知边界」已标注）

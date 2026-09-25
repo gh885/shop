@@ -1357,6 +1357,41 @@ export const zShipmentIssueResponse = z.object({
     resolvedAt: z.iso.datetime({ offset: true }).nullable()
 });
 
+export const zAdminCouponQuery = z.object({
+    userId: z.uuid().optional(),
+    shopId: z.uuid().optional(),
+    status: z.string().regex(/UNUSED|LOCKED|USED|EXPIRED|VOID/).optional()
+});
+
+export const zAdminCouponItem = z.object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    shopId: z.uuid(),
+    shopName: z.string().nullable(),
+    templateId: z.uuid(),
+    name: z.string(),
+    threshold: zMoney,
+    discount: zMoney,
+    bearer: z.enum(['SELLER', 'PLATFORM']),
+    effectiveAt: z.iso.datetime({ offset: true }),
+    expireAt: z.iso.datetime({ offset: true }),
+    status: z.enum([
+        'UNUSED',
+        'LOCKED',
+        'USED',
+        'EXPIRED',
+        'VOID'
+    ]),
+    source: z.enum(['CLAIM', 'REFUND_RETURN']),
+    orderId: z.uuid().nullable(),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
+export const zPageResultAdminCouponItem = z.object({
+    records: z.array(zAdminCouponItem),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
 export const zStaffInfo = z.object({
     id: z.uuid(),
     employeeNo: z.string(),
@@ -2426,6 +2461,16 @@ export const zListShopReviewsResponse = zPageResultShopReviewItem;
  * OK
  */
 export const zListOpenIssuesResponse = z.array(zShipmentIssueResponse);
+
+export const zListAdminCouponsQuery = z.object({
+    pageParams: zPageParams,
+    query: zAdminCouponQuery
+});
+
+/**
+ * OK
+ */
+export const zListAdminCouponsResponse = zPageResultAdminCouponItem;
 
 /**
  * OK

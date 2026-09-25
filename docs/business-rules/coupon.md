@@ -64,7 +64,7 @@
 - **[CPN-43]** 订单侧落三件券快照（`user_coupon_id` + `coupon_bearer` + `discount_amount`，列口径与 DB CHECK 见 ORD-24）：券规则会改、券会被停用，订单必须能自证「当时减了多少、凭哪张券」；减免额取**封顶后实减**（`applied_discount` 同值），不是面额。
 - **[CPN-44]** `order_id` 单列承载「本券当前关联订单」，随状态换义（LOCKED=占用的单 / USED=核销的单），刻意不分 locked_order_id/used_order_id 两列（避免两个真相）；历史轨迹归流水。
 - **[CPN-61]** 支付失败（confirm 失败）**不释券**——规则而非疏漏：confirm 失败后订单仍停留在待付款，若此刻即时释券（LOCKED→UNUSED），券回到买家口袋，而订单还挂着这张券的折扣快照；买家对同一订单重试支付成功时，核销走 `LOCKED→USED` 条件更新会命中 0 行（券已不在 LOCKED）——结果是**折扣生效了但券没被消耗**，同一张券还能在别的订单二次使用。因此待付款期间券必须保持 LOCKED，释券只由取消/超时关单两条路收口（CPN-38/39）。
-- **[CPN-62]** 运营作废的执行入口（C7 转正，CPN-34 状态机里 VOID 那条边自此落地）：`POST /admin/coupons/{id}/void`（staff 域，204）。**一期只放 UNUSED→VOID**；LOCKED（被未付款单占用，先取消该单释放再作废）/ USED（已核销，逆向走退款退券）/ EXPIRED / VOID 一律 409 并逐类给可理解的 detail，券不存在 404——不新增 error code（status + detail 足够，无按码分支）；强行抽走 LOCKED 的券等于让已展示的成交价凭空变贵，CPN-34 里 `LOCKED→VOID` 那条设计边刻意未开。作废走 `status='UNUSED'` 条件更新做并发闸门（抢不到 0 行按 409 冲突报「状态已变化」）；不写 coupon_usages 流水（action 枚举无 VOID，作废也不是金额动作），留 `[COUPON] 运营作废` 结构化日志。
+- **[CPN-62]** 运营查询与作废入口（C7 转正，CPN-34 状态机里 VOID 那条边自此落地）：`GET /admin/coupons` 按 userId/shopId/status 组合筛选分页，返回用户券快照、店铺名、来源、有效期与关联订单；`POST /admin/coupons/{id}/void`（staff 域，204）。列表与作废统一要求 `COUPON_OPS`（OPS 岗位）。**一期只放 UNUSED→VOID**；LOCKED（被未付款单占用，先取消该单释放再作废）/ USED（已核销，逆向走退款退券）/ EXPIRED / VOID 一律 409 并逐类给可理解的 detail，券不存在 404——不新增 error code（status + detail 足够，无按码分支）；强行抽走 LOCKED 的券等于让已展示的成交价凭空变贵，CPN-34 里 `LOCKED→VOID` 那条设计边刻意未开。作废走 `status='UNUSED'` 条件更新做并发闸门（抢不到 0 行按 409 冲突报「状态已变化」）；不写 coupon_usages 流水（action 枚举无 VOID，作废也不是金额动作），留 `[COUPON] 运营作废` 结构化日志。
 
 ## 逆向退回（退款退券）
 
@@ -88,7 +88,7 @@
 
 ## 鉴权与接口面
 
-- **[CPN-58]** 端点鉴权划分：店铺可领券列表匿名（`/api/*` 通道）；券包/领券需登录；卖家三端点需登录 + COUPON_MANAGE；运营作废（CPN-62）在 staff 域，权限暂借 CMS_MANAGE（运营岗 OPS）——admin 域没有券运营专用码，独立授权点待 `docs/conventions/permission-codes.md` 增补后替换。结算预览/下单传 `userCouponIds`（可空）。券不存在与不属于本人都给 404（不泄露存在性）；不属于本人的券不在结算候选里，选用会走 400「所选优惠券不可用于本单」。
+- **[CPN-58]** 端点鉴权划分：店铺可领券列表匿名（`/api/*` 通道）；券包/领券需登录；卖家三端点需登录 + COUPON_MANAGE；平台券运营列表与作废在 staff 域，统一要求 `COUPON_OPS`（运营岗 OPS），不再借用 CMS_MANAGE。结算预览/下单传 `userCouponIds`（可空）。券不存在与不属于本人都给 404（不泄露存在性）；不属于本人的券不在结算候选里，选用会走 400「所选优惠券不可用于本单」。
 
 ## 已定案未实现（设计稿已拍板、代码尚无；非生效规则）
 

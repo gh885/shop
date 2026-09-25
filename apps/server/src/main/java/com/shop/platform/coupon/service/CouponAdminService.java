@@ -1,11 +1,19 @@
 package com.shop.platform.coupon.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PageParams;
+import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
+import com.shop.platform.coupon.dto.AdminCouponQuery;
 import com.shop.platform.coupon.mapper.UserCoupon;
 import com.shop.platform.coupon.mapper.UserCouponMapper;
 import com.shop.platform.coupon.model.UserCouponStatus;
+import com.shop.platform.shop.api.ShopReadQuery;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +32,51 @@ import org.springframework.transaction.annotation.Transactional;
 public class CouponAdminService {
 
     private final UserCouponMapper userCouponMapper;
+
+    private final ShopReadQuery shopReadQuery;
+
+    /** 平台用户券运营列表：只查 coupon schema，店名经 shop::api 批量点查。 */
+    @Transactional(readOnly = true)
+    public PageResult<AdminCouponItem> pageCoupons(PageParams pageParams, AdminCouponQuery query) {
+        // 1. status 在 DTO 形状门先挡 422；service 仍用 enumFilter 守直接调用方。
+        UserCouponStatus status = Validate.enumFilter(UserCouponStatus.class, query.status(), "非法的券状态筛选值");
+        Page<UserCoupon> rows = userCouponMapper.selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<UserCoupon>()
+                        .eq(query.userId() != null, UserCoupon::getUserId, query.userId())
+                        .eq(query.shopId() != null, UserCoupon::getShopId, query.shopId())
+                        .eq(status != null, UserCoupon::getStatus, status)
+                        .orderByDesc(UserCoupon::getCreatedAt));
+
+        // 2. 店名只按主键批量点查，禁止跨 schema JOIN；缺失店铺名保留为 null，不阻断整页。
+        List<UserCoupon> records = rows.getRecords();
+        Map<UUID, String> shopNames = records.isEmpty()
+                ? Map.of()
+                : shopReadQuery.namesByIds(
+                        records.stream().map(UserCoupon::getShopId).distinct().toList());
+
+        // 3. 运营行固定拍平金额/状态/来源，避免把 mapper 实体和密码式治理列直接暴露出去。
+        return new PageResult<>(
+                records.stream()
+                        .map(coupon -> new AdminCouponItem(
+                                coupon.getId(),
+                                coupon.getUserId(),
+                                coupon.getShopId(),
+                                shopNames.get(coupon.getShopId()),
+                                coupon.getTemplateId(),
+                                coupon.getName(),
+                                coupon.thresholdAsMoney(),
+                                coupon.discountAsMoney(),
+                                coupon.getBearer(),
+                                coupon.getEffectiveAt(),
+                                coupon.getExpireAt(),
+                                coupon.getStatus(),
+                                coupon.getSource(),
+                                coupon.getOrderId(),
+                                coupon.getCreatedAt()))
+                        .toList(),
+                rows.getTotal());
+    }
 
     /**
      * 运营作废一张券：UNUSED → VOID，不可逆。

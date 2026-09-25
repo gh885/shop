@@ -32,7 +32,12 @@ public enum StaffRole {
         return switch (this) {
             case SUPER_ADMIN -> Set.of(PermissionResolver.WILDCARD);
             case REVIEWER -> Set.of(Permissions.SHOP_REVIEW);
-            case OPS -> Set.of(Permissions.CMS_MANAGE, Permissions.CATEGORY_MANAGE, Permissions.LOGISTICS_MANAGE);
+            case OPS ->
+                Set.of(
+                        Permissions.CMS_MANAGE,
+                        Permissions.CATEGORY_MANAGE,
+                        Permissions.LOGISTICS_MANAGE,
+                        Permissions.COUPON_OPS);
         };
     }
 

@@ -9,11 +9,6 @@ import {
     DataTableToolbar,
     DataTableViewOptions,
     Input,
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
     useDataTable,
     type DataTableFeatures,
 } from "@shop/ui-web"
@@ -25,6 +20,7 @@ import {
     USER_STATUS_OPTIONS,
 } from "./constants"
 import { adminStaffOptions, adminUsersOptions } from "./queries"
+import { StatusFilter } from "#/shared/ui/status-filter"
 
 export interface AccountSearch {
     status?: UserStatus | StaffStatus
@@ -274,9 +270,10 @@ function AccountStatusFilter({
     parse: (value: string) => { success: true; data: UserStatus } | { success: false }
 }) {
     return (
-        <Select
-            value={search.status ?? "all"}
-            onValueChange={(value) => {
+        <StatusFilter
+            value={search.status}
+            options={options}
+            onChange={(value) => {
                 const status = parse(value ?? "all")
                 navigate({
                     search: {
@@ -286,21 +283,6 @@ function AccountStatusFilter({
                     },
                 })
             }}
-        >
-            <SelectTrigger aria-label="账号状态">
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                {options.map((option) => (
-                    <SelectItem
-                        key={option.value}
-                        value={option.value}
-                    >
-                        {option.label}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
+        />
     )
 }

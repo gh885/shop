@@ -1446,6 +1446,35 @@ export const ShipmentIssueType = {
 
 export type ShipmentIssueType = typeof ShipmentIssueType[keyof typeof ShipmentIssueType];
 
+export type AdminCouponQuery = {
+    userId?: string;
+    shopId?: string;
+    status?: string;
+};
+
+export type AdminCouponItem = {
+    id: string;
+    userId: string;
+    shopId: string;
+    shopName: string | null;
+    templateId: string;
+    name: string;
+    threshold: Money;
+    discount: Money;
+    bearer: 'SELLER' | 'PLATFORM';
+    effectiveAt: string;
+    expireAt: string;
+    status: 'UNUSED' | 'LOCKED' | 'USED' | 'EXPIRED' | 'VOID';
+    source: 'CLAIM' | 'REFUND_RETURN';
+    orderId: string | null;
+    createdAt: string;
+};
+
+export type PageResultAdminCouponItem = {
+    records: Array<AdminCouponItem>;
+    total: number;
+};
+
 export type StaffInfo = {
     id: string;
     employeeNo: string;
@@ -3868,6 +3897,25 @@ export type ListOpenIssuesResponses = {
 };
 
 export type ListOpenIssuesResponse = ListOpenIssuesResponses[keyof ListOpenIssuesResponses];
+
+export type ListAdminCouponsData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        query: AdminCouponQuery;
+    };
+    url: '/admin/coupons';
+};
+
+export type ListAdminCouponsResponses = {
+    /**
+     * OK
+     */
+    200: PageResultAdminCouponItem;
+};
+
+export type ListAdminCouponsResponse = ListAdminCouponsResponses[keyof ListAdminCouponsResponses];
 
 export type GetAdminCategoryTreeData = {
     body?: never;

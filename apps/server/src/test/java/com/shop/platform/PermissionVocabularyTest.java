@@ -63,7 +63,7 @@ class PermissionVocabularyTest {
             REPO_ROOT.resolve(Path.of("packages", "common", "src", "permission-codes.ts"));
 
     /** 已在 packages/common 建 owner 的权限码；新增消费点时两向核对。 */
-    private static final Set<String> FRONTEND_PERMISSION_CODES = Set.of("STAFF_MANAGE");
+    private static final Set<String> FRONTEND_PERMISSION_CODES = Set.of("STAFF_MANAGE", "COUPON_OPS");
 
     /** 前端源码目录：权限码字面量只许住在 FRONTEND_PERMISSION_OWNER。 */
     private static final List<Path> FRONTEND_SOURCE = List.of(

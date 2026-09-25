@@ -11,9 +11,10 @@
 | 域     | 码                 | 授予            | 消费端点                                                                                                           | 含义                           |
 | ------ | ------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
 | admin  | `SHOP_REVIEW`      | `岗位:REVIEWER` | `ReviewController`                                                                                                 | 入驻审核（通过与拒绝）         |
-| admin  | `CMS_MANAGE`       | `岗位:OPS`      | `CmsContentAdminController`, `AdminCouponController`                                                               | banner / 导航 / 推荐位         |
+| admin  | `CMS_MANAGE`       | `岗位:OPS`      | `CmsContentAdminController`                                                                                        | banner / 导航 / 推荐位         |
 | admin  | `CATEGORY_MANAGE`  | `岗位:OPS`      | `CategoryAdminController`, `CategoryAttrAdminController`                                                           | 平台类目                       |
 | admin  | `LOGISTICS_MANAGE` | `岗位:OPS`      | `AdminLogisticsController`, `AdminShipmentIssueController`                                                         | 物流轨迹维护（补录节点、纠错） |
+| admin  | `COUPON_OPS`       | `岗位:OPS`      | `AdminCouponController`                                                                                            | 优惠券运营（查询、作废）       |
 | admin  | `STAFF_MANAGE`     | `仅超管`        | `AdminAccountController`                                                                                           | 创建员工、分配岗位、禁用       |
 | seller | `PRODUCT_MANAGE`   | `子账号`        | `ProductAdminController`                                                                                           | 商品增删改、规格 SKU、上下架   |
 | seller | `ORDER_FULFILL`    | `子账号`        | `SellerOrderController`, `SellerLogisticsController`, `SellerAfterSaleController`, `SellerAfterSaleListController` | 卖家订单查看 + 发货            |

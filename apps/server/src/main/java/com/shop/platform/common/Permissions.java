@@ -27,6 +27,9 @@ public final class Permissions {
     /** 物流轨迹维护（补录节点、纠错），岗位 OPS */
     public static final String LOGISTICS_MANAGE = "LOGISTICS_MANAGE";
 
+    /** 平台优惠券运营（查询、作废），岗位 OPS */
+    public static final String COUPON_OPS = "COUPON_OPS";
+
     // seller 域（店铺子账号，P1 启用标注）
     /** 商品增删改、规格 SKU、上下架 */
     public static final String PRODUCT_MANAGE = "PRODUCT_MANAGE";
@@ -53,6 +56,7 @@ public final class Permissions {
                 CMS_MANAGE,
                 CATEGORY_MANAGE,
                 LOGISTICS_MANAGE,
+                COUPON_OPS,
                 STAFF_MANAGE,
                 PRODUCT_MANAGE,
                 ORDER_FULFILL,

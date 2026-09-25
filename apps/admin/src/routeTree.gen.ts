@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppCouponOpsRouteImport } from './routes/_app/coupon-ops'
 import { Route as AppAccountsStaffRouteImport } from './routes/_app/accounts/staff'
 import { Route as AppAccountsUsersRouteImport } from './routes/_app/accounts/users'
 import { Route as AppCmsBannerRouteImport } from './routes/_app/cms/banner'
@@ -30,6 +31,11 @@ const LoginRoute = LoginRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCouponOpsRoute = AppCouponOpsRouteImport.update({
+  id: '/coupon-ops',
+  path: '/coupon-ops',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAccountsStaffRoute = AppAccountsStaffRouteImport.update({
@@ -61,6 +67,7 @@ const AppCmsRecommendTabRoute = AppCmsRecommendTabRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/coupon-ops': typeof AppCouponOpsRoute
   '/accounts/staff': typeof AppAccountsStaffRoute
   '/accounts/users': typeof AppAccountsUsersRoute
   '/cms/banner': typeof AppCmsBannerRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/coupon-ops': typeof AppCouponOpsRoute
   '/': typeof AppIndexRoute
   '/accounts/staff': typeof AppAccountsStaffRoute
   '/accounts/users': typeof AppAccountsUsersRoute
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/coupon-ops': typeof AppCouponOpsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts/staff': typeof AppAccountsStaffRoute
   '/_app/accounts/users': typeof AppAccountsUsersRoute
@@ -92,6 +101,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/coupon-ops'
     | '/accounts/staff'
     | '/accounts/users'
     | '/cms/banner'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/coupon-ops'
     | '/'
     | '/accounts/staff'
     | '/accounts/users'
@@ -110,6 +121,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
+    | '/_app/coupon-ops'
     | '/_app/'
     | '/_app/accounts/staff'
     | '/_app/accounts/users'
@@ -144,6 +156,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/coupon-ops': {
+      id: '/_app/coupon-ops'
+      path: '/coupon-ops'
+      fullPath: '/coupon-ops'
+      preLoaderRoute: typeof AppCouponOpsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/accounts/staff': {
@@ -185,6 +204,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCouponOpsRoute: typeof AppCouponOpsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAccountsStaffRoute: typeof AppAccountsStaffRoute
   AppAccountsUsersRoute: typeof AppAccountsUsersRoute
@@ -194,6 +214,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCouponOpsRoute: AppCouponOpsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAccountsStaffRoute: AppAccountsStaffRoute,
   AppAccountsUsersRoute: AppAccountsUsersRoute,
