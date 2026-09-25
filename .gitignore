@@ -44,3 +44,6 @@ apps/mobile-*/build/
 # Temp / tooling
 .tmp-shots/
 .fallow/
+e2e/playwright/.auth/
+e2e/test-results/
+e2e/playwright-report/
