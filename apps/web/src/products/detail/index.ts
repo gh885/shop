@@ -13,7 +13,6 @@
 export { DetailHeader } from "./DetailHeader"
 export { DETAIL_LAYOUT, PDP_MAX_QUANTITY } from "./constants"
 export { DetailSections, ShopRecommendSection, AlsoViewedSection } from "./DetailSections"
-export { Gallery } from "./Gallery"
 export { ProductDetailSkeleton } from "./ProductDetailSkeleton"
 export { PurchaseCta } from "./PurchaseCta"
 export { PurchasePanel } from "./PurchasePanel"

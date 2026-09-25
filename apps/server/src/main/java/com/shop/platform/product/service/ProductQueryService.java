@@ -125,8 +125,8 @@ public class ProductQueryService {
                         Product::isSevenDayReturn)
                 .eq(Product::getStatus, ProductStatus.PUBLISHED)
                 .in(visibleCategoryIds != null, Product::getCategoryId, visibleCategoryIds)
-                .eq(query.shopId() != null, Product::getShopId, query.shopId())
-                .like(StringUtils.hasText(keyword), Product::getName, keyword);
+                .eq(query.shopId() != null, Product::getShopId, query.shopId());
+        addKeywordFilter(wrapper, keyword);
         // 每种排序都补 id 兜底，保证翻页时同值记录顺序稳定（否则第 2 页可能重复第 1 页的行）
         switch (ProductSort.fromWire(query.sort())) {
             case PRICE_ASC -> wrapper.orderByAsc(Product::getMinPrice).orderByDesc(Product::getId);
@@ -165,10 +165,18 @@ public class ProductQueryService {
     private static LambdaQueryWrapper<Product> filter(UUID shopId, ProductStatus status, String keyword) {
         // MP 的条件 boolean 参数不短路右侧表达式：keyword.trim() 必须先判空提取，否则无 keyword 请求 NPE
         String trimmedKeyword = keyword == null ? null : keyword.trim();
-        return new LambdaQueryWrapper<Product>()
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
                 .eq(Product::getShopId, shopId)
-                .eq(status != null, Product::getStatus, status)
-                .like(StringUtils.hasText(trimmedKeyword), Product::getName, trimmedKeyword);
+                .eq(status != null, Product::getStatus, status);
+        addKeywordFilter(wrapper, trimmedKeyword);
+        return wrapper;
+    }
+
+    /** 商品名称/副标题包含搜索；ILIKE + pg_trgm 保留大小写不敏感的包含匹配语义。 */
+    private static void addKeywordFilter(LambdaQueryWrapper<Product> wrapper, String keyword) {
+        if (!StringUtils.hasText(keyword)) return;
+        String pattern = "%" + keyword.trim() + "%";
+        wrapper.and(q -> q.apply("name ILIKE {0}", pattern).or().apply("subtitle ILIKE {0}", pattern));
     }
 
     /** 为给定商品集聚合库存（一次批查，供排序与行渲染共用）；缺失（无库存行）按 0 兜底 */

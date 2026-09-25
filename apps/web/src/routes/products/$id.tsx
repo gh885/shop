@@ -1,5 +1,5 @@
 import { moneyToYuan, toApiError } from "@shop/common"
-import { useState } from "react"
+import { lazy, Suspense, useState } from "react"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 
 import { cn } from "@shop/ui-web"
@@ -10,7 +10,6 @@ import {
     DETAIL_LAYOUT,
     DetailHeader,
     DetailSections,
-    Gallery,
     PDP_MAX_QUANTITY,
     ProductDetailSkeleton,
     productDetailOptions,
@@ -26,6 +25,10 @@ import {
 } from "#/products/detail"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SITE_ORIGIN } from "#/shared/lib/env"
+
+const Gallery = lazy(() =>
+    import("#/products/detail/Gallery").then((module) => ({ default: module.Gallery })),
+)
 
 export const Route = createFileRoute("/products/$id")({
     /**
@@ -182,10 +185,14 @@ function ProductDetailPage() {
                                 <ShopBar shopId={detail.product.shopId} />
                             </section>
                             {/* 图区：对齐天猫 picGallery 844×620 = 主图区 564 + 间距 16 + 底部切换条 40 */}
-                            <Gallery
-                                images={images}
-                                params={detail.params}
-                            />
+                            <Suspense
+                                fallback={<div className="h-141 w-full rounded-xl bg-muted" />}
+                            >
+                                <Gallery
+                                    images={images}
+                                    params={detail.params}
+                                />
+                            </Suspense>
                             {/* 吸顶锚点导航 + 评价/参数/图文详情 */}
                             <DetailSections detail={detail} />
                             <ShopRecommendSection detail={detail} />

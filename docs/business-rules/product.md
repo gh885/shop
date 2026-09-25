@@ -85,7 +85,7 @@
 
 ## 八、搜索 / 列表 / 浏览
 
-- **[PRD-62]** 买家商品列表筛选：categoryId 与 feed 召回同口径——经 CategoryService.descendantIds 展开**启用子树**后按 IN 匹配（tab/筛选可指一级类目、商品挂三级叶子；父链上任一节点禁用即整支不可见），未知/禁用类目得到空集、直接返回空页 total=0，不报错不查商品表（禁用不查挂载类目自身，父级禁用同样挡，与 [PRD-06]/[PRD-82] 同一条级联口径）；shopId 精确匹配、keyword 对商品名 LIKE 包含匹配（≤128 字、trim 后为空视为无关键词）；都不传 = 全站上架商品按新品排。
+- **[PRD-62]** 买家商品列表筛选：categoryId 与 feed 召回同口径——经 CategoryService.descendantIds 展开**启用子树**后按 IN 匹配（tab/筛选可指一级类目、商品挂三级叶子；父链上任一节点禁用即整支不可见），未知/禁用类目得到空集、直接返回空页 total=0，不报错不查商品表（禁用不查挂载类目自身，父级禁用同样挡，与 [PRD-06]/[PRD-82] 同一条级联口径）；shopId 精确匹配、keyword 对商品名或副标题做大小写不敏感的包含匹配（ILIKE '%keyword%'，由 V67 的 pg_trgm GIN 索引支撑，≤128 字、trim 后为空视为无关键词）；都不传 = 全站上架商品按新品排。搜索方案与外部服务切换口径见 `docs/reference/search-decision.md`。
 - **[PRD-63]** 买家列表排序白名单：newest（默认，createdAt 降）/ price_asc（按 minPrice 升）/ price_desc（按 maxPrice 降），词表与分支由 `ProductSort` 一处持有（wire 值 = 小写名，`fromWire` 解析，GEN-52）；价格排序直接吃 SPU 冗余价格副本免查 SKU 表。非法 sort 值 **422**（门在 DTO 的 @Pattern 上，GEN-19 第①条线，`ProductControllerTest.非法排序_422带字段名` 实测——原写 400 是未验证的推断）。每种排序都追加 id 降序兜底，保证翻页同值行顺序稳定不重复。
 - **[PRD-64]** 分页契约：page ≥1（默认 1）、size 1~100（默认 10）。
 - **[PRD-67]** 买家侧不拼店铺名、跨模块各取各的：商品响应只给 shopId，前端另查店铺详情；商品卡价格取 minPrice（"¥xx 起"）。
