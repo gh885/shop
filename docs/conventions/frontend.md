@@ -15,6 +15,7 @@
     - **页签 / 下拉选项不是第二张表**：用 `@shop/common` 的 `statusOptions(表[, order])` 从状态表派生，一个状态只有一处中文（徽章与页签各写一份时「上架中」会漂移成「在售」）；文案与徽章色同表时合并成一张 `XXX_STATUS_META`（`{ label, variant }`），不设平行表——平行表要求每次加状态改两处，漏一处就得到「新状态没颜色」
     - 只有**角色措辞真的不同**时才各写一份（买家「待卖家处理」/卖家「待处理」是同一状态对两个人说两句活），并在表头注释写明这是决定而不是漏同步
 - 依赖方向：`routes → domain → shared`；shared 不 import domain；domain 之间只经对方 `index.ts` 公开入口；跨端通用逻辑下沉共享包 —— 生成 SDK 在 `packages/api`，手写共享逻辑（money/api-error/forms/error-codes/auth-kit/sdk-client/category 树算法）一律归 `packages/common`，**禁止在 `@shop/api` 内新增手写文件**
+    - 这条已由 `fallow` 的 boundaries 机械拦截（`pnpm fallow`，zone 配置在 `.fallowrc.json`）：`index.ts` 单独成 zone，所以绕到对方 `queries.ts` / `model.ts` 会直接判 boundary-violation。要给跨域用的符号（如失效缓存要的 query key）就得进 barrel——「只暴露外部真正消费的那几个」里的"外部"包含别的域
 - hook 上提标准：≥2 个组件复用或状态机复杂才抽成 `use-*.ts`；域内 hook 留在域内，不因"它是 hook"进 shared
 - **领域类型不镜像 SDK**：wire→领域投影只在有真实变换时才写（改名 / 可空归一 / 枚举大小写映射 / 兜底占位）；契约字段同名同型透传的，直接用 `@shop/api` 的生成类型，不造 `Xxx` + `toXxx` 恒等复制。扩展形状优先 `Order & Omit<OrderDetailResponse, "status" | "items">` 这类组合，不逐字段抄书
 - **组件 props 用多少声明多少**：不直接把数据层宽实体（OrderDetail 等）整个当 prop 类型，用 `Pick` 声明渲染所需切片（结构类型下调用方传整体零成本）；回调不回传父组件已持有的实体（如 `onAction(action)` 而非 `onAction(order, action)`）。例外：职责就是渲染实体大部分信息的卡片（OrderSummaryCard 用 ~20/30 字段）与页面编排者，宽类型正当

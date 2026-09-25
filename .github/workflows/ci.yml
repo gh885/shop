@@ -7,10 +7,13 @@ on:
 
 jobs:
     frontend:
-        name: 前端 lint / typecheck / 单测
+        name: 前端 lint / typecheck / 单测 / 死代码
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+              with:
+                  # fallow audit 要拿 PR 基准分支算 merge-base，浅克隆没有这段历史
+                  fetch-depth: 0
             - uses: pnpm/action-setup@v4
               with:
                   version: 12.4.1
@@ -24,6 +27,16 @@ jobs:
               run: pnpm oxlint --config packages/config/oxlint.config.ts .
             - name: typecheck
               run: pnpm typecheck
+            # github-annotations：发现直接标在 PR diff 对应行上
+            - name: dead-code
+              run: pnpm fallow --format github-annotations
+            # 生产视角：测试/脚本之外没人用的导出，只被测试引用却放在 dependencies 的依赖
+            - name: dead-code (production)
+              run: pnpm fallow:production --format github-annotations
+            # 只在 PR 上跑：push 到 main 时没有可比的基准分支
+            - name: audit
+              if: github.event_name == 'pull_request'
+              run: pnpm exec fallow audit --base origin/${{ github.base_ref }} --format github-annotations
             - name: test
               run: pnpm test
 

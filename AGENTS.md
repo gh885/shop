@@ -38,6 +38,9 @@ pnpm lint             # oxlint + mvn compile
 pnpm format           # oxfmt + spotless:apply
 pnpm typecheck        # 递归跑所有 workspace 包的 typecheck 脚本（pnpm -r --if-present）
 pnpm test             # 前端全量测试（vitest projects：apps/* + packages/*）
+pnpm fallow           # 死代码 + 架构边界（域间只走对方 index.ts，规则见 frontend.md）
+pnpm fallow:audit     # 只审当前改动，恒退 0：告诉你这个 diff 该往哪盯
+                      # 去掉 --brief 的 `pnpm exec fallow audit` 是门禁（pre-commit / PR CI）：新引入的死代码、超标复杂度、重复代码才拦
 
 # SDK 生成（需后端已启动）
 pnpm gen:sdk          # 拉取 /v3/api-docs 覆盖 openapi/api-docs.json，重新生成 packages/api/src/sdk，末尾跑 contract:audit

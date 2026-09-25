@@ -53,6 +53,19 @@ pre-commit:
           run: pnpm oxlint --no-error-on-unmatched-pattern --config packages/config/oxlint.config.ts {staged_files}
           fail_text: "oxlint 未通过；可自动修复的部分跑 pnpm lint:web"
 
+        # 以下两项不按暂存文件过滤，但带缓存各 ~1s 内，放 pre-commit 而非 pre-push：仓库没有 remote 时
+        # pre-push 永不触发。代价是审的是工作区（含未暂存改动），不严格等于本次提交
+        # 死代码 + 架构边界：域间只许引对方 index.ts（frontend.md「依赖方向」），配置在 .fallowrc.json
+        - name: dead-code
+          tags: [arch]
+          run: pnpm fallow
+
+        # 只审改动（基准：与上游的 merge-base，无上游时取本地 main）：新引入的死代码 / 超标复杂度 / 重复代码才拦，
+        # 历史存量不算，所以 health 与 dupes 不用维护基线文件也只许变好
+        - name: audit
+          tags: [arch]
+          run: pnpm exec fallow audit
+
 # ── commit-msg：Conventional Commits 校验 ──
 commit-msg:
     jobs:
@@ -76,6 +89,8 @@ pre-push:
         - name: typecheck
           tags: [types]
           run: pnpm typecheck
+
+        # 死代码 / 改动审计（fallow）在 pre-commit，见那边的说明
 
         # 前端单测 + 组件/集成测试（vitest projects：apps/* + packages/*）
         - name: test

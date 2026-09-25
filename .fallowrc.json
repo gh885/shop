@@ -1,0 +1,37 @@
+{
+    "$schema": "./node_modules/fallow/schema.json",
+    "ignorePatterns": ["apps/server"],
+    "ignoreFindings": ["packages/api/src/sdk/**"],
+    "ignoreDependencies": ["oxc-transform-react"],
+    // 单测从模块边界测内部 helper，故「仅本文件内被引用」的导出不算死代码；彻底无引用仍会报
+    "ignoreExportsUsedInFile": true,
+    "entry": ["packages/api/openapi-ts.config.ts"],
+    // 生成物与造数脚本不进重构/重复的判据：ignoreFindings 只覆盖死代码，health 与 dupes 要各自排
+    "health": { "ignore": ["packages/api/src/sdk/**", "**/*.gen.ts", "scripts/**"] },
+    "duplicates": { "ignore": ["packages/api/src/sdk/**", "**/*.gen.ts", "scripts/**"] },
+    // frontend.md:17 的依赖方向：routes → domain → shared。跨域只能取对方 index.ts，
+    // 所以 barrel 自成一个 zone；直插对方 queries.ts / model.ts 会成 boundary-violation
+    "boundaries": {
+        "zones": [
+            { "name": "domain-api", "patterns": ["apps/*/src/*/index.ts"] },
+            { "name": "routes", "patterns": ["apps/*/src/routes/**"] },
+            { "name": "shell", "patterns": ["apps/*/src/app/**", "apps/*/src/layout/**"] },
+            { "name": "shared", "patterns": ["apps/*/src/shared/**"] },
+            {
+                "name": "kit",
+                "patterns": ["packages/common/**", "packages/app-kit/**", "packages/ui-web/**"]
+            },
+            {
+                "name": "domain",
+                "autoDiscover": ["apps/web/src", "apps/seller/src", "apps/admin/src"]
+            }
+        ],
+        "rules": [
+            { "from": "routes", "allow": ["domain-api", "domain", "shared", "kit", "shell"] },
+            { "from": "shell", "allow": ["domain-api", "domain", "shared", "kit", "routes"] },
+            { "from": "domain", "allow": ["domain-api", "shared", "kit"] },
+            { "from": "shared", "allow": ["shared", "kit"] },
+            { "from": "kit", "allow": ["kit"] }
+        ]
+    }
+}

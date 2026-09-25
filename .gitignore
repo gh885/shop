@@ -43,3 +43,4 @@ apps/mobile-*/build/
 
 # Temp / tooling
 .tmp-shots/
+.fallow/
