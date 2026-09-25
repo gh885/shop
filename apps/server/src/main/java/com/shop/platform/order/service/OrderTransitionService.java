@@ -6,7 +6,6 @@ import static com.shop.platform.order.model.OrderStatus.PAID;
 import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 import static com.shop.platform.order.model.OrderStatus.SHIPPED;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.api.CouponCommand;
@@ -144,14 +143,9 @@ public class OrderTransitionService {
     /** 完成的唯一落点（买家确认收货 / 超时自动收货共用）：转 COMPLETED 并开通售后申请窗口 */
     private boolean complete(UUID orderId, OrderAction action, OrderActor actor) {
         OffsetDateTime now = OffsetDateTime.now();
-        int affected = orderMapper.update(
-                null,
-                condition(orderId)
-                        .in(Order::getStatus, OrderStatus.sourcesOf(COMPLETED))
-                        .set(Order::getStatus, COMPLETED)
-                        .set(Order::getCompletedAt, now)
-                        .set(Order::getApplyExpireAt, now.plus(OrderTimeouts.AFTER_SALE_APPLY)));
-        if (affected != 1) {
+        // 条件转移（合法起点集 + 完成时刻与售后窗口同批回填）见 OrderMapper.markCompleted；
+        // 抢不到行 = 有人先把这单推走了，让位给并发，不记流水也不加销量
+        if (orderMapper.markCompleted(orderId, now, now.plus(OrderTimeouts.AFTER_SALE_APPLY)) != 1) {
             return false;
         }
         statusLogWriter.record(orderId, SHIPPED, COMPLETED, action, actor, null);
@@ -161,12 +155,7 @@ public class OrderTransitionService {
         return true;
     }
 
-    // 私有：更新辅助
-    /** 更新起点：主键定位 + 影响行数即乐观闸门 */
-    private static LambdaUpdateWrapper<Order> condition(UUID orderId) {
-        return new LambdaUpdateWrapper<Order>().eq(Order::getId, orderId);
-    }
-
+    // 私有：行转换
     /** 订单行 → 库存结算行（回补/释放共用） */
     private static List<StockLine> toStockLines(List<OrderItem> items) {
         return items.stream()

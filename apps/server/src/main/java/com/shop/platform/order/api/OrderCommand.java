@@ -1,12 +1,10 @@
 package com.shop.platform.order.api;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
-import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
 import com.shop.platform.order.model.AfterSaleStatus;
@@ -48,20 +46,14 @@ public class OrderCommand {
 
     /**
      * 支付成功的落点：条件转移 PENDING_PAYMENT → PAID，回填发货截止；失败抛 409 令调用方事务回滚。
+     * 闸门语句（合法起点集 + 两个时刻的推导）见 {@code OrderMapper.markPaid}，409 的裁决留在这里。
      *
      * <p>顺带把本单占用的券核销掉（LOCKED → USED，coupon :: api，同事务）：券的占用与资金到账必须一起成立。
      * 本单没用券时该调用无副作用。
      */
     public void markPaid(UUID orderId) {
         OffsetDateTime now = OffsetDateTime.now();
-        int affected = orderMapper.update(
-                null,
-                new LambdaUpdateWrapper<Order>()
-                        .eq(Order::getId, orderId)
-                        .in(Order::getStatus, OrderStatus.sourcesOf(OrderStatus.PAID))
-                        .set(Order::getStatus, OrderStatus.PAID)
-                        .set(Order::getPaidAt, now)
-                        .set(Order::getShipExpireAt, now.plus(OrderTimeouts.SHIP)));
+        int affected = orderMapper.markPaid(orderId, now, now.plus(OrderTimeouts.SHIP));
         Validate.conflict(affected == 1, "订单已取消或已支付，本次支付未生效");
 
         // 支付成功即扣实冻结库存（同事务）：货真的没了，冻结量归还
@@ -119,17 +111,12 @@ public class OrderCommand {
      * 售后投影写回：afterSaleStatus 取 aftersale 售后单状态的 name()（与 {@link AfterSaleStatus} 同词表，NONE 除外），
      * refundAmount 仅在退款完成时传入，其余传 null 不动。
      *
-     * <p>退款额必须与本单同币种：orders 的币种列是本单既定的（一单一个币种），换币种的退款落不进这一行，
-     * 于是连 WHERE 一起挡掉（币种不符即视为未命中）。
+     * <p>语句形状与「换币种连 WHERE 一起挡掉」的理由在 {@code OrderMapper.syncAfterSale}；这里只留 0 行的说法——
+     * 投影写不回（单不存在）就是调用方传错了单据，400。
      */
     public void syncAfterSale(UUID orderId, String afterSaleStatus, Money refundAmount) {
-        LambdaUpdateWrapper<Order> update = new LambdaUpdateWrapper<Order>()
-                .eq(Order::getId, orderId)
-                .set(Order::getAfterSaleStatus, AfterSaleStatus.valueOf(afterSaleStatus));
-        if (refundAmount != null) {
-            update.eq(Order::getCurrency, refundAmount.currency());
-            update.set(Order::getRefundAmount, refundAmount.amount());
-        }
-        Validate.isTrue(orderMapper.update(null, update) == 1, "订单不存在");
+        Validate.isTrue(
+                orderMapper.syncAfterSale(orderId, AfterSaleStatus.valueOf(afterSaleStatus), refundAmount) == 1,
+                "订单不存在");
     }
 }

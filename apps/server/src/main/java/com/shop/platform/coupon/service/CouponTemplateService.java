@@ -39,7 +39,7 @@ public class CouponTemplateService {
     /** 本店券管理列表：按创建时间倒序，带已核销数 */
     @Transactional(readOnly = true)
     public PageResult<ShopCoupon> pageMine(UUID shopId, PageParams page) {
-        Page<CouponTemplate> rows = templateMapper.selectPageByShop(new Page<>(page.page(), page.size()), shopId);
+        Page<CouponTemplate> rows = templateMapper.selectPageByShop(page, shopId);
         List<CouponTemplate> records = rows.getRecords();
         Map<UUID, Long> usedCounts = userCouponMapper.countUsedByTemplateIds(
                 records.stream().map(CouponTemplate::getId).toList());

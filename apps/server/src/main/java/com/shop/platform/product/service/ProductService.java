@@ -1,6 +1,5 @@
 package com.shop.platform.product.service;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
@@ -55,13 +54,14 @@ public class ProductService {
     /**
      * 编辑基本信息（specs/SKU 之外的字段）。任何状态可改：上架后改展示字段/分类是日常运营，改规格走 SkuService.updateSpecs。
      *
-     * <p>统一用「实体 + updateById」而非 LambdaUpdateWrapper：detailImages / images / params 是 JSONB 列，
+     * <p>统一用「实体 + updateById」而非条件更新 wrapper：detailImages / images / params 是 JSONB 列，
      * wrapper 的 {@code set(列, List)} 不携带 {@code @TableField(typeHandler)}，MP 把 ArrayList 当普通参数传入，
      * PG 无法推断数组类型直接 500（实测报「无法推测实例 java.util.ArrayList 的 SQL 类型」）。
      * 实体方案走实体的 typeHandler，JSONB ↔ List 序列化正确。
      *
      * <p>PATCH 语义（传 null 不写）在字段级保留：只 set 非 null 的字段；subtitle 例外——空串表示清空卖点，
-     * 显式写给 null（blankToNull），因为 updateById 默认忽略 null 字段，故 subtitle 单独用 wrapper 子句。
+     * 显式写给 null（blankToNull），因为 updateById 默认忽略 null 字段，故清空那一处单独走一条具名条件更新
+     * （{@code ProductMapper.clearSubtitle}，标量列，不在这条 JSONB 限制之内）。
      */
     @Transactional
     public Product updateBasic(UUID shopId, UUID productId, UpdateBasicCommand command) {
@@ -107,13 +107,9 @@ public class ProductService {
         if (command.sevenDayReturn() != null) {
             product.setSevenDayReturn(command.sevenDayReturn());
         }
-        // 4. subtitle「清空调」：空串传进来 = 想清空卖点，而 updateById 忽略 null 字段，用 wrapper 子句单独写 null
+        // 4. subtitle「清空调」：空串传进来 = 想清空卖点，而 updateById 忽略 null 字段，单独发一条具名条件更新写 null
         if (command.subtitle() != null && Text.blankToNull(command.subtitle()) == null) {
-            productMapper.update(
-                    null,
-                    new LambdaUpdateWrapper<Product>()
-                            .eq(Product::getId, productId)
-                            .set(Product::getSubtitle, null));
+            productMapper.clearSubtitle(productId);
         }
         productMapper.updateById(product);
         // 5. SKU 名是「SPU名+规格值」的快照：SPU 改名后刷一遍存量 SKU 名，
@@ -219,17 +215,12 @@ public class ProductService {
     }
 
     /**
-     * 状态迁移乐观锁：只用条件更新「where status=from → set status=to」，affected=0 说明并发下状态已变
-     * （读-判-写之间的竞争窗口被挡），抛 409 让调用方刷新重试；返回的实体字段由调用方另行落库。
+     * 状态迁移乐观锁：只发一条条件更新「where status=from → set status=to」（语句见
+     * {@code ProductMapper.transitionStatus}），affected=0 说明并发下状态已变（读-判-写之间的竞争窗口被挡），
+     * 抛 409 让调用方刷新重试；返回的实体字段由调用方另行落库。
      */
     private void requireTransition(UUID productId, ProductStatus from, ProductStatus to, String detail) {
-        int affected = productMapper.update(
-                null,
-                new LambdaUpdateWrapper<Product>()
-                        .eq(Product::getId, productId)
-                        .eq(Product::getStatus, from)
-                        .set(Product::getStatus, to));
-        if (affected == 0) {
+        if (productMapper.transitionStatus(productId, from, to) == 0) {
             throw BusinessException.conflict(null, detail);
         }
     }

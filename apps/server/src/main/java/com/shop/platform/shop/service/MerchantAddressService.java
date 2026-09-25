@@ -1,6 +1,5 @@
 package com.shop.platform.shop.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
@@ -52,9 +51,8 @@ public class MerchantAddressService {
     /** 新增地址：条数超限拒绝；可同时标记默认发货/默认退货（各至多一个） */
     @Transactional
     public MerchantAddress create(UUID shopId, MerchantAddressRequest req) {
-        // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）
-        long owned = addressMapper.selectCount(
-                new LambdaQueryWrapper<MerchantAddress>().eq(MerchantAddress::getShopId, shopId));
+        // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）；哪些行占名额的口径见 countByShop
+        long owned = addressMapper.countByShop(shopId);
         Validate.isTrue(
                 owned < MAX_ADDRESS_PER_SHOP,
                 ErrorCodes.MERCHANT_ADDRESS_LIMIT_EXCEEDED,

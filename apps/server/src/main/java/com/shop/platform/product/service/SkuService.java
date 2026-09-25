@@ -1,6 +1,5 @@
 package com.shop.platform.product.service;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.DuplicateKeys;
@@ -157,7 +156,7 @@ public class SkuService {
             ensureStrikethroughNotInverted(existingById.get(item.skuId()), item);
         }
 
-        // 2. 逐条更新：WHERE 同时校验 SKU 归属，只 set 非空字段（skuCode/status 传 null 即不改）
+        // 2. 逐条更新：SKU 归属与「给了才改」的开关都写在那条语句里（见 SkuMapper.updateByProductAndId）
         // uk_skus_code 全局唯一索引兜底重复业务编码
         DuplicateKeys.conflictOnDuplicate(
                 () -> {
@@ -165,19 +164,16 @@ public class SkuService {
                         Long originalFen = item.originalPrice() == null
                                 ? null
                                 : item.originalPrice().amount();
-                        int affected = skuMapper.update(
-                                null,
-                                new LambdaUpdateWrapper<Sku>()
-                                        .eq(Sku::getId, item.skuId())
-                                        .eq(Sku::getProductId, productId)
-                                        .set(item.name() != null, Sku::getName, item.name())
-                                        .set(item.image() != null, Sku::getImage, item.image())
-                                        .set(originalFen != null, Sku::getOriginalPrice, originalFen)
-                                        .set(item.skuCode() != null, Sku::getSkuCode, item.skuCode())
-                                        .set(item.status() != null, Sku::getStatus, item.status())
-                                        .set(Sku::getPrice, item.price().amount())
-                                        // 币种与价格同批落：两列是一笔钱的两个半边，只写一边就是让币种说谎
-                                        .set(Sku::getCurrency, item.price().currency()));
+                        int affected = skuMapper.updateByProductAndId(
+                                productId,
+                                item.skuId(),
+                                item.name(),
+                                item.image(),
+                                originalFen,
+                                item.skuCode(),
+                                item.status(),
+                                item.price().amount(),
+                                item.price().currency());
                         Validate.isTrue(affected == 1, "SKU 不存在或不属于该商品");
                         // 3. 库存绝对量设定（读-改-写，乐观锁）：同一事务内同步调用 inventory :: api
                         stockCommand.setTotal(item.skuId(), item.stock());

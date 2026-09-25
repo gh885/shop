@@ -1,6 +1,7 @@
 package com.shop.platform.cart.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.common.Quantities;
 import java.util.Collection;
@@ -56,6 +57,25 @@ public interface CartItemMapper extends BaseMapper<CartItem> {
         return selectCount(new LambdaQueryWrapper<CartItem>()
                 .eq(CartItem::getUserId, userId)
                 .eq(CartItem::getSelected, true));
+    }
+
+    /**
+     * 批量勾选：一条语句把勾选位刷到整车或刷到点名的那几条，回影响行数。
+     *
+     * <p>归属靠 {@code WHERE user_id}：别人条目的 id 递进来落不进这一句——既改不动数据，也不因为
+     * 「改了 0 行」与「改了 N 行」的差别把别人的条目存在性说出来（CART-05 同一口径）。
+     *
+     * <p>{@code itemIds} 传 null <b>与传空集都是「作用于整车」</b>：全选/取消全选那一发请求本来就不带 id 列表，
+     * 两种缺席同义；空集合不退化成「一条都不改」，也不拼成 {@code IN ()}（那是 PG 的语法错误）。
+     */
+    default int updateSelected(UUID userId, Boolean selected, Collection<UUID> itemIds) {
+        LambdaUpdateWrapper<CartItem> update = new LambdaUpdateWrapper<CartItem>()
+                .eq(CartItem::getUserId, userId)
+                .set(CartItem::getSelected, selected);
+        if (itemIds != null && !itemIds.isEmpty()) {
+            update.in(CartItem::getId, itemIds);
+        }
+        return update(null, update);
     }
 
     /**

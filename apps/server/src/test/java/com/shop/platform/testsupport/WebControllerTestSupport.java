@@ -261,7 +261,7 @@ public abstract class WebControllerTestSupport {
                 .register(UUID.class, new com.shop.platform.infra.db.UuidTypeHandler());
         TableInfoHelper.initTableInfo(assistant, Shop.class);
         TableInfoHelper.initTableInfo(assistant, ShopMember.class);
-        when(shopMapper.selectCount(any())).thenReturn(1L);
+        when(shopMapper.existsUsable(any())).thenReturn(true);
         when(shopMemberMapper.findActiveMember(any(), any()))
                 .thenReturn(ShopMember.builder()
                         .shopId(UUID.randomUUID())

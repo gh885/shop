@@ -2,9 +2,6 @@ package com.shop.platform.order.service;
 
 import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
@@ -223,13 +220,13 @@ public class OrderService {
      */
     @Transactional(readOnly = true)
     public PageResult<OrderListItemView> pageMine(UUID userId, String status, PageParams page) {
-        PageResult<OrderWithItems> rows = pageOrders(Order::getUserId, userId, status, page);
-        List<UUID> shopIds = rows.records().stream()
-                .map(o -> o.order().getShopId())
-                .distinct()
-                .toList();
+        var rows = orderMapper.selectPageByBuyer(page, userId, filterStatus(status));
+        List<OrderWithItems> orders = attachItems(rows.getRecords());
+        List<UUID> shopIds =
+                orders.stream().map(o -> o.order().getShopId()).distinct().toList();
         Map<UUID, String> shopNames = shopReadQuery.namesByIds(shopIds);
-        return rows.map(o -> OrderListItemView.from(o, shopNames));
+        return new PageResult<>(
+                orders.stream().map(o -> OrderListItemView.from(o, shopNames)).toList(), rows.getTotal());
     }
 
     /** 订单详情：非本人一律 404，不泄露单据存在性；店名同口径单点补入 */
@@ -242,10 +239,11 @@ public class OrderService {
     }
 
     // 卖家侧查询
-    /** 卖家订单分页：shopId 入参圈定本店（controller 经 @CurrentShop 注入） */
+    /** 卖家订单分页：shopId 入参圈定本店（controller 经 @CurrentShop 注入），每单内嵌行项与买家侧同口径 */
     @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageSeller(UUID shopId, String status, PageParams page) {
-        return pageOrders(Order::getShopId, shopId, status, page);
+        var rows = orderMapper.selectPageByShop(page, shopId, filterStatus(status));
+        return new PageResult<>(attachItems(rows.getRecords()), rows.getTotal());
     }
 
     /** 卖家订单详情：非本店一律 404 */
@@ -352,17 +350,12 @@ public class OrderService {
     }
 
     // 内部：查询与装配辅助
-    /** 买卖两侧分页共用：只有归属列（买家 user_id / 卖家 shop_id）不同 */
-    private PageResult<OrderWithItems> pageOrders(
-            SFunction<Order, ?> ownerColumn, UUID ownerId, String status, PageParams page) {
-        OrderStatus filter = Validate.enumFilter(OrderStatus.class, status, "非法的订单状态筛选值");
-        Page<Order> rows = orderMapper.selectPage(
-                new Page<>(page.page(), page.size()),
-                new LambdaQueryWrapper<Order>()
-                        .eq(ownerColumn, ownerId)
-                        .eq(filter != null, Order::getStatus, filter)
-                        .orderByDesc(Order::getCreatedAt));
-        return new PageResult<>(attachItems(rows.getRecords()), rows.getTotal());
+    /**
+     * 状态筛选档归一：买卖两侧同一句话——非法值 400（闸门在 service），不传即「全部档」给 mapper 一个 null。
+     * mapper 只收已归一的枚举，是为了不让「怎么筛」在取数点和裁决点各有一份答案。
+     */
+    private static OrderStatus filterStatus(String status) {
+        return Validate.enumFilter(OrderStatus.class, status, "非法的订单状态筛选值");
     }
 
     /** 订单 + 行项装配：买卖两侧详情共用 */

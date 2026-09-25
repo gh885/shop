@@ -1,6 +1,7 @@
 package com.shop.platform.product.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.product.model.SkuStatus;
 import java.util.Collection;
@@ -44,5 +45,42 @@ public interface SkuMapper extends BaseMapper<Sku> {
     default List<Sku> selectOnSaleByProductId(UUID productId) {
         return selectList(
                 new LambdaQueryWrapper<Sku>().eq(Sku::getProductId, productId).eq(Sku::getStatus, SkuStatus.ON_SALE));
+    }
+
+    /**
+     * 卖家批量改 SKU 的单行落点：{@code WHERE id = ? AND product_id = ?} 一句里同时改展示列与价格列，回影响行数。
+     *
+     * <p>product_id 参与 WHERE 而不是「先按 productId 查一遍再按 id 改」：SKU 归属就在 SQL 里判定，递别人的
+     * skuId 进不来这一行，0 行与「不存在」是同一个答案（话术由 service 说，PRD-25 同一口径）。
+     *
+     * <p>name / image / originalPrice / skuCode / status 是「给了才改」——传 null 即保持原值（PATCH 语义）。
+     * 这五道开关写死在语句里、不由调用方传布尔：调用方已经用 null 表达了「不改」，再给一个开关就是同一件事两种说法。
+     *
+     * <p>price 与 currency <b>无条件同批落</b>：两列是一笔钱的两个半边，只写一边就是让币种说谎。二者必须取自
+     * 同一个 Money（调用方给的是 {@code price.amount()} 与 {@code price.currency()}），拆成两列传是照 SET 列表的
+     * 形状，不是许可一次改动里写两种币种。
+     */
+    default int updateByProductAndId(
+            UUID productId,
+            UUID skuId,
+            String name,
+            String image,
+            Long originalPriceFen,
+            String skuCode,
+            SkuStatus status,
+            long priceFen,
+            String currency) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Sku>()
+                        .eq(Sku::getId, skuId)
+                        .eq(Sku::getProductId, productId)
+                        .set(name != null, Sku::getName, name)
+                        .set(image != null, Sku::getImage, image)
+                        .set(originalPriceFen != null, Sku::getOriginalPrice, originalPriceFen)
+                        .set(skuCode != null, Sku::getSkuCode, skuCode)
+                        .set(status != null, Sku::getStatus, status)
+                        .set(Sku::getPrice, priceFen)
+                        .set(Sku::getCurrency, currency));
     }
 }

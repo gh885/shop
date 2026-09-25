@@ -3,6 +3,7 @@ package com.shop.platform.coupon.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.model.CouponTemplateStatus;
 import java.time.OffsetDateTime;
@@ -21,9 +22,9 @@ public interface CouponTemplateMapper extends BaseMapper<CouponTemplate> {
     }
 
     /** 本店券管理列表：按创建时间倒序（与订单/售后工作台同口径） */
-    default Page<CouponTemplate> selectPageByShop(Page<CouponTemplate> page, UUID shopId) {
+    default Page<CouponTemplate> selectPageByShop(PageParams pageParams, UUID shopId) {
         return selectPage(
-                page,
+                new Page<>(pageParams.page(), pageParams.size()),
                 new LambdaQueryWrapper<CouponTemplate>()
                         .eq(CouponTemplate::getShopId, shopId)
                         .orderByDesc(CouponTemplate::getCreatedAt));

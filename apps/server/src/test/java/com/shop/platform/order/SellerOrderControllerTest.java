@@ -105,7 +105,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
 
         @Test
         void 店铺不存在或不可用_403() throws Exception {
-            when(shopMapper.selectCount(any())).thenReturn(0L);
+            when(shopMapper.existsUsable(any())).thenReturn(false);
 
             mockMvc.perform(get("/seller/orders").with(userAuth(userId)).header("X-Shop-Id", shopId.toString()))
                     .andExpect(status().isForbidden())

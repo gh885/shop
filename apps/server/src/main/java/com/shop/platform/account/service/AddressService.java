@@ -2,7 +2,6 @@ package com.shop.platform.account.service;
 
 import com.alotuser.address.SmartAgent;
 import com.alotuser.address.assets.UserInfo;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.dto.AddressRequest;
 import com.shop.platform.account.mapper.Address;
 import com.shop.platform.account.mapper.AddressMapper;
@@ -23,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AddressService {
 
-    /** 每买家收货地址条数上限（软删不占名额，@TableLogic 自动过滤） */
+    /** 每买家收货地址条数上限（ACC-53：只数未删行，计数口径见 {@code AddressMapper.countByUser}） */
     private static final int MAX_ADDRESS_PER_USER = 20;
 
     private final AddressMapper addressMapper;
@@ -46,7 +45,7 @@ public class AddressService {
     @Transactional
     public AddressView create(UUID userId, AddressRequest req) {
         // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）
-        long owned = addressMapper.selectCount(new LambdaQueryWrapper<Address>().eq(Address::getUserId, userId));
+        long owned = addressMapper.countByUser(userId);
         Validate.isTrue(
                 owned < MAX_ADDRESS_PER_USER,
                 ErrorCodes.ADDRESS_LIMIT_EXCEEDED,

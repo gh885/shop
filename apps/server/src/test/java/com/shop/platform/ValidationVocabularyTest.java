@@ -11,6 +11,7 @@ import com.shop.platform.coupon.model.UserCouponStatus;
 import com.shop.platform.infra.region.RegionRegistry;
 import com.shop.platform.product.dto.ProductAdminSort;
 import com.shop.platform.product.dto.ProductSort;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -128,14 +129,9 @@ class ValidationVocabularyTest {
                 .isEqualTo(alternation(Arrays.stream(ProductSort.values()).map(ProductSort::wireName)));
 
         // switch 语句不强制穷尽：新增枚举值忘了补 case，会静默走 default 之前的「不加排序」，不报错也不红
-        String service = Files.readString(
-                MAIN_SOURCE.resolve(Path.of("com/shop/platform/product/service/ProductQueryService.java")),
-                StandardCharsets.UTF_8);
-        List<String> missingBranch = Arrays.stream(ProductSort.values())
-                .filter(sort -> !service.contains("case " + sort.name() + " ->"))
-                .map(Enum::name)
-                .toList();
-        assertThat(missingBranch).as("这些排序值没有 ORDER BY 分支").isEmpty();
+        assertThat(branchless(ProductSort.values(), productCaseLabels()))
+                .as("这些排序值没有 ORDER BY 分支")
+                .isEmpty();
     }
 
     @Test
@@ -145,15 +141,9 @@ class ValidationVocabularyTest {
 
         // 与买家侧同一口径，差别在这里必须认多值 case（case STOCK_ASC, STOCK_DESC ->）：
         // 库存两档在聚合分支里成对出现，按单值匹配会把已经写了分支的值误判成缺失。
-        String service = Files.readString(
-                MAIN_SOURCE.resolve(Path.of("com/shop/platform/product/service/ProductQueryService.java")),
-                StandardCharsets.UTF_8);
-        Set<String> labels = caseLabels(service);
-        List<String> missingBranch = Arrays.stream(ProductAdminSort.values())
-                .filter(sort -> !labels.contains(sort.name()))
-                .map(Enum::name)
-                .toList();
-        assertThat(missingBranch).as("这些卖家排序值没有分支（漏一支会静默退化成默认排序）").isEmpty();
+        assertThat(branchless(ProductAdminSort.values(), productCaseLabels()))
+                .as("这些卖家排序值没有分支（漏一支会静默退化成默认排序）")
+                .isEmpty();
     }
 
     @Test
@@ -226,6 +216,36 @@ class ValidationVocabularyTest {
         Matcher cases = CASE_LABELS.matcher(source);
         while (cases.find()) {
             Arrays.stream(cases.group(1).split(",")).map(String::trim).forEach(labels::add);
+        }
+        return labels;
+    }
+
+    /** 取值名没落在 switch 分支里的那些（switch 语句不做穷尽检查，缺一支不报错，只是静默换一种形状） */
+    private static List<String> branchless(Enum<?>[] values, Set<String> labels) {
+        return Arrays.stream(values)
+                .filter(value -> !labels.contains(value.name()))
+                .map(Enum::name)
+                .toList();
+    }
+
+    /**
+     * product 模块全部源码里的 switch 分支标签并集。
+     *
+     * <p>扫整个模块而不是点名的那一个文件：ORDER BY 分支住 service 还是住 mapper 是<b>形状</b>，门禁不该假定它住哪
+     * （取数搬家已把两个 switch 挪进 {@code ProductMapper}，点名读文件的那两条会当场空转还照样绿）。
+     * 两侧词表因此共用一份标签集——两个枚举的取值名互不相交（买家是 newest 与两个 price 档，卖家是 createdAt
+     * 与 stock、soldCount 两档的升降序后缀），互相挡不住对方的缺口。
+     */
+    private static Set<String> productCaseLabels() throws IOException {
+        Path module = MAIN_SOURCE.resolve(Path.of("com/shop/platform/product"));
+        List<Path> sources;
+        try (Stream<Path> files = Files.walk(module)) {
+            sources = files.filter(p -> p.toString().endsWith(".java")).toList();
+        }
+        assertThat(sources).as("%s 下一个 .java 也没扫到：路径失效，本门禁会空转", module).isNotEmpty();
+        Set<String> labels = new HashSet<>();
+        for (Path source : sources) {
+            labels.addAll(caseLabels(Files.readString(source, StandardCharsets.UTF_8)));
         }
         return labels;
     }

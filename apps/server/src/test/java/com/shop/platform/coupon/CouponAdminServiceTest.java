@@ -2,11 +2,9 @@ package com.shop.platform.coupon;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
@@ -59,7 +57,7 @@ class CouponAdminServiceTest {
         Page<UserCoupon> page = new Page<>(1, 20);
         page.setRecords(List.of(coupon));
         page.setTotal(1);
-        when(userCouponMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+        when(userCouponMapper.selectPageForAdmin(new PageParams(1, 20), userId, shopId, UserCouponStatus.UNUSED))
                 .thenReturn(page);
         when(shopReadQuery.namesByIds(List.of(shopId))).thenReturn(Map.of(shopId, "演示店"));
 

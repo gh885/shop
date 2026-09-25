@@ -1,6 +1,5 @@
 package com.shop.platform.shop.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
@@ -135,8 +134,7 @@ public class ShopService {
                 .map(ShopMember::getShopId)
                 .toList();
         if (shopIds.isEmpty()) return List.of();
-        List<Shop> shops = shopMapper.selectList(
-                new LambdaQueryWrapper<Shop>().in(Shop::getId, shopIds).orderByDesc(Shop::getCreatedAt));
+        List<Shop> shops = shopMapper.selectByIdsNewestFirst(shopIds);
         // 理由只查被驳回的那几家：一次 list 里通常 0 或 1 条，不必为没驳回的店翻审核历史
         Map<UUID, String> reasons = shopReviewMapper.latestRejectReasons(shops.stream()
                 .filter(s -> s.getStatus() == ShopStatus.REJECTED)
@@ -152,13 +150,12 @@ public class ShopService {
         List<ShopMember> pending = shopMemberMapper.selectPendingByUser(userId);
         if (pending.isEmpty()) return List.of();
 
-        Map<UUID, Shop> shops = shopMapper
-                .selectList(new LambdaQueryWrapper<Shop>()
-                        .in(
-                                Shop::getId,
-                                pending.stream().map(ShopMember::getShopId).toList()))
-                .stream()
-                .collect(Collectors.toMap(Shop::getId, Function.identity()));
+        Map<UUID, Shop> shops =
+                shopMapper
+                        .selectByIdsUnordered(
+                                pending.stream().map(ShopMember::getShopId).toList())
+                        .stream()
+                        .collect(Collectors.toMap(Shop::getId, Function.identity()));
         return pending.stream()
                 .map(m -> new ShopInviteItem(
                         m.getId(),

@@ -43,6 +43,21 @@ public interface TrackingNodeMapper extends BaseMapper<TrackingNode> {
     }
 
     /**
+     * 删一批包裹的轨迹节点（回寄改单作废旧包裹时连带清掉，节点挂在 shipment_id 上不先删会留孤儿）。
+     *
+     * <p>空集合在语句内短路：MyBatis-Plus 会把空 {@code in} 拼成 {@code IN ()}，那是 PG 的语法错误而不是
+     * 「没东西可删」，而调用方本来就常在零行的场景下走到这里。
+     *
+     * @return 删掉的行数（没传包裹时为 0，不是一条也没删成的错误信号）
+     */
+    default int deleteByShipmentIds(Collection<UUID> shipmentIds) {
+        if (shipmentIds.isEmpty()) {
+            return 0;
+        }
+        return delete(new LambdaQueryWrapper<TrackingNode>().in(TrackingNode::getShipmentId, shipmentIds));
+    }
+
+    /**
      * 一批包裹的轨迹节点，按 shipmentId 分组：轨迹页一单多包裹，逐包裹点查就是 N+1。
      *
      * <p>组内顺序与单包裹版一致——全局按 (occurred_at, id) 升序取出后 groupingBy，

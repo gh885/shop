@@ -1,7 +1,5 @@
 package com.shop.platform.aftersale.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.aftersale.events.AfterSaleRefundedEvent;
 import com.shop.platform.aftersale.mapper.Ticket;
@@ -38,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -160,7 +157,7 @@ public class AfterSaleService {
     /** 撤销申请：APPLYING → CLOSED（终态） */
     @Transactional
     public void cancel(UUID userId, UUID orderId) {
-        transition(requireBuyerOpen(userId, orderId, TicketAction.CLOSE), TicketAction.CLOSE, null, u -> {});
+        transition(requireBuyerOpen(userId, orderId, TicketAction.CLOSE), TicketAction.CLOSE, null);
     }
 
     /**
@@ -178,9 +175,12 @@ public class AfterSaleService {
         Ticket ticket = requireBuyerOpen(userId, orderId, TicketAction.RETURN_GOODS);
         ReturnShipmentView shipment = returnShipmentCommand.replace(
                 orderId, ticket.getUserId(), ticket.getShopId(), carrierCode, carrierName, trackingNo);
-        transition(ticket, TicketAction.RETURN_GOODS, shipment.carrierName() + " " + shipment.trackingNo(), u -> u.set(
-                        Ticket::getReturnLogisticsCompany, shipment.carrierName())
-                .set(Ticket::getReturnTrackingNo, shipment.trackingNo()));
+        transitionShipped(
+                ticket,
+                TicketAction.RETURN_GOODS,
+                shipment.carrierName() + " " + shipment.trackingNo(),
+                shipment.carrierName(),
+                shipment.trackingNo());
     }
 
     /**
@@ -245,7 +245,7 @@ public class AfterSaleService {
     public void agree(UUID shopId, UUID orderId) {
         Ticket ticket = requireSellerOpen(shopId, orderId, TicketAction.REFUND);
         if (ticket.getType() == TicketType.RETURN_REFUND) {
-            transition(ticket, TicketAction.AGREE_RETURN, null, u -> {});
+            transition(ticket, TicketAction.AGREE_RETURN, null);
             return;
         }
         refund(ticket, TicketAction.REFUND);
@@ -269,7 +269,7 @@ public class AfterSaleService {
                 !ticket.isNoReasonEnforced() || ticket.getStatus() == TicketStatus.RETURNING, "该申请为七天无理由退货，不可拒绝受理");
         TicketAction action =
                 ticket.getStatus() == TicketStatus.RETURNING ? TicketAction.REJECT_RETURN : TicketAction.REJECT;
-        transition(ticket, action, Text.trimToNull(reason), u -> {});
+        transition(ticket, action, Text.trimToNull(reason));
     }
 
     /**
@@ -329,7 +329,7 @@ public class AfterSaleService {
             return false;
         }
         if (ticket.getType() == TicketType.RETURN_REFUND) {
-            transition(ticket, TicketAction.AUTO_AGREE_RETURN, "卖家超时未处理，系统自动同意", u -> {});
+            transition(ticket, TicketAction.AUTO_AGREE_RETURN, "卖家超时未处理，系统自动同意");
             return true;
         }
         refund(ticket, TicketAction.AUTO_REFUND, "卖家超时未处理，系统自动同意");
@@ -338,10 +338,10 @@ public class AfterSaleService {
 
     /**
      * 买家回寄超 7 天未填运单号 → 自动关闭（CLOSED）：转终态即联动释放「一单一进行中」名额
-     * （uk 部分索引随行状态让位，窗口内可重新申请），投影写回由 {@link #transition} 统一负责。
+     * （uk 部分索引随行状态让位，窗口内可重新申请），投影写回由 {@link #settle} 统一负责。
      *
-     * <p>条件更新额外挂 {@code return_tracking_no IS NULL}：扫描与落点之间买家刚提交了回寄，就让位给他——
-     * 货已在途的单绝不关。
+     * <p>「还没回寄」这道守卫重跑在同一条语句里（见 {@code TicketMapper.transitionClosingUnshipped}）：
+     * 扫描与落点之间买家刚提交了回寄，就让位给他——货已在途的单绝不关。
      *
      * @return 是否真的落成；已填回寄 / 已被处理 = false
      */
@@ -351,8 +351,7 @@ public class AfterSaleService {
         if (ticket == null || ticket.getStatus() != TicketStatus.RETURNING || ticket.getReturnTrackingNo() != null) {
             return false;
         }
-        transition(
-                ticket, TicketAction.AUTO_CLOSE, "买家超时未回寄，系统自动关闭", u -> {}, u -> u.isNull(Ticket::getReturnTrackingNo));
+        transitionClosingUnshipped(ticket, TicketAction.AUTO_CLOSE, "买家超时未回寄，系统自动关闭");
         return true;
     }
 
@@ -377,23 +376,16 @@ public class AfterSaleService {
     }
 
     /**
-     * 卖家售后工作台：本店售后单分页，时间倒序（最新的申请/处理在最上面）。
+     * 卖家售后工作台：本店售后单分页（取数与排序口径见 {@code TicketMapper.selectPageByShop}）。
      *
-     * <p>不做「进行中优先」的排序：待办与历史是同一张表的两种看法，让 status 筛选去分流
-     * （前端默认停在「待处理」tab），比在 SQL 里编一个状态优先级更容易讲清楚。
-     * 每行补订单摘要——工作台要能认出是哪一单，而订单信息不属本模块，经 order :: api 批查后内存拼装。
+     * <p>每行补订单摘要——工作台要能认出是哪一单，而订单信息不属本模块，经 order :: api 批查后内存拼装。
      */
     @Transactional(readOnly = true)
     public PageResult<SellerTicketItem> pageShop(UUID shopId, String status, PageParams page) {
         // 1. 筛选值先校验：列表参数写错要立刻 400，静默忽略等于给出一份不知怎么筛出来的数据
         TicketStatus filter = Validate.enumFilter(TicketStatus.class, status, "非法的售后状态筛选值");
         // 2. 本店售后单分页：shop_id 是归属闸门，越店看不到（不是先查再过滤）
-        Page<Ticket> rows = ticketMapper.selectPage(
-                new Page<>(page.page(), page.size()),
-                new LambdaQueryWrapper<Ticket>()
-                        .eq(Ticket::getShopId, shopId)
-                        .eq(filter != null, Ticket::getStatus, filter)
-                        .orderByDesc(Ticket::getCreatedAt));
+        Page<Ticket> rows = ticketMapper.selectPageByShop(page, shopId, filter);
         // 3. 订单摘要批量补齐（跨模块只读点查，进 Map 后内存拼装；同一订单可能有多张历史售后单，去重再查）
         Map<UUID, OrderSummaryView> orders = orderReadQuery.summariesByIds(
                 rows.getRecords().stream().map(Ticket::getOrderId).distinct().toList());
@@ -456,8 +448,7 @@ public class AfterSaleService {
 
     /** note 给时间线补充动作上下文（超时自动同意要说明是谁做的决定）；人工路径传 null */
     private void refund(Ticket ticket, TicketAction action, String note) {
-        OffsetDateTime now = OffsetDateTime.now();
-        transition(ticket, action, note, u -> u.set(Ticket::getRefundedAt, now));
+        transitionRefunded(ticket, action, note, OffsetDateTime.now());
         events.publishEvent(
                 new AfterSaleRefundedEvent(ticket.getOrderId(), ticket.getUserId(), ticket.refundAmountAsMoney()));
         // 退券：整单退款要把券还给买家（另发新券，原券保持 USED）。没用券、或券已过期时无副作用。
@@ -471,28 +462,45 @@ public class AfterSaleService {
     }
 
     /**
-     * 转移的唯一落点：条件更新（WHERE status = action.from()）→ 影响行数闸门 → 时间线 → 写回订单投影。
-     * extraSets 承载该动作附带的列（回寄填物流单、退款填时刻）。
+     * 转移的唯一落点（只改状态的那些边：撤销 / 拒绝 / 同意退货 / 超时自动同意）。
+     * 起点与终点由 {@link TicketAction} 转移表推导，闸门语句见 {@code TicketMapper.transitionStatus}。
      */
-    private void transition(
-            Ticket ticket, TicketAction action, String note, Consumer<LambdaUpdateWrapper<Ticket>> extraSets) {
-        transition(ticket, action, note, extraSets, u -> {});
+    private void transition(Ticket ticket, TicketAction action, String note) {
+        settle(ticket, action, note, ticketMapper.transitionStatus(ticket.getId(), action.from(), action.target()));
     }
 
-    /** extraWhere 给并发闸门加列级条件（超时关闭要再确认「还没回寄」）；扫描-落点竞态同样靠影响行数让位 */
-    private void transition(
-            Ticket ticket,
-            TicketAction action,
-            String note,
-            Consumer<LambdaUpdateWrapper<Ticket>> extraSets,
-            Consumer<LambdaUpdateWrapper<Ticket>> extraWhere) {
-        LambdaUpdateWrapper<Ticket> update = new LambdaUpdateWrapper<Ticket>()
-                .eq(Ticket::getId, ticket.getId())
-                .eq(Ticket::getStatus, action.from())
-                .set(Ticket::getStatus, action.target());
-        extraWhere.accept(update);
-        extraSets.accept(update);
-        Validate.conflict(ticketMapper.update(null, update) == 1, action.conflictMessage());
+    /** 转移并落回寄投影两列（买家填运单号，可重复提交覆盖） */
+    private void transitionShipped(
+            Ticket ticket, TicketAction action, String note, String carrierName, String trackingNo) {
+        settle(
+                ticket,
+                action,
+                note,
+                ticketMapper.transitionReturnShipped(
+                        ticket.getId(), action.from(), action.target(), carrierName, trackingNo));
+    }
+
+    /** 转移并回填退款生效时刻（仅退款同意 / 退货收货 / 超时自动退款共用） */
+    private void transitionRefunded(Ticket ticket, TicketAction action, String note, OffsetDateTime refundedAt) {
+        settle(
+                ticket,
+                action,
+                note,
+                ticketMapper.transitionRefunded(ticket.getId(), action.from(), action.target(), refundedAt));
+    }
+
+    /** 超时自动关闭那条边：闸门多一道「还没回寄」，守卫写死在 {@code TicketMapper.transitionClosingUnshipped} */
+    private void transitionClosingUnshipped(Ticket ticket, TicketAction action, String note) {
+        settle(
+                ticket,
+                action,
+                note,
+                ticketMapper.transitionClosingUnshipped(ticket.getId(), action.from(), action.target()));
+    }
+
+    /** 转移并收尾：影响行数即并发闸门（抢不到行 = 有人先处理了这张单，409 在本服务说出口）→ 时间线 → 写回订单投影 */
+    private void settle(Ticket ticket, TicketAction action, String note, int changed) {
+        Validate.conflict(changed == 1, action.conflictMessage());
         record(ticket, action, note);
         orderCommand.syncAfterSale(
                 ticket.getOrderId(),

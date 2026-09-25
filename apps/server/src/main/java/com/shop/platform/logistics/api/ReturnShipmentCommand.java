@@ -1,10 +1,8 @@
 package com.shop.platform.logistics.api;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.logistics.mapper.Shipment;
 import com.shop.platform.logistics.mapper.ShipmentMapper;
-import com.shop.platform.logistics.mapper.TrackingNode;
 import com.shop.platform.logistics.mapper.TrackingNodeMapper;
 import com.shop.platform.logistics.model.ShipmentDirection;
 import com.shop.platform.logistics.model.ShipmentStatus;
@@ -83,13 +81,10 @@ public class ReturnShipmentCommand {
     @Transactional
     public ReturnShipmentView replace(
             UUID orderId, UUID userId, UUID shopId, String carrierCode, String carrierName, String trackingNo) {
-        List<Shipment> previous = shipmentMapper.selectList(new LambdaQueryWrapper<Shipment>()
-                .eq(Shipment::getOrderId, orderId)
-                .eq(Shipment::getDirection, ShipmentDirection.RETURN));
+        List<Shipment> previous = shipmentMapper.selectByOrderAndDirection(orderId, ShipmentDirection.RETURN);
         if (!previous.isEmpty()) {
             List<UUID> shipmentIds = previous.stream().map(Shipment::getId).toList();
-            trackingNodeMapper.delete(
-                    new LambdaQueryWrapper<TrackingNode>().in(TrackingNode::getShipmentId, shipmentIds));
+            trackingNodeMapper.deleteByShipmentIds(shipmentIds);
             shipmentMapper.deleteByIds(shipmentIds);
         }
         return record(orderId, userId, shopId, carrierCode, carrierName, trackingNo);

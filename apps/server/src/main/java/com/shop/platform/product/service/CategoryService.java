@@ -1,13 +1,11 @@
 package com.shop.platform.product.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.cache.CacheNames;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.product.mapper.Category;
 import com.shop.platform.product.mapper.CategoryMapper;
-import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.model.CategoryStatus;
 import java.util.ArrayDeque;
@@ -74,7 +72,7 @@ public class CategoryService {
         }
         // 1. 启用节点按 parentId 组成邻接表（禁用节点不进去，它的整支自然断开）
         Map<UUID, List<UUID>> childrenByParent = new HashMap<>();
-        for (Category c : categoryMapper.selectList(new LambdaQueryWrapper<Category>())) {
+        for (Category c : categoryMapper.selectAll()) {
             if (c.isEnabled()) {
                 childrenByParent
                         .computeIfAbsent(c.getParentId(), key -> new ArrayList<>())
@@ -119,7 +117,7 @@ public class CategoryService {
      */
     private Set<UUID> wholeSubtreeIds(UUID root) {
         Map<UUID, List<UUID>> childrenByParent = new HashMap<>();
-        for (Category c : categoryMapper.selectList(new LambdaQueryWrapper<Category>())) {
+        for (Category c : categoryMapper.selectAll()) {
             childrenByParent
                     .computeIfAbsent(c.getParentId(), key -> new ArrayList<>())
                     .add(c.getId());
@@ -209,8 +207,7 @@ public class CategoryService {
         // 禁用闸门：子树（含自身）内仍有商品引用（含草稿/下架——软删语义的商品仍占类目位）则拒绝。
         // 商品只挂三级叶子，对一级/二级数直挂引用恒为 0，必须按全量子树统计（口径见 wholeSubtreeIds）
         if (status == CategoryStatus.DISABLED) {
-            Long refs = productMapper.selectCount(
-                    new LambdaQueryWrapper<Product>().in(Product::getCategoryId, wholeSubtreeIds(id)));
+            long refs = productMapper.countByCategoryIds(wholeSubtreeIds(id));
             Validate.isTrue(refs == 0, "该类目或其子分类下仍有 " + refs + " 个商品，移出后才能禁用");
         }
         category.setStatus(status);
@@ -223,7 +220,7 @@ public class CategoryService {
 
     private List<CategoryNode> buildTree(boolean includeDisabled) {
         // 1. 全量加载，按「是否含禁用」过滤出可见节点
-        List<Category> all = categoryMapper.selectList(new LambdaQueryWrapper<Category>());
+        List<Category> all = categoryMapper.selectAll();
         Map<UUID, Category> visible = new HashMap<>();
         for (Category c : all) {
             if (includeDisabled || c.isEnabled()) {

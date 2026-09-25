@@ -1,6 +1,5 @@
 package com.shop.platform.account.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.dto.AdminStaffQuery;
 import com.shop.platform.account.infra.RateLimiter;
@@ -161,15 +160,8 @@ public class StaffService {
         StaffStatus status = Validate.enumFilter(StaffStatus.class, query.status(), "非法的员工状态筛选值");
         String keyword = Text.blankToNull(query.keyword());
 
-        // 2. 员工列表只查工号和展示名，创建时间倒序让新员工先出现。
-        Page<Staff> rows = staffMapper.selectPage(
-                new Page<>(pageParams.page(), pageParams.size()),
-                new LambdaQueryWrapper<Staff>()
-                        .eq(status != null, Staff::getStatus, status)
-                        .and(
-                                keyword != null,
-                                q -> q.like(Staff::getEmployeeNo, keyword).or().like(Staff::getDisplayName, keyword))
-                        .orderByDesc(Staff::getCreatedAt));
+        // 2. 取数：关键字命中工号还是展示名、按什么排，是员工列表的口径，收在 mapper（见 selectPageAdmin 注释）。
+        Page<Staff> rows = staffMapper.selectPageAdmin(pageParams, status, keyword);
 
         // 3. 岗位在 service 边界解析，HTTP 出参只带稳定的枚举名/空值。
         return new PageResult<>(

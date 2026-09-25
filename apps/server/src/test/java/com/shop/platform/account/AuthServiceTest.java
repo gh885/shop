@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.dto.AdminUserQuery;
 import com.shop.platform.account.infra.CaptchaService;
@@ -145,7 +144,7 @@ class AuthServiceTest {
             Page<User> page = new Page<>(1, 10);
             page.setRecords(List.of(user));
             page.setTotal(1);
-            when(userMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+            when(userMapper.selectPageAdmin(new PageParams(1, 10), UserStatus.ACTIVE, "138"))
                     .thenReturn(page);
 
             var result = authService.pageAdminUsers(new PageParams(1, 10), new AdminUserQuery("ACTIVE", "138"));

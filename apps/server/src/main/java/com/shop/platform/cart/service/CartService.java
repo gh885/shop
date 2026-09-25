@@ -1,6 +1,5 @@
 package com.shop.platform.cart.service;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.dto.BatchDeleteCartItemsRequest;
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
@@ -125,13 +124,7 @@ public class CartService {
     /** 批量勾选：itemIds 省略 = 整车全选/全不选；归属靠 SQL 带 user_id 条件 */
     @Transactional
     public void updateSelected(UUID userId, UpdateCartSelectedRequest req) {
-        LambdaUpdateWrapper<CartItem> update = new LambdaUpdateWrapper<CartItem>()
-                .eq(CartItem::getUserId, userId)
-                .set(CartItem::getSelected, req.selected());
-        if (req.itemIds() != null && !req.itemIds().isEmpty()) {
-            update.in(CartItem::getId, req.itemIds());
-        }
-        cartItemMapper.update(null, update);
+        cartItemMapper.updateSelected(userId, req.selected(), req.itemIds());
     }
 
     /** 删一条 */

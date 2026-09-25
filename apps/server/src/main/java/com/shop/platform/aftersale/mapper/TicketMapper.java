@@ -1,8 +1,11 @@
 package com.shop.platform.aftersale.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.aftersale.model.TicketStatus;
+import com.shop.platform.common.PageParams;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -12,6 +15,23 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface TicketMapper extends BaseMapper<Ticket> {
+
+    /**
+     * 卖家售后工作台分页：本店新建在前（创建时间倒序，最新的申请/处理在最上面）。
+     *
+     * <p>shopId 参与条件而不是「查出来再过滤」：越店的单不该出现在响应里（AFS-06 同一口径）。
+     *
+     * <p>filter 传 null = 全部档。刻意<b>不做「进行中优先」的排序</b>：待办与历史是同一张表的两种看法，让 status
+     * 筛选去分流（前端默认停在「待处理」tab），比在 SQL 里编一个状态优先级更容易讲清楚。
+     */
+    default Page<Ticket> selectPageByShop(PageParams pageParams, UUID shopId, TicketStatus filter) {
+        return selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<Ticket>()
+                        .eq(Ticket::getShopId, shopId)
+                        .eq(filter != null, Ticket::getStatus, filter)
+                        .orderByDesc(Ticket::getCreatedAt));
+    }
 
     /** 某订单进行中的售后单（APPLYING / RETURNING）：唯一部分索引保证至多一张，无则 null */
     default Ticket selectOpenByOrder(UUID orderId) {
@@ -100,4 +120,55 @@ public interface TicketMapper extends BaseMapper<Ticket> {
             """)
     List<Ticket> selectReturnReceiveExpired(
             @Param("expiredBefore") OffsetDateTime expiredBefore, @Param("limit") int limit);
+
+    /**
+     * 状态转移的并发闸门：{@code WHERE id = ? AND status = from SET status = to}，回影响行数。
+     *
+     * <p>from / to 由 service 依 {@code TicketAction} 转移表推导后传入（哪条边合法是本模块的规则，不下 mapper）；
+     * 本方法只保证「不是那一行就不改」。0 行 = 有人先把这张单处理了，让位——409 还是重试由调用方判。
+     */
+    default int transitionStatus(UUID ticketId, TicketStatus from, TicketStatus to) {
+        return update(null, statusGate(ticketId, from, to));
+    }
+
+    /**
+     * 转移并回填退款生效时刻（仅退款同意 / 退货收货 / 超时自动退款共用）。
+     *
+     * <p>状态与时刻在同一笔 UPDATE 里落：分开写必然出现「已 REFUNDED 但退款时间为空」的中间帧。
+     */
+    default int transitionRefunded(UUID ticketId, TicketStatus from, TicketStatus to, OffsetDateTime refundedAt) {
+        return update(null, statusGate(ticketId, from, to).set(Ticket::getRefundedAt, refundedAt));
+    }
+
+    /**
+     * 转移并落回寄投影两列（买家填运单号）：承运商与单号是一件事的两半，同语句写入不出现只有单号没有承运商的行。
+     *
+     * <p>两列无条件覆写——回寄单号允许重复提交覆盖（AFS-41），改哪个都算一次新提交，不做「给了才改」。
+     */
+    default int transitionReturnShipped(
+            UUID ticketId, TicketStatus from, TicketStatus to, String returnLogisticsCompany, String returnTrackingNo) {
+        return update(
+                null,
+                statusGate(ticketId, from, to)
+                        .set(Ticket::getReturnLogisticsCompany, returnLogisticsCompany)
+                        .set(Ticket::getReturnTrackingNo, returnTrackingNo));
+    }
+
+    /**
+     * 超时自动关闭（买家迟迟未回寄）：闸门比通用转移多一道 {@code return_tracking_no IS NULL}。
+     *
+     * <p>这道守卫写死在语句里而不是由调用方传开关：扫描与落点之间买家刚提交了回寄，就让位给他——
+     * 货已在途的单被关成 CLOSED 是笔对不上的账。
+     */
+    default int transitionClosingUnshipped(UUID ticketId, TicketStatus from, TicketStatus to) {
+        return update(null, statusGate(ticketId, from, to).isNull(Ticket::getReturnTrackingNo));
+    }
+
+    /** 各条转移语句共用的闸门与 SET 主干：条件逐字一致，差异只在各自附带的那几列 */
+    private static LambdaUpdateWrapper<Ticket> statusGate(UUID ticketId, TicketStatus from, TicketStatus to) {
+        return new LambdaUpdateWrapper<Ticket>()
+                .eq(Ticket::getId, ticketId)
+                .eq(Ticket::getStatus, from)
+                .set(Ticket::getStatus, to);
+    }
 }

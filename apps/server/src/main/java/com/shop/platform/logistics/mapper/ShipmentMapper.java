@@ -3,6 +3,7 @@ package com.shop.platform.logistics.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.logistics.model.ShipmentDirection;
 import com.shop.platform.logistics.model.ShipmentStatus;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -34,6 +35,18 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
     /** 按运单号取包裹（推送入口）：一个运单号只属于一个订单，唯一索引保证至多一行；无则 null */
     default Shipment selectByTrackingNo(String trackingNo) {
         return selectOne(new LambdaQueryWrapper<Shipment>().eq(Shipment::getTrackingNo, trackingNo));
+    }
+
+    /**
+     * 一单在给定方向上的全部包裹（回寄改单要先旧后新，取的就是这一向的存量）。
+     *
+     * <p>不给排序口径：调用方是把取回的行整批作废再重建，谁先谁后不影响结果；
+     * 有顺序要求的是买家「查看物流」那条列表，见 {@link #selectByOrderAndUser}。
+     */
+    default List<Shipment> selectByOrderAndDirection(UUID orderId, ShipmentDirection direction) {
+        return selectList(new LambdaQueryWrapper<Shipment>()
+                .eq(Shipment::getOrderId, orderId)
+                .eq(Shipment::getDirection, direction));
     }
 
     /**

@@ -1,22 +1,18 @@
 package com.shop.platform.shop.infra;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ShopIdHolder;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.web.FilterExceptionHandler;
 import com.shop.platform.infra.web.RequestPaths;
-import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
-import com.shop.platform.shop.model.ShopStatus;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.Ordered;
@@ -68,12 +64,9 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
                 throw BusinessException.forbidden("缺少店铺上下文（X-Shop-Id）");
             }
 
-            // 2. 店铺须存在且可用（PENDING_REVIEW/ACTIVE）：shop.shops 里没有的店，或已被拒/封禁，不允许商家做任何操作
-            //    （防"商品挂在不存在的店铺"这类孤儿数据）
-            Long shopCount = shopMapper.selectCount(new LambdaQueryWrapper<Shop>()
-                    .eq(Shop::getId, shopId)
-                    .in(Shop::getStatus, List.of(ShopStatus.PENDING_REVIEW, ShopStatus.ACTIVE)));
-            if (shopCount == 0) {
+            // 2. 店铺须存在且可用（哪几档算可用见 ShopMapper.existsUsable）：shop.shops 里没有的店，或已被拒/封禁，
+            //    不允许商家做任何操作（防"商品挂在不存在的店铺"这类孤儿数据）。挡的是「你有没有资格在这里操作」，故 403
+            if (!shopMapper.existsUsable(shopId)) {
                 throw BusinessException.forbidden("店铺不存在或不可用");
             }
 

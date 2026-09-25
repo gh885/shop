@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.model.CouponSource;
 import com.shop.platform.coupon.model.UserCouponStatus;
@@ -39,7 +40,7 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
      * 展示状态由 {@code MyCoupon.displayStatus} 算出来，页签口径必须与它一致。
      */
     default Page<UserCoupon> selectPageMine(
-            Page<UserCoupon> page, UUID userId, UserCouponStatus status, OffsetDateTime now) {
+            PageParams pageParams, UUID userId, UserCouponStatus status, OffsetDateTime now) {
         LambdaQueryWrapper<UserCoupon> query = new LambdaQueryWrapper<UserCoupon>().eq(UserCoupon::getUserId, userId);
         if (status == UserCouponStatus.UNUSED) {
             query.in(UserCoupon::getStatus, List.of(UserCouponStatus.UNUSED, UserCouponStatus.LOCKED))
@@ -51,7 +52,26 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
         } else if (status != null) {
             query.eq(UserCoupon::getStatus, status);
         }
-        return selectPage(page, query.orderByDesc(UserCoupon::getCreatedAt));
+        return selectPage(
+                new Page<>(pageParams.page(), pageParams.size()), query.orderByDesc(UserCoupon::getCreatedAt));
+    }
+
+    /**
+     * 运营侧用户券列表分页：userId / shopId / status 三个筛选都可空（null = 不按该维过滤），新领在前。
+     *
+     * <p>这一条按<b>库里的</b> status 等值过滤，与 {@link #selectPageMine} 的展示态换算（CPN-51）是两回事：
+     * 运营要看的是账本上真实的那一列——过期收敛任务刷没刷到、这张券挂在哪个订单上。
+     * 非法状态值 400 的门在 service（{@code Validate.enumFilter}），这里只收已归一的枚举或 null。
+     */
+    default Page<UserCoupon> selectPageForAdmin(
+            PageParams pageParams, UUID userId, UUID shopId, UserCouponStatus status) {
+        return selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<UserCoupon>()
+                        .eq(userId != null, UserCoupon::getUserId, userId)
+                        .eq(shopId != null, UserCoupon::getShopId, shopId)
+                        .eq(status != null, UserCoupon::getStatus, status)
+                        .orderByDesc(UserCoupon::getCreatedAt));
     }
 
     /**

@@ -38,11 +38,9 @@ public class CouponWalletService {
     @Transactional(readOnly = true)
     public PageResult<MyCoupon> pageMine(UUID userId, String status, PageParams page) {
         OffsetDateTime now = OffsetDateTime.now();
-        Page<UserCoupon> rows = userCouponMapper.selectPageMine(
-                new Page<>(page.page(), page.size()),
-                userId,
-                Validate.enumFilter(UserCouponStatus.class, status, "非法的券状态筛选值"),
-                now);
+        UserCouponStatus tab = Validate.enumFilter(UserCouponStatus.class, status, "非法的券状态筛选值");
+        // 页签怎么筛（CPN-51 的展示口径）写在 mapper 的 selectPageMine 上，这里不重述判据
+        Page<UserCoupon> rows = userCouponMapper.selectPageMine(page, userId, tab, now);
         List<UserCoupon> records = rows.getRecords();
         if (records.isEmpty()) {
             return new PageResult<>(List.of(), rows.getTotal());

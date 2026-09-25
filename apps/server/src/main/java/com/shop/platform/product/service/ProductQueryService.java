@@ -1,7 +1,6 @@
 package com.shop.platform.product.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockReadQuery;
@@ -22,7 +21,6 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 /**
  * 商品只读：卖家工作台列表 / 详情（按店铺上下文圈定，全状态）与买家侧公开列表 / 详情（只看上架、SKU 只返在售）。
@@ -45,8 +43,9 @@ public class ProductQueryService {
      * 销量：products.sold_count 投影列，订单完成时经 product.api :: ProductCommand 累加，随实体一起读出。
      * 库存/销量都是纯展示指标，与 SPU 状态正交（草稿/仓库中也可能有历史销量）。
      *
-     * <p>createdAt / soldCount 是 product 表列，直接 DB 排序分页；库存是跨模块聚合（inventory api），
-     * 且本项目禁止跨 schema JOIN，无法在 SQL 层「按聚合指标排序后再分页」→ 改取店铺（筛选后）全量商品、
+     * <p>createdAt / soldCount 是 product 表列，排序与分页都在 DB 里闭合（取数口径见
+     * {@code ProductMapper.selectPageByShop}）；库存是跨模块聚合（inventory api），且本项目禁止跨 schema
+     * JOIN，无法在 SQL 层「按聚合指标排序后再分页」→ 改取店铺（筛选后）全量商品、
      * 内存聚合指标排序、再手动分页。代价是每次请求遍历该店铺全部商品，对单个卖家目录规模可接受。
      */
     public PageResult<ProductListRow> pageListWithMetrics(
@@ -55,12 +54,13 @@ public class ProductQueryService {
 
         // 默认/创建时间/销量：走 DB 分页，库存只对本页补
         if (!effectiveSort.byAggregatedStock()) {
-            PageResult<Product> result = pageList(shopId, status, keyword, page, size, effectiveSort);
-            return new PageResult<>(rowsFrom(result.records(), stockFor(result.records())), result.total());
+            var rows = productMapper.selectPageByShop(paging(page, size), shopId, status, keyword, effectiveSort);
+            List<Product> pageRows = rows.getRecords();
+            return new PageResult<>(rowsFrom(pageRows, stockFor(pageRows)), rows.getTotal());
         }
 
         // 库存：全量聚合 → 内存排序 → 手动分页；降序时 id 同样降序兜底，保证翻页顺序稳定（对齐 DB orderByDesc(id) 口径）
-        List<Product> all = productMapper.selectList(filter(shopId, status, keyword));
+        List<Product> all = productMapper.selectListByShop(shopId, status, keyword);
         Map<UUID, Integer> stock = stockFor(all);
         Comparator<Product> byStock = Comparator.comparingInt((Product p) -> stock.getOrDefault(p.getId(), 0));
         Comparator<Product> byId = Comparator.comparing(Product::getId);
@@ -116,7 +116,7 @@ public class ProductQueryService {
     /**
      * 买家侧商品列表：可按类目/店铺/关键词筛选并排序。
      *
-     * <p>与 pageList 的关键差别：status 写死上架，不接受前端指定，草稿/下架商品对买家不存在。 价格排序直接吃 minPrice/maxPrice 冗余副本，免查 SKU
+     * <p>与卖家侧列表的关键差别：status 写死上架，不接受前端指定，草稿/下架商品对买家不存在。 价格排序直接吃 minPrice/maxPrice 冗余副本，免查 SKU
      * 表——这两个字段的存在意义就在此。
      *
      * <p>categoryId 过滤与 feed 召回（ProductRecallQuery）同口径：经 CategoryService 展开启用子树
@@ -124,7 +124,7 @@ public class ProductQueryService {
      * 直接返回空页而不是报错（脏链接不该把列表页打成错误页），不 JOIN 类目表（同模块也不跨 schema 裸 SQL）。
      */
     public PageResult<Product> pagePublic(ProductQuery query, long page, long size) {
-        // StringBuilder.blankToNull 与 pageList 同口径：no keyword 时归一为 null，免 NPE；hasText 再兜底
+        // 与卖家侧列表同口径：no keyword 时归一为 null，免 NPE；mapper 里的 hasText 再兜底
         String keyword = query.keyword() == null ? null : query.keyword().trim();
         // 类目条件先过可见性展开：空集 = 该类目对买家不存在，短路空页，不发商品表查询
         List<UUID> visibleCategoryIds = null;
@@ -134,34 +134,10 @@ public class ProductQueryService {
                 return new PageResult<>(List.of(), 0);
             }
         }
-        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
-                // 列表页只要卡片字段：不点名列就把 detail_images / images / specs / params 四个 JSONB 一起捞出来
-                // （TOAST 外部存储读 + Jackson 反序列化），而 PublicProductView 一个都不用。列名与
-                // PublicProductView.from 的取值一一对死——那个 record 加字段时这里必须同步加，
-                // 否则新字段静默为 null（currency 也在内：min/maxPriceAsMoney 要在这一行闭合币种）。
-                .select(
-                        Product::getId,
-                        Product::getShopId,
-                        Product::getCategoryId,
-                        Product::getName,
-                        Product::getSubtitle,
-                        Product::getMainImage,
-                        Product::getMinPrice,
-                        Product::getMaxPrice,
-                        Product::getCurrency,
-                        Product::getSoldCount,
-                        Product::isSevenDayReturn)
-                .eq(Product::getStatus, ProductStatus.PUBLISHED)
-                .in(visibleCategoryIds != null, Product::getCategoryId, visibleCategoryIds)
-                .eq(query.shopId() != null, Product::getShopId, query.shopId());
-        addKeywordFilter(wrapper, keyword);
-        // 每种排序都补 id 兜底，保证翻页时同值记录顺序稳定（否则第 2 页可能重复第 1 页的行）
-        switch (ProductSort.fromWire(query.sort())) {
-            case PRICE_ASC -> wrapper.orderByAsc(Product::getMinPrice).orderByDesc(Product::getId);
-            case PRICE_DESC -> wrapper.orderByDesc(Product::getMaxPrice).orderByDesc(Product::getId);
-            case NEWEST -> wrapper.orderByDesc(Product::getCreatedAt).orderByDesc(Product::getId);
-        }
-        Page<Product> result = productMapper.selectPage(new Page<>(page, size), wrapper);
+        // 取数（投影列清单、关键字形状、每种排序补哪一列）见 ProductMapper.selectPublicPage；
+        // 这里只交归一后的入参：可见类目集、店铺、trim 过的关键字、fromWire 出来的排序档
+        var result = productMapper.selectPublicPage(
+                paging(page, size), visibleCategoryIds, query.shopId(), keyword, ProductSort.fromWire(query.sort()));
         return new PageResult<>(result.getRecords(), result.getTotal());
     }
 
@@ -179,40 +155,13 @@ public class ProductQueryService {
         return PublicProductDetailView.from(d, stocks(d.skus()));
     }
 
-    // 私有：卖家列表辅助
-    /** 商家后台商品列表：按店铺分页，可按状态/名称筛选。createdAt / soldCount 都是表列，排序直接走 DB 分页（升降序由 wire 后缀控制） */
-    private PageResult<Product> pageList(
-            UUID shopId, ProductStatus status, String keyword, long page, long size, ProductAdminSort sort) {
-        LambdaQueryWrapper<Product> wrapper = filter(shopId, status, keyword);
-        // 六个取值全列出、不写 default：switch 语句不做穷尽检查，漏一支会静默退化成「只剩 id 兜底序」
-        switch (sort) {
-            case CREATED_AT_ASC -> wrapper.orderByAsc(Product::getCreatedAt);
-            case CREATED_AT_DESC -> wrapper.orderByDesc(Product::getCreatedAt);
-            case SOLD_COUNT_ASC -> wrapper.orderByAsc(Product::getSoldCount);
-            case SOLD_COUNT_DESC -> wrapper.orderByDesc(Product::getSoldCount);
-            case STOCK_ASC, STOCK_DESC -> throw new IllegalStateException("库存排序走全量聚合分支，不进 DB 分页");
-        }
-        wrapper.orderByDesc(Product::getId);
-        Page<Product> result = productMapper.selectPage(new Page<>(page, size), wrapper);
-        return new PageResult<>(result.getRecords(), result.getTotal());
-    }
-
-    /** 店铺商品筛选条件：状态/名称，分页列表与「按库存排序」取全量集共用 */
-    private static LambdaQueryWrapper<Product> filter(UUID shopId, ProductStatus status, String keyword) {
-        // MP 的条件 boolean 参数不短路右侧表达式：keyword.trim() 必须先判空提取，否则无 keyword 请求 NPE
-        String trimmedKeyword = keyword == null ? null : keyword.trim();
-        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
-                .eq(Product::getShopId, shopId)
-                .eq(status != null, Product::getStatus, status);
-        addKeywordFilter(wrapper, trimmedKeyword);
-        return wrapper;
-    }
-
-    /** 商品名称/副标题包含搜索；ILIKE + pg_trgm 保留大小写不敏感的包含匹配语义。 */
-    private static void addKeywordFilter(LambdaQueryWrapper<Product> wrapper, String keyword) {
-        if (!StringUtils.hasText(keyword)) return;
-        String pattern = "%" + keyword.trim() + "%";
-        wrapper.and(q -> q.apply("name ILIKE {0}", pattern).or().apply("subtitle ILIKE {0}", pattern));
+    // 私有：辅助（分页载体、库存聚合、行装配）
+    /**
+     * 分页载体：两个列表方法的入参沿用 controller 拆开的 {@code page}/{@code size}（不动 HTTP 形状），
+     * 成形只在这一个出口发生——MyBatis-Plus 的 {@code Page} 由 mapper 内部自己 new。
+     */
+    private static PageParams paging(long page, long size) {
+        return new PageParams(Math.toIntExact(page), Math.toIntExact(size));
     }
 
     /** 为给定商品集聚合库存（一次批查，供排序与行渲染共用）；缺失（无库存行）按 0 兜底 */

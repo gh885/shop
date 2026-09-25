@@ -10,6 +10,17 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface MerchantAddressMapper extends BaseMapper<MerchantAddress> {
 
+    /**
+     * 本店<b>未删</b>地址条数（每店条数上限闸门，ACC-70「软删不占名额」）。
+     *
+     * <p>不需要显式写 deleted_at 条件：MerchantAddress 的 deletedAt 贴了 {@code @TableLogic}，selectCount 会自动带上
+     * 「未删」那半句，与 {@link #selectByShop} 同一套过滤——计数与列表看到的永远是同一批行。
+     * 反过来，停用（DISABLED）的地址照旧计数：本条不碰 status，它还在卖家手上，改回可用不需要重新占名额。
+     */
+    default long countByShop(UUID shopId) {
+        return selectCount(new LambdaQueryWrapper<MerchantAddress>().eq(MerchantAddress::getShopId, shopId));
+    }
+
     /** 店铺地址列表：默认发货/默认退货置顶，其余按更新时间倒序 */
     default List<MerchantAddress> selectByShop(UUID shopId) {
         return selectList(new LambdaQueryWrapper<MerchantAddress>()

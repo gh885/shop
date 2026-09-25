@@ -1,6 +1,5 @@
 package com.shop.platform.order.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.Sweep;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderMapper;
@@ -37,11 +36,8 @@ public class OrderTimeoutService {
 
     /** 扫一条超时线，返回真正落成的笔数（与并发的买家/卖家动作竞态时让位的不计） */
     public int sweep(OrderTimeout rule) {
-        List<Order> expired = orderMapper.selectList(new LambdaQueryWrapper<Order>()
-                .eq(Order::getStatus, rule.from())
-                .lt(rule.expireColumn(), OffsetDateTime.now())
-                .orderByAsc(rule.expireColumn())
-                .last("LIMIT " + BATCH_LIMIT));
+        List<Order> expired =
+                orderMapper.selectSweepBatch(rule.from(), rule.expireColumn(), OffsetDateTime.now(), BATCH_LIMIT);
         return Sweep.each(log, rule.description(), expired, Order::getId, order -> rule.handle(transitions, order));
     }
 }

@@ -2,13 +2,11 @@ package com.shop.platform.infra.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.cms.dto.NavRequest;
 import com.shop.platform.cms.mapper.Banner;
@@ -127,7 +125,7 @@ class ReadCacheTest {
     @DisplayName("类目树与子树_读两次各打一次库，改名后重新打")
     void categoryTreeAndSubtreeCached() {
         UUID root = UUID.randomUUID();
-        when(categoryMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(category(root)));
+        when(categoryMapper.selectAll()).thenReturn(List.of(category(root)));
         when(categoryMapper.selectById(root)).thenReturn(category(root));
 
         assertThat(categoryService.publicTree()).hasSize(1);
@@ -135,13 +133,13 @@ class ReadCacheTest {
         assertThat(categoryService.descendantIds(root)).containsExactly(root);
         assertThat(categoryService.descendantIds(root)).containsExactly(root);
         // 树和子树是两份缓存：各自命中一次，全表读因此是 2 次而不是 4 次
-        verify(categoryMapper, times(2)).selectList(any(LambdaQueryWrapper.class));
+        verify(categoryMapper, times(2)).selectAll();
 
         categoryService.update(root, "改名", null, null);
 
         categoryService.publicTree();
         categoryService.descendantIds(root);
-        verify(categoryMapper, times(4)).selectList(any(LambdaQueryWrapper.class));
+        verify(categoryMapper, times(4)).selectAll();
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.shop.platform.cms.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.cms.dto.BannerRequest;
 import com.shop.platform.cms.dto.NavRequest;
 import com.shop.platform.cms.dto.RecommendTabRequest;
@@ -66,25 +65,17 @@ public class ContentService {
         return publicReader.enabledTabs();
     }
 
-    // 后台读
+    // 后台读：全量含停用，筛选与排序口径见各 mapper 的 selectXxxAllOrdered
     public List<NavEntry> navAll(String navKey) {
-        return navEntryMapper.selectList(new LambdaQueryWrapper<NavEntry>()
-                .eq(navKey != null, NavEntry::getNavKey, navKey)
-                .orderByAsc(NavEntry::getSortOrder)
-                .orderByAsc(NavEntry::getId));
+        return navEntryMapper.selectNavAllOrdered(navKey);
     }
 
     public List<Banner> bannersAll(String slot) {
-        return bannerMapper.selectList(new LambdaQueryWrapper<Banner>()
-                .eq(slot != null, Banner::getSlot, slot)
-                .orderByAsc(Banner::getSortOrder)
-                .orderByAsc(Banner::getId));
+        return bannerMapper.selectBannerAllOrdered(slot);
     }
 
     public List<RecommendTab> tabsAll() {
-        return recommendTabMapper.selectList(new LambdaQueryWrapper<RecommendTab>()
-                .orderByAsc(RecommendTab::getSortOrder)
-                .orderByAsc(RecommendTab::getId));
+        return recommendTabMapper.selectTabAllOrdered();
     }
 
     // 后台导航

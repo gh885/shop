@@ -13,7 +13,8 @@ import java.util.Arrays;
  * <p>词表此前抄在两处：{@code ProductAdminController} 的 {@code @Pattern} 写一遍 alternation，
  * {@code ProductQueryService} 再按字符串各写一遍分支——加一种排序要同时记起两处，漏掉的那处不报错，
  * 只会把新值静默当成「按创建时间倒序」。现在枚举是唯一的一等公民：入站形状引用 {@link #PATTERN}，
- * service 走 {@link #fromWire} 后按枚举分支。
+ * service 走 {@link #fromWire} 归一成枚举，ORDER BY 那一档（连同库存两档不进 DB 分页的守卫）住在
+ * {@code ProductMapper.selectPageByShop}；内存定序那半边留在 {@code ProductQueryService.pageListWithMetrics}。
  */
 public enum ProductAdminSort {
 

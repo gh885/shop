@@ -1,6 +1,5 @@
 package com.shop.platform.coupon.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
@@ -40,13 +39,7 @@ public class CouponAdminService {
     public PageResult<AdminCouponItem> pageCoupons(PageParams pageParams, AdminCouponQuery query) {
         // 1. status 在 DTO 形状门先挡 422；service 仍用 enumFilter 守直接调用方。
         UserCouponStatus status = Validate.enumFilter(UserCouponStatus.class, query.status(), "非法的券状态筛选值");
-        Page<UserCoupon> rows = userCouponMapper.selectPage(
-                new Page<>(pageParams.page(), pageParams.size()),
-                new LambdaQueryWrapper<UserCoupon>()
-                        .eq(query.userId() != null, UserCoupon::getUserId, query.userId())
-                        .eq(query.shopId() != null, UserCoupon::getShopId, query.shopId())
-                        .eq(status != null, UserCoupon::getStatus, status)
-                        .orderByDesc(UserCoupon::getCreatedAt));
+        Page<UserCoupon> rows = userCouponMapper.selectPageForAdmin(pageParams, query.userId(), query.shopId(), status);
 
         // 2. 店名只按主键批量点查，禁止跨 schema JOIN；缺失店铺名保留为 null，不阻断整页。
         List<UserCoupon> records = rows.getRecords();

@@ -1,6 +1,9 @@
 package com.shop.platform.product.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,6 +11,21 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface CategoryAttrValueMapper extends BaseMapper<CategoryAttrValue> {
+
+    /**
+     * 一批属性的值域（不承诺顺序：调用方按 attrId 分组后再在内存里按 sort/创建时间排，那是装配）。
+     *
+     * <p>批查而不是逐个属性一次 selectList：候选集本来就限定在同一份模板内，逐属性查会随属性数放大成 N 次往返。
+     *
+     * <p>空集合在语句内短路：MyBatis-Plus 会把空 {@code in} 拼成 {@code IN ()}，那是 PG 的语法错误而不是
+     * 「一个值域都没有」，而零属性的调用方本来就该拿到空列表。
+     */
+    default List<CategoryAttrValue> selectByAttrIds(Collection<UUID> attrIds) {
+        if (attrIds.isEmpty()) {
+            return List.of();
+        }
+        return selectList(new LambdaQueryWrapper<CategoryAttrValue>().in(CategoryAttrValue::getAttrId, attrIds));
+    }
 
     /**
      * 卖家扩充值的落库唯一语句：值域内已有同名则原样返回既有行（含平台预置行，不把 source 改成卖家），

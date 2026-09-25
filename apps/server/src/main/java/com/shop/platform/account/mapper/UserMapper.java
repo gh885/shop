@@ -3,7 +3,9 @@ package com.shop.platform.account.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.model.UserStatus;
+import com.shop.platform.common.PageParams;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +19,26 @@ public interface UserMapper extends BaseMapper<User> {
     /** 按手机号查账号：短信注册回读 / 密码登录 / 改密共用（phone 全局唯一） */
     default User selectByPhone(String phone) {
         return selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+    }
+
+    /**
+     * 管理端买家列表分页：新注册在前（创建时间倒序）。
+     *
+     * <p>status 传 null = 全部档（含已注销的 DISABLED——注销主体要被管理端看见，本表刻意不给 deletedAt 贴
+     * {@code @TableLogic}，故这里不会悄悄少一批行）。
+     *
+     * <p>keyword 是「手机号<b>或</b>昵称任一命中」的一条 OR，两列都按库中原值做包含匹配：库里存的是号码明文，
+     * 脱敏只发生在出参那一侧（折成 AdminUserItem 时 mask）——拿脱敏后的形状去 LIKE 永远匹配不上。
+     */
+    default Page<User> selectPageAdmin(PageParams pageParams, UserStatus status, String keyword) {
+        return selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<User>()
+                        .eq(status != null, User::getStatus, status)
+                        .and(
+                                keyword != null,
+                                q -> q.like(User::getPhone, keyword).or().like(User::getNickname, keyword))
+                        .orderByDesc(User::getCreatedAt));
     }
 
     /**

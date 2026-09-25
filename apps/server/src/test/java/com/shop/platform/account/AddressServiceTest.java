@@ -46,7 +46,7 @@ class AddressServiceTest {
 
     @Test
     void 新增地址_已有条数未达上限_放行() {
-        when(addressMapper.selectCount(any())).thenReturn(19L);
+        when(addressMapper.countByUser(userId)).thenReturn(19L);
 
         AddressView created = addressService.create(userId, req());
 
@@ -56,7 +56,7 @@ class AddressServiceTest {
 
     @Test
     void 新增地址_已有条数已达上限20_拒绝() {
-        when(addressMapper.selectCount(any())).thenReturn(20L);
+        when(addressMapper.countByUser(userId)).thenReturn(20L);
 
         assertThatThrownBy(() -> addressService.create(userId, req()))
                 .isInstanceOf(BusinessException.class)

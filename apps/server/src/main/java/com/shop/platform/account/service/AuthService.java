@@ -1,6 +1,5 @@
 package com.shop.platform.account.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.dto.AccountFieldRules;
 import com.shop.platform.account.dto.AdminUserQuery;
@@ -305,15 +304,8 @@ public class AuthService {
         UserStatus status = Validate.enumFilter(UserStatus.class, query.status(), "非法的用户状态筛选值");
         String keyword = Text.blankToNull(query.keyword());
 
-        // 2. 关键字同时命中手机号与昵称；手机号按原值前缀/包含匹配，列表出参再统一脱敏。
-        Page<User> rows = userMapper.selectPage(
-                new Page<>(pageParams.page(), pageParams.size()),
-                new LambdaQueryWrapper<User>()
-                        .eq(status != null, User::getStatus, status)
-                        .and(
-                                keyword != null,
-                                q -> q.like(User::getPhone, keyword).or().like(User::getNickname, keyword))
-                        .orderByDesc(User::getCreatedAt));
+        // 2. 取数：关键字命中哪两列、按什么排，是买家列表的口径，收在 mapper（见 selectPageAdmin 注释）。
+        Page<User> rows = userMapper.selectPageAdmin(pageParams, status, keyword);
 
         // 3. mapper 行只出治理所需字段，避免把密码哈希、头像 key、注销内部状态带进 HTTP 契约。
         return new PageResult<>(

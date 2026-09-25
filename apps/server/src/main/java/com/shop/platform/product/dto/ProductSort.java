@@ -10,7 +10,8 @@ import java.util.Locale;
  * <p>词表原先抄在两处：{@code ProductQuery} 的 {@code @Pattern} 写一遍 alternation，
  * {@code ProductQueryService} 的 {@code switch} 再按字符串各写一遍 case——加一种排序要同时记起两处，
  * 漏掉的那处不会报错，只会把新值静默当成「默认排序」。现在枚举是唯一的一等公民：
- * 入站形状引用 {@link #PATTERN}，service 走 {@link #fromWire} 后按枚举分支。
+ * 入站形状引用 {@link #PATTERN}，service 走 {@link #fromWire} 归一成枚举，ORDER BY 分支住在
+ * {@code ProductMapper.selectPublicPage}（每种排序补 id 兜底那句也在那里）。
  */
 public enum ProductSort {
 

@@ -1,6 +1,5 @@
 package com.shop.platform.product.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.product.mapper.Category;
@@ -176,10 +175,7 @@ public class CategoryAttrService {
      * required 必须有值、allow_custom=false 且有值域时值须在值域内；类目无模板维持自由文本（attrId=null）。
      */
     public void validateParams(UUID categoryId, List<ParamItem> params) {
-        List<CategoryAttr> template = attrMapper.selectList(new LambdaQueryWrapper<CategoryAttr>()
-                .eq(CategoryAttr::getCategoryId, categoryId)
-                .eq(CategoryAttr::getKind, AttrKind.PARAM)
-                .eq(CategoryAttr::getStatus, CategoryAttrStatus.ENABLED));
+        List<CategoryAttr> template = attrMapper.selectParamTemplate(categoryId);
         if (template.isEmpty()) {
             return;
         }
@@ -188,9 +184,7 @@ public class CategoryAttrService {
 
         // 1. 值域一次性按整个模板捞出并按 attrId 分组：旧版在 param 循环里逐个 selectList，
         //    N 个受控参数 = N 次往返，而这里的候选集本就限定在同一类目模板内
-        Map<UUID, Set<String>> domainByAttr = valueMapper
-                .selectList(new LambdaQueryWrapper<CategoryAttrValue>().in(CategoryAttrValue::getAttrId, byId.keySet()))
-                .stream()
+        Map<UUID, Set<String>> domainByAttr = valueMapper.selectByAttrIds(byId.keySet()).stream()
                 .collect(Collectors.groupingBy(
                         CategoryAttrValue::getAttrId,
                         Collectors.mapping(CategoryAttrValue::getValue, Collectors.toSet())));
@@ -222,21 +216,15 @@ public class CategoryAttrService {
     }
 
     private List<CategoryAttrNode> buildTemplate(UUID categoryId, boolean enabledOnly) {
-        List<CategoryAttr> attrs = attrMapper.selectList(new LambdaQueryWrapper<CategoryAttr>()
-                .eq(CategoryAttr::getCategoryId, categoryId)
-                .eq(enabledOnly, CategoryAttr::getStatus, CategoryAttrStatus.ENABLED)
-                .orderByAsc(CategoryAttr::getSort)
-                .orderByAsc(CategoryAttr::getCreatedAt));
+        List<CategoryAttr> attrs = attrMapper.selectByCategory(categoryId, enabledOnly);
         if (attrs.isEmpty()) {
             return List.of();
         }
-        Map<UUID, List<CategoryAttrValue>> valuesByAttr = valueMapper
-                .selectList(new LambdaQueryWrapper<CategoryAttrValue>()
-                        .in(
-                                CategoryAttrValue::getAttrId,
-                                attrs.stream().map(CategoryAttr::getId).toList()))
-                .stream()
-                .collect(Collectors.groupingBy(CategoryAttrValue::getAttrId));
+        Map<UUID, List<CategoryAttrValue>> valuesByAttr =
+                valueMapper
+                        .selectByAttrIds(attrs.stream().map(CategoryAttr::getId).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(CategoryAttrValue::getAttrId));
         List<CategoryAttrNode> nodes = new ArrayList<>();
         for (CategoryAttr attr : attrs) {
             List<CategoryAttrValue> values = valuesByAttr.getOrDefault(attr.getId(), List.of()).stream()

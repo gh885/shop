@@ -3,7 +3,12 @@ package com.shop.platform.order.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.common.Money;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.common.Validate;
+import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -30,6 +35,75 @@ public interface OrderMapper extends BaseMapper<Order> {
     /** 取本店订单：卖家侧同一道门，越店与不存在同样不区分（同为 404） */
     default Order requireShopOwned(UUID shopId, UUID orderId) {
         return Validate.requireOwned(selectById(orderId), Order::getShopId, shopId, "订单不存在");
+    }
+
+    /**
+     * 买家「我的订单」分页：本人名下 + 可选状态档，新单在前。
+     *
+     * <p>与 {@link #selectPageByShop} 是同一形状的两句（只有归属列不同）：归属列写死在各自的方法里，
+     * 不由调用方传列引用——买卖两侧的「谁的单」是这道查询的适用域，传错列等于把别人的单列进你的列表。
+     *
+     * <p>{@code filter} 传 null = 全部档；非法状态值的 400 裁决在 service（mapper 只收已归一的枚举）。
+     */
+    default Page<Order> selectPageByBuyer(PageParams pageParams, UUID userId, OrderStatus filter) {
+        return selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getUserId, userId)
+                        .eq(filter != null, Order::getStatus, filter)
+                        .orderByDesc(Order::getCreatedAt));
+    }
+
+    /** 卖家订单分页：本店新建在前，档位列与 {@link #selectPageByBuyer} 同一口径（shop_id 是归属闸门，不是先查再过滤） */
+    default Page<Order> selectPageByShop(PageParams pageParams, UUID shopId, OrderStatus filter) {
+        return selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getShopId, shopId)
+                        .eq(filter != null, Order::getStatus, filter)
+                        .orderByDesc(Order::getCreatedAt));
+    }
+
+    /**
+     * 一条超时线的一批到期单：状态限定 {@code from}，到期列早于 {@code now}，按<b>同一列</b>升序取头部
+     * {@code limit} 行——最急的先处理。到期列为 NULL 的行天然不匹配（SQL 的 NULL 比较为 unknown），
+     * 未回填截止时刻的行不需要额外判空就进不了这一批。
+     *
+     * <p>到期列由调用方给（{@code OrderTimeout} 持有「哪条线过哪个截止列」），因为那两条线是本模块状态机
+     * 推导出来的起点，扫描器只保证「不是那一态、没到期就不进批」。批大小同样由调用方给：它是任务侧的批处理
+     * 策略（各部分索引全集有限，分批跑防任务线程长事务），不是这条查询的口径。
+     *
+     * <p>{@code LIMIT} 走 wrapper 的 {@code last} 尾巴——裸 SQL 片段只住 mapper，不进 service。
+     */
+    default List<Order> selectSweepBatch(
+            OrderStatus from, SFunction<Order, OffsetDateTime> expireColumn, OffsetDateTime now, int limit) {
+        return selectList(new LambdaQueryWrapper<Order>()
+                .eq(Order::getStatus, from)
+                .lt(expireColumn, now)
+                .orderByAsc(expireColumn)
+                .last("LIMIT " + limit));
+    }
+
+    /**
+     * 支付成功的条件转移：{@code WHERE id = ? AND status IN (合法起点集) SET status='PAID'} 并回填
+     * paid_at 与发货时限，回影响行数（0 行 = 已取消/已支付/不存在，409 裁决在调用方）。
+     *
+     * <p>起点集写死成 {@link OrderStatus#sourcesOf} 对 {@code PAID} 的反向投影，不作参数：那张转移表是本模块
+     * 状态机的唯一真相，把起点交给调用方等于允许有人从 COMPLETED「支付」一次。目标态同理写死为 PAID。
+     *
+     * <p>两个时刻是参数而不是守卫：{@code paidAt} 与 {@code shipExpireAt} 必须由<b>同一个 now</b> 推出来
+     * （发货时限是「付款时刻 + SHIP」），在语句内部各取一次时钟会出现两个不同的「现在」；与
+     * {@link #markDelivered} / {@link #markReturned} 同一形状。
+     */
+    default int markPaid(UUID orderId, OffsetDateTime paidAt, OffsetDateTime shipExpireAt) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Order>()
+                        .eq(Order::getId, orderId)
+                        .in(Order::getStatus, OrderStatus.sourcesOf(OrderStatus.PAID))
+                        .set(Order::getStatus, OrderStatus.PAID)
+                        .set(Order::getPaidAt, paidAt)
+                        .set(Order::getShipExpireAt, shipExpireAt));
     }
 
     /**
@@ -90,6 +164,48 @@ public interface OrderMapper extends BaseMapper<Order> {
                         .eq(Order::getStatus, OrderStatus.SHIPPED)
                         .isNull(Order::getDeliveredAt)
                         .set(Order::getReceiveExpireAt, receiveExpireAt));
+    }
+
+    /**
+     * 完成的条件转移（买家确认收货 / 超时自动收货共用这一条边）：{@code WHERE id = ? AND status IN (合法起点集)}
+     * 转 COMPLETED，同时回填完成时刻与售后申请窗口，回影响行数。
+     *
+     * <p>起点集写死成 {@link OrderStatus#sourcesOf} 对 {@code COMPLETED} 的反向投影（= SHIPPED），不作参数：
+     * 「哪一态能进完成」是状态机的裁决，交给调用方就多出一条绕过闸门的路。
+     *
+     * <p>两个时刻同为参数：{@code applyExpireAt} 由 {@code completedAt + AFTER_SALE_APPLY} 推出，与
+     * {@link #markPaid} 同一口径——同一个 now 分给两列，语句内部不各取一次时钟。抢不到行（0 行）后
+     * 记不记流水、要不要开售后窗口，一律由 service 判。
+     */
+    default int markCompleted(UUID orderId, OffsetDateTime completedAt, OffsetDateTime applyExpireAt) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Order>()
+                        .eq(Order::getId, orderId)
+                        .in(Order::getStatus, OrderStatus.sourcesOf(OrderStatus.COMPLETED))
+                        .set(Order::getStatus, OrderStatus.COMPLETED)
+                        .set(Order::getCompletedAt, completedAt)
+                        .set(Order::getApplyExpireAt, applyExpireAt));
+    }
+
+    /**
+     * 售后投影写回（aftersale 每次转移后经 order :: api 调用）：只写本模块持有的两列投影，不动状态机。
+     *
+     * <p>退款额可空：只有退款完成那一次带值，其余转移传 null 即<b>原样不动</b>那列（不是清空）。
+     *
+     * <p>带退款额时币种同时进 WHERE：orders 的币种列是本单既定的（一单一个币种），换币种的退款落不进这一行，
+     * 于是连 WHERE 一起挡掉（币种不符即视为未命中）。退款额收 Money 而不是拆成「分 + 币种」两个标量：
+     * 那两个半边必须来自同一笔钱，拆开传就有一次传错的机会，而传错的后果是账对不上而不是报错。
+     */
+    default int syncAfterSale(UUID orderId, AfterSaleStatus afterSaleStatus, Money refundAmount) {
+        LambdaUpdateWrapper<Order> update = new LambdaUpdateWrapper<Order>()
+                .eq(Order::getId, orderId)
+                .set(Order::getAfterSaleStatus, afterSaleStatus);
+        if (refundAmount != null) {
+            update.eq(Order::getCurrency, refundAmount.currency());
+            update.set(Order::getRefundAmount, refundAmount.amount());
+        }
+        return update(null, update);
     }
 
     /** 同一次结算已落的全部订单（幂等重放回读）；按 shopId 升序，与 OrderService.create 的拆单顺序一致 */

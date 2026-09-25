@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.account.dto.AdminStaffQuery;
 import com.shop.platform.account.mapper.Staff;
@@ -72,7 +71,7 @@ class StaffServiceTest {
             Page<Staff> page = new Page<>(1, 10);
             page.setRecords(List.of(staff));
             page.setTotal(1);
-            when(staffMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+            when(staffMapper.selectPageAdmin(new PageParams(1, 10), StaffStatus.ACTIVE, "E001"))
                     .thenReturn(page);
 
             var result = staffService.pageAdminStaff(new PageParams(1, 10), new AdminStaffQuery("ACTIVE", "E001"));
@@ -92,8 +91,7 @@ class StaffServiceTest {
             Page<Staff> page = new Page<>(1, 10);
             page.setRecords(List.of(staff));
             page.setTotal(1);
-            when(staffMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
-                    .thenReturn(page);
+            when(staffMapper.selectPageAdmin(new PageParams(1, 10), null, null)).thenReturn(page);
 
             var result = staffService.pageAdminStaff(new PageParams(1, 10), new AdminStaffQuery(null, null));
 

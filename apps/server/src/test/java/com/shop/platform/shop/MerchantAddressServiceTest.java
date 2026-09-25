@@ -60,7 +60,7 @@ class MerchantAddressServiceTest {
     // create：标记默认发货会先清本店其他默认发货，保证每店至多一个
     @Test
     void create_withDefaultShip_clearsSameShopDefaultShipBeforeInsert() {
-        when(addressMapper.selectCount(any())).thenReturn(0L);
+        when(addressMapper.countByShop(shopId)).thenReturn(0L);
 
         MerchantAddress created = addressService.create(shopId, req(true, false));
 
@@ -78,7 +78,7 @@ class MerchantAddressServiceTest {
     // create：地址条数已达 200 上限直接 400（code 供前端区分 toast 文案）
     @Test
     void create_whenAddressLimitReached_throwsBadRequestWithCode() {
-        when(addressMapper.selectCount(any())).thenReturn(200L);
+        when(addressMapper.countByShop(shopId)).thenReturn(200L);
 
         assertThatThrownBy(() -> addressService.create(shopId, req(false, false)))
                 .isInstanceOf(BusinessException.class)
@@ -90,7 +90,7 @@ class MerchantAddressServiceTest {
     // create：未达上限（199 条）正常放行
     @Test
     void create_whenBelowAddressLimit_inserts() {
-        when(addressMapper.selectCount(any())).thenReturn(199L);
+        when(addressMapper.countByShop(shopId)).thenReturn(199L);
 
         MerchantAddress created = addressService.create(shopId, req(false, false));
 

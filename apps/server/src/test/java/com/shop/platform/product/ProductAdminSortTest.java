@@ -34,7 +34,8 @@ class ProductAdminSortTest {
                 .filter(ProductAdminSort::byAggregatedStock)
                 .map(Enum::name)
                 .toList();
-        // 口径写在 pageListWithMetrics 的注释里：库存不在 products 的列上，只有这两档排不了 DB
+        // 口径写在 pageListWithMetrics 的注释与 ProductMapper.selectPageByShop 的守卫里：
+        // 库存不在 products 的列上，只有这两档排不了 DB
         assertThat(byAggregatedStock).containsExactly("STOCK_ASC", "STOCK_DESC");
     }
 }

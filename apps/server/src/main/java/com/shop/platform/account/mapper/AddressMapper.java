@@ -19,6 +19,16 @@ public interface AddressMapper extends BaseMapper<Address> {
     }
 
     /**
+     * 本人<b>未删</b>地址条数（条数上限闸门，ACC-53「软删不占名额」）。
+     *
+     * <p>不需要显式写 deleted_at 条件：Address 的 deletedAt 贴了 {@code @TableLogic}，selectCount 会自动带上
+     * 「未删」那半句，与 {@link #selectByUser} 同一套过滤——计数与列表看到的永远是同一批行。
+     */
+    default long countByUser(UUID userId) {
+        return selectCount(new LambdaQueryWrapper<Address>().eq(Address::getUserId, userId));
+    }
+
+    /**
      * 清零本人所有地址的默认标记（创建/更新/设默认前调用），保证每用户至多一个默认；
      * 并发由部分唯一索引兜底。
      *
