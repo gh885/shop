@@ -73,7 +73,7 @@ function Item({
     ...props
 }: useRender.ComponentProps<"div"> & VariantProps<typeof itemVariants>) {
     return useRender({
-        defaultTagName: "div",
+        defaultTagName: variant === "selected" || variant === "selectable" ? "label" : "div",
         props: mergeProps<"div">(
             {
                 className: cn(itemVariants({ variant, size, className })),

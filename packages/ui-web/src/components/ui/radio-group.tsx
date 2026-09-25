@@ -22,6 +22,7 @@ function RadioGroupItem({ className, ...props }: RadioPrimitive.Root.Props) {
         className
       )}
       {...props}
+      aria-labelledby={props["aria-label"] ? "" : undefined}
     >
       <RadioPrimitive.Indicator
         data-slot="radio-group-indicator"

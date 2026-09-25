@@ -25,7 +25,7 @@ function makeRow(overrides: Partial<CouponRow> = {}): CouponRow {
         usedQuantity: 12,
         status: "ONGOING",
         statusLabel: "进行中",
-        statusVariant: "default",
+        statusVariant: "success",
         createdAt: "2025-12-20T08:00:00Z",
         ...overrides,
     }
