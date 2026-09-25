@@ -138,6 +138,8 @@ jobs:
                   exit 1
             - name: 准备演示数据
               run: pnpm seed:demo
+            - name: 运营数据健康扫描
+              run: pnpm health:scan
             - name: 运行下单主路径
               run: pnpm test:e2e
             - name: 上传 Playwright 报告
