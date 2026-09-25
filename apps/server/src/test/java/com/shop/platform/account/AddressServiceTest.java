@@ -11,6 +11,7 @@ import com.shop.platform.account.dto.AddressRequest;
 import com.shop.platform.account.mapper.Address;
 import com.shop.platform.account.mapper.AddressMapper;
 import com.shop.platform.account.service.AddressService;
+import com.shop.platform.account.service.AddressView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.region.RegionRegistry;
 import java.util.UUID;
@@ -47,9 +48,9 @@ class AddressServiceTest {
     void 新增地址_已有条数未达上限_放行() {
         when(addressMapper.selectCount(any())).thenReturn(19L);
 
-        Address created = addressService.create(userId, req());
+        AddressView created = addressService.create(userId, req());
 
-        assertThat(created.getUserId()).isEqualTo(userId);
+        assertThat(created.userId()).isEqualTo(userId);
         verify(addressMapper).insert(any(Address.class));
     }
 

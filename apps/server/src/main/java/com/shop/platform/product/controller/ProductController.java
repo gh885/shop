@@ -4,12 +4,12 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
-import com.shop.platform.product.controller.response.PublicProductDetailResponse;
-import com.shop.platform.product.controller.response.PublicProductResponse;
 import com.shop.platform.product.dto.ProductQuery;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.ProductQueryService;
+import com.shop.platform.product.service.PublicProductDetailView;
+import com.shop.platform.product.service.PublicProductView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -43,21 +43,20 @@ public class ProductController {
 
     /** 商品列表：只返上架商品，可按类目/店铺/关键词筛选并排序 */
     @GetMapping
-    public PageResult<PublicProductResponse> listPublicProducts(
-            @Valid PageParams pageParams, @Valid ProductQuery query) {
+    public PageResult<PublicProductView> listPublicProducts(@Valid PageParams pageParams, @Valid ProductQuery query) {
         return productQueryService
                 .pagePublic(query, pageParams.page(), pageParams.size())
-                .map(PublicProductResponse::from);
+                .map(PublicProductView::from);
     }
 
     /** 商品详情：非上架一律 404，SKU 只返在售 */
     @GetMapping("/{id}")
-    public PublicProductDetailResponse getPublicProductDetail(@PathVariable UUID id) {
+    public PublicProductDetailView getPublicProductDetail(@PathVariable UUID id) {
         ProductDetail d = productQueryService.publicDetail(id);
-        return PublicProductDetailResponse.from(d, stocks(d.skus()));
+        return PublicProductDetailView.from(d, stocks(d.skus()));
     }
 
-    /** 跨模块批查库存：skuId → StockView，供 PublicSkuResponse 补库存展示（买家端详情） */
+    /** 跨模块批查库存：skuId → StockView，供 PublicSkuView 补库存展示（买家端详情） */
     private Map<UUID, StockView> stocks(List<Sku> skus) {
         return stockReadQuery.availableBySkuIds(skus.stream().map(Sku::getId).toList());
     }

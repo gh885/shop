@@ -6,11 +6,11 @@ import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
 import com.shop.platform.infra.web.CurrentUser;
-import com.shop.platform.order.controller.response.OrderDetailResponse;
 import com.shop.platform.order.controller.response.ReceiverPhoneResponse;
-import com.shop.platform.order.controller.response.SellerOrderListItemResponse;
 import com.shop.platform.order.dto.OrderQuery;
+import com.shop.platform.order.service.OrderDetailView;
 import com.shop.platform.order.service.OrderService;
+import com.shop.platform.order.service.SellerOrderListItemView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -36,15 +36,15 @@ public class SellerOrderController {
 
     /** 本店订单分页：status 筛选待发货等作业 tab */
     @GetMapping
-    public PageResult<SellerOrderListItemResponse> listShopOrders(
+    public PageResult<SellerOrderListItemView> listShopOrders(
             @CurrentShop UUID shopId, @Valid PageParams pageParams, @Valid OrderQuery query) {
-        return orderService.pageSeller(shopId, query.status(), pageParams).map(SellerOrderListItemResponse::from);
+        return orderService.pageSeller(shopId, query.status(), pageParams).map(SellerOrderListItemView::from);
     }
 
     /** 本店订单详情：收货快照即打包面单信息（与买家侧共用契约，动作集取卖家视角） */
     @GetMapping("/{id}")
-    public OrderDetailResponse getShopOrderDetail(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        return OrderDetailResponse.sellerView(orderService.sellerDetail(shopId, id));
+    public OrderDetailView getShopOrderDetail(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        return OrderDetailView.sellerView(orderService.sellerDetail(shopId, id));
     }
 
     /**

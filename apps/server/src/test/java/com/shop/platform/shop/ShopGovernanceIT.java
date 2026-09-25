@@ -231,7 +231,7 @@ class ShopGovernanceIT extends IntegrationTestSupport {
         shopReviewService.reject(reviewId(shop.getId()), staffId, "资质不全");
 
         ShopListItem row = shopService.myShops(ownerId).getFirst();
-        assertEquals(ShopStatus.REJECTED, row.shop().getStatus());
+        assertEquals(ShopStatus.REJECTED, row.status());
         assertEquals("资质不全", row.rejectReason());
 
         shopService.resubmitReview(shop.getId(), ownerId, "带驳回理由店铺", null);

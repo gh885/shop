@@ -1,9 +1,9 @@
 package com.shop.platform.payment.controller;
 
 import com.shop.platform.infra.web.CurrentUser;
-import com.shop.platform.payment.controller.response.PaymentResponse;
 import com.shop.platform.payment.dto.CreatePaymentRequest;
 import com.shop.platform.payment.service.PaymentService;
+import com.shop.platform.payment.service.PaymentView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -35,8 +35,8 @@ public class PaymentController {
     /** 发起支付：仅待付款订单可付；金额以订单为准，前端不报价。V1 创建 PENDING 流水（不动订单状态） */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PaymentResponse createPayment(@CurrentUser UUID userId, @Valid @RequestBody CreatePaymentRequest req) {
-        return PaymentResponse.from(paymentService.pay(userId, req.orderId()));
+    public PaymentView createPayment(@CurrentUser UUID userId, @Valid @RequestBody CreatePaymentRequest req) {
+        return PaymentView.from(paymentService.pay(userId, req.orderId()));
     }
 
     /**
@@ -44,7 +44,7 @@ public class PaymentController {
      * 后端返回 payment.id 后由售前/前端在此确认；接真实网关时本端点替换为网关通知回调，逻辑不变。
      */
     @PostMapping("/{id}/confirm")
-    public PaymentResponse confirmPayment(@CurrentUser UUID userId, @PathVariable UUID id) {
-        return PaymentResponse.from(paymentService.confirm(userId, id));
+    public PaymentView confirmPayment(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return PaymentView.from(paymentService.confirm(userId, id));
     }
 }

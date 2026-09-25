@@ -3,6 +3,7 @@ package com.shop.platform.logistics.controller.response;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.logistics.service.OrderTracking;
+import com.shop.platform.logistics.service.ShipmentTrackingView;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.UUID;
@@ -15,13 +16,11 @@ import java.util.UUID;
  */
 public record OrderTrackingResponse(
         @Schema(requiredMode = REQUIRED) UUID orderId,
-        @Schema(requiredMode = REQUIRED) List<ShipmentTrackingResponse> shipments) {
+        @Schema(requiredMode = REQUIRED) List<ShipmentTrackingView> shipments) {
 
     public static OrderTrackingResponse from(OrderTracking tracking) {
         return new OrderTrackingResponse(
                 tracking.orderId(),
-                tracking.shipments().stream()
-                        .map(ShipmentTrackingResponse::from)
-                        .toList());
+                tracking.shipments().stream().map(ShipmentTrackingView::from).toList());
     }
 }

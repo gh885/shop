@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.cms.mapper.Banner;
 import com.shop.platform.cms.mapper.NavEntry;
-import com.shop.platform.cms.mapper.NavGroup;
 import com.shop.platform.cms.model.CmsStatus;
+import com.shop.platform.cms.model.NavGroup;
 import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.shop.mapper.Shop;

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.shop.platform.cms.model.CmsStatus;
+import com.shop.platform.cms.model.NavGroup;
 import com.shop.platform.infra.db.AuditedEntity;
 import java.util.List;
 import lombok.Data;

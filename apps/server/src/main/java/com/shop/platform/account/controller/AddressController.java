@@ -1,10 +1,10 @@
 package com.shop.platform.account.controller;
 
-import com.shop.platform.account.controller.response.AddressResponse;
 import com.shop.platform.account.dto.AddressParseRequest;
 import com.shop.platform.account.dto.AddressRequest;
 import com.shop.platform.account.service.AddressParseResult;
 import com.shop.platform.account.service.AddressService;
+import com.shop.platform.account.service.AddressView;
 import com.shop.platform.infra.web.CurrentUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,8 +33,8 @@ public class AddressController {
     /** 新增收货地址 */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AddressResponse createAddress(@CurrentUser UUID userId, @Valid @RequestBody AddressRequest req) {
-        return AddressResponse.from(addressService.create(userId, req));
+    public AddressView createAddress(@CurrentUser UUID userId, @Valid @RequestBody AddressRequest req) {
+        return addressService.create(userId, req);
     }
 
     /** 智能粘贴：解析收货文本为结构化字段（无需入库，纯文本处理） */
@@ -45,21 +45,21 @@ public class AddressController {
 
     /** 我的收货地址列表：默认地址置顶 */
     @GetMapping
-    public List<AddressResponse> listAddresses(@CurrentUser UUID userId) {
-        return addressService.list(userId).stream().map(AddressResponse::from).toList();
+    public List<AddressView> listAddresses(@CurrentUser UUID userId) {
+        return addressService.list(userId);
     }
 
     /** 地址详情（结算页反显用） */
     @GetMapping("/{id}")
-    public AddressResponse getAddressDetail(@CurrentUser UUID userId, @PathVariable UUID id) {
-        return AddressResponse.from(addressService.detail(userId, id));
+    public AddressView getAddressDetail(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return addressService.detail(userId, id);
     }
 
     /** 修改收货地址 */
     @PutMapping("/{id}")
-    public AddressResponse updateAddress(
+    public AddressView updateAddress(
             @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody AddressRequest req) {
-        return AddressResponse.from(addressService.update(userId, id, req));
+        return addressService.update(userId, id, req);
     }
 
     /** 删除收货地址（软删，返回 204） */
@@ -71,13 +71,13 @@ public class AddressController {
 
     /** 设为默认地址：每用户至多一个默认 */
     @PutMapping("/{id}/default")
-    public AddressResponse setDefaultAddress(@CurrentUser UUID userId, @PathVariable UUID id) {
-        return AddressResponse.from(addressService.setDefault(userId, id));
+    public AddressView setDefaultAddress(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return addressService.setDefault(userId, id);
     }
 
     /** 取消默认地址：允许该用户无默认地址 */
     @DeleteMapping("/{id}/default")
-    public AddressResponse unsetDefaultAddress(@CurrentUser UUID userId, @PathVariable UUID id) {
-        return AddressResponse.from(addressService.unsetDefault(userId, id));
+    public AddressView unsetDefaultAddress(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return addressService.unsetDefault(userId, id);
     }
 }

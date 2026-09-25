@@ -50,7 +50,7 @@ import com.shop.platform.product.dto.SpecSelectionRequest;
 import com.shop.platform.product.dto.UpdateCategoryRequest;
 import com.shop.platform.product.dto.UpdateProductRequest;
 import com.shop.platform.product.dto.UpdateSpecsRequest;
-import com.shop.platform.product.mapper.ParamItem;
+import com.shop.platform.product.model.ParamItem;
 import com.shop.platform.recommend.dto.FeedQuery;
 import com.shop.platform.shop.dto.CreateShopRequest;
 import com.shop.platform.shop.dto.MerchantAddressRequest;

@@ -2,7 +2,6 @@ package com.shop.platform.account.controller;
 
 import com.shop.platform.account.AuthProperties;
 import com.shop.platform.account.controller.response.DeviceEntryResponse;
-import com.shop.platform.account.controller.response.MeResponse;
 import com.shop.platform.account.dto.ForgotPasswordRequest;
 import com.shop.platform.account.dto.LogoutRequest;
 import com.shop.platform.account.dto.PasswordLoginRequest;
@@ -15,6 +14,7 @@ import com.shop.platform.account.dto.UpdateProfileRequest;
 import com.shop.platform.account.infra.CaptchaService;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
+import com.shop.platform.account.service.UserView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.qiniu.QiniuClient;
@@ -145,8 +145,8 @@ public class AuthController {
 
     /** 当前登录用户信息 */
     @GetMapping("/me")
-    public MeResponse me(@CurrentUser UUID userId) {
-        return MeResponse.from(authService.getMe(userId));
+    public UserView me(@CurrentUser UUID userId) {
+        return authService.getMe(userId);
     }
 
     /** 头像上传凭证：前端拿 ticket 后直传七牛，传完把 key 随更新资料（avatarKey）保存；出参即 infra 值对象 UploadTicket */
@@ -164,8 +164,8 @@ public class AuthController {
 
     /** 更新个人资料（昵称 + 头像） */
     @PutMapping("/profile")
-    public MeResponse updateProfile(@CurrentUser UUID userId, @Valid @RequestBody UpdateProfileRequest req) {
-        return MeResponse.from(authService.updateProfile(userId, req.nickname(), req.avatarKey()));
+    public UserView updateProfile(@CurrentUser UUID userId, @Valid @RequestBody UpdateProfileRequest req) {
+        return authService.updateProfile(userId, req.nickname(), req.avatarKey());
     }
 
     /** 登出所有设备（清空全端会话，当前请求也失效，需重新登录） */

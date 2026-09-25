@@ -125,6 +125,41 @@ class NamingRulesTest {
             .allowEmptyShould(true)
             .as("Response 后缀只允许出现在 controller 包");
 
+    /** HTTP 入参不得依赖 mapper 包：DTO 是独立 wire 契约，存储模型变更不能穿透请求边界。 */
+    @ArchTest
+    static final ArchRule dto_does_not_depend_on_mapper = noClasses()
+            .that()
+            .resideInAPackage("..dto..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("..mapper..")
+            .allowEmptyShould(true)
+            .as("dto 入参不得依赖 mapper 存储模型");
+
+    /** HTTP 入参不得反向依赖 service 内部 Command；DTO 只描述 wire 入参。 */
+    @ArchTest
+    static final ArchRule dto_does_not_depend_on_service = noClasses()
+            .that()
+            .resideInAPackage("..dto..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("..service..")
+            .allowEmptyShould(true)
+            .as("dto 入参不得依赖 service 实现");
+
+    /** HTTP Response 契约不得依赖 mapper；实体转换必须止于 service 读模型。 */
+    @ArchTest
+    static final ArchRule response_does_not_depend_on_mapper = noClasses()
+            .that()
+            .resideInAPackage("..controller..")
+            .and()
+            .haveSimpleNameEndingWith("Response")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("..mapper..")
+            .allowEmptyShould(true)
+            .as("HTTP Response 不得依赖 mapper 存储模型");
+
     /** controller 方法禁止返回 mapper 包实体：HTTP 出参一律 Response record，契约与存储模型解耦 */
     @ArchTest
     static final ArchRule controllers_return_no_mapper_types = noMethods()

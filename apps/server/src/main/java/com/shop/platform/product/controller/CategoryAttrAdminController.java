@@ -3,12 +3,12 @@ package com.shop.platform.product.controller;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.product.controller.response.CategoryAttrNodeResponse;
-import com.shop.platform.product.controller.response.CategoryAttrResponse;
-import com.shop.platform.product.controller.response.CategoryAttrValueResponse;
 import com.shop.platform.product.dto.CategoryAttrRequest;
 import com.shop.platform.product.dto.CategoryAttrValueRequest;
 import com.shop.platform.product.dto.UpdateCategoryAttrStatusRequest;
 import com.shop.platform.product.service.CategoryAttrService;
+import com.shop.platform.product.service.CategoryAttrValueView;
+import com.shop.platform.product.service.CategoryAttrView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -47,16 +47,15 @@ public class CategoryAttrAdminController {
 
     /** 新建模板属性（只允许叶子类目） */
     @PostMapping("/categories/{id}/attrs")
-    public CategoryAttrResponse createCategoryAttr(@PathVariable UUID id, @Valid @RequestBody CategoryAttrRequest req) {
-        return CategoryAttrResponse.from(categoryAttrService.createAttr(
+    public CategoryAttrView createCategoryAttr(@PathVariable UUID id, @Valid @RequestBody CategoryAttrRequest req) {
+        return CategoryAttrView.from(categoryAttrService.createAttr(
                 id, req.name(), req.kind(), req.required(), req.allowCustom(), req.allowImage(), req.sort()));
     }
 
     /** 更新属性定义（kind 创建后不可改） */
     @PutMapping("/category-attrs/{attrId}")
-    public CategoryAttrResponse updateCategoryAttr(
-            @PathVariable UUID attrId, @Valid @RequestBody CategoryAttrRequest req) {
-        return CategoryAttrResponse.from(categoryAttrService.updateAttr(
+    public CategoryAttrView updateCategoryAttr(@PathVariable UUID attrId, @Valid @RequestBody CategoryAttrRequest req) {
+        return CategoryAttrView.from(categoryAttrService.updateAttr(
                 attrId, req.name(), req.required(), req.allowCustom(), req.allowImage(), req.sort()));
     }
 
@@ -69,17 +68,16 @@ public class CategoryAttrAdminController {
 
     /** 平台预置值建档 */
     @PostMapping("/category-attrs/{attrId}/values")
-    public CategoryAttrValueResponse createCategoryAttrValue(
+    public CategoryAttrValueView createCategoryAttrValue(
             @PathVariable UUID attrId, @Valid @RequestBody CategoryAttrValueRequest req) {
-        return CategoryAttrValueResponse.from(
-                categoryAttrService.addValue(attrId, req.value(), req.sort(), req.image()));
+        return CategoryAttrValueView.from(categoryAttrService.addValue(attrId, req.value(), req.sort(), req.image()));
     }
 
     /** 改值名/排序：改名同事务刷新引用 SKU 的 attributes/name 快照（改名不丢价） */
     @PutMapping("/category-attr-values/{valueId}")
-    public CategoryAttrValueResponse updateCategoryAttrValue(
+    public CategoryAttrValueView updateCategoryAttrValue(
             @PathVariable UUID valueId, @Valid @RequestBody CategoryAttrValueRequest req) {
-        return CategoryAttrValueResponse.from(
+        return CategoryAttrValueView.from(
                 categoryAttrService.updateValue(valueId, req.value(), req.sort(), req.image()));
     }
 }

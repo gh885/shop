@@ -2,14 +2,15 @@ package com.shop.platform.shop.controller;
 
 import com.shop.platform.infra.web.CurrentUser;
 import com.shop.platform.shop.controller.response.PhoneRevealResponse;
-import com.shop.platform.shop.controller.response.ShopMemberResponse;
-import com.shop.platform.shop.controller.response.ShopResponse;
 import com.shop.platform.shop.dto.CreateShopRequest;
 import com.shop.platform.shop.dto.InviteMemberRequest;
 import com.shop.platform.shop.dto.UpdateMemberPermissionsRequest;
 import com.shop.platform.shop.service.ShopInviteItem;
+import com.shop.platform.shop.service.ShopListItem;
 import com.shop.platform.shop.service.ShopMemberItem;
+import com.shop.platform.shop.service.ShopMemberView;
 import com.shop.platform.shop.service.ShopService;
+import com.shop.platform.shop.service.ShopView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -34,16 +35,14 @@ public class ShopController {
 
     /** 开店：当前登录用户（统一账号）创建店铺，落 PENDING_REVIEW 待平台审核 */
     @PostMapping
-    public ShopResponse createShop(@CurrentUser UUID ownerId, @Valid @RequestBody CreateShopRequest req) {
-        return ShopResponse.from(shopService.createShop(ownerId, req.name(), req.logoKey()));
+    public ShopView createShop(@CurrentUser UUID ownerId, @Valid @RequestBody CreateShopRequest req) {
+        return ShopView.from(shopService.createShop(ownerId, req.name(), req.logoKey()));
     }
 
     /** 我的店铺列表（ACTIVE 成员身份）；被驳回的店带上驳回理由，供「补材料重新提交」表单 */
     @GetMapping("/mine")
-    public List<ShopResponse> listMyShops(@CurrentUser UUID userId) {
-        return shopService.myShops(userId).stream()
-                .map(item -> ShopResponse.from(item.shop(), item.rejectReason()))
-                .toList();
+    public List<ShopListItem> listMyShops(@CurrentUser UUID userId) {
+        return shopService.myShops(userId);
     }
 
     /**
@@ -51,9 +50,9 @@ public class ShopController {
      * 非被驳回的店拿 409，改名撞店名唯一闸拿 400 SHOP_NAME_TAKEN。
      */
     @PostMapping("/{shopId}/resubmit")
-    public ShopResponse resubmitShopReview(
+    public ShopView resubmitShopReview(
             @CurrentUser UUID userId, @PathVariable UUID shopId, @Valid @RequestBody CreateShopRequest req) {
-        return ShopResponse.from(shopService.resubmitReview(shopId, userId, req.name(), req.logoKey()));
+        return ShopView.from(shopService.resubmitReview(shopId, userId, req.name(), req.logoKey()));
     }
 
     /** 我的待确认邀请 */
@@ -64,8 +63,8 @@ public class ShopController {
 
     /** 同意邀请，确认后成为店铺 ACTIVE 成员 */
     @PostMapping("/invites/{memberId}/accept")
-    public ShopMemberResponse acceptShopInvite(@CurrentUser UUID userId, @PathVariable UUID memberId) {
-        return ShopMemberResponse.from(shopService.acceptInvite(memberId, userId));
+    public ShopMemberView acceptShopInvite(@CurrentUser UUID userId, @PathVariable UUID memberId) {
+        return ShopMemberView.from(shopService.acceptInvite(memberId, userId));
     }
 
     /**
@@ -96,9 +95,9 @@ public class ShopController {
 
     /** 店主按手机号邀请成员（可选携带可授予权限码），对方登录后确认才生效 */
     @PostMapping("/{shopId}/invites")
-    public ShopMemberResponse inviteShopMember(
+    public ShopMemberView inviteShopMember(
             @CurrentUser UUID userId, @PathVariable UUID shopId, @Valid @RequestBody InviteMemberRequest req) {
-        return ShopMemberResponse.from(shopService.invite(shopId, userId, req.phone(), req.permissions()));
+        return ShopMemberView.from(shopService.invite(shopId, userId, req.phone(), req.permissions()));
     }
 
     /** 店主调整子账号权限（全量替换），下一请求即生效 */

@@ -2,9 +2,9 @@ package com.shop.platform.logistics.controller;
 
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
-import com.shop.platform.logistics.controller.response.ShipmentIssueResponse;
 import com.shop.platform.logistics.dto.ResolveIssueRequest;
 import com.shop.platform.logistics.service.ShipmentIssueService;
+import com.shop.platform.logistics.service.ShipmentIssueView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -34,10 +34,8 @@ public class AdminShipmentIssueController {
 
     /** 待处理异常单（客服待办）：按发现时间倒序 */
     @GetMapping
-    public List<ShipmentIssueResponse> listOpenIssues() {
-        return issueService.openIssues().stream()
-                .map(ShipmentIssueResponse::from)
-                .toList();
+    public List<ShipmentIssueView> listOpenIssues() {
+        return issueService.openIssues().stream().map(ShipmentIssueView::from).toList();
     }
 
     /** 手动结单：不存在 404、已结 409——不静默成功 */

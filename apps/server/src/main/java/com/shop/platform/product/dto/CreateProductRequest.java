@@ -1,7 +1,6 @@
 package com.shop.platform.product.dto;
 
-import com.shop.platform.product.mapper.ParamItem;
-import com.shop.platform.product.service.ProductService.CreateProductCommand;
+import com.shop.platform.product.model.ParamItem;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -39,11 +38,5 @@ public record CreateProductRequest(
         if (name != null) name = name.trim();
         if (name == null) name = ""; // 草稿允许空名，落空串满足 NOT NULL；发布时再校验
         if (subtitle != null) subtitle = subtitle.trim();
-    }
-
-    /** 映射为 service 入参，shopId 由店铺上下文（X-Shop-Id + 成员校验）注入 */
-    public CreateProductCommand toCommand(UUID shopId) {
-        return new CreateProductCommand(
-                shopId, categoryId, name, subtitle, detailImages, mainImage, images, params, sevenDayReturn);
     }
 }

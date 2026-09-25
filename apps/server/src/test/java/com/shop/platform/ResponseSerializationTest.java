@@ -3,10 +3,10 @@ package com.shop.platform;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.common.Money;
-import com.shop.platform.order.controller.response.OrderItemResponse;
-import com.shop.platform.product.controller.response.CategoryAttrResponse;
+import com.shop.platform.order.service.OrderItemView;
 import com.shop.platform.product.model.AttrKind;
 import com.shop.platform.product.model.CategoryAttrStatus;
+import com.shop.platform.product.service.CategoryAttrView;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class ResponseSerializationTest {
 
     @Test
     void 出参中的money字段_序列化为扁平对象() throws Exception {
-        OrderItemResponse resp = new OrderItemResponse(
+        OrderItemView resp = new OrderItemView(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 "测试手机",
@@ -54,7 +54,7 @@ class ResponseSerializationTest {
 
     @Test
     void 枚举_序列化为name而非数字或对象() throws Exception {
-        CategoryAttrResponse resp = new CategoryAttrResponse(
+        CategoryAttrView resp = new CategoryAttrView(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 "颜色",

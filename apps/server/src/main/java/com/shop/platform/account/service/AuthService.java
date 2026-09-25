@@ -230,15 +230,15 @@ public class AuthService {
     }
 
     // 当前用户
-    /** 获取当前登录用户实体；手机号脱敏等展示变形由 controller 组装 MeResponse 时完成 */
-    public User getMe(UUID userId) {
+    /** 获取当前登录用户资料读模型；手机号在 service 出参边界脱敏。 */
+    public UserView getMe(UUID userId) {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
-        return user;
+        return UserView.from(user);
     }
 
     /** 更新个人资料：昵称 + 头像（头像 key 由前端上传后随请求带回）。avatarKey null＝不改，空串＝清空 */
-    public User updateProfile(UUID userId, String nickname, String avatarKey) {
+    public UserView updateProfile(UUID userId, String nickname, String avatarKey) {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
         if (nickname != null) {
@@ -253,7 +253,7 @@ public class AuthService {
             user.setAvatarKey(Text.blankToNull(avatarKey));
         }
         userMapper.updateById(user);
-        return user;
+        return UserView.from(user);
     }
 
     // 设备管理

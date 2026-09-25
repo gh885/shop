@@ -1,6 +1,6 @@
 package com.shop.platform.coupon.controller;
 
-import com.shop.platform.coupon.controller.response.ClaimableCouponResponse;
+import com.shop.platform.coupon.service.ClaimableCouponView;
 import com.shop.platform.coupon.service.CouponClaimService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.OffsetDateTime;
@@ -32,10 +32,10 @@ public class CouponPublicController {
 
     /** 本店可领的券：领完的（soldOut）与未到发放起点的（claimable=false，带 validFrom）都返回，前端置灰而不是消失 */
     @GetMapping("/{shopId}/coupons")
-    public List<ClaimableCouponResponse> listShopClaimableCoupons(@PathVariable UUID shopId) {
+    public List<ClaimableCouponView> listShopClaimableCoupons(@PathVariable UUID shopId) {
         OffsetDateTime now = OffsetDateTime.now();
         return couponClaimService.claimable(shopId).stream()
-                .map(template -> ClaimableCouponResponse.from(template, now))
+                .map(template -> ClaimableCouponView.from(template, now))
                 .toList();
     }
 }

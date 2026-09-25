@@ -3,9 +3,9 @@ package com.shop.platform.favorite.controller;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.favorite.controller.response.FavoriteExistsResponse;
-import com.shop.platform.favorite.controller.response.FavoriteItemResponse;
 import com.shop.platform.favorite.dto.AddFavoriteRequest;
 import com.shop.platform.favorite.dto.FavoriteExistsRequest;
+import com.shop.platform.favorite.service.FavoriteItemMutationView;
 import com.shop.platform.favorite.service.FavoriteItemView;
 import com.shop.platform.favorite.service.FavoriteService;
 import com.shop.platform.infra.web.CurrentUser;
@@ -38,8 +38,8 @@ public class FavoriteController {
     /** 收藏商品：幂等，已存在返回原行 */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public FavoriteItemResponse addFavorite(@CurrentUser UUID userId, @Valid @RequestBody AddFavoriteRequest req) {
-        return FavoriteItemResponse.from(favoriteService.add(userId, req.productId()));
+    public FavoriteItemMutationView addFavorite(@CurrentUser UUID userId, @Valid @RequestBody AddFavoriteRequest req) {
+        return FavoriteItemMutationView.from(favoriteService.add(userId, req.productId()));
     }
 
     /** 取消收藏：按商品 ID 删，幂等（未收藏也 204） */

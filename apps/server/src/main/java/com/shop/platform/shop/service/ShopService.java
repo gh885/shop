@@ -143,7 +143,7 @@ public class ShopService {
                 .map(Shop::getId)
                 .toList());
         return shops.stream()
-                .map(s -> new ShopListItem(s, reasons.get(s.getId())))
+                .map(s -> ShopListItem.from(s, reasons.get(s.getId())))
                 .toList();
     }
 

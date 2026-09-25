@@ -3,9 +3,9 @@ package com.shop.platform.shop.controller;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
-import com.shop.platform.shop.controller.response.ShippingTemplateResponse;
 import com.shop.platform.shop.dto.ShippingTemplateRequest;
 import com.shop.platform.shop.service.ShippingTemplateService;
+import com.shop.platform.shop.service.ShippingTemplateView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -34,14 +34,14 @@ public class SellerShippingTemplateController {
 
     /** 本店运费模板：默认规则 + 指定地区规则 + 不配送地区；未设置给 404 */
     @GetMapping
-    public ShippingTemplateResponse getShippingTemplate(@CurrentShop UUID shopId) {
-        return ShippingTemplateResponse.from(shippingTemplateService.require(shopId));
+    public ShippingTemplateView getShippingTemplate(@CurrentShop UUID shopId) {
+        return ShippingTemplateView.from(shippingTemplateService.require(shopId));
     }
 
     /** 保存运费模板（覆盖式：整份提交，规则与地区整批重建） */
     @PutMapping
-    public ShippingTemplateResponse saveShippingTemplate(
+    public ShippingTemplateView saveShippingTemplate(
             @CurrentShop UUID shopId, @Valid @RequestBody ShippingTemplateRequest req) {
-        return ShippingTemplateResponse.from(shippingTemplateService.save(shopId, req));
+        return ShippingTemplateView.from(shippingTemplateService.save(shopId, req));
     }
 }

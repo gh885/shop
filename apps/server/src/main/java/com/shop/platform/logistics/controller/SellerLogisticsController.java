@@ -3,8 +3,8 @@ package com.shop.platform.logistics.controller;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
-import com.shop.platform.logistics.controller.response.CarrierResponse;
 import com.shop.platform.logistics.dto.CreateShipmentRequest;
+import com.shop.platform.logistics.service.CarrierView;
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,10 +39,8 @@ public class SellerLogisticsController {
 
     /** 可选快递公司（发货下拉）：只给启用的，按字典排序 */
     @GetMapping("/carriers")
-    public List<CarrierResponse> listCarriers() {
-        return shipmentService.enabledCarriers().stream()
-                .map(CarrierResponse::from)
-                .toList();
+    public List<CarrierView> listCarriers() {
+        return shipmentService.enabledCarriers().stream().map(CarrierView::from).toList();
     }
 
     /** 发货：落一个包裹并推进订单（首次发货 PAID → 已发货，再次发货只追加包裹） */

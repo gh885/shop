@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 /**
  * 新建券模板入参（卖家）。
  *
- * <p>金额是 Money（分 + 币种）而不是裸分：与出参 {@code CouponTemplateResponse} 同一口径，建券时定的币种
+ * <p>金额是 Money（分 + 币种）而不是裸分：与出参 {@code CouponTemplateView} 同一口径，建券时定的币种
  * 就是券生效后的币种，服务端不再替卖家决定。平台一期只认定价币种（DB 侧 {@code CHECK (currency = 'CNY')}），
  * 越界币种在这里就 400。
  *

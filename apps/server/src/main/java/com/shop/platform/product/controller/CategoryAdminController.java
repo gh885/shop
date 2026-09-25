@@ -2,12 +2,12 @@ package com.shop.platform.product.controller;
 
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
-import com.shop.platform.product.controller.response.CategoryResponse;
 import com.shop.platform.product.dto.CreateCategoryRequest;
 import com.shop.platform.product.dto.UpdateCategoryRequest;
 import com.shop.platform.product.dto.UpdateCategoryStatusRequest;
 import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
+import com.shop.platform.product.service.CategoryView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -38,13 +38,13 @@ public class CategoryAdminController {
     }
 
     @PostMapping
-    public CategoryResponse createCategory(@Valid @RequestBody CreateCategoryRequest req) {
-        return CategoryResponse.from(categoryService.create(req.parentId(), req.name(), req.sort(), req.iconUrl()));
+    public CategoryView createCategory(@Valid @RequestBody CreateCategoryRequest req) {
+        return CategoryView.from(categoryService.create(req.parentId(), req.name(), req.sort(), req.iconUrl()));
     }
 
     @PutMapping("/{id}")
-    public CategoryResponse updateCategory(@PathVariable UUID id, @Valid @RequestBody UpdateCategoryRequest req) {
-        return CategoryResponse.from(categoryService.update(id, req.name(), req.sort(), req.iconUrl()));
+    public CategoryView updateCategory(@PathVariable UUID id, @Valid @RequestBody UpdateCategoryRequest req) {
+        return CategoryView.from(categoryService.update(id, req.name(), req.sort(), req.iconUrl()));
     }
 
     @PutMapping("/{id}/status")

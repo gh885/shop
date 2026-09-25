@@ -108,8 +108,8 @@ public class ProductQueryService {
         }
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
                 // 列表页只要卡片字段：不点名列就把 detail_images / images / specs / params 四个 JSONB 一起捞出来
-                // （TOAST 外部存储读 + Jackson 反序列化），而 PublicProductResponse 一个都不用。列名与
-                // PublicProductResponse.from 的取值一一对死——那个 record 加字段时这里必须同步加，
+                // （TOAST 外部存储读 + Jackson 反序列化），而 PublicProductView 一个都不用。列名与
+                // PublicProductView.from 的取值一一对死——那个 record 加字段时这里必须同步加，
                 // 否则新字段静默为 null（currency 也在内：min/maxPriceAsMoney 要在这一行闭合币种）。
                 .select(
                         Product::getId,

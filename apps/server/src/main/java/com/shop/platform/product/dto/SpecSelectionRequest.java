@@ -1,6 +1,5 @@
 package com.shop.platform.product.dto;
 
-import com.shop.platform.product.service.SkuService.SpecSelection;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -26,10 +25,5 @@ public record SpecSelectionRequest(
     @AssertTrue(message = "valueIds 与 customValues 至少一个非空")
     public boolean isSelectionPresent() {
         return (valueIds != null && !valueIds.isEmpty()) || (customValues != null && !customValues.isEmpty());
-    }
-
-    /** 映射为 service 入参 */
-    public SpecSelection toSelection() {
-        return new SpecSelection(attrId, valueIds, customValues, valueImages, customValueImages);
     }
 }

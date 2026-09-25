@@ -7,11 +7,11 @@ import com.shop.platform.common.Validate;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
-import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
 import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SkuMapper;
+import com.shop.platform.product.model.ParamItem;
 import com.shop.platform.product.model.ProductStatus;
 import java.util.List;
 import java.util.Map;
@@ -236,7 +236,7 @@ public class ProductService {
 
     /** 组装草稿实体。草稿没有 SKU，故价格字段留空、specs 为 []；
      *  请求未传的 images/params 归一为 []（对齐 detailImages）：
-     *  出参 ProductResponse 契约里它们是 required 非空数组，实体落 null 会让响应契约校验直接挂掉 */
+     *  出参 ProductView 契约里它们是 required 非空数组，实体落 null 会让响应契约校验直接挂掉 */
     private Product toDraftEntity(CreateProductCommand command) {
         return Product.builder()
                 .shopId(command.shopId())

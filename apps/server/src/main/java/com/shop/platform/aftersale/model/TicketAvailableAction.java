@@ -8,7 +8,7 @@ import java.util.Set;
  * 售后可执行动作 —— 状态机出边（{@link TicketAction} 转移表）∩ 角色权限，也是售后按钮组的唯一真相。
  *
  * <p>照订单侧 {@code OrderAvailableAction} 的模式：动作集由后端算好随列表/详情契约下发
- * （{@code TicketResponse.availableActions} / {@code SellerTicketItem.availableActions}），
+ * （{@code TicketView.availableActions} / {@code SellerTicketItem.availableActions}），
  * 前端只保留文案与展示顺序，不再按状态复刻一遍按钮表（两处真相必然漂移）。
  *
  * <p>与 {@link TicketAction} 的关系是<b>多对一映射</b>：一个界面动作可以对应转移表里的多条边——

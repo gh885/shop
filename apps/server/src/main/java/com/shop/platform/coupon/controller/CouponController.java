@@ -2,10 +2,10 @@ package com.shop.platform.coupon.controller;
 
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
-import com.shop.platform.coupon.controller.response.MyCouponResponse;
 import com.shop.platform.coupon.dto.MyCouponQuery;
 import com.shop.platform.coupon.service.CouponClaimService;
 import com.shop.platform.coupon.service.CouponWalletService;
+import com.shop.platform.coupon.service.MyCouponView;
 import com.shop.platform.infra.web.CurrentUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,15 +37,15 @@ public class CouponController {
 
     /** 我的券包分页：status 对应「未使用/已使用/已过期」页签，每行带店名与展示状态 */
     @GetMapping("/mine")
-    public PageResult<MyCouponResponse> listMyCoupons(
+    public PageResult<MyCouponView> listMyCoupons(
             @CurrentUser UUID userId, @Valid PageParams pageParams, @Valid MyCouponQuery query) {
-        return couponWalletService.pageMine(userId, query.status(), pageParams).map(MyCouponResponse::from);
+        return couponWalletService.pageMine(userId, query.status(), pageParams).map(MyCouponView::from);
     }
 
     /** 领券：每人每张券限领一次，领完 / 已停用 / 不在可领时间内分别是 409 / 400 */
     @PostMapping("/{templateId}/claim")
     @ResponseStatus(HttpStatus.CREATED)
-    public MyCouponResponse claimCoupon(@CurrentUser UUID userId, @PathVariable UUID templateId) {
-        return MyCouponResponse.from(couponClaimService.claim(userId, templateId));
+    public MyCouponView claimCoupon(@CurrentUser UUID userId, @PathVariable UUID templateId) {
+        return MyCouponView.from(couponClaimService.claim(userId, templateId));
     }
 }

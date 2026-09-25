@@ -1,7 +1,6 @@
 package com.shop.platform.product.dto;
 
-import com.shop.platform.product.mapper.ParamItem;
-import com.shop.platform.product.service.ProductService.UpdateBasicCommand;
+import com.shop.platform.product.model.ParamItem;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -27,11 +26,5 @@ public record UpdateProductRequest(
     public UpdateProductRequest {
         if (name != null) name = name.trim();
         if (subtitle != null) subtitle = subtitle.trim();
-    }
-
-    /** 映射为 service 入参 */
-    public UpdateBasicCommand toCommand() {
-        return new UpdateBasicCommand(
-                categoryId, name, subtitle, detailImages, mainImage, images, params, sevenDayReturn);
     }
 }

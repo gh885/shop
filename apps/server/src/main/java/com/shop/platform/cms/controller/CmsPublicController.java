@@ -1,9 +1,9 @@
 package com.shop.platform.cms.controller;
 
-import com.shop.platform.cms.controller.response.BannerResponse;
-import com.shop.platform.cms.controller.response.NavEntryResponse;
-import com.shop.platform.cms.controller.response.RecommendTabResponse;
+import com.shop.platform.cms.service.BannerView;
 import com.shop.platform.cms.service.ContentService;
+import com.shop.platform.cms.service.NavEntryView;
+import com.shop.platform.cms.service.RecommendTabView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -28,21 +28,21 @@ public class CmsPublicController {
 
     /** 首页分类导航：指定导航位下的启用条目（subs 为 JSONB 整段） */
     @GetMapping("/nav")
-    public List<NavEntryResponse> getHomeNav(@RequestParam(defaultValue = "home") String navKey) {
-        return contentService.nav(navKey).stream().map(NavEntryResponse::from).toList();
+    public List<NavEntryView> getHomeNav(@RequestParam(defaultValue = "home") String navKey) {
+        return contentService.nav(navKey).stream().map(NavEntryView::from).toList();
     }
 
     /** 首页运营位 banner：启用且命中生效时间窗口 */
     @GetMapping("/banners")
-    public List<BannerResponse> getHomeBanners(@RequestParam(defaultValue = "home_promo") String slot) {
-        return contentService.banners(slot).stream().map(BannerResponse::from).toList();
+    public List<BannerView> getHomeBanners(@RequestParam(defaultValue = "home_promo") String slot) {
+        return contentService.banners(slot).stream().map(BannerView::from).toList();
     }
 
     /** 首页推荐条词条（扁平数组，is_default 标"猜你喜欢"） */
     @GetMapping("/recommend-tabs")
-    public List<RecommendTabResponse> getRecommendTabs() {
+    public List<RecommendTabView> getRecommendTabs() {
         return contentService.recommendTabs().stream()
-                .map(RecommendTabResponse::from)
+                .map(RecommendTabView::from)
                 .toList();
     }
 }

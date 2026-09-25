@@ -3,15 +3,15 @@ package com.shop.platform.order.controller;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.infra.web.CurrentUser;
-import com.shop.platform.order.controller.response.CreatedOrder;
 import com.shop.platform.order.controller.response.CreatedOrdersResponse;
-import com.shop.platform.order.controller.response.OrderDetailResponse;
-import com.shop.platform.order.controller.response.OrderListItemResponse;
 import com.shop.platform.order.controller.response.PreviewResponse;
 import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
+import com.shop.platform.order.service.CreatedOrderView;
+import com.shop.platform.order.service.OrderDetailView;
+import com.shop.platform.order.service.OrderListItemView;
 import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
@@ -66,29 +66,29 @@ public class OrderController {
     @ResponseStatus(HttpStatus.CREATED)
     public CreatedOrdersResponse createOrder(@CurrentUser UUID userId, @Valid @RequestBody CreateOrderRequest req) {
         return new CreatedOrdersResponse(orderPlacementService.place(userId, req).stream()
-                .map(CreatedOrder::from)
+                .map(CreatedOrderView::from)
                 .toList());
     }
 
     /** 我的订单分页：status 对应「待付款/待发货…」tab，每单内嵌行项免二次请求。同上避让页面路由 */
     @GetMapping("/mine")
-    public PageResult<OrderListItemResponse> listMyOrders(
+    public PageResult<OrderListItemView> listMyOrders(
             @CurrentUser UUID userId, @Valid PageParams pageParams, @Valid OrderQuery query) {
         PageResult<OrderWithItems> page = orderService.pageMine(userId, query.status(), pageParams);
         // 店名批量点查（shop :: api）：列表多单多店，集中拼一次
         Map<UUID, String> shopNames = shopReadQuery.namesByIds(
                 page.records().stream().map(o -> o.order().getShopId()).toList());
-        return page.map(o -> OrderListItemResponse.from(o, shopNames));
+        return page.map(o -> OrderListItemView.from(o, shopNames));
     }
 
     /** 订单详情：含收货快照、物流、各状态时间戳 */
     @GetMapping("/{id}")
-    public OrderDetailResponse getOrderDetail(@CurrentUser UUID userId, @PathVariable UUID id) {
+    public OrderDetailView getOrderDetail(@CurrentUser UUID userId, @PathVariable UUID id) {
         OrderWithItems detail = orderService.detail(userId, id);
         String shopName = shopReadQuery
                 .namesByIds(List.of(detail.order().getShopId()))
                 .get(detail.order().getShopId());
-        return OrderDetailResponse.buyerView(detail, shopName);
+        return OrderDetailView.buyerView(detail, shopName);
     }
 
     /** 取消订单：仅待付款/待发货可取消，取消即回补库存 */

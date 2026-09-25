@@ -1,6 +1,6 @@
 package com.shop.platform.cms.dto;
 
-import com.shop.platform.cms.mapper.NavGroup;
+import com.shop.platform.cms.model.NavGroup;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

@@ -6,10 +6,10 @@ import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentStaff;
 import com.shop.platform.shop.controller.response.PhoneRevealResponse;
-import com.shop.platform.shop.controller.response.ShopReviewResponse;
 import com.shop.platform.shop.dto.RejectRequest;
 import com.shop.platform.shop.service.ShopReviewItem;
 import com.shop.platform.shop.service.ShopReviewService;
+import com.shop.platform.shop.service.ShopReviewView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -51,14 +51,14 @@ public class ReviewController {
 
     /** 审核通过：店铺状态 → ACTIVE */
     @PostMapping("/{id}/approve")
-    public ShopReviewResponse approveShopReview(@CurrentStaff UUID staffId, @PathVariable UUID id) {
-        return ShopReviewResponse.from(shopReviewService.approve(id, staffId));
+    public ShopReviewView approveShopReview(@CurrentStaff UUID staffId, @PathVariable UUID id) {
+        return ShopReviewView.from(shopReviewService.approve(id, staffId));
     }
 
     /** 审核拒绝：店铺状态 → REJECTED，理由必填留痕 */
     @PostMapping("/{id}/reject")
-    public ShopReviewResponse rejectShopReview(
+    public ShopReviewView rejectShopReview(
             @CurrentStaff UUID staffId, @PathVariable UUID id, @Valid @RequestBody RejectRequest req) {
-        return ShopReviewResponse.from(shopReviewService.reject(id, staffId, req.reason()));
+        return ShopReviewView.from(shopReviewService.reject(id, staffId, req.reason()));
     }
 }

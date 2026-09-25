@@ -10,7 +10,7 @@ import java.util.UUID;
 /**
  * feed 的卡片项：够渲染一张货架卡即可。
  *
- * <p>为什么不复用 product 的 PublicProductResponse：跨模块引用不到它（它在 product.controller 包，
+ * <p>为什么不复用 product 的 PublicProductView：跨模块引用不到它（它在 product.controller 包，
  * 不是命名接口），而且 feed 的 item 契约本来就要能独立长大——V3 混排运营卡时这里会变成联合类型，
  * 不该和 /api/products 绑在同一个 record 上。
  *

@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.shop.platform.account.mapper.Address;
+import com.shop.platform.account.service.AddressView;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -31,22 +31,21 @@ class AddressControllerTest extends WebControllerTestSupport {
 
     private final UUID addressId = UUID.randomUUID();
 
-    private Address address() {
-        Address a = new Address();
-        a.setId(addressId);
-        a.setUserId(userId);
-        a.setReceiverName("张三");
-        a.setPhone("13800000000");
-        a.setRegionCode("110100");
-        a.setProvince("北京市");
-        a.setCity("北京市");
-        a.setDistrict("朝阳区");
-        a.setDetail("测试路 1 号");
-        a.setLabel("HOME");
-        a.setIsDefault(true);
-        a.setCreatedAt(OffsetDateTime.now());
-        a.setUpdatedAt(OffsetDateTime.now());
-        return a;
+    private AddressView address() {
+        return new AddressView(
+                addressId,
+                userId,
+                "张三",
+                "13800000000",
+                "110100",
+                "北京市",
+                "北京市",
+                "朝阳区",
+                "测试路 1 号",
+                "HOME",
+                true,
+                OffsetDateTime.now(),
+                OffsetDateTime.now());
     }
 
     @Nested

@@ -1,11 +1,11 @@
 package com.shop.platform.cart.controller;
 
-import com.shop.platform.cart.controller.response.CartItemResponse;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.dto.BatchDeleteCartItemsRequest;
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
 import com.shop.platform.cart.dto.UpdateCartSelectedRequest;
 import com.shop.platform.cart.service.CartCount;
+import com.shop.platform.cart.service.CartItemMutationView;
 import com.shop.platform.cart.service.CartItemView;
 import com.shop.platform.cart.service.CartService;
 import com.shop.platform.infra.web.CurrentUser;
@@ -40,8 +40,8 @@ public class CartController {
     /** 加购：同 SKU 幂等合并为数量累加 */
     @PostMapping("/items")
     @ResponseStatus(HttpStatus.CREATED)
-    public CartItemResponse addCartItem(@CurrentUser UUID userId, @Valid @RequestBody AddCartItemRequest req) {
-        return CartItemResponse.from(cartService.add(userId, req));
+    public CartItemMutationView addCartItem(@CurrentUser UUID userId, @Valid @RequestBody AddCartItemRequest req) {
+        return CartItemMutationView.from(cartService.add(userId, req));
     }
 
     /** 整车列表：现价/库存/店铺信息读取时拼装，失效条目置灰保留 */
@@ -58,9 +58,9 @@ public class CartController {
 
     /** 改数量或勾选（部分更新） */
     @PutMapping("/items/{id}")
-    public CartItemResponse updateCartItem(
+    public CartItemMutationView updateCartItem(
             @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody UpdateCartItemRequest req) {
-        return CartItemResponse.from(cartService.update(userId, id, req));
+        return CartItemMutationView.from(cartService.update(userId, id, req));
     }
 
     /** 批量勾选/全选：itemIds 省略 = 整车；按店铺勾选由前端传该店条目 ID 列表 */

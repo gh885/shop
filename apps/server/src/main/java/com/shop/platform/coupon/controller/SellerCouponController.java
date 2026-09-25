@@ -3,9 +3,9 @@ package com.shop.platform.coupon.controller;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
-import com.shop.platform.coupon.controller.response.CouponTemplateResponse;
 import com.shop.platform.coupon.dto.CreateCouponTemplateRequest;
 import com.shop.platform.coupon.service.CouponTemplateService;
+import com.shop.platform.coupon.service.CouponTemplateView;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,21 +40,21 @@ public class SellerCouponController {
 
     /** 本店券列表：含发放总量、已发放数与已核销数 */
     @GetMapping
-    public PageResult<CouponTemplateResponse> listShopCoupons(@CurrentShop UUID shopId, @Valid PageParams pageParams) {
-        return couponTemplateService.pageMine(shopId, pageParams).map(CouponTemplateResponse::from);
+    public PageResult<CouponTemplateView> listShopCoupons(@CurrentShop UUID shopId, @Valid PageParams pageParams) {
+        return couponTemplateService.pageMine(shopId, pageParams).map(CouponTemplateView::from);
     }
 
     /** 新建券模板：建好即可被领取（有效期未到则领了暂不可用） */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CouponTemplateResponse createCoupon(
+    public CouponTemplateView createCoupon(
             @CurrentShop UUID shopId, @Valid @RequestBody CreateCouponTemplateRequest req) {
-        return CouponTemplateResponse.from(couponTemplateService.create(shopId, req));
+        return CouponTemplateView.from(couponTemplateService.create(shopId, req));
     }
 
     /** 停用券模板：停止继续领取，已领出的券照旧可用 */
     @PutMapping("/{id}/stop")
-    public CouponTemplateResponse stopCoupon(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        return CouponTemplateResponse.from(couponTemplateService.stop(shopId, id));
+    public CouponTemplateView stopCoupon(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        return CouponTemplateView.from(couponTemplateService.stop(shopId, id));
     }
 }

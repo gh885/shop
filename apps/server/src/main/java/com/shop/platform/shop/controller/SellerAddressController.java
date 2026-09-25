@@ -3,9 +3,9 @@ package com.shop.platform.shop.controller;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
-import com.shop.platform.shop.controller.response.MerchantAddressResponse;
 import com.shop.platform.shop.dto.MerchantAddressRequest;
 import com.shop.platform.shop.service.MerchantAddressService;
+import com.shop.platform.shop.service.MerchantAddressView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -39,31 +39,30 @@ public class SellerAddressController {
 
     /** 本店地址库列表：默认发货/退货置顶 */
     @GetMapping
-    public List<MerchantAddressResponse> listAddresses(@CurrentShop UUID shopId) {
+    public List<MerchantAddressView> listAddresses(@CurrentShop UUID shopId) {
         return addressService.list(shopId).stream()
-                .map(MerchantAddressResponse::from)
+                .map(MerchantAddressView::from)
                 .toList();
     }
 
     /** 新增地址（可同时标记默认发货/默认退货） */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public MerchantAddressResponse createAddress(
-            @CurrentShop UUID shopId, @Valid @RequestBody MerchantAddressRequest req) {
-        return MerchantAddressResponse.from(addressService.create(shopId, req));
+    public MerchantAddressView createAddress(@CurrentShop UUID shopId, @Valid @RequestBody MerchantAddressRequest req) {
+        return MerchantAddressView.from(addressService.create(shopId, req));
     }
 
     /** 地址详情（编辑面板反显用） */
     @GetMapping("/{id}")
-    public MerchantAddressResponse getAddressDetail(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        return MerchantAddressResponse.from(addressService.detail(shopId, id));
+    public MerchantAddressView getAddressDetail(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        return MerchantAddressView.from(addressService.detail(shopId, id));
     }
 
     /** 编辑地址 */
     @PutMapping("/{id}")
-    public MerchantAddressResponse updateAddress(
+    public MerchantAddressView updateAddress(
             @CurrentShop UUID shopId, @PathVariable UUID id, @Valid @RequestBody MerchantAddressRequest req) {
-        return MerchantAddressResponse.from(addressService.update(shopId, id, req));
+        return MerchantAddressView.from(addressService.update(shopId, id, req));
     }
 
     /** 删除地址（软删），返回 204 */
@@ -75,13 +74,13 @@ public class SellerAddressController {
 
     /** 设为默认发货地址：每店至多一个 */
     @PutMapping("/{id}/default-ship")
-    public MerchantAddressResponse setDefaultShip(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        return MerchantAddressResponse.from(addressService.setDefaultShip(shopId, id));
+    public MerchantAddressView setDefaultShip(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        return MerchantAddressView.from(addressService.setDefaultShip(shopId, id));
     }
 
     /** 设为默认退货地址：每店至多一个 */
     @PutMapping("/{id}/default-return")
-    public MerchantAddressResponse setDefaultReturn(@CurrentShop UUID shopId, @PathVariable UUID id) {
-        return MerchantAddressResponse.from(addressService.setDefaultReturn(shopId, id));
+    public MerchantAddressView setDefaultReturn(@CurrentShop UUID shopId, @PathVariable UUID id) {
+        return MerchantAddressView.from(addressService.setDefaultReturn(shopId, id));
     }
 }

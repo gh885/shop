@@ -31,18 +31,20 @@ public class AddressService {
     private final RegionRegistry regionRegistry;
 
     /** 我的地址列表：默认地址置顶，其余按创建时间倒序 */
-    public List<Address> list(UUID userId) {
-        return addressMapper.selectByUser(userId);
+    public List<AddressView> list(UUID userId) {
+        return addressMapper.selectByUser(userId).stream()
+                .map(AddressView::from)
+                .toList();
     }
 
     /** 地址详情：仅本人可见，否则 404 */
-    public Address detail(UUID userId, UUID id) {
-        return requireOwned(userId, id);
+    public AddressView detail(UUID userId, UUID id) {
+        return AddressView.from(requireOwned(userId, id));
     }
 
     /** 新增地址；条数超限拒绝。标记默认时先清掉其他默认，保证每用户至多一个默认 */
     @Transactional
-    public Address create(UUID userId, AddressRequest req) {
+    public AddressView create(UUID userId, AddressRequest req) {
         // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）
         long owned = addressMapper.selectCount(new LambdaQueryWrapper<Address>().eq(Address::getUserId, userId));
         Validate.isTrue(
@@ -69,12 +71,12 @@ public class AddressService {
                 .build();
         addressMapper.insert(address);
         log.info("[USER] 新增收货地址, userId={}, addrId={}, isDefault={}", userId, address.getId(), asDefault);
-        return address;
+        return AddressView.from(address);
     }
 
     /** 修改地址：仅本人地址；isDefault 为 null 时保持原值 */
     @Transactional
-    public Address update(UUID userId, UUID id, AddressRequest req) {
+    public AddressView update(UUID userId, UUID id, AddressRequest req) {
         regionRegistry.requireValidCode(req.regionCode());
         Address address = requireOwned(userId, id);
         address.setReceiverName(req.receiverName());
@@ -92,7 +94,7 @@ public class AddressService {
             }
         }
         addressMapper.updateById(address);
-        return address;
+        return AddressView.from(address);
     }
 
     /** 删除地址：软删（MyBatis-Plus 逻辑删除），仅本人地址；被删的默认地址不自动顶替，允许无默认 */
@@ -105,25 +107,25 @@ public class AddressService {
 
     /** 设为默认：清掉本人其他默认后置目标为默认，靠部分唯一索引兜底并发 */
     @Transactional
-    public Address setDefault(UUID userId, UUID id) {
+    public AddressView setDefault(UUID userId, UUID id) {
         Address address = requireOwned(userId, id);
         addressMapper.clearDefault(userId);
         address.setIsDefault(true);
         addressMapper.updateById(address);
         log.info("[USER] 设置默认收货地址, userId={}, addrId={}", userId, id);
-        return address;
+        return AddressView.from(address);
     }
 
     /** 取消默认：仅当目标是默认时清掉标记，允许出现「无默认地址」状态 */
     @Transactional
-    public Address unsetDefault(UUID userId, UUID id) {
+    public AddressView unsetDefault(UUID userId, UUID id) {
         Address address = requireOwned(userId, id);
         if (Boolean.TRUE.equals(address.getIsDefault())) {
             address.setIsDefault(false);
             addressMapper.updateById(address);
             log.info("[USER] 取消默认收货地址, userId={}, addrId={}", userId, id);
         }
-        return address;
+        return AddressView.from(address);
     }
 
     /**

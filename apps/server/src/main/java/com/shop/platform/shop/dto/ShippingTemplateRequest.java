@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 运费模板保存入参（覆盖式：模板本体 + 规则 + 区域 + 不配送地区一次提交，整批重建）。
  *
- * <p>费用是 Money（分 + 币种）：与出参 {@code ShippingTemplateResponse} 同一口径，模板存了自己的币种，
+ * <p>费用是 Money（分 + 币种）：与出参 {@code ShippingTemplateView} 同一口径，模板存了自己的币种，
  * 报价时不必再借订单的币种。平台一期只认定价币种（DB 侧 {@code CHECK (currency = 'CNY')}），越界即 400。
  *
  * <p>形状对齐淘宝运费模板，但只有一维（按件）：没有运送方式（快递/EMS/平邮各自定价）与按重量/体积，

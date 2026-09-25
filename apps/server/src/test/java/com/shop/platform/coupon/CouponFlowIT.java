@@ -16,8 +16,8 @@ import com.shop.platform.coupon.api.CouponBearer;
 import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.coupon.api.CouponReadQuery;
 import com.shop.platform.coupon.api.CouponUnavailableReason;
-import com.shop.platform.coupon.controller.response.ClaimableCouponResponse;
 import com.shop.platform.coupon.dto.CreateCouponTemplateRequest;
+import com.shop.platform.coupon.service.ClaimableCouponView;
 import com.shop.platform.coupon.service.CouponAdminService;
 import com.shop.platform.coupon.service.CouponClaimService;
 import com.shop.platform.coupon.service.CouponTemplateService;
@@ -701,8 +701,8 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .getId();
         UUID live = seedTemplate(0, 300, 10);
 
-        List<ClaimableCouponResponse> rows = couponClaimService.claimable(shopId).stream()
-                .map(t -> ClaimableCouponResponse.from(t, OffsetDateTime.now()))
+        List<ClaimableCouponView> rows = couponClaimService.claimable(shopId).stream()
+                .map(t -> ClaimableCouponView.from(t, OffsetDateTime.now()))
                 .toList();
 
         var upcomingRow =

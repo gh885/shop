@@ -1,13 +1,13 @@
 package com.shop.platform.cms.controller;
 
-import com.shop.platform.cms.controller.response.BannerResponse;
-import com.shop.platform.cms.controller.response.NavEntryResponse;
-import com.shop.platform.cms.controller.response.RecommendTabResponse;
 import com.shop.platform.cms.dto.BannerRequest;
 import com.shop.platform.cms.dto.NavRequest;
 import com.shop.platform.cms.dto.RecommendTabRequest;
 import com.shop.platform.cms.model.CmsStatus;
+import com.shop.platform.cms.service.BannerView;
 import com.shop.platform.cms.service.ContentService;
+import com.shop.platform.cms.service.NavEntryView;
+import com.shop.platform.cms.service.RecommendTabView;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,20 +36,18 @@ public class CmsContentAdminController {
 
     // 导航
     @GetMapping("/nav")
-    public List<NavEntryResponse> listAdminNav(@RequestParam(required = false) String navKey) {
-        return contentService.navAll(navKey).stream()
-                .map(NavEntryResponse::from)
-                .toList();
+    public List<NavEntryView> listAdminNav(@RequestParam(required = false) String navKey) {
+        return contentService.navAll(navKey).stream().map(NavEntryView::from).toList();
     }
 
     @PostMapping("/nav")
-    public NavEntryResponse createNav(@Valid @RequestBody NavRequest req) {
-        return NavEntryResponse.from(contentService.createNav(req));
+    public NavEntryView createNav(@Valid @RequestBody NavRequest req) {
+        return NavEntryView.from(contentService.createNav(req));
     }
 
     @PutMapping("/nav/{id}")
-    public NavEntryResponse updateNav(@PathVariable UUID id, @Valid @RequestBody NavRequest req) {
-        return NavEntryResponse.from(contentService.updateNav(id, req));
+    public NavEntryView updateNav(@PathVariable UUID id, @Valid @RequestBody NavRequest req) {
+        return NavEntryView.from(contentService.updateNav(id, req));
     }
 
     /** 状态走 path：启用 /nav/{id}/status/ENABLED，停用 /nav/{id}/status/DISABLED */
@@ -60,20 +58,18 @@ public class CmsContentAdminController {
 
     // banner
     @GetMapping("/banners")
-    public List<BannerResponse> listAdminBanners(@RequestParam(required = false) String slot) {
-        return contentService.bannersAll(slot).stream()
-                .map(BannerResponse::from)
-                .toList();
+    public List<BannerView> listAdminBanners(@RequestParam(required = false) String slot) {
+        return contentService.bannersAll(slot).stream().map(BannerView::from).toList();
     }
 
     @PostMapping("/banners")
-    public BannerResponse createBanner(@Valid @RequestBody BannerRequest req) {
-        return BannerResponse.from(contentService.createBanner(req));
+    public BannerView createBanner(@Valid @RequestBody BannerRequest req) {
+        return BannerView.from(contentService.createBanner(req));
     }
 
     @PutMapping("/banners/{id}")
-    public BannerResponse updateBanner(@PathVariable UUID id, @Valid @RequestBody BannerRequest req) {
-        return BannerResponse.from(contentService.updateBanner(id, req));
+    public BannerView updateBanner(@PathVariable UUID id, @Valid @RequestBody BannerRequest req) {
+        return BannerView.from(contentService.updateBanner(id, req));
     }
 
     @PutMapping("/banners/{id}/status/{status}")
@@ -83,18 +79,18 @@ public class CmsContentAdminController {
 
     // 推荐条
     @GetMapping("/recommend-tabs")
-    public List<RecommendTabResponse> listAdminRecommendTabs() {
-        return contentService.tabsAll().stream().map(RecommendTabResponse::from).toList();
+    public List<RecommendTabView> listAdminRecommendTabs() {
+        return contentService.tabsAll().stream().map(RecommendTabView::from).toList();
     }
 
     @PostMapping("/recommend-tabs")
-    public RecommendTabResponse createTab(@Valid @RequestBody RecommendTabRequest req) {
-        return RecommendTabResponse.from(contentService.createTab(req));
+    public RecommendTabView createTab(@Valid @RequestBody RecommendTabRequest req) {
+        return RecommendTabView.from(contentService.createTab(req));
     }
 
     @PutMapping("/recommend-tabs/{id}")
-    public RecommendTabResponse updateTab(@PathVariable UUID id, @Valid @RequestBody RecommendTabRequest req) {
-        return RecommendTabResponse.from(contentService.updateTab(id, req));
+    public RecommendTabView updateTab(@PathVariable UUID id, @Valid @RequestBody RecommendTabRequest req) {
+        return RecommendTabView.from(contentService.updateTab(id, req));
     }
 
     @PutMapping("/recommend-tabs/{id}/status/{status}")
