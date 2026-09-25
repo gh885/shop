@@ -92,7 +92,7 @@ public class AfterSaleService {
     public Ticket apply(UUID userId, UUID orderId, TicketType type, AfterSaleReason reasonCode, String reason) {
         OrderAfterSaleView order = Validate.presentOwned(
                 orderReadQuery.afterSaleViewById(orderId), OrderAfterSaleView::userId, userId, "订单不存在");
-        Validate.isTrue(order.afterSaleOpenAt(OffsetDateTime.now()), 409, TicketAction.APPLY.conflictMessage());
+        Validate.conflict(order.afterSaleOpenAt(OffsetDateTime.now()), TicketAction.APPLY.conflictMessage());
         // 最新一张售后单已是 REFUNDED（终态）：整单退款只允许发生一次，堵住「退了再申请」的二次退款敞口。
         // 只挡 REFUNDED：REJECTED/CLOSED（被拒/撤销）不伤买家利益，仍可在窗口内重新申请
         Ticket latest = ticketMapper.selectLatestByOrder(orderId);
@@ -254,10 +254,8 @@ public class AfterSaleService {
     @Transactional
     public void reject(UUID shopId, UUID orderId, String reason) {
         Ticket ticket = requireSellerOpen(shopId, orderId, TicketAction.REJECT);
-        Validate.isTrue(
-                !ticket.isNoReasonEnforced() || ticket.getStatus() == TicketStatus.RETURNING,
-                409,
-                "该申请为七天无理由退货，不可拒绝受理");
+        Validate.conflict(
+                !ticket.isNoReasonEnforced() || ticket.getStatus() == TicketStatus.RETURNING, "该申请为七天无理由退货，不可拒绝受理");
         TicketAction action =
                 ticket.getStatus() == TicketStatus.RETURNING ? TicketAction.REJECT_RETURN : TicketAction.REJECT;
         transition(ticket, action, Text.trimToNull(reason), u -> {});
@@ -409,7 +407,9 @@ public class AfterSaleService {
 
     /** 卖家工作台行 = 售后单 + 订单摘要；拼不出摘要说明数据被外力改坏，直接失败而不是给出一行缺订单号的售后单 */
     private SellerTicketItem toSellerItem(Ticket ticket, OrderSummaryView order) {
-        Validate.isTrue(order != null, 500, "售后单对应的订单不存在，数据不一致");
+        if (order == null) {
+            throw new IllegalStateException("售后单对应的订单不存在，数据不一致");
+        }
         return new SellerTicketItem(
                 ticket.getId(),
                 ticket.getOrderId(),
@@ -475,7 +475,7 @@ public class AfterSaleService {
                 .set(Ticket::getStatus, action.target());
         extraWhere.accept(update);
         extraSets.accept(update);
-        Validate.isTrue(ticketMapper.update(null, update) == 1, 409, action.conflictMessage());
+        Validate.conflict(ticketMapper.update(null, update) == 1, action.conflictMessage());
         record(ticket, action, note);
         orderCommand.syncAfterSale(
                 ticket.getOrderId(),
@@ -503,7 +503,7 @@ public class AfterSaleService {
 
     private Ticket requireOpen(UUID orderId, TicketAction action) {
         Ticket ticket = ticketMapper.selectOpenByOrder(orderId);
-        Validate.isTrue(ticket != null, 409, action.conflictMessage());
+        Validate.conflict(ticket != null, action.conflictMessage());
         return ticket;
     }
 }

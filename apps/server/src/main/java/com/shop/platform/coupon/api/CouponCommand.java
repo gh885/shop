@@ -57,7 +57,7 @@ public class CouponCommand {
         // 2. 条件占用：这是并发闸门，不做「先读状态再写」
         int affected =
                 userCouponMapper.lockOne(userCouponId, userId, orderId, appliedDiscount.amount(), OffsetDateTime.now());
-        Validate.isTrue(affected == 1, 409, "该优惠券已被其他订单占用或已失效，请重新选择");
+        Validate.conflict(affected == 1, "该优惠券已被其他订单占用或已失效，请重新选择");
 
         // 3. 记账
         record(coupon, orderId, CouponUsageAction.LOCK, appliedDiscount);

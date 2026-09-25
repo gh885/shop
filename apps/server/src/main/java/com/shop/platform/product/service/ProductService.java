@@ -72,7 +72,7 @@ public class ProductService {
         UUID targetCategory = command.categoryId();
         boolean categoryChanged = targetCategory != null && !targetCategory.equals(product.getCategoryId());
         if (categoryChanged) {
-            Validate.isTrue(product.isDraft(), 409, "只有草稿可以修改类目，上架/仓库中商品请先下架");
+            Validate.conflict(product.isDraft(), "只有草稿可以修改类目，上架/仓库中商品请先下架");
             // 改挂与创建同一挂载闸门（叶子 + 启用 + 父链完整）
             categoryService.requireMountableCategory(targetCategory);
         }

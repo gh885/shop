@@ -6,16 +6,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.security.JwtAuthFilter;
 import com.shop.platform.infra.security.JwtProperties;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.StaffAuthFilter;
+import com.shop.platform.infra.web.FilterExceptionHandler;
 import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
 import com.shop.platform.shop.mapper.ShopMapper;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import com.shop.testfixtures.ProbeController;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.servlet.HandlerExceptionResolver;
+import org.springframework.web.servlet.ModelAndView;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -42,12 +48,28 @@ class FiltersPathNormalizationTest {
     private MockMvc mockMvc;
 
     @BeforeEach
-    void setUp() {
-        var staffAuthFilter = new StaffAuthFilter(jwtProvider, new ObjectMapper());
-        var jwtAuthFilter = new JwtAuthFilter(jwtProvider, new JwtProperties(), new ObjectMapper());
+    void setUp() throws Exception {
+        var objectMapper = new ObjectMapper();
+        HandlerExceptionResolver resolver = (request, response, handler, exception) -> {
+            var business = (BusinessException) exception;
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("status", business.getHttpStatus());
+            if (business.getCode() != null) body.put("code", business.getCode());
+            response.setStatus(business.getHttpStatus());
+            response.setContentType("application/problem+json");
+            try {
+                objectMapper.writeValue(response.getOutputStream(), body);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+            return new ModelAndView();
+        };
+        var exceptionHandler = new FilterExceptionHandler(resolver);
+        var staffAuthFilter = new StaffAuthFilter(jwtProvider, exceptionHandler);
+        var jwtAuthFilter = new JwtAuthFilter(jwtProvider, new JwtProperties(), exceptionHandler);
         // ShopMembershipFilter 只在缺 X-Shop-Id 时触达 mapper，正常用例到不了 DB
         var shopMembershipFilter =
-                new ShopMembershipFilter(mock(ShopMemberMapper.class), mock(ShopMapper.class), new ObjectMapper());
+                new ShopMembershipFilter(mock(ShopMemberMapper.class), mock(ShopMapper.class), exceptionHandler);
 
         mockMvc = MockMvcBuilders.standaloneSetup(new ProbeController())
                 .addFilters(staffAuthFilter, jwtAuthFilter, shopMembershipFilter)

@@ -2,6 +2,7 @@ package com.shop.platform.product.mapper;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.shop.platform.common.Money;
 import com.shop.platform.infra.db.AuditedEntity;
 import com.shop.platform.product.model.SkuStatus;
@@ -69,7 +70,7 @@ public class Sku extends AuditedEntity {
      * [{attrId, valueId, name, value}] —— attrId/valueId 是身份，name/value 是快照冗余（订单/展示免 join）。
      * 唯一性不由本列承担，见 specKey。
      */
-    @TableField(typeHandler = JsonbSkuAttrsHandler.class)
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<SkuAttr> attributes;
 
     /**

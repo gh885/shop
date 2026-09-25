@@ -239,8 +239,8 @@ class ErrorCodeVocabularyTest {
 
     @Test
     void 校验结果的码只经401出口那条链没有断() throws Exception {
-        // Verification.fail 的状态码在文档里推不出来（它是经过滤器写响应的），所以先钉住那条链：
-        // 读 verification.code() 的文件必须正是以 401 调 UnauthorizedWriter.write 的那两个过滤器。
+        // Verification.fail 的状态码在文档里推不出来，所以先钉住那条链：
+        // 读 verification.code() 的文件必须正是以 401 抛 BusinessException 的那两个过滤器。
         List<String> readers = new ArrayList<>();
         for (Path file : mainSources()) {
             // 压平空白再比：格式化只挪换行与缩进，不该让一条链的断言失效
@@ -251,7 +251,7 @@ class ErrorCodeVocabularyTest {
             readers.add(file.getFileName().toString());
             assertThat(flat)
                     .as("拿校验结果的码去写响应，只能是 401，否则文档那一列就不成立")
-                    .contains("UnauthorizedWriter.write(response,objectMapper,401,verification.code()");
+                    .contains("BusinessException.unauthorized(verification.code(),verification.detail())");
         }
         assertThat(readers)
                 .as("这条链的两个端点固定是那两个过滤器")
@@ -412,7 +412,6 @@ class ErrorCodeVocabularyTest {
                         case "Validate.isTrue" ->
                             args.size() == 3 && !args.get(1).matches("\\d+") ? args.get(1) : null;
                         case "Verification.fail" -> args.get(0);
-                        case "UnauthorizedWriter.write" -> args.size() >= 5 ? args.get(3) : null;
                         default -> args.size() == 2 ? args.get(0) : null; // badRequest / forbidden / conflict
                     };
             // 显式「这一发不带码」：归属闸门那类只要状态码与人话，写 null 是设计而不是漏抄
@@ -423,7 +422,6 @@ class ErrorCodeVocabularyTest {
             return switch (outlet) {
                 case "new BusinessException" -> intArg(args.get(0));
                 case "Verification.fail" -> 401;
-                case "UnauthorizedWriter.write" -> intArg(args.get(2));
                 // isTrue 的码位只可能是第 2 参（见 codeArg），那条重载恒 400；带状态码的那条不带码
                 case "Validate.isTrue" -> 400;
                 default -> factories.get(outlet.substring(outlet.lastIndexOf('.') + 1));
@@ -444,7 +442,7 @@ class ErrorCodeVocabularyTest {
         String src = Files.readString(file, StandardCharsets.UTF_8);
         List<Call> out = new ArrayList<>();
         Matcher m = Pattern.compile(
-                        "(new BusinessException|BusinessException\\.\\w+|Validate\\.isTrue|Verification\\.fail|UnauthorizedWriter\\.write)\\s*\\(")
+                        "(new BusinessException|BusinessException\\.\\w+|Validate\\.isTrue|Verification\\.fail)\\s*\\(")
                 .matcher(src);
         while (m.find()) {
             String outlet = m.group(1);

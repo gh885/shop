@@ -19,9 +19,9 @@ public final class Validate {
         if (!condition) throw BusinessException.badRequest(code, detail);
     }
 
-    /** 条件必须为真，否则指定状态码的业务异常（如 409 状态冲突） */
-    public static void isTrue(boolean condition, int httpStatus, String detail) {
-        if (!condition) throw new BusinessException(httpStatus, detail);
+    /** 条件必须为真，否则 409 状态冲突 */
+    public static void conflict(boolean condition, String detail) {
+        if (!condition) throw BusinessException.conflict(detail);
     }
 
     /**
@@ -35,7 +35,7 @@ public final class Validate {
      * <p>反面口径（越权给 403）只属于<b>上下文与角色</b>：缺 X-Shop-Id、不是本店成员、权限码不够、
      * 账号被禁用——那些不是「某个资源归谁」，仍走 {@link BusinessException#forbidden}。
      */
-    public static void owned(boolean belongs, String absentDetail) {
+    private static void owned(boolean belongs, String absentDetail) {
         if (!belongs) throw BusinessException.notFound(absentDetail);
     }
 
@@ -86,6 +86,11 @@ public final class Validate {
     public static <T> T notNull(T reference, String detail) {
         if (reference == null) throw BusinessException.notFound(detail);
         return reference;
+    }
+
+    /** 存在性条件：false 按资源不存在处理（404），用于把业务谓词与缺席话术收在一处 */
+    public static void present(boolean present, String absentDetail) {
+        if (!present) throw BusinessException.notFound(absentDetail);
     }
 
     /** Optional 必须有值（api 包单点查的标准收口），否则 404；返回值方便链式使用 */

@@ -76,7 +76,7 @@ public class OrderTransitionService {
         Order order = orderMapper.requireOwned(userId, orderId);
         boolean cancelled =
                 cancelFrom(order, OrderStatus.sourcesOf(CANCELLED), reason, OrderAction.CANCEL, OrderActor.BUYER);
-        Validate.isTrue(cancelled, 409, "订单状态已变更，当前不可取消");
+        Validate.conflict(cancelled, "订单状态已变更，当前不可取消");
     }
 
     /** 确认收货：已发货 → 已完成，同时开通售后申请窗口 */
@@ -84,7 +84,7 @@ public class OrderTransitionService {
     public void receive(UUID userId, UUID orderId) {
         orderMapper.requireOwned(userId, orderId);
         boolean completed = complete(orderId, OrderAction.RECEIVE, OrderActor.BUYER);
-        Validate.isTrue(completed, 409, "订单状态已变更，当前不可确认收货");
+        Validate.conflict(completed, "订单状态已变更，当前不可确认收货");
     }
 
     // 履约主状态机：卖家

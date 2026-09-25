@@ -6,7 +6,7 @@
 
 - **[MONEY-01]** 一笔钱在全链路（DB→Java→OpenAPI→TS）只有一个形状 `Money { amount, currency }`；TS 侧形状的单一真相源是生成契约 `@shop/api`（`packages/common` 只 re-export 不手写镜像），Java 侧是 `common/Money` record。不裸传 int64。
 - **[MONEY-02]** 金额单位是「分」（整数），避免浮点误差；「元」只活在输入框与展示文本里，元↔分换算只经 `yuanToFen`/`yuanToMoney`（`Math.round(value*100)`）与 `fenToYuan`/`moneyToYuan`，不各处手写 `Number(v)*100`。
-- **[MONEY-03]** 金额非负是硬不变式：Java `Money` 构造即校验 `amount >= 0`（`@Min(0)`），`minus` 结果不得为负（负值抛 400），DB 各金额列配 `CHECK (x >= 0)`。币种同属构造期不变式：`currency` 非空非空白，落对象前就 `trim().toUpperCase(ROOT)` 规整——「cny」和「CNY」不会是两笔钱。
+- **[MONEY-03]** 金额非负是硬不变式：Java `Money` 构造即校验 `amount >= 0`（`@Min(0)`），`minus` 结果不得为负；构造或运算破坏该不变量属于服务端错误，抛 `IllegalStateException` 走 500 与 error 日志。DB 各金额列配 `CHECK (x >= 0)`。币种同属构造期不变式：`currency` 非空非空白，落对象前就 `trim().toUpperCase(ROOT)` 规整——「cny」和「CNY」不会是两笔钱。
 
 ## 币种约束（一期仅 CNY）
 
@@ -20,7 +20,7 @@
 
 ## 运算规则
 
-- **[MONEY-08]** 金额运算不脱离 Money 且仅同币种成立：`plus`/`minus`/`times`/`atLeast`（Java）与 `plusMoney`/`timesMoney`/`sumMoney`（TS）跨币种一律抛错（Java 抛 400 业务异常，TS 抛 Error），不静默算；`times` 的倍数必须是非负整数。
+- **[MONEY-08]** 金额运算不脱离 Money 且仅同币种成立：`plus`/`minus`/`times`/`atLeast`（Java）与 `plusMoney`/`timesMoney`/`sumMoney`（TS）跨币种一律抛错，不静默算；Java 的跨币种、负倍数、减法负结果属于服务端不变量错误，抛 `IllegalStateException` 走 500，TS 抛 Error；`times` 的倍数必须是非负整数。
 - **[MONEY-09]** 零金额不凭空预设币种：`Money.zero(currency)` / `zeroMoney(currency)` 的币种从手上这批钱里拿；TS `sumMoney` 非空集合时起点零跟随第一笔钱的币种。
 - **[MONEY-10]** Money 是值对象，判「同一笔钱」用 `sameMoney`（amount+currency 全等），不用 `===`（引用比较会把重新解析出的相等值误判成已改动）。
 

@@ -21,20 +21,33 @@ class MoneyTest {
     @Test
     void 跨币种相加被拒绝() {
         assertThatThrownBy(() -> Money.cny(100).plus(Money.ofFen(100, "USD")))
-                .isInstanceOf(BusinessException.class)
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("币种不一致");
     }
 
     @Test
     void 乘以非负整数() {
         assertThat(Money.cny(100).times(3)).isEqualTo(Money.cny(300));
-        assertThatThrownBy(() -> Money.cny(100).times(-1)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> Money.cny(100).times(-1)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void 负数金额与空币种被拒绝() {
-        assertThatThrownBy(() -> new Money(-1, "CNY")).isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> new Money(1, "  ")).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> new Money(-1, "CNY")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new Money(1, "  ")).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void 内部运算破坏金额不变量时按服务端错误暴露() {
+        assertThatThrownBy(() -> Money.cny(100).minus(Money.cny(101))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> Money.cny(100).atLeast(Money.ofFen(100, "USD")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void 入参币种不受支持时仍是客户端错误() {
+        assertThatThrownBy(() -> Money.ofFen(100, "USD").requirePlatformCurrency())
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test

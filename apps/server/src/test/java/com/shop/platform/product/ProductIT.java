@@ -15,7 +15,9 @@ import com.shop.platform.product.mapper.CategoryAttr;
 import com.shop.platform.product.mapper.CategoryAttrValue;
 import com.shop.platform.product.mapper.ParamItem;
 import com.shop.platform.product.mapper.Product;
+import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.mapper.Sku;
+import com.shop.platform.product.mapper.SkuMapper;
 import com.shop.platform.product.model.AttrKind;
 import com.shop.platform.product.model.CategoryStatus;
 import com.shop.platform.product.model.ProductStatus;
@@ -71,6 +73,12 @@ class ProductIT extends IntegrationTestSupport {
     @Autowired
     private ProductCommand productCommand;
 
+    @Autowired
+    private ProductMapper productMapper;
+
+    @Autowired
+    private SkuMapper skuMapper;
+
     /**
      * 卖家侧 service 方法显式收 shopId（线上来自 X-Shop-Id，测试自造一个传参）。
      * 自建自清：按 shopId 圈定商品与 SKU（先父后子登记，purge 逆序执行）。
@@ -118,6 +126,21 @@ class ProductIT extends IntegrationTestSupport {
     /** SpecSelection 便利构造：三个可空核心参数 + 两张取值图 map 补 null（测试不必关心图） */
     private static SpecSelection spec(UUID attrId, List<UUID> valueIds, List<String> customValues) {
         return new SpecSelection(attrId, valueIds, customValues, null, null);
+    }
+
+    @Test
+    void JSONB往返_保留列表元素的具体类型() {
+        CategoryAttr color = seedSpecAttr("颜色", "曜石黑");
+        UUID blackId = valueIds(color.getId()).getFirst();
+        Product draft = createDraft("JSONB 类型回归");
+
+        Product reloadedProduct = productMapper.selectById(draft.getId());
+        assertEquals(List.of(REQUIRED_PARAM), reloadedProduct.getParams());
+
+        skuService.updateSpecs(draft.getShopId(), draft.getId(), List.of(spec(color.getId(), List.of(blackId), null)));
+        Sku reloadedSku = skuMapper.selectById(
+                skuMapper.selectByProductId(draft.getId()).getFirst().getId());
+        assertEquals("曜石黑", reloadedSku.getAttributes().getFirst().value());
     }
 
     @Test

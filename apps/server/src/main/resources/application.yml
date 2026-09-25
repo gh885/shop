@@ -18,6 +18,10 @@ spring:
         url: jdbc:postgresql://127.0.0.1:5432/shop
         username: shop
         password: shop_dev
+        hikari:
+            # JacksonTypeHandler 用 setString 写 JSON；未指定类型时让 PostgreSQL 按目标 jsonb 列推断。
+            data-source-properties:
+                stringtype: unspecified
 
     flyway:
         enabled: true
@@ -48,6 +52,8 @@ spring:
         events:
             # 事件登记表补发：重启后自动重投未完成的 AFTER_COMMIT 登记（崩溃窗口兑底）
             republish-outstanding-events-on-restart: true
+            # 消费成功即删除登记行；未完成/失败行仍保留并由 EventPublicationRecoveryJob 重投
+            completion-mode: delete
             jdbc:
                 # 登记表结构归 Flyway 管（V22__kernel_event_publication.sql），关掉框架自带初始化
                 schema-initialization:

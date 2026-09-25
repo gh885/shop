@@ -1,14 +1,15 @@
 package com.shop.platform.shop.api;
 
-import com.shop.platform.infra.db.IdBatchReader;
 import com.shop.platform.shop.model.ShopStatus;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 public class ShopReadQuery {
 
     private final JdbcTemplate jdbc;
+    private final NamedParameterJdbcTemplate namedJdbc;
 
     /** shopId → 店名（展示字段拼装最常用），缺失的 id 不在 Map 中 */
     public Map<UUID, String> namesByIds(Collection<UUID> ids) {
@@ -38,11 +40,14 @@ public class ShopReadQuery {
     }
 
     private <T> Map<UUID, T> columnByIds(String column, Collection<UUID> ids, RowMapper<T> row) {
-        return IdBatchReader.byIds(
-                jdbc,
-                "SELECT id, " + column + " FROM shop.shops WHERE id IN (:ids)",
-                ids,
-                (rs, i) -> rs.getObject("id", UUID.class),
-                row);
+        if (ids == null || ids.isEmpty()) return Map.of();
+        return namedJdbc.query(
+                "SELECT id, " + column + " FROM shop.shops WHERE id IN (:ids)", Map.of("ids", ids), rs -> {
+                    Map<UUID, T> values = new HashMap<>();
+                    while (rs.next()) {
+                        values.put(rs.getObject("id", UUID.class), row.mapRow(rs, 0));
+                    }
+                    return values;
+                });
     }
 }

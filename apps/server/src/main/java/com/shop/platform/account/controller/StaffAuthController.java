@@ -7,15 +7,16 @@ import com.shop.platform.account.service.StaffInfo;
 import com.shop.platform.account.service.StaffService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
-import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.TokenPair;
 import com.shop.platform.infra.web.ClientIp;
+import com.shop.platform.infra.web.CurrentStaff;
 import com.shop.platform.infra.web.RefreshCookies;
 import com.shop.platform.infra.web.RequestPaths;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,7 +59,7 @@ public class StaffAuthController {
             @RequestBody(required = false) RefreshRequest req) {
         String refreshToken = refreshCookies.read(request, COOKIE);
         if (refreshToken == null) {
-            throw new BusinessException(401, ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
+            throw BusinessException.unauthorized(ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
         }
         String deviceId = req == null || req.deviceId() == null ? "default" : req.deviceId();
         TokenPair result = staffService.refresh(refreshToken, deviceId);
@@ -68,14 +69,15 @@ public class StaffAuthController {
 
     /** 当前登录员工信息 */
     @GetMapping("/me")
-    public StaffInfo getStaffMe() {
-        return staffService.getMe(StaffContext.get());
+    public StaffInfo getStaffMe(@CurrentStaff UUID staffId) {
+        return staffService.getMe(staffId);
     }
 
     /** 登出：删除当前设备 refresh token + 清 cookie */
     @PostMapping("/logout")
-    public void staffLogout(@Valid @RequestBody LogoutRequest req, HttpServletResponse response) {
-        staffService.logout(StaffContext.get(), req.deviceId());
+    public void staffLogout(
+            @CurrentStaff UUID staffId, @Valid @RequestBody LogoutRequest req, HttpServletResponse response) {
+        staffService.logout(staffId, req.deviceId());
         refreshCookies.clear(response, COOKIE);
     }
 }

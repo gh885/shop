@@ -43,12 +43,20 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(404, detail);
     }
 
+    public static BusinessException conflict(String detail) {
+        return new BusinessException(409, detail);
+    }
+
     public static BusinessException conflict(String code, String detail) {
         return new BusinessException(409, code, detail);
     }
 
     public static BusinessException unauthorized(String detail) {
         return new BusinessException(401, detail);
+    }
+
+    public static BusinessException unauthorized(String code, String detail) {
+        return new BusinessException(401, code, detail);
     }
 
     public static BusinessException forbidden(String detail) {
@@ -71,5 +79,13 @@ public class BusinessException extends RuntimeException {
 
     public static BusinessException rateLimited(String detail) {
         return new BusinessException(429, detail);
+    }
+
+    public static BusinessException rateLimited(String code, String detail) {
+        return new BusinessException(429, code, detail);
+    }
+
+    public static BusinessException gone(String code, String detail) {
+        return new BusinessException(410, code, detail);
     }
 }

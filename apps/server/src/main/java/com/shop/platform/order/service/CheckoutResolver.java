@@ -204,7 +204,7 @@ class CheckoutResolver {
     AddressSnapshot loadAddressSnapshot(UUID userId, UUID addressId) {
         AddressSnapshotView row =
                 Validate.presentOwned(addressReadQuery.byId(addressId), AddressSnapshotView::userId, userId, "收货地址不存在");
-        Validate.isTrue(row.deletedAt() == null, 404, "收货地址不存在");
+        Validate.present(row.deletedAt() == null, "收货地址不存在");
         return new AddressSnapshot(
                 row.receiverName(),
                 row.phone(),

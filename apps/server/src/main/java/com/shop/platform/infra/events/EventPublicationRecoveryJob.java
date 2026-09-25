@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.modulith.events.FailedEventPublications;
 import org.springframework.modulith.events.IncompleteEventPublications;
 import org.springframework.modulith.events.ResubmissionOptions;
-import org.springframework.modulith.events.core.EventPublicationRegistry;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -26,14 +25,8 @@ public class EventPublicationRecoveryJob {
 
     private static final Duration RESUBMIT_MIN_AGE = Duration.ofMinutes(1);
 
-    /** 清理周期 1h：已完成登记保留 1 天供排查，过期删除防表无限膨胀 */
-    private static final long CLEANUP_INTERVAL_MS = 3_600_000;
-
-    private static final Duration COMPLETED_RETENTION = Duration.ofDays(1);
-
     private final IncompleteEventPublications incompletePublications;
     private final FailedEventPublications failedPublications;
-    private final EventPublicationRegistry registry;
 
     @Scheduled(fixedDelay = RESUBMIT_INTERVAL_MS)
     public void resubmit() {
@@ -42,10 +35,5 @@ public class EventPublicationRecoveryJob {
 
         // 2. 消费失败：监听器抛异常被标 FAILED 的，退避后重试直至成功
         failedPublications.resubmit(ResubmissionOptions.defaults().withMinAge(RESUBMIT_MIN_AGE));
-    }
-
-    @Scheduled(fixedDelay = CLEANUP_INTERVAL_MS)
-    public void cleanup() {
-        registry.deleteCompletedPublicationsOlderThan(COMPLETED_RETENTION);
     }
 }

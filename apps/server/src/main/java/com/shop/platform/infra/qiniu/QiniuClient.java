@@ -91,7 +91,7 @@ public class QiniuClient {
         if (!StringUtils.hasText(props.getAccessKey())
                 || !StringUtils.hasText(props.getSecretKey())
                 || !StringUtils.hasText(props.getBucket())) {
-            throw new BusinessException(500, "文件存储未配置：请设置 shop.qiniu.access-key / secret-key / bucket");
+            throw new IllegalStateException("文件存储未配置：请设置 shop.qiniu.access-key / secret-key / bucket");
         }
     }
 }

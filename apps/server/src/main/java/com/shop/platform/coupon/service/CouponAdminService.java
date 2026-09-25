@@ -93,11 +93,11 @@ public class CouponAdminService {
         // 2. 非 UNUSED 状态逐类给出可理解的拒绝理由（409 是状态冲突，不是参数错误）。
         //    不给 error code：admin 侧只需按 status + detail 文案展示，无分支逻辑要区分
         if (coupon.getStatus() != UserCouponStatus.UNUSED) {
-            throw new BusinessException(409, noVoidableDetail(coupon.getStatus()));
+            throw BusinessException.conflict(noVoidableDetail(coupon.getStatus()));
         }
 
         // 3. 条件作废：并发下状态刚被抢走则 0 行
-        Validate.isTrue(userCouponMapper.voidUnused(userCouponId, OffsetDateTime.now()) == 1, 409, "该优惠券状态已变化，请刷新后重试");
+        Validate.conflict(userCouponMapper.voidUnused(userCouponId, OffsetDateTime.now()) == 1, "该优惠券状态已变化，请刷新后重试");
 
         // 4. 留痕：作废是运营动作，必须进结构化日志（coupon_usages 的 action 枚举无 VOID 值，
         //    且它记的是金额动作，不为此扩 DB CHECK）

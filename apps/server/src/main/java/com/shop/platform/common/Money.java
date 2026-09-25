@@ -25,8 +25,12 @@ public record Money(
     public static final String CNY = "CNY";
 
     public Money {
-        Validate.isTrue(amount >= 0, "金额不能为负");
-        Validate.isTrue(currency != null && !currency.isBlank(), "币种不能为空");
+        if (amount < 0) {
+            throw new IllegalStateException("金额不能为负");
+        }
+        if (currency == null || currency.isBlank()) {
+            throw new IllegalStateException("币种不能为空");
+        }
         currency = currency.trim().toUpperCase(Locale.ROOT);
     }
 
@@ -66,7 +70,7 @@ public record Money(
         return this;
     }
 
-    /** 相加：仅同币种，跨币种抛业务异常（400），避免把 CNY 和 USD 当一回事 */
+    /** 相加：仅同币种，跨币种说明内部不变量被破坏 */
     public Money plus(Money other) {
         requireSameCurrency(other);
         return new Money(this.amount + other.amount, this.currency);
@@ -74,13 +78,15 @@ public record Money(
 
     /** 乘以非负整数倍（如单价 × 数量）。乘法方向明确：结果仍是同币种的金额，单位不漂移 */
     public Money times(long factor) {
-        Validate.isTrue(factor >= 0, "金额倍数不能为负");
+        if (factor < 0) {
+            throw new IllegalStateException("金额倍数不能为负");
+        }
         return new Money(this.amount * factor, this.currency);
     }
 
     /**
-     * 是否不小于另一笔钱（门槛判定、封顶取值都用它）。跨币种抛 400 —— 拿 CNY 的单去判 USD 券的门槛
-     * 本身就是错的，静默给个比较结果比报错贵。
+     * 是否不小于另一笔钱（门槛判定、封顶取值都用它）。跨币种说明内部不变量被破坏，
+     * 静默给个比较结果比报错贵。
      */
     public boolean atLeast(Money other) {
         requireSameCurrency(other);
@@ -94,11 +100,15 @@ public record Money(
      */
     public Money minus(Money other) {
         requireSameCurrency(other);
-        Validate.isTrue(this.amount >= other.amount, "金额相减结果不能为负");
+        if (this.amount < other.amount) {
+            throw new IllegalStateException("金额相减结果不能为负");
+        }
         return new Money(this.amount - other.amount, this.currency);
     }
 
     private void requireSameCurrency(Money other) {
-        Validate.isTrue(other != null && this.currency.equals(other.currency), "金额币种不一致，无法运算");
+        if (other == null || !this.currency.equals(other.currency)) {
+            throw new IllegalStateException("金额币种不一致，无法运算");
+        }
     }
 }

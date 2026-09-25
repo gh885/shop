@@ -54,7 +54,7 @@ public class AccountDeletionService {
     /** 发注销验证码到本人绑定手机号（号码取 token 背后的账号，不让前端自报，故无需图形验证码） */
     public void sendCode(UUID userId, String clientIp) {
         User user = requireActive(userId);
-        Validate.isTrue(user.getDeletionRequestedAt() == null, 409, "已提交注销申请，可在账号安全页撤销");
+        Validate.conflict(user.getDeletionRequestedAt() == null, "已提交注销申请，可在账号安全页撤销");
         smsCodeService.sendDeletionCode(user.getPhone(), clientIp);
     }
 
@@ -68,14 +68,14 @@ public class AccountDeletionService {
         User user = requireActive(userId);
         smsCodeService.verifyDeletionCode(user.getPhone(), code);
         OffsetDateTime now = OffsetDateTime.now();
-        Validate.isTrue(userMapper.markDeletionRequested(userId, now) > 0, 409, "账号状态已变化或已有待生效的注销申请，请刷新后重试");
+        Validate.conflict(userMapper.markDeletionRequested(userId, now) > 0, "账号状态已变化或已有待生效的注销申请，请刷新后重试");
         log.info("[ACCOUNT] 注销申请已提交, userId={}, 生效于={}", userId, now.plus(AccountDeletionTimeouts.COOLING_OFF));
     }
 
     /** 撤销注销申请（冷静期内）：清空申请时刻，账号回到申请前的完全同一状态 */
     public void cancel(UUID userId) {
         OffsetDateTime now = OffsetDateTime.now();
-        Validate.isTrue(userMapper.cancelDeletion(userId, now) > 0, 409, "没有待生效的注销申请");
+        Validate.conflict(userMapper.cancelDeletion(userId, now) > 0, "没有待生效的注销申请");
         log.info("[ACCOUNT] 注销申请已撤销, userId={}", userId);
     }
 

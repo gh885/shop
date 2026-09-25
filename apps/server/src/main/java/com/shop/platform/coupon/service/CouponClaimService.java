@@ -80,7 +80,7 @@ public class CouponClaimService {
         }
 
         // 3. 名额条件扣减：并发超发被这一条语句闸住
-        Validate.isTrue(templateMapper.issueOne(templateId, now) == 1, 409, "该优惠券已被领完");
+        Validate.conflict(templateMapper.issueOne(templateId, now) == 1, "该优惠券已被领完");
 
         // 4. 发券：规则整份快照（金额/门槛/有效期折算成绝对值），读券从此不碰模板
         UserCoupon coupon = UserCoupon.builder()

@@ -39,8 +39,8 @@ public class CarrierResolver {
     public String resolveName(String carrierCode, String carrierName) {
         if (carrierCode != null && !carrierCode.isBlank()) {
             Carrier carrier = carrierMapper.selectByCode(carrierCode);
-            Validate.isTrue(carrier != null, 400, "快递公司不存在");
-            Validate.isTrue(Boolean.TRUE.equals(carrier.getEnabled()), 400, "该快递公司已停用");
+            Validate.isTrue(carrier != null, "快递公司不存在");
+            Validate.isTrue(Boolean.TRUE.equals(carrier.getEnabled()), "该快递公司已停用");
             return carrier.getName();
         }
         if (carrierName == null || carrierName.isBlank()) {

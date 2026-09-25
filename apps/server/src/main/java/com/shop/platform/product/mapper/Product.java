@@ -3,10 +3,10 @@ package com.shop.platform.product.mapper;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.AuditedEntity;
-import com.shop.platform.infra.db.JsonbStringListHandler;
 import com.shop.platform.product.model.ProductStatus;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -55,31 +55,31 @@ public class Product extends AuditedEntity {
     /** 按目标态发布：仅草稿可发布，目标只能是上架（立即上架）或仓库中（放入仓库）。
      *  跨聚合门槛「SKU 全部设价」由 service 复检，不在此处。 */
     public void publishTo(ProductStatus target) {
-        Validate.isTrue(target == ProductStatus.PUBLISHED || target == ProductStatus.WAREHOUSE, 400, "发布目标只能是上架或仓库");
-        Validate.isTrue(isDraft(), 409, "只有草稿可以发布");
+        Validate.isTrue(target == ProductStatus.PUBLISHED || target == ProductStatus.WAREHOUSE, "发布目标只能是上架或仓库");
+        Validate.conflict(isDraft(), "只有草稿可以发布");
         status = target;
     }
 
     /** 下架：仅上架可下架，落仓库中 */
     public void off() {
-        Validate.isTrue(isPublished(), 409, "只有上架商品可以下架");
+        Validate.conflict(isPublished(), "只有上架商品可以下架");
         status = ProductStatus.WAREHOUSE;
     }
 
     /** 重新上架：仅仓库中可重上（重上前 SKU 设价复检同样在 service） */
     public void relist() {
-        Validate.isTrue(isWarehouse(), 409, "只有仓库中的商品可以重新上架");
+        Validate.conflict(isWarehouse(), "只有仓库中的商品可以重新上架");
         status = ProductStatus.PUBLISHED;
     }
 
     /** 规格可编辑性守卫：上架商品规格冻结（价格库存可改，规格组合不可改），要改规格先下架 */
     public void ensureSpecsEditable() {
-        Validate.isTrue(status == null || status.isSpecsEditable(), 409, "上架商品不能修改规格，请先下架");
+        Validate.conflict(status == null || status.isSpecsEditable(), "上架商品不能修改规格，请先下架");
     }
 
     /** 放弃（删除）守卫：仅草稿可放弃；上架/下架商品是经营资产，不做物理删除。 */
     public void ensureAbandonable() {
-        Validate.isTrue(isDraft(), 409, "只有草稿可以放弃，已发布/下架商品需走下架");
+        Validate.conflict(isDraft(), "只有草稿可以放弃，已发布/下架商品需走下架");
     }
 
     // 派生：价格区间与规格组合——数据自己说得出口的话，service 只编排持久化
@@ -159,7 +159,7 @@ public class Product extends AuditedEntity {
      * 淘宝式详情就是几张图，不是一段 HTML（省富文本编辑器、灭 XSS 面、天然响应式、逐张走 CDN）。
      * 存对象存储 key（非完整 URL），展示时拼当前环境域名。
      */
-    @TableField(typeHandler = JsonbStringListHandler.class)
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> detailImages;
 
     /** 主图 key（对象存储 key 非完整 URL）。列表页缩略图、商品页首图优先加载它，各规格差异图在 Sku.image */
@@ -169,7 +169,7 @@ public class Product extends AuditedEntity {
      * 轮播图 key 数组（JSONB），如 ["product/a.jpg","product/b.jpg"]。 选择 JSONB 而不是独立表：这些图只是"摆给买家看"，不参与查询/筛选。
      * 等需要单独管理图片（上传进度、裁剪、审核）时再拆成表。存对象存储 key，非完整 URL。
      */
-    @TableField(typeHandler = JsonbStringListHandler.class)
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> images;
 
     /**
@@ -181,7 +181,7 @@ public class Product extends AuditedEntity {
      * <p>判断一个维度是不是销售属性的标准：换一个值价格/库存会不会变，会，就是销售属性。 单规格商品为 []，此时恰好生成 1 个 SKU（价格库存仍需放 Sku 表）。 与 params
      * 分开存，防止参数被误当规格生成出无意义的 SKU。attrId/valueId 指向类目属性模板（category_attrs），name/value 是显示快照。
      */
-    @TableField(typeHandler = JsonbSpecItemsHandler.class)
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<SpecItem> specs;
 
     /**
@@ -190,7 +190,7 @@ public class Product extends AuditedEntity {
      * <p>判断标准：换一个值价格/库存不变，就是参数，如： [{"name":"产地","value":"广东"},{"name":"上市年份","value":"2026"}]
      * 买家不"选"它，只是看详情页的一行文字。SKU 行里没有它的副本。
      */
-    @TableField(typeHandler = JsonbParamItemsHandler.class)
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<ParamItem> params;
 
     /**

@@ -67,7 +67,7 @@ public class ShipmentService {
                 OrderShipmentView::shopId,
                 command.shopId(),
                 "订单不存在");
-        Validate.isTrue(order.shippable(), 409, "订单当前状态不可发货");
+        Validate.conflict(order.shippable(), "订单当前状态不可发货");
 
         // 2. 承运商：code 走字典并校验启用（不存在/已停用就是 400）——卖家路径必须给 code，没有名字兜底
         String carrierName = carrierResolver.resolveName(command.carrierCode());
@@ -115,7 +115,7 @@ public class ShipmentService {
      */
     public OrderTracking trackingOfOrder(UUID userId, UUID orderId) {
         List<Shipment> shipments = shipmentMapper.selectByOrderAndUser(orderId, userId);
-        Validate.isTrue(!shipments.isEmpty(), 404, "暂无物流信息");
+        Validate.present(!shipments.isEmpty(), "暂无物流信息");
         // 一次取全部包裹的轨迹再分组：逐包裹点查在一单多包裹（含退货回寄）时就是 N+1
         Map<UUID, List<TrackingNode>> nodesByShipment = trackingNodeMapper.groupedByShipments(
                 shipments.stream().map(Shipment::getId).toList());

@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-/** service 层校验收口：isTrue / notNull / present / owned / enumFilter。失败即抛对应状态码的业务异常。 */
+/** service 层校验收口：isTrue / conflict / notNull / present / owned / enumFilter。 */
 class ValidateTest {
 
     private enum Color {
@@ -36,7 +36,8 @@ class ValidateTest {
     void isTrue_条件成立_静默通过() {
         Validate.isTrue(true, "不该抛");
         Validate.isTrue(true, "CODE", "不该抛");
-        Validate.isTrue(true, 409, "不该抛");
+        Validate.conflict(true, "不该抛");
+        Validate.present(true, "不该抛");
     }
 
     @Test
@@ -49,14 +50,17 @@ class ValidateTest {
     }
 
     @Test
-    void isTrue_带code与自定义状态码() {
+    void 带code_冲突_与存在性条件收口() {
         assertThatThrownBy(() -> Validate.isTrue(false, "STATE_CONFLICT", "状态冲突"))
                 .isInstanceOfSatisfying(
                         BusinessException.class, ex -> assertThat(ex.getCode()).isEqualTo("STATE_CONFLICT"));
 
-        assertThatThrownBy(() -> Validate.isTrue(false, 409, "越态操作"))
+        assertThatThrownBy(() -> Validate.conflict(false, "越态操作"))
                 .isInstanceOfSatisfying(BusinessException.class, ex -> assertThat(ex.getHttpStatus())
                         .isEqualTo(409));
+        assertThatThrownBy(() -> Validate.present(false, "商品不存在"))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> assertThat(ex.getHttpStatus())
+                        .isEqualTo(404));
     }
 
     @Test
@@ -92,9 +96,7 @@ class ValidateTest {
     }
 
     @Test
-    void owned_归属成立_静默通过() {
-        Validate.owned(true, "订单不存在");
-
+    void requireOwned_归属成立_静默通过() {
         // 闸门放行时把行原样交回，调用点不必再取一次
         assertThat(Validate.requireOwned(new Resource("u1", "a"), Resource::owner, "u1", "资源不存在")
                         .name())
@@ -124,13 +126,5 @@ class ValidateTest {
         assertThat(absent.getDetail()).isEqualTo("资源不存在").isEqualTo(foreign.getDetail());
         assertThat(optionalAbsent.getHttpStatus()).isEqualTo(404);
         assertThat(optionalAbsent.getDetail()).isEqualTo(absent.getDetail());
-    }
-
-    @Test
-    void owned_判定式形式_越权按不存在处理() {
-        assertThatThrownBy(() -> Validate.owned(false, "订单不存在")).isInstanceOfSatisfying(BusinessException.class, ex -> {
-            assertThat(ex.getHttpStatus()).isEqualTo(404);
-            assertThat(ex.getDetail()).isEqualTo("订单不存在");
-        });
     }
 }

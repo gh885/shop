@@ -18,7 +18,7 @@ public interface SkuMapper extends BaseMapper<Sku> {
      * 每次改名都要全表扫 product.skus；{@code @>} 由 idx_skus_attributes_gin 支撑（见 V31）。
      *
      * <p>必须经 wrapper 的 {@code apply} 挂条件、走 MyBatis-Plus 自己的 selectList，不能手写 {@code @Select}：
-     * attributes 的 JSONB ↔ List&lt;SkuAttr&gt; 转换依赖 {@code @TableField(typeHandler=…)}，而该 handler 只在
+     * attributes 的 JSONB ↔ List&lt;SkuAttr&gt; 转换依赖 {@code JacksonTypeHandler}，而该 handler 只在
      * MP 由 {@code @TableName(autoResultMap = true)} 生成的 ResultMap 上生效——手写 SQL 走自动映射，
      * attributes 会静默变成 null。{@code {0}} 是参数占位（编译为 ?），不是字符串拼接。
      */

@@ -12,8 +12,8 @@ import com.shop.platform.account.service.StaffService;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
-import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentStaff;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
@@ -63,13 +63,15 @@ public class AdminAccountController {
 
     /** PATCH /admin/users/{id}/status —— 禁用/启用买家（封号闸门链见 AuthService.updateUserStatus 注释） */
     @PatchMapping("/users/{id}/status")
-    public void adminUpdateUserStatus(@PathVariable UUID id, @Valid @RequestBody UpdateUserStatusRequest req) {
-        authService.updateUserStatus(id, req.status(), StaffContext.get());
+    public void adminUpdateUserStatus(
+            @CurrentStaff UUID staffId, @PathVariable UUID id, @Valid @RequestBody UpdateUserStatusRequest req) {
+        authService.updateUserStatus(id, req.status(), staffId);
     }
 
     /** PATCH /admin/staff/{id}/status —— 禁用/启用员工；禁用同时吊销其全端会话 */
     @PatchMapping("/staff/{id}/status")
-    public void adminUpdateStaffStatus(@PathVariable UUID id, @Valid @RequestBody UpdateStaffStatusRequest req) {
-        staffService.updateStaffStatus(id, req.status(), StaffContext.get());
+    public void adminUpdateStaffStatus(
+            @CurrentStaff UUID staffId, @PathVariable UUID id, @Valid @RequestBody UpdateStaffStatusRequest req) {
+        staffService.updateStaffStatus(id, req.status(), staffId);
     }
 }

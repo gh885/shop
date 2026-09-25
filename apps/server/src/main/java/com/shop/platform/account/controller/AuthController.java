@@ -135,7 +135,7 @@ public class AuthController {
         String fromCookie = refreshCookies.read(request, cookieSpec());
         String refreshToken = fromCookie != null ? fromCookie : (req == null ? null : req.refreshToken());
         if (refreshToken == null) {
-            throw new BusinessException(401, ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
+            throw BusinessException.unauthorized(ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
         }
 
         TokenPair result = authService.refresh(refreshToken, deviceIdOrDefault(req), clientIp.of(request), userAgent);

@@ -30,7 +30,7 @@ public final class BearerTokens {
             return new Verification(null, code, detail);
         }
 
-        /** true = 未通过，code/detail 可直接交给 UnauthorizedWriter */
+        /** true = 未通过，code/detail 可直接转成 401 BusinessException */
         public boolean failed() {
             return subjectId == null;
         }

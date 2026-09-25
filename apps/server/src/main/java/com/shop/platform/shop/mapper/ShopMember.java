@@ -2,8 +2,8 @@ package com.shop.platform.shop.mapper;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.shop.platform.infra.db.AuditedEntity;
-import com.shop.platform.infra.db.JsonbStringListHandler;
 import com.shop.platform.shop.model.MemberRole;
 import com.shop.platform.shop.model.MemberStatus;
 import java.util.UUID;
@@ -35,8 +35,8 @@ public class ShopMember extends AuditedEntity {
     private MemberRole role;
 
     /** 子账号被授予的权限码（默认空集=最小权限）；
-     *  OWNER 全权由角色判定不读此列。jsonb 存储，读写经 JsonbStringListHandler */
-    @TableField(typeHandler = JsonbStringListHandler.class)
+     *  OWNER 全权由角色判定不读此列。jsonb 存储，读写经 JacksonTypeHandler */
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private java.util.List<String> permissions;
 
     /** 成员状态：PENDING 邀请待对方同意 / ACTIVE 已生效，概念归 {@link MemberStatus} */

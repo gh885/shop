@@ -121,7 +121,7 @@ public class RefreshTokenStore {
                 if (!replay.withinGrace()) {
                     log.warn("{} Refresh Token 重放攻击已检测, subjectId={}", logTag, replay.subjectId());
                     revokeAll(replay.subjectId());
-                    throw new BusinessException(410, ErrorCodes.REFRESH_TOKEN_REUSED, "Refresh Token 已被重复使用，所有设备已下线");
+                    throw BusinessException.gone(ErrorCodes.REFRESH_TOKEN_REUSED, "Refresh Token 已被重复使用，所有设备已下线");
                 }
                 log.info("{} Refresh 并发竞争（宽限期内）, subjectId={}", logTag, replay.subjectId());
                 throw BusinessException.unauthorized("登录状态正在其他页面刷新，请稍后重试");

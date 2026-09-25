@@ -1,18 +1,19 @@
 package com.shop.platform.order.api;
 
 import com.shop.platform.common.Money;
-import com.shop.platform.infra.db.IdBatchReader;
 import com.shop.platform.order.model.OrderStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Component;
 public class OrderReadQuery {
 
     private final JdbcTemplate jdbc;
+    private final NamedParameterJdbcTemplate namedJdbc;
 
     /** 单笔订单的支付视图：payment 模块支付前置校验用，查无此单返回 empty */
     public Optional<OrderPaymentView> paymentViewById(UUID orderId) {
@@ -91,8 +93,8 @@ public class OrderReadQuery {
      * 子查询（orders.items 属本模块）。缺失的 id 不在 Map 中，由调用方决定怎么面对。
      */
     public Map<UUID, OrderSummaryView> summariesByIds(Collection<UUID> ids) {
-        return IdBatchReader.byIds(
-                jdbc,
+        if (ids == null || ids.isEmpty()) return Map.of();
+        return namedJdbc.query(
                 """
                 SELECT o.id, o.order_no, o.receiver_name,
                        (SELECT count(*) FROM orders.items i WHERE i.order_id = o.id) AS item_count,
@@ -101,14 +103,21 @@ public class OrderReadQuery {
                 FROM orders.orders o
                 WHERE o.id IN (:ids)
                 """,
-                ids,
-                (rs, i) -> rs.getObject("id", UUID.class),
-                (rs, i) -> new OrderSummaryView(
-                        rs.getObject("id", UUID.class),
-                        rs.getString("order_no"),
-                        rs.getString("receiver_name"),
-                        rs.getLong("item_count"),
-                        rs.getString("first_item_name")));
+                Map.of("ids", ids),
+                rs -> {
+                    Map<UUID, OrderSummaryView> summaries = new HashMap<>();
+                    while (rs.next()) {
+                        summaries.put(
+                                rs.getObject("id", UUID.class),
+                                new OrderSummaryView(
+                                        rs.getObject("id", UUID.class),
+                                        rs.getString("order_no"),
+                                        rs.getString("receiver_name"),
+                                        rs.getLong("item_count"),
+                                        rs.getString("first_item_name")));
+                    }
+                    return summaries;
+                });
     }
 
     /** 金额列 + 本行 currency 列 → Money */

@@ -1,8 +1,8 @@
 package com.shop.platform.infra.security.authz;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.web.RequestPaths;
-import com.shop.platform.infra.web.UnauthorizedWriter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
@@ -14,7 +14,6 @@ import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * 判权拦截器：读 handler 上的 {@link RequirePermission}（方法覆盖类级），向各主体域的
@@ -32,7 +31,6 @@ import tools.jackson.databind.ObjectMapper;
 public class PermissionInterceptor implements HandlerInterceptor {
 
     private final List<PermissionResolver> resolvers;
-    private final ObjectMapper objectMapper;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -56,7 +54,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
         if (required == null) {
             if (RequestPaths.inGuardedNamespace(path) && !RequestPaths.isAdminSelfService(path)) {
                 log.warn("[AUTHZ] 受保护接口缺失权限注解（默认拒绝）, path={}, method={}", path, request.getMethod());
-                return deny(request, response, "接口未配置权限");
+                throw BusinessException.forbidden(ErrorCodes.PERMISSION_DENIED, "接口未配置权限");
             }
             return true;
         }
@@ -67,7 +65,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
                 || Arrays.stream(required.value()).anyMatch(granted::contains);
         if (!pass) {
             log.warn("[AUTHZ] 判权拒绝, path={}, required={}", path, String.join(",", required.value()));
-            return deny(request, response, "没有执行该操作的权限");
+            throw BusinessException.forbidden(ErrorCodes.PERMISSION_DENIED, "没有执行该操作的权限");
         }
         return true;
     }
@@ -81,10 +79,5 @@ public class PermissionInterceptor implements HandlerInterceptor {
             }
         }
         return Set.of();
-    }
-
-    private boolean deny(HttpServletRequest request, HttpServletResponse response, String detail) throws Exception {
-        UnauthorizedWriter.write(response, objectMapper, 403, ErrorCodes.PERMISSION_DENIED, detail);
-        return false;
     }
 }

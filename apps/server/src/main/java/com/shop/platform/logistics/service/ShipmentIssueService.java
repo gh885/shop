@@ -114,6 +114,6 @@ public class ShipmentIssueService {
     public void resolve(UUID issueId, String note) {
         Validate.notNull(issueMapper.selectById(issueId), "异常单不存在");
         String detail = Text.trimToNull(note);
-        Validate.isTrue(issueMapper.resolve(issueId, detail, OffsetDateTime.now()) == 1, 409, "异常单已处理，无需重复操作");
+        Validate.conflict(issueMapper.resolve(issueId, detail, OffsetDateTime.now()) == 1, "异常单已处理，无需重复操作");
     }
 }

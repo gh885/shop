@@ -140,7 +140,7 @@ public class ProductQueryService {
     /** 买家侧商品详情：非上架商品一律 404（不泄露"存在但没上架"），SKU 只返在售 */
     public ProductDetail publicDetail(UUID productId) {
         Product product = Validate.notNull(productMapper.selectById(productId), "商品不存在");
-        Validate.isTrue(product.isPublished(), 404, "商品不存在");
+        Validate.present(product.isPublished(), "商品不存在");
         List<Sku> skus = skuMapper.selectOnSaleByProductId(productId);
         return new ProductDetail(product, skus);
     }

@@ -1,14 +1,15 @@
 package com.shop.platform.account.api;
 
 import com.shop.platform.account.model.UserStatus;
-import com.shop.platform.infra.db.IdBatchReader;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,15 +20,18 @@ import org.springframework.stereotype.Component;
 public class UserReadQuery {
 
     private final JdbcTemplate jdbc;
+    private final NamedParameterJdbcTemplate namedJdbc;
 
     /** userId → 手机号（成员列表/审核队列等批量拼装，出参一律先过 PhoneNumber.mask），缺失的 id 不在 Map 中 */
     public Map<UUID, String> phonesByIds(Collection<UUID> ids) {
-        return IdBatchReader.byIds(
-                jdbc,
-                "SELECT id, phone FROM account.users WHERE id IN (:ids)",
-                ids,
-                (rs, i) -> rs.getObject("id", UUID.class),
-                (rs, i) -> rs.getString("phone"));
+        if (ids == null || ids.isEmpty()) return Map.of();
+        return namedJdbc.query("SELECT id, phone FROM account.users WHERE id IN (:ids)", Map.of("ids", ids), rs -> {
+            Map<UUID, String> phones = new HashMap<>();
+            while (rs.next()) {
+                phones.put(rs.getObject("id", UUID.class), rs.getString("phone"));
+            }
+            return phones;
+        });
     }
 
     /** 按手机号查 userId（account.users 全局唯一手机号），未注册返回 empty —— api 包缺席语义统一走 Optional */

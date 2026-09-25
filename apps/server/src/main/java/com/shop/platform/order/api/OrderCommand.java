@@ -62,7 +62,7 @@ public class OrderCommand {
                         .set(Order::getStatus, OrderStatus.PAID)
                         .set(Order::getPaidAt, now)
                         .set(Order::getShipExpireAt, now.plus(OrderTimeouts.SHIP)));
-        Validate.isTrue(affected == 1, 409, "订单已取消或已支付，本次支付未生效");
+        Validate.conflict(affected == 1, "订单已取消或已支付，本次支付未生效");
 
         // 支付成功即扣实冻结库存（同事务）：货真的没了，冻结量归还
         List<StockLine> lines = orderItemMapper.selectByOrderId(orderId).stream()
@@ -90,7 +90,7 @@ public class OrderCommand {
             UUID orderId, UUID shopId, String carrierName, String trackingNo, OffsetDateTime shippedAt) {
         OrderStatus previous = orderMapper.markShippedReturningPrevious(
                 orderId, shopId, carrierName, trackingNo, shippedAt, shippedAt.plus(OrderTimeouts.RECEIVE));
-        Validate.isTrue(previous != null, 409, "订单状态已变更，当前不可发货");
+        Validate.conflict(previous != null, "订单状态已变更，当前不可发货");
         boolean firstShipment = previous == OrderStatus.PAID;
         if (firstShipment) {
             statusLogWriter.record(orderId, previous, OrderStatus.SHIPPED, OrderAction.SHIP, OrderActor.SELLER, null);

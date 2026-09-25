@@ -1,8 +1,9 @@
 package com.shop.platform.infra.security;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.StaffContext;
+import com.shop.platform.infra.web.FilterExceptionHandler;
 import com.shop.platform.infra.web.RequestPaths;
-import com.shop.platform.infra.web.UnauthorizedWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +14,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * 平台员工鉴权过滤链：只处理 /admin/**（登录/刷新入口放行），校验 kind=staff 的 access token。
@@ -26,7 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 public class StaffAuthFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
-    private final ObjectMapper objectMapper;
+    private final FilterExceptionHandler exceptionHandler;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -46,19 +46,19 @@ public class StaffAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String path = RequestPaths.routePath(request);
-        if (path == null) {
-            UnauthorizedWriter.write(response, objectMapper, 400, null, "非法请求路径");
-            return;
-        }
         try {
+            if (path == null) {
+                throw BusinessException.badRequest("非法请求路径");
+            }
             // 管理端链路：requireStaff=true，只收 kind=staff 的 access token
             BearerTokens.Verification verification = BearerTokens.verify(jwtProvider, request, true);
             if (verification.failed()) {
-                UnauthorizedWriter.write(response, objectMapper, 401, verification.code(), verification.detail());
-                return;
+                throw BusinessException.unauthorized(verification.code(), verification.detail());
             }
             StaffContext.set(verification.subjectId());
             chain.doFilter(request, response);
+        } catch (BusinessException ex) {
+            exceptionHandler.resolve(request, response, ex);
         } finally {
             StaffContext.clear();
         }

@@ -63,7 +63,7 @@ public class PaymentService {
         }
 
         // 3. 未付过才要求待付款态；非待付款（如已取消）拒绝发起
-        Validate.isTrue(order.pendingPayment(), 409, "订单不是待付款状态");
+        Validate.conflict(order.pendingPayment(), "订单不是待付款状态");
 
         // 4. 写 PENDING 流水（渠道 MOCK，paidAt 留空待确认时回填）
         //    这里不设 try/catch：uk_payments_order_success 是 WHERE status = 'SUCCESS' 的部分唯一索引，
@@ -105,7 +105,7 @@ public class PaymentService {
 
         // 3. 条件转移 PENDING→SUCCESS：抢不到说明已被确认/失败，拒绝
         int affected = paymentMapper.transition(paymentId, PaymentStatus.SUCCESS);
-        Validate.isTrue(affected == 1, 409, "支付流水状态已变更，请刷新订单");
+        Validate.conflict(affected == 1, "支付流水状态已变更，请刷新订单");
         payment.setStatus(PaymentStatus.SUCCESS); // 同步内存对象，返回给前端的是转移后的成功态
 
         // 4. 同事务推进订单状态机 + 扣实冻结库存；订单已被取消/超时则 markPaid 抛 409，

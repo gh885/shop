@@ -32,7 +32,7 @@ public record FeedCursor(String seed, UUID lastId) {
 
     /** 解码上一页带回的游标；形态不合法一律 400 */
     public static FeedCursor decode(String raw) {
-        Validate.isTrue(raw != null && SHAPE.matcher(raw).matches(), 400, "游标不合法");
+        Validate.isTrue(raw != null && SHAPE.matcher(raw).matches(), "游标不合法");
         int dot = raw.indexOf('.');
         try {
             return new FeedCursor(raw.substring(0, dot), UUID.fromString(raw.substring(dot + 1)));

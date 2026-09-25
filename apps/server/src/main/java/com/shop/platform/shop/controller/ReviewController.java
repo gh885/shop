@@ -3,8 +3,8 @@ package com.shop.platform.shop.controller;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
-import com.shop.platform.common.StaffContext;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentStaff;
 import com.shop.platform.shop.controller.response.PhoneRevealResponse;
 import com.shop.platform.shop.controller.response.ShopReviewResponse;
 import com.shop.platform.shop.dto.RejectRequest;
@@ -45,19 +45,20 @@ public class ReviewController {
      * 逐条索取且每次留痕（做成动作端点而不是把明文塞回队列，是为了让「看号码」在契约上就是一个动作）。
      */
     @PostMapping("/{id}/owner-phone")
-    public PhoneRevealResponse revealOwnerPhone(@PathVariable UUID id) {
-        return new PhoneRevealResponse(shopReviewService.ownerPhone(id, StaffContext.get()));
+    public PhoneRevealResponse revealOwnerPhone(@CurrentStaff UUID staffId, @PathVariable UUID id) {
+        return new PhoneRevealResponse(shopReviewService.ownerPhone(id, staffId));
     }
 
     /** 审核通过：店铺状态 → ACTIVE */
     @PostMapping("/{id}/approve")
-    public ShopReviewResponse approveShopReview(@PathVariable UUID id) {
-        return ShopReviewResponse.from(shopReviewService.approve(id, StaffContext.get()));
+    public ShopReviewResponse approveShopReview(@CurrentStaff UUID staffId, @PathVariable UUID id) {
+        return ShopReviewResponse.from(shopReviewService.approve(id, staffId));
     }
 
     /** 审核拒绝：店铺状态 → REJECTED，理由必填留痕 */
     @PostMapping("/{id}/reject")
-    public ShopReviewResponse rejectShopReview(@PathVariable UUID id, @Valid @RequestBody RejectRequest req) {
-        return ShopReviewResponse.from(shopReviewService.reject(id, StaffContext.get(), req.reason()));
+    public ShopReviewResponse rejectShopReview(
+            @CurrentStaff UUID staffId, @PathVariable UUID id, @Valid @RequestBody RejectRequest req) {
+        return ShopReviewResponse.from(shopReviewService.reject(id, staffId, req.reason()));
     }
 }

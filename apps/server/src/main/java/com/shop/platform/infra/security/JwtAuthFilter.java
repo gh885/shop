@@ -1,8 +1,9 @@
 package com.shop.platform.infra.security;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.UserIdHolder;
+import com.shop.platform.infra.web.FilterExceptionHandler;
 import com.shop.platform.infra.web.RequestPaths;
-import com.shop.platform.infra.web.UnauthorizedWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +14,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import tools.jackson.databind.ObjectMapper;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
@@ -22,7 +22,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
     private final JwtProperties jwtProperties;
-    private final ObjectMapper objectMapper;
+    private final FilterExceptionHandler exceptionHandler;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -41,19 +41,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String path = RequestPaths.routePath(request);
-        if (path == null) {
-            UnauthorizedWriter.write(response, objectMapper, 400, null, "非法请求路径");
-            return;
-        }
         try {
+            if (path == null) {
+                throw BusinessException.badRequest("非法请求路径");
+            }
             // 用户链路：requireStaff=false，拒绝员工 token（staff UUID 不能被当成 userId）
             BearerTokens.Verification verification = BearerTokens.verify(jwtProvider, request, false);
             if (verification.failed()) {
-                UnauthorizedWriter.write(response, objectMapper, 401, verification.code(), verification.detail());
-                return;
+                throw BusinessException.unauthorized(verification.code(), verification.detail());
             }
             UserIdHolder.set(verification.subjectId());
             chain.doFilter(request, response);
+        } catch (BusinessException ex) {
+            exceptionHandler.resolve(request, response, ex);
         } finally {
             UserIdHolder.clear();
         }

@@ -151,7 +151,7 @@ src/main/java/com/shop/platform/
 - **落库存列对**：金额列（`price` / `pay_amount` / `first_fee`…）配一个本表自己的 `currency` 列，`CHECK (currency = 'CNY')` 把「一期只有 CNY」钉成 DB 不变式（V58）。币种按行存而不是随父行：派生视图要在自己这一行闭合，跨表继承币种得 JOIN 才说得出口
 - **闸门分三层，各挡一类事故**：DB `CHECK`（脏数据写不进）＋ `Money.requirePlatformCurrency()`（入参币种错时给 400 而不是撞 CHECK 变 500）＋ 金额非负 / 区间不自相矛盾的 `CHECK`（`min_price <= max_price`）
 - **实体只负责换算**：mapper 实体留 `price` + `currency` 两列（MyBatis 按列映射），对外给派生视图 `priceAsMoney()` / `originalPriceAsMoney()`（可空列走 `Money.ofFenOrNull`）；`currency` 字段不得出现在 mapper 实体与 Money 之外任何地方
-- **运算不脱离 Money**：`plus` / `minus` / `times` / `atLeast` 只在同币种间成立，跨币种抛 400 而不是静默算；零金额用 `Money.zero(手上这笔钱的币种)`，不凭空造 CNY
+- **运算不脱离 Money**：`plus` / `minus` / `times` / `atLeast` 只在同币种间成立；跨币种、负倍数、减法结果为负都表示代码或数据破坏了服务端不变量，抛 `IllegalStateException` 走 500 与 error 日志，不能伪装成用户输入错误。零金额用 `Money.zero(手上这笔钱的币种)`，不凭空造 CNY
 - 由 `MoneyTypeRulesTest`（ArchUnit）强制：契约层（dto / api / controller / service / events / common）的金额命名字段类型必须是 Money；`currency` 字段只允许出现在 mapper 实体与 Money（含 `infra.db` 造数器）里
 
 ## 命名规范（三层契约）

@@ -66,17 +66,17 @@ public class CaptchaService {
      */
     public void verify(String captchaId, String captchaCode) {
         if (!StringUtils.hasText(captchaId) || !StringUtils.hasText(captchaCode)) {
-            throw new BusinessException(400, ErrorCodes.CAPTCHA_REQUIRED, "请先完成图形验证码");
+            throw BusinessException.badRequest(ErrorCodes.CAPTCHA_REQUIRED, "请先完成图形验证码");
         }
         String key = KEY + captchaId;
         String stored = redisTemplate.opsForValue().get(key);
         // 无论成败都消费，防重放
         redisTemplate.delete(key);
         if (stored == null) {
-            throw new BusinessException(400, ErrorCodes.CAPTCHA_EXPIRED, "图形验证码已过期，请刷新重试");
+            throw BusinessException.badRequest(ErrorCodes.CAPTCHA_EXPIRED, "图形验证码已过期，请刷新重试");
         }
         if (!stored.equals(hash(captchaCode.trim().toUpperCase(Locale.ROOT)))) {
-            throw new BusinessException(400, ErrorCodes.CAPTCHA_INVALID, "图形验证码错误，请重试");
+            throw BusinessException.badRequest(ErrorCodes.CAPTCHA_INVALID, "图形验证码错误，请重试");
         }
     }
 

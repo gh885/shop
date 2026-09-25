@@ -22,6 +22,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final CurrentShopArgumentResolver currentShopArgumentResolver;
 
+    private final CurrentStaffArgumentResolver currentStaffArgumentResolver;
+
     private final WebProperties props;
 
     @Override
@@ -40,6 +42,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(currentUserArgumentResolver);
         resolvers.add(currentShopArgumentResolver);
+        resolvers.add(currentStaffArgumentResolver);
     }
 
     /**

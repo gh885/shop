@@ -104,13 +104,13 @@ public class ShopService {
         Validate.isTrue(name != null && !name.isBlank(), "店名不能为空");
         Shop shop = Validate.notNull(shopMapper.selectById(shopId), "店铺不存在");
         // 只有被驳回的店能重提：待审的店已经在队列里，ACTIVE 店无需重审，被封的店走平台解封（ACC-60 仍未落）
-        Validate.isTrue(shop.getStatus() == ShopStatus.REJECTED, 409, "只有审核未通过的店铺可以重新提交");
+        Validate.conflict(shop.getStatus() == ShopStatus.REJECTED, "只有审核未通过的店铺可以重新提交");
         // 改名要重新过全局唯一闸（本店自己那一行不算冲突）
         Validate.isTrue(!shopMapper.existsOtherNamed(shopId, name), ErrorCodes.SHOP_NAME_TAKEN, "店名已被使用，请换一个");
 
         // 条件更新（WHERE status = REJECTED）是并发闸门：预检与写之间被并发的重提/审核抢先，这里影响 0 行 → 409
         try {
-            Validate.isTrue(shopMapper.resubmit(shopId, name, logoKey) == 1, 409, "店铺状态已变化，请刷新后重试");
+            Validate.conflict(shopMapper.resubmit(shopId, name, logoKey) == 1, "店铺状态已变化，请刷新后重试");
         } catch (DuplicateKeyException e) {
             // 并发下两家店同时改成同一个名字：uk_shops_name 是真相，给和预检一致的 400
             throw BusinessException.badRequest(ErrorCodes.SHOP_NAME_TAKEN, "店名已被使用，请换一个");
@@ -212,9 +212,9 @@ public class ShopService {
         ShopMember member = Validate.requireOwned(
                 shopMemberMapper.selectById(memberId), ShopMember::getUserId, userId, "邀请不存在或已失效");
         // 2. 已生效的成员不能被「拒绝」顶掉（409 与 accept 的重复处理同口径）
-        Validate.isTrue(MemberStatus.PENDING.equals(member.getStatus()), 409, "该邀请已处理");
+        Validate.conflict(MemberStatus.PENDING.equals(member.getStatus()), "该邀请已处理");
         // 3. 条件删除：状态仍是 PENDING 才删得掉，并发下被抢先 accept 则影响 0 行 → 409
-        Validate.isTrue(shopMemberMapper.deletePendingById(memberId) == 1, 409, "该邀请已处理");
+        Validate.conflict(shopMemberMapper.deletePendingById(memberId) == 1, "该邀请已处理");
         log.info("[SHOP] 成员拒绝邀请, shopId={}, userId={}", member.getShopId(), userId);
     }
 
@@ -229,7 +229,7 @@ public class ShopService {
     @Cacheable(cacheNames = CacheNames.SHOP_PUBLIC, key = "#shopId")
     public Shop publicShop(UUID shopId) {
         Shop shop = Validate.notNull(shopMapper.selectById(shopId), "店铺不存在");
-        Validate.isTrue(shop.isActive(), 404, "店铺不存在");
+        Validate.present(shop.isActive(), "店铺不存在");
         return shop;
     }
 

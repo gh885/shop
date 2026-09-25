@@ -2,6 +2,7 @@ package com.shop.platform.cms.mapper;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.shop.platform.cms.model.CmsStatus;
 import com.shop.platform.infra.db.AuditedEntity;
 import java.util.List;
@@ -34,7 +35,7 @@ public class NavEntry extends AuditedEntity {
     private String targetType;
 
     /** 子分组 [{name,items[]}]，JSONB */
-    @TableField(typeHandler = JsonbNavGroupListHandler.class)
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<NavGroup> subs;
 
     /** 同级排序权重 */

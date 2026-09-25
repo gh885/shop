@@ -98,7 +98,7 @@ public class CouponTemplateService {
     @Transactional
     public ShopCoupon stop(UUID shopId, UUID templateId) {
         CouponTemplate template = templateMapper.requireShopOwned(shopId, templateId);
-        Validate.isTrue(template.getStatus() == CouponTemplateStatus.ACTIVE, 409, "该优惠券已停止发放");
+        Validate.conflict(template.getStatus() == CouponTemplateStatus.ACTIVE, "该优惠券已停止发放");
         template.setStatus(CouponTemplateStatus.STOPPED);
         // 停用是幂等的（并发两次停用只是把同一列写成同一个值），不必做成条件更新
         templateMapper.updateById(template);

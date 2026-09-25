@@ -125,14 +125,14 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 | -------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DB                         | 金额列 + 同行 `currency VARCHAR(3)`，`CHECK (currency = 'CNY')` | 存金额的表：`product.products` / `product.skus` / `orders.orders` / `orders.items` / `payment.payments` / `aftersale.tickets` / `coupon.*` / `shop.shipping_*` |
 | Java 实体                  | 两列 + 派生视图（`priceAsMoney()`）                             | `<module>/mapper`                                                                                                                                              |
-| Java 契约 / service / 事件 | `common/Money`（record：非负、跨币种运算抛 400）                | dto / api / controller / service / events                                                                                                                      |
+| Java 契约 / service / 事件 | `common/Money`（record：非负；跨币种等内部不变量错误抛 500）    | dto / api / controller / service / events                                                                                                                      |
 | OpenAPI / SDK              | 命名 schema `Money`                                             | `openapi/api-docs.json` → `packages/api`                                                                                                                       |
 | TS                         | `Money`（re-export 契约，不写镜像类型）                         | `packages/common/src/money.ts`                                                                                                                                 |
 
 三道闸门，各挡一类事故（论证见 V58 头注释与 `Money` javadoc）：
 
 1. **DB `CHECK`**：币种只认平台定价币种、金额非负、价格区间不自相矛盾（`min_price <= max_price`）——脏数据写不进库
-2. **`Money.requirePlatformCurrency()`**：入参币种错时给 400（「填错了」），而不是撞上 DB 约束变 500（「服务器坏了」）
+2. **`Money.requirePlatformCurrency()`**：入参币种错时给 400（「填错了」），而不是撞上 DB 约束变 500（「服务器坏了」）；构造与运算阶段破坏金额不变量则属于服务端错误，走 500 与 error 日志
 3. **`MoneyTypeRulesTest`（ArchUnit）**：契约层的金额命名字段类型必须是 Money；`currency` 字段只允许出现在 mapper 实体与 Money 里
 
 前端另有单一展示出口（`formatMoney` / 共享 `Price` 组件，符号跟币种），细则见 [conventions/frontend.md「金额（Money）」](conventions/frontend.md)；后端细则见 [apps/server/AGENTS.md「金额（Money）」](../apps/server/AGENTS.md)。

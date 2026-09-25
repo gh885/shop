@@ -45,6 +45,8 @@ class OwnershipDoorTest {
     /** 允许说 403 的门：挡的都是「你有没有资格在这个上下文里操作」，不是「这条资源归谁」 */
     private static final Set<String> FORBIDDEN_DOOR_OWNERS = Set.of(
             "com.shop.platform.infra.web.CurrentShopArgumentResolver",
+            "com.shop.platform.shop.infra.ShopMembershipFilter",
+            "com.shop.platform.infra.security.authz.PermissionInterceptor",
             "com.shop.platform.shop.service.ShopService",
             "com.shop.platform.logistics.infra.kdniao.KdniaoPushReceiver",
             "com.shop.platform.account.service.AuthService",
