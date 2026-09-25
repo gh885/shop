@@ -10,6 +10,7 @@ import {
 import { Package } from "lucide-react"
 
 import { ProductStatus } from "@shop/api/sdk"
+import { paginationSearchSchema } from "@shop/app-kit"
 import { z } from "zod"
 
 import { useState } from "react"
@@ -23,17 +24,13 @@ import { PRODUCT_SORTS } from "#/product/queries"
 import { useShop } from "#/shop"
 
 // status 从生成的 ProductStatus 枚举派生（后端加状态时此处编译期跟进），脏值 catch 到默认 tab
-const listSearchSchema = z.object({
+const listSearchSchema = paginationSearchSchema.extend({
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     status: z.enum(ProductStatus).catch("PUBLISHED"),
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     keyword: z.string().min(1).optional().catch(undefined),
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     sort: z.enum(PRODUCT_SORTS).optional().catch(undefined),
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    page: z.coerce.number().int().min(1).catch(1),
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    size: z.coerce.number().int().min(1).catch(10),
 })
 
 export const Route = createFileRoute("/_app/product/list")({

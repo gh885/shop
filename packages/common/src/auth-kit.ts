@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react"
 
+import { AuthApi } from "@shop/api/sdk"
+
 import type { TokenStore } from "./sdk-client"
 
 /**
@@ -47,6 +49,17 @@ export interface AuthKit {
     /** 当前登录用户信息 hooks 的开关：authed 才发请求 */
     useAuthStatus: () => AuthStatus
     useIsLoggedIn: () => boolean
+}
+
+/** 标准买家/卖家端装配：生成 SDK 失败时抛给 createAuthKit，由它统一裁决为 guest。 */
+export function createSdkAuthKit(): AuthKit {
+    return createAuthKit({
+        refresh: async (deviceId) => {
+            const result = await AuthApi.refresh({ body: { deviceId } })
+            if (!result.accessToken) throw new Error("refresh 失败")
+            return { accessToken: result.accessToken }
+        },
+    })
 }
 
 export function createAuthKit(options: AuthKitOptions): AuthKit {

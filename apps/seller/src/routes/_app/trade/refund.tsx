@@ -8,7 +8,7 @@ import {
     DataTableSkeleton,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
-import { z } from "zod"
+import { paginationSearchSchema } from "@shop/app-kit"
 import { useState } from "react"
 
 import { AfterSaleDecisionDialog, type SaleDecisionKind } from "#/order/after-sale-decision-dialog"
@@ -28,13 +28,7 @@ import { useShop } from "#/shop"
  * 页签默认「待处理」；页签与页码都进 URL，可分享可回退。
  */
 
-const listSearchSchema = z.object({
-    status: RefundTabSchema,
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    page: z.coerce.number().int().min(1).catch(1),
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    size: z.coerce.number().int().min(1).catch(10),
-})
+const listSearchSchema = paginationSearchSchema.extend({ status: RefundTabSchema })
 
 export const Route = createFileRoute("/_app/trade/refund")({
     validateSearch: (search) => listSearchSchema.parse(search),

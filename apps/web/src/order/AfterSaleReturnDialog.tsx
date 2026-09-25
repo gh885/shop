@@ -1,14 +1,12 @@
 import { z } from "zod"
 import { CARRIER_NAME_MAX, TRACKING_NO_MAX, TrackingNoSchema } from "@shop/common"
+import { FormActions } from "@shop/app-kit"
 import {
-    Button,
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
-    Spinner,
     useAppForm,
 } from "@shop/ui-web"
 
@@ -149,21 +147,11 @@ function ReturnForm({
                     )}
                 </form.AppField>
 
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={submitReturn.isPending}
-                    >
-                        {submitReturn.isPending && <Spinner />}提交
-                    </Button>
-                </DialogFooter>
+                <FormActions
+                    pending={submitReturn.isPending}
+                    submitLabel="提交"
+                    onCancel={() => onOpenChange(false)}
+                />
             </form>
         </>
     )

@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { useQuery, type UseQueryResult } from "@tanstack/react-query"
 import type { TicketResponse } from "@shop/api/sdk"
 import { formatMoney, NOTE_MAX } from "@shop/common"
+import { ReasonForm } from "@shop/app-kit"
 import {
     Badge,
     Button,
@@ -11,9 +12,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useAppForm,
 } from "@shop/ui-web"
-import { z } from "zod"
 
 import { TICKET_REASON_LABEL, TICKET_STATUS_META, TICKET_TYPE_LABEL } from "#/order/constants"
 import { shopAfterSaleOptions } from "#/order/queries"
@@ -63,11 +62,6 @@ function describeDecision(kind: SaleDecisionKind, data: TicketData | undefined):
         : "同意后立即退款给买家，商品不寄回。"
 }
 
-/** 拒绝理由：与后端 @NotBlank @Size(max = 200) 同宽（落点是 ticket_events.note 那一列，不给它第二份真相） */
-const RejectSchema = z.object({
-    reason: z.string().trim().min(1, "请填写拒绝理由").max(NOTE_MAX, `拒绝理由最长 ${NOTE_MAX} 字`),
-})
-
 export function AfterSaleDecisionDialog({
     open,
     onOpenChange,
@@ -113,7 +107,11 @@ export function AfterSaleDecisionDialog({
 
                 {/* 拒绝不是一次点击而是一段文本：理由要落进时间线给买家看，空着就发不出去 */}
                 {kind === "reject" ? (
-                    <RejectReasonForm
+                    <ReasonForm
+                        maxLength={NOTE_MAX}
+                        label="拒绝理由"
+                        placeholder="例如：退回商品缺少吊牌，影响二次销售"
+                        submitLabel="确认拒绝"
                         onCancel={cancel}
                         onSubmit={confirm}
                     />
@@ -199,59 +197,6 @@ function TicketFacts({
                 <p className="text-muted-foreground">没有查到售后单，请谨慎处理。</p>
             )}
         </div>
-    )
-}
-
-/**
- * 拒绝这条路的表单体：理由必填，校验挂在提交上——空着点「确认拒绝」只得到一行提示，不发请求。
- * BaseUI 关闭即卸载，所以每次打开都回到空白，不必手动 reset。
- */
-function RejectReasonForm({
-    onCancel,
-    onSubmit,
-}: {
-    onCancel: () => void
-    onSubmit: (reason: string) => void
-}) {
-    const form = useAppForm({
-        defaultValues: { reason: "" },
-        validators: { onSubmit: RejectSchema },
-        onSubmit: ({ value }) => onSubmit(value.reason.trim()),
-    })
-    return (
-        <form
-            className="flex flex-col gap-4"
-            onSubmit={(e) => {
-                e.preventDefault()
-                void form.handleSubmit()
-            }}
-        >
-            <form.AppField name="reason">
-                {(field) => (
-                    <field.TextareaField
-                        aria-label="拒绝理由"
-                        placeholder="例如：退回商品缺少吊牌，影响二次销售"
-                        rows={3}
-                        maxLength={NOTE_MAX}
-                    />
-                )}
-            </form.AppField>
-            <DialogFooter>
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onCancel}
-                >
-                    取消
-                </Button>
-                <Button
-                    type="submit"
-                    variant="destructive"
-                >
-                    确认拒绝
-                </Button>
-            </DialogFooter>
-        </form>
     )
 }
 

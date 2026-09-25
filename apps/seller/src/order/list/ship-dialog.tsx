@@ -3,11 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 
 import type { OrderIdentity } from "./table"
 import { TRACKING_NO_MAX, toApiError, TrackingNoSchema } from "@shop/common"
+import { FormActions } from "@shop/app-kit"
 import {
     Button,
     Dialog,
     DialogContent,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
     Field,
@@ -154,16 +154,10 @@ function ShipForm({
                         />
                     )}
                 </form.AppField>
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button type="submit">发货</Button>
-                </DialogFooter>
+                <FormActions
+                    submitLabel="发货"
+                    onCancel={() => onOpenChange(false)}
+                />
             </form>
         </>
     )

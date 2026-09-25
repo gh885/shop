@@ -69,7 +69,7 @@ export * from "./permission-codes"
 export { configureSdkClient } from "./sdk-client"
 export type { SdkClientOptions, TokenStore } from "./sdk-client"
 
-export { createAuthKit } from "./auth-kit"
+export { createAuthKit, createSdkAuthKit } from "./auth-kit"
 export type { AuthKit, AuthKitOptions, AuthStatus } from "./auth-kit"
 
 export { findPath, loadChildren, loadRegionTree } from "./regions"

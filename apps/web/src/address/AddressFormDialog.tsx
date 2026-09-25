@@ -1,4 +1,4 @@
-import { notify, RegionField } from "@shop/app-kit"
+import { FormActions, notify, RegionField } from "@shop/app-kit"
 import {
     ADDRESS_DETAIL_MAX,
     ADDRESS_NAME_MAX,
@@ -10,7 +10,6 @@ import {
     Button,
     Dialog,
     DialogContent,
-    DialogFooter,
     DialogTitle,
     Field,
     FieldLabel,
@@ -264,21 +263,11 @@ function AddressForm({
                     }}
                 </form.AppField>
 
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={busy}
-                    >
-                        {busy && <Spinner />}保存
-                    </Button>
-                </DialogFooter>
+                <FormActions
+                    pending={busy}
+                    submitLabel="保存"
+                    onCancel={() => onOpenChange(false)}
+                />
             </form>
         </>
     )

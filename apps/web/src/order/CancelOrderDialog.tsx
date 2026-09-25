@@ -1,14 +1,7 @@
-import {
-    Button,
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    Spinner,
-    useAppForm,
-} from "@shop/ui-web"
+import { FormActions } from "@shop/app-kit"
+import { Dialog, DialogContent, useAppForm } from "@shop/ui-web"
+
+import { OrderDialogForm } from "./order-dialog-form"
 
 /**
  * 取消订单弹窗：选一个快捷原因（可跳过不选）+ 自填备注，替代原先的全局二次确认。
@@ -69,59 +62,38 @@ function CancelForm({
     })
 
     return (
-        <>
-            <DialogHeader>
-                <DialogTitle>取消订单</DialogTitle>
-                <DialogDescription>
-                    订单号 {orderNo}
-                    。该操作不可恢复；待发货订单取消后将退款到原支付账户。
-                </DialogDescription>
-            </DialogHeader>
+        <OrderDialogForm
+            title="取消订单"
+            description={`订单号 ${orderNo}。该操作不可恢复；待发货订单取消后将退款到原支付账户。`}
+            onSubmit={() => void form.handleSubmit()}
+        >
+            <form.AppField name="reason">
+                {(field) => (
+                    <field.RadioGroupField
+                        label="取消原因（选填）"
+                        options={REASON_OPTIONS}
+                    />
+                )}
+            </form.AppField>
 
-            <form
-                className="mt-4 flex flex-col gap-5"
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    void form.handleSubmit()
-                }}
-            >
-                <form.AppField name="reason">
-                    {(field) => (
-                        <field.RadioGroupField
-                            label="取消原因（选填）"
-                            options={REASON_OPTIONS}
-                        />
-                    )}
-                </form.AppField>
+            <form.AppField name="note">
+                {(field) => (
+                    <field.TextareaField
+                        label="备注"
+                        hint="补充说明（选填），如「地址填错了想改单」"
+                        maxLength={NOTE_MAX_LENGTH}
+                        rows={3}
+                        placeholder="想对卖家说的话（选填）"
+                    />
+                )}
+            </form.AppField>
 
-                <form.AppField name="note">
-                    {(field) => (
-                        <field.TextareaField
-                            label="备注"
-                            hint="补充说明（选填），如「地址填错了想改单」"
-                            maxLength={NOTE_MAX_LENGTH}
-                            rows={3}
-                            placeholder="想对卖家说的话（选填）"
-                        />
-                    )}
-                </form.AppField>
-
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        再想想
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={pending}
-                    >
-                        {pending && <Spinner />}确认取消
-                    </Button>
-                </DialogFooter>
-            </form>
-        </>
+            <FormActions
+                pending={pending}
+                cancelLabel="再想想"
+                submitLabel="确认取消"
+                onCancel={() => onOpenChange(false)}
+            />
+        </OrderDialogForm>
     )
 }

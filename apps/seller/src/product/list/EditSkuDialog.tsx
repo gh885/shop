@@ -2,12 +2,11 @@ import { PackageCheck } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 
 import { type Money, moneyToYuan, toApiError } from "@shop/common"
+import { FormActions } from "@shop/app-kit"
 import type { ProductDetailResponse, SkuResponse, SkuUpdateItem } from "@shop/api/sdk"
 import {
-    Button,
     Dialog,
     DialogContent,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
     Field,
@@ -16,7 +15,6 @@ import {
     InputGroupAddon,
     InputGroupInput,
     Skeleton,
-    Spinner,
     StateError,
     Table,
     TableBody,
@@ -331,22 +329,12 @@ function SkuLineForm({
                 </Table>
             </div>
 
-            <DialogFooter>
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    disabled={save.isPending}
-                >
-                    取消
-                </Button>
-                <Button
-                    type="submit"
-                    disabled={save.isPending}
-                >
-                    {save.isPending && <Spinner />}提交
-                </Button>
-            </DialogFooter>
+            <FormActions
+                pending={save.isPending}
+                disableCancel={save.isPending}
+                submitLabel="提交"
+                onCancel={() => onOpenChange(false)}
+            />
         </form>
     )
 }

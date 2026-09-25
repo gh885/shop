@@ -1,13 +1,5 @@
-import { RegionField } from "@shop/app-kit"
-import {
-    Button,
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogTitle,
-    Spinner,
-    useAppForm,
-} from "@shop/ui-web"
+import { FormActions, RegionField } from "@shop/app-kit"
+import { Dialog, DialogContent, DialogTitle, useAppForm } from "@shop/ui-web"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 import { ADDRESS_FIELDS, AddressFormSchema, CONTACT_FIELDS, toDefaults } from "./address-form"
@@ -115,21 +107,11 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                     </form.AppField>
                 </div>
 
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={busy}
-                    >
-                        {busy && <Spinner />}保存
-                    </Button>
-                </DialogFooter>
+                <FormActions
+                    pending={busy}
+                    submitLabel="保存"
+                    onCancel={() => onOpenChange(false)}
+                />
             </form>
         </>
     )

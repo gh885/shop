@@ -1,18 +1,9 @@
 import { z } from "zod"
 import { AfterSaleReason, TicketType } from "@shop/api/sdk"
-import {
-    Button,
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    Spinner,
-    useAppForm,
-} from "@shop/ui-web"
+import { Dialog, DialogContent, useAppForm } from "@shop/ui-web"
 
 import { NOTE_MAX } from "@shop/common"
+import { FormActions } from "@shop/app-kit"
 
 import {
     AFTER_SALE_REASON_LABEL,
@@ -21,6 +12,7 @@ import {
     AFTER_SALE_TYPE_LABEL,
     AFTER_SALE_TYPE_ORDER,
 } from "./constants"
+import { OrderDialogForm } from "./order-dialog-form"
 import { useApplyAfterSale } from "./after-sale-queries"
 
 /**
@@ -98,69 +90,48 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
     })
 
     return (
-        <>
-            <DialogHeader>
-                <DialogTitle>申请售后</DialogTitle>
-                <DialogDescription>
-                    订单号 {orderNo}。提交后由卖家处理，处理前你可以随时撤销。
-                </DialogDescription>
-            </DialogHeader>
+        <OrderDialogForm
+            title="申请售后"
+            description={`订单号 ${orderNo}。提交后由卖家处理，处理前你可以随时撤销。`}
+            onSubmit={() => void form.handleSubmit()}
+        >
+            <form.AppField name="type">
+                {(field) => (
+                    <field.RadioGroupField
+                        label="售后类型"
+                        required
+                        options={TYPE_OPTIONS}
+                    />
+                )}
+            </form.AppField>
 
-            <form
-                className="mt-4 flex flex-col gap-5"
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    void form.handleSubmit()
-                }}
-            >
-                <form.AppField name="type">
-                    {(field) => (
-                        <field.RadioGroupField
-                            label="售后类型"
-                            required
-                            options={TYPE_OPTIONS}
-                        />
-                    )}
-                </form.AppField>
+            <form.AppField name="reasonCode">
+                {(field) => (
+                    <field.SelectField
+                        label="售后原因"
+                        required
+                        items={REASON_OPTIONS}
+                        hint="退货退款在收到商品七天内选「七天无理由退货」，卖家不可拒绝受理"
+                    />
+                )}
+            </form.AppField>
 
-                <form.AppField name="reasonCode">
-                    {(field) => (
-                        <field.SelectField
-                            label="售后原因"
-                            required
-                            items={REASON_OPTIONS}
-                            hint="退货退款在收到商品七天内选「七天无理由退货」，卖家不可拒绝受理"
-                        />
-                    )}
-                </form.AppField>
+            <form.AppField name="reason">
+                {(field) => (
+                    <field.TextareaField
+                        label="补充说明"
+                        placeholder="再补一句细节，便于卖家判断（选填）"
+                        maxLength={NOTE_MAX}
+                        rows={3}
+                    />
+                )}
+            </form.AppField>
 
-                <form.AppField name="reason">
-                    {(field) => (
-                        <field.TextareaField
-                            label="补充说明"
-                            placeholder="再补一句细节，便于卖家判断（选填）"
-                            maxLength={NOTE_MAX}
-                            rows={3}
-                        />
-                    )}
-                </form.AppField>
-
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={apply.isPending}
-                    >
-                        {apply.isPending && <Spinner />}提交申请
-                    </Button>
-                </DialogFooter>
-            </form>
-        </>
+            <FormActions
+                pending={apply.isPending}
+                submitLabel="提交申请"
+                onCancel={() => onOpenChange(false)}
+            />
+        </OrderDialogForm>
     )
 }

@@ -10,16 +10,8 @@ import {
     SELL_POINT_MIN,
     SellPointSchema,
 } from "@shop/common"
-import {
-    Button,
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    Spinner,
-    useAppForm,
-} from "@shop/ui-web"
+import { FormActions } from "@shop/app-kit"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, useAppForm } from "@shop/ui-web"
 
 import type { ProductTitleTarget } from "./table"
 
@@ -140,22 +132,12 @@ function TitleForm({
                     )}
                 </form.AppField>
 
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                        disabled={save.isPending}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={save.isPending}
-                    >
-                        {save.isPending && <Spinner />}提交
-                    </Button>
-                </DialogFooter>
+                <FormActions
+                    pending={save.isPending}
+                    disableCancel={save.isPending}
+                    submitLabel="提交"
+                    onCancel={() => onOpenChange(false)}
+                />
             </form>
         </>
     )

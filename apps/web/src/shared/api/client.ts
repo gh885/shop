@@ -1,19 +1,10 @@
 import { BACKEND_URL } from "#/shared/lib/env"
-import { configureSdkClient, createAuthKit } from "@shop/common"
-import { AuthApi } from "@shop/api/sdk"
+import { configureSdkClient, createSdkAuthKit } from "@shop/common"
 
 // 浏览器端走 Vite proxy（同源相对路径）
 // 本文件只做「依赖装配」，不对外暴露认证成员（tokenStore/bootstrapAuth/hooks 等）——
 // 认证逻辑统一从 #/shared/api/auth 出，避免同一概念两个入口。
-export const authKit = createAuthKit({
-    // 引用下方 AuthApi：调用发生在模块初始化后，安全
-    // SDK 出错即 throw（responseStyle: data + throwOnError），失败由 createAuthKit 裁决为 guest
-    refresh: async (deviceId) => {
-        const res = await AuthApi.refresh({ body: { deviceId } })
-        if (!res.accessToken) throw new Error("refresh 失败")
-        return { accessToken: res.accessToken }
-    },
-})
+export const authKit = createSdkAuthKit()
 
 const { tokenStore } = authKit
 

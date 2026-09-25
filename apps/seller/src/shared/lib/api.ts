@@ -1,20 +1,12 @@
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createAuthKit } from "@shop/common"
+import { configureSdkClient, createSdkAuthKit } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 
 import { getCurrentShopId, setCurrentShopId } from "./shop-store"
 
 // 浏览器端走 Vite proxy（同源相对路径）
-const authKit = createAuthKit({
-    // 引用下方 AuthApi：调用发生在模块初始化后，安全
-    // SDK 出错即 throw（responseStyle: data + throwOnError），失败由 createAuthKit 裁决为 guest
-    refresh: async (deviceId) => {
-        const res = await AuthApi.refresh({ body: { deviceId } })
-        if (!res.accessToken) throw new Error("refresh 失败")
-        return { accessToken: res.accessToken }
-    },
-})
+const authKit = createSdkAuthKit()
 export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus } = authKit
 
 // 生成 SDK（@shop/api/sdk）默认 client：同源 + 同一套 token / 401 刷新拦截；

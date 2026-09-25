@@ -1,14 +1,12 @@
 import { z } from "zod"
 
-import { SMS_CODE_DIGITS, SmsCodeSchema, useCountdown } from "@shop/app-kit"
+import { FormActions, SMS_CODE_DIGITS, SmsCodeSchema, useCountdown } from "@shop/app-kit"
 import { ErrorCodes, toApiError } from "@shop/common"
 import { AccountDeletionApi } from "@shop/api/sdk"
 import {
-    Button,
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
     Field,
@@ -206,22 +204,12 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
 
                 <FormError>{error}</FormError>
 
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        variant="destructive"
-                        disabled={request.isPending}
-                    >
-                        {request.isPending && <Spinner />}提交注销申请
-                    </Button>
-                </DialogFooter>
+                <FormActions
+                    pending={request.isPending}
+                    destructive
+                    submitLabel="提交注销申请"
+                    onCancel={() => onOpenChange(false)}
+                />
             </form>
         </>
     )

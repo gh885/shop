@@ -1,4 +1,5 @@
-import type { ReactElement } from "react"
+import type { ReactElement, ReactNode } from "react"
+import { createElement } from "react"
 import {
     createMemoryHistory,
     createRootRoute,
@@ -6,6 +7,8 @@ import {
     createRouter,
     RouterProvider,
 } from "@tanstack/react-router"
+
+import { QueryClientProvider } from "@tanstack/react-query"
 
 import { createAppQueryClient } from "../query-client"
 
@@ -22,6 +25,15 @@ import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
  */
 export function createAppTestQueryClient() {
     return createAppQueryClient({ queries: { retry: false }, mutations: { retry: false } })
+}
+
+export function createAppTestHookClient() {
+    const client = createAppTestQueryClient()
+    return {
+        client,
+        wrapper: ({ children }: { children: ReactNode }) =>
+            createElement(QueryClientProvider, { client }, children),
+    }
 }
 
 /**

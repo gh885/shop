@@ -8,6 +8,7 @@ import {
     DataTableSkeleton,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
+import { paginationSearchSchema } from "@shop/app-kit"
 import { z } from "zod"
 
 import { OrderTable, type OrderIdentity } from "#/order/list/table"
@@ -18,16 +19,12 @@ import { useOrderList, type OrderListSearch } from "#/order/list/use-order-list"
 import { useShop } from "#/shop"
 import { useState } from "react"
 
-const listSearchSchema = z.object({
+const listSearchSchema = paginationSearchSchema.extend({
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     status: z
         .enum(["PENDING_PAYMENT", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"])
         .optional()
         .catch(undefined),
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    page: z.coerce.number().int().min(1).catch(1),
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    size: z.coerce.number().int().min(1).catch(10),
 })
 
 export const Route = createFileRoute("/_app/trade/order")({

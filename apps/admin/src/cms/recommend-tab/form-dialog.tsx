@@ -1,15 +1,8 @@
 import type { RecommendTabResponse } from "@shop/api/sdk"
 
 import { useQuery } from "@tanstack/react-query"
-import {
-    Button,
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogTitle,
-    Spinner,
-    useAppForm,
-} from "@shop/ui-web"
+import { FormActions } from "@shop/app-kit"
+import { Dialog, DialogContent, DialogTitle, useAppForm } from "@shop/ui-web"
 
 import { CMS_TAB_NAME_MAX, CMS_TARGET_MAX, TARGET_TYPE_ITEMS } from "../constants"
 import { tabDefaults, TabFormSchema, tabRowToRequest, toTabRequest } from "./form"
@@ -141,21 +134,11 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                     )}
                 </form.AppField>
 
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={busy}
-                    >
-                        {busy && <Spinner />}保存
-                    </Button>
-                </DialogFooter>
+                <FormActions
+                    pending={busy}
+                    submitLabel="保存"
+                    onCancel={() => onOpenChange(false)}
+                />
             </form>
         </>
     )

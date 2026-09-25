@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import type { CouponTemplateResponse } from "@shop/api/sdk"
 import { couponRuleText } from "@shop/common"
-import { formatDate } from "@shop/app-kit"
+import { formatDate, paginationSearchSchema } from "@shop/app-kit"
 
 /**
  * coupon 域 · 模型层：wire → 领域投影 + 列表展示状态派生。
@@ -13,12 +13,7 @@ import { formatDate } from "@shop/app-kit"
 
 // 列表 URL 状态
 /** 券列表的 URL 状态：页码/每页条数进 URL，可分享可回退 */
-export const couponListSearchSchema = z.object({
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    page: z.coerce.number().int().min(1).catch(1),
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    size: z.coerce.number().int().min(1).catch(10),
-})
+export const couponListSearchSchema = paginationSearchSchema
 
 export type CouponListSearch = z.infer<typeof couponListSearchSchema>
 

@@ -1,8 +1,6 @@
 import { useState } from "react"
 import { AdminReviewsApi } from "@shop/api/sdk"
 import type { ShopReviewItem } from "@shop/api/sdk"
-import { z } from "zod"
-
 import { useMutation } from "@tanstack/react-query"
 import {
     Button,
@@ -10,12 +8,11 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
     Spinner,
-    useAppForm,
 } from "@shop/ui-web"
+import { ReasonForm } from "@shop/app-kit"
 import { reviewKeys } from "#/shared/lib/queries"
 
 /**
@@ -89,66 +86,16 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
                         </DialogDescription>
                     </DialogHeader>
                     {/* 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，重开即空白 */}
-                    <RejectForm
+                    <ReasonForm
                         pending={reject.isPending}
+                        label="驳回理由"
+                        placeholder="例如：营业执照信息与店铺主体不一致"
+                        submitLabel="确认驳回"
                         onCancel={() => setRejectOpen(false)}
                         onSubmit={(reason) => reject.mutate(reason)}
                     />
                 </DialogContent>
             </Dialog>
         </div>
-    )
-}
-
-const RejectSchema = z.object({ reason: z.string().trim().min(1, "请填写驳回理由") })
-
-function RejectForm({
-    pending,
-    onCancel,
-    onSubmit,
-}: {
-    pending: boolean
-    onCancel: () => void
-    onSubmit: (reason: string) => void
-}) {
-    const form = useAppForm({
-        defaultValues: { reason: "" },
-        validators: { onSubmit: RejectSchema },
-        onSubmit: ({ value }) => onSubmit(value.reason.trim()),
-    })
-    return (
-        <form
-            className="flex flex-col gap-4"
-            onSubmit={(e) => {
-                e.preventDefault()
-                void form.handleSubmit()
-            }}
-        >
-            <form.AppField name="reason">
-                {(field) => (
-                    <field.TextareaField
-                        aria-label="驳回理由"
-                        placeholder="例如：营业执照信息与店铺主体不一致"
-                        rows={3}
-                    />
-                )}
-            </form.AppField>
-            <DialogFooter>
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onCancel}
-                >
-                    取消
-                </Button>
-                <Button
-                    type="submit"
-                    variant="destructive"
-                    disabled={pending}
-                >
-                    {pending && <Spinner />}确认驳回
-                </Button>
-            </DialogFooter>
-        </form>
     )
 }

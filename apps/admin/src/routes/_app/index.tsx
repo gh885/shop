@@ -1,6 +1,6 @@
 import { AdminReviewsApi } from "@shop/api/sdk"
 import type { ShopReviewItem } from "@shop/api/sdk"
-import { z } from "zod"
+import { createPaginationSearchSchema } from "@shop/app-kit"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
@@ -22,12 +22,8 @@ import { ShopReviewStatusSchema, STATUS_OPTIONS } from "#/shop-review/constants"
 import { useReviewColumns } from "#/shop-review/columns"
 
 export const Route = createFileRoute("/_app/")({
-    validateSearch: z.object({
+    validateSearch: createPaginationSearchSchema(20).extend({
         status: ShopReviewStatusSchema.optional(),
-        // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-        page: z.coerce.number().int().min(1).catch(1),
-        // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-        size: z.coerce.number().int().min(1).catch(20),
     }),
     component: ReviewPage,
 })

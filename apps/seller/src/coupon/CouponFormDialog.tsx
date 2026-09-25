@@ -1,13 +1,5 @@
-import {
-    Button,
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogTitle,
-    Spinner,
-    useAppForm,
-} from "@shop/ui-web"
+import { Dialog, DialogContent, DialogDescription, DialogTitle, useAppForm } from "@shop/ui-web"
+import { FormActions } from "@shop/app-kit"
 
 import { COUPON_NAME_MAX } from "@shop/common"
 
@@ -147,21 +139,11 @@ function CouponForm({
                     </form.AppField>
                 </div>
 
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        取消
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={create.isPending}
-                    >
-                        {create.isPending && <Spinner />}创建
-                    </Button>
-                </DialogFooter>
+                <FormActions
+                    pending={create.isPending}
+                    submitLabel="创建"
+                    onCancel={() => onOpenChange(false)}
+                />
             </form>
         </>
     )
