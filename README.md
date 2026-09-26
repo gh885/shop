@@ -108,7 +108,7 @@ Redis：localhost:6379
 | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                                                   |
 | [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                                                   |
 | [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                                       |
-| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志）                                       |
+| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志、[i18n 约定](docs/conventions/i18n.md)）                                       |
 | [docs/business-rules/](docs/business-rules/)           | 业务规则库：按领域的生效规则，逐条带编号（源自代码；原 docs/decisions/ 设计笔记已并入并归档 git 历史） |
 | [docs/reference/](docs/reference/)                     | 外部调研资料（券平台做法对照）                                                                         |
 

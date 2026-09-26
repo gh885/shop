@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createAuthKit } from "@shop/common"
+import { configureSdkClient, createAuthKit, getCurrentLocale } from "@shop/common"
 import { AdminAuthApi } from "@shop/api/sdk"
 
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
@@ -22,6 +22,10 @@ const { authState, bootstrapAuth } = authKit
 configureSdkClient("", tokenStore, {
     refreshPath: "admin/auth/refresh",
     debug: import.meta.env.DEV,
+    contextHeaders: () => ({
+        "Accept-Language": getCurrentLocale(),
+        "X-Locale": getCurrentLocale(),
+    }),
 })
 
 // 路由守卫

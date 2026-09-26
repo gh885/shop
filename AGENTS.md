@@ -60,6 +60,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 后端（apps/server）：架构规则、模块组织、命名、测试    | `apps/server/AGENTS.md`（本目录自动加载）                                                                                                          |
 | 前端（`apps/*`、`packages/*`）：目录、状态、取数、测试 | [docs/conventions/frontend.md](docs/conventions/frontend.md)；改取数条款前先读其论证 [query-convergence.md](docs/conventions/query-convergence.md) |
+| 国际化 i18n：Locale 模型、文案资源、错误文案、落地路线 | [docs/conventions/i18n.md](docs/conventions/i18n.md) |
 | UI / 视觉 / 加组件                                     | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md)                                                                                             |
 | 架构总览、模块依赖图、关键链路、全库 ID 与金额策略     | [docs/architecture.md](docs/architecture.md)                                                                                                       |
 | 业务规则（订单/券/物流/售后/支付/账号…的生效规则清单） | [docs/business-rules/](docs/business-rules/)（逐条带编号；改代码里的规则要同步改对应条目）                                                         |

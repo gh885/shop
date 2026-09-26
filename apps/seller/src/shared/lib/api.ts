@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createSdkAuthKit } from "@shop/common"
+import { configureSdkClient, createSdkAuthKit, getCurrentLocale } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 
 import { getCurrentShopId, setCurrentShopId } from "./shop-store"
@@ -13,7 +13,11 @@ export const { tokenStore, authState, bootstrapAuth, getDeviceId, useAuthStatus 
 // seller 端所有 /seller/** 请求由拦截自动注入 X-Shop-Id 当前店铺头（业务代码不再手动携带）
 configureSdkClient("", tokenStore, {
     debug: import.meta.env.DEV,
-    contextHeaders: () => ({ "X-Shop-Id": getCurrentShopId() }),
+    contextHeaders: () => ({
+        "X-Shop-Id": getCurrentShopId(),
+        "Accept-Language": getCurrentLocale(),
+        "X-Locale": getCurrentLocale(),
+    }),
 })
 
 // 登出

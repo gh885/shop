@@ -124,3 +124,4 @@ export {
     ProductNameSchema,
     SellPointSchema,
 } from "./product-fields"
+export * from "./i18n"

@@ -3,9 +3,11 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
 import { buttonVariants, ConfirmDialogHost, Toaster } from "@shop/ui-web"
+import { I18nProvider, useI18n, useT } from "@shop/app-kit"
 
 import TanStackQueryDevtools from "#/app/tanstack-query/DevTools"
 import TanstackQueryProvider from "#/app/tanstack-query/TanstackQueryProvider"
+import { webMessages } from "#/locales"
 import { BackToTop } from "../layout/BackToTop"
 import { RouteProgressBar } from "../layout/RouteProgressBar"
 import { LoginDialog } from "#/auth"
@@ -53,16 +55,17 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 /** 品牌化的 404：给出回首页的出口，不做死胡同 */
 function NotFound() {
+    const t = useT()
     return (
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-24">
             <p className="text-sm font-medium text-muted-foreground">404</p>
-            <h1 className="text-3xl font-bold tracking-tight">页面不存在或已下线</h1>
-            <p className="text-muted-foreground">你找的页面不在这里，回首页继续逛吧。</p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("common.notFound.title")}</h1>
+            <p className="text-muted-foreground">{t("common.notFound.description")}</p>
             <Link
                 to="/"
                 className={buttonVariants()}
             >
-                回到首页
+                {t("common.action.backHome")}
             </Link>
         </div>
     )
@@ -78,11 +81,24 @@ const devtoolsPlugins = [
 ]
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-    // 走 context 的文档化访问器，类型直接从 MyRouterContext 推导；
-    // router.options.context 是实现细节，options 结构一变会静默失效
     const { queryClient } = Route.useRouteContext()
     return (
-        <html lang="zh-CN">
+        <I18nProvider resources={webMessages}>
+            <DocumentShell queryClient={queryClient}>{children}</DocumentShell>
+        </I18nProvider>
+    )
+}
+
+function DocumentShell({
+    queryClient,
+    children,
+}: {
+    queryClient: QueryClient
+    children: React.ReactNode
+}) {
+    const { locale } = useI18n()
+    return (
+        <html lang={locale}>
             <head>
                 <HeadContent />
             </head>
