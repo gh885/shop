@@ -6,7 +6,7 @@
 ## 近期要做
 
 - [ ] 管理端操作审计：账号禁用、优惠券作废、店铺审核等动作统一审计查询入口，按操作人/对象/时间筛选；敏感字段只落掩码，导出前二次确认
-- [ ] 管理端类目与物流运维页：后端 `/admin/categories`、类目属性、`/admin/logistics/issues` 端点已在，admin 只缺页面；类目树增删改排序 + 属性模板，物流异常单列表/处理，复用 CMS 三页骨架与表格外壳
+- [ ] 管理端物流运维页：后端 `/admin/logistics/issues` 端点已在，admin 只缺页面；物流异常单列表/处理，复用 CMS 三页骨架与表格外壳（类目半边已落地：`/categories` 用 reui tree 做类目树增删改排序 + 属性模板）
 - [ ] 平台侧封店/解封（ACC-60）：admin service + 端点 + 店铺列表操作入口；封店走 `ShopMapper.suspend` 并发布 `ShopTradingSuspendedEvent` 级联下架，解封不自动重上架；进管理端操作审计
 - [ ] 员工创建与分配岗位（ACC-57）：补 `STAFF_MANAGE` 剩余半边，含不能改自己岗位、最后一个超管不可降级/禁用；顺带让 admin 导航按 me 出参 permission 裁剪（ACC-58）
 - [ ] 买家评价一期：已完成订单按商品行评价（星级 + 文字 + 图），一单一评不可改、可追评一次；商详展示评价列表与好评率，卖家可回复一次；先在 `docs/business-rules/` 立规则再建模块

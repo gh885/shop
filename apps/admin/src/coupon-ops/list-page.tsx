@@ -3,13 +3,14 @@ import type { AdminCouponItem } from "@shop/api/sdk"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactTable } from "@tanstack/react-table"
 import {
+    DataTable,
     DataTableToolbar,
     DataTableViewOptions,
     Input,
-    useDataTable,
     type DataTableFeatures,
 } from "@shop/ui-web"
-import { DataTableState } from "#/shared/ui/data-table-state"
+import { usePagedTable } from "#/shared/lib/paged-table"
+import { ListBody } from "#/shared/ui/list-body"
 import { StatusFilter } from "#/shared/ui/status-filter"
 import { type AdminCouponStatus, CouponStatusSchema, STATUS_OPTIONS } from "./constants"
 import { adminCouponListOptions } from "./queries"
@@ -26,20 +27,13 @@ type Navigate = (options: { search: Search }) => void
 
 export function CouponOpsPage({ search, navigate }: { search: Search; navigate: Navigate }) {
     const query = useQuery(adminCouponListOptions(search))
-    const pagination = { pageIndex: search.page - 1, pageSize: search.size }
-    const { table } = useDataTable({
+    const table = usePagedTable({
         columns: couponColumns,
-        data: query.data?.records ?? [],
-        getRowId: (row) => row.id,
-        rowCount: query.data?.total,
-        manualPagination: true,
-        manualFiltering: true,
-        manualSorting: true,
-        state: { pagination },
-        onPaginationChange: (updater) => {
-            const next = typeof updater === "function" ? updater(pagination) : updater
-            navigate({ search: { ...search, page: next.pageIndex + 1, size: next.pageSize } })
-        },
+        rows: query.data?.records ?? [],
+        total: query.data?.total,
+        page: search.page,
+        size: search.size,
+        onPageChange: (page, size) => navigate({ search: { ...search, page, size } }),
     })
 
     return (
@@ -50,17 +44,22 @@ export function CouponOpsPage({ search, navigate }: { search: Search; navigate: 
                     查询用户持有的优惠券并处理未使用券
                 </p>
             </div>
-            <CouponFilters
-                search={search}
-                navigate={navigate}
-                table={table}
-            />
-            <DataTableState<AdminCouponItem>
-                isPending={query.isPending}
-                columns={couponColumns.length}
+            {/* DataTable 只提供表格上下文（不渲染 DOM），筛选栏与表卡都挂在它里面：
+                reui 的列显隐与分页条读 provider，放到外面就渲染不出来 */}
+            <DataTable
                 table={table}
                 emptyContent="暂无符合条件的优惠券"
-            />
+            >
+                <CouponFilters
+                    search={search}
+                    navigate={navigate}
+                    table={table}
+                />
+                <ListBody
+                    isPending={query.isPending}
+                    columns={couponColumns.length}
+                />
+            </DataTable>
         </div>
     )
 }

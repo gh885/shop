@@ -7,16 +7,15 @@ import { createFileRoute } from "@tanstack/react-router"
 import {
     DataTable,
     DataTableToolbar,
-    DataTablePagination,
-    DataTableSkeleton,
     DataTableViewOptions,
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-    useDataTable,
 } from "@shop/ui-web"
+import { usePagedTable } from "#/shared/lib/paged-table"
+import { ListBody } from "#/shared/ui/list-body"
 import { reviewKeys, reviewListOptions } from "#/shared/lib/queries"
 import { ShopReviewStatusSchema, STATUS_OPTIONS } from "#/shop-review/constants"
 import { useReviewColumns } from "#/shop-review/columns"
@@ -70,23 +69,15 @@ function ReviewPage() {
     })
 
     // 服务端模式：分页/筛选状态由 URL 接管，DataTable 内不自管
-    const pagination = { pageIndex: page - 1, pageSize: size }
-
-    const { table } = useDataTable({
+    const table = usePagedTable({
         columns,
-        data: data?.records ?? EMPTY_REVIEWS,
-        getRowId: (row) => row.id,
+        rows: data?.records ?? EMPTY_REVIEWS,
+        total: data?.total,
+        page,
+        size,
         enableSorting: false,
-        rowCount: data?.total,
-        manualPagination: true,
-        manualFiltering: true,
-        manualSorting: true,
-        state: { pagination },
-        onPaginationChange: (updater) => {
-            const next = typeof updater === "function" ? updater(pagination) : updater
-            void navigate({
-                search: { status, page: next.pageIndex + 1, size: next.pageSize },
-            })
+        onPageChange: (nextPage, nextSize) => {
+            void navigate({ search: { status, page: nextPage, size: nextSize } })
         },
     })
 
@@ -99,49 +90,51 @@ function ReviewPage() {
                 </p>
             </div>
 
-            <DataTableToolbar
+            {/* DataTable 只提供表格上下文（不渲染 DOM），工具栏与表卡都挂在它里面：
+                reui 的列显隐与分页条读 provider，放到外面就渲染不出来 */}
+            <DataTable
                 table={table}
-                actions={<DataTableViewOptions table={table} />}
+                emptyContent="暂无符合条件的审核申请"
             >
-                <Select
-                    value={status ?? "all"}
-                    onValueChange={(value) => {
-                        // 「全部状态」是下拉的哨兵，不入库：URL 里回到缺省，请求参数才不会带上 status=all
-                        const parsed = ShopReviewStatusSchema.safeParse(value)
-                        void navigate({
-                            search: {
-                                status: parsed.success ? parsed.data : undefined,
-                                page: 1,
-                                size,
-                            },
-                        })
-                    }}
-                >
-                    <SelectTrigger aria-label="审核状态">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">全部状态</SelectItem>
-                        {STATUS_OPTIONS.map((option) => (
-                            <SelectItem
-                                key={option.value}
-                                value={option.value}
-                            >
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </DataTableToolbar>
-            {isPending ? (
-                <DataTableSkeleton columns={columns.length} />
-            ) : (
-                <DataTable
+                <DataTableToolbar
                     table={table}
-                    emptyContent="暂无符合条件的审核申请"
-                    footer={<DataTablePagination table={table} />}
+                    actions={<DataTableViewOptions table={table} />}
+                >
+                    <Select
+                        value={status ?? "all"}
+                        onValueChange={(value) => {
+                            // 「全部状态」是下拉的哨兵，不入库：URL 里回到缺省，请求参数才不会带上 status=all
+                            const parsed = ShopReviewStatusSchema.safeParse(value)
+                            void navigate({
+                                search: {
+                                    status: parsed.success ? parsed.data : undefined,
+                                    page: 1,
+                                    size,
+                                },
+                            })
+                        }}
+                    >
+                        <SelectTrigger aria-label="审核状态">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">全部状态</SelectItem>
+                            {STATUS_OPTIONS.map((option) => (
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </DataTableToolbar>
+                <ListBody
+                    isPending={isPending}
+                    columns={columns.length}
                 />
-            )}
+            </DataTable>
         </div>
     )
 }

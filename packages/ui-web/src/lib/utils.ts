@@ -14,8 +14,8 @@ export type PagedItems = (number | "...")[]
 const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i)
 
 /**
- * 页码序列：当前页 ±2 + 首尾 + 省略号。三端两种分页条（app-kit `PaginationBar`、
- * `DataTablePagination`）共用这一份——以前各有一份，窗口一个 ±1 一个 ±2。
+ * 页码序列：当前页 ±2 + 首尾 + 省略号。非表格的列表分页条（app-kit `PaginationBar`）
+ * 用这一份——表格分页条已交给 reui `DataGridPagination`（它自带窗口算法，见 DataTableCard）。
  *
  * 只钉两件事：省略号**不能出现在只差一页的缝隙上**（`1 … 3` 那种，中间其实没漏页，
  * 却让用户以为列表被折断了），以及首尾页任何时刻都在（不点到底就翻不完）。

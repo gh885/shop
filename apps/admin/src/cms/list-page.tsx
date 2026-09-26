@@ -5,7 +5,7 @@ import { PlusIcon } from "lucide-react"
 import {
     Button,
     DataTable,
-    DataTablePagination,
+    DataTableCard,
     DataTableSkeleton,
     DataTableToolbar,
     DataTableViewOptions,
@@ -78,56 +78,55 @@ export function CmsListPage<T extends { id: string } & RowData>({
                 <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
             </div>
 
-            <DataTableToolbar
+            {/* DataTable 只提供表格上下文（不渲染 DOM），工具栏与表卡都挂在它里面：
+                reui 的列显隐与分页条读 provider，放到外面就渲染不出来 */}
+            <DataTable
                 table={table}
-                actions={
-                    <>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCreateOpen(true)}
-                        >
-                            <PlusIcon data-slot="icon" />
-                            {createText}
-                        </Button>
-                        <DataTableViewOptions table={table} />
-                    </>
-                }
+                emptyContent={emptyText}
             >
-                {filter && (
-                    <Select
-                        value={filter.value ?? ALL}
-                        onValueChange={(value) =>
-                            filter.onChange(value === ALL ? undefined : (value ?? undefined))
-                        }
-                    >
-                        <SelectTrigger aria-label={filter.label}>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={ALL}>全部{filter.label}</SelectItem>
-                            {filter.options.map((option) => (
-                                <SelectItem
-                                    key={option}
-                                    value={option}
-                                >
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
-            </DataTableToolbar>
-
-            {isPending ? (
-                <DataTableSkeleton columns={columns.length} />
-            ) : (
-                <DataTable
+                <DataTableToolbar
                     table={table}
-                    emptyContent={emptyText}
-                    footer={<DataTablePagination table={table} />}
-                />
-            )}
+                    actions={
+                        <>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCreateOpen(true)}
+                            >
+                                <PlusIcon data-slot="icon" />
+                                {createText}
+                            </Button>
+                            <DataTableViewOptions table={table} />
+                        </>
+                    }
+                >
+                    {filter && (
+                        <Select
+                            value={filter.value ?? ALL}
+                            onValueChange={(value) =>
+                                filter.onChange(value === ALL ? undefined : (value ?? undefined))
+                            }
+                        >
+                            <SelectTrigger aria-label={filter.label}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL}>全部{filter.label}</SelectItem>
+                                {filter.options.map((option) => (
+                                    <SelectItem
+                                        key={option}
+                                        value={option}
+                                    >
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </DataTableToolbar>
+
+                {isPending ? <DataTableSkeleton columns={columns.length} /> : <DataTableCard />}
+            </DataTable>
 
             {renderCreate({ open: createOpen, onOpenChange: setCreateOpen })}
         </div>

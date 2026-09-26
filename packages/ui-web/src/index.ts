@@ -35,8 +35,36 @@ export * from "./components/state-error"
 export * from "./components/confirm"
 export * from "./components/region-picker"
 export * from "./components/phone-field"
-export * from "./components/reui-cascader"
-export * from "./components/reui-data-grid"
+// reui Tree 的积木：admin 的类目运维页在包外自己组装（选中联动右栏、同级上下移与拖拽排序），
+// 与 cascader 同理——只有实际被组装的那几块是公开面。
+export { Tree, TreeItem, TreeItemLabel, TreeDragLine } from "./components/reui/tree"
+// reui Cascader 的积木：seller 的运费模板多选在包外自己组装（tree + multiple + cascade），
+// 所以这一组是公开面，其余 cascader 内部件不外露。归一与数据源在 @shop/common 的 regions。
+export {
+    Cascader,
+    CascaderTrigger,
+    CascaderContent,
+    CascaderPanel,
+    CascaderList,
+    CascaderEmpty,
+    CascaderStatus,
+    useCascaderSelection,
+} from "./components/reui/cascader/cascader"
+export { CascaderColumns } from "./components/reui/cascader/cascader-columns"
+export {
+    CascaderInput,
+    CascaderNav,
+    CascaderBreadcrumb,
+} from "./components/reui/cascader/cascader-nav"
+export { CascaderItems } from "./components/reui/cascader/cascader-item"
+export type { CascaderNode } from "./components/reui/cascader/cascader-types"
+export type {
+    CascaderProps,
+    CascaderSingleProps,
+    CascaderMultipleProps,
+    CascaderBaseProps,
+    CascaderSelection,
+} from "./components/reui/cascader/cascader"
 export * from "./components/ui/textarea"
 export * from "./components/ui/toggle"
 export * from "./components/ui/toggle-group"

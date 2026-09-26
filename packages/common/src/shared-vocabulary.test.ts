@@ -40,11 +40,11 @@ const SOURCE_ROOTS = [
 ]
 
 /** 生成物与测试不参与：routeTree/SDK 是产物，测试里的假数据不算第二次实现。
-    第三方 vendored 组件（ui-web 的 reui/** 及其 examples/**）同样不参与：那些是上游源码，
+    第三方 vendored 组件（ui-web 的 reui/**）同样不参与：那些是上游源码，
     「同一概念只许一个出口」约束的是我们自己的实现，不能要求第三方重写它的内部行为
     （如 data-grid 的电子表格剪贴板与我们业务用的 copy-text 是两回事）。 */
 const EXCLUDED =
-    /[\\/](routeTree\.gen\.ts|__generated__|test|tests?[\\/])|\.test\.tsx?$|[\\/]components[\\/](reui|examples)[\\/]/
+    /[\\/](routeTree\.gen\.ts|__generated__|test|tests?[\\/])|\.test\.tsx?$|[\\/]components[\\/]reui[\\/]/
 
 function findRepoRoot(): string {
     let dir = import.meta.dirname

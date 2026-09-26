@@ -3,12 +3,13 @@
 来源：[reui.io](https://reui.io)，经 `components.json` 的 `@reui` registry 取得
 （`https://reui.io/r/{style}/{name}.json`），registry 声明见 `packages/ui-web/components.json`。
 
-装进来是为了替换两处手写实现；现已全部接入：
+装进来是为了替换两处手写实现，另外两个是新增能力（现已全部接入）：
 
 | 原手写实现                                                  | 消费点                                                    | 接入后的组件    | reui 模式                        |
 | ----------------------------------------------------------- | --------------------------------------------------------- | --------------- | -------------------------------- |
 | `region-picker.tsx`（单选，240 行 tab 逐层）                | web 收货地址、seller 商家地址（经 app-kit `RegionField`） | 本目录 cascader | `columns` + `searchScope="deep"` |
 | `apps/seller/.../RegionMultiPicker.tsx`（多选，306 行手搓） | seller 运费模板地区规则                                   | 本目录 cascader | `tree` + `multiple` + `cascade`  |
+| —（原先没有层级列表组件）                                   | admin 类目运维页                                          | 本目录 tree     | 见下方「tree」                   |
 
 数据归一（直筒子市合成 6 位叶子、9 位街道码不进树）在 `@shop/common` 的 `regions.ts`
 （`loadRegionCascaderTree`），不在本目录；本目录只负责渲染。
@@ -69,8 +70,47 @@ ordering/pinning/sizing/resizing/expanding/cellSelection）。用于替掉/升�
   `rowId` 形参类型但不取用。
 - `data-grid-table.tsx`：`DataGridTable` / `DataGridTableHeader` 的公开泛型 `TData` 内部不引用，
   加了 no-op 类型引用避免 TS6196（公开签名的一部分，调用点靠它标注）。
-- `examples/c-data-grid-6.tsx`：`import type` 修正；示例里的 `href="#"` 改为 `<span>`
-  （空 href 链接对读屏是噪声），`mailto:` 先收窄类型。
+
+## tree（第三方层级列表）
+
+同一来源（reui.io registry）的第三个组件：`tree.tsx`（216 行，`Tree` / `TreeItem` /
+`TreeItemLabel` / `TreeDragLine`），底层是 **`@headless-tree/core` + `@headless-tree/react`
+1.7**（本项目新装的依赖，见 `package.json`）。它是纯展示层：展开/选中/拖拽/改名/搜索全在
+headless-tree 的 feature 里，靠调用点注册（`syncDataLoader` / `asyncDataLoader` /
+`selection` / `dragAndDrop` / `keyboardDragAndDrop` / `renaming` / `search` / `expandAll`）。
+
+**接线现状**：admin 的类目运维页（`apps/admin/src/category/`）是当前唯一消费点，注册
+`syncDataLoaderFeature`（整棵树一次拉全，见 `/admin/categories/tree`）、`selectionFeature`、
+`hotkeysCoreFeature` 与 `dragAndDropFeature`。积木经 `../index.ts` 公开（与 cascader 同理）。
+headless-tree 的引擎（`@headless-tree/core` / `react`）因此也是 admin 的依赖：树是无头组件，
+`useTree` 必须由组装方创建，这一步藏不进 ui-web。
+
+排序有两个入口（选中行的同级上下移、树上拖拽），落库都折成同一份 sort 更新；jsdom 里发不出
+原生拖拽，所以回归只覆盖上下移那条路，拖拽靠 `canDrop` 把范围钉死在同级。
+
+**实测到的两个 headless-tree 语义**（踩过才知道，别再猜）：
+
+- **`rootItemId` 指向的那个节点自己不渲染**（`getItems()` 里没有它，`getItemMeta().level` 为
+  `-1`），顶层类目是它的 children（level 0）。所以必须把合成根放进 `expandedItems`
+  （受控表就写 `state.expandedItems`），否则树是空的——而它的 children 要等挂载后的状态生效
+  才出现在 `getItems()` 里（首帧为空）。
+- **点一下就是「展开 + 选中」两件事**（folder 的 primaryAction 展开，selectionFeature 顺带选中），
+  不需要自己接 onClick 去 toggle；键盘走 `hotkeysCoreFeature`。
+- **挂 React Compiler 时必须在读 `getItems()` 的组件上加 `"use no memo"`**：`getItems()` 是
+  builder 调用，状态挂在身份不变的 tree 实例上，编译器会把整行 JSX 连同读取一起缓存住
+  （实测表现：整棵树空白）。与 cascader-virtual / data-grid 里那两处 bail 同类。
+
+**本地改动清单**（与上游的差异，零行为变化）：
+
+- 无。`tree.tsx` 原样保留（上游 2 空格缩进也没动）。
+
+两条与编译/样式相关的既有事实：
+
+- `tree.tsx` **没有走本项目的 oxfmt 格式**（上游 2 空格缩进），刻意保持原样：跑 `pnpm format:web`
+  会把它与 `badge.tsx` / `icon-tile.tsx` / `cascader.tsx` 一起重排，那类漂移要单独一个 commit，
+  别混进业务改动。
+- `tree.tsx` 的 `import { cn } from "cn"` 不是笔误：`cn@^0.2.6` 是 ui-web 的既有依赖，
+  本目录 18 个 vendored 文件都这么引；项目自己的文件才用 `src/lib/utils`。
 
 ## phone-input（已评估，未采用）
 
@@ -91,7 +131,7 @@ InputGroup filled + 静态 +86，值仍是裸 11 位，号码规则变化不必�
 - `packages/common/src/shared-vocabulary.test.ts`：EXCLUDED 排除 `components/{reui,examples}/` ——
   第三方组件的内部行为（如表格自己的剪贴板）不归「同一概念只许一个出口」约束。
 
-**已接线**（方案 A：换渲染器）。三个设计决定：
+**已接线**（方案 A：换渲染器 + 反转组合）。四个设计决定：
 
 1. **列 meta 双轨**：列定义写的是项目形状 `{variant, className}`（列语义 strong/muted +
    表头与单元格共用的 class），reui 读的是 `{headerClassName, cellClassName}`。两者是
@@ -101,16 +141,31 @@ InputGroup filled + 静态 +86，值仍是裸 11 位，号码规则变化不必�
 2. **归一在建表前**（`useDataTable` → `withReuiColumnMeta`），不是建表后改表实例：reui 的
    `DataGridTable` 读列走 `getStart/Center/RightVisibleLeafColumns()`，建表后再改列访问器
    改不动。
-3. **取数不接管**：`DataGrid` 只收 `{table, recordCount, tableLayout}`，分页/排序/筛选仍由
-   TanStack Query 管（列上开 `manual*`）；`recordCount` 传**已加载行数**（仅用于
-   `aria-rowcount` 的下标上界，“新增行”入口不启用）；空态用 `emptyMessage` 传中文。
-   **不引** `data-grid-pagination` / `column-filter` / `column-visibility`。
+3. **取数不接管**：分页/排序/筛选仍由 TanStack Query 管（列上开 `manual*`）。空态用
+   `emptyMessage` 传项目文案（`Empty` 组件包一层）。`DataGrid` 的 `recordCount` 必须传
+   **总数**（`table.getRowCount()`）：分页条的 from/to/共 N 条全取自它。
+4. **组合顺序反过来**：`DataTable` 是 provider（不渲染 DOM），工具栏与表卡是它的 children。
+   reui 的 `DataGridPagination` 与 `DataGridColumnVisibility` 走 `useDataGrid()`，只有落在
+   provider 内才渲染得出来——这正是手写的这两个组件能删掉的前提。分页条接在 `TableShell`
+   的 `footer` 槽里（`DataTableCard`），中文标签在 `DataTable` 的 `i18n` 覆写一次。
+   **不引** `column-filter` / `scroll-area` / `dnd` / `virtual` / `cellSelection`。
 
 回归由 `data-table.test.tsx` 钉住：行渲染（表实例未被浅拷贝成死快照）、`variant`/`className`
-落到表头与单元格、空态文案。
+落到表头与单元格、空态文案、分页条计数取总数。
+
+**与 reui 的口径差异**（接手前知道）：
+
+- `DataGridPagination` 只有上一页/下一页两个箭头（上游注释写明没有末页箭头），原来手写的
+  那条有首/末页；页码超出窗口时靠可点击的省略号跳转。
+- 列显隐的入选口径是 `getCanHide()`，不再额外要求列挂 `accessorKey`：CMS 那些
+  `id` + 读 `row.original` 的展示列现在也能隐藏（操作列 `enableHiding: false`，仍不出现）。
+- 每页条数沿用项目的 `[10, 20, 30, 40, 50]`（`DataTableCard` 显式传 `sizes`）。
 
 ## 接入方式
 
-不要在 app 里直接 import 本目录。业务一律经 `@shop/ui-web` 的出口取件
-（`../reui-cascader.ts` 只导出拼装级联选择器用得到的积木）；数据走 `@shop/common` 的 `regions`。
+不要在 app 里直接 import 本目录。业务一律经 `@shop/ui-web` 的出口取件——reui 的入口只被
+包内的组装层直接引（cascader 见 `../region-picker.tsx`，data-grid 见 `../data-table/`），
+包外要拿的积木写进 `../index.ts`：目前只有 cascader 那一组（seller 的 `RegionMultiPicker`
+在包外自己组装 tree + multiple），data-grid 不占公开面，外面只见 `DataTable` 系列。
+数据走 `@shop/common` 的 `regions`。
 调用方只用两个业务组件：地址用 app-kit 的 `RegionField`，运费模板用 seller 的 `RegionMultiPicker`。

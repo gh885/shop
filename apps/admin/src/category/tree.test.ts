@@ -1,0 +1,126 @@
+import type { CategoryNode } from "@shop/api/sdk"
+import { describe, expect, it } from "vitest"
+
+import {
+    appendSort,
+    CATEGORY_ROOT_ID,
+    indexCategoryTree,
+    moveWithinSiblings,
+    orderUpdates,
+    parentIdOf,
+} from "./tree"
+
+/**
+ * 类目树的形状变换。这些是「排序」与「层级」两条规则唯一的落点，
+ * 所以单测钉的是规则本身：一级挂在合成根下、sort 按 10/20/30 重算、越界不动任何东西。
+ */
+
+const ROOT_PARENT = "00000000-0000-0000-0000-000000000000"
+
+function node(
+    id: string,
+    name: string,
+    level: number,
+    sort: number,
+    children: CategoryNode[] = [],
+    parentId = ROOT_PARENT,
+): CategoryNode {
+    return { id, parentId, name, level, sort, status: "ENABLED", iconUrl: null, children }
+}
+
+const shirt = node("c3", "T恤", 3, 0, [], "c2")
+const coat = node("c2", "上装", 2, 0, [shirt], "c1")
+const clothes = node("c1", "服装", 1, 0, [coat])
+const food = node("c9", "食品", 1, 0)
+const tree = [clothes, food]
+
+describe("indexCategoryTree", () => {
+    it("拍平索引：一级挂在合成根下，子项顺序原样保留", () => {
+        const index = indexCategoryTree(tree)
+
+        expect(index.childIds[CATEGORY_ROOT_ID]).toEqual(["c1", "c9"])
+        expect(index.childIds.c1).toEqual(["c2"])
+        expect(index.childIds.c2).toEqual(["c3"])
+        expect(index.childIds.c3).toEqual([])
+        expect(index.byId.c3?.name).toBe("T恤")
+    })
+
+    it("parentIdOf：一级类目的父级是合成根（后端给的是零 UUID 占位）", () => {
+        const index = indexCategoryTree(tree)
+
+        expect(parentIdOf(index, "c1")).toBe(CATEGORY_ROOT_ID)
+        expect(parentIdOf(index, "c2")).toBe("c1")
+        expect(parentIdOf(index, "c3")).toBe("c2")
+    })
+})
+
+describe("moveWithinSiblings", () => {
+    it("相邻互换：返回新序列且不动原数组", () => {
+        const ids = ["a", "b", "c"]
+
+        expect(moveWithinSiblings(ids, 2, -1)).toEqual(["a", "c", "b"])
+        expect(ids).toEqual(["a", "b", "c"])
+    })
+
+    it("越界原样返回**同一个引用**（调用点靠它判断「没动」，不发空请求）", () => {
+        const ids = ["a", "b"]
+
+        expect(moveWithinSiblings(ids, 0, -1)).toBe(ids)
+        expect(moveWithinSiblings(ids, 1, 1)).toBe(ids)
+        expect(moveWithinSiblings([], 0, 1)).toEqual([])
+    })
+})
+
+describe("orderUpdates", () => {
+    it("按 10/20/30 重排，只交出真的变了的行", () => {
+        const index = indexCategoryTree(tree)
+
+        // 现状 sort 全是 0：整表重排时每一行都要更新
+        expect(orderUpdates(index.childIds[CATEGORY_ROOT_ID] ?? [], index.byId)).toEqual([
+            { id: "c1", name: "服装", iconUrl: null, sort: 10 },
+            { id: "c9", name: "食品", iconUrl: null, sort: 20 },
+        ])
+    })
+
+    it("相邻互换只动两行（已按 10 的倍数排好时）", () => {
+        const ordered = node("c1", "服装", 1, 10, [coat])
+        const other = node("c9", "食品", 1, 20)
+        const index = indexCategoryTree([ordered, other])
+
+        const updates = orderUpdates(["c9", "c1"], index.byId)
+
+        expect(updates).toEqual([
+            { id: "c9", name: "食品", iconUrl: null, sort: 10 },
+            { id: "c1", name: "服装", iconUrl: null, sort: 20 },
+        ])
+    })
+
+    it("顺序没变时交出空数组（不白打一次 PUT）", () => {
+        const ordered = node("c1", "服装", 1, 10, [coat])
+        const other = node("c9", "食品", 1, 20)
+        const index = indexCategoryTree([ordered, other])
+
+        expect(orderUpdates(["c1", "c9"], index.byId)).toEqual([])
+    })
+
+    it("合成根这个不存在的节点被跳过，不会造出一条空 id 的更新", () => {
+        const index = indexCategoryTree(tree)
+
+        expect(orderUpdates([CATEGORY_ROOT_ID, "c1"], index.byId)).toEqual([
+            { id: "c1", name: "服装", iconUrl: null, sort: 20 },
+        ])
+    })
+})
+
+describe("appendSort", () => {
+    it("新节点排在末尾：与重排同一套步长", () => {
+        const index = indexCategoryTree(tree)
+
+        expect(appendSort(index, CATEGORY_ROOT_ID)).toBe(30)
+        expect(appendSort(index, "c2")).toBe(20)
+    })
+
+    it("空父级给第一个位置", () => {
+        expect(appendSort(indexCategoryTree([]), CATEGORY_ROOT_ID)).toBe(10)
+    })
+})

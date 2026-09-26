@@ -1,6 +1,5 @@
-export { DataTable, DataTableSkeleton } from "./data-table"
+export { DataTable, DataTableCard, DataTableSkeleton } from "./data-table"
 export { type DataTableFeatures } from "./data-table-features"
-export { DataTablePagination } from "./data-table-pagination"
 export { DataTableToolbar } from "./data-table-toolbar"
 export { DataTableViewOptions } from "./data-table-view-options"
 export { TableShell } from "./table-shell"

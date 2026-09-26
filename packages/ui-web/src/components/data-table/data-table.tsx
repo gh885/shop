@@ -1,64 +1,117 @@
 "use client"
 
 import type { ReactNode } from "react"
+import type { ReactTable, RowData } from "@tanstack/react-table"
 
-import { DataGrid, DataGridContainer, DataGridTable } from "../reui-data-grid"
-
-import type { DataGridTableInstance } from "../reui-data-grid"
-
+import { DataGrid, DataGridContainer } from "src/components/reui/data-grid/data-grid"
+import { DataGridPagination } from "src/components/reui/data-grid/data-grid-pagination"
+import { DataGridTable } from "src/components/reui/data-grid/data-grid-table"
+import type { DataGridI18nOverrides } from "src/components/reui/data-grid/data-grid-i18n"
+import { Empty, EmptyHeader, EmptyTitle } from "src/components/ui/empty"
 import { Skeleton } from "src/components/ui/skeleton"
 
 import { TableShell } from "./table-shell"
 
-import type { DataTableFeatures } from "./data-table-features"
-import type { ReactTable, RowData } from "@tanstack/react-table"
-
+import { asDataGridTable, type DataTableFeatures } from "./data-table-features"
 /**
- * 表格渲染器：项目的列表外壳（TableShell）+ reui DataGrid 的表体（DataGridTable）。
+ * reui DataGrid 的中文文案。
  *
- * 接线要点（都收在这里，调用方与列定义零改动）：
- *  - 取数不在这一层。分页/排序/筛选的 state 归 TanStack Query，列上开 manual* 让表格跳过
- *    本地行模型；DataGrid 只渲染传入的 table 实例（recordCount 传已加载行数，只用于
- *    aria-rowcount 的下标上界与「新增行」入口，我们不启用后者）。
- *  - 列 meta 归一：列定义写的是项目形状 `{variant, className}`（列语义 strong/muted +
- *    表头与单元格共用的 class），reui 读的是 `{headerClassName, cellClassName}`。这里在建表
- *    前把每个可见列的 meta 补成 reui 形状，`variant` 按 ui/table 的 tableCellVariants 落成
- *    同样的 font-medium / text-muted-foreground 两条类。
- *  - 空态：reui 默认英文，用 emptyMessage 传项目文案。
+ * reui 的默认标签全英文（见 reui/data-grid/data-grid-i18n.tsx），而 `i18n` 是 DataGrid 的
+ * prop、分页与列显隐又从 provider 读它——所以整个项目只在这里覆写一次，调用点不重复传。
  */
-type DataTableProps<TData extends RowData> = {
-    table: ReactTable<DataTableFeatures, TData>
-    emptyContent?: ReactNode
-    /** 外壳底栏：一般放 DataTablePagination */
-    footer?: ReactNode
-    className?: string
+const dataGridZhI18n: DataGridI18nOverrides = {
+    labels: {
+        sortAscending: "升序",
+        sortDescending: "降序",
+        columnsMenu: "列",
+        toggleColumns: "显示列",
+        pinColumnStart: "固定到左侧",
+        pinColumnEnd: "固定到右侧",
+        moveColumnStart: "移到左侧",
+        moveColumnEnd: "移到右侧",
+        unpinColumn: (title) => `取消固定「${title}」列`,
+        rowCreate: "新增行",
+        pinRow: "固定行",
+        unpinRow: "取消固定行",
+        selectRow: "选择该行",
+        selectAll: "全选",
+        expandRow: "展开",
+        collapseRow: "收起",
+        dragToReorder: "拖动排序",
+        dragToReorderRow: "拖动调整行序",
+        reorderingUnavailable: "当前不可排序",
+        loading: "正在加载列表",
+        empty: "暂无数据",
+        allRowsLoaded: "已加载全部",
+        rowsPerPage: "每页",
+        paginationInfo: ({ from, to, count }) => `第 ${from}-${to} 条 · 共 ${count} 条`,
+        previousPage: "上一页",
+        nextPage: "下一页",
+        goToPage: (page) => `第 ${page} 页`,
+        paginationEllipsis: "…",
+        filterSelectedCount: (count) => `已选 ${count} 项`,
+        filterNoResults: "无匹配结果",
+        filterClear: "清除筛选",
+    },
 }
 
-/** 仅渲染表格。工具栏、分页、批量操作及 query 状态均由调用方组合，不强制装配。 */
+type DataTableProps<TData extends RowData> = {
+    table: ReactTable<DataTableFeatures, TData>
+    /** 空态文案/节点，默认「暂无数据」；会包进 Empty（DESIGN.md §8） */
+    emptyContent?: ReactNode
+    /** 列表段内容：工具栏 + 骨架或表卡。两者都是 DOM 兄弟，间距仍由调用点的 space-y 管 */
+    children?: ReactNode
+}
+
+/**
+ * 列表段的上下文与项目默认值。**不渲染 DOM**（reui 的 DataGrid 就是一层 context provider），
+ * 所以它可以包在工具栏与表卡外面，同时不打扰调用点的布局。
+ *
+ * 为什么必须包住工具栏：reui 的列显隐（DataTableViewOptions）与分页条都走 `useDataGrid()`
+ * 读表实例与中文标签，只有落在 provider 内才渲染得出来。这也是「分页/列显隐不再手写」的
+ * 前提——布局顺序反过来，第三方组件才有地方挂。
+ *
+ * recordCount 传 `table.getRowCount()`（不是当前页行数）：reui 把它当**总数**用，
+ * 分页条的 from/to/共 N 条全取自它（reui/data-grid/data-grid-pagination.tsx）。
+ * 取数仍不在这里：分页/排序/筛选的 state 与 manual* 由调用点经 `useDataTable` 传入。
+ *
+ * reui 的入口只在本目录（与 data-table-features.ts）直接引，不经 @shop/ui-web 再转一手：
+ * 组装这张表用到的积木就是这里 + 分页/列显隐/表体四个文件；column-filter / scroll-area /
+ * dnd / virtual / cellSelection 没接，`tableLayout` 里也全是默认的 false。
+ */
 export function DataTable<TData extends RowData>({
     table,
     emptyContent = "暂无数据",
-    footer,
-    className,
+    children,
 }: DataTableProps<TData>) {
-    const recordCount = table.getRowModel().rows.length
+    return (
+        <DataGrid
+            table={asDataGridTable(table)}
+            recordCount={table.getRowCount()}
+            emptyMessage={
+                <Empty className="py-4">
+                    <EmptyHeader>
+                        <EmptyTitle>{emptyContent}</EmptyTitle>
+                    </EmptyHeader>
+                </Empty>
+            }
+            i18n={dataGridZhI18n}
+        >
+            {children}
+        </DataGrid>
+    )
+}
 
+/** 表卡：项目外壳（TableShell）+ reui 表体与分页条。必须渲染在 `DataTable` 内。 */
+export function DataTableCard({ className }: { className?: string }) {
     return (
         <TableShell
-            footer={footer}
             className={className}
+            footer={<DataGridPagination sizes={[10, 20, 30, 40, 50]} />}
         >
-            <DataGrid
-                // 列 meta 已在 useDataTable 建表前归一（见 use-data-table.ts）
-                table={table as unknown as DataGridTableInstance<TData>}
-                recordCount={recordCount}
-                emptyMessage={emptyContent}
-                tableLayout={{ rowBorder: true, width: "fixed" }}
-            >
-                <DataGridContainer>
-                    <DataGridTable />
-                </DataGridContainer>
-            </DataGrid>
+            <DataGridContainer>
+                <DataGridTable />
+            </DataGridContainer>
         </TableShell>
     )
 }

@@ -10,10 +10,11 @@ import {
 } from "@shop/ui-web"
 
 /**
- * 三端列表分页条 —— 渲染在这一处，页码算法 `paged` 在 ui-web（与 DataTablePagination 共用）。
+ * 三端列表分页条 —— 渲染在这一处，页码算法 `paged` 在 ui-web。
  *
  * 之前有四份：卖家端（编号页码 + 省略号）、买家订单页（5 页滑动窗口，无省略号）、
- * 买家券包页（只有上一页/下一页）、ui-web 的 DataTablePagination（表格专用，带页大小选择）。
+ * 买家券包页（只有上一页/下一页）、以及后来交给 reui `DataGridPagination` 的表格分页条
+ * （表格现在不在这里，见 ui-web 的 DataTableCard）。
  * 前两份是同一件事的两种做法，滑动窗口那份在尾页会「1 2 3 4 5」一路平推到中段才收敛，
  * 用户看不见总共有多少页，也跳不到最后。
  */

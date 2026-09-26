@@ -1,6 +1,9 @@
-import { metaHelper, tableFeatures } from "@tanstack/react-table"
+import { metaHelper, tableFeatures, type ReactTable, type RowData } from "@tanstack/react-table"
 
-import { dataGridFeatures } from "src/components/reui/data-grid/data-grid"
+import {
+    dataGridFeatures,
+    type DataGridTableInstance,
+} from "src/components/reui/data-grid/data-grid"
 
 import type { TableCellVariant } from "./../ui/table"
 
@@ -29,6 +32,19 @@ export const dataTableFeatures = tableFeatures({
 })
 
 export type DataTableFeatures = typeof dataTableFeatures
+
+/**
+ * 把项目 feature 集的表实例交给 reui 组件（DataGrid / DataGridColumnVisibility）。
+ *
+ * v9 的 `TFeatures` 是 invariant，而项目的 feature 集只是在 reui 的 `dataGridFeatures` 上换掉了
+ * `columnMeta` 槽位——结构上转不过去，只能显式收窄。收在唯一一处，调用点不必各写一遍双断言
+ * （reui 内部对 DataGrid 也是这么宽化的）。
+ */
+export function asDataGridTable<TData extends RowData>(
+    table: ReactTable<DataTableFeatures, TData>,
+): DataGridTableInstance<TData> {
+    return table as unknown as DataGridTableInstance<TData>
+}
 
 /** 列语义 → 单元格类，与 ui/table 的 tableCellVariants 保持一致（强标识列加粗、次要列弱化） */
 const VARIANT_CELL_CLASS: Record<string, string> = {

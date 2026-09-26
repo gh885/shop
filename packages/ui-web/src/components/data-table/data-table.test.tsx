@@ -1,13 +1,17 @@
 import { render, screen, within } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import { DataTable, useDataTable } from "./index"
+import { DataTable, DataTableCard, DataTableViewOptions, useDataTable } from "./index"
 
 /**
- * DataTable 渲染器的接线测试。两个要钉住的东西：
+ * DataTable 接线测试。要钉住的东西：
  *  1) 真的渲染出行/表头（表实例经列 meta 归一后仍与 TanStack store 是活的，不是被
  *     浅拷贝成快照——浅拷贝会在这里现形：getRowModel 失联、表格空白）；
- *  2) 项目列 meta（variant 强/弱、className 表头+单元格）落到 reui 读的那两个字段上。
+ *  2) 项目列 meta（variant 强/弱、className 表头+单元格）落到 reui 读的那两个字段上；
+ *  3) recordCount 走 `getRowCount()`（总数）而不是当前页行数——分页条的「共 N 条」
+ *     取自它，传错了不会报错，只会静默显示当前页条数；
+ *  4) 列显隐（reui 的上下文组件）能渲染 = 工具栏确实落在 DataTable 的 provider 内；
+ *     真放到 provider 外，`useDataGrid()` 会直接抛错，下面每个用例都会红。
  */
 type Row = { id: string; name: string; qty: number }
 
@@ -16,7 +20,7 @@ const rows: Row[] = [
     { id: "2", name: "乙", qty: 7 },
 ]
 
-function Harness() {
+function Harness({ rowCount }: { rowCount?: number } = {}) {
     const { table } = useDataTable<Row>({
         data: rows,
         getRowId: (r) => r.id,
@@ -24,8 +28,21 @@ function Harness() {
             { accessorKey: "name", header: "名称", meta: { variant: "strong" } },
             { accessorKey: "qty", header: "数量", meta: { className: "tabular-nums" } },
         ],
+        ...(rowCount === undefined
+            ? {}
+            : {
+                  rowCount,
+                  manualPagination: true,
+                  state: { pagination: { pageIndex: 0, pageSize: 10 } },
+              }),
     })
-    return <DataTable table={table} />
+
+    return (
+        <DataTable table={table}>
+            <DataTableViewOptions table={table} />
+            <DataTableCard />
+        </DataTable>
+    )
 }
 
 describe("DataTable", () => {
@@ -33,9 +50,6 @@ describe("DataTable", () => {
         render(<Harness />)
 
         expect(screen.getByRole("columnheader", { name: "名称" })).toBeInTheDocument()
-        const body = screen.getAllByRole("row").filter((r) => !r.hasAttribute("role"))
-        // 表头行 + 2 行数据
-        expect(body.length).toBeGreaterThanOrEqual(3)
         expect(screen.getByText("甲")).toBeInTheDocument()
         expect(screen.getByText("乙")).toBeInTheDocument()
     })
@@ -65,11 +79,20 @@ describe("DataTable", () => {
                 <DataTable
                     table={table}
                     emptyContent="空空如也"
-                />
+                >
+                    <DataTableCard />
+                </DataTable>
             )
         }
         render(<EmptyHarness />)
 
         expect(within(document.body).getByText("空空如也")).toBeInTheDocument()
+    })
+
+    it("分页条的中文计数取总数（服务端分页只加载了当前页）", () => {
+        render(<Harness rowCount={42} />)
+
+        expect(screen.getByText("第 1-10 条 · 共 42 条")).toBeInTheDocument()
+        expect(screen.getByText("每页")).toBeInTheDocument()
     })
 })

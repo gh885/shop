@@ -107,10 +107,12 @@ Sidebar 族（`--color-sidebar-*`）：sidebar 组件专用语义，默认与全
 
 **外壳与状态**（两种写法都一样）：
 
-- 外壳只有 `TableShell`（圆角 lg + 描边 + card 底），计数与分页放它的 `footer` 底栏，不放卡片外；DataTable 用 `footer` prop。
+- 外壳只有 `TableShell`（圆角 lg + 描边 + card 底），分页放它的 `footer` 底栏，不放卡片外；`DataTableCard` 已经把 reui 的分页条接在这个槽里。
+- 表格段用 `DataTable` 包起来：它是 reui DataGrid 的 provider + 项目默认（**不渲染 DOM**），工具栏与「骨架或 `DataTableCard`」都作为它的 children。**工具栏必须在里面**——reui 的列显隐与分页条读 `useDataGrid()`，放到外面直接抛错。加载态照旧在调用点二选一（`isPending ? <DataTableSkeleton/> : <DataTableCard/>`），不把 `isPending` 传进表格组件。
+- 分页条与列显隐都用 reui 的（`DataGridPagination` / `DataGridColumnVisibility`，中文标签集中在 `DataTable` 的 i18n）。reui 的分页只认总数：`recordCount` 取 `table.getRowCount()`（服务端表的 `rowCount`，客户端表自动回落到全部行），不要传当前页行数。
 - 加载态一律 `DataTableSkeleton`（表格形状），不堆长条 Skeleton。
-- 空态一律 `Empty` 组件：DataTable 的 `emptyContent` 自动包进 `Empty`；整页无数据时可用带图标的 `Empty` 替换整张表。
-- 分页页码算法只有 ui-web `paged` 一份；客户端分页（DataTable 默认 10 行一页）**必须渲染分页条**，否则第 11 行起静默消失。
+- 空态一律 `Empty` 组件：`DataTable` 的 `emptyContent` 自动包进 `Empty`；整页无数据时可用带图标的 `Empty` 替换整张表。
+- 非 DataTable 的分页条（买家券包等）用 `paged`（ui-web `lib/utils`）+ app-kit `PaginationBar`；客户端分页（DataTable 默认 10 行一页）**必须渲染分页条**，否则第 11 行起静默消失。
 
 **单元格**：
 
@@ -118,6 +120,15 @@ Sidebar 族（`--color-sidebar-*`）：sidebar 组件专用语义，默认与全
 - 时间列：`formatDateTime`（精确到分钟）+ `muted` + `tabular-nums`。金额/数量：`tabular-nums`，金额右对齐。
 - 截断：`TableCell` 基类 `whitespace-nowrap`，表格自动布局会被长内容撑开——截断元素必须**块级 + 显式 `max-w-*`**（`block max-w-48 truncate`，配 `title` 露全文）；多行 `line-clamp-*` 还要加 `whitespace-normal`。只写 `truncate` / 行内 span 上的 `max-w-*` 不生效。需要看全文的（地址）用 `whitespace-normal` 换行而不是截断。
 - 操作列：表头「操作」右对齐，按钮一律 `size="sm"`、`gap-1`；主次用 `ghost` / `outline`，危险动作 `destructive` 并二次确认。
+
+### 层级列表（Tree）
+
+层级数据（类目树这类「同一实体自嵌套」的结构）用 reui `Tree` + headless-tree，积木经 `@shop/ui-web` 出口取（见 `components/reui/README.md` 的 tree 一节）。表格那套不适用：层级不是行模型，硬塞进 DataTable 只会长出假的列。
+
+- **树只负责层级与选中**：改名 / 排序 / 启停 / 子项管理放在右侧详情面板。往每一行塞一组图标按钮，键盘导航与读屏名都会糊掉（每个按钮还得靠 `subject` 补名）。
+- **排序只做同级**（`sort` 升序 + 创建时间兜底）：父级 `parentId` 创建后不可改，跨父级拖拽放行等于让人看见一次「拖过去又弹回来」。上下移与拖拽必须折成**同一份** sort 更新，相邻互换只提交真的变了的那几行。
+- **禁用不是删除**：类目/属性都是查询侧裁剪、可无损恢复；禁用类目要在二次确认里说清「整支在买家侧不可见」和「子树内有商品会被后端拒绝」。
+- 空态 / 加载态同表格：`Empty` 与 `Skeleton`，不自己拼样式。
 
 ## 9. Do / Don't
 

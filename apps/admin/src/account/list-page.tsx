@@ -4,12 +4,9 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
     DataTable,
-    DataTablePagination,
-    DataTableSkeleton,
     DataTableToolbar,
     DataTableViewOptions,
     Input,
-    useDataTable,
     type DataTableFeatures,
 } from "@shop/ui-web"
 import { staffColumns, userColumns } from "./columns"
@@ -20,6 +17,8 @@ import {
     USER_STATUS_OPTIONS,
 } from "./constants"
 import { adminStaffOptions, adminUsersOptions } from "./queries"
+import { usePagedTable } from "#/shared/lib/paged-table"
+import { ListBody } from "#/shared/ui/list-body"
 import { StatusFilter } from "#/shared/ui/status-filter"
 
 export interface AccountSearch {
@@ -34,8 +33,6 @@ type AccountRow = { id: string }
 type StatusParser = (
     value: string,
 ) => { success: true; data: UserStatus | StaffStatus } | { success: false }
-type Pagination = { pageIndex: number; pageSize: number }
-type PaginationUpdater = Pagination | ((old: Pagination) => Pagination)
 
 export function AccountListPage(props: {
     kind: "user"
@@ -131,63 +128,36 @@ function AccountTableView<T extends AccountRow>({
     parse: StatusParser
 }) {
     const rows = query.data?.records ?? []
-    const pagination = { pageIndex: search.page - 1, pageSize: search.size }
-    const { table } = useDataTable<T>({
+    const table = usePagedTable<T>({
         columns,
-        data: rows,
-        getRowId: (row) => row.id,
-        rowCount: query.data?.total,
-        manualPagination: true,
-        manualFiltering: true,
-        manualSorting: true,
-        state: { pagination },
-        onPaginationChange: (updater) => updatePagination(updater, pagination, search, navigate),
+        rows,
+        total: query.data?.total,
+        page: search.page,
+        size: search.size,
+        onPageChange: (page, size) => navigate({ search: { ...search, page, size } }),
     })
 
-    return (
-        <div className="space-y-4">
-            <AccountFilterBar
-                search={search}
-                navigate={navigate}
-                table={table}
-                statusOptions={statusOptions}
-                parse={parse}
-            />
-            <AccountDataTable
-                query={query}
-                table={table}
-                columns={columns}
-            />
-        </div>
-    )
-}
-
-function updatePagination(
-    updater: PaginationUpdater,
-    pagination: Pagination,
-    search: AccountSearch,
-    navigate: AccountNavigate,
-) {
-    const next = typeof updater === "function" ? updater(pagination) : updater
-    navigate({ search: { ...search, page: next.pageIndex + 1, size: next.pageSize } })
-}
-
-function AccountDataTable<T extends AccountRow>({
-    query,
-    table,
-    columns,
-}: {
-    query: UseQueryResult<{ records: T[]; total: number }>
-    table: ReturnType<typeof useDataTable<T>>["table"]
-    columns: ColumnDef<DataTableFeatures, T>[]
-}) {
-    if (query.isPending) return <DataTableSkeleton columns={columns.length} />
+    // DataTable 只提供表格上下文（不渲染 DOM），筛选栏与表卡都挂在它里面：
+    // reui 的列显隐与分页条读 provider，放到外面就渲染不出来
     return (
         <DataTable<T>
             table={table}
             emptyContent="暂无符合条件的账号"
-            footer={<DataTablePagination<T> table={table} />}
-        />
+        >
+            <div className="space-y-4">
+                <AccountFilterBar
+                    search={search}
+                    navigate={navigate}
+                    table={table}
+                    statusOptions={statusOptions}
+                    parse={parse}
+                />
+                <ListBody
+                    isPending={query.isPending}
+                    columns={columns.length}
+                />
+            </div>
+        </DataTable>
     )
 }
 
@@ -211,7 +181,7 @@ function AccountFilterBar<T extends AccountRow>({
 }: {
     search: AccountSearch
     navigate: AccountNavigate
-    table: ReturnType<typeof useDataTable<T>>["table"]
+    table: ReturnType<typeof usePagedTable<T>>
     statusOptions: typeof USER_STATUS_OPTIONS
     parse: StatusParser
 }) {

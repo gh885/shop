@@ -365,7 +365,7 @@ export default defineConfig({
             },
         },
         {
-            // reui Cascader 等第三方 vendored 组件（以及对照的 examples）：只过类型检查，
+            // reui Cascader / DataGrid / Tree 等第三方 vendored 组件：只过类型检查，
             // 不过本仓库面向「第一方 UI」的 lint 规则。逐条理由：
             //
             // typescript/no-unnecessary-condition：要么命中刻意的运行时防御（声明类型说非空、
@@ -402,10 +402,7 @@ export default defineConfig({
             // - jsx-a11y/no-autofocus：单元格编辑器浮层打开即聚焦是功能本身，去掉即坏。
             //
             // 正确性仍由 tsc（strict + noUncheckedIndexedAccess）全程把关。
-            files: [
-                "**/packages/ui-web/src/components/reui/**/*",
-                "**/packages/ui-web/src/components/examples/**/*",
-            ],
+            files: ["**/packages/ui-web/src/components/reui/**/*"],
             rules: {
                 "typescript/no-unnecessary-condition": "off",
                 "jsx-a11y/prefer-tag-over-role": "off",
