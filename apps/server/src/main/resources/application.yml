@@ -114,6 +114,9 @@ shop:
         # 短信通道：dev = 验证码打日志 + 固定码 666666，仅限本地开发。
         # 未配置时 DevSmsChannel 不装配——生产接入真实通道实现（实现 SmsChannel 接口）后换掉此值
         sms-channel: dev
+        # 图形验证码：dev = 固定码 DEV4 直通校验（见 DevCaptchaChannel），仅供 E2E 与本地联调注册账号。
+        # 图照常生成、缺参照旧 400，只有「比对答案」这一步免掉；生产必须显式给非 dev 值
+        captcha-channel: dev
         # refresh cookie 的 Domain。留空 = 不设 domain（本地 localhost，web/seller 同 host 已天然共享）；
         # 生产设成共享父域（如 .example.com）后买家端与卖家端共用会话，登录一处另一处自动登录
         refresh-cookie-domain: ""

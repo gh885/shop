@@ -11,11 +11,16 @@ import static org.mockito.Mockito.when;
 
 import com.shop.platform.common.BusinessException;
 import java.time.Duration;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
@@ -33,13 +38,18 @@ class CaptchaServiceTest {
     @Mock
     private ValueOperations<String, String> valueOps;
 
+    @Mock
+    private ObjectProvider<DevCaptchaChannel> devCaptchaChannelProvider;
+
     private CaptchaService captchaService;
 
     @BeforeEach
     void setUp() {
         // opsForValue() 稳定返回同一 valueOps mock；缺参用例不触达 Redis，故用 lenient 免 strict 误报
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOps);
-        captchaService = new CaptchaService(redisTemplate);
+        // 默认按生产形状：dev 直通通道不装配（getIfAvailable() 回 null）
+        lenient().when(devCaptchaChannelProvider.getIfAvailable()).thenReturn(null);
+        captchaService = new CaptchaService(redisTemplate, devCaptchaChannelProvider);
     }
 
     @Test
@@ -85,16 +95,29 @@ class CaptchaServiceTest {
                 .hasMessageContaining("已过期");
     }
 
-    @Test
-    void 校验_缺参_抛CAPTCHA_REQUIRED() {
-        assertThatThrownBy(() -> captchaService.verify("", "A1B2"))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("请先完成");
-        assertThatThrownBy(() -> captchaService.verify("cid", ""))
+    @ParameterizedTest
+    @MethodSource("缺参组合")
+    void 校验_缺参_抛CAPTCHA_REQUIRED(String captchaId, String captchaCode) {
+        assertThatThrownBy(() -> captchaService.verify(captchaId, captchaCode))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("请先完成");
 
         // 缺参直接拦截，不触达 Redis
         verify(valueOps, never()).get(anyString());
+    }
+
+    static Stream<Arguments> 缺参组合() {
+        // dev 直通豁免的是「比对」，不豁免「提交过人机验证」：固定码配空 id 照样 400
+        return Stream.of(Arguments.of("", "A1B2"), Arguments.of("cid", ""), Arguments.of("", "DEV4"));
+    }
+
+    @Test
+    void dev装配时_固定码直通且不查Redis() {
+        when(devCaptchaChannelProvider.getIfAvailable()).thenReturn(new DevCaptchaChannel());
+
+        captchaService.verify("cid", " dev4 ");
+
+        verify(valueOps, never()).get(anyString());
+        verify(redisTemplate, never()).delete(anyString());
     }
 }

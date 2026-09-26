@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -39,6 +40,9 @@ import org.springframework.util.StringUtils;
  * <p>防御定位：拦截「脚本直调匿名发码端点短信轰炸」这类裸接口滥用。防线顺序：
  * 人机验证（本类） → 频控（SmsCodeService）→ OTP，见 ACC-35。仅凭图形验证码不足以对抗高级黑产
  * （滑块/行为指纹/设备指纹由 SaaS 承担），C 端登录的目标是挡普通脚本，此处够用。
+ *
+ * <p>唯一豁免：配了 {@code shop.auth.captcha-channel=dev} 时固定码直通（见 {@link DevCaptchaChannel}），
+ * 给 E2E 每轮注册新账号用。该属性在生产 profile 里写死成非 dev 值，bean 不装配 = 这条分支恒假。
  */
 @Service
 @RequiredArgsConstructor
@@ -54,6 +58,7 @@ public class CaptchaService {
     private static final char[] CHARS = "23456789ABCDEFGHJKMNPQRSTUVWXYZ".toCharArray();
 
     private final StringRedisTemplate redisTemplate;
+    private final ObjectProvider<DevCaptchaChannel> devCaptchaChannelProvider;
 
     /** 生成验证码：返回 data:image/png base64 图 + 短 token（前端点图刷新，校验时带回） */
     public Captcha generate() {
@@ -66,10 +71,17 @@ public class CaptchaService {
     /**
      * 校验验证码：一次性消费（校验成功或失败都删除该 token，杜绝同一 token 反复猜）。
      * 失败抛统一 400 业务错，前端据此刷新验证码并提示重输。
+     *
+     * <p>缺参（没带 id 或没填码）在生产与 dev 都一律 400——直通只免掉「比对」这一步，不免掉「必须提交过人机验证」，
+     * 否则自动化可以省掉一次 /auth/captcha 往返，后门边界就画错地方了。
      */
     public void verify(String captchaId, String captchaCode) {
         if (!StringUtils.hasText(captchaId) || !StringUtils.hasText(captchaCode)) {
             throw BusinessException.badRequest(ErrorCodes.CAPTCHA_REQUIRED, "请先完成图形验证码");
+        }
+        DevCaptchaChannel dev = devCaptchaChannelProvider.getIfAvailable();
+        if (dev != null && dev.getDevCode().equals(captchaCode.trim().toUpperCase(Locale.ROOT))) {
+            return;
         }
         String key = KEY + captchaId;
         String stored = redisTemplate.opsForValue().get(key);

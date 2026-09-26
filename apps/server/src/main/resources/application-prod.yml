@@ -35,6 +35,9 @@ shop:
         # 短信通道：生产禁止 dev（固定码 666666 后门）。接入真实 SmsChannel 实现后再上线；
         # 未实现真实通道时该占位符会导致 DevSmsChannel 不装配——发码接口启动即失败而非静默降级
         sms-channel: ${SHOP_AUTH_SMS_CHANNEL}
+        # 图形验证码：生产写死非 dev 值，DevCaptchaChannel 不装配——那道门就是给人机对抗用的，
+        # 没有「生产也放行固定码」的第二种取值，所以这里不接环境变量（接了反而多一个误配成 dev 的口子）
+        captcha-channel: real
         # refresh cookie 的共享父域（如 .example.com）：web/seller 同域共享会话实现轻量单点登录。
         # 必须与前端域的父域一致；留空则各站独立会话（不自动登录）
         refresh-cookie-domain: ${SHOP_AUTH_REFRESH_COOKIE_DOMAIN}
