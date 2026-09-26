@@ -1,20 +1,16 @@
 import { mkdir } from "node:fs/promises"
-import { expect, test as setup } from "@playwright/test"
+import { dirname } from "node:path"
+import { test as setup } from "@playwright/test"
 
-const PHONE = process.env.E2E_BUYER_PHONE ?? "13800001001"
-const PASSWORD = process.env.E2E_BUYER_PASSWORD ?? "shop123456"
+import { loginBuyer } from "../fixtures/ui-auth"
+import { readManifest } from "../fixtures/run"
+
 const AUTH_STATE = "e2e/playwright/.auth/buyer.json"
 
+/** 买家登录态：账号是本轮 globalSetup 现注册的，密码也现设，不依赖演示库那批固定号 */
 setup("买家登录态", async ({ page }) => {
-    await mkdir("playwright/.auth", { recursive: true })
-    await page.goto("/")
-
-    await page.getByRole("button", { name: "登录", exact: true }).click()
-    await page.getByRole("button", { name: "密码登录" }).click()
-    await page.getByLabel("手机号").fill(PHONE)
-    await page.getByLabel("密码").fill(PASSWORD)
-    await page.getByRole("button", { name: "登录", exact: true }).last().click()
-
-    await expect(page.getByText("登录后畅享更多功能")).toBeHidden()
+    const run = await readManifest()
+    await mkdir(dirname(AUTH_STATE), { recursive: true })
+    await loginBuyer(page, run)
     await page.context().storageState({ path: AUTH_STATE })
 })

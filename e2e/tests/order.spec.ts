@@ -1,80 +1,37 @@
 import { expect, test } from "@playwright/test"
 
-const API_URL = process.env.E2E_API_URL ?? "http://localhost:8080"
+import { readManifest } from "../fixtures/run"
 
-interface Sku {
-    id: string
-    stock: number
-    attributes: Array<{ name: string; value: string }>
-}
-
-interface ProductDetail {
-    product: { id: string }
-    skus: Sku[]
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === "object" && value !== null
-}
-
-function isProductList(value: unknown): value is { records: Array<{ id: string }> } {
-    return (
-        isRecord(value) &&
-        Array.isArray(value.records) &&
-        value.records.every((record) => isRecord(record) && typeof record.id === "string")
-    )
-}
-
-function isSku(value: unknown): value is Sku {
-    return (
-        isRecord(value) &&
-        typeof value.id === "string" &&
-        typeof value.stock === "number" &&
-        Array.isArray(value.attributes) &&
-        value.attributes.every(
-            (attribute) =>
-                isRecord(attribute) &&
-                typeof attribute.name === "string" &&
-                typeof attribute.value === "string",
-        )
-    )
-}
-
-function isProductDetail(value: unknown): value is ProductDetail {
-    return (
-        isRecord(value) &&
-        isRecord(value.product) &&
-        typeof value.product.id === "string" &&
-        Array.isArray(value.skus) &&
-        value.skus.every(isSku)
-    )
-}
-
+/** 买家下单主路径：商品与地址都来自本轮自己造的那一套，取数不再从商品列表第一页里捞 */
 test.describe("下单主路径", () => {
-    test("登录买家从商品详情立即购买并提交订单", async ({ page, request }) => {
-        const productListResponse = await request.get(`${API_URL}/api/products?page=1&size=48`)
-        expect(productListResponse.ok()).toBeTruthy()
-        const productList: unknown = await productListResponse.json()
-        if (!isProductList(productList)) throw new Error("商品列表响应格式不正确")
-        expect(productList.records.length).toBeGreaterThan(0)
+    test("登录买家从商品详情立即购买并提交订单", async ({ page }) => {
+        const run = await readManifest()
 
-        const productId = productList.records[0].id
-        const detailResponse = await request.get(`${API_URL}/api/products/${productId}`)
-        expect(detailResponse.ok()).toBeTruthy()
-        const detail: unknown = await detailResponse.json()
-        if (!isProductDetail(detail)) throw new Error("商品详情响应格式不正确")
-        const sku = detail.skus.find((item) => item.stock > 0)
-        if (!sku) throw new Error("商品没有可售 SKU")
-
-        const spec = Object.fromEntries(sku.attributes.map((item) => [item.name, item.value]))
-        const search = new URLSearchParams({ spec: JSON.stringify(spec) }).toString()
-        await page.goto(`/products/${productId}?${search}`)
+        await page.goto(`/products/${run.product.productId}`)
+        await expect(page.getByRole("heading", { name: run.product.name }).first()).toBeVisible()
+        // 逐维点选规格。SSR 首屏就已渲染出这些按钮，水合完成前的点击会被丢掉，
+        // 所以每维重试到 aria-pressed 真的翻上来为止
+        for (const attribute of run.product.attributes) {
+            const value = page.getByRole("button", { name: attribute.value, exact: true })
+            // oxlint-disable-next-line eslint/no-await-in-loop -- 下一维要等上一维确认选中，串行是有意的
+            await expect
+                .poll(
+                    async () => {
+                        await value.click()
+                        return await value.getAttribute("aria-pressed")
+                    },
+                    { message: `规格「${attribute.name}=${attribute.value}」选不上` },
+                )
+                .toBe("true")
+        }
         await page.getByRole("button", { name: "立即购买" }).click()
 
         await expect(page).toHaveURL(/\/checkout\?/)
         await expect(page.getByText("应付总额：")).toBeVisible()
-        await page.getByRole("button", { name: "提交订单" }).click()
+        // 结算分组是本轮注册并审核通过的那家店——买到的不是演示库残留，隔离在此刻成立
+        await expect(page.getByText(run.seller.shopName).first()).toBeVisible()
 
+        await page.getByRole("button", { name: "提交订单" }).click()
         await expect(page).toHaveURL(/\/pay\/[0-9a-f-]{36}/)
         await expect(page.getByRole("button", { name: "确认支付" })).toBeVisible()
         await page.getByRole("button", { name: "确认支付" }).click()

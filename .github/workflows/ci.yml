@@ -81,7 +81,7 @@ jobs:
               run: mvn -f apps/server/pom.xml verify -q
 
     e2e:
-        name: Playwright 下单主路径
+        name: Playwright 下单与发货物流链路
         runs-on: ubuntu-latest
         services:
             postgres:
@@ -123,7 +123,7 @@ jobs:
             - run: sudo apt-get update && sudo apt-get install -y postgresql-client
             - run: pnpm install --frozen-lockfile
             - run: pnpm exec playwright install --with-deps chromium
-            - name: 启动后端与 web
+            - name: 启动后端与 web / 卖家工作台
               run: |
                   mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
                   pnpm --filter web dev > /tmp/shop-web.log 2>&1 &
@@ -138,11 +138,11 @@ jobs:
                   cat /tmp/shop-web.log
                   cat /tmp/shop-seller.log
                   exit 1
-            - name: 准备演示数据
-              run: pnpm seed:demo
             - name: 运营数据健康扫描
               run: pnpm health:scan
-            - name: 运行下单主路径与卖家冒烟
+            # 造数由 e2e/globalSetup 走接口完成（每轮现注册卖家+开店+审核+商品+下单），
+            # 所以这里不再灌 seed:demo——测试不许依赖演示库残留，跑在干净迁移库上才是真话
+            - name: 运行下单主路径与发货物流链路
               run: pnpm test:e2e
               env:
                   E2E_SELLER_URL: http://localhost:5000
@@ -152,6 +152,16 @@ jobs:
               with:
                   name: playwright-report
                   path: e2e/playwright-report
+                  if-no-files-found: ignore
+            # 失败现场：trace/video/screenshot + 那轮造数清单（照它能直接用接口重放出同样的数据）
+            - name: 上传失败诊断材料
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: e2e-diagnostics
+                  path: |
+                      e2e/test-results
+                      e2e/.fixture
                   if-no-files-found: ignore
 
     contract:
