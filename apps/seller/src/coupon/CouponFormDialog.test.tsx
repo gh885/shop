@@ -131,7 +131,9 @@ describe("CouponFormDialog", () => {
 
         await user.click(screen.getByRole("button", { name: "创建" }))
 
-        await waitFor(() => expect(body).toBeDefined())
+        // 提交到请求发出是一条真实链路（校验 → mutation → MSW handler）。全量并发跑时
+        // waitFor 默认的 1s 偶尔不够，给足余量而不是把断言改松。
+        await waitFor(() => expect(body).toBeDefined(), { timeout: 5000 })
         expect(body).toMatchObject({
             name: "新春满减券",
             thresholdAmount: money(10000),
@@ -175,7 +177,7 @@ describe("CouponFormDialog", () => {
         await fillDateTime(user, "有效期终点", END_DAY, START_TIME)
         await user.click(screen.getByRole("button", { name: "创建" }))
 
-        await waitFor(() => expect(body).toBeDefined())
+        await waitFor(() => expect(body).toBeDefined(), { timeout: 5000 })
         expect(body).toMatchObject({ thresholdAmount: money(0) })
     })
 

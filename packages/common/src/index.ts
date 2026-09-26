@@ -72,8 +72,8 @@ export type { SdkClientOptions, TokenStore } from "./sdk-client"
 export { createAuthKit, createSdkAuthKit } from "./auth-kit"
 export type { AuthKit, AuthKitOptions, AuthStatus } from "./auth-kit"
 
-export { findPath, loadChildren, loadRegionTree } from "./regions"
-export type { RegionOption, RegionTreeNode } from "./regions"
+export { findPath, loadChildren, loadRegionCascaderTree, loadRegionTree } from "./regions"
+export type { RegionCascaderNode, RegionOption, RegionTreeNode } from "./regions"
 
 export {
     ADDRESS_DETAIL_MAX,

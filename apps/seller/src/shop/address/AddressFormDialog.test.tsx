@@ -99,23 +99,23 @@ describe("AddressFormDialog", () => {
             />,
         )
 
-        // 初值那三级是 441900 反查出来的（trigger 是个按钮，可访问名就是那条路径）
-        const trigger = await screen.findByRole("button", {
-            name: "广东省 / 东莞市 / 东莞市",
-        })
+        // 初值那三级是 441900 反查出来的（trigger 是 role=combobox，可访问名 = 字段名「所在地区」，
+        // 选中值作为内容被读出）
+        const trigger = await screen.findByRole("combobox", { name: "所在地区" })
+        expect(trigger).toHaveTextContent("广东省 / 东莞市 / 东莞市")
 
         await user.click(trigger)
-        // 已有路径的浮层开在最深一级（区），要改省份得先回到「省」
-        await user.click(await screen.findByRole("tab", { name: "省" }))
-        await user.click(await screen.findByRole("button", { name: "北京市" }))
-        await user.click(await screen.findByRole("button", { name: "市辖区" }))
-        await user.click(await screen.findByRole("button", { name: "东城区" }))
+        // columns 开在首列（省），一路点进下一列：行是 role=option，分支行带「, N item, submenu」
+        // 的可访问名后缀（读屏要念出还有下级），所以用前缀匹配
+        await user.click(await screen.findByRole("option", { name: /^北京市/ }))
+        await user.click(await screen.findByRole("option", { name: /^市辖区/ }))
+        await user.click(await screen.findByRole("option", { name: "东城区" }))
 
         // 叶子点完即收面，trigger 换成新路径
         expect(screen.queryByText("西城区")).not.toBeInTheDocument()
-        expect(
-            await screen.findByRole("button", { name: "北京市 / 市辖区 / 东城区" }),
-        ).toBeInTheDocument()
+        expect(await screen.findByRole("combobox", { name: "所在地区" })).toHaveTextContent(
+            "北京市 / 市辖区 / 东城区",
+        )
 
         await user.click(screen.getByRole("button", { name: "保存" }))
 

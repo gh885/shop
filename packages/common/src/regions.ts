@@ -41,6 +41,43 @@ function isDirectCity(node: RegionTreeNode): boolean {
     return !!children?.length && children.every((c) => c.code.length !== 6)
 }
 
+/**
+ * 整棵树给级联组件（reui Cascader）用：与 `loadChildren` 逐层视图**同一套**归一规则，
+ * 一次把嵌套形状给全，避免逐层请求。
+ *
+ * 节点形状是 reui `CascaderNode` 的结构子集（value/label/children），所以本模块不 import
+ * 任何 UI 包也能直接传进去——两边靠结构类型对齐，与 `RegionOption` 一样的做法。
+ *
+ * 码长约定（见 data/regions.json）：省 2 位、市 4 位、区 6 位，直筒子市的第三级是 9 位街道码。
+ * 直筒子市在树里补一个合成的 6 位叶子（cityCode+"00"），保证 regionCode 恒为 6 位。
+ */
+export interface RegionCascaderNode {
+    value: string
+    label: string
+    children?: RegionCascaderNode[]
+}
+
+function toCascaderNodes(nodes: readonly RegionTreeNode[]): RegionCascaderNode[] {
+    return nodes.map((node) => {
+        const children = node.children
+        if (!children?.length) return { value: node.code, label: node.name }
+        // 直筒子市（4 位市码、children 全是 9 位）：children 换成单个 6 位合成叶子
+        if (node.code.length === 4 && isDirectCity(node)) {
+            return {
+                value: node.code,
+                label: node.name,
+                children: [{ value: `${node.code}00`, label: node.name }],
+            }
+        }
+        return { value: node.code, label: node.name, children: toCascaderNodes(children) }
+    })
+}
+
+/** 整棵区划树 → 级联组件的嵌套节点（一次给全，含直筒子市合成叶子） */
+export async function loadRegionCascaderTree(): Promise<RegionCascaderNode[]> {
+    return toCascaderNodes(await loadRegionTree())
+}
+
 /** RegionPicker 数据源：按层取孩子。根层返回省，区县层为叶子 */
 export async function loadChildren(parent: RegionOption | undefined): Promise<RegionOption[]> {
     const tree = await loadRegionTree()

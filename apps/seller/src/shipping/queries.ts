@@ -4,20 +4,12 @@ import {
     type ShippingTemplateRequest,
     type ShippingTemplateResponse,
 } from "@shop/api/sdk"
-import { loadRegionTree, toApiError } from "@shop/common"
+import { toApiError } from "@shop/common"
 
 const shippingKeys = {
     all: ["shipping-template"] as const,
     detail: (shopId: string) => ["shipping-template", shopId] as const,
-    regionTree: ["region-tree"] as const,
 }
-
-/** 国标行政区划树（@shop/common 本地数据）：不会变，取一次全局共享 */
-export const regionTreeOptions = queryOptions({
-    queryKey: shippingKeys.regionTree,
-    queryFn: () => loadRegionTree(),
-    staleTime: Infinity,
-})
 
 /**
  * 本店运费模板：未设置时后端 404，这不是故障，返回 null 让页面进入新建态。

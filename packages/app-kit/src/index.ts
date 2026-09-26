@@ -43,6 +43,7 @@ export {
 export { FormActions } from "./form-actions"
 export { ReasonForm } from "./reason-form"
 export { RegionField } from "./region-field"
+export { regionCascaderTreeOptions } from "./region-query"
 export { createImgUrl } from "./image"
 export { createAppQueryClient } from "./query-client"
 export { mountSpa } from "./spa-entry"
