@@ -114,18 +114,16 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
 
             <form.AppField name="startAt">
                 {(field) => (
-                    <field.TextField
+                    <field.DateTimeField
                         label="定时上线"
-                        type="datetime-local"
                         hint="留空 = 立即生效"
                     />
                 )}
             </form.AppField>
             <form.AppField name="endAt">
                 {(field) => (
-                    <field.TextField
+                    <field.DateTimeField
                         label="定时下线"
-                        type="datetime-local"
                         hint="留空 = 长期有效"
                     />
                 )}

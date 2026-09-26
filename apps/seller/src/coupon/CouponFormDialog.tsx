@@ -121,19 +121,17 @@ function CouponForm({
                 <div className="grid gap-4 sm:grid-cols-2">
                     <form.AppField name="validFrom">
                         {(field) => (
-                            <field.TextField
+                            <field.DateTimeField
                                 label="有效期起点"
                                 required
-                                type="datetime-local"
                             />
                         )}
                     </form.AppField>
                     <form.AppField name="validTo">
                         {(field) => (
-                            <field.TextField
+                            <field.DateTimeField
                                 label="有效期终点"
                                 required
-                                type="datetime-local"
                             />
                         )}
                     </form.AppField>

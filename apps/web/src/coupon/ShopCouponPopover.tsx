@@ -11,6 +11,7 @@ import {
     PopoverHeader,
     PopoverTitle,
     PopoverTrigger,
+    ScrollArea,
 } from "@shop/ui-web"
 
 import { openLoginDialog, useIsLoggedIn } from "#/shared/api/auth"
@@ -82,48 +83,55 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                 <PopoverHeader>
                     <PopoverTitle>店内优惠券</PopoverTitle>
                 </PopoverHeader>
-                {/* 券数无上界（模板是卖家随手建的），不给高度上限时超出的券连同「领取」按钮会被顶出视口且无滚动提示 */}
-                <ul className="flex max-h-72 flex-col gap-3 overflow-y-auto">
-                    {coupons.map((coupon) => {
-                        const claimed = claimedIdSet.has(coupon.id)
-                        const rule = couponRuleText(coupon.threshold, coupon.discount)
-                        // claimable=false 且没领完 = 未到发放起点（C9，契约必填布尔，不再回退本地比较 validFrom）
-                        const notStarted = !coupon.soldOut && !coupon.claimable
-                        const label = claimed
-                            ? "已领取"
-                            : coupon.soldOut
-                              ? "已领完"
-                              : notStarted
-                                ? `${formatTimeShort(coupon.validFrom)} 开抢`
-                                : "领取"
-                        return (
-                            <li
-                                key={coupon.id}
-                                className="flex items-center justify-between gap-3"
-                            >
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium">{rule}</p>
-                                    <p className="truncate text-xs text-muted-foreground">
-                                        {formatDate(coupon.validFrom)} 至{" "}
-                                        {formatDate(coupon.validTo)}
-                                    </p>
-                                </div>
-                                {/* 可访问名带上规则，读屏用户才能分清哪张券：三个「领取」按钮同名等于没有名字 */}
-                                <Button
-                                    size="sm"
-                                    variant={label === "领取" ? "default" : "outline"}
-                                    disabled={
-                                        claimed || coupon.soldOut || notStarted || claim.isPending
-                                    }
-                                    aria-label={`${label} ${rule}`}
-                                    onClick={() => handleClaim(coupon)}
+                {/* 券数无上界（模板是卖家随手建的），不给高度上限时超出的券连同「领取」按钮会被顶出视口且无滚动提示。
+                    ScrollArea 而非 overflow-y-auto：视口自身可聚焦（滚动区键盘可达，DESIGN.md §7），
+                    滚动条由组件自绘，不暴露各浏览器不同的原生条 */}
+                <ScrollArea className="max-h-72">
+                    <ul className="flex flex-col gap-3">
+                        {coupons.map((coupon) => {
+                            const claimed = claimedIdSet.has(coupon.id)
+                            const rule = couponRuleText(coupon.threshold, coupon.discount)
+                            // claimable=false 且没领完 = 未到发放起点（C9，契约必填布尔，不再回退本地比较 validFrom）
+                            const notStarted = !coupon.soldOut && !coupon.claimable
+                            const label = claimed
+                                ? "已领取"
+                                : coupon.soldOut
+                                  ? "已领完"
+                                  : notStarted
+                                    ? `${formatTimeShort(coupon.validFrom)} 开抢`
+                                    : "领取"
+                            return (
+                                <li
+                                    key={coupon.id}
+                                    className="flex items-center justify-between gap-3"
                                 >
-                                    {label}
-                                </Button>
-                            </li>
-                        )
-                    })}
-                </ul>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium">{rule}</p>
+                                        <p className="truncate text-xs text-muted-foreground">
+                                            {formatDate(coupon.validFrom)} 至{" "}
+                                            {formatDate(coupon.validTo)}
+                                        </p>
+                                    </div>
+                                    {/* 可访问名带上规则，读屏用户才能分清哪张券：三个「领取」按钮同名等于没有名字 */}
+                                    <Button
+                                        size="sm"
+                                        variant={label === "领取" ? "default" : "outline"}
+                                        disabled={
+                                            claimed ||
+                                            coupon.soldOut ||
+                                            notStarted ||
+                                            claim.isPending
+                                        }
+                                        aria-label={`${label} ${rule}`}
+                                        onClick={() => handleClaim(coupon)}
+                                    >
+                                        {label}
+                                    </Button>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                </ScrollArea>
             </PopoverContent>
         </Popover>
     )

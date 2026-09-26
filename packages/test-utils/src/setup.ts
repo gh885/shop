@@ -24,6 +24,34 @@ export function installDomStubs() {
         },
         writable: true,
     })
+    /**
+     * Base UI 的两条 WAAPI 需求在 jsdom 里互相冲突，必须成对给：
+     * - ScrollArea 视口无条件调 `viewport.getAnimations({subtree: true})`，jsdom 没有 WAAPI
+     *   → 每次挂载都在库内部定时器里抛未捕获 TypeError，所以要补一个返回空数组的实现；
+     * - 但 Popup / Dialog 的退场拆挂走 `useAnimationsFinished`，它拿「getAnimations 不是函数」
+     *   当作 jsdom 的快进判据（`useAnimationsFinished.mjs:74`），补了实现就会去等永不结束的
+     *   动画，浮层关掉后内容仍留在文档里。库为这种情况留了全局开关 BASE_UI_ANIMATIONS_DISABLED。
+     */
+    Object.defineProperty(Element.prototype, "getAnimations", {
+        configurable: true,
+        value: () => [],
+        writable: true,
+    })
+    Object.defineProperty(globalThis, "BASE_UI_ANIMATIONS_DISABLED", {
+        configurable: true,
+        value: true,
+        writable: true,
+    })
+    /**
+     * input-otp 挂载后会周期性调 `document.elementFromPoint` 探测密码管理器徽章是否遮住了
+     * 输入框（避让策略），jsdom 不实现 → 定时器回调里抛未捕获 TypeError。
+     * 返回 null 即「探测不到任何元素」，避让不生效，与无徽章的浏览器表现一致。
+     */
+    Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: vi.fn<() => Element | null>(() => null),
+        writable: true,
+    })
 }
 
 /**

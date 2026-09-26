@@ -1,9 +1,12 @@
 import type { ReactNode } from "react"
 import { useQuery, type UseQueryResult } from "@tanstack/react-query"
+import { CircleAlert } from "lucide-react"
 import type { TicketResponse } from "@shop/api/sdk"
 import { formatMoney, NOTE_MAX } from "@shop/common"
 import { ReasonForm } from "@shop/app-kit"
 import {
+    Alert,
+    AlertDescription,
     Badge,
     Button,
     Dialog,
@@ -158,9 +161,12 @@ function TicketFacts({
             {ticket.isPending ? (
                 <p className="text-muted-foreground">正在读取售后单…</p>
             ) : ticket.isError ? (
-                <p className="text-muted-foreground">
-                    售后单读取失败，请先与买家确认售后内容再决定。
-                </p>
+                <Alert variant="destructive">
+                    <CircleAlert />
+                    <AlertDescription>
+                        售后单读取失败，请先与买家确认售后内容再决定。
+                    </AlertDescription>
+                </Alert>
             ) : data ? (
                 <dl className="space-y-2 rounded-lg bg-muted/40 p-3">
                     <Row label="售后类型">
@@ -194,7 +200,10 @@ function TicketFacts({
                     )}
                 </dl>
             ) : (
-                <p className="text-muted-foreground">没有查到售后单，请谨慎处理。</p>
+                <Alert variant="warning">
+                    <CircleAlert />
+                    <AlertDescription>没有查到售后单，请谨慎处理。</AlertDescription>
+                </Alert>
             )}
         </div>
     )

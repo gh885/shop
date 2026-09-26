@@ -1,8 +1,13 @@
 import * as React from "react"
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form"
-import { CircleAlert } from "lucide-react"
+import { format, isValid, parseISO, startOfToday } from "date-fns"
+import { zhCN } from "date-fns/locale/zh-CN"
+import { CalendarIcon, CircleAlert } from "lucide-react"
 
+import { Button } from "src/components/ui/button"
+import { Calendar } from "src/components/ui/calendar"
 import { Input } from "src/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "src/components/ui/popover"
 import { Field, FieldDescription, FieldError, FieldLabel } from "src/components/ui/field"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "src/components/ui/input-group"
 import { Item, ItemContent, ItemDescription, ItemTitle } from "src/components/ui/item"
@@ -202,6 +207,132 @@ function TextareaField({
     )
 }
 
+/** 墙上时钟形状，与 `datetime-local` 的输入值同形（不带时区偏移）：
+    读写都按本地时区解释，两侧对称——CMS 上下线时间曾因回填走 UTC 而每保存一次前挪 8 小时 */
+const WALL_CLOCK = "yyyy-MM-dd'T'HH:mm"
+
+function parseWallClock(value: string): Date | undefined {
+    if (!value) return undefined
+    const parsed = parseISO(value)
+    return isValid(parsed) ? parsed : undefined
+}
+
+/**
+ * 日期时间：日历挑日 + 时分输入。替掉裸 `type="datetime-local"` 是为了三件原生控件给不了的事：
+ * 跨浏览器同一张脸（原生那个在 Chrome/Safari/Firefox 是三种控件）、周起始与文案固定中文、
+ * 以及「留空」这个真实业务态（定时上线留空 = 立即生效）有一个明确的清除入口。
+ * 值仍是 `WALL_CLOCK` 字符串，所以契约转换与既有测试给的确定值都不用改形状。
+ */
+function DateTimeField({
+    label,
+    required,
+    orientation,
+    hint,
+    className,
+    placeholder = "选择日期时间",
+}: FieldProps & { placeholder?: string }) {
+    const field = useFieldContext<string>()
+    const id = React.useId()
+    const [open, setOpen] = React.useState(false)
+    const selected = parseWallClock(field.state.value)
+    // 翻月位置自己拿：react-day-picker 的受控月不会跟着 selected 走，不补这一步的话
+    // 编辑既有记录时打开日历看到的是本月，而不是已存下的那个月
+    const [month, setMonth] = React.useState<Date>(() => selected ?? startOfToday())
+
+    /** 日期与时分各改各的，合起来才写回：只选日不选时不会把时间悄悄归到 00:00 */
+    const commit = (date: Date, time: string) => {
+        const [hour, minute] = time.split(":")
+        const next = new Date(date)
+        next.setHours(Number(hour) || 0, Number(minute) || 0, 0, 0)
+        field.handleChange(format(next, WALL_CLOCK))
+    }
+    const timeValue = selected ? format(selected, "HH:mm") : ""
+
+    return (
+        <FieldFrame
+            field={field}
+            id={id}
+            label={label}
+            required={required}
+            orientation={orientation}
+            hint={hint}
+            className={className}
+        >
+            <Popover
+                open={open}
+                onOpenChange={(next) => {
+                    if (next && selected) setMonth(selected)
+                    setOpen(next)
+                }}
+            >
+                <PopoverTrigger
+                    render={
+                        <Button
+                            id={id}
+                            type="button"
+                            variant="outline"
+                            aria-invalid={!field.state.meta.isValid}
+                            className="w-full justify-between font-normal"
+                        />
+                    }
+                >
+                    <span
+                        className={cn(
+                            "truncate tabular-nums",
+                            !selected && "text-muted-foreground",
+                        )}
+                    >
+                        {selected ? format(selected, "yyyy-MM-dd HH:mm") : placeholder}
+                    </span>
+                    <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
+                </PopoverTrigger>
+                <PopoverContent
+                    align="start"
+                    className="w-auto gap-3"
+                >
+                    <Calendar
+                        locale={zhCN}
+                        mode="single"
+                        month={month}
+                        onMonthChange={setMonth}
+                        onSelect={(day) => day && commit(day, timeValue || "00:00")}
+                        selected={selected}
+                    />
+                    <div className="flex items-center gap-2">
+                        <Input
+                            aria-label={`${label ?? "该字段"}的时分`}
+                            className="flex-1"
+                            onBlur={field.handleBlur}
+                            onChange={(e) => commit(selected ?? startOfToday(), e.target.value)}
+                            step={60}
+                            type="time"
+                            value={timeValue}
+                        />
+                        <Button
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                            onClick={() => {
+                                field.handleChange("")
+                                setOpen(false)
+                            }}
+                        >
+                            清除
+                        </Button>
+                        <Button
+                            size="sm"
+                            type="button"
+                            onClick={() => setOpen(false)}
+                        >
+                            完成
+                        </Button>
+                    </div>
+                </PopoverContent>
+            </Popover>
+        </FieldFrame>
+    )
+}
+
 type Option = { value: string; label: string }
 
 /** 下拉：选项走 `items`（Base UI 用它把选中值解析成展示文案），空串 = 未选、显示占位 */
@@ -338,6 +469,7 @@ export const { useAppForm } = createFormHook({
         SelectField,
         CheckboxField,
         RadioGroupField,
+        DateTimeField,
     },
     formComponents: {},
 })

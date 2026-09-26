@@ -4,6 +4,7 @@ import { FormActions, SMS_CODE_DIGITS, SmsCodeSchema, useCountdown } from "@shop
 import { ErrorCodes, toApiError } from "@shop/common"
 import { AccountDeletionApi } from "@shop/api/sdk"
 import {
+    Button,
     Dialog,
     DialogContent,
     DialogDescription,
@@ -13,9 +14,9 @@ import {
     FieldError,
     FieldLabel,
     FormError,
-    InputGroup,
-    InputGroupButton,
-    InputGroupInput,
+    InputOTP,
+    InputOTPGroup,
+    InputOTPSlot,
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
@@ -163,28 +164,39 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                             >
                                 短信验证码
                             </FieldLabel>
-                            <InputGroup invalid={codeInvalid}>
-                                <InputGroupInput
+                            {/* 六格分段码：假光标与「粘一次填满六格」由 input-otp 管，
+                                数字过滤仍在 onChange 里剥（字母被吞掉而不是弹走提示） */}
+                            <div className="flex items-center gap-2">
+                                <InputOTP
                                     id={codeId}
                                     aria-label="短信验证码"
                                     aria-invalid={codeInvalid}
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
                                     maxLength={SMS_CODE_DIGITS}
-                                    placeholder={`${SMS_CODE_DIGITS} 位数字`}
                                     value={field.state.value}
                                     onBlur={field.handleBlur}
-                                    onChange={(e) => {
-                                        field.handleChange(e.target.value.replaceAll(/\D/g, ""))
+                                    onChange={(v) => {
+                                        field.handleChange(v.replaceAll(/\D/g, ""))
                                         // 重新输入即清验证码错误（标红随之消失），其余错误留到下次提交
                                         setCodeInvalid(false)
                                         setError(undefined)
                                     }}
-                                />
-                                <InputGroupButton
+                                >
+                                    <InputOTPGroup>
+                                        {Array.from({ length: SMS_CODE_DIGITS }, (_, index) => (
+                                            <InputOTPSlot
+                                                /* eslint-disable-next-line react/no-array-index-key -- 格位由 index 本身定义，不随数据增减 */
+                                                key={index}
+                                                index={index}
+                                            />
+                                        ))}
+                                    </InputOTPGroup>
+                                </InputOTP>
+                                <Button
                                     variant="link"
                                     size="sm"
-                                    className="h-full shrink-0"
+                                    className="shrink-0"
                                     disabled={countdown > 0 || send.isPending}
                                     onClick={() => send.mutate()}
                                 >
@@ -195,8 +207,8 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                     ) : (
                                         "获取验证码"
                                     )}
-                                </InputGroupButton>
-                            </InputGroup>
+                                </Button>
+                            </div>
                             <FieldError errors={field.state.meta.errors} />
                         </Field>
                     )}

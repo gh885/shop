@@ -1,6 +1,8 @@
 @import "tw-animate-css";
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 /* ==========================================================================
    主题系统（分层 token）
 
@@ -87,6 +89,15 @@
     --red-700: hsl(0 70% 45%);
     --red-800: hsl(0 62.8% 30.6%);
     --red-900: hsl(0 50% 14%);
+    --destructive-foreground: var(--color-red-800);
+    --success: var(--color-emerald-500);
+    --success-foreground: var(--color-emerald-900);
+    --info: var(--color-violet-500);
+    --info-foreground: var(--color-violet-900);
+    --warning: var(--color-yellow-500);
+    --warning-foreground: var(--color-yellow-900);
+    --invert: var(--color-zinc-900);
+    --invert-foreground: var(--color-zinc-50);
 }
 
 /* ---------- Layer 2: Semantic（仅浅色模式） ---------- */
@@ -244,6 +255,21 @@
             transform: translateX(3px);
         }
     }
+
+    /* InputOTPSlot 的假光标（animate-caret-blink + duration-1000 覆盖时长）：
+       缺这个 token，Tailwind 不生成 utility，光标就是不闪——静默，不报错 */
+    --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+    @keyframes caret-blink {
+        0%,
+        70%,
+        100% {
+            opacity: 1;
+        }
+        20%,
+        50% {
+            opacity: 0;
+        }
+    }
 }
 
 /* ---------- 设计系统工具类 ----------
@@ -290,4 +316,28 @@
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+.dark {
+    --destructive-foreground: var(--color-red-600);
+    --success: var(--color-emerald-500);
+    --success-foreground: var(--color-emerald-600);
+    --info: var(--color-violet-500);
+    --info-foreground: var(--color-violet-600);
+    --warning: var(--color-yellow-500);
+    --warning-foreground: var(--color-yellow-600);
+    --invert: var(--color-zinc-700);
+    --invert-foreground: var(--color-zinc-50);
+}
+
+@theme inline {
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-invert: var(--invert);
+    --color-invert-foreground: var(--invert-foreground);
 }

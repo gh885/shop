@@ -20,6 +20,66 @@ import { CouponFormDialog } from "./CouponFormDialog"
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"
 
+/**
+ * 有效期字段是日历弹层（`DateTimeField`），不是原生 `datetime-local`：按真实交互走一遍
+ * 「点开 → 挑日 → 填时分 → 完成」。
+ *
+ * 挑的日子限定在**当前月内**（`day` 是 1 号到今天之间的某一天）：弹层默认就停在今天所在的月，
+ * 测试因此不必去数翻页箭头，而断言要的只是「本地时刻被当成带时区 ISO 发出去」，与是哪一天无关。
+ */
+async function fillDateTime(
+    user: ReturnType<typeof userEvent.setup>,
+    label: string,
+    day: number,
+    time: string,
+) {
+    const target = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        day,
+        ...splitTime(time),
+    )
+    await user.click(screen.getByLabelText(label))
+    // 弹层内的时分输入是唯一的落点，容器从它身上往上取（不靠 role 猜浮层语义）
+    const timeInput = await screen.findByLabelText(`${label}的时分`)
+    const popover = timeInput.closest("[data-slot='popover-content']")
+    if (!popover) throw new Error("没找到日期弹层")
+    // 日历格上带 `data-day`（与 Calendar 内部同 locale 的 toLocaleDateString）；
+    // 靠它定位而不是按数字找按钮：含前后补白日的月里，同一个日子可能出现两次
+    const cell = popover.querySelector<HTMLButtonElement>(
+        `[data-day="${target.toLocaleDateString("zh-CN")}"]`,
+    )
+    if (!cell) throw new Error(`日历里找不到 ${day} 号这一格`)
+    await user.click(cell)
+    // 时分单独填：只挑日不填时分的话，DateTimeField 会把时刻按 00:00 写回
+    fireEvent.change(timeInput, { target: { value: time } })
+    await user.click(screen.getByRole("button", { name: "完成" }))
+    // 等值真的落到触发框上再返回：不然「点日格 → 改时分」与后续点击的先后是不确定的，
+    // 全量并发跑时偶发地会把「值还没落到表单」误报成提交失败
+    await waitFor(() => expect(screen.getByLabelText(label)).toHaveTextContent(displayOf(target)))
+    return target
+}
+
+/** 触发框上的展示文案（`DateTimeField` 用 `yyyy-MM-dd HH:mm`），不引 date-fns 只为个格式化 */
+function displayOf(moment: Date) {
+    const ymd = `${moment.getFullYear()}-${pad(moment.getMonth() + 1)}-${pad(moment.getDate())}`
+    return `${ymd} ${pad(moment.getHours())}:${pad(moment.getMinutes())}`
+}
+
+/** "10:30" → [10, 30, 0, 0]，直接铺给 Date 构造器 */
+function splitTime(time: string) {
+    const [hour, minute] = time.split(":").map(Number)
+    return [hour, minute, 0, 0] as const
+}
+
+const pad = (n: number) => String(n).padStart(2, "0")
+
+/** 起点与终点固定用当月的 1 号与今天：同月、一屏装得下，断言又与具体日期无关。
+    今天刚好是 1 号时没有第二格可挑，退到 2 号 */
+const START_DAY = 1
+const START_TIME = "10:00"
+const END_DAY = Math.max(2, new Date().getDate())
+
 /** 建券回执：字段形状必须过 SDK 的 zod 校验 */
 function makeCreated(overrides: Partial<CouponTemplateResponse> = {}): CouponTemplateResponse {
     return {
@@ -66,13 +126,8 @@ describe("CouponFormDialog", () => {
         const total = screen.getByLabelText("发放总量")
         await user.clear(total)
         await user.type(total, "50")
-        // datetime-local 的自由输入不可靠，直接给控件一个确定的值
-        fireEvent.change(screen.getByLabelText("有效期起点"), {
-            target: { value: "2026-01-01T10:00" },
-        })
-        fireEvent.change(screen.getByLabelText("有效期终点"), {
-            target: { value: "2026-02-01T10:00" },
-        })
+        const validFrom = await fillDateTime(user, "有效期起点", START_DAY, START_TIME)
+        await fillDateTime(user, "有效期终点", END_DAY, START_TIME)
 
         await user.click(screen.getByRole("button", { name: "创建" }))
 
@@ -84,12 +139,12 @@ describe("CouponFormDialog", () => {
             totalQuantity: 50,
         })
         // 本地 10:00 是同一个瞬间，但必须以带时区的 ISO 发给 OffsetDateTime
-        const validFrom =
+        const sentFrom =
             typeof body === "object" && body !== null && "validFrom" in body
                 ? body.validFrom
                 : undefined
-        expect(Date.parse(String(validFrom))).toBe(Date.parse("2026-01-01T10:00"))
-        expect(String(validFrom)).toMatch(/Z$/)
+        expect(Date.parse(String(sentFrom))).toBe(validFrom.getTime())
+        expect(String(sentFrom)).toMatch(/Z$/)
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     })
 
@@ -116,12 +171,8 @@ describe("CouponFormDialog", () => {
 
         await user.type(await screen.findByLabelText("券名"), "无门槛券")
         await user.type(screen.getByLabelText("面额（元）"), "10")
-        fireEvent.change(screen.getByLabelText("有效期起点"), {
-            target: { value: "2026-01-01T10:00" },
-        })
-        fireEvent.change(screen.getByLabelText("有效期终点"), {
-            target: { value: "2026-02-01T10:00" },
-        })
+        await fillDateTime(user, "有效期起点", START_DAY, START_TIME)
+        await fillDateTime(user, "有效期终点", END_DAY, START_TIME)
         await user.click(screen.getByRole("button", { name: "创建" }))
 
         await waitFor(() => expect(body).toBeDefined())
@@ -151,12 +202,8 @@ describe("CouponFormDialog", () => {
         await user.clear(threshold)
         await user.type(threshold, "10")
         await user.type(screen.getByLabelText("面额（元）"), "20")
-        fireEvent.change(screen.getByLabelText("有效期起点"), {
-            target: { value: "2026-01-01T10:00" },
-        })
-        fireEvent.change(screen.getByLabelText("有效期终点"), {
-            target: { value: "2026-02-01T10:00" },
-        })
+        await fillDateTime(user, "有效期起点", START_DAY, START_TIME)
+        await fillDateTime(user, "有效期终点", END_DAY, START_TIME)
         await user.click(screen.getByRole("button", { name: "创建" }))
 
         expect(await screen.findByText("面额不能超过使用门槛，请检查是否填反")).toBeInTheDocument()
