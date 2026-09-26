@@ -7,17 +7,39 @@
     //     经 ui-web 的 barrel 引用（fallow 能追踪到），但目录内的其余文件（分栏、页脚、i18n
     //     等子模块）只被同目录内部引用，从入口看仍是不可达——那是组件库按模块拆分的常态，
     //     不是死代码。逐个文件挂 fallow-ignore-file 反而会把 vendored 文件改得面目全非。
+    //   ui-web 的 examples/**    —— registry 自带的用法演示，非生产代码，保留作参考；
+    //     同样不参与死代码判定。
     "ignoreFindings": [
         "packages/api/src/sdk/**",
-        "packages/ui-web/src/components/reui/**"
+        "packages/ui-web/src/components/reui/**",
+        "packages/ui-web/src/components/examples/**"
     ],
     "ignoreDependencies": ["oxc-transform-react"],
     // 单测从模块边界测内部 helper，故「仅本文件内被引用」的导出不算死代码；彻底无引用仍会报
     "ignoreExportsUsedInFile": true,
     "entry": ["packages/api/openapi-ts.config.ts"],
-    // 生成物与造数脚本不进重构/重复的判据：ignoreFindings 只覆盖死代码，health 与 dupes 要各自排
-    "health": { "ignore": ["packages/api/src/sdk/**", "**/*.gen.ts", "scripts/**"] },
-    "duplicates": { "ignore": ["packages/api/src/sdk/**", "**/*.gen.ts", "scripts/**"] },
+    // 生成物与造数脚本不进重构/重复的判据：ignoreFindings 只覆盖死代码，health 与 dupes 要各自排。
+    // 第三方 vendored 组件（ui-web 的 reui/** 与 examples/**）同理：它们带来成百的复杂度与
+    // 重复克隆，但那些代码不是我们写的，也不打算重构——重构 vendored 代码会彻底断掉与上游的
+    // diff 能力。它们仍被 tsc（strict + noUncheckedIndexedAccess）与 lint 的项目级规则检查。
+    "health": {
+        "ignore": [
+            "packages/api/src/sdk/**",
+            "**/*.gen.ts",
+            "scripts/**",
+            "packages/ui-web/src/components/reui/**",
+            "packages/ui-web/src/components/examples/**"
+        ]
+    },
+    "duplicates": {
+        "ignore": [
+            "packages/api/src/sdk/**",
+            "**/*.gen.ts",
+            "scripts/**",
+            "packages/ui-web/src/components/reui/**",
+            "packages/ui-web/src/components/examples/**"
+        ]
+    },
     // frontend.md:17 的依赖方向：routes → domain → shared。跨域只能取对方 index.ts，
     // 所以 barrel 自成一个 zone；直插对方 queries.ts / model.ts 会成 boundary-violation
     "boundaries": {

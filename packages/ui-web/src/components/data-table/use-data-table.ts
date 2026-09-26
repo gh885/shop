@@ -2,7 +2,11 @@
 
 import { useTable, type RowData, type TableOptions } from "@tanstack/react-table"
 
-import { dataTableFeatures, type DataTableFeatures } from "./data-table-features"
+import {
+    dataTableFeatures,
+    withReuiColumnMeta,
+    type DataTableFeatures,
+} from "./data-table-features"
 
 type UseDataTableOptions<TData extends RowData> = Omit<
     TableOptions<DataTableFeatures, TData>,
@@ -22,6 +26,8 @@ export function useDataTable<TData extends RowData>(options: UseDataTableOptions
     const table = useTable({
         enableRowSelection: false,
         ...options,
+        // 列 meta 在建表前归一成 reui 读的那两个字段（见 data-table-features）
+        columns: withReuiColumnMeta(options.columns),
         features: dataTableFeatures,
     })
 

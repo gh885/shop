@@ -5,10 +5,10 @@
 
 装进来是为了替换两处手写实现；现已全部接入：
 
-| 原手写实现 | 消费点 | 接入后的组件 | reui 模式 |
-| --- | --- | --- | --- |
-| `region-picker.tsx`（单选，240 行 tab 逐层） | web 收货地址、seller 商家地址（经 app-kit `RegionField`） | 本目录 cascader | `columns` + `searchScope="deep"` |
-| `apps/seller/.../RegionMultiPicker.tsx`（多选，306 行手搓） | seller 运费模板地区规则 | 本目录 cascader | `tree` + `multiple` + `cascade` |
+| 原手写实现                                                  | 消费点                                                    | 接入后的组件    | reui 模式                        |
+| ----------------------------------------------------------- | --------------------------------------------------------- | --------------- | -------------------------------- |
+| `region-picker.tsx`（单选，240 行 tab 逐层）                | web 收货地址、seller 商家地址（经 app-kit `RegionField`） | 本目录 cascader | `columns` + `searchScope="deep"` |
+| `apps/seller/.../RegionMultiPicker.tsx`（多选，306 行手搓） | seller 运费模板地区规则                                   | 本目录 cascader | `tree` + `multiple` + `cascade`  |
 
 数据归一（直筒子市合成 6 位叶子、9 位街道码不进树）在 `@shop/common` 的 `regions.ts`
 （`loadRegionCascaderTree`），不在本目录；本目录只负责渲染。
@@ -27,10 +27,10 @@
 对上游做了下列改动，**全部是编译/类型层面的机械修复，零行为变化**；重新安装/升级前先对照这里：
 
 - `cascader.tsx`、`cascader-lib.tsx`、`cascader-columns.tsx`：
-  - `process.env.NODE_ENV` → `import.meta.env.DEV`（本项目用 Vite，`apps/*` 与 `packages/common`
-    也一律用 `import.meta.env.DEV`；浏览器侧没有 `process`）。共 11 处。
-  - `noUncheckedIndexedAccess` 引起的取值判空（`stops[i]` / `nodes[i]` / `path[path.length-1]`
-    等改成先取值再判空或 `.at()`），不改任何控制流。
+    - `process.env.NODE_ENV` → `import.meta.env.DEV`（本项目用 Vite，`apps/*` 与 `packages/common`
+      也一律用 `import.meta.env.DEV`；浏览器侧没有 `process`）。共 11 处。
+    - `noUncheckedIndexedAccess` 引起的取值判空（`stops[i]` / `nodes[i]` / `path[path.length-1]`
+      等改成先取值再判空或 `.at()`），不改任何控制流。
 - `cascader-nav.tsx`：`segments` 在 `display="leaf"` 分支的 `leaf` 判空（类型收窄用，非新增分支）。
 
 配置侧（不在本目录，但同属「让 vendored 落地」的改动）：
@@ -43,6 +43,71 @@
 - `packages/config/oxlint.config.ts`：`reui/**` 豁免面向第一方 UI 的 a11y / 样式规则
   （逐条理由见该文件注释）；正确性仍由 tsc 全程把关。
 - `.fallowrc.json`：`reui/**` 豁免死代码判定（vendored 代码按第三方处理）。
+
+## data-grid（第三方数据表格）
+
+同一来源（reui.io registry）的第二个组件，12 个文件 ~10k 行，基于 **TanStack Table v9**
+（与项目现有 `dataTableFeatures` 同一代底座；reui 的 `dataGridFeatures` 是它的超集，多了
+ordering/pinning/sizing/resizing/expanding/cellSelection）。用于替掉/升级
+`packages/ui-web/src/components/data-table/`（528 行）。
+
+**关键性质（决定了怎么接）**：
+
+- `DataGrid` 只吃 `{ table, tableLayout, children }` —— 吃你给的 table 实例，**不接管取数**，
+  分页仍由 TanStack Query 管（项目规约）。
+- `tableLayout` 里 `columnsResizable / columnsDraggable / cellSelection / rowsPinnable` 等
+  **默认全 false**，能力按需开启；引入它不会平白多出电子表格行为。
+- `data-grid-cell-selection.tsx`（2600 行，电子表格级）只被自己引用，是**可选叶子模块**，
+  本项目不开 `cellSelection`，故不接（保留在目录里，bundler 会 tree-shake）。
+
+**本地改动清单**（与上游的差异，零行为变化）：
+
+- `data-grid-cell-selection.tsx`：一个 `arr[i]` 在 `noUncheckedIndexedAccess` 下的判空
+  （`let` 自增变量类型收窄跨不过去，改成先取值再判断）。
+- `data-grid-table.tsx` / `-virtual` / `-dnd` / `-dnd-rows`：删掉未用的类型/值 import；
+  `DataGridTableBodyRowSkeleton` 不再解构未用的 `table`；`DataGridTableHeadRow` 保留
+  `rowId` 形参类型但不取用。
+- `data-grid-table.tsx`：`DataGridTable` / `DataGridTableHeader` 的公开泛型 `TData` 内部不引用，
+  加了 no-op 类型引用避免 TS6196（公开签名的一部分，调用点靠它标注）。
+- `examples/c-data-grid-6.tsx`：`import type` 修正；示例里的 `href="#"` 改为 `<span>`
+  （空 href 链接对读屏是噪声），`mailto:` 先收窄类型。
+
+## phone-input（已评估，未采用）
+
+reui 的 `phone-input`（229 行）装在 `reui/phone-input.ts`，但**没有接进登录表单**——它是给
+「国际 E.164 + 国家下拉」设计的：自带 outline 皮肤的国旗触发器，而本项目手机号只收
+**裸 11 位**（`/^1[3-9]\d{9}$/`，后端 @Pattern 写进 OpenAPI），登录表单是 filled 皮肤 +
+固定 `+86` 前缀。两处形态都不合，接上去反而要把 E.164 剥成裸号、多一层无用交互。
+
+真正有价值的是它背后的号码元数据，已被 `packages/ui-web/src/components/phone-field.tsx`
+以「只用 `react-phone-number-input/min`（无 UI 依赖）做实时有效性」的方式吸收：表单仍是
+InputGroup filled + 静态 +86，值仍是裸 11 位，号码规则变化不必改正则。
+
+一个实测发现：号码库的 CN 校验**比项目契约宽**——`1x` 开头基本都放行，不强制 `1[3-9]`。
+所以「1[3-9]」这条硬规则仍由 `PhoneSchema` 把关，`PhoneField` 的实时校验只补位数/号段
+元数据这一层。文件保留在 `reui/phone-input.ts`（未接线的 vendored 代码），升级/重装时
+一并覆盖。
+
+- `packages/common/src/shared-vocabulary.test.ts`：EXCLUDED 排除 `components/{reui,examples}/` ——
+  第三方组件的内部行为（如表格自己的剪贴板）不归「同一概念只许一个出口」约束。
+
+**已接线**（方案 A：换渲染器）。三个设计决定：
+
+1. **列 meta 双轨**：列定义写的是项目形状 `{variant, className}`（列语义 strong/muted +
+   表头与单元格共用的 class），reui 读的是 `{headerClassName, cellClassName}`。两者是
+   feature slot 里不同的类型（`declare module` 增强也到不了 `metaHelper`），所以
+   `data-table-features.ts` 铺开 reui 的 feature 注册、只覆写 `columnMeta` 为项目形状
+   —— 14 处列定义与 51 个调用点零改动。
+2. **归一在建表前**（`useDataTable` → `withReuiColumnMeta`），不是建表后改表实例：reui 的
+   `DataGridTable` 读列走 `getStart/Center/RightVisibleLeafColumns()`，建表后再改列访问器
+   改不动。
+3. **取数不接管**：`DataGrid` 只收 `{table, recordCount, tableLayout}`，分页/排序/筛选仍由
+   TanStack Query 管（列上开 `manual*`）；`recordCount` 传**已加载行数**（仅用于
+   `aria-rowcount` 的下标上界，“新增行”入口不启用）；空态用 `emptyMessage` 传中文。
+   **不引** `data-grid-pagination` / `column-filter` / `column-visibility`。
+
+回归由 `data-table.test.tsx` 钉住：行渲染（表实例未被浅拷贝成死快照）、`variant`/`className`
+落到表头与单元格、空态文案。
 
 ## 接入方式
 

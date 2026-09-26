@@ -8,10 +8,9 @@ import {
     FieldError,
     FormError,
     InputGroup,
-    InputGroupAddon,
     InputGroupButton,
     InputGroupInput,
-    InputGroupText,
+    PhoneField,
     Skeleton,
     Spinner,
     useAppForm,
@@ -20,7 +19,6 @@ import {
 import { notify } from "./notify"
 import {
     CAPTCHA_CODE_DIGITS,
-    PHONE_DIGITS,
     PHONE_PATTERN,
     PasswordFormSchema,
     SMS_CODE_DIGITS,
@@ -263,33 +261,19 @@ export function LoginForm({
                 </TabButton>
             </div>
 
-            {/* 手机号 */}
+            {/* 手机号：项目的 PhoneField（filled 皮肤 + 固定 +86 前缀，号码元数据做实时校验）。
+                值仍是裸 11 位，与契约（/^1[3-9]\d{9}$/）一致，不引入 reui 的国际 E.164
+                形态与国旗触发器。 */}
             <form.AppField name="phone">
                 {(field) => (
                     <Field>
-                        <InputGroup
-                            size="lg"
-                            variant="filled"
-                        >
-                            <InputGroupAddon align="inline-start">
-                                <InputGroupText className="px-3.5 tabular-nums">+86</InputGroupText>
-                            </InputGroupAddon>
-                            <InputGroupInput
-                                id="login-phone"
-                                aria-label="手机号"
-                                aria-invalid={!field.state.meta.isValid}
-                                className="tabular-nums"
-                                placeholder="11 位手机号"
-                                inputMode="tel"
-                                autoComplete="tel"
-                                maxLength={PHONE_DIGITS}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                onChange={(e) =>
-                                    field.handleChange(e.target.value.replaceAll(/\D/g, ""))
-                                }
-                            />
-                        </InputGroup>
+                        <PhoneField
+                            id="login-phone"
+                            value={field.state.value}
+                            onChange={field.handleChange}
+                            onBlur={field.handleBlur}
+                            invalid={!field.state.meta.isValid}
+                        />
                         <FieldError errors={field.state.meta.errors} />
                     </Field>
                 )}

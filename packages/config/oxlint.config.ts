@@ -388,8 +388,24 @@ export default defineConfig({
             // shadcn/no-raw-colors：reui 组件内部的自有配色（badge 的 focus 系变体等）。
             //   设计系统的 token 纪律管的是实际发布的 UI；第三方组件的内部配色改它就是 fork。
             //
+            // 以下几条是这批 data-grid 代码实测逐条核过的「不是缺陷」：
+            // - react-hooks/exhaustive-deps：全是**有意的**依赖选择，不是漏写。
+            //     data-grid.tsx 的 autoSize 刻意以 table.store 为 key 而非 table（v9 里
+            //     store 终身稳定、table 每次状态变更都重建；改回 table 会在拖拽中途重置
+            //     applied-once 记账，真引入 bug）；虚拟化的无限滚动 effect 依赖每次滚动都变的
+            //     virtualItems 正是触发条件本身，且有 fetchMoreFiredAtCountRef 去重。
+            //     列头的 useMemo 是纯渲染优化，陈旧也只多渲染一次、不会算错。
+            // - oxc/const-comparisons：`icon && icon`，React 惯用的条件渲染写法，误报。
+            // - typescript/no-base-to-string：`String(value ?? "")` 是单元格无 format 时的
+            //     有意回退（value 类型为 unknown），不是误 stringify。
+            // - unicorn/no-useless-fallback-in-spread：`...(props.x || {})` 防御性合并。
+            // - jsx-a11y/no-autofocus：单元格编辑器浮层打开即聚焦是功能本身，去掉即坏。
+            //
             // 正确性仍由 tsc（strict + noUncheckedIndexedAccess）全程把关。
-            files: ["**/packages/ui-web/src/components/reui/**/*"],
+            files: [
+                "**/packages/ui-web/src/components/reui/**/*",
+                "**/packages/ui-web/src/components/examples/**/*",
+            ],
             rules: {
                 "typescript/no-unnecessary-condition": "off",
                 "jsx-a11y/prefer-tag-over-role": "off",
@@ -397,8 +413,13 @@ export default defineConfig({
                 "jsx-a11y/click-events-have-key-events": "off",
                 "jsx-a11y/no-static-element-interactions": "off",
                 "jsx-a11y/aria-role": "off",
+                "jsx-a11y/no-autofocus": "off",
                 "shadcn/no-inline-styles": "off",
                 "shadcn/no-raw-colors": "off",
+                "react-hooks/exhaustive-deps": "off",
+                "oxc/const-comparisons": "off",
+                "typescript/no-base-to-string": "off",
+                "unicorn/no-useless-fallback-in-spread": "off",
             },
         },
         {
