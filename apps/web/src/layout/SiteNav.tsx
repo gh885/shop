@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
+import { useT } from "@shop/app-kit"
 import { ChevronDown } from "lucide-react"
 
 import {
@@ -101,6 +102,54 @@ const SITE_NAV_ITEMS: SiteNavItem[] = [
     },
 ]
 
+const NAV_LABEL_KEYS: Record<string, string> = {
+    首页: "web.nav.home",
+    商品分类: "web.nav.category",
+    服饰鞋包: "web.nav.apparel",
+    女装: "web.nav.women",
+    男装: "web.nav.men",
+    鞋靴: "web.nav.shoes",
+    箱包: "web.nav.bags",
+    数码家电: "web.nav.digital",
+    手机: "web.nav.phones",
+    电脑办公: "web.nav.computers",
+    家用电器: "web.nav.appliances",
+    美妆个护: "web.nav.beauty",
+    护肤: "web.nav.skincare",
+    彩妆: "web.nav.makeup",
+    个人护理: "web.nav.personalCare",
+    家居家装: "web.nav.homeCategory",
+    家具: "web.nav.furniture",
+    家纺: "web.nav.textiles",
+    厨具: "web.nav.kitchen",
+    食品生鲜: "web.nav.food",
+    休闲零食: "web.nav.snacks",
+    生鲜果蔬: "web.nav.fresh",
+    酒水饮料: "web.nav.drinks",
+    母婴玩具: "web.nav.baby",
+    奶粉辅食: "web.nav.formula",
+    纸尿裤: "web.nav.diapers",
+    玩具: "web.nav.toys",
+    开店入驻: "web.nav.sell",
+    我要开店: "web.nav.openShop",
+    卖家中心: "web.nav.sellerCenter",
+}
+
+function translateNavItems(items: SiteNavItem[], t: (key: string) => string): SiteNavItem[] {
+    return items.map((item) => ({
+        ...item,
+        label: t(NAV_LABEL_KEYS[item.label] ?? item.label),
+        children: item.children?.map((child) => ({
+            ...child,
+            label: t(NAV_LABEL_KEYS[child.label] ?? child.label),
+            children: child.children?.map((leaf) => ({
+                ...leaf,
+                label: t(NAV_LABEL_KEYS[leaf.label] ?? leaf.label),
+            })),
+        })),
+    }))
+}
+
 const navItemClass =
     "flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-popup-open:text-foreground data-active:text-foreground data-active:font-semibold"
 
@@ -135,6 +184,8 @@ function NavLink({
 
 /** 顶部主导航：数据驱动，一级项 hover 展开下拉，下拉项带 children 时右弹二级 */
 export function SiteNav({ items = SITE_NAV_ITEMS }: { items?: SiteNavItem[] }) {
+    const t = useT()
+    const translatedItems = React.useMemo(() => translateNavItems(items, t), [items, t])
     // 当前路径用于高亮激活项：直达项精确/前缀匹配，下拉组看任一子项是否命中
     const pathname = useRouterState({ select: (s) => s.location.pathname })
     const isChildActive = (item: SiteNavItem) =>
@@ -142,7 +193,8 @@ export function SiteNav({ items = SITE_NAV_ITEMS }: { items?: SiteNavItem[] }) {
 
     return (
         <nav className="flex items-center gap-1">
-            {items.map((item) =>
+            {/* fallow-ignore-next-line complexity */}
+            {translatedItems.map((item) =>
                 item.children?.length ? (
                     <DropdownMenu
                         key={item.label}

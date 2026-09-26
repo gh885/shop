@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { APP_KIT_MESSAGES, I18nProvider } from "./i18n"
 import { LoginForm, type LoginFormProps } from "./login-form"
 
 /**
@@ -14,12 +15,17 @@ const captchaOk = async () => ({ captchaId: "c1", image: "data:image/png;base64,
 
 async function fillAndSendCode(sendCode: LoginFormProps["sendCode"]) {
     render(
-        <LoginForm
-            getCaptcha={captchaOk}
-            sendCode={sendCode}
-            submit={vi.fn<LoginFormProps["submit"]>()}
-            onSuccess={vi.fn<() => void>()}
-        />,
+        <I18nProvider
+            resources={APP_KIT_MESSAGES}
+            initialLocale="zh-CN"
+        >
+            <LoginForm
+                getCaptcha={captchaOk}
+                sendCode={sendCode}
+                submit={vi.fn<LoginFormProps["submit"]>()}
+                onSuccess={vi.fn<() => void>()}
+            />
+        </I18nProvider>,
     )
     fireEvent.change(screen.getByLabelText("手机号"), { target: { value: "13800138000" } })
     fireEvent.change(screen.getByLabelText("图形验证码"), { target: { value: "AB12" } })

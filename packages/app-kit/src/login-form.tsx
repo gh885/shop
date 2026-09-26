@@ -16,6 +16,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
+import { useT } from "./i18n"
 import { notify } from "./notify"
 import {
     CAPTCHA_CODE_DIGITS,
@@ -98,6 +99,7 @@ type LoginUiAction =
     /** 重新输入短信验证码：只清发码类错误（抖动随之消失） */
     | { type: "dismissCodeError" }
 
+// fallow-ignore-next-line complexity
 function loginUiReducer(state: LoginUiState, action: LoginUiAction): LoginUiState {
     switch (action.type) {
         case "switchTab":
@@ -133,6 +135,7 @@ export function LoginForm({
     active = true,
     footer,
 }: LoginFormProps) {
+    const t = useT()
     const [ui, dispatch] = useReducer(loginUiReducer, {
         tab: "sms",
         submitFailCount: 0,
@@ -165,7 +168,7 @@ export function LoginForm({
                 form.reset()
                 dispatch({ type: "submitSucceeded" })
                 setCountdown(0)
-                notify.success("登录成功", "欢迎回来")
+                notify.success(t("appKit.login.successTitle"), t("appKit.login.successDescription"))
                 onSuccess()
             } catch (error) {
                 dispatch({ type: "submitFailed", error: toApiError(error) })
@@ -198,7 +201,7 @@ export function LoginForm({
             .then(() => {
                 dispatch({ type: "sendCodeSucceeded" })
                 setCountdown(60)
-                notify.success("验证码已发送")
+                notify.success(t("appKit.login.codeSent"))
                 // 验证码 token 一次性：发码成功即换新图，下次发码需重新人机验证
                 resetCaptcha()
                 form.setFieldValue("captchaCode", "")
@@ -251,13 +254,13 @@ export function LoginForm({
                     active={tab === "sms"}
                     onClick={() => switchTab("sms")}
                 >
-                    验证码登录
+                    {t("appKit.login.smsTab")}
                 </TabButton>
                 <TabButton
                     active={tab === "password"}
                     onClick={() => switchTab("password")}
                 >
-                    密码登录
+                    {t("appKit.login.passwordTab")}
                 </TabButton>
             </div>
 
@@ -291,11 +294,11 @@ export function LoginForm({
                             >
                                 <InputGroupInput
                                     id="login-captchaCode"
-                                    aria-label="图形验证码"
+                                    aria-label={t("appKit.login.captchaLabel")}
                                     aria-invalid={!field.state.meta.isValid}
                                     variant="code"
                                     className="px-3.5"
-                                    placeholder="输入右图 4 位字符"
+                                    placeholder={t("appKit.login.captchaPlaceholder")}
                                     autoComplete="off"
                                     maxLength={CAPTCHA_CODE_DIGITS}
                                     value={field.state.value}
@@ -309,21 +312,21 @@ export function LoginForm({
                                 {/* 验证码图：点击刷新；加载/无图时占位 */}
                                 <button
                                     type="button"
-                                    aria-label="刷新图形验证码"
+                                    aria-label={t("appKit.login.captchaRefresh")}
                                     onClick={() => void refreshCaptcha()}
                                     className="shrink-0 self-stretch border-l border-border/60"
                                 >
                                     {captcha.image ? (
                                         <img
                                             src={captcha.image}
-                                            alt="图形验证码"
+                                            alt={t("appKit.login.captchaAlt")}
                                             className="h-full w-24 rounded-r-xl"
                                         />
                                     ) : captcha.loading ? (
                                         <Skeleton className="h-full w-24" />
                                     ) : (
                                         <span className="flex h-full w-24 items-center justify-center text-xs text-muted-foreground">
-                                            点击获取
+                                            {t("appKit.login.captchaClick")}
                                         </span>
                                     )}
                                 </button>
@@ -346,11 +349,11 @@ export function LoginForm({
                             >
                                 <InputGroupInput
                                     id="login-code"
-                                    aria-label="短信验证码"
+                                    aria-label={t("appKit.login.smsCodeLabel")}
                                     aria-invalid={!field.state.meta.isValid}
                                     variant="code"
                                     className="px-3.5 tabular-nums"
-                                    placeholder="请输入验证码"
+                                    placeholder={t("appKit.login.smsCodePlaceholder")}
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
                                     maxLength={SMS_CODE_DIGITS}
@@ -384,12 +387,12 @@ export function LoginForm({
                                         >
                                             {countdown > 0 ? (
                                                 <span className="tabular-nums">
-                                                    {countdown}s 后重发
+                                                    {t("appKit.login.resend", { countdown })}
                                                 </span>
                                             ) : sendingCode ? (
                                                 <Spinner />
                                             ) : (
-                                                "获取验证码"
+                                                t("appKit.login.sendCode")
                                             )}
                                         </InputGroupButton>
                                     )}
@@ -409,10 +412,10 @@ export function LoginForm({
                             >
                                 <InputGroupInput
                                     id="login-password"
-                                    aria-label="密码"
+                                    aria-label={t("appKit.login.passwordLabel")}
                                     aria-invalid={!field.state.meta.isValid}
                                     type="password"
-                                    placeholder="请输入密码"
+                                    placeholder={t("appKit.login.passwordPlaceholder")}
                                     autoComplete="current-password"
                                     value={field.state.value}
                                     onBlur={field.handleBlur}
@@ -443,7 +446,8 @@ export function LoginForm({
                         className="h-11 w-full"
                         disabled={isSubmitting}
                     >
-                        {isSubmitting && <Spinner />}登录
+                        {isSubmitting && <Spinner />}
+                        {t("appKit.login.submit")}
                     </Button>
                 )}
             </form.Subscribe>

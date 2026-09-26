@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { WorkbenchAccount } from "@shop/app-kit"
+import { useT, WorkbenchAccount } from "@shop/app-kit"
 import { Button, Spinner } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 import { AdminAuthApi } from "@shop/api/sdk"
@@ -9,6 +9,7 @@ import { useClearMe, useMe } from "../shared/lib/me"
 
 /** 管理员身份与会话逻辑留在本端，账号呈现复用工作台组件。 */
 export function Account() {
+    const t = useT()
     const navigate = useNavigate()
     const { data: me } = useMe()
     const clearMe = useClearMe()
@@ -27,7 +28,7 @@ export function Account() {
     return (
         <WorkbenchAccount
             name={me?.displayName ?? "—"}
-            description={me?.employeeNo ?? "管理员账号"}
+            description={me?.employeeNo ?? t("admin.account.description")}
             logoutAction={
                 <Button
                     variant="ghost"
@@ -35,7 +36,7 @@ export function Account() {
                     disabled={logout.isPending}
                     onClick={() => logout.mutate()}
                 >
-                    退出登录
+                    {t("admin.account.logout")}
                     {logout.isPending ? <Spinner /> : <LogOutIcon />}
                 </Button>
             }

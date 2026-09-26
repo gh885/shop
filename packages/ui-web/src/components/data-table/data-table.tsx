@@ -55,12 +55,50 @@ const dataGridZhI18n: DataGridI18nOverrides = {
     },
 }
 
+const dataGridEnI18n: DataGridI18nOverrides = {
+    labels: {
+        sortAscending: "Sort ascending",
+        sortDescending: "Sort descending",
+        columnsMenu: "Columns",
+        toggleColumns: "Toggle columns",
+        pinColumnStart: "Pin to start",
+        pinColumnEnd: "Pin to end",
+        moveColumnStart: "Move to start",
+        moveColumnEnd: "Move to end",
+        unpinColumn: (title) => `Unpin ${title} column`,
+        rowCreate: "Add row",
+        pinRow: "Pin row",
+        unpinRow: "Unpin row",
+        selectRow: "Select row",
+        selectAll: "Select all",
+        expandRow: "Expand",
+        collapseRow: "Collapse",
+        dragToReorder: "Drag to reorder",
+        dragToReorderRow: "Drag to reorder row",
+        reorderingUnavailable: "Reordering unavailable",
+        loading: "Loading list",
+        empty: "No data",
+        allRowsLoaded: "All rows loaded",
+        rowsPerPage: "Rows per page",
+        paginationInfo: ({ from, to, count }) => `${from}-${to} of ${count}`,
+        previousPage: "Previous page",
+        nextPage: "Next page",
+        goToPage: (page) => `Go to page ${page}`,
+        paginationEllipsis: "…",
+        filterSelectedCount: (count) => `${count} selected`,
+        filterNoResults: "No results",
+        filterClear: "Clear filter",
+    },
+}
+
 type DataTableProps<TData extends RowData> = {
     table: ReactTable<DataTableFeatures, TData>
     /** 空态文案/节点，默认「暂无数据」；会包进 Empty（DESIGN.md §8） */
     emptyContent?: ReactNode
     /** 列表段内容：工具栏 + 骨架或表卡。两者都是 DOM 兄弟，间距仍由调用点的 space-y 管 */
     children?: ReactNode
+    /** 当前语言；不传时从 html lang 推导，保证语言切换后已挂载表格能跟随重渲染 */
+    locale?: "zh-CN" | "en-US"
 }
 
 /**
@@ -81,9 +119,14 @@ type DataTableProps<TData extends RowData> = {
  */
 export function DataTable<TData extends RowData>({
     table,
-    emptyContent = "暂无数据",
+    emptyContent,
     children,
+    locale,
 }: DataTableProps<TData>) {
+    const resolvedLocale = locale ?? "zh-CN"
+    const i18n = resolvedLocale === "en-US" ? dataGridEnI18n : dataGridZhI18n
+    const resolvedEmptyContent =
+        emptyContent ?? (resolvedLocale === "en-US" ? "No data" : "暂无数据")
     return (
         <DataGrid
             table={asDataGridTable(table)}
@@ -91,11 +134,11 @@ export function DataTable<TData extends RowData>({
             emptyMessage={
                 <Empty className="py-4">
                     <EmptyHeader>
-                        <EmptyTitle>{emptyContent}</EmptyTitle>
+                        <EmptyTitle>{resolvedEmptyContent}</EmptyTitle>
                     </EmptyHeader>
                 </Empty>
             }
-            i18n={dataGridZhI18n}
+            i18n={i18n}
         >
             {children}
         </DataGrid>
@@ -120,7 +163,7 @@ export function DataTableCard({ className }: { className?: string }) {
 export function DataTableSkeleton({ columns = 5, rows = 5 }: { columns?: number; rows?: number }) {
     return (
         <TableShell>
-            <output className="sr-only">正在加载列表</output>
+            <output className="sr-only">Loading list</output>
             <table className="w-full caption-bottom text-sm">
                 <tbody>
                     {Array.from({ length: rows }, (_, row) => (

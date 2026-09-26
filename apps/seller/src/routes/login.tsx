@@ -2,7 +2,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { Store } from "lucide-react"
 
 import { AuthApi } from "@shop/api/sdk"
-import { LoginForm } from "@shop/app-kit"
+import { LoginForm, useT } from "@shop/app-kit"
 import { Card, CardContent } from "@shop/ui-web"
 
 import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
@@ -31,6 +31,7 @@ const getCaptcha = () => AuthApi.getCaptcha()
  * 表单交互一律在 LoginForm 里，这里只装配 seller 的 SDK 动作与登录后的跳转。
  */
 function LoginPage() {
+    const t = useT()
     const navigate = useNavigate()
 
     return (
@@ -41,7 +42,9 @@ function LoginPage() {
                         <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                             <Store className="size-5" />
                         </div>
-                        <h1 className="text-lg font-semibold tracking-tight">登录卖家中心</h1>
+                        <h1 className="text-lg font-semibold tracking-tight">
+                            {t("seller.login.title")}
+                        </h1>
                     </div>
 
                     <LoginForm

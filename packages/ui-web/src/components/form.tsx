@@ -1,6 +1,7 @@
 import * as React from "react"
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form"
 import { format, isValid, parseISO, startOfToday } from "date-fns"
+import { enUS } from "date-fns/locale/en-US"
 import { zhCN } from "date-fns/locale/zh-CN"
 import { CalendarIcon, CircleAlert } from "lucide-react"
 
@@ -223,15 +224,25 @@ function parseWallClock(value: string): Date | undefined {
  * 以及「留空」这个真实业务态（定时上线留空 = 立即生效）有一个明确的清除入口。
  * 值仍是 `WALL_CLOCK` 字符串，所以契约转换与既有测试给的确定值都不用改形状。
  */
+// fallow-ignore-next-line complexity
 function DateTimeField({
     label,
     required,
     orientation,
     hint,
     className,
-    placeholder = "选择日期时间",
-}: FieldProps & { placeholder?: string }) {
+    placeholder,
+    locale,
+}: FieldProps & { placeholder?: string; locale?: "zh-CN" | "en-US" }) {
     const field = useFieldContext<string>()
+    const resolvedLocale = locale ?? "zh-CN"
+    const dateLocale = resolvedLocale === "en-US" ? enUS : zhCN
+    const resolvedPlaceholder =
+        placeholder ?? (resolvedLocale === "en-US" ? "Choose date and time" : "选择日期时间")
+    const clearText = resolvedLocale === "en-US" ? "Clear" : "清除"
+    const doneText = resolvedLocale === "en-US" ? "Done" : "完成"
+    const timeLabel =
+        resolvedLocale === "en-US" ? `${label ?? "This field"} time` : `${label ?? "该字段"}的时分`
     const id = React.useId()
     const [open, setOpen] = React.useState(false)
     const selected = parseWallClock(field.state.value)
@@ -282,7 +293,14 @@ function DateTimeField({
                             !selected && "text-muted-foreground",
                         )}
                     >
-                        {selected ? format(selected, "yyyy-MM-dd HH:mm") : placeholder}
+                        {selected
+                            ? format(
+                                  selected,
+                                  resolvedLocale === "en-US"
+                                      ? "MMM d, yyyy, h:mm a"
+                                      : "yyyy-MM-dd HH:mm",
+                              )
+                            : resolvedPlaceholder}
                     </span>
                     <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
                 </PopoverTrigger>
@@ -291,7 +309,7 @@ function DateTimeField({
                     className="w-auto gap-3"
                 >
                     <Calendar
-                        locale={zhCN}
+                        locale={dateLocale}
                         mode="single"
                         month={month}
                         onMonthChange={setMonth}
@@ -300,7 +318,7 @@ function DateTimeField({
                     />
                     <div className="flex items-center gap-2">
                         <Input
-                            aria-label={`${label ?? "该字段"}的时分`}
+                            aria-label={timeLabel}
                             className="flex-1"
                             onBlur={field.handleBlur}
                             onChange={(e) => commit(selected ?? startOfToday(), e.target.value)}
@@ -317,14 +335,14 @@ function DateTimeField({
                                 setOpen(false)
                             }}
                         >
-                            清除
+                            {clearText}
                         </Button>
                         <Button
                             size="sm"
                             type="button"
                             onClick={() => setOpen(false)}
                         >
-                            完成
+                            {doneText}
                         </Button>
                     </div>
                 </PopoverContent>

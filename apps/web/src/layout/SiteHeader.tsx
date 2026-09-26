@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router"
+import { useT } from "@shop/app-kit"
 import { LogOut, ShoppingCart, UserRound } from "lucide-react"
 
 import {
@@ -25,7 +26,9 @@ import { useAuthStatus, useLoginDialogOpen } from "#/shared/api/auth"
 import { SiteNav } from "./SiteNav"
 
 /** 站点头部：京东式顶部灰条，不吸顶。仅保留导航 + 登录态，品牌 logo 由首页第一层承载 */
+// fallow-ignore-next-line complexity
 export function SiteHeader() {
+    const t = useT()
     const status = useAuthStatus()
     const [, setLoginOpen] = useLoginDialogOpen()
     const cartCount = useCartCount()
@@ -33,7 +36,7 @@ export function SiteHeader() {
     return (
         <header className="border-b border-border/60 bg-sunken/60">
             <div className="mx-auto flex h-9 max-w-page items-center gap-6 px-6">
-                <span className="text-xs text-muted-foreground">中国大陆站</span>
+                <span className="text-xs text-muted-foreground">{t("web.header.region")}</span>
 
                 <SiteNav />
 
@@ -41,7 +44,7 @@ export function SiteHeader() {
                     {/* 购物车入口：已登录显示角标计数，点击跳转到购物车页 */}
                     <Link
                         to="/cart"
-                        aria-label="购物车"
+                        aria-label={t("web.header.cart")}
                         className={cn(
                             buttonVariants({
                                 variant: "ghost",
@@ -68,7 +71,7 @@ export function SiteHeader() {
                             size="sm"
                             onClick={() => setLoginOpen(true)}
                         >
-                            登录
+                            {t("web.header.login")}
                         </Button>
                     )}
                 </div>
@@ -78,7 +81,9 @@ export function SiteHeader() {
 }
 
 /** 已登录用户区：头像 hover 展开菜单，含个人中心 + 退出登录 */
+// fallow-ignore-next-line complexity
 function UserMenu() {
+    const t = useT()
     const me = useMe()
     const clearMe = useClearMe()
 
@@ -113,11 +118,11 @@ function UserMenu() {
                 </DropdownMenuGroup>
                 <DropdownMenuItem render={<Link to="/account" />}>
                     <UserRound className="size-4" />
-                    个人中心
+                    {t("web.header.account")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="size-4" />
-                    退出登录
+                    {t("web.header.logout")}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

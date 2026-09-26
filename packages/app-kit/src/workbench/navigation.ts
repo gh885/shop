@@ -62,3 +62,34 @@ export function activeSectionOf(items: SidebarItem[], pathname: string): Sidebar
         )
     )
 }
+
+export interface SidebarI18nKeys {
+    groupKey: (key: string) => string
+    leafKey: (to: string) => string
+    sectionKey: (group: string, index: number) => string
+}
+
+/** 按装配侧给的 key 规则翻译侧栏；返回新数组，不改原菜单数据。 */
+export function translateSidebarItems(
+    items: SidebarItem[],
+    t: (key: string) => string,
+    keys: SidebarI18nKeys,
+): SidebarItem[] {
+    return items.map((item) => {
+        if (!("sections" in item)) {
+            return { ...item, label: t(keys.leafKey(item.to)) }
+        }
+        return {
+            ...item,
+            label: t(keys.groupKey(item.key)),
+            sections: item.sections.map((section, index) => ({
+                ...section,
+                title: t(keys.sectionKey(item.key, index)),
+                items: section.items.map((leaf) => ({
+                    ...leaf,
+                    label: t(keys.leafKey(leaf.to)),
+                })),
+            })),
+        }
+    })
+}

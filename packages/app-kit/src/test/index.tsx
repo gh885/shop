@@ -13,6 +13,8 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { createAppQueryClient } from "../query-client"
 
 import { ConfirmDialogHost } from "@shop/ui-web"
+
+import { APP_KIT_MESSAGES, I18nProvider } from "../i18n"
 import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
 
 /**
@@ -47,10 +49,13 @@ export function renderWithProviders(
     }: { queryClient?: ReturnType<typeof createAppTestQueryClient> } = {},
 ) {
     return renderWithQuery(
-        <>
+        <I18nProvider
+            resources={APP_KIT_MESSAGES}
+            initialLocale="zh-CN"
+        >
             {ui}
             <ConfirmDialogHost />
-        </>,
+        </I18nProvider>,
         { queryClient },
     )
 }
@@ -61,14 +66,25 @@ export function renderWithProviders(
  */
 export function renderWithRouter(
     ui: ReactElement,
-    { initialEntry = "/" }: { initialEntry?: string } = {},
+    {
+        initialEntry = "/",
+        resources = APP_KIT_MESSAGES,
+        initialLocale = "zh-CN",
+    }: {
+        initialEntry?: string
+        resources?: import("@shop/common").I18nResources
+        initialLocale?: import("@shop/common").AppLocale
+    } = {},
 ) {
     const root = createRootRoute({
         component: () => (
-            <>
+            <I18nProvider
+                resources={resources}
+                initialLocale={initialLocale}
+            >
                 {ui}
                 <ConfirmDialogHost />
-            </>
+            </I18nProvider>
         ),
     })
     const index = createRoute({ getParentRoute: () => root, path: "/" })

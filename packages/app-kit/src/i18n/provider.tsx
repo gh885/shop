@@ -1,5 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 
+import { configureConfirmLabels } from "@shop/ui-web"
+
 import {
     LOCALE_COOKIE_NAME,
     SUPPORTED_LOCALES,
@@ -16,6 +18,8 @@ import {
     type I18nResources,
     type MessageParams,
 } from "@shop/common"
+
+import { APP_KIT_MESSAGES } from "./messages"
 
 export interface I18nContextValue {
     locale: AppLocale
@@ -81,12 +85,21 @@ export function I18nProvider({ children, resources, initialLocale }: I18nProvide
 
     const t = useCallback(
         (key: string, params?: MessageParams) => {
-            const template = resolveMessage(resources, key, locale)
+            const template =
+                resolveMessage(resources, key, locale) ??
+                resolveMessage(APP_KIT_MESSAGES, key, locale)
             if (template === undefined) return key
             return formatMessage(template, params, locale)
         },
         [locale, resources],
     )
+
+    useEffect(() => {
+        configureConfirmLabels({
+            cancel: t("appKit.confirm.cancel"),
+            confirm: t("appKit.confirm.confirm"),
+        })
+    }, [t])
 
     const contextValue = useMemo<I18nContextValue>(
         () => ({

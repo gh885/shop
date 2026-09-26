@@ -1,4 +1,6 @@
 import { toApiError } from "@shop/common"
+
+import { translateAppKit } from "./i18n/messages"
 import { toast } from "@shop/ui-web"
 
 /**
@@ -27,7 +29,7 @@ export const notify = {
         toast.add({ title, description, type: "warning" })
     },
     /** 从任意错误提取用户可读文案：后端有 detail 优先展示；网络层错误（status 0）用调用方场景兜底 */
-    fromError(err: unknown, fallback = "操作失败，请稍后重试") {
+    fromError(err: unknown, fallback = translateAppKit("appKit.error.network")) {
         const e = toApiError(err)
         this.error(e.status === 0 ? fallback : e.detail)
     },

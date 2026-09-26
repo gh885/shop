@@ -1,4 +1,4 @@
-import { LoginForm } from "@shop/app-kit"
+import { LoginForm, useT } from "@shop/app-kit"
 import { Dialog, DialogContent, DialogTitle } from "@shop/ui-web"
 import { QrCode } from "lucide-react"
 
@@ -14,6 +14,7 @@ interface LoginDialogProps {
  * 表单交互（Tab/验证码/倒计时/错误态）一律在 LoginForm 里，这里只做装配与收尾。
  */
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
+    const t = useT()
     return (
         <Dialog
             open={open}
@@ -25,7 +26,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-primary/8 to-transparent" />
 
                 <div className="relative flex flex-col gap-7 p-8 pt-7">
-                    <DialogTitle className="text-center">登录后畅享更多功能</DialogTitle>
+                    <DialogTitle className="text-center">{t("web.login.title")}</DialogTitle>
 
                     <div className="flex items-stretch gap-8">
                         <ScanPlaceholder />
@@ -44,10 +45,15 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                             onSuccess={() => onOpenChange(false)}
                             footer={
                                 <p className="text-center text-xs text-muted-foreground">
-                                    登录即代表同意
+                                    {t("web.login.agreementPrefix")}
                                     {/* 协议/政策暂无落地路由：渲染为不可聚焦的纯文本，避免死按钮 */}
-                                    <span className="mx-1 text-foreground">用户协议</span>和
-                                    <span className="mx-1 text-foreground">隐私政策</span>
+                                    <span className="mx-1 text-foreground">
+                                        {t("web.login.userAgreement")}
+                                    </span>
+                                    {t("web.login.and")}
+                                    <span className="mx-1 text-foreground">
+                                        {t("web.login.privacy")}
+                                    </span>
                                 </p>
                             }
                         />
@@ -60,12 +66,13 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
 /** 扫码登录占位（后端未支持，仅 UI 预留） */
 function ScanPlaceholder() {
+    const t = useT()
     return (
         <div className="hidden w-56 flex-col items-center justify-center gap-4 sm:flex">
             <div className="flex items-center gap-2">
-                <p className="text-sm font-medium">扫码登录</p>
+                <p className="text-sm font-medium">{t("web.login.qrTitle")}</p>
                 <span className="rounded bg-accent px-1.5 py-0.5 text-3xs font-medium text-accent-foreground">
-                    即将上线
+                    {t("web.login.qrComing")}
                 </span>
             </div>
             <div className="relative flex size-44 items-center justify-center rounded-lg bg-muted/70">
@@ -79,7 +86,7 @@ function ScanPlaceholder() {
                     strokeWidth={1.25}
                 />
             </div>
-            <p className="text-xs text-muted-foreground">扫码登录即将上线，请使用手机号登录</p>
+            <p className="text-xs text-muted-foreground">{t("web.login.qrHint")}</p>
         </div>
     )
 }

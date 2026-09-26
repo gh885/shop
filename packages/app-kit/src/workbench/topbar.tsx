@@ -22,6 +22,7 @@ import {
     TopBarSearch,
 } from "@shop/ui-web"
 
+import { useT } from "../i18n"
 import { sidebarLinkSearch, type SidebarTarget } from "./navigation"
 
 /** 顶栏：透明浮于 canvas 画布，无分割线。minimal（内容区需大空间的页面）下
@@ -87,12 +88,13 @@ export function WorkbenchTopBar({
 
 /** 顶栏搜索框：受控输入态（组件内部 state），仅作 UI，暂未接搜索逻辑 */
 function SearchBox({ brand }: { brand: string }) {
+    const t = useT()
     const [query, setQuery] = useState("")
 
     return (
         <TopBarSearch
-            placeholder="搜索菜单、功能"
-            aria-label={`${brand}搜索菜单、功能`}
+            placeholder={t("appKit.topbar.searchPlaceholder")}
+            aria-label={t("appKit.topbar.searchLabel", { brand })}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="hidden w-60 md:block"

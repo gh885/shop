@@ -38,6 +38,8 @@ interface ActiveConfirm {
 
 let active: ActiveConfirm | undefined
 let seq = 0
+let defaultCancelText = "取消"
+let defaultConfirmText = "确定"
 const hostListeners = new Set<(request: ActiveConfirm | undefined) => void>()
 
 function publish() {
@@ -59,6 +61,11 @@ function closeActive(value: boolean) {
  * 需要根布局挂 `<ConfirmDialogHost />`（与 <Toaster /> 并排）。只允许在客户端事件回调里调，
  * 不要在渲染期/SSR 阶段调用。同一时刻只有一个确认面：新的会接管（旧的按取消兑现）。
  */
+function configureConfirmLabels(labels: { cancel?: string; confirm?: string }) {
+    if (labels.cancel !== undefined) defaultCancelText = labels.cancel
+    if (labels.confirm !== undefined) defaultConfirmText = labels.confirm
+}
+
 function confirm(options: ConfirmOptions): Promise<boolean> {
     if (active) closeActive(false)
     let done!: (value: boolean) => void
@@ -105,7 +112,7 @@ function ConfirmDialogSurface({ options }: { options: ConfirmOptions }) {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel disabled={busy}>
-                        {options.cancelText ?? "取消"}
+                        {options.cancelText ?? defaultCancelText}
                     </AlertDialogCancel>
                     <AlertDialogAction
                         variant={options.tone === "default" ? undefined : "destructive"}
@@ -113,7 +120,7 @@ function ConfirmDialogSurface({ options }: { options: ConfirmOptions }) {
                         onClick={handleConfirm}
                     >
                         {busy ? <Spinner /> : undefined}
-                        {options.confirmText ?? "确定"}
+                        {options.confirmText ?? defaultConfirmText}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -141,4 +148,4 @@ function ConfirmDialogHost() {
     )
 }
 
-export { confirm, ConfirmDialogHost }
+export { confirm, configureConfirmLabels, ConfirmDialogHost }

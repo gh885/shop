@@ -4,6 +4,7 @@ import { useState } from "react"
 
 import { AdminAuthApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
+import { useT } from "@shop/app-kit"
 import { Button, Card, CardContent, FormError, Spinner, useAppForm } from "@shop/ui-web"
 
 import { getDeviceId, requireGuest, tokenStore } from "../shared/lib/api"
@@ -20,6 +21,7 @@ const LoginSchema = z.object({
 })
 
 function LoginPage() {
+    const t = useT()
     const navigate = Route.useNavigate()
     const [loginError, setLoginError] = useState<string | undefined>()
 
@@ -42,7 +44,9 @@ function LoginPage() {
                 // 401 才是凭证错误；网络错误/服务端故障如实提示，避免误导成密码错误
                 const apiErr = toApiError(error)
                 setLoginError(
-                    apiErr.status === 401 ? "工号或密码不正确" : "登录失败，请检查网络后重试",
+                    apiErr.status === 401
+                        ? t("admin.login.invalidCredentials")
+                        : t("admin.login.failed"),
                 )
             }
         },
@@ -54,11 +58,13 @@ function LoginPage() {
                 <CardContent>
                     <div className="mb-6 flex items-center gap-2">
                         <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-                            店
+                            {t("admin.login.logo")}
                         </span>
                         <div>
-                            <div className="font-semibold">平台管理后台</div>
-                            <div className="text-xs text-muted-foreground">请使用员工账号登录</div>
+                            <div className="font-semibold">{t("admin.login.title")}</div>
+                            <div className="text-xs text-muted-foreground">
+                                {t("admin.login.subtitle")}
+                            </div>
                         </div>
                     </div>
                     <form
@@ -71,7 +77,7 @@ function LoginPage() {
                         <form.AppField name="employeeNo">
                             {(field) => (
                                 <field.TextField
-                                    label="工号"
+                                    label={t("admin.login.employeeNo")}
                                     autoComplete="username"
                                     required
                                 />
@@ -80,7 +86,7 @@ function LoginPage() {
                         <form.AppField name="password">
                             {(field) => (
                                 <field.TextField
-                                    label="密码"
+                                    label={t("admin.login.password")}
                                     type="password"
                                     autoComplete="current-password"
                                     required
@@ -96,7 +102,8 @@ function LoginPage() {
                                     className="w-full"
                                     disabled={isSubmitting}
                                 >
-                                    {isSubmitting && <Spinner />}登录
+                                    {isSubmitting && <Spinner />}
+                                    {t("admin.login.submit")}
                                 </Button>
                             )}
                         </form.Subscribe>

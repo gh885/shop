@@ -2,36 +2,37 @@ import { BellIcon, BookOpenIcon, CircleHelpIcon, HeadsetIcon, LogOutIcon } from 
 import { useNavigate } from "@tanstack/react-router"
 import { useMutation } from "@tanstack/react-query"
 import { Button, Spinner } from "@shop/ui-web"
-import { WorkbenchAccount, WorkbenchTopBar, WorkbenchTopBarAction } from "@shop/app-kit"
+import { useT, WorkbenchAccount, WorkbenchTopBar, WorkbenchTopBarAction } from "@shop/app-kit"
 
 import { logout } from "#/shared/lib/api"
 import { useClearMe, useMe } from "#/shared/lib/me"
 
 export function AppTopBar(props: { title: string; minimal?: boolean; sticky?: boolean }) {
+    const t = useT()
     return (
         <WorkbenchTopBar
             {...props}
-            brand="卖家中心"
+            brand={t("seller.layout.brand")}
             home={{ to: "/" }}
             account={<AccountChip />}
             actions={
                 <>
                     <WorkbenchTopBarAction
                         icon={<BellIcon />}
-                        label="消息"
+                        label={t("seller.topbar.messages")}
                         dot
                     />
                     <WorkbenchTopBarAction
                         icon={<BookOpenIcon />}
-                        label="规则"
+                        label={t("seller.topbar.rules")}
                     />
                     <WorkbenchTopBarAction
                         icon={<CircleHelpIcon />}
-                        label="帮助"
+                        label={t("seller.topbar.help")}
                     />
                     <WorkbenchTopBarAction
                         icon={<HeadsetIcon />}
-                        label="客服"
+                        label={t("seller.topbar.support")}
                     />
                 </>
             }
@@ -39,11 +40,13 @@ export function AppTopBar(props: { title: string; minimal?: boolean; sticky?: bo
     )
 }
 
+// fallow-ignore-next-line complexity
 function AccountChip() {
+    const t = useT()
     const navigate = useNavigate()
     const { data: me } = useMe()
     const clearMe = useClearMe()
-    const name = me?.nickname ?? me?.phone ?? "未登录"
+    const name = me?.nickname ?? me?.phone ?? t("seller.account.notLoggedIn")
     const logoutMutation = useMutation({
         mutationFn: () => logout(),
         // 会话终结：无论接口成功失败都清除身份缓存、回登录页，所以不让全局弹失败提示
@@ -58,7 +61,7 @@ function AccountChip() {
     return (
         <WorkbenchAccount
             name={name}
-            description="卖家账号"
+            description={t("seller.account.description")}
             logoutAction={
                 <Button
                     variant="ghost"
@@ -66,7 +69,7 @@ function AccountChip() {
                     disabled={logoutMutation.isPending}
                     onClick={() => logoutMutation.mutate()}
                 >
-                    退出登录
+                    {t("seller.account.logout")}
                     {logoutMutation.isPending ? <Spinner /> : <LogOutIcon />}
                 </Button>
             }
