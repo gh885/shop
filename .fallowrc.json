@@ -1,7 +1,16 @@
 {
     "$schema": "./node_modules/fallow/schema.json",
     "ignorePatterns": ["apps/server"],
-    "ignoreFindings": ["packages/api/src/sdk/**"],
+    // 死代码判定的豁免（ignoreFindings 只覆盖死代码，health 与 dupes 要各自排）：
+    //   packages/api/src/sdk/**  —— 契约生成物
+    //   ui-web 的 reui/**        —— 第三方 vendored 组件。它已由 RegionPicker / 运费模板多选
+    //     经 ui-web 的 barrel 引用（fallow 能追踪到），但目录内的其余文件（分栏、页脚、i18n
+    //     等子模块）只被同目录内部引用，从入口看仍是不可达——那是组件库按模块拆分的常态，
+    //     不是死代码。逐个文件挂 fallow-ignore-file 反而会把 vendored 文件改得面目全非。
+    "ignoreFindings": [
+        "packages/api/src/sdk/**",
+        "packages/ui-web/src/components/reui/**"
+    ],
     "ignoreDependencies": ["oxc-transform-react"],
     // 单测从模块边界测内部 helper，故「仅本文件内被引用」的导出不算死代码；彻底无引用仍会报
     "ignoreExportsUsedInFile": true,

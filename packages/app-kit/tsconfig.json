@@ -4,7 +4,10 @@
         "lib": ["ES2023", "DOM"],
         "paths": {
             "src/*": ["../ui-web/src/*"]
-        }
+        },
+        // app-kit 经 paths 直接编译 ui-web 源码，而 reui Cascader 内部用 `import.meta.env.DEV`
+        // 做 dev-only 守卫（与全仓库一致，见 packages/common 与 apps/*）。vite 提供该类型。
+        "types": ["vite/client"]
     },
     "include": ["src"]
 }

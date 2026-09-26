@@ -20,6 +20,7 @@
         "@dnd-kit/utilities": "^3.2.2",
         "@tanstack/react-form": "^1.33.5",
         "@tanstack/react-table": "catalog:",
+        "@tanstack/react-virtual": "^3.14.13",
         "class-variance-authority": "^0.7.1",
         "cn": "^0.2.6",
         "date-fns": "catalog:",
@@ -41,6 +42,7 @@
         "@types/react-dom": "catalog:",
         "@vitejs/plugin-react": "catalog:",
         "jsdom": "catalog:",
+        "vite": "catalog:",
         "vitest": "catalog:"
     }
 }

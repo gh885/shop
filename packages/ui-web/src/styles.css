@@ -98,6 +98,14 @@
     --warning-foreground: var(--color-yellow-900);
     --invert: var(--color-zinc-900);
     --invert-foreground: var(--color-zinc-50);
+    /* focus：reui Badge 的 focus 系变体（focus / focus-light / focus-outline）引用的语义色。
+       本项目原先没声明，后果是 bg-focus / text-focus-foreground 静默不生成——类名在 DOM 里、
+       样式为空，不报错（与 AGENTS.md 记的 Tailink 跨包坑同形）。这里补上而不是改 badge.tsx：
+       改 theme 属于上层，vendored 文件保持可重装。
+       色值取平台 indigo 阶梯（与 info 蓝 hue 217 拉开距离）。要换中性色就把两处都改
+       var(--color-indigo-*) → var(--color-zinc-*)。*/
+    --focus: var(--color-indigo-500);
+    --focus-foreground: var(--color-indigo-900);
 }
 
 /* ---------- Layer 2: Semantic（仅浅色模式） ---------- */
@@ -328,6 +336,8 @@
     --warning-foreground: var(--color-yellow-600);
     --invert: var(--color-zinc-700);
     --invert-foreground: var(--color-zinc-50);
+    --focus: var(--color-indigo-500);
+    --focus-foreground: var(--color-indigo-600);
 }
 
 @theme inline {
@@ -340,4 +350,6 @@
     --color-warning-foreground: var(--warning-foreground);
     --color-invert: var(--invert);
     --color-invert-foreground: var(--invert-foreground);
+    --color-focus: var(--focus);
+    --color-focus-foreground: var(--focus-foreground);
 }

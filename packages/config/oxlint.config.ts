@@ -365,6 +365,43 @@ export default defineConfig({
             },
         },
         {
+            // reui Cascader 等第三方 vendored 组件（以及对照的 examples）：只过类型检查，
+            // 不过本仓库面向「第一方 UI」的 lint 规则。逐条理由：
+            //
+            // typescript/no-unnecessary-condition：要么命中刻意的运行时防御（声明类型说非空、
+            //   实际拿未类型化数据，如 `node?.label`），要么直接误报（`HTMLElement.textContent`
+            //   在 lib.dom 就是 `string | null`，`item.textContent ?? ""` 是必要写法）。
+            //
+            // jsx-a11y/*：这批组件是手写 WAI-ARIA 复合控件（combobox / listbox / tree / group），
+            //   规则做的是模式匹配，会在这些刻意的正确写法上报：
+            //   - prefer-tag-over-role：`role="group"` 被要求换成 <fieldset>，但它是工具栏/
+            //     分组容器而非表单字段集；
+            //   - no-noninteractive-element-interactions：`role="group"` + onKeyDown 是合法的
+            //     复合控件键盘模式，规则不识别；
+            //   - click-events-have-key-events：drill 用的 chevron <span> 刻意不给 keydown
+            //     （键盘下钻在 listbox/option 层已接管），给它加 keydown 反而是错的。
+            //   真实 a11y 缺陷该在第一方代码里拦，这些是第三方的既定模式。
+            //
+            // shadcn/no-inline-styles：虚拟列表的动态高度/位移。规则要求走 CSS 变量
+            //   （项目确有 CSSVars 出口），但那要改 vendored 渲染代码；按「尽量不改第三方」留给上层。
+            //
+            // shadcn/no-raw-colors：reui 组件内部的自有配色（badge 的 focus 系变体等）。
+            //   设计系统的 token 纪律管的是实际发布的 UI；第三方组件的内部配色改它就是 fork。
+            //
+            // 正确性仍由 tsc（strict + noUncheckedIndexedAccess）全程把关。
+            files: ["**/packages/ui-web/src/components/reui/**/*"],
+            rules: {
+                "typescript/no-unnecessary-condition": "off",
+                "jsx-a11y/prefer-tag-over-role": "off",
+                "jsx-a11y/no-noninteractive-element-interactions": "off",
+                "jsx-a11y/click-events-have-key-events": "off",
+                "jsx-a11y/no-static-element-interactions": "off",
+                "jsx-a11y/aria-role": "off",
+                "shadcn/no-inline-styles": "off",
+                "shadcn/no-raw-colors": "off",
+            },
+        },
+        {
             // ImageUploadGrid 的空位瓦片是纯占位槽（无数据、无增删重排语义），
             // 索引 key 是唯一合理选择，规则对该文件豁免。
             // 原写法 "packages/ui-web/src/components/image-upload.tsx" 因上述 glob
