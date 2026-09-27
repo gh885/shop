@@ -125,21 +125,62 @@ export function couponUnavailableReasonText(
 }
 
 /**
- * 券展示状态标签。取值即后端 `UserCouponStatus.name()`（券包页签的筛选值也是它）。
+ * 券展示状态的已知取值：后端 `UserCouponStatus.name()`，次序即状态机走向
+ * （未使用 → 结算中 → 已使用 → 已过期 → 已作废）。
  *
- * `LOCKED` 是"已被未付款订单占用"，对用户说「结算中」比「已锁定」更像个状态而不是故障；
- * 未知码回退原码，理由同 {@link couponUnavailableReasonText}。
+ * 写成 tuple 而不是散在 union 里，是因为「有哪几个值」这份数据运行时要用到：
+ * 按状态排序的 rank、URL 校验的 z.enum、页签/筛选项的派生。一处登记，类型与值同时跟上。
+ *
+ * 契约上 `MyCouponResponse.status` 是自由 string（后端把「库里还 UNUSED 但事实已过期」折叠成
+ * EXPIRED 展示），所以这里按**已知取值**穷尽声明，查表走 {@link couponStatusMeta} 的兜底那条路。
  */
-export const COUPON_STATUS_LABEL: Record<string, string> = {
-    UNUSED: "未使用",
-    LOCKED: "结算中",
-    USED: "已使用",
-    EXPIRED: "已过期",
-    VOID: "已作废",
+export const USER_COUPON_STATUSES = ["UNUSED", "LOCKED", "USED", "EXPIRED", "VOID"] as const
+
+export type UserCouponStatus = (typeof USER_COUPON_STATUSES)[number]
+
+/**
+ * 徽章皮肤：这四个字面量都必须在 ui-web `Badge` 的 variant 里真实存在。
+ * `@shop/common` 不依赖 ui-web（依赖方向：common → @shop/api 为止），所以只能把允许的值列在这里——
+ * 加一档之前先去 badge.tsx 确认有那一档，否则三端拿到的是一个没有样式的 class。
+ */
+type CouponBadgeVariant = "success" | "warning" | "secondary" | "outline"
+
+type CouponStatusDisplay = { label: string; variant: CouponBadgeVariant }
+
+/**
+ * 券展示状态 → 「叫什么 + 什么颜色」：文字与徽章一张表，不设平行表。
+ *
+ * 分成两张就得每次加状态改两处，漏一处得到「新状态没颜色」；页签那类只吃文字的地方走
+ * `statusOptions` / {@link couponStatusLabel} 从这张表派生，一个状态只有一句中文。
+ *
+ * `LOCKED` 是"已被未付款订单占用"，对用户说「结算中」比「已锁定」更像个状态而不是故障。
+ *
+ * 卖家券列表**不**共用这张表，那不是重复：卖家看的不是「这张券在你包里的处境」（未使用/结算中），
+ * 而是「这个活动跑到哪一段」（未开始/进行中/已结束/已停用）——两套词说两件不同的事，
+ * 强行并成一张表只会让一方读另一方的话，见 `apps/seller/src/coupon/model.ts` 里那张派生表。
+ */
+export const COUPON_STATUS_META: Record<UserCouponStatus, CouponStatusDisplay> = {
+    UNUSED: { label: "未使用", variant: "success" },
+    LOCKED: { label: "结算中", variant: "warning" },
+    USED: { label: "已使用", variant: "secondary" },
+    EXPIRED: { label: "已过期", variant: "outline" },
+    VOID: { label: "已作废", variant: "outline" },
 }
 
+/** 同一张表的 string 索引视图：契约给的 status 是自由 string，查表得容得下表里没有的码 */
+const STATUS_BY_KEY: Record<string, CouponStatusDisplay | undefined> = COUPON_STATUS_META
+
+/**
+ * 查表：契约先出现新状态、这张表还没跟上时，回退成「码本身 + 中性描边」——
+ * 宁可显示生僻词，也不要出现一张既没解释又没颜色的券（理由同 {@link couponUnavailableReasonText}）。
+ */
+export function couponStatusMeta(status: string): CouponStatusDisplay {
+    return STATUS_BY_KEY[status] ?? { label: status, variant: "outline" }
+}
+
+/** 状态标签（页签、分组标题只要文字的那两处）：与徽章同源，不另写一份中文 */
 export function couponStatusLabel(status: string): string {
-    return COUPON_STATUS_LABEL[status] ?? status
+    return couponStatusMeta(status).label
 }
 
 /**

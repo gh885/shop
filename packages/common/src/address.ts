@@ -75,6 +75,16 @@ export interface RegionNames {
 }
 
 /**
+ * 三级名折成一行展示（缺席的级不占位）。
+ *
+ * 与 {@link regionNamesByCode} 是一对：一个把码展开成三级，一个把三级读回一行。
+ * 曾经买家端地址表、卖家端地址表各写一遍 `filter(Boolean).join(" ")`，两份只在一处带详址。
+ */
+export function foldRegion(names: RegionNames): string {
+    return [names.province, names.city, names.district].filter(Boolean).join(" ")
+}
+
+/**
  * 6 位区划码 → 省/市/区展示名，与级联选择器显示的是同一条路径（同一个 findPath）。
  *
  * 反查不到三级时缺的那级为空串，调用方拿它当「这码不认」判据即可：能进地址表单的 code 只有两个

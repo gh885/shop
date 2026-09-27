@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 
 import {
+    COUPON_STATUS_META,
     couponRuleText,
     couponSourceLabel,
+    couponStatusMeta,
     couponStatusLabel,
     couponThresholdText,
     couponUnavailableReasonText,
@@ -74,5 +76,41 @@ describe("券状态与来源标签", () => {
     it("未知码回退原码——宁可显示生僻词，也不让用户看到没有解释的券", () => {
         expect(couponStatusLabel("SOMETHING_NEW")).toBe("SOMETHING_NEW")
         expect(couponSourceLabel("SOMETHING_NEW")).toBe("SOMETHING_NEW")
+    })
+})
+
+describe("COUPON_STATUS_META（文字与徽章一张表）", () => {
+    it("五种展示状态都有文字与颜色：加状态漏一格就得到「新状态没颜色」", () => {
+        // 键序也是券包分组要的那个次序（未使用 → 结算中 → 已使用 → 已过期 → 已作废）
+        expect(Object.keys(COUPON_STATUS_META)).toEqual([
+            "UNUSED",
+            "LOCKED",
+            "USED",
+            "EXPIRED",
+            "VOID",
+        ])
+        for (const meta of Object.values(COUPON_STATUS_META)) {
+            expect(meta.label).toBeTruthy()
+            expect(meta.variant).toBeTruthy()
+        }
+    })
+
+    it("还在手上的两档显眼，已经不承担转化的那档退到中性底", () => {
+        expect(couponStatusMeta("UNUSED").variant).toBe("success")
+        expect(couponStatusMeta("LOCKED").variant).toBe("warning")
+        expect(couponStatusMeta("USED").variant).toBe("secondary")
+    })
+
+    it("卡片徽章与券包页签读的是同一句中文：查文字不换表，就不存在第二份文案", () => {
+        for (const [status, meta] of Object.entries(COUPON_STATUS_META)) {
+            expect(couponStatusLabel(status)).toBe(meta.label)
+        }
+    })
+
+    it("契约先出新状态、表还没跟上：文字回退码本身、颜色回退描边，不出空白徽章", () => {
+        expect(couponStatusMeta("SOMETHING_NEW")).toEqual({
+            label: "SOMETHING_NEW",
+            variant: "outline",
+        })
     })
 })
