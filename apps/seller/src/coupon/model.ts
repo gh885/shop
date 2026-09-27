@@ -21,7 +21,14 @@ export type CouponListSearch = z.infer<typeof couponListSearchSchema>
 /** 列表展示状态：由模板 status 与有效期区间相对当前时刻派生（不是 wire 里的 status 原样透传） */
 export type CouponStatus = "NOT_STARTED" | "ONGOING" | "ENDED" | "STOPPED"
 
-const COUPON_STATUS_META: Record<
+/**
+ * 券**活动**状态：文案与徽章色同表一处。
+ *
+ * 它与买家券包那张 `COUPON_STATUS_META`（@shop/common，未使用/结算中/已使用/已过期/已作废）
+ * 不是一张表的两个副本：那张说的是「这张券在买家包里的处境」，这张说的是「这个活动跑到哪一段」，
+ * 两套词、两个主语（合并只会有一方读另一方的话）。名字也刻意错开，免得下一个人来「对齐」这两张表。
+ */
+const TEMPLATE_STATUS_META: Record<
     CouponStatus,
     { label: string; variant: "success" | "secondary" | "outline" | "destructive" }
 > = {
@@ -74,13 +81,13 @@ export interface CouponRow {
     usedQuantity: number
     status: CouponStatus
     statusLabel: string
-    statusVariant: (typeof COUPON_STATUS_META)[CouponStatus]["variant"]
+    statusVariant: (typeof TEMPLATE_STATUS_META)[CouponStatus]["variant"]
     createdAt: string
 }
 
 export function couponRowFromWire(template: CouponTemplateResponse, now: number): CouponRow {
     const status = deriveCouponStatus(template.status, template.validFrom, template.validTo, now)
-    const meta = COUPON_STATUS_META[status]
+    const meta = TEMPLATE_STATUS_META[status]
 
     return {
         id: template.id,
