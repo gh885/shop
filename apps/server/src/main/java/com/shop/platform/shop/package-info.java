@@ -13,7 +13,7 @@
  */
 @ApplicationModule(
         displayName = "Shop",
-        allowedDependencies = {"account :: api", "account :: events"})
+        allowedDependencies = {"account :: api", "account :: events", "audit :: api"})
 package com.shop.platform.shop;
 
 import org.springframework.modulith.ApplicationModule;

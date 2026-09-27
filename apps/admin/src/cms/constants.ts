@@ -1,6 +1,5 @@
 import { statusOptions } from "@shop/common"
 import { CmsStatus } from "@shop/api/sdk"
-import { format, isValid } from "date-fns"
 import { z } from "zod"
 
 /**
@@ -115,20 +114,9 @@ export const STATUS_BADGE: Record<CmsStatus, { label: string; variant: "success"
         DISABLED: { label: "已停用", variant: "secondary" },
     }
 
-/**
- * OffsetDateTime ISO ↔ datetime-local 输入值：两侧都按**本地墙上时钟**翻译，秒位丢弃。
- *
- * 回填方向曾因用 toISOString()（UTC）而与提交方向（本地）不对称：每「打开并保存」一次，
- * 上下线时间就往前挪一个时区差（+08 即 8 小时）。datetime-local 读的就是墙上时钟，故两侧同用 format。
- */
-export const toDateTimeLocal = (iso?: string | null) => {
-    if (!iso) return ""
-    const d = new Date(iso)
-    return isValid(d) ? format(d, "yyyy-MM-dd'T'HH:mm") : ""
-}
-
-export const fromDateTimeLocal = (local: string) =>
-    local ? new Date(local).toISOString() : undefined
+// datetime-local ↔ ISO 的两个函数已上移到 #/shared/lib/datetime（审计时间窗也要用，两份会有一份悄悄用 UTC），
+// 这里原样再导出，既有调用点（banner 表单）不用改 import。
+export { fromDateTimeLocal, toDateTimeLocal } from "#/shared/lib/datetime"
 
 /** 表单空串 → 契约缺省（后端把 null 与缺省一视同仁，统一发缺省） */
 export const blankToUndefined = (s?: string) => s?.trim() || undefined

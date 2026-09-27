@@ -39,5 +39,12 @@
     "admin.page.coupon-ops": "优惠券运营",
     "admin.page.cms.nav": "首页导航",
     "admin.page.cms.banner": "运营位 Banner",
-    "admin.page.cms.recommend-tab": "推荐条词条"
+    "admin.page.cms.recommend-tab": "推荐条词条",
+    "admin.page.shops": "店铺治理",
+    "admin.nav.logistics": "物流",
+    "admin.nav.logistics.section.0": "履约运维",
+    "admin.page.logistics": "物流异常",
+    "admin.nav.audit": "审计",
+    "admin.nav.audit.section.0": "治理留痕",
+    "admin.page.audits": "操作审计"
 }

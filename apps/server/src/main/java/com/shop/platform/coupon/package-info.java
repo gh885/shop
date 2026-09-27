@@ -11,7 +11,7 @@
  */
 @ApplicationModule(
         displayName = "Coupon",
-        allowedDependencies = {"shop :: api", "account :: events"})
+        allowedDependencies = {"shop :: api", "account :: events", "account :: api", "audit :: api"})
 package com.shop.platform.coupon;
 
 import org.springframework.modulith.ApplicationModule;

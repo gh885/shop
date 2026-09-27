@@ -46,6 +46,16 @@
 - **[GEN-50]** 事件目录只有一份：[business-event-logging.md](../conventions/business-event-logging.md) 的「已有事件目录」表，业务规则文档**不再抄第二份字段表**（这一条曾把十个事件连字段抄进 crosscut，代码改了它不会红）。规则文档讲到后果时指名单个事件是可以的——它是那条规则的凭据，不是一份目录。表与代码由 `BusinessEventCatalogTest`（无库、纯文本扫描）逐条核对：事件名双向相等、表里列为必带的字段每个埋点都写、埋点写出的字段表里都列着、列为可选的至少有一个埋点真写、一个事件名在表里只能有一行、规则文档反引号点名的事件目录里都得有（末段词表取自目录本身，故库路径 `account.users.deletion_requested_at` 这类同名形状不会被误判）。这里只记判据：值得立事件的是钱（`payment.refunded` / `payment.refund.failed`）、不可逆（`user.deleted`）、以及「谁动了谁的数据」（三条 `*_revealed`、`shop_review.decided`、两条 `*.status.changed`）；新增公共出站依赖必须先补埋点再上线。
 - **[GEN-51]** 日志红线：不往 MDC 放密码/token/身份证号等敏感信息。手机号后 4 位掩码的唯一后端出口是 `PhoneNumber.mask()`，现行 9 个调用点（`/me` 出参、开发态短信日志、重置密码发送、登录失败与登录限流两条事件出口、卖家订单列表行、卖家订单详情的卖家视角、平台审核队列出参、店铺成员列表的他人行）；口径只有一条：**任何批量出参都不带别人或买家的手机号明文**，明文只能逐条显式索取且取用留痕（买家侧 ORD-62，店主/成员侧 ACC-79）。唯一保留的明文是**操作者自己的号**（成员列表本人那行）。前端掩码同样只有一个出口：`@shop/common` 的 `maskPhone` / `MASK_SEGMENT`（位数不足原样返回，不伪造掩码——与后端相反的那条兜底是各自的取舍，不是漂移）。`ui-web` 的 `MaskedValue` 因刻意零内部依赖另持一份 `MASK_SEGMENT`，由 `shared-vocabulary.test.ts` 钉「与 common 逐字节相等」。全局敏感字段审计仍列为延后项。
 
+## 操作审计（audit）
+
+- **[GEN-65]** 治理动作（封号、员工创建/调权/禁用、券作废、店铺审核决定、平台封店/解封、物流异常处置、轨迹补录）必须落一行 **append-only 审计账本**：写入只经 `audit :: api` 的 `RecordAuditCommand`，**与动作同事务**（`Propagation.MANDATORY`）——动作回滚则账本一起回滚，「动作没发生却留下一行账」比缺一行更坏（查出来是假账）。为此不走事件：事件的语义是 at-least-once 的异步投递，两头都可能偏（动作成了但监听没跑 / 动作回滚了账本里有行）。
+- **[GEN-66]** 动作名与目标类型是同一格，词表是 `audit.api.AuditAction`（每项自带 `AuditTargetType`）：调用点**不能自己传 targetType**，它由 action 决定（一个动作不可能既动买家又动店铺）。两份写法就是两组查不到的账，审计查询按 `action` 归组。
+- **[GEN-67]** 账本**只读**：`AuditRecordMapper` 不暴露任何 update/delete，`review.reviews` 之外没有第二个真相；追加只指追评/回复那类 append（本模块只写 insert）。绕过它去改就等于没有审计。
+- **[GEN-68]** 敏感字段在**写入侧**就只落掩码：`detail` 是自由文本，调用点必须先掩（手机号 `PhoneNumber.mask()`、工号掩码）再传；审计模块不解析、不还原，只忠实存。`operator_name` 是**展示名快照**（员工改名/删除后账本仍要能读懂「谁做的」），查无此人时为 null，前台显「未知操作人」——宁可少一个名字，也不因为查不到名字就让整个动作回滚。
+- **[GEN-69]** 审计**不等于**业务事件日志（GEN-48~51）：事件回答「系统发生了什么」，可检索但随日志保留期滚失；账本回答「谁对谁做了什么」，要能按操作人/对象/时间反查与导出。两者不合并。同理评价（REV-17）不进账本：买家与卖家之间的内容往来不是平台治理动作，混进去会让审计查询被无关行淹没。
+- **[GEN-70]** 审计查询入口只读本模块 schema：行里的 `target_id` 是不带语义的主键文本（跨模块对象），**不回查各模块表**（那会让审计入口欠每个模块一份依赖）；需要上下文时按动作去对应页面看。筛选（操作人/目标/动作/时间窗）与排序的组装收在 mapper（`selectPageAdmin`），service 只做枚举解析与出参形状；时间窗取闭开区间 `[from, to)`（前端时间选择器给的是精确时刻，不按分钟截断）。
+- **[GEN-71]** 导出在管理端，且**导出前二次确认**：审计是追责材料，导出意味着这批记录离开系统被复制走，而「我导了筛选条件之外的东西」只有一次显式确认能挡；确认框里写清范围与条数上限（单次上限 `EXPORT_ROW_LIMIT`，超限提示收窄筛选而不是静默截断）。CSV 拼接在前端（`apps/admin/src/audit/export.ts`，RFC 4180 转义 + BOM），真要导十万行应改走后端导出任务而不是让浏览器拼。
+
 ## 入站校验词表
 
 - **[GEN-52]** 一条形状规则只有一处定义，且定义住在**持有该概念的领域类型**里：DTO 的 `@Pattern`/`@Size` 引用常量、不抄字面量。现行词表出口——`PhoneNumber.CHINA_MOBILE_PATTERN` / `PhoneNumber.CONTACT_PATTERN`（ACC-40）、`RegionRegistry.CODE_PATTERN` / `PREFIX_PATTERN`（LOG-48）、`cms.dto.LinkTarget.PATTERN`（CMS-05）、`UserCouponStatus.PATTERN`（CPN-52）、`ProductSort.PATTERN`（PRD-63）、`ProductAdminSort.PATTERN`（PRD-79）、`ProductFieldRules.{NAME_MAX,NAME_MESSAGE,SELL_POINT_PATTERN,SELL_POINT_MESSAGE}`（PRD-20/42）。`LinkTarget`、`ProductSort` 是为持词表新建的类型，但**字段类型仍是 String**——换成枚举会改 OpenAPI 形状；它们另提供 `fromWire` 把词表解析收成一处（`ProductSort` 顺带替掉 switch 里散落的字符串字面量）。

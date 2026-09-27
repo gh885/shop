@@ -30,6 +30,12 @@ public final class Permissions {
     /** 平台优惠券运营（查询、作废），岗位 OPS */
     public static final String COUPON_OPS = "COUPON_OPS";
 
+    /** 操作审计查询（按操作人/对象/时间反查治理账本、导出），三个岗位都持有 */
+    public static final String AUDIT_VIEW = "AUDIT_VIEW";
+
+    /** 平台侧店铺治理（封店/解封），岗位 REVIEWER + OPS */
+    public static final String SHOP_GOVERNANCE = "SHOP_GOVERNANCE";
+
     // seller 域（店铺子账号，P1 启用标注）
     /** 商品增删改、规格 SKU、上下架 */
     public static final String PRODUCT_MANAGE = "PRODUCT_MANAGE";
@@ -57,6 +63,8 @@ public final class Permissions {
                 CATEGORY_MANAGE,
                 LOGISTICS_MANAGE,
                 COUPON_OPS,
+                AUDIT_VIEW,
+                SHOP_GOVERNANCE,
                 STAFF_MANAGE,
                 PRODUCT_MANAGE,
                 ORDER_FULFILL,

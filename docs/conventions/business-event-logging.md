@@ -73,6 +73,9 @@ BizEvent.of("order.created")
 | `order.receiver_phone_revealed`    | `shop_id`, `order_id`, `operator_id`                                                                                                                         | OrderService.sellerReceiverPhone（卖家逐单取买家电话明文；号码本身不入日志，ORD-62）        |
 | `shop_review.owner_phone_revealed` | `review_id`, `shop_id`, `staff_id`                                                                                                                           | ShopReviewService.ownerPhone（平台逐条取店主电话明文，ACC-79）                              |
 | `shop_member.phone_revealed`       | `shop_id`, `member_id`, `operator_id`                                                                                                                        | ShopService.memberPhone（成员逐条取他人电话明文，ACC-79）                                   |
+| `review.created`                   | `review_id`, `order_id`, `user_id`, `shop_id`, `item_count`                                                                                                  | ReviewService.submit（整单一次提交，逐订单行打分；REV-16）                                  |
+| `review.appended`                  | `review_id`, `order_id`, `user_id`                                                                                                                           | ReviewService.append（追评一次）                                                            |
+| `review.replied`                   | `review_id`, `shop_id`, `operator_id`                                                                                                                        | ReviewService.reply（卖家回复一次）                                                         |
 
 ## 新增事件规则
 

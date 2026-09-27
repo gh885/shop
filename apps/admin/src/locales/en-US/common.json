@@ -39,5 +39,12 @@
     "admin.page.coupon-ops": "Coupon Operations",
     "admin.page.cms.nav": "Home Navigation",
     "admin.page.cms.banner": "Banners",
-    "admin.page.cms.recommend-tab": "Recommendation Tabs"
+    "admin.page.cms.recommend-tab": "Recommendation Tabs",
+    "admin.page.shops": "Shop Governance",
+    "admin.nav.logistics": "Logistics",
+    "admin.nav.logistics.section.0": "Fulfillment Ops",
+    "admin.page.logistics": "Logistics Issues",
+    "admin.nav.audit": "Audit",
+    "admin.nav.audit.section.0": "Governance Trail",
+    "admin.page.audits": "Operation Audit"
 }

@@ -17,7 +17,7 @@
  */
 @ApplicationModule(
         displayName = "Logistics",
-        allowedDependencies = {"order :: api", "shop :: api"})
+        allowedDependencies = {"order :: api", "shop :: api", "account :: api", "audit :: api"})
 package com.shop.platform.logistics;
 
 import org.springframework.modulith.ApplicationModule;

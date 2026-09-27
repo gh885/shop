@@ -8,21 +8,23 @@
 > （`SellerGrants.GRANTABLE`）；`仅超管` = 只有 SUPER_ADMIN 通配可达，没有任何岗位发它；`预留未消费` =
 > 只有本文档登记它，无 Java 常量、无挂点（新增这类行必须同时进门禁的登记集合，否则红）。
 
-| 域     | 码                 | 授予            | 消费端点                                                                                                           | 含义                           |
-| ------ | ------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
-| admin  | `SHOP_REVIEW`      | `岗位:REVIEWER` | `ReviewController`                                                                                                 | 入驻审核（通过与拒绝）         |
-| admin  | `CMS_MANAGE`       | `岗位:OPS`      | `CmsContentAdminController`                                                                                        | banner / 导航 / 推荐位         |
-| admin  | `CATEGORY_MANAGE`  | `岗位:OPS`      | `CategoryAdminController`, `CategoryAttrAdminController`                                                           | 平台类目                       |
-| admin  | `LOGISTICS_MANAGE` | `岗位:OPS`      | `AdminLogisticsController`, `AdminShipmentIssueController`                                                         | 物流轨迹维护（补录节点、纠错） |
-| admin  | `COUPON_OPS`       | `岗位:OPS`      | `AdminCouponController`                                                                                            | 优惠券运营（查询、作废）       |
-| admin  | `STAFF_MANAGE`     | `仅超管`        | `AdminAccountController`                                                                                           | 创建员工、分配岗位、禁用       |
-| seller | `PRODUCT_MANAGE`   | `子账号`        | `ProductAdminController`                                                                                           | 商品增删改、规格 SKU、上下架   |
-| seller | `ORDER_FULFILL`    | `子账号`        | `SellerOrderController`, `SellerLogisticsController`, `SellerAfterSaleController`, `SellerAfterSaleListController` | 卖家订单查看 + 发货            |
-| seller | `ADDRESS_MANAGE`   | `子账号`        | `SellerAddressController`                                                                                          | 店铺发货/退货/揽收/账单地址    |
-| seller | `SHIPPING_MANAGE`  | `子账号`        | `SellerShippingTemplateController`                                                                                 | 运费模板（按地区与件数计费）   |
-| seller | `COUPON_MANAGE`    | `子账号`        | `SellerCouponController`                                                                                           | 店铺优惠券（建券、停券、名额） |
-| seller | `MEMBER_MANAGE`    | `预留未消费`    | —                                                                                                                  | 成员管理                       |
-| seller | `SHOP_MANAGE`      | `预留未消费`    | —                                                                                                                  | 店铺设置 / 注销                |
+| 域     | 码                 | 授予                       | 消费端点                                                                                                                                     | 含义                           |
+| ------ | ------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| admin  | `SHOP_REVIEW`      | `岗位:REVIEWER`            | `ReviewController`                                                                                                                           | 入驻审核（通过与拒绝）         |
+| admin  | `CMS_MANAGE`       | `岗位:OPS`                 | `CmsContentAdminController`                                                                                                                  | banner / 导航 / 推荐位         |
+| admin  | `CATEGORY_MANAGE`  | `岗位:OPS`                 | `CategoryAdminController`, `CategoryAttrAdminController`                                                                                     | 平台类目                       |
+| admin  | `LOGISTICS_MANAGE` | `岗位:OPS`                 | `AdminLogisticsController`, `AdminShipmentIssueController`                                                                                   | 物流轨迹维护（补录节点、纠错） |
+| admin  | `COUPON_OPS`       | `岗位:OPS`                 | `AdminCouponController`                                                                                                                      | 优惠券运营（查询、作废）       |
+| admin  | `AUDIT_VIEW`       | `岗位:REVIEWER` `岗位:OPS` | `AdminAuditController`                                                                                                                       | 操作审计查询与导出             |
+| admin  | `SHOP_GOVERNANCE`  | `岗位:REVIEWER` `岗位:OPS` | `AdminShopController`                                                                                                                        | 平台封店 / 解封（ACC-60）      |
+| admin  | `STAFF_MANAGE`     | `仅超管`                   | `AdminAccountController`                                                                                                                     | 创建员工、分配岗位、禁用       |
+| seller | `PRODUCT_MANAGE`   | `子账号`                   | `ProductAdminController`                                                                                                                     | 商品增删改、规格 SKU、上下架   |
+| seller | `ORDER_FULFILL`    | `子账号`                   | `SellerOrderController`, `SellerLogisticsController`, `SellerAfterSaleController`, `SellerAfterSaleListController`, `SellerReviewController` | 卖家订单查看 + 发货            |
+| seller | `ADDRESS_MANAGE`   | `子账号`                   | `SellerAddressController`                                                                                                                    | 店铺发货/退货/揽收/账单地址    |
+| seller | `SHIPPING_MANAGE`  | `子账号`                   | `SellerShippingTemplateController`                                                                                                           | 运费模板（按地区与件数计费）   |
+| seller | `COUPON_MANAGE`    | `子账号`                   | `SellerCouponController`                                                                                                                     | 店铺优惠券（建券、停券、名额） |
+| seller | `MEMBER_MANAGE`    | `预留未消费`               | —                                                                                                                                            | 成员管理                       |
+| seller | `SHOP_MANAGE`      | `预留未消费`               | —                                                                                                                                            | 店铺设置 / 注销                |
 
 `Permissions.all()` 展开的就是这张表去掉 `预留未消费` 那两行的集合（顺序不参与核对，按码比对集合）。
 SUPER_ADMIN 的 `me` 出参把通配符展开成 `all()`，判权内部仍用通配——两处新增码要同步这件事现在由门禁管，
@@ -74,7 +76,7 @@ SUPER_ADMIN 的 `me` 出参把通配符展开成 `all()`，判权内部仍用通
   两者都是搬家前的地址（现为本文档与 `account/service/StaffRole`）。V24 那句「可授予白名单
   `{PRODUCT_MANAGE, ORDER_FULFILL}`」也已落后于 `SellerGrants`（现为五码）。**迁移脚本不改**——
   那是事实发生过的地方，改了 Flyway 校验和对不上；本表与门禁读的是今天的名字；
-- P2 未做：员工管理 CRUD 剩余半边——创建员工 / 分配岗位（`STAFF_MANAGE` 消费端「查询 + 禁用」已随账号治理落地，
-  自指禁令与末位保护随创建/调权一起做）。admin 前端已为账号治理消费 `me.permissions`：只有持
-  `STAFF_MANAGE` 时才展示用户/员工管理入口；前端码值统一从 `packages/common/permission-codes.ts` 的
-  `PermissionCodes.STAFF_MANAGE` 取，app 不再自写字符串。
+- 员工管理 CRUD 已闭合成环（ACC-57）：`AdminAccountController` 同时消费「查询 + 禁用 + 创建 + 调岗位」，
+  自指禁令（不能改自己岗位）与末位超管保护（不能禁用/降级最后一个在岗超管）都随这两个新端点一起落地。
+  admin 前端为账号治理消费 `me.permissions`：只有持 `STAFF_MANAGE` 时才展示用户/员工管理入口；
+  前端码值统一从 `packages/common/permission-codes.ts` 的 `PermissionCodes.*` 取，app 不再自写字符串。
