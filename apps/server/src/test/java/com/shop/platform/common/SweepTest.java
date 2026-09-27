@@ -3,6 +3,8 @@ package com.shop.platform.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -63,6 +65,24 @@ class SweepTest {
     @Test
     void 空批直接返回零() {
         assertThat(Sweep.each(LOGGER, "测试线", List.of(), Row::id, row -> true)).isZero();
+    }
+
+    @Test
+    void 单笔失败按线名计数_告警靠它而不是翻日志() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        Metrics.addRegistry(registry);
+        try {
+            Sweep.each(LOGGER, "计数线", BATCH, Row::id, row -> {
+                if (row.boom()) {
+                    throw new IllegalStateException("第 2 笔炸了");
+                }
+                return true;
+            });
+            assertThat(registry.counter("shop.sweep.failures", "job", "计数线").count())
+                    .isEqualTo(1);
+        } finally {
+            Metrics.removeRegistry(registry);
+        }
     }
 
     @Test

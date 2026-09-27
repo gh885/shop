@@ -94,7 +94,7 @@ BizEvent.of("order.created")
 - **DB 查询埋点与 DB 指标**：待 MyBatis-Plus 拦截器或数据源代理实现；当前用 PG 慢查询日志兜底
 - **告警**：需要 Prometheus + Alertmanager 部署环境；`/actuator/prometheus` 指标已可获取
 - **全局敏感字段审计**：手机号靠 `PhoneNumber.mask()` 在出参与日志调用点逐个掩（卖家侧口径见 ORD-62），但没有一次覆盖全部字段的全局审查；接真实支付/更多个人数据前做
-- **出站调用 trace 传播**：暂无出站 HTTP/MQ；Micrometer Tracing 已就绪，接入时配拦截器即可
+- **出站调用 trace 传播**：已有出站 HTTP（快递鸟），尚无 MQ；`micrometer-tracing` 未引入。出站客户端的构建约定与触发条件见 [observability.md](observability.md) 契约第 5 条与延后项
 - **员工侧会话续期**：买家侧立了 `auth.token.refreshed`，员工侧没有——目前没有会去查「被封员工的会话还在续」的场景，
   真出现这种排查需求时补一条，不预先占目录位
 

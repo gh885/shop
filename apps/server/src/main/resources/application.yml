@@ -8,7 +8,8 @@ spring:
         import: "optional:file:./.env[.properties]"
     application:
         name: shop-server
-        version: 0.0.1-SNAPSHOT
+        # 日志信封的 version / env（RequestIdFilter 写进每行）。本地给占位值；prod 覆盖为构建注入的 git sha 与 prod
+        version: ${SHOP_VERSION:0.0.1-SNAPSHOT}
         env: dev
 
     profiles:
@@ -73,6 +74,12 @@ management:
         web:
             exposure:
                 include: health,prometheus
+    metrics:
+        distribution:
+            # 导出桶而不是在应用里算分位：p95 由 Prometheus 按任意窗口、跨实例聚合（histogram_quantile），
+            # 应用内算好的分位值多实例之间没法合并
+            percentiles-histogram:
+                http.server.requests: true
 
 logging:
     # 控制台：人读格式 + 全链路 trace_id + ANSI 着色。

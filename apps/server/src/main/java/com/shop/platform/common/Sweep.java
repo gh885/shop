@@ -1,5 +1,6 @@
 package com.shop.platform.common;
 
+import io.micrometer.core.instrument.Metrics;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -42,6 +43,9 @@ public final class Sweep {
                 }
             } catch (RuntimeException ex) {
                 failed++;
+                // 计数走 Micrometer 全局注册表（Boot 把自己的注册表挂在上面）：common 不依赖 infra 的 BizEvent，
+                // 否则 infra→common 的既有依赖会成环。label 是调用方常量，标签基数有界
+                Metrics.counter("shop.sweep.failures", "job", label).increment();
                 log.error("[SWEEP] {} 单笔失败，已跳过本笔继续 rest={}", label, key.apply(row), ex);
             }
         }

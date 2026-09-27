@@ -9,6 +9,7 @@
 - [ ] `SHOP_PAYMENT_PROVIDER` 明确为真实网关或受控 mock，生产禁止隐式 mock
 - [ ] `SHOP_WEB_CORS_ALLOWED_ORIGINS` 只包含正式域名
 - [ ] `SHOP_SERVER_FORWARDED_HEADERS` 只在可信反向代理后开启
+- [ ] `SHOP_VERSION` 注入为本次构建的 git sha（不是 `latest` 之类的固定值），日志与前端上报按它关联发布
 - [ ] 数据库、Redis、对象存储和支付密钥均来自 secret manager，不进入镜像和仓库
 
 ## 数据与迁移
