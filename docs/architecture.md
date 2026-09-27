@@ -15,42 +15,64 @@ shop/（monorepo，pnpm workspace + Maven，不用 monorepo 工具）
 │   ├── api/          OpenAPI SDK + zod 校验 + Money/错误码工具（@hey-api 生成）
 │   ├── ui-web/       shadcn/BaseUI 组件库 + 主题 token（DESIGN.md 见包内）
 │   ├── common/       前端共享纯逻辑
+│   ├── app-kit/      三端应用装配（QueryClient 工厂 / MutationMeta / QueryBoundary / 登录装配 / renderWithProviders）
 │   ├── config/       tsconfig / oxlint / oxfmt 共享配置
 │   └── test-utils/   跨 app 测试装置（MSW handlers / setup）
 └── openapi/api-docs.json   接口契约唯一真相源（由后端 /v3/api-docs 导出）
 ```
 
-三端共享同一个后端与同一份契约 SDK；视觉上共享 ui-web，端差异走端级 token 覆盖（见 DESIGN.md §6）。
+三端共享同一个后端与同一份契约 SDK；视觉上共享 ui-web，端差异走端级 token 覆盖（见 DESIGN.md §7）。
 
 ## 2. 后端模块图
 
 模块 = 顶层包 = PG schema（`product.products`）。模块间通信只有两条路：**api 包同步调用**（`@NamedInterface("api")`）与 **events 纯通知事件**（`@NamedInterface("events")`），消费方在 `@ApplicationModule(allowedDependencies)` 显式登记，ArchUnit 强制。`common/`（框架无关契约）与 `infra/`（JWT/Filter/MyBatis 等技术适配）是共享纯包，经 `@Modulithic(sharedModules)` 登记后任何模块可引用。
 
-当前依赖登记（来自各模块 `package-info.java`，改依赖 = 改登记）：
+当前依赖登记（15 个业务模块，全部来自各模块 `package-info.java`，改依赖 = 改登记）：
 
 ```
-account（叶子）     cms（叶子）         inventory（叶子）
-shop   → account::api
-product → inventory::api
-cart   → product::api, inventory::api, shop::api, order::events
-favorite → product::api
-order  → product::api, inventory::api, shop::api, account::api, coupon::api
-coupon → shop::api（券包展示店名；券的领取与核销在本模块闭环，不反向依赖 order）
-logistics → order::api, shop::api（发货入口在物流侧：经 OrderCommand.markShipped / markDelivered 同事务推进订单，order 不认识物流）
-aftersale → order::api, inventory::api, logistics::api, coupon::api（退款完成退券；回寄经物流模块落 RETURN 包裹）
-payment → order::api, order::events, aftersale::events
+account   → audit::api（封号、员工建号/调权/禁用同事务落审计）
+shop      → account::api（成员手机号拼装）, account::events（店主注销 → 停店）, audit::api
+product   → inventory::api（卖家改 SKU 同步调库存量）, shop::events（店铺停营业 → 级联下架在架商品）
+cart      → product::api, inventory::api, shop::api（加购过营业闸门）, order::events, account::events
+favorite  → product::api, account::events
+order     → product::api, inventory::api, shop::api（运费报价 + 营业闸门）, account::api（账号闸门 + 地址快照）, coupon::api
+coupon    → shop::api（券包展示店名）, account::api, account::events（注销作废未使用券）, audit::api
+logistics → order::api, shop::api, account::api（补录/处置人姓名）, audit::api
+aftersale → order::api（申请前置点查 + syncAfterSale 写回投影）, inventory::api（restock 回补）, logistics::api（回寄落 RETURN 包裹）, coupon::api（退款完成退券）, shop::api（默认退货地址）
+payment   → order::api, order::events, aftersale::events
+review    → order::api（归属/状态/完成时刻/行快照）, account::api（买家昵称）
+recommend → product::api（ProductRecallQuery 召回，本模块不认识商品表）
+cms（叶子）      inventory（叶子）      audit（叶子：零依赖，只被 account / shop / coupon / logistics 经 api 写）
 ```
 
-券的两个方向都是同事务 api 命令：order 下单占用/支付核销/取消释放、aftersale 退款退券——券与订单/资金要么一起成立要么一起不成。规则见 [docs/business-rules/coupon.md](business-rules/coupon.md)（占用/核销/释放/退券的同事务口径：CPN-35、CPN-37–CPN-39、CPN-46）。
+- **account 不是叶子模块**：它的治理动作（封号、员工建号/调权/禁用）要同事务落审计账本，因此 `→ audit::api`。它同时是全仓唯一的注销事件源——其余模块清理自己那份数据靠监听 `account::events`，不是反过来。
+- **发货入口在物流侧**：logistics 经 `OrderCommand.markShipped / markDelivered` 同事务推进订单，order 不认识物流（单向故不成环）。
+- **券的两个方向都是同事务 api 命令**：order 下单占用/支付核销/取消释放、aftersale 退款退券——券与订单/资金要么一起成立要么一起不成。券的领取与核销在 coupon 内闭环，不反向依赖 order（流水里的 `order_id` 是裸引用）。规则见 [docs/business-rules/coupon.md](business-rules/coupon.md)（占用/核销/释放/退券的同事务口径：CPN-35、CPN-37–CPN-39、CPN-46）。
 
-事件流：`order.OrderPlacedEvent`（下单）→ cart 消费清理已购 SKU；`order.OrderCancelledEvent`（已付款单取消）与 `aftersale.AfterSaleRefundedEvent`（售后退款）→ payment 消费落退款单据。三条都是同事务同步监听；`kernel.event_publication` 登记表与 `infra/events/EventPublicationRecoveryJob` 保留给将来的 AFTER_COMMIT 消费方（如接真实支付网关后的退款），当前没有消费方在用。
+跨模块事件流（5 个事件、8 个监听方法）：
+
+| 事件（生产方 events 包）                   | 发布点                                                                                                                | 监听方（同步同事务）                                                                                                                                                    |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `order::events` OrderPlacedEvent           | `order/service/OrderService` 下单成功                                                                                 | cart `CartEventListener`：按 userId + skuId 删已购条目                                                                                                                  |
+| `order::events` OrderCancelledEvent        | `order/service/OrderTransitionService`（已付款单取消）                                                                | payment `PaymentRefundListener`：落退款单据（对不上流水放行并告警，不把买家卡在待发货）                                                                                 |
+| `aftersale::events` AfterSaleRefundedEvent | `aftersale/service/AfterSaleService`（确认收货退款）                                                                  | payment `PaymentRefundListener`：落退款单据（无流水可退即抛错，售后单停回原态）                                                                                         |
+| `shop::events` ShopTradingSuspendedEvent   | shop 三处：`ShopReviewService`（审核驳回）、`ShopAdminService`（平台禁用）、`ShopAccountDeletionListener`（店主注销） | product `ShopEventListener`：级联下架该店在架商品（恢复 ACTIVE 不反向回上架，要卖家手动重上并复检）                                                                     |
+| `account::events` UserDeletedEvent         | `account/service/AccountDeletionExecutor`（冷静期满匿名化）                                                           | cart `CartAccountDeletionListener`、favorite `FavoriteAccountDeletionListener`、coupon `CouponAccountDeletionListener`、shop `ShopAccountDeletionListener` 各清自己那份 |
+
+`shop/service/ShopAccountDeletionListener` 是这条链的接缝：它监听 `UserDeletedEvent` 删掉本人的成员行、把名下仍在营业的店推成 DISABLED（条件更新，抢到才播报），再发 `ShopTradingSuspendedEvent` 让 product 级联下架——注销一个店主要经过两级事件，但每一级都是同事务同步的，所以不存在「店停了商品还挂着」的中间态。店不删、不改店主、不释放店名（ACC-72）。
+
+八个监听方法全是普通 `@EventListener`（同步、同事务、落不成就整体回滚）；全仓没有 `@TransactionalEventListener` / `@ApplicationModuleListener` / `@Externalized`。所以 `kernel.event_publication` 登记表与 `infra/events/EventPublicationRecoveryJob` 目前**没有消费方在用**，是留给接真实网关后的退款的（见 [apps/server/AGENTS.md](../apps/server/AGENTS.md) 的诚实边界与 [docs/business-rules/payment.md](business-rules/payment.md) PAY-33）。
+
+同一句诚实边界的另一面：**这是一个强一致优先的单体，不是"随时可拆微服务"**——模块之间大量同事务同步调用（下单冻库存、支付推单、退款监听），编译期干净、事务上一体，拆任何一个都要先把同事务命令改成 saga 或最终一致。
 
 模块内部三层到底：`controller → service → mapper`，命名契约见 apps/server/AGENTS.md。
 
 ## 3. 数据与基础设施
 
-- PostgreSQL 18（WSL2，`localhost:15432`，`shop:shop_dev`；端口从 5432 迁来，缘由见 [AGENTS.md](../AGENTS.md)「数据库与 Redis」）：**schema 隔离**是模块边界的数据面——模块只拥有并访问自己的 schema，跨 schema 只读查询一律收进 owning 模块的 api 包；禁止跨 schema JOIN。
-- Redis 7（WSL2，`localhost:6379`）。
+- PostgreSQL 18（WSL2，`localhost:15432`，`shop:shop_dev`；端口从 5432 迁来，缘由见 [AGENTS.md](../AGENTS.md)「数据库与 Redis」。CI 的 service 容器仍在 5432，差别只有 `SHOP_DB_PORT` 这一个环境变量）：**schema 隔离**是模块边界的数据面——模块只拥有并访问自己的 schema，跨 schema 只读查询一律收进 owning 模块的 api 包；禁止跨 schema JOIN。
+- Redis 7（WSL2，`localhost:6379`）三件事：refresh token 存储（`infra/security/RefreshTokenStore`）、登录/发码限流（`account/infra/RateLimiter`，目前只有 account 用）、**读缓存**（`infra/cache`）。
+- **读缓存刻意只三块**：首页三块配置 / 类目树与子树 / 店铺公开信息，名字汇总在 `infra/cache/CacheNames`，TTL 5 分钟只兜漏接的写路径（新鲜度靠写侧 `@CacheEvict`），判权、库存、订单状态这类闸门与账本一律不进缓存。名单、「什么才配上缓存」与序列化口径见 [apps/server/AGENTS.md](../apps/server/AGENTS.md)「读缓存」节。其余热点只读仍直接打库。
+- 不引入消息队列：跨模块异步只有 Modulith 事件登记（现状见 §2 的事件表——目前全部同步监听，登记表还没有消费方在用）。
 - 主键策略见 §5。
 
 ## 4. 关键链路
@@ -58,11 +80,16 @@ payment → order::api, order::events, aftersale::events
 ### 4.1 请求链路
 
 ```
-浏览器 ── 同源相对路径 ──► Vite dev server（proxy: /auth /api /user /cart/ /orders/ /payments /favorites）──► Spring :8080
+浏览器 ── 同源相对路径 ──► Vite dev server（proxy，各端只代理自己用到的前缀）──► Spring :8080
 SSR loader ── 绝对地址 VITE_BACKEND_URL ────────────────────────────────────────────────────────────────► Spring :8080
 ```
 
-浏览器端 baseUrl 用空串（同源，规避 CORS 与 refresh cookie 的跨域问题）；SSR loader 必须用绝对地址直连后端。代理 key 带尾斜杠的场景（`/cart/`、`/orders/`）是为了躲开"页面路由与 API 前缀同名"的劫持坑（详见 apps/web/vite.config.ts 注释）。
+浏览器端 baseUrl 用空串（同源，规避 CORS 与 refresh cookie 的跨域问题）；SSR loader 必须用绝对地址直连后端。代理是 dev / preview 工具，三端各配一份：web 是 `/auth` `/api` `/user` `/cart/` `/payments` `/favorites` `/coupons/` `/reviews`（另加下面那个 `/orders` 中间件），seller 是 `/auth` `/shops` `/seller` `/api`，admin 只有 `/admin`。
+
+**「页面路由与 API 前缀同名」有两种解法，别混用**（详见 `apps/web/vite.config.ts` 注释）：
+
+- 静态代理 key 带尾斜杠（`/cart/`、`/coupons/`）：页面在 `/cart`、`/account/coupons`，而 API 永远只调 `/cart/*`，尾斜杠足以把两者分开。`/reviews` 没有同名页面路由，连尾斜杠都不需要。
+- `/orders` 不行：页面 `/orders/$orderId` 与 API `GET /orders/{id}` 是**同一条路径**，尾斜杠保不住带参数的页面路径。路径分不了就分请求方——`ordersApiProxy` 插件按 Accept 头分流：文档导航（地址栏/刷新）的 Accept 必含 `text/html`，放行给 SSR；SDK 请求（fetch/ky 默认 `*/*`）转发后端。`/orders/*` 下的 POST 全是 API（下单/预览/取消/确认/售后），无页面 POST，直接转发。
 
 ### 4.2 契约与 SDK 生成流
 
@@ -81,21 +108,27 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 ### 4.3 认证链路
 
-双 token 域隔离：`kind=user`（买家）与 `kind=staff`（员工/卖家/管理员）两套 JWT 过滤链。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`）。生效规则与「故意不做」边界见 [docs/business-rules/account.md](business-rules/account.md)（ACC-19、ACC-21、ACC-25、ACC-59、ACC-61–ACC-63）；设计动机与攻击面的原始论证见 git 历史（原设计笔记已归档）。
+双 token 域隔离：`kind=user`（买家**与卖家**，统一账号）与 `kind=staff`（平台员工/管理员）两套 JWT 过滤链——staff token 只在 `/admin/**` 生效，卖家侧能操作什么由 `X-Shop-Id` + 店铺成员关系在服务端裁决，与 token kind 无关（ACC-25、ACC-27）。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`），seller 与 web 共用买家那条（`auth/refresh`）。生效规则与「故意不做」边界见 [docs/business-rules/account.md](business-rules/account.md)（ACC-19、ACC-21、ACC-25、ACC-59、ACC-61–ACC-63）；设计动机与攻击面的原始论证见 git 历史（原设计笔记已归档）。
 
 ### 4.4 下单数据流（示意，以代码为准）
 
 ```
 买家端购物车（cart 模块，PG）
   → 结算：前端把勾选条目归约成 SKU 行（skuId + 件数）提交 /orders/preview 与 /orders/create
-  → order 模块按 product::api 重算价格、inventory::api 冻结库存、account::api 取收货地址快照，按店拆单落库
+  → order 模块按 product::api 重算价格、coupon::api 现算券的可用性与减免额、inventory::api 冻结库存、
+    account::api 取收货地址快照、shop::api 报运费与营业闸门，按店拆单落库（券同事务占用）
   → order 发 OrderPlacedEvent，cart 同事务监听按 userId + skuId 删已购条目
-  → payment 模块消费 order 事件 / 调 order::api 完成支付
-  → 履约态流转（PAID → 待发货 → …，前端投影见 apps/web/src/shared/order-status.ts）
+  → 支付确认由 payment 调 order::api 的 OrderCommand.markPaid 推进（同事务扣实冻结库存 + 券核销）——
+    正向不消费事件（没有 OrderPaidEvent），只有退款方向是事件驱动（OrderCancelledEvent / AfterSaleRefundedEvent）
+  → 履约态流转（PAID → 待发货 → …，前端投影见 apps/web/src/order/order-status.ts）
   → 卖家发货入口在 logistics（POST /seller/shipments）：同事务落包裹 + 经 order::api 推进 PAID → 已发货，
     一单可多包裹；签收节点把 delivered_at 写回订单，收货倒计时从签收起算。
     轨迹节点由承运商推送（/logistics/webhooks，签名校验后落库）、轮询兜底或运营补录写入，
     包裹状态是轨迹的投影（规则见 docs/business-rules/logistics.md LOG-11）
+  → 两条时间驱动的超时线（待付款关单、已发货超时自动收货）由 order/service/OrderTimeoutService
+    逐笔走 common.Sweep.each 隔离扫描（GEN-57：一笔稳定失败的行不该卡住整批）、逐笔独立事务、无分布式锁
+    （正确性靠条件更新闸门）。已付款（待发货）单**不在扫描表里**：超发货时限只提醒不代关单（拍板见
+    docs/business-rules/order.md ORD-60），售后侧另有三条超时线归 aftersale（AFS 系列）
 ```
 
 ## 5. 全库 ID 策略（所有模块通用）
@@ -139,23 +172,52 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 ## 7. 前端 domain ↔ 后端模块对应
 
-前端 domain 按**界面**组织，与后端模块不是 1:1（如"地址"属于界面上独立的 domain，后端却是 account 模块的 `/user/addresses`）。API 前缀与模块对应：
+前端 domain 按**界面**组织，与后端模块不是 1:1（如"地址"属于界面上独立的 domain，后端却是 account 模块的 `/user/addresses`）。下表是全量 `@RequestMapping` 前缀（按角色命名空间排：`/api` 匿名、裸前缀买家、`/seller` 卖家、`/admin` 平台）：
 
-| API 前缀                | 后端模块                                                         | 前端主要消费方                                                                                                                                                         |
-| ----------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/auth/*`               | account                                                          | 三端登录（web 弹窗 / seller / admin 各自装配 refreshPath）                                                                                                             |
-| `/user/*`               | account                                                          | web（含收货地址 domain）                                                                                                                                               |
-| `/cart/*`               | cart                                                             | web 的 cart domain                                                                                                                                                     |
-| `/orders/*` `/payments` | order / aftersale / payment / logistics / coupon                 | web 的 order、checkout domain（`/orders/{id}/after-sales/*` 由 aftersale 承接、`/orders/{id}/tracking` 由 logistics 承接；结算预览与下单的券在 coupon，经 order 编排） |
-| `/coupons/*`            | coupon                                                           | web 的券包 domain（`/coupons/mine` 券包、`/coupons/{id}/claim` 领券；`/api/shops/{id}/coupons` 是匿名的店铺领券页）                                                    |
-| `/api/*`                | product、cms（搜索是 product 内 `name LIKE` 能力，无独立模块）   | web 的 product / home domain；admin 的类目、CMS                                                                                                                        |
-| `/shops/*` `/seller/*`  | shop / order / product / logistics / aftersale                   | seller 全域（X-Shop-Id 上下文头；`/seller/orders` 归 order、`/seller/products` 归 product、`/seller/shipments` 归 logistics、`/seller/after-sales` 归 aftersale）      |
-| `/admin/*`              | account（员工登录）/ shop（入驻审核）/ cms / product / logistics | admin 全域（权限拦截见 docs/conventions/permission-codes.md）                                                                                                          |
-| `/logistics/webhooks/*` | logistics                                                        | 承运商轨迹推送（匿名，靠报文签名）                                                                                                                                     |
+| 前缀                                                    | 后端模块         | 落点（controller）                                                           | 主要消费方                                                                                                |
+| ------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `/api/products`                                         | product          | ProductController                                                            | web 商品列表与关键字搜索（包含匹配，语义与重评条件见 [search-decision.md](reference/search-decision.md)） |
+| `/api/categories`                                       | product          | CategoryController                                                           | web 首页分类导航                                                                                          |
+| `/api/shops/{id}`                                       | shop             | ShopPublicController                                                         | web 商详的店名/logo（这份读进 Redis 缓存，ACC-05）                                                        |
+| `/api/shops/{shopId}/coupons`                           | coupon           | CouponPublicController                                                       | web 店铺领券浮层                                                                                          |
+| `/api/cms/*`                                            | cms              | CmsPublicController                                                          | web 首页壳（导航 / banner / 推荐词条）                                                                    |
+| `/api/feed`                                             | recommend        | FeedController                                                               | web 首页 feed 流（种子批次 + 游标，不回 total）                                                           |
+| `/api/reviews/products/{productId}`                     | review           | PublicReviewController                                                       | web 商详评价区（聚合 + 好评率）                                                                           |
+| `/logistics/webhooks/*`                                 | logistics        | CarrierWebhookController                                                     | 承运商轨迹推送（匿名，靠报文签名）                                                                        |
+| `/auth/*`                                               | account          | AuthController                                                               | web 弹窗与 seller 登录（短信/密码，kind=user）                                                            |
+| `/auth/deletion/*`                                      | account          | AccountDeletionController                                                    | web 账号安全页（冷静期 → 匿名化）                                                                         |
+| `/user/addresses`                                       | account          | AddressController                                                            | web 收货地址 domain                                                                                       |
+| `/cart/*`                                               | cart             | CartController                                                               | web cart domain（页面与 API 同路径，代理口径见 §4.1）                                                     |
+| `/favorites`                                            | favorite         | FavoriteController                                                           | web 收藏（页面在 /account/favorites）                                                                     |
+| `/orders/*`                                             | order            | OrderController（preview / create / mine / {id} / cancel / receive）         | web checkout 与订单 domain                                                                                |
+| `/orders/{id}/tracking`                                 | logistics        | TrackingController                                                           | web 物流轨迹页                                                                                            |
+| `/orders/{id}/after-sales/*`                            | aftersale        | AfterSaleController                                                          | web 售后申请 / 撤销 / 回寄                                                                                |
+| `/payments/*`                                           | payment          | PaymentController                                                            | web 收银台（MOCK 两段式）                                                                                 |
+| `/coupons/*`                                            | coupon           | CouponController（mine / {templateId}/claim）                                | web 券包（页面在 /account/coupons）                                                                       |
+| `/reviews/*`                                            | review           | MyReviewController（orders/{orderId} / {id}/append）                         | web 订单详情里的评价与追评                                                                                |
+| `/shops/*`                                              | shop             | ShopController（开店 / mine / members / invites）                            | **seller**（开店与成员管理，买家侧不调）                                                                  |
+| `/seller/orders`                                        | order            | SellerOrderController                                                        | seller 订单页（X-Shop-Id 上下文头）                                                                       |
+| `/seller`（裸）                                         | logistics        | SellerLogisticsController（`/seller/shipments` 发货、`/seller/carriers`）    | seller 发货页——发货入口在物流侧，不在 order                                                               |
+| `/seller/after-sales` `/seller/orders/{id}/after-sales` | aftersale        | SellerAfterSaleListController / SellerAfterSaleController                    | seller 售后工作台                                                                                         |
+| `/seller/products`                                      | product          | ProductAdminController                                                       | seller 商品管理                                                                                           |
+| `/seller/coupons`                                       | coupon           | SellerCouponController                                                       | seller 建券页                                                                                             |
+| `/seller/reviews`                                       | review           | SellerReviewController（{id}/reply）                                         | seller 评价管理页                                                                                         |
+| `/seller/addresses` `/seller/shipping-template`         | shop             | SellerAddressController / SellerShippingTemplateController                   | seller 商家地址与运费模板                                                                                 |
+| `/admin/auth/*`                                         | account          | StaffAuthController                                                          | admin 登录页（工号 + 密码，kind=staff）——seller 走 `/auth`，不是这里                                      |
+| `/admin`（裸）                                          | account、product | AdminAccountController（用户/员工）/ CategoryAttrAdminController（属性模板） | admin accounts 两页与类目属性                                                                             |
+| `/admin/shops`                                          | shop             | AdminShopController                                                          | admin 店铺治理（封店/解封）                                                                               |
+| `/admin/reviews`                                        | **shop**         | ReviewController（入驻审核队列，SHOP_REVIEW）                                | admin 入驻审核——**与商品评价无关**，商品评价没有平台侧前缀                                                |
+| `/admin/categories`                                     | product          | CategoryAdminController                                                      | admin 平台类目                                                                                            |
+| `/admin/cms`                                            | cms              | CmsContentAdminController（CMS_MANAGE）                                      | admin CMS 三页                                                                                            |
+| `/admin/coupons`                                        | coupon           | AdminCouponController                                                        | admin 券运营（查询 / 作废）                                                                               |
+| `/admin/logistics` `/admin/logistics/issues`            | logistics        | AdminLogisticsController / AdminShipmentIssueController                      | admin 物流异常处置与轨迹补录                                                                              |
+| `/admin/audits`                                         | audit            | AdminAuditController                                                         | admin 操作审计（按人 / 对象 / 时间反查 + 导出）                                                           |
+
+判权与权限码表见 [docs/conventions/permission-codes.md](conventions/permission-codes.md)。
 
 ## 8. 文档地图
 
 - 操作规范：[AGENTS.md](../AGENTS.md)、[apps/server/AGENTS.md](../apps/server/AGENTS.md)
 - 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志、取数口径论证）
 - 业务规则库：[docs/business-rules/](business-rules/)（按领域的生效规则，逐条带编号，源自代码；优惠券一期已闭环、二期候选见 coupon.md「已定案未实现」节，首页 feed V1 已落地、V2/V3 设计稿见 cms.md FUT-*；原 docs/decisions/ 设计笔记已并入本库，原始论证归档 git 历史）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
-- 外部调研资料：[docs/reference/](reference/)（券平台做法对照）
+- 外部调研与决策资料：[docs/reference/](reference/)（券平台做法对照、商品搜索方案）
