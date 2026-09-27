@@ -13,7 +13,7 @@ import {
     Spinner,
 } from "@shop/ui-web"
 import { ReasonForm } from "@shop/app-kit"
-import { reviewKeys } from "#/shared/lib/queries"
+import { reviewKeys } from "./queries"
 
 /**
  * 一行审核记录的操作：通过（二次确认）/ 驳回（填理由）。

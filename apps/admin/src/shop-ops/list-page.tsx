@@ -49,9 +49,7 @@ function ShopOpsFilters({ search, navigate }: { search: ShopOpsSearch; navigate:
             <StatusFilter
                 value={search.status}
                 options={SHOP_STATUS_OPTIONS}
-                onChange={(value) =>
-                    navigate({ search: { ...search, status: value ?? undefined, page: 1 } })
-                }
+                onChange={(status) => navigate({ search: { ...search, status, page: 1 } })}
             />
             <IdFilter
                 label="店名或店主 ID"

@@ -1,41 +1,33 @@
-import { AdminAccountApi, type StaffStatus, type UserStatus } from "@shop/api/sdk"
+import { AdminAccountApi } from "@shop/api/sdk"
+import { createPaginationSearchSchema } from "@shop/app-kit"
 import { queryOptions } from "@tanstack/react-query"
+import { z } from "zod"
+import { StaffStatusSchema, UserStatusSchema } from "./constants"
+
+/** 买家 / 员工列表的 URL search：同一形状，只差状态枚举 */
+export const userSearchSchema = createPaginationSearchSchema(20).extend({
+    status: UserStatusSchema.optional(),
+    keyword: z.string().optional(),
+})
+export const staffSearchSchema = createPaginationSearchSchema(20).extend({
+    status: StaffStatusSchema.optional(),
+    keyword: z.string().optional(),
+})
+export type UserSearch = z.infer<typeof userSearchSchema>
+export type StaffSearch = z.infer<typeof staffSearchSchema>
 
 export const accountKeys = {
     users: {
         all: ["admin", "account", "users"] as const,
-        list: (input: { status?: UserStatus; keyword?: string; page: number; size: number }) =>
-            [
-                "admin",
-                "account",
-                "users",
-                input.status ?? "all",
-                input.keyword ?? "",
-                input.page,
-                input.size,
-            ] as const,
+        list: (input: UserSearch) => [...accountKeys.users.all, input] as const,
     },
     staff: {
         all: ["admin", "account", "staff"] as const,
-        list: (input: { status?: StaffStatus; keyword?: string; page: number; size: number }) =>
-            [
-                "admin",
-                "account",
-                "staff",
-                input.status ?? "all",
-                input.keyword ?? "",
-                input.page,
-                input.size,
-            ] as const,
+        list: (input: StaffSearch) => [...accountKeys.staff.all, input] as const,
     },
 } as const
 
-export const adminUsersOptions = (input: {
-    status?: UserStatus
-    keyword?: string
-    page: number
-    size: number
-}) =>
+export const adminUsersOptions = (input: UserSearch) =>
     queryOptions({
         queryKey: accountKeys.users.list(input),
         queryFn: async () => {
@@ -51,12 +43,7 @@ export const adminUsersOptions = (input: {
         placeholderData: (previous) => previous,
     })
 
-export const adminStaffOptions = (input: {
-    status?: StaffStatus
-    keyword?: string
-    page: number
-    size: number
-}) =>
+export const adminStaffOptions = (input: StaffSearch) =>
     queryOptions({
         queryKey: accountKeys.staff.list(input),
         queryFn: async () => {

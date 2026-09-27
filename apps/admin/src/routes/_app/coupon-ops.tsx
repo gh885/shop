@@ -1,25 +1,42 @@
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { createPaginationSearchSchema } from "@shop/app-kit"
-import { z } from "zod"
-import { CouponOpsPage } from "#/coupon-ops/list-page"
-import { CouponStatusSchema } from "#/coupon-ops/constants"
+import { couponColumns } from "#/coupon-ops/columns"
+import { STATUS_OPTIONS } from "#/coupon-ops/constants"
+import { adminCouponListOptions, couponOpsSearchSchema } from "#/coupon-ops/queries"
+import { ListPage, SelectFilter, TextFilter } from "#/shared/ui/list-page"
 
 export const Route = createFileRoute("/_app/coupon-ops")({
-    validateSearch: createPaginationSearchSchema(20).extend({
-        userId: z.string().uuid().optional(),
-        shopId: z.string().uuid().optional(),
-        status: CouponStatusSchema.optional(),
-    }),
-    component: CouponOpsRoute,
+    validateSearch: couponOpsSearchSchema,
+    component: CouponOpsPage,
 })
 
-function CouponOpsRoute() {
+function CouponOpsPage() {
     const search = Route.useSearch()
-    const navigate = Route.useNavigate()
+    const query = useQuery(adminCouponListOptions(search))
+
     return (
-        <CouponOpsPage
+        <ListPage
+            title="优惠券运营"
+            description="查询用户持有的优惠券并处理未使用券"
             search={search}
-            navigate={navigate}
-        />
+            query={query}
+            columns={couponColumns}
+            emptyContent="暂无符合条件的优惠券"
+        >
+            <TextFilter
+                name="userId"
+                label="持券人 ID"
+                className="w-52"
+            />
+            <TextFilter
+                name="shopId"
+                label="店铺 ID"
+                className="w-52"
+            />
+            <SelectFilter
+                name="status"
+                options={STATUS_OPTIONS}
+            />
+        </ListPage>
     )
 }

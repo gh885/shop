@@ -1,25 +1,19 @@
 import { AdminShopsApi } from "@shop/api/sdk"
+import { createPaginationSearchSchema } from "@shop/app-kit"
 import { queryOptions } from "@tanstack/react-query"
+import { z } from "zod"
+import { SHOP_KEYWORD_MAX, SHOP_OPS_PAGE_SIZE, SHOP_STATUS_MAX } from "./constants"
 
 /** 店铺治理列表的筛选（URL search 形状） */
-export type ShopOpsSearch = {
-    status?: string
-    keyword?: string
-    page: number
-    size: number
-}
+export const shopOpsSearchSchema = createPaginationSearchSchema(SHOP_OPS_PAGE_SIZE).extend({
+    status: z.string().max(SHOP_STATUS_MAX).optional(),
+    keyword: z.string().max(SHOP_KEYWORD_MAX).optional(),
+})
+export type ShopOpsSearch = z.infer<typeof shopOpsSearchSchema>
 
 export const shopOpsKeys = {
     all: ["admin", "shops"] as const,
-    list: (input: ShopOpsSearch) =>
-        [
-            "admin",
-            "shops",
-            input.status ?? "",
-            input.keyword ?? "",
-            input.page,
-            input.size,
-        ] as const,
+    list: (input: ShopOpsSearch) => [...shopOpsKeys.all, input] as const,
 }
 
 export const adminShopListOptions = (input: ShopOpsSearch) =>

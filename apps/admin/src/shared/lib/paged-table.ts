@@ -18,7 +18,6 @@ export function usePagedTable<TData extends { id: string } & RowData>({
     total,
     page,
     size,
-    enableSorting,
     onPageChange,
 }: {
     columns: ColumnDef<DataTableFeatures, TData>[]
@@ -28,7 +27,6 @@ export function usePagedTable<TData extends { id: string } & RowData>({
     /** 1-based 当前页（来自 URL search） */
     page: number
     size: number
-    enableSorting?: boolean
     /** 翻页意图：page 1-based，size 为每页条数 */
     onPageChange: (page: number, size: number) => void
 }) {
@@ -39,7 +37,8 @@ export function usePagedTable<TData extends { id: string } & RowData>({
         data: rows,
         getRowId: (row) => row.id,
         rowCount: total,
-        enableSorting,
+        // 服务端排序没有接口接：开着只会给每个表头挂上无效的 aria-sort="none"
+        enableSorting: false,
         manualPagination: true,
         manualFiltering: true,
         manualSorting: true,

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { DataTable, DataTableCard, DataTableSkeleton, useDataTable } from "@shop/ui-web"
+import { PageHeader } from "#/shared/ui/page-header"
 import { issueColumns } from "./columns"
 import { openIssuesOptions } from "./queries"
 
@@ -18,12 +19,10 @@ export function LogisticsIssuesPage() {
 
     return (
         <div className="space-y-4">
-            <div>
-                <h1 className="text-lg font-semibold">物流异常</h1>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                    揽收超时 / 中转停滞 / 派送停滞的待办清单；处置后从待办消失
-                </p>
-            </div>
+            <PageHeader
+                title="物流异常"
+                description="揽收超时 / 中转停滞 / 派送停滞的待办清单；处置后从待办消失"
+            />
             <DataTable
                 table={table}
                 emptyContent="当前没有待处理的物流异常"

@@ -64,18 +64,16 @@ function AuditFilters({ search, navigate }: { search: AuditSearch; navigate: Nav
     return (
         <>
             <StatusFilter
+                label="动作"
                 value={search.action}
                 options={ACTION_OPTIONS}
-                onChange={(value) =>
-                    navigate({ search: { ...search, action: value ?? undefined, page: 1 } })
-                }
+                onChange={(action) => navigate({ search: { ...search, action, page: 1 } })}
             />
             <StatusFilter
+                label="对象类型"
                 value={search.targetType}
                 options={TARGET_OPTIONS}
-                onChange={(value) =>
-                    navigate({ search: { ...search, targetType: value ?? undefined, page: 1 } })
-                }
+                onChange={(targetType) => navigate({ search: { ...search, targetType, page: 1 } })}
             />
             <IdFilter
                 label="操作人 ID"

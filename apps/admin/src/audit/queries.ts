@@ -1,35 +1,30 @@
 import { AdminAuditsApi } from "@shop/api/sdk"
+import { createPaginationSearchSchema } from "@shop/app-kit"
 import { queryOptions } from "@tanstack/react-query"
+import { z } from "zod"
+import {
+    AUDIT_ACTION_MAX,
+    AUDIT_PAGE_SIZE,
+    AUDIT_TARGET_ID_MAX,
+    AUDIT_TARGET_TYPE_MAX,
+} from "./constants"
 
 /** 审计查询输入：URL search 的形状（page/size 由分页 schema 给默认值） */
-export type AuditSearch = {
-    operatorId?: string
-    targetType?: string
-    targetId?: string
-    action?: string
+export const auditSearchSchema = createPaginationSearchSchema(AUDIT_PAGE_SIZE).extend({
+    operatorId: z.string().uuid().optional(),
+    targetType: z.string().max(AUDIT_TARGET_TYPE_MAX).optional(),
+    targetId: z.string().max(AUDIT_TARGET_ID_MAX).optional(),
+    action: z.string().max(AUDIT_ACTION_MAX).optional(),
     /** 时间窗起点（ISO），与 to 一起构成闭开区间 */
-    from?: string
-    to?: string
-    page: number
-    size: number
-}
+    from: z.string().optional(),
+    to: z.string().optional(),
+})
+export type AuditSearch = z.infer<typeof auditSearchSchema>
 
 /** 审计 key 工厂：list 是参数化切片，all 一发命中所有筛选（未来的导出复用同一组参数） */
 export const auditKeys = {
     all: ["admin", "audits"] as const,
-    list: (input: AuditSearch) =>
-        [
-            "admin",
-            "audits",
-            input.operatorId ?? "",
-            input.targetType ?? "",
-            input.targetId ?? "",
-            input.action ?? "",
-            input.from ?? "",
-            input.to ?? "",
-            input.page,
-            input.size,
-        ] as const,
+    list: (input: AuditSearch) => [...auditKeys.all, input] as const,
 }
 
 /**

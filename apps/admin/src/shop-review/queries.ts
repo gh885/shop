@@ -1,6 +1,8 @@
 import { AdminReviewsApi } from "@shop/api/sdk"
-import type { ShopReviewStatus } from "@shop/api/sdk"
+import { createPaginationSearchSchema } from "@shop/app-kit"
 import { queryOptions } from "@tanstack/react-query"
+import { z } from "zod"
+import { ShopReviewStatusSchema } from "./constants"
 
 /**
  * admin 端审核队列的数据层：queryKey 工厂 + 取数 options（CMS 三域各自的 `queries.ts` 同形态）。
@@ -13,11 +15,16 @@ import { queryOptions } from "@tanstack/react-query"
  * 未来若三端共用一个 QueryClient 也不会串缓存。
  */
 
+/** 店铺审核队列的 URL search：路由校验、页面、取数共用这一份形状 */
+export const reviewSearchSchema = createPaginationSearchSchema(20).extend({
+    status: ShopReviewStatusSchema.optional(),
+})
+export type ReviewSearch = z.infer<typeof reviewSearchSchema>
+
 /** 店铺审核列表：list = 参数化切片，all 一发命中所有 status / 分页（mutation 后的失效入口） */
 export const reviewKeys = {
     all: ["admin", "reviews"] as const,
-    list: (input: { status?: ShopReviewStatus; page: number; size: number }) =>
-        ["admin", "reviews", input.status ?? "all", input.page, input.size] as const,
+    list: (input: ReviewSearch) => [...reviewKeys.all, input] as const,
 } as const
 
 // 错误态重试不再由本文件提供：审核列表失败由全局默认的 throwOnError 抛给路由错误页，
@@ -27,11 +34,7 @@ export const reviewKeys = {
  * 店铺审核列表：参数即 key 的一部分（status/page/size），请求与 key 同源写在一处。
  * 出参只裁 records/total —— 表格要的就是这两样，PageResult 的其余字段是空转。
  */
-export const reviewListOptions = (input: {
-    status?: ShopReviewStatus
-    page: number
-    size: number
-}) =>
+export const reviewListOptions = (input: ReviewSearch) =>
     queryOptions({
         queryKey: reviewKeys.list(input),
         queryFn: async () => {

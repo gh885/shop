@@ -1,5 +1,5 @@
 import type { ColumnDef, RowData } from "@tanstack/react-table"
-import type { ReactNode } from "react"
+import { Fragment, type ReactNode } from "react"
 import {
     DataTable,
     DataTableToolbar,
@@ -8,6 +8,7 @@ import {
 } from "@shop/ui-web"
 import { usePagedTable } from "#/shared/lib/paged-table"
 import { ListBody } from "#/shared/ui/list-body"
+import { PageHeader } from "#/shared/ui/page-header"
 
 /**
  * 服务端分页列表页的外壳：标题 + 说明 + 筛选栏 + 表卡。
@@ -20,10 +21,17 @@ import { ListBody } from "#/shared/ui/list-body"
  *
  * **边界**：只管外壳，不碰数据。取数在调用点（`useQuery`），分页状态是 URL（`search`），
  * 筛选栏由调用点给（`filters`），工具栏右侧的附加动作由调用点给（`toolbarActions`）。
+ *
+ * `search` 必须是**整份** URL 状态：翻页写回时要带着筛选一起写——TanStack Router 的
+ * `navigate({ search: 对象 })` 是整体替换，只写 page/size 会把筛选条件一并清掉。
  */
-export function PagedListPage<TData extends { id: string } & RowData>({
+export function PagedListPage<
+    TData extends { id: string } & RowData,
+    TSearch extends { page: number; size: number },
+>({
     title,
     description,
+    actions,
     search,
     navigate,
     query,
@@ -34,10 +42,12 @@ export function PagedListPage<TData extends { id: string } & RowData>({
 }: {
     title: string
     description: string
-    /** URL 里的分页状态（page/size 是 1-based） */
-    search: { page: number; size: number }
+    /** 页头右侧的页面级动作（新建等） */
+    actions?: ReactNode
+    /** URL 里的整份状态（page/size 是 1-based） */
+    search: TSearch
     /** 翻页意图：写回 URL */
-    navigate: (options: { search: { page: number; size: number } }) => void
+    navigate: (options: { search: TSearch }) => void
     query: { data?: { records: TData[]; total: number }; isPending: boolean }
     columns: ColumnDef<DataTableFeatures, TData>[]
     emptyContent: string
@@ -52,15 +62,20 @@ export function PagedListPage<TData extends { id: string } & RowData>({
         total: query.data?.total,
         page: search.page,
         size: search.size,
-        onPageChange: (page, size) => navigate({ search: { page, size } }),
+        onPageChange: (page, size) => navigate({ search: { ...search, page, size } }),
     })
+    // 筛选栏的输入框是本地草稿（回车才写回 URL），只在挂载时读一次 URL：
+    // 后退、点侧栏回到本页这类「URL 变了、组件没卸载」的情况，要按筛选值重挂才能对上。
+    // 不含 page/size，翻页不冲掉没提交的草稿
+    const { page: _page, size: _size, ...filterValues } = search
 
     return (
         <div className="space-y-4">
-            <div>
-                <h1 className="text-lg font-semibold">{title}</h1>
-                <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-            </div>
+            <PageHeader
+                title={title}
+                description={description}
+                actions={actions}
+            />
             {/* DataTable 只提供表格上下文（不渲染 DOM），工具栏与表卡都挂在它里面：
                 reui 的列显隐与分页条读 provider，放到外面就渲染不出来 */}
             <DataTable
@@ -71,7 +86,7 @@ export function PagedListPage<TData extends { id: string } & RowData>({
                     table={table}
                     actions={toolbarActions ?? <DataTableViewOptions table={table} />}
                 >
-                    {filters}
+                    <Fragment key={JSON.stringify(filterValues)}>{filters}</Fragment>
                 </DataTableToolbar>
                 <ListBody
                     isPending={query.isPending}

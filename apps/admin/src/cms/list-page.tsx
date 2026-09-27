@@ -17,6 +17,7 @@ import {
     useDataTable,
     type DataTableFeatures,
 } from "@shop/ui-web"
+import { PageHeader } from "#/shared/ui/page-header"
 
 /** Select 不接受空值，「不筛」用这个哨兵占位，回调时再折回 undefined */
 const ALL = "all"
@@ -73,10 +74,10 @@ export function CmsListPage<T extends { id: string } & RowData>({
 
     return (
         <div className="space-y-4">
-            <div>
-                <h1 className="text-lg font-semibold">{title}</h1>
-                <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-            </div>
+            <PageHeader
+                title={title}
+                description={description}
+            />
 
             {/* DataTable 只提供表格上下文（不渲染 DOM），工具栏与表卡都挂在它里面：
                 reui 的列显隐与分页条读 provider，放到外面就渲染不出来 */}
