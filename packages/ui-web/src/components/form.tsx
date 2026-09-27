@@ -1,6 +1,6 @@
 import * as React from "react"
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form"
-import { format, isValid, parseISO, startOfToday } from "date-fns"
+import { startOfToday } from "date-fns"
 import { enUS } from "date-fns/locale/en-US"
 import { zhCN } from "date-fns/locale/zh-CN"
 import { CalendarIcon, CircleAlert } from "lucide-react"
@@ -23,6 +23,14 @@ import {
 } from "src/components/ui/select"
 import { Checkbox } from "src/components/ui/checkbox"
 import { cn } from "src/lib/utils"
+
+import {
+    composeWallClock,
+    formatWallClockDisplay,
+    formatWallClockTime,
+    parseWallClock,
+    type WallClockLocale,
+} from "./wall-clock"
 
 /**
  * 表单基础设施（基于 TanStack Form 官方 createFormHook + fieldComponents 模式）
@@ -220,16 +228,6 @@ function TextareaField({
     )
 }
 
-/** 墙上时钟形状，与 `datetime-local` 的输入值同形（不带时区偏移）：
-    读写都按本地时区解释，两侧对称——CMS 上下线时间曾因回填走 UTC 而每保存一次前挪 8 小时 */
-const WALL_CLOCK = "yyyy-MM-dd'T'HH:mm"
-
-function parseWallClock(value: string): Date | undefined {
-    if (!value) return undefined
-    const parsed = parseISO(value)
-    return isValid(parsed) ? parsed : undefined
-}
-
 /**
  * 日期时间：日历挑日 + 时分输入。替掉裸 `type="datetime-local"` 是为了三件原生控件给不了的事：
  * 跨浏览器同一张脸（原生那个在 Chrome/Safari/Firefox 是三种控件）、周起始与文案固定中文、
@@ -245,7 +243,7 @@ function DateTimeField({
     className,
     placeholder,
     locale,
-}: FieldProps & { placeholder?: string; locale?: "zh-CN" | "en-US" }) {
+}: FieldProps & { placeholder?: string; locale?: WallClockLocale }) {
     const field = useFieldContext<string>()
     const resolvedLocale = locale ?? "zh-CN"
     const dateLocale = resolvedLocale === "en-US" ? enUS : zhCN
@@ -262,14 +260,11 @@ function DateTimeField({
     // 编辑既有记录时打开日历看到的是本月，而不是已存下的那个月
     const [month, setMonth] = React.useState<Date>(() => selected ?? startOfToday())
 
-    /** 日期与时分各改各的，合起来才写回：只选日不选时不会把时间悄悄归到 00:00 */
+    /** 日期与时分各改各的，合起来才写回：拼装规则（含秒位清零、时分管不住时的兜底）在 `wall-clock.ts` */
     const commit = (date: Date, time: string) => {
-        const [hour, minute] = time.split(":")
-        const next = new Date(date)
-        next.setHours(Number(hour) || 0, Number(minute) || 0, 0, 0)
-        field.handleChange(format(next, WALL_CLOCK))
+        field.handleChange(composeWallClock(date, time))
     }
-    const timeValue = selected ? format(selected, "HH:mm") : ""
+    const timeValue = selected ? formatWallClockTime(selected) : ""
 
     return (
         <FieldFrame
@@ -306,12 +301,7 @@ function DateTimeField({
                         )}
                     >
                         {selected
-                            ? format(
-                                  selected,
-                                  resolvedLocale === "en-US"
-                                      ? "MMM d, yyyy, h:mm a"
-                                      : "yyyy-MM-dd HH:mm",
-                              )
+                            ? formatWallClockDisplay(selected, resolvedLocale)
                             : resolvedPlaceholder}
                     </span>
                     <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />

@@ -6,99 +6,22 @@ import type { ReactTable, RowData } from "@tanstack/react-table"
 import { DataGrid, DataGridContainer } from "src/components/reui/data-grid/data-grid"
 import { DataGridPagination } from "src/components/reui/data-grid/data-grid-pagination"
 import { DataGridTable } from "src/components/reui/data-grid/data-grid-table"
-import type { DataGridI18nOverrides } from "src/components/reui/data-grid/data-grid-i18n"
 import { Empty, EmptyHeader, EmptyTitle } from "src/components/ui/empty"
 import { Skeleton } from "src/components/ui/skeleton"
 
 import { TableShell } from "./table-shell"
 
 import { asDataGridTable, type DataTableFeatures } from "./data-table-features"
-/**
- * reui DataGrid 的中文文案。
- *
- * reui 的默认标签全英文（见 reui/data-grid/data-grid-i18n.tsx），而 `i18n` 是 DataGrid 的
- * prop、分页与列显隐又从 provider 读它——所以整个项目只在这里覆写一次，调用点不重复传。
- */
-const dataGridZhI18n: DataGridI18nOverrides = {
-    labels: {
-        sortAscending: "升序",
-        sortDescending: "降序",
-        columnsMenu: "列",
-        toggleColumns: "显示列",
-        pinColumnStart: "固定到左侧",
-        pinColumnEnd: "固定到右侧",
-        moveColumnStart: "移到左侧",
-        moveColumnEnd: "移到右侧",
-        unpinColumn: (title) => `取消固定「${title}」列`,
-        rowCreate: "新增行",
-        pinRow: "固定行",
-        unpinRow: "取消固定行",
-        selectRow: "选择该行",
-        selectAll: "全选",
-        expandRow: "展开",
-        collapseRow: "收起",
-        dragToReorder: "拖动排序",
-        dragToReorderRow: "拖动调整行序",
-        reorderingUnavailable: "当前不可排序",
-        loading: "正在加载列表",
-        empty: "暂无数据",
-        allRowsLoaded: "已加载全部",
-        rowsPerPage: "每页",
-        paginationInfo: ({ from, to, count }) => `第 ${from}-${to} 条 · 共 ${count} 条`,
-        previousPage: "上一页",
-        nextPage: "下一页",
-        goToPage: (page) => `第 ${page} 页`,
-        paginationEllipsis: "…",
-        filterSelectedCount: (count) => `已选 ${count} 项`,
-        filterNoResults: "无匹配结果",
-        filterClear: "清除筛选",
-    },
-}
-
-const dataGridEnI18n: DataGridI18nOverrides = {
-    labels: {
-        sortAscending: "Sort ascending",
-        sortDescending: "Sort descending",
-        columnsMenu: "Columns",
-        toggleColumns: "Toggle columns",
-        pinColumnStart: "Pin to start",
-        pinColumnEnd: "Pin to end",
-        moveColumnStart: "Move to start",
-        moveColumnEnd: "Move to end",
-        unpinColumn: (title) => `Unpin ${title} column`,
-        rowCreate: "Add row",
-        pinRow: "Pin row",
-        unpinRow: "Unpin row",
-        selectRow: "Select row",
-        selectAll: "Select all",
-        expandRow: "Expand",
-        collapseRow: "Collapse",
-        dragToReorder: "Drag to reorder",
-        dragToReorderRow: "Drag to reorder row",
-        reorderingUnavailable: "Reordering unavailable",
-        loading: "Loading list",
-        empty: "No data",
-        allRowsLoaded: "All rows loaded",
-        rowsPerPage: "Rows per page",
-        paginationInfo: ({ from, to, count }) => `${from}-${to} of ${count}`,
-        previousPage: "Previous page",
-        nextPage: "Next page",
-        goToPage: (page) => `Go to page ${page}`,
-        paginationEllipsis: "…",
-        filterSelectedCount: (count) => `${count} selected`,
-        filterNoResults: "No results",
-        filterClear: "Clear filter",
-    },
-}
+import { dataGridI18nOf, emptyTextOf, type DataTableLocale } from "./data-table-labels"
 
 type DataTableProps<TData extends RowData> = {
     table: ReactTable<DataTableFeatures, TData>
-    /** 空态文案/节点，默认「暂无数据」；会包进 Empty（DESIGN.md §8） */
+    /** 空态文案/节点，默认「暂无数据」；会包进 Empty（DESIGN.md §6.2） */
     emptyContent?: ReactNode
     /** 列表段内容：工具栏 + 骨架或表卡。两者都是 DOM 兄弟，间距仍由调用点的 space-y 管 */
     children?: ReactNode
     /** 当前语言；不传时从 html lang 推导，保证语言切换后已挂载表格能跟随重渲染 */
-    locale?: "zh-CN" | "en-US"
+    locale?: DataTableLocale
 }
 
 /**
@@ -124,9 +47,8 @@ export function DataTable<TData extends RowData>({
     locale,
 }: DataTableProps<TData>) {
     const resolvedLocale = locale ?? "zh-CN"
-    const i18n = resolvedLocale === "en-US" ? dataGridEnI18n : dataGridZhI18n
-    const resolvedEmptyContent =
-        emptyContent ?? (resolvedLocale === "en-US" ? "No data" : "暂无数据")
+    const i18n = dataGridI18nOf(resolvedLocale)
+    const resolvedEmptyContent = emptyContent ?? emptyTextOf(resolvedLocale)
     return (
         <DataGrid
             table={asDataGridTable(table)}

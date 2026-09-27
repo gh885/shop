@@ -7,38 +7,19 @@ import { cn } from "src/lib/utils"
 import { useAsRef } from "src/hooks/use-as-ref"
 import { useLazyRef } from "src/hooks/use-lazy-ref"
 
+import {
+    createFileUploadStore,
+    handleFilesChange,
+    type FileState,
+    type FileUploadRequest,
+    type Store,
+    type StoreState,
+} from "./file-upload-store"
+
 const ROOT_NAME = "FileUpload"
 const DROPZONE_NAME = "FileUploadDropzone"
 
 type Direction = "ltr" | "rtl"
-
-interface FileState {
-    file: File
-    progress: number
-    error?: string
-    status: "idle" | "uploading" | "error" | "success"
-}
-
-interface StoreState {
-    files: Map<File, FileState>
-    dragOver: boolean
-    invalid: boolean
-}
-
-type StoreAction =
-    | { type: "ADD_FILES"; files: File[] }
-    | { type: "SET_FILES"; files: File[] }
-    | { type: "SET_PROGRESS"; file: File; progress: number }
-    | { type: "SET_SUCCESS"; file: File }
-    | { type: "SET_ERROR"; file: File; error: string }
-    | { type: "SET_DRAG_OVER"; dragOver: boolean }
-    | { type: "SET_INVALID"; invalid: boolean }
-
-type Store = {
-    getState: () => StoreState
-    dispatch: (action: StoreAction) => void
-    subscribe: (listener: () => void) => () => void
-}
 
 const StoreContext = React.createContext<Store | undefined>(undefined)
 
@@ -98,14 +79,7 @@ interface FileUploadProps extends Omit<React.ComponentProps<"div">, "defaultValu
     onFileAccept?: (file: File) => void
     onFileReject?: (file: File, message: string) => void
     onFileValidate?: (file: File) => string | null | undefined
-    onUpload?: (
-        files: File[],
-        options: {
-            onProgress: (file: File, progress: number) => void
-            onSuccess: (file: File) => void
-            onError: (file: File, error: Error) => void
-        },
-    ) => Promise<void> | void
+    onUpload?: FileUploadRequest
     accept?: string
     maxFiles?: number
     maxSize?: number
@@ -117,215 +91,6 @@ interface FileUploadProps extends Omit<React.ComponentProps<"div">, "defaultValu
     invalid?: boolean
     multiple?: boolean
     required?: boolean
-}
-
-/**
- * store reducer 的运行上下文：files 是与 state 同生的引用 Map（reducer 直接 mutate 后返回新引用），
- * onValueChange 用闭包包装、dispatch 时读 propsRef 最新值（等价于原来 dispatch 内读 propsRef.current）。
- */
-interface StoreReducerCtx {
-    files: Map<File, FileState>
-    onValueChange?: (files: File[]) => void
-}
-
-function storeReducer(
-    prevState: StoreState,
-    action: StoreAction,
-    { files, onValueChange }: StoreReducerCtx,
-): StoreState {
-    switch (action.type) {
-        case "ADD_FILES": {
-            for (const file of action.files) {
-                files.set(file, {
-                    file,
-                    progress: 0,
-                    status: "idle",
-                })
-            }
-
-            if (onValueChange) {
-                onValueChange([...files.values()].map((fileState) => fileState.file))
-            }
-            return { ...prevState, files }
-        }
-
-        case "SET_FILES": {
-            const newFileSet = new Set(action.files)
-            for (const existingFile of files.keys()) {
-                if (!newFileSet.has(existingFile)) {
-                    files.delete(existingFile)
-                }
-            }
-
-            for (const file of action.files) {
-                const existingState = files.get(file)
-                if (!existingState) {
-                    files.set(file, {
-                        file,
-                        progress: 0,
-                        status: "idle",
-                    })
-                }
-            }
-            return { ...prevState, files }
-        }
-
-        case "SET_PROGRESS": {
-            const fileState = files.get(action.file)
-            if (fileState) {
-                files.set(action.file, {
-                    ...fileState,
-                    progress: action.progress,
-                    status: "uploading",
-                })
-            }
-            return { ...prevState, files }
-        }
-
-        case "SET_SUCCESS": {
-            const fileState = files.get(action.file)
-            if (fileState) {
-                files.set(action.file, {
-                    ...fileState,
-                    progress: 100,
-                    status: "success",
-                })
-            }
-            return { ...prevState, files }
-        }
-
-        case "SET_ERROR": {
-            const fileState = files.get(action.file)
-            if (fileState) {
-                files.set(action.file, {
-                    ...fileState,
-                    error: action.error,
-                    status: "error",
-                })
-            }
-            return { ...prevState, files }
-        }
-
-        case "SET_DRAG_OVER": {
-            return { ...prevState, dragOver: action.dragOver }
-        }
-
-        case "SET_INVALID": {
-            return { ...prevState, invalid: action.invalid }
-        }
-
-        default:
-            return prevState
-    }
-}
-
-/**
- * 文件选择后的处理链：按 maxFiles / onFileValidate / accept / maxSize 逐文件校验，
- * 拒绝的走 onFileReject，通过的入 store（ADD_FILES）并按需触发上传。
- * 独立成模块级函数：验证逻辑可单测，也让 FileUpload 主组件只留装配。
- */
-interface FilesChangeCtx {
-    disabled: boolean
-    maxFiles?: number
-    maxSize?: number
-    acceptTypes?: string[]
-    isControlled: boolean
-    store: Store
-    onValueChange?: (files: File[]) => void
-    onAccept?: (files: File[]) => void
-    onFileAccept?: (file: File) => void
-    onFileReject?: (file: File, message: string) => void
-    onFileValidate?: (file: File) => string | null | undefined
-    onUpload?: FileUploadProps["onUpload"]
-    triggerUpload: (files: File[]) => void
-}
-
-/** accept 匹配：精确 MIME、扩展名（.pdf）或通配 MIME（image/*） */
-function matchesAccept(file: File, acceptTypes: string[]): boolean {
-    const fileType = file.type
-    const fileExtension = `.${file.name.split(".").pop()}`
-
-    return acceptTypes.some(
-        (type) =>
-            type === fileType ||
-            type === fileExtension ||
-            (type.includes("/*") && fileType.startsWith(type.replace("/*", "/"))),
-    )
-}
-
-/** 单文件的拒绝信息：onFileValidate 命中即短路；accept 与 maxSize 同时不符时两条都报 */
-function getRejectionMessages(file: File, ctx: FilesChangeCtx): string[] {
-    const validationMessage = ctx.onFileValidate?.(file)
-    if (validationMessage) return [validationMessage]
-
-    const messages: string[] = []
-    if (ctx.acceptTypes && !matchesAccept(file, ctx.acceptTypes)) {
-        messages.push("File type not accepted")
-    }
-    if (ctx.maxSize && file.size > ctx.maxSize) {
-        messages.push("File too large")
-    }
-    return messages
-}
-
-function handleFilesChange(originalFiles: File[], ctx: FilesChangeCtx): void {
-    if (ctx.disabled) return
-
-    // 超出 maxFiles 剩余名额的先拒（onFileValidate 有信息时优先用它）
-    const remainingSlotCount = ctx.maxFiles
-        ? Math.max(0, ctx.maxFiles - ctx.store.getState().files.size)
-        : originalFiles.length
-    const overflowFiles = originalFiles.slice(remainingSlotCount)
-    overflowFiles.forEach((file) => {
-        const rejectionMessage =
-            ctx.onFileValidate?.(file) || `Maximum ${ctx.maxFiles} files allowed`
-        ctx.onFileReject?.(file, rejectionMessage)
-    })
-
-    const filesToProcess = originalFiles.slice(0, remainingSlotCount)
-    const acceptedFiles = filesToProcess.filter((file) => {
-        const rejectionMessages = getRejectionMessages(file, ctx)
-        for (const message of rejectionMessages) {
-            ctx.onFileReject?.(file, message)
-        }
-        return rejectionMessages.length === 0
-    })
-    const hasError = overflowFiles.length > 0 || acceptedFiles.length < filesToProcess.length
-
-    if (hasError) {
-        ctx.store.dispatch({ type: "SET_INVALID", invalid: hasError })
-        setTimeout(() => {
-            ctx.store.dispatch({ type: "SET_INVALID", invalid: false })
-        }, 2000)
-    }
-
-    if (acceptedFiles.length > 0) {
-        addAcceptedFiles(acceptedFiles, ctx)
-    }
-}
-
-/** 通过校验的文件：入 store、上抛各回调，有 onUpload 时下一帧开始上传 */
-function addAcceptedFiles(acceptedFiles: File[], ctx: FilesChangeCtx): void {
-    ctx.store.dispatch({ type: "ADD_FILES", files: acceptedFiles })
-
-    if (ctx.isControlled && ctx.onValueChange) {
-        const currentFiles = [...ctx.store.getState().files.values()].map((f) => f.file)
-        ctx.onValueChange([...currentFiles])
-    }
-
-    if (ctx.onAccept) {
-        ctx.onAccept(acceptedFiles)
-    }
-
-    for (const file of acceptedFiles) {
-        ctx.onFileAccept?.(file)
-    }
-
-    if (ctx.onUpload) {
-        requestAnimationFrame(() => {
-            ctx.triggerUpload(acceptedFiles)
-        })
-    }
 }
 
 function FileUpload(props: FileUploadProps) {
@@ -359,7 +124,6 @@ function FileUpload(props: FileUploadProps) {
     const labelId = React.useId()
 
     const dir = dirProp ?? "ltr"
-    const listeners = useLazyRef(() => new Set<() => void>()).current
     const files = useLazyRef<Map<File, FileState>>(() => new Map()).current
     const inputRef = React.useRef<HTMLInputElement>(null)
     const isControlled = value !== undefined
@@ -373,33 +137,16 @@ function FileUpload(props: FileUploadProps) {
         onUpload,
     })
 
-    const store = React.useMemo<Store>(() => {
-        let state: StoreState = {
-            files,
-            dragOver: false,
-            invalid: invalid,
-        }
+    const store = React.useMemo<Store>(
+        () => createFileUploadStore({ files, initialInvalid: invalid }),
+        [files, invalid],
+    )
 
-        const reducerCtx: StoreReducerCtx = {
-            files,
-            // 闭包包装：dispatch 时读 propsRef.current 拿到最新 onValueChange（与原来的 dispatch 内读等价）
-            onValueChange: (next) => propsRef.current.onValueChange?.(next),
-        }
-
-        return {
-            getState: () => state,
-            dispatch: (action) => {
-                state = storeReducer(state, action, reducerCtx)
-                for (const listener of listeners) {
-                    listener()
-                }
-            },
-            subscribe: (listener) => {
-                listeners.add(listener)
-                return () => listeners.delete(listener)
-            },
-        }
-    }, [listeners, files, invalid, propsRef])
+    // 渲染后绑上抛回调：dispatch 时读 propsRef.current，拿到的永远是当下那份 props
+    // （建 store 的工厂不收这个闭包——在渲染期把 ref 递进函数就是 react(refs) 拦的那件事）
+    React.useEffect(() => {
+        store.bindValueChange((next) => propsRef.current.onValueChange?.(next))
+    }, [store, propsRef])
 
     const acceptTypes = React.useMemo(
         () => accept?.split(",").map((t) => t.trim()) ?? undefined,
