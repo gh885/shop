@@ -5,3 +5,126 @@
    漏一个不会报错，只会「类名静默不生成」——页面看着正常，控件悄悄掉样式 */
 @source '../../../packages/ui-web/src';
 @source '../../../packages/app-kit/src';
+
+/* 登录页两栏共用一条横向主轴：左侧交易线、右侧表单标题的中线都落在这里（clamp 防矮屏/超高屏跑偏） */
+.login-page {
+    --login-axis: clamp(17rem, 40dvh, 28rem);
+}
+/* 表单标题（lg 起 text-4xl，行高 2.5rem）的中线对齐主轴 */
+@utility login-axis-top {
+    padding-top: calc(var(--login-axis) - 1.25rem);
+}
+
+/* 登录页品牌舞台：整页只用 primary 这一个色相——舞台是它的深档（中间色 = primary-active，
+   暗部往黑里压），按钮是它的亮档。亮部在左上、暗部沉到右下，白字对比度均 > 4.5:1 */
+.login-stage {
+    --login-ink: color-mix(in oklab, var(--color-primary-active) 40%, black);
+    background:
+        radial-gradient(60% 50% at 8% 4%, color-mix(in oklab, var(--color-primary) 55%, transparent), transparent 70%),
+        radial-gradient(70% 60% at 100% 100%, color-mix(in oklab, var(--color-primary-active) 30%, black), transparent 70%),
+        linear-gradient(165deg, var(--color-primary-active), color-mix(in oklab, var(--color-primary-active) 65%, black));
+}
+/* 颗粒：SVG 噪声叠 overlay，给大面积纯色一点纸感。z-index -1：压在线路图（-z-10）之上、文字之下 */
+.login-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.18;
+    mix-blend-mode: overlay;
+}
+
+/* 业务线路图（login.tsx 的 RouteMap）：单色蓝三档——交易线是主轴用白，另两条是 primary 的浅/中调 */
+.login-map [data-line="product"] {
+    --tone: color-mix(in oklab, var(--color-primary) 30%, white);
+}
+.login-map [data-line="trade"] {
+    --tone: var(--color-primary-foreground);
+}
+.login-map [data-line="marketing"] {
+    --tone: color-mix(in oklab, var(--color-primary) 75%, white);
+}
+/* 线画到舞台右缘前 7.5rem 开始渐隐：出画是「还在往前延伸」，不是撞在两栏交界上被切断 */
+.login-map {
+    mask-image: linear-gradient(to right, black calc(100% - 7.5rem), transparent);
+}
+/* 图内坐标里枢纽在 y=300；舞台顶在页面 0.75rem（m-3）处，平移后交易线正好落在主轴上 */
+.login-map-content {
+    transform: translateY(calc(var(--login-axis) - 0.75rem - 300px));
+}
+.login-track,
+.login-pulse {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+}
+/* 进场：从枢纽把线画出去（path 带 pathLength=100，dash 与 offset 都按百分比算） */
+.login-track {
+    stroke: var(--tone);
+    stroke-dasharray: 100 100;
+    animation: login-draw 1.8s cubic-bezier(0.65, 0, 0.35, 1) calc(var(--i) * 160ms + 200ms) both;
+}
+/* 线上往外跑的一点光（订单在路上）：短 dash + 远大于全长的 gap，一个周期只出现一段；
+   静止态藏在起点、被枢纽盖住，所以减弱动态时它直接不出现 */
+.login-pulse {
+    stroke: var(--color-primary-foreground);
+    stroke-dasharray: 1.2 200;
+    stroke-dashoffset: 1.2;
+    filter: drop-shadow(0 0 5px color-mix(in oklab, var(--color-primary) 40%, white));
+    animation: login-run calc(7s + var(--i) * 1.5s) cubic-bezier(0.45, 0, 0.55, 1)
+        calc(var(--i) * 1.3s + 2.2s) infinite;
+}
+.login-stop,
+.login-hub {
+    fill: var(--color-primary-foreground);
+    stroke: var(--login-ink);
+    stroke-width: 2.5;
+}
+.login-stop-label {
+    fill: var(--color-primary-foreground);
+    fill-opacity: 0.8;
+    font-size: 12px;
+    font-weight: 500;
+}
+/* 站点与站名等线画到了再浮现 */
+.login-stop,
+.login-stop-label {
+    animation: login-fade 0.6s ease-out calc(var(--i, 0) * 160ms + 1s) both;
+}
+/* 枢纽「你在这里」的定位波纹 */
+.login-ping {
+    fill: none;
+    stroke: var(--color-primary-foreground);
+    stroke-width: 1.5;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: login-ping 3s cubic-bezier(0, 0, 0.2, 1) 1.6s infinite;
+}
+@keyframes login-draw {
+    from {
+        stroke-dashoffset: 100;
+    }
+}
+@keyframes login-run {
+    to {
+        stroke-dashoffset: -100;
+    }
+}
+@keyframes login-fade {
+    from {
+        opacity: 0;
+    }
+}
+@keyframes login-ping {
+    from {
+        opacity: 0.7;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 0;
+        transform: scale(1.6);
+    }
+}
