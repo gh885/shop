@@ -7,20 +7,38 @@ import { describe, expect, it } from "vitest"
 import {
     buildSkuRowsFromSelections,
     countInputSchema,
+    createValueRowId,
+    derivePriceStock,
+    draftsToSelections,
     mergeLocalPricedRows,
     mergeSkuRows,
+    parseBatchFill,
+    parseCountCell,
+    parsePriceCell,
     rowFromSku,
+    selectVisibleSkuRows,
+    selectionsToDrafts,
+    skuLabelOf,
+    skuTextRowsForEdit,
     toSkuUpdateItems,
+    toSkuUpdateItemsFromText,
     unpricedRows,
     yuanPriceSchema,
+    type AttrDraft,
     type SkuDraftRow,
+    type SkuTextRow,
 } from "./draft-model"
 
 // 夹具
 /** 夹具 1：类目属性模板节点与选值的可控构造（模板节点顺序即维度顺序；金额/库存等字段与本模块无关，取合法默认值） */
-function makeNode(attrId: string, name: string, values: string[]): CategoryAttrNodeResponse {
+function makeNode(
+    attrId: string,
+    name: string,
+    values: string[],
+    opts: { allowCustom?: boolean; allowImage?: boolean } = {},
+): CategoryAttrNodeResponse {
     return makeCategoryAttrNode(
-        { id: attrId, name },
+        { id: attrId, name, ...opts },
         values.map((value, i) => ({ id: `${attrId}-v${i}`, value })),
     )
 }
@@ -347,5 +365,273 @@ describe("toSkuUpdateItems", () => {
             toSkuUpdateItems([makeRow("红", { skuId: "s1", price: 2500, skuCode: "   " })])[0]
                 ?.skuCode,
         ).toBeUndefined()
+    })
+})
+
+// 销售属性取值行 ↔ 契约选择（编辑器的两次换算）
+/** 夹具 3：AttrDraft 可控构造（模板值域与维度开关都与换算无关，取一组固定默认） */
+function makeDraft(
+    attrId: string,
+    rows: { valueId?: string; value: string; image?: string }[],
+): AttrDraft {
+    return {
+        attrId,
+        name: "颜色",
+        allowCustom: true,
+        allowImage: false,
+        values: [],
+        rows: rows.map((r, i) => ({
+            id: `v-${i + 1}`,
+            valueId: r.valueId,
+            value: r.value,
+            image: r.image,
+            note: "",
+        })),
+    }
+}
+
+describe("selectionsToDrafts（回显：契约选择 → 编辑行）", () => {
+    it("模板值带 valueId 回显，自定义值不带；各自的取值图跟着回到对应行", () => {
+        const drafts = selectionsToDrafts(
+            [makeNode("a1", "颜色", ["红", "蓝"])],
+            [
+                {
+                    attrId: "a1",
+                    valueIds: ["a1-v1"],
+                    customValues: ["荧光绿"],
+                    valueImages: { "a1-v1": "img/蓝.jpg" },
+                    customValueImages: { 荧光绿: "img/绿.jpg" },
+                },
+            ],
+            createValueRowId(),
+        )
+
+        expect(drafts[0]?.rows).toEqual([
+            { id: "v-1", valueId: "a1-v1", value: "蓝", image: "img/蓝.jpg", note: "" },
+            { id: "v-2", valueId: undefined, value: "荧光绿", image: "img/绿.jpg", note: "" },
+        ])
+    })
+
+    it("模板里已查不到的 valueId 仍建行：静默丢一个维度比留个空框更糟", () => {
+        const drafts = selectionsToDrafts(
+            [makeNode("a1", "颜色", ["红"])],
+            [makeSelection("a1", ["gone"])],
+            createValueRowId(),
+        )
+
+        expect(drafts[0]?.rows).toEqual([{ id: "v-1", valueId: "gone", value: "", note: "" }])
+    })
+
+    it("没选任何值也留一行空的，编辑器才有下手的地方", () => {
+        const drafts = selectionsToDrafts([makeNode("a1", "颜色", ["红"])], [], createValueRowId())
+
+        expect(drafts[0]?.rows).toEqual([{ id: "v-1", value: "", note: "" }])
+    })
+
+    it("行 id 由调用方给的计数器产出：两个编辑器各自编号，不互相吞号", () => {
+        const ids = [createValueRowId(), createValueRowId()].map((nextId) => {
+            const drafts = selectionsToDrafts([makeNode("a1", "颜色", ["红"])], [], nextId)
+            return drafts[0]?.rows[0]?.id
+        })
+
+        expect(ids).toEqual(["v-1", "v-1"])
+    })
+})
+
+describe("draftsToSelections（上抛：编辑行 → 契约选择）", () => {
+    it("一个值都没填的维度整条不回传：空 customValues 到后端是非法输入", () => {
+        expect(draftsToSelections([makeDraft("a1", [{ value: "  " }])])).toEqual([])
+    })
+
+    it("命中模板的进 valueIds、值域外的进 customValues，空白行谁都不进", () => {
+        const selections = draftsToSelections([
+            makeDraft("a1", [
+                { valueId: "a1-v0", value: "红" },
+                { value: "  荧光绿  " },
+                { value: "" },
+            ]),
+        ])
+
+        expect(selections).toEqual([
+            { attrId: "a1", valueIds: ["a1-v0"], customValues: ["荧光绿"] },
+        ])
+    })
+
+    it("取值图只收「有值且有图」的行，两边都空时省略对象而不是发 {}", () => {
+        const [selection] = draftsToSelections([
+            makeDraft("a1", [
+                { valueId: "a1-v0", value: "红", image: "img/红.jpg" },
+                { value: "", image: "img/废.jpg" },
+            ]),
+        ])
+
+        expect(selection?.valueImages).toEqual({ "a1-v0": "img/红.jpg" })
+        expect(selection?.customValueImages).toBeUndefined()
+    })
+
+    it("回显再原样上抛是同一次选择：不编辑规格时载荷不该长出一堆空值", () => {
+        const selected = [
+            {
+                attrId: "a1",
+                valueIds: ["a1-v1"],
+                customValues: ["荧光绿"],
+                valueImages: { "a1-v1": "img/蓝.jpg" },
+            },
+        ]
+        const drafts = selectionsToDrafts(
+            [makeNode("a1", "颜色", ["红", "蓝"])],
+            selected,
+            createValueRowId(),
+        )
+
+        expect(draftsToSelections(drafts)).toEqual(selected)
+    })
+})
+
+// 单元格输入（文本 → 模型值 / 清空 / 非法）
+describe("parsePriceCell / parseCountCell", () => {
+    it("空串与纯空白都是「清空」而不是「格式不对」", () => {
+        expect(parsePriceCell("")).toEqual({ value: null })
+        expect(parsePriceCell("   ")).toEqual({ value: null })
+    })
+
+    it("非法输入给第一句提示：用户敲了个坏值不该被当成删掉", () => {
+        expect(parsePriceCell("-5")).toEqual({
+            value: null,
+            error: "价格需为非负数字，最多两位小数",
+        })
+        expect(parseCountCell("1.5").error).toBe("数量需为非负整数")
+    })
+
+    it("合法输入换算回模型值，首尾空白先裁掉", () => {
+        expect(parsePriceCell(" 12.34 ")).toEqual({ value: money(1234) })
+        expect(parseCountCell("7")).toEqual({ value: 7 })
+    })
+})
+
+describe("parseBatchFill（批量填写）", () => {
+    it("空格给 undefined 而不是 null：批量清空价格从来不是意图", () => {
+        expect(parseBatchFill("", "")).toEqual({ price: undefined, stock: undefined })
+    })
+
+    it("任一格非法就整批不落，另一半也不回传", () => {
+        expect(parseBatchFill("1", "abc")).toEqual({ error: "数量需为非负整数" })
+    })
+
+    it("两格都给就两格都覆盖", () => {
+        expect(parseBatchFill("9.9", "3")).toEqual({ price: money(990), stock: 3 })
+    })
+})
+
+// 派生展示
+describe("derivePriceStock", () => {
+    it("未设价的行不进区间：一个空价格会把整档价拖到 0", () => {
+        const rows = [
+            makeRow("红", { price: 100, stock: 1 }),
+            makeRow("蓝", { price: null, stock: 5 }),
+        ]
+
+        expect(derivePriceStock(rows)).toEqual({
+            min: money(100),
+            max: money(100),
+            totalStock: 6,
+        })
+    })
+
+    it("库存未填按 0 计入合计：与 toSkuUpdateItems 落库的 ?? 0 同口径，否则页面与库存差一件", () => {
+        expect(derivePriceStock([makeRow("红", { price: 100 })]).totalStock).toBe(0)
+    })
+
+    it("全部未定价时区间为空（两个 undefined），由展示侧决定文案", () => {
+        expect(derivePriceStock([makeRow("红")])).toEqual({
+            min: undefined,
+            max: undefined,
+            totalStock: 0,
+        })
+    })
+})
+
+describe("selectVisibleSkuRows（搜索态保留原下标）", () => {
+    const rows = [makeRow("红"), makeRow("蓝色 大号"), makeRow("绿", { skuCode: "G-1" })]
+
+    it("关键词为空时按原顺序全给", () => {
+        expect(selectVisibleSkuRows(rows, "").map((v) => v.index)).toEqual([0, 1, 2])
+    })
+
+    it("命中的是第 2 行就必须带 index=1：编辑按下标改的是整份 rows", () => {
+        const visible = selectVisibleSkuRows(rows, "大号")
+
+        expect(visible).toHaveLength(1)
+        expect([visible[0]?.row.label, visible[0]?.index]).toEqual(["蓝色 大号", 1])
+    })
+
+    it("大小写不敏感，商家编码也参与匹配", () => {
+        expect(selectVisibleSkuRows(rows, " g-1 ").map((v) => v.index)).toEqual([2])
+    })
+})
+
+describe("skuLabelOf", () => {
+    it("规格值快照用「 / 」拼接；属性位还在但值为空，不留尾分隔符", () => {
+        expect(skuLabelOf(makeSku("s1", ["红", ""]))).toBe("红")
+    })
+
+    it("空快照 = 单规格：全站一个词，发布网格与编辑弹窗不再给同一个 SKU 两个名字", () => {
+        expect(skuLabelOf(makeSku("s1", []))).toBe("单规格")
+    })
+})
+
+// 编辑 SKU / 编辑库存弹窗
+/** 夹具 4：弹窗的文本态行（价格模式改文本、库存模式回传原始价） */
+function makeTextRow(over: Partial<SkuTextRow> = {}): SkuTextRow {
+    return {
+        skuId: "s1",
+        label: "红",
+        price: money(19900),
+        priceText: "199.00",
+        stockText: "7",
+        stock: 7,
+        skuCodeText: "",
+        ...over,
+    }
+}
+
+describe("skuTextRowsForEdit / toSkuUpdateItemsFromText", () => {
+    it("回显文本由模型值格式化而来，不做二次解析", () => {
+        const [row] = skuTextRowsForEdit([
+            makeSku("s1", ["红"], { price: 19900, stock: 7, skuCode: "C1" }),
+        ])
+
+        expect(row).toMatchObject({
+            skuId: "s1",
+            label: "红",
+            priceText: "199.00",
+            stockText: "7",
+            skuCodeText: "C1",
+        })
+    })
+
+    it("价格模式：发的是输入框里的新价，库存按原始值原样回传（updateSkus 两者都当绝对量）", () => {
+        expect(toSkuUpdateItemsFromText("price", [makeTextRow({ priceText: "9.90" })])).toEqual([
+            { skuId: "s1", price: money(990), stock: 7 },
+        ])
+    })
+
+    it("价格模式：编码 trim 后有才发，留空 = 不改（后端按非空字段 set）", () => {
+        const [item] = toSkuUpdateItemsFromText("price", [makeTextRow({ skuCodeText: "  C1  " })])
+
+        expect(item).toMatchObject({ skuCode: "C1" })
+        expect(
+            toSkuUpdateItemsFromText("price", [makeTextRow({ skuCodeText: "   " })])[0],
+        ).not.toHaveProperty("skuCode")
+    })
+
+    it("库存模式：改库存文本，价格原样回传，编码这一维不碰", () => {
+        expect(toSkuUpdateItemsFromText("stock", [makeTextRow({ stockText: "3" })])).toEqual([
+            { skuId: "s1", price: money(19900), stock: 3 },
+        ])
+    })
+
+    it("库存模式跳过未定价的行：把 null 发出去等于把 SKU 写成 0 元", () => {
+        expect(toSkuUpdateItemsFromText("stock", [makeTextRow({ price: null })])).toEqual([])
     })
 })

@@ -3,87 +3,16 @@ import { Plus } from "lucide-react"
 import { SPEC_VALUES_MAX } from "@shop/common"
 import { Badge, Button, FieldSet } from "@shop/ui-web"
 
-import type { SpecSelection } from "#/product/draft-model"
+import {
+    type AttrDraft,
+    createValueRowId,
+    draftsToSelections,
+    selectionsToDrafts,
+    type SpecSelection,
+} from "#/product/draft-model"
 import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
-import { AttrValueRow, type ValueDraft } from "./AttrValueRow"
-
-// ── 内部草稿形状 ──
-
-interface AttrDraft {
-    attrId: string
-    name: string
-    allowCustom: boolean
-    /** 该规格是否允许每个取值上传配图（后端类目模板 allow_image） */
-    allowImage: boolean
-    values: CategoryAttrNodeResponse["values"]
-    rows: ValueDraft[]
-}
-
-let seq = 0
-const nextId = () => `v-${++seq}`
-
-function toDrafts(nodes: CategoryAttrNodeResponse[], selected: SpecSelection[]): AttrDraft[] {
-    return nodes.map((n) => {
-        const sel = selected.find((s) => s.attrId === n.attr.id)
-        // 模板取值按 id 建一次索引，避免回显时对每个已选值线性扫描 values
-        const valueById = new Map(n.values.map((v) => [v.id, v]))
-        const rows: ValueDraft[] = []
-        for (const vid of sel?.valueIds ?? []) {
-            const v = valueById.get(vid)
-            rows.push({
-                id: nextId(),
-                valueId: vid,
-                value: v?.value ?? "",
-                image: sel?.valueImages?.[vid],
-                note: "",
-            })
-        }
-        for (const cv of sel?.customValues ?? []) {
-            rows.push({ id: nextId(), value: cv, image: sel?.customValueImages?.[cv], note: "" })
-        }
-        if (rows.length === 0) rows.push({ id: nextId(), value: "", note: "" })
-        return {
-            attrId: n.attr.id,
-            name: n.attr.name,
-            allowCustom: n.attr.allowCustom,
-            allowImage: n.attr.allowImage,
-            values: n.values,
-            rows,
-        }
-    })
-}
-
-function toSelections(drafts: AttrDraft[]): SpecSelection[] {
-    const withRows = drafts.filter((d) => d.rows.some((r) => r.value.trim()))
-    return withRows.map((d) => {
-        const valueIds = d.rows
-            .filter(
-                (r): r is ValueDraft & { valueId: string } => !!r.valueId && r.value.trim() !== "",
-            )
-            .map((r) => r.valueId)
-        const customValues = d.rows
-            .filter((r) => !r.valueId && r.value.trim())
-            .map((r) => r.value.trim())
-        // 取值图：仅收集「有值且有图」的，随规格选择上抛，后端落到 category_attr_values.image
-        const valueImages: Record<string, string> = {}
-        for (const r of d.rows)
-            if (r.valueId && r.value.trim() && r.image) valueImages[r.valueId] = r.image
-        const customValueImages: Record<string, string> = {}
-        for (const r of d.rows) {
-            const v = r.value.trim()
-            if (!r.valueId && v && r.image) customValueImages[v] = r.image
-        }
-        return {
-            attrId: d.attrId,
-            valueIds,
-            customValues,
-            valueImages: Object.keys(valueImages).length > 0 ? valueImages : undefined,
-            customValueImages:
-                Object.keys(customValueImages).length > 0 ? customValueImages : undefined,
-        }
-    })
-}
+import { AttrValueRow } from "./AttrValueRow"
 
 /**
  * 销售属性编辑器（千牛式逐行取值）。
@@ -115,16 +44,18 @@ export function SalesAttrsEditor({
 }) {
     // drafts 与「其来源 value 引用」同存一体：外部灌值（编辑回显 hydrate）必然带来新引用 → 渲染期重建；
     // 自回声（emit 上抛的同一数组经父级回传）引用未变，不触发，无需序列化比较。
+    // 行 id 计数器由本组件持有（useState 只初始化一次），模型层的换算函数收一个 id 工厂而非自带单例。
+    const [nextId] = useState(createValueRowId)
     const [draftState, setDraftState] = useState(() => ({
         source: value,
-        drafts: toDrafts(attrs, value),
+        drafts: selectionsToDrafts(attrs, value, nextId),
     }))
     if (
         value !== draftState.source &&
         JSON.stringify(value) !== JSON.stringify(draftState.source)
     ) {
         // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- 渲染期识别外部灌值并重建，是 React 官方的 adjusting state during render 模式
-        setDraftState({ source: value, drafts: toDrafts(attrs, value) })
+        setDraftState({ source: value, drafts: selectionsToDrafts(attrs, value, nextId) })
     }
     const drafts = draftState.drafts
     // 上传完成是异步回调，渲染期闭包里的 drafts 已过期：拿它重建会吞掉上传期间的其他改动
@@ -135,7 +66,7 @@ export function SalesAttrsEditor({
     }, [drafts])
 
     function emit(next: AttrDraft[]) {
-        const selections = toSelections(next)
+        const selections = draftsToSelections(next)
         latestDrafts.current = next
         setDraftState({ source: selections, drafts: next })
         onChange(selections)

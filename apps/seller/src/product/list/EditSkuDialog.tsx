@@ -1,9 +1,9 @@
 import { PackageCheck } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 
-import { type Money, moneyToYuan, toApiError } from "@shop/common"
+import { toApiError } from "@shop/common"
 import { FormActions } from "@shop/app-kit"
-import type { ProductDetailResponse, SkuResponse, SkuUpdateItem } from "@shop/api/sdk"
+import type { ProductDetailResponse } from "@shop/api/sdk"
 import {
     Dialog,
     DialogContent,
@@ -25,45 +25,15 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { countInputSchema, yuanPriceSchema } from "#/product/draft-model"
-import { SKU_CODE_MAX } from "#/product/constants"
+import {
+    countInputSchema,
+    type SkuEditKind,
+    skuTextRowsForEdit,
+    toSkuUpdateItemsFromText,
+    yuanPriceSchema,
+} from "#/product/draft-model"
+import { SKU_CODE_MAX, SKU_EDIT_KIND_META } from "#/product/constants"
 import { productDetailOptions, useUpdateProductSkus } from "#/product/queries"
-
-export type SkuEditKind = "price" | "stock"
-
-/** SKU 展示名：规格值组合（attributes 是 {name,value} 快照），无规格值时兜底「默认规格」。
- *  不用 s.name —— 那是「SPU名+规格值」拼接快照，会重复出现商品名。 */
-function skuLabel(s: SkuResponse): string {
-    const values = s.attributes.map((a) => a.value).filter(Boolean)
-    return values.length > 0 ? values.join(" / ") : "默认规格"
-}
-
-/** 编辑器内可变的 SKU 行：价格/库存/编码都以文本态承接输入，提交时才统一换算校验。
- *  price/stock 存原始值：编辑价格时原样回传库存、编辑库存时原样回传价格（updateSkus 两者都必填）。 */
-interface SkuRow {
-    skuId: string
-    label: string
-    /** 当前价格（Money），未定价为 null —— 编辑库存时需原样回传，故必存原始值 */
-    price: Money | null
-    priceText: string
-    stockText: string
-    /** 当前库存（编辑价格时原样回传，避免绝对量被误清零） */
-    stock: number
-    skuCodeText: string
-}
-
-const KIND_META: Record<SkuEditKind, { title: string; notice: string; okMessage: string }> = {
-    price: {
-        title: "编辑 SKU",
-        notice: "库存调整请点库存列进入「编辑库存」，此处只调整价格与商家编码。",
-        okMessage: "SKU 价格已更新",
-    },
-    stock: {
-        title: "编辑库存",
-        notice: "价格调整请点价格列进入「编辑 SKU」，此处只调整库存。",
-        okMessage: "库存已更新",
-    },
-}
 
 /**
  * 「编辑SKU / 编辑库存」弹窗：编辑商品每个 SKU 的某一维度（kind=price → 价格+商家编码；kind=stock → 库存）。
@@ -90,7 +60,7 @@ export function EditSkuLineDialog({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
-    const meta = KIND_META[kind]
+    const meta = SKU_EDIT_KIND_META[kind]
 
     // 详情走 query：与发布页回填同一份缓存（productKeys.detail）。
     // 关着弹窗、或没有 productId 时 skipToken 直接不发请求；打开即命中缓存（若发布页刚填过则零请求）。
@@ -162,43 +132,17 @@ function SkuLineForm({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
-    const meta = KIND_META[kind]
+    const meta = SKU_EDIT_KIND_META[kind]
     const save = useUpdateProductSkus(meta.okMessage, () => {
         onSaved()
         onOpenChange(false)
     })
 
     const form = useAppForm({
-        defaultValues: {
-            rows: detail.skus.map((s): SkuRow => ({
-                skuId: s.id,
-                label: skuLabel(s),
-                price: s.price,
-                priceText: moneyToYuan(s.price),
-                stockText: String(s.stock),
-                stock: s.stock,
-                skuCodeText: s.skuCode ?? "",
-            })),
-        },
+        defaultValues: { rows: skuTextRowsForEdit(detail.skus) },
+        // 行内校验已在字段级通过；换算与「另一维原样回传」的投影规则在 draft-model
         onSubmit: ({ value }) => {
-            // 行内校验已在字段级 onSubmit 通过；这里只做换算与投影
-            const items: SkuUpdateItem[] = value.rows.map((r) => {
-                if (kind === "price") {
-                    const skuCode = r.skuCodeText.trim()
-                    return {
-                        skuId: r.skuId,
-                        price: yuanPriceSchema.parse(r.priceText),
-                        stock: r.stock,
-                        ...(skuCode ? { skuCode } : {}),
-                    }
-                }
-                return {
-                    skuId: r.skuId,
-                    price: r.price!,
-                    stock: countInputSchema.parse(r.stockText),
-                }
-            })
-            save.mutate({ productId, items })
+            save.mutate({ productId, items: toSkuUpdateItemsFromText(kind, value.rows) })
         },
     })
 
@@ -317,7 +261,7 @@ function SkuLineForm({
                                                     aria-label={`${r.label} 商家编码`}
                                                     maxLength={SKU_CODE_MAX}
                                                     className="w-48"
-                                                    placeholder="选填，最多 64 位"
+                                                    placeholder={`选填，最多 ${SKU_CODE_MAX} 位`}
                                                 />
                                             )}
                                         </form.AppField>

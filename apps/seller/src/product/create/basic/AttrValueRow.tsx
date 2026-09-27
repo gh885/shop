@@ -13,18 +13,7 @@ import {
 } from "@shop/ui-web"
 
 import { imgUrl } from "#/shared/lib/image"
-
-/** 一个「取值行」的草稿形状：id 稳定拼接；命中模板值记 valueId，否则视为自定义值 */
-export interface ValueDraft {
-    id: string
-    /** 命中模板值的 id；无 = 自定义值 */
-    valueId?: string
-    value: string
-    /** 取值图（如颜色所对应的色块图）；本期仅 UI 占位，后端取值模型暂无该字段，提交时丢弃 */
-    image?: string
-    /** 备注：本期仅 UI 占位，后端取值无该字段，提交时丢弃 */
-    note: string
-}
+import type { ValueDraft } from "#/product/draft-model"
 
 /**
  * 销售属性「取值行」：图片占位 + 取值输入（模板值域 autocomplete）+ 备注输入 + 删除。

@@ -1,6 +1,7 @@
 import { editRules } from "#/product/edit-rules"
 import type { ProductStatus } from "@shop/api/sdk"
 
+import { EMPTY_PRODUCT_BASIC_FORM } from "#/product/draft-model"
 import type {
     ListingTime,
     ProductBasicForm,
@@ -49,21 +50,6 @@ const uploadImage = (file: File) => uploadProductImage(file)
 
 /** basic 表单字段值（形状单一来源是 draft-model 的 ProductBasicForm，此处只保留表单语境的名字） */
 export type BasicStepValues = ProductBasicForm
-
-/**
- * 表单默认值（须为**模块级稳定引用**）。
- *
- * TanStack Form 的 {@code update()} 在每次渲染比较传入的 {@code defaultValues} 引用：若引用变了且表单未被触碰
- * （{@code !isTouched}），会把 values 重置回 defaultValues。若这里用每次渲染新建的对象字面量，则编辑回显
- * {@code form.reset(initialBasic)} 填入的值会在下一次渲染被重置回空（「出现一下就没」）。保持同一引用可避免该坑。
- */
-const BASIC_DEFAULT_VALUES: BasicStepValues = {
-    images: [],
-    name: "",
-    subtitle: "",
-    detailImages: [],
-    sevenDayReturn: true,
-}
 
 /**
  * 提交方式：草稿与提交走同一份校验、同一个建档接口，只是落地后去向不同。
@@ -145,7 +131,7 @@ export function BasicStep({
     }, [onBasicChange])
 
     const form = useAppForm({
-        defaultValues: BASIC_DEFAULT_VALUES,
+        defaultValues: EMPTY_PRODUCT_BASIC_FORM,
         onSubmit: ({ value }) => void submit(value, mode.current),
     })
 

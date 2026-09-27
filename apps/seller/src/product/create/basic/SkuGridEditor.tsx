@@ -23,7 +23,12 @@ import {
     cn,
 } from "@shop/ui-web"
 
-import { countInputSchema, yuanPriceSchema } from "#/product/draft-model"
+import {
+    parseBatchFill,
+    parseCountCell,
+    parsePriceCell,
+    selectVisibleSkuRows,
+} from "#/product/draft-model"
 import { SKU_CODE_MAX } from "#/product/constants"
 import type { SkuDraftRow } from "#/product/draft-model"
 
@@ -39,13 +44,13 @@ import type { SkuDraftRow } from "#/product/draft-model"
  * 说明：SKU分类 后端模型尚无对应字段，先渲染禁用占位；删除为移除该行（不随更新上报）。
  */
 
-// 输入边界：元/件字符串 ↔ 分/null，仅出现在本文件
+// 输入边界：元/件字符串 → 模型的换算判据在 draft-model 的 parse*Cell，本文件只决定「什么时候提交」
 /** 单元格文本校验失败时：提示 + 不提交（与“空 = 清空”区分开，输入不会被静默吞掉） */
 function rejectInput(message: string | undefined): void {
     notify.error(message ?? "输入格式不正确")
 }
 
-/** 价格单元格：文本态只在输入期间驻留，blur 走 yuanPriceSchema 校验并换算回 Money */
+/** 价格单元格：文本态只在输入期间驻留，blur 才校验并换算回 Money */
 function PriceCell({
     value,
     onCommit,
@@ -66,21 +71,15 @@ function PriceCell({
                 onChange={(e) => setText(e.target.value)}
                 onBlur={() => {
                     if (text === undefined) return
-                    const raw = text.trim()
+                    const cell = parsePriceCell(text)
                     setText(undefined)
-                    if (raw === "") {
-                        // 空 = 清空（未设价）；仅在真的有值时提交，避免无谓重建行
-                        // oxlint-disable-next-line no-null -- 模型契约：null = 未设价（draft-model 设计），清空提交 null
-                        if (value !== null) onCommit(null)
+                    if (cell.error !== undefined) {
+                        rejectInput(cell.error)
                         return
                     }
-                    const parsed = yuanPriceSchema.safeParse(raw)
-                    if (!parsed.success) {
-                        rejectInput(parsed.error.issues[0]?.message)
-                        return
-                    }
-                    // Money 是普通对象，重新解析必得新引用——判「有没有改动」得按值比
-                    if (!sameMoney(parsed.data, value)) onCommit(parsed.data)
+                    // 按值比再提交：Money 是普通对象，重新解析必得新引用；清空也只在真有值时算一次改动
+                    if (cell.value === null ? value !== null : !sameMoney(cell.value, value))
+                        onCommit(cell.value)
                 }}
             />
             <InputGroupAddon
@@ -113,19 +112,14 @@ function QuantityCell({
                 onChange={(e) => setText(e.target.value.replaceAll(/\D/g, ""))}
                 onBlur={() => {
                     if (text === undefined) return
-                    const raw = text.trim()
+                    const cell = parseCountCell(text)
                     setText(undefined)
-                    if (raw === "") {
-                        // oxlint-disable-next-line no-null -- 模型契约：null = 未填（draft-model 设计），清空提交 null
-                        if (value !== null) onCommit(null)
+                    if (cell.error !== undefined) {
+                        rejectInput(cell.error)
                         return
                     }
-                    const parsed = countInputSchema.safeParse(raw)
-                    if (!parsed.success) {
-                        rejectInput(parsed.error.issues[0]?.message)
-                        return
-                    }
-                    if (parsed.data !== value) onCommit(parsed.data)
+                    if (cell.value === null ? value !== null : cell.value !== value)
+                        onCommit(cell.value)
                 }}
             />
             <InputGroupAddon
@@ -159,43 +153,24 @@ export function SkuGridEditor({
         onChange(rows.filter((_, i) => i !== index))
     }
 
-    /** 批量填写：价格/数量各自走 schema 校验（非法输入提示且整批不落），空的不覆盖 */
+    /** 批量填写：判据在 draft-model 的 parseBatchFill（非法输入提示且整批不落，空的不覆盖） */
     function applyBatch() {
-        const priceText = batchPrice.trim()
-        const stockText = batchStock.replaceAll(/\D/g, "")
-        let price: Money | undefined = undefined
-        let stock: number | undefined = undefined
-        if (priceText) {
-            const parsed = yuanPriceSchema.safeParse(priceText)
-            if (!parsed.success) {
-                rejectInput(parsed.error.issues[0]?.message)
-                return
-            }
-            price = parsed.data
+        const batch = parseBatchFill(batchPrice, batchStock)
+        if (batch.error !== undefined) {
+            rejectInput(batch.error)
+            return
         }
-        if (stockText) {
-            const parsed = countInputSchema.safeParse(stockText)
-            if (!parsed.success) {
-                rejectInput(parsed.error.issues[0]?.message)
-                return
-            }
-            stock = parsed.data
-        }
-        if (price === undefined && stock === undefined) return
-        onChange(rows.map((r) => ({ ...r, price: price ?? r.price, stock: stock ?? r.stock })))
+        if (batch.price === undefined && batch.stock === undefined) return
+        onChange(
+            rows.map((r) => ({
+                ...r,
+                price: batch.price ?? r.price,
+                stock: batch.stock ?? r.stock,
+            })),
+        )
     }
 
-    const visible = (() => {
-        const kw = keyword.trim().toLowerCase()
-        if (!kw) return rows.map((d, i) => ({ d, i }))
-        return rows
-            .map((d, i) => ({ d, i }))
-            .filter(
-                ({ d }) =>
-                    d.label.toLowerCase().includes(kw) ||
-                    (d.skuCode ?? "").toLowerCase().includes(kw),
-            )
-    })()
+    const visible = selectVisibleSkuRows(rows, keyword)
 
     if (rows.length === 0) return
 
@@ -302,7 +277,7 @@ export function SkuGridEditor({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {visible.map(({ d, i }) => (
+                    {visible.map(({ row: d, index: i }) => (
                         <TableRow key={d.skuId ?? i}>
                             <TableCell>
                                 <span className="flex items-center gap-2">

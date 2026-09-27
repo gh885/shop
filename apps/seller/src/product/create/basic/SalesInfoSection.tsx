@@ -12,9 +12,10 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { type Money, maxMoney, minMoney, priceRangeText, toApiError } from "@shop/common"
+import { priceRangeText, toApiError } from "@shop/common"
 import { useQuery } from "@tanstack/react-query"
 
+import { derivePriceStock } from "#/product/draft-model"
 import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
 import { categorySpecTemplateOptions } from "#/product/queries"
 
@@ -165,11 +166,7 @@ export function SalesInfoSection({
 
 /** 一口价（价格区间）+ 总库存（库存之和）：纯派生展示，随 SKU 编辑实时联动 */
 function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
-    const prices = skuRows.map((r) => r.price).filter((m): m is Money => m !== null)
-    const min = minMoney(prices)
-    const max = maxMoney(prices)
-    // 展示侧兜底：null（未填）的库存按 0 计入合计（与 wire 投影落库的 ?? 0 一致）
-    const totalStock = skuRows.reduce((sum, r) => sum + (r.stock ?? 0), 0)
+    const { min, max, totalStock } = derivePriceStock(skuRows)
 
     return (
         <>

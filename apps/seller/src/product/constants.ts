@@ -1,5 +1,6 @@
 import { statusOptions } from "@shop/common"
 
+import type { SkuEditKind } from "./draft-model"
 import type { ProductStatus } from "@shop/api/sdk"
 
 /**
@@ -23,3 +24,23 @@ export const PRODUCT_STATUS_META: Record<
 
 export const PRODUCT_STATUS_TABS: ReadonlyArray<{ value: ProductStatus; label: string }> =
     statusOptions(PRODUCT_STATUS_META)
+
+/**
+ * 「编辑 SKU / 编辑库存」两个弹窗共用一套骨架，只差在标题、提示语和成功文案。
+ * 纯展示表：弹窗按 kind 取一行，不再自己持一份。
+ */
+export const SKU_EDIT_KIND_META: Record<
+    SkuEditKind,
+    { title: string; notice: string; okMessage: string }
+> = {
+    price: {
+        title: "编辑 SKU",
+        notice: "库存调整请点库存列进入「编辑库存」，此处只调整价格与商家编码。",
+        okMessage: "SKU 价格已更新",
+    },
+    stock: {
+        title: "编辑库存",
+        notice: "价格调整请点价格列进入「编辑 SKU」，此处只调整库存。",
+        okMessage: "库存已更新",
+    },
+}
