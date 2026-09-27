@@ -1,6 +1,6 @@
 # Shop — 多店铺电商平台
 
-模块化单体架构的多店铺电商平台：后端按业务模块划分（模块 = 顶层包 = PG schema），由 Spring Modulith 强制校验边界，可随时拆分为微服务。
+模块化单体架构的多店铺电商平台：后端按业务模块划分（模块 = 顶层包 = PG schema），由 Spring Modulith 强制校验边界。模块之间大量是**同事务同步调用**（下单冻库存、支付推单、退款监听），编译期干净、事务上一体——这是强一致优先的单体取舍，不是"随时可拆微服务"，拆任何一个都要先把同事务命令改成 saga 或最终一致（口径见 [apps/server/AGENTS.md](apps/server/AGENTS.md)「模块边界规范」）。
 
 ## 技术栈
 
@@ -43,13 +43,16 @@ shop/
 │   └── server/                 # Spring Boot 模块化单体（8080 端口）
 │       └── src/main/java/com/shop/platform/
 │           ├── common/         # 共享纯包：异常体系、Money/PhoneNumber、UserIdHolder 等（框架无关）
-│           ├── infra/          # 共享纯包：JWT、Filter、MyBatis 配置等跨模块技术适配
-│           └── account/ product/ inventory/ cart/ favorite/ order/ aftersale/ payment/ cms/ shop/
-│                              # 业务模块 = 顶层包 = PG schema；内部 controller → dto → service → mapper 三层到底
+│           ├── infra/          # 共享纯包：JWT、Filter、MyBatis 配置、读缓存名单等跨模块技术适配
+│           └── account/ shop/ product/ inventory/ cart/ favorite/ order/ payment/ aftersale/
+│               logistics/ coupon/ review/ cms/ recommend/ audit/
+│                              # 15 个业务模块 = 顶层包 = PG schema（order 的 schema 是 orders，recommend V1 还没有表）；
+│                              # 内部 controller → dto → service → mapper 三层到底，职责与依赖逐个见各模块 package-info.java
 ├── packages/
 │   ├── api/                    # TS SDK（@hey-api/openapi-ts 从 openapi/api-docs.json 生成）+ zod 契约校验 + Money/错误码
 │   ├── ui-web/                 # shadcn/ui + BaseUI 组件库（CLI 生成，不手写；视觉规则见包内 DESIGN.md）
 │   ├── common/                 # 前端共享纯逻辑
+│   ├── app-kit/                # 三端应用装配（QueryClient 工厂 / MutationMeta / QueryBoundary / 登录装配 / renderWithProviders）
 │   ├── config/                 # tsconfig / oxlint / oxfmt 共享配置
 │   └── test-utils/             # 跨 app 测试装置（MSW handlers / setup / 假数据工厂）
 ├── openapi/                    # OpenAPI 契约 api-docs.json（后端 /v3/api-docs 导出，pnpm gen:sdk 刷新）
@@ -62,9 +65,10 @@ shop/
 
 ## 已实现范围与已知边界
 
-已闭环：注册登录（短信/密码 + refresh token 轮换）、商品与 SKU、多店铺、购物车、收藏、
-结算预览、按店拆单下单、库存冻结/扣实/释放/回补（含流水账本）、两段式支付（MOCK 渠道）、
-订单状态机（发货/收货/取消/超时关单）、已付款取消退款单据、静态 RBAC、CMS 首页配置、
+已闭环：注册登录（短信/密码 + refresh token 轮换）、账号注销（冷静期 → 匿名化，跨模块清理走事件）、
+商品与 SKU、多店铺、购物车、收藏、结算预览、按店拆单下单、库存冻结/扣实/释放/回补（含流水账本）、
+两段式支付（MOCK 渠道）、订单状态机（发货/收货/取消/超时关单）、已付款取消退款单据、静态 RBAC、
+CMS 首页配置、首页 feed 流（随机批次货架流：种子 + 游标翻页，不回 total；个性化与埋点是 V2/V3）、
 物流（包裹/轨迹/承运商对接/异常治理）、售后（买家申请·撤销·回寄 → 卖家同意·拒绝·确认收货退款，
 含卖家退款售后工作台，前后端闭环；规则见 [docs/business-rules/aftersale.md](docs/business-rules/aftersale.md)）、
 优惠券（满减/折扣两型的建券·领券·券包·结算选券·下单占用·支付核销·取消释放·退款退券，
@@ -77,9 +81,9 @@ shop/
 
 尚未实现（刻意留白，不是遗漏）：
 
-- **搜索**只有 `name LIKE '%kw%'`，无倒排索引/相关性排序，量级上去必须换方案
+- **搜索**的语义仍是包含匹配（`name / subtitle ILIKE '%kw%'`），无分词、无相关性排序；但 `%kw%` 已走 `pg_trgm` 的 GIN 索引（V67），不再是无索引的全表扫。要相关度 / 同义词 / 中文分词时再评估 tsvector 或外部搜索服务——那是可选项，不是欠账（决策与重评触发条件见 [docs/reference/search-decision.md](docs/reference/search-decision.md)）
 - **支付**仅 MOCK 渠道，未接真实网关（两段式状态机已按可替换设计，见 `PaymentService`）
-- **无缓存层、无消息队列**：热点只读直接打库；跨模块异步仅用 Modulith 事件登记表（outbox）
+- **不引入消息队列；读缓存刻意只三块**：跨模块异步只走 Modulith 事件登记，且 8 个跨模块监听方法目前全是同步同事务的 `@EventListener`——`kernel.event_publication` 那张登记表（outbox）还没有消费方在用，是留给接真实网关后的退款的。热点只读只有首页三块配置 / 类目树与子树 / 店铺公开信息进了 Redis 读缓存（TTL 5 分钟只兜漏接的写路径，新鲜度靠写侧失效），其余只读照旧直接打库；判权、库存、订单状态这类闸门/账本一律不进缓存。名单与「什么才配上缓存」的判据见 [apps/server/AGENTS.md](apps/server/AGENTS.md)「读缓存」节
 - **营销**：优惠券已闭环两型（满减券 + 折扣券「N 折、封顶必填」，支持「领取后 N 天」相对有效期；
   建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，买家券包·店铺领券·结算选券与卖家建券页、
   平台券运营（查询/作废）均已接通；规则见 [docs/business-rules/coupon.md](docs/business-rules/coupon.md)，
@@ -92,7 +96,9 @@ shop/
 - **平台管理端**（apps/admin）已有：店铺入驻审核、店铺治理（封店/解封）、用户与员工管理（含创建员工/调岗位）、
   平台类目（属性模板）、CMS 三页、优惠券运营、物流异常处置、操作审计（按人/对象/时间反查 + 导出）
 - 未做过多实例部署与压测；已知的单机假设都在代码注释里标了出处
-  （如订单号的进程内序列、超时关单不加分布式锁的理由见 `OrderTimeoutCloser`）
+  （超时关单等三条超时线不加分布式锁的理由见 `order/service/OrderTimeoutService` 类注释——落点是条件更新
+    - 影响行数判定，正确性不依赖锁；订单号已不依赖进程内序列，改为「毫秒时间戳 + uuidv7 主键随机段派生」，
+      见 `order/service/OrderService.insertOrder`）
 
 详细开发规范（常用命令、错误码流程、各领域规范入口）见 [AGENTS.md](AGENTS.md)。
 
@@ -107,21 +113,22 @@ Redis：localhost:6379
 
 ## 文档地图
 
-| 文档                                                   | 内容                                                                                                   |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| [AGENTS.md](AGENTS.md)                                 | 通用入口：命令/开发规范/错误码流程/高频硬规则 + 各领域规范索引（AI 与开发者的入口）                    |
-| [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应                                       |
-| [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                                                   |
-| [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                                                   |
-| [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                                       |
-| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志、[i18n 约定](docs/conventions/i18n.md)、[前端监控](docs/conventions/frontend-monitoring.md)、[可观测性总纲](docs/conventions/observability.md)）                                       |
-| [docs/business-rules/](docs/business-rules/)           | 业务规则库：按领域的生效规则，逐条带编号（源自代码；原 docs/decisions/ 设计笔记已并入并归档 git 历史） |
-| [docs/reference/](docs/reference/)                     | 外部调研资料（券平台做法对照）                                                                         |
+| 文档                                                   | 内容                                                                                                                                                                                                            |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [AGENTS.md](AGENTS.md)                                 | 通用入口：命令/开发规范/错误码流程/高频硬规则 + 各领域规范索引（AI 与开发者的入口）                                                                                                                             |
+| [apps/server/AGENTS.md](apps/server/AGENTS.md)         | 后端规范：架构硬规则、模块边界判据、读缓存、命名三层契约、测试资产                                                                                                                                              |
+| [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应                                                                                                                                                |
+| [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                                                                                                                                                            |
+| [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                                                                                                                                                            |
+| [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                                                                                                                                                |
+| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志、[i18n 约定](docs/conventions/i18n.md)、[前端监控](docs/conventions/frontend-monitoring.md)、[可观测性总纲](docs/conventions/observability.md)） |
+| [docs/business-rules/](docs/business-rules/)           | 业务规则库：按领域的生效规则，逐条带编号（源自代码；原 docs/decisions/ 设计笔记已并入并归档 git 历史）                                                                                                          |
+| [docs/reference/](docs/reference/)                     | 外部调研与决策资料（券平台做法对照、[商品搜索方案](docs/reference/search-decision.md)）                                                                                                                         |
 
 ## 开发规范
 
 提交信息（Conventional Commits）、常用命令、前端测试写法、UI 组件接入等规范统一见 [AGENTS.md](AGENTS.md)，此处不再重复维护。
 
-后端测试分快慢两环：`mvn test` 只跑 `*Test`（单元 + MockMvc 接口层，不碰数据库），`mvn verify` 追加 `*IT`（真库集成测试，需 shop_test 库可达）。CI 门禁应以 `mvn verify` 为准；当前 workflow 只跑 `mvn compile`（后端 job 未配 PG/Redis 服务，接入时再放开，见 `.github/workflows/ci.yml` 注与 [TODO](TODO.md)）。
+后端测试分快慢两环：`mvn test` 跑 `*Test`（单元 + MockMvc 接口层——接口层用 `@SpringBootTest` 起全量上下文连专用库 `shop_test`、由 Flyway 从零跑全量迁移，所以**它也要先有库**），`mvn verify` 追加 `*IT`（真库集成测试）。CI 门禁就是 `mvn verify`：`.github/workflows/ci.yml` 的后端 job 配了 `postgres:18` + `redis:7` 两个 service 容器，并用 `SHOP_DB_PORT: "5432"` 覆盖本地那个 15432 口径（15432 是 Windows 侧端口被占换来的本地约定，见 [AGENTS.md](AGENTS.md)「数据库与 Redis」）。
 
 Lefthook：pre-commit 自动格式化并跑 lint，commit-msg 校验提交信息，pre-push 跑全量 lint / typecheck / 测试 / Java 编译 / SDK 契约漂移检查。
