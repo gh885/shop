@@ -4,6 +4,9 @@ import static com.shop.platform.logistics.model.ShipmentStatus.DELIVERED;
 import static com.shop.platform.logistics.model.ShipmentStatus.RETURNED;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import com.shop.platform.account.api.StaffReadQuery;
+import com.shop.platform.audit.api.AuditAction;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.Validate;
 import com.shop.platform.logistics.dto.TrackingNodeRequest;
 import com.shop.platform.logistics.mapper.Shipment;
@@ -42,6 +45,9 @@ public class TrackingService {
 
     /** 包裹到终态时结掉未结异常单：异常不再需要人处理，留着就是假待办 */
     private final ShipmentIssueService shipmentIssueService;
+
+    private final RecordAuditCommand recordAuditCommand;
+    private final StaffReadQuery staffReadQuery;
 
     /**
      * 录入一条轨迹节点：去重落库 + 单调推进包裹状态。重复推送与迟到节点都是幂等的无副作用返回。
@@ -92,5 +98,25 @@ public class TrackingService {
                 req.nodeCode(),
                 advanced == 1 ? target : "保持（旧节点或终态已到）");
         return true;
+    }
+
+    /**
+     * 平台员工补录/纠错轨迹的唯一入口：在 {@link #recordNode} 的同事务里追加一行审计账本
+     * （audit :: api），「谁补的这条轨迹」要能事后反查。承运商 webhook 走的是 recordNode 那条路、
+     * 没有人工操作人，因此不记审计。
+     */
+    @Transactional
+    public boolean recordNodeByOperator(UUID shipmentId, TrackingNodeRequest req, UUID operatorId) {
+        boolean inserted = recordNode(shipmentId, req);
+        // 只在真的落了一行时记账：重复补录（幂等跳过）没有产生新事实，记账等于给账本灌水
+        if (inserted) {
+            recordAuditCommand.record(
+                    AuditAction.LOGISTICS_TRACKING_WRITTEN,
+                    shipmentId,
+                    operatorId,
+                    staffReadQuery.displayNameById(operatorId),
+                    "node_code=%s, occurred_at=%s".formatted(req.nodeCode(), req.occurredAt()));
+        }
+        return inserted;
     }
 }

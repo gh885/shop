@@ -3,6 +3,8 @@ package com.shop.platform.shop.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.common.PageParams;
 import com.shop.platform.shop.model.ShopStatus;
 import java.util.Collection;
 import java.util.List;
@@ -94,5 +96,44 @@ public interface ShopMapper extends BaseMapper<Shop> {
                         .eq(Shop::getId, shopId)
                         .eq(Shop::getStatus, ShopStatus.ACTIVE)
                         .set(Shop::getStatus, ShopStatus.DISABLED));
+    }
+
+    /**
+     * 平台解封：DISABLED → ACTIVE。{@code WHERE status = DISABLED} 是并发闸门，
+     * 已 ACTIVE/待审/被拒的店影响 0 行，调用方据此报 409（不静默「成功」）。
+     *
+     * <p>只解 DISABLED 一档：审核驳回（REJECTED）不是封禁，解封它等于替审核员翻案。
+     */
+    default int resume(UUID shopId) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Shop>()
+                        .eq(Shop::getId, shopId)
+                        .eq(Shop::getStatus, ShopStatus.DISABLED)
+                        .set(Shop::getStatus, ShopStatus.ACTIVE));
+    }
+
+    /**
+     * 管理端店铺列表分页：status 传 null = 全部，否则只给那一档；关键字命中店名或店主 ID。
+     * 排序固定「最新在前」（治理动作看的是最近变动的那批），排序口径收在这里。
+     */
+    default Page<Shop> selectPageAdmin(PageParams pageParams, ShopStatus filter, String keyword) {
+        return selectPage(
+                new Page<>(pageParams.page(), pageParams.size()),
+                new LambdaQueryWrapper<Shop>()
+                        .eq(filter != null, Shop::getStatus, filter == null ? null : filter.name())
+                        .and(
+                                keyword != null && !keyword.isBlank(),
+                                w -> w.like(Shop::getName, keyword).or().eq(Shop::getOwnerId, parseOwnerId(keyword)))
+                        .orderByDesc(Shop::getCreatedAt));
+    }
+
+    /** 关键字可能是店主 UUID（管理员常按 ID 找店），非 UUID 一律当 null（不报错，交给 like 那一支） */
+    private static UUID parseOwnerId(String keyword) {
+        try {
+            return UUID.fromString(keyword);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

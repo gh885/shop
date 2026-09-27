@@ -1,7 +1,10 @@
 package com.shop.platform.shop.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.api.StaffReadQuery;
 import com.shop.platform.account.api.UserReadQuery;
+import com.shop.platform.audit.api.AuditAction;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.PhoneNumber;
@@ -42,6 +45,8 @@ public class ShopReviewService {
     private final ShopMapper shopMapper;
     private final UserReadQuery userReadQuery;
     private final ApplicationEventPublisher events;
+    private final RecordAuditCommand recordAuditCommand;
+    private final StaffReadQuery staffReadQuery;
 
     // 审核队列
     /** 审核列表（按 status 筛选分页，含店名/店主手机号；号码恒为掩码，明文走 {@link #ownerPhone}） */
@@ -145,6 +150,14 @@ public class ShopReviewService {
                 .put("decision", newStatus)
                 .put("staff_id", staffId)
                 .emit();
+        // 5. 审计账本（同一事务，audit :: api）：审核决定是平台治理动作，理由原样入 detail（非敏感自由文本）
+        recordAuditCommand.record(
+                AuditAction.SHOP_REVIEW_DECIDED,
+                review.getId(),
+                staffId,
+                staffReadQuery.displayNameById(staffId),
+                "decision=%s, shop_id=%s, reason=%s"
+                        .formatted(newStatus, review.getShopId(), reason == null ? "-" : reason));
         return review;
     }
 

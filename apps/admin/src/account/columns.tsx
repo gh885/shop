@@ -5,6 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { actionsColumn } from "#/shared/ui/columns"
 import { STAFF_ROLE_LABELS, STAFF_STATUS_META, USER_STATUS_META } from "./constants"
 import { AccountStatusAction } from "./status-action"
+import { StaffRoleAction } from "./role-action"
 
 export const userColumns: ColumnDef<DataTableFeatures, AdminUserItem>[] = [
     { accessorKey: "phone", header: "手机号", meta: { variant: "strong" } },
@@ -70,9 +71,12 @@ export const staffColumns: ColumnDef<DataTableFeatures, AdminStaffItem>[] = [
         cell: ({ row }) => formatDateTime(row.original.createdAt),
     },
     actionsColumn((item) => (
-        <AccountStatusAction
-            kind="staff"
-            item={item}
-        />
+        <div className="flex justify-end gap-2">
+            <StaffRoleAction staff={item} />
+            <AccountStatusAction
+                kind="staff"
+                item={item}
+            />
+        </div>
     )),
 ]

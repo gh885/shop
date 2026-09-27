@@ -2,6 +2,15 @@
 
 import { isValidPhoneNumber } from "react-phone-number-input/min"
 
+/**
+ * 输入框可敲的位数上限：这个字段固定 +86 前缀，只收号码本体（11 位大陆手机号）。
+ *
+ * 刻意具名：写成 `maxLength={11}` 时没人知道它对应哪条规则，而位数一改这里就会静默漂成一个无主的字面量
+ * （FieldRuleVocabularyTest 的「app 里不许有裸的字数上限」会当场红）。位数与 `packages/app-kit` 的
+ * `PHONE_DIGITS`（登录手机号）同档，登记在那条策略上。
+ */
+const MAINLAND_MOBILE_DIGITS = 11
+
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "./ui/input-group"
 
 /**
@@ -64,7 +73,7 @@ export function PhoneField({
                 placeholder="11 位手机号"
                 inputMode="tel"
                 autoComplete={autoComplete}
-                maxLength={11}
+                maxLength={MAINLAND_MOBILE_DIGITS}
                 value={value}
                 onBlur={onBlur}
                 onChange={(e) => onChange(e.target.value.replaceAll(/\D/g, ""))}

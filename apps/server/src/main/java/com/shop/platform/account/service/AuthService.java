@@ -1,6 +1,7 @@
 package com.shop.platform.account.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.api.StaffReadQuery;
 import com.shop.platform.account.dto.AccountFieldRules;
 import com.shop.platform.account.dto.AdminUserQuery;
 import com.shop.platform.account.infra.CaptchaService;
@@ -9,6 +10,8 @@ import com.shop.platform.account.infra.UserAgentParser;
 import com.shop.platform.account.mapper.User;
 import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.account.model.UserStatus;
+import com.shop.platform.audit.api.AuditAction;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PageParams;
@@ -21,12 +24,9 @@ import com.shop.platform.infra.security.DeviceInfo;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,23 +52,6 @@ public class AuthService {
 
     // Password reset（这里只做业务编排）
 
-    // Common password blacklist (REG-03)
-    private static final Set<String> COMMON_PASSWORDS = Set.of(
-            "123456",
-            "12345678",
-            "123456789",
-            "password",
-            "qwerty123",
-            "111111",
-            "000000",
-            "admin123",
-            "abc123",
-            "password1",
-            "1234567890",
-            "qwertyuiop",
-            "asdfghjkl",
-            "zxcvbnm");
-
     /**
      * 等时对比用的占位哈希（LOGIN-01）：用户不存在/被限流时拿它跑一次 BCrypt，让响应耗时与"用户存在且密码错误"
      * 一致，堵掉按响应时间做账号枚举。
@@ -89,6 +72,8 @@ public class AuthService {
     private final CaptchaService captchaService;
     private final StringRedisTemplate redis;
     private final RefreshTokenStore refreshTokenStore;
+    private final RecordAuditCommand recordAuditCommand;
+    private final StaffReadQuery staffReadQuery;
 
     // 短信登录/注册
     /**
@@ -342,6 +327,13 @@ public class AuthService {
                 .put("status", status)
                 .put("staff_id", staffId)
                 .emit();
+        // 审计账本（同一事务）：治理动作与它的账本同生共死；手机号只落掩码
+        recordAuditCommand.record(
+                AuditAction.ACCOUNT_USER_STATUS_CHANGED,
+                userId,
+                staffId,
+                staffReadQuery.displayNameById(staffId),
+                "status=%s, phone=%s".formatted(status, PhoneNumber.mask(user.getPhone())));
     }
 
     // 限流
@@ -459,24 +451,9 @@ public class AuthService {
     }
 
     // 密码校验
+    /** 口令强度口径住在 {@link PasswordPolicy}（买家与员工建密共用一份，见该类注释） */
     private void validatePassword(String password, String phone) {
-        // REG-01: 最小长度与 DTO 那一格同一个数（AccountFieldRules.PASSWORD_MIN）
-        if (password == null || password.length() < AccountFieldRules.PASSWORD_MIN) {
-            throw BusinessException.badRequest("密码长度至少 " + AccountFieldRules.PASSWORD_MIN + " 位");
-        }
-        // REG-06: BCrypt 的 72 是「字节」上限，不是字符数（多字节字符会超 72 字节导致编码失败/截断失配）
-        //         ——所以 DTO 的字符档（PASSWORD_MAX）放得进来的，这里还要再过一道字节档
-        if (password.getBytes(StandardCharsets.UTF_8).length > AccountFieldRules.BCRYPT_INPUT_MAX_BYTES) {
-            throw BusinessException.badRequest("密码长度不能超过 " + AccountFieldRules.BCRYPT_INPUT_MAX_BYTES + " 位");
-        }
-        // REG-05: 不与手机号相同
-        if (password.equals(phone)) {
-            throw BusinessException.badRequest("密码不能与手机号相同");
-        }
-        // REG-03: 常见密码黑名单
-        if (COMMON_PASSWORDS.contains(password.toLowerCase(Locale.ROOT))) {
-            throw BusinessException.badRequest("密码过于常见，请更换");
-        }
+        PasswordPolicy.require(password, phone);
     }
 
     // 工具方法

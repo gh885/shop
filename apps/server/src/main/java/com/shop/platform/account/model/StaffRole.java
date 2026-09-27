@@ -1,4 +1,4 @@
-package com.shop.platform.account.service;
+package com.shop.platform.account.model;
 
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.PermissionResolver;
@@ -31,13 +31,15 @@ public enum StaffRole {
     public Set<String> permissions() {
         return switch (this) {
             case SUPER_ADMIN -> Set.of(PermissionResolver.WILDCARD);
-            case REVIEWER -> Set.of(Permissions.SHOP_REVIEW);
+            case REVIEWER -> Set.of(Permissions.SHOP_REVIEW, Permissions.AUDIT_VIEW, Permissions.SHOP_GOVERNANCE);
             case OPS ->
                 Set.of(
                         Permissions.CMS_MANAGE,
                         Permissions.CATEGORY_MANAGE,
                         Permissions.LOGISTICS_MANAGE,
-                        Permissions.COUPON_OPS);
+                        Permissions.COUPON_OPS,
+                        Permissions.AUDIT_VIEW,
+                        Permissions.SHOP_GOVERNANCE);
         };
     }
 

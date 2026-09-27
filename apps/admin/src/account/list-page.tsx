@@ -20,6 +20,7 @@ import { adminStaffOptions, adminUsersOptions } from "./queries"
 import { usePagedTable } from "#/shared/lib/paged-table"
 import { ListBody } from "#/shared/ui/list-body"
 import { StatusFilter } from "#/shared/ui/status-filter"
+import { StaffCreateDialog } from "./staff-create-dialog"
 
 export interface AccountSearch {
     status?: UserStatus | StaffStatus
@@ -163,11 +164,18 @@ function AccountTableView<T extends AccountRow>({
 
 function AccountHeader({ kind }: { kind: "user" | "staff" }) {
     return (
-        <div>
-            <h1 className="text-lg font-semibold">{kind === "user" ? "用户管理" : "员工管理"}</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-                {kind === "user" ? "查看买家账号并管理登录状态" : "查看平台员工并管理登录状态"}
-            </p>
+        <div className="flex items-start justify-between">
+            <div>
+                <h1 className="text-lg font-semibold">
+                    {kind === "user" ? "用户管理" : "员工管理"}
+                </h1>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                    {kind === "user"
+                        ? "查看买家账号并管理登录状态"
+                        : "创建平台员工、调整岗位与管理登录状态"}
+                </p>
+            </div>
+            {kind === "staff" && <StaffCreateDialog />}
         </div>
     )
 }

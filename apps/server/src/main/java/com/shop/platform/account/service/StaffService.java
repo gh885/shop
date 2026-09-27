@@ -1,11 +1,15 @@
 package com.shop.platform.account.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.api.StaffReadQuery;
 import com.shop.platform.account.dto.AdminStaffQuery;
 import com.shop.platform.account.infra.RateLimiter;
 import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
+import com.shop.platform.account.model.StaffRole;
 import com.shop.platform.account.model.StaffStatus;
+import com.shop.platform.audit.api.AuditAction;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PageParams;
@@ -21,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -45,6 +50,8 @@ public class StaffService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenStore refreshTokenStore;
     private final StringRedisTemplate redis;
+    private final RecordAuditCommand recordAuditCommand;
+    private final StaffReadQuery staffReadQuery;
 
     // 登录
     /**
@@ -186,11 +193,20 @@ public class StaffService {
      * （ACC-19），只靠登录/刷新闸门（STAFF_DISABLED）收场太慢，禁用即清光 Redis 里全部 refresh，
      * 8 小时内在途 access 也被吊销（刷新必然失败）；权限层 effectivePermissions 实时查库，
      * 禁用当个请求起判权即空集，双保险。启用即恢复（status 回 ACTIVE，需重新登录取新会话）。
+     *
+     * <p>审计账本（audit :: api）同事务写入，detail 里的工号只落掩码形状。
      */
+    @Transactional
     public void updateStaffStatus(UUID staffId, StaffStatus status, UUID operatorId) {
         // 1. 校验员工存在
         Staff staff = staffMapper.selectById(staffId);
         if (staff == null) throw BusinessException.notFound("员工不存在");
+
+        // 1.5 末位超管保护（ACC-57）：禁用最后一个在岗超管会让平台永久失去「建员工/调岗位/封店」的能力
+        //     （STAFF_MANAGE 只挂通配，而通配本身挂在超管岗位上）。这道在写入前判，与降级那条同一口径。
+        if (!status.isActive() && isLastActiveSuperAdmin(staff)) {
+            throw BusinessException.conflict("不能禁用最后一个在岗的超管");
+        }
 
         // 2. 落状态
         staff.setStatus(status);
@@ -206,6 +222,99 @@ public class StaffService {
                 .put("status", status)
                 .put("operator_id", operatorId)
                 .emit();
+        // 审计账本（同一事务）：禁用/启用员工属治理动作
+        recordAuditCommand.record(
+                AuditAction.ACCOUNT_STAFF_STATUS_CHANGED,
+                staffId,
+                operatorId,
+                staffReadQuery.displayNameById(operatorId),
+                "status=%s, employee_no=%s".formatted(status, maskEmployeeNo(staff.getEmployeeNo())));
+    }
+
+    // 管理端创建员工与调岗位（POST /admin/staff、PUT /admin/staff/{id}/role）
+    /**
+     * 创建平台员工（ACC-57）：工号 + 初始口令 + 岗位。
+     *
+     * <p>两条闸门：① 工号唯一（预检 + 唯一索引双保险，撞车给 400 而不是 500）；
+     * ② 口令强度走 {@link PasswordPolicy}——与买家侧同一份口径（多字节口令被 BCrypt 静默截断是真实事故）。
+     * 岗位是入参而非默认：创建时就想清楚「这个人要干什么」，比事后调岗安全（调岗有自指与末位两道禁令）。
+     */
+    @Transactional
+    public void createStaff(String employeeNo, String password, String displayName, StaffRole role, UUID operatorId) {
+        // 1. 工号唯一（预检只挡误操作，并发由 uk_staff_employee_no 兜底）
+        if (staffMapper.existsByEmployeeNo(employeeNo)) {
+            throw BusinessException.badRequest("工号已被使用，请换一个");
+        }
+
+        // 2. 口令强度：与买家建密同一份判定（REG-01/03/06），无手机号对照物故传 null
+        PasswordPolicy.require(password, null);
+
+        // 3. 建行（ACTIVE 默认）——口令只落 BCrypt 哈希
+        Staff created = Staff.builder()
+                .employeeNo(employeeNo)
+                .passwordHash(passwordEncoder.encode(password))
+                .displayName(Text.blankToNull(displayName))
+                .status(StaffStatus.ACTIVE)
+                .role(role.name())
+                .build();
+        try {
+            staffMapper.insert(created);
+        } catch (DuplicateKeyException e) {
+            // 并发下两人同取一号：唯一索引是真相，给与预检一致的 400
+            // （PG 一报唯一错就把事务标 aborted，靠 catch 后回读是走不到的，25P02）
+            throw BusinessException.badRequest("工号已被使用，请换一个");
+        }
+
+        // 4. 审计账本（同一事务）：谁建的这个号、开到什么岗位
+        recordAuditCommand.record(
+                AuditAction.ACCOUNT_STAFF_CREATED,
+                created.getId(),
+                operatorId,
+                staffReadQuery.displayNameById(operatorId),
+                "employee_no=%s, role=%s".formatted(maskEmployeeNo(employeeNo), role));
+    }
+
+    /**
+     * 调整员工岗位（ACC-57）。三道闸门，缺一条就会把平台治理能力玩坏：
+     * <ol>
+     *   <li><b>不能改自己</b>：调低自己的岗位等于当场自削权限（且事后无痕），把「误操作」变成「既成事实」。</li>
+     *   <li><b>末位超管不可降级</b>：降掉最后一个在岗超管，平台就再没有人能建员工/调岗位/封店（STAFF_MANAGE 只挂通配）。</li>
+     *   <li><b>同岗位是空动作</b>：直接原样返回，不写 updated_at，也不记审计——账本里一行「没发生过的变更」是噪音。</li>
+     * </ol>
+     */
+    @Transactional
+    public void updateStaffRole(UUID staffId, StaffRole role, UUID operatorId) {
+        // 1. 存在性 + 自指禁令
+        Staff staff = staffMapper.selectById(staffId);
+        if (staff == null) throw BusinessException.notFound("员工不存在");
+        Validate.isTrue(!staffId.equals(operatorId), "不能修改自己的岗位");
+
+        // 2. 同岗位是空动作
+        StaffRole current = StaffRole.parseOrNull(staff.getRole());
+        if (current == role) return;
+
+        // 3. 末位超管保护：降级前判，只数在岗超管（被禁的不算，它已没有治理能力）
+        if (current == StaffRole.SUPER_ADMIN && isLastActiveSuperAdmin(staff)) {
+            throw BusinessException.conflict("不能降级最后一个在岗的超管");
+        }
+
+        // 4. 落岗位：0 行即并发下已被别人改掉
+        Validate.conflict(staffMapper.updateRole(staffId, role.name()) == 1, "员工状态已变化，请刷新后重试");
+
+        // 5. 审计账本（同一事务）
+        recordAuditCommand.record(
+                AuditAction.ACCOUNT_STAFF_ROLE_CHANGED,
+                staffId,
+                operatorId,
+                staffReadQuery.displayNameById(operatorId),
+                "from=%s, to=%s, employee_no=%s".formatted(current, role, maskEmployeeNo(staff.getEmployeeNo())));
+    }
+
+    /** 末位超管判定：这个员工是不是唯一还在岗的超管（已禁用的超管不算，它已无治理能力） */
+    private boolean isLastActiveSuperAdmin(Staff staff) {
+        return StaffRole.SUPER_ADMIN.name().equals(staff.getRole())
+                && staff.isActive()
+                && staffMapper.countActiveSuperAdmins() <= 1;
     }
 
     /** 当前登录员工信息（含岗位与有效权限码，前端菜单/按钮显隐用） */

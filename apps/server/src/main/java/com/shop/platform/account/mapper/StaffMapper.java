@@ -1,10 +1,13 @@
 package com.shop.platform.account.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.model.StaffRole;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.common.PageParams;
+import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
@@ -13,6 +16,34 @@ public interface StaffMapper extends BaseMapper<Staff> {
     /** 按工号查员工（平台侧登录） */
     default Staff selectByEmployeeNo(String employeeNo) {
         return selectOne(new LambdaQueryWrapper<Staff>().eq(Staff::getEmployeeNo, employeeNo));
+    }
+
+    /** 员工号是否已被占用（全表口径，不看状态——被禁员工仍占位，与登录账号同一存续口径） */
+    default boolean existsByEmployeeNo(String employeeNo) {
+        return selectCount(new LambdaQueryWrapper<Staff>().eq(Staff::getEmployeeNo, employeeNo)) > 0;
+    }
+
+    /**
+     * 在岗超管人数（末位保护的口径：只数 ACTIVE 的超管）。
+     *
+     * <p>没有这个计数就无法判「降级/禁用掉的是不是最后一个在岗超管」——而那一步一旦漏掉，
+     * 平台就再也没有人能创建员工、调岗位、封店了（STAFF_MANAGE 只有通配可达）。
+     */
+    default long countActiveSuperAdmins() {
+        return selectCount(new LambdaQueryWrapper<Staff>()
+                .eq(Staff::getRole, StaffRole.SUPER_ADMIN.name())
+                .eq(Staff::getStatus, StaffStatus.ACTIVE));
+    }
+
+    /**
+     * 调岗位：把员工的 role 改成目标岗位名。
+     *
+     * <p>{@code WHERE role = 目标角色} 的守卫写在 service 的自指/末位检查之后，条件更新这里只保证
+     * 「不是那一行就不改」；返回值 0 即并发下岗位已被别人改掉，调用方据此报 409。
+     */
+    default int updateRole(UUID staffId, String role) {
+        return update(
+                null, new LambdaUpdateWrapper<Staff>().eq(Staff::getId, staffId).set(Staff::getRole, role));
     }
 
     /**

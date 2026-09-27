@@ -76,7 +76,7 @@ class AdminShipmentIssueControllerTest extends WebControllerTestSupport {
             when(staffService.effectivePermissions(any())).thenReturn(Set.of(Permissions.LOGISTICS_MANAGE));
             doThrow(BusinessException.notFound("异常单不存在"))
                     .when(shipmentIssueService)
-                    .resolve(any(), any());
+                    .resolve(any(), any(), any());
 
             mockMvc.perform(
                             put("/admin/logistics/issues/{id}/resolve", issueId)
@@ -101,7 +101,7 @@ class AdminShipmentIssueControllerTest extends WebControllerTestSupport {
                                 """))
                     .andExpect(status().isOk());
 
-            verify(shipmentIssueService).resolve(eq(issueId), eq("已电话催件"));
+            verify(shipmentIssueService).resolve(eq(issueId), eq(staffId), eq("已电话催件"));
         }
     }
 }

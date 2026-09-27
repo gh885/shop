@@ -1,5 +1,8 @@
 package com.shop.platform.logistics.service;
 
+import com.shop.platform.account.api.StaffReadQuery;
+import com.shop.platform.audit.api.AuditAction;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.logistics.mapper.Shipment;
@@ -44,6 +47,8 @@ public class ShipmentIssueService {
     private final ShipmentMapper shipmentMapper;
 
     private final TrackingNodeMapper trackingNodeMapper;
+    private final RecordAuditCommand recordAuditCommand;
+    private final StaffReadQuery staffReadQuery;
 
     /**
      * 扫一轮异常（非事务，逐单独立提交）——与超时扫描同一条哲学：
@@ -109,11 +114,19 @@ public class ShipmentIssueService {
     /**
      * 客服手动结单。不存在给 404、已结给 409——不静默成功：
      * "我以为我处理了但其实没处理"是运营事故的常见起点。
+     *
+     * <p>审计账本（audit :: api）同事务写入：结单是平台处置动作，「谁结的单」要能反查。
      */
     @Transactional
-    public void resolve(UUID issueId, String note) {
+    public void resolve(UUID issueId, UUID operatorId, String note) {
         Validate.notNull(issueMapper.selectById(issueId), "异常单不存在");
         String detail = Text.trimToNull(note);
         Validate.conflict(issueMapper.resolve(issueId, detail, OffsetDateTime.now()) == 1, "异常单已处理，无需重复操作");
+        recordAuditCommand.record(
+                AuditAction.LOGISTICS_SHIPMENT_ISSUE_RESOLVED,
+                issueId,
+                operatorId,
+                staffReadQuery.displayNameById(operatorId),
+                "note=%s".formatted(detail == null ? "-" : detail));
     }
 }

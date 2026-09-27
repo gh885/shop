@@ -2,6 +2,7 @@ package com.shop.platform.logistics.controller;
 
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentStaff;
 import com.shop.platform.logistics.dto.TrackingNodeRequest;
 import com.shop.platform.logistics.service.TrackingService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,7 +44,8 @@ public class AdminLogisticsController {
      */
     @PostMapping("/shipments/{id}/tracking-nodes")
     @ResponseStatus(HttpStatus.CREATED)
-    public void recordTrackingNode(@PathVariable UUID id, @Valid @RequestBody TrackingNodeRequest req) {
-        trackingService.recordNode(id, req);
+    public void recordTrackingNode(
+            @CurrentStaff UUID staffId, @PathVariable UUID id, @Valid @RequestBody TrackingNodeRequest req) {
+        trackingService.recordNodeByOperator(id, req, staffId);
     }
 }

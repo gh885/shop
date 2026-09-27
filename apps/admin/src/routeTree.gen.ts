@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAuditsRouteImport } from './routes/_app/audits'
 import { Route as AppCategoriesRouteImport } from './routes/_app/categories'
 import { Route as AppCouponOpsRouteImport } from './routes/_app/coupon-ops'
+import { Route as AppLogisticsRouteImport } from './routes/_app/logistics'
+import { Route as AppShopsRouteImport } from './routes/_app/shops'
 import { Route as AppAccountsStaffRouteImport } from './routes/_app/accounts/staff'
 import { Route as AppAccountsUsersRouteImport } from './routes/_app/accounts/users'
 import { Route as AppCmsBannerRouteImport } from './routes/_app/cms/banner'
@@ -34,6 +37,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAuditsRoute = AppAuditsRouteImport.update({
+  id: '/audits',
+  path: '/audits',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCategoriesRoute = AppCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -42,6 +50,16 @@ const AppCategoriesRoute = AppCategoriesRouteImport.update({
 const AppCouponOpsRoute = AppCouponOpsRouteImport.update({
   id: '/coupon-ops',
   path: '/coupon-ops',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogisticsRoute = AppLogisticsRouteImport.update({
+  id: '/logistics',
+  path: '/logistics',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShopsRoute = AppShopsRouteImport.update({
+  id: '/shops',
+  path: '/shops',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAccountsStaffRoute = AppAccountsStaffRouteImport.update({
@@ -73,8 +91,11 @@ const AppCmsRecommendTabRoute = AppCmsRecommendTabRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/audits': typeof AppAuditsRoute
   '/categories': typeof AppCategoriesRoute
   '/coupon-ops': typeof AppCouponOpsRoute
+  '/logistics': typeof AppLogisticsRoute
+  '/shops': typeof AppShopsRoute
   '/accounts/staff': typeof AppAccountsStaffRoute
   '/accounts/users': typeof AppAccountsUsersRoute
   '/cms/banner': typeof AppCmsBannerRoute
@@ -83,8 +104,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/audits': typeof AppAuditsRoute
   '/categories': typeof AppCategoriesRoute
   '/coupon-ops': typeof AppCouponOpsRoute
+  '/logistics': typeof AppLogisticsRoute
+  '/shops': typeof AppShopsRoute
   '/': typeof AppIndexRoute
   '/accounts/staff': typeof AppAccountsStaffRoute
   '/accounts/users': typeof AppAccountsUsersRoute
@@ -96,8 +120,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/audits': typeof AppAuditsRoute
   '/_app/categories': typeof AppCategoriesRoute
   '/_app/coupon-ops': typeof AppCouponOpsRoute
+  '/_app/logistics': typeof AppLogisticsRoute
+  '/_app/shops': typeof AppShopsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts/staff': typeof AppAccountsStaffRoute
   '/_app/accounts/users': typeof AppAccountsUsersRoute
@@ -110,8 +137,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/audits'
     | '/categories'
     | '/coupon-ops'
+    | '/logistics'
+    | '/shops'
     | '/accounts/staff'
     | '/accounts/users'
     | '/cms/banner'
@@ -120,8 +150,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/audits'
     | '/categories'
     | '/coupon-ops'
+    | '/logistics'
+    | '/shops'
     | '/'
     | '/accounts/staff'
     | '/accounts/users'
@@ -132,8 +165,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
+    | '/_app/audits'
     | '/_app/categories'
     | '/_app/coupon-ops'
+    | '/_app/logistics'
+    | '/_app/shops'
     | '/_app/'
     | '/_app/accounts/staff'
     | '/_app/accounts/users'
@@ -170,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/audits': {
+      id: '/_app/audits'
+      path: '/audits'
+      fullPath: '/audits'
+      preLoaderRoute: typeof AppAuditsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/categories': {
       id: '/_app/categories'
       path: '/categories'
@@ -182,6 +225,20 @@ declare module '@tanstack/react-router' {
       path: '/coupon-ops'
       fullPath: '/coupon-ops'
       preLoaderRoute: typeof AppCouponOpsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logistics': {
+      id: '/_app/logistics'
+      path: '/logistics'
+      fullPath: '/logistics'
+      preLoaderRoute: typeof AppLogisticsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/shops': {
+      id: '/_app/shops'
+      path: '/shops'
+      fullPath: '/shops'
+      preLoaderRoute: typeof AppShopsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/accounts/staff': {
@@ -223,8 +280,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAuditsRoute: typeof AppAuditsRoute
   AppCategoriesRoute: typeof AppCategoriesRoute
   AppCouponOpsRoute: typeof AppCouponOpsRoute
+  AppLogisticsRoute: typeof AppLogisticsRoute
+  AppShopsRoute: typeof AppShopsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAccountsStaffRoute: typeof AppAccountsStaffRoute
   AppAccountsUsersRoute: typeof AppAccountsUsersRoute
@@ -234,8 +294,11 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAuditsRoute: AppAuditsRoute,
   AppCategoriesRoute: AppCategoriesRoute,
   AppCouponOpsRoute: AppCouponOpsRoute,
+  AppLogisticsRoute: AppLogisticsRoute,
+  AppShopsRoute: AppShopsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAccountsStaffRoute: AppAccountsStaffRoute,
   AppAccountsUsersRoute: AppAccountsUsersRoute,

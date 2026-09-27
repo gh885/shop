@@ -31,3 +31,10 @@ export const STAFF_ROLE_LABELS: Record<string, string> = {
     REVIEWER: "审核员",
     OPS: "运营",
 }
+
+/** 岗位下拉项（建员工/调岗位共用一份；描述是给人看的后果，不是权限码清单） */
+export const STAFF_ROLE_ITEMS = [
+    { value: "OPS", label: "运营", description: "内容、类目、物流轨迹、优惠券运营" },
+    { value: "REVIEWER", label: "审核员", description: "入驻审核" },
+    { value: "SUPER_ADMIN", label: "超级管理员", description: "全部权限，含员工管理" },
+] as const

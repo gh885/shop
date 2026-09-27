@@ -57,6 +57,15 @@ public final class AccountFieldRules {
     /** 平台员工工号上限（字）：{@code account.staff.employee_no VARCHAR(50)}，工号即登录账号，唯一索引 */
     public static final int EMPLOYEE_NO_MAX = 50;
 
+    /** 工号形状（字母、数字、短横）：登录账号不许有空格——粘贴错一个空格就是「工号明明对却登不上」 */
+    public static final String EMPLOYEE_NO_PATTERN = "^[A-Za-z0-9-]+$";
+
+    /** 工号形状的报错文案（与 {@link #EMPLOYEE_NO_PATTERN} 同一处事实，改形状即改这句） */
+    public static final String EMPLOYEE_NO_PATTERN_MESSAGE = "工号只能包含字母、数字与短横";
+
+    /** 平台员工展示名上限（字）：{@code account.staff.display_name VARCHAR(50)}；与 {@link #EMPLOYEE_NO_MAX} 同数不同概念（一个管显示、一个管登录账号） */
+    public static final int DISPLAY_NAME_MAX = 50;
+
     /** 管理端账号列表关键字上限（字）：与工号/昵称列宽同档，拦住无界字符串进入 LIKE 查询。 */
     public static final int ADMIN_LIST_KEYWORD_MAX = 50;
 

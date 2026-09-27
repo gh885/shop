@@ -470,7 +470,7 @@ class LogisticsIT extends IntegrationTestSupport {
                         shipmentId.toString()));
     }
 
-    /** 客服手动结单：不存在 404、已结 409——不静默成功 */
+    /** 客服手动结单：不存在 404、已结 409——不静默成功；结单同事务落一行审计账本（ACC 治理动作） */
     @Test
     void 手动结单_不存在404_已结409() {
         UUID orderId = seedPaidOrder();
@@ -485,7 +485,16 @@ class LogisticsIT extends IntegrationTestSupport {
                 UUID.class,
                 shipmentId.toString());
 
-        issueService.resolve(issueId, "已电话催件");
+        UUID operatorId = UUID.randomUUID();
+        issueService.resolve(issueId, operatorId, "已电话催件");
+        db.onDelete("DELETE FROM audit.audit_records WHERE operator_id = ?::uuid", operatorId.toString());
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM audit.audit_records WHERE action = 'logistics.shipment_issue.resolved' AND target_id = ?",
+                        Integer.class,
+                        issueId.toString()),
+                "结单落一行审计账本（同一事务）");
         assertEquals(
                 ShipmentIssueStatus.RESOLVED.name(),
                 jdbc.queryForObject(
@@ -495,11 +504,11 @@ class LogisticsIT extends IntegrationTestSupport {
 
         assertEquals(
                 409,
-                assertThrows(BusinessException.class, () -> issueService.resolve(issueId, "再结一次"))
+                assertThrows(BusinessException.class, () -> issueService.resolve(issueId, operatorId, "再结一次"))
                         .getHttpStatus());
         assertEquals(
                 404,
-                assertThrows(BusinessException.class, () -> issueService.resolve(UUID.randomUUID(), null))
+                assertThrows(BusinessException.class, () -> issueService.resolve(UUID.randomUUID(), operatorId, null))
                         .getHttpStatus());
     }
 

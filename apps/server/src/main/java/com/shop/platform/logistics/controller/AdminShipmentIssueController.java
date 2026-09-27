@@ -2,6 +2,7 @@ package com.shop.platform.logistics.controller;
 
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentStaff;
 import com.shop.platform.logistics.dto.ResolveIssueRequest;
 import com.shop.platform.logistics.service.ShipmentIssueService;
 import com.shop.platform.logistics.service.ShipmentIssueView;
@@ -46,7 +47,8 @@ public class AdminShipmentIssueController {
 
     /** 手动结单：不存在 404、已结 409——不静默成功 */
     @PutMapping("/{id}/resolve")
-    public void resolveIssue(@PathVariable UUID id, @Valid @RequestBody ResolveIssueRequest req) {
-        issueService.resolve(id, req.note());
+    public void resolveIssue(
+            @CurrentStaff UUID staffId, @PathVariable UUID id, @Valid @RequestBody ResolveIssueRequest req) {
+        issueService.resolve(id, staffId, req.note());
     }
 }

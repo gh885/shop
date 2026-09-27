@@ -3,6 +3,8 @@ package com.shop.platform.account.controller;
 import com.shop.platform.account.dto.AccountFieldRules;
 import com.shop.platform.account.dto.AdminStaffQuery;
 import com.shop.platform.account.dto.AdminUserQuery;
+import com.shop.platform.account.dto.CreateStaffRequest;
+import com.shop.platform.account.dto.UpdateStaffRoleRequest;
 import com.shop.platform.account.dto.UpdateStaffStatusRequest;
 import com.shop.platform.account.dto.UpdateUserStatusRequest;
 import com.shop.platform.account.service.AdminStaffItem;
@@ -19,13 +21,17 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -73,5 +79,23 @@ public class AdminAccountController {
     public void adminUpdateStaffStatus(
             @CurrentStaff UUID staffId, @PathVariable UUID id, @Valid @RequestBody UpdateStaffStatusRequest req) {
         staffService.updateStaffStatus(id, req.status(), staffId);
+    }
+
+    /**
+     * POST /admin/staff —— 创建平台员工（ACC-57）。
+     *
+     * <p>201：新资源。201 的 Location 不给——管理端创建完就跳列表，没有「去新资源页」这个动作。
+     */
+    @PostMapping("/staff")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void adminCreateStaff(@CurrentStaff UUID staffId, @Valid @RequestBody CreateStaffRequest req) {
+        staffService.createStaff(req.employeeNo(), req.password(), req.displayName(), req.role(), staffId);
+    }
+
+    /** PUT /admin/staff/{id}/role —— 调整岗位；不能改自己岗位，末位超管不可降级 */
+    @PutMapping("/staff/{id}/role")
+    public void adminUpdateStaffRole(
+            @CurrentStaff UUID staffId, @PathVariable UUID id, @Valid @RequestBody UpdateStaffRoleRequest req) {
+        staffService.updateStaffRole(id, req.role(), staffId);
     }
 }

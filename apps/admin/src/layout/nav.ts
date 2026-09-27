@@ -4,7 +4,9 @@ import {
     LayoutTemplateIcon,
     ListTreeIcon,
     PercentIcon,
+    ScrollTextIcon,
     StoreIcon,
+    TruckIcon,
     UserRoundIcon,
 } from "lucide-react"
 import type { SidebarItem } from "@shop/app-kit"
@@ -35,7 +37,10 @@ export const NAV_ITEMS: SidebarItem[] = [
         sections: [
             {
                 title: "商家管理",
-                items: [{ key: "review", label: "入驻审核", ...HOME_LINK }],
+                items: [
+                    { key: "review", label: "入驻审核", ...HOME_LINK },
+                    { key: "shops", label: "店铺治理", to: "/shops" },
+                ],
             },
         ],
     },
@@ -58,6 +63,28 @@ export const NAV_ITEMS: SidebarItem[] = [
             {
                 title: "营销运营",
                 items: [{ key: "coupon-ops", label: "优惠券运营", to: "/coupon-ops" }],
+            },
+        ],
+    },
+    {
+        key: "logistics",
+        label: "物流",
+        icon: createElement(TruckIcon),
+        sections: [
+            {
+                title: "履约运维",
+                items: [{ key: "logistics", label: "物流异常", to: "/logistics" }],
+            },
+        ],
+    },
+    {
+        key: "audit",
+        label: "审计",
+        icon: createElement(ScrollTextIcon),
+        sections: [
+            {
+                title: "治理留痕",
+                items: [{ key: "audits", label: "操作审计", to: "/audits" }],
             },
         ],
     },
