@@ -2,6 +2,7 @@ package com.shop.platform.infra.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -12,7 +13,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 class BusinessEventCatalogTest {
 
     private static final Path MAIN_SOURCE =
-            Path.of("src", "main", "java").toAbsolutePath().normalize();
+            SourceScanner.MAIN_JAVA.toAbsolutePath().normalize();
     private static final Path CATALOG_DOC = Path.of("docs", "conventions", "business-event-logging.md");
 
     /** 事件名：点分小写短标识，至少两段（领域实体.动词[.failed]）；段内可以多词蛇形，但段首段尾不能是下划线 */
@@ -236,20 +236,12 @@ class BusinessEventCatalogTest {
 
     /** 主源码全部 .java，排除事件出口本身 */
     private List<Path> businessSources() throws IOException {
-        try (Stream<Path> files = Files.walk(MAIN_SOURCE)) {
-            return files.filter(p -> p.toString().endsWith(".java"))
-                    .filter(p -> !p.getFileName().toString().equals("BizEvent.java"))
-                    .filter(p -> !p.getFileName().toString().equals("MdcScope.java"))
-                    .toList();
-        }
+        return SourceScanner.javaFiles(MAIN_SOURCE, "BizEvent.java", "MdcScope.java");
     }
 
     /** 业务规则文档：正文里会指名事件的地方 */
     private List<Path> ruleDocs() throws IOException {
-        Path dir = catalogDoc().getParent().getParent().resolve("business-rules");
-        try (Stream<Path> files = Files.list(dir)) {
-            return files.filter(p -> p.toString().endsWith(".md")).toList();
-        }
+        return SourceScanner.files(catalogDoc().getParent().getParent().resolve("business-rules"), ".md");
     }
 
     /** maven 模块根：{@code src/main/java} 往上三级，不押死「cwd 一定是 apps/server」 */

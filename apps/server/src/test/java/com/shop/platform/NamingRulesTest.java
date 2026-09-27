@@ -6,6 +6,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.shop.platform.testsupport.SourceScanner;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethod;
@@ -19,11 +20,8 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -153,12 +151,8 @@ class NamingRulesTest {
      */
     @Test
     void 分页构造与裸SQL尾巴只住在mapper包() throws IOException {
-        Path mainSource = Path.of("src", "main", "java");
-        List<Path> offenders;
-        List<Path> files;
-        try (Stream<Path> stream = Files.walk(mainSource)) {
-            files = stream.filter(p -> p.toString().endsWith(".java")).toList();
-        }
+        Path mainSource = SourceScanner.MAIN_JAVA;
+        List<Path> files = SourceScanner.javaFiles(mainSource);
         // 反证不空转：路径失效时本门禁会静默通过，先确认确实扫到了源码，且 mapper 侧真有这两种形状可禁
         assertThat(files)
                 .as("假定 working dir = apps/server，%s 下没扫到源码", mainSource)
@@ -167,7 +161,7 @@ class NamingRulesTest {
                 .as("mapper 包一个文件也没有，本门禁就是在禁空气")
                 .isPositive();
 
-        offenders = files.stream()
+        List<Path> offenders = files.stream()
                 .filter(p -> !isMapperFile(p))
                 .filter(p -> containsAnyOf(p, "new Page<", ".last("))
                 .toList();
@@ -182,7 +176,7 @@ class NamingRulesTest {
 
     private static boolean containsAnyOf(Path file, String... needles) {
         try {
-            String source = Files.readString(file, StandardCharsets.UTF_8);
+            String source = SourceScanner.read(file);
             for (String needle : needles) {
                 if (source.contains(needle)) {
                     return true;

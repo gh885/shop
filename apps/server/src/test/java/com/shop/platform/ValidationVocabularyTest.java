@@ -11,9 +11,8 @@ import com.shop.platform.coupon.model.UserCouponStatus;
 import com.shop.platform.infra.region.RegionRegistry;
 import com.shop.platform.product.dto.ProductAdminSort;
 import com.shop.platform.product.dto.ProductSort;
+import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,7 +53,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 class ValidationVocabularyTest {
 
-    private static final Path MAIN_SOURCE = Path.of("src", "main", "java");
+    private static final Path MAIN_SOURCE = SourceScanner.MAIN_JAVA;
 
     /**
      * 注解元素 {@code regexp = ...}。按元素而不是整段注解匹配：正则里出现括号就会截断注解匹配，
@@ -72,24 +71,21 @@ class ValidationVocabularyTest {
 
         List<String> literals = new ArrayList<>();
         List<String> constantReferences = new ArrayList<>();
-        try (Stream<Path> files = Files.walk(MAIN_SOURCE)) {
-            for (Path file : files.filter(p -> p.toString().endsWith(".java")).toList()) {
-                for (String line :
-                        Files.readString(file, StandardCharsets.UTF_8).split("\n")) {
-                    String code = line.strip();
-                    if (code.startsWith("*") || code.startsWith("//") || code.startsWith("/*")) {
-                        continue;
-                    }
-                    Matcher regexp = REGEXP_ELEMENT.matcher(code);
-                    if (!regexp.find()) {
-                        continue;
-                    }
-                    String value = regexp.group(1).trim();
-                    if (value.startsWith("\"")) {
-                        literals.add(file.getFileName() + " " + value);
-                    } else {
-                        constantReferences.add(file.getFileName() + " -> " + value);
-                    }
+        for (Path file : SourceScanner.javaFiles(MAIN_SOURCE)) {
+            for (String line : SourceScanner.lines(file)) {
+                String code = line.strip();
+                if (code.startsWith("*") || code.startsWith("//") || code.startsWith("/*")) {
+                    continue;
+                }
+                Matcher regexp = REGEXP_ELEMENT.matcher(code);
+                if (!regexp.find()) {
+                    continue;
+                }
+                String value = regexp.group(1).trim();
+                if (value.startsWith("\"")) {
+                    literals.add(file.getFileName() + " " + value);
+                } else {
+                    constantReferences.add(file.getFileName() + " -> " + value);
                 }
             }
         }
@@ -238,14 +234,11 @@ class ValidationVocabularyTest {
      */
     private static Set<String> productCaseLabels() throws IOException {
         Path module = MAIN_SOURCE.resolve(Path.of("com/shop/platform/product"));
-        List<Path> sources;
-        try (Stream<Path> files = Files.walk(module)) {
-            sources = files.filter(p -> p.toString().endsWith(".java")).toList();
-        }
+        List<Path> sources = SourceScanner.javaFiles(module);
         assertThat(sources).as("%s 下一个 .java 也没扫到：路径失效，本门禁会空转", module).isNotEmpty();
         Set<String> labels = new HashSet<>();
         for (Path source : sources) {
-            labels.addAll(caseLabels(Files.readString(source, StandardCharsets.UTF_8)));
+            labels.addAll(caseLabels(SourceScanner.read(source)));
         }
         return labels;
     }

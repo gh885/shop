@@ -2,14 +2,11 @@ package com.shop.platform;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -69,10 +66,7 @@ class BusinessRulesIndexTest {
     /** 仓库根：编号引用散布在三端 + 三包 + 后端 + 迁移 + 文档里，核对面是整个仓库 */
     private static final Path REPO_ROOT = RULES_DIR.getParent().getParent();
 
-    private static final Set<String> TEXT_SUFFIXES = Set.of(".java", ".ts", ".tsx", ".md", ".sql", ".mjs");
-
-    /** 依赖、产物与生成物：里面不会有规则的出处，也不该被扫 */
-    private static final Set<String> SKIP_DIRS = Set.of("node_modules", "dist", "build", "target", "out", "sdk");
+    private static final String[] TEXT_SUFFIXES = {".java", ".ts", ".tsx", ".md", ".sql", ".mjs"};
 
     /** 索引表的一行：文件名、前缀列原文、两列声明的条数 */
     private record Row(String file, String prefixes, int effective, int pending) {}
@@ -182,38 +176,23 @@ class BusinessRulesIndexTest {
         assertThat(dangling).as("引用了规则库里不存在的编号：规则被合并、改名或删除时，注释里的编号不会自己跟上").isEmpty();
     }
 
-    /** 扫全仓文本，把命中不了已有编号的引用连位置一起收集（跳过依赖、产物与生成物目录） */
+    /** 扫全仓文本，把命中不了已有编号的引用连位置一起收集（依赖、产物与生成物目录由扫描器跳过） */
     private void walkText(Path dir, Pattern citation, Set<String> defined, List<String> out) throws IOException {
-        Files.walkFileTree(dir, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path candidate, BasicFileAttributes attrs) {
-                String name = candidate.getFileName().toString();
-                if (SKIP_DIRS.contains(name) || name.startsWith(".")) {
-                    return FileVisitResult.SKIP_SUBTREE;
-                }
-                return FileVisitResult.CONTINUE;
+        for (Path file : SourceScanner.files(dir, TEXT_SUFFIXES)) {
+            if (generated(file.getFileName().toString())) {
+                continue;
             }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                String name = file.getFileName().toString();
-                int dot = name.lastIndexOf('.');
-                if (dot < 0 || !TEXT_SUFFIXES.contains(name.substring(dot)) || generated(name)) {
-                    return FileVisitResult.CONTINUE;
-                }
-                List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-                for (int i = 0; i < lines.size(); i++) {
-                    Matcher m = citation.matcher(lines.get(i));
-                    while (m.find()) {
-                        String id = m.group(1) + "-" + m.group(2);
-                        if (!defined.contains(id)) {
-                            out.add(REPO_ROOT.relativize(file) + ":" + (i + 1) + " 引用 " + id);
-                        }
+            List<String> lines = SourceScanner.lines(file);
+            for (int i = 0; i < lines.size(); i++) {
+                Matcher m = citation.matcher(lines.get(i));
+                while (m.find()) {
+                    String id = m.group(1) + "-" + m.group(2);
+                    if (!defined.contains(id)) {
+                        out.add(SourceScanner.rel(REPO_ROOT, file) + ":" + (i + 1) + " 引用 " + id);
                     }
                 }
-                return FileVisitResult.CONTINUE;
             }
-        });
+        }
     }
 
     /** 三个 app 的路由树生成物由工具产出，不参与核对（SDK 生成物已经由 {@code sdk} 目录名整棵跳过） */
@@ -240,7 +219,7 @@ class BusinessRulesIndexTest {
         readRows().forEach(row -> indexed.add(row.file()));
 
         Set<String> mentioned = new LinkedHashSet<>();
-        for (String line : Files.readAllLines(RULES_DIR.resolve("README.md"), StandardCharsets.UTF_8)) {
+        for (String line : SourceScanner.lines(RULES_DIR.resolve("README.md"))) {
             Matcher m = MD_LINK.matcher(line);
             while (m.find()) {
                 mentioned.add(Path.of(m.group(1)).getFileName().toString());
@@ -278,7 +257,7 @@ class BusinessRulesIndexTest {
         int effective = 0;
         int pending = 0;
         int pendingLevel = 0;
-        for (String line : Files.readAllLines(RULES_DIR.resolve(file), StandardCharsets.UTF_8)) {
+        for (String line : SourceScanner.lines(RULES_DIR.resolve(file))) {
             Matcher head = PENDING_HEADING.matcher(line);
             Matcher any = HEADING.matcher(line);
             if (head.find()) {
@@ -302,7 +281,7 @@ class BusinessRulesIndexTest {
     private List<Row> readRows() {
         List<Row> rows = new ArrayList<>();
         try {
-            for (String line : Files.readAllLines(RULES_DIR.resolve("README.md"), StandardCharsets.UTF_8)) {
+            for (String line : SourceScanner.lines(RULES_DIR.resolve("README.md"))) {
                 Matcher row = INDEX_ROW.matcher(line);
                 if (!row.matches()) {
                     continue;

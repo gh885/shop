@@ -58,6 +58,7 @@ import com.shop.platform.shop.dto.MerchantAddressRequest;
 import com.shop.platform.shop.dto.RejectRequest;
 import com.shop.platform.shop.dto.ShippingTemplateRequest;
 import com.shop.platform.shop.dto.ShopFieldRules;
+import com.shop.platform.testsupport.SourceScanner;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Size;
 import java.io.IOException;
@@ -1224,6 +1225,11 @@ class FieldRuleVocabularyTest {
                     "FALLBACK_SCROLLBAR_SIZE",
                     "读不到真实滚动条尺寸时的兜底值（自定义滚动条尚未布局完成的瞬间）：纯 CSS 呈现，无对边"),
             new Policy(
+                    "packages/ui-web/src/components/reui/filters/filters-editors.tsx",
+                    "MAX_PIN_RESTORE_ATTEMPTS",
+                    "reui Filters 恢复行 pin 的竞态重试封顶：每次尝试占一个宏任务，成功即停 —— 是 DOM 时序的护栏，"
+                            + "与「重试传输请求」的 RETRY_LIMIT 同理，没有任何服务端一侧读它"),
+            new Policy(
                     "packages/app-kit/src/login-schema.ts",
                     "PHONE_DIGITS",
                     "登录那一格只收大陆手机号，11 位与自家正则的位数由 shared-vocabulary.test.ts 的 digits==span 钉住；"
@@ -1351,7 +1357,7 @@ class FieldRuleVocabularyTest {
                             p -> p.toString().endsWith(".ts") || p.toString().endsWith(".tsx"))
                     .filter(p -> {
                         try {
-                            String code = stripComments(Files.readString(p, StandardCharsets.UTF_8));
+                            String code = SourceScanner.withoutComments(SourceScanner.read(p));
                             return INLINE_BOUND.matcher(code).find();
                         } catch (IOException e) {
                             throw new IllegalStateException(e);
@@ -1384,7 +1390,7 @@ class FieldRuleVocabularyTest {
                     .filter(p -> !p.getFileName().toString().matches(".+\\.(test|spec|gen)\\.[cm]?[jt]sx?"))
                     .forEach(p -> {
                         try {
-                            String code = stripComments(Files.readString(p, StandardCharsets.UTF_8));
+                            String code = SourceScanner.withoutComments(SourceScanner.read(p));
                             String rel = REPO_ROOT
                                     .relativize(p.normalize())
                                     .toString()
@@ -1463,7 +1469,7 @@ class FieldRuleVocabularyTest {
         List<String> citations = new ArrayList<>();
         List<String> offenders = new ArrayList<>();
         for (Path source : sources) {
-            String code = stripComments(Files.readString(source, StandardCharsets.UTF_8));
+            String code = SourceScanner.withoutComments(SourceScanner.read(source));
             if (code.contains("NoteFieldRules.FREE_TEXT_MAX")) {
                 citations.add(MAIN_JAVA.relativize(source).toString().replace('\\', '/'));
             }
@@ -1532,8 +1538,8 @@ class FieldRuleVocabularyTest {
         for (Rule rule : RULES) {
             Path source = MAIN_JAVA.resolve(rule.dto().getName().replace('.', '/') + ".java");
             assertThat(source).as("找不到 DTO 源码").exists();
-            String code = stripComments(Files.readString(source, StandardCharsets.UTF_8))
-                    .replaceAll("\\s+", " ");
+            String code =
+                    SourceScanner.withoutComments(SourceScanner.read(source)).replaceAll("\\s+", " ");
             // 上限常量必须紧邻它所约束的那个组件：注解与字段之间隔着多少写法都不算，隔出一个字面量才算漂移
             // （窗口给到 120 是因为 message 也引用同一个常量时，注解本身就有这么长）
             Matcher cited = Pattern.compile(
@@ -1925,65 +1931,5 @@ class FieldRuleVocabularyTest {
     private static int migrationVersion(Path file) {
         Matcher m = MIGRATION_NAME.matcher(file.getFileName().toString());
         return m.matches() ? Integer.parseInt(m.group(1)) : 0;
-    }
-
-    /**
-     * 去掉注释、<b>保留换行</b>（行号不飘，行级锚点照旧能用），并且<b>认字符串</b>。
-     *
-     * <p>不认字符串会瞎：{@code packages/ui-web/src/components/image-upload.tsx} 里
-     * {@code const ACCEPT_IMAGE = "image/*"} 之后紧跟 {@code const MAX_SIZE_MB = 10}，再下一行才是
-     * 一个正常的块注释。早先那串 replaceAll 用「斜杠星号 … 星号斜杠」的非贪婪匹配扫注释，
-     * 从字符串里那个斜杠星号开始一路吞到下一个星号斜杠，中间这一行代码在扫描器眼里就不存在了——
-     * 本轮的 census 正是靠这条才发现自己瞎（{@code MAX_SIZE_MB} 一开始既不在 found 也不在 skipped）。
-     *
-     * <p>代价是反方向的：JSX 文本里的裸撇号（{@code don't}）会被当成开引号。所以这里对 {@code '} 与
-     * {@code "} 只认到行尾为止（JS 里它们本来也不许跨行），最坏只遮住半行；模板串允许跨行，按引号闭合。
-     */
-    private static String stripComments(String text) {
-        StringBuilder out = new StringBuilder(text.length());
-        char quote = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            char next = i + 1 < text.length() ? text.charAt(i + 1) : 0;
-            if (quote != 0) {
-                if (c == '\\' && next != 0) {
-                    out.append(c).append(next);
-                    i++;
-                    continue;
-                }
-                out.append(c);
-                if (c == quote || (c == '\n' && quote != '`')) {
-                    quote = 0;
-                }
-                continue;
-            }
-            if (c == '"' || c == '\'' || c == '`') {
-                quote = c;
-                out.append(c);
-                continue;
-            }
-            if (c == '/' && next == '/') {
-                while (i < text.length() && text.charAt(i) != '\n') {
-                    i++;
-                }
-                i--;
-                continue;
-            }
-            if (c == '/' && next == '*') {
-                i += 2;
-                while (i < text.length()
-                        && !(text.charAt(i) == '*' && i + 1 < text.length() && text.charAt(i + 1) == '/')) {
-                    if (text.charAt(i) == '\n') {
-                        out.append('\n');
-                    }
-                    i++;
-                }
-                i++;
-                out.append(' ');
-                continue;
-            }
-            out.append(c);
-        }
-        return out.toString();
     }
 }

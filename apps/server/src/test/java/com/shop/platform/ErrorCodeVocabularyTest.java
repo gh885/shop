@@ -3,15 +3,12 @@ package com.shop.platform;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,7 +17,6 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -244,7 +240,7 @@ class ErrorCodeVocabularyTest {
         List<String> readers = new ArrayList<>();
         for (Path file : mainSources()) {
             // 压平空白再比：格式化只挪换行与缩进，不该让一条链的断言失效
-            String flat = Files.readString(file, StandardCharsets.UTF_8).replaceAll("\\s+", "");
+            String flat = SourceScanner.read(file).replaceAll("\\s+", "");
             if (!flat.contains("verification.code()")) {
                 continue;
             }
@@ -372,26 +368,15 @@ class ErrorCodeVocabularyTest {
     private static Map<String, Set<String>> frontendReaders() throws IOException {
         Map<String, Set<String>> out = new TreeMap<>();
         for (Path dir : FRONTEND_SOURCE) {
-            if (!Files.isDirectory(dir)) {
-                continue;
-            }
-            try (Stream<Path> walked = Files.walk(dir)) {
-                List<Path> files = walked.filter(p ->
-                                p.toString().endsWith(".ts") || p.toString().endsWith(".tsx"))
-                        .filter(p -> !isExcludedFrontend(p.getFileName().toString()))
-                        .sorted()
-                        .toList();
-                for (Path file : files) {
-                    String rel = rel(file);
-                    for (String line : read(file)) {
-                        if (line.startsWith("*") || line.startsWith("//")) {
-                            continue;
-                        }
-                        Matcher m = TS_READER.matcher(line);
-                        while (m.find()) {
-                            out.computeIfAbsent(m.group(1), k -> new TreeSet<>())
-                                    .add(rel);
-                        }
+            for (Path file : SourceScanner.files(dir, ".ts", ".tsx")) {
+                if (isExcludedFrontend(file.getFileName().toString())) {
+                    continue;
+                }
+                String rel = rel(file);
+                for (String line : read(file)) {
+                    Matcher m = TS_READER.matcher(line);
+                    while (m.find()) {
+                        out.computeIfAbsent(m.group(1), k -> new TreeSet<>()).add(rel);
                     }
                 }
             }
@@ -439,7 +424,7 @@ class ErrorCodeVocabularyTest {
 
     /** 扫出 main 下所有目标调用的实参（括号/字符串感知，支持跨行） */
     private static List<Call> calls(Path file) throws IOException {
-        String src = Files.readString(file, StandardCharsets.UTF_8);
+        String src = SourceScanner.read(file);
         List<Call> out = new ArrayList<>();
         Matcher m = Pattern.compile(
                         "(new BusinessException|BusinessException\\.\\w+|Validate\\.isTrue|Verification\\.fail)\\s*\\(")
@@ -530,7 +515,7 @@ class ErrorCodeVocabularyTest {
     }
 
     private static String flatSource(Path file) throws IOException {
-        return Files.readString(file, StandardCharsets.UTF_8).replaceAll("\\s+", "");
+        return SourceScanner.read(file).replaceAll("\\s+", "");
     }
 
     private static String matcher(Pattern p, String input) {
@@ -622,15 +607,11 @@ class ErrorCodeVocabularyTest {
     // ================================================================ 文件工具
 
     private static List<Path> mainSources() throws IOException {
-        try (Stream<Path> walked = Files.walk(MAIN_JAVA)) {
-            return walked.filter(p -> p.toString().endsWith(".java"))
-                    .sorted(Comparator.comparing(Path::toString))
-                    .toList();
-        }
+        return SourceScanner.javaFiles(MAIN_JAVA);
     }
 
     private static List<String> read(Path file) throws IOException {
-        return Arrays.stream(Files.readString(file, StandardCharsets.UTF_8).split("\n"))
+        return SourceScanner.lines(file).stream()
                 .map(ErrorCodeVocabularyTest::strip)
                 .filter(s -> !s.isEmpty())
                 .toList();
@@ -644,7 +625,7 @@ class ErrorCodeVocabularyTest {
 
     private static String rel(Path file) {
         Path base = file.startsWith(MAIN_JAVA) ? MAIN_JAVA : REPO_ROOT;
-        return base.relativize(file).toString().replace('\\', '/');
+        return SourceScanner.rel(base, file);
     }
 
     private static String sitesOf(List<Site> sites, String code) {

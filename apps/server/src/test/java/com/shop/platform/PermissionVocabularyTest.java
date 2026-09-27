@@ -6,6 +6,7 @@ import com.shop.platform.account.model.StaffRole;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.web.RequestPaths;
 import com.shop.platform.shop.service.SellerGrants;
+import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -19,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -131,7 +131,7 @@ class PermissionVocabularyTest {
         List<String> copies = new ArrayList<>();
 
         for (Path file : mainJavaFiles()) {
-            String stripped = withoutComments(read(file));
+            String stripped = SourceScanner.withoutComments(read(file));
             for (String literal : quotedLiterals(stripped)) {
                 if (!declared.contains(literal)) {
                     continue;
@@ -207,7 +207,7 @@ class PermissionVocabularyTest {
 
         List<String> referenced = new ArrayList<>();
         for (Path file : mainJavaFiles()) {
-            for (String literal : quotedLiterals(withoutComments(read(file)))) {
+            for (String literal : quotedLiterals(SourceScanner.withoutComments(read(file)))) {
                 if (DOC_ONLY_CODES.contains(literal)) {
                     referenced.add(rel(file) + " → \"" + literal + "\"");
                 }
@@ -285,7 +285,7 @@ class PermissionVocabularyTest {
         List<String> secondPredicate = new ArrayList<>();
         for (Path file : mainJavaFiles()) {
             String at = rel(file);
-            String stripped = withoutComments(read(file));
+            String stripped = SourceScanner.withoutComments(read(file));
             if (FILE_REQUEST_PATHS.equals(at)) {
                 continue;
             }
@@ -320,7 +320,7 @@ class PermissionVocabularyTest {
         // 上一条禁令的尺度证明：控制器确实写了字面量路由，扫描没有把整条命名空间判成违规
         List<String> mapped = new ArrayList<>();
         for (Path file : mainJavaFiles()) {
-            String stripped = withoutComments(read(file));
+            String stripped = SourceScanner.withoutComments(read(file));
             for (String line : stripped.lines().toList()) {
                 if (!line.contains("@RequestMapping(")) {
                     continue;
@@ -388,19 +388,13 @@ class PermissionVocabularyTest {
 
         List<String> inFrontend = new ArrayList<>();
         for (Path dir : FRONTEND_SOURCE) {
-            if (!Files.isDirectory(dir)) {
-                continue;
-            }
-            try (Stream<Path> walk = Files.walk(dir)) {
-                for (Path file : walk.filter(p ->
-                                p.toString().endsWith(".ts") || p.toString().endsWith(".tsx"))
-                        .filter(p -> !p.getFileName().toString().contains(".test."))
-                        .filter(p -> !p.equals(FRONTEND_PERMISSION_OWNER))
-                        .toList()) {
-                    for (String literal : quotedLiterals(withoutComments(Files.readString(file)))) {
-                        if (declared.contains(literal)) {
-                            inFrontend.add(REPO_ROOT.relativize(file) + " → \"" + literal + "\"");
-                        }
+            for (Path file : SourceScanner.files(dir, ".ts", ".tsx")) {
+                if (file.getFileName().toString().contains(".test.") || file.equals(FRONTEND_PERMISSION_OWNER)) {
+                    continue;
+                }
+                for (String literal : quotedLiterals(SourceScanner.withoutComments(SourceScanner.read(file)))) {
+                    if (declared.contains(literal)) {
+                        inFrontend.add(REPO_ROOT.relativize(file) + " → \"" + literal + "\"");
                     }
                 }
             }
@@ -408,7 +402,8 @@ class PermissionVocabularyTest {
         assertThat(inFrontend).as("前端权限码字面量只许住在 packages/common 的唯一 owner").isEmpty();
 
         Set<String> ownerCodes = new LinkedHashSet<>();
-        for (String literal : quotedLiterals(withoutComments(Files.readString(FRONTEND_PERMISSION_OWNER)))) {
+        for (String literal :
+                quotedLiterals(SourceScanner.withoutComments(SourceScanner.read(FRONTEND_PERMISSION_OWNER)))) {
             if (declared.contains(literal)) {
                 ownerCodes.add(literal);
             }
@@ -440,7 +435,7 @@ class PermissionVocabularyTest {
 
     /** 匿名白名单默认值（JwtProperties.skipPaths），RequestPaths 常量按名解析回值 */
     private static List<String> skipPaths() throws IOException {
-        String stripped = withoutComments(read(JWT_PROPERTIES));
+        String stripped = SourceScanner.withoutComments(read(JWT_PROPERTIES));
         Matcher m = SKIP_LIST.matcher(stripped);
         if (!m.find()) {
             throw new IllegalStateException("没在 JwtProperties 里找到 skipPaths = List.of(...)，扫描器需要跟着改");
@@ -476,7 +471,7 @@ class PermissionVocabularyTest {
     private static List<Site> sites() throws IOException {
         List<Site> out = new ArrayList<>();
         for (Path file : mainJavaFiles()) {
-            String stripped = withoutComments(read(file));
+            String stripped = SourceScanner.withoutComments(read(file));
             Matcher decl = DECLARATION.matcher(stripped);
             while (decl.find()) {
                 String args = decl.group(2);
@@ -506,7 +501,7 @@ class PermissionVocabularyTest {
     private static List<Route> routes() throws IOException {
         List<Route> out = new ArrayList<>();
         for (Path file : mainJavaFiles()) {
-            String stripped = withoutComments(read(file));
+            String stripped = SourceScanner.withoutComments(read(file));
             Matcher decl = DECLARATION.matcher(stripped);
             String base = null;
             boolean classLevelPermission = false;
@@ -597,17 +592,15 @@ class PermissionVocabularyTest {
     // ---------- 文本工具 ----------
 
     private static List<Path> mainJavaFiles() throws IOException {
-        try (Stream<Path> walk = Files.walk(MAIN_JAVA)) {
-            return walk.filter(p -> p.toString().endsWith(".java")).sorted().toList();
-        }
+        return SourceScanner.javaFiles(MAIN_JAVA);
     }
 
     private static String read(Path file) throws IOException {
-        return Files.readString(file);
+        return SourceScanner.read(file);
     }
 
     private static String rel(Path file) {
-        return MAIN_JAVA.relativize(file).toString().replace('\\', '/');
+        return SourceScanner.rel(MAIN_JAVA, file);
     }
 
     private static List<String> quotedLiterals(String text) {
@@ -623,57 +616,5 @@ class PermissionVocabularyTest {
         Set<String> out = new LinkedHashSet<>(left);
         out.addAll(right);
         return out;
-    }
-
-    /** 去掉注释但保留换行结构（行号与原文对齐，逐行扫描才不会把两行并成一行） */
-    private static String withoutComments(String source) {
-        StringBuilder out = new StringBuilder(source.length());
-        int i = 0;
-        while (i < source.length()) {
-            char c = source.charAt(i);
-            char next = i + 1 < source.length() ? source.charAt(i + 1) : 0;
-            if (c == '/' && next == '/') {
-                while (i < source.length() && source.charAt(i) != '\n') {
-                    i++;
-                }
-                continue;
-            }
-            if (c == '/' && next == '*') {
-                i += 2;
-                while (i < source.length()
-                        && !(source.charAt(i) == '*' && i + 1 < source.length() && source.charAt(i + 1) == '/')) {
-                    if (source.charAt(i) == '\n') {
-                        out.append('\n');
-                    }
-                    i++;
-                }
-                i = Math.min(source.length(), i + 2);
-                continue;
-            }
-            if (c == '"' || c == '\'' || c == '`') {
-                out.append(c);
-                i++;
-                while (i < source.length()) {
-                    char d = source.charAt(i);
-                    out.append(d);
-                    i++;
-                    if (d == '\\' && i < source.length()) {
-                        out.append(source.charAt(i));
-                        i++;
-                        continue;
-                    }
-                    if (d == c) {
-                        break;
-                    }
-                    if (d == '\n' && c != '`') {
-                        break;
-                    }
-                }
-                continue;
-            }
-            out.append(c);
-            i++;
-        }
-        return out.toString();
     }
 }
