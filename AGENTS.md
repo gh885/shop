@@ -37,7 +37,9 @@ node scripts/seed-demo.mjs --dry-run   # 只打印将执行的 SQL
 pnpm lint             # oxlint + mvn compile
 pnpm format           # oxfmt + spotless:apply
 pnpm typecheck        # 递归跑所有 workspace 包的 typecheck 脚本（pnpm -r --if-present）
-pnpm test             # 前端全量测试（vitest projects：apps/* + packages/*）
+pnpm test             # 前端全量测试（vitest projects：apps/* + packages/*），39s 上下
+pnpm test:project <p> [路径]  # 只跑某个 project（web/seller/admin/@shop/common/…，+可再按路径收窄），开发期首选
+pnpm test:server      # 后端单测（先探数据面，库没起就跳过并给修法，不让「库没起」红成几百个 error）
 pnpm fallow           # 死代码 + 架构边界（域间只走对方 index.ts，规则见 frontend.md）
 pnpm fallow:audit     # 只审当前改动，恒退 0：告诉你这个 diff 该往哪盯
                       # 去掉 --brief 的 `pnpm exec fallow audit` 是门禁（pre-commit / PR CI）：新引入的死代码、超标复杂度、重复代码才拦
@@ -74,6 +76,7 @@ cd apps/server && mvn spring-boot:run  # 启动后端
 - **前端写操作**：库 `useMutation` + `meta`（success/error/silentError/invalidates）声明，反馈与失效由全局 MutationCache 执行，不包 hook 工厂，`invalidates` 传真实 query key
 - **前端错误态**：`throwOnError` 全局默认 `throwWhenNoData`（失败抛给边界）；只有头上没有边界可接的查询才显式 `throwOnError: false` 就地渲染
 - **前端测试**：MSW 只 mock 网络层（禁 `vi.mock` 业务模块）；组件测试走各 app 的 `renderWithProviders`（应用真实 QueryClient 默认值），不裸 `new QueryClient()`
+- **前端测试性能**：全量 39s 已在 28 核上接近地板，`--pool`/`isolate:false`/`deps.optimizer` 三个旋钮实测均 **0 收益**，别再试。提速靠**少跑**（`test:watch` / `test:project <名字> [路径]`）与**不加固定开销**（纯逻辑进 node 环境包，别塞 jsdom）。**别用 `vitest related`**：本仓库测试走 `#/` 别名，它会静默返回「No test files found」漏跑。慢的正确解是少跑，不是少测。详见 [docs/conventions/frontend.md](docs/conventions/frontend.md)「迭代性能」
 - **Tailwind 跨包**：给 ui-web / app-kit 加带类名的组件时，确认三端 `styles.css` 的 `@source` 已覆盖（漏了是静默掉样式，不报错）
 - **共享逻辑**：手写共享逻辑一律 `packages/common`，禁止在 `@shop/api` 内新增手写文件（那里全是生成物）；一个概念在前端只许有一个出口，由 `packages/common/src/shared-vocabulary.test.ts` 门禁钉住（详见 `docs/conventions/frontend.md`「共享词表」）
 
@@ -117,5 +120,7 @@ pnpm dev:server   # 推荐：会话跟随后端进程，后端停即释放内存
 pnpm db:up        # 从 IDE 跑后端 / mvn test 前拉起（含清孤儿会话）
 pnpm db:down      # 用完还内存
 ```
+
+**跑后端测试前先让数据面在位**：接口契约测试（`WebControllerTestSupport` 子类）用 `@SpringBootTest` 起真实上下文连专用库 `shop_test`；库没起时它们整类红，Spring 的 `failure threshold` 还会把后面几百个用例一起带红（实测 6 个类 → 200+ error，看着像代码坏了，其实只是 5432 连不上）。`pnpm test:server` 已内置探针（`scripts/with-datastore.mjs`，探测耗时毫秒级，库不在就跳过并给修法）。直跑 `mvn test` 请自己先 `pnpm db:up`。
 
 换发行版用 `SHOP_WSL_DISTRO`；完全不挂会话用 `SHOP_WSL_KEEPALIVE=0`。

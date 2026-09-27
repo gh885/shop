@@ -198,9 +198,50 @@ useMutation({
 ## 前端测试（Vitest + Testing Library + MSW）
 
 ```bash
-pnpm test        # 全量跑一次（vitest projects：apps/* + packages/*）
-pnpm test:watch  # watch 模式
+pnpm test            # 全量跑一次（vitest projects：apps/* + packages/*）—— 门禁与收尾才跑
+pnpm test:watch      # watch 模式（开发默认挂这个）
+pnpm test:project <名字> [路径...]   # 只跑某个 project（+ 可再按路径收窄），开发期首选
 ```
+
+project 名字就是各 `vitest.config.ts` 所在目录的包名：`web` / `seller` / `admin` /
+`@shop/common` / `@shop/app-kit` / `@shop/ui-web`。实测：
+
+```bash
+pnpm test:project @shop/common            # 14 文件 / 2.2s
+pnpm test:project web src/order           # 10 文件 / 10.4s（域内再收窄）
+```
+
+### 迭代性能：先量后调，且别调那几个没用的旋钮
+
+全量 `pnpm test` 实测 **39s / 87 文件 / 694 用例**（28 核，已高度并行）。这已经是当前结构的地板附近，**下面三个提速旋钮实测全是 0 收益，不要再花时间试**：
+
+| 旋钮                                                  | 实测                 | 结论            |
+| ----------------------------------------------------- | -------------------- | --------------- |
+| `pool: "threads"`                                     | 13.5s → 12.3s        | 省约 1s，不值当 |
+| `isolate: false`（复用模块注册表）                    | 13.46s，**完全没变** | 无效            |
+| `deps.optimizer.ssr.include` 预打包 `@shop/api`/`msw` | 13.4s，**完全没变**  | 无效            |
+
+**为什么调不动**：一个空测试文件的地板就是 **1.23s**（`setupFiles` 673ms + jsdom 环境 397ms）——
+`packages/app-kit/test/setup.ts` 每个文件都要 import 整个 `@shop/api` SDK + MSW。
+87 文件 × 约 1.3s ≈ 113s 固定成本，被 28 个 worker 并行摊完即 39s。
+**瓶颈是「每文件固定开销」，不是配置没调对**；配置层最多再省 5s。
+
+因此提速只有两条正路，按性价比排序：
+
+1. **少跑**（零成本，收益最大）：开发期挂 `pnpm test:watch`，或按 project + 路径跑 `pnpm test:project web src/order`。改一个域就跑一个域，不要每次全量。
+2. **不加固定开销**：新测试默认放**离它最近的环境**——纯逻辑进 `packages/common` 那种 node 环境的 `.test.ts`；只有真的要 render/DOM/发请求的才写 `.test.tsx` 拖 jsdom + MSW。
+   纯逻辑测试塞进 jsdom 项目（`apps/*` 的 `.test.ts`）也能跑，但它白白摊一份 1.2s 的固定成本，且误导后来人以为它需要 DOM。
+
+### 两个别踩的坑（都是实测，不是推测）
+
+- **`vitest related <文件>` 在本仓库不可靠，会静默返回「No test files found」**：它靠 Vite 模块图反查，而 app 内测试大量走 `#/` 别名 import（`use-order-actions.ts` 就查不到任何用例，退出码仍是 0 —— 看着像「没东西要跑」，实际是漏跑）。`related` 只在源文件被跨包广泛 import 时才有效（如 `common/src/money.ts` 会拉起 57 个文件，那也基本等于全量）。**按 project + 路径过滤才是 dependable 的快路径。**
+- **`--changed` 是相对主干算的**：本仓库当前分支离主干较远，它实测仍会拉起全部 87 个文件（≈全量的时间），只在「分支短且已 rebase」时才有意义。
+
+其余已知事实：
+
+- 慢的从来不是「测试体」：文件耗时里 import + setup 占大头，`tests` 聚合只占 55s/全量 39s 墙钟。某个文件 9s（`seller/coupon/CouponFormDialog.test.tsx`）几乎全是它 import 的那棵业务树，不是它自己的用例。
+- **不要为了「跑得快」把测试拆细或合并**——门禁的强度来自用例覆盖，39s 在 28 核上是可接受的；慢的正确做法是少跑，不是少测。
+- 疑似 flaky 排查：`--changed` 跑法下曾偶发 1 例失败而全量连跑 3 次全绿（未定位到具体用例）。若再现，记下用例名再查，不要当成「配置问题」改配置。
 
 ### 分层与位置
 
