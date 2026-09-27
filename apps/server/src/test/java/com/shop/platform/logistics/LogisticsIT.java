@@ -115,27 +115,10 @@ class LogisticsIT extends IntegrationTestSupport {
         if (skuId != null) {
             return;
         }
-        // 登记顺序 = 父表在前，purge 逆序执行 → 先删轨迹再删包裹
-        db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete(
-                "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete(
-                "DELETE FROM logistics.shipment_issues WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete(
-                "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
-        db.onDelete("DELETE FROM account.users WHERE id = ?::uuid", userId.toString());
-
-        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 拒单）；手机号按 uuid 派生避免并发跑撞唯一索引
-        jdbc.update(
-                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
-                userId.toString(),
-                "139" + Math.abs(userId.getMostSignificantBits() % 100_000_000L));
+        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 拒单）；
+        // 账号先登记，包裹/轨迹/支付/订单这些同一条链路上的行随后按 userId 一起登记
+        db.seedActiveUser(userId);
+        db.onDeleteBuyerOrderChain(userId);
         skuId = db.seedOnSaleSku(shopId, 1000, 5);
         addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);

@@ -65,23 +65,10 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
 
     @BeforeEach
     void seed() {
-        db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete(
-                "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete(
-                "DELETE FROM aftersale.ticket_events WHERE ticket_id IN (SELECT id FROM aftersale.tickets WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete("DELETE FROM aftersale.tickets WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete(
-                "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
-        db.onDelete("DELETE FROM account.users WHERE id = ?::uuid", userId.toString());
-        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
-        seedActiveUser();
+        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）；
+        // 账号先登记，整条下单链路的行随后按 userId 一起登记
+        db.seedActiveUser(userId);
+        db.onDeleteBuyerOrderChain(userId);
         skuId = db.seedOnSaleSku(shopId, 1000, 5);
         UUID addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);
@@ -97,14 +84,6 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
         paymentService.confirm(userId, paymentService.pay(userId, orderId).getId());
         shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", "SF111"));
         transitions.receive(userId, orderId);
-    }
-
-    /** 造一个真实 ACTIVE 买家账号：手机号按 uuid 派生避免并发跑撞唯一索引（与 coupon 测试同一写法） */
-    private void seedActiveUser() {
-        jdbc.update(
-                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
-                userId.toString(),
-                "139" + Math.abs(userId.getMostSignificantBits() % 100_000_000L));
     }
 
     private String ticketStatus() {

@@ -72,16 +72,99 @@ public final class TestDb {
     }
 
     /**
+     * 登记「一家店 + 它名下的成员与评价」（按 shopId 圈定，店是父表所以先登记 → purge 时最后删）。
+     *
+     * <p>三张表之间没有外键（schema 隔离），漏一张不会报错，只会在重跑时撞 {@code uk_shop_members_shop_user}
+     * 这类唯一索引。凡自己 {@code createShop} 出店、又动了成员或评价的用例都要登记这一套。
+     */
+    public void onDeleteShopSide(UUID shopId) {
+        String id = shopId.toString();
+        onDelete("DELETE FROM shop.shops WHERE id = ?::uuid", id);
+        onDelete("DELETE FROM shop.shop_members WHERE shop_id = ?::uuid", id);
+        onDelete("DELETE FROM shop.shop_reviews WHERE shop_id = ?::uuid", id);
+    }
+
+    /**
+     * 店的一个成员行（{@code role} 传 OWNER/MEMBER、{@code status} 传 MemberStatus 的 name；不写 permissions
+     * 即落 DB 默认的空覆盖集，判权走角色那份）。
+     */
+    public UUID seedShopMember(UUID shopId, UUID userId, String role, String status) {
+        return insertShopMember(shopId, userId, role, status, null);
+    }
+
+    /** 带权限覆盖的成员行——{@code permissions} 是 jsonb 字面量，逐码判权的用例要的就是这一列。 */
+    public UUID seedShopMember(UUID shopId, UUID userId, String role, String status, String permissionsJson) {
+        return insertShopMember(shopId, userId, role, status, permissionsJson);
+    }
+
+    private UUID insertShopMember(UUID shopId, UUID userId, String role, String status, String permissionsJson) {
+        UUID memberId = UUID.randomUUID();
+        if (permissionsJson == null) {
+            jdbc.update(
+                    "INSERT INTO shop.shop_members (id, shop_id, user_id, role, status) VALUES (?::uuid, ?::uuid, ?::uuid, ?, ?)",
+                    memberId.toString(),
+                    shopId.toString(),
+                    userId.toString(),
+                    role,
+                    status);
+        } else {
+            jdbc.update(
+                    "INSERT INTO shop.shop_members (id, shop_id, user_id, role, status, permissions) VALUES (?::uuid, ?::uuid, ?::uuid, ?, ?, ?::jsonb)",
+                    memberId.toString(),
+                    shopId.toString(),
+                    userId.toString(),
+                    role,
+                    status,
+                    permissionsJson);
+        }
+        onDelete("DELETE FROM shop.shop_members WHERE id = ?::uuid", memberId.toString());
+        return memberId;
+    }
+
+    /**
      * 造一个真实 ACTIVE 买家账号：下单入口的账号闸门（{@code UserReadQuery.isActive}）要求 account.users 有行，
      * 幽灵 uuid 会被 403 USER_DISABLED 拒单。手机号按 uuid 派生，避免并发跑撞唯一索引。
      */
     public UUID seedActiveUser(UUID userId) {
+        return seedActiveUser(userId, "139" + Math.abs(userId.getMostSignificantBits() % 100_000_000L));
+    }
+
+    /** 指定手机号的 ACTIVE 账号——用例要靠号码把人找出来时（邀请、登录族）用它。 */
+    public UUID seedActiveUser(UUID userId, String phone) {
         jdbc.update(
                 "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE') ON CONFLICT (id) DO NOTHING",
                 userId.toString(),
-                "139" + Math.abs(userId.getMostSignificantBits() % 100_000_000L));
+                phone);
         onDelete("DELETE FROM account.users WHERE id = ?::uuid", userId.toString());
         return userId;
+    }
+
+    /**
+     * 登记「一个买家走完整条下单链路」留下的所有行（按 userId 圈定）。
+     *
+     * <p>下单→支付→发货→售后横跨五个 schema，而它们之间<b>没有外键</b>（schema 隔离），所以漏登记任何一张都不会
+     * 报错，只会在下次重跑时撞各自表上的唯一索引（运单号、outbox 那一类）。账号那一行由
+     * {@link #seedActiveUser} 自己登记，且要<b>先</b>调它——purge 逆序执行，父表先登记才最后删。
+     */
+    public void onDeleteBuyerOrderChain(UUID userId) {
+        String id = userId.toString();
+        onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", id);
+        onDelete(
+                "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
+                id);
+        onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", id);
+        onDelete("DELETE FROM aftersale.tickets WHERE user_id = ?::uuid", id);
+        onDelete(
+                "DELETE FROM aftersale.ticket_events WHERE ticket_id IN (SELECT id FROM aftersale.tickets WHERE user_id = ?::uuid)",
+                id);
+        onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", id);
+        onDelete(
+                "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
+                id);
+        onDelete(
+                "DELETE FROM logistics.shipment_issues WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
+                id);
+        onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
     }
 
     /**
@@ -118,9 +201,20 @@ public final class TestDb {
         return skuId;
     }
 
-    /** 测试收货地址（北京市朝阳区占位），返回地址 id。 */
+    /** {@link #seedOnSaleSku} 造出的那个商品 id——下架看商品、下单按 SKU，两边都要拿到手。 */
+    public UUID productIdOfSku(UUID skuId) {
+        return jdbc.queryForObject(
+                "SELECT product_id FROM product.skus WHERE id = ?::uuid", UUID.class, skuId.toString());
+    }
+
+    /** 测试收货地址（北京市朝阳区占位，非默认），返回地址 id。 */
     public UUID seedAddress(UUID userId) {
         return seedAddress(userId, "110105", "北京市", "北京市", "朝阳区");
+    }
+
+    /** 指定默认态的测试收货地址——{@code is_default} 参与「每人至多一个默认」的部分唯一索引，用例要的就是这一列。 */
+    public UUID seedAddress(UUID userId, boolean isDefault) {
+        return insertAddress(userId, "110105", "北京市", "北京市", "朝阳区", "测试路 1 号", isDefault);
     }
 
     /**
@@ -128,16 +222,29 @@ public final class TestDb {
      * regionCode 取国标 6 位码（模板的区域前缀就是拿它做前缀匹配的）。
      */
     public UUID seedAddress(UUID userId, String regionCode, String province, String city, String district) {
+        return insertAddress(userId, regionCode, province, city, district, "测试路 1 号", false);
+    }
+
+    private UUID insertAddress(
+            UUID userId,
+            String regionCode,
+            String province,
+            String city,
+            String district,
+            String detail,
+            boolean isDefault) {
         UUID addressId = UUID.randomUUID();
         jdbc.update(
-                "INSERT INTO account.addresses (id, user_id, receiver_name, phone, region_code, province, city, district, detail) "
-                        + "VALUES (?::uuid, ?::uuid, '张三', '13800000000', ?, ?, ?, ?, '测试路 1 号')",
+                "INSERT INTO account.addresses (id, user_id, receiver_name, phone, region_code, province, city, district, detail, is_default) "
+                        + "VALUES (?::uuid, ?::uuid, '张三', '13800000000', ?, ?, ?, ?, ?, ?)",
                 addressId.toString(),
                 userId.toString(),
                 regionCode,
                 province,
                 city,
-                district);
+                district,
+                detail,
+                isDefault);
         onDelete("DELETE FROM account.addresses WHERE id = ?::uuid", addressId.toString());
         return addressId;
     }

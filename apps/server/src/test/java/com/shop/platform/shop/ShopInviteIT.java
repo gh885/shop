@@ -46,21 +46,9 @@ class ShopInviteIT extends IntegrationTestSupport {
     private void seed() {
         Shop shop = shopService.createShop(ownerId, "邀请治理店", null);
         shopId = shop.getId();
-        jdbc.update(
-                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
-                inviteeId.toString(),
-                inviteePhone);
-        jdbc.update(
-                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
-                strangerId.toString(),
-                "13900002222");
-        db.onDelete("DELETE FROM shop.shop_reviews WHERE shop_id = ?", shopId);
-        db.onDelete("DELETE FROM shop.shop_members WHERE shop_id = ?", shopId);
-        db.onDelete("DELETE FROM shop.shops WHERE id = ?", shopId);
-        db.onDelete(
-                "DELETE FROM account.users WHERE id IN (?::uuid, ?::uuid)",
-                inviteeId.toString(),
-                strangerId.toString());
+        db.seedActiveUser(inviteeId, inviteePhone);
+        db.seedActiveUser(strangerId, "13900002222");
+        db.onDeleteShopSide(shopId);
     }
 
     /** 店主发出邀请，返回成员行 id（PENDING） */

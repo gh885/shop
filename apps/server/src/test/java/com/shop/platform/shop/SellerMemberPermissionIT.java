@@ -58,7 +58,7 @@ class SellerMemberPermissionIT extends IntegrationTestSupport {
                 .build();
     }
 
-    /** 直插 ACTIVE 店铺 + 店主 + 指定状态的子账号（permissions 为 jsonb 字面量），登记逆序清理 */
+    /** 直插 ACTIVE 店铺（店主 = ownerId）+ 店主与指定状态/权限的子账号，清理随店一起登记 */
     private void seedShop(String memberStatus, String permissionsJson) {
         shopId = UUID.randomUUID();
         jdbc.update(
@@ -66,20 +66,9 @@ class SellerMemberPermissionIT extends IntegrationTestSupport {
                 shopId.toString(),
                 ownerId.toString(),
                 "判权店铺" + shopId.toString().substring(0, 8));
-        jdbc.update(
-                "INSERT INTO shop.shop_members (id, shop_id, user_id, role, status) VALUES (?::uuid, ?::uuid, ?::uuid, 'OWNER', 'ACTIVE')",
-                UUID.randomUUID().toString(),
-                shopId.toString(),
-                ownerId.toString());
-        jdbc.update(
-                "INSERT INTO shop.shop_members (id, shop_id, user_id, role, status, permissions) VALUES (?::uuid, ?::uuid, ?::uuid, 'MEMBER', ?, ?::jsonb)",
-                UUID.randomUUID().toString(),
-                shopId.toString(),
-                memberId.toString(),
-                memberStatus,
-                permissionsJson);
-        db.onDelete("DELETE FROM shop.shop_members WHERE shop_id = ?", shopId);
-        db.onDelete("DELETE FROM shop.shops WHERE id = ?", shopId);
+        db.onDeleteShopSide(shopId);
+        db.seedShopMember(shopId, ownerId, "OWNER", "ACTIVE");
+        db.seedShopMember(shopId, memberId, "MEMBER", memberStatus, permissionsJson);
     }
 
     private String token(UUID userId) {

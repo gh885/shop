@@ -80,19 +80,9 @@ class OrderFlowIT extends IntegrationTestSupport {
     /** 建一个在售 SKU：单价 1000 分，库存 5 */
     private void seedSku(int stock) {
         // service 造的数据无法预知主键，按 userId 圈定登记清理（含下单发布的 OrderPlacedEvent 登记行）
-        db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        // 发货会落 logistics 包裹（同事务）：测试自建自清，不登记会在重跑时撞运单号唯一索引
-        db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete(
-                "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete(
-                "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
         // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
         db.seedActiveUser(userId);
+        db.onDeleteBuyerOrderChain(userId);
         skuId = db.seedOnSaleSku(shopId, 1000, stock);
         addressId = db.seedAddress(userId);
         db.seedShipAddress(shopId);

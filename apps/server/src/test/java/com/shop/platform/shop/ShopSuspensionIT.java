@@ -99,10 +99,7 @@ class ShopSuspensionIT extends IntegrationTestSupport {
     /** 店的商品（PUBLISHED + 在售 SKU + 库存行），返回 [productId, skuId]；清理由 seedOnSaleSku 登记 */
     private UUID[] seedPublishedProduct(UUID shopId) {
         UUID skuId = db.seedOnSaleSku(shopId, 1000, 5);
-        UUID productId = jdbc.queryForObject(
-                "SELECT product_id FROM product.skus WHERE id = ?::uuid", UUID.class, skuId.toString());
-        assertNotNull(productId);
-        return new UUID[] {productId, skuId};
+        return new UUID[] {db.productIdOfSku(skuId), skuId};
     }
 
     @Test
@@ -174,12 +171,8 @@ class ShopSuspensionIT extends IntegrationTestSupport {
         UUID shopId = seedShopWithStatus(ShopStatus.DISABLED);
         UUID[] product = seedPublishedProduct(shopId);
         db.seedActiveUser(buyerId);
+        db.onDeleteBuyerOrderChain(buyerId);
         UUID addressId = db.seedAddress(buyerId);
-        db.onDelete(
-                "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
-                buyerId.toString());
-        db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", buyerId.toString());
-        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + buyerId + "%");
 
         var req = new CreateOrderRequest(
                 UUID.randomUUID(), addressId, List.of(new OrderLineRequest(product[1], 1)), null, null);

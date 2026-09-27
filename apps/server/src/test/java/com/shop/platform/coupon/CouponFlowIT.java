@@ -100,36 +100,16 @@ class CouponFlowIT extends IntegrationTestSupport {
 
     /** 建一个在售 SKU（单价 1000 分）并登记清理 */
     private void seed(int stock) {
-        // 登记顺序 = 插入顺序（父表在前），purge 逆序执行 → 先删子表
-        db.onDelete(
-                "DELETE FROM account.users WHERE id IN (?::uuid, ?::uuid)", userId.toString(), otherUserId.toString());
+        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）；
+        // 账号先登记，券与下单链路的行随后登记
+        db.seedActiveUser(userId);
+        db.seedActiveUser(otherUserId);
         db.onDelete("DELETE FROM coupon.coupon_templates WHERE shop_id = ?::uuid", shopId.toString());
         db.onDelete("DELETE FROM coupon.user_coupons WHERE shop_id = ?::uuid", shopId.toString());
         db.onDelete("DELETE FROM coupon.coupon_usages WHERE shop_id = ?::uuid", shopId.toString());
-        db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        // 售后退款那条用例会先发货：包裹落在 logistics，不登记清理会在重跑时撞运单号唯一索引
-        db.onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete(
-                "DELETE FROM logistics.tracking_nodes WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete(
-                "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
-        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
-        seedActiveUser(userId);
-        seedActiveUser(otherUserId);
+        db.onDeleteBuyerOrderChain(userId);
         skuId = db.seedOnSaleSku(shopId, 1000, stock);
         addressId = db.seedAddress(userId);
-    }
-
-    /** 造一个真实 ACTIVE 买家账号：id 用测试的固定 uuid，手机号按 uuid 派生避免并发跑撞唯一索引 */
-    private void seedActiveUser(UUID id) {
-        jdbc.update(
-                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
-                id.toString(),
-                "139" + Math.abs(id.getMostSignificantBits() % 100_000_000L));
     }
 
     /** 建模板：满 threshold 减 discount（分），总量 total，此刻生效、7 天后到期 */

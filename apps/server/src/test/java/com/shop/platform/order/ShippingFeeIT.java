@@ -70,19 +70,10 @@ class ShippingFeeIT extends IntegrationTestSupport {
         return templateId;
     }
 
-    /**
-     * 下单链路的数据登记（买家行 + 订单/行项/事件表），与 OrderFlowIT 同款兜底圈删。
-     *
-     * <p>买家必须显式补一条 ACTIVE 账号行：下单入口的账号闸门只认 account.users 里真实存在的可用账号，
-     * 幽灵 uuid 会被 403 拒单，那样这几条用例测的就不是计运费了。
-     */
+    /** 买家行 + 下单链路的兜底圈删；账号必须是真实 ACTIVE 行，否则 403 挡在闸门外，测的就不是计运费了 */
     private void registerBuyerAndOrderCleanup() {
-        db.onDelete(
-                "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
         db.seedActiveUser(userId);
+        db.onDeleteBuyerOrderChain(userId);
     }
 
     private CreateOrderRequest createRequest(UUID addressId, UUID skuId, int quantity) {

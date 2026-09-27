@@ -252,12 +252,7 @@ class AccountDeletionIT extends IntegrationTestSupport {
         assertNull(userMapper.selectByPhone(phone));
 
         // 同一个号码重新注册 = 一个全新主体：新 id、没有注销痕迹
-        UUID rebornId = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO account.users (id, phone, status) VALUES (?::uuid, ?, 'ACTIVE')",
-                rebornId.toString(),
-                phone);
-        db.onDelete("DELETE FROM account.users WHERE id = ?::uuid", rebornId.toString());
+        UUID rebornId = db.seedActiveUser(UUID.randomUUID(), phone);
 
         User reborn = userMapper.selectByPhone(phone);
         assertNotNull(reborn, "号码已交还，可重新注册");
@@ -336,8 +331,7 @@ class AccountDeletionIT extends IntegrationTestSupport {
         UUID pendingShop = db.seedShop(UUID.randomUUID(), ShopStatus.PENDING_REVIEW.name());
         UUID rejectedShop = db.seedShop(UUID.randomUUID(), ShopStatus.REJECTED.name());
         UUID skuOnRejectedShop = db.seedOnSaleSku(rejectedShop, 1000, 5);
-        UUID rejectedProduct = jdbc.queryForObject(
-                "SELECT product_id FROM product.skus WHERE id = ?::uuid", UUID.class, skuOnRejectedShop.toString());
+        UUID rejectedProduct = db.productIdOfSku(skuOnRejectedShop);
         seedOwnerMembership(pendingShop);
         seedOwnerMembership(rejectedShop);
         request();
@@ -375,8 +369,7 @@ class AccountDeletionIT extends IntegrationTestSupport {
         seedBuyer();
         db.seedAddress(userId);
         UUID skuId = db.seedOnSaleSku(shopId, 1000, 5);
-        productId = jdbc.queryForObject(
-                "SELECT product_id FROM product.skus WHERE id = ?::uuid", UUID.class, skuId.toString());
+        productId = db.productIdOfSku(skuId);
         jdbc.update(
                 "INSERT INTO cart.items (id, user_id, sku_id, quantity) VALUES (?::uuid, ?::uuid, ?::uuid, 1)",
                 UUID.randomUUID().toString(),
@@ -395,11 +388,7 @@ class AccountDeletionIT extends IntegrationTestSupport {
 
     /** 本人是这家店的 ACTIVE 店主（OWNER 行是店主身份的唯一真相，见 ShopMemberMapper.selectOwnedShopIds） */
     private void seedOwnerMembership(UUID shop) {
-        jdbc.update(
-                "INSERT INTO shop.shop_members (id, shop_id, user_id, role, status) VALUES (?::uuid, ?::uuid, ?::uuid, 'OWNER', 'ACTIVE')",
-                UUID.randomUUID().toString(),
-                shop.toString(),
-                userId.toString());
+        db.seedShopMember(shop, userId, "OWNER", "ACTIVE");
     }
 
     /**

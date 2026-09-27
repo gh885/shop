@@ -26,22 +26,6 @@ class AddressDefaultIT extends IntegrationTestSupport {
 
     private final UUID userId = UUID.randomUUID();
 
-    /** 直插一条地址，返回 id（绕开 create 的 DTO 校验，聚焦默认态不变式） */
-    private UUID seedAddress(boolean isDefault) {
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                """
-                INSERT INTO account.addresses
-                  (id, user_id, receiver_name, phone, region_code, province, city, district, detail, is_default)
-                VALUES (?::uuid, ?::uuid, '张三', '13800000000', '110100', '北京市', '北京市', '朝阳区', '测试路 1 号', ?)
-                """,
-                id.toString(),
-                userId.toString(),
-                isDefault);
-        db.onDelete("DELETE FROM account.addresses WHERE id = ?::uuid", id.toString());
-        return id;
-    }
-
     private boolean isDefault(UUID id) {
         Boolean flag = jdbc.queryForObject(
                 "SELECT is_default FROM account.addresses WHERE id = ?::uuid", Boolean.class, id.toString());
@@ -51,8 +35,8 @@ class AddressDefaultIT extends IntegrationTestSupport {
 
     @Test
     void 设新默认_旧默认自动让位_全局仅一个() {
-        UUID first = seedAddress(true); // 已是默认
-        UUID second = seedAddress(false);
+        UUID first = db.seedAddress(userId, true); // 已是默认
+        UUID second = db.seedAddress(userId, false);
 
         addressService.setDefault(userId, second);
 
@@ -62,7 +46,7 @@ class AddressDefaultIT extends IntegrationTestSupport {
 
     @Test
     void 取消默认_允许无默认状态() {
-        UUID only = seedAddress(true);
+        UUID only = db.seedAddress(userId, true);
 
         addressService.unsetDefault(userId, only);
 

@@ -29,7 +29,7 @@ class CartCheckoutIT extends IntegrationTestSupport {
 
     private final UUID shopId = UUID.randomUUID();
 
-    private final UUID addressId = UUID.randomUUID();
+    private UUID addressId;
 
     /** 直插购物车条目，返回条目 id */
     private UUID seedCartItem(UUID skuId, int quantity) {
@@ -49,20 +49,9 @@ class CartCheckoutIT extends IntegrationTestSupport {
 
     private void registerOrderCleanup() {
         // 与 OrderFlowIT 同款兜底圈删：service 产生的单据/流水/事件登记按 userId 清
-        db.onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete(
-                "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
-                userId.toString());
-        db.onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", userId.toString());
-        db.onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
-        // 下单入口的账号闸门要求真实 ACTIVE 账号（幽灵 uuid 会被 403 USER_DISABLED 拒单）
         db.seedActiveUser(userId);
-        jdbc.update(
-                "INSERT INTO account.addresses (id, user_id, receiver_name, phone, region_code, province, city, district, detail) "
-                        + "VALUES (?::uuid, ?::uuid, '张三', '13800000000', '110100', '北京市', '北京市', '朝阳区', '测试路 1 号')",
-                addressId.toString(),
-                userId.toString());
-        db.onDelete("DELETE FROM account.addresses WHERE id = ?::uuid", addressId.toString());
+        db.onDeleteBuyerOrderChain(userId);
+        addressId = db.seedAddress(userId);
     }
 
     private int cartCount() {
