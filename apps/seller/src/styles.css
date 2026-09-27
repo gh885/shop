@@ -20,9 +20,21 @@
 .login-stage {
     --login-ink: color-mix(in oklab, var(--color-primary-active) 40%, black);
     background:
-        radial-gradient(60% 50% at 8% 4%, color-mix(in oklab, var(--color-primary) 55%, transparent), transparent 70%),
-        radial-gradient(70% 60% at 100% 100%, color-mix(in oklab, var(--color-primary-active) 30%, black), transparent 70%),
-        linear-gradient(165deg, var(--color-primary-active), color-mix(in oklab, var(--color-primary-active) 65%, black));
+        radial-gradient(
+            60% 50% at 8% 4%,
+            color-mix(in oklab, var(--color-primary) 55%, transparent),
+            transparent 70%
+        ),
+        radial-gradient(
+            70% 60% at 100% 100%,
+            color-mix(in oklab, var(--color-primary-active) 30%, black),
+            transparent 70%
+        ),
+        linear-gradient(
+            165deg,
+            var(--color-primary-active),
+            color-mix(in oklab, var(--color-primary-active) 65%, black)
+        );
 }
 /* 颗粒：SVG 噪声叠 overlay，给大面积纯色一点纸感。z-index -1：压在线路图（-z-10）之上、文字之下 */
 .login-stage::after {

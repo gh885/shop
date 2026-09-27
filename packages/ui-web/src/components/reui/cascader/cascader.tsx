@@ -505,8 +505,7 @@ function useCascaderDevWarnings<T>(options: CascaderDevOptions<T>) {
 
     // O(n) over the raw input, so the memo is skipped outright in production.
     const issues = React.useMemo(
-        () =>
-            !import.meta.env.DEV ? null : findCascaderDataIssues(items, getParent),
+        () => (!import.meta.env.DEV ? null : findCascaderDataIssues(items, getParent)),
         [items, getParent],
     )
 
