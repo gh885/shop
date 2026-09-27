@@ -20,7 +20,16 @@ describe("resolveMessage", () => {
         expect(resolveMessage(resources, "common.greeting", "en-US")).toBe("Hello, {name}")
     })
 
-    it("falls back from en-US to zh-CN", () => {
+    it("falls back along the chain: a key only zh-CN has still resolves for en-US", () => {
+        const partial: I18nResources = {
+            "zh-CN": { "order.only.zh": "已发货" },
+            "en-US": {},
+        }
+
+        expect(resolveMessage(partial, "order.only.zh", "en-US")).toBe("已发货")
+    })
+
+    it("returns undefined when no locale in the fallback chain has the key", () => {
         expect(resolveMessage(resources, "missing.in.en", "en-US")).toBeUndefined()
     })
 })
