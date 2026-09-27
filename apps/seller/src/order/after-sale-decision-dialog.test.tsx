@@ -8,7 +8,8 @@ import { makeSellerOrderListItem, makeTicket, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
-import { AfterSaleDecisionDialog, type SaleDecisionKind } from "./after-sale-decision-dialog"
+import { AfterSaleDecisionDialog } from "./after-sale-decision-dialog"
+import type { SaleDecisionKind } from "#/order/after-sale-decision"
 
 /**
  * 售后决策弹窗测试：卖家在点「同意」之前必须看得见自己要答应什么。

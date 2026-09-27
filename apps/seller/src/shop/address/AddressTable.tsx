@@ -15,6 +15,7 @@ import {
     TableShell,
 } from "@shop/ui-web"
 import { MapPin, Pencil, Trash2 } from "lucide-react"
+import { foldRegion } from "@shop/common"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 export interface AddressTableProps {
@@ -30,7 +31,7 @@ export interface AddressTableProps {
 }
 
 function fullAddress(a: MerchantAddressResponse): string {
-    return [a.province, a.city, a.district].filter(Boolean).join(" ") + " " + a.detail
+    return [foldRegion(a), a.detail].filter(Boolean).join(" ")
 }
 
 /** 商家地址库列表：一行一个地址，默认发货/退货标记 + 设为/编辑/删除操作 */

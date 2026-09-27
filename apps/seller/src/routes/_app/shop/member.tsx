@@ -1,6 +1,7 @@
 import { Store, Trash2, UserPlus } from "lucide-react"
 
 import { useShop, shopKeys, shopMembersOptions } from "#/shop"
+import { InviteFormSchema, isShopOwner } from "#/shop/member"
 import { useMe } from "#/shared/lib/me"
 import { ShopsApi } from "@shop/api/sdk"
 import { createFileRoute } from "@tanstack/react-router"
@@ -26,16 +27,8 @@ import {
     MaskedValueCell,
     confirm,
 } from "@shop/ui-web"
-import { z } from "zod"
 
-import { PHONE_DIGITS, PhoneSchema } from "@shop/app-kit"
-
-/**
- * 邀请手机号校验：形状 owner 是登录那一侧的 `PhoneSchema`（app-kit），不是「就近再写一份正则」。
- * 此前这里写的是 `^1\d{10}$`，比登录的 `^1[3-9]\d{9}$` 宽——后果不是报错而是「邀请进去的手机号登录不了」，
- * 且两处规则对任何门禁都不可见（GEN-58）。
- */
-const InviteFormSchema = z.object({ phone: PhoneSchema })
+import { PHONE_DIGITS } from "@shop/app-kit"
 
 export const Route = createFileRoute("/_app/shop/member")({
     component: MembersPage,
@@ -65,10 +58,8 @@ function MemberPanel({ shopId }: { shopId: string }) {
     // 成员列表走域内 queryOptions（key 与失效规则同源，路由不直接拼 key）
     const members = useQuery(shopMembersOptions(shopId))
 
-    // 身份判定比 userId（uuid），不比 phone：phone 可空且可变更
-    const isOwner = members.data?.some(
-        (m) => m.role === "OWNER" && m.status === "ACTIVE" && m.userId === me.data?.id,
-    )
+    // 「是不是店主」是决定这一页画不画破坏性动作的判定，规则在 #/shop/member（那里有单测）
+    const isOwner = isShopOwner(members.data, me.data?.id)
 
     const invite = useMutation({
         mutationFn: (phone: string) =>

@@ -1,8 +1,7 @@
-import { z } from "zod"
 import { useQuery } from "@tanstack/react-query"
 
 import type { OrderIdentity } from "./table"
-import { TRACKING_NO_MAX, toApiError, TrackingNoSchema } from "@shop/common"
+import { TRACKING_NO_MAX, toApiError } from "@shop/common"
 import { FormActions } from "@shop/app-kit"
 import {
     Button,
@@ -17,18 +16,17 @@ import {
 } from "@shop/ui-web"
 
 import { carrierListOptions } from "#/order/queries"
-
-/** 承运商走字典 code；运单号首尾空格清掉，承运商推送按运单号精确匹配（口径见 @shop/common 的 tracking.ts） */
-const ShipSchema = z.object({
-    carrierCode: z.string().min(1, "请选择快递公司"),
-    trackingNo: TrackingNoSchema,
-})
+import {
+    carrierSelectItems,
+    ShipSchema,
+    shipInputFromForm,
+    type ShipInput,
+} from "#/order/list/ship-form"
 
 /**
  * 卖家发货弹窗：选承运商（字典下拉）+ 填运单号。提交经 onShip 上抛（mutation 在容器持有）。
  *
- * <p>承运商是自由文本升级来的：同一个顺丰曾能写出五种字，落库后既没法统计也没法对接物流商接口，
- * 现在只传字典 code，展示名由后端按字典归一（规则见 docs/business-rules/logistics.md LOG-70）。
+ * <p>校验与「表单值 → 提交体」的投影都在 ship-form.ts（含承运商为什么只传字典 code，LOG-70）。
  * 字典是弹窗自己拉的——加载/失败态就地渲染，不必让调用方认识"快递公司还没到"这件事。
  * 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，打开即重置。
  */
@@ -42,7 +40,7 @@ export function ShipDialog({
     /** 本弹窗只读 id（请求）与单号（展示），不背整行订单 */
     order?: OrderIdentity
     onOpenChange: (open: boolean) => void
-    onShip: (orderId: string, input: { carrierCode: string; trackingNo: string }) => void
+    onShip: (orderId: string, input: ShipInput) => void
 }) {
     return (
         <Dialog
@@ -70,7 +68,7 @@ function ShipForm({
 }: {
     order: OrderIdentity
     onOpenChange: (open: boolean) => void
-    onShip: (orderId: string, input: { carrierCode: string; trackingNo: string }) => void
+    onShip: (orderId: string, input: ShipInput) => void
 }) {
     const carriers = useQuery(carrierListOptions())
 
@@ -78,10 +76,7 @@ function ShipForm({
         defaultValues: { carrierCode: "", trackingNo: "" },
         validators: { onSubmit: ShipSchema },
         onSubmit: ({ value }) => {
-            onShip(order.id, {
-                carrierCode: value.carrierCode,
-                trackingNo: value.trackingNo.trim(),
-            })
+            onShip(order.id, shipInputFromForm(value))
             onOpenChange(false)
         },
     })
@@ -139,7 +134,7 @@ function ShipForm({
                                 label="快递公司"
                                 required
                                 placeholder="选择快递公司"
-                                items={carriers.data.map((c) => ({ value: c.code, label: c.name }))}
+                                items={carrierSelectItems(carriers.data)}
                             />
                         )}
                     </form.AppField>

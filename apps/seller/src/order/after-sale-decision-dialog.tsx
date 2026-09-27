@@ -17,6 +17,12 @@ import {
     DialogTitle,
 } from "@shop/ui-web"
 
+import {
+    DECISION_TITLE,
+    describeDecision,
+    returnShipmentText,
+    type SaleDecisionKind,
+} from "#/order/after-sale-decision"
 import { TICKET_REASON_LABEL, TICKET_STATUS_META, TICKET_TYPE_LABEL } from "#/order/constants"
 import { shopAfterSaleOptions } from "#/order/queries"
 
@@ -36,34 +42,7 @@ import { shopAfterSaleOptions } from "#/order/queries"
  * 弹窗降级成一句说明 + 照常可确认，而不是把人锁在门外。
  */
 
-export type SaleDecisionKind = "agree" | "reject" | "receive"
-
-const TITLE: Record<SaleDecisionKind, string> = {
-    agree: "同意售后",
-    reject: "拒绝售后",
-    receive: "确认收到退货",
-}
-
 type TicketData = TicketResponse | null
-
-/**
- * 一句话说明「点了会怎样」。
- * 同意与拒绝的走向都随售后类型 / 当前态分岔，所以**没拿到售后单就不断言走向**——宁可少说一句，
- * 也不能在「退货退款」的单上写着「商品不寄回」，那正是卖家最容易被误导的一行。
- */
-function describeDecision(kind: SaleDecisionKind, data: TicketData | undefined): string {
-    if (kind === "reject") {
-        if (!data) return "请填写拒绝理由后再提交。"
-        return data.status === "RETURNING"
-            ? "拒绝后这笔退款不会打出、库存也不回补；买家仍可在申请窗口内重新提交申请。"
-            : "拒绝后买家仍可在申请窗口内重新提交申请。"
-    }
-    if (kind === "receive") return "确认后立即退款给买家并回补库存，请先核对退回的包裹。"
-    if (!data) return "请先核对售后内容再确认。"
-    return data.type === "RETURN_REFUND"
-        ? "同意后进入退货流程：买家寄回、你确认收货后才退款并回补库存。"
-        : "同意后立即退款给买家，商品不寄回。"
-}
 
 export function AfterSaleDecisionDialog({
     open,
@@ -99,7 +78,7 @@ export function AfterSaleDecisionDialog({
         >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{TITLE[kind]}</DialogTitle>
+                    <DialogTitle>{DECISION_TITLE[kind]}</DialogTitle>
                     <DialogDescription>{describeDecision(kind, data)}</DialogDescription>
                 </DialogHeader>
 
@@ -192,11 +171,7 @@ function TicketFacts({
                     <Row label="补充说明">{data.reason ?? "买家未填写"}</Row>
                     {/* 退货物流按态给而不按动作给：确认收货要核对单号，拒绝寄回件同样得先看清寄的是哪一单 */}
                     {data.status === "RETURNING" && (
-                        <Row label="退货物流">
-                            {data.returnTrackingNo
-                                ? `${data.returnLogisticsCompany ?? "快递"} ${data.returnTrackingNo}`
-                                : "买家尚未登记运单号"}
-                        </Row>
+                        <Row label="退货物流">{returnShipmentText(data)}</Row>
                     )}
                 </dl>
             ) : (

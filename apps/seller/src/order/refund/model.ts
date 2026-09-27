@@ -3,7 +3,7 @@ import { statusOptions } from "@shop/common"
 import { TicketStatus, type TicketAvailableAction } from "@shop/api/sdk"
 
 import { TICKET_STATUS_META } from "#/order/constants"
-import type { SaleDecisionKind } from "#/order/after-sale-decision-dialog"
+import type { SaleDecisionKind } from "#/order/after-sale-decision"
 
 /**
  * 退款售后工作台 —— 纯规则：页签定义 + 「一行此刻能做什么」。
