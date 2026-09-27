@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * <p>店主身份：先把该店推成 DISABLED，再按 ACC-72 的立约在同一事务播报
  * {@link ShopTradingSuspendedEvent}（product 据此级联下架在架商品）。
  * <b>店不删、不改店主、不释放店名</b>——「这家店曾属于谁」与审核历史是平台治理的凭据，已售出的单还要有人对货；
- * 平台侧的封店/注销店铺端点仍属空缺（ACC-60），这里只是「店主这个人消失了」这一事实的既有出口。
+ * 与平台主动封店（ACC-60）共用同一个 {@code suspend} + 发事件出口，只有原因串不同，因此两家店的下架后果一模一样。
  */
 @Component
 @Slf4j

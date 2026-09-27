@@ -102,7 +102,7 @@ public class ShopService {
         requireOwner(shopId, ownerId);
         Validate.isTrue(name != null && !name.isBlank(), "店名不能为空");
         Shop shop = Validate.notNull(shopMapper.selectById(shopId), "店铺不存在");
-        // 只有被驳回的店能重提：待审的店已经在队列里，ACTIVE 店无需重审，被封的店走平台解封（ACC-60 仍未落）
+        // 只有被驳回的店能重提：待审的店已经在队列里，ACTIVE 店无需重审，被封的店没有卖家自助路，要等平台解封（ACC-60）
         Validate.conflict(shop.getStatus() == ShopStatus.REJECTED, "只有审核未通过的店铺可以重新提交");
         // 改名要重新过全局唯一闸（本店自己那一行不算冲突）
         Validate.isTrue(!shopMapper.existsOtherNamed(shopId, name), ErrorCodes.SHOP_NAME_TAKEN, "店名已被使用，请换一个");

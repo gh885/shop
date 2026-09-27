@@ -40,7 +40,8 @@ import org.springframework.transaction.annotation.Transactional;
  * sourcesOf(目标态)，影响行数即并发闸门）→ 库存/退款协同 → 审计流水。
  *
  * <p>同一目标态的多个入口共用一个私有落点，行为差异只在参数上：取消收在 {@link #cancelFrom}
- * （买家取消 / 待付款超时 / 待发货超时，各给不同的合法源态集与审计动作），完成收在 {@link #complete}
+ * （买家取消 / 待付款超时关单，各给不同的合法源态集与审计动作；已付款单没有系统取消那一条，见 ORD-60），
+ * 完成收在 {@link #complete}
  * （买家确认收货 / 超时自动收货）。
  * 买家入口抢不到转移报 409，系统入口返回 false 让位——正确性不依赖加锁。
  *

@@ -8,8 +8,8 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * 条目出参：刻意不吐 userId（JWT 里就有，纯冗余）。前端 TS 类型尚未建立，
- * 是唯一可以从一开始就按最小契约设计的端点。
+ * 条目出参：刻意不吐 userId（JWT 里就有，纯冗余）。前端类型由 OpenAPI 契约生成，这个形状即契约形状，
+ * 加字段等于给三个消费端各多一个可空分支，所以按最小契约收着。
  */
 @Schema(name = "CartItemResponse")
 public record CartItemMutationView(

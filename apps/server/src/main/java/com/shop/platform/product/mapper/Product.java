@@ -145,7 +145,7 @@ public class Product extends AuditedEntity {
         return specCombinations().stream().map(Sku::specKeyOf).collect(Collectors.toSet());
     }
 
-    /** 归属店铺 ID。shop 模块尚未落地，此处跨 schema 裸引用、不加外键约束；商家后台按它查自己的商品 */
+    /** 归属店铺 ID：跨 schema（product → shop）裸引用不加外键，模块边界靠对方 api 维持；商家后台按它查自己的商品 */
     private UUID shopId;
 
     /** 主分类 ID。V1 只支持单主分类（挂在末级分类下），多分类需求出现时再拆关联表 */
