@@ -83,6 +83,9 @@ export default defineConfig(({ mode }) => {
                 // /coupons 同理：券包与领券 API 都在 /coupons/*（券包页面路由放 /account/coupons，不占 /coupons），
                 // 匿名可访问的店铺领券页在 /api/shops/{id}/coupons，已被上面的 "/api" 覆盖
                 "/coupons/": { target: backend, changeOrigin: true },
+                // 买家评价 API 前缀（POST /reviews/orders/{id}、POST /reviews/{id}/append、GET 同路径）。
+                // 全站没有 /reviews 开头的页面路由（评价入口在订单详情里），故不需要尾斜杠，也不需要 Accept 分流。
+                "/reviews": { target: backend, changeOrigin: true },
             },
         },
         plugins: [

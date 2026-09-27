@@ -4,6 +4,7 @@ import { Archive, Clock, Heart, MapPin, Star } from "lucide-react"
 import { Avatar, AvatarFallback, Button } from "@shop/ui-web"
 
 import { useLoginDialogOpen, useAuthStatus } from "#/shared/api/auth"
+import { avatarInitial } from "#/shared/lib/avatar"
 import { useMe } from "#/account"
 import { useCartCount } from "#/cart"
 
@@ -23,7 +24,7 @@ export function UserCard() {
 
     const loggedIn = status === "authed"
     const displayName = me?.nickname ?? me?.phone ?? "未登录"
-    const fallbackChar = displayName.charAt(0)
+    const fallbackChar = avatarInitial(displayName)
 
     return (
         <div className="flex h-50 w-62.5 shrink-0 flex-col rounded-lg bg-background p-4 shadow-sm">

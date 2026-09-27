@@ -1,22 +1,9 @@
 import { Link } from "@tanstack/react-router"
 import { useT } from "@shop/app-kit"
 
-import { SELLER_URL } from "../shared/lib/external"
+import { isExternalTarget } from "#/shared/lib/external"
 
-const FOOTER_GROUPS = [
-    {
-        titleKey: "web.footer.group.shopping",
-        links: [{ labelKey: "web.footer.home", to: "/" }],
-    },
-    {
-        titleKey: "web.footer.group.selling",
-        links: [
-            { labelKey: "web.footer.openShop", to: "/sell" },
-            // 店铺/店员/商品管理已迁到卖家中心（apps/seller 独立 SPA）
-            { labelKey: "web.footer.sellerCenter", to: SELLER_URL },
-        ],
-    },
-] as const
+import { FOOTER_GROUPS } from "./constants"
 
 /** 站点页脚：品牌 + 真实导航路径，不放死链 */
 export function SiteFooter() {
@@ -39,7 +26,7 @@ export function SiteFooter() {
                             <ul className="space-y-2">
                                 {group.links.map((link) => (
                                     <li key={link.labelKey}>
-                                        {link.to.startsWith("http") ? (
+                                        {isExternalTarget(link.to) ? (
                                             <a
                                                 href={link.to}
                                                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"

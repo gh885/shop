@@ -22,6 +22,7 @@ import { useCartCount } from "#/cart"
 import { logout } from "#/auth"
 import { useClearMe, useMe } from "#/account"
 import { useAuthStatus, useLoginDialogOpen } from "#/shared/api/auth"
+import { avatarInitial } from "#/shared/lib/avatar"
 
 import { SiteNav } from "./SiteNav"
 
@@ -89,7 +90,7 @@ function UserMenu() {
 
     const displayName = me.data?.nickname ?? me.data?.phone ?? "…"
     // avatarKey 是对象存储 key，URL 签发方案未落地，暂用首字符兜底
-    const fallbackChar = displayName.charAt(0)
+    const fallbackChar = avatarInitial(displayName)
 
     async function handleLogout() {
         await logout()

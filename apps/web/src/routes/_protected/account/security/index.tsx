@@ -26,7 +26,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
-import { DeletionCard, deviceKeys, devicesOptions } from "#/account"
+import { DeletionCard, deviceKeys, devicesOptions, isMobileDeviceName } from "#/account"
 import { formatTimeShort, usePasswordVisibility, useT } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
@@ -366,7 +366,7 @@ function DeviceRow({
             size="lg"
         >
             <ItemMedia variant="icon">
-                {isMobileName(device.deviceName) ? <Smartphone /> : <Monitor />}
+                {isMobileDeviceName(device.deviceName) ? <Smartphone /> : <Monitor />}
             </ItemMedia>
             <ItemContent>
                 <ItemTitle className="truncate">
@@ -395,11 +395,4 @@ function DeviceRow({
             </ItemActions>
         </Item>
     )
-}
-
-// 工具
-function isMobileName(name: string | null): boolean {
-    if (!name) return false
-    const n = name.toLowerCase()
-    return n.includes("iphone") || n.includes("android") || n.includes("手机")
 }

@@ -33,6 +33,7 @@ import { toApiError } from "@shop/common"
 
 import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"
 
+import { navTitle } from "./nav"
 import { homeNavOptions } from "./queries"
 
 /**
@@ -154,26 +155,6 @@ function HomeCategoryNavContent() {
             </div>
         </NavigationMenu>
     )
-}
-
-/**
- * 行内显示名：合并标题按「 / 」整组装进文字区宽度预算，装不下的组不显示——
- * 不切半字、不画省略号；完整名在 title tooltip 与右侧 mega 面板里。
- * 预算 210px；汉字按 text-sm 14px、分隔符 " / " 约 11px 估
- */
-const NAV_TITLE_MAX_WIDTH = 210
-
-function navTitle(title: string): string {
-    const [first = "", ...rest] = title.split(" / ")
-    let shown = first
-    let width = first.length * 14
-    for (const part of rest) {
-        const next = width + 11 + part.length * 14
-        if (next > NAV_TITLE_MAX_WIDTH) break
-        shown += ` / ${part}`
-        width = next
-    }
-    return shown
 }
 
 /** 词条行：有子组的走 NavigationMenuTrigger（hover/点击展开右侧面板）；无子组的只是普通按钮——给它挂个开了没内容的假面板更怪 */

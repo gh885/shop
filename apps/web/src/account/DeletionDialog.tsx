@@ -1,7 +1,15 @@
 import { z } from "zod"
 
-import { FormActions, SMS_CODE_DIGITS, SmsCodeSchema, useCountdown } from "@shop/app-kit"
-import { ErrorCodes, toApiError } from "@shop/common"
+import {
+    FormActions,
+    isCodeError,
+    isSmsRateLimit,
+    RESEND_COUNTDOWN_SECONDS,
+    SMS_CODE_DIGITS,
+    SmsCodeSchema,
+    useCountdown,
+} from "@shop/app-kit"
+import { toApiError } from "@shop/common"
 import { AccountDeletionApi } from "@shop/api/sdk"
 import {
     Button,
@@ -24,6 +32,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useId, useState } from "react"
 
 import { deletionKeys } from "./queries"
+import { COOLING_OFF_DAYS, DISPOSITIONS, TONE_CLASS } from "./constants"
 
 /**
  * 注销账号弹窗：数据处置清单 → 手机验证码 → 毁灭性确认，三件事在同一个弹窗里按顺序做完。
@@ -35,34 +44,7 @@ import { deletionKeys } from "./queries"
  * 提交后进的是冷静期而不是立刻删除，撤销入口在安全设置页那张卡上。
  */
 
-/** 冷静期天数，与后端 AccountDeletionTimeouts.COOLING_OFF 同值（只用于文案；确切生效时刻由接口给） */
-const COOLING_OFF_DAYS = 15
-
 const CodeSchema = z.object({ code: SmsCodeSchema })
-
-/** 三档处置：标题就是「你能拿回什么」，所以按不可逆程度从重到轻排 */
-const DISPOSITIONS: { title: string; items: string; tone: "lost" | "kept" | "legal" }[] = [
-    { title: "会清空", items: "购物车、收藏、收货地址、未使用的优惠券", tone: "lost" },
-    {
-        title: "会匿名保留",
-        items: "账号本身（昵称改成「已注销用户」、手机号与密码清掉）、你名下的店铺停止营业",
-        tone: "kept",
-    },
-    {
-        title: "会依法留存",
-        items: "订单、退款与售后记录、支付流水——交易记录另有法定留存义务，注销抹的是身份，不是账",
-        tone: "legal",
-    },
-]
-
-const TONE_CLASS = {
-    lost: "text-destructive",
-    kept: "text-foreground",
-    legal: "text-muted-foreground",
-} as const
-
-/** 验证码类错误要标红输入框（ACC-67），其余错误只在表单下方说一句 */
-const CODE_ERROR_CODES = new Set<string>([ErrorCodes.SMS_CODE_INVALID, ErrorCodes.SMS_CODE_EXPIRED])
 
 export interface DeletionDialogProps {
     open: boolean
@@ -92,11 +74,11 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     const send = useMutation({
         mutationFn: () => AccountDeletionApi.sendDeletionCode(),
         meta: { silentError: true },
-        onSuccess: () => setCountdown(60),
+        onSuccess: () => setCountdown(RESEND_COUNTDOWN_SECONDS),
         onError: (e) => {
             const err = toApiError(e)
-            // 429 的窗口就是 60s，连点只会再撞一次限流：倒计时无损失地兜住（与登录发码同一处理，ACC-67）
-            if (err.status === 429) setCountdown(60)
+            // 与登录发码同一判据（app-kit）：只有限频窗口才起倒计时，当日上限 60s 后重发也没用
+            if (isSmsRateLimit(err)) setCountdown(RESEND_COUNTDOWN_SECONDS)
             setError(err.detail)
         },
     })
@@ -111,7 +93,8 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
         onSuccess: () => onOpenChange(false),
         onError: (e) => {
             const err = toApiError(e)
-            setCodeInvalid(CODE_ERROR_CODES.has(String(err.code)))
+            // 验证码类错误要标红输入框（ACC-67），其余错误只在表单下方说一句
+            setCodeInvalid(isCodeError(err))
             setError(err.detail)
         },
     })
