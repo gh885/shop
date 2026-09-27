@@ -32,12 +32,17 @@ const checks = [
           WHERE status = 'PENDING_PAYMENT' AND created_at < now() - interval '30 minutes' LIMIT 100`,
     },
     {
-        name: "无在售 SKU 的上架商品",
+        // 库存自 V19 起住在 inventory.sku_stock（product.skus 上没有 stock 列），可用量 = 总量 − 冻结量；
+        // 没建库存行的 SKU 视同无货（正常链路不会出现，出现即是要查的脏数据）
+        name: "在架但无可售库存的商品",
         sql: `SELECT p.id::text FROM product.products p
           WHERE p.status = 'PUBLISHED'
             AND NOT EXISTS (
               SELECT 1 FROM product.skus s
-              WHERE s.product_id = p.id AND s.status = 'ON_SALE' AND s.stock > 0
+              LEFT JOIN inventory.sku_stock st ON st.sku_id = s.id
+              WHERE s.product_id = p.id
+                AND s.status = 'ON_SALE'
+                AND COALESCE(st.stock, 0) - COALESCE(st.frozen_stock, 0) > 0
             ) LIMIT 100`,
     },
 ]
