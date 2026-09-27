@@ -11,6 +11,7 @@ import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.account.service.StaffService;
+import com.shop.platform.audit.api.AuditAction;
 import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
@@ -186,11 +187,13 @@ class StaffServiceTest {
             staff.setId(STAFF_ID);
             staff.setStatus(StaffStatus.ACTIVE);
             when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
+            when(staffMapper.disable(eq(STAFF_ID), any())).thenReturn(1);
 
             staffService.updateStaffStatus(STAFF_ID, StaffStatus.DISABLED, OPERATOR_ID);
 
-            verify(staffMapper).updateById(staffCaptor.capture());
-            assertEquals(StaffStatus.DISABLED, staffCaptor.getValue().getStatus());
+            // 条件更新只写 status 一列（起点 ACTIVE）：整行回写会盖掉并发落下的处置
+            verify(staffMapper).disable(eq(STAFF_ID), any());
+            verify(staffMapper, never()).updateById(any(Staff.class));
             // 员工 access 寿命 8 小时，禁用必须同步清 refresh 才能即时收场
             verify(refreshTokenStore).revokeAll(STAFF_ID.toString());
         }
@@ -201,6 +204,7 @@ class StaffServiceTest {
             staff.setId(STAFF_ID);
             staff.setStatus(StaffStatus.ACTIVE);
             when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
+            when(staffMapper.disable(eq(STAFF_ID), any())).thenReturn(1);
 
             var events = new EventCapture();
             try (events) {
@@ -220,12 +224,35 @@ class StaffServiceTest {
             staff.setId(STAFF_ID);
             staff.setStatus(StaffStatus.DISABLED);
             when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
+            when(staffMapper.enable(eq(STAFF_ID), any())).thenReturn(1);
 
             staffService.updateStaffStatus(STAFF_ID, StaffStatus.ACTIVE, OPERATOR_ID);
 
-            verify(staffMapper).updateById(staffCaptor.capture());
-            assertEquals(StaffStatus.ACTIVE, staffCaptor.getValue().getStatus());
+            verify(staffMapper).enable(eq(STAFF_ID), any());
             verify(refreshTokenStore, never()).revokeAll(anyString());
+        }
+
+        @Test
+        void 状态没改到_409_不吊销会话也不留事件() {
+            Staff staff = new Staff();
+            staff.setId(STAFF_ID);
+            staff.setStatus(StaffStatus.ACTIVE);
+            when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
+            // 0 行 = 并发下已被别人处置
+            when(staffMapper.disable(eq(STAFF_ID), any())).thenReturn(0);
+
+            var events = new EventCapture();
+            BusinessException ex;
+            try (events) {
+                ex = assertThrows(
+                        BusinessException.class,
+                        () -> staffService.updateStaffStatus(STAFF_ID, StaffStatus.DISABLED, OPERATOR_ID));
+            }
+            assertEquals(409, ex.getHttpStatus());
+            // 没改成的处置既不该下线别人会话，也不该在账本里留一行「没发生过的变更」
+            verify(refreshTokenStore, never()).revokeAll(anyString());
+            assertFalse(events.emitted("staff.status.changed"));
+            verify(recordAuditCommand, never()).record(any(AuditAction.class), any(), any(), any(), any());
         }
 
         @Test

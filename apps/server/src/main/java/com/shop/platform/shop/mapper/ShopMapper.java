@@ -114,6 +114,25 @@ public interface ShopMapper extends BaseMapper<Shop> {
     }
 
     /**
+     * 审核结论落到店铺：待审 → ACTIVE（通过）/ REJECTED（驳回）。
+     *
+     * <p>{@code WHERE status = PENDING_REVIEW} 是并发闸门：审核记录那一侧的闸门已经保证一条待审只有一个
+     * 处置能赢，这里再收一道是挡「店在这一刻被店主注销/被平台封禁」——0 行即店铺不是待审那一档，
+     * 由调用方整体回滚（宁可让审核员刷新重试，也绝不出现「审核记录已通过、店铺永远卡在别的档位」的静默分叉，
+     * 也绝不把一家已停止营业的店悄悄拖回 ACTIVE）。
+     *
+     * <p>目标态由 service 给，起点守卫不下沉成参数：待审是唯一合法起点，写成参数等于把这条裁决交给调用方。
+     */
+    default int applyReviewVerdict(UUID shopId, ShopStatus target) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Shop>()
+                        .eq(Shop::getId, shopId)
+                        .eq(Shop::getStatus, ShopStatus.PENDING_REVIEW)
+                        .set(Shop::getStatus, target));
+    }
+
+    /**
      * 管理端店铺列表分页：status 传 null = 全部，否则只给那一档；关键字命中店名或店主 ID。
      * 排序固定「最新在前」（治理动作看的是最近变动的那批），排序口径收在这里。
      */

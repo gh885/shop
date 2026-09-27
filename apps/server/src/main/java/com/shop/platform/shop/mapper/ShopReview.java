@@ -30,11 +30,6 @@ public class ShopReview extends AuditedEntity {
     /** 审核状态：PENDING 待审 / APPROVED 通过 / REJECTED 拒绝。PENDING 行即「待审核队列」。概念归 {@link ShopReviewStatus} */
     private ShopReviewStatus status;
 
-    /** 是否待审（仅待审可被处置） */
-    public boolean isPending() {
-        return status != null && status.isPending();
-    }
-
     /** 审批理由/备注（拒绝时一般必填），可空 */
     private String reason;
 

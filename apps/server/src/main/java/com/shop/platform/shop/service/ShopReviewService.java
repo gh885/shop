@@ -121,21 +121,25 @@ public class ShopReviewService {
      * 店铺状态改不成就整体回滚，员工刷新重试；绝不出现「审核记录已通过、店铺永远卡在待审」的静默分叉。
      */
     private ShopReview decide(UUID reviewId, UUID staffId, ShopReviewStatus newStatus, String reason) {
-        // 1. 校验存在且未审
+        // 1. 校验存在（读这一行只为 404 与 shop_id；「未审」不在这儿判，判在下面的闸门里）
         ShopReview review = Validate.notNull(shopReviewMapper.selectById(reviewId), "审核记录不存在");
-        Validate.isTrue(review.isPending(), "该店铺已审核，请刷新列表");
 
-        // 2. 写入审批留痕
+        // 2. 写入审批留痕：PENDING → 结论一句条件更新。两个员工同时点同一条待审，后到者 0 行 → 409，
+        //    于是「一条记录两条结论、账本里两行处置」在这个窗口里不可能再发生
+        OffsetDateTime now = OffsetDateTime.now();
+        Validate.conflict(
+                shopReviewMapper.decideIfPending(reviewId, newStatus, staffId, reason, now) == 1, "该店铺已审核，请刷新列表");
+        // 出参按内存态拼回，不为拼一个返回值再读一次
         review.setStatus(newStatus);
         review.setStaffId(staffId);
         review.setReason(reason);
-        review.setDecidedAt(OffsetDateTime.now());
-        shopReviewMapper.updateById(review);
+        review.setDecidedAt(now);
 
-        // 3. 店铺状态对齐：通过 → ACTIVE，拒绝 → REJECTED
+        // 3. 店铺状态对齐：通过 → ACTIVE，拒绝 → REJECTED。改不到即整体回滚（含上一步的留痕）
         Shop shop = Validate.notNull(shopMapper.selectById(review.getShopId()), "店铺不存在");
-        shop.setStatus(newStatus == ShopReviewStatus.APPROVED ? ShopStatus.ACTIVE : ShopStatus.REJECTED);
-        shopMapper.updateById(shop);
+        ShopStatus target = newStatus == ShopReviewStatus.APPROVED ? ShopStatus.ACTIVE : ShopStatus.REJECTED;
+        Validate.conflict(shopMapper.applyReviewVerdict(shop.getId(), target) == 1, "店铺状态已变化，请刷新后重试");
+        shop.setStatus(target);
 
         // 3.5 不可营业 → 同事务播报停业主事件（当前只有驳回会走到这里；判据是「不营业」而不是「被驳回」），
         //     product 监听把该店在架商品级联下架，审核与下架一起成或一起回滚

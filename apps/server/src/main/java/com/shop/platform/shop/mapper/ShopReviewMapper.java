@@ -2,10 +2,12 @@ package com.shop.platform.shop.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.shop.model.ShopReviewStatus;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
@@ -32,6 +34,30 @@ public interface ShopReviewMapper extends BaseMapper<ShopReview> {
                         .eq(filter != null, "status", filter == null ? null : filter.name())
                         .orderByAsc(QUEUE_ORDER_BY)
                         .orderByDesc("created_at"));
+    }
+
+    /**
+     * 审批落痕：{@code PENDING → 结论}，留痕四列与状态一起在这一条语句里写。
+     *
+     * <p>{@code WHERE status = PENDING} 是并发闸门：两个员工同时点同一条待审的「通过 / 驳回」，后到者影响
+     * 0 行——此前是「读出来判未审、再 updateById 写回」，两步之间的窗口让两边都判成「我来批」，于是
+     * 一条审核记录留下两条结论相反的处置和两行审计账本。0 行的后果（409）由 service 裁决。
+     *
+     * <p>reason 显式 {@code set}：approve 传 null，而条件更新不像 {@code updateById} 会跳过空值——
+     * 这里要的就是「通过不留理由」那一格被真的写成 NULL。
+     */
+    default int decideIfPending(
+            UUID reviewId, ShopReviewStatus newStatus, UUID staffId, String reason, OffsetDateTime decidedAt) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<ShopReview>()
+                        .eq(ShopReview::getId, reviewId)
+                        .eq(ShopReview::getStatus, ShopReviewStatus.PENDING)
+                        .set(ShopReview::getStatus, newStatus)
+                        .set(ShopReview::getStaffId, staffId)
+                        .set(ShopReview::getReason, reason)
+                        .set(ShopReview::getDecidedAt, decidedAt)
+                        .set(ShopReview::getUpdatedAt, decidedAt));
     }
 
     /**

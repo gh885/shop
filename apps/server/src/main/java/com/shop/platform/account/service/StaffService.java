@@ -21,6 +21,7 @@ import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.TokenPair;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -204,13 +205,15 @@ public class StaffService {
 
         // 1.5 末位超管保护（ACC-57）：禁用最后一个在岗超管会让平台永久失去「建员工/调岗位/封店」的能力
         //     （STAFF_MANAGE 只挂通配，而通配本身挂在超管岗位上）。这道在写入前判，与降级那条同一口径。
-        if (!status.isActive() && isLastActiveSuperAdmin(staff)) {
-            throw BusinessException.conflict("不能禁用最后一个在岗的超管");
+        if (!status.isActive()) {
+            requireNotLastActiveSuperAdmin(staff, "不能禁用最后一个在岗的超管");
         }
 
-        // 2. 落状态
-        staff.setStatus(status);
-        staffMapper.updateById(staff);
+        // 2. 落状态：一句条件更新。并发下的后到者影响 0 行 → 409，于是既不重复吊销会话、
+        //    也不往账本里补第二行同样的处置（口径同 updateStaffRole）
+        OffsetDateTime now = OffsetDateTime.now();
+        int changed = status.isActive() ? staffMapper.enable(staffId, now) : staffMapper.disable(staffId, now);
+        Validate.conflict(changed == 1, "员工状态已变化，请刷新后重试");
 
         // 3. 禁用同步吊销全端 refresh token（封号即时生效，不等 8 小时 access 自然过期）
         if (!status.isActive()) {
@@ -294,8 +297,8 @@ public class StaffService {
         if (current == role) return;
 
         // 3. 末位超管保护：降级前判，只数在岗超管（被禁的不算，它已没有治理能力）
-        if (current == StaffRole.SUPER_ADMIN && isLastActiveSuperAdmin(staff)) {
-            throw BusinessException.conflict("不能降级最后一个在岗的超管");
+        if (current == StaffRole.SUPER_ADMIN) {
+            requireNotLastActiveSuperAdmin(staff, "不能降级最后一个在岗的超管");
         }
 
         // 4. 落岗位：0 行即并发下已被别人改掉
@@ -310,11 +313,21 @@ public class StaffService {
                 "from=%s, to=%s, employee_no=%s".formatted(current, role, maskEmployeeNo(staff.getEmployeeNo())));
     }
 
-    /** 末位超管判定：这个员工是不是唯一还在岗的超管（已禁用的超管不算，它已无治理能力） */
-    private boolean isLastActiveSuperAdmin(Staff staff) {
-        return StaffRole.SUPER_ADMIN.name().equals(staff.getRole())
-                && staff.isActive()
-                && staffMapper.countActiveSuperAdmins() <= 1;
+    /**
+     * 末位超管保护（禁用与降级共用这一道）：这个员工是唯一还在岗的超管就 409，被禁用的超管不算在岗。
+     *
+     * <p><b>先取串行闸、再数人</b>：这条判的是聚合，行级条件更新挡不住「两个最后超管在同一刻被分别禁用」
+     * ——两边的写各不碰对方的行，各自的计数都还看见对方在岗，判完双双放行，平台就此失去治理能力。
+     * 判据收在这一个私有方法里，是为了不给「新调用点只写了计数没写锁」留口子。
+     *
+     * <p>非超管直接返回，不进锁：普通员工的治理动作没有聚合约束，不该被这把锁串起来。
+     */
+    private void requireNotLastActiveSuperAdmin(Staff staff, String detail) {
+        if (!StaffRole.SUPER_ADMIN.name().equals(staff.getRole()) || !staff.isActive()) {
+            return;
+        }
+        staffMapper.lockSuperAdminGovernance();
+        Validate.conflict(staffMapper.countActiveSuperAdmins() > 1, detail);
     }
 
     /** 当前登录员工信息（含岗位与有效权限码，前端菜单/按钮显隐用） */

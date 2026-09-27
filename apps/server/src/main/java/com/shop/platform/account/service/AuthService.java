@@ -151,9 +151,10 @@ public class AuthService {
             }
         }
 
-        // 4. 更新密码
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userMapper.updateById(user);
+        // 4. 更新密码：只写哈希一列（整行回写会把管理员刚落的 status 带回读到的旧值）
+        Validate.present(
+                userMapper.updatePasswordHash(userId, passwordEncoder.encode(newPassword), OffsetDateTime.now()) == 1,
+                "用户不存在");
 
         // 5. 改密后吊销该用户所有 device 的 refresh token（REVOKE-02）
         deleteAllRefreshTokens(userId);
@@ -198,8 +199,8 @@ public class AuthService {
         // 3. 更新密码（用户不存在也静默成功，不暴露账号存在性）
         User user = userMapper.selectByPhone(phone);
         if (user != null) {
-            user.setPasswordHash(passwordEncoder.encode(newPassword));
-            userMapper.updateById(user);
+            // 只写哈希一列（理由同 setPassword）；0 行即注销流程刚把这条号码收走，静默同「用户不存在」那一支
+            userMapper.updatePasswordHash(user.getId(), passwordEncoder.encode(newPassword), OffsetDateTime.now());
 
             // RESET-03: 重置后吊销该用户所有 session
             deleteAllRefreshTokens(user.getId());
@@ -245,18 +246,28 @@ public class AuthService {
     public UserView updateProfile(UUID userId, String nickname, String avatarKey) {
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
+
+        // 1. 入参归一：昵称走「非空且不超上限」那道校验，头像的空串要落成 null（清空）
+        String newNickname = null;
         if (nickname != null) {
             String trimmed = nickname.trim();
             if (trimmed.isEmpty()) throw BusinessException.badRequest("昵称不能为空");
             if (trimmed.length() > AccountFieldRules.NICKNAME_MAX) {
                 throw BusinessException.badRequest("昵称不能超过 " + AccountFieldRules.NICKNAME_MAX + " 字");
             }
-            user.setNickname(trimmed);
+            newNickname = trimmed;
         }
-        if (avatarKey != null) {
-            user.setAvatarKey(Text.blankToNull(avatarKey));
-        }
-        userMapper.updateById(user);
+        boolean changeAvatar = avatarKey != null;
+        String newAvatarKey = Text.blankToNull(avatarKey);
+
+        // 2. 一句条件更新只写这两列：整行回写会把并发落下的 status / 注销抹掉的号码带回旧值
+        Validate.present(
+                userMapper.updateProfile(userId, newNickname, changeAvatar, newAvatarKey, OffsetDateTime.now()) == 1,
+                "用户不存在");
+
+        // 3. 出参按内存态拼回，不为拼一个 View 再读一次
+        if (newNickname != null) user.setNickname(newNickname);
+        if (changeAvatar) user.setAvatarKey(newAvatarKey);
         return UserView.from(user);
     }
 
@@ -316,18 +327,23 @@ public class AuthService {
      * REFRESH_TOKEN_REUSED 全端吊销（ACC-22），无复活路径； 3) 重新登录（短信/密码）被 USER_DISABLED
      * 闸门直接拦（短信通道不能绕过）。 启用即恢复：闸门查实时状态，status 回 ACTIVE 后登录/刷新恢复放行。
      */
+    @Transactional
     public void updateUserStatus(UUID userId, UserStatus status, UUID staffId) {
+        // 1. 校验存在（读这一行只为 404 与审计里的掩码号码，不作为写入的起点状态）
         User user = userMapper.selectById(userId);
         if (user == null) throw BusinessException.notFound("用户不存在");
-        user.setStatus(status);
-        userMapper.updateById(user);
-        // 封号是人对人做的动作，操作人必须落在同一条事件里（口径同 shop_review.decided）
+
+        // 2. 落状态：只推进 status 一列。0 行有三种来历（并发抢先、同一道命令重复下发、那是个注销主体），
+        //    统一回 409 而不是静默「成功」，也不给 500（口径同 ShopAdminService.resume）
+        Validate.conflict(userMapper.updateStatus(userId, status, OffsetDateTime.now()) == 1, "账号状态已变化，请刷新后重试");
+
+        // 3. 封号是人对人做的动作，操作人必须落在同一条事件里（口径同 shop_review.decided）
         BizEvent.of("account.status.changed")
                 .put("user_id", userId)
                 .put("status", status)
                 .put("staff_id", staffId)
                 .emit();
-        // 审计账本（同一事务）：治理动作与它的账本同生共死；手机号只落掩码
+        // 4. 审计账本（同一事务）：治理动作与它的账本同生共死；手机号只落掩码
         recordAuditCommand.record(
                 AuditAction.ACCOUNT_USER_STATUS_CHANGED,
                 userId,
@@ -436,9 +452,8 @@ public class AuthService {
         DeviceInfo deviceInfo = new DeviceInfo(UserAgentParser.parse(userAgent), clientIp, OffsetDateTime.now());
         refreshTokenStore.issue(user.getId().toString(), deviceId, refreshToken, deviceInfo);
 
-        // 更新最后登录时间
-        user.setLastLoginAt(OffsetDateTime.now());
-        userMapper.updateById(user);
+        // 更新最后登录时间：只写那一列，不把读到的整行快照写回（并发封号/注销不能被带回旧值）
+        userMapper.touchLastLogin(user.getId(), OffsetDateTime.now());
 
         // 这里不打业务事件：登录/刷新两条路径都汇到本方法，事件归入口（见 loginBySms 注释）
         return new TokenPair(accessToken, refreshToken);

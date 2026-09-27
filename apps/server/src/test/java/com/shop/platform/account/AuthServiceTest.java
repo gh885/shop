@@ -14,6 +14,7 @@ import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
+import com.shop.platform.audit.api.AuditAction;
 import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
@@ -308,14 +309,16 @@ class AuthServiceTest {
 
             when(userMapper.selectById(USER_ID)).thenReturn(user);
             when(passwordEncoder.encode("newPassword123")).thenReturn("$2a$12$encoded");
+            when(userMapper.updatePasswordHash(any(), any(), any())).thenReturn(1);
 
             var events = new EventCapture();
             try (events) {
                 authService.setPassword(USER_ID, null, "newPassword123");
             }
 
-            verify(userMapper).updateById(userCaptor.capture());
-            assertEquals("$2a$12$encoded", userCaptor.getValue().getPasswordHash());
+            // 只写哈希一列：整行回写会把管理员刚落的 status 带回读快照里的旧值
+            verify(userMapper).updatePasswordHash(eq(USER_ID), eq("$2a$12$encoded"), any());
+            verify(userMapper, never()).updateById(any(User.class));
             // 换密与吊销全端会话是同一件事的两半，事件里必须看得到是哪半条路径干的
             var fields = events.fields("auth.password.changed");
             assertEquals(USER_ID.toString(), fields.get("user_id"));
@@ -389,6 +392,7 @@ class AuthServiceTest {
 
             // 对外不能暴露「这个号存不存在」（RESET-02），对内也不能留一条无中生有的换密记录
             assertFalse(events.emitted("auth.password.changed"));
+            verify(userMapper, never()).updatePasswordHash(any(), any(), any());
             verify(userMapper, never()).updateById(any(User.class));
         }
     }
@@ -450,11 +454,13 @@ class AuthServiceTest {
             user.setId(USER_ID);
             user.setStatus(UserStatus.ACTIVE);
             when(userMapper.selectById(USER_ID)).thenReturn(user);
+            when(userMapper.updateStatus(any(), any(), any())).thenReturn(1);
 
             authService.updateUserStatus(USER_ID, UserStatus.DISABLED, OPERATOR_ID);
 
-            verify(userMapper).updateById(userCaptor.capture());
-            assertEquals(UserStatus.DISABLED, userCaptor.getValue().getStatus());
+            // 条件更新只写 status 一列（起点 ACTIVE），整行回写会把并发的登录时间戳/注销结果写回旧值
+            verify(userMapper).updateStatus(eq(USER_ID), eq(UserStatus.DISABLED), any());
+            verify(userMapper, never()).updateById(any(User.class));
             // 封号闭合靠既有闸门链（刷新撞 ensureUserActive + 登录拦 USER_DISABLED），不主动 revokeAll
             verify(refreshTokenStore, never()).revokeAll(anyString());
         }
@@ -465,11 +471,28 @@ class AuthServiceTest {
             user.setId(USER_ID);
             user.setStatus(UserStatus.DISABLED);
             when(userMapper.selectById(USER_ID)).thenReturn(user);
+            when(userMapper.updateStatus(any(), any(), any())).thenReturn(1);
 
             authService.updateUserStatus(USER_ID, UserStatus.ACTIVE, OPERATOR_ID);
 
-            verify(userMapper).updateById(userCaptor.capture());
-            assertEquals(UserStatus.ACTIVE, userCaptor.getValue().getStatus());
+            verify(userMapper).updateStatus(eq(USER_ID), eq(UserStatus.ACTIVE), any());
+        }
+
+        @Test
+        void 状态没改到_不往账本里补一行没发生过的处置() {
+            User user = new User();
+            user.setId(USER_ID);
+            user.setStatus(UserStatus.ACTIVE);
+            when(userMapper.selectById(USER_ID)).thenReturn(user);
+            // 0 行 = 并发下已被别人处置（或那是个注销主体）
+            when(userMapper.updateStatus(any(), any(), any())).thenReturn(0);
+
+            var ex = assertThrows(
+                    BusinessException.class,
+                    () -> authService.updateUserStatus(USER_ID, UserStatus.DISABLED, OPERATOR_ID));
+
+            assertEquals(409, ex.getHttpStatus());
+            verify(recordAuditCommand, never()).record(any(AuditAction.class), any(), any(), any(), any());
         }
 
         @Test
@@ -478,6 +501,7 @@ class AuthServiceTest {
             user.setId(USER_ID);
             user.setStatus(UserStatus.ACTIVE);
             when(userMapper.selectById(USER_ID)).thenReturn(user);
+            when(userMapper.updateStatus(any(), any(), any())).thenReturn(1);
 
             var events = new EventCapture();
             try (events) {

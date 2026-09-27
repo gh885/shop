@@ -238,7 +238,9 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
-				<!-- 集成测试 *IT 在 verify 阶段跑（默认挑 *IT）；mvn test 是不碰库的快环 -->
+				<!-- 集成测试 *IT 在 verify 阶段跑（默认挑 *IT）。注意 *Test 不是「不碰库的快环」：
+				MockMvc 那批（继承 WebControllerTestSupport）起全量上下文并连 shop_test，
+				所以 mvn test 也要先有库；CI 门禁跑 mvn verify 才覆盖到 *IT -->
 				<executions>
 					<execution>
 						<goals>
