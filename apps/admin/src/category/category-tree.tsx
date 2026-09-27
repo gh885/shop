@@ -11,7 +11,7 @@ import type { CategoryNode } from "@shop/api/sdk"
 import { Badge, Tree, TreeDragLine, TreeItem, TreeItemLabel } from "@shop/ui-web"
 
 import { useReorderCategories } from "./queries"
-import { CATEGORY_ROOT_ID, orderUpdates, type CategoryIndex } from "./tree"
+import { CATEGORY_ROOT_ID, canNestUnder, orderUpdates, type CategoryIndex } from "./tree"
 
 /** 合成根：headless-tree 要一个 rootItemId，而类目树是多根的；它自己不渲染，只在取子项时被用到 */
 const ROOT_ITEM: CategoryNode = {
@@ -89,8 +89,8 @@ export function CategoryTree({
             if (!parentId) return false
             if (dragItems.some((item) => item.getParent()?.getId() !== parentId)) return false
             if (target.item.getId() === parentId) {
-                // 落到父节点身上 = 成为它的子项，父级还能再挂一层才允许（类目最多三级）
-                return target.item.getItemData().level < 3
+                // 落到父节点身上 = 成为它的子项，父级还能再挂一层才允许（层级上限见 tree.ts 的同一个数）
+                return canNestUnder(target.item.getItemData().level)
             }
             return target.item.getParent()?.getId() === parentId
         },

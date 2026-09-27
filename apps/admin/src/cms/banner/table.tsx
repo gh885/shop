@@ -1,20 +1,14 @@
 import type { BannerResponse } from "@shop/api/sdk"
-import { formatTimeShort } from "@shop/app-kit"
 
 import type { ColumnDef } from "@tanstack/react-table"
 import { Image, type DataTableFeatures } from "@shop/ui-web"
 
 import { codeColumn, cmsStatusColumn, sortOrderColumn, targetTypeColumn } from "../list-columns"
+import { bannerWindowText } from "../display"
 import { actionsColumn } from "#/shared/ui/columns"
 import { CmsRowActions } from "../row-actions"
 import { useSetBannerStatus } from "./queries"
 import { BannerFormDialog } from "./form-dialog"
-
-/** 生效窗口：双空 = 立即上线、长期有效 */
-const windowText = (startAt: string | null, endAt: string | null) => {
-    if (!startAt && !endAt) return "立即 · 长期"
-    return `${startAt ? formatTimeShort(startAt) : "立即"} ~ ${endAt ? formatTimeShort(endAt) : "长期"}`
-}
 
 function BannerActions({ banner }: { banner: BannerResponse }) {
     const setStatus = useSetBannerStatus()
@@ -72,7 +66,7 @@ export const bannerColumns: ColumnDef<DataTableFeatures, BannerResponse>[] = [
         accessorKey: "startAt",
         header: "生效窗口",
         meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => windowText(row.original.startAt, row.original.endAt),
+        cell: ({ row }) => bannerWindowText(row.original.startAt, row.original.endAt),
     },
     sortOrderColumn(),
     cmsStatusColumn(),

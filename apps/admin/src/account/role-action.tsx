@@ -13,16 +13,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@shop/ui-web"
-import { STAFF_ROLE_ITEMS, STAFF_ROLE_LABELS } from "./constants"
+import { STAFF_ROLE_ITEMS } from "./constants"
 import { accountKeys } from "./queries"
+import { staffRoleLabel, staffRoleOf } from "./staff-form"
 import { useMe } from "#/shared/lib/me"
-
-/** 库里/出参里的岗位名 → 契约词表里的岗位；null 或未知值一律当「没有岗位」 */
-function staffRoleOf(value: string | null | undefined): StaffRole | undefined {
-    // in 判定已经把「是不是这三个之一」收窄了；TS 不会从 `in` 推出联合类型，故此处显式收一次
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 收窄依据是上面的 `in StaffRole` 判定
-    return value && value in StaffRole ? (value as StaffRole) : undefined
-}
 
 /**
  * 调岗位（ACC-57）。
@@ -74,8 +68,7 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                     <p className="mt-0.5 text-sm text-muted-foreground">
                         {staff.employeeNo}
                         {staff.displayName ? `（${staff.displayName}）` : ""}：
-                        {STAFF_ROLE_LABELS[currentRole] ?? currentRole} →{" "}
-                        {STAFF_ROLE_LABELS[role] ?? role}
+                        {staffRoleLabel(currentRole)} → {staffRoleLabel(role)}
                     </p>
                     <div className="mt-4 flex flex-col gap-4">
                         <Select

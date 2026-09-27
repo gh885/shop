@@ -26,6 +26,14 @@ export const SubsSchema = z
 export type SubsGroup = z.infer<typeof SubsSchema>[number]
 export type SubsValue = SubsGroup[]
 
+/**
+ * 响应里的 subs → 编辑器状态（{@link toNavRequest} 的反向）：契约里 `items` 是缺省，
+ * 编辑器要把它铺成「零行草稿」，否则运营看不到「这组还没填词条」，也就无从填起。
+ */
+export function normalizeSubs(subs?: NavEntryResponse["subs"]): SubsValue {
+    return (subs ?? []).map((group) => ({ name: group.name, items: group.items ?? [] }))
+}
+
 export const NavFormSchema = z
     .object({
         navKey: z.string().trim().min(1, "请输入导航位").max(CMS_KEY_MAX),

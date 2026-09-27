@@ -1,8 +1,6 @@
 import { useState } from "react"
 import type { CategoryNode } from "@shop/api/sdk"
-import { zCreateCategoryRequest } from "@shop/api"
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from "lucide-react"
-import { z } from "zod"
 
 import {
     Badge,
@@ -16,6 +14,12 @@ import {
 } from "@shop/ui-web"
 
 import { AttrPanel } from "./attr-panel"
+import {
+    categoryFormSchema,
+    CATEGORY_ICON_MAX,
+    CATEGORY_NAME_MAX,
+    type CategoryFormValues,
+} from "./category-form"
 import { CATEGORY_STATUS_LABEL } from "./constants"
 import {
     useCreateCategory,
@@ -25,30 +29,14 @@ import {
 } from "./queries"
 import {
     appendSort,
+    canNestUnder,
+    isLeafCategory,
     moveWithinSiblings,
     orderUpdates,
     parentIdOf,
     CATEGORY_ROOT_ID,
     type CategoryIndex,
 } from "./tree"
-
-/**
- * 类目表单的校验取契约的同一格（`maxLength` 也从它读），只补一条「非空」：
- * 契约那格是 `min(0)`，空的能过 zod 但会被后端 `@NotBlank` 挡回 422，前端先拦下更省一个来回。
- */
-const categoryFormSchema = z.object({
-    name: zCreateCategoryRequest.shape.name.refine(
-        (value) => value.trim().length > 0,
-        "请填写类目名称",
-    ),
-    // 契约里 iconUrl 是可选的；表单里它必须有值（空串 = 不配图标），所以拆掉 optional 只留形状与上限
-    iconUrl: zCreateCategoryRequest.shape.iconUrl.unwrap(),
-})
-
-type CategoryFormValues = z.infer<typeof categoryFormSchema>
-
-const NAME_MAX = zCreateCategoryRequest.shape.name.maxLength ?? undefined
-const ICON_MAX = zCreateCategoryRequest.shape.iconUrl.unwrap().maxLength ?? undefined
 
 export interface CategoryDetailProps {
     node: CategoryNode
@@ -73,7 +61,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
 
     const siblings = index.childIds[parentIdOf(index, node.id)] ?? []
     const position = siblings.indexOf(node.id)
-    const canAddChild = node.level < 3 && node.status === "ENABLED"
+    const canAddChild = canNestUnder(node.level) && node.status === "ENABLED"
 
     function move(delta: -1 | 1) {
         const next = moveWithinSiblings(siblings, position, delta)
@@ -108,7 +96,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                         <Badge variant="info">{node.level} 级类目</Badge>
                     </div>
                     <FieldDescription>
-                        {node.level < 3
+                        {canNestUnder(node.level)
                             ? "前两级只是分组，商品只能挂在三级类目上"
                             : "商品挂载点：属性模板在这里维护"}
                     </FieldDescription>
@@ -154,7 +142,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
 
             <Separator />
 
-            {node.level < 3 && (
+            {canNestUnder(node.level) && (
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
                         <FieldTitle>子类目</FieldTitle>
@@ -186,7 +174,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                 </div>
             )}
 
-            {node.level === 3 && (
+            {isLeafCategory(node.level) && (
                 <>
                     <Separator />
                     <AttrPanel categoryId={node.id} />
@@ -229,7 +217,7 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
                         <field.TextField
                             label="类目名称"
                             required
-                            maxLength={NAME_MAX}
+                            maxLength={CATEGORY_NAME_MAX}
                         />
                     )}
                 </form.AppField>
@@ -237,7 +225,7 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
                     {(field) => (
                         <field.TextField
                             label="图标 URL"
-                            maxLength={ICON_MAX}
+                            maxLength={CATEGORY_ICON_MAX}
                             placeholder="可选"
                         />
                     )}
@@ -297,7 +285,7 @@ export function CreateCategoryForm({
                     <field.TextField
                         label="类目名称"
                         required
-                        maxLength={NAME_MAX}
+                        maxLength={CATEGORY_NAME_MAX}
                         placeholder={parentId ? "新子类目名称" : "新一级类目名称"}
                     />
                 )}
@@ -306,7 +294,7 @@ export function CreateCategoryForm({
                 {(field) => (
                     <field.TextField
                         label="图标 URL"
-                        maxLength={ICON_MAX}
+                        maxLength={CATEGORY_ICON_MAX}
                         placeholder="可选"
                     />
                 )}

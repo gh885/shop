@@ -1,0 +1,21 @@
+import { describe, expect, it } from "vitest"
+
+import { categoryFormSchema } from "./category-form"
+
+/**
+ * 类目表单那句「非空」：契约的 `min(0)` 放行空串，后端 `@NotBlank` 回 422，
+ * 这一格前端补的那一刀就是两个类目表单（新建 / 改名）共用的那条规则。
+ */
+describe("categoryFormSchema", () => {
+    it("纯空白的名称被拦（超长不归这里管，它由契约镜像与门禁钉）", () => {
+        expect(categoryFormSchema.safeParse({ name: "   ", iconUrl: "" }).success).toBe(false)
+        expect(categoryFormSchema.safeParse({ name: "服装", iconUrl: "" }).success).toBe(true)
+    })
+
+    it("iconUrl 那一格的 optional 被 unwrap 掉了：字段必须在场，值可以是空串（= 不配图标）", () => {
+        expect(categoryFormSchema.safeParse({ name: "服装" }).success).toBe(false)
+        expect(categoryFormSchema.safeParse({ name: "服装", iconUrl: "/i/a.png" }).success).toBe(
+            true,
+        )
+    })
+})

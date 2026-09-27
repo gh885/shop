@@ -4,10 +4,8 @@ import type {
     CategoryAttrResponse,
     CategoryAttrValueResponse,
 } from "@shop/api/sdk"
-import { zCategoryAttrRequest, zCategoryAttrValueRequest } from "@shop/api"
 import { useQuery } from "@tanstack/react-query"
 import { PlusIcon } from "lucide-react"
-import { z } from "zod"
 
 import {
     Badge,
@@ -25,6 +23,14 @@ import {
 } from "@shop/ui-web"
 
 import {
+    attrFormSchema,
+    ATTR_NAME_MAX,
+    ATTR_VALUE_MAX,
+    describeAttrRules,
+    valueFormSchema,
+    type AttrFormValues,
+} from "./attr-form"
+import {
     ATTR_KIND_LABEL,
     ATTR_KIND_OPTIONS,
     ATTR_STATUS_LABEL,
@@ -40,36 +46,10 @@ import {
 } from "./queries"
 
 /**
- * 属性模板的校验同样取契约镜像：名称/取值上限由 `maxLength` 给，只补一条「非空」。
- * 类型（kind）与三个开关是自己的表单模型——契约里它们是可选的，表单里必须是确定的布尔。
- */
-const attrFormSchema = z.object({
-    name: zCategoryAttrRequest.shape.name.refine(
-        (value) => value.trim().length > 0,
-        "请填写属性名称",
-    ),
-    kind: zCategoryAttrRequest.shape.kind,
-    required: z.boolean(),
-    allowCustom: z.boolean(),
-    allowImage: z.boolean(),
-})
-
-const valueFormSchema = z.object({
-    value: zCategoryAttrValueRequest.shape.value.refine(
-        (value) => value.trim().length > 0,
-        "请填写取值",
-    ),
-    // 契约里 image 可选；表单里空串 = 不配图，所以拆掉 optional 只留形状与上限
-    image: zCategoryAttrValueRequest.shape.image.unwrap(),
-})
-
-const ATTR_NAME_MAX = zCategoryAttrRequest.shape.name.maxLength ?? undefined
-const ATTR_VALUE_MAX = zCategoryAttrValueRequest.shape.value.maxLength ?? undefined
-
-/**
  * 类目属性模板（仅三级类目，后端也会拒非叶子）。
  *
  * 禁用的语义是查询侧裁剪：存量商品引用的属性/值仍然自洽，所以这里只有启用/禁用，没有删除。
+ * 校验与摘要文案在 `./attr-form`（那里无 React，可单测）。
  */
 export function AttrPanel({ categoryId }: { categoryId: string }) {
     const { data: nodes = [], isPending } = useQuery(categoryAttrsOptions(categoryId))
@@ -207,16 +187,6 @@ function AttrCardHeader({
     )
 }
 
-/** 三个开关的摘要文案；一个都没开时给一句「无附加规则」，好过留白 */
-function describeAttrRules(attr: CategoryAttrResponse): string {
-    const rules = [
-        attr.required ? "必填" : undefined,
-        attr.allowCustom ? "可自定义" : undefined,
-        attr.allowImage ? "取值可配图" : undefined,
-    ].filter(Boolean)
-    return rules.length > 0 ? rules.join(" · ") : "无附加规则"
-}
-
 /** 值域：列表 + 新增/改名（两者共用同一个表单组件） */
 function AttrValues({
     attrId,
@@ -341,8 +311,6 @@ function AttrEditForm({ attr, onDone }: { attr: CategoryAttrResponse; onDone: ()
         />
     )
 }
-
-type AttrFormValues = z.infer<typeof attrFormSchema>
 
 /**
  * 属性表单：只管字段与提交，不认 mutation（新增/编辑各自接线）。

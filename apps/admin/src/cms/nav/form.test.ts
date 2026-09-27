@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { NavEntryResponse } from "@shop/api/sdk"
 
-import { navDefaults, toNavRequest, type SubsValue } from "./form"
+import { navDefaults, normalizeSubs, SubsSchema, toNavRequest, type SubsValue } from "./form"
 
 /**
  * nav 表单 → NavRequest，重点是 subs（JSONB 里组/项两级的整段配置）。
@@ -84,5 +84,39 @@ describe("navDefaults", () => {
 
     it("脏的跳转类型落回 NONE：一个下拉框不认识的类型不该让编辑面打不开", () => {
         expect(navDefaults(makeNav({ targetType: "MINI_PROGRAM" })).targetType).toBe("NONE")
+    })
+})
+
+describe("normalizeSubs", () => {
+    it("响应里缺省的 items 铺成空数组：编辑器要看得见「这组还没填词条」", () => {
+        expect(normalizeSubs([{ name: "热门" }])).toEqual([{ name: "热门", items: [] }])
+    })
+
+    it("条目本身缺失（新建态、editing 未传）给空列表，而不是 undefined", () => {
+        expect(normalizeSubs()).toEqual([])
+        expect(normalizeSubs(undefined)).toEqual([])
+        expect(normalizeSubs([])).toEqual([])
+    })
+
+    it("往返闭合：normalize 再提交，组不丢也不造，词条原样回来", () => {
+        const wire: NavEntryResponse["subs"] = [
+            { name: "热门", items: ["手机", "平板"] },
+            { name: "配件" },
+            { name: "其他", items: [] },
+        ]
+
+        const resubmitted = toNavRequest(blankForm(), normalizeSubs(wire)).subs
+
+        expect(resubmitted?.map((group) => group.name)).toEqual(["热门", "配件", "其他"])
+        expect(resubmitted?.[0]?.items).toEqual(["手机", "平板"])
+        // 空词条在提交时消失：整组没词条发「没有 items」，那是前端的缺省语义（见 toNavRequest）
+        expect(resubmitted?.[1]).toEqual({ name: "配件" })
+        expect(resubmitted?.[2]).toEqual({ name: "其他" })
+    })
+
+    it("编辑器里补回的空行不影响合法性：normalize 出来的状态提交后仍过得了 SubsSchema", () => {
+        const value = normalizeSubs([{ name: "热门", items: ["手机"] }, { name: "配件" }])
+
+        expect(SubsSchema.safeParse(toNavRequest(blankForm(), value).subs).success).toBe(true)
     })
 })

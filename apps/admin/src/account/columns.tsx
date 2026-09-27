@@ -3,7 +3,8 @@ import { formatDateTime } from "@shop/app-kit"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { actionsColumn } from "#/shared/ui/columns"
-import { STAFF_ROLE_LABELS, STAFF_STATUS_META, USER_STATUS_META } from "./constants"
+import { STAFF_STATUS_META, USER_STATUS_META } from "./constants"
+import { staffRoleLabel } from "./staff-form"
 import { AccountStatusAction } from "./status-action"
 import { StaffRoleAction } from "./role-action"
 
@@ -53,8 +54,7 @@ export const staffColumns: ColumnDef<DataTableFeatures, AdminStaffItem>[] = [
     {
         accessorKey: "role",
         header: "岗位",
-        cell: ({ row }) =>
-            row.original.role ? (STAFF_ROLE_LABELS[row.original.role] ?? row.original.role) : "—",
+        cell: ({ row }) => staffRoleLabel(row.original.role),
     },
     {
         accessorKey: "status",

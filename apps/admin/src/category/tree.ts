@@ -1,10 +1,15 @@
 import type { CategoryNode } from "@shop/api/sdk"
 
+import { CATEGORY_MAX_LEVEL } from "./constants"
+
 /**
  * 类目树的纯形状变换（无 React、无请求）——树组件与页面共用。
  *
  * 为什么要一份索引：树上每个节点都要「取自己、取子项、取父级」，直接递归 find 是 O(树) × N；
  * 索引一次成表后这些都是 O(1)，也让同级排序、拖拽落点这些计算可以单独测。
+ *
+ * 层级上限的两句话（还能不能再挂子级、是不是叶子）也在这里，不在组件里：那一档规则在页面上有四个
+ * 读点（新建子类目按钮、说明文案、属性模板面板、拖拽落点），各写一遍 `=== 3` 就各有各自的口径。
  */
 
 /** headless-tree 的 `rootItemId` 必须存在，而类目树是多根的：合成一个不渲染的根挂在所有一级类目之上 */
@@ -86,4 +91,14 @@ export function orderUpdates(
 /** 新建子类目时排在末尾：与 {@link orderUpdates} 同一套步长，避免新节点因 sort=0 跳到最前 */
 export function appendSort(index: CategoryIndex, parentId: string): number {
     return ((index.childIds[parentId]?.length ?? 0) + 1) * 10
+}
+
+/** 这一级还能不能再挂子类目：叶子往下没有档，后端创建时也会拒 */
+export function canNestUnder(level: number): boolean {
+    return level < CATEGORY_MAX_LEVEL
+}
+
+/** 叶子类目 = 商品挂载点，属性模板只在这一层维护 */
+export function isLeafCategory(level: number): boolean {
+    return level === CATEGORY_MAX_LEVEL
 }

@@ -1,6 +1,16 @@
 import { AttrKind, CategoryAttrStatus, CategoryStatus } from "@shop/api/sdk"
 import type { AttrValueSource } from "@shop/api/sdk"
 
+/**
+ * 类目最多三级（叶子 = 三级 = 唯一能挂商品与属性模板的那一层）。
+ *
+ * 镜像后端 `product/service/CategoryService.MAX_LEVEL`：那一格**不进契约**（level 由后端从
+ * parentId 推导，不是入参），所以前端这一份没有契约镜像可走，由 `FieldRuleVocabularyTest`
+ * 的 JAVA_TWINS 直接比 Java 源码里那个数。界面上「还能不能再挂子类目」「是否显示属性模板」
+ * 都从这同一个数判——写死 3 的那几处一旦漏改一处，就会出现「三级还能点新建子类目」这种谎。
+ */
+export const CATEGORY_MAX_LEVEL = 3
+
 /** 类目启用状态文案（同 categories 软删语义：禁用是查询侧裁剪，可无损恢复） */
 export const CATEGORY_STATUS_LABEL: Record<CategoryStatus, string> = {
     ENABLED: "启用中",

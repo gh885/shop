@@ -2,11 +2,17 @@ import { StaffRole } from "@shop/api/sdk"
 import { PASSWORD_MIN } from "@shop/app-kit"
 import { z } from "zod"
 
+import { STAFF_ROLE_LABELS } from "./constants"
+
 /**
  * 创建员工的表单校验（前端预检；后端是权威，同口径在后端 `PasswordPolicy` 与建券那类条款里）。
  *
  * 数字都引用 owner：工号长度走 `@shop/api` 契约的 maxLength 镜像（见 {@link EMPLOYEE_NO_MAX}），
  * 口令长度走后端 `AccountFieldRules.PASSWORD_MIN/MAX` 的镜像常量，两边由门禁核对。
+ *
+ * 岗位这一格在本文件收全：`StaffRoleSchema` 管提交方向（表单里必须是词表里的三个之一），
+ * {@link staffRoleOf} / {@link staffRoleLabel} 管读侧（出参是宽松的 `string | null`，脏值不许裸断言）。
+ * 两处都只认同一份契约词表，不再另起一个 `role.ts`——一个概念两个出口是这里最容易被抄散的地方。
  */
 
 /** 工号上限（字）：镜像后端 `AccountFieldRules.EMPLOYEE_NO_MAX` / 契约 `CreateStaffRequest.employeeNo.maxLength` */
@@ -42,3 +48,19 @@ export const CreateStaffSchema = z.object({
 })
 
 export type CreateStaffValue = z.infer<typeof CreateStaffSchema>
+
+/** 库里/出参里的岗位名 → 契约词表里的岗位；null 或未知值一律当「没有岗位」 */
+export function staffRoleOf(value: string | null | undefined): StaffRole | undefined {
+    // in 判定已经把「是不是这三个之一」收窄了；TS 不会从 `in` 推出联合类型，故此处显式收一次
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 收窄依据是上面的 `in StaffRole` 判定
+    return value && value in StaffRole ? (value as StaffRole) : undefined
+}
+
+/**
+ * 岗位的展示文案（列表与调岗确认句共用一份）：未知档位退回原值而不是留白——
+ * 后端对库里的陌生档位照实给值（不让整页 500），前端查不到词表时把码显示出来才看得见「有一条我们没归类的新岗位」。
+ */
+export function staffRoleLabel(value: string | null | undefined): string {
+    if (!value) return "—"
+    return STAFF_ROLE_LABELS[value] ?? value
+}

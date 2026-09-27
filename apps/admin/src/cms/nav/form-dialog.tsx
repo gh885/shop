@@ -5,7 +5,14 @@ import { Dialog, DialogContent, FieldDescription, FieldTitle, useAppForm } from 
 
 import { CMS_NAV_KEYS, CMS_TITLE_MAX } from "../constants"
 import { CmsFormBody, sortOrderField, targetField, targetTypeField } from "../form-dialog"
-import { NavFormSchema, navDefaults, SubsSchema, toNavRequest, type SubsValue } from "./form"
+import {
+    NavFormSchema,
+    navDefaults,
+    normalizeSubs,
+    SubsSchema,
+    toNavRequest,
+    type SubsValue,
+} from "./form"
 import { useCreateNav, useUpdateNav } from "./queries"
 import { SubsEditor } from "./subs-editor"
 
@@ -130,6 +137,3 @@ function NavFormDialogBody({
         </CmsFormBody>
     )
 }
-
-const normalizeSubs = (subs?: NavEntryResponse["subs"]): SubsValue =>
-    (subs ?? []).map((g) => ({ name: g.name, items: g.items ?? [] }))
