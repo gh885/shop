@@ -3,14 +3,13 @@ package com.shop.platform.inventory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.inventory.api.StockView;
+import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -79,13 +78,10 @@ class StockAvailabilityTest {
     }
 
     private static List<String> sourceFiles() throws IOException {
-        try (Stream<Path> walk = Files.walk(MAIN)) {
-            return walk.filter(Files::isRegularFile)
-                    .filter(p -> p.getFileName().toString().endsWith(".java"))
-                    .map(MAIN::relativize)
-                    .map(Path::toString)
-                    .toList();
-        }
+        return SourceScanner.javaFiles(MAIN).stream()
+                .map(MAIN::relativize)
+                .map(Path::toString)
+                .toList();
     }
 
     private static List<String> sources() throws IOException {
@@ -93,11 +89,10 @@ class StockAvailabilityTest {
     }
 
     private static String read(String relative) {
-        Path path = MAIN.resolve(relative);
         try {
-            return Files.readString(path, StandardCharsets.UTF_8).replaceAll("/\\*[\\s\\S]*?\\*/", " ");
+            return SourceScanner.withoutComments(SourceScanner.read(MAIN.resolve(relative)));
         } catch (IOException e) {
-            throw new IllegalStateException("读取源码失败：" + relative, e);
+            throw new UncheckedIOException("读取源码失败：" + relative, e);
         }
     }
 }
