@@ -76,7 +76,7 @@
 - **[PRD-49]** 库存唯一真相源在 inventory.sku_stock：一 SKU 一行（sku_id 唯一），三量 stock（总库存/物理货量）、frozen_stock（已下单未扣实的冻结量）、可用 = stock − frozen_stock；product.skus 不再持有任何库存列。DB 不变式：stock≥0、frozen≥0、frozen≤stock。
 - **[PRD-50]** 扣减时机 = 下单冻结、支付扣实：创建订单（转待付款）时同事务按行冻结（frozen += n、可用 − n、stock 不变）；支付成功才扣实（stock − n 且 frozen − n，货真的没了）。下单时不扣总库存，未付款不损失存量。
 - **[PRD-51]** 超卖防护：冻结/扣实/释放全部是「WHERE 闸门 + RETURNING OLD/NEW」的条件更新单语句（行锁下原子判 可用≥n / 冻结≥n），无行返回即闸门未过——冻结不足抛 409 error code INSUFFICIENT_STOCK 并令整笔下单事务回滚（多 SKU 任一不足则全单失败）。
-- **[PRD-53]** 回补按付款状态分流（取消唯一落点 cancelFrom，取消合法前态 = PENDING_PAYMENT / PAID）：未付款取消或待付款超时关单 → RELEASE（frozen − n、可用 + n，总库存不变）；已付款取消（含买家付款后取消、待发货超时自动取消+退款）→ RETURN 回补总库存（stock + n、可用 + n，幂等不依赖冻结状态）并同步留退款单据。
+- **[PRD-53]** 回补按付款状态分流（取消唯一落点 cancelFrom，取消合法前态 = PENDING_PAYMENT / PAID）：未付款取消或待付款超时关单 → RELEASE（frozen − n、可用 + n，总库存不变）；已付款取消 → RETURN 回补总库存（stock + n、可用 + n，幂等不依赖冻结状态）并同步留退款单据。PAID 这一支的来源**只有买家手点取消**（ORD-20）——「待发货超时自动取消 + 退款」那条系统代劳路径已废除（拍板见 ORD-60），发货后的钱货纠纷走售后那条线，回补口径归 AFS-38。
 - **[PRD-55]** 库存流水是 append-only 账本：每笔变更记一行（FREEZE/CAPTURE/RELEASE/RESTOCK/RETURN），quantity = 总库存增量（FREEZE/RELEASE quantity=0 只换冻结归属；CAPTURE −n；RESTOCK/RETURN +n），前后帧（before/after 的 stock 与 available）来自更新语句 RETURNING OLD/NEW，严格连续可重放；只插不改，撤销用新行表达。FREEZE/CAPTURE/RELEASE/RETURN 必带 order_id，后台补货为 NULL。
 - **[PRD-56]** 批量库存操作全局锁序：单批内按 skuId 升序逐行上锁；多店拆单按 shopId 升序成组、逐店冻结——固定全局顺序（shopId, skuId）杜绝反向顺序的两笔并发订单循环等锁死锁。
 - **[PRD-57]** 后台绝对量调整（卖家把 SKU 总库存 set 成某值，读-改-写）走 @Version 乐观锁：并发调整冲突 409"库存已被其他操作修改，请重试"；新总量不得低于当前冻结量（在途订单占着），否则 409"总库存不能低于当前冻结量 N，请先等在途订单完成"（DB CHECK frozen≤stock 兜底）。补货接口为增量 stock += n（n≥0，不设闸门）。
