@@ -2,7 +2,7 @@
 # 注意：本文件不继承主配置的 spring.datasource.url，必须显式指向 shop_test。
 spring:
     datasource:
-        url: jdbc:postgresql://127.0.0.1:5432/shop_test
+        url: jdbc:postgresql://127.0.0.1:${SHOP_DB_PORT:15432}/shop_test
         username: shop
         password: shop_dev
 

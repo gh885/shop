@@ -15,7 +15,9 @@ spring:
         active: ${SPRING_PROFILES_ACTIVE:dev}
 
     datasource:
-        url: jdbc:postgresql://127.0.0.1:5432/shop
+        # 本地 PG 跑在 15432：WSL 镜像网络下共享 Windows 网络栈，5432 被 GameViewerServer 占死（绑不上）。
+        # CI 的 PG service 在 5432，用 SHOP_DB_PORT 覆盖；换回默认端口同步改 scripts、e2e、AGENTS 口径。
+        url: jdbc:postgresql://127.0.0.1:${SHOP_DB_PORT:15432}/shop
         username: shop
         password: shop_dev
         hikari:

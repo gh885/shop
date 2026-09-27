@@ -109,9 +109,9 @@ TS（packages/common）：从 docs/error-codes.md 同步到 error-codes.ts
 
 ## 数据库与 Redis（WSL2）
 
-PostgreSQL 18 与 Redis 7 跑在 WSL2 上（不用 Docker），Windows 侧经 localhost 直连转发：
+PostgreSQL 18 与 Redis 7 跑在 WSL2 上（不用 Docker），`.wslconfig` 已开 `networkingMode=mirrored`（镜像网络），Windows 侧经 localhost 直连：
 
-- 数据库：`shop:shop_dev@localhost:5432/shop`
+- 数据库：`shop:shop_dev@localhost:15432/shop`（**默认端口已从 5432 迁到 15432**：GameViewerServer 绑死了 Windows 的 `0.0.0.0:5432`，镜像网络共享栈下 PG 绑不上；CI 的 PG service 仍在 5432，由 workflow 里 `SHOP_DB_PORT=5432` 覆盖。全链口径收在 `SHOP_DB_PORT` 变量族：application{,-test}.yml / scripts / e2e）
 - Redis：`localhost:6379`
 
 **后端突然连不上库（refused 或接口全超时），多半是 WSL 的 VM 被回收了**——没有 WSL 会话时几十秒就停，网络流量不算会话，配置项（vmIdleTimeout 等）实测无效；机制与全部实测结论见 `scripts/ensure-datastore.mjs` 头注释。应对只需三条命令：

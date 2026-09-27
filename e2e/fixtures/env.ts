@@ -21,7 +21,7 @@ export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "admin123"
 /** 数据面连接（仅用于按运单号反查包裹 id，见 db.ts）：与 scripts/seed-demo.mjs 同一组变量名 */
 export const DB = {
     host: process.env.SHOP_DB_HOST ?? "localhost",
-    port: Number(process.env.SHOP_DB_PORT ?? 5432),
+    port: Number(process.env.SHOP_DB_PORT ?? 15432),
     user: process.env.SHOP_DB_USER ?? "shop",
     name: process.env.SHOP_DB_NAME ?? "shop",
     password: process.env.SHOP_DB_PASSWORD ?? "shop_dev",

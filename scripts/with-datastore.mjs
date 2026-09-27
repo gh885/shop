@@ -25,8 +25,8 @@ import { connect } from "node:net"
 
 /** 与 scripts/ensure-datastore.mjs 的两个端口保持一致 */
 const SERVICES = [
-    { name: "PostgreSQL", port: 5432 },
-    { name: "Redis", port: 6379 },
+    { name: "PostgreSQL", port: Number(process.env.SHOP_DB_PORT ?? 15432) },
+    { name: "Redis", port: Number(process.env.SHOP_REDIS_PORT ?? 6379) },
 ]
 
 const CONNECT_TIMEOUT_MS = 1500

@@ -49,7 +49,7 @@ payment → order::api, order::events, aftersale::events
 
 ## 3. 数据与基础设施
 
-- PostgreSQL 18（WSL2，`localhost:5432`，`shop:shop_dev`）：**schema 隔离**是模块边界的数据面——模块只拥有并访问自己的 schema，跨 schema 只读查询一律收进 owning 模块的 api 包；禁止跨 schema JOIN。
+- PostgreSQL 18（WSL2，`localhost:15432`，`shop:shop_dev`；端口从 5432 迁来，缘由见 [AGENTS.md](../AGENTS.md)「数据库与 Redis」）：**schema 隔离**是模块边界的数据面——模块只拥有并访问自己的 schema，跨 schema 只读查询一律收进 owning 模块的 api 包；禁止跨 schema JOIN。
 - Redis 7（WSL2，`localhost:6379`）。
 - 主键策略见 §5。
 

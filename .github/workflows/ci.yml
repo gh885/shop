@@ -79,6 +79,9 @@ jobs:
             # verify 覆盖 *Test 与 *IT：真实 PG/Redis、Flyway 全量迁移、事务后事件和模块边界都在门禁内。
             - name: verify
               run: mvn -f apps/server/pom.xml verify -q
+              env:
+                  # 仓库默认 15432 是 Windows 侧端口占用换来的本地口径（见 application.yml），CI 的 service 在 5432
+                  SHOP_DB_PORT: "5432"
 
     e2e:
         name: Playwright 下单与发货物流链路
@@ -124,6 +127,8 @@ jobs:
             - run: pnpm install --frozen-lockfile
             - run: pnpm exec playwright install --with-deps chromium
             - name: 启动后端与 web / 卖家工作台
+              env:
+                  SHOP_DB_PORT: "5432"
               run: |
                   mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
                   pnpm --filter web dev > /tmp/shop-web.log 2>&1 &
@@ -140,12 +145,15 @@ jobs:
                   exit 1
             - name: 运营数据健康扫描
               run: pnpm health:scan
+              env:
+                  SHOP_DB_PORT: "5432"
             # 造数由 e2e/globalSetup 走接口完成（每轮现注册卖家+开店+审核+商品+下单），
             # 所以这里不再灌 seed:demo——测试不许依赖演示库残留，跑在干净迁移库上才是真话
             - name: 运行下单主路径与发货物流链路
               run: pnpm test:e2e
               env:
                   E2E_SELLER_URL: http://localhost:5000
+                  SHOP_DB_PORT: "5432"
             - name: 上传 Playwright 报告
               if: always()
               uses: actions/upload-artifact@v4

@@ -101,7 +101,7 @@ shop/
 PostgreSQL 18 与 Redis 7 运行在 WSL2 上，Windows 侧通过 localhost 直连：
 
 ```
-数据库：shop:shop_dev@localhost:5432/shop
+数据库：shop:shop_dev@localhost:15432/shop
 Redis：localhost:6379
 ```
 

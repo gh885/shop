@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process"
 
 const db = {
     host: process.env.SHOP_DB_HOST ?? "127.0.0.1",
-    port: process.env.SHOP_DB_PORT ?? "5432",
+    port: process.env.SHOP_DB_PORT ?? "15432",
     user: process.env.SHOP_DB_USER ?? "shop",
     password: process.env.SHOP_DB_PASSWORD ?? "shop_dev",
     name: process.env.SHOP_DB_NAME ?? "shop",

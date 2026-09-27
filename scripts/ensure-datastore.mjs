@@ -5,7 +5,8 @@
  * 背景（都是实测出来的，别再猜）：
  *
  * 1. 本仓库的 PG 18 / Redis 7 跑在 WSL2 里（见 AGENTS.md），而 **WSL 的 VM 只按「有没有 WSL 会话」
- *    存活**，空闲几十秒就把整台 VM 回收。VM 一停，Windows 侧 `127.0.0.1:5432` 的转发随之消失：
+ *    存活**，空闲几十秒就把整台 VM 回收。VM 一停，共享栈（镜像网络）里的 `localhost:15432/6379`
+ *    监听随之消失：
  *    - 后端启动失败：`Connection to 127.0.0.1:5432 refused`（看着像数据库没起来，改 JDBC 没用）；
  *    - 更阴的一种：后端已经跑起来也会变僵尸 —— Tomcat 还在 8080 接请求，但每个查库接口都超时。
  * 2. **网络流量不算会话**：实测后端跑着、每 20s 打一次查库接口，第二个请求就 000、VM 照样停。
@@ -27,9 +28,10 @@ import { spawn, spawnSync } from "node:child_process"
 import net from "node:net"
 
 const DISTRO = process.env.SHOP_WSL_DISTRO ?? "Ubuntu"
+/** 本地 PG 默认 15432：WSL 镜像网络共享栈，5432 被 GameViewerServer 占死（见 application.yml 注释） */
 const TARGETS = [
-    { port: 5432, name: "PostgreSQL" },
-    { port: 6379, name: "Redis" },
+    { port: Number(process.env.SHOP_DB_PORT ?? 15432), name: "PostgreSQL" },
+    { port: Number(process.env.SHOP_REDIS_PORT ?? 6379), name: "Redis" },
 ]
 /** 冷启动（叫醒 VM + 起两个服务）在机械盘上可能要十几秒 */
 const WAIT_MS = 60_000

@@ -42,7 +42,7 @@ import net from "node:net"
 const DISTRO = process.env.SHOP_WSL_DISTRO ?? "Ubuntu"
 const DB = {
     host: process.env.SHOP_DB_HOST ?? "localhost",
-    port: Number(process.env.SHOP_DB_PORT ?? 5432),
+    port: Number(process.env.SHOP_DB_PORT ?? 15432),
     user: process.env.SHOP_DB_USER ?? "shop",
     name: process.env.SHOP_DB_NAME ?? "shop",
     password: process.env.SHOP_DB_PASSWORD ?? "shop_dev",
