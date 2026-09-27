@@ -22,7 +22,14 @@ public record MyCouponView(
         @Schema(requiredMode = REQUIRED) String name,
         /** 使用门槛；0 表示无门槛 */
         @Schema(requiredMode = REQUIRED) Money threshold,
-        @Schema(requiredMode = REQUIRED) Money discount,
+        /** 面额：DISCOUNT 型为 null（面值由折率与封顶表达） */
+        @Schema(nullable = true) Money discount,
+        /** 券型：FULL_REDUCTION 满减 / DISCOUNT 折扣（CPN-01） */
+        @Schema(requiredMode = REQUIRED) String type,
+        /** 折扣率（0.90 = 9 折）：仅 DISCOUNT 型非空 */
+        @Schema(nullable = true) java.math.BigDecimal discountRate,
+        /** 折扣封顶：仅 DISCOUNT 型非空（CPN-65） */
+        @Schema(nullable = true) Money maxDiscount,
         @Schema(requiredMode = REQUIRED) OffsetDateTime effectiveAt,
         @Schema(requiredMode = REQUIRED) OffsetDateTime expireAt,
         @Schema(requiredMode = REQUIRED) String status,
@@ -44,6 +51,9 @@ public record MyCouponView(
                 m.coupon().getName(),
                 m.coupon().thresholdAsMoney(),
                 m.coupon().discountAsMoney(),
+                m.coupon().getType().name(),
+                m.coupon().getDiscountRate(),
+                m.coupon().maxDiscountAsMoney(),
                 m.coupon().getEffectiveAt(),
                 m.coupon().getExpireAt(),
                 m.displayStatus().name(),

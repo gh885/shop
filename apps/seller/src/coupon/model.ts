@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import type { CouponTemplateResponse } from "@shop/api/sdk"
-import { couponRuleText } from "@shop/common"
+import { couponFaceRuleText } from "@shop/common"
 import { formatDate, paginationSearchSchema } from "@shop/app-kit"
 
 /**
@@ -85,7 +85,8 @@ export function couponRowFromWire(template: CouponTemplateResponse, now: number)
     return {
         id: template.id,
         name: template.name,
-        ruleText: couponRuleText(template.threshold, template.discount),
+        // 两型通吃：满减给「满 X 减 Y」，折扣给「满 X 打 Z 折，最高减 W」（封顶必进这句话，CPN-65）
+        ruleText: couponFaceRuleText(template.threshold, template),
         periodText: `${formatDate(template.validFrom)} ~ ${formatDate(template.validTo)}`,
         issuedQuantity: template.issuedQuantity,
         totalQuantity: template.totalQuantity,

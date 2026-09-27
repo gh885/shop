@@ -60,6 +60,49 @@ export function couponRuleText(threshold: Money, discount: Money): string {
 }
 
 /**
+ * 券型（CPN-01）：满减与折扣两类，面值的说法不同。
+ *
+ * 满减券有定值面额，折扣券没有——它的面值随订单金额变，能说出口的只有「打几折 + 最高减多少」。
+ * 两类共用一个入参形状（契约里 `type` 必填、另两格可空），由本函数分流。
+ */
+export type CouponFace = {
+    type: string
+    /** 满减券的定值面额；DISCOUNT 型在契约里可空（缺省即「没有」），故这里是可选 */
+    discount?: Money | null
+    discountRate?: number | null
+    maxDiscount?: Money | null | undefined
+}
+
+/** 折扣率 → 「9 折」/「9.5 折」：0.90 读成 9 折，0.95 读成 9.5 折（乘 10 后去掉无意义的 .0） */
+export function couponRateText(rate: number): string {
+    const tenths = Math.round(rate * 100) / 10
+    return `${Number.isInteger(tenths) ? tenths : tenths.toFixed(1)} 折`
+}
+
+/** 券面的大字那一格：满减给金额，折扣给「9 折」（配封顶写在规则行里） */
+export function couponFaceText(face: CouponFace): string {
+    if (face.type === "DISCOUNT" && face.discountRate != null) {
+        return couponRateText(face.discountRate)
+    }
+    return face.discount ? couponMoneyText(face.discount) : "—"
+}
+
+/**
+ * 一句话规则（两型通吃）：满减 → 「满 ¥100 减 ¥10」；折扣 → 「满 ¥100 打 9 折，最高减 ¥50」。
+ *
+ * 封顶必须写进这句话（CPN-65）：不写封顶的折扣券在用户眼里就是「无限 9 折」，
+ * 到大额订单上才发现封顶，是把平台的让利承诺变成了用户的被坑。
+ */
+export function couponFaceRuleText(threshold: Money, face: CouponFace): string {
+    const prefix = isPositiveMoney(threshold) ? `满 ${couponMoneyText(threshold)} ` : "无门槛"
+    if (face.type === "DISCOUNT" && face.discountRate != null) {
+        const cap = face.maxDiscount ? `，最高减 ${couponMoneyText(face.maxDiscount)}` : ""
+        return `${prefix}打 ${couponRateText(face.discountRate)}${cap}`
+    }
+    return face.discount ? `${prefix}减 ${couponMoneyText(face.discount)}` : prefix
+}
+
+/**
  * 不可用原因码 → 一句话；可用（null/undefined）返回 undefined。
  *
  * 文案与后端 `CouponUnavailableReason.message()` 对齐：同一件事在两处说法不同，

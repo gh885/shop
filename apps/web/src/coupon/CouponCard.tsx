@@ -1,7 +1,12 @@
 import { Link } from "@tanstack/react-router"
 
 import { formatDate, formatDateTime } from "@shop/app-kit"
-import { couponMoneyText, couponRuleText, couponSourceLabel, couponStatusLabel } from "@shop/common"
+import {
+    couponFaceRuleText,
+    couponFaceText,
+    couponSourceLabel,
+    couponStatusLabel,
+} from "@shop/common"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import type { MyCoupon } from "./coupon"
@@ -24,7 +29,7 @@ import type { MyCoupon } from "./coupon"
 export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     /** 未使用/结算中 = 还在手上；已使用/已过期/已作废 = 已经不承担转化 */
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
-    const rule = couponRuleText(coupon.threshold, coupon.discount)
+    const rule = couponFaceRuleText(coupon.threshold, coupon)
     const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt)} 至 ${formatDate(coupon.expireAt)}`
     const timeHint = timeReasonHint(coupon)
 
@@ -37,7 +42,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
                     usable ? "text-primary" : "text-muted-foreground",
                 )}
             >
-                {couponMoneyText(coupon.discount)}
+                {couponFaceText(coupon)}
             </p>
 
             <div className="min-w-0 flex-1 space-y-1">

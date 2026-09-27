@@ -3,7 +3,7 @@ import { FormActions } from "@shop/app-kit"
 
 import { COUPON_NAME_MAX } from "@shop/common"
 
-import { couponRequestFromForm, CouponFormSchema, emptyCouponForm } from "./form"
+import { COUPON_TYPE_ITEMS, couponRequestFromForm, CouponFormSchema, emptyCouponForm } from "./form"
 import { useCreateCoupon } from "./queries"
 
 /**
@@ -63,7 +63,8 @@ function CouponForm({
         <>
             <DialogTitle>新建优惠券</DialogTitle>
             <DialogDescription>
-                创建后立即按有效期发放，买家可在店铺页领取。金额一律填「元」。
+                创建后立即进入发放窗口，买家可在店铺页领取。金额一律填「元」；折扣券的折率填 0.9
+                表示 9 折，且必须给最高减免。
             </DialogDescription>
 
             <form
@@ -84,6 +85,15 @@ function CouponForm({
                     )}
                 </form.AppField>
 
+                <form.AppField name="type">
+                    {(field) => (
+                        <field.SelectField
+                            label="券型"
+                            items={COUPON_TYPE_ITEMS}
+                        />
+                    )}
+                </form.AppField>
+
                 <div className="grid gap-4 sm:grid-cols-2">
                     <form.AppField name="thresholdYuan">
                         {(field) => (
@@ -95,17 +105,57 @@ function CouponForm({
                             />
                         )}
                     </form.AppField>
-                    <form.AppField name="discountYuan">
-                        {(field) => (
-                            <field.TextField
-                                label="面额（元）"
-                                required
-                                inputMode="decimal"
-                                placeholder="例如：10"
-                            />
-                        )}
-                    </form.AppField>
+                    {/* 两型的面值格互斥：满减填面额，折扣填折率 + 封顶。
+                        用 form.Subscribe 读当前券型切换显示——两张表单各写一遍字段会漂 */}
+                    {/* 两型的面值格互斥：满减填面额，折扣填折率。
+                        券型经 form.Subscribe 读（写在 JSX children 上而不是 children={…} 属性：
+                        后者把渲染函数当普通 prop 传，读起来像「传了个值」而不是「这是个渲染器」） */}
+                    <form.Subscribe selector={(s) => s.values.type}>
+                        {(type) =>
+                            type === "DISCOUNT" ? (
+                                <form.AppField name="discountRate">
+                                    {(field) => (
+                                        <field.TextField
+                                            label="折扣率（0.90 = 9 折）"
+                                            required
+                                            inputMode="decimal"
+                                            placeholder="例如：0.9"
+                                        />
+                                    )}
+                                </form.AppField>
+                            ) : (
+                                <form.AppField name="discountYuan">
+                                    {(field) => (
+                                        <field.TextField
+                                            label="面额（元）"
+                                            required
+                                            inputMode="decimal"
+                                            placeholder="例如：10"
+                                        />
+                                    )}
+                                </form.AppField>
+                            )
+                        }
+                    </form.Subscribe>
                 </div>
+
+                <form.Subscribe selector={(s) => s.values.type}>
+                    {(type) =>
+                        type === "DISCOUNT" ? (
+                            <form.AppField name="maxDiscountYuan">
+                                {(field) => (
+                                    <field.TextField
+                                        label="最高减免（元）"
+                                        required
+                                        inputMode="decimal"
+                                        placeholder="大单不至于亏穿，例如：50"
+                                        hint="必填：没有封顶的折扣券在大额订单上会亏穿"
+                                    />
+                                )}
+                            </form.AppField>
+                        ) : null
+                    }
+                </form.Subscribe>
 
                 <form.AppField name="totalQuantity">
                     {(field) => (
@@ -122,20 +172,33 @@ function CouponForm({
                     <form.AppField name="validFrom">
                         {(field) => (
                             <field.DateTimeField
-                                label="有效期起点"
+                                label="发放窗口起点"
                                 required
+                                hint="从这一刻起可以领"
                             />
                         )}
                     </form.AppField>
                     <form.AppField name="validTo">
                         {(field) => (
                             <field.DateTimeField
-                                label="有效期终点"
+                                label="发放窗口终点"
                                 required
+                                hint="到这一刻为止可以领"
                             />
                         )}
                     </form.AppField>
                 </div>
+
+                <form.AppField name="validDays">
+                    {(field) => (
+                        <field.TextField
+                            label="领取后有效天数（可留空）"
+                            inputMode="numeric"
+                            placeholder="例如：7"
+                            hint="留空 = 领到的券可用期跟随发放窗口；填了则从领取那一刻起算（1~365）"
+                        />
+                    )}
+                </form.AppField>
 
                 <FormActions
                     pending={create.isPending}

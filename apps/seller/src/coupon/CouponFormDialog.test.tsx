@@ -85,6 +85,7 @@ function makeCreated(overrides: Partial<CouponTemplateResponse> = {}): CouponTem
     return {
         id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
         name: "新春满减券",
+        type: "FULL_REDUCTION",
         threshold: { amount: 10000, currency: "CNY" },
         discount: { amount: 1000, currency: "CNY" },
         validFrom: "2026-01-01T10:00:00Z",
@@ -126,8 +127,8 @@ describe("CouponFormDialog", () => {
         const total = screen.getByLabelText("发放总量")
         await user.clear(total)
         await user.type(total, "50")
-        const validFrom = await fillDateTime(user, "有效期起点", START_DAY, START_TIME)
-        await fillDateTime(user, "有效期终点", END_DAY, START_TIME)
+        const validFrom = await fillDateTime(user, "发放窗口起点", START_DAY, START_TIME)
+        await fillDateTime(user, "发放窗口终点", END_DAY, START_TIME)
 
         await user.click(screen.getByRole("button", { name: "创建" }))
 
@@ -173,8 +174,8 @@ describe("CouponFormDialog", () => {
 
         await user.type(await screen.findByLabelText("券名"), "无门槛券")
         await user.type(screen.getByLabelText("面额（元）"), "10")
-        await fillDateTime(user, "有效期起点", START_DAY, START_TIME)
-        await fillDateTime(user, "有效期终点", END_DAY, START_TIME)
+        await fillDateTime(user, "发放窗口起点", START_DAY, START_TIME)
+        await fillDateTime(user, "发放窗口终点", END_DAY, START_TIME)
         await user.click(screen.getByRole("button", { name: "创建" }))
 
         await waitFor(() => expect(body).toBeDefined(), { timeout: 5000 })
@@ -204,8 +205,8 @@ describe("CouponFormDialog", () => {
         await user.clear(threshold)
         await user.type(threshold, "10")
         await user.type(screen.getByLabelText("面额（元）"), "20")
-        await fillDateTime(user, "有效期起点", START_DAY, START_TIME)
-        await fillDateTime(user, "有效期终点", END_DAY, START_TIME)
+        await fillDateTime(user, "发放窗口起点", START_DAY, START_TIME)
+        await fillDateTime(user, "发放窗口终点", END_DAY, START_TIME)
         await user.click(screen.getByRole("button", { name: "创建" }))
 
         expect(await screen.findByText("面额不能超过使用门槛，请检查是否填反")).toBeInTheDocument()

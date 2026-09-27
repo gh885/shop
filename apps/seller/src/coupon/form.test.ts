@@ -13,11 +13,15 @@ import { couponRequestFromForm, type CouponFormValues } from "./form"
 function makeValues(overrides: Partial<CouponFormValues> = {}): CouponFormValues {
     return {
         name: "  新春满减券  ",
+        type: "FULL_REDUCTION",
         thresholdYuan: "100",
         discountYuan: "10",
+        discountRate: "",
+        maxDiscountYuan: "",
         totalQuantity: "50",
         validFrom: "2026-01-01T10:00",
         validTo: "2026-02-01T10:00",
+        validDays: "",
         ...overrides,
     }
 }

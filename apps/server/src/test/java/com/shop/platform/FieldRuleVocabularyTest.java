@@ -17,6 +17,7 @@ import com.shop.platform.account.dto.UpdateProfileRequest;
 import com.shop.platform.aftersale.dto.ApplyAfterSaleRequest;
 import com.shop.platform.aftersale.dto.RejectAfterSaleRequest;
 import com.shop.platform.aftersale.dto.ReturnGoodsRequest;
+import com.shop.platform.audit.dto.AuditFieldRules;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
 import com.shop.platform.cms.dto.BannerRequest;
@@ -1008,7 +1009,42 @@ class FieldRuleVocabularyTest {
                     "PageParams",
                     "size",
                     "maximum",
-                    "券包一页 10 条与分页控件共用一个数（两个数就两套总页数），契约的 100 是所有分页接口的公共上界"));
+                    "券包一页 10 条与分页控件共用一个数（两个数就两套总页数），契约的 100 是所有分页接口的公共上界"),
+            new Mirror(
+                    "apps/web/src/reviews/constants.ts",
+                    "REVIEW_PAGE_SIZE",
+                    "PageParams",
+                    "size",
+                    "maximum",
+                    "商详评价区一页 10 条：评价是「看前几条 + 翻页」的列表，读完一屏就该翻页；100 是公共上界"),
+            new Mirror(
+                    "apps/admin/src/audit/constants.ts",
+                    "AUDIT_PAGE_SIZE",
+                    "PageParams",
+                    "size",
+                    "maximum",
+                    "审计一页 20 条：查账习惯是按时间倒着翻，页大一点更贴近；100 是公共上界"),
+            new Mirror(
+                    "apps/admin/src/shop-ops/constants.ts",
+                    "SHOP_OPS_PAGE_SIZE",
+                    "PageParams",
+                    "size",
+                    "maximum",
+                    "店铺治理一页 20 条，与审核队列同档（两个页面看的是同一批人，页大小不该不一样）；100 是公共上界"),
+            new Mirror(
+                    "apps/seller/src/coupon/form.ts",
+                    "VALID_DAYS_MIN",
+                    "CreateCouponTemplateRequest",
+                    "validDays",
+                    "minimum",
+                    ""),
+            new Mirror(
+                    "apps/seller/src/coupon/form.ts",
+                    "VALID_DAYS_MAX",
+                    "CreateCouponTemplateRequest",
+                    "validDays",
+                    "maximum",
+                    ""));
 
     /**
      * 前端数值边界的第二种对边：与某个 Java 词表常量同值（该格<b>没有</b>对应的契约数字，或 Java 才是唯一出处）。
@@ -1086,7 +1122,64 @@ class FieldRuleVocabularyTest {
                     "packages/app-kit/src/login-schema.ts",
                     "NICKNAME_MAX",
                     "AccountFieldRules.NICKNAME_MAX",
-                    () -> AccountFieldRules.NICKNAME_MAX));
+                    () -> AccountFieldRules.NICKNAME_MAX),
+            new Twin(
+                    "apps/admin/src/account/staff-form.ts",
+                    "EMPLOYEE_NO_MAX",
+                    "AccountFieldRules.EMPLOYEE_NO_MAX",
+                    () -> AccountFieldRules.EMPLOYEE_NO_MAX),
+            new Twin(
+                    "apps/admin/src/account/staff-form.ts",
+                    "DISPLAY_NAME_MAX",
+                    "AccountFieldRules.DISPLAY_NAME_MAX",
+                    () -> AccountFieldRules.DISPLAY_NAME_MAX),
+            new Twin(
+                    "apps/admin/src/account/staff-form.ts",
+                    "PASSWORD_MAX",
+                    "AccountFieldRules.PASSWORD_MAX",
+                    () -> AccountFieldRules.PASSWORD_MAX),
+            // 「一段人写的说明」这一档（200）：评价文字/追评/卖家回复是三个新入口，与既有七个入口同概念，
+            // 因此同值引用同一条 owner（NoteFieldRules.FREE_TEXT_MAX），不在各自文件里另起一个 CONTENT_MAX 的同数副本
+            new Twin(
+                    "apps/web/src/reviews/ReviewDialog.tsx",
+                    "CONTENT_MAX",
+                    "NoteFieldRules.FREE_TEXT_MAX",
+                    () -> NoteFieldRules.FREE_TEXT_MAX),
+            new Twin(
+                    "apps/web/src/reviews/ReviewDialog.tsx",
+                    "APPEND_MAX",
+                    "NoteFieldRules.FREE_TEXT_MAX",
+                    () -> NoteFieldRules.FREE_TEXT_MAX),
+            new Twin(
+                    "apps/seller/src/review/reply-dialog.tsx",
+                    "REPLY_MAX",
+                    "NoteFieldRules.FREE_TEXT_MAX",
+                    () -> NoteFieldRules.FREE_TEXT_MAX),
+            new Twin(
+                    "apps/admin/src/audit/constants.ts",
+                    "AUDIT_ACTION_MAX",
+                    "AuditFieldRules.ACTION_MAX",
+                    () -> AuditFieldRules.ACTION_MAX),
+            new Twin(
+                    "apps/admin/src/audit/constants.ts",
+                    "AUDIT_TARGET_ID_MAX",
+                    "AuditFieldRules.TARGET_ID_MAX",
+                    () -> AuditFieldRules.TARGET_ID_MAX),
+            new Twin(
+                    "apps/admin/src/audit/constants.ts",
+                    "AUDIT_TARGET_TYPE_MAX",
+                    "AuditFieldRules.TARGET_TYPE_MAX",
+                    () -> AuditFieldRules.TARGET_TYPE_MAX),
+            new Twin(
+                    "apps/admin/src/shop-ops/constants.ts",
+                    "SHOP_KEYWORD_MAX",
+                    "ShopFieldRules.NAME_MAX",
+                    () -> ShopFieldRules.NAME_MAX),
+            new Twin(
+                    "apps/admin/src/shop-ops/constants.ts",
+                    "SHOP_STATUS_MAX",
+                    "shop.shop_reviews/shop.shops status 列宽（V8 的 VARCHAR(20) 之上的枚举名上限 32）",
+                    () -> AuditFieldRules.TARGET_TYPE_MAX));
 
     /**
      * 第三种对边：压根没有对边。值是这一处的产品或传输策略，写清楚<b>为什么</b>没有第二处比它。
@@ -1113,6 +1206,23 @@ class FieldRuleVocabularyTest {
                     "packages/common/src/sdk-client.ts",
                     "RETRY_LIMIT",
                     "传输策略（GEN-35：幂等 GET 遇 408/429/5xx 重试 2 次），不是入参边界"),
+            new Policy(
+                    "apps/admin/src/audit/constants.ts",
+                    "EXPORT_ROW_LIMIT",
+                    "单次导出的行数上限：导出在前端拼 CSV，这个数管「别把标签页卡死」；" + "真要导十万行应改走后端导出任务，那才是另一种形状（生成/下载/过期）"),
+            new Policy(
+                    "packages/ui-web/src/components/phone-field.tsx",
+                    "MAINLAND_MOBILE_DIGITS",
+                    "固定 +86 的手机号输入框位数上限：只收号码本体，与 app-kit 的 PHONE_DIGITS（登录手机号）同档；"
+                            + "库上的宽松档 7..20 是「联系电话」那条规则（允许座机与分隔符），不是这个约束"),
+            new Policy(
+                    "packages/ui-web/src/components/reui/data-grid/data-grid-scroll-area.tsx",
+                    "MIN_THUMB_SIZE",
+                    "reui DataGrid 滚动条滑块的最小尺寸：纯 CSS 呈现，服务端与契约都不读它"),
+            new Policy(
+                    "packages/ui-web/src/components/reui/data-grid/data-grid-scroll-area.tsx",
+                    "FALLBACK_SCROLLBAR_SIZE",
+                    "读不到真实滚动条尺寸时的兜底值（自定义滚动条尚未布局完成的瞬间）：纯 CSS 呈现，无对边"),
             new Policy(
                     "packages/app-kit/src/login-schema.ts",
                     "PHONE_DIGITS",

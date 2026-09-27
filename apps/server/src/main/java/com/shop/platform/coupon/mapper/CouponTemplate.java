@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
 import com.shop.platform.coupon.api.CouponBearer;
 import com.shop.platform.coupon.model.CouponTemplateStatus;
+import com.shop.platform.coupon.model.CouponType;
 import com.shop.platform.infra.db.AuditedEntity;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.Data;
@@ -18,8 +20,9 @@ import lombok.experimental.SuperBuilder;
  * <p>模板是「规则的定义」，用户券是「规则的快照」：领取时把需要的字段复制进 user_coupons，
  * 此后模板被改被停都不影响已发出的券。因此本表只用于两个场景——卖家管理，以及领券时的资格判定。
  *
- * <p>一期只有一种玩法：满 threshold_amount 减 discount_amount（threshold_amount = 0 即无门槛）。
- * 折扣券/运费券要额外的 rate 与封顶列，二期再以 type 判别列区分，属纯增量 ALTER。
+ * <p>一期只有一种玩法：满 threshold_amount 减 discount_amount（threshold_amount = 0 即无门槛）；
+ * 二期起以 {@link CouponType} 判别，DISCOUNT 型用折率与封顶两列（见该枚举）。
+ * 两型的列互斥由 DB CHECK 钉死，不用「discount_amount 为 0」那种空缺约定。
  */
 @Data
 @SuperBuilder
@@ -37,7 +40,7 @@ public class CouponTemplate extends AuditedEntity {
     /** 使用门槛（分）：适用商品小计需达到该值，0 = 无门槛 */
     private Long thresholdAmount;
 
-    /** 减免额（分），恒大于 0 */
+    /** 减免额（分），恒大于 0；DISCOUNT 型为 null（面值由折率与封顶表达） */
     private Long discountAmount;
 
     private String currency;
@@ -50,6 +53,21 @@ public class CouponTemplate extends AuditedEntity {
 
     /** 绝对有效期终点 */
     private OffsetDateTime validTo;
+
+    /**
+     * 相对有效期（天）：领取后 N 天有效（CPN-68）。为 null 时用户券沿用本模板的绝对窗口 [validFrom, validTo)。
+     * 与 validFrom/validTo 不同轴：后两者是**发放窗口**（什么时候能领），这一列管的是**领到之后能用多久**。
+     */
+    private Integer validDays;
+
+    /** 券型判别（CPN-01） */
+    private CouponType type;
+
+    /** 折扣率（0.01~0.99，0.90 = 9 折）：仅 DISCOUNT 型非空 */
+    private BigDecimal discountRate;
+
+    /** 折扣封顶（分）：仅 DISCOUNT 型非空，必填（CPN-65） */
+    private Long maxDiscountAmount;
 
     /** 发放总量 */
     private Integer totalQuantity;
@@ -65,9 +83,14 @@ public class CouponTemplate extends AuditedEntity {
         return Money.ofFen(thresholdAmount, currency);
     }
 
-    /** 减免额配上币种成 Money（只读转换，非表字段） */
+    /** 减免额配上币种成 Money（只读转换，非表字段）；DISCOUNT 型无定值面额，返回 null */
     public Money discountAsMoney() {
-        return Money.ofFen(discountAmount, currency);
+        return Money.ofFenOrNull(discountAmount, currency);
+    }
+
+    /** 折扣封顶配上币种成 Money（只读转换，非表字段）；DISCOUNT 型非空 */
+    public Money maxDiscountAsMoney() {
+        return Money.ofFenOrNull(maxDiscountAmount, currency);
     }
 
     /** 发放名额是否已用满（CPN-13/16：issued ≥ total）——「已领完」在这个仓库里的唯一定义处 */

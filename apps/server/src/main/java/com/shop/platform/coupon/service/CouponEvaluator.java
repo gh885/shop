@@ -83,13 +83,13 @@ public class CouponEvaluator {
                     reason);
         }
 
-        // 4. 可减金额 = min(面额, 基数)：封顶见类注释
-        Money face = coupon.discountAsMoney();
+        // 4. 实减额由券行自己换算（面值算法在实体那一处，见 UserCoupon.faceValueOn）
+        Money discount = coupon.faceValueOn(baseAmount);
         return new CouponAvailabilityView(
                 coupon.getId(),
                 coupon.getName(),
                 coupon.thresholdAsMoney(),
-                face.atLeast(baseAmount) ? baseAmount : face,
+                discount,
                 coupon.getBearer(),
                 coupon.getExpireAt(),
                 true,

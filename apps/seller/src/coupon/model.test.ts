@@ -16,6 +16,7 @@ function makeTemplate(overrides: Partial<CouponTemplateResponse> = {}): CouponTe
     return {
         id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
         name: "新春满减券",
+        type: "FULL_REDUCTION",
         threshold: { amount: 10000, currency: "CNY" },
         discount: { amount: 1000, currency: "CNY" },
         // 取正午而非零点：展示用的日期本地化后在任何时区都落回同一天

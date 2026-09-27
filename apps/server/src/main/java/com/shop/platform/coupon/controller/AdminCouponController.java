@@ -7,6 +7,7 @@ import com.shop.platform.coupon.dto.AdminCouponQuery;
 import com.shop.platform.coupon.service.AdminCouponItem;
 import com.shop.platform.coupon.service.CouponAdminService;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentStaff;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -42,7 +43,7 @@ public class AdminCouponController {
     /** 运营作废：仅 UNUSED → VOID；LOCKED/USED 等状态 409 并给可理解的 detail；券不存在 404 */
     @PostMapping("/{id}/void")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void voidUserCoupon(@PathVariable UUID id) {
-        couponAdminService.voidCoupon(id);
+    public void voidUserCoupon(@CurrentStaff UUID staffId, @PathVariable UUID id) {
+        couponAdminService.voidCoupon(id, staffId);
     }
 }

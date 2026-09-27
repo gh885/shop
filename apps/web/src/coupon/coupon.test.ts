@@ -29,6 +29,7 @@ function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCoup
         shopName: "测试店",
         name: "满100减10",
         threshold: { amount: 10000, currency: "CNY" },
+        type: "FULL_REDUCTION",
         discount: { amount: 1000, currency: "CNY" },
         effectiveAt: "2026-01-01T00:00:00Z",
         expireAt: "2026-01-31T00:00:00Z",

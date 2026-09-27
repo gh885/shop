@@ -19,7 +19,12 @@ public record AdminCouponItem(
         @Schema(requiredMode = REQUIRED) UUID templateId,
         @Schema(requiredMode = REQUIRED) String name,
         @Schema(requiredMode = REQUIRED) Money threshold,
-        @Schema(requiredMode = REQUIRED) Money discount,
+        /** 面额：DISCOUNT 型为 null（面值由折率与封顶表达） */
+        @Schema(nullable = true) Money discount,
+        /** 券型：FULL_REDUCTION 满减 / DISCOUNT 折扣（CPN-01） */
+        @Schema(requiredMode = REQUIRED) String type,
+        /** 折扣封顶：仅 DISCOUNT 型非空（CPN-65） */
+        @Schema(nullable = true) Money maxDiscount,
         @Schema(requiredMode = REQUIRED) CouponBearer bearer,
         @Schema(requiredMode = REQUIRED) OffsetDateTime effectiveAt,
         @Schema(requiredMode = REQUIRED) OffsetDateTime expireAt,

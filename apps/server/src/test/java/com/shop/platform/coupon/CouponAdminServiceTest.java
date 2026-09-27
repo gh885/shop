@@ -6,6 +6,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.api.StaffReadQuery;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.coupon.api.CouponBearer;
@@ -13,6 +15,7 @@ import com.shop.platform.coupon.dto.AdminCouponQuery;
 import com.shop.platform.coupon.mapper.UserCoupon;
 import com.shop.platform.coupon.mapper.UserCouponMapper;
 import com.shop.platform.coupon.model.CouponSource;
+import com.shop.platform.coupon.model.CouponType;
 import com.shop.platform.coupon.model.UserCouponStatus;
 import com.shop.platform.coupon.service.CouponAdminService;
 import com.shop.platform.shop.api.ShopReadQuery;
@@ -34,6 +37,12 @@ class CouponAdminServiceTest {
     @Mock
     ShopReadQuery shopReadQuery;
 
+    @Mock
+    RecordAuditCommand recordAuditCommand;
+
+    @Mock
+    StaffReadQuery staffReadQuery;
+
     @Test
     void 运营列表_按用户店铺状态筛选并拼店名() {
         UUID userId = UUID.randomUUID();
@@ -51,6 +60,7 @@ class CouponAdminServiceTest {
         coupon.setBearer(CouponBearer.SELLER);
         coupon.setStatus(UserCouponStatus.UNUSED);
         coupon.setSource(CouponSource.CLAIM);
+        coupon.setType(CouponType.FULL_REDUCTION);
         coupon.setEffectiveAt(OffsetDateTime.parse("2026-01-01T00:00:00Z"));
         coupon.setExpireAt(OffsetDateTime.parse("2026-02-01T00:00:00Z"));
         coupon.setCreatedAt(OffsetDateTime.parse("2026-01-01T00:00:00Z"));
@@ -61,7 +71,7 @@ class CouponAdminServiceTest {
                 .thenReturn(page);
         when(shopReadQuery.namesByIds(List.of(shopId))).thenReturn(Map.of(shopId, "演示店"));
 
-        var result = new CouponAdminService(userCouponMapper, shopReadQuery)
+        var result = new CouponAdminService(userCouponMapper, shopReadQuery, recordAuditCommand, staffReadQuery)
                 .pageCoupons(new PageParams(1, 20), new AdminCouponQuery(userId, shopId, "UNUSED"));
 
         assertEquals(1, result.total());
@@ -72,7 +82,8 @@ class CouponAdminServiceTest {
 
     @Test
     void 非法状态_不查库() {
-        var ex = assertThrows(BusinessException.class, () -> new CouponAdminService(userCouponMapper, shopReadQuery)
+        var ex = assertThrows(BusinessException.class, () -> new CouponAdminService(
+                        userCouponMapper, shopReadQuery, recordAuditCommand, staffReadQuery)
                 .pageCoupons(new PageParams(1, 20), new AdminCouponQuery(null, null, "BOGUS")));
         assertEquals(400, ex.getHttpStatus());
         verifyNoInteractions(userCouponMapper, shopReadQuery);

@@ -17,6 +17,7 @@ import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.coupon.api.CouponReadQuery;
 import com.shop.platform.coupon.api.CouponUnavailableReason;
 import com.shop.platform.coupon.dto.CreateCouponTemplateRequest;
+import com.shop.platform.coupon.model.CouponType;
 import com.shop.platform.coupon.service.ClaimableCouponView;
 import com.shop.platform.coupon.service.CouponAdminService;
 import com.shop.platform.coupon.service.CouponClaimService;
@@ -139,13 +140,27 @@ class CouponFlowIT extends IntegrationTestSupport {
                         shopId,
                         new CreateCouponTemplateRequest(
                                 "满%s减%s".formatted(threshold, discount),
+                                CouponType.FULL_REDUCTION,
                                 Money.cny(threshold),
                                 Money.cny(discount),
+                                null,
+                                null,
                                 total,
                                 now.minusMinutes(1),
-                                now.plusDays(7)))
+                                now.plusDays(7),
+                                null))
                 .template()
                 .getId();
+    }
+
+    /**
+     * 运营操作人（作废是平台治理动作，同事务落一行审计账本）：用随机 UUID 即可——
+     * 审计行的 operator_id 不带外键，展示名查不到就是「未知操作人」（见 account::api 的 StaffReadQuery）。
+     */
+    private UUID operatorId() {
+        UUID operatorId = UUID.randomUUID();
+        db.onDelete("DELETE FROM audit.audit_records WHERE operator_id = ?::uuid", operatorId.toString());
+        return operatorId;
     }
 
     private String couponStatus(UUID couponId) {
@@ -470,7 +485,16 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .create(
                         shopId,
                         new CreateCouponTemplateRequest(
-                                "预告券", Money.cny(0), Money.cny(300), 10, now.plusDays(1), now.plusDays(8)))
+                                "预告券",
+                                CouponType.FULL_REDUCTION,
+                                Money.cny(0),
+                                Money.cny(300),
+                                null,
+                                null,
+                                10,
+                                now.plusDays(1),
+                                now.plusDays(8),
+                                null))
                 .template()
                 .getId();
 
@@ -488,7 +512,16 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .create(
                         shopId,
                         new CreateCouponTemplateRequest(
-                                "过期活动", Money.cny(0), Money.cny(300), 10, now.minusDays(2), now.minusDays(1)))
+                                "过期活动",
+                                CouponType.FULL_REDUCTION,
+                                Money.cny(0),
+                                Money.cny(300),
+                                null,
+                                null,
+                                10,
+                                now.minusDays(2),
+                                now.minusDays(1),
+                                null))
                 .template()
                 .getId();
 
@@ -617,7 +650,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .coupon()
                 .getId();
 
-        couponAdminService.voidCoupon(couponId);
+        couponAdminService.voidCoupon(couponId, operatorId());
 
         assertEquals("VOID", couponStatus(couponId));
         // VOID 行 order_id 必空（DB CHECK 兜底，这里验我们没把半份状态写进去）
@@ -643,7 +676,8 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .getId();
         createOrder(2, couponId);
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId));
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId, operatorId()));
         assertEquals(409, ex.getHttpStatus());
         assertTrue(ex.getDetail().contains("占用"));
         // 拒绝是彻底的：状态与占用关系原样不动
@@ -662,7 +696,8 @@ class CouponFlowIT extends IntegrationTestSupport {
         Payment pending = paymentService.pay(userId, order.getId());
         paymentService.confirm(userId, pending.getId());
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId));
+        BusinessException ex =
+                assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId, operatorId()));
         assertEquals(409, ex.getHttpStatus());
         assertTrue(ex.getDetail().contains("已核销"));
         assertEquals("USED", couponStatus(couponId));
@@ -675,14 +710,15 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .claim(userId, seedTemplate(0, 300, 10))
                 .coupon()
                 .getId();
-        couponAdminService.voidCoupon(couponId);
+        couponAdminService.voidCoupon(couponId, operatorId());
 
-        BusinessException again = assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId));
+        BusinessException again =
+                assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(couponId, operatorId()));
         assertEquals(409, again.getHttpStatus());
         assertTrue(again.getDetail().contains("已作废"));
 
-        BusinessException missing =
-                assertThrows(BusinessException.class, () -> couponAdminService.voidCoupon(UUID.randomUUID()));
+        BusinessException missing = assertThrows(
+                BusinessException.class, () -> couponAdminService.voidCoupon(UUID.randomUUID(), operatorId()));
         assertEquals(404, missing.getHttpStatus());
     }
 
@@ -696,7 +732,16 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .create(
                         shopId,
                         new CreateCouponTemplateRequest(
-                                "预告券", Money.cny(0), Money.cny(300), 10, now.plusDays(1), now.plusDays(8)))
+                                "预告券",
+                                CouponType.FULL_REDUCTION,
+                                Money.cny(0),
+                                Money.cny(300),
+                                null,
+                                null,
+                                10,
+                                now.plusDays(1),
+                                now.plusDays(8),
+                                null))
                 .template()
                 .getId();
         UUID live = seedTemplate(0, 300, 10);

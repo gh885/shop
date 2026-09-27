@@ -14,7 +14,16 @@ public record CouponTemplateView(
         @Schema(requiredMode = REQUIRED) String name,
         /** 使用门槛；0 表示无门槛 */
         @Schema(requiredMode = REQUIRED) Money threshold,
-        @Schema(requiredMode = REQUIRED) Money discount,
+        /** 面额：DISCOUNT 型为 null（面值由折率与封顶表达） */
+        @Schema(nullable = true) Money discount,
+        /** 券型：FULL_REDUCTION 满减 / DISCOUNT 折扣（CPN-01） */
+        @Schema(requiredMode = REQUIRED) String type,
+        /** 折扣率（0.90 = 9 折）：仅 DISCOUNT 型非空 */
+        @Schema(nullable = true) java.math.BigDecimal discountRate,
+        /** 折扣封顶：仅 DISCOUNT 型非空（CPN-65） */
+        @Schema(nullable = true) Money maxDiscount,
+        /** 领取后 N 天有效：为 null 表示用户券沿用发放窗口（CPN-68） */
+        @Schema(nullable = true) Integer validDays,
         @Schema(requiredMode = REQUIRED) OffsetDateTime validFrom,
         @Schema(requiredMode = REQUIRED) OffsetDateTime validTo,
         @Schema(requiredMode = REQUIRED) Integer totalQuantity,
@@ -31,6 +40,10 @@ public record CouponTemplateView(
                 row.template().getName(),
                 row.template().thresholdAsMoney(),
                 row.template().discountAsMoney(),
+                row.template().getType().name(),
+                row.template().getDiscountRate(),
+                row.template().maxDiscountAsMoney(),
+                row.template().getValidDays(),
                 row.template().getValidFrom(),
                 row.template().getValidTo(),
                 row.template().getTotalQuantity(),

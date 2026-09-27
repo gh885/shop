@@ -93,6 +93,12 @@ public class CouponClaimService {
         Validate.conflict(templateMapper.issueOne(templateId, now) == 1, "该优惠券已被领完");
 
         // 4. 发券：规则整份快照（金额/门槛/有效期折算成绝对值），读券从此不碰模板
+        // 4b. 有效期：给了 valid_days 就用「领取时刻起 N 天」，否则沿用模板的绝对窗口（CPN-68/69）。
+        //     换算只在这一刻发生一次，落成绝对时刻，之后读券路径不再碰模板
+        OffsetDateTime effectiveAt = template.getValidDays() == null ? template.getValidFrom() : now;
+        OffsetDateTime expireAt =
+                template.getValidDays() == null ? template.getValidTo() : now.plusDays(template.getValidDays());
+
         UserCoupon coupon = UserCoupon.builder()
                 .templateId(template.getId())
                 .userId(userId)
@@ -102,8 +108,11 @@ public class CouponClaimService {
                 .discountAmount(template.getDiscountAmount())
                 .currency(template.getCurrency())
                 .bearer(template.getBearer())
-                .effectiveAt(template.getValidFrom())
-                .expireAt(template.getValidTo())
+                .type(template.getType())
+                .discountRate(template.getDiscountRate())
+                .maxDiscountAmount(template.getMaxDiscountAmount())
+                .effectiveAt(effectiveAt)
+                .expireAt(expireAt)
                 .status(UserCouponStatus.UNUSED)
                 .source(CouponSource.CLAIM)
                 .build();

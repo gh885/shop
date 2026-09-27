@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { TicketPercent } from "lucide-react"
 
 import { formatDate, formatTimeShort } from "@shop/app-kit"
-import { couponRuleText } from "@shop/common"
+import { couponFaceRuleText } from "@shop/common"
 import {
     Button,
     Popover,
@@ -90,7 +90,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                     <ul className="flex flex-col gap-3">
                         {coupons.map((coupon) => {
                             const claimed = claimedIdSet.has(coupon.id)
-                            const rule = couponRuleText(coupon.threshold, coupon.discount)
+                            const rule = couponFaceRuleText(coupon.threshold, coupon)
                             // claimable=false 且没领完 = 未到发放起点（C9，契约必填布尔，不再回退本地比较 validFrom）
                             const notStarted = !coupon.soldOut && !coupon.claimable
                             const label = claimed

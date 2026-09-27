@@ -29,5 +29,17 @@ public final class CouponFieldRules {
      */
     public static final int TOTAL_QUANTITY_MAX = 1_000_000;
 
+    /**
+     * 相对有效期（领取后 N 天）的下界：1 天起（0 天 = 领到即失效，那不如不发）。
+     * 与迁移里 {@code ck_coupon_templates_valid_days} 的 CHECK 同值。
+     */
+    public static final int VALID_DAYS_MIN = 1;
+
+    /** 相对有效期的上界：一年。超过它多半是卖家填错了单位（想填 3650 天），入口这一侧挡住 */
+    public static final int VALID_DAYS_MAX = 365;
+
+    /** 折扣率上界（不含 1.00）：1.00 不构成折扣 */
+    public static final String DISCOUNT_RATE_MAX_MESSAGE = "折扣率需在 0.01~0.99 之间（0.90 即 9 折）";
+
     private CouponFieldRules() {}
 }

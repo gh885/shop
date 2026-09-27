@@ -7,6 +7,7 @@ import com.shop.platform.coupon.mapper.CouponUsageMapper;
 import com.shop.platform.coupon.mapper.UserCoupon;
 import com.shop.platform.coupon.mapper.UserCouponMapper;
 import com.shop.platform.coupon.model.CouponSource;
+import com.shop.platform.coupon.model.CouponType;
 import com.shop.platform.coupon.model.CouponUsageAction;
 import com.shop.platform.coupon.model.UserCouponStatus;
 import java.time.OffsetDateTime;
@@ -49,9 +50,13 @@ public class CouponCommand {
      * @param appliedDiscount 本单实际减免额（order 已据此落了订单金额，券侧不再重算）
      */
     public void lock(UUID userCouponId, UUID userId, UUID orderId, Money appliedDiscount) {
-        // 1. 归属与面额护栏：不属于本人给 404（不泄露券存在性）；实减超过面额说明调用方算错了，当场拦下
+        // 1. 归属与面额护栏：不属于本人给 404（不泄露券存在性）；实减超过本单基数说明调用方算错了，当场拦下。
+        //    上界按券型取：满减券的面额是定值 discount_amount；折扣券没有定值面额（面值随基数变，CPN-65），
+        //    它的定值上界是封顶 max_discount_amount（实减必 ≤ 封顶，见 CouponFaceValue 的两段封顶）
         UserCoupon coupon = userCouponMapper.requireOwned(userId, userCouponId);
-        Validate.isTrue(appliedDiscount.amount() <= coupon.getDiscountAmount(), "优惠金额超过券面额");
+        long faceCeiling =
+                coupon.getType() == CouponType.DISCOUNT ? coupon.getMaxDiscountAmount() : coupon.getDiscountAmount();
+        Validate.isTrue(appliedDiscount.amount() <= faceCeiling, "优惠金额超过券面额");
         Validate.isTrue(appliedDiscount.currency().equals(coupon.getCurrency()), "优惠币种与券不一致");
 
         // 2. 条件占用：这是并发闸门，不做「先读状态再写」
@@ -119,6 +124,9 @@ public class CouponCommand {
                     .discountAmount(original.getDiscountAmount())
                     .currency(original.getCurrency())
                     .bearer(original.getBearer())
+                    .type(original.getType())
+                    .discountRate(original.getDiscountRate())
+                    .maxDiscountAmount(original.getMaxDiscountAmount())
                     .effectiveAt(now)
                     .expireAt(original.getExpireAt())
                     .status(UserCouponStatus.UNUSED)

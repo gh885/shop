@@ -1,6 +1,9 @@
 package com.shop.platform.coupon.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.api.StaffReadQuery;
+import com.shop.platform.audit.api.AuditAction;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
@@ -33,6 +36,8 @@ public class CouponAdminService {
     private final UserCouponMapper userCouponMapper;
 
     private final ShopReadQuery shopReadQuery;
+    private final RecordAuditCommand recordAuditCommand;
+    private final StaffReadQuery staffReadQuery;
 
     /** 平台用户券运营列表：只查 coupon schema，店名经 shop::api 批量点查。 */
     @Transactional(readOnly = true)
@@ -60,6 +65,8 @@ public class CouponAdminService {
                                 coupon.getName(),
                                 coupon.thresholdAsMoney(),
                                 coupon.discountAsMoney(),
+                                coupon.getType().name(),
+                                coupon.maxDiscountAsMoney(),
                                 coupon.getBearer(),
                                 coupon.getEffectiveAt(),
                                 coupon.getExpireAt(),
@@ -77,9 +84,11 @@ public class CouponAdminService {
      * <p>只放未使用的券（口径与理由见 {@code UserCouponMapper.voidUnused}）；被占用的券给出「先解绑」
      * 方向的可读 detail，而不是让运营在 409 前猜。条件更新是并发闸门：预读只为把拒绝原因说清楚，
      * 读到与写之间状态被下单/核销抢走时按 409 冲突报「请刷新重试」，不作废半份状态。
+     *
+     * <p>审计账本（audit :: api）与作废同事务：作废是不可逆的运营动作，「谁废的」必须能事后反查。
      */
     @Transactional
-    public void voidCoupon(UUID userCouponId) {
+    public void voidCoupon(UUID userCouponId, UUID operatorId) {
         // 1. 券必须存在
         UserCoupon coupon = Validate.notNull(userCouponMapper.selectById(userCouponId), "优惠券不存在");
 
@@ -99,6 +108,13 @@ public class CouponAdminService {
                 userCouponId,
                 coupon.getUserId(),
                 coupon.getTemplateId());
+        // 5. 审计账本（同一事务）：谁作废的哪张券
+        recordAuditCommand.record(
+                AuditAction.COUPON_USER_COUPON_VOIDED,
+                userCouponId,
+                operatorId,
+                staffReadQuery.displayNameById(operatorId),
+                "name=%s, user_id=%s".formatted(coupon.getName(), coupon.getUserId()));
     }
 
     /** 不可作废原因的对外文案：按当前状态说清「为什么不行」和「要怎么办」 */

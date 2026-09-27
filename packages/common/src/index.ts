@@ -98,6 +98,9 @@ export {
     COUPON_NAME_MESSAGE,
     COUPON_SOURCE_LABEL,
     COUPON_STATUS_LABEL,
+    couponFaceRuleText,
+    couponFaceText,
+    couponRateText,
     couponRuleText,
     couponSourceLabel,
     couponStatusLabel,
@@ -105,6 +108,7 @@ export {
     couponMoneyText,
     couponUnavailableReasonText,
     couponYuanText,
+    type CouponFace,
 } from "./coupon"
 
 export { MASK_SEGMENT, maskPhone } from "./mask"

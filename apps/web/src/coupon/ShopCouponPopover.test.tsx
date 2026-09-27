@@ -43,6 +43,7 @@ function makeClaimable(overrides: Partial<ClaimableCoupon> = {}): ClaimableCoupo
         id: TEMPLATE_A,
         name: "满100减10",
         threshold: { amount: 10000, currency: "CNY" },
+        type: "FULL_REDUCTION",
         discount: { amount: 1000, currency: "CNY" },
         validFrom: "2026-01-01T00:00:00Z",
         validTo: "2026-01-31T00:00:00Z",
@@ -59,6 +60,7 @@ function makeClaimedCoupon(overrides: Partial<MyCouponResponse> = {}): MyCouponR
         shopName: "测试店",
         name: "满100减10",
         threshold: { amount: 10000, currency: "CNY" },
+        type: "FULL_REDUCTION",
         discount: { amount: 1000, currency: "CNY" },
         effectiveAt: "2026-01-01T00:00:00Z",
         expireAt: "2026-01-31T00:00:00Z",
@@ -120,6 +122,7 @@ describe("ShopCouponPopover", () => {
             makeClaimable({
                 id: TEMPLATE_B,
                 threshold: { amount: 0, currency: "CNY" },
+                type: "FULL_REDUCTION",
                 discount: { amount: 500, currency: "CNY" },
             }),
         ])

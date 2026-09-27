@@ -19,6 +19,16 @@ import {
 
 const COUPON_MAX_TOTAL = 1_000_000
 
+/** 券型（镜像后端 `coupon.model.CouponType`）：满减与折扣 */
+export const COUPON_TYPE_ITEMS = [
+    { value: "FULL_REDUCTION", label: "满减券", description: "满 X 元减 Y 元" },
+    { value: "DISCOUNT", label: "折扣券", description: "满 X 元打 Z 折，最高减 W 元" },
+] as const
+
+/** 相对有效期档位（镜像后端 `CouponFieldRules.VALID_DAYS_MIN/MAX` 与库上 CHECK） */
+export const VALID_DAYS_MIN = 1
+export const VALID_DAYS_MAX = 365
+
 const yuanField = (label: string) =>
     z
         .string()
@@ -29,13 +39,15 @@ const yuanField = (label: string) =>
 export const CouponFormSchema = z
     .object({
         name: z.string().trim().min(1, "请输入券名").max(COUPON_NAME_MAX, COUPON_NAME_MESSAGE),
-        /** 使用门槛（元）：0 = 无门槛 */
+        type: z.enum(["FULL_REDUCTION", "DISCOUNT"]),
+        /** 使用门槛（元）：0 = 无门槛（两型共用） */
         thresholdYuan: yuanField("门槛金额"),
-        /** 减免额（元） */
-        discountYuan: yuanField("面额").refine(
-            (value) => (yuanToFen(value) ?? 0) > 0,
-            "面额必须大于 0",
-        ),
+        /** 减免额（元）：仅满减券 */
+        discountYuan: z.string().trim(),
+        /** 折扣率（0.90 = 9 折）：仅折扣券 */
+        discountRate: z.string().trim(),
+        /** 折扣封顶（元）：仅折扣券，必填（CPN-65） */
+        maxDiscountYuan: z.string().trim(),
         totalQuantity: z
             .string()
             .trim()
@@ -48,13 +60,49 @@ export const CouponFormSchema = z
                 (value) => Number(value) <= COUPON_MAX_TOTAL,
                 `发放总量最多 ${COUPON_MAX_TOTAL}`,
             ),
-        validFrom: z.string().trim().min(1, "请选择有效期起点"),
-        validTo: z.string().trim().min(1, "请选择有效期终点"),
+        validFrom: z.string().trim().min(1, "请选择发放窗口起点"),
+        validTo: z.string().trim().min(1, "请选择发放窗口终点"),
+        /** 领取后 N 天有效：留空 = 券沿用发放窗口作为可用期（CPN-68） */
+        validDays: z.string().trim(),
     })
     // 跨字段条款：后端也会挡（且是 400），但等一趟网络再报错不如在提交前说清楚
     .superRefine((value, ctx) => {
         const threshold = yuanToFen(value.thresholdYuan)
+
+        // 两型的面值条款各自成条：折扣券不校验「面额 ≤ 门槛」（它没有定值面额），
+        // 改判折率档位与封顶必填——封顶缺失的折扣券写不进库（DB CHECK），但那时是一句 500
+        if (value.type === "DISCOUNT") {
+            const rate = Number(value.discountRate)
+            if (!value.discountRate || Number.isNaN(rate) || rate <= 0 || rate >= 1) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: ["discountRate"],
+                    message: "折扣率需在 0.01~0.99 之间（0.90 即 9 折）",
+                })
+            }
+            const cap = yuanToFen(value.maxDiscountYuan)
+            if (value.maxDiscountYuan.trim() === "") {
+                ctx.addIssue({
+                    code: "custom",
+                    path: ["maxDiscountYuan"],
+                    message: "折扣券必须填写最高减免金额",
+                })
+            } else if (cap === undefined || cap <= 0) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: ["maxDiscountYuan"],
+                    message: "最高减免金额格式不正确",
+                })
+            }
+            return
+        }
+
         const discount = yuanToFen(value.discountYuan)
+        if (value.discountYuan.trim() === "") {
+            ctx.addIssue({ code: "custom", path: ["discountYuan"], message: "请输入面额" })
+        } else if (discount === undefined || discount <= 0) {
+            ctx.addIssue({ code: "custom", path: ["discountYuan"], message: "面额必须大于 0" })
+        }
         // 门槛为 0 时不受限：无门槛券的减免可以任意大
         if (
             threshold !== undefined &&
@@ -67,6 +115,18 @@ export const CouponFormSchema = z
                 path: ["discountYuan"],
                 message: "面额不能超过使用门槛，请检查是否填反",
             })
+        }
+
+        // 相对有效期：留空合法；填了必须是 1~365 的整数（与库上 CHECK 同值）
+        if (value.validDays.trim() !== "") {
+            const days = Number(value.validDays)
+            if (!Number.isInteger(days) || days < VALID_DAYS_MIN || days > VALID_DAYS_MAX) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: ["validDays"],
+                    message: `领取后有效天数需为 ${VALID_DAYS_MIN}~${VALID_DAYS_MAX} 的整数`,
+                })
+            }
         }
 
         if (value.validFrom && value.validTo) {
@@ -88,11 +148,15 @@ export type CouponFormValues = z.infer<typeof CouponFormSchema>
 export function emptyCouponForm(): CouponFormValues {
     return {
         name: "",
+        type: "FULL_REDUCTION",
         thresholdYuan: "0",
         discountYuan: "",
+        discountRate: "",
+        maxDiscountYuan: "",
         totalQuantity: "100",
         validFrom: "",
         validTo: "",
+        validDays: "",
     }
 }
 
@@ -111,9 +175,21 @@ export function couponRequestFromForm(values: CouponFormValues): CreateCouponTem
     const thresholdAmount = yuanToMoney(values.thresholdYuan)
     if (thresholdAmount === undefined) throw new Error("门槛金额格式不正确")
 
-    const discountAmount = yuanToMoney(values.discountYuan)
-    if (discountAmount === undefined || !isPositiveMoney(discountAmount))
-        throw new Error("面额格式不正确")
+    // 两型各投影自己那一半：另一型的格发缺省（后端 + DB CHECK 都按「缺省即不适用」判）
+    let discountAmount
+    let discountRate
+    let maxDiscountAmount
+    if (values.type === "DISCOUNT") {
+        discountRate = Number(values.discountRate)
+        if (Number.isNaN(discountRate)) throw new Error("折扣率格式不正确")
+        maxDiscountAmount = yuanToMoney(values.maxDiscountYuan)
+        if (maxDiscountAmount === undefined || !isPositiveMoney(maxDiscountAmount))
+            throw new Error("最高减免金额格式不正确")
+    } else {
+        discountAmount = yuanToMoney(values.discountYuan)
+        if (discountAmount === undefined || !isPositiveMoney(discountAmount))
+            throw new Error("面额格式不正确")
+    }
 
     const totalQuantity = Number(values.totalQuantity)
     if (!Number.isInteger(totalQuantity) || totalQuantity < 1) {
@@ -124,12 +200,18 @@ export function couponRequestFromForm(values: CouponFormValues): CreateCouponTem
     const validTo = localDateTimeToIso(values.validTo)
     if (!validFrom || !validTo) throw new Error("有效期格式不正确")
 
+    const validDays = values.validDays.trim() === "" ? undefined : Number(values.validDays)
+
     return {
         name: values.name.trim(),
+        type: values.type,
         thresholdAmount,
         discountAmount,
+        discountRate,
+        maxDiscountAmount,
         totalQuantity,
         validFrom,
         validTo,
+        validDays,
     }
 }
