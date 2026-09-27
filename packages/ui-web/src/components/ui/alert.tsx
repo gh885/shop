@@ -10,7 +10,7 @@ const alertVariants = cva(
         default: "bg-card text-card-foreground",
         destructive:
           "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
-        // DESIGN.md §9：状态提示走 subtle 弱底三件套，不用 cta-alt 琥珀金。
+        // DESIGN.md §2.2：状态提示走 subtle 弱底三件套，不用 cta-alt 琥珀金。
         // destructive 沿用上面那条 text-destructive 红（与 StateError 的归因错误同族），
         // 只有「状态告知」这一档才铺 warning 底。description 自带 text-muted-foreground，
         // 弱底上会掉到 4.5:1 以下（§7），必须跟着前景色走。
