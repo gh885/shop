@@ -17,18 +17,9 @@ import {
     TableShell,
 } from "@shop/ui-web"
 
-import { ADDRESS_LABELS, type Address } from "./address"
+import { foldRegion } from "@shop/common"
 
-/** 类型守卫：in 检查把 label 收窄为 ADDRESS_LABELS 的键（in 本身不会把 string 收窄成 keyof） */
-function isAddressLabel(label: string): label is keyof typeof ADDRESS_LABELS {
-    return label in ADDRESS_LABELS
-}
-
-function labelName(label?: string) {
-    if (!label) return undefined
-    // 未知（自定义）标签按原样文本展示
-    return isAddressLabel(label) ? ADDRESS_LABELS[label] : label
-}
+import { labelName, type Address } from "./address"
 
 export interface AddressTableProps {
     addresses: Address[]
@@ -87,7 +78,7 @@ export function AddressTable({
                                     <TableCell variant="strong">{a.receiver}</TableCell>
                                     <TableCell className="tabular-nums">{a.phone}</TableCell>
                                     <TableCell className="whitespace-nowrap">
-                                        {[a.province, a.city, a.district].filter(Boolean).join(" ")}
+                                        {foldRegion(a)}
                                     </TableCell>
                                     {/* 地址要看全：换行而不是截断（nowrap 下的 truncate 会压到操作列上） */}
                                     <TableCell className="max-w-80 whitespace-normal">

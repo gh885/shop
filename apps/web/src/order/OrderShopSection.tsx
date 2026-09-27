@@ -3,7 +3,7 @@ import { Button, Image, Panel, PanelContent, PanelHeader } from "@shop/ui-web"
 import { Price } from "#/shared/ui/Price"
 
 import { ORDER_ITEM_ACTIONS } from "./constants"
-import type { OrderItem } from "./model"
+import { orderItemKey, type OrderItem } from "./model"
 
 /**
  * 店铺 + 商品信息区：店铺行（店名 + 查看交易快照）+ 逐条商品行。
@@ -60,7 +60,7 @@ export function OrderShopSection({
             <PanelContent>
                 {items.map((item) => (
                     <div
-                        key={`${item.productId}-${item.skuId}-${item.quantity}`}
+                        key={orderItemKey(item)}
                         className="flex items-center gap-4 px-5 py-4"
                     >
                         {/* 主图 */}

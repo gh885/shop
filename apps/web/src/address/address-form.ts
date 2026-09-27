@@ -8,7 +8,7 @@ import {
     AddressRegionCodeSchema,
 } from "@shop/common"
 
-import { ADDRESS_LABELS, type Address, type AddressInput } from "./address"
+import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from "./address"
 
 /**
  * address/address-form —— 地址表单的纯逻辑：入参校验、初值、标签判定。
@@ -55,10 +55,8 @@ export function toDefaults(a?: Address): AddressInput {
     }
 }
 
-/** 命中内置标签表（空/未选一律 false） */
-export function isBuiltinLabel(value?: string): boolean {
-    return LABEL_OPTIONS.some((l) => l.value === value)
-}
+/** 命中内置标签表：判定住在 ./address（表的 owner），这里只透给表单 */
+export { isBuiltinLabel } from "./address"
 
 /** 自定义标签：有值且不在内置表里。空串是「未选」，不该展开自定义输入框 */
 export function isCustomLabel(value?: string): boolean {

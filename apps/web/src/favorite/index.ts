@@ -6,7 +6,13 @@
  * 页面局部的 UI 态（keyword / batchMode / selected）由页面 useState 持有，不在这里。
  */
 
-export { filterFavorites } from "./favorite"
+export {
+    EMPTY_SELECTION,
+    dropSelection,
+    filterFavorites,
+    pickAllSelection,
+    toggleSelection,
+} from "./favorite"
 
 export {
     favoriteItemsOptions,

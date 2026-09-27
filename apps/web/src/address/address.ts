@@ -59,6 +59,17 @@ export const ADDRESS_LABELS = {
     FRIEND: "朋友家",
 } as const
 
+/** 命中内置标签表。类型守卫：`in` 把 string 收窄成 ADDRESS_LABELS 的键（`in` 本身不收窄） */
+export function isBuiltinLabel(label: string): label is keyof typeof ADDRESS_LABELS {
+    return label in ADDRESS_LABELS
+}
+
+/** 标签展示名：内置标签查表，自定义标签按原样文本读回（用户自己写的那句），未选给 undefined */
+export function labelName(label?: string): string | undefined {
+    if (!label) return undefined
+    return isBuiltinLabel(label) ? ADDRESS_LABELS[label] : label
+}
+
 /**
  * 默认地址：打了标记的那条，没有则列表第一条。
  *

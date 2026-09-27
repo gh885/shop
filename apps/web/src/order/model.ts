@@ -93,6 +93,35 @@ export function isShipOverdue(
     return order.shipExpireAt !== null && new Date(order.shipExpireAt).getTime() < now
 }
 
+/** 一单的件数（逐行 quantity 求和）：卡片上「共 N 件」那一行的唯一算法 */
+export function orderTotalQuantity(items: readonly Pick<OrderItem, "quantity">[]): number {
+    return items.reduce((sum, item) => sum + item.quantity, 0)
+}
+
+/**
+ * 订单行的渲染 key：后端行项没有 id，快照只留 productId/skuId（见 {@link OrderItem}）。
+ *  同一 SKU 买两件是两个行，所以 quantity 也在 key 里。 */
+export function orderItemKey(item: Pick<OrderItem, "productId" | "skuId" | "quantity">): string {
+    return `${item.productId}-${item.skuId}-${item.quantity}`
+}
+
+/**
+ * 收货地址折成一行。
+ *
+ * 四段在订单快照上是四列，展示时永远连读，所以拼接口径只有一处：摘要卡、状态区、
+ * 物流页此前各写一遍（两处 `+`、一处模板字符串），改口径时只有其中一处会跟着变。
+ */
+export function receiverFullAddress(
+    order: Pick<
+        OrderDetail,
+        "receiverProvince" | "receiverCity" | "receiverDistrict" | "receiverDetail"
+    >,
+): string {
+    return (
+        order.receiverProvince + order.receiverCity + order.receiverDistrict + order.receiverDetail
+    )
+}
+
 /**
  * 订单按钮上的动作。
  *

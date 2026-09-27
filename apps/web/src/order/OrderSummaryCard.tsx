@@ -5,7 +5,7 @@ import { Price } from "#/shared/ui/Price"
 import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 
 import { ORDER_STATUS_LABEL } from "./constants"
-import type { OrderDetail } from "./model"
+import { receiverFullAddress, type OrderDetail } from "./model"
 import { Copy, ChevronDown } from "lucide-react"
 import {
     Card,
@@ -45,8 +45,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
-    const fullAddress =
-        order.receiverProvince + order.receiverCity + order.receiverDistrict + order.receiverDetail
+    const fullAddress = receiverFullAddress(order)
 
     return (
         <div className="space-y-5">

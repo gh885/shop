@@ -1,5 +1,12 @@
 import type { ClaimableCouponResponse, MyCouponResponse } from "@shop/api/sdk"
-import { ErrorCodes, couponStatusLabel, toApiError } from "@shop/common"
+import { formatDateTime } from "@shop/app-kit"
+import {
+    COUPON_STATUS_META,
+    ErrorCodes,
+    USER_COUPON_STATUSES,
+    statusOptions,
+    toApiError,
+} from "@shop/common"
 
 /**
  * coupon 领域层 —— 优惠券的业务类型 + wire→领域投影 + 本域纯派生（不碰 React / 网络）。
@@ -51,17 +58,19 @@ export function toClaimableCoupon(dto: ClaimableCouponResponse): ClaimableCoupon
 export type CouponTab = "UNUSED" | "USED" | "EXPIRED"
 
 /**
- * 券包页签。标签取共享文案层的 `couponStatusLabel`，不另写一份中文：
- * 页签叫「已过期」而卡片标签叫「过期券」是同一件事的两种说法。
+ * 券包页签：状态表的一个子集，中文从 `COUPON_STATUS_META`（@shop/common）派生。
+ *
+ * 页签和卡片徽章说的是同一个状态，只许有一份中文；这里只声明「哪几个状态成页签」，
+ * 名字交给表——省掉逐条 `couponStatusLabel("UNUSED")` 那种「加一页签要手写一遍码」的复制。
  *
  * 「未使用」页签在后端同时收 LOCKED（已被未付款订单占用）—— 对用户它就是「还没用掉的券」，
  * 所以一页里可能混两种展示状态，见 {@link groupByStatus}。
  */
-export const COUPON_TABS: readonly { value: CouponTab; label: string }[] = [
-    { value: "UNUSED", label: couponStatusLabel("UNUSED") },
-    { value: "USED", label: couponStatusLabel("USED") },
-    { value: "EXPIRED", label: couponStatusLabel("EXPIRED") },
-]
+export const COUPON_TABS = statusOptions<CouponTab>(COUPON_STATUS_META, [
+    "UNUSED",
+    "USED",
+    "EXPIRED",
+])
 
 /** 券包一页的默认条数：与分页控件共用一个常量，避免两处各写一个数导致总页数算错 */
 export const COUPON_PAGE_SIZE = 10
@@ -70,10 +79,11 @@ export const COUPON_PAGE_SIZE = 10
 export type CouponGroup = { status: string; coupons: MyCoupon[] }
 
 /**
- * 状态机顺序：未使用 → 结算中 → 已使用 → 已过期 → 已作废。
- * 分组顺序按它固定，不随接口返回顺序抖动（同一份数据两次渲染分组位置不同是「列表在跳」的错觉来源）。
+ * 分组顺序按 `USER_COUPON_STATUSES`（@shop/common）里登记的次序固定，不随接口返回顺序抖动
+ * （同一份数据两次渲染分组位置不同是「列表在跳」的错觉来源）。
+ * 顺序只在码表那一处登记：这里再抄一份数组，加状态时这份不会报错，只会把新状态挤到最后。
  */
-const STATUS_ORDER = ["UNUSED", "LOCKED", "USED", "EXPIRED", "VOID"]
+const STATUS_ORDER: readonly string[] = USER_COUPON_STATUSES
 
 /** 未知状态排在最后（契约新增状态值时不会插到「未使用」前面），组内保持接口原顺序 */
 function statusRank(status: string): number {
@@ -95,6 +105,24 @@ export function groupByStatus(coupons: MyCoupon[]): CouponGroup[] {
     return [...groups.entries()]
         .toSorted(([a], [b]) => statusRank(a) - statusRank(b))
         .map(([status, list]) => ({ status, coupons: list }))
+}
+
+// 券面的补充行
+/**
+ * 时间原因灰字（C8）：只对「还在手上却暂时/永远用不了」的行给出。
+ * 未使用且已过期不会走到 EXPIRED 分支 —— 后端展示状态已把它折叠成 EXPIRED 徽章；
+ * 到得了这里的过期是 LOCKED（被未付款订单占用、收敛任务不碰它），状态徽章不会解释这个。
+ */
+export function couponTimeReasonHint(coupon: MyCoupon): string | undefined {
+    if (coupon.status !== "UNUSED" && coupon.status !== "LOCKED") return undefined
+    switch (coupon.unavailableReason) {
+        case "NOT_EFFECTIVE":
+            return `尚未开始，${formatDateTime(coupon.effectiveAt)} 起可用`
+        case "EXPIRED":
+            return "使用时间已过，本单之外不能再使用"
+        default:
+            return undefined
+    }
 }
 
 // 错误判定

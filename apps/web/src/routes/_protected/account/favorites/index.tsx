@@ -14,9 +14,13 @@ import {
 import { HeartOff } from "lucide-react"
 
 import {
+    dropSelection,
+    EMPTY_SELECTION,
     FavoriteCard,
     favoriteItemsOptions,
     filterFavorites,
+    pickAllSelection,
+    toggleSelection,
     Toolbar,
     useRemoveFavorites,
 } from "#/favorite"
@@ -62,7 +66,7 @@ function FavoritesPage() {
     // 页面局部 UI 状态（真实源在客户端）→ useState，不进 query
     const [keyword, setKeyword] = useState("")
     const [batchMode, setBatchMode] = useState(false)
-    const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+    const [selected, setSelected] = useState<ReadonlySet<string>>(EMPTY_SELECTION)
 
     // 主体数据由 loader 读完（失败已由路由错误页接管）
     const favorites = useSuspenseQuery(favoriteItemsOptions).data
@@ -70,14 +74,10 @@ function FavoritesPage() {
 
     const filtered = filterFavorites(favorites, keyword)
 
+    // 勾选集合的转移规则（谁变、什么不变、什么时候换引用）在 favorite.ts
     function handleRemove(productId: string) {
         removeFavorites.mutate([productId])
-        setSelected((prev) => {
-            if (!prev.has(productId)) return prev
-            const next = new Set(prev)
-            next.delete(productId)
-            return next
-        })
+        setSelected((prev) => dropSelection(prev, productId))
     }
 
     function handleBatchDelete() {
@@ -88,27 +88,22 @@ function FavoritesPage() {
             confirmText: "移除",
             action: async () => {
                 await removeFavorites.mutateAsync([...selected])
-                setSelected(new Set())
+                setSelected(EMPTY_SELECTION)
             },
         })
     }
 
     function handleToggleSelectAll(checked: boolean) {
-        setSelected(checked ? new Set(filtered.map((f) => f.productId)) : new Set())
+        setSelected(pickAllSelection(filtered, checked))
     }
 
     function toggleSelect(productId: string) {
-        setSelected((prev) => {
-            const next = new Set(prev)
-            if (next.has(productId)) next.delete(productId)
-            else next.add(productId)
-            return next
-        })
+        setSelected((prev) => toggleSelection(prev, productId))
     }
 
     function toggleBatchMode() {
         // 退出批量模式时清空选择；updater 内不副作用（不纯），按当前值直接更新
-        if (batchMode) setSelected(new Set())
+        if (batchMode) setSelected(EMPTY_SELECTION)
         setBatchMode(!batchMode)
     }
 

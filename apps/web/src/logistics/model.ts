@@ -1,5 +1,6 @@
-import { format, isValid } from "date-fns"
+import { isValid } from "date-fns"
 
+import { formatDateTime, formatTimeShort } from "@shop/app-kit"
 import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/api/sdk"
 
 /**
@@ -80,14 +81,15 @@ export type ShipmentTrack = {
 
 // 纯规则
 /**
- * ISO 时间 → 节点时间文案「MM-dd HH:mm」。
- * 与 app-kit 的 formatTimeShort 不同：**跨年补年份**——只给月日时，去年 12 月与今年 12 月在
- * 同一条轴上无法区分。非法时间原样返回（与展示兜底约定一致）。
+ * ISO 时间 → 轨迹节点的时间文案。
+ * 比 app-kit 的 formatTimeShort 多做一件事：**跨年补年份**——只给月日时，去年 12 月与今年 12 月
+ * 在同一条轴上无法区分。形状本身（短时间 / 完整时间）不在这里重写模式串，交给 app-kit 那两处：
+ * 抄一份 `MM-dd HH:mm` 的下场是英文站拿到中文站的形状。非法时间原样返回（与展示兜底约定一致）。
  */
 export function formatNodeTime(iso: string, now: Date = new Date()): string {
     const d = new Date(iso)
     if (!isValid(d)) return iso
-    return format(d, d.getFullYear() === now.getFullYear() ? "MM-dd HH:mm" : "yyyy-MM-dd HH:mm")
+    return d.getFullYear() === now.getFullYear() ? formatTimeShort(iso) : formatDateTime(iso)
 }
 
 /** 轴上的节点总数（折叠判定用） */
@@ -122,6 +124,35 @@ export function markLatest(groups: TrackingGroup[]): TrackingGroup[] {
             return { ...node, latest: true }
         }),
     }))
+}
+
+/**
+ * 时间轴上的一行 = 一个节点（摊平后记下它是不是段首）。
+ *
+ * 组件只认 `head` / `label` / `abnormal` 三个已判定的分级，不在渲染里再判一次 `index === 0`——
+ * 那等于把「段首是谁」这条规则的第二份答案写进 UI。
+ */
+export type TimelineRow = {
+    node: TrackingNode
+    key: string
+    /** 段首行：要画段标题；段内续行只有时间 */
+    head: boolean
+    /** 段标题文案（head 行才用） */
+    label: string
+    abnormal: boolean
+}
+
+/** 分段轨迹摊平成行（段序与段内序都沿用给进来的轴序） */
+export function toTimelineRows(groups: TrackingGroup[]): TimelineRow[] {
+    return groups.flatMap((group) =>
+        group.nodes.map((node, index) => ({
+            node,
+            key: node.key,
+            head: index === 0,
+            label: group.label,
+            abnormal: group.abnormal,
+        })),
+    )
 }
 
 /**

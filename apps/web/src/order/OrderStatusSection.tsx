@@ -1,7 +1,12 @@
 import { MapPin } from "lucide-react"
 
 import { ORDER_STATUS_LABEL } from "./constants"
-import { deriveOrderActions, type OrderAction, type OrderDetail } from "./model"
+import {
+    deriveOrderActions,
+    receiverFullAddress,
+    type OrderAction,
+    type OrderDetail,
+} from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
 
@@ -35,8 +40,7 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
     // 待付款订单展示付款截止倒计时
     const pending = order.status === "pending_payment"
     const { seconds } = useDeadline(pending ? order.payExpireAt : "")
-    const fullAddress =
-        order.receiverProvince + order.receiverCity + order.receiverDistrict + order.receiverDetail
+    const fullAddress = receiverFullAddress(order)
 
     return (
         <div className="space-y-5">

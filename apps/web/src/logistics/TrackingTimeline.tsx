@@ -3,7 +3,7 @@ import { useState } from "react"
 
 import { cn, Collapsible, CollapsibleTrigger } from "@shop/ui-web"
 
-import { countNodes, sliceGroups, type TrackingGroup, type TrackingNode } from "./model"
+import { countNodes, sliceGroups, toTimelineRows, type TrackingGroup } from "./model"
 
 /**
  * 轨迹时间轴 —— 本页主体。
@@ -29,29 +29,6 @@ export interface TrackingTimelineProps {
     className?: string
 }
 
-/** 一行 = 一个节点（已摊平并记下它是不是段首） */
-type Row = {
-    node: TrackingNode
-    key: string
-    /** 段首行：要画段标题；段内续行只有时间 */
-    head: boolean
-    /** 段标题文案（head 行才用） */
-    label: string
-    abnormal: boolean
-}
-
-function toRows(groups: TrackingGroup[]): Row[] {
-    return groups.flatMap((group) =>
-        group.nodes.map((node, index) => ({
-            node,
-            key: node.key,
-            head: index === 0,
-            label: group.label,
-            abnormal: group.abnormal,
-        })),
-    )
-}
-
 export function TrackingTimeline({
     groups,
     collapsedCount = DEFAULT_COLLAPSED_COUNT,
@@ -70,7 +47,9 @@ export function TrackingTimeline({
     }
 
     const collapsible = total > collapsedCount
-    const rows = toRows(collapsible && !expanded ? sliceGroups(groups, collapsedCount) : groups)
+    const rows = toTimelineRows(
+        collapsible && !expanded ? sliceGroups(groups, collapsedCount) : groups,
+    )
 
     return (
         <Collapsible

@@ -1,7 +1,15 @@
 import type { FavoriteItemView } from "@shop/api/sdk"
 import { describe, expect, it } from "vitest"
 
-import { collectText, filterFavorites, toFavoriteItem } from "./favorite"
+import {
+    collectText,
+    dropSelection,
+    EMPTY_SELECTION,
+    filterFavorites,
+    pickAllSelection,
+    toggleSelection,
+    toFavoriteItem,
+} from "./favorite"
 
 /**
  * 测试夹具：FavoriteItemView wire 形状可控构造。
@@ -66,5 +74,33 @@ describe("collectText", () => {
     it("只加「人收藏」后缀，折万吃 compactCount：万以下原样，过万折", () => {
         expect(collectText(12)).toBe("12人收藏")
         expect(collectText(10000)).toBe("1万人收藏")
+    })
+})
+
+/**
+ * 勾选集合的三条转移。值得单独测的是「什么时候不换引用」：
+ * 无关的一次 setState 若换掉整个 Set，收藏页每张卡片都会跟着重渲染。
+ */
+describe("批量选择转移", () => {
+    it("点选未选中的商品_加进集合", () => {
+        expect([...toggleSelection(EMPTY_SELECTION, "p-1")]).toEqual(["p-1"])
+    })
+
+    it("再点一次_取消选择，其余勾选不动", () => {
+        const picked = toggleSelection(toggleSelection(EMPTY_SELECTION, "p-1"), "p-2")
+        expect([...toggleSelection(picked, "p-1")]).toEqual(["p-2"])
+    })
+
+    it("商品被移出收藏后它的勾选一并作废_没勾过它就返回同一个引用", () => {
+        const picked = toggleSelection(EMPTY_SELECTION, "p-1")
+        expect([...dropSelection(picked, "p-1")]).toEqual([])
+        const untouched = dropSelection(picked, "p-9")
+        expect(untouched).toBe(picked)
+    })
+
+    it("全选吃当前筛选结果_关键词过滤掉的商品不会被顺手选中", () => {
+        const items = [{ productId: "p-1" }, { productId: "p-2" }]
+        expect(pickAllSelection(items, true)).toEqual(new Set(["p-1", "p-2"]))
+        expect(pickAllSelection(items, false)).toBe(EMPTY_SELECTION)
     })
 })

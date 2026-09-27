@@ -84,7 +84,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                     <PopoverTitle>店内优惠券</PopoverTitle>
                 </PopoverHeader>
                 {/* 券数无上界（模板是卖家随手建的），不给高度上限时超出的券连同「领取」按钮会被顶出视口且无滚动提示。
-                    ScrollArea 而非 overflow-y-auto：视口自身可聚焦（滚动区键盘可达，DESIGN.md §7），
+                    ScrollArea 而非 overflow-y-auto：视口自身可聚焦（滚动区键盘可达，DESIGN.md §8.1），
                     滚动条由组件自绘，不暴露各浏览器不同的原生条 */}
                 <ScrollArea className="max-h-72">
                     <ul className="flex flex-col gap-3">

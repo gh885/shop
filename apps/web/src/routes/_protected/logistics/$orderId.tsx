@@ -12,7 +12,7 @@ import {
     buildShipmentTracks,
     orderTrackingOptions,
 } from "#/logistics"
-import { orderDetailOptions } from "#/order"
+import { orderDetailOptions, receiverFullAddress } from "#/order"
 import {
     Empty,
     EmptyDescription,
@@ -83,9 +83,7 @@ function LogisticsPage() {
     const tracks = buildShipmentTracks(tracking?.shipments ?? [], order)
     // 摘要卡口径 = 首个正向包裹（与订单列表里那条物流摘要同源）
     const primary = tracks.find((track) => track.direction === "FORWARD") ?? tracks[0]
-    const fullAddress = order
-        ? `${order.receiverProvince}${order.receiverCity}${order.receiverDistrict}${order.receiverDetail}`
-        : ""
+    const fullAddress = order ? receiverFullAddress(order) : ""
 
     return (
         <div className="flex flex-1 flex-col">

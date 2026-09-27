@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import type { MyCouponResponse } from "@shop/api/sdk"
+import { formatDateTime } from "@shop/app-kit"
 import { makeMyCouponResponse as makeContractCoupon } from "@shop/test-utils/fixtures"
 
 import {
     COUPON_TABS,
+    couponTimeReasonHint,
     groupByStatus,
     isCouponAlreadyClaimed,
     toMyCoupon,
@@ -12,7 +14,7 @@ import {
 } from "./coupon"
 
 /**
- * coupon 领域纯逻辑：wire→领域投影、页签定义、按状态分组、领券错误判定。
+ * coupon 领域纯逻辑：wire→领域投影、页签定义、按状态分组、券面时间灰字的给出条件、领券错误判定。
  *
  * 关心的都是「藏着一个错的映射 / 反的布尔 / 漏掉的兜底就会红」的分支：
  * null→undefined 的归一、先到先得闸门不被改写、LOCKED 与 UNUSED 的分组顺序、
@@ -95,6 +97,46 @@ describe("groupByStatus", () => {
 
         expect(groups).toHaveLength(1)
         expect(groups[0]?.coupons.map((c) => c.id)).toEqual(["a", "b", "c"])
+    })
+})
+
+describe("couponTimeReasonHint", () => {
+    it("还没生效的券_灰字给出起用时间，日期按当前 Locale 渲染", () => {
+        const coupon = makeMyCoupon({ unavailableReason: "NOT_EFFECTIVE" })
+
+        expect(couponTimeReasonHint(coupon)).toBe(
+            `尚未开始，${formatDateTime(coupon.effectiveAt)} 起可用`,
+        )
+    })
+
+    it("结算中但时间已过的券_说清本单之外不能再使用", () => {
+        expect(
+            couponTimeReasonHint(makeMyCoupon({ status: "LOCKED", unavailableReason: "EXPIRED" })),
+        ).toBe("使用时间已过，本单之外不能再使用")
+    })
+
+    it("徽章已解释过的过期不再重复_状态是 EXPIRED 时不给灰字", () => {
+        expect(
+            couponTimeReasonHint(makeMyCoupon({ status: "EXPIRED", unavailableReason: "EXPIRED" })),
+        ).toBeUndefined()
+    })
+
+    it("用掉作废的券不承担解释义务_/已使用、已作废一律不给", () => {
+        for (const status of ["USED", "VOID"]) {
+            expect(
+                couponTimeReasonHint(makeMyCoupon({ status, unavailableReason: "EXPIRED" })),
+            ).toBeUndefined()
+        }
+    })
+
+    it("没有原因的券不给灰字_不凭空补一句解释", () => {
+        expect(couponTimeReasonHint(makeMyCoupon())).toBeUndefined()
+    })
+
+    it("契约给出新的原因码_不硬翻译成一句假解释", () => {
+        expect(
+            couponTimeReasonHint(makeMyCoupon({ unavailableReason: "THRESHOLD_NOT_MET" })),
+        ).toBeUndefined()
     })
 })
 

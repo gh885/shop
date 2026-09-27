@@ -16,7 +16,14 @@ import {
 import { ChevronRight, Package, Store } from "lucide-react"
 
 import { ORDER_CARD_STATUS_META, ORDER_STATUS_LABEL } from "./constants"
-import { deriveOrderActions, isShipOverdue, type Order, type OrderAction } from "./model"
+import {
+    deriveOrderActions,
+    isShipOverdue,
+    orderItemKey,
+    orderTotalQuantity,
+    type Order,
+    type OrderAction,
+} from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
 import { formatDateTime } from "@shop/app-kit"
@@ -35,10 +42,6 @@ import { Price } from "#/shared/ui/Price"
  * 操作按钮按订单可执行动作渲染（后端算的）。纯展示，回调交给外部。
  * 行项无独立 id（订单快照只留 productId/skuId），渲染 key 用 `productId+skuId+quantity`。
  */
-
-/** 行项渲染 key：一行订单内可能同一 SKU 出现多次（不同快照），拼 quantity 兜底去重 */
-const orderItemKey = (item: Order["items"][number]) =>
-    `${item.productId}-${item.skuId}-${item.quantity}`
 
 export interface OrderCardProps {
     order: Order
@@ -63,7 +66,7 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
             ? `商家已超过发货时限（${formatDateTime(shipDeadline)}），可取消订单并退款`
             : `商家需在 ${formatDateTime(shipDeadline)} 前发货`
         : undefined
-    const quantity = order.items.reduce((sum, item) => sum + item.quantity, 0)
+    const quantity = orderTotalQuantity(order.items)
     // 列表 itemAmount 是净额占位；商品总额只能从成交快照的行小计求和。
     const itemTotal = sumMoney(order.items.map((item) => item.amount))
 

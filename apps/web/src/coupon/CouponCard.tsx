@@ -1,15 +1,15 @@
 import { Link } from "@tanstack/react-router"
 
-import { formatDate, formatDateTime } from "@shop/app-kit"
+import { formatDate } from "@shop/app-kit"
 import {
     couponFaceRuleText,
     couponFaceText,
     couponSourceLabel,
-    couponStatusLabel,
+    couponStatusMeta,
 } from "@shop/common"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
-import type { MyCoupon } from "./coupon"
+import { type MyCoupon, couponTimeReasonHint } from "./coupon"
 
 /**
  * 券卡片 —— 券包里的一张券。
@@ -31,7 +31,9 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
     const rule = couponFaceRuleText(coupon.threshold, coupon)
     const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt)} 至 ${formatDate(coupon.expireAt)}`
-    const timeHint = timeReasonHint(coupon)
+    const timeHint = couponTimeReasonHint(coupon)
+    // 文字与徽章色取自 @shop/common 那一张 COUPON_STATUS_META（未知状态回退中性描边）
+    const status = couponStatusMeta(coupon.status)
 
     return (
         <article className="flex items-center gap-4 rounded-lg border border-border bg-card p-4">
@@ -81,40 +83,9 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
             </div>
 
             <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <Badge variant={STATUS_VARIANT[coupon.status] ?? "outline"}>
-                    {couponStatusLabel(coupon.status)}
-                </Badge>
+                <Badge variant={status.variant}>{status.label}</Badge>
                 <Badge variant="ghost">{couponSourceLabel(coupon.source)}</Badge>
             </div>
         </article>
     )
-}
-
-/**
- * 展示状态 → 标签皮肤。文字（`couponStatusLabel`）始终存在，颜色只是让一屏多张券能一眼扫出区别；
- * 契约新增状态值时回退 outline，不会因为缺一个 variant 就渲染不出来。
- */
-const STATUS_VARIANT: Record<string, "success" | "warning" | "secondary" | "outline"> = {
-    UNUSED: "success",
-    LOCKED: "warning",
-    USED: "secondary",
-    EXPIRED: "outline",
-    VOID: "outline",
-}
-
-/**
- * 时间原因灰字（C8）：只对「还在手上却暂时/永远用不了」的行给出。
- * 未使用且已过期不会走到 EXPIRED 分支 —— 后端展示状态已把它折叠成 EXPIRED 徽章；
- * 到得了这里的过期是 LOCKED（被未付款订单占用、收敛任务不碰它），状态徽章不会解释这个。
- */
-function timeReasonHint(coupon: MyCoupon): string | undefined {
-    if (coupon.status !== "UNUSED" && coupon.status !== "LOCKED") return undefined
-    switch (coupon.unavailableReason) {
-        case "NOT_EFFECTIVE":
-            return `尚未开始，${formatDateTime(coupon.effectiveAt)} 起可用`
-        case "EXPIRED":
-            return "使用时间已过，本单之外不能再使用"
-        default:
-            return undefined
-    }
 }
