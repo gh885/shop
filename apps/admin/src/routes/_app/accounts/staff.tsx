@@ -1,19 +1,40 @@
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { StaffListPage } from "#/account/list-page"
-import { staffSearchSchema } from "#/account/queries"
+import { AccountFilters } from "#/account/filters"
+import { staffColumns } from "#/account/columns"
+import { STAFF_STATUS_OPTIONS } from "#/account/constants"
+import { adminStaffOptions, staffSearchSchema } from "#/account/queries"
+import { StaffCreateDialog } from "#/account/staff-create-dialog"
+import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/accounts/staff")({
     validateSearch: staffSearchSchema,
-    component: StaffPage,
+    component: StaffRoute,
 })
 
-function StaffPage() {
+/** 平台员工列表：与买家账号同一份外壳与筛选栏，只差状态枚举和「新建员工」入口。 */
+function StaffRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
+    const query = useQuery(adminStaffOptions(search))
+
     return (
-        <StaffListPage
+        <PagedListShell
+            title="员工管理"
+            description="创建平台员工、调整岗位与管理登录状态"
+            actions={<StaffCreateDialog />}
             search={search}
             navigate={navigate}
+            query={query}
+            columns={staffColumns}
+            emptyContent="暂无符合条件的账号"
+            filters={
+                <AccountFilters
+                    search={search}
+                    navigate={navigate}
+                    options={STAFF_STATUS_OPTIONS}
+                />
+            }
         />
     )
 }

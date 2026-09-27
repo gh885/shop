@@ -7,7 +7,7 @@ import { BannerFormDialog } from "#/cms/banner/form-dialog"
 import { bannerListOptions } from "#/cms/banner/queries"
 import { bannerColumns } from "#/cms/banner/table"
 import { CMS_BANNER_SLOTS, CMS_KEY_MAX } from "#/cms/constants"
-import { CmsListPage } from "#/cms/list-page"
+import { CmsListShell } from "#/cms/list-shell"
 
 export const Route = createFileRoute("/_app/cms/banner")({
     validateSearch: z.object({
@@ -23,7 +23,7 @@ function BannerPage() {
     const { data: banners = [], isPending } = useQuery(bannerListOptions(slot))
 
     return (
-        <CmsListPage
+        <CmsListShell
             title="运营位 Banner"
             description="首页与频道页运营位配置；支持定时上下线窗口，停用即下线、不做物理删除"
             columns={bannerColumns}

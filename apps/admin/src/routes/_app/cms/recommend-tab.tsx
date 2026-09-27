@@ -6,7 +6,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { TabFormDialog } from "#/cms/recommend-tab/form-dialog"
 import { tabListOptions } from "#/cms/recommend-tab/queries"
 import { tabColumns } from "#/cms/recommend-tab/table"
-import { CmsListPage } from "#/cms/list-page"
+import { CmsListShell } from "#/cms/list-shell"
 
 export const Route = createFileRoute("/_app/cms/recommend-tab")({
     validateSearch: z.object({}),
@@ -17,7 +17,7 @@ function RecommendTabPage() {
     const { data: tabs = [], isPending } = useQuery(tabListOptions())
 
     return (
-        <CmsListPage
+        <CmsListShell
             title="推荐条词条"
             description="首页猜你喜欢词条栏配置；词条顺序即前台展示顺序，默认词条全局唯一"
             columns={tabColumns}

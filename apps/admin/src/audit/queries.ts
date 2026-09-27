@@ -28,6 +28,19 @@ export const auditKeys = {
 }
 
 /**
+ * 列表与导出共用的筛选参数（两处各写一遍就会「导出的和看到的不一样」）：
+ * 时间窗原样透传，后端判的是闭开区间 `[from, to)`。
+ */
+export const auditFilterParams = (input: AuditSearch) => ({
+    operatorId: input.operatorId,
+    targetType: input.targetType,
+    targetId: input.targetId,
+    action: input.action,
+    from: input.from,
+    to: input.to,
+})
+
+/**
  * 审计列表取数：参数即 key 的一部分，出参只裁 records/total。
  *
  * 时间窗原样透传：后端判的是闭开区间 `[from, to)`，而页面上的时间选择器给的是
@@ -41,14 +54,7 @@ export const auditListOptions = (input: AuditSearch) =>
             const result = await AdminAuditsApi.listAuditRecords({
                 query: {
                     pageParams: { page: input.page, size: input.size },
-                    query: {
-                        operatorId: input.operatorId,
-                        targetType: input.targetType,
-                        targetId: input.targetId,
-                        action: input.action,
-                        from: input.from,
-                        to: input.to,
-                    },
+                    query: auditFilterParams(input),
                 },
             })
             return { records: result.records, total: result.total }

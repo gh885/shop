@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { CMS_KEY_MAX, CMS_NAV_KEYS } from "#/cms/constants"
-import { CmsListPage } from "#/cms/list-page"
+import { CmsListShell } from "#/cms/list-shell"
 import { NavFormDialog } from "#/cms/nav/form-dialog"
 import { navListOptions } from "#/cms/nav/queries"
 import { navColumns } from "#/cms/nav/table"
@@ -23,7 +23,7 @@ function NavPage() {
     const { data: entries = [], isPending } = useQuery(navListOptions(navKey))
 
     return (
-        <CmsListPage
+        <CmsListShell
             title="首页导航"
             description="买家端顶部导航与 mega 面板配置；分组/词条整段随条目保存，停用即隐藏、不做物理删除"
             columns={navColumns}

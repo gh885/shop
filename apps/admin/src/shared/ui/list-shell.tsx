@@ -60,7 +60,7 @@ function useSubmitFilters() {
  * 不需要每个字段一份 useState。form 按筛选值（不含 page/size）作 key——后退、点侧栏
  * 回到本页这类「URL 变了、组件没卸载」时重挂，输入框才对得上 URL；翻页不冲掉没提交的草稿。
  */
-export function ListPage<TData extends { id: string } & RowData>({
+export function ListShell<TData extends { id: string } & RowData>({
     title,
     description,
     actions,

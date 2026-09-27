@@ -1,7 +1,7 @@
 import { createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 
-import { RouteError } from "./shared/ui/RouteError"
+import { RouteError } from "./shared/ui/route-error"
 
 export const router = createRouter({
     routeTree,

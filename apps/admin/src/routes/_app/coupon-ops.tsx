@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { couponColumns } from "#/coupon-ops/columns"
 import { STATUS_OPTIONS } from "#/coupon-ops/constants"
 import { adminCouponListOptions, couponOpsSearchSchema } from "#/coupon-ops/queries"
-import { ListPage, SelectFilter, TextFilter } from "#/shared/ui/list-page"
+import { ListShell, SelectFilter, TextFilter } from "#/shared/ui/list-shell"
 
 export const Route = createFileRoute("/_app/coupon-ops")({
     validateSearch: couponOpsSearchSchema,
@@ -15,7 +15,7 @@ function CouponOpsPage() {
     const query = useQuery(adminCouponListOptions(search))
 
     return (
-        <ListPage
+        <ListShell
             title="优惠券运营"
             description="查询用户持有的优惠券并处理未使用券"
             search={search}
@@ -37,6 +37,6 @@ function CouponOpsPage() {
                 name="status"
                 options={STATUS_OPTIONS}
             />
-        </ListPage>
+        </ListShell>
     )
 }

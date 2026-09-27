@@ -11,6 +11,14 @@ import { ListBody } from "#/shared/ui/list-body"
 import { PageHeader } from "#/shared/ui/page-header"
 
 /**
+ * 「把整份 URL 状态写回去」这一个动作的形状：路由页把 `Route.useNavigate()` 交进来，
+ * 域内筛选栏组件按它收 prop（域不能 import 路由，只能由调用点递）。
+ * 集中在这里而不是各处自己抄一遍：手抄的窄签名会把真实 navigate 的其余能力
+ * （`search: prev => …`、`replace`）挡在调用点之外。
+ */
+export type SearchNavigate<S> = (options: { search: S }) => void
+
+/**
  * 服务端分页列表页的外壳：标题 + 说明 + 筛选栏 + 表卡。
  *
  * **为什么抽**：管理端三张列表页（券运营 / 操作审计 / 店铺治理）此前逐字重复这段装配——
@@ -25,7 +33,7 @@ import { PageHeader } from "#/shared/ui/page-header"
  * `search` 必须是**整份** URL 状态：翻页写回时要带着筛选一起写——TanStack Router 的
  * `navigate({ search: 对象 })` 是整体替换，只写 page/size 会把筛选条件一并清掉。
  */
-export function PagedListPage<
+export function PagedListShell<
     TData extends { id: string } & RowData,
     TSearch extends { page: number; size: number },
 >({
@@ -47,7 +55,7 @@ export function PagedListPage<
     /** URL 里的整份状态（page/size 是 1-based） */
     search: TSearch
     /** 翻页意图：写回 URL */
-    navigate: (options: { search: TSearch }) => void
+    navigate: SearchNavigate<TSearch>
     query: { data?: { records: TData[]; total: number }; isPending: boolean }
     columns: ColumnDef<DataTableFeatures, TData>[]
     emptyContent: string

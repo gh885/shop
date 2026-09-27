@@ -32,7 +32,7 @@ interface CmsListFilter {
     onChange: (value: string | undefined) => void
 }
 
-export interface CmsListPageProps<T extends RowData> {
+export interface CmsListShellProps<T extends RowData> {
     title: string
     description: ReactNode
     columns: ColumnDef<DataTableFeatures, T>[]
@@ -54,7 +54,7 @@ export interface CmsListPageProps<T extends RowData> {
  * 行 ID 一律取 id；行内动作（编辑 / 启停）在各域的列定义里。
  * 唯一需要 URL 接管的是筛选值本身——它要能被分享出去，也决定新增时的预填。
  */
-export function CmsListPage<T extends { id: string } & RowData>({
+export function CmsListShell<T extends { id: string } & RowData>({
     title,
     description,
     columns,
@@ -64,7 +64,7 @@ export function CmsListPage<T extends { id: string } & RowData>({
     createText,
     filter,
     renderCreate,
-}: CmsListPageProps<T>) {
+}: CmsListShellProps<T>) {
     const [createOpen, setCreateOpen] = useState(false)
     const { table } = useDataTable({
         columns,
