@@ -35,6 +35,7 @@ export * from "./components/state-error"
 export * from "./components/confirm"
 export * from "./components/region-picker"
 export * from "./components/phone-field"
+export * from "./components/password-toggle"
 // reui Tree 的积木：admin 的类目运维页在包外自己组装（选中联动右栏、同级上下移与拖拽排序），
 // 与 cascader 同理——只有实际被组装的那几块是公开面。
 export { Tree, TreeItem, TreeItemLabel, TreeDragLine } from "./components/reui/tree"

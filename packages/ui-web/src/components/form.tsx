@@ -131,10 +131,14 @@ function TextField({
     hint,
     className,
     counter,
+    trailing,
     ...props
 }: FieldProps & {
     /** 右侧显示 `已输入/maxLength` 字数计数（需同时传 maxLength） */
     counter?: boolean
+    /** 嵌在输入框右侧的控件（密码小眼睛等）：绝对定位靠右、竖直居中。
+        插槽只管位置，**不管输入框要让出多少右侧空间**——那是皮肤的事，由调用点的 CSS 决定 */
+    trailing?: React.ReactNode
 } & Omit<React.ComponentProps<"input">, "value" | "onBlur" | "onChange" | "defaultValue">) {
     const field = useFieldContext<string>()
     // label↔控件关联 id 必须页内唯一：field.name 只保证表单内唯一，同页两个表单会撞 id
@@ -147,6 +151,20 @@ function TextField({
         "aria-invalid": !field.state.meta.isValid,
         ...props,
     }
+    const input = counter ? (
+        <InputGroup>
+            <InputGroupInput {...control} />
+            <InputGroupAddon
+                align="inline-end"
+                variant="counter"
+                className="tabular-nums"
+            >
+                {field.state.value.length}/{props.maxLength}
+            </InputGroupAddon>
+        </InputGroup>
+    ) : (
+        <Input {...control} />
+    )
     return (
         <FieldFrame
             field={field}
@@ -157,19 +175,13 @@ function TextField({
             hint={hint}
             className={className}
         >
-            {counter ? (
-                <InputGroup>
-                    <InputGroupInput {...control} />
-                    <InputGroupAddon
-                        align="inline-end"
-                        variant="counter"
-                        className="tabular-nums"
-                    >
-                        {field.state.value.length}/{props.maxLength}
-                    </InputGroupAddon>
-                </InputGroup>
+            {trailing ? (
+                <div className="relative">
+                    {input}
+                    <div className="absolute inset-y-0 right-2 flex items-center">{trailing}</div>
+                </div>
             ) : (
-                <Input {...control} />
+                input
             )}
         </FieldFrame>
     )

@@ -5,3 +5,58 @@
    漏一个不会报错，只会「类名静默不生成」——页面看着正常，控件悄悄掉样式 */
 @source '../../../packages/ui-web/src';
 @source '../../../packages/app-kit/src';
+
+/* 登录页：左栏发丝线网格底纹（向右下淡出）/ 目录行错峰进场 */
+@utility bg-hairline-grid {
+    background-image:
+        linear-gradient(var(--color-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at top left, black 20%, transparent 70%);
+}
+@utility stagger {
+    animation-delay: calc(var(--i, 0) * 80ms + 150ms);
+}
+
+/* 登录表单的下划线皮肤。结构（Field / label / 错误行）全部是 ui-web 的 TextField，
+   这里只改它内部 input 的外观——一致性在组件里，差异在 CSS 里。
+   聚焦时底边那道主色线从左侧展开：背景图铺一条 2px 的主色渐变，把 background-size
+   从 0 过渡到 100%（用 transition-property 逐项写，免得被下面 :autofill 那条 transition
+   简写整个盖掉）。 */
+.login-line input {
+    height: 3rem;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+    background-color: transparent;
+    background-image: linear-gradient(var(--color-primary), var(--color-primary));
+    background-repeat: no-repeat;
+    background-position: left bottom;
+    background-size: 0% 2px;
+    font-size: 1.125rem;
+    transition-property: background-size;
+    transition-duration: 500ms;
+    transition-timing-function: ease-out;
+}
+/* 描边盒那套聚焦红环与边框色在换肤后不再适用 */
+.login-line input:focus-visible {
+    border-color: var(--color-border);
+    box-shadow: none;
+    background-size: 100% 2px;
+}
+.login-line input[aria-invalid="true"] {
+    border-color: var(--color-border);
+    box-shadow: none;
+    background-image: linear-gradient(var(--color-destructive), var(--color-destructive));
+    background-size: 100% 2px;
+}
+/* 浏览器自动填充会强灌一块黄底，透明底的输入要压掉 */
+.login-line input:autofill {
+    transition: background-color 99999s;
+}
+/* 密码框有小眼睛（TextField 的 trailing 插槽）时，右侧留出位置。
+   插槽只管把控件摆到右边，让多少空间是皮肤自己的事 */
+.login-line-has-trailing input {
+    padding-right: 2.75rem;
+}

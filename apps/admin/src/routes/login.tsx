@@ -1,33 +1,77 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { z } from "zod"
-import { useState } from "react"
+import { useMemo, useRef, useState } from "react"
+import { ArrowRight } from "lucide-react"
 
 import { AdminAuthApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
-import { useT } from "@shop/app-kit"
-import { Button, Card, CardContent, FormError, Spinner, useAppForm } from "@shop/ui-web"
+import { LocaleSwitcher, useI18n, usePasswordVisibility, useT } from "@shop/app-kit"
+import { FormError, PasswordToggle, Spinner, useAppForm, type CSSVars, cn } from "@shop/ui-web"
 
 import { getDeviceId, requireGuest, tokenStore } from "../shared/lib/api"
+import { NAV_ITEMS } from "../layout/nav"
+import { translateAdminNav } from "../layout/nav-i18n"
 
 export const Route = createFileRoute("/login")({
     beforeLoad: requireGuest,
     component: LoginPage,
 })
 
-/** 与后端登录 @NotBlank 类校验对齐 */
-const LoginSchema = z.object({
-    employeeNo: z.string().trim().min(1, "请输入工号"),
-    password: z.string().min(1, "请输入密码"),
-})
+/** 与后端登录 @NotBlank 类校验对齐；文案随 locale 走，故在组件内构造 */
+const loginSchema = (required: { employeeNo: string; password: string }) =>
+    z.object({
+        employeeNo: z.string().trim().min(1, required.employeeNo),
+        password: z.string().min(1, required.password),
+    })
+
+/** 两个输入框的差异全部收敛到这里，渲染只有一份 */
+const FIELDS = [
+    {
+        name: "employeeNo",
+        label: "admin.login.employeeNo",
+        type: "text",
+        autoComplete: "username",
+    },
+    {
+        name: "password",
+        label: "admin.login.password",
+        type: "password",
+        autoComplete: "current-password",
+    },
+] as const
 
 function LoginPage() {
     const t = useT()
     const navigate = Route.useNavigate()
     const [loginError, setLoginError] = useState<string | undefined>()
+    const panelRef = useRef<HTMLDivElement>(null)
+    // 本页只一个密码框，小眼睛的状态挂在页级即可
+    const password = usePasswordVisibility()
+
+    // 失败反馈：表单整体轻抖一下
+    const shake = () =>
+        panelRef.current?.animate(
+            {
+                transform: [
+                    "none",
+                    "translateX(-8px)",
+                    "translateX(6px)",
+                    "translateX(-3px)",
+                    "none",
+                ],
+            },
+            { duration: 400, easing: "ease-out" },
+        )
 
     const form = useAppForm({
         defaultValues: { employeeNo: "", password: "" },
-        validators: { onSubmit: LoginSchema },
+        validators: {
+            onSubmit: loginSchema({
+                employeeNo: t("admin.login.employeeNoRequired"),
+                password: t("admin.login.passwordRequired"),
+            }),
+        },
+        onSubmitInvalid: shake,
         onSubmit: async ({ value }) => {
             setLoginError(undefined)
             try {
@@ -48,68 +92,166 @@ function LoginPage() {
                         ? t("admin.login.invalidCredentials")
                         : t("admin.login.failed"),
                 )
+                shake()
             }
         },
     })
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background">
-            <Card className="w-full max-w-sm">
-                <CardContent>
-                    <div className="mb-6 flex items-center gap-2">
-                        <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-                            {t("admin.login.logo")}
-                        </span>
-                        <div>
-                            <div className="font-semibold">{t("admin.login.title")}</div>
-                            <div className="text-xs text-muted-foreground">
-                                {t("admin.login.subtitle")}
-                            </div>
-                        </div>
-                    </div>
+        <div className="grid min-h-dvh bg-card lg:grid-cols-12">
+            <Contents />
+
+            <section className="flex flex-col p-6 sm:p-10 lg:col-span-5 lg:border-l lg:border-border">
+                <div className="flex items-center justify-between lg:justify-end">
+                    <Brand className="lg:hidden" />
+                    <LocaleSwitcher />
+                </div>
+
+                <div
+                    ref={panelRef}
+                    className="mx-auto my-auto w-full max-w-sm animate-in py-16 duration-700 fade-in fill-mode-both slide-in-from-bottom-2"
+                >
+                    <h1 className="text-4xl font-semibold tracking-tight">
+                        {t("admin.login.title")}
+                    </h1>
+                    <p className="mt-3 text-muted-foreground">{t("admin.login.subtitle")}</p>
+
                     <form
+                        noValidate
                         onSubmit={(e) => {
                             e.preventDefault()
                             void form.handleSubmit()
                         }}
-                        className="space-y-4"
+                        className="mt-12 space-y-8"
                     >
-                        <form.AppField name="employeeNo">
-                            {(field) => (
-                                <field.TextField
-                                    label={t("admin.login.employeeNo")}
-                                    autoComplete="username"
-                                    required
-                                />
-                            )}
-                        </form.AppField>
-                        <form.AppField name="password">
-                            {(field) => (
-                                <field.TextField
-                                    label={t("admin.login.password")}
-                                    type="password"
-                                    autoComplete="current-password"
-                                    required
-                                />
-                            )}
-                        </form.AppField>
+                        {FIELDS.map((spec) => {
+                            const isPassword = spec.name === "password"
+                            return (
+                                <form.AppField
+                                    key={spec.name}
+                                    name={spec.name}
+                                >
+                                    {(field) => (
+                                        <field.TextField
+                                            label={t(spec.label)}
+                                            type={isPassword ? password.inputType : spec.type}
+                                            autoComplete={spec.autoComplete}
+                                            className={cn(
+                                                "login-line",
+                                                isPassword && "login-line-has-trailing",
+                                            )}
+                                            trailing={
+                                                isPassword ? (
+                                                    <PasswordToggle {...password.toggleProps} />
+                                                ) : undefined
+                                            }
+                                        />
+                                    )}
+                                </form.AppField>
+                            )
+                        })}
                         <FormError>{loginError}</FormError>
                         {/* 登录不是 mutation（token 直接落本地），加载态只能读表单自己的 isSubmitting */}
                         <form.Subscribe selector={(s) => s.isSubmitting}>
-                            {(isSubmitting) => (
-                                <Button
-                                    type="submit"
-                                    className="w-full"
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting && <Spinner />}
-                                    {t("admin.login.submit")}
-                                </Button>
-                            )}
+                            {(isSubmitting) => <SubmitButton disabled={isSubmitting} />}
                         </form.Subscribe>
                     </form>
-                </CardContent>
-            </Card>
+                </div>
+
+                <p className="text-xs tracking-wider text-muted-foreground">
+                    {t("admin.login.restricted")}
+                </p>
+            </section>
         </div>
+    )
+}
+
+/** 左栏：把后台真实的模块排成一页「目录」——内容取自导航数据，模块增减自动跟上 */
+function Contents() {
+    const t = useT()
+    const { locale } = useI18n()
+    const groups = useMemo(
+        () =>
+            translateAdminNav(NAV_ITEMS, t)
+                .filter((item) => "sections" in item)
+                .map((group) => ({
+                    key: group.key,
+                    title: group.sections[0]?.title,
+                    items: group.sections
+                        .flatMap((s) => s.items.map((item) => item.label))
+                        .join(" · "),
+                })),
+        [t],
+    )
+    const today = useMemo(
+        () => new Intl.DateTimeFormat(locale, { dateStyle: "full" }).format(new Date()),
+        [locale],
+    )
+
+    return (
+        <aside className="relative hidden flex-col justify-between overflow-hidden bg-canvas p-12 lg:col-span-7 lg:flex xl:p-16">
+            <div
+                aria-hidden
+                className="bg-hairline-grid absolute inset-0"
+            />
+            <Brand className="relative" />
+
+            <div className="relative">
+                <p className="text-xs tracking-wider text-muted-foreground">
+                    {t("admin.login.contents")}
+                </p>
+                <ol className="mt-6 border-b border-border">
+                    {groups.map((group, i) => (
+                        <li
+                            key={group.key}
+                            style={{ "--i": i } as CSSVars}
+                            className="stagger grid animate-in grid-cols-12 items-baseline gap-6 border-t border-border py-5 duration-700 fade-in fill-mode-both slide-in-from-bottom-3"
+                        >
+                            <span className="col-span-1 font-mono text-xs text-primary tabular-nums">
+                                {String(i + 1).padStart(2, "0")}
+                            </span>
+                            <span className="col-span-7 text-4xl tracking-tight 2xl:text-5xl">
+                                {group.title}
+                            </span>
+                            <span className="col-span-4 text-right text-sm text-muted-foreground">
+                                {group.items}
+                            </span>
+                        </li>
+                    ))}
+                </ol>
+            </div>
+
+            <p className="relative text-xs tracking-wider text-muted-foreground">{today}</p>
+        </aside>
+    )
+}
+
+function Brand({ className }: { className?: string }) {
+    const t = useT()
+    return (
+        <div className={cn("flex items-center gap-3", className)}>
+            <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
+                {t("admin.login.logo")}
+            </span>
+            <span className="font-semibold">{t("admin.layout.brand")}</span>
+        </div>
+    )
+}
+
+function SubmitButton({ disabled }: { disabled: boolean }) {
+    const t = useT()
+    return (
+        <button
+            type="submit"
+            disabled={disabled}
+            className="group flex h-12 w-full items-center justify-between rounded-md bg-primary px-5 font-medium text-primary-foreground transition-colors outline-none hover:bg-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-primary-active disabled:opacity-70"
+        >
+            {t("admin.login.submit")}
+            {disabled ? (
+                <Spinner />
+            ) : (
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            )}
+        </button>
     )
 }

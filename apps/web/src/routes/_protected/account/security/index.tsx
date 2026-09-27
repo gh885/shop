@@ -20,15 +20,16 @@ import {
     ItemDescription,
     ItemMedia,
     ItemTitle,
+    PasswordToggle,
     Skeleton,
     Spinner,
     useAppForm,
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
 import { DeletionCard, deviceKeys, devicesOptions } from "#/account"
-import { formatTimeShort } from "@shop/app-kit"
+import { formatTimeShort, usePasswordVisibility, useT } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
-import { AuthApi } from "@shop/api/sdk"
+import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
@@ -42,9 +43,10 @@ export const Route = createFileRoute("/_protected/account/security/")({
 
 /** 安全设置：修改登录密码 + 登录设备管理（列表/单设备退出/退出全部）+ 账号注销（申请/撤销）。 */
 function SecurityPage() {
+    const t = useT()
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-bold">安全设置</h2>
+            <h2 className="text-xl font-bold">{t("web.security.title")}</h2>
 
             <div className="space-y-6">
                 <ChangePassword />
@@ -55,15 +57,80 @@ function SecurityPage() {
     )
 }
 
+/** 三个密码框的差异收在一处，渲染只走一份——和 admin 登录页的 FIELDS 同一个路子 */
+const PASSWORD_FIELDS = [
+    {
+        name: "current",
+        label: "web.security.changePassword.current",
+        placeholder: "web.security.changePassword.currentPlaceholder",
+        autoComplete: "current-password",
+    },
+    {
+        name: "next",
+        label: "web.security.changePassword.next",
+        placeholder: "web.security.changePassword.nextPlaceholder",
+        autoComplete: "new-password",
+    },
+    {
+        name: "confirm",
+        label: "web.security.changePassword.confirm",
+        placeholder: "web.security.changePassword.confirmPlaceholder",
+        autoComplete: "new-password",
+    },
+] as const
+
+/**
+ * 密码字段 = TextField + 一颗小眼睛。
+ *
+ * 为什么要多这一层：眼睛的显隐状态是 React state，而 AppField 的 render prop 里不能调 hook，
+ * 所以得有一个真组件来持有它——三个字段各自一颗眼睛（点开「当前密码」不该连带把「新密码」
+ * 也亮出来）。
+ *
+ * `field` 只用到它上面绑好的 TextField，所以用结构化类型声明，不往 app 里引
+ * @tanstack/react-form 的内部类型。
+ */
+function PasswordTextField({
+    field,
+    label,
+    placeholder,
+    autoComplete,
+}: {
+    field: { TextField: React.ComponentType<TextFieldSlotProps> }
+    label: string
+    placeholder: string
+    autoComplete: string
+}) {
+    const password = usePasswordVisibility()
+    const { TextField } = field
+    return (
+        <TextField
+            type={password.inputType}
+            label={label}
+            placeholder={placeholder}
+            autoComplete={autoComplete}
+            trailing={<PasswordToggle {...password.toggleProps} />}
+        />
+    )
+}
+
+type TextFieldSlotProps = {
+    type?: React.ComponentProps<"input">["type"]
+    label: string
+    placeholder: string
+    autoComplete: string
+    trailing?: React.ReactNode
+}
+
 // 修改密码
 function ChangePassword() {
+    const t = useT()
     const [error, setError] = useState<string | undefined>()
 
     const change = useMutation({
         mutationFn: ({ current, next }: { current: string; next: string }) =>
             AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
         // 后端 detail 要渲染在表单里（下方 error state），所以退出全局提示，自己 setError
-        meta: { success: "密码已修改", silentError: true },
+        meta: { success: t("web.security.changePassword.success"), silentError: true },
         onSuccess: () => {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
             window.location.href = "/"
@@ -75,9 +142,20 @@ function ChangePassword() {
         defaultValues: { current: "", next: "", confirm: "" },
         validators: {
             onSubmit: ({ value }) => {
-                if (value.current.length === 0) return { fields: { current: "请输入当前密码" } }
-                if (value.next.length < 8) return { fields: { next: "新密码至少 8 位" } }
-                if (value.next !== value.confirm) return { fields: { confirm: "两次输入不一致" } }
+                if (value.current.length === 0)
+                    return {
+                        fields: {
+                            current: t("web.security.changePassword.currentRequired"),
+                        },
+                    }
+                if (value.next.length < 8)
+                    return {
+                        fields: { next: t("web.security.changePassword.nextTooShort") },
+                    }
+                if (value.next !== value.confirm)
+                    return {
+                        fields: { confirm: t("web.security.changePassword.mismatch") },
+                    }
                 return
             },
         },
@@ -87,8 +165,8 @@ function ChangePassword() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>修改登录密码</CardTitle>
-                <CardDescription>修改后所有设备将退出登录，需重新验证。</CardDescription>
+                <CardTitle>{t("web.security.changePassword.title")}</CardTitle>
+                <CardDescription>{t("web.security.changePassword.description")}</CardDescription>
             </CardHeader>
             <CardContent>
                 <form
@@ -98,36 +176,21 @@ function ChangePassword() {
                         void form.handleSubmit()
                     }}
                 >
-                    <form.AppField name="current">
-                        {(field) => (
-                            <field.TextField
-                                type="password"
-                                label="当前密码"
-                                placeholder="请输入当前密码"
-                                autoComplete="current-password"
-                            />
-                        )}
-                    </form.AppField>
-                    <form.AppField name="next">
-                        {(field) => (
-                            <field.TextField
-                                type="password"
-                                label="新密码"
-                                placeholder="至少 8 位"
-                                autoComplete="new-password"
-                            />
-                        )}
-                    </form.AppField>
-                    <form.AppField name="confirm">
-                        {(field) => (
-                            <field.TextField
-                                type="password"
-                                label="确认新密码"
-                                placeholder="再次输入新密码"
-                                autoComplete="new-password"
-                            />
-                        )}
-                    </form.AppField>
+                    {PASSWORD_FIELDS.map((spec) => (
+                        <form.AppField
+                            key={spec.name}
+                            name={spec.name}
+                        >
+                            {(field) => (
+                                <PasswordTextField
+                                    field={field}
+                                    label={t(spec.label)}
+                                    placeholder={t(spec.placeholder)}
+                                    autoComplete={spec.autoComplete}
+                                />
+                            )}
+                        </form.AppField>
+                    ))}
 
                     <FormError>{error}</FormError>
 
@@ -136,7 +199,8 @@ function ChangePassword() {
                         disabled={change.isPending}
                         className="w-28"
                     >
-                        {change.isPending && <Spinner />}确认修改
+                        {change.isPending && <Spinner />}
+                        {t("web.security.changePassword.submit")}
                     </Button>
                 </form>
             </CardContent>
@@ -145,7 +209,11 @@ function ChangePassword() {
 }
 
 // 设备管理
+// 两个 mutation + 一个查询 + 一层卡片壳的长度；列表与行已各自拆出，
+// 再拆只会把「本页有哪些写操作」拆散到读不到的地方
+// fallow-ignore-next-line complexity
 function DeviceManager() {
+    const t = useT()
     const currentDeviceId = getDeviceId()
 
     const devices = useQuery(devicesOptions(currentDeviceId))
@@ -153,8 +221,8 @@ function DeviceManager() {
     const deleteDevice = useMutation({
         mutationFn: (deviceId: string) => AuthApi.deleteDevice({ path: { deviceId } }),
         meta: {
-            success: "已退出该设备",
-            error: "退出失败",
+            success: t("web.security.devices.logoutOne"),
+            error: t("web.security.devices.logoutFailed"),
             // 前缀失效：all 覆盖 list(currentDeviceId) 这条带设备 id 的 key
             invalidates: [deviceKeys.all],
         },
@@ -164,7 +232,10 @@ function DeviceManager() {
     // 因此只有提示走全局 meta，成功回调只负责跳转
     const logoutAll = useMutation({
         mutationFn: () => AuthApi.logoutAll(),
-        meta: { success: "已退出所有设备", error: "退出失败" },
+        meta: {
+            success: t("web.security.devices.logoutAll"),
+            error: t("web.security.devices.logoutFailed"),
+        },
         onSuccess: () => {
             window.location.href = "/"
         },
@@ -176,92 +247,153 @@ function DeviceManager() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>登录设备</CardTitle>
-                <CardDescription>管理已登录的设备，退出可疑设备以保护账号。</CardDescription>
+                <CardTitle>{t("web.security.devices.title")}</CardTitle>
+                <CardDescription>{t("web.security.devices.description")}</CardDescription>
                 <CardAction>
                     <Button
                         variant="outline"
                         disabled={logoutAll.isPending || devices.data?.length === 0}
                         onClick={() => {
                             void confirm({
-                                title: "退出所有设备",
-                                description: "将退出包括本机在内的所有登录会话，确定继续吗？",
-                                confirmText: "退出所有设备",
+                                title: t("web.security.devices.logoutAllTitle"),
+                                description: t("web.security.devices.logoutAllConfirm"),
+                                confirmText: t("web.security.devices.logoutAllAction"),
                                 action: () => logoutAll.mutateAsync(),
                             })
                         }}
                     >
-                        {logoutAll.isPending ? <Spinner /> : "退出所有设备"}
+                        {logoutAll.isPending ? (
+                            <Spinner />
+                        ) : (
+                            t("web.security.devices.logoutAllAction")
+                        )}
                     </Button>
                 </CardAction>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2">
-                    {devices.isLoading ? (
-                        Array.from({ length: 3 }, (_, i) => (
-                            <Skeleton
-                                key={i}
-                                className="h-14 w-full"
-                            />
-                        ))
-                    ) : devices.data?.length === 0 ? (
-                        <Empty className="py-6">
-                            <EmptyHeader>
-                                <EmptyTitle>暂无其他登录设备</EmptyTitle>
-                                <EmptyDescription>
-                                    只有当前设备在登录，账号是安全的。
-                                </EmptyDescription>
-                            </EmptyHeader>
-                        </Empty>
-                    ) : (
-                        devices.data?.map((d) => (
-                            <Item
-                                key={d.deviceId}
-                                variant="outline"
-                                size="lg"
-                            >
-                                <ItemMedia variant="icon">
-                                    {isMobileName(d.deviceName) ? <Smartphone /> : <Monitor />}
-                                </ItemMedia>
-                                <ItemContent>
-                                    <ItemTitle className="truncate">
-                                        {d.deviceName}
-                                        {d.isCurrent && (
-                                            <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-3xs text-primary">
-                                                本机
-                                            </span>
-                                        )}
-                                    </ItemTitle>
-                                    <ItemDescription className="truncate">
-                                        {d.ip ?? "未知 IP"} · {formatTimeShort(d.lastLoginAt)}
-                                    </ItemDescription>
-                                </ItemContent>
-                                <ItemActions>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={d.isCurrent || deleteDevice.isPending}
-                                        onClick={() => {
-                                            setDeletingId(d.deviceId)
-                                            deleteDevice.mutate(d.deviceId, {
-                                                onSettled: () => setDeletingId(undefined),
-                                            })
-                                        }}
-                                    >
-                                        {deletingId === d.deviceId && deleteDevice.isPending ? (
-                                            <Spinner className="size-4" />
-                                        ) : (
-                                            <LogOut className="size-4" />
-                                        )}
-                                        退出
-                                    </Button>
-                                </ItemActions>
-                            </Item>
-                        ))
-                    )}
-                </div>
+                <DeviceList
+                    loading={devices.isLoading}
+                    devices={devices.data ?? []}
+                    deletingId={deletingId}
+                    busy={deleteDevice.isPending}
+                    onSignOut={(deviceId) => {
+                        setDeletingId(deviceId)
+                        deleteDevice.mutate(deviceId, {
+                            onSettled: () => setDeletingId(undefined),
+                        })
+                    }}
+                />
             </CardContent>
         </Card>
+    )
+}
+
+/** 设备列表：加载骨架 / 空态 / 行列表三分支 */
+function DeviceList({
+    loading,
+    devices,
+    deletingId,
+    busy,
+    onSignOut,
+}: {
+    loading: boolean
+    devices: readonly DeviceEntryResponse[]
+    deletingId: string | undefined
+    /** 是否有行正在退出：在途时所有行的按钮都按住 */
+    busy: boolean
+    onSignOut: (deviceId: string) => void
+}) {
+    const t = useT()
+    if (loading) {
+        return (
+            <div className="space-y-2">
+                {Array.from({ length: 3 }, (_, i) => (
+                    <Skeleton
+                        key={i}
+                        className="h-14 w-full"
+                    />
+                ))}
+            </div>
+        )
+    }
+    if (devices.length === 0) {
+        return (
+            <Empty className="py-6">
+                <EmptyHeader>
+                    <EmptyTitle>{t("web.security.devices.empty.title")}</EmptyTitle>
+                    <EmptyDescription>
+                        {t("web.security.devices.empty.description")}
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
+        )
+    }
+    return (
+        <div className="space-y-2">
+            {devices.map((d) => (
+                <DeviceRow
+                    key={d.deviceId}
+                    device={d}
+                    deleting={deletingId === d.deviceId && busy}
+                    busy={busy}
+                    onSignOut={() => onSignOut(d.deviceId)}
+                />
+            ))}
+        </div>
+    )
+}
+
+/** 设备行：图标 + 名称（本机带角标）+ IP·时间 + 退出按钮 */
+// 一行就是一段平铺的 JSX（图标/标题/描述/按钮），拆下去只会把一行拆成四个小组件
+// fallow-ignore-next-line complexity
+function DeviceRow({
+    device,
+    deleting,
+    busy,
+    onSignOut,
+}: {
+    device: DeviceEntryResponse
+    /** 本行正在退出：换成 Spinner */
+    deleting: boolean
+    /** 任一行正在退出：所有行的按钮都按住 */
+    busy: boolean
+    onSignOut: () => void
+}) {
+    const t = useT()
+    return (
+        <Item
+            variant="outline"
+            size="lg"
+        >
+            <ItemMedia variant="icon">
+                {isMobileName(device.deviceName) ? <Smartphone /> : <Monitor />}
+            </ItemMedia>
+            <ItemContent>
+                <ItemTitle className="truncate">
+                    {device.deviceName}
+                    {device.isCurrent && (
+                        <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-3xs text-primary">
+                            {t("web.security.devices.current")}
+                        </span>
+                    )}
+                </ItemTitle>
+                <ItemDescription className="truncate">
+                    {device.ip ?? t("web.security.devices.unknownIp")} ·{" "}
+                    {formatTimeShort(device.lastLoginAt)}
+                </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={device.isCurrent || busy}
+                    onClick={onSignOut}
+                >
+                    {deleting ? <Spinner className="size-4" /> : <LogOut className="size-4" />}
+                    {t("web.security.devices.logout")}
+                </Button>
+            </ItemActions>
+        </Item>
     )
 }
 

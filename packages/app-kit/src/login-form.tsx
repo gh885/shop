@@ -8,8 +8,10 @@ import {
     FieldError,
     FormError,
     InputGroup,
+    InputGroupAddon,
     InputGroupButton,
     InputGroupInput,
+    PasswordToggle,
     PhoneField,
     Skeleton,
     Spinner,
@@ -25,6 +27,7 @@ import {
     SMS_CODE_DIGITS,
     SmsFormSchema,
 } from "./login-schema"
+import { usePasswordVisibility } from "./use-password-visibility"
 import { useCaptcha } from "./use-captcha"
 import { useCountdown } from "./use-countdown"
 
@@ -405,25 +408,11 @@ export function LoginForm({
             ) : (
                 <form.AppField name="password">
                     {(field) => (
-                        <Field>
-                            <InputGroup
-                                size="lg"
-                                variant="filled"
-                            >
-                                <InputGroupInput
-                                    id="login-password"
-                                    aria-label={t("appKit.login.passwordLabel")}
-                                    aria-invalid={!field.state.meta.isValid}
-                                    type="password"
-                                    placeholder={t("appKit.login.passwordPlaceholder")}
-                                    autoComplete="current-password"
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) => field.handleChange(e.target.value)}
-                                />
-                            </InputGroup>
-                            <FieldError errors={field.state.meta.errors} />
-                        </Field>
+                        <PasswordField
+                            field={field}
+                            label={t("appKit.login.passwordLabel")}
+                            placeholder={t("appKit.login.passwordPlaceholder")}
+                        />
                     )}
                 </form.AppField>
             )}
@@ -454,6 +443,54 @@ export function LoginForm({
 
             {footer}
         </form>
+    )
+}
+
+/** AppField render prop 里不能调 hook（显隐状态是 React state），所以密码字段抽成真组件。
+    `field` 只用到这几个成员，用结构化类型声明，app-kit 不直接依赖 @tanstack/react-form */
+type PasswordFieldApi = {
+    state: {
+        value: string
+        meta: { errors: ReadonlyArray<unknown>; isValid: boolean }
+    }
+    handleBlur: () => void
+    handleChange: (value: string) => void
+}
+
+/** 密码字段：filled 皮肤的 InputGroup + 尾端一颗小眼睛（位置交给 InputGroupAddon） */
+function PasswordField({
+    field,
+    label,
+    placeholder,
+}: {
+    field: PasswordFieldApi
+    label: string
+    placeholder: string
+}) {
+    const password = usePasswordVisibility()
+    return (
+        <Field>
+            <InputGroup
+                size="lg"
+                variant="filled"
+            >
+                <InputGroupInput
+                    id="login-password"
+                    aria-label={label}
+                    aria-invalid={!field.state.meta.isValid}
+                    type={password.inputType}
+                    placeholder={placeholder}
+                    autoComplete="current-password"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                />
+                <InputGroupAddon align="inline-end">
+                    <PasswordToggle {...password.toggleProps} />
+                </InputGroupAddon>
+            </InputGroup>
+            <FieldError errors={field.state.meta.errors} />
+        </Field>
     )
 }
 
