@@ -4,7 +4,7 @@ import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { AdminCouponItem } from "@shop/api/sdk"
 import type { ColumnDef } from "@tanstack/react-table"
 import { actionsColumn } from "#/shared/ui/columns"
-import { SOURCE_LABEL, STATUS_META } from "./constants"
+import { SOURCE_LABEL, couponOpsStatusMeta } from "./constants"
 import { CouponVoidAction } from "./void-action"
 
 export const couponColumns: ColumnDef<DataTableFeatures, AdminCouponItem>[] = [
@@ -28,7 +28,7 @@ export const couponColumns: ColumnDef<DataTableFeatures, AdminCouponItem>[] = [
         accessorKey: "status",
         header: "状态",
         cell: ({ row }) => {
-            const meta = STATUS_META[row.original.status]
+            const meta = couponOpsStatusMeta(row.original.status)
             return <Badge variant={meta.variant}>{meta.label}</Badge>
         },
     },
