@@ -11,10 +11,8 @@ import {
     Textarea,
 } from "@shop/ui-web"
 import { useState } from "react"
+import { NOTE_MAX } from "@shop/common"
 import { reviewKeys } from "./queries"
-
-/** 回复正文上限：镜像后端 `NoteFieldRules.FREE_TEXT_MAX`（同一档「一段人写的说明」） */
-const REPLY_MAX = 200
 
 /**
  * 回复一条评价（REV-10，只能一次）。
@@ -76,7 +74,7 @@ export function ReviewReplyDialog({
                         <Field>
                             <FieldLabel>回复内容（买家在商详页会看到，只能回一次）</FieldLabel>
                             <Textarea
-                                maxLength={REPLY_MAX}
+                                maxLength={NOTE_MAX}
                                 placeholder="感谢反馈，我们会尽快改进"
                                 value={text}
                                 onChange={(event) => setText(event.target.value)}

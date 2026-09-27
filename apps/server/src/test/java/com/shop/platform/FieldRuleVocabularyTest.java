@@ -52,6 +52,7 @@ import com.shop.platform.product.dto.UpdateCategoryRequest;
 import com.shop.platform.product.dto.UpdateProductRequest;
 import com.shop.platform.product.dto.UpdateSpecsRequest;
 import com.shop.platform.product.model.ParamItem;
+import com.shop.platform.product.service.CategoryService;
 import com.shop.platform.recommend.dto.FeedQuery;
 import com.shop.platform.shop.dto.CreateShopRequest;
 import com.shop.platform.shop.dto.MerchantAddressRequest;
@@ -1140,22 +1141,9 @@ class FieldRuleVocabularyTest {
                     "AccountFieldRules.PASSWORD_MAX",
                     () -> AccountFieldRules.PASSWORD_MAX),
             // 「一段人写的说明」这一档（200）：评价文字/追评/卖家回复是三个新入口，与既有七个入口同概念，
-            // 因此同值引用同一条 owner（NoteFieldRules.FREE_TEXT_MAX），不在各自文件里另起一个 CONTENT_MAX 的同数副本
-            new Twin(
-                    "apps/web/src/reviews/ReviewDialog.tsx",
-                    "CONTENT_MAX",
-                    "NoteFieldRules.FREE_TEXT_MAX",
-                    () -> NoteFieldRules.FREE_TEXT_MAX),
-            new Twin(
-                    "apps/web/src/reviews/ReviewDialog.tsx",
-                    "APPEND_MAX",
-                    "NoteFieldRules.FREE_TEXT_MAX",
-                    () -> NoteFieldRules.FREE_TEXT_MAX),
-            new Twin(
-                    "apps/seller/src/review/reply-dialog.tsx",
-                    "REPLY_MAX",
-                    "NoteFieldRules.FREE_TEXT_MAX",
-                    () -> NoteFieldRules.FREE_TEXT_MAX),
+            // 因此直接引用前端那一边的 owner（note-fields.ts 的 NOTE_MAX，它就是本档的镜像）。
+            // 此处曾经登记 CONTENT_MAX/APPEND_MAX/REPLY_MAX 三条：同名同值的本地常量仍是第二份实现，
+            // 契约放宽时它们谁也不会跟着改，登记得再全也只是把漂移记进表里而已。
             new Twin(
                     "apps/admin/src/audit/constants.ts",
                     "AUDIT_ACTION_MAX",
@@ -1171,6 +1159,13 @@ class FieldRuleVocabularyTest {
                     "AUDIT_TARGET_TYPE_MAX",
                     "AuditFieldRules.TARGET_TYPE_MAX",
                     () -> AuditFieldRules.TARGET_TYPE_MAX),
+            // 类目层级上限：Java 侧那一格是 CategoryService 的 private 常量，既不进反射也不进契约
+            // （level 由 parentId 推导，不是入参），所以比对走源码文本而不是取常量值
+            new Twin(
+                    "apps/admin/src/category/constants.ts",
+                    "CATEGORY_MAX_LEVEL",
+                    "CategoryService.MAX_LEVEL",
+                    () -> javaSourceConst(CategoryService.class, "MAX_LEVEL")),
             new Twin(
                     "apps/admin/src/shop-ops/constants.ts",
                     "SHOP_KEYWORD_MAX",
@@ -1806,6 +1801,33 @@ class FieldRuleVocabularyTest {
         Matcher m = Pattern.compile("\\{(\\d+),(\\d+)}").matcher(javaPattern);
         assertThat(m.find()).as("正则里没有 {a,b} 位数边界：%s", javaPattern).isTrue();
         return Integer.parseInt(min ? m.group(1) : m.group(2));
+    }
+
+    /**
+     * 读 Java 侧<b>对外不可见</b>的那个数字：直接从源码文本里取 {@code static final int NAME = n;}。
+     *
+     * <p>为什么不走反射：{@code CategoryService.MAX_LEVEL} 是 private 的（只有那个服务自己读），而它也不在
+     * 契约里出现（level 由 parentId 推导，不是入参）——于是这一格既没有可读的公开常量，也没有可比的那一边，
+     * 但前端仍然必须镜像它（界面上「还能不能再挂子级」就是从这一格来的）。反射取 private 字段要 setAccessible，
+     * 测试模块默认不给；源码文本是这个数字除「前端各写一份字面量」之外唯一的核对方式。
+     *
+     * <p>取不到就抛而不是回默认值：常量改名或被换成算式时，回默认值会让这条门禁<b>悄悄变成永真</b>。
+     */
+    private static int javaSourceConst(Class<?> owner, String constant) {
+        Path source = MAIN_JAVA.resolve(owner.getName().replace('.', '/') + ".java");
+        assertThat(source).as("找不到 Java 侧常量所在文件 %s", source.toAbsolutePath()).exists();
+        String code;
+        try {
+            code = SourceScanner.withoutComments(SourceScanner.read(source));
+        } catch (IOException e) {
+            throw new IllegalStateException("读取 " + source + " 失败", e);
+        }
+        Matcher m = Pattern.compile("static final int " + constant + "\\s*=\\s*(\\d+)\\s*;")
+                .matcher(code);
+        assertThat(m.find())
+                .as("%s 里没有 `static final int %s = <裸整数>;`（改名或换成算式了，前端那份镜像就没人钉了）", owner.getSimpleName(), constant)
+                .isTrue();
+        return Integer.parseInt(m.group(1));
     }
 
     /**

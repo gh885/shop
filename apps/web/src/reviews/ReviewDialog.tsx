@@ -14,11 +14,8 @@ import {
 } from "@shop/ui-web"
 import { Star } from "lucide-react"
 import { formatDateTime } from "@shop/app-kit"
+import { NOTE_MAX } from "@shop/common"
 import { myReviewKeys, myReviewOptions } from "./my-review-queries"
-
-/** 评价文字上限：镜像后端 `NoteFieldRules.FREE_TEXT_MAX`（同一档「一段人写的说明」） */
-const CONTENT_MAX = 200
-const APPEND_MAX = 200
 
 /** 只读星级：已提交的评价与商详列表都用它画星（不响应点击） */
 export function Stars({ value, label }: { value: number; label?: string }) {
@@ -201,7 +198,7 @@ export function ReviewDialog({
                                 <Field>
                                     <FieldLabel>评价内容（可留空）</FieldLabel>
                                     <Textarea
-                                        maxLength={CONTENT_MAX}
+                                        maxLength={NOTE_MAX}
                                         placeholder="说说这件商品怎么样"
                                         value={draft[line.orderItemId]?.content ?? ""}
                                         onChange={(event) =>
@@ -287,7 +284,7 @@ function ReviewDetail({
                 <Field>
                     <FieldLabel>追评（可追一次，说点补充的）</FieldLabel>
                     <Textarea
-                        maxLength={APPEND_MAX}
+                        maxLength={NOTE_MAX}
                         placeholder="用了几天之后再来补一句"
                         value={appendText}
                         onChange={(event) => onAppendText(event.target.value)}
