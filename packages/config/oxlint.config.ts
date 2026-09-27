@@ -302,7 +302,9 @@ export default defineConfig({
         "react/set-state-in-effect": "warn",
         "react/incompatible-library": "warn",
         "react/exhaustive-effect-dependencies": "warn",
-        // 仓库混用 PascalCase 组件 + kebabCase 工具/hook/路由，单一 case 规则无法满足全部，关闭以免恒定噪音
+        // 命名约定是两级的（槽位名 kebab / 专名 Pascal，判据见 docs/conventions/frontend.md），一个 case 设置表达不了：
+        // 选 kebab 把 web/seller 的组件文件全判违规，选 pascal 把 admin 全判违规；per-directory override 也切不开同一目录内混住的
+        // queries.ts 与 OrderCard.tsx。开它就是几百条恒定噪音，故 off，靠 review 与文档收敛。
         "unicorn/filename-case": "off",
         "unicorn/prefer-includes": "warn",
         "unicorn/prefer-string-slice": "warn",

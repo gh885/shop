@@ -11,9 +11,14 @@
 - `layout/` 平台骨架：导航、页脚、进度条等无业务语义的壳；带业务数据的进 domain
 - `{domain}/` 目录名 = **本端路由顶层业务段**（去参数段与叶子页）：web `/products/$id` → `products/`、seller `/product/*` → `product/`；各端机械映射优先于跨端统一命名
 - domain 内「文件名即分层」：`xxx.ts` 逻辑层 / `queries.ts` 数据层 / `use-*.ts` hook / `constants.ts` 展示常量 / 组件平铺（组件多则开 `components/` 或按路由子目录）；有自己要管的数据和状态的才配叫 domain，纯展示页组件直接写薄在 routes/
+    - **「这一页」归路由文件，域里放的是零件**：路由的 `component` 就是页面编排者——读 URL 状态（`Route.useSearch()` / `Route.useNavigate()`）、取数、挂 mutation，再把 `queries.ts` / `columns.tsx` / `filters.tsx` / `xxx-dialog.tsx` / `use-*.ts` 组起来。反过来的形状（域里一个与某条路由 1:1 的页面组件 + 路由里一个只递 `search`/`navigate` 的薄壳）是负资产：多一个文件、页面逻辑劈成两半，还要在手抄的 `(options: { search: S }) => void` 里丢掉真实 navigate 的能力（`search: prev => …`、`replace`）。写回 URL 的动作形状统一用 `SearchNavigate<S>`（admin 在 `shared/ui/paged-list-shell.tsx` 导出），不在各域里各抄一份
+    - **域里那个页面组件什么时候合法**：两种，都不是「页面」。(1) 被**多条路由**复用的外壳——`cms/list-shell.tsx` 一份外壳服务 banner / nav / recommend-tab 三条路由，页体仍各自写在路由里；(2) 不碰 URL 状态的**组合根**——`category/page.tsx`、`shipping/ShippingTemplatePage.tsx` 直接作为 `component` 挂上，没有 `search`/`navigate` 要递，组件自己就是编排者。这种场合再包一层路由文件只递 `component` 是纯噪声（判据：薄壳除了转发参数以外一行逻辑都没有 → 别包）
     - `constants.ts`：**展示文案 / 色板 / 动作表 / 页签**（纯数据，不 import 组件）。同一张表被 ≥2 个组件消费时必须收敛到这里——文案散在组件里必然漂移（同一个状态在卡上叫「交易成功」、在页签叫「已完成」）；规则（判定逻辑）仍留在 `xxx.ts`
     - **页签 / 下拉选项不是第二张表**：用 `@shop/common` 的 `statusOptions(表[, order])` 从状态表派生，一个状态只有一处中文（徽章与页签各写一份时「上架中」会漂移成「在售」）；文案与徽章色同表时合并成一张 `XXX_STATUS_META`（`{ label, variant }`），不设平行表——平行表要求每次加状态改两处，漏一处就得到「新状态没颜色」
     - 只有**角色措辞真的不同**时才各写一份（买家「待卖家处理」/卖家「待处理」是同一状态对两个人说两句活），并在表头注释写明这是决定而不是漏同步
+- **文件名两种 case，各说一件事**：名字是**槽位**（这个文件在域里占哪个位置，换域就换含义）→ kebab-case：`queries.ts` / `model.ts` / `constants.ts` / `columns.tsx` / `filters.tsx` / `form-dialog.tsx` / `use-*.ts`；名字是**专名**（拿出来就是一个完整概念，`OrderCard.tsx` 放哪个 app 都还是它）→ PascalCase。入口与路由保持小写（`main.tsx` / `router.tsx` / `index.ts`；`routes/**` 由 TanStack Router 的文件约定决定，不归本规则）。判据一句话：**把文件挪去别的域，名字还成立吗**——成立的是专名，不成立的是槽位
+    - **目录已经说出概念时，文件名不重复念一遍**：`coupon/CouponTable.tsx` 读出来是「coupon coupon」，该写 `coupon/table.tsx`——它本来就是「这个域的表格」这个槽位。这是迁移方向，存量不批量改名（改名污染 blame，也让 `fallow audit` 的 new-only 归属把整文件当成新代码）
+    - 现状是**按端分裂**的：admin 全端零 PascalCase（组件名一律折成 kebab，`attr-panel.tsx` 导出 `AttrPanel`），web 约三分之一、seller 约四分之一的文件走 Pascal。所以 `unicorn/filename-case` 保持 `off`，别指望用 lint 收敛：一个 case 设置表达不了两级约定（选 kebab 把 web 的组件全判违规，选 pascal 把 admin 全判违规），而 per-directory 的 `--deny` override 也切不开**同一目录内**混住的 `queries.ts` 与 `OrderCard.tsx`（web/seller 每个域都是这个形状）。这条靠 review 时问一句「槽位还是专名」，不靠一条会红三百次的规则——那种规则等于没规则
 - 依赖方向：`routes → domain → shared`；shared 不 import domain；domain 之间只经对方 `index.ts` 公开入口；跨端通用逻辑下沉共享包 —— 生成 SDK 在 `packages/api`，手写共享逻辑（money/api-error/forms/error-codes/auth-kit/sdk-client/category 树算法）一律归 `packages/common`，**禁止在 `@shop/api` 内新增手写文件**
     - 这条已由 `fallow` 的 boundaries 机械拦截（`pnpm fallow`，zone 配置在 `.fallowrc.json`）：`index.ts` 单独成 zone，所以绕到对方 `queries.ts` / `model.ts` 会直接判 boundary-violation。要给跨域用的符号（如失效缓存要的 query key）就得进 barrel——「只暴露外部真正消费的那几个」里的"外部"包含别的域
 - hook 上提标准：≥2 个组件复用或状态机复杂才抽成 `use-*.ts`；域内 hook 留在域内，不因"它是 hook"进 shared
@@ -30,9 +35,9 @@
   Tailwind v4 内容探测不覆盖 app 目录之外的包；漏声明的失败模式是**静默掉样式**（不报错、不 warning，
   构建照过、单测照过，只有肉眼看页面才发现控件没了圆角/内边距）。往这两个包加带样式的组件时，
   先确认三端 `styles.css` 都已声明；给 app-kit 新增带类名的组件同样要检查 app-kit 是否已声明
-- API 请求走 Vite proxy 同源（`/auth`、`/api`、`/user`、`/cart` → `localhost:8080`），浏览器端 baseUrl 用空串；SSR loader 里需绝对地址
-- 登录态：`apps/web/src/lib/auth.ts`（access token 只存内存，refresh token 走后端 httpOnly cookie）
-- 启动时 `bootstrapAuth()` 静默刷新（`lib/api.ts`），root 布局挂载处调用；受保护路由用 `beforeLoad: () => requireAuth()` 守卫，未登录自动拉起全局登录 Dialog
+- API 请求走 Vite proxy 同源（web 的 key 集：`/auth`、`/api`、`/user`、`/cart/`、`/payments`、`/favorites`、`/coupons/`、`/reviews` → `localhost:8080`；`/orders` 刻意不进静态代理，由 `ordersApiProxy` 中间件按 Accept 头分流，因为页面 `/orders/$orderId` 与 API `GET /orders/{id}` 同路径），浏览器端 baseUrl 用空串；SSR loader 里需绝对地址。尾斜杠与不带尾斜杠是两种有意的形状：`/cart/`、`/coupons/` 因为有同名页面路由（`/cart`、券包页在 `/account/coupons`），`/favorites`、`/reviews` 因为 API 会调裸前缀路径。加新前缀时先问「有没有同名页面路由」，答错是整页 401，不是接口 404
+- 登录态：`apps/web/src/shared/api/auth.ts`（access token 只存内存，refresh token 走后端 httpOnly cookie）
+- 启动时 `bootstrapAuth()` 静默刷新（`shared/api/client.ts`），root 布局挂载处调用；受保护路由用 `beforeLoad: () => requireAuth()` 守卫，未登录自动拉起全局登录 Dialog
 - 用户信息：`useMe()`（web 在 `account/queries.ts`、seller/admin 在 `shared/lib/me.ts`，三者都由 `@shop/app-kit` 的 `createMeQuery` 生成，未登录不发请求）
 - 表单字段只放**用户输入的事实**：能从已填字段推出来的列不进表单。地址的省市区名就是这一类——表单只有 `regionCode`，三级名在 mutation 里按区划库现查（`packages/common/src/address.ts` 的 `regionNamesByCode`，口径见 ACC-81），级联字段 `RegionField`（`@shop/app-kit`）收和交也都只有这一个码。存两份的代价不是那三行 `setFieldValue`，是「界面看到的」与「落库的」各有权威、迟早分家
 - 表单：用 `useAppForm`（`@shop/ui-web`，TanStack Form + Zod validators），不手写裸 state 表单。周边一并统一：校验放表单级 `validators.onSubmit`（不用字段级 onChange）；提交接线 `onSubmit={(e) => { e.preventDefault(); void form.handleSubmit() }}`；服务端/表单级错误用 `<FormError>`；弹窗表单体挂在 `DialogContent` 里（关闭即卸载、打开即按 props 重算默认值，不写 effect + `form.reset`）；页脚用 `DialogFooter`，取消按钮 `variant="outline"`，提交按钮 `{pending && <Spinner />}文字`、pending 读 mutation 的 `isPending`；弹窗内字段竖排、整页表单 label 左列（`orientation="horizontal"`）
@@ -222,7 +227,7 @@ pnpm test:project web src/order           # 10 文件 / 10.4s（域内再收窄�
 | `deps.optimizer.ssr.include` 预打包 `@shop/api`/`msw` | 13.4s，**完全没变**  | 无效            |
 
 **为什么调不动**：一个空测试文件的地板就是 **1.23s**（`setupFiles` 673ms + jsdom 环境 397ms）——
-`packages/app-kit/test/setup.ts` 每个文件都要 import 整个 `@shop/api` SDK + MSW。
+`packages/app-kit/src/test/setup.ts`（模块 id 是 `@shop/app-kit/test/setup`）每个文件都要 import 整个 `@shop/api` SDK + MSW。
 87 文件 × 约 1.3s ≈ 113s 固定成本，被 28 个 worker 并行摊完即 39s。
 **瓶颈是「每文件固定开销」，不是配置没调对**；配置层最多再省 5s。
 
@@ -245,7 +250,7 @@ pnpm test:project web src/order           # 10 文件 / 10.4s（域内再收窄�
 
 ### 分层与位置
 
-- 纯逻辑单测（cart/order-status/money 等 `*.test.ts`）；组件/集成测试走 jsdom + Testing Library（`*.test.tsx`）；server function 的真实行为交给 E2E（Playwright，未接入）
+- 纯逻辑单测（cart/order-status/money 等 `*.test.ts`）；组件/集成测试走 jsdom + Testing Library（`*.test.tsx`）；server function 的真实行为交给 E2E（Playwright，仓库根 `e2e/`，`pnpm test:e2e`，CI 里跑下单主路径与发货物流链路）
 - **测试文件与被测模块同目录、同名**（`xxx.ts` → `xxx.test.ts`），不建 `__tests__`/`test/` 用例目录；`src/test/` 只放跨模块测试装置（setup/render），共享 handler 与假数据进 `packages/test-utils`
 - vitest 显式导入（不开 globals）；route 文件保持薄，业务逻辑放独立模块才可单测
 
@@ -269,7 +274,7 @@ pnpm test:project web src/order           # 10 文件 / 10.4s（域内再收窄�
 
 - **必测**：换算/状态机等决策逻辑（含边界与兜底）、wire→领域投影映射、表单流与请求体、bug 回归
 - **不测**：纯类型、纯透传 re-export、zod schema 字段罗列（SDK 生成物自带校验）；快照测试一律不用
-- **库行为不逐组件复制**：基建组件在其所在包测一次（如 `QueryBoundary` 的「失败 → 块级错误 + 重试」链路，见 `packages/app-kit/query-boundary.test.tsx`），业务组件不再复制同款三态用例；业务组件只测自己的差异化逻辑（如 `navTitle` 宽度预算截断）。纯展示型状态分支靠 business-rules 条目承载，值不上测试行数的不写
+- **库行为不逐组件复制**：基建组件在其所在包测一次（如 `QueryBoundary` 的「失败 → 块级错误 + 重试」链路，见 `packages/app-kit/src/query-boundary.test.tsx`），业务组件不再复制同款三态用例；业务组件只测自己的差异化逻辑（如 `navTitle` 宽度预算截断）。纯展示型状态分支靠 business-rules 条目承载，值不上测试行数的不写
 - 心智标准：这个分支里若藏着一个错的映射/反的布尔/漏掉的兜底，测试能不能红？能红才写
 
 ### 已知坑
