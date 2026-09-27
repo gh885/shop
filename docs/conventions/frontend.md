@@ -254,7 +254,8 @@ pnpm test:project web src/order           # 10 文件 / 10.4s（域内再收窄�
 - 一个测试只讲一件事：Given / When / Then，标题说**行为与后果**（含理由：`下架 ≠ 缺货`、`PAID → pending_shipment`），不用函数名当标题
 - 断言可观察后果（错误文案、弹窗关闭、请求体），不断言渲染次数/内部 state（React Compiler 自动 memo，渲染计数断言必碎）；形状断言用 `toMatchObject` 聚焦关心字段
 - 异步等确定性信号：`userEvent.setup()` + `findBy*/waitFor`，禁止 `sleep()` 凑时间
-- 夹具：测试文件内 `makeXxx(overrides)` 工厂（默认值 + 只暴露该测试关心的维度），不做跨文件共享的可变 fixture；契约级假数据（`makeAddress` 等）进 test-utils，且**必须过 SDK zod schema**（连 UUID 格式都校验）
+- 夹具：契约级假数据（`makeAddress`、`makeProductResponse` 等）只住 `packages/test-utils`，且**必须过 SDK zod schema**（连 UUID 格式都校验）；测试文件里留 `makeXxx(overrides)` 只是**一行 wrapper**（传自己那批 id + 本用例关心的维度），不在测试文件里从零重搭同一份契约响应——由 `packages/common/src/shared-vocabulary.test.ts`「契约夹具只搭一次」钉。不做跨文件共享的可变 fixture
+- 纯逻辑测试取夹具走 `@shop/test-utils/fixtures` 子入口（只要夹具本身）：从 barrel `@shop/test-utils` 进会连带把 msw / RTL / jest-dom 拉进模块图，白付几百毫秒
 - 改 bug 先写复现测试再修
 
 ### 网络与渲染约定

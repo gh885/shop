@@ -4,7 +4,7 @@ import { delay, HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
 
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
-import { server } from "@shop/test-utils"
+import { makeSellerOrderListItem, server } from "@shop/test-utils"
 import { renderWithRouter } from "@shop/app-kit/test"
 
 import { OrderTable, type OrderIdentity } from "./table"
@@ -30,21 +30,12 @@ const PLAIN = "13800001234"
 function makeSellerOrder(
     overrides: Partial<SellerOrderListItemResponse> = {},
 ): SellerOrderListItemResponse {
-    return {
+    return makeSellerOrderListItem({
         id: ORDER_ID,
-        orderNo: "2026092300001",
-        status: "PAID",
-        afterSaleStatus: "NONE",
-        availableActions: ["SHIP"],
         payAmount: { amount: 2000, currency: "CNY" },
-        receiverName: "张三",
         receiverPhone: MASKED,
-        itemCount: 1,
-        items: [],
-        shipExpireAt: null,
-        createdAt: "2026-09-23T10:00:00Z",
         ...overrides,
-    }
+    })
 }
 
 /** 返回这一屏被拉了几次（点「查看」之后必须还是 1）+ 索取被发了几次 */

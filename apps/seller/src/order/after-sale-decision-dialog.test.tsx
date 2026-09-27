@@ -4,7 +4,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
 
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
-import { makeTicket, server } from "@shop/test-utils"
+import { makeSellerOrderListItem, makeTicket, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
@@ -21,25 +21,18 @@ import { AfterSaleDecisionDialog, type SaleDecisionKind } from "./after-sale-dec
 
 const SHOP_ID = "shop-1"
 
-/** 测试夹具：弹窗只读 id / orderNo，其余字段求契约合法 */
+/** 测试夹具：弹窗只读 id / orderNo，其余字段取契约合法默认（已完成 + 售后申请中 = 这单正在等裁决） */
 function makeOrder(
     overrides: Partial<SellerOrderListItemResponse> = {},
 ): SellerOrderListItemResponse {
-    return {
+    return makeSellerOrderListItem({
         id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
         orderNo: "NO20260912001",
         status: "COMPLETED",
         afterSaleStatus: "APPLYING",
         availableActions: [],
-        payAmount: { amount: 19900, currency: "CNY" },
-        receiverName: "张三",
-        receiverPhone: "13800000000",
-        itemCount: 1,
-        items: [],
-        shipExpireAt: null,
-        createdAt: "2026-09-12T10:00:00Z",
         ...overrides,
-    }
+    })
 }
 
 function renderDialog({

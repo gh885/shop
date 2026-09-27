@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { RecommendTabResponse } from "@shop/api/sdk"
+import { makeRecommendTab as makeTabImpl } from "@shop/test-utils/fixtures"
 
 import { feedCategoryId } from "./queries"
 
@@ -11,19 +12,9 @@ import { feedCategoryId } from "./queries"
 
 const CATEGORY_ID = "01900000-0000-7000-8000-000000000105"
 
+/** 契约夹具的 overrides 可省，这里要求显式给（每个用例都该说清是哪一种词条） */
 function makeTab(overrides: Partial<RecommendTabResponse>): RecommendTabResponse {
-    return {
-        id: "00000000-0000-4000-8000-0000000000f1",
-        name: "猜你喜欢",
-        target: null,
-        targetType: null,
-        isDefault: true,
-        sortOrder: 0,
-        status: "ENABLED",
-        createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z",
-        ...overrides,
-    }
+    return makeTabImpl(overrides)
 }
 
 describe("feedCategoryId", () => {

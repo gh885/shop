@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { MyCouponResponse } from "@shop/api/sdk"
+import { makeMyCouponResponse as makeContractCoupon } from "@shop/test-utils/fixtures"
 
 import {
     COUPON_TABS,
@@ -22,23 +23,9 @@ const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
 const COUPON_ID = "00000000-0000-4000-8000-0000000000c1"
 const ORDER_ID = "00000000-0000-4000-8000-0000000000e1"
 
+/** 券包的一行：契约夹具套上本文件断言用的那批 id */
 function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCouponResponse {
-    return {
-        id: COUPON_ID,
-        shopId: SHOP_ID,
-        shopName: "测试店",
-        name: "满100减10",
-        threshold: { amount: 10000, currency: "CNY" },
-        type: "FULL_REDUCTION",
-        discount: { amount: 1000, currency: "CNY" },
-        effectiveAt: "2026-01-01T00:00:00Z",
-        expireAt: "2026-01-31T00:00:00Z",
-        status: "UNUSED",
-        source: "CLAIM",
-        orderId: null,
-        unavailableReason: null,
-        ...overrides,
-    }
+    return makeContractCoupon({ id: COUPON_ID, shopId: SHOP_ID, ...overrides })
 }
 
 function makeMyCoupon(overrides: Partial<MyCoupon> = {}): MyCoupon {

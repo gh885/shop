@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 
 import type { MyCouponResponse } from "@shop/api/sdk"
 import { Toaster } from "@shop/ui-web"
-import { server } from "@shop/test-utils"
+import { makeMyCouponResponse as makeContractCoupon, server } from "@shop/test-utils"
 
 import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/test"
 
@@ -22,23 +22,13 @@ import { myCouponsOptions, shopClaimableCouponsOptions, useClaimCoupon } from ".
 const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
 const TEMPLATE_ID = "00000000-0000-4000-8000-0000000000c1"
 
+/** 券包的一行：契约夹具套上本文件的 id */
 function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCouponResponse {
-    return {
+    return makeContractCoupon({
         id: "00000000-0000-4000-8000-0000000000c9",
         shopId: SHOP_ID,
-        shopName: "测试店",
-        name: "满100减10",
-        threshold: { amount: 10000, currency: "CNY" },
-        type: "FULL_REDUCTION",
-        discount: { amount: 1000, currency: "CNY" },
-        effectiveAt: "2026-01-01T00:00:00Z",
-        expireAt: "2026-01-31T00:00:00Z",
-        status: "UNUSED",
-        source: "CLAIM",
-        orderId: null,
-        unavailableReason: null,
         ...overrides,
-    }
+    })
 }
 
 function MyCouponsProbe({ status, page }: { status: CouponTab; page: number }) {

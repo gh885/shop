@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { RecommendTabResponse } from "@shop/api/sdk"
+import { makeRecommendTab } from "@shop/test-utils/fixtures"
 
 import { tabDefaults, toTabRequest, tabRowToRequest } from "./form"
 
@@ -11,19 +12,18 @@ import { tabDefaults, toTabRequest, tabRowToRequest } from "./form"
  * `string | null` 转成契约的 `?: string`。null 与缺省在响应里是一回事，在请求里不是。
  */
 
+/** 本文件的词条一律是「手机 = 类目 1001」这一种，其余字段落在契约夹具的默认值上 */
 function makeTab(overrides: Partial<RecommendTabResponse> = {}): RecommendTabResponse {
-    return {
+    return makeRecommendTab({
         id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
         name: "手机",
         target: "1001",
         targetType: "CATEGORY",
         isDefault: false,
         sortOrder: 1,
-        status: "ENABLED",
-        createdAt: "2026-01-01T00:00:00Z",
         updatedAt: "2026-01-02T00:00:00Z",
         ...overrides,
-    }
+    })
 }
 
 const blankForm = () => ({

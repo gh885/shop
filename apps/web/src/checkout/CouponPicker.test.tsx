@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import { renderWithProviders } from "@shop/app-kit/test"
+import { makeCoupon } from "@shop/test-utils"
 
 import { toCheckoutPreview, type CheckoutGroup } from "./checkout"
 import { CouponPicker } from "./CouponPicker"
@@ -18,18 +19,6 @@ import { CouponPicker } from "./CouponPicker"
 const SHOP_1 = "11111111-1111-4111-8111-111111111111"
 const COUPON_USABLE = "55555555-5555-4555-8555-555555555555"
 const COUPON_UNUSABLE = "66666666-6666-4666-8666-666666666666"
-
-function makeCoupon(overrides: Partial<Coupon> & Pick<Coupon, "userCouponId">): Coupon {
-    return {
-        name: "店铺券",
-        threshold: { amount: 10000, currency: "CNY" },
-        discount: { amount: 1000, currency: "CNY" },
-        expireAt: "2026-12-31T23:59:59Z",
-        usable: true,
-        unavailableReason: null,
-        ...overrides,
-    }
-}
 
 /** 领域分组：走真实投影，省得测试自己拼一份和契约不一致的形状 */
 function makeGroup(opts: { coupons: Coupon[]; discountAmount?: number }): CheckoutGroup {

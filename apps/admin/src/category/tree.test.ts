@@ -1,5 +1,6 @@
-import type { CategoryNode } from "@shop/api/sdk"
 import { describe, expect, it } from "vitest"
+
+import { makeCategoryNode } from "@shop/test-utils/fixtures"
 
 import {
     appendSort,
@@ -15,23 +16,16 @@ import {
  * 所以单测钉的是规则本身：一级挂在合成根下、sort 按 10/20/30 重算、越界不动任何东西。
  */
 
-const ROOT_PARENT = "00000000-0000-0000-0000-000000000000"
-
-function node(
-    id: string,
-    name: string,
-    level: number,
-    sort: number,
-    children: CategoryNode[] = [],
-    parentId = ROOT_PARENT,
-): CategoryNode {
-    return { id, parentId, name, level, sort, status: "ENABLED", iconUrl: null, children }
-}
-
-const shirt = node("c3", "T恤", 3, 0, [], "c2")
-const coat = node("c2", "上装", 2, 0, [shirt], "c1")
-const clothes = node("c1", "服装", 1, 0, [coat])
-const food = node("c9", "食品", 1, 0)
+const shirt = makeCategoryNode({ id: "c3", name: "T恤", level: 3, parentId: "c2" })
+const coat = makeCategoryNode({
+    id: "c2",
+    name: "上装",
+    level: 2,
+    parentId: "c1",
+    children: [shirt],
+})
+const clothes = makeCategoryNode({ id: "c1", name: "服装", children: [coat] })
+const food = makeCategoryNode({ id: "c9", name: "食品" })
 const tree = [clothes, food]
 
 describe("indexCategoryTree", () => {
@@ -83,8 +77,8 @@ describe("orderUpdates", () => {
     })
 
     it("相邻互换只动两行（已按 10 的倍数排好时）", () => {
-        const ordered = node("c1", "服装", 1, 10, [coat])
-        const other = node("c9", "食品", 1, 20)
+        const ordered = makeCategoryNode({ id: "c1", name: "服装", sort: 10, children: [coat] })
+        const other = makeCategoryNode({ id: "c9", name: "食品", sort: 20 })
         const index = indexCategoryTree([ordered, other])
 
         const updates = orderUpdates(["c9", "c1"], index.byId)
@@ -96,8 +90,8 @@ describe("orderUpdates", () => {
     })
 
     it("顺序没变时交出空数组（不白打一次 PUT）", () => {
-        const ordered = node("c1", "服装", 1, 10, [coat])
-        const other = node("c9", "食品", 1, 20)
+        const ordered = makeCategoryNode({ id: "c1", name: "服装", sort: 10, children: [coat] })
+        const other = makeCategoryNode({ id: "c9", name: "食品", sort: 20 })
         const index = indexCategoryTree([ordered, other])
 
         expect(orderUpdates(["c1", "c9"], index.byId)).toEqual([])

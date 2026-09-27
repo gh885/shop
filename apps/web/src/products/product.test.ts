@@ -54,13 +54,10 @@ describe("formatSoldText", () => {
         expect(formatSoldText(9999)).toBe("已售 9999")
     })
 
-    it("一万整_去掉小数点写「1万」而不是「1.0万」", () => {
+    // 折万本身（1 万去尾、123456 → 12.3 万）归 @shop/common 的 compactCount，那里已钉；
+    // 这里只证「前缀 + 委托」这条接线，不在两处各跑一遍同一组数
+    it("过万_交给折万口径，只加前缀", () => {
         expect(formatSoldText(10000)).toBe("已售 1万")
-    })
-
-    it("一万以上_折成一位小数的万", () => {
-        expect(formatSoldText(12000)).toBe("已售 1.2万")
-        expect(formatSoldText(123456)).toBe("已售 12.3万")
     })
 })
 

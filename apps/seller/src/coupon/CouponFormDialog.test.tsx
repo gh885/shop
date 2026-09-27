@@ -3,9 +3,8 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
 
-import type { CouponTemplateResponse } from "@shop/api/sdk"
 import { money } from "@shop/common"
-import { server } from "@shop/test-utils"
+import { makeCouponTemplate, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
@@ -80,25 +79,6 @@ const START_DAY = 1
 const START_TIME = "10:00"
 const END_DAY = Math.max(2, new Date().getDate())
 
-/** 建券回执：字段形状必须过 SDK 的 zod 校验 */
-function makeCreated(overrides: Partial<CouponTemplateResponse> = {}): CouponTemplateResponse {
-    return {
-        id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
-        name: "新春满减券",
-        type: "FULL_REDUCTION",
-        threshold: { amount: 10000, currency: "CNY" },
-        discount: { amount: 1000, currency: "CNY" },
-        validFrom: "2026-01-01T10:00:00Z",
-        validTo: "2026-02-01T10:00:00Z",
-        totalQuantity: 50,
-        issuedQuantity: 0,
-        usedQuantity: 0,
-        status: "ACTIVE",
-        createdAt: "2025-12-20T08:00:00Z",
-        ...overrides,
-    }
-}
-
 describe("CouponFormDialog", () => {
     it("提交：元换算成分、本地时间转成带时区 ISO 时刻，弹窗关闭", async () => {
         const user = userEvent.setup()
@@ -107,7 +87,7 @@ describe("CouponFormDialog", () => {
         server.use(
             http.post("*/seller/coupons", async ({ request }) => {
                 body = await request.json()
-                return HttpResponse.json(makeCreated(), { status: 201 })
+                return HttpResponse.json(makeCouponTemplate(), { status: 201 })
             }),
         )
 
@@ -158,7 +138,7 @@ describe("CouponFormDialog", () => {
             http.post("*/seller/coupons", async ({ request }) => {
                 body = await request.json()
                 return HttpResponse.json(
-                    makeCreated({ threshold: { amount: 0, currency: "CNY" } }),
+                    makeCouponTemplate({ threshold: { amount: 0, currency: "CNY" } }),
                     { status: 201 },
                 )
             }),
@@ -188,7 +168,7 @@ describe("CouponFormDialog", () => {
         server.use(
             http.post("*/seller/coupons", () => {
                 posted()
-                return HttpResponse.json(makeCreated(), { status: 201 })
+                return HttpResponse.json(makeCouponTemplate(), { status: 201 })
             }),
         )
 

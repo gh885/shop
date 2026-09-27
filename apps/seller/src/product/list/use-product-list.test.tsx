@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest"
 
 import type { ProductResponse } from "@shop/api/sdk"
 import { renderWithRouter } from "@shop/app-kit/test"
-import { server } from "@shop/test-utils"
+import { makeProductResponse, server } from "@shop/test-utils"
 
 import { useProductList, type ProductListSearch } from "./use-product-list"
 
@@ -22,27 +22,18 @@ const PRODUCT_ID = "00000000-0000-4000-8000-0000000000bb"
 const CATEGORY_ID = "00000000-0000-4000-8000-0000000000cc"
 
 function makeProduct(overrides: Partial<ProductResponse> = {}): ProductResponse {
-    return {
+    return makeProductResponse({
         id: PRODUCT_ID,
         shopId: SHOP_ID,
         categoryId: CATEGORY_ID,
         name: "降噪耳机",
-        subtitle: null,
-        detailImages: [],
-        mainImage: null,
-        images: [],
-        specs: [],
-        params: [],
         minPrice: { amount: 19900, currency: "CNY" },
         maxPrice: { amount: 19900, currency: "CNY" },
         stock: 10,
         soldCount: 2,
         status: "PUBLISHED",
-        sevenDayReturn: true,
-        createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-02T00:00:00Z",
         ...overrides,
-    }
+    })
 }
 
 let listCalls = 0

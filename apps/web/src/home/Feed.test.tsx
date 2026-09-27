@@ -4,8 +4,8 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { FeedItemResponse, RecommendTabResponse } from "@shop/api/sdk"
-import { server } from "@shop/test-utils"
+import type { FeedItemResponse } from "@shop/api/sdk"
+import { makeRecommendTab as makeTab, server } from "@shop/test-utils"
 
 import { renderWithRouter } from "@shop/app-kit/test"
 
@@ -93,21 +93,6 @@ function makeItem(label: keyof typeof ITEM_IDS): FeedItemResponse {
         minPrice: { amount: 1999, currency: "CNY" },
         maxPrice: { amount: 1999, currency: "CNY" },
         soldCount: 3,
-    }
-}
-
-function makeTab(overrides: Partial<RecommendTabResponse> = {}): RecommendTabResponse {
-    return {
-        id: "00000000-0000-4000-8000-0000000000f1",
-        name: "猜你喜欢",
-        target: null,
-        targetType: null,
-        isDefault: true,
-        sortOrder: 0,
-        status: "ENABLED",
-        createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z",
-        ...overrides,
     }
 }
 

@@ -1,5 +1,6 @@
 import type { CategoryAttrNodeResponse, SkuResponse } from "@shop/api/sdk"
 import { money } from "@shop/common"
+import { makeCategoryAttrNode } from "@shop/test-utils/fixtures"
 
 import { describe, expect, it } from "vitest"
 
@@ -18,30 +19,10 @@ import {
 // 夹具
 /** 夹具 1：类目属性模板节点与选值的可控构造（模板节点顺序即维度顺序；金额/库存等字段与本模块无关，取合法默认值） */
 function makeNode(attrId: string, name: string, values: string[]): CategoryAttrNodeResponse {
-    return {
-        attr: {
-            id: attrId,
-            categoryId: "cat-1",
-            name,
-            kind: "SPEC",
-            required: true,
-            allowCustom: true,
-            allowImage: false,
-            sort: 0,
-            status: "ENABLED",
-            createdAt: "2026-01-01T00:00:00Z",
-            updatedAt: "2026-01-01T00:00:00Z",
-        },
-        values: values.map((v, i) => ({
-            id: `${attrId}-v${i}`,
-            attrId,
-            value: v,
-            sort: i,
-            source: "PLATFORM",
-            image: null,
-            createdAt: "2026-01-01T00:00:00Z",
-        })),
-    }
+    return makeCategoryAttrNode(
+        { id: attrId, name },
+        values.map((value, i) => ({ id: `${attrId}-v${i}`, value })),
+    )
 }
 
 function makeSelection(attrId: string, valueIds: string[] = [], customValues: string[] = []) {

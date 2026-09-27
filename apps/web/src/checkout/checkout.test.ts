@@ -1,10 +1,10 @@
-import type { Coupon, PreviewResponse } from "@shop/api/sdk"
+import type { PreviewResponse } from "@shop/api/sdk"
 import { useQuery } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
-import { server } from "@shop/test-utils"
+import { makeCoupon, server } from "@shop/test-utils"
 
 import { createAppTestHookClient } from "@shop/app-kit/test"
 
@@ -31,19 +31,6 @@ const COUPON_2 = "66666666-6666-4666-8666-666666666666"
 const ADDRESS_1 = "88888888-8888-4888-8888-888888888888"
 
 type GroupDto = PreviewResponse["groups"][number]
-
-/** 券候选：默认一张可用的满 100 减 10 */
-function makeCoupon(overrides: Partial<Coupon> & Pick<Coupon, "userCouponId">): Coupon {
-    return {
-        name: "店铺券",
-        threshold: { amount: 10000, currency: "CNY" },
-        discount: { amount: 1000, currency: "CNY" },
-        expireAt: "2026-12-31T23:59:59Z",
-        usable: true,
-        unavailableReason: null,
-        ...overrides,
-    }
-}
 
 function makeGroupDto(overrides: Partial<GroupDto> = {}): GroupDto {
     return {

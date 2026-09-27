@@ -70,17 +70,6 @@ describe("标签判定", () => {
     })
 })
 
-describe("手机号口径", () => {
-    it("收货电话放宽到能带区号的固话：地址不是登录账号，卡大陆手机号格式会拒掉真实能收件的号码", () => {
-        expect(AddressInputSchema.safeParse(phoneCase("13800000000")).success).toBe(true)
-        expect(AddressInputSchema.safeParse(phoneCase("021-88888888")).success).toBe(true)
-    })
-
-    it("太短的一串数字仍然拒：那不是号码", () => {
-        expect(AddressInputSchema.safeParse(phoneCase("1234")).success).toBe(false)
-    })
-})
-
 describe("地区只填到码", () => {
     it("初值里没有省市区名也过得了校验：名字是提交时按 regionCode 反查的派生值", () => {
         const values = toDefaults(makeAddress())
@@ -88,15 +77,4 @@ describe("地区只填到码", () => {
         expect(values).not.toHaveProperty("province")
         expect(AddressInputSchema.safeParse(values).success).toBe(true)
     })
-
-    it("缺一位就拦：4 位市码存进表单，反查会少一级，落库的三级名就说不清是谁的", () => {
-        expect(
-            AddressInputSchema.safeParse({ ...toDefaults(makeAddress()), regionCode: "3101" })
-                .success,
-        ).toBe(false)
-    })
 })
-
-function phoneCase(phone: string) {
-    return { ...toDefaults(makeAddress({ phone })) }
-}

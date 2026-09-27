@@ -12,7 +12,7 @@ import { CONTACT_PHONE_PATTERN } from "./address"
  * 导入 `useCountdown`（相对秒数递减），同 app 的 `OrderCard` 从本地 `#/shared/lib/use-countdown`
  * 导入同名 hook（按绝对时刻倒数）——同名不同义，跨文件复制粘贴就会静默换语义。
  *
- * 五条规则各自挡一种漂移：
+ * 六条规则各自挡一种漂移：
  * 1. **app 不遮蔽包导出**：app 本地导出的符号名不得与 `packages/*` 的导出名相同
  * 2. **形状的写法只有一份**：掩码段 / 折万算式 / 剪贴板调用 / 手机号形状 / 写进提示语里的那句话，
  *    字面量只许出现在 owner 里
@@ -21,6 +21,8 @@ import { CONTACT_PHONE_PATTERN } from "./address"
  * 4. **owner 不是摆设**：每个 owner 至少有一个真实调用点（顺带证明扫描确实扫到了代码）
  * 5. **一个概念不许各说一半**：位数常量与它旁边那条正则必须由同一个数推出来
  *    （`PHONE_DIGITS = 11` 与 `/^1[3-9]\d{9}$/` 是两处，改形状不改位数=框里能敲 11 位、提交必 400）
+ * 6. **契约夹具只搭一次**（看的是测试文件）：同一份契约响应在两个测试文件里各从零搭一遍，
+ *    就是两份会各漂各的默认值——那份该住进 `@shop/test-utils`
  *
  * 与 `contract:audit` 一样，它不拥有契约：这些是展示层内部约定，改它们不触发 `pnpm gen:sdk`。
  * 跨语言那一半（Java / OpenAPI / 迁移列宽）在 `apps/server` 的 `FieldRuleVocabularyTest`，
@@ -39,8 +41,9 @@ const SOURCE_ROOTS = [
     "packages/ui-web/src",
 ]
 
-/** 生成物与测试不参与：routeTree/SDK 是产物，测试里的假数据不算第二次实现。
-    第三方 vendored 组件（ui-web 的 reui/**）同样不参与：那些是上游源码，
+/** 生成物与测试不参与（前五条看的是产品代码）：routeTree/SDK 是产物，测试里的假数据不算第二次实现。
+    最后一条「契约夹具」反过来只看测试文件，判据也不同——见那里的注释。
+    第三方 vendored 组件（ui-web 的 reui/**）两条规则都不参与：那些是上游源码，
     「同一概念只许一个出口」约束的是我们自己的实现，不能要求第三方重写它的内部行为
     （如 data-grid 的电子表格剪贴板与我们业务用的 copy-text 是两回事）。 */
 const EXCLUDED =
@@ -81,7 +84,7 @@ function exportsOf(file: string): string[] {
     return [...names]
 }
 
-function sourceFiles(): string[] {
+function sourceFiles(keep: (abs: string) => boolean = (abs) => !EXCLUDED.test(abs)): string[] {
     const out: string[] = []
     for (const root of SOURCE_ROOTS) {
         const abs = join(REPO_ROOT, root)
@@ -96,7 +99,7 @@ function sourceFiles(): string[] {
                 continue
             }
             if (!/\.(ts|tsx)$/.test(entry.name)) continue
-            if (EXCLUDED.test(abs)) continue
+            if (!keep(abs)) continue
             out.push(relative(REPO_ROOT, abs).replaceAll("\\", "/"))
         }
     }
@@ -117,6 +120,17 @@ const files = sourceFiles()
 /** 每个源文件读一次、剥一次注释：后面几条规则都在同一份「代码文本」上判 */
 const code = new Map(
     files.map((file) => [file, stripBlockComments(readFileSync(join(REPO_ROOT, file), "utf8"))]),
+)
+
+/** 测试文件走相反的选择：最后那条夹具规则只看测试，前几条只看产品代码（reui 同理不参与） */
+const testFiles = sourceFiles(
+    (abs) => /\.test\.tsx?$/.test(abs) && !/[\\/]components[\\/]reui[\\/]/.test(abs),
+)
+const testCode = new Map(
+    testFiles.map((file) => [
+        file,
+        stripBlockComments(readFileSync(join(REPO_ROOT, file), "utf8")),
+    ]),
 )
 
 const exportedBy = new Map<string, string[]>()
@@ -338,4 +352,55 @@ describe("一个概念不许各说一半", () => {
 
     // 验证码位数（SMS_CODE_DIGITS）不在此列：那条形状是由它自己拼出来的（`^\\d{${…}}$`），
     // 两边不可能各说一半，重复断言只会多一条会一起红的空话。
+})
+
+/** 一个测试文件从 `@shop/api/sdk` 拿到的类型名：只有返回这些类型的夹具算「契约夹具」。 */
+function sdkTypesOf(text: string): Set<string> {
+    const names = new Set<string>()
+    for (const [, group] of text.matchAll(
+        /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+"@shop\/api\/sdk"/g,
+    )) {
+        for (const part of (group ?? "").split(",")) {
+            const name = part.trim().replace(/^type\s+/, "")
+            if (/^[A-Z]\w*$/.test(name)) names.add(name)
+        }
+    }
+    return names
+}
+
+/**
+ * `function 名字(...): 契约类型 {` 且函数体直接 `return {` 从零列字段 ——  `{ ...别的夹具() }`
+ * 那种「换个名字复用」的不算，它要的正是继承而不是重建。
+ */
+const REBUILT_FIXTURE =
+    /^function\s+\w+\([^)]*\)\s*:\s*([A-Z]\w*)\s*\{\s*\n?\s*return\s*\{(?!\s*\.)/gm
+
+describe("契约夹具只搭一次", () => {
+    /**
+     * 同一个契约响应在两个测试文件里各搭一遍 = 两份默认值会各漂各的：一处补了新字段、
+     * 另一处没有，MSW 那边的 zod 校验只会先红一个文件，看着像「那个文件的用例坏了」。
+     * 判据是「从零搭完整字面量」，所以 `return makeCoupon({...})` 这种传自己 id 的 wrapper
+     * 不算重复——那正是这条规则要求的样子。
+     */
+    const rebuilt = new Map<string, string[]>()
+    for (const [file, text] of testCode) {
+        const contractTypes = sdkTypesOf(text)
+        for (const [, type] of text.matchAll(REBUILT_FIXTURE)) {
+            if (!type || !contractTypes.has(type)) continue
+            rebuilt.set(type, [...(rebuilt.get(type) ?? []), file])
+        }
+    }
+
+    it("同一份契约响应不在两个测试文件里各搭一遍：那份默认值该住进 @shop/test-utils", () => {
+        const duplicated = [...rebuilt]
+            .filter(([, at]) => new Set(at).size > 1)
+            .map(([type, at]) => `${type}：${[...new Set(at)].join(" / ")}`)
+
+        expect(duplicated).toEqual([])
+    })
+
+    it("扫描本身有效：真扫到了从零搭契约响应的本地夹具", () => {
+        // 数量掉到个位数 = 判据脱靶（签名换行方式变了、sdk import 写法变了），不能悄悄全绿
+        expect(rebuilt.size).toBeGreaterThan(5)
+    })
 })

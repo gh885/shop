@@ -63,12 +63,8 @@ describe("filterFavorites", () => {
 })
 
 describe("collectText", () => {
-    it("折万口径与销量同一份：万以下原样，整万去尾", () => {
+    it("只加「人收藏」后缀，折万吃 compactCount：万以下原样，过万折", () => {
         expect(collectText(12)).toBe("12人收藏")
-        expect(collectText(999)).toBe("999人收藏")
-        // 千级不再折「1.2千」：同一张卡片上「已售 1234」和收藏数各折各的，是两份口径的现场
-        expect(collectText(1234)).toBe("1234人收藏")
         expect(collectText(10000)).toBe("1万人收藏")
-        expect(collectText(23456)).toBe("2.3万人收藏")
     })
 })

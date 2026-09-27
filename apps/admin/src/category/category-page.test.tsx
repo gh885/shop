@@ -1,7 +1,6 @@
 import type {
     CategoryAttrNodeResponse,
     CategoryAttrResponse,
-    CategoryNode,
     CategoryResponse,
 } from "@shop/api/sdk"
 import { renderWithProviders } from "@shop/app-kit/test"
@@ -10,7 +9,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 
-import { server } from "@shop/test-utils"
+import { makeCategoryNode, server } from "@shop/test-utils"
 import { CategoryPage } from "./page"
 
 /**
@@ -22,27 +21,34 @@ import { CategoryPage } from "./page"
  *
  * 树项的 role 是 `treeitem`（headless-tree 在 button 上挂了显式 role，可访问名由 aria-label 给）。
  */
-const ROOT_PARENT = "00000000-0000-0000-0000-000000000000"
-
-function node(
-    id: string,
-    name: string,
-    level: number,
-    sort: number,
-    children: CategoryNode[] = [],
-    parentId = ROOT_PARENT,
-): CategoryNode {
-    return { id, parentId, name, level, sort, status: "ENABLED", iconUrl: null, children }
-}
-
 const TEE_ID = "00000000-0000-4000-8000-000000000003"
 const TOP_ID = "00000000-0000-4000-8000-000000000002"
 const CLOTHES_ID = "00000000-0000-4000-8000-000000000001"
 
-const tee = { ...node(TEE_ID, "T恤", 3, 10, [], TOP_ID), status: "DISABLED" as const }
-const top = node(TOP_ID, "上装", 2, 10, [tee], CLOTHES_ID)
-const pants = node("00000000-0000-4000-8000-000000000004", "下装", 2, 20, [], CLOTHES_ID)
-const clothes = node(CLOTHES_ID, "服装", 1, 10, [top, pants])
+const tee = makeCategoryNode({
+    id: TEE_ID,
+    name: "T恤",
+    level: 3,
+    sort: 10,
+    parentId: TOP_ID,
+    status: "DISABLED",
+})
+const top = makeCategoryNode({
+    id: TOP_ID,
+    name: "上装",
+    level: 2,
+    sort: 10,
+    parentId: CLOTHES_ID,
+    children: [tee],
+})
+const pants = makeCategoryNode({
+    id: "00000000-0000-4000-8000-000000000004",
+    name: "下装",
+    level: 2,
+    sort: 20,
+    parentId: CLOTHES_ID,
+})
+const clothes = makeCategoryNode({ id: CLOTHES_ID, name: "服装", sort: 10, children: [top, pants] })
 
 const childFixture: CategoryResponse = {
     id: "00000000-0000-4000-8000-00000000000a",

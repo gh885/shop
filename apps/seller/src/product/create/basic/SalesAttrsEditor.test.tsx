@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import { SPEC_VALUE_MAX, SPEC_VALUES_MAX } from "@shop/common"
+import { makeCategoryAttrNode } from "@shop/test-utils"
 import { renderWithProviders } from "@shop/app-kit/test"
 
 import type { SpecSelection } from "#/product/draft-model"
@@ -24,30 +25,10 @@ const valueIdOf = (i: number) => `00000000-0000-4000-8000-${String(i).padStart(1
 
 /** 模板值域铺到满档：回显第 i 个取值时 id 与文本都对得上，行数只由喂进去的 value 决定 */
 function makeNode(allowImage = false): CategoryAttrNodeResponse {
-    return {
-        attr: {
-            id: ATTR_ID,
-            categoryId: "6f1a5b1e-2f3c-4a5d-8e9f-0000000000c1",
-            name: "颜色",
-            kind: "SPEC",
-            required: false,
-            allowCustom: true,
-            allowImage,
-            sort: 0,
-            status: "ENABLED",
-            createdAt: "2026-01-01T00:00:00Z",
-            updatedAt: "2026-01-01T00:00:00Z",
-        },
-        values: Array.from({ length: SPEC_VALUES_MAX }, (_, i) => ({
-            id: valueIdOf(i),
-            attrId: ATTR_ID,
-            value: `色${i}`,
-            sort: i,
-            source: "PLATFORM" as const,
-            image: null,
-            createdAt: "2026-01-01T00:00:00Z",
-        })),
-    }
+    return makeCategoryAttrNode(
+        { id: ATTR_ID, required: false, allowImage },
+        Array.from({ length: SPEC_VALUES_MAX }, (_, i) => ({ id: valueIdOf(i), value: `色${i}` })),
+    )
 }
 
 /** 像真实父级那样把上抛的选择原样回灌 value（不回灌会被当成外部灌值、草稿被重建）；上传直接回文件名当 key */

@@ -2,9 +2,9 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vitest"
 
-import type { CategoryAttrNodeResponse, ProductResponse, SkuResponse } from "@shop/api/sdk"
+import type { ProductResponse, SkuResponse } from "@shop/api/sdk"
 import { money } from "@shop/common"
-import { server } from "@shop/test-utils"
+import { makeCategoryAttrNode, makeProductResponse, server } from "@shop/test-utils"
 
 import { createAppTestHookClient } from "@shop/app-kit/test"
 
@@ -37,41 +37,10 @@ const SKU_WHITE = "00000000-0000-4000-8000-0000000000e2"
 const NOW = "2026-09-01T00:00:00Z"
 
 /** 类目模板：一个「颜色」维度，取值 黑/白（本地笛卡尔积的输入） */
-const COLOR_TEMPLATE: CategoryAttrNodeResponse = {
-    attr: {
-        id: COLOR_ATTR_ID,
-        categoryId: CATEGORY_ID,
-        name: "颜色",
-        kind: "SPEC",
-        required: true,
-        allowCustom: true,
-        allowImage: false,
-        sort: 0,
-        status: "ENABLED",
-        createdAt: NOW,
-        updatedAt: NOW,
-    },
-    values: [
-        {
-            id: BLACK_ID,
-            attrId: COLOR_ATTR_ID,
-            value: "黑色",
-            sort: 0,
-            source: "PLATFORM",
-            image: null,
-            createdAt: NOW,
-        },
-        {
-            id: WHITE_ID,
-            attrId: COLOR_ATTR_ID,
-            value: "白色",
-            sort: 1,
-            source: "PLATFORM",
-            image: null,
-            createdAt: NOW,
-        },
-    ],
-}
+const COLOR_TEMPLATE = makeCategoryAttrNode({ id: COLOR_ATTR_ID, categoryId: CATEGORY_ID }, [
+    { id: BLACK_ID, value: "黑色" },
+    { id: WHITE_ID, value: "白色" },
+])
 
 function makeSku(
     id: string,
@@ -97,15 +66,11 @@ function makeSku(
 }
 
 function makeProduct(overrides: Partial<ProductResponse> = {}): ProductResponse {
-    return {
+    return makeProductResponse({
         id: PRODUCT_ID,
         shopId: SHOP_ID,
         categoryId: CATEGORY_ID,
         name: "服务端商品名",
-        subtitle: null,
-        detailImages: [],
-        mainImage: null,
-        images: [],
         specs: [
             {
                 attrId: COLOR_ATTR_ID,
@@ -113,17 +78,8 @@ function makeProduct(overrides: Partial<ProductResponse> = {}): ProductResponse 
                 values: [{ valueId: BLACK_ID, value: "黑色", image: null }],
             },
         ],
-        params: [],
-        minPrice: null,
-        maxPrice: null,
-        stock: 0,
-        soldCount: 0,
-        status: "DRAFT",
-        sevenDayReturn: true,
-        createdAt: NOW,
-        updatedAt: NOW,
         ...overrides,
-    }
+    })
 }
 
 const BASIC: ProductBasicForm = {

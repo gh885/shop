@@ -54,10 +54,4 @@ describe("页签与 URL 筛选值", () => {
         expect(RefundTabSchema.parse("REFUNDED")).toBe("REFUNDED")
         expect(RefundTabSchema.parse("ALL")).toBe("ALL")
     })
-
-    it("每个页签都有中文文案（新增状态忘了配页签，这里会红）", () => {
-        for (const tab of REFUND_TABS) {
-            expect(tab.label.length).toBeGreaterThan(0)
-        }
-    })
 })

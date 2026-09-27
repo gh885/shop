@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { CategoryNode } from "@shop/api/sdk"
+import { makeCategoryNode } from "@shop/test-utils/fixtures"
 
 import {
     columnsOf,
@@ -20,18 +21,9 @@ import {
  * 与「脏路径要截断」——路径来自 URL，用户可以手改任何一段。
  */
 
-/** id 直接用名称当值：断言读起来就是树本身的样子；其余契约字段算法不读，给合法值 */
+/** id 直接用名称当值：断言读起来就是树本身的样子；其余契约字段算法不读，取夹具默认 */
 function node(name: string, children: CategoryNode[] = []): CategoryNode {
-    return {
-        id: name,
-        parentId: "0",
-        name,
-        level: 1,
-        sort: 0,
-        status: "ENABLED",
-        iconUrl: null,
-        children,
-    }
+    return makeCategoryNode({ id: name, name, children })
 }
 
 /**

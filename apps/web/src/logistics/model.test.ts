@@ -106,7 +106,6 @@ describe("countNodes", () => {
 
 describe("maskName", () => {
     it("首字保留、其余掩掉", () => {
-        expect(maskName("张三").length).toBe(2)
         expect(maskName("张三")).toBe("张*")
         expect(maskName("欧阳修")).toBe("欧**")
     })

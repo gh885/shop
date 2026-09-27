@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { CouponTemplateResponse } from "@shop/api/sdk"
+import { makeCouponTemplate } from "@shop/test-utils/fixtures"
 
 import { couponRowFromWire, deriveCouponStatus } from "./model"
 
@@ -10,26 +10,6 @@ import { couponRowFromWire, deriveCouponStatus } from "./model"
  * 钉住的是「同一张券在列表与结算页不会各说各话」：状态由模板 status + 有效期区间派生，
  * 边界口径与后端 CouponEvaluator 一致（起点闭、终点开）。
  */
-
-/** 契约级假数据：只暴露该用例关心的维度，其余字段给合法值 */
-function makeTemplate(overrides: Partial<CouponTemplateResponse> = {}): CouponTemplateResponse {
-    return {
-        id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
-        name: "新春满减券",
-        type: "FULL_REDUCTION",
-        threshold: { amount: 10000, currency: "CNY" },
-        discount: { amount: 1000, currency: "CNY" },
-        // 取正午而非零点：展示用的日期本地化后在任何时区都落回同一天
-        validFrom: "2026-01-01T12:00:00Z",
-        validTo: "2026-02-01T12:00:00Z",
-        totalQuantity: 100,
-        issuedQuantity: 30,
-        usedQuantity: 12,
-        status: "ACTIVE",
-        createdAt: "2025-12-20T08:00:00Z",
-        ...overrides,
-    }
-}
 
 const FROM = Date.parse("2026-01-01T12:00:00Z")
 const TO = Date.parse("2026-02-01T12:00:00Z")
@@ -74,7 +54,7 @@ describe("deriveCouponStatus", () => {
 
 describe("couponRowFromWire", () => {
     it("满减券：规则文案与有效期区间来自契约的分与 ISO 时间", () => {
-        const row = couponRowFromWire(makeTemplate(), FROM)
+        const row = couponRowFromWire(makeCouponTemplate(), FROM)
 
         expect(row).toMatchObject({
             name: "新春满减券",
@@ -90,7 +70,7 @@ describe("couponRowFromWire", () => {
 
     it("门槛为 0：规则读作无门槛，而不是「满 ¥0」这句废话", () => {
         const row = couponRowFromWire(
-            makeTemplate({ threshold: { amount: 0, currency: "CNY" } }),
+            makeCouponTemplate({ threshold: { amount: 0, currency: "CNY" } }),
             FROM,
         )
 

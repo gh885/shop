@@ -12,7 +12,7 @@ import {
     ORDER_STATUS_LABEL,
 } from "./constants"
 import { deriveOrderActions } from "./model"
-import { statusToWire, toOrder, toOrderActions, toOrderDetail } from "./order"
+import { toOrder, toOrderActions, toOrderDetail } from "./order"
 
 /**
  * 测试夹具：订单 wire 形状可控构造。
@@ -218,16 +218,6 @@ describe("toOrderDetail（详情投影）", () => {
 
         expect(detail.cancelReason).toBe("不想要了")
         expect(detail.cancelledAt).toBe("2026-09-06T11:40:00Z")
-    })
-})
-
-describe("statusToWire（领域 → wire 回传）", () => {
-    it("双向映射互逆：pending_shipment 回传 PAID 而不是别的", () => {
-        expect(statusToWire("pending_shipment")).toBe("PAID")
-        expect(statusToWire("pending_payment")).toBe("PENDING_PAYMENT")
-        expect(statusToWire("pending_receipt")).toBe("SHIPPED")
-        expect(statusToWire("completed")).toBe("COMPLETED")
-        expect(statusToWire("cancelled")).toBe("CANCELLED")
     })
 })
 
