@@ -89,7 +89,7 @@ src/main/java/com/shop/platform/
 - **方向：MyBatis-Plus 的类型不往上一层外泄，`Page` 的翻译只有一处**。出参那半边已经闭合——没有任何 service/api 方法把 `Page<Entity>` 交出去，一律在 service 折成 `common.PageResult<T>`。入参那半边也已闭合：现拼条件容器、就地 `new Page<>`、裸 `.last(...)` 在 `src/main/java` 里只出现在 mapper 包，service/api 递进去的是 `PageParams` 与筛选值、接回来的是一个 `Page<T>` 局部变量（`AuthService.pageAdminUsers` 曾把「关键字命中手机号或昵称」这条列表规则住在 service，现在在 `UserMapper.selectPageAdmin`）。范本是 `ShopReviewMapper.selectQueuePage(PageParams, filter)`——入参给基本类型或 `PageParams`，`Page` 只在 mapper 内部成形；曾经的两个反形（`selectPageMine(Page<UserCoupon> page, …)` / `CouponTemplateMapper.selectPageByShop(Page<CouponTemplate> page, …)`）已改成收 `PageParams`
 - **只碰本模块那张表**：mapper 不 import 他模块的 service / api / mapper，也不跨 schema JOIN（Modulith 校验、`NamingRulesTest` 的 `JdbcTemplate` 白名单、`MoneyTypeRulesTest` 的 `currency` 列白名单都假定这一条）；跨 schema 裸 SQL 只允许出现在 `infra.db` 与各模块 `api` 包
 - **编译期门禁两道，钉的就是上面那条方向**（都在 `NamingRulesTest`）：`mybatis_conditions_only_in_mapper` 用 ArchUnit 挡住 `com.baomidou.mybatisplus.core.conditions..` 被任何非 mapper 包引用；`分页构造与裸SQL尾巴只住在mapper包` 扫 `src/main/java`，非 mapper 文件里出现 `new Page<` 或 `.last(` 即红。谁把一句查询条件留在 service，`mvn test` 当场拦
-- **本节钉不住的那半边由 code review 维持**：「有没有副作用」「有没有按结果决定下一步」这类语义静态判不了，与 controller 编排那条撞在同一道障碍上（见 [TODO.md](../../TODO.md) 那条待定形的门禁）；`requireShopOwned` 那种正当薄封装的口径由 `OwnershipDoorTest` 背书（见下节）。写新的语句型 mapper 方法前先回答一句「这条能不能一条语句做完」；答案是不能的，就该搬到 service 或改状态机，而不是在 mapper 里堆步骤
+- **本节钉不住的那半边由 code review 维持**：「有没有副作用」「有没有按结果决定下一步」这类语义静态判不了，与下面「Controller 编排」那条撞在同一道障碍上；`requireShopOwned` 那种正当薄封装的口径由 `OwnershipDoorTest` 背书（见下节）。写新的语句型 mapper 方法前先回答一句「这条能不能一条语句做完」；答案是不能的，就该搬到 service 或改状态机，而不是在 mapper 里堆步骤
 
 ## 越权口径：归属闸门 vs 上下文闸门
 
@@ -169,6 +169,23 @@ src/main/java/com/shop/platform/
 - **实体只负责换算**：mapper 实体留 `price` + `currency` 两列（MyBatis 按列映射），对外给派生视图 `priceAsMoney()` / `originalPriceAsMoney()`（可空列走 `Money.ofFenOrNull`）；`currency` 字段不得出现在 mapper 实体与 Money 之外任何地方
 - **运算不脱离 Money**：`plus` / `minus` / `times` / `atLeast` 只在同币种间成立；跨币种、负倍数、减法结果为负都表示代码或数据破坏了服务端不变量，抛 `IllegalStateException` 走 500 与 error 日志，不能伪装成用户输入错误。零金额用 `Money.zero(手上这笔钱的币种)`，不凭空造 CNY
 - 由 `MoneyTypeRulesTest`（ArchUnit）强制：契约层（dto / api / controller / service / events / common）的金额命名字段类型必须是 Money；`currency` 字段只允许出现在 mapper 实体与 Money（含 `infra.db` 造数器）里
+
+## Controller 编排：入口只调一次 use-case
+
+**controller 的方法体里除了「取上下文 → 调一个 service 方法 → 交出结果」之外不许有第二步。**
+
+这条曾经没有门禁，只有一例真违规（`AuthController.sendSmsCode` 自己调人机验证再调发码，已收进 `AuthService`）。
+按 HTTP 方法计数去卡会误伤——把装配收进 service 之后，POST 与 GET 在「有没有副作用」上根本不是同一种形状，
+而按「方法数 / 依赖数」卡又会把合法的入参映射算进去。**结论是：这条到今天仍由 code review 维持，出现第二例真违规再回来定规则形状**（白名单那种做法只会只增不减）。
+
+判据一句话：**一个 handler 里出现第二个业务调用就是违规**。以下都不算：
+
+- 取上下文（`@CurrentUser` / `@CurrentShop` / `@CurrentStaff`）与参数映射（`req.xxx()` 拆给 service）；
+- `switch` 出不同状态的**不同** use-case（那是「一个动作一种状态」，仍是一次调用）；
+- 事件发布、缓存失效——它们是 service 内部的步骤，不是 controller 的。
+
+本轮新增的 controller（审计查询 / 店铺治理 / 评价三端 / 员工建号调岗）全部是「一次调用」形状，提交时逐个看过；
+真出现第二例时，规则形状优先考虑「同一 handler 内出现 ≥2 次业务调用且返回值参与下一步判断」。
 
 ## 命名规范（三层契约）
 

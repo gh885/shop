@@ -5,11 +5,7 @@
 
 ## 近期要做
 
-- [ ] 管理端操作审计：账号禁用、优惠券作废、店铺审核等动作统一审计查询入口，按操作人/对象/时间筛选；敏感字段只落掩码，导出前二次确认
-- [ ] 管理端物流运维页：后端 `/admin/logistics/issues` 端点已在，admin 只缺页面；物流异常单列表/处理，复用 CMS 三页骨架与表格外壳（类目半边已落地：`/categories` 用 reui tree 做类目树增删改排序 + 属性模板）
-- [ ] 平台侧封店/解封（ACC-60）：admin service + 端点 + 店铺列表操作入口；封店走 `ShopMapper.suspend` 并发布 `ShopTradingSuspendedEvent` 级联下架，解封不自动重上架；进管理端操作审计
-- [ ] 员工创建与分配岗位（ACC-57）：补 `STAFF_MANAGE` 剩余半边，含不能改自己岗位、最后一个超管不可降级/禁用；顺带让 admin 导航按 me 出参 permission 裁剪（ACC-58）
-- [ ] 买家评价一期：已完成订单按商品行评价（星级 + 文字 + 图），一单一评不可改、可追评一次；商详展示评价列表与好评率，卖家可回复一次；先在 `docs/business-rules/` 立规则再建模块
-- [ ] 优惠券二期（CPN-N1 子集）：折扣券（必须带封顶）+ 领取后 N 天相对有效期；运费券与叠加（CPN-N2）另开，不在本条
-- [ ] README「已知边界」对账：售后徽章与重复退款已由 AFS-39/AFS-05 收口、CI 已跑 `mvn verify` + Playwright、admin 已有 CMS/账号/券运营，删掉过期描述
-- [ ] Controller 编排门禁：静态判不了「带副作用」，这类真违规目前只有一例（`AuthController.sendSmsCode` 曾自己调人机验证再调发码，已收进 `AuthService`），无可归纳的共同形状；出现第二例真违规再回来定规则形状（按 HTTP 方法计数会误伤已把装配收进 service 的正常形态，白名单只会只增不减）。mapper 层撞在同一道障碍上，其「位置」那半边已由 `NamingRulesTest` 钉住，语义那半边等这一条
+- [ ] 买家评价：后端 `ReviewFlowIT`（提交/追评/回复/越权 404/窗口过期）与前端商详评价区、订单评价弹窗的 MSW 用例；图片那一格等买家上传通道（`/seller/**` 的图片凭证端点带店铺上下文，买家拿不到，契约与存储已备好）
+- [ ] 操作审计：`AuditQueryServiceTest`（按操作人/对象/时间窗筛选、时间窗方向 400）、`AdminAuditControllerTest`（`AUDIT_VIEW` 判权）；导出那条（CSV 转义 + 二次确认）可留给前端用例
+- [ ] 折扣券与相对有效期：`CouponFaceValue` 两段封顶的纯函数单测、结算链路折扣券实减额 IT（`CouponCommand.lock` 的封顶闸门）、建券条款 IT；`ReviewWindows.FOLLOW_UP_DAYS` 的窗口边界
+- [ ] 封店/解封与员工岗位：`ShopAdminServiceTest`（末位超管不可降级/禁用、自指禁令、级联下架事件）、`StaffServiceTest`（建号工号唯一、岗位自指、末位保护）；管理端三个新页的 MSW 用例（审计筛选、物流处置、店铺封停/解封）

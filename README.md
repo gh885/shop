@@ -67,24 +67,30 @@ shop/
 订单状态机（发货/收货/取消/超时关单）、已付款取消退款单据、静态 RBAC、CMS 首页配置、
 物流（包裹/轨迹/承运商对接/异常治理）、售后（买家申请·撤销·回寄 → 卖家同意·拒绝·确认收货退款，
 含卖家退款售后工作台，前后端闭环；规则见 [docs/business-rules/aftersale.md](docs/business-rules/aftersale.md)）、
-优惠券一期（店铺券的建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，
-买家侧券包·店铺领券·结算选券与卖家侧建券页均已接通；规则见
-[docs/business-rules/coupon.md](docs/business-rules/coupon.md)）。
+优惠券（满减/折扣两型的建券·领券·券包·结算选券·下单占用·支付核销·取消释放·退款退券，
+买家侧券包·店铺领券·结算选券与卖家侧建券页、平台侧券运营均已接通；规则见
+[docs/business-rules/coupon.md](docs/business-rules/coupon.md)）、
+买家评价（整单按行评价·追评·卖家回复；规则见
+[docs/business-rules/review.md](docs/business-rules/review.md)）、
+平台治理动作的操作审计账本（规则见
+[docs/business-rules/crosscut.md](docs/business-rules/crosscut.md)）。
 
 尚未实现（刻意留白，不是遗漏）：
 
 - **搜索**只有 `name LIKE '%kw%'`，无倒排索引/相关性排序，量级上去必须换方案
 - **支付**仅 MOCK 渠道，未接真实网关（两段式状态机已按可替换设计，见 `PaymentService`）
 - **无缓存层、无消息队列**：热点只读直接打库；跨模块异步仅用 Modulith 事件登记表（outbox）
-- **营销**：优惠券一期已闭环（店铺券的建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，
-  买家券包·店铺领券·结算选券页与卖家建券页均已实现；规则见
-  [docs/business-rules/coupon.md](docs/business-rules/coupon.md)（折扣券·运费券·平台券·叠加等定案于其「已定案未实现」节 CPN-N1–N7），与淘系/京东做法的对照见
-  [docs/reference/coupon-platform-practices.md](docs/reference/coupon-platform-practices.md)）；
-  折扣券·运费券·平台券·叠加规则·秒杀·积分均未开始
-- **分账结算与商家提现**、**买家评价** 均未开始
-- **售后的两处收尾**：买家订单列表未带售后徽章（列表契约没透出 `afterSaleStatus`）；
-  售后退款后仍可再次申请（后端只挡「进行中」的单，重复退款口子敞着，见 `TODO.md`）
-- **平台管理端**（apps/admin）有登录、店铺入驻审核与首页骨架，类目/CMS/物流运维页未做
+- **营销**：优惠券已闭环两型（满减券 + 折扣券「N 折、封顶必填」，支持「领取后 N 天」相对有效期；
+  建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，买家券包·店铺领券·结算选券与卖家建券页、
+  平台券运营（查询/作废）均已接通；规则见 [docs/business-rules/coupon.md](docs/business-rules/coupon.md)，
+  与淘系/京东做法的对照见 [docs/reference/coupon-platform-practices.md](docs/reference/coupon-platform-practices.md)）；
+  运费券·平台券·券叠加·选券可配·秒杀·积分均未开始（定案见 coupon.md「已定案未实现」节 CPN-N1–N7）
+- **评价**已闭环一期：已完成订单按订单行评价（星级 + 文字，可追评一次）、卖家回复一次、
+  商详评价区（聚合 + 好评率）、卖家评价管理页；规则见 [docs/business-rules/review.md](docs/business-rules/review.md)。
+  晒图这一格后端已备（存 key 不存 URL），前端待买家上传通道
+- **分账结算与商家提现**未开始
+- **平台管理端**（apps/admin）已有：店铺入驻审核、店铺治理（封店/解封）、用户与员工管理（含创建员工/调岗位）、
+  平台类目（属性模板）、CMS 三页、优惠券运营、物流异常处置、操作审计（按人/对象/时间反查 + 导出）
 - 未做过多实例部署与压测；已知的单机假设都在代码注释里标了出处
   （如订单号的进程内序列、超时关单不加分布式锁的理由见 `OrderTimeoutCloser`）
 
@@ -108,7 +114,7 @@ Redis：localhost:6379
 | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                                                   |
 | [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                                                   |
 | [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                                       |
-| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志、[i18n 约定](docs/conventions/i18n.md)）                                       |
+| [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志、[i18n 约定](docs/conventions/i18n.md)、[前端监控](docs/conventions/frontend-monitoring.md)）                                       |
 | [docs/business-rules/](docs/business-rules/)           | 业务规则库：按领域的生效规则，逐条带编号（源自代码；原 docs/decisions/ 设计笔记已并入并归档 git 历史） |
 | [docs/reference/](docs/reference/)                     | 外部调研资料（券平台做法对照）                                                                         |
 

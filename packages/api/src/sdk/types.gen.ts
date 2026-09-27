@@ -95,6 +95,13 @@ export type ShippingTemplateResponse = {
     excludedRegions: Array<string>;
 };
 
+/**
+ * 卖家回复评价
+ */
+export type ReplyReviewRequest = {
+    text: string;
+};
+
 export type ParamItem = {
     attrId: string | null;
     name: string;
@@ -219,7 +226,11 @@ export type CouponTemplateResponse = {
     id: string;
     name: string;
     threshold: Money;
-    discount: Money;
+    discount?: Money | null;
+    type: string;
+    discountRate?: number | null;
+    maxDiscount?: Money | null;
+    validDays?: number | null;
     validFrom: string;
     validTo: string;
     totalQuantity: number;
@@ -307,6 +318,24 @@ export type MeResponse = {
     phone: string;
     nickname: string | null;
     avatarKey: string | null;
+};
+
+export const StaffRole = {
+    SUPER_ADMIN: 'SUPER_ADMIN',
+    REVIEWER: 'REVIEWER',
+    OPS: 'OPS'
+} as const;
+
+export type StaffRole = typeof StaffRole[keyof typeof StaffRole];
+
+/**
+ * 调整平台员工岗位
+ */
+export type UpdateStaffRoleRequest = {
+    /**
+     * 目标岗位
+     */
+    role: StaffRole;
 };
 
 export type ResolveIssueRequest = {
@@ -581,13 +610,86 @@ export type ReceiverPhoneResponse = {
     phone: string;
 };
 
+export const CouponType = { FULL_REDUCTION: 'FULL_REDUCTION', DISCOUNT: 'DISCOUNT' } as const;
+
+export type CouponType = typeof CouponType[keyof typeof CouponType];
+
+/**
+ * 新建券模板
+ */
 export type CreateCouponTemplateRequest = {
     name: string;
+    /**
+     * 券型：FULL_REDUCTION 满减 / DISCOUNT 折扣
+     */
+    type: CouponType;
     thresholdAmount: Money;
-    discountAmount: Money;
+    discountAmount?: Money;
+    discountRate?: number;
+    maxDiscountAmount?: Money;
     totalQuantity: number;
     validFrom: string;
     validTo: string;
+    validDays?: number;
+};
+
+/**
+ * 追评
+ */
+export type AppendReviewRequest = {
+    text: string;
+};
+
+/**
+ * 提交订单评价
+ */
+export type CreateReviewRequest = {
+    items: Array<ItemInput>;
+};
+
+/**
+ * 逐商品行评价
+ */
+export type ItemInput = {
+    /**
+     * 订单行 id（orders.items.id）
+     */
+    orderItemId: string;
+    rating: number;
+    content?: string;
+    images?: Array<string>;
+};
+
+/**
+ * 买家自己的订单评价
+ */
+export type MyReviewView = {
+    id: string;
+    orderId: string;
+    /**
+     * 订单号快照（展示用）
+     */
+    orderNo?: string;
+    shopId: string;
+    items: Array<RatingLine>;
+    appendText?: string;
+    appendedAt?: string;
+    reply?: string;
+    repliedAt?: string;
+    createdAt: string;
+};
+
+/**
+ * 评价行
+ */
+export type RatingLine = {
+    orderItemId: string;
+    productId: string;
+    name: string;
+    image?: string;
+    rating: number;
+    content?: string;
+    images?: Array<string>;
 };
 
 export type CreatePaymentRequest = {
@@ -809,7 +911,10 @@ export type MyCouponResponse = {
     shopName: string;
     name: string;
     threshold: Money;
-    discount: Money;
+    discount?: Money | null;
+    type: string;
+    discountRate?: number | null;
+    maxDiscount?: Money | null;
     effectiveAt: string;
     expireAt: string;
     status: string;
@@ -877,6 +982,19 @@ export type ForgotPasswordRequest = {
 
 export type ConfirmDeletionRequest = {
     code: string;
+};
+
+/**
+ * 创建平台员工
+ */
+export type CreateStaffRequest = {
+    employeeNo: string;
+    password: string;
+    displayName?: string;
+    /**
+     * 岗位：SUPER_ADMIN / REVIEWER / OPS
+     */
+    role: StaffRole;
 };
 
 export type RejectRequest = {
@@ -974,6 +1092,42 @@ export type PageParams = {
     size?: number;
 };
 
+export type PageResultProductReviewItem = {
+    records: Array<ProductReviewItem>;
+    total: number;
+};
+
+/**
+ * 商品评价行
+ */
+export type ProductReviewItem = {
+    id: string;
+    /**
+     * 所属评价 id（同一单的多行共享它）
+     */
+    reviewId?: string;
+    name: string;
+    image?: string;
+    rating: number;
+    content?: string;
+    images?: Array<string>;
+    /**
+     * 买家追评（一次）
+     */
+    appendText?: string;
+    appendedAt?: string;
+    /**
+     * 卖家回复（一次）
+     */
+    reply?: string;
+    repliedAt?: string;
+    /**
+     * 买家昵称掩码（前 2 后 2）
+     */
+    buyer: string;
+    createdAt: string;
+};
+
 export type PageResultProductResponse = {
     records: Array<ProductResponse>;
     total: number;
@@ -1009,6 +1163,7 @@ export const OrderAvailableAction = {
 export type OrderAvailableAction = typeof OrderAvailableAction[keyof typeof OrderAvailableAction];
 
 export type OrderItemResponse = {
+    orderItemId: string;
     productId: string;
     skuId: string;
     name: string;
@@ -1282,7 +1437,10 @@ export type ClaimableCouponResponse = {
     id: string;
     name: string;
     threshold: Money;
-    discount: Money;
+    discount?: Money | null;
+    type: string;
+    discountRate?: number | null;
+    maxDiscount?: Money | null;
     validFrom: string;
     validTo: string;
     soldOut: boolean;
@@ -1294,6 +1452,33 @@ export type PublicShopResponse = {
     name: string;
     logoKey: string | null;
     createdAt: string;
+};
+
+/**
+ * 商品评价区（聚合 + 列表）
+ */
+export type ProductReviewList = {
+    summary: ProductReviewSummary;
+    page: PageResultProductReviewItem;
+};
+
+/**
+ * 商品评价聚合
+ */
+export type ProductReviewSummary = {
+    total: number;
+    /**
+     * 好评（星级 ≥4）条数
+     */
+    goodCount: number;
+    /**
+     * 好评率，百分比保留一位小数（0~100）
+     */
+    positiveRate: number;
+    /**
+     * 平均星级，保留一位小数（0~5）
+     */
+    averageRating: number;
 };
 
 export type ProductQuery = {
@@ -1407,6 +1592,28 @@ export type PageResultAdminStaffItem = {
     total: number;
 };
 
+export type AdminShopQuery = {
+    status?: string;
+    keyword?: string;
+};
+
+/**
+ * 管理端店铺列表项
+ */
+export type AdminShopItem = {
+    id: string;
+    name: string;
+    ownerId: string;
+    status: string;
+    logoKey?: string;
+    createdAt: string;
+};
+
+export type PageResultAdminShopItem = {
+    records: Array<AdminShopItem>;
+    total: number;
+};
+
 export type PageResultShopReviewItem = {
     records: Array<ShopReviewItem>;
     total: number;
@@ -1462,7 +1669,9 @@ export type AdminCouponItem = {
     templateId: string;
     name: string;
     threshold: Money;
-    discount: Money;
+    discount?: Money | null;
+    type: string;
+    maxDiscount?: Money | null;
     bearer: 'SELLER' | 'PLATFORM';
     effectiveAt: string;
     expireAt: string;
@@ -1483,6 +1692,34 @@ export type StaffInfo = {
     displayName: string | null;
     role: string | null;
     permissions: Array<string>;
+};
+
+export type AdminAuditQuery = {
+    operatorId?: string;
+    targetType?: string;
+    targetId?: string;
+    action?: string;
+    from?: string;
+    to?: string;
+};
+
+/**
+ * 操作审计记录
+ */
+export type AdminAuditItem = {
+    id: string;
+    action: string;
+    targetType: string;
+    targetId: string;
+    operatorId: string;
+    operatorName: string | null;
+    detail?: string;
+    createdAt: string;
+};
+
+export type PageResultAdminAuditItem = {
+    records: Array<AdminAuditItem>;
+    total: number;
 };
 
 export type DeleteAddressData = {
@@ -1623,6 +1860,22 @@ export type SaveShippingTemplateResponses = {
 };
 
 export type SaveShippingTemplateResponse = SaveShippingTemplateResponses[keyof SaveShippingTemplateResponses];
+
+export type ReplyReviewData = {
+    body: ReplyReviewRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/reviews/{id}/reply';
+};
+
+export type ReplyReviewResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type AbandonProductData = {
     body?: never;
@@ -1999,6 +2252,22 @@ export type UpdateProfileResponses = {
 };
 
 export type UpdateProfileResponse = UpdateProfileResponses[keyof UpdateProfileResponses];
+
+export type AdminUpdateStaffRoleData = {
+    body: UpdateStaffRoleRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/staff/{id}/role';
+};
+
+export type AdminUpdateStaffRoleResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type ResolveIssueData = {
     body: ResolveIssueRequest;
@@ -2569,6 +2838,58 @@ export type CreateAddress1Responses = {
 
 export type CreateAddress1Response = CreateAddress1Responses[keyof CreateAddress1Responses];
 
+export type AppendReviewData = {
+    body: AppendReviewRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/reviews/{id}/append';
+};
+
+export type AppendReviewResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type GetOrderReviewData = {
+    body?: never;
+    path: {
+        orderId: string;
+    };
+    query?: never;
+    url: '/reviews/orders/{orderId}';
+};
+
+export type GetOrderReviewResponses = {
+    /**
+     * OK
+     */
+    200: MyReviewView;
+};
+
+export type GetOrderReviewResponse = GetOrderReviewResponses[keyof GetOrderReviewResponses];
+
+export type SubmitOrderReviewData = {
+    body: CreateReviewRequest;
+    path: {
+        orderId: string;
+    };
+    query?: never;
+    url: '/reviews/orders/{orderId}';
+};
+
+export type SubmitOrderReviewResponses = {
+    /**
+     * Created
+     */
+    201: MyReviewView;
+};
+
+export type SubmitOrderReviewResponse = SubmitOrderReviewResponses[keyof SubmitOrderReviewResponses];
+
 export type CreatePaymentData = {
     body: CreatePaymentRequest;
     path?: never;
@@ -3018,6 +3339,76 @@ export type IssueAvatarTicketResponses = {
 
 export type IssueAvatarTicketResponse = IssueAvatarTicketResponses[keyof IssueAvatarTicketResponses];
 
+export type ListAdminStaffData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        status?: string;
+        keyword?: string;
+    };
+    url: '/admin/staff';
+};
+
+export type ListAdminStaffResponses = {
+    /**
+     * OK
+     */
+    200: PageResultAdminStaffItem;
+};
+
+export type ListAdminStaffResponse = ListAdminStaffResponses[keyof ListAdminStaffResponses];
+
+export type AdminCreateStaffData = {
+    body: CreateStaffRequest;
+    path?: never;
+    query?: never;
+    url: '/admin/staff';
+};
+
+export type AdminCreateStaffResponses = {
+    /**
+     * Created
+     */
+    201: unknown;
+};
+
+export type SuspendShopData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/shops/{id}/suspend';
+};
+
+export type SuspendShopResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type SuspendShopResponse = SuspendShopResponses[keyof SuspendShopResponses];
+
+export type ResumeShopData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/shops/{id}/resume';
+};
+
+export type ResumeShopResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ResumeShopResponse = ResumeShopResponses[keyof ResumeShopResponses];
+
 export type RejectShopReviewData = {
     body: RejectRequest;
     path: {
@@ -3404,6 +3795,24 @@ export type ListShopInvitesResponses = {
 
 export type ListShopInvitesResponse = ListShopInvitesResponses[keyof ListShopInvitesResponses];
 
+export type ListMyShopReviewsData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+    };
+    url: '/seller/reviews';
+};
+
+export type ListMyShopReviewsResponses = {
+    /**
+     * OK
+     */
+    200: PageResultProductReviewItem;
+};
+
+export type ListMyShopReviewsResponse = ListMyShopReviewsResponses[keyof ListMyShopReviewsResponses];
+
 export type ListShopOrdersData = {
     body?: never;
     path?: never;
@@ -3688,6 +4097,26 @@ export type GetPublicShopResponses = {
 
 export type GetPublicShopResponse = GetPublicShopResponses[keyof GetPublicShopResponses];
 
+export type ListProductReviewsData = {
+    body?: never;
+    path: {
+        productId: string;
+    };
+    query: {
+        pageParams: PageParams;
+    };
+    url: '/api/reviews/products/{productId}';
+};
+
+export type ListProductReviewsResponses = {
+    /**
+     * OK
+     */
+    200: ProductReviewList;
+};
+
+export type ListProductReviewsResponse = ListProductReviewsResponses[keyof ListProductReviewsResponses];
+
 export type ListPublicProductsData = {
     body?: never;
     path?: never;
@@ -3849,25 +4278,24 @@ export type ListAdminUsersResponses = {
 
 export type ListAdminUsersResponse = ListAdminUsersResponses[keyof ListAdminUsersResponses];
 
-export type ListAdminStaffData = {
+export type ListAdminShopsData = {
     body?: never;
     path?: never;
     query: {
         pageParams: PageParams;
-        status?: string;
-        keyword?: string;
+        query: AdminShopQuery;
     };
-    url: '/admin/staff';
+    url: '/admin/shops';
 };
 
-export type ListAdminStaffResponses = {
+export type ListAdminShopsResponses = {
     /**
      * OK
      */
-    200: PageResultAdminStaffItem;
+    200: PageResultAdminShopItem;
 };
 
-export type ListAdminStaffResponse = ListAdminStaffResponses[keyof ListAdminStaffResponses];
+export type ListAdminShopsResponse = ListAdminShopsResponses[keyof ListAdminShopsResponses];
 
 export type ListShopReviewsData = {
     body?: never;
@@ -3954,6 +4382,25 @@ export type GetStaffMeResponses = {
 };
 
 export type GetStaffMeResponse = GetStaffMeResponses[keyof GetStaffMeResponses];
+
+export type ListAuditRecordsData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        query: AdminAuditQuery;
+    };
+    url: '/admin/audits';
+};
+
+export type ListAuditRecordsResponses = {
+    /**
+     * OK
+     */
+    200: PageResultAdminAuditItem;
+};
+
+export type ListAuditRecordsResponse = ListAuditRecordsResponses[keyof ListAuditRecordsResponses];
 
 export type RemoveShopMemberData = {
     body?: never;
