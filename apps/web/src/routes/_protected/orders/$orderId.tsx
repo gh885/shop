@@ -19,9 +19,10 @@ import {
     useOrderActions,
     type AfterSaleAction,
 } from "#/order"
+import { ReviewDialog } from "#/reviews"
 import { notify } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
-import { Card, CardContent, confirm, Skeleton } from "@shop/ui-web"
+import { Button, Card, CardContent, confirm, Skeleton } from "@shop/ui-web"
 import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/orders/$orderId")({
@@ -83,9 +84,10 @@ function OrderDetailPage() {
     // 状态区客户操作分发（取消走取消原因弹窗，由本页渲染 cancelDialog）；商品区的加购/售后走 handleItemAction
     const { handleAction, pendingAction, cancelDialog } = useOrderActions()
 
-    // 售后两个弹窗入口的状态：申请、回寄
+    // 售后两个弹窗入口的状态：申请、回寄；评价弹窗同形
     const [applyOpen, setApplyOpen] = useState(false)
     const [returnOpen, setReturnOpen] = useState(false)
+    const [reviewOpen, setReviewOpen] = useState(false)
 
     const ticket = afterSale.data ?? undefined
 
@@ -145,6 +147,22 @@ function OrderDetailPage() {
                             />
                         )}
 
+                        {/* 评价入口：只有「已完成」的订单才谈得上评价（REV-03）。
+                            不占商品区的按钮排——那是订单状态机的动作，评价是评价域的独立入口 */}
+                        {order.status === "completed" && (
+                            <Card>
+                                <CardContent className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium">评价这单</p>
+                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                            逐件商品打分与留言，提交后不可修改、可追评一次
+                                        </p>
+                                    </div>
+                                    <Button onClick={() => setReviewOpen(true)}>去评价</Button>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* 店铺 + 商品 */}
                         <OrderShopSection
                             order={order}
@@ -163,6 +181,16 @@ function OrderDetailPage() {
 
             {/* 取消订单弹窗（原因 + 备注）：状态由 useOrderActions 持有 */}
             {cancelDialog}
+
+            {order.status === "completed" && (
+                <ReviewDialog
+                    open={reviewOpen}
+                    onOpenChange={setReviewOpen}
+                    orderId={orderId}
+                    orderNo={order.orderNo}
+                    items={order.items}
+                />
+            )}
 
             <AfterSaleApplyDialog
                 open={applyOpen}

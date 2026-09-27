@@ -87,6 +87,50 @@ public class OrderReadQuery {
     }
 
     /**
+     * 订单的评价素材（review 模块消费）：归属、状态、完成时刻与逐行商品快照。
+     *
+     * <p>两个点查（orders.orders 与 orders.items）串成一份素材，都在本模块 schema 内、不 JOIN：
+     * 评价行要引用 order_item_id 与商品快照，而那些列只有本模块有。
+     * 评价窗口不在这里算（那是 review 域的规则，见该视图注释），这里只给完成时刻这个事实。
+     */
+    public Optional<OrderReviewSourceView> reviewSourceById(UUID orderId) {
+        return jdbc
+                .query(
+                        "SELECT user_id, shop_id, order_no, status, completed_at FROM orders.orders WHERE id = ?",
+                        (rs, i) -> new OrderReviewSourceView(
+                                orderId,
+                                rs.getObject("user_id", UUID.class),
+                                rs.getObject("shop_id", UUID.class),
+                                rs.getString("order_no"),
+                                OrderStatus.valueOf(rs.getString("status")),
+                                rs.getObject("completed_at", OffsetDateTime.class),
+                                List.of()),
+                        orderId)
+                .stream()
+                .findFirst()
+                .map(view -> {
+                    List<OrderReviewSourceView.ReviewSourceLine> lines = jdbc.query(
+                            "SELECT id, product_id, sku_id, name, image FROM orders.items WHERE order_id = ? "
+                                    + "ORDER BY created_at, id",
+                            (rs, i) -> new OrderReviewSourceView.ReviewSourceLine(
+                                    rs.getObject("id", UUID.class),
+                                    rs.getObject("product_id", UUID.class),
+                                    rs.getObject("sku_id", UUID.class),
+                                    rs.getString("name"),
+                                    rs.getString("image")),
+                            orderId);
+                    return new OrderReviewSourceView(
+                            view.orderId(),
+                            view.userId(),
+                            view.shopId(),
+                            view.orderNo(),
+                            view.status(),
+                            view.completedAt(),
+                            lines);
+                });
+    }
+
+    /**
      * 一批订单的摘要：跨模块列表拼装用（卖家售后工作台列本店售后单时补订单号/买家/商品）。
      *
      * <p>仍是按主键 IN 的点查——不做非键过滤、不 JOIN 他方 schema；行项计数与首个商品名是同一 schema 内的

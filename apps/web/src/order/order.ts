@@ -49,6 +49,7 @@ export function toOrderActions(wire: readonly OrderAvailableAction[]): OrderActi
 /** 行项 wire → 业务：快照字段归一 */
 function toOrderItem(dto: OrderItemResponse): OrderItem {
     return {
+        orderItemId: dto.orderItemId,
         productId: dto.productId,
         skuId: dto.skuId,
         title: dto.name,

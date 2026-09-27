@@ -21,6 +21,7 @@ import { Route as AppShopListRouteImport } from './routes/_app/shop/list'
 import { Route as AppShopMemberRouteImport } from './routes/_app/shop/member'
 import { Route as AppTradeOrderRouteImport } from './routes/_app/trade/order'
 import { Route as AppTradeRefundRouteImport } from './routes/_app/trade/refund'
+import { Route as AppTradeReviewRouteImport } from './routes/_app/trade/review'
 import { Route as AppTradeShippingRouteImport } from './routes/_app/trade/shipping'
 import { Route as AppProductCreateBasicRouteImport } from './routes/_app/product/create/basic'
 import { Route as AppProductCreateCategoryRouteImport } from './routes/_app/product/create/category'
@@ -84,6 +85,11 @@ const AppTradeRefundRoute = AppTradeRefundRouteImport.update({
   path: '/trade/refund',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppTradeReviewRoute = AppTradeReviewRouteImport.update({
+  id: '/trade/review',
+  path: '/trade/review',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppTradeShippingRoute = AppTradeShippingRouteImport.update({
   id: '/trade/shipping',
   path: '/trade/shipping',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/shop/member': typeof AppShopMemberRoute
   '/trade/order': typeof AppTradeOrderRoute
   '/trade/refund': typeof AppTradeRefundRoute
+  '/trade/review': typeof AppTradeReviewRoute
   '/trade/shipping': typeof AppTradeShippingRoute
   '/product/create/basic': typeof AppProductCreateBasicRoute
   '/product/create/category': typeof AppProductCreateCategoryRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/shop/member': typeof AppShopMemberRoute
   '/trade/order': typeof AppTradeOrderRoute
   '/trade/refund': typeof AppTradeRefundRoute
+  '/trade/review': typeof AppTradeReviewRoute
   '/trade/shipping': typeof AppTradeShippingRoute
   '/product/create/basic': typeof AppProductCreateBasicRoute
   '/product/create/category': typeof AppProductCreateCategoryRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/_app/shop/member': typeof AppShopMemberRoute
   '/_app/trade/order': typeof AppTradeOrderRoute
   '/_app/trade/refund': typeof AppTradeRefundRoute
+  '/_app/trade/review': typeof AppTradeReviewRoute
   '/_app/trade/shipping': typeof AppTradeShippingRoute
   '/_app/product/create/basic': typeof AppProductCreateBasicRoute
   '/_app/product/create/category': typeof AppProductCreateCategoryRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/shop/member'
     | '/trade/order'
     | '/trade/refund'
+    | '/trade/review'
     | '/trade/shipping'
     | '/product/create/basic'
     | '/product/create/category'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/shop/member'
     | '/trade/order'
     | '/trade/refund'
+    | '/trade/review'
     | '/trade/shipping'
     | '/product/create/basic'
     | '/product/create/category'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/_app/shop/member'
     | '/_app/trade/order'
     | '/_app/trade/refund'
+    | '/_app/trade/review'
     | '/_app/trade/shipping'
     | '/_app/product/create/basic'
     | '/_app/product/create/category'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTradeRefundRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/trade/review': {
+      id: '/_app/trade/review'
+      path: '/trade/review'
+      fullPath: '/trade/review'
+      preLoaderRoute: typeof AppTradeReviewRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/trade/shipping': {
       id: '/_app/trade/shipping'
       path: '/trade/shipping'
@@ -329,6 +348,7 @@ interface AppRouteRouteChildren {
   AppShopMemberRoute: typeof AppShopMemberRoute
   AppTradeOrderRoute: typeof AppTradeOrderRoute
   AppTradeRefundRoute: typeof AppTradeRefundRoute
+  AppTradeReviewRoute: typeof AppTradeReviewRoute
   AppTradeShippingRoute: typeof AppTradeShippingRoute
   AppProductCreateBasicRoute: typeof AppProductCreateBasicRoute
   AppProductCreateCategoryRoute: typeof AppProductCreateCategoryRoute
@@ -345,6 +365,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppShopMemberRoute: AppShopMemberRoute,
   AppTradeOrderRoute: AppTradeOrderRoute,
   AppTradeRefundRoute: AppTradeRefundRoute,
+  AppTradeReviewRoute: AppTradeReviewRoute,
   AppTradeShippingRoute: AppTradeShippingRoute,
   AppProductCreateBasicRoute: AppProductCreateBasicRoute,
   AppProductCreateCategoryRoute: AppProductCreateCategoryRoute,

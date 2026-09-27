@@ -52,6 +52,7 @@ function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDet
         applyExpireAt: null,
         items: [
             {
+                orderItemId: "00000000-0000-7000-8000-000000000001",
                 productId: "p-1",
                 skuId: "sku-1",
                 name: "测试商品",

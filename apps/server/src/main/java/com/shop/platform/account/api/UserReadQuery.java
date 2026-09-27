@@ -52,6 +52,23 @@ public class UserReadQuery {
     }
 
     /**
+     * 批量取昵称（评价等公共展示面用）：userId → 昵称原文，缺失的 id 不在 Map 中。
+     *
+     * <p>原样给原文、不在这里掩码：掩码形状属于展示口径，由消费方（review 的 {@code Nickname.mask}）决定——
+     * 账号域不该替别人的页面定「昵称给看几个字」。
+     */
+    public Map<UUID, String> nicknamesByIds(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return Map.of();
+        return namedJdbc.query("SELECT id, nickname FROM account.users WHERE id IN (:ids)", Map.of("ids", ids), rs -> {
+            Map<UUID, String> nicknames = new HashMap<>();
+            while (rs.next()) {
+                nicknames.put(rs.getObject("id", UUID.class), rs.getString("nickname"));
+            }
+            return nicknames;
+        });
+    }
+
+    /**
      * 账号闸门谓词（下单等交易入口消费）：用户存在且状态 ACTIVE 才放行，用户缺失同样给 false。
      * 只吐谓词不吐 {@code UserStatus} 枚举——状态词表留在本模块，消费方不必（也不允许）import account.model。
      */

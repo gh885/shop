@@ -24,6 +24,8 @@ export type { OrderStatus } from "./order-status"
 /** 订单项业务形状（快照字段原样透出；amount 为行小计 = 单价 × 数量）。
  * 注意：后端行项无 id（订单快照只留 productId/skuId），渲染 key 用 `productId + skuId + quantity`。 */
 export type OrderItem = {
+    /** 订单行主键：逐行引用的动作（评价按行打分）靠它，不用 skuId 顶替——同一 SKU 买两件是两个行 */
+    orderItemId: string
     productId: string
     skuId: string
     title: string

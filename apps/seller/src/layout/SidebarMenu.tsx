@@ -31,7 +31,7 @@ export const NAV_ITEMS: SidebarItem[] = [
                 title: "评价",
                 collapsible: true,
                 items: [
-                    { key: "comment", label: "评价管理", to: "/trade/comment" },
+                    { key: "review", label: "评价管理", to: "/trade/review" },
                     { key: "buyershow", label: "买家秀", to: "/trade/buyershow" },
                 ],
             },

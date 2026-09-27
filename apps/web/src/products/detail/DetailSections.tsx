@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { MessageSquareOff } from "lucide-react"
 
 import {
     Tabs,
@@ -8,7 +7,6 @@ import {
     Empty,
     EmptyDescription,
     EmptyHeader,
-    EmptyMedia,
     EmptyTitle,
     Card,
     CardContent,
@@ -22,6 +20,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { QueryBoundary } from "@shop/app-kit"
 import { ProductCard } from "../ProductCard"
 import { shopProductsOptions, alsoViewedOptions } from "./queries"
+import { ProductReviews } from "#/reviews"
 
 function DetailSection({
     id,
@@ -168,30 +167,10 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
                 </Tabs>
             </div>
 
-            <ReviewsSection />
+            <ProductReviews productId={detail.product.id} />
             <ParamsSection params={detail.params} />
             <DescriptionSection detail={detail} />
         </>
-    )
-}
-
-/** 用户评价：评价模块后端未建，先占位 */
-function ReviewsSection() {
-    return (
-        <DetailSection
-            id="reviews"
-            title="用户评价"
-        >
-            <Empty>
-                <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                        <MessageSquareOff />
-                    </EmptyMedia>
-                    <EmptyTitle>暂无评价</EmptyTitle>
-                    <EmptyDescription>评价功能即将上线</EmptyDescription>
-                </EmptyHeader>
-            </Empty>
-        </DetailSection>
     )
 }
 

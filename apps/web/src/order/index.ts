@@ -3,7 +3,7 @@ export { createOrder, fetchPreview, MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./qu
 export { useOrderActions } from "./use-order-actions"
 
 export { ORDER_STATUS_LABEL, ORDER_STATUS_TABS } from "./constants"
-export type { Order, OrderDetail } from "./model"
+export type { Order, OrderDetail, OrderItem } from "./model"
 /** 共享值对象类型契约在 @shop/api，这里转发省得业务方跨包取 */
 
 export { OrderCard } from "./OrderCard"

@@ -40,6 +40,8 @@ public class JwtProperties {
             "/api/feed",
             "/api/categories",
             "/api/shops",
+            // 商品评价公开读：评价是商详页的一部分，未登录也要看得到口碑（出参里买家昵称恒掩码）
+            "/api/reviews",
             "/api/cms",
             "/auth/captcha",
             "/auth/sms-code",

@@ -36,6 +36,7 @@ class ResponseSerializationTest {
     @Test
     void 出参中的money字段_序列化为扁平对象() throws Exception {
         OrderItemView resp = new OrderItemView(
+                UUID.randomUUID(), // orderItemId
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 "测试手机",
