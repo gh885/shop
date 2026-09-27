@@ -1,8 +1,7 @@
-import { z } from "zod"
-
 import { useAppForm } from "@shop/ui-web"
 
 import { FormActions } from "./form-actions"
+import { reasonSchemaOf } from "./reason-schema"
 
 export function ReasonForm({
     pending = false,
@@ -21,15 +20,7 @@ export function ReasonForm({
     onCancel: () => void
     onSubmit: (reason: string) => void
 }) {
-    const schema = z.object({
-        reason: z
-            .string()
-            .trim()
-            .min(1, `请填写${label}`)
-            .refine((value) => maxLength === undefined || value.length <= maxLength, {
-                message: `${label}最长 ${maxLength} 字`,
-            }),
-    })
+    const schema = reasonSchemaOf(label, maxLength)
     const form = useAppForm({
         defaultValues: { reason: "" },
         validators: { onSubmit: schema },

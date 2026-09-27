@@ -40,6 +40,8 @@ export {
     SMS_CODE_DIGITS,
     SmsCodeSchema,
 } from "./login-schema"
+// 发码之后的交互规则（重发窗口多长、哪些错误算「码本身错了」）：登录框与注销、邀请共用同一判据
+export { isCodeError, isSmsRateLimit, RESEND_COUNTDOWN_SECONDS } from "./login-ui"
 export { FormActions } from "./form-actions"
 export { ReasonForm } from "./reason-form"
 export { RegionField } from "./region-field"

@@ -3,15 +3,12 @@ import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 import { configureConfirmLabels } from "@shop/ui-web"
 
 import {
-    LOCALE_COOKIE_NAME,
     SUPPORTED_LOCALES,
     formatDate as formatDatePure,
     formatDateTime as formatDateTimePure,
     formatMessage,
     formatNumber as formatNumberPure,
-    getCurrentLocale,
     normalizeLocale,
-    resolveLocale,
     resolveMessage,
     setCurrentLocale,
     type AppLocale,
@@ -19,6 +16,7 @@ import {
     type MessageParams,
 } from "@shop/common"
 
+import { initialLocaleOf, readPreferredLocale, writeLocaleCookie } from "./locale"
 import { APP_KIT_MESSAGES } from "./messages"
 
 export interface I18nContextValue {
@@ -39,40 +37,19 @@ export interface I18nProviderProps {
     initialLocale?: AppLocale
 }
 
-function readCookie(name: string): string | undefined {
-    if (typeof document === "undefined") return undefined
-    const prefix = `${name}=`
-    const item = document.cookie.split("; ").find((row) => row.startsWith(prefix))
-    return item ? decodeURIComponent(item.slice(prefix.length)) : undefined
-}
-
-function writeCookie(name: string, value: string): void {
-    if (typeof document === "undefined") return
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`
-}
-
-function initialLocaleOf(initialLocale?: AppLocale): AppLocale {
-    if (initialLocale) return initialLocale
-    return getCurrentLocale()
-}
-
 export function I18nProvider({ children, resources, initialLocale }: I18nProviderProps) {
     const [locale, setLocaleState] = useState<AppLocale>(() => initialLocaleOf(initialLocale))
 
     // 首屏保持服务端默认值，挂载后再读 cookie/浏览器语言，避免 SSR hydration mismatch。
     useEffect(() => {
         if (initialLocale) return
-        const preferred = resolveLocale([
-            readCookie(LOCALE_COOKIE_NAME),
-            typeof navigator === "undefined" ? undefined : navigator.language,
-            getCurrentLocale(),
-        ])
+        const preferred = readPreferredLocale()
         setLocaleState((current) => (current === preferred ? current : preferred))
     }, [initialLocale])
 
     useEffect(() => {
         setCurrentLocale(locale)
-        writeCookie(LOCALE_COOKIE_NAME, locale)
+        writeLocaleCookie(locale)
         if (typeof document !== "undefined") {
             document.documentElement.lang = locale
         }

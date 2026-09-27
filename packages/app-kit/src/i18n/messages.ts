@@ -2,9 +2,22 @@ import {
     formatMessage,
     getCurrentLocale,
     resolveMessage,
+    type AppLocale,
     type I18nResources,
     type MessageParams,
 } from "@shop/common"
+
+/**
+ * 语言自报名（下拉里每个 Locale 显示什么）。
+ *
+ * 用该语言自己的写法是通行做法：中文使用者在语言选择器里找的是「中文」而不是 "Chinese"，
+ * 切到英文之后才看得见 English。它按 Locale 索引、不走消息回退链（不是一条 key），
+ * 所以与 APP_KIT_MESSAGES 同层不同用途——都住在这个 i18n 展示数据文件里，别再给语言标签另起一处。
+ */
+export const LOCALE_LABELS: Record<AppLocale, string> = {
+    "zh-CN": "中文",
+    "en-US": "English",
+}
 
 export const APP_KIT_MESSAGES: I18nResources = {
     "zh-CN": {

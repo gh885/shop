@@ -1,11 +1,5 @@
-import type { AppLocale } from "@shop/common"
-
+import { LOCALE_LABELS } from "./messages"
 import { useI18n } from "./use-i18n"
-
-const LOCALE_LABELS: Record<AppLocale, string> = {
-    "zh-CN": "中文",
-    "en-US": "English",
-}
 
 export interface LocaleSwitcherProps {
     className?: string

@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from "react"
 
-import { type ApiError, ErrorCodes, toApiError } from "@shop/common"
+import { toApiError } from "@shop/common"
 import {
     Button,
     cn,
@@ -30,6 +30,15 @@ import {
 import { usePasswordVisibility } from "./use-password-visibility"
 import { useCaptcha } from "./use-captcha"
 import { useCountdown } from "./use-countdown"
+import {
+    isCaptchaCodeComplete,
+    isCaptchaError,
+    isCodeError,
+    isSmsRateLimit,
+    loginUiReducer,
+    type LoginTab,
+    RESEND_COUNTDOWN_SECONDS,
+} from "./login-ui"
 
 /**
  * LoginForm —— 短信/密码双 Tab 登录表单（web 弹窗与 seller 登录页共用的应用层组件）。
@@ -42,8 +51,6 @@ import { useCountdown } from "./use-countdown"
  * 自有状态全部是表单瞬时态：Tab、服务端错误、倒计时、发码中、图形验证码。
  * 登录态写入（tokenStore）与跳转/关闭弹窗由调用方在 submit / onSuccess 里做。
  */
-
-type LoginTab = "sms" | "password"
 
 export interface LoginFormProps {
     /** 拉取图形验证码（web 走 server action，seller 走 SDK）。**引用必须稳定**：传模块级函数，不要传行内闭包 */
@@ -65,69 +72,10 @@ export interface LoginFormProps {
     footer?: React.ReactNode
 }
 
-/** 验证码类错误（输错/过期）：重新输入时自动清除并停掉抖动 */
-function isCodeError(e: ApiError | undefined): boolean {
-    return e?.code === ErrorCodes.SMS_CODE_INVALID || e?.code === ErrorCodes.SMS_CODE_EXPIRED
-}
-
-/** 图形验证码类错误：发码失败后需刷新验证码图并让用户重输 */
-function isCaptchaError(e: ApiError | undefined): boolean {
-    return (
-        e?.code === ErrorCodes.CAPTCHA_REQUIRED ||
-        e?.code === ErrorCodes.CAPTCHA_EXPIRED ||
-        e?.code === ErrorCodes.CAPTCHA_INVALID
-    )
-}
-
 /** 表单控件统一尺寸（B 端紧凑档）：控件高 44px（h-11）、验证码图宽 96px（w-24）。
  *  以前按端查表分 sm/md 两档，但两档只差 4px/8px，为它维护一张查表 + 一个 size prop
  *  不划算，也挡住了 lint 对类名的检查（require-static-classes 读不到查表里的变量）。
  *  类名一律就地写成字面量，别再收敛回常量——收敛回去规则就又看不见了 */
-
-/** Tab 切换/错误清除/提交失败是联动状态机，收进一个 reducer，避免多处 setState 各自为政 */
-interface LoginUiState {
-    tab: LoginTab
-    submitError?: ApiError
-    submitFailCount: number
-}
-type LoginUiAction =
-    | { type: "switchTab"; tab: LoginTab }
-    | { type: "submitStarted" }
-    | { type: "submitFailed"; error: ApiError }
-    | { type: "submitSucceeded" }
-    | { type: "sendCodeFailed"; error: ApiError }
-    | { type: "sendCodeSucceeded" }
-    /** 重新输入图形验证码：只清验证码类错误，其余保留到下次提交 */
-    | { type: "dismissCaptchaError" }
-    /** 重新输入短信验证码：只清发码类错误（抖动随之消失） */
-    | { type: "dismissCodeError" }
-
-// fallow-ignore-next-line complexity
-function loginUiReducer(state: LoginUiState, action: LoginUiAction): LoginUiState {
-    switch (action.type) {
-        case "switchTab":
-            return { ...state, tab: action.tab, submitError: undefined }
-        case "submitStarted":
-            return { ...state, submitError: undefined }
-        case "submitFailed":
-            return {
-                ...state,
-                submitError: action.error,
-                submitFailCount: state.submitFailCount + 1,
-            }
-        case "submitSucceeded":
-            return { tab: "sms", submitError: undefined, submitFailCount: state.submitFailCount }
-        case "sendCodeFailed":
-            // 发码失败不动 failCount：错误提示不触发「聚焦错误节点」的提交语义
-            return { ...state, submitError: action.error }
-        case "sendCodeSucceeded":
-            return { ...state, submitError: undefined }
-        case "dismissCaptchaError":
-            return isCaptchaError(state.submitError) ? { ...state, submitError: undefined } : state
-        case "dismissCodeError":
-            return isCodeError(state.submitError) ? { ...state, submitError: undefined } : state
-    }
-}
 
 // oxlint-disable-next-line react-doctor/no-giant-component -- TanStack Form 的 AppField 渲染 prop 结构决定行数（每字段 30-60 行）；抽子组件需传 form 实例与 6+ 回调，接口更宽，违背高内聚
 export function LoginForm({
@@ -203,7 +151,7 @@ export function LoginForm({
         })
             .then(() => {
                 dispatch({ type: "sendCodeSucceeded" })
-                setCountdown(60)
+                setCountdown(RESEND_COUNTDOWN_SECONDS)
                 notify.success(t("appKit.login.codeSent"))
                 // 验证码 token 一次性：发码成功即换新图，下次发码需重新人机验证
                 resetCaptcha()
@@ -218,10 +166,10 @@ export function LoginForm({
                     resetCaptcha()
                     form.setFieldValue("captchaCode", "")
                 }
-                // 429 限频（SMS_RATE_LIMIT）：服务端窗口就是 60s，命中时本地同样起倒计时——
+                // 429 限频：服务端窗口就是 60s，命中时本地同样起倒计时——
                 // 连点只会再撞一次限流，倒计时无损失地兜住（发码成功的本地倒计时逻辑不变）
-                if (err.status === 429 && err.code === ErrorCodes.SMS_RATE_LIMIT) {
-                    setCountdown(60)
+                if (isSmsRateLimit(err)) {
+                    setCountdown(RESEND_COUNTDOWN_SECONDS)
                 }
                 notify.error(err.detail)
             })
@@ -371,7 +319,7 @@ export function LoginForm({
                                 <form.Subscribe
                                     selector={(s) => ({
                                         phoneValid: PHONE_PATTERN.test(s.values.phone),
-                                        captchaValid: s.values.captchaCode.length === 4,
+                                        captchaValid: isCaptchaCodeComplete(s.values.captchaCode),
                                     })}
                                 >
                                     {({ phoneValid, captchaValid }) => (
