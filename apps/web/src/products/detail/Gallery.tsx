@@ -22,18 +22,7 @@ import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
 import type { ParamItem } from "@shop/api/sdk"
 
-/** 主图 hover 放大倍数：预览浮层 background-size = ZOOM × 浮层边长，蒙层尺寸由它反推 */
-const ZOOM = 2.5
-
-/** 把中心比例夹在 [half, 1−half] 内，让蒙层不越出图片边界 */
-function clampCenter(v: number, half: number) {
-    return Math.min(1 - half, Math.max(half, v))
-}
-
-/** 原图比例 f → background-position 百分比：两者不是一回事，p = (z·f − 0.5) / (z − 1) */
-function bgPos(f: number, z: number) {
-    return `${((z * f - 0.5) / (z - 1)) * 100}%`
-}
+import { lensGeometry, ZOOM } from "./gallery-zoom"
 
 /**
  * 详情页左侧：缩略图列 + 主图轮播 + 底部「图集 / 参数」Tabs。
@@ -144,39 +133,29 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
                                                 first instanceof HTMLImageElement
                                                     ? first
                                                     : undefined
-                                            // object-cover 会按原图宽高比裁切；裁掉的部分必须从坐标里扣掉，
-                                            // 否则 hover 到图片边缘时，预览里永远看不到那圈边缘
+                                            // object-cover 会按原图宽高比裁切，裁掉的量要从坐标里扣掉——
+                                            // 这套几何连同它的兜底都在 ./gallery-zoom 里（可单测）
                                             const nat = el?.naturalWidth
                                                 ? el.naturalWidth / el.naturalHeight
                                                 : frame.width / frame.height
-                                            const frameAspect = frame.width / frame.height
-                                            const visX = Math.min(1, frameAspect / nat) // 横向可见的原图比例
-                                            const visY = Math.min(1, nat / frameAspect) // 纵向可见的原图比例
-                                            // 预览窗口覆盖的原图比例：横 1/ZOOM，纵 nat/ZOOM（像素上都是 natW/ZOOM，正方形）
-                                            const lensX = 1 / ZOOM / visX
-                                            const lensY = nat / ZOOM / visY
-                                            // 蒙层中心 = 指针处，夹住半宽/半高使其不出图
-                                            const fx = clampCenter(
-                                                (e.clientX - frame.left) / frame.width,
-                                                lensX / 2,
-                                            )
-                                            const fy = clampCenter(
-                                                (e.clientY - frame.top) / frame.height,
-                                                lensY / 2,
-                                            )
+                                            const geom = lensGeometry({
+                                                naturalAspect: nat,
+                                                frameWidth: frame.width,
+                                                frameHeight: frame.height,
+                                                pointerX: (e.clientX - frame.left) / frame.width,
+                                                pointerY: (e.clientY - frame.top) / frame.height,
+                                            })
                                             const lens = lensRef.current
                                             if (lens) {
-                                                lens.style.left = `${fx * 100}%`
-                                                lens.style.top = `${fy * 100}%`
-                                                lens.style.width = `${lensX * 100}%`
-                                                lens.style.height = `${lensY * 100}%`
+                                                lens.style.left = `${geom.fx * 100}%`
+                                                lens.style.top = `${geom.fy * 100}%`
+                                                lens.style.width = `${geom.lensX * 100}%`
+                                                lens.style.height = `${geom.lensY * 100}%`
                                             }
-                                            // 框内比例 → 原图比例（扣掉裁切）→ background-position
-                                            const nx = 0.5 + (fx - 0.5) * visX
-                                            const ny = 0.5 + (fy - 0.5) * visY
                                             const preview = previewRef.current
                                             if (preview) {
-                                                preview.style.backgroundPosition = `${bgPos(nx, ZOOM)} ${bgPos(ny, ZOOM / nat)}`
+                                                preview.style.backgroundPosition =
+                                                    geom.backgroundPosition
                                             }
                                             setIsZooming(true)
                                         }}

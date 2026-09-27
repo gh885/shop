@@ -48,3 +48,17 @@ export const DETAIL_LAYOUT = {
  * 所以 `FieldRuleVocabularyTest.详情页的展示上界必须严于服务端闸门` 把这条不等式钉成了测试。
  */
 export const PDP_MAX_QUANTITY = 99
+
+/**
+ * 左栏区块页签：顺序即页签顺序，也是 scrollspy 的观察目标。
+ *
+ * 页签、区块 DOM 的 `id`、观察列表三处读同一张表——加一个区块只改这里，
+ * 少一处会得到一个「有页签但滚不动」或「滚到了但没页签」的半截功能。
+ */
+export const DETAIL_SECTIONS = [
+    { id: "reviews", label: "用户评价" },
+    { id: "params", label: "参数信息" },
+    { id: "detail", label: "图文详情" },
+    { id: "shop-reco", label: "本店推荐" },
+    { id: "also-viewed", label: "看了又看" },
+] as const

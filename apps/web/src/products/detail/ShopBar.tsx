@@ -15,6 +15,7 @@ import { notify, QueryBoundary } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 
 import { ShopCouponPopover } from "#/coupon"
+import { avatarInitial } from "#/shared/lib/avatar"
 
 import { ShopBarError, ShopBarSkeleton } from "./ShopBarStates"
 import { shopOptions } from "./queries"
@@ -64,7 +65,7 @@ function ShopBarContent({ shopId }: { shopId: string }) {
                         alt={shop.name}
                     />
                 )}
-                <AvatarFallback className="font-bold">{shop.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="font-bold">{avatarInitial(shop.name)}</AvatarFallback>
             </Avatar>
 
             <div className="min-w-0">

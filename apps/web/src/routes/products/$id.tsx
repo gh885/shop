@@ -1,4 +1,4 @@
-import { moneyToYuan, toApiError } from "@shop/common"
+import { toApiError } from "@shop/common"
 import { lazy, Suspense, useState } from "react"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 
@@ -10,7 +10,6 @@ import {
     DETAIL_LAYOUT,
     DetailHeader,
     DetailSections,
-    PDP_MAX_QUANTITY,
     ProductDetailSkeleton,
     productDetailOptions,
     PurchaseCta,
@@ -23,6 +22,9 @@ import {
     skuSearchSchema,
     useSkuSelection,
 } from "#/products/detail"
+import { galleryImages } from "#/products/detail/gallery-images"
+import { productSeo } from "#/products/detail/seo"
+import { clampPurchaseQuantity } from "#/products/detail/purchase-quantity"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 
@@ -71,55 +73,10 @@ export const Route = createFileRoute("/products/$id")({
      */
     pendingComponent: ProductDetailSkeleton,
     head: ({ match }) => {
-        const d = match.loaderData?.detail
-        const p = d?.product
-        const price = p?.priceMin
-        const ogImage = p?.image || d?.images[0]
         // canonical 取 match.pathname（不含查询串）：规格选择进了 URL，?spec=... 会产生大量等价副本，
         // 全部收敛到一个权威地址；也不依赖 loaderData，加载失败/降级时不会拼出 /products/undefined
         const canonical = `${SITE_ORIGIN}${match.pathname}`
-        const meta: Array<
-            | { title: string }
-            | { property: string; content: string }
-            | { name: string; content: string }
-        > = [
-            { title: `${p?.title ?? "商品详情"} - Shop` },
-            // OpenGraph：SSR 直接写入 <head>，社交/搜索爬虫首帧即拿到（这是 SSR 相对 SPA 的硬收益）
-            { property: "og:title", content: p?.title ?? "商品详情" },
-            { property: "og:type", content: "product" },
-            { property: "og:site_name", content: "Shop" },
-            { property: "og:url", content: canonical },
-            { name: "description", content: p?.subtitle || p?.title || "商品详情" },
-        ]
-        if (ogImage) meta.push({ property: "og:image", content: ogImage })
-        return {
-            meta,
-            links: [{ rel: "canonical", href: canonical }],
-            scripts: [
-                // JSON-LD Product 结构：价格/库存/图给搜索引擎与购物聚合，SPA 无法提供
-                {
-                    type: "application/ld+json",
-                    children: JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "Product",
-                        name: p?.title,
-                        description: p?.subtitle,
-                        image: ogImage ? [ogImage] : undefined,
-                        sku: p?.id,
-                        offers:
-                            p && price
-                                ? {
-                                      // schema.org 规定价格与币种是两个字段：这里从 Money 拆开，链路内部不拆
-                                      "@type": "Offer",
-                                      price: moneyToYuan(price),
-                                      priceCurrency: price.currency,
-                                      availability: "https://schema.org/InStock",
-                                  }
-                                : undefined,
-                    }),
-                },
-            ],
-        }
+        return productSeo(match.loaderData?.detail, canonical)
     },
 })
 
@@ -149,25 +106,15 @@ function ProductDetailPage() {
 
     // 数量由 route 持有：购买区步进器与 CTA 加购共用同一份收敛后的值
     const [quantity, setQuantity] = useState(1)
-    /**
-     * 规格切到库存更少的 SKU 后，原数量可能超卖。展示与提交共用这一份收敛值 ——
-     * 只收敛展示会让步进器显示 1 而提交 5，收敛只放在提交里则用户看到的数字是假的。
-     * 下界保 1：售罄时显示 1 而不是 0（加购按钮由 PurchaseCta 的 complete/售罄判定禁用）。
-     */
-    const stockLimit = sel.matchedSku?.stock ?? PDP_MAX_QUANTITY
-    const effectiveQuantity = Math.min(quantity, Math.max(1, stockLimit))
+    // 收敛规则（上界跟库存、下界保 1，展示与提交同源）在 detail/purchase-quantity.ts
+    const effectiveQuantity = clampPurchaseQuantity(quantity, sel.matchedSku?.stock)
 
-    // 画廊图序：选中 SKU 有专属图时置顶（主图跟随规格切换），去重后供画廊以 URL 作键
-    const images = (() => {
-        const base =
-            detail.images.length > 0
-                ? detail.images
-                : [detail.product.image].filter((i): i is string => i != undefined && i !== "")
-        const merged = sel.matchedSku?.image
-            ? [sel.matchedSku.image, ...base.filter((i) => i !== sel.matchedSku?.image)]
-            : base
-        return [...new Set(merged)]
-    })()
+    // 图序规则（SKU 专属图置顶 / 空图集退主图 / 去重）在 detail/gallery-images.ts
+    const images = galleryImages({
+        images: detail.images,
+        productImage: detail.product.image,
+        skuImage: sel.matchedSku?.image,
+    })
 
     return (
         <div>

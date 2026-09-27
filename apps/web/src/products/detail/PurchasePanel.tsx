@@ -24,7 +24,7 @@ import {
     specValueImage,
     type SkuSelection,
 } from "../product"
-import { PDP_MAX_QUANTITY } from "./constants"
+import { QUANTITY_FLOOR, quantityUpperBound, stepPurchaseQuantity } from "./purchase-quantity"
 
 /**
  * 详情页右侧购买区：标题 → 价格 → 服务承诺 → 规格选择 → 数量 → 加购/立即购买（对齐参考图）。
@@ -211,7 +211,7 @@ function SpecButton({
     )
 }
 
-/** 数量步进器：max 为选中 SKU 库存；未选全规格时用宽松上界（PDP_MAX_QUANTITY） */
+/** 数量步进器：上下界与 stepPurchaseQuantity 同一口径（规则在 detail/purchase-quantity.ts） */
 function QuantityStepper({
     quantity,
     onChange,
@@ -221,7 +221,7 @@ function QuantityStepper({
     onChange: (n: number) => void
     max?: number
 }) {
-    const upper = max ?? PDP_MAX_QUANTITY
+    const upper = quantityUpperBound(max)
 
     return (
         <div className="flex items-center gap-3">
@@ -231,8 +231,8 @@ function QuantityStepper({
                     variant="outline"
                     size="icon-sm"
                     aria-label="减少数量"
-                    disabled={quantity <= 1}
-                    onClick={() => onChange(Math.max(1, quantity - 1))}
+                    disabled={quantity <= QUANTITY_FLOOR}
+                    onClick={() => onChange(stepPurchaseQuantity(quantity, -1, max))}
                 >
                     <Minus className="size-4" />
                 </Button>
@@ -244,7 +244,7 @@ function QuantityStepper({
                     size="icon-sm"
                     aria-label="增加数量"
                     disabled={quantity >= upper}
-                    onClick={() => onChange(Math.min(upper, quantity + 1))}
+                    onClick={() => onChange(stepPurchaseQuantity(quantity, 1, max))}
                 >
                     <Plus className="size-4" />
                 </Button>

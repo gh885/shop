@@ -20,6 +20,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { QueryBoundary } from "@shop/app-kit"
 import { ProductCard } from "../ProductCard"
 import { shopProductsOptions, alsoViewedOptions } from "./queries"
+import { DETAIL_SECTIONS } from "./constants"
 import { ProductReviews } from "#/reviews"
 
 function DetailSection({
@@ -105,15 +106,6 @@ function RecoGrid({
         </div>
     )
 }
-
-/** 左栏区块定义（顺序即 tab 顺序），也是 scrollspy 的观察目标 */
-const DETAIL_SECTIONS = [
-    { id: "reviews", label: "用户评价" },
-    { id: "params", label: "参数信息" },
-    { id: "detail", label: "图文详情" },
-    { id: "shop-reco", label: "本店推荐" },
-    { id: "also-viewed", label: "看了又看" },
-] as const
 
 /**
  * 商品详情左栏主体：吸顶 tab + 评价/参数/图文详情三个区块。
