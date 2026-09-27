@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.api.StaffReadQuery;
 import com.shop.platform.account.dto.AdminUserQuery;
 import com.shop.platform.account.infra.CaptchaService;
 import com.shop.platform.account.infra.SmsChannel;
@@ -13,6 +14,7 @@ import com.shop.platform.account.mapper.UserMapper;
 import com.shop.platform.account.model.UserStatus;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PageParams;
@@ -65,6 +67,12 @@ class AuthServiceTest {
 
     @Mock
     RefreshTokenStore refreshTokenStore;
+
+    @Mock
+    RecordAuditCommand recordAuditCommand;
+
+    @Mock
+    StaffReadQuery staffReadQuery;
 
     @InjectMocks
     AuthService authService;

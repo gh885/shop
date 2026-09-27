@@ -119,7 +119,8 @@ class TrackingControllerTest extends WebControllerTestSupport {
                     .andExpect(status().isCreated());
 
             ArgumentCaptor<TrackingNodeRequest> captured = ArgumentCaptor.forClass(TrackingNodeRequest.class);
-            verify(trackingService).recordNode(eq(shipmentId), captured.capture());
+            // 管理端入口走的是带操作人的那条：递丢了 staffId，审计行就只剩一条不知道谁补的轨迹
+            verify(trackingService).recordNodeByOperator(eq(shipmentId), captured.capture(), eq(staffId));
             TrackingNodeRequest recorded = captured.getValue();
             assertEquals(TrackingNodeCode.ARRIVED_HUB, recorded.nodeCode());
             assertEquals("到达杭州转运中心", recorded.description());

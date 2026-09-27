@@ -5,11 +5,13 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.account.api.StaffReadQuery;
 import com.shop.platform.account.dto.AdminStaffQuery;
 import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.account.service.StaffService;
+import com.shop.platform.audit.api.RecordAuditCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.infra.security.JwtProvider;
@@ -47,6 +49,12 @@ class StaffServiceTest {
 
     @Mock
     StringRedisTemplate redis;
+
+    @Mock
+    RecordAuditCommand recordAuditCommand;
+
+    @Mock
+    StaffReadQuery staffReadQuery;
 
     @InjectMocks
     StaffService staffService;

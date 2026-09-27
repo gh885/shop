@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.shop.platform.coupon.api.CouponBearer;
 import com.shop.platform.coupon.mapper.CouponTemplate;
 import com.shop.platform.coupon.model.CouponTemplateStatus;
+import com.shop.platform.coupon.model.CouponType;
 import com.shop.platform.coupon.service.ClaimableCouponView;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -33,6 +34,7 @@ class CouponClaimableRuleTest {
                 .thresholdAmount(10000L)
                 .discountAmount(2000L)
                 .currency("CNY")
+                .type(CouponType.FULL_REDUCTION)
                 .bearer(CouponBearer.SELLER)
                 .validFrom(validFrom)
                 .validTo(validTo)
