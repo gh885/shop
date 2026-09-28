@@ -15,11 +15,12 @@
  *
  * 模块索引：
  * - money.ts     ：金额 re-export（契约 Money）+ 分/元换算与区间展示
- * - api-error.ts ：后端统一错误形状 ApiError + 归一化（含 zod 契约校验语义）
+ * - api-error.ts ：后端统一错误形状 ApiError + 归一化（含 zod 契约校验语义）+ 展示文案口径 apiErrorDetail
  * - error-codes.ts：错误码常量（与 docs/error-codes.md 同步）
  * - sdk-client.ts：生成 SDK 的传输层装配（token 注入 / 401 刷新 / 错误归一化）
  * - auth-kit.ts  ：应用无关的登录态套件（内存 token + 静默刷新 + 设备 ID + 订阅）
  * - regions.ts   ：国标行政区划树的纯算法 + 数据（级联取孩子 / 6 位码反查路径）
+ * - scroll.ts    ：程序化滚动的取值口径（reduced-motion 下不 smooth），两端「回顶部/跳锚点」共用
  * - address.ts   ：地址字段口径（号码/区划码/详址）+ 省市区名按码派生，两端地址表单共用
  * - status-options.ts：状态表 → 页签/下拉选项（同一状态的中文只写一遍）
  * - coupon.ts    ：优惠券文案与规则换算（门槛/面额一句话、原因码与状态标签）+ 建券表单的券名上限
@@ -57,6 +58,7 @@ export {
 export {
     ApiErrorSchema,
     type ApiError,
+    apiErrorDetail,
     RESPONSE_VALIDATION_FAILED,
     isZodError,
     toApiError,
@@ -74,6 +76,8 @@ export type { AuthKit, AuthKitOptions, AuthStatus } from "./auth-kit"
 
 export { findPath, loadChildren, loadRegionCascaderTree, loadRegionTree } from "./regions"
 export type { RegionCascaderNode, RegionOption, RegionTreeNode } from "./regions"
+
+export { scrollToElement, scrollToTop } from "./scroll"
 
 export {
     ADDRESS_DETAIL_MAX,
@@ -102,7 +106,6 @@ export {
     USER_COUPON_STATUSES,
     couponFaceRuleText,
     couponFaceText,
-    couponRateText,
     couponRuleText,
     couponSourceLabel,
     couponStatusMeta,
