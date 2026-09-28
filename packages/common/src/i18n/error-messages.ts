@@ -95,6 +95,10 @@ export const ERROR_MESSAGES: Record<ErrorCode, Record<AppLocale, string>> = {
         "zh-CN": "结束时间不能早于开始时间",
         "en-US": "End time cannot be earlier than start time.",
     },
+    FORBIDDEN_WORD_HIT: {
+        "zh-CN": "内容包含违禁词，请修改后重新提交",
+        "en-US": "Your content contains a prohibited term. Please revise and submit again.",
+    },
     RESPONSE_VALIDATION_FAILED: {
         "zh-CN": "响应数据不符合接口契约",
         "en-US": "The server response does not match the API contract.",

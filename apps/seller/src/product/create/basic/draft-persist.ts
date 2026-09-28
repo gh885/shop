@@ -39,8 +39,8 @@ export type DraftPersistContext = {
     productStatus: ProductStatus | undefined
     /** 已建档的商品 id：建档后写回（编辑态进入即有） */
     productRef: { current: string | undefined }
-    /** 本会话内点保存创建（非续编）：用于跳过详情回灌 */
-    createdThisSessionRef: { current: boolean }
+    /** 本会话内点保存创建（非续编）：建档成功后回调置位（渲染期要靠它关掉详情查询与回填） */
+    markCreatedInSession: () => void
     /** 规格快照 ref：await 期间可能被改，落库要拿最新的 */
     selectionsRef: { current: SpecSelection[] }
     /** SKU 行快照 ref：落库与门槛都读它 */
@@ -64,7 +64,7 @@ async function ensureDraft(ctx: DraftPersistContext, basic: ProductBasicForm): P
             body: toBasicPayload(ctx.categoryId, basic),
         })
         ctx.productRef.current = product.id
-        ctx.createdThisSessionRef.current = true
+        ctx.markCreatedInSession()
         ctx.onCreated(product.id)
         ctx.setCreating(false)
         return product.id

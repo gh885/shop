@@ -5,6 +5,7 @@ import { CircleAlert } from "lucide-react"
 import { toApiError } from "@shop/common"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
+import { parseForbiddenWordError, type ForbiddenHit } from "#/product/forbidden-word"
 import { useProductDraft } from "#/product/create/basic/use-product-draft"
 import { notify, useUnsavedLeaveGuard } from "@shop/app-kit"
 import { useShop } from "#/shop"
@@ -31,6 +32,8 @@ function NewProductBasicStep() {
     const shopId = shop.id
     const { categoryId, productId } = Route.useSearch()
     const [serverError, setServerError] = useState<string | undefined>()
+    /** 违禁词闸门（COM-01）的命中：交给发布表单定位到字段，不占全局横幅 */
+    const [forbiddenWord, setForbiddenWord] = useState<ForbiddenHit | undefined>()
 
     const draft = useProductDraft({
         shopId,
@@ -79,6 +82,7 @@ function NewProductBasicStep() {
 
     async function onSubmit(values: BasicStepValues, mode: SubmitMode) {
         setServerError(undefined)
+        setForbiddenWord(undefined)
         try {
             await draft.submit(values, mode)
             // 保存草稿：留在当前页（productId 已由 onCreated 写回 URL，可刷新续编），toast 确认；
@@ -91,6 +95,13 @@ function NewProductBasicStep() {
             }
             void navigate({ to: "/product/list", search: { page: 1, size: 10 } })
         } catch (error) {
+            // 违禁词命中按码分支（COM-01）：能定位到字段就交给表单就地标红，
+            // 认不出字段（null）与其它错误一样回落横幅，宁可不定位也不猜一个字段。
+            const hit = parseForbiddenWordError(error)
+            if (hit) {
+                setForbiddenWord(hit)
+                return
+            }
             setServerError(toApiError(error).detail)
         }
     }
@@ -114,6 +125,7 @@ function NewProductBasicStep() {
                 submit={onSubmit}
                 onBasicChange={handleBasicChange}
                 initialBasic={draft.hydratedBasic}
+                forbiddenWord={forbiddenWord}
             />
             {serverError ? (
                 /* 提交失败：浮在底部操作条正上方，与触发按钮保持视觉关联 */

@@ -9,10 +9,14 @@
  * 在店铺状态推进的同一事务内把该店在架商品批量置仓库中（ShopEventListener）。反向不自动回上架：
  * 店铺恢复 ACTIVE 不发布事件，恢复营业 ≠ 背书历史商品仍满足上架门槛，要卖家手动重上并复检。
  * 下架不外泄事件（本模块无 events 包），券也不随店铺停营业被级联（留白，见 shop :: events 的包注释）。
+ *
+ * <p>商品公开文本（标题/卖点）经 compliance :: api 的 ForbiddenWordCommand 过违禁词闸（COM-01）：
+ * 草稿保存即可存（卖家在草稿里先填内容不拦），但**发布/重上前必过**——真正要拦的是上架那一刻，
+ * 而不是让卖家连草稿都存不下来。
  */
 @ApplicationModule(
         displayName = "Product",
-        allowedDependencies = {"inventory :: api", "shop :: events"})
+        allowedDependencies = {"inventory :: api", "shop :: events", "compliance :: api"})
 package com.shop.platform.product;
 
 import org.springframework.modulith.ApplicationModule;

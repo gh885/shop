@@ -3,6 +3,7 @@ package com.shop.platform.product.service;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
+import com.shop.platform.compliance.api.ForbiddenWordCommand;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockReadQuery;
 import com.shop.platform.inventory.api.StockView;
@@ -39,6 +40,7 @@ public class ProductService {
     private final SkuService skuService;
     private final StockCommand stockCommand;
     private final StockReadQuery stockReadQuery;
+    private final ForbiddenWordCommand forbiddenWordCommand;
 
     /** 创建商品草稿：只落基本信息，specs/SKU 由后续接口补充。shopId 由 controller 从店铺上下文（X-Shop-Id）注入 */
     public Product create(CreateProductCommand command) {
@@ -80,6 +82,18 @@ public class ProductService {
         UUID effectiveCategory = targetCategory != null ? targetCategory : product.getCategoryId();
         categoryAttrService.validateParams(
                 effectiveCategory, command.params() != null ? command.params() : product.getParams());
+
+        // 2.5 违禁词闸（COM-01）：**非草稿态**改了公开文本就即时过闸。
+        //     只在发布时拦是不够的——「先上架、再把标题改成违禁词」正好绕开那道门，闸门形同虚设。
+        //     草稿态仍放行（与发布门槛同一口径：卖家要先填内容，上架那刻才拦）。
+        if (!product.isDraft()) {
+            String nextName = command.name() != null ? command.name() : product.getName();
+            String nextSubtitle =
+                    command.subtitle() != null ? Text.blankToNull(command.subtitle()) : product.getSubtitle();
+            forbiddenWordCommand.assertAllClean(
+                    new ForbiddenWordCommand.CleanText("标题", nextName),
+                    new ForbiddenWordCommand.CleanText("卖点", nextSubtitle));
+        }
 
         // 3. 实体局部更新：非 null 字段 set 到已加载的实体（JSONB 走实体 typeHandler）
         boolean nameChanged = command.name() != null && !command.name().equals(product.getName());
@@ -194,6 +208,11 @@ public class ProductService {
     private List<Sku> ensurePublishable(Product product) {
         // 0. 草稿阶段允许空名，但要出门（上架或入库）就必须有名——买家搜索与展示都靠它
         Validate.isTrue(StringUtils.hasText(product.getName()), "请先填写商品标题再发布");
+        // 0.5 违禁词闸（COM-01）：与「标题非空」同处发布门槛，publish 与重上共用。
+        //     草稿保存不拦（卖家要先填内容），要拦的是上架那一刻的公开可见性。
+        forbiddenWordCommand.assertAllClean(
+                new ForbiddenWordCommand.CleanText("标题", product.getName()),
+                new ForbiddenWordCommand.CleanText("卖点", product.getSubtitle()));
         List<Sku> skus = skuMapper.selectByProductId(product.getId());
         // 发布/重上门槛只看「在售 SKU」：停用 SKU 不计入（停用 SKU 不该阻塞上架，也不该被索取价格）
         List<Sku> onSale = skus.stream().filter(Sku::isOnSale).toList();

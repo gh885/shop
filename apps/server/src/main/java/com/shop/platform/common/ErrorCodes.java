@@ -102,5 +102,15 @@ public final class ErrorCodes {
     /** banner 失效时间不晚于生效时间（含与库中原窗口合并后的两端）（400） */
     public static final String BANNER_TIME_RANGE_INVALID = "BANNER_TIME_RANGE_INVALID";
 
+    // —— 内容合规 ——
+
+    /**
+     * 公开文本命中违禁词（400，COM-01）。
+     *
+     * <p>状态码 400 不足以让前端定位到<b>哪个字段</b>该标红，所以这个码有真实消费方：卖家端把它解析成
+     * 字段 + 提示语（见 {@code apps/seller/src/product/forbidden-word.ts}），而不是只弹一个全局 toast。
+     */
+    public static final String FORBIDDEN_WORD_HIT = "FORBIDDEN_WORD_HIT";
+
     private ErrorCodes() {}
 }

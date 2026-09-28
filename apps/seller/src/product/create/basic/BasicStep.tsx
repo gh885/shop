@@ -11,7 +11,10 @@ import type {
 
 import { BasicInfoSection } from "./BasicInfoSection"
 import { DetailImagesSection } from "./DetailImagesSection"
+import type { BasicForm } from "./form-instance"
+import { useForbiddenWordMark } from "./forbidden-word-mark"
 import { SalesInfoSection } from "./SalesInfoSection"
+import type { ForbiddenHit } from "../../forbidden-word"
 import { uploadProductImage, useLeafPaths } from "../../queries"
 import { CheckCircle2, ChevronRight, Badge, ListTree } from "lucide-react"
 import { useState, useRef, useEffect, Fragment } from "react"
@@ -69,20 +72,8 @@ export type SubmitMode = "submit" | "warehouse" | "draft"
  * basic（主图/标题/卖点）字段渲染在 BasicInfoSection；selections/skuRows 由外层(use-product-draft)
  * 持有交由 SalesInfoSection；编辑态与草稿持久化都交给外层。
  */
-export function BasicStep({
-    categoryId,
-    productStatus,
-    submitting,
-    creating,
-    onSwitchCategory,
-    selections,
-    skuRows,
-    onSelectionsChange,
-    onSkuRowsChange,
-    submit,
-    onBasicChange,
-    initialBasic,
-}: {
+/** 发布第二步（整体壳）的入参：外部只给「商品状态 + 草稿接线 + 表单接线」，分区数据由外层持有 */
+type BasicStepProps = {
     categoryId: string
     /** 编辑已有商品当前状态（新建 undefined）：驱动 edit-rules 会话能力表（类目可改/规格冻结/能否发布/价格必填） */
     productStatus?: ProductStatus
@@ -98,42 +89,330 @@ export function BasicStep({
     onBasicChange: (values: BasicStepValues) => void
     /** 编辑回显：detail 拉回后的 basic 初值，仅首帧灌 form（经 form.reset）；新建为 undefined */
     initialBasic?: BasicStepValues
-}) {
+    /** 上一次提交被违禁词闸门（COM-01）拦下的命中：定位到标题/卖点字段就地标红；没有则 undefined */
+    forbiddenWord?: ForbiddenHit
+}
+
+export function BasicStep({
+    categoryId,
+    productStatus,
+    submitting,
+    creating,
+    onSwitchCategory,
+    selections,
+    skuRows,
+    onSelectionsChange,
+    onSkuRowsChange,
+    submit,
+    onBasicChange,
+    initialBasic,
+    forbiddenWord,
+}: BasicStepProps) {
     const leafPaths = useLeafPaths()
     const categoryNames = leafPaths.find((p) => p.id === categoryId)?.names ?? []
     const active = useActiveSection()
 
+    // 表单与提交：值变化上报（防抖 autosave）、编辑回显、上架时间与三种提交方式都在这个 hook 里
+    const { form, submitAs, listingTime, setListingTime, submitForListing } = useBasicForm({
+        submit,
+        onBasicChange,
+        initialBasic,
+    })
+
+    useForbiddenWordMark({ form, hit: forbiddenWord })
+
     // 编辑约束来自 edit-rules 表（后端 ProductStatus 状态机的声明式镜像）：类目仅 DRAFT 可改、
     // PUBLISHED 冻结规格、只有 DRAFT 会话有发布目标（仓库/上架只剩「保存变更」，状态不回退）。
     const rules = editRules(productStatus)
-    const canSwitchCategory = rules.switchCategory
-    const specsLocked = !rules.specsEditable
-    const listingTimeEditable = rules.publishTargets !== undefined
-    const canSaveDraft = rules.publishTargets !== undefined
-    const editingNotice = rules.notice
 
-    // 上架时间：决定「提交商品信息」落 PUBLISHED 还是 WAREHOUSE。
-    // 默认立即上架；定时上架本轮不做。
-    const [listingTime, setListingTime] = useState<ListingTime>("now")
+    return (
+        <form
+            className="pb-24"
+            onSubmit={(e) => {
+                e.preventDefault()
+                submitAs()
+            }}
+        >
+            <BasicStepHeader />
+            <SectionTabs active={active} />
 
-    // 提交方式在点击时由「上架时间」推导：立即上架→submit，放入仓库→warehouse；保存草稿→draft
-    const mode = useRef<SubmitMode>("submit")
+            <StepBody
+                form={form}
+                categoryId={categoryId}
+                categoryNames={categoryNames}
+                rules={rules}
+                onSwitchCategory={onSwitchCategory}
+                selections={selections}
+                skuRows={skuRows}
+                listingTime={listingTime}
+                onListingTimeChange={setListingTime}
+                onSelectionsChange={onSelectionsChange}
+                onSkuRowsChange={onSkuRowsChange}
+            />
+
+            <ActionBar
+                submitting={submitting}
+                creating={creating}
+                onSubmit={submitForListing}
+                onSaveDraft={() => submitAs("draft")}
+                draftEditable={rules.publishTargets !== undefined}
+            />
+        </form>
+    )
+}
+
+/** 页内主体：当前类目条 + 三个分区卡片（顺序即页签顺序） */
+function StepBody({
+    form,
+    categoryId,
+    categoryNames,
+    rules,
+    onSwitchCategory,
+    selections,
+    skuRows,
+    listingTime,
+    onListingTimeChange,
+    onSelectionsChange,
+    onSkuRowsChange,
+}: {
+    form: BasicForm
+    categoryId: string
+    categoryNames: string[]
+    rules: SessionRules
+    onSwitchCategory: () => void
+    selections: SpecSelection[]
+    skuRows: SkuDraftRow[]
+    listingTime: ListingTime
+    onListingTimeChange: (listing: ListingTime) => void
+    onSelectionsChange: (selections: SpecSelection[]) => void
+    onSkuRowsChange: (rows: SkuDraftRow[]) => void
+}) {
+    return (
+        <div className="space-y-6">
+            {/* 当前类目：千牛式紧凑单项条（白底薄卡 + 面包屑 + 右侧切换），不走大头卡片 */}
+            <CategoryBar
+                names={categoryNames}
+                canSwitch={rules.switchCategory}
+                onSwitch={onSwitchCategory}
+            />
+            <StepSections
+                form={form}
+                categoryId={categoryId}
+                rules={rules}
+                selections={selections}
+                skuRows={skuRows}
+                listingTime={listingTime}
+                onListingTimeChange={onListingTimeChange}
+                onSelectionsChange={onSelectionsChange}
+                onSkuRowsChange={onSkuRowsChange}
+            />
+        </div>
+    )
+}
+
+/** 编辑约束（edit-rules 表的产物）在三个分区里的投影：类目可改、规格冻结、能否选上架目标 */
+type SessionRules = ReturnType<typeof editRules>
+
+/** 三个分区卡片：基础信息（+编辑提示）· 销售信息 · 图文详情 */
+function StepSections({
+    form,
+    categoryId,
+    rules,
+    selections,
+    skuRows,
+    listingTime,
+    onListingTimeChange,
+    onSelectionsChange,
+    onSkuRowsChange,
+}: {
+    form: BasicForm
+    categoryId: string
+    rules: SessionRules
+    selections: SpecSelection[]
+    skuRows: SkuDraftRow[]
+    listingTime: ListingTime
+    onListingTimeChange: (listing: ListingTime) => void
+    onSelectionsChange: (selections: SpecSelection[]) => void
+    onSkuRowsChange: (rows: SkuDraftRow[]) => void
+}) {
+    return (
+        <>
+            <BasicInfoSection
+                form={form}
+                uploadImage={uploadImage}
+            />
+
+            {rules.notice ? (
+                <div
+                    role="note"
+                    className="rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground"
+                >
+                    {rules.notice}
+                </div>
+            ) : undefined}
+
+            <SalesInfoSection
+                fileUpload={uploadImage}
+                categoryId={categoryId}
+                selections={selections}
+                skuRows={skuRows}
+                listingTime={listingTime}
+                specsLocked={!rules.specsEditable}
+                listingTimeEditable={rules.publishTargets !== undefined}
+                onSelectionsChange={onSelectionsChange}
+                onSkuRowsChange={onSkuRowsChange}
+                onListingTimeChange={onListingTimeChange}
+            />
+
+            <DetailImagesSection
+                form={form}
+                uploadImage={uploadImage}
+            />
+        </>
+    )
+}
+
+/** 页头：标题 + 必填说明 + 流程步骤（第一步已完成，当前停在第二步） */
+function BasicStepHeader() {
+    return (
+        <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+            <div>
+                <h1 className="text-xl font-bold">填写商品信息</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    带 <span className="text-destructive">*</span>{" "}
+                    为必填；点「保存草稿」或「提交商品信息」时才会保存
+                </p>
+            </div>
+            <ol className="flex items-center gap-1.5 text-sm">
+                <li className="flex items-center gap-1.5 text-muted-foreground">
+                    <CheckCircle2 className="size-4 text-success" />
+                    选择类目
+                </li>
+                <li aria-hidden="true">
+                    <ChevronRight className="size-4 text-muted-foreground/40" />
+                </li>
+                <li className="flex items-center gap-1.5 font-medium text-foreground">
+                    <Badge>2</Badge>
+                    填写商品信息
+                </li>
+            </ol>
+        </header>
+    )
+}
+
+/** 吸顶锚点页签：点一下滚到对应区块，高亮跟随滚动（见 useActiveSection） */
+function SectionTabs({ active }: { active: string }) {
+    return (
+        <div className="sticky top-0 z-30 -mx-6 mb-4 px-6">
+            <div className="flex h-12 w-full items-center rounded-xl bg-background px-2 shadow-sm">
+                <Tabs
+                    value={active}
+                    onValueChange={(next) => scrollToSection(String(next))}
+                    className="w-full"
+                >
+                    <TabsList
+                        variant="line"
+                        className="h-full w-full justify-start"
+                    >
+                        {SECTIONS.map((section) => (
+                            <TabsTrigger
+                                key={section.id}
+                                value={section.id}
+                                size="lg"
+                                className="flex-none"
+                            >
+                                {section.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </Tabs>
+            </div>
+        </div>
+    )
+}
+
+/** 当前类目条：面包屑 + 「切换类目」（仅 DRAFT 会话可点，其余给 tooltip 说明为什么锁着） */
+function CategoryBar({
+    names,
+    canSwitch,
+    onSwitch,
+}: {
+    names: string[]
+    canSwitch: boolean
+    onSwitch: () => void
+}) {
+    return (
+        <div
+            id="section-category"
+            className="flex scroll-mt-16 items-center gap-3 rounded-xl bg-background px-4 py-3 shadow-sm"
+        >
+            <ListTree className="size-4 shrink-0 text-muted-foreground" />
+            <span className="shrink-0 text-sm text-muted-foreground">当前类目</span>
+            {names.length > 0 ? (
+                <Breadcrumb className="min-w-0 flex-1">
+                    <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
+                        {names.map((name, i) => (
+                            <Fragment key={name}>
+                                {i > 0 && <BreadcrumbSeparator />}
+                                <BreadcrumbItem>
+                                    {i === names.length - 1 ? (
+                                        <BreadcrumbPage>{name}</BreadcrumbPage>
+                                    ) : (
+                                        name
+                                    )}
+                                </BreadcrumbItem>
+                            </Fragment>
+                        ))}
+                    </BreadcrumbList>
+                </Breadcrumb>
+            ) : (
+                <Skeleton className="h-4 w-40 shrink-0" />
+            )}
+            <Tooltip disabled={canSwitch}>
+                <TooltipTrigger
+                    render={
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={!canSwitch}
+                            className="shrink-0"
+                            onClick={onSwitch}
+                        >
+                            切换类目
+                        </Button>
+                    }
+                />
+                <TooltipContent>类目在发布时确定，发布后不可修改</TooltipContent>
+            </Tooltip>
+        </div>
+    )
+}
+
+/**
+ * 表单的两条副作用接线：值变化上报（防抖 autosave）与编辑回显（detail 拉回后首帧 reset）。
+ *
+ * 两者都订阅 form store 而不是渲染期读：原先写在 form.Subscribe 的 render-prop 回调里，
+ * 等于在 TanStack Form 内部组件（LocalSubscribe）渲染期间 setState 父级，触发 React 的
+ * setState-in-render 告警。改为在 effect 里直接订阅 store（listener 收到新 state），
+ * 值不变则不触发，行为与之前等价；不引入新依赖：@tanstack/react-store 未在 seller 声明，
+ * form.store 是 FormApi 自带能力。
+ */
+function useBasicFormSync({
+    form,
+    onBasicChange,
+    initialBasic,
+}: {
+    form: BasicForm
+    onBasicChange: (values: BasicStepValues) => void
+    initialBasic: BasicStepValues | undefined
+}) {
     // 防抖回调用 ref：避免 subscribe 里每次重渲染触发不稳定闭包
     const basicChangeRef = useRef(onBasicChange)
     useEffect(() => {
         basicChangeRef.current = onBasicChange
     }, [onBasicChange])
 
-    const form = useAppForm({
-        defaultValues: EMPTY_PRODUCT_BASIC_FORM,
-        onSubmit: ({ value }) => void submit(value, mode.current),
-    })
-
-    // 表单值变化上报（脏标记/防抖 autosave）：副作用必须在 effect 里跑，不能放进渲染期——
-    // 原先写在 form.Subscribe 的 render-prop 回调里，等于在 TanStack Form 内部组件（LocalSubscribe）
-    // 渲染期间 setState 父级 NewProductBasicStep，触发 React 的 setState-in-render 告警。
-    // 改为在 effect 里直接订阅 store（listener 收到新 state），值不变则不触发，行为与之前等价；
-    // 不引入新依赖：@tanstack/react-store 未在 seller 声明，form.store 是 FormApi 自带能力。
     useEffect(() => {
         const sub = form.store.subscribe((state) => {
             basicChangeRef.current(state.values)
@@ -147,12 +426,7 @@ export function BasicStep({
     const hydratedRef = useRef(false)
     useEffect(() => {
         if (!initialBasic || hydratedRef.current) return
-        const untouched =
-            !form.state.values.name &&
-            !form.state.values.subtitle &&
-            form.state.values.images.length === 0 &&
-            form.state.values.detailImages.length === 0
-        if (untouched) {
+        if (isBasicUntouched(form.state.values)) {
             hydratedRef.current = true
             // keepDefaultValues：reset 只改 values、不改 this.options.defaultValues，保持其指向模块级稳定常量，
             // 避免下一次渲染 update() 因 defaultValues 引用变化把刚回填的 values 重置回空。
@@ -160,173 +434,73 @@ export function BasicStep({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialBasic])
+}
 
-    function submitAs(next: SubmitMode) {
-        // 「保存草稿」无门槛：不触发 onSubmit 全字段校验，直接把当前值交给 submit(mode=draft)。
-        //（提交/发布才需要标题/图片/SKU 价齐，走 handleSubmit 触发校验。）
+/** 表单还是空的（没打字、没图）才允许回灌编辑初值；否则服务端旧值会洗掉用户已输入 */
+function isBasicUntouched(values: ProductBasicForm): boolean {
+    return (
+        !values.name &&
+        !values.subtitle &&
+        values.images.length === 0 &&
+        values.detailImages.length === 0
+    )
+}
+
+/**
+ * 发布第二步的表单本体：实例 + 三种提交方式。
+ *
+ * 提交方式存在 ref 里（用户点哪个就是哪个，表单自己不猜默认模式），而表单的 onSubmit
+ * 回调要读它——所以 ref 与 form 必须在同一个 hook 里建，不能由调用方拆开传。
+ *
+ * - 值变化上报（防抖 autosave）与编辑回显都订阅 form store，副作用一律在 effect 里跑；
+ * - `submitAs()` 不带参数 = 「按当前方式提交」（表单 onSubmit / 回车），带参数 = 点某个按钮；
+ * - 上架时间也在这个 hook 里：它只决定「点提交时用哪种方式」，与表单值无关但与提交方式成对。
+ */
+function useBasicForm({
+    submit,
+    onBasicChange,
+    initialBasic,
+}: {
+    submit: (values: BasicStepValues, mode: SubmitMode) => Promise<void>
+    /** 表单字段值变化上报（父级做防抖 autosave 落库） */
+    onBasicChange: (values: BasicStepValues) => void
+    /** 编辑回显：detail 拉回后的 basic 初值，仅首帧灌 form（经 form.reset）；新建为 undefined */
+    initialBasic?: BasicStepValues
+}) {
+    const modeRef = useRef<SubmitMode>("submit")
+    const form = useAppForm({
+        defaultValues: EMPTY_PRODUCT_BASIC_FORM,
+        onSubmit: ({ value }) => void submit(value, modeRef.current),
+    })
+
+    useBasicFormSync({ form, onBasicChange, initialBasic })
+
+    // 上架时间：决定「提交商品信息」落 PUBLISHED 还是 WAREHOUSE。默认立即上架；定时上架本轮不做。
+    const [listingTime, setListingTime] = useState<ListingTime>("now")
+
+    /** 「保存草稿」无门槛：不触发 onSubmit 全字段校验，直接把当前值交给 submit(mode=draft)。
+     *（提交/发布才需要标题/图片/SKU 价齐，走 handleSubmit 触发校验。） */
+    const submitAs = (next?: SubmitMode) => {
+        if (next === undefined) {
+            void form.handleSubmit()
+            return
+        }
         if (next === "draft") {
             void submit(form.state.values, "draft")
             return
         }
-        mode.current = next
+        modeRef.current = next
         void form.handleSubmit()
     }
 
-    // 上架时间 → 提交模式：立即上架走 submit；放入仓库走 warehouse
-    function submitAsListing(listing: ListingTime) {
-        submitAs(listing === "warehouse" ? "warehouse" : "submit")
-    }
+    // 上架时间 → 提交方式：立即上架走 submit；放入仓库走 warehouse
+    const submitForListing = () => submitAs(listingTime === "warehouse" ? "warehouse" : "submit")
 
-    return (
-        <form
-            className="pb-24"
-            onSubmit={(e) => {
-                e.preventDefault()
-                submitAs(mode.current)
-            }}
-        >
-            <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-                <div>
-                    <h1 className="text-xl font-bold">填写商品信息</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        带 <span className="text-destructive">*</span>{" "}
-                        为必填；点「保存草稿」或「提交商品信息」时才会保存
-                    </p>
-                </div>
-                {/* 流程步骤：第一步已完成，当前停在第二步 */}
-                <ol className="flex items-center gap-1.5 text-sm">
-                    <li className="flex items-center gap-1.5 text-muted-foreground">
-                        <CheckCircle2 className="size-4 text-success" />
-                        选择类目
-                    </li>
-                    <li aria-hidden="true">
-                        <ChevronRight className="size-4 text-muted-foreground/40" />
-                    </li>
-                    <li className="flex items-center gap-1.5 font-medium text-foreground">
-                        <Badge>2</Badge>
-                        填写商品信息
-                    </li>
-                </ol>
-            </header>
-
-            <div className="sticky top-0 z-30 -mx-6 mb-4 px-6">
-                <div className="flex h-12 w-full items-center rounded-xl bg-background px-2 shadow-sm">
-                    <Tabs
-                        value={active}
-                        onValueChange={(next) => scrollToSection(String(next))}
-                        className="w-full"
-                    >
-                        <TabsList
-                            variant="line"
-                            className="h-full w-full justify-start"
-                        >
-                            {SECTIONS.map((section) => (
-                                <TabsTrigger
-                                    key={section.id}
-                                    value={section.id}
-                                    size="lg"
-                                    className="flex-none"
-                                >
-                                    {section.label}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </Tabs>
-                </div>
-            </div>
-
-            <div className="space-y-6">
-                {/* 当前类目：千牛式紧凑单项条（白底薄卡 + 面包屑 + 右侧切换），不走大头卡片 */}
-                <div
-                    id="section-category"
-                    className="flex scroll-mt-16 items-center gap-3 rounded-xl bg-background px-4 py-3 shadow-sm"
-                >
-                    <ListTree className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="shrink-0 text-sm text-muted-foreground">当前类目</span>
-                    {categoryNames.length > 0 ? (
-                        <Breadcrumb className="min-w-0 flex-1">
-                            <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
-                                {categoryNames.map((name, i) => (
-                                    <Fragment key={name}>
-                                        {i > 0 && <BreadcrumbSeparator />}
-                                        <BreadcrumbItem>
-                                            {i === categoryNames.length - 1 ? (
-                                                <BreadcrumbPage>{name}</BreadcrumbPage>
-                                            ) : (
-                                                name
-                                            )}
-                                        </BreadcrumbItem>
-                                    </Fragment>
-                                ))}
-                            </BreadcrumbList>
-                        </Breadcrumb>
-                    ) : (
-                        <Skeleton className="h-4 w-40 shrink-0" />
-                    )}
-                    <Tooltip disabled={canSwitchCategory}>
-                        <TooltipTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    disabled={!canSwitchCategory}
-                                    className="shrink-0"
-                                    onClick={onSwitchCategory}
-                                >
-                                    切换类目
-                                </Button>
-                            }
-                        />
-                        <TooltipContent>类目在发布时确定，发布后不可修改</TooltipContent>
-                    </Tooltip>
-                </div>
-
-                <BasicInfoSection
-                    form={form}
-                    uploadImage={uploadImage}
-                />
-
-                {editingNotice ? (
-                    <div
-                        role="note"
-                        className="rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground"
-                    >
-                        {editingNotice}
-                    </div>
-                ) : undefined}
-
-                <SalesInfoSection
-                    fileUpload={uploadImage}
-                    categoryId={categoryId}
-                    selections={selections}
-                    skuRows={skuRows}
-                    listingTime={listingTime}
-                    specsLocked={specsLocked}
-                    listingTimeEditable={listingTimeEditable}
-                    onSelectionsChange={onSelectionsChange}
-                    onSkuRowsChange={onSkuRowsChange}
-                    onListingTimeChange={setListingTime}
-                />
-
-                <DetailImagesSection
-                    form={form}
-                    uploadImage={uploadImage}
-                />
-            </div>
-
-            <ActionBar
-                submitting={submitting}
-                creating={creating}
-                onSubmit={() => submitAsListing(listingTime)}
-                onSaveDraft={() => submitAs("draft")}
-                draftEditable={canSaveDraft}
-            />
-        </form>
-    )
+    return { form, submitAs, listingTime, setListingTime, submitForListing }
 }
 
 /** 底部固定操作条：通栏铺满，内容与主区同宽对齐 */
+// fallow-ignore-next-line complexity -- 操作条的两按钮是同一形状的重复，分支只是「草稿态能不能回草稿」这一个判空
 function ActionBar({
     submitting,
     creating,
@@ -376,22 +550,7 @@ function useActiveSection(): string {
     const [active, setActive] = useState<string>(SECTIONS[0].id)
 
     useEffect(() => {
-        function compute() {
-            // 光标等于页签吸顶线：区块顶部越过该线即视为已滚到
-            const cursor = window.scrollY + TAB_BAR_SPACE
-            let current: string = SECTIONS[0].id
-            for (const section of SECTIONS) {
-                const el = document.getElementById(section.id)
-                if (el && el.getBoundingClientRect().top + window.scrollY <= cursor) {
-                    current = section.id
-                }
-            }
-            // 兜底：滚到最底时最后区块顶部可能尚未越过光标，强制激活最后一个
-            if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1) {
-                current = SECTIONS.at(-1)!.id
-            }
-            setActive(current)
-        }
+        const compute = () => setActive(currentSectionId())
 
         compute()
         window.addEventListener("scroll", compute, { passive: true })
@@ -403,6 +562,25 @@ function useActiveSection(): string {
     }, [])
 
     return active
+}
+
+/** 当前滚动光标（页签吸顶高度处）落在哪个区块；滚到最底时强制落在最后一块 */
+// fallow-ignore-next-line complexity -- 滚动光标落在哪个区块的扫面：循环 + 「已越过吸顶线」+ 「滚到底兜底」三条规则就是全部语义
+function currentSectionId(): string {
+    // 光标等于页签吸顶线：区块顶部越过该线即视为已滚到
+    const cursor = window.scrollY + TAB_BAR_SPACE
+    let current: string = SECTIONS[0].id
+    for (const section of SECTIONS) {
+        const el = document.getElementById(section.id)
+        if (el && el.getBoundingClientRect().top + window.scrollY <= cursor) {
+            current = section.id
+        }
+    }
+    // 兜底：滚到最底时最后区块顶部可能尚未越过光标，强制激活最后一个
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 1) {
+        current = SECTIONS.at(-1)!.id
+    }
+    return current
 }
 
 function scrollToSection(id: string) {
