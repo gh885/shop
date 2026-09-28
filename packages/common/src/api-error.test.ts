@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { describe, expect, it } from "vitest"
 
-import { RESPONSE_VALIDATION_FAILED, toApiError, zodIssuesText } from "./api-error"
+import { apiErrorDetail, RESPONSE_VALIDATION_FAILED, toApiError, zodIssuesText } from "./api-error"
 
 /** 契约级假数据：ApiError 形状的合法构造（过 ApiErrorSchema 的 zod 语义） */
 function makeApiError(
@@ -58,12 +58,36 @@ describe("toApiError", () => {
     })
 
     it("网络层等未知异常拢成 status 0 的通用错误，不带 code", () => {
-        expect(toApiError(new Error("boom"))).toEqual({ status: 0, detail: "请求失败，请稍后重试" })
+        expect(toApiError(new Error("boom"))).toEqual({
+            status: 0,
+            detail: "请求失败，请稍后重试",
+        })
         expect(toApiError("string error")).toEqual({ status: 0, detail: "请求失败，请稍后重试" })
         expect(toApiError(null).code).toBeUndefined()
     })
 
     it("缺 detail 的对象不算 ApiError 形状，走未知异常兜底", () => {
         expect(toApiError({ status: 500 }).detail).toBe("请求失败，请稍后重试")
+    })
+})
+
+describe("apiErrorDetail", () => {
+    it("后端给了话才用它的 detail", () => {
+        expect(apiErrorDetail(makeApiError({ detail: "店铺已打烊" }), "商品流加载失败")).toBe(
+            "店铺已打烊",
+        )
+    })
+
+    it("网络层异常回站点那句：不写 `toApiError(err).detail || 站点文案`，那条恒为通用兜底", () => {
+        const err = new TypeError("Failed to fetch")
+        expect(toApiError(err).detail).not.toBe("") // 反例的前提：归一化给的是非空通用话
+        expect(apiErrorDetail(err, "商品流加载失败")).toBe("商品流加载失败")
+    })
+
+    it("契约校验失败（ZodError）与缺字段的对象都不算 ApiError，一并回站点那句", () => {
+        expect(apiErrorDetail(new z.ZodError([invalidTypeIssue([])]), "活动位加载失败")).toBe(
+            "活动位加载失败",
+        )
+        expect(apiErrorDetail({ status: 500 }, "活动位加载失败")).toBe("活动位加载失败")
     })
 })

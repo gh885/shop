@@ -74,7 +74,7 @@ export type CouponFace = {
 }
 
 /** 折扣率 → 「9 折」/「9.5 折」：0.90 读成 9 折，0.95 读成 9.5 折（乘 10 后去掉无意义的 .0） */
-export function couponRateText(rate: number): string {
+function couponRateText(rate: number): string {
     const tenths = Math.round(rate * 100) / 10
     return `${Number.isInteger(tenths) ? tenths : tenths.toFixed(1)} 折`
 }
@@ -102,6 +102,15 @@ export function couponFaceRuleText(threshold: Money, face: CouponFace): string {
     return face.discount ? `${prefix}减 ${couponMoneyText(face.discount)}` : prefix
 }
 
+// 写成 Record<string, string> 而不是 Record<CouponUnavailableReason, string>：
+// 契约理论上穷尽，但线上先出现新码、前端还没跟上时，宁可显示码本身也不要显示空白。
+const UNAVAILABLE_REASON_LABEL: Record<string, string> = {
+    NOT_EFFECTIVE: "优惠券尚未生效",
+    EXPIRED: "优惠券已过期",
+    THRESHOLD_NOT_MET: "未达到优惠券的使用门槛",
+    CURRENCY_MISMATCH: "优惠券币种与本单不一致",
+}
+
 /**
  * 不可用原因码 → 一句话；可用（null/undefined）返回 undefined。
  *
@@ -113,15 +122,7 @@ export function couponUnavailableReasonText(
     reason: CouponUnavailableReason | null | undefined,
 ): string | undefined {
     if (!reason) return undefined
-    // 写成 Record<string, string> 而不是 Record<CouponUnavailableReason, string>：
-    // 契约理论上穷尽，但线上先出现新码、前端还没跟上时，宁可显示码本身也不要显示空白。
-    const labels: Record<string, string> = {
-        NOT_EFFECTIVE: "优惠券尚未生效",
-        EXPIRED: "优惠券已过期",
-        THRESHOLD_NOT_MET: "未达到优惠券的使用门槛",
-        CURRENCY_MISMATCH: "优惠券币种与本单不一致",
-    }
-    return labels[reason] ?? reason
+    return UNAVAILABLE_REASON_LABEL[reason] ?? reason
 }
 
 /**

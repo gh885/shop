@@ -3,15 +3,11 @@ import type { Money } from "@shop/api"
 /**
  * 金额工具：Money（分 + 币种）是链路上唯一的金额形状，「元」只活在输入框与展示文本里。
  *
- * Money 形状的单一真相源是生成契约（@shop/api 的 types.gen Money = { amount, currency }），
- * 这里只 re-export、不手写镜像——契约演进（改字段名/增删）由 pnpm gen:sdk 同步。
- *
- * 两条硬约束，与后端 `common/Money.java` 同一口径：
- * - **运算不脱离 Money**：相加、乘件数、求和的入参与出参都是 Money，跨币种运算抛错而不是静默相加；
- * - **展示只有一个出口**（{@link formatMoney} / 共享 `Price` 组件）：符号由币种决定，
- *   不再各处手写 `¥${fenToYuan(m.amount)}`——那种写法把币种丢了，且每个调用点都是一次拼装。
- *
- * 注：需要 zod 校验原始金额时用 @shop/api 的 zMoney（生成器按契约产出，含 z*Response 嵌套）。
+ * 形状的单一真相源是生成契约（`@shop/api` 的 types.gen：`{ amount, currency }`），
+ * 这里只 re-export、不手写镜像——契约演进由 pnpm gen:sdk 同步。
+ * 两条硬约束与后端 `common/Money.java` 同一口径：运算不脱离 Money（相加、乘件数、求和的入参与出参
+ * 都是 Money，跨币种抛错而不是静默相加）；展示只有一个出口（{@link formatMoney} / 共享 `Price` 组件，
+ * 符号跟币种——各处手写 `¥${fenToYuan(m.amount)}` 等于把币种丢掉）。
  */
 export type { Money } from "@shop/api"
 
@@ -137,11 +133,17 @@ export function yuanToMoney(yuan: string, currency: string = PLATFORM_CURRENCY):
     return fen === undefined ? undefined : money(fen, currency)
 }
 
-/** 元输入（字符串）→ 分；非法输入返回 undefined 由调用方拦截 */
+/**
+ * 元输入（字符串）→ 分；非法输入返回 undefined 由调用方拦截。
+ *
+ * 只认「非负、最多两位小数」这一种形状：`Number()` 会把 `0x10` / `1e3` / `+5` 也读成数字，
+ * 而对表单来说「格式不正确」才是正确答案——静默换算是把用户没写过的金额存进库。
+ */
+const YUAN_TEXT = /^\d+(\.\d{1,2})?$/
 export function yuanToFen(yuan: string): number | undefined {
-    const value = Number(yuan)
-    if (!yuan.trim() || !Number.isFinite(value) || value < 0) return undefined
-    const fen = Math.round(value * 100)
+    const text = yuan.trim()
+    if (!YUAN_TEXT.test(text)) return undefined
+    const fen = Math.round(Number(text) * 100)
     return Number.isSafeInteger(fen) ? fen : undefined
 }
 

@@ -156,6 +156,13 @@ describe("表单输入 → 契约", () => {
         expect(yuanToFen("10")).toBe(1000)
     })
 
+    it("Number() 认得的非法形状一律拒收，不静默换算成别的金额", () => {
+        expect(yuanToFen("0x10")).toBeUndefined()
+        expect(yuanToFen("1e3")).toBeUndefined()
+        expect(yuanToFen("+5")).toBeUndefined()
+        expect(yuanToFen("12.345")).toBeUndefined()
+    })
+
     it("Money → 输入框回填（两位小数，不含符号）", () => {
         expect(moneyToYuan(money(100500))).toBe("1005.00")
         expect(moneyToYuan(null)).toBe("")

@@ -66,3 +66,16 @@ export function toApiError(err: unknown): ApiError {
     }
     return { status: 0, detail: "请求失败，请稍后重试" }
 }
+
+/**
+ * 展示给用户的错误文案：只有错误确实是后端给的 ApiError 时，才用它写的 `detail`。
+ *
+ * 别写成 `toApiError(err).detail || 站点文案`——网络层异常时 toApiError 也归一得出
+ * 非空的「请求失败，请稍后重试」，`||` 那一半永远轮不上，用户看到的是通用话、
+ * 不知道是哪一块失败了。后端没说话（网络异常、契约校验、前端中断）时，
+ * 站点那句「这块加载失败」才是有效信息。
+ */
+export function apiErrorDetail(err: unknown, fallback: string): string {
+    const parsed = ApiErrorSchema.safeParse(err)
+    return parsed.success ? parsed.data.detail : fallback
+}
