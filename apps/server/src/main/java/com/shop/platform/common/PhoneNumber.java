@@ -57,7 +57,8 @@ public record PhoneNumber(String value) {
 
     /** 脱敏任意手机号字符串（不校验格式，null/过短一律 ****）：日志与展示层脱敏的统一出口 */
     public static String mask(String rawPhone) {
-        if (rawPhone == null || rawPhone.length() < 7) return "****";
+        // 头 3 尾 4 一共露出 7 位，短于 8 位就一位都没遮住——那种号码一律 ****
+        if (rawPhone == null || rawPhone.length() < 8) return "****";
         return rawPhone.substring(0, 3) + "****" + rawPhone.substring(rawPhone.length() - 4);
     }
 }
