@@ -127,16 +127,22 @@ jobs:
                   distribution: temurin
                   java-version: "25"
                   cache: maven
-            - run: sudo apt-get update && sudo apt-get install -y postgresql-client
-            - run: vp install --frozen-lockfile
-            - run: pnpm exec playwright install --with-deps chromium
-            - name: 启动后端与 web / 卖家工作台
+            # 后端这条链最慢（编译 + Spring 上下文 + Flyway 全量迁移，实测 ~50s），所以先放出去，
+            # 让它和装 psql / 装依赖 / 装浏览器并行；就绪统一在后面「等待三处就绪」收口。
+            # 后台进程跨步骤存活（Actions 只在 job 结束才收摊），这里不需要 hold 住 shell。
+            - name: 拉起后端（不等待）
               env:
                   SHOP_DB_PORT: "5432"
+              run: mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
+            - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+            - run: vp install --frozen-lockfile
+            - name: 拉起 web / 卖家工作台（不等待）
               run: |
-                  mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
                   pnpm --filter web dev > /tmp/shop-web.log 2>&1 &
                   pnpm --filter seller dev > /tmp/shop-seller.log 2>&1 &
+            - run: pnpm exec playwright install --with-deps chromium
+            - name: 等待三处就绪
+              run: |
                   for i in $(seq 1 60); do
                     if curl -sf http://localhost:8080/v3/api-docs >/dev/null && curl -sf http://localhost:3000 >/dev/null && curl -sf http://localhost:5000 >/dev/null; then
                       exit 0
