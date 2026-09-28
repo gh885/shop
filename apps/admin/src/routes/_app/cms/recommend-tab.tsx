@@ -1,5 +1,3 @@
-import { z } from "zod"
-
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
@@ -9,7 +7,6 @@ import { tabColumns } from "#/cms/recommend-tab/table"
 import { CmsListShell } from "#/cms/list-shell"
 
 export const Route = createFileRoute("/_app/cms/recommend-tab")({
-    validateSearch: z.object({}),
     component: RecommendTabPage,
 })
 
@@ -23,7 +20,7 @@ function RecommendTabPage() {
             columns={tabColumns}
             rows={tabs}
             isPending={isPending}
-            emptyText="暂无推荐词条"
+            emptyContent="还没有推荐词条，点「新增词条」建第一条"
             createText="新增词条"
             renderCreate={({ open, onOpenChange }) => (
                 <TabFormDialog

@@ -32,6 +32,9 @@ export type SearchNavigate<S> = (options: { search: S }) => void
  *
  * `search` 必须是**整份** URL 状态：翻页写回时要带着筛选一起写——TanStack Router 的
  * `navigate({ search: 对象 })` 是整体替换，只写 page/size 会把筛选条件一并清掉。
+ *
+ * 重挂筛选栏的键只算 `draftKeys` 那些格：枚举筛选是「选中即提交」，它写回 URL 时不该把
+ * 用户没回车的文本草稿一起冲掉（那些键本来也没有草稿可播种）。
  */
 export function PagedListShell<
     TData extends { id: string } & RowData,
@@ -47,6 +50,7 @@ export function PagedListShell<
     emptyContent,
     filters,
     toolbarActions,
+    draftKeys,
 }: {
     title: string
     description: string
@@ -63,6 +67,8 @@ export function PagedListShell<
     filters: ReactNode
     /** 工具栏右侧的附加动作（导出、视图选项等） */
     toolbarActions?: ReactNode
+    /** 本地草稿对应的那几个 URL 键；不传则除 page/size 外全算 */
+    draftKeys?: Exclude<keyof TSearch, "page" | "size">[]
 }) {
     const table = usePagedTable<TData>({
         columns,
@@ -73,9 +79,12 @@ export function PagedListShell<
         onPageChange: (page, size) => navigate({ search: { ...search, page, size } }),
     })
     // 筛选栏的输入框是本地草稿（回车才写回 URL），只在挂载时读一次 URL：
-    // 后退、点侧栏回到本页这类「URL 变了、组件没卸载」的情况，要按筛选值重挂才能对上。
-    // 不含 page/size，翻页不冲掉没提交的草稿
+    // 后退、点侧栏回到本页这类「URL 变了、组件没卸载」的情况，要按草稿那几格重挂才能对上；
+    // page/size 不进键，翻页不冲掉草稿。
     const { page: _page, size: _size, ...filterValues } = search
+    const draftValues = draftKeys
+        ? Object.fromEntries(draftKeys.map((key) => [key, filterValues[key]]))
+        : filterValues
 
     return (
         <div className="space-y-4">
@@ -94,7 +103,7 @@ export function PagedListShell<
                     table={table}
                     actions={toolbarActions ?? <DataTableViewOptions table={table} />}
                 >
-                    <Fragment key={JSON.stringify(filterValues)}>{filters}</Fragment>
+                    <Fragment key={JSON.stringify(draftValues)}>{filters}</Fragment>
                 </DataTableToolbar>
                 <ListBody
                     isPending={query.isPending}

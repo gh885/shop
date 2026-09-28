@@ -28,6 +28,7 @@ function StaffRoute() {
             query={query}
             columns={staffColumns}
             emptyContent="暂无符合条件的账号"
+            draftKeys={["keyword"]}
             filters={
                 <AccountFilters
                     search={search}

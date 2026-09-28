@@ -30,6 +30,7 @@ function ShopsRoute() {
             query={query}
             columns={shopColumns}
             emptyContent="没有符合条件的店铺"
+            draftKeys={["keyword"]}
             filters={
                 <ShopOpsFilters
                     search={search}

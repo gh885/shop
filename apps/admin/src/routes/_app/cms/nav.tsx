@@ -29,7 +29,7 @@ function NavPage() {
             columns={navColumns}
             rows={entries}
             isPending={isPending}
-            emptyText="暂无符合条件的导航条目"
+            emptyContent="暂无符合条件的导航条目"
             createText="新增条目"
             filter={{
                 label: "导航位",

@@ -26,6 +26,7 @@ function UsersRoute() {
             query={query}
             columns={userColumns}
             emptyContent="暂无符合条件的账号"
+            draftKeys={["keyword"]}
             filters={
                 <AccountFilters
                     search={search}

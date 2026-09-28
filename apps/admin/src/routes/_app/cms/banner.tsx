@@ -29,7 +29,7 @@ function BannerPage() {
             columns={bannerColumns}
             rows={banners}
             isPending={isPending}
-            emptyText="暂无符合条件的运营位"
+            emptyContent="暂无符合条件的运营位"
             createText="新增运营位"
             filter={{
                 label: "运营位",

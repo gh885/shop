@@ -15,8 +15,6 @@ export const Route = createFileRoute("/_app/audits")({
  * 操作审计查询页：按操作人 / 对象 / 时间窗反查治理账本。
  *
  * 页面只管三件事：取数、把 URL 状态与筛选写回、把「导出」做成一次带二次确认的动作。
- * 列与文案在 `#/audit/columns` / `#/audit/constants`，筛选栏在 `#/audit/filters`，
- * 导出按钮在 `#/audit/export-button`，CSV 拼装在 `#/audit/export`——本页里没有业务判定。
  */
 function AuditsRoute() {
     const search = Route.useSearch()
@@ -32,6 +30,7 @@ function AuditsRoute() {
             query={query}
             columns={auditColumns}
             emptyContent="该条件下没有审计记录"
+            draftKeys={["operatorId", "targetId", "from", "to"]}
             filters={
                 <AuditFilters
                     search={search}
