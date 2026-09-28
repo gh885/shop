@@ -1,4 +1,4 @@
-import { formatDateTime } from "@shop/app-kit"
+import { copyWithNotify, formatDateTime } from "@shop/app-kit"
 import { isPositiveMoney } from "@shop/common"
 
 import { Price } from "#/shared/ui/Price"
@@ -20,11 +20,9 @@ import {
 } from "@shop/ui-web"
 
 /**
- * 详情页右侧信息卡：两大块 —— 付款详情、订单信息。
+ * 详情页右侧信息卡：付款详情 + 订单信息。
  *
- * - 付款详情：商品总额 / 运费 / 实付款（金额敏感，突出显示）
- * - 订单信息：订单号、收货信息、订单状态、各状态时间轴
- * 信息项是否出现与订单状态有关（如未付款不显示支付时间）。
+ * 信息项是否出现与订单状态有关（如未付款不显示支付时间）；
  * 订单快照字段来自后端（receiverName/receiverProvince/...、paidAt/shippedAt/completedAt）。
  */
 
@@ -101,6 +99,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                                     size="icon-xs"
                                     className="ml-1"
                                     aria-label="复制订单号"
+                                    onClick={() => void copyWithNotify(order.orderNo, "订单号")}
                                 >
                                     <Copy />
                                 </Button>

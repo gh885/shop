@@ -57,7 +57,7 @@ export function SiteNav({ items = SITE_NAV_ITEMS }: { items?: SiteNavItem[] }) {
     const pathname = useRouterState({ select: (s) => s.location.pathname })
 
     return (
-        <nav className="flex items-center gap-1">
+        <nav className="flex flex-wrap items-center gap-1">
             {/* fallow-ignore-next-line complexity */}
             {translatedItems.map((item) =>
                 item.children?.length ? (

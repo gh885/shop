@@ -14,6 +14,8 @@ import {
     Image,
 } from "@shop/ui-web"
 
+import { scrollToElement } from "@shop/common"
+
 import { toProductCardData, type Product, type ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
 import { useSuspenseQuery } from "@tanstack/react-query"
@@ -137,9 +139,7 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
                 <Tabs
                     value={active}
                     onValueChange={(value) => {
-                        document
-                            .getElementById(value)
-                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        scrollToElement(value)
                     }}
                 >
                     <TabsList

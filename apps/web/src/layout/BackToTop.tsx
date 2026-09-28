@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { ArrowUp } from "lucide-react"
 
 import { Button } from "@shop/ui-web"
+import { scrollToTop } from "@shop/common"
 
 /** 滚动超过一屏后在右下角出现「回顶部」按钮 */
 export function BackToTop() {
@@ -25,7 +26,7 @@ export function BackToTop() {
             shape="pill"
             aria-label="回到顶部"
             className="fixed bottom-6 right-6 z-40"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            onClick={scrollToTop}
         >
             <ArrowUp />
         </Button>

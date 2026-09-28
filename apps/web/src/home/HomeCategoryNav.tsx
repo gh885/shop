@@ -29,7 +29,7 @@ import {
     cn,
 } from "@shop/ui-web"
 import { QueryBoundary } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+import { apiErrorDetail } from "@shop/common"
 
 import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"
 
@@ -59,7 +59,7 @@ export function HomeCategoryNav() {
 function homeNavErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
     return (
         <HomeCategoryNavError
-            message={toApiError(error).detail || "商品分类加载失败"}
+            message={apiErrorDetail(error, "商品分类加载失败")}
             onRetry={reset}
         />
     )
@@ -83,7 +83,7 @@ function HomeCategoryNavError({
     message,
     onRetry,
 }: {
-    /** 已归一化的错误描述（调用方用 `toApiError(error).detail` 传入） */
+    /** 后端 detail 优先；后端没说话时是站点那句（apiErrorDetail） */
     message: string
     onRetry: () => void
 }) {

@@ -21,6 +21,7 @@ import {
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
 import type { ParamItem } from "@shop/api/sdk"
+import { scrollToElement } from "@shop/common"
 
 import { lensGeometry, ZOOM } from "./gallery-zoom"
 
@@ -307,11 +308,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
                     type="button"
                     variant="outline"
                     shape="pill"
-                    onClick={() =>
-                        document
-                            .getElementById("params")
-                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                    }
+                    onClick={() => scrollToElement("params")}
                 >
                     全部参数
                     <ChevronRight

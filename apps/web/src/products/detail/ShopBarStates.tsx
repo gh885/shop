@@ -41,7 +41,7 @@ export function ShopBarError({
     message,
     onRetry,
 }: {
-    /** 已归一化的错误描述（调用方用 `toApiError(error).detail` 传入） */
+    /** 后端 detail 优先；后端没说话时是站点那句（apiErrorDetail） */
     message: string
     onRetry: () => void
 }) {

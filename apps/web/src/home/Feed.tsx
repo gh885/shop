@@ -3,7 +3,7 @@ import { useQuery, useQueryClient, useSuspenseInfiniteQuery } from "@tanstack/re
 import { PackageSearch } from "lucide-react"
 
 import { QueryBoundary } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+import { apiErrorDetail } from "@shop/common"
 import {
     Button,
     cn,
@@ -299,7 +299,7 @@ function feedErrorFallback({ error, reset }: { error: unknown; reset: () => void
     return (
         <section className="feed-section">
             <StateError
-                message={toApiError(error).detail || "商品流加载失败，请重试。"}
+                message={apiErrorDetail(error, "商品流加载失败，请重试。")}
                 onRetry={reset}
             />
         </section>

@@ -372,7 +372,7 @@ function DeviceRow({
                 <ItemTitle className="truncate">
                     {device.deviceName}
                     {device.isCurrent && (
-                        <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-3xs text-primary">
+                        <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-3xs text-primary-subtle-foreground">
                             {t("web.security.devices.current")}
                         </span>
                     )}

@@ -81,12 +81,12 @@ function CheckoutSkeleton() {
     return (
         <div className="mx-auto w-full max-w-page px-6 py-6">
             <Skeleton className="h-8 w-40" />
-            <div className="mt-6 flex gap-6">
+            <div className="mt-6 flex flex-col gap-6 lg:flex-row">
                 <div className="flex-1 space-y-4">
                     <Skeleton className="h-24 w-full rounded-xl" />
                     <Skeleton className="h-40 w-full rounded-xl" />
                 </div>
-                <Skeleton className="h-40 w-80 rounded-xl" />
+                <Skeleton className="h-40 w-full shrink-0 lg:w-80 rounded-xl" />
             </div>
         </div>
     )
@@ -153,7 +153,6 @@ function CheckoutPage() {
                     void navigate({
                         to: "/pay/$orderId",
                         params: { orderId: orders[0]!.id },
-                        search: { orderIds: orders.map((o) => o.id) },
                     })
                 },
             },
@@ -180,7 +179,7 @@ function CheckoutPage() {
                         </Button>
                     </div>
                 ) : (
-                    <div className="flex gap-6">
+                    <div className="flex flex-col gap-6 lg:flex-row">
                         {/* 左：地址 + 商品分组 + 失效行 */}
                         <div className="min-w-0 flex-1 space-y-5">
                             <AddressPicker
@@ -221,8 +220,9 @@ function CheckoutPage() {
                             </Card>
                         </div>
 
-                        {/* 右：金额结算卡 */}
-                        <div className="w-80 shrink-0">
+                        {/* 右：金额结算卡。窄屏不是一条不可压缩的 320px 固定轨——
+                            那会把整栏推到视口右缘外且没有任何提示；换成占满宽度、落到左栏下面 */}
+                        <div className="w-full shrink-0 lg:w-80">
                             <Card className="sticky top-4">
                                 <CardHeader>
                                     <CardTitle>结算</CardTitle>
@@ -256,11 +256,11 @@ function CheckoutPage() {
                                         {preview.data ? (
                                             <Price
                                                 value={preview.data.totalPayAmount}
-                                                className="text-2xl font-bold text-primary"
+                                                className="text-2xl font-bold text-primary-subtle-foreground"
                                             />
                                         ) : (
                                             /* 预览没回来：没有应付可说，显式占位而不是摆一个 ¥0.00 像免单 */
-                                            <span className="text-2xl font-bold text-primary">
+                                            <span className="text-2xl font-bold text-primary-subtle-foreground">
                                                 —
                                             </span>
                                         )}
@@ -372,7 +372,7 @@ function AddressPicker({
                                 <ItemTitle>
                                     {a.receiver} {a.phone}
                                 </ItemTitle>
-                                <ItemDescription lines={1}>
+                                <ItemDescription lines="wrap">
                                     {a.province}
                                     {a.city}
                                     {a.district}
@@ -460,7 +460,7 @@ function GroupCard({
                     应付{" "}
                     <Price
                         value={group.payAmount}
-                        className="text-sm font-bold text-primary"
+                        className="text-sm font-bold text-primary-subtle-foreground"
                     />
                 </span>
             </div>

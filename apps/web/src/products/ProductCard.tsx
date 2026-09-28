@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 
-import { Badge, Image, cn } from "@shop/ui-web"
+import { Image, cn } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
 import type { ProductCardData } from "./product"
@@ -13,11 +13,11 @@ import type { ProductCardData } from "./product"
  * 只会白白多打一次最重的详情接口。
  *
  * 两档密度（都对齐参考站实测）：
- * - default：首页 feed 卡，对齐京东货架卡（243×335）——正方形主图 + 92px 信息区，
+ * - default：首页 feed 卡，对齐京东货架卡（243×335）——正方形主图 + 74px 信息区，
  *   信息区不设左右内边距，文字与图片左右边缘齐平；标题单行截断。
- *   92 = pt-2(8) + 标题 18 + 标签行 6+18 + 价格行 6+24 + pb-3(12)。
- * - compact：推荐位卡，对齐淘宝店铺推荐卡（199×271）——正方形主图 + 图下 8px + 64px 信息区。
- *   72 = mt-2(8) + 标题 22 + 2 + 标签行 16 + 2 + 价格行 22。
+ *   74 = pt-2(8) + 标题 18 + 价格行 12+24 + pb-3(12)。
+ * - compact：推荐位卡，对齐淘宝店铺推荐卡（199×271）——正方形主图 + 图下 8px + 56px 信息区。
+ *   56 = mt-2(8) + 标题 22 + 价格行 4+22。
  *
  * 卡片无底色、无阴影（bg-transparent）：吃所在表面，与页面地面融为一体，不做"白卡浮起"；
  * hover 只靠整体上浮 + 标题变主题色反馈。
@@ -63,34 +63,14 @@ export function ProductCard({
                     {product.title}
                 </p>
 
-                {/* 标签排：自营红底 + 服务类描边；无标签也保留行高，网格基线对齐 */}
-                <div
-                    className={cn(
-                        "flex flex-wrap items-center gap-1 line-clamp-2",
-                        compact ? "mt-0.5" : "mt-1.5",
-                    )}
-                >
-                    {product.tags?.map((tag, i) => (
-                        <Badge
-                            key={tag}
-                            variant={i === 0 ? "default" : "outline-primary"}
-                            size="sm"
-                        >
-                            {tag}
-                        </Badge>
-                    ))}
-                </div>
-
-                {/* 价格行：价格 + 销量小字 */}
-                <div
-                    className={cn(
-                        "flex items-end gap-1.5",
-                        compact ? "mt-0.5 h-5.5" : "mt-1.5 h-6",
-                    )}
-                >
+                {/* 价格行：价格 + 销量小字（与标题之间的间距含原标签行让出的那一段） */}
+                <div className={cn("flex items-end gap-1.5", compact ? "mt-1 h-5.5" : "mt-3 h-6")}>
                     <Price
                         value={product.price}
-                        className={cn("font-bold text-primary", compact ? "text-xl" : "text-2xl")}
+                        className={cn(
+                            "font-bold text-primary-subtle-foreground",
+                            compact ? "text-xl" : "text-2xl",
+                        )}
                     />
                     {product.sales && (
                         <span className="truncate text-xs text-muted-foreground">

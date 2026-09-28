@@ -58,7 +58,7 @@ export function SectionTitle({ id, children }: { id?: string; children: ReactNod
     return (
         <m.h2
             id={id}
-            className="scroll-mt-20 text-3xl font-bold tracking-tight"
+            className="scroll-mt-20 text-3xl font-bold"
             initial={reduce ? false : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.4 }}
@@ -144,11 +144,7 @@ export function LandingHero({
 
 /** Hero 标题：字号/行距统一，正文块用 muted 大字号 */
 export function HeroHeadline({ children }: { children: ReactNode }) {
-    return (
-        <h1 className="text-4xl leading-tight font-bold tracking-tight text-balance md:text-5xl">
-            {children}
-        </h1>
-    )
+    return <h1 className="text-4xl leading-tight font-bold text-balance md:text-5xl">{children}</h1>
 }
 
 export function HeroBody({ children }: { children: ReactNode }) {

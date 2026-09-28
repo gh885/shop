@@ -43,9 +43,8 @@ export type Sku = PublicSkuResponse
 /** 商品详情：内嵌 wire → 业务塑形后的 product（sku 与契约同形直接透传），渲染层无需再判空 */
 export type ProductDetail = {
     product: Product
-    /** 七天无理由退货的商品声明（详情页那张服务承诺的来源，也是下单时快照进订单项的那一位）。
-     *  挂在 detail 而不挂进 `Product`：列表卡与 feed 卡都不讲服务承诺，
-     *  为了一个详情页徽章去扩两个卡片契约（FeedItemResponse 里根本没这项）不划算 */
+    /** 七天无理由退货的商品声明（详情页服务承诺的来源，也是下单快照进订单项的那一位）。
+     *  不并进 `Product`：列表卡与 feed 卡都不讲服务承诺，为一个徽章扩两个契约不划算 */
     sevenDayReturn: boolean
     /** 详情图流：对象存储 key 数组，按序铺开渲染（代替富文本 HTML）；展示时用 imgUrl 拼 CDN 域名 */
     detailImages: string[]
@@ -195,8 +194,6 @@ export type ProductCardData = {
     price: Money
     /** 销量文案，undefined = 这一格不画 */
     sales?: string
-    /** 标签排，如 自营 / 放心购 */
-    tags?: string[]
 }
 
 /**

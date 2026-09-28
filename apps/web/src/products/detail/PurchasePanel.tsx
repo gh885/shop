@@ -66,10 +66,10 @@ export function PurchasePanel({
             <div className="flex items-baseline gap-2">
                 <Price
                     value={price.primary}
-                    className="text-4xl font-bold text-primary"
+                    className="text-4xl font-bold text-primary-subtle-foreground"
                 />
                 {price.rangeTo !== undefined && (
-                    <span className="flex items-baseline gap-1 text-primary">
+                    <span className="flex items-baseline gap-1 text-primary-subtle-foreground">
                         -
                         <Price
                             value={price.rangeTo}

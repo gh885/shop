@@ -155,9 +155,7 @@ function BusinessModes() {
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.7, ease: EASE }}
             >
-                <h2 className="text-3xl font-bold tracking-tight">
-                    多元的经营模式，总有一种适合你
-                </h2>
+                <h2 className="text-3xl font-bold">多元的经营模式，总有一种适合你</h2>
 
                 <div className="mt-10 flex flex-col gap-8 lg:flex-row">
                     <div
@@ -278,7 +276,7 @@ function FinalCta() {
         <section className="bg-primary-subtle">
             <Reveal className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center">
                 <Store className="size-10 text-primary" />
-                <h2 className="text-3xl font-bold tracking-tight text-primary-subtle-foreground">
+                <h2 className="text-3xl font-bold text-primary-subtle-foreground">
                     准备好开店了吗？
                 </h2>
                 <p className="max-w-md text-primary-subtle-foreground/80">

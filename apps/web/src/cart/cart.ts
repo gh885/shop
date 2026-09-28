@@ -33,20 +33,16 @@ export type CartItem = {
     sku: SkuInfo | null
 }
 
-/** 可售条目：available 且快照齐全。结算与合计只认它，故用它把 null 挡在这条线之外 */
+/** 快照齐全那条线收窄成的类型：组件拿到它就不用再判 product/sku 是否为 null */
 export type SellableCartItem = CartItem & { product: CartItemProduct; sku: SkuInfo }
 
 /** 「商品已被删除」那一组的店铺 key：后端不再给 shopId，用哨兵把它们聚成一组 */
 const DELETED_SHOP_ID = "__deleted__"
 
 /**
- * cart 模块 —— 纯逻辑（投影映射 + 派生 + 缓存变换语义 + UX 守卫）。不碰 React / 网络。
+ * cart 模块 —— 纯逻辑（投影映射 + 派生 + 缓存变换语义）。不碰 React / 网络。
  *
- * 这些不是「购物车的业务规则」（那是后端 server 模块裁决的，前端不复制），而是：
- * - toCartItem    ：wire → 投影（形状归一）
- * - derive*       ：缓存 → 视图读模型（groupByShop / 合计 / 全选态 / 条目视图）
- * - patchItem     ：单条乐观 patch（勾选/改量共用，一次写入如何作用于 cache）
- * - setItemsSelected / removeItems：批量/删除的缓存变换语义
+ * 这些不是「购物车的业务规则」（那是后端 server 模块裁决的，前端不复制），只做形状归一与视图读模型；
  * 数量越界/库存这个 UX 预判在 use-cart 的 useCartItemActions 里（仍以后端裁决为准）。
  */
 
@@ -101,7 +97,7 @@ export type CartItemView = {
     disabled: boolean
 }
 
-/** 可售条目判定：available 且快照齐全。后端 available 已蕴含快照存在，这里连快照一起收窄给类型看 */
+/** 结算口径的「已勾选且可售」：available、快照齐全、且已被勾选 —— 三项缺一不进合计 */
 function isSellable(item: CartItem): item is SellableCartItem {
     return item.available && item.selected && item.product !== null && item.sku !== null
 }
@@ -169,9 +165,7 @@ export function deriveCartItemView(item: CartItem): CartItemView {
 // 缓存变换语义（乐观 patch 的唯一来源）
 /**
  * 单条数量上限（后端裁决，这里仅用于前端预判，避免多打一个往返）。
- *
- * 999 是从 `AddCartItemRequest.quantity` 那一格抄来的第三份，所以它在
- * `FieldRuleVocabularyTest` 的镜像表里登记过：契约改小时这里不跟着改就红。
+ * 它是 `AddCartItemRequest.quantity` 那一格的第三份拷贝，在 `FieldRuleVocabularyTest` 登记过：契约改小时这里不跟着改就红。
  */
 export const MAX_CART_QUANTITY = 999
 

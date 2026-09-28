@@ -3,7 +3,7 @@ import { CircleAlert } from "lucide-react"
 
 import { Button, Skeleton } from "@shop/ui-web"
 import { QueryBoundary } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+import { apiErrorDetail } from "@shop/common"
 
 import { HomeBannerItem } from "./HomeBannerItem"
 import { bannersOptions } from "./queries"
@@ -31,7 +31,7 @@ export function HomeBanners() {
 function homeBannersErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
     return (
         <HomeBannersError
-            message={toApiError(error).detail || "活动位加载失败"}
+            message={apiErrorDetail(error, "活动位加载失败")}
             onRetry={reset}
         />
     )
@@ -104,7 +104,7 @@ function HomeBannersError({
     message,
     onRetry,
 }: {
-    /** 已归一化的错误描述（调用方用 `toApiError(error).detail` 传入） */
+    /** 后端 detail 优先；后端没说话时是站点那句（apiErrorDetail） */
     message: string
     onRetry: () => void
 }) {

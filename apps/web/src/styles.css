@@ -95,3 +95,114 @@ body {
 @utility narrow-page {
     @apply mx-auto w-full max-w-narrow flex-1 px-6 py-8;
 }
+
+/* ---------- 登录弹窗的门头（auth/LoginDialog.tsx） ----------
+   整张弹窗就是一间小店：顶上一块条纹遮阳篷（Logo 图形标画的就是它），篷下挂一块点阵招牌，
+   「欢迎光临」「千万小店，各有各的好」在灯阵里跑，再往下是柜台，也就是登录表单。
+   篷布的橙与底下登录按钮的橙一上一下收住整张卡；招牌与输入框同一个灰底、同一档圆角，看着是一套东西。
+   只动 transform / opacity；减弱动态时篷布直接挂好、灯直接亮着、走字停在第一帧（见末尾媒体查询）。 */
+
+/* 遮阳篷：绕顶边前倾 24°，下缘离人更近、透视里略宽，是抬头看门头的角度。
+   投影挂在这一层、布挂在 ::before：filter 先于 mask 生效，挂在同一层会连影子一起被裁掉 */
+.storefront-awning {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 4.5rem;
+    transform-origin: top;
+    transform: perspective(40rem) rotateX(24deg);
+    filter: drop-shadow(
+        0 0.5rem 0.5rem color-mix(in oklab, var(--color-primary-active) 22%, transparent)
+    );
+    animation: storefront-unfurl 0.9s cubic-bezier(0.3, 0, 0.2, 1) 0.1s both;
+}
+/* 布：橙白相间 15 条（奇数条，两端都是橙），每条下缘收成一个垂边，垂边宽即条宽，对齐了才像同一块布。
+   三层叠色：顶上一道深色篷杆、上暗下亮的弧面阴影、条纹本身 */
+.storefront-awning::before {
+    --stripe: calc(100% / 15);
+    --scallop: 0.875rem;
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(var(--color-primary-active) 0 0) top / 100% 0.375rem no-repeat,
+        linear-gradient(
+            to bottom,
+            color-mix(in oklab, var(--color-primary-active) 28%, transparent),
+            transparent 60%
+        ),
+        repeating-linear-gradient(
+            to right,
+            var(--color-primary) 0 var(--stripe),
+            var(--color-background) 0 calc(var(--stripe) * 2)
+        );
+    mask:
+        linear-gradient(black 0 0) top / 100% calc(100% - var(--scallop)) no-repeat,
+        radial-gradient(farthest-side at top, black 96%, transparent) left bottom / var(--stripe)
+            var(--scallop) repeat-x;
+}
+
+/* 入场：招牌与表单依次浮上来，和篷布落下同一拍 */
+.login-rise > * {
+    animation: login-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.login-rise > :last-child {
+    animation-delay: 80ms;
+}
+
+/* 篷布放下：保持前倾角，从篷杆往下放出来，冲过头一点再回弹，像布被自重拽了一下。
+   （试过整块从 -90° 翻落：篷布只有 4.5rem 高，翻转在透视里几乎看不出来，读着像「闪现」） */
+@keyframes storefront-unfurl {
+    0% {
+        transform: perspective(40rem) rotateX(24deg) scaleY(0);
+    }
+    60% {
+        transform: perspective(40rem) rotateX(24deg) scaleY(1.12);
+    }
+    80% {
+        transform: perspective(40rem) rotateX(24deg) scaleY(0.96);
+    }
+    100% {
+        transform: perspective(40rem) rotateX(24deg) scaleY(1);
+    }
+}
+/* 通电：几下明灭后常亮（steps 让每一下都是硬切，像接触不良的灯，不是渐变） */
+@keyframes storefront-power-on {
+    0% {
+        opacity: 0;
+    }
+    12% {
+        opacity: 1;
+    }
+    22% {
+        opacity: 0.15;
+    }
+    36% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.35;
+    }
+    62%,
+    100% {
+        opacity: 1;
+    }
+}
+@keyframes storefront-marquee {
+    to {
+        transform: translateX(-100%);
+    }
+}
+@keyframes login-rise {
+    from {
+        opacity: 0;
+        transform: translateY(0.75rem);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .storefront-awning,
+    .storefront-sign-glow {
+        animation: none;
+    }
+}

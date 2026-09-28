@@ -12,7 +12,7 @@ import {
 } from "@shop/ui-web"
 
 import { notify, QueryBoundary } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+import { apiErrorDetail } from "@shop/common"
 
 import { ShopCouponPopover } from "#/coupon"
 import { avatarInitial } from "#/shared/lib/avatar"
@@ -42,7 +42,7 @@ export function ShopBar({ shopId }: { shopId: string }) {
 function shopBarErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
     return (
         <ShopBarError
-            message={toApiError(error).detail || "店铺信息加载失败"}
+            message={apiErrorDetail(error, "店铺信息加载失败")}
             onRetry={reset}
         />
     )

@@ -41,7 +41,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
             <p
                 className={cn(
                     "w-24 shrink-0 border-r border-dashed border-border pr-4 text-center text-3xl font-bold leading-none tabular-nums",
-                    usable ? "text-primary" : "text-muted-foreground",
+                    usable ? "text-primary-subtle-foreground" : "text-muted-foreground",
                 )}
             >
                 {couponFaceText(coupon)}

@@ -157,7 +157,7 @@ function SellerBanner() {
                 <div className="flex items-start gap-4">
                     <Store className="mt-1 size-8 shrink-0 text-primary" />
                     <div className="space-y-1">
-                        <h2 className="text-2xl font-bold tracking-tight text-primary-subtle-foreground">
+                        <h2 className="text-2xl font-bold text-primary-subtle-foreground">
                             0 元开店，让好生意被更多人看见
                         </h2>
                         <p className="text-primary-subtle-foreground/80">

@@ -209,7 +209,7 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                             <span className="text-muted-foreground">订单金额</span>
                             <Price
                                 value={order.payAmount}
-                                className="text-lg font-medium text-primary"
+                                className="text-lg font-medium text-primary-subtle-foreground"
                             />
                         </p>
                     </div>

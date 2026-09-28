@@ -104,7 +104,6 @@ export async function createOrder(args: {
     })
 }
 
-/** 确认支付：模拟网关回调，PENDING → SUCCESS + 推进订单；返回成功流水 */
 // 发起支付/确认支付直接在 checkout 的 mutation 里调 SDK（两段式流水消费方各自接线）
 
 // 订单操作 mutation（确认收货 / 取消：同一套失效口径，各自声明文案与变量形状）

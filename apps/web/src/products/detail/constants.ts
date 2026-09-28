@@ -19,7 +19,7 @@
 export const DETAIL_LAYOUT = {
     /**
      * 内容容器：宽 1486。
-     * 主版心的 `max-w-(--container-page)` 是 1438，被容器的 `px-6` 吃掉 48 后只剩 1390，
+     * 主版心的 `max-w-page` 是 1486，被容器的 `px-6` 吃掉 48 后只剩 1438，
      * 装不下 1486 的三块布局，所以详情页外层把容器放宽 3rem（左右各 24px 由 px-6 提供）。
      */
     container: "max-w-[calc(var(--container-page)_+_3rem)]",

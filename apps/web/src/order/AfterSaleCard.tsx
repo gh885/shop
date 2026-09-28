@@ -74,7 +74,7 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
                     {ticket.refundAmount ? (
                         <Price
                             value={ticket.refundAmount}
-                            className="text-sm text-primary"
+                            className="text-sm text-primary-subtle-foreground"
                         />
                     ) : (
                         "—"
