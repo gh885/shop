@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config"
+import { defineConfig } from "vite-plus"
 
 /**
  * Vitest monorepo 入口：以 workspace 内各包自己的 vitest.config.ts 为 project。
@@ -7,6 +7,7 @@ import { defineConfig } from "vitest/config"
  */
 export default defineConfig({
     test: {
+        // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
         projects: ["apps/*/vitest.config.ts", "packages/*/vitest.config.ts"],
     },
 })

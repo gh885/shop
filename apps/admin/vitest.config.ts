@@ -1,5 +1,5 @@
 import viteReact from "@vitejs/plugin-react"
-import { defineConfig } from "vitest/config"
+import { defineConfig } from "vite-plus"
 
 /**
  * admin 测试环境：jsdom + Testing Library，与 apps/web 同一约定。
@@ -14,6 +14,7 @@ export default defineConfig({
     resolve: { tsconfigPaths: true },
     plugins: [viteReact({ compiler: true })],
     test: {
+        // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
         environment: "jsdom",
         setupFiles: ["@shop/app-kit/test/setup"],
         include: ["src/**/*.test.{ts,tsx}"],

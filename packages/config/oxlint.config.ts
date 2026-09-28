@@ -1,4 +1,4 @@
-import { defineConfig } from "oxlint"
+import type { OxlintConfig } from "vite-plus/lint"
 
 /** no-restyle 里「全局都放行」的类名，任何组件上都成立：
  *  - layout：位置与宽度由页面定，外观归组件 —— 官方推荐基线
@@ -12,7 +12,10 @@ import { defineConfig } from "oxlint"
  *    本就要求 B 端数字列用它 */
 const NO_RESTYLE_ALWAYS_ALLOWED = ["layout", "space-*", "required-mark", "tabular-nums"]
 
-export default defineConfig({
+/** 由根 `vite.config.ts` 的 `lint` 块消费（Vite+ 要求 lint 设置只住在根配置里，
+ *  包内 `lint` 块对逐文件不会生效——见 docs 的 monorepo 一节）。
+ *  展开时追加 vite-plus 自己的 jsPlugins / rules，故这里是独立具名导出，不是默认导出。 */
+export const oxlintConfig = {
     // JS 插件（Oxlint 1.80+ 的 JS plugin API，官方标注 alpha）：
     // @shadcn/lint 是面向 agent 的设计系统 linter —— 报错文本里带"该用什么"，
     // 建议直接来自 packages/ui-web 的组件 variants / sizes 与 styles.css 的 theme token。
@@ -403,7 +406,6 @@ export default defineConfig({
             // - unicorn/no-useless-fallback-in-spread：`...(props.x || {})` 防御性合并。
             // - jsx-a11y/no-autofocus：单元格编辑器浮层打开即聚焦是功能本身，去掉即坏。
             //
-            // 正确性仍由 tsc（strict + noUncheckedIndexedAccess）全程把关。
             files: ["**/packages/ui-web/src/components/reui/**/*"],
             rules: {
                 "typescript/no-unnecessary-condition": "off",
@@ -419,6 +421,50 @@ export default defineConfig({
                 "oxc/const-comparisons": "off",
                 "typescript/no-base-to-string": "off",
                 "unicorn/no-useless-fallback-in-spread": "off",
+
+                // 正确性仍由 tsc（strict + noUncheckedIndexedAccess）全程把关。
+                //
+                // ── 风格与建议类整族关闭（实测 581 条噪音的全部来源）──
+                // 上面那 13 条是按"逐条核过不是缺陷"关的；这一批不同：它们即便成立也不是我们的债。
+                // `packages/ui-web/src/components/reui/**` 只有 data-grid 与 cascader 两处（reui.io 的
+                // vendored 复合控件），命中项 100% 落在这两个目录，第一方的同类规则不受影响。
+                // 判据：这些规则的建议都要么改它就是 fork（prefer-at / prefer-spread / no-shadow），
+                // 要么是本仓库对第一方的约定而第三方无义务遵守（no-null 的「对内只用 undefined」），
+                // 要么是对既有第三方代码的架构点评（no-giant-component / 复杂度）。
+                // 留着的代价很具体：618 条 warning 里 581 条是别人的，告警面因此读不出趋势。
+                // key 写法必须对得上（输出里是 `unicorn(no-null)`，顶层配置写的却是裸 `no-null`）——
+                // 写错不报错、静默不匹配，所以改完这块要复跑 `vp check` 数一遍 reui 命中数。
+                "unicorn/no-null": "off",
+                "unicorn/prefer-export-from": "off",
+                "unicorn/explicit-length-check": "off",
+                "unicorn/prefer-at": "off",
+                "unicorn/prefer-spread": "off",
+                "unicorn/prefer-logical-operator-over-ternary": "off",
+                "unicorn/consistent-function-scoping": "off",
+                "unicorn/no-negated-condition": "off",
+                "unicorn/no-lonely-if": "off",
+                "unicorn/prefer-string-replace-all": "off",
+                "unicorn/no-array-sort": "off",
+                "unicorn/no-array-reverse": "off",
+                "eslint/no-shadow": "off",
+                "eslint/no-underscore-dangle": "off",
+                "promise/always-return": "off",
+                "typescript/no-unsafe-type-assertion": "off",
+                "typescript/no-unnecessary-type-assertion": "off",
+                "typescript/no-unnecessary-type-arguments": "off",
+                "typescript/no-unnecessary-type-conversion": "off",
+                "typescript/no-unnecessary-type-parameters": "off",
+                "typescript/no-meaningless-void-operator": "off",
+                "typescript/no-unnecessary-boolean-literal-compare": "off",
+                "react/no-array-index-key": "off",
+                "react/jsx-no-constructed-context-values": "off",
+                "react/set-state-in-effect": "off",
+                "react-doctor/no-array-index-key": "off",
+                "react-doctor/no-giant-component": "off",
+                "react-doctor/no-high-complexity-react-function": "off",
+                "react-doctor/no-adjust-state-on-prop-change": "off",
+                "react-doctor/js-set-map-lookups": "off",
+                "react-doctor/prefer-tag-over-role": "off",
             },
         },
         {
@@ -468,7 +514,8 @@ export default defineConfig({
         },
     ],
 
-    // ignorePatterns 相对本配置文件目录解析，无法匹配 config 目录之外的真实项目路径
-    // （sdk / generated / *.gen.ts / routeTree 等）。项目级忽略统一写根级 .eslintignore。
-    ignorePatterns: [],
-})
+    // 忽略不在这份文件里，也不在仓库根的 `.eslintignore`（那份已删）：oxlint 的 ignorePatterns
+    // 按**配置文件所在目录**解析，而生效的配置是根 `vite.config.ts` 的 `lint` 块，所以忽略住在
+    // 那里才对（见其 GENERATED / LINT_ONLY 与判据）。`overrides` 里的 `**/` 前缀不受影响——
+    // 那是相对仓库根匹配的。fallow 也不读那一份：它有自己的 .fallowrc.json 四套忽略。
+} satisfies OxlintConfig

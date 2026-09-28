@@ -36,6 +36,6 @@
         "jsdom": "catalog:",
         "typescript": "catalog:",
         "vite": "catalog:",
-        "vitest": "catalog:"
+        "vite-plus": "catalog:"
     }
 }

@@ -8,10 +8,23 @@
     //     等子模块）只被同目录内部引用，从入口看仍是不可达——那是组件库按模块拆分的常态，
     //     不是死代码。逐个文件挂 fallow-ignore-file 反而会把 vendored 文件改得面目全非。
     "ignoreFindings": ["packages/api/src/sdk/**", "packages/ui-web/src/components/reui/**"],
-    "ignoreDependencies": ["oxc-transform-react"],
+    // `oxc-transform-react`：构建期由 vite 插件按名字加载，代码里没有 import。
+    // 后三个是 oxlint 的 JS 插件（根 vite.config.ts 的 lint.jsPlugins 里以字符串 specifier 注册），
+    // 同理：加载方是 oxlint 进程而不是我们的源码，静态图看不见这种引用。
+    "ignoreDependencies": [
+        "oxc-transform-react",
+        "@shadcn/lint",
+        "@tanstack/eslint-plugin-query",
+        "@tanstack/eslint-plugin-router"
+    ],
     // 单测从模块边界测内部 helper，故「仅本文件内被引用」的导出不算死代码；彻底无引用仍会报
     "ignoreExportsUsedInFile": true,
-    "entry": ["packages/api/openapi-ts.config.ts"],
+    // 根 vite.config.ts 是前端工具链配置的唯一入口（lint/fmt 块从这里被消费），
+    // 把它记成手动入口，它 import 的 packages/config/{oxlint,oxfmt}.config.ts 才算可达。
+    // 迁移前不用写：那时 `lint:web` 脚本里有 `--config packages/config/oxlint.config.ts`，
+    // fallow 从 package.json 脚本就能顺着认到它；换成 `vp lint` 之后那条路径消失了，
+    // 两个配置文件会被判成死代码（实测 2 unused files）。
+    "entry": ["packages/api/openapi-ts.config.ts", "vite.config.ts"],
     // 生成物与造数脚本不进重构/重复的判据：ignoreFindings 只覆盖死代码，health 与 dupes 要各自排。
     // 第三方 vendored 组件（ui-web 的 reui/**）同理：它们带来成百的复杂度与
     // 重复克隆，但那些代码不是我们写的，也不打算重构——重构 vendored 代码会彻底断掉与上游的

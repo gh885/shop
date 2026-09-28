@@ -1,5 +1,5 @@
 import http from "node:http"
-import { defineConfig, loadEnv, type Plugin } from "vite"
+import { defineConfig, loadEnv, type Plugin, lazyPlugins } from "vite-plus"
 import { devtools } from "@tanstack/devtools-vite"
 
 import { tanstackStart } from "@tanstack/react-start/plugin/vite"
@@ -88,7 +88,7 @@ export default defineConfig(({ mode }) => {
                 "/reviews": { target: backend, changeOrigin: true },
             },
         },
-        plugins: [
+        plugins: lazyPlugins(() => [
             devtools(),
             tailwindcss(),
             ordersApiProxy(backend),
@@ -105,6 +105,6 @@ export default defineConfig(({ mode }) => {
                 prerender: { enabled: true, autoStaticPathsDiscovery: false, crawlLinks: false },
             }),
             viteReact({ compiler: true }),
-        ],
+        ]),
     }
 })

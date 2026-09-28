@@ -14,17 +14,18 @@ jobs:
               with:
                   # fallow audit 要拿 PR 基准分支算 merge-base，浅克隆没有这段历史
                   fetch-depth: 0
-            - uses: pnpm/action-setup@v4
+            # setup-vp 一次装好 vp + Node + pnpm + 依赖缓存。vp 版本按 package.json/lockfile 自动解析，
+            # pnpm 版本取 lockfile 里记的那份（packageManagerDependencies），不再手抄版本号
+            - uses: voidzero-dev/setup-vp@v1.21.1
               with:
-                  version: 12.4.1
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: 24
-                  cache: pnpm
-            - run: pnpm install --frozen-lockfile
-            # 与 lefthook pre-push 同一套命令（不带 --fix：push 前只校验，不改工作区）
+                  node-version: "24"
+                  cache: true
+                  run-install: false
+            - run: vp install --frozen-lockfile
+            # 与 lefthook pre-push 同一套命令（不带 --fix：push 前只校验，不改工作区）。
+            # 命令口径仍以 package.json 的 script 为唯一出口，这里只调 script，不复制 vp 参数
             - name: lint
-              run: pnpm oxlint --config packages/config/oxlint.config.ts .
+              run: pnpm lint:web
             - name: typecheck
               run: pnpm typecheck
             # github-annotations：发现直接标在 PR diff 对应行上
@@ -111,20 +112,18 @@ jobs:
                     --health-retries 10
         steps:
             - uses: actions/checkout@v4
-            - uses: pnpm/action-setup@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
               with:
-                  version: 12.4.1
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: 24
-                  cache: pnpm
+                  node-version: "24"
+                  cache: true
+                  run-install: false
             - uses: actions/setup-java@v4
               with:
                   distribution: temurin
                   java-version: "25"
                   cache: maven
             - run: sudo apt-get update && sudo apt-get install -y postgresql-client
-            - run: pnpm install --frozen-lockfile
+            - run: vp install --frozen-lockfile
             - run: pnpm exec playwright install --with-deps chromium
             - name: 启动后端与 web / 卖家工作台
               env:
@@ -177,12 +176,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - uses: pnpm/action-setup@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
               with:
-                  version: 12.4.1
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: 24
-                  cache: pnpm
-            - run: pnpm install --frozen-lockfile
+                  node-version: "24"
+                  cache: true
+                  run-install: false
+            - run: vp install --frozen-lockfile
             - run: node scripts/contract-audit.mjs

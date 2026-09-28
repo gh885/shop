@@ -24,14 +24,15 @@ pre-commit:
 
     jobs:
         # 前端／通用文件格式化
-        # --no-error-on-unmatched-pattern：{staged_files} 可能整体落在 .prettierignore 里
-        # （packages/api/src/sdk/、**/*.gen.ts、openapi/api-docs.json），此时 oxfmt 找不到任何
+        # --no-error-on-unmatched-pattern：{staged_files} 可能整体落在忽略名单里
+        # （名单现在住在根 vite.config.ts 的 fmt.ignorePatterns：packages/api/src/sdk/、**/*.gen.ts、
+        # openapi/api-docs.json、pnpm-workspace.yaml），此时 oxfmt 找不到任何
         # 可格式化的目标，默认以 2 退出。两个作业都要带这个参数，否则「只提交一次契约/SDK 重生成」
         # 这类完全干净、也确实无可格式化的提交会被钩子拦下。
         - name: fmt-web
           tags: [format]
           glob: "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,yml,yaml,md}"
-          run: pnpm oxfmt --no-error-on-unmatched-pattern --config packages/config/oxfmt.config.ts --write {staged_files}
+          run: pnpm exec vp fmt --no-error-on-unmatched-pattern --write {staged_files}
           stage_fixed: true
 
         # 后端 Java 格式化（只当有 .java 文件变更时触发）
@@ -45,12 +46,12 @@ pre-commit:
         # 前端 lint
         # --no-error-on-unmatched-pattern：同一类问题（见上）。最典型的触发是只提交 SDK 重生成产物
         # —— packages/api/src/sdk/index.ts 不在 lefthook 的 exclude 里，会被交给 oxlint，
-        # 但它在 .eslintignore 里（**/sdk/**），于是 oxlint 拿到空集并以 1 退出。
+        # 但它在忽略名单里（**/sdk/**，住在根 vite.config.ts 的 lint.ignorePatterns），于是 oxlint 拿到空集并以 1 退出。
         # 全量 lint（pre-push 的 lint 作业与 pnpm lint:web）lint 的是 "."，不会空集，故不加此参数。
         - name: lint-web
           tags: [lint]
           glob: "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
-          run: pnpm oxlint --type-aware --no-error-on-unmatched-pattern --config packages/config/oxlint.config.ts {staged_files}
+          run: pnpm exec vp lint --type-aware --no-error-on-unmatched-pattern {staged_files}
           fail_text: "oxlint 未通过；可自动修复的部分跑 pnpm lint:web:fix"
 
         # 以下两项不按暂存文件过滤，但带缓存各 ~1s 内，放 pre-commit 而非 pre-push：仓库没有 remote 时
@@ -81,10 +82,10 @@ pre-push:
         - rebase
 
     jobs:
-        # 不带 --fix：push 前只校验，不改工作区
+        # 不带 --fix：push 前只校验，不改工作区。与前端 CI 步骤同一个 script（lint:web）
         - name: lint
           tags: [lint]
-          run: pnpm oxlint --type-aware --config packages/config/oxlint.config.ts .
+          run: pnpm lint:web
 
         - name: typecheck
           tags: [types]
@@ -92,7 +93,7 @@ pre-push:
 
         # 死代码 / 改动审计（fallow）在 pre-commit，见那边的说明
 
-        # 前端单测 + 组件/集成测试（vitest projects：apps/* + packages/*）
+        # 前端单测 + 组件/集成测试（`vp test` 的 vitest projects：apps/* + packages/*）
         - name: test
           tags: [test]
           timeout: 300s

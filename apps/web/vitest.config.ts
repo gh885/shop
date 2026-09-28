@@ -1,5 +1,5 @@
 import viteReact from "@vitejs/plugin-react"
-import { defineConfig } from "vitest/config"
+import { defineConfig } from "vite-plus"
 
 /**
  * web 测试环境：jsdom + Testing Library。组件/集成测试在此跑；
@@ -10,6 +10,7 @@ export default defineConfig({
     resolve: { tsconfigPaths: true }, // 与 vite.config 一致：ui-web 内部的 shadcn 别名（src/lib/utils）靠 tsconfig paths 解析
     plugins: [viteReact()],
     test: {
+        // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
         environment: "jsdom",
         setupFiles: ["@shop/app-kit/test/setup"],
         include: ["src/**/*.test.{ts,tsx}"],

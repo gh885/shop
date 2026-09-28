@@ -22,18 +22,18 @@
         "build:seller": "pnpm --filter seller build",
         "build:server": "mvn -f apps/server/pom.xml compile",
         "lint": "pnpm lint:web && pnpm lint:server",
-        "lint:web": "oxlint --type-aware --config packages/config/oxlint.config.ts .",
-        "lint:web:fix": "oxlint --type-aware --config packages/config/oxlint.config.ts --fix .",
+        "lint:web": "vp lint --type-aware .",
+        "lint:web:fix": "vp lint --type-aware --fix .",
         "lint:server": "mvn -f apps/server/pom.xml compile",
         "format": "pnpm format:web && pnpm format:server",
-        "format:web": "oxfmt --config packages/config/oxfmt.config.ts --write .",
+        "format:web": "vp fmt --write .",
         "format:server": "mvn -f apps/server/pom.xml spotless:apply",
         "typecheck": "pnpm -r --if-present typecheck",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "test:project": "vitest run --project",
-        "test:changed": "vitest run --changed",
-        "test:coverage": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=json --coverage.reportsDirectory=.fallow-coverage",
+        "test": "vp test run --fs-module-cache",
+        "test:watch": "vp test --fs-module-cache",
+        "test:project": "vp test run --fs-module-cache --project",
+        "test:changed": "vp test run --fs-module-cache --changed",
+        "test:coverage": "vp test run --fs-module-cache --coverage --coverage.provider=v8 --coverage.reporter=json --coverage.reportsDirectory=.fallow-coverage",
         "test:server": "node scripts/with-datastore.mjs && mvn -f apps/server/pom.xml test",
         "test:e2e": "playwright test --config=e2e/playwright.config.ts",
         "test:e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
@@ -53,16 +53,20 @@
         "@shadcn/lint": "^0.1.1",
         "@tanstack/eslint-plugin-query": "^5.103.1",
         "@tanstack/eslint-plugin-router": "^1.162.0",
-        "@vitest/coverage-v8": "4.1.11",
+        "@vitest/coverage-v8": "catalog:",
         "concurrently": "^10.0.5",
         "fallow": "^3.28.0",
         "lefthook": "^2.1.14",
-        "oxfmt": "^0.66.0",
-        "oxlint": "^1.83.0",
         "oxlint-plugin-react-doctor": "0.9.14",
-        "oxlint-tsgolint": "^7.0.2002",
         "typescript": "catalog:",
+        "vite-plus": "catalog:",
         "vitest": "catalog:"
     },
-    "devEngines": {}
+    "devEngines": {
+        "packageManager": {
+            "name": "pnpm",
+            "version": "12.6.0",
+            "onFail": "download"
+        }
+    }
 }
