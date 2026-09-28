@@ -75,7 +75,13 @@ export function DataTableCard({ className }: { className?: string }) {
             footer={<DataGridPagination sizes={[10, 20, 30, 40, 50]} />}
         >
             <DataGridContainer>
-                <DataGridTable />
+                {/* 横向视口。外壳与 DataGridContainer 两层都是 overflow-hidden，
+                    宽表在这里不是"能横着滚"而是"被裁掉"：没有滚动条、没有露一角，
+                    末列（通常是"操作"）在 admin/seller 每张表上不可达。
+                    原语 Table 那侧（ui/table.tsx）本来就带 overflow-x-auto，两条路对齐。 */}
+                <div className="overflow-x-auto">
+                    <DataGridTable />
+                </div>
             </DataGridContainer>
         </TableShell>
     )

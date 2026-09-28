@@ -77,6 +77,75 @@ export interface ImageUploadProps {
     className?: string
 }
 
+/** 已填值那一态：缩略图预览，右上角可选删除 */
+function ImageThumb({
+    value,
+    resolveSrc,
+    circular,
+    size,
+    className,
+    label,
+    removable,
+    onChange,
+}: {
+    value: string
+    resolveSrc?: (value: string) => string
+    circular: boolean
+    size: string
+    className?: string
+    label?: string
+    removable: boolean
+    onChange?: (value: string | undefined) => void
+}) {
+    return (
+        <div
+            className={cn(
+                "relative overflow-hidden",
+                circular ? "rounded-full" : "rounded-lg",
+                size,
+                className,
+            )}
+        >
+            <img
+                src={resolveSrc ? resolveSrc(value) : value}
+                alt={label ?? "图片"}
+                className="size-full object-cover"
+            />
+            {removable && (
+                <button
+                    type="button"
+                    onClick={() => onChange?.(undefined)}
+                    aria-label="移除图片"
+                    className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm transition-colors hover:text-destructive"
+                >
+                    <X className="size-3.5" />
+                </button>
+            )}
+        </div>
+    )
+}
+
+/** 瓦片正面：上传中是转圈，否则是图标（图标可被调用方整只换掉）加可选文案 */
+function TileFace({
+    busy,
+    icon,
+    showIcon,
+    label,
+}: {
+    busy: boolean
+    icon?: React.ReactNode
+    showIcon: boolean
+    label?: string
+}) {
+    if (busy) return <Spinner className="size-5" />
+    return (
+        <>
+            {icon ?? (showIcon ? <ImagePlus className="size-5" /> : undefined)}
+            {label ? <span className="text-xs">{label}</span> : undefined}
+        </>
+    )
+}
+
 /**
  * 单张图片上传槽（通用原子）：空态是可点击/可拖拽/可粘贴的上传区，填值后变成缩略图预览。
  *
@@ -124,37 +193,22 @@ export function ImageUpload({
         }
     }
 
-    // 已填值：缩略图预览（+ 可选删除 / 上传中遮罩）
     if (value) {
         return (
-            <div
-                className={cn(
-                    "relative overflow-hidden",
-                    circular ? "rounded-full" : "rounded-lg",
-                    size,
-                    className,
-                )}
-            >
-                <img
-                    src={resolveSrc ? resolveSrc(value) : value}
-                    alt={label ?? "图片"}
-                    className="size-full object-cover"
-                />
-                {removable && (
-                    <button
-                        type="button"
-                        onClick={() => onChange?.(undefined)}
-                        aria-label="移除图片"
-                        className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm transition-colors hover:text-destructive"
-                    >
-                        <X className="size-3.5" />
-                    </button>
-                )}
-            </div>
+            <ImageThumb
+                value={value}
+                resolveSrc={resolveSrc}
+                circular={circular}
+                size={size}
+                className={className}
+                label={label}
+                removable={removable}
+                onChange={onChange}
+            />
         )
     }
 
-    // 空态：复用 FileUpload 的 Dropzone（点击/拖拽/粘贴 + 校验），样式覆盖成上传瓦片
+    // 空态复用 FileUpload 的 Dropzone（点击/拖拽/粘贴 + 校验），样式只覆盖成上传瓦片那一档
     return (
         <div className="flex flex-col items-start gap-1.5">
             <FileUpload
@@ -167,24 +221,25 @@ export function ImageUpload({
             >
                 <FileUploadDropzone
                     className={cn(
-                        "shrink-0 cursor-pointer p-0! gap-1.5! border! border-dashed! border-input! bg-muted/40! text-muted-foreground transition-colors hover:bg-muted! hover:border-foreground/30! data-dragging:border-primary/40! data-dragging:bg-accent/40!",
+                        // 只写与基底不同的那一档：cn 是 tailwind-merge，同类冲突后者胜，
+                        // 不需要 `!` 去压兄弟组件的皮肤（DESIGN.md §1.3）。
+                        // 基底的 rounded-lg / border-dashed / transition-colors 已在 wanted 状态，不再重复
+                        "shrink-0 cursor-pointer gap-1.5 border border-input bg-muted/40 p-0 text-muted-foreground hover:border-foreground/30 hover:bg-muted data-dragging:border-primary/40 data-dragging:bg-accent/40",
                         size,
-                        circular ? "rounded-full!" : "rounded-lg!",
+                        circular && "rounded-full",
                         className,
                     )}
                 >
-                    {busy ? (
-                        <Spinner className="size-5" />
-                    ) : (
-                        <>
-                            {icon ?? (showIcon ? <ImagePlus className="size-5" /> : undefined)}
-                            {label ? <span className="text-xs">{label}</span> : undefined}
-                        </>
-                    )}
+                    <TileFace
+                        busy={busy}
+                        icon={icon}
+                        showIcon={showIcon}
+                        label={label}
+                    />
                 </FileUploadDropzone>
             </FileUpload>
             {uploadError ? (
-                <p className="max-w-24 text-xs leading-tight text-destructive">{uploadError}</p>
+                <p className="max-w-24 text-2xs leading-tight text-destructive">{uploadError}</p>
             ) : undefined}
         </div>
     )

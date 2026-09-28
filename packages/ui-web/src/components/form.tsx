@@ -74,7 +74,7 @@ export function FormError({ className, children, ...props }: React.ComponentProp
         <p
             role="alert"
             className={cn(
-                "flex items-center gap-1.5 text-xs text-destructive outline-none",
+                "flex items-center gap-1.5 text-2xs text-destructive outline-none",
                 className,
             )}
             {...props}
@@ -98,7 +98,30 @@ type FieldProps = {
 
 type FieldState = { state: { meta: { errors: ReadonlyArray<unknown>; isValid: boolean } } }
 
-/** 字段组件共用的组装：Field 容器 + label + 控件 + 错误（优先）/说明。error 优先于 hint：同一个位置只讲一件事 */
+const errorId = (id: string) => `${id}-error`
+const hintId = (id: string) => `${id}-hint`
+const labelId = (id: string) => `${id}-label`
+
+/** 控件的 `aria-describedby`：只指真实渲染出来的那个节点——
+ *  无效但一条错误都没有（异步校验 pending）时 FieldError 自己会返回 null，
+ *  这里跟着收手，不留下指向空气的引用。
+ *  传 hint 本体而不是「有没有 hint」：判空条件与 FieldFrame 渲染那条完全一致，不会两处漂移。 */
+function describedBy(
+    id: string | undefined,
+    field: FieldState,
+    hint: React.ReactNode,
+): string | undefined {
+    if (!id) return undefined
+    const { isValid, errors } = field.state.meta
+    if (!isValid) return errors.length > 0 ? errorId(id) : undefined
+    return hint ? hintId(id) : undefined
+}
+
+/** 字段组件共用的组装：Field 容器 + label + 控件 + 错误（优先）/说明。error 优先于 hint：同一个位置只讲一件事
+ *
+ *  错误与说明带 id，控件侧用 {@link describedBy} 取回同一个 id 填 `aria-describedby`——
+ *  没有这条关联，读屏用户回到无效控件只听得到「invalid」，那句错误文字永远读不到。
+ *  命名约定住在这里一处：控件侧不拼字符串。 */
 function FieldFrame({
     field,
     id,
@@ -117,6 +140,7 @@ function FieldFrame({
             {label && (
                 <FieldLabel
                     htmlFor={id}
+                    id={id && labelId(id)}
                     required={required}
                 >
                     {label}
@@ -124,9 +148,12 @@ function FieldFrame({
             )}
             {children}
             {field.state.meta.isValid ? (
-                hint && <FieldDescription>{hint}</FieldDescription>
+                hint && <FieldDescription id={id && hintId(id)}>{hint}</FieldDescription>
             ) : (
-                <FieldError errors={field.state.meta.errors} />
+                <FieldError
+                    id={id && errorId(id)}
+                    errors={field.state.meta.errors}
+                />
             )}
         </Field>
     )
@@ -157,6 +184,7 @@ function TextField({
         onBlur: field.handleBlur,
         onChange: (e: React.ChangeEvent<HTMLInputElement>) => field.handleChange(e.target.value),
         "aria-invalid": !field.state.meta.isValid,
+        "aria-describedby": describedBy(id, field, hint),
         ...props,
     }
     const input = counter ? (
@@ -222,6 +250,7 @@ function TextareaField({
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
                 aria-invalid={!field.state.meta.isValid}
+                aria-describedby={describedBy(id, field, hint)}
                 {...props}
             />
         </FieldFrame>
@@ -290,6 +319,7 @@ function DateTimeField({
                             type="button"
                             variant="outline"
                             aria-invalid={!field.state.meta.isValid}
+                            aria-describedby={describedBy(id, field, hint)}
                             className="w-full justify-between font-normal"
                         />
                     }
@@ -386,6 +416,7 @@ function SelectField({
                     id={id}
                     className="w-full"
                     aria-invalid={!field.state.meta.isValid}
+                    aria-describedby={describedBy(id, field, hint)}
                 >
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
@@ -413,18 +444,22 @@ function CheckboxField({
 }: FieldProps &
     Omit<React.ComponentProps<typeof Checkbox>, "checked" | "onCheckedChange" | "defaultChecked">) {
     const field = useFieldContext<boolean>()
+    const id = React.useId()
     return (
         <FieldFrame
             field={field}
+            id={id}
             hint={hint}
             orientation={orientation}
             className={className}
         >
             <FieldLabel>
                 <Checkbox
+                    id={id}
                     checked={field.state.value}
                     onCheckedChange={(checked) => field.handleChange(checked)}
                     aria-invalid={!field.state.meta.isValid}
+                    aria-describedby={describedBy(id, field, hint)}
                     {...props}
                 />
                 {label}
@@ -443,9 +478,11 @@ function RadioGroupField({
     options,
 }: FieldProps & { options: ReadonlyArray<Option & { description?: string }> }) {
     const field = useFieldContext<string>()
+    const id = React.useId()
     return (
         <FieldFrame
             field={field}
+            id={id}
             label={label}
             required={required}
             orientation={orientation}
@@ -453,6 +490,10 @@ function RadioGroupField({
             className={className}
         >
             <RadioGroup
+                id={id}
+                aria-labelledby={labelId(id)}
+                aria-invalid={!field.state.meta.isValid}
+                aria-describedby={describedBy(id, field, hint)}
                 value={field.state.value}
                 onValueChange={(value: string) => field.handleChange(value)}
             >

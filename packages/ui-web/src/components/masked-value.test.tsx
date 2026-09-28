@@ -29,7 +29,7 @@ describe("MaskedValueCell", () => {
         renderCell()
 
         expect(screen.getByText(MASKED)).toBeInTheDocument()
-        expect(screen.getByRole("button", { name: "查看" })).toBeEnabled()
+        expect(screen.getByRole("button", { name: "查看号码 138****1234" })).toBeEnabled()
     })
 
     it("已是明文（写回这一行之后）：入口不再给", () => {
@@ -43,7 +43,7 @@ describe("MaskedValueCell", () => {
         const user = userEvent.setup()
         const { onReveal } = renderCell()
 
-        await user.click(screen.getByRole("button", { name: "查看" }))
+        await user.click(screen.getByRole("button", { name: "查看号码 138****1234" }))
 
         expect(onReveal).toHaveBeenCalledTimes(1)
     })
@@ -63,9 +63,31 @@ describe("MaskedValueCell", () => {
         expect(onReveal).not.toHaveBeenCalled()
     })
 
-    it("给出行主：可访问名带得上是谁的号码，一屏十个「查看」也能区分", () => {
+    it("给出行主：可访问名带得上是谁的号码", () => {
         renderCell({ subject: "张三" })
 
-        expect(screen.getByRole("button", { name: "查看张三的号码" })).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "查看张三的号码 138****1234" }),
+        ).toBeInTheDocument()
+    })
+
+    it("没给行主（成员列表那种只有号码的行）：可访问名仍按号码分得开，不是一屏十个「查看」", () => {
+        render(
+            <>
+                <MaskedValueCell
+                    value="138****1234"
+                    onReveal={vi.fn<() => void>()}
+                />
+                <MaskedValueCell
+                    value="139****5678"
+                    onReveal={vi.fn<() => void>()}
+                />
+            </>,
+        )
+
+        expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
+            "查看号码 138****1234",
+            "查看号码 139****5678",
+        ])
     })
 })

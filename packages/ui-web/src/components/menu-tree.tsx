@@ -11,8 +11,7 @@ import * as React from "react"
 // 因此可同时服务于「站点深色侧边栏」(web) 与「工作台浅色二级面板」(seller)
 // 等视觉迥异的场景——它们共享的是行为契约，不是外观。
 //
-// 自有状态：expandedKeys（哪些分组展开）。activeKey 变化时自动展开其所在分组
-// （只"确保展开"，用户手动收起的不强制重开）。
+// 自有状态：expandedKeys（哪些分组展开）。
 // ─────────────────────────────────────────────────────────────
 
 export interface MenuLeaf {
@@ -54,7 +53,7 @@ export interface MenuTreeProps {
 }
 
 export function MenuTree({ items, activeKey, renderLeaf, renderGroup }: MenuTreeProps) {
-    // 默认展开包含当前高亮项的分组（含 activeKey 变化时自动展开）
+    // 初始展开当前高亮项所在的分组
     const [expandedKeys, setExpandedKeys] = React.useState<ReadonlySet<string>>(
         () =>
             new Set(

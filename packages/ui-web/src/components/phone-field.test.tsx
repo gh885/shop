@@ -22,8 +22,8 @@ describe("PhoneField", () => {
 
         const group = container.querySelector('[data-slot="input-group"]')
         expect(group).toBeInTheDocument()
-        // filled 变体：InputGroup 上带 bg-muted/70（border-0）
-        expect(group?.className).toContain("bg-muted/70")
+        // filled 变体：不透明的 sunken 灰底 + 透明描边占位（聚焦才染色，见 input-group.tsx）
+        expect(group?.className).toContain("bg-sunken")
         expect(screen.getByText("+86")).toBeInTheDocument()
         // 没有国旗 svg（reui PhoneInput 的形态不该混进来）
         expect(container.querySelector("svg")).toBeNull()

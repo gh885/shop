@@ -6,16 +6,25 @@ import { Button } from "src/components/ui/button"
 import { Input } from "src/components/ui/input"
 import { Textarea } from "src/components/ui/textarea"
 
-/** 填充式：去描边 + 灰底（登录这类大表单，以及紧凑筛选框） */
+/** 填充式：静止态是一块不透明的 sunken 灰、看不见描边；聚焦才翻白，描边由基类那条
+    `:focus-visible` 规则染成 primary（淘宝/京东同款：灰底说「这里有格子」，橙框说「是这一格」）。
+    两件事：
+    1. 描边用 transparent 占位而不是 `border-0`——宽度一直在，聚焦染色时内容不会横跳 1px。
+    2. 底色必须不透明。曾经的 `bg-muted/70` 会把身后的装饰层透上来：登录弹窗顶部那片
+       primary 环境光正好罩住第一个输入框，于是「手机号」和「验证码」被染成两种灰。 */
 const INPUT_GROUP_VARIANTS = {
   default: "",
-  filled: "border-0 bg-muted/70",
+  filled:
+    "border-transparent bg-sunken has-[[data-slot=input-group-control]:focus-visible]:bg-card",
 } as const
 
-/** 大表单档：h-11 + 大圆角（配合 variant="filled" 用在登录/注册） */
+/** 大表单档：h-11 + 大圆角（登录/注册这类字段）。
+    横向内缩也归这一档管：同一表单里手机号 / 验证码 / 密码三个框的文字左边缘必须齐平，
+    散在调用点上各写一份 `px-3.5` 一定会漏——密码框就漏过一次，切 Tab 时文字左右跳。
+    后代选择器的权重高于 Input 自带的 px-2.5 与 Addon 自带的 pl-2，调用点不必再补。 */
 const INPUT_GROUP_SIZES = {
   default: "",
-  lg: "h-11 rounded-xl",
+  lg: "h-11 rounded-xl [&_[data-slot=input-group-control]]:px-3.5 [&_[data-slot=input-group-addon]]:pl-3.5",
 } as const
 
 /** 输入框的字符排版档。`code` 用于逐位核对的一次性码（图形验证码 / 短信验证码）：
@@ -52,7 +61,7 @@ function InputGroup({
       data-invalid={invalid ? "" : undefined}
       role="group"
       className={cn(
-        "group/input-group relative flex h-8 w-full min-w-0 items-center rounded-lg border border-input transition-colors outline-none data-invalid:motion-safe:animate-shake data-invalid:ring-2 data-invalid:ring-destructive/40 in-data-[slot=combobox-content]:focus-within:border-inherit in-data-[slot=combobox-content]:focus-within:ring-0 has-disabled:bg-input/50 has-disabled:opacity-50 has-[[data-slot=input-group-control]:focus-visible]:border-ring has-[[data-slot=input-group-control]:focus-visible]:ring-3 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/50 has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]]:ring-3 has-[[data-slot][aria-invalid=true]]:ring-destructive/20 has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>textarea]:h-auto has-[>[data-align=block-end]]:[&>input]:pt-3 has-[>[data-align=block-start]]:[&>input]:pb-3 has-[>[data-align=inline-end]]:[&>input]:pr-1.5 has-[>[data-align=inline-start]]:[&>input]:pl-1.5",
+        "group/input-group relative flex h-8 w-full min-w-0 items-center rounded-lg border border-input transition-colors outline-none data-invalid:motion-safe:animate-shake data-invalid:ring-2 data-invalid:ring-destructive/40 in-data-[slot=combobox-content]:focus-within:border-inherit in-data-[slot=combobox-content]:focus-within:ring-0 has-disabled:bg-input/50 has-disabled:opacity-50 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-3 has-[[data-slot=input-group-control]:focus-visible]:ring-primary/25 has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]]:ring-3 has-[[data-slot][aria-invalid=true]]:ring-destructive/20 has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>textarea]:h-auto has-[>[data-align=block-end]]:[&>input]:pt-3 has-[>[data-align=block-start]]:[&>input]:pb-3 has-[>[data-align=inline-end]]:[&>input]:pr-1.5 has-[>[data-align=inline-start]]:[&>input]:pl-1.5",
         INPUT_GROUP_VARIANTS[variant],
         INPUT_GROUP_SIZES[size],
         className

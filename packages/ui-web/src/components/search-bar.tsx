@@ -114,7 +114,9 @@ export function SearchBar({
                 placeholder={placeholder}
                 aria-label="搜索商品"
                 className={cn(
-                    "h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 shadow-none focus-visible:ring-0",
+                    // 无框皮肤只改外形：border-0 之后 Input 自带的 focus-visible:border-ring 无处下笔，
+                    // 但它的 ring 必须留着——tailwind-merge 会真删掉，写成 ring-0 就是键盘用户看不见焦点
+                    "h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 shadow-none",
                     s.input,
                 )}
             />

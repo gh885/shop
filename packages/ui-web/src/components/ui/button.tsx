@@ -13,7 +13,7 @@ const buttonVariants = cva(
                 outline:
                     "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
                 secondary:
-                    "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+                    "bg-secondary text-secondary-foreground hover:bg-secondary-hover aria-expanded:bg-secondary-hover aria-expanded:text-secondary-foreground",
                 ghost: "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
                 destructive:
                     "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
@@ -22,9 +22,11 @@ const buttonVariants = cva(
                 "cta-alt":
                     "rounded-xl bg-linear-to-r from-cta-alt to-cta-alt-hover text-base text-cta-alt-foreground hover:from-cta-alt-hover hover:to-cta-alt-active active:from-cta-alt-active",
                 /** 图片/媒体上的悬停浮现圆钮（详情页翻页、放大会用到）。
-                    依赖祖先有 `group`；圆角由 shape="pill" 提供 */
+                    依赖祖先有 `group`；圆角由 shape="pill" 提供。
+                    focus-within / focus-visible 两档不可省：只有 group-hover 时，键盘 Tab 过来
+                    焦点落在一枚 opacity-0 的钮上，焦点环跟着透明度一起被吃掉。 */
                 overlay:
-                    "bg-background/90 shadow-sm backdrop-blur transition-opacity duration-200 opacity-0 group-hover:opacity-100 hover:text-primary",
+                    "bg-background/90 shadow-sm backdrop-blur transition-opacity duration-200 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:text-primary",
             },
             size: {
                 default:

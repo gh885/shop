@@ -130,6 +130,10 @@ const ITEM_LINES = {
     1: "line-clamp-1",
     2: "line-clamp-2",
     3: "line-clamp-3",
+    /** 不裁行。给"看不全就会看错"的字段用——收货地址是代表：seller 的 AddressTable 已立下
+     *  「地址要看全：换行而不是截断」的规矩，买家侧此前只能靠 lines={1} + 没 title 的截断，
+     *  等于同一份数据两端各说各话。 */
+    wrap: "whitespace-normal",
 } as const
 
 type ItemLines = keyof typeof ITEM_LINES

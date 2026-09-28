@@ -36,7 +36,6 @@ function makeCtx(overrides: Partial<FilesChangeCtx> = {}) {
     const rejectSpy = vi.fn<RejectCb>()
     const ctx: FilesChangeCtx = {
         disabled: false,
-        isControlled: false,
         store,
         triggerUpload: vi.fn<FileListCb>(),
         onAccept: vi.fn<FileListCb>(),
@@ -151,15 +150,19 @@ describe("handleFilesChange", () => {
         expect(ctx.onFileAccept).toHaveBeenCalledTimes(2)
     })
 
-    it("受控模式下 onValueChange 收到 store 里的全集（含此前已有的文件）", () => {
+    it("受控上抛只有一个出口：一次选择通知一次，收到 store 里的全集（含此前已有的文件）", () => {
         const old = makeFile("old.png", "image/png")
-        const { ctx, store } = makeCtx({ isControlled: true, onValueChange: vi.fn<FileListCb>() })
+        const { ctx, store } = makeCtx()
+        const onValueChange = vi.fn<FileListCb>()
+        store.bindValueChange(onValueChange)
         store.dispatch({ type: "ADD_FILES", files: [old] })
+        onValueChange.mockClear() // 播种存量那次不算
         const next = makeFile("new.png", "image/png")
 
         handleFilesChange([next], ctx)
 
-        expect(ctx.onValueChange).toHaveBeenCalledWith([old, next])
+        expect(onValueChange).toHaveBeenCalledTimes(1)
+        expect(onValueChange).toHaveBeenCalledWith([old, next])
     })
 
     it("有 onUpload 才排上传：下一帧才真正开始，同步段里没发过", () => {

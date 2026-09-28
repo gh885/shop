@@ -61,6 +61,20 @@ interface StoreReducerCtx {
     onValueChange?: (files: File[]) => void
 }
 
+/** 一条文件刚进 store 的样子：新增与替换共用 */
+function idleEntry(file: File): FileState {
+    return { file, progress: 0, status: "idle" }
+}
+
+/**
+ * 改单条文件的状态。不在 map 里就不动——上传回调可能在文件被移除之后才回来，
+ * 那时补一行状态等于把用户已经删掉的文件塞回去。
+ */
+function patchFile(files: Map<File, FileState>, file: File, patch: Partial<FileState>) {
+    const current = files.get(file)
+    if (current) files.set(file, { ...current, ...patch })
+}
+
 export function storeReducer(
     prevState: StoreState,
     action: StoreAction,
@@ -68,88 +82,46 @@ export function storeReducer(
 ): StoreState {
     switch (action.type) {
         case "ADD_FILES": {
-            for (const file of action.files) {
-                files.set(file, {
-                    file,
-                    progress: 0,
-                    status: "idle",
-                })
-            }
-
+            for (const file of action.files) files.set(file, idleEntry(file))
             if (onValueChange) {
                 onValueChange([...files.values()].map((fileState) => fileState.file))
             }
-            return { ...prevState, files }
+            break
         }
 
         case "SET_FILES": {
-            const newFileSet = new Set(action.files)
-            for (const existingFile of files.keys()) {
-                if (!newFileSet.has(existingFile)) {
-                    files.delete(existingFile)
-                }
+            const incoming = new Set(action.files)
+            for (const existing of files.keys()) {
+                if (!incoming.has(existing)) files.delete(existing)
             }
-
             for (const file of action.files) {
-                const existingState = files.get(file)
-                if (!existingState) {
-                    files.set(file, {
-                        file,
-                        progress: 0,
-                        status: "idle",
-                    })
-                }
+                if (!files.has(file)) files.set(file, idleEntry(file))
             }
-            return { ...prevState, files }
+            break
         }
 
-        case "SET_PROGRESS": {
-            const fileState = files.get(action.file)
-            if (fileState) {
-                files.set(action.file, {
-                    ...fileState,
-                    progress: action.progress,
-                    status: "uploading",
-                })
-            }
-            return { ...prevState, files }
-        }
+        case "SET_PROGRESS":
+            patchFile(files, action.file, { progress: action.progress, status: "uploading" })
+            break
 
-        case "SET_SUCCESS": {
-            const fileState = files.get(action.file)
-            if (fileState) {
-                files.set(action.file, {
-                    ...fileState,
-                    progress: 100,
-                    status: "success",
-                })
-            }
-            return { ...prevState, files }
-        }
+        case "SET_SUCCESS":
+            patchFile(files, action.file, { progress: 100, status: "success" })
+            break
 
-        case "SET_ERROR": {
-            const fileState = files.get(action.file)
-            if (fileState) {
-                files.set(action.file, {
-                    ...fileState,
-                    error: action.error,
-                    status: "error",
-                })
-            }
-            return { ...prevState, files }
-        }
+        case "SET_ERROR":
+            patchFile(files, action.file, { error: action.error, status: "error" })
+            break
 
-        case "SET_DRAG_OVER": {
+        case "SET_DRAG_OVER":
             return { ...prevState, dragOver: action.dragOver }
-        }
 
-        case "SET_INVALID": {
+        case "SET_INVALID":
             return { ...prevState, invalid: action.invalid }
-        }
 
         default:
             return prevState
     }
+    return { ...prevState, files }
 }
 
 /**
@@ -191,24 +163,31 @@ export function createFileUploadStore(options: {
 }
 
 /**
- * 文件选择后的处理链：按 maxFiles / onFileValidate / accept / maxSize 逐文件校验，
- * 拒绝的走 onFileReject，通过的入 store（ADD_FILES）并按需触发上传。
- * 独立成模块级函数：验证逻辑可单测，也让 FileUpload 主组件只留装配。
- * ctx 是组件当下的一份 props 快照——链上每一步都不读 React。
+ * 回调契约：组件 props 与校验链的 ctx 共用一份声明，不各写一遍。
+ * `onValueChange` 只走 {@link Store.bindValueChange} 那条出口（reducer 里发），
+ * 校验链再发一次就是同一次选择通知两遍——所以它不进 {@link FilesChangeCtx}。
  */
-export interface FilesChangeCtx {
-    disabled: boolean
-    maxFiles?: number
-    maxSize?: number
-    acceptTypes?: string[]
-    isControlled: boolean
-    store: Store
+export interface FileUploadCallbacks {
     onValueChange?: (files: File[]) => void
     onAccept?: (files: File[]) => void
     onFileAccept?: (file: File) => void
     onFileReject?: (file: File, message: string) => void
     onFileValidate?: (file: File) => string | null | undefined
     onUpload?: FileUploadRequest
+}
+
+/**
+ * 文件选择后的处理链：按 maxFiles / onFileValidate / accept / maxSize 逐文件校验，
+ * 拒绝的走 onFileReject，通过的入 store（ADD_FILES）并按需触发上传。
+ * 独立成模块级函数：验证逻辑可单测，也让 FileUpload 主组件只留装配。
+ * ctx 是组件当下的一份 props 快照——链上每一步都不读 React。
+ */
+export interface FilesChangeCtx extends Omit<FileUploadCallbacks, "onValueChange"> {
+    disabled: boolean
+    maxFiles?: number
+    maxSize?: number
+    acceptTypes?: string[]
+    store: Store
     triggerUpload: (files: File[]) => void
 }
 
@@ -276,14 +255,9 @@ export function handleFilesChange(originalFiles: File[], ctx: FilesChangeCtx): v
     }
 }
 
-/** 通过校验的文件：入 store、上抛各回调，有 onUpload 时下一帧开始上传 */
+/** 通过校验的文件：入 store（受控上抛由 reducer 的 ADD_FILES 分支负责）、上抛各回调，有 onUpload 时下一帧开始上传 */
 function addAcceptedFiles(acceptedFiles: File[], ctx: FilesChangeCtx): void {
     ctx.store.dispatch({ type: "ADD_FILES", files: acceptedFiles })
-
-    if (ctx.isControlled && ctx.onValueChange) {
-        const currentFiles = [...ctx.store.getState().files.values()].map((f) => f.file)
-        ctx.onValueChange([...currentFiles])
-    }
 
     if (ctx.onAccept) {
         ctx.onAccept(acceptedFiles)

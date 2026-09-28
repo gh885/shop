@@ -11,7 +11,7 @@ export interface MaskedValueCellProps {
     onReveal: () => void
     /** 这一条正在索取中 */
     revealing?: boolean
-    /** 是谁的号码（店主名 / 买家名 / 成员名）：给按钮补可访问名 */
+    /** 是谁的号码（店主名 / 收件人名）：缺席时靠这一格显示的号码本身区分 */
     subject?: string
 }
 
@@ -30,6 +30,10 @@ export function MaskedValueCell({
     revealing = false,
     subject,
 }: MaskedValueCellProps) {
+    // 可访问名恒有，并且带得上「是哪一格」：一屏十个只叫「查看」的按钮按 tab 分不出来，
+    // 而每一次索取都在后端留一条取用记录（ACC-79 / ORD-62），认错行不是「多看一眼」
+    const revealLabel = `查看${subject ? `${subject}的` : ""}号码 ${value}`
+
     return (
         <span className="flex items-center gap-1.5">
             {/* 值的排版不开放给调用方（no-restyle）：字号/次要色由所在单元格包一层继承下来，
@@ -39,7 +43,7 @@ export function MaskedValueCell({
                 <Button
                     variant="link"
                     size="xs"
-                    aria-label={subject ? `查看${subject}的号码` : undefined}
+                    aria-label={revealLabel}
                     disabled={revealing}
                     onClick={onReveal}
                 >

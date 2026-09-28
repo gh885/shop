@@ -75,7 +75,7 @@ function FieldLabel({
     <Label
       data-slot="field-label"
       className={cn(
-        "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border has-[>[data-slot=field]]:not-has-[:disabled,[data-disabled]]:hover:bg-muted/50 has-[>[data-slot=field]]:has-[:focus-visible]:border-ring has-[>[data-slot=field]]:has-[:focus-visible]:ring-3 has-[>[data-slot=field]]:has-[:focus-visible]:ring-ring/50 *:data-[slot=field]:p-2.5 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10",
+        "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border has-[>[data-slot=field]]:not-has-[:disabled,[data-disabled]]:hover:bg-muted/50 has-[>[data-slot=field]]:has-[:focus-visible]:border-ring has-[>[data-slot=field]]:has-[:focus-visible]:ring-3 has-[>[data-slot=field]]:has-[:focus-visible]:ring-ring/50 *:data-[slot=field]:p-2.5",
         "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col",
         required && "required-mark",
         className
@@ -99,15 +99,15 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
- * 字段级次说明。字号定在 text-xs 而非 shadcn 默认的 text-sm：这一行灰字在本设计系统里
- * 只有一个密度（各表单的 hint/说明都抄的 text-xs），密度归原语持有，调用点不各自盖。
+ * 字段级次说明。这一行灰字在本设计系统里只有一个密度（DESIGN.md §3 定在 text-2xs=13px，
+ * CJK 下 12px 的辅助文字已经开始糊），密度归原语持有，调用点不各自盖。
  */
 function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
       data-slot="field-description"
       className={cn(
-        "text-left text-xs leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance",
+        "text-left text-2xs leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance",
         "last:mt-0 nth-last-2:-mt-1",
         "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
         className
@@ -167,7 +167,7 @@ function FieldError({
     <div
       role="alert"
       data-slot="field-error"
-      className={cn("text-xs font-normal text-destructive", className)}
+      className={cn("text-2xs font-normal text-destructive", className)}
       {...props}
     >
       {content}

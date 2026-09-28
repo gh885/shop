@@ -107,7 +107,7 @@ headless-tree 的引擎（`@headless-tree/core` / `react`）因此也是 admin �
 两条与编译/样式相关的既有事实：
 
 - `tree.tsx` **没有走本项目的 oxfmt 格式**（上游 2 空格缩进），刻意保持原样：跑 `pnpm format:web`
-  会把它与 `badge.tsx` / `icon-tile.tsx` / `cascader.tsx` 一起重排，那类漂移要单独一个 commit，
+  会把它与 `badge.tsx` / `cascader.tsx` 一起重排，那类漂移要单独一个 commit，
   别混进业务改动。
 - `tree.tsx` 的 `import { cn } from "cn"` 不是笔误：`cn@^0.2.6` 是 ui-web 的既有依赖，
   本目录 18 个 vendored 文件都这么引；项目自己的文件才用 `src/lib/utils`。

@@ -60,7 +60,7 @@ export function PhoneField({
             className={className}
         >
             <InputGroupAddon align="inline-start">
-                <InputGroupText className="px-3.5 tabular-nums">+86</InputGroupText>
+                <InputGroupText className="tabular-nums">+86</InputGroupText>
             </InputGroupAddon>
             <InputGroupInput
                 id={id}

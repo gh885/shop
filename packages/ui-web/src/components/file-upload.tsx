@@ -11,7 +11,7 @@ import {
     createFileUploadStore,
     handleFilesChange,
     type FileState,
-    type FileUploadRequest,
+    type FileUploadCallbacks,
     type Store,
     type StoreState,
 } from "./file-upload-store"
@@ -71,15 +71,10 @@ function useFileUploadContext(consumerName: string) {
     return context
 }
 
-interface FileUploadProps extends Omit<React.ComponentProps<"div">, "defaultValue" | "onChange"> {
+interface FileUploadProps
+    extends FileUploadCallbacks, Omit<React.ComponentProps<"div">, "defaultValue" | "onChange"> {
     value?: File[]
     defaultValue?: File[]
-    onValueChange?: (files: File[]) => void
-    onAccept?: (files: File[]) => void
-    onFileAccept?: (file: File) => void
-    onFileReject?: (file: File, message: string) => void
-    onFileValidate?: (file: File) => string | null | undefined
-    onUpload?: FileUploadRequest
     accept?: string
     maxFiles?: number
     maxSize?: number
@@ -223,9 +218,7 @@ function FileUpload(props: FileUploadProps) {
                 maxFiles,
                 maxSize,
                 acceptTypes,
-                isControlled,
                 store,
-                onValueChange: propsRef.current.onValueChange,
                 onAccept: propsRef.current.onAccept,
                 onFileAccept: propsRef.current.onFileAccept,
                 onFileReject: propsRef.current.onFileReject,
@@ -234,7 +227,7 @@ function FileUpload(props: FileUploadProps) {
                 triggerUpload: onFilesUpload,
             })
         },
-        [disabled, maxFiles, maxSize, acceptTypes, isControlled, store, propsRef, onFilesUpload],
+        [disabled, maxFiles, maxSize, acceptTypes, store, propsRef, onFilesUpload],
     )
 
     const onInputChange = React.useCallback(
@@ -468,8 +461,9 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
 
     return (
         <DropzonePrimitive
-            role="region"
+            role="button"
             id={context.dropzoneId}
+            aria-labelledby={context.labelId}
             aria-controls={context.inputId}
             aria-disabled={context.disabled}
             aria-invalid={invalid}
@@ -481,7 +475,7 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
             tabIndex={context.disabled ? undefined : 0}
             {...dropzoneProps}
             className={cn(
-                "relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors outline-none select-none hover:bg-accent/30 focus-visible:border-ring/50 data-disabled:pointer-events-none data-dragging:border-primary/30 data-dragging:bg-accent/30 data-invalid:border-destructive data-invalid:ring-destructive/20",
+                "relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors outline-none select-none hover:bg-accent/30 focus-visible:border-ring/50 focus-visible:ring-3 focus-visible:ring-ring/50 data-disabled:pointer-events-none data-dragging:border-primary/30 data-dragging:bg-accent/30 data-invalid:border-destructive data-invalid:ring-destructive/20",
                 className,
             )}
             onClick={onClick}

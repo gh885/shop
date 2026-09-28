@@ -36,7 +36,11 @@
     --neutral-200: hsl(30 5% 90%);
     --neutral-300: hsl(30 4% 83%);
     --neutral-400: hsl(30 3% 64%);
-    --neutral-500: hsl(30 3% 45%);
+    /* 控件边界专用的一档：1.4.11 要求「识别控件所需的视觉信息」≥3:1。
+       400（64%）对白只有 2.4:1、500（41%）是 4.99:1 又太重，52% 落在 3.68:1（白）/3.37:1（canvas）——
+       与 workbench/theme.css 的 --color-input 同一明度，两端控件边界一样重 */
+    --neutral-450: hsl(30 3% 52%);
+    --neutral-500: hsl(30 3% 41%);
     --neutral-600: hsl(30 3% 32%);
     --neutral-700: hsl(30 4% 21%);
     --neutral-800: hsl(30 5% 15%);
@@ -89,35 +93,21 @@
     --red-700: hsl(0 70% 45%);
     --red-800: hsl(0 62.8% 30.6%);
     --red-900: hsl(0 50% 14%);
-    --destructive-foreground: var(--color-red-800);
-    --success: var(--color-emerald-500);
-    --success-foreground: var(--color-emerald-900);
-    --info: var(--color-violet-500);
-    --info-foreground: var(--color-violet-900);
-    --warning: var(--color-yellow-500);
-    --warning-foreground: var(--color-yellow-900);
-    --invert: var(--color-zinc-900);
-    --invert-foreground: var(--color-zinc-50);
-    /* focus：reui Badge 的 focus 系变体（focus / focus-light / focus-outline）引用的语义色。
-       本项目原先没声明，后果是 bg-focus / text-focus-foreground 静默不生成——类名在 DOM 里、
-       样式为空，不报错（与 AGENTS.md 记的 Tailink 跨包坑同形）。这里补上而不是改 badge.tsx：
-       改 theme 属于上层，vendored 文件保持可重装。
-       色值取平台 indigo 阶梯（与 info 蓝 hue 217 拉开距离）。要换中性色就把两处都改
-       var(--color-indigo-*) → var(--color-zinc-*)。*/
-    --focus: var(--color-indigo-500);
-    --focus-foreground: var(--color-indigo-900);
 }
 
 /* ---------- Layer 2: Semantic（仅浅色模式） ---------- */
 
 @theme {
     /* 表面：canvas 是页面"地面"（浅暖灰），background/card 是浮在灰地上的白卡——
-       电商层次靠底色差而非描边（border 只留功能分隔） */
-    --color-canvas: var(--neutral-0);
+       电商层次靠底色差而非描边（border 只留功能分隔）。
+       canvas 必须与 card 不同值：写死成 neutral-0 时「地面」和卡面是同一个白，
+       卡片只剩 ring-foreground/10（≈1.1:1）在撑分界，这条注释说的层次也就不成立了。
+       取值与 workbench/theme.css 的 canvas 同明度（96%），sunken 再沉一档。 */
+    --color-canvas: var(--neutral-100);
     --color-background: var(--neutral-0);
     --color-card: var(--neutral-0);
     --color-popover: var(--neutral-0);
-    --color-sunken: var(--neutral-100);
+    --color-sunken: var(--neutral-200);
 
     /* 内容（文字阶梯：foreground 主文字 → muted-foreground 次要 → disabled-foreground
        禁用。次要文字统一走 muted-foreground；原 foreground-subtle / foreground-disabled
@@ -125,7 +115,9 @@
     --color-foreground: var(--neutral-950);
     --color-card-foreground: var(--neutral-950);
     --color-popover-foreground: var(--neutral-950);
-    --color-link: var(--orange-600);
+    /* link 取 700 而非 600：内联链接是正文里的文字，600 在白底只有 4.24:1，卡在 4.5 线下。
+       700 = 5.94:1，与价格文字（primary-subtle-foreground）同一档，橙系的"文字"全站一个墨色。 */
+    --color-link: var(--orange-700);
 
     /* 主操作 = 品牌转化色（淘宝橙 #FF5017），与 brand 合并后的唯一主/CTA 色，无独立 brand。
        实色按钮底用 orange-500（亮橙，与淘宝一致，白字 3.28:1）。
@@ -151,8 +143,14 @@
     /* 次级/弱化表面（secondary / muted / accent 当前值相同，
        保留三个语义名是为将来视觉分化预留，勿合并） */
     --color-secondary: var(--neutral-100);
+    /* 次级按钮的 hover 档。原先写的是 hover:bg-[color-mix(... var(--secondary),var(--foreground)_5%)]，
+       那两个不带 --color- 前缀的变量全仓没人声明，整条 hover 静默空转（类名在、样式为空）。
+       secondary/muted/accent 三个表面同值，所以 hover 不能靠它们互相区分，必须往上走一档。 */
+    --color-secondary-hover: var(--neutral-200);
     --color-secondary-foreground: var(--neutral-900);
     --color-muted: var(--neutral-100);
+    /* 41% 而非 45%：次要文字要落在 muted/accent/sunken/secondary 这四个 neutral-100 表面上，
+       45% 在 n100 上只有 4.32:1，卡在 4.5 线下。41% = 白底 5.46 / n100 5.00。 */
     --color-muted-foreground: var(--neutral-500);
     --color-accent: var(--neutral-100);
     --color-accent-foreground: var(--neutral-900);
@@ -165,27 +163,46 @@
     /* 反馈（每色三件套：实色 base+foreground / 弱底 subtle+subtle-foreground）。
        弱底是 shop 的色阶对写法（浅底深字）；shadcn 新版用 bg-x/10 + text-x 透明度
        表达同角色，二选一保持一致即可。
-       destructive 跟随 shadcn 语义（文字/描边/弱底色，非实色填充底）。 */
-    --color-destructive: var(--red-500);
+       destructive 跟随 shadcn 语义（文字/描边/弱底色，非实色填充底）。
+       base 一律取 700 档：白字在其上 ≥4.5:1，且同一档直接充当"文字/描边"角色
+       （text-destructive 这类用法很多）。500 档白字只有 2.6–4.3:1，做不了这两件事。
+       subtle-foreground 与 base 同值不是冗余：前者是"浅底深字"里的字，后者是"实色底"的底，
+       角色不同、色阶同源。 */
+    --color-destructive: var(--red-700);
     --color-destructive-foreground: var(--neutral-50);
     --color-destructive-subtle: var(--red-100);
     --color-destructive-subtle-foreground: var(--red-700);
-    --color-success: var(--green-500);
+    --color-success: var(--green-700);
     --color-success-foreground: var(--neutral-0);
     --color-success-subtle: var(--green-100);
     --color-success-subtle-foreground: var(--green-700);
-    --color-warning: var(--amber-500);
-    --color-warning-foreground: var(--neutral-900);
+    --color-warning: var(--amber-700);
+    --color-warning-foreground: var(--neutral-0);
     --color-warning-subtle: var(--amber-100);
     --color-warning-subtle-foreground: var(--amber-700);
-    --color-info: var(--blue-500);
+    --color-info: var(--blue-700);
     --color-info-foreground: var(--neutral-0);
     --color-info-subtle: var(--blue-100);
     --color-info-subtle-foreground: var(--blue-700);
 
-    /* 结构与焦点 */
+    /* invert / focus：语义层直接引本文件 primitive，不再走 :root 别名（那条链曾把
+       success/info/warning 指到 Tailwind 内置色板，与上面色阶对同名并存）。
+       focus 是 reui Badge 的 focus 系变体（focus / focus-light / focus-outline）引用的语义色。
+       本项目原先没声明，后果是 bg-focus / text-focus-foreground 静默不生成——类名在 DOM 里、
+       样式为空，不报错（与 AGENTS.md 记的 Tailwind 跨包坑同形）。这里补上而不是改 badge.tsx：
+       改 theme 属于上层，vendored 文件保持可重装。
+       色值取平台 indigo 阶梯（与 info 蓝 hue 217 拉开距离）。 */
+    --color-invert: var(--neutral-900);
+    --color-invert-foreground: var(--neutral-50);
+    --color-focus: var(--indigo-600);
+    --color-focus-foreground: var(--neutral-0);
+
+    /* 结构与焦点。两个描边是两个角色，不是一个值的两次引用：
+       border = 内容之间的分隔线（卡片/表格/分割线），不承担"这里有个控件"的识别，留 200 的静默档；
+       input  = 控件边界（input/textarea/select/checkbox/toggle…），它是识别控件的唯一视觉信息，
+                WCAG 1.4.11 要求 ≥3:1，200 对白只有 1.25:1。 */
     --color-border: var(--neutral-200);
-    --color-input: var(--neutral-200);
+    --color-input: var(--neutral-450);
     --color-ring: var(--neutral-950);
 
     /* Sidebar（shadcn sidebar 组件族消费；默认与全局语义一致，app 可按需覆盖） */
@@ -220,7 +237,8 @@
        收成语义 token 消费（min-h-(--…) / max-h-(--…)），别就地写任意值 */
     /* 页面级居中块的最小高度：把卡片推到视口视觉中心 */
     --min-height-page-center: 70vh;
-    /* 弹窗内主体区（可滚动列表 / 其骨架）的高度上限 */
+    /* 弹窗内主体区（可滚动列表 / 其骨架）的高度上限。消费写法是 max-h-dialog-body
+       （Tailwind v4 把 --max-height-* 认作 max-h 的命名空间）——按 var() 写法去 grep 会数成 0 消费方。 */
     --max-height-dialog-body: 50vh;
 
     /* 圆角阶梯（电商货架风：偏小、分层明确——控件 md=6px，卡片 lg=9px / xl=12px，
@@ -315,7 +333,10 @@
 
 /* ---------- 无障碍：尊重系统减弱动态偏好 ----------
    tw-animate-css 不自带 motion-reduce 降级，这里统一兜底：
-   覆盖组件库动画与项目自定义 keyframes（route-progress、shake 等）。 */
+   覆盖组件库动画与项目自定义 keyframes（route-progress、shake 等）。
+   scroll-behavior 也在这条兜底里——apps/web 在 html 上开了全站平滑滚动，
+   它既不是 animation 也不是 transition，上面三条逮不住它。
+   （JS 侧的 window.scrollTo({behavior}) 由调用点各自用 matchMedia 门控，CSS 管不到。） */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -323,33 +344,6 @@
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
-}
-
-.dark {
-    --destructive-foreground: var(--color-red-600);
-    --success: var(--color-emerald-500);
-    --success-foreground: var(--color-emerald-600);
-    --info: var(--color-violet-500);
-    --info-foreground: var(--color-violet-600);
-    --warning: var(--color-yellow-500);
-    --warning-foreground: var(--color-yellow-600);
-    --invert: var(--color-zinc-700);
-    --invert-foreground: var(--color-zinc-50);
-    --focus: var(--color-indigo-500);
-    --focus-foreground: var(--color-indigo-600);
-}
-
-@theme inline {
-    --color-destructive-foreground: var(--destructive-foreground);
-    --color-success: var(--success);
-    --color-success-foreground: var(--success-foreground);
-    --color-info: var(--info);
-    --color-info-foreground: var(--info-foreground);
-    --color-warning: var(--warning);
-    --color-warning-foreground: var(--warning-foreground);
-    --color-invert: var(--invert);
-    --color-invert-foreground: var(--invert-foreground);
-    --color-focus: var(--focus);
-    --color-focus-foreground: var(--focus-foreground);
 }
