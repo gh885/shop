@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.common.Quantities;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -71,7 +72,8 @@ public interface CartItemMapper extends BaseMapper<CartItem> {
     default int updateSelected(UUID userId, Boolean selected, Collection<UUID> itemIds) {
         LambdaUpdateWrapper<CartItem> update = new LambdaUpdateWrapper<CartItem>()
                 .eq(CartItem::getUserId, userId)
-                .set(CartItem::getSelected, selected);
+                .set(CartItem::getSelected, selected)
+                .set(CartItem::getUpdatedAt, OffsetDateTime.now());
         if (itemIds != null && !itemIds.isEmpty()) {
             update.in(CartItem::getId, itemIds);
         }

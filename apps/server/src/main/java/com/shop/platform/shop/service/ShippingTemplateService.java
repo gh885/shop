@@ -15,6 +15,7 @@ import com.shop.platform.shop.mapper.ShippingRuleRegion;
 import com.shop.platform.shop.mapper.ShippingRuleRegionMapper;
 import com.shop.platform.shop.mapper.ShippingTemplate;
 import com.shop.platform.shop.mapper.ShippingTemplateMapper;
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -144,7 +145,13 @@ public class ShippingTemplateService {
             // 并发首次保存由 uk_shipping_templates_shop 兜底（撞键即整体回滚，卖家重试）
             templateMapper.insert(template);
         } else {
-            templateMapper.updateById(template);
+            templateMapper.overwriteFreeShippingRules(
+                    template.getId(),
+                    free,
+                    template.getFreeOverQuantity(),
+                    template.getFreeOverAmount(),
+                    template.getCurrency(),
+                    OffsetDateTime.now());
         }
         return template;
     }

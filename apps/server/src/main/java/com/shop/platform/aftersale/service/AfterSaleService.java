@@ -244,11 +244,7 @@ public class AfterSaleService {
     @Transactional
     public void agree(UUID shopId, UUID orderId) {
         Ticket ticket = requireSellerOpen(shopId, orderId, TicketAction.REFUND);
-        if (ticket.getType() == TicketType.RETURN_REFUND) {
-            transition(ticket, TicketAction.AGREE_RETURN, null);
-            return;
-        }
-        refund(ticket, TicketAction.REFUND);
+        dispatchAgree(ticket, TicketAction.REFUND, TicketAction.AGREE_RETURN, null);
     }
 
     /**
@@ -328,11 +324,7 @@ public class AfterSaleService {
         if (ticket == null || ticket.getStatus() != TicketStatus.APPLYING) {
             return false;
         }
-        if (ticket.getType() == TicketType.RETURN_REFUND) {
-            transition(ticket, TicketAction.AUTO_AGREE_RETURN, "卖家超时未处理，系统自动同意");
-            return true;
-        }
-        refund(ticket, TicketAction.AUTO_REFUND, "卖家超时未处理，系统自动同意");
+        dispatchAgree(ticket, TicketAction.AUTO_REFUND, TicketAction.AUTO_AGREE_RETURN, "卖家超时未处理，系统自动同意");
         return true;
     }
 
@@ -441,10 +433,20 @@ public class AfterSaleService {
     }
 
     // 私有
-    /** 退款落点（仅退款同意 / 退货收货 / 超时自动同意共用）：转 REFUNDED 回填时刻，再通知 payment 同事务落退款单据 */
-    private void refund(Ticket ticket, TicketAction action) {
-        refund(ticket, action, null);
+    /**
+     * 同意路径的分派（人工与超时共用一条落点，AFS-18）：仅退款一步退、退货退款只进 RETURNING 不退款。
+     *
+     * <p>两个动作常量作参数：入口不同，落的时间线与流水措辞不同，但「按 type 分岔」这件事只该写一遍。
+     */
+    private void dispatchAgree(Ticket ticket, TicketAction refundAction, TicketAction agreeReturnAction, String note) {
+        if (ticket.getType() == TicketType.RETURN_REFUND) {
+            transition(ticket, agreeReturnAction, note);
+            return;
+        }
+        refund(ticket, refundAction, note);
     }
+
+    /** 退款落点（仅退款同意 / 退货收货 / 超时自动同意共用）：转 REFUNDED 回填时刻，再通知 payment 同事务落退款单据 */
 
     /** note 给时间线补充动作上下文（超时自动同意要说明是谁做的决定）；人工路径传 null */
     private void refund(Ticket ticket, TicketAction action, String note) {

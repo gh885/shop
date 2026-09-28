@@ -169,6 +169,7 @@ public interface TicketMapper extends BaseMapper<Ticket> {
         return new LambdaUpdateWrapper<Ticket>()
                 .eq(Ticket::getId, ticketId)
                 .eq(Ticket::getStatus, from)
-                .set(Ticket::getStatus, to);
+                .set(Ticket::getStatus, to)
+                .set(Ticket::getUpdatedAt, OffsetDateTime.now());
     }
 }

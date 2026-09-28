@@ -164,7 +164,8 @@ public interface ProductMapper extends BaseMapper<Product> {
                 new LambdaUpdateWrapper<Product>()
                         .eq(Product::getId, productId)
                         .eq(Product::getStatus, from)
-                        .set(Product::getStatus, to));
+                        .set(Product::getStatus, to)
+                        .set(Product::getUpdatedAt, OffsetDateTime.now()));
     }
 
     /** 店铺商品筛选条件：状态/名称，分页列表与「按库存排序」取全量集共用 */

@@ -26,7 +26,8 @@ public interface ReviewMapper extends BaseMapper<Review> {
                         .eq(Review::getId, reviewId)
                         .isNull(Review::getAppendedAt)
                         .set(Review::getAppendText, text)
-                        .set(Review::getAppendedAt, at));
+                        .set(Review::getAppendedAt, at)
+                        .set(Review::getUpdatedAt, at));
     }
 
     /** 卖家回复：{@code WHERE replied_at IS NULL} 是并发闸门（只允许回复一次，REV-10） */
@@ -38,7 +39,8 @@ public interface ReviewMapper extends BaseMapper<Review> {
                         .isNull(Review::getRepliedAt)
                         .set(Review::getReply, text)
                         .set(Review::getReplyBy, replyBy)
-                        .set(Review::getRepliedAt, at));
+                        .set(Review::getRepliedAt, at)
+                        .set(Review::getUpdatedAt, at));
     }
 
     /** 店铺工作台：本店评价按评价时间倒序分页 */

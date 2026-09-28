@@ -37,7 +37,8 @@ public interface ShipmentIssueMapper extends BaseMapper<ShipmentIssue> {
                 .eq(ShipmentIssue::getId, issueId)
                 .eq(ShipmentIssue::getStatus, ShipmentIssueStatus.OPEN)
                 .set(ShipmentIssue::getStatus, ShipmentIssueStatus.RESOLVED)
-                .set(ShipmentIssue::getResolvedAt, resolvedAt);
+                .set(ShipmentIssue::getResolvedAt, resolvedAt)
+                .set(ShipmentIssue::getUpdatedAt, resolvedAt);
         if (detail != null) {
             update.set(ShipmentIssue::getDetail, detail);
         }
@@ -53,6 +54,7 @@ public interface ShipmentIssueMapper extends BaseMapper<ShipmentIssue> {
                         .eq(ShipmentIssue::getStatus, ShipmentIssueStatus.OPEN)
                         .set(ShipmentIssue::getStatus, ShipmentIssueStatus.RESOLVED)
                         .set(ShipmentIssue::getDetail, detail)
-                        .set(ShipmentIssue::getResolvedAt, resolvedAt));
+                        .set(ShipmentIssue::getResolvedAt, resolvedAt)
+                        .set(ShipmentIssue::getUpdatedAt, resolvedAt));
     }
 }

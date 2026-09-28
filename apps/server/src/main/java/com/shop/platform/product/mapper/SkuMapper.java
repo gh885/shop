@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.product.model.SkuStatus;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -81,6 +82,7 @@ public interface SkuMapper extends BaseMapper<Sku> {
                         .set(skuCode != null, Sku::getSkuCode, skuCode)
                         .set(status != null, Sku::getStatus, status)
                         .set(Sku::getPrice, priceFen)
-                        .set(Sku::getCurrency, currency));
+                        .set(Sku::getCurrency, currency)
+                        .set(Sku::getUpdatedAt, OffsetDateTime.now()));
     }
 }

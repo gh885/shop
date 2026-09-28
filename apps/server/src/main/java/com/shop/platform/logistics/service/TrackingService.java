@@ -81,15 +81,16 @@ public class TrackingService {
         // 4. 单调推进：抢不到（终态更靠后 / 该节点比当前状态旧）就是乱序或迟到，只落库不改状态
         int advanced = shipmentMapper.advanceStatus(shipmentId, target, target == DELIVERED ? req.occurredAt() : null);
 
-        // 5. 终态的两件收尾（同事务）：签收回写订单 + 结掉未结异常单
-        if (advanced == 1 && target == DELIVERED) {
-            orderCommand.markDelivered(shipment.getOrderId(), req.occurredAt());
-        }
-        if (advanced == 1 && target == RETURNED) {
-            orderCommand.markReturned(shipment.getOrderId(), req.occurredAt());
-        }
-        if (advanced == 1 && target.terminal()) {
-            shipmentIssueService.resolveOnTerminal(shipmentId, "包裹已到终态（" + target + "），异常自动结单");
+        // 5. 终态的收尾（同事务）：回写订单 + 结掉未结异常单
+        if (advanced == 1) {
+            if (target == DELIVERED) {
+                orderCommand.markDelivered(shipment.getOrderId(), req.occurredAt());
+            } else if (target == RETURNED) {
+                orderCommand.markReturned(shipment.getOrderId(), req.occurredAt());
+            }
+            if (target.terminal()) {
+                shipmentIssueService.resolveOnTerminal(shipmentId, "包裹已到终态（" + target + "），异常自动结单");
+            }
         }
 
         log.info(

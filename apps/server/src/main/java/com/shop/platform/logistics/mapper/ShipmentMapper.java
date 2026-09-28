@@ -105,7 +105,8 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
         LambdaUpdateWrapper<Shipment> update = new LambdaUpdateWrapper<Shipment>()
                 .eq(Shipment::getId, shipmentId)
                 .in(Shipment::getStatus, ShipmentStatus.sourcesOf(target))
-                .set(Shipment::getStatus, target);
+                .set(Shipment::getStatus, target)
+                .set(Shipment::getUpdatedAt, OffsetDateTime.now());
         if (deliveredAt != null) {
             update.set(Shipment::getDeliveredAt, deliveredAt);
         }
