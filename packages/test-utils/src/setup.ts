@@ -1,6 +1,6 @@
 // oxlint-disable-next-line import/no-unassigned-import -- jest-dom 匹配器注册副作用
 import "@testing-library/jest-dom/vitest"
-import { cleanup } from "@testing-library/react"
+import { cleanup, configure } from "@testing-library/react"
 import { afterAll, afterEach, beforeAll, vi } from "vite-plus/test"
 
 import { server } from "./msw-server"
@@ -59,6 +59,13 @@ export function installDomStubs() {
  * 各 app 的 vitest setupFiles 里调用一次（jsdom 环境的 suite）。
  */
 export function setupTests() {
+    /**
+     * findBy/waitFor 默认只等 1000ms，而全量跑是 117 个文件各起一个 worker 抢 CPU：
+     * 满载时「粘贴 → 区划库反查 → 地区路径回填」这条链跑不完 1s，于是
+     * AddressFormDialog 一类用例只在并行时红、单跑必绿（实测）。
+     * waitFor 命中即返回，所以放大预算只拖慢真失败，不拖慢通过的用例。
+     */
+    configure({ asyncUtilTimeout: 3_000 })
     beforeAll(() => {
         installDomStubs()
         server.listen({ onUnhandledRequest: "error" })
