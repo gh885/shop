@@ -2,12 +2,13 @@ import { ADMIN_EMPLOYEE_NO, ADMIN_PASSWORD, API_URL, DEV_CAPTCHA_CODE, DEV_SMS_C
 
 /** 造数调用的失败：带上状态码与响应体片段，直接进 trace 与 CI 日志 */
 export class ApiError extends Error {
-    constructor(
-        readonly status: number,
-        readonly detail: string,
-        message: string,
-    ) {
+    readonly status: number
+    readonly detail: string
+
+    constructor(status: number, detail: string, message: string) {
         super(message)
+        this.status = status
+        this.detail = detail
         this.name = "ApiError"
     }
 }
@@ -246,9 +247,9 @@ export async function createPublishedProduct(
         productId,
         name: field(created, "name", "POST /seller/products"),
         skuId: field(sku, "id", "sku"),
-        skuName: typeof sku.name === "string" ? sku.name : "",
+        skuName: typeof sku?.name === "string" ? sku.name : "",
         price,
-        attributes: asList(sku.attributes ?? [], "sku.attributes").map((attr) => ({
+        attributes: asList(sku?.attributes ?? [], "sku.attributes").map((attr) => ({
             name: field(attr, "name", "sku attr"),
             value: field(attr, "value", "sku attr"),
         })),

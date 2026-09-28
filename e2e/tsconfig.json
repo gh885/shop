@@ -1,0 +1,20 @@
+{
+    // 只为「类型从哪来」而存在：e2e 不是 pnpm workspace 包，`pnpm typecheck` 与 `vp lint .` 都不覆盖它，
+    // 但 lefthook 的 pre-commit 按**暂存文件**逐个跑 `vp lint --type-aware`。没有这份 tsconfig，
+    // e2e/*.ts 就落进一个没有 @types/node 的推断工程，`process` 15 处全报 TS2591——提交被钩子拦死。
+    // 判据同 packages/config/tsconfig.node.json：无 DOM lib、node 侧脚本。extends 走相对路径而不是
+    // @shop/config/…：apps/* 靠包里的 node_modules 软链解析包名，e2e 不是 workspace 包、没有那份软链。
+    "extends": "../packages/config/tsconfig.base.json",
+    "compilerOptions": {
+        "lib": ["ES2023"],
+        // tsgolint 只在 tsconfig 同级的 node_modules/@types 找自动类型，不向祖先目录回溯
+        // （apps/* 各自有 @types/node 才没事）。e2e 不是 workspace 包、没有那份软链，
+        // 所以显式指到仓库根 —— @types/node 是根 package.json 的 devDep，和 @playwright/test 同一入口。
+        "typeRoots": ["../node_modules/@types"],
+        "types": ["node"],
+        // fixtures/env.ts 引 ../../scripts/dotenv.mjs（接 apps/server/.env 的那份接法）：
+        // 不开 allowJs 就是 TS7016「找不到声明文件」，而给一个 40 行的 node 脚本补 .d.ts 是本末倒置
+        "allowJs": true
+    },
+    "include": ["."]
+}

@@ -57,10 +57,11 @@ export function shipmentIdByTrackingNo(trackingNo: string): string {
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter((line) => UUID.test(line))
-    if (ids.length !== 1) {
+    const [packageId] = ids
+    if (ids.length !== 1 || !packageId) {
         throw new Error(
             `运单号 ${trackingNo} 反查到 ${ids.length} 个包裹，期望 1 个（原始输出：${JSON.stringify(out)}）`,
         )
     }
-    return ids[0]
+    return packageId
 }
