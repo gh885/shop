@@ -37,7 +37,7 @@ export function RouteErrorFallback({ error, reset, secondaryAction }: RouteError
                 <CircleAlert className="size-6 text-destructive" />
             </div>
             <p className="text-sm font-medium text-destructive">出错了</p>
-            <h1 className="text-xl font-bold tracking-tight">页面暂时无法加载</h1>
+            <h1 className="text-xl font-bold">页面暂时无法加载</h1>
             <p className="text-muted-foreground">{message}</p>
             <div className="mt-2 flex gap-2">
                 <Button

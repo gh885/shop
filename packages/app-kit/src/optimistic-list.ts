@@ -11,7 +11,7 @@ import type { MutationMeta } from "./mutation-meta"
  * 3. `onSettled`：失效该列表，**最终以服务端为准**（乐观值只是过渡，可能被后端改写）。
  *
  * 这三步的顺序与快照的传递方式是「一错就静默坏」的地方（表现是「偶尔看到旧数据」，不报错、
- * 不白屏），所以固定在一次实现里，而不是让 11 个调用点各抄一遍。
+ * 不白屏），所以固定在一次实现里，而不是让每个调用点各抄一遍。
  *
  * **形态刻意对齐官方 `queryOptions` / `mutationOptions`：纯函数返回 options 对象，hook 交给库。**
  * 调用点因此长这样，认得的就是官方 API：
@@ -63,7 +63,9 @@ export function optimisticListMutationOptions<TData, TVars>({
             return { prev }
         },
         onError: (_error, _vars, ctx, { client }) => {
-            client.setQueryData(queryKey, ctx?.prev)
+            // 只回滚「确有快照」的情况：发起时缓存还没数据，写回 undefined 等于把列表清空
+            if (ctx?.prev === undefined) return
+            client.setQueryData(queryKey, ctx.prev)
         },
         onSettled: (_data, _error, _vars, _ctx, { client }) => {
             void client.invalidateQueries({ queryKey })

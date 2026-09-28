@@ -2,7 +2,7 @@ import { Suspense, type ReactNode } from "react"
 import { QueryErrorResetBoundary } from "@tanstack/react-query"
 import { ErrorBoundary } from "react-error-boundary"
 
-import { ApiErrorSchema } from "@shop/common"
+import { apiErrorDetail } from "@shop/common"
 import { StateError } from "@shop/ui-web"
 
 /**
@@ -51,12 +51,11 @@ function renderFallback(
     reset: () => void,
 ): ReactNode {
     if (typeof fallback === "string") {
-        // 只有能解析成 ApiError 时才用接口 detail；否则（网络层异常、契约校验等）toApiError 给的是
-        // 通用兜底文案，不如站点自己给的字符串贴合这一块（别把「推荐加载失败」写成「请求失败」）
-        const parsed = ApiErrorSchema.safeParse(error)
+        // 判据收在 common 的 apiErrorDetail（一处口径）：后端没说话时，不拿通用兜底
+        // 顶掉站点这句（别把「推荐加载失败」写成「请求失败」）
         return (
             <StateError
-                message={parsed.success ? parsed.data.detail : fallback}
+                message={apiErrorDetail(error, fallback)}
                 onRetry={reset}
             />
         )

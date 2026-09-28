@@ -51,5 +51,18 @@ export function useCaptcha(getCaptcha: () => Promise<{ captchaId: string; image:
         void refresh()
     }, [refresh])
 
-    return { captchaId, image, loading, refresh, reset }
+    /**
+     * 清掉当前图与 id，但**不**去拉新的。
+     *
+     * 与 reset 的分工：reset 是「旧的已消费，立刻换一张能用的」；clear 是「接下来一段时间内
+     * 没有能用的图」（发码成功后倒计时那 60 秒），这时去拉新图只会得到一张 60 秒内点不动、
+     * 等能点时又已过期的图——白白消耗一次匿名接口，还让用户对着废图输验证码。
+     * 清空后控件回落到「点击获取」态，等倒计时结束再 refresh 即可。
+     */
+    const clear = useCallback(() => {
+        setCaptchaId("")
+        setImage("")
+    }, [])
+
+    return { captchaId, image, loading, refresh, reset, clear }
 }

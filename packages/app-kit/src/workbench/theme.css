@@ -32,34 +32,43 @@
     --color-foreground: hsl(228 18% 14%);
     --color-card-foreground: hsl(228 18% 14%);
     --color-popover-foreground: hsl(228 18% 14%);
-    --color-muted-foreground: hsl(228 8% 46%);
-    --color-link: hsl(219 90% 58%);
+    /* 46% → 44%：次要文字要落在 canvas / muted / accent / sunken 这几个冷灰表面上，
+       46% 在 muted（25% 94%）上只有 4.25:1，卡在线下。 */
+    --color-muted-foreground: hsl(228 8% 44%);
+    /* 58% → 50%：内联链接是正文文字，58% 白底只有 4.12:1 */
+    --color-link: hsl(219 90% 50%);
 
-    /* ── 主操作 = 平台身份色（千牛蓝，比 #3177f6 稍亮）── 覆盖 ui-web 的转化橙。
-       品牌标识、CTA 走 primary；hue 219、明度 62% 亮蓝 */
-    --color-primary: hsl(219 90% 62%);
+    /* ── 主操作 = 平台身份色（千牛蓝）── 覆盖 ui-web 的转化橙。
+       品牌标识、CTA 走 primary；hue 219。
+       base 取 55% 而非 62%：白字在 62% 上只有 3.57:1，两个 B 端每一枚主按钮都踩线；
+       55% = 4.59:1，正好是原本 hover 那一档——整条阶梯上移一级（base/hover/active = 55/50/46）。 */
+    --color-primary: hsl(219 90% 55%);
     --color-primary-foreground: var(--neutral-0);
-    --color-primary-hover: hsl(219 90% 55%);
+    --color-primary-hover: hsl(219 90% 50%);
     --color-primary-active: hsl(219 92% 46%);
     --color-primary-subtle: hsl(219 100% 96%);
     --color-primary-subtle-foreground: hsl(219 78% 42%);
 
     /* ── 次级/弱化表面（冷蓝灰阶梯） ── */
     --color-secondary: hsl(227 25% 94%);
+    /* hover 档：ui-web 给的是暖灰 neutral-200，落在冷蓝灰面上会脏，这里给同色相的一档 */
+    --color-secondary-hover: hsl(227 25% 90%);
     --color-secondary-foreground: hsl(228 18% 20%);
     --color-muted: hsl(227 25% 94%);
     --color-accent: hsl(227 28% 93%);
     --color-accent-foreground: hsl(228 18% 20%);
 
-    /* ── 结构与焦点（冷灰描边；焦点环走靛蓝） ── */
+    /* ── 结构与焦点（冷灰描边；焦点环走靛蓝）──
+       border 是内容分隔线（1.15:1 的静默档够用），input 是控件边界、承载"这里有个控件"的识别，
+       按 1.4.11 要 ≥3:1：89% 对白只有 1.28:1，取 52%（3.7:1，与 ui-web 的 neutral-450 同档） */
     --color-border: hsl(227 18% 89%);
-    --color-input: hsl(227 18% 89%);
+    --color-input: hsl(228 8% 52%);
     --color-ring: hsl(219 88% 60%);
 
     /* ── Sidebar（一级轨与 canvas 同色无缝，浮面白） ── */
     --color-sidebar: var(--color-canvas);
     --color-sidebar-foreground: hsl(228 18% 14%);
-    --color-sidebar-primary: hsl(219 90% 62%);
+    --color-sidebar-primary: hsl(219 90% 55%);
     --color-sidebar-primary-foreground: var(--neutral-0);
     --color-sidebar-accent: hsl(227 28% 93%);
     --color-sidebar-accent-foreground: hsl(228 18% 20%);

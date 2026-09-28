@@ -59,7 +59,7 @@ export function WorkbenchTopBar({
                     <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                         <StoreIcon className="size-4.5" />
                     </span>
-                    <span className="text-sm font-semibold tracking-tight">{brand}</span>
+                    <span className="text-sm font-semibold">{brand}</span>
                 </TopBarBrand>
             </Link>
             {!minimal && <SearchBox brand={brand} />}
@@ -102,29 +102,19 @@ function SearchBox({ brand }: { brand: string }) {
     )
 }
 
-/** 顶栏动作项（动作按钮）：图标在上、小字在下（千牛式），消息带红点。
-    用 Button(ghost) 获得标准 hover/active/focus 交互状态，`aria-expanded` 等语义交给库管理。 */
-export function WorkbenchTopBarAction({
-    icon,
-    label,
-    dot = false,
-}: {
-    icon: ReactNode
-    label: string
-    dot?: boolean
-}) {
+/** 顶栏动作项（动作按钮）：图标在上、小字在下（千牛式）。
+    用 Button(ghost) 获得标准 hover/active/focus 交互状态，`aria-expanded` 等语义交给库管理。
+    这里曾有枚 6px 红点表示"有未读消息"：写死的 `dot`，没有任何未读数据源，
+    等于永久宣称有未读；且状态只由颜色承载、用的还是 destructive（危险色）。
+    未读数接口到位后再回来，形态应是「图标 + text-3xs 计数」并配 sr-only 文案，不是一颗点。 */
+export function WorkbenchTopBarAction({ icon, label }: { icon: ReactNode; label: string }) {
     return (
         <Button
             variant="ghost"
             title={label}
             className="flex w-11 flex-col items-center"
         >
-            <span className="relative text-foreground/80 [&>svg]:size-4.5">
-                {icon}
-                {dot && (
-                    <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-destructive" />
-                )}
-            </span>
+            <span className="relative text-foreground/80 [&>svg]:size-4.5">{icon}</span>
             <span className="text-3xs leading-none text-muted-foreground">{label}</span>
         </Button>
     )

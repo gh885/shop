@@ -111,7 +111,12 @@ function IconAndLabel({ item }: { item: SidebarItem }) {
     return (
         <>
             <span className="[&>svg]:size-4 [&>svg]:shrink-0">{item.icon}</span>
-            <span className="min-w-0 flex-1 truncate text-xs leading-none">{item.label}</span>
+            <span
+                className="min-w-0 flex-1 truncate text-xs leading-none"
+                title={item.label}
+            >
+                {item.label}
+            </span>
         </>
     )
 }

@@ -3,7 +3,6 @@ import { useEffect, useReducer, useRef, useState } from "react"
 import { toApiError } from "@shop/common"
 import {
     Button,
-    cn,
     Field,
     FieldError,
     FormError,
@@ -13,8 +12,17 @@ import {
     InputGroupInput,
     PasswordToggle,
     PhoneField,
+    Popover,
+    PopoverContent,
+    PopoverDescription,
+    PopoverHeader,
+    PopoverTitle,
+    PopoverTrigger,
     Skeleton,
     Spinner,
+    Tabs,
+    TabsList,
+    TabsTrigger,
     useAppForm,
 } from "@shop/ui-web"
 
@@ -48,7 +56,7 @@ import {
  * 的职责边界。端差异只留两处入参：动作装配（getCaptcha/sendCode/submit）
  * 与壳（web 是 Dialog + 扫码占位，seller 是 Card）。
  *
- * 自有状态全部是表单瞬时态：Tab、服务端错误、倒计时、发码中、图形验证码。
+ * 自有状态全部是表单瞬时态：Tab、服务端错误、倒计时、发码中、人机验证浮层的开合。
  * 登录态写入（tokenStore）与跳转/关闭弹窗由调用方在 submit / onSuccess 里做。
  */
 
@@ -66,8 +74,6 @@ export interface LoginFormProps {
     }) => Promise<void>
     /** 登录成功后的收尾（关闭弹窗 / 跳转工作台） */
     onSuccess: () => void
-    /** 表单是否可见：false→true 时刷新图形验证码（弹窗场景传入；页面场景默认常显） */
-    active?: boolean
     /** 表单底部附加内容（协议文案等） */
     footer?: React.ReactNode
 }
@@ -78,14 +84,7 @@ export interface LoginFormProps {
  *  类名一律就地写成字面量，别再收敛回常量——收敛回去规则就又看不见了 */
 
 // oxlint-disable-next-line react-doctor/no-giant-component -- TanStack Form 的 AppField 渲染 prop 结构决定行数（每字段 30-60 行）；抽子组件需传 form 实例与 6+ 回调，接口更宽，违背高内聚
-export function LoginForm({
-    getCaptcha,
-    sendCode,
-    submit,
-    onSuccess,
-    active = true,
-    footer,
-}: LoginFormProps) {
+export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: LoginFormProps) {
     const t = useT()
     const [ui, dispatch] = useReducer(loginUiReducer, {
         tab: "sms",
@@ -93,12 +92,16 @@ export function LoginForm({
     })
     const { tab, submitError, submitFailCount } = ui
     const serverErrorRef = useRef<HTMLParagraphElement>(null)
+    /** 验证码那一整行的 DOM 节点：人机验证浮层要按它展开，见下面 PopoverContent 的 anchor */
+    const codeRowRef = useRef<HTMLDivElement>(null)
     const [countdown, setCountdown] = useCountdown()
     const [sendingCode, setSendingCode] = useState(false)
     const captcha = useCaptcha(getCaptcha)
     // refresh/reset 的稳定性来自入参 getCaptcha 的稳定性（useCaptcha 把它放进了 useCallback 依赖），
     // 所以调用方必须传模块级函数——传行内闭包会让下面「显现即拉验证码」的 effect 每渲染打一次后端
-    const { refresh: refreshCaptcha, reset: resetCaptcha } = captcha
+    const { refresh: refreshCaptcha, reset: resetCaptcha, clear: clearCaptcha } = captcha
+    // 人机验证浮层的开关：点「获取验证码」才开，验过才真发码——图形码不占地表单一整行
+    const [captchaOpen, setCaptchaOpen] = useState(false)
 
     const serverError = submitError?.detail
     const codeInvalid = isCodeError(submitError)
@@ -140,28 +143,56 @@ export function LoginForm({
         },
     })
 
+    /** 点「获取验证码」：先校手机号，再开人机验证浮层。真正发码在浮层里验完图之后。
+     *  每次开都换新图：发码 token 一次性，上一张验过就用废了 */
+    function openCaptchaChallenge() {
+        if (!PHONE_PATTERN.test(form.getFieldValue("phone"))) {
+            document.getElementById("login-phone")?.focus()
+            notify.error(t("appKit.login.needPhone"))
+            return
+        }
+        setCaptchaOpen(true)
+        void refreshCaptcha()
+    }
+
     // 发码是纯命令（无任何 query 缓存介入）：倒计时/验证码图/错误提示全是本地状态，
     // 不需要 useMutation；用 promise 链而非 try/finally（React Compiler 暂不支持 finally 块）。
+    //
+    // 校验放在提交时而不是把按钮 disable 掉：一个永远灰着、旁边又不写为什么的按钮，
+    // 用户只能猜（多半猜成「页面坏了」）。缺什么就聚焦到哪个字段并说清缺什么。
     function handleSendCode() {
+        const captchaCode = form.getFieldValue("captchaCode")
+        if (!captcha.image) {
+            notify.error(t("appKit.login.captchaLoading"))
+            return
+        }
+        if (!isCaptchaCodeComplete(captchaCode)) {
+            document.getElementById("login-captchaCode")?.focus()
+            return
+        }
+
         setSendingCode(true)
         void sendCode({
             phone: form.getFieldValue("phone"),
             captchaId: captcha.captchaId,
-            captchaCode: form.getFieldValue("captchaCode"),
+            captchaCode,
         })
             .then(() => {
                 dispatch({ type: "sendCodeSucceeded" })
                 setCountdown(RESEND_COUNTDOWN_SECONDS)
                 notify.success(t("appKit.login.codeSent"))
-                // 验证码 token 一次性：发码成功即换新图，下次发码需重新人机验证
-                resetCaptcha()
+                // 发码 token 一次性，用完即废；连同浮层一起收掉，并把焦点送回短信码输入框，
+                // 用户可以直接接着输刚收到的码
+                clearCaptcha()
                 form.setFieldValue("captchaCode", "")
+                setCaptchaOpen(false)
+                document.getElementById("login-code")?.focus()
                 return undefined
             })
             .catch((error) => {
                 const err = toApiError(error)
                 dispatch({ type: "sendCodeFailed", error: err })
-                // 图形验证码类失败：刷新验证码图，引导用户重输（其余错误保留原图避免无谓请求）
+                // 图形验证码类失败：换新图、清输入，浮层留着让用户重输（其余错误保留原图避免无谓请求）
                 if (isCaptchaError(err)) {
                     resetCaptcha()
                     form.setFieldValue("captchaCode", "")
@@ -170,16 +201,12 @@ export function LoginForm({
                 // 连点只会再撞一次限流，倒计时无损失地兜住（发码成功的本地倒计时逻辑不变）
                 if (isSmsRateLimit(err)) {
                     setCountdown(RESEND_COUNTDOWN_SECONDS)
+                    setCaptchaOpen(false)
                 }
                 notify.error(err.detail)
             })
             .finally(() => setSendingCode(false))
     }
-
-    // 显现即加载图形验证码（短信 Tab 需先人机验证才能发码）
-    useEffect(() => {
-        if (active) void refreshCaptcha()
-    }, [active, refreshCaptcha])
 
     // 提交失败：服务端错误节点渲染后把焦点移过去（role="alert" 已播报，聚焦便于键盘用户定位）
     useEffect(() => {
@@ -188,153 +215,105 @@ export function LoginForm({
 
     function switchTab(next: LoginTab) {
         dispatch({ type: "switchTab", tab: next })
-        // 切到短信 Tab 时确保图形验证码图存在（避免发码按钮可用但无图）
-        if (next === "sms" && !captcha.image) void refreshCaptcha()
+        // 离开短信 Tab 时收起人机验证浮层：它在表单之外，不跟着 Tab 走
+        if (next !== "sms") setCaptchaOpen(false)
     }
 
     return (
         <form
-            className="flex min-w-0 flex-1 flex-col gap-4"
+            className="flex min-w-0 flex-1 flex-col gap-6"
             onSubmit={(e) => {
                 e.preventDefault()
                 void form.handleSubmit()
             }}
         >
-            <div className="flex gap-6">
-                <TabButton
-                    active={tab === "sms"}
-                    onClick={() => switchTab("sms")}
-                >
-                    {t("appKit.login.smsTab")}
-                </TabButton>
-                <TabButton
-                    active={tab === "password"}
-                    onClick={() => switchTab("password")}
-                >
-                    {t("appKit.login.passwordTab")}
-                </TabButton>
-            </div>
+            {/* 登录方式切换用 Tabs 原语，不自造按钮：激活态要有 role=tab + aria-selected，
+                键盘也要走得到（方向键移焦、回车激活）。排版与间距一律交给原语，
+                这里不覆写——指示条就是 line 变体自己的 after。 */}
+            <Tabs
+                value={tab}
+                onValueChange={(next: LoginTab) => switchTab(next)}
+            >
+                <TabsList variant="line">
+                    <TabsTrigger value="sms">{t("appKit.login.smsTab")}</TabsTrigger>
+                    <TabsTrigger value="password">{t("appKit.login.passwordTab")}</TabsTrigger>
+                </TabsList>
+            </Tabs>
 
-            {/* 手机号：项目的 PhoneField（filled 皮肤 + 固定 +86 前缀，号码元数据做实时校验）。
+            {/* 字段区。三档间距各管一层，别拉平：区块之间 32（form 的 gap-8）、
+                字段之间 16（这里的 gap-4）、按钮与它的反馈行 8（下面动作区的 gap-2）。
+                Tab 头到内容这一档要最松：line 变体的下划线画在 TabsList 盒子外 5px 处，
+                它会吃掉一部分间距，给窄了就是「Tab 压在输入框上」。 */}
+            <div className="flex flex-col gap-4">
+                {/* 手机号：项目的 PhoneField（filled 皮肤 + 固定 +86 前缀，号码元数据做实时校验）。
                 值仍是裸 11 位，与契约（/^1[3-9]\d{9}$/）一致，不引入 reui 的国际 E.164
                 形态与国旗触发器。 */}
-            <form.AppField name="phone">
-                {(field) => (
-                    <Field>
-                        <PhoneField
-                            id="login-phone"
-                            value={field.state.value}
-                            onChange={field.handleChange}
-                            onBlur={field.handleBlur}
-                            invalid={!field.state.meta.isValid}
-                        />
-                        <FieldError errors={field.state.meta.errors} />
-                    </Field>
-                )}
-            </form.AppField>
-
-            {tab === "sms" ? (
-                /* 图形验证码：发码前先人机验证（点击图片刷新） */
-                <form.AppField name="captchaCode">
+                <form.AppField name="phone">
                     {(field) => (
                         <Field>
-                            <InputGroup
-                                size="lg"
-                                variant="filled"
-                                invalid={captchaInvalid}
-                            >
-                                <InputGroupInput
-                                    id="login-captchaCode"
-                                    aria-label={t("appKit.login.captchaLabel")}
-                                    aria-invalid={!field.state.meta.isValid}
-                                    variant="code"
-                                    className="px-3.5"
-                                    placeholder={t("appKit.login.captchaPlaceholder")}
-                                    autoComplete="off"
-                                    maxLength={CAPTCHA_CODE_DIGITS}
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) => {
-                                        field.handleChange(e.target.value.toUpperCase())
-                                        // 重新输入时只清验证码类错误，其余保留到下次提交
-                                        dispatch({ type: "dismissCaptchaError" })
-                                    }}
-                                />
-                                {/* 验证码图：点击刷新；加载/无图时占位 */}
-                                <button
-                                    type="button"
-                                    aria-label={t("appKit.login.captchaRefresh")}
-                                    onClick={() => void refreshCaptcha()}
-                                    className="shrink-0 self-stretch border-l border-border/60"
-                                >
-                                    {captcha.image ? (
-                                        <img
-                                            src={captcha.image}
-                                            alt={t("appKit.login.captchaAlt")}
-                                            className="h-full w-24 rounded-r-xl"
-                                        />
-                                    ) : captcha.loading ? (
-                                        <Skeleton className="h-full w-24" />
-                                    ) : (
-                                        <span className="flex h-full w-24 items-center justify-center text-xs text-muted-foreground">
-                                            {t("appKit.login.captchaClick")}
-                                        </span>
-                                    )}
-                                </button>
-                            </InputGroup>
+                            <PhoneField
+                                id="login-phone"
+                                value={field.state.value}
+                                onChange={field.handleChange}
+                                onBlur={field.handleBlur}
+                                invalid={!field.state.meta.isValid}
+                            />
                             <FieldError errors={field.state.meta.errors} />
                         </Field>
                     )}
                 </form.AppField>
-            ) : undefined}
 
-            {tab === "sms" ? (
-                /* 验证码 + 内嵌发送按钮 */
-                <form.AppField name="code">
-                    {(field) => (
-                        <Field>
-                            <InputGroup
-                                size="lg"
-                                variant="filled"
-                                invalid={codeInvalid}
-                            >
-                                <InputGroupInput
-                                    id="login-code"
-                                    aria-label={t("appKit.login.smsCodeLabel")}
-                                    aria-invalid={!field.state.meta.isValid}
-                                    variant="code"
-                                    className="px-3.5 tabular-nums"
-                                    placeholder={t("appKit.login.smsCodePlaceholder")}
-                                    inputMode="numeric"
-                                    autoComplete="one-time-code"
-                                    maxLength={SMS_CODE_DIGITS}
-                                    value={field.state.value}
-                                    onBlur={field.handleBlur}
-                                    onChange={(e) => {
-                                        field.handleChange(e.target.value.replaceAll(/\D/g, ""))
-                                        // 重新输入时只清验证码类错误（抖动随之消失），其余服务端错误保留到下次提交
-                                        dispatch({ type: "dismissCodeError" })
-                                    }}
-                                />
-                                <form.Subscribe
-                                    selector={(s) => ({
-                                        phoneValid: PHONE_PATTERN.test(s.values.phone),
-                                        captchaValid: isCaptchaCodeComplete(s.values.captchaCode),
-                                    })}
+                {tab === "sms" ? (
+                    /* 验证码 + 内嵌发送按钮（点开人机验证浮层，验过才真发码） */
+                    <form.AppField name="code">
+                        {(field) => (
+                            <Field>
+                                <InputGroup
+                                    ref={codeRowRef}
+                                    size="lg"
+                                    variant="filled"
+                                    invalid={codeInvalid}
                                 >
-                                    {({ phoneValid, captchaValid }) => (
-                                        <InputGroupButton
-                                            variant="link"
-                                            size="sm"
-                                            className="h-full shrink-0 px-3.5"
-                                            disabled={
-                                                !phoneValid ||
-                                                !captchaValid ||
-                                                !captcha.image ||
-                                                countdown > 0 ||
-                                                sendingCode
+                                    <InputGroupInput
+                                        id="login-code"
+                                        aria-label={t("appKit.login.smsCodeLabel")}
+                                        aria-invalid={!field.state.meta.isValid}
+                                        variant="code"
+                                        className="tabular-nums"
+                                        placeholder={t("appKit.login.smsCodePlaceholder")}
+                                        inputMode="numeric"
+                                        autoComplete="one-time-code"
+                                        maxLength={SMS_CODE_DIGITS}
+                                        value={field.state.value}
+                                        onBlur={field.handleBlur}
+                                        onChange={(e) => {
+                                            field.handleChange(e.target.value.replaceAll(/\D/g, ""))
+                                            // 重新输入时只清验证码类错误（抖动随之消失），其余服务端错误保留到下次提交
+                                            dispatch({ type: "dismissCodeError" })
+                                        }}
+                                    />
+                                    {/* 发码入口：点开人机验证浮层（而不是直接发）。
+                                    倒计时/发码中才置灰，其余一律可点——缺什么在浮层里说 */}
+                                    <Popover
+                                        open={captchaOpen}
+                                        onOpenChange={(next) => {
+                                            // 打开才校手机号：号码还没成型时不开浮层，直接把焦点送回手机号
+                                            if (next) {
+                                                openCaptchaChallenge()
+                                                return
                                             }
-                                            onClick={handleSendCode}
+                                            setCaptchaOpen(false)
+                                        }}
+                                    >
+                                        <PopoverTrigger
+                                            render={
+                                                <InputGroupButton
+                                                    variant="link"
+                                                    size="sm"
+                                                    className="h-full shrink-0 px-3.5"
+                                                    disabled={countdown > 0 || sendingCode}
+                                                />
+                                            }
                                         >
                                             {countdown > 0 ? (
                                                 <span className="tabular-nums">
@@ -345,51 +324,181 @@ export function LoginForm({
                                             ) : (
                                                 t("appKit.login.sendCode")
                                             )}
-                                        </InputGroupButton>
-                                    )}
-                                </form.Subscribe>
-                            </InputGroup>
-                            <FieldError errors={field.state.meta.errors} />
-                        </Field>
-                    )}
-                </form.AppField>
-            ) : (
-                <form.AppField name="password">
-                    {(field) => (
-                        <PasswordField
-                            field={field}
-                            label={t("appKit.login.passwordLabel")}
-                            placeholder={t("appKit.login.passwordPlaceholder")}
-                        />
-                    )}
-                </form.AppField>
-            )}
-
-            {/* 服务端错误：预留高度，避免抖动；role="alert" 播报 + 提交失败时聚焦 */}
-            <div className="min-h-4">
-                <FormError
-                    ref={serverErrorRef}
-                    tabIndex={-1}
-                >
-                    {serverError}
-                </FormError>
+                                        </PopoverTrigger>
+                                        {/* 浮层按「验证码那一整行」展开：anchor 指到行本身，而不是指到触发它的
+                                        那颗小按钮。于是宽度刚好等于这一行、左右边缘对齐，用户读得出它是
+                                        这一行的后续，而不是半路冒出来压在登录按钮上的一块浮皮。 */}
+                                        <PopoverContent
+                                            anchor={codeRowRef}
+                                            sideOffset={8}
+                                            className="w-(--anchor-width)"
+                                        >
+                                            {/* 图形码的当前值走 form.Subscribe：getFieldValue 不订阅，
+                                            浮层里输入时不会重渲染 */}
+                                            <form.Subscribe selector={(s) => s.values.captchaCode}>
+                                                {(captchaCode) => (
+                                                    <CaptchaChallenge
+                                                        image={captcha.image}
+                                                        loading={captcha.loading}
+                                                        code={captchaCode}
+                                                        invalid={captchaInvalid}
+                                                        onCodeChange={(v) => {
+                                                            form.setFieldValue("captchaCode", v)
+                                                            dispatch({
+                                                                type: "dismissCaptchaError",
+                                                            })
+                                                        }}
+                                                        onRefresh={() => void refreshCaptcha()}
+                                                        onSubmit={handleSendCode}
+                                                        sending={sendingCode}
+                                                    />
+                                                )}
+                                            </form.Subscribe>
+                                        </PopoverContent>
+                                    </Popover>
+                                </InputGroup>
+                                <FieldError errors={field.state.meta.errors} />
+                            </Field>
+                        )}
+                    </form.AppField>
+                ) : (
+                    <form.AppField name="password">
+                        {(field) => (
+                            <PasswordField
+                                field={field}
+                                label={t("appKit.login.passwordLabel")}
+                                placeholder={t("appKit.login.passwordPlaceholder")}
+                            />
+                        )}
+                    </form.AppField>
+                )}
             </div>
 
-            <form.Subscribe selector={(state) => ({ isSubmitting: state.isSubmitting })}>
-                {({ isSubmitting }) => (
-                    <Button
-                        type="submit"
-                        variant="cta"
-                        className="h-11 w-full"
-                        disabled={isSubmitting}
+            {/* 动作区：按钮和它自己的反馈行是一组，所以错误行只离按钮 8px，
+                离脚注仍是区块级的 24px。 */}
+            <div className="flex flex-col gap-2">
+                <form.Subscribe selector={(state) => ({ isSubmitting: state.isSubmitting })}>
+                    {({ isSubmitting }) => (
+                        <Button
+                            type="submit"
+                            variant="cta"
+                            className="h-11 w-full"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting && <Spinner />}
+                            {t("appKit.login.submit")}
+                        </Button>
+                    )}
+                </form.Subscribe>
+
+                {/* 服务端错误（role="alert" 播报，提交失败时聚焦）。预留一行高度是为了点完按钮不抖：
+                错误行一出现就把后面的内容往下推 18px，而按钮正压在用户刚点过的位置上。
+                这份预留只能挂在按钮**之后**——挂在字段与按钮之间时，它会和两侧 gap 叠成
+                一坨空档，按钮看着像被从表单里切了出去、反倒跟脚注成了一组。 */}
+                <div className="min-h-4">
+                    <FormError
+                        ref={serverErrorRef}
+                        tabIndex={-1}
                     >
-                        {isSubmitting && <Spinner />}
-                        {t("appKit.login.submit")}
-                    </Button>
-                )}
-            </form.Subscribe>
+                        {serverError}
+                    </FormError>
+                </div>
+            </div>
 
             {footer}
+        </form>
+    )
+}
+
+/**
+ * 人机验证浮层的内容（渲染在 Popover 里，点「获取验证码」才出现）。
+ *
+ * 为什么做成「点发码才弹」而不是表单里常驻一行：图形码只有一个用途——解锁发码，
+ * 常驻在手机号与短信码之间会让用户先面对一个看不懂的输入框，还把它当必填登录信息。
+ * 收到发码意图才问「你是人吗」，是这类挑战的正确位置（淘宝/京东/微信同款）。
+ */
+function CaptchaChallenge({
+    image,
+    loading,
+    code,
+    invalid,
+    onCodeChange,
+    onRefresh,
+    onSubmit,
+    sending,
+}: {
+    image: string
+    loading: boolean
+    code: string
+    invalid: boolean
+    onCodeChange: (value: string) => void
+    onRefresh: () => void
+    onSubmit: () => void
+    sending: boolean
+}) {
+    const t = useT()
+    return (
+        <form
+            className="flex flex-col gap-3 p-1"
+            onSubmit={(e) => {
+                e.preventDefault()
+                onSubmit()
+            }}
+        >
+            <PopoverHeader>
+                <PopoverTitle>{t("appKit.login.captchaTitle")}</PopoverTitle>
+                <PopoverDescription>{t("appKit.login.captchaDesc")}</PopoverDescription>
+            </PopoverHeader>
+            <InputGroup
+                size="lg"
+                variant="filled"
+                invalid={invalid}
+            >
+                <InputGroupInput
+                    id="login-captchaCode"
+                    aria-label={t("appKit.login.captchaLabel")}
+                    aria-invalid={invalid}
+                    variant="code"
+                    placeholder={t("appKit.login.captchaPlaceholder")}
+                    autoComplete="off"
+                    maxLength={CAPTCHA_CODE_DIGITS}
+                    value={code}
+                    onChange={(e) => onCodeChange(e.target.value.toUpperCase())}
+                />
+                {/* 验证码图：点击刷新；加载/无图时占位 */}
+                <button
+                    type="button"
+                    aria-label={t("appKit.login.captchaRefresh")}
+                    onClick={onRefresh}
+                    className="shrink-0 self-stretch border-l border-border/60"
+                >
+                    {image ? (
+                        <img
+                            src={image}
+                            alt={t("appKit.login.captchaAlt")}
+                            className="h-full w-24 rounded-r-xl"
+                        />
+                    ) : loading ? (
+                        <Skeleton className="h-full w-24" />
+                    ) : (
+                        <span className="flex h-full w-24 items-center justify-center text-xs text-muted-foreground">
+                            {t("appKit.login.captchaClick")}
+                        </span>
+                    )}
+                </button>
+            </InputGroup>
+            {/* 按钮是 type=button + onClick：PopoverContent 传送到 body，DOM 上不再是嵌套 form，
+                交给浏览器原生提交会走形。form 上的 onSubmit 保留给「输入后回车」这条路。 */}
+            <Button
+                type="button"
+                variant="cta"
+                className="h-11 w-full"
+                disabled={sending}
+                onClick={onSubmit}
+            >
+                {sending && <Spinner />}
+                {t("appKit.login.captchaConfirm")}
+            </Button>
         </form>
     )
 }
@@ -439,37 +548,5 @@ function PasswordField({
             </InputGroup>
             <FieldError errors={field.state.meta.errors} />
         </Field>
-    )
-}
-
-/** Tab 切换按钮：激活项加粗并带下划线指示条 */
-function TabButton({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean
-    onClick: () => void
-    children: React.ReactNode
-}) {
-    return (
-        <button
-            type="button"
-            className={cn(
-                "relative cursor-pointer pb-2 text-base transition-colors duration-200",
-                active
-                    ? "font-semibold text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-            )}
-            onClick={onClick}
-        >
-            {children}
-            <span
-                className={cn(
-                    "absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-foreground transition-opacity duration-200",
-                    active ? "opacity-100" : "opacity-0",
-                )}
-            />
-        </button>
     )
 }
