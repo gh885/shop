@@ -4,17 +4,17 @@
 
 ## 技术栈
 
-| 层     | 技术                                                                               |
-| ------ | ---------------------------------------------------------------------------------- |
-| 前端   | TanStack Start (React 19, TypeScript 7, Vite 8, Tailwind v4)                       |
-| 后端   | Spring Boot 4.1 + Spring Modulith 2.1 + REST + MyBatis-Plus 3.5                    |
-| 数据库 | PostgreSQL 18 (Schema 隔离) + Redis 7                                              |
-| 工具   | Maven + pnpm + Lefthook + Oxlint/Oxfmt (TS) + Spotless / Google Java Format (Java) |
+| 层     | 技术                                                                                                                                             |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 前端   | TanStack Start (React 19, TypeScript 7, Tailwind v4) 跑在 **Vite+ 1.0** 上                                                                       |
+| 后端   | Spring Boot 4.1 + Spring Modulith 2.1 + REST + MyBatis-Plus 3.5                                                                                  |
+| 数据库 | PostgreSQL 18 (Schema 隔离) + Redis 7                                                                                                            |
+| 工具   | Maven (Java) + **Vite+ `vp`**（Vite 8 / Rolldown、Vitest 5、Oxlint、Oxfmt、tsgolint）+ pnpm 12 + Lefthook + Spotless / Google Java Format (Java) |
 
 ## 前置要求
 
 - Java 25 + Maven
-- Node.js 22+ + pnpm 11+
+- Node.js 22.18+ / 24.11+ / 26+（Vite+ 的 engines 口径；pnpm 版本由 `package.json` 的 `devEngines` 与 lockfile 记死，装依赖用 `vp install`）
 - WSL2 上运行的 PostgreSQL 18 + Redis 7（localhost 直连，无需 Docker）
 
 ## 快速开始
@@ -53,7 +53,7 @@ shop/
 │   ├── ui-web/                 # shadcn/ui + BaseUI 组件库（CLI 生成，不手写；视觉规则见包内 DESIGN.md）
 │   ├── common/                 # 前端共享纯逻辑
 │   ├── app-kit/                # 三端应用装配（QueryClient 工厂 / MutationMeta / QueryBoundary / 登录装配 / renderWithProviders）
-│   ├── config/                 # tsconfig / oxlint / oxfmt 共享配置
+│   ├── config/                 # tsconfig 共享；oxlint/oxfmt 两份配置由根 vite.config.ts 消费（不是独立可跑配置）
 │   └── test-utils/             # 跨 app 测试装置（MSW handlers / setup / 假数据工厂）
 ├── openapi/                    # OpenAPI 契约 api-docs.json（后端 /v3/api-docs 导出，pnpm gen:sdk 刷新）
 └── docs/                       # 架构 / 约定 / 决策 / 清单（索引见下文「文档地图」）

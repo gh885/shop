@@ -213,7 +213,7 @@ src/main/java/com/shop/platform/
 
 ## 测试资产规范（integration tests）
 
-集成测试直连**专用测试库 shop_test**（WSL2 PostgreSQL，与 dev 库隔离，见 `application-test.yml`），**不用 `@Transactional` 回滚**——AFTER_COMMIT 监听、Modulith outbox 登记这类提交期行为只有真提交才验得到。数据一律**自建自清**，机制收敛在 `src/test/java/com/shop/platform/testsupport/`：
+集成测试直连**专用测试库 shop_test**（与 dev 库隔离；库在本地 WSL 还是云上随 `SHOP_DATASTORE` 走，见 `application-test.yml`），**不用 `@Transactional` 回滚**——AFTER_COMMIT 监听、Modulith outbox 登记这类提交期行为只有真提交才验得到。数据一律**自建自清**，机制收敛在 `src/test/java/com/shop/platform/testsupport/`：
 
 - 测试统一**平铺在模块包根**（account/XxxTest），不按 controller/service 再分层；仅当测试要触达被测类 package-private 成员时才下钻到其精确包
 - **方法名 = 失败时的诊断书**：一律中文，下划线分段「动作/场景_条件_预期」（如 类目被商品引用_禁用拒绝_移除后放行、密码登录_全空字段_422、超时关单_回补库存_转已取消）；说公开行为不说实现细节；@Nested 组内可省略重复主语；值对象的单一场景允许一句话连读（非法手机号被拒绝）

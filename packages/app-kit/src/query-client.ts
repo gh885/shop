@@ -115,7 +115,7 @@ interface AppQueryClientOverrides {
  *    `if (!data) return`）。这类查询在自己的 queryOptions 里写 `throwOnError: false`，
  *    失败就地渲染并在有需要时用官方 `refetch()` 重试。
  *
- * 判据与例外清单见 AGENTS.md「错误与重试」。
+ * 判据与例外清单见 docs/conventions/frontend.md「错误与重试」。
  */
 function throwWhenNoData(_error: unknown, query: { state: { data: unknown } }): boolean {
     return query.state.data === undefined

@@ -23,7 +23,7 @@ import { StateError } from "@shop/ui-web"
  *   已在三端 router 上配好），页面里不该再写 `isError` 分支。
  * - **也可能不用**：区块里的查询若已显式 `throwOnError: false` 退出全局默认（带 `enabled` /
  *   `placeholderData` / `skipToken` 的按需/降级读取），失败就不抛了 —— 那种形态就地渲染错误 UI
- *   并用官方 `refetch()` 重试（官方 manual 的写法），见 AGENTS.md「错误与重试」。
+ *   并用官方 `refetch()` 重试（官方 manual 的写法），见 docs/conventions/frontend.md「错误与重试」。
  *
  * 注意 `reset` 的语义（官方实现）：它**不动缓存**，只清「错误已上报」的标记并放行下次挂载重取。
  * 因此如果失败原因需要连带刷新别的查询，那属于 mutation 之后的失效，写在 mutation 的

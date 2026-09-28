@@ -16,7 +16,7 @@ shop/（monorepo，pnpm workspace + Maven，不用 monorepo 工具）
 │   ├── ui-web/       shadcn/BaseUI 组件库 + 主题 token（DESIGN.md 见包内）
 │   ├── common/       前端共享纯逻辑
 │   ├── app-kit/      三端应用装配（QueryClient 工厂 / MutationMeta / QueryBoundary / 登录装配 / renderWithProviders）
-│   ├── config/       tsconfig / oxlint / oxfmt 共享配置
+│   ├── config/       tsconfig 共享；oxlint/oxfmt 设置由根 vite.config.ts 的 lint/fmt 块消费
 │   └── test-utils/   跨 app 测试装置（MSW handlers / setup）
 └── openapi/api-docs.json   接口契约唯一真相源（由后端 /v3/api-docs 导出）
 ```

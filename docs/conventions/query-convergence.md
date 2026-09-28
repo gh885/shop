@@ -56,6 +56,6 @@
 
 ## 5. lint 兜底的边界
 
-官方 `@tanstack/eslint-plugin-query` / `-router` 经 oxlint 的 `jsPlugins` 加载（配置与逐条理由见 `packages/config/oxlint.config.ts`）。`exhaustive-deps`（漏 key）、`stable-query-client`、`no-unstable-deps`、两条 property-order（`--fix` 可重排）、`route-param-names` 为 error；`no-rest-destructuring`、`prefer-query-options` 为 warn。
+官方 `@tanstack/eslint-plugin-query` / `-router` 经 oxlint 的 `jsPlugins` 加载（oxlint 由 Vite+ 内置，不单独装；配置与逐条理由见 `packages/config/oxlint.config.ts`，它被根 `vite.config.ts` 的 `lint` 块消费）。`exhaustive-deps`（漏 key）、`stable-query-client`、`no-unstable-deps`、两条 property-order（`--fix` 可重排）、`route-param-names` 为 error；`no-rest-destructuring`、`prefer-query-options` 为 warn。
 
 官方 `no-void-query-fn` **未启用**：它靠 `parserServices.program` 取 TS 类型，oxlint 的 JS 插件 API 不提供（`--type-aware` 也无效，实测静默空转）。

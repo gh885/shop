@@ -84,7 +84,7 @@
     - 跨端同形态的写操作接线：`createMeQuery`
     - （换变体不算——调用点直接写 `useSuspenseQuery(feedOptions)` 更显眼）
 - **写操作不包 hook 工厂**：一律用库自己的 `useMutation`，反馈与失效经 `meta` 声明，由全局执行（见下节）。
-- **lint 兜底**：官方 `@tanstack/eslint-plugin-query` / `-router` 经 oxlint 的 `jsPlugins` 加载，配置与逐条理由见 `packages/config/oxlint.config.ts`。
+- **lint 兜底**：官方 `@tanstack/eslint-plugin-query` / `-router` 经 oxlint 的 `jsPlugins` 加载（oxlint 由 Vite+ 内置，不单独装），配置与逐条理由见 `packages/config/oxlint.config.ts`——它是**被根 `vite.config.ts` 的 `lint` 块消费的对象**，不是独立可跑的配置文件。
 
 ### 写操作：反馈与失效走官方 meta 通道，不包 hook 工厂
 
@@ -203,33 +203,44 @@ useMutation({
 ## 前端测试（Vitest + Testing Library + MSW）
 
 ```bash
-pnpm test            # 全量跑一次（vitest projects：apps/* + packages/*）—— 门禁与收尾才跑
+pnpm test            # 全量跑一次（vp test 的 vitest projects：apps/* + packages/*）—— 门禁与收尾才跑
 pnpm test:watch      # watch 模式（开发默认挂这个）
 pnpm test:project <名字> [路径...]   # 只跑某个 project（+ 可再按路径收窄），开发期首选
+pnpm test:changed    # 只跑相对主干改动过的文件——分支离主干远时≈全量，见下
 ```
 
+这些 script 全是 `vp test run …` 的包装（Vite+ 内置 Vitest 5，仓库不再单独装 `vitest`）；
+每个都带 `--fs-module-cache`（见「迭代性能」）。测试文件里 **import 一律来自 `vite-plus/test`**，
+不是 `vitest`——`vite-plus/oxlint-plugin` 的 `prefer-vite-plus-imports` 会拦。
 project 名字就是各 `vitest.config.ts` 所在目录的包名：`web` / `seller` / `admin` /
 `@shop/common` / `@shop/app-kit` / `@shop/ui-web`。实测：
 
 ```bash
-pnpm test:project @shop/common            # 14 文件 / 2.2s
-pnpm test:project web src/order           # 10 文件 / 10.4s（域内再收窄）
+pnpm test:project @shop/common            # 15 文件 / 0.46s
+pnpm test:project web src/order           # 10 文件 / 5.2s（域内再收窄）
 ```
 
-### 迭代性能：先量后调，且别调那几个没用的旋钮
+### 迭代性能：先量后调
 
-全量 `pnpm test` 实测 **39s / 87 文件 / 694 用例**（28 核，已高度并行）。这已经是当前结构的地板附近，**下面三个提速旋钮实测全是 0 收益，不要再花时间试**：
+全量 `pnpm test` 实测 **39.8s / 117 文件 / 986 用例**（28 核，同一台机器不开 `--fs-module-cache` 是 46.2s）。
+Vitest 自己报的耗时分布说清了瓶颈在哪：**import 58% + environment 16% + setup 14%，`tests` 只占 7%**——
+慢在「每个文件重新装配一遍模块图」，不在用例本身。
 
-| 旋钮                                                  | 实测                 | 结论            |
-| ----------------------------------------------------- | -------------------- | --------------- |
-| `pool: "threads"`                                     | 13.5s → 12.3s        | 省约 1s，不值当 |
-| `isolate: false`（复用模块注册表）                    | 13.46s，**完全没变** | 无效            |
-| `deps.optimizer.ssr.include` 预打包 `@shop/api`/`msw` | 13.4s，**完全没变**  | 无效            |
+| 旋钮                                                  | 实测                                   | 结论                               |
+| ----------------------------------------------------- | -------------------------------------- | ---------------------------------- |
+| `--fs-module-cache`                                   | 46.2s → 39.4s，`transform` 桶 15% → 5% | **有收益，已开进全部 test script** |
+| `pool: "threads"`                                     | 13.5s → 12.3s                          | 省约 1s，不值当                    |
+| `isolate: false`（复用模块注册表）                    | 13.46s，**完全没变**                   | 无效                               |
+| `deps.optimizer.ssr.include` 预打包 `@shop/api`/`msw` | 13.4s，**完全没变**                    | 无效                               |
 
-**为什么调不动**：一个空测试文件的地板就是 **1.23s**（`setupFiles` 673ms + jsdom 环境 397ms）——
+后三个是 Vitest 4 时代量的（表里 13.x s 是当时规模），结论至今没被推翻，别再试。
+`fsModuleCache` 是 Vitest 5 才有的开关：把 transform 结果落进 `node_modules/.vitest-cache`（实测 32MB），
+7 个 project 在同一轮里共享同一份产物，所以**连冷跑都赢**（43.1s vs 46.2s），CI 那份一次性进程也不吃亏。
+它只能走 CLI flag：根 `vitest.config.ts` 的 `test` 块不会被 `projects` glob 继承，写进去是死配置。
+
+**为什么其余旋钮调不动**：一个空测试文件的地板就是 **1.23s**（`setupFiles` 673ms + jsdom 环境 397ms）——
 `packages/app-kit/src/test/setup.ts`（模块 id 是 `@shop/app-kit/test/setup`）每个文件都要 import 整个 `@shop/api` SDK + MSW。
-87 文件 × 约 1.3s ≈ 113s 固定成本，被 28 个 worker 并行摊完即 39s。
-**瓶颈是「每文件固定开销」，不是配置没调对**；配置层最多再省 5s。
+配置层能省的是「重复劳动」，省不掉「每文件一份固定开销」。
 
 因此提速只有两条正路，按性价比排序：
 
@@ -237,22 +248,31 @@ pnpm test:project web src/order           # 10 文件 / 10.4s（域内再收窄�
 2. **不加固定开销**：新测试默认放**离它最近的环境**——纯逻辑进 `packages/common` 那种 node 环境的 `.test.ts`；只有真的要 render/DOM/发请求的才写 `.test.tsx` 拖 jsdom + MSW。
    纯逻辑测试塞进 jsdom 项目（`apps/*` 的 `.test.ts`）也能跑，但它白白摊一份 1.2s 的固定成本，且误导后来人以为它需要 DOM。
 
-### 两个别踩的坑（都是实测，不是推测）
+还有一条正交的路：**同一套门禁跑第二遍时不必重跑**。`pnpm exec vp run verify`（定义在根 `vite.config.ts` 的 `run.tasks`）把
+`vp check` / `pnpm typecheck` / `pnpm test` 串成一条，三段各自指纹缓存。实测冷跑 **53.9s**，零改动重跑 **0.36s**
+（`3/3 cache hit (100%), 49.90s saved`）；只改一个 lint-only 文件时 `[1] vp check → Cache miss: '...' modified`，
+后两段仍命中（4.33s + 37.98s saved）。命令与 lefthook 的 pre-push 逐字相同，跑的就是门禁同一套。
+**`cache.input` 里那两条 exclude 是承重的，别顺手删**：Vite Task 的 `auto: true` 输入集包含任务自己的产物，而 pnpm
+每次跑都换名重写 `node_modules/.pnpm-task-run-state-v1/.tmpXXXX`、Vitest 写 `node_modules/.vite/vitest/<hash>/results.json`——
+于是「任务修改了自己的输入」，三段永远不命中（实测连 1/3 都做不到，`vp run --last-details` 就是这么查出来的）。
+只排这两个具体路径，**不要排 `node_modules/**`**：那会把依赖变更一起排掉，装完新依赖仍重放旧绿，缓存就从加速变成说谎。
 
-- **`vitest related <文件>` 在本仓库不可靠，会静默返回「No test files found」**：它靠 Vite 模块图反查，而 app 内测试大量走 `#/` 别名 import（`use-order-actions.ts` 就查不到任何用例，退出码仍是 0 —— 看着像「没东西要跑」，实际是漏跑）。`related` 只在源文件被跨包广泛 import 时才有效（如 `common/src/money.ts` 会拉起 57 个文件，那也基本等于全量）。**按 project + 路径过滤才是 dependable 的快路径。**
-- **`--changed` 是相对主干算的**：本仓库当前分支离主干较远，它实测仍会拉起全部 87 个文件（≈全量的时间），只在「分支短且已 rebase」时才有意义。
+### 两个坑：一个已修，一个还在
+
+- ~~`vitest related` 在本仓库静默漏跑~~ **Vite+ 之后可用了**：它反查模块图时走的是 vite-plus 的 `tsconfigPaths` 解析，`#/` 别名不再是瞎的（实测 `apps/seller/src/shop/constants.ts` → 拉起只通过 `#/shop/constants` 引它的 `shop-form.test.ts`；`apps/seller/src/product/queries.ts` → 3 个文件；`packages/common/src/money.ts` → 73 个文件，那基本等于全量）。所以 `pnpm exec vp test related <文件>` 现在是条 dependable 的快路径——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径**，先确认文件存在。
+- **`--changed` 是相对主干算的**：本仓库当前分支离主干较远时它≈全量（Vitest 4 时代实测拉起过全部文件），只在「分支短且已 rebase」时才有意义。
 
 其余已知事实：
 
-- 慢的从来不是「测试体」：文件耗时里 import + setup 占大头，`tests` 聚合只占 55s/全量 39s 墙钟。某个文件 9s（`seller/coupon/CouponFormDialog.test.tsx`）几乎全是它 import 的那棵业务树，不是它自己的用例。
-- **不要为了「跑得快」把测试拆细或合并**——门禁的强度来自用例覆盖，39s 在 28 核上是可接受的；慢的正确做法是少跑，不是少测。
+- 慢的从来不是「测试体」：全量墙钟里 `tests` 桶只占 7%（39.8s 里约 2.8s），大头是 import / environment / setup。单文件也一样：`seller/coupon/CouponFormDialog.test.tsx` 自己 2.4s，但它在 `pnpm test:coverage`（7 个 project 并发 + V8 逐文件插桩）里能被拖到 14s——所以那条最重的用例显式写了 15s timeout，**不是因为它慢，是因为并发跑时 5s 默认线量到的是抢 CPU 的账**。别把全局 `testTimeout` 抬起来迁就它：别处真挂住就该 5s 就报。
+- **不要为了「跑得快」把测试拆细或合并**——门禁的强度来自用例覆盖，39.8s 在 28 核上是可接受的；慢的正确做法是少跑，不是少测。
 - 疑似 flaky 排查：`--changed` 跑法下曾偶发 1 例失败而全量连跑 3 次全绿（未定位到具体用例）。若再现，记下用例名再查，不要当成「配置问题」改配置。
 
 ### 分层与位置
 
 - 纯逻辑单测（cart/order-status/money 等 `*.test.ts`）；组件/集成测试走 jsdom + Testing Library（`*.test.tsx`）；server function 的真实行为交给 E2E（Playwright，仓库根 `e2e/`，`pnpm test:e2e`，CI 里跑下单主路径与发货物流链路）
 - **测试文件与被测模块同目录、同名**（`xxx.ts` → `xxx.test.ts`），不建 `__tests__`/`test/` 用例目录；`src/test/` 只放跨模块测试装置（setup/render），共享 handler 与假数据进 `packages/test-utils`
-- vitest 显式导入（不开 globals）；route 文件保持薄，业务逻辑放独立模块才可单测
+- `describe/it/expect/vi` 显式从 **`vite-plus/test`** 导入（不开 globals，也不从裸 `vitest` 导入——oxlint 的 `vite-plus/prefer-vite-plus-imports` 会红）；route 文件保持薄，业务逻辑放独立模块才可单测
 
 ### 怎么写
 
@@ -298,3 +318,15 @@ pnpm test:project web src/order           # 10 文件 / 10.4s（域内再收窄�
 「barrel（`index.ts` 汇总出口）挡住 tree-shaking」在本仓库不成立：实测把 `packages/ui-web` 与 `packages/app-kit` 两个 barrel 改成调用点直连子模块，产物字节数几乎没变（≈0），改动已回滚。要动体积，顺序只能是**先量后改**——`pnpm build` 后看 `dist` 里每个 chunk 归属谁（产物可视化或 `--sourcemap`），别拿 import 形状当证据。
 
 量到的现状：Embla（约 45KB raw）落在 `/welcome` 也会加载的共享 chunk 里，欢迎页首屏 JS 1.37MB raw / 418KB gz。把它挪出共享 chunk 需要在商详页给图库位加 `lazy` + Suspense 骨架，属可感知的行为变化，是否值得另判（挂在 TODO）。
+
+## 自动修复：判据是门禁红绿，不是 warning 数
+
+`vp fmt`（oxfmt）是纯格式化，幂等、可全仓跑。`vp check --fix` / `pnpm lint:web:fix` 除了格式化还连带跑 oxlint 的修复器，它按「这条规则通常这样改」动手，不编译、不跑测试，所以**全仓一把梭不安全**：实测一次全仓 fix 改 19 个文件，同一批里它删了 `as HTMLElement | null` 这类它以为多余的断言、把 `x[x.length - 1]` 改成 `.at(-1)`（NodeList 上没有 `at`，运行时就是 TypeError），在 vendored 的 `packages/ui-web/src/components/reui/**` 造出 6 个新 error。口径：逐目录跑，跑完必跟 `pnpm exec vp check` + `pnpm test` 再决定留不留；已手动钉过的写法（如 `data-grid-cell-selection.tsx` 用 `.item()` 取末行）不要顺手改回去。
+
+## 告警预算：warning 不参与门禁，所以更要能读
+
+`vp check` 只有 error 才非零退出（实测 0 error / 618 warnings 时 exit 0），warnings 是暴露台账而不是拦子。台账的前提是**它能被读完**，所以 vendored 代码不参与：`packages/config/oxlint.config.ts` 的 reui override 除原先 13 条外，把风格/建议类整族（`unicorn/no-null`、`prefer-at`、`prefer-spread`、`eslint/no-shadow`、`typescript/no-*assertion*`、`react-doctor/no-giant-component` 等 31 条）对 `**/components/reui/**` 关闭。
+
+- 效果：全仓 618 → **49 条 warning，且 100% 是第一方**（reui 命中数实测 0）。原先那 581 条来自 data-grid 与 cascader 两个 vendored 目录，改它就是 fork。
+- 关掉的 31 条**全是 warn 级**（改前后 `vp check` 的 error 数恒为 0）。error 级规则对 reui 依旧生效（`typescript/no-floating-promises`、`unicorn/*-error` 那批、`tanstack-*`，加 tsc strict + `noUncheckedIndexedAccess`）；唯一的例外是原先那 13 条里就关掉的 `typescript/no-unnecessary-condition`，理由见上面的逐条注释。
+- override 的 key 写错不报错、静默不匹配（同一族的坑见配置文件 :355-364 的 glob 注释）。所以改这块的规则后必须复跑 `pnpm exec vp check` 并数一遍 reui 命中数，别只看总 warning 数降没降。
