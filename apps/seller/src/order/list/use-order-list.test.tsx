@@ -91,13 +91,13 @@ describe("订单列表的买家电话", () => {
 
         expect(await screen.findByText(MASKED)).toBeInTheDocument()
         // 一屏十行都是「查看」时，读屏必须能分辨这个按钮换的是哪一单
-        expect(screen.getByRole("button", { name: "查看张三的号码" })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: `查看张三的号码 ${MASKED}` })).toBeInTheDocument()
     })
 
     it("点查看_请求打在这一单上，号码就地换明文且入口消失", async () => {
         const calls = useOrderRoutes()
         const { user } = await setup()
-        await user.click(await screen.findByRole("button", { name: "查看张三的号码" }))
+        await user.click(await screen.findByRole("button", { name: `查看张三的号码 ${MASKED}` }))
 
         await waitFor(() => expect(screen.getByText(PLAIN)).toBeInTheDocument())
         expect(calls.revealedOn).toBe(ORDER_ID)
@@ -109,7 +109,7 @@ describe("订单列表的买家电话", () => {
     it("索取没回来前连点_只发一次请求：一次索取是一条取用留痕，不是多看一眼", async () => {
         const calls = useOrderRoutes(50)
         const { user } = await setup()
-        const reveal = await screen.findByRole("button", { name: "查看张三的号码" })
+        const reveal = await screen.findByRole("button", { name: `查看张三的号码 ${MASKED}` })
 
         await user.click(reveal)
         expect(reveal).toBeDisabled()

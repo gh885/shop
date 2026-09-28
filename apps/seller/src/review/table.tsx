@@ -72,17 +72,30 @@ export function ReviewTable({
                         </TableCell>
                         <TableCell className="max-w-80">
                             {review.content ? (
-                                <p className="line-clamp-2">{review.content}</p>
+                                // whitespace-normal 不可省：TableCell 基类是 whitespace-nowrap，
+                                // 不换行的话 line-clamp-2 永不触发，正文被硬裁且没有省略号（DESIGN.md §6.2）
+                                <p
+                                    className="line-clamp-2 whitespace-normal"
+                                    title={review.content}
+                                >
+                                    {review.content}
+                                </p>
                             ) : (
                                 <span className="text-muted-foreground">（只打了分）</span>
                             )}
                             {review.appendText && (
-                                <p className="mt-1 text-xs text-muted-foreground">
+                                <p
+                                    className="mt-1 line-clamp-2 whitespace-normal text-xs text-muted-foreground"
+                                    title={review.appendText}
+                                >
                                     <Badge variant="secondary">买家追评</Badge> {review.appendText}
                                 </p>
                             )}
                             {review.reply && (
-                                <p className="mt-1 text-xs text-muted-foreground">
+                                <p
+                                    className="mt-1 line-clamp-2 whitespace-normal text-xs text-muted-foreground"
+                                    title={review.reply}
+                                >
                                     <Badge variant="outline">已回复</Badge> {review.reply}
                                 </p>
                             )}

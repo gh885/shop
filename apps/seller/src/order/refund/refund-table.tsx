@@ -9,7 +9,7 @@ import { CopyableText } from "#/shared/ui/CopyableText"
 import { TableCard } from "#/shared/ui/TableCard"
 
 /**
- * 退款售后工作台表格：售后单（类型 + 状态）/ 商品 / 订单号 / 买家 / 退款金额 / 买家原因与补充说明 / 申请时间 / 操作。
+ * 退款售后工作台表格（列定义见下方 TableHead）。
  *
  * 纯展示 + 事件上抛：不拉数据、不写 URL、不发请求（容器持有分页状态与 mutation）。
  * 卡片式排布而不是压成一行：工作台的每一行都要被"读"（理由 + 类型 + 金额）才能决定，不是扫一眼就过。

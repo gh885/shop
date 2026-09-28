@@ -59,8 +59,6 @@ function draftReducer(state: DraftState, action: DraftAction): DraftState {
  *     - 新建态（无 productId）：本地笛卡尔积 buildSkuRowsFromSelections 生成组合行，skuId 留空，不落库不建档；
  *     - 编辑态（有 productId）：后端 applyProductSpecs 对账 SKU（组合未变保留 skuId 与新价格）。
  *  3. 保存/发布（建档 → basic → 规格 → 门槛 → 已设价 SKU → 发布）。
- *
- * 完全显式：编辑过程（标题/图片/价格/选值）都在本地，0 写库请求；只有点「保存草稿/提交/放入仓库」才真正落库。
  */
 export function useProductDraft({
     shopId,
@@ -242,10 +240,10 @@ export function useProductDraft({
     // 本函数是 save mutation 的 mutationFn：一次用户级写操作，失败统一由调用方内联展示（meta.silentError）。
     // 每一步是一个语义化小函数，各自携带「为什么」；主流程只读意图不读实现。
     async function saveAndPublish(basic: ProductBasicForm, mode: SaveMode): Promise<void> {
-        if (!shopId) return
+        // 没店就没得存：静默返回会让按钮看着像没反应，交给页内横幅说清楚
+        if (!shopId) throw new BusinessError("请先选择店铺")
         // 1. 建档（首次才 POST；编辑态复用）——拿到可落库的 productId（草稿/提交都需先有商品）
         const id = await ensureDraft(basic)
-        if (!id) return
         // 2. 落 basic（标题/图片/卖点）——草稿与提交都存
         await persistBasic(id, basic)
         // 3. 落规格拿真实 skuId + 本地已填价搬回（草稿降级跳过，提交严格）
@@ -299,13 +297,12 @@ export function useProductDraft({
         }
     }
 
-    // 类目为 undefined 时 ensureDraft/persistBasic 已各自拦截；这里给 saveAndPublish 的调用方一个明确入口
+    // 对外只交「受控值 + 写入口」：建档与落库都由 submit 内部编排（调用方的 categoryId 由路由守卫保证必填）
     return {
         selections,
         setSelections,
         skuRows,
         setSkuRows: (rows: SkuDraftRow[]) => dispatch({ type: "setSkuRows", rows }),
-        ensureDraft,
         /** 显式保存：草稿只落库，submit/warehouse 才发布（失败 reject 给调用方内联展示） */
         submit: (basic: ProductBasicForm, mode: SaveMode) => save.mutateAsync({ basic, mode }),
         submitting: save.isPending,

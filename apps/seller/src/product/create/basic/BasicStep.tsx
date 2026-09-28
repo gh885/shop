@@ -32,6 +32,7 @@ import {
     TooltipTrigger,
     useAppForm,
 } from "@shop/ui-web"
+import { scrollToElement } from "@shop/common"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
     锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
@@ -102,15 +103,8 @@ export function BasicStep({
     const categoryNames = leafPaths.find((p) => p.id === categoryId)?.names ?? []
     const active = useActiveSection()
 
-    // 编辑约束（对齐后端「状态 × 字段」矩阵）：
-    //  - 切类目：仅草稿可改（或新建）；仓库中/上架须先下架（结构性变更）。
-    //  - 规格冻结：上架商品规格不可改（价格/库存仍可运营），改规格要先下架。
-    // 是否「新建 / 草稿态」编辑：决定能否切类目、显示上架时间、以及操作条是否提供「保存草稿+发布」——
-    // 仓库中/上架商品已不可回草稿，操作条只剩「保存变更」（严格校验 + 不发布）。
-    // 编辑约束统一来自 edit-rules 表（后端 ProductStatus 状态机的声明式镜像），不再散落推导：
-    //  - 切类目：仅 DRAFT（含新建）可改——类目是结构性字段，发布后（含仓库中）不可改
-    //  - 规格冻结：PUBLISHED 禁改规格（价格/库存仍可运营），改规格先下架
-    //  - 上架时间/发布：仅 DRAFT（含新建）会话有发布目标；仓库/上架只剩「保存变更」（状态不回退）
+    // 编辑约束来自 edit-rules 表（后端 ProductStatus 状态机的声明式镜像）：类目仅 DRAFT 可改、
+    // PUBLISHED 冻结规格、只有 DRAFT 会话有发布目标（仓库/上架只剩「保存变更」，状态不回退）。
     const rules = editRules(productStatus)
     const canSwitchCategory = rules.switchCategory
     const specsLocked = !rules.specsEditable
@@ -193,7 +187,7 @@ export function BasicStep({
         >
             <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
                 <div>
-                    <h1 className="text-xl font-bold tracking-tight">填写商品信息</h1>
+                    <h1 className="text-xl font-bold">填写商品信息</h1>
                     <p className="mt-1 text-sm text-muted-foreground">
                         带 <span className="text-destructive">*</span>{" "}
                         为必填；点「保存草稿」或「提交商品信息」时才会保存
@@ -412,5 +406,5 @@ function useActiveSection(): string {
 }
 
 function scrollToSection(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+    scrollToElement(id)
 }

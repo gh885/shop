@@ -1,7 +1,7 @@
 import { PackageCheck } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 
-import { toApiError } from "@shop/common"
+import { apiErrorDetail } from "@shop/common"
 import { FormActions } from "@shop/app-kit"
 import type { ProductDetailResponse } from "@shop/api/sdk"
 import {
@@ -91,7 +91,7 @@ export function EditSkuLineDialog({
 
                 {isError ? (
                     <StateError
-                        message={toApiError(error).detail}
+                        message={apiErrorDetail(error, "SKU 信息加载失败，请重试")}
                         onRetry={() => void refetch()}
                         retrying={isFetching}
                     />

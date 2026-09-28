@@ -42,16 +42,15 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
     )
 
     // React Compiler 已接管缓存：回调不手动 memo，身份由编译器自动稳定
+    // URL 那侧的页签键叫 status（路由 schema 认它），hook 内部叫 tab：写回时换算，别把 tab 直接递进 URL
     function apply(next: Partial<RefundListSearch>) {
         void navigate({
             to: "/trade/refund",
             search: {
-                status: search.tab,
-                page: search.page,
-                size: search.size,
-                ...next,
+                status: next.tab ?? search.tab,
                 // 换页签回到第一页：留在第 3 页看新页签是空列表，看着像"没有数据"
-                ...(next.tab === undefined ? {} : { page: 1 }),
+                page: next.tab === undefined ? search.page : 1,
+                size: search.size,
             },
         })
     }

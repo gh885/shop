@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 
 import type { OrderIdentity } from "./table"
-import { TRACKING_NO_MAX, toApiError } from "@shop/common"
+import { TRACKING_NO_MAX, apiErrorDetail } from "@shop/common"
 import { FormActions } from "@shop/app-kit"
 import {
     Button,
@@ -107,7 +107,7 @@ function ShipForm({
                         <FieldLabel>快递公司</FieldLabel>
                         <div className="flex items-center justify-between gap-2">
                             <span className="text-sm text-destructive">
-                                {toApiError(carriers.error).detail}
+                                {apiErrorDetail(carriers.error, "快递公司列表加载失败，请重试")}
                             </span>
                             <Button
                                 type="button"

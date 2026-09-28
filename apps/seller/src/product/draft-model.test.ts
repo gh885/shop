@@ -277,7 +277,10 @@ describe("mergeSkuRows", () => {
         const previous = [makeRow("红", { skuId: "s1", price: 2500 })]
         const fresh = [makeSku("s2", ["蓝"])]
 
-        expect(mergeSkuRows(previous, fresh)[0]).toMatchObject({ skuId: "s2", price: money(19900) })
+        expect(mergeSkuRows(previous, fresh)[0]).toMatchObject({
+            skuId: "s2",
+            price: money(19900),
+        })
     })
 
     it("上一轮为空时全部用服务端行", () => {

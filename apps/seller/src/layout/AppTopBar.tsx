@@ -20,7 +20,6 @@ export function AppTopBar(props: { title: string; minimal?: boolean; sticky?: bo
                     <WorkbenchTopBarAction
                         icon={<BellIcon />}
                         label={t("seller.topbar.messages")}
-                        dot
                     />
                     <WorkbenchTopBarAction
                         icon={<BookOpenIcon />}

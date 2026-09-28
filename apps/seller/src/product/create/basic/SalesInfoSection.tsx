@@ -12,7 +12,7 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { priceRangeText, toApiError } from "@shop/common"
+import { apiErrorDetail, priceRangeText } from "@shop/common"
 import { useQuery } from "@tanstack/react-query"
 
 import { derivePriceStock } from "#/product/draft-model"
@@ -66,7 +66,7 @@ export function SalesInfoSection({
     if (templateQuery.isError) {
         return (
             <StateError
-                message={toApiError(templateQuery.error).detail}
+                message={apiErrorDetail(templateQuery.error, "规格模板加载失败，请重试")}
                 onRetry={() => void templateQuery.refetch()}
                 retrying={templateQuery.isFetching}
             />

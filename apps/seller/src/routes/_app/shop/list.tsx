@@ -49,7 +49,7 @@ function ShopsPage() {
     return (
         <div className="mx-auto w-full max-w-3xl space-y-8">
             <div>
-                <h1 className="text-xl font-bold tracking-tight">店铺管理</h1>
+                <h1 className="text-xl font-bold">店铺管理</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                     管理我的店铺，选择一家正常营业的店铺作为当前经营店铺。
                 </p>

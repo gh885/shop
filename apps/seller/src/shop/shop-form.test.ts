@@ -29,7 +29,9 @@ describe("CreateShopFormSchema", () => {
     })
 
     it("首尾空白不计入长度，交出去的名字也已经 trim 过", () => {
-        const parsed = CreateShopFormSchema.safeParse({ name: `  ${"店".repeat(SHOP_NAME_MAX)}  ` })
+        const parsed = CreateShopFormSchema.safeParse({
+            name: `  ${"店".repeat(SHOP_NAME_MAX)}  `,
+        })
 
         expect(parsed.success).toBe(true)
         expect(parsed.success && parsed.data.name).toBe("店".repeat(SHOP_NAME_MAX))

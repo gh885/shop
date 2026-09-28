@@ -30,12 +30,15 @@ export type CouponStatus = "NOT_STARTED" | "ONGOING" | "ENDED" | "STOPPED"
  */
 const TEMPLATE_STATUS_META: Record<
     CouponStatus,
-    { label: string; variant: "success" | "secondary" | "outline" | "destructive" }
+    { label: string; variant: "success" | "secondary" | "outline" }
 > = {
     NOT_STARTED: { label: "未开始", variant: "outline" },
     ONGOING: { label: "进行中", variant: "success" },
     ENDED: { label: "已结束", variant: "secondary" },
-    STOPPED: { label: "已停用", variant: "destructive" },
+    // 「已停用」是活动跑完了另一种收场，不是一条危险操作：destructive（危险色）按
+    // DESIGN.md §2.2 只给破坏性动作与错误。停用与结束的区别由「实心 vs 空心」两档中性表达，
+    // 危险色留给真正下刀的那个「停用」按钮本身。
+    STOPPED: { label: "已停用", variant: "outline" },
 }
 
 /**

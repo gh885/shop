@@ -52,16 +52,11 @@ const ROW_ACTION_UI: Partial<Record<TicketAvailableAction, RefundRowAction>> = {
     RECEIVE_RETURN: "receive",
 }
 
-/**
- * 一行售后的动作视图：工作台的行与订单列表批查出来的动作集都只要这一列（契约必填）。
- */
+/** 动作视图只吃这一列：工作台的行与订单列表批查出来的动作集（契约必填） */
 export type RefundRowView = { availableActions: TicketAvailableAction[] }
 
 /**
- * 卖家对一行售后单能做的动作——读行上下发的 availableActions，不按状态自推：
- * - 待处理 → 同意 / 拒绝（仅退款同意即退款，退货退款同意后转「退货中」，分派也在后端）
- * - 退货中 → 确认收货 / 拒绝（后者是「货退回来了但验货不通过」，退款不打出去）
- * - 终态 → 后端给空集，这里就空（已退款/已拒绝/已撤销都是历史）
+ * 一行售后的动作：读工作台下发的 availableActions，不按状态自推（终态行后端给空集，这里就空）。
  */
 export function refundRowActions(ticket: RefundRowView): RefundRowAction[] {
     return ticket.availableActions.flatMap((action) => {
@@ -70,7 +65,7 @@ export function refundRowActions(ticket: RefundRowView): RefundRowAction[] {
     })
 }
 
-/** 动作按钮文案（工作台上的动作比订单列表更明确：那里是「同意」，这里是「同意退款」） */
+/** 动作按钮文案（与订单列表的同一动作在这里说得更具体） */
 export const REFUND_ACTION_LABEL: Record<RefundRowAction, string> = {
     agree: "同意",
     reject: "拒绝",

@@ -14,7 +14,7 @@ export function PlaceholderPage({ title }: { title?: string }) {
                 <ConstructionIcon className="size-7 text-muted-foreground" />
             </div>
             <div className="space-y-1.5">
-                <h1 className="text-lg font-bold tracking-tight">{title ?? "功能建设中"}</h1>
+                <h1 className="text-lg font-bold">{title ?? "功能建设中"}</h1>
                 <p className="text-sm text-muted-foreground">该页面正在紧张开发中，敬请期待。</p>
             </div>
             <Link

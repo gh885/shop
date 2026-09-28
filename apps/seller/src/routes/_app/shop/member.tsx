@@ -41,7 +41,7 @@ function MembersPage() {
     return (
         <div className="mx-auto w-full max-w-3xl space-y-6">
             <div>
-                <h1 className="text-xl font-bold tracking-tight">店员管理</h1>
+                <h1 className="text-xl font-bold">店员管理</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                     「{shop.name}」的成员，店主可邀请或移除店员。
                 </p>
