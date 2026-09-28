@@ -10,13 +10,19 @@ cd "$(dirname "$0")/.."
 fail=0
 
 # ---- 1) SDK 生成物 vs 提交的 api-docs.json（离线）----
-(cd packages/api && npx @hey-api/openapi-ts >/dev/null)
-if [ -n "$(git diff --name-only -- packages/api/src/sdk)" ]; then
-    echo "✖ packages/api/src/sdk 与 openapi/api-docs.json 不同步（生成物有差异，已留在工作区）"
-    echo "  → 检查后 git add packages/api/src/sdk 一起提交，再推送"
-    fail=1
-else
+# 生成到临时目录只比对，绝不写 src/sdk：openapi-ts 落笔前会 rmSync 整个输出目录，
+# 而 pre-push 是 parallel 的 —— tsc/oxlint/vitest 正开着那里的文件时 Windows 删除报
+# EPERM，旧文件已删、新文件没写完，半截生成物会把 typecheck/lint/test 一起带红（实测）。
+tmp_sdk=$(mktemp -d)
+trap 'rm -rf "$tmp_sdk"' EXIT
+(cd packages/api && npx @hey-api/openapi-ts --no-log-file -o "$tmp_sdk" >/dev/null)
+if diff_out=$(diff -r packages/api/src/sdk "$tmp_sdk" 2>&1); then
     echo "✓ SDK 生成物与 api-docs.json 同步"
+else
+    echo "✖ packages/api/src/sdk 与 openapi/api-docs.json 不同步（前 20 行差异）"
+    printf '%s\n' "$diff_out" | head -20
+    echo "  → 跑 pnpm --filter @shop/api exec openapi-ts 重新生成后连同本次改动一起提交，再推送"
+    fail=1
 fi
 
 # ---- 2) 提交的 api-docs.json vs 运行中的后端（在线，可选）----
