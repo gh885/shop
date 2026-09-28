@@ -3,6 +3,15 @@
  * 唯一真相是这里，测试文件不再各自散落 localhost 端口。
  */
 
+import { loadDevEnv } from "../../scripts/dotenv.mjs"
+
+/**
+ * dev 口令与数据面偏好的唯一来源是 `apps/server/.env`（Spring 读同一个文件）。这里接过来是为了和
+ * scripts/seed-demo.mjs 保持同一口径：数据面在云上时，只认 process.env 会拿默认的 `shop_dev`
+ * 去连远端库，DB 反查那步必挂。接法本身收在 scripts/dotenv.mjs，不在这里抄第二份。
+ */
+loadDevEnv()
+
 /** 后端（Spring Boot）：无 `/api` 前缀，只有公开读接口自身路径以 /api 开头 */
 export const API_URL = process.env.E2E_API_URL ?? "http://localhost:8080"
 export const WEB_URL = process.env.E2E_WEB_URL ?? "http://localhost:3000"

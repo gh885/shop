@@ -17,12 +17,20 @@
  */
 
 import { connect } from "node:net"
+import { loadDevEnv } from "./dotenv.mjs"
+
+loadDevEnv()
 
 /** 与 scripts/ensure-datastore.mjs 的两个端口保持一致 */
 const SERVICES = [
     { name: "PostgreSQL", port: Number(process.env.SHOP_DB_PORT ?? 15432) },
     { name: "Redis", port: Number(process.env.SHOP_REDIS_PORT ?? 6379) },
 ]
+/** 数据面在哪台机器上，修法那句就得跟着说哪台 —— 否则会把人指向一条起错东西的命令 */
+const REMOTE = process.env.SHOP_DATASTORE === "remote"
+const FIX = REMOTE
+    ? "起 ssh 隧道（数据面在云上，见 apps/server/.env）"
+    : "从 WSL 拉起 PG + Redis（首次约 30~60s）"
 
 const CONNECT_TIMEOUT_MS = 1500
 
@@ -57,7 +65,7 @@ process.stderr.write(
         "  后端接口契约测试（@SpringBootTest）要连专用库 shop_test。库不在时它们整类红，",
         "  Spring 的 failure threshold 还会把后面几百个用例一起带红 —— 那不是代码坏了，是库没起。",
         "",
-        "  修：pnpm db:up        # 从 WSL 拉起 PG + Redis（首次约 30~60s）",
+        `  修：pnpm db:up        # ${FIX}`,
         "      pnpm dev:server   # 或者让开发服务器带着数据面跑",
         "",
         "  确实想跳过这个探针：SHOP_SKIP_DATASTORE_CHECK=1 <命令>",

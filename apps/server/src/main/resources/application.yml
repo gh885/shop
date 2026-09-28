@@ -18,13 +18,27 @@ spring:
     datasource:
         # 本地 PG 跑在 15432：WSL 镜像网络下共享 Windows 网络栈，5432 被 GameViewerServer 占死（绑不上）。
         # CI 的 PG service 在 5432，用 SHOP_DB_PORT 覆盖；换回默认端口同步改 scripts、e2e、AGENTS 口径。
-        url: jdbc:postgresql://127.0.0.1:${SHOP_DB_PORT:15432}/shop
-        username: shop
-        password: shop_dev
+        # host 同理由 SHOP_DB_HOST 管：数据面在云上时它和 scripts/seed-demo、e2e/fixtures/env.ts 认同一个变量
+        # （隧道拓扑下仍是 127.0.0.1——ssh 在本地绑同一个端口，见 scripts/ensure-datastore.mjs 的 remote 模式）
+        url: jdbc:postgresql://${SHOP_DB_HOST:127.0.0.1}:${SHOP_DB_PORT:15432}/shop
+        # 名字跟着 scripts/seed-demo.mjs 与 e2e/fixtures/env.ts 用同一套（SHOP_DB_USER / SHOP_DB_PASSWORD），
+        # 一个 .env 就能同时喂到 Spring 和 node 脚本。写死 shop_dev 的旧写法在数据面上云时没法覆盖
+        username: ${SHOP_DB_USER:shop}
+        password: ${SHOP_DB_PASSWORD:shop_dev}
         hikari:
             # JacksonTypeHandler 用 setString 写 JSON；未指定类型时让 PostgreSQL 按目标 jsonb 列推断。
             data-source-properties:
                 stringtype: unspecified
+
+    data:
+        redis:
+            # dev 段原来没有这块，全靠 Spring Boot 的 localhost:6379 无密码默认值。数据面上云后
+            # requirepass 是必需的（那台机器有公网 IP），端口与密码的名字则和
+            # scripts/ensure-datastore.mjs / 隧道共用 SHOP_REDIS_* 一族。prod 用 SPRING_DATA_REDIS_*
+            # 覆盖（见 application-prod.yml），两边互不影响
+            host: ${SHOP_REDIS_HOST:127.0.0.1}
+            port: ${SHOP_REDIS_PORT:6379}
+            password: ${SHOP_REDIS_PASSWORD:}
 
     flyway:
         enabled: true

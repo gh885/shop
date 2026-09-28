@@ -1,10 +1,11 @@
-# 集成测试专用库：与 dev 库隔离，测试数据再泄漏也脏不到开发数据。
-# 注意：本文件不继承主配置的 spring.datasource.url，必须显式指向 shop_test。
+# 集成测试专用库：库名与 dev 库分开（shop_test），测试数据再泄漏也脏不到开发数据。
+# 注意：本文件不继承主配置的 spring.datasource.url，必须显式指向 shop_test；
+# 但 host / 端口 / 凭据仍走 SHOP_DB_* 变量族 —— 数据面在本地还是在云上，测试跟着走。
 spring:
     datasource:
-        url: jdbc:postgresql://127.0.0.1:${SHOP_DB_PORT:15432}/shop_test
-        username: shop
-        password: shop_dev
+        url: jdbc:postgresql://${SHOP_DB_HOST:127.0.0.1}:${SHOP_DB_PORT:15432}/shop_test
+        username: ${SHOP_DB_USER:shop}
+        password: ${SHOP_DB_PASSWORD:shop_dev}
 
     flyway:
         enabled: true

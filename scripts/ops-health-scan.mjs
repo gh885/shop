@@ -4,6 +4,10 @@
  * 用法：SHOP_DB_NAME=shop pnpm health:scan
  */
 import { execFileSync } from "node:child_process"
+import { loadDevEnv } from "./dotenv.mjs"
+
+/** 口令与数据面住在 apps/server/.env，不接过来会拿默认的 shop_dev 去连云库 */
+loadDevEnv()
 
 const db = {
     host: process.env.SHOP_DB_HOST ?? "127.0.0.1",

@@ -38,6 +38,14 @@
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import net from "node:net"
+import { loadDevEnv } from "./dotenv.mjs"
+
+/**
+ * dev 口令与数据面偏好的唯一来源是 `apps/server/.env`（Spring 也读它，见 application.yml 的 config.import）。
+ * 本脚本只认 process.env，不接过来就会拿默认的 `shop_dev` 去连——WSL 模式下碰巧对，
+ * 数据面上云（SHOP_DATASTORE=remote）时那是必挂的。显式导出的变量优先于文件。
+ */
+loadDevEnv()
 
 const DISTRO = process.env.SHOP_WSL_DISTRO ?? "Ubuntu"
 const DB = {

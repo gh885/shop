@@ -1,0 +1,53 @@
+# 云端数据面（PostgreSQL 18 + Redis 7）。本机开发用 ssh 隧道接进来，见 scripts/ensure-datastore.mjs
+# 的 remote 模式（SHOP_DATASTORE=remote）。
+#
+# 用法（在云主机上）：
+#   mkdir -p ~/shop-infra && cp dataplane.compose.yml deploy/dataplane.env.example ~/shop-infra/
+#   cd ~/shop-infra && mv dataplane.env.example .env && vi .env      # .env 不进仓库
+#   docker compose -f dataplane.compose.yml up -d
+#
+# 这里只有数据面。后端不在这里，因为它要等的东西（真实短信通道、域名与证书）还没就位；
+# 数据面先行就能把「本地 WSL VM 被回收 → 后端连不上库」这个老毛病解决掉。
+name: shop-infra
+
+services:
+    pg:
+        image: postgres:18-alpine
+        container_name: shop-pg
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: shop
+            POSTGRES_USER: shop
+            POSTGRES_PASSWORD: ${PG_PASSWORD}
+        ports:
+            # 只绑 127.0.0.1：这台机器有公网 IP，库对公网可见等于把 shop_dev 这类密码挂在扫描器名单上。
+            # 5433 而不是 5432：同机 campus-chat-pg（PG 16）在用 5432，让它随时能回来。
+            # 本地侧看到什么端口由隧道的 SHOP_DB_PORT 决定，见 scripts/ensure-datastore.mjs
+            - "127.0.0.1:5433:5432"
+        volumes:
+            # PG 18 的官方镜像把 PGDATA 挪到了 /var/lib/postgresql/18/docker（不再是 .../data）。
+            # 按 16 及以前的习惯挂 /var/lib/postgresql/data 会静默把数据落在容器层里，重建即丢
+            - shop-pg-data:/var/lib/postgresql
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U shop -d shop"]
+            interval: 10s
+            timeout: 5s
+            retries: 6
+
+    redis:
+        image: redis:7-alpine
+        container_name: shop-redis
+        restart: unless-stopped
+        # allkeys-lru 是刻意的：这里存的是验证码摘要、发码频控、refresh token——全带 TTL。
+        # 默认的 noeviction 一旦撑满就变成「写不进去 → 发码接口整体失败」，
+        # 而 LRU 淘汰掉的只是本该更早过期的键。淘汰 = 少数人重发一次验证码，不淘汰 = 接口挂。
+        command: >
+            redis-server
+            --requirepass ${REDIS_PASSWORD}
+            --maxmemory 128mb
+            --maxmemory-policy allkeys-lru
+        ports:
+            - "127.0.0.1:6379:6379"
+
+volumes:
+    shop-pg-data:
