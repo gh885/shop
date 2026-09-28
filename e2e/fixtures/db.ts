@@ -18,6 +18,22 @@ export function shipmentIdByTrackingNo(trackingNo: string): string {
         throw new Error(`运单号 ${trackingNo} 含非预期字符，拒绝入库查询`)
 
     const sql = `select id from logistics.shipments where tracking_no = '${trackingNo}'`
+    /** psql 的参数只有一份：两次调用差的只是外面那层壳，不该各写一遍各自的 flag 列表 */
+    const psqlArgs = [
+        "-X",
+        "-t",
+        "-A",
+        "-h",
+        DB.host,
+        "-p",
+        String(DB.port),
+        "-U",
+        DB.user,
+        "-d",
+        DB.name,
+        "-c",
+        sql,
+    ]
     const out =
         process.platform === "win32"
             ? execFileSync(
@@ -28,29 +44,14 @@ export function shipmentIdByTrackingNo(trackingNo: string): string {
                       "--",
                       "bash",
                       "-lc",
-                      `PGPASSWORD=${DB.password} psql -X -t -A -h ${DB.host} -p ${DB.port} -U ${DB.user} -d ${DB.name} -c "${sql}"`,
+                      `PGPASSWORD=${DB.password} psql ${psqlArgs.map((arg) => `"${arg}"`).join(" ")}`,
                   ],
                   { encoding: "utf8" },
               )
-            : execFileSync(
-                  "psql",
-                  [
-                      "-X",
-                      "-t",
-                      "-A",
-                      "-h",
-                      DB.host,
-                      "-p",
-                      String(DB.port),
-                      "-U",
-                      DB.user,
-                      "-d",
-                      DB.name,
-                      "-c",
-                      sql,
-                  ],
-                  { encoding: "utf8", env: { ...process.env, PGPASSWORD: DB.password } },
-              )
+            : execFileSync("psql", psqlArgs, {
+                  encoding: "utf8",
+                  env: { ...process.env, PGPASSWORD: DB.password },
+              })
 
     const ids = out
         .split(/\r?\n/)

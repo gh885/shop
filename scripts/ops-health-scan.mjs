@@ -11,12 +11,13 @@ const db = {
     user: process.env.SHOP_DB_USER ?? "shop",
     password: process.env.SHOP_DB_PASSWORD ?? "shop_dev",
     name: process.env.SHOP_DB_NAME ?? "shop",
+    distro: process.env.SHOP_WSL_DISTRO ?? "Ubuntu",
 }
 
 const checks = [
     {
         name: "孤立用户券",
-        sql: `SELECT id::text FROM coupon.user_coupons c
+        sql: `SELECT c.id::text FROM coupon.user_coupons c
           LEFT JOIN account.users u ON u.id = c.user_id
           LEFT JOIN shop.shops s ON s.id = c.shop_id
           WHERE u.id IS NULL OR s.id IS NULL LIMIT 100`,
@@ -47,27 +48,44 @@ const checks = [
     },
 ]
 
+/**
+ * 本机 PG 跑在 WSL2 里，Windows 侧没有 psql：进 WSL 执行（与 e2e/fixtures/db.ts 同一口径）。
+ * 参数只写一份，两个平台差的只是外面那层壳。
+ */
 function query(sql) {
-    const env = { ...process.env, PGPASSWORD: db.password }
+    const args = [
+        "-X",
+        "-A",
+        "-t",
+        "-q",
+        "-h",
+        db.host,
+        "-p",
+        db.port,
+        "-U",
+        db.user,
+        "-d",
+        db.name,
+        "-c",
+        sql,
+    ]
+    if (process.platform !== "win32") {
+        return execFileSync("psql", args, {
+            env: { ...process.env, PGPASSWORD: db.password },
+            encoding: "utf8",
+        }).trim()
+    }
     return execFileSync(
-        "psql",
+        "wsl.exe",
         [
-            "-X",
-            "-A",
-            "-t",
-            "-q",
-            "-h",
-            db.host,
-            "-p",
-            db.port,
-            "-U",
-            db.user,
             "-d",
-            db.name,
-            "-c",
-            sql,
+            db.distro,
+            "--",
+            "bash",
+            "-lc",
+            `PGPASSWORD=${db.password} psql ${args.map((arg) => `"${arg}"`).join(" ")}`,
         ],
-        { env, encoding: "utf8" },
+        { encoding: "utf8" },
     ).trim()
 }
 

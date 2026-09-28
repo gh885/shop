@@ -2,13 +2,8 @@
 /**
  * 跑后端测试（`mvn test`）之前先确认数据面在位 —— **不让「库没起」伪装成测试失败**。
  *
- * 为什么要有这个：后端 `mvn test` 里的接口契约测试（`WebControllerTestSupport` 子类，如
- * `AdminEndpointGuardTest` / `ApiDocsContractTest` / `UnmappedRouteTest`）用 `@SpringBootTest`
- * 起**真实应用上下文**，要连专用库 shop_test（Flyway 迁一次后共享，与 dev 库隔离）。
- * WSL 的 PG/Redis 一旦被回收，这些类加载上下文失败，Spring 的
- * `ApplicationContext failure threshold (1) exceeded` 会把**后面所有用例**一起判红 ——
- * 实测 6 个类 → 200+ 个 error，而真正的原因只是「5432 连不上」。
- * 那种红法既慢（白跑几百个用例）又骗人（看起来像代码坏了）。
+ * 为什么需要探针、库不在时红成什么样、怎么修：都写在下面的输出里（那份输出才是操作者会读的）；
+ * WSL 侧 VM 被回收的机制与实测结论见 scripts/ensure-datastore.mjs 的头注释。
  *
  * 本脚本只探不跑：两个端口都在 → exit 0（调用方用 `&&` 接真命令）；
  * 任一不在 → 打印修法并 exit 1，真命令不会被执行。
