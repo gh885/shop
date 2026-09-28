@@ -14,7 +14,8 @@ import { myOrdersOptions } from "./queries"
 /**
  * useOrderActions 分发测试：pay 走导航、cancel 起取消原因弹窗（选原因/填备注后确认才发请求，
  * 快捷原因与备注拼成自由文本透传；什么都不选则 reason 缺席）、
- * confirm 发确认收货请求、pendingAction 防重复提交。
+ * confirm 发确认收货请求、extend_receive 走全局二次确认（点确认才发请求，取消则一发不出），
+ * pendingAction 防重复提交。
  * 导航用 MemoryRouter 断言地址；网络层用 MSW 局部覆盖并捕获请求，不 mock 内部模块。
  */
 
@@ -37,7 +38,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     }
 }
 
-/** 探针：Probe 组件在路由上下文内渲染三个动作按钮 + 取消弹窗，pending 态读 data-testid */
+/** 探针：Probe 组件在路由上下文内渲染四个动作按钮 + 取消弹窗，pending 态读 data-testid */
 function Probe() {
     const { handleAction, pendingAction, cancelDialog } = useOrderActions()
     return (
@@ -59,6 +60,12 @@ function Probe() {
                 onClick={() => handleAction(makeOrder(), "confirm")}
             >
                 confirm
+            </button>
+            <button
+                type="button"
+                onClick={() => handleAction(makeOrder(), "extend_receive")}
+            >
+                extend
             </button>
             <span data-testid="pending">{pendingAction ?? "none"}</span>
             {cancelDialog}
@@ -82,6 +89,12 @@ async function openCancel(user: ReturnType<typeof userEvent.setup>) {
 /** 弹窗里的「确认取消」按钮 */
 function confirmButton() {
     return screen.getByRole("button", { name: "确认取消" })
+}
+
+/** 点 extend 打开延长收货的二次确认（等确认面标题出现） */
+async function openExtendConfirm(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: "extend" }))
+    await screen.findByText(/延长确认收货/)
 }
 
 describe("useOrderActions", () => {
@@ -202,6 +215,65 @@ describe("useOrderActions", () => {
         await user.click(screen.getByRole("button", { name: "confirm" }))
 
         await waitFor(() => expect(screen.getByTestId("pending").textContent).toBe("confirm"))
+
+        release?.()
+        await waitFor(() => expect(screen.getByTestId("pending").textContent).toBe("none"))
+    })
+
+    it("extend_receive 起二次确认，点「延长 7 天」才发 PUT /orders/{id}/receive/extend", async () => {
+        let extendedOrderId: string | undefined
+        server.use(
+            http.put("*/orders/:id/receive/extend", ({ params }) => {
+                extendedOrderId = typeof params.id === "string" ? params.id : undefined
+                return new HttpResponse(null, { status: 204 })
+            }),
+        )
+        const { user } = await setup()
+
+        await openExtendConfirm(user)
+        expect(extendedOrderId, "额度只有一次，光点开不该发请求").toBeUndefined()
+
+        await user.click(screen.getByRole("button", { name: "延长 7 天" }))
+
+        await waitFor(() => expect(extendedOrderId).toBe("o-1"))
+        await waitFor(() => expect(screen.queryByText(/延长确认收货/)).toBeNull())
+    })
+
+    it("extend_receive 二次确认点「取消」不发请求，买家点错还能反悔", async () => {
+        let requested = false
+        server.use(
+            http.put("*/orders/:id/receive/extend", () => {
+                requested = true
+                return new HttpResponse(null, { status: 204 })
+            }),
+        )
+        const { user } = await setup()
+
+        await openExtendConfirm(user)
+        await user.click(screen.getByRole("button", { name: "取消" }))
+
+        await waitFor(() => expect(screen.queryByText(/延长确认收货/)).toBeNull())
+        expect(requested).toBe(false)
+    })
+
+    it("extend 请求进行中 pendingAction 是 extend_receive，完成后回到 none", async () => {
+        let release: (() => void) | undefined
+        server.use(
+            http.put("*/orders/:id/receive/extend", async () => {
+                await new Promise<void>((resolve) => {
+                    release = resolve
+                })
+                return new HttpResponse(null, { status: 204 })
+            }),
+        )
+        const { user } = await setup()
+
+        await openExtendConfirm(user)
+        await user.click(screen.getByRole("button", { name: "延长 7 天" }))
+
+        await waitFor(() =>
+            expect(screen.getByTestId("pending").textContent).toBe("extend_receive"),
+        )
 
         release?.()
         await waitFor(() => expect(screen.getByTestId("pending").textContent).toBe("none"))

@@ -17,12 +17,15 @@ import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
  */
 
 export interface OrderStatusSectionProps {
-    /** 本区渲染所需：状态 + 可执行动作 + 付款截止 + 收货快照（详情契约独有，列表形状没有） */
+    /** 本区渲染所需：状态 + 可执行动作 + 付款截止 + 收货截止与延长资格 + 收货快照
+     *  （详情契约独有，列表形状没有） */
     order: Pick<
         OrderDetail,
         | "status"
         | "availableActions"
         | "payExpireAt"
+        | "receiveExpireAt"
+        | "canExtendReceive"
         | "receiverName"
         | "receiverPhone"
         | "receiverProvince"
@@ -40,11 +43,14 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
     // 待付款订单展示付款截止倒计时
     const pending = order.status === "pending_payment"
     const { seconds } = useDeadline(pending ? order.payExpireAt : "")
+    // 待收货订单展示自动确认倒计时（ORD-28）；延长后后端会把 receiveExpireAt 推后，这里自然跟着变
+    const receiving = order.status === "pending_receipt"
+    const { seconds: receiveSeconds } = useDeadline(receiving ? (order.receiveExpireAt ?? "") : "")
     const fullAddress = receiverFullAddress(order)
 
     return (
         <div className="space-y-5">
-            {/* 状态大标题 + 待付款倒计时 */}
+            {/* 状态大标题 + 两个倒计时 */}
             <div className="flex items-end gap-4">
                 <h1 className="text-xl font-bold text-foreground">
                     {ORDER_STATUS_LABEL[order.status]}
@@ -52,6 +58,11 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
                 {pending && (
                     <span className="pb-1 text-sm font-medium text-destructive tabular-nums">
                         付款剩余 {formatCountdown(seconds)}
+                    </span>
+                )}
+                {receiving && order.receiveExpireAt && (
+                    <span className="pb-1 text-sm font-medium text-muted-foreground tabular-nums">
+                        {formatCountdown(receiveSeconds)} 后自动确认收货
                     </span>
                 )}
             </div>

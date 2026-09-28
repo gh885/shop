@@ -1235,6 +1235,8 @@ export type OrderDetailResponse = {
     paidAt: string | null;
     shipExpireAt: string | null;
     shippedAt: string | null;
+    receiveExpireAt: string | null;
+    canExtendReceive: boolean;
     completedAt: string | null;
     cancelledAt: string | null;
     cancelReason: string | null;
@@ -2133,6 +2135,22 @@ export type ReceiveOrderData = {
 };
 
 export type ReceiveOrderResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type ExtendReceiveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/orders/{id}/receive/extend';
+};
+
+export type ExtendReceiveResponses = {
     /**
      * OK
      */

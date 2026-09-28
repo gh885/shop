@@ -93,4 +93,14 @@ public class OrderController {
     public void receiveOrder(@CurrentUser UUID userId, @PathVariable UUID id) {
         orderTransitionService.receive(userId, id);
     }
+
+    /**
+     * 延长确认收货：收货窗口 +7 天，额度 1 次（ORD-63）。
+     *
+     * <p>不带请求体：额度和天数是服务端常量（{@code OrderTimeouts}），由客户端传就成了可被改写的业务规则。
+     */
+    @PutMapping("/{id}/receive/extend")
+    public void extendReceive(@CurrentUser UUID userId, @PathVariable UUID id) {
+        orderTransitionService.extendReceive(userId, id);
+    }
 }

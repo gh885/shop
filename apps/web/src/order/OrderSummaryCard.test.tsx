@@ -43,6 +43,9 @@ function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDet
         paidAt: "2026-09-06T12:05:00Z",
         shipExpireAt: "2026-09-09T12:05:00Z",
         shippedAt: null,
+        // 收货窗口与延长资格（ORD-63）：本单未发货，恒为「无窗口 + 不可延长」
+        receiveExpireAt: null,
+        canExtendReceive: false,
         completedAt: null,
         cancelledAt: null,
         cancelReason: null,

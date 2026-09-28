@@ -93,6 +93,8 @@ export function toOrderDetail(dto: OrderDetailResponse): OrderDetail {
         userCouponId: dto.userCouponId,
         afterSaleStatus: dto.afterSaleStatus,
         applyExpireAt: dto.applyExpireAt,
+        receiveExpireAt: dto.receiveExpireAt,
+        canExtendReceive: dto.canExtendReceive,
         refundAmount: dto.refundAmount,
         buyerMessage: dto.buyerMessage,
         receiverName: dto.receiverName,

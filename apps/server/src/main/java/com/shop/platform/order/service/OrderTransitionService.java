@@ -87,6 +87,42 @@ public class OrderTransitionService {
         Validate.conflict(completed, "订单状态已变更，当前不可确认收货");
     }
 
+    /**
+     * 买家延长确认收货窗口（ORD-63）：一次 +7 天，额度 1 次。
+     *
+     * <p>不是状态转移，所以不记 {@code order_status_log}（那条流水记的是「状态变了」，
+     * 而这里状态没变、变的是一条截止时刻）。审计轨迹由事件与日志承担。
+     *
+     * <p>为什么从**当前截止列**往后加而不是从点击时刻加：截止可能已经过去一部分（买家看到「还剩 2 天」），
+     * 从点击起算等于把已经过去的 2 天吞掉，那不是「延长」而是「重新设窗口」。
+     */
+    @Transactional
+    public void extendReceive(UUID userId, UUID orderId) {
+        // 1. 归属：不是本人的单同样 404（与其它买家动作同一道门，不泄露单是否存在）
+        Order order = orderMapper.requireOwned(userId, orderId);
+
+        // 2. 前置自检只为把 409 说得具体；真正的闸门在 mapper 的 WHERE（并发/已签收/额度/已过截止都在那里）
+        Validate.conflict(order.getStatus() == SHIPPED, "当前订单状态不可延长收货");
+        Validate.conflict(order.getDeliveredAt() == null, "订单已签收，不可延长收货");
+        Validate.conflict(
+                (order.getReceiveExtendedCount() == null ? 0 : order.getReceiveExtendedCount())
+                        < OrderTimeouts.MAX_RECEIVE_EXTENSIONS,
+                "延长收货机会已用过");
+        // 时钟只取一次：自检与 mapper 的「截止未过期」比较用同一刻，免得两条各读一次表给出互相矛盾的答复
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime deadline = order.getReceiveExpireAt();
+        Validate.conflict(deadline != null && deadline.isAfter(now), "收货窗口已结束，无可延长的截止时刻");
+
+        // 3. 条件更新：0 行 = 抢不到（已被自动确认 / 已签收 / 额度被并发用掉 / 截止已过）
+        boolean extended = orderMapper.extendReceiveWindow(
+                        orderId,
+                        deadline.plus(OrderTimeouts.RECEIVE_EXTENSION),
+                        now,
+                        OrderTimeouts.MAX_RECEIVE_EXTENSIONS)
+                == 1;
+        Validate.conflict(extended, "订单状态已变更，当前不可延长收货");
+    }
+
     // 履约主状态机：系统超时（单笔事务落点）
     /** 待付款超时关单：只认 PENDING_PAYMENT，释放冻结库存（前态必未付款，故不发退款事件） */
     @Transactional

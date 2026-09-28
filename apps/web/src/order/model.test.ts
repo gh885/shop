@@ -68,6 +68,28 @@ describe("deriveOrderActions", () => {
         expect(keys(order, "card")).toEqual(["logistics", "confirm"])
     })
 
+    it("延长收货按后端下发的资格出现，紧跟「确认收货」之后；资格为假则一个按钮都不多", () => {
+        // 数据驱动的动作（ORD-63）：不进「状态 → 动作」静态表，故这里直接给 canExtendReceive
+        const order = {
+            ...makeOrder({
+                status: "pending_receipt",
+                availableActions: ["confirm"] as OrderAction[],
+            }),
+            canExtendReceive: true,
+        }
+
+        expect(deriveOrderActions(order, "card").map((item) => item.key)).toEqual([
+            "logistics",
+            "confirm",
+            "extend_receive",
+        ])
+        expect(primary(order, "card")).toEqual(["confirm"])
+
+        expect(
+            keys(makeOrder({ status: "pending_receipt", availableActions: ["confirm"] }), "card"),
+        ).toEqual(["logistics", "confirm"])
+    })
+
     it("后端没给的动作不凭空画：前端不再自己按状态推一张「状态 → 按钮」表", () => {
         expect(keys(makeOrder({ status: "pending_shipment" }), "card")).toEqual([])
         expect(keys(makeOrder({ status: "cancelled", availableActions: [] }), "card")).toEqual([

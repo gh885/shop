@@ -1126,6 +1126,8 @@ export const zOrderDetailResponse = z.object({
     paidAt: z.iso.datetime({ offset: true }).nullable(),
     shipExpireAt: z.iso.datetime({ offset: true }).nullable(),
     shippedAt: z.iso.datetime({ offset: true }).nullable(),
+    receiveExpireAt: z.iso.datetime({ offset: true }).nullable(),
+    canExtendReceive: z.boolean(),
     completedAt: z.iso.datetime({ offset: true }).nullable(),
     cancelledAt: z.iso.datetime({ offset: true }).nullable(),
     cancelReason: z.string().nullable(),
@@ -1793,6 +1795,10 @@ export const zSetDefaultReturnPath = z.object({
 export const zSetDefaultReturnResponse = zMerchantAddressResponse;
 
 export const zReceiveOrderPath = z.object({
+    id: z.uuid()
+});
+
+export const zExtendReceivePath = z.object({
     id: z.uuid()
 });
 

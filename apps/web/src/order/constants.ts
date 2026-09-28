@@ -73,6 +73,7 @@ export const ORDER_ACTION_META: Record<OrderAction, { label: string }> = {
     cancel: { label: "取消订单" },
     logistics: { label: "查看物流" },
     confirm: { label: "确认收货" },
+    extend_receive: { label: "延长收货" },
     rebuy: { label: "再买一单" },
     add_cart: { label: "加入购物车" },
     ship: { label: "发货" },
@@ -90,6 +91,9 @@ export const ORDER_ACTION_ORDER: readonly OrderAction[] = [
     "cancel",
     "logistics",
     "confirm",
+    // 延长收货紧跟在「确认收货」后面：两者是同一件事的正反面（现在就收 / 再等等），
+    // 隔开排会让买家在两处都看到按钮却不知道是一组
+    "extend_receive",
     "rebuy",
     "add_cart",
     "ship",

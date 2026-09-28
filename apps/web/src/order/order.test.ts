@@ -69,6 +69,9 @@ function makeListDto(
 function makeDetailDto(opts: Partial<OrderDetailResponse> = {}): OrderDetailResponse {
     return {
         ...makeListDto(),
+        // 收货窗口与延长资格（ORD-63）：默认未发货，所以无窗口、不可延长
+        receiveExpireAt: null,
+        canExtendReceive: false,
         itemAmount: MONEY,
         shippingFee: { amount: 0, currency: "CNY" },
         // 券四件套：默认不用券（减免 0、无券 id）

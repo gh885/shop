@@ -133,7 +133,15 @@ export function receiverFullAddress(
  * 这里曾有 `remind`（提醒发货）——**已删**：全站没有消息通道，那个按钮点了什么都不发生；
  * 发货时限的提醒改由卡片文案承担（ORD-27），不再挂一个做不到的动作。
  */
-export type OrderAction = "pay" | "cancel" | "confirm" | "ship" | "rebuy" | "add_cart" | "logistics"
+export type OrderAction =
+    | "pay"
+    | "cancel"
+    | "confirm"
+    | "ship"
+    | "rebuy"
+    | "add_cart"
+    | "logistics"
+    | "extend_receive"
 
 /** 哪个页面在画按钮排：卡片与详情页的动作集差异写在 constants 的表里，不埋在副本里 */
 export type OrderActionSurface = "card" | "detail"
@@ -152,13 +160,17 @@ export interface OrderActionItem {
  * 主操作（橙色）只看页面与状态——一屏只应该有一个主行动。
  */
 export function deriveOrderActions(
-    order: Pick<Order, "status" | "availableActions">,
+    order: Pick<Order, "status" | "availableActions"> &
+        Partial<Pick<OrderDetail, "canExtendReceive">>,
     surface: OrderActionSurface,
 ): OrderActionItem[] {
     const wanted = new Set<OrderAction>([
         ...order.availableActions,
         ...(ORDER_UI_ACTIONS[surface][order.status] ?? []),
     ])
+    // 延长收货是**数据驱动**的（能否延长看后端 canExtendReceive，ORD-63），不进 ORDER_UI_ACTIONS
+    // ——那张表是「状态 → 动作」的静态派生，放数据判据进去就混了两种口径
+    if (order.canExtendReceive) wanted.add("extend_receive")
     const primary = ORDER_PRIMARY_ACTION[surface][order.status]
     return ORDER_ACTION_ORDER.filter((key) => wanted.has(key)).map((key) => ({
         key,

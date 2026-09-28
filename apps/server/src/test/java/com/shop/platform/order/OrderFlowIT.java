@@ -1,6 +1,7 @@
 package com.shop.platform.order;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -74,6 +75,9 @@ class OrderFlowIT extends IntegrationTestSupport {
     private final UUID shopId = UUID.randomUUID();
 
     private UUID skuId;
+
+    /** shippedOrder() 的运单号自增位：见该方法注释 */
+    private int shipmentSeq;
 
     private UUID addressId;
 
@@ -416,6 +420,114 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertEquals(
                 409,
                 assertThrows(BusinessException.class, () -> orderTransitionService.receive(userId, orderId))
+                        .getHttpStatus());
+    }
+
+    /** 造一单走完「下单 → 付款 → 发货」，返回订单 id：延长收货的前置态 */
+    private UUID shippedOrder() {
+        UUID orderId = orderService.create(userId, buyNow(1)).getFirst().getId();
+        paymentService.confirm(userId, paymentService.pay(userId, orderId).getId());
+        // 运单号店内唯一（LOG）：一个测试里发多单必须各给一个号，否则第二单被「已录入」挡下
+        shipmentService.dispatch(
+                new DispatchShipmentCommand(shopId, orderId, "SF", String.format("SF%09d", ++shipmentSeq)));
+        return orderId;
+    }
+
+    private OffsetDateTime receiveExpireAt(UUID orderId) {
+        return jdbc.queryForObject(
+                "SELECT receive_expire_at FROM orders.orders WHERE id = ?::uuid",
+                OffsetDateTime.class,
+                orderId.toString());
+    }
+
+    private int receiveExtendedCount(UUID orderId) {
+        return jdbc.queryForObject(
+                "SELECT receive_extended_count FROM orders.orders WHERE id = ?::uuid",
+                Integer.class,
+                orderId.toString());
+    }
+
+    private int statusLogRows(UUID orderId) {
+        return jdbc.queryForObject(
+                "SELECT count(*) FROM orders.order_status_log WHERE order_id = ?::uuid",
+                Integer.class,
+                orderId.toString());
+    }
+
+    /**
+     * 延长收货（ORD-63，真库）：+7 天从**当前截止**起算、额度 1 次、不写状态流水。
+     *
+     * <p>这条只能由真库验：额度靠 {@code setSql} 自增、四条闸门靠同一条 WHERE 裁决（0 行即 409），
+     * 单测里 mock 掉 mapper 就只剩「有没有调对参数」。四道闸门各挡一次：非 SHIPPED / 已签收 / 额度用尽 / 截止已过，
+     * 外加越权 404。详情里的 {@code canExtendReceive} 与 WHERE 同源，顺带钉住它不给按钮的时刻后端也不放行。
+     */
+    @Test
+    void 延长收货_从当前截止加七天_四道闸门与越权各自拦住() {
+        seedSku(10);
+
+        // 1. 已发货未签收：可延长，且延长是「当前截止 +7」而不是「点击时刻 +7」
+        UUID orderId = shippedOrder();
+        OffsetDateTime deadline = receiveExpireAt(orderId);
+        assertTrue(orderService.detail(userId, orderId).canExtendReceive());
+        int logsBefore = statusLogRows(orderId);
+
+        orderTransitionService.extendReceive(userId, orderId);
+
+        assertEquals(deadline.plusDays(7).toInstant(), receiveExpireAt(orderId).toInstant(), "从当前截止往后推：已过去的天数不能被吞掉");
+        assertEquals(1, receiveExtendedCount(orderId));
+        assertEquals(OrderStatus.SHIPPED, statusOf(orderId), "延长不是状态转移");
+        assertEquals(logsBefore, statusLogRows(orderId), "状态没变，不该落 order_status_log");
+
+        // 2. 额度只有 1 次：第二次被拒，截止时刻不再后推
+        assertEquals(
+                409,
+                assertThrows(BusinessException.class, () -> orderTransitionService.extendReceive(userId, orderId))
+                        .getHttpStatus());
+        assertEquals(deadline.plusDays(7).toInstant(), receiveExpireAt(orderId).toInstant(), "额度用尽后拒绝，不得再推截止");
+        assertFalse(orderService.detail(userId, orderId).canExtendReceive(), "额度用尽则按钮撤下");
+
+        // 3. 未发货（PAID）不可延长：收货窗口还没铺出来，无「截止」可延
+        UUID paidOrderId = orderService.create(userId, buyNow(1)).getFirst().getId();
+        paymentService.confirm(userId, paymentService.pay(userId, paidOrderId).getId());
+        assertFalse(orderService.detail(userId, paidOrderId).canExtendReceive(), "未发货则按钮不出现");
+        assertEquals(
+                409,
+                assertThrows(BusinessException.class, () -> orderTransitionService.extendReceive(userId, paidOrderId))
+                        .getHttpStatus());
+
+        // 4. 已签收不可延长：签收起算的窗口由 ORD-28 定，买家单方面的延长不认
+        UUID deliveredOrderId = shippedOrder();
+        jdbc.update("UPDATE orders.orders SET delivered_at = NOW() WHERE id = ?::uuid", deliveredOrderId.toString());
+        assertFalse(orderService.detail(userId, deliveredOrderId).canExtendReceive(), "已签收则按钮撤下");
+        assertEquals(
+                409,
+                assertThrows(
+                                BusinessException.class,
+                                () -> orderTransitionService.extendReceive(userId, deliveredOrderId))
+                        .getHttpStatus());
+
+        // 5. 截止已过不可延长：这单注定要被超时任务收走，延长等于救回一个已终结的窗口
+        UUID expiredOrderId = shippedOrder();
+        jdbc.update(
+                "UPDATE orders.orders SET receive_expire_at = NOW() - interval '1 day' WHERE id = ?::uuid",
+                expiredOrderId.toString());
+        OffsetDateTime expiredAt = receiveExpireAt(expiredOrderId);
+        assertFalse(orderService.detail(userId, expiredOrderId).canExtendReceive(), "已过截止则按钮撤下");
+        assertEquals(
+                409,
+                assertThrows(
+                                BusinessException.class,
+                                () -> orderTransitionService.extendReceive(userId, expiredOrderId))
+                        .getHttpStatus());
+        assertEquals(expiredAt.toInstant(), receiveExpireAt(expiredOrderId).toInstant(), "WHERE 未过则一个字节都不写");
+
+        // 6. 别人的单：与「不存在」同一句话 404（不泄露单是否存在）
+        UUID foreignOrder = shippedOrder();
+        assertEquals(
+                404,
+                assertThrows(
+                                BusinessException.class,
+                                () -> orderTransitionService.extendReceive(UUID.randomUUID(), foreignOrder))
                         .getHttpStatus());
     }
 }

@@ -8,6 +8,7 @@ import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
+import com.shop.platform.order.model.OrderTimeouts;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -54,6 +55,16 @@ public record OrderDetailView(
         /** 发货时限（付款时回填，未付款为 null）：两侧只拿它做「该发货了 / 超时未发货」提醒，到期不自动关单（ORD-27） */
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime shipExpireAt,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime shippedAt,
+        /**
+         * 确认收货截止（发货时回填）：买家侧拿它显示「还有多久自动确认」，卖家侧为 null 不用。
+         * 买家延长后这列会被后推（ORD-63）。
+         */
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime receiveExpireAt,
+        /**
+         * 买家此刻能否延长收货（ORD-63）：非状态转移，故不在 availableActions 里（那条是状态机出边），
+         * 单独一列布尔把「按钮亮不亮」的口径放在后端，前端不自行推导。
+         */
+        @Schema(requiredMode = REQUIRED) boolean canExtendReceive,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime completedAt,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime cancelledAt,
         @Schema(requiredMode = REQUIRED, nullable = true) String cancelReason,
@@ -66,20 +77,37 @@ public record OrderDetailView(
 
     /** 买家视角：可执行动作按买家状态机推导；shopName 由 {@link OrderService#detail} 经 shop :: api 拼入 */
     public static OrderDetailView buyerView(OrderWithItems o, String shopName) {
-        return from(o, shopName, Order::buyerActions, Order::getReceiverPhone);
+        return from(o, shopName, Order::buyerActions, Order::getReceiverPhone, true);
     }
 
     /** 卖家视角：发货作业动作；收件人电话只给掩码（明文走 reveal 端点，ORD-62） */
     public static OrderDetailView sellerView(OrderWithItems o) {
-        return from(o, null, Order::sellerActions, ord -> PhoneNumber.mask(ord.getReceiverPhone()));
+        return from(o, null, Order::sellerActions, ord -> PhoneNumber.mask(ord.getReceiverPhone()), false);
+    }
+
+    /**
+     * 延长收货的资格（ORD-63）：四条与 mapper 的 WHERE 一一对应，故写在这里而不在前端重推一遍。
+     *
+     * <p>不接受「已过截止也算」：过了点就已经由超时任务转完成，此时再延长是改一个已终结的单。
+     */
+    private static boolean canExtendReceive(Order order, OffsetDateTime now) {
+        // 计数列是 NOT NULL DEFAULT 0，但读端仍按「可能为空」写：老行/视图缺列时不该把整个详情接口打成 500
+        int extended = order.getReceiveExtendedCount() == null ? 0 : order.getReceiveExtendedCount();
+        return order.getStatus() == OrderStatus.SHIPPED
+                && order.getDeliveredAt() == null
+                && order.getReceiveExpireAt() != null
+                && order.getReceiveExpireAt().isAfter(now)
+                && extended < OrderTimeouts.MAX_RECEIVE_EXTENSIONS;
     }
 
     private static OrderDetailView from(
             OrderWithItems o,
             String shopName,
             Function<Order, List<OrderAvailableAction>> actions,
-            Function<Order, String> receiverPhone) {
+            Function<Order, String> receiverPhone,
+            boolean buyer) {
         Order order = o.order();
+        OffsetDateTime now = OffsetDateTime.now();
         return new OrderDetailView(
                 // 单据身份与状态
                 order.getId(),
@@ -110,6 +138,9 @@ public record OrderDetailView(
                 order.getPaidAt(),
                 order.getShipExpireAt(),
                 order.getShippedAt(),
+                // 买家侧才需要收货窗口与延长资格：卖家不参与这个动作
+                buyer ? order.getReceiveExpireAt() : null,
+                buyer && canExtendReceive(order, now),
                 order.getCompletedAt(),
                 order.getCancelledAt(),
                 order.getCancelReason(),

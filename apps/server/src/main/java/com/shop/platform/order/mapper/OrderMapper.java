@@ -167,6 +167,34 @@ public interface OrderMapper extends BaseMapper<Order> {
     }
 
     /**
+     * 买家延长确认收货窗口（ORD-63）：把 {@code receive_expire_at} 后推并把计数 +1。
+     *
+     * <p>四条闸门写在同一条 WHERE 里，与本 mapper 其它条件更新同构（不先读后写）：
+     * ① SHIPPED——已取消/已完成的单不该被买家改动；② {@code delivered_at} 为空——已签收的单按签收起算，
+     * 买家延长等于单方面延长「已经起算的窗口」，与 ORD-28 的签收口径冲突；③ 计数未达额度——并发双击只改到一行；
+     * ④ 截止未过期——过了点的单注定要被超时任务转完成，延长它等于把一个已终结的窗口救回来
+     * （{@code now} 由调用方给，本方法不自己算时钟）。
+     *
+     * <p>新截止时刻由调用方从**当前截止列**加 {@code OrderTimeouts.RECEIVE_EXTENSION} 得出，不由本方法算时钟：
+     * 「从哪一刻起算」是业务规则，与本方法要守的闸门是两件事。
+     *
+     * <p>0 行 = 抢不到（已非 SHIPPED / 已签收 / 额度用尽 / 截止已过 / 别人先点了），调用方据此给 409。
+     */
+    default int extendReceiveWindow(
+            UUID orderId, OffsetDateTime newReceiveExpireAt, OffsetDateTime now, int maxExtensions) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Order>()
+                        .eq(Order::getId, orderId)
+                        .eq(Order::getStatus, OrderStatus.SHIPPED)
+                        .isNull(Order::getDeliveredAt)
+                        .gt(Order::getReceiveExpireAt, now)
+                        .le(Order::getReceiveExtendedCount, maxExtensions - 1)
+                        .set(Order::getReceiveExpireAt, newReceiveExpireAt)
+                        .setSql("receive_extended_count = COALESCE(receive_extended_count, 0) + 1"));
+    }
+
+    /**
      * 完成的条件转移（买家确认收货 / 超时自动收货共用这一条边）：{@code WHERE id = ? AND status IN (合法起点集)}
      * 转 COMPLETED，同时回填完成时刻与售后申请窗口，回影响行数。
      *

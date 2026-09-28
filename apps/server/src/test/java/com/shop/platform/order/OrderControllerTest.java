@@ -265,4 +265,22 @@ class OrderControllerTest extends WebControllerTestSupport {
             verify(orderTransitionService).receive(userId, orderId);
         }
     }
+
+    @Nested
+    class 延长收货 { // PUT /orders/{id}/receive/extend
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(put("/orders/{id}/receive/extend", orderId)).andExpect(status().isUnauthorized());
+        }
+
+        /** 无请求体：天数与额度是服务端常量，收 body 就等于把业务规则交给客户端改写（ORD-63） */
+        @Test
+        void 返回200_无请求体() throws Exception {
+            mockMvc.perform(put("/orders/{id}/receive/extend", orderId).with(userAuth(userId)))
+                    .andExpect(status().isOk());
+
+            verify(orderTransitionService).extendReceive(userId, orderId);
+        }
+    }
 }

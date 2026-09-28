@@ -27,5 +27,21 @@ public final class OrderTimeouts {
     /** 完成起算（买家确认收货或 RECEIVE 到期自动确认，同一时刻）：售后申请窗口，过期不再受理（apply_expire_at，申请时的条件更新即闸门） */
     public static final Duration AFTER_SALE_APPLY = Duration.ofDays(15);
 
+    /**
+     * 买家一次延长收货的额度（ORD-63）：从<b>当前截止时刻</b>往后推，不是「从现在 + 7 天」。
+     *
+     * <p>从当前截止起算而不是从点击时刻起算：截止列可能已经过去一部分（「还剩 2 天」时点延长，
+     * 语义是「再多给我 7 天」），从点击起算会让买家少拿的那 2 天凭空消失。
+     */
+    public static final Duration RECEIVE_EXTENSION = Duration.ofDays(7);
+
+    /**
+     * 可延长次数的上限（ORD-63）：<b>1 次</b>。
+     *
+     * <p>不设 0 也不放开：无限次延长等于买家永久占住库存不确认收货，卖家的钱与货无限期悬着；
+     * 也不给多次，是因为 7 天已能覆盖绝大多数「出差/维修/换货」诉求，真不够时走售后（AFS 线）才是正解。
+     */
+    public static final int MAX_RECEIVE_EXTENSIONS = 1;
+
     private OrderTimeouts() {}
 }

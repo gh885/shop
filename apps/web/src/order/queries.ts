@@ -132,3 +132,18 @@ export function useReceiveOrder() {
             void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
     })
 }
+
+/**
+ * 延长确认收货：收货窗口 +7 天，额度 1 次（ORD-63）。
+ *
+ * 后端不带请求体（天数与额度是服务端常量），所以 mutation 也不收参数；失效口径与确认收货一致
+ * ——改的正是详情里的 receiveExpireAt 与 canExtendReceive 两列。
+ */
+export function useExtendReceive() {
+    return useMutation({
+        mutationFn: (orderId: string) => OrdersApi.extendReceive({ path: { id: orderId } }),
+        meta: { success: "已延长 7 天", error: "延长收货失败", invalidates: [MY_ORDERS_KEY] },
+        onSuccess: (_data, orderId, _ctx, { client }) =>
+            void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
+    })
+}

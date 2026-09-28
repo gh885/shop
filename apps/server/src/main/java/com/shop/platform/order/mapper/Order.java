@@ -122,8 +122,11 @@ public class Order extends AuditedEntity {
     /** 发货时限（付款时回填）：不进超时扫描，只下发给两侧做提醒（ORD-27） */
     private OffsetDateTime shipExpireAt;
 
-    /** 确认收货截止（发货时回填），到期自动确认收货 */
+    /** 确认收货截止（发货时回填），到期自动确认收货；买家可一次性延长（ORD-63） */
     private OffsetDateTime receiveExpireAt;
+
+    /** 确认收货窗口已延长次数（买家动作，额度 1 次；闸门在条件更新，不读此列做业务判定） */
+    private Integer receiveExtendedCount;
 
     /** 售后申请截止（收货时回填），过期不再受理售后申请（aftersale 经 order :: api 读此窗口） */
     private OffsetDateTime applyExpireAt;
