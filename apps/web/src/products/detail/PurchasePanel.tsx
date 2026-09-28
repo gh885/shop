@@ -31,6 +31,7 @@ import { QUANTITY_FLOOR, quantityUpperBound, stepPurchaseQuantity } from "./purc
  * 规格选择状态由 route 从 URL 读入并持有（useSkuSelection），本组件纯受控；
  * 数量由 route 持有并已按库存收敛，本组件不再自己截断。
  */
+// fallow-ignore-next-line complexity -- 购买区的每一块（标题/价格/承诺/规格/数量）都是「有值才渲染」，cc 来自这些判空
 export function PurchasePanel({
     detail,
     selection,
@@ -46,7 +47,6 @@ export function PurchasePanel({
     quantity: number
     onQuantityChange: (n: number) => void
 }) {
-    const price = derivePriceView(detail, selection)
     const complete = isSelectionComplete(detail, selection)
     const matchedSku = findMatchingSku(detail.skus, selection)
     /** 选全规格后才有「售罄」概念：命中 SKU 无库存 */
@@ -54,105 +54,24 @@ export function PurchasePanel({
 
     return (
         <div className="flex flex-col gap-5">
-            {/* 标题 + 副标题 */}
-            <h1 className="text-xl font-bold leading-snug text-foreground">
-                {detail.product.title}
-            </h1>
-            {detail.product.subtitle && (
-                <p className="-mt-3 text-sm text-muted-foreground">{detail.product.subtitle}</p>
-            )}
-
-            {/* 价格区：共享 Price 走 splitMoney 分段（符号小/元整数大/角分小），符号跟币种 */}
-            <div className="flex items-baseline gap-2">
-                <Price
-                    value={price.primary}
-                    className="text-4xl font-bold text-primary-subtle-foreground"
-                />
-                {price.rangeTo !== undefined && (
-                    <span className="flex items-baseline gap-1 text-primary-subtle-foreground">
-                        -
-                        <Price
-                            value={price.rangeTo}
-                            className="text-lg font-medium"
-                        />
-                    </span>
-                )}
-                {price.original !== undefined && (
-                    <span className="text-sm text-muted-foreground line-through tabular-nums">
-                        {formatMoney(price.original)}
-                    </span>
-                )}
-            </div>
-
-            {/* 服务承诺：无理由退货跟商品自己的声明走（消保法第 25 条把「除外类目」交给卖家勾，
-                不支持就得在下单页说明白，而不是不吭声）；发货时效/运费仍是静态占位 */}
-            <div className="space-y-1.5 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2">
-                    <Truck className="size-4" />
-                    48小时内发货 · 快递免运费
-                </p>
-                <p className="flex items-center gap-2">
-                    <ShieldCheck className="size-4" />
-                    {detail.sevenDayReturn
-                        ? "7天无理由退货"
-                        : "本商品不支持七天无理由退货（下单即视为已知悉）"}
-                </p>
-            </div>
+            <TitleBlock detail={detail} />
+            <PriceBlock
+                detail={detail}
+                selection={selection}
+            />
+            <ServicePromises sevenDayReturn={detail.sevenDayReturn} />
 
             {/* 规格选择：有 SKU 专属图的维度升级为图片卡，其余文字丸（对齐参考图 分册名/套餐类型） */}
-            {detail.specs.map((spec) => {
-                const selected = selection[spec.name]
-                return isImageSpecGroup(detail.skus, spec) ? (
-                    <div key={spec.name}>
-                        <p className="mb-2 text-sm text-muted-foreground">{spec.name}</p>
-                        <div className="flex flex-wrap gap-2.5">
-                            {spec.values.map((sv) => {
-                                const value = sv.value
-                                const image = specValueImage(detail.skus, spec.name, value)
-                                return (
-                                    <SpecButton
-                                        key={value}
-                                        value={value}
-                                        selected={selection[spec.name] === value}
-                                        available={isAvailable(spec.name, value)}
-                                        onSelect={() => select(spec.name, value)}
-                                        image={image}
-                                    />
-                                )
-                            })}
-                        </div>
-                    </div>
-                ) : (
-                    <div key={spec.name}>
-                        <p className="mb-2 text-sm text-muted-foreground">{spec.name}</p>
-                        <ToggleGroup
-                            value={selected === undefined ? [] : [selected]}
-                            onValueChange={(v) => {
-                                // ToggleGroup 反选（v 为空）时把当前值再传一次：select 的「同值再点 = 取消」
-                                // 语义正好接住它 —— 图片规格卡（SpecButton）走的是同一条规则，
-                                // 两条渲染路径不能一个能取消、一个取消不了（URL 进了选择态后这种不一致会变成死点击）
-                                const next = v[0] ?? selected
-                                if (next !== undefined) select(spec.name, next)
-                            }}
-                            variant="outline"
-                            className="flex-wrap"
-                        >
-                            {spec.values.map((sv) => {
-                                const value = sv.value
-                                return (
-                                    <ToggleGroupItem
-                                        key={value}
-                                        value={value}
-                                        disabled={!isAvailable(spec.name, value)}
-                                    >
-                                        {value}
-                                    </ToggleGroupItem>
-                                )
-                            })}
-                        </ToggleGroup>
-                    </div>
-                )
-            })}
+            {detail.specs.map((spec) => (
+                <SpecPicker
+                    key={spec.name}
+                    spec={spec}
+                    detail={detail}
+                    selection={selection}
+                    select={select}
+                    isAvailable={isAvailable}
+                />
+            ))}
 
             {/* 数量步进：分隔线与上方信息区隔开（对齐参考图） */}
             <Separator />
@@ -167,6 +86,178 @@ export function PurchasePanel({
                 </span>
             </div>
         </div>
+    )
+}
+
+/** 标题 + 副标题 */
+function TitleBlock({ detail }: { detail: ProductDetail }) {
+    return (
+        <>
+            <h1 className="text-xl font-bold leading-snug text-foreground">
+                {detail.product.title}
+            </h1>
+            {detail.product.subtitle && (
+                <p className="-mt-3 text-sm text-muted-foreground">{detail.product.subtitle}</p>
+            )}
+        </>
+    )
+}
+
+/** 价格区：共享 Price 走 splitMoney 分段（符号小/元整数大/角分小），符号跟币种 */
+function PriceBlock({ detail, selection }: { detail: ProductDetail; selection: SkuSelection }) {
+    const price = derivePriceView(detail, selection)
+    return (
+        <div className="flex items-baseline gap-2">
+            <Price
+                value={price.primary}
+                className="text-4xl font-bold text-primary-subtle-foreground"
+            />
+            {price.rangeTo !== undefined && (
+                <span className="flex items-baseline gap-1 text-primary-subtle-foreground">
+                    -
+                    <Price
+                        value={price.rangeTo}
+                        className="text-lg font-medium"
+                    />
+                </span>
+            )}
+            {price.original !== undefined && (
+                <span className="text-sm text-muted-foreground line-through tabular-nums">
+                    {formatMoney(price.original)}
+                </span>
+            )}
+        </div>
+    )
+}
+
+/** 服务承诺：无理由退货跟商品自己的声明走（消保法第 25 条把「除外类目」交给卖家勾，
+ *  不支持就得在下单页说明白，而不是不吭声）；发货时效/运费仍是静态占位 */
+function ServicePromises({ sevenDayReturn }: { sevenDayReturn: boolean }) {
+    return (
+        <div className="space-y-1.5 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2">
+                <Truck className="size-4" />
+                48小时内发货 · 快递免运费
+            </p>
+            <p className="flex items-center gap-2">
+                <ShieldCheck className="size-4" />
+                {sevenDayReturn
+                    ? "7天无理由退货"
+                    : "本商品不支持七天无理由退货（下单即视为已知悉）"}
+            </p>
+        </div>
+    )
+}
+
+/** 单个规格维度：带 SKU 专属图的用图片卡，其余走文字 ToggleGroup */
+function SpecPicker({
+    spec,
+    detail,
+    selection,
+    select,
+    isAvailable,
+}: {
+    spec: ProductDetail["specs"][number]
+    detail: ProductDetail
+    selection: SkuSelection
+    select: (specName: string, value: string) => void
+    isAvailable: (specName: string, value: string) => boolean
+}) {
+    const selected = selection[spec.name]
+    return (
+        <div>
+            <p className="mb-2 text-sm text-muted-foreground">{spec.name}</p>
+            {isImageSpecGroup(detail.skus, spec) ? (
+                <ImageSpecValues
+                    spec={spec}
+                    detail={detail}
+                    selection={selection}
+                    onSelect={select}
+                    isAvailable={isAvailable}
+                />
+            ) : (
+                <TextSpecValues
+                    spec={spec}
+                    selected={selected}
+                    onSelect={select}
+                    isAvailable={isAvailable}
+                />
+            )}
+        </div>
+    )
+}
+
+/** 图片规格的候选值：图 + 值卡片（SpecButton） */
+function ImageSpecValues({
+    spec,
+    detail,
+    selection,
+    onSelect,
+    isAvailable,
+}: {
+    spec: ProductDetail["specs"][number]
+    detail: ProductDetail
+    selection: SkuSelection
+    onSelect: (specName: string, value: string) => void
+    isAvailable: (specName: string, value: string) => boolean
+}) {
+    return (
+        <div className="flex flex-wrap gap-2.5">
+            {spec.values.map((sv) => {
+                const value = sv.value
+                return (
+                    <SpecButton
+                        key={value}
+                        value={value}
+                        selected={selection[spec.name] === value}
+                        available={isAvailable(spec.name, value)}
+                        onSelect={() => onSelect(spec.name, value)}
+                        image={specValueImage(detail.skus, spec.name, value)}
+                    />
+                )
+            })}
+        </div>
+    )
+}
+
+/** 文字规格的候选值：ToggleGroup 文字丸 */
+function TextSpecValues({
+    spec,
+    selected,
+    onSelect,
+    isAvailable,
+}: {
+    spec: ProductDetail["specs"][number]
+    selected: string | undefined
+    onSelect: (specName: string, value: string) => void
+    isAvailable: (specName: string, value: string) => boolean
+}) {
+    return (
+        <ToggleGroup
+            value={selected === undefined ? [] : [selected]}
+            onValueChange={(v) => {
+                // ToggleGroup 反选（v 为空）时把当前值再传一次：select 的「同值再点 = 取消」
+                // 语义正好接住它 —— 图片规格卡（SpecButton）走的是同一条规则，
+                // 两条渲染路径不能一个能取消、一个取消不了（URL 进了选择态后这种不一致会变成死点击）
+                const next = v[0] ?? selected
+                if (next !== undefined) onSelect(spec.name, next)
+            }}
+            variant="outline"
+            className="flex-wrap"
+        >
+            {spec.values.map((sv) => {
+                const value = sv.value
+                return (
+                    <ToggleGroupItem
+                        key={value}
+                        value={value}
+                        disabled={!isAvailable(spec.name, value)}
+                    >
+                        {value}
+                    </ToggleGroupItem>
+                )
+            })}
+        </ToggleGroup>
     )
 }
 

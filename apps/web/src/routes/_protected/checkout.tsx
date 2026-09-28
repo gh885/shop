@@ -2,15 +2,17 @@ import { addressListOptions, pickedAddressId, type Address } from "#/address"
 import {
     CouponPicker,
     GroupAmountSentence,
+    checkoutTotals,
     withDefaultCoupons,
     type CheckoutGroup,
+    type CheckoutPreview,
     type CheckoutSource,
     type CouponSelection,
     type UnavailableLine,
     useCreateOrder,
     checkoutPreviewOptions,
 } from "#/checkout"
-import { formatMoney, isPositiveMoney, NOTE_MAX, sumMoney, timesMoney } from "@shop/common"
+import { formatMoney, isPositiveMoney, NOTE_MAX, timesMoney } from "@shop/common"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
@@ -93,17 +95,16 @@ function CheckoutSkeleton() {
 }
 
 function CheckoutPage() {
-    const navigate = useNavigate()
     const source = Route.useSearch()
     // 地址由 loader 读完（失败已由路由错误页接管）
     const addresses = useSuspenseQuery(addressListOptions).data
-    const createOrder = useCreateOrder()
 
+    // 页面本地态：地址 / 留言 / 每店选券
     const [addressId, setAddressId] = useState("")
     // 买家留言：整次结算一份，随下单透传给后端（按店拆单时逐单落 buyerMessage 快照，可空、最长 200 字）
     const [buyerMessage, setBuyerMessage] = useState("")
     // 每店选中的券：键存在 = 用户已表态（值可为 null = 明确不用券）。这一层只装「用户的决定」，
-    // 没表态的店由下面的 effect 补默认值——「未表态」与「选了不用」必须能分开，否则默认选券会覆盖用户。
+    // 没表态的店由 effect 补默认值——「未表态」与「选了不用」必须能分开，否则默认选券会覆盖用户。
     const [couponSelection, setCouponSelection] = useState<CouponSelection>({})
     // 默认选中：已勾选的，否则默认地址，兜底第一条——判据在 #/address，与下面地址卡片是同一个答案
     const effectiveAddressId = pickedAddressId(addresses, addressId)
@@ -121,168 +122,327 @@ function CheckoutPage() {
     const previewGroups = preview.data?.groups
     useEffect(() => {
         if (!previewGroups) return
-        // oxlint-disable-next-line react/set-state-in-effect -- 只在预览数据到达时补默认选券（首屏一次性），渲染期派生会覆盖用户明确的选择
+        // oxlint-disable-next-line react/set-state-in-effect, react-doctor/no-adjust-state-on-prop-change -- 只在预览数据到达时补默认选券（首屏一次性），渲染期派生会覆盖用户明确的选择
         setCouponSelection((prev) => withDefaultCoupons(previewGroups, prev))
     }, [previewGroups])
 
-    const summaryGroups = preview.data?.groups ?? []
-    const totalItemAmount = sumMoney(summaryGroups.map((g) => g.itemAmount))
-    const totalShippingFee = sumMoney(summaryGroups.map((g) => g.shippingFee))
-    const totalDiscountAmount = sumMoney(summaryGroups.map((g) => g.discountAmount))
+    const { submit, pending } = useSubmitOrder({
+        addressId: effectiveAddressId,
+        source,
+        coupons: couponSelection,
+        buyerMessage,
+    })
+
+    return (
+        <CheckoutLayout
+            loading={preview.isLoading}
+            error={preview.isError}
+            onRetry={() => void preview.refetch()}
+            addresses={addresses}
+            addressId={addressId}
+            onAddressChange={setAddressId}
+            preview={preview.data}
+            couponSelection={couponSelection}
+            onSelectCoupon={(shopId, userCouponId) =>
+                setCouponSelection((prev) => ({ ...prev, [shopId]: userCouponId }))
+            }
+            buyerMessage={buyerMessage}
+            onBuyerMessageChange={setBuyerMessage}
+            canSubmit={Boolean(effectiveAddressId)}
+            pending={pending}
+            onSubmit={submit}
+        />
+    )
+}
+
+/** 结算页壳的入参：预览三态 + 左右两栏各自要的数据与回调 */
+type CheckoutLayoutProps = {
+    loading: boolean
+    error: boolean
+    onRetry: () => void
+    addresses: Address[]
+    addressId: string
+    onAddressChange: (id: string) => void
+    preview: CheckoutPreview | undefined
+    couponSelection: CouponSelection
+    onSelectCoupon: (shopId: string, userCouponId: string | null) => void
+    buyerMessage: string
+    onBuyerMessageChange: (value: string) => void
+    canSubmit: boolean
+    pending: boolean
+    onSubmit: () => void
+}
+
+/** 结算页壳：页头 + 版心 + 预览三态 + 左右两栏（左栏明细 / 右栏金额卡各自已是独立组件） */
+function CheckoutLayout({
+    loading,
+    error,
+    onRetry,
+    addresses,
+    addressId,
+    onAddressChange,
+    preview,
+    couponSelection,
+    onSelectCoupon,
+    buyerMessage,
+    onBuyerMessageChange,
+    canSubmit,
+    pending,
+    onSubmit,
+}: CheckoutLayoutProps) {
+    return (
+        <>
+            <CheckoutHeader />
+            <div className="mx-auto w-full max-w-page px-6 pb-10">
+                <CheckoutBody
+                    loading={loading}
+                    error={error}
+                    onRetry={onRetry}
+                >
+                    <div className="flex flex-col gap-6 lg:flex-row">
+                        <CheckoutLines
+                            addresses={addresses}
+                            addressId={addressId}
+                            onAddressChange={onAddressChange}
+                            preview={preview}
+                            couponSelection={couponSelection}
+                            onSelectCoupon={onSelectCoupon}
+                            buyerMessage={buyerMessage}
+                            onBuyerMessageChange={onBuyerMessageChange}
+                        />
+                        {/* 右：金额结算卡。窄屏不是一条不可压缩的 320px 固定轨——
+                            那会把整栏推到视口右缘外且没有任何提示；换成占满宽度、落到左栏下面 */}
+                        <div className="w-full shrink-0 lg:w-80">
+                            <CheckoutSummaryCard
+                                preview={preview}
+                                canSubmit={canSubmit}
+                                pending={pending}
+                                onSubmit={onSubmit}
+                            />
+                        </div>
+                    </div>
+                </CheckoutBody>
+            </div>
+        </>
+    )
+}
+
+/** 预览请求的三态壳：挂起骨架 / 失败重试 / 正常内容（预览本身不进路由错误页，地址才是主体） */
+function CheckoutBody({
+    loading,
+    error,
+    onRetry,
+    children,
+}: {
+    loading: boolean
+    error: boolean
+    onRetry: () => void
+    children: React.ReactNode
+}) {
+    if (loading) {
+        return (
+            <div className="space-y-5">
+                <Skeleton className="h-40 w-full rounded-lg" />
+                <Skeleton className="h-40 w-full rounded-lg" />
+            </div>
+        )
+    }
+    if (error) {
+        return (
+            <div className="flex flex-col items-center gap-4 py-16 text-sm text-muted-foreground">
+                <span>结算信息加载失败，请重试</span>
+                <Button
+                    variant="outline"
+                    onClick={onRetry}
+                >
+                    重新加载
+                </Button>
+            </div>
+        )
+    }
+    return <>{children}</>
+}
+
+/** 左栏：地址 + 商品分组 + 失效行 + 买家留言 */
+function CheckoutLines({
+    addresses,
+    addressId,
+    onAddressChange,
+    preview,
+    couponSelection,
+    onSelectCoupon,
+    buyerMessage,
+    onBuyerMessageChange,
+}: {
+    addresses: Address[]
+    addressId: string
+    onAddressChange: (id: string) => void
+    preview: CheckoutPreview | undefined
+    couponSelection: CouponSelection
+    onSelectCoupon: (shopId: string, userCouponId: string | null) => void
+    buyerMessage: string
+    onBuyerMessageChange: (value: string) => void
+}) {
+    return (
+        <div className="min-w-0 flex-1 space-y-5">
+            <AddressPicker
+                addresses={addresses}
+                value={addressId}
+                onChange={onAddressChange}
+            />
+            {preview?.groups.map((g) => (
+                <GroupCard
+                    key={g.shopId}
+                    group={g}
+                    // oxlint-disable-next-line no-null -- CouponSelection 契约：null = 明确选「不使用优惠券」
+                    selectedCouponId={couponSelection[g.shopId] ?? null}
+                    onSelectCoupon={(userCouponId) => onSelectCoupon(g.shopId, userCouponId)}
+                />
+            ))}
+            {preview && <UnavailableCard lines={preview.unavailable} />}
+
+            {/* 买家留言：整次结算一份（按店拆单时逐单落同一句），给卖家交代发货相关的小要求 */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>买家留言</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Textarea
+                        value={buyerMessage}
+                        onChange={(e) => onBuyerMessageChange(e.target.value)}
+                        maxLength={NOTE_MAX}
+                        rows={2}
+                        placeholder="选填，最多 200 字，如发货时间、包装上的要求"
+                    />
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+/** 右栏结算卡：金额口径 = 商品总价 + 运费 − 优惠 = 应付总额 */
+function CheckoutSummaryCard({
+    preview,
+    canSubmit,
+    pending,
+    onSubmit,
+}: {
+    preview: CheckoutPreview | undefined
+    canSubmit: boolean
+    pending: boolean
+    onSubmit: () => void
+}) {
+    return (
+        <Card className="sticky top-4">
+            <CardHeader>
+                <CardTitle>结算</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                <CheckoutAmounts preview={preview} />
+            </CardContent>
+            <CardFooter>
+                <Button
+                    variant="cta"
+                    className="h-12 w-full"
+                    disabled={!canSubmit || pending}
+                    onClick={onSubmit}
+                >
+                    {pending && <Spinner />}提交订单
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+/** 金额口径：商品总价 + 运费 − 优惠 = 应付总额。小计由 checkoutTotals 按分组求和，
+ * 顶层 totalPayAmount 是后端算好的净额（已减券），不能拿来当「商品总价」。 */
+// fallow-ignore-next-line complexity -- 剩下的分支都是「有值才渲染」的渲染期判空，与同文件其它结算块同形
+function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) {
+    const { itemAmount, shippingFee, discountAmount } = checkoutTotals(preview)
+
+    return (
+        <>
+            <Row label="商品总价">
+                <Price
+                    value={itemAmount}
+                    className="text-sm"
+                />
+            </Row>
+            <Row label="运费">
+                <Price
+                    value={shippingFee}
+                    className="text-sm"
+                />
+            </Row>
+            {isPositiveMoney(discountAmount) && (
+                <Row label="优惠">
+                    <DiscountPrice
+                        value={discountAmount}
+                        className="text-sm"
+                    />
+                </Row>
+            )}
+            <Separator />
+            <div className="flex items-end justify-between">
+                <span className="text-muted-foreground">应付总额：</span>
+                {preview ? (
+                    <Price
+                        value={preview.totalPayAmount}
+                        className="text-2xl font-bold text-primary-subtle-foreground"
+                    />
+                ) : (
+                    /* 预览没回来：没有应付可说，显式占位而不是摆一个 ¥0.00 像免单 */
+                    <span className="text-2xl font-bold text-primary-subtle-foreground">—</span>
+                )}
+            </div>
+        </>
+    )
+}
+
+/** 提交订单：一次结算按店拆单可能多单，V1 统一跳第一单支付页（支付按单逐单处理） */
+function useSubmitOrder({
+    addressId,
+    source,
+    coupons,
+    buyerMessage,
+}: {
+    addressId: string
+    source: CheckoutSource
+    coupons: CouponSelection
+    buyerMessage: string
+}) {
+    const navigate = useNavigate()
+    const createOrder = useCreateOrder()
 
     const submit = () => {
-        if (!effectiveAddressId) {
+        if (!addressId) {
             notify.info("请选择收货地址")
             return
         }
         createOrder.mutate(
             {
-                addressId: effectiveAddressId,
+                addressId,
                 source,
-                coupons: couponSelection,
+                coupons,
                 buyerMessage: buyerMessage.trim() || undefined,
             },
             {
                 onSuccess: (res) => {
-                    const orders = res.orders
-                    if (orders.length === 0) {
+                    const first = res.orders[0]
+                    if (!first) {
                         notify.error("订单创建失败")
                         return
                     }
-                    // 一次结算按店拆单，可能多单：V1 统一跳第一单支付页（支付按单逐单处理）
                     void navigate({
                         to: "/pay/$orderId",
-                        params: { orderId: orders[0]!.id },
+                        params: { orderId: first.id },
                     })
                 },
             },
         )
     }
 
-    return (
-        <>
-            <CheckoutHeader />
-            <div className="mx-auto w-full max-w-page px-6 pb-10">
-                {preview.isLoading ? (
-                    <div className="space-y-5">
-                        <Skeleton className="h-40 w-full rounded-lg" />
-                        <Skeleton className="h-40 w-full rounded-lg" />
-                    </div>
-                ) : preview.isError ? (
-                    <div className="flex flex-col items-center gap-4 py-16 text-sm text-muted-foreground">
-                        <span>结算信息加载失败，请重试</span>
-                        <Button
-                            variant="outline"
-                            onClick={() => void preview.refetch()}
-                        >
-                            重新加载
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="flex flex-col gap-6 lg:flex-row">
-                        {/* 左：地址 + 商品分组 + 失效行 */}
-                        <div className="min-w-0 flex-1 space-y-5">
-                            <AddressPicker
-                                addresses={addresses}
-                                value={addressId}
-                                onChange={setAddressId}
-                            />
-                            {preview.data?.groups.map((g) => (
-                                <GroupCard
-                                    key={g.shopId}
-                                    group={g}
-                                    // oxlint-disable-next-line no-null -- CouponSelection 契约：null = 明确选「不使用优惠券」
-                                    selectedCouponId={couponSelection[g.shopId] ?? null}
-                                    onSelectCoupon={(userCouponId) =>
-                                        setCouponSelection((prev) => ({
-                                            ...prev,
-                                            [g.shopId]: userCouponId,
-                                        }))
-                                    }
-                                />
-                            ))}
-                            {preview.data && <UnavailableCard lines={preview.data.unavailable} />}
-
-                            {/* 买家留言：整次结算一份（按店拆单时逐单落同一句），给卖家交代发货相关的小要求 */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>买家留言</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Textarea
-                                        value={buyerMessage}
-                                        onChange={(e) => setBuyerMessage(e.target.value)}
-                                        maxLength={NOTE_MAX}
-                                        rows={2}
-                                        placeholder="选填，最多 200 字，如发货时间、包装上的要求"
-                                    />
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* 右：金额结算卡。窄屏不是一条不可压缩的 320px 固定轨——
-                            那会把整栏推到视口右缘外且没有任何提示；换成占满宽度、落到左栏下面 */}
-                        <div className="w-full shrink-0 lg:w-80">
-                            <Card className="sticky top-4">
-                                <CardHeader>
-                                    <CardTitle>结算</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    {/* 金额口径：商品总价 + 运费 − 优惠 = 应付总额。
-                                        顶层 totalPayAmount 已是净额，不能拿来当「商品总价」（那是加了券之前的数）。 */}
-                                    <Row label="商品总价">
-                                        <Price
-                                            value={totalItemAmount}
-                                            className="text-sm"
-                                        />
-                                    </Row>
-                                    <Row label="运费">
-                                        <Price
-                                            value={totalShippingFee}
-                                            className="text-sm"
-                                        />
-                                    </Row>
-                                    {isPositiveMoney(totalDiscountAmount) && (
-                                        <Row label="优惠">
-                                            <DiscountPrice
-                                                value={totalDiscountAmount}
-                                                className="text-sm"
-                                            />
-                                        </Row>
-                                    )}
-                                    <Separator />
-                                    <div className="flex items-end justify-between">
-                                        <span className="text-muted-foreground">应付总额：</span>
-                                        {preview.data ? (
-                                            <Price
-                                                value={preview.data.totalPayAmount}
-                                                className="text-2xl font-bold text-primary-subtle-foreground"
-                                            />
-                                        ) : (
-                                            /* 预览没回来：没有应付可说，显式占位而不是摆一个 ¥0.00 像免单 */
-                                            <span className="text-2xl font-bold text-primary-subtle-foreground">
-                                                —
-                                            </span>
-                                        )}
-                                    </div>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button
-                                        variant="cta"
-                                        className="h-12 w-full"
-                                        disabled={!effectiveAddressId || createOrder.isPending}
-                                        onClick={submit}
-                                    >
-                                        {createOrder.isPending && <Spinner />}提交订单
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </>
-    )
+    return { submit, pending: createOrder.isPending }
 }
 
 function CheckoutHeader() {
@@ -322,32 +482,7 @@ function AddressPicker({
     value: string
     onChange: (id: string) => void
 }) {
-    const navigate = useNavigate()
-    if (addresses.length === 0) {
-        return (
-            <Card>
-                <CardContent>
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <MapPin />
-                            </EmptyMedia>
-                            <EmptyTitle>还没有收货地址</EmptyTitle>
-                            <EmptyDescription>添加收货地址后即可提交订单。</EmptyDescription>
-                            <Button
-                                variant="outline"
-                                className="mt-2"
-                                onClick={() => void navigate({ to: "/account/address" })}
-                            >
-                                去添加地址
-                            </Button>
-                        </EmptyHeader>
-                    </Empty>
-                </CardContent>
-            </Card>
-        )
-    }
-    const effectiveId = pickedAddressId(addresses, value)
+    if (addresses.length === 0) return <NoAddress />
     return (
         <Card>
             <CardHeader>
@@ -358,32 +493,107 @@ function AddressPicker({
             </CardHeader>
             <CardContent>
                 <RadioGroup
-                    value={effectiveId}
+                    value={pickedAddressId(addresses, value)}
                     onValueChange={(v: string) => onChange(v)}
                 >
                     {addresses.map((a) => (
-                        <Item
+                        <AddressRow
                             key={a.id}
-                            variant={effectiveId === a.id ? "selected" : "selectable"}
-                            size="sm"
-                        >
-                            <RadioGroupItem value={a.id} />
-                            <ItemContent>
-                                <ItemTitle>
-                                    {a.receiver} {a.phone}
-                                </ItemTitle>
-                                <ItemDescription lines="wrap">
-                                    {a.province}
-                                    {a.city}
-                                    {a.district}
-                                    {a.detail}
-                                </ItemDescription>
-                            </ItemContent>
-                        </Item>
+                            address={a}
+                            selected={pickedAddressId(addresses, value) === a.id}
+                        />
                     ))}
                 </RadioGroup>
             </CardContent>
         </Card>
+    )
+}
+
+/** 还没有收货地址：去地址页新建（没地址就提交不了订单，这里直接给入口） */
+function NoAddress() {
+    const navigate = useNavigate()
+    return (
+        <Card>
+            <CardContent>
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <MapPin />
+                        </EmptyMedia>
+                        <EmptyTitle>还没有收货地址</EmptyTitle>
+                        <EmptyDescription>添加收货地址后即可提交订单。</EmptyDescription>
+                        <Button
+                            variant="outline"
+                            className="mt-2"
+                            onClick={() => void navigate({ to: "/account/address" })}
+                        >
+                            去添加地址
+                        </Button>
+                    </EmptyHeader>
+                </Empty>
+            </CardContent>
+        </Card>
+    )
+}
+
+/** 地址单选行：姓名电话 + 省市区详址 */
+function AddressRow({ address, selected }: { address: Address; selected: boolean }) {
+    return (
+        <Item
+            variant={selected ? "selected" : "selectable"}
+            size="sm"
+        >
+            <RadioGroupItem value={address.id} />
+            <ItemContent>
+                <ItemTitle>
+                    {address.receiver} {address.phone}
+                </ItemTitle>
+                <ItemDescription lines="wrap">
+                    {address.province}
+                    {address.city}
+                    {address.district}
+                    {address.detail}
+                </ItemDescription>
+            </ItemContent>
+        </Item>
+    )
+}
+
+/** 结算行：主图 · 标题 · 单价×件数 · 行小计 */
+function CheckoutLineRow({ line }: { line: CheckoutGroup["lines"][number] }) {
+    return (
+        <Item
+            variant="plain"
+            size="lg"
+        >
+            <ItemMedia variant="thumbnail">
+                <Image
+                    src={line.image}
+                    alt={line.name}
+                    className="size-full"
+                />
+            </ItemMedia>
+            <ItemContent>
+                <ItemTitle
+                    lines={2}
+                    className="w-full"
+                >
+                    {line.name}
+                </ItemTitle>
+            </ItemContent>
+            <ItemActions className="gap-6 self-center">
+                <div className="w-20 text-right">
+                    <span className="font-bold">{formatMoney(line.price)}</span>
+                    <span className="ml-1 text-xs text-muted-foreground">x{line.quantity}</span>
+                </div>
+                <div className="w-20 text-right font-bold tabular-nums">
+                    <Price
+                        value={timesMoney(line.price, line.quantity)}
+                        className="text-sm"
+                    />
+                </div>
+            </ItemActions>
+        </Item>
     )
 }
 
@@ -408,41 +618,10 @@ function GroupCard({
             </PanelHeader>
             <PanelContent>
                 {group.lines.map((l) => (
-                    <Item
+                    <CheckoutLineRow
                         key={`${l.skuId}-${l.productId}`}
-                        variant="plain"
-                        size="lg"
-                    >
-                        <ItemMedia variant="thumbnail">
-                            <Image
-                                src={l.image}
-                                alt={l.name}
-                                className="size-full"
-                            />
-                        </ItemMedia>
-                        <ItemContent>
-                            <ItemTitle
-                                lines={2}
-                                className="w-full"
-                            >
-                                {l.name}
-                            </ItemTitle>
-                        </ItemContent>
-                        <ItemActions className="gap-6 self-center">
-                            <div className="w-20 text-right">
-                                <span className="font-bold">{formatMoney(l.price)}</span>
-                                <span className="ml-1 text-xs text-muted-foreground">
-                                    x{l.quantity}
-                                </span>
-                            </div>
-                            <div className="w-20 text-right font-bold tabular-nums">
-                                <Price
-                                    value={timesMoney(l.price, l.quantity)}
-                                    className="text-sm"
-                                />
-                            </div>
-                        </ItemActions>
-                    </Item>
+                        line={l}
+                    />
                 ))}
             </PanelContent>
             <CouponPicker

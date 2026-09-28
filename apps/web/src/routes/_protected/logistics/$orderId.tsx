@@ -12,7 +12,8 @@ import {
     buildShipmentTracks,
     orderTrackingOptions,
 } from "#/logistics"
-import { orderDetailOptions, receiverFullAddress } from "#/order"
+import { orderDetailOptions, receiverFullAddress, type OrderDetail } from "#/order"
+import type { ShipmentTrack } from "#/logistics"
 import {
     Empty,
     EmptyDescription,
@@ -69,19 +70,15 @@ function LogisticsSkeleton() {
  * 数据两路：轨迹（本模块，页面主体）+ 订单详情（只借三样东西——收货地址、主图、下单/发货时刻）。
  * 订单侧事件由 buildShipmentTracks 并进首个正向包裹的轴尾，页面只负责拼块。
  */
+// fallow-ignore-next-line complexity -- 页面壳的分支都在「有没有轨迹 / 要不要降级渲染」这两件事上，拆出去仍是同一段拼装
 function LogisticsPage() {
     const { orderId } = Route.useParams()
     // 主体数据：loader 已读完（404 归零为 null = 「暂无物流信息」），失败已由路由错误页接管
     const tracking = useSuspenseQuery(orderTrackingOptions(orderId)).data
-    // 降级数据：非 suspense，拿不到就少画那几块，不连累轨迹。
-    // 必须在调用点退出全局默认：orderDetailOptions 的另一个消费者是订单详情页的
-    // useSuspenseQuery（那处要抛给路由错误页，而 suspense 变体会忽略 options 里的 throwOnError），
-    // 所以「这份数据在这里只是降级」的决定属于本页，不属于 options
-    const detail = useQuery({ ...orderDetailOptions(orderId), throwOnError: false })
+    const order = useOrderDetailOrNull(orderId)
 
-    const order = detail.data
-    const tracks = buildShipmentTracks(tracking?.shipments ?? [], order)
     // 摘要卡口径 = 首个正向包裹（与订单列表里那条物流摘要同源）
+    const tracks = buildShipmentTracks(tracking?.shipments ?? [], order)
     const primary = tracks.find((track) => track.direction === "FORWARD") ?? tracks[0]
     const fullAddress = order ? receiverFullAddress(order) : ""
 
@@ -93,65 +90,113 @@ function LogisticsPage() {
             />
 
             <div className="narrow-page">
-                <Link
-                    to="/orders/$orderId"
-                    params={{ orderId }}
-                    className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                    <ArrowLeft className="size-3.5" />
-                    返回订单详情
-                </Link>
+                <BackToOrder orderId={orderId} />
 
                 {/* 没有轨迹 = 未发货（404 已在数据层归零为 null）：这不是错误，给「暂无物流信息」 */}
                 {primary === undefined ? (
-                    <Empty className="py-16">
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <CircleAlert />
-                            </EmptyMedia>
-                            <EmptyTitle>暂无物流信息</EmptyTitle>
-                            <EmptyDescription>商家发货后，物流轨迹会显示在这里。</EmptyDescription>
-                        </EmptyHeader>
-                    </Empty>
+                    <NoTracking />
                 ) : (
-                    <div className="space-y-6">
-                        <LogisticsSummaryCard
-                            statusLabel={SHIPMENT_STATUS_LABEL[primary.status]}
-                            city={order?.receiverCity ?? undefined}
-                            receiverName={order?.receiverName ?? ""}
-                            receiverPhone={order?.receiverPhone ?? ""}
-                            address={fullAddress}
-                            thumbnail={order?.items[0]?.image}
-                        />
-
-                        {/* 一单多包裹：每条包裹一条轴（承运商条 + 轨迹） */}
-                        {tracks.map((track) => (
-                            <section
-                                key={track.trackingNo}
-                                className="border-b border-border/60 pb-6 last:border-b-0"
-                            >
-                                <CarrierBar
-                                    carrierName={track.carrierName}
-                                    trackingNo={track.trackingNo}
-                                    title={track.direction === "RETURN" ? "退货物流" : undefined}
-                                />
-                                <TrackingTimeline
-                                    className="pt-3"
-                                    groups={track.groups}
-                                />
-                            </section>
-                        ))}
-
-                        {order && (
-                            <ReceiverLine
-                                receiverName={order.receiverName}
-                                receiverPhone={order.receiverPhone}
-                                address={fullAddress}
-                            />
-                        )}
-                    </div>
+                    <LogisticsBody
+                        primary={primary}
+                        tracks={tracks}
+                        order={order}
+                        fullAddress={fullAddress}
+                    />
                 )}
             </div>
         </div>
     )
+}
+
+/** 返回订单详情的行内链接（退货包裹与正向共用同一份轨迹页） */
+function BackToOrder({ orderId }: { orderId: string }) {
+    return (
+        <Link
+            to="/orders/$orderId"
+            params={{ orderId }}
+            className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+            <ArrowLeft className="size-3.5" />
+            返回订单详情
+        </Link>
+    )
+}
+
+/** 未发货（还没有任何包裹轨迹） */
+function NoTracking() {
+    return (
+        <Empty className="py-16">
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <CircleAlert />
+                </EmptyMedia>
+                <EmptyTitle>暂无物流信息</EmptyTitle>
+                <EmptyDescription>商家发货后，物流轨迹会显示在这里。</EmptyDescription>
+            </EmptyHeader>
+        </Empty>
+    )
+}
+
+/** 有轨迹时的页面主体：摘要卡 + 一单多包裹（每条包裹一条轴）+ 收货人一行 */
+// fallow-ignore-next-line complexity -- 一单多包裹的轴是数据驱动的列表，cc 来自「每个字段的缺省兜底」；再拆只会把一条轨迹拆成读不懂的碎片
+function LogisticsBody({
+    primary,
+    tracks,
+    order,
+    fullAddress,
+}: {
+    primary: NonNullable<ShipmentTrack>
+    tracks: ShipmentTrack[]
+    order: OrderDetail | undefined
+    fullAddress: string
+}) {
+    return (
+        <div className="space-y-6">
+            <LogisticsSummaryCard
+                statusLabel={SHIPMENT_STATUS_LABEL[primary.status]}
+                city={order?.receiverCity ?? undefined}
+                receiverName={order?.receiverName ?? ""}
+                receiverPhone={order?.receiverPhone ?? ""}
+                address={fullAddress}
+                thumbnail={order?.items[0]?.image}
+            />
+
+            {/* 一单多包裹：每条包裹一条轴（承运商条 + 轨迹） */}
+            {tracks.map((track) => (
+                <section
+                    key={track.trackingNo}
+                    className="border-b border-border/60 pb-6 last:border-b-0"
+                >
+                    <CarrierBar
+                        carrierName={track.carrierName}
+                        trackingNo={track.trackingNo}
+                        title={track.direction === "RETURN" ? "退货物流" : undefined}
+                    />
+                    <TrackingTimeline
+                        className="pt-3"
+                        groups={track.groups}
+                    />
+                </section>
+            ))}
+
+            {order && (
+                <ReceiverLine
+                    receiverName={order.receiverName}
+                    receiverPhone={order.receiverPhone}
+                    address={fullAddress}
+                />
+            )}
+        </div>
+    )
+}
+
+/**
+ * 降级数据：订单详情只是页面主体的附属（少它只少两条商家侧事件与一行收货信息），拿不到不连累轨迹。
+ *
+ * 必须在调用点退出全局默认：orderDetailOptions 的另一个消费者是订单详情页的 useSuspenseQuery
+ * （那处要抛给路由错误页，而 suspense 变体会忽略 options 里的 throwOnError），
+ * 所以「这份数据在这里只是降级」的决定属于本页，不属于 options。
+ */
+function useOrderDetailOrNull(orderId: string): OrderDetail | undefined {
+    return useQuery({ ...orderDetailOptions(orderId), throwOnError: false }).data
 }

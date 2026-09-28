@@ -18,7 +18,11 @@ import {
     useCancelAfterSale,
     useOrderActions,
     type AfterSaleAction,
+    type OrderAction,
+    type OrderDetail,
+    type OrderItem,
 } from "#/order"
+import type { TicketResponse } from "@shop/api/sdk"
 import { ReviewDialog } from "#/reviews"
 import { notify } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
@@ -79,41 +83,12 @@ function OrderDetailPage() {
     // （附属件，故非 suspense：失败就不画卡，与「从未申请过」同一呈现）
     const afterSale = useQuery(afterSaleOptions(orderId))
     const cancelAfterSale = useCancelAfterSale(orderId)
-    const navigate = useNavigate()
 
     // 状态区客户操作分发（取消走取消原因弹窗，由本页渲染 cancelDialog）；商品区的加购/售后走 handleItemAction
     const { handleAction, pendingAction, cancelDialog } = useOrderActions()
-
-    // 售后两个弹窗入口的状态：申请、回寄；评价弹窗同形
-    const [applyOpen, setApplyOpen] = useState(false)
-    const [returnOpen, setReturnOpen] = useState(false)
-    const [reviewOpen, setReviewOpen] = useState(false)
-
     const ticket = afterSale.data ?? undefined
-
-    /** 商品行操作：「申请售后」开弹窗，其余（加入购物车等）仍是占位 */
-    const handleItemAction = (action: string) => {
-        if (action === "after_sale") return setApplyOpen(true)
-        notify.info(`「${action}」即将上线`)
-    }
-
-    /** 售后卡操作：撤销走全局二次确认，回寄/重新申请开弹窗，查看退货物流跳物流详情页（退货包裹与正向共用一套轨迹） */
-    const handleAfterSaleAction = (action: AfterSaleAction) => {
-        if (action === "cancel") {
-            void confirm({
-                // 撤销后这张单就终态了，窗口内还能重新申请，所以文案说清「可以再来」
-                title: "撤销售后申请",
-                description: "撤销后本次售后结束；在申请窗口内你还可以重新提交。",
-                confirmText: "撤销申请",
-                action: () => cancelAfterSale.mutateAsync(),
-            })
-            return
-        }
-        if (action === "return") return setReturnOpen(true)
-        // reapply = 后端在终态单上下发的「重新申请」（C5b），走的还是那张申请弹窗
-        if (action === "reapply") return setApplyOpen(true)
-        void navigate({ to: "/logistics/$orderId", params: { orderId } })
-    }
+    const dialogs = useDialogs()
+    const afterSaleActions = useAfterSaleActions({ orderId, cancelAfterSale, dialogs })
 
     return (
         <div className="flex flex-1 flex-col">
@@ -124,53 +99,15 @@ function OrderDetailPage() {
 
             <div className="narrow-page">
                 <div className="flex gap-8">
-                    {/* 左侧主区 */}
-                    <div className="min-w-0 flex-1 space-y-8">
-                        {/* 进度条 + 状态 + 地址 + 操作 */}
-                        <Card>
-                            <CardContent className="space-y-6">
-                                <OrderProgress status={order.status} />
-                                <OrderStatusSection
-                                    order={order}
-                                    pendingAction={pendingAction}
-                                    onAction={(action) => handleAction(order, action)}
-                                />
-                            </CardContent>
-                        </Card>
-
-                        {/* 售后（有单才画；从未申请过售后时这一块不存在） */}
-                        {ticket && (
-                            <AfterSaleCard
-                                ticket={ticket}
-                                pendingAction={cancelAfterSale.isPending ? "cancel" : undefined}
-                                onAction={handleAfterSaleAction}
-                            />
-                        )}
-
-                        {/* 评价入口：只有「已完成」的订单才谈得上评价（REV-03）。
-                            不占商品区的按钮排——那是订单状态机的动作，评价是评价域的独立入口 */}
-                        {order.status === "completed" && (
-                            <Card>
-                                <CardContent className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium">评价这单</p>
-                                        <p className="mt-0.5 text-xs text-muted-foreground">
-                                            逐件商品打分与留言，提交后不可修改、可追评一次
-                                        </p>
-                                    </div>
-                                    <Button onClick={() => setReviewOpen(true)}>去评价</Button>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {/* 店铺 + 商品 */}
-                        <OrderShopSection
-                            order={order}
-                            items={order.items}
-                            canApplyAfterSale={canApplyAfterSale(order)}
-                            onItemAction={handleItemAction}
-                        />
-                    </div>
+                    <OrderMainColumn
+                        order={order}
+                        ticket={ticket}
+                        dialogs={dialogs}
+                        pendingAction={pendingAction}
+                        cancelPending={cancelAfterSale.isPending}
+                        onStatusAction={(action) => handleAction(order, action)}
+                        onAfterSaleAction={afterSaleActions.handle}
+                    />
 
                     {/* 右侧信息卡 */}
                     <aside className="w-80 shrink-0">
@@ -182,31 +119,191 @@ function OrderDetailPage() {
             {/* 取消订单弹窗（原因 + 备注）：状态由 useOrderActions 持有 */}
             {cancelDialog}
 
-            {order.status === "completed" && (
+            <OrderDialogs
+                orderId={orderId}
+                orderNo={order.orderNo}
+                items={order.items}
+                reviewable={order.status === "completed"}
+                ticket={ticket}
+                dialogs={dialogs}
+            />
+        </div>
+    )
+}
+
+/** 左主区：状态卡 → 售后卡 → 评价入口 → 店铺与商品（顺序即阅读顺序） */
+// fallow-ignore-next-line complexity -- 左主区的顺序（状态卡 → 售后卡 → 评价入口 → 商品）就是阅读顺序，cc 来自「该块有没有」的判空
+function OrderMainColumn({
+    order,
+    ticket,
+    dialogs,
+    pendingAction,
+    cancelPending,
+    onStatusAction,
+    onAfterSaleAction,
+}: {
+    order: OrderDetail
+    ticket: TicketResponse | undefined
+    dialogs: ReturnType<typeof useDialogs>
+    pendingAction: OrderAction | undefined
+    cancelPending: boolean
+    onStatusAction: (action: OrderAction) => void
+    onAfterSaleAction: (action: AfterSaleAction) => void
+}) {
+    return (
+        <div className="min-w-0 flex-1 space-y-8">
+            {/* 进度条 + 状态 + 地址 + 操作 */}
+            <Card>
+                <CardContent className="space-y-6">
+                    <OrderProgress status={order.status} />
+                    <OrderStatusSection
+                        order={order}
+                        pendingAction={pendingAction}
+                        onAction={onStatusAction}
+                    />
+                </CardContent>
+            </Card>
+
+            {/* 售后（有单才画；从未申请过售后时这一块不存在） */}
+            {ticket && (
+                <AfterSaleCard
+                    ticket={ticket}
+                    pendingAction={cancelPending ? "cancel" : undefined}
+                    onAction={onAfterSaleAction}
+                />
+            )}
+
+            {/* 评价入口：只有「已完成」的订单才谈得上评价（REV-03）。
+                不占商品区的按钮排——那是订单状态机的动作，评价是评价域的独立入口 */}
+            {order.status === "completed" && <ReviewPrompt onOpen={() => dialogs.open("review")} />}
+
+            {/* 店铺 + 商品 */}
+            <OrderShopSection
+                order={order}
+                items={order.items}
+                canApplyAfterSale={canApplyAfterSale(order)}
+                onItemAction={(action) => handleItemAction(action, dialogs)}
+            />
+        </div>
+    )
+}
+
+/** 弹窗名：售后申请 / 售后回寄 / 评价（三张互斥，同时最多开一张） */
+type DialogName = "apply" | "return" | "review"
+
+/** 弹窗开关状态：空对象 = 全关（关掉任意一张就是回到空，不留残值） */
+type DialogState = { open?: DialogName }
+
+/** 弹窗开关：页面唯一的弹窗状态源（申请/回寄/评价都从这里开） */
+function useDialogs() {
+    const [state, setState] = useState<DialogState>({})
+    return {
+        /** 当前开着的弹窗（undefined = 全关） */
+        current: state.open,
+        open: (name: DialogName) => setState({ open: name }),
+        close: (open: boolean) => setState(open && state.open ? { open: state.open } : {}),
+    }
+}
+
+/** 商品行操作：「申请售后」开弹窗，其余（加入购物车等）仍是占位 */
+function handleItemAction(action: string, dialogs: ReturnType<typeof useDialogs>) {
+    if (action === "after_sale") return dialogs.open("apply")
+    notify.info(`「${action}」即将上线`)
+}
+
+/** 评价入口卡：逐件打分与留言（弹窗由 OrderDialogs 持有） */
+function ReviewPrompt({ onOpen }: { onOpen: () => void }) {
+    return (
+        <Card>
+            <CardContent className="flex items-center justify-between">
+                <div>
+                    <p className="text-sm font-medium">评价这单</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                        逐件商品打分与留言，提交后不可修改、可追评一次
+                    </p>
+                </div>
+                <Button onClick={onOpen}>去评价</Button>
+            </CardContent>
+        </Card>
+    )
+}
+
+/** 售后卡操作分发：撤销走全局二次确认，回寄/重新申请开弹窗，查看退货物流跳物流详情页（退货包裹与正向共用一套轨迹） */
+function useAfterSaleActions({
+    orderId,
+    cancelAfterSale,
+    dialogs,
+}: {
+    orderId: string
+    cancelAfterSale: ReturnType<typeof useCancelAfterSale>
+    dialogs: ReturnType<typeof useDialogs>
+}) {
+    const navigate = useNavigate()
+
+    const handle = (action: AfterSaleAction) => {
+        if (action === "cancel") {
+            void confirm({
+                // 撤销后这张单就终态了，窗口内还能重新申请，所以文案说清「可以再来」
+                title: "撤销售后申请",
+                description: "撤销后本次售后结束；在申请窗口内你还可以重新提交。",
+                confirmText: "撤销申请",
+                action: () => cancelAfterSale.mutateAsync(),
+            })
+            return
+        }
+        if (action === "return") return dialogs.open("return")
+        // reapply = 后端在终态单上下发的「重新申请」（C5b），走的还是那张申请弹窗
+        if (action === "reapply") return dialogs.open("apply")
+        void navigate({ to: "/logistics/$orderId", params: { orderId } })
+    }
+
+    return { handle }
+}
+
+/** 售后与评价弹窗集合（取消订单弹窗由 useOrderActions 自带） */
+// fallow-ignore-next-line complexity -- 三张弹窗各自一份 open/onOpenChange，分支就是「开哪张」
+function OrderDialogs({
+    orderId,
+    orderNo,
+    items,
+    reviewable,
+    ticket,
+    dialogs,
+}: {
+    orderId: string
+    orderNo: string
+    items: OrderItem[]
+    reviewable: boolean
+    ticket: TicketResponse | undefined
+    dialogs: ReturnType<typeof useDialogs>
+}) {
+    return (
+        <>
+            {reviewable && (
                 <ReviewDialog
-                    open={reviewOpen}
-                    onOpenChange={setReviewOpen}
+                    open={dialogs.current === "review"}
+                    onOpenChange={dialogs.close}
                     orderId={orderId}
-                    orderNo={order.orderNo}
-                    items={order.items}
+                    orderNo={orderNo}
+                    items={items}
                 />
             )}
 
             <AfterSaleApplyDialog
-                open={applyOpen}
-                onOpenChange={setApplyOpen}
+                open={dialogs.current === "apply"}
+                onOpenChange={dialogs.close}
                 orderId={orderId}
-                orderNo={order.orderNo}
+                orderNo={orderNo}
             />
 
             <AfterSaleReturnDialog
-                open={returnOpen}
-                onOpenChange={setReturnOpen}
+                open={dialogs.current === "return"}
+                onOpenChange={dialogs.close}
                 orderId={orderId}
                 defaultLogisticsCompany={ticket?.returnLogisticsCompany}
                 defaultTrackingNo={ticket?.returnTrackingNo}
                 returnAddress={ticket?.returnAddress}
             />
-        </div>
+        </>
     )
 }

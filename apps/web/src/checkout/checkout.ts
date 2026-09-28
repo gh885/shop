@@ -1,4 +1,4 @@
-import { type Money } from "@shop/common"
+import { sumMoney, type Money } from "@shop/common"
 import type {
     Address,
     Group,
@@ -104,4 +104,27 @@ export function couponIdsOf(selection: CouponSelection): string[] {
     return Object.values(selection)
         .filter((id): id is string => typeof id === "string" && id !== "")
         .toSorted()
+}
+
+/** 右栏结算卡的三笔小计（商品总价 / 运费 / 优惠），由分组逐行相加得到 */
+export type CheckoutTotals = {
+    itemAmount: Money
+    shippingFee: Money
+    discountAmount: Money
+}
+
+/**
+ * 按店分组 → 结算卡的三笔小计。
+ *
+ * 与顶层 `totalPayAmount` 分工：那个是后端算好的**净额**（已减券），拿来当「商品总价」会把
+ * 优惠算两遍（AGENTS 的 Money 条款：金额口径只有一处定义）。所以这三笔在前端按分组求和，
+ * 口径与订单详情页的 `OrderCard` 同行小计求和一致。
+ */
+export function checkoutTotals(preview: CheckoutPreview | undefined): CheckoutTotals {
+    const groups = preview?.groups ?? []
+    return {
+        itemAmount: sumMoney(groups.map((g) => g.itemAmount)),
+        shippingFee: sumMoney(groups.map((g) => g.shippingFee)),
+        discountAmount: sumMoney(groups.map((g) => g.discountAmount)),
+    }
 }
