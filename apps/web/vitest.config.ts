@@ -14,5 +14,12 @@ export default defineConfig({
         environment: "jsdom",
         setupFiles: ["@shop/app-kit/test/setup"],
         include: ["src/**/*.test.{ts,tsx}"],
+        /**
+         * 物流轨迹的用例断言的是 +08 的墙上时间串（formatNodeTime → app-kit formatTimeShort
+         * 按宿主时区渲染，这是有意的产品行为）。不钉时区的话，同一份代码在本机 +08 绿、
+         * 在 UTC 的 CI runner 上红 4 条（实测 Expected "07-26 09:06" / Received "07-26 01:06"）。
+         * 钉在这里而不是 CI 步骤里：让本地任何时区的机器跑出的结果与 CI 一致。
+         */
+        env: { TZ: "Asia/Shanghai" },
     },
 })
