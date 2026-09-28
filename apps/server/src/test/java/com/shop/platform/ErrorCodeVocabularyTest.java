@@ -385,7 +385,9 @@ class ErrorCodeVocabularyTest {
     }
 
     private static boolean isExcludedFrontend(String fileName) {
-        return fileName.contains(".test.") || fileName.contains(".gen.") || fileName.endsWith("d.ts");
+        // 声明文件的判据是那个点：写成 endsWith("d.ts") 会把 card.ts / forbidden-word.ts 这类
+        // 以 d 结尾的**源码**一起排掉，且排得无声无息（扫描少了文件不会报错，只会让门禁变松）
+        return fileName.contains(".test.") || fileName.contains(".gen.") || fileName.endsWith(".d.ts");
     }
 
     /** 一处的调用文本（跨行已拼平） */
