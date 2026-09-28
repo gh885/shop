@@ -38,7 +38,7 @@ export interface CmsListShellProps<T extends RowData> {
     columns: ColumnDef<DataTableFeatures, T>[]
     rows: T[]
     isPending: boolean
-    emptyText: string
+    emptyContent: string
     /** 新增按钮文案（含对象名：「新增运营位」/「新增词条」） */
     createText: string
     filter?: CmsListFilter
@@ -60,7 +60,7 @@ export function CmsListShell<T extends { id: string } & RowData>({
     columns,
     rows,
     isPending,
-    emptyText,
+    emptyContent,
     createText,
     filter,
     renderCreate,
@@ -83,7 +83,7 @@ export function CmsListShell<T extends { id: string } & RowData>({
                 reui 的列显隐与分页条读 provider，放到外面就渲染不出来 */}
             <DataTable
                 table={table}
-                emptyContent={emptyText}
+                emptyContent={emptyContent}
             >
                 <DataTableToolbar
                     table={table}

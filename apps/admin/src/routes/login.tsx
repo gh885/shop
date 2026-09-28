@@ -111,9 +111,7 @@ function LoginPage() {
                     ref={panelRef}
                     className="mx-auto my-auto w-full max-w-sm animate-in py-16 duration-700 fade-in fill-mode-both slide-in-from-bottom-2"
                 >
-                    <h1 className="text-4xl font-semibold tracking-tight">
-                        {t("admin.login.title")}
-                    </h1>
+                    <h1 className="text-4xl font-semibold">{t("admin.login.title")}</h1>
                     <p className="mt-3 text-muted-foreground">{t("admin.login.subtitle")}</p>
 
                     <form
@@ -210,9 +208,7 @@ function Contents() {
                             <span className="col-span-1 font-mono text-xs text-primary tabular-nums">
                                 {String(i + 1).padStart(2, "0")}
                             </span>
-                            <span className="col-span-7 text-4xl tracking-tight 2xl:text-5xl">
-                                {group.title}
-                            </span>
+                            <span className="col-span-7 text-4xl 2xl:text-5xl">{group.title}</span>
                             <span className="col-span-4 text-right text-sm text-muted-foreground">
                                 {group.items}
                             </span>

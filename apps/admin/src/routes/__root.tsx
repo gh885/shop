@@ -23,7 +23,7 @@ function NotFound() {
     return (
         <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
             <p className="text-sm font-medium text-muted-foreground">404</p>
-            <h1 className="text-xl font-bold tracking-tight">{t("common.notFound.title")}</h1>
+            <h1 className="text-xl font-bold">{t("common.notFound.title")}</h1>
             <p className="text-sm text-muted-foreground">{t("common.notFound.description")}</p>
             <Link
                 to="/"

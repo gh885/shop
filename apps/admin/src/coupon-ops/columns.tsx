@@ -22,6 +22,8 @@ export const couponColumns: ColumnDef<DataTableFeatures, AdminCouponItem>[] = [
     {
         accessorKey: "discount",
         header: "减免额",
+        // 金额列右对齐 + 等宽数字（与卖家端订单/退款表同一口径）：数字比大小靠竖着对齐读
+        meta: { className: "text-right tabular-nums" },
         cell: ({ row }) => formatMoney(row.original.discount),
     },
     {

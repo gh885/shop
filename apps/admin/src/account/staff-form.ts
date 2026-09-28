@@ -22,12 +22,11 @@ export const EMPLOYEE_NO_MAX = 50
 export const DISPLAY_NAME_MAX = 50
 
 /**
- * 口令档位：镜像后端 `AccountFieldRules.PASSWORD_MIN/MAX`（8~72 字符，字节上限在后端再挡一道）。
- *
- * 下限直接引用 `@shop/app-kit` 的 `PASSWORD_MIN`——同一个 Java owner（`AccountFieldRules.PASSWORD_MIN`），
- * 本地再抄一份就是 shared-vocabulary 门禁要挡的「复制粘贴会静默换语义」。
+ * 口令档位：镜像后端 `AccountFieldRules.PASSWORD_MAX`（上限 72 字符，字节上限在后端再挡一道）。
+ * 下限引用 `@shop/app-kit` 的 `PASSWORD_MIN`——同一个 Java owner，本地再抄一份就是
+ * shared-vocabulary 门禁要挡的「复制粘贴会静默换语义」。
  */
-export const PASSWORD_MAX = 72
+const PASSWORD_MAX = 72
 
 /** 岗位词表取契约（后端 `StaffRole` 序列化出的三个值），前端不自己抄一份 */
 export const StaffRoleSchema = z.enum(StaffRole)
