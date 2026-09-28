@@ -49,7 +49,7 @@ public class CouponCommand {
      *
      * @param appliedDiscount 本单实际减免额（order 已据此落了订单金额，券侧不再重算）
      */
-    public void lock(UUID userCouponId, UUID userId, UUID orderId, Money appliedDiscount) {
+    public void lock(UUID userCouponId, UUID userId, UUID shopId, UUID orderId, Money appliedDiscount) {
         // 1. 归属与面额护栏：不属于本人给 404（不泄露券存在性）；实减超过本单基数说明调用方算错了，当场拦下。
         //    上界按券型取：满减券的面额是定值 discount_amount；折扣券没有定值面额（面值随基数变，CPN-65），
         //    它的定值上界是封顶 max_discount_amount（实减必 ≤ 封顶，见 CouponFaceValue 的两段封顶）
@@ -59,9 +59,10 @@ public class CouponCommand {
         Validate.isTrue(appliedDiscount.amount() <= faceCeiling, "优惠金额超过券面额");
         Validate.isTrue(appliedDiscount.currency().equals(coupon.getCurrency()), "优惠币种与券不一致");
 
-        // 2. 条件占用：这是并发闸门，不做「先读状态再写」
-        int affected =
-                userCouponMapper.lockOne(userCouponId, userId, orderId, appliedDiscount.amount(), OffsetDateTime.now());
+        // 2. 条件占用：这是并发闸门，不做「先读状态再写」。店也在 WHERE 里——券是店铺券（CPN-02 范围=本店全部商品），
+        //    面额上界只对传进来的这笔基数成立，A 店的券抢到 B 店的单，省的钱没人认账
+        int affected = userCouponMapper.lockOne(
+                userCouponId, userId, shopId, orderId, appliedDiscount.amount(), OffsetDateTime.now());
         Validate.conflict(affected == 1, "该优惠券已被其他订单占用或已失效，请重新选择");
 
         // 3. 记账

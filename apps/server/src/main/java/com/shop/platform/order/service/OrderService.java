@@ -9,6 +9,7 @@ import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.infra.observability.BizEvent;
@@ -165,6 +166,7 @@ public class OrderService {
                 couponCommand.lock(
                         group.appliedCoupon().userCouponId(),
                         userId,
+                        group.shopId(),
                         order.getId(),
                         group.appliedCoupon().discount());
             }
@@ -272,7 +274,6 @@ public class OrderService {
      *  金额与计费/用券快照直接吃分组结果（itemAmount / shippingFee / discountAmount / payAmount / templateId
      *  都是同一次计费的产物），不重算——重算就会漂移 */
     private Order persistOrder(UUID userId, CreateOrderRequest req, AddressSnapshot addr, CheckoutPreview.Group group) {
-        String buyerMessage = req.buyerMessage();
         Order template = Order.builder()
                 .userId(userId)
                 .shopId(group.shopId())
@@ -303,7 +304,7 @@ public class OrderService {
                 .receiverCity(addr.city())
                 .receiverDistrict(addr.district())
                 .receiverDetail(addr.detail())
-                .buyerMessage(buyerMessage == null || buyerMessage.isBlank() ? null : buyerMessage.trim())
+                .buyerMessage(Text.trimToNull(req.buyerMessage()))
                 .payExpireAt(OffsetDateTime.now().plus(OrderTimeouts.PAY))
                 .afterSaleStatus(AfterSaleStatus.NONE)
                 .build();

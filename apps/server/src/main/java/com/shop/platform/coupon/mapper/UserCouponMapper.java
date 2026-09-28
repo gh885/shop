@@ -135,12 +135,14 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
      * <p>这是并发闸门：条件更新 + 影响行数，不做「先读状态再写」。两个并发订单抢同一张券时，
      * 后者在这里拿 0 行，不可能双双用掉同一张券。
      */
-    default int lockOne(UUID userCouponId, UUID userId, UUID orderId, long appliedDiscountFen, OffsetDateTime now) {
+    default int lockOne(
+            UUID userCouponId, UUID userId, UUID shopId, UUID orderId, long appliedDiscountFen, OffsetDateTime now) {
         return update(
                 null,
                 new LambdaUpdateWrapper<UserCoupon>()
                         .eq(UserCoupon::getId, userCouponId)
                         .eq(UserCoupon::getUserId, userId)
+                        .eq(UserCoupon::getShopId, shopId)
                         .eq(UserCoupon::getStatus, UserCouponStatus.UNUSED)
                         .set(UserCoupon::getStatus, UserCouponStatus.LOCKED)
                         .set(UserCoupon::getOrderId, orderId)

@@ -362,11 +362,12 @@ class CouponFlowIT extends IntegrationTestSupport {
                 .coupon()
                 .getId();
         UUID firstOrder = UUID.randomUUID();
-        couponCommand.lock(couponId, userId, firstOrder, Money.cny(300));
+        couponCommand.lock(couponId, userId, shopId, firstOrder, Money.cny(300));
 
         // 条件更新的闸门本身：绕过「候选里没有它」的前置判断，直接抢第二次必须失败
         BusinessException ex = assertThrows(
-                BusinessException.class, () -> couponCommand.lock(couponId, userId, UUID.randomUUID(), Money.cny(300)));
+                BusinessException.class,
+                () -> couponCommand.lock(couponId, userId, shopId, UUID.randomUUID(), Money.cny(300)));
         assertEquals(409, ex.getHttpStatus());
         assertEquals(firstOrder, couponOrderRef(couponId)); // 占用关系没被后来的抢走
         assertEquals(1, usageCount(couponId, "LOCK")); // 失败的那次不留流水
@@ -382,7 +383,8 @@ class CouponFlowIT extends IntegrationTestSupport {
 
         // 面额护栏：调用方算错了不该让券模块买单
         BusinessException ex = assertThrows(
-                BusinessException.class, () -> couponCommand.lock(couponId, userId, UUID.randomUUID(), Money.cny(301)));
+                BusinessException.class,
+                () -> couponCommand.lock(couponId, userId, shopId, UUID.randomUUID(), Money.cny(301)));
         assertEquals(400, ex.getHttpStatus());
         assertTrue(ex.getDetail().contains("超过券面额"));
     }
