@@ -8,6 +8,7 @@
 - [ ] 买家评价：后端 `ReviewFlowIT`（提交/追评/回复/越权 404/窗口过期）与前端商详评价区、订单评价弹窗的 MSW 用例；图片那一格等买家上传通道（`/seller/**` 的图片凭证端点带店铺上下文，买家拿不到，契约与存储已备好）
 - [ ] 操作审计：`AuditQueryServiceTest`（按操作人/对象/时间窗筛选、时间窗方向 400）、`AdminAuditControllerTest`（`AUDIT_VIEW` 判权）；导出那条（CSV 转义 + 二次确认）可留给前端用例
 - [ ] 折扣券与相对有效期：`CouponFaceValue` 两段封顶的纯函数单测、结算链路折扣券实减额 IT（`CouponCommand.lock` 的封顶闸门）、建券条款 IT；`ReviewWindows.FOLLOW_UP_DAYS` 的窗口边界
+- [ ] 补测零覆盖的高复杂函数（`pnpm test:coverage && pnpm fallow:health` 出清单）。已修：`coupon/form.ts` 两处拆成两型各自的 refine/投影、`sdk-client.ts` 错误归一化、`ui-web/image.tsx` 圆角/加载属性共用、`use-product-draft.ts` 落库编排搬进 `draft-persist.ts`（cog 17 卡在 hook 密度上）。剩余待拆：买家下单/支付/物流主链路的页面组件（`checkout.tsx` CheckoutPage cc12/cog20、`pay/$orderId.tsx` PayPage、`logistics/$orderId.tsx` LogisticsPage、`orders/$orderId.tsx` OrderDetailPage、详情页 `PurchasePanel`/`Gallery`/`OrderCard`）函数级覆盖率为 0；`useProductDraft`/`BasicStep.tsx` 的 cog 17/21 靠拆子 hook（hook 密度）而非拆函数
 - [ ] 封店/解封与员工岗位：`ShopAdminServiceTest`（封店状态码口径、级联下架事件、解封的店主账号闸门）、`StaffServiceTest`（建号工号唯一、岗位自指禁令）；管理端三个新页的 MSW 用例（审计筛选、物流处置、店铺封停/解封）。末位超管保护已由 `StaffGovernanceIT` 覆盖（含并发）
 
 ## 下一步功能候选（拍板一个挪上「近期要做」一个）

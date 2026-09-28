@@ -36,6 +36,98 @@ const yuanField = (label: string) =>
         .min(1, `请输入${label}`)
         .refine((value) => yuanToFen(value) !== undefined, `${label}格式不正确`)
 
+/** 跨字段条款只看这几个原始字符串（Zod 已过 trim/min 的形状） */
+type CouponTermsShape = {
+    type: "FULL_REDUCTION" | "DISCOUNT"
+    thresholdYuan: string
+    discountYuan: string
+    discountRate: string
+    maxDiscountYuan: string
+    validDays: string
+    validFrom: string
+    validTo: string
+}
+
+/**
+ * 折扣券的面值条款：不校验「面额 ≤ 门槛」（它没有定值面额），
+ * 改判折率档位与封顶必填——封顶缺失的折扣券写不进库（DB CHECK），但那时是一句 500。
+ */
+function refineDiscountTerms(value: CouponTermsShape, ctx: z.RefinementCtx): void {
+    const rate = Number(value.discountRate)
+    if (!value.discountRate || Number.isNaN(rate) || rate <= 0 || rate >= 1) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["discountRate"],
+            message: "折扣率需在 0.01~0.99 之间（0.90 即 9 折）",
+        })
+    }
+    const cap = yuanToFen(value.maxDiscountYuan)
+    if (value.maxDiscountYuan.trim() === "") {
+        ctx.addIssue({
+            code: "custom",
+            path: ["maxDiscountYuan"],
+            message: "折扣券必须填写最高减免金额",
+        })
+    } else if (cap === undefined || cap <= 0) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["maxDiscountYuan"],
+            message: "最高减免金额格式不正确",
+        })
+    }
+}
+
+/** 满减券的面值条款：面额必填且为正，且不得超过非零门槛 */
+function refineReductionTerms(value: CouponTermsShape, ctx: z.RefinementCtx): void {
+    const threshold = yuanToFen(value.thresholdYuan)
+    const discount = yuanToFen(value.discountYuan)
+    if (value.discountYuan.trim() === "") {
+        ctx.addIssue({ code: "custom", path: ["discountYuan"], message: "请输入面额" })
+    } else if (discount === undefined || discount <= 0) {
+        ctx.addIssue({ code: "custom", path: ["discountYuan"], message: "面额必须大于 0" })
+    }
+    // 门槛为 0 时不受限：无门槛券的减免可以任意大
+    if (
+        threshold !== undefined &&
+        threshold !== 0 &&
+        discount !== undefined &&
+        discount > threshold
+    ) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["discountYuan"],
+            message: "面额不能超过使用门槛，请检查是否填反",
+        })
+    }
+}
+
+/** 相对有效期：留空合法；填了必须是 1~365 的整数（与库上 CHECK 同值） */
+function refineValidDays(value: CouponTermsShape, ctx: z.RefinementCtx): void {
+    if (value.validDays.trim() === "") return
+    const days = Number(value.validDays)
+    if (!Number.isInteger(days) || days < VALID_DAYS_MIN || days > VALID_DAYS_MAX) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["validDays"],
+            message: `领取后有效天数需为 ${VALID_DAYS_MIN}~${VALID_DAYS_MAX} 的整数`,
+        })
+    }
+}
+
+/** 发放窗口：两端都填了就必须 later-than，datetime-local 串未 parse 成功则本层不管（交给必填） */
+function refineValidWindow(value: CouponTermsShape, ctx: z.RefinementCtx): void {
+    if (!value.validFrom || !value.validTo) return
+    const from = Date.parse(value.validFrom)
+    const to = Date.parse(value.validTo)
+    if (!Number.isNaN(from) && !Number.isNaN(to) && to <= from) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["validTo"],
+            message: "有效期终点必须晚于起点",
+        })
+    }
+}
+
 export const CouponFormSchema = z
     .object({
         name: z.string().trim().min(1, "请输入券名").max(COUPON_NAME_MAX, COUPON_NAME_MESSAGE),
@@ -65,81 +157,16 @@ export const CouponFormSchema = z
         /** 领取后 N 天有效：留空 = 券沿用发放窗口作为可用期（CPN-68） */
         validDays: z.string().trim(),
     })
-    // 跨字段条款：后端也会挡（且是 400），但等一趟网络再报错不如在提交前说清楚
+    // 跨字段条款：后端也会挡（且是 400），但等一趟网络再报错不如在提交前说清楚。
+    // 两型的面值条款各自成条，所以各自一个函数：superRefine 只做分派 + 两型共有的窗口校验。
     .superRefine((value, ctx) => {
-        const threshold = yuanToFen(value.thresholdYuan)
-
-        // 两型的面值条款各自成条：折扣券不校验「面额 ≤ 门槛」（它没有定值面额），
-        // 改判折率档位与封顶必填——封顶缺失的折扣券写不进库（DB CHECK），但那时是一句 500
         if (value.type === "DISCOUNT") {
-            const rate = Number(value.discountRate)
-            if (!value.discountRate || Number.isNaN(rate) || rate <= 0 || rate >= 1) {
-                ctx.addIssue({
-                    code: "custom",
-                    path: ["discountRate"],
-                    message: "折扣率需在 0.01~0.99 之间（0.90 即 9 折）",
-                })
-            }
-            const cap = yuanToFen(value.maxDiscountYuan)
-            if (value.maxDiscountYuan.trim() === "") {
-                ctx.addIssue({
-                    code: "custom",
-                    path: ["maxDiscountYuan"],
-                    message: "折扣券必须填写最高减免金额",
-                })
-            } else if (cap === undefined || cap <= 0) {
-                ctx.addIssue({
-                    code: "custom",
-                    path: ["maxDiscountYuan"],
-                    message: "最高减免金额格式不正确",
-                })
-            }
-            return
+            refineDiscountTerms(value, ctx)
+        } else {
+            refineReductionTerms(value, ctx)
         }
-
-        const discount = yuanToFen(value.discountYuan)
-        if (value.discountYuan.trim() === "") {
-            ctx.addIssue({ code: "custom", path: ["discountYuan"], message: "请输入面额" })
-        } else if (discount === undefined || discount <= 0) {
-            ctx.addIssue({ code: "custom", path: ["discountYuan"], message: "面额必须大于 0" })
-        }
-        // 门槛为 0 时不受限：无门槛券的减免可以任意大
-        if (
-            threshold !== undefined &&
-            threshold !== 0 &&
-            discount !== undefined &&
-            discount > threshold
-        ) {
-            ctx.addIssue({
-                code: "custom",
-                path: ["discountYuan"],
-                message: "面额不能超过使用门槛，请检查是否填反",
-            })
-        }
-
-        // 相对有效期：留空合法；填了必须是 1~365 的整数（与库上 CHECK 同值）
-        if (value.validDays.trim() !== "") {
-            const days = Number(value.validDays)
-            if (!Number.isInteger(days) || days < VALID_DAYS_MIN || days > VALID_DAYS_MAX) {
-                ctx.addIssue({
-                    code: "custom",
-                    path: ["validDays"],
-                    message: `领取后有效天数需为 ${VALID_DAYS_MIN}~${VALID_DAYS_MAX} 的整数`,
-                })
-            }
-        }
-
-        if (value.validFrom && value.validTo) {
-            const from = Date.parse(value.validFrom)
-            const to = Date.parse(value.validTo)
-            if (!Number.isNaN(from) && !Number.isNaN(to) && to <= from) {
-                ctx.addIssue({
-                    code: "custom",
-                    path: ["validTo"],
-                    message: "有效期终点必须晚于起点",
-                })
-            }
-        }
+        refineValidDays(value, ctx)
+        refineValidWindow(value, ctx)
     })
 
 export type CouponFormValues = z.infer<typeof CouponFormSchema>
@@ -170,26 +197,28 @@ function localDateTimeToIso(value: string): string | undefined {
     return new Date(ms).toISOString()
 }
 
+/** 两型各投影自己那一半；另一型的格发缺省（后端 + DB CHECK 都按「缺省即不适用」判） */
+function faceValueFromForm(
+    values: CouponFormValues,
+): Pick<CreateCouponTemplateRequest, "discountAmount" | "discountRate" | "maxDiscountAmount"> {
+    if (values.type === "DISCOUNT") {
+        const discountRate = Number(values.discountRate)
+        if (Number.isNaN(discountRate)) throw new Error("折扣率格式不正确")
+        const maxDiscountAmount = yuanToMoney(values.maxDiscountYuan)
+        if (maxDiscountAmount === undefined || !isPositiveMoney(maxDiscountAmount))
+            throw new Error("最高减免金额格式不正确")
+        return { discountRate, maxDiscountAmount }
+    }
+    const discountAmount = yuanToMoney(values.discountYuan)
+    if (discountAmount === undefined || !isPositiveMoney(discountAmount))
+        throw new Error("面额格式不正确")
+    return { discountAmount }
+}
+
 /** 表单形状 → 后端请求：元转 Money（币种取平台定价币种）、本地时间转 ISO 时刻、文本 trim */
 export function couponRequestFromForm(values: CouponFormValues): CreateCouponTemplateRequest {
     const thresholdAmount = yuanToMoney(values.thresholdYuan)
     if (thresholdAmount === undefined) throw new Error("门槛金额格式不正确")
-
-    // 两型各投影自己那一半：另一型的格发缺省（后端 + DB CHECK 都按「缺省即不适用」判）
-    let discountAmount
-    let discountRate
-    let maxDiscountAmount
-    if (values.type === "DISCOUNT") {
-        discountRate = Number(values.discountRate)
-        if (Number.isNaN(discountRate)) throw new Error("折扣率格式不正确")
-        maxDiscountAmount = yuanToMoney(values.maxDiscountYuan)
-        if (maxDiscountAmount === undefined || !isPositiveMoney(maxDiscountAmount))
-            throw new Error("最高减免金额格式不正确")
-    } else {
-        discountAmount = yuanToMoney(values.discountYuan)
-        if (discountAmount === undefined || !isPositiveMoney(discountAmount))
-            throw new Error("面额格式不正确")
-    }
 
     const totalQuantity = Number(values.totalQuantity)
     if (!Number.isInteger(totalQuantity) || totalQuantity < 1) {
@@ -206,12 +235,10 @@ export function couponRequestFromForm(values: CouponFormValues): CreateCouponTem
         name: values.name.trim(),
         type: values.type,
         thresholdAmount,
-        discountAmount,
-        discountRate,
-        maxDiscountAmount,
         totalQuantity,
         validFrom,
         validTo,
         validDays,
+        ...faceValueFromForm(values),
     }
 }

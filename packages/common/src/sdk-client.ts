@@ -89,6 +89,44 @@ const flattenQuerySerializer = (query: Record<string, unknown>): string => {
     return search.join("&")
 }
 
+/** 契约漂移的上报：dev 打完整 issues 尽早暴露，生产只打可 grep 的锚点（不吞） */
+function reportContractDrift(
+    error: Parameters<typeof zodIssuesText>[0],
+    request: { method: string; url: string } | undefined,
+    debug: boolean | undefined,
+): void {
+    const where = request ? `${request.method} ${new URL(request.url).pathname}` : "(unknown)"
+    const issues = zodIssuesText(error)
+    if (debug) {
+        console.warn(`[API] 响应契约校验失败 ${where}\n  ${issues}`, error.issues)
+    } else {
+        console.error(`[API] 响应契约校验失败 ${where} ${issues}`)
+    }
+}
+
+/** 后端错误体里可选的 code / requestId（不是字符串就当没有，不让脏字段漏进 ApiError） */
+const optionalStringField = (error: object, field: string): string | undefined => {
+    const value = (error as Record<string, unknown>)[field]
+    return typeof value === "string" ? value : undefined
+}
+
+/** 有响应的失败：后端给了 detail 就原样透出（含 code/requestId 供前端分流），否则给一句通用重试 */
+function apiErrorFromResponse(response: { status: number }, error: unknown): ApiError {
+    if (typeof error !== "object" || error === null || !("detail" in error)) {
+        return { status: response.status, detail: "请求失败，请稍后重试" } satisfies ApiError
+    }
+    const detail = (error as { detail: unknown }).detail
+    if (typeof detail !== "string") {
+        return { status: response.status, detail: "请求失败，请稍后重试" } satisfies ApiError
+    }
+    return {
+        status: response.status,
+        detail,
+        code: optionalStringField(error, "code"),
+        requestId: optionalStringField(error, "requestId"),
+    } satisfies ApiError
+}
+
 export function configureSdkClient(
     baseUrl: string,
     tokens?: TokenStore,
@@ -241,17 +279,7 @@ export function configureSdkClient(
     // 客户端 catch 后会送进 error 拦截器，借 request 拿到方法与路径。
     client.interceptors.error.use((error, response, request) => {
         if (isZodError(error)) {
-            const where = request
-                ? `${request.method} ${new URL(request.url).pathname}`
-                : "(unknown)"
-            const issues = zodIssuesText(error)
-            if (options?.debug) {
-                // dev：完整 issues，尽早暴露契约漂移
-                console.warn(`[API] 响应契约校验失败 ${where}\n  ${issues}`, error.issues)
-            } else {
-                // 生产：上报锚点（监控/埋点可 grep 前缀），不吞
-                console.error(`[API] 响应契约校验失败 ${where} ${issues}`)
-            }
+            reportContractDrift(error, request, options?.debug)
             return {
                 status: response?.status ?? 200,
                 detail: "响应数据不符合接口契约",
@@ -259,24 +287,7 @@ export function configureSdkClient(
             } satisfies ApiError
         }
         if (response) {
-            if (
-                typeof error === "object" &&
-                error !== null &&
-                "detail" in error &&
-                typeof error.detail === "string"
-            ) {
-                return {
-                    status: response.status,
-                    detail: error.detail,
-                    code:
-                        "code" in error && typeof error.code === "string" ? error.code : undefined,
-                    requestId:
-                        "requestId" in error && typeof error.requestId === "string"
-                            ? error.requestId
-                            : undefined,
-                } satisfies ApiError
-            }
-            return { status: response.status, detail: "请求失败，请稍后重试" } satisfies ApiError
+            return apiErrorFromResponse(response, error)
         }
         return { status: 0, detail: "网络错误，请检查连接" } satisfies ApiError
     })

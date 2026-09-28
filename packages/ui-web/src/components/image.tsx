@@ -15,6 +15,25 @@ const RADIUS_CLASS = {
 /** ratio 经 --ratio 变量给 aspect-(--ratio) 占位，img 与占位共用 */
 const RATIO_CLASS = "aspect-(--ratio)"
 
+/** 圆角 + 比例占位类：img 与占位盒共用，二者互不依赖（没传 ratio 也要给圆角） */
+const skinClass = (
+    ratio: number | undefined,
+    radius: keyof typeof RADIUS_CLASS | undefined,
+): string | undefined =>
+    cn(ratio === undefined ? undefined : RATIO_CLASS, radius && RADIUS_CLASS[radius])
+
+/** 首屏图（priority）把三个加载提示拉满；未给时默认懒加载 + 异步解码，消费方显式给的优先 */
+const loadingProps = ({
+    priority,
+    loading,
+    fetchPriority,
+    decoding,
+}: Pick<ImageProps, "priority" | "loading" | "fetchPriority" | "decoding">) => ({
+    loading: loading ?? (priority ? "eager" : "lazy"),
+    fetchPriority: fetchPriority ?? (priority ? "high" : "auto"),
+    decoding: decoding ?? "async",
+})
+
 export interface ImageProps extends Omit<React.ComponentProps<"img">, "src"> {
     /** 已解析的完整 URL（imgUrl(key) 拼好后传入）；空值渲染占位，避免 img src="" 警告 */
     src?: string | null
@@ -71,7 +90,6 @@ function ImageTag({
     ...props
 }: ImageProps & { src: string; onFailed: () => void }) {
     void fallback // 占位内容只在 ImageFallback 分支消费，这里丢弃防止漏进 img 属性
-    const ratioClass = ratio === undefined ? undefined : RATIO_CLASS
     const styleProp = ratio === undefined ? style : ({ "--ratio": ratio } as CSSVars)
     return (
         <img
@@ -79,17 +97,14 @@ function ImageTag({
             src={src}
             alt={alt}
             srcSet={buildSrcSet(src, widths)}
-            loading={loading ?? (priority ? "eager" : "lazy")}
-            fetchPriority={fetchPriority ?? (priority ? "high" : "auto")}
-            decoding={decoding ?? "async"}
+            {...loadingProps({ priority, loading, fetchPriority, decoding })}
             onError={(event) => {
                 onFailed()
                 onError?.(event)
             }}
             className={cn(
                 "object-cover",
-                ratioClass,
-                radius && RADIUS_CLASS[radius],
+                skinClass(ratio, radius),
                 hoverScale && "transition-transform duration-150 group-hover:scale-104",
                 className,
             )}
@@ -99,7 +114,6 @@ function ImageTag({
 }
 
 function ImageFallback({ alt, ratio, radius, className, style, fallback }: ImageProps) {
-    const ratioClass = ratio === undefined ? undefined : RATIO_CLASS
     const styleProp = ratio === undefined ? style : ({ "--ratio": ratio } as CSSVars)
     return (
         <div
@@ -108,8 +122,7 @@ function ImageFallback({ alt, ratio, radius, className, style, fallback }: Image
             aria-label={alt}
             className={cn(
                 "flex items-center justify-center bg-muted text-xs text-muted-foreground",
-                ratioClass,
-                radius && RADIUS_CLASS[radius],
+                skinClass(ratio, radius),
                 className,
             )}
             style={styleProp}
