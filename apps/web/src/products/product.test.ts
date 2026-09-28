@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import type { FeedItemResponse, PublicProductResponse } from "@shop/api/sdk"
 import { money } from "@shop/common"

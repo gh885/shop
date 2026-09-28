@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { formatMessage, resolveMessage, type I18nResources } from "./message"
 

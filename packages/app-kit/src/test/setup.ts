@@ -1,4 +1,4 @@
-import { beforeAll } from "vitest"
+import { beforeAll } from "vite-plus/test"
 import { client } from "@shop/api"
 import { configureSdkClient } from "@shop/common"
 

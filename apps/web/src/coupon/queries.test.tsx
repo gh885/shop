@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import type { MyCouponResponse } from "@shop/api/sdk"
 import { Toaster } from "@shop/ui-web"

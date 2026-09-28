@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vite-plus/test"
 
 import { money } from "@shop/common"
 import { makeCouponTemplate, server } from "@shop/test-utils"
@@ -80,6 +80,8 @@ const START_TIME = "10:00"
 const END_DAY = Math.max(2, new Date().getDate())
 
 describe("CouponFormDialog", () => {
+    // 单跑这条是 ~1s，但 `pnpm test:coverage`（7 个 project 并发 + V8 逐文件插桩）能把它拖过 5s 默认线，
+    // 红成「测试挂了」而其实是被抢 CPU。只给这一条放宽，不动全局 testTimeout：别处真挂住仍要 5s 就报。
     it("提交：元换算成分、本地时间转成带时区 ISO 时刻，弹窗关闭", async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn<(open: boolean) => void>()
@@ -129,7 +131,7 @@ describe("CouponFormDialog", () => {
         expect(Date.parse(String(sentFrom))).toBe(validFrom.getTime())
         expect(String(sentFrom)).toMatch(/Z$/)
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
-    })
+    }, 15000)
 
     it("门槛填 0：按无门槛原样提交 0，不是被当成缺填丢掉", async () => {
         const user = userEvent.setup()

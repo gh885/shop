@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { ErrorCodes } from "../error-codes"
 import { ERROR_MESSAGES, getErrorMessage } from "./error-messages"

@@ -3,7 +3,7 @@ import type {
     OrderDetailResponse,
     OrderListItemResponse,
 } from "@shop/api/sdk"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
     ORDER_ACTION_META,

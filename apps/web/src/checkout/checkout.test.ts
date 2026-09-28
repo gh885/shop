@@ -2,7 +2,7 @@ import type { PreviewResponse } from "@shop/api/sdk"
 import { useQuery } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { makeCoupon, server } from "@shop/test-utils"
 

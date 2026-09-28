@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import type { RecommendTabResponse } from "@shop/api/sdk"
 import { makeRecommendTab } from "@shop/test-utils/fixtures"

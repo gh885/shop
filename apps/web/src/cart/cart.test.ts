@@ -1,6 +1,6 @@
 import type { CartItemView } from "@shop/api/sdk"
 import { money, zeroMoney } from "@shop/common"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
     deriveAllSelected,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { buildSrcSet, DEFAULT_WIDTHS, withMogr2 } from "./image-url"
 

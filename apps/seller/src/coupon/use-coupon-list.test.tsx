@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { delay, HttpResponse, http } from "msw"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { makeCouponTemplate, server } from "@shop/test-utils"
 import { createAppTestHookClient } from "@shop/app-kit/test"

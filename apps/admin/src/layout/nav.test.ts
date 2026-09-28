@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { allowsLeaf, LEAF_PERMISSIONS, NAV_ITEMS, visibleNavGroups } from "./nav"
 

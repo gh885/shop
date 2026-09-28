@@ -1,5 +1,5 @@
 import { ErrorCodes } from "@shop/common"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { parseForbiddenWordError } from "./forbidden-word"
 

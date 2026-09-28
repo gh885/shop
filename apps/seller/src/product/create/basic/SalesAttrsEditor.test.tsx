@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vite-plus/test"
 
 import { SPEC_VALUE_MAX, SPEC_VALUES_MAX } from "@shop/common"
 import { makeCategoryAttrNode } from "@shop/test-utils"

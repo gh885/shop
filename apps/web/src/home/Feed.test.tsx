@@ -2,7 +2,7 @@ import { Outlet } from "@tanstack/react-router"
 import { act, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import type { FeedItemResponse } from "@shop/api/sdk"
 import { makeRecommendTab as makeTab, server } from "@shop/test-utils"

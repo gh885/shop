@@ -1,5 +1,5 @@
 import { money } from "@shop/common"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { couponRequestFromForm, type CouponFormValues } from "./form"
 

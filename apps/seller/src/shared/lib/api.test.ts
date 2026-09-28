@@ -1,5 +1,5 @@
 import { HttpResponse, http } from "msw"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vite-plus/test"
 
 import { server } from "@shop/test-utils"
 

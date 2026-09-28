@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { AFTER_SALE_TYPE_LABEL, TICKET_STATUS_META } from "./constants"
 import { buyerAfterSaleActions, canApplyAfterSale } from "./after-sale"

@@ -2,7 +2,7 @@ import type { CategoryAttrNodeResponse, SkuResponse } from "@shop/api/sdk"
 import { money } from "@shop/common"
 import { makeCategoryAttrNode } from "@shop/test-utils/fixtures"
 
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
     buildSkuRowsFromSelections,

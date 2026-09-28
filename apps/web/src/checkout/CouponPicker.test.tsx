@@ -1,7 +1,7 @@
 import type { Coupon, PreviewResponse } from "@shop/api/sdk"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vite-plus/test"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 import { makeCoupon } from "@shop/test-utils"

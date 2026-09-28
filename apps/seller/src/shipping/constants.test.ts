@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { FEE_TIER_FIELDS } from "./constants"
 import { EMPTY_FEE_TIER } from "./model"

@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { delay, HttpResponse, http } from "msw"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vite-plus/test"
 
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
 import { makeSellerOrderListItem, server } from "@shop/test-utils"

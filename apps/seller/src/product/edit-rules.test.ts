@@ -1,6 +1,6 @@
 import type { ProductStatus } from "@shop/api/sdk"
 import { money } from "@shop/common"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { publishGateError, willPublish, type SaveMode } from "./edit-rules"
 import type { SkuDraftRow } from "./draft-model"

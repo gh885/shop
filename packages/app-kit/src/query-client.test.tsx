@@ -5,7 +5,7 @@ import {
     useSuspenseQuery,
 } from "@tanstack/react-query"
 import { act, render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { QueryBoundary } from "./query-boundary"
 import { createAppQueryClient } from "./query-client"

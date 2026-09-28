@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vite-plus/test"
 
 import { renderWithRouter } from "./index"
 import { useUnsavedLeaveGuard } from "../use-unsaved-leave"
