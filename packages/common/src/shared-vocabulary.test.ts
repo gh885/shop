@@ -280,6 +280,12 @@ describe("owner 不是孤儿", () => {
         // ErrorCodeVocabularyTest 管，这一条只管「前端别再造第二份」。
         ["ErrorCodes", "packages/common/src/error-codes.ts"],
         ["RESPONSE_VALIDATION_FAILED", "packages/common/src/api-error.ts"],
+        // 「后端说了才用它的 detail」这条判据只有一个出口：各区块自己判一次必然漂移
+        // （写成 `toApiError(err).detail || 站点文案` 的，站点那句永远轮不上）
+        ["apiErrorDetail", "packages/common/src/api-error.ts"],
+        // 程序化滚动的 behavior 只有一个取值处：各处手抄 "smooth" 就是无视「减少动效」
+        ["scrollToTop", "packages/common/src/scroll.ts"],
+        ["scrollToElement", "packages/common/src/scroll.ts"],
     ]
 
     for (const [symbol, owner] of OWNED) {

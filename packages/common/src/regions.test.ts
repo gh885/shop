@@ -12,7 +12,10 @@ describe("loadChildren", () => {
         const roots = await loadChildren(undefined)
 
         expect(roots.length).toBeGreaterThan(20)
-        expect(roots.find((r) => r.code === "44")).toMatchObject({ label: "广东省", isLeaf: false })
+        expect(roots.find((r) => r.code === "44")).toMatchObject({
+            label: "广东省",
+            isLeaf: false,
+        })
     })
 
     it("省 → 市按层取孩子，市下还有区所以不是叶子", async () => {
