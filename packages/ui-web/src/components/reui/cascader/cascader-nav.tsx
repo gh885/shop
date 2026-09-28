@@ -130,7 +130,7 @@ function CascaderBreadcrumb({
     // `collapseCascaderPath` never collapses the last node away, so this is
     // always the final segment - derived rather than assumed, so a `collapse`
     // mode that ever changes that cannot mark an ancestor as the current page.
-    const currentValue = nodes.length ? (nodes.at(-1)?.value ?? null) : null
+    const currentValue = nodes.length > 0 ? (nodes.at(-1)?.value ?? null) : null
 
     // See `CascaderBack`: the hide check must not short-circuit past `useRender`.
     const hidden = mode !== "drill" || nodes.length === 0
@@ -524,7 +524,7 @@ function CascaderValue({
     } else if (display === "count" || (multiple && selectedValues.length > 1)) {
         content = labels.selectedCount(selectedValues.length)
     } else {
-        const leaf = path[path.length - 1] ?? selected[0]
+        const leaf = path.at(-1) ?? selected[0]
         // `leaf` here is always defined (an empty selection returned above); the
         // `&& leaf` is to let the type say so, not a reachable second state.
         const segments =

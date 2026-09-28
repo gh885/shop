@@ -74,7 +74,7 @@ export function useCascaderVirtualizer({
         (range: Range) => {
             const indices = new Set(defaultRangeExtractor(range))
             if (active !== -1) indices.add(active)
-            return Array.from(indices).sort((a, b) => a - b)
+            return [...indices].sort((a, b) => a - b)
         },
         [active],
     )

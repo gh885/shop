@@ -1561,8 +1561,12 @@ function DataGridCellSelection<TData extends object>({
                     if (direction === "down" && !event.shiftKey) {
                         const focused = table.getFocusedCell()
                         const renderedRows = viewport.querySelectorAll("tbody tr[data-row-id]")
-                        const lastRenderedId =
-                            renderedRows[renderedRows.length - 1]?.getAttribute("data-row-id")
+                        // `.item()` 而不是 `[length - 1]`：oxlint 的 prefer-at 自动修复会把下标式尾部取元素
+                        // 改成 `.at(-1)`，而 NodeList 上没有 `at`（TS2339，运行时是 TypeError）。写成 .item()
+                        // 既不动语义，也不会再被那条 fix 挑中。
+                        const lastRenderedId = renderedRows
+                            .item(renderedRows.length - 1)
+                            ?.getAttribute("data-row-id")
                         if (
                             focused &&
                             lastRenderedId &&

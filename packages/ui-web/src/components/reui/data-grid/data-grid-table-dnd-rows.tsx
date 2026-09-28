@@ -258,46 +258,44 @@ function DataGridTableDndRow<TData extends object>({
                 dndRef={setNodeRef}
                 dndStyle={style}
             >
-                {row
-                    .getVisibleCells()
-                    .map((cell: Cell<DataGridFeatures, TData, unknown>, index, cells) => {
-                        return (
-                            <DataGridTableBodyRowCell
-                                cell={cell}
-                                key={cell.id}
-                            >
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                {decoration && index === cells.length - 1 ? (
-                                    // Rides inside the last cell rather than in a `td` of its own.
-                                    // An absolutely positioned `td` is still a cell as far as table
-                                    // layout is concerned, so it added a NINTH column with no width
-                                    // of its own, and under `table-layout: fixed` that new column
-                                    // swallowed the whole surplus the real columns had been sharing
-                                    // — every column snapped back to its declared size and the row's
-                                    // content visibly narrowed the moment a drag began. A plain
-                                    // element adds no column. It still anchors to the ROW, because
-                                    // the row is the nearest positioned ancestor, so the decoration
-                                    // spans the full width and is not clipped by the cell.
-                                    <div
-                                        aria-hidden="true"
-                                        data-slot="data-grid-table-row-decoration"
-                                        className="pointer-events-none absolute inset-0"
-                                    >
-                                        {decoration}
-                                    </div>
-                                ) : null}
-                                {dropEdge && index === cells.length - 1 ? (
-                                    // Same anchoring trick as the decoration above: a plain
-                                    // element inside the last cell, so it adds no column and
-                                    // cannot disturb `table-layout: fixed`. It spans the row
-                                    // because the row is the nearest positioned ancestor.
-                                    <div
-                                        aria-hidden="true"
-                                        data-slot="data-grid-table-row-drop-indicator"
-                                        data-edge={dropEdge}
-                                        className="pointer-events-none absolute inset-0 z-20"
-                                    >
-                                        {/* Two solid pixels down the leading edge, the same marker
+                {row.getVisibleCells().map((cell: Cell<DataGridFeatures, TData>, index, cells) => {
+                    return (
+                        <DataGridTableBodyRowCell
+                            cell={cell}
+                            key={cell.id}
+                        >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            {decoration && index === cells.length - 1 ? (
+                                // Rides inside the last cell rather than in a `td` of its own.
+                                // An absolutely positioned `td` is still a cell as far as table
+                                // layout is concerned, so it added a NINTH column with no width
+                                // of its own, and under `table-layout: fixed` that new column
+                                // swallowed the whole surplus the real columns had been sharing
+                                // — every column snapped back to its declared size and the row's
+                                // content visibly narrowed the moment a drag began. A plain
+                                // element adds no column. It still anchors to the ROW, because
+                                // the row is the nearest positioned ancestor, so the decoration
+                                // spans the full width and is not clipped by the cell.
+                                <div
+                                    aria-hidden="true"
+                                    data-slot="data-grid-table-row-decoration"
+                                    className="pointer-events-none absolute inset-0"
+                                >
+                                    {decoration}
+                                </div>
+                            ) : null}
+                            {dropEdge && index === cells.length - 1 ? (
+                                // Same anchoring trick as the decoration above: a plain
+                                // element inside the last cell, so it adds no column and
+                                // cannot disturb `table-layout: fixed`. It spans the row
+                                // because the row is the nearest positioned ancestor.
+                                <div
+                                    aria-hidden="true"
+                                    data-slot="data-grid-table-row-drop-indicator"
+                                    data-edge={dropEdge}
+                                    className="pointer-events-none absolute inset-0 z-20"
+                                >
+                                    {/* Two solid pixels down the leading edge, the same marker
                         the tree drag uses for its drop target. A wash across
                         the row has to stay faint enough not to read as a
                         selected row, and in the achromatic styles primary
@@ -310,12 +308,12 @@ function DataGridTableDndRow<TData extends object>({
                         seam as well only competes with the row borders it sits
                         between. `data-edge` still carries the direction for
                         anyone styling their own. */}
-                                        <span className="bg-primary absolute inset-y-0 start-0 w-0.5" />
-                                    </div>
-                                ) : null}
-                            </DataGridTableBodyRowCell>
-                        )
-                    })}
+                                    <span className="bg-primary absolute inset-y-0 start-0 w-0.5" />
+                                </div>
+                            ) : null}
+                        </DataGridTableBodyRowCell>
+                    )
+                })}
                 <DataGridTableFillBodyCell />
             </DataGridTableBodyRow>
             {row.getIsExpanded() && <DataGridTableBodyRowExpandded row={row} />}
@@ -361,7 +359,7 @@ function DataGridTableDndRowsBody<TData extends object>({
         )
     }
 
-    if (!table.getRowModel().rows.length) return <DataGridTableEmpty />
+    if (table.getRowModel().rows.length === 0) return <DataGridTableEmpty />
 
     return (
         <SortableContext
@@ -483,9 +481,9 @@ function DataGridTableDndRows<TData extends object>({
         // A fixed height reads as the grid growing under the pointer the moment
         // you pick a row up, and it is wrong in both directions: rows whose
         // content wraps are taller than any constant, and dense rows are shorter.
-        const source = Array.from(
-            container.querySelectorAll<HTMLElement>("tbody tr[data-row-id]"),
-        ).find((candidate) => candidate.dataset.rowId === String(id))
+        const source = [...container.querySelectorAll<HTMLElement>("tbody tr[data-row-id]")].find(
+            (candidate) => candidate.dataset.rowId === String(id),
+        )
         const height = source?.getBoundingClientRect().height ?? 0
 
         // The fill cell is a header-only spacer that soaks up the surplus a column
@@ -494,7 +492,7 @@ function DataGridTableDndRows<TData extends object>({
         // and `table-fixed` hands that orphaned width back out across every column
         // -- the carried row comes out visibly wider than the row it was lifted
         // from. So the width is the sum of what we render, never the header's own.
-        const columns = Array.from(head.children)
+        const columns = [...head.children]
             .filter((cell) => cell.getAttribute("data-slot") !== "data-grid-table-fill-head-cell")
             .map((cell) => cell.getBoundingClientRect().width)
 
@@ -701,7 +699,7 @@ function DataGridTableDndRows<TData extends object>({
                                               .getVisibleCells()
                                               .map(
                                                   (
-                                                      cell: Cell<DataGridFeatures, TData, unknown>,
+                                                      cell: Cell<DataGridFeatures, TData>,
                                                       index: number,
                                                   ) => (
                                                       <td

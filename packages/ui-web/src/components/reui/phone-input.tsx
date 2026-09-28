@@ -70,7 +70,7 @@ function PhoneInput({
                 inputComponent={InputComponent}
                 smartCaret={false}
                 value={value || undefined}
-                onChange={(value) => onChange?.(value || ("" as BasePhoneInput.Value))}
+                onChange={(value) => onChange?.(value || "")}
                 {...props}
             />
         </PhoneInputContext.Provider>

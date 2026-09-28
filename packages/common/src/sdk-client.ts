@@ -115,7 +115,7 @@ function apiErrorFromResponse(response: { status: number }, error: unknown): Api
     if (typeof error !== "object" || error === null || !("detail" in error)) {
         return { status: response.status, detail: "请求失败，请稍后重试" } satisfies ApiError
     }
-    const detail = (error as { detail: unknown }).detail
+    const detail = error.detail
     if (typeof detail !== "string") {
         return { status: response.status, detail: "请求失败，请稍后重试" } satisfies ApiError
     }

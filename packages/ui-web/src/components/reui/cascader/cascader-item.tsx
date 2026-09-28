@@ -834,7 +834,7 @@ const CascaderItem = React.memo(function CascaderItem({
 function CascaderItemPath({ node }: { node: CascaderNode }) {
     const { index, labels } = useCascaderActions()
     const ancestors = getCascaderPath(index, node.value).slice(0, -1)
-    if (!ancestors.length) return null
+    if (ancestors.length === 0) return null
 
     return (
         <span

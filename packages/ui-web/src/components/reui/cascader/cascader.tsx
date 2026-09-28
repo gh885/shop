@@ -198,7 +198,7 @@ function useShallowStable<V>(value: V, equal: (a: V & object, b: V & object) => 
     if (Object.is(value, stable)) return stable
     const comparable =
         typeof value === "object" && value !== null && typeof stable === "object" && stable !== null
-    if (comparable && equal(value as V & object, stable as V & object)) {
+    if (comparable && equal(value, stable)) {
         return stable
     }
     setStable(value)
@@ -505,7 +505,7 @@ function useCascaderDevWarnings<T>(options: CascaderDevOptions<T>) {
 
     // O(n) over the raw input, so the memo is skipped outright in production.
     const issues = React.useMemo(
-        () => (!import.meta.env.DEV ? null : findCascaderDataIssues(items, getParent)),
+        () => (import.meta.env.DEV ? findCascaderDataIssues(items, getParent) : null),
         [items, getParent],
     )
 
@@ -901,7 +901,7 @@ function Cascader<T>({
 
     /* ------------------------------ derived view ----------------------------- */
 
-    const currentParentValue = path.length ? path[path.length - 1] : null
+    const currentParentValue = path.length > 0 ? path.at(-1) : null
     const currentParent = currentParentValue
         ? (index.byValue.get(currentParentValue) ?? null)
         : null
@@ -980,7 +980,7 @@ function Cascader<T>({
         }
         consider(CASCADER_ROOT_KEY)
         for (const value of expanded) consider(value)
-        return keys.size ? keys : undefined
+        return keys.size > 0 ? keys : undefined
     }, [mode, index, expanded, needsMoreRow])
 
     const treeRows = React.useMemo<CascaderFlatNode<T>[]>(() => {
@@ -1159,7 +1159,7 @@ function Cascader<T>({
     )
 
     const popLevel = React.useCallback(() => {
-        setPathWithReason((prev) => (prev.length ? prev.slice(0, -1) : prev), "back")
+        setPathWithReason((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev), "back")
         setQuery("")
         // Going BACK abandons a held navigation, or an in-flight branch drills in
         // the moment it lands, long after the user moved on.
@@ -1625,7 +1625,7 @@ function Cascader<T>({
                 node,
                 // A node absent from `items` has no chain, so fall back to the node
                 // rather than report an empty path for a change that had one.
-                path: node ? (chain.length ? chain : [node]) : [],
+                path: node ? (chain.length > 0 ? chain : [node]) : [],
                 // `resolveNode`, not `index.byValue`: a selected value missing from
                 // `items` must still come back rather than be dropped.
                 nodes: nextValues.map(resolve),
@@ -1803,7 +1803,7 @@ function Cascader<T>({
             if (cascade) {
                 const nextValues = new Set(nextNodes.map((node) => node.value))
                 const removed = selectedValues.find((entry) => !nextValues.has(entry))
-                const toggled = added ?? (removed != null ? resolveNode(removed) : null)
+                const toggled = added ?? (removed == null ? null : resolveNode(removed))
                 if (toggled) commit(toggled)
                 return
             }
@@ -1993,7 +1993,7 @@ function Cascader<T>({
     // that identity is the ONLY thing that re-runs Base UI's `listRef` sizing
     // effect. See `virtualSyncs`.
     const comboboxItems = React.useMemo(
-        () => (virtualized ? renderedItems.slice() : renderedItems),
+        () => (virtualized ? [...renderedItems] : renderedItems),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [renderedItems, virtualized, virtualSyncs],
     )
@@ -2010,9 +2010,7 @@ function Cascader<T>({
         <CascaderActionsContext.Provider
             value={actionsValue as unknown as CascaderActionsContextValue}
         >
-            <CascaderStateContext.Provider
-                value={stateValue as unknown as CascaderStateContextValue}
-            >
+            <CascaderStateContext.Provider value={stateValue}>
                 <CascaderHighlightContext.Provider value={highlightStore}>
                     <CascaderRenderContext.Provider
                         value={renderContext as unknown as CascaderRenderContextValue}
@@ -2036,10 +2034,10 @@ function Cascader<T>({
                  spreads: an explicit `undefined` on a controlled prop reads as
                  "deleted" rather than "not supplied". */
                             name={name}
-                            {...(form != null ? { form } : null)}
-                            {...(id != null ? { id } : null)}
-                            {...(required != null ? { required } : null)}
-                            {...(readOnly != null ? { readOnly } : null)}
+                            {...(form == null ? null : { form })}
+                            {...(id == null ? null : { id })}
+                            {...(required == null ? null : { required })}
+                            {...(readOnly == null ? null : { readOnly })}
                             {...(inputRef ? { inputRef } : null)}
                             inline={inline}
                             /* Stops Base UI rendering its composite list, which is what makes
@@ -2294,9 +2292,9 @@ function CascaderChips({
                             showPath={ambiguous.has(node.value)}
                             /* Only a condensed chip needs the remover; the default shape
                  keeps Base UI's positional removal. */
-                            {...(strategy !== "all"
-                                ? { onRemove: () => removeClosure(node) }
-                                : null)}
+                            {...(strategy === "all"
+                                ? null
+                                : { onRemove: () => removeClosure(node) })}
                         />
                     ))
                 ))}
@@ -2348,11 +2346,12 @@ function CascaderChip({
         collapse: "start",
     })
 
-    const label = segments.length
-        ? segments
-              .map((segment) => (segment.type === "node" ? segment.node.label : "…"))
-              .join(` ${labels.pathSeparator} `)
-        : node.label
+    const label =
+        segments.length > 0
+            ? segments
+                  .map((segment) => (segment.type === "node" ? segment.node.label : "…"))
+                  .join(` ${labels.pathSeparator} `)
+            : node.label
 
     return (
         <ComboboxPrimitive.Chip
@@ -2480,17 +2479,17 @@ function CascaderContent({
     return (
         // Conditional spreads throughout: `mergeProps` iterates own keys, so an
         // explicit `undefined` reads as "deleted" rather than "not supplied".
-        <ComboboxPrimitive.Portal {...(container !== undefined ? { container } : null)}>
+        <ComboboxPrimitive.Portal {...(container === undefined ? null : { container })}>
             <ComboboxPrimitive.Positioner
                 side={side}
                 sideOffset={sideOffset}
                 align={align}
                 alignOffset={alignOffset}
                 anchor={anchor}
-                {...(collisionBoundary !== undefined ? { collisionBoundary } : null)}
-                {...(collisionPadding !== undefined ? { collisionPadding } : null)}
-                {...(sticky !== undefined ? { sticky } : null)}
-                {...(positionMethod !== undefined ? { positionMethod } : null)}
+                {...(collisionBoundary === undefined ? null : { collisionBoundary })}
+                {...(collisionPadding === undefined ? null : { collisionPadding })}
+                {...(sticky === undefined ? null : { sticky })}
+                {...(positionMethod === undefined ? null : { positionMethod })}
                 className="isolate z-50"
             >
                 <ComboboxPrimitive.Popup
@@ -2598,13 +2597,13 @@ function CascaderList({ className, style, maxHeight: maxHeightProp, ...props }: 
         <div
             data-slot="cascader-list-shell"
             style={
-                resolved != null
-                    ? ({
+                resolved == null
+                    ? style
+                    : ({
                           ...style,
                           "--cascader-max-height":
                               typeof resolved === "number" ? `${resolved}px` : resolved,
                       } as React.CSSProperties)
-                    : style
             }
             className={cn("relative flex max-h-full min-h-0", CASCADER_LIST_PAD_CLASS)}
         >

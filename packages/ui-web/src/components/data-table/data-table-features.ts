@@ -74,6 +74,6 @@ export function withReuiColumnMeta<TColumnDef extends { meta?: Record<string, un
                 cellClassName: shared,
                 headerClassName: meta?.className,
             },
-        } as TColumnDef
+        }
     })
 }

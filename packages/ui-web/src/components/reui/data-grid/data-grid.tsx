@@ -215,7 +215,7 @@ export function getColumnHeaderLabel<TData extends RowData, TValue>(
  * trap the row-selection checkbox documents.
  */
 export function getDataGridCellSelectionCellAttrs<TData extends object>(
-    cell: Cell<DataGridFeatures, TData, unknown>,
+    cell: Cell<DataGridFeatures, TData>,
 ): {
     "aria-selected": boolean
     "data-col-id": string
@@ -382,7 +382,7 @@ export interface DataGridContextProps<TData extends object> {
  * renderers always agree on the same encoding.
  */
 export function toDataGridDomId(value: string): string {
-    return value.replace(/[^\w-]/g, "_")
+    return value.replaceAll(/[^\w-]/g, "_")
 }
 
 export type DataGridAutoSizeController = {

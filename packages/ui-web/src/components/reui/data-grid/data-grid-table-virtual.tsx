@@ -316,7 +316,7 @@ interface VirtualBodyProps<TData extends object> {
 function DataGridTableVirtualPinnedPlaceholderCell<TData extends object>({
     column,
 }: {
-    column: Column<DataGridFeatures, TData, unknown>
+    column: Column<DataGridFeatures, TData>
 }) {
     const { props } = useDataGrid()
     const isPinned = column.getIsPinned()
@@ -506,7 +506,7 @@ function DataGridTableVirtualBody<TData extends object>({
             : 0
     const trailingSpacerHeight =
         isVirtualizationEnabled && hasCenterRows && virtualItems.length > 0
-            ? Math.max(0, totalSize - (virtualItems[virtualItems.length - 1]?.end ?? 0))
+            ? Math.max(0, totalSize - (virtualItems.at(-1)?.end ?? 0))
             : 0
 
     const renderedRows: ReactNode[] = []
@@ -626,7 +626,7 @@ function DataGridTableVirtualBody<TData extends object>({
 const MemoizedVirtualBody = memo(
     DataGridTableVirtualBody,
     (_prev, next) =>
-        !!next.table.state.columnResizing.isResizingColumn || next.table._isSelectingCells === true,
+        !!next.table.state.columnResizing.isResizingColumn || next.table._isSelectingCells,
 ) as typeof DataGridTableVirtualBody
 
 function DataGridTableVirtual<TData extends object>({
@@ -791,7 +791,7 @@ function DataGridTableVirtual<TData extends object>({
         columnVirtualizationActive && virtualColumns.length > 0
             ? {
                   start: virtualColumns[0]!.index,
-                  end: virtualColumns[virtualColumns.length - 1]!.index,
+                  end: virtualColumns.at(-1)!.index,
               }
             : undefined
 
@@ -801,7 +801,7 @@ function DataGridTableVirtual<TData extends object>({
         isVirtualizationEnabled && customMeasureElement ? virtualizer.measureElement : undefined
     const resolvedFetchMoreOffset = Math.max(0, fetchMoreOffset)
     const scrollToRowId =
-        scrollToRowIndex !== undefined ? centerRows[scrollToRowIndex]?.id : undefined
+        scrollToRowIndex === undefined ? undefined : centerRows[scrollToRowIndex]?.id
     const scrollToRowVirtualItem =
         isVirtualizationEnabled && scrollToRowIndex !== undefined
             ? virtualItems.find((item) => item.index === scrollToRowIndex)
@@ -969,7 +969,7 @@ function DataGridTableVirtual<TData extends object>({
             return
         }
 
-        const lastItem = virtualItems[virtualItems.length - 1]
+        const lastItem = virtualItems.at(-1)
         if (!lastItem) return
 
         if (fetchMoreFiredAtCountRef.current === centerRows.length) return
@@ -1141,7 +1141,7 @@ function DataGridTableVirtual<TData extends object>({
     return (
         <DataGridTableViewport
             viewportRef={handleViewportRef}
-            className={!usesExternalScrollArea ? "block" : undefined}
+            className={usesExternalScrollArea ? undefined : "block"}
             style={
                 usesExternalScrollArea
                     ? undefined

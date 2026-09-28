@@ -116,9 +116,9 @@ function DataGridColumnFilter<TData extends object, TValue>({
                                     } else {
                                         selectedValues.add(option.value)
                                     }
-                                    const filterValues = Array.from(selectedValues)
+                                    const filterValues = [...selectedValues]
                                     column?.setFilterValue(
-                                        filterValues.length ? filterValues : undefined,
+                                        filterValues.length > 0 ? filterValues : undefined,
                                     )
                                 }
                                 return (

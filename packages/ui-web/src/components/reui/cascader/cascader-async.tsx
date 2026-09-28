@@ -172,7 +172,7 @@ function withPage<T>(
     // A fresh level REPLACES its page so a `resolveValue` stub can be superseded.
     const previous = options.append ? (store.pages.get(key) ?? []) : []
     const seen = new Set(previous.map((node) => node.value))
-    const merged = previous.slice()
+    const merged = [...previous]
     for (const item of items) {
         if (seen.has(item.value)) continue
         seen.add(item.value)
@@ -634,7 +634,7 @@ export function useCascaderLoader<T = unknown>({
     /* --------------------------------- resets -------------------------------- */
 
     const cancelAll = React.useCallback(() => {
-        const keys = Array.from(controllers.current.keys())
+        const keys = [...controllers.current.keys()]
         for (const controller of controllers.current.values()) controller.abort()
         controllers.current.clear()
         inflight.current.clear()
@@ -772,7 +772,7 @@ export function useCascaderLoader<T = unknown>({
     const searchResults = React.useMemo(() => {
         if (!hasSearch || !trimmed) return null
         if (!search || search.query !== trimmed) {
-            return NO_RESULTS as CascaderNode<T>[]
+            return NO_RESULTS
         }
         return search.results
     }, [hasSearch, trimmed, search])

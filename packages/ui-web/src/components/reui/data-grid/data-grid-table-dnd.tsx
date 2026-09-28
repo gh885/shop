@@ -51,7 +51,7 @@ import { GripVerticalIcon } from "lucide-react"
 function DataGridTableDndHeader<TData extends object>({
     header,
 }: {
-    header: Header<DataGridFeatures, TData, unknown>
+    header: Header<DataGridFeatures, TData>
 }) {
     const { i18n, props } = useDataGrid()
     const { column } = header
@@ -115,7 +115,7 @@ function DataGridTableDndHeader<TData extends object>({
 function DataGridTableDndCell<TData extends object>({
     cell,
 }: {
-    cell: Cell<DataGridFeatures, TData, unknown>
+    cell: Cell<DataGridFeatures, TData>
 }) {
     const { props } = useDataGrid()
     const { isDragging, setNodeRef, transform, transition } = useSortable({
@@ -175,7 +175,7 @@ function DataGridTableDndBodyRows<TData extends object>({
         )
     }
 
-    if (!table.getRowModel().rows.length) return <DataGridTableEmpty />
+    if (table.getRowModel().rows.length === 0) return <DataGridTableEmpty />
 
     return (
         <>
@@ -189,7 +189,7 @@ function DataGridTableDndBodyRows<TData extends object>({
                             >
                                 {row
                                     .getVisibleCells()
-                                    .map((cell: Cell<DataGridFeatures, TData, unknown>) => (
+                                    .map((cell: Cell<DataGridFeatures, TData>) => (
                                         <DataGridTableDndCell
                                             cell={cell}
                                             key={cell.id}

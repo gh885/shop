@@ -69,7 +69,7 @@ function CascaderColumns({
                     /* Set only from an EXPLICIT cap: unset means "24rem or what the
              viewport leaves", via the `min()` fallback on the panel. A `?? 280`
              default here ignored short viewports and wasted tall ones. */
-                    ...(height != null ? { "--cascader-max-height": toCss(height) } : null),
+                    ...(height == null ? null : { "--cascader-max-height": toCss(height) }),
                 } as React.CSSProperties
             }
             className={cn(

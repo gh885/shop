@@ -166,7 +166,7 @@ function groupActionRuns(
 ): { group?: string; items: CascaderActionItem[] }[] {
     const runs: { group?: string; items: CascaderActionItem[] }[] = []
     for (const item of items) {
-        const last = runs[runs.length - 1]
+        const last = runs.at(-1)
         if (last && last.group === item.group) last.items.push(item)
         else runs.push({ group: item.group, items: [item] })
     }
@@ -344,7 +344,7 @@ const CascaderMenuContext = React.createContext(false)
  */
 function menuItems(popup: HTMLElement | null): HTMLElement[] {
     if (!popup) return []
-    return Array.from(popup.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])'))
+    return [...popup.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])')]
 }
 
 const CascaderSubmenuContext = React.createContext<CascaderSubmenuContextValue | undefined>(

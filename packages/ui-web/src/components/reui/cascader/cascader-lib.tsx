@@ -68,7 +68,7 @@ const CASCADER_TAB_HIDDEN_SELECTOR = "[hidden],[inert],[aria-hidden='true']"
 
 /** The panel's real keyboard stops, in DOM order. */
 function getCascaderTabStops(panel: HTMLElement): HTMLElement[] {
-    const stops = Array.from(panel.querySelectorAll<HTMLElement>(CASCADER_TAB_STOP_SELECTOR))
+    const stops = [...panel.querySelectorAll<HTMLElement>(CASCADER_TAB_STOP_SELECTOR)]
     return stops.filter(
         (stop) =>
             // Option and trail rows are real `<button>`s with `tabindex="-1"`.
@@ -273,7 +273,7 @@ export function mergeCascaderIndex<T = unknown>(
     const append = (parentKey: string, node: CascaderNode<T>) => {
         let bucket = childrenOf.get(parentKey)
         if (!copied.has(parentKey)) {
-            bucket = bucket ? bucket.slice() : []
+            bucket = bucket ? [...bucket] : []
             childrenOf.set(parentKey, bucket)
             copied.add(parentKey)
         }
@@ -650,7 +650,7 @@ export function applyCascadeSelection<T>(
         cursor = index.parentOf.get(cursor) ?? null
     }
 
-    return Array.from(next)
+    return [...next]
 }
 
 /**
@@ -820,5 +820,5 @@ export function findCascaderDataIssues<T>(
         }
     }
 
-    return { duplicates: Array.from(duplicates), cycles }
+    return { duplicates: [...duplicates], cycles }
 }
