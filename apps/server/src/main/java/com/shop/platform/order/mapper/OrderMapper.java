@@ -178,14 +178,34 @@ public interface OrderMapper extends BaseMapper<Order> {
      * 记不记流水、要不要开售后窗口，一律由 service 判。
      */
     default int markCompleted(UUID orderId, OffsetDateTime completedAt, OffsetDateTime applyExpireAt) {
+        return update(null, completedWrapper(orderId, completedAt, applyExpireAt));
+    }
+
+    /**
+     * 超时自动收货专用的完成转移：把「争议未决就让位」（ORD-28 / AFS-43）的谓词在同一语句的 WHERE 里重跑一遍。
+     *
+     * <p>扫描线读到的是批开始时的投影，service 再判一次等于拿陈旧读决定要不要替买家宣布「已收货」——批次窗口
+     * 整整一轮那么长，期间买家完全可以新起一张售后单（SHIPPED 态开放申请，见 AFS-43）。谓词进 WHERE
+     * 才是同一时刻的裁决；抢不到行不算失败，售后落到终态后下一轮扫描自愈。
+     *
+     * <p>买家手点确认收货不受此限（那是他自己的决定），仍走 {@link #markCompleted}。
+     */
+    default int markCompletedUnlessDisputed(UUID orderId, OffsetDateTime completedAt, OffsetDateTime applyExpireAt) {
         return update(
                 null,
-                new LambdaUpdateWrapper<Order>()
-                        .eq(Order::getId, orderId)
-                        .in(Order::getStatus, OrderStatus.sourcesOf(OrderStatus.COMPLETED))
-                        .set(Order::getStatus, OrderStatus.COMPLETED)
-                        .set(Order::getCompletedAt, completedAt)
-                        .set(Order::getApplyExpireAt, applyExpireAt));
+                completedWrapper(orderId, completedAt, applyExpireAt)
+                        .notIn(Order::getAfterSaleStatus, AfterSaleStatus.APPLYING, AfterSaleStatus.RETURNING));
+    }
+
+    private static LambdaUpdateWrapper<Order> completedWrapper(
+            UUID orderId, OffsetDateTime completedAt, OffsetDateTime applyExpireAt) {
+        return new LambdaUpdateWrapper<Order>()
+                .eq(Order::getId, orderId)
+                .in(Order::getStatus, OrderStatus.sourcesOf(OrderStatus.COMPLETED))
+                .set(Order::getStatus, OrderStatus.COMPLETED)
+                .set(Order::getCompletedAt, completedAt)
+                .set(Order::getApplyExpireAt, applyExpireAt)
+                .set(Order::getUpdatedAt, completedAt);
     }
 
     /**

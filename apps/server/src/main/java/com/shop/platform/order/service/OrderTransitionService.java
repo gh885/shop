@@ -83,11 +83,10 @@ public class OrderTransitionService {
     @Transactional
     public void receive(UUID userId, UUID orderId) {
         orderMapper.requireOwned(userId, orderId);
-        boolean completed = complete(orderId, OrderAction.RECEIVE, OrderActor.BUYER);
+        boolean completed = complete(orderId, OrderAction.RECEIVE, OrderActor.BUYER, false);
         Validate.conflict(completed, "订单状态已变更，当前不可确认收货");
     }
 
-    // 履约主状态机：卖家
     // 履约主状态机：系统超时（单笔事务落点）
     /** 待付款超时关单：只认 PENDING_PAYMENT，释放冻结库存（前态必未付款，故不发退款事件） */
     @Transactional
@@ -98,10 +97,11 @@ public class OrderTransitionService {
     /** 已发货超时未确认：自动确认收货（无库存/退款动作）；争议未决时让位给售后线 */
     @Transactional
     public boolean completeUnreceived(Order order) {
+        // 陈旧读只用来省掉一次注定抢不到的 UPDATE，裁决本身在 markCompletedUnlessDisputed 的 WHERE 里
         if (order.getAfterSaleStatus().unresolved()) {
             return false;
         }
-        return complete(order.getId(), OrderAction.AUTO_RECEIVE, OrderActor.SYSTEM);
+        return complete(order.getId(), OrderAction.AUTO_RECEIVE, OrderActor.SYSTEM, true);
     }
 
     // 私有：两个共用落点
@@ -141,12 +141,21 @@ public class OrderTransitionService {
         return true;
     }
 
-    /** 完成的唯一落点（买家确认收货 / 超时自动收货共用）：转 COMPLETED 并开通售后申请窗口 */
-    private boolean complete(UUID orderId, OrderAction action, OrderActor actor) {
+    /**
+     * 完成的唯一落点（买家确认收货 / 超时自动收货共用）：转 COMPLETED 并开通售后申请窗口。
+     *
+     * @param yieldToDispute 只有系统那一路让位给未决售后（WHERE 里重跑谓词，见 OrderMapper 同名语句）；
+     *                       买家手点不让位——那是他自己的决定（AFS-43）
+     */
+    private boolean complete(UUID orderId, OrderAction action, OrderActor actor, boolean yieldToDispute) {
         OffsetDateTime now = OffsetDateTime.now();
-        // 条件转移（合法起点集 + 完成时刻与售后窗口同批回填）见 OrderMapper.markCompleted；
+        // 条件转移（合法起点集 + 完成时刻与售后窗口同批回填）见 OrderMapper.markCompleted*；
         // 抢不到行 = 有人先把这单推走了，让位给并发，不记流水也不加销量
-        if (orderMapper.markCompleted(orderId, now, now.plus(OrderTimeouts.AFTER_SALE_APPLY)) != 1) {
+        OffsetDateTime applyExpireAt = now.plus(OrderTimeouts.AFTER_SALE_APPLY);
+        int updated = yieldToDispute
+                ? orderMapper.markCompletedUnlessDisputed(orderId, now, applyExpireAt)
+                : orderMapper.markCompleted(orderId, now, applyExpireAt);
+        if (updated != 1) {
             return false;
         }
         statusLogWriter.record(orderId, SHIPPED, COMPLETED, action, actor, null);
