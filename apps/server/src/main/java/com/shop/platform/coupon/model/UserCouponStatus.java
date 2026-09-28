@@ -6,7 +6,7 @@ package com.shop.platform.coupon.model;
  * <pre>
  * UNUSED ──下单占用──> LOCKED ──支付成功──> USED
  *    │                    │
- *    │                    └──取消 / 超时关单 / 支付失败──> UNUSED（释放）
+ *    │                    └──取消 / 超时关单──> UNUSED（释放）
  *    └──时间到──> EXPIRED
  * UNUSED / LOCKED ──运营作废──> VOID
  * </pre>

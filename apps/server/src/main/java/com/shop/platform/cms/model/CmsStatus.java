@@ -14,9 +14,5 @@ public enum CmsStatus {
     DISABLED,
 
     /** 启用 */
-    ENABLED;
-
-    public boolean isEnabled() {
-        return this == ENABLED;
-    }
+    ENABLED
 }

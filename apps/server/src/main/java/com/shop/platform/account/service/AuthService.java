@@ -142,7 +142,7 @@ public class AuthService {
         if (user == null) throw BusinessException.notFound("用户不存在");
 
         // 2. 校验新密码强度
-        validatePassword(newPassword, user.getPhone());
+        PasswordPolicy.require(newPassword, user.getPhone());
 
         // 3. 已有密码时必须验证当前密码（RESET-05）
         if (user.getPasswordHash() != null) {
@@ -191,7 +191,7 @@ public class AuthService {
     @Transactional
     public void resetPassword(String phone, String code, String newPassword) {
         // 1. 校验新密码强度（先本地校验，避免浪费一次性验证码）
-        validatePassword(newPassword, phone);
+        PasswordPolicy.require(newPassword, phone);
 
         // 2. 校验重置验证码（单次消费 + 尝试上限，防线同登录验证码）
         smsCodeService.verifyResetCode(phone, code);
@@ -463,12 +463,6 @@ public class AuthService {
     /** 清除用户所有设备的 refresh token */
     public void deleteAllRefreshTokens(UUID userId) {
         refreshTokenStore.revokeAll(userId.toString());
-    }
-
-    // 密码校验
-    /** 口令强度口径住在 {@link PasswordPolicy}（买家与员工建密共用一份，见该类注释） */
-    private void validatePassword(String password, String phone) {
-        PasswordPolicy.require(password, phone);
     }
 
     // 工具方法

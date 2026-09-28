@@ -8,8 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.UUID;
 
 /** 列表项：够渲染一张商品卡片即可，详情独有的大字段（description/images）不进列表，省带宽。
- * 与卖家端 ProductAdminController 的同名 record 区分（若非同名，springdoc 会在 components.schemas 互相覆盖，
- * 买家端金额 Money 会被卖家端 Long 覆盖、混入 admin 字段）。
+ * 与卖家端 ProductView 区分（同名 record 会让 springdoc 在 components.schemas 互相覆盖）。
  *
  * <p><b>minPrice/maxPrice 刻意不标 nullable</b>：买家侧只可能看到 PUBLISHED 商品（非上架在 publicDetail 一律 404），
  * 而发布与重上（{@code ensurePublishable}）、改 SKU（price 必填且复算区间）三道门保证「每个在售 SKU 都已设价」，

@@ -1220,11 +1220,6 @@ class FieldRuleVocabularyTest {
                     "FALLBACK_SCROLLBAR_SIZE",
                     "读不到真实滚动条尺寸时的兜底值（自定义滚动条尚未布局完成的瞬间）：纯 CSS 呈现，无对边"),
             new Policy(
-                    "packages/ui-web/src/components/reui/filters/filters-editors.tsx",
-                    "MAX_PIN_RESTORE_ATTEMPTS",
-                    "reui Filters 恢复行 pin 的竞态重试封顶：每次尝试占一个宏任务，成功即停 —— 是 DOM 时序的护栏，"
-                            + "与「重试传输请求」的 RETRY_LIMIT 同理，没有任何服务端一侧读它"),
-            new Policy(
                     "packages/app-kit/src/login-schema.ts",
                     "PHONE_DIGITS",
                     "登录那一格只收大陆手机号，11 位与自家正则的位数由 shared-vocabulary.test.ts 的 digits==span 钉住；"

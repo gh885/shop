@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StockReadQuery {
 
-    private final JdbcTemplate jdbc;
     private final NamedParameterJdbcTemplate namedJdbc;
 
     /** 按 SKU ID 批查可用库存：购物车/结算/详情判定缺货与展示用，缺失的 id 不在 Map 中 */

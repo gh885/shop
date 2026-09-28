@@ -50,11 +50,6 @@ public class Product extends AuditedEntity {
     }
 
     // 状态流转：守卫 + 变更一体，不变式在实体内不可绕过；持久化（updateById）留在 service
-    /** 上架：仅草稿可发布（跨聚合门槛「SKU 全部设价」由 service 复检，不在此处） */
-    public void publish() {
-        publishTo(ProductStatus.PUBLISHED);
-    }
-
     /** 按目标态发布：仅草稿可发布，目标只能是上架（立即上架）或仓库中（放入仓库）。
      *  跨聚合门槛「SKU 全部设价」由 service 复检，不在此处。 */
     public void publishTo(ProductStatus target) {

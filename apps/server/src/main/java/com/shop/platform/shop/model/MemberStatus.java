@@ -15,8 +15,4 @@ public enum MemberStatus {
 
     /** 已生效（ACTIVE 成员） */
     ACTIVE;
-
-    public boolean isActive() {
-        return this == ACTIVE;
-    }
 }

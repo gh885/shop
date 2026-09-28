@@ -50,16 +50,10 @@ public enum ShipmentStatus {
         this.rank = rank;
     }
 
-    /**
-     * 目标态 → 合法前态集（条件更新的闸门依据）：rank 小于目标的全部状态，外加 EXCEPTION
-     * （异常可被任意前向状态离开）。
-     *
-     * <p>常量在枚举初始化期算一次：每次推进都查表，不做扫描。
-     */
+    /** 目标态 → 合法前态集，在枚举初始化期算一次：每次推进只查表，不做扫描 */
     private static final Map<ShipmentStatus, Set<ShipmentStatus>> SOURCES = Arrays.stream(values())
             .collect(java.util.stream.Collectors.toUnmodifiableMap(status -> status, ShipmentStatus::computeSources));
 
-    /** 能推进到 target 的全部前态：全部非终态（rank 更小者）+ EXCEPTION */
     private static Set<ShipmentStatus> computeSources(ShipmentStatus target) {
         Set<ShipmentStatus> sources = new HashSet<>();
         // EXCEPTION 是过程态：它既是任意前向目标的合法前态（异常处理完继续派送），

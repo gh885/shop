@@ -34,8 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 入队由 ShopService.createShop 与建店同事务完成；店主手机号经 account :: api 只读拼装（禁止 JOIN）。
  *
  * <p>驳回即店铺停止营业：与状态推进同事务发布 {@link ShopTradingSuspendedEvent}，product 监听把该店在架商品级联下架。
- * 将来若加「平台禁用店铺」的入口（DISABLED 目前无写入方），那条流转必须发布同一个事件——级联的判据是「店不营业了」，
- * 不是「审核被拒」这条具体路径。
+ * 级联的判据是「店不营业了」，不是「审核被拒」这条具体路径——平台封店（{@code ShopAdminService.suspend}）发布的就是同一个事件。
  */
 @Service
 @RequiredArgsConstructor
@@ -96,7 +95,7 @@ public class ShopReviewService {
         Shop shop = Validate.notNull(shopMapper.selectById(review.getShopId()), "店铺不存在");
         String phone = Validate.present(userReadQuery.phoneById(shop.getOwnerId()), "店主账号不存在");
 
-        // 2. L3 取用留痕（结构化事件，约定见 docs/conventions/business-event-logging.md）
+        // 2. 留痕「哪个员工看了哪家店的店主号」
         BizEvent.of("shop_review.owner_phone_revealed")
                 .put("review_id", reviewId)
                 .put("shop_id", shop.getId())
@@ -147,7 +146,7 @@ public class ShopReviewService {
             events.publishEvent(new ShopTradingSuspendedEvent(shop.getId(), "REVIEW_REJECTED"));
         }
 
-        // 4. L3 审计留痕（结构化事件，约定见 docs/conventions/business-event-logging.md）
+        // 4. 播报审核决定
         BizEvent.of("shop_review.decided")
                 .put("review_id", review.getId())
                 .put("shop_id", review.getShopId())

@@ -63,10 +63,8 @@ public enum OrderStatus {
                     .map(Map.Entry::getKey)
                     .collect(Collectors.toSet())));
 
-    /** 买家可用的动作目标态 */
     private static final Set<OrderStatus> BUYER_ACTION_TARGETS = Set.of(PAID, CANCELLED, COMPLETED);
 
-    /** 卖家可用的动作目标态 */
     private static final Set<OrderStatus> SELLER_ACTION_TARGETS = Set.of(SHIPPED);
 
     /** 能转移到 target 的全部源状态：条件更新（WHERE status IN (...)）的合法前置集 */

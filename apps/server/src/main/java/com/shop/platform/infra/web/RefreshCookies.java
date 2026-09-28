@@ -23,7 +23,7 @@ import org.springframework.web.util.WebUtils;
 @Component
 public class RefreshCookies {
 
-    /** 7 天，与 {@code shop.jwt.refresh-token-expiration} 默认值对齐 */
+    /** 7 天，与 refresh token 在 Redis 侧的 TTL 同值（见 {@code RefreshTokenStore}） */
     private static final Duration MAX_AGE = Duration.ofDays(7);
 
     /**

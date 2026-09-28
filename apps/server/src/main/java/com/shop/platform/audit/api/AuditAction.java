@@ -57,11 +57,7 @@ public enum AuditAction {
         return targetType;
     }
 
-    /**
-     * wire 值 → 动作：审计筛选入参用（DTO 的 {@code @Pattern} 只能挡形状，语义合法性收在这里）。
-     * 未知动作按非法筛选值 400 报，不按 null 放行——账本里出现表外的动作说明有人在手改库，
-     * 那时更该让人看见报错而不是让查询静默少一行。
-     */
+    /** wire 值 → 动作，未知返回 null（筛选入参的 400 由 {@link #require} 把关，不按 null 放行） */
     public static AuditAction parseOrNull(String code) {
         return Arrays.stream(values())
                 .filter(action -> action.code.equals(code))

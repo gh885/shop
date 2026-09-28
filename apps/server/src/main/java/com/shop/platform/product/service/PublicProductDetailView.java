@@ -12,12 +12,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 买家端商品详情出参。
- *
- * <p>Public 前缀的由来：卖家端 {@code ProductAdminController} 也有同名出参（金额是裸 Long、还带 admin
- * 字段）。两个 record 若同名，springdoc 按简单类名生成 components.schemas 会互相覆盖——买家端的 Money 会被
- * 卖家端的 Long 顶掉。故买家端出参加 Public 前缀，并用 {@code @Schema(name = ...)} 把契约名钉死，
- * 使 Java 侧重命名不再牵动前端 SDK。
+ * 买家端商品详情出参。类名带 Public 前缀与卖家端出参区分（同名 record 会让 springdoc 在
+ * components.schemas 互相覆盖）；{@code @Schema(name = ...)} 钉死契约名，Java 侧重命名不再牵动前端 SDK。
  */
 @Schema(name = "PublicProductDetailResponse")
 public record PublicProductDetailView(

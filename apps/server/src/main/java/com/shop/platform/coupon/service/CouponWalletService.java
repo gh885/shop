@@ -42,9 +42,6 @@ public class CouponWalletService {
         // 页签怎么筛（CPN-51 的展示口径）写在 mapper 的 selectPageMine 上，这里不重述判据
         Page<UserCoupon> rows = userCouponMapper.selectPageMine(page, userId, tab, now);
         List<UserCoupon> records = rows.getRecords();
-        if (records.isEmpty()) {
-            return new PageResult<>(List.of(), rows.getTotal());
-        }
         Map<UUID, String> shopNames = shopReadQuery.namesByIds(
                 records.stream().map(UserCoupon::getShopId).distinct().toList());
         return new PageResult<>(

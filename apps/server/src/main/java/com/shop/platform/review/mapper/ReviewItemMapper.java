@@ -64,12 +64,4 @@ public interface ReviewItemMapper extends BaseMapper<ReviewItem> {
                 .orderByAsc(ReviewItem::getCreatedAt)
                 .orderByAsc(ReviewItem::getId));
     }
-
-    /** 该订单的行是否都已被评价（并发下抢在提交前先被另一笔评价吃掉，submit 用它兜最后一道） */
-    default long countByOrderItems(Collection<UUID> orderItemIds) {
-        if (orderItemIds == null || orderItemIds.isEmpty()) {
-            return 0L;
-        }
-        return selectCount(new LambdaQueryWrapper<ReviewItem>().in(ReviewItem::getOrderItemId, orderItemIds));
-    }
 }

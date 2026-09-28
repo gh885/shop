@@ -10,9 +10,8 @@ import java.util.UUID;
  * service / listener 只面对本地流水与这个薄端口。
  *
  * <p><b>只抽象「现在真实存在的动作」</b>：退款（V1 已触发，且必须触达外部）。发起/回调验签的
- * 入参出参形状要等接真实网关才成立，届时随那个 PR 一并加，不预先定型。届时改的也不只是「换一个实现」：
- * 支付结果要走一条匿名 + 验签的入站回调（买家自助确认的端点同时下线，理由见
- * {@code payment.controller.PaymentController} 类注释），渠道侧交易号列也得补上（V27 明写那批再建）。
+ * 入参出参形状要等接真实网关才成立，届时随那个 PR 一并加，不预先定型。网关化对入口身份与回调形状的影响
+ * 见 {@code payment.controller.PaymentController} 类注释。
  *
  * <p>约定：
  * <ul>

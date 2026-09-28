@@ -65,20 +65,13 @@ class ShopSuspensionIT extends IntegrationTestSupport {
         return shop;
     }
 
+    /** 取该店那条待审记录（驳回后重提会有多条 review，处置只认 PENDING 那一条，ACC-09） */
     private UUID reviewId(UUID shopId) {
         UUID id = jdbc.queryForObject(
-                "SELECT id FROM shop.shop_reviews WHERE shop_id = ?::uuid LIMIT 1", UUID.class, shopId.toString());
-        assertNotNull(id, "审核单未入队: " + shopId);
-        return id;
-    }
-
-    /** 为该店再造一条待审记录（一店可有多轮审核：驳回后重新提交是常态） */
-    private UUID newPendingReview(UUID shopId) {
-        UUID id = UUID.randomUUID();
-        jdbc.update(
-                "INSERT INTO shop.shop_reviews (id, shop_id, status) VALUES (?::uuid, ?::uuid, 'PENDING')",
-                id.toString(),
+                "SELECT id FROM shop.shop_reviews WHERE shop_id = ?::uuid AND status = 'PENDING' LIMIT 1",
+                UUID.class,
                 shopId.toString());
+        assertNotNull(id, "审核单未入队: " + shopId);
         return id;
     }
 
@@ -131,8 +124,10 @@ class ShopSuspensionIT extends IntegrationTestSupport {
         shopReviewService.reject(reviewId(shop.getId()), staffId, "资质不全");
         assertEquals("WAREHOUSE", productStatus(product[0]));
 
-        // 重新提审并通过：店铺回 ACTIVE。级联只有单向事件——恢复营业 ≠ 平台背书历史商品仍满足上架门槛
-        shopReviewService.approve(newPendingReview(shop.getId()), staffId);
+        // 重新提审并通过：走卖家那条自助重提（原地把店推回 PENDING_REVIEW 并入队新审核单，ACC-74），
+        // 平台通过 → 店铺回 ACTIVE。级联只有单向事件——恢复营业 ≠ 平台背书历史商品仍满足上架门槛
+        shopService.resubmitReview(shop.getId(), ownerId, "驳回后复活店", null);
+        shopReviewService.approve(reviewId(shop.getId()), staffId);
 
         assertEquals(ShopStatus.ACTIVE.name(), shopStatus(shop.getId()));
         assertEquals("WAREHOUSE", productStatus(product[0]));

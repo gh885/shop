@@ -48,10 +48,8 @@ public class CouponAdminService {
 
         // 2. 店名只按主键批量点查，禁止跨 schema JOIN；缺失店铺名保留为 null，不阻断整页。
         List<UserCoupon> records = rows.getRecords();
-        Map<UUID, String> shopNames = records.isEmpty()
-                ? Map.of()
-                : shopReadQuery.namesByIds(
-                        records.stream().map(UserCoupon::getShopId).distinct().toList());
+        Map<UUID, String> shopNames = shopReadQuery.namesByIds(
+                records.stream().map(UserCoupon::getShopId).distinct().toList());
 
         // 3. 运营行固定拍平金额/状态/来源，避免把 mapper 实体和密码式治理列直接暴露出去。
         return new PageResult<>(

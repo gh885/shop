@@ -135,7 +135,6 @@ shop:
         # public-key: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE..."
         access-token-expiration: 600000
         staff-access-token-expiration: 28800000
-        refresh-token-expiration: 604800000
     # 物流承运商接入（快递鸟聚合服务，只用于轨迹查询与推送接收）。
     # 密钥从环境变量注入：export SHOP_KDNIAO_ENABLED=true SHOP_KDNIAO_EBUSINESS_ID=… SHOP_KDNIAO_APP_KEY=…
     # 未配置时应用照常启动，只是轮询任务与推送端点都不工作（网关 available()=false）——

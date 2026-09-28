@@ -21,9 +21,6 @@ public class JwtProperties {
     /** 平台员工（account.staff）access_token 过期毫秒数，默认 8 小时（后台工作台，比 C 端长） */
     private long staffAccessTokenExpiration = 28_800_000;
 
-    /** refresh_token 过期毫秒数，默认 7 天 */
-    private long refreshTokenExpiration = 604_800_000;
-
     /** JWT 签发者 */
     private String issuer = "shop-platform";
 

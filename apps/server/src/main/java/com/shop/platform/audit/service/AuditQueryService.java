@@ -38,7 +38,7 @@ public class AuditQueryService {
             Validate.isTrue(!query.from().isAfter(query.to()), "开始时间不能晚于结束时间");
         }
 
-        // 3. 取数（目标 ID 去空白：输入框里一个空格不该变成查不到任何行的筛选条件）
+        // 3. 取数（目标 ID 整串空白视同不筛：输入框里留一个空格不该变成查不到任何行的筛选条件）
         String targetId = query.targetId() == null || query.targetId().isBlank() ? null : query.targetId();
         Page<AuditRecord> rows = auditRecordMapper.selectPageAdmin(
                 pageParams,

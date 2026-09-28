@@ -264,7 +264,7 @@ public class ShopService {
         // 2. 号码经 account :: api 点查（禁止 JOIN）
         String phone = Validate.present(userReadQuery.phoneById(member.getUserId()), "该成员账号不存在");
 
-        // 3. L3 取用留痕（结构化事件，约定见 docs/conventions/business-event-logging.md）
+        // 3. 留痕「谁看了谁的号」
         BizEvent.of("shop_member.phone_revealed")
                 .put("shop_id", shopId)
                 .put("member_id", memberId)

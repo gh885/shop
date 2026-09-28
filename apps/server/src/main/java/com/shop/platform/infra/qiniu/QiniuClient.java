@@ -31,7 +31,7 @@ public class QiniuClient {
      * 签发上传凭证。key 唯一（见 {@link #newKey}），同 key 只能传一次，天然防覆盖。
      *
      * @param key 资源 key（相对路径，如 {@code product/xxx.webp}）
-     * @return 上传凭证 token，前端放在 {@code Authorization: UpToken <token>} 里 PUT 直传
+     * @return 上传凭证 token，前端放进 multipart 表单的 {@code token} 字段 POST 到 uploadUrl
      */
     public String issueUploadToken(String key) {
         ensureConfigured();

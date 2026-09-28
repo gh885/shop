@@ -3,10 +3,8 @@ package com.shop.platform.aftersale.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 售后单状态集。合法转移（谁从哪到哪）的唯一真相在 {@link TicketAction}（它就是那张转移表），本枚举只声明状态。
- *
- * <p>两条售后路径：仅退款（货不退，卖家同意即退款）；退货退款（货要退回，卖家同意后进入 {@link #RETURNING}
- * 等待回寄与收货，收货确认后才退款并回补库存）。DB 列存 {@code name()}。
+ * 售后单状态集。合法转移（谁从哪到哪）的唯一真相在 {@link TicketAction}（它就是那张转移表），本枚举只声明状态；
+ * 两条路径各自的退款与回补时机见 {@link TicketType}。DB 列存 {@code name()}。
  */
 @Schema(enumAsRef = true)
 public enum TicketStatus {
