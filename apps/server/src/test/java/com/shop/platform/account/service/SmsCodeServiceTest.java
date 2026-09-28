@@ -74,6 +74,10 @@ class SmsCodeServiceTest {
                 redis, smsChannel, secretHasher, devProvider, new AuthProperties("dev", "", IP_DISTINCT_PHONES_MAX));
         lenient().when(redis.opsForValue()).thenReturn(valueOps);
         lenient().when(redis.opsForSet()).thenReturn(setOps);
+        // 冷却占位：默认「这个号第一次发」——setIfAbsent 抢到才放行（占位与判冷却是同一条原子语句）
+        lenient()
+                .when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+                .thenReturn(true);
         // RateLimiter 静态调用：默认窗口内计数为 1（不限流）
         lenient()
                 .when(redis.execute(ArgumentMatchers.<RedisScript<Long>>any(), anyList(), anyString()))
@@ -110,7 +114,8 @@ class SmsCodeServiceTest {
 
     @Test
     void 发送验证码_60秒冷却中_429() {
-        when(redis.hasKey("sms:rate:" + phone)).thenReturn(true);
+        when(valueOps.setIfAbsent(eq("sms:rate:" + phone), anyString(), any(Duration.class)))
+                .thenReturn(false);
 
         assertThatThrownBy(() -> service.sendCode(phone, ip)).isInstanceOfSatisfying(BusinessException.class, ex -> {
             assertThat(ex.getHttpStatus()).isEqualTo(429);

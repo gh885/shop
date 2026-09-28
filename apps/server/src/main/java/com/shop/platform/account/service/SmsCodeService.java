@@ -50,14 +50,7 @@ public class SmsCodeService {
     private final SecretHasher secretHasher;
     private final ObjectProvider<DevSmsChannel> devSmsChannelProvider;
 
-    /**
-     * 认证模块配置。此处只消费 {@code smsIpDistinctPhonesMax}——每 IP 每日不同手机号上限
-     * （防单 IP 横扫大量号码轰炸）。
-     *
-     * <p>做成可配置且默认放到 30：运营商 CGNAT、公司出口、校园网下大量真实用户共享同一个出口 IP，
-     * 阈值太低会把正常注册挡在门外——这条防线拦的是「一个 IP 横扫几百个号」，不是「同一栋楼有几个人注册」。
-     * 真实出口 IP 分布因部署而异，交给部署方按观测调整。
-     */
+    /** 每 IP 每日不同手机号上限的防线与默认值理由见 {@link #enforceDistinctPhonesPerIp} 与 {@link AuthProperties} */
     private final AuthProperties authProperties;
 
     /** 发送验证码 */
@@ -113,12 +106,13 @@ public class SmsCodeService {
         }
         enforceDistinctPhonesPerIp(clientIp, phone);
 
-        // 2. 限流检查：60s 重发间隔 + 每日上限（INCR 原子操作消除 TOCTOU 竞争）
+        // 2. 限流检查：60s 重发间隔 + 每日上限（冷却占位与日限计数都是一条语句，先读后写会漏发第二条真短信）
         String rateKey = ratePrefix + phone;
-        if (Boolean.TRUE.equals(redis.hasKey(rateKey))) {
+        if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(rateKey, "1", Duration.ofSeconds(RATE_TTL)))) {
             throw BusinessException.rateLimited(ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
         }
         if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
+            redis.delete(rateKey);
             throw BusinessException.rateLimited(ErrorCodes.SMS_DAILY_LIMIT, "今日验证码已达上限");
         }
 
@@ -129,8 +123,7 @@ public class SmsCodeService {
         redis.opsForValue()
                 .set(codePrefix + phone, secretHasher.hash(phone + ":" + code), Duration.ofMinutes(CODE_TTL));
 
-        // 4. 写频控标记，重发后清旧尝试计数（UX-03：重发即给全新 5 次机会）
-        redis.opsForValue().set(rateKey, "1", Duration.ofSeconds(RATE_TTL));
+        // 4. 重发后清旧尝试计数（UX-03：重发即给全新 5 次机会）；冷却标记已在步骤 2 原子占位
         redis.delete(attemptPrefix + phone);
 
         // 5. 发送
