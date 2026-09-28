@@ -46,6 +46,7 @@ apps/mobile-*/build/
 .tmp-*.png
 .tmp-*.mjs
 .fallow/
+.fallow-coverage/
 e2e/playwright/.auth/
 e2e/test-results/
 e2e/playwright-report/

@@ -33,6 +33,7 @@
         "test:watch": "vitest",
         "test:project": "vitest run --project",
         "test:changed": "vitest run --changed",
+        "test:coverage": "vitest run --coverage --coverage.provider=v8 --coverage.reporter=json --coverage.reportsDirectory=.fallow-coverage",
         "test:server": "node scripts/with-datastore.mjs && mvn -f apps/server/pom.xml test",
         "test:e2e": "playwright test --config=e2e/playwright.config.ts",
         "test:e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
@@ -40,6 +41,7 @@
         "fallow": "fallow dead-code",
         "fallow:production": "fallow dead-code --production",
         "fallow:audit": "fallow audit --brief",
+        "fallow:health": "fallow health --coverage .fallow-coverage/coverage-final.json",
         "gen:sdk": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts && npm run contract:audit",
         "contract:audit": "node scripts/contract-audit.mjs"
     },
@@ -51,6 +53,7 @@
         "@shadcn/lint": "^0.1.1",
         "@tanstack/eslint-plugin-query": "^5.103.1",
         "@tanstack/eslint-plugin-router": "^1.162.0",
+        "@vitest/coverage-v8": "4.1.11",
         "concurrently": "^10.0.5",
         "fallow": "^3.28.0",
         "lefthook": "^2.1.14",

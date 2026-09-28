@@ -17,6 +17,16 @@
     // 重复克隆，但那些代码不是我们写的，也不打算重构——重构 vendored 代码会彻底断掉与上游的
     // diff 能力。它们仍被 tsc（strict + noUncheckedIndexedAccess）与 lint 的项目级规则检查。
     "health": {
+        // 显式钉住默认阈值（全库 avg cc 1.5 / p90 3，cc 门槛 20 实际只命中 1 个函数）。
+        // maxCrap=30 保持默认：CRAP = cc^2 * (1-cov/100)^3 + cc，cov=0 时退化成 cc^2+cc，
+        // 于是「cc>=5 且覆盖率 0」的函数必上榜（cc5→30 / cc6→42 / cc7→56 …）。
+        // 抬高它只会藏掉真实未覆盖的复杂函数，所以不动；健康扫描的「超标 67/82 条」是
+        // 测试覆盖的真实信号，不是阈值配低。CRAP 默认按模块图估算覆盖率（偏乐观），
+        // 真实数据走 `pnpm test:coverage && pnpm fallow:health`（coverage 缺文件时自动回退估算）。
+        "maxCyclomatic": 20,
+        "maxCognitive": 15,
+        "maxCrap": 30,
+        "maxUnitSize": 60,
         "ignore": [
             "packages/api/src/sdk/**",
             "**/*.gen.ts",
