@@ -15,6 +15,8 @@ apps/web/                ← 买家端 SSR
 apps/seller/             ← 卖家工作台 SPA
 apps/admin/              ← 平台管理端 SPA
 packages/                ← 共享包（api / common / app-kit / ui-web / config / test-utils）
+scripts/                 ← node 脚本：数据面拉起与探针（db:up / with-datastore）、造数（seed-demo）、契约与 i18n 门禁、健康扫描（health:scan）
+e2e/                     ← Playwright 用例与 fixtures（运行参数的唯一出口是 e2e/fixtures/env.ts）
 openapi/                  ← OpenAPI 契约（api-docs.json，由后端 /v3/api-docs 导出），packages/api 的 SDK 由 @hey-api/openapi-ts 从此生成（packages/api 内除 src/index.ts 聚合入口外全部是生成物）
 docs/                     ← 架构 / 约定 / 决策 / 调研（索引见 README「文档地图」）
 ```

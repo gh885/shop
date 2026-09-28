@@ -16,7 +16,7 @@ export async function loginBuyer(page: Page, run: RunManifest): Promise<void> {
     await page.getByLabel("手机号").fill(run.buyer.phone)
     await page.getByLabel("密码").fill(run.buyer.password)
     await page.getByRole("button", { name: "登录", exact: true }).last().click()
-    await expect(page.getByText("登录后畅享更多功能")).toBeHidden()
+    await expect(page.getByRole("dialog", { name: "登录/注册" })).toBeHidden()
 }
 
 /** 卖家：独立登录页，成功后落商品列表 */
