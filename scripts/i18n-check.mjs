@@ -100,6 +100,13 @@ async function main() {
                 }
             }
         }
+        // 反方向也要查：只在 en-US 出现的文件不会进上面那个循环，漏了就是静默绿
+        for (const enPath of enFiles) {
+            const relativeEn = relative(join(base, LOCALES[1]), enPath)
+            if (!zhFiles.includes(join(base, LOCALES[0], relativeEn))) {
+                errors.push(`${root}: zh-CN 缺少 ${relativeEn}`)
+            }
+        }
     }
     if (errors.length > 0) {
         console.error("i18n check failed:")
