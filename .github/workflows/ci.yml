@@ -4,6 +4,8 @@ on:
     push:
         branches: [main]
     pull_request:
+    # 手动补跑：新建仓库的首次 push 不会触发 workflow，建仓后第一次跑 CI 得走这里
+    workflow_dispatch:
 
 jobs:
     frontend:
@@ -35,9 +37,12 @@ jobs:
             - name: dead-code (production)
               run: pnpm fallow:production --format github-annotations
             # 只在 PR 上跑：push 到 main 时没有可比的基准分支
+            # base_ref 走环境变量再引用：分支名允许 shell 元字符，直接内插进 run 会被求值
             - name: audit
               if: github.event_name == 'pull_request'
-              run: pnpm exec fallow audit --base origin/${{ github.base_ref }} --format github-annotations
+              env:
+                  BASE_REF: ${{ github.base_ref }}
+              run: pnpm exec fallow audit --base "origin/$BASE_REF" --format github-annotations
             - name: test
               run: pnpm test
 
