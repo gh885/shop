@@ -51,6 +51,10 @@ spring:
         baseline-version: 10
         # 不加载 db/seed 的环境里 V43/V44 成了「已应用但本地没有文件」，validate 要放过
         ignore-missing-migrations: true
+        # 与 application-test.yml 同一条坑：库用户与模块 schema 同名（shop），PG 的 "$user" search_path
+        # 把 current_schema 解析成 shop schema，Flyway 就去那里找历史表——库明明已迁到 V73，
+        # 它认成「无历史表」，配上 baseline-on-migrate 从 V11 起重放，V13 的种子撞上 V35 的 check 才炸
+        default-schema: public
         # 建索引要能 CONCURRENTLY（见 V65）：它不能进事务，而默认 true 时 Flyway 用两条连接——
         # 迁移跑在第二条上，第一条上未提交的 schema history 事务成了它等待的目标，启动直接自锁挂死。
         # false 让 Flyway 复用单连接并按迁移切换 autoCommit，普通迁移照旧各自一个事务。
