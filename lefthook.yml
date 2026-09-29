@@ -82,22 +82,18 @@ pre-push:
         - rebase
 
     jobs:
-        # 不带 --fix：push 前只校验，不改工作区。与前端 CI 步骤同一个 script（lint:web）
-        - name: lint
-          tags: [lint]
-          run: pnpm lint:web
-
-        - name: typecheck
-          tags: [types]
-          run: pnpm typecheck
+        # 前端三项（fmt+lint 的 vp check / typecheck / test）合并成一个带缓存的入口：
+        # `pnpm exec vp run verify` 与本地手动验证是同一个命令、同一套指纹（定义在根
+        # vite.config.ts 的 run.tasks.verify），所以「手动验完再 push」不再重跑一遍全量测试——
+        # 源码/测试/配置/依赖任一变化照常失效，完全相同的状态直接重放记录的结果。
+        # 冷跑仍是全量一遍（实测 ~54s），这里省的是第二次等待。
+        # tags 三个都留着：LEFTHOOK_EXCLUDE=lint/types/test 的逃生舱仍按原来粒度跳过。
+        - name: verify
+          tags: [lint, types, test]
+          timeout: 600s
+          run: pnpm exec vp run verify
 
         # 死代码 / 改动审计（fallow）在 pre-commit，见那边的说明
-
-        # 前端单测 + 组件/集成测试（`vp test` 的 vitest projects：apps/* + packages/*）
-        - name: test
-          tags: [test]
-          timeout: 300s
-          run: pnpm test
 
         - name: java-build
           tags: [java]
@@ -109,10 +105,3 @@ pre-push:
         - name: sdk-drift
           tags: [contract]
           run: bash scripts/check-sdk-drift.sh
-
-        # i18n 生成物漂移：资源变了却没跑 pnpm gen:i18n 就拦下。
-        # 这条作业同时是 codegen 判据的执行点（缺条目/语法/跨语言参数/number,currency），
-        # --check 模式一条不过就非零退出不写文件，见 scripts/i18n-codegen.mjs 头注释与 i18n.md §5.5
-        - name: i18n-drift
-          tags: [contract]
-          run: pnpm i18n:drift

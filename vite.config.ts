@@ -62,7 +62,10 @@ export default defineConfig({
              * 前端门禁一把过，可缓存：`pnpm exec vp run verify`。
              * 数组按 `&&` 语义串行，且每个子命令单独指纹缓存（Vite Task 的 compound command），
              * 所以改前端代码只让 vp check 那一段失效，40s 的测试段仍走缓存重放。
-             * 命令与 lefthook 的 pre-push 三项逐字相同，跑的就是门禁同一套东西。
+             *
+             * 它同时是 lefthook pre-push 那个 `verify` 作业的命令（本地手动验证与 push 前
+             * 门禁同一条路径、同一套指纹），所以「手动验完再 push」不会把全量测试重跑一遍。
+             * `vp check` 是 `lint:web` 的超集（多了 fmt 与 tsgolint 的类型判读）。
              */
             verify: {
                 command: ["pnpm exec vp check", "pnpm typecheck", "pnpm test"],
