@@ -15,6 +15,9 @@ const me = createMeQuery({
     scope: "admin/me",
     queryFn: () => AdminAuthApi.getStaffMe(),
     useAuthStatus,
+    // 监控事件信封的 userId（契约第 1 条）；登出时 me 变 undefined 由工厂的 effect 自动清空。
+    // 本端 me 非空（StaffInfo），所以不用可选链——undefined 的判定在工厂里（query.data）
+    userIdOf: (value) => value.id,
 })
 
 /** 当前登录员工信息（未登录时不发请求）；Account 头像与侧栏账号共用同一份缓存 */

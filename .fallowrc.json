@@ -71,7 +71,9 @@
             { "name": "domain-api", "patterns": ["apps/*/src/*/index.ts"] },
             { "name": "routes", "patterns": ["apps/*/src/routes/**"] },
             { "name": "shell", "patterns": ["apps/*/src/app/**", "apps/*/src/layout/**"] },
-            { "name": "shared", "patterns": ["apps/*/src/shared/**"] },
+            // `locales/**` 与 shared 同级看待：它是跨域横切资源（每个域的组件都要 `useT` 取文案），
+            // 把它当独立 autoDiscover zone 会让「域 → locales」这条必然存在的边变成 boundary violation。
+            { "name": "shared", "patterns": ["apps/*/src/shared/**", "apps/*/src/locales/**"] },
             {
                 "name": "kit",
                 "patterns": ["packages/common/**", "packages/app-kit/**", "packages/ui-web/**"]

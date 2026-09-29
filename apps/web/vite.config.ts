@@ -58,12 +58,38 @@ function ordersApiProxy(backend: string): Plugin {
     }
 }
 
+/**
+ * 预渲染用的 preview 服务器端口钉死。
+ *
+ * @tanstack/start-plugin-core 起预览服务器时把端口写死成 `0`（让 OS 挑临时端口），而 Windows 的
+ * 临时端口区间默认是 1024–15000（`netsh int ipv4 show dynamicport tcp`），正好盖住 undici 的
+ * 保留端口黑名单——抽中 6000 / 6566 / 10080 时预渲染那一步的 fetch 直接 `Error: bad port`，
+ * 整条 `pnpm build:web` 挂在这里（实测三次中一次）。黑名单按目标端口判定，跟谁在监听无关，
+ * 所以唯一出路是不让 OS 挑。
+ *
+ * 只接管「显式要随机端口」这一种情况：预渲染是全站唯一的来源，`vp preview --port N`（pnpm perf）
+ * 传的是非 0 端口，本钩子对它们不动手。端口被占时 Vite 照常 +1 顺延，故不必 strictPort。
+ */
+function prerenderPreviewPort(port: number): Plugin {
+    return {
+        name: "shop-prerender-preview-port",
+        config(config) {
+            if (config.preview?.port !== 0) return
+            return { preview: { port } }
+        },
+    }
+}
+
 // 后端地址：VITE_BACKEND_URL（默认本地 8080）。Proxy 是 dev 工具，生产 SSR 的后端地址由 client.ts 的 VITE_BACKEND_URL 决定
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), "VITE_")
     const backend = env.VITE_BACKEND_URL || "http://localhost:8080"
     return {
         resolve: { tsconfigPaths: true },
+        // 错误上报要能还原到源码（frontend-monitoring 契约第 4 条）。hidden 生成 .map 但不在产物里
+        // 留 sourceMappingURL 注释：产物照常发，map 按 version 单独归档、不随静态资源上线。
+        // 留成 true（会写 sourceMappingURL）会让浏览器去线上拉 .map——那是把源码目录结构公开出去
+        build: { sourcemap: "hidden" },
         server: {
             proxy: {
                 // 同源代理到后端，规避 CORS / refresh cookie（Secure + httpOnly）跨域问题
@@ -89,6 +115,7 @@ export default defineConfig(({ mode }) => {
             },
         },
         plugins: lazyPlugins(() => [
+            prerenderPreviewPort(4417), // 避开 4173（pnpm perf 的 preview 端口）与三端 dev 端口
             devtools(),
             tailwindcss(),
             ordersApiProxy(backend),

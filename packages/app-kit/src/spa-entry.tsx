@@ -8,6 +8,7 @@ import type { AppLocale, I18nResources } from "@shop/common"
 import { I18nProvider } from "./i18n"
 import type { LocaleScope } from "./i18n/scope"
 import { createAppQueryClient } from "./query-client"
+import { trackRouteResolved } from "./route-tracking"
 
 export interface MountSpaOptions {
     resources: I18nResources
@@ -30,6 +31,9 @@ export interface MountSpaOptions {
  */
 export function mountSpa(router: AnyRouter, options: MountSpaOptions) {
     const queryClient = createAppQueryClient(options.scope)
+
+    // PV 上报：与 web 同一份接线（route-tracking.ts），模板化口径三端必须一致
+    trackRouteResolved(router)
 
     createRoot(document.getElementById("root")!).render(
         <StrictMode>

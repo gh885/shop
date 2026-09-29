@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => {
     const backend = env.VITE_BACKEND_URL || "http://localhost:8080"
     return {
         resolve: { tsconfigPaths: true },
+        // 错误上报要能还原到源码（frontend-monitoring 契约第 4 条）。hidden 生成 .map 但不在产物里
+        // 留 sourceMappingURL 注释：产物照常发，map 按 version 单独归档、不随静态资源上线。
+        // 留成 true（会写 sourceMappingURL）会让浏览器去线上拉 .map——那是把源码目录结构公开出去
+        build: { sourcemap: "hidden" },
         server: {
             port: 4000,
             proxy: {

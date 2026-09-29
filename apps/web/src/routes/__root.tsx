@@ -16,6 +16,7 @@ import { LoginDialog } from "#/auth"
 import { SiteFooter } from "../layout/SiteFooter"
 import { SiteHeader } from "../layout/SiteHeader"
 import { bootstrapAuth, useLoginDialogOpen } from "../shared/api/auth"
+import { useWebMonitoring } from "../shared/lib/monitoring"
 
 import appCss from "../styles.css?url"
 
@@ -102,6 +103,8 @@ function DocumentShell({
     children: React.ReactNode
 }) {
     const { locale } = useI18n()
+    // 监控：客户端装配（启全局监听、量 Web Vitals、PV）。SSR 侧不跑，详见 monitoring.ts 文件头
+    useWebMonitoring()
     return (
         <html lang={locale}>
             <head>

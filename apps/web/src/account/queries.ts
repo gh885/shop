@@ -19,6 +19,8 @@ const me = createMeQuery<MeResponse | undefined>({
     scope: "me",
     queryFn: () => AuthApi.me(),
     useAuthStatus,
+    // 监控事件信封的 userId（契约第 1 条）；登出时 me 变 undefined 自动清空
+    userIdOf: (value) => value?.id,
 })
 
 /** 当前用户缓存 key（登录/登出/资料更新的失效入口，profile 页也引用它） */

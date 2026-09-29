@@ -1,6 +1,7 @@
+import { useEffect } from "react"
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query"
 
-import type { AuthStatus } from "@shop/common"
+import { setMonitoringUser, type AuthStatus } from "@shop/common"
 
 /**
  * 「当前登录者」查询的工厂（三个 app 共用一套 key 与新鲜度）。
@@ -24,6 +25,16 @@ interface MeQueryConfig<TMe> {
     useAuthStatus: () => AuthStatus
     /** 新鲜度，默认 5 分钟：身份信息变更频率低，且资料页更新后自行 invalidate */
     staleTime?: number
+    /**
+     * 从 me 实体取用户 id，填进监控事件信封（契约第 1 条的 user_id 字段）。
+     *
+     * 为什么挂在 me 查询而不是登录/登出处：登录那一刻拿得到 token、未必拿得到 id（还要发一次
+     * /me），而「当前登录者」是全端唯一稳定知道 id 的地方；登出时 me 变 undefined，
+     * 这里自然把信封里的 userId 清掉，不依赖各端记得在登出处调一次。
+     *
+     * 可选：不传就不带 userId（监控仍工作，只是无法把事件关联到人）。
+     */
+    userIdOf?: (me: TMe) => string | undefined
 }
 
 interface MeQuery<TMe> {
@@ -40,6 +51,7 @@ export function createMeQuery<TMe>({
     queryFn,
     useAuthStatus,
     staleTime = 5 * 60_000,
+    userIdOf,
 }: MeQueryConfig<TMe>): MeQuery<TMe> {
     const ME_QUERY_KEY = [scope] as const
 
@@ -50,7 +62,7 @@ export function createMeQuery<TMe>({
         // 实测：换成 queryOptions(...) 包一层后，queryKey 的 readonly [string] 与 useQuery<TMe>
         // 的泛型推断打架（TS2769：readonly unknown[] 不可赋值给 readonly [string]），故保持内联并豁免。
         // oxlint-disable-next-line tanstack-query/prefer-query-options -- 见上：wrapper 会破坏 key 元组推断
-        return useQuery<TMe>({
+        const query = useQuery<TMe>({
             queryKey: ME_QUERY_KEY,
             queryFn,
             staleTime,
@@ -61,6 +73,17 @@ export function createMeQuery<TMe>({
             // 身份信息拿不到最多是「昵称不显示」，绝不能把整个应用外壳换成错误页
             throwOnError: false,
         })
+
+        // 监控信封的 userId：随 me 变化（登出时 me 变 undefined → 清空）。
+        // 放在 effect 里而不是渲染期直接调：setMonitoringUser 是副作用（写模块状态），
+        // 渲染期调它会在 StrictMode 下双写、并让「渲染即有副作用」扩散。
+        // 依赖只列 query.data：userIdOf 是工厂参数，每条 createMeQuery 只建一次、闭包里恒定，
+        // 把它列进去只会让内联箭头函数（三端都是内联）每帧换个新依赖。
+        useEffect(() => {
+            if (userIdOf)
+                setMonitoringUser(query.data === undefined ? undefined : userIdOf(query.data))
+        }, [query.data])
+        return query
     }
 
     function useClearMe() {

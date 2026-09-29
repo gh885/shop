@@ -3,6 +3,7 @@ import { client } from "@shop/api"
 import type { ApiError } from "./api-error"
 import { isZodError, RESPONSE_VALIDATION_FAILED, zodIssuesText } from "./api-error"
 import { ErrorCodes } from "./error-codes"
+import { captureError, toRouteTemplate, track } from "./monitoring"
 
 /**
  * 生成 SDK（@shop/api）的传输层装配：给 hey-api 生成的 ky client 挂上
@@ -102,6 +103,9 @@ function reportContractDrift(
     } else {
         console.error(`[API] 响应契约校验失败 ${where} ${issues}`)
     }
+    // 同一个出口（GEN-28 定的锚点）：控制台那行给人看，这条给监控看。
+    // 只进监控不删控制台——删了那行在 dev 里最有用的现场（完整 issues）就没了
+    captureError("api_contract_drift", null, { message: `响应契约校验失败 ${where} ${issues}` })
 }
 
 /** 后端错误体里可选的 code / requestId（不是字符串就当没有，不让脏字段漏进 ApiError） */
@@ -133,6 +137,37 @@ export function configureSdkClient(
     options?: SdkClientOptions,
 ) {
     const startTimes = new WeakMap<Request, number>()
+
+    /**
+     * 接口事件上报（首批功能「接口」条）。
+     *
+     * 只取**路径**不取完整 URL：query 里可能有 token、手机号、搜索词（契约第 5 条隐私边界），
+     * 而路径模板化后才有界——`/api/shops/12345/coupons` 每个店一条，进指标标签就是无界基数。
+     *
+     * 失败全报、成功按会话采样报（带耗时）：失败是分母里必须准的那部分；成功量太大，
+     * 按会话抽样足够看出延迟分布（同一会话内要么全报要么全不报，见 core 的 sampledSession）。
+     *
+     * 计为失败的是：5xx、网络层失败（无 response → status 0）、以及 2xx 但契约漂移。
+     * 4xx 多数是业务拒绝，同样上报但接收端按 status 分开看——突增往往是前端传参出了 bug。
+     */
+    const reportApi = (
+        request: Request | undefined,
+        status: number,
+        extra: { message?: string; requestId?: string } = {},
+    ): void => {
+        // 无 request（极少见，但拦截器签名允许）就没什么可报的：连 endpoint 都取不到
+        if (!request) return
+        const start = startTimes.get(request)
+        track({
+            kind: "api",
+            endpoint: toRouteTemplate(new URL(request.url).pathname),
+            method: request.method,
+            status,
+            duration: start ? Math.round(performance.now() - start) : 0,
+            message: extra.message,
+            requestId: extra.requestId,
+        })
+    }
 
     /**
      * 401 → 刷新：单飞。同一时刻只发一次 refresh，并发 401 共用结果。
@@ -239,12 +274,14 @@ export function configureSdkClient(
 
         const refreshPath = options?.refreshPath ?? "auth/refresh"
         if (response.status !== 401 || !tokens || path === `/${refreshPath}`) {
+            // 成功才在这里报：非 2xx 会被 hey-api 抛出去、在 error 拦截器里报（避免一条请求报两次）
+            if (response.ok) reportApi(request, response.status)
             return response
         }
 
         const refreshed = await refreshOnce(refreshPath)
         if (!refreshed) {
-            // 刷新没成（cookie 过期）→ 原始 401 正常冒泡
+            // 刷新没成（cookie 过期）→ 原始 401 正常冒泡（会在 error 拦截器里报）
             return response
         }
         if (!("accessToken" in refreshed)) {
@@ -267,9 +304,12 @@ export function configureSdkClient(
                 credentials: request.credentials,
                 signal: request.signal,
             })
+            // 401 刷新后重放成功的不计（首批「接口」条：那种 401 是设计内的，不该拉高错误率）；
+            // 重放仍非 2xx 的由下面的 error 拦截器报一次（带重放后的真实状态码，不是最初的 401），
+            // 这里不重复报——同一请求报两次会让错误率直接翻倍
             return await fetch(retry)
         } catch {
-            // 重发本身失败 → 原始 401 冒泡
+            // 重发本身失败 → 原始 401 冒泡（会在 error 拦截器里报）
             return response
         }
     })
@@ -280,6 +320,9 @@ export function configureSdkClient(
     client.interceptors.error.use((error, response, request) => {
         if (isZodError(error)) {
             reportContractDrift(error, request, options?.debug)
+            // 2xx 但契约漂移：计为失败（首批「接口」条），状态码照实报 2xx 而不是编一个 5xx——
+            // 接收端要能把它和真失败分开看，它指向的是前后端契约没对上，不是服务挂了
+            reportApi(request, response?.status ?? 200, { message: RESPONSE_VALIDATION_FAILED })
             return {
                 status: response?.status ?? 200,
                 detail: "响应数据不符合接口契约",
@@ -287,8 +330,16 @@ export function configureSdkClient(
             } satisfies ApiError
         }
         if (response) {
-            return apiErrorFromResponse(response, error)
+            const apiError = apiErrorFromResponse(response, error)
+            // 4xx 也报：多数是业务拒绝，接收端按 status 分列——突增往往说明前端传参出了 bug
+            reportApi(request, response.status, {
+                message: apiError.code,
+                requestId: apiError.requestId,
+            })
+            return apiError
         }
+        // 无 response = 网络层失败（断网 / CORS / DNS）：status 0，与 4xx 不是一回事
+        reportApi(request, 0, { message: "网络错误" })
         return { status: 0, detail: "网络错误，请检查连接" } satisfies ApiError
     })
 

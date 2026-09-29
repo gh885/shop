@@ -13,6 +13,8 @@ const me = createMeQuery<MeResponse | undefined>({
     scope: "me",
     queryFn: () => AuthApi.me(),
     useAuthStatus,
+    // 监控事件信封的 userId（契约第 1 条）；登出时 me 变 undefined 自动清空
+    userIdOf: (value) => value?.id,
 })
 
 /** 当前登录用户信息（未登录时不发请求） */

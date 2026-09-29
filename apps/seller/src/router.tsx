@@ -1,6 +1,8 @@
 import { createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 
+import { captureError } from "@shop/common"
+
 import { RouteError } from "./shared/ui/RouteError"
 
 export const router = createRouter({
@@ -18,7 +20,15 @@ export const router = createRouter({
      * 叶子路由失败时工作台布局（侧边栏/顶栏）仍在。重试走 RouteError 的官方双 reset。
      */
     defaultErrorComponent: RouteError,
+    /**
+     * 渲染期未捕获错误的遥测出口。
+     *
+     * 与 web 的 defaultOnCatch 同一个出口（@shop/common 的 captureError）：三端不各写一份
+     * 上报逻辑，否则换监控后端要改三处、且总有一端会漏。UI 反馈仍由 defaultErrorComponent 负责。
+     */
+    defaultOnCatch: (error) => captureError("route_error", error),
 })
+// PV 上报在 mountSpa 里（spa-entry.tsx，与 admin 同源）
 
 declare module "@tanstack/react-router" {
     interface Register {
