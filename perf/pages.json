@@ -1,0 +1,107 @@
+{
+    "$comment": "被测页面清单，按 app 分组（每组一个 preview 端口）。改这里等于换测量口径——改完要 pnpm perf -- --baseline 重冻基线，否则历史曲线前后不可比。",
+    "$marker": "SSR 页靠 marker 证明真出了内容：200 但空壳（后端在、数据没取到）反而会拿高分。SPA 的 index.html 永远是壳，所以那两组不写 marker，改由脚本断言最终 URL 没落回 loginPath——工作台量成登录页是这一类最坏的假数。",
+    "$auth": "auth 组用 refresh cookie 换 access token 进门（token 只在内存里，没有 cookie 进不去，Lighthouse 只能量登录页）。账号是 seed:demo 的演示号（统一密码 shop123456；admin 端 admin/admin123），只能对本地后端用——脚本会拒绝连到任何非 localhost 的后端。",
+    "preset": "mobile",
+    "apps": [
+        {
+            "name": "web",
+            "label": "买家端",
+            "dir": "apps/web",
+            "build": "build:web",
+            "port": 4173,
+            "probe": "/welcome",
+            "pages": [
+                {
+                    "slug": "home",
+                    "name": "首页",
+                    "path": "/",
+                    "needsBackend": true,
+                    "marker": "href=\"/products/"
+                },
+                {
+                    "slug": "product",
+                    "name": "商品详情",
+                    "path": "/products/01900000-0000-7000-8000-000000060019",
+                    "needsBackend": true,
+                    "marker": "\"@type\":\"Product\"",
+                    "note": "钉的是 seed:demo 灌进去的商品。商品被删或重灌导致 marker 不出现时，换一个 /products/<id> 并 --baseline 重冻"
+                },
+                {
+                    "slug": "welcome",
+                    "name": "落地页(预渲染)",
+                    "path": "/welcome",
+                    "needsBackend": false,
+                    "marker": "<h1"
+                }
+            ]
+        },
+        {
+            "name": "seller",
+            "label": "卖家工作台",
+            "dir": "apps/seller",
+            "build": "build:seller",
+            "port": 5000,
+            "probe": "/login",
+            "loginPath": "/login",
+            "auth": {
+                "login": "/auth/login/password",
+                "cookie": "refresh_token",
+                "cookiePath": "/auth/refresh",
+                "account": {
+                    "phone": "13800002001",
+                    "password": "shop123456",
+                    "deviceId": "perf-lab"
+                }
+            },
+            "pages": [
+                {
+                    "slug": "seller-products",
+                    "name": "商品管理",
+                    "path": "/product/list",
+                    "needsBackend": true,
+                    "note": "工作台默认落点：会自己补 ?page=1&size=10&status=PUBLISHED，量的是带 10 行数据的列表"
+                },
+                {
+                    "slug": "seller-orders",
+                    "name": "订单管理",
+                    "path": "/trade/order",
+                    "needsBackend": true
+                }
+            ]
+        },
+        {
+            "name": "admin",
+            "label": "平台管理端",
+            "dir": "apps/admin",
+            "build": "build:admin",
+            "port": 4000,
+            "probe": "/login",
+            "loginPath": "/login",
+            "auth": {
+                "login": "/admin/auth/login",
+                "cookie": "staff_refresh_token",
+                "cookiePath": "/admin/auth/refresh",
+                "account": {
+                    "employeeNo": "admin",
+                    "password": "admin123",
+                    "deviceId": "perf-lab"
+                }
+            },
+            "pages": [
+                {
+                    "slug": "admin-audits",
+                    "name": "审核台",
+                    "path": "/audits",
+                    "needsBackend": true
+                },
+                {
+                    "slug": "admin-shops",
+                    "name": "店铺管理",
+                    "path": "/shops",
+                    "needsBackend": true
+                }
+            ]
+        }
+    ]
+}

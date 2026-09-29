@@ -1,0 +1,254 @@
+{
+    "mobile": {
+        "schema": 1,
+        "ts": "2026-09-29T10:41:16.104Z",
+        "version": "06d302c7",
+        "pages": {
+            "home": {
+                "app": "买家端",
+                "scores": {
+                    "performance": 52,
+                    "accessibility": 96,
+                    "best-practices": 96,
+                    "seo": 100
+                },
+                "metrics": {
+                    "ttfb": 38,
+                    "fcp": 5553,
+                    "lcp": 6163,
+                    "cls": 0.226,
+                    "tbt": 0,
+                    "si": 5553
+                }
+            },
+            "product": {
+                "app": "买家端",
+                "scores": {
+                    "performance": 62,
+                    "accessibility": 97,
+                    "best-practices": 96,
+                    "seo": 100
+                },
+                "metrics": {
+                    "ttfb": 122,
+                    "fcp": 5708,
+                    "lcp": 7060,
+                    "cls": 0.002,
+                    "tbt": 0,
+                    "si": 5708
+                }
+            },
+            "welcome": {
+                "app": "买家端",
+                "scores": {
+                    "performance": 65,
+                    "accessibility": 96,
+                    "best-practices": 96,
+                    "seo": 100
+                },
+                "metrics": {
+                    "ttfb": 3,
+                    "fcp": 5255,
+                    "lcp": 5855,
+                    "cls": 0,
+                    "tbt": 0,
+                    "si": 5255
+                }
+            },
+            "seller-products": {
+                "app": "卖家工作台",
+                "scores": {
+                    "performance": 99,
+                    "accessibility": 97,
+                    "best-practices": 100,
+                    "seo": 83
+                },
+                "metrics": {
+                    "ttfb": 1,
+                    "fcp": 1207,
+                    "lcp": 1960,
+                    "cls": 0,
+                    "tbt": 45,
+                    "si": 1207
+                }
+            },
+            "seller-orders": {
+                "app": "卖家工作台",
+                "scores": {
+                    "performance": 99,
+                    "accessibility": 97,
+                    "best-practices": 100,
+                    "seo": 83
+                },
+                "metrics": {
+                    "ttfb": 1,
+                    "fcp": 1208,
+                    "lcp": 1953,
+                    "cls": 0,
+                    "tbt": 61,
+                    "si": 1208
+                }
+            },
+            "admin-audits": {
+                "app": "平台管理端",
+                "scores": {
+                    "performance": 93,
+                    "accessibility": 100,
+                    "best-practices": 100,
+                    "seo": 82
+                },
+                "metrics": {
+                    "ttfb": 1,
+                    "fcp": 1358,
+                    "lcp": 1510,
+                    "cls": 0.163,
+                    "tbt": 29,
+                    "si": 1358
+                }
+            },
+            "admin-shops": {
+                "app": "平台管理端",
+                "scores": {
+                    "performance": 93,
+                    "accessibility": 100,
+                    "best-practices": 96,
+                    "seo": 82
+                },
+                "metrics": {
+                    "ttfb": 1,
+                    "fcp": 1357,
+                    "lcp": 1509,
+                    "cls": 0.163,
+                    "tbt": 33,
+                    "si": 1357
+                }
+            }
+        }
+    },
+    "desktop": {
+        "schema": 1,
+        "ts": "2026-09-29T10:45:35.086Z",
+        "version": "06d302c7",
+        "pages": {
+            "home": {
+                "app": "买家端",
+                "scores": {
+                    "performance": 90,
+                    "accessibility": 96,
+                    "best-practices": 96,
+                    "seo": 100
+                },
+                "metrics": {
+                    "ttfb": 32,
+                    "fcp": 1051,
+                    "lcp": 1738,
+                    "cls": 0.073,
+                    "tbt": 0,
+                    "si": 1118
+                }
+            },
+            "product": {
+                "app": "买家端",
+                "scores": {
+                    "performance": 87,
+                    "accessibility": 97,
+                    "best-practices": 96,
+                    "seo": 100
+                },
+                "metrics": {
+                    "ttfb": 118,
+                    "fcp": 1127,
+                    "lcp": 2100,
+                    "cls": 0,
+                    "tbt": 0,
+                    "si": 1127
+                }
+            },
+            "welcome": {
+                "app": "买家端",
+                "scores": {
+                    "performance": 93,
+                    "accessibility": 96,
+                    "best-practices": 96,
+                    "seo": 100
+                },
+                "metrics": {
+                    "ttfb": 3,
+                    "fcp": 1046,
+                    "lcp": 1482,
+                    "cls": 0,
+                    "tbt": 0,
+                    "si": 1046
+                }
+            },
+            "seller-products": {
+                "app": "卖家工作台",
+                "scores": {
+                    "performance": 100,
+                    "accessibility": 97,
+                    "best-practices": 100,
+                    "seo": 83
+                },
+                "metrics": {
+                    "ttfb": 1,
+                    "fcp": 327,
+                    "lcp": 490,
+                    "cls": 0,
+                    "tbt": 0,
+                    "si": 545
+                }
+            },
+            "seller-orders": {
+                "app": "卖家工作台",
+                "scores": {
+                    "performance": 100,
+                    "accessibility": 97,
+                    "best-practices": 100,
+                    "seo": 83
+                },
+                "metrics": {
+                    "ttfb": 1,
+                    "fcp": 328,
+                    "lcp": 483,
+                    "cls": 0,
+                    "tbt": 0,
+                    "si": 550
+                }
+            },
+            "admin-audits": {
+                "app": "平台管理端",
+                "scores": {
+                    "performance": 77,
+                    "accessibility": 100,
+                    "best-practices": 100,
+                    "seo": 82
+                },
+                "metrics": {
+                    "ttfb": 1,
+                    "fcp": 366,
+                    "lcp": 407,
+                    "cls": 0.63,
+                    "tbt": 0,
+                    "si": 414
+                }
+            },
+            "admin-shops": {
+                "app": "平台管理端",
+                "scores": {
+                    "performance": 96,
+                    "accessibility": 100,
+                    "best-practices": 96,
+                    "seo": 82
+                },
+                "metrics": {
+                    "ttfb": 1,
+                    "fcp": 366,
+                    "lcp": 433,
+                    "cls": 0.116,
+                    "tbt": 0,
+                    "si": 366
+                }
+            }
+        }
+    }
+}

@@ -40,21 +40,23 @@ pnpm fallow               # 死代码 + 架构边界（域间只走对方 index.
 pnpm seed:demo            # 灌演示数据（scripts/seed-demo.mjs，只增不改人工数据、幂等；--dry-run 只打印 SQL）
 pnpm gen:sdk              # 需后端在跑：导出契约 + 重新生成 packages/api/src/sdk + contract:audit
 pnpm build                # 买家端（vp build / Rolldown）+ mvn compile；另两端 build:seller / build:admin
+pnpm perf                 # 实验室首屏测量（三端生产构建 + preview，Lighthouse）；需后端在跑，只记录不阻断
+pnpm perf:bundle          # 三端 dist 的 gzip 字节，逐 chunk 与基线比差值——零噪声、~1 分钟，同样不阻断
 cd apps/server && mvn spring-boot:run   # 单独起后端（mvn compile / spotless:apply 同理）
 ```
 
 ## 规范在哪（动对应代码前先读）
 
-| 你要动的东西                                           | 必读                                                                                                                                               |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 后端：架构规则、模块组织、命名、测试                   | `apps/server/AGENTS.md`（本目录自动加载）                                                                                                          |
-| 前端（`apps/*`、`packages/*`）：目录、状态、取数、测试 | [docs/conventions/frontend.md](docs/conventions/frontend.md)；改取数条款前先读其论证 [query-convergence.md](docs/conventions/query-convergence.md) |
-| 国际化 i18n                                            | [docs/conventions/i18n.md](docs/conventions/i18n.md)                                                                                               |
-| 前端监控 / 可观测性                                    | [frontend-monitoring.md](docs/conventions/frontend-monitoring.md) / [observability.md](docs/conventions/observability.md)                          |
-| UI / 视觉 / 加组件                                     | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md)                                                                                             |
-| 架构总览、模块依赖图、关键链路、全库 ID 与金额策略     | [docs/architecture.md](docs/architecture.md)                                                                                                       |
-| 业务规则（订单/券/物流/售后/支付/账号…的生效规则清单） | [docs/business-rules/](docs/business-rules/)（逐条带编号；改代码里的规则要同步改对应条目）                                                         |
-| 当前进行中的事                                         | [TODO.md](TODO.md)                                                                                                                                 |
+| 你要动的东西                                           | 必读                                                                                                                                                                         |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 后端：架构规则、模块组织、命名、测试                   | `apps/server/AGENTS.md`（本目录自动加载）                                                                                                                                    |
+| 前端（`apps/*`、`packages/*`）：目录、状态、取数、测试 | [docs/conventions/frontend.md](docs/conventions/frontend.md)；改取数条款前先读其论证 [query-convergence.md](docs/conventions/query-convergence.md)                           |
+| 国际化 i18n                                            | [docs/conventions/i18n.md](docs/conventions/i18n.md)                                                                                                                         |
+| 前端监控 / 可观测性                                    | [frontend-monitoring.md](docs/conventions/frontend-monitoring.md) / [observability.md](docs/conventions/observability.md)；改首屏测量口径看 [perf/README.md](perf/README.md) |
+| UI / 视觉 / 加组件                                     | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md)                                                                                                                       |
+| 架构总览、模块依赖图、关键链路、全库 ID 与金额策略     | [docs/architecture.md](docs/architecture.md)                                                                                                                                 |
+| 业务规则（订单/券/物流/售后/支付/账号…的生效规则清单） | [docs/business-rules/](docs/business-rules/)（逐条带编号；改代码里的规则要同步改对应条目）                                                                                   |
+| 当前进行中的事                                         | [TODO.md](TODO.md)                                                                                                                                                           |
 
 ## 高频硬规则（细则与论证见上表对应文件）
 

@@ -52,3 +52,8 @@ e2e/test-results/
 e2e/playwright-report/
 e2e/.fixture/
 .vitest/
+
+# 实验室性能测量产物：报表与历史在本机攒趋势，可重跑再生；跟踪的只有两份 baseline
+perf/runs/
+perf/history.jsonl
+perf/bundle-history.jsonl
