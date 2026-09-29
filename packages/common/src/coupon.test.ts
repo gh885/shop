@@ -80,6 +80,8 @@ describe("券状态与来源标签", () => {
 })
 
 describe("COUPON_STATUS_META（文字与徽章一张表）", () => {
+    // 具体配色不钉成单测契约：换品牌色会红一片，却证明不了哪个状态该显眼。
+    // 这里只守「三件事」：状态齐全、文案有值、未知状态有回退。
     it("五种展示状态都有文字与颜色：加状态漏一格就得到「新状态没颜色」", () => {
         // 键序也是券包分组要的那个次序（未使用 → 结算中 → 已使用 → 已过期 → 已作废）
         expect(Object.keys(COUPON_STATUS_META)).toEqual([
@@ -93,12 +95,6 @@ describe("COUPON_STATUS_META（文字与徽章一张表）", () => {
             expect(meta.label).toBeTruthy()
             expect(meta.variant).toBeTruthy()
         }
-    })
-
-    it("还在手上的两档显眼，已经不承担转化的那档退到中性底", () => {
-        expect(couponStatusMeta("UNUSED").variant).toBe("success")
-        expect(couponStatusMeta("LOCKED").variant).toBe("warning")
-        expect(couponStatusMeta("USED").variant).toBe("secondary")
     })
 
     it("卡片徽章与券包页签读的是同一句中文：查文字不换表，就不存在第二份文案", () => {

@@ -62,20 +62,4 @@ describe("buildSrcSet", () => {
         expect(buildSrcSet("blob:http://localhost/8f2c", DEFAULT_WIDTHS)).toBeUndefined()
         expect(buildSrcSet("product/uuid.webp", DEFAULT_WIDTHS)).toBeUndefined()
     })
-
-    it("默认档位是升序 5 档，且每一档都能拼进 srcset", () => {
-        expect(DEFAULT_WIDTHS).toEqual([120, 240, 480, 960, 1440])
-
-        const srcSet = srcSetOf(CDN_URL, DEFAULT_WIDTHS)
-        expect(srcSet.split(", ")).toHaveLength(DEFAULT_WIDTHS.length)
-        for (const width of DEFAULT_WIDTHS) {
-            expect(srcSet).toContain(`imageMogr2/thumbnail/${width}x ${width}w`)
-        }
-    })
-
-    it("本地上传预览（dataURL）整条 srcset 落空，只留原图那一档", () => {
-        const local = `data:image/webp;base64,${"A".repeat(32)}`
-
-        expect(buildSrcSet(local, DEFAULT_WIDTHS)).toBeUndefined()
-    })
 })

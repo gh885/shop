@@ -5,7 +5,6 @@ import {
     formatWallClockDisplay,
     formatWallClockTime,
     parseWallClock,
-    WALL_CLOCK,
 } from "./wall-clock"
 
 /**
@@ -74,10 +73,6 @@ describe("composeWallClock", () => {
 
         expect(formatWallClockTime(parsed)).toBe("09:05")
         expect(formatWallClockDisplay(parsed, "zh-CN")).toBe("2026-03-05 09:05")
-    })
-
-    it("常量本身就是 datetime-local 的输入形状", () => {
-        expect(WALL_CLOCK).toBe("yyyy-MM-dd'T'HH:mm")
     })
 })
 

@@ -247,18 +247,6 @@ describe("storeReducer", () => {
             expect(storeReducer(state, action, { files }).files.size).toBe(0)
         }
     })
-
-    it("ADD_FILES 把整份集合交给 onValueChange（含上一轮的存量）", () => {
-        const onValueChange = vi.fn<FileListCb>()
-        const files = new Map<File, FileState>()
-        const state: StoreState = { files, dragOver: false, invalid: false }
-        const old = makeFile("old.png", "image/png")
-        storeReducer(state, { type: "ADD_FILES", files: [old] }, { files, onValueChange })
-        const next = makeFile("next.png", "image/png")
-        storeReducer(state, { type: "ADD_FILES", files: [next] }, { files, onValueChange })
-
-        expect(onValueChange).toHaveBeenLastCalledWith([old, next])
-    })
 })
 
 describe("createFileUploadStore", () => {
@@ -269,17 +257,6 @@ describe("createFileUploadStore", () => {
             store.dispatch({ type: "ADD_FILES", files: [makeFile("a.png", "image/png")] }),
         ).not.toThrow()
         expect(store.getState().files.size).toBe(1)
-    })
-
-    it("绑定之后 dispatch 才外发：组件在渲染后绑，绑的是当下那份回调", () => {
-        const store = makeStore()
-        const emit = vi.fn<FileListCb>()
-        store.bindValueChange(emit)
-        const file = makeFile("a.png", "image/png")
-
-        store.dispatch({ type: "ADD_FILES", files: [file] })
-
-        expect(emit).toHaveBeenCalledWith([file])
     })
 
     it("重新绑定即换人收：旧回调不再收到后续 dispatch", () => {

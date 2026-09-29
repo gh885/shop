@@ -2,7 +2,14 @@ import viteReact from "@vitejs/plugin-react"
 import { defineConfig } from "vite-plus"
 
 /**
- * app-kit 测试环境：jsdom + Testing Library，与 apps/* 同一约定。
+ * 这两份虽是 .ts，仍要浏览器语义，所以留在 jsdom 组里，别因为扩展名是 .ts 就分到 Node：
+ * locale.test.ts 读写 document.cookie 与 window.navigator.language；
+ * use-countdown.test.ts 用 @testing-library/react 的 renderHook（要 DOM 才能挂 hook）。
+ */
+const domTests = ["src/i18n/locale.test.ts", "src/use-countdown.test.ts"]
+
+/**
+ * app-kit 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/* 同一约定。
  * 这里测的是「共享接线」本身（错误边界的重置链路），业务域的行为仍由 apps/* 覆盖。
  */
 export default defineConfig({
@@ -11,9 +18,24 @@ export default defineConfig({
     resolve: { tsconfigPaths: true },
     plugins: [viteReact()],
     test: {
-        // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
-        environment: "jsdom",
-        setupFiles: ["./src/test/setup.ts"],
-        include: ["src/**/*.test.{ts,tsx}"],
+        name: "@shop/app-kit",
+        projects: [
+            {
+                test: {
+                    name: "unit",
+                    environment: "node",
+                    include: ["src/**/*.test.ts"],
+                    exclude: domTests,
+                },
+            },
+            {
+                test: {
+                    name: "dom",
+                    environment: "jsdom",
+                    setupFiles: ["./src/test/setup.ts"],
+                    include: ["src/**/*.test.tsx", ...domTests],
+                },
+            },
+        ],
     },
 })

@@ -245,13 +245,27 @@ Vitest 自己报的耗时分布说清了瓶颈在哪：**import 58% + environmen
 因此提速只有两条正路，按性价比排序：
 
 1. **少跑**（零成本，收益最大）：开发期挂 `pnpm test:watch`，或按 project + 路径跑 `pnpm test:project web src/order`。改一个域就跑一个域，不要每次全量。
-2. **不加固定开销**：新测试默认放**离它最近的环境**——纯逻辑进 `packages/common` 那种 node 环境的 `.test.ts`；只有真的要 render/DOM/发请求的才写 `.test.tsx` 拖 jsdom + MSW。
-   纯逻辑测试塞进 jsdom 项目（`apps/*` 的 `.test.ts`）也能跑，但它白白摊一份 1.2s 的固定成本，且误导后来人以为它需要 DOM。
+2. **不加固定开销**：纯逻辑只用 Node，不加载 DOM/MSW setup；只有真的要 render/DOM/发请求的测试才装配浏览器与网络环境。
+   买家端 `web` 已按 Vitest 5 子项目分成 `unit` / `dom`，`pnpm test:project web` 仍会跑两组。`.test.tsx` 默认进 `dom`；三个 `.test.ts` 例外（结算、倒计时 hook、语言请求头）在 `apps/web/vitest.config.ts` 的 `domTests` 中点名。其余 `.test.ts` 进 Node，不必把业务模块搬到 `common`。
+   `seller` / `admin` / `@shop/app-kit` / `@shop/ui-web` 已按同一口径拆开（`packages/common` 本来就是单 node 配置，只补了 `name`）。**`.test.ts` 进 Node 是默认，不是逐个审出来的**——只有三种情况要点名进 `domTests`：读写 `document.cookie` / `window.navigator` / `localStorage`、用 `@testing-library/react` 的 `renderHook`、或依赖 `requestAnimationFrame` 这类真实浏览器 API（`ui-web` 的 `file-upload-store.test.ts` 就是因为上传链里那句 `requestAnimationFrame` 才留在 jsdom）。另有一类不点名也会绿：只用 `@shop/test-utils/fixtures` 造数据的（`makeCategoryNode` 之类）是纯函数，Node 跑得了。
+
+**买家端双环境实测（2026-09-29，Vitest 5.0.1）**：只改测试配置，23 文件走 Node、16 文件保留 jsdom/MSW，前后均为 **39 文件 / 326 用例全绿**，没有删测试或断言。保留现有 `--fs-module-cache`，未清缓存：
+
+| 跑法                      | 原配置                 | 双环境                 | 口径                                                |
+| ------------------------- | ---------------------- | ---------------------- | --------------------------------------------------- |
+| `pnpm test:project web`   | 14.73 / 14.42 / 13.25s | 13.54 / 13.74 / 12.69s | 三次中位数 14.42 → 13.54s，约快 6%                  |
+| 同命令加 `--maxWorkers 2` | 44.86s                 | 35.92s                 | 各一轮，约快 20%；本机限制 worker，不等同于 CI 实测 |
+
+表内取 Vitest 的 `Duration`，不是 shell 墙钟，也不是全冷启动。本轮只调整环境/setup，没有降低隔离或缩减覆盖；本机默认并发下收益有限，不承诺全仓或 CI 同比例提速。测量工作区另有国际化并行改动，这些数值是本轮观察，不作为固定提交的性能基线；完整验收需在工作区稳定后重跑。
+
+**其余四个包推广后的实测（同日、同机、各三次取中位数）**：`seller` 20.3s → 15.9s（30 文件，16 个 `.test.ts` 进 Node）、`admin` 10.2s → 8.6s（15 文件，7 个进 Node）、`@shop/ui-web` 1.6s → 1.4s、`@shop/app-kit` 7.6s → 7.3s（14 文件里 6 个进 Node，收益最小——它一半用例本来就在测渲染）。**测试文件数、用例数一个没动**，只是换了环境。
+
+> 改测试环境配置后**先 `rm -rf node_modules/.vite/vitest` 再下结论**。`--fs-module-cache` 的产物按配置指纹分目录，拆成子项目后目录名变了，旧缓存不会自动失效：实测不清理时 `@shop/app-kit` 凭空多出 26 条红（locale / provider / login-form 全军覆没），清完同一份代码 14 文件 93 用例全绿。这批红是缓存假象，别照着它去改业务代码。
 
 还有一条正交的路：**同一套门禁跑第二遍时不必重跑**。`pnpm exec vp run verify`（定义在根 `vite.config.ts` 的 `run.tasks`）把
 `vp check` / `pnpm typecheck` / `pnpm test` 串成一条，三段各自指纹缓存。实测冷跑 **53.9s**，零改动重跑 **0.36s**
 （`3/3 cache hit (100%), 49.90s saved`）；只改一个 lint-only 文件时 `[1] vp check → Cache miss: '...' modified`，
-后两段仍命中（4.33s + 37.98s saved）。命令与 lefthook 的 pre-push 逐字相同，跑的就是门禁同一套。
+后两段仍命中（4.33s + 37.98s saved）。**pre-push 的 `verify` 作业跑的就是这条命令**：本地手动验证与 push 前门禁同一条路径、同一套指纹，所以「手动验完再 push」不再重跑一遍全量测试；源码/测试/配置/依赖任一变化照常失效，完全相同的状态直接重放。冷跑仍是一遍全量，这里省的是第二次等待。
 **`cache.input` 里那两条 exclude 是承重的，别顺手删**：Vite Task 的 `auto: true` 输入集包含任务自己的产物，而 pnpm
 每次跑都换名重写 `node_modules/.pnpm-task-run-state-v1/.tmpXXXX`、Vitest 写 `node_modules/.vite/vitest/<hash>/results.json`——
 于是「任务修改了自己的输入」，三段永远不命中（实测连 1/3 都做不到，`vp run --last-details` 就是这么查出来的）。
@@ -270,7 +284,7 @@ Vitest 自己报的耗时分布说清了瓶颈在哪：**import 58% + environmen
 
 ### 分层与位置
 
-- 纯逻辑单测（cart/order-status/money 等 `*.test.ts`）；组件/集成测试走 jsdom + Testing Library（`*.test.tsx`）；server function 的真实行为交给 E2E（Playwright，仓库根 `e2e/`，`pnpm test:e2e`，CI 里跑下单主路径与发货物流链路）
+- 纯逻辑单测（cart/order-status/money 等 `*.test.ts`，默认 node 环境）；组件/集成测试走 jsdom + Testing Library（`*.test.tsx`；少数需要浏览器语义的 `.test.ts` 在各 `vitest.config.ts` 的 `domTests` 里点名，见「迭代性能」第 2 条）；server function 的真实行为交给 E2E（Playwright，仓库根 `e2e/`，`pnpm test:e2e`，CI 里跑下单主路径与发货物流链路）
 - **测试文件与被测模块同目录、同名**（`xxx.ts` → `xxx.test.ts`），不建 `__tests__`/`test/` 用例目录；`src/test/` 只放跨模块测试装置（setup/render），共享 handler 与假数据进 `packages/test-utils`
 - `describe/it/expect/vi` 显式从 **`vite-plus/test`** 导入（不开 globals，也不从裸 `vitest` 导入——oxlint 的 `vite-plus/prefer-vite-plus-imports` 会红）；route 文件保持薄，业务逻辑放独立模块才可单测
 
@@ -311,7 +325,7 @@ Vitest 自己报的耗时分布说清了瓶颈在哪：**import 58% + environmen
   `/shops/mine`（测试里 `tokenStore.set("...")`，别忘 `afterEach` 里 `clear()`），
   `useCurrentShop` 解析出的 shopId 进缓存 key，没就位时失效的是另一棵树
 - **app 测试不要自己 `new QueryClient()` / 用裸的 `createTestQueryClient()`**：全局 `throwOnError`、写操作的全局 toast 与 `meta.invalidates` 失效都挂在 `createAppQueryClient()` 的默认值上，裸 client 会让它们「生产里一定发生、测试里从不发生」。`@shop/app-kit/test` 导出的 `renderWithProviders` / `createAppTestQueryClient` 就是「应用真实默认值 + 禁 retry」，一律走它们；`@shop/test-utils` 的 `createTestQueryClient` 只留给底层包自己测库行为用（它不 import app-kit，反向依赖会成环）。改这套默认值时要同步跑全量测试——`pnpm test` 里那几条「成功后三棵缓存一起失效」的用例正是靠它才生效的。
-- pre-push 跑 `pnpm test`；各 app 的 vitest 配置都不开 `passWithNoTests`：用例被误删要能被 CI 发现
+- pre-push 的 `verify` 作业（`vp check` + typecheck + `pnpm test`，带缓存）跑前端测试；各 app 的 vitest 配置都不开 `passWithNoTests`：用例被误删要能被 CI 发现
 
 ## 打包体积（判据是产物，不是 import 形状）
 

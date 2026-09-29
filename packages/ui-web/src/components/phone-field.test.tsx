@@ -7,29 +7,14 @@ import { PhoneField } from "./phone-field"
 
 /**
  * PhoneField —— 固定 +86、只收 11 位裸号。两个要钉住的：
- *  1) 形态与登录表单其余字段一致：filled 皮肤（InputGroup[data-slot=input-group]）+ 静态
- *     「+86」前缀，不是国旗/国家下拉；
+ *  1) 前缀是静态「+86」（不是国旗/国家下拉），且非数字输入被剥掉、超 11 位截断；
  *  2) 实时有效性用号码元数据判断，且**只在填满 11 位后才判红**——半截号码不该一直报错。
+ *
+ * 皮肤形态（data-slot / bg-sunken / 「不许出现 SVG」）不在这里钉：那是设计系统的事，
+ * 加个帮助图标就会红一片，却证明不了视觉对不对，见 ui-web/DESIGN.md 与视觉走查。
  */
 describe("PhoneField", () => {
-    it("渲染 filled 皮肤的 InputGroup + 静态 +86 前缀（非国旗）", () => {
-        const { container } = render(
-            <PhoneField
-                value=""
-                onChange={() => {}}
-            />,
-        )
-
-        const group = container.querySelector('[data-slot="input-group"]')
-        expect(group).toBeInTheDocument()
-        // filled 变体：不透明的 sunken 灰底 + 透明描边占位（聚焦才染色，见 input-group.tsx）
-        expect(group?.className).toContain("bg-sunken")
-        expect(screen.getByText("+86")).toBeInTheDocument()
-        // 没有国旗 svg（reui PhoneInput 的形态不该混进来）
-        expect(container.querySelector("svg")).toBeNull()
-    })
-
-    it("只保留数字，且不超过 11 位", async () => {
+    it("只保留数字，且不超过 11 位；前缀是静态 +86", async () => {
         const user = userEvent.setup()
         // 受控组件：用有状态的外壳真实驱动 value，否则每敲一位看到的都是空串
         function Controlled() {
@@ -43,6 +28,7 @@ describe("PhoneField", () => {
         }
         render(<Controlled />)
         const input = screen.getByLabelText("手机号")
+        expect(screen.getByText("+86")).toBeInTheDocument()
 
         await user.type(input, "138a0013b80001234")
         // 非数字被剥掉，且受 maxLength 截断在 11 位

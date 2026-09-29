@@ -9,6 +9,9 @@ import { useRowBusy } from "./use-row-busy"
  *
  * 唯一要钉死的是复位：动作**失败**也必须把这一行放开。错误提示由全局 mutation 通道弹过了，
  * 这里若只在成功路径复位，那一行的按钮就永久禁着——用户看到的是「点了没反应也再点不动」。
+ *
+ * 成功路径不单独立一条：并发那条已经验了「最新请求完成后正确复位」，再拆一条成功专用用例
+ * 只是把同一个判据换个名字再跑一遍。
  */
 
 function deferred() {
@@ -32,17 +35,6 @@ describe("useRowBusy", () => {
 
         run("row-2")
         await waitFor(() => expect(result.current.busyId).toBe("row-2"))
-    })
-
-    it("动作成功：处理完就放开这一行", async () => {
-        const { result } = renderHook(() => useRowBusy())
-        const run = result.current.run(
-            vi.fn<(id: string) => Promise<unknown>>(async () => undefined),
-        )
-
-        run("row-1")
-
-        await waitFor(() => expect(result.current.busyId).toBeUndefined())
     })
 
     it("StrictMode 重挂载后仍能接收动作完成状态", async () => {

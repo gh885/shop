@@ -108,6 +108,8 @@ describe("shopClaimableCouponsOptions", () => {
 })
 
 describe("useClaimCoupon", () => {
+    // 领取的 POST 路径与模板 id 不在这里再钉一遍：ShopCouponPopover.test.tsx 从真实按钮
+    // 调同一个 hook，断言完整路径并验证按钮变「已领取」，两个层级测同一件事只会二选一漂移
     it("领取成功_整棵券包缓存（所有页签与页码）一起失效", async () => {
         server.use(
             http.post("*/coupons/:templateId/claim", () =>
@@ -134,22 +136,6 @@ describe("useClaimCoupon", () => {
 
         await waitFor(() => expect(queryClient.getQueryState(unusedKey)?.isInvalidated).toBe(true))
         expect(queryClient.getQueryState(expiredKey)?.isInvalidated).toBe(true)
-    })
-
-    it("领取请求打到券模板的领取端点_模板 id 在路径上", async () => {
-        let path: string | undefined
-        server.use(
-            http.post("*/coupons/:templateId/claim", ({ request }) => {
-                path = new URL(request.url).pathname
-                return HttpResponse.json(makeMyCouponResponse(), { status: 201 })
-            }),
-        )
-        const user = userEvent.setup()
-
-        renderWithProviders(<ClaimProbe />)
-        await user.click(screen.getByRole("button", { name: "claim" }))
-
-        await waitFor(() => expect(path).toBe(`/coupons/${TEMPLATE_ID}/claim`))
     })
 
     it("409 已领过_只弹一条「该券已领取」，不叠加全局的错误提示", async () => {

@@ -50,6 +50,7 @@ const blankForm = () => ({
 })
 
 describe("bannerDefaults", () => {
+    // 「新建带哪个运营位」不单列一条：上面那条 toMatchObject 已经断言 slot 落在 home_promo
     it("新建：没编辑过的档期留空串，不预填一个时刻（预填等于替运营做了决定）", () => {
         const values = bannerDefaults(undefined, "home_promo")
 
@@ -59,10 +60,6 @@ describe("bannerDefaults", () => {
             endAt: "",
             sortOrder: "0",
         })
-    })
-
-    it("新建时把当前运营位带进表单：从哪个 tab 点「新增」就归属哪个位", () => {
-        expect(bannerDefaults(undefined, "home_promo").slot).toBe("home_promo")
     })
 
     it("编辑：响应里的 ISO 档期回填成本地墙上时钟，而不是 UTC 时刻", () => {

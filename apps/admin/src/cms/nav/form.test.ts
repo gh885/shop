@@ -38,10 +38,8 @@ const blankForm = () => ({
 })
 
 describe("toNavRequest", () => {
-    it("「不跳转」提交时是缺省：NONE 只是表单里那一档的占位，不是契约的枚举值", () => {
-        expect(toNavRequest(blankForm(), []).targetType).toBeUndefined()
-    })
-
+    // 「不跳转」发缺省不在这里单独钉：下面那条对序列化后的完整请求做相等断言，
+    // 真发了 targetType: "NONE" 照样会红
     it("排序空串按 0 解释：后端字段是 int，收不了空串", () => {
         expect(toNavRequest(blankForm(), []).sortOrder).toBe(0)
         expect(toNavRequest({ ...blankForm(), sortOrder: "5" }, []).sortOrder).toBe(5)

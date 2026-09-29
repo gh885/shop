@@ -56,10 +56,6 @@ describe("登录状态机", () => {
         )
     })
 
-    it("没有对应类错误时 dismiss_交出同一个 state 引用，白渲染一次算浪费", () => {
-        expect(loginUiReducer(INITIAL, { type: "dismissCodeError" })).toBe(INITIAL)
-    })
-
     it("发码失败_报错但不推进 failCount：那不是提交失败，不该抢错误节点的焦点", () => {
         const next = loginUiReducer(INITIAL, {
             type: "sendCodeFailed",

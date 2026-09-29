@@ -41,12 +41,9 @@ describe("翻译表覆盖菜单树", () => {
 })
 
 describe("translateNavItems 只做替换", () => {
-    // t 里记一笔，用来问「整棵树每个 label 各翻译了一次、不多不少」
-    const seen: string[] = []
-    const translated = translateNavItems(SITE_NAV_ITEMS, (key) => {
-        seen.push(key)
-        return `[${key}]`
-    })
+    // t 记一笔只为把 label 变成带括号的 key，好对比树形与原文；不拿它的长度当断言：
+    // 「每个 label 查表一次」是调用次数，加缓存或去重都会红，而那两种改法并没有改坏菜单
+    const translated = translateNavItems(SITE_NAV_ITEMS, (key) => `[${key}]`)
 
     const sell = translated.find((item) => item.label === "[web.nav.sell]")
 
@@ -59,10 +56,6 @@ describe("translateNavItems 只做替换", () => {
         const category = translated.find((item) => item.label === "[web.nav.category]")
         expect(category?.children?.[0]?.children?.[0]?.label).toBe("[web.nav.women]")
         expect(labelsOf(translated)).toHaveLength(labelsOf(SITE_NAV_ITEMS).length)
-    })
-
-    it("树上每个 label 各查表一次_一层查两层查三层查", () => {
-        expect(seen).toHaveLength(labelsOf(SITE_NAV_ITEMS).length)
     })
 
     it("不改入参_菜单树是模块级常量，改脏一次全局跟着错", () => {

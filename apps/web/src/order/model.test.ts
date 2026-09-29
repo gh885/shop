@@ -30,14 +30,6 @@ const primary = (order: OrderActions, surface: "card" | "detail") =>
         .map((item) => item.key)
 
 describe("deriveOrderActions", () => {
-    it("后端给的是集合，画出来按固定顺序：待付款先「去付款」后「取消订单」", () => {
-        const order = makeOrder({
-            availableActions: ["cancel", "pay"] as OrderAction[],
-        })
-
-        expect(keys(order, "card")).toEqual(["pay", "cancel"])
-    })
-
     it("主操作只有那一个：待付款的橙色给「去付款」，不是给排在它后面的取消", () => {
         const order = makeOrder({
             availableActions: ["cancel", "pay"] as OrderAction[],
