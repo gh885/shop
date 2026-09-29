@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import type { CouponTemplateResponse } from "@shop/api/sdk"
-import { couponFaceRuleText } from "@shop/common"
+import { couponFaceRuleText, type AppLocale } from "@shop/common"
 import { formatDate, paginationSearchSchema } from "@shop/app-kit"
 
 /**
@@ -88,7 +88,11 @@ export interface CouponRow {
     createdAt: string
 }
 
-export function couponRowFromWire(template: CouponTemplateResponse, now: number): CouponRow {
+export function couponRowFromWire(
+    template: CouponTemplateResponse,
+    now: number,
+    locale: AppLocale,
+): CouponRow {
     const status = deriveCouponStatus(template.status, template.validFrom, template.validTo, now)
     const meta = TEMPLATE_STATUS_META[status]
 
@@ -97,7 +101,7 @@ export function couponRowFromWire(template: CouponTemplateResponse, now: number)
         name: template.name,
         // 两型通吃：满减给「满 X 减 Y」，折扣给「满 X 打 Z 折，最高减 W」（封顶必进这句话，CPN-65）
         ruleText: couponFaceRuleText(template.threshold, template),
-        periodText: `${formatDate(template.validFrom)} ~ ${formatDate(template.validTo)}`,
+        periodText: `${formatDate(template.validFrom, locale)} ~ ${formatDate(template.validTo, locale)}`,
         issuedQuantity: template.issuedQuantity,
         totalQuantity: template.totalQuantity,
         usedQuantity: template.usedQuantity,

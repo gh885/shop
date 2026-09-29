@@ -9,7 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from "@shop/ui-web"
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 
 import { TableCard } from "#/shared/ui/TableCard"
 import type { CouponRow } from "./model"
@@ -37,6 +37,7 @@ export function CouponTable({
     onPageChange: (page: number) => void
     onStop: (id: string) => void
 }) {
+    const { locale } = useI18n()
     /** 停券二次确认：确认后才真正执行 onStop（动作与 busyId 记账归容器） */
     async function confirmStop(row: CouponRow) {
         const ok = await confirm({
@@ -101,7 +102,7 @@ export function CouponTable({
                                 variant="muted"
                                 className="tabular-nums"
                             >
-                                {formatDateTime(row.createdAt)}
+                                {formatDateTime(row.createdAt, locale)}
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button

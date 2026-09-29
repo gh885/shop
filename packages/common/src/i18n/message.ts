@@ -1,4 +1,6 @@
-import { fallbackChainOf, type AppLocale } from "./locale"
+import { IntlMessageFormat } from "intl-messageformat"
+
+import { DEFAULT_LOCALE, fallbackChainOf, type AppLocale } from "./locale"
 
 export type LocaleMessageValue = string
 export type LocaleCatalog = Readonly<Record<string, LocaleMessageValue>>
@@ -22,98 +24,55 @@ export function resolveMessage(
     return undefined
 }
 
-function formatParam(value: string | number | boolean | null | undefined): string {
+/**
+ * §5.1 的两条契约都收在这一层：坏 ICU 的 `SyntaxError` 出不了 `compile()`，
+ * 而 `formatMessage` 永远返回字符串——`t()` 是同步返回文案的，白屏就是这么防住的。
+ *
+ * 编译结果按 (locale, template) 缓存，坏模板也进缓存（存 `undefined`）：否则每条坏消息
+ * 每次都重新抛一次 `SyntaxError`，代价挂在渲染次数上。
+ */
+const compiled = new Map<string, IntlMessageFormat | undefined>()
+
+function compile(template: string, locale: AppLocale): IntlMessageFormat | undefined {
+    const id = `${locale}\u0000${template}`
+    if (compiled.has(id)) return compiled.get(id)
+    let message: IntlMessageFormat | undefined
+    try {
+        message = new IntlMessageFormat(template, locale)
+    } catch {
+        message = undefined
+    }
+    compiled.set(id, message)
+    return message
+}
+
+/** 模板本身是否可用（缺参数与坏 ICU 是两件事，这里只看后者）。`t()` 用它把坏消息降级成 key。 */
+export function isMessageValid(template: string, locale: AppLocale): boolean {
+    return compile(template, locale) !== undefined
+}
+
+function formatParam(
+    value: string | number | boolean | null | undefined,
+): string | number | boolean {
     if (value === null || value === undefined) return ""
-    return String(value)
-}
-
-function findBlockEnd(template: string, start: number): number {
-    let depth = 0
-    for (let i = start; i < template.length; i += 1) {
-        const char = template[i]
-        if (char === "{") depth += 1
-        if (char === "}") {
-            depth -= 1
-            if (depth === 0) return i
-        }
-    }
-    return -1
-}
-
-function parseOptions(body: string): Map<string, string> {
-    const options = new Map<string, string>()
-    const optionPattern = /([=\w]+)\s*\{([^{}]*)\}/g
-    let option: RegExpExecArray | null
-    while ((option = optionPattern.exec(body)) !== null) {
-        const optionKey = option[1]
-        const optionValue = option[2]
-        if (optionKey && optionValue !== undefined) {
-            options.set(optionKey, optionValue)
-        }
-    }
-    return options
-}
-
-function selectPlural(
-    options: Map<string, string>,
-    value: string | number | boolean | null | undefined,
-    locale: AppLocale,
-): string {
-    const numeric = Number(value)
-    const safeValue = Number.isFinite(numeric) ? numeric : 0
-    const exact = options.get(`=${safeValue}`)
-    const category = new Intl.PluralRules(locale).select(safeValue)
-    const content = exact ?? options.get(category) ?? options.get("other") ?? formatParam(value)
-    return content.replaceAll("#", formatParam(value))
-}
-
-function selectOption(
-    options: Map<string, string>,
-    value: string | number | boolean | null | undefined,
-): string {
-    const selected = formatParam(value)
-    return options.get(selected) ?? options.get("other") ?? selected
-}
-
-function replaceIcuBlocks(
-    template: string,
-    params: MessageParams,
-    locale: AppLocale,
-    kind: "plural" | "select",
-): string {
-    const startPattern = new RegExp(`\\{(\\w+),\\s*${kind},`)
-    let result = template
-    let match: RegExpExecArray | null
-    while ((match = startPattern.exec(result)) !== null) {
-        const key = match[1] ?? ""
-        const start = match.index
-        const end = findBlockEnd(result, start)
-        if (end === -1) break
-
-        const body = result.slice(start + match[0].length, end)
-        const options = parseOptions(body)
-        const value = params[key]
-        const content =
-            kind === "plural" ? selectPlural(options, value, locale) : selectOption(options, value)
-
-        result = result.slice(0, start) + content + result.slice(end + 1)
-    }
-    return result
-}
-
-function replaceSimpleParams(template: string, params: MessageParams): string {
-    return template.replaceAll(/\{(\w+)\}/g, (match, name: string) => {
-        if (!(name in params)) return match
-        return formatParam(params[name])
-    })
+    return value
 }
 
 export function formatMessage(
     template: string,
     params: MessageParams = {},
-    locale: AppLocale = "zh-CN",
+    locale: AppLocale = DEFAULT_LOCALE,
 ): string {
-    let result = replaceIcuBlocks(template, params, locale, "plural")
-    result = replaceIcuBlocks(result, params, locale, "select")
-    return replaceSimpleParams(result, params)
+    const message = compile(template, locale)
+    if (message === undefined) return template
+    const values: Record<string, string | number | boolean> = {}
+    for (const [name, value] of Object.entries(params)) {
+        values[name] = formatParam(value)
+    }
+    try {
+        return String(message.format(values))
+    } catch {
+        // 参数缺失/类型不符：原样给回模板，与旧的「{name} 没传就留着」表现一致
+        return template
+    }
 }

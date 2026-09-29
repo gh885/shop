@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useLocation } from "@tanstack/react-router"
-import { useT, WorkbenchSidebar } from "@shop/app-kit"
+import { WorkbenchSidebar } from "@shop/app-kit"
+import { useT } from "#/locales/use-t"
 import { useMe } from "#/shared/lib/me"
 import { NAV_ITEMS, visibleNavGroups } from "./nav"
 import { translateAdminNav } from "./nav-i18n"

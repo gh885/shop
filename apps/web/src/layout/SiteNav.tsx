@@ -1,6 +1,5 @@
 import * as React from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
-import { useT } from "@shop/app-kit"
 import { ChevronDown } from "lucide-react"
 
 import {
@@ -13,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { isExternalTarget } from "#/shared/lib/external"
 
 import { isNavGroupActive, SITE_NAV_ITEMS, type SiteNavItem, translateNavItems } from "./nav"

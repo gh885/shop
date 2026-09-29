@@ -1,5 +1,5 @@
 import type { AdminStaffItem, AdminUserItem } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { actionsColumn } from "#/shared/ui/columns"
@@ -28,13 +28,13 @@ export const userColumns: ColumnDef<DataTableFeatures, AdminUserItem>[] = [
         header: "最近登录",
         meta: { variant: "muted", className: "tabular-nums" },
         cell: ({ row }) =>
-            row.original.lastLoginAt ? formatDateTime(row.original.lastLoginAt) : "—",
+            row.original.lastLoginAt ? <TimeText iso={row.original.lastLoginAt} /> : "—",
     },
     {
         accessorKey: "createdAt",
         header: "注册时间",
         meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => formatDateTime(row.original.createdAt),
+        cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
     },
     actionsColumn((item) => (
         <AccountStatusAction
@@ -68,7 +68,7 @@ export const staffColumns: ColumnDef<DataTableFeatures, AdminStaffItem>[] = [
         accessorKey: "createdAt",
         header: "创建时间",
         meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => formatDateTime(row.original.createdAt),
+        cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
     },
     actionsColumn((item) => (
         <div className="flex justify-end gap-2">

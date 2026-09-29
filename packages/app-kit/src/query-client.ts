@@ -3,6 +3,7 @@ import { MutationCache, QueryClient, type DefaultOptions } from "@tanstack/react
 import { toApiError } from "@shop/common"
 
 import { notify } from "./notify"
+import type { LocaleScope } from "./i18n/scope"
 
 /**
  * 应用级 QueryClient 的唯一构造口（三个 app 共用同一套默认值）。
@@ -32,8 +33,15 @@ import { notify } from "./notify"
  *   408/429/502/503/504 重了 2 次，这里再按库默认重 3 次就是最多 12 次请求打后端——429
  *   被限流时尤其讽刺。要「失败即报」的查询（404 有业务含义的详情）仍可在自己的 queryOptions
  *   里写 `retry: false`。
+ *
+ * 第一个参数 `scope` 必填：全局 `onError` 的兜底文案要按语言取，而这里是全仓库唯一一个
+ * 「拿不到 hook、又必须知道当前语言」的写操作回调（§3.5 约束 3 的第二档）。做成可选项的表现是
+ * 忘了传 → toast 恒用平台默认语言，不报错；必填才与上面那张表的口径一致。
  */
-export function createAppQueryClient(overrides: AppQueryClientOverrides = {}): QueryClient {
+export function createAppQueryClient(
+    scope: LocaleScope,
+    overrides: AppQueryClientOverrides = {},
+): QueryClient {
     return new QueryClient({
         /**
          * 写操作的全局反馈。用官方的 `MutationCache`（而不是包一层 hook 工厂）：
@@ -56,7 +64,7 @@ export function createAppQueryClient(overrides: AppQueryClientOverrides = {}): Q
                 const meta = mutation.options.meta
                 // 表单内联报错这类自己处理错误的写操作显式退出
                 if (meta?.silentError) return
-                notify.fromError(error, meta?.error)
+                notify.fromError(error, scope.locale, meta?.error)
             },
         }),
         defaultOptions: {
@@ -83,7 +91,7 @@ export function createAppQueryClient(overrides: AppQueryClientOverrides = {}): Q
  * 存在的原因：测试要确定性（禁 retry），但**不能因此丢掉应用默认值**——否则
  * `throwOnError`、写操作的全局 toast 这些「生产里一定生效」的行为在测试里根本走不到，
  * 于是测试只能证明「这套默认值不存在时一切正常」。各 app 的测试装置用
- * `createAppQueryClient({ queries: { retry: false }, mutations: { retry: false } })` 建测试客户端，
+ * `createAppQueryClient(scope, { queries: { retry: false }, mutations: { retry: false } })` 建测试客户端，
  * 拿到的是真实默认值 + 确定的重试策略。
  *
  * 放在这里而不是 `@shop/test-utils`：那会让 test-utils 反向依赖 app-kit，

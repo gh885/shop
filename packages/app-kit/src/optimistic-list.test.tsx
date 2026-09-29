@@ -2,6 +2,7 @@ import { QueryClientProvider, useMutation } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
+import { createLocaleScope } from "./i18n/scope"
 import { optimisticListMutationOptions } from "./optimistic-list"
 import { createAppQueryClient } from "./query-client"
 
@@ -17,7 +18,7 @@ function setup<TData, TVars>(
     initialCache: Record<string, unknown> = {},
 ) {
     // 用真实工厂：meta.invalidates 要靠全局 MutationCache 落地，裸 QueryClient 测不到
-    const queryClient = createAppQueryClient({
+    const queryClient = createAppQueryClient(createLocaleScope(), {
         queries: { retry: false },
         mutations: { retry: false },
     })

@@ -46,7 +46,7 @@ describe("DeletionCard", () => {
         mockStatus({ requested: true, effectiveAt: EFFECTIVE_AT })
         renderWithProviders(<DeletionCard />)
 
-        expect(await screen.findByText(formatDateTime(EFFECTIVE_AT))).toBeInTheDocument()
+        expect(await screen.findByText(formatDateTime(EFFECTIVE_AT, "zh-CN"))).toBeInTheDocument()
         expect(screen.queryByRole("button", { name: "注销账号" })).not.toBeInTheDocument()
     })
 

@@ -16,21 +16,23 @@ const END = "2026-08-20T18:00:00+08:00"
 
 describe("bannerWindowText", () => {
     it("两边都没排档期：一句「立即 · 长期」，中间那个点把它和「~」的区间形状区分开", () => {
-        expect(bannerWindowText(null, null)).toBe("立即 · 长期")
+        expect(bannerWindowText(null, null, "zh-CN")).toBe("立即 · 长期")
     })
 
     it("只排上线：下线那一侧说「长期」，不能把 null 格式化成一个真实时刻", () => {
-        expect(bannerWindowText(START, null)).toBe(`${formatTimeShort(START)} ~ 长期`)
+        expect(bannerWindowText(START, null, "zh-CN")).toBe(
+            `${formatTimeShort(START, "zh-CN")} ~ 长期`,
+        )
     })
 
     it("只排下线：上线那一侧说「立即」，运营位是存量的、到点自己消失", () => {
-        expect(bannerWindowText(null, END)).toBe(`立即 ~ ${formatTimeShort(END)}`)
+        expect(bannerWindowText(null, END, "zh-CN")).toBe(`立即 ~ ${formatTimeShort(END, "zh-CN")}`)
     })
 
     it("两边都排就是区间，且不会把 ISO 原文漏到界面上", () => {
-        const text = bannerWindowText(START, END)
+        const text = bannerWindowText(START, END, "zh-CN")
 
-        expect(text).toBe(`${formatTimeShort(START)} ~ ${formatTimeShort(END)}`)
+        expect(text).toBe(`${formatTimeShort(START, "zh-CN")} ~ ${formatTimeShort(END, "zh-CN")}`)
         expect(text).not.toContain("T")
         expect(text).not.toContain("null")
     })

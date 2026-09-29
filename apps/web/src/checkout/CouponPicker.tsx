@@ -1,5 +1,5 @@
 import { couponMoneyText, couponRuleText, couponUnavailableReasonText } from "@shop/common"
-import { formatDate } from "@shop/app-kit"
+import { formatDate, useI18n } from "@shop/app-kit"
 import { ChevronDown, TicketPercent } from "lucide-react"
 
 import {
@@ -41,6 +41,7 @@ export interface CouponPickerProps {
 }
 
 export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps) {
+    const { locale } = useI18n()
     const usableCount = group.coupons.filter((c) => c.usable).length
     // 已减多少取自预览回显：这是后端算出来的券减免，不是前端拿券面额自己减的。
     // 没选券时不写「已减 ¥0」——那是一句读起来像"券失效了"的废话；此时该说的是"有几张能用、你还没用"。
@@ -107,7 +108,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                                     <ItemContent>
                                         <ItemTitle>{title}</ItemTitle>
                                         <ItemDescription>
-                                            {reason ?? `${formatDate(c.expireAt)} 前有效`}
+                                            {reason ?? `${formatDate(c.expireAt, locale)} 前有效`}
                                         </ItemDescription>
                                     </ItemContent>
                                 </Item>

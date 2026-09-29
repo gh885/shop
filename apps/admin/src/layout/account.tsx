@@ -1,9 +1,10 @@
 import { useMutation } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { useT, WorkbenchAccount } from "@shop/app-kit"
+import { WorkbenchAccount } from "@shop/app-kit"
 import { Button, Spinner } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
 import { AdminAuthApi } from "@shop/api/sdk"
+import { useT } from "#/locales/use-t"
 import { getDeviceId, tokenStore } from "../shared/lib/api"
 import { useClearMe, useMe } from "../shared/lib/me"
 

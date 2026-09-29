@@ -1,7 +1,7 @@
 import type { SellerTicketItem } from "@shop/api/sdk"
 import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
 import { formatMoney } from "@shop/common"
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 
 import { TICKET_REASON_LABEL, TICKET_STATUS_META, TICKET_TYPE_LABEL } from "#/order/constants"
 import { REFUND_ACTION_LABEL, refundRowActions, type RefundRowAction } from "#/order/refund/model"
@@ -45,6 +45,7 @@ export function RefundTable({
     onPageChange,
     onAction,
 }: RefundTableProps) {
+    const { locale } = useI18n()
     return (
         <TableCard
             total={total}
@@ -124,7 +125,7 @@ export function RefundTable({
                             variant="muted"
                             className="tabular-nums"
                         >
-                            {formatDateTime(ticket.createdAt)}
+                            {formatDateTime(ticket.createdAt, locale)}
                         </TableCell>
 
                         <TableCell className="text-right">

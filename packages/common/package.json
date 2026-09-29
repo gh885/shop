@@ -11,6 +11,7 @@
     },
     "dependencies": {
         "@shop/api": "workspace:*",
+        "intl-messageformat": "catalog:",
         "react": "catalog:",
         "zod": "catalog:"
     },

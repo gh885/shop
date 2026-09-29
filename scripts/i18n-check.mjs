@@ -3,7 +3,14 @@ import { join, relative } from "node:path"
 
 const ROOT = process.cwd()
 const LOCALES = ["zh-CN", "en-US"]
-const RESOURCE_ROOTS = ["apps/web/src/locales", "apps/seller/src/locales", "apps/admin/src/locales"]
+const RESOURCE_ROOTS = [
+    "apps/web/src/locales",
+    "apps/seller/src/locales",
+    "apps/admin/src/locales",
+    // app-kit 那份共享文案从前内联在 TS 里，这个 glob 扫不到它（§10.1 的失效模式就是这么暴露的）。
+    // P0′ 把它落成 JSON 之后这里能收了它；正主是 §9 的 codegen，它会带着类型和平齐检查一起接管。
+    "packages/app-kit/src/locales",
+]
 
 async function listJsonFiles(dir) {
     const entries = await readdir(dir, { withFileTypes: true })

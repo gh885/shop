@@ -1,9 +1,10 @@
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createSdkAuthKit, getCurrentLocale } from "@shop/common"
+import { configureSdkClient, createSdkAuthKit } from "@shop/common"
 import { AuthApi } from "@shop/api/sdk"
 
 import { getCurrentShopId, setCurrentShopId } from "./shop-store"
+import { localeScope } from "./locale-scope"
 
 // 浏览器端走 Vite proxy（同源相对路径）
 const authKit = createSdkAuthKit()
@@ -15,8 +16,8 @@ configureSdkClient("", tokenStore, {
     debug: import.meta.env.DEV,
     contextHeaders: () => ({
         "X-Shop-Id": getCurrentShopId(),
-        "Accept-Language": getCurrentLocale(),
-        "X-Locale": getCurrentLocale(),
+        "Accept-Language": localeScope.locale,
+        "X-Locale": localeScope.locale,
     }),
 })
 

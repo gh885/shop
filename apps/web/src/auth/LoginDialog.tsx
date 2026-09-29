@@ -1,7 +1,8 @@
-import { LoginForm, useT } from "@shop/app-kit"
+import { LoginForm } from "@shop/app-kit"
 import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@shop/ui-web"
 import { QrCode, XIcon } from "lucide-react"
 
+import { useT } from "#/locales/use-t"
 import { getCaptcha, loginByPassword, loginBySms, sendSmsCode } from "./actions"
 
 interface LoginDialogProps {

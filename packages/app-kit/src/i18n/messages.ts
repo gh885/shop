@@ -1,11 +1,18 @@
 import {
     formatMessage,
-    getCurrentLocale,
+    isMessageValid,
     resolveMessage,
     type AppLocale,
     type I18nResources,
-    type MessageParams,
 } from "@shop/common"
+
+import { assembleLocaleResources } from "./resources"
+import type { AppKitCatalog, AppKitMessageKey, AppKitParamsOf } from "../locales/messages.gen"
+
+const localeFiles = import.meta.glob<AppKitCatalog>("../locales/*/*.json", {
+    eager: true,
+    import: "default",
+})
 
 /**
  * 语言自报名（下拉里每个 Locale 显示什么）。
@@ -19,78 +26,34 @@ export const LOCALE_LABELS: Record<AppLocale, string> = {
     "en-US": "English",
 }
 
-export const APP_KIT_MESSAGES: I18nResources = {
-    "zh-CN": {
-        "appKit.error.network": "操作失败，请稍后重试",
-        "appKit.time.unknown": "时间未知",
-        "appKit.confirm.cancel": "取消",
-        "appKit.confirm.confirm": "确定",
-        "appKit.form.showPassword": "显示密码",
-        "appKit.form.hidePassword": "隐藏密码",
-        "appKit.topbar.searchPlaceholder": "搜索菜单、功能",
-        "appKit.topbar.searchLabel": "{brand}搜索菜单、功能",
-        "appKit.login.smsTab": "验证码登录",
-        "appKit.login.passwordTab": "密码登录",
-        "appKit.login.captchaPlaceholder": "输入右图 4 位字符",
-        "appKit.login.captchaLabel": "图形验证码",
-        "appKit.login.captchaRefresh": "刷新图形验证码",
-        "appKit.login.captchaAlt": "图形验证码",
-        "appKit.login.captchaClick": "点击获取",
-        "appKit.login.captchaTitle": "人机验证",
-        "appKit.login.captchaDesc": "请输入图中字符，验证通过后发送验证码",
-        "appKit.login.captchaConfirm": "验证并发送",
-        "appKit.login.smsCodeLabel": "短信验证码",
-        "appKit.login.smsCodePlaceholder": "请输入验证码",
-        "appKit.login.resend": "{countdown}s 后重发",
-        "appKit.login.sendCode": "获取验证码",
-        "appKit.login.needPhone": "请先填写正确的手机号",
-        "appKit.login.needCaptcha": "请先填写图形验证码",
-        "appKit.login.captchaLoading": "图形验证码加载中，请稍候",
-        "appKit.login.passwordLabel": "密码",
-        "appKit.login.passwordPlaceholder": "请输入密码",
-        "appKit.login.submit": "登录",
-        "appKit.login.successTitle": "登录成功",
-        "appKit.login.successDescription": "欢迎回来",
-        "appKit.login.codeSent": "验证码已发送",
-    },
-    "en-US": {
-        "appKit.error.network": "Something went wrong. Please try again later.",
-        "appKit.time.unknown": "Unknown time",
-        "appKit.confirm.cancel": "Cancel",
-        "appKit.confirm.confirm": "Confirm",
-        "appKit.form.showPassword": "Show password",
-        "appKit.form.hidePassword": "Hide password",
-        "appKit.topbar.searchPlaceholder": "Search menus and features",
-        "appKit.topbar.searchLabel": "Search menus and features in {brand}",
-        "appKit.login.smsTab": "SMS code",
-        "appKit.login.passwordTab": "Password",
-        "appKit.login.captchaPlaceholder": "Enter the 4 characters",
-        "appKit.login.captchaLabel": "CAPTCHA",
-        "appKit.login.captchaRefresh": "Refresh CAPTCHA",
-        "appKit.login.captchaAlt": "CAPTCHA",
-        "appKit.login.captchaClick": "Click to get",
-        "appKit.login.captchaTitle": "Verify you're human",
-        "appKit.login.captchaDesc": "Enter the characters to send the code",
-        "appKit.login.captchaConfirm": "Verify and send",
-        "appKit.login.smsCodeLabel": "SMS code",
-        "appKit.login.smsCodePlaceholder": "Enter the code",
-        "appKit.login.resend": "Resend in {countdown}s",
-        "appKit.login.sendCode": "Get code",
-        "appKit.login.needPhone": "Enter a valid phone number first",
-        "appKit.login.needCaptcha": "Fill in the CAPTCHA first",
-        "appKit.login.captchaLoading": "CAPTCHA is still loading, try again in a moment",
-        "appKit.login.passwordLabel": "Password",
-        "appKit.login.passwordPlaceholder": "Enter your password",
-        "appKit.login.submit": "Sign in",
-        "appKit.login.successTitle": "Signed in",
-        "appKit.login.successDescription": "Welcome back",
-        "appKit.login.codeSent": "Verification code sent",
-    },
-}
+/**
+ * 共享文案资源。以前这 31 条内联在 TS 里，是全仓库唯一被 glob 清单看不见的文案（§4.2）——
+ * 偏偏全仓库只有两条带插值的消息（`appKit.topbar.searchLabel` 的 `{brand}`、
+ * `appKit.login.resend` 的 `{countdown}`）住在那里面，旧校验器只扫三端的 `src/locales/`，
+ * 一条都查不到。落成 `locales/<locale>/<namespace>.json` 后它与三端资源走同一份清单、同一个 codegen。
+ *
+ * 这里同样用 glob 而不是逐个 import：本包将来按域拆文件时，「新文件忘了加进清单」是静默失效，
+ * 而这正是当初把内联字典挪出来的理由，不该在搬迁的落点上把它重新种回去。
+ *
+ * `import.meta.glob` 的类型参数是生成物那份 `AppKitCatalog`。要说清它保证不了什么：
+ * JSON 的形状是装配时才知道的，tsc 不会因为某条 key 少了一句而红——真正判过这件事的是
+ * 写出 `messages.gen.ts` 之前的 codegen（§5.5 的表）。类型在这里的作用是让调用侧拼错 key 变编译错误。
+ */
+export const APP_KIT_MESSAGES: I18nResources = assembleLocaleResources(localeFiles)
 
-export function translateAppKit(key: string, params?: MessageParams): string {
-    const locale = getCurrentLocale()
+/**
+ * app-kit 文案的取词入口。
+ *
+ * `locale` 必填且排在第二（§3.5 约束 2 的「能传就传」）：与同层的 `getErrorMessage(code, locale, fallback)`
+ * 一个形状——可选参数只能排在 locale 之后，否则调用点每处都得写 `undefined`。
+ * 它读的是**调用方给的语言**，不再读进程级可变量：那个 `let` 已删，理由见 §3.5。
+ */
+export function translateAppKit<K extends AppKitMessageKey>(
+    key: K,
+    locale: AppLocale,
+    params?: AppKitParamsOf<K>,
+): string {
     const template = resolveMessage(APP_KIT_MESSAGES, key, locale)
-    if (template === undefined) return key
+    if (template === undefined || !isMessageValid(template, locale)) return key
     return formatMessage(template, params, locale)
 }

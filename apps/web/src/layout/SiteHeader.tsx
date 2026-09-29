@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router"
-import { useT } from "@shop/app-kit"
 import { LogOut, ShoppingCart, UserRound } from "lucide-react"
 
 import {
@@ -20,6 +19,7 @@ import {
 
 import { useCartCount } from "#/cart"
 import { logout } from "#/auth"
+import { useT } from "#/locales/use-t"
 import { useClearMe, useMe } from "#/account"
 import { useAuthStatus, useLoginDialogOpen } from "#/shared/api/auth"
 import { avatarInitial } from "#/shared/lib/avatar"

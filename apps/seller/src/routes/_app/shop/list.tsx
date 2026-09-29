@@ -2,7 +2,7 @@ import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop
 import { SHOP_NAME_MAX, SHOP_STATUS_META } from "#/shop/constants"
 import { CreateShopFormSchema } from "#/shop/shop-form"
 import { setCurrentShopId } from "#/shop"
-import { formatDate } from "@shop/app-kit"
+import { formatDate, useI18n } from "@shop/app-kit"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
@@ -94,6 +94,7 @@ function ShopsPage() {
 }
 
 function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean }) {
+    const { locale } = useI18n()
     return (
         <Item
             variant="outline"
@@ -108,7 +109,7 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
                     </Badge>
                     {isCurrent ? <Badge variant="outline">当前经营</Badge> : undefined}
                 </ItemTitle>
-                <ItemDescription>创建于 {formatDate(shop.createdAt)}</ItemDescription>
+                <ItemDescription>创建于 {formatDate(shop.createdAt, locale)}</ItemDescription>
             </ItemContent>
             {shop.status === "ACTIVE" && !isCurrent ? (
                 <ItemActions>

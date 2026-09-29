@@ -101,41 +101,53 @@ describe("groupByStatus", () => {
 })
 
 describe("couponTimeReasonHint", () => {
-    it("还没生效的券_灰字给出起用时间，日期按当前 Locale 渲染", () => {
+    it("还没生效的券_灰字给出起用时间，日期按传入的 Locale 渲染", () => {
         const coupon = makeMyCoupon({ unavailableReason: "NOT_EFFECTIVE" })
 
-        expect(couponTimeReasonHint(coupon)).toBe(
-            `尚未开始，${formatDateTime(coupon.effectiveAt)} 起可用`,
+        expect(couponTimeReasonHint(coupon, "zh-CN")).toBe(
+            `尚未开始，${formatDateTime(coupon.effectiveAt, "zh-CN")} 起可用`,
+        )
+        expect(couponTimeReasonHint(coupon, "en-US")).toBe(
+            `尚未开始，${formatDateTime(coupon.effectiveAt, "en-US")} 起可用`,
         )
     })
 
     it("结算中但时间已过的券_说清本单之外不能再使用", () => {
         expect(
-            couponTimeReasonHint(makeMyCoupon({ status: "LOCKED", unavailableReason: "EXPIRED" })),
+            couponTimeReasonHint(
+                makeMyCoupon({ status: "LOCKED", unavailableReason: "EXPIRED" }),
+                "zh-CN",
+            ),
         ).toBe("使用时间已过，本单之外不能再使用")
     })
 
     it("徽章已解释过的过期不再重复_状态是 EXPIRED 时不给灰字", () => {
         expect(
-            couponTimeReasonHint(makeMyCoupon({ status: "EXPIRED", unavailableReason: "EXPIRED" })),
+            couponTimeReasonHint(
+                makeMyCoupon({ status: "EXPIRED", unavailableReason: "EXPIRED" }),
+                "zh-CN",
+            ),
         ).toBeUndefined()
     })
 
     it("用掉作废的券不承担解释义务_/已使用、已作废一律不给", () => {
         for (const status of ["USED", "VOID"]) {
             expect(
-                couponTimeReasonHint(makeMyCoupon({ status, unavailableReason: "EXPIRED" })),
+                couponTimeReasonHint(
+                    makeMyCoupon({ status, unavailableReason: "EXPIRED" }),
+                    "zh-CN",
+                ),
             ).toBeUndefined()
         }
     })
 
     it("没有原因的券不给灰字_不凭空补一句解释", () => {
-        expect(couponTimeReasonHint(makeMyCoupon())).toBeUndefined()
+        expect(couponTimeReasonHint(makeMyCoupon(), "zh-CN")).toBeUndefined()
     })
 
     it("契约给出新的原因码_不硬翻译成一句假解释", () => {
         expect(
-            couponTimeReasonHint(makeMyCoupon({ unavailableReason: "THRESHOLD_NOT_MET" })),
+            couponTimeReasonHint(makeMyCoupon({ unavailableReason: "THRESHOLD_NOT_MET" }), "zh-CN"),
         ).toBeUndefined()
     })
 })

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { TicketPercent } from "lucide-react"
 
-import { formatDate, formatTimeShort } from "@shop/app-kit"
+import { formatDate, formatTimeShort, useI18n } from "@shop/app-kit"
 import { couponFaceRuleText } from "@shop/common"
 import {
     Button,
@@ -34,6 +34,7 @@ import { shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
  *    消失等于用户以为没办活动。领取端点仍会拒未开始，双保险。
  */
 export function ShopCouponPopover({ shopId }: { shopId: string }) {
+    const { locale } = useI18n()
     const { data, isPending, isError } = useQuery(shopClaimableCouponsOptions(shopId))
     const claim = useClaimCoupon()
     const isLoggedIn = useIsLoggedIn()
@@ -98,7 +99,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                                 : coupon.soldOut
                                   ? "已领完"
                                   : notStarted
-                                    ? `${formatTimeShort(coupon.validFrom)} 开抢`
+                                    ? `${formatTimeShort(coupon.validFrom, locale)} 开抢`
                                     : "领取"
                             return (
                                 <li
@@ -108,8 +109,8 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium">{rule}</p>
                                         <p className="truncate text-xs text-muted-foreground">
-                                            {formatDate(coupon.validFrom)} 至{" "}
-                                            {formatDate(coupon.validTo)}
+                                            {formatDate(coupon.validFrom, locale)} 至{" "}
+                                            {formatDate(coupon.validTo, locale)}
                                         </p>
                                     </div>
                                     {/* 可访问名带上规则，读屏用户才能分清哪张券：三个「领取」按钮同名等于没有名字 */}

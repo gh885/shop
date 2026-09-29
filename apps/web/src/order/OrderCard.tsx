@@ -27,7 +27,7 @@ import {
 } from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 import { formatMoney, sumMoney } from "@shop/common"
 
 import { Price } from "#/shared/ui/Price"
@@ -149,6 +149,7 @@ function OrderCardHeader({
     seconds: number | undefined
     onDetail: (() => void) | undefined
 }) {
+    const { locale } = useI18n()
     const statusMeta = ORDER_CARD_STATUS_META[order.status]
     return (
         <PanelHeader
@@ -167,7 +168,7 @@ function OrderCardHeader({
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="tabular-nums">
-                        下单时间：{formatDateTime(order.createdAt)}
+                        下单时间：{formatDateTime(order.createdAt, locale)}
                     </span>
                     <span className="min-w-0 wrap-anywhere">订单号：{order.orderNo}</span>
                 </div>
@@ -259,6 +260,7 @@ function OrderCardItem({ item }: { item: OrderItem }) {
 /** 订单状态提示行：待发货单优先报发货时限（过点不由系统代关单，只把「你可以取消退款」摆到买家眼前，ORD-27），
  *  其余状态用状态自己的 hint */
 function OrderCardHint({ order }: { order: Order }) {
+    const { locale } = useI18n()
     const shipDeadline = order.status === "pending_shipment" ? order.shipExpireAt : undefined
     if (!shipDeadline)
         return (
@@ -274,8 +276,8 @@ function OrderCardHint({ order }: { order: Order }) {
             }
         >
             {overdue
-                ? `商家已超过发货时限（${formatDateTime(shipDeadline)}），可取消订单并退款`
-                : `商家需在 ${formatDateTime(shipDeadline)} 前发货`}
+                ? `商家已超过发货时限（${formatDateTime(shipDeadline, locale)}），可取消订单并退款`
+                : `商家需在 ${formatDateTime(shipDeadline, locale)} 前发货`}
         </p>
     )
 }

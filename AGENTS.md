@@ -88,7 +88,9 @@ cd apps/server && mvn spring-boot:run   # 单独起后端（mvn compile / spotle
 
 **定义原则：只有当 HTTP status 不足以让前端区分处理逻辑时，才定义 error code。** 唯一真相源是 `docs/error-codes.md`：新建 code 必须先在那里写清「前端行为」和「后端触发场景」。
 
-- Java 侧不维护常量类，throw 时直接硬编码字符串：`throw new BusinessException(400, "SMS_CODE_EXPIRED", "验证码已过期")`
+> 这条判据正在改版（**未落地**）：[docs/conventions/i18n.md](docs/conventions/i18n.md) §7.3 把用户可见错误文案归到前端 catalog、`detail` 降级为日志字段，判据随之换成「这句话用户可见 → 就要有 code」。做完之前按上面那句办，之后以 `docs/error-codes.md` 为准；`detail` 兜底的两个退出条件记在 `TODO.md`。
+
+- Java 侧抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（`ErrorCodeVocabularyTest` 核对：Java 常量集合 ⇄ 该表 Code 列 ⇄ TS `ErrorCodes` 键集合，且每处抛码站点由出口推出的状态码 ⇄ 该表 HTTP 列——改任何一边忘了另一边就红）
 - TS 侧同步到 `packages/common/src/error-codes.ts`，code 用 `SCREAMING_SNAKE_CASE`
 - 前端能用 status 区分的（401/403/404）不加 code；会被 Zod 拦住的校验错误也不加 code
 

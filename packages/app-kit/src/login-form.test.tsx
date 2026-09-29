@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
-import { APP_KIT_MESSAGES, I18nProvider } from "./i18n"
+import { APP_KIT_MESSAGES, I18nProvider, createLocaleScope } from "./i18n"
 import { LoginForm, type LoginFormProps } from "./login-form"
 
 /**
@@ -22,6 +22,7 @@ function renderLoginForm(sendCode?: LoginFormProps["sendCode"]) {
     return render(
         <I18nProvider
             resources={APP_KIT_MESSAGES}
+            scope={createLocaleScope("zh-CN")}
             initialLocale="zh-CN"
         >
             <LoginForm

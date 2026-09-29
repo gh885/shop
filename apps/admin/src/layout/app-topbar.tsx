@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useLocation } from "@tanstack/react-router"
-import { activeSectionOf, useT, WorkbenchTopBar } from "@shop/app-kit"
+import { activeSectionOf, WorkbenchTopBar } from "@shop/app-kit"
+import { useT } from "#/locales/use-t"
 import { Account } from "./account"
 import { HOME_LINK, NAV_ITEMS } from "./nav"
 import { translateAdminNav } from "./nav-i18n"

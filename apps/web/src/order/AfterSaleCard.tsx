@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 
 import { Badge, Button, Panel, PanelContent, PanelHeader, Spinner } from "@shop/ui-web"
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 
 import { Price } from "#/shared/ui/Price"
 
@@ -37,6 +37,7 @@ export interface AfterSaleCardProps {
 }
 
 export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCardProps) {
+    const { locale } = useI18n()
     const actions = buyerAfterSaleActions(ticket)
     // 已填过运单号：按钮改叫「修改」，避免买家以为自己还没填
     const actionLabel = (action: AfterSaleAction) =>
@@ -96,7 +97,7 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
                 {/* 被拒才有这一行：卖家的理由取自时间线那行 note（AFS-44），买家据此决定补什么再来、还是另行协商 */}
                 {ticket.rejectReason && <Row label="拒绝理由">{ticket.rejectReason}</Row>}
 
-                <Row label="申请时间">{formatDateTime(ticket.createdAt)}</Row>
+                <Row label="申请时间">{formatDateTime(ticket.createdAt, locale)}</Row>
 
                 {/* 回寄引导区：待寄回（RETURN_GOODS 下发，含已填过单号可改单的情况）才给地址 */}
                 {actions.includes("return") && (
@@ -106,7 +107,7 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
                 )}
 
                 {ticket.refundedAt && (
-                    <Row label="退款时间">{formatDateTime(ticket.refundedAt)}</Row>
+                    <Row label="退款时间">{formatDateTime(ticket.refundedAt, locale)}</Row>
                 )}
 
                 {ticket.returnTrackingNo && (

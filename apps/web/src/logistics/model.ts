@@ -1,6 +1,7 @@
 import { isValid } from "date-fns"
 
 import { formatDateTime, formatTimeShort } from "@shop/app-kit"
+import type { AppLocale } from "@shop/common"
 import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/api/sdk"
 
 /**
@@ -85,11 +86,15 @@ export type ShipmentTrack = {
  * 比 app-kit 的 formatTimeShort 多做一件事：**跨年补年份**——只给月日时，去年 12 月与今年 12 月
  * 在同一条轴上无法区分。形状本身（短时间 / 完整时间）不在这里重写模式串，交给 app-kit 那两处：
  * 抄一份 `MM-dd HH:mm` 的下场是英文站拿到中文站的形状。非法时间原样返回（与展示兜底约定一致）。
+ *
+ * `locale` 走参数（§3.5 约束 2）：这条投影链（tracking → 页面）全程是纯函数，传得动就不该读上下文。
  */
-export function formatNodeTime(iso: string, now: Date = new Date()): string {
+export function formatNodeTime(iso: string, locale: AppLocale, now: Date = new Date()): string {
     const d = new Date(iso)
     if (!isValid(d)) return iso
-    return d.getFullYear() === now.getFullYear() ? formatTimeShort(iso) : formatDateTime(iso)
+    return d.getFullYear() === now.getFullYear()
+        ? formatTimeShort(iso, locale)
+        : formatDateTime(iso, locale)
 }
 
 /** 轴上的节点总数（折叠判定用） */

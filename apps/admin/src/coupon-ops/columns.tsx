@@ -1,4 +1,4 @@
-import { formatDateTime } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit"
 import { formatMoney } from "@shop/common"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { AdminCouponItem } from "@shop/api/sdk"
@@ -43,8 +43,12 @@ export const couponColumns: ColumnDef<DataTableFeatures, AdminCouponItem>[] = [
         accessorKey: "expireAt",
         header: "有效期",
         meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) =>
-            `${formatDateTime(row.original.effectiveAt)} - ${formatDateTime(row.original.expireAt)}`,
+        cell: ({ row }) => (
+            <>
+                <TimeText iso={row.original.effectiveAt} /> -{" "}
+                <TimeText iso={row.original.expireAt} />
+            </>
+        ),
     },
     {
         accessorKey: "orderId",

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test"
 
-import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME, setCurrentLocale } from "@shop/common"
+import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME } from "@shop/common"
 
 import {
     initialLocaleOf,
@@ -54,13 +54,10 @@ function captureCookieWrites(write: () => void): string[] {
 
 beforeEach(() => {
     clearCookies()
-    // 进程级 Locale 是模块全局（common 里那份 currentLocale），逐个用例从平台默认起步
-    setCurrentLocale(DEFAULT_LOCALE)
 })
 
 afterEach(() => {
     clearCookies()
-    setCurrentLocale(DEFAULT_LOCALE)
     Reflect.deleteProperty(window.navigator, "language")
 })
 
@@ -115,17 +112,13 @@ describe("writeCookie", () => {
 })
 
 describe("initialLocaleOf", () => {
-    it("装配侧给了 initialLocale 就照它渲染，不看进程级当前值", () => {
-        setCurrentLocale("zh-CN")
-
+    it("装配侧给了 initialLocale 就照它渲染，不掺任何猜测", () => {
         expect(initialLocaleOf("en-US")).toBe("en-US")
     })
 
-    it("没给 initialLocale 才退到进程级当前 Locale", () => {
-        setCurrentLocale("en-US")
-
-        expect(initialLocaleOf()).toBe("en-US")
-        expect(initialLocaleOf(undefined)).toBe("en-US")
+    it("没给 initialLocale 只退到平台默认——这里已没有「进程当前语言」可退（§3.5）", () => {
+        expect(initialLocaleOf()).toBe(DEFAULT_LOCALE)
+        expect(initialLocaleOf(undefined)).toBe(DEFAULT_LOCALE)
     })
 })
 
@@ -143,16 +136,9 @@ describe("readPreferredLocale 的回落顺序", () => {
         expect(readPreferredLocale()).toBe("en-US")
     })
 
-    it("浏览器语言本身也认不出来时继续往下走，不在这里造第二个默认值", () => {
+    it("cookie 存了个不认的语言，退回浏览器语言而不是把它原样带出去", () => {
         stubNavigatorLanguage("en-US")
         document.cookie = `${LOCALE_COOKIE_NAME}=ja-JP; path=/`
-
-        expect(readPreferredLocale()).toBe("en-US")
-    })
-
-    it("没有浏览器语言时用进程级当前 Locale（三端共享的那一份状态）", () => {
-        stubNavigatorLanguage("")
-        setCurrentLocale("en-US")
 
         expect(readPreferredLocale()).toBe("en-US")
     })

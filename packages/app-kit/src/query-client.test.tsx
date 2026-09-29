@@ -7,8 +7,12 @@ import {
 import { act, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
+import { createLocaleScope } from "./i18n/scope"
 import { QueryBoundary } from "./query-boundary"
 import { createAppQueryClient } from "./query-client"
+
+/** 工厂的必填第一参是 Locale 持有者（§3.5）：本文件只测默认项，语言给什么都不影响断言 */
+const newClient = () => createAppQueryClient(createLocaleScope())
 
 /**
  * 这组用例钉的是 `createAppQueryClient()` 的**全局默认 `throwOnError`**，
@@ -73,14 +77,14 @@ describe("createAppQueryClient 的全局 throwOnError", () => {
             return <span>data:{data ? "ok" : "none"}</span>
         }
 
-        renderInBoundary(createAppQueryClient(), <Probe />)
+        renderInBoundary(newClient(), <Probe />)
 
         expect(await screen.findByRole("alert")).toHaveTextContent("店铺信息挂了")
         expect(screen.queryByText(/^data:/)).not.toBeInTheDocument()
     })
 
     it("写 throwOnError: false 的查询就地失败：边界不接管，组件拿得到 isError", async () => {
-        renderInBoundary(createAppQueryClient(), <OptOutProbe />)
+        renderInBoundary(newClient(), <OptOutProbe />)
 
         expect(await screen.findByText("isError:true")).toBeInTheDocument()
         expect(screen.queryByRole("alert")).not.toBeInTheDocument()
@@ -107,7 +111,7 @@ describe("createAppQueryClient 的全局 throwOnError", () => {
             )
         }
 
-        const client = createAppQueryClient()
+        const client = newClient()
         renderInBoundary(client, <Probe />)
         expect(await screen.findByText("data:1 isError:false calls:1")).toBeInTheDocument()
 
@@ -136,7 +140,7 @@ describe("createAppQueryClient 的全局 throwOnError", () => {
             return <span>data:{String(data.ok)}</span>
         }
 
-        renderInBoundary(createAppQueryClient(), <Probe />)
+        renderInBoundary(newClient(), <Probe />)
 
         expect(await screen.findByRole("alert")).toHaveTextContent("suspense 挂了")
     })

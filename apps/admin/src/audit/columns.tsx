@@ -1,5 +1,5 @@
 import type { AdminAuditItem } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit"
 import type { DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { ACTION_LABEL, TARGET_LABEL } from "./constants"
@@ -15,7 +15,7 @@ export const auditColumns: ColumnDef<DataTableFeatures, AdminAuditItem>[] = [
         accessorKey: "createdAt",
         header: "时间",
         meta: { variant: "muted", className: "tabular-nums whitespace-nowrap" },
-        cell: ({ row }) => formatDateTime(row.original.createdAt),
+        cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
     },
     {
         accessorKey: "action",

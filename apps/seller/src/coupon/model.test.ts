@@ -54,7 +54,7 @@ describe("deriveCouponStatus", () => {
 
 describe("couponRowFromWire", () => {
     it("满减券：规则文案与有效期区间来自契约的分与 ISO 时间", () => {
-        const row = couponRowFromWire(makeCouponTemplate(), FROM)
+        const row = couponRowFromWire(makeCouponTemplate(), FROM, "zh-CN")
 
         expect(row).toMatchObject({
             name: "新春满减券",
@@ -72,6 +72,7 @@ describe("couponRowFromWire", () => {
         const row = couponRowFromWire(
             makeCouponTemplate({ threshold: { amount: 0, currency: "CNY" } }),
             FROM,
+            "zh-CN",
         )
 
         expect(row.ruleText).toBe("无门槛减 ¥10")

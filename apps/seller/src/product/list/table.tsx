@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil } from "lucide-react"
 
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 import {
     Badge,
     Button,
@@ -211,6 +211,7 @@ function ProductRow({
     onOff: () => void
     onOn: () => void
 }) {
+    const { locale } = useI18n()
     const meta = PRODUCT_STATUS_META[p.status]
 
     return (
@@ -311,7 +312,7 @@ function ProductRow({
             <TableCell>
                 <div className="space-y-0.5">
                     <span className="block text-muted-foreground tabular-nums">
-                        {formatDateTime(p.createdAt)}
+                        {formatDateTime(p.createdAt, locale)}
                     </span>
                     <Badge variant={meta.variant}>{meta.label}</Badge>
                 </div>

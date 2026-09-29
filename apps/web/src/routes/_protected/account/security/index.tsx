@@ -27,7 +27,8 @@ import {
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
 import { DeletionCard, deviceKeys, devicesOptions, isMobileDeviceName } from "#/account"
-import { formatTimeShort, usePasswordVisibility, useT } from "@shop/app-kit"
+import { useT } from "#/locales/use-t"
+import { formatTimeShort, useI18n, usePasswordVisibility } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -359,6 +360,7 @@ function DeviceRow({
     busy: boolean
     onSignOut: () => void
 }) {
+    const { locale } = useI18n()
     const t = useT()
     return (
         <Item
@@ -379,7 +381,7 @@ function DeviceRow({
                 </ItemTitle>
                 <ItemDescription className="truncate">
                     {device.ip ?? t("web.security.devices.unknownIp")} ·{" "}
-                    {formatTimeShort(device.lastLoginAt)}
+                    {formatTimeShort(device.lastLoginAt, locale)}
                 </ItemDescription>
             </ItemContent>
             <ItemActions>

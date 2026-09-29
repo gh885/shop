@@ -1,4 +1,4 @@
-import { copyWithNotify, formatDateTime } from "@shop/app-kit"
+import { copyWithNotify, formatDateTime, useI18n } from "@shop/app-kit"
 import { isPositiveMoney } from "@shop/common"
 
 import { Price } from "#/shared/ui/Price"
@@ -30,8 +30,6 @@ export interface OrderSummaryCardProps {
     order: OrderDetail
 }
 
-const dateStr = (iso: string | null) => (iso ? formatDateTime(iso) : "—")
-
 /** 单条「label: value」信息行 */
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
     return (
@@ -43,6 +41,9 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
+    const { locale } = useI18n()
+    // 跟着渲染走，不是模块级常量：模块级拿不到语言（§3.5 约束 2）
+    const dateStr = (iso: string | null) => (iso ? formatDateTime(iso, locale) : "—")
     const fullAddress = receiverFullAddress(order)
 
     return (

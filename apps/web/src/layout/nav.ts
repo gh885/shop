@@ -1,5 +1,7 @@
 import { SELLER_URL } from "#/shared/lib/external"
 
+import type { WebTranslate } from "#/locales/messages.gen"
+
 /**
  * 顶部主导航的数据与规则——菜单树、i18n 对照、以及「哪一项算当前项」。
  *
@@ -133,17 +135,25 @@ export const NAV_LABEL_KEYS: Record<string, string> = {
     卖家中心: "web.nav.sellerCenter",
 }
 
-/** 三层菜单逐层翻译（一级 / 二级 / 三级各带 label），不改 to、不补空 children */
-export function translateNavItems(items: SiteNavItem[], t: (key: string) => string): SiteNavItem[] {
+/**
+ * 三层菜单逐层翻译（一级 / 二级 / 三级各带 label），不改 to、不补空 children。
+ *
+ * `NAV_LABEL_KEYS` 的取值域是 `string`（没登记的 label 原样当 key 交给 `t`），这条动态路径接不住
+ * 生成物那份 key 联合，所以在这里把 `t` 放宽一次：拼不出来的 key 回退成 key 本身。
+ * §10.1「未使用 key」定成字面量常量表之后，这条放宽就能取消。
+ */
+export function translateNavItems(items: SiteNavItem[], t: WebTranslate): SiteNavItem[] {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 动态 key 接不住生成物的 key 联合，见上注释；§10.1 定成常量表后删
+    const pick = t as (key: string) => string
     return items.map((item) => ({
         ...item,
-        label: t(NAV_LABEL_KEYS[item.label] ?? item.label),
+        label: pick(NAV_LABEL_KEYS[item.label] ?? item.label),
         children: item.children?.map((child) => ({
             ...child,
-            label: t(NAV_LABEL_KEYS[child.label] ?? child.label),
+            label: pick(NAV_LABEL_KEYS[child.label] ?? child.label),
             children: child.children?.map((leaf) => ({
                 ...leaf,
-                label: t(NAV_LABEL_KEYS[leaf.label] ?? leaf.label),
+                label: pick(NAV_LABEL_KEYS[leaf.label] ?? leaf.label),
             })),
         })),
     }))

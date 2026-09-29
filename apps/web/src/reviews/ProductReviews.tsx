@@ -14,7 +14,7 @@ import {
     Skeleton,
 } from "@shop/ui-web"
 import { MessageSquareOff } from "lucide-react"
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 import { imgUrl } from "#/shared/lib/image"
 import { RATING_LABEL, REVIEW_PAGE_SIZE } from "./constants"
 import { Stars } from "./ReviewDialog"
@@ -27,6 +27,7 @@ import { productReviewsOptions } from "./queries"
  * 前端手里的只有当前这一页）。列表按评分行展示（不是按评价单），一行里带追评与卖家回复。
  */
 export function ProductReviews({ productId }: { productId: string }) {
+    const { locale } = useI18n()
     const [page, setPage] = useState(1)
     const { data, isPending } = useQuery(productReviewsOptions(productId, page))
 
@@ -69,7 +70,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                             {RATING_LABEL[review.rating] ?? ""}
                                         </span>
                                         <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-                                            {formatDateTime(review.createdAt)}
+                                            {formatDateTime(review.createdAt, locale)}
                                         </span>
                                     </div>
                                     <p className="mt-1 text-sm text-muted-foreground">

@@ -143,10 +143,30 @@ for (const file of files) {
 const isPackage = (file: string) => file.startsWith("packages/")
 const isApp = (file: string) => file.startsWith("apps/")
 
+/**
+ * 规则 1 的**窄例外**：`useT` 故意在包与三端各有一份，不是复制粘贴的意外。
+ *
+ * 这一个符号是 i18n 的「按 root 参数化」：`@shop/app-kit` 的 `useT` 认 app-kit 自己那份
+ * 31 条 `appKit.*`，三端 `src/locales/use-t.ts` 的 `useT` 认本端生成物那份 catalog。
+ * 它们是同一机制的四个 root（各自的 key 集合不同，所以类型不同），共享的运行时实现与
+ * 唯一那处类型断言都在 app-kit 的 `useTypedT` 里——三端 use-t.ts 只做「把本端 catalog
+ * 的类型接到调用点上」，各自不到十行、注释里也写明了理由。
+ *
+ * 与规则 1 想拦的东西（复制粘贴同名不同义的 hook）不同：这里 app-local 的 `useT` 是包级
+ * `useT` 的**严格细化**（同一实现、收窄的 key 集合），且三端调用点一律从本地
+ * `#/locales/use-t` 导入、没有从 `@shop/app-kit` 导入 `useT`（包的 `useT` 只在 app-kit
+ * 自己的组件里用），所以「静默换语义」在这里不成立。
+ *
+ * 写成具名白名单而不是放宽整条规则：将来若真有第二个 app-local 符号与包重名（那才是漂移），
+ * 它会照旧变红。改动这个白名单时，请先确认新加的名字也满足「同一实现 + 严格细化 + 调用点不跨包导」三条。
+ */
+const DELIBERATE_PARALLEL_EXPORTS = new Set(["useT"])
+
 describe("app 不遮蔽 packages 的导出名", () => {
     it("同名 hook/util 出现在 app 本地和包里 = 复制粘贴会静默换语义", () => {
         const shadowed: string[] = []
         for (const [name, at] of exportedBy) {
+            if (DELIBERATE_PARALLEL_EXPORTS.has(name)) continue
             const inPackage = at.filter(isPackage)
             const inApp = at.filter(isApp)
             if (inPackage.length > 0 && inApp.length > 0) {
@@ -154,6 +174,18 @@ describe("app 不遮蔽 packages 的导出名", () => {
             }
         }
         expect(shadowed).toEqual([])
+    })
+
+    it("白名单里的 useT 必须是「同一个 useTypedT 收窄」而不是真的两份实现：三端 use-t.ts 都收敛到 useTypedT", () => {
+        // 这条把例外钉住：白名单不是「以后 useT 随便重复」——三端 use-t.ts 必须各自
+        // 只是把本端 catalog 类型接到 app-kit 的 useTypedT 上。真出现第二份实现时这里会红。
+        // 判「真的用了」而不是「import 过」：只查字符串会被「import 留着、调用换掉」骗绿
+        //（那正是本条要拦的形状），所以匹配的是调用点 `useTypedT<`。
+        const useTFiles = (exportedBy.get("useT") ?? []).filter(isApp)
+        expect(useTFiles).toHaveLength(3)
+        for (const file of useTFiles) {
+            expect(code.get(file) ?? "").toMatch(/useTypedT</)
+        }
     })
 
     it("扫描本身有效：真扫到了源码与导出", () => {

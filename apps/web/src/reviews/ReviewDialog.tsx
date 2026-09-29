@@ -13,7 +13,7 @@ import {
     Textarea,
 } from "@shop/ui-web"
 import { Star } from "lucide-react"
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 import { NOTE_MAX } from "@shop/common"
 import { myReviewKeys, myReviewOptions } from "./my-review-queries"
 
@@ -253,10 +253,11 @@ function ReviewDetail({
     onAppend: () => void
     appending: boolean
 }) {
+    const { locale } = useI18n()
     return (
         <div className="flex flex-col gap-4">
             <p className="text-xs text-muted-foreground">
-                提交于 {formatDateTime(review.createdAt)}
+                提交于 {formatDateTime(review.createdAt, locale)}
             </p>
             <ul className="flex flex-col gap-4">
                 {review.items.map((item) => (

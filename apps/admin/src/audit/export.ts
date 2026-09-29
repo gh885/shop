@@ -1,5 +1,6 @@
 import type { AdminAuditItem } from "@shop/api/sdk"
 import { formatDateTime } from "@shop/app-kit"
+import type { AppLocale } from "@shop/common"
 import { ACTION_LABEL, TARGET_LABEL } from "./constants"
 
 /**
@@ -20,9 +21,10 @@ function csvCell(value: string): string {
 
 const HEADERS = ["时间", "动作", "操作人", "操作人ID", "对象类型", "对象ID", "说明"]
 
-function toRow(item: AdminAuditItem): string[] {
+/** 导出文件的语言由点「导出」的那个人决定（§3.5 约束 2：非组件模块接 locale 参数） */
+function toRow(item: AdminAuditItem, locale: AppLocale): string[] {
     return [
-        formatDateTime(item.createdAt),
+        formatDateTime(item.createdAt, locale),
         ACTION_LABEL[item.action] ?? item.action,
         item.operatorName || "未知操作人",
         item.operatorId,
@@ -33,15 +35,21 @@ function toRow(item: AdminAuditItem): string[] {
 }
 
 /** BOM：没有它 Excel 会按本地代码页打开，中文全是乱码 */
-export function buildAuditCsv(items: AdminAuditItem[]): string {
-    const lines = [HEADERS, ...items.map(toRow)].map((cells) => cells.map(csvCell).join(","))
+export function buildAuditCsv(items: AdminAuditItem[], locale: AppLocale): string {
+    const lines = [HEADERS, ...items.map((item) => toRow(item, locale))].map((cells) =>
+        cells.map(csvCell).join(","),
+    )
     return `﻿${lines.join("\r\n")}`
 }
 
 /** 触发浏览器下载。文件名带导出时刻，免得两次导出在下载目录里分不清 */
-export function downloadAuditCsv(items: AdminAuditItem[], now = new Date()): void {
+export function downloadAuditCsv(
+    items: AdminAuditItem[],
+    locale: AppLocale,
+    now = new Date(),
+): void {
     const stamp = now.toISOString().slice(0, 19).replaceAll(":", "").replace("T", "-")
-    const blob = new Blob([buildAuditCsv(items)], { type: "text/csv;charset=utf-8" })
+    const blob = new Blob([buildAuditCsv(items, locale)], { type: "text/csv;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url

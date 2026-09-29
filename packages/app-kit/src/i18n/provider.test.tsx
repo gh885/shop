@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
+import { createLocaleScope } from "./scope"
 import { I18nProvider } from "./provider"
 import { useI18n } from "./use-i18n"
 
@@ -31,6 +32,7 @@ describe("I18nProvider", () => {
         render(
             <I18nProvider
                 resources={resources}
+                scope={createLocaleScope()}
                 initialLocale="zh-CN"
             >
                 <Probe />
@@ -45,6 +47,7 @@ describe("I18nProvider", () => {
         render(
             <I18nProvider
                 resources={resources}
+                scope={createLocaleScope()}
                 initialLocale="en-US"
             >
                 <Probe />
@@ -57,9 +60,11 @@ describe("I18nProvider", () => {
     })
 
     it("switches locale", () => {
+        const scope = createLocaleScope("zh-CN")
         render(
             <I18nProvider
                 resources={resources}
+                scope={scope}
                 initialLocale="zh-CN"
             >
                 <Probe />
@@ -68,5 +73,8 @@ describe("I18nProvider", () => {
 
         fireEvent.click(screen.getByText("switch"))
         expect(screen.getByTestId("locale")).toHaveTextContent("en-US")
+        // scope 是 locale 的输出（§3.5 约束 4）：拿不到 hook 的消费者（请求头、全局 toast）
+        // 全靠它跟着换，所以这里钉的不是「Provider 记得传了个对象」，而是「切完它确实变了」。
+        expect(scope.locale).toBe("en-US")
     })
 })

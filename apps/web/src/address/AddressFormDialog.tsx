@@ -1,4 +1,4 @@
-import { FormActions, notify, RegionField } from "@shop/app-kit"
+import { FormActions, notify, RegionField, useI18n } from "@shop/app-kit"
 import {
     ADDRESS_DETAIL_MAX,
     ADDRESS_NAME_MAX,
@@ -69,6 +69,7 @@ function AddressForm({
 }) {
     const create = useCreateAddress()
     const update = useUpdateAddress()
+    const { locale } = useI18n()
 
     // 「自定义」标签输入框是否展开（空串无法区分未选与自定义，需独立状态）
     const [customLabel, setCustomLabel] = useState(() => isCustomLabel(editing?.label))
@@ -111,7 +112,7 @@ function AddressForm({
             setSmartText("")
             setParsing(false)
         } catch (error) {
-            notify.fromError(error, "识别失败，请检查输入")
+            notify.fromError(error, locale, "识别失败，请检查输入")
             setParsing(false)
         }
     }

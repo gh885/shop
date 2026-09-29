@@ -5,9 +5,10 @@ import { ArrowRight } from "lucide-react"
 
 import { AdminAuthApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
-import { LocaleSwitcher, useI18n, usePasswordVisibility, useT } from "@shop/app-kit"
+import { LocaleSwitcher, useI18n, usePasswordVisibility } from "@shop/app-kit"
 import { FormError, PasswordToggle, Spinner, useAppForm, type CSSVars, cn } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { getDeviceId, requireGuest, tokenStore } from "../shared/lib/api"
 import { NAV_ITEMS } from "../layout/nav"
 import { translateAdminNav } from "../layout/nav-i18n"

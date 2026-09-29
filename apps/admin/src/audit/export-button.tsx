@@ -1,6 +1,7 @@
 import { AdminAuditsApi } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { Button, confirm } from "@shop/ui-web"
+import { useI18n } from "@shop/app-kit"
 import { downloadAuditCsv } from "./export"
 import { AUDIT_PAGE_SIZE, EXPORT_ROW_LIMIT } from "./constants"
 import { auditFilterParams, type AuditSearch } from "./queries"
@@ -16,6 +17,7 @@ import { auditFilterParams, type AuditSearch } from "./queries"
  * 成功则 confirm 关窗；超上限这类「不是错误但要人处理」的情况按错误出文案。
  */
 export function ExportButton({ search }: { search: AuditSearch }) {
+    const { locale } = useI18n()
     const exportMutation = useMutation({
         mutationFn: async () => {
             const query = auditFilterParams(search)
@@ -41,7 +43,7 @@ export function ExportButton({ search }: { search: AuditSearch }) {
                           ),
                       )
                     : []
-            downloadAuditCsv([...first.records, ...tail.flatMap((page) => page.records)])
+            downloadAuditCsv([...first.records, ...tail.flatMap((page) => page.records)], locale)
         },
         meta: { error: "导出审计记录失败" },
     })

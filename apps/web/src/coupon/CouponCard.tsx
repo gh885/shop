@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 
-import { formatDate } from "@shop/app-kit"
+import { formatDate, useI18n } from "@shop/app-kit"
 import {
     couponFaceRuleText,
     couponFaceText,
@@ -27,11 +27,12 @@ import { type MyCoupon, couponTimeReasonHint } from "./coupon"
  * 徽章说的状态没解释「为什么点不动」，这一行补上；过期徽章已解释的（EXPIRED 页签里的行）不再重复。
  */
 export function CouponCard({ coupon }: { coupon: MyCoupon }) {
+    const { locale } = useI18n()
     /** 未使用/结算中 = 还在手上；已使用/已过期/已作废 = 已经不承担转化 */
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
     const rule = couponFaceRuleText(coupon.threshold, coupon)
-    const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt)} 至 ${formatDate(coupon.expireAt)}`
-    const timeHint = couponTimeReasonHint(coupon)
+    const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt, locale)} 至 ${formatDate(coupon.expireAt, locale)}`
+    const timeHint = couponTimeReasonHint(coupon, locale)
     // 文字与徽章色取自 @shop/common 那一张 COUPON_STATUS_META（未知状态回退中性描边）
     const status = couponStatusMeta(coupon.status)
 

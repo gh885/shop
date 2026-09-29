@@ -1,0 +1,575 @@
+/**
+ * i18n codegen —— §5.5/§10.1 那套门禁的本体。
+ *
+ * 读**全部语言**的资源，产每个 root 一份 `messages.gen.ts`（`MessageKey` / `Catalog`，外加
+ * `ParamsOf` 与 `Translate`）。
+ * 它不是便利工具：类型系统看不见字符串内部，「多余条目 / 语法非法 / 两侧参数不一致」这三件事
+ * tsc 一条都判不了（判据分工见 docs/conventions/i18n.md §5.5 的表），只能由这里判。
+ *
+ * 五条契约照 §5.5 逐条落：
+ * 1. 资源清单由下面的 MANIFEST 一处定义，展开后断言非空并逐条列进 `--list` 输出；
+ * 2. 任一条消息解析失败或跨语言不符 → 收集完一次性报错、非零退出，且**一个字节都不写**
+ *    （半截生成物比没有生成物更糟，教训见 scripts/check-sdk-drift.sh 的头注释）；
+ * 3. 生成物被 `pnpm typecheck` / `pnpm build` 消费（各 root 的 `locales/index.ts` 拿 `Catalog`
+ *    当 `import.meta.glob` 的类型参数、`locales/use-t.ts` 拿 `Translate` 当本端 `t` 的签名），
+ *    跑在哪一步可指认：script `gen:i18n` /
+ *    `i18n:drift`，lefthook pre-push 的 `i18n-drift` 作业，CI frontend job 的 `i18n` 步骤；
+ * 4. 解析与比对覆盖 SUPPORTED_LOCALES 全集，不只源语言；
+ * 5. 金额槽位（`number` 节点的 `currency` 风格）在生成期直接拒绝——Money 的展示只有一个出口
+ *    （AGENTS.md 硬规则），不该由 ICU 按运行 locale 渲染。
+ *
+ * 引擎与运行时同源：`intl-messageformat` 走 workspace catalog，与 @shop/common 那份同一版本，
+ * 所以「这里编译得过」和「页面渲染时编译得过」是同一个判定，不是两套正则。
+ * 语言清单从 `packages/common/src/i18n/locale.ts` 现读（Node ≥23.6 的类型剥离），不在脚本里抄第二份。
+ */
+
+import { readdir, readFile, writeFile } from "node:fs/promises"
+import { join, resolve } from "node:path"
+import { pathToFileURL } from "node:url"
+
+import { IntlMessageFormat } from "intl-messageformat"
+
+const ROOT = resolve(import.meta.dirname, "..")
+const { SUPPORTED_LOCALES, SOURCE_LOCALE } = await import(
+    pathToFileURL(join(ROOT, "packages/common/src/i18n/locale.ts")).href
+)
+
+/**
+ * 清单的唯一出处（契约 1）。`*` 在这里展开，别在别处再写一遍 apps/web…
+ *
+ * 消费点是各 root 的 `src/locales/use-t.ts`（app-kit 那份是 `useT`）：它把这里的 `XTranslate`
+ * 交给本端的 `useT()`，于是 `t(key, params)` 的 key 与参数变成编译期判定（§5.5 的表）。
+ * 「产了类型却没人消费」不用在这里标——那种类型导出会被 `pnpm fallow` 报成死代码。
+ */
+const MANIFEST = [{ glob: "apps/*/src/locales", label: (name) => cap(name) }]
+
+/** app-kit 那份共享资源与三端同等待遇，只是 root 数固定为一个；`translateAppKit` 已按类型收 key/params */
+const EXTRA_ROOTS = [{ dir: "packages/app-kit/src/locales", label: () => "AppKit" }]
+
+/** AST 节点类型（@formatjs/icu-messageformat-parser 的数字枚举，实测取值见 §5.5） */
+const TEXT = 0
+const ARGUMENT = 1
+const NUMBER = 2
+const DATE = 3
+const TIME = 4
+const SELECT = 5
+const PLURAL = 6
+const POUND = 7
+
+/** 每条消息的参数：name → TS 类型文本。select/plural 给字面量联合，其余按格式化槽位推 */
+function collectParams(ast) {
+    const params = new Map()
+    walk(ast)
+    return params
+
+    function walk(nodes) {
+        for (const node of nodes) {
+            switch (node.type) {
+                case TEXT:
+                case POUND:
+                    break
+                case ARGUMENT:
+                    add(node.value, "string | number")
+                    break
+                case NUMBER: {
+                    if (styleName(node) === "currency") {
+                        throw new MoneyInMessageError()
+                    }
+                    add(node.value, "number")
+                    break
+                }
+                case DATE:
+                case TIME:
+                    add(node.value, "Date | number | string")
+                    break
+                case SELECT:
+                    add(node.value, literals(Object.keys(node.options)))
+                    for (const option of Object.values(node.options)) walk(option.value)
+                    break
+                case PLURAL:
+                    add(node.value, "number")
+                    for (const option of Object.values(node.options)) walk(option.value)
+                    break
+                default:
+                    throw new Error(`未知的 ICU 节点类型 ${node.type}`)
+            }
+        }
+    }
+
+    function add(name, type) {
+        const previous = params.get(name)
+        params.set(name, previous === undefined ? type : union(previous, type))
+    }
+}
+
+/** `{x, number, currency}` 与 `{x, number, ::currency/CNY}` 两种写法都要拦：金额展示只走 formatMoney */
+function styleName(node) {
+    const { style } = node
+    if (typeof style === "string") return style
+    if (style && typeof style === "object") {
+        const parsed = style.parsedOptions ?? {}
+        if (parsed.style) return parsed.style
+        for (const token of style.tokens ?? []) {
+            if (token.stem === "currency") return "currency"
+        }
+    }
+    return undefined
+}
+
+class MoneyInMessageError extends Error {}
+
+/**
+ * 生成物与漂移比对都要跨机器字节稳定，所以固定用 UTF-16 码元序（`Array#sort` 无参时的序），
+ * 不用 `localeCompare` —— 它随运行机器的 locale 变，同一份资源在 CI 和本机能排出两份文件。
+ */
+function byCodeUnit(a, b) {
+    if (a < b) return -1
+    if (a > b) return 1
+    return 0
+}
+
+function literals(optionNames) {
+    const uniq = [...new Set(optionNames)].toSorted(byCodeUnit)
+    return uniq.map((value) => JSON.stringify(value)).join(" | ")
+}
+
+function union(a, b) {
+    if (a === b) return a
+    const parts = new Set()
+    for (const side of [a, b]) {
+        for (const part of side.split(" | ")) {
+            if (part.startsWith('"')) parts.add(part)
+            else for (const atom of part.split(" | ")) parts.add(atom)
+        }
+    }
+    const strings = [...parts].filter((part) => part.startsWith('"')).toSorted(byCodeUnit)
+    const atoms = [...parts].filter((part) => !part.startsWith('"')).toSorted(byCodeUnit)
+    return [...atoms, ...strings].join(" | ")
+}
+
+async function listJsonFiles(dir) {
+    const entries = await readdir(dir, { withFileTypes: true })
+    const nested = await Promise.all(
+        entries.map(async (entry) => {
+            const path = join(dir, entry.name)
+            if (entry.isDirectory()) return listJsonFiles(path)
+            return entry.isFile() && entry.name.endsWith(".json") ? [path] : []
+        }),
+    )
+    return nested.flat().toSorted(byCodeUnit)
+}
+
+async function expandManifest() {
+    const matched = await Promise.all(
+        MANIFEST.map(async (entry) => {
+            const [parent, star, ...tail] = entry.glob.split("/")
+            if (star !== "*") throw new Error(`MANIFEST 只支持一段通配：${entry.glob}`)
+            const entries = await readdir(join(ROOT, parent), { withFileTypes: true })
+            const dirs = entries
+                .filter((dir) => dir.isDirectory())
+                .toSorted((a, b) => byCodeUnit(a.name, b.name))
+            const roots = await Promise.all(
+                dirs.map(async (dir) => {
+                    const dirPath = join(ROOT, parent, dir.name, ...tail)
+                    try {
+                        await readdir(dirPath)
+                    } catch {
+                        return undefined // apps/server 之类没有 locales 目录，不是清单成员
+                    }
+                    return {
+                        dir: [parent, dir.name, ...tail].join("/"),
+                        label: entry.label(dir.name),
+                    }
+                }),
+            )
+            return roots.filter((root) => root !== undefined)
+        }),
+    )
+    const extras = await Promise.all(
+        EXTRA_ROOTS.map(async (extra) => {
+            await readdir(join(ROOT, extra.dir)) // 这个必须在位，缺了就是清单坏了
+            return { dir: extra.dir, label: extra.label() }
+        }),
+    )
+    return [...matched.flat(), ...extras]
+}
+
+function cap(name) {
+    return name.charAt(0).toUpperCase() + name.slice(1)
+}
+
+/**
+ * 读一个 root 的全部语言，判 §5.5 表里生成期那四条。
+ * 返回 { problems, files, catalogs }：problems 非空即不产生成物。
+ * 条目一律记成 `{ value, locale, file }`，展示时拼 `${root.dir}/${locale}/${file}`——
+ * 语言不进 namespace 身份，否则「en-US 少了整个 appKit.json」会跟源语言永远对不上。
+ */
+async function readRoot(root) {
+    // 语言之间互不依赖，一次并发读；Promise.all 保序，所以 problems 仍是「按语言、按文件」的可读顺序
+    const perLocale = await Promise.all(SUPPORTED_LOCALES.map((locale) => readLocale(root, locale)))
+    const problems = []
+    const files = []
+    /** locale → key → entry */
+    const catalogs = new Map()
+    for (const result of perLocale) {
+        problems.push(...result.problems)
+        files.push(...result.files)
+        if (result.catalog !== undefined) catalogs.set(result.locale, result.catalog)
+    }
+
+    problems.push(
+        ...compareNamespaceSets(root, catalogs),
+        ...compareKeys(root, catalogs),
+        ...compileAndCompareParams(root, catalogs),
+    )
+
+    return { ...root, problems, files, catalogs }
+}
+
+/** 一个语言目录读成一个 catalog；catalog 为 undefined 表示这个语言整体不在（缺目录或空目录） */
+async function readLocale(root, locale) {
+    const dir = join(ROOT, root.dir, locale)
+    const problems = []
+    const files = []
+    let found
+    try {
+        found = await listJsonFiles(dir)
+    } catch {
+        return {
+            locale,
+            problems: [`${root.dir}/${locale}：缺语言目录（缺一种语言等于那份文案整体不存在）`],
+            files,
+            catalog: undefined,
+        }
+    }
+    if (found.length === 0) {
+        return {
+            locale,
+            problems: [`${root.dir}/${locale}：目录里一个 .json 都没有`],
+            files,
+            catalog: undefined,
+        }
+    }
+
+    const catalog = new Map()
+    const contents = await Promise.all(
+        found.map(async (path) => {
+            const file = relativeTo(dir, path)
+            const where = `${root.dir}/${locale}/${file}`
+            try {
+                return {
+                    where,
+                    file,
+                    entries: Object.entries(JSON.parse(await readFile(path, "utf8"))),
+                }
+            } catch (error) {
+                return { where, file, problem: `${where}：JSON 解析失败（${error.message}）` }
+            }
+        }),
+    )
+    for (const { where, file, entries, problem } of contents) {
+        files.push(where)
+        if (problem !== undefined) {
+            problems.push(problem)
+            continue
+        }
+        for (const [key, value] of entries) {
+            if (typeof value !== "string") {
+                problems.push(
+                    `${where}：${key} 的值不是字符串（资源平铺，namespace 由文件名给，见 §4.3）`,
+                )
+                continue
+            }
+            const taken = catalog.get(key)
+            if (taken !== undefined) {
+                problems.push(
+                    `${root.dir}：key "${key}" 在 ${locale} 撞车，${location(taken)} 与 ${where}`,
+                )
+                continue
+            }
+            catalog.set(key, { key, value, locale, file, root: root.dir })
+        }
+    }
+    return { locale, problems, files, catalog }
+}
+
+/** 语言与 namespace 都在条目上，报错时才算得出一处「文件」而不是一个孤零零的文件名 */
+function location(entry) {
+    return `${entry.root}/${entry.locale}/${entry.file}`
+}
+
+function filesOf(catalog) {
+    return new Set([...catalog.values()].map((entry) => entry.file))
+}
+
+/** 语言之间按 namespace 比一次，好让「整个文件忘了翻」是一条能读出来的错，而不是几百条缺 key */
+function compareNamespaceSets(root, catalogs) {
+    const problems = []
+    const base = catalogs.get(SOURCE_LOCALE)
+    if (base === undefined) return problems
+    const baseFiles = [...filesOf(base)].toSorted(byCodeUnit)
+    for (const [locale, catalog] of catalogs) {
+        if (locale === SOURCE_LOCALE) continue
+        const localeFiles = [...filesOf(catalog)].toSorted(byCodeUnit)
+        for (const file of baseFiles) {
+            if (!localeFiles.includes(file)) {
+                problems.push(
+                    `${root.dir}/${locale}/${file}：整个文件缺失（${SOURCE_LOCALE} 有这份）`,
+                )
+            }
+        }
+        for (const file of localeFiles) {
+            if (!baseFiles.includes(file)) {
+                problems.push(
+                    `${root.dir}/${locale}/${file}：${SOURCE_LOCALE} 没有这份，源语言缺一条消息`,
+                )
+            }
+        }
+    }
+    return problems
+}
+
+function compareKeys(root, catalogs) {
+    const problems = []
+    const base = catalogs.get(SOURCE_LOCALE)
+    if (base === undefined) return problems
+    for (const [locale, catalog] of catalogs) {
+        if (locale === SOURCE_LOCALE) continue
+        for (const key of base.keys()) {
+            if (!catalog.has(key)) {
+                problems.push(
+                    `${root.dir}/${locale}：缺 key "${key}"（源在 ${location(base.get(key))}）`,
+                )
+            }
+        }
+        for (const key of catalog.keys()) {
+            if (!base.has(key)) {
+                problems.push(
+                    `${root.dir}/${locale}：多余 key "${key}"（${catalog.get(key).file}）`,
+                )
+            }
+        }
+    }
+    return problems
+}
+
+/** 逐条编译 + 跨语言比参数。这里用的就是运行时那个 IntlMessageFormat，不另写一套语法近似 */
+function compileAndCompareParams(root, catalogs) {
+    const problems = []
+    const base = catalogs.get(SOURCE_LOCALE)
+    if (base === undefined) return problems
+
+    for (const catalog of catalogs.values()) {
+        for (const entry of catalog.values()) {
+            try {
+                entry.params = collectParams(astOf(entry.value, entry.locale))
+            } catch (error) {
+                problems.push(
+                    error instanceof MoneyInMessageError
+                        ? `${location(entry)}：消息里用 number/currency 格式化金额。金额展示只走 formatMoney / ` +
+                              `共享 Price（AGENTS.md「Money」+ §4.4），把槽位改成普通参数并传已格式化的文本`
+                        : `${location(entry)}：${entry.key} 在 ${entry.locale} 下不是合法 ICU（${error.message}）`,
+                )
+            }
+        }
+    }
+
+    for (const [key, source] of base) {
+        if (source.params === undefined) continue
+        for (const [locale, catalog] of catalogs) {
+            const entry = catalog.get(key)
+            if (entry === undefined || entry.params === undefined || entry === source) continue
+            const a = [...source.params.keys()].toSorted(byCodeUnit).join(", ")
+            const b = [...entry.params.keys()].toSorted(byCodeUnit).join(", ")
+            if (a !== b) {
+                problems.push(
+                    `${location(entry)}：参数集合与 ${SOURCE_LOCALE} 不一致（${SOURCE_LOCALE}={${a}}，${locale}={${b}}）`,
+                )
+            }
+        }
+    }
+
+    return problems
+}
+
+function astOf(template, locale) {
+    return new IntlMessageFormat(template, locale).getAst()
+}
+
+function relativeTo(dir, path) {
+    return path.slice(dir.length + 1).replaceAll("\\", "/")
+}
+
+function relativeToRoot(path) {
+    return relativeTo(ROOT, path)
+}
+
+function render(root, keys) {
+    const base = root.catalogs.get(SOURCE_LOCALE)
+    const P = root.label
+
+    const lines = [
+        "// 生成物，别手改：pnpm gen:i18n（判据与清单见 scripts/i18n-codegen.mjs、docs/conventions/i18n.md §5.5）",
+        `// 来源：${root.dir}/{${SUPPORTED_LOCALES.join(", ")}}/*.json`,
+        "// 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、",
+        "// 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。",
+        ...translateImports(root),
+        "",
+        `export type ${P}MessageKey =`,
+        ...keys.map(
+            (key, index) => `    ${JSON.stringify(key)}${index === keys.length - 1 ? "" : " |"}`,
+        ),
+        "",
+        ...paramsTypes(root, keys, base),
+        ...translateTypes(root),
+        `/** 一种语言里 ${P}MessageKey 的每一个都得有一句 */`,
+        `export type ${P}Catalog = { [K in ${P}MessageKey]: string }`,
+        "",
+    ]
+    return lines.join("\n")
+}
+
+/** app 那份 `Translate` 要并上 app-kit 的共享 key，所以得引它的类型 */
+function translateImports(root) {
+    if (root.label === "AppKit") return []
+    return ["", 'import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit"']
+}
+
+function translateTypes(root) {
+    const P = root.label
+    if (P === "AppKit") {
+        return [
+            "/**",
+            " * app-kit 自己的 `t` 形状：只认 `appKit.*`。三端调用侧不用它——各端生成物里那份",
+            " * `XTranslate` 把本端 key 与这份并在一起，与运行时的解析链同一条（先查本端资源、再查共享资源）。",
+            " * 无参消息的参数位是 `undefined`，多塞一个就是编译错误；带参消息漏传不拦（可选位）。",
+            " */",
+            `export type ${P}Translate = <K extends ${P}MessageKey>(`,
+            `    key: K,`,
+            `    params?: ${P}ParamsOf<K>,`,
+            ") => string",
+            "",
+        ]
+    }
+    return [
+        "/**",
+        " * 本端调用侧的 `t` 形状：key 收在「本端 catalog ∪ app-kit 共享 catalog」，参数按各自的",
+        " * `ParamsOf` 推。无参消息的参数位是 `undefined`，多塞一个就是编译错误。",
+        " * 带参消息**漏传**参数不拦（那是可选位）——后果是模板原样显示（`formatMessage` 的降级），",
+        " * 要连漏传一起拦得按 key 分发参数元组，等第一条真被漏过的消息出现再造。",
+        " * 这是 §5.5 分工表里唯一那条「编译期」保证在三端兑现的地方。",
+        " */",
+        `export type ${P}Translate = <K extends ${P}MessageKey | AppKitMessageKey>(`,
+        "    key: K,",
+        `    params?: K extends ${P}MessageKey`,
+        `        ? ${P}ParamsOf<K>`,
+        "        : AppKitParamsOf<Extract<K, AppKitMessageKey>>,",
+        ") => string",
+        "",
+    ]
+}
+
+/**
+ * `ParamsByKey` 用映射类型而不是逐条条件链：后者在零条带参消息时会让 `K` 变成未使用类型参数
+ * （TS6196 直接把 typecheck 打红），映射类型 + 一条 `K extends keyof` 两种情形都写得下。
+ * 无参消息的参数位给 `undefined` 而不是 `Record<never, never>`：后者看着等价，实则对象字面量
+ * 对它不做超额属性检查，`t("零参 key", { brand: "x" })` 会静静通过（探针实测）。
+ */
+function paramsTypes(root, keys, base) {
+    const P = root.label
+    const withParams = keys.filter((key) => {
+        const params = base.get(key).params
+        return params !== undefined && params.size > 0
+    })
+    return [
+        withParams.length === 0
+            ? `type ${P}ParamsByKey = Record<never, never>`
+            : [
+                  `type ${P}ParamsByKey = {`,
+                  ...withParams.map(
+                      (key) => `    ${JSON.stringify(key)}: ${paramsType(base.get(key).params)}`,
+                  ),
+                  `}`,
+              ].join("\n"),
+        "",
+        `export type ${P}ParamsOf<K extends ${P}MessageKey> = K extends keyof ${P}ParamsByKey`,
+        `    ? ${P}ParamsByKey[K]`,
+        "    : undefined",
+        "",
+    ]
+}
+
+function paramsType(params) {
+    const fields = [...params].map(([name, type]) => `${name}: ${type}`)
+    return `{ ${fields.join("; ")} }`
+}
+
+function keyUnionOf(catalogs) {
+    const keys = new Set()
+    for (const catalog of catalogs.values()) for (const key of catalog.keys()) keys.add(key)
+    return [...keys].toSorted(byCodeUnit)
+}
+
+const MODE = process.argv.includes("--check") ? "check" : "write"
+
+const roots = await expandManifest()
+if (roots.length === 0) {
+    console.error(
+        `i18n codegen：清单展开为空（MANIFEST=${MANIFEST.map((m) => m.glob).join(", ")}）`,
+    )
+    process.exit(1)
+}
+
+const allFiles = []
+const rendered = []
+const problems = []
+for (const root of await Promise.all(roots.map((rootDir) => readRoot(rootDir)))) {
+    if (root.problems.length > 0) {
+        problems.push(...root.problems)
+        continue
+    }
+    const keys = keyUnionOf(root.catalogs)
+    if (keys.length === 0) {
+        problems.push(`${root.dir}：清单里没有任何 key`)
+        continue
+    }
+    allFiles.push(...root.files)
+    rendered.push({
+        out: join(ROOT, root.dir, "messages.gen.ts"),
+        text: render(root, keys),
+    })
+}
+
+if (process.argv.includes("--list")) {
+    for (const file of allFiles.toSorted(byCodeUnit)) console.log(file)
+}
+
+if (problems.length > 0) {
+    console.error(`i18n codegen failed（${problems.length} 条，不写任何生成物）：`)
+    for (const problem of problems) console.error(`  - ${problem}`)
+    process.exit(1)
+}
+
+if (MODE === "check") {
+    const drift = await Promise.all(
+        rendered.map(async ({ out, text }) =>
+            (await readFile(out, "utf8").catch(() => undefined)) === text
+                ? undefined
+                : relativeToRoot(out),
+        ),
+    )
+    const missing = drift.filter((path) => path !== undefined)
+    if (missing.length > 0) {
+        console.error(
+            `i18n 生成物与资源不同步：${missing.join(", ")}\n  → 跑 pnpm gen:i18n 重新生成后连同资源一起提交`,
+        )
+        process.exit(1)
+    }
+    console.log(`i18n codegen ok（${allFiles.length} 个资源文件，生成物无漂移）`)
+    process.exit(0)
+}
+
+await Promise.all(rendered.map(({ out, text }) => writeFile(out, text, "utf8")))
+console.log(
+    `i18n codegen wrote ${rendered.length} 份生成物，覆盖 ${allFiles.length} 个资源文件（语言：${SUPPORTED_LOCALES.join(", ")}）`,
+)

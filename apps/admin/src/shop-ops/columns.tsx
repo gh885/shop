@@ -1,5 +1,5 @@
 import type { AdminShopItem } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { actionsColumn } from "#/shared/ui/columns"
@@ -35,7 +35,7 @@ export const shopColumns: ColumnDef<DataTableFeatures, AdminShopItem>[] = [
         accessorKey: "createdAt",
         header: "创建时间",
         meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => formatDateTime(row.original.createdAt),
+        cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
     },
     actionsColumn((shop) => (
         <div className="flex justify-end gap-2">

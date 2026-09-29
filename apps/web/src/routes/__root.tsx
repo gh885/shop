@@ -3,11 +3,13 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
 import { buttonVariants, ConfirmDialogHost, Toaster } from "@shop/ui-web"
-import { I18nProvider, useI18n, useT } from "@shop/app-kit"
+import { I18nProvider, useI18n } from "@shop/app-kit"
+import { localeScope } from "#/shared/lib/locale-scope"
 
 import TanStackQueryDevtools from "#/app/tanstack-query/DevTools"
 import TanstackQueryProvider from "#/app/tanstack-query/TanstackQueryProvider"
 import { webMessages } from "#/locales"
+import { useT } from "#/locales/use-t"
 import { BackToTop } from "../layout/BackToTop"
 import { RouteProgressBar } from "../layout/RouteProgressBar"
 import { LoginDialog } from "#/auth"
@@ -83,7 +85,10 @@ const devtoolsPlugins = [
 function RootDocument({ children }: { children: React.ReactNode }) {
     const { queryClient } = Route.useRouteContext()
     return (
-        <I18nProvider resources={webMessages}>
+        <I18nProvider
+            resources={webMessages}
+            scope={localeScope}
+        >
             <DocumentShell queryClient={queryClient}>{children}</DocumentShell>
         </I18nProvider>
     )

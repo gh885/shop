@@ -1,4 +1,4 @@
-import { LOCALE_COOKIE_NAME, getCurrentLocale, resolveLocale, type AppLocale } from "@shop/common"
+import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME, resolveLocale, type AppLocale } from "@shop/common"
 
 /**
  * Locale 的浏览器管道：cookie 读写，以及「该用哪个 Locale」的回落顺序。
@@ -22,23 +22,23 @@ export function writeCookie(name: string, value: string): void {
     document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`
 }
 
-/** 首屏 Locale：装配侧给了就照它渲染（与服务端 HTML 同值，不做二次猜测），没给才用进程级当前值 */
+/**
+ * 首屏 Locale：装配侧给了就照它渲染（与服务端 HTML 同值，不做二次猜测），没给就是平台默认。
+ * 这里不再问「进程当前是什么语言」——那个可变量已删（§3.5），SSR 下它本来也不可信。
+ */
 export function initialLocaleOf(initialLocale?: AppLocale): AppLocale {
-    if (initialLocale) return initialLocale
-    return getCurrentLocale()
+    return initialLocale ?? DEFAULT_LOCALE
 }
 
 /**
- * 挂载后重定语言时的回落顺序：已存的 cookie → 浏览器语言 → 进程级当前值。
- * 最后一级冷启动就是平台默认 Locale（getCurrentLocale 的初值）。
+ * 挂载后重定语言时的回落顺序：已存的 cookie → 浏览器语言 → 平台默认。
  * 三条候选一起交给 resolveLocale：cookie 里可能是 `zh_CN`、navigator.language 可能是 `zh-Hans-CN`，
- * 归一与「不支持就往下走一级」都由它负责，不在这里各判一遍。
+ * 归一与「不支持就往下走一级」都由它负责，不在这里各判一遍（最后一档是它的返回值，不是候选）。
  */
 export function readPreferredLocale(): AppLocale {
     return resolveLocale([
         readCookie(LOCALE_COOKIE_NAME),
         typeof navigator === "undefined" ? undefined : navigator.language,
-        getCurrentLocale(),
     ])
 }
 

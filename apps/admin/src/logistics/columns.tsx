@@ -1,5 +1,5 @@
 import type { ShipmentIssueResponse } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { actionsColumn } from "#/shared/ui/columns"
@@ -42,7 +42,7 @@ export const issueColumns: ColumnDef<DataTableFeatures, ShipmentIssueResponse>[]
         accessorKey: "detectedAt",
         header: "发现时间",
         meta: { variant: "muted", className: "tabular-nums whitespace-nowrap" },
-        cell: ({ row }) => formatDateTime(row.original.detectedAt),
+        cell: ({ row }) => <TimeText iso={row.original.detectedAt} />,
     },
     actionsColumn((issue) => <IssueResolveAction issue={issue} />),
 ]

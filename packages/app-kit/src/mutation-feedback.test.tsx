@@ -5,6 +5,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { Toaster } from "@shop/ui-web"
 
+import { createLocaleScope } from "./i18n/scope"
 import type { MutationMeta } from "./mutation-meta"
 import { createAppQueryClient } from "./query-client"
 
@@ -27,7 +28,9 @@ function setup(
     /** 供「就地渲染错误」的写操作挂自己的 onError（全局 silentError 后仍要跑） */
     onError?: () => void,
 ) {
-    const queryClient = createAppQueryClient({ queries: { retry: false } })
+    const queryClient = createAppQueryClient(createLocaleScope("zh-CN"), {
+        queries: { retry: false },
+    })
     function Probe() {
         const mutation = useMutation({
             mutationFn,

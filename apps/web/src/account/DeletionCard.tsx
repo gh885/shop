@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 import { AccountDeletionApi } from "@shop/api/sdk"
 import {
     Button,
@@ -27,6 +27,7 @@ import { deletionKeys, deletionStatusOptions } from "./queries"
  * 这里复述一遍才不会两边各算一处、改一边忘一边。
  */
 export function DeletionCard() {
+    const { locale } = useI18n()
     const [dialogOpen, setDialogOpen] = useState(false)
     const status = useQuery(deletionStatusOptions())
 
@@ -81,7 +82,7 @@ export function DeletionCard() {
                             <>
                                 预计{" "}
                                 <span className="font-medium text-foreground tabular-nums">
-                                    {formatDateTime(status.data.effectiveAt)}
+                                    {formatDateTime(status.data.effectiveAt, locale)}
                                 </span>{" "}
                             </>
                         ) : (

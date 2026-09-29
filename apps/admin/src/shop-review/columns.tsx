@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import type { ShopReviewItem } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit"
 import { Badge, MaskedValueCell, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 
@@ -69,14 +69,14 @@ export function useReviewColumns({
                 accessorKey: "createdAt",
                 header: "申请时间",
                 meta: { variant: "muted", className: "tabular-nums" },
-                cell: ({ row }) => formatDateTime(row.original.createdAt),
+                cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
             },
             {
                 accessorKey: "decidedAt",
                 header: "处理时间",
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) =>
-                    row.original.decidedAt ? formatDateTime(row.original.decidedAt) : "—",
+                    row.original.decidedAt ? <TimeText iso={row.original.decidedAt} /> : "—",
             },
             actionsColumn((item) => <ReviewActions item={item} />),
         ],

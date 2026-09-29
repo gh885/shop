@@ -1,8 +1,8 @@
 import { useMemo } from "react"
 import { Outlet, useLocation } from "@tanstack/react-router"
-import { useT } from "@shop/app-kit"
 import { cn } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { PageBreadcrumb } from "#/shared/ui/PageBreadcrumb"
 import { AppTopBar } from "./AppTopBar"
 import { WorkbenchSidebar } from "@shop/app-kit"

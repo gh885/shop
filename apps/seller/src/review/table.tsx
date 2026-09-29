@@ -1,5 +1,5 @@
 import type { ProductReviewItem } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime, useI18n } from "@shop/app-kit"
 import { Star } from "lucide-react"
 import { Badge, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
 import { TableCard } from "#/shared/ui/TableCard"
@@ -46,6 +46,7 @@ export function ReviewTable({
     pageSize: number
     onPageChange: (page: number) => void
 }) {
+    const { locale } = useI18n()
     return (
         <TableCard
             total={total}
@@ -101,7 +102,7 @@ export function ReviewTable({
                             )}
                         </TableCell>
                         <TableCell className="tabular-nums">
-                            {formatDateTime(review.createdAt)}
+                            {formatDateTime(review.createdAt, locale)}
                         </TableCell>
                         <TableCell className="text-right">
                             {review.reply ? (

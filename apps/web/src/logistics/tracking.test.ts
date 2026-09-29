@@ -3,6 +3,9 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { buildMerchantGroups, buildShipmentTracks, buildTrackingGroups } from "./tracking"
 
+/** 时间形状不在这里测（model.test.ts 负责），语言固定一档 */
+const zh = "zh-CN" as const
+
 /** 夹具：轨迹节点 wire 形状（`buildTrackingGroups` 的唯一输入） */
 function makeNode(
     overrides: Partial<TrackingNodeResponse> &
@@ -42,35 +45,41 @@ function makeOrderTimeline(overrides: { createdAt?: string; shippedAt?: string |
 
 describe("buildTrackingGroups", () => {
     it("后端给正序，轴要倒序：最上面一条必须是刚发生的事", () => {
-        const groups = buildTrackingGroups([
-            makeNode({
-                nodeCode: "PICKED_UP",
-                status: "PICKED_UP",
-                occurredAt: "2026-07-26T14:09:00+08:00",
-            }),
-            makeNode({
-                nodeCode: "DELIVERED",
-                status: "DELIVERED",
-                occurredAt: "2026-07-29T18:35:00+08:00",
-            }),
-        ])
+        const groups = buildTrackingGroups(
+            [
+                makeNode({
+                    nodeCode: "PICKED_UP",
+                    status: "PICKED_UP",
+                    occurredAt: "2026-07-26T14:09:00+08:00",
+                }),
+                makeNode({
+                    nodeCode: "DELIVERED",
+                    status: "DELIVERED",
+                    occurredAt: "2026-07-29T18:35:00+08:00",
+                }),
+            ],
+            zh,
+        )
 
         expect(groups.map((g) => g.label)).toEqual(["已签收", "已揽件"])
     })
 
     it("到达与离开分拨同属「运输中」：轨迹要细，段标题要粗", () => {
-        const groups = buildTrackingGroups([
-            makeNode({
-                nodeCode: "ARRIVED_HUB",
-                status: "IN_TRANSIT",
-                occurredAt: "2026-07-26T23:10:00+08:00",
-            }),
-            makeNode({
-                nodeCode: "DEPARTED_HUB",
-                status: "IN_TRANSIT",
-                occurredAt: "2026-07-26T23:12:00+08:00",
-            }),
-        ])
+        const groups = buildTrackingGroups(
+            [
+                makeNode({
+                    nodeCode: "ARRIVED_HUB",
+                    status: "IN_TRANSIT",
+                    occurredAt: "2026-07-26T23:10:00+08:00",
+                }),
+                makeNode({
+                    nodeCode: "DEPARTED_HUB",
+                    status: "IN_TRANSIT",
+                    occurredAt: "2026-07-26T23:12:00+08:00",
+                }),
+            ],
+            zh,
+        )
 
         expect(groups).toHaveLength(1)
         expect(nth(groups, 0).nodes).toHaveLength(2)
@@ -79,74 +88,83 @@ describe("buildTrackingGroups", () => {
     })
 
     it("同一状态被别的状态打断后再次出现时分成两段，段 key 不撞", () => {
-        const groups = buildTrackingGroups([
-            makeNode({
-                nodeCode: "OUT_FOR_DELIVERY",
-                status: "DELIVERING",
-                occurredAt: "2026-07-28T10:00:00+08:00",
-            }),
-            makeNode({
-                nodeCode: "EXCEPTION",
-                status: "EXCEPTION",
-                occurredAt: "2026-07-28T12:00:00+08:00",
-            }),
-            makeNode({
-                nodeCode: "OUT_FOR_DELIVERY",
-                status: "DELIVERING",
-                occurredAt: "2026-07-28T15:00:00+08:00",
-            }),
-        ])
+        const groups = buildTrackingGroups(
+            [
+                makeNode({
+                    nodeCode: "OUT_FOR_DELIVERY",
+                    status: "DELIVERING",
+                    occurredAt: "2026-07-28T10:00:00+08:00",
+                }),
+                makeNode({
+                    nodeCode: "EXCEPTION",
+                    status: "EXCEPTION",
+                    occurredAt: "2026-07-28T12:00:00+08:00",
+                }),
+                makeNode({
+                    nodeCode: "OUT_FOR_DELIVERY",
+                    status: "DELIVERING",
+                    occurredAt: "2026-07-28T15:00:00+08:00",
+                }),
+            ],
+            zh,
+        )
 
         expect(groups.map((g) => g.label)).toEqual(["派送中", "物流异常", "派送中"])
         expect(new Set(groups.map((g) => g.key)).size).toBe(3)
     })
 
     it("承运商只给状态码不给描述时兜底文案，不留空行", () => {
-        const groups = buildTrackingGroups([
-            makeNode({
-                nodeCode: "ARRIVED_HUB",
-                status: "IN_TRANSIT",
-                occurredAt: "2026-07-26T23:10:00+08:00",
-                description: "   ",
-            }),
-        ])
+        const groups = buildTrackingGroups(
+            [
+                makeNode({
+                    nodeCode: "ARRIVED_HUB",
+                    status: "IN_TRANSIT",
+                    occurredAt: "2026-07-26T23:10:00+08:00",
+                    description: "   ",
+                }),
+            ],
+            zh,
+        )
 
         expect(nth(nth(groups, 0).nodes, 0).text).toBe("快件已到达")
     })
 
     it("异常段整段标红（含段内续行），不是只标那一条", () => {
-        const groups = buildTrackingGroups([
-            makeNode({
-                nodeCode: "EXCEPTION",
-                status: "EXCEPTION",
-                occurredAt: "2026-07-27T10:00:00+08:00",
-            }),
-            makeNode({
-                nodeCode: "EXCEPTION",
-                status: "EXCEPTION",
-                occurredAt: "2026-07-27T11:00:00+08:00",
-            }),
-        ])
+        const groups = buildTrackingGroups(
+            [
+                makeNode({
+                    nodeCode: "EXCEPTION",
+                    status: "EXCEPTION",
+                    occurredAt: "2026-07-27T10:00:00+08:00",
+                }),
+                makeNode({
+                    nodeCode: "EXCEPTION",
+                    status: "EXCEPTION",
+                    occurredAt: "2026-07-27T11:00:00+08:00",
+                }),
+            ],
+            zh,
+        )
 
         expect(nth(groups, 0).abnormal).toBe(true)
         expect(nth(groups, 0).nodes.every((n) => n.abnormal)).toBe(true)
     })
 
     it("无节点（已发货未揽收）给空轴，不造假的占位节点", () => {
-        expect(buildTrackingGroups([])).toEqual([])
+        expect(buildTrackingGroups([], zh)).toEqual([])
     })
 })
 
 describe("buildMerchantGroups", () => {
     it("未发货只有「已下单」：发货时刻还没发生，不能提前画一条", () => {
-        const groups = buildMerchantGroups(makeOrderTimeline({ shippedAt: null }))
+        const groups = buildMerchantGroups(makeOrderTimeline({ shippedAt: null }), zh)
 
         expect(groups.map((g) => g.label)).toEqual(["已下单"])
         expect(nth(nth(groups, 0).nodes, 0).text).toBe("商品已经下单")
     })
 
     it("已发货时两条按新 → 旧排，发货在下单之上", () => {
-        const groups = buildMerchantGroups(makeOrderTimeline())
+        const groups = buildMerchantGroups(makeOrderTimeline(), zh)
 
         expect(groups.map((g) => g.label)).toEqual(["已发货", "已下单"])
         expect(nth(nth(groups, 0).nodes, 0).time).toBe("07-26 09:06")
@@ -162,6 +180,7 @@ describe("buildShipmentTracks", () => {
                 makeShipment({ trackingNo: "A" }),
                 makeShipment({ trackingNo: "B", direction: "RETURN", carrierName: "顺丰速运" }),
             ],
+            zh,
             order,
         )
 
@@ -194,6 +213,7 @@ describe("buildShipmentTracks", () => {
                     ],
                 }),
             ],
+            zh,
             order,
         )
 
@@ -203,13 +223,13 @@ describe("buildShipmentTracks", () => {
     })
 
     it("订单详情还没到时不合成商家侧事件，先只画包裹事实", () => {
-        const tracks = buildShipmentTracks([makeShipment()], undefined)
+        const tracks = buildShipmentTracks([makeShipment()], zh, undefined)
 
         expect(nth(tracks, 0).groups).toEqual([])
     })
 
     it("已发货未揽收时，最新高亮落到「已发货」上（否则整条轴一处高亮都没有）", () => {
-        const tracks = buildShipmentTracks([makeShipment({ status: "PENDING_PICKUP" })], order)
+        const tracks = buildShipmentTracks([makeShipment({ status: "PENDING_PICKUP" })], zh, order)
 
         const timeline = nth(tracks, 0).groups
 

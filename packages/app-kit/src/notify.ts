@@ -1,4 +1,4 @@
-import { toApiError } from "@shop/common"
+import { toApiError, type AppLocale } from "@shop/common"
 
 import { translateAppKit } from "./i18n/messages"
 import { toast } from "@shop/ui-web"
@@ -28,9 +28,19 @@ export const notify = {
     warning(title: string, description?: string) {
         toast.add({ title, description, type: "warning" })
     },
-    /** 从任意错误提取用户可读文案：后端有 detail 优先展示；网络层错误（status 0）用调用方场景兜底 */
-    fromError(err: unknown, fallback = translateAppKit("appKit.error.network")) {
+    /**
+     * 从任意错误提取用户可读文案：后端有 detail 优先展示；网络层错误（status 0）用调用方场景兜底。
+     *
+     * `locale` 必填（§3.5 约束 2）：兜底文案是**这里现取的** `translateAppKit`，不传就等于让
+     * 「toast 用什么语言」回到进程级可变量。调用点在组件里就传 `useI18n().locale`，
+     * 只有全局 `MutationCache` 那处传不动参，用的是装配注入的 scope。
+     */
+    fromError(err: unknown, locale: AppLocale, fallback?: string) {
         const e = toApiError(err)
-        this.error(e.status === 0 ? fallback : e.detail)
+        this.error(
+            e.status === 0
+                ? (fallback ?? translateAppKit("appKit.error.network", locale))
+                : e.detail,
+        )
     },
 }

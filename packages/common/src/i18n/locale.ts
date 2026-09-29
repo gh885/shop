@@ -72,13 +72,3 @@ export function fallbackChainOf(locale: AppLocale): AppLocale[] {
     }
     return chain
 }
-
-let currentLocale: AppLocale = DEFAULT_LOCALE
-
-export function getCurrentLocale(): AppLocale {
-    return currentLocale
-}
-
-export function setCurrentLocale(locale: AppLocale): void {
-    currentLocale = locale
-}

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
-import { useT } from "@shop/app-kit"
 
+import { useT } from "#/locales/use-t"
 import { isExternalTarget } from "#/shared/lib/external"
 
 import { FOOTER_GROUPS } from "./constants"

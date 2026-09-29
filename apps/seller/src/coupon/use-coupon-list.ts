@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
+import { useI18n } from "@shop/app-kit"
+
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import { couponRowFromWire, type CouponListSearch } from "./model"
 import { couponListOptions, useStopCoupon } from "./queries"
@@ -16,10 +18,13 @@ export function useCouponList(shopId: string, search: CouponListSearch) {
     const coupons = useQuery(couponListOptions(shopId, search))
     const stop = useStopCoupon(shopId)
     const { busyId, run } = useRowBusy()
+    const { locale } = useI18n()
     const [now] = useState(() => Date.now())
 
     return {
-        rows: (coupons.data?.records ?? []).map((template) => couponRowFromWire(template, now)),
+        rows: (coupons.data?.records ?? []).map((template) =>
+            couponRowFromWire(template, now, locale),
+        ),
         total: coupons.data?.total ?? 0,
         isPending: coupons.isLoading,
         busyId,

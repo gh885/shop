@@ -2,6 +2,22 @@
 
 只有前端**无法仅通过 HTTP status 区分**时才定义 code，否则省略 code，让 `detail` 承载用户提示。
 
+> **这条判据正在改版**（未落地）。[i18n.md §7.3](conventions/i18n.md) 已把用户可见错误文案的归属改到前端 catalog，判据从「前端要不要分支」变成「这句话是否用户可见」。
+>
+> 目标契约（三行，与下面的过渡行为分开，别让兜底长成永久架构）：
+>
+> - 已知 code → `error.<CODE>` 的本地化文案
+> - 未知 code / 非预期错误 → 本地化通用提示
+> - `detail` → 只进日志与诊断，**不进任何用户可见路径**
+>
+> 今天仍然是过渡态：`notify.ts` 优先读后端 detail，所以本表下方各行的「toast 展示 detail「…」」是**当前实现的事实**，不是目标形态。detail 兜底的退出条件是两个可核对的事实——① 反向门禁转绿（每个 code 在前端 catalog 恰有一条 `error.<CODE>`）；② 生产代码里渲染 detail 的分支清零。两条都成立之前，不许把上面三行当成现状读。
+>
+> 落地需要三件事，都在 i18n.md 的 §9 P0′ / P3′-b 排队：
+>
+> 1. 逐条扫出「有用户可见 detail、却没有 code」的漏网，补上 code
+> 2. `ErrorCodeVocabularyTest` 加反向核对：每个 code 在前端 catalog 恰有一条 `error.<CODE>`
+> 3. 422 校验族从成品中文句子改为参数（`{field, rule, min, max}`）——那族数字是 OpenAPI 契约的一部分，动它要 `pnpm gen:sdk`
+
 三边由 `ErrorCodeVocabularyTest`（无库、不起 Spring、纯文本 + 反射）核对，谁改了任何一边忘了另一边就红：
 
 - **Java 侧**：抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（41 处站点 / 19 个文件收成一处）

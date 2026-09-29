@@ -1,7 +1,8 @@
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router"
 
-import { useT } from "@shop/app-kit"
 import { buttonVariants, ConfirmDialogHost, Toaster } from "@shop/ui-web"
+
+import { useT } from "#/locales/use-t"
 
 export const Route = createRootRoute({
     notFoundComponent: NotFound,

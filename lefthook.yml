@@ -109,3 +109,10 @@ pre-push:
         - name: sdk-drift
           tags: [contract]
           run: bash scripts/check-sdk-drift.sh
+
+        # i18n 生成物漂移：资源变了却没跑 pnpm gen:i18n 就拦下。
+        # 这条作业同时是 codegen 判据的执行点（缺条目/语法/跨语言参数/number,currency），
+        # --check 模式一条不过就非零退出不写文件，见 scripts/i18n-codegen.mjs 头注释与 i18n.md §5.5
+        - name: i18n-drift
+          tags: [contract]
+          run: pnpm i18n:drift

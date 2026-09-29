@@ -28,6 +28,9 @@ jobs:
             # 命令口径仍以 package.json 的 script 为唯一出口，这里只调 script，不复制 vp 参数
             - name: lint
               run: pnpm lint:web
+            # 先判生成物漂移再 typecheck：资源改了却没重新生成时，这条报错比 tsc 里一堆类型对不上好读
+            - name: i18n
+              run: pnpm i18n:drift
             - name: typecheck
               run: pnpm typecheck
             # github-annotations：发现直接标在 PR diff 对应行上

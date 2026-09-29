@@ -2,6 +2,7 @@ import type { BannerResponse } from "@shop/api/sdk"
 
 import type { ColumnDef } from "@tanstack/react-table"
 import { Image, type DataTableFeatures } from "@shop/ui-web"
+import { useI18n } from "@shop/app-kit"
 
 import { codeColumn, cmsStatusColumn, sortOrderColumn, targetTypeColumn } from "../list-columns"
 import { bannerWindowText } from "../display"
@@ -9,6 +10,15 @@ import { actionsColumn } from "#/shared/ui/columns"
 import { CmsRowActions } from "../row-actions"
 import { useSetBannerStatus } from "./queries"
 import { BannerFormDialog } from "./form-dialog"
+
+/**
+ * 生效窗口那一格：列定义是模块级数组、`cell` 不是组件，所以语言只能由这个小组件订阅
+ * （切语言时它必然重画，读装配级 scope 则不保证）。折文案的规则本身仍在 `../display`（可在 node 测）。
+ */
+function BannerWindowCell({ startAt, endAt }: { startAt: string | null; endAt: string | null }) {
+    const { locale } = useI18n()
+    return bannerWindowText(startAt, endAt, locale)
+}
 
 function BannerActions({ banner }: { banner: BannerResponse }) {
     const setStatus = useSetBannerStatus()
@@ -66,7 +76,12 @@ export const bannerColumns: ColumnDef<DataTableFeatures, BannerResponse>[] = [
         accessorKey: "startAt",
         header: "生效窗口",
         meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => bannerWindowText(row.original.startAt, row.original.endAt),
+        cell: ({ row }) => (
+            <BannerWindowCell
+                startAt={row.original.startAt}
+                endAt={row.original.endAt}
+            />
+        ),
     },
     sortOrderColumn(),
     cmsStatusColumn(),

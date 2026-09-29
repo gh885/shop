@@ -1,0 +1,16 @@
+{
+    "admin.nav.account": "Accounts",
+    "admin.nav.account.section.0": "Account Governance",
+    "admin.nav.merchant": "Merchants",
+    "admin.nav.merchant.section.0": "Merchant Management",
+    "admin.nav.product": "Products",
+    "admin.nav.product.section.0": "Product Foundation",
+    "admin.nav.coupon-ops.section.0": "Marketing Operations",
+    "admin.nav.cms": "Content",
+    "admin.nav.cms.section.0": "Homepage CMS",
+    "admin.nav.coupon-ops": "Coupons",
+    "admin.nav.logistics": "Logistics",
+    "admin.nav.logistics.section.0": "Fulfillment Ops",
+    "admin.nav.audit": "Audit",
+    "admin.nav.audit.section.0": "Governance Trail"
+}

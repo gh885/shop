@@ -1,0 +1,12 @@
+{
+    "web.login.title": "Sign in / Sign up",
+    "web.login.close": "Close",
+    "web.login.qrTitle": "Scan to sign in",
+    "web.login.qrComing": "Coming soon",
+    "web.login.qrHint": "QR sign-in is coming soon. Please use your phone number.",
+    "web.login.autoRegister": "New numbers are registered automatically once verified.",
+    "web.login.agreementPrefix": "By signing in, you agree to the",
+    "web.login.userAgreement": "User Agreement",
+    "web.login.and": "and",
+    "web.login.privacy": "Privacy Policy"
+}
