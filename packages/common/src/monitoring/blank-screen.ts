@@ -51,6 +51,17 @@ const SAMPLE_OFFSETS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 /** 判为「什么都没画」的容器：这些元素铺满页面，命中它们等于命中了空白背景 */
 const BLANK_ROOTS = new Set(["HTML", "BODY"])
 
+/** 能不能探测：无头/测试环境没有 `elementFromPoint`（或被 stub）。无法判定时宁可漏报也不
+ *  误报——白屏误报会变成「天天白屏却查不出」的噪音。 */
+function canProbeDom(): boolean {
+    return typeof document !== "undefined" && typeof document.elementFromPoint === "function"
+}
+
+/** 命中的这个点算不算「空白」：落在 html/body 上，或落在根容器本身（容器在、里面空）。 */
+function isBlankPoint(el: Element, root: Element | null): boolean {
+    return BLANK_ROOTS.has(el.tagName) || (root !== null && el === root)
+}
+
 /**
  * 检测当前是否白屏。
  *
@@ -59,24 +70,19 @@ const BLANK_ROOTS = new Set(["HTML", "BODY"])
  * @returns 是否白屏
  */
 export function isBlankScreen(rootSelector = "#root"): boolean {
-    if (typeof document === "undefined" || typeof document.elementFromPoint !== "function") {
-        // 无头/测试环境没有 elementFromPoint（或被 stub），无法判定时返回 false——
-        // 这里宁可漏报也不误报，白屏误报会变成「天天白屏却查不出」的噪音
-        return false
-    }
+    if (!canProbeDom()) return false
     const width = window.innerWidth
     const height = window.innerHeight
     if (width === 0 || height === 0) return false
 
+    // 根容器取一次：81 个采样点查的是同一个元素，逐点 querySelector 既没意义也是纯浪费
+    const root = rootSelector ? document.querySelector(rootSelector) : null
+
     for (const offsetX of SAMPLE_OFFSETS) {
         for (const offsetY of SAMPLE_OFFSETS) {
             const el = document.elementFromPoint(width * offsetX, height * offsetY)
-            if (!el) continue // 点到视口外（不可能，但保险起见不当成空白）
-            if (BLANK_ROOTS.has(el.tagName)) return true // 命中空白根
-            if (rootSelector) {
-                const root = document.querySelector(rootSelector)
-                if (root && el === root) return true // 命中根容器本身：容器在但里面空的
-            }
+            // 点到视口外（不可能，但保险起见不当成空白）
+            if (el && isBlankPoint(el, root)) return true
         }
     }
     return false
