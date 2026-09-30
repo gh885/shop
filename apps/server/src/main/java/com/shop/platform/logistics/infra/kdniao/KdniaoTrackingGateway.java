@@ -1,5 +1,6 @@
 package com.shop.platform.logistics.infra.kdniao;
 
+import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.logistics.service.CarrierTrackingGateway;
 import com.shop.platform.logistics.service.CarrierTrackingNode;
 import java.util.List;
@@ -65,24 +66,55 @@ public class KdniaoTrackingGateway implements CarrierTrackingGateway {
         form.add("DataSign", KdniaoSign.sign(requestData, props.getAppKey()));
         form.add("DataType", "2");
 
-        String body = restClient
-                .post()
-                .uri(props.getEndpoint())
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(form)
-                .retrieve()
-                .body(String.class);
-        return parse(body);
+        String body;
+        try {
+            body = restClient
+                    .post()
+                    .uri(props.getEndpoint())
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(form)
+                    .retrieve()
+                    .body(String.class);
+        } catch (RuntimeException ex) {
+            BizEvent.of("logistics.tracking_query.failed")
+                    .put("reason", "gateway_error")
+                    .put("carrier_code", carrierCode)
+                    .put("error.type", ex.getClass().getName())
+                    .put("error.message", ex.getMessage())
+                    .error(ex);
+            throw ex;
+        }
+        return parse(body, carrierCode);
     }
 
     /** 响应解析：{@code {Success, State, Traces:[{AcceptTime, AcceptStation, Location}]}} */
-    private List<CarrierTrackingNode> parse(String body) {
+    private List<CarrierTrackingNode> parse(String body, String carrierCode) {
         if (!StringUtils.hasText(body)) {
+            BizEvent.of("logistics.tracking_query.failed")
+                    .put("reason", "empty_response")
+                    .put("carrier_code", carrierCode)
+                    .put("error.message", "empty response body")
+                    .warn();
             return List.of();
         }
-        JsonNode root = objectMapper.readTree(body);
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(body);
+        } catch (RuntimeException ex) {
+            BizEvent.of("logistics.tracking_query.failed")
+                    .put("reason", "parse_error")
+                    .put("carrier_code", carrierCode)
+                    .put("error.type", ex.getClass().getName())
+                    .put("error.message", ex.getMessage())
+                    .error(ex);
+            return List.of();
+        }
         if (!root.path("Success").asBoolean(false)) {
-            log.warn("[LOGISTICS] 快递鸟查询未成功, 原因={}", root.path("Reason").asString(""));
+            BizEvent.of("logistics.tracking_query.failed")
+                    .put("reason", "carrier_rejected")
+                    .put("carrier_code", carrierCode)
+                    .put("error.message", root.path("Reason").asString(""))
+                    .warn();
             return List.of();
         }
         return KdniaoTraces.parse(root);
