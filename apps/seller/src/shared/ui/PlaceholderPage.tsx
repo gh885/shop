@@ -9,7 +9,7 @@ import { cn } from "@shop/ui-web"
  */
 export function PlaceholderPage({ title }: { title?: string }) {
     return (
-        <div className="mx-auto flex max-w-xl flex-1 flex-col items-center justify-center gap-4 py-20 text-center">
+        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-4 py-20 text-center">
             <div className="flex size-14 items-center justify-center rounded-lg bg-muted">
                 <ConstructionIcon className="size-7 text-muted-foreground" />
             </div>

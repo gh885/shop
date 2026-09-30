@@ -149,7 +149,7 @@ function BusinessModes() {
     return (
         <section className="bg-sunken">
             <m.div
-                className="mx-auto max-w-6xl px-4 py-24"
+                className="mx-auto w-full max-w-6xl px-4 py-24"
                 initial={reduce ? false : { opacity: 0, y: 32 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
@@ -244,7 +244,7 @@ function Steps() {
     return (
         <section
             id="steps"
-            className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24"
+            className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 py-24"
         >
             <SectionTitle>三步开店，流程透明</SectionTitle>
             <ol className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-6">
@@ -274,7 +274,7 @@ function Steps() {
 function FinalCta() {
     return (
         <section className="bg-primary-subtle">
-            <Reveal className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center">
+            <Reveal className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center">
                 <Store className="size-10 text-primary" />
                 <h2 className="text-3xl font-bold text-primary-subtle-foreground">
                     准备好开店了吗？

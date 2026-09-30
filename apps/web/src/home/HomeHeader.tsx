@@ -11,7 +11,7 @@ export function HomeHeader() {
     return (
         <div className="sticky top-0 z-30">
             <header className="h-(--home-header-height) border-b border-border/60 bg-background/95 backdrop-blur">
-                <div className="mx-auto flex h-full max-w-page items-center gap-4 px-6 sm:gap-8">
+                <div className="mx-auto flex h-full w-full max-w-page items-center gap-4 px-6 sm:gap-8">
                     {/* 品牌 logo：图形标 + 字标 */}
                     <Link
                         to="/"

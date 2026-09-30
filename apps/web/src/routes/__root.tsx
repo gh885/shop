@@ -12,7 +12,6 @@ import { webMessages } from "#/locales"
 import { useT } from "#/locales/use-t"
 import { BackToTop } from "../layout/BackToTop"
 import { RouteProgressBar } from "../layout/RouteProgressBar"
-import { LoginDialog } from "#/auth"
 import { SiteFooter } from "../layout/SiteFooter"
 import { SiteHeader } from "../layout/SiteHeader"
 import { bootstrapAuth, useLoginDialogOpen } from "../shared/api/auth"
@@ -21,7 +20,7 @@ import { useWebMonitoring } from "../shared/lib/monitoring"
 import appCss from "../styles.css?url"
 
 import type { QueryClient } from "@tanstack/react-query"
-import { useEffect } from "react"
+import { lazy, Suspense, useEffect, useState } from "react"
 
 interface MyRouterContext {
     queryClient: QueryClient
@@ -60,7 +59,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 function NotFound() {
     const t = useT()
     return (
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-24">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-4 py-24">
             <p className="text-sm font-medium text-muted-foreground">404</p>
             <h1 className="text-3xl font-bold">{t("common.notFound.title")}</h1>
             <p className="text-muted-foreground">{t("common.notFound.description")}</p>
@@ -131,19 +130,42 @@ function DocumentShell({
     )
 }
 
-/** 全局登录 Dialog（路由守卫也会拉起它） */
+/**
+ * 全局登录 Dialog。弹窗本体走 lazy：它把 app-kit 的 LoginForm → ui-web 的 PhoneField →
+ * `react-phone-number-input/min` 整条链拖进来，libphonenumber 的号码元数据单 `metadata.min.json`
+ * 一项就 24KB gzip，而那是**点「登录」之后**才需要的代码（量法见 `node scripts/perf-attrib.mjs
+ * web/client --why phone-field`）。静态 import 时 TanStack Start 会把它列进每个页面的
+ * `<link rel=modulepreload>`，等于让落地页和商详也下一遍。
+ *
+ * 「首次打开才挂载、之后一直挂着」：不打开就零成本；关闭的退场动画需要组件在场，每次开关都卸载会让动画直接消失。
+ *
+ * `bootstrapAuth()` 留在壳里同步跑——首屏就要做（用 httpOnly refresh cookie 换回内存里的 access
+ * token，决定页头登录态），它不碰 LoginForm 那条重链。
+ */
+const LazyLoginDialog = lazy(() =>
+    import("#/auth/LoginDialog").then((module) => ({ default: module.LoginDialog })),
+)
+
 function GlobalLoginDialog() {
     const [open, setOpen] = useLoginDialogOpen()
+    const [keepMounted, setKeepMounted] = useState(open)
 
-    // 启动时静默刷新登录态（refresh cookie 有效则免登录）
+    // 渲染期把「打开过」记下来（React 对「随 prop 调整 state」的推荐写法）：
+    // 放进 useEffect 会多排一次渲染，而这里要的只是首次打开之后不再卸载
+    if (open && !keepMounted) setKeepMounted(true)
+
     useEffect(() => {
         void bootstrapAuth()
     }, [])
 
+    if (!keepMounted) return null
+
     return (
-        <LoginDialog
-            open={open}
-            onOpenChange={setOpen}
-        />
+        <Suspense fallback={null}>
+            <LazyLoginDialog
+                open={open}
+                onOpenChange={setOpen}
+            />
+        </Suspense>
     )
 }

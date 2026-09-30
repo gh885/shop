@@ -58,7 +58,7 @@ function Home() {
     return (
         <>
             <HomeHeader />
-            <section className="mx-auto flex max-w-page flex-col gap-4 px-6 py-6 lg:flex-row">
+            <section className="mx-auto flex w-full max-w-page flex-col gap-4 px-6 py-6 lg:flex-row">
                 <HomeCategoryNav />
                 <HomeBanners />
                 <div className="hidden shrink-0 lg:block">

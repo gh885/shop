@@ -38,7 +38,7 @@ export function SiteHeader() {
         <header className="border-b border-border/60 bg-sunken/60">
             {/* 窄屏换行而不是压缩：单行不折行时，登录/购物车会被顶出右边界（320px 下不可点、也不可横向滚到）。
                 md 起仍锁回 36px 单行，视觉与原来一致 */}
-            <div className="mx-auto flex min-h-9 max-w-page flex-wrap items-center gap-x-6 gap-y-1 px-6 py-1 md:h-9 md:py-0">
+            <div className="mx-auto flex min-h-9 w-full max-w-page flex-wrap items-center gap-x-6 gap-y-1 px-6 py-1 md:h-9 md:py-0">
                 <span className="text-xs text-muted-foreground">{t("web.header.region")}</span>
 
                 <SiteNav />

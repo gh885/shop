@@ -73,7 +73,7 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
         return (
             <div className="sticky top-(--home-header-height) z-30">
                 <div className="bg-background/95 backdrop-blur">
-                    <div className="mx-auto max-w-page px-6 py-3">
+                    <div className="mx-auto w-full max-w-page px-6 py-3">
                         <Skeleton className="h-6 w-1/2 rounded-sm" />
                     </div>
                     <div className="feed-divider" />
@@ -85,7 +85,7 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
     return (
         <div className="sticky top-(--home-header-height) z-30">
             <div className="bg-background/95 backdrop-blur">
-                <div className="mx-auto flex max-w-page items-center gap-4 px-6 py-3">
+                <div className="mx-auto flex w-full max-w-page items-center gap-4 px-6 py-3">
                     {/* 左侧往回翻页：第一页隐藏 */}
                     {clampedPage > 0 && (
                         <Tooltip>

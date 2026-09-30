@@ -118,7 +118,7 @@ function Categories() {
             id="categories"
             className="scroll-mt-20 bg-sunken"
         >
-            <div className="mx-auto max-w-6xl px-4 py-24">
+            <div className="mx-auto w-full max-w-6xl px-4 py-24">
                 <SectionTitle>按分类逛逛</SectionTitle>
                 <p className="mt-2 text-muted-foreground">分类浏览即将上线，先看看都有什么。</p>
 
@@ -152,7 +152,7 @@ function Categories() {
 
 function SellerBanner() {
     return (
-        <section className="mx-auto max-w-6xl px-4 py-24">
+        <section className="mx-auto w-full max-w-6xl px-4 py-24">
             <Reveal className="flex flex-col items-start gap-4 rounded-xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-start gap-4">
                     <Store className="mt-1 size-8 shrink-0 text-primary" />

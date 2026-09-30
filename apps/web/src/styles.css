@@ -88,7 +88,7 @@ body {
 
 /* 推荐条与内容区之间的版心分隔线（骨架态与正常态各一处） */
 @utility feed-divider {
-    @apply mx-auto max-w-page border-t border-border/60 px-6;
+    @apply mx-auto w-full max-w-page border-t border-border/60 px-6;
 }
 
 /* 窄版心页面容器（订单详情 / 物流详情共用：mx-auto w-full max-w-narrow flex-1 px-6 py-8） */

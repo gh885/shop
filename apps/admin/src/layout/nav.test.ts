@@ -72,7 +72,6 @@ describe("visibleNavGroups", () => {
     it("只留这个人进得去的分组：审核员有入驻审核与店铺治理，没有员工管理", () => {
         const groups = visibleNavGroups(NAV_ITEMS, ["SHOP_REVIEW", "SHOP_GOVERNANCE", "AUDIT_VIEW"])
         const keys = groups.map((group) => group.key)
-
         expect(keys).toContain("merchant")
         expect(keys).not.toContain("account")
         expect(keys).not.toContain("coupon-ops")
@@ -86,5 +85,18 @@ describe("visibleNavGroups", () => {
 
         expect(groups.every((group) => group.sections.length > 0)).toBe(true)
         expect(groups.map((group) => group.key)).toContain("account")
+    })
+})
+
+/**
+ * 这条不是口味测试，是 `AppSidebar` 那处占位的依据：侧栏在首份权限落地前就替二级列留了位置
+ * （`WorkbenchSidebar` 的 `pending`），成立条件是「当前路由必然有二级列」——入口全是分组才成立。
+ * 哪天加了顶层叶子入口（点一下直接到页面、没有二级），那一列就是凭空多出来的 176px，
+ * 占位要改成按路由判定，别默认全端都在等权限。
+ */
+describe("NAV_ITEMS 的形状", () => {
+    it("入口全是分组，没有顶层叶子", () => {
+        const leaves = NAV_ITEMS.filter((item) => !("sections" in item))
+        expect(leaves.map((item) => item.key)).toEqual([])
     })
 })
