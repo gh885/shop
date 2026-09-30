@@ -1,13 +1,17 @@
 {
     "schema": 1,
-    "ts": "2026-09-29T09:47:42.543Z",
-    "version": "06d302c7",
+    "ts": "2026-09-29T17:39:04.946Z",
+    "version": "e6aebb6e",
     "targets": {
         "web/client": {
             "totals": {
                 "js": {
-                    "files": 57,
-                    "gzip": 651440
+                    "files": 115,
+                    "gzip": 683327
+                },
+                "other": {
+                    "files": 115,
+                    "gzip": 2604682
                 },
                 "css": {
                     "files": 1,
@@ -15,15 +19,24 @@
                 },
                 "html": {
                     "files": 2,
-                    "gzip": 12872
+                    "gzip": 13122
                 }
             },
             "chunks": {
-                "assets/src.js": {
-                    "gzip": 430777
-                },
                 "assets/index.js": {
-                    "gzip": 78535
+                    "gzip": 120059
+                },
+                "assets/LoginDialog.js": {
+                    "gzip": 55484
+                },
+                "assets/src.js": {
+                    "gzip": 51386
+                },
+                "assets/form.js": {
+                    "gzip": 48651
+                },
+                "assets/address.js": {
+                    "gzip": 40332
                 },
                 "assets/styles.css": {
                     "gzip": 31976
@@ -34,128 +47,127 @@
                 "assets/landing.js": {
                     "gzip": 27863
                 },
-                "assets/order.js": {
-                    "gzip": 14143
-                },
-                "assets/checkout.js": {
-                    "gzip": 8019
+                "assets/routes.js": {
+                    "gzip": 18066
                 },
                 "assets/_orderId.js": {
-                    "gzip": 6920
+                    "gzip": 17316
                 },
-                "assets/sell.js": {
-                    "gzip": 5930
+                "assets/inertValue.js": {
+                    "gzip": 14879
                 },
-                "assets/address.js": {
-                    "gzip": 5834
+                "assets/useCompositeItem.js": {
+                    "gzip": 14772
                 },
-                "assets/reviews.js": {
-                    "gzip": 4800
+                "assets/dist.js": {
+                    "gzip": 13687
                 },
                 "assets/Gallery.js": {
-                    "gzip": 4319
+                    "gzip": 13002
                 },
-                "assets/link.js": {
-                    "gzip": 4227
-                },
-                "assets/security.js": {
-                    "gzip": 4171
-                },
-                "assets/welcome.js": {
-                    "gzip": 2306
+                "assets/search.js": {
+                    "gzip": 12194
                 },
                 "assets/_id.js": {
-                    "gzip": 2250
+                    "gzip": 12119
                 },
-                "assets/route.js": {
-                    "gzip": 2223
+                "assets/messages.js": {
+                    "gzip": 11613
                 },
-                "assets/ProductCard.js": {
-                    "gzip": 1856
+                "assets/security.js": {
+                    "gzip": 11273
                 },
-                "assets/profile.js": {
-                    "gzip": 1778
+                "assets/notify.js": {
+                    "gzip": 8850
                 },
-                "assets/favorites.js": {
-                    "gzip": 1754
+                "assets/useMutation.js": {
+                    "gzip": 8709
                 }
             }
         },
         "web/server": {
             "totals": {
                 "js": {
-                    "files": 45,
-                    "gzip": 791554
+                    "files": 91,
+                    "gzip": 798345
+                },
+                "other": {
+                    "files": 89,
+                    "gzip": 1605245
                 }
             },
             "chunks": {
-                "assets/src.js": {
-                    "gzip": 538496
+                "assets/LoginDialog.js": {
+                    "gzip": 86707
                 },
-                "assets/router.js": {
-                    "gzip": 53982
+                "assets/form.js": {
+                    "gzip": 78616
+                },
+                "assets/address.js": {
+                    "gzip": 59117
                 },
                 "server.js": {
-                    "gzip": 53971
+                    "gzip": 53975
+                },
+                "assets/src.js": {
+                    "gzip": 52440
+                },
+                "assets/router.js": {
+                    "gzip": 37528
+                },
+                "assets/inertValue.js": {
+                    "gzip": 31694
                 },
                 "assets/regions.js": {
                     "gzip": 30205
                 },
-                "assets/order.js": {
-                    "gzip": 20865
-                },
-                "assets/checkout.js": {
-                    "gzip": 10210
-                },
-                "assets/cart.js": {
-                    "gzip": 8060
-                },
-                "assets/address.js": {
-                    "gzip": 7947
+                "assets/useCompositeItem.js": {
+                    "gzip": 25056
                 },
                 "assets/_orderId.js": {
-                    "gzip": 7381
+                    "gzip": 23005
                 },
-                "assets/coupon.js": {
-                    "gzip": 7041
-                },
-                "assets/reviews.js": {
-                    "gzip": 6451
+                "assets/routes.js": {
+                    "gzip": 22677
                 },
                 "assets/Gallery.js": {
-                    "gzip": 5606
+                    "gzip": 18231
                 },
-                "assets/account.js": {
-                    "gzip": 5082
+                "assets/queries.js": {
+                    "gzip": 17962
                 },
-                "assets/ProductCard.js": {
-                    "gzip": 3857
-                },
-                "assets/security.js": {
-                    "gzip": 3757
-                },
-                "assets/sell.js": {
-                    "gzip": 3480
-                },
-                "assets/route.js": {
-                    "gzip": 3120
-                },
-                "assets/welcome.js": {
-                    "gzip": 2100
+                "assets/search.js": {
+                    "gzip": 16324
                 },
                 "assets/_id.js": {
-                    "gzip": 1864
+                    "gzip": 15609
                 },
-                "assets/auth.js": {
-                    "gzip": 1848
+                "assets/notify.js": {
+                    "gzip": 13650
+                },
+                "assets/dist.js": {
+                    "gzip": 13206
+                },
+                "assets/security.js": {
+                    "gzip": 11765
+                },
+                "assets/button.js": {
+                    "gzip": 11476
+                },
+                "assets/toggle.js": {
+                    "gzip": 9716
                 }
             }
         },
         "seller": {
             "totals": {
                 "js": {
-                    "files": 42,
-                    "gzip": 580681
+                    "files": 80,
+                    "gzip": 593079
+                },
+                "other": {
+                    "files": 80,
+                    "gzip": 2231524
                 },
                 "css": {
                     "files": 1,
@@ -163,15 +175,24 @@
                 },
                 "html": {
                     "files": 1,
-                    "gzip": 448
+                    "gzip": 657
                 }
             },
             "chunks": {
-                "assets/link.js": {
-                    "gzip": 294266
+                "assets/index.js": {
+                    "gzip": 103071
                 },
                 "assets/src.js": {
-                    "gzip": 158595
+                    "gzip": 70783
+                },
+                "assets/login.js": {
+                    "gzip": 57168
+                },
+                "assets/form.js": {
+                    "gzip": 54697
+                },
+                "assets/basic.js": {
+                    "gzip": 38226
                 },
                 "assets/index.css": {
                     "gzip": 31005
@@ -179,61 +200,56 @@
                 "assets/regions.js": {
                     "gzip": 29297
                 },
-                "assets/product.js": {
-                    "gzip": 15070
+                "assets/region.js": {
+                    "gzip": 27552
+                },
+                "assets/usePositioner.js": {
+                    "gzip": 15266
                 },
                 "assets/list.js": {
-                    "gzip": 13420
+                    "gzip": 14113
                 },
-                "assets/index.js": {
-                    "gzip": 7887
-                },
-                "assets/order.js": {
-                    "gzip": 6736
-                },
-                "assets/coupon.js": {
-                    "gzip": 5873
-                },
-                "assets/shipping.js": {
-                    "gzip": 4745
-                },
-                "assets/basic.js": {
-                    "gzip": 4714
+                "assets/useSelector.js": {
+                    "gzip": 12374
                 },
                 "assets/route.js": {
-                    "gzip": 4364
+                    "gzip": 12206
+                },
+                "assets/ComboboxItemIndicator.js": {
+                    "gzip": 12077
+                },
+                "assets/messages.js": {
+                    "gzip": 11549
+                },
+                "assets/confirm.js": {
+                    "gzip": 9188
+                },
+                "assets/useMutation.js": {
+                    "gzip": 8677
+                },
+                "assets/popover.js": {
+                    "gzip": 7117
+                },
+                "assets/coupon.js": {
+                    "gzip": 7057
+                },
+                "assets/zh.js": {
+                    "gzip": 7057
                 },
                 "assets/address.js": {
-                    "gzip": 3993
-                },
-                "assets/refund.js": {
-                    "gzip": 3695
-                },
-                "assets/useRouter.js": {
-                    "gzip": 3442
-                },
-                "assets/after.js": {
-                    "gzip": 3243
-                },
-                "assets/review.js": {
-                    "gzip": 3240
-                },
-                "assets/member.js": {
-                    "gzip": 2999
-                },
-                "assets/login.js": {
-                    "gzip": 2317
-                },
-                "assets/constants.js": {
-                    "gzip": 2053
+                    "gzip": 6958
                 }
             }
         },
         "admin": {
             "totals": {
                 "js": {
-                    "files": 42,
-                    "gzip": 457967
+                    "files": 62,
+                    "gzip": 449855
+                },
+                "other": {
+                    "files": 61,
+                    "gzip": 1758041
                 },
                 "css": {
                     "files": 1,
@@ -241,71 +257,82 @@
                 },
                 "html": {
                     "files": 1,
-                    "gzip": 536
+                    "gzip": 546
                 }
             },
             "chunks": {
+                "assets/index.js": {
+                    "gzip": 106710
+                },
                 "assets/src.js": {
-                    "gzip": 355664
+                    "gzip": 89412
+                },
+                "assets/form.js": {
+                    "gzip": 43769
+                },
+                "assets/page.js": {
+                    "gzip": 41998
                 },
                 "assets/index.css": {
                     "gzip": 29530
                 },
-                "assets/regions.js": {
-                    "gzip": 29297
+                "assets/zh.js": {
+                    "gzip": 22573
                 },
                 "assets/categories.js": {
-                    "gzip": 16860
-                },
-                "assets/nav.js": {
-                    "gzip": 6446
-                },
-                "assets/index.js": {
-                    "gzip": 4883
+                    "gzip": 19645
                 },
                 "assets/_app.js": {
-                    "gzip": 4540
+                    "gzip": 12941
                 },
-                "assets/coupon.js": {
-                    "gzip": 3503
+                "assets/ToolbarRootContext.js": {
+                    "gzip": 12067
                 },
-                "assets/columns.js": {
-                    "gzip": 3368
+                "assets/messages.js": {
+                    "gzip": 11849
+                },
+                "assets/data.js": {
+                    "gzip": 10369
+                },
+                "assets/nav.js": {
+                    "gzip": 6815
+                },
+                "assets/popover.js": {
+                    "gzip": 5691
+                },
+                "assets/useTriggerFocusGuards.js": {
+                    "gzip": 5416
                 },
                 "assets/banner.js": {
-                    "gzip": 3356
+                    "gzip": 4761
+                },
+                "assets/link.js": {
+                    "gzip": 4588
                 },
                 "assets/login.js": {
-                    "gzip": 3303
+                    "gzip": 3653
                 },
-                "assets/constants.js": {
-                    "gzip": 3067
+                "assets/coupon.js": {
+                    "gzip": 3572
                 },
-                "assets/recommend.js": {
-                    "gzip": 3037
+                "assets/useMutation.js": {
+                    "gzip": 3417
                 },
-                "assets/audits.js": {
-                    "gzip": 2999
-                },
-                "assets/list.js": {
-                    "gzip": 2778
-                },
-                "assets/logistics.js": {
-                    "gzip": 2208
-                },
-                "assets/staff.js": {
-                    "gzip": 2059
-                },
-                "assets/shops.js": {
-                    "gzip": 2044
-                },
-                "assets/paged.js": {
-                    "gzip": 1677
-                },
-                "assets/lazyRouteComponent.js": {
-                    "gzip": 1283
+                "assets/columns.js": {
+                    "gzip": 3403
                 }
             }
+        }
+    },
+    "firstScreen": {
+        "web/client": {
+            "gzip": 339890
+        },
+        "seller": {
+            "gzip": 238354
+        },
+        "admin": {
+            "gzip": 218653
         }
     }
 }

@@ -1,184 +1,184 @@
 {
     "mobile": {
         "schema": 1,
-        "ts": "2026-09-29T10:41:16.104Z",
-        "version": "06d302c7",
+        "ts": "2026-09-30T05:01:17.637Z",
+        "version": "e6aebb6e",
         "pages": {
             "home": {
                 "app": "买家端",
                 "scores": {
-                    "performance": 52,
+                    "performance": 66,
                     "accessibility": 96,
                     "best-practices": 96,
                     "seo": 100
                 },
                 "metrics": {
-                    "ttfb": 38,
-                    "fcp": 5553,
-                    "lcp": 6163,
-                    "cls": 0.226,
-                    "tbt": 0,
-                    "si": 5553
+                    "ttfb": 34,
+                    "fcp": 4666,
+                    "lcp": 6159,
+                    "cls": 0,
+                    "tbt": 17,
+                    "si": 4666
                 }
             },
             "product": {
                 "app": "买家端",
                 "scores": {
-                    "performance": 62,
+                    "performance": 66,
                     "accessibility": 97,
                     "best-practices": 96,
                     "seo": 100
                 },
                 "metrics": {
-                    "ttfb": 122,
-                    "fcp": 5708,
-                    "lcp": 7060,
+                    "ttfb": 128,
+                    "fcp": 4677,
+                    "lcp": 6141,
                     "cls": 0.002,
-                    "tbt": 0,
-                    "si": 5708
+                    "tbt": 17,
+                    "si": 4677
                 }
             },
             "welcome": {
                 "app": "买家端",
                 "scores": {
-                    "performance": 65,
+                    "performance": 73,
                     "accessibility": 96,
                     "best-practices": 96,
                     "seo": 100
                 },
                 "metrics": {
                     "ttfb": 3,
-                    "fcp": 5255,
-                    "lcp": 5855,
+                    "fcp": 3756,
+                    "lcp": 4914,
                     "cls": 0,
-                    "tbt": 0,
-                    "si": 5255
+                    "tbt": 13,
+                    "si": 3756
                 }
             },
             "seller-products": {
                 "app": "卖家工作台",
                 "scores": {
-                    "performance": 99,
+                    "performance": 95,
                     "accessibility": 97,
                     "best-practices": 100,
                     "seo": 83
                 },
                 "metrics": {
                     "ttfb": 1,
-                    "fcp": 1207,
-                    "lcp": 1960,
+                    "fcp": 1741,
+                    "lcp": 2724,
                     "cls": 0,
-                    "tbt": 45,
-                    "si": 1207
+                    "tbt": 46,
+                    "si": 1741
                 }
             },
             "seller-orders": {
                 "app": "卖家工作台",
                 "scores": {
-                    "performance": 99,
+                    "performance": 95,
                     "accessibility": 97,
                     "best-practices": 100,
                     "seo": 83
                 },
                 "metrics": {
                     "ttfb": 1,
-                    "fcp": 1208,
-                    "lcp": 1953,
+                    "fcp": 1739,
+                    "lcp": 2716,
                     "cls": 0,
-                    "tbt": 61,
-                    "si": 1208
+                    "tbt": 44,
+                    "si": 1739
                 }
             },
             "admin-audits": {
                 "app": "平台管理端",
                 "scores": {
-                    "performance": 93,
+                    "performance": 99,
                     "accessibility": 100,
                     "best-practices": 100,
                     "seo": 82
                 },
                 "metrics": {
                     "ttfb": 1,
-                    "fcp": 1358,
-                    "lcp": 1510,
-                    "cls": 0.163,
-                    "tbt": 29,
-                    "si": 1358
+                    "fcp": 1510,
+                    "lcp": 1814,
+                    "cls": 0,
+                    "tbt": 57,
+                    "si": 1510
                 }
             },
             "admin-shops": {
                 "app": "平台管理端",
                 "scores": {
-                    "performance": 93,
+                    "performance": 99,
                     "accessibility": 100,
                     "best-practices": 96,
                     "seo": 82
                 },
                 "metrics": {
                     "ttfb": 1,
-                    "fcp": 1357,
-                    "lcp": 1509,
-                    "cls": 0.163,
-                    "tbt": 33,
-                    "si": 1357
+                    "fcp": 1510,
+                    "lcp": 1814,
+                    "cls": 0,
+                    "tbt": 62,
+                    "si": 1510
                 }
             }
         }
     },
     "desktop": {
         "schema": 1,
-        "ts": "2026-09-29T10:45:35.086Z",
-        "version": "06d302c7",
+        "ts": "2026-09-30T05:05:01.712Z",
+        "version": "e6aebb6e",
         "pages": {
             "home": {
                 "app": "买家端",
                 "scores": {
-                    "performance": 90,
+                    "performance": 91,
                     "accessibility": 96,
                     "best-practices": 96,
                     "seo": 100
                 },
                 "metrics": {
-                    "ttfb": 32,
-                    "fcp": 1051,
-                    "lcp": 1738,
-                    "cls": 0.073,
+                    "ttfb": 33,
+                    "fcp": 972,
+                    "lcp": 1661,
+                    "cls": 0.003,
                     "tbt": 0,
-                    "si": 1118
+                    "si": 1034
                 }
             },
             "product": {
                 "app": "买家端",
                 "scores": {
-                    "performance": 87,
+                    "performance": 93,
                     "accessibility": 97,
                     "best-practices": 96,
                     "seo": 100
                 },
                 "metrics": {
-                    "ttfb": 118,
-                    "fcp": 1127,
-                    "lcp": 2100,
+                    "ttfb": 119,
+                    "fcp": 992,
+                    "lcp": 1514,
                     "cls": 0,
                     "tbt": 0,
-                    "si": 1127
+                    "si": 992
                 }
             },
             "welcome": {
                 "app": "买家端",
                 "scores": {
-                    "performance": 93,
+                    "performance": 96,
                     "accessibility": 96,
                     "best-practices": 96,
                     "seo": 100
                 },
                 "metrics": {
                     "ttfb": 3,
-                    "fcp": 1046,
-                    "lcp": 1482,
+                    "fcp": 867,
+                    "lcp": 1314,
                     "cls": 0,
                     "tbt": 0,
-                    "si": 1046
+                    "si": 867
                 }
             },
             "seller-products": {
@@ -191,11 +191,11 @@
                 },
                 "metrics": {
                     "ttfb": 1,
-                    "fcp": 327,
-                    "lcp": 490,
+                    "fcp": 478,
+                    "lcp": 707,
                     "cls": 0,
                     "tbt": 0,
-                    "si": 545
+                    "si": 552
                 }
             },
             "seller-orders": {
@@ -208,45 +208,45 @@
                 },
                 "metrics": {
                     "ttfb": 1,
-                    "fcp": 328,
-                    "lcp": 483,
+                    "fcp": 472,
+                    "lcp": 697,
                     "cls": 0,
                     "tbt": 0,
-                    "si": 550
+                    "si": 597
                 }
             },
             "admin-audits": {
                 "app": "平台管理端",
                 "scores": {
-                    "performance": 77,
+                    "performance": 100,
                     "accessibility": 100,
                     "best-practices": 100,
                     "seo": 82
                 },
                 "metrics": {
                     "ttfb": 1,
-                    "fcp": 366,
-                    "lcp": 407,
-                    "cls": 0.63,
+                    "fcp": 409,
+                    "lcp": 564,
+                    "cls": 0,
                     "tbt": 0,
-                    "si": 414
+                    "si": 409
                 }
             },
             "admin-shops": {
                 "app": "平台管理端",
                 "scores": {
-                    "performance": 96,
+                    "performance": 100,
                     "accessibility": 100,
                     "best-practices": 96,
                     "seo": 82
                 },
                 "metrics": {
                     "ttfb": 1,
-                    "fcp": 366,
-                    "lcp": 433,
-                    "cls": 0.116,
+                    "fcp": 410,
+                    "lcp": 493,
+                    "cls": 0,
                     "tbt": 0,
-                    "si": 366
+                    "si": 410
                 }
             }
         }
