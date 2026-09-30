@@ -123,6 +123,7 @@ Redis：localhost:6379
 | [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                                                                                                                                                |
 | [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志、[i18n 约定](docs/conventions/i18n.md)、[前端监控](docs/conventions/frontend-monitoring.md)、[可观测性总纲](docs/conventions/observability.md)） |
 | [docs/business-rules/](docs/business-rules/)           | 业务规则库：按领域的生效规则，逐条带编号（源自代码；原 docs/decisions/ 设计笔记已并入并归档 git 历史）                                                                                                          |
+| [docs/search-design.md](docs/search-design.md)         | 搜索与首页分类导航目标设计（未实现）：统一结果页、复用现有查询起步、SKU 匹配、增强检索与验收                                                                                                                    |
 | [docs/reference/](docs/reference/)                     | 外部调研与决策资料（券平台做法对照、[商品搜索方案](docs/reference/search-decision.md)）                                                                                                                         |
 
 ## 开发规范
