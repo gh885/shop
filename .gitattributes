@@ -1,5 +1,10 @@
 * text=auto eol=lf
 
+# 批处理必须 CRLF：cmd.exe 对 LF-only 的 .cmd/.bat 解析不可靠，会在第一行就静默退出
+# （不报错、不写日志，看着像「任务跑了但没效果」）。上面的 eol=lf 对它们不适用。
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
 *.java text diff=java
 *.ts   text diff=typescript
 *.tsx  text diff=typescript

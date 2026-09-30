@@ -1,0 +1,22 @@
+# Grafana 看板 provider（provisioning）。
+#
+# 路径指向仓库里的 deploy/observability/grafana/dashboards：看板 JSON 跟告警规则一样进版本库，
+# 「看板变了」要能像代码一样被 review 和回滚，而不是躺在某台机器的 Grafana 里。
+# $SHOP_OBS_ROOT 由 scripts/obs-stack.mjs 注入（= 仓库在 WSL 里的路径）。
+apiVersion: 1
+
+providers:
+    - name: shop
+      orgId: 1
+      folder: Shop
+      folderUid: shop
+      type: file
+      disableDeletion: false
+      # 挂载点是 Windows 的 /mnt/d（9p），文件事件不可靠；轮询间隔给足 60s，
+      # 免得 Grafana 反复重扫 drvfs
+      updateIntervalSeconds: 60
+      # 允许在 UI 上临时调：调完记得「导出 JSON」覆盖回仓库对应文件，否则下次重启就被打回原形
+      allowUiUpdates: true
+      options:
+          path: $SHOP_OBS_ROOT/deploy/observability/grafana/dashboards
+          foldersFromFilesStructure: false

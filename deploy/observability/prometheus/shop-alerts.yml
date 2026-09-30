@@ -51,8 +51,8 @@ groups:
                 severity: warning
                 team: data
             annotations:
-                summary: "对账发现数据不一致：{{ $labels.check }}"
-                description: "查看 reconcile.mismatch 日志字段 check/count，并按 check 到对应表定位。"
+                summary: "对账发现数据不一致（{{ $labels.application }}/{{ $labels.env }}）"
+                description: "按 event=reconcile.mismatch 检索结构化日志，日志字段 check 指出是哪一项检查、count 是差异条数。check 是日志字段不是指标标签，所以模板里取不到。"
 
     - name: shop-jobs
       rules:

@@ -1,0 +1,22 @@
+# Alertmanager 配置（本机最小栈）。
+#
+# 本机档只挂一个空 receiver：规则照常评估、照常进 UI，但**不发任何通知**。
+# 这是刻意的 —— 本地跑起来的目的先是「看板能看」，不是「半夜把人叫醒」。
+# 真要接通知就加 webhook / email receiver，告警规则（prometheus/shop-alerts.yml）一个字都不用改。
+
+global:
+    # 单实例本地栈，没有集群，统一 resolve 超时给短一点
+    resolve_timeout: 2m
+
+route:
+    # root route 必须有 receiver，否则 Alertmanager 启动就拒（这是它最容易被忽略的一条硬要求）
+    receiver: local-log
+    # 按这三项分组：同一应用同一环境里同一种告警合成一条通知，不按 job/uri 拆
+    group_by: [alertname, application, env]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+
+receivers:
+    # 空 receiver = 只写日志（/opt/shop-obs/logs/alertmanager.log），不外发
+    - name: local-log

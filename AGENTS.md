@@ -39,6 +39,8 @@ pnpm test:server          # 后端单测（内置数据面探针，库没起就�
 pnpm fallow               # 死代码 + 架构边界（域间只走对方 index.ts）；pnpm fallow:audit 只审当前改动（恒退 0，去掉 --brief 才是门禁）
 pnpm seed:demo            # 灌演示数据（scripts/seed-demo.mjs，只增不改人工数据、幂等；--dry-run 只打印 SQL）
 pnpm gen:sdk              # 需后端在跑：导出契约 + 重新生成 packages/api/src/sdk + contract:audit
+pnpm obs:up               # 本机可观测性栈（Prometheus+Alertmanager+Grafana，WSL systemd 托管）：装二进制+起+探测；obs:status 看状态，obs:down 停（不动数据面）
+pnpm guard:status         # 隧道守护的登录自启计划任务是否注册/在跑（装了 guard:install 后数据面日常零操作）
 pnpm build                # 买家端（vp build / Rolldown）+ mvn compile；另两端 build:seller / build:admin
 pnpm perf                 # 实验室首屏测量（三端生产构建 + preview，Lighthouse）；需后端在跑，只记录不阻断
 pnpm perf:bundle          # 三端 dist 的 gzip 字节，逐 chunk 与基线比差值——零噪声、~1 分钟，同样不阻断
@@ -90,20 +92,25 @@ cd apps/server && mvn spring-boot:run   # 单独起后端（mvn compile / spotle
 
 ## 错误码规范
 
-**定义原则：只有当 HTTP status 不足以让前端区分处理逻辑时，才定义 error code。** 唯一真相源是 `docs/error-codes.md`：新建 code 必须先在那里写清「前端行为」和「后端触发场景」。
+**定义原则（2026-09-30 改版）：用户看到的句子由前端 catalog 或状态码通道给；`detail` 只在中文界面当文案，其它语种它是日志字段。** code 的准入条件是「前端要按它分支」或「兜底上报的真实频次证明它值得单独翻译」，**不是**「后端有一句话」——普查否掉了旧那句「这句话用户可见就要有 code」：全仓 267 个不带 code 的报错出口按旧判据补齐 = 204 个新码，而其中绝大多数前端从不按句子分叉。唯一真相源是 `docs/error-codes.md`（判据、普查口径、五支兜底链、升级闭环都在它头部）：新建 code 必须先在那里写清「前端行为」和「后端触发场景」，再在 `packages/app-kit/src/locales/{zh-CN,en-US}/error.json` 各补一句——`notify.ts` 按 code 取 catalog，取不到才轮到 `detail`（中文界面）或按状态码的通用句（其它语种）。
 
-> 这条判据正在改版（**未落地**）：[docs/conventions/i18n.md](docs/conventions/i18n.md) §7.3 把用户可见错误文案归到前端 catalog、`detail` 降级为日志字段，判据随之换成「这句话用户可见 → 就要有 code」。做完之前按上面那句办，之后以 `docs/error-codes.md` 为准；`detail` 兜底的两个退出条件记在 `TODO.md`。
+> 判据改版已落地（[docs/conventions/i18n.md](docs/conventions/i18n.md) §7.3）：文案归前端 catalog，`detail` 降级为中文界面那一格的兜底 + 日志。句子装不下关键值时走**字段级参数通道**（ProblemDetail 扩展属性 `errors` = `[{ field, message, value? }]`，前端对边是 `packages/common` 的 `ApiFieldError`）——值作为数据出一次，不写进中文句子让前端正则捞；`FORBIDDEN_WORD_HIT` 已按这条退出例外清单。**还剩两个码登记为 detail 优先**（`ADDRESS_LIMIT_EXCEEDED` / `MERCHANT_ADDRESS_LIMIT_EXCEEDED`）——上限数字只有 detail 装得下；例外清单与退出条件在 `packages/app-kit/src/i18n/error-keys.ts`，`error-keys.test.ts` 盯着它别长成永久架构。还欠的两件（`error_fallback` 上报的接收端与「按频次升级」的例行、422 校验族参数化）记在 `docs/error-codes.md` 头部与 `TODO.md`。
 
-- Java 侧抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（`ErrorCodeVocabularyTest` 核对：Java 常量集合 ⇄ 该表 Code 列 ⇄ TS `ErrorCodes` 键集合，且每处抛码站点由出口推出的状态码 ⇄ 该表 HTTP 列——改任何一边忘了另一边就红）
+- Java 侧抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（`ErrorCodeVocabularyTest` 核对**四边**：Java 常量集合 ⇄ 该表 Code 列 ⇄ TS `ErrorCodes` 键集合 ⇄ 两份 `error.json` 的 `error.<CODE>`（每码每语言恰有一条、非空），且每处抛码站点由出口推出的状态码 ⇄ 该表 HTTP 列——改任何一边忘了另一边就红；TS 侧另有 `error-keys.ts` 的 `satisfies` 在编译期拦同一件事）
 - TS 侧同步到 `packages/common/src/error-codes.ts`，code 用 `SCREAMING_SNAKE_CASE`
-- 前端能用 status 区分的（401/403/404）不加 code；会被 Zod 拦住的校验错误也不加 code
+- 前端能用 status 区分的（401/403/404）不加 code——**前提是那句用户可见文案由状态码那条通道自己出**（404 页、错误边界、未登录跳转）；被 Zod 拦住的校验错误由 422 的 `errors` 列表承载，同理
 
-## 数据库与 Redis（WSL2）
+## 数据库与 Redis（默认在云主机）
 
-跑在 WSL2 上（不用 Docker，`.wslconfig` 已开 `networkingMode=mirrored`），Windows 侧经 localhost 直连：库 `shop:shop_dev@localhost:15432/shop`、Redis `localhost:6379`。
+**默认走云**（`SHOP_DATASTORE=remote`）：PG 18 / Redis 7 在云主机的容器里（清单 `deploy/dataplane.compose.yml`），本机持有的是一条 ssh 端口隧道——本地 `15432/6379` → 云 `5433/6379`（主机别名 `SHOP_SSH_HOST`，默认 `aliyun`）。`dev:server` / `db:up` / `db:down` / `test:server` 四条命令用法不变，换数据面不改肌肉记忆。本地端口沿用 15432/6379，所以 JDBC URL、`application-test.yml`、seed、e2e 一处都不用改。
 
-- **端口是 15432 不是 5432**（GameViewerServer 绑死了 Windows 的 `0.0.0.0:5432`，镜像网络共享栈下 PG 绑不上）。CI 的 PG service 仍在 5432，由 workflow 里 `SHOP_DB_PORT=5432` 覆盖。全链口径收在 `SHOP_DB_*` / `SHOP_REDIS_*` 变量族（application{,-test}.yml / scripts / e2e，含 host / user / password）。
-- **后端突然连不上库（refused 或接口全超时），多半是 WSL 的 VM 被回收了**——没有会话时几十秒就停，网络流量不算会话，配置项实测无效（机制见 `scripts/ensure-datastore.mjs` 头注释）。应对只有三条命令：`pnpm dev:server`（推荐，会话跟随后端进程，停即释放 ~1.2GB）、`pnpm db:up`（从 IDE 跑后端 / `mvn test` 前拉起）、`pnpm db:down`（用完还内存）。换发行版 `SHOP_WSL_DISTRO`，完全不挂会话 `SHOP_WSL_KEEPALIVE=0`。
+- **本机 WSL 里的 PG / Redis 已 `systemctl disable --now`**（2026-10 起）。这是有意的：它们原先 `enabled`，WSL 一启动就抢 15432/6379，于是「隧道没起」时会静默落到本地库——backend 跑起来、数据也是真的，看着一切正常，实则写进了另一台库。现在这两个端口没有第二个属主，隧道不在就是 connection refused，**错库不再可能静默发生**。
+- **端口是 15432 不是 5432**（GameViewerServer 绑死了 Windows 的 `0.0.0.0:5432`）。CI 的 PG service 仍在 5432，由 workflow 里 `SHOP_DB_PORT=5432` 覆盖。全链口径收在 `SHOP_DB_*` / `SHOP_REDIS_*` 变量族（application{,-test}.yml / scripts / e2e，含 host / user / password）。
+- **认端口属主那道闸还在**：remote 下起隧道前会查本地这两个端口是谁在听，认不出属主就拒绕起隧道，绝不静默接到别的库上。
+- **隧道是自愈的**：`pnpm db:up` 拉起的不是一个裸 ssh，而是一个后台守护进程（`--tunnel-guard`）——ssh 自己不会重连，断线后没人补就是「断了要手动重跑 db:up」。守护盯着端口、断了退避补一条，所以合盖 / 切 Wi-Fi / 云主机重启都能自己恢复（实测断线后 ~3s 回来）。日志在 `~/.shop-datastore/tunnel-guard.log`。
+- **守护已注册为 Windows 计划任务「shop-tunnel-guard」**（`pnpm guard:install`）：登录时由系统以你的身份拉起，父进程是 Task Scheduler 的 svchost，**与任何终端无关**——关掉跑过 `db:up` 的窗口不影响它。任务用 XML 注册是为了改掉几个会坑死常驻进程的默认行为（默认拔电不启动、默认 72h 强杀、默认仅在空闲时运行）。装了它之后日常不需要跑任何数据面命令；`pnpm db:down` 仍能临时断一次，但下次登录守护会自己回来（要彻底停用跑 `pnpm guard:uninstall`）。
+- **node 路径不写死**：任务调的是 `scripts/tunnel-guard.cmd`，它在运行时按 mise shim → PATH → mise installs 解析 node，所以 mise 升 node 大版本不需要重装任务。那个 .cmd 有两条硬约束：必须**纯 ASCII**、且 `rem` 注释里不能出现 `<` `>` `&` `|` `(` `)`（cmd 会当重定向/命令分隔符，然后**静默**退出，不报错不写日志）。它还必须以 CRLF 存盘（已在 `.gitattributes` 里给 `*.cmd` 声明 `eol=crlf`），因为 cmd 对 LF-only 的批处理解析不可靠。这几条都踩过，改它之前先读文件头注释。
+- **云机有公网 IP，所以库与 Redis 只 bind `127.0.0.1`，安全组只留 22/80/443**。
 - **跑后端测试前先让数据面在位**：接口契约测试（`WebControllerTestSupport` 子类）起真实上下文连专用库 `shop_test`，库没起时整类红，Spring 的 failure threshold 还会带走后面几百个用例——看着像代码坏了，其实只是连不上。`pnpm test:server` 已内置探针（毫秒级，库不在就跳过并给修法）；直跑 `mvn test` 请自己先 `pnpm db:up`。
-- **也可以换到云上**：`SHOP_DATASTORE=remote`（默认 `wsl`），`dev:server` / `db:up` / `db:down` / `test:server` 用法不变。remote 持有的是本地 15432/6379 → 云 5433/6379 的一条 ssh 隧道（云侧清单 `deploy/dataplane.compose.yml`，主机别名 `SHOP_SSH_HOST`），WSL 那套保活会话整体不需要了。本地端口沿用所以 JDBC URL、`application-test.yml`、seed、e2e 零改动；代价是和本机 WSL 抢同一对端口——认不出端口属主就拒绝起隧道，绝不静默连到本地库上假装一切正常。云机有公网 IP，所以库与 Redis 只 bind `127.0.0.1`，安全组只留 22/80/443。
-- `apps/server/.env`（gitignored）是 dev 数据面配置的唯一本地来源：口令 `SHOP_DB_PASSWORD` / `SHOP_REDIS_PASSWORD` 与偏好 `SHOP_DATASTORE` 都写这里，接法在 `scripts/dotenv.mjs`（Spring dev 段、seed、e2e、`db:up` 读同一份）。命令行显式导出永远压得过它，所以 `SHOP_DATASTORE=wsl pnpm db:up` 随时能切回去一次。
+- **`wsl` 只作为退路保留**，要显式 `SHOP_DATASTORE=wsl` 才走。它那套坑（VM 空闲几十秒被回收、网络流量不算会话、~1.2GB vmmemWSL 要挂会话按着）都写在 `scripts/ensure-datastore.mjs` 头注释；真要用得先在 WSL 里 `systemctl enable --now postgresql redis-server` 把端口还回去。
+- `apps/server/.env`（gitignored）是 dev 数据面配置的唯一本地来源：口令 `SHOP_DB_PASSWORD` / `SHOP_REDIS_PASSWORD` 与偏好 `SHOP_DATASTORE` 都写这里，接法在 `scripts/dotenv.mjs`（Spring dev 段、seed、e2e、`db:up` 读同一份）。命令行显式导出永远压得过它，删掉那行则回到默认 `remote`，所以 `SHOP_DATASTORE=wsl pnpm db:up` 随时能切到本地退路一次。

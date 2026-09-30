@@ -60,6 +60,8 @@
 
 采集栈（Prometheus + Alertmanager + Grafana，日志进 Loki 或云 SLS）是**上线前置**，不是延后项——见 [observability.md](../conventions/observability.md) 延后项表的第 1 行。下面每条要么能查到，要么记「已知没有」：
 
+> 本机已用 `pnpm obs:up` 跑起最小采集栈（见 [deploy/observability/README.md](../../deploy/observability/README.md)），下面的指标名、PromQL 与告警表达式已在本机对真实数据验证过；但**本机栈不等于生产就绪**——采集栈仍需按内网/生产形态部署、Loki 接上，下面各条以生产形态复核后再勾。
+
 - [ ] HTTP 请求量、错误率、p95 延迟可查询（`http_server_requests_seconds_bucket` 已在导出，p95 由 Prometheus 侧算，不在应用里算）
 - [ ] `auth.login.failed`、`order.created`、`payment.refunded` 等业务事件能按 `event` 字段检索（唯一出口 `BizEvent`，事件目录与必带字段见 [business-event-logging.md](../conventions/business-event-logging.md)）
 - [ ] 按 `version` / `env` 过滤能分出「哪次发布」——`SHOP_VERSION` 没注入时这两格是 dev 默认值，看板上分不出灰度

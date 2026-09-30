@@ -8,6 +8,25 @@
 - 对账：`ReconcileJob` 定时检查，差异打 `reconcile.mismatch`。
 - 健康探针：`/actuator/health/liveness`、`/actuator/health/readiness`。
 
+## 本机最小栈（pnpm obs:up）
+
+云主机配置不够时，本机也能把采集栈跑起来看趋势——三个组件都是静态二进制，装在 WSL Ubuntu 的 `/opt/shop-obs`，由 **systemd 单元**托管（不开 Docker）。一条命令：
+
+```bash
+pnpm obs:up       # 装二进制（幂等）+ 写单元 + 启动 + 健康探测
+pnpm obs:status   # 各单元状态、抓取目标健康度、vmmemWSL 内存
+pnpm obs:down     # 停三个单元（不动数据面）
+```
+
+- 启动后 Grafana 在 <http://localhost:3000/dashboards>（admin / shop，仅本机）；已 provision 4 块看板（HTTP RED / 业务事件 / 定时任务 / 依赖与 JVM），数据源 `shop-prometheus`。
+- 后端不用改一行：Prometheus 直接抓 `127.0.0.1:8080/actuator/prometheus`（WSL2 镜像网络让 localhost 跨 Windows↔WSL 共享）。
+- **和 `db:down` 的边界**：`obs:down` 只停本栈，绝不 `wsl --shutdown`；`db:down` 会 `wsl --shutdown` 连坐带走 PG/Redis（它才是还内存的动作）。本栈不碰数据库，与 `SHOP_DATASTORE` 无关。
+- 单元是 `enable` 的，WSL 重启后会自动拉起（除非 obs:down 停过）。
+- 首次装 grafana 要下 ~460MB（tarball），到 dl.grafana.com 约 0.8MB/s，脚本会自动断点续传直到 sha256 对上，可能要几分钟。
+- 已知坑：WSL 镜像网络的 Windows→WSL 回环偶发断（页面突然打不开）。跑任意一条 `wsl.exe` 命令（如 `pnpm obs:status`）即可恢复；脚本内部也对 WSL 服务抖动（`0x8007274c`）做了重试。
+
+生产/内网部署不走这条，继续看下面的「最小自建栈」。
+
 ## 最小自建栈
 
 推荐顺序，不要一开始上全家桶：

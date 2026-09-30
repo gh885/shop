@@ -330,7 +330,6 @@ async function requireBackend(pages) {
         `后端不在场（${BACKEND} 连不上）。\n` +
             `        首页与商详是 SSR，量出来会是错误页或空壳，数字没有意义。\n` +
             `        起法：pnpm dev:server（推荐，顺带拉起数据面）；只要数据面：pnpm db:up\n` +
-            `        数据面在云上：SHOP_DATASTORE=remote pnpm db:up\n` +
             `        只想量静态落地页：pnpm perf -- --pages welcome`,
     )
 }

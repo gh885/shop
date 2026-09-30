@@ -69,7 +69,7 @@ cms（叶子）      inventory（叶子）      audit（叶子：零依赖，只
 
 ## 3. 数据与基础设施
 
-- PostgreSQL 18（WSL2，`localhost:15432`，`shop:shop_dev`；端口从 5432 迁来，缘由见 [AGENTS.md](../AGENTS.md)「数据库与 Redis」。CI 的 service 容器仍在 5432，差别只有 `SHOP_DB_PORT` 这一个环境变量）：**schema 隔离**是模块边界的数据面——模块只拥有并访问自己的 schema，跨 schema 只读查询一律收进 owning 模块的 api 包；禁止跨 schema JOIN。
+- PostgreSQL 18（默认在云主机，本地经 ssh 隧道以 `localhost:15432` 接，`shop:shop_dev`；端口从 5432 迁来，缘由见 [AGENTS.md](../AGENTS.md)「数据库与 Redis」。CI 的 service 容器仍在 5432，差别只有 `SHOP_DB_PORT` 这一个环境变量）：**schema 隔离**是模块边界的数据面——模块只拥有并访问自己的 schema，跨 schema 只读查询一律收进 owning 模块的 api 包；禁止跨 schema JOIN。
 - Redis 7（WSL2，`localhost:6379`）三件事：refresh token 存储（`infra/security/RefreshTokenStore`）、登录/发码限流（`account/infra/RateLimiter`，目前只有 account 用）、**读缓存**（`infra/cache`）。
 - **读缓存刻意只三块**：首页三块配置 / 类目树与子树 / 店铺公开信息，名字汇总在 `infra/cache/CacheNames`，TTL 5 分钟只兜漏接的写路径（新鲜度靠写侧 `@CacheEvict`），判权、库存、订单状态这类闸门与账本一律不进缓存。名单、「什么才配上缓存」与序列化口径见 [apps/server/AGENTS.md](../apps/server/AGENTS.md)「读缓存」节。其余热点只读仍直接打库。
 - 不引入消息队列：跨模块异步只有 Modulith 事件登记（现状见 §2 的事件表——目前全部同步监听，登记表还没有消费方在用）。

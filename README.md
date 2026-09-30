@@ -15,7 +15,7 @@
 
 - Java 25 + Maven
 - Node.js 22.18+ / 24.11+ / 26+（Vite+ 的 engines 口径；pnpm 版本由 `package.json` 的 `devEngines` 与 lockfile 记死，装依赖用 `vp install`）
-- WSL2 上运行的 PostgreSQL 18 + Redis 7（localhost 直连，无需 Docker）
+- PostgreSQL 18 + Redis 7，默认在云主机的容器里（本地 ssh 端口隧道 15432/6379 接进去，无需 Docker）
 
 ## 快速开始
 

@@ -1,0 +1,118 @@
+{
+    "uid": "shop-jobs",
+    "title": "Shop / 定时任务与扫描",
+    "description": "定时任务最危险的故障模式是「停摆」而不是「变慢」：超时关单不跑，库存就一直冻着。所以这页的重点是 tasks_scheduled_execution 的成功率与最近执行时间，不是耗时。",
+    "tags": ["shop", "jobs"],
+    "timezone": "browser",
+    "schemaVersion": 41,
+    "version": 1,
+    "editable": true,
+    "refresh": "1m",
+    "time": { "from": "now-24h", "to": "now" },
+    "templating": {
+        "list": [
+            {
+                "name": "env",
+                "label": "环境",
+                "type": "query",
+                "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                "query": "label_values(tasks_scheduled_execution_seconds_count, env)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true,
+                "current": { "text": "All", "value": "$__all" }
+            }
+        ]
+    },
+    "panels": [
+        {
+            "id": 1,
+            "type": "table",
+            "title": "作业执行情况（近 24h）",
+            "description": "SUCCESS/ERROR 计数 + 平均耗时。count 为 0 或整行缺失 = 该作业停摆（对应告警 ShopScheduledJobStalled，用 absent() 兜住「第一轮还没跑完没有序列」）。code_namespace/code_function 来自 Spring 的 @Scheduled 埋点。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 10, "w": 14, "x": 0, "y": 0 },
+            "fieldConfig": { "defaults": {}, "overrides": [] },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(increase(tasks_scheduled_execution_seconds_count{env=~\"$env\"}[24h])) by (code_namespace, code_function, outcome)",
+                    "format": "table",
+                    "instant": true
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "type": "stat",
+            "title": "作业执行时长 P95",
+            "description": "所有作业的 P95 耗时；超过调度间隔就意味着下一次还没跑完就被触发，任务会堆叠。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 5, "w": 10, "x": 14, "y": 0 },
+            "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+            "options": { "graphMode": "area", "colorMode": "value", "textMode": "value" },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "histogram_quantile(0.95, sum(rate(tasks_scheduled_execution_seconds_bucket{env=~\"$env\"}[1h])) by (le))",
+                    "legendFormat": "p95"
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "type": "stat",
+            "title": "有指标序列的作业数",
+            "description": "健康时应等于注册 @Scheduled 的作业总数。少于预期说明有作业从未成功执行过。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 5, "w": 10, "x": 14, "y": 5 },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            { "color": "red", "value": null },
+                            { "color": "green", "value": 5 }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": { "graphMode": "none", "colorMode": "background", "textMode": "value" },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "count(count by (code_namespace, code_function) (tasks_scheduled_execution_seconds_count{env=~\"$env\"}))",
+                    "legendFormat": "jobs"
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "type": "timeseries",
+            "title": "Sweep 单笔失败 /s（按 job）",
+            "description": "Sweep 吞掉单笔异常，作业整体仍算 SUCCESS，上面的 success count 看不见这种失败，所以单独计 shop_sweep_failures_total。该指标首次失败才注册，平时没有序列属正常。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 24, "x": 0, "y": 10 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ops",
+                    "custom": { "lineWidth": 2, "showPoints": "always", "spanNulls": false }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "table", "placement": "right" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(increase(shop_sweep_failures_total{env=~\"$env\"}[10m])) by (job)",
+                    "legendFormat": "{{job}}"
+                }
+            ]
+        }
+    ]
+}

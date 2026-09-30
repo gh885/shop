@@ -26,8 +26,11 @@ const SERVICES = [
     { name: "PostgreSQL", port: Number(process.env.SHOP_DB_PORT ?? 15432) },
     { name: "Redis", port: Number(process.env.SHOP_REDIS_PORT ?? 6379) },
 ]
-/** 数据面在哪台机器上，修法那句就得跟着说哪台 —— 否则会把人指向一条起错东西的命令 */
-const REMOTE = process.env.SHOP_DATASTORE === "remote"
+/**
+ * 数据面在哪台机器上，修法那句就得跟着说哪台 —— 否则会把人指向一条起错东西的命令。
+ * 与 ensure-datastore.mjs 对齐：默认 remote（即云），只有显式 SHOP_DATASTORE=wsl 才算本地。
+ */
+const REMOTE = (process.env.SHOP_DATASTORE ?? "remote") === "remote"
 const FIX = REMOTE
     ? "起 ssh 隧道（数据面在云上，见 apps/server/.env）"
     : "从 WSL 拉起 PG + Redis（首次约 30~60s）"

@@ -1,0 +1,218 @@
+{
+    "uid": "shop-deps",
+    "title": "Shop / 依赖与 JVM",
+    "description": "饱和度与依赖健康：HikariCP 连接池、Tomcat 线程、JVM 堆与 GC、出站 HTTP（快递鸟等）。读数口径提醒：库在云主机时（SHOP_DATASTORE=remote），连接耗时里含 ssh 隧道 + 公网往返，别直接当「DB 慢」判。",
+    "tags": ["shop", "deps"],
+    "timezone": "browser",
+    "schemaVersion": 41,
+    "version": 1,
+    "editable": true,
+    "refresh": "30s",
+    "time": { "from": "now-3h", "to": "now" },
+    "templating": {
+        "list": [
+            {
+                "name": "env",
+                "label": "环境",
+                "type": "query",
+                "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                "query": "label_values(hikaricp_connections_active, env)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true,
+                "current": { "text": "All", "value": "$__all" }
+            }
+        ]
+    },
+    "panels": [
+        {
+            "id": 1,
+            "type": "row",
+            "title": "数据库连接池（HikariCP）",
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+            "collapsed": false
+        },
+        {
+            "id": 2,
+            "type": "timeseries",
+            "title": "连接数 active / max / pending",
+            "description": "pending = 有线程在排队等连接，是饱和度最早的信号（告警 ShopDbConnectionPoolWaiting）。持续 >0 基本等于有慢查询或连接泄漏。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "custom": { "lineWidth": 2, "showPoints": "never" }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "table", "placement": "right" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "max(hikaricp_connections_active{env=~\"$env\"})",
+                    "legendFormat": "active"
+                },
+                {
+                    "refId": "B",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "max(hikaricp_connections_max{env=~\"$env\"})",
+                    "legendFormat": "max"
+                },
+                {
+                    "refId": "C",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "max(hikaricp_connections_pending{env=~\"$env\"})",
+                    "legendFormat": "pending"
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "type": "timeseries",
+            "title": "获取连接平均耗时 / 超时次数",
+            "description": "没开 histogram 时没有 _bucket，只能用 sum/count 求均值。要看分位就得在 application.yml 给 hikaricp 也开 percentiles-histogram。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+            "fieldConfig": { "defaults": {}, "overrides": [] },
+            "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(rate(hikaricp_connections_acquire_seconds_sum{env=~\"$env\"}[5m])) by (application) / clamp_min(sum(rate(hikaricp_connections_acquire_seconds_count{env=~\"$env\"}[5m])) by (application), 0.001)",
+                    "legendFormat": "acquire avg {{application}}"
+                },
+                {
+                    "refId": "B",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(increase(hikaricp_connections_timeout_total{env=~\"$env\"}[5m])) by (application)",
+                    "legendFormat": "timeout/s {{application}}"
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "type": "row",
+            "title": "JVM",
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+            "collapsed": false
+        },
+        {
+            "id": 5,
+            "type": "timeseries",
+            "title": "堆内存 used / max",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "bytes",
+                    "custom": { "lineWidth": 2, "showPoints": "never" }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(jvm_memory_used_bytes{area=\"heap\",env=~\"$env\"}) by (application)",
+                    "legendFormat": "used {{application}}"
+                },
+                {
+                    "refId": "B",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(jvm_memory_max_bytes{area=\"heap\",env=~\"$env\"}) by (application)",
+                    "legendFormat": "max {{application}}"
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "type": "timeseries",
+            "title": "GC 停顿占比",
+            "description": "GC 时间 / 墙钟时间。持续 >5% 说明分配压力过大。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit",
+                    "min": 0,
+                    "custom": { "lineWidth": 2, "showPoints": "never" }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(rate(jvm_gc_pause_seconds_sum{env=~\"$env\"}[5m])) by (application)",
+                    "legendFormat": "{{application}}"
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "type": "row",
+            "title": "线程与出站",
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+            "collapsed": false
+        },
+        {
+            "id": 8,
+            "type": "timeseries",
+            "title": "Tomcat 忙碌线程 / 最大线程",
+            "description": "busy 贴近 max = 线程池要打满，请求会排队。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "custom": { "lineWidth": 2, "showPoints": "never" }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "max(tomcat_threads_busy_threads{env=~\"$env\"})",
+                    "legendFormat": "busy"
+                },
+                {
+                    "refId": "B",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "max(tomcat_threads_config_max_threads{env=~\"$env\"})",
+                    "legendFormat": "max"
+                }
+            ]
+        },
+        {
+            "id": 9,
+            "type": "timeseries",
+            "title": "出站 HTTP /s（按 uri、status）",
+            "description": "快递鸟等外部渠道。RestClient 从容器注入的 Builder 构建才有这组指标。失败另有事件 logistics.tracking_query.failed。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps",
+                    "custom": { "lineWidth": 1, "showPoints": "never" }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "table", "placement": "right" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(rate(http_client_requests_seconds_count{env=~\"$env\"}[5m])) by (uri, status)",
+                    "legendFormat": "{{uri}} {{status}}"
+                }
+            ]
+        }
+    ]
+}

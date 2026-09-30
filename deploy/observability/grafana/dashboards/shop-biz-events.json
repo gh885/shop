@@ -1,0 +1,151 @@
+{
+    "uid": "shop-biz-events",
+    "title": "Shop / 业务事件",
+    "description": "业务计数唯一出口是 BizEvent（每打一行同时累加 shop_biz_events_total{event,level}）。事件名受目录门禁约束，基数有界。这里看速率与失败；单笔明细去日志按 trace_id 查。",
+    "tags": ["shop", "business"],
+    "timezone": "browser",
+    "schemaVersion": 41,
+    "version": 1,
+    "editable": true,
+    "refresh": "1m",
+    "time": { "from": "now-6h", "to": "now" },
+    "templating": {
+        "list": [
+            {
+                "name": "env",
+                "label": "环境",
+                "type": "query",
+                "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                "query": "label_values(shop_biz_events_total, env)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true,
+                "current": { "text": "All", "value": "$__all" }
+            },
+            {
+                "name": "event",
+                "label": "事件",
+                "type": "query",
+                "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                "query": "label_values(shop_biz_events_total{env=~\"$env\"}, event)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true,
+                "current": { "text": "All", "value": "$__all" }
+            }
+        ]
+    },
+    "panels": [
+        {
+            "id": 1,
+            "type": "timeseries",
+            "title": "事件速率 /s（按 event）",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 9, "w": 16, "x": 0, "y": 0 },
+            "fieldConfig": {
+                "defaults": { "unit": "ops", "custom": { "lineWidth": 1, "showPoints": "never" } },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right",
+                    "calcs": ["lastNotNull", "mean", "max"]
+                }
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(rate(shop_biz_events_total{env=~\"$env\",event=~\"$event\"}[5m])) by (event)",
+                    "legendFormat": "{{event}}"
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "type": "bargauge",
+            "title": "近 1h 失败事件 Top（by event）",
+            "description": "level=error 的 1 小时增量。对应告警 ShopBizEventFailed。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 9, "w": 8, "x": 16, "y": 0 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            { "color": "green", "value": null },
+                            { "color": "orange", "value": 1 }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "displayMode": "gradient",
+                "orientation": "horizontal",
+                "reduceOptions": { "calcs": ["lastNotNull"] }
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "topk(10, sum(increase(shop_biz_events_total{level=\"error\",env=~\"$env\"}[1h])) by (event))",
+                    "legendFormat": "{{event}}"
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "type": "timeseries",
+            "title": "失败事件速率 /s（按 event）",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+            "fieldConfig": {
+                "defaults": { "unit": "ops", "custom": { "lineWidth": 2, "showPoints": "never" } },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "table", "placement": "right" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(rate(shop_biz_events_total{level=\"error\",env=~\"$env\"}[5m])) by (event)",
+                    "legendFormat": "{{event}}"
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "type": "timeseries",
+            "title": "对账不一致 reconcile.mismatch",
+            "description": "ReconcileJob 每天定时跑只读检查，差异打 reconcile.mismatch（count 字段进日志）。技术指标全绿但钱/库存对不上，只有这层能发现。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "custom": { "lineWidth": 2, "showPoints": "always", "spanNulls": false },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            { "color": "green", "value": null },
+                            { "color": "red", "value": 1 }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(increase(shop_biz_events_total{event=\"reconcile.mismatch\",env=~\"$env\"}[1h])) by (application)",
+                    "legendFormat": "{{application}}"
+                }
+            ]
+        }
+    ]
+}

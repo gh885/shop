@@ -1,0 +1,237 @@
+{
+    "uid": "shop-http-red",
+    "title": "Shop / HTTP RED",
+    "description": "流量 · 错误 · 延迟。指标来自 /actuator/prometheus，命名按 Micrometer PrometheusNamingConvention（http.server.requests → http_server_requests_seconds_*）。P95/P99 由 Prometheus 侧算，应用只导出 histogram bucket。",
+    "tags": ["shop", "http"],
+    "timezone": "browser",
+    "schemaVersion": 41,
+    "version": 1,
+    "editable": true,
+    "refresh": "30s",
+    "time": { "from": "now-3h", "to": "now" },
+    "templating": {
+        "list": [
+            {
+                "name": "env",
+                "label": "环境",
+                "type": "query",
+                "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                "query": "label_values(http_server_requests_seconds_count, env)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true,
+                "current": { "text": "All", "value": "$__all" }
+            },
+            {
+                "name": "application",
+                "label": "应用",
+                "type": "query",
+                "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                "query": "label_values(http_server_requests_seconds_count{env=~\"$env\"}, application)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true,
+                "current": { "text": "All", "value": "$__all" }
+            }
+        ]
+    },
+    "panels": [
+        {
+            "id": 1,
+            "type": "row",
+            "title": "流量",
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+            "collapsed": false
+        },
+        {
+            "id": 2,
+            "type": "timeseries",
+            "title": "请求量 /s（按 uri）",
+            "description": "uri 是路由模板（/api/orders/{id}）不是原始 URL —— 原始 URL 进标签会打爆基数。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 9, "w": 16, "x": 0, "y": 1 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps",
+                    "custom": { "lineWidth": 1, "fillOpacity": 5, "showPoints": "never" }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right",
+                    "calcs": ["lastNotNull", "mean", "max"]
+                }
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\"}[5m])) by (uri)",
+                    "legendFormat": "{{uri}}"
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "type": "stat",
+            "title": "后端可达（up）",
+            "description": "0 = Prometheus 抓不到 /actuator/prometheus。先看这条再看板子：抓不到时所有面板同时空掉，容易误判成「服务没问题」。注意 up 序列只带 job/instance，不继承被抓取指标的标签，所以这里不能按 env 过滤（要按环境筛得靠 relabel_configs 挂上去）。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [
+                        {
+                            "type": "value",
+                            "options": { "0": { "text": "抓不到", "color": "red" } }
+                        },
+                        {
+                            "type": "value",
+                            "options": { "1": { "text": "正常", "color": "green" } }
+                        }
+                    ],
+                    "noValue": "无序列"
+                },
+                "overrides": []
+            },
+            "options": { "graphMode": "none", "colorMode": "background", "textMode": "value" },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "min(up{job=\"shop-server\"})",
+                    "legendFormat": "up"
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "type": "stat",
+            "title": "请求版本分布（近 1h）",
+            "description": "version 标签来自 SHOP_VERSION。生产没注入 git sha 时这里全是 0.0.1-SNAPSHOT，就分不出「是哪次发布引入的」。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 5, "w": 4, "x": 20, "y": 1 },
+            "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+            "options": { "graphMode": "area", "colorMode": "none", "textMode": "value" },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "topk(5, sum(increase(http_server_requests_seconds_count{env=~\"$env\"}[1h])) by (version))",
+                    "legendFormat": "{{version}}"
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "type": "row",
+            "title": "错误",
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 10 },
+            "collapsed": false
+        },
+        {
+            "id": 6,
+            "type": "timeseries",
+            "title": "5xx 比例",
+            "description": "口径与告警 ShopHttp5xxRateHigh 一致：分母 clamp_min 到 0.001，避免没流量时除零出 NaN 把整张图染红。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit",
+                    "min": 0,
+                    "max": 1,
+                    "custom": { "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            { "color": "green", "value": null },
+                            { "color": "red", "value": 0.05 }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\",env=~\"$env\",application=~\"$application\"}[5m])) by (application) / clamp_min(sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\"}[5m])) by (application), 0.001)",
+                    "legendFormat": "{{application}}"
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "type": "timeseries",
+            "title": "错误分布 /s（按 status）",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps",
+                    "custom": { "lineWidth": 1, "showPoints": "never" }
+                },
+                "overrides": []
+            },
+            "options": { "legend": { "displayMode": "table", "placement": "right" } },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "sum(rate(http_server_requests_seconds_count{status=~\"[45]..\",env=~\"$env\",application=~\"$application\"}[5m])) by (status, uri)",
+                    "legendFormat": "{{status}} {{uri}}"
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "type": "row",
+            "title": "延迟",
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 },
+            "collapsed": false
+        },
+        {
+            "id": 9,
+            "type": "timeseries",
+            "title": "P50 / P95 / P99（按 uri）",
+            "description": "看分位不看均值：均值会被长尾拉成一个看不出问题的数。分位由 histogram_quantile 从 _bucket 算，所以 application.yml 里必须开 percentiles-histogram.http.server.requests。",
+            "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+            "gridPos": { "h": 9, "w": 24, "x": 0, "y": 20 },
+            "fieldConfig": {
+                "defaults": { "unit": "s", "custom": { "lineWidth": 2, "showPoints": "never" } },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right",
+                    "calcs": ["lastNotNull", "max"]
+                }
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{env=~\"$env\",application=~\"$application\"}[5m])) by (le, uri))",
+                    "legendFormat": "p50 {{uri}}"
+                },
+                {
+                    "refId": "B",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{env=~\"$env\",application=~\"$application\"}[5m])) by (le, uri))",
+                    "legendFormat": "p95 {{uri}}"
+                },
+                {
+                    "refId": "C",
+                    "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
+                    "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{env=~\"$env\",application=~\"$application\"}[5m])) by (le, uri))",
+                    "legendFormat": "p99 {{uri}}"
+                }
+            ]
+        }
+    ]
+}

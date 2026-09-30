@@ -4,7 +4,9 @@
  *
  * 背景（都是实测出来的，别再猜）：
  *
- * 1. 本仓库的 PG 18 / Redis 7 跑在 WSL2 里（见 AGENTS.md），而 **WSL 的 VM 只按「有没有 WSL 会话」
+ * 0. 默认数据面在云上（`remote`，见下方「两种数据面」），本节讲的是**为什么默认曾是 wsl、
+ *    以及保留 wsl 作退路时要知道什么**——本地 WSL2 里那套 PG/Redis 的坑都在这儿。
+ * 1. 本仓库的 PG 18 / Redis 7 曾经跑在 WSL2 里（现在默认走云），而 **WSL 的 VM 只按「有没有 WSL 会话」
  *    存活**，空闲几十秒就把整台 VM 回收。VM 一停，共享栈（镜像网络）里的 `localhost:15432/6379`
  *    监听随之消失：
  *    - 后端启动失败：`Connection to 127.0.0.1:5432 refused`（看着像数据库没起来，改 JDBC 没用）；
@@ -17,23 +19,28 @@
  * 唯一能用的是「留一个 Windows 侧的 `wsl.exe` 会话」——但这个会话要按需存在，不是常驻：
  * VM 活着时 `vmmemWSL` 工作集约 1.2GB，白挂着就是白占（这正是这台机器上 WSL 的账）。
  *
- * 所以三种模式：
+ * 所以四种模式：
  *
- *   --hold   前台持有会话（`pnpm dev:server` 用）：后端进程活着 = 数据面活着，后端一停就释放
- *   （默认）  拉起数据面 + 挂一个 detached 会话（`pnpm db:up`）：给「从 IDE 跑后端」的用法兜底，
- *           用完记得 `pnpm db:down`
- *   --down   杀掉会话并 `wsl --shutdown`，立刻把内存还给 Windows（`pnpm db:down`）
+ *   --hold         前台持有会话（`pnpm dev:server` 用）：后端进程活着 = 数据面活着，后端一停就释放
+ *   （默认）        拉起数据面 + 后台隧道守护（`pnpm db:up`）：给「从 IDE 跑后端」的用法兜底
+ *   --down         杀掉守护/会话与隧道，立刻把内存还给 Windows（`pnpm db:down`）
+ *   --tunnel-guard 仅内部：后台守护进程本体（由 db:up 拉起，不直接用）
  *
- * ── 两种数据面，一个变量切（`SHOP_DATASTORE=wsl|remote`，默认 wsl）─────────────────────
+ * ── 两种数据面，一个变量切（`SHOP_DATASTORE=remote|wsl`，默认 remote）──────────────────
  *
- *   默认值可以改进 `apps/server/.env` 写一行（gitignored，机器专属），于是三条命令都不用带前缀；
+ *   默认值可以在 `apps/server/.env` 写一行（gitignored，机器专属），于是三条命令都不用带前缀；
  *   命令行显式导出永远压得过它 —— 详见 scripts/dotenv.mjs，上面那行「数据面 …（来源）」就是它给的。
  *
- *   wsl     PG/Redis 在本机 WSL2 里。持有物 = `wsl.exe` 会话。
- *   remote  PG/Redis 在云上（`deploy/dataplane.compose.yml`）。持有物 = 一条 ssh 端口隧道。
+ *   remote（默认）PG/Redis 在云上（`deploy/dataplane.compose.yml`）。持有物 = 一条 ssh 端口隧道。
+ *   wsl               PG/Redis 在本机 WSL2 里。持有物 = `wsl.exe` 会话。**只作为退路保留**
  *
- * 选 remote 的理由不是「云更高级」，而是把上面那段 WSL 机制整个删掉：远端 PG 是 systemd/docker
- * 常驻的，不存在「空闲几十秒被回收」，于是也不需要 1.2GB 的 vmmemWSL 去按着它。
+ * 默认从 wsl 改成 remote 的原因：wsl 那套要额外操心上面 1~3 条（VM 回收、~1.2GB vmmemWSL、
+ * 会话保活），而云端 PG/Redis 是 systemd/docker 常驻的，不存在这些；且本机 WSL 里那两个服务
+ * 已经 `systemctl disable` 掉了（见 AGENTS.md「数据库与 Redis」），不会再抢 15432/6379。
+ *
+ * 保留 wsl 分支而不是删掉：它是「云主机不可达 / 隧道起不来」时的唯一退路，而删它要动
+ * `assertNoForeignListeners` 那道「绝不静默连到本地库」的安全阀（真出事时它比退路值钱）。
+ * 日常不会走到——默认就是 remote，要走必须显式 `SHOP_DATASTORE=wsl`。
  *
  * 三种模式在两种数据面下语义一一对应，`dev:server` / `db:up` / `db:down` / `test:server`
  * 四条命令的用法不变——这是刻意的：换数据面不该改肌肉记忆。
@@ -41,17 +48,30 @@
  * remote 模式下隧道的本地端口就用 15432 / 6379（全仓库 `SHOP_DB_*` 变量族的默认口径），
  * 所以接上云之后 JDBC URL、seed、e2e 一处都不用改；远端 PG 在 5433，由隧道映射过来。
  *
+ * **隧道为什么自带守护**：ssh 自己不重连——`ServerAliveInterval` 只能在链路死透时让它退出，
+ * 退出后没人再拉起。所以 `db:up` 拉起的不是一条裸 ssh，而是一个后台守护进程（`--tunnel-guard`），
+ * 它盯端口、断线就退避补一条。这样「一直连云」就真的不用惦记：合盖、切 Wi-Fi、云主机重启都能自愈。
+ * 守护日志在 `~/.shop-datastore/tunnel-guard.log`，`db:down` 会把它和隧道一起收掉。
+ *
+ * **要彻底不依赖终端**：守护本身是 detached 的，关掉跑 db:up 的窗口它也活着；但 Windows 上
+ * 若发起进程被套了 kill-on-close 的 Job Object 仍可能被带走。`pnpm guard:install` 把它注册成
+ * 登录自启计划任务（父进程变成 Task Scheduler 的 svchost），那才是与终端完全解耦的形态。
+ *
  * 一个如实的局限：ssh 只管「本地端口绑上了」，不看远端 5433 到底有没有人监听。所以本脚本在 remote
  * 下报的是「隧道已建立」而不是「库已就绪」——库要真不在，第一次握手由后端报 refused 来暴露，
  * 那比一个谎报就绪的守卫有用。
  */
 import { spawn, spawnSync } from "node:child_process"
+import { appendFileSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import net from "node:net"
+import os from "node:os"
+import path from "node:path"
 import { loadDevEnv } from "./dotenv.mjs"
+import { taskInstalled } from "./tunnel-guard-task.mjs"
 
-/** 命令行显式导出的优先，其次 apps/server/.env，最后仓库默认 wsl */
+/** 命令行显式导出的优先，其次 apps/server/.env，最后仓库默认 remote */
 const FROM_ENV_FILE = loadDevEnv().includes("SHOP_DATASTORE")
-const BACKEND = process.env.SHOP_DATASTORE ?? "wsl"
+const BACKEND = process.env.SHOP_DATASTORE ?? "remote"
 const BACKEND_FROM = FROM_ENV_FILE
     ? "apps/server/.env"
     : process.env.SHOP_DATASTORE
@@ -97,10 +117,97 @@ const HOLD_CMD = "sleep infinity"
 
 const MODE = process.argv.includes("--down")
     ? "down"
-    : process.argv.includes("--hold")
-      ? "hold"
-      : "up"
+    : process.argv.includes("--tunnel-guard")
+      ? "guard"
+      : process.argv.includes("--hold")
+        ? "hold"
+        : "up"
 const label = (t) => `${t.name}(:${t.port})`
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * 隧道守护的运行态（pid + 日志）。
+ *
+ * 为什么不放仓库：这是个常驻后台进程，pid 与日志跟代码没关系，放进工作树只会污染 diff；
+ * 为什么不用 os.tmpdir()：临时目录会被系统清理，pid 文件消失后没人知道有个 guard 还活着，
+ * 于是会出现两个守护进程抢同一对端口。
+ */
+const GUARD_DIR = path.join(os.homedir(), ".shop-datastore")
+const GUARD_PID = path.join(GUARD_DIR, "tunnel-guard.pid")
+const GUARD_LOG = path.join(GUARD_DIR, "tunnel-guard.log")
+
+/** 读 pid 文件里的 pid；读不到 / 不是数字 = 没有 */
+function guardPid() {
+    try {
+        const pid = Number.parseInt(readFileSync(GUARD_PID, "utf8").trim(), 10)
+        return Number.isFinite(pid) ? pid : null
+    } catch {
+        return null
+    }
+}
+
+/** pid 文件指向的进程还活着吗（Windows 上 process.kill(pid, 0) 可当存在性探针用） */
+function guardAlive() {
+    const pid = guardPid()
+    if (pid === null) return false
+    try {
+        process.kill(pid, 0)
+        return true
+    } catch {
+        return false
+    }
+}
+
+/**
+ * 起一个后台守护进程（detached + unref），让它自己把隧道一直维持在。
+ *
+ * 为什么要它：ssh 自己**不重连**。`ServerAliveInterval` 只能在链路死透时让 ssh 退出，
+ * 退出之后没人再拉起它——补一条隧道是 200ms 的事，却得有人在那儿盯着。所以必须有个进程常驻。
+ * `db:up` 建的那条隧道过去就是「没人管的孤儿」：断一次就要等人手动重跑 db:up。
+ *
+ * @returns {boolean} true = 这次真的拉起了守护；false = 已经在跑了
+ */
+function startGuard() {
+    if (guardAlive()) return false
+    mkdirSync(GUARD_DIR, { recursive: true })
+    // stdout 丢给 ignore、stderr 接到日志文件：守护自己的日志走 logToGuard 直写文件，
+    // 这里只接 console.error（端口属主判定的报错之类），两者不会把同一行写两遍
+    const errFd = openSync(GUARD_LOG, "a")
+    const child = spawn(process.execPath, [process.argv[1], "--tunnel-guard"], {
+        detached: true,
+        // 必须 windowsHide：Windows 上 detached 会给子进程新开一个控制台窗口，
+        // 不加这个每次 db:up 都会弹一个黑框
+        windowsHide: true,
+        stdio: ["ignore", "ignore", errFd],
+    })
+    child.unref()
+    writeFileSync(GUARD_PID, String(child.pid))
+    return true
+}
+
+/**
+ * 清掉隧道守护。
+ *
+ * 按命令行匹配而不是只信 pid 文件：pid 会被系统回收复用，照着旧 pid kill 有可能杀掉
+ * 别人的无关进程（同 reapTunnels 认 ssh 的道理）。
+ */
+function reapGuard() {
+    rmSync(GUARD_PID, { force: true })
+    if (process.platform !== "win32") return
+    spawnSync(
+        "powershell.exe",
+        [
+            "-NoProfile",
+            "-Command",
+            "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | " +
+                "Where-Object { $_.CommandLine -match 'ensure-datastore\\.mjs' " +
+                "-and $_.CommandLine -match '--tunnel-guard' } | " +
+                "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+        ],
+        { stdio: "ignore" },
+    )
+}
 
 /**
  * 第一节先报「连的是哪台库、这个决定是谁做的」：数据面偏好可以藏在 .env 里，
@@ -172,14 +279,17 @@ function tunnelArgs() {
 }
 
 /**
- * @param detached 分离模式（db:up）必须 stdio:"ignore"：留着管道会让本进程的事件循环永不结束，
- *   `pnpm db:up` 就变成不返回了。hold 模式则要接住 stderr——隧道秒退的真正原因
- *   （`Warning: remote port forwarding failed for listen port 15600`）只在 ssh 的 stderr 里。
+ * 起一条 ssh 隧道（非分离，始终是监督循环的子进程）。
+ *
+ * 曾经有个 detached 模式（db:up 直接甩一条无主 ssh 就走），现在没了：那条隧道断了没人管。
+ * 统一由 superviseTunnel 持有并重连，所以永远前台、不脱离；stderr 必须接着
+ * ——隧道秒退的真正原因（`Warning: remote port forwarding failed for listen port 15432`）
+ * 只在 ssh 的 stderr 里，不接住就只剩一句「断了」。
  */
-function spawnTunnel({ detached }) {
+function spawnTunnel() {
     return spawn(SSH_BIN, tunnelArgs(), {
-        detached,
-        stdio: detached ? "ignore" : ["ignore", "ignore", "pipe"],
+        detached: false,
+        stdio: ["ignore", "ignore", "pipe"],
     })
 }
 
@@ -380,12 +490,16 @@ function wakeWslDatastore() {
     }
 }
 
-/** remote：起一条 detached 隧道（`--hold` 模式不走这里，由重连循环持有） */
+/**
+ * remote：起后台守护（`--hold` 模式不走这里，由前台重连循环持有）。
+ *
+ * 先清遗留隧道：端口被上一轮的孤儿占着时，新隧道会因 ExitOnForwardFailure 直接退出，
+ * 表现成「等了 60s 还是连不上」，看不出真正原因。
+ * 然后拉守护——隧道由守护在头几秒内顶上来，`waitForOpen` 等得住。
+ */
 function wakeRemoteDatastore() {
-    // 先清遗留隧道：端口被上一轮的孤儿占着时，新隧道会因 ExitOnForwardFailure 直接退出，
-    // 表现成「等了 60s 还是连不上」，看不出真正原因
     reapTunnels()
-    spawnTunnel({ detached: true }).unref()
+    startGuard()
 }
 
 function wakeDatastore() {
@@ -393,11 +507,14 @@ function wakeDatastore() {
     else wakeWslDatastore()
 }
 
+/**
+ * @returns {Promise<boolean>} true = 本次真的拉起了数据面；false = 已经在位，什么都没做
+ */
 async function ensureDatastore() {
     // 先认端口属主，再谈「通不通」：remote 下端口通着也可能是本地 WSL 在听（见 foreignRemotePorts）
     if (BACKEND === "remote") await assertNoForeignListeners()
     const ports = await closedPorts()
-    if (ports.length === 0) return
+    if (ports.length === 0) return false
     const where =
         BACKEND === "remote" ? `ssh 隧道 → ${SSH_HOST}` : `WSL 数据面（distro: ${DISTRO}）`
     console.log(`… ${TARGETS.map(label).join("、")} 连不上，拉起 ${where}`)
@@ -417,13 +534,18 @@ async function ensureDatastore() {
         }
         process.exit(1)
     }
+    return true
 }
 
 // ── --down：立刻还内存 / 断隧道 ───────────────────────────────────────
 if (MODE === "down") {
     const before = vmmemMB()
-    // 两种会话一起清（见 reapSessions 注释）：切换数据面时不留另一半在抢 15432
-    if (process.platform === "win32") reapSessions()
+    // 两种会话一起清（见 reapSessions 注释）：切换数据面时不留另一半在抢 15432。
+    // remote 下先收守护——守护活着就会把刚拆掉的隧道立刻补回来
+    if (process.platform === "win32") {
+        if (BACKEND === "remote") reapGuard()
+        reapSessions()
+    }
     if (BACKEND === "wsl" && process.platform === "win32") {
         spawnSync("wsl.exe", ["--shutdown"], { stdio: "ignore" })
         // `wsl --shutdown` 是异步的：等 vmmemWSL 真消失再报数（最多约 5s）
@@ -440,6 +562,13 @@ if (MODE === "down") {
                 ? `（${foreign.map((f) => `${f.port} 仍是 ${f.name} 在听`).join("、")}）`
                 : ""
         console.log(`✓ 已断开隧道 → ${SSH_HOST}${note}`)
+        // 装了登录自启任务就把话说全：只断这一次，下次登录它会自己回来，
+        // 不提醒的话会以为「db:down 能永久停掉隧道」
+        if (process.platform === "win32" && taskInstalled()) {
+            console.log(
+                "  注：登录自启任务还在，下次登录守护会自己回来；要彻底停用跑 pnpm guard:uninstall",
+            )
+        }
     } else {
         const afterText = after === undefined ? "0MB（VM 已退出）" : `${after}MB`
         console.log(
@@ -472,17 +601,49 @@ function runTunnelUntilExit(child) {
         // ssh 本身起不来（SHOP_SSH_BIN 指错、二进制不在 PATH）走的是 error 不是 exit。
         // 不接住它就是「Unhandled 'error' event + 一坨堆栈」，看不见该改什么
         child.once("error", (err) => resolve(`进程起不来：${err.message}`))
+        // **必须补这一下**：ssh 可能在我们挂上监听之前就已经退出了（本地端口刚被释放、
+        // 但旧 socket 还在 → ExitOnForwardFailure 秒退，几毫秒内就结束）。
+        // Node 的 'exit' 是「已经退出后才发」的事件，不会补发；那就永远等不到，
+        // 而这个 Promise 是监督循环的命门——它悬着，整个守护就静默地冻住了
+        // （表现为「进程还在、隧道没了、也不重连」）。
+        if (child.exitCode !== null || child.signalCode !== null) {
+            resolve(`秒退（退出码 ${child.exitCode ?? child.signalCode}）`)
+        }
     })
 }
 
+/** 前台日志（--hold：有人看着，输出到 stderr） */
+const logToConsole = (msg) => console.error(msg)
+
 /**
- * remote 的 `--hold`：本进程负责让一条隧道活着，掉线补一条。
+ * 后台日志（--tunnel-guard）：直接 append 到日志文件，不依赖 stdout 有没有被重定向。
  *
- * 为什么不照 WSL 那样「会话退出就 process.exit」：ssh 掉线是常态（笔记本合盖、切 Wi-Fi、
- * 云端重启），而补一条隧道是 200ms 的事。直接判死等于把一次网络抖动放大成整轮 dev 中断。
- * 真正该判死的是「补不回来」（见 MAX_FAST_FAILS）。
+ * 为什么不能只写 stdout：两种启动方式的重定向完全不同——`db:up` 走 startGuard，会把 stdout
+ * 接到日志文件；但计划任务那条路是 Task Scheduler 拉起的，stdout 无人接收，写进去就丢了。
+ * 直接写文件是唯一能保证两种启动方式都有日志的做法，也顺带避免了「两份输出进同一个文件」。
  */
-async function holdRemoteTunnel() {
+const logToGuard = (msg) => {
+    const line = `${new Date().toISOString()} ${msg}\n`
+    try {
+        mkdirSync(GUARD_DIR, { recursive: true })
+        appendFileSync(GUARD_LOG, line, "utf8")
+    } catch {
+        // 日志写不进去也不能让守护死掉：它还要负责保隧道
+    }
+}
+
+/**
+ * 隧道监督循环（remote）：端口通了就待命，断了就补一条，退避重连。
+ *
+ * 两个模式共用这一个循环，差别只在「连续秒退到上限后怎么办」：
+ *   - `--hold`（前台，跟 dev:server）给人看，判死并报错退出；
+ *   - `--tunnel-guard`（后台常驻）没人看，就一直退避重试，不判死。
+ *
+ * @param {object} opts
+ * @param {boolean} opts.giveUpAfterFastFails 连不上且连续秒退到上限时，是否放弃退出
+ * @param {(msg: string) => void} opts.log 输出去向（前台 console / 后台日志文件）
+ */
+async function superviseTunnel({ giveUpAfterFastFails, log }) {
     // 先认端口属主：本地 WSL 数据面在听 15432/6379 时，静默待命就等于静默连本地库
     await assertNoForeignListeners()
     const MAX_FAST_FAILS = 8
@@ -499,40 +660,53 @@ async function holdRemoteTunnel() {
     process.on("SIGINT", () => quit("SIGINT"))
     process.on("SIGTERM", () => quit("SIGTERM"))
 
-    const supervise = (async () => {
-        let backoff = 500
-        let fastFails = 0
-        // oxlint-disable no-await-in-loop -- 守护循环的每一步都必须等上一步：探测 → 建隧道 → 等退出 → 退避
-        for (;;) {
-            const closed = await closedPorts()
-            if (closed.length === 0) {
-                // 端口通着：要么隧道本来就活着，要么另有会话在管（另一个 dev:server / 手开的
-                // ssh）。不抢——抢了会因 ExitOnForwardFailure 秒退，把日志刷成故障的样子
-                fastFails = 0
-                await new Promise((r) => setTimeout(r, 3000))
-                continue
-            }
-            const started = Date.now()
-            child = spawnTunnel({ detached: false })
-            const why = await runTunnelUntilExit(child)
-            child = null
-            const lived = Date.now() - started
-            if (lived > 30_000) {
-                backoff = 500
-                fastFails = 0
-            } else if (++fastFails >= MAX_FAST_FAILS) {
-                console.error(`✖ 隧道连续 ${fastFails} 次秒退，放弃（数据面不可用）`)
-                console.error(`  → 手动验一次：${SSH_BIN} ${tunnelArgs().join(" ")}`)
+    let backoff = 500
+    let fastFails = 0
+    // oxlint-disable no-await-in-loop -- 守护循环的每一步都必须等上一步：探测 → 建隧道 → 等退出 → 退避
+    for (;;) {
+        const closed = await closedPorts()
+        if (closed.length === 0) {
+            // 端口通着：要么隧道本来就活着，要么另有会话在管。不抢——抢了会因
+            // ExitOnForwardFailure 秒退，把日志刷成故障的样子
+            fastFails = 0
+            await sleep(3000)
+            continue
+        }
+        const started = Date.now()
+        child = spawnTunnel()
+        const why = await runTunnelUntilExit(child)
+        child = null
+        const lived = Date.now() - started
+        if (lived > 30_000) {
+            backoff = 500
+            fastFails = 0
+        } else if (++fastFails >= MAX_FAST_FAILS) {
+            if (giveUpAfterFastFails) {
+                log(`✖ 隧道连续 ${fastFails} 次秒退，放弃（数据面不可用）`)
+                log(`  → 手动验一次：${SSH_BIN} ${tunnelArgs().join(" ")}`)
                 process.exit(1)
             }
-            // 秒退一般是本地端口被占或鉴权失败，不报出来的话只看得见日志在滚
-            console.error(`· 隧道退出（存活 ${lived}ms）：${why} → ${backoff}ms 后重连 ${SSH_HOST}`)
-            await new Promise((r) => setTimeout(r, backoff))
-            backoff = Math.min(backoff * 2, MAX_BACKOFF_MS)
+            // 守护模式：判死没有意义——没人盯着，但把「连不上」和「隧道抖了一下」区分开
+            log(`! 隧道连续 ${fastFails} 次秒退（云主机不可达？），仍会持续重试`)
         }
-        // oxlint-enable no-await-in-loop
-    })()
+        // 秒退一般是本地端口被占或鉴权失败，不报出来的话只看得见日志在滚
+        log(`· 隧道退出（存活 ${lived}ms）：${why} → ${backoff}ms 后重连 ${SSH_HOST}`)
+        await sleep(backoff)
+        backoff = Math.min(backoff * 2, MAX_BACKOFF_MS)
+    }
+    // oxlint-enable no-await-in-loop
+}
 
+/**
+ * remote 的 `--hold`：本进程负责让一条隧道活着，掉线补一条。
+ *
+ * 为什么不照 WSL 那样「会话退出就 process.exit」：ssh 掉线是常态（笔记本合盖、切 Wi-Fi、
+ * 云端重启），而补一条隧道是 200ms 的事。直接判死等于把一次网络抖动放大成整轮 dev 中断。
+ */
+async function holdRemoteTunnel() {
+    const log = logToConsole
+    // 先等起来：监督循环里先做了端口自检与重连，这儿等它把端口顶开再报就绪
+    const supervise = superviseTunnel({ giveUpAfterFastFails: true, log })
     const stillClosed = await waitForOpen(Date.now() + WAIT_MS)
     if (stillClosed.length > 0) {
         console.error(`✖ 隧道起不来，仍连不上：${stillClosed.map(label).join("、")}`)
@@ -548,8 +722,34 @@ async function holdRemoteTunnel() {
     await supervise
 }
 
+/**
+ * remote 的 `--tunnel-guard`：后台常驻，自愈隧道。
+ *
+ * 为什么需要它：`db:up` 建的那条 ssh 是「没人管的孤儿」，断一次（合盖、切 Wi-Fi、云主机重启）
+ * 就得等人手动重跑 `db:up`。这个守护进程把重连循环放到后台常驻，让「一直连云」真的不用惦记。
+ * 它不绑前台终端，`pnpm db:up` 退出后仍在跑；`pnpm db:down` 会把它和隧道一起收掉。
+ */
+async function runTunnelGuard() {
+    // 单实例：另一个守护还活着就退出，避免两个循环抢同一对端口（后起的那个会因
+    // ExitOnForwardFailure 秒退，把日志刷成故障的样子）
+    const existing = guardPid()
+    if (existing !== null && existing !== process.pid && guardAlive()) {
+        console.log(`隧道守护已在运行（pid ${existing}），本进程退出`)
+        process.exit(0)
+    }
+    // 自己就是那个守护，把 pid 落到文件（父进程已写过，这里确保一致）
+    mkdirSync(GUARD_DIR, { recursive: true })
+    writeFileSync(GUARD_PID, String(process.pid))
+    // 日志往文件走：前台没人看，重连信息留档才有排查价值
+    const log = logToGuard
+    log(`· 隧道守护启动（pid ${process.pid}）→ ${SSH_HOST}，日志：${GUARD_LOG}`)
+    await superviseTunnel({ giveUpAfterFastFails: false, log })
+}
+
 // ── --hold：前台持有会话，本进程退出即释放（dev:server 用）────────────
-if (MODE === "hold" && BACKEND === "remote") {
+if (MODE === "guard" && BACKEND === "remote") {
+    await runTunnelGuard()
+} else if (MODE === "hold" && BACKEND === "remote") {
     await holdRemoteTunnel()
 } else if (MODE === "hold") {
     await ensureDatastore()
@@ -571,7 +771,9 @@ if (MODE === "hold" && BACKEND === "remote") {
     console.log("  会话随本进程存活：Ctrl-C / 停掉后端即释放内存（也可随时 pnpm db:down）")
 } else {
     // ── 默认：db:up ──────────────────────────────────────────────────
-    await ensureDatastore()
+    // 记下守护在动手前是不是已经在了：下面那句「已启动 / 已在运行」要说实话
+    const guardExisted = guardAlive()
+    const woke = await ensureDatastore()
     if (
         BACKEND === "wsl" &&
         process.platform === "win32" &&
@@ -585,9 +787,23 @@ if (MODE === "hold" && BACKEND === "remote") {
         }).unref()
         console.log("  已挂 detached 会话（用完记得 pnpm db:down 还内存）")
     }
+    // remote：确保有守护在跑。即使端口已经通着（比如上一轮的孤儿 ssh 还在、或上一轮没起守护），
+    // 也要把守护拉起来——否则它一断就没人再补，「已建立」只是一时的。
+    // 消息按「动手前有没有」来判，不按本次 startGuard 的返回值：wakeRemoteDatastore 里已经起过一轮，
+    // 拿第二次调用的返回值去报，会把「刚起的」说成「本来就在」
+    if (BACKEND === "remote" && process.platform === "win32") {
+        startGuard()
+        console.log(
+            `  隧道守护${guardExisted ? "已在运行" : "已启动"}（断线自愈；日志 ${GUARD_LOG}）`,
+        )
+    }
+    // 只在真拉起时才说「隧道已建立」：端口本来就通着的时候也报这句，是把「没做任何事」说成
+    // 「刚建好了」，与本文件头「不谎报就绪」的口径相违
     const ready =
         BACKEND === "remote"
-            ? `✓ 隧道已建立（→ ${SSH_HOST}，用完 pnpm db:down 断开）`
+            ? woke
+                ? `✓ 隧道已建立（→ ${SSH_HOST}，用完 pnpm db:down 断开）`
+                : `✓ 隧道已在位（→ ${SSH_HOST}，未重建；用完 pnpm db:down 断开）`
             : `✓ 数据面已就绪（${TARGETS.map((t) => `:${t.port}`).join(" / ")}）${memoryNote()}`
     console.log(ready)
 }
