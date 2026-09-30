@@ -5,6 +5,7 @@ import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.compliance.api.ForbiddenCategory;
 import com.shop.platform.compliance.mapper.ForbiddenWordMapper;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 import lombok.RequiredArgsConstructor;
@@ -64,20 +65,25 @@ public class ForbiddenWordService {
     /**
      * 判定一段公开文本是否干净；命中则抛 400（带命中词与分类）。
      *
+     * @param field 出错字段的机器名（调用方表单的键），随 errors[].field 给前端定位输入框
      * @param fieldLabel 出错时告诉卖家是哪个字段（如「标题」「卖点」「评价内容」）
      * @param text 待判定的文本，可空（空 = 干净）
      */
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-    public void assertClean(String fieldLabel, String text) {
+    public void assertClean(String field, String fieldLabel, String text) {
         List<ForbiddenWordMatcher.Hit> hits = ForbiddenWordMatcher.findAllHits(text, words());
         if (hits.isEmpty()) {
             return;
         }
         // 提示只带第一个命中的词与分类：多列会把消息拉长，卖家改第一个再提交自然看到下一个
         ForbiddenWordMatcher.Hit first = hits.getFirst();
-        throw BusinessException.badRequest(
-                ErrorCodes.FORBIDDEN_WORD_HIT,
-                "「%s」包含违禁词「%s」（分类：%s），请修改后重新提交".formatted(fieldLabel, first.word(), categoryLabel(first.category())));
+        String detail =
+                "「%s」包含违禁词「%s」（分类：%s），请修改后重新提交".formatted(fieldLabel, first.word(), categoryLabel(first.category()));
+        // field 与 value 作为**数据**并列出一次：前端按 field 标红那一个输入框、按 value 把命中词嵌进自己语种的那句，
+        // 不必再从中文 detail 里正则捞（docs/error-codes.md 的 COM-01）。
+        // message 就是那句 detail——字段级明细的 message 是必填格（前端按 {field,message} 认形状），空着整条会被当脏数据丢掉
+        Map<String, String> hit = Map.of("field", field, "message", detail, "value", first.word());
+        throw BusinessException.badRequest(ErrorCodes.FORBIDDEN_WORD_HIT, detail, List.of(hit));
     }
 
     /** 分类的中文标签（写进提示文案；不新增 code——分类是提示的一部分，不是前端要分支的字段） */

@@ -91,8 +91,8 @@ public class ProductService {
             String nextSubtitle =
                     command.subtitle() != null ? Text.blankToNull(command.subtitle()) : product.getSubtitle();
             forbiddenWordCommand.assertAllClean(
-                    new ForbiddenWordCommand.CleanText("标题", nextName),
-                    new ForbiddenWordCommand.CleanText("卖点", nextSubtitle));
+                    new ForbiddenWordCommand.CleanText("name", "标题", nextName),
+                    new ForbiddenWordCommand.CleanText("subtitle", "卖点", nextSubtitle));
         }
 
         // 3. 实体局部更新：非 null 字段 set 到已加载的实体（JSONB 走实体 typeHandler）
@@ -211,8 +211,8 @@ public class ProductService {
         // 0.5 违禁词闸（COM-01）：与「标题非空」同处发布门槛，publish 与重上共用。
         //     草稿保存不拦（卖家要先填内容），要拦的是上架那一刻的公开可见性。
         forbiddenWordCommand.assertAllClean(
-                new ForbiddenWordCommand.CleanText("标题", product.getName()),
-                new ForbiddenWordCommand.CleanText("卖点", product.getSubtitle()));
+                new ForbiddenWordCommand.CleanText("name", "标题", product.getName()),
+                new ForbiddenWordCommand.CleanText("subtitle", "卖点", product.getSubtitle()));
         List<Sku> skus = skuMapper.selectByProductId(product.getId());
         // 发布/重上门槛只看「在售 SKU」：停用 SKU 不计入（停用 SKU 不该阻塞上架，也不该被索取价格）
         List<Sku> onSale = skus.stream().filter(Sku::isOnSale).toList();

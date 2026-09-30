@@ -15,6 +15,7 @@ import com.shop.platform.compliance.api.ForbiddenCategory;
 import com.shop.platform.compliance.mapper.ForbiddenWord;
 import com.shop.platform.compliance.mapper.ForbiddenWordMapper;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class ForbiddenWordServiceTest {
     void 标题命中_400带码_文案是卖家照做得了的那一句() {
         when(forbiddenWordMapper.selectEnabled()).thenReturn(List.of(row("最佳", AD_LAW)));
 
-        assertThatThrownBy(() -> service.assertClean("标题", "全网最佳 宠物智能喂食器"))
+        assertThatThrownBy(() -> service.assertClean("name", "标题", "全网最佳 宠物智能喂食器"))
                 .isInstanceOfSatisfying(BusinessException.class, e -> {
                     assertThat(e.getHttpStatus()).isEqualTo(400);
                     assertThat(e.getCode()).isEqualTo(ErrorCodes.FORBIDDEN_WORD_HIT);
@@ -65,11 +66,28 @@ class ForbiddenWordServiceTest {
                 });
     }
 
+    /**
+     * COM-01 的参数通道：命中词与字段名以**数据**出一次（{@code errors[].field/value}），
+     * 前端就不再需要从中文 detail 里正则捞字段（i18n.md §7.3 —— 捞出来的是中文，英文界面没法用）。
+     * detail 照旧是那句中文：它是简体中文界面的文案，形状变了两头一起红。
+     */
+    @Test
+    void 命中把字段与命中词作为数据出一次_前端不必再从detail里捞() {
+        when(forbiddenWordMapper.selectEnabled()).thenReturn(List.of(row("最佳", AD_LAW)));
+
+        assertThatThrownBy(() -> service.assertClean("name", "标题", "全网最佳"))
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getErrors())
+                        .isEqualTo(List.of(Map.of(
+                                "field", "name",
+                                "message", e.getDetail(),
+                                "value", "最佳"))));
+    }
+
     @Test
     void 分类标签随分类变_提示才真的可行动() {
         when(forbiddenWordMapper.selectEnabled()).thenReturn(List.of(row("刷单", FRAUD)));
 
-        assertThatThrownBy(() -> service.assertClean("卖点", "支持刷单返现"))
+        assertThatThrownBy(() -> service.assertClean("subtitle", "卖点", "支持刷单返现"))
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getDetail())
                         .isEqualTo("「卖点」包含违禁词「刷单」（分类：欺诈与交易陷阱），请修改后重新提交"));
     }
@@ -78,9 +96,9 @@ class ForbiddenWordServiceTest {
     void 干净文本与空文本_放行() {
         when(forbiddenWordMapper.selectEnabled()).thenReturn(List.of(row("最佳", AD_LAW)));
 
-        assertThatCode(() -> service.assertClean("标题", "宠物智能喂食器 定时定量")).doesNotThrowAnyException();
-        assertThatCode(() -> service.assertClean("标题", null)).doesNotThrowAnyException();
-        assertThatCode(() -> service.assertClean("卖点", "  ")).doesNotThrowAnyException();
+        assertThatCode(() -> service.assertClean("name", "标题", "宠物智能喂食器 定时定量")).doesNotThrowAnyException();
+        assertThatCode(() -> service.assertClean("name", "标题", null)).doesNotThrowAnyException();
+        assertThatCode(() -> service.assertClean("subtitle", "卖点", "  ")).doesNotThrowAnyException();
     }
 
     @Test
@@ -89,7 +107,7 @@ class ForbiddenWordServiceTest {
         // 多列会把提示拖长，改完第一个再提交自然看到下一个
         when(forbiddenWordMapper.selectEnabled()).thenReturn(List.of(row("最佳", AD_LAW), row("刷单", FRAUD)));
 
-        assertThatThrownBy(() -> service.assertClean("标题", "全网最佳，还能刷单"))
+        assertThatThrownBy(() -> service.assertClean("name", "标题", "全网最佳，还能刷单"))
                 .isInstanceOfSatisfying(
                         BusinessException.class, e -> assertThat(e.getDetail()).contains("「最佳」"));
     }
@@ -98,8 +116,8 @@ class ForbiddenWordServiceTest {
     void 连续判定只读一次词表_闸门不逐次扫全表() {
         when(forbiddenWordMapper.selectEnabled()).thenReturn(List.of(row("最佳", AD_LAW)));
 
-        service.assertClean("标题", "普通标题");
-        service.assertClean("卖点", "普通卖点");
+        service.assertClean("name", "标题", "普通标题");
+        service.assertClean("subtitle", "卖点", "普通卖点");
 
         verify(forbiddenWordMapper, times(1)).selectEnabled();
     }
@@ -110,10 +128,10 @@ class ForbiddenWordServiceTest {
                 .thenReturn(List.of(row("最佳", AD_LAW)))
                 .thenReturn(List.of(row("最佳", AD_LAW), row("第一", AD_LAW)));
 
-        service.assertClean("标题", "行业第一"); // 旧词表里没有「第一」，放行
+        service.assertClean("name", "标题", "行业第一"); // 旧词表里没有「第一」，放行
         now.set(ForbiddenWordService.CACHE_MILLIS + 1);
 
-        assertThatThrownBy(() -> service.assertClean("标题", "行业第一"))
+        assertThatThrownBy(() -> service.assertClean("name", "标题", "行业第一"))
                 .isInstanceOfSatisfying(
                         BusinessException.class, e -> assertThat(e.getDetail()).contains("「第一」"));
         verify(forbiddenWordMapper, times(2)).selectEnabled();

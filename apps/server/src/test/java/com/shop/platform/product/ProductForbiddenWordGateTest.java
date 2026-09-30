@@ -108,7 +108,8 @@ class ProductForbiddenWordGateTest {
 
         productService.updateBasic(SHOP_ID, PRODUCT_ID, basic("全网最佳", null));
 
-        verify(forbiddenWordCommand).assertAllClean(new CleanText("标题", "全网最佳"), new CleanText("卖点", "断电续航 72 小时"));
+        verify(forbiddenWordCommand)
+                .assertAllClean(new CleanText("name", "标题", "全网最佳"), new CleanText("subtitle", "卖点", "断电续航 72 小时"));
     }
 
     @Test
@@ -118,7 +119,8 @@ class ProductForbiddenWordGateTest {
 
         productService.updateBasic(SHOP_ID, PRODUCT_ID, basic(null, "支持刷单返现"));
 
-        verify(forbiddenWordCommand).assertAllClean(new CleanText("标题", "宠物喂食器"), new CleanText("卖点", "支持刷单返现"));
+        verify(forbiddenWordCommand)
+                .assertAllClean(new CleanText("name", "标题", "宠物喂食器"), new CleanText("subtitle", "卖点", "支持刷单返现"));
     }
 
     @Test
@@ -142,7 +144,8 @@ class ProductForbiddenWordGateTest {
 
         assertThatThrownBy(() -> productService.publish(SHOP_ID, PRODUCT_ID, ProductStatus.WAREHOUSE))
                 .isInstanceOf(BusinessException.class);
-        verify(forbiddenWordCommand).assertAllClean(new CleanText("标题", "全网最佳"), new CleanText("卖点", null));
+        verify(forbiddenWordCommand)
+                .assertAllClean(new CleanText("name", "标题", "全网最佳"), new CleanText("subtitle", "卖点", null));
         verify(productMapper, never()).transitionStatus(any(), any(), any());
     }
 
@@ -153,7 +156,8 @@ class ProductForbiddenWordGateTest {
         doThrow(HIT).when(forbiddenWordCommand).assertAllClean(any(), any());
 
         assertThatThrownBy(() -> productService.on(SHOP_ID, PRODUCT_ID)).isInstanceOf(BusinessException.class);
-        verify(forbiddenWordCommand).assertAllClean(new CleanText("标题", "全网最佳"), new CleanText("卖点", "支持刷单"));
+        verify(forbiddenWordCommand)
+                .assertAllClean(new CleanText("name", "标题", "全网最佳"), new CleanText("subtitle", "卖点", "支持刷单"));
         verify(productMapper, never()).transitionStatus(any(), any(), any());
     }
 }

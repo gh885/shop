@@ -44,7 +44,8 @@ public class AddressService {
     /** 新增地址；条数超限拒绝。标记默认时先清掉其他默认，保证每用户至多一个默认 */
     @Transactional
     public AddressView create(UUID userId, AddressRequest req) {
-        // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）
+        // 1. 条数闸门：超限 400 + code（此码是登记在案的 detail 优先例外——上限数字只有 detail 装得下，
+        // 见 app-kit `i18n/error-keys.ts`）
         long owned = addressMapper.countByUser(userId);
         Validate.isTrue(
                 owned < MAX_ADDRESS_PER_USER,

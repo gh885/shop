@@ -16,7 +16,8 @@ public class BusinessException extends RuntimeException {
     private final String detail;
 
     /**
-     * 字段级错误列表，格式：[{ "field": "phone", "message": "手机号错误" }]。 主要用于 service 层手动校验后传参，或配合
+     * 字段级错误列表，格式：[{ "field": "phone", "message": "手机号错误" }]，可选再带
+     * "value"（那条规则实际作用到的数据，如命中的违禁词）。 主要用于 service 层手动校验后传参，或配合
      * MethodArgumentNotValidException 使用。
      */
     private final transient List<Map<String, String>> errors;
@@ -75,6 +76,17 @@ public class BusinessException extends RuntimeException {
     /** code 为可选参数，只有需要前端区分时才传 */
     public static BusinessException badRequest(String code, String detail) {
         return new BusinessException(400, code, detail);
+    }
+
+    /**
+     * 400 + 字段级明细：给用户看的句子之外，还要把「哪个字段、卡在哪条规则上的那个值」作为数据交出去
+     * （{@code errors[].field} 用 DTO/表单的机器字段名，不用中文标签）。
+     *
+     * <p>只有「一句话装不下、前端要按字段定位」的那几个码走这条路（见 docs/error-codes.md 的 COM-01）。
+     * 用工厂而不是就地 new，是因为 400 的状态码只有从工厂签名里才认得出来（GEN-62）。
+     */
+    public static BusinessException badRequest(String code, String detail, List<Map<String, String>> errors) {
+        return new BusinessException(400, code, detail, errors);
     }
 
     public static BusinessException rateLimited(String detail) {

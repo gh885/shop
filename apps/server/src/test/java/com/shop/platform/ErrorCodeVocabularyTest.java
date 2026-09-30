@@ -20,8 +20,9 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 /**
- * 错误码词表的单点门禁：一个码在 Java 常量、{@code docs/error-codes.md}、{@code packages/common} 三边的值、
- * 状态码与前端落点必须同时成立。
+ * 错误码词表的单点门禁：一个码在 Java 常量、{@code docs/error-codes.md}、{@code packages/common}、
+ * 前端 catalog（{@code packages/app-kit/src/locales/<locale>/error.json}）四边的值、状态码、
+ * 前端落点与那句用户可见文案必须同时成立。
  *
  * <p>code 是这个仓库里<b>唯一没有类型承载</b>的对外词汇：金额有 {@code Money}、手机号有
  * {@code PhoneNumber}、区划码有 {@code RegionRegistry}，而错误码就是一个裸 {@code String} 参数，
@@ -30,14 +31,19 @@ import org.junit.jupiter.api.Test;
  * 同一个码最多抄了 6 遍（{@code INVALID_TOKEN}）：改一次的名字要记得改六处，忘记任何一处的表现
  * 是「一半的路径还认得这个码」。现在抛出点只引用 {@link ErrorCodes}，字面量在本仓库只住在 owner 里。
  *
- * <p>三边之中只有 Java 常量与 TS 常量是编译期可查的，文档那一格是散文——所以本类的重心有两处：
+ * <p>四边之中只有 Java 常量与 TS 常量是编译期可查的，文档那一格与 catalog 那两份 JSON 是散文/数据——
+ * 所以本类的重心有三处：
  * <ol>
  *   <li><b>把文档变成可 join 的表</b>：{@code HTTP} 列与每一处抛出点由出口推出来的状态码逐处相等；
  *       「谁在读」列不是谁写的声明，而是拿生产前端源码里真实出现的 {@code ErrorCodes.X} 引用反查出来的集合，
  *       两个方向都必须相等（多一个 reader 红、少一个 reader 也红）；
  *   <li><b>结构性禁令</b>：抛出点的码位只许是 {@code ErrorCodes.X}、{@code null}，或三处登记在案的<b>导管</b>
  *       （{@code Validate.isTrue} 的形参、两个鉴权过滤器手里的 {@code verification.code()}）。
- *       新起一条「码从变量里来」的导管会让白名单等式当场红——那种导管是漂移的温床：静态扫不到，就等于不存在。
+ *       新起一条「码从变量里来」的导管会让白名单等式当场红——那种导管是漂移的温床：静态扫不到，就等于不存在；
+ *   <li><b>码有文案</b>：每个 code 在两份语言的 {@code error.json} 里恰有一条 {@code error.<CODE>}
+ *       （见 {@link #每个code在两份语言恰有一条error文案()}）。这一格是 i18n.md §7.3 把用户可见错误句子
+ *       归给前端 catalog 之后新增的口子——TS 侧的 {@code satisfies} 只能保证 key 存在，保证不了那条 key
+ *       真写着一句话。
  * </ol>
  *
  * <p><b>本类不管日志文本，也不管契约</b>：{@code detail} 文案与日志里的码都不是契约，随便改；
@@ -53,6 +59,11 @@ class ErrorCodeVocabularyTest {
     private static final Path REPO_ROOT = Path.of("..", "..");
     private static final Path DOC = REPO_ROOT.resolve(Path.of("docs", "error-codes.md"));
     private static final Path TS_OWNER = REPO_ROOT.resolve(Path.of("packages", "common", "src", "error-codes.ts"));
+
+    /** 用户可见错误文案的落点（i18n.md §7.3）：两份语言各一份，namespace 由文件名给 */
+    private static final List<Path> ERROR_CATALOGS = List.of(
+            REPO_ROOT.resolve(Path.of("packages", "app-kit", "src", "locales", "zh-CN", "error.json")),
+            REPO_ROOT.resolve(Path.of("packages", "app-kit", "src", "locales", "en-US", "error.json")));
 
     /** 生产前端源码目录（错误码的消费侧）；`packages/api` 全是生成物，不在内 */
     private static final List<Path> FRONTEND_SOURCE = List.of(
@@ -90,6 +101,10 @@ class ErrorCodeVocabularyTest {
     private static final Pattern TS_ENTRY =
             Pattern.compile("^\\s*([A-Z][A-Z0-9_]*)\\s*:\\s*\"([A-Z][A-Z0-9_]*)\"\\s*,?$");
     private static final Pattern TS_READER = Pattern.compile("ErrorCodes\\.([A-Z][A-Z0-9_]+)");
+
+    /** catalog 里的一条错误文案：key 是 {@code error.<CODE>}，值就是那句用户可见的话 */
+    private static final Pattern ERROR_KEY =
+            Pattern.compile("^\\s*\"error\\.([A-Z][A-Z0-9_]*)\"\\s*:\\s*\"([^\"]*)\"\\s*,?\\s*$");
 
     /** 一处抛码站点：码、由出口推出的状态码、出处 */
     private record Site(String code, int status, String at) {}
@@ -293,6 +308,49 @@ class ErrorCodeVocabularyTest {
         assertThat(read).as("前端一处都没读码，扫描大概是空转").isNotEmpty();
     }
 
+    // ---------------------------------------------------------------- 错误文案 catalog
+
+    /**
+     * 反向核对（i18n.md §7.3 代价 1、§10.1 末尾那条「必须自己盯」的新增门禁）：文档表的每个 code 在
+     * 前端 catalog 里<b>有且只有一条</b> {@code error.<CODE>}，两份语言都要有，值不许是空串。
+     *
+     * <p>过去这三边只核到「码本身」，文案那一格没人管——于是「加了码忘了加文案」是一种
+     * <b>没有任何东西会报错</b>的漏法：前端 TS 侧的 {@code error-keys.ts} 用
+     * {@code satisfies Record<code, AppKitMessageKey>} 挡住了「有码无 key」，但 key 指向的 JSON
+     * 条目是不是真写着句子，类型系统看不见（{@code import.meta.glob} 不读内容，i18n.md §5.5 的分工表）。
+     * 反过来 catalog 里多出一条词表没有的 {@code error.X}，也只有这里能看见——那条会静静地
+     * 进每一条 bundle 与 key 联合。
+     *
+     * <p>按行扫而不是解析 JSON：本类是纯文本门禁（无库、不起 Spring、不引 Jackson），
+     * 与读 {@code docs/error-codes.md} 同一把尺子。
+     */
+    @Test
+    void 每个code在两份语言恰有一条error文案() throws Exception {
+        Set<String> docCodes = docRows().stream().map(DocRow::code).collect(Collectors.toCollection(TreeSet::new));
+        assertThat(docCodes).as("文档表空了，本测试空转").isNotEmpty();
+
+        for (Path file : ERROR_CATALOGS) {
+            List<String> keys = new ArrayList<>();
+            List<String> blank = new ArrayList<>();
+            for (String line : read(file)) {
+                Matcher m = ERROR_KEY.matcher(line);
+                if (!m.find()) {
+                    continue;
+                }
+                keys.add(m.group(1));
+                if (m.group(2).isBlank()) {
+                    blank.add(m.group(1));
+                }
+            }
+            Set<String> unique = new TreeSet<>(keys);
+            assertThat(keys).as(rel(file) + " 有重复的 error.<CODE> 条目").doesNotHaveDuplicates();
+            assertThat(blank).as(rel(file) + " 这些 code 的文案是空串").isEmpty();
+            assertThat(unique)
+                    .as(rel(file) + " 与文档 Code 列必须两向相等：少一条是「加了码忘了加文案」，多一条是凭空造文案")
+                    .isEqualTo(docCodes);
+        }
+    }
+
     // ---------------------------------------------------------------- 词汇表规模
 
     @Test
@@ -399,7 +457,8 @@ class ErrorCodeVocabularyTest {
                         case "Validate.isTrue" ->
                             args.size() == 3 && !args.get(1).matches("\\d+") ? args.get(1) : null;
                         case "Verification.fail" -> args.get(0);
-                        default -> args.size() == 2 ? args.get(0) : null; // badRequest / forbidden / conflict
+                        // badRequest / forbidden / conflict：第 0 参是码，末参多少由工厂册内决定（带 errors 明细的那族也在这条）
+                        default -> args.size() >= 2 ? args.get(0) : null;
                     };
             // 显式「这一发不带码」：归属闸门那类只要状态码与人话，写 null 是设计而不是漏抄
             return "null".equals(arg) ? null : arg;
@@ -473,12 +532,15 @@ class ErrorCodeVocabularyTest {
 
     /**
      * 从 {@code BusinessException} 的工厂定义读出「哪个工厂带码、给出哪个状态码」：签名
-     * {@code (String code, String detail)} 且函数体是 {@code new BusinessException(INT, code, detail)}。
+     * {@code (String code, String detail)} 且函数体是 {@code new BusinessException(INT, code, detail)}；
+     * 再带一格字段级明细的 {@code (String code, String detail, List errors)} 同族（码位与状态码的来源一样，
+     * 多出去的那参是 COM-01 的参数通道）。
      * 状态码因此不是测试里抄的一张表——工厂改状态，文档那一列就得跟着改，否则「逐处相等」那条红。
      */
     private static Map<String, Integer> codedFactories() throws IOException {
-        Matcher m = Pattern.compile("publicstaticBusinessException(\\w+)\\(Stringcode,Stringdetail\\)"
-                        + "\\{returnnewBusinessException\\((\\d+),code,detail\\);")
+        Matcher m = Pattern.compile(
+                        "publicstaticBusinessException(\\w+)\\(Stringcode,Stringdetail(?:,List<Map<String,String>>errors)?\\)"
+                                + "\\{returnnewBusinessException\\((\\d+),code,detail(?:,errors)?\\);")
                 .matcher(flatSource(EXCEPTION_OWNER));
         Map<String, Integer> out = new TreeMap<>();
         while (m.find()) {
@@ -512,7 +574,8 @@ class ErrorCodeVocabularyTest {
         Set<String> covered = new TreeSet<>(coded);
         covered.addAll(plain);
         // 分全性：badRequest / forbidden 各是重载对（一参给人话、二参给人话 + 码），名字会同时出现在两族里，
-        // 这正当；真正要挡的是第三种形状（例如又带 code 又带 errors 的工厂），它两族都进不去。
+        // 这正当；「又带 code 又带 errors 明细」的第三种签名已经落地（COM-01 违禁词），它算带码族的一格——
+        // codedFactories 认它，所以真要找的是第四种形状（码不在第 0 参、或状态码不从 new 那一行出来），它两族都进不去。
         assertThat(covered).as("有工厂落在两族之外，先补本类再补代码").isEqualTo(declaredFactories());
     }
 

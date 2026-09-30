@@ -51,7 +51,7 @@ public class MerchantAddressService {
     /** 新增地址：条数超限拒绝；可同时标记默认发货/默认退货（各至多一个） */
     @Transactional
     public MerchantAddress create(UUID shopId, MerchantAddressRequest req) {
-        // 1. 条数闸门：超限 400 + code（前端 toast 显示 detail）；哪些行占名额的口径见 countByShop
+        // 1. 条数闸门：超限 400 + code（此码 detail 优先——上限数字只有 detail 装得下；哪些行占名额的口径见 countByShop）
         long owned = addressMapper.countByShop(shopId);
         Validate.isTrue(
                 owned < MAX_ADDRESS_PER_SHOP,
