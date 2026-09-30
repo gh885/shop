@@ -13,6 +13,8 @@ import {
     Skeleton,
 } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
 import { CategoryTree } from "./category-tree"
 import { CategoryDetail, CreateCategoryForm } from "./category-detail"
 import { adminCategoryTreeOptions } from "./queries"
@@ -28,6 +30,7 @@ import { CATEGORY_ROOT_ID, indexCategoryTree } from "./tree"
  * 顺序调整的两个入口（同级上下移、树上拖拽）最终都折成同一份 sort 更新（见 tree.ts 的 orderUpdates）。
  */
 export function CategoryPage() {
+    const t = useT()
     return (
         <div className="space-y-4">
             <div>
@@ -37,7 +40,7 @@ export function CategoryPage() {
                 </p>
             </div>
             {/* 类目树是整页的原料：失败整块换成错误 UI + 官方 reset（与 seller 选类目同口径） */}
-            <QueryBoundary fallback="类目加载失败">
+            <QueryBoundary fallback={t("common.loadFailed.categoryTree")}>
                 <CategoryWorkspace />
             </QueryBoundary>
         </div>

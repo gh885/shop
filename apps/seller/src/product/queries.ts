@@ -8,9 +8,30 @@ import type {
 } from "@shop/api/sdk"
 import { CategoriesApi, ProductsAdminApi } from "@shop/api/sdk"
 
-import { toApiError } from "@shop/common"
+import { toApiError, type ApiError } from "@shop/common"
+
+import type { SellerMessageKey } from "#/locales/messages.gen"
 
 import { flattenLeafPaths, type LeafPath } from "#/product/category"
+
+/**
+ * 取上传凭证失败：抛出的是**结构**（场景 key + 归一后的 ApiError），不是一句话。
+ *
+ * 把后端 detail 拼进 message 等于在 `errorText` 之外开第二条取文案的路（§7.3：detail 只有中文界面
+ * 才当文案），英文界面就会印出一句中文。句子由调用点按 locale 定稿——那块皮肤（ImageUpload）只读
+ * `error.message`，所以调用点在递给它之前压成一句。
+ */
+export class UploadTicketFailure extends Error {
+    readonly sceneKey: SellerMessageKey
+    readonly apiError: ApiError
+
+    constructor(sceneKey: SellerMessageKey, apiError: ApiError) {
+        // message 故意放 key 而不是句子：真漏到界面上是一串可 grep 的键名，比悄悄印一句中文好发现
+        super(sceneKey)
+        this.sceneKey = sceneKey
+        this.apiError = apiError
+    }
+}
 
 // 商品列表排序契约
 /** 卖家商品列表支持的全部排序方式（与后端 listShopProducts 的 sort 枚举一一对应） */
@@ -45,13 +66,9 @@ export async function uploadProductImage(file: File): Promise<string> {
         // X-Shop-Id 已由 SDK client 拦截注入。若后端未带七牛配置/凭证失败，detail 会揭示（如「文件存储未配置」）。
         ticket = await ProductsAdminApi.issueImageTicket({ query: { ext } })
     } catch (error) {
-        //  抛 ApiError 对象（无 message），ImageUpload 读 err.message 会落兜底文案，
-        // 这里把 detail 提出来，否则真实原因被吞。
-        const detail = toApiError(error).detail // ApiError 无 message（Java 异常 detail），透出让前端可见
-        throw new Error(
-            detail ? `获取上传凭证失败：${detail}` : "获取上传凭证失败，请确认已配置文件存储",
-            { cause: error },
-        )
+        // SDK 抛的 ApiError 没有 message，皮肤（ImageUpload）读的是 `error.message`：
+        // 这里不代它造句，只把场景与那一发错误原样递上去，句子由调用点的 errorText 定稿
+        throw new UploadTicketFailure("common.upload.ticketFailed", toApiError(error))
     }
     if (!ticket.uploadUrl || !ticket.token || !ticket.url || !ticket.key)
         throw new Error("图片上传凭证缺失")

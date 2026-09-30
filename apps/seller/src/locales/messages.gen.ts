@@ -9,11 +9,17 @@ export type SellerMessageKey =
     "app.description" |
     "app.title" |
     "common.action.backHome" |
+    "common.loadFailed.carriers" |
+    "common.loadFailed.categoryTree" |
+    "common.loadFailed.sku" |
+    "common.loadFailed.specTemplate" |
     "common.locale.enUS" |
     "common.locale.switch" |
     "common.locale.zhCN" |
     "common.notFound.description" |
     "common.notFound.title" |
+    "common.upload.ticketFailed" |
+    "product.publish.forbiddenWordHit" |
     "seller.account.description" |
     "seller.account.logout" |
     "seller.account.notLoggedIn" |
@@ -70,7 +76,9 @@ export type SellerMessageKey =
     "seller.topbar.rules" |
     "seller.topbar.support"
 
-type SellerParamsByKey = Record<never, never>
+type SellerParamsByKey = {
+    "product.publish.forbiddenWordHit": { word: string | number }
+}
 
 export type SellerParamsOf<K extends SellerMessageKey> = K extends keyof SellerParamsByKey
     ? SellerParamsByKey[K]

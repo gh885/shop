@@ -1,7 +1,7 @@
 import { client } from "@shop/api"
 
 import type { ApiError } from "./api-error"
-import { isZodError, RESPONSE_VALIDATION_FAILED, zodIssuesText } from "./api-error"
+import { fieldErrorsOf, isZodError, RESPONSE_VALIDATION_FAILED, zodIssuesText } from "./api-error"
 import { ErrorCodes } from "./error-codes"
 import { captureError, toRouteTemplate, track } from "./monitoring"
 
@@ -114,7 +114,7 @@ const optionalStringField = (error: object, field: string): string | undefined =
     return typeof value === "string" ? value : undefined
 }
 
-/** 有响应的失败：后端给了 detail 就原样透出（含 code/requestId 供前端分流），否则给一句通用重试 */
+/** 有响应的失败：后端给了 detail 就原样透出（含 code/requestId/errors 供前端分流），否则给一句通用重试 */
 function apiErrorFromResponse(response: { status: number }, error: unknown): ApiError {
     if (typeof error !== "object" || error === null || !("detail" in error)) {
         return { status: response.status, detail: "请求失败，请稍后重试" } satisfies ApiError
@@ -128,6 +128,9 @@ function apiErrorFromResponse(response: { status: number }, error: unknown): Api
         detail,
         code: optionalStringField(error, "code"),
         requestId: optionalStringField(error, "requestId"),
+        // 422 那一发的字段级明细：后端挂在 ProblemDetail 的扩展属性上，不接回来就等于
+        // ApiErrorSchema 里那格是谎（调用方按它分支，永远拿不到东西）
+        errors: fieldErrorsOf(error),
     } satisfies ApiError
 }
 

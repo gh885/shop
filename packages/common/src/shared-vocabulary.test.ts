@@ -147,7 +147,7 @@ const isApp = (file: string) => file.startsWith("apps/")
  * 规则 1 的**窄例外**：`useT` 故意在包与三端各有一份，不是复制粘贴的意外。
  *
  * 这一个符号是 i18n 的「按 root 参数化」：`@shop/app-kit` 的 `useT` 认 app-kit 自己那份
- * 31 条 `appKit.*`，三端 `src/locales/use-t.ts` 的 `useT` 认本端生成物那份 catalog。
+ * catalog（`appKit.*`），三端 `src/locales/use-t.ts` 的 `useT` 认本端生成物那份 catalog。
  * 它们是同一机制的四个 root（各自的 key 集合不同，所以类型不同），共享的运行时实现与
  * 唯一那处类型断言都在 app-kit 的 `useTypedT` 里——三端 use-t.ts 只做「把本端 catalog
  * 的类型接到调用点上」，各自不到十行、注释里也写明了理由。
@@ -312,9 +312,10 @@ describe("owner 不是孤儿", () => {
         // ErrorCodeVocabularyTest 管，这一条只管「前端别再造第二份」。
         ["ErrorCodes", "packages/common/src/error-codes.ts"],
         ["RESPONSE_VALIDATION_FAILED", "packages/common/src/api-error.ts"],
-        // 「后端说了才用它的 detail」这条判据只有一个出口：各区块自己判一次必然漂移
-        // （写成 `toApiError(err).detail || 站点文案` 的，站点那句永远轮不上）
-        ["apiErrorDetail", "packages/common/src/api-error.ts"],
+        // 「这句话该由谁出」只有一个出口：app-kit 的 errorText（§7.3 那条链）。各区块自己判一次必然
+        // 漂移——写成 `toApiError(err).detail || 站点文案` 的，站点那句永远轮不上；
+        // 而直接读 detail 的，英文界面就漏中文（曾经那条路叫 apiErrorDetail，已收进这条链）
+        ["errorText", "packages/app-kit/src/i18n/error-keys.ts"],
         // 程序化滚动的 behavior 只有一个取值处：各处手抄 "smooth" 就是无视「减少动效」
         ["scrollToTop", "packages/common/src/scroll.ts"],
         ["scrollToElement", "packages/common/src/scroll.ts"],

@@ -12,9 +12,11 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { apiErrorDetail, priceRangeText } from "@shop/common"
+import { priceRangeText, toApiError } from "@shop/common"
+import { errorText, useI18n } from "@shop/app-kit"
 import { useQuery } from "@tanstack/react-query"
 
+import { useT } from "#/locales/use-t"
 import { derivePriceStock } from "#/product/draft-model"
 import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
 import { categorySpecTemplateOptions } from "#/product/queries"
@@ -61,12 +63,18 @@ export function SalesInfoSection({
     onListingTimeChange: (next: ListingTime) => void
 }) {
     // 区块内聚的取数：失败就地渲染 + 官方 manual 重试（`refetch`），不拖垮整张发布表单
+    const { locale } = useI18n()
+    const t = useT()
     const templateQuery = useQuery(categorySpecTemplateOptions(categoryId))
 
     if (templateQuery.isError) {
         return (
             <StateError
-                message={apiErrorDetail(templateQuery.error, "规格模板加载失败，请重试")}
+                message={errorText(
+                    toApiError(templateQuery.error),
+                    locale,
+                    t("common.loadFailed.specTemplate"),
+                )}
                 onRetry={() => void templateQuery.refetch()}
                 retrying={templateQuery.isFetching}
             />

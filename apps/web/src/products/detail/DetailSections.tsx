@@ -16,6 +16,8 @@ import {
 
 import { scrollToElement } from "@shop/common"
 
+import { useT } from "#/locales/use-t"
+
 import { toProductCardData, type Product, type ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
 import { useSuspenseQuery } from "@tanstack/react-query"
@@ -268,6 +270,7 @@ function ShopRecommendGrid({ shopId, currentId }: { shopId: string; currentId: s
  */
 export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
     const shopId = detail.product.shopId
+    const t = useT()
     return (
         <DetailSection
             id="shop-reco"
@@ -275,7 +278,7 @@ export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
         >
             <QueryBoundary
                 pending={<RecoGridSkeleton className="grid-cols-4" />}
-                fallback="推荐商品加载失败，请重试。"
+                fallback={t("common.loadFailed.recommend")}
             >
                 <ShopRecommendGrid
                     shopId={shopId}
@@ -304,6 +307,7 @@ function AlsoViewedGrid({ currentId }: { currentId: string }) {
  * 流式方式与本店推荐一致（骨架 + error boundary）。
  */
 export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
+    const t = useT()
     return (
         <DetailSection
             id="also-viewed"
@@ -311,7 +315,7 @@ export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
         >
             <QueryBoundary
                 pending={<RecoGridSkeleton className="grid-cols-6" />}
-                fallback="推荐商品加载失败，请重试。"
+                fallback={t("common.loadFailed.recommend")}
             >
                 <AlsoViewedGrid currentId={detail.product.id} />
             </QueryBoundary>

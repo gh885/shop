@@ -6,31 +6,76 @@ import { parseForbiddenWordError } from "./forbidden-word"
 /**
  * 违禁词错误解析（COM-01）的契约测试。
  *
- * 这里钉的是**前端与后端 detail 形状之间的耦合**：`ForbiddenWordService.assertClean` 改一次措辞，
- * 对应的用例就会红，而不是等到卖家看见「商品标题包含违禁词「标题」」这种话才发现。
- * 后端那句文案的形状是「「字段」包含违禁词「词」（分类：…），请修改后重新提交」。
+ * 钉的是**前后端之间那一格结构化数据**：`ForbiddenWordService.assertClean` 把命中的字段与词写进
+ * `errors[].field/value`，这里消费它。曾经这里是按正则从中文 detail 里捞——那种用例钉住的是措辞，
+ * 后端改一个标点就红，而红了的表现是「提示串字段」这种最难发现的错。
+ * 现在改措辞不影响解析（detail 只是给人看的那句话），影响到的只有「数据没给全」这一类真契约问题。
+ *
+ * 解析只输出结构（字段 + 命中词），句子由调用点从 catalog 取（§7.3），所以这里没有文案可钉。
  */
 
-/** 后端抛出的错误经 SDK 归一后的形状（只给解析要读的那几个字段） */
-function hitError(detail: string) {
-    return { status: 400, code: ErrorCodes.FORBIDDEN_WORD_HIT, detail }
+/** 后端那一发经 SDK 归一后的形状（只给解析要读的那几个字段） */
+function hitError(
+    errors?: unknown,
+    detail = "「标题」包含违禁词「最佳」（分类：广告法用语），请修改后重新提交",
+) {
+    return { status: 400, code: ErrorCodes.FORBIDDEN_WORD_HIT, detail, errors }
 }
 
 describe("parseForbiddenWordError", () => {
-    it("命中标题 → 定位到 name 字段并给出命中词", () => {
+    it("命中标题 → 定位到 name 字段并带出命中词", () => {
         expect(
             parseForbiddenWordError(
-                hitError("「标题」包含违禁词「最佳」（分类：广告法用语），请修改后重新提交"),
+                hitError([{ field: "name", message: "「标题」包含违禁词「最佳」", value: "最佳" }]),
             ),
-        ).toEqual({ field: "name", message: "商品标题包含违禁词「最佳」，请修改" })
+        ).toEqual({ field: "name", word: "最佳" })
     })
 
     it("命中卖点 → 定位到 subtitle 字段", () => {
         expect(
             parseForbiddenWordError(
-                hitError("「卖点」包含违禁词「全网第一」（分类：广告法用语），请修改后重新提交"),
+                hitError([
+                    {
+                        field: "subtitle",
+                        message: "「卖点」包含违禁词「全网第一」",
+                        value: "全网第一",
+                    },
+                ]),
             ),
-        ).toEqual({ field: "subtitle", message: "商品卖点包含违禁词「全网第一」，请修改" })
+        ).toEqual({ field: "subtitle", word: "全网第一" })
+    })
+
+    it("多条明细里取这张表单认识的那条", () => {
+        expect(
+            parseForbiddenWordError(
+                hitError([
+                    { field: "detailImages", message: "「详情」包含违禁词「最佳」", value: "最佳" },
+                    { field: "subtitle", message: "「卖点」包含违禁词「第一」", value: "第一" },
+                ]),
+            ),
+        ).toEqual({ field: "subtitle", word: "第一" })
+    })
+
+    it("没带 value → 字段认得出，词为空：调用方退回那句不带词的 catalog 文案", () => {
+        expect(parseForbiddenWordError(hitError([{ field: "name", message: "含违禁词" }]))).toEqual(
+            {
+                field: "name",
+                word: undefined,
+            },
+        )
+    })
+
+    it("报的字段不是这张表单的（评价、售后复用同一出口）→ null，不硬猜字段", () => {
+        expect(
+            parseForbiddenWordError(
+                hitError([{ field: "content", message: "「评价内容」含违禁词", value: "最佳" }]),
+            ),
+        ).toBeNull()
+    })
+
+    it("后端没给字段级明细（老契约）→ null，只给全局提示", () => {
+        expect(parseForbiddenWordError(hitError())).toBeNull()
+        expect(parseForbiddenWordError(hitError([]))).toBeNull()
     })
 
     it("不是这个码 → undefined，交给调用方按普通错误处理", () => {
@@ -42,20 +87,5 @@ describe("parseForbiddenWordError", () => {
             }),
         ).toBeUndefined()
         expect(parseForbiddenWordError(new Error("网络中断"))).toBeUndefined()
-    })
-
-    it("字段标签认不出（例如将来评价内容也过闸）→ null，不猜字段", () => {
-        expect(
-            parseForbiddenWordError(
-                hitError("「评价内容」包含违禁词「最佳」（分类：广告法用语），请修改后重新提交"),
-            ),
-        ).toBeNull()
-    })
-
-    it("detail 里没有命中词 → 仍定位字段，提示语原样用后端那句", () => {
-        expect(parseForbiddenWordError(hitError("「标题」含敏感内容，请修改后重新提交"))).toEqual({
-            field: "name",
-            message: "「标题」含敏感内容，请修改后重新提交",
-        })
     })
 })

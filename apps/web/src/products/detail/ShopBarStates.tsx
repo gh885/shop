@@ -41,7 +41,7 @@ export function ShopBarError({
     message,
     onRetry,
 }: {
-    /** 后端 detail 优先；后端没说话时是站点那句（apiErrorDetail） */
+    /** 已按 §7.3 那条链定稿的句子（`errorText`：登记码 → catalog，中文界面 → 后端 detail，否则站点那句） */
     message: string
     onRetry: () => void
 }) {

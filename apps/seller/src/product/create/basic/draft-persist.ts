@@ -22,9 +22,14 @@ import {
  * 新建态的编辑过程仍然零写库，只有 submit 才走这里。
  */
 
-/** 本模块主动拒绝的业务错误：形状对齐 ApiError（调用方 toApiError / notify.fromError 直接读 detail） */
+/**
+ * 本模块主动拒绝的业务错误：形状对齐 ApiError（调用方 toApiError / notify.fromError 直接读 detail）。
+ *
+ * `status` 取 400 而不是 0：那条链上 0 的含义是「没听到后端说话」（i18n.md §7.3 第 2 支），
+ * 借它会让这句本地写的具体原因被通用网络提示顶掉；400 才是它本来的意思——这一发请求不该发出去。
+ */
 export class BusinessError {
-    readonly status = 0
+    readonly status = 400
     readonly detail: string
     constructor(detail: string) {
         this.detail = detail

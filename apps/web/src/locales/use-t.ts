@@ -7,7 +7,7 @@ import type { WebTranslate } from "./messages.gen"
  * 拼错 key、给无参消息塞参数、参数名对不上，都在这里变编译错误。带参消息整个漏传不拦：
  * `params` 保持可选是量过的取舍，改成必传元组后拼错 key 报的是「实参个数不对」而不是 key 本身。
  *
- * 为什么不直接用 `@shop/app-kit` 的 `useT`：那个只认 app-kit 自己那 31 条 `appKit.*`，
+ * 为什么不直接用 `@shop/app-kit` 的 `useT`：那个只认 app-kit 自己那份 catalog，
  * 本端的 key 不在它的集合里。断言本身只有一处（`useTypedT`，理由写在那里），
  * 本文件做的是把本端 catalog 的类型接到调用点上——三端各一份，因为 catalog 是三份。
  */

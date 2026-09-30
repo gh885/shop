@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import { QueryBoundary } from "@shop/app-kit"
 
+import { useT } from "#/locales/use-t"
 import { CategoryStep } from "#/product"
 
 interface CreateSearch {
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/_app/product/create/category")({
 /** 发布第一步：选类目（类目发布后不可改，单独成屏）。mode/categoryId 由 URL 驱动，刷新可恢复 */
 function NewProductCategoryStep() {
     const navigate = useNavigate()
+    const t = useT()
     const { mode, categoryId } = Route.useSearch()
 
     return (
@@ -29,7 +31,7 @@ function NewProductCategoryStep() {
             {/* 类目树是本步的全部原料：失败整块换成错误 UI + 官方 reset（与 web 店条同口径），
                 页面外壳与「上一步」不受影响。查询非 suspense 形态，所以不传 pending——
                 加载骨架由 CategoryStep 就地渲染 */}
-            <QueryBoundary fallback="类目加载失败">
+            <QueryBoundary fallback={t("common.loadFailed.categoryTree")}>
                 <CategoryStep
                     mode={mode ?? "search"}
                     onModeChange={(next) =>

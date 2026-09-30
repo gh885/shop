@@ -28,7 +28,7 @@ import {
 import { getDeviceId } from "#/shared/api/auth"
 import { DeletionCard, deviceKeys, devicesOptions, isMobileDeviceName } from "#/account"
 import { useT } from "#/locales/use-t"
-import { formatTimeShort, useI18n, usePasswordVisibility } from "@shop/app-kit"
+import { errorText, formatTimeShort, useI18n, usePasswordVisibility } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -125,18 +125,20 @@ type TextFieldSlotProps = {
 // 修改密码
 function ChangePassword() {
     const t = useT()
+    const { locale } = useI18n()
     const [error, setError] = useState<string | undefined>()
 
     const change = useMutation({
         mutationFn: ({ current, next }: { current: string; next: string }) =>
             AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
-        // 后端 detail 要渲染在表单里（下方 error state），所以退出全局提示，自己 setError
+        // 错误要渲染在表单里（下方 error state），所以退出全局提示，自己 setError；
+        // 取文案与全局 toast 同一条链（§7.3：命中 code 走 catalog，否则才是 detail）
         meta: { success: t("web.security.changePassword.success"), silentError: true },
         onSuccess: () => {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
             window.location.href = "/"
         },
-        onError: (e) => setError(toApiError(e).detail),
+        onError: (e) => setError(errorText(toApiError(e), locale)),
     })
 
     const form = useAppForm({

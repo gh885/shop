@@ -147,3 +147,28 @@ describe("并发 401 的刷新单飞", () => {
         }
     })
 })
+
+/**
+ * 错误归一化的字段级明细面：后端 422 把 `errors: [{field, message}]` 挂在 ProblemDetail 的扩展属性上，
+ * `ApiErrorSchema` 也声明了它。拦截器不接回来的话，这一格就是「schema 说有、运行时永远没有」——
+ * 调用方按 `err.errors` 标红输入框会静静地拿不到东西（本仓此前正是这个状态）。
+ */
+describe("归一化把 errors 接回 ApiError", () => {
+    it("422 响应体里的字段级明细原样透出", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn<(input: RequestInfo | URL) => Promise<Response>>(async () =>
+                json(422, {
+                    status: 422,
+                    detail: "输入校验失败（1 个字段错误）",
+                    errors: [{ field: "name", message: "商品标题最长 30 字" }],
+                }),
+            ),
+        )
+
+        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+            status: 422,
+            errors: [{ field: "name", message: "商品标题最长 30 字" }],
+        })
+    })
+})

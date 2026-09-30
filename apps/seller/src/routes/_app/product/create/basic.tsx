@@ -7,7 +7,8 @@ import { toApiError } from "@shop/common"
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
 import { parseForbiddenWordError, type ForbiddenHit } from "#/product/forbidden-word"
 import { useProductDraft } from "#/product/create/basic/use-product-draft"
-import { notify, useUnsavedLeaveGuard } from "@shop/app-kit"
+import { errorText, notify, useI18n, useUnsavedLeaveGuard } from "@shop/app-kit"
+import { useT } from "#/locales/use-t"
 import { useShop } from "#/shop"
 
 interface BasicSearch {
@@ -28,6 +29,8 @@ export const Route = createFileRoute("/_app/product/create/basic")({
 /** 发布第二步：填商品信息建档（新建/继续编辑共用）。categoryId 必填，缺失回第一步 */
 function NewProductBasicStep() {
     const shop = useShop()
+    const { locale } = useI18n()
+    const t = useT()
     const navigate = useNavigate()
     const shopId = shop.id
     const { categoryId, productId } = Route.useSearch()
@@ -99,10 +102,18 @@ function NewProductBasicStep() {
             // 认不出字段（null）与其它错误一样回落横幅，宁可不定位也不猜一个字段。
             const hit = parseForbiddenWordError(error)
             if (hit) {
-                setForbiddenWord(hit)
+                setForbiddenWord({
+                    field: hit.field,
+                    // 命中词是词表数据、原样给出；句子本身走 catalog。认不出词时退回那条链，
+                    // 而不是把后端那句 detail 直接印到屏幕上（§7.3）
+                    message:
+                        hit.word === undefined
+                            ? errorText(toApiError(error), locale)
+                            : t("product.publish.forbiddenWordHit", { word: hit.word }),
+                })
                 return
             }
-            setServerError(toApiError(error).detail)
+            setServerError(errorText(toApiError(error), locale))
         }
     }
 

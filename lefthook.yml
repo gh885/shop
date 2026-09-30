@@ -95,10 +95,14 @@ pre-push:
 
         # 死代码 / 改动审计（fallow）在 pre-commit，见那边的说明
 
+        # 后端本地只编译过一次历史，CI 跑 mvn verify 全量——架构规则/词表普查
+        # （NamingRulesTest、FieldRuleVocabularyTest 这类）不连库、~7s，却从没在
+        # push 前跑过，命名越界/边界没登记就红着推进 CI。这里补上这条免库静态家族；
+        # 连库的 @SpringBootTest/契约测试仍归 pnpm test:server 与 CI，不塞进 push 热路径。
         - name: java-build
           tags: [java]
           timeout: 300s
-          run: mvn -f apps/server/pom.xml compile -q
+          run: mvn -f apps/server/pom.xml test -q -DfailIfNoTests=false -Dtest='*RulesTest,*VocabularyTest,MoneyTest,BusinessEventCatalogTest,BusinessRulesIndexTest'
 
         # 契约漂移检查：SDK 生成物（含 zod 校验 schema）与 api-docs.json 同步；
         # 后端在跑时顺带比对运行中契约（脚本内部自动跳过）

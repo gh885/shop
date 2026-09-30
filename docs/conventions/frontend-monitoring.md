@@ -26,6 +26,7 @@
     - web 的 `reportError`（`apps/web/src/shared/lib/report-error.ts`）只做 web 特有的一步适配（区分 hydration 失败 vs 普通渲染错），实际出口是 `@shop/common` 的 `captureError`；seller / admin 的 `defaultOnCatch` 同样直接指 `captureError`（两处 router.tsx）
     - 契约漂移的 `console.error` 锚点（`packages/common/src/sdk-client.ts`，GEN-28）已改走 `captureError`（控制台那行保留，给人看）
     - [i18n.md](i18n.md) 约定的缺 key 上报已接（`packages/app-kit/src/i18n/provider.tsx` 降级分支）
+    - 错误文案兜底的计数（`packages/app-kit/src/notify.ts` 的 `error_fallback source=… status=… code=…`）：`errorTextPlan` 走过「后端那句 detail」或「按状态码的通用句」两支时各记一条，它是 [error-codes.md](../error-codes.md) 那套「按频次把句子升成 code」的唯一数据源——今天只有发射端，接收端与看它的例行还没定（i18n.md §9 的 P3′-b）
     - FUT-02 的曝光 / 点击上报落地时复用同一传输与信封，不另起一套
 4. **版本与 sourcemap**：`version` 构建时注入（建议 git sha）。sourcemap 用 Vite `build.sourcemap: "hidden"` 生成（产物里不留 `sourceMappingURL`），按 `version` 归档，不随静态资源发布。**三端 vite.config.ts 已配 hidden**（`build: { sourcemap: "hidden" }`）；`version`/`env` 由 `VITE_APP_VERSION` / `VITE_APP_ENV` 注入（缺省 dev）
 5. **隐私边界**：不采输入框内容、密码、token；URL 的 query 与 hash 不采（可能带 token 或个人信息）；手机号只以 `maskPhone` 形态出现（GEN-51）；会话回放如果引入，默认遮罩全部输入与文本

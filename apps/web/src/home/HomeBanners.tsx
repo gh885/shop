@@ -2,8 +2,10 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 
 import { Button, Skeleton } from "@shop/ui-web"
-import { QueryBoundary } from "@shop/app-kit"
-import { apiErrorDetail } from "@shop/common"
+import { QueryBoundary, errorText, useI18n } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
+
+import { useT } from "#/locales/use-t"
 
 import { HomeBannerItem } from "./HomeBannerItem"
 import { bannersOptions } from "./queries"
@@ -20,18 +22,20 @@ export function HomeBanners() {
     return (
         <QueryBoundary
             pending={<HomeBannersSkeleton />}
-            fallback={homeBannersErrorFallback}
+            fallback={(args) => <HomeBannersErrorFallback {...args} />}
         >
             <HomeBannersContent />
         </QueryBoundary>
     )
 }
 
-/** 失败态渲染函数放模块作用域：内联箭头会让每次渲染都新建一个组件（ShopBar 同款理由） */
-function homeBannersErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+/** 失败态：组件而非渲染函数，locale 与本端 catalog 要靠 hook 取（ShopBar / Feed 同款理由） */
+function HomeBannersErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+    const { locale } = useI18n()
+    const t = useT()
     return (
         <HomeBannersError
-            message={apiErrorDetail(error, "活动位加载失败")}
+            message={errorText(toApiError(error), locale, t("common.loadFailed.banners"))}
             onRetry={reset}
         />
     )
@@ -104,7 +108,7 @@ function HomeBannersError({
     message,
     onRetry,
 }: {
-    /** 后端 detail 优先；后端没说话时是站点那句（apiErrorDetail） */
+    /** 已按 §7.3 那条链定稿的句子（`errorText`：登记码 → catalog，中文界面 → 后端 detail，否则站点那句） */
     message: string
     onRetry: () => void
 }) {

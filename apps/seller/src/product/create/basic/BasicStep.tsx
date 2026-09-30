@@ -15,7 +15,7 @@ import type { BasicForm } from "./form-instance"
 import { useForbiddenWordMark } from "./forbidden-word-mark"
 import { SalesInfoSection } from "./SalesInfoSection"
 import type { ForbiddenHit } from "../../forbidden-word"
-import { uploadProductImage, useLeafPaths } from "../../queries"
+import { UploadTicketFailure, uploadProductImage, useLeafPaths } from "../../queries"
 import { CheckCircle2, ChevronRight, Badge, ListTree } from "lucide-react"
 import { useState, useRef, useEffect, Fragment } from "react"
 import {
@@ -36,6 +36,8 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 import { scrollToElement } from "@shop/common"
+import { errorText, useI18n } from "@shop/app-kit"
+import { useT } from "#/locales/use-t"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
     锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
@@ -49,8 +51,8 @@ const SECTIONS = [
     { id: "section-detail", label: "图文详情" },
 ] as const
 
-// 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入
-const uploadImage = (file: File) => uploadProductImage(file)
+// 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入；失败的那句话由本区按 locale 定稿
+// （见下 uploadImage），所以它必须是组件里的闭包，不能留在模块作用域。
 
 /** basic 表单字段值（形状单一来源是 draft-model 的 ProductBasicForm，此处只保留表单语境的名字） */
 export type BasicStepValues = ProductBasicForm
@@ -112,6 +114,21 @@ export function BasicStep({
     const categoryNames = leafPaths.find((p) => p.id === categoryId)?.names ?? []
     const active = useActiveSection()
 
+    const { locale } = useI18n()
+    const t = useT()
+    // ImageUpload 这块皮肤只读 `error.message`，所以递给它之前把错误压成一句本 locale 的话：
+    // 中文界面是后端那个具体原因（如「文件存储未配置」），其它语言是「取凭证失败」那句场景文案。
+    // 直传七牛那一发是本层自己写的句子，原样透给皮肤。
+    const uploadImage = (file: File) =>
+        uploadProductImage(file).catch((error: unknown): never => {
+            if (error instanceof UploadTicketFailure) {
+                throw new Error(errorText(error.apiError, locale, t(error.sceneKey)), {
+                    cause: error,
+                })
+            }
+            throw error
+        })
+
     // 表单与提交：值变化上报（防抖 autosave）、编辑回显、上架时间与三种提交方式都在这个 hook 里
     const { form, submitAs, listingTime, setListingTime, submitForListing } = useBasicForm({
         submit,
@@ -148,6 +165,7 @@ export function BasicStep({
                 onListingTimeChange={setListingTime}
                 onSelectionsChange={onSelectionsChange}
                 onSkuRowsChange={onSkuRowsChange}
+                uploadImage={uploadImage}
             />
 
             <ActionBar
@@ -174,6 +192,7 @@ function StepBody({
     onListingTimeChange,
     onSelectionsChange,
     onSkuRowsChange,
+    uploadImage,
 }: {
     form: BasicForm
     categoryId: string
@@ -186,6 +205,8 @@ function StepBody({
     onListingTimeChange: (listing: ListingTime) => void
     onSelectionsChange: (selections: SpecSelection[]) => void
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
+    /** 已按 locale 定稿过错误句子的上传入口（见 BasicStep 里的 uploadImage） */
+    uploadImage: (file: File) => Promise<string>
 }) {
     return (
         <div className="space-y-6">
@@ -205,6 +226,7 @@ function StepBody({
                 onListingTimeChange={onListingTimeChange}
                 onSelectionsChange={onSelectionsChange}
                 onSkuRowsChange={onSkuRowsChange}
+                uploadImage={uploadImage}
             />
         </div>
     )
@@ -224,6 +246,7 @@ function StepSections({
     onListingTimeChange,
     onSelectionsChange,
     onSkuRowsChange,
+    uploadImage,
 }: {
     form: BasicForm
     categoryId: string
@@ -234,6 +257,7 @@ function StepSections({
     onListingTimeChange: (listing: ListingTime) => void
     onSelectionsChange: (selections: SpecSelection[]) => void
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
+    uploadImage: (file: File) => Promise<string>
 }) {
     return (
         <>

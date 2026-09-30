@@ -2,8 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "rea
 import { useQuery, useQueryClient, useSuspenseInfiniteQuery } from "@tanstack/react-query"
 import { PackageSearch } from "lucide-react"
 
-import { QueryBoundary } from "@shop/app-kit"
-import { apiErrorDetail } from "@shop/common"
+import { QueryBoundary, errorText, useI18n } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
 import {
     Button,
     cn,
@@ -18,6 +18,7 @@ import {
 } from "@shop/ui-web"
 
 import { ProductCard, toProductCardData } from "#/products"
+import { useT } from "#/locales/use-t"
 
 import { RecommendBar } from "./RecommendBar"
 import { FEED_PAGE_SIZE, feedCategoryId, feedOptions, recommendTabsOptions } from "./queries"
@@ -81,7 +82,7 @@ export function Feed() {
                 失败也收敛在这一块（QueryBoundary 的官方重置链路），不冒到根错误页把整页换掉 */}
             <QueryBoundary
                 pending={<FeedSkeleton />}
-                fallback={feedErrorFallback}
+                fallback={(args) => <FeedErrorFallback {...args} />}
             >
                 <FeedGrid
                     categoryId={categoryId}
@@ -294,12 +295,17 @@ function FeedSkeleton() {
     )
 }
 
-/** 商品流失败态渲染函数（模块作用域：内联箭头会让每次渲染都新建一个组件） */
-function feedErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+/**
+ * 商品流失败态。做成组件而不是模块作用域的渲染函数：要拿 locale 和本端 catalog，
+ * 就得有真正的组件边界让 hook 站在里面（内联箭头函数还会每次渲染新建一个组件）。
+ */
+function FeedErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+    const { locale } = useI18n()
+    const t = useT()
     return (
         <section className="feed-section">
             <StateError
-                message={apiErrorDetail(error, "商品流加载失败，请重试。")}
+                message={errorText(toApiError(error), locale, t("common.loadFailed.feed"))}
                 onRetry={reset}
             />
         </section>

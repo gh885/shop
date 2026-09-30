@@ -11,8 +11,10 @@ import {
     TooltipTrigger,
 } from "@shop/ui-web"
 
-import { notify, QueryBoundary } from "@shop/app-kit"
-import { apiErrorDetail } from "@shop/common"
+import { errorText, notify, QueryBoundary, useI18n } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
+
+import { useT } from "#/locales/use-t"
 
 import { ShopCouponPopover } from "#/coupon"
 import { avatarInitial } from "#/shared/lib/avatar"
@@ -31,18 +33,20 @@ export function ShopBar({ shopId }: { shopId: string }) {
     return (
         <QueryBoundary
             pending={<ShopBarSkeleton />}
-            fallback={shopBarErrorFallback}
+            fallback={(args) => <ShopBarErrorFallback {...args} />}
         >
             <ShopBarContent shopId={shopId} />
         </QueryBoundary>
     )
 }
 
-/** 失败态渲染函数（模块作用域：内联箭头会让每次渲染都新建一个组件） */
-function shopBarErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+/** 失败态：组件而非渲染函数，locale 与本端 catalog 要靠 hook 取（Feed 同款理由） */
+function ShopBarErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+    const { locale } = useI18n()
+    const t = useT()
     return (
         <ShopBarError
-            message={apiErrorDetail(error, "店铺信息加载失败")}
+            message={errorText(toApiError(error), locale, t("common.loadFailed.shopBar"))}
             onRetry={reset}
         />
     )

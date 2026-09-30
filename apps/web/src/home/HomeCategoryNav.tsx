@@ -28,8 +28,10 @@ import {
     Skeleton,
     cn,
 } from "@shop/ui-web"
-import { QueryBoundary } from "@shop/app-kit"
-import { apiErrorDetail } from "@shop/common"
+import { QueryBoundary, errorText, useI18n } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
+
+import { useT } from "#/locales/use-t"
 
 import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"
 
@@ -48,18 +50,20 @@ export function HomeCategoryNav() {
     return (
         <QueryBoundary
             pending={<HomeCategoryNavSkeleton />}
-            fallback={homeNavErrorFallback}
+            fallback={(args) => <HomeCategoryNavErrorFallback {...args} />}
         >
             <HomeCategoryNavContent />
         </QueryBoundary>
     )
 }
 
-/** 失败态渲染函数放模块作用域：内联箭头会让每次渲染都新建一个组件（ShopBar 同款理由） */
-function homeNavErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+/** 失败态：组件而非渲染函数，locale 与本端 catalog 要靠 hook 取（ShopBar / Feed 同款理由） */
+function HomeCategoryNavErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
+    const { locale } = useI18n()
+    const t = useT()
     return (
         <HomeCategoryNavError
-            message={apiErrorDetail(error, "商品分类加载失败")}
+            message={errorText(toApiError(error), locale, t("common.loadFailed.categoryNav"))}
             onRetry={reset}
         />
     )
@@ -83,7 +87,7 @@ function HomeCategoryNavError({
     message,
     onRetry,
 }: {
-    /** 后端 detail 优先；后端没说话时是站点那句（apiErrorDetail） */
+    /** 已按 §7.3 那条链定稿的句子（`errorText`：登记码 → catalog，中文界面 → 后端 detail，否则站点那句） */
     message: string
     onRetry: () => void
 }) {

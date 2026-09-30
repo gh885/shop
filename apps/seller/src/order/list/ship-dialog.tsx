@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 
 import type { OrderIdentity } from "./table"
-import { TRACKING_NO_MAX, apiErrorDetail } from "@shop/common"
-import { FormActions } from "@shop/app-kit"
+import { TRACKING_NO_MAX, toApiError } from "@shop/common"
+import { errorText, FormActions, useI18n } from "@shop/app-kit"
+import { useT } from "#/locales/use-t"
 import {
     Button,
     Dialog,
@@ -71,6 +72,8 @@ function ShipForm({
     onShip: (orderId: string, input: ShipInput) => void
 }) {
     const carriers = useQuery(carrierListOptions())
+    const { locale } = useI18n()
+    const t = useT()
 
     const form = useAppForm({
         defaultValues: { carrierCode: "", trackingNo: "" },
@@ -107,7 +110,11 @@ function ShipForm({
                         <FieldLabel>快递公司</FieldLabel>
                         <div className="flex items-center justify-between gap-2">
                             <span className="text-sm text-destructive">
-                                {apiErrorDetail(carriers.error, "快递公司列表加载失败，请重试")}
+                                {errorText(
+                                    toApiError(carriers.error),
+                                    locale,
+                                    t("common.loadFailed.carriers"),
+                                )}
                             </span>
                             <Button
                                 type="button"

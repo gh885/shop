@@ -1,8 +1,8 @@
 import { PackageCheck } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 
-import { apiErrorDetail } from "@shop/common"
-import { FormActions } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
+import { errorText, FormActions, useI18n } from "@shop/app-kit"
 import type { ProductDetailResponse } from "@shop/api/sdk"
 import {
     Dialog,
@@ -32,6 +32,7 @@ import {
     toSkuUpdateItemsFromText,
     yuanPriceSchema,
 } from "#/product/draft-model"
+import { useT } from "#/locales/use-t"
 import { SKU_CODE_MAX, SKU_EDIT_KIND_META } from "#/product/constants"
 import { productDetailOptions, useUpdateProductSkus } from "#/product/queries"
 
@@ -62,6 +63,9 @@ export function EditSkuLineDialog({
 }) {
     const meta = SKU_EDIT_KIND_META[kind]
 
+    const { locale } = useI18n()
+    const t = useT()
+
     // 详情走 query：与发布页回填同一份缓存（productKeys.detail）。
     // 关着弹窗、或没有 productId 时 skipToken 直接不发请求；打开即命中缓存（若发布页刚填过则零请求）。
     // 失败**不抛**（弹窗是列表页上的一个操作口，炸到路由会把整张列表换掉）：就地渲染错误态并用官方
@@ -91,7 +95,7 @@ export function EditSkuLineDialog({
 
                 {isError ? (
                     <StateError
-                        message={apiErrorDetail(error, "SKU 信息加载失败，请重试")}
+                        message={errorText(toApiError(error), locale, t("common.loadFailed.sku"))}
                         onRetry={() => void refetch()}
                         retrying={isFetching}
                     />

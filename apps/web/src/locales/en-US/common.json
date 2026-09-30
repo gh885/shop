@@ -4,5 +4,10 @@
     "common.locale.enUS": "English",
     "common.notFound.title": "Page not found",
     "common.notFound.description": "The page you are looking for does not exist or has been removed.",
-    "common.action.backHome": "Back"
+    "common.action.backHome": "Back",
+    "common.loadFailed.feed": "Couldn't load these products. Please try again.",
+    "common.loadFailed.banners": "Couldn't load these offers. Please try again.",
+    "common.loadFailed.categoryNav": "Couldn't load the categories. Please try again.",
+    "common.loadFailed.shopBar": "Couldn't load this shop. Please try again.",
+    "common.loadFailed.recommend": "Couldn't load recommendations. Please try again."
 }

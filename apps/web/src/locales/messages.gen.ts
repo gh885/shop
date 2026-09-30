@@ -9,6 +9,11 @@ export type WebMessageKey =
     "app.description" |
     "app.title" |
     "common.action.backHome" |
+    "common.loadFailed.banners" |
+    "common.loadFailed.categoryNav" |
+    "common.loadFailed.feed" |
+    "common.loadFailed.recommend" |
+    "common.loadFailed.shopBar" |
     "common.locale.enUS" |
     "common.locale.switch" |
     "common.locale.zhCN" |

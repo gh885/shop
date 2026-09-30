@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import {
+    errorText,
     FormActions,
     isCodeError,
     isSmsRateLimit,
@@ -8,6 +9,7 @@ import {
     SMS_CODE_DIGITS,
     SmsCodeSchema,
     useCountdown,
+    useI18n,
 } from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AccountDeletionApi } from "@shop/api/sdk"
@@ -65,6 +67,7 @@ export function DeletionDialog({ open, onOpenChange }: DeletionDialogProps) {
 }
 
 function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange">) {
+    const { locale } = useI18n()
     const codeId = useId()
     const [countdown, setCountdown] = useCountdown()
     const [error, setError] = useState<string | undefined>()
@@ -79,7 +82,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
             const err = toApiError(e)
             // 与登录发码同一判据（app-kit）：只有限频窗口才起倒计时，当日上限 60s 后重发也没用
             if (isSmsRateLimit(err)) setCountdown(RESEND_COUNTDOWN_SECONDS)
-            setError(err.detail)
+            setError(errorText(err, locale))
         },
     })
 
@@ -95,7 +98,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
             const err = toApiError(e)
             // 验证码类错误要标红输入框（ACC-67），其余错误只在表单下方说一句
             setCodeInvalid(isCodeError(err))
-            setError(err.detail)
+            setError(errorText(err, locale))
         },
     })
 

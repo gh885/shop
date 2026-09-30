@@ -4,5 +4,10 @@
     "common.locale.enUS": "English",
     "common.notFound.title": "页面不存在或已下线",
     "common.notFound.description": "你找的页面不在这里，回首页继续逛吧。",
-    "common.action.backHome": "回到首页"
+    "common.action.backHome": "回到首页",
+    "common.loadFailed.feed": "商品流加载失败，请重试",
+    "common.loadFailed.banners": "活动位加载失败",
+    "common.loadFailed.categoryNav": "商品分类加载失败",
+    "common.loadFailed.shopBar": "店铺信息加载失败",
+    "common.loadFailed.recommend": "推荐商品加载失败，请重试"
 }

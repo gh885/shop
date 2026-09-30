@@ -49,6 +49,7 @@ export type AdminMessageKey =
     "app.description" |
     "app.title" |
     "common.action.backHome" |
+    "common.loadFailed.categoryTree" |
     "common.locale.enUS" |
     "common.locale.switch" |
     "common.locale.zhCN" |

@@ -19,16 +19,15 @@ import {
  * 用法（TanStack Query）：
  *   // ① 区块内就地渲染（查询不能进边界：带 enabled / placeholderData / skipToken）
  *   if (query.isError)
- *     return <StateError message={apiErrorDetail(query.error, "规格模板加载失败，请重试")}
- *                        onRetry={() => void query.refetch()} retrying={query.isFetching} />
- *   // ② 作为错误边界的 fallback（推荐）：`reset` 由边界注入，重试走官方的
- *   //    QueryErrorResetBoundary + 边界复位链路
- *   fallback={({ error, reset }) => (
- *     <StateError message={apiErrorDetail(error, "推荐加载失败")} onRetry={reset} />
- *   )}
+ *     return <StateError
+ *                message={errorText(toApiError(query.error), locale, t("common.loadFailed.specTemplate"))}
+ *                onRetry={() => void query.refetch()} retrying={query.isFetching} />
+ *   // ② 作为错误边界的 fallback（推荐）：直接套 app-kit 的 <QueryBoundary fallback={t("…")} />，
+ *   //    它把 QueryErrorResetBoundary + 边界复位链路和这条取文案链一次接好，别手写
  *
- * message 一律走 `apiErrorDetail(err, 站点那句)`，不写 `toApiError(err).detail || 站点那句`：
- * 后端没说话时 toApiError 也给得出非空的通用兜底，`||` 右边永远轮不上。
+ * message 一律走 app-kit 的 `errorText(err, locale, 站点那句)`（i18n.md §7.3 那条链），
+ * 不写 `toApiError(err).detail || 站点那句`：后端没说话时 toApiError 也给得出非空的通用兜底，
+ * `||` 右边永远轮不上；而直接读 detail 的，英文界面就漏出后端那句中文。
  */
 export function StateError({
     message,
@@ -36,7 +35,7 @@ export function StateError({
     retrying = false,
     className,
 }: {
-    /** 已定稿的错误文案（业务侧用 apiErrorDetail(err, 站点那句) 传入） */
+    /** 已定稿的错误文案（业务侧用 errorText(err, locale, 站点那句) 传入） */
     message: string
     /** 重试动作（通常 query.refetch）；不传则隐藏按钮 */
     onRetry?: () => void
