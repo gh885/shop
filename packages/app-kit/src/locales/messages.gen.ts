@@ -34,7 +34,32 @@ export type AppKitMessageKey =
     "appKit.login.successTitle" |
     "appKit.time.unknown" |
     "appKit.topbar.searchLabel" |
-    "appKit.topbar.searchPlaceholder"
+    "appKit.topbar.searchPlaceholder" |
+    "error.ADDRESS_LIMIT_EXCEEDED" |
+    "error.AFTER_SALE_ALREADY_REFUNDED" |
+    "error.BANNER_TIME_RANGE_INVALID" |
+    "error.CAPTCHA_EXPIRED" |
+    "error.CAPTCHA_INVALID" |
+    "error.CAPTCHA_REQUIRED" |
+    "error.CATEGORY_DISABLED" |
+    "error.CATEGORY_NOT_LEAF" |
+    "error.COUPON_ALREADY_CLAIMED" |
+    "error.FORBIDDEN_WORD_HIT" |
+    "error.INSUFFICIENT_STOCK" |
+    "error.INVALID_TOKEN" |
+    "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED" |
+    "error.PERMISSION_DENIED" |
+    "error.REFRESH_TOKEN_REUSED" |
+    "error.RESPONSE_VALIDATION_FAILED" |
+    "error.SHOP_LIMIT_EXCEEDED" |
+    "error.SHOP_NAME_TAKEN" |
+    "error.SMS_CODE_EXPIRED" |
+    "error.SMS_CODE_INVALID" |
+    "error.SMS_DAILY_LIMIT" |
+    "error.SMS_RATE_LIMIT" |
+    "error.STAFF_DISABLED" |
+    "error.TOKEN_EXPIRED" |
+    "error.USER_DISABLED"
 
 type AppKitParamsByKey = {
     "appKit.login.resend": { countdown: string | number }

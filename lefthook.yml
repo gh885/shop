@@ -105,3 +105,12 @@ pre-push:
         - name: sdk-drift
           tags: [contract]
           run: bash scripts/check-sdk-drift.sh
+
+        # 文案生成物漂移：资源 JSON 改了而 messages.gen.ts 没跟着改，本地 push 就拦。
+        # CI 的 i18n 步骤跑的是同一条命令，但把「生成物没跟上」交给 CI 才知道，
+        # 等于让 §10.1 判据 3「自动执行」只剩一半——所以这里要有独立作业，
+        # 也不塞进上面的 verify：verify 按指纹缓存重放，塞进去会把 0.4s 的热跑变成每次重跑 codegen
+        - name: i18n-drift
+          tags: [i18n]
+          timeout: 60s
+          run: pnpm i18n:drift
