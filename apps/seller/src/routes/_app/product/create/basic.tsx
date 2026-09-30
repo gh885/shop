@@ -5,7 +5,11 @@ import { CircleAlert } from "lucide-react"
 import { toApiError } from "@shop/common"
 
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
-import { parseForbiddenWordError, type ForbiddenHit } from "#/product/forbidden-word"
+import {
+    parseForbiddenWordError,
+    type ForbiddenHit,
+    type ForbiddenWordFound,
+} from "#/product/forbidden-word"
 import { useProductDraft } from "#/product/create/basic/use-product-draft"
 import { errorText, notify, useI18n, useUnsavedLeaveGuard } from "@shop/app-kit"
 import { useT } from "#/locales/use-t"
@@ -102,18 +106,25 @@ function NewProductBasicStep() {
             // 认不出字段（null）与其它错误一样回落横幅，宁可不定位也不猜一个字段。
             const hit = parseForbiddenWordError(error)
             if (hit) {
-                setForbiddenWord({
-                    field: hit.field,
-                    // 命中词是词表数据、原样给出；句子本身走 catalog。认不出词时退回那条链，
-                    // 而不是把后端那句 detail 直接印到屏幕上（§7.3）
-                    message:
-                        hit.word === undefined
-                            ? errorText(toApiError(error), locale)
-                            : t("product.publish.forbiddenWordHit", { word: hit.word }),
-                })
+                setForbiddenWord(forbiddenMarkOf(hit, error))
                 return
             }
             setServerError(errorText(toApiError(error), locale))
+        }
+    }
+
+    /**
+     * 违禁词命中 → 表单要写进 errorMap 的那笔（state 收的是 ForbiddenHit）。
+     * 命中词是词表数据、原样给出；句子本身走 catalog。认不出词时退回那条链，
+     * 而不是把后端那句 detail 直接印到屏幕上（§7.3）。
+     */
+    function forbiddenMarkOf(hit: ForbiddenWordFound, error: unknown): ForbiddenHit {
+        return {
+            field: hit.field,
+            message:
+                hit.word === undefined
+                    ? errorText(toApiError(error), locale)
+                    : t("product.publish.forbiddenWordHit", { word: hit.word }),
         }
     }
 

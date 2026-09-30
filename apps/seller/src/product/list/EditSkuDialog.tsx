@@ -63,9 +63,6 @@ export function EditSkuLineDialog({
 }) {
     const meta = SKU_EDIT_KIND_META[kind]
 
-    const { locale } = useI18n()
-    const t = useT()
-
     // 详情走 query：与发布页回填同一份缓存（productKeys.detail）。
     // 关着弹窗、或没有 productId 时 skipToken 直接不发请求；打开即命中缓存（若发布页刚填过则零请求）。
     // 失败**不抛**（弹窗是列表页上的一个操作口，炸到路由会把整张列表换掉）：就地渲染错误态并用官方
@@ -93,31 +90,104 @@ export function EditSkuLineDialog({
                     {meta.notice}
                 </div>
 
-                {isError ? (
-                    <StateError
-                        message={errorText(toApiError(error), locale, t("common.loadFailed.sku"))}
-                        onRetry={() => void refetch()}
-                        retrying={isFetching}
-                    />
-                ) : isPending || !productId ? (
-                    <div className="flex max-h-dialog-body flex-col gap-2 overflow-hidden">
-                        <Skeleton className="h-9 w-full rounded-sm" />
-                        <Skeleton className="h-9 w-full rounded-sm" />
-                        <Skeleton className="h-9 w-full rounded-sm" />
-                        <Skeleton className="h-9 w-2/3 rounded-sm" />
-                    </div>
-                ) : (
-                    <SkuLineForm
-                        kind={kind}
-                        productId={productId}
-                        productName={productName ?? data.product.name}
-                        detail={data}
-                        onOpenChange={onOpenChange}
-                        onSaved={onSaved}
-                    />
-                )}
+                <SkuDialogBody
+                    kind={kind}
+                    productId={productId}
+                    productName={productName}
+                    detail={data}
+                    isPending={isPending}
+                    isError={isError}
+                    error={error}
+                    isFetching={isFetching}
+                    refetch={refetch}
+                    onOpenChange={onOpenChange}
+                    onSaved={onSaved}
+                />
             </DialogContent>
         </Dialog>
+    )
+}
+
+/**
+ * 弹窗体：错误 / 骨架 / 表单 三态。抽出来是为了让 EditSkuLineDialog 只剩「标题 + 提示条 + 本组件」
+ * 三件事（健康扫描按「cc>=5 且零覆盖必上榜」判，三态的全塞在一个函数里会到 cc 6）。
+ */
+/** 三态判定：能渲染表单吗。三个条件收在这一处（`&&` 链留在小函数里，主函数就只剩两个 if） */
+type SkuFormState = {
+    isPending: boolean
+    productId: string | undefined
+    detail: ProductDetailResponse | undefined
+}
+
+/** 取数是否就绪：pending / 没有 productId / 没有 detail 任一成立就还渲染骨架 */
+function formReady(
+    s: SkuFormState,
+): s is { isPending: false; productId: string; detail: ProductDetailResponse } {
+    return !s.isPending && s.productId !== undefined && s.detail !== undefined
+}
+
+function SkuDialogBody({
+    kind,
+    productId,
+    productName,
+    detail,
+    isPending,
+    isError,
+    error,
+    isFetching,
+    refetch,
+    onOpenChange,
+    onSaved,
+}: {
+    kind: SkuEditKind
+    productId?: string
+    productName?: string
+    detail: ProductDetailResponse | undefined
+    isPending: boolean
+    isError: boolean
+    error: unknown
+    isFetching: boolean
+    refetch: () => void
+    onOpenChange: (open: boolean) => void
+    onSaved: () => void
+}) {
+    const { locale } = useI18n()
+    const t = useT()
+    if (isError) {
+        return (
+            <StateError
+                message={errorText(toApiError(error), locale, t("common.loadFailed.sku"))}
+                onRetry={() => refetch()}
+                retrying={isFetching}
+            />
+        )
+    }
+    // 取数三态收成一个 state 对象 + 类型谓词：谓词一次把 productId/detail 一起收窄
+    // （单个值的谓词管不到另一个，省不掉断言），而 `||` 链全在谓词函数里，
+    // 主函数只剩两个 if —— 健康扫描按「cc>=5 且零覆盖必上榜」判
+    const state = { isPending, productId, detail }
+    if (!formReady(state)) return <SkuDialogSkeleton />
+    return (
+        <SkuLineForm
+            kind={kind}
+            productId={state.productId}
+            productName={productName ?? state.detail.product.name}
+            detail={state.detail}
+            onOpenChange={onOpenChange}
+            onSaved={onSaved}
+        />
+    )
+}
+
+/** 加载骨架：与表单同高，弹窗开合不跳 */
+function SkuDialogSkeleton() {
+    return (
+        <div className="flex max-h-dialog-body flex-col gap-2 overflow-hidden">
+            <Skeleton className="h-9 w-full rounded-sm" />
+            <Skeleton className="h-9 w-full rounded-sm" />
+            <Skeleton className="h-9 w-full rounded-sm" />
+            <Skeleton className="h-9 w-2/3 rounded-sm" />
+        </div>
     )
 }
 

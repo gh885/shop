@@ -1,5 +1,6 @@
 import { editRules } from "#/product/edit-rules"
 import type { ProductStatus } from "@shop/api/sdk"
+import type { FormEvent } from "react"
 
 import { EMPTY_PRODUCT_BASIC_FORM } from "#/product/draft-model"
 import type {
@@ -37,6 +38,7 @@ import {
 } from "@shop/ui-web"
 import { scrollToElement } from "@shop/common"
 import { errorText, useI18n } from "@shop/app-kit"
+import type { AppLocale } from "@shop/common"
 import { useT } from "#/locales/use-t"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
@@ -95,6 +97,11 @@ type BasicStepProps = {
     forbiddenWord?: ForbiddenHit
 }
 
+// 抑制理由：这是个纯编排组件——把 6 个 hook 的结果与 13 个 prop 装配给三个子组件
+// （BasicStepHeader / StepBody / ActionBar），自身没有分支逻辑（cc 仅 3，CRAP 远在门槛下）。
+// 认知复杂度与体积超线都来自「把整张发布表单的接线集中在这一处」，那是它的职责；
+// 真要降只能把接线散给子组件，那是拿结构换指标、把一处可见的装配变成三处不可见的。
+// fallow-ignore-next-line complexity
 export function BasicStep({
     categoryId,
     productStatus,
@@ -119,15 +126,7 @@ export function BasicStep({
     // ImageUpload 这块皮肤只读 `error.message`，所以递给它之前把错误压成一句本 locale 的话：
     // 中文界面是后端那个具体原因（如「文件存储未配置」），其它语言是「取凭证失败」那句场景文案。
     // 直传七牛那一发是本层自己写的句子，原样透给皮肤。
-    const uploadImage = (file: File) =>
-        uploadProductImage(file).catch((error: unknown): never => {
-            if (error instanceof UploadTicketFailure) {
-                throw new Error(errorText(error.apiError, locale, t(error.sceneKey)), {
-                    cause: error,
-                })
-            }
-            throw error
-        })
+    const uploadImage = (file: File) => toLocalizedUploadError(file, locale, t)
 
     // 表单与提交：值变化上报（防抖 autosave）、编辑回显、上架时间与三种提交方式都在这个 hook 里
     const { form, submitAs, listingTime, setListingTime, submitForListing } = useBasicForm({
@@ -142,13 +141,19 @@ export function BasicStep({
     // PUBLISHED 冻结规格、只有 DRAFT 会话有发布目标（仓库/上架只剩「保存变更」，状态不回退）。
     const rules = editRules(productStatus)
 
+    // 提交动作提成具名 handler：原先直接内联在 JSX 上（onSubmit / onSaveDraft），
+    // 内联箭头会被健康扫描按嵌套计入认知复杂度，而这里并没有嵌套语义——
+    // 主组件是纯装配，认知复杂度应该留给真正需要分支的地方（门槛 15）
+    const handleFormSubmit = (e: FormEvent) => {
+        e.preventDefault()
+        submitAs()
+    }
+    const handleSaveDraft = () => submitAs("draft")
+
     return (
         <form
             className="pb-24"
-            onSubmit={(e) => {
-                e.preventDefault()
-                submitAs()
-            }}
+            onSubmit={handleFormSubmit}
         >
             <BasicStepHeader />
             <SectionTabs active={active} />
@@ -172,7 +177,7 @@ export function BasicStep({
                 submitting={submitting}
                 creating={creating}
                 onSubmit={submitForListing}
-                onSaveDraft={() => submitAs("draft")}
+                onSaveDraft={handleSaveDraft}
                 draftEditable={rules.publishTargets !== undefined}
             />
         </form>
@@ -525,6 +530,28 @@ function useBasicForm({
 
 /** 底部固定操作条：通栏铺满，内容与主区同宽对齐 */
 // fallow-ignore-next-line complexity -- 操作条的两按钮是同一形状的重复，分支只是「草稿态能不能回草稿」这一个判空
+/**
+ * 直传图片，并把「取凭证失败」压成本 locale 的一句。
+ *
+ * ImageUpload 这块皮肤只读 `error.message`，所以递给它之前要把错误压成一句话：
+ * 中文界面是后端那个具体原因（如「文件存储未配置」），其它语言是「取凭证失败」那句场景文案。
+ * 直传七牛那一发的错是本层自己写的句子，原样透给皮肤（不套这条）。
+ * 抽成模块级函数是为了把 instanceof 那一支从 BasicStep 的认知复杂度里摘出去
+ * （健康扫描的 maxCognitive 是 15，而 BasicStep 主体是编排 + 装配，不该背着这个分支）。
+ */
+function toLocalizedUploadError(
+    file: File,
+    locale: AppLocale,
+    t: ReturnType<typeof useT>,
+): Promise<string> {
+    return uploadProductImage(file).catch((error: unknown): never => {
+        if (error instanceof UploadTicketFailure) {
+            throw new Error(errorText(error.apiError, locale, t(error.sceneKey)), { cause: error })
+        }
+        throw error
+    })
+}
+
 function ActionBar({
     submitting,
     creating,
@@ -539,6 +566,9 @@ function ActionBar({
     /** 草稿态编辑才提供「保存草稿」；仓库中/上架商品不可回草稿，仅保留「保存变更」 */
     draftEditable: boolean
 }) {
+    // 「正在提交」是 submitting || creating 一个概念，收成一处：原来它散在三处各自写一遍，
+    // 是本函数 cc 的一半（健康扫描的 CRAP 门槛卡在 cc 5）
+    const busy = submitting || creating
     return (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/90 py-3 backdrop-blur">
             <div className="mx-auto flex w-full max-w-narrow items-center justify-end gap-3 px-6">
@@ -546,24 +576,43 @@ function ActionBar({
                     <Button
                         type="button"
                         variant="ghost"
-                        disabled={submitting || creating}
+                        disabled={busy}
                         onClick={onSaveDraft}
                         className="h-10"
                     >
                         保存草稿
                     </Button>
                 ) : undefined}
-                <Button
-                    type="button"
-                    disabled={submitting || creating}
+                <SubmitButton
+                    busy={busy}
+                    draftEditable={draftEditable}
                     onClick={onSubmit}
-                    className="h-10"
-                >
-                    {(submitting || creating) && <Spinner />}
-                    {draftEditable ? "提交商品信息" : "保存变更"}
-                </Button>
+                />
             </div>
         </div>
+    )
+}
+
+/** 主按钮：草稿态是「提交商品信息」，其余是「保存变更」；忙碌时带转圈 */
+function SubmitButton({
+    busy,
+    draftEditable,
+    onClick,
+}: {
+    busy: boolean
+    draftEditable: boolean
+    onClick: () => void
+}) {
+    return (
+        <Button
+            type="button"
+            disabled={busy}
+            onClick={onClick}
+            className="h-10"
+        >
+            {busy && <Spinner />}
+            {draftEditable ? "提交商品信息" : "保存变更"}
+        </Button>
     )
 }
 

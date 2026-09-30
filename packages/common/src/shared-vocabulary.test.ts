@@ -331,33 +331,48 @@ describe("owner 不是孤儿", () => {
     }
 })
 
+/** 从 rest 头部解析一个原子（字符类/\\d/转义/单字面）+ 可选量词，认不出就抛 */
+function matchAtom(rest: string): RegExpExecArray {
+    const atom = /^(?<atom>\[[^\]]+\]|\\d|\\.)(?<q>\{\d+(?:,\d*)?\})?|(?<lit>[\w -])/.exec(rest)
+    if (!atom) throw new Error(`认不出的正则构造（本门禁只认字符类、\\d、单字符）：${rest}`)
+    return atom
+}
+
+/** 单个原子的字符数区间。认不出的构造直接抛（见 spanOf 的注释） */
+function atomSpan(rest: string): { min: number; max: number; consumed: number } {
+    const atom = matchAtom(rest)
+    const token = atom.groups?.atom ?? atom.groups?.lit ?? ""
+    const quant = quantBounds(atom.groups?.q)
+    const consumed = token.length + (atom.groups?.q?.length ?? 0)
+    if (quant) return { min: quant.min, max: quant.max, consumed }
+    // 字符类、`\d` 与单个字面字符都定长贡献一位。字面字符后面若真跟了量词（`1{2}`），
+    // 下一轮会从 spanOf 顶上的正则里「认不出的正则构造」抛出去。
+    return { min: 1, max: 1, consumed }
+}
+
+/** 解析量词 `{m}` / `{m,n}` 的上下界；开区间抛（本门禁不猜上界） */
+function quantBounds(quant: string | undefined): { min: number; max: number } | undefined {
+    if (!quant) return undefined
+    const [lo, hi] = quant.slice(1, -1).split(",")
+    if (hi === "") throw new Error(`开区间量词无法给出上界，本门禁不猜：${quant}`)
+    return { min: Number(lo), max: Number(hi ?? lo) }
+}
+
 /**
  * 定长/区间正则的字符数：只认本仓库这几条形状用得上的构造（`\d` / 字符类，可选 `{m}` `{m,n}`，
  * 以及单个字面或转义字符）。遇到别的构造（分组、或、量词 `*+?`）直接抛——
  * 返回 undefined 会让这条门禁在形状变复杂后**悄悄失效**，那正是本文件要挡的东西。
+ * 循环体本身只有「取一个原子」一件事，复杂度集中在 atomSpan / quantBounds 里。
  */
 function spanOf(shape: string): { min: number; max: number } {
     let rest = shape.replace(/^\^/, "").replace(/\$$/, "")
     let min = 0
     let max = 0
     while (rest.length > 0) {
-        const atom = /^(?<atom>\[[^\]]+\]|\\d|\\.)(?<q>\{\d+(?:,\d*)?\})?|(?<lit>[\w -])/.exec(rest)
-        if (!atom) throw new Error(`认不出的正则构造（本门禁只认字符类、\\d、单字符）：${rest}`)
-        const token = atom.groups?.atom ?? atom.groups?.lit ?? ""
-        const quant = atom.groups?.q
-        const consumed = token.length + (quant?.length ?? 0)
-        if (quant) {
-            const [lo, hi] = quant.slice(1, -1).split(",")
-            if (hi === "") throw new Error(`开区间量词无法给出上界，本门禁不猜：${quant}`)
-            min += Number(lo)
-            max += Number(hi ?? lo)
-        } else {
-            // 字符类、`\d` 与单个字面字符都定长贡献一位。字面字符后面若真跟了量词（`1{2}`），
-            // 下一轮会从上面那条「认不出的正则构造」抛出去。
-            min += 1
-            max += 1
-        }
-        rest = rest.slice(consumed)
+        const span = atomSpan(rest)
+        min += span.min
+        max += span.max
+        rest = rest.slice(span.consumed)
     }
     return { min, max }
 }

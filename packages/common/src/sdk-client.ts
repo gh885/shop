@@ -222,6 +222,87 @@ export function configureSdkClient(
         }
     }
 
+    /** debug 模式下打一行请求耗时；startTimes 里的 request 不存在时耗时记 0 */
+    function logResponse(
+        request: Request,
+        response: Response,
+        startTimes: WeakMap<Request, number>,
+    ) {
+        const start = startTimes.get(request)
+        const ms = start ? Math.round(performance.now() - start) : 0
+        const path = new URL(request.url).pathname
+        console.log(
+            `[API] ${request.method} ${path} ${response.status} ${ms}ms`,
+            response.ok ? "" : response.statusText,
+        )
+    }
+
+    /** 吊销裁决的同体 410：body 只能消费一次，并发请求各造一份 */
+    function revokedResponse(body: string) {
+        return new Response(body, {
+            status: 410,
+            headers: { "content-type": "application/json" },
+        })
+    }
+
+    /**
+     * 401 刷新后重发原请求：重建 Request（原 body 已消费，从序列化结果取）。
+     * 重发本身失败 → 原始 401 冒泡（会在 error 拦截器里报）。
+     * 401 刷新后重放成功的不计（首批「接口」条：那种 401 是设计内的，不该拉高错误率）；
+     * 重放仍非 2xx 的由 error 拦截器报一次（带重放后的真实状态码，不是最初的 401），
+     * 这里不重复报——同一请求报两次会让错误率直接翻倍。
+     */
+    async function retryWithToken(
+        request: Request,
+        serializedBody: unknown,
+        accessToken: string,
+        originalResponse: Response,
+    ) {
+        try {
+            const headers = new Headers(request.headers)
+            headers.set("Authorization", `Bearer ${accessToken}`)
+            const retry = new Request(request.url, {
+                method: request.method,
+                headers,
+                body: serializedBody as BodyInit | null,
+                credentials: request.credentials,
+                signal: request.signal,
+            })
+            return await fetch(retry)
+        } catch {
+            return originalResponse
+        }
+    }
+
+    /**
+     * 这个响应要不要进 401 刷新流程：非 401 / 刷新请求本身 / 还没登录态 → 不用。
+     * 刷新请求本身要排掉，否则刷新失败会递归地再触发一次刷新。
+     */
+    function needsRefresh(response: Response, request: Request) {
+        const path = new URL(request.url).pathname
+        const refreshPath = options?.refreshPath ?? "auth/refresh"
+        return response.status === 401 && Boolean(tokens) && path !== `/${refreshPath}`
+    }
+
+    /**
+     * 跑一轮「刷新 → 重发」。不属于 401 场景返回 undefined，交回调用方原样返回响应。
+     * 刷没成 / 重发失败同样返回 undefined（原响应冒泡，会在 error 拦截器里报）。
+     */
+    async function maybeRefreshAndRetry(
+        response: Response,
+        request: Request,
+        opts: { serializedBody?: unknown },
+    ) {
+        if (!needsRefresh(response, request)) return undefined
+        const refreshPath = options?.refreshPath ?? "auth/refresh"
+        const refreshed = await refreshOnce(refreshPath)
+        if (!refreshed) return undefined
+        // 吊销裁决：并发请求各拿一份同体的 410（真实 Response 的 body 只能消费一次），
+        // 谁先落地 toast 都是后端那句「全部设备已下线」
+        if (!("accessToken" in refreshed)) return revokedResponse(refreshed.revokedBody)
+        return retryWithToken(request, opts.serializedBody, refreshed.accessToken, response)
+    }
+
     client.setConfig({
         baseUrl: baseUrl || "/",
         credentials: "include",
@@ -264,57 +345,17 @@ export function configureSdkClient(
 
     // 响应后：日志 + 401 自动 refresh 并重发原请求
     // 401 重发用原生 fetch（request.url 已含 baseUrl），绕过 ky 避免触发拦截器递归。
+    // 这一段的分支密度高（判定要不要刷 / 刷没刷成 / 吊销裁决 / 重发 / 重发失败各自一口），
+    // 所以拆成 needsRefresh + maybeRefreshAndRetry 两层：健康扫描按
+    // 「cc>=5 且零覆盖必上榜」判（CRAP 退化成 cc²+cc），不拆就会一直红。
     client.interceptors.response.use(async (response, request, opts) => {
-        const path = new URL(request.url).pathname
-        if (options?.debug) {
-            const start = startTimes.get(request)
-            const ms = start ? Math.round(performance.now() - start) : 0
-            console.log(
-                `[API] ${request.method} ${path} ${response.status} ${ms}ms`,
-                response.ok ? "" : response.statusText,
-            )
-        }
-
-        const refreshPath = options?.refreshPath ?? "auth/refresh"
-        if (response.status !== 401 || !tokens || path === `/${refreshPath}`) {
-            // 成功才在这里报：非 2xx 会被 hey-api 抛出去、在 error 拦截器里报（避免一条请求报两次）
-            if (response.ok) reportApi(request, response.status)
-            return response
-        }
-
-        const refreshed = await refreshOnce(refreshPath)
-        if (!refreshed) {
-            // 刷新没成（cookie 过期）→ 原始 401 正常冒泡（会在 error 拦截器里报）
-            return response
-        }
-        if (!("accessToken" in refreshed)) {
-            // 吊销裁决：并发请求各拿一份同体的 410（真实 Response 的 body 只能消费一次），
-            // 谁先落地 toast 都是后端那句「全部设备已下线」。
-            return new Response(refreshed.revokedBody, {
-                status: 410,
-                headers: { "content-type": "application/json" },
-            })
-        }
-
-        try {
-            // 重发原请求：重建 Request（原 body 已消费，从序列化结果取）
-            const headers = new Headers(request.headers)
-            headers.set("Authorization", `Bearer ${refreshed.accessToken}`)
-            const retry = new Request(request.url, {
-                method: request.method,
-                headers,
-                body: opts.serializedBody,
-                credentials: request.credentials,
-                signal: request.signal,
-            })
-            // 401 刷新后重放成功的不计（首批「接口」条：那种 401 是设计内的，不该拉高错误率）；
-            // 重放仍非 2xx 的由下面的 error 拦截器报一次（带重放后的真实状态码，不是最初的 401），
-            // 这里不重复报——同一请求报两次会让错误率直接翻倍
-            return await fetch(retry)
-        } catch {
-            // 重发本身失败 → 原始 401 冒泡（会在 error 拦截器里报）
-            return response
-        }
+        if (options?.debug) logResponse(request, response, startTimes)
+        const retried = await maybeRefreshAndRetry(response, request, opts)
+        if (retried) return retried
+        // 走到这里要么本来就不是 401 刷新场景，要么刷没成。两种都让原始响应冒泡；
+        // 成功才在这里报（401 本身不是 ok，天然不会重复报）
+        if (response.ok) reportApi(request, response.status)
+        return response
     })
 
     // 错误归一化：SDK 调用方拿到的 error 即 ApiError

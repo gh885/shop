@@ -15,6 +15,7 @@ import {
 import { priceRangeText, toApiError } from "@shop/common"
 import { errorText, useI18n } from "@shop/app-kit"
 import { useQuery } from "@tanstack/react-query"
+import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
 import { useT } from "#/locales/use-t"
 import { derivePriceStock } from "#/product/draft-model"
@@ -85,8 +86,6 @@ export function SalesInfoSection({
     }
     const template = templateQuery.data
 
-    const hasSpecs = template.length > 0
-
     return (
         <Card
             id="section-sales"
@@ -99,23 +98,13 @@ export function SalesInfoSection({
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-                {hasSpecs ? (
-                    <Field orientation="horizontal">
-                        <FieldLabel>销售属性</FieldLabel>
-                        <SalesAttrsEditor
-                            attrs={template}
-                            value={selections}
-                            disabled={specsLocked}
-                            onChange={onSelectionsChange}
-                            uploadImage={fileUpload}
-                        />
-                        <FieldDescription>规范配置销售属性有助于商品转化</FieldDescription>
-                    </Field>
-                ) : (
-                    <p className="text-sm text-muted-foreground">
-                        该类目没有可配置的销售属性，SKU 保持单规格。
-                    </p>
-                )}
+                <SpecsField
+                    template={template}
+                    selections={selections}
+                    specsLocked={specsLocked}
+                    onSelectionsChange={onSelectionsChange}
+                    fileUpload={fileUpload}
+                />
 
                 {skuRows.length > 0 && (
                     <Field orientation="horizontal">
@@ -132,43 +121,110 @@ export function SalesInfoSection({
                     <PriceStockFields skuRows={skuRows} />
                 </div>
 
-                {/* 上架时间：决定「提交商品信息」落哪个状态。定时上架本轮不做。
-                    仅新建/草稿编辑有意义；仓库中/上架编辑时提交只保存、不回退状态（上架/入库在列表操作）。 */}
-                {listingTimeEditable === false ? (
-                    <p className="text-sm text-muted-foreground">
-                        商品已在上架/仓库状态：此处修改只保存变更、不回退状态；上架、入库请到商品列表操作。
-                    </p>
-                ) : (
-                    <Field orientation="horizontal">
-                        <FieldLabel required>上架时间</FieldLabel>
-                        <RadioGroup
-                            className="flex items-center gap-8"
-                            value={listingTime}
-                            onValueChange={(next) => {
-                                if (next === "now" || next === "warehouse") {
-                                    onListingTimeChange(next)
-                                }
-                            }}
-                        >
-                            <Label htmlFor="rt-now">
-                                <RadioGroupItem
-                                    value="now"
-                                    id="rt-now"
-                                />
-                                立即上架
-                            </Label>
-                            <Label htmlFor="rt-warehouse">
-                                <RadioGroupItem
-                                    value="warehouse"
-                                    id="rt-warehouse"
-                                />
-                                放入仓库
-                            </Label>
-                        </RadioGroup>
-                    </Field>
-                )}
+                {/* 上架时间：决定「提交商品信息」落哪个状态。定时上架本轮不做。 */}
+                <ListingTimeField
+                    listingTime={listingTime}
+                    editable={listingTimeEditable}
+                    onChange={onListingTimeChange}
+                />
             </CardContent>
         </Card>
+    )
+}
+
+/**
+ * 上架时间（立即上架 / 放入仓库）。
+ *
+ * 抽出来是为了让 SalesInfoSection 的分支密度降下来：它自带「编辑期只读」那一支与
+ * 选中值的白名单判断，两块都从主组件挪走后主组件只剩取数门控与两处结构判断
+ * （健康扫描按「cc>=5 且零覆盖必上榜」判）。
+ */
+function ListingTimeField({
+    listingTime,
+    editable,
+    onChange,
+}: {
+    listingTime: ListingTime
+    /** 仓库中/上架编辑提交=只保存不回退状态，隐藏「上架时间」选择（避免误导发布） */
+    editable?: boolean
+    onChange: (next: ListingTime) => void
+}) {
+    // 仅新建/草稿编辑有意义；仓库中/上架编辑时提交只保存、不回退状态（上架/入库在列表操作）
+    if (editable === false) {
+        return (
+            <p className="text-sm text-muted-foreground">
+                商品已在上架/仓库状态：此处修改只保存变更、不回退状态；上架、入库请到商品列表操作。
+            </p>
+        )
+    }
+    return (
+        <Field orientation="horizontal">
+            <FieldLabel required>上架时间</FieldLabel>
+            <RadioGroup
+                className="flex items-center gap-8"
+                value={listingTime}
+                onValueChange={(next) => {
+                    if (next === "now" || next === "warehouse") {
+                        onChange(next)
+                    }
+                }}
+            >
+                <Label htmlFor="rt-now">
+                    <RadioGroupItem
+                        value="now"
+                        id="rt-now"
+                    />
+                    立即上架
+                </Label>
+                <Label htmlFor="rt-warehouse">
+                    <RadioGroupItem
+                        value="warehouse"
+                        id="rt-warehouse"
+                    />
+                    放入仓库
+                </Label>
+            </RadioGroup>
+        </Field>
+    )
+}
+
+/**
+ * 销售属性区块：类目模板为空时给一句说明（非空则渲染编辑器）。
+ * 抽出来是为了让 SalesInfoSection 主函数的分支密度降下来（健康扫描按
+ * 「cc>=5 且零覆盖必上榜」判，cc 5 → CRAP 30 仍然越线）。
+ */
+function SpecsField({
+    template,
+    selections,
+    specsLocked,
+    onSelectionsChange,
+    fileUpload,
+}: {
+    template: CategoryAttrNodeResponse[]
+    selections: SpecSelection[]
+    specsLocked?: boolean
+    onSelectionsChange: (selections: SpecSelection[]) => void
+    fileUpload: (file: File) => Promise<string>
+}) {
+    if (template.length === 0) {
+        return (
+            <p className="text-sm text-muted-foreground">
+                该类目没有可配置的销售属性，SKU 保持单规格。
+            </p>
+        )
+    }
+    return (
+        <Field orientation="horizontal">
+            <FieldLabel>销售属性</FieldLabel>
+            <SalesAttrsEditor
+                attrs={template}
+                value={selections}
+                disabled={specsLocked}
+                onChange={onSelectionsChange}
+                uploadImage={fileUpload}
+            />
+            <FieldDescription>规范配置销售属性有助于商品转化</FieldDescription>
+        </Field>
     )
 }
 
