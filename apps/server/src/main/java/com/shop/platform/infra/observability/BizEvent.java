@@ -1,6 +1,8 @@
 package com.shop.platform.infra.observability;
 
+import io.micrometer.core.instrument.Metrics;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,5 +106,9 @@ public final class BizEvent {
                 line.setCause(cause).log(text);
             }
         }
+        // 契约第 4 条：每打一行业务事件，同时累加有界标签计数。Micrometer 的 Prometheus
+        //  registry 会把 shop.biz.events 导出成 shop_biz_events_total；注册表从 Metrics 全局门面取，调用点不再散落埋点。
+        Metrics.counter("shop.biz.events", "event", event, "level", at.name().toLowerCase(Locale.ROOT))
+                .increment();
     }
 }

@@ -92,7 +92,23 @@ management:
         web:
             exposure:
                 include: health,prometheus
+    endpoint:
+        health:
+            # 显式分组：liveness 只看进程存活，readiness 同时看 DB/Redis（依赖不可用时不要接流量）。
+            # 生产部署探针分别打 /actuator/health/liveness 与 /actuator/health/readiness。
+            probes:
+                enabled: true
+            group:
+                liveness:
+                    include: livenessState,ping
+                readiness:
+                    include: readinessState,db,redis,ping
     metrics:
+        tags:
+            # 所有指标带统一信封，Prometheus 里可按应用/环境/版本过滤；HTTP 指标也能区分那次发布
+            application: ${spring.application.name}
+            env: ${spring.application.env}
+            version: ${spring.application.version}
         distribution:
             # 导出桶而不是在应用里算分位：p95 由 Prometheus 按任意窗口、跨实例聚合（histogram_quantile），
             # 应用内算好的分位值多实例之间没法合并

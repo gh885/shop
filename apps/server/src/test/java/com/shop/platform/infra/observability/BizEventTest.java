@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,6 +104,21 @@ class BizEventTest {
         // logback 把 Throwable 转成 proxy 存进行事件：断 message 而不是 same-as，证明 cause 真被交出
         assertThat(event.getThrowableProxy()).isNotNull();
         assertThat(event.getThrowableProxy().getMessage()).isEqualTo("渠道拒退");
+    }
+
+    @Test
+    void 每打一行同时累加业务事件计数() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        Metrics.addRegistry(registry);
+        try {
+            BizEvent.of("order.created").put("order_id", "o-1").emit();
+
+            assertThat(registry.counter("shop.biz.events", "event", "order.created", "level", "info")
+                            .count())
+                    .isEqualTo(1);
+        } finally {
+            Metrics.removeRegistry(registry);
+        }
     }
 
     @Test

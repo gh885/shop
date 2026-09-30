@@ -3,6 +3,7 @@ package com.shop.platform.infra.observability;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class MdcTaskDecorator implements TaskDecorator {
 
+    private final String version;
+
+    private final String env;
+
+    public MdcTaskDecorator(
+            @Value("${spring.application.version:unknown}") String version,
+            @Value("${spring.application.env:dev}") String env) {
+        this.version = version;
+        this.env = env;
+    }
+
     @Override
     public Runnable decorate(Runnable task) {
         Map<String, String> parentContext = MDC.getCopyOfContextMap();
@@ -28,6 +40,13 @@ public class MdcTaskDecorator implements TaskDecorator {
                 String requestId = UUID.randomUUID().toString().replace("-", "");
                 MDC.put("trace_id", requestId);
                 MDC.put("requestId", requestId);
+            }
+            // 定时任务没有 RequestIdFilter 补信封；若父上下文也未带，按同一份应用配置补齐。
+            if (MDC.get("version") == null) {
+                MDC.put("version", version);
+            }
+            if (MDC.get("env") == null) {
+                MDC.put("env", env);
             }
             try {
                 task.run();
