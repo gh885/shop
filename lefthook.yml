@@ -61,6 +61,14 @@ pre-commit:
           tags: [arch]
           run: pnpm fallow
 
+        # 同族但另一视角：--production 把 test/spec/dev 整批从发现范围里剔除，
+        # 于是「只给测试用的导出」会变成真的没有生产消费者。两者能各报各的：上面那条看得到
+        # 测试文件当入口的情形，这条看不到（DETAIL_FIRST_CODES 就是这么在 CI 炸的）。
+        # ~0.6s，放 pre-commit 不心疼。
+        - name: dead-code-production
+          tags: [arch]
+          run: pnpm fallow:production
+
         # 只审改动（基准：与上游的 merge-base，无上游时取本地 main）：新引入的死代码 / 超标复杂度 / 重复代码才拦，
         # 历史存量不算，所以 health 与 dupes 不用维护基线文件也只许变好
         - name: audit
@@ -75,6 +83,17 @@ commit-msg:
           fail_text: "提交信息格式不符合规范，请参考 Conventional Commits 规范"
 
 # ── pre-push：重量检查，全量跑；各项互不依赖，并行 ──
+#
+# 与 CI 的分工（刻意不是「CI 的子集」，而是按「能不能给出可行动的信号」分）：
+#   pre-push 装下所有**便宜且确定**的门：前端 check/typecheck/test（带缓存）、后端免库静态家族。
+#   这两类都是几十秒内、结果确定、且失败时你能立刻在本地复现的。
+#   CI 独占地跑那类「要么需要一整套环境、要么贵到不该压在人肉等待上」的：
+#     - `mvn verify` 全量（含连库的 @SpringBootTest / 契约测试，要 PG+Redis 起得来）
+#     - Playwright e2e（要后端 + web + seller 三处同起，还要跨角色上下文）
+#   代价是两个真实反馈会晚一轮（~5–7 分钟 CI）才到：那类失败本地确实也复现不了，
+#   压进 pre-push 只会把每次 push 拖成分钟级、并让人学会用 LEFTHOOK_EXCLUDE 绕开。
+#   反过来，凡是便宜的门**一律**要进 pre-push/pre-commit，否则就会变成「CI 炸了才发现本地早能拦」——
+#   dead-code 的 --production 视角就曾这样漏过（它比普通视角多剔掉 test/spec/dev）。
 pre-push:
     parallel: true
     skip:

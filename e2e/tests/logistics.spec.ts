@@ -36,14 +36,24 @@ test.describe("发货与物流轨迹", () => {
 
         const orderRow = sellerPage.getByRole("row").filter({ hasText: run.order.orderNo })
         await expect(orderRow).toBeVisible()
-        await orderRow.getByRole("button", { name: "发货", exact: true }).click()
+        // 「发货」按钮是按契约下发的动作集条件渲染的（canShip = availableActions.includes("SHIP")），
+        // 且行内还有发货中的 busy 态会把它 disabled。行先可见不等于按钮此刻可点——列表查询
+        // resolve 与动作集/busy 态就绪之间有一小段窗口。所以显式等它 enabled 再点：click 自带的
+        // actionability 等待在失败时只给「click 超时」这种无指向的报错，这里让它报在「按钮一直
+        // 不可点」上，排查时一眼能看出卡在哪一态。
+        const shipButton = orderRow.getByRole("button", { name: "发货", exact: true })
+        await expect(shipButton).toBeEnabled()
+        await shipButton.click()
 
         const dialog = sellerPage.getByRole("dialog")
         await expect(dialog.getByText(run.order.orderNo)).toBeVisible()
         await dialog.locator("[data-slot=select-trigger]").click()
         await sellerPage.getByRole("option", { name: CARRIER_NAME }).click()
         await dialog.getByLabel("运单号").fill(run.trackingNo)
-        await dialog.getByRole("button", { name: "发货", exact: true }).click()
+        // 同上：提交态 pending 时按钮是 disabled，等它可点再点
+        const confirmShip = dialog.getByRole("button", { name: "发货", exact: true })
+        await expect(confirmShip).toBeEnabled()
+        await confirmShip.click()
 
         await expect(sellerPage.getByText("已发货").first()).toBeVisible()
         await sellerPage.getByRole("tab", { name: "已发货" }).click()
