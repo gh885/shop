@@ -1,11 +1,13 @@
 import http from "node:http"
-import { defineConfig, loadEnv, type Plugin, lazyPlugins } from "vite-plus"
+import { defineConfig, type Plugin } from "vite-plus"
 import { devtools } from "@tanstack/devtools-vite"
 
 import { tanstackStart } from "@tanstack/react-start/plugin/vite"
 
 import viteReact from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
+
+import { shopAppConfig } from "../../packages/config/vite-app.config"
 
 /**
  * /orders 代理（dev / preview 同源转发到后端）。
@@ -80,41 +82,32 @@ function prerenderPreviewPort(port: number): Plugin {
     }
 }
 
-// 后端地址：VITE_BACKEND_URL（默认本地 8080）。Proxy 是 dev 工具，生产 SSR 的后端地址由 client.ts 的 VITE_BACKEND_URL 决定
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, process.cwd(), "VITE_")
-    const backend = env.VITE_BACKEND_URL || "http://localhost:8080"
-    return {
-        resolve: { tsconfigPaths: true },
-        // 错误上报要能还原到源码（frontend-monitoring 契约第 4 条）。hidden 生成 .map 但不在产物里
-        // 留 sourceMappingURL 注释：产物照常发，map 按 version 单独归档、不随静态资源上线。
-        // 留成 true（会写 sourceMappingURL）会让浏览器去线上拉 .map——那是把源码目录结构公开出去
-        build: { sourcemap: "hidden" },
-        server: {
-            proxy: {
-                // 同源代理到后端，规避 CORS / refresh cookie（Secure + httpOnly）跨域问题
-                // 注意：/cart 既是买家端页面路由（/cart），也是购物车 API 前缀（/cart/items）。
-                // 代理 key 必须写成 "/cart/"，否则 http-proxy 的 prefix 匹配会把页面请求 /cart 也劫持到后端，
-                // 导致整页返回 401（后端对 /cart 无处理，且要求登录）。API 永远只调 /cart/*，不调裸 /cart。
-                "/auth": { target: backend, changeOrigin: true },
-                "/api": { target: backend, changeOrigin: true },
-                "/user": { target: backend, changeOrigin: true },
-                "/cart/": { target: backend, changeOrigin: true },
-                // /orders 不走静态代理：页面 /orders/$orderId 与 API GET /orders/{id} 同路径，
-                // 前缀匹配会把页面请求劫持到后端（详见上方 ordersApiProxy）。/payments 同理但无同名页面路由
-                "/payments": { target: backend, changeOrigin: true },
-                // /favorites 同为已登录用户接口（根路径），但无同名页面路由（页面在 /account/favorites），
-                // 且 API 会调裸 POST /favorites（收藏开关）——用无尾斜杠 key 同时覆盖裸路径与 /favorites/*
-                "/favorites": { target: backend, changeOrigin: true },
-                // /coupons 同理：券包与领券 API 都在 /coupons/*（券包页面路由放 /account/coupons，不占 /coupons），
-                // 匿名可访问的店铺领券页在 /api/shops/{id}/coupons，已被上面的 "/api" 覆盖
-                "/coupons/": { target: backend, changeOrigin: true },
-                // 买家评价 API 前缀（POST /reviews/orders/{id}、POST /reviews/{id}/append、GET 同路径）。
-                // 全站没有 /reviews 开头的页面路由（评价入口在订单详情里），故不需要尾斜杠，也不需要 Accept 分流。
-                "/reviews": { target: backend, changeOrigin: true },
-            },
-        },
-        plugins: lazyPlugins(() => [
+// Proxy 是 dev 工具，生产 SSR 的后端地址由 client.ts 的 VITE_BACKEND_URL 决定
+export default defineConfig(({ mode }) =>
+    shopAppConfig({
+        mode,
+        proxy: [
+            // 注意：/cart 既是买家端页面路由（/cart），也是购物车 API 前缀（/cart/items）。
+            // 代理 key 必须写成 "/cart/"，否则 http-proxy 的 prefix 匹配会把页面请求 /cart 也劫持到后端，
+            // 导致整页返回 401（后端对 /cart 无处理，且要求登录）。API 永远只调 /cart/*，不调裸 /cart。
+            "/auth",
+            "/api",
+            "/user",
+            "/cart/",
+            // /orders 不走静态代理：页面 /orders/$orderId 与 API GET /orders/{id} 同路径，
+            // 前缀匹配会把页面请求劫持到后端（详见上方 ordersApiProxy）。/payments 同理但无同名页面路由
+            "/payments",
+            // /favorites 同为已登录用户接口（根路径），但无同名页面路由（页面在 /account/favorites），
+            // 且 API 会调裸 POST /favorites（收藏开关）——用无尾斜杠 key 同时覆盖裸路径与 /favorites/*
+            "/favorites",
+            // /coupons 同理：券包与领券 API 都在 /coupons/*（券包页面路由放 /account/coupons，不占 /coupons），
+            // 匿名可访问的店铺领券页在 /api/shops/{id}/coupons，已被上面的 "/api" 覆盖
+            "/coupons/",
+            // 买家评价 API 前缀（POST /reviews/orders/{id}、POST /reviews/{id}/append、GET 同路径）。
+            // 全站没有 /reviews 开头的页面路由（评价入口在订单详情里），故不需要尾斜杠，也不需要 Accept 分流。
+            "/reviews",
+        ],
+        plugins: (backend) => [
             prerenderPreviewPort(4417), // 避开 4173（pnpm perf 的 preview 端口）与三端 dev 端口
             devtools(),
             tailwindcss(),
@@ -132,6 +125,6 @@ export default defineConfig(({ mode }) => {
                 prerender: { enabled: true, autoStaticPathsDiscovery: false, crawlLinks: false },
             }),
             viteReact({ compiler: true }),
-        ]),
-    }
-})
+        ],
+    }),
+)
