@@ -2,6 +2,9 @@
     "name": "seller",
     "private": true,
     "type": "module",
+    "sideEffects": [
+        "*.css"
+    ],
     "imports": {
         "#/*": "./src/*"
     },
