@@ -28,6 +28,17 @@
     ],
     // 单测从模块边界测内部 helper，故「仅本文件内被引用」的导出不算死代码；彻底无引用仍会报
     "ignoreExportsUsedInFile": true,
+    // 「只给测试用的导出」在 `--production` 视角下会被判成死代码：那个视角把 test/spec/dev
+    // 整批从发现范围里剔除，导出就真的没有生产消费者了（本地 `fallow dead-code` 看得到，
+    // 因为它把测试文件也当入口）。
+    // DETAIL_FIRST_CODES 就是这种：迁移期例外清单，只有 error-keys.test.ts / notify.test.tsx
+    // 拿它核「这两条码还没参数化」，生产代码一律走 errorKeyFor()。
+    "ignoreExports": [
+        {
+            "file": "packages/app-kit/src/i18n/error-keys.ts",
+            "exports": ["DETAIL_FIRST_CODES"]
+        }
+    ],
     // 根 vite.config.ts 是前端工具链配置的唯一入口（lint/fmt 块从这里被消费），
     // 把它记成手动入口，它 import 的 packages/config/{oxlint,oxfmt}.config.ts 才算可达。
     // 迁移前不用写：那时 `lint:web` 脚本里有 `--config packages/config/oxlint.config.ts`，
