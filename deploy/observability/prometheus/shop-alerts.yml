@@ -1,0 +1,112 @@
+# Shop 可观测性告警规则（Prometheus rule files）。
+# 指标名按 Micrometer PrometheusNamingConvention 命名：shop.biz.events -> shop_biz_events_total。
+groups:
+    - name: shop-http
+      rules:
+          - alert: ShopHttp5xxRateHigh
+            expr: |
+                sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (application, env)
+                /
+                clamp_min(sum(rate(http_server_requests_seconds_count[5m])) by (application, env), 0.001)
+                > 0.05
+            for: 5m
+            labels:
+                severity: critical
+                team: backend
+            annotations:
+                summary: "Shop HTTP 5xx 比例超过 5%（{{ $labels.application }}/{{ $labels.env }}）"
+                description: "过去 5 分钟 5xx 比例持续高于 5%，检查最近发布、下游依赖和错误日志。"
+
+          - alert: ShopHttpP95LatencyHigh
+            expr: |
+                histogram_quantile(
+                  0.95,
+                  sum(rate(http_server_requests_seconds_bucket[5m])) by (le, application, env, uri)
+                ) > 1
+            for: 10m
+            labels:
+                severity: warning
+                team: backend
+            annotations:
+                summary: "Shop 接口 P95 超过 1s（{{ $labels.uri }}）"
+                description: "接口 {{ $labels.uri }} 的 P95 已持续 10 分钟超过 1s。"
+
+    - name: shop-business
+      rules:
+          - alert: ShopBizEventFailed
+            expr: |
+                sum(rate(shop_biz_events_total{level="error"}[5m])) by (event, application, env) > 0
+            for: 1m
+            labels:
+                severity: critical
+                team: business
+            annotations:
+                summary: "业务失败事件持续发生：{{ $labels.event }}"
+                description: "按 event 检索结构化日志；先看 trace_id，再看 refund/order/payment 链路。"
+
+          - alert: ShopReconcileMismatch
+            expr: increase(shop_biz_events_total{event="reconcile.mismatch"}[1h]) > 0
+            for: 0m
+            labels:
+                severity: warning
+                team: data
+            annotations:
+                summary: "对账发现数据不一致：{{ $labels.check }}"
+                description: "查看 reconcile.mismatch 日志字段 check/count，并按 check 到对应表定位。"
+
+    - name: shop-jobs
+      rules:
+          - alert: ShopScheduledJobStalled
+            expr: |
+                (increase(tasks_scheduled_execution_seconds_count{outcome="SUCCESS"}[15m]) == 0)
+                or
+                absent(tasks_scheduled_execution_seconds_count{outcome="SUCCESS"})
+            for: 20m
+            labels:
+                severity: critical
+                team: backend
+            annotations:
+                summary: "后台定时任务可能停摆"
+                description: "15 分钟内没有 SUCCESS 计数，或指标序列不存在。检查 code_namespace/code_function 对应作业。"
+
+          - alert: ShopSweepSingleFailure
+            expr: increase(shop_sweep_failures_total[10m]) > 0
+            for: 0m
+            labels:
+                severity: warning
+                team: backend
+            annotations:
+                summary: "批量扫描出现单笔失败：{{ $labels.job }}"
+                description: "Sweep 已隔离单笔失败，但连续失败会阻塞队首；查 [SWEEP] error 日志和 job 标签。"
+
+    - name: shop-dependencies
+      rules:
+          - alert: ShopDbConnectionPoolWaiting
+            expr: hikaricp_connections_pending > 0
+            for: 5m
+            labels:
+                severity: warning
+                team: dba
+            annotations:
+                summary: "数据库连接池出现等待"
+                description: "HikariCP pending > 0 持续 5 分钟，检查慢查询、连接泄漏和池上限。"
+
+          - alert: ShopDbConnectionTimeout
+            expr: increase(hikaricp_connections_timeout_total[5m]) > 0
+            for: 0m
+            labels:
+                severity: critical
+                team: dba
+            annotations:
+                summary: "数据库连接池获取连接超时"
+                description: "检查连接池饱和、慢查询和数据库负载。"
+
+          - alert: ShopServerTargetDown
+            expr: up{job="shop-server"} == 0
+            for: 2m
+            labels:
+                severity: critical
+                team: backend
+            annotations:
+                summary: "Shop 后端抓取目标不可达"
+                description: "Prometheus 已连续 2 分钟抓不到 shop-server，检查进程、健康端点和网络。"

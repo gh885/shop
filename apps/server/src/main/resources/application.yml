@@ -137,6 +137,9 @@ mybatis-plus:
         map-underscore-to-camel-case: true
 
 shop:
+    reconcile:
+        # 应用内对账作业：默认每天 03:15 跑 health:scan 同口径只读检查；发现差异打 reconcile.mismatch 事件
+        cron: ${SHOP_RECONCILE_CRON:0 15 3 * * *}
     cache:
         # 配置类读数据（首页三块 / 类目树与子树 / 店铺公开信息）的 Redis 读缓存，名单与 TTL 见
         # infra/cache。关掉只是排障或测试用的开关：写侧失效已接在每条后台写上，生产没有关的理由

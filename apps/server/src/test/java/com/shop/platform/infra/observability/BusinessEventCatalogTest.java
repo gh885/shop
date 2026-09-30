@@ -51,8 +51,8 @@ class BusinessEventCatalogTest {
     private static final Pattern TERMINAL = Pattern.compile("\\.(emit|warn|error)\\(");
     private static final Pattern PUT_KEY = Pattern.compile("\\.put\\(\\s*\"([^\"]+)\"");
 
-    /** 框架自带的事件，不参与「成功事件必带实体 ID」那条（它没有主体） */
-    private static final Set<String> ID_EXEMPT = Set.of("http.request");
+    /** 框架自带/聚合事件，不参与「成功事件必带实体 ID」那条（它们没有单个业务主体） */
+    private static final Set<String> ID_EXEMPT = Set.of("http.request", "reconcile.mismatch");
 
     record Site(String event, List<String> keys, Path where) {}
 

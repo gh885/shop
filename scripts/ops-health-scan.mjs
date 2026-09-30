@@ -50,6 +50,46 @@ const checks = [
                 AND COALESCE(st.stock, 0) - COALESCE(st.frozen_stock, 0) > 0
             ) LIMIT 100`,
     },
+    {
+        name: "已付款订单缺成功支付流水",
+        sql: `SELECT o.id::text FROM orders.orders o
+          LEFT JOIN payment.payments p ON p.order_id = o.id AND p.status = 'SUCCESS'
+          WHERE o.status IN ('PAID', 'SHIPPED', 'COMPLETED')
+            AND p.id IS NULL
+          LIMIT 100`,
+    },
+    {
+        name: "成功支付流水缺对应订单",
+        sql: `SELECT p.id::text FROM payment.payments p
+          LEFT JOIN orders.orders o ON o.id = p.order_id
+          WHERE p.status = 'SUCCESS' AND o.id IS NULL
+          LIMIT 100`,
+    },
+    {
+        name: "成功支付金额与订单应付不一致",
+        sql: `SELECT p.id::text FROM payment.payments p
+          JOIN orders.orders o ON o.id = p.order_id
+          WHERE p.status = 'SUCCESS'
+            AND (p.amount <> o.pay_amount OR p.currency <> o.currency)
+          LIMIT 100`,
+    },
+    {
+        // 冻结量是全局池子：所有待付款单都未扣实，理论值应等于这些订单行数量之和。
+        // 这里先做全局聚合；单笔偏差要靠库存流水账本重放，等对账作业上线后再细化。
+        name: "冻结库存与待付款单数量不一致",
+        sql: `WITH pending AS (
+            SELECT COALESCE(SUM(oi.quantity), 0) AS qty
+            FROM orders.orders o
+            JOIN orders.items oi ON oi.order_id = o.id
+            WHERE o.status = 'PENDING_PAYMENT'
+          ), frozen AS (
+            SELECT COALESCE(SUM(frozen_stock), 0) AS qty
+            FROM inventory.sku_stock
+          )
+          SELECT '冻结库存=' || frozen.qty || ', 待付款单=' || pending.qty
+          FROM frozen, pending
+          WHERE frozen.qty <> pending.qty`,
+    },
 ]
 
 /**

@@ -44,7 +44,7 @@
 - [ ] 在生产快照副本执行 `mvn -f apps/server/pom.xml verify`，确认 PG/Redis 集成测试通过。副本要指到专用库：测试上下文读 `src/test/resources/application-test.yml`（`127.0.0.1:${SHOP_DB_PORT:15432}/shop_test`），端口/库名/账密用 `SHOP_DB_PORT` / `SHOP_DB_NAME` / `SHOP_DB_USER` / `SHOP_DB_PASSWORD` 覆盖，别改文件；副本上跑之前确认没人拿它当业务库（IT 会写数据）
 - [ ] 跑 `mvn verify` 前数据面在位：本地 PG 在 WSL2（`pnpm db:up` 拉起、`pnpm db:down` 还内存）。这族变量只在本地与 CI 有意义——`SHOP_DB_PORT`（本地 15432 是 Windows 侧端口被占换来的口径，CI 的 PG service 在 5432 由 workflow 覆盖）、`SHOP_WSL_DISTRO`（换发行版）、`SHOP_WSL_KEEPALIVE=0`（完全不挂会话）。后端突然连不上库多半是 WSL VM 被回收，不是代码坏了，机制见 `scripts/ensure-datastore.mjs` 头注释
 - [ ] 备份已完成并完成一次恢复演练
-- [ ] `pnpm health:scan` 干净：四项只读检查（孤立用户券 / 锁定超时用户券 / 超时待付款订单 / 在架但无可售库存的商品）全 `OK`。前置条件是 **PATH 里有 `psql`**（CI 的 e2e job 显式 `apt-get install -y postgresql-client` 就是为了这个）；本机 Windows 侧默认没有 `psql`（库跑在 WSL，`seed-demo` 是走 `wsl.exe` 通道连它的），要么装 client 要么把这条检查在 CI 里跑。库连不上或 `psql` 缺失会打 `ERROR <检查名>` 并以 1 退出，**那是没跑成，不是数据有问题**，别按「已核对」勾这一格
+- [ ] `pnpm health:scan` 干净：八项只读检查（孤立用户券 / 锁定超时用户券 / 超时待付款订单 / 在架但无可售库存的商品 / 已付款订单缺成功流水 / 成功流水缺订单 / 成功流水金额与应付不一致 / 冻结库存与待付款单数量不一致）全 `OK`。前置条件是 **PATH 里有 `psql`**（CI 的 e2e job 显式 `apt-get install -y postgresql-client` 就是为了这个）；本机 Windows 侧默认没有 `psql`（库跑在 WSL，`seed-demo` 是走 `wsl.exe` 通道连它的），要么装 client 要么把这条检查在 CI 里跑。库连不上或 `psql` 缺失会打 `ERROR <检查名>` 并以 1 退出，**那是没跑成，不是数据有问题**，别按「已核对」勾这一格
 - [ ] 库存口径注意：库存在 `inventory.sku_stock`（V19 起），可用量 = `stock - frozen_stock`；`product.skus` 上没有 `stock` 列。任何临时排查 SQL 写了 `product.skus.stock` 都是错的（`ops-health-scan.mjs` 就踩过这个坑）
 
 ## 发布与回滚

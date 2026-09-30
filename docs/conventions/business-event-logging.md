@@ -77,6 +77,7 @@ BizEvent.of("order.created")
 | `review.appended`                  | `review_id`, `order_id`, `user_id`                                                                                                                           | ReviewService.append（追评一次）                                                               |
 | `review.replied`                   | `review_id`, `shop_id`, `operator_id`                                                                                                                        | ReviewService.reply（卖家回复一次）                                                            |
 | `logistics.tracking_query.failed`  | `reason`（枚举值: gateway_error / empty_response / parse_error / carrier_rejected）, `carrier_code`; `error.type` / `error.message`                          | KdniaoTrackingGateway.fetchTracker（快递鸟即时查询失败，网络异常、空响应、解析失败或渠道拒绝） |
+| `reconcile.mismatch`               | `check`, `count`                                                                                                                                             | ReconcileJob（应用内定时对账，只读检查发现数据不一致）                                         |
 
 ## 新增事件规则
 

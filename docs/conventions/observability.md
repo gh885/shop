@@ -1,6 +1,6 @@
 # 可观测性总纲
 
-- **状态**：方案沉淀；「现状对照」一节为 2026-09-27 按代码核对的结果。首批 1、2、3 已落地并于同日在本地服务上实测；前端实验室性能测量 2026-09-29 落地、RUM 发送侧 2026-09-30 落地（均见 frontend-monitoring.md）；其余未实现
+- **状态**：方案沉淀；「现状对照」一节为 2026-09-27 按代码核对的结果，2026-09-30 起 4（业务事件计数）、5（快递鸟出站）、6（应用内对账作业）已落地，告警规则文件已入仓，待采集栈上线加载；前端实验室性能测量、RUM 发送侧见 frontend-monitoring.md。
 - **日期**：2026-09-27
 
 本文管全局：分层、关联键、指标、对账、告警，以及现状差距。两份细则不在这里重复——后端业务事件见 [business-event-logging.md](business-event-logging.md)，前端上报见 [frontend-monitoring.md](frontend-monitoring.md)。
@@ -44,14 +44,14 @@
 | 项                 | 现状                                                                                                                                                                                                                                       | 差距                                                                                               |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | 结构化日志         | 文件输出 ECS JSON，每行带 `trace_id` / `version` / `env`；`http.request` 覆盖每个请求                                                                                                                                                      | 还没进集中检索                                                                                     |
-| 业务事件           | `BizEvent` 与目录门禁都已就位                                                                                                                                                                                                              | 只存在于日志里，没有对应的计数指标                                                                 |
+| 业务事件           | `BizEvent` 与目录门禁都已就位；每打一行同时累加 `shop_biz_events_total{event, level}`（首批 4）                                                                                                                                            | 已修                                                                                               |
 | 信封 `env`         | ~~prod 没覆盖，落到 `RequestIdFilter` 默认值 `dev`~~ → `application-prod.yml` 写死 `prod`（首批 1）                                                                                                                                        | 已修                                                                                               |
 | 信封 `version`     | ~~写死 `0.0.1-SNAPSHOT`~~ → 读 `SHOP_VERSION`，prod 无默认值、漏配即启动失败（首批 1）                                                                                                                                                     | 发布流程还要真的注入 git sha                                                                       |
 | HTTP 指标          | Actuator 已暴露 `/actuator/prometheus`，`http.server.requests` 自动采集并已开 `percentiles-histogram`（首批 2），实测输出 `http_server_requests_seconds_bucket`                                                                            | 已修                                                                                               |
 | 链路               | 进程内靠 MDC 串联；单体下够用                                                                                                                                                                                                              | 没有 `micrometer-tracing`（事件文档原写「已就绪」，不符，已订正）                                  |
-| 定时任务           | 7 个 `@Scheduled` 共用 4 线程池，`Sweep` 逐笔隔离；单笔失败除 `[SWEEP]` error 日志外计 `shop.sweep.failures{job}`；停摆由 Spring 自带的 `tasks.scheduled.execution` 覆盖，实测在自定义 `SchedulingConfig` 下照常输出（首批 3）             | 告警规则待采集栈上线后配                                                                           |
-| 出站 HTTP          | 快递鸟 `KdniaoConfig` 用静态 `RestClient.builder()` 自建客户端                                                                                                                                                                             | 没有指标，失败不进事件，违反契约第 5 条                                                            |
-| 对账               | `pnpm health:scan`：4 项只读 SQL，手动跑                                                                                                                                                                                                   | 没有定时、没有告警；缺订单↔支付、库存冻结↔待付款单                                                 |
+| 定时任务           | 7 个 `@Scheduled` 共用 4 线程池，`Sweep` 逐笔隔离；单笔失败计 `shop.sweep.failures{job}`；停摆由 Spring 自带 `tasks.scheduled.execution` 覆盖；`MdcTaskDecorator` 为无父上下文任务补 `trace_id`/`version`/`env`                            | 告警规则待采集栈上线后配                                                                           |
+| 出站 HTTP          | 快递鸟从 Boot 注入的 `RestClient.Builder` 构建，自动带 `http.client.requests`；网络/空响应/解析/渠道拒绝失败都进 `logistics.tracking_query.failed`（首批 5）                                                                               | 已修                                                                                               |
+| 对账               | `pnpm health:scan`：8 项只读 SQL；应用内 `ReconcileJob` 每天定时跑同口径检查并打 `reconcile.mismatch`（首批 6）                                                                                                                            | 告警规则文件已入仓，采集栈上线后加载                                                               |
 | 采集与告警栈       | 无                                                                                                                                                                                                                                         | 上线前置要求（production-readiness「监控」）                                                       |
 | 前端性能（实验室） | `pnpm perf`：生产构建 + preview 上跑 Lighthouse，逐页多轮取中位数，与 `perf/baseline.json` 比差值；`pnpm perf:bundle`：三端 dist 的 gzip 字节与 `perf/bundle-baseline.json` 比差值，**零噪声**（2026-09-29 落地）。两条都只记录不阻断      | 没进 CI（缺「生产构建 + preview」那一步，e2e job 现在起的是 dev server）；要设门禁先设体积这条     |
 | 前端 RUM（发送侧） | 单一出口 `captureError`/`track`（`packages/common/src/monitoring`）+ 事件信封 + `sendBeacon` 传输 + 全局监听/PV/接口事件/Web Vitals/白屏/hydration + sourcemap hidden；三端 `defaultOnCatch` 已接，`createMeQuery` 填 userId（2026-09-30） | **接收端未上线**，`configureMonitoring` 默认 `enabled:false`；SSR 服务端渲染错误待接收端落地时再做 |
@@ -63,9 +63,9 @@
 3. ✅ **作业可见性**，分两种故障模式：
     - **停摆**（作业不跑或卡死）：用 Spring 自带的 `tasks.scheduled.execution` 观测，零代码，按 `code_namespace` / `code_function` 区分作业。告警规则按 `increase(tasks_scheduled_execution_seconds_count{outcome="SUCCESS"}[N 个周期]) == 0` 配；卡在执行中的作业另看 `tasks_scheduled_execution_active_seconds_max`。一个作业跑完第一轮之前没有 `_count` 序列，规则要用 `absent()` 兜住。停摆才是这类作业最危险的故障模式——超时关单不跑，库存就一直冻着
     - **单笔失败**：`Sweep` 吞掉单笔异常，作业整体仍算 SUCCESS，上面那个指标看不见，所以另计 `shop.sweep.failures{job}`（首次失败时才注册，平时 Prometheus 里没有这条序列属正常）。原方案是改走 `BizEvent`，但 `infra` 已依赖 `common`，反向依赖会成模块环，因此改用 Micrometer 全局注册表（和 slf4j 一样是门面库，`common` 依赖它不破「框架无关」）
-4. **业务计数**：实现契约第 4 条。下单量、退款失败、登录失败这些速率就都能画图、能告警了
-5. **快递鸟出站**：改用注入的 `RestClient.Builder` 并补失败事件
-6. **对账作业**：把 `health:scan` 的检查搬进应用内的定时作业，发现差异就打事件（`reconcile.mismatch`，带 `check` 与计数）；补两项检查：已付款订单必有成功流水、成功流水必有订单；冻结库存与待付款单一致
+4. ✅ **业务计数**：实现契约第 4 条。`BizEvent` 每行同时累加 `shop_biz_events_total{event, level}`，下单量、退款失败、登录失败等速率可画图、可告警
+5. ✅ **快递鸟出站**：改用注入的 `RestClient.Builder` 并补 `logistics.tracking_query.failed` 失败事件
+6. ✅ **对账作业**：`ReconcileJob` 每天跑 8 项只读检查，发现差异打 `reconcile.mismatch{check,count}`；订单↔支付、成功流水↔订单、金额一致与冻结↔待付款单已覆盖。生产告警规则待采集栈落地
 
 ## 延后项（带触发条件）
 

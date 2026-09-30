@@ -1,0 +1,14 @@
+# Prometheus 抓取配置示例：实际部署时把 targets 换成你的内网服务地址。
+global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+
+rule_files:
+    - shop-alerts.yml
+
+scrape_configs:
+    - job_name: shop-server
+      metrics_path: /actuator/prometheus
+      static_configs:
+          - targets:
+                - shop-server:8080
