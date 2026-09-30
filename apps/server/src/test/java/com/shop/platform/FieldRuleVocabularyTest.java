@@ -1223,7 +1223,15 @@ class FieldRuleVocabularyTest {
                     "packages/app-kit/src/login-schema.ts",
                     "PHONE_DIGITS",
                     "登录那一格只收大陆手机号，11 位与自家正则的位数由 shared-vocabulary.test.ts 的 digits==span 钉住；"
-                            + "Java 侧的 7..20 是联系电话那条，不是同一个约束（电话允许座机与分隔符）"));
+                            + "Java 侧的 7..20 是联系电话那条，不是同一个约束（电话允许座机与分隔符）"),
+            new Policy(
+                    "packages/common/src/monitoring/core.ts",
+                    "BREADCRUMB_LIMIT",
+                    "错误现场面包屑的环形缓冲条数：纯前端遥测的内存上限，接收端与契约都不读它；" + "定这个数只为「别为一条错误把整段导航历史带进 payload」"),
+            new Policy(
+                    "packages/common/src/monitoring/transport.ts",
+                    "MAX_BATCH",
+                    "一次 beacon 最多打包的事件条数：传输策略，与后端接口无关，只为单请求别超浏览器 URL/POST 体积的稳妥区间"));
 
     @Test
     void 注解里的数字等于词表常量() {
