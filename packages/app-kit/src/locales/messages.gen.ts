@@ -6,7 +6,15 @@
 export type AppKitMessageKey =
     "appKit.confirm.cancel" |
     "appKit.confirm.confirm" |
+    "appKit.error.badRequest" |
+    "appKit.error.conflict" |
+    "appKit.error.forbidden" |
     "appKit.error.network" |
+    "appKit.error.notFound" |
+    "appKit.error.rateLimited" |
+    "appKit.error.serverError" |
+    "appKit.error.unauthorized" |
+    "appKit.error.validation" |
     "appKit.form.hidePassword" |
     "appKit.form.showPassword" |
     "appKit.login.captchaAlt" |

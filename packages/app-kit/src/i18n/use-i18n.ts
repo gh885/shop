@@ -16,7 +16,7 @@ export function useI18n(): I18nContextValue {
 }
 
 /**
- * 本包内部组件的 `t`：key 收在生成物那份 `AppKitMessageKey` 上（`locales/<locale>/*.json` 的 31 条）。
+ * 本包内部组件的 `t`：key 收在生成物那份 `AppKitMessageKey` 上（`locales/<locale>/*.json` 两份：`appkit.json` 的壳层句 + `error.json` 的错误句，条数以文件为准不在这里抄）。
  * 与三端的 `src/locales/use-t.ts` 是同一个机制、不同的 root。
  */
 export function useT(): AppKitTranslate {

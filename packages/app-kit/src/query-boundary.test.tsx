@@ -1,3 +1,4 @@
+import type { ReactElement } from "react"
 import {
     QueryClientProvider,
     QueryErrorResetBoundary,
@@ -9,8 +10,10 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vite-plus/test"
 
+import type { AppLocale } from "@shop/common"
 import { createTestQueryClient } from "@shop/test-utils"
 
+import { APP_KIT_MESSAGES, I18nProvider, createLocaleScope } from "./i18n"
 import { QueryBoundary } from "./query-boundary"
 import { RouteErrorFallback } from "./route-error-fallback"
 
@@ -19,9 +22,22 @@ import { RouteErrorFallback } from "./route-error-fallback"
  * suspense 查询抛错 → 错误边界接住 → 边界 `onReset` 调 `QueryErrorResetBoundary.reset`
  * → 重挂载后查询重新取数。这条链断在哪一环，「重试」按钮都会变成死按钮，
  * 而它在肉眼上只表现为「点了没反应」，所以必须有测试守着。
- * 另外钉住 `fallback` 两种形态的取舍：字符串 = 默认 StateError（能解析成 ApiError 时用接口
- * detail，否则用站点文案），函数 = 自定义布局。
+ * 另外钉住 `fallback` 两种形态的取舍：字符串 = 默认 StateError，那句话由 §7.3 那条链按 locale 定稿
+ * （中文界面用接口 detail，其它语言用站点文案），函数 = 自定义布局。
  */
+
+/** fallback 是字符串时 `QueryBoundary` 要走那条取文案的链，就得有 locale 可读——与生产装配同形 */
+function renderWithI18n(ui: ReactElement, initialLocale: AppLocale = "zh-CN") {
+    return render(
+        <I18nProvider
+            resources={APP_KIT_MESSAGES}
+            scope={createLocaleScope(initialLocale)}
+            initialLocale={initialLocale}
+        >
+            <QueryClientProvider client={createTestQueryClient()}>{ui}</QueryClientProvider>
+        </I18nProvider>,
+    )
+}
 
 const KEY = (n: number) => ["query-boundary-probe", n] as const
 
@@ -65,27 +81,25 @@ describe("QueryBoundary", () => {
         const { Probe, calls } = makeFlakyProbe(new Error("boom"), 1)
         const user = userEvent.setup()
 
-        render(
-            <QueryClientProvider client={createTestQueryClient()}>
-                <QueryBoundary
-                    pending={<span>加载中</span>}
-                    fallback={({ error, reset }) => (
-                        <div>
-                            <span role="alert">
-                                {error instanceof Error ? error.message : "未知错误"}
-                            </span>
-                            <button
-                                type="button"
-                                onClick={reset}
-                            >
-                                重试
-                            </button>
-                        </div>
-                    )}
-                >
-                    <Probe />
-                </QueryBoundary>
-            </QueryClientProvider>,
+        renderWithI18n(
+            <QueryBoundary
+                pending={<span>加载中</span>}
+                fallback={({ error, reset }) => (
+                    <div>
+                        <span role="alert">
+                            {error instanceof Error ? error.message : "未知错误"}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={reset}
+                        >
+                            重试
+                        </button>
+                    </div>
+                )}
+            >
+                <Probe />
+            </QueryBoundary>,
         )
 
         expect(await screen.findByRole("alert")).toHaveTextContent("boom")
@@ -97,37 +111,50 @@ describe("QueryBoundary", () => {
         expect(calls()).toBe(2)
     })
 
-    it("fallback 给字符串：默认渲染 StateError，API 错误的 detail 优先于它", async () => {
+    it("fallback 给字符串：中文界面默认渲染 StateError，用的是接口那句 detail", async () => {
         const { Probe } = makeFlakyProbe({ status: 500, detail: "该店铺已歇业" }, 2)
 
-        render(
-            <QueryClientProvider client={createTestQueryClient()}>
-                <QueryBoundary
-                    pending={<span>加载中</span>}
-                    fallback="店条加载失败"
-                >
-                    <Probe />
-                </QueryBoundary>
-            </QueryClientProvider>,
+        renderWithI18n(
+            <QueryBoundary
+                pending={<span>加载中</span>}
+                fallback="店条加载失败"
+            >
+                <Probe />
+            </QueryBoundary>,
         )
 
         expect(await screen.findByText("该店铺已歇业")).toBeInTheDocument()
         expect(screen.queryByText("店条加载失败")).not.toBeInTheDocument()
     })
 
+    it("fallback 给字符串：英文界面印站点那句，不拿后端那句中文当文案", async () => {
+        const { Probe } = makeFlakyProbe({ status: 500, detail: "该店铺已歇业" }, 3)
+
+        renderWithI18n(
+            <QueryBoundary
+                pending={<span>加载中</span>}
+                fallback="Store feed failed to load"
+            >
+                <Probe />
+            </QueryBoundary>,
+            "en-US",
+        )
+
+        expect(await screen.findByText("Store feed failed to load")).toBeInTheDocument()
+        expect(screen.queryByText("该店铺已歇业")).not.toBeInTheDocument()
+    })
+
     it("fallback 给字符串：非 API 形状的抛错用站点文案，不拿 toApiError 的通用兜底糊弄", async () => {
         const user = userEvent.setup()
-        const { Probe, calls } = makeFlakyProbe(new Error("boom"), 3)
+        const { Probe, calls } = makeFlakyProbe(new Error("boom"), 4)
 
-        render(
-            <QueryClientProvider client={createTestQueryClient()}>
-                <QueryBoundary
-                    pending={<span>加载中</span>}
-                    fallback="推荐商品加载失败，请重试。"
-                >
-                    <Probe />
-                </QueryBoundary>
-            </QueryClientProvider>,
+        renderWithI18n(
+            <QueryBoundary
+                pending={<span>加载中</span>}
+                fallback="推荐商品加载失败，请重试。"
+            >
+                <Probe />
+            </QueryBoundary>,
         )
 
         expect(await screen.findByText("推荐商品加载失败，请重试。")).toBeInTheDocument()
@@ -140,15 +167,13 @@ describe("QueryBoundary", () => {
 
     it("挂起期间显示 pending 占位（区块级流式：数据到位后替换为内容）", async () => {
         const { Probe, release } = makeDeferredProbe()
-        render(
-            <QueryClientProvider client={createTestQueryClient()}>
-                <QueryBoundary
-                    pending={<span>加载中</span>}
-                    fallback={() => <span role="alert">失败</span>}
-                >
-                    <Probe />
-                </QueryBoundary>
-            </QueryClientProvider>,
+        renderWithI18n(
+            <QueryBoundary
+                pending={<span>加载中</span>}
+                fallback={() => <span role="alert">失败</span>}
+            >
+                <Probe />
+            </QueryBoundary>,
         )
 
         expect(screen.getByText("加载中")).toBeInTheDocument()

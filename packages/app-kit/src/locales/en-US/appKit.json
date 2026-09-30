@@ -1,5 +1,13 @@
 {
     "appKit.error.network": "Something went wrong. Please try again later.",
+    "appKit.error.badRequest": "The request could not be completed. Please check your input and try again.",
+    "appKit.error.unauthorized": "Your session is no longer valid. Please sign in again.",
+    "appKit.error.forbidden": "You don't have permission to do this.",
+    "appKit.error.notFound": "What you're looking for doesn't exist or has been removed.",
+    "appKit.error.conflict": "This action conflicts with the current state. Please refresh and try again.",
+    "appKit.error.validation": "Some entries didn't pass validation. Please review and try again.",
+    "appKit.error.rateLimited": "Too many requests. Please try again later.",
+    "appKit.error.serverError": "The service is temporarily unavailable. Please try again later.",
     "appKit.time.unknown": "Unknown time",
     "appKit.confirm.cancel": "Cancel",
     "appKit.confirm.confirm": "Confirm",

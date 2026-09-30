@@ -15,7 +15,10 @@
  *
  * 模块索引：
  * - money.ts     ：金额 re-export（契约 Money）+ 分/元换算与区间展示
- * - api-error.ts ：后端统一错误形状 ApiError + 归一化（含 zod 契约校验语义）+ 展示文案口径 apiErrorDetail
+ * - api-error.ts ：后端统一错误形状 ApiError + 归一化（含 zod 契约校验语义；422 与 COM-01 那条
+ *   字段级明细 `errors` 一起接回，`{ field, message, value? }` 里的 value 是规则作用到的数据本身，
+ *   不接就等于 schema 里那格是谎）。取用户可见的那句话
+ *   不在这里做，那是 app-kit `errorText` 的一条链（§7.3）
  * - error-codes.ts：错误码常量（与 docs/error-codes.md 同步）
  * - sdk-client.ts：生成 SDK 的传输层装配（token 注入 / 401 刷新 / 错误归一化）
  * - auth-kit.ts  ：应用无关的登录态套件（内存 token + 静默刷新 + 设备 ID + 订阅）
@@ -59,7 +62,6 @@ export {
 export {
     ApiErrorSchema,
     type ApiError,
-    apiErrorDetail,
     RESPONSE_VALIDATION_FAILED,
     isZodError,
     toApiError,

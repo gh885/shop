@@ -26,7 +26,8 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { useT } from "./i18n"
+import { useI18n, useT } from "./i18n"
+import { errorText } from "./i18n/error-keys"
 import { notify } from "./notify"
 import {
     CAPTCHA_CODE_DIGITS,
@@ -86,6 +87,7 @@ export interface LoginFormProps {
 // oxlint-disable-next-line react-doctor/no-giant-component -- TanStack Form 的 AppField 渲染 prop 结构决定行数（每字段 30-60 行）；抽子组件需传 form 实例与 6+ 回调，接口更宽，违背高内聚
 export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: LoginFormProps) {
     const t = useT()
+    const { locale } = useI18n()
     const [ui, dispatch] = useReducer(loginUiReducer, {
         tab: "sms",
         submitFailCount: 0,
@@ -103,7 +105,8 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     // 人机验证浮层的开关：点「获取验证码」才开，验过才真发码——图形码不占地表单一整行
     const [captchaOpen, setCaptchaOpen] = useState(false)
 
-    const serverError = submitError?.detail
+    // 内联那条与全局 toast 走同一条链（§7.3）：命中 code 取 catalog，否则才轮到后端 detail
+    const serverError = submitError ? errorText(submitError, locale) : undefined
     const codeInvalid = isCodeError(submitError)
     const captchaInvalid = isCaptchaError(submitError)
 
@@ -203,7 +206,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                     setCountdown(RESEND_COUNTDOWN_SECONDS)
                     setCaptchaOpen(false)
                 }
-                notify.error(err.detail)
+                notify.fromError(err, locale)
             })
             .finally(() => setSendingCode(false))
     }

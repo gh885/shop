@@ -7,7 +7,7 @@ import {
 import { act, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
-import { createLocaleScope } from "./i18n/scope"
+import { APP_KIT_MESSAGES, I18nProvider, createLocaleScope } from "./i18n"
 import { QueryBoundary } from "./query-boundary"
 import { createAppQueryClient } from "./query-client"
 
@@ -46,19 +46,28 @@ function OptOutProbe() {
     return <span>isError:{String(isError)}</span>
 }
 
-/** 边界：用官方三件套里的区块边界接住错误，fallback 里露出错误文案 */
+/** 边界：用官方三件套里的区块边界接住错误，fallback 里露出错误文案。
+ *  头上套 I18nProvider：`QueryBoundary` 取文案要走 §7.3 那条链，链需要 locale（生产装配同样套着它）。 */
 function renderInBoundary(client: ReturnType<typeof createAppQueryClient>, probe: React.ReactNode) {
     return render(
-        <QueryClientProvider client={client}>
-            <QueryBoundary
-                pending={<span>加载中</span>}
-                fallback={({ error }) => (
-                    <span role="alert">{error instanceof Error ? error.message : "未知错误"}</span>
-                )}
-            >
-                {probe}
-            </QueryBoundary>
-        </QueryClientProvider>,
+        <I18nProvider
+            resources={APP_KIT_MESSAGES}
+            scope={createLocaleScope("zh-CN")}
+            initialLocale="zh-CN"
+        >
+            <QueryClientProvider client={client}>
+                <QueryBoundary
+                    pending={<span>加载中</span>}
+                    fallback={({ error }) => (
+                        <span role="alert">
+                            {error instanceof Error ? error.message : "未知错误"}
+                        </span>
+                    )}
+                >
+                    {probe}
+                </QueryBoundary>
+            </QueryClientProvider>
+        </I18nProvider>,
     )
 }
 

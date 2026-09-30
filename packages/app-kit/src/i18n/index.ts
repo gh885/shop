@@ -17,4 +17,4 @@ export type { AppKitMessageKey, AppKitParamsOf, AppKitTranslate } from "../local
 export { createLocaleScope, type LocaleScope } from "./scope"
 export { assembleLocaleResources } from "./resources"
 /** code → catalog key（§7.3「后端出 code，前端出文案」的类型侧保证；缺文案编译期就拦） */
-export { errorKeyFor } from "./error-keys"
+export { type ErrorTextSource, errorKeyFor, errorText, errorTextPlan } from "./error-keys"

@@ -2,8 +2,11 @@ import { Suspense, type ReactNode } from "react"
 import { QueryErrorResetBoundary } from "@tanstack/react-query"
 import { ErrorBoundary } from "react-error-boundary"
 
-import { apiErrorDetail } from "@shop/common"
+import { toApiError, type AppLocale } from "@shop/common"
 import { StateError } from "@shop/ui-web"
+
+import { errorText } from "./i18n/error-keys"
+import { useI18n } from "./i18n/use-i18n"
 
 /**
  * 区块级「挂起 + 失败」边界 —— **官方三件套的组合，不是替代品**：
@@ -32,8 +35,10 @@ import { StateError } from "@shop/ui-web"
 interface QueryBoundaryProps {
     children: ReactNode
     /**
-     * 失败态渲染：传字符串 = 默认渲染 StateError——错误能解析成 ApiError 时优先展示接口 detail，
-     * 字符串作缺文案兜底；区块需要自定义布局（紧凑条/骨架同尺寸卡片）时传渲染函数。
+     * 失败态渲染：传字符串 = 默认渲染 StateError，取文案走 §7.3 那条链（登记码 → catalog，
+     * 中文界面 → 后端 detail，其它语言拿不到 code → 站点这句）；字符串本身必须是
+     * `t("…")` 取出来的目录句子，硬编码中文会把中文漏进英文界面。
+     * 区块需要自定义布局（紧凑条/骨架同尺寸卡片）时传渲染函数。
      * `reset` 已接好官方重置链路，直接交给错误 UI 的重试按钮。
      */
     fallback: string | ((args: { error: unknown; reset: () => void }) => ReactNode)
@@ -49,13 +54,14 @@ function renderFallback(
     fallback: QueryBoundaryProps["fallback"],
     error: unknown,
     reset: () => void,
+    locale: AppLocale,
 ): ReactNode {
     if (typeof fallback === "string") {
-        // 判据收在 common 的 apiErrorDetail（一处口径）：后端没说话时，不拿通用兜底
-        // 顶掉站点这句（别把「推荐加载失败」写成「请求失败」）
+        // 判据收在 app-kit 的 errorText（一处口径）：与全局 toast 同一条链，
+        // 同一屏上不会出现「toast 说 catalog、区块说 detail」两种语感
         return (
             <StateError
-                message={apiErrorDetail(error, fallback)}
+                message={errorText(toApiError(error), locale, fallback)}
                 onRetry={reset}
             />
         )
@@ -64,13 +70,14 @@ function renderFallback(
 }
 
 export function QueryBoundary({ children, fallback, pending }: QueryBoundaryProps) {
+    const { locale } = useI18n()
     return (
         <QueryErrorResetBoundary>
             {({ reset }) => (
                 <ErrorBoundary
                     onReset={reset}
                     fallbackRender={({ error, resetErrorBoundary }) =>
-                        renderFallback(fallback, error, resetErrorBoundary)
+                        renderFallback(fallback, error, resetErrorBoundary, locale)
                     }
                 >
                     {pending === undefined ? (

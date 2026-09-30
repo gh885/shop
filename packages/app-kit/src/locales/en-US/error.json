@@ -1,7 +1,7 @@
 {
     "error.SMS_RATE_LIMIT": "Too many verification code requests. Please try again later.",
     "error.SMS_DAILY_LIMIT": "Daily verification code limit reached.",
-    "error.SMS_CODE_EXPIRED": "The verification code has expired.",
+    "error.SMS_CODE_EXPIRED": "This code is no longer valid. Please request a new one.",
     "error.SMS_CODE_INVALID": "Incorrect verification code.",
     "error.CAPTCHA_REQUIRED": "Please complete the CAPTCHA first.",
     "error.CAPTCHA_EXPIRED": "The CAPTCHA has expired.",
@@ -9,7 +9,7 @@
     "error.TOKEN_EXPIRED": "Your session has expired. Please sign in again.",
     "error.INVALID_TOKEN": "Invalid session. Please sign in again.",
     "error.REFRESH_TOKEN_REUSED": "All devices have been signed out.",
-    "error.USER_DISABLED": "This account has been disabled.",
+    "error.USER_DISABLED": "This account has been disabled. Please contact support.",
     "error.STAFF_DISABLED": "This staff account has been disabled. Contact the platform administrator.",
     "error.PERMISSION_DENIED": "You do not have permission to perform this action.",
     "error.SHOP_NAME_TAKEN": "This shop name is already taken. Please choose another one.",
@@ -18,10 +18,10 @@
     "error.COUPON_ALREADY_CLAIMED": "Coupon already claimed.",
     "error.AFTER_SALE_ALREADY_REFUNDED": "This order has already been refunded.",
     "error.CATEGORY_NOT_LEAF": "Please select a leaf category.",
-    "error.CATEGORY_DISABLED": "This category is disabled.",
+    "error.CATEGORY_DISABLED": "This category or one of its parents is disabled. Please choose another one.",
     "error.ADDRESS_LIMIT_EXCEEDED": "You can save up to 20 shipping addresses.",
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": "You can add up to 200 addresses.",
-    "error.BANNER_TIME_RANGE_INVALID": "End time cannot be earlier than start time.",
+    "error.BANNER_TIME_RANGE_INVALID": "End time must be later than start time.",
     "error.FORBIDDEN_WORD_HIT": "Your content contains a prohibited term. Please revise and submit again.",
     "error.RESPONSE_VALIDATION_FAILED": "The server response does not match the API contract."
 }

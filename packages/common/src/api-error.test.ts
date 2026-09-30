@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { describe, expect, it } from "vite-plus/test"
 
-import { apiErrorDetail, RESPONSE_VALIDATION_FAILED, toApiError, zodIssuesText } from "./api-error"
+import { RESPONSE_VALIDATION_FAILED, toApiError, zodIssuesText } from "./api-error"
 
 /** 契约级假数据：ApiError 形状的合法构造（过 ApiErrorSchema 的 zod 语义） */
 function makeApiError(
@@ -71,23 +71,60 @@ describe("toApiError", () => {
     })
 })
 
-describe("apiErrorDetail", () => {
-    it("后端给了话才用它的 detail", () => {
-        expect(apiErrorDetail(makeApiError({ detail: "店铺已打烊" }), "商品流加载失败")).toBe(
-            "店铺已打烊",
-        )
+/**
+ * 422 的字段级明细（后端 `GlobalExceptionHandler.unprocessable` 挂在 ProblemDetail 扩展属性上）。
+ * 这一格在 `ApiErrorSchema` 里声明着，归一化若不接回来，调用方按它分支就永远拿不到东西——
+ * 「schema 说有、运行时永远没有」是比缺字段更糟的形状。
+ */
+describe("toApiError 接回字段级明细 errors", () => {
+    it("原样透传 [{field, message}]：字段名留给调用方标红，句子仍归那条链", () => {
+        expect(
+            toApiError({
+                status: 422,
+                detail: "输入校验失败（2 个字段错误）",
+                errors: [
+                    { field: "name", message: "商品标题最长 30 字" },
+                    { field: "price", message: "价格必须大于 0" },
+                ],
+            }).errors,
+        ).toEqual([
+            { field: "name", message: "商品标题最长 30 字" },
+            { field: "price", message: "价格必须大于 0" },
+        ])
     })
 
-    it("网络层异常回站点那句：不写 `toApiError(err).detail || 站点文案`，那条恒为通用兜底", () => {
-        const err = new TypeError("Failed to fetch")
-        expect(toApiError(err).detail).not.toBe("") // 反例的前提：归一化给的是非空通用话
-        expect(apiErrorDetail(err, "商品流加载失败")).toBe("商品流加载失败")
+    it("脏条目与空数组当没有：漏到界面上就是标错字段、句子没有谓语", () => {
+        expect(toApiError({ status: 422, detail: "x", errors: [] }).errors).toBeUndefined()
+        expect(toApiError({ status: 422, detail: "x", errors: "乱码" }).errors).toBeUndefined()
+        expect(
+            toApiError({ status: 422, detail: "x", errors: [{ field: 1, message: "y" }] }).errors,
+        ).toBeUndefined()
+        // 只收干净的那条，不因为一条脏的就整格丢掉（后端多写一个字段不该让已知的字段错误消失）
+        expect(
+            toApiError({
+                status: 422,
+                detail: "x",
+                errors: [{ field: "name", message: "必填" }, { field: "price" }],
+            }).errors,
+        ).toEqual([{ field: "name", message: "必填" }])
     })
 
-    it("契约校验失败（ZodError）与缺字段的对象都不算 ApiError，一并回站点那句", () => {
-        expect(apiErrorDetail(new z.ZodError([invalidTypeIssue([])]), "活动位加载失败")).toBe(
-            "活动位加载失败",
-        )
-        expect(apiErrorDetail({ status: 500 }, "活动位加载失败")).toBe("活动位加载失败")
+    it("value 是那条规则作用到的数据：COM-01 靠它把句子参数化，不用从中文 detail 里捞", () => {
+        expect(
+            toApiError({
+                status: 400,
+                detail: "「标题」包含违禁词「最佳」（分类：广告法用语），请修改后重新提交",
+                code: "FORBIDDEN_WORD_HIT",
+                errors: [
+                    {
+                        field: "name",
+                        message: "「标题」包含违禁词「最佳」",
+                        value: "最佳",
+                        extra: 1,
+                    },
+                ],
+            }).errors,
+        ).toEqual([{ field: "name", message: "「标题」包含违禁词「最佳」", value: "最佳" }])
+        // 声明的三格之外不留第四格：ApiError 会进上报，漏进去的键等于给监控一个没人声明的形状
     })
 })

@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
+import { Toaster } from "@shop/ui-web"
+
 import { APP_KIT_MESSAGES, I18nProvider, createLocaleScope } from "./i18n"
 import { LoginForm, type LoginFormProps } from "./login-form"
 
@@ -11,9 +13,7 @@ import { LoginForm, type LoginFormProps } from "./login-form"
  * 1. 登录方式切换——激活项必须是 role=tab + aria-selected=true（不能只靠字重/下划线表达），
  *    且键盘能走到、能激活；
  * 2. 人机验证浮层：点「获取验证码」才出现，验证通过才发码；
- * 3. 发码失败分支的倒计时联动（C14）：
- *    - 429 + SMS_RATE_LIMIT：服务端窗口 60s，失败也起倒计时，连点无意义；
- *    - 其它失败（如图形码无效）：不起倒计时，允许改正后立即重发。
+ * 3. 发码失败分支的倒计时联动（C14）与失败文案的来源（§7.3：命中 code 走 catalog，不是 detail）。
  */
 
 const captchaOk = async () => ({ captchaId: "c1", image: "data:image/png;base64,x" })
@@ -25,6 +25,8 @@ function renderLoginForm(sendCode?: LoginFormProps["sendCode"]) {
             scope={createLocaleScope("zh-CN")}
             initialLocale="zh-CN"
         >
+            {/* 发码失败的提示走全局 toast（notify.fromError），不挂宿主就捞不到那句话 */}
+            <Toaster />
             <LoginForm
                 getCaptcha={captchaOk}
                 sendCode={sendCode ?? vi.fn<LoginFormProps["sendCode"]>()}
@@ -174,5 +176,22 @@ describe("发码失败与倒计时", () => {
         // 错误后无「Ns 后重发」倒计时；图形码失败会重置验证码图，浮层留着让用户改正后重发
         expect(await screen.findByRole("button", { name: "验证并发送" })).toBeTruthy()
         expect(screen.queryByText(/后重发/)).not.toBeInTheDocument()
+    })
+
+    it("发码失败的 toast 取 catalog 那句，不是后端 detail（§7.3 一条链）", async () => {
+        await fillAndSendCode(
+            failingSendCode({
+                status: 429,
+                code: "SMS_DAILY_LIMIT",
+                detail: "后端这句话该进日志，不该弹给用户",
+            }),
+        )
+
+        // 发码失败同时出现在两处：表单内联横幅（role=alert）与全局 toast（title 是 h2）。
+        // 按角色取 toast 那一条证明 catalog 生效；整棵树都找不到 detail，等于两处都没漏后端句子
+        expect(
+            await screen.findByRole("heading", { name: "今日验证码已达上限" }),
+        ).toBeInTheDocument()
+        expect(screen.queryByText("后端这句话该进日志，不该弹给用户")).not.toBeInTheDocument()
     })
 })
