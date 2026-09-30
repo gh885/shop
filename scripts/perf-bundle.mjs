@@ -4,6 +4,8 @@
  *
  * 跑什么：构建 web / seller / admin → 逐个 dist 目录算 gzip 字节 → 按 (target, 类型) 汇总，
  *        再按去掉 hash 的 chunk 名排出最大的几个 → 落 perf/bundle-history.jsonl 并打印与基线的差。
+ *        额外量一条**首屏 JS**（HTML 入口的静态 import 闭包，见 FIRST_SCREEN）：dist 总量是「全部」，
+ *        首屏才是「决定 LCP 的那一部分」，两者在代码分割后可能差出一倍，必须分开看。
  *
  * 为什么要它：Lighthouse 那份是**估算**且带机器噪声（同一份产物连跑三次，首页 LCP 实测
  *        5862 / 5863 / 6603ms）。产物体积是精确、零噪声、秒级可比的数字——它是「有人加了个
@@ -11,8 +13,9 @@
  *        唯一一个每次改动都能立刻相信的性能数字。
  *
  * 它看不见什么：chunk 名是 Rolldown autoCodeSplitting 生成的，最大的几个叫 src-*.js / link-*.js，
- *        **从名字看不出里面装了什么**。所以这份测量能回答「变大了没有、涨了哪一类」，
- *        回答不了「该拆谁」。后者要模块级归属，得先有 sourcemap（见 perf/README.md）。
+ *        **从名字看不出里面装了什么**。所以这份测量能回答「变大了没有、涨了哪一类、首屏多重」，
+ *        回答不了「首屏里该拆谁」。后者要模块级归属，由 `pnpm perf:attrib` 用 sourcemap 把字节
+ *        归因到源文件（三端构建已开 build.sourcemap: "hidden"）——它同时钉住「是谁把 X 带进首屏」。
  *
  * 是否阻断：不阻断，与 pnpm perf 同一口径。但它随时可以变成门禁——正因为没有噪声，阈值才有意义。
  *
@@ -41,6 +44,24 @@ const TARGETS = [
     { name: "seller", dir: "apps/seller/dist", build: "build:seller" },
     { name: "admin", dir: "apps/admin/dist", build: "build:admin" },
 ]
+
+/**
+ * 首屏探针（每个 target 一份 HTML 入口）。
+ *
+ * 为什么要单独量「首屏」而光有 dist 总量：dist 总量回答「这次改动往用户手机上多塞了多少字节（全部）」，
+ * 但首屏只下载**首屏用得到**的那部分——路由级代码分割 + 懒加载后，两者可以差出一倍。
+ * 一个改动完全可能「总量 +2KB、首屏 +180KB」（或反过来），只盯总量会完全看不见 LCP 相关的回归。
+ * Lighthouse 那份能间接反映首屏，但它是带机器噪声的估算值；这里的首屏是**精确、零噪声**的字节数，
+ * 正好符合本文件「要设门禁先设它」的口径。
+ *
+ * web 取预渲染的 `/welcome`：它不依赖后端（构建期就出静态 HTML），且与其它买家页共用同一套壳层
+ * （root 布局 + 组件库），首屏字节数对所有买家页是同一个量级。
+ */
+const FIRST_SCREEN = {
+    "web/client": "welcome/index.html",
+    seller: "index.html",
+    admin: "index.html",
+}
 
 const CATEGORIES = [
     { key: "js", exts: [".js"] },
@@ -104,6 +125,51 @@ function measure(dir) {
 
 function sumGzip(totals) {
     return Object.values(totals).reduce((acc, bucket) => acc + bucket.gzip, 0)
+}
+
+/**
+ * 量一个 HTML 入口的首屏 JS：HTML 里声明的 `<script src>` / `<link rel=modulepreload>`
+ * 加上它们的**静态 import 闭包**（相对路径 `./x.js`），逐个 gzip 求和。
+ *
+ * 只走静态 import，不追 `import()` 动态导入——那些是按需/懒加载的，本就不该进首屏。
+ * 路由级代码分割（TanStack autoCodeSplitting）正是靠动态 import 实现的，所以这个口径
+ * 能正确地把「非当前路由的页面代码」排除在外。
+ *
+ * 返回 `{ chunks, gzip }`；入口或任一被引 chunk 缺失时返回 null（调用方负责降级）。
+ */
+function measureFirstScreen(dir, htmlRelPath) {
+    const htmlFile = join(dir, htmlRelPath)
+    if (!existsSync(htmlFile)) return null
+    const html = readFileSync(htmlFile, "utf8")
+    const assetsDir = join(dir, "assets")
+    if (!existsSync(assetsDir)) return null
+
+    // HTML 里的入口：<script src="/assets/x.js"> 与 <link href="/assets/x.js">
+    const refs = [...html.matchAll(/(?:href|src)="\/assets\/([^"]+\.js)"/g)].map((m) => m[1])
+
+    const queue = [...new Set(refs)]
+    const seen = new Set()
+    while (queue.length > 0) {
+        const name = queue.pop()
+        if (seen.has(name)) continue
+        seen.add(name)
+        const file = join(assetsDir, name)
+        if (!existsSync(file)) continue
+        const code = readFileSync(file, "utf8")
+        // 静态 import：只认同目录的相对兄弟 "./x.js"（产物 chunk 之间的引用形式）。
+        // 关键词与引号之间只允许空白：写成 \(?\s*" 会把 `import("./x.js")` 也认下来，
+        // 于是按需加载的 chunk 被算进首屏——摇树一改切块变多，假首屏跟着虚涨。
+        for (const m of code.matchAll(/(?:from|import)\s*"\.\/([^"]+\.js)"/g)) {
+            if (!seen.has(m[1])) queue.push(m[1])
+        }
+    }
+
+    let gzip = 0
+    for (const name of seen) {
+        const file = join(assetsDir, name)
+        if (existsSync(file)) gzip += gzipSync(readFileSync(file)).length
+    }
+    return { chunks: seen.size, gzip }
 }
 
 function git(args) {
@@ -172,6 +238,7 @@ function main() {
     }
 
     const results = {}
+    const firstScreen = {}
     for (const target of TARGETS) {
         const dir = join(ROOT, target.dir)
         if (!existsSync(dir)) {
@@ -186,6 +253,16 @@ function main() {
             )
         }
         results[target.name] = measure(dir)
+        const probe = FIRST_SCREEN[target.name]
+        if (probe) {
+            const screen = measureFirstScreen(dir, probe)
+            // 探针缺失不该让整条命令失败（它不阻断、只记录），但要让人知道这轮没量到首屏
+            firstScreen[target.name] = screen ?? { missing: true }
+            if (!screen)
+                console.log(
+                    `[perf:bundle] 注意：${target.name} 首屏探针缺失（${probe}），本轮不记首屏`,
+                )
+        }
     }
 
     const ts = new Date().toISOString()
@@ -212,6 +289,14 @@ function main() {
             `\n${target.name.padEnd(11)} 合计 gzip ${formatKb(sumGzip(totals))}${delta(sumGzip(totals), base ? sumGzip(base.totals) : null)}`,
         )
         console.log(`            ${line}`)
+        const fsScreen = firstScreen[target.name]
+        if (fsScreen && !fsScreen.missing) {
+            const baseFs = baseline?.firstScreen?.[target.name]?.gzip
+            console.log(
+                `            首屏 JS ${fsScreen.chunks} 个 chunk · ${formatKb(fsScreen.gzip)}${delta(fsScreen.gzip, baseFs)}` +
+                    `   ← 决定 LCP 的那一部分，与上面的总量分开看`,
+            )
+        }
         const baseChunks = base?.chunks ?? {}
         for (const chunk of topChunks(chunks, 5)) {
             console.log(
@@ -244,6 +329,11 @@ function main() {
                     },
                 ]),
             ),
+            firstScreen: Object.fromEntries(
+                Object.entries(firstScreen)
+                    .filter(([, screen]) => !screen.missing)
+                    .map(([name, screen]) => [name, { gzip: screen.gzip }]),
+            ),
         }
         writeFileSync(BASELINE_FILE, `${JSON.stringify(next, null, 4)}\n`)
         console.log("\n[perf:bundle] 本轮已冻成基线：perf/bundle-baseline.json")
@@ -261,12 +351,19 @@ function main() {
                 ),
             ]),
         ),
+        firstScreen: Object.fromEntries(
+            Object.entries(firstScreen)
+                .filter(([, screen]) => !screen.missing)
+                .map(([name, screen]) => [name, screen.gzip]),
+        ),
     }
     writeFileSync(HISTORY_FILE, `${JSON.stringify(record)}\n`, { flag: "a" })
 
     console.log(
         `\n── 不阻断（与 pnpm perf 同一口径）。这一项没有测量噪声，所以将来要设门禁，先设它。\n` +
-            `   看不见什么：剥掉 hash 后最大的几个仍叫 src.js / link.js，答不了「该拆谁」——那要模块级归属，见 perf/README.md。\n` +
+            `   首屏 JS 那行才是 LCP 的直接驱动量；总量涨了但首屏没涨，多半是懒加载的路由变胖了。\n` +
+            `   看不见什么：剥掉 hash 后最大的几个仍叫 src.js / link.js，答不了「首屏里该拆谁」——那要 ` +
+            `pnpm perf:attrib 的模块级归属。\n` +
             `   历史 perf/bundle-history.jsonl${baseline || opts.baseline ? "" : "；还没有基线：pnpm perf:bundle -- --baseline"}`,
     )
 }

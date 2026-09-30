@@ -42,6 +42,8 @@
         "i18n:drift": "node scripts/i18n-codegen.mjs --check",
         "perf": "node scripts/perf-lighthouse.mjs",
         "perf:bundle": "node scripts/perf-bundle.mjs",
+        "perf:attrib": "node scripts/perf-attrib.mjs",
+        "perf:cls": "node scripts/perf-cls.mjs",
         "fallow": "fallow dead-code",
         "fallow:production": "fallow dead-code --production",
         "fallow:audit": "fallow audit --brief",

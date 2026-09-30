@@ -1,7 +1,7 @@
 # 前端监控约定
 
-- **状态**：实验室侧已落地两条——`pnpm perf`（Lighthouse）与 `pnpm perf:bundle`（产物体积），见「实验室指标」一节；**RUM 发送侧已全部落地**（单一出口 `captureError`/`track`、事件信封、`sendBeacon` 传输、全局监听、PV、接口事件、Web Vitals、白屏检测、hydration 失败、sourcemap hidden），三端 router 均接上 `defaultOnCatch`。**接收端未上线**，所以 `configureMonitoring` 默认 `enabled: false`（装了没地方收只是白发事件）。SSR 服务端渲染错误待接收端落地时再做
-- **日期**：2026-09-27，实验室指标一节补于 2026-09-29（同日再加产物体积一条），RUM 发送侧落地于 2026-09-30
+- **状态**：实验室侧已落地三条——`pnpm perf`（Lighthouse）、`pnpm perf:bundle`（产物体积，模块级归属由 `pnpm perf:attrib` 接住）与 `node scripts/perf-cls.mjs`（位移归因），见「实验室指标」一节；**RUM 发送侧已全部落地**（单一出口 `captureError`/`track`、事件信封、`sendBeacon` 传输、全局监听、PV、接口事件、Web Vitals、白屏检测、hydration 失败、sourcemap hidden），三端 router 均接上 `defaultOnCatch`。**接收端未上线**，所以 `configureMonitoring` 默认 `enabled: false`（装了没地方收只是白发事件）。SSR 服务端渲染错误待接收端落地时再做
+- **日期**：2026-09-27，实验室指标一节补于 2026-09-29（同日再加产物体积一条），RUM 发送侧落地与位移归因一条于 2026-09-30（同日两条 trace 到手、首页与审核台各自的位移源定性）
 
 目标对标阿里的 1-5-10：**1 分钟发现、5 分钟定位、10 分钟恢复**。监控只管前两个数字，恢复靠灰度、回滚和预案（回滚前提见 [production-readiness.md](../release/production-readiness.md)「发布与回滚」）。后端对应的约定是 [business-event-logging.md](business-event-logging.md)。
 
@@ -45,7 +45,7 @@
 - **Sentry / GlitchTip**：错误聚合、sourcemap 还原、版本追踪、告警都是现成的；GlitchTip 比 Sentry 自建轻得多
 - **后端加接收接口**：前端事件打成 ECS JSON，和后端事件进同一个检索、按 `trace_id` 直接关联；顺手计 Micrometer 指标，告警与后端共用 Prometheus + Alertmanager（business-event-logging.md 的延后项）。sourcemap 还原和指纹聚合要自己做
 
-## 实验室指标：已落地两条（Lighthouse + 产物体积），但不替代上面那条
+## 实验室指标：已落地三条（Lighthouse + 产物体积 + 位移归因），但不替代上面那条
 
 首屏性能有两套测量，问的是两个问题，**不能用一套的答案顶另一套**：
 
@@ -83,8 +83,35 @@
 延后项表里那条「拨测」和这一条不是一回事：拨测定时跑**核心链路**（下单、支付），抓的是功能失效；
 实验室性能跑的是**固定几个页面的指标**，抓的是回归。两者共用无头浏览器那一层，但目的与判据都不同。
 
-新增的两个依赖（`lighthouse`、`chrome-launcher`）只被 `scripts/perf-lighthouse.mjs` 引用，`apps/*` 与
-`packages/*` 一个都不碰——和契约第 3 条同一个道理：将来换测量引擎，改动收在这一个文件。
+新增的两个依赖（`lighthouse`、`chrome-launcher`）只被 `scripts/perf-*.mjs` 引用（测量那条是
+`perf-lighthouse.mjs`，位移归因那条只用 `chrome-launcher` + 裸 CDP），`apps/*` 与
+`packages/*` 一个都不碰——和契约第 3 条同一个道理：将来换测量引擎，改动收在这几个文件。
+
+### 位移归因：CLS 的总分不是解释
+
+`node scripts/perf-cls.mjs`（只用 `chrome-launcher` + 裸 CDP）。加它是因为 Lighthouse 给的是分数加「位移节点」，
+**不给时刻、也不给因果**，于是 0.226 这种数只能靠猜着改。这条把 `layout-shift` 的 `sources[]`
+（`previousRect` → `currentRect`）、发生时刻，和同一时间窗内能改到几何的三件事（DOM 变化、CSSOM 规则数、
+位移节点自己的逐帧矩形）串成一条带时间戳的时间线，再配 `--block <URL>` 做因果 A/B。用法在 perf/README，这里是三条口径：
+
+1. **观测阶段不限流才对得上 Lighthouse 的数。** 它导航测量用 `throttlingMethod: "simulate"`——CPU / 网络节流由
+   Lantern 事后模拟，而 layout-shift 是**观测值**、模拟不出来。所以要复刻同一个数，就得同样不限流 + 同一套
+   屏幕模拟（mobile 412×823 DPR1.75 / desktop 1350×940 DPR1，抄 Lighthouse 自己的常量）。显式加限流量出来的是
+   另一件事（真机节奏），那个数不能再和基线比。
+2. **Chrome 的实现叫 `currentRect`，草案里叫 `nextRect`。** 读错名字不抛异常、只静默给 `undefined`，症状是每条
+   位移都显示「位移量未知」。合成测量里这类静默失败是默认怀疑对象——**先用一个人造位移页验探测器本身**
+   （`perf/fixtures/`），再信它对真页面给出的结论。
+3. **一条位移要分到三层里的一层，不能只盯 DOM。** MutationObserver 看不见样式生效，更看不见「图片固有尺寸到达」——
+   后者会让版心在 DOM 和样式表都没动的情况下从 48px 跳到满宽。所以判据是：窗口里有 DOM 变化 → 插内容；
+   CSSOM 规则数在位移 ±150ms 内变了 → 样式后到；**两者都没有 → 用 `--block` 掐可疑请求做 A/B**，
+   位移消失就是它。跳过这一步就会把「插内容」的修法（占位、锁高）套到一条固有尺寸的位移上，白花力气。
+
+两条 trace 的结论与复现命令记在 [perf/README.md](../../perf/README.md)「两条位移：定性 → 修掉 → 复测」：
+买家端首页 0.226 是**版心宽度跟着 banner 图的固有尺寸走**（`mx-auto` 的 flex item 缺 `w-full` ⇒ 宽度取 fit-content），
+管理端审核台 0.630 是**权限到位后追加的二级侧栏把正文推走**（横移 176px = `aside.w-44` 的宽度）。
+两条都由 A/B 或复现页钉死，不是推断；两条现在都已修掉（复测 CLS 0.000），修法的规则面落在
+[frontend.md](frontend.md)「布局」那节，回归闸由 `page-shell-width.test.ts` 与侧栏那三条测试守着。
+**这份约定只负责「没有 trace 就不许改」**——修哪一条、什么时候修，仍然是独立的决定。
 
 ### 产物体积：实验室里唯一没有噪声的那条
 
@@ -104,10 +131,10 @@ target × 类型汇总，再列出剥掉 content hash 后最大的几个 chunk�
 `web` 拆成 `client` / `server` 两行：client 决定 LCP，server 决定 TTFB，混在一起量时一次只改服务端代码的
 提交会显示成「包涨了」。
 
-它的盲区要在文档里说清，否则会被当成「已经知道该拆谁」：**最大的几个 chunk 叫 `src.js` / `link.js`**
-（Rolldown `autoCodeSplitting` 按目录与首个符号命名，名字不携带内容信息）。所以这份测量答得了
-「变大了没有、涨了哪一类」，答不了「该拆谁」。模块级归属要先出 sourcemap——那正好也是契约第 4 条
-为错误上报要的东西，两件事一起做才划算。
+它的盲区要说清，否则会被当成「已经知道该拆谁」：**最大的几个 chunk 叫 `src.js` / `link.js`**
+（Rolldown `autoCodeSplitting` 按目录与首个符号命名，名字不携带内容信息）。所以**这一份**测量答得了
+「变大了没有、涨了哪一类、首屏多重」，答不了「该拆谁」——后者由 `pnpm perf:attrib` 接住（手工解 hidden
+sourcemap 做模块级归属，同一口径、同样只记录），用法与两条读法坑在 perf/README。
 
 它同样是**只记录、不阻断**。
 

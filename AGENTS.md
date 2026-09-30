@@ -42,6 +42,8 @@ pnpm gen:sdk              # 需后端在跑：导出契约 + 重新生成 packag
 pnpm build                # 买家端（vp build / Rolldown）+ mvn compile；另两端 build:seller / build:admin
 pnpm perf                 # 实验室首屏测量（三端生产构建 + preview，Lighthouse）；需后端在跑，只记录不阻断
 pnpm perf:bundle          # 三端 dist 的 gzip 字节，逐 chunk 与基线比差值——零噪声、~1 分钟，同样不阻断
+pnpm perf:attrib          # 把首屏字节归属到源文件（`--why X` 答「是谁把 X 带进首屏」）；口径同 perf:bundle，见 perf/README.md
+node scripts/perf-cls.mjs <url> [--preset desktop]  # CLS 归因：带时间戳的 layout-shift trace（DOM 变化 / CSSOM / 逐帧矩形三层 + `--block` 因果 A/B），在生产构建的 preview 上跑
 cd apps/server && mvn spring-boot:run   # 单独起后端（mvn compile / spotless:apply 同理）
 ```
 

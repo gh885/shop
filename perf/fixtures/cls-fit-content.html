@@ -1,0 +1,105 @@
+<!doctype html>
+<!--
+  CLS 签名复现页：「DOM 没变、样式表没变，宽度却从 48 跳到满版心」是哪来的。
+  跑法（不需要后端）：
+    node scripts/perf-cls.mjs "file://$PWD/perf/fixtures/cls-fit-content.html" --preset mobile
+  预期只有 #a 位移（48 → 412 那量级），#b 一次都不进 sources——两节唯一的差别就是 w-full。
+  这正是买家端首页 0.226 的机制：版心带 mx-auto 又没有 w-full 时，它是 main(flex-col) 的交叉轴
+  item，auto margin 把 align-items 的 stretch 降级成 flex-start，于是宽度取 fit-content；
+  而 fit-content 跟着图里唯一的有尺寸内容（banner <img>）的固有尺寸走，图落地那一刻才跳到满宽。
+  注：file:// 上 Chrome 不套设备模拟（innerWidth 会是 1028 而不是 412），看方向与「谁没位移」，别对字节。
+-->
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <style>
+            body {
+                margin: 0;
+            }
+            main {
+                display: flex;
+                flex: 1 1 0%;
+                flex-direction: column;
+                min-height: 100vh;
+            }
+            /* 手抄首页那层的语义：mx-auto + flex + max-w-page + px-6，但没有 w-full */
+            .page {
+                margin-inline: auto;
+                display: flex;
+                flex-direction: column;
+                max-width: 1486px;
+                padding: 24px;
+                gap: 16px;
+            }
+            .full {
+                width: 100%; /* 这个文件里唯一的自变量 */
+            }
+            .grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                min-width: 0;
+                flex: 1 1 0%;
+                gap: 16px;
+            }
+            .card {
+                position: relative;
+                height: 200px;
+                background: #eee;
+            }
+            .card img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            /* 绝对定位不参与 max-content：所以图没固有尺寸之前整节只剩左右内边距 = 48px */
+            .overlay {
+                position: absolute;
+                inset-inline: 0;
+                bottom: 0;
+                padding: 16px;
+                background: rgba(0, 0, 0, 0.4);
+                color: #fff;
+            }
+            .under {
+                height: 20px;
+                background: #666;
+                color: #fff;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <section
+                class="page"
+                id="a"
+            >
+                <div class="grid">
+                    <a class="card"><img alt="" /><span class="overlay">甲：没有 w-full</span></a>
+                </div>
+            </section>
+            <section
+                class="page full"
+                id="b"
+            >
+                <div class="grid">
+                    <a class="card"><img alt="" /><span class="overlay">乙：有 w-full</span></a>
+                </div>
+            </section>
+        </main>
+        <div class="under">版心下方的内容</div>
+        <script>
+            // 图片固有尺寸 600ms 后才「到达」——外链图落地那一刻的等价物
+            setTimeout(function () {
+                var c = document.createElement("canvas")
+                c.width = 480
+                c.height = 240
+                var ctx = c.getContext("2d")
+                ctx.fillStyle = "#4488ff"
+                ctx.fillRect(0, 0, 480, 240)
+                var src = c.toDataURL("image/png")
+                document.querySelector("#a img").src = src
+                document.querySelector("#b img").src = src
+            }, 600)
+        </script>
+    </body>
+</html>
