@@ -43,10 +43,24 @@ describe("skuSearchSchema", () => {
         expect(skuSearchSchema.parse({ spec: { 颜色: "红" } })).toEqual({ spec: { 颜色: "红" } })
     })
 
-    it("spec 缺失 / 形状不对一律收敛为空对象，不抛错", () => {
-        expect(skuSearchSchema.parse({})).toEqual({ spec: {} })
-        expect(skuSearchSchema.parse({ spec: "红" })).toEqual({ spec: {} })
-        expect(skuSearchSchema.parse({ spec: { 颜色: 1 } })).toEqual({ spec: {} })
+    /**
+     * 这两条是**性能契约**，不是普通解析规则：
+     * 缺失 / 脏值时输出里不能出现 `spec` 键。出现了，TanStack Router 就把它记进
+     * `meta.defaulted` 并据此重写 URL，裸链 `/products/<id>` 于是 307 到 `?spec=%7B%7D`，
+     * 商详首屏白白多一跳往返（mobile 档实测约 600ms）。机理见 sku-search.ts 的注释。
+     */
+    it("spec 缺失时输出里不出现该键（否则裸链会被 307 重定向，多一跳往返）", () => {
+        const parsed = skuSearchSchema.parse({})
+        expect(parsed).toEqual({})
+        expect("spec" in parsed).toBe(false)
+    })
+
+    it("spec 形状 / 值不合法一律退化成「未选规格」，不抛错", () => {
+        for (const input of [{ spec: "红" }, { spec: { 颜色: 1 } }]) {
+            const parsed = skuSearchSchema.parse(input)
+            expect(parsed).toEqual({})
+            expect("spec" in parsed).toBe(false)
+        }
     })
 
     it("忽略额外参数", () => {

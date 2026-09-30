@@ -92,7 +92,8 @@ function ProductDetailPage() {
      */
     const sel = useSkuSelection({
         detail,
-        spec: search.spec,
+        // 「未选规格」在 URL 里表示成「没有 spec」，读的时候补一个空选择（sku-search.ts 有为什么）
+        spec: search.spec ?? {},
         onSpecChange: (spec, options) => {
             void navigate({
                 // 空选择不带参数：详情页是最常被分享的 URL，`?spec=%7B%7D` 是纯噪音
