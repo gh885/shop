@@ -53,6 +53,50 @@ describe("AddressFormDialog", () => {
         expect(onOpenChange).not.toHaveBeenCalled()
     })
 
+    /**
+     * 422 的字段级明细要落到**对应输入框**上（不是只弹一句全局 toast）。
+     *
+     * <p>这是那条通道的端到端一格：后端给 `errors[].rule`，前端按界面语言出句子、写进字段 meta。
+     * 断的是「用户看得见的那句」——机制（setErrorMap 怎么清错）归 ui-web 自己的用例。
+     */
+    it("服务端 422 的字段级错误落到对应输入框上，弹窗留在原地", async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn<(open: boolean) => void>()
+        server.use(
+            http.post("*/user/addresses", () =>
+                HttpResponse.json(
+                    {
+                        status: 422,
+                        detail: "输入校验失败（1 个字段错误）",
+                        errors: [{ field: "phone", message: "手机号格式错误", rule: "PATTERN" }],
+                    },
+                    { status: 422 },
+                ),
+            ),
+        )
+
+        renderWithProviders(
+            <AddressFormDialog
+                open
+                onOpenChange={onOpenChange}
+            />,
+        )
+
+        // 走智能粘贴把必填项（含地区）一次填齐：本地 Zod 会先拦regionCode，
+        // 422 那条路要真的发出去才走得到
+        await user.type(screen.getByLabelText("智能粘贴"), PASTE_TEXT)
+        await user.click(screen.getByRole("button", { name: "粘贴并识别" }))
+        await waitFor(() => expect(screen.getByLabelText("收货人姓名")).toHaveValue("张三"))
+        await screen.findByText("浙江省 / 杭州市 / 西湖区")
+
+        await user.click(screen.getByRole("button", { name: "保存" }))
+
+        // 那句是前端 catalog 按 rule 出的（zh-CN 的「格式不对」），不是后端那句中文 message
+        expect(await screen.findByText("格式不对")).toBeInTheDocument()
+        expect(screen.queryByText("手机号格式错误")).not.toBeInTheDocument()
+        expect(onOpenChange).not.toHaveBeenCalled()
+    })
+
     it("智能粘贴预填表单（地区经区划库反查），提交按契约发起创建并关闭弹窗", async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn<(open: boolean) => void>()

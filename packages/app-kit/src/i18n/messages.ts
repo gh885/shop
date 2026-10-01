@@ -6,6 +6,12 @@ import {
     type I18nResources,
 } from "@shop/common"
 
+/**
+ * ⚠️ 新增命名空间（`locales/<locale>/<ns>.json`）之后跑测试若报「新 key 全是 key 本身」：
+ * `--fs-module-cache`（全部 test script 都带着）按**本文件内容哈希**复用编译产物，而 glob 的展开结果
+ * 被烤进了那份产物——本文件一个字没变，缓存就还停在新增之前。改本文件任意一行即可失效；
+ * 流程细则写在 docs/conventions/i18n.md「新增命名空间」那条。
+ */
 import { assembleLocaleResources } from "./resources"
 import type { AppKitCatalog, AppKitMessageKey, AppKitParamsOf } from "../locales/messages.gen"
 

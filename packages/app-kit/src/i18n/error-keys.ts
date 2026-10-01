@@ -1,4 +1,4 @@
-import { type ApiError, type AppLocale, ErrorCodes } from "@shop/common"
+import { type ApiError, type AppLocale, ErrorCodes, formatMessage } from "@shop/common"
 
 import { translateAppKit } from "./messages"
 import type { AppKitMessageKey } from "../locales/messages.gen"
@@ -46,26 +46,45 @@ const ERROR_KEYS = {
 const BY_CODE = new Map<string, AppKitMessageKey>(Object.entries(ERROR_KEYS))
 
 /**
- * 迁移期仍把后端 detail 当文案的那两个码（§7.3 的兜底链，不是设计如此）。
+ * 走 `params` 参数化的码 → catalog 句子里那些 `{槽位}` 分别从 `params` 的哪一格取。
  *
- * 共同的形状：**那句话的关键信息只在 detail 里**。两条地址上限的数字来自后端常量
- * （`20` / `200`，前端没有对边，写进 catalog 就是一个会谎报的字面量），所以 catalog 里这两条今天是
- * 不带参数的占位句。
- *
- * `FORBIDDEN_WORD_HIT` 已经退出这份清单：命中的字段与词现在由 `errors[].field/value` 作为**数据**出一次
- * （COM-01 那条参数通道，见 docs/error-codes.md），卖家端把词嵌进自己语种的那句（`product.publish.forbiddenWordHit`），
- * 不再从中文 detail 里正则捞。
- *
- * 退出条件：把那个值从句子拆出来做成参数——走 `errors[].value` 那条通道（`FORBIDDEN_WORD_HIT`
- * 就是这么退的；扩展属性本来就进不了 api-docs，所以这条不要 `pnpm gen:sdk`），或按 P3′-b 代价 2
- * 把它写进契约再 `pnpm gen:sdk`；然后 `error.<CODE>` 写成带 `{slot}` 的消息，从这里删掉这个码就改走 catalog。
- * `error-keys.test.ts` 钉的是「这里列出的每一条，其 catalog 句子确实还没参数化」——
- * 真参数化了却忘了删这里，那条断言当场红。
- *
- * 只在中文界面 detail 优先：非中文拿 catalog 那句占位（`errorTextPlan` 第 4 支），宁可少说一个数字，
- * 也不在英文界面上印中文。
+ * 为什么是这张表而不是从模板里正则扒槽位：模板里有什么槽位由 catalog 说，而「这个码有哪些参数」
+ * 是**契约**，该声明一次。`error-keys.test.ts` 拿它与两份 `error.json` 双向核——
+ * 句子长出 `{` 却没登记，或登记了却没槽位，两边都当场红（这正是旧 `DETAIL_FIRST` 那条断言的反面：
+ * 那条盯「登记的还没参数化」，这条盯「参数化的都登记了」）。
  */
-const DETAIL_FIRST = new Set(["ADDRESS_LIMIT_EXCEEDED", "MERCHANT_ADDRESS_LIMIT_EXCEEDED"])
+export const CODE_SLOTS: Readonly<Record<string, readonly string[]>> = {
+    ADDRESS_LIMIT_EXCEEDED: ["limit"],
+    MERCHANT_ADDRESS_LIMIT_EXCEEDED: ["limit"],
+}
+// 登记的码必须是真码（防手滑写成一个不存在的码，那条参数通道就永远不会有人填）
+CODE_SLOTS satisfies Partial<
+    Record<(typeof ErrorCodes)[keyof typeof ErrorCodes], readonly string[]>
+>
+
+/**
+ * catalog 那句怎么拼出来：`params` 填得上就填，**填不上返回 undefined**（调用方走兜底）。
+ *
+ * 返回 undefined 而不是「把模板原样返回」是硬要求：`formatMessage` 在缺参数时会**原样给回模板**，
+ * 于是用户会看到字面的 `{limit}`。所以填不满就当这条句子不存在。
+ */
+function catalogText(key: AppKitMessageKey, err: ApiError, locale: AppLocale): string | undefined {
+    const slots = CODE_SLOTS[err.code ?? ""]
+    // 不传参数调 translateAppKit：带槽位的消息会原样返回模板（未填的 `{x}` 还在），正是这里要的形状；
+    // 模板取不到时它返回 key 本身，与下面「参数填满后不可能等于模板」的判断共用一个出口。
+    const template = translateAppKit(key, locale)
+    if (template === key) return undefined
+    if (slots === undefined) return template
+    const values: Record<string, string | number> = {}
+    for (const slot of slots) {
+        const value = err.params?.[slot]
+        if (typeof value === "string" || typeof value === "number") values[slot] = value
+        // 少一格就宁可不讲这句：印出裸槽位比降级到通用句更糟，而它正是后端漏发参数的信号，
+        // 会被 errorTextPlan 的兜底支上报（source=status）
+        else return undefined
+    }
+    return formatMessage(template, values, locale)
+}
 
 /**
  * 后端 `detail` 的语种。apps/server 里 `Validate` / `BusinessException` 的字面量全是中文，
@@ -91,14 +110,17 @@ function statusKey(status: number): AppKitMessageKey {
     return STATUS_KEYS.get(status) ?? "appKit.error.network"
 }
 
-/** 这个码有没有可以直接给用户看的 catalog 文案；没有就走下面的兜底链 */
+/**
+ * 这个码有没有可以直接给用户看的 catalog 文案；没有就走下面的兜底链
+ *
+ * 迁移期那条「detail 优先例外清单」已经空了：最后两条（两条地址上限码）在 2026-10 把上限做成
+ * `params.limit` 之后退出。**例外清单不再是机制而是历史**——再往后要长出新条目就是绕过参数通道，
+ * 所以这里只留单一出口：有 code 就取 catalog，句子里的数字靠 `params` 参数化。
+ */
 export function errorKeyFor(code: string | undefined): AppKitMessageKey | undefined {
-    if (code === undefined || DETAIL_FIRST.has(code)) return undefined
+    if (code === undefined) return undefined
     return BY_CODE.get(code)
 }
-
-/** 迁移期例外清单，只给测试核「这两条还没参数化」用 */
-export const DETAIL_FIRST_CODES = [...DETAIL_FIRST]
 
 /** 这句话是从哪一格取来的——`notify` 据此上报「走了兜底」，见 docs/error-codes.md 的升级判据 */
 export type ErrorTextSource = "catalog" | "detail" | "status" | "fallback" | "network"
@@ -111,23 +133,28 @@ export interface ErrorTextPlan {
 /**
  * §7.3 那条取文案链的纯函数版：给错误形状与 locale，返回该给用户看的那句话，以及它取自哪一格。
  *
- * 1. 命中登记码 → catalog 那句（语言无关、具体）。
+ * 1. 命中登记码 → catalog 那句（语言无关、具体）；句子里的数字由 `params` 填（见 catalogText）。
  * 2. 没听到后端说话（status 0）→ 调用方的场景文案，没给则通用网络提示。
  * 3. 中文界面 → 后端 `detail`。它就是中文，且比任何通用句都具体（「该优惠券已停止发放」）。
- * 4. 其它语言 + detail 优先那两条 → catalog 那句**不具体**的占位（宁可含糊，不混语种）。
- * 5. 其它语言 + 拿不到 code → 调用方场景文案，没给则按状态码的通用句。
+ * 4. 拿不到 code（没给，或不在词表）→ 调用方场景文案，没给则按状态码的通用句。
  *
- * 3 / 5 是「后端 267 个报错出口不带 code」这一现实的兜底面（普查与口径见 docs/error-codes.md），不是设计目标：
+ * 3 / 4 是「后端 267 个报错出口不带 code」这一现实的兜底面（普查与口径见 docs/error-codes.md），不是设计目标：
  * 非中文界面在这一支丢掉具体原因，`notify.fromError` 会把走过的 detail / status 两支上报，
  * 哪句该升级成 code 由真实频次决定，而不是猜那 204 句里哪句重要。
+ *
+ * 第 1 支的**参数没填上**时也落到 3 / 4（而不是印出 `{limit}`）：那是后端少给了一格参数，
+ * 属于契约破口，照旧走兜底并被上报；中文界面还有 `detail` 那句同语言的具体话可讲。
  *
  * 它存在的理由还是**同一条链不许有两种语感**：全局 toast（`notify.fromError`）与表单里内联渲染的报错
  * （登录表单、注销弹窗、改密表单、发品横幅）是同一个错误，各写一遍就会一个走 catalog、一个走 detail——
  * 用户在同一屏上看到两种来源的句子。
  */
 export function errorTextPlan(err: ApiError, locale: AppLocale, fallback?: string): ErrorTextPlan {
-    const key = errorKeyFor(err.code)
-    if (key !== undefined) return { source: "catalog", text: translateAppKit(key, locale) }
+    const key = err.code === undefined ? undefined : BY_CODE.get(err.code)
+    if (key !== undefined) {
+        const text = catalogText(key, err, locale)
+        if (text !== undefined) return { source: "catalog", text }
+    }
     if (err.status === 0) {
         return {
             source: fallback === undefined ? "network" : "fallback",
@@ -135,10 +162,6 @@ export function errorTextPlan(err: ApiError, locale: AppLocale, fallback?: strin
         }
     }
     if (locale === DETAIL_LOCALE) return { source: "detail", text: err.detail }
-    const detailFirstKey = err.code === undefined ? undefined : BY_CODE.get(err.code)
-    if (detailFirstKey !== undefined) {
-        return { source: "catalog", text: translateAppKit(detailFirstKey, locale) }
-    }
     return {
         source: fallback === undefined ? "status" : "fallback",
         text: fallback ?? translateAppKit(statusKey(err.status), locale),

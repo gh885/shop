@@ -172,3 +172,29 @@ describe("归一化把 errors 接回 ApiError", () => {
         })
     })
 })
+
+/**
+ * `params` 那一格与 `errors` 同理：拦截器不接回来，schema 就只是声明。
+ * 少了它，地址上限的 `limit` 到不了 catalog，后端改 20 → 30 时前端无从得知。
+ */
+describe("归一化把 params 接回 ApiError", () => {
+    it("400 响应体里的结构化上下文原样透出", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn<(input: RequestInfo | URL) => Promise<Response>>(async () =>
+                json(400, {
+                    status: 400,
+                    detail: "最多保存 20 条收货地址",
+                    code: "ADDRESS_LIMIT_EXCEEDED",
+                    params: { limit: 20 },
+                }),
+            ),
+        )
+
+        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+            status: 400,
+            code: "ADDRESS_LIMIT_EXCEEDED",
+            params: { limit: 20 },
+        })
+    })
+})

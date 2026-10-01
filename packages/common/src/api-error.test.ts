@@ -128,3 +128,34 @@ describe("toApiError 接回字段级明细 errors", () => {
         // 声明的三格之外不留第四格：ApiError 会进上报，漏进去的键等于给监控一个没人声明的形状
     })
 })
+
+/**
+ * 结构化上下文那一格：地址上限（20 / 200）住在后端常量里，前端没有对边，
+ * 只能靠 `params` 把那个数字当数据收回来，catalog 句子的 `{limit}` 才有值可填。
+ * 白名单重建与 errors 同一口径：脏值丢掉，不漏进上报。
+ */
+describe("toApiError 接回结构化上下文 params", () => {
+    it("标量值原样透出（数字上限正是它的首个用例）", () => {
+        expect(
+            toApiError({
+                status: 400,
+                detail: "最多保存 20 条收货地址",
+                code: "ADDRESS_LIMIT_EXCEEDED",
+                params: { limit: 20 },
+            }).params,
+        ).toEqual({ limit: 20 })
+    })
+
+    it("对象 / 数组 / null 值丢掉，空对象当没有", () => {
+        expect(
+            toApiError({
+                status: 400,
+                detail: "x",
+                params: { limit: 20, nested: { a: 1 }, list: [1], nothing: null },
+            }).params,
+        ).toEqual({ limit: 20 })
+        expect(toApiError({ status: 400, detail: "x", params: {} }).params).toBeUndefined()
+        expect(toApiError({ status: 400, detail: "x", params: [1] }).params).toBeUndefined()
+        expect(toApiError({ status: 400, detail: "x" }).params).toBeUndefined()
+    })
+})

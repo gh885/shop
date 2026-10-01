@@ -74,6 +74,7 @@ export * from "./components/logo"
 export * from "./components/topbar"
 export * from "./components/search-bar"
 export * from "./components/form"
+export { applyServerFieldErrors } from "./components/server-field-errors"
 // DateTimeField 的值形状（`datetime-local` 输入框那套墙上时钟）：包外的表单自己写 input 时也要同一形状，
 // 两侧不对称的代价是每保存一次时间就前挪一个时区差
 export * from "./components/wall-clock"

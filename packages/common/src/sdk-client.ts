@@ -1,7 +1,13 @@
 import { client } from "@shop/api"
 
 import type { ApiError } from "./api-error"
-import { fieldErrorsOf, isZodError, RESPONSE_VALIDATION_FAILED, zodIssuesText } from "./api-error"
+import {
+    fieldErrorsOf,
+    isZodError,
+    paramsOf,
+    RESPONSE_VALIDATION_FAILED,
+    zodIssuesText,
+} from "./api-error"
 import { ErrorCodes } from "./error-codes"
 import { captureError, toRouteTemplate, track } from "./monitoring"
 
@@ -131,6 +137,9 @@ function apiErrorFromResponse(response: { status: number }, error: unknown): Api
         // 422 那一发的字段级明细：后端挂在 ProblemDetail 的扩展属性上，不接回来就等于
         // ApiErrorSchema 里那格是谎（调用方按它分支，永远拿不到东西）
         errors: fieldErrorsOf(error),
+        // 结构化上下文（地址上限那条 `limit`）：与 errors 同理，不接回来就等于 ApiErrorSchema
+        // 里那格是谎——catalog 只能退回不带数字的占位，后端把 20 改成 30 时前端无从得知
+        params: paramsOf(error),
     } satisfies ApiError
 }
 

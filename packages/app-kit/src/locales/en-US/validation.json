@@ -1,0 +1,8 @@
+{
+    "validation.REQUIRED": "This field is required.",
+    "validation.MIN_LENGTH": "Must be at least {min} characters.",
+    "validation.MAX_LENGTH": "Must be at most {max} characters.",
+    "validation.PATTERN": "Invalid format.",
+    "validation.MIN": "Must be at least {min}.",
+    "validation.MAX": "Must be at most {max}."
+}

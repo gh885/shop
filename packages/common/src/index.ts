@@ -20,6 +20,7 @@
  *   不接就等于 schema 里那格是谎）。取用户可见的那句话
  *   不在这里做，那是 app-kit `errorText` 的一条链（§7.3）
  * - error-codes.ts：错误码常量（与 docs/error-codes.md 同步）
+ * - validation-rules.ts：422 字段级明细里 `errors[].rule` 的词表（镜像后端 `ValidationRules`）
  * - sdk-client.ts：生成 SDK 的传输层装配（token 注入 / 401 刷新 / 错误归一化）
  * - auth-kit.ts  ：应用无关的登录态套件（内存 token + 静默刷新 + 设备 ID + 订阅）
  * - regions.ts   ：国标行政区划树的纯算法 + 数据（级联取孩子 / 6 位码反查路径）
@@ -60,8 +61,13 @@ export {
 } from "./money"
 
 export {
+    type ApiFieldError,
     ApiErrorSchema,
     type ApiError,
+    type ApiParams,
+    fieldErrorsOf,
+    isApiError,
+    paramsOf,
     RESPONSE_VALIDATION_FAILED,
     isZodError,
     toApiError,
@@ -69,6 +75,7 @@ export {
 } from "./api-error"
 
 export * from "./error-codes"
+export * from "./validation-rules"
 export * from "./permission-codes"
 
 export { configureSdkClient } from "./sdk-client"

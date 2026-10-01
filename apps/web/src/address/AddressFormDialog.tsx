@@ -1,4 +1,11 @@
-import { FormActions, notify, RegionField, useI18n } from "@shop/app-kit"
+import {
+    FormActions,
+    notify,
+    RegionField,
+    serverFieldErrorTexts,
+    submitForm,
+    useI18n,
+} from "@shop/app-kit"
 import {
     ADDRESS_DETAIL_MAX,
     ADDRESS_NAME_MAX,
@@ -17,6 +24,7 @@ import {
     InputGroupAddon,
     InputGroupInput,
     InputGroupTextarea,
+    applyServerFieldErrors,
     Spinner,
     ToggleGroup,
     ToggleGroupItem,
@@ -81,10 +89,29 @@ function AddressForm({
         defaultValues: toDefaults(editing),
         validators: { onSubmit: AddressInputSchema },
         onSubmit: async ({ value }) => {
-            if (editing) {
-                await update.mutateAsync({ id: editing.id, input: value })
-            } else {
-                await create.mutateAsync(value)
+            try {
+                if (editing) {
+                    await update.mutateAsync({ id: editing.id, input: value })
+                } else {
+                    await create.mutateAsync(value)
+                }
+            } catch (error) {
+                // 后端 422 的字段级明细落到对应输入框上（此前只有一句全局 toast）。
+                // 映射逐字段列出，不靠「没列就是同名」：receiverName ↔ receiver 是这个表单自己的改名，
+                // 同名的三个也列出来——列出来等于「我确认过它同名」，漏列的那个错误就永远落不了地
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        receiverName: "receiver",
+                        phone: "phone",
+                        regionCode: "regionCode",
+                        detail: "detail",
+                    }),
+                )
+                // 这里只负责「把字段级错误写到对应框上」，然后原样抛出去：抛出去 form-core 才会把
+                // isSubmitSuccessful 置回 false（框架状态诚实），而接住 rejection 是事件入口
+                // submitForm 的事——在 onSubmit 里 catch {} 会把「代码坏了」那一类也静默吞掉
+                throw error
             }
             onOpenChange(false)
         },
@@ -127,7 +154,9 @@ function AddressForm({
                 className="mt-4 flex flex-col gap-5"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    void form.handleSubmit()
+                    // 不写 void form.handleSubmit()：void 不接 rejection，onSubmit 抛出的错误会变成
+                    // 未处理的异步异常。submitForm 接住它，并把「非接口错误」上报监控（见它的注释）
+                    void submitForm(form)
                 }}
             >
                 {/* 智能粘贴：圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}

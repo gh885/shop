@@ -1,7 +1,7 @@
 import { type ApiError, ErrorCodes, resolveMessage } from "@shop/common"
 import { describe, expect, it } from "vite-plus/test"
 
-import { DETAIL_FIRST_CODES, errorKeyFor, errorTextPlan } from "./error-keys"
+import { CODE_SLOTS, errorKeyFor, errorTextPlan } from "./error-keys"
 import { APP_KIT_MESSAGES } from "./messages"
 
 /**
@@ -9,8 +9,8 @@ import { APP_KIT_MESSAGES } from "./messages"
  *
  * 编译期那半由 `error-keys.ts` 的 `satisfies Record<code 值, AppKitMessageKey>` 给（加了码忘了
  * 配文案 = 编译不过）；这里补的是编译期看不见的两件：catalog 里那两句**取得到**（装配没漏语言
- * 目录），以及迁移期那两条例外**还成立**——它们的 catalog 句子一旦带上 `{slot}`，说明参数化
- * 已经落地，就该从清单里删掉，此时这里的断言必然红。
+ * 目录），以及**参数化那条通道两端对得上**——带 `{槽位}` 的句子都在 `CODE_SLOTS` 登记着，
+ * 登记的槽位也确实能由后端的 `params` 填满。
  *
  * 逐码一个用例（`it.each`）而不是一个循环用例：失败时用例名就带着是哪个码，
  * 不用在几百次断言里反推是哪条路走岔了。
@@ -18,7 +18,7 @@ import { APP_KIT_MESSAGES } from "./messages"
 const LOCALES = ["zh-CN", "en-US"] as const
 
 const ALL_CODES = Object.values(ErrorCodes)
-const CATALOG_CODES = ALL_CODES.filter((code) => !DETAIL_FIRST_CODES.includes(code))
+const CATALOG_CODES = ALL_CODES
 
 describe("error.<code> catalog", () => {
     it.each(CATALOG_CODES)("%s：中英文都取得到 catalog 句子", (code) => {
@@ -28,13 +28,6 @@ describe("error.<code> catalog", () => {
             expect(text).toBeTruthy()
             expect(text).not.toBe(`error.${code}`)
         }
-    })
-
-    it("迁移期例外清单是这两条，多一条少一条都红", () => {
-        expect(DETAIL_FIRST_CODES).toEqual([
-            "ADDRESS_LIMIT_EXCEEDED",
-            "MERCHANT_ADDRESS_LIMIT_EXCEEDED",
-        ])
     })
 
     /**
@@ -66,18 +59,28 @@ describe("error.<code> catalog", () => {
         ).toBe(false)
     })
 
-    it.each(DETAIL_FIRST_CODES)(
-        "%s：catalog 那句确实还没参数化（参数化落地就该从例外清单里删）",
+    it.each(Object.keys(CODE_SLOTS))(
+        "%s：槽位已登记，且句子里的每个 {槽位} 都能由后端 params 填满",
         (code) => {
-            expect(errorKeyFor(code)).toBeUndefined()
             for (const locale of LOCALES) {
                 const text = resolveMessage(APP_KIT_MESSAGES, `error.${code}`, locale)
-                expect(text).toBeTruthy()
-                // 长出 `{` 就是参数化已落地却不删这条例外——兜底会长成永久架构，所以当场红
-                expect(text).not.toContain("{")
+                // 登记的槽位名必须在句子里真的出现（写错一个字母 = 那个槽位永远没人填）
+                for (const slot of CODE_SLOTS[code] ?? []) expect(text).toContain(`{${slot}}`)
             }
         },
     )
+
+    it("每个带 {槽位} 的句子都在 CODE_SLOTS 登记着（漏登记 = 裸槽位印给用户）", () => {
+        // 先算出漏登记的那几个再断言一次（no-conditional-expect：不许把 expect 放进 if）
+        const unregistered = ALL_CODES.filter(
+            (code) =>
+                CODE_SLOTS[code] === undefined &&
+                LOCALES.some((locale) =>
+                    (resolveMessage(APP_KIT_MESSAGES, `error.${code}`, locale) ?? "").includes("{"),
+                ),
+        )
+        expect(unregistered).toEqual([])
+    })
 
     it("词表之外的码不猜文案", () => {
         expect(errorKeyFor("NOT_A_CODE")).toBeUndefined()
@@ -154,24 +157,38 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
         )
     })
 
-    it.each(DETAIL_FIRST_CODES)(
-        "%s：非中文界面退成 catalog 那句占位，中文界面保留具体 detail",
-        (code) => {
-            const en = errorTextPlan(
-                apiError({ code, detail: "「标题」包含违禁词「最佳」" }),
-                "en-US",
-            )
-            expect(en.source).toBe("catalog")
-            expect(en.text).toBe(resolveMessage(APP_KIT_MESSAGES, `error.${code}`, "en-US"))
-            expect(hasCjk(en.text)).toBe(false)
-            expect(
-                errorTextPlan(apiError({ code, detail: "最多保存 20 条收货地址" }), "zh-CN"),
-            ).toEqual({
-                source: "detail",
-                text: "最多保存 20 条收货地址",
-            })
-        },
-    )
+    it.each([
+        ["ADDRESS_LIMIT_EXCEEDED", 20, "最多保存 20 条收货地址"],
+        ["MERCHANT_ADDRESS_LIMIT_EXCEEDED", 200, "最多添加 200 条地址"],
+    ])("%s：{limit} 由后端 params 填上，中文界面出具体那句、不再退回 detail", (code, limit, zh) => {
+        // 中文界面：catalog（已填参数）优先于 detail——两者同义，但 catalog 是本地化出口
+        expect(errorTextPlan(apiError({ code, params: { limit } }), "zh-CN")).toEqual({
+            source: "catalog",
+            text: zh,
+        })
+        // 英文界面：拿到的是带数字的具体句，而不是占位（上限变 30 时前端无需改动）
+        const en = errorTextPlan(
+            apiError({ code, detail: `最多添加 ${limit} 条地址`, params: { limit } }),
+            "en-US",
+        )
+        expect(en.source).toBe("catalog")
+        expect(en.text).toContain(String(limit))
+        expect(hasCjk(en.text)).toBe(false)
+    })
+
+    it("params 缺失：宁可不讲那句，也不把裸槽位印出去（中文落 detail、英文落通用句）", () => {
+        const zh = errorTextPlan(
+            apiError({ code: "ADDRESS_LIMIT_EXCEEDED", detail: "最多保存 20 条收货地址" }),
+            "zh-CN",
+        )
+        expect(zh).toEqual({ source: "detail", text: "最多保存 20 条收货地址" })
+        const en = errorTextPlan(
+            apiError({ code: "ADDRESS_LIMIT_EXCEEDED", detail: "最多保存 20 条收货地址" }),
+            "en-US",
+        )
+        expect(en.source).toBe("status")
+        expect(en.text).not.toContain("{")
+    })
 
     it("词表里查不到的码也不猜句子——按状态码兜底", () => {
         const plan = errorTextPlan(apiError({ code: "NOT_A_CODE", status: 409 }), "en-US")

@@ -67,11 +67,23 @@ export type AppKitMessageKey =
     "error.SMS_RATE_LIMIT" |
     "error.STAFF_DISABLED" |
     "error.TOKEN_EXPIRED" |
-    "error.USER_DISABLED"
+    "error.USER_DISABLED" |
+    "validation.MAX" |
+    "validation.MAX_LENGTH" |
+    "validation.MIN" |
+    "validation.MIN_LENGTH" |
+    "validation.PATTERN" |
+    "validation.REQUIRED"
 
 type AppKitParamsByKey = {
     "appKit.login.resend": { countdown: string | number }
     "appKit.topbar.searchLabel": { brand: string | number }
+    "error.ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
+    "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
+    "validation.MAX": { max: string | number }
+    "validation.MAX_LENGTH": { max: string | number }
+    "validation.MIN": { min: string | number }
+    "validation.MIN_LENGTH": { min: string | number }
 }
 
 export type AppKitParamsOf<K extends AppKitMessageKey> = K extends keyof AppKitParamsByKey

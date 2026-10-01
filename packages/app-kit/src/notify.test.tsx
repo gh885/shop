@@ -3,7 +3,6 @@ import { describe, expect, it } from "vite-plus/test"
 import { ErrorCodes, Transport, configureMonitoring } from "@shop/common"
 import { Toaster } from "@shop/ui-web"
 
-import { DETAIL_FIRST_CODES } from "./i18n/error-keys"
 import { notify } from "./notify"
 
 /**
@@ -43,43 +42,48 @@ describe("notify.fromError 按 code 取 catalog", () => {
     })
 
     /**
-     * 两个 detail 优先码：detail 那句与 catalog 的英文句**必须不同**，否则这条测的是空话。
-     * 中文界面要具体（上限数字），英文界面要语言正确——宁可少说一个数字。
+     * 两条地址上限码（参数化通道的唯一样例）：上限住在后端常量里，以 `params.limit` 出一次。
+     * 两种语言都弹 catalog——中文那句与后端 detail 同义，但 catalog 是本地化的唯一出口；
+     * 英文那句带的是**后端给的那个数字**，不是 catalog 里写死的字面量。
      */
-    const DETAIL_FIRST_CASES = [
+    const PARAM_CASES = [
         {
             code: ErrorCodes.ADDRESS_LIMIT_EXCEEDED,
             detail: "最多保存 20 条收货地址",
-            catalog: "You can save up to 20 shipping addresses.",
+            params: { limit: 20 },
+            zh: "最多保存 20 条收货地址",
+            en: "You can save up to 20 shipping addresses.",
         },
         {
             code: ErrorCodes.MERCHANT_ADDRESS_LIMIT_EXCEEDED,
             detail: "最多添加 200 条地址",
-            catalog: "You can add up to 200 addresses.",
+            params: { limit: 200 },
+            zh: "最多添加 200 条地址",
+            en: "You can add up to 200 addresses.",
         },
     ] as const
 
-    it("例外清单与用例表同源：加了 detail 优先码却不加用例，这条先红", () => {
-        expect([...DETAIL_FIRST_CODES].toSorted()).toEqual(
-            DETAIL_FIRST_CASES.map((c) => c.code).toSorted(),
-        )
-    })
-
-    for (const { code, detail, catalog } of DETAIL_FIRST_CASES) {
-        it(`${code}：中文界面弹后端那句具体的`, async () => {
+    for (const { code, detail, params, zh, en } of PARAM_CASES) {
+        it(`${code}：两种语言都弹 catalog，上限由 params 填`, async () => {
             renderToaster()
 
-            notify.fromError({ status: 400, code, detail }, "zh-CN")
+            notify.fromError({ status: 400, code, detail, params }, "zh-CN")
+            expect(await screen.findByText(zh)).toBeInTheDocument()
 
-            expect(await screen.findByText(detail)).toBeInTheDocument()
+            notify.fromError({ status: 400, code, detail, params }, "en-US")
+            expect(await screen.findByText(en)).toBeInTheDocument()
         })
 
-        it(`${code}：英文界面弹 catalog 占位——少说一个数字，也不混语种`, async () => {
+        it(`${code}：params 缺失时不弹裸槽位（降级到通用句）`, async () => {
             renderToaster()
 
             notify.fromError({ status: 400, code, detail }, "en-US")
-
-            expect(await screen.findByText(catalog)).toBeInTheDocument()
+            expect(
+                await screen.findByText(
+                    "The request could not be completed. Please check your input and try again.",
+                ),
+            ).toBeInTheDocument()
+            expect(screen.queryByText(/{/)).not.toBeInTheDocument()
         })
     }
 

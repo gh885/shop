@@ -1,0 +1,8 @@
+{
+    "validation.REQUIRED": "这一项必填",
+    "validation.MIN_LENGTH": "至少 {min} 个字",
+    "validation.MAX_LENGTH": "最长 {max} 个字",
+    "validation.PATTERN": "格式不对",
+    "validation.MIN": "不能小于 {min}",
+    "validation.MAX": "不能大于 {max}"
+}

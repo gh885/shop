@@ -19,8 +19,8 @@
     "error.AFTER_SALE_ALREADY_REFUNDED": "This order has already been refunded.",
     "error.CATEGORY_NOT_LEAF": "Please select a leaf category.",
     "error.CATEGORY_DISABLED": "This category or one of its parents is disabled. Please choose another one.",
-    "error.ADDRESS_LIMIT_EXCEEDED": "You can save up to 20 shipping addresses.",
-    "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": "You can add up to 200 addresses.",
+    "error.ADDRESS_LIMIT_EXCEEDED": "You can save up to {limit} shipping addresses.",
+    "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": "You can add up to {limit} addresses.",
     "error.BANNER_TIME_RANGE_INVALID": "End time must be later than start time.",
     "error.FORBIDDEN_WORD_HIT": "Your content contains a prohibited term. Please revise and submit again.",
     "error.RESPONSE_VALIDATION_FAILED": "The server response does not match the API contract."
