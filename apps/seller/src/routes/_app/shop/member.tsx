@@ -111,7 +111,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     })
 
     // 失败已由全局默认的 throwOnError 交给路由错误页
-    if (members.isLoading) {
+    if (members.isPending) {
         return (
             <div className="space-y-2">
                 {[0, 1, 2].map((i) => (

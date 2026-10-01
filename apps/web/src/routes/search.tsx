@@ -129,6 +129,8 @@ function SearchResultBody({
     if (!criteria) {
         return <SearchPrompt />
     }
+    // 分支顺序不能调：searchProductsOptions 带 enabled: hasSearchCriteria(search)，没有搜索词时查询不启用、
+    // isPending 会恒为 true。所以「无搜索词」的判断必须排在 isPending 之前，否则无词进来就是一块永久骨架。
     if (result.isPending) {
         return <SearchResultsSkeleton />
     }

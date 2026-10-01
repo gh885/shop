@@ -26,7 +26,10 @@ export function useCouponList(shopId: string, search: CouponListSearch) {
             couponRowFromWire(template, now, locale),
         ),
         total: coupons.data?.total ?? 0,
-        isPending: coupons.isLoading,
+        // 跟源字段同名同义（isPending =「还没到手」）。该查询带 placeholderData 但无 enabled，
+        // 换页时 placeholderData 顶着，两者同为 false——所以与旧的 isLoading 行为等价；
+        // 真正的问题是「字段叫 isPending、右边却塞 isLoading」这种名字与语义不符。
+        isPending: coupons.isPending,
         busyId,
         stop: (id: string) => run(stop.mutateAsync)(id),
     }

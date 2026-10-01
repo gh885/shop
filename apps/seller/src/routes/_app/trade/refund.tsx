@@ -81,7 +81,7 @@ function RefundPage() {
                 onChange={handleTabChange}
             />
 
-            {tickets.isLoading ? (
+            {tickets.isPending ? (
                 <DataTableSkeleton columns={8} />
             ) : records.length === 0 ? (
                 <Empty className="py-16">

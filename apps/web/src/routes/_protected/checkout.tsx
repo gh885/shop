@@ -134,32 +134,66 @@ function CheckoutPage() {
     })
 
     return (
-        <CheckoutLayout
-            loading={preview.isLoading}
-            error={preview.isError}
-            onRetry={() => void preview.refetch()}
-            addresses={addresses}
-            addressId={addressId}
-            onAddressChange={setAddressId}
-            preview={preview.data}
-            couponSelection={couponSelection}
-            onSelectCoupon={(shopId, userCouponId) =>
-                setCouponSelection((prev) => ({ ...prev, [shopId]: userCouponId }))
-            }
-            buyerMessage={buyerMessage}
-            onBuyerMessageChange={setBuyerMessage}
-            canSubmit={Boolean(effectiveAddressId)}
-            pending={pending}
-            onSubmit={submit}
-        />
+        <>
+            <CheckoutHeader />
+            <div className="mx-auto w-full max-w-page px-6 pb-10">
+                {/* 预览三态在调用点二选一（DESIGN.md：不把 isLoading/isError 传进展示组件）。
+                    preview 带 enabled（空结算时为 false），所以用 isLoading 而不是 isPending：
+                    未启用时 isPending 恒为 true → 永久骨架。空结算（enabled=false、无 data）走 grid 分支，
+                    由「无可结算条目」流程自己渲染，与加载中/失败两态互不混淆。 */}
+                {preview.isLoading ? (
+                    <CheckoutPreviewSkeleton />
+                ) : preview.isError ? (
+                    <CheckoutPreviewError onRetry={() => void preview.refetch()} />
+                ) : (
+                    <CheckoutGrid
+                        addresses={addresses}
+                        addressId={addressId}
+                        onAddressChange={setAddressId}
+                        preview={preview.data}
+                        couponSelection={couponSelection}
+                        onSelectCoupon={(shopId, userCouponId) =>
+                            setCouponSelection((prev) => ({ ...prev, [shopId]: userCouponId }))
+                        }
+                        buyerMessage={buyerMessage}
+                        onBuyerMessageChange={setBuyerMessage}
+                        canSubmit={Boolean(effectiveAddressId)}
+                        pending={pending}
+                        onSubmit={submit}
+                    />
+                )}
+            </div>
+        </>
     )
 }
 
-/** 结算页壳的入参：预览三态 + 左右两栏各自要的数据与回调 */
-type CheckoutLayoutProps = {
-    loading: boolean
-    error: boolean
-    onRetry: () => void
+/** 预览三态里的「挂起」：两栏等高骨架 */
+function CheckoutPreviewSkeleton() {
+    return (
+        <div className="space-y-5">
+            <Skeleton className="h-40 w-full rounded-lg" />
+            <Skeleton className="h-40 w-full rounded-lg" />
+        </div>
+    )
+}
+
+/** 预览三态里的「失败」：预览本身不进路由错误页（页面主体是地址），就地给重试出口 */
+function CheckoutPreviewError({ onRetry }: { onRetry: () => void }) {
+    return (
+        <div className="flex flex-col items-center gap-4 py-16 text-sm text-muted-foreground">
+            <span>结算信息加载失败，请重试</span>
+            <Button
+                variant="outline"
+                onClick={onRetry}
+            >
+                重新加载
+            </Button>
+        </div>
+    )
+}
+
+/** 结算页左右两栏（左栏明细 / 右栏金额卡）的入参：各自要的数据与回调（不含三态，那在调用点分完了） */
+type CheckoutGridProps = {
     addresses: Address[]
     addressId: string
     onAddressChange: (id: string) => void
@@ -173,11 +207,8 @@ type CheckoutLayoutProps = {
     onSubmit: () => void
 }
 
-/** 结算页壳：页头 + 版心 + 预览三态 + 左右两栏（左栏明细 / 右栏金额卡各自已是独立组件） */
-function CheckoutLayout({
-    loading,
-    error,
-    onRetry,
+/** 结算页两栏（左栏明细 / 右栏金额卡各自已是独立组件） */
+function CheckoutGrid({
     addresses,
     addressId,
     onAddressChange,
@@ -189,78 +220,31 @@ function CheckoutLayout({
     canSubmit,
     pending,
     onSubmit,
-}: CheckoutLayoutProps) {
+}: CheckoutGridProps) {
     return (
-        <>
-            <CheckoutHeader />
-            <div className="mx-auto w-full max-w-page px-6 pb-10">
-                <CheckoutBody
-                    loading={loading}
-                    error={error}
-                    onRetry={onRetry}
-                >
-                    <div className="flex flex-col gap-6 lg:flex-row">
-                        <CheckoutLines
-                            addresses={addresses}
-                            addressId={addressId}
-                            onAddressChange={onAddressChange}
-                            preview={preview}
-                            couponSelection={couponSelection}
-                            onSelectCoupon={onSelectCoupon}
-                            buyerMessage={buyerMessage}
-                            onBuyerMessageChange={onBuyerMessageChange}
-                        />
-                        {/* 右：金额结算卡。窄屏不是一条不可压缩的 320px 固定轨——
-                            那会把整栏推到视口右缘外且没有任何提示；换成占满宽度、落到左栏下面 */}
-                        <div className="w-full shrink-0 lg:w-80">
-                            <CheckoutSummaryCard
-                                preview={preview}
-                                canSubmit={canSubmit}
-                                pending={pending}
-                                onSubmit={onSubmit}
-                            />
-                        </div>
-                    </div>
-                </CheckoutBody>
+        <div className="flex flex-col gap-6 lg:flex-row">
+            <CheckoutLines
+                addresses={addresses}
+                addressId={addressId}
+                onAddressChange={onAddressChange}
+                preview={preview}
+                couponSelection={couponSelection}
+                onSelectCoupon={onSelectCoupon}
+                buyerMessage={buyerMessage}
+                onBuyerMessageChange={onBuyerMessageChange}
+            />
+            {/* 右：金额结算卡。窄屏不是一条不可压缩的 320px 固定轨——
+                那会把整栏推到视口右缘外且没有任何提示；换成占满宽度、落到左栏下面 */}
+            <div className="w-full shrink-0 lg:w-80">
+                <CheckoutSummaryCard
+                    preview={preview}
+                    canSubmit={canSubmit}
+                    pending={pending}
+                    onSubmit={onSubmit}
+                />
             </div>
-        </>
+        </div>
     )
-}
-
-/** 预览请求的三态壳：挂起骨架 / 失败重试 / 正常内容（预览本身不进路由错误页，地址才是主体） */
-function CheckoutBody({
-    loading,
-    error,
-    onRetry,
-    children,
-}: {
-    loading: boolean
-    error: boolean
-    onRetry: () => void
-    children: React.ReactNode
-}) {
-    if (loading) {
-        return (
-            <div className="space-y-5">
-                <Skeleton className="h-40 w-full rounded-lg" />
-                <Skeleton className="h-40 w-full rounded-lg" />
-            </div>
-        )
-    }
-    if (error) {
-        return (
-            <div className="flex flex-col items-center gap-4 py-16 text-sm text-muted-foreground">
-                <span>结算信息加载失败，请重试</span>
-                <Button
-                    variant="outline"
-                    onClick={onRetry}
-                >
-                    重新加载
-                </Button>
-            </div>
-        )
-    }
-    return <>{children}</>
 }
 
 /** 左栏：地址 + 商品分组 + 失效行 + 买家留言 */

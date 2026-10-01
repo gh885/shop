@@ -77,7 +77,7 @@ function OrdersPage() {
                 onChange={handleFilterChange}
             />
 
-            {orders.isLoading ? (
+            {orders.isPending ? (
                 <DataTableSkeleton columns={7} />
             ) : records.length === 0 ? (
                 <Empty className="py-16">

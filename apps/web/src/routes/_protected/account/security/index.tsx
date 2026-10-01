@@ -274,32 +274,55 @@ function DeviceManager() {
                 </CardAction>
             </CardHeader>
             <CardContent>
-                <DeviceList
-                    loading={devices.isLoading}
-                    devices={devices.data ?? []}
-                    deletingId={deletingId}
-                    busy={deleteDevice.isPending}
-                    onSignOut={(deviceId) => {
-                        setDeletingId(deviceId)
-                        deleteDevice.mutate(deviceId, {
-                            onSettled: () => setDeletingId(undefined),
-                        })
-                    }}
-                />
+                {/* 加载骨架在调用点二选一（DESIGN.md：不把 isPending 传进展示组件）：
+                    DeviceList 只认「有设备 / 没设备」两态，否则 loading 布尔会与
+                    devices 的空数组混成「加载中」和「真的没有设备」两种含义 */}
+                {devices.isPending ? (
+                    <DeviceListSkeleton />
+                ) : (
+                    <DeviceList
+                        devices={devices.data ?? []}
+                        deletingId={deletingId}
+                        busy={deleteDevice.isPending}
+                        onSignOut={(deviceId) => {
+                            setDeletingId(deviceId)
+                            deleteDevice.mutate(deviceId, {
+                                onSettled: () => setDeletingId(undefined),
+                            })
+                        }}
+                    />
+                )}
             </CardContent>
         </Card>
     )
 }
 
-/** 设备列表：加载骨架 / 空态 / 行列表三分支 */
+/** 设备列表加载骨架：三行对齐真实行高（h-14），避免列表到位时跳版 */
+function DeviceListSkeleton() {
+    return (
+        <div className="space-y-2">
+            {Array.from({ length: 3 }, (_, i) => (
+                <Skeleton
+                    key={i}
+                    className="h-14 w-full"
+                />
+            ))}
+        </div>
+    )
+}
+
+/**
+ * 设备列表：空态 / 行列表两分支（加载骨架由调用点二选一，见上）。
+ *
+ * `deletingId` / `busy` 仍作为 props 下传：它们是**交互瞬态**（「哪一行正在退出」）而不是数据三态，
+ * 行级 Spinner 定位与按钮按住都需要这份信息，在调用点折算成视图模型反而更绕。
+ */
 function DeviceList({
-    loading,
     devices,
     deletingId,
     busy,
     onSignOut,
 }: {
-    loading: boolean
     devices: readonly DeviceEntryResponse[]
     deletingId: string | undefined
     /** 是否有行正在退出：在途时所有行的按钮都按住 */
@@ -307,18 +330,6 @@ function DeviceList({
     onSignOut: (deviceId: string) => void
 }) {
     const t = useT()
-    if (loading) {
-        return (
-            <div className="space-y-2">
-                {Array.from({ length: 3 }, (_, i) => (
-                    <Skeleton
-                        key={i}
-                        className="h-14 w-full"
-                    />
-                ))}
-            </div>
-        )
-    }
     if (devices.length === 0) {
         return (
             <Empty className="py-6">
