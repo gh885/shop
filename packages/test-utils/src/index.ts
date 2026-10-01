@@ -14,6 +14,7 @@ export {
     makeCoupon,
     makeCouponTemplate,
     makeMyCouponResponse,
+    makeNavEntry,
     makeProductResponse,
     makeRecommendTab,
     makeSellerOrderListItem,

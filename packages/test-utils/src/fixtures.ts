@@ -6,6 +6,7 @@ import type {
     Coupon,
     CouponTemplateResponse,
     MyCouponResponse,
+    NavEntryResponse,
     ProductResponse,
     RecommendTabResponse,
     SellerOrderListItemResponse,
@@ -93,6 +94,31 @@ export function makeRecommendTab(
         target: null,
         targetType: null,
         isDefault: true,
+        sortOrder: 0,
+        status: "ENABLED",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        ...overrides,
+    }
+}
+
+/**
+ * 首页导航词条（`GET /home/nav` 与 `GET /admin/nav` 同一契约）：默认**无跳转目标**的叶子词条。
+ *
+ * 默认取「无 icon、无 target、无 subs、sortOrder 0」这一档，是这条契约的中性形态——
+ * 有跳转的词条才是需要被用例特意构造出来的那一档（`searchParamsForNavEntry` 的三条分支、
+ * admin 编辑面的回填，都靠各自 override 出自己关心的字段）。
+ * `navKey` 用 `"home"`：它是排序列的语义位，两端都用得上且不会与断言里的 id 混。
+ */
+export function makeNavEntry(overrides: Partial<NavEntryResponse> = {}): NavEntryResponse {
+    return {
+        id: "00000000-0000-4000-8000-0000000000d1",
+        navKey: "home",
+        title: "导航词条",
+        iconKey: null,
+        target: null,
+        targetType: null,
+        subs: [],
         sortOrder: 0,
         status: "ENABLED",
         createdAt: "2026-01-01T00:00:00Z",

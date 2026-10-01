@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test"
 
 import type { NavEntryResponse } from "@shop/api/sdk"
+import { makeNavEntry } from "@shop/test-utils/fixtures"
 
 import { navDefaults, normalizeSubs, SubsSchema, toNavRequest, type SubsValue } from "./form"
 
@@ -10,23 +11,6 @@ import { navDefaults, normalizeSubs, SubsSchema, toNavRequest, type SubsValue } 
  * subs 的表单态和提交态不是一回事：编辑器里每行都是一个空 input（字符串 `""`），
  * 提交时它们必须消失，否则前台会渲染出一个没有字的分组或一条点不动的词条。
  */
-
-function makeNav(overrides: Partial<NavEntryResponse> = {}): NavEntryResponse {
-    return {
-        id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
-        navKey: "home",
-        title: "手机数码",
-        iconKey: "smartphone",
-        targetType: "CATEGORY",
-        target: "1001",
-        status: "ENABLED",
-        sortOrder: 2,
-        subs: [],
-        createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-02T00:00:00Z",
-        ...overrides,
-    }
-}
 
 const blankForm = () => ({
     navKey: "home",
@@ -75,13 +59,17 @@ describe("navDefaults", () => {
     })
 
     it("编辑时排序与图标都回填成字符串：数字进不了 input", () => {
-        const values = navDefaults(makeNav())
+        // 这三个字段是这条用例的考察对象，所以显式写出来：共用夹具的默认值是中性档（无跳转），
+        // 依赖它就等于把「默认值恰好是 2/smartphone」这件事藏起来
+        const values = navDefaults(
+            makeNavEntry({ sortOrder: 2, iconKey: "smartphone", target: "1001" }),
+        )
 
         expect(values).toMatchObject({ sortOrder: "2", iconKey: "smartphone", target: "1001" })
     })
 
     it("脏的跳转类型落回 NONE：一个下拉框不认识的类型不该让编辑面打不开", () => {
-        expect(navDefaults(makeNav({ targetType: "MINI_PROGRAM" })).targetType).toBe("NONE")
+        expect(navDefaults(makeNavEntry({ targetType: "MINI_PROGRAM" })).targetType).toBe("NONE")
     })
 })
 
