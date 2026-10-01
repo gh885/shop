@@ -9,7 +9,7 @@ import {
     TruckIcon,
     UserRoundIcon,
 } from "lucide-react"
-import type { SidebarItem } from "@shop/app-kit"
+import type { SidebarItem, SidebarSourceItem } from "@shop/app-kit"
 
 import { ACCOUNT_MANAGE_PERMISSION } from "#/account/constants"
 import { COUPON_OPS_PERMISSION } from "#/coupon-ops/constants"
@@ -17,97 +17,126 @@ import { AUDIT_VIEW_PERMISSION } from "#/audit/constants"
 import { LOGISTICS_MANAGE_PERMISSION } from "#/logistics/constants"
 import { SHOP_GOVERNANCE_PERMISSION } from "#/shop-ops/constants"
 
+import type { AdminMessageKey } from "#/locales/messages.gen"
+
 /** 侧栏分组（带 sections 的那一半）：本项目的入口都是分组，顶层叶子在这里不出现 */
 type SidebarGroupItem = Extract<SidebarItem, { sections: unknown }>
 
 /** 审核页位于根路径；显式保留分页初始值。 */
 export const HOME_LINK = linkOptions({ to: "/", search: { page: 1, size: 20 } })
 
-/** 只列已实现的功能；两级菜单消费同一份数据。 */
-export const NAV_ITEMS: SidebarItem[] = [
+/**
+ * 只列已实现的功能；两级菜单消费同一份数据。
+ *
+ * 这份表写的是 i18n key（`labelKey` / `titleKey`）不是中文，句子在翻译那一步换出来；
+ * 标注成 `SidebarSourceItem<AdminMessageKey>` 让写错的 key 在这里是编译错误。
+ */
+export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
     {
         key: "account",
-        label: "账号",
+        labelKey: "admin.nav.account",
         icon: createElement(UserRoundIcon),
         sections: [
             {
-                title: "账号治理",
+                titleKey: "admin.nav.account.section.0",
                 items: [
-                    { key: "users", label: "用户管理", to: "/accounts/users" },
-                    { key: "staff", label: "员工管理", to: "/accounts/staff" },
+                    { key: "users", labelKey: "admin.page.accounts.users", to: "/accounts/users" },
+                    { key: "staff", labelKey: "admin.page.accounts.staff", to: "/accounts/staff" },
                 ],
             },
         ],
     },
     {
         key: "merchant",
-        label: "商家",
+        labelKey: "admin.nav.merchant",
         icon: createElement(StoreIcon),
         sections: [
             {
-                title: "商家管理",
+                titleKey: "admin.nav.merchant.section.0",
                 items: [
-                    { key: "review", label: "入驻审核", ...HOME_LINK },
-                    { key: "shops", label: "店铺治理", to: "/shops" },
+                    { key: "review", labelKey: "admin.page.home", ...HOME_LINK },
+                    { key: "shops", labelKey: "admin.page.shops", to: "/shops" },
                 ],
             },
         ],
     },
     {
         key: "product",
-        label: "商品",
+        labelKey: "admin.nav.product",
         icon: createElement(ListTreeIcon),
         sections: [
             {
-                title: "商品基础数据",
-                items: [{ key: "categories", label: "类目管理", to: "/categories" }],
+                titleKey: "admin.nav.product.section.0",
+                items: [
+                    {
+                        key: "categories",
+                        labelKey: "admin.page.categories",
+                        to: "/categories",
+                    },
+                ],
             },
         ],
     },
     {
         key: "coupon-ops",
-        label: "优惠券",
+        labelKey: "admin.nav.coupon-ops",
         icon: createElement(PercentIcon),
         sections: [
             {
-                title: "营销运营",
-                items: [{ key: "coupon-ops", label: "优惠券运营", to: "/coupon-ops" }],
+                titleKey: "admin.nav.coupon-ops.section.0",
+                items: [
+                    {
+                        key: "coupon-ops",
+                        labelKey: "admin.page.coupon-ops",
+                        to: "/coupon-ops",
+                    },
+                ],
             },
         ],
     },
     {
         key: "logistics",
-        label: "物流",
+        labelKey: "admin.nav.logistics",
         icon: createElement(TruckIcon),
         sections: [
             {
-                title: "履约运维",
-                items: [{ key: "logistics", label: "物流异常", to: "/logistics" }],
+                titleKey: "admin.nav.logistics.section.0",
+                items: [
+                    {
+                        key: "logistics",
+                        labelKey: "admin.page.logistics",
+                        to: "/logistics",
+                    },
+                ],
             },
         ],
     },
     {
         key: "audit",
-        label: "审计",
+        labelKey: "admin.nav.audit",
         icon: createElement(ScrollTextIcon),
         sections: [
             {
-                title: "治理留痕",
-                items: [{ key: "audits", label: "操作审计", to: "/audits" }],
+                titleKey: "admin.nav.audit.section.0",
+                items: [{ key: "audits", labelKey: "admin.page.audits", to: "/audits" }],
             },
         ],
     },
     {
         key: "cms",
-        label: "内容",
+        labelKey: "admin.nav.cms",
         icon: createElement(LayoutTemplateIcon),
         sections: [
             {
-                title: "首页运营（CMS）",
+                titleKey: "admin.nav.cms.section.0",
                 items: [
-                    { key: "cms-nav", label: "首页导航", to: "/cms/nav" },
-                    { key: "cms-banner", label: "运营位 Banner", to: "/cms/banner" },
-                    { key: "cms-recommend-tab", label: "推荐条词条", to: "/cms/recommend-tab" },
+                    { key: "cms-nav", labelKey: "admin.page.cms.nav", to: "/cms/nav" },
+                    { key: "cms-banner", labelKey: "admin.page.cms.banner", to: "/cms/banner" },
+                    {
+                        key: "cms-recommend-tab",
+                        labelKey: "admin.page.cms.recommend-tab",
+                        to: "/cms/recommend-tab",
+                    },
                 ],
             },
         ],

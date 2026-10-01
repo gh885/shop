@@ -1,4 +1,3 @@
-import type { SidebarItem } from "@shop/app-kit"
 import {
     CalendarIcon,
     ChartColumnIcon,
@@ -9,111 +8,172 @@ import {
     StoreIcon,
 } from "lucide-react"
 
+import type { SidebarSourceItem } from "@shop/app-kit"
+
+import type { SellerMessageKey } from "#/locales/messages.gen"
+
 // ── 菜单树（一级 key === 路径第一段；二级 leaf key === 路径第二段） ──
-export const NAV_ITEMS: SidebarItem[] = [
-    { key: "home", label: "首页", icon: <HouseIcon />, to: "/" },
+// labelKey / titleKey 写的是 i18n key 不是中文：这份表是**源**树，句子在 translateSellerNav
+// 那一步才换出来（标注成 `SidebarSourceItem<SellerMessageKey>` 让写错的 key 在这里是编译错误）。
+// 以前这里是中文 label + `seller.nav.<key>` 现场拼，代价是 t 要被放宽成 (key: string) => string。
+export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = [
+    { key: "home", labelKey: "seller.nav.home", icon: <HouseIcon />, to: "/" },
     {
         key: "trade",
-        label: "交易",
+        labelKey: "seller.nav.trade",
         icon: <CalendarIcon />,
         sections: [
             {
-                title: "交易管理",
+                titleKey: "seller.nav.trade.section.0",
                 items: [
-                    { key: "order", label: "订单列表", to: "/trade/order" },
-                    { key: "shipping", label: "运费模板", to: "/trade/shipping" },
-                    { key: "ship", label: "发货", to: "/trade/ship" },
-                    { key: "logistics", label: "物流跟踪", to: "/trade/logistics" },
-                    { key: "refund", label: "退款售后", to: "/trade/refund" },
+                    { key: "order", labelKey: "seller.nav.trade.order", to: "/trade/order" },
+                    {
+                        key: "shipping",
+                        labelKey: "seller.nav.trade.shipping",
+                        to: "/trade/shipping",
+                    },
+                    { key: "ship", labelKey: "seller.nav.trade.ship", to: "/trade/ship" },
+                    {
+                        key: "logistics",
+                        labelKey: "seller.nav.trade.logistics",
+                        to: "/trade/logistics",
+                    },
+                    { key: "refund", labelKey: "seller.nav.trade.refund", to: "/trade/refund" },
                 ],
             },
             {
-                title: "评价",
+                titleKey: "seller.nav.trade.section.1",
                 collapsible: true,
                 items: [
-                    { key: "review", label: "评价管理", to: "/trade/review" },
-                    { key: "buyershow", label: "买家秀", to: "/trade/buyershow" },
+                    { key: "review", labelKey: "seller.nav.trade.review", to: "/trade/review" },
+                    {
+                        key: "buyershow",
+                        labelKey: "seller.nav.trade.buyershow",
+                        to: "/trade/buyershow",
+                    },
                 ],
             },
         ],
     },
     {
         key: "product",
-        label: "商品",
+        labelKey: "seller.nav.product",
         icon: <PackageIcon />,
         sections: [
             {
-                title: "商品管理",
+                titleKey: "seller.nav.product.section.0",
                 items: [
-                    { key: "list", label: "商品列表", to: "/product/list" },
-                    { key: "create", label: "发布商品", to: "/product/create/category" },
-                    { key: "category", label: "商品分类", to: "/product/category" },
-                    { key: "stock", label: "库存管理", to: "/product/stock" },
+                    { key: "list", labelKey: "seller.nav.product.list", to: "/product/list" },
+                    {
+                        key: "create",
+                        labelKey: "seller.nav.product.create",
+                        to: "/product/create/category",
+                    },
+                    {
+                        key: "category",
+                        labelKey: "seller.nav.product.category",
+                        to: "/product/category",
+                    },
+                    { key: "stock", labelKey: "seller.nav.product.stock", to: "/product/stock" },
                 ],
             },
             {
-                title: "供应链",
+                titleKey: "seller.nav.product.section.1",
                 collapsible: true,
                 items: [
-                    { key: "supplier", label: "供应商管理", to: "/product/supplier" },
-                    { key: "purchase", label: "采购单", to: "/product/purchase" },
-                    { key: "price", label: "供货价管理", to: "/product/price" },
+                    {
+                        key: "supplier",
+                        labelKey: "seller.nav.product.supplier",
+                        to: "/product/supplier",
+                    },
+                    {
+                        key: "purchase",
+                        labelKey: "seller.nav.product.purchase",
+                        to: "/product/purchase",
+                    },
+                    { key: "price", labelKey: "seller.nav.product.price", to: "/product/price" },
                 ],
             },
         ],
     },
     {
         key: "shop",
-        label: "店铺",
+        labelKey: "seller.nav.shop",
         icon: <StoreIcon />,
         sections: [
             {
-                title: "店铺设置",
+                titleKey: "seller.nav.shop.section.0",
                 items: [
-                    { key: "list", label: "店铺管理", to: "/shop/list" },
-                    { key: "address", label: "地址库", to: "/shop/address" },
-                    { key: "member", label: "店员管理", to: "/shop/member" },
-                    { key: "decoration", label: "店铺装修", to: "/shop/decoration" },
-                    { key: "notice", label: "店铺公告", to: "/shop/notice" },
+                    { key: "list", labelKey: "seller.nav.shop.list", to: "/shop/list" },
+                    { key: "address", labelKey: "seller.nav.shop.address", to: "/shop/address" },
+                    { key: "member", labelKey: "seller.nav.shop.member", to: "/shop/member" },
+                    {
+                        key: "decoration",
+                        labelKey: "seller.nav.shop.decoration",
+                        to: "/shop/decoration",
+                    },
+                    { key: "notice", labelKey: "seller.nav.shop.notice", to: "/shop/notice" },
                 ],
             },
             {
-                title: "资质认证",
+                titleKey: "seller.nav.shop.section.1",
                 collapsible: true,
                 items: [
-                    { key: "license", label: "营业执照", to: "/shop/license" },
-                    { key: "brand", label: "品牌授权", to: "/shop/brand" },
+                    { key: "license", labelKey: "seller.nav.shop.license", to: "/shop/license" },
+                    { key: "brand", labelKey: "seller.nav.shop.brand", to: "/shop/brand" },
                 ],
             },
         ],
     },
     {
         key: "marketing",
-        label: "营销",
+        labelKey: "seller.nav.marketing",
         icon: <MegaphoneIcon />,
         sections: [
             {
-                title: "营销工具",
+                titleKey: "seller.nav.marketing.section.0",
                 items: [
-                    { key: "campaign", label: "营销活动", to: "/marketing/campaign" },
-                    { key: "coupon", label: "优惠券", to: "/marketing/coupon" },
-                    { key: "flash", label: "限时秒杀", to: "/marketing/flash" },
+                    {
+                        key: "campaign",
+                        labelKey: "seller.nav.marketing.campaign",
+                        to: "/marketing/campaign",
+                    },
+                    {
+                        key: "coupon",
+                        labelKey: "seller.nav.marketing.coupon",
+                        to: "/marketing/coupon",
+                    },
+                    {
+                        key: "flash",
+                        labelKey: "seller.nav.marketing.flash",
+                        to: "/marketing/flash",
+                    },
                 ],
             },
         ],
     },
-    { key: "service", label: "客服", icon: <HeadsetIcon />, to: "/service", dividerAfter: true },
+    {
+        key: "service",
+        labelKey: "seller.nav.service",
+        icon: <HeadsetIcon />,
+        to: "/service",
+        dividerAfter: true,
+    },
     {
         key: "data",
-        label: "数据",
+        labelKey: "seller.nav.data",
         icon: <ChartColumnIcon />,
         sections: [
             {
-                title: "经营分析",
+                titleKey: "seller.nav.data.section.0",
                 items: [
-                    { key: "overview", label: "数据概览", to: "/data/overview" },
-                    { key: "report", label: "经营报告", to: "/data/report" },
-                    { key: "visit", label: "流量分析", to: "/data/visit" },
+                    {
+                        key: "overview",
+                        labelKey: "seller.nav.data.overview",
+                        to: "/data/overview",
+                    },
+                    { key: "report", labelKey: "seller.nav.data.report", to: "/data/report" },
+                    { key: "visit", labelKey: "seller.nav.data.visit", to: "/data/visit" },
                 ],
             },
         ],

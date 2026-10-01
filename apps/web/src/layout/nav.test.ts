@@ -1,49 +1,27 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import {
-    isNavGroupActive,
-    NAV_LABEL_KEYS,
-    SITE_NAV_ITEMS,
-    type SiteNavItem,
-    translateNavItems,
-} from "./nav"
+import type { WebTranslate } from "#/locales/messages.gen"
 
-/** 菜单树里出现过的所有 label（三层都收集），供「翻译表是否漏项」这类结构断言用 */
-function labelsOf(items: SiteNavItem[]): string[] {
-    const labels: string[] = []
-    for (const item of items) {
-        labels.push(item.label)
-        for (const child of item.children ?? []) {
-            labels.push(child.label)
-            for (const leaf of child.children ?? []) labels.push(leaf.label)
-        }
-    }
-    return labels
+import { isNavGroupActive, SITE_NAV_ITEMS, type SiteNavItem, translateNavItems } from "./nav"
+
+/** 菜单树里出现过的所有项（三层都收集），供「结构有没有变」这类断言用；源与译后两种形状都能喂 */
+function flat<T extends { children?: readonly T[] }>(items: readonly T[]): T[] {
+    return items.flatMap((item) => [item, ...flat(item.children ?? [])])
 }
 
 /**
- * 菜单树是数据、翻译表是数据、激活判据是纯函数——三者都能在 node 里问话，
+ * 菜单树是数据、翻译是纯函数、激活判据是纯函数——三者都能在 node 里问话，
  * 所以这里只测「换语言不漏项」和「哪个组算当前组」这两条决定，不碰渲染。
+ *
+ * 「每一项都带 key、且 key 拼得对」不再有用例：那是 `SITE_NAV_ITEMS` 那行类型标注在管，
+ * 漏写或写错都是编译错误，运行时断言它等于断言 `true`。
  */
-describe("翻译表覆盖菜单树", () => {
-    it("每个 label 都有登记的 i18n key_新增类目而不登记，英文站会直接露出中文", () => {
-        const missing = labelsOf(SITE_NAV_ITEMS).filter(
-            (label) => NAV_LABEL_KEYS[label] === undefined,
-        )
-        expect(missing).toEqual([])
-    })
-
-    it("未登记的 label 原样交给 t_不抛错也不变空串", () => {
-        expect(translateNavItems([{ label: "隐藏入口", to: "/x" }], (key) => key)).toEqual([
-            { label: "隐藏入口", to: "/x" },
-        ])
-    })
-})
 
 describe("translateNavItems 只做替换", () => {
-    // t 记一笔只为把 label 变成带括号的 key，好对比树形与原文；不拿它的长度当断言：
-    // 「每个 label 查表一次」是调用次数，加缓存或去重都会红，而那两种改法并没有改坏菜单
-    const translated = translateNavItems(SITE_NAV_ITEMS, (key) => `[${key}]`)
+    // t 记一笔只为把句子变成带括号的 key，好对比树形与原文；不拿它的长度当断言：
+    // 「每个项查表一次」是调用次数，加缓存或去重都会红，而那两种改法并没有改坏菜单
+    const echo: WebTranslate = ((key: string) => `[${key}]`) as WebTranslate
+    const translated = translateNavItems(SITE_NAV_ITEMS, echo)
 
     const sell = translated.find((item) => item.label === "[web.nav.sell]")
 
@@ -55,11 +33,12 @@ describe("translateNavItems 只做替换", () => {
     it("三级树逐层翻译_不丢子树也不拍平", () => {
         const category = translated.find((item) => item.label === "[web.nav.category]")
         expect(category?.children?.[0]?.children?.[0]?.label).toBe("[web.nav.women]")
-        expect(labelsOf(translated)).toHaveLength(labelsOf(SITE_NAV_ITEMS).length)
+        expect(flat(translated)).toHaveLength(flat(SITE_NAV_ITEMS).length)
+        expect(category?.children).toHaveLength(6)
     })
 
     it("不改入参_菜单树是模块级常量，改脏一次全局跟着错", () => {
-        expect(SITE_NAV_ITEMS[0]?.label).toBe("首页")
+        expect(SITE_NAV_ITEMS[0]?.labelKey).toBe("web.nav.home")
     })
 })
 

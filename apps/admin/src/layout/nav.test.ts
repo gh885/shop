@@ -1,6 +1,13 @@
+import { translateSidebarItems } from "@shop/app-kit"
 import { describe, expect, it } from "vite-plus/test"
 
-import { allowsLeaf, LEAF_PERMISSIONS, NAV_ITEMS, visibleNavGroups } from "./nav"
+import { allowsLeaf, LEAF_PERMISSIONS, NAV_SOURCE_ITEMS, visibleNavGroups } from "./nav"
+
+/**
+ * 这组用例只关心 key 与形状，label 用 key 本身顶上——翻译那一步是 app-kit 的通用函数，
+ * 各端的文案正确性由 catalog 的门禁管（i18n.md §5.5），这里不必再钉一遍句子。
+ */
+const NAV_ITEMS = translateSidebarItems(NAV_SOURCE_ITEMS, (key) => key)
 
 /**
  * 侧栏的权限裁剪。挡的是两类静默失效：
@@ -94,9 +101,9 @@ describe("visibleNavGroups", () => {
  * 哪天加了顶层叶子入口（点一下直接到页面、没有二级），那一列就是凭空多出来的 176px，
  * 占位要改成按路由判定，别默认全端都在等权限。
  */
-describe("NAV_ITEMS 的形状", () => {
+describe("NAV_SOURCE_ITEMS 的形状", () => {
     it("入口全是分组，没有顶层叶子", () => {
-        const leaves = NAV_ITEMS.filter((item) => !("sections" in item))
+        const leaves = NAV_SOURCE_ITEMS.filter((item) => !("sections" in item))
         expect(leaves.map((item) => item.key)).toEqual([])
     })
 })

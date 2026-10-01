@@ -14,9 +14,6 @@ export type WebMessageKey =
     "common.loadFailed.feed" |
     "common.loadFailed.recommend" |
     "common.loadFailed.shopBar" |
-    "common.locale.enUS" |
-    "common.locale.switch" |
-    "common.locale.zhCN" |
     "common.notFound.description" |
     "common.notFound.title" |
     "web.footer.brand" |

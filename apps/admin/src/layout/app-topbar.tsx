@@ -1,15 +1,14 @@
 import { useMemo } from "react"
 import { useLocation } from "@tanstack/react-router"
-import { activeSectionOf, WorkbenchTopBar } from "@shop/app-kit"
+import { activeSectionOf, translateSidebarItems, WorkbenchTopBar } from "@shop/app-kit"
 import { useT } from "#/locales/use-t"
 import { Account } from "./account"
-import { HOME_LINK, NAV_ITEMS } from "./nav"
-import { translateAdminNav } from "./nav-i18n"
+import { HOME_LINK, NAV_SOURCE_ITEMS } from "./nav"
 
 export function AppTopBar() {
     const t = useT()
     const { pathname } = useLocation()
-    const items = useMemo(() => translateAdminNav(NAV_ITEMS, t), [t])
+    const items = useMemo(() => translateSidebarItems(NAV_SOURCE_ITEMS, t), [t])
     const section = activeSectionOf(items, pathname)
     const title =
         section?.sections.flatMap((group) => group.items).find((item) => item.to === pathname)

@@ -17,6 +17,7 @@ export type AppKitMessageKey =
     "appKit.error.validation" |
     "appKit.form.hidePassword" |
     "appKit.form.showPassword" |
+    "appKit.locale.switch" |
     "appKit.login.captchaAlt" |
     "appKit.login.captchaClick" |
     "appKit.login.captchaConfirm" |
@@ -27,7 +28,6 @@ export type AppKitMessageKey =
     "appKit.login.captchaRefresh" |
     "appKit.login.captchaTitle" |
     "appKit.login.codeSent" |
-    "appKit.login.needCaptcha" |
     "appKit.login.needPhone" |
     "appKit.login.passwordLabel" |
     "appKit.login.passwordPlaceholder" |

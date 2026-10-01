@@ -5,13 +5,17 @@ import { ArrowRight } from "lucide-react"
 
 import { AdminAuthApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
-import { LocaleSwitcher, useI18n, usePasswordVisibility } from "@shop/app-kit"
+import {
+    LocaleSwitcher,
+    translateSidebarItems,
+    useI18n,
+    usePasswordVisibility,
+} from "@shop/app-kit"
 import { FormError, PasswordToggle, Spinner, useAppForm, type CSSVars, cn } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 import { getDeviceId, requireGuest, tokenStore } from "../shared/lib/api"
-import { NAV_ITEMS } from "../layout/nav"
-import { translateAdminNav } from "../layout/nav-i18n"
+import { NAV_SOURCE_ITEMS } from "../layout/nav"
 
 export const Route = createFileRoute("/login")({
     beforeLoad: requireGuest,
@@ -171,7 +175,7 @@ function Contents() {
     const { locale } = useI18n()
     const groups = useMemo(
         () =>
-            translateAdminNav(NAV_ITEMS, t)
+            translateSidebarItems(NAV_SOURCE_ITEMS, t)
                 .filter((item) => "sections" in item)
                 .map((group) => ({
                     key: group.key,

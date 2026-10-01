@@ -36,13 +36,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
                 name: "viewport",
                 content: "width=device-width, initial-scale=1",
             },
-            {
-                title: "Shop - 多店铺电商平台",
-            },
-            {
-                name: "description",
-                content: "Shop 多店铺电商平台：免费开店，上架好货，让好生意被更多人看见。",
-            },
         ],
         links: [
             {
@@ -102,12 +95,20 @@ function DocumentShell({
     children: React.ReactNode
 }) {
     const { locale } = useI18n()
+    const t = useT()
     // 监控：客户端装配（启全局监听、量 Web Vitals、PV）。SSR 侧不跑，详见 monitoring.ts 文件头
     useWebMonitoring()
     return (
         <html lang={locale}>
             <head>
                 <HeadContent />
+                {/* 文档标题与描述走 catalog（原先是 head() 里两句写死的中文，英文站标题不变）。
+                    SSR 时 RootDocument 也在服务端渲染，所以首屏 HTML 里就有本地化后的标题。 */}
+                <title>{t("app.title")}</title>
+                <meta
+                    name="description"
+                    content={t("app.description")}
+                />
             </head>
             <body className="flex min-h-screen flex-col supports-[height:100dvh]:min-h-dvh">
                 <Toaster />

@@ -1,16 +1,19 @@
 import { LOCALE_LABELS } from "./messages"
-import { useI18n } from "./use-i18n"
+import { useI18n, useT } from "./use-i18n"
 
 export interface LocaleSwitcherProps {
     className?: string
 }
 
 export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
-    const { availableLocales, locale, setLocale, t } = useI18n()
+    const { availableLocales, locale, setLocale } = useI18n()
+    // 文案走 app-kit 自己的 catalog（`appKit.locale.switch`）：共享组件不依赖宿主 app 的 key，
+    // 于是这里用的是类型化的 `useT` 而不是 `useI18n().t`——生产代码里不再有宽形状的 t（i18n.md §5.5 口子 3）。
+    const t = useT()
 
     return (
         <select
-            aria-label={t("common.locale.switch")}
+            aria-label={t("appKit.locale.switch")}
             className={
                 className ??
                 "h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"

@@ -10,8 +10,12 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+    const t = useT()
     return (
         <>
+            {/* 文档标题走 catalog（原先是 index.html 里一句写死的中文）。React 19 会把它提到 head，
+                所以这里不用再往 index.html 的静态 title 上叠一份。 */}
+            <title>{t("app.title")}</title>
             <Toaster />
             <ConfirmDialogHost />
             <Outlet />

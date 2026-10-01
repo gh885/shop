@@ -8,6 +8,8 @@ import { useT } from "#/locales/use-t"
 import { logout } from "#/shared/lib/api"
 import { useClearMe, useMe } from "#/shared/lib/me"
 
+import type { SellerMessageKey } from "#/locales/messages.gen"
+
 export function AppTopBar(props: { title: string; minimal?: boolean; sticky?: boolean }) {
     const t = useT()
     return (
@@ -18,27 +20,32 @@ export function AppTopBar(props: { title: string; minimal?: boolean; sticky?: bo
             account={<AccountChip />}
             actions={
                 <>
-                    <WorkbenchTopBarAction
-                        icon={<BellIcon />}
-                        label={t("seller.topbar.messages")}
-                    />
-                    <WorkbenchTopBarAction
-                        icon={<BookOpenIcon />}
-                        label={t("seller.topbar.rules")}
-                    />
-                    <WorkbenchTopBarAction
-                        icon={<CircleHelpIcon />}
-                        label={t("seller.topbar.help")}
-                    />
-                    <WorkbenchTopBarAction
-                        icon={<HeadsetIcon />}
-                        label={t("seller.topbar.support")}
-                    />
+                    {TOPBAR_ACTIONS.map((action) => (
+                        <WorkbenchTopBarAction
+                            key={action.labelKey}
+                            icon={action.icon}
+                            label={t(action.labelKey)}
+                        />
+                    ))}
                 </>
             }
         />
     )
 }
+
+/**
+ * 顶栏那排入口：四个形状完全相同的按钮，所以写成一张表而不是四段 JSX。
+ *
+ * 表里存 `labelKey`（i18n key）而不是句子，标注成 `SellerMessageKey`——加一格写错 key 是编译错误。
+ * 这也是「一个文件里同类文案收成一处」值得做的判据：**形状重复**（同一组组件按数据渲染），
+ * 而不是「`t()` 出现得多」——后者通常是一个屏幕一句一句的真实文案，搬走只是换位置。
+ */
+const TOPBAR_ACTIONS = [
+    { labelKey: "seller.topbar.messages", icon: <BellIcon /> },
+    { labelKey: "seller.topbar.rules", icon: <BookOpenIcon /> },
+    { labelKey: "seller.topbar.help", icon: <CircleHelpIcon /> },
+    { labelKey: "seller.topbar.support", icon: <HeadsetIcon /> },
+] satisfies readonly { labelKey: SellerMessageKey; icon: React.ReactNode }[]
 
 // fallow-ignore-next-line complexity
 function AccountChip() {

@@ -1,7 +1,4 @@
 {
-    "common.locale.switch": "语言",
-    "common.locale.zhCN": "中文",
-    "common.locale.enUS": "English",
     "common.notFound.title": "页面不存在或已下线",
     "common.notFound.description": "你找的页面不在这里，回管理端继续吧。",
     "common.action.backHome": "回到管理端",

@@ -39,7 +39,38 @@ export interface SidebarGroup extends SidebarItemBase {
     sections: SubSection[]
 }
 
+/** 已翻译、能直接渲染的菜单树（`label` / `title` 是当前语言的句子） */
 export type SidebarItem = SidebarLeaf | SidebarGroup
+
+/**
+ * 菜单**源**树：`labelKey` / `titleKey` 是 i18n key，不是句子。
+ *
+ * 为什么源与渲染形状分开：key 必须在**声明处**就被类型拦住（`labelKey: K`），
+ * 而 key 到句子的替换只发生在翻译那一步。合成一个形状就只能两者都可选，
+ * 漏填 `labelKey` 于是变成运行时回退——那正是 §5.5 口子 2 那四处放宽的成因。
+ * K 由各端生成物那份 `XMessageKey` 实例化，于是「往菜单里写一个不存在的 key」是编译错误。
+ */
+export interface SidebarSourceItemBase<K extends string> {
+    key: string
+    labelKey: K
+    icon?: ReactNode
+    dividerAfter?: boolean
+}
+
+export interface SidebarSourceSection<K extends string> {
+    titleKey: K
+    collapsible?: boolean
+    items: SidebarSourceLeaf<K>[]
+}
+
+export interface SidebarSourceLeaf<K extends string>
+    extends SidebarSourceItemBase<K>, SidebarTarget {}
+
+export interface SidebarSourceGroup<K extends string> extends SidebarSourceItemBase<K> {
+    sections: SidebarSourceSection<K>[]
+}
+
+export type SidebarSourceItem<K extends string> = SidebarSourceLeaf<K> | SidebarSourceGroup<K>
 
 /** 路径段边界匹配，根路径只精确匹配，不把所有页面都算作首页。 */
 export function matchesSidebarPath(target: string, pathname: string): boolean {
@@ -63,31 +94,42 @@ export function activeSectionOf(items: SidebarItem[], pathname: string): Sidebar
     )
 }
 
-export interface SidebarI18nKeys {
-    groupKey: (key: string) => string
-    leafKey: (to: string) => string
-    sectionKey: (group: string, index: number) => string
-}
-
-/** 按装配侧给的 key 规则翻译侧栏；返回新数组，不改原菜单数据。 */
-export function translateSidebarItems(
-    items: SidebarItem[],
-    t: (key: string) => string,
-    keys: SidebarI18nKeys,
+/**
+ * 把源树翻译成渲染树：每层的文案都在这里由 `labelKey` / `titleKey` 换出来。
+ *
+ * `K` 由源树的 key 位与调用侧的 `t` 一起推出来，所以两端必须一致：源树声明成别的 key 集合
+ * （或传一个宽到 `string` 的 `t`）在这里过不去——这四处以前正是靠 `t as (key: string) => string`
+ * 才连上的（i18n.md §5.5 口子 2）。返回新数组，不改原菜单数据。
+ */
+export function translateSidebarItems<K extends string>(
+    items: readonly SidebarSourceItem<K>[],
+    t: (key: K) => string,
 ): SidebarItem[] {
     return items.map((item) => {
         if (!("sections" in item)) {
-            return { ...item, label: t(keys.leafKey(item.to)) }
+            // icon / dividerAfter 要带过去：卖家端顶层的「首页」「客服」就是带图标的叶子
+            return {
+                key: item.key,
+                to: item.to,
+                search: item.search,
+                label: t(item.labelKey),
+                icon: item.icon,
+                dividerAfter: item.dividerAfter,
+            }
         }
         return {
-            ...item,
-            label: t(keys.groupKey(item.key)),
-            sections: item.sections.map((section, index) => ({
-                ...section,
-                title: t(keys.sectionKey(item.key, index)),
+            key: item.key,
+            label: t(item.labelKey),
+            icon: item.icon,
+            dividerAfter: item.dividerAfter,
+            sections: item.sections.map((section) => ({
+                title: t(section.titleKey),
+                collapsible: section.collapsible,
                 items: section.items.map((leaf) => ({
-                    ...leaf,
-                    label: t(keys.leafKey(leaf.to)),
+                    key: leaf.key,
+                    to: leaf.to,
+                    search: leaf.search,
+                    label: t(leaf.labelKey),
                 })),
             })),
         }

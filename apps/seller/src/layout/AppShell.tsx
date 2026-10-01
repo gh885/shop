@@ -5,10 +5,9 @@ import { cn } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
 import { PageBreadcrumb } from "#/shared/ui/PageBreadcrumb"
 import { AppTopBar } from "./AppTopBar"
-import { WorkbenchSidebar } from "@shop/app-kit"
-import { NAV_ITEMS } from "./SidebarMenu"
+import { translateSidebarItems, WorkbenchSidebar } from "@shop/app-kit"
+import { NAV_SOURCE_ITEMS } from "./SidebarMenu"
 import { crumbsOf, FULL_WIDTH_PATHS, leafLabelOf } from "./nav"
-import { translateSellerNav } from "./nav-i18n"
 
 /** 工作台壳（千牛式）：蓝灰 canvas 画布上，通栏透明顶栏 + 一级轨，
     「二级面板 + 内容」合并为一张白色浮面（大圆角、无分割线）。
@@ -20,9 +19,11 @@ import { translateSellerNav } from "./nav-i18n"
 export function AppShell() {
     const t = useT()
     const { pathname } = useLocation()
-    const items = useMemo(() => translateSellerNav(NAV_ITEMS, t), [t])
+    const items = useMemo(() => translateSidebarItems(NAV_SOURCE_ITEMS, t), [t])
     const fullWidth = FULL_WIDTH_PATHS.has(pathname)
-    const title = leafLabelOf(items, pathname)
+    // 菜单树点不到的路径（分组根、未知地址）落到工作台名；文案从 t() 来，不在 nav.ts 里写死
+    const labels = { home: t("seller.nav.home"), fallback: t("seller.layout.workbench") }
+    const title = leafLabelOf(items, pathname, labels.fallback)
 
     return (
         <div className={cn("flex w-full flex-col bg-canvas", fullWidth ? "min-h-svh" : "h-svh")}>
@@ -54,7 +55,7 @@ export function AppShell() {
                     >
                         {!fullWidth && (
                             <PageBreadcrumb
-                                crumbs={crumbsOf(items, pathname, t("seller.nav.home"))}
+                                crumbs={crumbsOf(items, pathname, labels)}
                                 className="mb-4"
                             />
                         )}

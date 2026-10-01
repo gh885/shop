@@ -46,13 +46,9 @@ export type AdminMessageKey =
     "admin.page.home" |
     "admin.page.logistics" |
     "admin.page.shops" |
-    "app.description" |
     "app.title" |
     "common.action.backHome" |
     "common.loadFailed.categoryTree" |
-    "common.locale.enUS" |
-    "common.locale.switch" |
-    "common.locale.zhCN" |
     "common.notFound.description" |
     "common.notFound.title"
 

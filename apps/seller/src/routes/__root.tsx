@@ -10,14 +10,21 @@ import { useT } from "#/locales/use-t"
     叶子路由失败时布局壳仍保留。 */
 export const Route = createRootRoute({
     notFoundComponent: NotFound,
-    component: () => (
+    component: RootComponent,
+})
+
+/** 壳：文档标题走 catalog（原先是 index.html 里一句写死的中文），React 19 把它提到 head */
+function RootComponent() {
+    const t = useT()
+    return (
         <>
+            <title>{t("app.title")}</title>
             <Toaster />
             <ConfirmDialogHost />
             <Outlet />
         </>
-    ),
-})
+    )
+}
 
 /** 品牌化 404：给出回工作台的出口，不做死胡同 */
 function NotFound() {

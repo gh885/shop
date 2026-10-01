@@ -17,6 +17,14 @@
  * 4. 解析与比对覆盖 SUPPORTED_LOCALES 全集，不只源语言；
  * 5. 金额槽位（`number` 节点的 `currency` 风格）在生成期直接拒绝——Money 的展示只有一个出口
  *    （AGENTS.md 硬规则），不该由 ICU 按运行 locale 渲染。
+ * 6. **未使用的 key 非零退出**（§10.1 那条「未使用 key」的判据，2026-09-30 实测后定的形）：
+ *    扫源码里出现的 key 字面量，catalog 里有、源码里一条都找不到的即报错。判据是「有没有被引用」，
+ *    不是「引用方式好不好」——导航表里写 `labelKey: "seller.nav.order"` 也算引用，所以
+ *    「把 key 收成调用点看得见的字面量」这条改造不需要额外白名单。判不准的一侧只有一个：
+ *    key 只在注释或字符串里被提到也算「用了」，那是保守方向（少报不报），不会误伤。
+ *    这条门禁取代了 §10.1 里「(a) 产常量表让 fallow 判死代码」——实测 fallow 的
+ *    unused-exports / unused-enum-members 都不报「导出对象里没人读的某条」（探针：导出的
+ *    对象字面量与 enum 里的死成员均未被发现），所以那条路走不通，(b) 的 scanner 才是真的。
  *
  * 引擎与运行时同源：`intl-messageformat` 走 workspace catalog，与 @shop/common 那份同一版本，
  * 所以「这里编译得过」和「页面渲染时编译得过」是同一个判定，不是两套正则。
@@ -302,6 +310,77 @@ function filesOf(catalog) {
     return new Set([...catalog.values()].map((entry) => entry.file))
 }
 
+/**
+ * 契约 6：未使用的 key。扫源码里出现的 key 字面量（带引号的），catalog 里有而源码里
+ * 一条都找不到的即报错。
+ *
+ * 扫的面：三个 app 的 `src` 与 app-kit 的 `src`，逐个 `.ts`/`.tsx`（跳过 `.d.ts`、生成物
+ * `messages.gen.ts`、以及 locales 目录里的 .json）。只认**带引号**的整串，所以
+ * `t("web.nav.home")`、导航表里的 `labelKey: "seller.nav.order"`、`t(\`appKit.form.${x}\`)`
+ * （拼出来的、没引号）都不算。拼 key 会在「拼出来的那个整串在源码里找不到」时逐条报出来——
+ * 这正是把动态 key 改成字面量的那一步的提示。
+ *
+ * 漏报（少判）而不是误报：key 只在注释里被提到也算“用过了”，宁可漏报不误伤。
+ */
+async function findUnusedKeys(roots, keyUnions) {
+    const sources = await collectSourceTexts()
+    const problems = []
+    for (const root of roots) {
+        const keys = keyUnions.get(root.dir)
+        if (keys === undefined) continue
+        for (const key of keys) {
+            if (!sources.includes(`"${key}"`)) {
+                problems.push(
+                    `${root.dir}：key "${key}" 在任何源文件里都没被引用（未使用的 key，见 §10.1）`,
+                )
+            }
+        }
+    }
+    return problems
+}
+
+/** 读全部 .ts/.tsx 源拼成一个大字符串；key 数量级 200+，逐 key includes 在整段文本上足够快 */
+async function collectSourceTexts() {
+    const dirs = []
+    for (const group of ["apps", "packages"]) {
+        const entries = await readdir(join(ROOT, group), { withTiers: false, withFileTypes: true })
+        for (const entry of entries) {
+            if (entry.isDirectory()) dirs.push(join(ROOT, group, entry.name, "src"))
+        }
+    }
+    const texts = []
+    for (const dir of dirs) {
+        for (const file of await listSourceFiles(dir)) {
+            texts.push(await readFile(file, "utf8"))
+        }
+    }
+    return texts.join("\\n")
+}
+
+async function listSourceFiles(dir) {
+    let entries
+    try {
+        entries = await readdir(dir, { withFileTypes: true })
+    } catch {
+        return []
+    }
+    const nested = await Promise.all(
+        entries.map(async (entry) => {
+            const path = join(dir, entry.name)
+            if (entry.isDirectory()) {
+                // locales 目录里只有 .json（资源）与 messages.gen.ts（生成物），两者都不是引用点
+                if (entry.name === "locales") return []
+                return listSourceFiles(path)
+            }
+            if (!entry.isFile()) return []
+            if (entry.name.endsWith(".d.ts") || entry.name.endsWith(".gen.ts")) return []
+            if (!entry.name.endsWith(".ts") && !entry.name.endsWith(".tsx")) return []
+            return [path]
+        }),
+    )
+    return nested.flat().toSorted(byCodeUnit)
+}
+
 /** 语言之间按 namespace 比一次，好让「整个文件忘了翻」是一条能读出来的错，而不是几百条缺 key */
 function compareNamespaceSets(root, catalogs) {
     const problems = []
@@ -523,6 +602,7 @@ if (roots.length === 0) {
 const allFiles = []
 const rendered = []
 const problems = []
+const keyUnions = new Map()
 for (const root of await Promise.all(roots.map((rootDir) => readRoot(rootDir)))) {
     if (root.problems.length > 0) {
         problems.push(...root.problems)
@@ -534,10 +614,17 @@ for (const root of await Promise.all(roots.map((rootDir) => readRoot(rootDir))))
         continue
     }
     allFiles.push(...root.files)
+    keyUnions.set(root.dir, keys)
     rendered.push({
         out: join(ROOT, root.dir, "messages.gen.ts"),
         text: render(root, keys),
     })
+}
+
+// 契约 6：未使用的 key。只在其他判据都过了之后跑——先让「资源本身坏了」的报错先说完，
+// 否则一份乱了的 catalog 会顺带把一堆 key 报成「没人用」，那不是真问题。
+if (problems.length === 0) {
+    problems.push(...(await findUnusedKeys(roots, keyUnions)))
 }
 
 if (process.argv.includes("--list")) {

@@ -6,16 +6,12 @@
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit"
 
 export type SellerMessageKey =
-    "app.description" |
     "app.title" |
     "common.action.backHome" |
     "common.loadFailed.carriers" |
     "common.loadFailed.categoryTree" |
     "common.loadFailed.sku" |
     "common.loadFailed.specTemplate" |
-    "common.locale.enUS" |
-    "common.locale.switch" |
-    "common.locale.zhCN" |
     "common.notFound.description" |
     "common.notFound.title" |
     "common.upload.ticketFailed" |
@@ -24,6 +20,7 @@ export type SellerMessageKey =
     "seller.account.logout" |
     "seller.account.notLoggedIn" |
     "seller.layout.brand" |
+    "seller.layout.workbench" |
     "seller.login.headline" |
     "seller.login.pitch" |
     "seller.login.title" |

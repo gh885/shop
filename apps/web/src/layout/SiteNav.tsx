@@ -15,7 +15,7 @@ import {
 import { useT } from "#/locales/use-t"
 import { isExternalTarget } from "#/shared/lib/external"
 
-import { isNavGroupActive, SITE_NAV_ITEMS, type SiteNavItem, translateNavItems } from "./nav"
+import { isNavGroupActive, SITE_NAV_ITEMS, type SiteNavSourceItem, translateNavItems } from "./nav"
 
 const navItemClass =
     "flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-popup-open:text-foreground data-active:text-foreground data-active:font-semibold"
@@ -50,7 +50,7 @@ function NavLink({
 }
 
 /** 顶部主导航：数据驱动，一级项 hover 展开下拉，下拉项带 children 时右弹二级 */
-export function SiteNav({ items = SITE_NAV_ITEMS }: { items?: SiteNavItem[] }) {
+export function SiteNav({ items = SITE_NAV_ITEMS }: { items?: readonly SiteNavSourceItem[] }) {
     const t = useT()
     const translatedItems = React.useMemo(() => translateNavItems(items, t), [items, t])
     // 高亮激活项：菜单树、翻译表与激活判据都在 ./nav，这里只留渲染
