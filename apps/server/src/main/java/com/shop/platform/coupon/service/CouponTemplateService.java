@@ -74,12 +74,14 @@ public class CouponTemplateService {
         Long maxDiscount = null;
         if (type == CouponType.DISCOUNT) {
             // 折率必须落在 (0,1)：1.00 不构成折扣，0 必亏
-            BigDecimal rate = Validate.notNull(req.discountRate(), "折扣券必须填写折扣率");
+            BigDecimal rate = req.discountRate();
+            Validate.isTrue(rate != null, "折扣券必须填写折扣率");
             Validate.isTrue(
                     rate.compareTo(BigDecimal.ZERO) > 0 && rate.compareTo(BigDecimal.ONE) < 0,
                     CouponFieldRules.DISCOUNT_RATE_MAX_MESSAGE);
             // 封顶必填（CPN-65）：没封顶的折扣券在大单上会亏穿
-            Money cap = Validate.notNull(req.maxDiscountAmount(), "折扣券必须填写最高减免金额");
+            Money cap = req.maxDiscountAmount();
+            Validate.isTrue(cap != null, "折扣券必须填写最高减免金额");
             Validate.isTrue(cap.amount() > 0, "最高减免金额必须大于 0");
             discountRate = rate;
             maxDiscount = cap.amount();
