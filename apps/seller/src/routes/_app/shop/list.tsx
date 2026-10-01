@@ -2,9 +2,10 @@ import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop
 import { SHOP_NAME_MAX, SHOP_STATUS_META } from "#/shop/constants"
 import { CreateShopFormSchema } from "#/shop/shop-form"
 import { setCurrentShopId } from "#/shop"
-import { formatDate, useI18n } from "@shop/app-kit"
+import { formatDate, QueryBoundary, useI18n } from "@shop/app-kit"
+import { useT } from "#/locales/use-t"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
-import { useQuery, useMutation } from "@tanstack/react-query"
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Store, MailPlus, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
@@ -58,6 +59,9 @@ function ShopsPage() {
             <PendingInvites />
 
             <section className="space-y-3">
+                {/* 这里用 isLoading 而不是 isPending（其余列表页已统一成 isPending）：useMyShops 带 enabled: status === "authed"，
+                    未登录/未裁决时 enabled 为 false，isPending 会恒为 true → 永久骨架；isLoading（= isPending && isFetching）
+                    在这种「没启用」状态下为 false，正好不闪。ShopGate 在外层也会先给骨架，但本页不依赖那层保险 */}
                 {shops.isLoading ? (
                     <div className="space-y-3">
                         {[0, 1].map((i) => (
@@ -158,9 +162,32 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
     )
 }
 
-/** 待确认邀请：别人邀请我加入的店铺 */
+/** 待确认邀请：别人邀请我加入的店铺。
+ *
+ * 包裹在QueryBoundary 里（而不是在下面写 `if (!data) return`）：加载 / 失败 / 没有邀请
+ * 三者必须可区分——静默隐藏会让接口失败看起来像「没有邀请」，用户既看不到也无处重试，
+ * 而邀请是要用户做决定的（同意 / 拒绝），漏一条的代价是真动作。边界把失败收敛在本区块，
+ * 不冒泡把整张店铺列表换成错误页。 */
 function PendingInvites() {
-    const invites = useQuery(shopInvitesOptions)
+    const t = useT()
+    return (
+        <QueryBoundary
+            pending={
+                <section className="space-y-3">
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-16 w-full rounded-lg" />
+                </section>
+            }
+            fallback={t("common.loadFailed.invites")}
+        >
+            <InviteList />
+        </QueryBoundary>
+    )
+}
+
+/** 邀请列表：suspense 取数，到手后只处理「有邀请 / 无邀请」两种业务态 */
+function InviteList() {
+    const invites = useSuspenseQuery(shopInvitesOptions)
 
     const accept = useMutation({
         mutationFn: (memberId: string) => ShopsApi.acceptShopInvite({ path: { memberId } }),
@@ -172,7 +199,8 @@ function PendingInvites() {
         meta: { success: "已拒绝邀请", error: "拒绝邀请失败", invalidates: [shopKeys.all] },
     })
 
-    if (!invites.data || invites.data.length === 0) return
+    // suspense 查询到手即有值（拿不到会抛给外层 QueryBoundary），所以这里只判「真的没有」
+    if (invites.data.length === 0) return
 
     return (
         <section className="space-y-3">

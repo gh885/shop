@@ -10,6 +10,7 @@ export type SellerMessageKey =
     "common.action.backHome" |
     "common.loadFailed.carriers" |
     "common.loadFailed.categoryTree" |
+    "common.loadFailed.invites" |
     "common.loadFailed.sku" |
     "common.loadFailed.specTemplate" |
     "common.notFound.description" |

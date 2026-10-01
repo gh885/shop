@@ -30,12 +30,13 @@ export const shopMembersOptions = (shopId: string) =>
         queryFn: () => ShopsApi.listShopMembers({ path: { shopId } }),
     })
 
-/** 待确认邀请（店铺列表页）：它是页面上的一个附属区块，消费方写的是 `if (!data || data.length === 0) return`。
- *  退出全局的「失败抛给错误边界」——拉不到邀请就当没有，不能因此把整个店铺列表页换成错误页。 */
+/** 待确认邀请（店铺列表页）：它在页面上的一个附属区块，但**不是**「拿不到就不画」那种附件——
+ *  邀请要用户做决定（同意/拒绝），接口失败若静默隐藏会看起来像「没有邀请」，用户无从重试。
+ *  故消费方用 `useSuspenseQuery` + `QueryBoundary`（见 shop/list.tsx 的 PendingInvites）：
+ *  加载挂起、失败由边界就地渲染 + 官方 reset 重试，两者都不冒泡把整张店铺列表换成错误页。 */
 export const shopInvitesOptions = queryOptions({
     queryKey: shopKeys.invites(),
     queryFn: () => ShopsApi.listShopInvites(),
-    throwOnError: false,
 })
 
 // 我的店铺列表

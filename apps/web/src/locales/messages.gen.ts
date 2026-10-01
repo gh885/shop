@@ -12,6 +12,7 @@ export type WebMessageKey =
     "common.loadFailed.banners" |
     "common.loadFailed.categoryNav" |
     "common.loadFailed.feed" |
+    "common.loadFailed.profile" |
     "common.loadFailed.recommend" |
     "common.loadFailed.shopBar" |
     "common.notFound.description" |

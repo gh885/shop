@@ -6,5 +6,6 @@
     "common.loadFailed.banners": "活动位加载失败",
     "common.loadFailed.categoryNav": "商品分类加载失败",
     "common.loadFailed.shopBar": "店铺信息加载失败",
-    "common.loadFailed.recommend": "推荐商品加载失败，请重试"
+    "common.loadFailed.recommend": "推荐商品加载失败，请重试",
+    "common.loadFailed.profile": "个人资料加载失败，请重试"
 }

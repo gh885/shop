@@ -6,5 +6,6 @@
     "common.loadFailed.banners": "Couldn't load these offers. Please try again.",
     "common.loadFailed.categoryNav": "Couldn't load the categories. Please try again.",
     "common.loadFailed.shopBar": "Couldn't load this shop. Please try again.",
-    "common.loadFailed.recommend": "Couldn't load recommendations. Please try again."
+    "common.loadFailed.recommend": "Couldn't load recommendations. Please try again.",
+    "common.loadFailed.profile": "Couldn't load your profile. Please try again."
 }

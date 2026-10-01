@@ -9,6 +9,47 @@ import type { ProductDetail } from "../product"
 import { useIsLoggedIn, openLoginDialog } from "#/shared/api/auth"
 import { Button, Spinner, cn } from "@shop/ui-web"
 
+/** 收藏心形：单独抽出来是为了让PurchaseCta 只管加购/下单的编排。
+ *  三分状态都在这里收口（游客可点 / 未知暂不可操作 / 已知才切换）。 */
+function FavoriteButton({ productId, isLoggedIn }: { productId: string; isLoggedIn: boolean }) {
+    /**
+     * 「未知」不能当「未收藏」——`useToggleFavorite` 靠这个值判方向（true→取消、false→收藏），
+     * 未知时按 false 发出去就是一次「取消收藏」，会误删用户刚收藏的商品。
+     */
+    const favorite = useFavoriteStatus(productId)
+    const toggleFavorite = useToggleFavorite(productId)
+    const favorited = favorite.data
+    /** 已登录但状态未知（未到或取失败）：此刻判不了方向，按钮暂不可操作 */
+    const unknown = isLoggedIn && favorited === undefined
+
+    function handleClick() {
+        // 游客点一下是拉登录框，不是收藏，所以登录判断在前面
+        if (!isLoggedIn) {
+            openLoginDialog()
+            return
+        }
+        // 状态未知时不给方向，宁可先重试也不猜一个「取消收藏」发出去
+        if (favorited === undefined) {
+            void favorite.refetch()
+            return
+        }
+        toggleFavorite.mutate(favorited)
+    }
+
+    return (
+        <Button
+            variant={favorited ? "secondary" : "outline"}
+            aria-label={favorited ? "取消收藏" : "收藏"}
+            aria-pressed={favorited}
+            disabled={unknown}
+            onClick={handleClick}
+            className="h-12 w-12"
+        >
+            <Heart className={cn("size-5", favorited && "fill-foreground")} />
+        </Button>
+    )
+}
+
 /**
  * 商品动作卡：加购 / 立即购买 / 收藏。
  * 属于详情页右栏内容（不是独立的布局插槽）：与购买面板同处一个 `sticky top-4` 容器，
@@ -26,8 +67,6 @@ export function PurchaseCta({
     const navigate = useNavigate()
     const isLoggedIn = useIsLoggedIn()
     const addToCart = useAddToCart()
-    const { data: favorited = false } = useFavoriteStatus(detail.product.id)
-    const toggleFavorite = useToggleFavorite(detail.product.id)
 
     const complete = isSelectionComplete(detail, selection)
     const matchedSku = findMatchingSku(detail.skus, selection)
@@ -58,12 +97,6 @@ export function PurchaseCta({
         })
     }
 
-    /** 收藏开关：登录后按点击前状态 toggle（判定 add/remove 的方向） */
-    function handleFavorite() {
-        if (!ensureLogin()) return
-        toggleFavorite.mutate(favorited)
-    }
-
     return (
         <div className="rounded-xl bg-background p-3 shadow-float">
             <div className="flex items-stretch gap-3">
@@ -82,15 +115,10 @@ export function PurchaseCta({
                 >
                     立即购买
                 </Button>
-                <Button
-                    variant={favorited ? "secondary" : "outline"}
-                    aria-label={favorited ? "取消收藏" : "收藏"}
-                    aria-pressed={favorited}
-                    onClick={handleFavorite}
-                    className="h-12 w-12"
-                >
-                    <Heart className={cn("size-5", favorited && "fill-foreground")} />
-                </Button>
+                <FavoriteButton
+                    productId={detail.product.id}
+                    isLoggedIn={isLoggedIn}
+                />
             </div>
 
             {!complete && (

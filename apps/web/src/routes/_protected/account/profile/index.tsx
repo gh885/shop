@@ -1,11 +1,22 @@
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { NICKNAME_MAX } from "@shop/app-kit"
+import { toApiError } from "@shop/common"
+import { errorText, NICKNAME_MAX, useI18n } from "@shop/app-kit"
 import { useMe } from "#/account"
 import { ME_QUERY_KEY } from "#/account/queries"
+import { useT } from "#/locales/use-t"
 import { AuthApi } from "@shop/api/sdk"
-import { Button, Card, CardContent, Separator, Skeleton, Spinner, useAppForm } from "@shop/ui-web"
+import {
+    Button,
+    Card,
+    CardContent,
+    Separator,
+    Skeleton,
+    Spinner,
+    StateError,
+    useAppForm,
+} from "@shop/ui-web"
 
 export const Route = createFileRoute("/_protected/account/profile/")({
     component: ProfilePage,
@@ -16,17 +27,34 @@ export const Route = createFileRoute("/_protected/account/profile/")({
 
 /** 个人资料：展示手机号（脱敏）+ 昵称可改。头像上传本期未做，不在此。 */
 function ProfilePage() {
-    const { data: me, isLoading } = useMe()
+    const { data: me, isLoading, isError, error, isFetching, refetch } = useMe()
+    const { locale } = useI18n()
+    const t = useT()
 
     return (
         <div className="space-y-4">
             <h2 className="text-xl font-bold">个人资料</h2>
 
+            {/* 三态必须分清：me 失败时 data 恒为 undefined，而 useMe 退出全局默认不抛，
+                若只判`!me` 会把失败也当成「还在加载」→ 永久骨架（无错误、无重试出口）。
+                资料页里 me 就是页面主体数据，失败要在本页说清楚并给重试。 */}
             {isLoading || !me ? (
-                <>
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                </>
+                isError ? (
+                    <StateError
+                        message={errorText(
+                            toApiError(error),
+                            locale,
+                            t("common.loadFailed.profile"),
+                        )}
+                        onRetry={() => void refetch()}
+                        retrying={isFetching}
+                    />
+                ) : (
+                    <>
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                    </>
+                )
             ) : (
                 // 数据到达后才挂载表单：昵称初值直接取 me，不需要 effect 二次灌值
                 <ProfileForm me={me} />
