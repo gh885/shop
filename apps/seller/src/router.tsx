@@ -2,6 +2,7 @@ import { createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 
 import { captureError } from "@shop/common"
+import { RoutePending } from "@shop/app-kit"
 
 import { RouteError } from "./shared/ui/RouteError"
 
@@ -20,6 +21,8 @@ export const router = createRouter({
      * 叶子路由失败时工作台布局（侧边栏/顶栏）仍在。重试走 RouteError 的官方双 reset。
      */
     defaultErrorComponent: RouteError,
+    /** 兜底挂起骨架：库在没有 pendingComponent 时默认渲染 null（漏写即静默白屏，详见 app-kit RoutePending） */
+    defaultPendingComponent: RoutePending,
     /**
      * 渲染期未捕获错误的遥测出口。
      *

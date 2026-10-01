@@ -76,7 +76,7 @@ function HomeCategoryNavErrorFallback({ error, reset }: { error: unknown; reset:
 const NAV_WIDTH_CLASS = "lg:w-67 lg:shrink-0"
 const navColumnClass = `flex h-50 w-full items-center justify-center rounded-xl bg-background shadow-sm ${NAV_WIDTH_CLASS}`
 
-function HomeCategoryNavSkeleton() {
+export function HomeCategoryNavSkeleton() {
     return (
         <Skeleton
             className={`h-50 w-full rounded-xl ${NAV_WIDTH_CLASS}`}

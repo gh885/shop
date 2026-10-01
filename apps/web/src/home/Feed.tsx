@@ -280,7 +280,7 @@ function FeedEmpty() {
 }
 
 /** 商品流挂起占位：骨架高度对齐商品卡（正方形图 + 92px 信息区）的整卡比例，避免加载完跳版 */
-function FeedSkeleton() {
+export function FeedSkeleton() {
     return (
         <section className="feed-section">
             <div className="grid-feed">

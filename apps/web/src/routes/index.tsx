@@ -9,6 +9,7 @@ import {
     HomeBanners,
     HomeCategoryNav,
     HomeHeader,
+    HomeSkeleton,
 } from "#/home"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 
@@ -26,6 +27,13 @@ export const Route = createFileRoute("/")({
             context.queryClient.query({ ...recommendTabsOptions, staleTime: "static" }),
         ])
     },
+    /**
+     * 路由级挂起骨架：盖住上面 loader 的预取窗口（SSR 首屏 + 客户端导航）。
+     * 库的默认行为是渲染 null（详见 `@tanstack/react-router` 的 renderPending），
+     * 没有这一层时冷缓存首屏会在预取期间空白；各区块自己的 QueryBoundary pending
+     * 只覆盖「loader 已过、某区块仍在取数」的更细窗口，两者互补。
+     */
+    pendingComponent: HomeSkeleton,
     component: Home,
     head: ({ match }) => {
         // 绝对 URL 一律用 SITE_ORIGIN 拼：写死域名会让 staging/preview 把错误域名烤进 HTML

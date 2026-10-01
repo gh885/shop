@@ -88,7 +88,7 @@ function HomeBannersContent() {
     )
 }
 
-function HomeBannersSkeleton() {
+export function HomeBannersSkeleton() {
     return (
         <div
             className={gridClass}

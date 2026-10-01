@@ -3,6 +3,7 @@ import { routeTree } from "./routeTree.gen"
 
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query"
 import { getContext } from "#/app/tanstack-query/TanstackQueryProvider"
+import { RoutePending } from "@shop/app-kit"
 import { RouteError } from "#/shared/ui/RouteError"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 import { reportError } from "#/shared/lib/report-error"
@@ -41,6 +42,12 @@ export function getRouter() {
          * 重试由 RouteError 内的官方双 reset（Router reset + QueryErrorResetBoundary reset）完成。
          */
         defaultErrorComponent: RouteError,
+        /**
+         * 兜底挂起骨架：库在没有 pendingComponent 时的默认行为是**渲染 null**（详见 app-kit
+         * RoutePending 的注释）。页面级 pending 仍应各自按真实形状写 pendingComponent；
+         * 这里只把「漏写」的后果从静默白屏降级成中性骨架。
+         */
+        defaultPendingComponent: RoutePending,
         // 渲染期未捕获错误的遥测出口（UI 反馈由各路由的 errorComponent 负责）
         defaultOnCatch: reportError,
     })
