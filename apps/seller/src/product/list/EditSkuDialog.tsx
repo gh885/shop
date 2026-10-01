@@ -1,8 +1,7 @@
 import { PackageCheck } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
+import { useSuspenseQuery } from "@tanstack/react-query"
 
-import { toApiError } from "@shop/common"
-import { errorText, FormActions, useI18n } from "@shop/app-kit"
+import { FormActions, QueryBoundary } from "@shop/app-kit"
 import type { ProductDetailResponse } from "@shop/api/sdk"
 import {
     Dialog,
@@ -15,7 +14,6 @@ import {
     InputGroupAddon,
     InputGroupInput,
     Skeleton,
-    StateError,
     Table,
     TableBody,
     TableCell,
@@ -34,7 +32,7 @@ import {
 } from "#/product/draft-model"
 import { useT } from "#/locales/use-t"
 import { SKU_CODE_MAX, SKU_EDIT_KIND_META } from "#/product/constants"
-import { productDetailOptions, useUpdateProductSkus } from "#/product/queries"
+import { productDetailSuspenseOptions, useUpdateProductSkus } from "#/product/queries"
 
 /**
  * 「编辑SKU / 编辑库存」弹窗：编辑商品每个 SKU 的某一维度（kind=price → 价格+商家编码；kind=stock → 库存）。
@@ -61,17 +59,13 @@ export function EditSkuLineDialog({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
+    const t = useT()
     const meta = SKU_EDIT_KIND_META[kind]
 
-    // 详情走 query：与发布页回填同一份缓存（productKeys.detail）。
-    // 关着弹窗、或没有 productId 时 skipToken 直接不发请求；打开即命中缓存（若发布页刚填过则零请求）。
-    // 失败**不抛**（弹窗是列表页上的一个操作口，炸到路由会把整张列表换掉）：就地渲染错误态并用官方
-    // `refetch()` 重试。变量名用 data 而非 detail：下面对它做 undefined 判定（渲染 loading 分支）时，
-    // tsgolint 只认 `data === undefined` 这种能收窄 UseQueryResult 的写法
-    const { data, isPending, isError, error, isFetching, refetch } = useQuery(
-        productDetailOptions(open ? productId : undefined),
-    )
-
+    // 取数交给弹窗体内的 QueryBoundary + SkuEditor（见下）：弹窗是列表页上的一个操作口，
+    // 失败绝不能冒泡到路由把整张列表换掉；但**首次**取数失败必须让用户看见并能重试，
+    // 所以用包在弹窗体内的区块边界，而不是「就地渲染 isError」也不是「静默降级」。
+    // 详情与发布页回填同一份缓存（productKeys.detail），关着弹窗时根本不挂载子树 = 不发请求。
     return (
         <Dialog
             open={open}
@@ -84,95 +78,65 @@ export function EditSkuLineDialog({
                     <DialogTitle>{meta.title}</DialogTitle>
                 </DialogHeader>
 
-                {/* 提示条：只改当前维度，另一维度去对应列 */}
+                {/* 提示条：只改当前维度，另一维度去对应列。标题与关闭按钮不参与下面那个边界，
+                    所以加载中/失败时用户仍能直接关窗 */}
                 <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                     <PackageCheck className="size-4 shrink-0" />
                     {meta.notice}
                 </div>
 
-                <SkuDialogBody
-                    kind={kind}
-                    productId={productId}
-                    productName={productName}
-                    detail={data}
-                    isPending={isPending}
-                    isError={isError}
-                    error={error}
-                    isFetching={isFetching}
-                    refetch={refetch}
-                    onOpenChange={onOpenChange}
-                    onSaved={onSaved}
-                />
+                {open && productId && (
+                    <QueryBoundary
+                        pending={<SkuDialogSkeleton />}
+                        fallback={t("common.loadFailed.sku")}
+                    >
+                        <SkuEditor
+                            kind={kind}
+                            productId={productId}
+                            productName={productName}
+                            onOpenChange={onOpenChange}
+                            onSaved={onSaved}
+                        />
+                    </QueryBoundary>
+                )}
             </DialogContent>
         </Dialog>
     )
 }
 
 /**
- * 弹窗体：错误 / 骨架 / 表单 三态。抽出来是为了让 EditSkuLineDialog 只剩「标题 + 提示条 + 本组件」
- * 三件事（健康扫描按「cc>=5 且零覆盖必上榜」判，三态的全塞在一个函数里会到 cc 6）。
+ * 弹窗体：详情到手后渲染表单。
+ *
+ * 用 suspense 而不是 `useQuery` + 往下传 isPending/isError/detail：那三个状态会让父组件
+ * 变成「状态中转站」（类型谓词 `formReady` 就是被逼出来的产物），而 suspense 下
+ * 「详情一定存在」由语言本身保证——挂到这里就意味着详情已到手。
+ *
+ * 另有一处语义差别值得留意：suspense 下**已有详情后的后台刷新失败不会卸载表单**——
+ * 全局默认的 `throwOnError: throwWhenNoData` 在「有旧数据」时不抛，边界不接管，
+ * 用户正在编辑的内容不会因为一次后台刷新失败而消失（旧 `isError` 优先的写法会）。
  */
-/** 三态判定：能渲染表单吗。三个条件收在这一处（`&&` 链留在小函数里，主函数就只剩两个 if） */
-type SkuFormState = {
-    isPending: boolean
-    productId: string | undefined
-    detail: ProductDetailResponse | undefined
-}
-
-/** 取数是否就绪：pending / 没有 productId / 没有 detail 任一成立就还渲染骨架 */
-function formReady(
-    s: SkuFormState,
-): s is { isPending: false; productId: string; detail: ProductDetailResponse } {
-    return !s.isPending && s.productId !== undefined && s.detail !== undefined
-}
-
-function SkuDialogBody({
+function SkuEditor({
     kind,
     productId,
     productName,
-    detail,
-    isPending,
-    isError,
-    error,
-    isFetching,
-    refetch,
     onOpenChange,
     onSaved,
 }: {
     kind: SkuEditKind
-    productId?: string
-    productName?: string
-    detail: ProductDetailResponse | undefined
-    isPending: boolean
-    isError: boolean
-    error: unknown
-    isFetching: boolean
-    refetch: () => void
+    /** 由父组件的挂载条件保证存在：没有它就不会挂载本组件（也就不会发请求） */
+    productId: string
+    productName: string | undefined
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
-    const { locale } = useI18n()
-    const t = useT()
-    if (isError) {
-        return (
-            <StateError
-                message={errorText(toApiError(error), locale, t("common.loadFailed.sku"))}
-                onRetry={() => refetch()}
-                retrying={isFetching}
-            />
-        )
-    }
-    // 取数三态收成一个 state 对象 + 类型谓词：谓词一次把 productId/detail 一起收窄
-    // （单个值的谓词管不到另一个，省不掉断言），而 `||` 链全在谓词函数里，
-    // 主函数只剩两个 if —— 健康扫描按「cc>=5 且零覆盖必上榜」判
-    const state = { isPending, productId, detail }
-    if (!formReady(state)) return <SkuDialogSkeleton />
+    const detail = useSuspenseQuery(productDetailSuspenseOptions(productId)).data
+
     return (
         <SkuLineForm
             kind={kind}
-            productId={state.productId}
-            productName={productName ?? state.detail.product.name}
-            detail={state.detail}
+            productId={productId}
+            productName={productName ?? detail.product.name}
+            detail={detail}
             onOpenChange={onOpenChange}
             onSaved={onSaved}
         />

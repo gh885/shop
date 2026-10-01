@@ -178,11 +178,17 @@ export function useLeafPaths(): LeafPath[] {
  * 不设 staleTime 覆盖（吃全局 10s 兜底）：这是弹窗与回填的取数口，
  * 写操作后由调用方 invalidate 或 setQueryData 收敛。
  *
- * `throwOnError: false`：两个消费方（列表页编辑弹窗、发布页草稿回填）都在区块里，
- * 失败要就地渲染而不是炸掉背景页。它本就是 skipToken 查询（`enabled` 由调用方间接控制），
- * 与 suspense 互斥。
+ * 不设 `throwOnError: false`：两个消费方的错误边界诉求**相反**，写在共享 options 里会让其中
+ * 一端静默失效（frontend.md「错误与重试」第 2 条），所以默认走全局的「失败抛给边界」：
+ * - 列表页 `EditSkuDialog`：弹窗内的区块（`QueryBoundary`）→ 首次失败就地错误态 + 官方 reset 重试，
+ *   已有详情后的后台刷新失败不抛（`throwWhenNoData`），正在编辑的表单不会因此卸载；
+ * - 发布页 `useProductDraft`：回填是**该页主体数据**，头上有路由 errorComponent → 失败渲染路由错误页，
+ *   绝不放行成「可编辑的空表单」（那是数据丢失路径）。
+ *
+ * 本选项带 skipToken（`enabled` 由调用方间接控制），**与 suspense 互斥**；要 suspense 的消费方
+ * 用下面的 {@link productDetailSuspenseOptions}（同key、无 skipToken）。
  */
-/** 商品详情（发布页回填 / 编辑弹窗）：无 productId 时不发请求；消费方 useQuery 直用（失败就地渲染）。 */
+/** 商品详情（发布页回填 / 编辑弹窗）：无 productId 时不发请求。失败抛给边界。 */
 export const productDetailOptions = (productId: string | undefined) =>
     queryOptions({
         queryKey: productKeys.detail(productId ?? ""),
@@ -190,7 +196,21 @@ export const productDetailOptions = (productId: string | undefined) =>
             ? () => ProductsAdminApi.getShopProductDetail({ path: { id: productId } })
             : skipToken,
         retry: false,
-        throwOnError: false,
+    })
+
+/**
+ * 商品详情的 suspense 变体：**同一份 queryKey**（缓存与失效完全共用），只是去掉了 skipToken。
+ *
+ * 为什么要单独一个：上面那个用 skipToken 表达「没有 id 就不发请求」，而 `useSuspenseQuery`
+ * 不接受 enabled / skipToken（frontend.md 规则 3：这类开关与 suspense 互斥）。所以 suspense
+ * 消费方改用「**由父组件控制挂载**」来表达同一个条件——没有 id 就不渲染子组件，自然不发请求，
+ * 也就不会有「挂着一个永远挂起的组件」。
+ */
+export const productDetailSuspenseOptions = (productId: string) =>
+    queryOptions({
+        queryKey: productKeys.detail(productId),
+        queryFn: () => ProductsAdminApi.getShopProductDetail({ path: { id: productId } }),
+        retry: false,
     })
 
 /** 编辑 SKU 后只失效当前商品详情；列表刷新与关闭弹窗由 onSaved 通知消费方。 */

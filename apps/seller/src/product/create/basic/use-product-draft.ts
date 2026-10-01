@@ -4,7 +4,6 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { SaveMode } from "#/product/edit-rules"
 import { categorySpecTemplateOptions, productDetailOptions } from "#/product/queries"
-import { notify } from "@shop/app-kit"
 import {
     buildSkuRowsFromSelections,
     mergeSkuRows,
@@ -146,7 +145,6 @@ export function useProductDraft({ shopId, categoryId, productId, onCreated }: Pr
         productId,
         createdThisSession,
         detail: identity.detail,
-        detailError: identity.detailError,
         dispatch,
     })
 
@@ -179,7 +177,14 @@ export function useProductDraft({ shopId, categoryId, productId, onCreated }: Pr
         submit: writes.submit,
         submitting: writes.submitting,
         creating: identity.creating,
+        /** 回填是否完成：编辑态在详情到达前为 false（失败不置位，查询抛给路由错误页） */
         hydrated: hydration.hydrated,
+        /**
+         * 页面骨架闸门：编辑态（有 productId 且非本会话创建）且详情未到。
+         * 调用方据此**不挂表单**（只挂骨架）——空表单 + DRAFT 权限集在详情失败时会变成数据丢失路径，
+         * 详见 useDraftHydration 的注释。新建态恒为 false（无详情可等）。
+         */
+        hydrating: productId !== undefined && !identity.createdThisSession && !hydration.hydrated,
         /** 编辑回填：有 productId 时 basic 字段的初值（供调用方 form.reset 灌值）；新建时为 undefined */
         hydratedBasic: hydration.hydratedBasic,
         /** 编辑已有商品时的状态（新建为 undefined）：BasicStep 据此决定能否切类目 / 规格是否冻结 */
@@ -222,7 +227,6 @@ function useDraftIdentity({
         createdThisSession,
         markCreatedInSession: () => setCreatedThisSession(true),
         detail: detailQuery.data,
-        detailError: detailQuery.error,
     }
 }
 
@@ -241,13 +245,19 @@ function useDraftSnapshot(selections: SpecSelection[], skuRows: SkuDraftRow[]): 
  *
  * 仅当「进入时即存在 productId」才回填；本会话点保存创建的，表单数据已是真相源，
  * 跳过回灌避免冲掉用户输入。数据源与列表页编辑弹窗共用同一份 productDetail 缓存。
+ *
+ * **失败不放行**：详情拉不到时 `hydrated` 保持 false，页面停在骨架（且该查询失败会抛给路由错误页，
+ * 骨架只是它到达之前的窗口）。早先这里有一条例外分支「拉不到也 setHydrated(true) + toast」，
+ * 已删除——回填失败时那份表单是**空的**，而编辑态一旦挂载就会拿到 `editRules(undefined) === DRAFT`
+ * 的最宽松权限集（可切类目 / 可改规格 / 显示「提交」发布动作），用户点一次保存就是
+ * `persistBasic` / `persistSpecs` 拿空值整份覆盖已有商品（标题/图片/卖点/规格被抹掉）。
+ * 宁可停在骨架，也不能让「没数据」长成「可保存的空表单」。
  */
 function useDraftHydration({
     shopId,
     productId,
     createdThisSession,
     detail,
-    detailError,
     dispatch,
 }: {
     shopId: string | undefined
@@ -256,7 +266,6 @@ function useDraftHydration({
     createdThisSession: boolean
     /** 商品详情（与列表页编辑弹窗同缓存） */
     detail: ProductDetailResponse | undefined
-    detailError: Error | null
     dispatch: (action: DraftAction) => void
 }) {
     const [hydrated, setHydrated] = useState(false)
@@ -266,26 +275,18 @@ function useDraftHydration({
 
     useEffect(() => {
         if (!shopId || !productId || createdThisSession) return
-        if (detailError) {
-            // 详情拉不到也放行 hydrated：否则表单永远停在 loading 骨架，用户无从下手
-            notify.error("商品信息加载失败，请刷新重试")
-            // 回填是一次性的异步数据流（详情到达或拉不到后把表单从骨架切到可填），渲染期派生不出来
-            // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change, react/set-state-in-effect
-            setHydrated(true)
-            return
-        }
         if (!detail) return
+        // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change, react/set-state-in-effect -- 回填是一次性的异步数据流（详情到达后把表单从骨架切到可填），渲染期派生不出来
         dispatch({
             type: "hydrate",
             selections: selectionsFromDetail(detail),
             skuRows: detail.skus.map(rowFromSku),
         })
         setHydratedBasic(basicFromDetail(detail))
-        // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change, react/set-state-in-effect -- 同上：详情到达后的一次性数据流
         setHydrated(true)
-        // detail / detailError 都由 query 派生（同一份缓存，与列表页编辑弹窗共享），
-        // 不追踪 detailPending：它是「还没到」不是「变了」，不该触发 hydrate
-    }, [shopId, productId, createdThisSession, detail, detailError, dispatch])
+        // detail 由 query 派生（同一份缓存，与列表页编辑弹窗共享），不追踪 detailPending：
+        // 它是「还没到」不是「变了」，不该触发 hydrate
+    }, [shopId, productId, createdThisSession, detail, dispatch])
 
     return { hydrated, hydratedBasic, productStatus }
 }

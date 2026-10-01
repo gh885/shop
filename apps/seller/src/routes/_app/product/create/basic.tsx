@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useRef, useState } from "react"
+import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { CircleAlert } from "lucide-react"
+
+import { Skeleton } from "@shop/ui-web"
 
 import { toApiError } from "@shop/common"
 
@@ -80,13 +82,6 @@ function NewProductBasicStep() {
     // 类型即 useProductDraft 返回的 ProductStatus | undefined（DraftProductStatus 别名已在重构中删除）
     const editingStatus = draft.productStatus
 
-    // 直接访问缺 categoryId：回第一步
-    useEffect(() => {
-        if (!categoryId) {
-            void navigate({ to: "/product/create/category", search: {} })
-        }
-    }, [categoryId, navigate])
-
     async function onSubmit(values: BasicStepValues, mode: SubmitMode) {
         setServerError(undefined)
         setForbiddenWord(undefined)
@@ -128,7 +123,24 @@ function NewProductBasicStep() {
         }
     }
 
-    if (!categoryId) return
+    // 直接访问缺 categoryId（手输 URL / 旧链接）：第一步还没选类目，回第一步而不是留空白页
+    if (!categoryId) {
+        return (
+            <Navigate
+                to="/product/create/category"
+                search={{}}
+                replace
+            />
+        )
+    }
+
+    // 编辑态回填未完成：整页骨架，**不挂表单**。
+    // 这不是「锦上添花的 loading」——详情到达前 productStatus 是 undefined，
+    // `editRules(undefined)` 给的是 DRAFT 权限全集（可切类目 / 可改规格 / 显示发布动作 / 免设价门槛），
+    // 挂载空表单等于把「已上架商品」暂时降级成「草稿」；而详情**失败**时该状态会永久持续，
+    // 用户点一次保存就是 `persistBasic` / `persistSpecs` 拿空值整份覆盖已有商品。
+    // 所以闸门在「挂不挂表单」这一层，失败路径另由路由错误页接管（见 product/queries.ts 的注释）。
+    if (draft.hydrating) return <PublishStepSkeleton />
 
     return (
         <div className="mx-auto w-full max-w-narrow">
@@ -161,6 +173,29 @@ function NewProductBasicStep() {
                     </p>
                 </div>
             ) : undefined}
+        </div>
+    )
+}
+
+/**
+ * 编辑回填期间的整页骨架：形状对齐 `PublishBasicStep`（面包屑 + 若干信息段 + 底部操作条），
+ * 降低详情到达时的布局抖动。纯展示，无文案故不需要 i18n。
+ */
+function PublishStepSkeleton() {
+    return (
+        <div
+            aria-hidden="true"
+            className="mx-auto w-full max-w-narrow"
+        >
+            <Skeleton className="h-4 w-40 shrink-0" />
+            <Skeleton className="mt-4 h-28 w-full rounded-xl" />
+            <Skeleton className="mt-4 h-64 w-full rounded-xl" />
+            <Skeleton className="mt-4 h-40 w-full rounded-xl" />
+            {/* 底部操作条 */}
+            <div className="mt-6 flex items-center justify-end gap-2">
+                <Skeleton className="h-9 w-24 rounded-lg" />
+                <Skeleton className="h-9 w-32 rounded-lg" />
+            </div>
         </div>
     )
 }
