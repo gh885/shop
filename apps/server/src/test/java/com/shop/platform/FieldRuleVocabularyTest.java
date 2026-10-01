@@ -98,7 +98,7 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li><b>已发布契约</b> {@code openapi/api-docs.json}——springdoc 把 {@code maxLength / maxItems / maximum /
  *       pattern} 原样导出，前端 SDK 与 zod 校验照着它编译；
  *   <li><b>库上那一格</b>——{@code VARCHAR(n)} 列宽与 {@code CHECK (quantity BETWEEN 1 AND n)} 上界，
- *       以及前端表单自己抄的一份（{@code packages/common/src/address.ts}、{@code tracking.ts}）。
+ *       以及前端表单自己抄的一份（{@code packages/common/src/domain/address.ts}、{@code tracking.ts}）。
  * </ol>
  *
  * <p><b>为什么值得单独立一道门禁</b>：这四边今天全靠人肉对齐，而漂移是无声的——常量改了数字，契约那一格
@@ -879,28 +879,33 @@ class FieldRuleVocabularyTest {
 
     private static final List<Mirror> APP_MIRRORS = List.of(
             new Mirror(
-                    "packages/common/src/address.ts",
+                    "packages/common/src/domain/address.ts",
                     "ADDRESS_PARSE_TEXT_MAX",
                     "AddressParseRequest",
                     "text",
                     "maxLength",
                     ""),
             new Mirror(
-                    "packages/common/src/address.ts",
+                    "packages/common/src/domain/address.ts",
                     "POSTAL_CODE_MAX",
                     "MerchantAddressRequest",
                     "postalCode",
                     "maxLength",
                     ""),
             new Mirror(
-                    "packages/common/src/address.ts",
+                    "packages/common/src/domain/address.ts",
                     "COMPANY_NAME_MAX",
                     "MerchantAddressRequest",
                     "companyName",
                     "maxLength",
                     ""),
             new Mirror(
-                    "packages/common/src/address.ts", "ADDRESS_LABEL_MAX", "AddressRequest", "label", "maxLength", ""),
+                    "packages/common/src/domain/address.ts",
+                    "ADDRESS_LABEL_MAX",
+                    "AddressRequest",
+                    "label",
+                    "maxLength",
+                    ""),
             new Mirror(
                     "apps/web/src/address/address-form.ts",
                     "CUSTOM_LABEL_MAX",
@@ -911,7 +916,12 @@ class FieldRuleVocabularyTest {
             new Mirror("apps/admin/src/cms/constants.ts", "CMS_TARGET_MAX", "NavRequest", "target", "maxLength", ""),
             new Mirror("apps/admin/src/cms/constants.ts", "CMS_URL_MAX", "BannerRequest", "imageUrl", "maxLength", ""),
             new Mirror(
-                    "packages/common/src/note-fields.ts", "NOTE_MAX", "CancelOrderRequest", "reason", "maxLength", ""),
+                    "packages/common/src/domain/note-fields.ts",
+                    "NOTE_MAX",
+                    "CancelOrderRequest",
+                    "reason",
+                    "maxLength",
+                    ""),
             new Mirror(
                     "apps/web/src/order/CancelOrderDialog.tsx",
                     "NOTE_MAX_LENGTH",
@@ -920,7 +930,7 @@ class FieldRuleVocabularyTest {
                     "maxLength",
                     "刻意留 20 字余量：对话框里那句「（选填，会在订单备注中原样展示）」不计入字数，短一点比贴边好"),
             new Mirror(
-                    "packages/common/src/coupon.ts",
+                    "packages/common/src/domain/coupon.ts",
                     "COUPON_NAME_MAX",
                     "CreateCouponTemplateRequest",
                     "name",
@@ -951,14 +961,14 @@ class FieldRuleVocabularyTest {
                     "maxLength",
                     ""),
             new Mirror(
-                    "packages/common/src/product-fields.ts",
+                    "packages/common/src/domain/product-fields.ts",
                     "SPEC_VALUES_MAX",
                     "SpecSelectionRequest",
                     "valueIds",
                     "maxItems",
                     ""),
             new Mirror(
-                    "packages/common/src/product-fields.ts",
+                    "packages/common/src/domain/product-fields.ts",
                     "SPEC_VALUE_MAX",
                     "SpecSelectionRequest",
                     "customValues",
@@ -967,14 +977,14 @@ class FieldRuleVocabularyTest {
             new Mirror(
                     "apps/seller/src/shop/constants.ts", "SHOP_NAME_MAX", "CreateShopRequest", "name", "maxLength", ""),
             new Mirror(
-                    "packages/app-kit/src/login-schema.ts",
+                    "packages/app-kit/src/auth/login-schema.ts",
                     "NICKNAME_MAX",
                     "UpdateProfileRequest",
                     "nickname",
                     "maxLength",
                     ""),
             new Mirror(
-                    "packages/app-kit/src/login-schema.ts",
+                    "packages/app-kit/src/auth/login-schema.ts",
                     "CAPTCHA_CODE_DIGITS",
                     "SmsCodeRequest",
                     "captchaCode",
@@ -1076,59 +1086,59 @@ class FieldRuleVocabularyTest {
 
     private static final List<Twin> JAVA_TWINS = List.of(
             new Twin(
-                    "packages/common/src/address.ts",
+                    "packages/common/src/domain/address.ts",
                     "ADDRESS_NAME_MAX",
                     "AddressFieldRules.NAME_MAX",
                     () -> AddressFieldRules.NAME_MAX),
             new Twin(
-                    "packages/common/src/address.ts",
+                    "packages/common/src/domain/address.ts",
                     "ADDRESS_DETAIL_MAX",
                     "AddressFieldRules.DETAIL_MAX",
                     () -> AddressFieldRules.DETAIL_MAX),
             new Twin(
-                    "packages/common/src/address.ts",
+                    "packages/common/src/domain/address.ts",
                     "CONTACT_PHONE_MAX",
                     "PhoneNumber.CONTACT_PATTERN 的 {5,20} 上界",
                     // 输入框的 maxLength 拿不到正则，只能另起一个名字，但数得从同一条规则来
                     () -> boundOf(PhoneNumber.CONTACT_PATTERN, false)),
             new Twin(
-                    "packages/common/src/tracking.ts",
+                    "packages/common/src/domain/tracking.ts",
                     "CARRIER_NAME_MAX",
                     "TrackingFieldRules.CARRIER_NAME_MAX",
                     () -> TrackingFieldRules.CARRIER_NAME_MAX),
             new Twin(
-                    "packages/common/src/tracking.ts",
+                    "packages/common/src/domain/tracking.ts",
                     "TRACKING_NO_MAX",
                     "TrackingFieldRules.TRACKING_NO_MAX",
                     () -> TrackingFieldRules.TRACKING_NO_MAX),
             new Twin(
-                    "packages/common/src/product-fields.ts",
+                    "packages/common/src/domain/product-fields.ts",
                     "PRODUCT_NAME_MAX",
                     "ProductFieldRules.NAME_MAX",
                     () -> ProductFieldRules.NAME_MAX),
             new Twin(
-                    "packages/common/src/product-fields.ts",
+                    "packages/common/src/domain/product-fields.ts",
                     "SELL_POINT_MIN",
                     "ProductFieldRules.SELL_POINT_PATTERN 的 {10,30} 下界",
                     // 卖点的 10 与 30 在 Java 侧只以正则存在，所以从正则里取数，而不是两边各写一遍字面量
                     () -> boundOf(ProductFieldRules.SELL_POINT_PATTERN, true)),
             new Twin(
-                    "packages/common/src/product-fields.ts",
+                    "packages/common/src/domain/product-fields.ts",
                     "SELL_POINT_MAX",
                     "ProductFieldRules.SELL_POINT_PATTERN 的 {10,30} 上界",
                     () -> boundOf(ProductFieldRules.SELL_POINT_PATTERN, false)),
             new Twin(
-                    "packages/app-kit/src/login-schema.ts",
+                    "packages/app-kit/src/auth/login-schema.ts",
                     "SMS_CODE_DIGITS",
                     "AccountFieldRules.SMS_CODE_LENGTH",
                     () -> AccountFieldRules.SMS_CODE_LENGTH),
             new Twin(
-                    "packages/app-kit/src/login-schema.ts",
+                    "packages/app-kit/src/auth/login-schema.ts",
                     "PASSWORD_MIN",
                     "AccountFieldRules.PASSWORD_MIN",
                     () -> AccountFieldRules.PASSWORD_MIN),
             new Twin(
-                    "packages/app-kit/src/login-schema.ts",
+                    "packages/app-kit/src/auth/login-schema.ts",
                     "NICKNAME_MAX",
                     "AccountFieldRules.NICKNAME_MAX",
                     () -> AccountFieldRules.NICKNAME_MAX),
@@ -1206,7 +1216,7 @@ class FieldRuleVocabularyTest {
                     "DEFAULT_COLLAPSED_COUNT",
                     "时间线收起态保留几个节点，纯展示，服务端不读它"),
             new Policy(
-                    "packages/common/src/sdk-client.ts",
+                    "packages/common/src/contract/sdk-client.ts",
                     "RETRY_LIMIT",
                     "传输策略（GEN-35：幂等 GET 遇 408/429/5xx 重试 2 次），不是入参边界"),
             new Policy(
@@ -1227,7 +1237,7 @@ class FieldRuleVocabularyTest {
                     "FALLBACK_SCROLLBAR_SIZE",
                     "读不到真实滚动条尺寸时的兜底值（自定义滚动条尚未布局完成的瞬间）：纯 CSS 呈现，无对边"),
             new Policy(
-                    "packages/app-kit/src/login-schema.ts",
+                    "packages/app-kit/src/auth/login-schema.ts",
                     "PHONE_DIGITS",
                     "登录那一格只收大陆手机号，11 位与自家正则的位数由 shared-vocabulary.test.ts 的 digits==span 钉住；"
                             + "Java 侧的 7..20 是联系电话那条，不是同一个约束（电话允许座机与分隔符）"),
@@ -1534,7 +1544,7 @@ class FieldRuleVocabularyTest {
         }
         // 联系电话的形状在前端也只许有一份，且与 Java 逐字节同串（它那个 maxLength 的数走 JAVA_TWINS 那条）
         assertThat(tsString("address.ts", "CONTACT_PHONE_PATTERN"))
-                .as("packages/common/src/address.ts 里那份联系电话正则")
+                .as("packages/common/src/domain/address.ts 里那份联系电话正则")
                 .isEqualTo(PhoneNumber.CONTACT_PATTERN);
     }
 
@@ -1779,11 +1789,29 @@ class FieldRuleVocabularyTest {
         return out.toString();
     }
 
-    /** TS 文件路径：带 {@code /} 的按仓库根算，裸文件名按 packages/common/src 算 */
+    /**
+     * TS 文件路径：带 {@code /} 的按仓库根算，裸文件名在 packages/common/src 下按名字搜。
+     *
+     * <p>不写死片目录（{@code src/domain/foo.ts}）：common 在 8c71b3f6 切成片之后，
+     * 「词表住在哪一片」变成了实现细节，写死的路径会随下一次搬家静默失明——那一次就有三个裸路径
+     * 落到已经不存在的 {@code src/foo.ts} 上，靠断言消息才看出来。搜索按唯一性要求：
+     * 两个同名文件就等于这份词表有了两个答案，当场红而不是挑一个。
+     */
     private static String tsSource(String file) throws IOException {
-        Path path = file.contains("/") ? REPO_ROOT.resolve(file) : TS_COMMON.resolve(file);
+        Path path = file.contains("/") ? REPO_ROOT.resolve(file) : findTsByName(file);
         assertThat(path).as("找不到前端词表文件 %s", path.toAbsolutePath()).exists();
         return Files.readString(path, StandardCharsets.UTF_8);
+    }
+
+    private static Path findTsByName(String name) throws IOException {
+        try (var found = Files.walk(TS_COMMON)) {
+            List<Path> matches =
+                    found.filter(p -> p.getFileName().toString().equals(name)).toList();
+            assertThat(matches)
+                    .as("%s 在 packages/common/src 下应当恰好有一份，实际 %s 份", name, matches.size())
+                    .hasSize(1);
+            return matches.get(0);
+        }
     }
 
     /** 按 TS 的转义语义还原：{@code \\d} → {@code \d}，未知转义丢反斜杠（{@code \-} → {@code -}） */

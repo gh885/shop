@@ -60,7 +60,7 @@ class PermissionVocabularyTest {
 
     /** 前端权限码唯一 owner；其余前端源码只许引用这里的值。 */
     private static final Path FRONTEND_PERMISSION_OWNER =
-            REPO_ROOT.resolve(Path.of("packages", "common", "src", "permission-codes.ts"));
+            REPO_ROOT.resolve(Path.of("packages", "common", "src", "contract", "permission-codes.ts"));
 
     /** 已在 packages/common 建 owner 的权限码；新增消费点时两向核对。 */
     private static final Set<String> FRONTEND_PERMISSION_CODES =

@@ -26,7 +26,8 @@ import org.junit.jupiter.api.Test;
  */
 class ValidationRuleVocabularyTest {
 
-    private static final Path TS_OWNER = Path.of("..", "..", "packages", "common", "src", "validation-rules.ts");
+    private static final Path TS_OWNER =
+            Path.of("..", "..", "packages", "common", "src", "contract", "validation-rules.ts");
 
     /** TS 里那行：{@code    REQUIRED: "validation.REQUIRED",} */
     private static final Pattern TS_ENTRY =

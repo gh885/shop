@@ -2,6 +2,8 @@ import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vite-plus/test"
 
+import { NOTE_MAX } from "@shop/common/domain"
+
 import { ReasonForm } from "./reason-form"
 import { renderWithProviders } from "../test"
 
@@ -32,7 +34,7 @@ function renderForm(props: {
 }) {
     renderWithProviders(
         <ReasonForm
-            maxLength={200}
+            maxLength={NOTE_MAX}
             label="拒绝理由"
             placeholder="例如：退回商品缺少吊牌"
             submitLabel="确认拒绝"
