@@ -42,4 +42,22 @@ public record PublicProductView(
                 p.getSoldCount(),
                 p.isSevenDayReturn());
     }
+
+    /**
+     * 列表展示价：由查询侧按「当前可售 SKU」重算后传入；缺货 SKU 不参与低价引流。
+     * 无可用价时回退商品价格区间（尚未启用「仅看有货」的宽松展示口径）。
+     */
+    public static PublicProductView from(Product p, Long minPrice, Long maxPrice) {
+        return new PublicProductView(
+                p.getId(),
+                p.getShopId(),
+                p.getCategoryId(),
+                p.getName(),
+                p.getSubtitle(),
+                p.getMainImage(),
+                Money.ofFenOrNull(minPrice, p.getCurrency()),
+                Money.ofFenOrNull(maxPrice, p.getCurrency()),
+                p.getSoldCount(),
+                p.isSevenDayReturn());
+    }
 }

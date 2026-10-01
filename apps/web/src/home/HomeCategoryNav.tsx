@@ -36,6 +36,7 @@ import { useT } from "#/locales/use-t"
 import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"
 
 import { navTitle } from "./nav"
+import { searchParamsForNavEntry, searchParamsForNavItem } from "./nav-target"
 import { homeNavOptions } from "./queries"
 
 /**
@@ -50,6 +51,7 @@ export function HomeCategoryNav() {
     return (
         <QueryBoundary
             pending={<HomeCategoryNavSkeleton />}
+            // oxlint-disable-next-line react/no-unstable-nested-components -- QueryBoundary fallback 需要每次渲染拿到 reset/error，不能提前抽成静态组件
             fallback={(args) => <HomeCategoryNavErrorFallback {...args} />}
         >
             <HomeCategoryNavContent />
@@ -162,6 +164,7 @@ function HomeCategoryNavContent() {
 }
 
 /** 词条行：有子组的走 NavigationMenuTrigger（hover/点击展开右侧面板）；无子组的只是普通按钮——给它挂个开了没内容的假面板更怪 */
+// fallow-ignore-next-line complexity
 function NavEntry({ entry }: { entry: NavEntryResponse }) {
     const Icon = (entry.iconKey ? ICON_BY_KEY[entry.iconKey] : undefined) ?? ShoppingBag
     const label = (
@@ -177,15 +180,25 @@ function NavEntry({ entry }: { entry: NavEntryResponse }) {
     )
 
     if (entry.subs.length === 0) {
+        const search = searchParamsForNavEntry(entry)
         return (
             <li>
-                {/* Button 默认 size 即 h-8 px-2.5 gap-1.5，与 Trigger 行对齐，不再叠 triggerStyle */}
-                <Button
-                    variant="ghost"
-                    className="w-full justify-start"
-                >
-                    {label}
-                </Button>
+                {search ? (
+                    <Link
+                        to="/search"
+                        search={search}
+                        className="flex h-8 w-full items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                        {label}
+                    </Link>
+                ) : (
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                    >
+                        {label}
+                    </Button>
+                )}
             </li>
         )
     }
@@ -215,29 +228,22 @@ function NavEntry({ entry }: { entry: NavEntryResponse }) {
 }
 
 function NavGroupRow({ group }: { group: NavGroup }) {
+    const items = group.items?.filter((item) => item.trim()) ?? []
     return (
         <div className="flex items-baseline gap-3">
-            {/* TODO: 分类词条需跳往对应分类/列表页，暂无路由，先落回首页 */}
-            <Link
-                to="/"
-                className="group flex shrink-0 items-center gap-1 text-sm font-medium whitespace-nowrap"
-            >
+            <span className="flex shrink-0 items-center text-sm font-medium text-foreground">
                 {group.name}
-                <span className="text-xs text-muted-foreground transition-colors group-hover:text-primary">
-                    &gt;
-                </span>
-            </Link>
+            </span>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                {/* 契约里 items 可选：缺省即「这组没有词条」，与 [] 同义（不做投影归一，省一个中间类型） */}
-                {group.items?.map((item) => (
-                    // 暂无分类路由，先用 button 保证键盘可操作与控件语义
-                    <button
+                {items.map((item) => (
+                    <Link
                         key={item}
-                        type="button"
-                        className="cursor-pointer whitespace-nowrap transition-colors hover:text-primary"
+                        to="/search"
+                        search={searchParamsForNavItem(item)}
+                        className="whitespace-nowrap transition-colors hover:text-primary"
                     >
                         {item}
-                    </button>
+                    </Link>
                 ))}
             </div>
         </div>

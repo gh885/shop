@@ -42,9 +42,7 @@ public class ProductController {
     /** 商品列表：只返上架商品，可按类目/店铺/关键词筛选并排序 */
     @GetMapping
     public PageResult<PublicProductView> listPublicProducts(@Valid PageParams pageParams, @Valid ProductQuery query) {
-        return productQueryService
-                .pagePublic(query, pageParams.page(), pageParams.size())
-                .map(PublicProductView::from);
+        return productQueryService.pagePublicView(query, pageParams.page(), pageParams.size());
     }
 
     /** 商品详情：非上架一律 404，SKU 只返在售（库存由查询服务补齐） */

@@ -1,13 +1,22 @@
+import { useNavigate } from "@tanstack/react-router"
+
 import { notify } from "@shop/app-kit"
 
 /**
- * 搜索后端未建：首页大搜索框与内页顶栏搜索框共用同一句占位反馈。
- * 文案只此一处——两个搜索框各写一句必然漂移（同一个状态在两个地方叫两个名字）。
+ * 首页大搜索框与内页顶栏共用的搜索跳转。
+ *
+ * 搜索后端已由 `GET /api/products` 承接；这里只负责把用户输入送进统一结果页，
+ * 空输入沿用原有反馈，不把空关键词变成「全站列表」。
  */
-export function notifySearchComingSoon(keyword: string) {
-    if (!keyword.trim()) {
-        notify.info("请输入搜索关键词")
-        return
+export function useSearchNavigate() {
+    const navigate = useNavigate()
+
+    return (keyword: string) => {
+        const q = keyword.trim()
+        if (!q) {
+            notify.info("请输入搜索关键词")
+            return
+        }
+        void navigate({ to: "/search", search: { q } })
     }
-    notify.info("搜索功能即将上线")
 }

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ProtectedAccountRouteRouteImport } from './routes/_protected/account/route'
 import { Route as ProtectedCartRouteImport } from './routes/_protected/cart'
@@ -34,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
   id: '/_protected',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WelcomeRoute = WelcomeRouteImport.update({
@@ -121,6 +127,7 @@ const ProtectedAccountSecurityIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/search': typeof SearchRoute
   '/welcome': typeof WelcomeRoute
   '/account': typeof ProtectedAccountRouteRouteWithChildren
   '/cart': typeof ProtectedCartRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/search': typeof SearchRoute
   '/welcome': typeof WelcomeRoute
   '/account': typeof ProtectedAccountRouteRouteWithChildren
   '/cart': typeof ProtectedCartRoute
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteRouteWithChildren
+  '/search': typeof SearchRoute
   '/welcome': typeof WelcomeRoute
   '/_protected/account': typeof ProtectedAccountRouteRouteWithChildren
   '/_protected/cart': typeof ProtectedCartRoute
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/search'
     | '/welcome'
     | '/account'
     | '/cart'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/search'
     | '/welcome'
     | '/account'
     | '/cart'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_protected'
+    | '/search'
     | '/welcome'
     | '/_protected/account'
     | '/_protected/cart'
@@ -236,6 +248,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
+  SearchRoute: typeof SearchRoute
   WelcomeRoute: typeof WelcomeRoute
   ProductsIdRoute: typeof ProductsIdRoute
   SellIndexRoute: typeof SellIndexRoute
@@ -255,6 +268,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof ProtectedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/welcome': {
@@ -413,6 +433,7 @@ const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
+  SearchRoute: SearchRoute,
   WelcomeRoute: WelcomeRoute,
   ProductsIdRoute: ProductsIdRoute,
   SellIndexRoute: SellIndexRoute,

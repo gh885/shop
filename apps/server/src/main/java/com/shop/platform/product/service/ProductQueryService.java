@@ -13,6 +13,7 @@ import com.shop.platform.product.mapper.ProductMapper;
 import com.shop.platform.product.mapper.Sku;
 import com.shop.platform.product.mapper.SkuMapper;
 import com.shop.platform.product.model.ProductStatus;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -139,6 +140,47 @@ public class ProductQueryService {
         var result = productMapper.selectPublicPage(
                 paging(page, size), visibleCategoryIds, query.shopId(), keyword, ProductSort.fromWire(query.sort()));
         return new PageResult<>(result.getRecords(), result.getTotal());
+    }
+
+    /**
+     * 买家侧商品列表出参：在既有分页结果上，把展示价重算为「当前可售 SKU」的价格区间。
+     *
+     * <p>商品表的 min_price/max_price 是 SKU 改价时的冗余副本，只按在售状态聚合，不感知库存；
+     * 列表直接展示会把已缺货的低价 SKU 当成起售价。这里按查询时的库存重新取价，避免低价引流。
+     * 无任何可售 SKU 时保留商品价格区间，等待后续「仅看有货」和缺货标识落地。
+     */
+    public PageResult<PublicProductView> pagePublicView(ProductQuery query, long page, long size) {
+        PageResult<Product> pageResult = pagePublic(query, page, size);
+        return new PageResult<>(publicViews(pageResult.records()), pageResult.total());
+    }
+
+    /** 批量为本页商品装配展示价：SKU 与库存各一次批查，避免逐商品 N+1。 */
+    private List<PublicProductView> publicViews(List<Product> products) {
+        if (products.isEmpty()) {
+            return List.of();
+        }
+        List<Sku> skus = skuMapper.selectByProductIds(
+                products.stream().map(Product::getId).toList());
+        Map<UUID, StockView> stocks = stocks(skus);
+        Map<UUID, List<Sku>> byProduct = new HashMap<>();
+        skus.forEach(s -> byProduct
+                .computeIfAbsent(s.getProductId(), ignored -> new ArrayList<>())
+                .add(s));
+        return products.stream()
+                .map(product -> {
+                    List<Sku> sellable = byProduct.getOrDefault(product.getId(), List.of()).stream()
+                            .filter(Sku::isOnSale)
+                            .filter(s -> s.getPrice() != null)
+                            .filter(s -> StockView.availableOrZero(stocks.get(s.getId())) > 0)
+                            .toList();
+                    if (sellable.isEmpty()) {
+                        return PublicProductView.from(product);
+                    }
+                    long min = sellable.stream().mapToLong(Sku::getPrice).min().orElseThrow();
+                    long max = sellable.stream().mapToLong(Sku::getPrice).max().orElseThrow();
+                    return PublicProductView.from(product, min, max);
+                })
+                .toList();
     }
 
     /** 买家侧商品详情：非上架商品一律 404（不泄露"存在但没上架"），SKU 只返在售 */

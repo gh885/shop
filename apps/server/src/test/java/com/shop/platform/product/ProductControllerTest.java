@@ -18,6 +18,7 @@ import com.shop.platform.product.model.ProductStatus;
 import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.service.ProductDetail;
 import com.shop.platform.product.service.PublicProductDetailView;
+import com.shop.platform.product.service.PublicProductView;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.util.List;
 import java.util.Map;
@@ -66,12 +67,12 @@ class ProductControllerTest extends WebControllerTestSupport {
 
         @Test
         void 匿名可访问() throws Exception {
-            when(productQueryService.pagePublic(any(), anyLong(), anyLong()))
-                    .thenReturn(new PageResult<>(List.of(product()), 1));
+            when(productQueryService.pagePublicView(any(), anyLong(), anyLong()))
+                    .thenReturn(new PageResult<>(List.of(PublicProductView.from(product())), 1));
 
             mockMvc.perform(get("/api/products")).andExpect(status().isOk());
 
-            verify(productQueryService).pagePublic(any(), anyLong(), anyLong());
+            verify(productQueryService).pagePublicView(any(), anyLong(), anyLong());
         }
 
         /**
@@ -85,7 +86,7 @@ class ProductControllerTest extends WebControllerTestSupport {
                     .andExpect(jsonPath("$.errors[0].field").value("sort"))
                     .andExpect(jsonPath("$.errors[0].message").value("排序方式不支持"));
 
-            verify(productQueryService, never()).pagePublic(any(), anyLong(), anyLong());
+            verify(productQueryService, never()).pagePublicView(any(), anyLong(), anyLong());
         }
     }
 

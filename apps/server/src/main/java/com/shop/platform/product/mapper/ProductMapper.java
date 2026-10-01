@@ -179,10 +179,17 @@ public interface ProductMapper extends BaseMapper<Product> {
         return wrapper;
     }
 
-    /** 商品名称/副标题包含搜索；ILIKE + pg_trgm 保留大小写不敏感的包含匹配语义。 */
+    /** 商品名称/副标题包含搜索；ILIKE + pg_trgm 保留大小写不敏感的包含匹配语义。
+     *  用户输入里的 % / _ 是普通字符，必须转义后再拼 `%keyword%`，否则搜索词会变成通配表达式。 */
     private static void addKeywordFilter(LambdaQueryWrapper<Product> wrapper, String keyword) {
         if (!StringUtils.hasText(keyword)) return;
-        String pattern = "%" + keyword.trim() + "%";
-        wrapper.and(q -> q.apply("name ILIKE {0}", pattern).or().apply("subtitle ILIKE {0}", pattern));
+        String pattern = "%" + escapeLike(keyword.trim()) + "%";
+        wrapper.and(q ->
+                q.apply("name ILIKE {0} ESCAPE '\\'", pattern).or().apply("subtitle ILIKE {0} ESCAPE '\\'", pattern));
+    }
+
+    /** LIKE 通配符转义：先转义转义符本身，再转义 % 和 _。 */
+    static String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }
