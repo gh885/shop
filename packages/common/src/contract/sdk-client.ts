@@ -438,6 +438,10 @@ export function configureSdkClient(
             limit: RETRY_LIMIT,
             methods: [...RETRY_METHODS],
             statusCodes: [...RETRY_STATUSES],
+            // 429 默认就尊重 Retry-After（ky 的 afterStatusCodes 含它），但 maxRetryAfter
+            // 默认 Infinity：后端回个大时刻时，GET 会干等那一刻再重发。timeout 只卡单次
+            // 拿响应、不卡重试前的等待，这里封顶到与 timeout 同量级——超了就放弃重发。
+            maxRetryAfter: 10_000,
         },
     })
 
