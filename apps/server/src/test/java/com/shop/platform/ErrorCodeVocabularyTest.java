@@ -538,9 +538,9 @@ class ErrorCodeVocabularyTest {
      * 状态码因此不是测试里抄的一张表——工厂改状态，文档那一列就得跟着改，否则「逐处相等」那条红。
      */
     private static Map<String, Integer> codedFactories() throws IOException {
-        Matcher m = Pattern.compile(
-                        "publicstaticBusinessException(\\w+)\\(Stringcode,Stringdetail(?:,List<Map<String,String>>errors)?\\)"
-                                + "\\{returnnewBusinessException\\((\\d+),code,detail(?:,errors)?\\);")
+        Matcher m = Pattern.compile("publicstaticBusinessException(\\w+)\\(Stringcode,Stringdetail"
+                        + "(?:,(?:List<Map<String,String>>|Map<String,\\?>)\\w+)?\\)"
+                        + "\\{returnnewBusinessException\\((\\d+),code,detail(?:,(?:errors|null,\\w+))?\\);")
                 .matcher(flatSource(EXCEPTION_OWNER));
         Map<String, Integer> out = new TreeMap<>();
         while (m.find()) {
@@ -574,8 +574,9 @@ class ErrorCodeVocabularyTest {
         Set<String> covered = new TreeSet<>(coded);
         covered.addAll(plain);
         // 分全性：badRequest / forbidden 各是重载对（一参给人话、二参给人话 + 码），名字会同时出现在两族里，
-        // 这正当；「又带 code 又带 errors 明细」的第三种签名已经落地（COM-01 违禁词），它算带码族的一格——
-        // codedFactories 认它，所以真要找的是第四种形状（码不在第 0 参、或状态码不从 new 那一行出来），它两族都进不去。
+        // 这正当；「又带 code 又带 errors 明细」「又带 code 又带 params」的第三种签名已经落地（COM-01 违禁词、
+        // 两条地址上限码），它们算带码族的一格——codedFactories 认它们，所以真要找的是第四种形状（码不在第 0 参、
+        // 或状态码不从 new 那一行出来），它两族都进不去。
         assertThat(covered).as("有工厂落在两族之外，先补本类再补代码").isEqualTo(declaredFactories());
     }
 

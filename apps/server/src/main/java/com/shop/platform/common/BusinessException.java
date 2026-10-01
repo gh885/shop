@@ -1,5 +1,6 @@
 package com.shop.platform.common;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
@@ -22,6 +23,17 @@ public class BusinessException extends RuntimeException {
      */
     private final transient List<Map<String, String>> errors;
 
+    /**
+     * 那条错误的结构化上下文（ProblemDetail 扩展属性 {@code params}），可选：把「必须原样给用户、
+     * 且只有后端知道」的值当数据交出去，而不是拼进 detail 那句话里。首个使用者是两条地址上限码
+     * （上限 20 / 200 住在后端常量里，前端没有对边，catalog 写死就是一个会谎报的字面量）。
+     *
+     * <p>与 {@code errors} 的分工：{@code errors} 定位**字段**（按 field 标红输入框），{@code params}
+     * 定位**这条错误的原因**（没有对应输入框可标红）。值只放标量，含用户输入或敏感值的不进这里。
+     * 与 code 同样不进契约，改它不需要 {@code pnpm gen:sdk}。
+     */
+    private final transient Map<String, Object> params;
+
     // 核心构造器
     public BusinessException(int httpStatus, String code, String detail) {
         this(httpStatus, code, detail, null);
@@ -32,11 +44,17 @@ public class BusinessException extends RuntimeException {
     }
 
     public BusinessException(int httpStatus, String code, String detail, List<Map<String, String>> errors) {
+        this(httpStatus, code, detail, errors, null);
+    }
+
+    public BusinessException(
+            int httpStatus, String code, String detail, List<Map<String, String>> errors, Map<String, ?> params) {
         super(detail);
         this.httpStatus = httpStatus;
         this.code = code;
         this.detail = detail;
         this.errors = errors;
+        this.params = params == null ? null : new LinkedHashMap<>(params);
     }
 
     // 常用工厂方法
@@ -87,6 +105,19 @@ public class BusinessException extends RuntimeException {
      */
     public static BusinessException badRequest(String code, String detail, List<Map<String, String>> errors) {
         return new BusinessException(400, code, detail, errors);
+    }
+
+    /**
+     * 400 + 结构化上下文：与 {@link #badRequest(String, String, List)} 同一个位置参数个数，靠形参类型区分，
+     * 所以另起名字而不是加一个重载——{@code Map.of("limit", 20)} 的类型是 {@code Map<String, Integer>}，
+     * 与 {@code List} 重载并不冲突，但两个只差位置的 List/Map 重载读起来分不出该传哪个。
+     *
+     * <p>用法与 {@code errors} 同一条纪律：detail 仍然写完整中文句子（日志与中文界面兜底靠它），
+     * 但那句话里的关键数字不再由前端解析——它作为 {@code limit} 出一次，前端用它填 catalog 句子的
+     * <code>{limit}</code> 槽位（见 docs/error-codes.md 的参数通道）。
+     */
+    public static BusinessException badRequestWithParams(String code, String detail, Map<String, ?> params) {
+        return new BusinessException(400, code, detail, null, params);
     }
 
     public static BusinessException rateLimited(String detail) {

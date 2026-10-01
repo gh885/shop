@@ -1,5 +1,6 @@
 package com.shop.platform.shop.service;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
@@ -9,6 +10,7 @@ import com.shop.platform.shop.mapper.MerchantAddress;
 import com.shop.platform.shop.mapper.MerchantAddressMapper;
 import com.shop.platform.shop.model.AddressStatus;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,12 +53,15 @@ public class MerchantAddressService {
     /** 新增地址：条数超限拒绝；可同时标记默认发货/默认退货（各至多一个） */
     @Transactional
     public MerchantAddress create(UUID shopId, MerchantAddressRequest req) {
-        // 1. 条数闸门：超限 400 + code（此码 detail 优先——上限数字只有 detail 装得下；哪些行占名额的口径见 countByShop）
+        // 1. 条数闸门：超限 400 + code。上限作为 params.limit 出一次（不进 detail 那句话的解析），见
+        // AddressService.create 同处注释与 docs/error-codes.md 的参数通道；哪些行占名额的口径见 countByShop
         long owned = addressMapper.countByShop(shopId);
-        Validate.isTrue(
-                owned < MAX_ADDRESS_PER_SHOP,
-                ErrorCodes.MERCHANT_ADDRESS_LIMIT_EXCEEDED,
-                "最多添加 " + MAX_ADDRESS_PER_SHOP + " 条地址");
+        if (owned >= MAX_ADDRESS_PER_SHOP) {
+            throw BusinessException.badRequestWithParams(
+                    ErrorCodes.MERCHANT_ADDRESS_LIMIT_EXCEEDED,
+                    "最多添加 " + MAX_ADDRESS_PER_SHOP + " 条地址",
+                    Map.of("limit", MAX_ADDRESS_PER_SHOP));
+        }
         // 2. 区划校验 + 默认位让位，再落库
         regionRegistry.requireValidCode(req.regionCode());
         boolean asShipDefault = Boolean.TRUE.equals(req.defaultShip());

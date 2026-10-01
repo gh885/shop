@@ -5,12 +5,14 @@ import com.alotuser.address.assets.UserInfo;
 import com.shop.platform.account.dto.AddressRequest;
 import com.shop.platform.account.mapper.Address;
 import com.shop.platform.account.mapper.AddressMapper;
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.region.RegionRegistry;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,13 +46,17 @@ public class AddressService {
     /** 新增地址；条数超限拒绝。标记默认时先清掉其他默认，保证每用户至多一个默认 */
     @Transactional
     public AddressView create(UUID userId, AddressRequest req) {
-        // 1. 条数闸门：超限 400 + code（此码是登记在案的 detail 优先例外——上限数字只有 detail 装得下，
-        // 见 app-kit `i18n/error-keys.ts`）
+        // 1. 条数闸门：超限 400 + code。上限作为 params.limit 出一次（不进 detail 那句话的解析），
+        // 前端用它填 catalog 句子的 {limit}，后端把 20 改成 30 时前端零改动（docs/error-codes.md 的参数通道）。
+        // 这里不用 Validate.isTrue：它没有带 params 的形状，而四参重载会让本行不再被 ErrorCodeVocabularyTest
+        // 认成抛码站点（它按 3 参取码位），等于给这处闸门静默地松了门禁。
         long owned = addressMapper.countByUser(userId);
-        Validate.isTrue(
-                owned < MAX_ADDRESS_PER_USER,
-                ErrorCodes.ADDRESS_LIMIT_EXCEEDED,
-                "最多保存 " + MAX_ADDRESS_PER_USER + " 条收货地址");
+        if (owned >= MAX_ADDRESS_PER_USER) {
+            throw BusinessException.badRequestWithParams(
+                    ErrorCodes.ADDRESS_LIMIT_EXCEEDED,
+                    "最多保存 " + MAX_ADDRESS_PER_USER + " 条收货地址",
+                    Map.of("limit", MAX_ADDRESS_PER_USER));
+        }
         // 2. 区划校验 + 默认位让位，再落库
         regionRegistry.requireValidCode(req.regionCode());
         boolean asDefault = Boolean.TRUE.equals(req.isDefault());

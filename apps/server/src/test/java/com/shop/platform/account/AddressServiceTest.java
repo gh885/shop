@@ -61,7 +61,11 @@ class AddressServiceTest {
         assertThatThrownBy(() -> addressService.create(userId, req()))
                 .isInstanceOf(BusinessException.class)
                 .matches(e -> ((BusinessException) e).getHttpStatus() == 400
-                        && "ADDRESS_LIMIT_EXCEEDED".equals(((BusinessException) e).getCode()));
+                        && "ADDRESS_LIMIT_EXCEEDED".equals(((BusinessException) e).getCode())
+                        // 上限作为数据出（前端 catalog 句子的 {limit} 靠它填）：只断言错会静默地退回
+                        // 「前端解析 detail 里的数字」，而那条路英文界面上根本用不了
+                        && Integer.valueOf(20)
+                                .equals(((BusinessException) e).getParams().get("limit")));
         verify(addressMapper, never()).insert(any(Address.class));
     }
 }

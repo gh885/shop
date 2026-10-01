@@ -83,7 +83,10 @@ class MerchantAddressServiceTest {
         assertThatThrownBy(() -> addressService.create(shopId, req(false, false)))
                 .isInstanceOf(BusinessException.class)
                 .matches(e -> ((BusinessException) e).getHttpStatus() == 400
-                        && "MERCHANT_ADDRESS_LIMIT_EXCEEDED".equals(((BusinessException) e).getCode()));
+                        && "MERCHANT_ADDRESS_LIMIT_EXCEEDED".equals(((BusinessException) e).getCode())
+                        // 上限作为数据出（前端 catalog 句子的 {limit} 靠它填）
+                        && Integer.valueOf(200)
+                                .equals(((BusinessException) e).getParams().get("limit")));
         verify(addressMapper, never()).insert(any(MerchantAddress.class));
     }
 

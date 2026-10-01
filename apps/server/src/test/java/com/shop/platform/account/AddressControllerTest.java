@@ -12,8 +12,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.account.service.AddressView;
+import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -83,7 +86,59 @@ class AddressControllerTest extends WebControllerTestSupport {
                                  "province": "北京市", "city": "北京市", "district": "朝阳区", "detail": "x"}
                                 """))
                     .andExpect(status().is(422))
-                    .andExpect(jsonPath("$.errors[0].field").value("phone"));
+                    .andExpect(jsonPath("$.errors[0].field").value("phone"))
+                    // rule 那一格是「这句话由前端拼」的凭据：没有它就只能显示后端那句中文
+                    .andExpect(jsonPath("$.errors[0].rule").value("PATTERN"));
+        }
+
+        /**
+         * 结构化上下文那一格在 **wire 上**的形状（docs/error-codes.md 的 `params` 通道）。
+         *
+         * <p>为什么在这条链的最后一环钉：service 层测试只能证明「异常里带着 params」、前端测试只能证明
+         * 「拿到 params 会填 catalog 句子」，中间「GlobalExceptionHandler 真的把它挂成了响应体那一格」
+         * 无人管——那一格丢了不会编译错、不会类型错，只会让两句上限提示退成不带数字的通用句。
+         * 扩展属性不进 OpenAPI，所以这里就是它唯一的契约面（改它不需要 pnpm gen:sdk）。
+         */
+        @Test
+        void 地址条数达上限_400_上限作为参数出一次() throws Exception {
+            when(addressService.create(eq(userId), any()))
+                    .thenThrow(BusinessException.badRequestWithParams(
+                            ErrorCodes.ADDRESS_LIMIT_EXCEEDED, "最多保存 20 条收货地址", Map.of("limit", 20)));
+
+            mockMvc.perform(
+                            post("/user/addresses")
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"receiverName": "张三", "phone": "13800000000", "regionCode": "110100",
+                                 "province": "北京市", "city": "北京市", "district": "朝阳区", "detail": "测试路 1 号"}
+                                """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("ADDRESS_LIMIT_EXCEEDED"))
+                    // 前端 catalog 句子的 {limit} 槽位填的就是它；detail 那句中文不删（日志与中文界面兜底靠它）
+                    .andExpect(jsonPath("$.params.limit").value(20))
+                    .andExpect(jsonPath("$.detail").value("最多保存 20 条收货地址"));
+        }
+
+        /** 没有上下文的异常不许多出 `params` 这一格（空对象会让前端以为“有值只是没传”） */
+        @Test
+        void 无上下文的业务错误_响应体不带params() throws Exception {
+            when(addressService.create(eq(userId), any()))
+                    .thenThrow(BusinessException.badRequest(ErrorCodes.PERMISSION_DENIED, "无权操作"));
+
+            mockMvc.perform(
+                            post("/user/addresses")
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"receiverName": "张三", "phone": "13800000000", "regionCode": "110100",
+                                 "province": "北京市", "city": "北京市", "district": "朝阳区", "detail": "测试路 1 号"}
+                                """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("PERMISSION_DENIED"))
+                    .andExpect(jsonPath("$.params").doesNotExist());
         }
     }
 

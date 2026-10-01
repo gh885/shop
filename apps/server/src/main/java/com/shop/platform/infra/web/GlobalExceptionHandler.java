@@ -45,15 +45,18 @@ public class GlobalExceptionHandler {
         if (errors != null && !errors.isEmpty()) {
             pd.setProperty("errors", errors);
         }
+        // 结构化上下文（地址上限的 limit）：与 errors 同一口径，挂在 ProblemDetail 扩展属性上、不进契约
+        Map<String, Object> params = ex.getParams();
+        if (params != null && !params.isEmpty()) {
+            pd.setProperty("params", params);
+        }
         return noStore(pd);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleValidation(
             MethodArgumentNotValidException ex, HttpServletRequest request) {
-        List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> Map.of("field", fe.getField(), "message", fe.getDefaultMessage()))
-                .toList();
+        List<Map<String, Object>> errors = FieldValidationErrors.from(ex.getBindingResult());
 
         // ERR-05: 日志精确到字段，不含实际值
         log.warn("参数校验失败: {} 个字段错误, path={}, ip={}", errors.size(), request.getRequestURI(), clientIp.of(request));
@@ -63,9 +66,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ProblemDetail> handleConstraintViolation(ConstraintViolationException ex) {
         // @RequestParam 上的 jakarta 约束（@Validated 触发），与 @RequestBody 的 422 + errors 同一契约
-        List<Map<String, String>> errors = ex.getConstraintViolations().stream()
-                .map(cv -> Map.of("field", cv.getPropertyPath().toString(), "message", cv.getMessage()))
-                .toList();
+        List<Map<String, Object>> errors = FieldValidationErrors.from(ex.getConstraintViolations());
         return noStore(unprocessable(errors));
     }
 
@@ -120,7 +121,7 @@ public class GlobalExceptionHandler {
     }
 
     /** 字段级校验失败统一出口：422 + errors 明细（@RequestBody 与 @RequestParam 约束共用） */
-    private static ProblemDetail unprocessable(List<Map<String, String>> errors) {
+    private static ProblemDetail unprocessable(List<Map<String, Object>> errors) {
         ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "输入校验失败（" + errors.size() + " 个字段错误）");
         pd.setProperty("errors", errors);
         return pd;
