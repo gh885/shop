@@ -55,8 +55,8 @@ public record PublicProductView(
                 p.getName(),
                 p.getSubtitle(),
                 p.getMainImage(),
-                Money.ofFenOrNull(minPrice, p.getCurrency()),
-                Money.ofFenOrNull(maxPrice, p.getCurrency()),
+                p.displayMinPriceAsMoney(minPrice),
+                p.displayMaxPriceAsMoney(maxPrice),
                 p.getSoldCount(),
                 p.isSevenDayReturn());
     }

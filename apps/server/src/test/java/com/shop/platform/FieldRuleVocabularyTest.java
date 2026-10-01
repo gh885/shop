@@ -1006,6 +1006,13 @@ class FieldRuleVocabularyTest {
                     "maximum",
                     "一屏 24 条是版式决定（六列四行），契约的 48 是接口一次能给的容量；前端刻意少要，但不得多要"),
             new Mirror(
+                    "apps/web/src/search/search.ts",
+                    "SEARCH_PAGE_SIZE",
+                    "PageParams",
+                    "size",
+                    "maximum",
+                    "搜索页一页 24 条与首页 feed 同值（都是一屏六列四行的版式），契约的 100 是所有分页接口的公共上界；" + "搜索结果卡片更窄、一页看更多行数更少，故刻意少要，但不得多要"),
+            new Mirror(
                     "apps/web/src/coupon/coupon.ts",
                     "COUPON_PAGE_SIZE",
                     "PageParams",

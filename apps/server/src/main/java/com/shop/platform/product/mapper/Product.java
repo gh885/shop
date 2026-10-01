@@ -113,6 +113,18 @@ public class Product extends AuditedEntity {
         return Money.ofFenOrNull(maxPrice, currency);
     }
 
+    /** 列表展示价（由查询侧按「当前可售 SKU」重算的分值）换算为 Money。
+     * 与 {@link #minPriceAsMoney()} 一样由实体换算：币种是本实体的一列，把「分值 + 币种」拼成 Money
+     * 是实体的活（MoneyTypeRulesTest）。两处若各拼一次，就会在「缺价算 0 / 算 null」上给出两个答案。 */
+    public Money displayMinPriceAsMoney(Long computedMinPrice) {
+        return Money.ofFenOrNull(computedMinPrice, currency);
+    }
+
+    /** 列表展示价上限换算为 Money；见 {@link #displayMinPriceAsMoney(Long)} 的理由。 */
+    public Money displayMaxPriceAsMoney(Long computedMaxPrice) {
+        return Money.ofFenOrNull(computedMaxPrice, currency);
+    }
+
     /** 规格模板的笛卡尔积：specs 为空时返回 [[]]，恰好对应单规格商品的 1 个隐藏 SKU；各维取值按 valueId 去重 */
     public List<List<SpecValue>> specCombinations() {
         List<List<SpecValue>> result = new ArrayList<>();
