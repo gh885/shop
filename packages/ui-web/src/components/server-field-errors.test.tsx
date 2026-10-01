@@ -16,82 +16,81 @@ import { applyServerFieldErrors } from "./server-field-errors"
  * （实测 form-core 1.33.5：手写版改值后 `canSubmit=false`；交给 `setErrorMap` 后 `true|true` 且错误消失）。
  * 那版测试只钉了「显示 / 换字段 / 显式清空」，没钉「改值后能不能重提」，所以它绿着而功能是坏的。
  */
-describe("applyServerFieldErrors", () => {
-    /**
-     * 表单级校验（与地址表单同形状：Zod 挂在 validators.onSubmit，字段自身没有 validator），
-     * 服务端错误由 onSubmit 回调施加 —— 与真实调用点一致。
-     */
-    function SubmitHarness({ texts }: { texts: Record<string, string> }) {
-        const form = useAppForm({
-            defaultValues: { name: "" },
-            validators: {
-                onSubmit: ({ value }: { value: { name: string } }) => value.name.length > 0,
-            },
-            onSubmit: async () => {
-                applyServerFieldErrors(form, texts)
-            },
-        })
-        return (
-            <form
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    void form.handleSubmit()
-                }}
+
+/**
+ * 表单级校验（与地址表单同形状：Zod 挂在 validators.onSubmit，字段自身没有 validator），
+ * 服务端错误由 onSubmit 回调施加 —— 与真实调用点一致。
+ */
+function SubmitHarness({ texts }: { texts: Record<string, string> }) {
+    const form = useAppForm({
+        defaultValues: { name: "" },
+        validators: {
+            onSubmit: ({ value }: { value: { name: string } }) => value.name.length > 0,
+        },
+        onSubmit: async () => {
+            applyServerFieldErrors(form, texts)
+        },
+    })
+    return (
+        <form
+            onSubmit={(e) => {
+                e.preventDefault()
+                void form.handleSubmit()
+            }}
+        >
+            <form.Field name="name">
+                {(field) => (
+                    <>
+                        <input
+                            aria-label="名称"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                        />
+                        {/* 这就是 <FieldError> 内部读的那一格（见 form.tsx 的 FieldFrame） */}
+                        <span data-testid="err">{field.state.meta.errors.join("|")}</span>
+                    </>
+                )}
+            </form.Field>
+            <form.Subscribe selector={(s) => [s.canSubmit, s.isValid] as const}>
+                {([canSubmit, isValid]) => (
+                    <span data-testid="state">{`${canSubmit}:${isValid}`}</span>
+                )}
+            </form.Subscribe>
+            <button type="submit">提交</button>
+        </form>
+    )
+}
+
+/** 直接施加（验替换语义：这一轮没提到的字段，那一条要跟着没） */
+function ApplyHarness({ texts }: { texts: Record<string, string> }) {
+    const form = useAppForm({
+        defaultValues: { name: "x", phone: "" },
+        onSubmit: async () => {},
+    })
+    return (
+        <div>
+            <button
+                type="button"
+                onClick={() => applyServerFieldErrors(form, texts)}
             >
-                <form.Field name="name">
-                    {(field) => (
-                        <>
-                            <input
-                                aria-label="名称"
-                                value={field.state.value}
-                                onChange={(e) => field.handleChange(e.target.value)}
-                            />
-                            {/* 这就是 <FieldError> 内部读的那一格（见 form.tsx 的 FieldFrame） */}
-                            <span data-testid="err">{field.state.meta.errors.join("|")}</span>
-                        </>
-                    )}
-                </form.Field>
-                <form.Subscribe selector={(s) => [s.canSubmit, s.isValid] as const}>
-                    {([canSubmit, isValid]) => (
-                        <span data-testid="state">{`${canSubmit}:${isValid}`}</span>
-                    )}
-                </form.Subscribe>
-                <button type="submit">提交</button>
-            </form>
-        )
-    }
+                施加
+            </button>
+            <form.Field name="name">
+                {(field) => <span data-testid="err-name">{field.state.meta.errors.join("|")}</span>}
+            </form.Field>
+            <form.Field name="phone">
+                {(field) => (
+                    <span data-testid="err-phone">{field.state.meta.errors.join("|")}</span>
+                )}
+            </form.Field>
+        </div>
+    )
+}
 
-    /** 直接施加（验替换语义：这一轮没提到的字段，那一条要跟着没） */
-    function ApplyHarness({ texts }: { texts: Record<string, string> }) {
-        const form = useAppForm({
-            defaultValues: { name: "x", phone: "" },
-            onSubmit: async () => {},
-        })
-        return (
-            <div>
-                <button
-                    type="button"
-                    onClick={() => applyServerFieldErrors(form, texts)}
-                >
-                    施加
-                </button>
-                <form.Field name="name">
-                    {(field) => (
-                        <span data-testid="err-name">{field.state.meta.errors.join("|")}</span>
-                    )}
-                </form.Field>
-                <form.Field name="phone">
-                    {(field) => (
-                        <span data-testid="err-phone">{field.state.meta.errors.join("|")}</span>
-                    )}
-                </form.Field>
-            </div>
-        )
-    }
+const err = () => screen.getByTestId("err").textContent
+const state = () => screen.getByTestId("state").textContent
 
-    const err = () => screen.getByTestId("err").textContent
-    const state = () => screen.getByTestId("state").textContent
-
+describe("applyServerFieldErrors", () => {
     it("提交失败后那句话出现在对应字段的错误位上", async () => {
         const user = userEvent.setup()
         render(<SubmitHarness texts={{ name: "最长 30 个字" }} />)
@@ -131,6 +130,7 @@ describe("applyServerFieldErrors", () => {
         const user = userEvent.setup()
         const { rerender } = render(<ApplyHarness texts={{ name: "最长 30 个字" }} />)
         await user.click(screen.getByRole("button"))
+        expect(screen.getByTestId("err-name").textContent).toBe("最长 30 个字")
 
         rerender(<ApplyHarness texts={{}} />)
         await user.click(screen.getByRole("button"))

@@ -1,5 +1,5 @@
-import { FormActions } from "@shop/app-kit"
-import { Dialog, DialogContent, useAppForm } from "@shop/ui-web"
+import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { OrderDialogForm } from "./order-dialog-form"
 
@@ -26,8 +26,9 @@ export interface CancelOrderDialogProps {
     onOpenChange: (open: boolean) => void
     /** 取消请求进行中：确认按钮转圈并禁用 */
     pending: boolean
-    /** 确认取消：reason 为快捷原因 + 备注拼好的自由文本，一个都没填则不给占位文案 */
-    onConfirm: (reason?: string) => void
+    /** 确认取消：reason 为快捷原因 + 备注拼好的自由文本，一个都没填则不给占位文案。
+     *  返回请求的 promise，好让表单就地 await 接住后端 422 的字段级错误（详见 CancelForm） */
+    onConfirm: (reason?: string) => Promise<void>
 }
 
 export function CancelOrderDialog({ order, onOpenChange, ...props }: CancelOrderDialogProps) {
@@ -55,17 +56,29 @@ function CancelForm({
     pending,
     onConfirm,
 }: Omit<CancelOrderDialogProps, "order"> & { orderNo: string }) {
+    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: { reason: "", note: "" },
-        onSubmit: ({ value }) =>
-            onConfirm([value.reason, value.note.trim()].filter(Boolean).join("：") || undefined),
+        onSubmit: async ({ value }) => {
+            const reason = [value.reason, value.note.trim()].filter(Boolean).join("：") || undefined
+            try {
+                await onConfirm(reason)
+            } catch (error) {
+                // 取消原因（拼好的自由文本）唯一映射到后端的 reason 字段；note 是本地拆分项、无对边
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, { reason: "reason" }),
+                )
+                throw error
+            }
+        },
     })
 
     return (
         <OrderDialogForm
             title="取消订单"
             description={`订单号 ${orderNo}。该操作不可恢复；待发货订单取消后将退款到原支付账户。`}
-            onSubmit={() => void form.handleSubmit()}
+            onSubmit={() => void submitForm(form)}
         >
             <form.AppField name="reason">
                 {(field) => (

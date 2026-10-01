@@ -1,6 +1,7 @@
 import type { BannerResponse } from "@shop/api/sdk"
 
-import { Dialog, DialogContent, useAppForm } from "@shop/ui-web"
+import { serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { CMS_SUBTITLE_MAX, CMS_TITLE_MAX } from "../constants"
 import { CmsFormBody, sortOrderField, targetField, targetTypeField } from "../form-dialog"
@@ -38,15 +39,36 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
     const create = useCreateBanner()
     const update = useUpdateBanner()
     const busy = create.isPending || update.isPending
+    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: bannerDefaults(editing, defaultSlot),
         validators: { onSubmit: BannerFormSchema },
         onSubmit: async ({ value }) => {
             const input = toBannerRequest(value)
-            await (editing
-                ? update.mutateAsync({ id: editing.id, input })
-                : create.mutateAsync(input))
+            try {
+                await (editing
+                    ? update.mutateAsync({ id: editing.id, input })
+                    : create.mutateAsync(input))
+            } catch (error) {
+                // BannerRequest 的注解落点全部同名（slot/title/subtitle/imageUrl/target/link 的
+                // 长度档、targetType 的 @Pattern、sortOrder 的整数位）；startAt / endAt 无校验注解
+                // 且是时间格，不进白名单
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        slot: "slot",
+                        title: "title",
+                        subtitle: "subtitle",
+                        imageUrl: "imageUrl",
+                        target: "target",
+                        targetType: "targetType",
+                        link: "link",
+                        sortOrder: "sortOrder",
+                    }),
+                )
+                throw error
+            }
             onOpenChange(false)
         },
     })
@@ -55,7 +77,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
         <CmsFormBody
             title={editing ? "编辑运营位" : "新增运营位"}
             busy={busy}
-            onSubmit={() => form.handleSubmit()}
+            onSubmit={() => submitForm(form)}
             onCancel={() => onOpenChange(false)}
         >
             <form.AppField name="slot">

@@ -64,14 +64,15 @@ function RefundPage() {
     const [decision, setDecision] = useState<RefundDecision | undefined>()
 
     // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）；这里只管把动作路由到对应 mutation，
-    // 拒绝那一路把弹窗收的必填理由一起带过去
+    // 拒绝那一路把弹窗收的必填理由一起带过去。**返回动作的 promise**——弹窗要按结果
+    // 决定「失败不关窗」并把 422 落到理由框上（见 AfterSaleDecisionDialog 的 confirmReject）
     const runDecision = (reason: string) => {
         if (!decision) return
         // 两个 id 各归其位：busy 态与请求路径（处理端点挂在订单资源下）
         const args = { ticketId: decision.ticket.id, orderId: decision.ticket.orderId }
-        if (decision.kind === "agree") agreeAfterSale(args)
-        else if (decision.kind === "reject") rejectAfterSale({ ...args, reason })
-        else receiveReturn(args)
+        if (decision.kind === "agree") return agreeAfterSale(args)
+        if (decision.kind === "reject") return rejectAfterSale({ ...args, reason })
+        return receiveReturn(args)
     }
 
     return (

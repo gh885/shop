@@ -1,9 +1,16 @@
 import { PackageCheck } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
-import { FormActions, QueryBoundary } from "@shop/app-kit"
+import {
+    FormActions,
+    QueryBoundary,
+    serverFieldErrorTexts,
+    submitForm,
+    useI18n,
+} from "@shop/app-kit"
 import type { ProductDetailResponse } from "@shop/api/sdk"
 import {
+    applyServerFieldErrors,
     Dialog,
     DialogContent,
     DialogHeader,
@@ -26,6 +33,7 @@ import {
 import {
     countInputSchema,
     type SkuEditKind,
+    type SkuTextRow,
     skuTextRowsForEdit,
     toSkuUpdateItemsFromText,
     yuanPriceSchema,
@@ -155,6 +163,38 @@ function SkuDialogSkeleton() {
     )
 }
 
+/**
+ * 后端 `UpdateSkusRequest.items[i].*` → 本弹窗的 `rows[j].*`（数组路径的 422 落框映射）。
+ *
+ * 两边的下标**不同源**：`toSkuUpdateItemsFromText` 在库存模式会把未定价的行整条丢掉（价格是原样回传的
+ * 绝对量，发 `null` 等于把那个 SKU 写成 0 元），于是 `items` 的下标是「投影之后的序号」而不是行号。
+ * 这里用**同一个判据**重算一遍那条投影，得到「服务端第 k 项 = 表单第 j 行」——不重算就会把第 3 个 SKU
+ * 的错标到第 3 行上，而第 3 行可能压根不是同一个规格（宁可不落红也别落错框）。
+ *
+ * 只列**本模式有输入框**的路径：库存模式能改的是库存，价格与商家编码都是原样回传的（没有框可标）。
+ * 容器级的 `items`（`@NotEmpty`）也没有框——那张表由 SKU 列表生成，不是用户填的，落不进任何一格。
+ */
+export function skuServerFieldMap(
+    kind: SkuEditKind,
+    rows: readonly SkuTextRow[],
+): Record<string, string> {
+    const map: Record<string, string> = {}
+    rows.map((row, index) => ({ row, index }))
+        .filter(({ row }) => kind === "price" || row.price !== null)
+        .forEach(({ index }, itemIndex) => {
+            const item = `items[${itemIndex}]`
+            const field = `rows[${index}]`
+            if (kind === "price") {
+                map[`${item}.price`] = `${field}.priceText`
+                map[`${item}.price.amount`] = `${field}.priceText`
+                map[`${item}.skuCode`] = `${field}.skuCodeText`
+            } else {
+                map[`${item}.stock`] = `${field}.stockText`
+            }
+        })
+    return map
+}
+
 function SkuLineForm({
     kind,
     productId,
@@ -171,6 +211,7 @@ function SkuLineForm({
     onSaved: () => void
 }) {
     const meta = SKU_EDIT_KIND_META[kind]
+    const { locale } = useI18n()
     const save = useUpdateProductSkus(meta.okMessage, () => {
         onSaved()
         onOpenChange(false)
@@ -179,8 +220,26 @@ function SkuLineForm({
     const form = useAppForm({
         defaultValues: { rows: skuTextRowsForEdit(detail.skus) },
         // 行内校验已在字段级通过；换算与「另一维原样回传」的投影规则在 draft-model
-        onSubmit: ({ value }) => {
-            save.mutate({ productId, items: toSkuUpdateItemsFromText(kind, value.rows) })
+        onSubmit: async ({ value }) => {
+            try {
+                await save.mutateAsync({
+                    productId,
+                    items: toSkuUpdateItemsFromText(kind, value.rows),
+                })
+            } catch (error) {
+                applyServerFieldErrors(
+                    form,
+                    // 显式类型形参：目标键是 `rows[3].priceText` 这种数组路径，不是 TForm 的键，
+                    // 默认的 `Extract<keyof TForm, string>` 约束在这里只会挡住正确的写法
+                    serverFieldErrorTexts<Record<string, string>>(
+                        error,
+                        locale,
+                        skuServerFieldMap(kind, value.rows),
+                    ),
+                )
+                // 抛出去才让 form-core 把 isSubmitSuccessful 复位；接住它的是 submitForm
+                throw error
+            }
         },
     })
 
@@ -189,7 +248,7 @@ function SkuLineForm({
             className="flex flex-col gap-4"
             onSubmit={(e) => {
                 e.preventDefault()
-                void form.handleSubmit()
+                void submitForm(form)
             }}
         >
             <div className="text-sm">

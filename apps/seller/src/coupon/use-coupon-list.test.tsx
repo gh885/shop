@@ -69,7 +69,11 @@ describe("券列表的停券", () => {
         const { result, calls } = await setup(50)
         expect(calls.list).toBe(1)
 
-        act(() => result.current.stop(COUPON_ID))
+        // 花括号丢掉返回值：run 现在把动作 promise 透出给「要按结果收尾」的弹窗调用点，
+        // 而 act 一旦拿到 thenable 会把整条链冲完——busyId 断言（处理中）就抢不到了
+        act(() => {
+            void result.current.stop(COUPON_ID)
+        })
         // 请求没回来前这一行是忙碌态：表格据此禁用按钮，防连点出两条停用
         expect(result.current.busyId).toBe(COUPON_ID)
         await waitFor(() => expect(calls.stoppedOn).toBe(COUPON_ID))

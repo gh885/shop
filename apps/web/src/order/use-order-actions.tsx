@@ -58,13 +58,13 @@ export function useOrderActions() {
                 if (!open) setCancelTarget(undefined)
             }}
             pending={cancel.isPending}
-            onConfirm={(reason) =>
-                cancelTarget &&
-                cancel.mutate(
-                    { orderId: cancelTarget.id, reason },
-                    { onSuccess: () => setCancelTarget(undefined) },
-                )
-            }
+            onConfirm={async (reason) => {
+                if (!cancelTarget) return
+                // mutateAsync（非 fire-and-forget）：把 rejection 交回弹窗的 onSubmit，
+                // 那里才能接住后端 422 的字段级错误并标红原因框；成功后再关弹窗
+                await cancel.mutateAsync({ orderId: cancelTarget.id, reason })
+                setCancelTarget(undefined)
+            }}
         />
     )
 

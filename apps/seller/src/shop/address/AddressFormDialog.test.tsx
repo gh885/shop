@@ -156,4 +156,52 @@ describe("AddressFormDialog", () => {
         expect(bodies).toHaveLength(0)
         expect(onOpenChange).not.toHaveBeenCalled()
     })
+
+    /**
+     * 后端 422 的字段级明细落到对应输入框上（此前只有一句全局 toast）。
+     * 用编辑模式：初值已过本地校验（regionCode 有效），点保存即把 PUT 发出去，走得到 422 那条路。
+     * 断的是「用户看得见的那句」由 catalog 按 rule+max 出，不是后端 message 那句中文。
+     */
+    it("服务端 422 的字段级错误落到对应输入框上，弹窗留在原地", async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn<(open: boolean) => void>()
+        server.use(
+            http.put(`*/seller/addresses/${ADDRESS_ID}`, () =>
+                HttpResponse.json(
+                    {
+                        status: 422,
+                        detail: "输入校验失败（1 个字段错误）",
+                        errors: [
+                            {
+                                field: "contactName",
+                                message: "联系人最长 30 字",
+                                rule: "MAX_LENGTH",
+                                max: 30,
+                            },
+                        ],
+                    },
+                    { status: 422 },
+                ),
+            ),
+        )
+
+        renderWithProviders(
+            <AddressFormDialog
+                open
+                onOpenChange={onOpenChange}
+                shopId={SHOP_ID}
+                editing={makeMerchantAddress({
+                    id: ADDRESS_ID,
+                    shopId: SHOP_ID,
+                    regionCode: "441900",
+                })}
+            />,
+        )
+
+        await user.click(await screen.findByRole("button", { name: "保存" }))
+
+        expect(await screen.findByText("最长 30 个字")).toBeInTheDocument()
+        expect(screen.queryByText("联系人最长 30 字")).not.toBeInTheDocument()
+        expect(onOpenChange).not.toHaveBeenCalled()
+    })
 })

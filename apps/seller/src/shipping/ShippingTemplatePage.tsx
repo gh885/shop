@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react"
 import { CircleAlert, Plus, Trash2 } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { useUnsavedLeaveGuard } from "@shop/app-kit"
+import { serverFieldErrorTexts, submitForm, useI18n, useUnsavedLeaveGuard } from "@shop/app-kit"
 import {
     Button,
     Card,
@@ -13,11 +13,13 @@ import {
     Field,
     FieldContent,
     FieldDescription,
+    FieldError,
     FieldLabel,
     FieldTitle,
     FormError,
     Spinner,
     Switch,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 
@@ -33,6 +35,44 @@ import {
     validateShippingTemplateForm,
 } from "./model"
 import { shippingTemplateOptions, useSaveShippingTemplate } from "./queries"
+
+/**
+ * 后端 `ShippingTemplateRequest` 的路径 → 本页有错误位的输入框（`{ 服务端: 表单 }`，白名单）。
+ *
+ * <p>这一页的表单只注册到**顶层**那几格（`defaultRule` 是一整个费用档卡片、`regionRules` 是一整张
+ * 地区规则列表），档位里那四个输入框与每条规则的覆盖地区都不是表单字段。于是服务端那些嵌套路径只能
+ * 落到「这一块」的粒度：
+ *
+ * - `defaultRule.*` → `defaultRule`（那张卡片现在有一行错误位）；
+ * - `excludedRegions` / `excludedRegions[i]` → `excludedRegions`（同理）；
+ * - `freeOverQuantity` / `freeOverAmount.*` → 各自那个输入框。
+ *
+ * <p>`regionRules[i].*` **刻意不列**：整个数组是一个字段，第 3 条规则的错会显示在列表末尾，而 catalog
+ * 那句话里不含「第几条」——落错框比不落框更难排查（后端那句兜底中文带得出路径，全局 toast 仍在）。
+ * 另外这一族的约束（`@NotEmpty regionPrefixes`、`@Min(1)`、Money `@Min(0)`）本地 `validateShippingTemplateForm`
+ * 全都先拦住了，请求根本发不出去，所以今天少的是「以后端改了上限」那一半而不是现在的可见性。
+ */
+export function shippingServerFieldMap(values: ShippingTemplateFormValues): Record<string, string> {
+    const map: Record<string, string> = {
+        freeOverQuantity: "freeOverQuantity",
+        freeOverAmount: "freeOverAmount",
+        "freeOverAmount.amount": "freeOverAmount",
+        defaultRule: "defaultRule",
+        "defaultRule.firstQuantity": "defaultRule",
+        "defaultRule.addQuantity": "defaultRule",
+        "defaultRule.firstFee": "defaultRule",
+        "defaultRule.firstFee.amount": "defaultRule",
+        "defaultRule.addFee": "defaultRule",
+        "defaultRule.addFee.amount": "defaultRule",
+        excludedRegions: "excludedRegions",
+    }
+    // 元素级约束（`@Pattern`）报的是 `excludedRegions[3]` 这种带下标的路径：按当前值逐个列出来，
+    // 它们同落在那一个地区选择器上
+    for (const [index] of values.excludedRegions.entries()) {
+        map[`excludedRegions[${index}]`] = "excludedRegions"
+    }
+    return map
+}
 function RegionRulesEditor({
     value,
     onChange,
@@ -129,6 +169,7 @@ function RegionRulesEditor({
 export function ShippingTemplatePage() {
     const shop = useShop()
     const shopId = shop.id
+    const { locale } = useI18n()
     const templateQuery = useSuspenseQuery(shippingTemplateOptions(shopId))
     const save = useSaveShippingTemplate(shopId)
 
@@ -137,10 +178,28 @@ export function ShippingTemplatePage() {
         defaultValues,
         // 跨字段条款（地区重复、包邮门槛格式等）是表单级校验：错误挂在 errorMap.onSubmit，底部统一渲染
         validators: { onSubmit: ({ value }) => validateShippingTemplateForm(value) },
-        // 保存失败由全局写操作反馈 toast，这里不再自己接
         onSubmit: async ({ value }: { value: ShippingTemplateFormValues }) => {
-            await save.mutateAsync(shippingTemplateRequestFromForm(value))
-            form.reset(value)
+            try {
+                await save.mutateAsync(shippingTemplateRequestFromForm(value))
+                // 成功这一轮没有字段级明细：这一页不像弹窗会卸载，表单与上一轮的红都还在页面上，
+                // 所以显式清一次（不调用就等于让上次落的那句挂着，而这次已经保存成功了）
+                applyServerFieldErrors(form, {})
+                form.reset(value)
+            } catch (error) {
+                // 422 的字段级明细落到那一块输入区上（此前只有一句全局 toast，说不清是哪一档）
+                applyServerFieldErrors(
+                    form,
+                    // 显式类型形参：目标键不止 `keyof ShippingTemplateFormValues` 那六个顶层名，
+                    // 还有 `excludedRegions[3]` 这类带下标的路径
+                    serverFieldErrorTexts<Record<string, string>>(
+                        error,
+                        locale,
+                        shippingServerFieldMap(value),
+                    ),
+                )
+                // 抛出：form-core 才会把 isSubmitSuccessful 复位，接住它的是 submitForm
+                throw error
+            }
         },
     })
 
@@ -171,7 +230,9 @@ export function ShippingTemplatePage() {
             <form
                 onSubmit={(event) => {
                     event.preventDefault()
-                    void form.handleSubmit()
+                    // 不写 void form.handleSubmit()：void 不接 rejection，onSubmit 抛出的错误会变成
+                    // 未处理的异步异常（submitForm 接住它，并把非接口错误上报监控）
+                    void submitForm(form)
                 }}
             >
                 <div className="space-y-4">
@@ -247,6 +308,9 @@ export function ShippingTemplatePage() {
                                         value={field.state.value}
                                         onChange={field.handleChange}
                                     />
+                                    {/* 这一整档不是一个输入框，服务端那句只能落到「默认运费」这一块的
+                                        底部一行（四格共用一条错误位，见 shippingServerFieldMap） */}
+                                    <FieldError errors={field.state.meta.errors} />
                                 </CardContent>
                             </Card>
                         )}
@@ -276,6 +340,9 @@ export function ShippingTemplatePage() {
                                             onChange={field.handleChange}
                                             placeholder="选择不配送的省 / 市 / 区"
                                         />
+                                        {/* 这一族没有逐框，只有「这一个选择器」：超过 100 个前缀那类
+                                            容器级约束（@Size）落在这里，元素级（@Pattern）同落这一行 */}
+                                        <FieldError errors={field.state.meta.errors} />
                                     </Field>
                                 </CardContent>
                             </Card>

@@ -7,6 +7,7 @@ import type {
 import { useQuery } from "@tanstack/react-query"
 import { PlusIcon } from "lucide-react"
 
+import { serverFieldErrorTexts, useI18n } from "@shop/app-kit"
 import {
     Badge,
     Button,
@@ -19,9 +20,11 @@ import {
     Separator,
     Skeleton,
     Spinner,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 
+import { InlineFormCard } from "#/shared/ui/inline-form-card"
 import {
     attrFormSchema,
     ATTR_NAME_MAX,
@@ -331,22 +334,34 @@ function AttrForm({
     onSubmit: (values: AttrFormValues) => Promise<unknown>
     onDone: () => void
 }) {
+    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: defaults,
         validators: { onSubmit: attrFormSchema },
         onSubmit: async ({ value }) => {
-            await onSubmit({ ...value, name: value.name.trim() })
-            onDone()
+            try {
+                await onSubmit({ ...value, name: value.name.trim() })
+                onDone()
+            } catch (error) {
+                // CategoryAttrRequest 里有校验注且表单有框的只有 name（@NotBlank + 上限）与 kind
+                // （@NotNull）。编辑态 kind 锁死且后端忽略那一格，那条错误也就落不到不存在的框上；
+                // required/allowCustom/allowImage 是无注解的 Boolean、sort 由后端排，都不进白名单
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        name: "name",
+                        kind: "kind",
+                    }),
+                )
+                throw error
+            }
         },
     })
 
     return (
-        <form
+        <InlineFormCard
             className="flex flex-col gap-3 rounded-lg border border-border p-3"
-            onSubmit={(event) => {
-                event.preventDefault()
-                void form.handleSubmit()
-            }}
+            form={form}
         >
             <form.AppField name="name">
                 {(field) => (
@@ -420,7 +435,7 @@ function AttrForm({
                     取消
                 </Button>
             </div>
-        </form>
+        </InlineFormCard>
     )
 }
 
@@ -438,6 +453,7 @@ function ValueForm({
     const create = useCreateCategoryAttrValue()
     const update = useUpdateCategoryAttrValue()
     const busy = create.isPending || update.isPending
+    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: { value: editing?.value ?? "", image: editing?.image ?? "" },
@@ -445,22 +461,32 @@ function ValueForm({
         onSubmit: async ({ value }) => {
             const name = value.value.trim()
             const image = value.image.trim()
-            if (editing) {
-                await update.mutateAsync({ valueId: editing.id, value: name, image })
-            } else {
-                await create.mutateAsync({ attrId, value: name, image })
+            try {
+                if (editing) {
+                    await update.mutateAsync({ valueId: editing.id, value: name, image })
+                } else {
+                    await create.mutateAsync({ attrId, value: name, image })
+                }
+                onDone()
+            } catch (error) {
+                // CategoryAttrValueRequest 两个带注解的组件名与表单字段同名（value 的必填与上限、
+                // image 的 URL 上限）；sort 由后端排、表单没有那一格，不列
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        value: "value",
+                        image: "image",
+                    }),
+                )
+                throw error
             }
-            onDone()
         },
     })
 
     return (
-        <form
+        <InlineFormCard
             className="flex flex-col gap-2 rounded-md border border-border p-2"
-            onSubmit={(event) => {
-                event.preventDefault()
-                void form.handleSubmit()
-            }}
+            form={form}
         >
             <form.AppField name="value">
                 {(field) => (
@@ -499,6 +525,6 @@ function ValueForm({
                     取消
                 </Button>
             </div>
-        </form>
+        </InlineFormCard>
     )
 }

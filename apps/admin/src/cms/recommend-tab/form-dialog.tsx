@@ -1,8 +1,14 @@
 import type { RecommendTabResponse } from "@shop/api/sdk"
 
 import { useQuery } from "@tanstack/react-query"
-import { FormActions } from "@shop/app-kit"
-import { Dialog, DialogContent, DialogTitle, useAppForm } from "@shop/ui-web"
+import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import {
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    applyServerFieldErrors,
+    useAppForm,
+} from "@shop/ui-web"
 
 import { CMS_TAB_NAME_MAX, CMS_TARGET_MAX, TARGET_TYPE_ITEMS } from "../constants"
 import { tabDefaults, TabFormSchema, tabRowToRequest, toTabRequest } from "./form"
@@ -37,6 +43,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
     const create = useCreateTab()
     const update = useUpdateTab()
     const busy = create.isPending || update.isPending
+    const { locale } = useI18n()
 
     // 列表已由页面拉过，这里命中同一份缓存，只为算「其他默认项」
     const { data: tabs = [] } = useQuery(tabListOptions())
@@ -46,12 +53,28 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
         validators: { onSubmit: TabFormSchema },
         onSubmit: async ({ value }) => {
             const input = toTabRequest(value)
-            if (editing) {
-                await update.mutateAsync({ id: editing.id, input })
-            } else {
-                await create.mutateAsync(input)
+            try {
+                if (editing) {
+                    await update.mutateAsync({ id: editing.id, input })
+                } else {
+                    await create.mutateAsync(input)
+                }
+            } catch (error) {
+                // RecommendTabRequest 三个带注解的落点与表单字段同名：name（必填 + 词条名上限）、
+                // target（定位值上限）、targetType（@Pattern）；isDefault / sortOrder 没有校验注解，不列
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        name: "name",
+                        target: "target",
+                        targetType: "targetType",
+                    }),
+                )
+                throw error
             }
             if (input.isDefault) {
+                // 取消其他默认项是**别的行**的覆写：那一张表的字段级错误挂到这张表的框上是指认错
+                // 对象，所以这一段不在上面的 try 里，失败只由 meta.error 那句 toast 交代
                 const others = tabs.filter((t) => t.id !== editing?.id && t.isDefault)
                 await Promise.all(
                     others.map((t) =>
@@ -76,7 +99,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 className="mt-4 flex flex-col gap-5"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    void form.handleSubmit()
+                    void submitForm(form)
                 }}
             >
                 <form.AppField name="name">

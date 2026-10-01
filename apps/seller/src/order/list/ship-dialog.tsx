@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 
 import type { OrderIdentity } from "./table"
 import { TRACKING_NO_MAX, toApiError } from "@shop/common"
-import { errorText, FormActions, useI18n } from "@shop/app-kit"
+import { errorText, FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
 import { useT } from "#/locales/use-t"
 import {
+    applyServerFieldErrors,
     Button,
     Dialog,
     DialogContent,
@@ -41,7 +42,7 @@ export function ShipDialog({
     /** 本弹窗只读 id（请求）与单号（展示），不背整行订单 */
     order?: OrderIdentity
     onOpenChange: (open: boolean) => void
-    onShip: (orderId: string, input: ShipInput) => void
+    onShip: (orderId: string, input: ShipInput) => Promise<unknown> | void
 }) {
     return (
         <Dialog
@@ -69,7 +70,7 @@ function ShipForm({
 }: {
     order: OrderIdentity
     onOpenChange: (open: boolean) => void
-    onShip: (orderId: string, input: ShipInput) => void
+    onShip: (orderId: string, input: ShipInput) => Promise<unknown> | void
 }) {
     const carriers = useQuery(carrierListOptions())
     const { locale } = useI18n()
@@ -78,8 +79,23 @@ function ShipForm({
     const form = useAppForm({
         defaultValues: { carrierCode: "", trackingNo: "" },
         validators: { onSubmit: ShipSchema },
-        onSubmit: ({ value }) => {
-            onShip(order.id, shipInputFromForm(value))
+        onSubmit: async ({ value }) => {
+            // onShip 由容器持有发货 mutation 并**透出结果**（use-row-busy 的 run 返回动作 promise）：
+            // 失败不关窗，422 的字段级明细落到对应输入框上，全局 toast 仍由 mutation meta 承担
+            try {
+                await onShip(order.id, shipInputFromForm(value))
+            } catch (error) {
+                // DTO CreateShipmentRequest 的 orderId 由容器拼进请求、表单无对应输入框，不进 map；
+                // carrierCode/trackingNo 同名有框（@NotBlank + @Size）。
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        carrierCode: "carrierCode",
+                        trackingNo: "trackingNo",
+                    }),
+                )
+                throw error
+            }
             onOpenChange(false)
         },
     })
@@ -93,7 +109,7 @@ function ShipForm({
                 className="flex flex-col gap-4"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    void form.handleSubmit()
+                    void submitForm(form)
                 }}
             >
                 <div className="text-sm">

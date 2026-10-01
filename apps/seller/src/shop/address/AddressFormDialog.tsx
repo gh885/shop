@@ -1,5 +1,11 @@
-import { FormActions, RegionField } from "@shop/app-kit"
-import { Dialog, DialogContent, DialogTitle, useAppForm } from "@shop/ui-web"
+import { FormActions, RegionField, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import {
+    applyServerFieldErrors,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    useAppForm,
+} from "@shop/ui-web"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 import { ADDRESS_FIELDS, AddressFormSchema, CONTACT_FIELDS, toDefaults } from "./address-form"
@@ -36,15 +42,36 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
 function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogProps, "open">) {
     const create = useCreateAddress(shopId)
     const update = useUpdateAddress(shopId)
+    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: toDefaults(editing),
         validators: { onSubmit: AddressFormSchema },
         onSubmit: async ({ value }) => {
-            if (editing) {
-                await update.mutateAsync({ id: editing.id, input: value })
-            } else {
-                await create.mutateAsync(value)
+            try {
+                if (editing) {
+                    await update.mutateAsync({ id: editing.id, input: value })
+                } else {
+                    await create.mutateAsync(value)
+                }
+            } catch (error) {
+                // 后端 422 的字段级明细落到对应输入框上（此前只有一句全局 toast）。
+                // 逐字段列出，同名字段也列（列出=确认过同名）。DTO 里的 province/city/district 不列：
+                // 表单没有那三个框，它们由 regionCode 反查派生；defaultShip/defaultReturn 是复选框、
+                // 无值级注解，落不了红。
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        contactName: "contactName",
+                        phone: "phone",
+                        regionCode: "regionCode",
+                        detail: "detail",
+                        postalCode: "postalCode",
+                        companyName: "companyName",
+                        note: "note",
+                    }),
+                )
+                throw error
             }
             onOpenChange(false)
         },
@@ -60,7 +87,7 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                 className="mt-4 flex flex-col gap-5"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    void form.handleSubmit()
+                    void submitForm(form)
                 }}
             >
                 {CONTACT_FIELDS.map(({ name, ...props }) => (

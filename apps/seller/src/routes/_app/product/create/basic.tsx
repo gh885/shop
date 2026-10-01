@@ -105,6 +105,10 @@ function NewProductBasicStep() {
                 return
             }
             setServerError(errorText(toApiError(error), locale))
+            // 继续往外抛：BasicStep 的 catch 会把 422 的字段级明细落到对应输入框上
+            // （横幅那句是无定位时的兜底，两者并存——与范本的「toast + 落框」同构），
+            // 接住这条 rejection 的是 submitForm；在这里吞掉就等于让那条通道永远不亮
+            throw error
         }
     }
 

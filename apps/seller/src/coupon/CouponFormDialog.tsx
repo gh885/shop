@@ -1,5 +1,12 @@
-import { Dialog, DialogContent, DialogDescription, DialogTitle, useAppForm } from "@shop/ui-web"
-import { FormActions } from "@shop/app-kit"
+import {
+    applyServerFieldErrors,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogTitle,
+    useAppForm,
+} from "@shop/ui-web"
+import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
 
 import { COUPON_NAME_MAX } from "@shop/common"
 
@@ -45,17 +52,36 @@ function CouponForm({
     onOpenChange: (open: boolean) => void
 }) {
     const create = useCreateCoupon(shopId)
+    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: emptyCouponForm(),
         validators: { onSubmit: CouponFormSchema },
         onSubmit: async ({ value }) => {
+            // 此前这里是 `catch {}`（静默吞掉一切，包括「代码坏了」那一类）——违反约定，清掉。
+            // 现在只做「把字段级错误写到对应框上」然后原样抛出，rejection 由 submitForm 接住：
+            // 接口错误交全局 toast（mutation 的 meta.error），非接口错误上报监控。
             try {
                 await create.mutateAsync(couponRequestFromForm(value))
-                onOpenChange(false)
-            } catch {
-                // 错误已由全局写操作反馈统一 toast，这里只负责让弹窗留在原地
+            } catch (error) {
+                // map 只列有值级校验注解、且有对应输入框的字段（name/totalQuantity/validDays 有 @Size/@Min/@Max，
+                // type/validFrom/validTo 只有裸 @NotNull——必填项恒发，一并列出=确认过）。
+                // 排除：threshold/discount/maxDiscount 三个金额格（表单存「元」文本、DTO 是 Money，无对应可落红的框）、
+                // discountRate（DTO 无校验注解，范围在 service 判成 400，不落 422 字段错）。
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        name: "name",
+                        type: "type",
+                        totalQuantity: "totalQuantity",
+                        validFrom: "validFrom",
+                        validTo: "validTo",
+                        validDays: "validDays",
+                    }),
+                )
+                throw error
             }
+            onOpenChange(false)
         },
     })
 
@@ -71,7 +97,7 @@ function CouponForm({
                 className="mt-4 flex flex-col gap-4"
                 onSubmit={(event) => {
                     event.preventDefault()
-                    void form.handleSubmit()
+                    void submitForm(form)
                 }}
             >
                 <form.AppField name="name">

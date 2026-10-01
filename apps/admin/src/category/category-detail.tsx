@@ -2,6 +2,7 @@ import { useState } from "react"
 import type { CategoryNode } from "@shop/api/sdk"
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from "lucide-react"
 
+import { serverFieldErrorTexts, useI18n } from "@shop/app-kit"
 import {
     Badge,
     Button,
@@ -9,10 +10,12 @@ import {
     FieldTitle,
     Separator,
     Spinner,
+    applyServerFieldErrors,
     confirm,
     useAppForm,
 } from "@shop/ui-web"
 
+import { InlineFormCard } from "#/shared/ui/inline-form-card"
 import { AttrPanel } from "./attr-panel"
 import {
     categoryFormSchema,
@@ -187,6 +190,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
 /** 改名与图标：名称是唯一的必填，提交前把两端空白剃掉（后端也 trim，两层同一口径） */
 function CategoryEditForm({ node }: { node: CategoryNode }) {
     const update = useUpdateCategory()
+    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: {
             name: node.name,
@@ -194,22 +198,32 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
         } satisfies CategoryFormValues,
         validators: { onSubmit: categoryFormSchema },
         onSubmit: async ({ value }) => {
-            await update.mutateAsync({
-                id: node.id,
-                name: value.name.trim(),
-                // 空串 = 清掉图标（queries 里把空串折成 undefined，后端落 null）
-                iconUrl: value.iconUrl.trim(),
-            })
+            try {
+                await update.mutateAsync({
+                    id: node.id,
+                    name: value.name.trim(),
+                    // 空串 = 清掉图标（queries 里把空串折成 undefined，后端落 null）
+                    iconUrl: value.iconUrl.trim(),
+                })
+            } catch (error) {
+                // UpdateCategoryRequest 的 name / iconUrl 与表单同名（sort 这一格表单里没有，
+                // 不列——挂了也落不到框上）；上限镜像后端 CategoryFieldRules
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        name: "name",
+                        iconUrl: "iconUrl",
+                    }),
+                )
+                throw error
+            }
         },
     })
 
     return (
-        <form
+        <InlineFormCard
             className="flex flex-col gap-3"
-            onSubmit={(event) => {
-                event.preventDefault()
-                void form.handleSubmit()
-            }}
+            form={form}
         >
             <div className="grid gap-3 sm:grid-cols-2">
                 <form.AppField name="name">
@@ -241,7 +255,7 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
                     保存
                 </Button>
             </div>
-        </form>
+        </InlineFormCard>
     )
 }
 
@@ -258,27 +272,38 @@ export function CreateCategoryForm({
     onCancel: () => void
 }) {
     const create = useCreateCategory()
+    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: { name: "", iconUrl: "" } satisfies CategoryFormValues,
         validators: { onSubmit: categoryFormSchema },
         onSubmit: async ({ value }) => {
-            const created = await create.mutateAsync({
-                parentId,
-                name: value.name.trim(),
-                iconUrl: value.iconUrl.trim(),
-                sort: appendSort(index, parentId ?? CATEGORY_ROOT_ID),
-            })
-            onCreated(created.id)
+            try {
+                const created = await create.mutateAsync({
+                    parentId,
+                    name: value.name.trim(),
+                    iconUrl: value.iconUrl.trim(),
+                    sort: appendSort(index, parentId ?? CATEGORY_ROOT_ID),
+                })
+                onCreated(created.id)
+            } catch (error) {
+                // 与改名那张同一格：CreateCategoryRequest 的 name / iconUrl 与表单同名，
+                // parentId 与 sort 由本页推导、没有输入框，不进白名单
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        name: "name",
+                        iconUrl: "iconUrl",
+                    }),
+                )
+                throw error
+            }
         },
     })
 
     return (
-        <form
+        <InlineFormCard
             className="flex flex-col gap-3 rounded-lg border border-border p-3"
-            onSubmit={(event) => {
-                event.preventDefault()
-                void form.handleSubmit()
-            }}
+            form={form}
         >
             <form.AppField name="name">
                 {(field) => (
@@ -317,6 +342,6 @@ export function CreateCategoryForm({
                     取消
                 </Button>
             </div>
-        </form>
+        </InlineFormCard>
     )
 }

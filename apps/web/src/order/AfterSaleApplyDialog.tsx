@@ -1,9 +1,9 @@
 import { z } from "zod"
 import { AfterSaleReason, TicketType } from "@shop/api/sdk"
-import { Dialog, DialogContent, useAppForm } from "@shop/ui-web"
+import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { NOTE_MAX } from "@shop/common"
-import { FormActions } from "@shop/app-kit"
+import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
 
 import {
     AFTER_SALE_REASON_LABEL,
@@ -76,16 +76,30 @@ export function AfterSaleApplyDialog({ open, onOpenChange, ...props }: AfterSale
 
 function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialogProps, "open">) {
     const apply = useApplyAfterSale(orderId)
+    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: DEFAULT_VALUES,
         validators: { onSubmit: ApplySchema },
-        // 用 mutate 而不是 mutateAsync：失败已在 mutation 的 onError 里统一提示（notify.fromError），
-        // 这里再 await 一个必然 reject 的 promise 只会得到一个没人接的 unhandled rejection
-        onSubmit: ({ value }) => {
+        // mutateAsync + 就地 catch：成功后关窗，失败时把后端 422 的字段级明细落到对应框上
+        // （type/reasonCode/reason 三个同名，逐个列进白名单），再原样抛出交给 submitForm 兜住
+        onSubmit: async ({ value }) => {
             // 校验的单一真相源是 ApplySchema，这里按它再收一次类型（reasonCode 的默认值是空串，
             // 表单类型里就是 `"" | AfterSaleReason`）。走不到抛：onSubmit 校验先拦在提交之前。
-            apply.mutate(ApplySchema.parse(value), { onSuccess: () => onOpenChange(false) })
+            try {
+                await apply.mutateAsync(ApplySchema.parse(value))
+            } catch (error) {
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        type: "type",
+                        reasonCode: "reasonCode",
+                        reason: "reason",
+                    }),
+                )
+                throw error
+            }
+            onOpenChange(false)
         },
     })
 
@@ -93,7 +107,7 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
         <OrderDialogForm
             title="申请售后"
             description={`订单号 ${orderNo}。提交后由卖家处理，处理前你可以随时撤销。`}
-            onSubmit={() => void form.handleSubmit()}
+            onSubmit={() => void submitForm(form)}
         >
             <form.AppField name="type">
                 {(field) => (

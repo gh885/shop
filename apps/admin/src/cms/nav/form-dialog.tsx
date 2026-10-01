@@ -1,7 +1,15 @@
 import { useState } from "react"
 import type { NavEntryResponse } from "@shop/api/sdk"
 
-import { Dialog, DialogContent, FieldDescription, FieldTitle, useAppForm } from "@shop/ui-web"
+import { serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import {
+    Dialog,
+    DialogContent,
+    FieldDescription,
+    FieldTitle,
+    applyServerFieldErrors,
+    useAppForm,
+} from "@shop/ui-web"
 
 import { CMS_NAV_KEYS, CMS_TITLE_MAX } from "../constants"
 import { CmsFormBody, sortOrderField, targetField, targetTypeField } from "../form-dialog"
@@ -57,6 +65,7 @@ function NavFormDialogBody({
     const create = useCreateNav()
     const update = useUpdateNav()
     const busy = create.isPending || update.isPending
+    const { locale } = useI18n()
 
     const [subs, setSubs] = useState<SubsValue>(() => normalizeSubs(editing?.subs))
     const [subsError, setSubsError] = useState<string>()
@@ -72,9 +81,29 @@ function NavFormDialogBody({
             }
             setSubsError(undefined)
             const input = toNavRequest(value, parsed.data)
-            await (editing
-                ? update.mutateAsync({ id: editing.id, input })
-                : create.mutateAsync(input))
+            try {
+                await (editing
+                    ? update.mutateAsync({ id: editing.id, input })
+                    : create.mutateAsync(input))
+            } catch (error) {
+                // NavRequest 里能落进这张表单的六个组件名全部同名（navKey/iconKey 的 KEY_MAX、
+                // title 的 TITLE_MAX、target 的 TARGET_MAX、targetType 的 @Pattern、sortOrder 的整数）。
+                // subs 是 SubsEditor 那份独立受控状态、不在 form 里：后端关于 subs 的字段级明细
+                // （分组数上限、组名长度）落不到 form 的任何一个框上，宁可少落也不塞进某个全局格子——
+                // 它由 meta.error 那句 toast 兜住
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        navKey: "navKey",
+                        title: "title",
+                        iconKey: "iconKey",
+                        target: "target",
+                        targetType: "targetType",
+                        sortOrder: "sortOrder",
+                    }),
+                )
+                throw error
+            }
             onOpenChange(false)
         },
     })
@@ -83,7 +112,7 @@ function NavFormDialogBody({
         <CmsFormBody
             title={editing ? "编辑导航条目" : "新增导航条目"}
             busy={busy}
-            onSubmit={() => form.handleSubmit()}
+            onSubmit={() => submitForm(form)}
             onCancel={() => onOpenChange(false)}
         >
             <form.AppField name="navKey">

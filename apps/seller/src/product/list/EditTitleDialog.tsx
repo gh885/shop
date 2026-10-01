@@ -10,8 +10,15 @@ import {
     SELL_POINT_MIN,
     SellPointSchema,
 } from "@shop/common"
-import { FormActions } from "@shop/app-kit"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, useAppForm } from "@shop/ui-web"
+import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import {
+    applyServerFieldErrors,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    useAppForm,
+} from "@shop/ui-web"
 
 import type { ProductTitleTarget } from "./table"
 
@@ -69,24 +76,37 @@ function TitleForm({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
+    const { locale } = useI18n()
     // 写通道走库 useMutation：反馈（成功/失败 toast）由全局 MutationCache 按 meta 执行，
     // 失效范围仍由外层决定（onSaved），本层不 import query key。
     const save = useMutation({
         mutationFn: (body: { name: string; subtitle: string }) =>
             ProductsAdminApi.updateProduct({ path: { id: product.id }, body }),
         meta: { success: "标题已更新", error: "保存失败" },
-        onSuccess: () => {
-            onSaved()
-            onOpenChange(false)
-        },
+        onSuccess: () => onSaved(),
     })
 
     const form = useAppForm({
         // subtitle 为 null 视作空卖点
         defaultValues: { name: product.name, subtitle: product.subtitle ?? "" },
         validators: { onSubmit: TitleSchema },
-        onSubmit: ({ value }) =>
-            save.mutate({ name: value.name.trim(), subtitle: value.subtitle.trim() }),
+        onSubmit: async ({ value }) => {
+            // DTO UpdateProductRequest 其余字段（categoryId/detailImages/mainImage/images/params/
+            // sevenDayReturn）本表单没有对应输入框，不进 map；name(@Size)/subtitle(@Pattern) 同名有框。
+            try {
+                await save.mutateAsync({ name: value.name.trim(), subtitle: value.subtitle.trim() })
+            } catch (error) {
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        name: "name",
+                        subtitle: "subtitle",
+                    }),
+                )
+                throw error
+            }
+            onOpenChange(false)
+        },
     })
 
     return (
@@ -99,7 +119,7 @@ function TitleForm({
                 className="flex flex-col gap-5"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    void form.handleSubmit()
+                    void submitForm(form)
                 }}
             >
                 <form.AppField name="name">

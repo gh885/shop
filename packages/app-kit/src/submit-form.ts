@@ -19,8 +19,8 @@ import { captureError, isApiError } from "@shop/common"
  * <p>所以**不要在 `onSubmit` 里 `catch {}` 了事**：那正是第 2 类被吞掉的原因。`onSubmit` 只管
  * 「把字段级错误写到对应框上」，然后 `throw`；剩下的交给这里。
  *
- * <p>2026-10 只收了买家端地址表单；其余表单仍是内联的 `void form.handleSubmit()`（见
- * docs/conventions/frontend.md 的模板与「待收口」那条）。
+ * <p>2026-10 已收口：三端表单与 app-kit 的共享表单（登录、`ReasonForm`）都走这里，
+ * 仓库里不再有内联的 `void form.handleSubmit()`（细则见 docs/conventions/frontend.md）。
  *
  * @param form 表单实例（`useAppForm()` 的返回值）
  * @returns 一个**永不 reject** 的 promise：给 `void submitForm(form)` 用，

@@ -30,20 +30,19 @@ describe("useRowBusy", () => {
         const { result } = renderHook(() => useRowBusy())
         const run = result.current.run(vi.fn<(id: string) => Promise<unknown>>(() => promise))
 
-        run("row-1")
+        void run("row-1")
         await waitFor(() => expect(result.current.busyId).toBe("row-1"))
 
-        run("row-2")
+        void run("row-2")
         await waitFor(() => expect(result.current.busyId).toBe("row-2"))
     })
-
     it("StrictMode 重挂载后仍能接收动作完成状态", async () => {
         const { result } = renderHook(() => useRowBusy(), { wrapper: StrictMode })
         const run = result.current.run(
             vi.fn<(id: string) => Promise<unknown>>(async () => undefined),
         )
 
-        run("row-1")
+        void run("row-1")
 
         await waitFor(() => expect(result.current.busyId).toBeUndefined())
     })
@@ -58,8 +57,8 @@ describe("useRowBusy", () => {
             ),
         )
 
-        run("row-1")
-        run("row-2")
+        void run("row-1")
+        void run("row-2")
         await waitFor(() => expect(result.current.busyId).toBe("row-2"))
 
         await act(async () => {
@@ -83,7 +82,7 @@ describe("useRowBusy", () => {
             }),
         )
 
-        run("row-1")
+        void run("row-1")
 
         await waitFor(() => expect(result.current.busyId).toBeUndefined())
     })
@@ -96,8 +95,34 @@ describe("useRowBusy", () => {
             }),
         )
 
-        run("row-1")
+        void run("row-1")
 
         await waitFor(() => expect(result.current.busyId).toBeUndefined())
+    })
+
+    it("返回的 promise 把失败原样透出，且复位照常（弹窗按结果决定失败不关窗）", async () => {
+        const { result } = renderHook(() => useRowBusy())
+        const failure = new Error("422")
+        const run = result.current.run(
+            vi.fn<(id: string) => Promise<unknown>>(() => Promise.reject(failure)),
+        )
+
+        const done = run("row-1")
+        await expect(done).rejects.toBe(failure)
+        await waitFor(() => expect(result.current.busyId).toBeUndefined())
+    })
+
+    it("发射即忘的调用点不接返回值也干净：透出的 rejection 有兜底分支接住", async () => {
+        // 不监听 process：dom 项目里没有 node 类型，而 vitest 本身就会把 unhandledRejection
+        // 报成整个文件失败——漏接一条就红，不需要再造一个监听器
+        const { result } = renderHook(() => useRowBusy())
+        const run = result.current.run(
+            vi.fn<(id: string) => Promise<unknown>>(() => Promise.reject(new Error("422"))),
+        )
+
+        void run("row-1")
+        await waitFor(() => expect(result.current.busyId).toBeUndefined())
+        // 再放行一个宏任务：unhandledRejection 要等微任务队列清空后才判定
+        await new Promise((res) => setTimeout(res, 0))
     })
 })

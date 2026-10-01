@@ -1,14 +1,14 @@
 import { useState } from "react"
 import { AdminLogisticsApi, type ShipmentIssueResponse } from "@shop/api/sdk"
+import { serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
 import { useMutation } from "@tanstack/react-query"
 import {
     Button,
     Dialog,
     DialogContent,
     DialogTitle,
-    Field,
-    FieldLabel,
-    Textarea,
+    applyServerFieldErrors,
+    useAppForm,
 } from "@shop/ui-web"
 import { NOTE_MAX } from "@shop/common"
 import { ISSUE_TYPE_LABEL } from "./constants"
@@ -19,13 +19,16 @@ import { logisticsKeys } from "./queries"
  *
  * 做成带备注的弹窗而不是一键「已处理」：结单后这张单不再出现在待办里，备注是它唯一留下的现场痕迹
  * （LOG-33 的待办口径：假待办比没待办更伤，所以处理完必须留下一句「怎么处理的」）。
+ *
+ * 备注由裸 useState 迁到 useAppForm，为的是让后端 422 那句「最长 N 字」落在这个 textarea 上，
+ * 而不是只剩一句 toast。交互形状不变：留空仍可结单（请求体不塞空 note），成功后收起弹窗并清空草稿。
  */
 export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) {
     const [open, setOpen] = useState(false)
-    const [note, setNote] = useState("")
+    const { locale } = useI18n()
 
     const resolve = useMutation({
-        mutationFn: () =>
+        mutationFn: (note: string) =>
             AdminLogisticsApi.resolveIssue({
                 path: { id: issue.id },
                 body: { note: note.trim() || undefined },
@@ -35,9 +38,21 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
             error: "处置失败",
             invalidates: [logisticsKeys.openIssues],
         },
-        onSuccess: () => {
+    })
+
+    const form = useAppForm({
+        defaultValues: { note: "" },
+        onSubmit: async ({ value }) => {
+            try {
+                await resolve.mutateAsync(value.note)
+            } catch (error) {
+                // ResolveIssueRequest 只有 note 一格（@Size 上限镜像 NOTE_MAX），与表单同名。
+                // 上限由 textarea 的 maxLength 先把着，所以这条通道平时是空的；平时为空不等于不接
+                applyServerFieldErrors(form, serverFieldErrorTexts(error, locale, { note: "note" }))
+                throw error
+            }
             setOpen(false)
-            setNote("")
+            form.reset()
         },
     })
 
@@ -61,22 +76,23 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                         className="flex flex-col gap-4"
                         onSubmit={(event) => {
                             event.preventDefault()
-                            resolve.mutate()
+                            // 不写 void form.handleSubmit()：catch 里 rethrow 的那条会变成未处理的异步异常
+                            void submitForm(form)
                         }}
                     >
                         <DialogTitle>处置物流异常</DialogTitle>
                         <p className="text-sm text-muted-foreground">
                             {label}：{issue.detail ?? "无补充说明"}
                         </p>
-                        <Field>
-                            <FieldLabel>处置备注（给下一班人看，可留空）</FieldLabel>
-                            <Textarea
-                                maxLength={NOTE_MAX}
-                                placeholder="已电话催件，承运商承诺明早派送"
-                                value={note}
-                                onChange={(event) => setNote(event.target.value)}
-                            />
-                        </Field>
+                        <form.AppField name="note">
+                            {(field) => (
+                                <field.TextareaField
+                                    label="处置备注（给下一班人看，可留空）"
+                                    maxLength={NOTE_MAX}
+                                    placeholder="已电话催件，承运商承诺明早派送"
+                                />
+                            )}
+                        </form.AppField>
                         <div className="flex justify-end gap-2">
                             <Button
                                 type="button"

@@ -7,6 +7,7 @@ import { ShopsApi } from "@shop/api/sdk"
 import { createFileRoute } from "@tanstack/react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+    applyServerFieldErrors,
     Empty,
     EmptyHeader,
     Badge,
@@ -28,7 +29,7 @@ import {
     confirm,
 } from "@shop/ui-web"
 
-import { PHONE_DIGITS } from "@shop/app-kit"
+import { PHONE_DIGITS, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
 
 export const Route = createFileRoute("/_app/shop/member")({
     component: MembersPage,
@@ -54,6 +55,7 @@ function MembersPage() {
 function MemberPanel({ shopId }: { shopId: string }) {
     const me = useMe()
     const queryClient = useQueryClient()
+    const { locale } = useI18n()
 
     // 成员列表走域内 queryOptions（key 与失效规则同源，路由不直接拼 key）
     const members = useQuery(shopMembersOptions(shopId))
@@ -74,7 +76,20 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const inviteForm = useAppForm({
         defaultValues: { phone: "" },
         validators: { onSubmit: InviteFormSchema },
-        onSubmit: ({ value }) => invite.mutate(value.phone),
+        onSubmit: async ({ value }) => {
+            // DTO InviteMemberRequest 的 permissions 本表单没有对应输入框，不进 map；phone 同名有框（@NotBlank + @Pattern）。
+            try {
+                await invite.mutateAsync(value.phone)
+            } catch (error) {
+                applyServerFieldErrors(
+                    inviteForm,
+                    serverFieldErrorTexts(error, locale, {
+                        phone: "phone",
+                    }),
+                )
+                throw error
+            }
+        },
     })
 
     const remove = useMutation({
@@ -187,7 +202,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                         className="mt-5"
                         onSubmit={(e) => {
                             e.preventDefault()
-                            void inviteForm.handleSubmit()
+                            void submitForm(inviteForm)
                         }}
                     >
                         <inviteForm.AppField name="phone">

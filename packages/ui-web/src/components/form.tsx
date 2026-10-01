@@ -41,7 +41,8 @@ import {
  * ```tsx
  * const form = useAppForm({ defaultValues: {...}, validators: { onSubmit: Schema }, onSubmit: ... });
  *
- * <form onSubmit={(e) => { e.preventDefault(); void form.handleSubmit(); }}>
+ * {/* 提交出口用 @shop/app-kit 的 submitForm(form)，不写 void form.handleSubmit() *\/}
+ * <form onSubmit={(e) => { e.preventDefault(); void submitForm(form); }}>
  *     <form.AppField name="receiver">
  *         {(field) => <field.TextField label="收货人姓名" required placeholder="请输入" />}
  *     </form.AppField>
@@ -61,7 +62,9 @@ import {
  *   `Field` 承担（这里不再另起容器）
  * - 高度定制化的字段（登录页 `+86` 前缀、内嵌按钮等）退回裸 `form.AppField` render-prop，
  *   直接用 `<Field>` + `<FieldError errors={field.state.meta.errors} />` 组合即可，不必硬套字段组件
- * - 服务端/表单级错误用 `<FormError>` 渲染，不各自写红字
+ * - 服务端/表单级错误用 `<FormError>` 渲染，不各自写红字；**字段级**那一句（422 的 `errors[]`）走
+ *   `applyServerFieldErrors(form, texts)` 落进对应框——texts 由 app-kit 的 `serverFieldErrorTexts`
+ *   按白名单映射出「表单字段名」，见 `server-field-errors.ts`
  */
 
 const { fieldContext, formContext, useFieldContext } = createFormHookContexts()

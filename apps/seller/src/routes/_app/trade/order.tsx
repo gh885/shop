@@ -62,12 +62,13 @@ function OrdersPage() {
     const [confirm, setConfirm] = useState<SaleConfirm | undefined>()
 
     // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）：这里只管把动作路由到对应 mutation，
-    // 拒绝那一路把弹窗收的必填理由一起带过去
+    // 拒绝那一路把弹窗收的必填理由一起带过去。**返回动作的 promise**——弹窗要按结果
+    // 决定「失败不关窗」并把 422 落到理由框上（见 AfterSaleDecisionDialog 的 confirmReject）
     const runConfirm = (reason: string) => {
         if (!confirm) return
-        if (confirm.kind === "agree") agreeAfterSale(confirm.orderId)
-        else if (confirm.kind === "reject") rejectAfterSale(confirm.orderId, reason)
-        else receiveReturn(confirm.orderId)
+        if (confirm.kind === "agree") return agreeAfterSale(confirm.orderId)
+        if (confirm.kind === "reject") return rejectAfterSale(confirm.orderId, reason)
+        return receiveReturn(confirm.orderId)
     }
 
     return (

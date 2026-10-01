@@ -1,6 +1,7 @@
 import type { ShipmentIssueResponse } from "@shop/api/sdk"
 
 import { renderWithProviders } from "@shop/app-kit/test"
+import { NOTE_MAX } from "@shop/common"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
@@ -11,8 +12,9 @@ import { IssueResolveAction } from "./resolve-action"
 
 /**
  * 物流异常单结单（LOG-33）：一张单处理完就不在待办里了，备注是它唯一留下的现场痕迹。
- * 钉三件事：① 结单带着备注提交（备注是给下一班人看的，不是可选项摆着好看）；
- * ② 留空也能结单，但发出去的请求体不该塞一个空 note；③ 成功后弹窗收起（结完还挂着就是假待办）。
+ * 钉四件事：① 结单带着备注提交（备注是给下一班人看的，不是可选项摆着好看）；
+ * ② 留空也能结单，但发出去的请求体不该塞一个空 note；③ 成功后弹窗收起（结完还挂着就是假待办）；
+ * ④ 后端 422 的字段级明细落在那格 textarea 上，而不是只剩一句 toast。
  */
 
 const ISSUE: ShipmentIssueResponse = {
@@ -76,5 +78,44 @@ describe("IssueResolveAction", () => {
         await user.click(screen.getByRole("button", { name: "处置" }))
         // 说明那格是 {类型}：{detail ?? 占位} 拼出来的多段文本节点，按正则匹配整段
         expect(await screen.findByText(/无补充说明/)).toBeInTheDocument()
+    })
+
+    /**
+     * 422 的字段级明细落到那格 textarea 上（这条通道在 admin 端的端到端一格）。
+     * maxLength 平时先把着，所以这条分支要真发出去才走得到；断的是「用户看得见的那句由 catalog 按
+     * rule 出」——后端那句中文 message 不该出现在界面上（它只进日志与中文界面的兜底格）。
+     */
+    it("服务端 422 的备注长度错误落进弹窗里的备注框，弹窗不收起", async () => {
+        server.use(
+            http.put("*/admin/logistics/issues/:id/resolve", () =>
+                HttpResponse.json(
+                    {
+                        status: 422,
+                        detail: "输入校验失败（1 个字段错误）",
+                        errors: [
+                            {
+                                field: "note",
+                                message: `处置备注最长 ${NOTE_MAX} 字`,
+                                rule: "MAX_LENGTH",
+                                max: NOTE_MAX,
+                            },
+                        ],
+                    },
+                    { status: 422 },
+                ),
+            ),
+        )
+        renderWithProviders(<IssueResolveAction issue={ISSUE} />)
+        const user = userEvent.setup()
+
+        await user.click(screen.getByRole("button", { name: "处置" }))
+        await user.type(screen.getByRole("textbox"), "催过了")
+        await user.click(screen.getByRole("button", { name: "确认处置" }))
+
+        // 句子是前端 catalog 按 rule + max 出的那句，而不是后端注解上那句中文
+        expect(await screen.findByText(`最长 ${NOTE_MAX} 个字`)).toBeInTheDocument()
+        expect(screen.queryByText(`处置备注最长 ${NOTE_MAX} 字`)).not.toBeInTheDocument()
+        // 没落成就不收起：结单失败还收起弹窗就是一条假待办
+        expect(screen.getByText("处置物流异常")).toBeInTheDocument()
     })
 })

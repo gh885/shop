@@ -2,7 +2,13 @@ import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop
 import { SHOP_NAME_MAX, SHOP_STATUS_META } from "#/shop/constants"
 import { CreateShopFormSchema } from "#/shop/shop-form"
 import { setCurrentShopId } from "#/shop"
-import { formatDate, QueryBoundary, useI18n } from "@shop/app-kit"
+import {
+    formatDate,
+    QueryBoundary,
+    serverFieldErrorTexts,
+    submitForm,
+    useI18n,
+} from "@shop/app-kit"
 import { useT } from "#/locales/use-t"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
 import { useSuspenseQuery, useMutation } from "@tanstack/react-query"
@@ -10,6 +16,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Store, MailPlus, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
 import {
+    applyServerFieldErrors,
     Skeleton,
     Empty,
     Badge,
@@ -156,7 +163,7 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
                 submitText="重新提交"
                 defaultValue={shop.name}
                 pending={resubmit.isPending}
-                onSubmit={(name) => resubmit.mutate(name)}
+                onSubmit={(name) => resubmit.mutateAsync(name)}
             />
         </ItemFooter>
     )
@@ -269,7 +276,7 @@ function CreateShopForm() {
                     pending={create.isPending}
                     onSubmit={(name) => {
                         setDone(false)
-                        create.mutate(name)
+                        return create.mutateAsync(name)
                     }}
                 />
                 <div className="mt-2 min-h-5">
@@ -297,12 +304,28 @@ function ShopNameForm({
     submitText: string
     defaultValue: string
     pending: boolean
-    onSubmit: (name: string) => void
+    onSubmit: (name: string) => Promise<unknown>
 }) {
+    const { locale } = useI18n()
+
     const form = useAppForm({
         defaultValues: { name: defaultValue },
         validators: { onSubmit: CreateShopFormSchema },
-        onSubmit: ({ value }) => onSubmit(value.name),
+        onSubmit: async ({ value }) => {
+            // DTO CreateShopRequest 的 logoKey 本表单没有输入框，不进 map；name 同名有框（@NotBlank + @Size）。
+            // 开店与被拒重提共用这一条通道：抛出的 rejection 由外层 submitForm 接住（接口错误交全局 toast）。
+            try {
+                await onSubmit(value.name)
+            } catch (error) {
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        name: "name",
+                    }),
+                )
+                throw error
+            }
+        },
     })
 
     return (
@@ -310,7 +333,7 @@ function ShopNameForm({
             className="w-full"
             onSubmit={(e) => {
                 e.preventDefault()
-                void form.handleSubmit()
+                void submitForm(form)
             }}
         >
             <form.AppField name="name">

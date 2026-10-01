@@ -6,8 +6,10 @@ import {
     isCodeError,
     isSmsRateLimit,
     RESEND_COUNTDOWN_SECONDS,
+    serverFieldErrorTexts,
     SMS_CODE_DIGITS,
     SmsCodeSchema,
+    submitForm,
     useCountdown,
     useI18n,
 } from "@shop/app-kit"
@@ -28,6 +30,7 @@ import {
     InputOTPGroup,
     InputOTPSlot,
     Spinner,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 import { useMutation } from "@tanstack/react-query"
@@ -70,8 +73,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     const { locale } = useI18n()
     const codeId = useId()
     const [countdown, setCountdown] = useCountdown()
-    const [error, setError] = useState<string | undefined>()
-    const [codeInvalid, setCodeInvalid] = useState(false)
+    const [formError, setFormError] = useState<string | undefined>()
 
     // 发码是纯命令（没有 query 缓存要动），但要读错误码决定「429 也起倒计时」，故与提交共用一套本地错误态
     const send = useMutation({
@@ -82,7 +84,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
             const err = toApiError(e)
             // 与登录发码同一判据（app-kit）：只有限频窗口才起倒计时，当日上限 60s 后重发也没用
             if (isSmsRateLimit(err)) setCountdown(RESEND_COUNTDOWN_SECONDS)
-            setError(errorText(err, locale))
+            setFormError(errorText(err, locale))
         },
     })
 
@@ -94,19 +96,26 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
             invalidates: [deletionKeys.all],
         },
         onSuccess: () => onOpenChange(false),
-        onError: (e) => {
-            const err = toApiError(e)
-            // 验证码类错误要标红输入框（ACC-67），其余错误只在表单下方说一句
-            setCodeInvalid(isCodeError(err))
-            setError(errorText(err, locale))
-        },
     })
 
     const form = useAppForm({
         defaultValues: { code: "" },
         validators: { onSubmit: CodeSchema },
-        onSubmit: ({ value }) => {
-            request.mutate(CodeSchema.parse(value).code)
+        // 范本双通道：422 字段级（防御性，本地 CodeSchema 已先拦格式）与验证码类 400
+        // （按 code 的「验证码错误/已失效」）都落到 code 框上，取代此前只打 aria-invalid 的自建
+        // codeInvalid——错误挂进框后，FieldError 说清「为什么红」、aria-invalid 随 meta 走；
+        // 落不到框的错误才退回底部 FormError 说一句。抛回交给 submitForm 兜住
+        onSubmit: async ({ value }) => {
+            try {
+                await request.mutateAsync(CodeSchema.parse(value).code)
+            } catch (error) {
+                const err = toApiError(error)
+                const texts = serverFieldErrorTexts(error, locale, { code: "code" })
+                if (isCodeError(err)) texts.code = errorText(err, locale)
+                applyServerFieldErrors(form, texts)
+                setFormError(Object.keys(texts).length === 0 ? errorText(err, locale) : undefined)
+                throw error
+            }
         },
     })
 
@@ -138,7 +147,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                 className="mt-4 flex flex-col gap-4"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    void form.handleSubmit()
+                    void submitForm(form)
                 }}
             >
                 <form.AppField name="code">
@@ -156,7 +165,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                 <InputOTP
                                     id={codeId}
                                     aria-label="短信验证码"
-                                    aria-invalid={codeInvalid}
+                                    aria-invalid={!field.state.meta.isValid}
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
                                     maxLength={SMS_CODE_DIGITS}
@@ -164,9 +173,9 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                     onBlur={field.handleBlur}
                                     onChange={(v) => {
                                         field.handleChange(v.replaceAll(/\D/g, ""))
-                                        // 重新输入即清验证码错误（标红随之消失），其余错误留到下次提交
-                                        setCodeInvalid(false)
-                                        setError(undefined)
+                                        // 重新输入即清落框的服务端错误（框架随值变化自动清 onServer 源），
+                                        // 标红随之消失；下方 FormError 那句也一并擦掉
+                                        setFormError(undefined)
                                     }}
                                 >
                                     <InputOTPGroup>
@@ -200,7 +209,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                     )}
                 </form.AppField>
 
-                <FormError>{error}</FormError>
+                <FormError>{formError}</FormError>
 
                 <FormActions
                     pending={request.isPending}

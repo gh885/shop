@@ -59,15 +59,29 @@ export function AfterSaleDecisionDialog({
     orderId?: string
     orderNo?: string
     shopId: string
-    /** 拒绝这条路收到的是必填的理由文本（AFS-30），其余动作忽略这个入参 */
-    onConfirm: (reason: string) => void
+    /**
+     * 拒绝这条路收到的是必填的理由文本（AFS-30），其余动作忽略这个入参。
+     *
+     * 可以返回 promise：那样拒绝时 422 的字段级明细会由 `ReasonForm` 落回理由框，且**失败不关窗**
+     * （见 `confirmReject`）。同步返回的调用点行为不变——立刻关窗，错误由全局写操作反馈 toast 承担。
+     */
+    onConfirm: (reason: string) => void | Promise<unknown>
 }) {
     // 关着或没有订单就不查：决策弹窗是"按需展开上下文"，不是常驻数据
     const ticket = useQuery(shopAfterSaleOptions(shopId, open ? orderId : undefined))
     const data = ticket.data
     const cancel = () => onOpenChange(false)
-    const confirm = (reason: string) => {
-        onConfirm(reason)
+    /** 同意 / 确认收货：没有框可标红，照旧「交出去就关窗」 */
+    const confirmAndClose = (reason: string) => {
+        void onConfirm(reason)
+        cancel()
+    }
+    /**
+     * 拒绝：等 `onConfirm` 的结果再关窗。等是因为后端可能回 422（理由超 200 字这类本地拦不住的），
+     * 而 `ReasonForm` 要把那句话落到框上——先关窗就等于把表单一起卸载，用户什么也看不到。
+     */
+    const confirmReject = async (reason: string) => {
+        await onConfirm(reason)
         cancel()
     }
 
@@ -95,7 +109,7 @@ export function AfterSaleDecisionDialog({
                         placeholder="例如：退回商品缺少吊牌，影响二次销售"
                         submitLabel="确认拒绝"
                         onCancel={cancel}
-                        onSubmit={confirm}
+                        onSubmit={confirmReject}
                     />
                 ) : (
                     <DialogFooter>
@@ -105,7 +119,7 @@ export function AfterSaleDecisionDialog({
                         >
                             取消
                         </Button>
-                        <Button onClick={() => confirm("")}>
+                        <Button onClick={() => confirmAndClose("")}>
                             {kind === "agree" ? "确认同意" : "确认收货"}
                         </Button>
                     </DialogFooter>

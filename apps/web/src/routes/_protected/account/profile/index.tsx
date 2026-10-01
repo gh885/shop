@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { toApiError } from "@shop/common"
-import { errorText, NICKNAME_MAX, useI18n } from "@shop/app-kit"
+import { errorText, NICKNAME_MAX, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
 import { useMe } from "#/account"
 import { ME_QUERY_KEY } from "#/account/queries"
 import { useT } from "#/locales/use-t"
@@ -15,6 +15,7 @@ import {
     Skeleton,
     Spinner,
     StateError,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 
@@ -64,6 +65,7 @@ function ProfilePage() {
 }
 
 function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]> }) {
+    const { locale } = useI18n()
     const update = useMutation({
         mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
         meta: { success: "资料已更新", error: "更新失败", invalidates: [ME_QUERY_KEY] },
@@ -77,7 +79,19 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                     ? { fields: { nickname: "昵称不能为空" } }
                     : undefined,
         },
-        onSubmit: ({ value }) => update.mutate(value.nickname.trim()),
+        // mutateAsync + 就地 catch：失败时把后端 422 的字段级明细（昵称超长/违禁）落到昵称框上，
+        // 再原样抛出交给 submitForm 兜住；全局 toast 仍由 mutation 的 meta.error 发（不加 silentError）
+        onSubmit: async ({ value }) => {
+            try {
+                await update.mutateAsync(value.nickname.trim())
+            } catch (error) {
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, { nickname: "nickname" }),
+                )
+                throw error
+            }
+        },
     })
 
     const displayName = me.nickname ?? undefined
@@ -104,7 +118,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                         className="max-w-md space-y-3"
                         onSubmit={(e) => {
                             e.preventDefault()
-                            void form.handleSubmit()
+                            void submitForm(form)
                         }}
                     >
                         <form.AppField name="nickname">

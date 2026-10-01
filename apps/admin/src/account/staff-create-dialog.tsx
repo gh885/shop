@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { AdminAccountApi, type StaffRole } from "@shop/api/sdk"
-import { usePasswordVisibility } from "@shop/app-kit"
+import { serverFieldErrorTexts, submitForm, useI18n, usePasswordVisibility } from "@shop/app-kit"
 import { useMutation } from "@tanstack/react-query"
 import {
     Button,
@@ -10,6 +10,7 @@ import {
     DialogTitle,
     PasswordToggle,
     Spinner,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 import { accountKeys } from "./queries"
@@ -31,6 +32,7 @@ import { STAFF_ROLE_ITEMS } from "./constants"
 export function StaffCreateDialog() {
     const [open, setOpen] = useState(false)
     const password = usePasswordVisibility()
+    const { locale } = useI18n()
 
     const create = useMutation({
         mutationFn: (value: CreateStaffValue) =>
@@ -54,7 +56,24 @@ export function StaffCreateDialog() {
         defaultValues: { employeeNo: "", password: "", displayName: "", role: "OPS" as StaffRole },
         validators: { onSubmit: CreateStaffSchema },
         onSubmit: async ({ value }) => {
-            await create.mutateAsync(value)
+            try {
+                await create.mutateAsync(value)
+            } catch (error) {
+                // 后端 422 的字段级明细落到对应输入框：CreateStaffRequest 的四个组件名与表单字段
+                // 全部同名（工号的形状、口令的 8~72 档、姓名上限、岗位缺省），逐个列出等于「确认过同名」。
+                // toast 仍由 mutation 的 meta.error 发，两条通道各说各的粒度
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        employeeNo: "employeeNo",
+                        password: "password",
+                        displayName: "displayName",
+                        role: "role",
+                    }),
+                )
+                // 原样抛出：form-core 才知道这次没成（见 submitForm 的注释）
+                throw error
+            }
             form.reset()
         },
     })
@@ -77,7 +96,8 @@ export function StaffCreateDialog() {
                         className="mt-4 flex flex-col gap-4"
                         onSubmit={(event) => {
                             event.preventDefault()
-                            void form.handleSubmit()
+                            // rethrow 的那条由 submitForm 接住（接口错误静默，toast 已经由 meta 发过）
+                            void submitForm(form)
                         }}
                     >
                         <form.AppField name="employeeNo">

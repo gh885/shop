@@ -1,12 +1,13 @@
 import { z } from "zod"
 import { CARRIER_NAME_MAX, TRACKING_NO_MAX, TrackingNoSchema } from "@shop/common"
-import { FormActions } from "@shop/app-kit"
+import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 
@@ -80,6 +81,7 @@ function ReturnForm({
     returnAddress,
 }: Omit<AfterSaleReturnDialogProps, "open">) {
     const submitReturn = useReturnAfterSale(orderId)
+    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: {
@@ -87,9 +89,22 @@ function ReturnForm({
             trackingNo: defaultTrackingNo ?? "",
         },
         validators: { onSubmit: ReturnSchema },
-        // 同申请弹窗：失败由 mutation 的 onError 统一提示，这里不 await 一个必然 reject 的 promise
-        onSubmit: ({ value }) => {
-            submitReturn.mutate(value, { onSuccess: () => onOpenChange(false) })
+        // mutateAsync + 就地 catch：成功后关窗，失败时把后端 422 的字段级明细落到两个框上
+        // （carrierCode 不是这张表单的字段，不进白名单），再原样抛出交给 submitForm 兜住
+        onSubmit: async ({ value }) => {
+            try {
+                await submitReturn.mutateAsync(value)
+            } catch (error) {
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        logisticsCompany: "logisticsCompany",
+                        trackingNo: "trackingNo",
+                    }),
+                )
+                throw error
+            }
+            onOpenChange(false)
         },
     })
 
@@ -106,7 +121,7 @@ function ReturnForm({
                 className="mt-4 flex flex-col gap-4"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    void form.handleSubmit()
+                    void submitForm(form)
                 }}
             >
                 {/* 回寄引导：有地址就给一行（寄错的代价比多读一行字高得多）；null 不编地址，直说联系客服 */}

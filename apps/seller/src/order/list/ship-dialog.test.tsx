@@ -61,7 +61,50 @@ describe("ShipDialog", () => {
                 trackingNo: "SF123456789",
             }),
         )
-        expect(onOpenChange).toHaveBeenCalledWith(false)
+        // onSubmit 现在 await onShip 后才关窗，关窗是异步的：用 waitFor 接住那条 microtask
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    })
+
+    /**
+     * 后端 422 的字段级明细落到对应输入框上。发货 mutation 由容器持有、经 onShip 上抛，
+     * 这里让 onShip 直接 reject 一条带 errors 的 ApiError（真实链路里 run() 当前会吞掉它——
+     * 透出属容器侧改造，见 ship-dialog.tsx 注释），钉住的是弹窗这一层的落地逻辑。
+     */
+    it("onShip 抛 422：字段级错误落到运单号框上，弹窗不关", async () => {
+        const user = userEvent.setup()
+        const onShip = vi
+            .fn<
+                (
+                    orderId: string,
+                    input: { carrierCode: string; trackingNo: string },
+                ) => Promise<unknown>
+            >()
+            .mockRejectedValue({
+                status: 422,
+                detail: "输入校验失败（1 个字段错误）",
+                errors: [{ field: "trackingNo", message: "运单号格式不正确", rule: "PATTERN" }],
+            })
+        const onOpenChange = vi.fn<(open: boolean) => void>()
+        useCarrierList()
+
+        renderWithProviders(
+            <ShipDialog
+                open
+                order={makeOrder()}
+                onOpenChange={onOpenChange}
+                onShip={onShip}
+            />,
+        )
+
+        await user.click(await screen.findByLabelText("快递公司"))
+        await user.click(await screen.findByRole("option", { name: "顺丰速运" }))
+        await user.type(screen.getByLabelText("运单号"), "SF123456789")
+        await user.click(screen.getByRole("button", { name: "发货" }))
+
+        // 那句由前端 catalog 按 rule 出（zh-CN「格式不对」），不是后端 message
+        expect(await screen.findByText("格式不对")).toBeInTheDocument()
+        expect(screen.queryByText("运单号格式不正确")).not.toBeInTheDocument()
+        expect(onOpenChange).not.toHaveBeenCalledWith(false)
     })
 
     it("没选快递公司就提交：提示必填、不提交、不关闭弹窗", async () => {

@@ -194,4 +194,54 @@ describe("CouponFormDialog", () => {
         expect(await screen.findByText("面额不能超过使用门槛，请检查是否填反")).toBeInTheDocument()
         expect(posted).not.toHaveBeenCalled()
     })
+
+    /**
+     * 后端 422 的字段级明细落到对应输入框上。此前这里 `catch {}` 静默吞掉一切，用户点「创建」后
+     * 只可能看见一句全局 toast、不知道是哪个框的问题——现在按 rule+max 出本地化句子挂到券名框上。
+     */
+    it("服务端 422 的字段级错误落到对应输入框上，弹窗留在原地", async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn<(open: boolean) => void>()
+        server.use(
+            http.post("*/seller/coupons", () =>
+                HttpResponse.json(
+                    {
+                        status: 422,
+                        detail: "输入校验失败（1 个字段错误）",
+                        errors: [
+                            {
+                                field: "name",
+                                message: "券名最长 60 字",
+                                rule: "MAX_LENGTH",
+                                max: 60,
+                            },
+                        ],
+                    },
+                    { status: 422 },
+                ),
+            ),
+        )
+
+        renderWithProviders(
+            <CouponFormDialog
+                open
+                onOpenChange={onOpenChange}
+                shopId={SHOP_ID}
+            />,
+        )
+
+        await user.type(await screen.findByLabelText("券名"), "新春满减券")
+        const threshold = screen.getByLabelText("使用门槛（元）")
+        await user.clear(threshold)
+        await user.type(threshold, "100")
+        await user.type(screen.getByLabelText("面额（元）"), "10")
+        await fillDateTime(user, "发放窗口起点", START_DAY, START_TIME)
+        await fillDateTime(user, "发放窗口终点", END_DAY, START_TIME)
+        await user.click(screen.getByRole("button", { name: "创建" }))
+
+        // 那句由前端 catalog 按 rule+max 出，不是后端 message 那句中文
+        expect(await screen.findByText("最长 60 个字")).toBeInTheDocument()
+        expect(screen.queryByText("券名最长 60 字")).not.toBeInTheDocument()
+        expect(onOpenChange).not.toHaveBeenCalled()
+    })
 })

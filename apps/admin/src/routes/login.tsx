@@ -7,11 +7,21 @@ import { AdminAuthApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common"
 import {
     LocaleSwitcher,
+    serverFieldErrorTexts,
+    submitForm,
     translateSidebarItems,
     useI18n,
     usePasswordVisibility,
 } from "@shop/app-kit"
-import { FormError, PasswordToggle, Spinner, useAppForm, type CSSVars, cn } from "@shop/ui-web"
+import {
+    FormError,
+    PasswordToggle,
+    Spinner,
+    applyServerFieldErrors,
+    useAppForm,
+    type CSSVars,
+    cn,
+} from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 import { getDeviceId, requireGuest, tokenStore } from "../shared/lib/api"
@@ -47,6 +57,7 @@ const FIELDS = [
 
 function LoginPage() {
     const t = useT()
+    const { locale } = useI18n()
     const navigate = Route.useNavigate()
     const [loginError, setLoginError] = useState<string | undefined>()
     const panelRef = useRef<HTMLDivElement>(null)
@@ -90,14 +101,28 @@ function LoginPage() {
                 tokenStore.set(session.accessToken)
                 void navigate({ to: "/", search: { page: 1, size: 20 } })
             } catch (error) {
-                // 401 才是凭证错误；网络错误/服务端故障如实提示，避免误导成密码错误
-                const apiErr = toApiError(error)
-                setLoginError(
-                    apiErr.status === 401
-                        ? t("admin.login.invalidCredentials")
-                        : t("admin.login.failed"),
-                )
+                // 两条通道分开：422 的字段级明细（工号/口令的长度与形状）落进对应输入框；
+                // 落得到的那一条不再重复走底部通用错误。凭证错误是 401 那一类，从来不带 errors[]，
+                // 所以 texts 为空时仍回到既有那句（401 → 账号或口令错误，其余 → 通用失败）。
+                // deviceId 由 getDeviceId() 生成、页面上没有对应输入框，不进白名单——宁可少落
+                const texts = serverFieldErrorTexts(error, locale, {
+                    employeeNo: "employeeNo",
+                    password: "password",
+                })
+                applyServerFieldErrors(form, texts)
+                if (Object.keys(texts).length === 0) {
+                    // 401 才是凭证错误；网络错误/服务端故障如实提示，避免误导成密码错误
+                    const apiErr = toApiError(error)
+                    setLoginError(
+                        apiErr.status === 401
+                            ? t("admin.login.invalidCredentials")
+                            : t("admin.login.failed"),
+                    )
+                }
                 shake()
+                // 原样抛出：表单状态（isSubmitSuccessful）交给 form-core 判定，
+                // 接住 rejection 是 submitForm 的事——登录不是 mutation，这里没人替我们报监控
+                throw error
             }
         },
     })
@@ -123,7 +148,9 @@ function LoginPage() {
                         noValidate
                         onSubmit={(e) => {
                             e.preventDefault()
-                            void form.handleSubmit()
+                            // 不写 void form.handleSubmit()：catch 里 rethrow 的那条会变成未处理的
+                            // 异步异常，submitForm 接住它并按种类分开处置（见它的注释）
+                            void submitForm(form)
                         }}
                         className="mt-12 space-y-8"
                     >

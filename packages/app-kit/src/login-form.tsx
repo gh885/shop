@@ -23,12 +23,15 @@ import {
     Tabs,
     TabsList,
     TabsTrigger,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 
 import { useI18n, useT } from "./i18n"
 import { errorText } from "./i18n/error-keys"
 import { notify } from "./notify"
+import { serverFieldErrorTexts } from "./server-field-errors"
+import { submitForm } from "./submit-form"
 import {
     CAPTCHA_CODE_DIGITS,
     PHONE_PATTERN,
@@ -128,7 +131,22 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                 notify.success(t("appKit.login.successTitle"), t("appKit.login.successDescription"))
                 onSuccess()
             } catch (error) {
+                // 两层通道并存：422 的字段级明细（phone/code/password）落进对应输入框；
+                // deviceId 由调用方注入、不在这张表单里，不进白名单。凭证类失败是 401 带 code
+                // （TOKEN_EXPIRED / 密码错误等），不走 422，errors[] 为空 → 上面那次调用把上一轮的
+                // 落框清掉，错误交给下面 dispatch submitFailed 那条通道（底部 FormError + 验证码抖动）
+                applyServerFieldErrors(
+                    form,
+                    serverFieldErrorTexts(error, locale, {
+                        phone: "phone",
+                        code: "code",
+                        password: "password",
+                    }),
+                )
                 dispatch({ type: "submitFailed", error: toApiError(error) })
+                // 继续往外抛：接口错误由 submitForm 静默（底部那条通道已经讲过了），
+                // 非接口错误（onSuccess 炸了、映射写错）它会上报监控——在这里吞掉就是「点了没反应」
+                throw error
             }
         },
         // 校验失败：焦点移到第一个报错字段（aria-invalid 由下方 InputGroupInput 承接）
@@ -227,7 +245,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
             className="flex min-w-0 flex-1 flex-col gap-6"
             onSubmit={(e) => {
                 e.preventDefault()
-                void form.handleSubmit()
+                void submitForm(form)
             }}
         >
             {/* 登录方式切换用 Tabs 原语，不自造按钮：激活态要有 role=tab + aria-selected，

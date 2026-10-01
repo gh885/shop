@@ -34,10 +34,11 @@ import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 import { scrollToElement } from "@shop/common"
-import { errorText, useI18n } from "@shop/app-kit"
+import { errorText, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
 import type { AppLocale } from "@shop/common"
 import { useT } from "#/locales/use-t"
 
@@ -476,6 +477,54 @@ function isBasicUntouched(values: ProductBasicForm): boolean {
 }
 
 /**
+ * 后端 `CreateProductRequest` / `UpdateProductRequest` 的字段路径 → 这张 basic 表单的框
+ * （`{ 服务端: 表单 }` 白名单：没列进来的路径不落红）。
+ *
+ * <p>三处不显然的对应，都是「DTO 有这一格、表单没有那一个框」的产物：
+ * - **`mainImage` 落在「商品图片」那一格**：`toBasicPayload` 把 `images[0]` 当主图发出去，
+ *   表单里根本没有独立的「主图」输入，后端对 mainImage 说的话只能指回那一串图；
+ * - **`images[i]` / `detailImages[i]`**（元素级 `@Size`）报的是带下标的路径，按当前值逐个列出来——
+ *   少列一个下标，那一条就永远落不了地；
+ * - **`categoryId` / `params[i].*` 不列**：类目是第一步定的（不在这张表单里），而 `params` 这条发布流程
+ *   压根不发（`toBasicPayload` 里没有这一格），落进白名单也只会是永远命不中的死条目。
+ *
+ * <p>`detailImages` 列了但**今天看不见**：那一格只挂了 `FieldDescription`、没挂错误位
+ * （`DetailImagesSection.tsx`，不在本次改动范围内）。补上那一条的瞬间这里就已经是通的。
+ */
+export function productBasicServerFieldMap(values: ProductBasicForm): Record<string, string> {
+    const map: Record<string, string> = {
+        name: "name",
+        subtitle: "subtitle",
+        mainImage: "images",
+        images: "images",
+        detailImages: "detailImages",
+    }
+    for (const [index] of values.images.entries()) map[`images[${index}]`] = "images"
+    for (const [index] of values.detailImages.entries()) {
+        map[`detailImages[${index}]`] = "detailImages"
+    }
+    return map
+}
+
+/**
+ * 后端 422 的字段级明细 → 标到 basic 表单对应的输入框上。
+ *
+ * 违禁词（COM-01）那条通道**不走这里**：它是 400 + `FORBIDDEN_WORD_HIT`，由 `useForbiddenWordMark`
+ * 写进 `errorMap.onSubmit`（见 forbidden-word-mark.ts）。这里只写 `onServer`，两条各占一个槽位，
+ * 谁也不覆盖谁。
+ */
+export function markProductBasicFieldErrors(
+    form: BasicForm,
+    error: unknown,
+    locale: AppLocale,
+): void {
+    applyServerFieldErrors(
+        form,
+        serverFieldErrorTexts(error, locale, productBasicServerFieldMap(form.state.values)),
+    )
+}
+
+/**
  * 发布第二步的表单本体：实例 + 三种提交方式。
  *
  * 提交方式存在 ref 里（用户点哪个就是哪个，表单自己不猜默认模式），而表单的 onSubmit
@@ -497,9 +546,20 @@ function useBasicForm({
     initialBasic?: BasicStepValues
 }) {
     const modeRef = useRef<SubmitMode>("submit")
+    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: EMPTY_PRODUCT_BASIC_FORM,
-        onSubmit: ({ value }) => void submit(value, modeRef.current),
+        onSubmit: async ({ value }) => {
+            try {
+                await submit(value, modeRef.current)
+            } catch (error) {
+                // 422 的字段级明细落到那一个框上（此前整条链路只有页顶那一句横幅，说不清是哪一格）。
+                // 调用方（路由）在横幅之后把错误继续抛出，这条通道才收得到 422
+                markProductBasicFieldErrors(form, error, locale)
+                // 抛出：form-core 才会把 isSubmitSuccessful 复位；接住 rejection 是 submitForm 的事
+                throw error
+            }
+        },
     })
 
     useBasicFormSync({ form, onBasicChange, initialBasic })
@@ -507,19 +567,33 @@ function useBasicForm({
     // 上架时间：决定「提交商品信息」落 PUBLISHED 还是 WAREHOUSE。默认立即上架；定时上架本轮不做。
     const [listingTime, setListingTime] = useState<ListingTime>("now")
 
-    /** 「保存草稿」无门槛：不触发 onSubmit 全字段校验，直接把当前值交给 submit(mode=draft)。
-     *（提交/发布才需要标题/图片/SKU 价齐，走 handleSubmit 触发校验。） */
+    /**
+     * 「保存草稿」无门槛：不触发 onSubmit 全字段校验，直接把当前值交给 `submit(mode=draft)`。
+     * （提交/发布才需要标题/图片/SKU 价齐，走 handleSubmit 触发校验。）
+     * 但它同样要落 422、同样需要一个接 rejection 的出口，所以照旧交给 `submitForm`——
+     * 那个函数只要求对象**有** `handleSubmit`（返回 promise），不要求它是表单本尊。
+     */
+    const submitDraft = async () => {
+        try {
+            await submit(form.state.values, "draft")
+        } catch (error) {
+            markProductBasicFieldErrors(form, error, locale)
+            throw error
+        }
+    }
+
     const submitAs = (next?: SubmitMode) => {
         if (next === undefined) {
-            void form.handleSubmit()
+            // 不写 void form.handleSubmit()：void 不接 rejection，抛出的错误会变成未处理的异步异常
+            void submitForm(form)
             return
         }
         if (next === "draft") {
-            void submit(form.state.values, "draft")
+            void submitForm({ handleSubmit: submitDraft })
             return
         }
         modeRef.current = next
-        void form.handleSubmit()
+        void submitForm(form)
     }
 
     // 上架时间 → 提交方式：立即上架走 submit；放入仓库走 warehouse

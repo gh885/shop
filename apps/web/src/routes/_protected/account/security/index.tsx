@@ -23,12 +23,20 @@ import {
     PasswordToggle,
     Skeleton,
     Spinner,
+    applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
 import { DeletionCard, deviceKeys, devicesOptions, isMobileDeviceName } from "#/account"
 import { useT } from "#/locales/use-t"
-import { errorText, formatTimeShort, useI18n, usePasswordVisibility } from "@shop/app-kit"
+import {
+    errorText,
+    formatTimeShort,
+    serverFieldErrorTexts,
+    submitForm,
+    useI18n,
+    usePasswordVisibility,
+} from "@shop/app-kit"
 import { toApiError } from "@shop/common"
 import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -126,19 +134,18 @@ type TextFieldSlotProps = {
 function ChangePassword() {
     const t = useT()
     const { locale } = useI18n()
-    const [error, setError] = useState<string | undefined>()
+    const [formError, setFormError] = useState<string | undefined>()
 
     const change = useMutation({
         mutationFn: ({ current, next }: { current: string; next: string }) =>
             AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
-        // 错误要渲染在表单里（下方 error state），所以退出全局提示，自己 setError；
-        // 取文案与全局 toast 同一条链（§7.3：命中 code 走 catalog，否则才是 detail）
-        meta: { success: t("web.security.changePassword.success"), silentError: true },
+        // 不再 silentError：改回全局 toast 这条通道（范本双通道之一）；
+        // 字段级落红在表单的 catch 里补，二者并存。成功仍由 meta.success 提示
+        meta: { success: t("web.security.changePassword.success") },
         onSuccess: () => {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
             window.location.href = "/"
         },
-        onError: (e) => setError(errorText(toApiError(e), locale)),
     })
 
     const form = useAppForm({
@@ -162,7 +169,26 @@ function ChangePassword() {
                 return
             },
         },
-        onSubmit: ({ value }) => change.mutate({ current: value.current, next: value.next }),
+        // 范本双通道：422 字段级明细落 current/next 框（confirm 只是本地二次确认，无 DTO 对边），
+        // 其余按 code 的错误（如「当前密码错误」那条 401，没有对应输入框）留在底部 FormError；
+        // 全局 toast 也已随 silentError 解除而回来。抛回交给 submitForm 兜住
+        onSubmit: async ({ value }) => {
+            try {
+                await change.mutateAsync({ current: value.current, next: value.next })
+            } catch (error) {
+                const texts = serverFieldErrorTexts(error, locale, {
+                    currentPassword: "current",
+                    newPassword: "next",
+                })
+                applyServerFieldErrors(form, texts)
+                setFormError(
+                    Object.keys(texts).length === 0
+                        ? errorText(toApiError(error), locale)
+                        : undefined,
+                )
+                throw error
+            }
+        },
     })
 
     return (
@@ -176,7 +202,7 @@ function ChangePassword() {
                     className="max-w-md space-y-3"
                     onSubmit={(e) => {
                         e.preventDefault()
-                        void form.handleSubmit()
+                        void submitForm(form)
                     }}
                 >
                     {PASSWORD_FIELDS.map((spec) => (
@@ -195,7 +221,7 @@ function ChangePassword() {
                         </form.AppField>
                     ))}
 
-                    <FormError>{error}</FormError>
+                    <FormError>{formError}</FormError>
 
                     <Button
                         type="submit"

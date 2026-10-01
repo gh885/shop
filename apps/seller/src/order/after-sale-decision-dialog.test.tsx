@@ -40,15 +40,17 @@ function renderDialog({
     kind = "agree",
     order = makeOrder(),
     onConfirm = vi.fn<(reason: string) => void>(),
+    onOpenChange = vi.fn<(open: boolean) => void>(),
 }: {
     kind?: SaleDecisionKind
     order?: SellerOrderListItemResponse
-    onConfirm?: (reason: string) => void
+    onConfirm?: (reason: string) => void | Promise<unknown>
+    onOpenChange?: (open: boolean) => void
 } = {}) {
     renderWithProviders(
         <AfterSaleDecisionDialog
             open
-            onOpenChange={vi.fn<(open: boolean) => void>()}
+            onOpenChange={onOpenChange}
             kind={kind}
             orderId={order.id}
             orderNo={order.orderNo}
@@ -56,7 +58,7 @@ function renderDialog({
             onConfirm={onConfirm}
         />,
     )
-    return { onConfirm }
+    return { onConfirm, onOpenChange }
 }
 
 describe("AfterSaleDecisionDialog", () => {
@@ -198,6 +200,45 @@ describe("AfterSaleDecisionDialog", () => {
         await waitFor(() =>
             expect(onConfirm).toHaveBeenCalledWith("退回商品缺少吊牌，影响二次销售"),
         )
+    })
+
+    /**
+     * 拒绝这条路把 422 落回框上，前提是**弹窗还开着**：所以 `confirmReject` 等 `onConfirm` 的
+     * 结果才关窗。调用点给的是异步函数（`mutateAsync`）时这条通道才亮——同步 fire-and-forget 的
+     * 调用点维持原行为（交出去就关窗，见上面几条）。
+     */
+    it("拒绝：后端 422 落回理由框，且弹窗留在原地（先关窗就等于把那份红一起卸载）", async () => {
+        server.use(
+            http.get("*/seller/orders/:id/after-sales", () =>
+                HttpResponse.json(makeTicket({ id: crypto.randomUUID() })),
+            ),
+        )
+
+        const onConfirm = vi.fn<(reason: string) => Promise<unknown>>(async () => {
+            // 后端另有 200 的上限（AFS-30 落 ticket_events.note）：本地放行、后端拒绝才是这条通道的对象
+            throw {
+                status: 422,
+                detail: "参数校验失败",
+                errors: [
+                    {
+                        field: "reason",
+                        message: "拒绝理由最长 200 字",
+                        rule: "MAX_LENGTH",
+                        max: 200,
+                    },
+                ],
+            }
+        })
+        const { onOpenChange } = renderDialog({ kind: "reject", onConfirm })
+        await screen.findByRole("button", { name: "确认拒绝" })
+        const user = userEvent.setup()
+
+        await user.type(screen.getByRole("textbox", { name: "拒绝理由" }), "退回商品缺少吊牌")
+        await user.click(screen.getByRole("button", { name: "确认拒绝" }))
+
+        expect(await screen.findByText("最长 200 个字")).toBeInTheDocument()
+        await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1))
+        expect(onOpenChange).not.toHaveBeenCalled()
     })
 
     it("退货中的拒绝：说清「退款不会打出、库存不回补」，并把寄回的运单号摆出来核对", async () => {
