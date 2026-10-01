@@ -33,6 +33,8 @@ public enum AuditTargetType {
 
     /** 拒绝未知目标类型（400），不给「查不到就当没有」的静默放行 */
     public static AuditTargetType require(String value) {
-        return Validate.notNull(parseOrNull(value), "非法的审计目标类型筛选值");
+        AuditTargetType type = parseOrNull(value);
+        Validate.isTrue(type != null, "非法的审计目标类型筛选值");
+        return type;
     }
 }

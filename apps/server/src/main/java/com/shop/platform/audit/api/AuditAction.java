@@ -68,6 +68,7 @@ public enum AuditAction {
     /** 按 code 取动作并拒绝未知值（审计是追责入口，宁可 400 也不给错口径） */
     public static AuditAction require(String code) {
         AuditAction action = parseOrNull(code);
-        return Validate.notNull(action, "非法的审计动作筛选值");
+        Validate.isTrue(action != null, "非法的审计动作筛选值");
+        return action;
     }
 }
