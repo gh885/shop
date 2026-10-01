@@ -139,6 +139,41 @@ useMutation({
 4. **`useSuspenseQuery` 收不到 `throwOnError`**（类型里被 `Omit`，运行时被内部判据覆盖）：降级消费者要退出全局默认时，**必须在调用点写** `useQuery({ ...options, throwOnError: false })`，写在共享 options 里是静默失效。
 5. **`QueryErrorResetBoundary` 必须在树里**（三端 Provider 树已挂，`QueryBoundary` 自带一层），否则重试按钮形同虚设。
 
+### 挂起（pending）：路由级 `pendingComponent` 与区块级 `QueryBoundary` 各管一段
+
+挂起分两段，**由谁来填取决于那段里跑的是什么形态的查询**——先分清形态，再选组件，否则要么写了死代码，要么留了空窗。
+
+**第一段：路由 match 级（loader 还在跑 / 页面顶层 suspense 查询还没到）**
+
+- **需要 `pendingComponent` 的路由只有一种：loader 里 `await` 了取数，或页面顶层是 `useSuspenseQuery`（含 infinite）**。这类路由在 match 级真的会挂起，Router 拿 `pendingComponent` 兼作该 match 的 Suspense fallback（见 `@tanstack/react-router` 的 `Match.js`），一次覆盖 loader 与 suspense 查询。骨架按该页真实形状写在路由文件里。
+- **其余路由不写 `pendingComponent` 是对的**（不是遗漏）：纯 `useQuery` 的页面在 loader 跑完、组件挂载后才取数，match 级不挂起；预热型 loader（`void queryClient.query(...)` 不 `await`）同理。见 §「什么时候不需要 pendingComponent」。
+
+**第二段：区块级（页面已渲染，某个区块的 suspense 查询还在飞）**
+
+- 用 `QueryBoundary pending={<骨架/>} fallback={...}`：`pending` 只对 **suspense 查询**生效——`QueryBoundary` 内部是 `pending !== undefined ? <Suspense fallback={pending}>{children}</Suspense> : children`（见 `@shop/app-kit` `query-boundary.tsx`），非 suspense 查询不会 suspend，传 `pending` 是**死代码**。
+- **非 suspense 的区块查询（带 `enabled`/`placeholderData`/`skipToken` 的按需/降级读）根本没有「区块级挂起」这回事**：它在组件挂载后自己跑，要占位只能在调用点写 `isPending ? <骨架/> : <内容/>`，或者干脆不传 `pending` 让它失败抛给同一个 `QueryBoundary` 的 `ErrorBoundary`。本仓 6 处 `QueryBoundary pending=`（首页 feed/banner/nav、详情页店条/两处推荐）包的都是 suspense 查询，无例外。
+
+**为什么这两段不能互相替代**：路由 `pendingComponent` 是**整个 match** 换骨架（父级布局仍在，叶子内容整块换）；`QueryBoundary` 是**块级替换**（页面其余部分照常渲染）。作用域不同，一个页面可以同时有：路由 `pendingComponent`（首屏）+ 若干 `QueryBoundary`（各区块各自的三态）。
+
+**第三种：守卫层骨架（别当成「应该用 pendingComponent」的错例去修）**
+
+布局路由里的**守卫组件**自己渲染整页骨架，等的不是 loader，而是**一个前置条件裁决**：seller 的 `ShopGate`（店铺上下文）、web 的 `_protected/route.tsx`（登录态 `unknown`）。它既不是 match 挂起（match 已就绪），也不是区块边界，而是「等完还要分支」：
+
+- 三个分支都要有（骨架 / 放行 / 重定向），`pendingComponent` 表达不了「等完还要分支」；
+- 守卫是 layout 的 `component`，需要路由上下文（`useLocation` / `useNavigate` / 重定向目标），塞进 `pendingComponent` 会丢这些；
+- 作用域正好是「比match 小、比区块大」，即 layout 组件的自然位置。
+
+写法要点：**骨架不能省，也不能替成分支**。`ShopGate` 的注释已给出理由——`useMyShops` 首次渲染必是空，直接判「无店 → 重定向」会先闪一下再跳走；`ProtectedLayout` 返回 `undefined` 则会让 SSR 吐一个空 `<main>`（白屏 + CLS 来源），所以 `unknown` 期间必须给骨架（frontend.md 的「守卫 → 骨架」即此）。
+
+### 什么时候不需要 `pendingComponent`（附：挂起的时间语义）
+
+- **`pendingMs` 门槛**：`defaultPendingMs = 1000`（router-core 的默认值，未覆盖），挂起**超过 1s** 才呈现骨架；快请求本来就无感。所以路由级骨架只在慢请求时出现，这是想要的行为（避免快请求闪一下）。
+- **页内三元是「立刻闪」**：调用点 `isPending ? <骨架/> : …` 在挂载首帧就闪，与路由级「1s 后才出现」的时间语义不同。两者观感不一致是库的既定行为，不是 bug；要统一观感得先决定「快请求要不要骨架」（本仓选择保留差异：首屏/导航快速命中时不闪更好）。
+- **三端 router 已挂 `defaultPendingComponent`（`RoutePending`，app-kit）作为兜底**：某个路由漏写 `pendingComponent` 时，客户端导航期间旧页会继续停留（库对没有 pendingComponent 的 match 渲染 null，不会白屏，但整个挂起窗口零加载反馈）——有它就把「静默停留」降级成中性骨架。它只在**没写**时出现，页面级骨架仍应各自按真实形状写。
+- **`isPending` 与 `isLoading` 不能互换（v5 语义）**：`isLoading = isPending && isFetching`（只表示「首次加载」）。两条边界：
+    - **`placeholderData` 页面两者等价**：换页时 `placeholderData` 顶着，`isPending` 与 `isLoading` 同为 false，都不闪骨架——所以本仓列表页统一用 `isPending`（DESIGN.md 口径）。
+    - **`enabled` 可为 false 的查询只能用 `isLoading`**：`enabled:false` 时 `status` 恒为 `pending` → `isPending` **永远 true**，用它分支就是一块**永久骨架**。这类查询（`enabled` 由登录态/开关/入参决定）判「在加载」用 `isLoading`，或直接判 `data === undefined`；例：`seller/shop/list.tsx` 的 `useMyShops`（`enabled: status === "authed"`）、`search` 页的 `enabled: hasSearchCriteria`。
+
 ## 金额（Money）
 
 **一句话**：`Money { amount(分), currency }` 是链路上唯一的金额形状，「元」只活在输入框和展示文本里；运算和展示都不许脱离 Money，否则币种在那一刻就丢了。
