@@ -10,20 +10,59 @@
 >
 > 契约三行与现状的对应，逐行说清，别把没成立的那行当成已经成立：
 >
-> - 已知 code → `error.<CODE>` 的本地化文案 —— **成立**（catalog 25 条里 23 条走这条，下面登记的两个例外除外）
-> - 未知 code / 无 code 的 400、422 → 本地化通用提示 —— **非中文界面成立**：`errorTextPlan` 第 5 支按状态码给通用句，`appKit.error.{badRequest,unauthorized,forbidden,notFound,conflict,validation,rateLimited,serverError,network}` 九条两份语言齐。中文界面不成立且**是有意的**——那里后端那句是同语言且更具体的（第 3 支），本期承认，边界见 §7.3 一期边界
-> - `detail` → **不进非中文界面**成立（除两个例外码，中文句子不会出现在英文界面；网络层错误走 `appKit.error.network`，不带 detail）；「不进任何用户可见路径」这句在中文界面不成立，也不必成立
+> - 已知 code → `error.<CODE>` 的本地化文案 —— **成立**（catalog 25 条全部走这条；句子里的数字由 `params` / `errors` 参数化，见下面两条通道）
+> - 未知 code / 无 code 的 400、422 → 本地化通用提示 —— **非中文界面成立**：`errorTextPlan` 最后一支按状态码给通用句，`appKit.error.{badRequest,unauthorized,forbidden,notFound,conflict,validation,rateLimited,serverError,network}` 九条两份语言齐。中文界面不成立且**是有意的**——那里后端那句是同语言且更具体的（第 3 支），本期承认，边界见 §7.3 一期边界
+> - `detail` → **不进非中文界面**成立（例外清单已空，中文句子不会出现在英文界面；网络层错误走 `appKit.error.network`，不带 detail）；「不进任何用户可见路径」这句在中文界面不成立，也不必成立
 >
-> **兜底与升级（判据的第二半，缺了它这条链就是死路）**：取文案的那五支是一个纯函数（`errorTextPlan`，`packages/app-kit/src/i18n/error-keys.ts`：①登记码 → catalog ②`status===0` → 场景文案 / `appKit.error.network` ③中文界面 → `detail` ④非中文 + 例外码 → 不带数字的 catalog 占位 ⑤非中文 + 拿不到码 → 场景文案 / 按状态码通用句）。`notify.fromError` 每走完 ③ 或 ⑤ 里那句「按状态码」的兜底，就发一条 `error_fallback source=… status=… code=…` 的 `captureError`（`custom` 通道）——**升不升成 code，看的是这条上报的真实频次**。于是「哪个码重要」不再是 204 句里的一次性猜测，而是被用户实际撞过几次；代价也仍固定四件（Java 常量 / 本表一行 / 两份 `error.json` / `error-keys.ts` 一格），四件由 `ErrorCodeVocabularyTest` 与 `satisfies` 一起核，漏一件就红——升级这条路不缺门禁，缺的是有人定期去读上报。
+> **兜底与升级（判据的第二半，缺了它这条链就是死路）**：取文案的那五支是一个纯函数（`errorTextPlan`，`packages/app-kit/src/i18n/error-keys.ts`：①登记码 → catalog（带 `{槽位}` 的由 `params` 填，填不满就当这句不存在）②`status===0` → 场景文案 / `appKit.error.network` ③中文界面 → `detail` ④拿不到码（或参数没填上）→ 场景文案 / 按状态码通用句）。`notify.fromError` 每走完 ③ 或 ④ 里那句「按状态码」的兜底，就发一条 `error_fallback source=… status=… code=…` 的 `captureError`（`custom` 通道）——**升不升成 code，看的是这条上报的真实频次**。于是「哪个码重要」不再是 204 句里的一次性猜测，而是被用户实际撞过几次；代价也仍固定四件（Java 常量 / 本表一行 / 两份 `error.json` / `error-keys.ts` 一格），四件由 `ErrorCodeVocabularyTest` 与 `satisfies` 一起核，漏一件就红——升级这条路不缺门禁，缺的是有人定期去读上报。
 >
-> **字段级错误的参数通道（2026-09-30 立的出口）**：一句话里那个**必须原样给用户的值**不再靠句子承载，而是走 ProblemDetail 的扩展属性 `errors`——`[{ field, message, value? }]`，`field` 是消费方表单/DTO 的机器字段名（不是中文标签），`value` 是那条规则作用到的数据本身——边界与 `GlobalExceptionHandler` 里「日志精确到字段，不含实际值」那条口径同源：只放**那一段**（命中的那个词、越界的那个数字），不放整段用户输入，也不放手机号一类敏感值。前端按 `field` 定位输入框、把 `value` 嵌进自己语种的那句（`packages/common` 的 `ApiFieldError`，`toApiError` 归一化时接回）。出口在后端是 `BusinessException.badRequest(code, detail, errors)`，第一个用它的是 `FORBIDDEN_WORD_HIT`（COM-01：命中的违禁词）。这一格不进 OpenAPI（扩展属性本来就进不了 api-docs），所以改它不需要 `pnpm gen:sdk`。
+> **两条参数通道（都挂在 ProblemDetail 扩展属性上，都不进 OpenAPI，改它们都不需要 `pnpm gen:sdk`）**。判据是一样的：一句话里那个**必须原样给用户的值**不当句子承载，当数据出一次。两者分工按「有没有字段可定位」分：
 >
-> **登记在案的例外：两个码仍然 detail 优先**（`ADDRESS_LIMIT_EXCEEDED` / `MERCHANT_ADDRESS_LIMIT_EXCEEDED`）。它们的 key information（上限是 20 还是 200）住在后端常量里、前端没有对边，catalog 那句静态文案写出来就是一句谎报；`errorText`（`notify.fromError` 与各表单的内联报错共用）对这两个码走 detail，其余 23 个码一律 catalog 优先。退出条件写在 `packages/app-kit/src/i18n/error-keys.ts` 头注释与 `error-keys.test.ts`：把上限做成参数（走上面那条通道，或 `pnpm gen:sdk` 进契约）并从 `DETAIL_FIRST` 集合里删掉——测试会盯着这一步，catalog 文案一旦长出 `{` 当场红。`FORBIDDEN_WORD_HIT` 已按这条退出（2026-09-30）：命中词由 `errors[].value` 带出，中文界面那句带词的表单提示是卖家端 `product.publish.forbiddenWordHit`。
+> - `errors: [{ field, message, value? }]`——**字段级**。`field` 是消费方表单/DTO 的机器字段名（不是中文标签），前端按它定位输入框；`value` 是那条规则作用到的数据本身。边界与 `GlobalExceptionHandler` 里「日志精确到字段，不含实际值」那条口径同源：只放**那一段**（命中的那个词），不放整段用户输入，也不放手机号一类敏感值。前端对边是 `packages/common` 的 `ApiFieldError`，`toApiError` 按声明的三格白名单重建（多出第四格就丢）。后端出口 `BusinessException.badRequest(code, detail, errors)`，首个使用者是 `FORBIDDEN_WORD_HIT`（COM-01：命中的违禁词）。
+> - `params: { <槽位>: 标量 }`——**错误级**。没有对应输入框可标红时用（「最多保存 {limit} 条收货地址」里没有“第几个框”），值只收 `string | number | boolean`，对象 / 数组一律丢（没哪句 catalog 句子能插一个对象，且它会顺着上报泄露成第四种形状）。前端对边是 `ApiError.params`（同样白名单重建），catalog 句子的槽位与它的映射写在 `packages/app-kit/src/i18n/error-keys.ts` 的 `CODE_SLOTS`，**两边由 `error-keys.test.ts` 双向核**：句子里长出 `{` 却没登记、登记的槽位在句子里不存在，两边都当场红。后端出口 `BusinessException.badRequestWithParams(code, detail, params)`。
+> - 两者的 usage 纪律一样：**`detail` 那句中文仍然写完整**（日志与中文界面兜底靠它），但那句话里的数字 / 词不再由前端解析——中文界面也从 catalog 取（取文案只有一条路，见 i18n.md §7.3）。
+> - **槽位没填上不得印裸 `{limit}`**：`formatMessage` 在缺参数时会原样给回模板，所以 `errorTextPlan` 把“填不满”当“这句话不存在”，退回按 locale 的既有兜底（中文 `detail` / 其它语种按状态码的通用句）并由 `notify.fromError` 上报——那是后端漏发参数的信号，不是文案问题。
+>
+> **已登记的参数化清单（2026-10）**：`ADDRESS_LIMIT_EXCEEDED`（`{limit}`）、`MERCHANT_ADDRESS_LIMIT_EXCEEDED`（`{limit}`）、`FORBIDDEN_WORD_HIT`（走 `errors[].value`，卖家端 `product.publish.forbiddenWordHit`）。**登记在案的「detail 优先例外」已空**——`DETAIL_FIRST` 集合于 2026-10 删除，两条上限码退出后不再有哪个码拿 detail 当文案。退出时顺手改掉的真问题：两份 `error.json` 曾把 20 / 200 **写死**在句子里（后端常量一改，英文界面就在说谎，而“占位句不具体”的注释与文件不符）；现在上限从 `params` 来，后端把 20 改成 30 时前端零改动。**例外清单不再是机制而是历史**——再往后要长出新条目就是绕过参数通道。
+>
+> **422 校验族的参数通道（2026-10 落地）**：`errors[]` 那一格多带 `rule`（+ `min` / `max`），
+> `message` 仍是后端注解上那句成品中文、继续进日志。规则名的唯一出口是 `common.ValidationRules`
+> （`REQUIRED` / `MIN_LENGTH` / `MAX_LENGTH` / `PATTERN` / `MIN` / `MAX`），前端那份镜像在
+> `packages/common/src/validation-rules.ts`，两边相等由 `ValidationRuleVocabularyTest` 核对。
+> 边界由 `infra.web.FieldValidationErrors` 从 DTO 注解读出来（`@Size(max=30)` → `max: 30`），
+> 所以**改上限不用改前端**；`message` 那一格不必删——它同时是中文界面的兜底与日志字段。
+> **粒度停在「可复用的规则」**：不建 `ORDER_ITEM_QUANTITY_TOO_SMALL` 那种一字段一码的词表，
+> 字段名由 `errors[].field` 出、规则名由这张表出，前端拼成句子即可。
+> 前端消费口是 `@shop/app-kit` 的 `serverFieldErrorTexts`（出句子）+ `@shop/ui-web` 的
+> `applyServerFieldErrors`（交给表单，TanStack Form 自带的服务端校验槽位 `onServer`），各表单不必改渲染代码；
+> 提交链路的收口是 `@shop/app-kit` 的 `submitForm`（接住 rejection、只把非接口错误上报监控，见 frontend.md 的模板那条）。
+> **认得的 rule 出本地化句子，认不得的退回 `message`**——不在前端猜一句。
+> **字段映射是白名单且要列全**：`serverFieldErrorTexts` 给了 `map` 就以它为准（没列出的字段不落进任何框，
+> 不回落成同名），同名字段也要列出来——列出来等于「我确认过它同名」，漏列的那条错误就永远落不了地。
+> 而**「交给表单」这一步必须用 `setErrorMap({onServer:{fields}})` 而不是手写 `setFieldMeta`**：手写那版
+> 在「表单级 validators.onSubmit + 字段自身没有 validator」（本仓库所有表单的形状）下改值清不掉那条错误，
+> `isValid`/`canSubmit` 一直为 false，用户改对了也提交不了（实测 form-core 1.33.5）。回归由
+> `server-field-errors.test.ts` 的「改值后恢复可提交」那条钉着。
+>
+> **code 的生命周期与兼容性**（这组规则回答的是「发布之后怎么办」，准入判据回答的是「现在要不要建」）：
+>
+> - **语义稳定，不复用**：一个已发布的 code 不许改指另一种错误。要表达新原因就新建一个码。
+> - **改文案不改 code**：同一原因换句话（含换语种措辞）是纯前端动作，不动后端。
+> - **参数是契约的一部分**：删除一个已发布的参数、改它的含义或类型，都要先评估旧客户端——它们会拿旧含义填空。
+> - **新增 code 对旧客户端必须安全降级**：旧前端没登记的 code 走既有兜底（中文 `detail` / 其它语种按状态码），不会崩、不会断言语。
+> - **忽略未知扩展字段**：服务端可以严格限定自己能发出哪些 code / 参数，**客户端不可以**因为遇到没见过的扩展字段就把整个错误体判为不可解析（`toApiError` 逐格白名单重建就是这个保证）。
+>
+> **HTTP 状态码的选择依据（定一次，不逐个业务随手选）**：400 请求格式 / 解析 / 约定的非法请求；422 格式可理解但输入校验不通过；409 与资源当前状态冲突；429 限流；5xx 服务端或依赖故障。边界一次定清后不必为形式统一立即改掉旧出口。**状态码不等于可重试**：重试还取决于幂等性、失败发生阶段与有没有 `Retry-After`（下单、支付尤其不能因为一个“看起来可重试”的状态码就自动重放）。
+>
+> **`detail` 的口径**：本项目约定 **UI 不展示 `detail`**（中文界面那一格是迁移期有意保留的兜底，不是永久设计），但**不能据此推出「它是内部字段」**——RFC 9457 的 detail 是本次错误的可读解释，只要返回浏览器它就是对外信息，SQL / 堆栈 / 密钥 / 内部异常一律留在服务端日志，用已有的 `requestId` 关联（不另开 `traceId`）。
 >
 > **还欠两件**：
 >
 > 1. **读上报的那一件**：`error_fallback` 只有发射端，还没有接收端与例行（谁、多久、按什么阈值把一句兜底升成 code）。判据改版把「逐条扫 204 句补码」换成了这条，但它不自动发生——门禁守的是「每个 code 有文案」，**不是**「每句 detail 有 code」，后者的清单今天只在这份普查里数过一次。
-> 2. 422 校验族从成品中文句子改为参数（`{field, rule, min, max}`）——那族数字是 OpenAPI 契约的一部分，动它要 `pnpm gen:sdk`；「按 `errors[].field` 定位 + 用前端自己那份上限渲染」那条路不必新增契约字段（见上面「字段级错误的参数通道」与 `apps/server/AGENTS.md` 入站校验词表）。
+> 2. ~~422 校验族参数化 + 表单接线~~ —— **2026-10 已还**：`errors[].rule`（+ `min` / `max`）由后端从注解出，
+>    前端 `serverFieldErrorTexts` / `applyServerFieldErrors` 把它落到对应输入框（此前各表单标红全部来自
+>    本地 Zod，没有一处消费后端 422 的 `errors`）。剩下的是**推广**：目前只有买家端地址表单接了这条线，
+>    其余表单仍是「本地 Zod 标红 + 全局 toast」，逐个接入的顺序按各表单的错误频次定。
 
 四边由 `ErrorCodeVocabularyTest`（无库、不起 Spring、纯文本 + 反射）核对，谁改了任何一边忘了另一边就红：
 
@@ -56,8 +95,8 @@
 | `AFTER_SALE_ALREADY_REFUNDED`     | 409  | `—`                                         | 不按码分支：toast 展示 catalog「该订单已退款」（终态，非可恢复冲突，不引导重试）                                                                                                                                                                                                                                                         | 买家申请售后时，该订单最新一张售后单为 REFUNDED（AfterSaleService.apply，V1 整单售后禁止二次退款）                                                         |
 | `CATEGORY_NOT_LEAF`               | 400  | `—`                                         | 不按码分支：toast 显示 catalog「请选择三级类目」；发品/编辑页类选择器引导改选三级类目                                                                                                                                                                                                                                                    | 创建商品或草稿改挂类目时，目标类目 level≠3（CategoryService.requireMountableCategory）                                                                     |
 | `CATEGORY_DISABLED`               | 400  | `—`                                         | 不按码分支：toast 显示 catalog「该类目或其上级类目已禁用，请另选类目」；引导改选启用类目                                                                                                                                                                                                                                                 | 创建/改挂商品到已禁用类目，或父链上任一祖先禁用（与公开树「父级不可见整支剪掉」同口径）                                                                    |
-| `ADDRESS_LIMIT_EXCEEDED`          | 400  | `—`                                         | 不按码分支：**detail 优先（登记的例外）**——toast 显示 detail（"最多保存 20 条收货地址"），上限这个数字只有 detail 装得下                                                                                                                                                                                                                 | 买家新增收货地址时未删地址已达 20 条（AddressService.create；软删不占名额）                                                                                |
-| `MERCHANT_ADDRESS_LIMIT_EXCEEDED` | 400  | `—`                                         | 不按码分支：**detail 优先（登记的例外）**——toast 显示 detail（"最多添加 200 条地址"，对齐 seller 工作台文案），上限数字同上                                                                                                                                                                                                              | 商家新增地址时本店未删地址已达 200 条（MerchantAddressService.create）                                                                                     |
+| `ADDRESS_LIMIT_EXCEEDED`          | 400  | `—`                                         | 不按码分支：toast 显示 catalog（两种语言同一句式），上限数字由 `params.limit` 填（后端把 20 改成 30 时这句跟着变，前端零改动）；参数缺失时退回按 locale 的兜底，不印裸槽位                                                                                                                                                               | 买家新增收货地址时未删地址已达 20 条（AddressService.create；软删不占名额）                                                                                |
+| `MERCHANT_ADDRESS_LIMIT_EXCEEDED` | 400  | `—`                                         | 不按码分支：toast 显示 catalog（上限数字由 `params.limit` 填，与买家端同一条通道）；参数缺失时退回按 locale 的兜底                                                                                                                                                                                                                       | 商家新增地址时本店未删地址已达 200 条（MerchantAddressService.create）                                                                                     |
 | `BANNER_TIME_RANGE_INVALID`       | 400  | `—`                                         | 不按码分支：两个输入框标红发生在**提交前**的 zod（`banner/form.ts` 的 refine），能漏到后端这一发就是 toast catalog「结束时间必须晚于开始时间」                                                                                                                                                                                           | ContentService.createBanner / updateBanner：起止都给（或 update 时与库中原窗口合并后两端齐全）且 endAt 不晚于 startAt                                      |
 | `RESPONSE_VALIDATION_FAILED`      | 2xx  | `packages/common/src/api-error.ts`          | 前端生成错误，非后端返回：dev 完整打印 issues 尽早暴露；生产上报监控，读路径按查询错误状态在**渲染层**降级（错误边界 / 空态），不在 queryFn 里伪造兜底数据；写路径强抛                                                                                                                                                                   | 后端契约漂移——响应 2xx 但 payload 不符合 OpenAPI 契约（前端 zod responseValidator 校验失败）                                                               |
 | `FORBIDDEN_WORD_HIT`              | 400  | `apps/seller/src/product/forbidden-word.ts` | **按码分支**（与其他 400 不同的唯一一条）：读 `errors[].field/value`（COM-01 那条参数通道）就地定位到出问题的字段（标题/卖点）并标红，命中词嵌进当前语种的那句（卖家端 `product.publish.forbiddenWordHit`）——只弹一个全局 toast 的话，「含违禁词」四个字卖家无从下手改。拿不到字段级明细时才退成全局 toast，那一发两种语言一律走 catalog | 公开文本命中违禁词：商品发布/重上（ProductService.ensurePublishable）、非草稿商品改标题或卖点（updateBasic）；评价与售后凭证文本 P2 复用同一出口（COM-01） |
