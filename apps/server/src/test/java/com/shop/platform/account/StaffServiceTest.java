@@ -9,6 +9,7 @@ import com.shop.platform.account.api.StaffReadQuery;
 import com.shop.platform.account.dto.AdminStaffQuery;
 import com.shop.platform.account.mapper.Staff;
 import com.shop.platform.account.mapper.StaffMapper;
+import com.shop.platform.account.model.StaffRole;
 import com.shop.platform.account.model.StaffStatus;
 import com.shop.platform.account.service.StaffService;
 import com.shop.platform.audit.api.AuditAction;
@@ -29,6 +30,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -288,6 +290,105 @@ class StaffServiceTest {
             assertEquals(403, ex.getHttpStatus());
             assertEquals("STAFF_DISABLED", ex.getCode());
             verify(jwtProvider, never()).createStaffAccessToken(any());
+        }
+    }
+
+    @Nested
+    class 建号与调岗 { // StaffService.createStaff（POST /admin/staff）、updateStaffRole（PUT /admin/staff/{id}/role）
+
+        private static final String VALID_PASSWORD = "S3curePass!"; // 过 PasswordPolicy：≥8 位、非黑名单
+
+        @Test
+        void 建号_落ACTIVE行_口令只存哈希() {
+            when(staffMapper.existsByEmployeeNo("E001")).thenReturn(false);
+            when(passwordEncoder.encode(VALID_PASSWORD)).thenReturn("$2a$12$hash");
+
+            staffService.createStaff("E001", VALID_PASSWORD, "张三", StaffRole.OPS, OPERATOR_ID);
+
+            verify(staffMapper).insert(staffCaptor.capture());
+            Staff saved = staffCaptor.getValue();
+            assertEquals("E001", saved.getEmployeeNo());
+            assertEquals(StaffStatus.ACTIVE, saved.getStatus());
+            assertEquals("OPS", saved.getRole());
+            // 口令只落 BCrypt 哈希，明文绝不进实体
+            assertEquals("$2a$12$hash", saved.getPasswordHash());
+            verify(recordAuditCommand)
+                    .record(eq(AuditAction.ACCOUNT_STAFF_CREATED), any(), eq(OPERATOR_ID), any(), anyString());
+        }
+
+        @Test
+        void 工号已被使用_预检400_不建行不记审计() {
+            when(staffMapper.existsByEmployeeNo("E001")).thenReturn(true);
+
+            var ex = assertThrows(
+                    BusinessException.class,
+                    () -> staffService.createStaff("E001", VALID_PASSWORD, "张三", StaffRole.OPS, OPERATOR_ID));
+            assertEquals(400, ex.getHttpStatus());
+            verify(staffMapper, never()).insert(any(Staff.class));
+            verifyNoInteractions(recordAuditCommand);
+        }
+
+        @Test
+        void 并发撞唯一索引_DuplicateKey_仍400不记审计() {
+            when(staffMapper.existsByEmployeeNo("E001")).thenReturn(false);
+            when(passwordEncoder.encode(VALID_PASSWORD)).thenReturn("$2a$12$hash");
+            when(staffMapper.insert(any(Staff.class))).thenThrow(new DuplicateKeyException("uk_staff_employee_no"));
+
+            var ex = assertThrows(
+                    BusinessException.class,
+                    () -> staffService.createStaff("E001", VALID_PASSWORD, "张三", StaffRole.OPS, OPERATOR_ID));
+            // 预检只挡误操作，并发由唯一索引兜底：撞车给与预检一致的 400（PG 一报唯一错即标 aborted，回读走不到）
+            assertEquals(400, ex.getHttpStatus());
+            verifyNoInteractions(recordAuditCommand);
+        }
+
+        @Test
+        void 调自己岗位_400_不更新不记审计() {
+            Staff staff = new Staff();
+            staff.setId(STAFF_ID);
+            staff.setRole(StaffRole.SUPER_ADMIN.name());
+            staff.setStatus(StaffStatus.ACTIVE);
+            when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
+
+            // 调低自己的岗位等于当场自削权限（STAFF_MANAGE 只挂通配），且事后无痕
+            var ex = assertThrows(
+                    BusinessException.class, () -> staffService.updateStaffRole(STAFF_ID, StaffRole.OPS, STAFF_ID));
+            assertEquals(400, ex.getHttpStatus());
+            verify(staffMapper, never()).updateRole(any(), anyString());
+            verifyNoInteractions(recordAuditCommand);
+        }
+
+        @Test
+        void 同岗位是空动作_直接返回_不写updated_at不记审计() {
+            Staff staff = new Staff();
+            staff.setId(STAFF_ID);
+            staff.setEmployeeNo("E001");
+            staff.setRole(StaffRole.OPS.name());
+            staff.setStatus(StaffStatus.ACTIVE);
+            when(staffMapper.selectById(STAFF_ID)).thenReturn(staff);
+
+            staffService.updateStaffRole(STAFF_ID, StaffRole.OPS, OPERATOR_ID);
+
+            // 账本里一行「没发生过的变更」是噪音：同岗位既不落库也不记审计
+            verify(staffMapper, never()).updateRole(any(), anyString());
+            verifyNoInteractions(recordAuditCommand);
+        }
+
+        @Test
+        void 降级最后一个在岗超管_409_不落库() {
+            Staff lastSuper = new Staff();
+            lastSuper.setId(STAFF_ID);
+            lastSuper.setRole(StaffRole.SUPER_ADMIN.name());
+            lastSuper.setStatus(StaffStatus.ACTIVE);
+            when(staffMapper.selectById(STAFF_ID)).thenReturn(lastSuper);
+            // 计数 > 1 才有第二个在岗超管；=1 即「降级他平台就再没人能建员工/调岗位/封店」
+            when(staffMapper.countActiveSuperAdmins()).thenReturn(1L);
+
+            var ex = assertThrows(
+                    BusinessException.class, () -> staffService.updateStaffRole(STAFF_ID, StaffRole.OPS, OPERATOR_ID));
+            assertEquals(409, ex.getHttpStatus());
+            verify(staffMapper, never()).updateRole(any(), anyString());
+            verifyNoInteractions(recordAuditCommand);
         }
     }
 }
