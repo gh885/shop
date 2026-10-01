@@ -47,6 +47,8 @@
         "test:e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
         "gen:i18n": "node scripts/i18n-codegen.mjs",
         "i18n:drift": "node scripts/i18n-codegen.mjs --check",
+        "gen:errors": "node scripts/error-codes-codegen.mjs --write",
+        "errors:drift": "node scripts/error-codes-codegen.mjs --check",
         "perf": "node scripts/perf-lighthouse.mjs",
         "perf:bundle": "node scripts/perf-bundle.mjs",
         "perf:attrib": "node scripts/perf-attrib.mjs",

@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 /**
- * 错误码词表的单点门禁：一个码在 Java 常量、{@code docs/error-codes.md}、{@code packages/common}、
+ * 错误码词表的单点门禁：一个码在注册表（{@code openapi/error-codes.mjs}）、Java 常量、{@code packages/common}、
  * 前端 catalog（{@code packages/app-kit/src/locales/<locale>/error.json}）四边的值、状态码、
  * 前端落点与那句用户可见文案必须同时成立。
  *
@@ -31,12 +31,17 @@ import org.junit.jupiter.api.Test;
  * 同一个码最多抄了 6 遍（{@code INVALID_TOKEN}）：改一次的名字要记得改六处，忘记任何一处的表现
  * 是「一半的路径还认得这个码」。现在抛出点只引用 {@link ErrorCodes}，字面量在本仓库只住在 owner 里。
  *
- * <p>四边之中只有 Java 常量与 TS 常量是编译期可查的，文档那一格与 catalog 那两份 JSON 是散文/数据——
+ * <p><b>注册表是真相源，两份常量表是它的生成物</b>（{@code pnpm gen:errors}，漂移由 {@code pnpm errors:drift} 拦）。
+ * 所以注册表 ⇄ Java 常量那一格是<b>生成关系</b>，不是手抄对账；本类真正的价值在另外三边——生成物可能整体落后，
+ * 而 catalog 与前端读点不会因为注册表改了而自己跟上。
+ *
+ * <p>四边之中只有 Java 常量与 TS 常量是编译期可查的，注册表那两栏与 catalog 那两份 JSON 是散文/数据——
  * 所以本类的重心有三处：
  * <ol>
- *   <li><b>把文档变成可 join 的表</b>：{@code HTTP} 列与每一处抛出点由出口推出来的状态码逐处相等；
- *       「谁在读」列不是谁写的声明，而是拿生产前端源码里真实出现的 {@code ErrorCodes.X} 引用反查出来的集合，
- *       两个方向都必须相等（多一个 reader 红、少一个 reader 也红）；
+ *   <li><b>注册表是可 join 的表</b>：{@code status} 与每一处抛出点由出口推出来的状态码逐处相等；
+ *       {@code behavior} 的分支前缀（「按码分支」/「不按码分支」）不是注释而是<b>声明</b>，它由生产前端源码里
+ *       真实出现的 {@code ErrorCodes.X} 引用反查出来的集合两向核（多一个读点红、少一个也红）。旧文档表的
+ *       「前端行为」那一栏有五条写的是愿望，这条判据把它压成了事实；
  *   <li><b>结构性禁令</b>：抛出点的码位只许是 {@code ErrorCodes.X}、{@code null}，或三处登记在案的<b>导管</b>
  *       （{@code Validate.isTrue} 的形参、两个鉴权过滤器手里的 {@code verification.code()}）。
  *       新起一条「码从变量里来」的导管会让白名单等式当场红——那种导管是漂移的温床：静态扫不到，就等于不存在；
@@ -57,8 +62,12 @@ class ErrorCodeVocabularyTest {
 
     private static final Path MAIN_JAVA = Path.of("src", "main", "java");
     private static final Path REPO_ROOT = Path.of("..", "..");
-    private static final Path DOC = REPO_ROOT.resolve(Path.of("docs", "error-codes.md"));
-    private static final Path TS_OWNER = REPO_ROOT.resolve(Path.of("packages", "common", "src", "error-codes.ts"));
+
+    /** 唯一真相源：24 张码卡，{@code pnpm gen:errors} 从这里生成 Java 与 TS 两份常量表 */
+    private static final Path REGISTRY = REPO_ROOT.resolve(Path.of("openapi", "error-codes.mjs"));
+
+    private static final Path TS_OWNER =
+            REPO_ROOT.resolve(Path.of("packages", "common", "src", "contract", "error-codes.ts"));
 
     /** 用户可见错误文案的落点（i18n.md §7.3）：两份语言各一份，namespace 由文件名给 */
     private static final List<Path> ERROR_CATALOGS = List.of(
@@ -82,11 +91,11 @@ class ErrorCodeVocabularyTest {
      * 现在改成**从 owner 文件里扫出来**：多一个码不必回来改测试，而「哪些码不是后端发的」也只有一个答案。
      */
     private static final Path CLIENT_FAILURE_OWNER =
-            REPO_ROOT.resolve(Path.of("packages", "common", "src", "client-failure.ts"));
+            REPO_ROOT.resolve(Path.of("packages", "common", "src", "contract", "client-failure.ts"));
 
     /**
      * 「这一发没有可用的令牌」那两个码：客户端 401 拦截器**只对带这两个码的响应**做「刷新 + 重放」
-     * （`packages/common/src/sdk-client.ts` 的 `isTokenVerdict`）。与前端那份是同一份口径，
+     * （`packages/common/src/contract/sdk-client.ts` 的 `isTokenVerdict`）。与前端那份是同一份口径，
      * 两边各写一次是因为跨语言——与 `ValidationRules` 的镜像同一种做法。
      */
     private static final Set<String> TOKEN_VERDICT_CODES = Set.of("TOKEN_EXPIRED", "INVALID_TOKEN");
@@ -110,13 +119,20 @@ class ErrorCodeVocabularyTest {
 
     private static final Pattern CODE_NAME = Pattern.compile("ErrorCodes\\.([A-Z][A-Z0-9_]+)");
     private static final Pattern CODE_LITERAL = Pattern.compile("\"([A-Z][A-Z0-9_]{3,})\"");
-    private static final Pattern DOC_ROW =
-            Pattern.compile("^\\|\\s*`([A-Z][A-Z0-9_]*)`\\s*\\|\\s*([^|]+?)\\s*\\|\\s*([^|]+?)\\s*\\|");
+    /** 注册表里一张卡：块内没有嵌套花括号，所以按 {@code \{[^{}]*\}} 切块即可 */
+    private static final Pattern CARD = Pattern.compile("\\{[^{}]*\\}");
+
+    private static final Pattern CARD_CODE = Pattern.compile("code:\\s*\"([A-Z][A-Z0-9_]*)\"");
+    private static final Pattern CARD_STATUS = Pattern.compile("status:\\s*(\\d+)");
+    private static final Pattern CARD_BEHAVIOR = Pattern.compile("behavior:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
+    /** 数组起始标记：{@code @typedef} 那行的花括号在它之前，切掉它才不会把类型注解当成一张卡 */
+    private static final String REGISTRY_ARRAY = "export const ERROR_CODES = [";
+
     private static final Pattern TS_ENTRY =
             Pattern.compile("^\\s*([A-Z][A-Z0-9_]*)\\s*:\\s*\"([A-Z][A-Z0-9_]*)\"\\s*,?$");
     /**
      * 码在**生产前端**里的落脚点。扫两份词表的引用：`ErrorCodes.X`（后端发的）与
-     * `ClientFailureCodes.X`（前端本地失败）——「谁在读」这一列对两份词表是同一件事：
+     * `ClientFailureCodes.X`（前端本地失败）——「谁在读」这件事对两份词表是同一个判据：
      * 这个码在仓库里的唯一落脚处。
      */
     private static final Pattern TS_READER = Pattern.compile("(?:ErrorCodes|ClientFailureCodes)\\.([A-Z][A-Z0-9_]+)");
@@ -128,13 +144,22 @@ class ErrorCodeVocabularyTest {
     /** 一处抛码站点：码、由出口推出的状态码、出处 */
     private record Site(String code, int status, String at) {}
 
-    /** 文档一行：Code、HTTP 列原文、「谁在读」列（已解析成仓库相对路径） */
-    private record DocRow(String code, String http, Set<String> readers) {}
+    /** 注册表一张卡：Code、status、behavior（这三栏是可核对的声明，其余是给人读的散文） */
+    private record Card(String code, int status, String behavior) {}
+
+    /**
+     * behavior 的两个分支前缀：写「按码分支」就得真有读点，写「不按码分支」就不许有。
+     * 判据用 {@code startsWith} 而不是 {@code contains}——「不按码分支」里就含着「按码分支」这四个字，
+     * contains 会把负声明读成正的。
+     */
+    private static final String BRANCHES = "按码分支";
+
+    private static final String DOES_NOT_BRANCH = "不按码分支";
 
     // ---------------------------------------------------------------- 三边集合
 
     @Test
-    void java常量名与值逐字节相同且文档表与ts镜像同一集合() throws Exception {
+    void java常量名与值逐字节相同且注册表与ts镜像同一集合() throws Exception {
         Map<String, String> java = javaConstants();
         assertThat(java).as("owner 里一个常量都没有，本测试会空转").isNotEmpty();
 
@@ -143,29 +168,29 @@ class ErrorCodeVocabularyTest {
             assertThat(e.getValue()).as("错误码常量的值必须等于它的名字：%s", e.getKey()).isEqualTo(e.getKey());
         }
 
-        List<DocRow> doc = docRows();
-        Set<String> docCodes = doc.stream().map(DocRow::code).collect(Collectors.toCollection(TreeSet::new));
+        List<Card> registry = registryCards();
+        Set<String> registryCodes = registry.stream().map(Card::code).collect(Collectors.toCollection(TreeSet::new));
         Set<String> ts = tsCodes();
         Set<String> clientOnly = clientLocalCodes();
         assertThat(clientOnly)
                 .as("client-failure.ts 一个码都没扫到——那份词表改名或改形状了，这条等式已经失明")
                 .isNotEmpty();
 
-        // 2. Java ⇄ 文档（文档多出来的必须**恰好**是客户端本地失败那份词表，两边相等）
-        Set<String> inJava = new TreeSet<>(java.keySet());
-        assertThat(docCodes).as("文档 Code 列必须覆盖 Java owner 的每个常量").containsAll(inJava);
-        Set<String> docOnly = new TreeSet<>(docCodes);
-        docOnly.removeAll(inJava);
-        assertThat(docOnly)
-                .as("文档里有、Java 不抛的码必须恰好等于 client-failure.ts 那份词表：" + "多一个是凭空造词，少一个是码表漏登记")
-                .isEqualTo(clientOnly);
+        // 2. Java ⇄ 注册表：生成关系，两向相等（注册表少一条就是 gen 没跑；多一条是有人手改了产物）
+        assertThat(registryCodes).as("注册表必须覆盖 Java owner 的每个常量").isEqualTo(new TreeSet<>(java.keySet()));
 
-        // 3. 文档 ⇄ 两份 TS 词表的并集，双向
+        // 3. 注册表 ∪ 客户端那份 ⇄ TS 两份词表的并集，双向
+        Set<String> expected = new TreeSet<>(registryCodes);
+        expected.addAll(clientOnly);
         Set<String> tsAll = new TreeSet<>(ts);
         tsAll.addAll(clientOnly);
         assertThat(tsAll)
-                .as("TS 两份词表（error-codes.ts ∪ client-failure.ts）的并集必须等于文档 Code 列")
-                .isEqualTo(docCodes);
+                .as("TS 两份词表（error-codes.ts ∪ client-failure.ts）的并集必须等于注册表 ∪ 客户端那份")
+                .isEqualTo(expected);
+        assertThat(new TreeSet<>(registryCodes)
+                        .stream().filter(clientOnly::contains).toList())
+                .as("前端自己判定的失败码不许进后端注册表——那会让 Java owner 凭空多出四个常量")
+                .isEmpty();
     }
 
     @Test
@@ -175,9 +200,10 @@ class ErrorCodeVocabularyTest {
         Set<String> thrown = sites.stream().map(Site::code).collect(Collectors.toCollection(TreeSet::new));
 
         assertThat(thrown).as("owner 里的每个码都得真的有人抛，否则它就是文档里那条规则的谎言").isEqualTo(new TreeSet<>(java.keySet()));
+        Map<String, Set<String>> readers = frontendReaders();
         for (String clientOnly : clientLocalCodes()) {
             assertThat(java).as("客户端本地失败的码不许同时在 Java owner 里有定义").doesNotContainKey(clientOnly);
-            assertThat(docRow(clientOnly).readers())
+            assertThat(readers.getOrDefault(clientOnly, Set.of()))
                     .as("客户端本地失败的码必须有真实落脚点（`ClientFailureCodes.X` 出现在生产前端里），否则它是凭空造的词")
                     .isNotEmpty();
         }
@@ -254,7 +280,7 @@ class ErrorCodeVocabularyTest {
     // ---------------------------------------------------------------- 状态码
 
     @Test
-    void 文档那一列HTTP与每处抛码站点的状态码逐处相等() throws Exception {
+    void 注册表的status与每处抛码站点的状态码逐处相等() throws Exception {
         List<Site> sites = throwSites();
         assertThat(sites).as("一处抛码站点都没扫到，本测试空转").isNotEmpty();
         Map<String, Set<Integer>> byCode = new TreeMap<>();
@@ -263,23 +289,23 @@ class ErrorCodeVocabularyTest {
         }
         List<String> mismatch = new ArrayList<>();
         for (Map.Entry<String, Set<Integer>> e : byCode.entrySet()) {
-            String declared = docRow(e.getKey()).http().strip();
+            int declared = registryCard(e.getKey()).status();
             if (e.getValue().size() > 1) {
-                mismatch.add(e.getKey() + " 同一个码在不同出口给出多种状态 " + e.getValue() + "（文档写的是 " + declared + "）");
+                mismatch.add(e.getKey() + " 同一个码在不同出口给出多种状态 " + e.getValue() + "（注册表写的是 " + declared + "）");
                 continue;
             }
             int actual = e.getValue().iterator().next();
-            if (!String.valueOf(actual).equals(declared)) {
+            if (actual != declared) {
                 mismatch.add(
-                        e.getKey() + ": 文档 " + declared + " vs Java " + actual + " @ " + sitesOf(sites, e.getKey()));
+                        e.getKey() + ": 注册表 " + declared + " vs Java " + actual + " @ " + sitesOf(sites, e.getKey()));
             }
         }
-        assertThat(mismatch).as("HTTP 列必须与真实抛出结果一致").isEmpty();
+        assertThat(mismatch).as("status 栏必须与真实抛出结果一致").isEmpty();
     }
 
     @Test
     void 校验结果的码只经401出口那条链没有断() throws Exception {
-        // Verification.fail 的状态码在文档里推不出来，所以先钉住那条链：
+        // Verification.fail 的状态码在注册表里推不出来，所以先钉住那条链：
         // 读 verification.code() 的文件必须正是以 401 抛 BusinessException 的那两个过滤器。
         List<String> readers = new ArrayList<>();
         for (Path file : mainSources()) {
@@ -290,7 +316,7 @@ class ErrorCodeVocabularyTest {
             }
             readers.add(file.getFileName().toString());
             assertThat(flat)
-                    .as("拿校验结果的码去写响应，只能是 401，否则文档那一列就不成立")
+                    .as("拿校验结果的码去写响应，只能是 401，否则注册表那一栏就不成立")
                     .contains("BusinessException.unauthorized(verification.code(),verification.detail())");
         }
         assertThat(readers)
@@ -303,10 +329,10 @@ class ErrorCodeVocabularyTest {
         }
     }
 
-    // ---------------------------------------------------------------- 「谁在读」列
+    // ---------------------------------------------------------------- 401 的两类与重放边界
 
     /**
-     * 401 的两类与**重放边界**（客户端那一半在 `packages/common/src/sdk-client.ts` 的
+     * 401 的两类与**重放边界**（客户端那一半在 `packages/common/src/contract/sdk-client.ts` 的
      * {@code isTokenVerdict}，用例在 sdk-client.test.ts）。
      *
      * <p>前端那条 401 拦截器会「刷一次新令牌 → **把原请求重发一次**」。这条行为能成立，靠的是一个
@@ -381,45 +407,55 @@ class ErrorCodeVocabularyTest {
         assertThat(seen).as("两向相等：登记了却不再抛 401 的文件是过期白名单，得删").isEqualTo(registered);
     }
 
-    // ---------------------------------------------------------------- 「谁在读」列
+    // ---------------------------------------------------------------- behavior 的分支声明
 
+    /**
+     * 「前端拿这个码干什么」与「前端真的按它分支了吗」两向核。
+     *
+     * <p>旧文档表的「谁在读」列同时是<b>声明</b>和<b>扫描结果</b>：列里手抄着文件名，判据又写着
+     * 「不是谁写的声明」。这份自我矛盾的结果是那五条愿望式「前端行为」——文件路径抄得对，动作不存在。
+     * 现在声明收进注册表的 {@code behavior} 前缀（一个布尔），路径清单整体删掉：
+     * 扫描结果不需要人回写，声明不需要人维护清单。
+     */
     @Test
-    void 文档的谁在读列是前端扫描结果不是声明() throws Exception {
+    void behavior的分支声明是前端扫描结果不是愿望() throws Exception {
         Map<String, Set<String>> readers = frontendReaders();
         List<String> drift = new ArrayList<>();
-        for (DocRow row : docRows()) {
-            Set<String> actual = readers.getOrDefault(row.code(), Set.of());
-            if (!row.readers().equals(actual)) {
-                drift.add(row.code() + ": 文档 " + row.readers() + " vs 实际 " + actual);
+        int claimed = 0;
+        for (Card card : registryCards()) {
+            Boolean declares = branchClaim(card);
+            if (declares == null) {
+                drift.add(card.code() + ": behavior 没写分支声明（必须以「" + BRANCHES + "」或「" + DOES_NOT_BRANCH
+                        + "」开头）——这句是可核对的声明，不是给人读的注释");
+                continue;
+            }
+            Set<String> actual = readers.getOrDefault(card.code(), Set.of());
+            if (declares != !actual.isEmpty()) {
+                drift.add(card.code() + ": 声明 " + (declares ? BRANCHES : DOES_NOT_BRANCH) + " vs 实际读点 " + actual);
+            }
+            if (declares) {
+                claimed++;
             }
         }
-        assertThat(drift).as("「谁在读」两向都要相等：新增了按码分支的地方得回写文档，文档指着已不读码的文件得改").isEmpty();
-
-        long claimed = docRows().stream().filter(r -> !r.readers().isEmpty()).count();
-        assertThat(claimed).as("把这一列全填成 — 会让本测试空转：真实读者远多于此").isGreaterThanOrEqualTo(8);
-        // 每个声称的落点必须是真实存在的文件
-        for (DocRow row : docRows()) {
-            for (String reader : row.readers()) {
-                assertThat(REPO_ROOT.resolve(reader))
-                        .as("%s 宣称由 %s 读取", row.code(), reader)
-                        .exists();
-            }
-        }
+        assertThat(drift).as("分支声明两向都要相等：新增了按码分支的地方得回写注册表，注册表说按码分支却扫不到读点就是那条旧病").isEmpty();
+        assertThat(claimed).as("把声明全写成「不按码分支」会让本测试空转：真实按码分支的码远多于此").isGreaterThanOrEqualTo(8);
     }
 
     @Test
-    void 前端只读文档里存在的码() throws Exception {
-        Set<String> docCodes = docRows().stream().map(DocRow::code).collect(Collectors.toCollection(TreeSet::new));
+    void 前端只读注册表里登记的码() throws Exception {
+        Set<String> registryCodes =
+                registryCards().stream().map(Card::code).collect(Collectors.toCollection(TreeSet::new));
+        registryCodes.addAll(clientLocalCodes());
         Set<String> read = new TreeSet<>(frontendReaders().keySet());
-        assertThat(read).as("前端按一个文档没有的码分支，等于凭空造词").isSubsetOf(docCodes);
+        assertThat(read).as("前端按一个注册表没有的码分支，等于凭空造词").isSubsetOf(registryCodes);
         assertThat(read).as("前端一处都没读码，扫描大概是空转").isNotEmpty();
     }
 
     // ---------------------------------------------------------------- 错误文案 catalog
 
     /**
-     * 反向核对（i18n.md §7.3 代价 1、§10.1 末尾那条「必须自己盯」的新增门禁）：文档表的每个 code 在
-     * 前端 catalog 里<b>有且只有一条</b> {@code error.<CODE>}，两份语言都要有，值不许是空串。
+     * 反向核对（i18n.md §7.3 代价 1、§10.1 末尾那条「必须自己盯」的新增门禁）：注册表与客户端那份词表的
+     * 每个 code 在前端 catalog 里<b>有且只有一条</b> {@code error.<CODE>}，两份语言都要有，值不许是空串。
      *
      * <p>过去这三边只核到「码本身」，文案那一格没人管——于是「加了码忘了加文案」是一种
      * <b>没有任何东西会报错</b>的漏法：前端 TS 侧的 {@code error-keys.ts} 用
@@ -429,12 +465,14 @@ class ErrorCodeVocabularyTest {
      * 进每一条 bundle 与 key 联合。
      *
      * <p>按行扫而不是解析 JSON：本类是纯文本门禁（无库、不起 Spring、不引 Jackson），
-     * 与读 {@code docs/error-codes.md} 同一把尺子。
+     * 与读注册表同一把尺子。
      */
     @Test
     void 每个code在两份语言恰有一条error文案() throws Exception {
-        Set<String> docCodes = docRows().stream().map(DocRow::code).collect(Collectors.toCollection(TreeSet::new));
-        assertThat(docCodes).as("文档表空了，本测试空转").isNotEmpty();
+        Set<String> catalogCodes =
+                registryCards().stream().map(Card::code).collect(Collectors.toCollection(TreeSet::new));
+        catalogCodes.addAll(clientLocalCodes());
+        assertThat(catalogCodes).as("注册表 + 客户端那份空了，本测试空转").isNotEmpty();
 
         for (Path file : ERROR_CATALOGS) {
             List<String> keys = new ArrayList<>();
@@ -453,8 +491,8 @@ class ErrorCodeVocabularyTest {
             assertThat(keys).as(rel(file) + " 有重复的 error.<CODE> 条目").doesNotHaveDuplicates();
             assertThat(blank).as(rel(file) + " 这些 code 的文案是空串").isEmpty();
             assertThat(unique)
-                    .as(rel(file) + " 与文档 Code 列必须两向相等：少一条是「加了码忘了加文案」，多一条是凭空造文案")
-                    .isEqualTo(docCodes);
+                    .as(rel(file) + " 与注册表 ∪ 客户端那份词表必须两向相等：少一条是「加了码忘了加文案」，多一条是凭空造文案")
+                    .isEqualTo(catalogCodes);
         }
     }
 
@@ -464,7 +502,7 @@ class ErrorCodeVocabularyTest {
     void 词汇表规模不退坡() throws Exception {
         // 删码是接口变更：状态码与 detail 还在，只有前端那条分支会静静地永不命中。
         assertThat(javaConstants()).as("Java owner 的码数").hasSizeGreaterThanOrEqualTo(23);
-        assertThat(docRows()).as("文档表的行数").hasSizeGreaterThanOrEqualTo(24);
+        assertThat(registryCards()).as("注册表的卡数").hasSizeGreaterThanOrEqualTo(24);
         assertThat(tsCodes()).as("TS 镜像的键数").hasSizeGreaterThanOrEqualTo(24);
         assertThat(throwSites()).as("抛码站点数").hasSizeGreaterThanOrEqualTo(40);
     }
@@ -482,39 +520,53 @@ class ErrorCodeVocabularyTest {
         return out;
     }
 
-    private static List<DocRow> docRows() throws IOException {
-        List<DocRow> rows = new ArrayList<>();
-        for (String line : read(DOC)) {
-            Matcher m = DOC_ROW.matcher(line);
-            if (!m.find()) {
-                continue;
-            }
-            rows.add(new DocRow(m.group(1), m.group(2), readers(m.group(3))));
+    /**
+     * 解析注册表的码卡。不引 JS 引擎也不 eval：本类是纯文本门禁，且要的只有三栏。
+     *
+     * <p>切块从 {@value #REGISTRY_ARRAY} 之后开始——文件头部那段字段说明里也写着 {@code code}/{@code status}/
+     * {@code behavior} 这些词，{@code @typedef} 那行的花括号更会被 {@code \{[^{}]*\}} 当成一张卡。
+     */
+    private static List<Card> registryCards() throws IOException {
+        String source = String.join("\n", read(REGISTRY));
+        int start = source.indexOf(REGISTRY_ARRAY);
+        assertThat(start).as("%s 里没找到数组入口，注册表换形状了", REGISTRY).isGreaterThan(-1);
+        List<Card> cards = new ArrayList<>();
+        Matcher block = CARD.matcher(source.substring(start));
+        while (block.find()) {
+            String body = block.group();
+            String code = matcher(CARD_CODE, body);
+            String status = matcher(CARD_STATUS, body);
+            String behavior = matcher(CARD_BEHAVIOR, body);
+            assertThat(code).as("这张卡没有 code：%s", body).isNotNull();
+            assertThat(status).as("%s 没有 status（必填：它是 HTTP 与抛码站点那条等式的左边）", code).isNotNull();
+            assertThat(behavior).as("%s 没有 behavior（必填：这句是分支声明，不是注释）", code).isNotNull();
+            cards.add(new Card(code, Integer.parseInt(status), unescapeJs(behavior)));
         }
-        return rows;
+        return cards;
     }
 
-    /** 「谁在读」格：{@code —} 表示无人读；多路径以 {@code 、} 或 {@code ,} 分隔，都带反引号 */
-    private static Set<String> readers(String cell) {
-        Set<String> out = new TreeSet<>();
-        String cleaned = cell.replace("`", "").trim();
-        if (cleaned.isEmpty() || cleaned.equals("—") || cleaned.equals("-")) {
-            return out;
+    /** 行为前缀 → 这条码是否按码分支；两个前缀都没写就返回 null（调用方按漂移处理，不在这里抛） */
+    private static Boolean branchClaim(Card card) {
+        if (card.behavior().startsWith(DOES_NOT_BRANCH)) {
+            return false;
         }
-        for (String part : cleaned.split("[、,]")) {
-            String p = part.trim();
-            if (!p.isEmpty()) {
-                out.add(p);
-            }
+        if (card.behavior().startsWith(BRANCHES)) {
+            return true;
         }
-        return out;
+        return null;
     }
 
-    private static DocRow docRow(String code) throws IOException {
-        return docRows().stream()
-                .filter(r -> r.code().equals(code))
+    /** 注册表里字符串字面量的转义（写这条是为了 {@code \"} 不在比对里变成半句话） */
+    private static String unescapeJs(String literal) {
+        return literal.replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    private static Card registryCard(String code) throws IOException {
+        return registryCards().stream()
+                .filter(c -> c.code().equals(code))
                 .findFirst()
-                .orElseThrow(() -> new AssertionError("docs/error-codes.md 里没有 " + code));
+                .orElseThrow(() ->
+                        new AssertionError("openapi/error-codes.mjs 里没有 " + code + "（前端读了注册表没登记的码，或 Java 抛了一个没登记的码）"));
     }
 
     private static Set<String> tsCodes() throws IOException {

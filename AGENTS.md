@@ -15,9 +15,9 @@ vitest.config.ts          ← 测试的 projects 清单（逐个点名各包的 
 apps/server/              ← Spring Boot 模块化单体（不参与 pnpm workspace）
 apps/{web,seller,admin}/  ← 买家端 SSR / 卖家工作台 SPA / 平台管理端 SPA
 packages/                 ← 共享包（api / common / app-kit / ui-web / config / test-utils）
-scripts/                  ← node 脚本：数据面拉起与探针、造数、契约与 i18n 门禁、健康扫描
+scripts/                  ← node 脚本：数据面拉起与探针、造数、契约 / i18n / 错误码门禁（`error-codes-codegen.mjs`）、健康扫描
 e2e/                      ← Playwright 用例与 fixtures（运行参数唯一出口 e2e/fixtures/env.ts）
-openapi/                  ← api-docs.json（后端 /v3/api-docs 导出）；packages/api 除 src/index.ts 外全是生成物
+openapi/                  ← 对外错误契约的登记处：api-docs.json（后端 /v3/api-docs 的导出）+ error-codes.mjs（手写的码表注册表，`pnpm gen:errors` 的输入）；packages/api 除 src/index.ts 外全是生成物
 docs/                     ← 架构 / 约定 / 决策 / 调研（索引见 README「文档地图」）
 ```
 
@@ -92,7 +92,7 @@ cd apps/server && mvn spring-boot:run   # 单独起后端（mvn compile / spotle
 
 ## 错误码规范
 
-**定义原则（2026-09-30 改版）：用户看到的句子由前端 catalog 或状态码通道给；`detail` 只在中文界面当文案，其它语种它是日志字段。** code 的准入条件是「前端要按它分支」或「兜底上报的真实频次证明它值得单独翻译」，**不是**「后端有一句话」——普查否掉了旧那句「这句话用户可见就要有 code」：全仓 267 个不带 code 的报错出口按旧判据补齐 = 204 个新码，而其中绝大多数前端从不按句子分叉。唯一真相源是 `docs/error-codes.md`（判据、普查口径、五支兜底链、升级闭环都在它头部）：新建 code 必须先在那里写清「前端行为」和「后端触发场景」，再在 `packages/app-kit/src/locales/{zh-CN,en-US}/error.json` 各补一句——`notify.ts` 按 code 取 catalog，取不到才轮到 `detail`（中文界面）或按状态码的通用句（其它语种）。
+**定义原则（2026-09-30 改版）：用户看到的句子由前端 catalog 或状态码通道给；`detail` 只在中文界面当文案，其它语种它是日志字段。** code 的准入条件是「前端要按它分支」或「兜底上报的真实频次证明它值得单独翻译」，**不是**「后端有一句话」——普查否掉了旧那句「这句话用户可见就要有 code」：全仓 267 个不带 code 的报错出口按旧判据补齐 = 204 个新码，而其中绝大多数前端从不按句子分叉。逐条码的唯一真相源是注册表 `openapi/error-codes.mjs`（一张卡 = `group` / `code` / `status` / `trigger` / `behavior` / 可选 `notes`），`ErrorCodes.java` 与 `packages/common/src/contract/error-codes.ts` 是 `pnpm gen:errors` 的产物——**手改产物无效**，下一个人重生成时那一次静默消失；`pnpm errors:drift`（已进 pre-push 与 CI）核生成物与注册表一致。判据、普查口径、五支兜底链、升级闭环写在 `docs/error-codes.md`（它不再抄那份表）。新建 code 先在注册表写一张卡——`behavior` 必须以「按码分支：」或「不按码分支：」开头，这一句是**可核对的声明**，门禁拿它与生产前端真实的 `ErrorCodes.X` 读点两向核——然后 `pnpm gen:errors`，再在 `packages/app-kit/src/locales/{zh-CN,en-US}/error.json` 各补一句——`notify.ts` 按 code 取 catalog，取不到才轮到 `detail`（中文界面）或按状态码的通用句（其它语种）。
 
 > 判据改版已落地（[docs/conventions/i18n.md](docs/conventions/i18n.md) §7.3）：文案归前端 catalog，`detail` 降级为中文界面那一格的兜底 + 日志。句子装不下关键值时走**字段级参数通道**（ProblemDetail 扩展属性 `errors` = `[{ field, message, value? }]`，前端对边是 `packages/common` 的 `ApiFieldError`）——值作为数据出一次，不写进中文句子让前端正则捞；`FORBIDDEN_WORD_HIT` 已按这条退出；**detail 优先的例外清单已于 2026-10 清空**（`ADDRESS_LIMIT_EXCEEDED` / `MERCHANT_ADDRESS_LIMIT_EXCEEDED` 改走 `params` 通道，上限数字作为数据出、前端 catalog 用 `{limit}` 槽位接，后端改数字前端零改动）。没有对应字段可定位的码用 `params`（`ApiError.params`，标量白名单），有字段的用 `errors`；槽位映射写在 `error-keys.ts` 的 `CODE_SLOTS`，`error-keys.test.ts` 双向核，且**槽位没填上不许印裸 `{limit}`**（退回按 locale 的兜底并上报）。code 的生命周期与兼容性规则、HTTP 状态码选择依据、`detail` 的对外口径见 `docs/error-codes.md` 头部。还欠的两件（`error_fallback` 上报的接收端与「按频次升级」的例行、422 校验族参数化）记在 `docs/error-codes.md` 头部与 `TODO.md`。
 

@@ -17,7 +17,7 @@ import type { AppKitMessageKey } from "../locales/messages.gen"
  * 两者分家的理由写在 `packages/common/src/contract/client-failure.ts` 的文件头。
  *
  * 反过来（catalog 里有、词表里没有的多余 `error.*` 条目）类型看不见，由
- * `ErrorCodeVocabularyTest` 拿 `docs/error-codes.md` 的 Code 列与两份 `error.json` 两向核。
+ * `ErrorCodeVocabularyTest` 拿注册表 `openapi/error-codes.mjs` 的 code 与两份 `error.json` 两向核。
  */
 const ERROR_KEYS = {
     SMS_RATE_LIMIT: "error.SMS_RATE_LIMIT",

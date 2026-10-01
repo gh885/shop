@@ -236,7 +236,7 @@ useMutation({
 | 错误码       | `ErrorCodes`（`error-codes.ts`）                                                              | `@shop/common`；对端在 Java `common.ErrorCodes` 与 `docs/error-codes.md`，四边（含两份 `error.json` 的 `error.<CODE>` 文案）由 `ErrorCodeVocabularyTest` 核对，前端不另立码 |
 | CMS 定位值   | `CMS_TARGET_MAX` / `CMS_URL_MAX`（`apps/admin/src/cms/constants.ts`）                         | **app 本地** owner：只有 admin 三页用，不必进 `common`；对端在 Java `cms.dto.CmsFieldRules`                                                                                 |
 
-凡写着「对端在 Java …」的行都不归下面这个门禁管：它们是**跨语言**的等式（TS ↔ Java ↔ 已发布契约 ↔ 迁移列宽），由后端的 `FieldRuleVocabularyTest`（数字那一族）与 `ErrorCodeVocabularyTest`（错误码那一族，另核每处抛码站点的状态码、「谁在读」列、以及每个 code 在两份语言恰有一条 `error.<CODE>`）核对——前端门禁只能扫到前端，用它守跨语言相等会永远绿。
+凡写着「对端在 Java …」的行都不归下面这个门禁管：它们是**跨语言**的等式（TS ↔ Java ↔ 已发布契约 ↔ 迁移列宽），由后端的 `FieldRuleVocabularyTest`（数字那一族）与 `ErrorCodeVocabularyTest`（错误码那一族，另核每处抛码站点的状态码、注册表 `behavior` 那句分支声明、以及每个 code 在两份语言恰有一条 `error.<CODE>`）核对——前端门禁只能扫到前端，用它守跨语言相等会永远绿。
 
 **门禁**：`packages/common/src/shared-vocabulary.test.ts`（node 环境，扫 `apps/*/src` + `packages/*/src` 全部源码），五条规则各挡一种漂移：
 

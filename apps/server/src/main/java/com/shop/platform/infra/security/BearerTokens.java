@@ -43,7 +43,7 @@ public final class BearerTokens {
             // 「没带令牌」与「令牌无效」是同一类**令牌裁决**，给同一个码：客户端那条 401 拦截器按码
             // 决定要不要刷新重放（sdk-client 的 isTokenVerdict），code 为 null 它就只能放弃，
             // 而「请求抢在 bootstrapAuth 之前发出」恰恰是要刷一次才能继续的那种。
-            // 这一格此前是 null，与 docs/error-codes.md 里 INVALID_TOKEN 那行「未携带 token」对不上。
+            // 这一格此前是 null，与 openapi/error-codes.mjs 里 INVALID_TOKEN 那张卡「未携带 token」对不上。
             return Verification.fail(ErrorCodes.INVALID_TOKEN, "请先登录");
         }
 

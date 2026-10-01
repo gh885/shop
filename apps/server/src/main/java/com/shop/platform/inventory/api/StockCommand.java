@@ -73,7 +73,7 @@ public class StockCommand {
         for (StockLine line : ordered(lines)) {
             StockFrames frames = skuStockMapper.captureOne(line.skuId(), line.quantity());
             // 扣实失败的规范化响应交给调用方（订单已被取消时 markPaid 早已拒绝），此处仍兜底防御。
-            // 不带 code：前端无按此区分的分支逻辑，409 + detail 已承载全部用户提示（登记进 error-codes.md 才允许加 code）
+            // 不带 code：前端无按此区分的分支逻辑，409 + detail 已承载全部用户提示（在 openapi/error-codes.mjs 登记一张卡才允许加 code）
             if (frames == null) {
                 log.warn("[INVENTORY] 扣实失败: 冻结量不足, skuId={}, need={}", line.skuId(), line.quantity());
                 throw BusinessException.conflict(null, "订单库存冻结状态异常，请联系客服");
