@@ -11,7 +11,7 @@ export {
 export { useI18n, useT, useTypedT } from "./use-i18n"
 export { LocaleSwitcher, type LocaleSwitcherProps } from "./locale-switcher"
 
-export { DEFAULT_LOCALE, type AppLocale, type I18nResources } from "@shop/common"
+export { DEFAULT_LOCALE, type AppLocale, type I18nResources } from "@shop/common/i18n"
 export { APP_KIT_MESSAGES, translateAppKit } from "./messages"
 export type { AppKitMessageKey, AppKitParamsOf, AppKitTranslate } from "../locales/messages.gen"
 export { createLocaleScope, type LocaleScope } from "./scope"

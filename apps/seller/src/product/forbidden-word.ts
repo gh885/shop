@@ -1,6 +1,4 @@
-import { ErrorCodes, toApiError, type ApiError } from "@shop/common"
-
-/**
+import { ErrorCodes, toApiError, type ApiError } from "@shop/common/contract" /**
  * 违禁词错误（COM-01）的前端消费：**不自己判词，只把后端的裁决定位到字段**。
  *
  * 为什么不把词表拉到前端做本地校验：词表是运营在后台增删的数据（compliance 模块的表），

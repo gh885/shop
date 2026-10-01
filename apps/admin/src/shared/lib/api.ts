@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createAuthKit } from "@shop/common"
+import { configureSdkClient, createAuthKit } from "@shop/common/contract"
 import { AdminAuthApi } from "@shop/api/sdk"
 
 import { localeScope } from "./locale-scope"

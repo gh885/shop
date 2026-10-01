@@ -1,5 +1,6 @@
 import { StaffStatus, UserStatus } from "@shop/api/sdk"
-import { PermissionCodes, statusOptions } from "@shop/common"
+import { PermissionCodes } from "@shop/common/contract"
+import { statusOptions } from "@shop/common/domain"
 import { z } from "zod"
 
 export const ACCOUNT_MANAGE_PERMISSION = PermissionCodes.STAFF_MANAGE

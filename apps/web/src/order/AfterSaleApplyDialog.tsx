@@ -2,9 +2,9 @@ import { z } from "zod"
 import { AfterSaleReason, TicketType } from "@shop/api/sdk"
 import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
-import { NOTE_MAX } from "@shop/common"
-import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
-
+import { NOTE_MAX } from "@shop/common/domain"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     AFTER_SALE_REASON_LABEL,
     AFTER_SALE_REASON_ORDER,

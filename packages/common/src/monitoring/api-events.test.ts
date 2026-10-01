@@ -1,7 +1,7 @@
 import { AuthApi } from "@shop/api/sdk"
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
-import { configureSdkClient, type TokenStore } from "../sdk-client"
+import { configureSdkClient, type TokenStore } from "../contract/sdk-client"
 import { Transport } from "./transport"
 import { configureMonitoring } from "./core"
 

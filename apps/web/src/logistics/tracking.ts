@@ -1,7 +1,6 @@
 import type { OrderDetail } from "#/order"
 import type { ShipmentTrackingResponse, TrackingNodeResponse } from "@shop/api/sdk"
-import type { AppLocale } from "@shop/common"
-
+import type { AppLocale } from "@shop/common/i18n"
 import {
     SHIPMENT_STATUS_LABEL,
     TRACKING_NODE_LABEL,

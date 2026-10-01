@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vite-plus/test"
 
-import { money } from "@shop/common"
+import { money } from "@shop/common/domain"
 import { makeCouponTemplate, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"

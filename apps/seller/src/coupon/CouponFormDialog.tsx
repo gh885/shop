@@ -6,10 +6,9 @@ import {
     DialogTitle,
     useAppForm,
 } from "@shop/ui-web"
-import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
-
-import { COUPON_NAME_MAX } from "@shop/common"
-
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
+import { COUPON_NAME_MAX } from "@shop/common/domain"
 import { COUPON_TYPE_ITEMS, couponRequestFromForm, CouponFormSchema, emptyCouponForm } from "./form"
 import { useCreateCoupon } from "./queries"
 

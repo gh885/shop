@@ -7,7 +7,8 @@ import type {
 import { useQuery } from "@tanstack/react-query"
 import { PlusIcon } from "lucide-react"
 
-import { serverFieldErrorTexts, useI18n } from "@shop/app-kit"
+import { serverFieldErrorTexts } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     Badge,
     Button,

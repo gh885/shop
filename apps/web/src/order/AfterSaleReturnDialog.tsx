@@ -1,6 +1,7 @@
 import { z } from "zod"
-import { CARRIER_NAME_MAX, TRACKING_NO_MAX, TrackingNoSchema } from "@shop/common"
-import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { CARRIER_NAME_MAX, TRACKING_NO_MAX, TrackingNoSchema } from "@shop/common/domain"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     Dialog,
     DialogContent,

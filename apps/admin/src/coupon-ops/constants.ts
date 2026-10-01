@@ -2,13 +2,12 @@ import { z } from "zod"
 
 import {
     COUPON_STATUS_META,
-    PermissionCodes,
     USER_COUPON_STATUSES,
     couponStatusLabel,
     statusOptions,
     type UserCouponStatus,
-} from "@shop/common"
-
+} from "@shop/common/domain"
+import { PermissionCodes } from "@shop/common/contract"
 export const COUPON_OPS_PERMISSION = PermissionCodes.COUPON_OPS
 
 /** 状态筛选值进 URL：取值以 @shop/common 那条码表为准，不在这里再列一遍码 */

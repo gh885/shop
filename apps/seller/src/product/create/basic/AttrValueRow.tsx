@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react"
-import { SPEC_VALUE_MAX } from "@shop/common"
+import { SPEC_VALUE_MAX } from "@shop/common/domain"
 import {
     Button,
     Combobox,

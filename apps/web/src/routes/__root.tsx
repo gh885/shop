@@ -3,7 +3,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
 import { buttonVariants, ConfirmDialogHost, Toaster } from "@shop/ui-web"
-import { I18nProvider, useI18n } from "@shop/app-kit"
+import { I18nProvider, useI18n } from "@shop/app-kit/i18n"
 import { localeScope } from "#/shared/lib/locale-scope"
 
 import TanStackQueryDevtools from "#/app/tanstack-query/DevTools"

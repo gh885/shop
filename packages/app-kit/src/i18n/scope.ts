@@ -1,6 +1,4 @@
-import { DEFAULT_LOCALE, type AppLocale } from "@shop/common"
-
-/**
+import { DEFAULT_LOCALE, type AppLocale } from "@shop/common/i18n" /**
  * 装配时创建的 Locale 持有者实例（§3.5 约束 3 的第二档：沿调用链传不动参时才轮到它）。
  *
  * 与被它替换掉的 `getCurrentLocale()` 的区别不是「把可变变量换个地方放」：

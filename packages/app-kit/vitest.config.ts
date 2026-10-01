@@ -6,7 +6,7 @@ import { defineConfig } from "vite-plus"
  * locale.test.ts 读写 document.cookie 与 window.navigator.language；
  * use-countdown.test.ts 用 @testing-library/react 的 renderHook（要 DOM 才能挂 hook）。
  */
-const domTests = ["src/i18n/locale.test.ts", "src/use-countdown.test.ts"]
+const domTests = ["src/i18n/locale.test.ts", "src/auth/use-countdown.test.ts"]
 
 /**
  * app-kit 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/* 同一约定。

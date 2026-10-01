@@ -21,8 +21,7 @@ import {
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
 import type { ParamItem } from "@shop/api/sdk"
-import { scrollToElement } from "@shop/common"
-
+import { scrollToElement } from "@shop/common/domain"
 import { lensGeometry, ZOOM, type LensGeometry } from "./gallery-zoom"
 
 /**

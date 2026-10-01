@@ -1,4 +1,4 @@
-import { LoginForm } from "@shop/app-kit"
+import { LoginForm } from "@shop/app-kit/auth"
 import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@shop/ui-web"
 import { QrCode, XIcon } from "lucide-react"
 

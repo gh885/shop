@@ -2,9 +2,7 @@ import { LogisticsApi } from "@shop/api/sdk"
 import type { OrderTrackingResponse } from "@shop/api/sdk"
 import { queryOptions } from "@tanstack/react-query"
 
-import { toApiError } from "@shop/common"
-
-/**
+import { toApiError } from "@shop/common/contract" /**
  * logistics/queries —— 物流轨迹的数据层（fetch + queryOptions）。
  *
  * 轨迹只在买家物流页消费，且是受保护路由（挂载时必已登录）。SSR 阶段服务端拿不到 token，

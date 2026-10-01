@@ -1,9 +1,7 @@
 import { z } from "zod"
 
 import type { ShopMemberItem } from "@shop/api/sdk"
-import { PhoneSchema } from "@shop/app-kit"
-
-/**
+import { PhoneSchema } from "@shop/app-kit/auth" /**
  * shop 域 · 成员：邀请表单校验 + 「当前用户是不是这家店的店主」这条判定。
  *
  * 后者决定成员页画不画邀请入口与移除按钮（都是能把别人踢出店铺的动作），

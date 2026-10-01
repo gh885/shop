@@ -8,8 +8,7 @@ import {
     StoreIcon,
 } from "lucide-react"
 
-import type { SidebarSourceItem } from "@shop/app-kit"
-
+import type { SidebarSourceItem } from "@shop/app-kit/shell"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 
 // ── 菜单树（一级 key === 路径第一段；二级 leaf key === 路径第二段） ──

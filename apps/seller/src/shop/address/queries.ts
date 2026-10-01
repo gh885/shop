@@ -1,5 +1,5 @@
 import { queryOptions, useMutation } from "@tanstack/react-query"
-import { regionNamesByCode } from "@shop/common"
+import { regionNamesByCode } from "@shop/common/domain"
 import { SellerAddressesApi, type MerchantAddressRequest } from "@shop/api/sdk"
 
 import type { AddressFormValues } from "./address-form"

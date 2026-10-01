@@ -9,8 +9,7 @@ import {
     TruckIcon,
     UserRoundIcon,
 } from "lucide-react"
-import type { SidebarItem, SidebarSourceItem } from "@shop/app-kit"
-
+import type { SidebarItem, SidebarSourceItem } from "@shop/app-kit/shell"
 import { ACCOUNT_MANAGE_PERMISSION } from "#/account/constants"
 import { COUPON_OPS_PERMISSION } from "#/coupon-ops/constants"
 import { AUDIT_VIEW_PERMISSION } from "#/audit/constants"

@@ -1,5 +1,6 @@
 import type { ProductReviewItem } from "@shop/api/sdk"
-import { formatDateTime, useI18n } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import { Star } from "lucide-react"
 import { Badge, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
 import { TableCard } from "#/shared/ui/TableCard"

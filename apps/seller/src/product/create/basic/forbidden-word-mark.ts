@@ -1,7 +1,6 @@
 import { useEffect } from "react"
 
-import { scrollToElement } from "@shop/common"
-
+import { scrollToElement } from "@shop/common/domain"
 import type { ForbiddenHit } from "../../forbidden-word"
 
 import type { BasicForm } from "./form-instance"

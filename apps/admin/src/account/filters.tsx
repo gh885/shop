@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { StatusOption } from "@shop/common"
+import type { StatusOption } from "@shop/common/domain"
 import { IdFilter } from "#/shared/ui/id-filter"
 import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
 import { StatusFilter } from "#/shared/ui/status-filter"

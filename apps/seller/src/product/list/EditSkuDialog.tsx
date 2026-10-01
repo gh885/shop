@@ -1,13 +1,9 @@
 import { PackageCheck } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
-import {
-    FormActions,
-    QueryBoundary,
-    serverFieldErrorTexts,
-    submitForm,
-    useI18n,
-} from "@shop/app-kit"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { QueryBoundary } from "@shop/app-kit/data"
+import { useI18n } from "@shop/app-kit/i18n"
 import type { ProductDetailResponse } from "@shop/api/sdk"
 import {
     applyServerFieldErrors,

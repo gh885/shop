@@ -1,15 +1,8 @@
 import type { ClaimableCouponResponse, MyCouponResponse } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
-import {
-    COUPON_STATUS_META,
-    ErrorCodes,
-    USER_COUPON_STATUSES,
-    statusOptions,
-    toApiError,
-    type AppLocale,
-} from "@shop/common"
-
-/**
+import { formatDateTime } from "@shop/app-kit/display"
+import { COUPON_STATUS_META, USER_COUPON_STATUSES, statusOptions } from "@shop/common/domain"
+import { ErrorCodes, toApiError } from "@shop/common/contract"
+import { type AppLocale } from "@shop/common/i18n" /**
  * coupon 领域层 —— 优惠券的业务类型 + wire→领域投影 + 本域纯派生（不碰 React / 网络）。
  *
  * 只归一形状（可空 → undefined），不造假默认值：契约说 `orderId` 可空，就用 undefined 表达「没关联订单」，

@@ -1,5 +1,4 @@
-import { moneyToYuan } from "@shop/common"
-
+import { moneyToYuan } from "@shop/common/domain"
 import type { ProductDetail } from "../product"
 
 /**

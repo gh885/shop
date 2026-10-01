@@ -10,7 +10,7 @@ import {
     AddressDetailSchema,
     AddressPhoneSchema,
     AddressRegionCodeSchema,
-} from "@shop/common"
+} from "@shop/common/domain"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 /**

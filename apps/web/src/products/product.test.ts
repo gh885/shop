@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vite-plus/test"
 
 import type { FeedItemResponse, PublicProductResponse } from "@shop/api/sdk"
-import { money } from "@shop/common"
-
+import { money } from "@shop/common/domain"
 import {
     derivePriceView,
     formatSoldText,

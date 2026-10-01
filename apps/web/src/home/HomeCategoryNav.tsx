@@ -28,9 +28,9 @@ import {
     Skeleton,
     cn,
 } from "@shop/ui-web"
-import { QueryBoundary, errorText, useI18n } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
-
+import { QueryBoundary } from "@shop/app-kit/data"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { toApiError } from "@shop/common/contract"
 import { useT } from "#/locales/use-t"
 
 import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"

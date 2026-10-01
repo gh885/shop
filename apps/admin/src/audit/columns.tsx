@@ -1,5 +1,5 @@
 import type { AdminAuditItem } from "@shop/api/sdk"
-import { TimeText } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit/display"
 import type { DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { ACTION_LABEL, TARGET_LABEL } from "./constants"

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
-import { type Money, moneyToYuan, sameMoney } from "@shop/common"
-import { notify } from "@shop/app-kit"
+import { type Money, moneyToYuan, sameMoney } from "@shop/common/domain"
+import { notify } from "@shop/app-kit/data"
 import {
     Button,
     Empty,

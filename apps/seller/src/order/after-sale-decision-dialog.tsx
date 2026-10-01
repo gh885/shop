@@ -2,8 +2,8 @@ import type { ReactNode } from "react"
 import { useQuery, type UseQueryResult } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import type { TicketResponse } from "@shop/api/sdk"
-import { formatMoney, NOTE_MAX } from "@shop/common"
-import { ReasonForm } from "@shop/app-kit"
+import { formatMoney, NOTE_MAX } from "@shop/common/domain"
+import { ReasonForm } from "@shop/app-kit/forms"
 import {
     Alert,
     AlertDescription,

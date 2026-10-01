@@ -4,7 +4,8 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { Wallet, CheckCircle2 } from "lucide-react"
 
-import { toApiError, type Money } from "@shop/common"
+import { toApiError } from "@shop/common/contract"
+import { type Money } from "@shop/common/domain"
 import { Card, CardContent, Spinner, Button } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"

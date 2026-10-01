@@ -1,4 +1,4 @@
-import { PaginationBar } from "@shop/app-kit"
+import { PaginationBar } from "@shop/app-kit/data"
 import { Table, TableShell } from "@shop/ui-web"
 
 /**

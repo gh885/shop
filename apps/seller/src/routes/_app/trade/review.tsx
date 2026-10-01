@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { paginationSearchSchema } from "@shop/app-kit"
+import { paginationSearchSchema } from "@shop/app-kit/data"
 import { useQuery } from "@tanstack/react-query"
 import {
     DataTableSkeleton,

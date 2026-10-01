@@ -1,8 +1,10 @@
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { toApiError } from "@shop/common"
-import { errorText, NICKNAME_MAX, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { toApiError } from "@shop/common/contract"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { NICKNAME_MAX } from "@shop/app-kit/auth"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
 import { useMe } from "#/account"
 import { ME_QUERY_KEY } from "#/account/queries"
 import { useT } from "#/locales/use-t"

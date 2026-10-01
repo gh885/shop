@@ -1,11 +1,5 @@
-import {
-    type ApiError,
-    type AppLocale,
-    ClientFailureCodes,
-    ErrorCodes,
-    formatMessage,
-} from "@shop/common"
-
+import { type ApiError, ClientFailureCodes, ErrorCodes } from "@shop/common/contract"
+import { type AppLocale, formatMessage } from "@shop/common/i18n"
 import { translateAppKit } from "./messages"
 import type { AppKitMessageKey } from "../locales/messages.gen"
 
@@ -20,7 +14,7 @@ import type { AppKitMessageKey } from "../locales/messages.gen"
  * 表里是**两份**词表的并集，因为取文案这一步不看码从哪来（判据见 `errorTextPlan`）：
  * - 服务端码（`ErrorCodes`）：后端在响应体里发的；
  * - 客户端本地失败（`ClientFailureCodes`）：断网 / 超时 / 取消 / 响应不合契约，后端一个都不发。
- * 两者分家的理由写在 `packages/common/src/client-failure.ts` 的文件头。
+ * 两者分家的理由写在 `packages/common/src/contract/client-failure.ts` 的文件头。
  *
  * 反过来（catalog 里有、词表里没有的多余 `error.*` 条目）类型看不见，由
  * `ErrorCodeVocabularyTest` 拿 `docs/error-codes.md` 的 Code 列与两份 `error.json` 两向核。

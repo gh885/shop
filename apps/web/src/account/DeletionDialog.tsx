@@ -1,19 +1,16 @@
 import { z } from "zod"
 
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
 import {
-    errorText,
-    FormActions,
     isCodeError,
     isSmsRateLimit,
     RESEND_COUNTDOWN_SECONDS,
-    serverFieldErrorTexts,
     SMS_CODE_DIGITS,
     SmsCodeSchema,
-    submitForm,
     useCountdown,
-    useI18n,
-} from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+} from "@shop/app-kit/auth"
+import { toApiError } from "@shop/common/contract"
 import { AccountDeletionApi } from "@shop/api/sdk"
 import {
     Button,

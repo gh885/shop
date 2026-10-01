@@ -4,8 +4,7 @@ import type {
     ShippingTemplateRequest,
     ShippingTemplateResponse,
 } from "@shop/api/sdk"
-import { type Money, moneyToYuan, yuanToMoney } from "@shop/common"
-
+import { type Money, moneyToYuan, yuanToMoney } from "@shop/common/domain"
 export interface FeeTierFormValue {
     firstQuantity: string
     firstFee: string

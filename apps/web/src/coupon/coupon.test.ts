@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test"
 
 import type { MyCouponResponse } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit/display"
 import { makeMyCouponResponse as makeContractCoupon } from "@shop/test-utils/fixtures"
 
 import {

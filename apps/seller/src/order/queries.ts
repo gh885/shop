@@ -6,8 +6,7 @@ import {
     type OrderStatus,
     type TicketStatus,
 } from "@shop/api/sdk"
-import { toApiError } from "@shop/common"
-
+import { toApiError } from "@shop/common/contract"
 export interface OrderListSearch {
     status?: OrderStatus
     page: number

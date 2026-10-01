@@ -12,8 +12,9 @@ import {
     Skeleton,
     StateError,
 } from "@shop/ui-web"
-import { priceRangeText, toApiError } from "@shop/common"
-import { errorText, useI18n } from "@shop/app-kit"
+import { priceRangeText } from "@shop/common/domain"
+import { toApiError } from "@shop/common/contract"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { useQuery } from "@tanstack/react-query"
 import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 

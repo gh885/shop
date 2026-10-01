@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft, CircleAlert } from "lucide-react"
 import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { useI18n } from "@shop/app-kit"
-
+import { useI18n } from "@shop/app-kit/i18n"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
 import {
     CarrierBar,

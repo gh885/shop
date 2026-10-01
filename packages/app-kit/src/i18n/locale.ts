@@ -1,6 +1,9 @@
-import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME, resolveLocale, type AppLocale } from "@shop/common"
-
-/**
+import {
+    DEFAULT_LOCALE,
+    LOCALE_COOKIE_NAME,
+    resolveLocale,
+    type AppLocale,
+} from "@shop/common/i18n" /**
  * Locale 的浏览器管道：cookie 读写，以及「该用哪个 Locale」的回落顺序。
  *
  * 从 `provider.tsx` 抽出来的原因：这几段一行都不需要 React，原先却只能靠渲染 Provider 才碰得到；

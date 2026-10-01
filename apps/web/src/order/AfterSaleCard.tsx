@@ -1,8 +1,8 @@
 import type { ReactNode } from "react"
 
 import { Badge, Button, Panel, PanelContent, PanelHeader, Spinner } from "@shop/ui-web"
-import { formatDateTime, useI18n } from "@shop/app-kit"
-
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import { Price } from "#/shared/ui/Price"
 
 import type { TicketResponse } from "@shop/api/sdk"

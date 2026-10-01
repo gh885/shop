@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router"
 
-import { formatDate, useI18n } from "@shop/app-kit"
+import { formatDate } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     couponFaceRuleText,
     couponFaceText,
     couponSourceLabel,
     couponStatusMeta,
-} from "@shop/common"
+} from "@shop/common/domain"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import { type MyCoupon, couponTimeReasonHint } from "./coupon"

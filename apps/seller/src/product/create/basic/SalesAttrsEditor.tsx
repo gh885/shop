@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Plus } from "lucide-react"
-import { SPEC_VALUES_MAX } from "@shop/common"
+import { SPEC_VALUES_MAX } from "@shop/common/domain"
 import { Badge, Button, FieldSet } from "@shop/ui-web"
 
 import {

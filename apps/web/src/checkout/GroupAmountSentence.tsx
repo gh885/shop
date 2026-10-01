@@ -1,5 +1,4 @@
-import { type Money, isPositiveMoney } from "@shop/common"
-
+import { type Money, isPositiveMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
 
 /**

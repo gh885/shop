@@ -1,5 +1,5 @@
 import { AdminAuditsApi } from "@shop/api/sdk"
-import { createPaginationSearchSchema } from "@shop/app-kit"
+import { createPaginationSearchSchema } from "@shop/app-kit/data"
 import { queryOptions } from "@tanstack/react-query"
 import { z } from "zod"
 import {

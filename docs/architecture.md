@@ -160,7 +160,7 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 | Java 实体                  | 两列 + 派生视图（`priceAsMoney()`）                             | `<module>/mapper`                                                                                                                                              |
 | Java 契约 / service / 事件 | `common/Money`（record：非负；跨币种等内部不变量错误抛 500）    | dto / api / controller / service / events                                                                                                                      |
 | OpenAPI / SDK              | 命名 schema `Money`                                             | `openapi/api-docs.json` → `packages/api`                                                                                                                       |
-| TS                         | `Money`（re-export 契约，不写镜像类型）                         | `packages/common/src/money.ts`                                                                                                                                 |
+| TS                         | `Money`（re-export 契约，不写镜像类型）                         | `packages/common/src/domain/money.ts`                                                                                                                          |
 
 三道闸门，各挡一类事故（论证见 V58 头注释与 `Money` javadoc）：
 

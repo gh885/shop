@@ -9,8 +9,9 @@ import {
     TableHeader,
     TableRow,
 } from "@shop/ui-web"
-import { formatMoney } from "@shop/common"
-import { formatDateTime, useI18n } from "@shop/app-kit"
+import { formatMoney } from "@shop/common/domain"
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import type { SellerOrderListItemResponse, TicketAvailableAction } from "@shop/api/sdk"
 import { useState } from "react"
 

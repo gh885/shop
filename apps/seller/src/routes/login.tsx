@@ -2,7 +2,8 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { Globe, Store } from "lucide-react"
 
 import { AuthApi } from "@shop/api/sdk"
-import { LocaleSwitcher, LoginForm } from "@shop/app-kit"
+import { LocaleSwitcher } from "@shop/app-kit/i18n"
+import { LoginForm } from "@shop/app-kit/auth"
 import type { CSSVars } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"

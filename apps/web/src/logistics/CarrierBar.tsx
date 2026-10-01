@@ -1,6 +1,6 @@
 import { Truck } from "lucide-react"
 
-import { copyWithNotify } from "@shop/app-kit"
+import { copyWithNotify } from "@shop/app-kit/display"
 import { Button } from "@shop/ui-web"
 
 /**

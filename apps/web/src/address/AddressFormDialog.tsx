@@ -1,18 +1,13 @@
-import {
-    FormActions,
-    notify,
-    RegionField,
-    serverFieldErrorTexts,
-    submitForm,
-    useI18n,
-} from "@shop/app-kit"
+import { FormActions, RegionField, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { notify } from "@shop/app-kit/data"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     ADDRESS_DETAIL_MAX,
     ADDRESS_NAME_MAX,
     ADDRESS_PARSE_TEXT_MAX,
     CONTACT_PHONE_MAX,
     regionNamesByCode,
-} from "@shop/common"
+} from "@shop/common/domain"
 import {
     Button,
     Dialog,

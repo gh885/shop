@@ -3,9 +3,7 @@
 // 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、
 // 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。
 
-import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit"
-
-export type WebMessageKey =
+import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n";export type WebMessageKey =
     "app.description" |
     "app.title" |
     "common.action.backHome" |

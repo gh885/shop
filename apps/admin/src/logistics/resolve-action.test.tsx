@@ -1,7 +1,7 @@
 import type { ShipmentIssueResponse } from "@shop/api/sdk"
 
 import { renderWithProviders } from "@shop/app-kit/test"
-import { NOTE_MAX } from "@shop/common"
+import { NOTE_MAX } from "@shop/common/domain"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"

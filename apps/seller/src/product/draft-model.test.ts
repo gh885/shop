@@ -1,5 +1,5 @@
 import type { CategoryAttrNodeResponse, SkuResponse } from "@shop/api/sdk"
-import { money } from "@shop/common"
+import { money } from "@shop/common/domain"
 import { makeCategoryAttrNode } from "@shop/test-utils/fixtures"
 
 import { describe, expect, it } from "vite-plus/test"

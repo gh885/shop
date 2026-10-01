@@ -1,10 +1,5 @@
-import {
-    type ApiFieldError,
-    type AppLocale,
-    isValidationRule,
-    type ValidationRule,
-} from "@shop/common"
-
+import { type ApiFieldError, isValidationRule, type ValidationRule } from "@shop/common/contract"
+import { type AppLocale } from "@shop/common/i18n"
 import { translateAppKit } from "./messages"
 
 /**

@@ -1,7 +1,8 @@
 import type { RecommendTabResponse } from "@shop/api/sdk"
 
 import { useQuery } from "@tanstack/react-query"
-import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     Dialog,
     DialogContent,

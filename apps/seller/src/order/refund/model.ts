@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { statusOptions } from "@shop/common"
+import { statusOptions } from "@shop/common/domain"
 import { TicketStatus, type TicketAvailableAction } from "@shop/api/sdk"
 
 import { TICKET_STATUS_META } from "#/order/constants"

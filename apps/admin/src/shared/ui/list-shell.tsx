@@ -1,7 +1,7 @@
 import type { ColumnDef, RowData } from "@tanstack/react-table"
 import { createContext, use, useRef, type ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
-import type { StatusOption } from "@shop/common"
+import type { StatusOption } from "@shop/common/domain"
 import {
     DataTable,
     DataTableToolbar,

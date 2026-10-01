@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 
 import type { OrderIdentity } from "./table"
-import { TRACKING_NO_MAX, toApiError } from "@shop/common"
-import { errorText, FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { TRACKING_NO_MAX } from "@shop/common/domain"
+import { toApiError } from "@shop/common/contract"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
 import { useT } from "#/locales/use-t"
 import {
     applyServerFieldErrors,

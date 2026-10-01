@@ -4,15 +4,11 @@ import { useMemo, useRef, useState } from "react"
 import { ArrowRight } from "lucide-react"
 
 import { AdminAuthApi } from "@shop/api/sdk"
-import { toApiError } from "@shop/common"
-import {
-    LocaleSwitcher,
-    serverFieldErrorTexts,
-    submitForm,
-    translateSidebarItems,
-    useI18n,
-    usePasswordVisibility,
-} from "@shop/app-kit"
+import { toApiError } from "@shop/common/contract"
+import { LocaleSwitcher, useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { translateSidebarItems } from "@shop/app-kit/shell"
+import { usePasswordVisibility } from "@shop/app-kit/auth"
 import {
     FormError,
     PasswordToggle,

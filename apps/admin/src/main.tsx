@@ -1,6 +1,5 @@
-import { mountSpa } from "@shop/app-kit"
-import { startSpaMonitoring } from "@shop/common"
-
+import { mountSpa } from "@shop/app-kit/shell"
+import { startSpaMonitoring } from "@shop/common/monitoring"
 import { router } from "./router"
 import { adminMessages } from "./locales"
 import { localeScope } from "./shared/lib/locale-scope"

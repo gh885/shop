@@ -1,5 +1,4 @@
-import { activeSectionOf, type SidebarItem } from "@shop/app-kit"
-
+import { activeSectionOf, type SidebarItem } from "@shop/app-kit/shell"
 import type { Crumb } from "#/shared/ui/PageBreadcrumb"
 
 /**

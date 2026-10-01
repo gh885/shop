@@ -5,10 +5,15 @@
     "type": "module",
     "sideEffects": false,
     "exports": {
-        ".": "./src/index.ts",
+        "./auth": "./src/auth/index.ts",
+        "./display": "./src/display/index.ts",
+        "./forms": "./src/forms/index.ts",
+        "./data": "./src/data/index.ts",
+        "./shell": "./src/shell/index.ts",
+        "./i18n": "./src/i18n/index.ts",
         "./test": "./src/test/index.tsx",
         "./test/setup": "./src/test/setup.ts",
-        "./workbench.css": "./src/workbench/theme.css"
+        "./workbench.css": "./src/shell/workbench/theme.css"
     },
     "scripts": {
         "typecheck": "tsc --noEmit"

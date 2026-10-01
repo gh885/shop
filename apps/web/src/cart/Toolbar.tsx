@@ -1,6 +1,6 @@
 import { ChevronDown, Search } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
-import { notify } from "@shop/app-kit"
+import { notify } from "@shop/app-kit/data"
 import { Checkbox, Button, confirm, Label } from "@shop/ui-web"
 import { deriveSelectedItems, deriveAllSelected } from "./cart"
 import { cartItemsOptions, useSelectCartItems, useBatchRemoveCartItems } from "./queries"

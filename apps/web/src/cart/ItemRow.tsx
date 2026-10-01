@@ -2,9 +2,8 @@ import { deriveCartItemView, type CartItem } from "./cart"
 import type { CartItemActions } from "./queries"
 import { Minus, Plus } from "lucide-react"
 
-import { formatMoney } from "@shop/common"
-import { notify } from "@shop/app-kit"
-
+import { formatMoney } from "@shop/common/domain"
+import { notify } from "@shop/app-kit/data"
 import { Price } from "#/shared/ui/Price"
 import {
     Item,

@@ -1,8 +1,6 @@
 import { useNavigate } from "@tanstack/react-router"
 
-import { notify } from "@shop/app-kit"
-
-/**
+import { notify } from "@shop/app-kit/data" /**
  * 首页大搜索框与内页顶栏共用的搜索跳转。
  *
  * 搜索后端已由 `GET /api/products` 承接；这里只负责把用户输入送进统一结果页，

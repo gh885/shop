@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { AdminAccountApi, type StaffRole } from "@shop/api/sdk"
-import { serverFieldErrorTexts, submitForm, useI18n, usePasswordVisibility } from "@shop/app-kit"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
+import { usePasswordVisibility } from "@shop/app-kit/auth"
 import { useMutation } from "@tanstack/react-query"
 import {
     Button,

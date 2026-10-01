@@ -10,7 +10,7 @@ import {
 import { Package } from "lucide-react"
 
 import { ProductStatus } from "@shop/api/sdk"
-import { paginationSearchSchema } from "@shop/app-kit"
+import { paginationSearchSchema } from "@shop/app-kit/data"
 import { z } from "zod"
 
 import { useState } from "react"

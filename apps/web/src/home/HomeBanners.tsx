@@ -2,9 +2,9 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 
 import { Button, Skeleton } from "@shop/ui-web"
-import { QueryBoundary, errorText, useI18n } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
-
+import { QueryBoundary } from "@shop/app-kit/data"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { toApiError } from "@shop/common/contract"
 import { useT } from "#/locales/use-t"
 
 import { HomeBannerItem } from "./HomeBannerItem"

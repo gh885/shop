@@ -1,8 +1,6 @@
 import type { ReactNode } from "react"
 
-import { submitForm } from "@shop/app-kit"
-
-/**
+import { submitForm } from "@shop/app-kit/forms" /**
  * 内联小表单的外壳：一个 `<form>` + 「提交只走 submitForm 那唯一出口」那段接线。
  *
  * 只管外壳——字段、校验、页脚全由调用点给。间距（`className`）也留给调用点：同一页里

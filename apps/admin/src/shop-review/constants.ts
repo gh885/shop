@@ -1,5 +1,5 @@
 import { ShopReviewStatus } from "@shop/api/sdk"
-import { statusOptions } from "@shop/common"
+import { statusOptions } from "@shop/common/domain"
 import { z } from "zod"
 
 /** 店铺审核状态（与后端枚举对齐）：URL search 参数与筛选下拉都过这一个 schema */

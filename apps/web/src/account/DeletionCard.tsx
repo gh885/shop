@@ -1,6 +1,7 @@
 import { useState } from "react"
 
-import { formatDateTime, useI18n } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import { AccountDeletionApi } from "@shop/api/sdk"
 import {
     Button,

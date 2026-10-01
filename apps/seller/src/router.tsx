@@ -1,9 +1,8 @@
 import { createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 
-import { captureError } from "@shop/common"
-import { RoutePending } from "@shop/app-kit"
-
+import { captureError } from "@shop/common/monitoring"
+import { RoutePending } from "@shop/app-kit/shell"
 import { RouteError } from "./shared/ui/RouteError"
 
 export const router = createRouter({

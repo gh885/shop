@@ -1,4 +1,4 @@
-import { type ApiFieldError } from "@shop/common"
+import { type ApiFieldError } from "@shop/common/contract"
 import { describe, expect, it } from "vite-plus/test"
 
 import { fieldErrorText } from "./field-error-text"

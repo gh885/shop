@@ -6,8 +6,7 @@ import {
     type TicketType,
 } from "@shop/api/sdk"
 
-import { toApiError } from "@shop/common"
-
+import { toApiError } from "@shop/common/contract"
 import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
 
 /**

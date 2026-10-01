@@ -1,9 +1,7 @@
 import { z } from "zod"
 
 import type { CarrierResponse } from "@shop/api/sdk"
-import { TrackingNoSchema } from "@shop/common"
-
-/**
+import { TrackingNoSchema } from "@shop/common/domain" /**
  * 发货表单的纯规则：校验 + 「表单值 → 提交体」+ 承运商字典投影。
  *
  * 承运商是自由文本升级来的：同一个顺丰曾能写出五种字，落库后既没法统计也没法对接物流商接口，

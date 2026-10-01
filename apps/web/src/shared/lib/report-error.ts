@@ -10,9 +10,7 @@
  * 这里只管「让开发/监控看见」。两者是不同的问题——只做前者等于线上出错无人知晓，
  * 只做后者等于用户看到白屏。
  */
-import { captureError } from "@shop/common"
-
-/**
+import { captureError } from "@shop/common/monitoring" /**
  * hydration 失败专用事件名。
  *
  * 为什么要单列而不是并进 route_error：hydration 失败**不产生 console.error**——页面看着正常、

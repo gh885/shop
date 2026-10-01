@@ -1,5 +1,6 @@
-import { couponMoneyText, couponRuleText, couponUnavailableReasonText } from "@shop/common"
-import { formatDate, useI18n } from "@shop/app-kit"
+import { couponMoneyText, couponRuleText, couponUnavailableReasonText } from "@shop/common/domain"
+import { formatDate } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import { ChevronDown, TicketPercent } from "lucide-react"
 
 import {

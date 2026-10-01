@@ -2,8 +2,9 @@ import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { TicketPercent } from "lucide-react"
 
-import { formatDate, formatTimeShort, useI18n } from "@shop/app-kit"
-import { couponFaceRuleText } from "@shop/common"
+import { formatDate, formatTimeShort } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
+import { couponFaceRuleText } from "@shop/common/domain"
 import {
     Button,
     Popover,

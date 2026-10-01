@@ -1,5 +1,4 @@
-import type { Money } from "@shop/common"
-
+import type { Money } from "@shop/common/domain"
 import { Price } from "./Price"
 
 /**

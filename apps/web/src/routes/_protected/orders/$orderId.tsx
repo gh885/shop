@@ -24,8 +24,8 @@ import {
 } from "#/order"
 import type { TicketResponse } from "@shop/api/sdk"
 import { ReviewDialog } from "#/reviews"
-import { notify } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+import { notify } from "@shop/app-kit/data"
+import { toApiError } from "@shop/common/contract"
 import { Button, Card, CardContent, confirm, Skeleton } from "@shop/ui-web"
 import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 

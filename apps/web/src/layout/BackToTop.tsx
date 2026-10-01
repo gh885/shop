@@ -2,9 +2,7 @@ import { useEffect, useState } from "react"
 import { ArrowUp } from "lucide-react"
 
 import { Button } from "@shop/ui-web"
-import { scrollToTop } from "@shop/common"
-
-/** 滚动超过一屏后在右下角出现「回顶部」按钮 */
+import { scrollToTop } from "@shop/common/domain" /** 滚动超过一屏后在右下角出现「回顶部」按钮 */
 export function BackToTop() {
     const [visible, setVisible] = useState(false)
 

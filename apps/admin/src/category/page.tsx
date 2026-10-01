@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { PlusIcon } from "lucide-react"
 
-import { QueryBoundary } from "@shop/app-kit"
+import { QueryBoundary } from "@shop/app-kit/data"
 import {
     Button,
     Empty,

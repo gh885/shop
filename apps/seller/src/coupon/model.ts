@@ -1,10 +1,10 @@
 import { z } from "zod"
 
 import type { CouponTemplateResponse } from "@shop/api/sdk"
-import { couponFaceRuleText, type AppLocale } from "@shop/common"
-import { formatDate, paginationSearchSchema } from "@shop/app-kit"
-
-/**
+import { couponFaceRuleText } from "@shop/common/domain"
+import { type AppLocale } from "@shop/common/i18n"
+import { formatDate } from "@shop/app-kit/display"
+import { paginationSearchSchema } from "@shop/app-kit/data" /**
  * coupon 域 · 模型层：wire → 领域投影 + 列表展示状态派生。
  *
  * 这里只有纯函数与常量，不含 IO、不含 React——列表状态由后端模板 status 与

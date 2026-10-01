@@ -1,7 +1,7 @@
 import { AdminAuditsApi } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { Button, confirm } from "@shop/ui-web"
-import { useI18n } from "@shop/app-kit"
+import { useI18n } from "@shop/app-kit/i18n"
 import { downloadAuditCsv } from "./export"
 import { AUDIT_PAGE_SIZE, EXPORT_ROW_LIMIT } from "./constants"
 import { auditFilterParams, type AuditSearch } from "./queries"

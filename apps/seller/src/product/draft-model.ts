@@ -1,6 +1,5 @@
 import { z } from "zod"
-import { type Money, maxMoney, minMoney, moneyToYuan, yuanToMoney } from "@shop/common"
-
+import { type Money, maxMoney, minMoney, moneyToYuan, yuanToMoney } from "@shop/common/domain"
 import type {
     CategoryAttrNodeResponse,
     CreateProductRequest,

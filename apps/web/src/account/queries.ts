@@ -2,8 +2,7 @@ import { queryOptions } from "@tanstack/react-query"
 
 import { AccountDeletionApi, AuthApi, type MeResponse } from "@shop/api/sdk"
 
-import { createMeQuery } from "@shop/app-kit"
-
+import { createMeQuery } from "@shop/app-kit/data"
 import { useAuthStatus } from "#/shared/api/auth"
 
 /**

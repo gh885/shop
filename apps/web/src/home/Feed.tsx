@@ -2,8 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "rea
 import { useQuery, useQueryClient, useSuspenseInfiniteQuery } from "@tanstack/react-query"
 import { PackageSearch } from "lucide-react"
 
-import { QueryBoundary, errorText, useI18n } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+import { QueryBoundary } from "@shop/app-kit/data"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { toApiError } from "@shop/common/contract"
 import {
     Button,
     cn,

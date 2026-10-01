@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { MapPin } from "lucide-react"
 
-import { regionCascaderTreeOptions } from "@shop/app-kit"
+import { regionCascaderTreeOptions } from "@shop/app-kit/forms"
 import {
     Button,
     Cascader,

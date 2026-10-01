@@ -1,6 +1,5 @@
-import { PermissionCodes, statusOptions } from "@shop/common"
-
-/** 审计查询入口的权限码：后端 `AUDIT_VIEW`（docs/conventions/permission-codes.md） */
+import { PermissionCodes } from "@shop/common/contract"
+import { statusOptions } from "@shop/common/domain" /** 审计查询入口的权限码：后端 `AUDIT_VIEW`（docs/conventions/permission-codes.md） */
 export const AUDIT_VIEW_PERMISSION = PermissionCodes.AUDIT_VIEW
 
 /**

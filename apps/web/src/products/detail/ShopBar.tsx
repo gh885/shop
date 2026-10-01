@@ -11,9 +11,9 @@ import {
     TooltipTrigger,
 } from "@shop/ui-web"
 
-import { errorText, notify, QueryBoundary, useI18n } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
-
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { notify, QueryBoundary } from "@shop/app-kit/data"
+import { toApiError } from "@shop/common/contract"
 import { useT } from "#/locales/use-t"
 
 import { ShopCouponPopover } from "#/coupon"

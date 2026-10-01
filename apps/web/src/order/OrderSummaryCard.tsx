@@ -1,6 +1,6 @@
-import { copyWithNotify, formatDateTime, useI18n } from "@shop/app-kit"
-import { isPositiveMoney } from "@shop/common"
-
+import { copyWithNotify, formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
+import { isPositiveMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
 import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 

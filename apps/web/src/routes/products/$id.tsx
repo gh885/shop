@@ -1,4 +1,4 @@
-import { toApiError } from "@shop/common"
+import { toApiError } from "@shop/common/contract"
 import { lazy, Suspense, useState } from "react"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 

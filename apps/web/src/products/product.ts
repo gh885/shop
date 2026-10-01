@@ -1,4 +1,4 @@
-import { compactCount, type Money, sameMoney, strikethroughPrice } from "@shop/common"
+import { compactCount, type Money, sameMoney, strikethroughPrice } from "@shop/common/domain"
 import type {
     FeedItemResponse,
     ParamItem,

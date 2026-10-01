@@ -511,7 +511,7 @@ function render(root, keys) {
 /** app 那份 `Translate` 要并上 app-kit 的共享 key，所以得引它的类型 */
 function translateImports(root) {
     if (root.label === "AppKit") return []
-    return ["", 'import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit"']
+    return ["", 'import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"']
 }
 
 function translateTypes(root) {

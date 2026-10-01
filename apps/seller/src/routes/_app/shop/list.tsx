@@ -2,13 +2,10 @@ import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop
 import { SHOP_NAME_MAX, SHOP_STATUS_META } from "#/shop/constants"
 import { CreateShopFormSchema } from "#/shop/shop-form"
 import { setCurrentShopId } from "#/shop"
-import {
-    formatDate,
-    QueryBoundary,
-    serverFieldErrorTexts,
-    submitForm,
-    useI18n,
-} from "@shop/app-kit"
+import { formatDate } from "@shop/app-kit/display"
+import { QueryBoundary } from "@shop/app-kit/data"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
 import { useSuspenseQuery, useMutation } from "@tanstack/react-query"

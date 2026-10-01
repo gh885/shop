@@ -5,8 +5,7 @@ import type {
     OrderListItemResponse,
 } from "@shop/api/sdk"
 
-import { strikethroughPrice } from "@shop/common"
-
+import { strikethroughPrice } from "@shop/common/domain"
 import { toStatusFromWire } from "./order-status"
 import type { Order, OrderAction, OrderDetail, OrderItem } from "./model"
 

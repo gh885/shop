@@ -1,4 +1,5 @@
-import { FormActions, RegionField, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { FormActions, RegionField, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     applyServerFieldErrors,
     Dialog,

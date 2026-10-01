@@ -4,8 +4,9 @@ import { PackageSearch } from "lucide-react"
 
 import type { PageResultPublicProductResponse } from "@shop/api/sdk"
 
-import { PaginationBar, errorText, useI18n } from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+import { PaginationBar } from "@shop/app-kit/data"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { toApiError } from "@shop/common/contract"
 import {
     Button,
     Empty,

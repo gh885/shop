@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { AdminLogisticsApi, type ShipmentIssueResponse } from "@shop/api/sdk"
-import { serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import { useMutation } from "@tanstack/react-query"
 import {
     Button,
@@ -10,7 +11,7 @@ import {
     applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
-import { NOTE_MAX } from "@shop/common"
+import { NOTE_MAX } from "@shop/common/domain"
 import { ISSUE_TYPE_LABEL } from "./constants"
 import { logisticsKeys } from "./queries"
 

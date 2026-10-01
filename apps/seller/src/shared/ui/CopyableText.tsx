@@ -1,4 +1,4 @@
-import { copyWithNotify } from "@shop/app-kit"
+import { copyWithNotify } from "@shop/app-kit/display"
 import { cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 /**

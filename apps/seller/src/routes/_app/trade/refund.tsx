@@ -8,7 +8,7 @@ import {
     DataTableSkeleton,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
-import { paginationSearchSchema } from "@shop/app-kit"
+import { paginationSearchSchema } from "@shop/app-kit/data"
 import { useState } from "react"
 
 import { AfterSaleDecisionDialog } from "#/order/after-sale-decision-dialog"

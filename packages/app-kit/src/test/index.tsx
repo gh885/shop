@@ -9,7 +9,7 @@ import {
 
 import { QueryClientProvider } from "@tanstack/react-query"
 
-import { createAppQueryClient } from "../query-client"
+import { createAppQueryClient } from "../data/query-client"
 
 import { ConfirmDialogHost } from "@shop/ui-web"
 
@@ -98,8 +98,8 @@ export function renderWithRouter(
         initialLocale = "zh-CN",
     }: {
         initialEntry?: string
-        resources?: import("@shop/common").I18nResources
-        initialLocale?: import("@shop/common").AppLocale
+        resources?: import("@shop/common/i18n").I18nResources
+        initialLocale?: import("@shop/common/i18n").AppLocale
     } = {},
 ) {
     const scope = createLocaleScope(initialLocale)

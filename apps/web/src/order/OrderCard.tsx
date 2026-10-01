@@ -27,9 +27,9 @@ import {
 } from "./model"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
-import { formatDateTime, useI18n } from "@shop/app-kit"
-import { formatMoney, sumMoney } from "@shop/common"
-
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
+import { formatMoney, sumMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
 
 /**

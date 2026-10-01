@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test"
 
-import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME } from "@shop/common"
-
+import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME } from "@shop/common/i18n"
 import {
     initialLocaleOf,
     readCookie,

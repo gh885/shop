@@ -1,5 +1,5 @@
 import type { ShipmentIssueResponse } from "@shop/api/sdk"
-import { TimeText } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit/display"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { actionsColumn } from "#/shared/ui/columns"

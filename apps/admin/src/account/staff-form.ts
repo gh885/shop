@@ -1,5 +1,5 @@
 import { StaffRole } from "@shop/api/sdk"
-import { PASSWORD_MIN } from "@shop/app-kit"
+import { PASSWORD_MIN } from "@shop/app-kit/auth"
 import { z } from "zod"
 
 import { STAFF_ROLE_LABELS } from "./constants"

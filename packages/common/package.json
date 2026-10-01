@@ -4,7 +4,10 @@
     "private": true,
     "type": "module",
     "exports": {
-        ".": "./src/index.ts"
+        "./contract": "./src/contract/index.ts",
+        "./domain": "./src/domain/index.ts",
+        "./i18n": "./src/i18n/index.ts",
+        "./monitoring": "./src/monitoring/index.ts"
     },
     "scripts": {
         "typecheck": "tsc --noEmit"

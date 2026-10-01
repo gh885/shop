@@ -2,8 +2,7 @@ import { queryOptions, useMutation, useQuery } from "@tanstack/react-query"
 import { CartApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
-import { notify, optimisticListMutationOptions } from "@shop/app-kit"
-
+import { notify, optimisticListMutationOptions } from "@shop/app-kit/data"
 import {
     MAX_CART_QUANTITY,
     patchItem,

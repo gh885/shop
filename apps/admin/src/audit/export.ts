@@ -1,6 +1,6 @@
 import type { AdminAuditItem } from "@shop/api/sdk"
-import { formatDateTime } from "@shop/app-kit"
-import type { AppLocale } from "@shop/common"
+import { formatDateTime } from "@shop/app-kit/display"
+import type { AppLocale } from "@shop/common/i18n"
 import { ACTION_LABEL, TARGET_LABEL } from "./constants"
 
 /**

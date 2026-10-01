@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from "react"
 import { CircleAlert, Plus, Trash2 } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { serverFieldErrorTexts, submitForm, useI18n, useUnsavedLeaveGuard } from "@shop/app-kit"
+import { serverFieldErrorTexts, submitForm, useUnsavedLeaveGuard } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     Button,
     Card,

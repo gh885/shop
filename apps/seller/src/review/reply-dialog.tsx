@@ -2,8 +2,9 @@ import { SellerReviewsApi } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { z } from "zod"
 
-import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
-import { NOTE_MAX } from "@shop/common"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
+import { NOTE_MAX } from "@shop/common/domain"
 import {
     applyServerFieldErrors,
     Button,

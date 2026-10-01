@@ -2,8 +2,7 @@ import type { BannerResponse } from "@shop/api/sdk"
 
 import type { ColumnDef } from "@tanstack/react-table"
 import { Image, type DataTableFeatures } from "@shop/ui-web"
-import { useI18n } from "@shop/app-kit"
-
+import { useI18n } from "@shop/app-kit/i18n"
 import { codeColumn, cmsStatusColumn, sortOrderColumn, targetTypeColumn } from "../list-columns"
 import { bannerWindowText } from "../display"
 import { actionsColumn } from "#/shared/ui/columns"

@@ -12,7 +12,7 @@ import {
     DialogTitle,
     Spinner,
 } from "@shop/ui-web"
-import { ReasonForm } from "@shop/app-kit"
+import { ReasonForm } from "@shop/app-kit/forms"
 import { reviewKeys } from "./queries"
 
 /**

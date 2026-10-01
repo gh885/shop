@@ -6,8 +6,7 @@ import {
     AddressDetailSchema,
     AddressPhoneSchema,
     AddressRegionCodeSchema,
-} from "@shop/common"
-
+} from "@shop/common/domain"
 import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from "./address"
 
 /**

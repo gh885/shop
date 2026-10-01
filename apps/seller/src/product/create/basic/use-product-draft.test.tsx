@@ -4,10 +4,10 @@ import type { ReactNode } from "react"
 import { describe, expect, it, vi } from "vite-plus/test"
 
 import type { ProductResponse, SkuResponse } from "@shop/api/sdk"
-import { money } from "@shop/common"
+import { money } from "@shop/common/domain"
 import { apiProblem, makeCategoryAttrNode, makeProductResponse, server } from "@shop/test-utils"
 
-import { QueryBoundary } from "@shop/app-kit"
+import { QueryBoundary } from "@shop/app-kit/data"
 import { createAppTestHookClient } from "@shop/app-kit/test"
 
 import type { ProductBasicForm } from "#/product/draft-model"

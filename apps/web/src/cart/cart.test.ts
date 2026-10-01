@@ -1,5 +1,5 @@
 import type { CartItemView } from "@shop/api/sdk"
-import { money, zeroMoney } from "@shop/common"
+import { money, zeroMoney } from "@shop/common/domain"
 import { describe, expect, it } from "vite-plus/test"
 
 import {

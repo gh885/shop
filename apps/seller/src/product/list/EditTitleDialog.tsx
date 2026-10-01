@@ -9,8 +9,9 @@ import {
     SELL_POINT_MAX,
     SELL_POINT_MIN,
     SellPointSchema,
-} from "@shop/common"
-import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+} from "@shop/common/domain"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     applyServerFieldErrors,
     Dialog,

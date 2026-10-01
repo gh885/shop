@@ -1,4 +1,4 @@
-import { sumMoney, type Money } from "@shop/common"
+import { sumMoney, type Money } from "@shop/common/domain"
 import type {
     Address,
     Group,

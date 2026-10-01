@@ -37,9 +37,10 @@ import {
     applyServerFieldErrors,
     useAppForm,
 } from "@shop/ui-web"
-import { scrollToElement } from "@shop/common"
-import { errorText, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
-import type { AppLocale } from "@shop/common"
+import { scrollToElement } from "@shop/common/domain"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import type { AppLocale } from "@shop/common/i18n"
 import { useT } from "#/locales/use-t"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，

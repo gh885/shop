@@ -17,8 +17,7 @@ import {
     TableShell,
 } from "@shop/ui-web"
 
-import { foldRegion } from "@shop/common"
-
+import { foldRegion } from "@shop/common/domain"
 import { labelName, type Address } from "./address"
 
 export interface AddressTableProps {

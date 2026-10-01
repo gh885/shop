@@ -2,8 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import type { CarrierResponse } from "@shop/api/sdk"
 
-import { TRACKING_NO_MAX } from "@shop/common"
-
+import { TRACKING_NO_MAX } from "@shop/common/domain"
 import { carrierSelectItems, ShipSchema, shipInputFromForm } from "./ship-form"
 
 /**

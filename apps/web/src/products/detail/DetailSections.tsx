@@ -14,14 +14,13 @@ import {
     Image,
 } from "@shop/ui-web"
 
-import { scrollToElement } from "@shop/common"
-
+import { scrollToElement } from "@shop/common/domain"
 import { useT } from "#/locales/use-t"
 
 import { toProductCardData, type Product, type ProductDetail } from "../product"
 import { imgUrl } from "#/shared/lib/image"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { QueryBoundary } from "@shop/app-kit"
+import { QueryBoundary } from "@shop/app-kit/data"
 import { ProductCard } from "../ProductCard"
 import { shopProductsOptions, alsoViewedOptions } from "./queries"
 import { DETAIL_SECTIONS } from "./constants"

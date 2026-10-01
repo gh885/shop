@@ -1,4 +1,4 @@
-import { statusOptions } from "@shop/common"
+import { statusOptions } from "@shop/common/domain"
 import { CmsStatus } from "@shop/api/sdk"
 import { z } from "zod"
 

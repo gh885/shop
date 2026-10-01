@@ -4,8 +4,7 @@ import { CircleAlert } from "lucide-react"
 
 import { Skeleton } from "@shop/ui-web"
 
-import { toApiError } from "@shop/common"
-
+import { toApiError } from "@shop/common/contract"
 import { PublishBasicStep, type BasicStepValues, type SubmitMode } from "#/product"
 import {
     parseForbiddenWordError,
@@ -13,7 +12,9 @@ import {
     type ForbiddenWordFound,
 } from "#/product/forbidden-word"
 import { useProductDraft } from "#/product/create/basic/use-product-draft"
-import { errorText, notify, useI18n, useUnsavedLeaveGuard } from "@shop/app-kit"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { notify } from "@shop/app-kit/data"
+import { useUnsavedLeaveGuard } from "@shop/app-kit/forms"
 import { useT } from "#/locales/use-t"
 import { useShop } from "#/shop"
 

@@ -1,4 +1,5 @@
-import { FormActions, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { OrderDialogForm } from "./order-dialog-form"

@@ -1,4 +1,4 @@
-import { translateSidebarItems } from "@shop/app-kit"
+import { translateSidebarItems } from "@shop/app-kit/shell"
 import { describe, expect, it } from "vite-plus/test"
 
 import { allowsLeaf, LEAF_PERMISSIONS, NAV_SOURCE_ITEMS, visibleNavGroups } from "./nav"

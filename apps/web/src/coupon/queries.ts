@@ -1,5 +1,6 @@
 import { CouponsApi } from "@shop/api/sdk"
-import { notify, useI18n } from "@shop/app-kit"
+import { notify } from "@shop/app-kit/data"
+import { useI18n } from "@shop/app-kit/i18n"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import {

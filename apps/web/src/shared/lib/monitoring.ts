@@ -14,8 +14,8 @@
  */
 import { useEffect } from "react"
 
-import { bindGlobalListeners, bindWebVitals, configureMonitoring } from "@shop/common"
-import { trackRouteResolved } from "@shop/app-kit"
+import { bindGlobalListeners, bindWebVitals, configureMonitoring } from "@shop/common/monitoring"
+import { trackRouteResolved } from "@shop/app-kit/shell"
 import { useRouter } from "@tanstack/react-router"
 
 /** 版本/环境：与后端信封同名（GEN-48）。构建期注入，缺省 dev——别用空串糊，信封错事后改不回来 */

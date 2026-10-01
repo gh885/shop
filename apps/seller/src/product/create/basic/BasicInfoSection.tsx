@@ -15,8 +15,7 @@ import {
     SELL_POINT_MAX,
     SELL_POINT_MIN,
     SellPointSchema,
-} from "@shop/common"
-
+} from "@shop/common/domain"
 import { imgUrl } from "#/shared/lib/image"
 
 import type { BasicForm } from "./form-instance"

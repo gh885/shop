@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import type { ShopReviewItem } from "@shop/api/sdk"
-import { TimeText } from "@shop/app-kit"
+import { TimeText } from "@shop/app-kit/display"
 import { Badge, MaskedValueCell, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 

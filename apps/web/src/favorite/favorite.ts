@@ -1,7 +1,5 @@
 import type { FavoriteItemView, Money } from "@shop/api/sdk"
-import { compactCount } from "@shop/common"
-
-/**
+import { compactCount } from "@shop/common/domain" /**
  * favorite 模块 —— 纯逻辑（投影映射 + 过滤 + 文案），不碰 React / 网络。
  * 这不是「收藏的业务规则」（后端裁决），而是 wire→投影 + 复用的小派生。
  */

@@ -1,4 +1,4 @@
-import { maskPhone } from "@shop/common"
+import { maskPhone } from "@shop/common/domain"
 import { Image } from "@shop/ui-web"
 
 import { maskName } from "./model"

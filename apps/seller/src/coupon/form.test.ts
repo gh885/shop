@@ -1,4 +1,4 @@
-import { money } from "@shop/common"
+import { money } from "@shop/common/domain"
 import { describe, expect, it } from "vite-plus/test"
 
 import { couponRequestFromForm, type CouponFormValues } from "./form"

@@ -1,6 +1,7 @@
 import type { BannerResponse } from "@shop/api/sdk"
 
-import { serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { CMS_SUBTITLE_MAX, CMS_TITLE_MAX } from "../constants"

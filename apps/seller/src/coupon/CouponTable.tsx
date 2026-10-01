@@ -9,8 +9,8 @@ import {
     TableHeader,
     TableRow,
 } from "@shop/ui-web"
-import { formatDateTime, useI18n } from "@shop/app-kit"
-
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import { TableCard } from "#/shared/ui/TableCard"
 import type { CouponRow } from "./model"
 

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vite-plus/test"
 
-import { formatDateTime } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit/display"
 import { renderWithProviders } from "@shop/app-kit/test"
 import { server } from "@shop/test-utils"
 

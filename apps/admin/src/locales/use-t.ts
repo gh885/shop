@@ -1,5 +1,4 @@
-import { useTypedT } from "@shop/app-kit"
-
+import { useTypedT } from "@shop/app-kit/i18n"
 import type { AdminTranslate } from "./messages.gen"
 
 /**

@@ -7,9 +7,7 @@ import {
     isPositiveMoney,
     yuanToFen,
     yuanToMoney,
-} from "@shop/common"
-
-/**
+} from "@shop/common/domain" /**
  * coupon 域 · 表单层：Zod 校验 + 表单形状 → 后端请求的投影。
  *
  * 单位口径是这一层唯一要操心的事：用户在表单里填「元」，契约要「分」；

@@ -13,8 +13,9 @@ import {
     Textarea,
 } from "@shop/ui-web"
 import { Star } from "lucide-react"
-import { formatDateTime, useI18n } from "@shop/app-kit"
-import { NOTE_MAX } from "@shop/common"
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
+import { NOTE_MAX } from "@shop/common/domain"
 import { myReviewKeys, myReviewOptions } from "./my-review-queries"
 
 /** 只读星级：已提交的评价与商详列表都用它画星（不响应点击） */

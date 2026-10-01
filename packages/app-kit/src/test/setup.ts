@@ -1,7 +1,6 @@
 import { beforeAll } from "vite-plus/test"
 import { client } from "@shop/api"
-import { configureSdkClient } from "@shop/common"
-
+import { configureSdkClient } from "@shop/common/contract"
 import { setupTests } from "@shop/test-utils"
 
 /**

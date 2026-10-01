@@ -1,5 +1,4 @@
-import type { SidebarItem } from "@shop/app-kit"
-
+import type { SidebarItem } from "@shop/app-kit/shell"
 import { describe, expect, it } from "vite-plus/test"
 
 import { crumbsOf, FULL_WIDTH_PATHS, leafLabelOf } from "./nav"

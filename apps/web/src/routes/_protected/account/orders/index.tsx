@@ -12,7 +12,7 @@ import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import { useEffect } from "react"
-import { PaginationBar } from "@shop/app-kit"
+import { PaginationBar } from "@shop/app-kit/data"
 import {
     Skeleton,
     Empty,

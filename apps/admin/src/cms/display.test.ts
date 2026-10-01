@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test"
 
-import { formatTimeShort } from "@shop/app-kit"
-
+import { formatTimeShort } from "@shop/app-kit/display"
 import { bannerWindowText, subsSummary } from "./display"
 
 /**

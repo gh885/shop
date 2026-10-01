@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
-import { notify } from "@shop/app-kit"
+import { notify } from "@shop/app-kit/data"
 import { confirm } from "@shop/ui-web"
 
 import { CancelOrderDialog } from "./CancelOrderDialog"

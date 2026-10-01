@@ -1,7 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shop/ui-web"
-import type { StatusOption } from "@shop/common"
-
-/** Select 不接受空值，「不筛」用这个哨兵占位 */
+import type { StatusOption } from "@shop/common/domain" /** Select 不接受空值，「不筛」用这个哨兵占位 */
 const ALL = "all"
 
 /**

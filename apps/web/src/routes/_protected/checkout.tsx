@@ -12,13 +12,12 @@ import {
     useCreateOrder,
     checkoutPreviewOptions,
 } from "#/checkout"
-import { formatMoney, isPositiveMoney, NOTE_MAX, timesMoney } from "@shop/common"
+import { formatMoney, isPositiveMoney, NOTE_MAX, timesMoney } from "@shop/common/domain"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
-import { notify } from "@shop/app-kit"
-
+import { notify } from "@shop/app-kit/data"
 import { Price } from "#/shared/ui/Price"
 import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 import {

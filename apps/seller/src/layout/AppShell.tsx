@@ -5,7 +5,7 @@ import { cn } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
 import { PageBreadcrumb } from "#/shared/ui/PageBreadcrumb"
 import { AppTopBar } from "./AppTopBar"
-import { translateSidebarItems, WorkbenchSidebar } from "@shop/app-kit"
+import { translateSidebarItems, WorkbenchSidebar } from "@shop/app-kit/shell"
 import { NAV_SOURCE_ITEMS } from "./SidebarMenu"
 import { crumbsOf, FULL_WIDTH_PATHS, leafLabelOf } from "./nav"
 

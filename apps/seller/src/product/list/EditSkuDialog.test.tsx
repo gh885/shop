@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vite-plus/test"
 
-import type { Money } from "@shop/common"
+import type { Money } from "@shop/common/domain"
 import { applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import type { SkuTextRow } from "#/product/draft-model"

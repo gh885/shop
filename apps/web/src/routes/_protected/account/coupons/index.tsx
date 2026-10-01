@@ -2,7 +2,7 @@ import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { TicketPercent } from "lucide-react"
 
-import { couponStatusLabel } from "@shop/common"
+import { couponStatusLabel } from "@shop/common/domain"
 import {
     Button,
     Empty,

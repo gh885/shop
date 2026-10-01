@@ -15,7 +15,7 @@ import {
     TableShell,
 } from "@shop/ui-web"
 import { MapPin, Pencil, Trash2 } from "lucide-react"
-import { foldRegion } from "@shop/common"
+import { foldRegion } from "@shop/common/domain"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 export interface AddressTableProps {

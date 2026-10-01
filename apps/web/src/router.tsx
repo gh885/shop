@@ -3,7 +3,7 @@ import { routeTree } from "./routeTree.gen"
 
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query"
 import { getContext } from "#/app/tanstack-query/TanstackQueryProvider"
-import { RoutePending } from "@shop/app-kit"
+import { RoutePending } from "@shop/app-kit/shell"
 import { RouteError } from "#/shared/ui/RouteError"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 import { reportError } from "#/shared/lib/report-error"

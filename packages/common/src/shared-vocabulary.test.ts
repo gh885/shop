@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 
-import { CONTACT_PHONE_PATTERN } from "./address"
+import { CONTACT_PHONE_PATTERN } from "./domain/address"
 
 /**
  * 共享词表门禁：一个概念在前端只许有一个出口，且那个出口住在它该住的包里。
@@ -201,41 +201,41 @@ describe("形状的写法只有一份", () => {
             // AddressFormDialog 的 `139********` 是「智能粘贴」输入框的占位示例文案，
             // 不是第二份掩码实现：它既不产出掩码，也不与 MASK_SEGMENT 同形（8 个星）。
             allowed: [
-                "packages/common/src/mask.ts",
+                "packages/common/src/domain/mask.ts",
                 "packages/ui-web/src/components/masked-value.tsx",
                 "apps/web/src/address/AddressFormDialog.tsx",
             ],
         },
         大数折万算式: {
             pattern: /\/ 10000/,
-            allowed: ["packages/common/src/count.ts"],
+            allowed: ["packages/common/src/domain/count.ts"],
         },
         剪贴板写入: {
             pattern: /navigator\.clipboard\.writeText/,
-            allowed: ["packages/app-kit/src/copy-text.ts"],
+            allowed: ["packages/app-kit/src/display/copy-text.ts"],
         },
         // —— 字段规则：形状与提示语各只有一份，owner 就是那条规则在前端的出口
         手机号形状: {
             pattern: /1\[3-9\]\\d\{9\}/,
-            allowed: ["packages/app-kit/src/login-schema.ts"],
+            allowed: ["packages/app-kit/src/auth/login-schema.ts"],
         },
         联系电话形状: {
             // `.{5}` 盖的是 `+\\-]` 那几个字符：这里要挡的是「同一条形状被抄第二遍」，
             // 逐字节相等那一半由 FieldRuleVocabularyTest 拿 Java 的常量来比，不在本文件重复。
             pattern: /\[0-9.{5}\{5,20\}/,
-            allowed: ["packages/common/src/address.ts"],
+            allowed: ["packages/common/src/domain/address.ts"],
         },
         商品标题文案: {
             pattern: /商品标题最长/,
-            allowed: ["packages/common/src/product-fields.ts"],
+            allowed: ["packages/common/src/domain/product-fields.ts"],
         },
         卖点文案: {
             pattern: /卖点填了就写/,
-            allowed: ["packages/common/src/product-fields.ts"],
+            allowed: ["packages/common/src/domain/product-fields.ts"],
         },
         券名文案: {
             pattern: /券名最多/,
-            allowed: ["packages/common/src/coupon.ts"],
+            allowed: ["packages/common/src/domain/coupon.ts"],
         },
     }
 
@@ -268,7 +268,7 @@ describe("零内部依赖的包与 owner 不漂移", () => {
             join(REPO_ROOT, "packages/ui-web/src/components/masked-value.tsx"),
             "utf8",
         )
-        const common = readFileSync(join(REPO_ROOT, "packages/common/src/mask.ts"), "utf8")
+        const common = readFileSync(join(REPO_ROOT, "packages/common/src/domain/mask.ts"), "utf8")
         const local = /const MASK_SEGMENT = "([^"]*)"/.exec(uiweb)?.[1]
         const owner = /export const MASK_SEGMENT = "([^"]*)"/.exec(common)?.[1]
         expect(local, "ui-web 里没找到 MASK_SEGMENT 常量，门禁不能空转").toBeTruthy()
@@ -286,42 +286,42 @@ describe("owner 不是孤儿", () => {
 
     /** `[符号, 它住在哪个文件]`：owner 自己的定义不算调用点，所以逐个点名（与上一条的 allowed 同源） */
     const OWNED: [string, string][] = [
-        ["maskPhone", "packages/common/src/mask.ts"],
-        ["MASK_SEGMENT", "packages/common/src/mask.ts"],
-        ["compactCount", "packages/common/src/count.ts"],
-        ["copyWithNotify", "packages/app-kit/src/copy-text.ts"],
-        ["PhoneSchema", "packages/app-kit/src/login-schema.ts"],
-        ["SmsCodeSchema", "packages/app-kit/src/login-schema.ts"],
-        ["CAPTCHA_CODE_DIGITS", "packages/app-kit/src/login-schema.ts"],
-        ["NICKNAME_MAX", "packages/app-kit/src/login-schema.ts"],
-        ["NOTE_MAX", "packages/common/src/note-fields.ts"],
-        ["ProductNameSchema", "packages/common/src/product-fields.ts"],
-        ["SellPointSchema", "packages/common/src/product-fields.ts"],
+        ["maskPhone", "packages/common/src/domain/mask.ts"],
+        ["MASK_SEGMENT", "packages/common/src/domain/mask.ts"],
+        ["compactCount", "packages/common/src/domain/count.ts"],
+        ["copyWithNotify", "packages/app-kit/src/display/copy-text.ts"],
+        ["PhoneSchema", "packages/app-kit/src/auth/login-schema.ts"],
+        ["SmsCodeSchema", "packages/app-kit/src/auth/login-schema.ts"],
+        ["CAPTCHA_CODE_DIGITS", "packages/app-kit/src/auth/login-schema.ts"],
+        ["NICKNAME_MAX", "packages/app-kit/src/auth/login-schema.ts"],
+        ["NOTE_MAX", "packages/common/src/domain/note-fields.ts"],
+        ["ProductNameSchema", "packages/common/src/domain/product-fields.ts"],
+        ["SellPointSchema", "packages/common/src/domain/product-fields.ts"],
         // 规格那一档的两个数各自有人用才算 owner：编辑器停在 20 个取值、输入框卡 64 字，
         // 只在包导出里挂个名字而没人引用，就还是一份「看着对称」的死码。
-        ["SPEC_VALUES_MAX", "packages/common/src/product-fields.ts"],
-        ["SPEC_VALUE_MAX", "packages/common/src/product-fields.ts"],
+        ["SPEC_VALUES_MAX", "packages/common/src/domain/product-fields.ts"],
+        ["SPEC_VALUE_MAX", "packages/common/src/domain/product-fields.ts"],
         // PRODUCT_NAME_MESSAGE / SELL_POINT_MESSAGE 不在列：它们不是 app 侧的出口，而是被同文件的
         // schema 吃掉的一句文案（出口是 schema）。要挡「这句话被抄第二遍」由上一条 owners 负责。
-        ["COUPON_NAME_MESSAGE", "packages/common/src/coupon.ts"],
-        ["AddressPhoneSchema", "packages/common/src/address.ts"],
-        ["ADDRESS_LABEL_MAX", "packages/common/src/address.ts"],
+        ["COUPON_NAME_MESSAGE", "packages/common/src/domain/coupon.ts"],
+        ["AddressPhoneSchema", "packages/common/src/domain/address.ts"],
+        ["ADDRESS_LABEL_MAX", "packages/common/src/domain/address.ts"],
         ["CUSTOM_LABEL_MAX", "apps/web/src/address/address-form.ts"],
         // 错误码在前端只有一个出口：这份表。裸字符串比 code 等于给自己发通行证（拼错不报错，
         // 只是那条分支永不命中），所以 owner 有无人用也要钉住——三边相等由后端
         // ErrorCodeVocabularyTest 管，这一条只管「前端别再造第二份」。
-        ["ErrorCodes", "packages/common/src/error-codes.ts"],
+        ["ErrorCodes", "packages/common/src/contract/error-codes.ts"],
         // 客户端本地失败（断网 / 超时 / 取消 / 响应不合契约）与上面那份服务端词表分家，
         // 理由见 client-failure.ts 文件头；同样只许有这一个出口
-        ["ClientFailureCodes", "packages/common/src/client-failure.ts"],
-        ["RESPONSE_VALIDATION_FAILED", "packages/common/src/api-error.ts"],
+        ["ClientFailureCodes", "packages/common/src/contract/client-failure.ts"],
+        ["RESPONSE_VALIDATION_FAILED", "packages/common/src/contract/api-error.ts"],
         // 「这句话该由谁出」只有一个出口：app-kit 的 errorText（§7.3 那条链）。各区块自己判一次必然
         // 漂移——写成 `toApiError(err).detail || 站点文案` 的，站点那句永远轮不上；
         // 而直接读 detail 的，英文界面就漏中文（曾经那条路叫 apiErrorDetail，已收进这条链）
         ["errorText", "packages/app-kit/src/i18n/error-keys.ts"],
         // 程序化滚动的 behavior 只有一个取值处：各处手抄 "smooth" 就是无视「减少动效」
-        ["scrollToTop", "packages/common/src/scroll.ts"],
-        ["scrollToElement", "packages/common/src/scroll.ts"],
+        ["scrollToTop", "packages/common/src/domain/scroll.ts"],
+        ["scrollToElement", "packages/common/src/domain/scroll.ts"],
     ]
 
     for (const [symbol, owner] of OWNED) {
@@ -392,14 +392,14 @@ describe("一个概念不许各说一半", () => {
     }
 
     it("手机号位数常量等于它旁边那条正则的长度", () => {
-        const owner = "packages/app-kit/src/login-schema.ts"
+        const owner = "packages/app-kit/src/auth/login-schema.ts"
         const { min, max } = spanOf(sourceOf(owner, "PHONE_PATTERN"))
         const digits = Number(sourceOf(owner, "PHONE_DIGITS"))
         expect([min, max], "正则已不是定长，位数常量那个单值对不上").toEqual([digits, digits])
     })
 
     it("联系电话的 maxLength 上限等于那条形状的 {5,20} 上界", () => {
-        const owner = "packages/common/src/address.ts"
+        const owner = "packages/common/src/domain/address.ts"
         const { max } = spanOf(CONTACT_PHONE_PATTERN)
         expect(
             Number(sourceOf(owner, "CONTACT_PHONE_MAX")),

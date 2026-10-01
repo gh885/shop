@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useLocation } from "@tanstack/react-router"
-import { translateSidebarItems, WorkbenchSidebar } from "@shop/app-kit"
+import { translateSidebarItems, WorkbenchSidebar } from "@shop/app-kit/shell"
 import { useT } from "#/locales/use-t"
 import { useAuthStatus } from "#/shared/lib/api"
 import { useMe } from "#/shared/lib/me"

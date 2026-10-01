@@ -1,6 +1,9 @@
-import { isAppLocale, type AppLocale, type I18nResources, type LocaleCatalog } from "@shop/common"
-
-/**
+import {
+    isAppLocale,
+    type AppLocale,
+    type I18nResources,
+    type LocaleCatalog,
+} from "@shop/common/i18n" /**
  * 把 `import.meta.glob` 的 eager 结果（键是资源路径、值是对应那份 catalog）装配成
  * 一份 `I18nResources`——资源路径形状固定为 `<locale>/<namespace>.json`，语言取倒数第二段。
  *

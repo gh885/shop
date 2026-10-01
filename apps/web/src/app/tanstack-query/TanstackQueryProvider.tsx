@@ -4,8 +4,7 @@ import {
     type QueryClient,
 } from "@tanstack/react-query"
 
-import { createAppQueryClient } from "@shop/app-kit"
-
+import { createAppQueryClient } from "@shop/app-kit/data"
 import { localeScope } from "#/shared/lib/locale-scope"
 
 /** 创建应用级 QueryClient 并放入 router context（SSR/客户端共用同一份）。

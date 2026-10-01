@@ -1,6 +1,5 @@
-import { PermissionCodes, statusOptions } from "@shop/common"
-
-/** 店铺治理页的权限码：后端 `SHOP_GOVERNANCE`（封店/解封与审核同权，同一批平台人） */
+import { PermissionCodes } from "@shop/common/contract"
+import { statusOptions } from "@shop/common/domain" /** 店铺治理页的权限码：后端 `SHOP_GOVERNANCE`（封店/解封与审核同权，同一批平台人） */
 export const SHOP_GOVERNANCE_PERMISSION = PermissionCodes.SHOP_GOVERNANCE
 
 /** 店铺状态 → 徽章（口径同后端 `shop.model.ShopStatus`） */

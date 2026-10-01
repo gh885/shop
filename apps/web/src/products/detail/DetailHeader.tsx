@@ -1,5 +1,4 @@
-import { notify } from "@shop/app-kit"
-
+import { notify } from "@shop/app-kit/data"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
 import { DETAIL_LAYOUT } from "./constants"
 

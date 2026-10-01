@@ -1,8 +1,6 @@
 import type { NavGroup } from "@shop/api/sdk"
-import type { AppLocale } from "@shop/common"
-import { formatTimeShort } from "@shop/app-kit"
-
-/**
+import type { AppLocale } from "@shop/common/i18n"
+import { formatTimeShort } from "@shop/app-kit/display" /**
  * CMS 列表单元格里那句「给人看的话」：从行数据折出文案的规则都收在这里，常量表（`./constants`）
  * 只留词表与颜色档。规则与数据混在一个文件里，下一个加列的人就分不清哪一半可以拿到 node 环境测。
  */

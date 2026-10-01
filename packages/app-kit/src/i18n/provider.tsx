@@ -4,7 +4,6 @@ import { configureConfirmLabels } from "@shop/ui-web"
 
 import {
     SUPPORTED_LOCALES,
-    captureError,
     formatDate as formatDatePure,
     formatDateTime as formatDateTimePure,
     formatMessage,
@@ -15,8 +14,8 @@ import {
     type AppLocale,
     type I18nResources,
     type MessageParams,
-} from "@shop/common"
-
+} from "@shop/common/i18n"
+import { captureError } from "@shop/common/monitoring"
 import { initialLocaleOf, readPreferredLocale, writeLocaleCookie } from "./locale"
 import { APP_KIT_MESSAGES } from "./messages"
 import type { LocaleScope } from "./scope"

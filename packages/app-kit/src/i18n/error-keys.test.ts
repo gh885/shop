@@ -1,4 +1,5 @@
-import { type ApiError, ErrorCodes, resolveMessage } from "@shop/common"
+import { type ApiError, ErrorCodes } from "@shop/common/contract"
+import { resolveMessage } from "@shop/common/i18n"
 import { describe, expect, it } from "vite-plus/test"
 
 import { CODE_SLOTS, errorKeyFor, errorTextPlan } from "./error-keys"

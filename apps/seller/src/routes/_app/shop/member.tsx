@@ -29,8 +29,9 @@ import {
     confirm,
 } from "@shop/ui-web"
 
-import { PHONE_DIGITS, serverFieldErrorTexts, submitForm, useI18n } from "@shop/app-kit"
-
+import { PHONE_DIGITS } from "@shop/app-kit/auth"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 export const Route = createFileRoute("/_app/shop/member")({
     component: MembersPage,
 })

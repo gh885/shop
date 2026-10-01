@@ -2,8 +2,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import { FavoritesApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
-import { optimisticListMutationOptions } from "@shop/app-kit"
-
+import { optimisticListMutationOptions } from "@shop/app-kit/data"
 import { toFavoriteItem, type FavoriteItem } from "./favorite"
 
 /**

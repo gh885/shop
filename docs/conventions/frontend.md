@@ -19,7 +19,7 @@
 - **文件名两种 case，各说一件事**：名字是**槽位**（这个文件在域里占哪个位置，换域就换含义）→ kebab-case：`queries.ts` / `model.ts` / `constants.ts` / `columns.tsx` / `filters.tsx` / `form-dialog.tsx` / `use-*.ts`；名字是**专名**（拿出来就是一个完整概念，`OrderCard.tsx` 放哪个 app 都还是它）→ PascalCase。入口与路由保持小写（`main.tsx` / `router.tsx` / `index.ts`；`routes/**` 由 TanStack Router 的文件约定决定，不归本规则）。判据一句话：**把文件挪去别的域，名字还成立吗**——成立的是专名，不成立的是槽位
     - **目录已经说出概念时，文件名不重复念一遍**：`coupon/CouponTable.tsx` 读出来是「coupon coupon」，该写 `coupon/table.tsx`——它本来就是「这个域的表格」这个槽位。这是迁移方向，存量不批量改名（改名污染 blame，也让 `fallow audit` 的 new-only 归属把整文件当成新代码）
     - 现状是**按端分裂**的：admin 全端零 PascalCase（组件名一律折成 kebab，`attr-panel.tsx` 导出 `AttrPanel`），web 约三分之一、seller 约四分之一的文件走 Pascal。所以 `unicorn/filename-case` 保持 `off`，别指望用 lint 收敛：一个 case 设置表达不了两级约定（选 kebab 把 web 的组件全判违规，选 pascal 把 admin 全判违规），而 per-directory 的 `--deny` override 也切不开**同一目录内**混住的 `queries.ts` 与 `OrderCard.tsx`（web/seller 每个域都是这个形状）。这条靠 review 时问一句「槽位还是专名」，不靠一条会红三百次的规则——那种规则等于没规则
-- 依赖方向：`routes → domain → shared`；shared 不 import domain；domain 之间只经对方 `index.ts` 公开入口；跨端通用逻辑下沉共享包 —— 生成 SDK 在 `packages/api`，手写共享逻辑（money/api-error/forms/error-codes/auth-kit/sdk-client/category 树算法）一律归 `packages/common`，**禁止在 `@shop/api` 内新增手写文件**
+- 依赖方向：`routes → domain → shared`；shared 不 import domain；domain 之间只经对方 `index.ts` 公开入口；跨端通用逻辑下沉共享包 —— 生成 SDK 在 `packages/api`，手写共享逻辑一律归 `packages/common`，**禁止在 `@shop/api` 内新增手写文件**。`packages/common` 与 `packages/app-kit` 内部按切片走子路径 exports（没有根 barrel，import 上写明依赖哪片）：切片地图与准入标准见各自 `README.md`
     - 这条已由 `fallow` 的 boundaries 机械拦截（`pnpm fallow`，zone 配置在 `.fallowrc.json`）：`index.ts` 单独成 zone，所以绕到对方 `queries.ts` / `model.ts` 会直接判 boundary-violation。要给跨域用的符号（如失效缓存要的 query key）就得进 barrel——「只暴露外部真正消费的那几个」里的"外部"包含别的域
 - hook 上提标准：≥2 个组件复用或状态机复杂才抽成 `use-*.ts`；域内 hook 留在域内，不因"它是 hook"进 shared
 - **领域类型不镜像 SDK**：wire→领域投影只在有真实变换时才写（改名 / 可空归一 / 枚举大小写映射 / 兜底占位）；契约字段同名同型透传的，直接用 `@shop/api` 的生成类型，不造 `Xxx` + `toXxx` 恒等复制。扩展形状优先 `Order & Omit<OrderDetailResponse, "status" | "items">` 这类组合，不逐字段抄书
@@ -39,7 +39,7 @@
 - 登录态：`apps/web/src/shared/api/auth.ts`（access token 只存内存，refresh token 走后端 httpOnly cookie）
 - 启动时 `bootstrapAuth()` 静默刷新（`shared/api/client.ts`），root 布局挂载处调用；受保护路由用 `beforeLoad: () => requireAuth()` 守卫，未登录自动拉起全局登录 Dialog
 - 用户信息：`useMe()`（web 在 `account/queries.ts`、seller/admin 在 `shared/lib/me.ts`，三者都由 `@shop/app-kit` 的 `createMeQuery` 生成，未登录不发请求）
-- 表单字段只放**用户输入的事实**：能从已填字段推出来的列不进表单。地址的省市区名就是这一类——表单只有 `regionCode`，三级名在 mutation 里按区划库现查（`packages/common/src/address.ts` 的 `regionNamesByCode`，口径见 ACC-81），级联字段 `RegionField`（`@shop/app-kit`）收和交也都只有这一个码。存两份的代价不是那三行 `setFieldValue`，是「界面看到的」与「落库的」各有权威、迟早分家
+- 表单字段只放**用户输入的事实**：能从已填字段推出来的列不进表单。地址的省市区名就是这一类——表单只有 `regionCode`，三级名在 mutation 里按区划库现查（`packages/common/src/domain/address.ts` 的 `regionNamesByCode`，口径见 ACC-81），级联字段 `RegionField`（`@shop/app-kit`）收和交也都只有这一个码。存两份的代价不是那三行 `setFieldValue`，是「界面看到的」与「落库的」各有权威、迟早分家
 - 表单：用 `useAppForm`（`@shop/ui-web`，TanStack Form + Zod validators），不手写裸 state 表单。周边一并统一：校验放表单级 `validators.onSubmit`（不用字段级 onChange）；提交接线 `onSubmit={(e) => { e.preventDefault(); void submitForm(form) }}`（`submitForm` 来自 `@shop/app-kit`）——**不写 `void form.handleSubmit()`**：void 只丢返回值、不接 rejection，`onSubmit` 抛出的错误会变成未处理的异步异常。`onSubmit` 内部该抛就抛（框架才把 `isSubmitSuccessful` 置回 false），`submitForm` 接住它并把「非接口错误」上报监控。**不要在 `onSubmit` 里 `catch {}` 了事**：那会把「代码坏了」那一类也静默吞掉，用户看到的是「点了提交什么都没发生」、监控里也没有记录。2026-10 三端表单与 `@shop/app-kit` 的共享表单（登录、`ReasonForm`）已全部收口，仓库里不再有内联 `void form.handleSubmit()`（只有说明为什么不用它的那几句注释）；服务端/表单级错误用 `<FormError>`；弹窗表单体挂在 `DialogContent` 里（关闭即卸载、打开即按 props 重算默认值，不写 effect + `form.reset`）；页脚用 `DialogFooter`，取消按钮 `variant="outline"`，提交按钮 `{pending && <Spinner />}文字`、pending 读 mutation 的 `isPending`；弹窗内字段竖排、整页表单 label 左列（`orientation="horizontal"`）
 - 后端 422 的**字段级**那一句落回框上只有这一条路：`applyServerFieldErrors(form, serverFieldErrorTexts(error, locale, map))`，然后 `throw error`（交给 `submitForm`）。`map` 是「DTO 字段名 → 表单字段名」的**白名单**——没列的不落框（仍由全局 toast 讲），同名字段也要显式列；没有输入框的路径刻意不列（`Money` 是 `amount`+`currency` 一对列、界面上没有那一个框，落哪个都错）。数组路径认（key 就是注册字段名 `rows[1].priceText`），但**服务端下标不一定等于行号**：请求体按投影生成（库存模式丢掉未定价的行），map 要跟着投影算下标，见 `EditSkuDialog.tsx` 的 `skuServerFieldMap`——落错框比不落框糟，用户会去改一个没错的规格。不写 `setFieldMeta` 手写 `errorMap.onServer`：实测 1.33.5 在「表单级 validators + 字段无 validator」那个组合下改值清不掉它，`isValid` 永久 false，**用户改对了也提交不了**（回归用例在 `server-field-errors.test.tsx`）。
   弹窗要用这条通道还有个前置条件：**失败不关窗**——`onConfirm`/`onShip` 返回 promise、`await` 完再关，先关等于把表单一起卸载、那句话用户看不见。行内动作的 `useRowBusy.run()` 已把动作的 promise 原样透出（复位由兜底分支负责，所以发射即忘的调用点不会漏出 unhandledRejection）。
@@ -104,14 +104,14 @@ useMutation({
 
 为什么是这个形态（官方刻意不表态失效、全局回调先于逐点、不做 `useWriteMutation` 工厂的完整论证）见 query-convergence.md §3。
 
-`MutationMeta` 只有四个字段（`packages/app-kit/src/mutation-meta.ts`）：
+`MutationMeta` 只有四个字段（`packages/app-kit/src/data/mutation-meta.ts`）：
 
-| 字段          | 作用                                                           | 缺省行为                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `success`     | 成功提示文案                                                   | **不填即不提示**（「要不要提示」由有/无承载，所以没有 `silentSuccess`）                                                                                                                                                                                                                                                                                                      |
-| `error`       | 失败兜底文案                                                   | 命中 code 时弹 catalog 那句（i18n.md §7.3），轮不到它；它只在「拿不到响应**且没有码**」时顶上（`status === 0` 且非 SDK 拦截器产生的错误），没给则退 `appKit.error.network`。断网 / 超时 / 取消三族现在**有码**（`packages/common/src/client-failure.ts`），走 catalog，不再落到这一格。未登记 code 的错误：中文界面显后端 `detail`，其它语种按状态码取 `appKit.error.*` 那句 |
-| `silentError` | 该写操作自己渲染/吞掉错误（表单内联报错、会话终结）            | 一律弹全局失败提示                                                                                                                                                                                                                                                                                                                                                           |
-| `invalidates` | 这份回执让哪些查询失效（**真实 query key**，前缀匹配一发命中） | 不失效任何缓存                                                                                                                                                                                                                                                                                                                                                               |
+| 字段          | 作用                                                           | 缺省行为                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `success`     | 成功提示文案                                                   | **不填即不提示**（「要不要提示」由有/无承载，所以没有 `silentSuccess`）                                                                                                                                                                                                                                                                                                               |
+| `error`       | 失败兜底文案                                                   | 命中 code 时弹 catalog 那句（i18n.md §7.3），轮不到它；它只在「拿不到响应**且没有码**」时顶上（`status === 0` 且非 SDK 拦截器产生的错误），没给则退 `appKit.error.network`。断网 / 超时 / 取消三族现在**有码**（`packages/common/src/contract/client-failure.ts`），走 catalog，不再落到这一格。未登记 code 的错误：中文界面显后端 `detail`，其它语种按状态码取 `appKit.error.*` 那句 |
+| `silentError` | 该写操作自己渲染/吞掉错误（表单内联报错、会话终结）            | 一律弹全局失败提示                                                                                                                                                                                                                                                                                                                                                                    |
+| `invalidates` | 这份回执让哪些查询失效（**真实 query key**，前缀匹配一发命中） | 不失效任何缓存                                                                                                                                                                                                                                                                                                                                                                        |
 
 写新写操作时的四条硬规矩：
 
@@ -205,7 +205,7 @@ useMutation({
 - **一栏/一条列「存不存在」由异步数据决定时，首帧就得占好位。** 参考实现是工作台侧栏：`WorkbenchSidebar` 的 `pending` 为真时**两列照常渲染、列内出骨架**，而不是先渲染窄壳、权限回来再插 176px 的二级列。占位与实物共用同一组几何常量（`RAIL_*` / `PANEL_*`），所以宽度与行高不可能对不上；骨架行与真实行同 pitch，替换时 y 不变——于是「最终有几条菜单、什么时候到」都不影响结果。
   反面两条别用：给内容列加 `transition` 是把位移变慢而不是消除；在 `beforeLoad` 里等那份数据会把一次 RTT 串在页面取数之前，拖的是 LCP。
   `pending` 的判据要跟着「这栏到底会不会存在」收敛（admin = 已登录 + 首份 me 未落地 + 未失败）：未登录和 me 失败都不该占出一条永远不会出现的列。
-  不变量由测试钉住：`packages/app-kit/src/workbench/sidebar.test.tsx`（pending 帧列宽 == 落地后列宽）、`apps/admin/src/layout/app-sidebar.test.tsx`（装配层判据）、`apps/admin/src/layout/nav.test.ts`（入口全是分组——这是「两列都占」的前提，加了顶层叶子入口就要改成按路由判定）。
+  不变量由测试钉住：`packages/app-kit/src/shell/workbench/sidebar.test.tsx`（pending 帧列宽 == 落地后列宽）、`apps/admin/src/layout/app-sidebar.test.tsx`（装配层判据）、`apps/admin/src/layout/nav.test.ts`（入口全是分组——这是「两列都占」的前提，加了顶层叶子入口就要改成按路由判定）。
 
 图这类「固有尺寸晚到」的东西属于同一判据的另一半：`Image` 该带 `ratio` 或 `width`+`height`。它现在不再能推动版心（宽度由版心自己声明了），但仍决定它自己那块的高度，而且是 LCP 的一条。
 
@@ -323,7 +323,7 @@ Vitest 自己报的耗时分布说清了瓶颈在哪：**import 58% + environmen
 
 ### 两个坑：一个已修，一个还在
 
-- ~~`vitest related` 在本仓库静默漏跑~~ **Vite+ 之后可用了**：它反查模块图时走的是 vite-plus 的 `tsconfigPaths` 解析，`#/` 别名不再是瞎的（实测 `apps/seller/src/shop/constants.ts` → 拉起只通过 `#/shop/constants` 引它的 `shop-form.test.ts`；`apps/seller/src/product/queries.ts` → 3 个文件；`packages/common/src/money.ts` → 73 个文件，那基本等于全量）。所以 `pnpm exec vp test related <文件>` 现在是条 dependable 的快路径——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径**，先确认文件存在。
+- ~~`vitest related` 在本仓库静默漏跑~~ **Vite+ 之后可用了**：它反查模块图时走的是 vite-plus 的 `tsconfigPaths` 解析，`#/` 别名不再是瞎的（实测 `apps/seller/src/shop/constants.ts` → 拉起只通过 `#/shop/constants` 引它的 `shop-form.test.ts`；`apps/seller/src/product/queries.ts` → 3 个文件；`packages/common/src/domain/money.ts` → 73 个文件，那基本等于全量）。所以 `pnpm exec vp test related <文件>` 现在是条 dependable 的快路径——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径**，先确认文件存在。
 - **`--changed` 是相对主干算的**：本仓库当前分支离主干较远时它≈全量（Vitest 4 时代实测拉起过全部文件），只在「分支短且已 rebase」时才有意义。
 
 其余已知事实：
@@ -358,7 +358,7 @@ Vitest 自己报的耗时分布说清了瓶颈在哪：**import 58% + environmen
 
 - **必测**：换算/状态机等决策逻辑（含边界与兜底）、wire→领域投影映射、表单流与请求体、bug 回归
 - **不测**：纯类型、纯透传 re-export、zod schema 字段罗列（SDK 生成物自带校验）；快照测试一律不用
-- **库行为不逐组件复制**：基建组件在其所在包测一次（如 `QueryBoundary` 的「失败 → 块级错误 + 重试」链路，见 `packages/app-kit/src/query-boundary.test.tsx`），业务组件不再复制同款三态用例；业务组件只测自己的差异化逻辑（如 `navTitle` 宽度预算截断）。纯展示型状态分支靠 business-rules 条目承载，值不上测试行数的不写
+- **库行为不逐组件复制**：基建组件在其所在包测一次（如 `QueryBoundary` 的「失败 → 块级错误 + 重试」链路，见 `packages/app-kit/src/data/query-boundary.test.tsx`），业务组件不再复制同款三态用例；业务组件只测自己的差异化逻辑（如 `navTitle` 宽度预算截断）。纯展示型状态分支靠 business-rules 条目承载，值不上测试行数的不写
 - 心智标准：这个分支里若藏着一个错的映射/反的布尔/漏掉的兜底，测试能不能红？能红才写
 
 ### 已知坑

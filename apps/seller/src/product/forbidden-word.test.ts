@@ -1,4 +1,4 @@
-import { ErrorCodes } from "@shop/common"
+import { ErrorCodes } from "@shop/common/contract"
 import { describe, expect, it } from "vite-plus/test"
 
 import { parseForbiddenWordError } from "./forbidden-word"

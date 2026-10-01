@@ -8,8 +8,7 @@ import type {
 } from "@shop/api/sdk"
 import { CategoriesApi, ProductsAdminApi } from "@shop/api/sdk"
 
-import { toApiError, type ApiError } from "@shop/common"
-
+import { toApiError, type ApiError } from "@shop/common/contract"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 
 import { flattenLeafPaths, type LeafPath } from "#/product/category"

@@ -1,4 +1,4 @@
-import { money } from "@shop/common"
+import { money } from "@shop/common/domain"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { describe, expect, it } from "vite-plus/test"

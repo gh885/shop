@@ -2,8 +2,7 @@ import { BellIcon, BookOpenIcon, CircleHelpIcon, HeadsetIcon, LogOutIcon } from 
 import { useNavigate } from "@tanstack/react-router"
 import { useMutation } from "@tanstack/react-query"
 import { Button, Spinner } from "@shop/ui-web"
-import { WorkbenchAccount, WorkbenchTopBar, WorkbenchTopBarAction } from "@shop/app-kit"
-
+import { WorkbenchAccount, WorkbenchTopBar, WorkbenchTopBarAction } from "@shop/app-kit/shell"
 import { useT } from "#/locales/use-t"
 import { logout } from "#/shared/lib/api"
 import { useClearMe, useMe } from "#/shared/lib/me"

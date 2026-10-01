@@ -8,7 +8,7 @@ import {
     DataTableSkeleton,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
-import { paginationSearchSchema } from "@shop/app-kit"
+import { paginationSearchSchema } from "@shop/app-kit/data"
 import { z } from "zod"
 
 import { OrderTable, type OrderIdentity } from "#/order/list/table"

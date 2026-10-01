@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil } from "lucide-react"
 
-import { formatDateTime, useI18n } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     Badge,
     Button,
@@ -16,7 +17,7 @@ import {
     TooltipTrigger,
 } from "@shop/ui-web"
 
-import { priceRangeText } from "@shop/common"
+import { priceRangeText } from "@shop/common/domain"
 import type { ProductResponse } from "@shop/api/sdk"
 import { cn } from "@shop/ui-web"
 

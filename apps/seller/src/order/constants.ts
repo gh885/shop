@@ -1,5 +1,4 @@
-import { statusOptions } from "@shop/common"
-
+import { statusOptions } from "@shop/common/domain"
 import type {
     AfterSaleReason,
     AfterSaleStatus,

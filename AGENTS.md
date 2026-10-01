@@ -97,7 +97,7 @@ cd apps/server && mvn spring-boot:run   # 单独起后端（mvn compile / spotle
 > 判据改版已落地（[docs/conventions/i18n.md](docs/conventions/i18n.md) §7.3）：文案归前端 catalog，`detail` 降级为中文界面那一格的兜底 + 日志。句子装不下关键值时走**字段级参数通道**（ProblemDetail 扩展属性 `errors` = `[{ field, message, value? }]`，前端对边是 `packages/common` 的 `ApiFieldError`）——值作为数据出一次，不写进中文句子让前端正则捞；`FORBIDDEN_WORD_HIT` 已按这条退出；**detail 优先的例外清单已于 2026-10 清空**（`ADDRESS_LIMIT_EXCEEDED` / `MERCHANT_ADDRESS_LIMIT_EXCEEDED` 改走 `params` 通道，上限数字作为数据出、前端 catalog 用 `{limit}` 槽位接，后端改数字前端零改动）。没有对应字段可定位的码用 `params`（`ApiError.params`，标量白名单），有字段的用 `errors`；槽位映射写在 `error-keys.ts` 的 `CODE_SLOTS`，`error-keys.test.ts` 双向核，且**槽位没填上不许印裸 `{limit}`**（退回按 locale 的兜底并上报）。code 的生命周期与兼容性规则、HTTP 状态码选择依据、`detail` 的对外口径见 `docs/error-codes.md` 头部。还欠的两件（`error_fallback` 上报的接收端与「按频次升级」的例行、422 校验族参数化）记在 `docs/error-codes.md` 头部与 `TODO.md`。
 
 - Java 侧抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（`ErrorCodeVocabularyTest` 核对**四边**：Java 常量集合 ⇄ 该表 Code 列 ⇄ TS `ErrorCodes` 键集合 ⇄ 两份 `error.json` 的 `error.<CODE>`（每码每语言恰有一条、非空），且每处抛码站点由出口推出的状态码 ⇄ 该表 HTTP 列——改任何一边忘了另一边就红；TS 侧另有 `error-keys.ts` 的 `satisfies` 在编译期拦同一件事）
-- TS 侧同步到 `packages/common/src/error-codes.ts`，code 用 `SCREAMING_SNAKE_CASE`
+- TS 侧同步到 `packages/common/src/contract/error-codes.ts`，code 用 `SCREAMING_SNAKE_CASE`
 - 前端能用 status 区分的（401/403/404）不加 code——**前提是那句用户可见文案由状态码那条通道自己出**（404 页、错误边界、未登录跳转）；被 Zod 拦住的校验错误由 422 的 `errors` 列表承载，同理
 
 ## 数据库与 Redis（默认在云主机）

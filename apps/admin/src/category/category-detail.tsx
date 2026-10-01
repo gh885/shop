@@ -2,7 +2,8 @@ import { useState } from "react"
 import type { CategoryNode } from "@shop/api/sdk"
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from "lucide-react"
 
-import { serverFieldErrorTexts, useI18n } from "@shop/app-kit"
+import { serverFieldErrorTexts } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import {
     Badge,
     Button,

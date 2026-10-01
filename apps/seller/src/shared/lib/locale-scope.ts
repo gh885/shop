@@ -1,6 +1,4 @@
-import { createLocaleScope } from "@shop/app-kit"
-
-/**
+import { createLocaleScope } from "@shop/app-kit/i18n" /**
  * 本端的 Locale 持有者：全应用就这一个实例，在装配处创建（§3.5 约束 3 的第二档）。
  *
  * 三个消费者必须是同一个值，否则「界面语言」与「请求头语言」会各说各的：

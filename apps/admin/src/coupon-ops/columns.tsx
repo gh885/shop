@@ -1,5 +1,5 @@
-import { TimeText } from "@shop/app-kit"
-import { formatMoney } from "@shop/common"
+import { TimeText } from "@shop/app-kit/display"
+import { formatMoney } from "@shop/common/domain"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { AdminCouponItem } from "@shop/api/sdk"
 import type { ColumnDef } from "@tanstack/react-table"

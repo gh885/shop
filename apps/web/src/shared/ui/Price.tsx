@@ -1,4 +1,4 @@
-import { type Money, splitMoney } from "@shop/common"
+import { type Money, splitMoney } from "@shop/common/domain"
 import { cn } from "@shop/ui-web"
 
 /**

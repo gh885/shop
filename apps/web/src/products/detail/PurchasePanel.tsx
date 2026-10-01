@@ -11,8 +11,7 @@ import {
     cn,
 } from "@shop/ui-web"
 
-import { formatMoney } from "@shop/common"
-
+import { formatMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
 import type { ProductDetail } from "../product"
 import {

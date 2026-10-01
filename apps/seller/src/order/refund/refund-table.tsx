@@ -1,8 +1,8 @@
 import type { SellerTicketItem } from "@shop/api/sdk"
 import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
-import { formatMoney } from "@shop/common"
-import { formatDateTime, useI18n } from "@shop/app-kit"
-
+import { formatMoney } from "@shop/common/domain"
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import { TICKET_REASON_LABEL, TICKET_STATUS_META, TICKET_TYPE_LABEL } from "#/order/constants"
 import { REFUND_ACTION_LABEL, refundRowActions, type RefundRowAction } from "#/order/refund/model"
 import { CopyableText } from "#/shared/ui/CopyableText"

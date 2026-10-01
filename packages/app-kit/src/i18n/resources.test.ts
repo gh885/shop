@@ -1,4 +1,4 @@
-import type { AppLocale } from "@shop/common"
+import type { AppLocale } from "@shop/common/i18n"
 import { describe, expect, it } from "vite-plus/test"
 
 import { APP_KIT_MESSAGES } from "./messages"

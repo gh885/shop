@@ -29,15 +29,11 @@ import {
 import { getDeviceId } from "#/shared/api/auth"
 import { DeletionCard, deviceKeys, devicesOptions, isMobileDeviceName } from "#/account"
 import { useT } from "#/locales/use-t"
-import {
-    errorText,
-    formatTimeShort,
-    serverFieldErrorTexts,
-    submitForm,
-    useI18n,
-    usePasswordVisibility,
-} from "@shop/app-kit"
-import { toApiError } from "@shop/common"
+import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { formatTimeShort } from "@shop/app-kit/display"
+import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { usePasswordVisibility } from "@shop/app-kit/auth"
+import { toApiError } from "@shop/common/contract"
 import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"

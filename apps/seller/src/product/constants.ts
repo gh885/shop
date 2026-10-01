@@ -1,5 +1,4 @@
-import { statusOptions } from "@shop/common"
-
+import { statusOptions } from "@shop/common/domain"
 import type { SkuEditKind } from "./draft-model"
 import type { ProductStatus } from "@shop/api/sdk"
 

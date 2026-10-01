@@ -1,6 +1,4 @@
-import { maskPhone } from "@shop/common"
-
-/** 页脚收货行：「收 张三, 138****0000, 浙江省杭州市…」（手机号掩码，姓名与地址全给——这是买家自己的单） */
+import { maskPhone } from "@shop/common/domain" /** 页脚收货行：「收 张三, 138****0000, 浙江省杭州市…」（手机号掩码，姓名与地址全给——这是买家自己的单） */
 export interface ReceiverLineProps {
     receiverName: string
     receiverPhone: string

@@ -14,7 +14,8 @@ import {
     Skeleton,
 } from "@shop/ui-web"
 import { MessageSquareOff } from "lucide-react"
-import { formatDateTime, useI18n } from "@shop/app-kit"
+import { formatDateTime } from "@shop/app-kit/display"
+import { useI18n } from "@shop/app-kit/i18n"
 import { imgUrl } from "#/shared/lib/image"
 import { RATING_LABEL, REVIEW_PAGE_SIZE } from "./constants"
 import { Stars } from "./ReviewDialog"

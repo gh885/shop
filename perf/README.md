@@ -54,7 +54,7 @@ LCP 短、JS 少，能拿个很好看的分。**这是本项目最容易被忽�
 
 进去的链路比想象的绕，三条各自都是踩出来的：
 
-1. **access token 只在内存里**（`packages/common/src/auth-kit.ts` 的模块级变量），刷新页面就没了，
+1. **access token 只在内存里**（`packages/common/src/contract/auth-kit.ts` 的模块级变量），刷新页面就没了，
    靠 `beforeLoad` 拿 httpOnly 的 refresh cookie 换回来。所以能给的入场券只有那枚 cookie。
 2. **Lighthouse 的 `extraHeaders` 装饰的是它自己发的请求**，页面里那个 `POST /auth/refresh` 是浏览器的 fetch，
    不带它——实测加了 header 仍然停在登录页。唯一走得通的口子是往 Chrome 的 cookie jar 里塞：
@@ -94,7 +94,7 @@ LCP 短、JS 少，能拿个很好看的分。**这是本项目最容易被忽�
   5856 / 1960 / 1959ms，管理端审核台 3769 / 1510 / 1507ms。中位数正是为此而取；`--samples 1` 量工作台
   会拿到一个比真值慢三倍的数。
 - **图片走 picsum.photos 外链**，Lighthouse 真去公网取图，网络抖一下 LCP 就抖。但**这两条外链不是一个来源，缓解路径也不同**：
-    - 首页与商详的图来自 `seed:demo` 的商品行（完整 URL）。`imgUrl` 对已是完整 URL 的输入原样返回（`packages/app-kit/src/image.ts:37`），所以外链一路透到浏览器。这条在 **LCP** 上属于「实验室自己的影子」——prod 的 Flyway 只加载 `db/migration`，不含 `db/seed`（`application-prod.yml`），真图是相对 key 拼 CDN 域名，换对象存储后自然缓解。但**同一批图的固有尺寸晚到曾是首页 CLS 0.226 的扳机，那一条不是实验室影子**：换成自家 CDN 也一样要在图落地那一刻重排，区别只是窗口大小（机制见下「两条位移：定性 → 修掉 → 复测」；修的是版心自己声明宽度，所以图落地不再推动版心，但固有尺寸本身仍是 LCP 议题）。
+    - 首页与商详的图来自 `seed:demo` 的商品行（完整 URL）。`imgUrl` 对已是完整 URL 的输入原样返回（`packages/app-kit/src/display/image.ts:37`），所以外链一路透到浏览器。这条在 **LCP** 上属于「实验室自己的影子」——prod 的 Flyway 只加载 `db/migration`，不含 `db/seed`（`application-prod.yml`），真图是相对 key 拼 CDN 域名，换对象存储后自然缓解。但**同一批图的固有尺寸晚到曾是首页 CLS 0.226 的扳机，那一条不是实验室影子**：换成自家 CDN 也一样要在图落地那一刻重排，区别只是窗口大小（机制见下「两条位移：定性 → 修掉 → 复测」；修的是版心自己声明宽度，所以图落地不再推动版心，但固有尺寸本身仍是 LCP 议题）。
     - `/welcome` 与 `/sell` 的图是**源码里硬编码的 picsum URL**（`apps/web/src/routes/welcome.tsx:70-74`、`routes/sell/index.tsx:97-139`），不走 `imgUrl`/`VITE_IMAGE_BASE_URL`。这条**换存储缓解不了**，要动的是那两个页面本身。而 `--pages welcome` 是唯一不依赖后端的一条，也是体积首屏探针（`probe: "/welcome"`）——它一旦在公网抖，最容易被误读成「构建变了」。
     - 口径：这三条外链只说明 LCP 的**抖动**，不说明它的**高低**（占位图 38–50KB，比真商品图小）；那两条 CLS 反过来，**换存储不会自己消失**——它们是改代码改掉的（见「两条位移：定性 → 修掉 → 复测」）。要归因到「首屏里该拆谁」用 `pnpm perf:attrib`，要归因到「哪一帧把谁推走了」用 `node scripts/perf-cls.mjs`，别拿外链页面的分数当代码证据。
 - 本地测量会把机器负载算进结果：**跨机器、跨时段不可比**，只和同机器的上一次与基线比。
@@ -213,7 +213,7 @@ admin 侧的判据是「已登录、且首份 me 没落地、且没失败」（`
 ## 位移不再靠人记着（回归闸）
 
 - `packages/common/src/page-shell-width.test.ts`：扫全仓所有 class 字符串（含 `@apply` 那一路），带 `mx-auto` + `max-w-*` 却没声明宽度的就点名。**它是拼写级的**——读 class 串不读计算样式，所以它保证的是「没人漏写」，不是「布局一定不塌」；兜住后者的是上面那条规则本身。
-- `packages/app-kit/src/workbench/sidebar.test.tsx`：pending 那一帧的列宽 == 权限落地后的列宽（jsdom 不排版，类名就是列宽的唯一真相）。
+- `packages/app-kit/src/shell/workbench/sidebar.test.tsx`：pending 那一帧的列宽 == 权限落地后的列宽（jsdom 不排版，类名就是列宽的唯一真相）。
 - `apps/admin/src/layout/app-sidebar.test.tsx`：装配层的判据——用一条可控延迟的 `me` 响应把 pending 帧钉住，再断言两列宽度不随权限到达而变。
 - `apps/admin/src/layout/nav.test.ts`：`NAV_ITEMS` 的入口全是分组、没有顶层叶子。这条是 `pending` 敢按「两列都占」的前提；哪天加了顶层叶子入口，占位就得改成按路由判定，这两条测试会先红。
 

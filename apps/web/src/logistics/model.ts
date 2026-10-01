@@ -1,7 +1,7 @@
 import { isValid } from "date-fns"
 
-import { formatDateTime, formatTimeShort } from "@shop/app-kit"
-import type { AppLocale } from "@shop/common"
+import { formatDateTime, formatTimeShort } from "@shop/app-kit/display"
+import type { AppLocale } from "@shop/common/i18n"
 import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/api/sdk"
 
 /**
